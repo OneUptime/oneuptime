@@ -187,7 +187,7 @@ describe("the sentences in the plan picker", () => {
       }),
     ).toEqual([
       "Your 3 API keys stop working on this plan.",
-      "Your 2 SCIM connections stop working on this plan.",
+      "Your 2 SCIM connections only remove people on this plan.",
     ]);
   });
 
@@ -199,7 +199,7 @@ describe("the sentences in the plan picker", () => {
       }),
     ).toEqual([
       "Your API key stops working on this plan.",
-      "Your SCIM connection stops working on this plan.",
+      "Your SCIM connection only removes people on this plan.",
     ]);
   });
 
@@ -211,7 +211,7 @@ describe("the sentences in the plan picker", () => {
       }),
     ).toEqual([
       "API keys stop working on this plan.",
-      "SCIM connections stop working on this plan.",
+      "SCIM connections only remove people on this plan.",
     ]);
     expect(
       getStopSentences({
@@ -220,7 +220,7 @@ describe("the sentences in the plan picker", () => {
       }),
     ).toEqual([
       "Your 2 API keys stop working on this plan.",
-      "SCIM connections stop working on this plan.",
+      "SCIM connections only remove people on this plan.",
     ]);
   });
 
@@ -230,7 +230,7 @@ describe("the sentences in the plan picker", () => {
         translator: english,
         stopped: { apiKeys: 0, scimConnections: 4 },
       }),
-    ).toEqual(["Your 4 SCIM connections stop working on this plan."]);
+    ).toEqual(["Your 4 SCIM connections only remove people on this plan."]);
     expect(
       getStopSentences({ translator: english, stopped: NO_PLAN_CUTOFF_COUNTS }),
     ).toEqual([]);
@@ -246,7 +246,7 @@ describe("the sentences about the plan the project is on", () => {
       }),
     ).toEqual([
       "Your 3 API keys stopped working on this plan. They work again on the Growth plan.",
-      "Your 2 SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the Scale plan.",
+      "Your 2 SCIM connections only remove people on this plan: your identity provider can no longer add or change people. They work fully again on the Scale plan.",
     ]);
   });
 
@@ -258,7 +258,7 @@ describe("the sentences about the plan the project is on", () => {
       }),
     ).toEqual([
       "Your API key stopped working on this plan. It works again on the Growth plan.",
-      "Your SCIM connection stopped working on this plan, so your identity provider no longer adds or removes people. It works again on the Scale plan.",
+      "Your SCIM connection only removes people on this plan: your identity provider can no longer add or change people. It works fully again on the Scale plan.",
     ]);
   });
 
@@ -269,7 +269,7 @@ describe("the sentences about the plan the project is on", () => {
         stopped: { apiKeys: null, scimConnections: 2 },
       }),
     ).toEqual([
-      "Your 2 SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the Scale plan.",
+      "Your 2 SCIM connections only remove people on this plan: your identity provider can no longer add or change people. They work fully again on the Scale plan.",
     ]);
   });
 
@@ -283,6 +283,6 @@ describe("the sentences about the plan the project is on", () => {
   });
 
   test("the note above them has a title", () => {
-    expect(PlanCutoffCopy.stoppedNoteTitle).toBe("Not working on this plan");
+    expect(PlanCutoffCopy.stoppedNoteTitle).toBe("Not included in this plan");
   });
 });

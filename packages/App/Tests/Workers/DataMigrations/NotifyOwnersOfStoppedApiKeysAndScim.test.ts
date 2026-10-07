@@ -97,11 +97,12 @@ describe("NotifyOwnersOfStoppedApiKeysAndScim", () => {
     > = jest
       .spyOn(PlanDowngradeOwnerNotice, "notifyProjectsAlreadyBelowPlan")
       .mockResolvedValue({
-        projects: 12,
+        projects: 13,
         told: 7,
         alreadyTold: 2,
         nothingStopped: 1,
         noPlan: 1,
+        noOwners: 1,
         failed: 1,
       });
 
@@ -111,11 +112,12 @@ describe("NotifyOwnersOfStoppedApiKeysAndScim", () => {
 
     const log: string = infoLogs.join("\n");
 
-    expect(log).toContain("12 project(s) with API keys or SCIM connections");
+    expect(log).toContain("13 project(s) with API keys or SCIM connections");
     expect(log).toContain("owners told for 7");
     expect(log).toContain("already told for 2");
     expect(log).toContain("nothing stopped for 1");
     expect(log).toContain("no plan for 1");
+    expect(log).toContain("no owners for 1");
     expect(log).toContain("could not be told for 1");
   });
 

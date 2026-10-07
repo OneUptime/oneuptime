@@ -110,7 +110,7 @@ describe("what an identity provider is told", () => {
 
   test("is one plain message", () => {
     expect(message).toBe(
-      "SCIM provisioning needs the Scale plan. This project's plan does not include it, so its SCIM connections can only remove people: requests that add or change people are refused. The connections are kept: upgrade the project to Scale in Project Settings > Billing and they work fully again.",
+      "SCIM provisioning needs the Scale plan. This project's plan does not include it, so its SCIM connections can only remove people: requests that add or change people or groups are refused. The connections are kept: upgrade the project to Scale in Project Settings > Billing and they work fully again.",
     );
   });
 
@@ -121,7 +121,9 @@ describe("what an identity provider is told", () => {
    */
   test("says removing people still works, and what is refused", () => {
     expect(message).toContain("can only remove people");
-    expect(message).toContain("requests that add or change people are refused");
+    expect(message).toContain(
+      "requests that add or change people or groups are refused",
+    );
     expect(message).not.toContain("stopped working");
   });
 

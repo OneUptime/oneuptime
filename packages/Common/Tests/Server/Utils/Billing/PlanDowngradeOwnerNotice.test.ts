@@ -19,6 +19,8 @@ import ApiKey from "../../../../Models/DatabaseModels/ApiKey";
 import ProjectSCIM from "../../../../Models/DatabaseModels/ProjectSCIM";
 import StatusPageSCIM from "../../../../Models/DatabaseModels/StatusPageSCIM";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import User from "../../../../Models/DatabaseModels/User";
+import Email from "../../../../Types/Email";
 import {
   afterAll,
   afterEach,
@@ -80,8 +82,9 @@ jest.mock("../../../../Server/EnvironmentConfig", () => {
  * project is on stops, in the same words; claimed by one conditional
  * UPDATE, so never twice; nothing at all with billing off.
  *
- * It is the owners' billing email (ProjectService.sendEmailToProjectOwners),
- * and it never throws.
+ * It is the owners' billing email (ProjectService.sendEmailToProjectOwners;
+ * the one-time notice waits for it, sendEmailToOwnersAndWait, as the migrate
+ * Job exits when it is done), and it never throws.
  */
 
 const PLAN_ENVIRONMENT: Record<string, string> = {
@@ -602,9 +605,37 @@ describe("the one-time notice to a project already below the plan", () => {
   let getCurrentPlan: ReturnType<typeof getJestSpyOn>;
   let claim: ReturnType<typeof getJestSpyOn>;
   let release: ReturnType<typeof getJestSpyOn>;
+  let getOwners: ReturnType<typeof getJestSpyOn>;
+  let sendAndWait: ReturnType<typeof getJestSpyOn>;
 
   // The plan getCurrentPlan answers with.
   let plan: PlanType | null = PlanType.Free;
+
+  const owner: (email: string) => User = (email: string): User => {
+    const user: User = new User(ObjectID.generate());
+    user.email = new Email(email);
+    return user;
+  };
+
+  const OWNERS: Array<User> = [
+    owner("owner@acme.example"),
+    owner("cto@acme.example"),
+  ];
+
+  // What the waited send was given, for the one email it sends.
+  const sent: () => {
+    projectId: ObjectID;
+    owners: Array<User>;
+    subject: string;
+    message: string;
+  } = () => {
+    return sendAndWait.mock.calls[0]![0] as {
+      projectId: ObjectID;
+      owners: Array<User>;
+      subject: string;
+      message: string;
+    };
+  };
 
   beforeEach(() => {
     plan = PlanType.Free;
@@ -622,6 +653,15 @@ describe("the one-time notice to a project already below the plan", () => {
       ProjectService,
       "releasePlanCutoffNotice",
     ).mockResolvedValue(undefined);
+    getOwners = getJestSpyOn(ProjectService, "getOwners").mockResolvedValue(
+      OWNERS,
+    );
+    sendAndWait = getJestSpyOn(
+      ProjectService,
+      "sendEmailToOwnersAndWait",
+    ).mockImplementation(async (data: unknown) => {
+      return (data as { owners: Array<User> }).owners.length;
+    });
   });
 
   const notify: () => Promise<PlanDowngradeNoticeOutcome> = async () => {
@@ -659,11 +699,12 @@ describe("the one-time notice to a project already below the plan", () => {
 
     expect(await notify()).toBe(PlanDowngradeNoticeOutcome.Told);
 
-    expect(sendEmail).toHaveBeenCalledTimes(1);
-    expect(String(sendEmail.mock.calls[0]![0])).toBe(PROJECT_ID.toString());
-    expect(sentSubject()).toBe("API keys stopped working in Acme Production");
+    expect(sendAndWait).toHaveBeenCalledTimes(1);
+    expect(String(sent().projectId)).toBe(PROJECT_ID.toString());
+    expect(sent().owners).toBe(OWNERS);
+    expect(sent().subject).toBe("API keys stopped working in Acme Production");
 
-    const html: string = sentHtml();
+    const html: string = sent().message;
 
     expect(html).toContain(
       "API keys and SCIM provisioning now work only on the plans that include them, and Acme Production is on the Free plan.",
@@ -680,20 +721,30 @@ describe("the one-time notice to a project already below the plan", () => {
     );
   });
 
+  test("never through the email that does not wait: the migrate Job would exit before it left", async () => {
+    has({ apiKeys: 2 });
+
+    await notify();
+
+    expect(sendEmail).not.toHaveBeenCalled();
+  });
+
   test("on Growth with SCIM connections: told SCIM only removes people now", async () => {
     plan = PlanType.Growth;
     has({ apiKeys: 4, projectScim: 1 });
 
     expect(await notify()).toBe(PlanDowngradeNoticeOutcome.Told);
 
-    expect(sentSubject()).toBe("SCIM stopped adding people in Acme Production");
-    expect(sentHtml()).toContain("Acme Production is on the Growth plan.");
-    expect(sentHtml()).toContain(
+    expect(sent().subject).toBe(
+      "SCIM stopped adding people in Acme Production",
+    );
+    expect(sent().message).toContain("Acme Production is on the Growth plan.");
+    expect(sent().message).toContain(
       "Your identity provider can still remove people from the project, so anyone who leaves loses their access as before, but it can no longer add people or change them until the project is on Scale.",
     );
     // Growth includes API keys: they are neither counted nor named.
     expect(apiKeyCount).not.toHaveBeenCalled();
-    expect(sentHtml()).not.toContain("API keys need");
+    expect(sent().message).not.toContain("API keys need");
   });
 
   test("on Free with both: one email names both", async () => {
@@ -701,13 +752,13 @@ describe("the one-time notice to a project already below the plan", () => {
 
     expect(await notify()).toBe(PlanDowngradeNoticeOutcome.Told);
 
-    expect(sendEmail).toHaveBeenCalledTimes(1);
-    expect(sentSubject()).toBe(
+    expect(sendAndWait).toHaveBeenCalledTimes(1);
+    expect(sent().subject).toBe(
       "API keys stopped working and SCIM stopped adding people in Acme Production",
     );
   });
 
-  test("the claim comes before the email, for this project, now", async () => {
+  test("the owners are read before the claim, and the claim comes before the email, for this project, now", async () => {
     has({ apiKeys: 1 });
 
     await notify();
@@ -718,9 +769,56 @@ describe("the one-time notice to a project already below the plan", () => {
 
     expect(String(claimed.projectId)).toBe(PROJECT_ID.toString());
     expect(claimed.now).toBeInstanceOf(Date);
-    expect(claim.mock.invocationCallOrder[0]!).toBeLessThan(
-      sendEmail.mock.invocationCallOrder[0]!,
+    expect(String(getOwners.mock.calls[0]![0])).toBe(PROJECT_ID.toString());
+    expect(getOwners.mock.invocationCallOrder[0]!).toBeLessThan(
+      claim.mock.invocationCallOrder[0]!,
     );
+    expect(claim.mock.invocationCallOrder[0]!).toBeLessThan(
+      sendAndWait.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  test("waits until the mail service has taken the emails before it answers", async () => {
+    has({ apiKeys: 1 });
+
+    let handOver: (delivered: number) => void = (): void => {
+      return undefined;
+    };
+    sendAndWait.mockImplementation(() => {
+      return new Promise<number>((resolve: (delivered: number) => void) => {
+        handOver = resolve;
+      });
+    });
+
+    let answered: boolean = false;
+    const outcome: Promise<PlanDowngradeNoticeOutcome> = notify().then(
+      (result: PlanDowngradeNoticeOutcome) => {
+        answered = true;
+        return result;
+      },
+    );
+
+    // Let every step before the send run.
+    for (let i: number = 0; i < 20; i++) {
+      await Promise.resolve();
+    }
+
+    expect(sendAndWait).toHaveBeenCalledTimes(1);
+    expect(answered).toBe(false);
+
+    handOver(2);
+
+    expect(await outcome).toBe(PlanDowngradeNoticeOutcome.Told);
+  });
+
+  test("a project with no owners - no accepted member of an owner team - is not claimed, and not told", async () => {
+    has({ apiKeys: 1 });
+    getOwners.mockResolvedValue([]);
+
+    expect(await notify()).toBe(PlanDowngradeNoticeOutcome.NoOwners);
+    expect(claim).not.toHaveBeenCalled();
+    expect(sendAndWait).not.toHaveBeenCalled();
+    expect(loggedErrors).not.toHaveBeenCalled();
   });
 
   test("owners told already - by a plan change, or an earlier run - are not told again", async () => {
@@ -728,7 +826,7 @@ describe("the one-time notice to a project already below the plan", () => {
     claim.mockResolvedValue(false);
 
     expect(await notify()).toBe(PlanDowngradeNoticeOutcome.AlreadyTold);
-    expect(sendEmail).not.toHaveBeenCalled();
+    expect(sendAndWait).not.toHaveBeenCalled();
   });
 
   test("a project on the plans its credentials need is not told, and not claimed", async () => {
@@ -737,7 +835,8 @@ describe("the one-time notice to a project already below the plan", () => {
 
     expect(await notify()).toBe(PlanDowngradeNoticeOutcome.NothingStopped);
     expect(claim).not.toHaveBeenCalled();
-    expect(sendEmail).not.toHaveBeenCalled();
+    expect(getOwners).not.toHaveBeenCalled();
+    expect(sendAndWait).not.toHaveBeenCalled();
   });
 
   test("a project below the plans with nothing left to stop - only expired keys - is not told", async () => {
@@ -745,7 +844,7 @@ describe("the one-time notice to a project already below the plan", () => {
 
     expect(await notify()).toBe(PlanDowngradeNoticeOutcome.NothingStopped);
     expect(claim).not.toHaveBeenCalled();
-    expect(sendEmail).not.toHaveBeenCalled();
+    expect(sendAndWait).not.toHaveBeenCalled();
   });
 
   test("a project with no plan to read - gone, or never given one - is below no plan", async () => {
@@ -773,11 +872,12 @@ describe("the one-time notice to a project already below the plan", () => {
 
     expect(await notify()).toBe(PlanDowngradeNoticeOutcome.NoPlan);
     expect(claim).not.toHaveBeenCalled();
+    expect(sendAndWait).not.toHaveBeenCalled();
   });
 
-  test("an email that cannot be queued gives the claim back, so a later run tells them", async () => {
+  test("when the mail service took none of the emails, the claim is given back, so running it again tells them", async () => {
     has({ apiKeys: 1 });
-    sendEmail.mockRejectedValue(new Error("owner lookup failed"));
+    sendAndWait.mockResolvedValue(0);
 
     expect(await notify()).toBe(PlanDowngradeNoticeOutcome.Failed);
 
@@ -792,13 +892,39 @@ describe("the one-time notice to a project already below the plan", () => {
     expect(loggedErrors).toHaveBeenCalledTimes(1);
   });
 
+  test("when it took some of them, the owners were told: the claim stays", async () => {
+    has({ apiKeys: 1 });
+    sendAndWait.mockResolvedValue(1);
+
+    expect(await notify()).toBe(PlanDowngradeNoticeOutcome.Told);
+    expect(release).not.toHaveBeenCalled();
+  });
+
+  test("a step that fails after the claim - the project's name - gives the claim back", async () => {
+    has({ apiKeys: 1 });
+    findProject.mockRejectedValue(new Error("connection reset"));
+
+    expect(await notify()).toBe(PlanDowngradeNoticeOutcome.Failed);
+    expect(sendAndWait).not.toHaveBeenCalled();
+    expect(release).toHaveBeenCalledTimes(1);
+  });
+
   test("a claim that cannot be given back is logged too, and never throws", async () => {
     has({ apiKeys: 1 });
-    sendEmail.mockRejectedValue(new Error("owner lookup failed"));
+    sendAndWait.mockResolvedValue(0);
     release.mockRejectedValue(new Error("connection reset"));
 
     expect(await notify()).toBe(PlanDowngradeNoticeOutcome.Failed);
     expect(loggedErrors).toHaveBeenCalledTimes(2);
+  });
+
+  test("an owner lookup that fails is a failure, before anything is claimed", async () => {
+    has({ apiKeys: 1 });
+    getOwners.mockRejectedValue(new Error("connection reset"));
+
+    expect(await notify()).toBe(PlanDowngradeNoticeOutcome.Failed);
+    expect(claim).not.toHaveBeenCalled();
+    expect(release).not.toHaveBeenCalled();
   });
 
   test("a count that fails is a failure, before anything is claimed", async () => {
@@ -817,8 +943,10 @@ describe("the one-time notice to a project already below the plan", () => {
 
     await notify();
 
-    expect(sentHtml()).not.toContain("<b>");
-    expect(sentHtml()).toContain("&lt;b&gt;Acme&lt;/b&gt; is on the Free plan.");
+    expect(sent().message).not.toContain("<b>");
+    expect(sent().message).toContain(
+      "&lt;b&gt;Acme&lt;/b&gt; is on the Free plan.",
+    );
   });
 });
 
@@ -875,6 +1003,7 @@ describe("the one-time notice, for every project that may be below the plan", ()
       alreadyTold: 0,
       nothingStopped: 0,
       noPlan: 0,
+      noOwners: 0,
       failed: 0,
     });
     expect(apiKeysFound).not.toHaveBeenCalled();
@@ -939,6 +1068,7 @@ describe("the one-time notice, for every project that may be below the plan", ()
       alreadyTold: 1,
       nothingStopped: 0,
       noPlan: 0,
+      noOwners: 0,
       failed: 1,
     });
   });
@@ -948,6 +1078,7 @@ describe("the one-time notice, for every project that may be below the plan", ()
     [PlanDowngradeNoticeOutcome.AlreadyTold, "alreadyTold"],
     [PlanDowngradeNoticeOutcome.NothingStopped, "nothingStopped"],
     [PlanDowngradeNoticeOutcome.NoPlan, "noPlan"],
+    [PlanDowngradeNoticeOutcome.NoOwners, "noOwners"],
     [PlanDowngradeNoticeOutcome.Failed, "failed"],
   ])(
     "an outcome of %s is counted as %s",

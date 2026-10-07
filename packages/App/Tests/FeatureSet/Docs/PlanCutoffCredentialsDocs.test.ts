@@ -67,7 +67,7 @@ describe("the API reference", () => {
 
   it("names the plan each needs", () => {
     expect(section).toContain(
-      "a project's API keys work only while the project is on **Growth** or above, and its SCIM connections - the project's own and its status pages' - only while it is on **Scale** or above.",
+      "a project's API keys work only while the project is on **Growth** or above, and its SCIM connections - the project's own and its status pages' - work fully only while it is on **Scale** or above.",
     );
   });
 
@@ -81,22 +81,26 @@ describe("the API reference", () => {
     expect(section).toContain(`\`${getApiKeysStoppedMessage("Growth")}\``);
   });
 
-  it("says SCIM is refused in the SCIM error format, and that deprovisioning stops too", () => {
+  it("says SCIM connections still remove people, and refuse in the SCIM error format whatever adds or changes people", () => {
     expect(section).toContain(
-      "Every SCIM request for one of its connections is refused with `402`, in the SCIM error format, so your identity provider shows why. That stops deprovisioning as well as provisioning",
+      "Its SCIM connections only remove people. Deactivating and deleting people, and removing them from groups, still work, so anyone who leaves still loses their access; every SCIM request that would add or change people or groups is refused with `402`, in the SCIM error format, so your identity provider shows why",
     );
+    expect(section).not.toContain("stops deprovisioning");
   });
 
   it("says nothing is deleted, an upgrade turns them back on as they are, and how soon", () => {
     expect(section).toContain("Nothing is deleted or switched off.");
     expect(section).toContain(
-      "they work again as they are as soon as the project is back on the plan: no new keys to make, nothing to set up again in your identity provider. A plan change takes effect within a minute.",
+      "they work fully again, as they are, as soon as the project is back on the plan: no new keys to make, nothing to set up again in your identity provider. A plan change takes effect within a minute.",
     );
   });
 
-  it("says where to see what stopped, and that owners are told", () => {
+  it("says where to see what stopped, that owners are told, and that owners already below the plans get one email", () => {
     expect(section).toContain(
-      "**Project Settings** > **Billing** names how many API keys and SCIM connections a lower plan stops, on each plan you can pick, and how many the project's plan has stopped; the project's owners get an email when a plan change stops them.",
+      "**Project Settings** > **Billing** names how many API keys a lower plan stops and how many SCIM connections it limits, on each plan you can pick, and what the project's plan has stopped; the project's owners get an email when a plan change stops them.",
+    );
+    expect(section).toContain(
+      "The owners of projects that were already below these plans when this started get one email saying what stopped and how to turn it back on.",
     );
   });
 
@@ -123,21 +127,45 @@ describe("the SCIM guide", () => {
     expect(section).toContain(`\`${getScimStoppedMessage("Scale")}\``);
   });
 
-  it("says deprovisioning stops, and to remove people by hand meanwhile", () => {
+  it("says the connections still remove people, so anyone who leaves still loses their access", () => {
     expect(section).toContain(
-      "That stops deprovisioning as well as provisioning: until the project is back on **Scale**, remove anyone who leaves from the project by hand.",
+      "the project's SCIM connections, and its status pages', only remove people, so anyone who leaves still loses their access",
+    );
+    expect(section).not.toContain("by hand");
+    expect(section).not.toContain("stops deprovisioning");
+  });
+
+  it("says exactly which requests still work, Okta's and Entra ID's forms included, and that a lookup creates no one", () => {
+    expect(section).toContain(
+      "**Still works:** deactivating a user (`active` set to `false`), deleting a user, removing members from a group (Entra ID's `Remove` on `members` with the members as its value, Okta's `remove` on `members[value eq \"...\"]`, or replacing the members with some of the ones the group has), deleting a group, and a `Bulk` request made only of `DELETE`s.",
+    );
+    expect(section).toContain("below the plan a lookup never creates anyone");
+  });
+
+  it("says what is refused, and that a request adding anyone is refused whole", () => {
+    expect(section).toContain(
+      "**Refused:** creating a user or a group, reactivating a user (`active` set to `true`), adding a member to a group, and changing only a user's email or name or a group's name.",
+    );
+    expect(section).toContain(
+      "A request that adds anyone is refused whole, even one that also removes people, as a SCIM `PATCH` is all or nothing.",
+    );
+  });
+
+  it("says a removal that also changes a profile goes through, and the profile stays", () => {
+    expect(section).toContain(
+      "**A removal that also changes a profile** - a deactivation that sends a new email or name, or a group update that removes members and renames the group - goes through, and leaves the email, name or group name as it is.",
     );
   });
 
   it("says the same token works again, with nothing to set up again", () => {
     expect(section).toContain(
-      "Upgrade to **Scale** and the connections work again as they are, with the same bearer token and nothing to set up again in your identity provider",
+      "Upgrade to **Scale** and the connections work fully again as they are, with the same bearer token and nothing to set up again in your identity provider",
     );
   });
 
   it("says what Okta and Entra ID do meanwhile", () => {
     expect(section).toContain(
-      "Okta lists the refusals among its provisioning errors, and Entra ID shows them in its provisioning logs and may quarantine a job that keeps failing - restart provisioning there after you upgrade.",
+      "Okta lists the refusals among its provisioning errors, and Entra ID shows them in its provisioning logs and may quarantine a job that keeps failing, which slows its syncs - removals too - to about once a day. Restart provisioning there after you upgrade, so the people added meanwhile are provisioned.",
     );
   });
 
@@ -196,10 +224,16 @@ describe("the upgrade notes", () => {
     ).replace(/\s+/g, " ");
 
     expect(section).toContain(
-      "**On OneUptime Cloud, API keys and SCIM stop working below their plan.**",
+      "**On OneUptime Cloud, API keys stop working below their plan, and SCIM only removes people.**",
     );
     expect(section).toContain(
       "Until now they kept working after a trial ended or the project moved to a lower plan.",
+    );
+    expect(section).toContain(
+      "SCIM still deactivates, deletes and removes people on every plan, so anyone who leaves still loses their access.",
+    );
+    expect(section).toContain(
+      "the owners of projects that were already below these plans get one email after this upgrade saying what stopped and how to turn it back on.",
     );
     expect(section).toContain("self-hosted installs (no plans) see no change.");
     expect(section).toContain(KEYS_LINK);
@@ -230,10 +264,10 @@ describe("the pricing page", () => {
       "What happens to API keys and SCIM if I move to a lower plan?",
     );
     expect(pricing).toContain(
-      "API keys need the Growth plan and SCIM provisioning needs the Scale plan. On a lower plan they stop working",
+      "API keys need the Growth plan and SCIM provisioning needs the Scale plan. On a lower plan, requests made with your API keys are refused, and your identity provider can only remove people through SCIM: adding or changing people is refused until you upgrade again.",
     );
     expect(pricing).toContain(
-      "Nothing is deleted &mdash; they work again as they are as soon as you are back on the plan.",
+      "Nothing is deleted &mdash; both work fully again as they are as soon as you are back on the plan.",
     );
   });
 });

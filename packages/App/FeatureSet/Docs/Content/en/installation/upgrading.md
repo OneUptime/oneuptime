@@ -448,11 +448,11 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   the REST API, Terraform, the CLI, MCP clients connected with an API key -
   is refused with `402` and a message that names the plan, and every SCIM
   request that would add or change people or groups is refused with `402`
-  in the SCIM error format. Deactivating, deleting and removing people
-  through SCIM keeps working on every plan, so anyone who leaves still
-  loses their access. Nothing is deleted: they work fully again as they are
-  as soon as the project is back on the plan, within a minute. The
-  project's owners get an email when a plan change stops them, and the
+  in the SCIM error format. SCIM still deactivates, deletes and removes
+  people on every plan, so anyone who leaves still loses their access.
+  Nothing is deleted: they work fully again as they are as soon as the
+  project is back on the plan, within a minute. The project's owners get
+  an email when a plan change stops them, and the
   owners of projects that were already below these plans get one email
   after this upgrade saying what stopped and how to turn it back on.
   **Project Settings** > **Billing** names how many a lower plan stops or

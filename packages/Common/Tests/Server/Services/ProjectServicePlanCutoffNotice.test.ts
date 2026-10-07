@@ -1,6 +1,22 @@
+import MailService from "../../../Server/Services/MailService";
 import ProjectService from "../../../Server/Services/ProjectService";
+import logger from "../../../Server/Utils/Logger";
+import User from "../../../Models/DatabaseModels/User";
+import EmptyResponseData from "../../../Types/API/EmptyResponse";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
+import Email from "../../../Types/Email";
+import EmailTemplateType from "../../../Types/Email/EmailTemplateType";
 import ObjectID from "../../../Types/ObjectID";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { getJestSpyOn } from "../../Spy";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
  * The project row's planCutoffNoticeSentAt: when its owners were last told
@@ -141,5 +157,192 @@ describe("the column", () => {
       project.getTableColumnMetadata("planCutoffNoticeSentAt")
         .hideColumnInDocumentation,
     ).toBe(true);
+  });
+});
+
+/*
+ * The owners' email for a notice that must know it went out: the one-time
+ * notice runs from the migrate Job, which exits as soon as its migrations
+ * return, so an email still on its way to the mail service would never
+ * leave. sendEmailToOwnersAndWait sends the same email the owners' billing
+ * notices send, waits for the mail service to take each one, and says how
+ * many it took.
+ */
+describe("ProjectService.sendEmailToOwnersAndWait", () => {
+  const ownerNamed: (email: string) => User = (email: string): User => {
+    const user: User = new User(ObjectID.generate());
+    user.email = new Email(email);
+    return user;
+  };
+
+  const alice: User = ownerNamed("alice@acme.example");
+  const bob: User = ownerNamed("bob@acme.example");
+
+  const taken: () => HTTPResponse<EmptyResponseData> = () => {
+    return new HTTPResponse<EmptyResponseData>(200, {}, {});
+  };
+
+  let sendMail: ReturnType<typeof getJestSpyOn>;
+  let loggedErrors: ReturnType<typeof getJestSpyOn>;
+
+  beforeEach(() => {
+    sendMail = getJestSpyOn(MailService, "sendMail").mockResolvedValue(
+      taken(),
+    );
+    loggedErrors = getJestSpyOn(logger, "error").mockImplementation(() => {
+      return undefined;
+    });
+  });
+
+  test("sends each owner the owners' billing email, and counts what the mail service took", async () => {
+    expect(
+      await ProjectService.sendEmailToOwnersAndWait({
+        projectId,
+        owners: [alice, bob],
+        subject: "API keys stopped working in Acme",
+        message: "The project&#39;s API key stopped working.",
+      }),
+    ).toBe(2);
+
+    expect(sendMail).toHaveBeenCalledTimes(2);
+
+    const [mail, options] = sendMail.mock.calls[0] as unknown as [
+      Record<string, unknown>,
+      Record<string, unknown>,
+    ];
+
+    expect(String(mail["toEmail"])).toBe("alice@acme.example");
+    expect(mail["templateType"]).toBe(EmailTemplateType.SimpleMessage);
+    expect(mail["subject"]).toBe("API keys stopped working in Acme");
+    expect(mail["isSubjectLiteral"]).toBe(true);
+    expect(mail["vars"]).toEqual({
+      subject: "API keys stopped working in Acme",
+      message: "The project&#39;s API key stopped working.",
+    });
+    expect(String(options["projectId"])).toBe(projectId.toString());
+    expect(String(options["userId"])).toBe(alice.id!.toString());
+    expect(
+      String(
+        (sendMail.mock.calls[1]![0] as unknown as { toEmail: unknown })
+          .toEmail,
+      ),
+    ).toBe("bob@acme.example");
+  });
+
+  test("answers only once every email has been handed over", async () => {
+    const handOvers: Array<() => void> = [];
+    sendMail.mockImplementation(() => {
+      return new Promise<HTTPResponse<EmptyResponseData>>(
+        (resolve: (response: HTTPResponse<EmptyResponseData>) => void) => {
+          handOvers.push(() => {
+            resolve(taken());
+          });
+        },
+      );
+    });
+
+    let answered: boolean = false;
+    const delivered: Promise<number> = ProjectService.sendEmailToOwnersAndWait(
+      {
+        projectId,
+        owners: [alice, bob],
+        subject: "s",
+        message: "m",
+      },
+    ).then((count: number) => {
+      answered = true;
+      return count;
+    });
+
+    for (let i: number = 0; i < 10; i++) {
+      await Promise.resolve();
+    }
+
+    // The first email is on its way, and the answer waits for it.
+    expect(sendMail).toHaveBeenCalledTimes(1);
+    expect(answered).toBe(false);
+
+    handOvers.shift()!();
+    for (let i: number = 0; i < 10; i++) {
+      await Promise.resolve();
+    }
+
+    // Then the second; the answer still waits.
+    expect(sendMail).toHaveBeenCalledTimes(2);
+    expect(answered).toBe(false);
+
+    handOvers.shift()!();
+
+    expect(await delivered).toBe(2);
+  });
+
+  test("an email the mail service refused is not counted, and is logged", async () => {
+    sendMail
+      .mockResolvedValueOnce(
+        new HTTPErrorResponse(500, { message: "SMTP is not set up" }, {}),
+      )
+      .mockResolvedValueOnce(taken());
+
+    expect(
+      await ProjectService.sendEmailToOwnersAndWait({
+        projectId,
+        owners: [alice, bob],
+        subject: "s",
+        message: "m",
+      }),
+    ).toBe(1);
+    expect(loggedErrors).toHaveBeenCalledTimes(1);
+    expect(String(loggedErrors.mock.calls[0]![0])).toContain(
+      "SMTP is not set up",
+    );
+  });
+
+  test("a mail service that cannot be reached is not counted, is logged, and never throws", async () => {
+    sendMail.mockRejectedValue(new Error("connect ECONNREFUSED"));
+
+    expect(
+      await ProjectService.sendEmailToOwnersAndWait({
+        projectId,
+        owners: [alice, bob],
+        subject: "s",
+        message: "m",
+      }),
+    ).toBe(0);
+    expect(sendMail).toHaveBeenCalledTimes(2);
+    expect(loggedErrors).toHaveBeenCalledTimes(2);
+  });
+
+  test("no owners: nothing is sent", async () => {
+    expect(
+      await ProjectService.sendEmailToOwnersAndWait({
+        projectId,
+        owners: [],
+        subject: "s",
+        message: "m",
+      }),
+    ).toBe(0);
+    expect(sendMail).not.toHaveBeenCalled();
+  });
+
+  test("the email that does not wait sends the same email", async () => {
+    getJestSpyOn(ProjectService, "getOwners").mockResolvedValue([alice]);
+
+    await ProjectService.sendEmailToProjectOwners(
+      projectId,
+      "API keys stopped working in Acme",
+      "The project&#39;s API key stopped working.",
+    );
+
+    expect(sendMail).toHaveBeenCalledTimes(1);
+    const [mail] = sendMail.mock.calls[0] as unknown as [
+      Record<string, unknown>,
+    ];
+
+    expect(mail["templateType"]).toBe(EmailTemplateType.SimpleMessage);
+    expect(mail["isSubjectLiteral"]).toBe(true);
+    expect(mail["vars"]).toEqual({
+      subject: "API keys stopped working in Acme",
+      message: "The project&#39;s API key stopped working.",
+    });
   });
 });

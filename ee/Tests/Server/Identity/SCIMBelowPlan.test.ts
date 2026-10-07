@@ -6,13 +6,15 @@ import {
   getScimMissingPlan,
   getScimRequestBelowPlan,
   isBulkOfDeletesOnly,
-  isScimGroupPatchOnlyARemoval,
-  isScimGroupReplaceOnlyARemoval,
-  isScimUserUpdateOnlyARemoval,
+  getScimGroupPatchBelowPlan,
+  getScimGroupReplaceBelowPlan,
+  getScimUserUpdateBelowPlan,
   planScimGroupPatch,
   SCIM_BELOW_PLAN_STATUS,
   ScimGroupPatchAction,
+  ScimGroupPatchBelowPlan,
   ScimRequestBelowPlan,
+  ScimUpdateBelowPlan,
   sendScimBelowPlanRefusal,
   setScimMissingPlan,
 } from "../../../Server/Identity/Utils/SCIMBelowPlan";
@@ -152,28 +154,45 @@ describe("at the door: what the route alone decides", () => {
   });
 });
 
-describe("a user update", () => {
+describe("a user update below the plan", () => {
   test.each([
-    [{ active: false, isEmailChanging: false, isNameChanging: false }, true],
-    [{ active: undefined, isEmailChanging: false, isNameChanging: false }, true],
-    [{ active: true, isEmailChanging: false, isNameChanging: false }, false],
-    [{ active: false, isEmailChanging: true, isNameChanging: false }, false],
-    [{ active: false, isEmailChanging: false, isNameChanging: true }, false],
-    [{ active: undefined, isEmailChanging: true, isNameChanging: false }, false],
-    [{ active: true, isEmailChanging: true, isNameChanging: true }, false],
+    // Taking access away goes through, whatever else it asks.
+    [{ active: false, isEmailChanging: false, isNameChanging: false }, "Removal"],
+    [{ active: false, isEmailChanging: true, isNameChanging: false }, "Removal"],
+    [{ active: false, isEmailChanging: false, isNameChanging: true }, "Removal"],
+    [{ active: false, isEmailChanging: true, isNameChanging: true }, "Removal"],
+    // Reactivating gives access, whatever else it asks.
+    [{ active: true, isEmailChanging: false, isNameChanging: false }, "Refused"],
+    [{ active: true, isEmailChanging: true, isNameChanging: true }, "Refused"],
+    // A profile change on its own.
+    [{ active: undefined, isEmailChanging: true, isNameChanging: false }, "Refused"],
+    [{ active: undefined, isEmailChanging: false, isNameChanging: true }, "Refused"],
+    [{ active: undefined, isEmailChanging: true, isNameChanging: true }, "Refused"],
+    // Nothing OneUptime keeps changes.
+    [{ active: undefined, isEmailChanging: false, isNameChanging: false }, "NoChange"],
   ])(
-    "%j only takes access away: %s",
+    "%j is %s",
     (
       update: {
         active: boolean | undefined;
         isEmailChanging: boolean;
         isNameChanging: boolean;
       },
-      expected: boolean,
+      expected: string,
     ) => {
-      expect(isScimUserUpdateOnlyARemoval(update)).toBe(expected);
+      expect(getScimUserUpdateBelowPlan(update)).toBe(
+        expected as ScimUpdateBelowPlan,
+      );
     },
   );
+
+  test("the verdicts are the three the handlers act on", () => {
+    expect(Object.values(ScimUpdateBelowPlan).sort()).toEqual([
+      "NoChange",
+      "Refused",
+      "Removal",
+    ]);
+  });
 });
 
 describe("a filtered members path", () => {
@@ -321,119 +340,147 @@ describe("a group PATCH, read as its handler applies it", () => {
   );
 });
 
-describe("whether a group PATCH only takes access away", () => {
-  const onlyRemoves: (
+describe("a group PATCH below the plan", () => {
+  const judge: (
     operations: Array<JSONObject>,
     current?: Array<string>,
     currentName?: string,
-  ) => Promise<{ result: boolean; reads: number }> = async (
+  ) => Promise<{
+    verdict: ScimUpdateBelowPlan;
+    kinds: Array<string>;
+    reads: number;
+  }> = async (
     operations: Array<JSONObject>,
     current: Array<string> = [ALICE, BOB],
     currentName: string = "Engineering",
-  ): Promise<{ result: boolean; reads: number }> => {
+  ): Promise<{
+    verdict: ScimUpdateBelowPlan;
+    kinds: Array<string>;
+    reads: number;
+  }> => {
     let reads: number = 0;
 
-    const result: boolean = await isScimGroupPatchOnlyARemoval({
-      actions: planScimGroupPatch(operations),
-      currentName,
-      getCurrentMemberIds: async (): Promise<Array<string>> => {
-        reads += 1;
-        return current;
+    const belowPlan: ScimGroupPatchBelowPlan = await getScimGroupPatchBelowPlan(
+      {
+        actions: planScimGroupPatch(operations),
+        currentName,
+        getCurrentMemberIds: async (): Promise<Array<string>> => {
+          reads += 1;
+          return current;
+        },
       },
-    });
+    );
 
-    return { result, reads };
+    return {
+      verdict: belowPlan.verdict,
+      kinds: belowPlan.actions.map((action: ScimGroupPatchAction): string => {
+        return action.kind;
+      }),
+      reads,
+    };
   };
 
-  test("removals do, and read no members", async () => {
+  test("removals go through, and read no members", async () => {
     expect(
-      await onlyRemoves([
+      await judge([
         { op: "remove", path: `members[value eq "${ALICE}"]` },
         { op: "Remove", path: "members", value: [{ value: BOB }] },
       ]),
-    ).toEqual({ result: true, reads: 0 });
+    ).toEqual({
+      verdict: ScimUpdateBelowPlan.Removal,
+      kinds: ["removeMembers", "removeMembers"],
+      reads: 0,
+    });
   });
 
-  test("an addition does not", async () => {
+  test("an addition is refused, and nothing of it is applied", async () => {
+    expect(
+      await judge([{ op: "add", path: "members", value: [{ value: CAROL }] }]),
+    ).toEqual({ verdict: ScimUpdateBelowPlan.Refused, kinds: [], reads: 0 });
+  });
+
+  test("an addition of someone already in the group is refused too: adding is never checked against the members", async () => {
+    expect(
+      await judge([{ op: "add", path: "members", value: [{ value: ALICE }] }]),
+    ).toEqual({ verdict: ScimUpdateBelowPlan.Refused, kinds: [], reads: 0 });
+  });
+
+  test("an addition that names no member adds no one: nothing changes", async () => {
     expect(
       (
-        await onlyRemoves([
-          { op: "add", path: "members", value: [{ value: CAROL }] },
-        ])
-      ).result,
-    ).toBe(false);
-  });
-
-  test("an addition of someone already in the group does not either: adding is never checked against the members", async () => {
-    expect(
-      await onlyRemoves([
-        { op: "add", path: "members", value: [{ value: ALICE }] },
-      ]),
-    ).toEqual({ result: false, reads: 0 });
-  });
-
-  test("an addition that names no member adds no one", async () => {
-    expect(
-      (
-        await onlyRemoves([
+        await judge([
           { op: "add", path: "members", value: [] },
           { op: "add", path: "members", value: [{ display: "no id" }] },
         ])
-      ).result,
-    ).toBe(true);
+      ).verdict,
+    ).toBe(ScimUpdateBelowPlan.NoChange);
   });
 
-  test("a replace with some of the members does, reading them once", async () => {
+  test("a replace with some of the members goes through, reading them once", async () => {
     expect(
-      await onlyRemoves([
+      await judge([
         { op: "replace", path: "members", value: [{ value: ALICE }] },
         { op: "replace", path: "members", value: [{ value: ALICE }] },
       ]),
-    ).toEqual({ result: true, reads: 1 });
+    ).toEqual({
+      verdict: ScimUpdateBelowPlan.Removal,
+      kinds: ["replaceMembers", "replaceMembers"],
+      reads: 1,
+    });
   });
 
-  test("a replace with no members at all does: it removes everyone", async () => {
-    expect(
-      (await onlyRemoves([{ op: "replace", path: "members", value: [] }]))
-        .result,
-    ).toBe(true);
-  });
-
-  test("a replace that names someone new does not", async () => {
+  test("a replace with the members the group has removes no one", async () => {
     expect(
       (
-        await onlyRemoves([
+        await judge([
+          {
+            op: "replace",
+            path: "members",
+            value: [{ value: BOB }, { value: ALICE }],
+          },
+        ])
+      ).verdict,
+    ).toBe(ScimUpdateBelowPlan.NoChange);
+  });
+
+  test("a replace with no members at all removes everyone", async () => {
+    expect(
+      (await judge([{ op: "replace", path: "members", value: [] }])).verdict,
+    ).toBe(ScimUpdateBelowPlan.Removal);
+  });
+
+  test("a replace that names someone new is refused", async () => {
+    expect(
+      (
+        await judge([
           {
             op: "replace",
             path: "members",
             value: [{ value: ALICE }, { value: CAROL }],
           },
         ])
-      ).result,
-    ).toBe(false);
+      ).verdict,
+    ).toBe(ScimUpdateBelowPlan.Refused);
   });
 
   test("ids compare in any case", async () => {
     expect(
       (
-        await onlyRemoves(
-          [
-            {
-              op: "replace",
-              path: "members",
-              value: [{ value: ALICE.toUpperCase() }],
-            },
-          ],
-          [ALICE],
-        )
-      ).result,
-    ).toBe(true);
+        await judge([
+          {
+            op: "replace",
+            path: "members",
+            value: [{ value: ALICE.toUpperCase() }],
+          },
+        ])
+      ).verdict,
+    ).toBe(ScimUpdateBelowPlan.Removal);
   });
 
-  test("a removal followed by a replace that puts the person back does not", async () => {
+  test("a removal followed by a replace that puts the person back is refused", async () => {
     expect(
       (
-        await onlyRemoves([
+        await judge([
           { op: "remove", path: `members[value eq "${ALICE}"]` },
           {
             op: "replace",
@@ -441,92 +488,185 @@ describe("whether a group PATCH only takes access away", () => {
             value: [{ value: ALICE }, { value: BOB }],
           },
         ])
-      ).result,
-    ).toBe(false);
+      ).verdict,
+    ).toBe(ScimUpdateBelowPlan.Refused);
   });
 
-  test("a replace followed by a replace naming someone the first dropped does not", async () => {
+  test("a replace followed by a replace naming someone the first dropped is refused", async () => {
     expect(
       (
-        await onlyRemoves([
+        await judge([
           { op: "replace", path: "members", value: [{ value: ALICE }] },
           { op: "replace", path: "members", value: [{ value: BOB }] },
         ])
-      ).result,
-    ).toBe(false);
+      ).verdict,
+    ).toBe(ScimUpdateBelowPlan.Refused);
   });
 
-  test("the group's own name, sent as it is, changes nothing", async () => {
+  test("an addition after a removal makes the whole PATCH refused: a PATCH is all or nothing", async () => {
     expect(
-      (
-        await onlyRemoves([
-          { op: "replace", path: "displayName", value: "Engineering" },
-        ])
-      ).result,
-    ).toBe(true);
+      await judge([
+        { op: "remove", path: `members[value eq "${ALICE}"]` },
+        { op: "add", path: "members", value: [{ value: CAROL }] },
+      ]),
+    ).toEqual({ verdict: ScimUpdateBelowPlan.Refused, kinds: [], reads: 0 });
   });
 
-  test("another name does not", async () => {
+  test("the group's own name, sent as it is, changes nothing, and is not applied", async () => {
+    expect(
+      await judge([
+        { op: "replace", path: "displayName", value: "Engineering" },
+      ]),
+    ).toEqual({ verdict: ScimUpdateBelowPlan.NoChange, kinds: [], reads: 0 });
+  });
+
+  test("another name, on its own, is refused", async () => {
+    expect(
+      (await judge([{ op: "replace", path: "displayName", value: "Platform" }]))
+        .verdict,
+    ).toBe(ScimUpdateBelowPlan.Refused);
+  });
+
+  test("another name alongside a removal: the removal goes through, the group keeps its name", async () => {
+    expect(
+      await judge([
+        { op: "replace", path: "displayName", value: "Platform" },
+        { op: "remove", path: `members[value eq "${ALICE}"]` },
+      ]),
+    ).toEqual({
+      verdict: ScimUpdateBelowPlan.Removal,
+      kinds: ["removeMembers"],
+      reads: 0,
+    });
+  });
+
+  test("another name alongside a replace that drops someone: the replace goes through, the name stays", async () => {
+    expect(
+      await judge([
+        { op: "replace", path: "members", value: [{ value: BOB }] },
+        { op: "replace", path: "displayName", value: "Platform" },
+      ]),
+    ).toEqual({
+      verdict: ScimUpdateBelowPlan.Removal,
+      kinds: ["replaceMembers"],
+      reads: 1,
+    });
+  });
+
+  test("another name alongside a removal that names no one is a rename on its own: refused", async () => {
     expect(
       (
-        await onlyRemoves([
+        await judge([
+          { op: "remove", path: "members", value: [] },
           { op: "replace", path: "displayName", value: "Platform" },
         ])
-      ).result,
-    ).toBe(false);
+      ).verdict,
+    ).toBe(ScimUpdateBelowPlan.Refused);
   });
 
-  test("an addition after a removal makes the whole PATCH not a removal", async () => {
+  test("another name alongside a replace that keeps everyone is a rename on its own: refused", async () => {
     expect(
       (
-        await onlyRemoves([
-          { op: "remove", path: `members[value eq "${ALICE}"]` },
-          { op: "add", path: "members", value: [{ value: CAROL }] },
+        await judge([
+          {
+            op: "replace",
+            path: "members",
+            value: [{ value: ALICE }, { value: BOB }],
+          },
+          { op: "replace", path: "displayName", value: "Platform" },
         ])
-      ).result,
-    ).toBe(false);
+      ).verdict,
+    ).toBe(ScimUpdateBelowPlan.Refused);
   });
 
-  test("operations its handler leaves alone change nothing", async () => {
+  test("another name alongside an addition is refused", async () => {
     expect(
-      await onlyRemoves([
+      (
+        await judge([
+          { op: "remove", path: `members[value eq "${ALICE}"]` },
+          { op: "replace", path: "displayName", value: "Platform" },
+          { op: "add", path: "members", value: [{ value: CAROL }] },
+        ])
+      ).verdict,
+    ).toBe(ScimUpdateBelowPlan.Refused);
+  });
+
+  test("operations its handler leaves alone change nothing, and are kept as they are", async () => {
+    expect(
+      await judge([
         { op: "replace", path: "externalId", value: "x" },
         { op: "replace", value: { displayName: "Okta rename" } },
       ]),
-    ).toEqual({ result: true, reads: 0 });
+    ).toEqual({
+      verdict: ScimUpdateBelowPlan.NoChange,
+      kinds: ["ignored", "ignored"],
+      reads: 0,
+    });
+  });
+
+  test("no operations at all change nothing", async () => {
+    expect(await judge([])).toEqual({
+      verdict: ScimUpdateBelowPlan.NoChange,
+      kinds: [],
+      reads: 0,
+    });
   });
 });
 
-describe("whether a group PUT only takes access away", () => {
+describe("a group PUT below the plan", () => {
   test.each([
-    ["its own name and some of its members", "Engineering", [{ value: ALICE }], true],
-    ["no name, some of its members", undefined, [{ value: BOB }], true],
-    ["an empty name, as no name", "", [{ value: BOB }], true],
-    ["its own name and no members: everyone goes", "Engineering", [], true],
-    ["no members key: everyone goes", "Engineering", undefined, true],
-    ["one member as an object", "Engineering", { value: ALICE }, true],
-    ["ids in another case", "Engineering", [{ value: ALICE.toUpperCase() }], true],
-    ["members without ids are ignored", "Engineering", [{ display: "x" }], true],
-    ["a new member", "Engineering", [{ value: ALICE }, { value: CAROL }], false],
-    ["another name", "Platform", [{ value: ALICE }], false],
+    ["its own name and some of its members", "Engineering", [{ value: ALICE }], "Removal"],
+    ["no name, some of its members", undefined, [{ value: BOB }], "Removal"],
+    ["an empty name, as no name", "", [{ value: BOB }], "Removal"],
+    ["its own name and no members: everyone goes", "Engineering", [], "Removal"],
+    ["no members key: everyone goes", "Engineering", undefined, "Removal"],
+    ["one member as an object", "Engineering", { value: ALICE }, "Removal"],
+    ["ids in another case", "Engineering", [{ value: ALICE.toUpperCase() }], "Removal"],
+    ["members without ids: everyone goes", "Engineering", [{ display: "x" }], "Removal"],
+    ["another name, dropping a member: the group keeps its name", "Platform", [{ value: ALICE }], "Removal"],
+    ["its own name and every member", "Engineering", [{ value: ALICE }, { value: BOB }], "NoChange"],
+    ["no name and every member, in another case", undefined, [{ value: BOB.toUpperCase() }, { value: ALICE }], "NoChange"],
+    ["another name and every member: a rename on its own", "Platform", [{ value: ALICE }, { value: BOB }], "Refused"],
+    ["a new member", "Engineering", [{ value: ALICE }, { value: CAROL }], "Refused"],
+    ["a new member, dropping another", "Engineering", [{ value: CAROL }], "Refused"],
+    ["a new member under another name", "Platform", [{ value: CAROL }], "Refused"],
   ])(
     "%s: %s",
     (
       _label: string,
       displayName: unknown,
       listedMembers: unknown,
-      expected: boolean,
+      expected: string,
     ) => {
       expect(
-        isScimGroupReplaceOnlyARemoval({
+        getScimGroupReplaceBelowPlan({
           displayName,
           currentName: "Engineering",
           listedMembers,
           currentMemberIds: [ALICE, BOB],
         }),
-      ).toBe(expected);
+      ).toBe(expected as ScimUpdateBelowPlan);
     },
   );
+
+  test("a group with no members: listing anyone is refused, listing no one changes nothing", () => {
+    expect(
+      getScimGroupReplaceBelowPlan({
+        displayName: "Engineering",
+        currentName: "Engineering",
+        listedMembers: [{ value: ALICE }],
+        currentMemberIds: [],
+      }),
+    ).toBe(ScimUpdateBelowPlan.Refused);
+    expect(
+      getScimGroupReplaceBelowPlan({
+        displayName: "Engineering",
+        currentName: "Engineering",
+        listedMembers: [],
+        currentMemberIds: [],
+      }),
+    ).toBe(ScimUpdateBelowPlan.NoChange);
+  });
 });
 
 describe("a member's user id", () => {

@@ -5,6 +5,8 @@ import PlanDowngradeOwnerNotice, {
   AlreadyBelowPlanNoticeSummary,
   PlanDowngradeNoticeOutcome,
 } from "../../../Server/Utils/Billing/PlanDowngradeOwnerNotice";
+import User from "../../../Models/DatabaseModels/User";
+import Email from "../../../Types/Email";
 import ObjectID from "../../../Types/ObjectID";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 import { DataSource } from "typeorm";
@@ -75,6 +77,10 @@ describePostgres("the plan cut-off notice on Postgres", () => {
   let database: DataSource;
   const savedPlanEnvironment: Record<string, string | undefined> = {};
   let sentTo: Array<{ projectId: string; subject: string; html: string }> = [];
+  // Projects whose owners' emails the mail service takes none of.
+  let undeliverable: Set<string> = new Set<string>();
+  // Projects with no owners (no accepted member of an owner team).
+  let ownerless: Set<string> = new Set<string>();
 
   beforeAll(async () => {
     for (const key of Object.keys(process.env)) {
@@ -145,24 +151,52 @@ describePostgres("the plan cut-off notice on Postgres", () => {
 
   beforeEach(() => {
     sentTo = [];
+    undeliverable = new Set<string>();
+    ownerless = new Set<string>();
     setTestBillingEnabled(true);
 
+    // Owners live in team tables this suite does not copy.
     jest
-      .spyOn(ProjectService, "sendEmailToProjectOwners")
+      .spyOn(ProjectService, "getOwners")
+      .mockImplementation(async (projectId: ObjectID): Promise<Array<User>> => {
+        if (ownerless.has(projectId.toString().toLowerCase())) {
+          return [];
+        }
+
+        const owner: User = new User(ObjectID.generate());
+        owner.email = new Email("owner@acme.example");
+        return [owner];
+      });
+
+    jest
+      .spyOn(ProjectService, "sendEmailToOwnersAndWait")
       .mockImplementation(
-        async (
-          projectId: ObjectID,
-          subject: string,
-          html: string,
-        ): Promise<void> => {
-          sentTo.push({ projectId: projectId.toString(), subject, html });
+        async (data: {
+          projectId: ObjectID;
+          owners: Array<User>;
+          subject: string;
+          message: string;
+        }): Promise<number> => {
+          if (undeliverable.has(data.projectId.toString().toLowerCase())) {
+            return 0;
+          }
+
+          sentTo.push({
+            projectId: data.projectId.toString(),
+            subject: data.subject,
+            html: data.message,
+          });
+          return data.owners.length;
         },
       );
   });
 
   afterEach(() => {
     (
-      ProjectService.sendEmailToProjectOwners as unknown as jest.SpyInstance
+      ProjectService.getOwners as unknown as jest.SpyInstance
+    ).mockRestore();
+    (
+      ProjectService.sendEmailToOwnersAndWait as unknown as jest.SpyInstance
     ).mockRestore();
   });
 
@@ -396,6 +430,7 @@ describePostgres("the plan cut-off notice on Postgres", () => {
         alreadyTold: 1,
         nothingStopped: 1,
         noPlan: 2,
+        noOwners: 0,
         failed: 0,
       });
 
@@ -480,6 +515,50 @@ describePostgres("the plan cut-off notice on Postgres", () => {
         }),
       ).toHaveLength(1);
       expect(sentTo).toHaveLength(1);
+    });
+
+    test("a project whose owners' emails all fail is given back on the row, and the next run tells them", async () => {
+      const projectId: ObjectID = await seedProject({ plan: "Free" });
+      await seedApiKey(projectId, 30);
+      undeliverable.add(projectId.toString().toLowerCase());
+
+      expect(
+        await PlanDowngradeOwnerNotice.notifyIfAlreadyBelowPlan({ projectId }),
+      ).toBe(PlanDowngradeNoticeOutcome.Failed);
+      expect(await toldAt(projectId)).toBeNull();
+
+      // The mail service is back: running it again tells them, once.
+      undeliverable.clear();
+
+      expect(
+        await PlanDowngradeOwnerNotice.notifyIfAlreadyBelowPlan({ projectId }),
+      ).toBe(PlanDowngradeNoticeOutcome.Told);
+      expect(await toldAt(projectId)).not.toBeNull();
+      expect(sentTo).toHaveLength(1);
+
+      expect(
+        await PlanDowngradeOwnerNotice.notifyIfAlreadyBelowPlan({ projectId }),
+      ).toBe(PlanDowngradeNoticeOutcome.AlreadyTold);
+      expect(sentTo).toHaveLength(1);
+    });
+
+    test("a project with no owners is left unclaimed, so a run after an owner joins tells them", async () => {
+      const projectId: ObjectID = await seedProject({ plan: "Growth" });
+      await seedScim(projectId, "ProjectSCIM");
+      ownerless.add(projectId.toString().toLowerCase());
+
+      expect(
+        await PlanDowngradeOwnerNotice.notifyIfAlreadyBelowPlan({ projectId }),
+      ).toBe(PlanDowngradeNoticeOutcome.NoOwners);
+      expect(await toldAt(projectId)).toBeNull();
+      expect(sentTo).toEqual([]);
+
+      ownerless.clear();
+
+      expect(
+        await PlanDowngradeOwnerNotice.notifyIfAlreadyBelowPlan({ projectId }),
+      ).toBe(PlanDowngradeNoticeOutcome.Told);
+      expect(await toldAt(projectId)).not.toBeNull();
     });
 
     test("billing off reads nothing and sends nothing", async () => {
