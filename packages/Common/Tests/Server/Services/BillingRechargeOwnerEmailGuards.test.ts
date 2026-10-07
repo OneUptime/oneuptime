@@ -790,6 +790,10 @@ describe("sibling low-balance and not-enabled owner emails stay guarded", () => 
     "TelegramService.ts",
   ];
 
+  // An update that sets the low-balance flag itself, after reading it.
+  const LOW_BALANCE_FLAG_WRITE: RegExp =
+    /data:\s*\{\s*lowCallAndSMSBalanceNotificationSentToOwners:\s*true/;
+
   test.each(FILE_NAMES)(
     "%s guards every owner email behind a project flag",
     (fileName: string) => {
@@ -803,10 +807,18 @@ describe("sibling low-balance and not-enabled owner emails stay guarded", () => 
         "await ProjectService.sendEmailToProjectOwners(",
       );
 
+      /*
+       * The low-balance email is claimed in one statement
+       * (MessagingBalance.shouldTellOwnersBalanceIsLow ->
+       * ProjectService.claimSmsOrCallLowBalanceNotice), so the messages of a
+       * storm that find the balance used up together email the owners once;
+       * it used to be read with the project and written back afterwards,
+       * which every one of them won.
+       */
       const guards: number =
         countOccurrences(
           source,
-          "if (!project.lowCallAndSMSBalanceNotificationSentToOwners) {",
+          "await MessagingBalance.shouldTellOwnersBalanceIsLow({",
         ) +
         countOccurrences(
           source,
@@ -816,6 +828,12 @@ describe("sibling low-balance and not-enabled owner emails stay guarded", () => 
       // Every file here has at least one, so a path typo cannot pass as 0 === 0.
       expect(sends).toBeGreaterThan(0);
       expect(guards).toBe(sends);
+
+      // The low-balance flag is never decided by the read alone again.
+      expect(source).not.toContain(
+        "if (!project.lowCallAndSMSBalanceNotificationSentToOwners) {",
+      );
+      expect(source).not.toMatch(LOW_BALANCE_FLAG_WRITE);
     },
   );
 });

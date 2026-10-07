@@ -119,6 +119,24 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/AICreditsRunOutPostgres.test.ts --forceExit
 
+      # The balance SMS, calls, WhatsApp and Telegram are paid from: costs
+      # and recharge credits are one statement each, so messages sent
+      # together all pay and a cost taken while a charge was out is kept;
+      # Auto Recharge charges the card once for many messages; the owners'
+      # low-balance email is one conditional UPDATE claim. On a
+      # structure-only copy of the migrated Project table, with real
+      # concurrency.
+      - name: Test the SMS and call balance on Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_MESSAGING_BALANCE_TESTS: "true"
+          MESSAGING_BALANCE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MESSAGING_BALANCE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MESSAGING_BALANCE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/MessagingBalancePostgres.test.ts --forceExit
+
       - name: Test episode member deletion on migrated Postgres
         working-directory: packages/Common
         env:
