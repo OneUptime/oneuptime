@@ -8,6 +8,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { withLabelJoinTables } from "../TestingUtils/LabelJoinTables";
 import {
   afterEach,
   beforeEach,
@@ -28,6 +29,8 @@ import {
  *   - the row inside the caller's update scope (getUpdatableQuery), so a row
  *     in another project, or outside the labels the caller may edit, answers
  *     nothing;
+ *   - the labels the checks weigh are read in the caller's project only, so
+ *     a row of another project is answered as a missing one;
  *   - a credential that may only read is refused.
  *
  * Monitor is the model under test because it carries labels: the block list
@@ -124,22 +127,29 @@ type Lookup = {
 };
 
 describe("DatabaseService.findOneUpdatableById", () => {
+  // The lookup in the caller's update scope.
   let findOneByMock: MockFunction;
-  let findOneByIdMock: MockFunction;
+  // The read of the row with every one of its labels, for the checks.
+  let labelsFetchMock: MockFunction;
 
   beforeEach(() => {
     findOneByMock = getJestMockFunction();
-    findOneByIdMock = getJestMockFunction();
+    labelsFetchMock = getJestMockFunction();
 
     findOneByMock.mockResolvedValue(monitorRow() as never);
-    findOneByIdMock.mockResolvedValue(monitorRow() as never);
+    labelsFetchMock.mockResolvedValue(monitorRow() as never);
 
-    jest
-      .spyOn(MonitorService, "findOneBy")
-      .mockImplementation(findOneByMock as never);
-    jest
-      .spyOn(MonitorService, "findOneById")
-      .mockImplementation(findOneByIdMock as never);
+    // Both are reads of one row: the labels read selects the labels.
+    jest.spyOn(MonitorService, "findOneBy").mockImplementation(((
+      args: Lookup,
+    ) => {
+      return args.select && args.select["labels"]
+        ? labelsFetchMock(args)
+        : findOneByMock(args);
+    }) as never);
+
+    // A team's block with labels narrows the update scope's lookup too.
+    withLabelJoinTables();
   });
 
   afterEach(() => {
@@ -234,8 +244,8 @@ describe("DatabaseService.findOneUpdatableById", () => {
    * The block list is checked against every label on the row, read as root:
    * labels the caller may not see still count.
    */
-  test("a block on one of the row's labels refuses, and reads the row's labels as root", async () => {
-    findOneByIdMock.mockResolvedValue(monitorRow([LABEL_ID]) as never);
+  test("a block on one of the row's labels refuses, and reads the row's labels as root, in the caller's project", async () => {
+    labelsFetchMock.mockResolvedValue(monitorRow([LABEL_ID]) as never);
 
     await expect(
       MonitorService.findOneUpdatableById({
@@ -249,24 +259,21 @@ describe("DatabaseService.findOneUpdatableById", () => {
       }),
     ).rejects.toThrow(NotAuthorizedException);
 
-    const fetch: {
-      id: ObjectID;
-      select: Record<string, unknown>;
-      props: Record<string, unknown>;
-    } = findOneByIdMock.mock.calls[0]![0] as {
-      id: ObjectID;
-      select: Record<string, unknown>;
-      props: Record<string, unknown>;
-    };
+    const fetch: Lookup = labelsFetchMock.mock.calls[0]![0] as Lookup;
 
-    expect(fetch.id.toString()).toBe(MONITOR_ID.toString());
-    expect(fetch.select).toEqual({ labels: { _id: true, name: true } });
+    expect(fetch.query["_id"]).toBe(MONITOR_ID.toString());
+    // Only in the caller's project: another project's row is not read.
+    expect(String(fetch.query["projectId"])).toBe(PROJECT_ID.toString());
+    expect(fetch.select).toEqual({
+      labels: { _id: true, name: true },
+      projectId: true,
+    });
     expect(fetch.props).toEqual({ isRoot: true });
     expect(findOneByMock).not.toHaveBeenCalled();
   });
 
   test("a block on a label the row does not carry lets the editor through", async () => {
-    findOneByIdMock.mockResolvedValue(monitorRow([]) as never);
+    labelsFetchMock.mockResolvedValue(monitorRow([]) as never);
 
     expect(
       await MonitorService.findOneUpdatableById({
@@ -282,7 +289,7 @@ describe("DatabaseService.findOneUpdatableById", () => {
   });
 
   test("a row the block list finds gone answers nothing, not an error", async () => {
-    findOneByIdMock.mockResolvedValue(null as never);
+    labelsFetchMock.mockResolvedValue(null as never);
 
     expect(
       await MonitorService.findOneUpdatableById({
@@ -300,7 +307,7 @@ describe("DatabaseService.findOneUpdatableById", () => {
   });
 
   test("an editor limited to some labels is looked for among the rows carrying them", async () => {
-    findOneByIdMock.mockResolvedValue(monitorRow([LABEL_ID]) as never);
+    labelsFetchMock.mockResolvedValue(monitorRow([LABEL_ID]) as never);
 
     await MonitorService.findOneUpdatableById({
       id: MONITOR_ID,

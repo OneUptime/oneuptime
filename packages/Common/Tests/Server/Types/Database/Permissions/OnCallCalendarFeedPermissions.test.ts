@@ -14,8 +14,9 @@ import ObjectID from "../../../../../Types/ObjectID";
 import Permission, {
   UserTenantAccessPermission,
 } from "../../../../../Types/Permission";
-import { describe, expect, it } from "@jest/globals";
+import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import { ON_HIGHEST_PLAN } from "../../../TestingUtils/RequestPlan";
+import { withLabelJoinTables } from "../../../TestingUtils/LabelJoinTables";
 
 /*
  * The permission gate on the SHARED calendar feeds, exercised for real.
@@ -120,6 +121,10 @@ function stampedProjectFeed(): ProjectOnCallCalendarFeed {
 }
 
 describe("shared calendar feeds: the real permission gate", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe("publishing and rotating needs edit rights on the schedule", () => {
     for (const permission of [
       Permission.Viewer,
@@ -373,6 +378,9 @@ describe("shared calendar feeds: the real permission gate", () => {
     }
 
     it("preserves schedule and label scope when reading the complete status", async () => {
+      // The schedule's label join table, as a migrated database names it.
+      withLabelJoinTables();
+
       const permittedLabelId: ObjectID = ObjectID.generate();
       const result: CheckReadPermissionType<OnCallDutyPolicyScheduleCalendarFeed> =
         await ModelPermission.checkReadQueryPermission(
@@ -393,14 +401,27 @@ describe("shared calendar feeds: the real permission gate", () => {
         _id: scheduleId.toString(),
         labels: [permittedLabelId],
       });
+
+      /*
+       * The schedule asked for, and - the label rule on a record with no
+       * labels of its own - only while that schedule carries one of the
+       * labels the grant is limited to.
+       */
+      const scheduleKey: FindOperator<string> = result.query
+        .onCallDutyPolicyScheduleId as unknown as FindOperator<string>;
+      expect(scheduleKey.type).toBe("and");
+
+      const [askedFor, labelGrant]: Array<FindOperator<string>> =
+        scheduleKey.value as unknown as Array<FindOperator<string>>;
       expect(
-        Object.values(
-          (
-            result.query
-              .onCallDutyPolicyScheduleId as unknown as FindOperator<string>
-          ).objectLiteralParameters || {},
-        ),
+        Object.values(askedFor!.objectLiteralParameters || {}),
       ).toEqual([scheduleId.toString()]);
+      expect(labelGrant!.getSql!("key")).toContain(
+        'key IN (SELECT "OnCallDutyPolicyScheduleLabel"',
+      );
+      expect(
+        Object.values(labelGrant!.objectLiteralParameters || {}),
+      ).toEqual([[permittedLabelId.toString()]]);
       expect(result.select).toEqual(scheduleStatusSelect);
     });
   });

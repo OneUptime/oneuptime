@@ -835,6 +835,18 @@ export default class ModelPermission {
         operation: type,
       }),
       includeProjectScope: ownedThrough.includeProjectScope,
+      /*
+       * A row that names a record of its parent models alone (a monitor
+       * log's monitor) is scoped by those parents only; a telemetry row's
+       * resource id can name any telemetry-owning kind.
+       */
+      resourceTypes: ownedThrough.onlyParentModels
+        ? ownedThrough.parentModels.map(
+            (parentModel: { name: string }): string => {
+              return parentModel.name;
+            },
+          )
+        : undefined,
       recordName: model.singularName,
       operation: type,
     });
@@ -1155,19 +1167,19 @@ export default class ModelPermission {
   }
 
   /*
-   * The telemetry-owning entries of the owner table registry the read
-   * covers, with their model names: every one flagged canOwnTelemetry, or
-   * only those named.
+   * The entries of the owner table registry the read covers, with their
+   * model names: every one flagged canOwnTelemetry, or only those named - a
+   * read whose rows name records of one kind (a monitor log's monitor, an
+   * SLO history row's SLO) names that kind, telemetry-owning or not.
    */
   private static getTelemetryOwnerTypes(
     resourceTypes: ReadonlyArray<string> | undefined,
   ): Array<[string, OwnerTablePair]> {
     return Array.from(this.getOwnerTableRegistry().entries()).filter(
       ([resourceType, entry]: [string, OwnerTablePair]): boolean => {
-        return (
-          Boolean(entry.canOwnTelemetry) &&
-          (!resourceTypes || resourceTypes.includes(resourceType))
-        );
+        return resourceTypes
+          ? resourceTypes.includes(resourceType)
+          : Boolean(entry.canOwnTelemetry);
       },
     );
   }

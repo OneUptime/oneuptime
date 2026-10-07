@@ -41,6 +41,7 @@ import Permission, { UserPermission } from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { getJestSpyOn } from "../../Spy";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { withLabelJoinTables } from "../TestingUtils/LabelJoinTables";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -48,6 +49,12 @@ import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
  */
 beforeEach(() => {
   stubProjectDirectory({});
+  /*
+   * An endpoint has no labels of its own: under grants limited to labels it
+   * is reached through its database's labels, against the database's label
+   * join table.
+   */
+  withLabelJoinTables();
 });
 
 /*

@@ -8,6 +8,7 @@ import OwnerOnlyColumnPermission from "./OwnerOnlyColumnPermission";
 import PermissionUtil from "./PermissionsUtil";
 import PublicPermission from "./PublicPermission";
 import QueryPermission from "./QueryPermission";
+import ReadPermission, { RecordOperation } from "./ReadPermission";
 import SelectPermission from "./SelectPermission";
 import TablePermission from "./TablePermission";
 import TenantPermission from "./TenantPermission";
@@ -45,8 +46,6 @@ export default class BasePermission {
      * for list and count, so work on a fresh top-level object.
      */
     query = { ...query };
-
-    const model: BaseModel = new modelType();
 
     if (props.isRoot || props.isMasterAdmin) {
       query = await PermissionUtil.addTenantScopeToQueryAsRoot(
@@ -96,96 +95,14 @@ export default class BasePermission {
         // check query permissions.
         QueryPermission.checkQueryPermission(modelType, query, props);
 
-        query = await AccessControlPermission.addAccessControlIdsToQuery(
+        // The records of the table this operation may reach. See the helper.
+        query = await BasePermission.addRecordScopeToQuery(
           modelType,
           query,
           select,
           props,
           type,
         );
-
-        /*
-         * Apply the `Owned` permission scope filter (see
-         * Internal/Docs/PermissionsSimplification.md). When the user's
-         * applicable permission rows are exclusively Owned-scoped, this
-         * restricts the query to resources where the user is in *OwnerUser
-         * or any of their teams is in *OwnerTeam.
-         */
-        query = await OwnedScopePermission.addOwnedScopeToQuery(
-          modelType,
-          query,
-          props,
-          type,
-        );
-
-        /// Implement Related Permissions.
-        if (model.canAccessIfCanReadOn) {
-          const tableColumnMetadata: TableColumnMetadata =
-            model.getTableColumnMetadata(model.canAccessIfCanReadOn);
-
-          if (
-            tableColumnMetadata &&
-            tableColumnMetadata.modelType &&
-            (tableColumnMetadata.type === TableColumnType.Entity ||
-              tableColumnMetadata.type === TableColumnType.EntityArray)
-          ) {
-            const accessControlIds: Array<ObjectID> =
-              AccessControlPermission.getAccessControlIdsForQuery(
-                tableColumnMetadata.modelType,
-                {},
-                {
-                  _id: true,
-                },
-                props,
-                type,
-              );
-
-            if (accessControlIds.length > 0) {
-              const tableColumnMetadataModel: BaseModel =
-                new tableColumnMetadata.modelType();
-
-              const accessControlQuery: JSONObject = {
-                [tableColumnMetadataModel.getAccessControlColumn() as string]:
-                  accessControlIds,
-              };
-
-              /*
-               * Preserve any caller-supplied filter on the relation key
-               * instead of overwriting it. Plain relation objects are
-               * merged (the access-control predicate wins on a key
-               * collision — fail closed, access never widens); a scalar
-               * id filter is folded in as the relation's _id. Anything
-               * else falls back to the access-control query alone.
-               */
-              const existingRelationFilter: unknown = (query as any)[
-                model.canAccessIfCanReadOn as string
-              ];
-
-              if (
-                typeof existingRelationFilter === "string" ||
-                existingRelationFilter instanceof ObjectID
-              ) {
-                (query as any)[model.canAccessIfCanReadOn as string] = {
-                  _id: existingRelationFilter.toString(),
-                  ...accessControlQuery,
-                };
-              } else if (
-                existingRelationFilter &&
-                typeof existingRelationFilter === "object" &&
-                !Array.isArray(existingRelationFilter) &&
-                existingRelationFilter.constructor === Object
-              ) {
-                (query as any)[model.canAccessIfCanReadOn as string] = {
-                  ...(existingRelationFilter as JSONObject),
-                  ...accessControlQuery,
-                };
-              } else {
-                (query as any)[model.canAccessIfCanReadOn as string] =
-                  accessControlQuery;
-              }
-            }
-          }
-        }
 
         if (select) {
           // check query permission.
@@ -220,5 +137,163 @@ export default class BasePermission {
     query = QueryUtil.serializeQuery(modelType, query);
 
     return { query };
+  }
+
+  /*
+   * THE RECORDS A READ, AN UPDATE OR A DELETE REACHES, in the project the
+   * query is already scoped to: one rule for every operation, so a record a
+   * caller may not read is no easier to change or delete. Asked by every
+   * read and update (checkPermissions) and every delete
+   * (DeletePermission.checkDeletePermission), and in a request across
+   * projects for each project with that project's own rows
+   * (TenantPermission):
+   *
+   *   - a grant limited to labels: a labelled model's records carrying one
+   *     of them (AccessControlPermission.addAccessControlIdsToQuery);
+   *   - a grant limited to owned records: the records the caller or their
+   *     teams own, or whose parent they own (OwnedScopePermission);
+   *   - the record a model is read through (@CanAccessIfCanReadOn): one the
+   *     caller's grants on it reach (addParentAccessToQuery);
+   *   - the label rule on the records a label-less model's rows name, and a
+   *     block with labels on any model (ReadPermission.addLabelRulesToQuery).
+   *
+   * Root and master admin callers are left alone, as is a create.
+   */
+  @CaptureSpan()
+  public static async addRecordScopeToQuery<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    select: Select<TBaseModel> | null,
+    props: DatabaseCommonInteractionProps,
+    type: DatabaseRequestType,
+  ): Promise<Query<TBaseModel>> {
+    if (
+      props.isRoot ||
+      props.isMasterAdmin ||
+      type === DatabaseRequestType.Create
+    ) {
+      return query;
+    }
+
+    query = ReadPermission.addLabelRulesToQuery(
+      modelType,
+      query,
+      props,
+      type as RecordOperation,
+    );
+
+    query = await AccessControlPermission.addAccessControlIdsToQuery(
+      modelType,
+      query,
+      select,
+      props,
+      type,
+    );
+
+    /*
+     * Apply the `Owned` permission scope filter (see
+     * Internal/Docs/PermissionsSimplification.md). When the user's
+     * applicable permission rows are exclusively Owned-scoped, this
+     * restricts the query to resources where the user is in *OwnerUser
+     * or any of their teams is in *OwnerTeam.
+     */
+    query = await OwnedScopePermission.addOwnedScopeToQuery(
+      modelType,
+      query,
+      props,
+      type,
+    );
+
+    return BasePermission.addParentAccessToQuery(modelType, query, props, type);
+  }
+
+  /*
+   * A model read through another record (@CanAccessIfCanReadOn - a note
+   * through its incident): when the caller's grants on that record's table
+   * are limited to labels, only the records whose parent carries one of
+   * them.
+   */
+  private static addParentAccessToQuery<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+    type: DatabaseRequestType,
+  ): Query<TBaseModel> {
+    const model: BaseModel = new modelType();
+
+    if (!model.canAccessIfCanReadOn) {
+      return query;
+    }
+
+    const tableColumnMetadata: TableColumnMetadata =
+      model.getTableColumnMetadata(model.canAccessIfCanReadOn);
+
+    if (
+      !tableColumnMetadata ||
+      !tableColumnMetadata.modelType ||
+      (tableColumnMetadata.type !== TableColumnType.Entity &&
+        tableColumnMetadata.type !== TableColumnType.EntityArray)
+    ) {
+      return query;
+    }
+
+    const accessControlIds: Array<ObjectID> =
+      AccessControlPermission.getAccessControlIdsForQuery(
+        tableColumnMetadata.modelType,
+        {},
+        {
+          _id: true,
+        },
+        props,
+        type,
+      );
+
+    if (accessControlIds.length === 0) {
+      return query;
+    }
+
+    const tableColumnMetadataModel: BaseModel =
+      new tableColumnMetadata.modelType();
+
+    const accessControlQuery: JSONObject = {
+      [tableColumnMetadataModel.getAccessControlColumn() as string]:
+        accessControlIds,
+    };
+
+    /*
+     * Preserve any caller-supplied filter on the relation key instead of
+     * overwriting it. Plain relation objects are merged (the access-control
+     * predicate wins on a key collision — fail closed, access never
+     * widens); a scalar id filter is folded in as the relation's _id.
+     * Anything else falls back to the access-control query alone.
+     */
+    const existingRelationFilter: unknown = (query as any)[
+      model.canAccessIfCanReadOn as string
+    ];
+
+    if (
+      typeof existingRelationFilter === "string" ||
+      existingRelationFilter instanceof ObjectID
+    ) {
+      (query as any)[model.canAccessIfCanReadOn as string] = {
+        _id: existingRelationFilter.toString(),
+        ...accessControlQuery,
+      };
+    } else if (
+      existingRelationFilter &&
+      typeof existingRelationFilter === "object" &&
+      !Array.isArray(existingRelationFilter) &&
+      existingRelationFilter.constructor === Object
+    ) {
+      (query as any)[model.canAccessIfCanReadOn as string] = {
+        ...(existingRelationFilter as JSONObject),
+        ...accessControlQuery,
+      };
+    } else {
+      (query as any)[model.canAccessIfCanReadOn as string] =
+        accessControlQuery;
+    }
+
+    return query;
   }
 }

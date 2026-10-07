@@ -22,6 +22,7 @@ export default class UpdatePermission {
     TBaseModel extends BaseModel,
   >(data: {
     fetchModelWithAccessControlIds: () => Promise<TBaseModel | null>;
+    isRecordFound?: (query: Query<TBaseModel>) => Promise<boolean>;
     modelType: { new (): TBaseModel };
     props: DatabaseCommonInteractionProps;
     updateData?: unknown;

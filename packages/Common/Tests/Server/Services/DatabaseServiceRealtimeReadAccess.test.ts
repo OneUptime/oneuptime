@@ -297,15 +297,36 @@ describe("DatabaseService.readsEveryRecordInProject", () => {
     ).resolves.toBe(true);
   });
 
-  test("a record with no labels of its own: a grant for some labels reads every one, as its read does", async () => {
+  /*
+   * A grant limited to labels reaches a record with no labels of its own
+   * through the labelled records it names (an insight through its service),
+   * as a block with labels does: its read is narrowed, so live updates are
+   * decided record by record.
+   */
+  test("a record with no labels of its own: a grant for some labels does not read every one, as its read does not", async () => {
+    withLabelLinks();
+
+    const labelsReader: DatabaseCommonInteractionProps = propsWith([
+      {
+        permission: Permission.ProjectMember,
+        labelIds: [LABEL_ID],
+        scope: PermissionScope.Labels,
+      },
+    ]);
+
+    await expect(
+      AIInsightService.readsEveryRecordInProject(labelsReader),
+    ).resolves.toBe(false);
+    await expect(
+      AIInsightService.getColumnsNarrowingReadOf(labelsReader),
+    ).resolves.toEqual(["telemetryServiceId"]);
+  });
+
+  test("a record with no labels of its own: a grant over the whole project reads every one", async () => {
     await expect(
       AIInsightService.readsEveryRecordInProject(
         propsWith([
-          {
-            permission: Permission.ProjectMember,
-            labelIds: [LABEL_ID],
-            scope: PermissionScope.Labels,
-          },
+          { permission: Permission.ProjectMember, scope: PermissionScope.All },
         ]),
       ),
     ).resolves.toBe(true);

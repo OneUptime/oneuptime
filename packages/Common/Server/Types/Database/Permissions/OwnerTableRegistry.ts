@@ -75,6 +75,7 @@ import VMwareVCenterService from "../../../Services/VMwareVCenterService";
 import DatabaseServerService from "../../../Services/DatabaseServerService";
 import IoTFleetService from "../../../Services/IoTFleetService";
 import NetworkDeviceService from "../../../Services/NetworkDeviceService";
+import ServiceLevelObjectiveService from "../../../Services/ServiceLevelObjectiveService";
 
 /*
  * Maps an operational model name (e.g. "Monitor") to the two services that
@@ -104,7 +105,8 @@ export interface OwnerTablePair {
   /*
    * The resource's own service, used by labels-scope resolution to find
    * resources whose labels match the user's. Set for canOwnTelemetry
-   * types (they all carry labels).
+   * types (they all carry labels), and for a kind whose own analytics rows
+   * name it (an SLO's history).
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   modelService?: any;
@@ -183,6 +185,12 @@ const ownerTableRegistry: Map<string, OwnerTablePair> = new Map<
       ownerUserService: ServiceLevelObjectiveOwnerUserService,
       ownerTeamService: ServiceLevelObjectiveOwnerTeamService,
       fkColumn: "serviceLevelObjectiveId",
+      /*
+       * No canOwnTelemetry: no telemetry row names an SLO. Its history rows
+       * do (SloHistory.sloId), and an analytics read of them is scoped by
+       * the SLOs the caller may read - its labels through this service.
+       */
+      modelService: ServiceLevelObjectiveService,
     },
   ],
   [

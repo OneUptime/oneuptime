@@ -15,6 +15,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 import CallerPlan from "../../../Utils/Billing/CallerPlan";
+import ArrayUtil from "../../../../Utils/Array";
 
 /*
  * Permissions auto-granted to every logged-in tenant user. Holding only these
@@ -38,6 +39,15 @@ const AUTO_GRANTED_TENANT_PERMISSIONS: ReadonlyArray<Permission> = [
 ];
 
 export default class TenantPermission {
+  /*
+   * How many of the caller's projects a request across projects works out
+   * at the same time: each project's check may look up the records the
+   * caller owns there (OwnedScopePermission), and the projects do not wait
+   * on one another, but they are read a few at a time rather than all at
+   * once on the shared database pool.
+   */
+  public static readonly PROJECT_CONCURRENCY: number = 4;
+
   /*
    * `updateData` is what an update writes, handed on to each project's own
    * permission check in a multi-tenant request: below a table's update plan
@@ -169,58 +179,56 @@ export default class TenantPermission {
       /*
        * Each project is checked on its own plan - never on the plan of the
        * project the request named - read when a plan decides the operation
-       * (CallerPlan), for every project at once rather than one after
-       * another. A project whose plan cannot be read is left out, as one the
-       * caller may not reach is.
+       * (CallerPlan), and with its own permission rows: its grants and
+       * blocks narrow its own rows, exactly as a request in that one project
+       * is narrowed (BasePermission.addRecordScopeToQuery). A few projects
+       * are worked out at a time (PROJECT_CONCURRENCY), however many the
+       * caller belongs to. A project whose plan cannot be read, or whose
+       * grants refuse the operation, is left out, as one the caller may not
+       * reach is.
        */
-      const propsByProject: Array<DatabaseCommonInteractionProps | Error> =
-        props.userId
-          ? await Promise.all(
-              projectIDs.map(
-                async (
-                  projectId: ObjectID,
-                ): Promise<DatabaseCommonInteractionProps | Error> => {
-                  try {
-                    return await CallerPlan.withPlanFor({
-                      props: CallerPlan.inProjectWithoutPlan(props, projectId),
-                      modelType: modelType,
-                      type: type,
-                      data: updateData,
-                    });
-                  } catch (error) {
-                    return error instanceof Error
-                      ? error
-                      : new Error(String(error));
-                  }
-                },
-              ),
-            )
-          : [];
+      const queryByProject: Array<Query<TBaseModel> | Error> = props.userId
+        ? await ArrayUtil.mapWithConcurrency(
+            projectIDs,
+            TenantPermission.PROJECT_CONCURRENCY,
+            async (projectId: ObjectID): Promise<Query<TBaseModel> | Error> => {
+              try {
+                const projectProps: DatabaseCommonInteractionProps =
+                  await CallerPlan.withPlanFor({
+                    props: CallerPlan.inProjectWithoutPlan(props, projectId),
+                    modelType: modelType,
+                    type: type,
+                    data: updateData,
+                  });
 
-      for (const projectProps of propsByProject) {
-        if (projectProps instanceof Error) {
-          lastException = projectProps;
+                const checkBasePermissions: CheckPermissionBaseInterface<TBaseModel> =
+                  await BasePermission.checkPermissions(
+                    modelType,
+                    { ...queryForEachProject },
+                    select,
+                    projectProps,
+                    type,
+                    updateData,
+                  );
+
+                return { ...checkBasePermissions.query };
+              } catch (error) {
+                return error instanceof Error
+                  ? error
+                  : new Error(String(error));
+              }
+            },
+          )
+        : [];
+
+      for (const projectQuery of queryByProject) {
+        if (projectQuery instanceof Error) {
+          // do nothing here. Ignore.
+          lastException = projectQuery;
           continue;
         }
 
-        try {
-          const checkBasePermissions: CheckPermissionBaseInterface<TBaseModel> =
-            await BasePermission.checkPermissions(
-              modelType,
-              { ...queryForEachProject },
-              select,
-              projectProps,
-              type,
-              updateData,
-            );
-
-          queries.push({
-            ...checkBasePermissions.query,
-          });
-        } catch (e) {
-          // do nothing here. Ignore.
-          lastException = e as Error;
-        }
+        queries.push(projectQuery);
       }
 
       if (queries.length === 0) {

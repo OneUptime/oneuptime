@@ -13,7 +13,8 @@ import Permission, {
 } from "../../../Types/Permission";
 import AiResourceType from "../../../Types/ResourceAiAgent/AiResourceType";
 import UserType from "../../../Types/UserType";
-import { afterEach, describe, expect, it } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { withLabelJoinTables } from "../TestingUtils/LabelJoinTables";
 
 /*
  * Contract under test — ResourceAiAccessService.assertCallerMayChangeResource,
@@ -124,6 +125,14 @@ function assertMayChange(
 }
 
 describe("ResourceAiAccessService.assertCallerMayChangeResource", () => {
+  /*
+   * A team's block with labels narrows the editable lookup itself, against
+   * the resource's label join table.
+   */
+  beforeEach(() => {
+    withLabelJoinTables();
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });

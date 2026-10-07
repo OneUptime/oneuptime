@@ -50,6 +50,12 @@ export default class ModelPermission {
   >(data: {
     modelType: { new (): TBaseModel };
     fetchModelWithAccessControlIds: () => Promise<TBaseModel | null>;
+    /*
+     * Whether a query finds a record of the table, run as root: lets the
+     * check weigh the label rule on a record with no labels of its own,
+     * through the records it names (AccessControlPermission).
+     */
+    isRecordFound?: (query: Query<TBaseModel>) => Promise<boolean>;
     props: DatabaseCommonInteractionProps;
   }): Promise<void> {
     DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(data.props);
@@ -81,6 +87,8 @@ export default class ModelPermission {
   >(data: {
     modelType: { new (): TBaseModel };
     fetchModelWithAccessControlIds: () => Promise<TBaseModel | null>;
+    // See checkDeletePermissionByModel.
+    isRecordFound?: (query: Query<TBaseModel>) => Promise<boolean>;
     props: DatabaseCommonInteractionProps;
     updateData?: unknown;
   }): Promise<void> {

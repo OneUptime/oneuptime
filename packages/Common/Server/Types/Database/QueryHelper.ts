@@ -563,6 +563,128 @@ export default class QueryHelper {
   }
 
   /**
+   * The mirror of linkedToNoneInAnyManyToMany, for a grant rather than a
+   * block: applied to a key that names a record of one of several models
+   * (a note's incidentId, an inventory item's resource id), matches records
+   * whose key names a record linked, in one of the given join tables, to
+   * one of the provided related entity ids (labels), and records whose key
+   * is empty. One subquery over every join table. An empty values or join
+   * table list matches only the records whose key is empty (fail closed).
+   */
+  @CaptureSpan()
+  public static linkedToAnyInAnyManyToMany(data: {
+    values: Array<string | ObjectID>;
+    joinTables: Array<{
+      joinTableName: string;
+      ownerColumnName: string;
+      relationColumnName: string;
+    }>;
+  }): FindWhereProperty<any> {
+    const values: Array<string> = data.values.map(
+      (value: string | ObjectID) => {
+        return value.toString();
+      },
+    );
+
+    if (values.length === 0 || data.joinTables.length === 0) {
+      return Raw((alias: string) => {
+        return `(${alias} IS NULL)`;
+      }, {});
+    }
+
+    const valuesRid: string = Text.generateRandomText(10);
+
+    const quote: (identifier: string) => string = (
+      identifier: string,
+    ): string => {
+      return identifier.replace(/"/g, '""');
+    };
+
+    const linkedRecords: string = data.joinTables
+      .map(
+        (joinTableData: {
+          joinTableName: string;
+          ownerColumnName: string;
+          relationColumnName: string;
+        }): string => {
+          const joinTable: string = quote(joinTableData.joinTableName);
+          const ownerCol: string = quote(joinTableData.ownerColumnName);
+          const relationCol: string = quote(joinTableData.relationColumnName);
+
+          return `SELECT "${joinTable}"."${ownerCol}" FROM "${joinTable}" WHERE "${joinTable}"."${relationCol}" IN (:...${valuesRid})`;
+        },
+      )
+      .join(" UNION ALL ");
+
+    return Raw(
+      (alias: string) => {
+        return `(${alias} IS NULL OR ${alias} IN (${linkedRecords}))`;
+      },
+      {
+        [valuesRid]: values,
+      },
+    );
+  }
+
+  /**
+   * The mirror of noParentLinkedToAnyInManyToMany, for a grant: applied to a
+   * record's primary id when it belongs to several parents through a
+   * many-to-many join table (an announcement on status pages), matches
+   * records whose every parent is linked to one of the provided related
+   * entity ids (the status pages' labels), and records that belong to no
+   * parent at all. An empty values array matches only the records that
+   * belong to no parent (fail closed).
+   */
+  @CaptureSpan()
+  public static everyParentLinkedToAnyInManyToMany(data: {
+    values: Array<string | ObjectID>;
+    // The record -> parent join table.
+    parentJoinTableName: string;
+    parentOwnerColumnName: string;
+    parentRelationColumnName: string;
+    // The parent -> related entity join table.
+    joinTableName: string;
+    ownerColumnName: string;
+    relationColumnName: string;
+  }): FindWhereProperty<any> {
+    const values: Array<string> = data.values.map(
+      (value: string | ObjectID) => {
+        return value.toString();
+      },
+    );
+
+    const quote: (identifier: string) => string = (
+      identifier: string,
+    ): string => {
+      return identifier.replace(/"/g, '""');
+    };
+
+    const parentJoinTable: string = quote(data.parentJoinTableName);
+    const parentOwnerCol: string = quote(data.parentOwnerColumnName);
+    const parentRelationCol: string = quote(data.parentRelationColumnName);
+    const joinTable: string = quote(data.joinTableName);
+    const ownerCol: string = quote(data.ownerColumnName);
+    const relationCol: string = quote(data.relationColumnName);
+
+    if (values.length === 0) {
+      return Raw((alias: string) => {
+        return `(${alias} NOT IN (SELECT "${parentJoinTable}"."${parentOwnerCol}" FROM "${parentJoinTable}" WHERE "${parentJoinTable}"."${parentOwnerCol}" IS NOT NULL))`;
+      }, {});
+    }
+
+    const valuesRid: string = Text.generateRandomText(10);
+
+    return Raw(
+      (alias: string) => {
+        return `(${alias} NOT IN (SELECT "${parentJoinTable}"."${parentOwnerCol}" FROM "${parentJoinTable}" WHERE "${parentJoinTable}"."${parentRelationCol}" NOT IN (SELECT "${joinTable}"."${ownerCol}" FROM "${joinTable}" WHERE "${joinTable}"."${relationCol}" IN (:...${valuesRid}))))`;
+      },
+      {
+        [valuesRid]: values,
+      },
+    );
+  }
+
+  /**
    * Applied to a record's primary id when it belongs to several parents
    * through a many-to-many join table (an announcement on status pages):
    * matches records linked to *no* parent that is itself linked to any of

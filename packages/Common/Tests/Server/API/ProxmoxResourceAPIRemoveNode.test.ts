@@ -8,6 +8,7 @@ import ProxmoxResourceService, {
 } from "../../../Server/Services/ProxmoxResourceService";
 import ProxmoxClusterService from "../../../Server/Services/ProxmoxClusterService";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
+import QueryUtil from "../../../Server/Types/Database/QueryUtil";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -981,7 +982,87 @@ describe("ProxmoxResourceAPI remove-node", () => {
     beforeEach(() => {
       checkUpdateQueryPermissions.mockRestore();
       checkUpdatePermissionByModel.mockRestore();
+
+      /*
+       * The cluster's label join table, as the database would describe it:
+       * a team's block with labels narrows the lookup itself, with a
+       * condition on the cluster's id against this table.
+       */
+      jest
+        .spyOn(QueryUtil, "getManyToManyRelationMetadata")
+        .mockImplementation((modelType: unknown, column: string) => {
+          if (modelType !== ProxmoxCluster || column !== "labels") {
+            return null;
+          }
+
+          return {
+            joinTableName: "ProxmoxClusterLabel",
+            ownerColumnName: "proxmoxClusterId",
+            relationColumnName: "labelId",
+          };
+        });
     });
+
+    /*
+     * What a lookup's condition on the cluster's id says: the id it names,
+     * and the labels a team's block leaves out (the "NOT IN" condition the
+     * label rule adds), whatever the shape - a plain id, or the id and the
+     * block's condition together.
+     */
+    function idConditions(idFilter: unknown): {
+      id: string | null;
+      blockedLabelIds: Array<string>;
+    } {
+      if (typeof idFilter === "string") {
+        return { id: idFilter, blockedLabelIds: [] };
+      }
+
+      const parts: Array<FindOperator<unknown>> = [];
+      const walk: (operator: FindOperator<unknown>) => void = (
+        operator: FindOperator<unknown>,
+      ): void => {
+        if (operator.type === "and") {
+          for (const part of operator.value as unknown as Array<
+            FindOperator<unknown>
+          >) {
+            walk(part);
+          }
+          return;
+        }
+        parts.push(operator);
+      };
+
+      if (idFilter instanceof FindOperator) {
+        walk(idFilter);
+      }
+
+      let id: string | null = null;
+      const blockedLabelIds: Array<string> = [];
+
+      for (const part of parts) {
+        if (part.type === "equal") {
+          id = String(part.value);
+          continue;
+        }
+
+        const sql: string = part.getSql ? part.getSql("id") : "";
+        const values: Array<unknown> = Object.values(
+          part.objectLiteralParameters || {},
+        ).flat();
+
+        if (sql.includes("NOT IN (SELECT")) {
+          blockedLabelIds.push(
+            ...values.map((value: unknown): string => {
+              return String(value);
+            }),
+          );
+        } else if (values.length === 1) {
+          id = String(values[0]);
+        }
+      }
+
+      return { id, blockedLabelIds };
+    }
 
     /*
      * The real check hands the tenant predicate on as a TypeORM operator
@@ -1007,9 +1088,21 @@ describe("ProxmoxResourceAPI remove-node", () => {
     }
 
     function scopedClusterId(): unknown {
-      return (
-        (findOneBy.mock.calls[0]![0] as JSONObject)["query"] as JSONObject
-      )["_id"];
+      return idConditions(
+        ((findOneBy.mock.calls[0]![0] as JSONObject)["query"] as JSONObject)[
+          "_id"
+        ],
+      ).id;
+    }
+
+    // The labels a team's block leaves out of the lookup.
+    function scopedBlockedLabelIds(): Array<string> {
+      expect(findOneBy).toHaveBeenCalledTimes(1);
+      return idConditions(
+        ((findOneBy.mock.calls[0]![0] as JSONObject)["query"] as JSONObject)[
+          "_id"
+        ],
+      ).blockedLabelIds;
     }
 
     /*
@@ -1065,7 +1158,18 @@ describe("ProxmoxResourceAPI remove-node", () => {
         async (args: unknown): Promise<ProxmoxCluster | null> => {
           const findArgs: JSONObject = args as JSONObject;
           const query: JSONObject = findArgs["query"] as JSONObject;
-          if (query["_id"] !== clusterId.toString()) {
+          const conditions: { id: string | null; blockedLabelIds: Array<string> } =
+            idConditions(query["_id"]);
+          if (conditions.id !== clusterId.toString()) {
+            return null;
+          }
+
+          // A team's block with labels leaves out a cluster carrying one.
+          if (
+            labelIds.some((labelId: ObjectID): boolean => {
+              return conditions.blockedLabelIds.includes(labelId.toString());
+            })
+          ) {
             return null;
           }
 
@@ -1295,9 +1399,14 @@ describe("ProxmoxResourceAPI remove-node", () => {
       });
 
       expectRefusedAsNotFound(call);
-      // A project-wide grant: the lookup is not label-scoped.
+      // A project-wide grant: the lookup is not label-scoped...
       expect(scopedLabelIds()).toBeNull();
-      expectLabelsLoadedUnfiltered();
+      // ...but the block leaves the cluster out of it, as an update's would.
+      expect(scopedBlockedLabelIds()).toEqual([blockedLabel.toString()]);
+      expect(scopedClusterId()).toBe(clusterId.toString());
+      // Never found, so nothing is loaded and nothing removed.
+      expect(findOneById).not.toHaveBeenCalled();
+      expect(removeOfflineNode).not.toHaveBeenCalled();
     });
 
     test("a block for a label the cluster does not carry leaves it editable", async () => {
@@ -1356,17 +1465,17 @@ describe("ProxmoxResourceAPI remove-node", () => {
         expect((call.thrown as Exception).code).toBe(404);
         expect(removeOfflineNode).not.toHaveBeenCalled();
 
-        // The lookup really was narrowed to label A...
+        // The lookup really was narrowed to label A, and leaves out B...
         expect(scopedLabelIds()).toEqual([labelA.toString()]);
+        expect(scopedBlockedLabelIds()).toEqual([labelB.toString()]);
         expect(scopedClusterId()).toBe(clusterId.toString());
         expect(scopedProjectIds()).toEqual([projectId.toString()]);
-        // ...so it carries no labels for the block check to trust...
         expect((findOneBy.mock.calls[0]![0] as JSONObject)["select"]).toEqual({
           _id: true,
           projectId: true,
         });
-        // ...which loads the cluster again, as root, with every label.
-        expectLabelsLoadedUnfiltered();
+        // ...so the cluster is never found, and nothing is loaded.
+        expect(findOneById).not.toHaveBeenCalled();
       });
 
       test("the order of the labels on the cluster does not matter", async () => {
@@ -1455,7 +1564,7 @@ describe("ProxmoxResourceAPI remove-node", () => {
         },
       );
 
-      test("on a cluster carrying A and B the block check refuses on its first ask, from the one load", async () => {
+      test("on a cluster carrying A and B the lookup leaves it out: no check asks, and nothing is loaded", async () => {
         storeCluster([labelA, labelB]);
         const asks: LabelAsks = countLabelAsks();
 
@@ -1464,9 +1573,8 @@ describe("ProxmoxResourceAPI remove-node", () => {
         });
 
         expectRefusedAsNotFound(call);
-        expect(asks.count).toBe(1);
-        expect(findOneById).toHaveBeenCalledTimes(1);
-        expectLabelsLoadedUnfiltered();
+        expect(asks.count).toBe(0);
+        expect(findOneById).not.toHaveBeenCalled();
       });
 
       test("a cluster deleted between the scoped lookup and the labels load answers 404 with the editable-cluster message", async () => {
@@ -1514,9 +1622,13 @@ describe("ProxmoxResourceAPI remove-node", () => {
         expect((second.thrown as NotFoundException).message).toBe(
           NOT_FOUND_MESSAGE,
         );
-        // One load per request; the first request's load is not reused.
-        expect(findOneById).toHaveBeenCalledTimes(2);
-        expect(asks.count).toBe(3);
+        /*
+         * The first request loaded the labels once, for both checks; the
+         * second never found the cluster (the block on B leaves it out of
+         * the lookup), so it loaded nothing and no check asked.
+         */
+        expect(findOneById).toHaveBeenCalledTimes(1);
+        expect(asks.count).toBe(2);
         // Only the first request removed anything.
         expect(removeOfflineNode).toHaveBeenCalledTimes(1);
         expect(
