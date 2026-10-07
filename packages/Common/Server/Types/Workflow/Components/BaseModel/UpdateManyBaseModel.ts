@@ -15,7 +15,7 @@ import ComponentMetadata, {
 } from "../../../../../Types/Workflow/Component";
 import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
-import { applyTenantColumn, normalizeModelKeys } from "./ModelArguments";
+import { normalizeModelKeys, withoutTenantColumn } from "./ModelArguments";
 import {
   getCustomFieldsToMerge,
   updateManyMergingCustomFields,
@@ -99,13 +99,13 @@ export default class UpdateManyBaseModel<
         );
       }
 
-      args["data"] = applyTenantColumn(
+      // The records stay in their project. See withoutTenantColumn.
+      args["data"] = withoutTenantColumn(
         normalizeModelKeys(
           args["data"] as JSONObject,
           this.modelService.getModel(),
         ),
         this.modelService.getModel(),
-        options.projectId,
       );
 
       if (!args["query"]) {

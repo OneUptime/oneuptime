@@ -25,9 +25,13 @@ import ObjectID from "../../../Types/ObjectID";
  *
  *  - `withPlan` gives props that act in a project (a tenant, neither
  *    OneUptime itself nor a server admin) the project's plan when they carry
- *    none. DatabaseService and ModelPermission ask it before they check a
- *    read or write, and so do the builders of props that act in a project
- *    (WorkflowPrincipal, WorkspaceActionAuthorization).
+ *    none. WorkflowPrincipal asks it for every step.
+ *  - `withPlanFor` asks it only for an operation a plan decides - a table
+ *    that names a plan for it, or a column a create or update writes that
+ *    names one (PlanGates) - so a read or write no plan decides reads
+ *    nothing. DatabaseService asks it once the refusals that need no lookup
+ *    are made, ModelPermission's async checks ask it, and so do the checks
+ *    of a chat action (WorkspaceActionAuthorization).
  *  - `inProject` gives the props of one project of a read across projects
  *    that project's own plan - never the plan of the project the request
  *    happened to name.

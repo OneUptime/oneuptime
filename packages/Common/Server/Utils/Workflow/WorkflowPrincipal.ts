@@ -13,14 +13,8 @@ import UserType from "../../../Types/UserType";
  *
  * Every step that reads or writes a project's records - Find, Create,
  * Update and Delete One and Many, and the model-event triggers that read the
- * record a workflow started on - used to act as OneUptime itself (root),
- * with only the project stamped on: past every table, column and plan
- * check. A workflow could set what only a project owner may (who owns the
- * project, its billing), create what the project's plan does not sell, and
- * mint the Owner role for a team - so anyone allowed to edit a workflow could
- * do anything at all in the project, and more than its plan allows.
- *
- * Now a step acts with these props, built here and nowhere else:
+ * record a workflow started on - acts with these props, built here and
+ * nowhere else:
  *
  *  - in its own project only (the tenant), as every API request does;
  *  - with the permissions of a Project Admin: the role every table that a
@@ -35,6 +29,11 @@ import UserType from "../../../Types/UserType";
  *    names no creator (UserAttribution), a person's own settings stay theirs
  *    (OwnerOnlyColumn), and the audit trail names the workflow instead
  *    (workflowId, workflowName).
+ *
+ * So what a Project Admin of the project may not do - an owner-only or a
+ * billing change, a table or column the plan does not include - a step may
+ * not do either, and its error port says so in plain words, naming the step
+ * (LogComponentError).
  *
  * The run itself - finding the workflow, its variables, writing its run log
  * - is OneUptime's own bookkeeping and stays as it was.

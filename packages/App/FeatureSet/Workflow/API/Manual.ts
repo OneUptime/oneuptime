@@ -62,8 +62,9 @@ export default class ManualAPI {
        * getUserMiddleware is a context loader, not a gate: a request with no
        * cookie, no bearer token and no apikey header is tagged
        * UserType.Public and passed straight through to here. This route then
-       * runs the workflow as root — including its JavaScript / custom-code
-       * and notification components — so it has to prove the caller itself.
+       * runs the workflow - its record steps as a Project Admin of the
+       * project, and its JavaScript / custom-code and notification
+       * components - so it has to prove the caller itself.
        *
        * Programmatic callers trigger a workflow through its own API/webhook
        * trigger (`/workflow/trigger/:secretkey`), which authenticates with

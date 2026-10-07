@@ -1784,9 +1784,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    *  - no create, root included, of a model whose tenant column is its own
    *    primary key may carry the request tenant's id. Root callers may
    *    assign ids, but this one can only come from a generic tenant stamp -
-   *    workflow components create as root WITH a tenant, after
-   *    applyTenantColumn has written the tenant column - and it would make
-   *    the create an update of the caller's own project.
+   *    OneUptime's own engines create a project's records as root WITH a
+   *    tenant, after applyTenantColumn has written the tenant column - and
+   *    it would make the create an update of the caller's own project.
    *
    * The ids are compared as text, case-insensitively: the id may be an
    * ObjectID or a plain string, and Postgres reads a uuid in either case.
@@ -1968,9 +1968,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   /*
    * A write OneUptime makes itself: root, with no project on the request - a
-   * job, an engine, a service acting for someone it names in code. A
-   * workflow writes as root too, but in its project: that is a write made in
-   * a project, like a request through the API or the admin dashboard.
+   * job, an engine, a service acting for someone it names in code. Root with
+   * a project on the request - an engine writing that project's records - is
+   * a write made in a project, like a request through the API, the admin
+   * dashboard or a workflow step.
    */
   private isWriteOneUptimeMakesItself(
     props: DatabaseCommonInteractionProps,

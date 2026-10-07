@@ -13,7 +13,7 @@ import ComponentMetadata, {
 } from "../../../../../Types/Workflow/Component";
 import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
-import { applyTenantColumn, normalizeModelKeys } from "./ModelArguments";
+import { normalizeModelKeys, withoutTenantColumn } from "./ModelArguments";
 import {
   getCustomFieldsToMerge,
   updateOneMergingCustomFields,
@@ -97,13 +97,13 @@ export default class UpdateOneBaseModel<
         );
       }
 
-      args["data"] = applyTenantColumn(
+      // The record stays in its project. See withoutTenantColumn.
+      args["data"] = withoutTenantColumn(
         normalizeModelKeys(
           args["data"] as JSONObject,
           this.modelService.getModel(),
         ),
         this.modelService.getModel(),
-        options.projectId,
       );
 
       if (!args["query"]) {

@@ -443,9 +443,10 @@ describe("Update One - the component reported in issue 3132", () => {
   test("cannot move the record into another project via the project relation", async () => {
     /*
      * Monitor.project is @JoinColumn({name: "projectId"}), the same physical
-     * column the tenant stamp writes, and TypeORM reads the relation property
-     * first. A Data payload naming another project therefore used to beat the
-     * stamp and re-home the row.
+     * column as projectId, and TypeORM reads the relation property first. A
+     * Data payload naming another project used to re-home the row. The step
+     * now writes no project at all: the record stays where it is, and the
+     * query keeps to the workflow's project.
      */
     const service: DatabaseService<Monitor> = makeMonitorService();
     jest.spyOn(service, "updateOneBy").mockResolvedValue(1 as never);
@@ -465,13 +466,13 @@ describe("Update One - the component reported in issue 3132", () => {
       fixture.options,
     );
 
-    const data: JSONObject = firstCallArgument(service.updateOneBy)[
-      "data"
-    ] as JSONObject;
+    const call: JSONObject = firstCallArgument(service.updateOneBy);
+    const data: JSONObject = call["data"] as JSONObject;
 
     expect(data["project"]).toBeUndefined();
-    expect(data["projectId"]).toBe(fixture.projectId);
+    expect(data["projectId"]).toBeUndefined();
     expect(data["isEnabled"]).toBe(true);
+    expect((call["query"] as JSONObject)["projectId"]).toBe(fixture.projectId);
   });
 
   test("cannot move the record via the project relation written as an object", async () => {
@@ -495,7 +496,7 @@ describe("Update One - the component reported in issue 3132", () => {
     ] as JSONObject;
 
     expect(data["project"]).toBeUndefined();
-    expect(data["projectId"]).toBe(fixture.projectId);
+    expect(data["projectId"]).toBeUndefined();
   });
 
   test("routes a missing query to the error port without crashing", async () => {
@@ -590,7 +591,7 @@ describe("Update Many", () => {
     ] as JSONObject;
 
     expect(data["project"]).toBeUndefined();
-    expect(data["projectId"]).toBe(fixture.projectId);
+    expect(data["projectId"]).toBeUndefined();
   });
 
   test("reports how many records it updated", async () => {

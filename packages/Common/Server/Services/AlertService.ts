@@ -529,9 +529,9 @@ export class Service extends ProjectReferencesService<Model> {
    *     never raised it, and the rule above would then lock the alert to that
    *     monitor for good.
    *
-   * Every caller is checked, root included: the workflow "Update Alert"
-   * component writes as root, and no server code moves an alert's monitor on
-   * update.
+   * Every caller is checked, root included - a person, an API key, a
+   * workflow's "Update Alert" step - and no server code moves an alert's
+   * monitor on update.
    *
    * Returns what the update does to each matched alert's monitor, for the
    * feed and the metrics in onUpdateSuccess. An update that does not write
