@@ -46,7 +46,7 @@ import { DataSource } from "typeorm";
  * job has applied every registered migration to an empty database. Each
  * kind's rows are made under a project of their own, deleted afterwards.
  */
-const describePostgres: typeof describe =
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_EPISODE_GROUPING_KEY_TESTS"] === "true"
     ? describe
     : describe.skip;

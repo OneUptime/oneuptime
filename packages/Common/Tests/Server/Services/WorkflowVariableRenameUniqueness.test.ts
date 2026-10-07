@@ -229,7 +229,7 @@ describe("WorkflowVariableService rename uniqueness", () => {
           makeUpdateBy({
             description: "Token for the nightly Airflow sync",
             isSecret: "true",
-          } as Partial<WorkflowVariable>),
+          } as unknown as Partial<WorkflowVariable>),
         ),
       ).resolves.toBeDefined();
 
@@ -668,7 +668,11 @@ describe("WorkflowVariableService rename uniqueness", () => {
       });
 
       await expect(
-        hook()(makeUpdateBy({ isSecret: "true" } as Partial<WorkflowVariable>)),
+        hook()(
+          makeUpdateBy({
+            isSecret: "true",
+          } as unknown as Partial<WorkflowVariable>),
+        ),
       ).resolves.toBeDefined();
     });
 
@@ -686,7 +690,9 @@ describe("WorkflowVariableService rename uniqueness", () => {
 
       await expect(
         hook()(
-          makeUpdateBy({ isSecret: "false" } as Partial<WorkflowVariable>),
+          makeUpdateBy({
+            isSecret: "false",
+          } as unknown as Partial<WorkflowVariable>),
         ),
       ).rejects.toThrow(BadDataException);
 
@@ -726,6 +732,70 @@ describe("WorkflowVariableService rename uniqueness", () => {
       ).rejects.toThrow(BadDataException);
     });
 
+    /*
+     * The flag is read as the database stores it (toStoredBoolean), the way
+     * DatabaseService hands every switch to a hook: "yes" marks a variable
+     * secret, so writing it over a secret variable is not un-marking it - it
+     * used to be refused as if it were - while "no" and 0 un-mark it, and
+     * are refused.
+     */
+    test.each([
+      ['"yes"', "yes"],
+      ['"on"', "on"],
+      ['"1"', "1"],
+      ["1", 1],
+    ] as Array<[string, unknown]>)(
+      "writing the flag as %s over a secret variable keeps it secret: not refused",
+      async (_label: string, value: unknown) => {
+        stubReads({
+          itemsBeingUpdated: [
+            makeVariable({
+              name: "Token",
+              workflowId: WORKFLOW_ID,
+              isSecret: true,
+            }),
+          ],
+          conflictCount: 0,
+        });
+
+        await expect(
+          hook()(
+            makeUpdateBy({
+              isSecret: value,
+            } as unknown as Partial<WorkflowVariable>),
+          ),
+        ).resolves.toBeDefined();
+      },
+    );
+
+    test.each([
+      ['"no"', "no"],
+      ['"off"', "off"],
+      ["0", 0],
+    ] as Array<[string, unknown]>)(
+      "un-marking a secret variable written as %s is refused",
+      async (_label: string, value: unknown) => {
+        stubReads({
+          itemsBeingUpdated: [
+            makeVariable({
+              name: "Token",
+              workflowId: WORKFLOW_ID,
+              isSecret: true,
+            }),
+          ],
+          conflictCount: 0,
+        });
+
+        await expect(
+          hook()(
+            makeUpdateBy({
+              isSecret: value,
+            } as unknown as Partial<WorkflowVariable>),
+          ),
+        ).rejects.toThrow(/cannot be un-marked/);
+      },
+    );
+
     test("leaves a variable that was never secret alone", async () => {
       stubReads({
         itemsBeingUpdated: [
@@ -740,7 +810,9 @@ describe("WorkflowVariableService rename uniqueness", () => {
 
       await expect(
         hook()(
-          makeUpdateBy({ isSecret: "false" } as Partial<WorkflowVariable>),
+          makeUpdateBy({
+            isSecret: "false",
+          } as unknown as Partial<WorkflowVariable>),
         ),
       ).resolves.toBeDefined();
     });

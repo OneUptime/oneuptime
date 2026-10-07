@@ -60,7 +60,7 @@ const variable: VariableFunction = (params: {
   workflowVariable.content = params.content;
 
   if (params.isSecret !== undefined) {
-    workflowVariable.isSecret = params.isSecret as string;
+    workflowVariable.isSecret = params.isSecret as boolean;
   }
 
   return workflowVariable;

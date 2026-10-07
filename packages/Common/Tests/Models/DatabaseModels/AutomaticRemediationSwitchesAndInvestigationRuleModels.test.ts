@@ -61,7 +61,7 @@ describe("the automatic-fix switches on Project", () => {
   ])(
     "%s may be read by the project's members, and changed only by an owner or admin",
     (column: string) => {
-      const accessControl: ColumnAccessControl | undefined =
+      const accessControl: ColumnAccessControl | null =
         project.getColumnAccessControlFor(column);
 
       expect(accessControl?.update).toEqual(OWNER_OR_ADMIN);
@@ -161,7 +161,7 @@ describe("AIInvestigationRule", () => {
   });
 
   it("is for one kind of signal for good: the trigger is set on create only", () => {
-    const accessControl: ColumnAccessControl | undefined =
+    const accessControl: ColumnAccessControl | null =
       model.getColumnAccessControlFor("triggerEntityType");
 
     expect(accessControl?.update).toEqual([]);

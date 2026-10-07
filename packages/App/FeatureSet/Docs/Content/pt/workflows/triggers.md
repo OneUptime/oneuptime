@@ -45,10 +45,12 @@ Trate essa URL como uma senha. Quem a tiver consegue iniciar o seu workflow.
 Quase tudo no OneUptime — monitores, incidentes, alertas, manutenções programadas, páginas de status, políticas de plantão, equipes — pode disparar um workflow. Cada um oferece três eventos:
 
 - **On Create** — dispara quando um novo é adicionado.
-- **On Update** — dispara quando um é alterado.
+- **On Update** — dispara quando um é alterado. Salvar um registro com os valores que ele já tem, como um formulário salvo sem alterações ou um interruptor enviado do jeito que já está, não é uma alteração e não o dispara.
 - **On Delete** — dispara quando um é excluído.
 
 É assim que você monta "quando X acontece no OneUptime, faça Y" sem precisar ficar consultando em loop.
+
+**On Update** pode ser limitado a alguns campos com **Listen on**: assim ele só dispara quando uma atualização altera um deles, para qualquer valor; desligar um interruptor ou limpar um campo também conta.
 
 O registro completo é passado ao bloco seguinte. O trigger **Incident → On Create**, por exemplo, entrega o incidente recém-criado, então o próximo bloco pode ler título, descrição, severidade e qualquer outro campo.
 

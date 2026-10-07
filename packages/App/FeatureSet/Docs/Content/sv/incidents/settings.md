@@ -172,7 +172,7 @@ Samma generering ger dig utlösare för själva konfigurationen: **On Create Inc
 
 Några detaljer som spelar roll när du kopplar ihop dem:
 
-- **On Update X** tar ett valfritt argument **Listen on** som smalnar av utlösaren till uppdateringar som rör vissa fält. Lämna det tomt för att avfyra vid varje ändring. Kommer en uppdatering in utan uppgift om vilka fält som ändrats hoppas filtret över och arbetsflödet körs ändå.
+- **On Update X** tar ett valfritt argument **Listen on** som smalnar av utlösaren till uppdateringar som ändrar vissa fält, oavsett vad de ändras till: en brytare som slås av eller ett fält som töms räknas också. Ett fält som sparas med det värde det redan har är ingen ändring, så ett redigeringsformulär som skickar tillbaka det vid varje sparning väcker inte arbetsflödet. Lämna det tomt för att avfyra vid varje ändring. Kommer en uppdatering in utan uppgift om vilka fält som ändrats hoppas filtret över och arbetsflödet körs ändå.
 - **On Create X** och **On Update X** tar båda ett obligatoriskt argument **Select Fields**; **On Delete X** tar inga argument.
 - Alla tre exponerar en enda utport **Framgång**, och var och en tar emot ett ID-argument så att du kan köra arbetsflödet för hand mot en enskild post.
 - Namnen kommer från modellens singularnamn, inte från dess tabellnamn — det är därför du ser **On Create Incident Team Owner** och **On Create Incident User Owner** i stället för tabellformade namn.

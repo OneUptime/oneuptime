@@ -524,7 +524,7 @@ The same generation gives you triggers for the configuration itself: **On Create
 
 A few details that matter when you wire these up:
 
-- **On Update X** takes an optional **Listen on** argument that narrows the trigger to updates touching specific fields. Leave it blank to fire on any change. If an update arrives without a record of which fields moved, the filter is skipped and the workflow runs anyway.
+- **On Update X** takes an optional **Listen on** argument that narrows the trigger to updates that change specific fields, whatever they change to: a switch turned off or a field cleared counts too. A field saved with the value it already has is not a change, so an edit form that sends it back with every save does not wake the workflow. Leave it blank to fire on any change. If an update arrives without a record of which fields changed, the filter is skipped and the workflow runs anyway.
 - **On Create X** and **On Update X** both take a required **Select Fields** argument; **On Delete X** takes no arguments.
 - All three expose a single **Success** out-port, and each accepts an ID argument so you can run the workflow by hand against one record.
 - Names come from the model's singular name, not its table name — which is why you see **On Create Incident Team Owner** and **On Create Incident User Owner** rather than the table-shaped names.

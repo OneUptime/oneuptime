@@ -798,7 +798,8 @@ describe.each(ENGINES)("the $noun grouping engine", (engine: EngineCase) => {
           reopened.push(episodeId.toString());
           for (const episode of episodes) {
             if (episode.id?.toString() === episodeId.toString()) {
-              episode.resolvedAt = undefined;
+              (episode as { resolvedAt?: Date | undefined }).resolvedAt =
+                undefined;
             }
           }
         }) as never);

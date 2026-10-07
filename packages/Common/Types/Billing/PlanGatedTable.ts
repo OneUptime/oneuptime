@@ -75,9 +75,13 @@ export const getPlanGatedTableSwitchColumn: (
 /*
  * Whether an update only switches records off: it writes at least one
  * column, and every column it writes is the table's switch, written false.
- * The comparison is exact - "false", 0 or null is not false - and one more
- * column, whatever it holds, makes it an ordinary update. Columns set to
- * undefined are not written and are ignored.
+ * The comparison is exact - "false", 0 or null is not false here - and one
+ * more column, whatever it holds, makes it an ordinary update. Columns set
+ * to undefined are not written and are ignored. On the server a switch the
+ * API, Terraform or a workflow sends as "false", "no", "off" or 0 reaches
+ * this as false: DatabaseService turns every Boolean column of a write into
+ * the boolean the database stores before any check reads it
+ * (Types/Database/BooleanColumnValue), so it switches off like false.
  *
  * Only a plain object of columns qualifies. Anything else - an array, a
  * model, an object whose prototype carries more values - is not a

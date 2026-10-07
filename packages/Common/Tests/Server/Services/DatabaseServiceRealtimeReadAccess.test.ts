@@ -22,6 +22,7 @@ import QueryUtil from "../../../Server/Types/Database/QueryUtil";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Label from "../../../Models/DatabaseModels/Label";
+import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
@@ -991,6 +992,47 @@ describe("updating records: who could read them before the write hears about it 
     ).toHaveLength(1);
   });
 
+  /*
+   * The row is not private, and the write says so again - the incident's
+   * Settings form sends its switches with every save. A switch that is off
+   * used to read as "no value" in the comparison, so writing false over
+   * false counted as a change and cost a decision before every such save.
+   */
+  test("writing a switch back as off, where it is off, decides nothing either", async () => {
+    jest.spyOn(Realtime, "isInitialized").mockReturnValue(true);
+
+    await update({ isPrivate: false });
+
+    expect(snapshot).not.toHaveBeenCalled();
+    expect(order).toEqual(["write"]);
+    expect(
+      (service.onTriggerRealtime as unknown as jest.SpyInstance).mock.calls,
+    ).toHaveLength(0);
+  });
+
+  test('nor does writing it as the text "false", which the database stores as off', async () => {
+    jest.spyOn(Realtime, "isInitialized").mockReturnValue(true);
+
+    await update({ isPrivate: "false" });
+
+    expect(snapshot).not.toHaveBeenCalled();
+    expect(
+      (service.onTriggerRealtime as unknown as jest.SpyInstance).mock.calls,
+    ).toHaveLength(0);
+  });
+
+  test("while turning it on is a change: decided before the write, and the event is sent", async () => {
+    jest.spyOn(Realtime, "isInitialized").mockReturnValue(true);
+
+    await update({ isPrivate: "true" });
+
+    expect(snapshot).toHaveBeenCalledTimes(1);
+    expect(order).toEqual(["decide", "write"]);
+    expect(
+      (service.onTriggerRealtime as unknown as jest.SpyInstance).mock.calls,
+    ).toHaveLength(1);
+  });
+
   test("Realtime not running here, or a model that sends no update events: nothing is decided", async () => {
     jest.spyOn(Realtime, "isInitialized").mockReturnValue(false);
 
@@ -1095,5 +1137,156 @@ describe("deleting records sends delete events only with the delete workflow tri
     });
 
     expect(mostAtOnce).toBe(2);
+  });
+});
+
+/*
+ * A switch that records who turned it (Archived, with archivedAt and its
+ * person) puts those stamps into the write for every row it names. A row
+ * already archived keeps who archived it, and when, so writing Archived back
+ * as on changes nothing in that row - and costs no decision before the
+ * write, as no event follows it. An SLO sends live updates, and records who
+ * archived it.
+ */
+describe("updating a switch that records who turned it, back as it stands", () => {
+  const SLO_ROW: string = "c0000000-0000-4000-8000-00000000000c";
+  const ARCHIVED_AT: Date = new Date("2026-10-01T08:00:00.000Z");
+
+  let service: DatabaseService<ServiceLevelObjective>;
+  let table: ReturnType<typeof useInMemoryTable>;
+  let order: Array<string>;
+  let snapshot: jest.SpyInstance;
+
+  function events(): Array<Array<unknown>> {
+    return (service.onTriggerRealtime as unknown as jest.SpyInstance).mock
+      .calls as Array<Array<unknown>>;
+  }
+
+  beforeEach(() => {
+    order = [];
+    RealtimeReaders.clear();
+
+    service = new DatabaseService<ServiceLevelObjective>(ServiceLevelObjective);
+    table = useInMemoryTable(service as unknown as DatabaseService<BaseModel>, [
+      {
+        _id: SLO_ROW,
+        projectId: PROJECT_ID.toString(),
+        isArchived: true,
+        archivedAt: ARCHIVED_AT,
+        archivedByUserId: USER_ID.toString(),
+      },
+    ]);
+
+    const write: jest.SpyInstance = table.repository
+      .update as unknown as jest.SpyInstance;
+    const writeRows: (where: unknown, set: unknown) => Promise<unknown> =
+      write.getMockImplementation() as (
+        where: unknown,
+        set: unknown,
+      ) => Promise<unknown>;
+    write.mockImplementation(
+      async (where: unknown, set: unknown): Promise<unknown> => {
+        order.push("write");
+        return await writeRows(where, set);
+      },
+    );
+
+    jest.spyOn(PublishedImages, "afterUpdate").mockResolvedValue(undefined);
+    jest
+      .spyOn(StatusPageOverviewCache, "afterUpdate")
+      .mockResolvedValue(undefined);
+    jest.spyOn(AuditLogService, "recordUpdate").mockResolvedValue(undefined);
+    jest.spyOn(Realtime, "isInitialized").mockReturnValue(true);
+
+    snapshot = jest
+      .spyOn(Realtime, "snapshotReadAccess")
+      .mockImplementation(async (): Promise<RealtimeReadAccess> => {
+        order.push("decide");
+        return NO_READER_ACCESS;
+      });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  async function update(data: Record<string, unknown>): Promise<void> {
+    await service.updateBy({
+      query: { projectId: PROJECT_ID },
+      data: data as never,
+      limit: 10,
+      skip: 0,
+      props: { isRoot: true, ignoreHooks: true },
+    });
+  }
+
+  test("the model sends live updates and records who archived it, or this proves nothing", () => {
+    expect(service.getModel().enableRealtimeEventsOn?.update).toBe(true);
+    expect(service.getModel().enableWorkflowOn?.update).toBe(true);
+    expect(service.getModel().isTableColumn("archivedAt")).toBe(true);
+  });
+
+  test.each([
+    ["true", true],
+    ['the text "true"', "true"],
+    ['the text "yes"', "yes"],
+    ["1", 1],
+  ] as Array<[string, unknown]>)(
+    "Archived written back as %s over an archived SLO decides nothing and sends nothing",
+    async (_label: string, value: unknown) => {
+      await update({ isArchived: value });
+
+      expect(snapshot).not.toHaveBeenCalled();
+      expect(order).toEqual(["write"]);
+      expect(events()).toHaveLength(0);
+
+      // It keeps who archived it, and when.
+      const row: Record<string, unknown> = table.get(SLO_ROW)!;
+      expect(row["isArchived"]).toBe(true);
+      expect(row["archivedAt"]).toEqual(ARCHIVED_AT);
+      expect(String(row["archivedByUserId"])).toBe(USER_ID.toString());
+    },
+  );
+
+  test("unarchiving it is a change: decided before the write, and the event is sent", async () => {
+    await update({ isArchived: "false" });
+
+    expect(snapshot).toHaveBeenCalledTimes(1);
+    expect(order).toEqual(["decide", "write"]);
+    expect(events()).toHaveLength(1);
+
+    const row: Record<string, unknown> = table.get(SLO_ROW)!;
+    expect(row["isArchived"]).toBe(false);
+    expect(row["archivedAt"]).toBeNull();
+  });
+
+  test("of two SLOs, only the one the write archives is decided on and heard about", async () => {
+    const OTHER_ROW: string = "d0000000-0000-4000-8000-00000000000d";
+    table.rows.push({
+      _id: OTHER_ROW,
+      projectId: PROJECT_ID.toString(),
+      isArchived: false,
+      archivedAt: null,
+    });
+
+    await update({ isArchived: true });
+
+    expect(snapshot).toHaveBeenCalledTimes(1);
+
+    const asked: { modelIds: Array<ObjectID> } = snapshot.mock.calls[0]![0] as {
+      modelIds: Array<ObjectID>;
+    };
+
+    expect(
+      asked.modelIds.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    ).toEqual([OTHER_ROW]);
+    expect(events()).toHaveLength(1);
+    expect(String(events()[0]![0])).toBe(OTHER_ROW);
+
+    // The SLO archived already keeps its stamps; the other gets them now.
+    expect(table.get(SLO_ROW)!["archivedAt"]).toEqual(ARCHIVED_AT);
+    expect(table.get(OTHER_ROW)!["archivedAt"]).toBeInstanceOf(Date);
   });
 });

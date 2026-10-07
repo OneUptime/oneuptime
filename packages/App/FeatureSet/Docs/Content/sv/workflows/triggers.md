@@ -45,10 +45,12 @@ Behandla URL:en som ett lösenord. Vem som helst som har den kan starta ditt arb
 Nästan allt i OneUptime — monitorer, incidenter, larm, schemalagt underhåll, statussidor, jourpolicyer, team — kan utlösa ett arbetsflöde. Var och en erbjuder tre händelser:
 
 - **On Create** — utlöses när en ny läggs till.
-- **On Update** — utlöses när en ändras.
+- **On Update** — utlöses när en ändras. Att spara en post med de värden den redan har, till exempel ett formulär som sparas utan ändringar eller en brytare som skickas som den redan står, är ingen ändring och utlöser den inte.
 - **On Delete** — utlöses när en tas bort.
 
 Så bygger du "när X händer i OneUptime, gör Y" utan att behöva kontrollera saker i en loop.
+
+**On Update** kan begränsas till vissa fält med **Listen on**: då utlöses den bara när en uppdatering ändrar något av dem, till vilket värde som helst – även att slå av en brytare eller tömma ett fält räknas.
 
 Hela posten skickas vidare till nästa block. Utlösaren **Incident → On Create** skickar till exempel med den nya incidenten, så nästa block kan läsa dess titel, beskrivning, allvarlighetsgrad och alla andra fält.
 

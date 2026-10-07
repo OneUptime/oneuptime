@@ -19,6 +19,7 @@ import StatusPageOIDC from "Common/Models/DatabaseModels/StatusPageOidc";
 import StatusPageSCIM from "Common/Models/DatabaseModels/StatusPageSCIM";
 import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { coerceBooleanColumnsInJSON } from "Common/Types/Database/BooleanColumnValue";
 import { coerceDateColumnsInJSON } from "Common/Types/Database/DateColumnValue";
 import { coerceNumericColumnsInJSON } from "Common/Types/Database/NumericColumnValue";
 import PaymentRequiredException from "Common/Types/Exception/PaymentRequiredException";
@@ -107,7 +108,8 @@ const tableNameOf: (modelType: ModelType) => string = (
 /*
  * What BaseAPI.updateItem hands the permission layer for a PUT whose body the
  * UI built as { data: payload }: the JSON round trip of the request, then
- * deserialize, the numeric / date coercions, and the dropped id columns.
+ * deserialize, the numeric / date / switch coercions, and the dropped id
+ * columns.
  */
 const asReceivedByServer: (
   modelType: ModelType,
@@ -119,8 +121,11 @@ const asReceivedByServer: (
 
   const model: BaseModel = new modelType();
 
-  const item: JSONObject = coerceDateColumnsInJSON(
-    coerceNumericColumnsInJSON(JSONFunctions.deserialize(body.data), model),
+  const item: JSONObject = coerceBooleanColumnsInJSON(
+    coerceDateColumnsInJSON(
+      coerceNumericColumnsInJSON(JSONFunctions.deserialize(body.data), model),
+      model,
+    ),
     model,
   );
 

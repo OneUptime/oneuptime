@@ -309,6 +309,15 @@ describe("what the palette says each component does", () => {
      * record of which fields changed, so it cannot be described as a guarantee.
      */
     expect(description).toMatch(/skipped|anyway/);
+    /*
+     * DatabaseService tells the trigger the fields an update changed
+     * (getChangedColumns), so the filter is about changes: a field saved with
+     * the value it already has does not count.
+     */
+    expect(description).toContain("updates that change these fields");
+    expect(description).toContain(
+      "A field saved with the value it already has is not a change.",
+    );
   });
 });
 

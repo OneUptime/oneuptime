@@ -15,6 +15,7 @@ import UserService from "Common/Server/Services/UserService";
 import Query from "Common/Server/Types/Database/Query";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Select from "Common/Server/Types/Database/Select";
+import ColumnValueChange from "Common/Server/Utils/Database/ColumnValueChange";
 import RelationValueUtil from "Common/Server/Utils/Database/RelationValueUtil";
 import logger from "Common/Server/Utils/Logger";
 import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
@@ -763,45 +764,32 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
     return changes;
   }
 
+  /*
+   * Whether a field holds after the write what it held before, by the one
+   * rule DatabaseService decides whether a write changed a row at all
+   * (ColumnValueChange), so an entry names only the fields that really
+   * changed: a switch written back as it stood - false over false, or the
+   * text "false" over false - a time written as the same instant in another
+   * format, a number written as its text, JSON with its keys in another
+   * order, and a relation naming the same rows (whatever else the
+   * before-row's join or the payload carried with them) are all the same
+   * value. A field the write sends as undefined writes nothing.
+   */
   private areValuesEqual<TModel extends BaseModel>(data: {
     model: TModel;
     field: string;
     oldValue: unknown;
     newValue: unknown;
   }): boolean {
-    const a: unknown = data.oldValue;
-    const b: unknown = data.newValue;
+    // A field that is not a column has none: compared as of no known type.
+    const metadata: TableColumnMetadata | undefined =
+      data.model.getTableColumnMetadata(data.field);
 
-    if (a === b) {
-      return true;
-    }
-    if (a === null || a === undefined) {
-      return b === null || b === undefined;
-    }
-    if (b === null || b === undefined) {
-      return false;
-    }
-
-    /*
-     * A relation is the set of rows it references. Its JSON also carries
-     * whatever else happened to be loaded - the before-row's names, the
-     * payload's bare ids, the order the join returned - so an unchanged
-     * relation would otherwise read as changed.
-     */
-    if (this.getRelationMetadata(data.model, data.field)) {
-      const sameRelationIds: boolean | null =
-        RelationValueUtil.haveSameRelationIds(a, b);
-
-      if (sameRelationIds !== null) {
-        return sameRelationIds;
-      }
-    }
-
-    try {
-      return JSON.stringify(a) === JSON.stringify(b);
-    } catch {
-      return false;
-    }
+    return !ColumnValueChange.isChanged({
+      columnType: metadata?.type,
+      storedValue: data.oldValue,
+      writtenValue: data.newValue,
+    });
   }
 
   // The column's metadata when it is a relation (Entity / EntityArray), else null.

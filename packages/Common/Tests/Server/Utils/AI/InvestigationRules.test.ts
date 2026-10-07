@@ -13,6 +13,7 @@ import AIInvestigationRuleTriggerEntity from "../../../../Types/AI/AIInvestigati
 import ObjectID from "../../../../Types/ObjectID";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../../../Utils/Rules/RuleEngineLimits";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * Investigation rules: which new incidents (or alerts) OneUptime AI
@@ -75,7 +76,7 @@ function alert(): Alert {
 
 function mockRules(
   rules: Array<AIInvestigationRule> | Error,
-): jest.SpiedFunction<typeof AIInvestigationRuleService.findBy> {
+): SpyInstance<typeof AIInvestigationRuleService.findBy> {
   return jest
     .spyOn(AIInvestigationRuleService, "findBy")
     .mockImplementation(async () => {
@@ -104,7 +105,7 @@ describe("InvestigationRules.getIncidentScope", () => {
   });
 
   test("reads only the project's enabled incident rules, with what they match on, as root", async () => {
-    const findBy: jest.SpiedFunction<typeof AIInvestigationRuleService.findBy> =
+    const findBy: SpyInstance<typeof AIInvestigationRuleService.findBy> =
       mockRules([]);
 
     await InvestigationRules.getIncidentScope({
@@ -182,7 +183,7 @@ describe("InvestigationRules.getIncidentScope", () => {
 
   test("rules that cannot be read leave the incident in scope, and say so in the log", async () => {
     mockRules(new Error("database is down"));
-    const error: jest.SpiedFunction<typeof logger.error> = jest
+    const error: SpyInstance<typeof logger.error> = jest
       .spyOn(logger, "error")
       .mockImplementation((): void => {
         return undefined;
@@ -202,7 +203,7 @@ describe("InvestigationRules.getIncidentScope", () => {
 
 describe("InvestigationRules.getAlertScope", () => {
   test("reads the alert rules, not the incident ones", async () => {
-    const findBy: jest.SpiedFunction<typeof AIInvestigationRuleService.findBy> =
+    const findBy: SpyInstance<typeof AIInvestigationRuleService.findBy> =
       mockRules([]);
 
     expect(
