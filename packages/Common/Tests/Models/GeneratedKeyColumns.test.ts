@@ -8,6 +8,7 @@ import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import AlertMeasurement from "../../Models/DatabaseModels/AlertMeasurement";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentMeasurement from "../../Models/DatabaseModels/IncidentMeasurement";
+import LogRecordingRule from "../../Models/DatabaseModels/LogRecordingRule";
 import MetricRecordingRule from "../../Models/DatabaseModels/MetricRecordingRule";
 import ScheduledMaintenanceMeasurement from "../../Models/DatabaseModels/ScheduledMaintenanceMeasurement";
 import TraceRecordingRule from "../../Models/DatabaseModels/TraceRecordingRule";
@@ -54,6 +55,11 @@ const GENERATED_COLUMNS: Array<GeneratedColumn> = [
   },
   {
     model: TraceRecordingRule,
+    column: "outputMetricName",
+    canChangeAfterCreate: true,
+  },
+  {
+    model: LogRecordingRule,
     column: "outputMetricName",
     canChangeAfterCreate: true,
   },

@@ -48,6 +48,12 @@ export function getLogsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Scrub Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.LOGS_SETTINGS_RECORDING_RULES, [
+      "Project",
+      "Logs",
+      "Settings",
+      "Recording Rules",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

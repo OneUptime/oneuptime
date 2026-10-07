@@ -46,7 +46,7 @@ const REPOSITORY_ROOT: string = path.resolve(
 export const SERVER_MADE_COLUMNS: ReadonlyArray<string> = [
   // IncidentMeasurement, AlertMeasurement, ScheduledMaintenanceMeasurement.
   "key",
-  // MetricRecordingRule, TraceRecordingRule.
+  // MetricRecordingRule, TraceRecordingRule, LogRecordingRule.
   "outputMetricName",
 ];
 
@@ -287,6 +287,7 @@ describe("keys made from the name", () => {
       [
         "packages/App/FeatureSet/Dashboard/src/Pages/Alerts/Settings/AlertMeasurements.tsx :: key",
         "packages/App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentMeasurements.tsx :: key",
+        "packages/App/FeatureSet/Dashboard/src/Pages/Logs/Settings/RecordingRules.tsx :: outputMetricName",
         "packages/App/FeatureSet/Dashboard/src/Pages/Metrics/Settings/RecordingRules.tsx :: outputMetricName",
         "packages/App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceMeasurements.tsx :: key",
         "packages/App/FeatureSet/Dashboard/src/Pages/Traces/Settings/RecordingRules.tsx :: outputMetricName",
@@ -326,6 +327,7 @@ describe("keys made from the name", () => {
         .sort(),
     ).toEqual(
       [
+        "packages/App/FeatureSet/Dashboard/src/Pages/Logs/Settings/RecordingRules.tsx :: outputMetricName :: edit only",
         "packages/App/FeatureSet/Dashboard/src/Pages/Metrics/Settings/RecordingRules.tsx :: outputMetricName :: edit only",
         "packages/App/FeatureSet/Dashboard/src/Pages/Traces/Settings/RecordingRules.tsx :: outputMetricName :: edit only",
       ].sort(),
