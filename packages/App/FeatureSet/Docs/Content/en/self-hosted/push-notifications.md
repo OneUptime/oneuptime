@@ -63,10 +63,18 @@ Apple grants per developer account, on request, for apps that notify people
 about urgent events. Request it at
 [Apple's Critical Alerts request form](https://developer.apple.com/contact/request/notifications-critical-alerts-entitlement/).
 
-Because a provisioning profile cannot carry an entitlement the team has not
-been granted - and a build that declares one it cannot carry **fails to
-sign** - the entitlement is **not** enabled in this repository by default.
-Once Apple has granted it to your team, turn it on when building:
+The official **OneUptime On-Call** app on the App Store carries the
+entitlement from **version 1.5.0**. Earlier versions do not, and iOS never
+offers critical alerts to them, so update the app before turning the setting
+on.
+
+If you build the app yourself, the entitlement is opt-in. A provisioning
+profile cannot carry an entitlement the team has not been granted, and a
+build that declares one it cannot carry **fails to sign**. Only the
+`production` profile in `packages/MobileApp/eas.json` turns it on, because
+Apple has granted it to the team that publishes the official app. A fork that
+signs with its own Apple team must remove that `env` entry until Apple grants
+the entitlement to that team too. Once it has, turn it on when building:
 
 ```
 EXPO_IOS_CRITICAL_ALERTS_ENTITLEMENT=true npx expo prebuild
@@ -75,9 +83,17 @@ EXPO_IOS_CRITICAL_ALERTS_ENTITLEMENT=true npx expo prebuild
 or add `EXPO_IOS_CRITICAL_ALERTS_ENTITLEMENT: "true"` to the build profile's
 `env` block in `packages/MobileApp/eas.json`.
 
-Without the entitlement the app still behaves correctly: iOS declines to grant
-the permission, and the settings screen tells the responder so rather than
-showing a switch that does nothing.
+On the device, turn on **Settings > Notifications > Critical On-Call Alerts**
+in the app, and allow critical alerts when iOS asks. iOS adds a **Critical
+Alerts** switch for the app under iOS **Settings > Notifications > OneUptime
+On-Call** only after the app has asked for the permission, so that switch is
+not there before you turn the setting on in the app. If you decline the
+prompt, you can allow critical alerts later with that switch in iOS Settings.
+
+On a build without the entitlement, iOS shows no prompt and no switch, and the
+app's settings screen says that this version of the app cannot receive
+critical alerts. It does not send the responder to look for a switch that
+iOS is not showing.
 
 ### Android: Do Not Disturb access
 
@@ -112,6 +128,17 @@ first, and you will hear whether a real page would reach you.
 - Verify the device is registered in the `UserPush` table in your database
 - Check OneUptime server logs for Expo Push API errors
 - Confirm the device has an active internet connection and notification permissions enabled
+
+### No Critical Alerts switch in iOS Settings
+
+- Update OneUptime On-Call from the App Store. Versions before 1.5.0 were
+  built without Apple's critical alerts entitlement, and iOS shows no
+  Critical Alerts switch for them at all
+- Turn on **Settings > Notifications > Critical On-Call Alerts** in the app.
+  iOS adds the switch to its own Settings only after the app has asked for the
+  permission, and the app asks when this setting is turned on
+- Removing and re-adding on-call notification rules or push devices does not
+  change this. The setting belongs to the app on the device, not to a rule
 
 ### Critical alerts do not override silent mode
 

@@ -35,6 +35,19 @@ function setIsDevice(isDevice: boolean): void {
   (Device as unknown as { isDevice: boolean }).isDevice = isDevice;
 }
 
+/*
+ * What expo-notifications reports on iOS. allowsCriticalAlerts mirrors
+ * UNNotificationSettings.criticalAlertSetting: true for enabled, false for
+ * disabled, and null for notSupported - the value of a build without Apple's
+ * entitlement, and of an entitled build that has not asked yet.
+ */
+function iosPermissions(
+  status: "granted" | "denied" | "undetermined",
+  allowsCriticalAlerts: boolean | null | undefined,
+): never {
+  return { status: status, ios: { allowsCriticalAlerts } } as never;
+}
+
 describe("getCriticalAlertStatus on iOS", () => {
   beforeEach(() => {
     setPlatform("ios");
@@ -57,9 +70,9 @@ describe("getCriticalAlertStatus on iOS", () => {
 
   test("is denied when iOS grants notifications but NOT critical alerts", async () => {
     /*
-     * The default state for any build without Apple's entitlement: ordinary
-     * notification permission is granted, so a naive check passes, while
-     * critical alerts are not.
+     * The responder said no to the critical alert prompt, or switched it off
+     * later: ordinary notification permission is granted, so a naive check
+     * passes, while critical alerts are not.
      */
     jest.spyOn(Notifications, "getPermissionsAsync").mockResolvedValue({
       status: "granted",
@@ -92,6 +105,18 @@ describe("getCriticalAlertStatus on iOS", () => {
     expect(status.reason).toContain("Settings");
   });
 
+  test("a switched-off Critical Alerts switch sends the responder back to it", async () => {
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockResolvedValue(iosPermissions("granted", false));
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.reason).toContain(
+      "Allow Critical Alerts for OneUptime On-Call in iOS Settings",
+    );
+  });
+
   test("a thrown permission check is reported as denied, not as granted", async () => {
     jest
       .spyOn(Notifications, "getPermissionsAsync")
@@ -115,6 +140,153 @@ describe("getCriticalAlertStatus on iOS", () => {
     await getCriticalAlertStatus();
 
     expect(channelSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("getCriticalAlertStatus on iOS when Settings has no Critical Alerts switch", () => {
+  /*
+   * iOS adds a Critical Alerts switch to Settings > Notifications only after a
+   * build carrying Apple's entitlement has asked for it. Until then it reports
+   * the setting as not supported, which expo-notifications passes on as null.
+   * Every App Store build up to 1.4.0 lacked the entitlement, so for them the
+   * switch could never appear - and telling a responder to go and turn it on
+   * sent them looking for something that is not there.
+   */
+  beforeEach(() => {
+    setPlatform("ios");
+    setIsDevice(true);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("is still denied rather than unsupported, so the setting stays on offer", async () => {
+    /*
+     * An entitled build that has not asked yet reports exactly this, and the
+     * only way to get the prompt is to turn the setting on. Calling it
+     * unsupported would hide the switch that asks.
+     */
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockResolvedValue(iosPermissions("granted", null));
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Denied);
+  });
+
+  test("does not send the responder to a Critical Alerts switch iOS is not showing", async () => {
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockResolvedValue(iosPermissions("granted", null));
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.reason).not.toContain("Allow Critical Alerts");
+  });
+
+  test("says why the switch is missing and that updating the app is the fix", async () => {
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockResolvedValue(iosPermissions("granted", null));
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.reason).toContain("no Critical Alerts switch");
+    expect(status.reason).toContain("Update OneUptime On-Call");
+    expect(status.reason).toContain("App Store");
+  });
+
+  test("reads an absent answer the same way as null", async () => {
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockResolvedValue(iosPermissions("granted", undefined));
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Denied);
+    expect(status.reason).toContain("Update OneUptime On-Call");
+  });
+
+  test("reads a response with no iOS block at all the same way", async () => {
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockResolvedValue({ status: "granted" } as never);
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Denied);
+    expect(status.reason).toContain("Update OneUptime On-Call");
+  });
+
+  test("gives a different instruction from a switch that exists and is off", async () => {
+    const getSpy: jest.SpyInstance = jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockResolvedValue(iosPermissions("granted", null));
+
+    const missingSwitch: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    getSpy.mockResolvedValue(iosPermissions("granted", false));
+
+    const switchedOff: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(missingSwitch.reason).not.toBe(switchedOff.reason);
+  });
+
+  test("is denied before notification permission has been asked for at all", async () => {
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockResolvedValue(iosPermissions("undetermined", null));
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Denied);
+  });
+});
+
+describe("getCriticalAlertStatus on iOS when notifications are turned off", () => {
+  beforeEach(() => {
+    setPlatform("ios");
+    setIsDevice(true);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("names Allow Notifications, the switch the responder needs first", async () => {
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockResolvedValue(iosPermissions("denied", null));
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Denied);
+    expect(status.reason).toContain("Notifications are turned off");
+    expect(status.reason).toContain("Allow Notifications");
+    expect(status.reason).toContain("iOS Settings > Notifications");
+  });
+
+  test("does not blame the app version when notifications are simply off", async () => {
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockResolvedValue(iosPermissions("denied", null));
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.reason).not.toContain("App Store");
+  });
+
+  test("outranks a Critical Alerts switch that is also off", async () => {
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockResolvedValue(iosPermissions("denied", false));
+
+    const status: CriticalAlertStatus = await getCriticalAlertStatus();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Denied);
+    expect(status.reason).toContain("Allow Notifications");
   });
 });
 
@@ -356,6 +528,139 @@ describe("requestCriticalAlertPermission on iOS", () => {
     await requestCriticalAlertPermission();
 
     expect(intentSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("requestCriticalAlertPermission on iOS, with and without Apple's entitlement", () => {
+  /*
+   * The same request has different outcomes depending on the build, and only
+   * iOS knows which build it is talking to. Each test sets what iOS reports
+   * before the request and what it reports once the request has been made.
+   */
+  beforeEach(() => {
+    setPlatform("ios");
+    setIsDevice(true);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function simulateIosRequest(
+    beforeRequest: never,
+    afterRequest: never,
+  ): jest.SpyInstance {
+    let current: never = beforeRequest;
+
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockImplementation(async () => {
+        return current;
+      });
+
+    return jest
+      .spyOn(Notifications, "requestPermissionsAsync")
+      .mockImplementation(async () => {
+        current = afterRequest;
+        return afterRequest;
+      });
+  }
+
+  test("a build without the entitlement asks iOS before concluding anything", async () => {
+    const requestSpy: jest.SpyInstance = simulateIosRequest(
+      iosPermissions("granted", null),
+      iosPermissions("granted", null),
+    );
+
+    await requestCriticalAlertPermission();
+
+    expect(requestSpy).toHaveBeenCalledWith({
+      ios: expect.objectContaining({ allowCriticalAlerts: true }),
+    });
+  });
+
+  test("a build without the entitlement stays denied once iOS ignores the request", async () => {
+    /*
+     * The App Store builds up to 1.4.0: iOS drops the critical alert option
+     * from the request without an error or a prompt, and still reports the
+     * setting as not supported afterwards.
+     */
+    simulateIosRequest(
+      iosPermissions("granted", null),
+      iosPermissions("granted", null),
+    );
+
+    const status: CriticalAlertStatus = await requestCriticalAlertPermission();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Denied);
+  });
+
+  test("a build without the entitlement is told to update, not to hunt for a switch", async () => {
+    simulateIosRequest(
+      iosPermissions("granted", null),
+      iosPermissions("granted", null),
+    );
+
+    const status: CriticalAlertStatus = await requestCriticalAlertPermission();
+
+    expect(status.reason).toContain("Update OneUptime On-Call");
+    expect(status.reason).not.toContain("Allow Critical Alerts");
+  });
+
+  test("an entitled build that had not asked yet is granted when the prompt is accepted", async () => {
+    /*
+     * A responder updating from a build without the entitlement: iOS has never
+     * shown them the prompt, so before the request the setting still reads as
+     * not supported.
+     */
+    simulateIosRequest(
+      iosPermissions("granted", null),
+      iosPermissions("granted", true),
+    );
+
+    const status: CriticalAlertStatus = await requestCriticalAlertPermission();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Granted);
+  });
+
+  test("an entitled build whose prompt is declined points at the switch iOS has now added", async () => {
+    simulateIosRequest(
+      iosPermissions("granted", null),
+      iosPermissions("granted", false),
+    );
+
+    const status: CriticalAlertStatus = await requestCriticalAlertPermission();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Denied);
+    expect(status.reason).toContain(
+      "Allow Critical Alerts for OneUptime On-Call in iOS Settings",
+    );
+  });
+
+  test("with notifications turned off the responder is told to turn them back on", async () => {
+    simulateIosRequest(
+      iosPermissions("denied", null),
+      iosPermissions("denied", null),
+    );
+
+    const status: CriticalAlertStatus = await requestCriticalAlertPermission();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Denied);
+    expect(status.reason).toContain("Allow Notifications");
+  });
+
+  test("the reason comes from the OS after the request, not from the request's return value", async () => {
+    jest
+      .spyOn(Notifications, "requestPermissionsAsync")
+      .mockResolvedValue(iosPermissions("granted", true));
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockResolvedValue(iosPermissions("granted", null));
+
+    const status: CriticalAlertStatus = await requestCriticalAlertPermission();
+
+    expect(status.availability).toBe(CriticalAlertAvailability.Denied);
+    expect(status.reason).toContain("Update OneUptime On-Call");
   });
 });
 
