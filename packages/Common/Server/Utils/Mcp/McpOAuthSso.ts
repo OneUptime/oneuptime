@@ -1,4 +1,6 @@
-import UserMiddleware from "../../Middleware/UserAuthorization";
+import UserMiddleware, {
+  ProjectScopedSsoSignIn,
+} from "../../Middleware/UserAuthorization";
 import GlobalConfigService from "../../Services/GlobalConfigService";
 import { McpOAuthGrantSsoEvidence } from "../../Services/McpOAuthGrantService";
 import ProjectService from "../../Services/ProjectService";
@@ -17,7 +19,8 @@ import SsoProviderType from "../../../Types/SSO/SsoProviderType";
  * A project (or the whole instance) can require SSO. In a browser that is
  * enforced on every request: the session must also carry an SSO token for the
  * project, and when that token lapses, is for the wrong provider, or names a
- * Global provider that has since been turned off, the project stops loading.
+ * provider that has since been turned off or deleted, the project stops
+ * loading.
  *
  * An MCP client has no browser and no cookies, so the same rules are applied
  * to a copy. When a member approves a client, whatever SSO token let their
@@ -87,8 +90,9 @@ export default class McpOAuthSso {
    * does not satisfy the requirement.
    *
    * Asked in the same order as UserMiddleware.isSsoSatisfiedForProject: the
-   * project's own token first, then the instance's Global one (which also has
-   * to pass the provider-trust and project-governance checks).
+   * project's own token first (which also has to be vouched for, still, by
+   * the provider that gave it), then the instance's Global one (which also
+   * has to pass the provider-trust and project-governance checks).
    */
   public static async captureEvidence(data: {
     req: ExpressRequest;
@@ -99,25 +103,28 @@ export default class McpOAuthSso {
     const requiredSsoProviderId: ObjectID | undefined =
       data.requiredSsoProviderId ?? undefined;
 
-    if (
-      UserMiddleware.doesProjectScopedSsoTokenExist(
+    const projectSsoSignIn: ProjectScopedSsoSignIn | null =
+      UserMiddleware.getStatelessValidProjectScopedSsoSignIn(
         data.req,
         data.projectId,
         data.userId,
         requiredSsoProviderId,
-      )
+      );
+
+    if (
+      projectSsoSignIn &&
+      (await UserMiddleware.isProjectScopedSsoSignInAuthorizedForProject({
+        ssoProviderType: projectSsoSignIn.tokenData.ssoProviderType,
+        ssoProviderId: projectSsoSignIn.tokenData.ssoProviderId,
+        issuedAtMs: projectSsoSignIn.issuedAtMs,
+        projectId: data.projectId,
+      }))
     ) {
       const rawToken: string | undefined = UserMiddleware.getSsoTokens(
         data.req,
       )[data.projectId.toString()];
 
-      /*
-       * A per-project token minted before provider discriminators existed
-       * carries neither field. It is recorded as a project SSO sign-in with
-       * no provider id, which satisfies "any provider" and nothing stricter -
-       * the reading UserMiddleware gives the token itself.
-       */
-      return McpOAuthSso.toEvidence(rawToken, SsoProviderType.ProjectSSO);
+      return McpOAuthSso.toEvidence(rawToken);
     }
 
     const globalSsoTokenData: JSONWebTokenData | null =
@@ -140,18 +147,15 @@ export default class McpOAuthSso {
       return null;
     }
 
-    return McpOAuthSso.toEvidence(
-      McpOAuthSso.getRawGlobalSsoToken(data.req),
-      undefined,
-    );
+    return McpOAuthSso.toEvidence(McpOAuthSso.getRawGlobalSsoToken(data.req));
   }
 
   /*
    * Whether a grant's stored evidence still satisfies the project's SSO
    * requirement. No evidence never does.
    *
-   * THROWS when a Global provider's standing cannot be looked up, for the
-   * reason isGlobalSsoTokenAuthorizedForProject does: "this provider is not
+   * THROWS when a provider's standing cannot be looked up, for the reason
+   * isGlobalSsoTokenAuthorizedForProject does: "this provider is not
    * allowed here" and "we could not find out" are different answers, and a
    * database blip must not read as a permission decision.
    */
@@ -188,8 +192,23 @@ export default class McpOAuthSso {
       evidence.ssoProviderType === SsoProviderType.GlobalOIDC;
 
     if (!isGlobalProvider) {
-      // A project's own provider is decided statelessly, as its token is.
-      return true;
+      /*
+       * A project's own provider has to vouch for the sign-in still, as it
+       * does for a browser's token: still there, still the project's, on,
+       * and turned off no later than the sign-in was copied onto the grant -
+       * the sign-in was given before then
+       * (UserMiddleware.isProjectScopedSsoSignInAuthorizedForProject).
+       */
+      return await UserMiddleware.isProjectScopedSsoSignInAuthorizedForProject(
+        {
+          ssoProviderType: evidence.ssoProviderType,
+          ssoProviderId: evidence.ssoProviderId,
+          issuedAtMs: evidence.capturedAt
+            ? new Date(evidence.capturedAt).getTime()
+            : null,
+          projectId: data.projectId,
+        },
+      );
     }
 
     /*
@@ -213,7 +232,6 @@ export default class McpOAuthSso {
    */
   private static toEvidence(
     rawToken: string | undefined,
-    providerTypeIfAbsent: SsoProviderType | undefined,
   ): McpOAuthGrantSsoEvidence | null {
     if (!rawToken) {
       return null;
@@ -233,9 +251,9 @@ export default class McpOAuthSso {
       return null;
     }
 
-    const ssoProviderType: SsoProviderType | undefined =
-      (payload["ssoProviderType"] as SsoProviderType | undefined) ||
-      providerTypeIfAbsent;
+    const ssoProviderType: SsoProviderType | undefined = payload[
+      "ssoProviderType"
+    ] as SsoProviderType | undefined;
 
     if (
       !ssoProviderType ||

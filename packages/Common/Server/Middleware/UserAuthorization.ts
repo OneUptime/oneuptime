@@ -34,6 +34,12 @@ import { GlobalProviderTrust } from "../Utils/GlobalSsoAuthorization";
 import GlobalOidcService from "../Services/GlobalOidcService";
 import GlobalSsoProjectService from "../Services/GlobalSsoProjectService";
 import GlobalOidcProjectService from "../Services/GlobalOidcProjectService";
+import ProjectOidcService from "../Services/ProjectOidcService";
+import ProjectSsoService from "../Services/ProjectSsoService";
+import ProjectSsoProviderStanding, {
+  ProjectSsoProviderStandingValue,
+  isProjectSsoProviderType,
+} from "../Utils/ProjectSsoProviderStanding";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import Permission, {
   UserGlobalAccessPermission,
@@ -53,6 +59,16 @@ export type RequestSession =
   | { kind: "invalid"; error: unknown }
   | { kind: "blocked"; session: JSONWebTokenData }
   | { kind: "user"; session: JSONWebTokenData };
+
+/*
+ * A project's own SSO sign-in on a request (a Project SSO/OIDC login): the
+ * token it left, and when it was given (its `iat`, in milliseconds), or null
+ * when the token does not say.
+ */
+export interface ProjectScopedSsoSignIn {
+  tokenData: JSONWebTokenData;
+  issuedAtMs: number | null;
+}
 
 export default class UserMiddleware {
   /*
@@ -312,27 +328,37 @@ export default class UserMiddleware {
   }
 
   /**
-   * Per-project SSO token check (Project SSO/OIDC login). Bound to one project,
-   * entirely stateless: signature, expiry, project, user, and the optional
+   * The per-project SSO sign-in on this request (Project SSO/OIDC login), if
+   * it is stateless-valid for this project and user, or null: signature,
+   * expiry, project, user, a project provider type, and the optional
    * pinned-provider discriminator.
+   *
+   * "Stateless-valid" says nothing about whether the provider that gave it
+   * still vouches for it - whether the provider is still there, still the
+   * project's and still on, and whether the sign-in came after it was last
+   * turned off. That needs the database, and lives in
+   * `isProjectScopedSsoSignInAuthorizedForProject`.
    */
   @CaptureSpan()
-  public static doesProjectScopedSsoTokenExist(
+  public static getStatelessValidProjectScopedSsoSignIn(
     req: ExpressRequest,
     projectId: ObjectID,
     userId: ObjectID,
     requiredSsoProviderId?: ObjectID | undefined,
-  ): boolean {
+  ): ProjectScopedSsoSignIn | null {
     const ssoTokens: Dictionary<string> = this.getSsoTokens(req);
+    const rawToken: string | undefined = ssoTokens
+      ? ssoTokens[projectId.toString()]
+      : undefined;
 
-    if (!ssoTokens || !ssoTokens[projectId.toString()]) {
-      return false;
+    if (!rawToken) {
+      return null;
     }
 
     try {
-      const decodedData: JSONWebTokenData = JSONWebToken.decode(
-        ssoTokens[projectId.toString()] as string,
-      );
+      const decodedData: JSONWebTokenData = JSONWebToken.decode(rawToken);
+      const issuedAtInSeconds: unknown =
+        JSONWebToken.decodeJsonPayload(rawToken)["iat"];
 
       /*
        * A Global-typed credential is NEVER accepted here, whichever slot it
@@ -349,14 +375,25 @@ export default class UserMiddleware {
         decodedData.ssoProviderType === SsoProviderType.GlobalSSO ||
         decodedData.ssoProviderType === SsoProviderType.GlobalOIDC
       ) {
-        return false;
+        return null;
       }
 
-      return (
-        decodedData.projectId?.toString() === projectId.toString() &&
-        decodedData.userId.toString() === userId.toString() &&
-        this.isSsoProviderSatisfied(decodedData, requiredSsoProviderId)
-      );
+      if (
+        decodedData.projectId?.toString() !== projectId.toString() ||
+        decodedData.userId.toString() !== userId.toString() ||
+        !this.isSsoProviderSatisfied(decodedData, requiredSsoProviderId)
+      ) {
+        return null;
+      }
+
+      return {
+        tokenData: decodedData,
+        issuedAtMs:
+          typeof issuedAtInSeconds === "number" &&
+          Number.isFinite(issuedAtInSeconds)
+            ? issuedAtInSeconds * 1000
+            : null,
+      };
     } catch {
       /*
        * A token that expires between `getSsoTokens` decoding it and this call
@@ -364,8 +401,91 @@ export default class UserMiddleware {
        * through to the Global SSO token instead of 500-ing, which is what a
        * user with both kinds would expect.
        */
+      return null;
+    }
+  }
+
+  /**
+   * The stateless half of the per-project SSO check, as a yes or no: is
+   * there a per-project SSO sign-in on this request that is stateless-valid
+   * for this project and user (getStatelessValidProjectScopedSsoSignIn).
+   *
+   * NOTE: this is NOT the enforcement entry point - the provider that gave
+   * the sign-in may have been turned off or deleted since. Enforcement calls
+   * `isSsoSatisfiedForProject`.
+   */
+  @CaptureSpan()
+  public static doesProjectScopedSsoTokenExist(
+    req: ExpressRequest,
+    projectId: ObjectID,
+    userId: ObjectID,
+    requiredSsoProviderId?: ObjectID | undefined,
+  ): boolean {
+    return Boolean(
+      this.getStatelessValidProjectScopedSsoSignIn(
+        req,
+        projectId,
+        userId,
+        requiredSsoProviderId,
+      ),
+    );
+  }
+
+  /**
+   * Whether the project's own SSO provider that gave a sign-in still vouches
+   * for it: the provider the sign-in names, by kind and id, is still there,
+   * is still this project's and is on, and the sign-in was given after the
+   * provider was last turned off (ProjectSsoProviderStanding). So turning a
+   * provider off, or deleting it, ends every sign-in it gave at the next
+   * request - and turning it on again does not bring them back - while a
+   * new certificate or client secret changes nothing for anyone signed in.
+   *
+   * A sign-in that does not name its provider cannot be checked, so it does
+   * not count: every project SSO sign-in names it, and one that does not was
+   * made by an old version and is answered like an expired one - signing in
+   * again gives one that does.
+   *
+   * Answers are cached per server for a minute, and forgotten on every
+   * server when a provider is turned off or on or deleted
+   * (ProjectSsoProviderChanges).
+   *
+   * THROWS rather than refusing when the lookup itself fails, for the reason
+   * isGlobalSsoTokenAuthorizedForProject does: "this provider no longer
+   * vouches for you" and "we could not find out" are different answers.
+   */
+  @CaptureSpan()
+  public static async isProjectScopedSsoSignInAuthorizedForProject(data: {
+    ssoProviderType?: SsoProviderType | string | null | undefined;
+    ssoProviderId?: ObjectID | string | null | undefined;
+    issuedAtMs: number | null;
+    projectId: ObjectID;
+  }): Promise<boolean> {
+    const providerIdValue: string | undefined = data.ssoProviderId
+      ? data.ssoProviderId.toString()
+      : undefined;
+
+    if (!providerIdValue || !ObjectID.isValidUUID(providerIdValue)) {
       return false;
     }
+
+    if (!isProjectSsoProviderType(data.ssoProviderType)) {
+      return false;
+    }
+
+    const providerId: ObjectID = new ObjectID(providerIdValue);
+
+    const standing: ProjectSsoProviderStandingValue =
+      data.ssoProviderType === SsoProviderType.ProjectOIDC
+        ? await ProjectOidcService.getSignInStanding({
+            providerId: providerId,
+            projectId: data.projectId,
+          })
+        : await ProjectSsoService.getSignInStanding({
+            providerId: providerId,
+            projectId: data.projectId,
+          });
+
+    return ProjectSsoProviderStanding.doesVouchFor(standing, data.issuedAtMs);
   }
 
   /**
@@ -522,8 +642,10 @@ export default class UserMiddleware {
    * THE enforcement entry point: is this request's SSO requirement satisfied
    * for this project?
    *
-   * A per-project token is decided statelessly. A Global SSO token additionally
-   * has to survive the provider-trust and project-governance checks above.
+   * A per-project sign-in has to be stateless-valid and still vouched for by
+   * the provider that gave it (isProjectScopedSsoSignInAuthorizedForProject).
+   * A Global SSO token has to survive the provider-trust and
+   * project-governance checks above. Either one satisfies the requirement.
    */
   @CaptureSpan()
   public static async isSsoSatisfiedForProject(data: {
@@ -534,13 +656,22 @@ export default class UserMiddleware {
   }): Promise<boolean> {
     const { req, projectId, userId, requiredSsoProviderId } = data;
 
-    if (
-      this.doesProjectScopedSsoTokenExist(
+    const projectSsoSignIn: ProjectScopedSsoSignIn | null =
+      this.getStatelessValidProjectScopedSsoSignIn(
         req,
         projectId,
         userId,
         requiredSsoProviderId,
-      )
+      );
+
+    if (
+      projectSsoSignIn &&
+      (await this.isProjectScopedSsoSignInAuthorizedForProject({
+        ssoProviderType: projectSsoSignIn.tokenData.ssoProviderType,
+        ssoProviderId: projectSsoSignIn.tokenData.ssoProviderId,
+        issuedAtMs: projectSsoSignIn.issuedAtMs,
+        projectId,
+      }))
     ) {
       return true;
     }
