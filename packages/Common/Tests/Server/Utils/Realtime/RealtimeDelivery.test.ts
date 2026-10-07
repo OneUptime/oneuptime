@@ -135,6 +135,10 @@ class FakeSocketServer {
     rooms: Array<string>;
     userId?: string | undefined;
     isMasterAdmin?: boolean | undefined;
+    // When the session the socket joined with expires; an hour from now by default.
+    expiresAtMs?: number | undefined;
+    // The socket's session has ended (signed out, revoked).
+    sessionEnded?: boolean | undefined;
   }): FakeSocket {
     const id: string = `socket-${this.sockets.length + 1}`;
 
@@ -146,7 +150,12 @@ class FakeSocketServer {
             realtimeReader: {
               userId: data.userId,
               isMasterAdmin: Boolean(data.isMasterAdmin),
+              expiresAtMs:
+                data.expiresAtMs !== undefined
+                  ? data.expiresAtMs
+                  : Date.now() + 60 * 60 * 1000,
             },
+            ...(data.sessionEnded ? { realtimeSessionEnded: true } : {}),
           }
         : {},
       received: [],
@@ -570,6 +579,73 @@ describe("Realtime: a record's live update reaches only people who may read it",
 
     expect(anonymous.received).toEqual([]);
     expect(unnamed.received).toEqual([]);
+    expect(buildPropsCalls).toEqual([]);
+  });
+
+  /*
+   * A socket hears live updates only while the session it joined with
+   * lasts (RealtimeSessions): every delivery asks, so a socket whose access
+   * token has expired, or whose session was signed out or revoked, hears
+   * nothing, even before its timer or the end has reached it.
+   */
+  test("a socket whose session has expired hears nothing, and nobody's read is made for it", async () => {
+    const access: FakeReadAccess = new FakeReadAccess();
+    access.everyRecordReaders.add(OWNER);
+    access.everyRecordReaders.add(LABELS_READER);
+
+    const room: string = roomOf("Incident", ModelEventType.Update);
+    const expired: FakeSocket = server.addSocket({
+      rooms: [room],
+      userId: OWNER,
+      expiresAtMs: Date.now() - 1,
+    });
+    const current: FakeSocket = server.addSocket({
+      rooms: [room],
+      userId: LABELS_READER,
+    });
+
+    await emit(access, RECORD_A);
+    await Realtime.waitForPendingDeliveries();
+
+    expect(expired.received).toEqual([]);
+    expect(modelIdsReceived(current, room)).toEqual([RECORD_A]);
+    expect(buildPropsCalls).toEqual([LABELS_READER]);
+  });
+
+  test("a socket whose session has ended hears nothing, though it is still in the room", async () => {
+    const access: FakeReadAccess = new FakeReadAccess();
+    access.everyRecordReaders.add(OWNER);
+
+    const room: string = roomOf("Incident", ModelEventType.Update);
+    const ended: FakeSocket = server.addSocket({
+      rooms: [room],
+      userId: OWNER,
+      sessionEnded: true,
+    });
+    const otherTab: FakeSocket = server.addSocket({
+      rooms: [room],
+      userId: OWNER,
+    });
+
+    await emit(access, RECORD_A);
+    await Realtime.waitForPendingDeliveries();
+
+    expect(ended.received).toEqual([]);
+    expect(modelIdsReceived(otherTab, room)).toEqual([RECORD_A]);
+  });
+
+  test("a socket that kept no expiry is not one a session lasts for: it hears nothing", async () => {
+    const access: FakeReadAccess = new FakeReadAccess();
+    access.everyRecordReaders.add(OWNER);
+
+    const room: string = roomOf("Incident", ModelEventType.Update);
+    const noExpiry: FakeSocket = server.addSocket({ rooms: [room] });
+    noExpiry.data = { realtimeReader: { userId: OWNER, isMasterAdmin: false } };
+
+    await emit(access, RECORD_A);
+    await Realtime.waitForPendingDeliveries();
+
+    expect(noExpiry.received).toEqual([]);
     expect(buildPropsCalls).toEqual([]);
   });
 
@@ -1053,6 +1129,46 @@ describe("Realtime: a record's live update reaches only people who may read it",
       await Realtime.waitForPendingDeliveries();
 
       expect(late.received).toEqual([]);
+    });
+
+    test("a socket whose session has expired or ended is not asked about before the write, and hears nothing after it", async () => {
+      const access: FakeReadAccess = new FakeReadAccess();
+      access.everyRecordReaders.add(OWNER);
+      access.everyRecordReaders.add(LABELS_READER);
+      access.everyRecordReaders.add(OWNED_READER);
+
+      const room: string = roomOf("Incident", ModelEventType.Delete);
+      const expired: FakeSocket = server.addSocket({
+        rooms: [room],
+        userId: LABELS_READER,
+        expiresAtMs: Date.now() - 1,
+      });
+      const ended: FakeSocket = server.addSocket({
+        rooms: [room],
+        userId: OWNED_READER,
+        sessionEnded: true,
+      });
+      const owner: FakeSocket = server.addSocket({
+        rooms: [room],
+        userId: OWNER,
+      });
+
+      const beforeDelete: RealtimeReadAccess =
+        await Realtime.snapshotReadAccess({
+          tenantId: TENANT_ID,
+          modelType: Incident,
+          modelIds: [new ObjectID(RECORD_A)],
+          access: access,
+        });
+
+      expect(access.everyRecordQuestions).toEqual([OWNER]);
+
+      await emit(beforeDelete, RECORD_A, { eventType: ModelEventType.Delete });
+      await Realtime.waitForPendingDeliveries();
+
+      expect(expired.received).toEqual([]);
+      expect(ended.received).toEqual([]);
+      expect(modelIdsReceived(owner, room)).toEqual([RECORD_A]);
     });
 
     test("nothing listening: the decision is nobody, made without a read", async () => {

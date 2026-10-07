@@ -587,6 +587,23 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
     return { updateBy, carryForward: null };
   }
 
+  /*
+   * Drops this server's cached list of the person's teams in the project
+   * (getTeamIdsForUser), or in every project when none is named, so the
+   * next read asks the database. Called when their membership changes,
+   * here or on another server (RealtimeAccessChanges).
+   */
+  public forgetTeamIdsForUser(userId: ObjectID, projectId?: ObjectID): void {
+    if (!projectId) {
+      this.teamIdsForUserCache.deleteByPrefix(`${userId.toString()}:`);
+      return;
+    }
+
+    this.teamIdsForUserCache.delete(
+      `${userId.toString()}:${projectId.toString()}`,
+    );
+  }
+
   @CaptureSpan()
   public async refreshTokens(
     userId: ObjectID,
@@ -596,12 +613,16 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
      * Invalidate the in-process cache of this user's team memberships in
      * this project — membership just changed.
      */
-    this.teamIdsForUserCache.delete(
-      `${userId.toString()}:${projectId.toString()}`,
-    );
+    this.forgetTeamIdsForUser(userId, projectId);
 
-    /// Refresh tokens.
-    await AccessTokenService.refreshUserGlobalAccessPermission(userId);
+    /*
+     * Refresh tokens. Only the project's refresh, made last, tells the
+     * person's open live updates (on every server) to read them again: the
+     * membership changed in this project alone.
+     */
+    await AccessTokenService.refreshUserGlobalAccessPermission(userId, {
+      forgetLiveUpdateReaders: false,
+    });
 
     await AccessTokenService.refreshUserTenantAccessPermission(
       userId,

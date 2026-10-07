@@ -11,6 +11,9 @@ import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import TelegramVerificationToken from "../Utils/TelegramVerificationToken";
 import GlobalCache from "../Infrastructure/GlobalCache";
+import RealtimeAccessChanges, {
+  RealtimeAccessChangeKind,
+} from "../Utils/Realtime/RealtimeAccessChanges";
 
 /*
  * The columns that hold this installation's license state and identity. They
@@ -79,6 +82,15 @@ export class Service extends DatabaseService<Model> {
 
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * Drops this server's cached instance-wide sign-in rule, so the next
+   * request reads it again. Called when it changes, here or on another
+   * server (RealtimeAccessChanges).
+   */
+  public forgetSignInRules(): void {
+    this.requireSsoForLoginCache.clear();
   }
 
   /*
@@ -465,6 +477,21 @@ export class Service extends DatabaseService<Model> {
         .requireSsoForLogin !== undefined
     ) {
       this.requireSsoForLoginCache.clear();
+    }
+
+    /*
+     * Turned on: every server reads the rule again, and the live updates
+     * already open are asked again as their joins were, so a page that no
+     * longer meets it stops hearing at once, as its API requests are
+     * refused. Turned off, it refuses nobody, so nobody is asked again.
+     */
+    if (
+      (onUpdate.updateBy.data as { requireSsoForLogin?: unknown })
+        .requireSsoForLogin === true
+    ) {
+      RealtimeAccessChanges.announce({
+        kind: RealtimeAccessChangeKind.SignInRulesChanged,
+      });
     }
 
     if (
