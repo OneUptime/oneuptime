@@ -177,7 +177,7 @@ describe("incident created feed item", () => {
     });
 
     expect(sectionLines(markdown, HEADER)).toEqual([
-      `- [checkout-web](${link("monitors", MONITOR_ID)})`,
+      `- [checkout\\-web](${link("monitors", MONITOR_ID)})`,
       `- [Host web](${link("host", HOST_ID)})`,
       `- [Kubernetes Cluster prod](${link("kubernetes", CLUSTER_ID)})`,
       `- [Database orders](${link("databases", DATABASE_ID)})`,
@@ -273,7 +273,7 @@ describe("alert created feed item", () => {
     });
 
     expect(sectionLines(markdown, HEADER)).toEqual([
-      `- [checkout-web](${link("monitors", MONITOR_ID)})`,
+      `- [checkout\\-web](${link("monitors", MONITOR_ID)})`,
       `- [Kubernetes Cluster prod](${link("kubernetes", CLUSTER_ID)})`,
       `- [Service checkout](${link("service", SERVICE_ID)})`,
     ]);
@@ -337,9 +337,40 @@ describe("scheduled maintenance feed items", () => {
     ).createScheduledMaintenanceFeedAsync(event);
 
     expect(sectionLines(postedMarkdown(feedItem), HEADER)).toEqual([
-      `- [checkout-web](${link("monitors", MONITOR_ID)})`,
+      `- [checkout\\-web](${link("monitors", MONITOR_ID)})`,
       `- [Network Site London DC](${link("network-sites/view", SITE_ID)})`,
     ]);
+  });
+
+  test("the created item names the event's title and its state as text", async () => {
+    type CreateFeedFunction = (
+      scheduledMaintenance: ScheduledMaintenance,
+    ) => Promise<void>;
+
+    answerRelationReads(ScheduledMaintenanceService, {});
+
+    const hostile: string = "[Open](https://evil.example/x) <!channel>";
+    const event: ScheduledMaintenance = new ScheduledMaintenance();
+    event._id = RECORD_ID.toString();
+    event.projectId = PROJECT_ID;
+    event.scheduledMaintenanceNumber = 5;
+    event.title = hostile;
+    event.currentScheduledMaintenanceState = { name: hostile } as never;
+
+    await (
+      ScheduledMaintenanceService as unknown as {
+        createScheduledMaintenanceFeedAsync: CreateFeedFunction;
+      }
+    ).createScheduledMaintenanceFeedAsync(event);
+
+    const markdown: string = postedMarkdown(feedItem);
+    const escaped: string =
+      "\\[Open\\](https://evil.example/x) \\<\u2060!channel>";
+
+    expect(markdown).toContain(`**${escaped}**:`);
+    expect(markdown).toContain(`**Scheduled Maintenance State**: ${escaped}`);
+    expect(markdown).not.toMatch(/(?<!\\)\[Open\]/);
+    expect(markdown).not.toMatch(/(?<!\\)<!channel>/);
   });
 
   describe("the updated item", () => {
@@ -380,7 +411,7 @@ describe("scheduled maintenance feed items", () => {
       await update({ hosts: [{ _id: HOST_ID }] });
 
       expect(sectionLines(postedMarkdown(feedItem), UPDATED_HEADER)).toEqual([
-        `- [checkout-web](${link("monitors", MONITOR_ID)})`,
+        `- [checkout\\-web](${link("monitors", MONITOR_ID)})`,
         `- [Host web](${link("host", HOST_ID)})`,
       ]);
 

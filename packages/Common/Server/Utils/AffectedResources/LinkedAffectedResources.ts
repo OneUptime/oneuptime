@@ -533,9 +533,10 @@ export default class LinkedAffectedResources {
    * the SLO's shape, `- [Host <name>](<link>)`, so the reader can tell a host
    * from a cluster from a service.
    *
-   * Those names are escaped: feeds render without safe mode and the same
-   * markdown goes to Slack and Teams, and a host or cluster name can come
-   * from an agent rather than from someone typing it.
+   * Every name, a monitor's included, is escaped (escapeMarkdownInline, as
+   * it sits inside the link's own text): feeds render without safe mode and
+   * the same markdown goes to Slack and Teams, and a host or cluster name
+   * can come from an agent rather than from someone typing it.
    */
   public static getMarkdownLines(data: {
     dashboardUrl: URL;
@@ -563,7 +564,7 @@ export default class LinkedAffectedResources {
       }).toString();
 
       if (resource.type === LinkedAffectedResourceType.Monitor) {
-        lines.push(`- [${resource.name}](${link})`);
+        lines.push(`- [${escapeMarkdownInline(resource.name)}](${link})`);
         continue;
       }
 

@@ -123,7 +123,25 @@ import AIService, {
 } from "../../../Services/AIService";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { AIChatCitation } from "../../../../Types/AI/AIChatTypes";
-import { escapeMarkdownInline } from "../../../../Utils/Markdown/MarkdownEscape";
+import {
+  escapeMarkdownInline,
+  escapeMarkdownValue,
+} from "../../../../Utils/Markdown/MarkdownEscape";
+
+/*
+ * A Markdown link, [text](url), as an incoming webhook's MessageCard turns it
+ * into a button. Only a link Markdown itself would read: a "[" written as
+ * "\[" - a title or a name escaped where it was placed (MarkdownEscape) - opens
+ * no link, and a "]" written as "\]" does not end the link's text. A "["
+ * after an even run of backslashes ("\\[") is not escaped: the backslashes
+ * are a literal one, and a link follows. So text that only looks like a link
+ * stays text, as it does in every other place the message is shown.
+ */
+const MESSAGE_CARD_LINK_PATTERN: RegExp =
+  /(?<!(?:^|[^\\])(?:\\\\)*\\)\[((?:[^\]\\]|\\.)+)\]\(([^)]+)\)/g;
+
+// A CommonMark backslash escape: a backslash before ASCII punctuation.
+const MARKDOWN_BACKSLASH_ESCAPE_PATTERN: RegExp = /\\([!-/:-@[-`{-~])/g;
 
 // Microsoft Teams apps should always be single-tenant
 const MICROSOFT_TEAMS_APP_TYPE: string = "SingleTenant";
@@ -719,8 +737,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         .replace(/^\*\*|\*\*$/g, "") // remove stray bold markers if any
         .trim();
       // Remove markdown link syntax from title for cleaner rendering
-      const titleLinkRegex: RegExp = /\[([^\]]+)\]\(([^)]+)\)/g;
-      title = title.replace(titleLinkRegex, "$1");
+      title = title.replace(MESSAGE_CARD_LINK_PATTERN, "$1");
       // Sanitize unmatched bold markers if any remain
       const boldCountTitle: number = (title.match(/\*\*/g) || []).length;
       if (boldCountTitle % 2 !== 0) {
@@ -729,7 +746,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       lines.shift();
     }
 
-    const linkRegex: RegExp = /\[([^\]]+)\]\(([^)]+)\)/g; // [text](url)
+    const linkRegex: RegExp = new RegExp(MESSAGE_CARD_LINK_PATTERN); // [text](url)
 
     // Helper to clean up unmatched bold markers that can break rendering
     const sanitizeMarkdownText: (text: string) => string = (
@@ -749,7 +766,12 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       let lineWithoutLinks: string = line;
       let match: RegExpExecArray | null = null;
       while ((match = linkRegex.exec(line))) {
-        const name: string = match[1] ?? "";
+        const linkText: string = match[1] ?? "";
+        // The button's name is plain text: an escape in the link's text is undone.
+        const name: string = linkText.replace(
+          MARKDOWN_BACKSLASH_ESCAPE_PATTERN,
+          "$1",
+        );
         const url: string = match[2] ?? "";
         actions.push({
           ["@type"]: "OpenUri",
@@ -761,8 +783,18 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             },
           ],
         });
-        // Replace markdown link with just the display text to preserve sentence flow
-        lineWithoutLinks = lineWithoutLinks.replace(match[0], name).trim();
+        /*
+         * Replace the markdown link with just its text to preserve sentence
+         * flow. The section is read as Markdown, so the text stays as it was
+         * written, escapes and all: unescaped, a title's "[x](...)" would turn
+         * into a link there. Replaced by a function, so a "$" in the text is
+         * not read as a replacement pattern.
+         */
+        lineWithoutLinks = lineWithoutLinks
+          .replace(match[0], (): string => {
+            return linkText;
+          })
+          .trim();
       }
 
       // Parse facts of the form **Label:** value
@@ -790,7 +822,12 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       ["@type"]: "MessageCard",
       ["@context"]: "https://schema.org/extensions",
       title: title,
-      summary: title,
+      /*
+       * The summary is plain text (Teams shows it in notifications and the
+       * activity feed), so the Markdown escapes the title was written with
+       * are undone there: it reads as the title was typed.
+       */
+      summary: title.replace(MARKDOWN_BACKSLASH_ESCAPE_PATTERN, "$1"),
     };
 
     // Build a single section so we can enable markdown explicitly
@@ -3840,10 +3877,12 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         return Boolean(name);
       });
 
-    const shownNames: Array<string> = names.slice(
-      0,
-      MICROSOFT_TEAMS_MAX_AFFECTED_MONITOR_NAMES,
-    );
+    // Each name is plain text, placed into the summary's Markdown.
+    const shownNames: Array<string> = names
+      .slice(0, MICROSOFT_TEAMS_MAX_AFFECTED_MONITOR_NAMES)
+      .map((name: string): string => {
+        return escapeMarkdownValue(name);
+      });
     const notShownCount: number = names.length - shownNames.length;
 
     return notShownCount > 0
@@ -3966,8 +4005,8 @@ If you need to report an incident or check historical incidents, please visit th
          * one, undoes "\[" and "\]" in a link's text before reading it.
          */
         message += `${severityIcon} **[Incident ${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber}: ${escapeMarkdownInline(incident.title)}](${incidentUrl.toString()})**
-• **Severity:** ${severity}
-• **Status:** ${state}
+• **Severity:** ${escapeMarkdownValue(severity)}
+• **Status:** ${escapeMarkdownValue(state)}
 • **Declared:** ${declaredAtText}
 `;
 
@@ -4070,8 +4109,9 @@ Check back later for upcoming maintenance windows.`;
             event.id!,
           );
 
-        message += `🛠️ **[Scheduled Maintenance ${event.scheduledMaintenanceNumberWithPrefix || "#" + event.scheduledMaintenanceNumber}: ${event.title}](${eventUrl.toString()})**
-• **Status:** ${state}
+        // The title inside the link's text, escaped as an incident's is.
+        message += `🛠️ **[Scheduled Maintenance ${event.scheduledMaintenanceNumberWithPrefix || "#" + event.scheduledMaintenanceNumber}: ${escapeMarkdownInline(event.title)}](${eventUrl.toString()})**
+• **Status:** ${escapeMarkdownValue(state)}
 • **Starts:** ${startTime}
 • **Ends:** ${endTime}
 `;
@@ -4174,8 +4214,9 @@ All systems are currently operating normally.`;
             event.id!,
           );
 
-        message += `🔧 **[Scheduled Maintenance ${event.scheduledMaintenanceNumberWithPrefix || "#" + event.scheduledMaintenanceNumber}: ${event.title}](${eventUrl.toString()})**
-• **Status:** ${state}
+        // The title inside the link's text, escaped as an incident's is.
+        message += `🔧 **[Scheduled Maintenance ${event.scheduledMaintenanceNumberWithPrefix || "#" + event.scheduledMaintenanceNumber}: ${escapeMarkdownInline(event.title)}](${eventUrl.toString()})**
+• **Status:** ${escapeMarkdownValue(state)}
 • **Started:** ${startTime}
 • **Expected End:** ${endTime}
 `;
@@ -4286,14 +4327,20 @@ All monitoring checks are passing normally.`;
           alert.id!,
         );
 
-        message += `⚠️ **[Alert ${alert.alertNumberWithPrefix || "#" + alert.alertNumber}: ${alert.title}](${alertUrl.toString()})**
-• **Severity:** ${severity}
-• **Status:** ${state}
+        /*
+         * The title - plain text, often filled in by a monitor from an
+         * incoming email or request - sits inside the link's text, so every
+         * Markdown character in it is escaped, as an incident's title is
+         * above. The severity, state and monitor names are plain text too.
+         */
+        message += `⚠️ **[Alert ${alert.alertNumberWithPrefix || "#" + alert.alertNumber}: ${escapeMarkdownInline(alert.title)}](${alertUrl.toString()})**
+• **Severity:** ${escapeMarkdownValue(severity)}
+• **Status:** ${escapeMarkdownValue(state)}
 • **Triggered:** ${createdAt}
 `;
 
         if (alert.monitor?.name) {
-          message += `• **Monitor:** ${alert.monitor.name}\n`;
+          message += `• **Monitor:** ${escapeMarkdownValue(alert.monitor.name)}\n`;
         }
 
         if (alert.description) {

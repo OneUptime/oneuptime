@@ -339,8 +339,8 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
         return;
       }
 
-      // The title is plain text, escaped as MarkdownEscape says a title must be.
-      const message: string = `**Incident Episode Details**\n\n**Title:** ${escapeMarkdownValue(episode.title)}\n**Description:** ${episode.description || "No description"}\n**State:** ${episode.currentIncidentState?.name || "Unknown"}\n**Severity:** ${episode.incidentSeverity?.name || "Unknown"}\n**Incident Count:** ${episode.incidentCount || 0}\n**Created At:** ${episode.createdAt ? new Date(episode.createdAt).toLocaleString() : "Unknown"}`;
+      // The title and the state and severity names are plain text, escaped as MarkdownEscape says a title must be.
+      const message: string = `**Incident Episode Details**\n\n**Title:** ${escapeMarkdownValue(episode.title)}\n**Description:** ${episode.description || "No description"}\n**State:** ${escapeMarkdownValue(episode.currentIncidentState?.name || "Unknown")}\n**Severity:** ${escapeMarkdownValue(episode.incidentSeverity?.name || "Unknown")}\n**Incident Count:** ${episode.incidentCount || 0}\n**Created At:** ${episode.createdAt ? new Date(episode.createdAt).toLocaleString() : "Unknown"}`;
 
       await turnContext.sendActivity(message);
       return;

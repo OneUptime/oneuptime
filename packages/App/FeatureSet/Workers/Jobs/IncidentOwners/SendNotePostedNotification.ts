@@ -27,6 +27,7 @@ import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed
 import { Blue500 } from "Common/Types/BrandColors";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
+import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
 
 RunCron(
   "IncidentOwner:SendsNotePostedEmail",
@@ -271,7 +272,7 @@ RunCron(
           eventType,
         });
 
-        moreIncidentFeedInformationInMarkdown += `**Notified:** ${user.name} (${user.email})\n`;
+        moreIncidentFeedInformationInMarkdown += `**Notified:** ${escapeMarkdownValue(user.name?.toString())} (${escapeMarkdownValue(user.email?.toString())})\n`;
       }
 
       const isPrivateNote: boolean = privateNoteIds.includes(

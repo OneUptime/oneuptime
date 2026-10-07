@@ -3995,12 +3995,13 @@ ${incident.description || "No description provided."}
 
 `;
 
+      // The state and severity names are plain text, escaped as the title is.
       if (incident.currentIncidentState?.name) {
-        feedInfoInMarkdown += `🔴 **Incident State**: ${incident.currentIncidentState.name} \n\n`;
+        feedInfoInMarkdown += `🔴 **Incident State**: ${escapeMarkdownValue(incident.currentIncidentState.name)} \n\n`;
       }
 
       if (incident.incidentSeverity?.name) {
-        feedInfoInMarkdown += `⚠️ **Severity**: ${incident.incidentSeverity.name} \n\n`;
+        feedInfoInMarkdown += `⚠️ **Severity**: ${escapeMarkdownValue(incident.incidentSeverity.name)} \n\n`;
       }
 
       /*
@@ -4992,7 +4993,7 @@ ${incident.remediationNotes || "No remediation notes provided."}
 
           if (incidentSeverity) {
             feedInfoInMarkdown += `\n\n**⚠️ Incident Severity**:
-${incidentSeverity.name}
+${escapeMarkdownValue(incidentSeverity.name)}
 `;
 
             shouldAddIncidentFeed = true;
@@ -5138,8 +5139,9 @@ ${incidentSeverity.name}
 
               feedInfoInMarkdown += `\n\n**🗑️ Monitors Removed**:\n`;
 
+              // Each name is plain text inside its link's own text.
               for (const monitor of monitorsRemoved) {
-                feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitor.id!)).toString()})\n`;
+                feedInfoInMarkdown += `- [${escapeMarkdownInline(monitor.name)}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitor.id!)).toString()})\n`;
               }
 
               shouldAddIncidentFeed = true;
@@ -5172,7 +5174,7 @@ ${incidentSeverity.name}
               feedInfoInMarkdown += `\n\n**🌎 Monitors Added**:\n`;
 
               for (const monitor of monitorsAdded) {
-                feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitor.id!)).toString()})\n`;
+                feedInfoInMarkdown += `- [${escapeMarkdownInline(monitor.name)}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitor.id!)).toString()})\n`;
               }
 
               shouldAddIncidentFeed = true;
@@ -5228,7 +5230,7 @@ ${incidentSeverity.name}
                 });
 
               if (oldMonitorStatus && newMonitorStatus) {
-                feedInfoInMarkdown += `\n\n**🔄 Monitor Status Changed**:\n- **From** ${oldMonitorStatus.name} to ${newMonitorStatus.name}`;
+                feedInfoInMarkdown += `\n\n**🔄 Monitor Status Changed**:\n- **From** ${escapeMarkdownValue(oldMonitorStatus.name)} to ${escapeMarkdownValue(newMonitorStatus.name)}`;
                 shouldAddIncidentFeed = true;
               }
             }

@@ -1,9 +1,6 @@
 import { WHOLE_EMAIL_ADDRESS } from "../../../Types/Form/FormPublic";
 import { escapeMarkdownInline } from "../../../Utils/Markdown/MarkdownEscape";
-import {
-  neutralizeChatControlSequences,
-  neutralizeUntrustedMarkdown,
-} from "../../../Utils/Markdown/UntrustedMarkdown";
+import { neutralizeUntrustedMarkdown } from "../../../Utils/Markdown/UntrustedMarkdown";
 
 /*
  * The private note a submission leaves on what it created: which form it
@@ -17,10 +14,10 @@ import {
  * record's Slack and Teams channels as well, so everything placed in it is
  * made inert where it is placed:
  *
- *   - names, labels and one-line answers are escaped (escapeMarkdownInline)
- *     after their chat control sequences are broken
- *     (neutralizeChatControlSequences): "[x](javascript:...)" reaches the
- *     responders as those characters, "<!channel>" mentions nobody;
+ *   - names, labels and one-line answers are escaped
+ *     (escapeMarkdownInline, which also breaks chat control sequences):
+ *     "[x](javascript:...)" reaches the responders as those characters,
+ *     "<!channel>" mentions nobody;
  *   - a multi-line answer is escaped line by line, keeping its lines;
  *   - a Markdown answer is Markdown by design, and goes through
  *     neutralizeUntrustedMarkdown, as a description does: no image or
@@ -87,7 +84,7 @@ type EscapeFunction = (value: string | null | undefined) => string;
 const escapeLine: EscapeFunction = (
   value: string | null | undefined,
 ): string => {
-  return escapeMarkdownInline(neutralizeChatControlSequences(value)).trim();
+  return escapeMarkdownInline(value).trim();
 };
 
 export type GetFormSubmitterTextFunction = (data: {

@@ -7,6 +7,7 @@ import SlackWorkspace from "./Slack/Slack";
 import MicrosoftTeamsUtil from "./MicrosoftTeams/MicrosoftTeams";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
+import { escapeMarkdownValue } from "../../../Utils/Markdown/MarkdownEscape";
 import WorkspaceMessagePayload, {
   WorkspacePayloadMarkdown,
 } from "../../../Types/Workspace/WorkspaceMessagePayload";
@@ -113,8 +114,13 @@ export default class WorkspaceUtil {
       logger.warn(err, { projectId: data.projectId?.toString() });
     }
 
+    /*
+     * A Slack or Teams display name is the user's own to set, and it heads a
+     * Markdown message: escaped, so it reads as typed and cannot become a
+     * link, an image or a mention of somebody else.
+     */
     if (workspaceUsername) {
-      return `@${workspaceUsername} `;
+      return `@${escapeMarkdownValue(workspaceUsername)} `;
     }
 
     try {

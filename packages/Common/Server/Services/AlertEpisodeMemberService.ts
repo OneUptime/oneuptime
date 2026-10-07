@@ -27,6 +27,26 @@ import { Yellow500, Green500 } from "../../Types/BrandColors";
 import OneUptimeDate from "../../Types/Date";
 import AlertService from "./AlertService";
 import AlertEpisodeService from "./AlertEpisodeService";
+import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
+
+/*
+ * An alert's or an episode's title is plain text - an alert's is often
+ * filled in by a monitor from what it watched (an incoming email's subject,
+ * a field of an incoming request), and an episode's is often copied from its
+ * first alert's - and the feed items below place it into Markdown that the
+ * dashboard renders without its safe mode and that is posted to Slack and
+ * Teams. Escaped as MarkdownEscape says a title must be (as the incident
+ * episode members' items are), so "![](https://tracker...)" is not fetched,
+ * "[Reset your password](...)" is not a link that hides where it goes and
+ * "<!channel>" mentions nobody, while an ordinary title reads as typed.
+ */
+type GetFeedTitleFunction = (title: string | undefined | null) => string;
+
+const getFeedTitle: GetFeedTitleFunction = (
+  title: string | undefined | null,
+): string => {
+  return escapeMarkdownValue(title || "No title");
+};
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -242,7 +262,7 @@ export class Service extends ProjectReferencesService<Model> {
       projectId: createdItem.projectId,
       alertEpisodeFeedEventType: AlertEpisodeFeedEventType.AlertAdded,
       displayColor: Yellow500,
-      feedInfoInMarkdown: `**Alert ${alert?.alertNumberWithPrefix || "#" + (alert?.alertNumber || "N/A")}** added to episode: ${alert?.title || "No title"}`,
+      feedInfoInMarkdown: `**Alert ${alert?.alertNumberWithPrefix || "#" + (alert?.alertNumber || "N/A")}** added to episode: ${getFeedTitle(alert?.title)}`,
       userId: createdItem.addedByUserId || undefined,
       workspaceNotification: {
         sendWorkspaceNotification: true,
@@ -256,7 +276,7 @@ export class Service extends ProjectReferencesService<Model> {
       projectId: createdItem.projectId,
       alertFeedEventType: AlertFeedEventType.AddedToEpisode,
       displayColor: Yellow500,
-      feedInfoInMarkdown: `Added to **Episode ${episode?.episodeNumberWithPrefix || "#" + (episode?.episodeNumber || "N/A")}**: ${episode?.title || "No title"}`,
+      feedInfoInMarkdown: `Added to **Episode ${episode?.episodeNumberWithPrefix || "#" + (episode?.episodeNumber || "N/A")}**: ${getFeedTitle(episode?.title)}`,
       userId: createdItem.addedByUserId || undefined,
     });
 
@@ -366,7 +386,7 @@ export class Service extends ProjectReferencesService<Model> {
               projectId: member.projectId,
               alertEpisodeFeedEventType: AlertEpisodeFeedEventType.AlertRemoved,
               displayColor: Green500,
-              feedInfoInMarkdown: `**Alert #${alert?.alertNumber || "N/A"}** removed from episode: ${alert?.title || "No title"}`,
+              feedInfoInMarkdown: `**Alert #${alert?.alertNumber || "N/A"}** removed from episode: ${getFeedTitle(alert?.title)}`,
               workspaceNotification: {
                 sendWorkspaceNotification: true,
               },
@@ -378,7 +398,7 @@ export class Service extends ProjectReferencesService<Model> {
               projectId: member.projectId,
               alertFeedEventType: AlertFeedEventType.RemovedFromEpisode,
               displayColor: Green500,
-              feedInfoInMarkdown: `Removed from **Episode ${episode?.episodeNumberWithPrefix || "#" + (episode?.episodeNumber || "N/A")}**: ${episode?.title || "No title"}`,
+              feedInfoInMarkdown: `Removed from **Episode ${episode?.episodeNumberWithPrefix || "#" + (episode?.episodeNumber || "N/A")}**: ${getFeedTitle(episode?.title)}`,
             });
           }
         }

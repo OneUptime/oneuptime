@@ -11,6 +11,7 @@ import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import { Red500 } from "../../Types/BrandColors";
 import Select from "../Types/Database/Select";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
@@ -203,10 +204,10 @@ class AlertPrivacyRuleEngineServiceClass
 
       const rulesPart: string =
         ruleNames.length === 1
-          ? `**${ruleNames[0]}**`
+          ? `**${escapeMarkdownValue(ruleNames[0])}**`
           : ruleNames
               .map((n: string) => {
-                return `**${n}**`;
+                return `**${escapeMarkdownValue(n)}**`;
               })
               .join(", ");
 

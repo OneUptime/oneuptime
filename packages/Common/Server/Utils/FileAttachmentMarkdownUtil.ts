@@ -5,6 +5,7 @@ import ObjectID from "../../Types/ObjectID";
 import FileService from "../Services/FileService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
 
 export interface FileAttachmentMarkdownInput {
   modelId: ObjectID;
@@ -79,7 +80,14 @@ export default class FileAttachmentMarkdownUtil {
         continue;
       }
 
-      const fileName: string = file.name || "Attachment";
+      /*
+       * The file's name is whatever the uploader called it, placed inside
+       * the link's own text of a feed item that is posted to Slack and Teams
+       * too, so every Markdown character in it is escaped: a "]" cannot end
+       * the text early and point the link somewhere else, "![...](...)" is
+       * no image and "<!channel>" mentions nobody.
+       */
+      const fileName: string = escapeMarkdownInline(file.name || "Attachment");
 
       const route: Route = Route.fromString(AppApiRoute.toString())
         .addRoute(input.attachmentApiPath)
