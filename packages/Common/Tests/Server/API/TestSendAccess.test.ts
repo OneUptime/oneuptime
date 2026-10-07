@@ -1,4 +1,5 @@
 import CommonAPI from "../../../Server/API/CommonAPI";
+import CallerPlan from "../../../Server/Utils/Billing/CallerPlan";
 import TestSendAccess, {
   TEST_NOTIFICATION_PERMISSION_MESSAGE,
   TestSendCaller,
@@ -894,6 +895,20 @@ describe("a test of a setting: what switching it on asks of that record", () => 
     expect(
       new StatusPage().getColumnBillingAccessControl("isReportEnabled").update,
     ).toBe(PlanType.Growth);
+  });
+
+  test("a plan OneUptime could not confirm is never any plan: refused before the page is read", async () => {
+    // A project whose plan reads as none: the request carries no plan.
+    currentPlan = null;
+
+    const answer: TestSendCaller | Error = await askToSendReport(
+      requestFrom(OWNER),
+    );
+
+    expect(answer).toBeInstanceOf(NotAuthorizedException);
+    expect((answer as Error).message).toBe(CallerPlan.PLAN_UNKNOWN_MESSAGE);
+    expect(service.findOneById).not.toHaveBeenCalled();
+    expect(permittedRead).not.toHaveBeenCalled();
   });
 
   test("below the plan, a role that may not change the page is told about the plan first, as the Dashboard tells it", async () => {

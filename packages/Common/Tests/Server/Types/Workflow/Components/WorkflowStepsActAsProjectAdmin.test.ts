@@ -1,3 +1,4 @@
+import Incident from "../../../../../Models/DatabaseModels/Incident";
 import IncidentFeed from "../../../../../Models/DatabaseModels/IncidentFeed";
 import Label from "../../../../../Models/DatabaseModels/Label";
 import IncidentTemplate from "../../../../../Models/DatabaseModels/IncidentTemplate";
@@ -453,6 +454,27 @@ describe("Create One and Create Many", () => {
 
     expect(step.result.executePort?.id).toBe("error");
     expect(refusedLine(component, step.lines)).toContain("isTeamDeleteable");
+    expect(inserted()).toBeUndefined();
+  });
+
+  test("an incident is not declared from a template by its id: the template is read instead", async () => {
+    const { service, inserted } = stopBeforeInsert(Incident);
+    const component: CreateOneBaseModel<Incident> =
+      new CreateOneBaseModel<Incident>(service);
+
+    const step: StepRun = await run(component, {
+      json: {
+        title: "Checkout is down",
+        incidentSeverityId: ObjectID.generate().toString(),
+        currentIncidentStateId: ObjectID.generate().toString(),
+        createdIncidentTemplateId: ObjectID.generate().toString(),
+      },
+    });
+
+    expect(step.result.executePort?.id).toBe("error");
+    expect(refusedLine(component, step.lines)).toContain(
+      "createdIncidentTemplateId",
+    );
     expect(inserted()).toBeUndefined();
   });
 });

@@ -423,6 +423,27 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   `GET /api/global-config/license` and the license-server endpoints that
   self-hosted installs no longer serve.
 
+### Workflow steps act as a Project Admin
+
+A workflow's Find, Create, Update and Delete steps, and its On Create, On Update and On Delete triggers, used to act as OneUptime itself: no permission, column or plan check applied to them. They now act as a **Project Admin** of the workflow's project, on the project's plan. See [What workflow steps can do](/docs/workflows/configuration#what-workflow-steps-can-do).
+
+What changes for an existing workflow:
+
+- A step that granted a team or an API key a permission a Project Admin doesn't hold — **Project Owner**, billing or project deletion, or any permission outside a Project Admin's — is refused, and so is a step that adds someone to a team with more permissions than a Project Admin, such as the owners' team.
+- A step that edited or deleted a feed entry, wrote a notification log, set a value OneUptime keeps for itself (a verified CNAME, a team's protection switches, the primary incident role, notified and reminder fields, who is on call now, an SLO's results, a private user's password reset token…) or moved a record to another parent is refused. The list is on that page.
+- A **Create One Incident** step that declared from a template by sending `createdIncidentTemplateId` is refused. Read the template with a **Find One Incident Template** step and pass its values to **Create One Incident** instead.
+- A step that selects who created a probe or an AI agent is refused.
+- On OneUptime Cloud, a step that creates or changes what the project's plan doesn't include is refused with the plan it needs, as the dashboard is.
+- An Update step no longer writes the project: a record stays in its project, as before.
+
+A refused step takes its **Error** output without making the refused change, and its run log names the step and the reason (a Create Many step stops at the record refused, keeping the ones it created before it). After the upgrade, look over your workflows' **Runs** for refused steps.
+
+What does not change: the API, Terraform and the MCP server already held their callers to these checks, and still do, so nothing changes for them. Workflow steps that talk to other systems (API, Email, chat, Custom Code, AI) are not affected. Who may edit or run a workflow is unchanged.
+
+The audit log now records the changes a workflow's steps make and names the workflow, by its name at the time. They used to be system events, recorded only when **Store System Events** was turned on. The two new audit log columns, `workflowId` and `workflowName`, are added on start; entries written before the upgrade read as before.
+
+Slack and Microsoft Teams actions are held to the project's plan too: paging an on-call policy from chat on a plan that doesn't include on-call is refused with the plan it needs, as it is in the dashboard.
+
 ### IPv6 Ping, Port and SSL monitors
 
 A Ping or Port destination pasted with surrounding whitespace — which is what
@@ -647,26 +668,6 @@ as it is.
 On Helm with `migrate.hook: true`, `helm upgrade` waits for the migrations, by
 default for 5 minutes. If your AI Logs table is very large, run this upgrade
 with `--timeout 20m`.
-
-### Workflow steps act as a Project Admin
-
-A workflow's Find, Create, Update and Delete steps, and its On Create, On Update and On Delete triggers, used to act as OneUptime itself: no permission, column or plan check applied to them. They now act as a **Project Admin** of the workflow's project, on the project's plan. See [What workflow steps can do](/docs/workflows/configuration#what-workflow-steps-can-do).
-
-What changes for an existing workflow:
-
-- A step that granted a team or an API key a permission a Project Admin doesn't hold — **Project Owner**, billing or project deletion, or any permission outside a Project Admin's — is refused, and so is a step that adds someone to a team with more permissions than a Project Admin, such as the owners' team.
-- A step that edited or deleted a feed entry, wrote a notification log, set a value OneUptime keeps for itself (a verified CNAME, a team's protection switches, the primary incident role, notified and reminder fields, who is on call now, an SLO's results, a private user's password reset token…) or moved a record to another parent is refused. The list is on that page.
-- A step that selects who created a probe or an AI agent is refused.
-- On OneUptime Cloud, a step that creates or changes what the project's plan doesn't include is refused with the plan it needs, as the dashboard is.
-- An Update step no longer writes the project: a record stays in its project, as before.
-
-A refused step takes its **Error** output without making the refused change, and its run log names the step and the reason (a Create Many step stops at the record refused, keeping the ones it created before it). After the upgrade, look over your workflows' **Runs** for refused steps.
-
-What does not change: the API, Terraform and the MCP server already held their callers to these checks, and still do, so nothing changes for them. Workflow steps that talk to other systems (API, Email, chat, Custom Code, AI) are not affected. Who may edit or run a workflow is unchanged.
-
-The audit log now names the workflow whose step made a change, by its name at the time, where it used to show a system event. The two new audit log columns, `workflowId` and `workflowName`, are added on start; entries written before the upgrade read as before.
-
-Slack and Microsoft Teams actions are held to the project's plan too: paging an on-call policy from chat on a plan that doesn't include on-call is refused with the plan it needs, as it is in the dashboard.
 
 ### Verify the edition and the license
 

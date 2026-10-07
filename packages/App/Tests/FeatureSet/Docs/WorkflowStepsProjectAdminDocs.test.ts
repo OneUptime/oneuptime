@@ -87,6 +87,9 @@ describe("the Configuration & Safety page says what a step may do", () => {
     expect(text).toContain("editing or deleting a feed entry");
     expect(text).toContain("writing a notification log");
     expect(text).toContain("whether a custom domain's CNAME is verified");
+    expect(text).toContain(
+      "declaring an incident from a template by sending `createdIncidentTemplateId` to **Create One Incident**",
+    );
     expect(text).toContain("**As no person.**");
     expect(text).toContain("the audit log names the workflow");
   });
@@ -155,6 +158,9 @@ describe("the upgrade notes say what changes", () => {
     );
     expect(text).toContain("without making the refused change");
     expect(text).toContain(
+      "A **Create One Incident** step that declared from a template by sending `createdIncidentTemplateId` is refused.",
+    );
+    expect(text).toContain(
       "a Create Many step stops at the record refused, keeping the ones it created before it",
     );
     expect(text).not.toContain("writes nothing");
@@ -169,6 +175,9 @@ describe("the upgrade notes say what changes", () => {
 
   test("the audit log columns and chat actions", () => {
     expect(text).toContain("`workflowId` and `workflowName`");
+    expect(text).toContain(
+      "They used to be system events, recorded only when **Store System Events** was turned on.",
+    );
     expect(text).toContain(
       "Slack and Microsoft Teams actions are held to the project's plan too",
     );
@@ -207,6 +216,9 @@ describe("every language's Configuration page has the section", () => {
       expect(text).toContain("CNAME");
       // A Create Many step keeps the records it made before the refused one.
       expect(text).toContain("Create Many");
+      // Declaring from a template is refused; the template is read instead.
+      expect(text).toContain("`createdIncidentTemplateId`");
+      expect(text).toContain("**Find One Incident Template**");
     },
   );
 });
