@@ -251,6 +251,9 @@ export default class DatabaseBaseModel extends BaseEntity {
 
   public canAccessIfCanReadOn!: string | null;
 
+  // Read without a read of that record too (CanAccessIfCanReadOn's options).
+  public isParentReadOptional!: boolean;
+
   public constructor(id?: ObjectID) {
     super();
     if (id) {

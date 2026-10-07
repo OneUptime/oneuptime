@@ -11,6 +11,7 @@ import ReadPermission, {
 import TenantPermission from "../../../../../Server/Types/Database/Permissions/TenantPermission";
 import Query from "../../../../../Server/Types/Database/Query";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
+import IncidentAlert from "../../../../../Models/DatabaseModels/IncidentAlert";
 import IncidentInternalNote from "../../../../../Models/DatabaseModels/IncidentInternalNote";
 import Label from "../../../../../Models/DatabaseModels/Label";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -1059,6 +1060,69 @@ describe("the record rule on every operation", () => {
         ]);
       },
     );
+  });
+
+  /*
+   * A model whose shipped readers do not read the record it is read through
+   * (CanAccessIfCanReadOn's isParentReadOptional): an alert responder reads
+   * which incidents their alerts are linked to without reading incidents. A
+   * caller who may read some incidents reads the links of those, and a block
+   * on reading incidents still takes the links away.
+   */
+  describe("a record read through another one, reading which is optional", () => {
+    test("a caller who may read no incident reads the links by the link's own rule", async () => {
+      const query: Query<IncidentAlert> =
+        await BasePermission.addRecordScopeToQuery(
+          IncidentAlert,
+          {},
+          null,
+          member([row(Permission.AlertMember)]),
+          DatabaseRequestType.Read,
+        );
+
+      expect(query).toEqual({});
+    });
+
+    test("a caller who may read some incidents reads the links of those incidents", async () => {
+      const query: Query<IncidentAlert> =
+        await BasePermission.addRecordScopeToQuery(
+          IncidentAlert,
+          {},
+          null,
+          member([
+            row(Permission.AlertMember),
+            row(Permission.ReadProjectIncident, {
+              labelIds: [productionLabelId],
+              scope: PermissionScope.Labels,
+            }),
+          ]),
+          DatabaseRequestType.Read,
+        );
+
+      // A read names the incidents it reaches through the relation.
+      expect((query as Record<string, unknown>)["incident"]).toEqual({
+        labels: [productionLabelId],
+      });
+      expect((query as Record<string, unknown>)["_id"]).toBeUndefined();
+    });
+
+    test("a block with no labels on reading incidents still takes the links away", async () => {
+      const refusal: Promise<Query<IncidentAlert>> =
+        BasePermission.addRecordScopeToQuery(
+          IncidentAlert,
+          {},
+          null,
+          member([
+            row(Permission.AlertMember),
+            row(Permission.ReadProjectIncident, { isBlock: true }),
+          ]),
+          DatabaseRequestType.Read,
+        );
+
+      await expect(refusal).rejects.toThrow(
+        "You are not authorized to read Incident Alert. It is read through its Incident, and ReadProjectIncident is in your team's permission block list.",
+      );
+    });
   });
 
   describe("DeletePermission.checkDeletePermission, as root", () => {

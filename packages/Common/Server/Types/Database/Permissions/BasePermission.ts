@@ -21,7 +21,9 @@ import TableColumnType from "../../../../Types/Database/TableColumnType";
 import ObjectID from "../../../../Types/ObjectID";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import Permission, { PermissionHelper } from "../../../../Types/Permission";
-import HeldPermissionsUtil from "../../../../Types/HeldPermissions";
+import HeldPermissionsUtil, {
+  HeldPermissions,
+} from "../../../../Types/HeldPermissions";
 import ArrayUtil from "../../../../Utils/Array";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
@@ -194,7 +196,7 @@ export default class BasePermission {
 
     // The operations whose grants and blocks narrow this one.
     const operations: Array<RecordOperation> =
-      BasePermission.getNarrowingOperations(type as RecordOperation);
+      ReadPermission.getNarrowingOperations(type as RecordOperation);
 
     if (type !== DatabaseRequestType.Read) {
       TablePermission.checkTableLevelReadForWrite(modelType, props, type);
@@ -294,18 +296,6 @@ export default class BasePermission {
   }
 
   /*
-   * The operations whose grants and blocks narrow `type`'s records: a
-   * read's own; an update's or a delete's own and the read's.
-   */
-  public static getNarrowingOperations(
-    type: RecordOperation,
-  ): Array<RecordOperation> {
-    return type === DatabaseRequestType.Read
-      ? [DatabaseRequestType.Read]
-      : [type, DatabaseRequestType.Read];
-  }
-
-  /*
    * Of the label lists grants are limited to - one per operation, none for
    * an operation granted over the whole project - the ones to narrow by,
    * each a condition of its own: a list that holds every label of another
@@ -348,7 +338,11 @@ export default class BasePermission {
    *   - a caller who may read none of the parent's records - who holds none
    *     of its read permissions, or whose block with no labels takes one of
    *     them away - reaches none of the records read through them, and is
-   *     refused (checkParentIsReadable);
+   *     refused (checkParentIsReadable). A model whose shipped readers do not
+   *     read the parent (isParentReadOptional: an incident's links to
+   *     alerts, telemetry rules of a service, a person's notification log)
+   *     is read by its own rule when the caller holds none of them; a block
+   *     still refuses;
    *   - when the caller's read grants on the parent's table are limited to
    *     labels, only the records whose parent carries one of them;
    *   - when a block with labels takes some of the parents away, only the
@@ -536,11 +530,16 @@ export default class BasePermission {
 
   /*
    * Refuses a caller who may read none of the records `modelType`'s rows
-   * are read through: none of the parent's read permissions held (nor its
-   * read wildcard), or one of them taken away by a block with no labels -
-   * as reading the parent's own table is refused. A permission on the rows
-   * alone (Read Incident Internal Note, with no permission on incidents)
-   * reaches none of them.
+   * are read through: one of the parent's read permissions taken away by a
+   * block with no labels - as reading the parent's own table is refused -
+   * or none of them held (nor the parent's read wildcard). A permission on
+   * the rows alone (Read Incident Internal Note, with no permission on
+   * incidents) reaches none of them.
+   *
+   * A model whose shipped readers do not read the parent
+   * (CanAccessIfCanReadOn's isParentReadOptional - an incident's links to
+   * alerts, read by alert responders) is read by its own read rule when the
+   * caller holds no permission to read the parent; a block still refuses.
    */
   private static checkParentIsReadable(
     modelType: { new (): BaseModel },
@@ -554,23 +553,33 @@ export default class BasePermission {
         DatabaseRequestType.Read,
       );
 
+    const held: HeldPermissions = TablePermission.getHeldPermissions(props);
+    const model: BaseModel = new modelType();
+    const parent: BaseModel = new parentModelType();
+
+    const blocked: Permission | undefined = parentReadPermissions.find(
+      (permission: Permission): boolean => {
+        return HeldPermissionsUtil.isBlockedFromAny(held, [permission]);
+      },
+    );
+
+    if (blocked) {
+      throw new NotAuthorizedException(
+        `You are not authorized to ${type} ${model.singularName}. It is read through its ${parent.singularName}, and ${blocked} is in your team's permission block list.`,
+      );
+    }
+
     if (
-      HeldPermissionsUtil.holdsAnyOf(
-        TablePermission.getHeldPermissions(props),
-        parentReadPermissions,
-        {
-          wildcard: TablePermission.getModelWildcard(
-            parentModelType,
-            DatabaseRequestType.Read,
-          ),
-        },
-      )
+      HeldPermissionsUtil.isGrantedAny(held, parentReadPermissions, {
+        wildcard: TablePermission.getModelWildcard(
+          parentModelType,
+          DatabaseRequestType.Read,
+        ),
+      }) ||
+      model.isParentReadOptional
     ) {
       return;
     }
-
-    const model: BaseModel = new modelType();
-    const parent: BaseModel = new parentModelType();
 
     throw new NotAuthorizedException(
       `You do not have permissions to ${type} ${model.singularName}. It is read through its ${

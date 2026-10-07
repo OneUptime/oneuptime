@@ -409,6 +409,40 @@ describe("MicrosoftTeamsActionAuthorization", (): void => {
     expect(findOneBySpy).toHaveBeenCalledTimes(1);
   });
 
+  /*
+   * An alert outside what the caller may read is answered as missing by the
+   * check of one record; in the chat that reads as the same refusal as an
+   * alert that is not there at all.
+   */
+  test("refuses an alert outside the user's read with the same sentence as a missing one", async (): Promise<void> => {
+    const alertId: ObjectID = ObjectID.generate();
+    const alert: Alert = createAlert(alertId);
+    alert.labels = [new Label(ObjectID.generate())];
+    const databaseProps: DatabaseCommonInteractionProps = createDatabaseProps([
+      { permission: Permission.EditAlert },
+      {
+        permission: Permission.ReadAlert,
+        labelIds: [ObjectID.generate()],
+      },
+    ]);
+    jest.spyOn(AlertService, "findOneBy").mockResolvedValue(alert);
+
+    const refusal: unknown = await MicrosoftTeamsActionAuthorization.assertCanUpdateAlert(
+      {
+        alertId,
+        projectId,
+        props: databaseProps,
+      },
+    ).catch((error: unknown): unknown => {
+      return error;
+    });
+
+    expect(refusal).toBeInstanceOf(NotAuthorizedException);
+    expect((refusal as Error).message).toBe(
+      "You do not have permission to update this alert.",
+    );
+  });
+
   test("rejects an alert when the exact project and resource query is not permitted", async (): Promise<void> => {
     const alertId: ObjectID = ObjectID.generate();
     const databaseProps: DatabaseCommonInteractionProps = createDatabaseProps([

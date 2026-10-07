@@ -7,6 +7,7 @@ import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
+import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
@@ -30,15 +31,15 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * either by linking alerts to an incident that is already open, or by
  * declaring a new incident from the alerts, which links them as it is created.
  *
- * A link names an incident and an alert, and is read by responders of
- * either: alert roles are listed next to incident roles so a responder who
- * works alerts can see which incidents their alerts are linked to, and link
- * them too when they can also read incidents: the service only creates a
- * link when the caller can read both the alert and the incident. So it is
- * not read through the incident alone. A grant or a block limited to labels
- * follows the labels of the incident and the alert it names
- * (ReadPermission.addLabelRulesToQuery), and Owned the incident's owners
- * (OwnedThrough).
+ * The link belongs to the incident: its read scope follows the incident's
+ * labels (CanAccessIfCanReadOn) and owners (OwnedThrough). Alert roles are
+ * listed next to incident roles so a responder who works alerts can see which
+ * incidents their alerts are linked to, and link them too when they can also
+ * read incidents: the service only creates a link when the caller can read
+ * both the alert and the incident. So reading the incident is optional
+ * (isParentReadOptional): an alert responder who may read no incident reads
+ * the links by the link's own read rule, and a caller who may read incidents
+ * reads the links of the incidents they may read.
  *
  * Rows are immutable - a link is created or removed, never edited - so every
  * column has an empty update list. The table keeps its update permissions
@@ -47,6 +48,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  */
 @EnableDocumentation()
 @EnableMCP()
+@CanAccessIfCanReadOn("incident", { isParentReadOptional: true })
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [

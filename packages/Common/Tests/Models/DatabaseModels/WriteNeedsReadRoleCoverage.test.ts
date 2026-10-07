@@ -26,7 +26,10 @@ import { describe, expect, test } from "@jest/globals";
  *
  *   - every role that may update or delete a table's records may read them;
  *   - every role that may read, update or delete the records of a model read
- *     through another one may read that other one.
+ *     through another one may read that other one - unless the model says
+ *     its own readers read it without that other one (CanAccessIfCanReadOn's
+ *     isParentReadOptional), which only the models in
+ *     PARENT_READ_OPTIONAL do.
  *
  * Anything that legitimately does not is listed below with the reason, and
  * the lists may only shrink: each entry is the exact line the sweep
@@ -74,6 +77,23 @@ const READS_WITHOUT_PARENT: Array<string> = [
   "StatusPageOIDC (read through StatusPage) read: Public",
   "StatusPageSSO (read through StatusPage) read: ProjectUser",
   "StatusPageSSO (read through StatusPage) read: Public",
+];
+
+/*
+ * The models whose shipped readers do not read the record they are read
+ * through, so reading it is optional for them (isParentReadOptional): a
+ * responder who works alerts reads which incidents their alerts are linked
+ * to, the Telemetry tiers read the telemetry configuration of services they
+ * do not read in the catalogue, and a person reads the log of the
+ * notifications sent to them. A caller who may read the parent is still held
+ * to the parents they may read. May only shrink.
+ */
+const PARENT_READ_OPTIONAL: Array<string> = [
+  "IncidentAlert",
+  "MetricPipelineRule",
+  "TelemetrySourceMap",
+  "UserOnCallLog",
+  "UserOnCallLogTimeline",
 ];
 
 const nameOf: (modelType: ModelType) => string = (
@@ -175,12 +195,13 @@ describe("Built-in roles under a write needs a read", () => {
 
     for (const modelType of MODEL_TYPES) {
       const parentType: ModelType | null = parentOf(modelType);
+      const model: BaseModel = new modelType();
 
-      if (!parentType) {
+      // Read without the parent by its own readers: the next test.
+      if (!parentType || model.isParentReadOptional) {
         continue;
       }
 
-      const model: BaseModel = new modelType();
       const parentRead: Array<string> = (
         new parentType().readRecordPermissions || []
       ).map(String);
@@ -210,28 +231,23 @@ describe("Built-in roles under a write needs a read", () => {
     );
   });
 
-  /*
-   * The models whose shipped readers do not read the record they name are
-   * not read through it: a responder who works alerts reads which incidents
-   * their alerts are linked to, the Telemetry tiers read the telemetry
-   * configuration of services they do not read in the catalogue, and a
-   * person reads the log of the notifications sent to them. Their labels
-   * still follow the records they name (ReadPermission.addLabelRulesToQuery).
-   */
-  test.each([
-    "IncidentAlert",
-    "MetricPipelineRule",
-    "TelemetrySourceMap",
-    "UserOnCallLog",
-    "UserOnCallLogTimeline",
-  ])("%s is not read through another record", (tableName: string) => {
-    const modelType: ModelType | undefined = MODEL_TYPES.find(
-      (each: ModelType): boolean => {
-        return nameOf(each) === tableName;
+  test("only the listed models are read without a read of the record they are read through", () => {
+    const optional: Array<string> = MODEL_TYPES.filter(
+      (modelType: ModelType): boolean => {
+        return Boolean(new modelType().isParentReadOptional);
       },
-    );
+    ).map(nameOf);
 
-    expect(modelType).toBeDefined();
-    expect(new (modelType as ModelType)().canAccessIfCanReadOn).toBeFalsy();
+    expect(optional.sort()).toEqual([...PARENT_READ_OPTIONAL].sort());
+
+    // Each is still read through its parent, by whoever may read the parent.
+    for (const modelType of MODEL_TYPES) {
+      if (PARENT_READ_OPTIONAL.includes(nameOf(modelType))) {
+        expect([nameOf(modelType), Boolean(parentOf(modelType))]).toEqual([
+          nameOf(modelType),
+          true,
+        ]);
+      }
+    }
   });
 });

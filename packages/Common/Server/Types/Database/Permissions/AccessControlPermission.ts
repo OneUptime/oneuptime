@@ -439,9 +439,7 @@ export default class AccessControlPermission {
 
     const model: TBaseModel = new modelType();
     const operations: Array<RecordOperation> =
-      operation === DatabaseRequestType.Read
-        ? [DatabaseRequestType.Read]
-        : [operation, DatabaseRequestType.Read];
+      ReadPermission.getNarrowingOperations(operation);
 
     const grantedLabelIds: Dictionary<Array<ObjectID>> = {};
     const blockedLabelIds: Dictionary<Array<ObjectID>> = {};
@@ -719,6 +717,13 @@ export default class AccessControlPermission {
     return await data.isRecordFound(narrowed);
   }
 
+  /*
+   * A labelled model's records narrowed by one operation's own grants
+   * limited to labels. The record rule narrows a write by its read's grants
+   * as well, and so asks the two halves itself
+   * (BasePermission.addRecordScopeToQuery: getAccessControlIdsForQuery per
+   * operation, then addLabelIdsToQuery).
+   */
   @CaptureSpan()
   public static async addAccessControlIdsToQuery<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },

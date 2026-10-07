@@ -7,6 +7,7 @@ import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccess
 import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
+import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
@@ -27,13 +28,14 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
  * Telemetry configuration, read by the Telemetry tiers, which do not read
- * the service catalogue: a rule is not read through its service. A grant or
- * a block limited to labels still follows the labels of the service a rule
- * names (ReadPermission.addLabelRulesToQuery), and Owned the service's
- * owners (@OwnedThrough below). A rule that names no service applies to the
- * whole project.
+ * the service catalogue: reading the service a rule names is optional
+ * (isParentReadOptional). A caller who may read services reaches the rules
+ * of the services they may read, and Owned the service's owners
+ * (@OwnedThrough below). A rule that names no service applies to the whole
+ * project.
  */
 @EnableDocumentation()
+@CanAccessIfCanReadOn("service", { isParentReadOptional: true })
 @TableBillingAccessControl({
   create: PlanType.Free,
   read: PlanType.Free,

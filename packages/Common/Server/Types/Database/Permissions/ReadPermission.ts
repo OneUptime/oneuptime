@@ -230,6 +230,11 @@ export default class ReadPermission {
    *
    * Both halves follow the same records (getLabelledReferences). A block
    * with no labels refuses the table before this (TablePermission).
+   *
+   * This is the rule for one operation's own grants and blocks. The record
+   * rule narrows a write by its read's as well, and so asks the halves
+   * itself (BasePermission.addRecordScopeToQuery: addGrantedLabelsToQuery
+   * and addBlockedLabelsToQuery over getNarrowingOperations).
    */
   public static addLabelRulesToQuery<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
@@ -240,6 +245,21 @@ export default class ReadPermission {
     query = this.addLabelGrantToQuery(modelType, query, props, type);
 
     return this.addLabelBlockToQuery(modelType, query, props, type);
+  }
+
+  /*
+   * The operations whose grants and blocks narrow `type`'s records: a
+   * read's own; an update's or a delete's own and the read's - a record the
+   * caller may not read is not one they may change or delete. The record
+   * rule (BasePermission.addRecordScopeToQuery) and the check of one record
+   * by id (AccessControlPermission.checkRecordByModel) both ask this.
+   */
+  public static getNarrowingOperations(
+    type: RecordOperation,
+  ): Array<RecordOperation> {
+    return type === DatabaseRequestType.Read
+      ? [DatabaseRequestType.Read]
+      : [type, DatabaseRequestType.Read];
   }
 
   /*
@@ -453,10 +473,15 @@ export default class ReadPermission {
     query: Query<TBaseModel>,
     labelIds: Array<ObjectID>,
   ): Query<TBaseModel> {
+    // Nothing to leave out: the declaration is not even looked at.
+    if (labelIds.length === 0) {
+      return query;
+    }
+
     const parent: { relation: string; column: TableColumnMetadata } | null =
       this.getDeclaredParent(modelType);
 
-    if (!parent || labelIds.length === 0) {
+    if (!parent) {
       return query;
     }
 

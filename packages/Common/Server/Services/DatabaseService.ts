@@ -6467,8 +6467,20 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           props: data.props,
         }),
       );
-    } catch {
-      // A read the caller may not make finds nothing for them either.
+    } catch (error) {
+      /*
+       * A read the caller may not make finds nothing for them either. Any
+       * other failure (the database, a misconfigured model) is not an
+       * answer about the record, and is raised as it is: a 404 would tell
+       * a client - Terraform among them - that the record is gone.
+       */
+      if (
+        !(error instanceof NotAuthorizedException) &&
+        !(error instanceof NotFoundException)
+      ) {
+        throw error;
+      }
+
       isReadable = false;
     }
 

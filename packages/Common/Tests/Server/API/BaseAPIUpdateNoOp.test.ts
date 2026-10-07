@@ -112,6 +112,22 @@ describe("BaseAPI.updateItem when the update matches nothing", () => {
     );
   });
 
+  /*
+   * Only a refusal of the read says the record is not one the caller may
+   * read. A lookup that fails is no answer about the record, and is raised
+   * as it is: a 404 would tell a client - Terraform among them - that the
+   * record is gone.
+   */
+  it("raises a lookup that fails as it is, never as missing", async () => {
+    const failure: Error = new Error("The database is not reachable.");
+
+    getJestSpyOn(service, "updateOneById").mockResolvedValue(0);
+    getJestSpyOn(service, "findOneById").mockRejectedValue(failure);
+
+    await expect(api.updateItem(request, response)).rejects.toBe(failure);
+    expect(Response.sendEmptySuccessResponse).not.toHaveBeenCalled();
+  });
+
   // One they may read but not change: refused, naming the resource.
   it("refuses a record the caller may read but not change", async () => {
     getJestSpyOn(service, "updateOneById").mockResolvedValue(0);
@@ -215,6 +231,17 @@ describe("BaseAPI.deleteItem when the delete removes nothing", () => {
         "You do not have permission to delete this probe.",
       ),
     );
+    expect(Response.sendEmptySuccessResponse).not.toHaveBeenCalled();
+  });
+
+  // Terraform reads a 404 on destroy as already gone: never for a failed lookup.
+  it("raises a lookup that fails as it is, never as missing", async () => {
+    const failure: Error = new Error("The database is not reachable.");
+
+    getJestSpyOn(service, "deleteOneById").mockResolvedValue(0);
+    getJestSpyOn(service, "findOneById").mockRejectedValue(failure);
+
+    await expect(api.deleteItem(request, response)).rejects.toBe(failure);
     expect(Response.sendEmptySuccessResponse).not.toHaveBeenCalled();
   });
 });

@@ -478,14 +478,15 @@ describe("IncidentAlert uniqueness and scope", () => {
   });
 
   /*
-   * A link is read by incident and alert responders alike, so it is not
-   * read through the incident alone: an alert responder who may read no
-   * incident still sees which incidents their alerts are linked to. A grant
-   * or a block limited to labels follows the labels of both records it
-   * names.
+   * A link is read through its incident - a caller who may read incidents
+   * reads the links of the incidents they may read - but reading the
+   * incident is optional: an alert responder who may read no incident still
+   * sees which incidents their alerts are linked to. A grant or a block
+   * limited to labels also follows the labels of both records it names.
    */
-  test("reads follow the labels of the incident and the alert, not the incident alone", () => {
-    expect(model().canAccessIfCanReadOn).toBeFalsy();
+  test("reads follow the incident's labels, and alert responders read without incidents", () => {
+    expect(model().canAccessIfCanReadOn).toBe("incident");
+    expect(model().isParentReadOptional).toBe(true);
 
     const keys: Array<string> = ReadPermission.getLabelledReferences(
       IncidentAlert,

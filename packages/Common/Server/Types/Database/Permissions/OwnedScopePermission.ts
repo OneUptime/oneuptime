@@ -37,6 +37,11 @@ import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
  * `All` and `Labels` scoped rows are evaluated elsewhere; if any non-Owned
  * row also grants the operation, that broader grant wins and this filter
  * is skipped.
+ *
+ * addOwnedScopeToQuery is the rule for one operation. The record rule
+ * narrows a write by its read's scope as well, and so asks the two halves
+ * itself (BasePermission.addRecordScopeToQuery: isLimitedToOwnedRecords
+ * per operation, then addOwnedRecordsToQuery once).
  */
 export default class OwnedScopePermission {
   @CaptureSpan()
