@@ -258,7 +258,9 @@ describe("the four channels", () => {
         "in Project Settings → Notification Settings.",
       );
       expect(definition.offSentence).toContain("off in this project");
-      expect(definition.offSentence.toLowerCase()).not.toContain("project admin");
+      expect(definition.offSentence.toLowerCase()).not.toContain(
+        "project admin",
+      );
       // The empty list's heading while off does not ask for one.
       expect(definition.noItemsWhileOff).not.toContain("add");
     }
@@ -289,7 +291,11 @@ describe("the four channels", () => {
     }
 
     // "a project owner, a Billing Admin or someone with Manage Billing"
-    expect(titles).toEqual(["Project Owner", "Billing Admin", "Manage Billing"]);
+    expect(titles).toEqual([
+      "Project Owner",
+      "Billing Admin",
+      "Manage Billing",
+    ]);
 
     for (const sentence of [
       getWhoCanTurnOnSentence("it"),

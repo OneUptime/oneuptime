@@ -1050,7 +1050,9 @@ describe("Identifier, saving and the footer", () => {
 
     expect(button).toBeDisabled();
 
-    fireEvent.mouseEnter(screen.getByTestId("run-step-button-disabled-wrapper"));
+    fireEvent.mouseEnter(
+      screen.getByTestId("run-step-button-disabled-wrapper"),
+    );
 
     expect(screen.getByRole("tooltip")).toHaveTextContent(reason);
 

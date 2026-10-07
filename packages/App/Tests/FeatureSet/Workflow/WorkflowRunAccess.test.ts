@@ -110,6 +110,26 @@ describe("WorkflowRunAccess.propsHoldingOnly", () => {
     ]);
   });
 
+  test("holds none of the caller's global permissions: the read adds back the ones everybody holds", () => {
+    const input: WorkflowRunRequest = request([row(Permission.WorkflowMember)]);
+
+    input.databaseProps.userGlobalAccessPermission = {
+      _type: "UserGlobalAccessPermission",
+      globalPermissions: [Permission.Public, Permission.User],
+      projectIds: [projectId, otherProjectId],
+    };
+
+    const props: DatabaseCommonInteractionProps =
+      WorkflowRunAccess.propsHoldingOnly(input, WORKFLOW_RUN_ONLY_PERMISSIONS);
+
+    expect(props.userGlobalAccessPermission?.globalPermissions).toEqual([]);
+    expect(
+      props.userGlobalAccessPermission?.projectIds.map((id: ObjectID) => {
+        return id.toString();
+      }),
+    ).toEqual([projectId.toString()]);
+  });
+
   test("keeps who the caller is: user, project, teams, kind", () => {
     const input: WorkflowRunRequest = request([row(Permission.WorkflowMember)]);
 
@@ -149,9 +169,9 @@ describe("WorkflowRunAccess.propsHoldingOnly", () => {
     WorkflowRunAccess.propsHoldingOnly(input, WORKFLOW_RUN_ONLY_PERMISSIONS);
 
     expect(rowsOf(input.databaseProps)).toHaveLength(2);
-    expect(Object.keys(input.databaseProps.userTenantAccessPermission!)).toEqual(
-      [projectId.toString(), otherProjectId.toString()],
-    );
+    expect(
+      Object.keys(input.databaseProps.userTenantAccessPermission!),
+    ).toEqual([projectId.toString(), otherProjectId.toString()]);
   });
 
   test("a caller with no rows in the project gets none", () => {

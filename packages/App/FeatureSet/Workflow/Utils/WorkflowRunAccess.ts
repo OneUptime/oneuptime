@@ -3,12 +3,10 @@ import WorkflowService from "Common/Server/Services/WorkflowService";
 import CallerPermission from "Common/Server/Utils/Permission/CallerPermission";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+import DatabaseCommonInteractionPropsUtil from "Common/Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import ObjectID from "Common/Types/ObjectID";
-import Permission, {
-  UserPermission,
-  UserTenantAccessPermission,
-} from "Common/Types/Permission";
+import Permission, { UserPermission } from "Common/Types/Permission";
 import {
   WORKFLOW_EDIT_PERMISSIONS,
   WORKFLOW_RUN_ONLY_PERMISSIONS,
@@ -90,7 +88,9 @@ export default class WorkflowRunAccess {
     throw new NotAuthorizedException(WORKFLOW_RUN_REFUSED_MESSAGE);
   }
 
-  public static async assertMayRunStep(data: WorkflowRunRequest): Promise<void> {
+  public static async assertMayRunStep(
+    data: WorkflowRunRequest,
+  ): Promise<void> {
     WorkflowRunAccess.assertHoldsAnyOf(
       data,
       WORKFLOW_EDIT_PERMISSIONS,
@@ -188,28 +188,38 @@ export default class WorkflowRunAccess {
     }
   }
 
-  // The caller's props, with only their rows of `permissions` in the project.
+  /*
+   * The caller's props holding only their rows of `permissions` in the
+   * project - read the way the CRUD path reads them, allows and blocks
+   * alike - and none of their global permissions (the CRUD path adds back
+   * the ones every caller holds). Who the caller is - user, project, teams
+   * - is kept, so labels and owned scope still apply.
+   */
   public static propsHoldingOnly(
     data: WorkflowRunRequest,
     permissions: ReadonlyArray<Permission>,
   ): DatabaseCommonInteractionProps {
-    const key: string = data.projectId.toString();
-    const tenant: UserTenantAccessPermission | undefined =
-      data.databaseProps.userTenantAccessPermission?.[key];
-
-    const rows: Array<UserPermission> = (tenant?.permissions || []).filter(
-      (row: UserPermission): boolean => {
+    const rows: Array<UserPermission> =
+      DatabaseCommonInteractionPropsUtil.getPermissionRows({
+        ...data.databaseProps,
+        tenantId: data.projectId,
+        userGlobalAccessPermission: undefined,
+      }).filter((row: UserPermission): boolean => {
         return permissions.includes(row.permission);
-      },
-    );
+      });
 
     return {
       ...data.databaseProps,
+      tenantId: data.projectId,
+      userGlobalAccessPermission: {
+        _type: "UserGlobalAccessPermission",
+        globalPermissions: [],
+        projectIds: [data.projectId],
+      },
       userTenantAccessPermission: {
-        [key]: {
+        [data.projectId.toString()]: {
           _type: "UserTenantAccessPermission",
           projectId: data.projectId,
-          ...tenant,
           permissions: rows,
         },
       },

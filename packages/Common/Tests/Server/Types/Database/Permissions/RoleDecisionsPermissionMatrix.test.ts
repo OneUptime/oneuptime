@@ -213,28 +213,38 @@ describe("a Billing Admin turns a project's paid channels on and off", () => {
   });
 
   for (const column of CHANNEL_COLUMNS) {
-    test.each(MAY)(`%s may switch ${column} on and off`, (permission) => {
-      for (const value of [true, false]) {
+    test.each(MAY)(
+      `%s may switch ${column} on and off`,
+      (permission: Permission) => {
+        for (const value of [true, false]) {
+          expect(
+            mayWrite(Project, [permission], DatabaseRequestType.Update, {
+              [column]: value,
+            }),
+          ).toBe(true);
+        }
+      },
+    );
+
+    test.each(MAY_NOT)(
+      `%s may not switch ${column}`,
+      (permission: Permission) => {
         expect(
           mayWrite(Project, [permission], DatabaseRequestType.Update, {
-            [column]: value,
+            [column]: true,
           }),
-        ).toBe(true);
-      }
-    });
-
-    test.each(MAY_NOT)(`%s may not switch ${column}`, (permission) => {
-      expect(
-        mayWrite(Project, [permission], DatabaseRequestType.Update, {
-          [column]: true,
-        }),
-      ).toBe(false);
-    });
+        ).toBe(false);
+      },
+    );
   }
 
   test("a Billing Admin may change those four columns and nothing else about a project", () => {
     expect(
-      columnsFor(Project, [Permission.BillingAdmin], DatabaseRequestType.Update),
+      columnsFor(
+        Project,
+        [Permission.BillingAdmin],
+        DatabaseRequestType.Update,
+      ),
     ).toEqual([...CHANNEL_COLUMNS].sort());
   });
 
@@ -247,7 +257,12 @@ describe("a Billing Admin turns a project's paid channels on and off", () => {
     ]) {
       expect([
         data,
-        mayWrite(Project, [Permission.BillingAdmin], DatabaseRequestType.Update, data),
+        mayWrite(
+          Project,
+          [Permission.BillingAdmin],
+          DatabaseRequestType.Update,
+          data,
+        ),
       ]).toEqual([data, false]);
     }
   });
@@ -275,7 +290,11 @@ describe("a Billing Admin turns a project's paid channels on and off", () => {
 
   test("a Billing Admin may not create or delete a project", () => {
     expect(
-      tableAllows(Project, [Permission.BillingAdmin], DatabaseRequestType.Delete),
+      tableAllows(
+        Project,
+        [Permission.BillingAdmin],
+        DatabaseRequestType.Delete,
+      ),
     ).toBe(false);
   });
 
@@ -314,7 +333,11 @@ describe("a Workflow Admin builds workflows; a Workflow Member runs them", () =>
 
   test("a Workflow Member may open workflows", () => {
     expect(
-      tableAllows(Workflow, [Permission.WorkflowMember], DatabaseRequestType.Read),
+      tableAllows(
+        Workflow,
+        [Permission.WorkflowMember],
+        DatabaseRequestType.Read,
+      ),
     ).toBe(true);
   });
 
@@ -330,10 +353,18 @@ describe("a Workflow Admin builds workflows; a Workflow Member runs them", () =>
 
   test("a Workflow Member creates and changes no column of a workflow", () => {
     expect(
-      columnsFor(Workflow, [Permission.WorkflowMember], DatabaseRequestType.Create),
+      columnsFor(
+        Workflow,
+        [Permission.WorkflowMember],
+        DatabaseRequestType.Create,
+      ),
     ).toEqual([]);
     expect(
-      columnsFor(Workflow, [Permission.WorkflowMember], DatabaseRequestType.Update),
+      columnsFor(
+        Workflow,
+        [Permission.WorkflowMember],
+        DatabaseRequestType.Update,
+      ),
     ).toEqual([]);
   });
 
@@ -354,14 +385,30 @@ describe("a Workflow Admin builds workflows; a Workflow Member runs them", () =>
 
   test("a Workflow Admin may write every column Edit Workflow may, and create every column Create Workflow may", () => {
     expect(
-      columnsFor(Workflow, [Permission.WorkflowAdmin], DatabaseRequestType.Update),
+      columnsFor(
+        Workflow,
+        [Permission.WorkflowAdmin],
+        DatabaseRequestType.Update,
+      ),
     ).toEqual(
-      columnsFor(Workflow, [Permission.EditWorkflow], DatabaseRequestType.Update),
+      columnsFor(
+        Workflow,
+        [Permission.EditWorkflow],
+        DatabaseRequestType.Update,
+      ),
     );
     expect(
-      columnsFor(Workflow, [Permission.WorkflowAdmin], DatabaseRequestType.Create),
+      columnsFor(
+        Workflow,
+        [Permission.WorkflowAdmin],
+        DatabaseRequestType.Create,
+      ),
     ).toEqual(
-      columnsFor(Workflow, [Permission.CreateWorkflow], DatabaseRequestType.Create),
+      columnsFor(
+        Workflow,
+        [Permission.CreateWorkflow],
+        DatabaseRequestType.Create,
+      ),
     );
   });
 
@@ -373,7 +420,12 @@ describe("a Workflow Admin builds workflows; a Workflow Member runs them", () =>
     };
 
     expect(
-      mayWrite(Workflow, [Permission.WorkflowAdmin], DatabaseRequestType.Update, save),
+      mayWrite(
+        Workflow,
+        [Permission.WorkflowAdmin],
+        DatabaseRequestType.Update,
+        save,
+      ),
     ).toBe(true);
     expect(
       mayWrite(
@@ -388,10 +440,18 @@ describe("a Workflow Admin builds workflows; a Workflow Member runs them", () =>
   test("a Workflow Admin may see and reset the trigger keys; a Workflow Member may do neither", () => {
     for (const column of ["webhookSecretKey", "incomingEmailSecretKey"]) {
       expect(
-        columnsFor(Workflow, [Permission.WorkflowAdmin], DatabaseRequestType.Read),
+        columnsFor(
+          Workflow,
+          [Permission.WorkflowAdmin],
+          DatabaseRequestType.Read,
+        ),
       ).toContain(column);
       expect(
-        columnsFor(Workflow, [Permission.WorkflowAdmin], DatabaseRequestType.Update),
+        columnsFor(
+          Workflow,
+          [Permission.WorkflowAdmin],
+          DatabaseRequestType.Update,
+        ),
       ).toContain(column);
       expect(
         columnsFor(
@@ -405,13 +465,25 @@ describe("a Workflow Admin builds workflows; a Workflow Member runs them", () =>
 
   test("Project Member still creates and deletes workflows, and still may not change one", () => {
     expect(
-      tableAllows(Workflow, [Permission.ProjectMember], DatabaseRequestType.Create),
+      tableAllows(
+        Workflow,
+        [Permission.ProjectMember],
+        DatabaseRequestType.Create,
+      ),
     ).toBe(true);
     expect(
-      tableAllows(Workflow, [Permission.ProjectMember], DatabaseRequestType.Delete),
+      tableAllows(
+        Workflow,
+        [Permission.ProjectMember],
+        DatabaseRequestType.Delete,
+      ),
     ).toBe(true);
     expect(
-      tableAllows(Workflow, [Permission.ProjectMember], DatabaseRequestType.Update),
+      tableAllows(
+        Workflow,
+        [Permission.ProjectMember],
+        DatabaseRequestType.Update,
+      ),
     ).toBe(false);
   });
 
@@ -424,19 +496,19 @@ describe("a Workflow Admin builds workflows; a Workflow Member runs them", () =>
     );
 
     for (const permission of WORKFLOW_EDIT_PERMISSIONS) {
-      expect(tableAllows(Workflow, [permission], DatabaseRequestType.Update)).toBe(
-        true,
-      );
+      expect(
+        tableAllows(Workflow, [permission], DatabaseRequestType.Update),
+      ).toBe(true);
     }
 
     // Who may run without editing may still open the workflow they run.
     for (const permission of WORKFLOW_RUN_ONLY_PERMISSIONS) {
-      expect(tableAllows(Workflow, [permission], DatabaseRequestType.Read)).toBe(
-        true,
-      );
-      expect(tableAllows(Workflow, [permission], DatabaseRequestType.Update)).toBe(
-        false,
-      );
+      expect(
+        tableAllows(Workflow, [permission], DatabaseRequestType.Read),
+      ).toBe(true);
+      expect(
+        tableAllows(Workflow, [permission], DatabaseRequestType.Update),
+      ).toBe(false);
     }
   });
 });
@@ -448,9 +520,9 @@ describe("workflow variables go with building workflows", () => {
     DatabaseRequestType.Update,
     DatabaseRequestType.Delete,
   ])("a Workflow Admin may %s a variable", (type: DatabaseRequestType) => {
-    expect(tableAllows(WorkflowVariable, [Permission.WorkflowAdmin], type)).toBe(
-      true,
-    );
+    expect(
+      tableAllows(WorkflowVariable, [Permission.WorkflowAdmin], type),
+    ).toBe(true);
   });
 
   test("a Workflow Admin may write every column Create and Edit Workflow Variable may", () => {

@@ -137,7 +137,11 @@ describe("who may turn them on", () => {
         },
       );
 
-    expect(titles).toEqual(["Project Owner", "Billing Admin", "Manage Billing"]);
+    expect(titles).toEqual([
+      "Project Owner",
+      "Billing Admin",
+      "Manage Billing",
+    ]);
 
     for (const sentence of ALL_SENTENCES) {
       expect([sentence, sentence.includes("project owner")]).toEqual([

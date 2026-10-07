@@ -135,9 +135,7 @@ describe("the English workflow permissions", () => {
   });
 
   test("no longer give the Workflow Member create, edit or delete", () => {
-    expect(section).not.toMatch(
-      /\*\*Workflow Member\*\* [—–-] (can )?create/i,
-    );
+    expect(section).not.toMatch(/\*\*Workflow Member\*\* [—–-] (can )?create/i);
   });
 });
 

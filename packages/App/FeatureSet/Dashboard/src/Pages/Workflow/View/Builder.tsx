@@ -273,9 +273,8 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
    * header and may land after the first paint, and until it has the buttons
    * work and the server decides (WorkflowRunGate).
    */
-  const runLockedReason: string | undefined = getLockedReason(
-    getWorkflowRunGate(),
-  );
+  const runLockedReason: string | undefined =
+    getLockedReason(getWorkflowRunGate());
   const stepRunLockedReason: string | undefined = getLockedReason(
     getWorkflowStepRunGate(),
   );

@@ -155,7 +155,12 @@ describe("incoming email security", () => {
     );
 
     expect(titles.sort()).toEqual(
-      ["Edit Workflow", "Project Admin", "Project Owner", "Workflow Admin"].sort(),
+      [
+        "Edit Workflow",
+        "Project Admin",
+        "Project Owner",
+        "Workflow Admin",
+      ].sort(),
     );
 
     for (const title of titles) {

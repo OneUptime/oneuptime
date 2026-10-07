@@ -204,7 +204,12 @@ describe("docs for the webhook URL, now in the Webhook trigger", () => {
     );
 
     expect(titles.sort()).toEqual(
-      ["Edit Workflow", "Project Admin", "Project Owner", "Workflow Admin"].sort(),
+      [
+        "Edit Workflow",
+        "Project Admin",
+        "Project Owner",
+        "Workflow Admin",
+      ].sort(),
     );
 
     const configuration: string = readDoc("en", "workflows/configuration.md");

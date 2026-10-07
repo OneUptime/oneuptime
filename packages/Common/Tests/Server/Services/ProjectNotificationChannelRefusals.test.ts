@@ -115,7 +115,9 @@ function createBy<T extends DatabaseBaseModel>(data: T): CreateBy<T> {
 
 // Every refusal: who can, where - and never "ask an admin" or "enable them".
 function expectSaysWhoCan(message: string): void {
-  expect(message).toContain("A project owner, a Billing Admin or someone with Manage Billing");
+  expect(message).toContain(
+    "A project owner, a Billing Admin or someone with Manage Billing",
+  );
   expect(message).toContain("Project Settings > Notification Settings");
   expect(message.toLowerCase()).not.toContain("project admin");
   expect(message).not.toMatch(/please enable/i);

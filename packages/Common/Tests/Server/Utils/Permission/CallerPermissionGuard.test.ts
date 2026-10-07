@@ -110,6 +110,8 @@ const USER_PERMISSIONS_CALLERS: Record<string, string> = {
     "Builds the props a create runs with from the caller's rows for the table's create permissions, blocks kept; the CRUD path decides.",
   "packages/Common/Server/API/TelemetryAPI.ts":
     "Session replay's label scope, read after the route guard (the rule) let the caller in.",
+  "packages/App/FeatureSet/Workflow/Utils/WorkflowRunAccess.ts":
+    "Builds the props a manual run reads the workflow with from the caller's Workflow Member rows alone, blocks kept, after the rule let them in; the CRUD path decides what the rows reach.",
 };
 
 // A type that is, or holds, a caller's rows.

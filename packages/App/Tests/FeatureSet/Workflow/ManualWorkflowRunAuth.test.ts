@@ -759,9 +759,7 @@ describe("GET/POST /workflow/manual/run/:workflowId requires an authorized membe
      * changing them. A run starts at the trigger and goes through every
      * condition, as the editors built it.
      */
-    const allowedPermissions: Array<Permission> = [
-      ...WORKFLOW_RUN_PERMISSIONS,
-    ];
+    const allowedPermissions: Array<Permission> = [...WORKFLOW_RUN_PERMISSIONS];
 
     test("the run list is the workflow's editors and the Workflow Member", () => {
       expect([...WORKFLOW_RUN_PERMISSIONS].sort()).toEqual(
@@ -886,8 +884,11 @@ describe("GET/POST /workflow/manual/run/:workflowId requires an authorized membe
       expect(result.nextCallCount).toBe(0);
       expect(addWorkflowToQueueSpy).toHaveBeenCalledTimes(1);
       expect(
-        (addWorkflowToQueueSpy.mock.calls[0]![0] as { returnValues: JSONObject })
-          .returnValues,
+        (
+          addWorkflowToQueueSpy.mock.calls[0]![0] as {
+            returnValues: JSONObject;
+          }
+        ).returnValues,
       ).toEqual({ ticket: "INC-1" });
     });
 

@@ -15,7 +15,10 @@ import ProjectAiDailyLimits, {
 import Project from "../../../Models/DatabaseModels/Project";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import Permission from "../../../Types/Permission";
-import { getWhoCanTurnOnClause } from "../../../Utils/Project/NotificationChannels";
+import {
+  PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS,
+  WHO_MAY_TURN_THEM_ON,
+} from "../../../Utils/Project/NotificationChannels";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -467,12 +470,25 @@ describe("who may change the limits, and where", () => {
     expect(WHO_CAN_CHANGE_PROJECT_AI_DAILY_LIMITS).toBe(
       "a project owner or someone with Manage Billing",
     );
-    // The same people, in the same words, as the notification channels' switches.
-    expect(
-      getWhoCanTurnOnClause("it").startsWith(
-        WHO_CAN_CHANGE_PROJECT_AI_DAILY_LIMITS,
-      ),
-    ).toBe(true);
+
+    /*
+     * The notification channels' switches name the same two the same way -
+     * and a Billing Admin between them, who may flip those switches but not
+     * change what AI may cost.
+     */
+    expect(WHO_MAY_TURN_THEM_ON.startsWith("a project owner, ")).toBe(true);
+    expect(WHO_MAY_TURN_THEM_ON.endsWith(" someone with Manage Billing")).toBe(
+      true,
+    );
+    expect(PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS).toContain(
+      Permission.BillingAdmin,
+    );
+    expect(PROJECT_AI_DAILY_LIMIT_UPDATE_PERMISSIONS).not.toContain(
+      Permission.BillingAdmin,
+    );
+    expect(WHO_CAN_CHANGE_PROJECT_AI_DAILY_LIMITS).not.toContain(
+      "Billing Admin",
+    );
   });
 
   test("the sentence said to whoever met the limit names them rather than telling the reader to", () => {

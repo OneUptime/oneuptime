@@ -401,9 +401,9 @@ describe("PermissionGate.checkPermissions", () => {
   test("an empty list lets nobody but a master admin through, and blames nobody", () => {
     permissionsForTest = [Permission.ProjectOwner];
 
-    expect(
-      PermissionGate.checkPermissions([], { sentence: SENTENCE }),
-    ).toEqual({ isAllowed: false });
+    expect(PermissionGate.checkPermissions([], { sentence: SENTENCE })).toEqual(
+      { isAllowed: false },
+    );
   });
 
   test("a snapshot handed in is what it decides on", () => {

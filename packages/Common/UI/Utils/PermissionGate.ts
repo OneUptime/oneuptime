@@ -120,7 +120,7 @@ export type ColumnOperation = "create" | "read" | "update";
  * stand for something other than one column.
  */
 export interface PermissionCheckableFormField {
-  field?: object | undefined;
+  field?: Record<string, unknown> | undefined;
   overrideField?: unknown;
   peoplePicker?: unknown;
   showEvenIfPermissionDoesNotExist?: boolean | undefined;
@@ -583,7 +583,8 @@ export default class PermissionGate {
     return {
       isAllowed: false,
       disabledReason: this.appendPermissionsToSentence({
-        sentence: translator.translateText(options.sentence) || options.sentence,
+        sentence:
+          translator.translateText(options.sentence) || options.sentence,
         permissions: [...permissions],
         held: held,
       }),

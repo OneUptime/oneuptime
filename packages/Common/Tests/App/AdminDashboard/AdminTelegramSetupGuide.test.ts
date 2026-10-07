@@ -109,7 +109,9 @@ describe("the Telegram setup guide's end-to-end test", () => {
     expect(TELEGRAM_PROJECT_SWITCH_STEP).toContain("project owner");
     expect(TELEGRAM_PROJECT_SWITCH_STEP).toContain("**Billing Admin**");
     expect(TELEGRAM_PROJECT_SWITCH_STEP).toContain("**Manage Billing**");
-    expect(TELEGRAM_PROJECT_SWITCH_STEP.toLowerCase()).not.toContain("project admin");
+    expect(TELEGRAM_PROJECT_SWITCH_STEP.toLowerCase()).not.toContain(
+      "project admin",
+    );
   });
 
   test("tells users where their own Telegram toggles are, not the project's page", () => {

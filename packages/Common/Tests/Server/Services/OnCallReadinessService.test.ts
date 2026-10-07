@@ -1962,7 +1962,9 @@ describe("status", () => {
       expect(readiness.reasons[1]).toContain(
         "a project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notification Settings",
       );
-      expect((readiness.reasons[1] || "").toLowerCase()).not.toContain("project admin");
+      expect((readiness.reasons[1] || "").toLowerCase()).not.toContain(
+        "project admin",
+      );
       expect(
         readiness.reasons.some((reason: string): boolean => {
           return reason.includes("add and verify");
