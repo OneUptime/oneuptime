@@ -30,11 +30,49 @@ import {
 } from "react-beautiful-dnd";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import useIsProjectMember from "../../../Utils/UseIsProjectMember";
+import { ProjectMembershipAnswer } from "../../../Utils/ProjectMembershipLoader";
+import ObjectID from "Common/Types/ObjectID";
 
 export interface ComponentProps {
   layer: OnCallDutyPolicyScheduleLayer;
   onUpdateUsers: (layerUsers: Array<OnCallDutyPolicyScheduleLayerUser>) => void;
 }
+
+/*
+ * The line under a layer user's name: their email - or, once they have left
+ * the project, "No longer a member". Nobody who has left is paged when the
+ * rotation reaches them, so the layer needs somebody else in their place.
+ */
+const LayerUserDetailLine: FunctionComponent<{
+  userId: ObjectID | null | undefined;
+  name: string;
+  email: string;
+}> = (props: {
+  userId: ObjectID | null | undefined;
+  name: string;
+  email: string;
+}): ReactElement | null => {
+  const translator: Translator = useTranslator();
+  const isMember: ProjectMembershipAnswer = useIsProjectMember(props.userId);
+
+  if (isMember === false) {
+    return (
+      <div
+        data-testid="layer-user-not-project-member"
+        className="truncate text-xs font-medium text-amber-700"
+      >
+        {translator.translateText("No longer a member")}
+      </div>
+    );
+  }
+
+  if (props.name && props.email) {
+    return <div className="truncate text-xs text-gray-500">{props.email}</div>;
+  }
+
+  return null;
+};
 
 const LayerUser: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -239,9 +277,7 @@ const LayerUser: FunctionComponent<ComponentProps> = (
           <div className="truncate text-sm font-medium text-gray-900">
             {name || email || translator.translateText("Unknown user")}
           </div>
-          {name && email ? (
-            <div className="truncate text-xs text-gray-500">{email}</div>
-          ) : null}
+          <LayerUserDetailLine userId={user?.id} name={name} email={email} />
         </div>
 
         <button

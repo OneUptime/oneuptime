@@ -26025,5 +26025,6 @@
   "You do not have permission to run this workflow.": "Du har ikke tilladelse til at køre denne arbejdsgang.",
   "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here.": "{{count}} trin mere kræver en projektejer eller nogen med rollen »Billing Admin« eller tilladelsen »Manage Billing«, så de tælles ikke med her.",
   "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here._one": "{{count}} trin mere kræver en projektejer eller nogen med rollen »Billing Admin« eller tilladelsen »Manage Billing«, så det tælles ikke med her.",
-  "The event has started, so this can no longer be changed.": "Begivenheden er startet, så dette kan ikke længere ændres."
+  "The event has started, so this can no longer be changed.": "Begivenheden er startet, så dette kan ikke længere ændres.",
+  "No longer a member": "Ikke længere medlem"
 }

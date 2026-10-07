@@ -118,6 +118,7 @@ import MoveGoogleSecOpsConnectionsToSecurityEventConnections from "./MoveGoogleS
 import BackfillAuditLogRootResource from "./BackfillAuditLogRootResource";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import AddAuditLogWorkflowColumns from "./AddAuditLogWorkflowColumns";
+import RemoveNotificationSettingsOfFormerMembers from "./RemoveNotificationSettingsOfFormerMembers";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
 import ScheduleRemindersMissedByReminderRuleLookup from "./ScheduleRemindersMissedByReminderRuleLookup";
 import RepairKubernetesDashboardClusterCpuTile from "./RepairKubernetesDashboardClusterCpuTile";
@@ -655,6 +656,15 @@ const DataMigrations: Array<DataMigrationBase> = [
    * the last slot.
    */
   new AddAuditLogWorkflowColumns(),
+  /*
+   * A person's own notification settings for a project (rules, methods,
+   * settings, email rollup preference and pending rollup mail, routed call
+   * number) go when they leave it now; this removes the ones people who
+   * already left still have, only for pairs with no accepted membership,
+   * re-checked per pair. Postgres-only, idempotent, never touches a member.
+   * No ordering requirement, so it sits before the last slot.
+   */
+  new RemoveNotificationSettingsOfFormerMembers(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

@@ -26025,5 +26025,6 @@
   "You do not have permission to run this workflow.": "Du har inte behörighet att köra det här arbetsflödet.",
   "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here.": "{{count}} steg till kräver en projektägare eller någon med rollen ”Billing Admin” eller behörigheten ”Manage Billing”, så de räknas inte här.",
   "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here._one": "{{count}} steg till kräver en projektägare eller någon med rollen ”Billing Admin” eller behörigheten ”Manage Billing”, så det räknas inte här.",
-  "The event has started, so this can no longer be changed.": "Händelsen har börjat, så det här kan inte längre ändras."
+  "The event has started, so this can no longer be changed.": "Händelsen har börjat, så det här kan inte längre ändras.",
+  "No longer a member": "Inte längre medlem"
 }

@@ -26025,5 +26025,6 @@
   "You do not have permission to run this workflow.": "이 워크플로를 실행할 권한이 없습니다.",
   "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here.": "단계 {{count}}개는 프로젝트 소유자 또는 'Billing Admin' 역할 또는 'Manage Billing' 권한이 있는 사용자가 처리해야 하므로 여기서 세지 않습니다.",
   "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here._one": "단계 {{count}}개는 프로젝트 소유자 또는 'Billing Admin' 역할 또는 'Manage Billing' 권한이 있는 사용자가 처리해야 하므로 여기서 세지 않습니다.",
-  "The event has started, so this can no longer be changed.": "이벤트가 시작되었으므로 더 이상 변경할 수 없습니다."
+  "The event has started, so this can no longer be changed.": "이벤트가 시작되었으므로 더 이상 변경할 수 없습니다.",
+  "No longer a member": "더 이상 멤버가 아님"
 }

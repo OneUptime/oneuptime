@@ -42,6 +42,8 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import useIsProjectMember from "../../Utils/UseIsProjectMember";
+import { ProjectMembershipAnswer } from "../../Utils/ProjectMembershipLoader";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -80,6 +82,16 @@ const OwnerCircleView: FunctionComponent<OwnerCircleViewProps> = (
   const { item, isOverlapping } = props;
   const translator: Translator = useTranslator();
 
+  /*
+   * An owner who has left the project is kept as the record of who owned it
+   * (a closed incident's owners are its history), but nothing of the project
+   * reaches them any more: the avatar fades and says so.
+   */
+  const isMember: ProjectMembershipAnswer = useIsProjectMember(
+    item.kind === PeoplePickerKind.User ? item.userId : null,
+  );
+  const isNotProjectMember: boolean = isMember === false;
+
   const tooltipContent: ReactElement = (
     <div className="flex items-center gap-3 p-1.5 min-w-[180px]">
       <div className="flex-shrink-0">
@@ -89,11 +101,17 @@ const OwnerCircleView: FunctionComponent<OwnerCircleViewProps> = (
         <div className="text-sm font-semibold text-gray-900 truncate">
           {item.name}
         </div>
-        <div className="text-xs text-gray-500 truncate">
-          {item.kind === PeoplePickerKind.Team
-            ? translator.translateText("Team")
-            : item.email || translator.translateText("Owner")}
-        </div>
+        {isNotProjectMember ? (
+          <div className="text-xs font-medium text-amber-700 truncate">
+            {translator.translateText("No longer a member")}
+          </div>
+        ) : (
+          <div className="text-xs text-gray-500 truncate">
+            {item.kind === PeoplePickerKind.Team
+              ? translator.translateText("Team")
+              : item.email || translator.translateText("Owner")}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -106,8 +124,22 @@ const OwnerCircleView: FunctionComponent<OwnerCircleViewProps> = (
     >
       <Tooltip richContent={tooltipContent}>
         <div className="cursor-default">
-          <div className="transition-transform duration-200 group-hover:scale-105">
+          <div
+            data-testid={
+              isNotProjectMember ? "owner-not-project-member" : undefined
+            }
+            className={`transition-transform duration-200 group-hover:scale-105${
+              isNotProjectMember ? " opacity-50 grayscale" : ""
+            }`}
+          >
             <PeopleAvatar item={item} size="md" />
+            {isNotProjectMember ? (
+              <span className="sr-only">
+                {translator.translateText("No longer a member")}
+              </span>
+            ) : (
+              <></>
+            )}
           </div>
         </div>
       </Tooltip>

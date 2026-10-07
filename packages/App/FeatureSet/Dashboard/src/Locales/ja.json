@@ -26025,5 +26025,6 @@
   "You do not have permission to run this workflow.": "このワークフローを実行する権限がありません。",
   "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here.": "あと {{count}} 個のステップはプロジェクトのオーナーまたは「Billing Admin」ロールまたは「請求の管理」権限を持つユーザーによる操作が必要なため、ここでは数えていません。",
   "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here._one": "あと {{count}} 個のステップはプロジェクトのオーナーまたは「Billing Admin」ロールまたは「請求の管理」権限を持つユーザーによる操作が必要なため、ここでは数えていません。",
-  "The event has started, so this can no longer be changed.": "イベントが始まったため、これは変更できません。"
+  "The event has started, so this can no longer be changed.": "イベントが始まったため、これは変更できません。",
+  "No longer a member": "メンバーではなくなりました"
 }
