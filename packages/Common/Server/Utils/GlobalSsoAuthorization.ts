@@ -1,5 +1,8 @@
 import ObjectID from "../../Types/ObjectID";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
+import RealtimeAccessChanges, {
+  RealtimeAccessChangeKind,
+} from "./Realtime/RealtimeAccessChanges";
 
 /*
  * The stateful half of Global SSO enforcement.
@@ -99,6 +102,36 @@ export function doAttachmentsGovernProject(
   }
 
   return attachments.enabledProjectIds.includes(projectId.toString());
+}
+
+/*
+ * Whether a write to a global provider, or to one of its project
+ * attachments, may let it sign fewer people in: it turns it off, or
+ * restricts the provider to its attached projects.
+ */
+export function isGlobalProviderNarrowing(data: unknown): boolean {
+  const written: Record<string, unknown> =
+    data && typeof data === "object" ? (data as Record<string, unknown>) : {};
+
+  return (
+    written["isEnabled"] === false ||
+    written["restrictToAttachedProjects"] === true
+  );
+}
+
+/*
+ * A global provider now signs fewer people in - turned off, deleted,
+ * restricted to its attached projects, or an attachment of one added,
+ * turned off or removed. Every server forgets these answers
+ * (GlobalConfigService.forgetSignInRules) and asks the live updates it holds
+ * again, as their joins were (RealtimeAccessChanges, SignInRulesChanged for
+ * the whole instance), so a page signed in with it stops hearing at once,
+ * as its requests are refused at once.
+ */
+export function announceGlobalSignInChange(): void {
+  RealtimeAccessChanges.announce({
+    kind: RealtimeAccessChangeKind.SignInRulesChanged,
+  });
 }
 
 /** Drops every cached answer. Used by the write hooks and by tests. */

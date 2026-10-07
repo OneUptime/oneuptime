@@ -14,7 +14,9 @@ import validateGlobalProviderProjectTeams, {
 import {
   GLOBAL_SSO_AUTHORIZATION_CACHE_TTL_MS,
   GlobalProviderAttachments,
+  announceGlobalSignInChange,
   clearGlobalSsoAuthorizationCaches,
+  isGlobalProviderNarrowing,
   doAttachmentsGovernProject,
   globalProviderCacheKey,
   globalSsoAttachmentsCache,
@@ -113,27 +115,50 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _itemIdsBeforeDelete: Array<ObjectID>,
+    itemIdsBeforeDelete: Array<ObjectID>,
   ): Promise<OnDelete<Model>> {
     clearGlobalSsoAuthorizationCaches();
+
+    /*
+     * A provider restricted to its attached projects no longer signs people
+     * in to this one: asked again on every server.
+     */
+    if (itemIdsBeforeDelete.length > 0) {
+      announceGlobalSignInChange();
+    }
+
     return onDelete;
   }
 
+  /*
+   * The first attachment of a provider restricted to its attached projects
+   * narrows it from every project to that one: asked again on every server.
+   */
   @CaptureSpan()
   protected override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
     clearGlobalSsoAuthorizationCaches();
+    announceGlobalSignInChange();
     return createdItem;
   }
 
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
-    _updatedItemIds: Array<ObjectID>,
+    updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
     clearGlobalSsoAuthorizationCaches();
+
+    // An attachment turned off: as removing it.
+    if (
+      updatedItemIds.length > 0 &&
+      isGlobalProviderNarrowing(onUpdate.updateBy.data)
+    ) {
+      announceGlobalSignInChange();
+    }
+
     return onUpdate;
   }
 
