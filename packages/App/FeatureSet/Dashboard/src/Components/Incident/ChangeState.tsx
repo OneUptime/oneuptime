@@ -505,13 +505,6 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
   );
 
   /*
-   * One sentence on what the change does. The optional note is not
-   * mentioned: it is the folded "Add a public note" line right under it.
-   * Acknowledging is what stops the incident's on-call escalation
-   * (Workers/Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions),
-   * so the confirm says so.
-   */
-  /*
    * Acknowledging it: a move into the project's acknowledged state while it
    * is not acknowledged yet. Picking a state placed after Acknowledged
    * ("Investigating") names that state; the acknowledged state picked for a
@@ -529,6 +522,13 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
     isResolvedStateId(selectedIncidentState?.id?.toString()) &&
     !isResolvedStateId(currentStateId);
 
+  /*
+   * One sentence on what the change does. The optional note is not
+   * mentioned: it is the folded "Add a public note" line right under it.
+   * Acknowledging is what stops the incident's on-call escalation
+   * (Workers/Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions),
+   * so the confirm says so.
+   */
   if (isAcknowledgeTarget) {
     modalTitle = translationKey("Acknowledge Incident");
     modalSubmitButtonText = translationKey("Acknowledge");

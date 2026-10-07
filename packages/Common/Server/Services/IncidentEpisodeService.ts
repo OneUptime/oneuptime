@@ -1013,14 +1013,12 @@ export class Service extends ProjectReferencesService<Model> {
         },
       });
 
-    const refusal: string | null = AcknowledgedStateUtil.getAcknowledgeRefusal(
-      {
-        list: StateListType.IncidentState,
-        states: incidentStates,
-        stateId: episode.currentIncidentStateId,
-        subject: "Episode",
-      },
-    );
+    const refusal: string | null = AcknowledgedStateUtil.getAcknowledgeRefusal({
+      list: StateListType.IncidentState,
+      states: incidentStates,
+      stateId: episode.currentIncidentStateId,
+      subject: "Episode",
+    });
 
     if (refusal) {
       throw new BadDataException(refusal);

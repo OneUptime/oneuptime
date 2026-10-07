@@ -173,10 +173,12 @@ export class Service extends DatabaseService<Model> {
         props: { isRoot: true },
       });
 
-    const states: Array<AlertState> = await AlertStateService.getAllAlertStates({
-      projectId: data.projectId,
-      props: { isRoot: true },
-    });
+    const states: Array<AlertState> = await AlertStateService.getAllAlertStates(
+      {
+        projectId: data.projectId,
+        props: { isRoot: true },
+      },
+    );
 
     const timelineRows: Array<{
       id: string;

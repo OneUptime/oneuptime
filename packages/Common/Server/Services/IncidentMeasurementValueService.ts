@@ -174,10 +174,11 @@ export class Service extends DatabaseService<Model> {
         props: { isRoot: true },
       });
 
-    const states: Array<IncidentState> = await IncidentStateService.getAllIncidentStates({
-      projectId: data.projectId,
-      props: { isRoot: true },
-    });
+    const states: Array<IncidentState> =
+      await IncidentStateService.getAllIncidentStates({
+        projectId: data.projectId,
+        props: { isRoot: true },
+      });
 
     const timelineRows: Array<{
       id: string;

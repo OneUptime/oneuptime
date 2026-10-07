@@ -488,7 +488,11 @@ describe("WorkflowTools", () => {
         ] as never);
 
       await expect(
-        handleWorkflowTool("acknowledge_alert", { alertId: VALID_UUID }, API_KEY),
+        handleWorkflowTool(
+          "acknowledge_alert",
+          { alertId: VALID_UUID },
+          API_KEY,
+        ),
       ).rejects.toThrow(
         `Alert ${VALID_UUID} is already acknowledged: it is in 'Investigating', which is 'Acknowledged' or a state after it. It was left as it is.`,
       );

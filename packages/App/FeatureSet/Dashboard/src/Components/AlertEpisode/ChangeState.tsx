@@ -405,12 +405,6 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
   );
 
   /*
-   * What the change does, in a sentence or two; the optional note is the
-   * folded "Add a private note" line under it. Acknowledging stops the on-call
-   * escalation of the episode and - as it acknowledges its alerts too -
-   * of theirs, so the confirm says so.
-   */
-  /*
    * Acknowledging it: a move into the project's acknowledged state while it
    * is not acknowledged yet. Picking a state placed after Acknowledged
    * ("Investigating") names that state; the acknowledged state picked for a
@@ -434,6 +428,12 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
       !timing.isResolved,
   );
 
+  /*
+   * What the change does, in a sentence or two; the optional note is the
+   * folded "Add a private note" line under it. Acknowledging stops the on-call
+   * escalation of the episode and - as it acknowledges its alerts too -
+   * of theirs, so the confirm says so.
+   */
   if (isAcknowledgeTarget) {
     modalTitle = translationKey("Acknowledge Episode");
     modalSubmitButtonText = translationKey("Acknowledge");

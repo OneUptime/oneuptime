@@ -534,17 +534,14 @@ describe("acknowledging a record that is acknowledged already is refused, and mo
     test.each([
       ["resolved", RESOLVED],
       ["in a state after Resolved", CLOSED],
-    ])(
-      "%s is already resolved",
-      async (_label: string, stateId: string) => {
-        kind.serveIn(stateId);
+    ])("%s is already resolved", async (_label: string, stateId: string) => {
+      kind.serveIn(stateId);
 
-        await expect(kind.acknowledge()).rejects.toThrow(
-          `${kind.subject} is already resolved.`,
-        );
-        expect(kind.moved()).toEqual([]);
-      },
-    );
+      await expect(kind.acknowledge()).rejects.toThrow(
+        `${kind.subject} is already resolved.`,
+      );
+      expect(kind.moved()).toEqual([]);
+    });
 
     test("still open is moved into the acknowledged state", async () => {
       kind.serveIn(IDENTIFIED);
@@ -794,9 +791,7 @@ describe("moving an incident into a state placed after Acknowledged is an acknow
     serveStates(IncidentStateService, IncidentState);
     serveIncidentIn(IDENTIFIED);
 
-    jest
-      .spyOn(IncidentService, "updateOneBy")
-      .mockResolvedValue(1 as never);
+    jest.spyOn(IncidentService, "updateOneBy").mockResolvedValue(1 as never);
     jest
       .spyOn(IncidentService, "updateOneById")
       .mockResolvedValue(undefined as never);

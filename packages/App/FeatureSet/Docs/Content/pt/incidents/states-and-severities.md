@@ -35,7 +35,7 @@ Repare no nome: o primeiro estado é **Identified**, embora várias descrições
 | Flag                  | Para que serve                                                                                                                                                                                       |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `isCreatedState`      | O estado que um incidente recebe quando ninguém escolheu um. Se nenhum estado do projeto carregar essa flag, criar um incidente falha com um erro pedindo que você adicione um estado de criação nas configurações. |
-| `isAcknowledgedState` | Alimenta o botão **Acknowledge** e o bloco de estatística "<nome do estado> em" na **Visão geral** do incidente. Numa mudança de estado para este estado, o SLA do incidente é marcado como respondido. |
+| `isAcknowledgedState` | Marca o estado confirmado do projeto: aquele para onde **Acknowledge** leva um incidente e que dá nome ao bloco de confirmado. Um incidente nele, em qualquer estado depois dele ou resolvido está confirmado: **Acknowledge** já não lhe é oferecido, o plantão para de acionar por ele e o SLA é marcado como respondido. |
 | `isResolvedState`     | Marca o estado resolvido do projeto: aquele para onde **Resolver** leva o incidente e que o bloco de estatística de resolvido mostra. Um incidente nele, ou em qualquer estado depois dele, está resolvido — sai de **Incidentes ativos** e da seção ativa de uma página de status, e seu SLA é marcado como resolvido. |
 
 Espera-se que apenas um estado por projeto carregue cada flag — as buscas trazem uma única linha. Os três estados com flag podem ser renomeados, recoloridos e reordenados, mas a página de configurações se recusa a excluí-los e mostra um erro nomeando os estados de criação, confirmação e resolução.
@@ -103,6 +103,18 @@ Há quatro maneiras de um incidente mudar de estado:
 - **Automaticamente.** Um critério de monitor com **Resolver incidente automaticamente** ativado resolve seu incidente quando o critério deixa de ser atendido, e a API pode atualizar o estado por `/api/incident-state-timeline`.
 
 Cada uma dessas grava uma linha na linha do tempo. Uma mudança de estado também faz algumas coisas que você não precisa pedir: publica uma entrada no feed do incidente, atribui um Incident Commander se o incidente ainda não tiver um, e atualiza o cronômetro do SLA. Reabrir um incidente resolvido inicia um novo registro de SLA a partir do momento da reabertura.
+
+## O que confirmar faz
+
+Um incidente está confirmado a partir do momento em que passa para o seu estado confirmado, para qualquer estado depois dele — um estado **Investigando** que você colocou abaixo de **Confirmado**, por exemplo — ou para um estado resolvido, por qualquer uma das quatro formas acima. A página de configurações de estados mostra quais são esses estados. Depois de confirmado:
+
+- **Acknowledge já não é oferecido.** Nem no cabeçalho do incidente, nem no app móvel (o botão e o gesto de deslizar), nem no Slack ou no Microsoft Teams, nem pelo `acknowledge_incident` do servidor MCP do OneUptime. Confirmá-lo mesmo assim — a partir de um acionamento de plantão, do Slack ou do Teams — é recusado com "Incident is already acknowledged." (ou "Incident is already resolved."), em vez de fazê-lo voltar na sua lista.
+- **O plantão para de acionar por ele.** Quem confirma o seu acionamento depois que um colega confirmou o incidente, ou o fez avançar, tem o acionamento confirmado, e o incidente fica onde está.
+- **O SLA é marcado como respondido** na primeira mudança desse tipo; avançar para estados posteriores mantém esse horário.
+- **O tempo até a confirmação vai até essa primeira mudança** — o bloco de estatística da **Visão geral** do incidente, a métrica **Time to Acknowledge**, uma medição que termina quando o incidente é confirmado e o MTTA dos resumos do Slack e do Microsoft Teams. Um incidente levado diretamente de **Identified** para **Investigando** foi confirmado nesse momento; um resolvido de imediato foi confirmado ao ser resolvido.
+- **Um filtro Confirmado** — no widget de lista de incidentes de um dashboard, por exemplo — mostra os incidentes no seu estado confirmado e em qualquer estado depois dele, enquanto não estiverem resolvidos.
+
+Alertas e episódios seguem a mesma regra com os seus estados de alerta.
 
 ## O que resolver faz
 

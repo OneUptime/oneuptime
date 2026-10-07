@@ -1,7 +1,11 @@
 import ObjectID from "../Types/ObjectID";
 import AcknowledgedStateUtil from "./AcknowledgedState";
 import ResolvedStateUtil, { ResolvedStateList } from "./ResolvedState";
-import { StateListDefinition, StateListRow, toStateListRow } from "./StateOrder";
+import {
+  StateListDefinition,
+  StateListRow,
+  toStateListRow,
+} from "./StateOrder";
 
 /*
  * HOW FAR ALONG A NEW INCIDENT, ALERT OR EPISODE STARTS - AND SO WHAT ITS

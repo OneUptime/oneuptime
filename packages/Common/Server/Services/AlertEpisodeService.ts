@@ -879,14 +879,12 @@ export class Service extends ProjectReferencesService<Model> {
         },
       });
 
-    const refusal: string | null = AcknowledgedStateUtil.getAcknowledgeRefusal(
-      {
-        list: StateListType.AlertState,
-        states: alertStates,
-        stateId: episode.currentAlertStateId,
-        subject: "Episode",
-      },
-    );
+    const refusal: string | null = AcknowledgedStateUtil.getAcknowledgeRefusal({
+      list: StateListType.AlertState,
+      states: alertStates,
+      stateId: episode.currentAlertStateId,
+      subject: "Episode",
+    });
 
     if (refusal) {
       throw new BadDataException(refusal);

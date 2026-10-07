@@ -353,14 +353,12 @@ export class Service extends ProjectReferencesService<Model> {
         },
       });
 
-    const refusal: string | null = AcknowledgedStateUtil.getAcknowledgeRefusal(
-      {
-        list: StateListType.AlertState,
-        states: alertStates,
-        stateId: alert.currentAlertStateId,
-        subject: "Alert",
-      },
-    );
+    const refusal: string | null = AcknowledgedStateUtil.getAcknowledgeRefusal({
+      list: StateListType.AlertState,
+      states: alertStates,
+      stateId: alert.currentAlertStateId,
+      subject: "Alert",
+    });
 
     if (refusal) {
       throw new BadDataException(refusal);
@@ -2729,8 +2727,9 @@ ${escapeMarkdownValue(alertSeverity.name)}
           alertStartsAt,
         );
         timeToAcknowledgeMetric.attributes = { ...baseMetricAttributes };
-        timeToAcknowledgeMetric.attributeKeys =
-          TelemetryUtil.getAttributeKeys(timeToAcknowledgeMetric.attributes);
+        timeToAcknowledgeMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+          timeToAcknowledgeMetric.attributes,
+        );
 
         timeToAcknowledgeMetric.time =
           ackAlertStateTimeline?.startsAt ||

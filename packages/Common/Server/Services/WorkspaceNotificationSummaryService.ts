@@ -1286,7 +1286,10 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
          * acknowledged state, one placed after it, or a resolved one - is
          * the acknowledgement, as on the incident's overview.
          */
-        if (incidentStateRules.isAcknowledged(tl.incidentStateId) && !td.ackAt) {
+        if (
+          incidentStateRules.isAcknowledged(tl.incidentStateId) &&
+          !td.ackAt
+        ) {
           td.ackBy = userName;
           td.ackAt = tl.createdAt;
         }

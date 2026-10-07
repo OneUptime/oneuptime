@@ -73,7 +73,9 @@ export function isAcknowledged<T extends AcknowledgedRuleState>(
     ? getStateOrder(acknowledgedState)
     : null;
 
-  return order !== null && acknowledgedOrder !== null && order >= acknowledgedOrder;
+  return (
+    order !== null && acknowledgedOrder !== null && order >= acknowledgedOrder
+  );
 }
 
 /**

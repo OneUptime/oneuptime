@@ -649,14 +649,12 @@ export class Service extends ProjectReferencesService<Model> {
         },
       });
 
-    const refusal: string | null = AcknowledgedStateUtil.getAcknowledgeRefusal(
-      {
-        list: StateListType.IncidentState,
-        states: incidentStates,
-        stateId: incident.currentIncidentStateId,
-        subject: "Incident",
-      },
-    );
+    const refusal: string | null = AcknowledgedStateUtil.getAcknowledgeRefusal({
+      list: StateListType.IncidentState,
+      states: incidentStates,
+      stateId: incident.currentIncidentStateId,
+      subject: "Incident",
+    });
 
     if (refusal) {
       throw new BadDataException(refusal);
@@ -6433,8 +6431,7 @@ ${escapeMarkdownValue(incidentSeverity.name)}
         timeToAcknowledgeMetric.metricPointId =
           IncidentMetricType.TimeToAcknowledge;
         timeToAcknowledgeMetric.value = OneUptimeDate.getDifferenceInSeconds(
-          ackIncidentStateTimeline?.startsAt ||
-            OneUptimeDate.getCurrentDate(),
+          ackIncidentStateTimeline?.startsAt || OneUptimeDate.getCurrentDate(),
           incidentStartsAt,
         );
         // aiInvestigated: the MTTA with/without-AI dimension.
@@ -6442,8 +6439,9 @@ ${escapeMarkdownValue(incidentSeverity.name)}
           ...baseMetricAttributes,
           aiInvestigated: aiInvestigated.toString(),
         };
-        timeToAcknowledgeMetric.attributeKeys =
-          TelemetryUtil.getAttributeKeys(timeToAcknowledgeMetric.attributes);
+        timeToAcknowledgeMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+          timeToAcknowledgeMetric.attributes,
+        );
 
         timeToAcknowledgeMetric.time =
           ackIncidentStateTimeline?.startsAt ||
@@ -6623,13 +6621,11 @@ ${escapeMarkdownValue(incidentSeverity.name)}
            * (the acknowledged state or one placed after it) but not resolved
            * - and whether it counts as resolved, as everywhere else.
            */
-          isAcknowledgedState: AcknowledgedStateUtil.isAcknowledgedUnresolved(
-            {
-              list: StateListType.IncidentState,
-              states: incidentStates,
-              stateId: timeline.incidentStateId,
-            },
-          ).toString(),
+          isAcknowledgedState: AcknowledgedStateUtil.isAcknowledgedUnresolved({
+            list: StateListType.IncidentState,
+            states: incidentStates,
+            stateId: timeline.incidentStateId,
+          }).toString(),
           isResolvedState: ResolvedStateUtil.isResolved({
             list: StateListType.IncidentState,
             states: incidentStates,

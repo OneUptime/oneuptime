@@ -35,7 +35,7 @@ Attention au nom : le premier état est **Identifié**, même si plusieurs descr
 | Indicateur            | Rôle                                                                                                                                                                                                 |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `isCreatedState`      | L'état que reçoit un incident quand personne n'en a choisi. Si aucun état du projet ne porte cet indicateur, la création d'un incident échoue avec une erreur vous invitant à ajouter un état de création depuis les paramètres. |
-| `isAcknowledgedState` | Alimente le bouton **Acknowledge** et la tuile de statistique « <nom de l'état> en » de la **Vue d'ensemble** de l'incident. Au passage vers cet état, le SLA de l'incident est marqué comme ayant reçu une réponse. |
+| `isAcknowledgedState` | Marque l'état « pris en compte » du projet : celui vers lequel **Acknowledge** fait passer un incident et qui donne son nom à la tuile correspondante. Un incident dans cet état, dans tout état placé après lui ou résolu est pris en compte : **Acknowledge** ne lui est plus proposé, l'astreinte cesse d'alerter pour lui et son SLA est marqué comme ayant reçu une réponse. |
 | `isResolvedState`     | Désigne l'état résolu du projet : celui vers lequel **Résoudre** fait passer un incident et que montre la tuile de statistique de résolution. Un incident dans cet état, ou dans un état placé après lui, est résolu : il quitte **Incidents actifs** et la section active d'une page de statut, et son SLA est marqué comme résolu. |
 
 On attend qu'un seul état par projet porte chacun de ces indicateurs — les recherches ne ramènent qu'une ligne. Les trois états porteurs d'indicateurs peuvent être renommés, recolorés et réordonnés, mais la page de paramètres refuse de les supprimer et affiche une erreur nommant les états de création, de prise en compte et de résolution.
@@ -103,6 +103,18 @@ Un incident change d'état de quatre façons :
 - **Automatiquement.** Un critère de moniteur avec **Résoudre automatiquement l'incident** activé résout son incident dès que le critère n'est plus satisfait, et l'API peut mettre à jour l'état via `/api/incident-state-timeline`.
 
 Chacune de ces voies écrit une ligne de chronologie. Un changement d'état fait aussi quelques choses que vous n'avez pas à demander : il publie une entrée dans le fil d'incident, attribue un Responsable d'incident si l'incident n'en a pas encore, et met à jour le chronomètre du SLA. Rouvrir un incident résolu démarre un nouvel enregistrement de SLA à partir de l'heure de réouverture.
+
+## Ce que fait la prise en compte
+
+Un incident est pris en compte dès qu'il passe à votre état pris en compte, à tout état placé après lui — un état **Investigation** que vous avez placé sous **Pris en compte**, par exemple — ou à un état résolu, quelle que soit celle des quatre voies ci-dessus qui le déplace. La page des réglages des états indique lesquels. Une fois pris en compte :
+
+- **Acknowledge n'est plus proposé.** Ni dans l'en-tête de l'incident, ni dans l'application mobile (son bouton et son balayage), ni dans Slack ou Microsoft Teams, ni par `acknowledge_incident` du serveur MCP de OneUptime. Le prendre en compte malgré tout — depuis une alerte d'astreinte, Slack ou Teams — est refusé avec « Incident is already acknowledged. » (ou « Incident is already resolved. »), au lieu de le faire remonter dans sa liste.
+- **L'astreinte cesse d'alerter pour lui.** Une personne qui accuse réception de son alerte après qu'un collègue a pris l'incident en compte, ou l'a fait avancer, voit son alerte acquittée, et l'incident reste où il est.
+- **Le SLA est marqué comme ayant reçu une réponse**, au premier passage de ce type ; avancer ensuite dans des états plus loin conserve cette heure.
+- **Le délai de prise en compte court jusqu'à ce premier passage** — la tuile de la **Vue d'ensemble** de l'incident, la métrique **Time to Acknowledge**, une mesure qui se termine quand l'incident est pris en compte, et le MTTA des résumés Slack et Microsoft Teams. Un incident passé directement d'**Identifié** à **Investigation** a été pris en compte à ce moment-là ; un incident résolu aussitôt l'a été à sa résolution.
+- **Un filtre Pris en compte** — sur le widget de liste d'incidents d'un tableau de bord, par exemple — montre les incidents dans votre état pris en compte et dans tout état placé après lui, tant qu'ils ne sont pas résolus.
+
+Les alertes et les épisodes suivent la même règle avec vos états d'alerte.
 
 ## Ce que fait la résolution
 

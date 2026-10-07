@@ -91,7 +91,10 @@ export const getFirstTimelineDateForStates: (
       stateId,
     );
 
-    if (reachedAt && (!firstDate || reachedAt.getTime() < firstDate.getTime())) {
+    if (
+      reachedAt &&
+      (!firstDate || reachedAt.getTime() < firstDate.getTime())
+    ) {
       firstDate = reachedAt;
     }
   }

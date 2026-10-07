@@ -43,7 +43,11 @@ describe("StateChangeFeedEmoji", () => {
     "marks a move into %s",
     (
       _label: string,
-      move: { isResolved: boolean; isAcknowledged: boolean; isCreatedState: boolean },
+      move: {
+        isResolved: boolean;
+        isAcknowledged: boolean;
+        isCreatedState: boolean;
+      },
       expected: string,
     ) => {
       expect(StateChangeFeedEmoji.get(move)).toBe(expected);

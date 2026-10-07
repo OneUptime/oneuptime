@@ -218,7 +218,9 @@ describe.each(LISTS)(
 
         test("splits the project's states, in the order given", () => {
           expect(
-            idsOf(AcknowledgedStateUtil.getAcknowledgedStates({ list, states })),
+            idsOf(
+              AcknowledgedStateUtil.getAcknowledgedStates({ list, states }),
+            ),
           ).toEqual([
             CLOSED._id,
             INVESTIGATING._id,
@@ -268,7 +270,9 @@ describe.each(LISTS)(
 
         test("the three lists cover every state exactly once", () => {
           const acknowledged: Set<string> = new Set(
-            idsOf(AcknowledgedStateUtil.getAcknowledgedStates({ list, states })),
+            idsOf(
+              AcknowledgedStateUtil.getAcknowledgedStates({ list, states }),
+            ),
           );
           const unacknowledged: Array<string> = idsOf(
             AcknowledgedStateUtil.getUnacknowledgedStates({ list, states }),
@@ -296,9 +300,8 @@ describe.each(LISTS)(
         [...ROWS, escalated],
       ]) {
         expect(
-          (
-            AcknowledgedStateUtil.getAcknowledgedState({ list, states }) as Row
-          )._id,
+          (AcknowledgedStateUtil.getAcknowledgedState({ list, states }) as Row)
+            ._id,
         ).toBe(ACKNOWLEDGED._id);
       }
     });
@@ -386,7 +389,9 @@ describe.each(LISTS)(
         ResolvedStateUtil.getResolvedStates({ list, states: ROWS }),
       );
       const acknowledged: Set<string> = new Set(
-        idsOf(AcknowledgedStateUtil.getAcknowledgedStates({ list, states: ROWS })),
+        idsOf(
+          AcknowledgedStateUtil.getAcknowledgedStates({ list, states: ROWS }),
+        ),
       );
 
       expect(resolved.length).toBeGreaterThan(0);
@@ -673,7 +678,7 @@ const TABLE: StateRuleTable = JSON.parse(
 ) as StateRuleTable;
 
 function idOf(state: unknown): string | null {
-  return state ? ((state as { _id: string })._id ?? null) : null;
+  return state ? (state as { _id: string })._id ?? null : null;
 }
 
 describe.each(LISTS)(

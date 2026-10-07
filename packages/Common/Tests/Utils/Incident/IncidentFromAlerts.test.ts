@@ -945,7 +945,13 @@ describe("IncidentFromAlerts.getAlertsToAcknowledge", () => {
       expect(
         get(
           [alertIn("a1", triage.id), alertIn("a2", CREATED.id)],
-          [secondFlagged, CREATED, triage, ACKNOWLEDGED, { ...RESOLVED, order: 5 }],
+          [
+            secondFlagged,
+            CREATED,
+            triage,
+            ACKNOWLEDGED,
+            { ...RESOLVED, order: 5 },
+          ],
         ),
       ).toEqual({ alertIds: ["a2"], alreadyAcknowledgedCount: 1 });
     });

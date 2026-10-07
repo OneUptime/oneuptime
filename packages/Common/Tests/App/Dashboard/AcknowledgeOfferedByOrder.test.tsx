@@ -383,7 +383,12 @@ describe.each(KINDS)("the $noun header", (kind: HeaderKind) => {
   test("Acknowledge moves the record into the first state from the top flagged acknowledged", async () => {
     respondWith(kind, {
       states: [
-        { id: ACKNOWLEDGED_AGAIN, name: "Paged", order: 3.5, flag: "isAcknowledgedState" },
+        {
+          id: ACKNOWLEDGED_AGAIN,
+          name: "Paged",
+          order: 3.5,
+          flag: "isAcknowledgedState",
+        },
         ...SHUFFLED_LIST,
       ],
       path: [CREATED],
@@ -397,10 +402,11 @@ describe.each(KINDS)("the $noun header", (kind: HeaderKind) => {
       `${kind.acknowledgeTitle} / Acknowledge`,
     );
 
-    const calls: Array<Array<{ onBeforeCreate: (model: unknown) => Promise<unknown> }>> =
-      modelFormModalMock.mock.calls as Array<
-        Array<{ onBeforeCreate: (model: unknown) => Promise<unknown> }>
-      >;
+    const calls: Array<
+      Array<{ onBeforeCreate: (model: unknown) => Promise<unknown> }>
+    > = modelFormModalMock.mock.calls as Array<
+      Array<{ onBeforeCreate: (model: unknown) => Promise<unknown> }>
+    >;
     const timeline: IncidentStateTimeline | AlertStateTimeline =
       new kind.timelineModel();
     await calls[calls.length - 1]![0]!.onBeforeCreate(timeline);

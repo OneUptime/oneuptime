@@ -143,7 +143,9 @@ const SERVER: (list: AcknowledgedStateList) => MobileRules = (
       return AcknowledgedStateUtil.isAcknowledged({ list, states, stateId });
     },
     getAcknowledgedStateIds: (states: Array<MobileState>) => {
-      return idsOf(AcknowledgedStateUtil.getAcknowledgedStates({ list, states }));
+      return idsOf(
+        AcknowledgedStateUtil.getAcknowledgedStates({ list, states }),
+      );
     },
     getUnacknowledgedStateIds: (states: Array<MobileState>) => {
       return idsOf(
@@ -356,15 +358,17 @@ describe.each(LISTS)(
     const server: MobileRules = SERVER(list);
 
     test("on every case of the table both suites run", () => {
-      const table: { cases: Array<{ name: string; states: Array<MobileState> }> } =
-        JSON.parse(fs.readFileSync(STATE_RULE_CASES, "utf8"));
+      const table: {
+        cases: Array<{ name: string; states: Array<MobileState> }>;
+      } = JSON.parse(fs.readFileSync(STATE_RULE_CASES, "utf8"));
 
       expect(table.cases.length).toBeGreaterThan(10);
 
       for (const ruleCase of table.cases) {
-        expect({ case: ruleCase.name, ...ask(MOBILE, ruleCase.states) }).toEqual(
-          { case: ruleCase.name, ...ask(server, ruleCase.states) },
-        );
+        expect({
+          case: ruleCase.name,
+          ...ask(MOBILE, ruleCase.states),
+        }).toEqual({ case: ruleCase.name, ...ask(server, ruleCase.states) });
       }
     });
 

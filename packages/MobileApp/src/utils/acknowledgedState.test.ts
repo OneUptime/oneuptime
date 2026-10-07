@@ -187,7 +187,12 @@ describe("isAcknowledged and isAcknowledgedById", () => {
 
   test("a place written as text counts, as it does on the server", () => {
     const textual: Array<State> = [
-      { _id: "acknowledged", name: "Acknowledged", order: "3", isAcknowledgedState: true },
+      {
+        _id: "acknowledged",
+        name: "Acknowledged",
+        order: "3",
+        isAcknowledgedState: true,
+      },
       { _id: "investigating", name: "Investigating", order: "4" },
     ];
 
@@ -265,9 +270,7 @@ describe("the cases the server's copy of the rules is checked against", () => {
       ruleCase.unacknowledged,
     );
     expect(getResolvedStateIds(ruleCase.states)).toEqual(ruleCase.resolved);
-    expect(getUnresolvedStateIds(ruleCase.states)).toEqual(
-      ruleCase.unresolved,
-    );
+    expect(getUnresolvedStateIds(ruleCase.states)).toEqual(ruleCase.unresolved);
 
     for (const state of ruleCase.states) {
       expect(isAcknowledgedById(ruleCase.states, state._id)).toBe(
@@ -294,8 +297,6 @@ describe("the cases the server's copy of the rules is checked against", () => {
     expect(isAcknowledgedById(ruleCase!.states, row.stateId)).toBe(
       row.acknowledged,
     );
-    expect(isResolvedStateId(ruleCase!.states, row.stateId)).toBe(
-      row.resolved,
-    );
+    expect(isResolvedStateId(ruleCase!.states, row.stateId)).toBe(row.resolved);
   });
 });
