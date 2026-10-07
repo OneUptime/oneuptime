@@ -110,6 +110,8 @@ sudo chmod 600 /opt/oneuptime-vmware-agent/.env
 sudoedit /opt/oneuptime-vmware-agent/.env
 ```
 
+Put this in it:
+
 ```bash
 ONEUPTIME_URL=https://oneuptime.com
 ONEUPTIME_TELEMETRY_INGESTION_KEY=your-telemetry-ingestion-key
