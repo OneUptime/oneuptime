@@ -1986,14 +1986,69 @@ describePostgres("PublishedImages against Postgres", () => {
         expect(await isPublic(shown.fileId)).toBe(true);
       });
 
-      test("HIDE_UNSHOWN_FILES_SQL makes private an image only a scheduled announcement holds", async () => {
-        const { fileId } = await insertAnnouncementImage({
-          shownFrom: new Date(Date.now() + HOUR),
+      /*
+       * The statements that make images private make private only what
+       * nothing can make public again: an announcement scheduled for later
+       * keeps what it holds public, as before, whatever its time. Its images
+       * are for HIDE_NOT_YET_SHOWN_IMAGES_SQL alone, which moves only what
+       * the announcement's start makes public again.
+       */
+      test("HIDE_UNSHOWN_FILES_SQL keeps public what an announcement scheduled for later holds, by its token or by its id, of its project or of none", async () => {
+        const later: Date = new Date(Date.now() + HOUR);
+        const byItsToken: { fileId: string } = await insertAnnouncementImage({
+          shownFrom: later,
+          isPublic: true,
+        });
+        const ofNoProject: { fileId: string } = await insertAnnouncementImage({
+          shownFrom: later,
+          fileProjectId: null,
+          isPublic: true,
+        });
+        const linkedById: string = await insertFile({
+          projectId: PROJECT_A,
+          isPublic: true,
+        });
+
+        await insertRecord(announcement(), {
+          projectId: PROJECT_A,
+          description: byId(linkedById),
+          showAnnouncementAt: later,
+        });
+
+        // A public file nothing holds goes private: the statement ran.
+        const heldByNothing: string = await insertFile({
+          projectId: PROJECT_A,
           isPublic: true,
         });
 
         expect(await affected(HIDE_UNSHOWN_FILES_SQL)).toBe(1);
-        expect(await isPublic(fileId)).toBe(false);
+        expect(await isPublic(heldByNothing)).toBe(false);
+
+        for (const fileId of [
+          byItsToken.fileId,
+          ofNoProject.fileId,
+          linkedById,
+        ]) {
+          expect(await isPublic(fileId)).toBe(true);
+        }
+      });
+
+      test("the hidden-record statements keep public an image of no project a private incident holds while an announcement scheduled for later holds it too", async () => {
+        const { fileId, imageToken } = await insertAnnouncementImage({
+          shownFrom: new Date(Date.now() + HOUR),
+          fileProjectId: null,
+          isPublic: true,
+        });
+
+        await insertRecord(sourceOf("Incident", "description"), {
+          projectId: PROJECT_A,
+          description: byToken(imageToken),
+          isPrivate: true,
+        });
+
+        expect(await affected(HIDE_PRIVATE_RECORD_IMAGES_SQL)).toBe(0);
+        expect(await affected(HIDE_HIDDEN_RECORD_IMAGES_SQL)).toBe(0);
+        expect(await isPublic(fileId)).toBe(true);
       });
     });
 
@@ -2199,6 +2254,7 @@ describePostgres("PublishedImages against Postgres", () => {
 
       afterEach(() => {
         jest.restoreAllMocks();
+        PublishedImages.forgetNotShown();
       });
 
       async function request(imageToken: string): Promise<File | undefined> {
@@ -2217,14 +2273,51 @@ describePostgres("PublishedImages against Postgres", () => {
         expect(await request(imageToken)).toBeUndefined();
         expect(await isPublic(fileId)).toBe(false);
 
+        /*
+         * Its start comes - after the moment an image found not shown is
+         * not asked about again (PublishedImages.NOT_SHOWN_FOR_MS).
+         */
         jest
           .spyOn(OneUptimeDate, "getCurrentDate")
           .mockReturnValue(new Date(startsAt.getTime() + 1000));
+        PublishedImages.forgetNotShown();
 
         expect((await request(imageToken))?.file?.toString()).toBe(
           "image-bytes",
         );
         expect(await isPublic(fileId)).toBe(true);
+      });
+
+      test("asked for again and again before its start, the database is asked once in a moment", async () => {
+        const { imageToken } = await insertAnnouncementImage({
+          shownFrom: new Date(Date.now() + HOUR),
+        });
+
+        const asked: Array<string> = [];
+        const query: (
+          sql: string,
+          parameters?: Array<unknown>,
+        ) => Promise<unknown> = async (
+          sql: string,
+          parameters?: Array<unknown>,
+        ): Promise<unknown> => {
+          asked.push(sql);
+          return await runner.query(sql, parameters);
+        };
+
+        jest.spyOn(FileService, "getRepository").mockReturnValue({
+          manager: { query },
+        } as never);
+
+        for (let i: number = 0; i < 5; i++) {
+          expect(await request(imageToken)).toBeUndefined();
+        }
+
+        expect(
+          asked.filter((sql: string): boolean => {
+            return sql === PUBLISH_WHEN_SHOWN_SQL;
+          }),
+        ).toHaveLength(1);
       });
 
       test("an ended announcement's image is served: its status pages still show it", async () => {

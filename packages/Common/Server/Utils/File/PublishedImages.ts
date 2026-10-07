@@ -1,8 +1,10 @@
+import InMemoryTTLCache from "../../Infrastructure/InMemoryTTLCache";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import File from "../../../Models/DatabaseModels/File";
 import OneUptimeDate from "../../../Types/Date";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
+import getUpdatedRowCount from "../Database/UpdatedRowCount";
 import logger from "../Logger";
 import FileOwnership, { normalizeFileId } from "./FileOwnership";
 
@@ -468,15 +470,26 @@ const getParentShownSql: (
 const DATABASE_NOW_SQL: string = "now()";
 
 /*
+ * Whatever the time: a record shown from a time counts as showing what it
+ * holds before that time too. What the earlier one-off statements keep
+ * public, they keep this way, as they always did - an image of an
+ * announcement scheduled for later is for HIDE_NOT_YET_SHOWN_IMAGES_SQL
+ * alone to make private, which moves only what the announcement's start
+ * can make public again (publishWhenShown).
+ */
+const WHATEVER_THE_TIME: null = null;
+
+/*
  * The rows of a source that show their markdown: not deleted, every switch
  * on, and no switch that hides it on (NULL is off, as for isPrivate) - and,
  * for a record shown under another, that record shown too; for a record
- * shown from a time (shownFrom), that time come by `now`.
+ * shown from a time (shownFrom), that time come by `now` (or whatever the
+ * time: WHATEVER_THE_TIME).
  */
-const getShownWhereSql: (source: PublishedMarkdown, now: string) => string = (
+const getShownWhereSql: (
   source: PublishedMarkdown,
-  now: string,
-): string => {
+  now: string | null,
+) => string = (source: PublishedMarkdown, now: string | null): string => {
   return [
     `${quote("deletedAt")} IS NULL`,
     ...source.shownWhen.map((column: string): string => {
@@ -488,44 +501,67 @@ const getShownWhereSql: (source: PublishedMarkdown, now: string) => string = (
     ...(source.shownUnder
       ? [getParentShownSql(source.shownUnder, quote(source.tableName))]
       : []),
-    ...(source.shownFrom ? [`${quote(source.shownFrom)} <= ${now}`] : []),
+    ...(source.shownFrom && now
+      ? [`${quote(source.shownFrom)} <= ${now}`]
+      : []),
   ].join(" AND ");
 };
 
 /*
  * Every image token the published records show, with the project of the
- * record showing it - one scan of each table, its markdown read as one text.
+ * record showing it - one scan of each table, its markdown read as one text;
+ * by `now` (see getShownWhereSql).
  */
 const getShownTokensSql: (
   sources: ReadonlyArray<PublishedMarkdown>,
-) => string = (sources: ReadonlyArray<PublishedMarkdown>): string => {
+  now: string | null,
+) => string = (
+  sources: ReadonlyArray<PublishedMarkdown>,
+  now: string | null,
+): string => {
   return sources
     .map((source: PublishedMarkdown): string => {
       const text: string = getTextSql(source);
 
-      return `SELECT ${quote("projectId")} AS ${quote("projectId")}, (regexp_matches(${text}, '${INLINE_IMAGE_TOKEN_PATTERN}', 'g'))[1] AS ${quote("token")} FROM ${quote(source.tableName)} WHERE ${getShownWhereSql(source, DATABASE_NOW_SQL)} AND ${text} LIKE '%/file/image/access-token/%'`;
+      return `SELECT ${quote("projectId")} AS ${quote("projectId")}, (regexp_matches(${text}, '${INLINE_IMAGE_TOKEN_PATTERN}', 'g'))[1] AS ${quote("token")} FROM ${quote(source.tableName)} WHERE ${getShownWhereSql(source, now)} AND ${text} LIKE '%/file/image/access-token/%'`;
     })
     .join(" UNION ALL ");
 };
 
-// Every file id the published records show by its id address.
+// Every file id the published records show by its id address, by `now`.
 const getShownFileIdsSql: (
   sources: ReadonlyArray<PublishedMarkdown>,
-) => string = (sources: ReadonlyArray<PublishedMarkdown>): string => {
+  now: string | null,
+) => string = (
+  sources: ReadonlyArray<PublishedMarkdown>,
+  now: string | null,
+): string => {
   return sources
     .map((source: PublishedMarkdown): string => {
       const text: string = getTextSql(source);
 
-      return `SELECT lower((regexp_matches(${text}, '${IMAGE_BY_ID_PATTERN}', 'g'))[1]) AS ${quote("fileId")} FROM ${quote(source.tableName)} WHERE ${getShownWhereSql(source, DATABASE_NOW_SQL)} AND ${text} LIKE '%/file/image/%'`;
+      return `SELECT lower((regexp_matches(${text}, '${IMAGE_BY_ID_PATTERN}', 'g'))[1]) AS ${quote("fileId")} FROM ${quote(source.tableName)} WHERE ${getShownWhereSql(source, now)} AND ${text} LIKE '%/file/image/%'`;
     })
     .join(" UNION ALL ");
 };
 
 /*
+ * Whether STILL_SHOWN_SQL is asked as of a time ($4): only when a record it
+ * reads is shown from a time, as Postgres refuses a parameter a statement
+ * never uses.
+ */
+export const STILL_SHOWN_SQL_ASKS_TIME: boolean = [
+  ...PUBLISHED_MARKDOWN,
+  ...KEPT_MARKDOWN,
+].some((source: PublishedMarkdown): boolean => {
+  return Boolean(source.shownFrom);
+});
+
+/*
  * Which of some images a record of a project still shows to everyone, or
  * sends out: $1 is the project, $2 the images' addresses as LIKE patterns,
- * $3 their tokens, $4 the time it is now. One statement for every image a
- * write stopped showing.
+ * $3 their tokens, $4 the time it is now (STILL_SHOWN_SQL_ASKS_TIME). One
+ * statement for every image a write stopped showing.
  */
 export const STILL_SHOWN_SQL: string = `SELECT DISTINCT ${quote("shown")}.${quote("token")} AS ${quote("token")} FROM (${[
   ...PUBLISHED_MARKDOWN,
@@ -550,6 +586,14 @@ export const SOURCES_SHOWN_FROM_A_TIME: ReadonlyArray<PublishedMarkdown> =
   });
 
 /*
+ * The statements below read the records shown from a time; with none of
+ * those, they read no rows instead, so they still parse - and
+ * publishWhenShown, whose statement takes a time only such records use,
+ * asks nothing then.
+ */
+const NO_TOKENS_SQL: string = `SELECT NULL::uuid AS ${quote("projectId")}, NULL::text AS ${quote("token")} WHERE false`;
+
+/*
  * An image a record shown from a time shows now becomes public: $1 is the
  * file, $2 its project, $3 its token, $4 the time it is now, $5 its address
  * as a LIKE pattern. Only a not deleted file of that project, and only while
@@ -558,15 +602,13 @@ export const SOURCES_SHOWN_FROM_A_TIME: ReadonlyArray<PublishedMarkdown> =
  * made public by this statement or already public - by a request for it
  * that came at the same moment (publishWhenShown).
  */
-export const PUBLISH_WHEN_SHOWN_SQL: string = `UPDATE ${quote("File")} SET ${quote("isPublic")} = true WHERE ${quote("_id")} = $1 AND ${quote("projectId")} = $2 AND ${quote("imageAccessToken")} = $3 AND ${quote("deletedAt")} IS NULL AND EXISTS (SELECT 1 FROM (${SOURCES_SHOWN_FROM_A_TIME.map(
-  (source: PublishedMarkdown): string => {
+export const PUBLISH_WHEN_SHOWN_SQL: string = `UPDATE ${quote("File")} SET ${quote("isPublic")} = true WHERE ${quote("_id")} = $1 AND ${quote("projectId")} = $2 AND ${quote("imageAccessToken")} = $3 AND ${quote("deletedAt")} IS NULL AND EXISTS (SELECT 1 FROM (${
+  SOURCES_SHOWN_FROM_A_TIME.map((source: PublishedMarkdown): string => {
     const text: string = getTextSql(source);
 
     return `SELECT (regexp_matches(${text}, '${INLINE_IMAGE_TOKEN_PATTERN}', 'g'))[1] AS ${quote("token")} FROM ${quote(source.tableName)} WHERE ${quote("projectId")} = $2 AND ${getShownWhereSql(source, "$4::timestamptz")} AND ${text} LIKE $5`;
-  },
-).join(
-  " UNION ALL ",
-)}) AS ${quote("shown")} WHERE ${quote("shown")}.${quote("token")} = $3) RETURNING ${quote("_id")}`;
+  }).join(" UNION ALL ") || NO_TOKENS_SQL
+}) AS ${quote("shown")} WHERE ${quote("shown")}.${quote("token")} = $3) RETURNING ${quote("_id")}`;
 
 /*
  * A probe's or an AI agent's icon is public for as long as one uses it,
@@ -595,6 +637,7 @@ export const PROJECT_FILES_PRIVATE_SQL: string = `UPDATE ${quote("File")} AS ${q
  */
 export const PUBLISH_SHOWN_IMAGES_SQL: string = `UPDATE ${quote("File")} AS ${quote("file")} SET ${quote("isPublic")} = true FROM (${getShownTokensSql(
   PUBLISHED_MARKDOWN,
+  DATABASE_NOW_SQL,
 )}) AS ${quote("shown")} WHERE ${quote("file")}.${quote("imageAccessToken")} = ${quote("shown")}.${quote("token")} AND ${quote("file")}.${quote("projectId")} = ${quote("shown")}.${quote("projectId")} AND ${quote("file")}.${quote("isPublic")} = false AND ${quote("file")}.${quote("deletedAt")} IS NULL`;
 
 /*
@@ -603,12 +646,15 @@ export const PUBLISH_SHOWN_IMAGES_SQL: string = `UPDATE ${quote("File")} AS ${qu
  * still started public. Kept public: a probe's or an AI agent's icon, and
  * every image a published record of any project shows, by its token or by
  * its id (nothing a status page shows today breaks), or that markdown sent
- * out to everyone shows (KEPT_MARKDOWN).
+ * out to everyone shows (KEPT_MARKDOWN) - an announcement's whatever its
+ * time (WHATEVER_THE_TIME).
  */
 export const HIDE_UNSHOWN_FILES_SQL: string = `WITH ${quote("shownToken")} AS (SELECT ${quote("token")} FROM (${getShownTokensSql(
   [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN],
+  WHATEVER_THE_TIME,
 )}) AS ${quote("tokens")}), ${quote("shownId")} AS (SELECT ${quote("fileId")} FROM (${getShownFileIdsSql(
   [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN],
+  WHATEVER_THE_TIME,
 )}) AS ${quote("ids")}) UPDATE ${quote("File")} AS ${quote("file")} SET ${quote("isPublic")} = false WHERE ${quote("file")}.${quote("isPublic")} = true AND ${getNotAnIconSql("file")} AND NOT EXISTS (SELECT 1 FROM ${quote("shownToken")} WHERE ${quote("shownToken")}.${quote("token")} = ${quote("file")}.${quote("imageAccessToken")}) AND NOT EXISTS (SELECT 1 FROM ${quote("shownId")} WHERE ${quote("shownId")}.${quote("fileId")} = ${quote("file")}.${quote("_id")}::text)`;
 
 /*
@@ -718,8 +764,10 @@ const getHideHiddenImagesSql: (underHidden: boolean) => string = (
     true,
   )}) AS ${quote("hiddenIds")}), ${quote("shownToken")} AS (SELECT ${quote("token")} FROM (${getShownTokensSql(
     sources,
+    WHATEVER_THE_TIME,
   )}) AS ${quote("tokens")}), ${quote("shownId")} AS (SELECT ${quote("fileId")} FROM (${getShownFileIdsSql(
     sources,
+    WHATEVER_THE_TIME,
   )}) AS ${quote("ids")}) UPDATE ${quote("File")} AS ${quote("file")} SET ${quote("isPublic")} = false WHERE ${quote("file")}.${quote("isPublic")} = true AND ${getNotAnIconSql("file")} AND (EXISTS (SELECT 1 FROM ${quote("hiddenToken")} WHERE ${quote("hiddenToken")}.${quote("token")} = ${quote("file")}.${quote("imageAccessToken")} AND ${getSameProjectOrNoneSql("hiddenToken")}) OR EXISTS (SELECT 1 FROM ${quote("hiddenId")} WHERE ${quote("hiddenId")}.${quote("fileId")} = ${quote("file")}.${quote("_id")}::text AND ${getSameProjectOrNoneSql("hiddenId")})) AND NOT EXISTS (SELECT 1 FROM ${quote("shownToken")} WHERE ${quote("shownToken")}.${quote("token")} = ${quote("file")}.${quote("imageAccessToken")}) AND NOT EXISTS (SELECT 1 FROM ${quote("shownId")} WHERE ${quote("shownId")}.${quote("fileId")} = ${quote("file")}.${quote("_id")}::text)`;
 };
 
@@ -760,18 +808,18 @@ export const HIDE_HIDDEN_RECORD_IMAGES_SQL: string =
  * not an image addressed by its file's id, nor a file of no project. Never
  * makes a file public. (HideImagesOfScheduledAnnouncements runs it.)
  */
-export const HIDE_NOT_YET_SHOWN_IMAGES_SQL: string = `WITH ${quote("notYetShown")} AS (SELECT ${quote("projectId")}, ${quote("token")} FROM (${SOURCES_SHOWN_FROM_A_TIME.map(
-  (source: PublishedMarkdown): string => {
+export const HIDE_NOT_YET_SHOWN_IMAGES_SQL: string = `WITH ${quote("notYetShown")} AS (SELECT ${quote("projectId")}, ${quote("token")} FROM (${
+  SOURCES_SHOWN_FROM_A_TIME.map((source: PublishedMarkdown): string => {
     const text: string = getTextSql(source);
 
     return `SELECT ${quote("projectId")} AS ${quote("projectId")}, (regexp_matches(${text}, '${INLINE_IMAGE_TOKEN_PATTERN}', 'g'))[1] AS ${quote("token")} FROM ${quote(source.tableName)} WHERE ${quote("deletedAt")} IS NULL AND ${quote(source.shownFrom!)} > ${DATABASE_NOW_SQL} AND ${text} LIKE '%/file/image/access-token/%'`;
-  },
-).join(
-  " UNION ALL ",
-)}) AS ${quote("held")}), ${quote("shownToken")} AS (SELECT ${quote("token")} FROM (${getShownTokensSql(
+  }).join(" UNION ALL ") || NO_TOKENS_SQL
+}) AS ${quote("held")}), ${quote("shownToken")} AS (SELECT ${quote("token")} FROM (${getShownTokensSql(
   [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN],
+  DATABASE_NOW_SQL,
 )}) AS ${quote("tokens")}), ${quote("shownId")} AS (SELECT ${quote("fileId")} FROM (${getShownFileIdsSql(
   [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN],
+  DATABASE_NOW_SQL,
 )}) AS ${quote("ids")}) UPDATE ${quote("File")} AS ${quote("file")} SET ${quote("isPublic")} = false WHERE ${quote("file")}.${quote("isPublic")} = true AND ${getNotAnIconSql("file")} AND EXISTS (SELECT 1 FROM ${quote("notYetShown")} WHERE ${quote("notYetShown")}.${quote("token")} = ${quote("file")}.${quote("imageAccessToken")} AND ${quote("notYetShown")}.${quote("projectId")} = ${quote("file")}.${quote("projectId")}) AND NOT EXISTS (SELECT 1 FROM ${quote("shownToken")} WHERE ${quote("shownToken")}.${quote("token")} = ${quote("file")}.${quote("imageAccessToken")}) AND NOT EXISTS (SELECT 1 FROM ${quote("shownId")} WHERE ${quote("shownId")}.${quote("fileId")} = ${quote("file")}.${quote("_id")}::text)`;
 
 // The published rows of a table a delete of its parent takes with it.
@@ -844,6 +892,18 @@ interface UpdatedRow {
 }
 
 export default class PublishedImages {
+  /*
+   * How long an image publishWhenShown found no record showing is not asked
+   * about again, in this process: an announcement's first visitors after
+   * its start see its image at most this much later, if the image was asked
+   * for a moment before the start.
+   */
+  public static readonly NOT_SHOWN_FOR_MS: number = 5_000;
+
+  // Images publishWhenShown found no record showing, for NOT_SHOWN_FOR_MS.
+  private static notShownLately: InMemoryTTLCache<boolean> =
+    new InMemoryTTLCache<boolean>(10_000);
+
   // The kinds of published markdown a table has.
   public static getSources(
     tableName: string | null | undefined,
@@ -1647,7 +1707,9 @@ export default class PublishedImages {
             return `%/file/image/access-token/${token}%`;
           }),
           tokens,
-          data.now || OneUptimeDate.getCurrentDate(),
+          ...(STILL_SHOWN_SQL_ASKS_TIME
+            ? [data.now || OneUptimeDate.getCurrentDate()]
+            : []),
         ]);
 
       const shown: Set<string> = new Set<string>();
@@ -1677,9 +1739,11 @@ export default class PublishedImages {
    * the file of that project, not deleted, is made public only while a
    * record of its own project shows it, by `now` (the current time when not
    * given). True when a record shows it now, so it is public: made so by
-   * this call, or by a request for it at the same moment. Never throws: an
-   * image is never made public on a guess, and one that cannot be is
-   * refused as before.
+   * this call, or by a request for it at the same moment. An image no
+   * record shows is not asked about again for NOT_SHOWN_FOR_MS in this
+   * process, so asking for one again and again costs one statement in that
+   * time. Never throws: an image is never made public on a guess, and one
+   * that cannot be is refused as before.
    */
   public static async publishWhenShown(
     file:
@@ -1703,7 +1767,8 @@ export default class PublishedImages {
       !ObjectID.isValidUUID(fileId) ||
       !ObjectID.isValidUUID(projectId) ||
       !TOKEN_REGEX.test(token) ||
-      (file?.isPublic as unknown) === true
+      (file?.isPublic as unknown) === true ||
+      this.notShownLately.get(fileId)
     ) {
       return false;
     }
@@ -1719,7 +1784,14 @@ export default class PublishedImages {
           `%/file/image/access-token/${token}%`,
         ]);
 
-      return this.countWritten(result) > 0;
+      if (getUpdatedRowCount(result) > 0) {
+        return true;
+      }
+
+      // Not shown now: the next request for it in a moment is not asked again.
+      this.notShownLately.set(fileId, true, this.NOT_SHOWN_FOR_MS);
+
+      return false;
     } catch (err) {
       logger.error(
         `Could not tell whether an image a record shows from a time is shown now, so it stays private: ${String(err)}`,
@@ -1729,24 +1801,9 @@ export default class PublishedImages {
     }
   }
 
-  /*
-   * How many rows an UPDATE ... RETURNING wrote, as the driver answers it:
-   * [rows, count], or the rows alone.
-   */
-  private static countWritten(result: unknown): number {
-    if (!Array.isArray(result)) {
-      return 0;
-    }
-
-    if (typeof result[1] === "number") {
-      return result[1];
-    }
-
-    const rows: Array<unknown> = Array.isArray(result[0]) ? result[0] : result;
-
-    return rows.filter((row: unknown): boolean => {
-      return Boolean(row) && typeof row === "object" && "_id" in (row as Row);
-    }).length;
+  // Forgets which images were found not shown lately. For tests.
+  public static forgetNotShown(): void {
+    this.notShownLately.clear();
   }
 
   private static addChanges(

@@ -38,6 +38,8 @@ const TTL_SECONDS: number = 24 * 60 * 60;
 let redis: Map<string, string>;
 let readsFail: boolean;
 let writesFail: boolean;
+// Redis takes the write, but its answer is lost: the caller sees a failure.
+let writesLandButFail: boolean;
 let readCalls: number;
 let writeCalls: Array<{ key: string; value: string; options: unknown }>;
 
@@ -79,6 +81,7 @@ beforeEach(() => {
   redis = new Map();
   readsFail = false;
   writesFail = false;
+  writesLandButFail = false;
   readCalls = 0;
   writeCalls = [];
   heldReads = [];
@@ -137,6 +140,10 @@ beforeEach(() => {
         }
 
         redis.set(`${namespace}-${key}`, value);
+
+        if (writesLandButFail) {
+          throw new Error("Connection reset");
+        }
       },
     );
 });
@@ -270,7 +277,7 @@ describe("CacheGenerations.bump while Redis takes it", () => {
     expect(seen.size).toBe(6);
   });
 
-  test("a read that started before the change never decides after it", async () => {
+  test("a request whose read of Redis was under way when the change was made gets the change too", async () => {
     const here: CacheGenerations = process();
     const before: string = await here.get(KEY);
 
@@ -281,6 +288,7 @@ describe("CacheGenerations.bump while Redis takes it", () => {
     await settle();
     expect(heldReads).toHaveLength(1);
 
+    // The change is made, and Redis takes it, before the read answers.
     holdReads = false;
     await here.bump([KEY]);
 
@@ -288,13 +296,65 @@ describe("CacheGenerations.bump while Redis takes it", () => {
       release();
     }
 
-    // The request that asked before the change may get the old one...
-    expect(await reading).toBe(before);
-    // ...but nothing asked after it does.
+    const changed: string = `${storedGeneration()}.${DEFAULT_GENERATION}`;
+
+    expect(await reading).not.toBe(before);
+    expect(await reading).toBe(changed);
+    expect(await here.get(KEY)).toBe(changed);
+  });
+
+  test("so does one whose read was under way when a change Redis did not take was made", async () => {
+    const here: CacheGenerations = process();
+    const before: string = await here.get(KEY);
+
+    afterSharedReadTtl();
+    holdReads = true;
+    const reading: Promise<string> = here.get(KEY);
+    await settle();
+
+    holdReads = false;
+    writesFail = true;
+    await here.bump([KEY]);
+
+    for (const release of heldReads) {
+      release();
+    }
+
+    const got: string = await reading;
+
+    expect(got).not.toBe(before);
+    expect(got).toBe(await here.get(KEY));
+  });
+
+  test("so does one whose read was under way while the change's write was too", async () => {
+    const here: CacheGenerations = process();
+    const before: string = await here.get(KEY);
+
+    afterSharedReadTtl();
+    holdReads = true;
+    const reading: Promise<string> = here.get(KEY);
+    await settle();
+
+    // The change's write waits; the read answers first, from before it.
+    holdReads = false;
+    holdWrites = true;
+    const bumping: Promise<void> = here.bump([KEY]);
+    await settle();
+
+    for (const release of heldReads) {
+      release();
+    }
+
+    const got: string = await reading;
+
+    expect(got).not.toBe(before);
+
+    for (const release of heldWrites) {
+      release();
+    }
+    await bumping;
+
     expect(await here.get(KEY)).not.toBe(before);
-    expect(await here.get(KEY)).toBe(
-      `${storedGeneration()}.${DEFAULT_GENERATION}`,
-    );
   });
 });
 
@@ -325,6 +385,69 @@ describe("CacheGenerations.bump when Redis does not take it", () => {
 
     expect(later).not.toBe(before);
     expect(later).toBe(afterChange);
+  });
+
+  test("each time it is written again it goes under a new token, and the generation here stays as it was", async () => {
+    const here: CacheGenerations = process();
+
+    writesFail = true;
+    await here.bump([KEY]);
+    const afterChange: string = await here.get(KEY);
+
+    for (let i: number = 0; i < 3; i++) {
+      afterSharedReadTtl();
+      expect(await here.get(KEY)).toBe(afterChange);
+    }
+
+    // The change's own write, and three more: every one a new token.
+    expect(writeCalls).toHaveLength(4);
+    expect(
+      new Set(
+        writeCalls.map((call: { value: string }): string => {
+          return call.value;
+        }),
+      ).size,
+    ).toBe(4);
+  });
+
+  test("a token Redis took after all, then replaced with a newer change, is never written back over it", async () => {
+    const here: CacheGenerations = process();
+    const elsewhere: CacheGenerations = process();
+
+    await here.get(KEY);
+
+    // Redis takes the change, but its answer is lost: here it failed.
+    writesLandButFail = true;
+    await here.bump([KEY]);
+    writesLandButFail = false;
+
+    const tookAfterAll: string = storedGeneration()!;
+
+    // Elsewhere keeps entries under it, then makes a newer change.
+    afterSharedReadTtl();
+
+    const keptElsewhere: string = await elsewhere.get(KEY);
+
+    expect(keptElsewhere).toBe(`${tookAfterAll}.${DEFAULT_GENERATION}`);
+
+    await elsewhere.bump([KEY]);
+
+    const newer: string = await elsewhere.get(KEY);
+
+    // Here writes its change again once Redis answers.
+    await here.get(KEY);
+
+    expect(writeCalls).toHaveLength(3);
+    expect(storedGeneration()).not.toBe(tookAfterAll);
+
+    // What elsewhere kept under the token from before its change stays gone.
+    afterSharedReadTtl();
+
+    const seenElsewhere: string = await elsewhere.get(KEY);
+
+    expect(seenElsewhere).not.toBe(keptElsewhere);
+    expect(seenElsewhere).not.toBe(newer);
+    expect(seenElsewhere).toBe(await here.get(KEY));
   });
 
   test("it still counts through an outage, and once Redis answers again", async () => {
@@ -590,26 +713,46 @@ describe("CacheGenerations never throws, and logs no key", () => {
     expect(await here.get(KEY)).not.toBe(before);
   });
 
-  test("failures are logged at debug only, never naming a key", async () => {
+  test("a change Redis did not take is a warning, once; failed reads and writes again are debug; no log names a key", async () => {
     (logger.debug as unknown as Mock).mockClear();
     (logger.warn as unknown as Mock).mockClear();
     (logger.error as unknown as Mock).mockClear();
 
     const here: CacheGenerations = process();
 
+    // A read that fails: debug.
     readsFail = true;
-    writesFail = true;
-
     await here.get(KEY);
-    await here.bump([KEY]);
 
     expect(logger.warn).not.toHaveBeenCalled();
-    expect(logger.error).not.toHaveBeenCalled();
     expect(logger.debug).toHaveBeenCalled();
 
-    for (const call of (logger.debug as unknown as Mock).mock.calls) {
+    // A change Redis does not take: a warning.
+    writesFail = true;
+    await here.bump([KEY]);
+
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+
+    // Written again, and failing again, while Redis answers reads: debug.
+    readsFail = false;
+    afterSharedReadTtl();
+    await here.get(KEY);
+
+    expect(writeCalls).toHaveLength(2);
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+    expect(logger.error).not.toHaveBeenCalled();
+
+    for (const call of [
+      ...(logger.debug as unknown as Mock).mock.calls,
+      ...(logger.warn as unknown as Mock).mock.calls,
+    ]) {
       expect(String(call[0])).not.toContain(KEY);
     }
+
+    // The warning says what it is about: the cache, not the key.
+    expect(
+      String((logger.warn as unknown as Mock).mock.calls[0]![0]),
+    ).toContain("test entries");
   });
 });
 
@@ -630,13 +773,14 @@ describe("CacheGenerations.clear", () => {
     here.clear();
     redis.set(`${NAMESPACE}-${KEY}`, "after-clear");
 
+    holdReads = false;
+
     for (const release of heldReads) {
       release();
     }
-    await reading;
-    holdReads = false;
 
-    // Read again from Redis, with no own part left.
+    // Read again from Redis, with no own part left - that request too.
+    expect(await reading).toBe(`after-clear.${DEFAULT_GENERATION}`);
     expect(await here.get(KEY)).toBe(`after-clear.${DEFAULT_GENERATION}`);
     expect(await here.get(KEY)).not.toBe(changed);
   });

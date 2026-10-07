@@ -28,8 +28,11 @@ import { randomBytes } from "crypto";
  * not take it, this process keeps its own part (for ttlSeconds), so the
  * change is never lost here - the shared part Redis still holds from before
  * never brings back what was kept before the change - and it writes the
- * change to Redis again the first time Redis answers it about the key, so
- * every other process sees it then too.
+ * change to Redis again, under a new token, the first time Redis answers it
+ * about the key, so every other process sees it then too; until Redis takes
+ * it, the change keeps counting here under its own token. A request that
+ * read the shared part while a change was being made never gets the
+ * generation from before the change.
  *
  * While Redis cannot be reached, the shared part reads as UNREACHABLE,
  * with the last shared part this process saw, remembered for
@@ -89,6 +92,13 @@ interface SharedRead {
   isSuperseded: boolean;
 }
 
+// A key's shared part as a request got it.
+interface SharedAnswer {
+  shared: string;
+  // Read while a change was being made: it may be from before the change.
+  isSuperseded: boolean;
+}
+
 export default class CacheGenerations {
   /*
    * How long this process goes by a shared part it read before it asks
@@ -132,7 +142,7 @@ export default class CacheGenerations {
    * SHARED_READ_TTL_MS. Never throws.
    */
   public async get(key: string): Promise<string> {
-    let shared: string = await this.getShared(key);
+    let shared: string = await this.getSharedAfterChanges(key);
 
     const own: OwnGeneration | undefined = this.own.get(key);
 
@@ -144,7 +154,7 @@ export default class CacheGenerations {
     ) {
       // Redis answers again: the change it did not take is written now.
       await this.resend(key, own);
-      shared = await this.getShared(key);
+      shared = await this.getSharedAfterChanges(key);
     }
 
     return [shared, this.own.get(key)?.token || DEFAULT_GENERATION].join(
@@ -179,7 +189,7 @@ export default class CacheGenerations {
     await Promise.all(
       started.map(
         async (change: { key: string; own: OwnGeneration }): Promise<void> => {
-          await this.publish(change.key, change.own);
+          await this.publish(change.key, change.own, change.own.token, "write");
         },
       ),
     );
@@ -204,16 +214,44 @@ export default class CacheGenerations {
   }
 
   /*
+   * A key's shared part as getShared answers it - unless a change was made
+   * to the key while it was being read. Then what the change left counts
+   * instead: the shared part it wrote, or this process's own part, which
+   * keeps the generation apart from the one before while the change is not
+   * in Redis; with neither left, Redis is read again. A request that asked
+   * before a change never gets the generation from before it.
+   */
+  private async getSharedAfterChanges(key: string): Promise<string> {
+    const answer: SharedAnswer = await this.getShared(key);
+
+    if (!answer.isSuperseded) {
+      return answer.shared;
+    }
+
+    const remembered: string | undefined = this.shared.get(key);
+
+    if (remembered !== undefined) {
+      return remembered;
+    }
+
+    if (this.own.get(key)) {
+      return answer.shared;
+    }
+
+    return (await this.getShared(key)).shared;
+  }
+
+  /*
    * A key's shared part, as read from Redis at most SHARED_READ_TTL_MS ago;
    * requests that ask together share one read. UNREACHABLE while Redis
    * cannot be reached - remembered as long, so Redis is asked once in that
    * time.
    */
-  private async getShared(key: string): Promise<string> {
+  private async getShared(key: string): Promise<SharedAnswer> {
     const remembered: string | undefined = this.shared.get(key);
 
     if (remembered !== undefined) {
-      return remembered;
+      return { shared: remembered, isSuperseded: false };
     }
 
     let read: SharedRead | undefined = this.reads.get(key);
@@ -234,7 +272,9 @@ export default class CacheGenerations {
       read = started;
     }
 
-    return await read.promise;
+    const shared: string = await read.promise;
+
+    return { shared, isSuperseded: read.isSuperseded };
   }
 
   private async readShared(key: string, read: SharedRead): Promise<string> {
@@ -262,39 +302,59 @@ export default class CacheGenerations {
   }
 
   /*
-   * Writes a change's token to Redis as the key's shared part. Once Redis
+   * Writes a change to Redis as the key's shared part, as `token`: the
+   * change's own token, or a new one when it is written again. Once Redis
    * holds it, every process reads it, and this process no longer needs its
    * own part - unless a newer change of its own is under way. When Redis
    * does not take it, the own part stays, to be written again once Redis
    * answers. Never throws.
    */
-  private async publish(key: string, own: OwnGeneration): Promise<void> {
+  private async publish(
+    key: string,
+    own: OwnGeneration,
+    token: string,
+    operation: "write" | "resend",
+  ): Promise<void> {
     try {
-      await GlobalCache.setString(this.namespace, key, own.token, {
+      await GlobalCache.setString(this.namespace, key, token, {
         expiresInSeconds: this.ttlSeconds,
       });
     } catch (err) {
       own.isUnsent = true;
       own.retryAt = Date.now() + CacheGenerations.SHARED_READ_TTL_MS;
-      this.logFailure("write", err);
+      this.logFailure(operation, err);
       return;
     }
 
     // A read from before Redis held it does not decide after it.
     this.supersedeRead(key);
-    this.remember(key, own.token);
+    this.remember(key, token);
 
     if (this.own.get(key) === own) {
       this.own.delete(key);
     }
   }
 
-  // Writes a change Redis did not take, once at a time per key.
-  private async resend(key: string, own: OwnGeneration): Promise<void> {
+  /*
+   * Writes a change Redis did not take, once at a time per key - under a
+   * new token: the one it did not take may have reached Redis after all,
+   * and been replaced since by a newer change of another process, which
+   * writing it again would undo. Until Redis takes the new one, the change
+   * keeps counting here under its own token, so a write that keeps failing
+   * costs this process nothing it kept since. Nothing is written when a
+   * newer change of this process is under way: it carries this one.
+   */
+  private async resend(key: string, unsent: OwnGeneration): Promise<void> {
     let resending: Promise<void> | undefined = this.resends.get(key);
 
     if (!resending) {
-      const started: Promise<void> = this.publish(key, own).finally(() => {
+      const started: Promise<void> = (async (): Promise<void> => {
+        if (this.own.get(key) !== unsent) {
+          return;
+        }
+
+        await this.publish(key, unsent, CacheGenerations.newToken(), "resend");
+      })().finally(() => {
         if (this.resends.get(key) === started) {
           this.resends.delete(key);
         }
@@ -342,11 +402,24 @@ export default class CacheGenerations {
   }
 
   /*
-   * Debug, not warn: while Redis is down every request takes this path, and
-   * Redis being down is alarmed on by the code that owns the connection.
-   * Never names a key: some caches build theirs from secrets' digests.
+   * A change Redis did not take is a warning, once per change: until it is
+   * written, other processes keep serving what was kept before it. A read,
+   * or a change written again, is debug: while Redis is down every request
+   * takes that path, and Redis being down is alarmed on by the code that
+   * owns the connection. Never names a key: some caches build theirs from
+   * secrets' digests.
    */
-  private logFailure(operation: "read" | "write", err: unknown): void {
+  private logFailure(
+    operation: "read" | "write" | "resend",
+    err: unknown,
+  ): void {
+    if (operation === "write") {
+      logger.warn(
+        `Generations of ${this.description}: Redis did not take a change, so it counts in this process only until Redis answers again: ${String(err)}`,
+      );
+      return;
+    }
+
     logger.debug(
       `Generations of ${this.description}: Redis ${operation} failed; changes made in this process still count here.`,
     );

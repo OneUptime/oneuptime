@@ -12,6 +12,7 @@ import MimeType from "../../Types/File/MimeType";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
+import getUpdatedRowCount from "../Utils/Database/UpdatedRowCount";
 import FileOwnership, {
   FileOwners,
   normalizeFileId,
@@ -307,12 +308,7 @@ export class Service extends DatabaseService<File> {
 
   // Runs one UPDATE statement and returns how many rows it moved.
   private async countUpdatedBy(sql: string): Promise<number> {
-    const result: unknown = await this.getRepository().manager.query(sql);
-
-    // An UPDATE answers [rows, affected count].
-    return Array.isArray(result) && typeof result[1] === "number"
-      ? result[1]
-      : 0;
+    return getUpdatedRowCount(await this.getRepository().manager.query(sql));
   }
 
   /**

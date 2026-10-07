@@ -20,6 +20,7 @@ import PublishedImages, {
   ShownParents,
   SOURCES_SHOWN_FROM_A_TIME,
   STILL_SHOWN_SQL,
+  STILL_SHOWN_SQL_ASKS_TIME,
 } from "../../../../Server/Utils/File/PublishedImages";
 import logger from "../../../../Server/Utils/Logger";
 import OneUptimeDate from "../../../../Types/Date";
@@ -2829,6 +2830,7 @@ describe("PublishedImages: an announcement shows its images from the time it is 
 
   beforeEach(() => {
     jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW);
+    PublishedImages.forgetNotShown();
   });
 
   describe("GUARD: the records shown from a time", () => {
@@ -3196,15 +3198,19 @@ describe("PublishedImages: an announcement shows its images from the time it is 
       expect(await PublishedImages.publishWhenShown(PRIVATE_IMAGE)).toBe(false);
     });
 
-    test("reads the rows the statement hands back, however the driver shapes them", async () => {
+    test("reads how many rows the statement wrote, as Postgres answers an UPDATE: anything else wrote nothing", async () => {
       for (const [answer, made] of [
-        [[{ _id: FILE_ID }], true],
+        [[[{ _id: FILE_ID }], 1], true],
+        [[[], 0], false],
+        // Not how the driver answers an UPDATE: never taken as written.
+        [[{ _id: FILE_ID }], false],
+        [[[{ _id: FILE_ID }]], false],
+        [[[{ _id: FILE_ID }], "1"], false],
         [[], false],
-        [[[{ _id: FILE_ID }]], true],
-        [[[]], false],
         [undefined, false],
         [{ affected: 1 }, false],
       ] as Array<[unknown, boolean]>) {
+        PublishedImages.forgetNotShown();
         stubQuery(async () => {
           return answer;
         });
@@ -3251,6 +3257,128 @@ describe("PublishedImages: an announcement shows its images from the time it is 
       ).resolves.toBe(false);
       expect(logger.error).toHaveBeenCalled();
     });
+
+    describe("an image nothing shows, asked for again and again", () => {
+      let now: number;
+
+      beforeEach(() => {
+        now = Date.UTC(2026, 9, 7, 12, 0, 0);
+        jest.spyOn(Date, "now").mockImplementation((): number => {
+          return now;
+        });
+      });
+
+      test("costs one statement per NOT_SHOWN_FOR_MS, in this process", async () => {
+        const query: Query = stubQuery(async () => {
+          return [[], 0];
+        });
+
+        for (let i: number = 0; i < 5; i++) {
+          expect(await PublishedImages.publishWhenShown(PRIVATE_IMAGE)).toBe(
+            false,
+          );
+        }
+
+        expect(query).toHaveBeenCalledTimes(1);
+
+        now += PublishedImages.NOT_SHOWN_FOR_MS + 1;
+
+        expect(await PublishedImages.publishWhenShown(PRIVATE_IMAGE)).toBe(
+          false,
+        );
+        expect(query).toHaveBeenCalledTimes(2);
+      });
+
+      test("is made public once its time has come, at most NOT_SHOWN_FOR_MS after the last time it was asked", async () => {
+        let shown: boolean = false;
+        const query: Query = stubQuery(async () => {
+          return shown ? [[{ _id: FILE_ID }], 1] : [[], 0];
+        });
+
+        expect(await PublishedImages.publishWhenShown(PRIVATE_IMAGE)).toBe(
+          false,
+        );
+
+        // Its announcement starts: a moment later, still the answer from before.
+        shown = true;
+        now += PublishedImages.NOT_SHOWN_FOR_MS - 1;
+
+        expect(await PublishedImages.publishWhenShown(PRIVATE_IMAGE)).toBe(
+          false,
+        );
+
+        now += 2;
+
+        expect(await PublishedImages.publishWhenShown(PRIVATE_IMAGE)).toBe(
+          true,
+        );
+        expect(query).toHaveBeenCalledTimes(2);
+      });
+
+      test("another image is asked about as before", async () => {
+        const OTHER_FILE_ID: string = "77777777-7777-4777-8777-777777777777";
+        const query: Query = stubQuery(async () => {
+          return [[], 0];
+        });
+
+        await PublishedImages.publishWhenShown(PRIVATE_IMAGE);
+        await PublishedImages.publishWhenShown({
+          ...PRIVATE_IMAGE,
+          _id: OTHER_FILE_ID,
+        });
+
+        expect(query).toHaveBeenCalledTimes(2);
+        expect(query.mock.calls[1]![1]![0]).toBe(OTHER_FILE_ID);
+      });
+
+      test("a statement that failed is not remembered: the next request asks again", async () => {
+        let fails: boolean = true;
+        const query: Query = stubQuery(async () => {
+          if (fails) {
+            throw new Error("db down");
+          }
+
+          return [[{ _id: FILE_ID }], 1];
+        });
+
+        expect(await PublishedImages.publishWhenShown(PRIVATE_IMAGE)).toBe(
+          false,
+        );
+
+        fails = false;
+
+        expect(await PublishedImages.publishWhenShown(PRIVATE_IMAGE)).toBe(
+          true,
+        );
+        expect(query).toHaveBeenCalledTimes(2);
+      });
+
+      test("an image a record shows is not remembered as one nothing shows", async () => {
+        const query: Query = stubQuery(async () => {
+          return [[{ _id: FILE_ID }], 1];
+        });
+
+        expect(await PublishedImages.publishWhenShown(PRIVATE_IMAGE)).toBe(
+          true,
+        );
+        expect(await PublishedImages.publishWhenShown(PRIVATE_IMAGE)).toBe(
+          true,
+        );
+        expect(query).toHaveBeenCalledTimes(2);
+      });
+
+      test("forgetNotShown forgets what was remembered", async () => {
+        const query: Query = stubQuery(async () => {
+          return [[], 0];
+        });
+
+        await PublishedImages.publishWhenShown(PRIVATE_IMAGE);
+        PublishedImages.forgetNotShown();
+        await PublishedImages.publishWhenShown(PRIVATE_IMAGE);
+
+        expect(query).toHaveBeenCalledTimes(2);
+      });
+    });
   });
 
   describe("the SQL", () => {
@@ -3262,23 +3390,52 @@ describe("PublishedImages: an announcement shows its images from the time it is 
       expect(STILL_SHOWN_SQL.match(/\$4::timestamptz/g)).toHaveLength(1);
     });
 
+    test("STILL_SHOWN_SQL is asked as of a time exactly when it reads a record shown from a time", () => {
+      expect(STILL_SHOWN_SQL_ASKS_TIME).toBe(true);
+      expect(STILL_SHOWN_SQL.includes("$4")).toBe(STILL_SHOWN_SQL_ASKS_TIME);
+    });
+
     test("PUBLISH_WHEN_SHOWN_SQL makes public only that file, of that project, while an announcement of its project shows it", () => {
       expect(PUBLISH_WHEN_SHOWN_SQL).toBe(
         `UPDATE "File" SET "isPublic" = true WHERE "_id" = $1 AND "projectId" = $2 AND "imageAccessToken" = $3 AND "deletedAt" IS NULL AND EXISTS (SELECT 1 FROM (SELECT (regexp_matches(concat_ws(' ', "description"::text), '/file/image/access-token/([a-fA-F0-9]+)', 'g'))[1] AS "token" FROM "StatusPageAnnouncement" WHERE "projectId" = $2 AND "deletedAt" IS NULL AND "showAnnouncementAt" <= $4::timestamptz AND concat_ws(' ', "description"::text) LIKE $5) AS "shown" WHERE "shown"."token" = $3) RETURNING "_id"`,
       );
     });
 
-    test("the one-off statements count an announcement only once its time has come", () => {
+    test("PUBLISH_SHOWN_IMAGES_SQL makes public what an announcement holds only once its time has come", () => {
+      expect(PUBLISH_SHOWN_IMAGES_SQL).toContain(
+        `FROM "StatusPageAnnouncement" WHERE "deletedAt" IS NULL AND "showAnnouncementAt" <= now() AND concat_ws(' ', "description"::text) LIKE '%/file/image/access-token/%'`,
+      );
+    });
+
+    test("the earlier one-off statements that make images private keep what an announcement holds, whatever its time", () => {
+      /*
+       * They make private only what nothing can make public again, so an
+       * image an announcement scheduled for later holds is for
+       * HIDE_NOT_YET_SHOWN_IMAGES_SQL alone, which moves only what the
+       * announcement's start makes public again.
+       */
       for (const sql of [
-        PUBLISH_SHOWN_IMAGES_SQL,
         HIDE_UNSHOWN_FILES_SQL,
         HIDE_PRIVATE_RECORD_IMAGES_SQL,
         HIDE_HIDDEN_RECORD_IMAGES_SQL,
       ]) {
         expect(sql).toContain(
-          `FROM "StatusPageAnnouncement" WHERE "deletedAt" IS NULL AND "showAnnouncementAt" <= now() AND concat_ws(' ', "description"::text) LIKE '%/file/image/access-token/%'`,
+          `FROM "StatusPageAnnouncement" WHERE "deletedAt" IS NULL AND concat_ws(' ', "description"::text) LIKE '%/file/image/access-token/%'`,
         );
+        expect(sql).toContain(
+          `FROM "StatusPageAnnouncement" WHERE "deletedAt" IS NULL AND concat_ws(' ', "description"::text) LIKE '%/file/image/%'`,
+        );
+        expect(sql).not.toContain(`"showAnnouncementAt"`);
       }
+    });
+
+    test("HIDE_NOT_YET_SHOWN_IMAGES_SQL keeps only what is shown now, by the database's clock", () => {
+      expect(HIDE_NOT_YET_SHOWN_IMAGES_SQL).toContain(
+        `FROM "StatusPageAnnouncement" WHERE "deletedAt" IS NULL AND "showAnnouncementAt" <= now() AND concat_ws(' ', "description"::text) LIKE '%/file/image/access-token/%'`,
+      );
+      expect(HIDE_NOT_YET_SHOWN_IMAGES_SQL).toContain(
+        `FROM "StatusPageAnnouncement" WHERE "deletedAt" IS NULL AND "showAnnouncementAt" <= now() AND concat_ws(' ', "description"::text) LIKE '%/file/image/%'`,
+      );
     });
 
     test("HIDE_NOT_YET_SHOWN_IMAGES_SQL makes private only token images of the announcement's own project, never public", () => {
