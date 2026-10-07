@@ -160,6 +160,18 @@ export default class CriteriaFilterUtil {
           " ";
       }
 
+      if (criteriaFilter?.snmpMonitorOptions?.tableKey) {
+        text +=
+          "in SNMP table " + criteriaFilter.snmpMonitorOptions.tableKey + " ";
+
+        if (criteriaFilter.snmpMonitorOptions.tableRow) {
+          text +=
+            criteriaFilter.snmpMonitorOptions.tableRow.trim() === "*"
+              ? "for each row "
+              : "on row " + criteriaFilter.snmpMonitorOptions.tableRow + " ";
+        }
+      }
+
       // add minutes if evaluate over time is true
       if (
         criteriaFilter?.evaluateOverTime &&
@@ -432,7 +444,11 @@ export default class CriteriaFilterUtil {
           i.value === CheckOn.SnmpInterfaceIsDown ||
           i.value === CheckOn.SnmpInterfaceUtilizationPercent ||
           i.value === CheckOn.SnmpInterfaceErrorsPerSecond ||
-          i.value === CheckOn.SnmpTrapReceived
+          i.value === CheckOn.SnmpTableValue ||
+          i.value === CheckOn.SnmpTableRowIsUnhealthy ||
+          i.value === CheckOn.SnmpTableRowCount ||
+          i.value === CheckOn.SnmpTrapReceived ||
+          i.value === CheckOn.SnmpTrapVarbindValue
         );
       });
     }
@@ -797,10 +813,51 @@ export default class CriteriaFilterUtil {
        */
       checkOn === CheckOn.SnmpWalkIsSucceeding ||
       checkOn === CheckOn.SnmpOidExists ||
-      checkOn === CheckOn.SnmpInterfaceIsDown
+      checkOn === CheckOn.SnmpInterfaceIsDown ||
+      checkOn === CheckOn.SnmpTableRowIsUnhealthy
     ) {
       options = options.filter((i: DropdownOption) => {
         return i.value === FilterType.True || i.value === FilterType.False;
+      });
+    }
+
+    /*
+     * A table cell or a trap varbind can hold a number or text, so both
+     * kinds of comparison are offered - numbers compare as numbers, text
+     * against both the raw value and its label (SnmpTableCriteria).
+     */
+    if (
+      checkOn === CheckOn.SnmpTableValue ||
+      checkOn === CheckOn.SnmpTrapVarbindValue
+    ) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === FilterType.EqualTo ||
+          i.value === FilterType.NotEqualTo ||
+          i.value === FilterType.GreaterThan ||
+          i.value === FilterType.LessThan ||
+          i.value === FilterType.GreaterThanOrEqualTo ||
+          i.value === FilterType.LessThanOrEqualTo ||
+          i.value === FilterType.Contains ||
+          i.value === FilterType.NotContains ||
+          i.value === FilterType.StartsWith ||
+          i.value === FilterType.EndsWith ||
+          i.value === FilterType.IsEmpty ||
+          i.value === FilterType.IsNotEmpty
+        );
+      });
+    }
+
+    if (checkOn === CheckOn.SnmpTableRowCount) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === FilterType.EqualTo ||
+          i.value === FilterType.NotEqualTo ||
+          i.value === FilterType.GreaterThan ||
+          i.value === FilterType.LessThan ||
+          i.value === FilterType.GreaterThanOrEqualTo ||
+          i.value === FilterType.LessThanOrEqualTo
+        );
       });
     }
 
@@ -1554,6 +1611,18 @@ export default class CriteriaFilterUtil {
     if (checkOn === CheckOn.SnmpTrapReceived) {
       // linkDown
       return "1.3.6.1.6.3.1.1.5.3";
+    }
+
+    if (checkOn === CheckOn.SnmpTableValue) {
+      return "1";
+    }
+
+    if (checkOn === CheckOn.SnmpTableRowCount) {
+      return "1";
+    }
+
+    if (checkOn === CheckOn.SnmpTrapVarbindValue) {
+      return "tunnel is down";
     }
 
     if (checkOn === CheckOn.DnsResponseTime) {

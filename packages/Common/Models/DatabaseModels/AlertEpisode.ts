@@ -1392,7 +1392,7 @@ export default class AlertEpisode extends BaseModel {
     required: false,
     title: "Grouping Key",
     description:
-      "Key used for grouping alerts into this episode. Generated from groupByFields of the matching rule.",
+      "Key used for grouping alerts into this episode. Generated from groupByFields of the matching rule. When a private alert opened the episode, its title is in the key only as a keyed hash.",
   })
   @Column({
     type: ColumnType.LongText,

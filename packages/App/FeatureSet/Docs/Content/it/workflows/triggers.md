@@ -45,10 +45,12 @@ Tratta quell'URL come una password. Chiunque ce l'abbia può avviare il tuo work
 Quasi ogni cosa in OneUptime — monitor, incidenti, avvisi, manutenzioni programmate, pagine di stato, criteri di reperibilità, team — può far partire un workflow. Ognuna offre tre eventi:
 
 - **On Create** — scatta quando ne viene aggiunto uno nuovo.
-- **On Update** — scatta quando uno viene modificato.
+- **On Update** — scatta quando uno viene modificato. Salvare un elemento con i valori che ha già, come un modulo salvato senza modifiche o un interruttore inviato così com'è, non è una modifica e non lo fa scattare.
 - **On Delete** — scatta quando uno viene eliminato.
 
 È così che costruisci un "quando succede X in OneUptime, fai Y" senza dover controllare le cose in un ciclo.
+
+**On Update** si può limitare ad alcuni campi con **Listen on**: allora scatta solo quando un aggiornamento cambia uno di essi, con qualsiasi valore; anche spegnere un interruttore o svuotare un campo conta.
 
 Al blocco successivo viene passato il record completo. Per esempio, il trigger **Incident → On Create** passa il nuovo incidente, così il blocco successivo può leggerne titolo, descrizione, gravità e qualsiasi altro campo.
 

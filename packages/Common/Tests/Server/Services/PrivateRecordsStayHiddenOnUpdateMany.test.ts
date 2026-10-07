@@ -445,7 +445,24 @@ describe("Update Many on incidents turns Visible on Status Page on", () => {
         },
       );
 
-    expect(privateTrigger?.updatedFields).toEqual(
+    /*
+     * The workflow is told what the update changed on the private incident:
+     * its title. Its visibility was off and stays off, so it is no change -
+     * and it is never told the update's true.
+     */
+    expect(privateTrigger?.updatedFields).toEqual({
+      title: "Checkout errors in Europe",
+    });
+
+    // The audit entry is handed what the write stored: still hidden.
+    const privateAudit: { id: string; updatedFields: unknown } | undefined =
+      table.auditedUpdates.find(
+        (entry: { id: string; updatedFields: unknown }): boolean => {
+          return entry.id === PRIVATE_ID;
+        },
+      );
+
+    expect(privateAudit?.updatedFields).toEqual(
       expect.objectContaining({
         isVisibleOnStatusPage: false,
         title: "Checkout errors in Europe",

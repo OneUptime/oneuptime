@@ -127,6 +127,9 @@ import AlertState from "../../Models/DatabaseModels/AlertState";
 import AlertStateService from "./AlertStateService";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import URL from "../../Types/API/URL";
+import EmptyResponseData from "../../Types/API/EmptyResponse";
+import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../Types/API/HTTPResponse";
 import Exception from "../../Types/Exception/Exception";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import DatabaseConfig from "../DatabaseConfig";
@@ -164,7 +167,9 @@ export const MAX_BALANCE_ADJUSTMENT_IN_USD_CENTS: number = 10_000 * 100;
  * applyNewProjectAiDefaults). Every boolean AI feature switch on Project
  * belongs here; Enable AI is not listed because its column already defaults
  * to true. A switch added to Project later is added here too, or new
- * projects get it off.
+ * projects get it off - which is what the two automatic-fix switches
+ * (enableAutomaticIncidentRemediation, enableAutomaticAlertRemediation)
+ * want: fixing changes infrastructure, so a project turns it on itself.
  */
 export type NewProjectAiDefaultColumn =
   | "enableAutomaticIncidentInvestigation"
@@ -288,6 +293,14 @@ export const widensAuditLogging: (
   // A value that is not a number cannot be judged: treat it as widening.
   return !Number.isFinite(requestedDays) || requestedDays > currentDays;
 };
+
+/*
+ * How long sendEmailToOwnersAndWait waits for the mail service to take one
+ * owner's email. It takes one in a few seconds; a mail service that hangs
+ * must not hold a run that waits for each email - the migrate Job - for
+ * longer than this.
+ */
+export const OWNER_EMAIL_TIMEOUT_IN_MS: number = 60 * 1000;
 
 export class ProjectService extends ProjectReferencesService<Model> {
   /*
@@ -949,14 +962,21 @@ export class ProjectService extends ProjectReferencesService<Model> {
         continue;
       }
 
+      /*
+       * Saving Auto Recharge is somebody trying the card on purpose, so it
+       * is tried at once, whatever failed before (ignoreRecentFailure), for
+       * both balances alike.
+       */
       if (updateBy.data.enableAutoRechargeSmsOrCallBalance) {
         await NotificationService.rechargeIfBalanceIsLow(project.id, {
+          enableAutoRechargeSmsOrCallBalance: true,
           autoRechargeSmsOrCallByBalanceInUSD: updateBy.data
-            .autoRechargeSmsOrCallByBalanceInUSD as number,
+            .autoRechargeSmsOrCallByBalanceInUSD as number | undefined,
           autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: updateBy.data
-            .autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD as number,
-          enableAutoRechargeSmsOrCallBalance: updateBy.data
-            .enableAutoRechargeSmsOrCallBalance as boolean,
+            .autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD as
+            | number
+            | undefined,
+          ignoreRecentFailure: true,
         });
       }
 
@@ -3340,13 +3360,215 @@ These are no longer recorded against the project and have to be cancelled by han
   public async claimAiCreditsUsedUpNotice(
     projectId: ObjectID,
   ): Promise<boolean> {
-    const sql: string = `WITH "updated" AS (UPDATE "Project" SET "lowAiBalanceNotificationSentToOwners" = true WHERE "_id" = $1 AND "deletedAt" IS NULL AND "lowAiBalanceNotificationSentToOwners" = false RETURNING "_id") SELECT "_id" FROM "updated"`;
+    return await this.claimOwnerNotice({
+      projectId,
+      column: "lowAiBalanceNotificationSentToOwners",
+    });
+  }
+
+  /*
+   * Record that the project's owners are told its balance for SMS, calls,
+   * WhatsApp and Telegram could not pay for a message, unless they were since
+   * the balance was last added to. True only for the one caller that writes
+   * it - the first message not sent for want of balance - which is the one
+   * that emails them (SmsService, CallService, WhatsAppService,
+   * TelegramService); every other caller, on any server, gets false. Every
+   * recharge clears the flag in the statement that adds the balance
+   * (creditSmsOrCallBalanceInUSDCents), as does a master admin adding
+   * balance (adjustBalance), so the next time it runs out the owners are
+   * told again.
+   *
+   * It used to be read with the project and written back afterwards, so the
+   * messages of a paging storm that found the balance used up together each
+   * read "not told yet", and each emailed every owner.
+   */
+  @CaptureSpan()
+  public async claimSmsOrCallLowBalanceNotice(
+    projectId: ObjectID,
+  ): Promise<boolean> {
+    return await this.claimOwnerNotice({
+      projectId,
+      column: "lowCallAndSMSBalanceNotificationSentToOwners",
+    });
+  }
+
+  /*
+   * One owners' notice flag, claimed in one statement: the condition and the
+   * write are a single UPDATE, so two servers cannot both win. A passive
+   * bookkeeping write - no hooks, no version or updatedAt bump - on a column
+   * the API never reads; a deleted project is never told.
+   */
+  private async claimOwnerNotice(data: {
+    projectId: ObjectID;
+    column:
+      | "lowAiBalanceNotificationSentToOwners"
+      | "lowCallAndSMSBalanceNotificationSentToOwners";
+  }): Promise<boolean> {
+    const sql: string = `WITH "updated" AS (UPDATE "Project" SET "${data.column}" = true WHERE "_id" = $1 AND "deletedAt" IS NULL AND "${data.column}" = false RETURNING "_id") SELECT "_id" FROM "updated"`;
 
     const result: unknown = await this.getRepository().manager.query(sql, [
-      projectId.toString(),
+      data.projectId.toString(),
     ]);
 
     return Array.isArray(result) && result.length > 0;
+  }
+
+  /*
+   * A recharge of the project's balance for SMS, calls, WhatsApp and
+   * Telegram, once the card is charged: the amount is added to whatever the
+   * balance is now, in one statement that answers what it became. The
+   * owners' notices about it are re-armed in the same statement: the next
+   * time it runs low, or a charge fails, or a channel is off, they are told
+   * again.
+   *
+   * It used to be "the balance read before the charge, plus the amount",
+   * written back after the payment provider answered - which lost the cost
+   * of every message sent meanwhile, and let a second recharge running at
+   * the same moment overwrite the first one's credit, so a card charged
+   * twice was credited once.
+   */
+  @CaptureSpan()
+  public async creditSmsOrCallBalanceInUSDCents(data: {
+    projectId: ObjectID;
+    amountInUSDCents: number;
+  }): Promise<number> {
+    ProjectService.assertWholeCents(data.amountInUSDCents);
+
+    const balance: number | null = await this.addToSmsOrCallBalance({
+      projectId: data.projectId,
+      deltaInUSDCents: data.amountInUSDCents,
+      set: ProjectService.getBalanceNotificationFlagResets(
+        ProjectBalanceType.SmsOrCall,
+      ),
+    });
+
+    if (balance === null) {
+      throw new BadDataException("Project not found");
+    }
+
+    return balance;
+  }
+
+  /*
+   * What one SMS, call, WhatsApp or Telegram message cost, taken from the
+   * project's balance once it was handed to the provider: in one statement,
+   * from whatever the balance is now, answering what it became (null when
+   * the project is gone). It used to be "the balance read before sending,
+   * less the cost", written back afterwards - so of the messages a paging
+   * storm sent together, all but one went unpaid, and a recharge landing in
+   * between was written over.
+   *
+   * Messages that find just enough left at the same moment can take the
+   * balance below zero: the cost is owed rather than forgiven, and the next
+   * message waits for balance. A message that went out also re-arms the
+   * owners' "channel is off" notice, as it always has.
+   */
+  @CaptureSpan()
+  public async deductSmsOrCallBalanceInUSDCents(data: {
+    projectId: ObjectID;
+    amountInUSDCents: number;
+  }): Promise<number | null> {
+    ProjectService.assertWholeCents(data.amountInUSDCents);
+
+    return await this.addToSmsOrCallBalance({
+      projectId: data.projectId,
+      // Never -0: nothing taken is nothing taken.
+      deltaInUSDCents: -data.amountInUSDCents || 0,
+      set: {
+        notEnabledSmsOrCallNotificationSentToOwners: false,
+      },
+    });
+  }
+
+  private async addToSmsOrCallBalance(data: {
+    projectId: ObjectID;
+    deltaInUSDCents: number;
+    set: QueryDeepPartialEntity<Model>;
+  }): Promise<number | null> {
+    const values: Partial<Record<keyof Model, number>> | null =
+      await this.atomicAddToColumnsByIdAndGetValuesWithoutHooks({
+        id: data.projectId,
+        add: {
+          smsOrCallCurrentBalanceInUSDCents: data.deltaInUSDCents,
+        },
+        set: data.set,
+      });
+
+    if (!values) {
+      return null;
+    }
+
+    return values.smsOrCallCurrentBalanceInUSDCents ?? null;
+  }
+
+  // An amount of a balance: whole, non-negative cents.
+  private static assertWholeCents(amountInUSDCents: number): void {
+    if (
+      typeof amountInUSDCents !== "number" ||
+      !Number.isInteger(amountInUSDCents) ||
+      amountInUSDCents < 0
+    ) {
+      throw new BadDataException(
+        `A balance amount must be a whole, non-negative number of cents: ${amountInUSDCents}`,
+      );
+    }
+  }
+
+  /*
+   * Claim the one-time notice to a project's owners that its plan stops its
+   * API keys or limits its SCIM connections (PlanDowngradeOwnerNotice): true
+   * only for the one call that writes planCutoffNoticeSentAt, while it is
+   * still empty - so the owners of a project already told, by a plan change
+   * or by an earlier run, are not told again, and two workers running the
+   * notice at once cannot both win. One statement, like
+   * markAiDailyLimitReached: a passive bookkeeping write, no hooks, on a
+   * column the API never reads; a deleted project is never told.
+   */
+  @CaptureSpan()
+  public async claimPlanCutoffNotice(data: {
+    projectId: ObjectID;
+    now: Date;
+  }): Promise<boolean> {
+    const sql: string = `WITH "updated" AS (UPDATE "Project" SET "planCutoffNoticeSentAt" = $1 WHERE "_id" = $2 AND "deletedAt" IS NULL AND "planCutoffNoticeSentAt" IS NULL RETURNING "_id") SELECT "_id" FROM "updated"`;
+
+    const result: unknown = await this.getRepository().manager.query(sql, [
+      data.now,
+      data.projectId.toString(),
+    ]);
+
+    return Array.isArray(result) && result.length > 0;
+  }
+
+  /*
+   * Give back a claim (claimPlanCutoffNotice) whose notice could not be
+   * sent, so a later run tells the owners after all. Only the claim made at
+   * `claimedAt` is given back: one written since stays.
+   */
+  @CaptureSpan()
+  public async releasePlanCutoffNotice(data: {
+    projectId: ObjectID;
+    claimedAt: Date;
+  }): Promise<void> {
+    await this.getRepository().manager.query(
+      `UPDATE "Project" SET "planCutoffNoticeSentAt" = NULL WHERE "_id" = $1 AND "planCutoffNoticeSentAt" = $2`,
+      [data.projectId.toString(), data.claimedAt],
+    );
+  }
+
+  /*
+   * Record that the project's owners were told now - a plan change stopped
+   * its API keys or limited its SCIM connections - whether or not they were
+   * told before.
+   */
+  @CaptureSpan()
+  public async markPlanCutoffNoticeSent(data: {
+    projectId: ObjectID;
+    now: Date;
+  }): Promise<void> {
+    await this.getRepository().manager.query(
+      `UPDATE "Project" SET "planCutoffNoticeSentAt" = $1 WHERE "_id" = $2`,
+      [data.now, data.projectId.toString()],
+    );
   }
 
   @CaptureSpan()
@@ -3362,27 +3584,96 @@ These are no longer recorded against the project and have to be cancelled by han
     }
 
     for (const owner of owners) {
-      MailService.sendMail(
-        {
-          toEmail: owner.email!,
-          templateType: EmailTemplateType.SimpleMessage,
-          vars: {
-            subject: subject,
-            message: message,
-          },
-          subject: subject,
-          isSubjectLiteral: true,
-        },
-        {
-          projectId,
-          userId: owner.id!,
-        },
-      ).catch((err: Error) => {
+      this.sendOwnerEmail({
+        projectId: projectId,
+        owner: owner,
+        subject: subject,
+        message: message,
+      }).catch((err: Error) => {
         logger.error(err, {
           projectId: projectId?.toString(),
         } as LogAttributes);
       });
     }
+  }
+
+  /*
+   * sendEmailToProjectOwners, for a notice that must know it went out: sends
+   * the email to each of the owners given (read with getOwners), waits until
+   * the mail service has taken each one, and says how many it took. For a
+   * notice sent from a process that exits as soon as it is done - a one-time
+   * notice run by the migrate Job - an email not handed over by then would
+   * never leave. Never throws: an email the mail service refused, could not
+   * be reached for, or did not take within OWNER_EMAIL_TIMEOUT_IN_MS, is
+   * logged and not counted - so a mail service that hangs never holds the
+   * run up for longer than that.
+   */
+  @CaptureSpan()
+  public async sendEmailToOwnersAndWait(data: {
+    projectId: ObjectID;
+    owners: Array<User>;
+    subject: string;
+    message: string;
+  }): Promise<number> {
+    let delivered: number = 0;
+
+    for (const owner of data.owners) {
+      try {
+        const response: HTTPResponse<EmptyResponseData> | HTTPErrorResponse =
+          await this.sendOwnerEmail({
+            projectId: data.projectId,
+            owner: owner,
+            subject: data.subject,
+            message: data.message,
+            timeoutInMs: OWNER_EMAIL_TIMEOUT_IN_MS,
+          });
+
+        if (response instanceof HTTPErrorResponse) {
+          logger.error(
+            `The mail service refused an owner email of project ${data.projectId.toString()}: ${response.message}`,
+            {
+              projectId: data.projectId.toString(),
+            } as LogAttributes,
+          );
+          continue;
+        }
+
+        delivered++;
+      } catch (err) {
+        logger.error(err, {
+          projectId: data.projectId.toString(),
+        } as LogAttributes);
+      }
+    }
+
+    return delivered;
+  }
+
+  // One owner's email, as the owner emails above send it.
+  private sendOwnerEmail(data: {
+    projectId: ObjectID;
+    owner: User;
+    subject: string;
+    message: string;
+    timeoutInMs?: number | undefined;
+  }): Promise<HTTPResponse<EmptyResponseData> | HTTPErrorResponse> {
+    return MailService.sendMail(
+      {
+        toEmail: data.owner.email!,
+        templateType: EmailTemplateType.SimpleMessage,
+        vars: {
+          subject: data.subject,
+          message: data.message,
+        },
+        subject: data.subject,
+        isSubjectLiteral: true,
+      },
+      {
+        projectId: data.projectId,
+        userId: data.owner.id!,
+        ...(data.timeoutInMs ? { timeoutInMs: data.timeoutInMs } : {}),
+      },
+    );
   }
 
   /**

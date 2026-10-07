@@ -29,6 +29,8 @@ import {
   AutoRemediationDecisionReason,
   AutoRemediationDecisionStage,
 } from "../../../Types/AutoRemediation/AutoRemediationDecision";
+import AutoRemediationAction from "../../../Types/AutoRemediation/AutoRemediationAction";
+import AutoRemediationTriggerEntity from "../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import AutoRemediationExecutionMode from "../../../Types/AutoRemediation/AutoRemediationExecutionMode";
 import {
   KubernetesAiAccessGap,
@@ -193,6 +195,11 @@ function rule(
   model._id = RULE_ID.toString();
   model.name = "Restart checkout";
   model.executionMode = AutoRemediationExecutionMode.Suggest;
+  // A rule with no AI flag runs its runbooks, as it did before Fix With.
+  model.remediationAction =
+    overrides.aiSelectsRunbook || overrides.aiComposesCommands
+      ? AutoRemediationAction.OneUptimeAI
+      : AutoRemediationAction.Runbooks;
   model.runbooks = [runbook(RUNBOOK_ID, "Restart the checkout pods")];
   Object.assign(model, overrides);
   return model;
@@ -232,6 +239,8 @@ interface Harness {
 
 function mockEngine(data: {
   enableAi?: boolean | undefined;
+  // "Fix new incidents automatically" and its alert twin; on unless said.
+  remediationOn?: boolean | undefined;
   projectMissing?: boolean | undefined;
   existing?: Array<AutoRemediationSuggestion> | undefined;
   clusters?: Array<KubernetesClusterAiAccessStatus> | Error | undefined;
@@ -252,13 +261,15 @@ function mockEngine(data: {
     });
   }
 
-  jest
-    .spyOn(ProjectService, "findOneById")
-    .mockResolvedValue(
-      data.projectMissing
-        ? null
-        : ({ enableAi: data.enableAi ?? true } as unknown as Project),
-    );
+  jest.spyOn(ProjectService, "findOneById").mockResolvedValue(
+    data.projectMissing
+      ? null
+      : ({
+          enableAi: data.enableAi ?? true,
+          enableAutomaticIncidentRemediation: data.remediationOn ?? true,
+          enableAutomaticAlertRemediation: data.remediationOn ?? true,
+        } as unknown as Project),
+  );
   jest
     .spyOn(AutoRemediationSuggestionService, "findBy")
     .mockResolvedValue(data.existing || []);
@@ -408,6 +419,48 @@ describe("AutoRemediationRuleEngineService records its decision", () => {
     });
 
     it("records an error after what came before it, saves, and does not throw", async () => {
+      jest
+        .spyOn(engine, "suggestRunbook")
+        .mockRejectedValue(new Error("suggestion table is gone"));
+      const harness: Harness = mockEngine({
+        clusters: [
+          cluster(CLUSTER_A, {
+            remediationMode: KubernetesAiRemediationMode.Disabled,
+            isRemediationReady: false,
+          }),
+        ],
+        rules: [
+          rule({
+            remediationAction: AutoRemediationAction.OneUptimeAI,
+            executionMode: AutoRemediationExecutionMode.FullAuto,
+            runbooks: [],
+          }),
+          rule({ _id: OTHER_RULE_ID.toString() }),
+        ],
+        matchingRuleIds: [RULE_ID.toString(), OTHER_RULE_ID.toString()],
+      });
+
+      await expect(
+        AutoRemediationRuleEngineService.applyRulesToIncident(incident()),
+      ).resolves.toBeUndefined();
+
+      expect(reasonsOf(harness)).toEqual([
+        AutoRemediationDecisionReason.ClusterFixesOff,
+        AutoRemediationDecisionReason.ResourceNoneLinked,
+        AutoRemediationDecisionReason.RuleMatchedAiFix,
+        AutoRemediationDecisionReason.EvaluationFailed,
+      ]);
+      expect(
+        entryFor(harness, AutoRemediationDecisionReason.EvaluationFailed).lane,
+      ).toBe(AutoRemediationDecisionLane.Project);
+    });
+
+    /*
+     * The rules decide which signals are fixed, so they are read before any
+     * cluster or resource is: a failure to read them fixes nothing (and
+     * says so), rather than fixing a signal no rule may have meant.
+     */
+    it("fixes nothing when the rules cannot be read, and says an error stopped it", async () => {
       const harness: Harness = mockEngine({
         clusters: [
           cluster(CLUSTER_A, {
@@ -423,10 +476,9 @@ describe("AutoRemediationRuleEngineService records its decision", () => {
       ).resolves.toBeUndefined();
 
       expect(reasonsOf(harness)).toEqual([
-        AutoRemediationDecisionReason.ClusterFixesOff,
-        AutoRemediationDecisionReason.ResourceNoneLinked,
         AutoRemediationDecisionReason.EvaluationFailed,
       ]);
+      expect(harness.clusterStatuses).not.toHaveBeenCalled();
       expect(
         entryFor(harness, AutoRemediationDecisionReason.EvaluationFailed).lane,
       ).toBe(AutoRemediationDecisionLane.Project);
@@ -451,10 +503,10 @@ describe("AutoRemediationRuleEngineService records its decision", () => {
 
       await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
 
+      // No rule set up: every incident is in scope, and that needs no line.
       expect(reasonsOf(harness)).toEqual([
         AutoRemediationDecisionReason.ClusterNoneLinked,
         AutoRemediationDecisionReason.ResourceNoneLinked,
-        AutoRemediationDecisionReason.NoRulesConfigured,
       ]);
 
       const monitors: Array<{ id: string; name: string }> = [
@@ -595,7 +647,6 @@ describe("AutoRemediationRuleEngineService records its decision", () => {
       expect(reasonsOf(harness)).toEqual([
         AutoRemediationDecisionReason.ClusterRoundStarted,
         AutoRemediationDecisionReason.ResourceSkippedForClusterRound,
-        AutoRemediationDecisionReason.NoRulesConfigured,
       ]);
       expect(
         entryFor(harness, AutoRemediationDecisionReason.ClusterRoundStarted),
@@ -616,7 +667,6 @@ describe("AutoRemediationRuleEngineService records its decision", () => {
       expect(reasonsOf(harness)).toEqual([
         AutoRemediationDecisionReason.ClusterRoundNotStarted,
         AutoRemediationDecisionReason.ResourceNoneLinked,
-        AutoRemediationDecisionReason.NoRulesConfigured,
       ]);
       expect(harness.resourceStatuses).toHaveBeenCalledTimes(1);
     });
@@ -639,7 +689,6 @@ describe("AutoRemediationRuleEngineService records its decision", () => {
       expect(reasonsOf(harness)).toEqual([
         AutoRemediationDecisionReason.ClusterAlreadyHasRound,
         AutoRemediationDecisionReason.ResourceSkippedForOtherRound,
-        AutoRemediationDecisionReason.NoRulesConfigured,
       ]);
       expect(startCluster).not.toHaveBeenCalled();
     });
@@ -656,7 +705,7 @@ describe("AutoRemediationRuleEngineService records its decision", () => {
       );
     });
 
-    it("says which clusters ran out of budget, and that resources and rules were not tried", async () => {
+    it("says which clusters ran out of budget, and that resources were not tried", async () => {
       jest.spyOn(engine, "startClusterCommandRun").mockResolvedValue(true);
       const harness: Harness = mockEngine({
         // One suggestion already: two rounds left for three clusters.
@@ -666,12 +715,12 @@ describe("AutoRemediationRuleEngineService records its decision", () => {
 
       await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
 
+      // No rule set up, so no rule waits on the budget either.
       expect(reasonsOf(harness)).toEqual([
         AutoRemediationDecisionReason.ClusterRoundStarted,
         AutoRemediationDecisionReason.ClusterRoundStarted,
         AutoRemediationDecisionReason.ClusterSkippedLimit,
         AutoRemediationDecisionReason.ResourceSkippedLimit,
-        AutoRemediationDecisionReason.RulesSkippedLimit,
       ]);
       expect(
         entryFor(harness, AutoRemediationDecisionReason.ClusterSkippedLimit)
@@ -795,21 +844,95 @@ describe("AutoRemediationRuleEngineService records its decision", () => {
   });
 
   describe("Auto Remediation Rules", () => {
-    it("says how many rules were checked when none matched", async () => {
+    it("says how many rules were checked when none matched, and fixes nothing else", async () => {
       const harness: Harness = mockEngine({
+        clusters: [cluster(CLUSTER_A)],
         rules: [rule(), rule({ _id: OTHER_RULE_ID.toString() })],
         matchingRuleIds: [],
       });
 
       await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
 
+      expect(reasonsOf(harness)).toEqual([
+        AutoRemediationDecisionReason.NotMatchedByAnyRule,
+      ]);
       expect(
-        entryFor(harness, AutoRemediationDecisionReason.NoRuleMatched),
+        entryFor(harness, AutoRemediationDecisionReason.NotMatchedByAnyRule),
       ).toMatchObject({
         lane: AutoRemediationDecisionLane.Rule,
         rulesChecked: 2,
       });
+      // With rules set up, a signal none of them matches is not fixed at all.
+      expect(harness.clusterStatuses).not.toHaveBeenCalled();
     });
+
+    it("says fixing is off, and reads nothing else, while the switch is off", async () => {
+      const harness: Harness = mockEngine({
+        remediationOn: false,
+        clusters: [cluster(CLUSTER_A)],
+        rules: [rule()],
+        matchingRuleIds: [RULE_ID.toString()],
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(reasonsOf(harness)).toEqual([
+        AutoRemediationDecisionReason.RemediationOff,
+      ]);
+      expect(
+        entryFor(harness, AutoRemediationDecisionReason.RemediationOff).lane,
+      ).toBe(AutoRemediationDecisionLane.Project);
+      expect(harness.clusterStatuses).not.toHaveBeenCalled();
+    });
+
+    it("says a matching runbook rule leaves the clusters alone", async () => {
+      jest.spyOn(engine, "suggestRunbook").mockResolvedValue(undefined);
+      const harness: Harness = mockEngine({
+        clusters: [cluster(CLUSTER_A)],
+        rules: [rule()],
+        matchingRuleIds: [RULE_ID.toString()],
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(reasonsOf(harness)[0]).toBe(
+        AutoRemediationDecisionReason.NoAiFixRuleMatched,
+      );
+      expect(harness.clusterStatuses).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      [AutoRemediationExecutionMode.FullAuto, "RuleMatchedAiFix"],
+      [AutoRemediationExecutionMode.Suggest, "RuleMatchedAiFixAsks"],
+    ])(
+      "says a matching %s OneUptime AI rule has OneUptime AI fix the signal",
+      async (mode: AutoRemediationExecutionMode, reason: string) => {
+        jest.spyOn(engine, "startClusterCommandRun").mockResolvedValue(true);
+        const harness: Harness = mockEngine({
+          clusters: [cluster(CLUSTER_A)],
+          rules: [
+            rule({
+              remediationAction: AutoRemediationAction.OneUptimeAI,
+              executionMode: mode,
+              runbooks: [],
+            }),
+          ],
+          matchingRuleIds: [RULE_ID.toString()],
+        });
+
+        await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+        expect(reasonsOf(harness)).toContain(
+          AutoRemediationDecisionReason.ClusterRoundStarted,
+        );
+        expect(
+          entryFor(harness, reason as AutoRemediationDecisionReason),
+        ).toMatchObject({
+          lane: AutoRemediationDecisionLane.Rule,
+          ruleName: "Restart checkout",
+        });
+      },
+    );
 
     it("names the rule and each runbook it proposed", async () => {
       const suggest: SpyInstance<EngineInternals["suggestRunbook"]> = jest
@@ -1108,6 +1231,68 @@ describe("AutoRemediationRuleEngineService on a new incident or alert", () => {
     expect(harness.saved[0]!.alertId?.toString()).toBe(ALERT_ID.toString());
   });
 
+  /*
+   * "Remediation runs once the investigation finishes" is only true while
+   * fixing is on: with it off, nothing is said until the evaluation that
+   * follows the investigation says why nothing was fixed.
+   */
+  it.each([
+    ["the incident fixing switch is off", { remediationOn: false }],
+    ["Enable AI is off", { enableAi: false }],
+  ])(
+    "does not say a new incident waits for its investigation while %s",
+    async (
+      _label: string,
+      project: { remediationOn?: boolean; enableAi?: boolean },
+    ) => {
+      const apply: SpyInstance<
+        typeof AutoRemediationRuleEngineService.applyRulesToIncident
+      > = jest.spyOn(AutoRemediationRuleEngineService, "applyRulesToIncident");
+      const harness: Harness = mockEngine(project);
+
+      await AutoRemediationRuleEngineService.onIncidentCreated({
+        incident: incident(),
+        isInvestigationQueued: true,
+      });
+
+      expect(apply).not.toHaveBeenCalled();
+      expect(harness.saved).toHaveLength(0);
+    },
+  );
+
+  it("an alert waits only while the alert switch is on, whatever the incident switch says", async () => {
+    const harness: Harness = mockEngine({});
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      enableAi: true,
+      enableAutomaticIncidentRemediation: true,
+      enableAutomaticAlertRemediation: false,
+    } as unknown as Project);
+
+    await AutoRemediationRuleEngineService.onAlertCreated({
+      alert: alert(),
+      isInvestigationQueued: true,
+    });
+
+    expect(harness.saved).toHaveLength(0);
+  });
+
+  it("still says it waits when the project cannot be read", async () => {
+    const harness: Harness = mockEngine({});
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockRejectedValue(new Error("database is down"));
+
+    await AutoRemediationRuleEngineService.onIncidentCreated({
+      incident: incident(),
+      isInvestigationQueued: true,
+    });
+
+    expect(harness.saved).toHaveLength(1);
+    expect(harness.saved[0]!.stage).toBe(
+      AutoRemediationDecisionStage.WaitingForInvestigation,
+    );
+  });
+
   it("never throws when the waiting record cannot be saved", async () => {
     mockEngine({});
     jest
@@ -1120,5 +1305,400 @@ describe("AutoRemediationRuleEngineService on a new incident or alert", () => {
         isInvestigationQueued: true,
       }),
     ).resolves.toBeUndefined();
+  });
+});
+
+/*
+ * "Fix new incidents automatically" (and its alert twin) is the master
+ * switch for fixing, off by default. With it on, the rules decide which
+ * signals are fixed, and how: with no rule every signal is, by OneUptime AI
+ * on the clusters and resources it is linked to; with rules only the ones
+ * that match one are, each the way its matching rules say - OneUptime AI
+ * (asking first or not), or their runbooks. Rules saved before Fix With keep
+ * doing what they did.
+ */
+describe("the fixing switch and the rules decide which signals are fixed, and how", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function clusterRunArgs(
+    start: SpyInstance<EngineInternals["startClusterCommandRun"]>,
+  ): Array<{ askFirstReason?: string | undefined }> {
+    return start.mock.calls.map((call: Array<unknown>) => {
+      return call[0] as { askFirstReason?: string | undefined };
+    });
+  }
+
+  function aiRule(
+    id: ObjectID,
+    name: string,
+    mode: AutoRemediationExecutionMode,
+  ): AutoRemediationRule {
+    return rule({
+      _id: id.toString(),
+      name,
+      remediationAction: AutoRemediationAction.OneUptimeAI,
+      executionMode: mode,
+      runbooks: [],
+    });
+  }
+
+  it("the alert switch decides for alerts, and the incident switch never does", async () => {
+    jest.spyOn(engine, "startClusterCommandRun").mockResolvedValue(true);
+    const harness: Harness = mockEngine({ clusters: [cluster(CLUSTER_A)] });
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      enableAi: true,
+      enableAutomaticIncidentRemediation: true,
+      enableAutomaticAlertRemediation: false,
+    } as unknown as Project);
+
+    await AutoRemediationRuleEngineService.applyRulesToAlert(alert());
+
+    expect(reasonsOf(harness)).toEqual([
+      AutoRemediationDecisionReason.RemediationOff,
+    ]);
+    expect(harness.clusterStatuses).not.toHaveBeenCalled();
+    expect(AutoRemediationRuleService.findBy).not.toHaveBeenCalled();
+  });
+
+  it("with the switch on and no rule, OneUptime AI fixes the signal in the cluster's own mode", async () => {
+    const start: SpyInstance<EngineInternals["startClusterCommandRun"]> = jest
+      .spyOn(engine, "startClusterCommandRun")
+      .mockResolvedValue(true);
+    const harness: Harness = mockEngine({ clusters: [cluster(CLUSTER_A)] });
+
+    await AutoRemediationRuleEngineService.applyRulesToAlert(alert());
+
+    expect(reasonsOf(harness)).toContain(
+      AutoRemediationDecisionReason.ClusterRoundStarted,
+    );
+    expect(clusterRunArgs(start)).toEqual([
+      expect.objectContaining({ askFirstReason: undefined }),
+    ]);
+    expect(
+      entryFor(harness, AutoRemediationDecisionReason.ClusterRoundStarted)
+        .ruleName,
+    ).toBeUndefined();
+  });
+
+  it("reads only the enabled rules of the signal's own kind", async () => {
+    mockEngine({ rules: [] });
+
+    await AutoRemediationRuleEngineService.applyRulesToAlert(alert());
+
+    const query: Record<string, unknown> = (
+      (
+        AutoRemediationRuleService.findBy as unknown as {
+          mock: { calls: Array<Array<{ query: Record<string, unknown> }>> };
+        }
+      ).mock.calls[0]![0] as { query: Record<string, unknown> }
+    ).query;
+
+    expect(query).toMatchObject({
+      projectId: PROJECT_ID,
+      isEnabled: true,
+      triggerEntityType: AutoRemediationTriggerEntity.Alert,
+    });
+  });
+
+  it("a matching OneUptime AI rule that fixes without asking leaves the cluster's mode as it is", async () => {
+    const start: SpyInstance<EngineInternals["startClusterCommandRun"]> = jest
+      .spyOn(engine, "startClusterCommandRun")
+      .mockResolvedValue(true);
+    const harness: Harness = mockEngine({
+      clusters: [cluster(CLUSTER_A)],
+      rules: [
+        aiRule(RULE_ID, "Production", AutoRemediationExecutionMode.FullAuto),
+      ],
+      matchingRuleIds: [RULE_ID.toString()],
+    });
+
+    await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+    expect(clusterRunArgs(start)).toEqual([
+      expect.objectContaining({ askFirstReason: undefined }),
+    ]);
+    expect(
+      entryFor(harness, AutoRemediationDecisionReason.ClusterRoundStarted),
+    ).toMatchObject({
+      remediationMode: KubernetesAiRemediationMode.Automatic,
+    });
+    expect(
+      entryFor(harness, AutoRemediationDecisionReason.RuleMatchedAiFix),
+    ).toMatchObject({ ruleName: "Production" });
+  });
+
+  it("a matching OneUptime AI rule that asks first makes an unattended cluster ask, and says which rule", async () => {
+    const start: SpyInstance<EngineInternals["startClusterCommandRun"]> = jest
+      .spyOn(engine, "startClusterCommandRun")
+      .mockResolvedValue(true);
+    const harness: Harness = mockEngine({
+      clusters: [cluster(CLUSTER_A)],
+      rules: [
+        aiRule(RULE_ID, "Payments ask", AutoRemediationExecutionMode.Suggest),
+      ],
+      matchingRuleIds: [RULE_ID.toString()],
+    });
+
+    await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+    expect(clusterRunArgs(start)).toEqual([
+      expect.objectContaining({
+        askFirstReason:
+          'Auto Remediation Rule "Payments ask" asks before fixing',
+      }),
+    ]);
+    expect(
+      entryFor(harness, AutoRemediationDecisionReason.ClusterRoundStarted),
+    ).toMatchObject({
+      remediationMode: KubernetesAiRemediationMode.RequireApproval,
+      ruleName: "Payments ask",
+    });
+    expect(
+      entryFor(harness, AutoRemediationDecisionReason.RuleMatchedAiFixAsks),
+    ).toMatchObject({ ruleName: "Payments ask" });
+  });
+
+  it("a cluster that asks anyway is recorded in its own mode, with no rule named", async () => {
+    jest.spyOn(engine, "startClusterCommandRun").mockResolvedValue(true);
+    const harness: Harness = mockEngine({
+      clusters: [
+        cluster(CLUSTER_A, {
+          remediationMode: KubernetesAiRemediationMode.RequireApproval,
+        }),
+      ],
+      rules: [
+        aiRule(RULE_ID, "Payments ask", AutoRemediationExecutionMode.Suggest),
+      ],
+      matchingRuleIds: [RULE_ID.toString()],
+    });
+
+    await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+    expect(
+      entryFor(harness, AutoRemediationDecisionReason.ClusterRoundStarted)
+        .ruleName,
+    ).toBeUndefined();
+  });
+
+  it("of several matching OneUptime AI rules, the one that asks wins", async () => {
+    const start: SpyInstance<EngineInternals["startClusterCommandRun"]> = jest
+      .spyOn(engine, "startClusterCommandRun")
+      .mockResolvedValue(true);
+    mockEngine({
+      clusters: [cluster(CLUSTER_A)],
+      rules: [
+        aiRule(RULE_ID, "Everything", AutoRemediationExecutionMode.FullAuto),
+        aiRule(
+          OTHER_RULE_ID,
+          "Databases ask",
+          AutoRemediationExecutionMode.Suggest,
+        ),
+      ],
+      matchingRuleIds: [RULE_ID.toString(), OTHER_RULE_ID.toString()],
+    });
+
+    await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+    expect(clusterRunArgs(start)).toEqual([
+      expect.objectContaining({
+        askFirstReason:
+          'Auto Remediation Rule "Databases ask" asks before fixing',
+      }),
+    ]);
+  });
+
+  it("a rule that asks but does not match changes nothing", async () => {
+    const start: SpyInstance<EngineInternals["startClusterCommandRun"]> = jest
+      .spyOn(engine, "startClusterCommandRun")
+      .mockResolvedValue(true);
+    mockEngine({
+      clusters: [cluster(CLUSTER_A)],
+      rules: [
+        aiRule(RULE_ID, "Everything", AutoRemediationExecutionMode.FullAuto),
+        aiRule(
+          OTHER_RULE_ID,
+          "Databases ask",
+          AutoRemediationExecutionMode.Suggest,
+        ),
+      ],
+      matchingRuleIds: [RULE_ID.toString()],
+    });
+
+    await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+    expect(clusterRunArgs(start)).toEqual([
+      expect.objectContaining({ askFirstReason: undefined }),
+    ]);
+  });
+
+  it("a matching resource round asks first too when its rule asks", async () => {
+    const startResource: SpyInstance<
+      EngineInternals["startResourceCommandRun"]
+    > = jest.spyOn(engine, "startResourceCommandRun").mockResolvedValue(true);
+    const harness: Harness = mockEngine({
+      resources: [resource(RESOURCE_A)],
+      rules: [
+        aiRule(RULE_ID, "Staging asks", AutoRemediationExecutionMode.Suggest),
+      ],
+      matchingRuleIds: [RULE_ID.toString()],
+    });
+
+    await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+    expect(startResource.mock.calls[0]![0]).toMatchObject({
+      askFirstReason: 'Auto Remediation Rule "Staging asks" asks before fixing',
+    });
+    expect(
+      entryFor(harness, AutoRemediationDecisionReason.ResourceRoundStarted),
+    ).toMatchObject({ ruleName: "Staging asks" });
+  });
+
+  it("matching runbook and OneUptime AI rules both act: the clusters are fixed and the runbooks proposed", async () => {
+    jest.spyOn(engine, "startClusterCommandRun").mockResolvedValue(true);
+    const suggest: SpyInstance<EngineInternals["suggestRunbook"]> = jest
+      .spyOn(engine, "suggestRunbook")
+      .mockResolvedValue(undefined);
+    const harness: Harness = mockEngine({
+      clusters: [cluster(CLUSTER_A)],
+      rules: [
+        aiRule(RULE_ID, "Production", AutoRemediationExecutionMode.FullAuto),
+        rule({ _id: OTHER_RULE_ID.toString(), name: "Restart checkout" }),
+      ],
+      matchingRuleIds: [RULE_ID.toString(), OTHER_RULE_ID.toString()],
+    });
+
+    await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+    expect(reasonsOf(harness)).toEqual(
+      expect.arrayContaining([
+        AutoRemediationDecisionReason.ClusterRoundStarted,
+        AutoRemediationDecisionReason.RuleMatchedAiFix,
+        AutoRemediationDecisionReason.RuleRunbookProposed,
+      ]),
+    );
+    expect(suggest).toHaveBeenCalledTimes(1);
+  });
+
+  it("a rule marked Runbooks runs its runbooks, whatever AI flag it still carries", async () => {
+    const suggest: SpyInstance<EngineInternals["suggestRunbook"]> = jest
+      .spyOn(engine, "suggestRunbook")
+      .mockResolvedValue(undefined);
+    const compose: SpyInstance<EngineInternals["startAiCommandRun"]> = jest
+      .spyOn(engine, "startAiCommandRun")
+      .mockResolvedValue(true);
+    const harness: Harness = mockEngine({
+      clusters: [cluster(CLUSTER_A)],
+      hasLlmProvider: true,
+      rules: [
+        rule({
+          remediationAction: AutoRemediationAction.Runbooks,
+          aiComposesCommands: true,
+        }),
+      ],
+      matchingRuleIds: [RULE_ID.toString()],
+    });
+
+    await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+    expect(compose).not.toHaveBeenCalled();
+    expect(suggest).toHaveBeenCalledTimes(1);
+    expect(harness.clusterStatuses).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [
+      "composes commands on Runners",
+      { aiComposesCommands: true },
+      "startAiCommandRun",
+      AutoRemediationDecisionReason.RuleAiComposingCommands,
+    ],
+    [
+      "picks a runbook",
+      { aiSelectsRunbook: true },
+      "startAiPlanning",
+      AutoRemediationDecisionReason.RuleAiPickingRunbook,
+    ],
+  ])(
+    "a rule saved before Fix With that %s keeps doing that, and leaves the clusters alone",
+    async (
+      _name: string,
+      flags: Partial<AutoRemediationRule>,
+      starter: string,
+      reason: AutoRemediationDecisionReason,
+    ) => {
+      const start: SpyInstance<(data: unknown) => Promise<boolean>> = jest
+        .spyOn(engine, starter as "startAiCommandRun")
+        .mockResolvedValue(true);
+      const harness: Harness = mockEngine({
+        clusters: [cluster(CLUSTER_A)],
+        hasLlmProvider: true,
+        rules: [
+          rule({
+            ...flags,
+            executionMode: AutoRemediationExecutionMode.Suggest,
+          }),
+        ],
+        matchingRuleIds: [RULE_ID.toString()],
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(start).toHaveBeenCalledTimes(1);
+      expect(reasonsOf(harness)).toEqual([
+        AutoRemediationDecisionReason.NoAiFixRuleMatched,
+        reason,
+      ]);
+      // It neither turns the cluster rounds on nor makes them ask.
+      expect(harness.clusterStatuses).not.toHaveBeenCalled();
+    },
+  );
+
+  it("a rule saved before Fix With that asks does not make a matching OneUptime AI rule's rounds ask", async () => {
+    const start: SpyInstance<EngineInternals["startClusterCommandRun"]> = jest
+      .spyOn(engine, "startClusterCommandRun")
+      .mockResolvedValue(true);
+    jest.spyOn(engine, "startAiPlanning").mockResolvedValue(true);
+    mockEngine({
+      clusters: [cluster(CLUSTER_A)],
+      hasLlmProvider: true,
+      rules: [
+        aiRule(RULE_ID, "Production", AutoRemediationExecutionMode.FullAuto),
+        rule({
+          _id: OTHER_RULE_ID.toString(),
+          aiSelectsRunbook: true,
+          executionMode: AutoRemediationExecutionMode.Suggest,
+        }),
+      ],
+      matchingRuleIds: [RULE_ID.toString(), OTHER_RULE_ID.toString()],
+    });
+
+    await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+    expect(clusterRunArgs(start)).toEqual([
+      expect.objectContaining({ askFirstReason: undefined }),
+    ]);
+  });
+
+  it("an alert matched by no rule is not fixed, and the decision counts the rules", async () => {
+    const harness: Harness = mockEngine({
+      clusters: [cluster(CLUSTER_A)],
+      rules: [
+        aiRule(RULE_ID, "Production", AutoRemediationExecutionMode.FullAuto),
+      ],
+      matchingRuleIds: [],
+    });
+
+    await AutoRemediationRuleEngineService.applyRulesToAlert(alert());
+
+    expect(reasonsOf(harness)).toEqual([
+      AutoRemediationDecisionReason.NotMatchedByAnyRule,
+    ]);
+    expect(
+      entryFor(harness, AutoRemediationDecisionReason.NotMatchedByAnyRule)
+        .rulesChecked,
+    ).toBe(1);
+    expect(harness.clusterStatuses).not.toHaveBeenCalled();
   });
 });

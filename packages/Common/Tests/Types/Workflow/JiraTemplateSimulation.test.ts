@@ -1605,9 +1605,10 @@ type FiresOnUpdateFunction = (
  * The filter OnTriggerBaseModel.initTrigger
  * (packages/Common/Server/Types/Workflow/Components/BaseModel/OnTriggerBaseModel.ts)
  * puts in front of an on-update workflow: with a Listen On set, the workflow
- * runs only when one of its keys is truthy among the fields the update
- * changed. Keys are compared exactly, so an edit form that sends a relation
- * is only heard by a Listen On naming the relation.
+ * runs only when one of its keys is among the fields the update changed
+ * (DatabaseService sends only those), whatever it changed to. Keys are
+ * compared exactly, so an edit form that sends a relation is only heard by a
+ * Listen On naming the relation.
  */
 const firesOnUpdate: FiresOnUpdateFunction = (
   templateId: string,
@@ -1626,7 +1627,7 @@ const firesOnUpdate: FiresOnUpdateFunction = (
   }
 
   return Object.keys(listenOn).some((key: string) => {
-    return Boolean(updatedFields[key]);
+    return Object.prototype.hasOwnProperty.call(updatedFields, key);
   });
 };
 

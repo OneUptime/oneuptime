@@ -2,6 +2,12 @@ import ObjectID from "../../ObjectID";
 import FilterCondition from "../../Filter/FilterCondition";
 import { CheckOn, CriteriaFilter, FilterType } from "../CriteriaFilter";
 import MonitorCriteriaInstance from "../MonitorCriteriaInstance";
+import {
+  SnmpTableColumn,
+  SnmpTableDefinition,
+  SnmpTableKind,
+} from "./SnmpTable";
+import SnmpTableListUtil from "./SnmpTableListUtil";
 
 /*
  * Prebuilt criteria for Network Device monitors — the alerts most operators
@@ -20,6 +26,12 @@ export interface NetworkDeviceAlertPackItem {
 export interface NetworkDeviceAlertPackContext {
   // Status to move the monitor to when a pack criteria matches (offline/degraded).
   downMonitorStatusId?: ObjectID | undefined;
+  /*
+   * The device's effective SNMP tables. Every table that declares what a
+   * healthy row looks like adds one criteria to the pack, alerting once per
+   * unhealthy row - a tunnel down, a fan failed, a fabric neighbour lost.
+   */
+  tables?: Array<SnmpTableDefinition> | undefined;
 }
 
 const PACK: Array<NetworkDeviceAlertPackItem> = [
@@ -102,9 +114,69 @@ const PACK: Array<NetworkDeviceAlertPackItem> = [
   },
 ];
 
+/*
+ * Tables whose rows are links or sessions: a row going unhealthy there is an
+ * outage someone should be paged for. Everything else (fans, power supplies,
+ * radios) raises an alert.
+ */
+const INCIDENT_TABLE_KINDS: Array<SnmpTableKind> = [
+  SnmpTableKind.VpnTunnel,
+  SnmpTableKind.RoutingAdjacency,
+];
+
 export default class NetworkDeviceAlertPackUtil {
-  public static getPackItems(): Array<NetworkDeviceAlertPackItem> {
-    return PACK;
+  public static getPackItems(
+    tables?: Array<SnmpTableDefinition> | undefined,
+  ): Array<NetworkDeviceAlertPackItem> {
+    return [...PACK, ...NetworkDeviceAlertPackUtil.getTableHealthItems(tables)];
+  }
+
+  /*
+   * One criteria per table that knows what healthy means, firing once per
+   * row ("*") so each tunnel or fan alerts and resolves on its own.
+   */
+  public static getTableHealthItems(
+    tables: Array<SnmpTableDefinition> | undefined,
+  ): Array<NetworkDeviceAlertPackItem> {
+    const items: Array<NetworkDeviceAlertPackItem> = [];
+
+    for (const table of tables || []) {
+      const hasHealthyValues: boolean = (table.columns || []).some(
+        (column: SnmpTableColumn) => {
+          return Boolean(
+            column.healthyValues && column.healthyValues.length > 0,
+          );
+        },
+      );
+
+      if (!hasHealthyValues || !table.key) {
+        continue;
+      }
+
+      const isIncident: boolean = INCIDENT_TABLE_KINDS.includes(
+        SnmpTableListUtil.parseKind(table.kind),
+      );
+
+      items.push({
+        name: `${table.name}: row unhealthy`,
+        description: `A row of the ${table.name} table reports a status outside its healthy values. Raised once per row.`,
+        filters: [
+          {
+            checkOn: CheckOn.SnmpTableRowIsUnhealthy,
+            filterType: FilterType.True,
+            value: undefined,
+            snmpMonitorOptions: {
+              tableKey: table.key,
+              tableRow: "*",
+            },
+          },
+        ],
+        createIncidents: isIncident,
+        createAlerts: !isIncident,
+      });
+    }
+
+    return items;
   }
 
   /*
@@ -116,29 +188,31 @@ export default class NetworkDeviceAlertPackUtil {
   public static buildCriteriaInstances(
     context?: NetworkDeviceAlertPackContext,
   ): Array<MonitorCriteriaInstance> {
-    return PACK.map((item: NetworkDeviceAlertPackItem) => {
-      const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
-      instance.data = {
-        id: ObjectID.generate().toString(),
-        monitorStatusId: context?.downMonitorStatusId,
-        filterCondition: FilterCondition.All,
-        filters: item.filters,
-        incidents: [],
-        alerts: [],
-        createAlerts: item.createAlerts,
-        createIncidents: item.createIncidents,
-        /*
-         * Never claim to change monitor status without a status to change
-         * to — a caller that passes no context would otherwise produce
-         * criteria that "change" the monitor to an undefined status.
-         */
-        changeMonitorStatus:
-          item.createIncidents && Boolean(context?.downMonitorStatusId),
-        isEnabled: true,
-        name: item.name,
-        description: item.description,
-      };
-      return instance;
-    });
+    return NetworkDeviceAlertPackUtil.getPackItems(context?.tables).map(
+      (item: NetworkDeviceAlertPackItem) => {
+        const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
+        instance.data = {
+          id: ObjectID.generate().toString(),
+          monitorStatusId: context?.downMonitorStatusId,
+          filterCondition: FilterCondition.All,
+          filters: item.filters,
+          incidents: [],
+          alerts: [],
+          createAlerts: item.createAlerts,
+          createIncidents: item.createIncidents,
+          /*
+           * Never claim to change monitor status without a status to change
+           * to — a caller that passes no context would otherwise produce
+           * criteria that "change" the monitor to an undefined status.
+           */
+          changeMonitorStatus:
+            item.createIncidents && Boolean(context?.downMonitorStatusId),
+          isEnabled: true,
+          name: item.name,
+          description: item.description,
+        };
+        return instance;
+      },
+    );
   }
 }

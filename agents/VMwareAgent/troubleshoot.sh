@@ -196,6 +196,18 @@ printf "%sInstall dir:%s %s\n" "$C_DIM" "$C_OFF" "$DIR"
 # ----------------------------------------------------------------------------
 section "1. Runtime"
 # ----------------------------------------------------------------------------
+# An install without Docker (README.md, "Quick Start — Without Docker") puts
+# the collector binary itself in the install directory and runs it with
+# systemd. Every probe below runs from the agent container's network
+# namespace, so this script cannot check that install: say so, and where to
+# look, rather than "docker not found".
+if [ -x "$DIR/otelcol-contrib" ]; then
+  fail "The agent in '$DIR' runs without Docker, as the systemd service oneuptime-vmware-agent — this script checks Docker installs only."
+  detail "Check it with: systemctl status oneuptime-vmware-agent --no-pager"
+  detail "and its log:   sudo journalctl -u oneuptime-vmware-agent -n 100 --no-pager"
+  detail "README.md, \"Installed without Docker\", lists the rest of the checks to run by hand."
+  exit 1
+fi
 if ! command -v docker >/dev/null 2>&1; then
   fail "docker not found on PATH. The agent runs in Docker — install it / run this on the agent machine."
   exit 1

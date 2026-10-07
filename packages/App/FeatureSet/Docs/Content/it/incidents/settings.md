@@ -21,7 +21,7 @@ Aprite **Incidenti** nella navigazione a sinistra, poi espandete **Impostazioni*
 | **Ruoli incidente**       | Definite i ruoli a cui assegnate chi risponde, per esempio Incident Commander.                       |
 | **Prefisso del numero**        | I prefissi dei numeri di incidente e di episodio.                                           |
 
-Ciò che OneUptime AI fa da solo non si imposta qui: ha una sezione propria, **Incidenti → IA**, su percorsi che iniziano con `/dashboard/{projectId}/incidents/ai/`. La sua pagina **Impostazioni** attiva o disattiva l'indagine automatica, le correzioni automatiche del codice e le bozze di post-mortem, e raccoglie i limiti facoltativi entro cui lavora l'IA: nessuno si applica finché non lo impostate. Accanto ci sono le **Regole di rimedio automatico**, con **Informazioni** e **Registri**: ciò che l'IA ha imparato dai vostri incidenti e tutto ciò che ha fatto. Vedete [AI SRE](/docs/ai/ai-sre).
+Ciò che OneUptime AI fa da solo non si imposta qui: ha una sezione propria, **Incidenti → IA**, su percorsi che iniziano con `/dashboard/{projectId}/incidents/ai/`. La sua pagina **Impostazioni** attiva o disattiva l'indagine sui nuovi incidenti, la loro correzione automatica (disattivata finché non la attivate), le bozze di post-mortem e l'apertura di pull request di correzione e per la telemetria mancante, e ogni interruttore si salva non appena lo azionate; le regole di indagine e le regole di rimedio automatico, che restringono gli incidenti su cui si indaga e quelli che si correggono, e i limiti facoltativi entro cui lavora l'IA sono compressi sotto **Altre impostazioni**, e nessuno si applica finché non lo impostate. Accanto ci sono **Informazioni** e **Registri**: ciò che l'IA ha imparato dai vostri incidenti e tutto ciò che ha fatto. Vedete [AI SRE](/docs/ai/ai-sre).
 
 **Stato incidente** e **Gravità incidente** sono trattati a fondo in [Stati e gravità degli incidenti](/docs/incidents/states-and-severities) — il resto di questa pagina riparte dai **Modelli di incidenti**.
 
@@ -117,21 +117,22 @@ Un nuovo prefisso vale solo per gli incidenti e gli episodi creati dopo. Quelli 
 
 ## Le regole che scattano alla creazione di un incidente
 
-**Incidenti → Regole** contiene otto motori di regole, e **Incidenti → IA** un nono, le **Regole di rimedio automatico**. Fanno tutti lo stesso mestiere — guardano un incidente nell'istante in cui viene creato e agiscono se corrisponde — ma si distinguono per che cosa fanno e per come si risolvono più regole che corrispondono insieme.
+**Incidenti → Regole** contiene otto motori di regole, e **Incidenti → IA → Impostazioni** altri due, sotto **Altre impostazioni**: le **Regole di rimedio automatico** e le **Regole di indagine**. Fanno tutti lo stesso mestiere — guardano un incidente nell'istante in cui viene creato e agiscono se corrisponde — ma si distinguono per che cosa fanno e per come si risolvono più regole che corrispondono insieme.
 
 - **Regole di raggruppamento** — raggruppano incidenti correlati in episodi. Le regole vengono valutate in ordine di priorità; i numeri di priorità più bassi vanno per primi.
 - **Regole di reperibilità** — eseguono le policy di reperibilità per gli incidenti corrispondenti. Trattate in dettaglio più sotto.
 - **Regole del proprietario** — assegnano i proprietari automaticamente.
 - **Regole di runbook** — avviano un [runbook](/docs/runbooks/index) quando un incidente corrisponde.
-- **Regole di rimedio automatico**, sotto **IA** — propongono o avviano runbook di rimedio quando un incidente corrisponde. Se per l'incidente è in coda un'indagine IA, partono quando questa termina, con la sua analisi in mano. Vedete [AI SRE](/docs/ai/ai-sre).
+- **Regole di rimedio automatico**, sotto **IA** → **Impostazioni** — stabiliscono quali nuovi incidenti vengono corretti mentre **Correggi automaticamente i nuovi incidenti** è attivo, e come: da OneUptime AI o con i runbook della regola, chiedendo prima di correggere oppure no. Senza regole, viene corretto ogni nuovo incidente. Se per l'incidente è in coda un'indagine IA, partono quando questa termina, con la sua analisi in mano.
+- **Regole di indagine**, sotto **IA** → **Impostazioni** — stabiliscono su quali nuovi incidenti indaga OneUptime AI. Senza regole, si indaga su tutti. Vedete [AI SRE](/docs/ai/ai-sre).
 - **Regole di privacy** — decidono se un incidente corrispondente è privato.
 - **Regole etichette** — applicano le etichette automaticamente.
 - **Regole SLA** — tracciano i tempi di risposta e di risoluzione. Le regole vengono valutate in ordine; i numeri d'ordine più bassi vanno per primi.
 - **Reminder Rules** — ricordano periodicamente ai proprietari dell'incidente che l'incidente è ancora aperto. Le regole vengono valutate in ordine e vince la prima che corrisponde.
 
-**La semantica dell'ordine non è uniforme.** Regole di raggruppamento, Regole SLA e Reminder Rules sono valutate in ordine. Le Regole di reperibilità no — scattano tutte le regole che corrispondono. Non date per scontato che un solo modello valga per tutte e nove.
+**La semantica dell'ordine non è uniforme.** Regole di raggruppamento, Regole SLA e Reminder Rules sono valutate in ordine. Le Regole di reperibilità no — scattano tutte le regole che corrispondono. Non date per scontato che un solo modello valga per tutte e dieci.
 
-Le pagine **Regole di reperibilità**, **Regole del proprietario**, **Regole etichette** e **Regole di privacy** hanno delle schede — una scheda **Incident Rules** e una scheda **Episode Rules**, ciascuna con la propria tabella. Configurate la scheda **Incident Rules**, a meno che non intendiate proprio gli episodi. **Regole di raggruppamento**, **Regole di runbook**, **Regole di rimedio automatico**, **Regole SLA** e **Reminder Rules** sono tabelle singole.
+Le pagine **Regole di reperibilità**, **Regole del proprietario**, **Regole etichette** e **Regole di privacy** hanno delle schede — una scheda **Incident Rules** e una scheda **Episode Rules**, ciascuna con la propria tabella. Configurate la scheda **Incident Rules**, a meno che non intendiate proprio gli episodi. **Regole di raggruppamento**, **Regole di runbook**, **Regole di rimedio automatico**, **Regole di indagine**, **Regole SLA** e **Reminder Rules** sono tabelle singole.
 
 ## Regole di reperibilità degli incidenti
 
@@ -171,7 +172,7 @@ La stessa generazione vi dà i trigger per la configurazione stessa: **On Create
 
 Qualche dettaglio che conta quando li collegate:
 
-- **On Update X** accetta un argomento facoltativo **Listen on** che restringe il trigger agli aggiornamenti che toccano determinati campi. Lasciatelo vuoto per scattare a ogni modifica. Se arriva un aggiornamento senza traccia di quali campi si siano mossi, il filtro viene saltato e il workflow parte comunque.
+- **On Update X** accetta un argomento facoltativo **Listen on** che restringe il trigger agli aggiornamenti che cambiano determinati campi, qualunque sia il nuovo valore: anche un interruttore spento o un campo svuotato contano. Un campo salvato con il valore che ha già non è una modifica, quindi un modulo di modifica che lo rimanda a ogni salvataggio non sveglia il workflow. Lasciatelo vuoto per scattare a ogni modifica. Se arriva un aggiornamento senza traccia di quali campi siano cambiati, il filtro viene saltato e il workflow parte comunque.
 - **On Create X** e **On Update X** richiedono entrambi un argomento obbligatorio **Select Fields**; **On Delete X** non accetta argomenti.
 - Tutti e tre espongono un'unica porta d'uscita **Successo**, e ciascuno accetta un argomento ID così potete eseguire il workflow a mano su un singolo record.
 - I nomi derivano dal nome singolare del modello, non dal nome della tabella — ed è per questo che vedete **On Create Incident Team Owner** e **On Create Incident User Owner** invece di nomi modellati sulle tabelle.

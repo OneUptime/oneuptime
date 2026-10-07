@@ -156,9 +156,14 @@ function mockBaseline(data: {
   jest.spyOn(logger, "debug").mockImplementation((): void => {
     return undefined;
   });
-  // Enable AI is the project's only AI switch.
+  /*
+   * Enable AI, and the signal kind's own "Fix new incidents automatically"
+   * (or alerts), which starts off.
+   */
   jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
     enableAi: true,
+    enableAutomaticIncidentRemediation: true,
+    enableAutomaticAlertRemediation: true,
   } as unknown as Project);
   jest
     .spyOn(AutoRemediationSuggestionService, "findBy")
@@ -275,6 +280,57 @@ describe("AutoRemediationRuleEngineService cluster-level remediation", () => {
     expect(AlertFeedService.createAlertFeedItem).toHaveBeenCalledTimes(1);
   });
 
+  it.each([
+    [false, true, 1],
+    [true, false, 0],
+  ])(
+    "an alert answers to Fix new alerts automatically alone (incidents %s, alerts %s: %s rounds)",
+    async (incidents: boolean, alerts: boolean, rounds: number) => {
+      mockBaseline({
+        statuses: [
+          readyCluster({
+            remediationMode: KubernetesAiRemediationMode.RequireApproval,
+          }),
+        ],
+      });
+      jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+        enableAi: true,
+        enableAutomaticIncidentRemediation: incidents,
+        enableAutomaticAlertRemediation: alerts,
+      } as unknown as Project);
+
+      await AutoRemediationRuleEngineService.applyRulesToAlert({
+        id: ALERT_ID,
+        _id: ALERT_ID.toString(),
+        projectId: PROJECT_ID,
+        title: "Pods stuck in Pending",
+      } as unknown as Alert);
+
+      expect(createdSuggestions).toHaveLength(rounds);
+    },
+  );
+
+  it.each([
+    [true, false, 1],
+    [false, true, 0],
+  ])(
+    "an incident answers to Fix new incidents automatically alone (incidents %s, alerts %s: %s rounds)",
+    async (incidents: boolean, alerts: boolean, rounds: number) => {
+      mockBaseline({});
+      jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+        enableAi: true,
+        enableAutomaticIncidentRemediation: incidents,
+        enableAutomaticAlertRemediation: alerts,
+      } as unknown as Project);
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(
+        fakeIncident(),
+      );
+
+      expect(createdSuggestions).toHaveLength(rounds);
+    },
+  );
+
   it("starts a FullAuto run with auto-resolve for a BypassApproval cluster and says approvals are bypassed", async () => {
     mockBaseline({
       statuses: [
@@ -378,7 +434,7 @@ describe("AutoRemediationRuleEngineService cluster-level remediation", () => {
     expect(IncidentFeedService.createIncidentFeedItem).not.toHaveBeenCalled();
   });
 
-  it("needs no project switch beyond Enable AI: a project row with Enable AI alone starts the round", async () => {
+  it("reads Enable AI and the two fixing switches, and starts the round when both are on", async () => {
     mockBaseline({});
 
     await AutoRemediationRuleEngineService.applyRulesToIncident(fakeIncident());
@@ -386,10 +442,39 @@ describe("AutoRemediationRuleEngineService cluster-level remediation", () => {
     expect(createdSuggestions).toHaveLength(1);
     expect(ProjectService.findOneById).toHaveBeenCalledWith({
       id: PROJECT_ID,
-      select: { enableAi: true },
+      select: {
+        enableAi: true,
+        enableAutomaticIncidentRemediation: true,
+        enableAutomaticAlertRemediation: true,
+      },
       props: { isRoot: true },
     });
   });
+
+  it.each([
+    ["off", false],
+    ["not read (a row with Enable AI alone)", undefined],
+  ])(
+    "starts no cluster round while Fix new incidents automatically is %s - no cluster is even read",
+    async (_label: string, value: boolean | undefined) => {
+      mockBaseline({});
+      jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+        enableAi: true,
+        enableAutomaticIncidentRemediation: value,
+        enableAutomaticAlertRemediation: true,
+      } as unknown as Project);
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(
+        fakeIncident(),
+      );
+
+      expect(createdSuggestions).toHaveLength(0);
+      expect(
+        KubernetesClusterAiAccessService.getStatusesForSubject,
+      ).not.toHaveBeenCalled();
+      expect(enqueue).not.toHaveBeenCalled();
+    },
+  );
 
   it("skips the lane quietly when the access lookup fails and still evaluates rules", async () => {
     mockBaseline({});

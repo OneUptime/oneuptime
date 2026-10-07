@@ -27,6 +27,10 @@ import {
   coerceDateColumnValue,
   isDateTableColumnType,
 } from "../../../Types/Database/DateColumnValue";
+import {
+  isBooleanTableColumnType,
+  toStoredBoolean,
+} from "../../../Types/Database/BooleanColumnValue";
 import { getFirstColorFieldColumn } from "../../../Types/Database/ColorField";
 import Dictionary from "../../../Types/Dictionary";
 import Email from "../../../Types/Email";
@@ -828,6 +832,15 @@ export default class DatabaseBaseModel extends BaseEntity {
            * Types/Database/DateColumnValue.
            */
           (baseModel as any)[key] = coerceDateColumnValue(json[key]);
+        } else if (isBooleanTableColumnType(tableColumnMetadata.type)) {
+          /*
+           * A switch the API, Terraform or a workflow sends as "true",
+           * "yes" or 1 is the boolean the database stores for it, so a
+           * hook reading the new record sees true, not text. A value the
+           * database would refuse is left as it is, for DatabaseService
+           * to refuse. See Types/Database/BooleanColumnValue.
+           */
+          (baseModel as any)[key] = toStoredBoolean(json[key]);
         } else {
           (baseModel as any)[key] = json[key];
         }

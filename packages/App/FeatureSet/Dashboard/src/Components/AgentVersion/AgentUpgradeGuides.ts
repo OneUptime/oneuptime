@@ -37,6 +37,7 @@ import {
   VMWARE_AGENT_RECREATE_COMMAND,
   getVMwareAgentDownloadCommand,
   getVMwareAgentUpgradeCommand,
+  getVMwareNativeUpgradeCommand,
 } from "../../Pages/VMware/Utils/DocumentationMarkdown";
 import {
   STORAGE_ARRAY_AGENT_INSTALL_DIR,
@@ -293,6 +294,11 @@ interface InstallScriptAgentCommands {
   download: string;
   // Then the images pulled and the containers recreated.
   recreate: string;
+  /*
+   * An install without Docker, where the agent's guide offers one: the
+   * collector release and the files again, then the service restarted.
+   */
+  withoutDocker?: string | undefined;
 }
 
 /*
@@ -304,39 +310,57 @@ interface InstallScriptAgentCommands {
  * <file>.bak.<timestamp>, and pull the images). A Docker Compose install
  * takes both files itself, then pulls the images and recreates the
  * containers, because the collector reads its config only when it starts.
+ * The VMware agent also installs without Docker, as a systemd service: its
+ * install commands again — the release the agent pins, the latest config
+ * and unit — and a restart are the upgrade there.
  */
 function getInstallScriptAgentGuide(
   commands: InstallScriptAgentCommands,
 ): AgentUpgradeGuide {
-  return {
-    methods: [
-      {
-        label: translationKey("Install script"),
-        steps: [
-          {
-            title: translationKey("Run the install script again"),
-            description: SCRIPT_REUSES_ENV,
-            code: commands.upgrade,
-          },
-        ],
-      },
-      {
-        label: translationKey("Docker Compose"),
-        steps: [
-          {
-            title: DOWNLOAD_LATEST_FILES,
-            description: COMPOSE_FOLDER_DOWNLOAD,
-            code: commands.download,
-          },
-          {
-            title: PULL_AND_RECREATE,
-            description: COLLECTOR_READS_CONFIG_AT_START,
-            code: commands.recreate,
-          },
-        ],
-      },
-    ],
-  };
+  const methods: Array<AgentUpgradeMethod> = [
+    {
+      label: translationKey("Install script"),
+      steps: [
+        {
+          title: translationKey("Run the install script again"),
+          description: SCRIPT_REUSES_ENV,
+          code: commands.upgrade,
+        },
+      ],
+    },
+    {
+      label: translationKey("Docker Compose"),
+      steps: [
+        {
+          title: DOWNLOAD_LATEST_FILES,
+          description: COMPOSE_FOLDER_DOWNLOAD,
+          code: commands.download,
+        },
+        {
+          title: PULL_AND_RECREATE,
+          description: COLLECTOR_READS_CONFIG_AT_START,
+          code: commands.recreate,
+        },
+      ],
+    },
+  ];
+
+  if (commands.withoutDocker) {
+    methods.push({
+      label: translationKey("Without Docker"),
+      steps: [
+        {
+          title: translationKey("Install the new release"),
+          description: translationKey(
+            "Run this on the machine the agent runs on. It installs the collector release and the files this OneUptime pins over the old ones, then restarts the agent. Your .env stays; re-apply any change you made to otel-collector-config.yaml.",
+          ),
+          code: commands.withoutDocker,
+        },
+      ],
+    });
+  }
+
+  return { methods: methods };
 }
 
 /*
@@ -621,6 +645,7 @@ export function getAgentUpgradeGuide(
         upgrade: getVMwareAgentUpgradeCommand(),
         download: getVMwareAgentDownloadCommand(),
         recreate: VMWARE_AGENT_RECREATE_COMMAND,
+        withoutDocker: getVMwareNativeUpgradeCommand(),
       });
     case AgentKind.StorageArrayAgent:
       return getStorageArrayAgentGuide();

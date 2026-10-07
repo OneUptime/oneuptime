@@ -50,7 +50,8 @@ const NAMED_AS: Record<string, string> = {
     "an episode's or a scheduled maintenance event's description while it is shown on status pages",
   "ScheduledMaintenance.description":
     "an episode's or a scheduled maintenance event's description while it is shown on status pages",
-  "StatusPageAnnouncement.description": "an announcement",
+  "StatusPageAnnouncement.description":
+    "an announcement from the time it starts showing",
   "StatusPage.overviewPageDescription":
     "the status page's own overview, group and resource descriptions",
   "StatusPageGroup.description":
@@ -110,6 +111,38 @@ describe("Incident notes docs: an image is public only while the status pages sh
     expect(page).toContain(
       "Reading a note through the API, Terraform or a workflow lists only the attachments the reader may open: files of the note's project, and public files.",
     );
+  });
+});
+
+describe("Announcement docs: an announcement's images open for everyone from its start on", () => {
+  const page: string = readPage("status-pages/subscribers.md");
+
+  it("says its images are private while it is scheduled for later", () => {
+    expect(page).toContain(
+      "An image in an announcement's description opens for everyone from **Start Showing Announcement At** on, not before. While an announcement is scheduled for later, its images open only for your project's members, just as the announcement itself shows only in the dashboard.",
+    );
+  });
+
+  it("says they stay open after it ends, as the page still lists it", () => {
+    expect(page).toContain(
+      "They stay that way after it ends, because its status pages still list it under **Past Announcements** and its link keeps working.",
+    );
+  });
+
+  it("says moving it to a later time makes them private again", () => {
+    expect(page).toContain(
+      "Move an announcement to a later time and its images are private again until then.",
+    );
+  });
+
+  it("is said of the one kind of record shown from a time", () => {
+    expect(
+      PUBLISHED_MARKDOWN.filter((source: PublishedMarkdown): boolean => {
+        return Boolean(source.shownFrom);
+      }).map((source: PublishedMarkdown): string => {
+        return `${source.tableName} from ${source.shownFrom}`;
+      }),
+    ).toEqual(["StatusPageAnnouncement from showAnnouncementAt"]);
   });
 });
 

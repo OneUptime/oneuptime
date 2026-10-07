@@ -8,6 +8,7 @@ import MetricsViewConfig from "Common/Types/Metrics/MetricsViewConfig";
 import DomainLookupMethod from "Common/Types/Monitor/DomainMonitor/DomainLookupMethod";
 import MonitorStep, { MonitorStepType } from "Common/Types/Monitor/MonitorStep";
 import { MonitorStepExceptionMonitorUtil } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
+import { MonitorStepLogMonitorUtil } from "Common/Types/Monitor/MonitorStepLogMonitor";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
@@ -1080,6 +1081,15 @@ export default class MonitorStepViewModel {
         valueType: MonitorStepViewValueType.DictionaryOfStrings,
         value: toAttributeFilters(logMonitor?.attributes),
         placeholder: "No attributes entered",
+      }),
+      optional({
+        key: "logGroupByAttributes",
+        title: "Group by Attributes",
+        description:
+          "One alert or incident is raised per distinct combination of these attribute values.",
+        valueType: MonitorStepViewValueType.ArrayOfText,
+        value: MonitorStepLogMonitorUtil.getGroupByAttributes(logMonitor),
+        placeholder: "Not grouped",
       }),
       optional({
         key: "logEntityKeys",

@@ -145,6 +145,8 @@ export const NetworkDeviceRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_OVERVIEW]: `overview`,
   [PageMap.NETWORK_DEVICE_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.NETWORK_DEVICE_VIEW_INTERFACES]: `${RouteParams.ModelID}/interfaces`,
+  [PageMap.NETWORK_DEVICE_VIEW_TABLES]: `${RouteParams.ModelID}/tables`,
+  [PageMap.NETWORK_DEVICE_VIEW_WIFI]: `${RouteParams.ModelID}/wifi`,
   [PageMap.NETWORK_DEVICE_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.NETWORK_DEVICE_VIEW_TRAFFIC]: `${RouteParams.ModelID}/traffic`,
   [PageMap.NETWORK_DEVICE_VIEW_MONITORS]: `${RouteParams.ModelID}/monitors`,
@@ -696,9 +698,11 @@ export const RunbookRoutePath: Dictionary<string> = {
 export const FormsRoutePath: Dictionary<string> = {
   [PageMap.FORMS_SUBMISSIONS]: "submissions",
   [PageMap.FORM_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.FORM_VIEW_TEMPLATES]: `${RouteParams.ModelID}/templates`,
   [PageMap.FORM_VIEW_ON_SUBMIT]: `${RouteParams.ModelID}/on-submit`,
   [PageMap.FORM_VIEW_SHARE]: `${RouteParams.ModelID}/share`,
   [PageMap.FORM_VIEW_SUBMISSIONS]: `${RouteParams.ModelID}/submissions`,
+  [PageMap.FORM_VIEW_DUPLICATE]: `${RouteParams.ModelID}/duplicate`,
   [PageMap.FORM_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
 };
 
@@ -729,6 +733,7 @@ export const LogsRoutePath: Dictionary<string> = {
   [PageMap.LOGS_SETTINGS_DROP_FILTERS]: "settings/drop-filters",
   [PageMap.LOGS_SETTINGS_DROP_FILTER_VIEW]: `settings/drop-filters/${RouteParams.ModelID}`,
   [PageMap.LOGS_SETTINGS_SCRUB_RULES]: "settings/scrub-rules",
+  [PageMap.LOGS_SETTINGS_RECORDING_RULES]: "settings/recording-rules",
 };
 
 // Security Events product routes
@@ -969,8 +974,6 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_AI_INSIGHTS]: "ai/insights",
   [PageMap.INCIDENTS_AI_LOGS]: "ai/logs",
   [PageMap.INCIDENTS_SETTINGS_AI]: "ai/settings",
-  [PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES]:
-    "ai/auto-remediation-rules",
 
   [PageMap.INCIDENT_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.INCIDENT_VIEW_STATE_TIMELINE]: `${RouteParams.ModelID}/state-timeline`,
@@ -1047,7 +1050,6 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERTS_AI_INSIGHTS]: "ai/insights",
   [PageMap.ALERTS_AI_LOGS]: "ai/logs",
   [PageMap.ALERTS_SETTINGS_AI]: "ai/settings",
-  [PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES]: "ai/auto-remediation-rules",
 
   [PageMap.ALERT_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.ALERT_VIEW_STATE_TIMELINE]: `${RouteParams.ModelID}/state-timeline`,
@@ -1733,12 +1735,6 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/alerts/${
-      AlertsRoutePath[PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES]
-    }`,
-  ),
-
   [PageMap.ALERTS_SETTINGS_REMINDER_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERTS_SETTINGS_REMINDER_RULES]
@@ -2292,12 +2288,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENTS_AI_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_AI_LOGS]
-    }`,
-  ),
-
-  [PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/incidents/${
-      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES]
     }`,
   ),
 
@@ -3180,6 +3170,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.NETWORK_DEVICE_VIEW_INTERFACES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-devices/${
       NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW_INTERFACES]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_VIEW_TABLES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW_TABLES]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_VIEW_WIFI]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW_WIFI]
     }`,
   ),
 
@@ -6483,6 +6485,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.LOGS_SETTINGS_RECORDING_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/logs/${
+      LogsRoutePath[PageMap.LOGS_SETTINGS_RECORDING_RULES]
+    }`,
+  ),
+
   // Security Events Product Routes
   [PageMap.SECURITY_EVENTS_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/*`,
@@ -7164,6 +7172,11 @@ const RouteMap: Dictionary<Route> = {
       FormsRoutePath[PageMap.FORM_VIEW]
     }`,
   ),
+  [PageMap.FORM_VIEW_TEMPLATES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/forms/${
+      FormsRoutePath[PageMap.FORM_VIEW_TEMPLATES]
+    }`,
+  ),
   [PageMap.FORM_VIEW_ON_SUBMIT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/forms/${
       FormsRoutePath[PageMap.FORM_VIEW_ON_SUBMIT]
@@ -7177,6 +7190,11 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.FORM_VIEW_SUBMISSIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/forms/${
       FormsRoutePath[PageMap.FORM_VIEW_SUBMISSIONS]
+    }`,
+  ),
+  [PageMap.FORM_VIEW_DUPLICATE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/forms/${
+      FormsRoutePath[PageMap.FORM_VIEW_DUPLICATE]
     }`,
   ),
   [PageMap.FORM_VIEW_DELETE]: new Route(

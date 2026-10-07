@@ -110,14 +110,28 @@ describe("what an identity provider is told", () => {
 
   test("is one plain message", () => {
     expect(message).toBe(
-      "SCIM provisioning needs the Scale plan. This project's plan does not include it, so its SCIM connections stopped working. The connections are kept: upgrade the project to Scale in Project Settings > Billing and they work again.",
+      "SCIM provisioning needs the Scale plan. This project's plan does not include it, so its SCIM connections can only remove people: requests that add or change people or groups are refused. The connections are kept: upgrade the project to Scale in Project Settings > Billing and they work fully again.",
     );
+  });
+
+  /*
+   * Below the plan a connection still takes access away (ee's
+   * SCIMBelowPlan): the refusal of everything else must not read as if
+   * removals stopped too.
+   */
+  test("says removing people still works, and what is refused", () => {
+    expect(message).toContain("can only remove people");
+    expect(message).toContain(
+      "requests that add or change people or groups are refused",
+    );
+    expect(message).not.toContain("stopped working");
   });
 
   test("says the connections are kept, and where to upgrade", () => {
     expect(message).toContain("The connections are kept");
     expect(message).toContain("upgrade the project to Scale");
     expect(message).toContain("Project Settings > Billing");
+    expect(message).toContain("they work fully again");
   });
 });
 

@@ -64,6 +64,23 @@ The processor form has a **pattern tester**: paste a real log line and it shows 
 
 ---
 
+#### Key=Value Parser
+Splits a line of \`key=value\` pairs into log attributes, whatever order the fields arrive in.
+
+**When to use:** Your logs are lines of key=value pairs whose fields change from event to event — Sophos XGS and Fortinet firewalls, logfmt, many network appliances. A grok pattern needs the fields in a fixed order; this processor does not.
+
+**How it works:**
+1. Reads the **Source Field** — usually the log \`body\`, but any attribute key works
+2. Every \`key=value\` pair becomes an attribute, optionally namespaced under a **Target Prefix**. Quoted values keep their spaces; text that is not a pair, such as a syslog header, is skipped
+3. Pairs are split on whitespace by default — set a **Pair Delimiter** (\`,\` \`;\` \`|\`) or a **Key-Value Delimiter** (\`:\`) for other formats
+4. Values are stored as text, the first value of a repeated key wins, and an attribute the log already has is only replaced when **Override on Conflict** is on
+
+| Log body | Target prefix | Attributes added |
+|----------|---------------|------------------|
+| \`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"\` | \`sophos\` | sophos.log_component, sophos.con_name, sophos.status |
+
+---
+
 #### Severity Remapper
 Maps a log field to a standard OpenTelemetry severity level.
 
@@ -111,7 +128,7 @@ Tags logs with a category label based on filter conditions.
 ---
 
 ### Tips
-- **Order matters** — processors run sequentially, so a grok parser should run before a severity remapper that reads a field grok extracted
+- **Order matters** — processors run sequentially, so a grok or key=value parser should run before a severity remapper that reads a field it extracted
 - **Disable without deleting** — toggle a processor off to temporarily skip it
 - **Test incrementally** — add one processor at a time and verify in the Logs view
 `;
@@ -248,7 +265,7 @@ const LogPipelineView: FunctionComponent<PageComponentProps> = (
         helpContent={{
           title: "How Log Processors Work",
           description:
-            "Understanding Grok Parser, Severity Remapper, Attribute Remapper, and Category Processor",
+            "Understanding Grok Parser, Key=Value Parser, Severity Remapper, Attribute Remapper, and Category Processor",
           markdown: processorsDocMarkdown,
         }}
         showRefreshButton={true}

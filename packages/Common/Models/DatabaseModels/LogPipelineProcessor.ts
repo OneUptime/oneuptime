@@ -280,7 +280,7 @@ export default class LogPipelineProcessor extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Processor Type",
     description:
-      "The type of processor: GrokParser, AttributeRemapper, SeverityRemapper, or CategoryProcessor.",
+      "The type of processor: GrokParser, KeyValueParser, AttributeRemapper, SeverityRemapper, or CategoryProcessor.",
   })
   @Column({
     nullable: false,

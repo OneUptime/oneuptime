@@ -198,10 +198,11 @@ describe("RULE_CRITERIA_FIELDS_BY_MODEL", () => {
   });
 
   /*
-   * The two tables that serve incident and alert rules alike, told apart by
-   * their triggerEntityType. Each rule still uses only its own trigger's
-   * severities (the auto-remediation and runbook rule forms offer one or
-   * the other, and RunbookRuleService refuses the other).
+   * The three tables that serve incident and alert rules alike, told apart
+   * by their triggerEntityType. Each rule still uses only its own trigger's
+   * severities (the auto-remediation, investigation and runbook rule forms
+   * offer one or the other, and AIInvestigationRuleService and
+   * RunbookRuleService refuse the other).
    */
   test("only the trigger-entity rules can match both incident and alert severities", () => {
     const both: Array<string> = MODEL_NAMES.filter((modelName: string) => {
@@ -213,7 +214,11 @@ describe("RULE_CRITERIA_FIELDS_BY_MODEL", () => {
       );
     });
 
-    expect(both).toEqual(["AutoRemediationRule", "RunbookRule"]);
+    expect(both).toEqual([
+      "AIInvestigationRule",
+      "AutoRemediationRule",
+      "RunbookRule",
+    ]);
   });
 
   test("pins a few representative contracts exactly", () => {

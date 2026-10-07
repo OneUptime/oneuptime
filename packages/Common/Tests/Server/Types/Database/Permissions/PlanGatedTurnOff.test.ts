@@ -15,6 +15,7 @@ import ColumnBillingAccessControl from "../../../../../Types/BaseDatabase/Column
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import {
   EMPTY_TEXT_COLUMN_TYPES,
+  isAnalyticsPlanGatedColumnDefault,
   isPlanGatedColumnDefault,
 } from "../../../../../Types/Billing/PlanGatedColumnDefault";
 import SubscriptionPlan, {
@@ -31,6 +32,9 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../../../Types/Permission";
 import { setTestBillingEnabled } from "../../../Enterprise/TestBillingFlag";
+import AnalyticsModelPermission from "../../../../../Server/Types/AnalyticsDatabase/ModelPermission";
+import AnalyticsTableColumn from "../../../../../Types/AnalyticsDatabase/TableColumn";
+import AnalyticsTableColumnType from "../../../../../Types/AnalyticsDatabase/TableColumnType";
 import {
   afterAll,
   afterEach,
@@ -67,8 +71,11 @@ import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArg
  *     name;
  *   - with billing off (every self-hosted install), nothing is refused.
  *
- * Analytics models carry no column-level plan gates, so the rule has
- * nothing to cover there; if one is ever added, this fails and points here.
+ * Analytics models carry no column-level plan gates today. Their column
+ * check (AnalyticsDatabase/ModelPermission) holds the same rule all the
+ * same (isAnalyticsPlanGatedColumnDefault), pinned below on a model made
+ * for the test, so the first plan-gated analytics column switches off the
+ * way a database column does.
  */
 jest.mock("../../../../../Server/EnvironmentConfig", () => {
   const billingFlag: typeof import("../../../Enterprise/TestBillingFlag") =
@@ -614,7 +621,7 @@ describe("on a self-hosted install (billing off)", () => {
 });
 
 describe("analytics models", () => {
-  test("carry no column-level plan gates, so the turn-off rule has nothing to cover there", () => {
+  test("carry no column-level plan gates today", () => {
     const gated: Array<string> = [];
 
     for (const modelType of AllAnalyticsModelTypes) {
@@ -628,10 +635,294 @@ describe("analytics models", () => {
     }
 
     /*
-     * If this fails, the analytics ModelPermission's column check needs the
-     * same exception as ColumnPermission (PlanGatedColumnDefault).
+     * The first one is covered by the analytics column check's turn-off
+     * rule, pinned below; add it to the sweep above when it comes.
      */
     expect(gated).toEqual([]);
+  });
+
+  /*
+   * A model made for the test, as an analytics model with plan-gated
+   * columns would be: a switch, a text column with no default, and a
+   * number with one - each gated to Growth for creates and updates.
+   */
+  const GROWTH_GATED: ColumnBillingAccessControl = {
+    read: PlanType.Free,
+    create: PlanType.Growth,
+    update: PlanType.Growth,
+  };
+
+  const OWNER_WRITES: ColumnAccessControl = {
+    create: [Permission.ProjectOwner],
+    read: [Permission.ProjectOwner],
+    update: [Permission.ProjectOwner],
+  };
+
+  class GatedAnalyticsRow extends AnalyticsBaseModel {
+    public constructor() {
+      super({
+        tableName: "GatedAnalyticsRowForTest",
+        singularName: "Gated Row",
+        pluralName: "Gated Rows",
+        accessControl: {
+          create: [Permission.ProjectOwner],
+          read: [Permission.ProjectOwner],
+          update: [Permission.ProjectOwner],
+          delete: [Permission.ProjectOwner],
+        },
+        tableColumns: [
+          new AnalyticsTableColumn({
+            key: "projectId",
+            title: "Project ID",
+            description: "The project",
+            required: true,
+            isTenantId: true,
+            type: AnalyticsTableColumnType.ObjectID,
+            accessControl: OWNER_WRITES,
+          }),
+          new AnalyticsTableColumn({
+            key: "isPinned",
+            title: "Pinned",
+            description: "A paid switch",
+            required: false,
+            type: AnalyticsTableColumnType.Boolean,
+            defaultValue: false,
+            billingAccessControl: GROWTH_GATED,
+            accessControl: OWNER_WRITES,
+          }),
+          new AnalyticsTableColumn({
+            key: "note",
+            title: "Note",
+            description: "Paid text, nothing by default",
+            required: false,
+            type: AnalyticsTableColumnType.Text,
+            billingAccessControl: GROWTH_GATED,
+            accessControl: OWNER_WRITES,
+          }),
+          new AnalyticsTableColumn({
+            key: "keepDays",
+            title: "Keep days",
+            description: "A paid number with a default",
+            required: false,
+            type: AnalyticsTableColumnType.Number,
+            defaultValue: 15,
+            billingAccessControl: GROWTH_GATED,
+            accessControl: OWNER_WRITES,
+          }),
+        ],
+        primaryKeys: ["projectId"],
+        sortKeys: ["projectId"],
+        partitionKey: "projectId",
+      });
+    }
+  }
+
+  const ownerOn: (plan: PlanType) => DatabaseCommonInteractionProps = (
+    plan: PlanType,
+  ): DatabaseCommonInteractionProps => {
+    return {
+      userId: USER_ID,
+      tenantId: PROJECT_ID,
+      currentPlan: plan,
+      isSubscriptionUnpaid: false,
+      userTenantAccessPermission: {
+        [PROJECT_ID.toString()]: {
+          _type: "UserTenantAccessPermission",
+          projectId: PROJECT_ID,
+          permissions: [
+            {
+              _type: "UserPermission",
+              permission: Permission.ProjectOwner,
+              labelIds: [],
+              isBlockPermission: false,
+            },
+          ],
+        } as UserTenantAccessPermission,
+      },
+    };
+  };
+
+  // What the analytics column check says about a write: "allowed", or its refusal.
+  const checkAnalyticsWrite: (input: {
+    requestType: DatabaseRequestType;
+    plan: PlanType;
+    data: Record<string, unknown>;
+  }) => string = (input: {
+    requestType: DatabaseRequestType;
+    plan: PlanType;
+    data: Record<string, unknown>;
+  }): string => {
+    try {
+      (
+        AnalyticsModelPermission as unknown as {
+          checkDataColumnPermissions: (
+            modelType: { new (): AnalyticsBaseModel },
+            data: unknown,
+            props: DatabaseCommonInteractionProps,
+            requestType: DatabaseRequestType,
+          ) => void;
+        }
+      ).checkDataColumnPermissions(
+        GatedAnalyticsRow,
+        input.data,
+        ownerOn(input.plan),
+        input.requestType,
+      );
+
+      return "allowed";
+    } catch (err) {
+      if (err instanceof PaymentRequiredException) {
+        return err.message;
+      }
+
+      throw err;
+    }
+  };
+
+  const WRITES: Array<DatabaseRequestType> = [
+    DatabaseRequestType.Create,
+    DatabaseRequestType.Update,
+  ];
+
+  test.each(WRITES)(
+    "%s: putting a gated column back to its default needs no plan",
+    (requestType: DatabaseRequestType) => {
+      for (const data of [
+        { isPinned: false },
+        { note: null },
+        { note: "" },
+        { keepDays: 15 },
+        { isPinned: false, note: "", keepDays: 15 },
+      ]) {
+        expect([
+          data,
+          checkAnalyticsWrite({ requestType, plan: PlanType.Free, data }),
+        ]).toEqual([data, "allowed"]);
+      }
+    },
+  );
+
+  test.each(WRITES)(
+    "%s: anything else written to it needs the plan, and says which",
+    (requestType: DatabaseRequestType) => {
+      for (const data of [
+        { isPinned: true },
+        { note: "pinned for the review" },
+        { keepDays: 30 },
+        // Another type, or a blank where nothing is expected, is no default.
+        { isPinned: "false" },
+        { keepDays: "15" },
+        { note: " " },
+        // One switched on among defaults: the write needs the plan.
+        { isPinned: false, keepDays: 30 },
+      ]) {
+        expect([
+          data,
+          checkAnalyticsWrite({ requestType, plan: PlanType.Free, data }),
+        ]).toEqual([data, refusalFor(PlanType.Growth)]);
+      }
+    },
+  );
+
+  test.each(WRITES)(
+    "%s: on the plan, anything goes",
+    (requestType: DatabaseRequestType) => {
+      for (const plan of [PlanType.Growth, PlanType.Scale]) {
+        expect(
+          checkAnalyticsWrite({
+            requestType,
+            plan,
+            data: { isPinned: true, note: "x", keepDays: 30 },
+          }),
+        ).toBe("allowed");
+      }
+    },
+  );
+
+  test("billing off (self-hosted): nothing is refused", () => {
+    setTestBillingEnabled(false);
+
+    expect(
+      checkAnalyticsWrite({
+        requestType: DatabaseRequestType.Update,
+        plan: PlanType.Free,
+        data: { isPinned: true, keepDays: 30 },
+      }),
+    ).toBe("allowed");
+  });
+
+  test("the analytics rule reads a column as the database rule does", () => {
+    const column: (
+      type: AnalyticsTableColumnType,
+      defaultValue?: unknown,
+    ) => AnalyticsTableColumn = (
+      type: AnalyticsTableColumnType,
+      defaultValue?: unknown,
+    ): AnalyticsTableColumn => {
+      return new AnalyticsTableColumn({
+        key: "x",
+        title: "X",
+        description: "X",
+        required: false,
+        type,
+        defaultValue: defaultValue as never,
+      });
+    };
+
+    // A switch with no default is off when false or nothing.
+    expect(
+      isAnalyticsPlanGatedColumnDefault(
+        column(AnalyticsTableColumnType.Boolean),
+        false,
+      ),
+    ).toBe(true);
+    expect(
+      isAnalyticsPlanGatedColumnDefault(
+        column(AnalyticsTableColumnType.Boolean),
+        true,
+      ),
+    ).toBe(false);
+    // Text with no default: nothing, or the empty string.
+    expect(
+      isAnalyticsPlanGatedColumnDefault(
+        column(AnalyticsTableColumnType.Text),
+        "",
+      ),
+    ).toBe(true);
+    // A number with no default: only nothing - an empty string is no number.
+    expect(
+      isAnalyticsPlanGatedColumnDefault(
+        column(AnalyticsTableColumnType.Number),
+        "",
+      ),
+    ).toBe(false);
+    expect(
+      isAnalyticsPlanGatedColumnDefault(
+        column(AnalyticsTableColumnType.Number),
+        null,
+      ),
+    ).toBe(true);
+    // A declared default, exactly; JSON in any key order.
+    expect(
+      isAnalyticsPlanGatedColumnDefault(
+        column(AnalyticsTableColumnType.JSON, { a: 1, b: 2 }),
+        { b: 2, a: 1 },
+      ),
+    ).toBe(true);
+    expect(
+      isAnalyticsPlanGatedColumnDefault(
+        column(AnalyticsTableColumnType.Number, 15),
+        16,
+      ),
+    ).toBe(false);
+    // A value not written is never the default; nor is a column with no metadata.
+    expect(
+      isAnalyticsPlanGatedColumnDefault(
+        column(AnalyticsTableColumnType.Boolean, false),
+        undefined,
+      ),
+    ).toBe(false);
+    expect(isAnalyticsPlanGatedColumnDefault(null, false)).toBe(false);
   });
 });
 

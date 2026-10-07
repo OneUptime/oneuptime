@@ -14,7 +14,7 @@ import React, { FunctionComponent, ReactElement } from "react";
  * Enterprise screen when the project may use the feature and this build
  * includes it, and the upsell card otherwise - on OneUptime Cloud below
  * Scale, with the SCIM connections the status page still has under it:
- * they stopped provisioning people, and can be deleted
+ * they only remove people - deactivate, delete - and can be deleted
  * (StatusPageScimConnectionsLeftover).
  */
 const SCIMPage: FunctionComponent<PageComponentProps> = (

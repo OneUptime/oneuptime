@@ -10,6 +10,7 @@ import { IOT_DEVICE_ID_ATTRIBUTE_KEY } from "./IoTDeviceAbsenceSeries";
 import PerEntityCriteriaFanOut, {
   FanOutEntity,
 } from "./PerEntityCriteriaFanOut";
+import LogGroupCriteriaFanOut from "./LogGroupCriteriaFanOut";
 import SSLMonitorCriteria from "./Criteria/SSLMonitorCriteria";
 import CompareCriteria from "./Criteria/CompareCriteria";
 import ServerMonitorCriteria from "./Criteria/ServerMonitorCriteria";
@@ -46,6 +47,7 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorCriteria from "../../../Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
+import { MonitorStepLogMonitorUtil } from "../../../Types/Monitor/MonitorStepLogMonitor";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import MonitorEvaluationSummary, {
   MonitorEvaluationCriteriaResult,
@@ -574,6 +576,15 @@ ${contextBlock}
       return MonitorStep.getGroupByAttributeKeys(input.monitorStep).length > 0;
     }
 
+    // A Logs monitor's Group By, the log-count counterpart of the above.
+    if (monitorType === MonitorType.Logs) {
+      return (
+        MonitorStepLogMonitorUtil.getGroupByAttributes(
+          input.monitorStep.data?.logMonitor,
+        ).length > 0
+      );
+    }
+
     /*
      * Monitor types with no group-by concept, whose criteria name one
      * entity each. They opt into per-entity alerting by naming "*"
@@ -592,8 +603,13 @@ ${contextBlock}
     if (monitorType === MonitorType.NetworkDevice) {
       return input.criteriaInstances.some(
         (criteriaInstance: MonitorCriteriaInstance) => {
-          return PerEntityCriteriaFanOut.isSnmpInterfaceFanOutConfigured(
-            criteriaInstance,
+          return (
+            PerEntityCriteriaFanOut.isSnmpInterfaceFanOutConfigured(
+              criteriaInstance,
+            ) ||
+            PerEntityCriteriaFanOut.isSnmpTableFanOutConfigured(
+              criteriaInstance,
+            )
           );
         },
       );
@@ -659,6 +675,52 @@ ${contextBlock}
     }
 
     /*
+     * A grouped Logs monitor: one count per combination of its group-by
+     * attributes' values. Each group is judged on its own count, so every
+     * tunnel (or user, or interface) that breaches raises its own alert,
+     * through the same fan-out the disks and interfaces below use.
+     */
+    if (input.monitor.monitorType === MonitorType.Logs) {
+      return PerEntityCriteriaFanOut.collectMatches({
+        criteriaInstance: input.criteriaInstance,
+        entities: LogGroupCriteriaFanOut.getGroupEntities({
+          dataToProcess: input.dataToProcess,
+        }),
+        monitorId: input.monitor.id?.toString(),
+        evaluateNarrowedCriteria: (
+          narrowedCriteriaInstance: MonitorCriteriaInstance,
+          entity: FanOutEntity,
+        ): Promise<string | null> => {
+          return MonitorCriteriaEvaluator.isMonitorInstanceCriteriaFiltersMet({
+            dataToProcess: entity.dataToProcess || input.dataToProcess,
+            monitorStep: input.monitorStep,
+            monitor: input.monitor,
+            probeApiIngestResponse: {
+              monitorId: input.dataToProcess.monitorId,
+              rootCause: null,
+            },
+            criteriaInstance: narrowedCriteriaInstance,
+            /*
+             * A throwaway result, as for disks below: the per-group pass
+             * must not overwrite the summary row the whole-criteria
+             * evaluation already wrote.
+             */
+            criteriaResult: {
+              criteriaId: narrowedCriteriaInstance.data?.id,
+              criteriaName: narrowedCriteriaInstance.data?.name,
+              filterCondition:
+                narrowedCriteriaInstance.data?.filterCondition ||
+                FilterCondition.All,
+              met: false,
+              message: "",
+              filters: [],
+            },
+          });
+        },
+      });
+    }
+
+    /*
      * Server and SNMP monitors observe several independent entities in a
      * single check — every mounted filesystem, every port on a switch —
      * but their criteria address one at a time. When a criteria opts in
@@ -670,16 +732,28 @@ ${contextBlock}
       input.monitor.monitorType === MonitorType.Server ||
       input.monitor.monitorType === MonitorType.NetworkDevice
     ) {
+      /*
+       * A Network Device criteria can address ports and table rows; each
+       * entity narrows only the filters that address its own kind, so a
+       * criteria mixing a "*" port filter and a "*" table filter fans out
+       * over both.
+       */
       const entities: Array<FanOutEntity> =
         input.monitor.monitorType === MonitorType.Server
           ? PerEntityCriteriaFanOut.getServerDiskEntities({
               dataToProcess: input.dataToProcess,
               criteriaInstance: input.criteriaInstance,
             })
-          : PerEntityCriteriaFanOut.getSnmpInterfaceEntities({
-              dataToProcess: input.dataToProcess,
-              criteriaInstance: input.criteriaInstance,
-            });
+          : [
+              ...PerEntityCriteriaFanOut.getSnmpInterfaceEntities({
+                dataToProcess: input.dataToProcess,
+                criteriaInstance: input.criteriaInstance,
+              }),
+              ...PerEntityCriteriaFanOut.getSnmpTableRowEntities({
+                dataToProcess: input.dataToProcess,
+                criteriaInstance: input.criteriaInstance,
+              }),
+            ];
 
       return PerEntityCriteriaFanOut.collectMatches({
         criteriaInstance: input.criteriaInstance,

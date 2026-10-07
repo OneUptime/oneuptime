@@ -213,6 +213,11 @@ const PER_TYPE_EXPECTATIONS: Array<PerTypeExpectation> = [
       "trapOid",
       "trapSourceIp",
       "trapVarbinds",
+      "tables.<key>.rowCount",
+      "tables.<key>.unhealthyRows",
+      "tables.<key>.rows",
+      "snmpTable",
+      "snmpTableRow",
     ],
   },
   {

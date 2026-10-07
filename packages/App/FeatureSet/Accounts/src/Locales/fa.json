@@ -182,7 +182,10 @@
     "reference": "شماره پیگیری شما {{reference}} است.",
     "submitAnother": "ارسال پاسخ دیگر",
     "retryAfter": "می‌توانید {{when}} دوباره تلاش کنید.",
-    "tryAgain": "تلاش دوباره"
+    "tryAgain": "تلاش دوباره",
+    "templateLabel": "شروع از یک قالب",
+    "templateDescription": "یک قالب انتخاب کنید تا فرم پر شود. پیش از ارسال می‌توانید هر پاسخی را تغییر دهید.",
+    "templateNone": "بدون قالب"
   },
   "errors": {
     "forbidden": {

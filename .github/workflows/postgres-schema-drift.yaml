@@ -103,6 +103,22 @@ jobs:
           Tests/Server/Services/AIDailyLimitNoticeAndCatchUpPostgres.test.ts
           --forceExit
 
+      # The one-time notice to owners of projects already below the plans
+      # their API keys and SCIM connections need: one conditional UPDATE
+      # claims it (workers racing included), and the whole run, on real
+      # rows, tells each project's owners once.
+      - name: Test the plan cut-off notice on Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PLAN_CUTOFF_NOTICE_TESTS: "true"
+          PLAN_CUTOFF_NOTICE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PLAN_CUTOFF_NOTICE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PLAN_CUTOFF_NOTICE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/PlanCutoffNoticePostgres.test.ts
+          --forceExit
+
       # When a project's AI credits run out: the one conditional UPDATE that
       # tells the owners once each time (even when servers race) and that a
       # recharge re-arms, the recharge's atomic credit, and Auto Recharge
@@ -118,6 +134,24 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/AICreditsRunOutPostgres.test.ts --forceExit
+
+      # The balance SMS, calls, WhatsApp and Telegram are paid from: costs
+      # and recharge credits are one statement each, so messages sent
+      # together all pay and a cost taken while a charge was out is kept;
+      # Auto Recharge charges the card once for many messages; the owners'
+      # low-balance email is one conditional UPDATE claim. On a
+      # structure-only copy of the migrated Project table, with real
+      # concurrency.
+      - name: Test the SMS and call balance on Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_MESSAGING_BALANCE_TESTS: "true"
+          MESSAGING_BALANCE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MESSAGING_BALANCE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MESSAGING_BALANCE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/MessagingBalancePostgres.test.ts --forceExit
 
       - name: Test episode member deletion on migrated Postgres
         working-directory: packages/Common
@@ -172,6 +206,20 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/EpisodeMemberPrivacyPostgres.test.ts --forceExit
+
+      # An episode a private incident or alert opens is stored with the title
+      # in its grouping key hashed: later records find it, and every episode
+      # stored before titles were hashed, by either form of their key.
+      - name: Test episode grouping keys on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_EPISODE_GROUPING_KEY_TESTS: "true"
+          EPISODE_GROUPING_KEY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          EPISODE_GROUPING_KEY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          EPISODE_GROUPING_KEY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/EpisodeGroupingKeyPostgres.test.ts --forceExit
 
       # A record's live update reaches the people its own read lets read it:
       # labels, owners, blocks with labels (and the labelled records a

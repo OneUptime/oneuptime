@@ -158,6 +158,7 @@ import TracePipelineProcessor from "./TracePipelineProcessor";
 import TraceDropFilter from "./TraceDropFilter";
 import TraceScrubRule from "./TraceScrubRule";
 import TraceRecordingRule from "./TraceRecordingRule";
+import LogRecordingRule from "./LogRecordingRule";
 // Monitors
 import Monitor from "./Monitor";
 import MonitorCustomField from "./MonitorCustomField";
@@ -350,6 +351,7 @@ import RunbookRule from "./RunbookRule";
 import AutoRemediationRule from "./AutoRemediationRule";
 import AutoRemediationSuggestion from "./AutoRemediationSuggestion";
 import AutoRemediationDecision from "./AutoRemediationDecision";
+import AIInvestigationRule from "./AIInvestigationRule";
 
 import UserTotpAuth from "./UserTotpAuth";
 import UserTwoFactorBackupCode from "./UserTwoFactorBackupCode";
@@ -550,6 +552,7 @@ const AllModelTypes: Array<{
   TraceDropFilter,
   TraceScrubRule,
   TraceRecordingRule,
+  LogRecordingRule,
   ApiKeyPermission,
   ProjectSmtpConfig,
   StatusPage,
@@ -748,6 +751,7 @@ const AllModelTypes: Array<{
   AutoRemediationRule,
   AutoRemediationSuggestion,
   AutoRemediationDecision,
+  AIInvestigationRule,
   Runner,
   RunnerJob,
   RunnerOwnerTeam,

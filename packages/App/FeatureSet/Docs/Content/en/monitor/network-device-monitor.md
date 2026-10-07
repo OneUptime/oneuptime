@@ -20,8 +20,9 @@ The Network Devices product is made up of:
 - **Device inventory** — register each device once with its address, site, probe and (optionally) SNMP credentials. The assigned probe polls it on schedule, and OneUptime enriches the record with the device's system identity (name, description, location, vendor, model, serial number), interfaces and health metrics as soon as it has credentials to do so.
 - **Network discovery** — sweep a subnet (CIDR) or an octet range (`10.16-22.0-255.51-66`) from a probe and import what answers, in bulk. A scan can ping the range only, or ping it and then probe the responders over SNMP — so a range you hold no SNMP credentials for is still worth sweeping. Everything imports as a probe-polled device and starts getting polled immediately.
 - **SNMP credential profiles** — one named credential set that many devices and sites share, so rotating a community string is one edit rather than one per device.
-- **Alert policies** — write down once what a whole *set* of devices should be alerted on, rather than per device. (Definitions ship now; the engine that turns them into monitors does not yet — see [Alert Policies](#alert-policies).)
+- **Alert policies** — write down once what a whole _set_ of devices should be alerted on, rather than per device. (Definitions ship now; the engine that turns them into monitors does not yet — see [Alert Policies](#alert-policies).)
 - **Network Device monitors** — the alerting layer: evaluate each device poll and trap against criteria and open incidents or alerts.
+- **SNMP tables** — lists a device keeps (IPsec tunnels, Wi-Fi radios, SSIDs, fabric neighbours, fans, power supplies) walked whole on every poll, charted per row and alertable per row. See [SNMP Tables](#snmp-tables).
 - **SNMP traps** — probes run a trap receiver, so link-down events raise incidents in seconds instead of waiting for the next poll.
 - **Topology view** — a live network map built from LLDP neighbour data, complemented by CDP on Cisco estates.
 
@@ -39,21 +40,21 @@ A device's details — its name, description, role, site, labels and address —
 
 ### Device Details
 
-| Field       | Description                                                      | Required |
-| ----------- | ---------------------------------------------------------------- | -------- |
-| Name        | A friendly name for the device (e.g., core-switch-01)            | Yes      |
-| Hostname    | IP address or hostname the probe pings, and walks over SNMP      | Yes      |
-| MAC Address | The device's own MAC. Lets the topology map put a device that speaks neither LLDP nor CDP on the switch port that learned it — see [Network Topology](#network-topology). Usually learned for you from a router's ARP table. | No |
-| Description | Free text                                                        | No       |
-| Role        | Device role (core switch, access switch, firewall …) — drives topology tiering and alert-policy scoping | No |
+| Field       | Description                                                                                                                                                                                                                  | Required |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| Name        | A friendly name for the device (e.g., core-switch-01)                                                                                                                                                                        | Yes      |
+| Hostname    | IP address or hostname the probe pings, and walks over SNMP                                                                                                                                                                  | Yes      |
+| MAC Address | The device's own MAC. Lets the topology map put a device that speaks neither LLDP nor CDP on the switch port that learned it — see [Network Topology](#network-topology). Usually learned for you from a router's ARP table. | No       |
+| Description | Free text                                                                                                                                                                                                                    | No       |
+| Role        | Device role (core switch, access switch, firewall …) — drives topology tiering and alert-policy scoping                                                                                                                      | No       |
 
 ### Probe & Site
 
-| Field | Description                                                                                                                                                                          | Required |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- |
-| Probe | Which probe pings this device, walks it over SNMP when it has credentials, and receives its traps, syslog and NetFlow. It must be able to reach the device directly — a probe on the public internet cannot reach a private address. | Yes      |
-| Site  | The [Network Site](/docs/monitor/network-sites) the device sits in. The site's health rolls up from the devices in it.                                                                | No       |
-| Also create a Ping monitor for incidents | The probe already pings the device and gives it a status; this is what turns failed pings into an **incident**. Tick it and a Ping monitor is created on the hostname above and bound to the device when you save. It counts towards your plan, and incidents are off on it until you turn them on from the monitor's page. | No |
+| Field                                    | Description                                                                                                                                                                                                                                                                                                                 | Required |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| Probe                                    | Which probe pings this device, walks it over SNMP when it has credentials, and receives its traps, syslog and NetFlow. It must be able to reach the device directly — a probe on the public internet cannot reach a private address.                                                                                        | Yes      |
+| Site                                     | The [Network Site](/docs/monitor/network-sites) the device sits in. The site's health rolls up from the devices in it.                                                                                                                                                                                                      | No       |
+| Also create a Ping monitor for incidents | The probe already pings the device and gives it a status; this is what turns failed pings into an **incident**. Tick it and a Ping monitor is created on the hostname above and bound to the device when you save. It counts towards your plan, and incidents are off on it until you turn them on from the monitor's page. | No       |
 
 The Probe field fills itself in where it can: a project with exactly one custom probe starts on that one, and picking a site replaces it with the [site's default probe](#site-monitoring-defaults). It never overwrites a probe you chose yourself. Set a default probe on your sites and a device can be added by name and address alone.
 
@@ -63,12 +64,12 @@ Ticking the Ping monitor opt-in reveals a **Ping from probes** field for the mon
 
 **Leave this step empty and the device is pinged only.** It still has a status from its first poll, still sits in its site and on the map — it simply has no interfaces, inventory or health OIDs until credentials appear.
 
-| Field                 | Description                                                        | Required                  |
-| --------------------- | ------------------------------------------------------------------ | ------------------------- |
-| SNMP Credential Profile | A reusable credential set to use instead of typing credentials here | No                      |
-| SNMP Version          | Protocol version: V1, V2c, or V3                                    | Yes (defaulted to V2c)    |
-| SNMP Port             | UDP port for SNMP queries (default: 161)                            | No                        |
-| SNMP Community String | The v1/v2c community string (e.g., "public")                        | No — empty means ping only |
+| Field                   | Description                                                         | Required                   |
+| ----------------------- | ------------------------------------------------------------------- | -------------------------- |
+| SNMP Credential Profile | A reusable credential set to use instead of typing credentials here | No                         |
+| SNMP Version            | Protocol version: V1, V2c, or V3                                    | Yes (defaulted to V2c)     |
+| SNMP Port               | UDP port for SNMP queries (default: 161)                            | No                         |
+| SNMP Community String   | The v1/v2c community string (e.g., "public")                        | No — empty means ping only |
 
 For SNMPv3, the security level decides which of the remaining fields are asked for:
 
@@ -89,14 +90,14 @@ Every poll of a probe-polled device is a **ping**. When the device has usable SN
 
 What each poll writes back:
 
-| | Ping-only device | Device with SNMP credentials |
-| --- | --- | --- |
-| Status (Up / Down) | From the ping | From the ping **or** the walk — either answering is enough |
-| Ping round-trip time and packet loss | Recorded as device metrics | Recorded as device metrics |
-| SNMP response time | — | The walk's time (never the ping's RTT) |
-| Interfaces, neighbours, endpoints | — | From a successful walk |
-| System identity, vendor, model, serial | — | From a successful walk |
-| Health OIDs | — | From a successful walk |
+|                                        | Ping-only device           | Device with SNMP credentials                               |
+| -------------------------------------- | -------------------------- | ---------------------------------------------------------- |
+| Status (Up / Down)                     | From the ping              | From the ping **or** the walk — either answering is enough |
+| Ping round-trip time and packet loss   | Recorded as device metrics | Recorded as device metrics                                 |
+| SNMP response time                     | —                          | The walk's time (never the ping's RTT)                     |
+| Interfaces, neighbours, endpoints      | —                          | From a successful walk                                     |
+| System identity, vendor, model, serial | —                          | From a successful walk                                     |
+| Health OIDs                            | —                          | From a successful walk                                     |
 
 "Usable credentials" means a v1/v2c set with a **non-empty community string**, or a v3 set with a **non-empty username** — resolved through the [credential chain](#snmp-credentials-and-credential-profiles). An empty credential set is skipped, not used, so a device never gets walked with a guessed default community.
 
@@ -115,18 +116,18 @@ A device whose ping **and** walk both fail is simply Down. The "SNMP failing" ta
 
 Every surface that shows a device — the Devices list, a site's Devices tab, the Overview hero, the map — uses the same three verdicts and the same qualifiers beside them.
 
-| Verdict | Means |
-| ------- | ----- |
-| **Up** | The last poll (ping or SNMP), or the bound monitor, reached the device |
-| **Down** | The last poll (ping or SNMP), or the bound monitor, could not reach the device |
-| **Pending** | No verdict yet — never polled, no probe assigned, or no monitor bound |
+| Verdict     | Means                                                                          |
+| ----------- | ------------------------------------------------------------------------------ |
+| **Up**      | The last poll (ping or SNMP), or the bound monitor, reached the device         |
+| **Down**    | The last poll (ping or SNMP), or the bound monitor, could not reach the device |
+| **Pending** | No verdict yet — never polled, no probe assigned, or no monitor bound          |
 
-| Qualifier | Shown when | What to do |
-| --------- | ---------- | ---------- |
-| **Stale** | No poll has been attempted for well over the device's interval | Check the device's probe is online and keeping up with its fleet — this qualifies the verdict, it does not replace it |
-| **No probe** | The device is probe-polled but has no probe assigned, or polling is switched off | Assign a probe that can reach it. Nothing polls it until then |
-| **No monitor** | The device uses the [bound-monitor override](#the-bound-monitor-override) and nothing is bound | Bind a monitor, or switch it back to probe polling |
-| **SNMP failing** | Up on ping, but the last SNMP walk failed | Check credentials, the SNMP agent, or an ACL |
+| Qualifier        | Shown when                                                                                     | What to do                                                                                                            |
+| ---------------- | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **Stale**        | No poll has been attempted for well over the device's interval                                 | Check the device's probe is online and keeping up with its fleet — this qualifies the verdict, it does not replace it |
+| **No probe**     | The device is probe-polled but has no probe assigned, or polling is switched off               | Assign a probe that can reach it. Nothing polls it until then                                                         |
+| **No monitor**   | The device uses the [bound-monitor override](#the-bound-monitor-override) and nothing is bound | Bind a monitor, or switch it back to probe polling                                                                    |
+| **SNMP failing** | Up on ping, but the last SNMP walk failed                                                      | Check credentials, the SNMP agent, or an ACL                                                                          |
 
 The Devices list also carries an **SNMP** filter chip with three values — **OK** (last walk succeeded), **Failing** (last walk failed), **Not configured** (pinged only, no credentials, or never polled) — so "which of my devices have credentials that stopped working" is one click. The **Interfaces** column reads **No SNMP** rather than `0 / 0` for a device that is pinged and never walked: zero working ports is a different and wrong claim.
 
@@ -140,7 +141,7 @@ A device is walked with the **first usable credential set** found in this order,
 
 With none of the three, the device is pinged only.
 
-The site step is the device's **own** site only: a device in a Unit does not pick up a profile set on the Region above it. (The site's default *probe* does inherit down the tree — see [Site Monitoring Defaults](#site-monitoring-defaults) — because a probe is copied onto the device once, while credentials are re-read on every poll.)
+The site step is the device's **own** site only: a device in a Unit does not pick up a profile set on the Region above it. (The site's default _probe_ does inherit down the tree — see [Site Monitoring Defaults](#site-monitoring-defaults) — because a probe is copied onto the device once, while credentials are re-read on every poll.)
 
 ### The SNMP Credentials page
 
@@ -169,10 +170,10 @@ The Devices page shows a banner when the project holds devices that are on the b
 
 A [Network Site](/docs/monitor/network-sites) carries two defaults, under Site -> **Settings** -> **Monitoring Defaults**:
 
-| Setting | Effect |
-| ------- | ------ |
-| **Default Probe** | The probe devices in this site are polled by unless a device names its own. A device created into the site with no probe inherits it, and so does a device moved into the site without one. |
-| **Default SNMP Credential Profile** | The credentials devices in this site are walked with when neither the device nor its own profile carries any. |
+| Setting                             | Effect                                                                                                                                                                                      |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Default Probe**                   | The probe devices in this site are polled by unless a device names its own. A device created into the site with no probe inherits it, and so does a device moved into the site without one. |
+| **Default SNMP Credential Profile** | The credentials devices in this site are walked with when neither the device nor its own profile carries any.                                                                               |
 
 Both are **copy-at-write for the probe and live for the credentials**, and the difference is deliberate:
 
@@ -185,29 +186,30 @@ The two also reach different distances down the site tree. If a site has no defa
 
 Some gear no probe can reach or usefully ping: a device behind a NAT, an appliance whose health is genuinely better judged by an HTTP check, a service whose real signal is a port check. For those, Device -> **Settings** -> **Monitoring Method** offers:
 
-| Method | What it means |
-| ------ | ------------- |
+| Method              | What it means                                                                           |
+| ------------------- | --------------------------------------------------------------------------------------- |
 | **Probe** (default) | Pinged by the assigned probe on its schedule; walked over SNMP when credentials are set |
-| **Bound monitor** | An existing monitor's status **is** this device's status |
+| **Bound monitor**   | An existing monitor's status **is** this device's status                                |
 
 Switching a device to **Bound monitor** stops polling it: the probe, interval and polling toggle disappear from the Polling card, the device's stale poll results are cleared, and its status comes from the monitor you bind. The binding itself is optional — a device with the override and nothing bound reads Pending, tagged **No monitor**, until one is bound.
 
 Switching back to **Probe** restores polling and asks for a probe. The device's status comes from its own polls again; a monitor that was bound stays bound and goes on alerting, it just no longer decides the device's status.
 
-Most devices do not want this. Reachability is a built-in capability of every probe-polled device, so binding a Ping monitor purely to get an up/down status is no longer a thing you need to do — bind one when you want that monitor's *incidents*.
+Most devices do not want this. Reachability is a built-in capability of every probe-polled device, so binding a Ping monitor purely to get an up/down status is no longer a thing you need to do — bind one when you want that monitor's _incidents_.
 
 ## Polling & Data Collection
 
 Polling settings live on the device (Device -> **Settings** -> **Polling & Data Collection**). Defaults are sensible, so a freshly registered device needs no tuning:
 
-| Setting                     | Description                                                                                                                                                                | Default |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| Polling Enabled             | The assigned probe polls this device on the schedule below. Disable to pause polling without deleting the device.                                                           | On      |
-| Polling Interval (Minutes)  | How often the probe polls the device. Minimum 1 minute.                                                                                                                    | 5       |
-| Walk Interfaces             | Walk the interface tables (IF-MIB) on each poll — per-interface status, bandwidth, utilization and errors — plus LLDP/CDP neighbours for the topology map. Needs credentials. | On      |
+| Setting                     | Description                                                                                                                                                                                                                                                                                                                                                                  | Default |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| Polling Enabled             | The assigned probe polls this device on the schedule below. Disable to pause polling without deleting the device.                                                                                                                                                                                                                                                            | On      |
+| Polling Interval (Minutes)  | How often the probe polls the device. Minimum 1 minute.                                                                                                                                                                                                                                                                                                                      | 5       |
+| Walk Interfaces             | Walk the interface tables (IF-MIB) on each poll — per-interface status, bandwidth, utilization and errors — plus LLDP/CDP neighbours for the topology map. Needs credentials.                                                                                                                                                                                                | On      |
 | Collect Connected Endpoints | Also walk the device's ARP and bridge-forwarding tables to discover endpoints attached to it (POS terminals, printers, phones, laptops), and — on a router, or any device whose walk returns an ARP table — fill in the MAC address of registered devices found there, which is what puts a ping-only device on its switch port on the map. Costs extra SNMP walks per poll. | Off     |
-| OID Collection Template     | A reusable, named OID list this device collects. Editing the template changes every device linked to it on its next poll.                                                   | None    |
-| Device-Specific Health OIDs | Extra SNMP OIDs only this device collects, on top of its template. Recorded as device metrics.                                                                              | None    |
+| OID Collection Template     | A reusable, named OID list this device collects. Editing the template changes every device linked to it on its next poll.                                                                                                                                                                                                                                                    | None    |
+| Device-Specific Health OIDs | Extra SNMP OIDs only this device collects, on top of its template. Recorded as device metrics.                                                                                                                                                                                                                                                                               | None    |
+| Device-Specific SNMP Tables | Extra [SNMP tables](#snmp-tables) only this device walks, on top of its template's. A table with the same key as a template table replaces it on this device.                                                                                                                                                                                                                | None    |
 
 Everything from **Walk Interfaces** downwards needs SNMP credentials to do anything: on a ping-only device those settings are stored and simply have no walk to apply to.
 
@@ -225,14 +227,19 @@ A failed walk never half-clears what was collected before: the stored interface 
 
 ### Vendor Health Templates
 
-In the **Health OIDs** editor, the **Vendor Health Template** dropdown applies a prebuilt set of CPU, memory and temperature OIDs for your device's vendor:
+In the **Health OIDs** editor, the **Vendor Health Template** dropdown applies a prebuilt set of CPU, memory and temperature OIDs for your device's vendor. Several also ship [SNMP tables](#snmp-tables), added from the **SNMP Tables** editor's _Add a vendor's tables_ dropdown:
 
-- Cisco IOS / IOS-XE
-- MikroTik RouterOS
-- Ubiquiti EdgeOS / UniFi
-- Generic (Host Resources MIB)
+| Vendor template                                                                                                                                                                 | Health OIDs                                                                        | SNMP tables                                                                                                       |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Generic (Host Resources MIB)                                                                                                                                                    | CPU load, memory, load average                                                     | CPU cores (one row per core, whatever the platform numbers them)                                                  |
+| Arista EOS, Cisco IOS / IOS-XE, Dell Force10, Fortinet FortiGate, HPE / Aruba ProCurve, Huawei VRP, Juniper Junos, MikroTik RouterOS, Palo Alto PAN-OS, Ubiquiti EdgeOS / UniFi | CPU, memory, temperature (and fans / power supplies where the platform has them)   | —                                                                                                                 |
+| Cambium Networks Enterprise Wi-Fi (cnPilot, XV, XE, XH)                                                                                                                         | CPU, memory, Wi-Fi clients, cnMaestro connection                                   | Wi-Fi radios (band, channel, width, TX power, clients, noise floor, airtime, state), SSIDs                        |
+| Cambium Networks cnMatrix                                                                                                                                                       | CPU, RAM, flash, temperature, supply voltage                                       | Fans, PoE ports, redundant power supply                                                                           |
+| Extreme Networks EXOS / Switch Engine                                                                                                                                           | CPU, temperature, over-temperature alarm, power state                              | Power supplies, fans, memory per slot, stack members                                                              |
+| Extreme Networks Fabric Engine / VOSS                                                                                                                                           | vIST session, I-SID count                                                          | Fabric (IS-IS) adjacencies named by neighbour, CPU and memory per slot, temperature sensors, fans, power supplies |
+| Sophos Firewall (SFOS / XGS)                                                                                                                                                    | Memory, disk, swap, HA state and peer state, IPsec service, CPU temperature (v22+) | IPsec tunnels (status needs SFOS v20+), CPU cores                                                                 |
 
-The template's OIDs are **copied** into the OID list below the dropdown, where you can prune or extend them. After the first poll identifies the device's vendor, the device page suggests the matching template.
+The template's OIDs are **copied** into the OID list below the dropdown, where you can prune or extend them. After the first poll identifies the device's vendor, the device page suggests the matching template. Matching uses the device's `sysObjectID`, and its `sysDescr` where one enterprise number hosts two operating systems: Extreme Fabric Engine on universal hardware reports the same enterprise (1916) as EXOS, and only its description (`…-FabricEngine (9.0.4.0)`) tells them apart. Devices with **Auto-Apply Vendor Health Template** on get the template's OIDs **and** tables on their first poll.
 
 This is a one-shot copy and it forgets where it came from — editing nothing propagates afterwards. For anything beyond a single device, use an **OID Collection Template** below instead; the vendor profiles are offered as a starting point when you create one.
 
@@ -251,36 +258,40 @@ touches one row no matter how many devices use it.
 
 **Before you build one, check you need it.** Per-interface bits in/out,
 operational status, errors per second and utilization are already collected for
-every port on every poll, with no OIDs configured at all (see *Interface
-Walking* above), and they are already alertable per port. Templates are for the
+every port on every poll, with no OIDs configured at all (see _Interface
+Walking_ above), and they are already alertable per port. Templates are for the
 things that are **not** per-port: CPU, memory, temperature, fans, power
 supplies, BGP peers.
 
 Coming from Zabbix, the mapping is:
 
-| Zabbix                                                        | OneUptime                                                    |
-| ------------------------------------------------------------- | ------------------------------------------------------------ |
-| Template                                                      | OID Collection Template                                      |
-| Item                                                          | An OID on that template                                      |
-| Discovery rule "Network interfaces by SNMP" + item prototypes | Built in and always on for the interface counters below — nothing to author |
-| Trigger                                                       | Monitor criteria                                             |
-| Trigger prototype (one per discovered interface)              | A criteria with **Interface** = `*`, which fans out per port |
-| Host group                                                    | Labels                                                       |
-| "Link template on host discovery" action                      | Auto Import Rule -> **OID Collection Template**              |
-| Action on a host group ("alert on every switch")              | [Alert Policy](#alert-policies)                              |
+| Zabbix                                                                             | OneUptime                                                                   |
+| ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Template                                                                           | OID Collection Template                                                     |
+| Item                                                                               | An OID on that template                                                     |
+| Discovery rule "Network interfaces by SNMP" + item prototypes                      | Built in and always on for the interface counters below — nothing to author |
+| Trigger                                                                            | Monitor criteria                                                            |
+| Trigger prototype (one per discovered interface)                                   | A criteria with **Interface** = `*`, which fans out per port                |
+| Discovery rule over any other SNMP table (tunnels, radios, fans) + item prototypes | An [SNMP table](#snmp-tables) on the template                               |
+| Trigger prototype on such a table                                                  | An SNMP Table Value or Row Is Unhealthy criteria with **Row** = `*`         |
+| Host group                                                                         | Labels                                                                      |
+| "Link template on host discovery" action                                           | Auto Import Rule -> **OID Collection Template**                             |
+| Action on a host group ("alert on every switch")                                   | [Alert Policy](#alert-policies)                                             |
 
-Note that the `*` wildcard applies to the three *interface* criteria only.
-There is no wildcard for OIDs today: an OID criteria names one OID.
+The `*` wildcard applies to the interface criteria and to the
+[SNMP table](#snmp-tables) criteria. An OID criteria names one OID.
 
-**What templates do not do.** A template is a fixed list of OIDs, applied as
-written. There is no per-instance expansion, so an OID naming one row of a
-table (`…ifSpeed.3`) collects that row only, and follows whatever port holds
-index 3 the day it is polled. That is why per-port data belongs to the
-interface walk rather than to a template. The walk covers operational status,
-in/out bits per second, utilization and a *combined* errors-per-second rate;
-per-direction errors, discards, admin status and link speed are collected into
-the device's interface inventory but are not yet time series, so they cannot be
-alerted on today.
+**OIDs versus tables.** An OID on a template is collected as written, so an
+OID naming one row of a table (`…ifSpeed.3`) collects that row only, and
+follows whatever sits at index 3 the day it is polled. Anything that is a
+_list_ — tunnels, radios, fans, neighbours — belongs in an
+[SNMP table](#snmp-tables) instead, which walks every row and follows rows as
+they come and go (the Zabbix equivalent is a low-level discovery rule with item
+prototypes). Per-port interface data needs neither: the interface walk covers
+operational status, in/out bits per second, utilization and a _combined_
+errors-per-second rate; per-direction errors, discards, admin status and link
+speed are collected into the device's interface inventory but are not yet time
+series, so they cannot be alerted on today.
 
 **Linking devices.** Three ways, and you will usually want the second:
 
@@ -333,6 +344,65 @@ Long OID lists are split across several SNMP GET requests so they fit inside a
 UDP datagram. A device configured with more OIDs than fit in one packet used to
 answer `tooBig` and be reported **offline**; if you are upgrading from an older
 release and had to keep your OID lists short for that reason, you no longer do.
+
+### SNMP Tables
+
+Some of what a device knows is a **list**: one row per IPsec tunnel, Wi-Fi
+radio, SSID, fabric neighbour, fan or power supply. An SNMP table is defined by
+its **columns**, and every row is walked on every poll — a tunnel that is added,
+renamed or deleted is followed without anyone editing anything.
+
+A table definition lists:
+
+| Field        | What it does                                                                                                                                                                                                                                                                                                                           |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Name and key | What the table is called. The key (letters, digits and underscores, derived from the name if left blank) is what criteria, metrics and template variables refer to, so renaming a table never breaks an alert.                                                                                                                         |
+| Kind         | What the rows are — VPN tunnels, Wi-Fi radios, Wi-Fi SSIDs, routing neighbours, hardware, or generic. Wi-Fi kinds drive the device's [Wi-Fi tab](#the-wi-fi-tab).                                                                                                                                                                      |
+| Columns      | The **column OIDs** to collect (the table entry's OID plus the column number, for example `1.3.6.1.4.1.2604.5.1.6.1.1.1.1.9` for a Sophos tunnel's status), each with a name and optionally a unit, a role (status, band, channel, channel width, TX power, clients, noise floor, utilization, SSID), value labels and healthy values. |
+| Row names    | Optional columns whose values name each row — a tunnel's connection name, a radio's band. Without them rows are named by their index. A name column can come from a sibling table that shares the index (Fabric Engine names IS-IS adjacencies from `rcIsisAdjHostName`).                                                              |
+| Row limit    | How many rows to keep, 100 by default, 250 at most.                                                                                                                                                                                                                                                                                    |
+
+**Values.** Numbers are read as numbers, and text that _starts_ with a number is
+read as that number — `"36"`, `"-95 dBm"`, `"80MHz"` — because plenty of
+vendors put numbers in strings (Cambium's channel, EXOS's memory). Set a
+column's value type to **Text only** for values that merely look numeric.
+**Value labels** turn enumerations into words (`0=inactive, 1=active`): the raw
+value is still what is charted and compared numerically, the label is what is
+shown. **Healthy values** (`1`) say which values mean "fine": they colour the
+row on the device's **SNMP Tables** tab and drive the
+**SNMP Table Row Is Unhealthy** criteria.
+
+**Where tables come from.** On an [OID Collection Template](#oid-collection-templates)
+(shared by every linked device, up to 10 tables) or on the device itself under
+Settings → **Polling & Data Collection** → **SNMP Tables** (up to 10 more). They
+merge by key on every poll, template first; a device table with the same key
+replaces the template's. Both editors offer **Add a vendor's tables**.
+
+**What a poll does with them.** The probe walks each column as a subtree, within
+a 30-second budget shared by every table on the device. A table that cannot be
+walked reports why and never fails the poll: the device's **SNMP Tables** tab
+keeps its last good rows and says the latest walk failed, while criteria judge
+only what _this_ walk produced, so a timeout is never mistaken for an empty
+table. Every numeric cell is recorded as the metric
+`oneuptime.monitor.snmp.table.value`, with the attributes `snmpTableKey`,
+`snmpTableName`, `snmpTableColumn`, `snmpTableColumnOid`, `snmpTableRow` and
+`snmpTableRowIndex` — so a dashboard can chart every tunnel's status or every
+radio's transmit power, and a Metrics monitor can **Group By** `snmpTableRow`.
+
+### The Wi-Fi Tab
+
+A device whose walk includes a **Wi-Fi radio** table (the Cambium Enterprise
+Wi-Fi template's, or any table of that kind) gets a **Wi-Fi** tab: radios on,
+clients and SSIDs at a glance, then every radio's band, channel, **frequency**,
+channel width, transmit power, clients, noise floor and airtime, and every SSID
+with its band and clients. Columns are found by their role, so any vendor's
+radio table that tags its columns renders the same way. Frequency is worked out
+from the band and channel using the 802.11 channel plan (2.4, 5 and 6 GHz) —
+no vendor MIB reports it.
+
+For Cambium access points, enable SNMP in the AP Group in cnMaestro
+(Configuration → Wi-Fi Profiles → AP Groups → Management → SNMP) and apply the
+**Cambium Networks Enterprise Wi-Fi** template to the access points.
 
 ### Device Identity
 
@@ -396,7 +466,7 @@ Octet ranges exist for networks that are not shaped like CIDR blocks. `10.16-22.
 
 ### What a scan imports
 
-**Every host a scan finds imports as a probe-polled device**, with the scan's probe assigned and polling on, so it has a status from its first poll. What differs between hosts is not *how* they are monitored but *what rides along*:
+**Every host a scan finds imports as a probe-polled device**, with the scan's probe assigned and polling on, so it has a status from its first poll. What differs between hosts is not _how_ they are monitored but _what rides along_:
 
 - **Hosts that answered SNMP** import with the responding IP as the hostname, the device's reported system name as the display name, and the scan's SNMP credentials — so a v3 scan imports ready-to-walk v3 devices that start collecting interfaces and inventory immediately.
 - **Hosts that answered ping but no SNMP** — every host a [ping-only scan](#ping-only-scans) finds, and the ICMP-alive hosts an SNMP scan could not identify — import with no credentials. The probe pings them on their schedule; add SNMP credentials (or a credential profile on the device or its site) later and the same probe starts walking them as well.
@@ -457,14 +527,14 @@ Turn on **Repeat this scan** on a discovery scan and the pair becomes a
 standing arrangement: the scan re-sweeps its range on your interval, and every
 new host it finds is imported without anyone pressing anything.
 
-Saving a rule also applies it to the results the project *already* has. A rule
+Saving a rule also applies it to the results the project _already_ has. A rule
 you write or enable today reaches hosts discovered in the last 24 hours within
 about a minute, so a rule written after a one-shot scan is not left waiting for
 a scan that will never run again. Results older than that are left alone —
 importing an estate discovered last month is a decision, not a side effect of
 saving a rule — and the buttons below are how you make it.
 
-Two buttons on a rule reach *every* scan in the project, however old:
+Two buttons on a rule reach _every_ scan in the project, however old:
 
 - **Dry Run** evaluates every completed scan and reports what the rule would
   import and monitor. Nothing is written, so it is the safe way to answer "what
@@ -526,7 +596,7 @@ Only probe-polled devices that have a probe are in scope. A device on the bound-
 
 A template can back **one** policy, and cannot at the same time be selected by an auto-import rule. A provisioned monitor's provenance is the pair (device, template), so a template shared by two owners would leave both claiming the same monitor; the form refuses those selections with a sentence rather than a constraint error. Deleting a template does not delete the policies that used it — they lose their template and show with none, so you can repair rather than rebuild them.
 
-**The recommended policy.** With no policies yet, the page offers to create one for you: a *Network device alert pack (recommended)* monitor template — the [alert pack](#recommended-alert-pack) below — plus an *Alert on every device* policy that applies it to the whole project. The template is found again by a marker in its description, so the action never mints a second copy. That template is a real, editable monitor template you can use for hand-built monitors today, whether or not the policy beside it is provisioning anything. Narrow the policy's scope afterwards if the whole project is too much.
+**The recommended policy.** With no policies yet, the page offers to create one for you: a _Network device alert pack (recommended)_ monitor template — the [alert pack](#recommended-alert-pack) below — plus an _Alert on every device_ policy that applies it to the whole project. The template is found again by a marker in its description, so the action never mints a second copy. That template is a real, editable monitor template you can use for hand-built monitors today, whether or not the policy beside it is provisioning anything. Narrow the policy's scope afterwards if the whole project is too much.
 
 ### One device at a time
 
@@ -560,33 +630,51 @@ You can set up criteria to check poll results and trigger alerts or incidents.
 
 ### Available Filter Types
 
-| Filter Type                        | Description                                                            | On a ping-only poll |
-| ---------------------------------- | ---------------------------------------------------------------------- | ------------------- |
-| SNMP Device Is Online              | Whether the device is reachable — by ping **or** SNMP. This is the same verdict as the status pill. | Evaluated |
-| SNMP Walk Is Succeeding            | Whether the last SNMP walk succeeded. False is the "SNMP failing" state: reachable, but interfaces and inventory have stopped refreshing. | Not evaluated |
-| SNMP Response Time (in ms)         | The **walk's** response time in milliseconds — never the ping's RTT     | Not evaluated       |
-| SNMP OID Value                     | Check the value returned by a specific OID                             | Not evaluated       |
-| SNMP OID Exists                    | Check if an OID returns a value (not null)                             | Not evaluated       |
-| SNMP Interface Is Down             | True when any administratively-enabled interface is operationally down | Not evaluated       |
-| SNMP Interface Utilization (in %)  | Check the busiest interface's link utilization                         | Not evaluated       |
-| SNMP Interface Errors (per second) | Check the worst interface's error rate                                 | Not evaluated       |
-| SNMP Trap Received (Trap OID)      | Matches when a trap with the given OID arrives from the device         | n/a — trap-driven   |
+| Filter Type                        | Description                                                                                                                               | On a ping-only poll |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| SNMP Device Is Online              | Whether the device is reachable — by ping **or** SNMP. This is the same verdict as the status pill.                                       | Evaluated           |
+| SNMP Walk Is Succeeding            | Whether the last SNMP walk succeeded. False is the "SNMP failing" state: reachable, but interfaces and inventory have stopped refreshing. | Not evaluated       |
+| SNMP Response Time (in ms)         | The **walk's** response time in milliseconds — never the ping's RTT                                                                       | Not evaluated       |
+| SNMP OID Value                     | Check the value returned by a specific OID                                                                                                | Not evaluated       |
+| SNMP OID Exists                    | Check if an OID returns a value (not null)                                                                                                | Not evaluated       |
+| SNMP Interface Is Down             | True when any administratively-enabled interface is operationally down                                                                    | Not evaluated       |
+| SNMP Interface Utilization (in %)  | Check the busiest interface's link utilization                                                                                            | Not evaluated       |
+| SNMP Interface Errors (per second) | Check the worst interface's error rate                                                                                                    | Not evaluated       |
+| SNMP Table Value                   | Compare one column of an [SNMP table](#snmp-tables) row by row; met when any row in scope matches. Row `*` raises one alert per row       | Not evaluated       |
+| SNMP Table Row Is Unhealthy        | True when a row in scope has a status outside its column's healthy values. Row `*` raises one alert per row                               | Not evaluated       |
+| SNMP Table Row Count               | Compare how many rows a table (or the rows in scope) has                                                                                  | Not evaluated       |
+| SNMP Trap Received (Trap OID)      | Matches when a trap with the given OID arrives from the device                                                                            | n/a — trap-driven   |
+| SNMP Trap Varbind Value            | Compare the values a trap carries, optionally one varbind                                                                                 | n/a — trap-driven   |
 
 "Not evaluated" is exactly that, and it matters: on a poll where no walk ran, those criteria return **no verdict** rather than a failing one. A criteria that would open an incident when SNMP response time exceeds a threshold cannot fire on a device that is only pinged, so a ping-only device watched by walk-based criteria is harmless rather than a false-alarm generator.
 
 The interface checks require **Walk Interfaces** to be on in the device's polling settings (it is by default). The OID checks evaluate the device's configured **Health OIDs**. Administratively disabled interfaces are intentionally down and never count as failures.
 
+**SNMP table criteria** pick a table, a column (for Table Value) and a row scope:
+empty evaluates every row as one combined alert, `*` raises a separate alert
+for every row (each resolves on its own, and its title names the row), and
+anything else names one row by its name or index. Numbers compare as numbers;
+text compares against both the raw value and its label, so `Not Equal To
+active` and `Not Equal To 1` both catch a Sophos tunnel that is down. A table
+whose walk failed on this poll is not evaluated, rather than read as empty.
+Table criteria judge the current walk only — they are not evaluated over time.
+
 ### Recommended Alert Pack
 
 Click **Add Recommended Alerts** on the criteria form to append a prebuilt set of criteria — the alerts most network operators want, without hand-building them each time. They are pre-filled automatically when you create the monitor from the device's page, and they are what the [recommended alert policy](#alert-policies)'s monitor template carries.
 
-| Criteria            | Fires when                                                     | Creates  |
-| ------------------- | -------------------------------------------------------------- | -------- |
-| Device unreachable  | The device stops answering **ping and SNMP**                    | Incident |
-| SNMP walk failing   | The device answers ping but its SNMP walk is failing            | Alert    |
-| Interface down      | An administratively-enabled interface goes operationally down   | Incident |
-| Interface saturated | An interface runs above 80% utilization                         | Alert    |
-| Interface errors    | An interface logs more than 1 error per second                  | Alert    |
+| Criteria            | Fires when                                                    | Creates  |
+| ------------------- | ------------------------------------------------------------- | -------- |
+| Device unreachable  | The device stops answering **ping and SNMP**                  | Incident |
+| SNMP walk failing   | The device answers ping but its SNMP walk is failing          | Alert    |
+| Interface down      | An administratively-enabled interface goes operationally down | Incident |
+| Interface saturated | An interface runs above 80% utilization                       | Alert    |
+| Interface errors    | An interface logs more than 1 error per second                | Alert    |
+
+When the device walks [SNMP tables](#snmp-tables) that declare healthy values,
+the pack also adds one **SNMP Table Row Is Unhealthy** criteria per such table,
+with Row `*` — an **incident** per row for tunnels and routing neighbours
+("IPsec Tunnels: row unhealthy"), an **alert** per row for hardware tables.
 
 "SNMP walk failing" is an alert rather than an incident on purpose: the device is not down, so waking somebody at 2am for it would be wrong — but its inventory has stopped refreshing and somebody should fix the credentials. It never fires on a ping-only device, because the criterion is not evaluated when no walk ran.
 
@@ -638,29 +726,47 @@ Trap matching is by address, not by credentials, so a **ping-only device can sti
 
 The filter also supports Contains / Starts With / Ends With, so a single criteria can match a family of enterprise traps by OID prefix.
 
+#### Example: tell apart events that share one trap OID
+
+Some vendors send every event as the same trap and put the event in a text
+varbind — every Sophos Firewall notification is `sfosNotification`
+(`1.3.6.1.4.1.2604.5.1.8.1.1`) with the message in `sfosTrapMessage`
+(`1.3.6.1.4.1.2604.5.1.8.1.2`). Combine the two in one criteria:
+
+- **SNMP Trap Received (Trap OID)** — Equal To `1.3.6.1.4.1.2604.5.1.8.1.1`
+- **SNMP Trap Varbind Value** — Varbind OID `1.3.6.1.4.1.2604.5.1.8.1.2`, Contains `IPSec`
+
+A negative filter (Not Contains, Not Equal To, Is Empty) is met only when **no**
+varbind in scope matches its positive form. Leave the varbind OID empty to
+search every varbind the trap carries.
+
 ## Template Variables for Alerts
 
 When creating incident or alert templates, you can use the following variables:
 
-| Variable                   | Description                                                                  |
-| -------------------------- | ---------------------------------------------------------------------------- |
-| `{{isOnline}}`             | Whether the device is reachable by ping or SNMP (true/false)                 |
-| `{{responseTimeInMs}}`     | SNMP walk time in milliseconds                                               |
-| `{{failureCause}}`         | Error message if the SNMP walk failed                                        |
-| `{{oidResponses}}`         | Array of OID response objects                                                |
-| `{{OID_NAME}}`             | Value of a specific OID by name (e.g., `{{sysUpTime}}`)                      |
-| `{{sysName}}`              | Device name from the SNMP system group                                       |
-| `{{sysDescr}}`             | Device description from the SNMP system group                                |
-| `{{sysObjectId}}`          | Vendor's registered enterprise OID (device fingerprint)                      |
-| `{{sysLocation}}`          | Device location from the SNMP system group                                   |
-| `{{downInterfaces}}`       | Array of {name, alias, interfaceIndex} for admin-up but oper-down interfaces |
-| `{{interfacesTotal}}`      | Total number of interfaces walked                                            |
-| `{{interfacesUp}}`         | Interfaces that are administratively and operationally up                    |
-| `{{interfacesDown}}`       | Interfaces that are administratively up but operationally down               |
-| `{{interfaceWalkFailure}}` | Error message when the interface walk failed                                 |
-| `{{trapOid}}`              | Trap OID — set on trap-triggered checks only                                 |
-| `{{trapSourceIp}}`         | Source IP the trap came from — set on trap-triggered checks only             |
-| `{{trapVarbinds}}`         | Array of {oid, value} varbinds carried by the trap                           |
+| Variable                                                                | Description                                                                                                     |
+| ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `{{isOnline}}`                                                          | Whether the device is reachable by ping or SNMP (true/false)                                                    |
+| `{{responseTimeInMs}}`                                                  | SNMP walk time in milliseconds                                                                                  |
+| `{{failureCause}}`                                                      | Error message if the SNMP walk failed                                                                           |
+| `{{oidResponses}}`                                                      | Array of OID response objects                                                                                   |
+| `{{OID_NAME}}`                                                          | Value of a specific OID by name (e.g., `{{sysUpTime}}`)                                                         |
+| `{{sysName}}`                                                           | Device name from the SNMP system group                                                                          |
+| `{{sysDescr}}`                                                          | Device description from the SNMP system group                                                                   |
+| `{{sysObjectId}}`                                                       | Vendor's registered enterprise OID (device fingerprint)                                                         |
+| `{{sysLocation}}`                                                       | Device location from the SNMP system group                                                                      |
+| `{{downInterfaces}}`                                                    | Array of {name, alias, interfaceIndex} for admin-up but oper-down interfaces                                    |
+| `{{interfacesTotal}}`                                                   | Total number of interfaces walked                                                                               |
+| `{{interfacesUp}}`                                                      | Interfaces that are administratively and operationally up                                                       |
+| `{{interfacesDown}}`                                                    | Interfaces that are administratively up but operationally down                                                  |
+| `{{interfaceWalkFailure}}`                                              | Error message when the interface walk failed                                                                    |
+| `{{trapOid}}`                                                           | Trap OID — set on trap-triggered checks only                                                                    |
+| `{{trapSourceIp}}`                                                      | Source IP the trap came from — set on trap-triggered checks only                                                |
+| `{{trapVarbinds}}`                                                      | Array of {oid, value} varbinds carried by the trap                                                              |
+| `{{tables.<key>.rowCount}}`                                             | Rows walked in an [SNMP table](#snmp-tables), by its key (for example `{{tables.ipsec_tunnels.rowCount}}`)      |
+| `{{tables.<key>.unhealthyRowCount}}` / `{{tables.<key>.unhealthyRows}}` | Rows with a status outside their healthy values, each with `name`, `index` and `values.<column>`                |
+| `{{tables.<key>.rows}}`                                                 | Every row (up to 50), each with `name`, `index` and `values.<column>` (column names lower-cased, spaces as `_`) |
+| `{{snmpTable}}` / `{{snmpTableRow}}`                                    | On a per-row alert (Row `*`), the table and the row it is about                                                 |
 
 `{{isOnline}}` is filled in on every poll. **Every other variable in that table comes from the SNMP walk**, so on a ping-only poll they are all empty — write templates that lead with `{{isOnline}}` and the device name if a policy's scope might include devices without credentials. The interface and system variables additionally require interface walking to be enabled on the device; the trap variables are only set when the check was triggered by a trap. An incident title like:
 
@@ -768,10 +874,17 @@ at that address, or simply not matched by the rule's criteria.
 
 Watch for the case where the devices are all present but the monitors are not.
 Devices and monitors are separate work, so a rule that had a Monitor Template
-attached *after* its devices were imported reports zero devices imported and
+attached _after_ its devices were imported reports zero devices imported and
 only monitors created — that is the rule doing exactly the work that was left,
 not a failed import. See [Auto Import
 Rules](#importing-automatically-with-auto-import-rules).
+
+### An SNMP table shows no rows
+
+- The device returned nothing under those column OIDs. Walk one from the probe's network (`snmpwalk -v2c -c <community> <device> <column OID>`) — a column the device does not implement simply has no rows.
+- The SNMP view your credentials use may not include that subtree; a restricted v3 user often sees only the system group and IF-MIB.
+- Sophos tunnel status needs SFOS v20 or later; Cambium client counts read 0 before firmware 6.5.3.
+- A table listed under **Waiting for the first walk** has not been walked yet — it appears after the device's next successful SNMP poll.
 
 ### Traps not arriving
 

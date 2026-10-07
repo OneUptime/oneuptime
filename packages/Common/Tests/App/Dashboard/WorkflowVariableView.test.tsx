@@ -499,7 +499,6 @@ function staticVariable(
   variable.name = "API_KEY";
   variable.variableType = WorkflowVariableType.Static;
 
-  // The model types isSecret as a string, but the column is a boolean.
   return applyOverrides(variable, { isSecret: false, ...(overrides || {}) });
 }
 

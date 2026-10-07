@@ -54,9 +54,10 @@ import { DraggableProvidedDragHandleProps } from "react-beautiful-dnd";
  * One question on the form builder's canvas. Unselected, it reads like the
  * public form: the question, its help text, a picture of its input, and a
  * badge for what it is linked to. Selected, the question's settings open
- * right under it - the label, help text, Required, and what its kind needs:
- * a dropdown's options, the records a choice offers, a note on where a
- * linked answer goes.
+ * right under it - the label, help text, Required, Hidden, and what its kind
+ * needs: a dropdown's options, the records a choice offers, a note on where
+ * a linked answer goes. A hidden question carries a Hidden badge: the public
+ * form does not ask it, and only templates answer it.
  *
  * Moving a question is the drag handle's job, with Move Up and Move Down
  * beside it for the keyboard (and for anyone who would rather click).
@@ -432,13 +433,30 @@ const QuestionCard: FunctionComponent<ComponentProps> = (
         <Toggle
           title={FormsCopy.required}
           description={
-            isLocked ? FormsCopy.requiredLocked : FormsCopy.requiredDescription
+            isLocked
+              ? FormsCopy.requiredLocked
+              : field.isHidden
+                ? FormsCopy.requiredHidden
+                : FormsCopy.requiredDescription
           }
-          value={isLocked ? true : field.isRequired}
-          disabled={isLocked}
+          value={isLocked ? true : field.isRequired && !field.isHidden}
+          disabled={isLocked || field.isHidden === true}
           dataTestId={`form-question-required-${field.id}`}
           onChange={(value: boolean) => {
             props.onChange({ isRequired: value });
+          }}
+        />
+
+        <Toggle
+          title="Hidden"
+          description={
+            isLocked ? FormsCopy.requiredLocked : FormsCopy.hiddenDescription
+          }
+          value={!isLocked && field.isHidden === true}
+          disabled={isLocked}
+          dataTestId={`form-question-hidden-${field.id}`}
+          onChange={(value: boolean) => {
+            props.onChange({ isHidden: value });
           }}
         />
 
@@ -548,6 +566,17 @@ const QuestionCard: FunctionComponent<ComponentProps> = (
               >
                 {badge.text}
               </span>
+              {field.isHidden ? (
+                <span
+                  className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200"
+                  data-testid={`form-question-hidden-badge-${field.id}`}
+                >
+                  <Icon icon={IconProp.EyeSlash} className="h-3 w-3" />
+                  {tx("Hidden")}
+                </span>
+              ) : (
+                <></>
+              )}
             </span>
             {field.helpText ? (
               <span className="mt-0.5 block text-xs text-gray-500 [overflow-wrap:anywhere]">

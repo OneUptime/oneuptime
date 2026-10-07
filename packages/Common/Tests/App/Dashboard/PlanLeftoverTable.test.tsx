@@ -571,7 +571,7 @@ describe("SCIM connections, the project's and its status pages'", () => {
     ["the project's", ProjectSCIM],
     ["a status page's", StatusPageSCIM],
   ])(
-    "%s say they stopped, that the identity provider no longer adds or removes people, and that an upgrade turns them back on",
+    "%s say they only remove people, that the identity provider can no longer add or change them, and that an upgrade turns them fully back on",
     async (
       _label: string,
       modelType: typeof ProjectSCIM | typeof StatusPageSCIM,
@@ -583,7 +583,7 @@ describe("SCIM connections, the project's and its status pages'", () => {
       ).toBeInTheDocument();
       expect(
         screen.getByText(
-          "These stopped working: your plan does not include them, so your identity provider no longer adds or removes people here. Upgrading to the Scale plan turns them back on as they are. You can still delete them.",
+          "Your plan does not include these, so they only remove people: your identity provider can still deactivate and remove people here, but can no longer add or change them. Upgrading to the Scale plan turns them fully back on as they are. You can still delete them.",
         ),
       ).toBeInTheDocument();
       expect(lastTable().isDeleteable).toBe(true);

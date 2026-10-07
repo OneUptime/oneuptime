@@ -1,9 +1,8 @@
-import GlobalCache from "../../Infrastructure/GlobalCache";
+import CacheGenerations from "../../Infrastructure/CacheGenerations";
 import InMemoryTTLCache from "../../Infrastructure/InMemoryTTLCache";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import logger from "../Logger";
-import { randomBytes } from "crypto";
 
 /*
  * The status page overview, cached for a few seconds - and something a
@@ -36,19 +35,18 @@ import { randomBytes } from "crypto";
  * starts none, and neither does an edit that leaves a record shown (a title,
  * a note's text): they are seen when the entry runs out.
  *
- * A generation is two random tokens: one in Redis, shared by every process,
- * and this process's own. Each entry is kept under the generation its
- * project had when its build started, so once either token changes the page
- * is built again rather than served from before. A change made here changes
- * this process's token, so it takes effect here at once, whatever Redis
- * says; one made elsewhere is seen once this process reads Redis again,
- * within SHARED_GENERATION_READ_TTL_MS. (OnCallCalendarFeedCache invalidates
- * its feeds by generation too.)
+ * Each entry is kept under the generation its project had when its build
+ * started (CacheGenerations, which OnCallCalendarFeedCache keeps its feeds
+ * by too), so once the generation changes the page is built again rather
+ * than served from before. A change made here takes effect here at once,
+ * whatever Redis says - and stays in effect when Redis did not take it, once
+ * Redis answers again; one made elsewhere is seen once this process reads
+ * Redis again, within SHARED_GENERATION_READ_TTL_MS.
  *
  * When Redis cannot be reached, a change made here still takes effect here
- * at once, and elsewhere within TTL_MS. When a page's project cannot be
- * read, its overview is kept for TTL_MS alone, as before there were
- * generations.
+ * at once, and elsewhere once Redis answers again, or within TTL_MS. When a
+ * page's project cannot be read, its overview is kept for TTL_MS alone, as
+ * before there were generations.
  */
 
 export const STATUS_PAGE_OVERVIEW_CACHE_NAMESPACE: string =
@@ -144,16 +142,6 @@ export const SHOWN_RECORD_TABLES: ReadonlyArray<string> = [
   "MonitorGroupResource",
 ];
 
-// What a generation reads as before any write started one.
-const DEFAULT_GENERATION: string = "0";
-
-/*
- * What the shared generation reads as while Redis cannot be reached: never a
- * value Redis holds, so entries built meanwhile are never served once it can
- * be reached again, nor the other way round.
- */
-const UNREACHABLE_GENERATION: string = "unreachable";
-
 /*
  * A generation outlives every entry kept under it many times over, so one
  * that expires can only ever be read as the default by entries long gone.
@@ -176,7 +164,8 @@ export default class StatusPageOverviewCache {
    * within it, and Redis is asked at most once per project in it - not on
    * every request.
    */
-  public static readonly SHARED_GENERATION_READ_TTL_MS: number = 1_000;
+  public static readonly SHARED_GENERATION_READ_TTL_MS: number =
+    CacheGenerations.SHARED_READ_TTL_MS;
 
   // The overviews, by page and the generation they were built in.
   private static responses: InMemoryTTLCache<JSONObject> =
@@ -188,17 +177,16 @@ export default class StatusPageOverviewCache {
    */
   private static inFlight: Map<string, Promise<JSONObject>> = new Map();
 
-  // Each project's own generation in this process, as a change here set it.
-  private static generations: InMemoryTTLCache<string> =
-    new InMemoryTTLCache<string>(10_000);
-
-  // Each project's shared generation as last read from Redis, for a moment.
-  private static sharedGenerations: InMemoryTTLCache<string> =
-    new InMemoryTTLCache<string>(10_000);
-
-  // Reads of shared generations under way, so requests share one.
-  private static sharedGenerationReads: Map<string, Promise<string>> =
-    new Map();
+  /*
+   * Each project's generation: the shared one, from Redis, and this
+   * process's own (CacheGenerations).
+   */
+  private static generations: CacheGenerations = new CacheGenerations({
+    namespace: STATUS_PAGE_OVERVIEW_CACHE_NAMESPACE,
+    ttlSeconds: GENERATION_TTL_SECONDS,
+    maxKeys: 10_000,
+    description: "status page overviews",
+  });
 
   // The project of each page.
   private static projectOfPage: InMemoryTTLCache<string> =
@@ -353,47 +341,10 @@ export default class StatusPageOverviewCache {
   public static async forgetProjects(
     projectIds: Array<ObjectID | string>,
   ): Promise<void> {
-    const projects: Array<string> = Array.from(
-      new Set<string>(
-        projectIds.map((id: ObjectID | string): string => {
-          return id.toString().toLowerCase();
-        }),
-      ),
-    );
-
-    // Here at once, before anything is asked of Redis.
-    for (const projectId of projects) {
-      // Values nobody can predict never meet ones kept before.
-      this.generations.set(
-        projectId,
-        this.newGeneration(),
-        GENERATION_TTL_SECONDS * 1000,
-      );
-    }
-
-    // Every project's shared generation together, not one after another.
-    await Promise.all(
-      projects.map(async (projectId: string): Promise<void> => {
-        const shared: string = this.newGeneration();
-
-        try {
-          await GlobalCache.setString(
-            STATUS_PAGE_OVERVIEW_CACHE_NAMESPACE,
-            this.generationKey(projectId),
-            shared,
-            { expiresInSeconds: GENERATION_TTL_SECONDS },
-          );
-
-          this.sharedGenerations.set(
-            projectId,
-            shared,
-            this.SHARED_GENERATION_READ_TTL_MS,
-          );
-        } catch (err) {
-          logger.error(
-            `Status page overviews of project ${projectId} are refreshed in this process only: ${String(err)}`,
-          );
-        }
+    // Every project's together, each once however its id was written.
+    await this.generations.bump(
+      projectIds.map((id: ObjectID | string): string => {
+        return this.generationKey(id.toString().toLowerCase());
       }),
     );
   }
@@ -403,8 +354,6 @@ export default class StatusPageOverviewCache {
     this.responses.clear();
     this.inFlight.clear();
     this.generations.clear();
-    this.sharedGenerations.clear();
-    this.sharedGenerationReads.clear();
     this.projectOfPage.clear();
   }
 
@@ -427,7 +376,9 @@ export default class StatusPageOverviewCache {
       return statusPageId;
     }
 
-    return `${statusPageId}|${await this.getGeneration(projectId)}`;
+    return `${statusPageId}|${await this.generations.get(
+      this.generationKey(projectId),
+    )}`;
   }
 
   private static async getProjectOfPage(
@@ -458,78 +409,6 @@ export default class StatusPageOverviewCache {
 
       return null;
     }
-  }
-
-  /*
-   * A project's generation: the shared one, from Redis, and this process's
-   * own - so a change made here counts here at once, even when Redis did
-   * not take it, and one made elsewhere counts once Redis is read again.
-   */
-  private static async getGeneration(projectId: string): Promise<string> {
-    const own: string = this.generations.get(projectId) || DEFAULT_GENERATION;
-
-    return `${await this.getSharedGeneration(projectId)}.${own}`;
-  }
-
-  /*
-   * The shared generation, as read from Redis at most
-   * SHARED_GENERATION_READ_TTL_MS ago; requests that ask together share one
-   * read. UNREACHABLE_GENERATION while Redis cannot be reached - kept as
-   * long, so a Redis that fails or stalls is asked once in that time, not by
-   * every request.
-   */
-  private static async getSharedGeneration(projectId: string): Promise<string> {
-    const remembered: string | undefined =
-      this.sharedGenerations.get(projectId);
-
-    if (remembered !== undefined) {
-      return remembered;
-    }
-
-    let reading: Promise<string> | undefined =
-      this.sharedGenerationReads.get(projectId);
-
-    if (!reading) {
-      reading = this.readSharedGeneration(projectId).finally(() => {
-        this.sharedGenerationReads.delete(projectId);
-      });
-
-      this.sharedGenerationReads.set(projectId, reading);
-    }
-
-    return await reading;
-  }
-
-  private static async readSharedGeneration(
-    projectId: string,
-  ): Promise<string> {
-    try {
-      const shared: string =
-        (await GlobalCache.getString(
-          STATUS_PAGE_OVERVIEW_CACHE_NAMESPACE,
-          this.generationKey(projectId),
-        )) || DEFAULT_GENERATION;
-
-      this.sharedGenerations.set(
-        projectId,
-        shared,
-        this.SHARED_GENERATION_READ_TTL_MS,
-      );
-
-      return shared;
-    } catch {
-      this.sharedGenerations.set(
-        projectId,
-        UNREACHABLE_GENERATION,
-        this.SHARED_GENERATION_READ_TTL_MS,
-      );
-
-      return UNREACHABLE_GENERATION;
-    }
-  }
-
-  private static newGeneration(): string {
-    return `${Date.now().toString(36)}-${randomBytes(6).toString("hex")}`;
   }
 
   private static generationKey(projectId: string): string {

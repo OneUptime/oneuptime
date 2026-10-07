@@ -240,12 +240,16 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
       `${DASHBOARD}/Pages/Traces/Settings/RecordingRules.tsx`,
       "ModelTable: Traces > Settings > Recording Rules",
     ],
+    [
+      `${DASHBOARD}/Pages/Logs/Settings/RecordingRules.tsx`,
+      "ModelTable: Logs > Settings > Recording Rules",
+    ],
   ].map(([file, form]: Array<string>): ListedForm => {
     return {
       file: file!,
       form: form!,
       reason:
-        "A metric or trace recording rule: its name, with the output metric line drawn under it (made from the name and only typed over by choice; on Edit an ordinary field there instead), the definition - one editor holding the sources, the expression over them and the group by - and one folded More fields header (the description, and Enabled at its default, on). Two questions, the name and what it computes: it walked Basic Info then Definition, which split the rule from its name across a Next and left a first step of only optional fields besides the name. MetricAndRecordingRuleFormsGuard pins the shape.",
+        "A metric, trace or log recording rule: its name, with the output metric line drawn under it (made from the name and only typed over by choice; on Edit an ordinary field there instead), the definition - one editor holding what it computes (sources and the expression over them, or for a log rule its log filter and aggregation) and the group by - and one folded More fields header (the description, and Enabled at its default, on). Two questions, the name and what it computes: it walked Basic Info then Definition, which split the rule from its name across a Next and left a first step of only optional fields besides the name. The log recording rule page was made to the same shape. MetricAndRecordingRuleFormsGuard pins the shape.",
     };
   }),
   {
@@ -273,6 +277,12 @@ export const UNCOUNTABLE_FORMS: Array<ListedForm> = [
     form: "BasicForm: form-preview-form",
     reason:
       "The form builder's preview of the public form above: the same questions drawn the way the public page draws them, in one page, so what the builder shows is what a submitter will see.",
+  },
+  {
+    file: `${DASHBOARD}/Components/FormBuilder/Templates/FormTemplates.tsx`,
+    form: "BasicFormModal: form-template",
+    reason:
+      "A form template's editor: its name and the Default switch, then the form's own questions, hidden ones too, drawn the way the public page draws them (buildPublicFormFields): as many as the form's author made, none of them required. One page like the public form and the builder's preview, so a template reads as the form it fills in; a Next between its name and its answers would split the two.",
   },
   {
     file: `${DASHBOARD}/Components/Dashboard/Canvas/ArgumentsForm.tsx`,
@@ -340,6 +350,12 @@ export const SHORT_FORMS_WITH_STEPS: Array<ListedForm> = [
     form: "ModelTable: Network Site Assignment Rules",
     reason:
       "The site, then the conditions a device must match. The second step is the conditions builder every rule form in the product draws on its Match Criteria step - a list of conditions added one at a time, with its own match-all or match-any choice - and it keeps that page of its own here too, so this rule reads and is built like every other rule.",
+  },
+  {
+    file: `${DASHBOARD}/Components/AISettings/AIInvestigationRulesTable.tsx`,
+    form: "ModelTable: Settings > AI > Investigation Rules",
+    reason:
+      "A name, then the conditions an incident or alert must match to be investigated. The second step is the same conditions builder the auto remediation rules draw on their Match Criteria step, read by the same matcher, so the two kinds of rule are built the same way, one page for the name and one for the conditions.",
   },
 ];
 
@@ -1241,10 +1257,6 @@ describe("the project's forms", () => {
     [
       `${DASHBOARD}/Pages/Incidents/Settings/IncidentPostmortemTemplates.tsx`,
       ["templateName", "templateDescription", "postmortemNote"],
-    ],
-    [
-      `${DASHBOARD}/Pages/NetworkDevice/Settings/OidCollectionTemplates.tsx`,
-      ["name", "description", "oids"],
     ],
   ])(
     "include %s: one page of its three fields",

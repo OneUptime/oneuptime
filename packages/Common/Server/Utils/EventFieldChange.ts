@@ -1,4 +1,5 @@
 import Label from "../../Models/DatabaseModels/Label";
+import { toStoredBoolean } from "../../Types/Database/BooleanColumnValue";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
@@ -373,17 +374,12 @@ export default class EventFieldChange {
    * Whether Send reminders is on for a value of enableReminders, as the
    * reminder job and refreshReminderSchedule read it: on unless it is
    * switched off. A record that never set it (null) is on, the column's
-   * default. Postgres stores the string "false" as false, so that is off
-   * too.
+   * default. Off is what the database stores as false (toStoredBoolean):
+   * false, and "false", "no", "off" or 0 - which DatabaseService turns into
+   * false before any hook reads the write anyway.
    */
   public static areRemindersOn(value: unknown): boolean {
-    if (value === false) {
-      return false;
-    }
-
-    return !(
-      typeof value === "string" && value.trim().toLowerCase() === "false"
-    );
+    return toStoredBoolean(value) !== false;
   }
 
   /*

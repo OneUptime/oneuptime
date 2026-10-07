@@ -182,7 +182,10 @@
     "reference": "Ditt referensnummer är {{reference}}.",
     "submitAnother": "Skicka ett till svar",
     "retryAfter": "Du kan försöka igen {{when}}.",
-    "tryAgain": "Försök igen"
+    "tryAgain": "Försök igen",
+    "templateLabel": "Börja från en mall",
+    "templateDescription": "Välj en mall för att fylla i formuläret. Du kan ändra varje svar innan du skickar in.",
+    "templateNone": "Ingen mall"
   },
   "errors": {
     "forbidden": {

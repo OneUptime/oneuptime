@@ -608,7 +608,7 @@ func monitorStepsFilterSchema() schema.NestedAttributeObject {
 				Validators:          []validator.String{stringvalidator.LengthAtLeast(1)},
 			},
 			"snmp_monitor_options": schema.StringAttribute{
-				MarkdownDescription: "Raw JSON escape hatch for SNMP filter options (oid, interfaceName). Write it with `jsonencode()`.",
+				MarkdownDescription: "Raw JSON escape hatch for SNMP filter options (oid, interfaceName, and for SNMP table criteria tableKey, tableColumnOid and tableRow). Write it with `jsonencode()`.",
 				Optional:            true,
 				Validators:          []validator.String{stringvalidator.LengthAtLeast(1)},
 			},

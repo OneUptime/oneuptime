@@ -1,5 +1,6 @@
 import StatusPageSubscriberNotificationStatus from "./StatusPageSubscriberNotificationStatus";
 import StatusPageVisibility from "./StatusPageVisibility";
+import { toStoredBoolean } from "../Database/BooleanColumnValue";
 
 /*
  * Status page subscribers hear about an incident's postmortem once, when it
@@ -206,13 +207,13 @@ export default class IncidentPostmortemPublication {
 
   /*
    * Whether a written switch value switches it on, as the database stores it
-   * (StatusPageVisibility.toStoredBoolean). The API passes a value through as
-   * it is sent, and Postgres stores "true", "yes", "on" or 1 as true, so a
-   * hand-written request's switches it on too: the status page would show
-   * it.
+   * (toStoredBoolean): Postgres stores "true", "yes", "on" or 1 as true, and
+   * DatabaseService turns a write's switches into those booleans before any
+   * hook reads them, so a hand-written request's switches it on too: the
+   * status page would show it.
    */
   public static isSwitchedOn(value: unknown): boolean {
-    return StatusPageVisibility.toStoredBoolean(value) === true;
+    return toStoredBoolean(value) === true;
   }
 
   /*

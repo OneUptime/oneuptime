@@ -182,7 +182,10 @@
     "reference": "参照番号は {{reference}} です。",
     "submitAnother": "別の回答を送信",
     "retryAfter": "{{when}}に再試行できます。",
-    "tryAgain": "再試行"
+    "tryAgain": "再試行",
+    "templateLabel": "テンプレートから始める",
+    "templateDescription": "テンプレートを選ぶとフォームに入力されます。送信前にどの回答も変更できます。",
+    "templateNone": "テンプレートなし"
   },
   "errors": {
     "forbidden": {

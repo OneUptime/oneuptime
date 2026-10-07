@@ -103,6 +103,7 @@ import {
 } from "../../Utils/Form/Monitor/MonitoringIntervalDefault";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import SnmpTableListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpTableListUtil";
 
 /*
  * Candidate rolling windows for "create monitor from this explorer view" —
@@ -690,6 +691,11 @@ const MonitorCreate: FunctionComponent<
           hostname: true,
           monitoringMethod: true,
           probeId: true,
+          // The pack adds a per-row health criteria for each of its tables.
+          snmpTables: true,
+          oidTemplate: {
+            tables: true,
+          },
         },
       });
     } catch {
@@ -763,6 +769,10 @@ const MonitorCreate: FunctionComponent<
       const recommendedCriteria: Array<MonitorCriteriaInstance> =
         NetworkDeviceAlertPackUtil.buildCriteriaInstances({
           downMonitorStatusId: offlineStatus?.id || undefined,
+          tables: SnmpTableListUtil.resolveEffectiveTables({
+            templateTables: device?.oidTemplate?.tables,
+            deviceTables: device?.snmpTables,
+          }).tables,
         });
 
       if (recommendedCriteria.length > 0) {

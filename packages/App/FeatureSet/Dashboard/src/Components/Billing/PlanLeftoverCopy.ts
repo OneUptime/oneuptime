@@ -12,8 +12,9 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * keeps what it set up, and much of it keeps working: SSO providers sign
  * people in, Slack and Microsoft Teams rules post, summaries go out,
  * schedules page people. API keys and SCIM connections are kept too, but
- * stop working until the project is back on the plan (Common/Types/Billing/
- * PlanCutoffCredentials), and their tables say so. Below the plan, the page
+ * API keys stop working and SCIM connections only remove people until the
+ * project is back on the plan (Common/Types/Billing/PlanCutoffCredentials),
+ * and their tables say so. Below the plan, the page
  * that sells the feature shows what the project still has
  * (PlanLeftoverTable), with the moves the server allows on every plan: Turn
  * off, for records that have a switch, and Delete. Adding, changing and
@@ -28,7 +29,7 @@ export const PlanLeftoverCopy: {
   // A table's description, for records with a switch and without one.
   descriptionWithSwitch: string;
   descriptionWithoutSwitch: string;
-  // For API keys, and for SCIM connections, which stop below their plan.
+  // For API keys, which stop below their plan, and SCIM connections, which only remove people.
   descriptionStopped: string;
   descriptionScimStopped: string;
   // An API key's own page, below the plan.
@@ -54,7 +55,7 @@ export const PlanLeftoverCopy: {
     "These stopped working: your plan does not include them. Upgrading to the {{planName}} plan turns them back on as they are. You can still delete them.",
   ),
   descriptionScimStopped: translationKey(
-    "These stopped working: your plan does not include them, so your identity provider no longer adds or removes people here. Upgrading to the {{planName}} plan turns them back on as they are. You can still delete them.",
+    "Your plan does not include these, so they only remove people: your identity provider can still deactivate and remove people here, but can no longer add or change them. Upgrading to the {{planName}} plan turns them fully back on as they are. You can still delete them.",
   ),
   apiKeyStoppedTitle: translationKey("This API key stopped working"),
   apiKeyStoppedDescription: translationKey(
@@ -94,9 +95,9 @@ export const PlanLeftoverTitle: {
 };
 
 /*
- * A table's description: for API keys and SCIM connections, that they
- * stopped and an upgrade turns them back on; for the rest, that what is on
- * still works, as it does.
+ * A table's description: for API keys, that they stopped, and for SCIM
+ * connections, that they only remove people - an upgrade turns both fully
+ * back on; for the rest, that what is on still works, as it does.
  */
 export const getPlanLeftoverDescription: (data: {
   tableName: string | null | undefined;

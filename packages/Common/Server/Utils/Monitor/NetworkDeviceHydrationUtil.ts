@@ -6,6 +6,7 @@ import NetworkSiteService from "../../Services/NetworkSiteService";
 import NetworkSnmpCredentialProfileService from "../../Services/NetworkSnmpCredentialProfileService";
 import MonitorStepSnmpMonitor from "../../../Types/Monitor/MonitorStepSnmpMonitor";
 import SnmpOid from "../../../Types/Monitor/SnmpMonitor/SnmpOid";
+import { SnmpTableWalkRequest } from "../../../Types/Monitor/SnmpMonitor/SnmpTable";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
@@ -535,6 +536,8 @@ export default class NetworkDeviceHydrationUtil {
     credentials: SnmpConnectionCredentials;
     oids: Array<SnmpOid>;
     monitorInterfaces: boolean;
+    // The device's effective SNMP tables, already reduced to walk requests.
+    tables?: Array<SnmpTableWalkRequest> | undefined;
   }): MonitorStepSnmpMonitor {
     return {
       snmpVersion: NetworkDeviceHydrationUtil.parseSnmpVersion(
@@ -547,6 +550,7 @@ export default class NetworkDeviceHydrationUtil {
       oids: data.oids,
       timeout: 5000,
       monitorInterfaces: data.monitorInterfaces,
+      ...(data.tables && data.tables.length > 0 ? { tables: data.tables } : {}),
     };
   }
 

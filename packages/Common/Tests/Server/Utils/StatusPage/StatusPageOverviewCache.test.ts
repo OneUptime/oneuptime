@@ -354,10 +354,10 @@ describe("StatusPageOverviewCache generations", () => {
 
     const before: JSONObject = await overview({ build });
 
-    // The write of the new shared generation fails; Redis keeps the old one.
+    // Redis takes no write; it keeps the generation from before.
     (
       GlobalCache.setString as unknown as Mock<typeof GlobalCache.setString>
-    ).mockRejectedValueOnce(new Error("blip"));
+    ).mockRejectedValue(new Error("blip"));
 
     await StatusPageOverviewCache.forgetProjects([PROJECT_ID]);
 
@@ -374,7 +374,35 @@ describe("StatusPageOverviewCache generations", () => {
     const later: JSONObject = await overview({ build });
 
     expect(later).not.toBe(before);
-    expect(later).toEqual(after);
+    expect(later).toBe(after);
+    expect(redis.get(GENERATION_KEY)).toBeUndefined();
+  });
+
+  test("a change Redis did not take is written to Redis once it takes writes again, so every process sees it", async () => {
+    const { build } = counter();
+    const startedAt: number = Date.now();
+    jest.spyOn(Date, "now").mockReturnValue(startedAt);
+
+    const before: JSONObject = await overview({ build });
+
+    (
+      GlobalCache.setString as unknown as Mock<typeof GlobalCache.setString>
+    ).mockRejectedValueOnce(new Error("blip"));
+
+    await StatusPageOverviewCache.forgetProjects([PROJECT_ID]);
+    expect(redis.get(GENERATION_KEY)).toBeUndefined();
+
+    // Redis answers this process's next read of the project: the change goes.
+    jest
+      .spyOn(Date, "now")
+      .mockReturnValue(
+        startedAt + StatusPageOverviewCache.SHARED_GENERATION_READ_TTL_MS + 1,
+      );
+
+    const later: JSONObject = await overview({ build });
+
+    expect(later).not.toBe(before);
+    expect(redis.get(GENERATION_KEY)).toMatch(/^[0-9a-z]+-[0-9a-f]{12}$/);
   });
 
   test("a change made here is seen here at once, before Redis is read again", async () => {

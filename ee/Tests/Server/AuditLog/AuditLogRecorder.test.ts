@@ -1124,6 +1124,106 @@ describe("update diffs", () => {
     expect(fieldsOf(onlyEntry())).toEqual(["burnRateThreshold"]);
   });
 
+  /*
+   * The entry names the fields that changed by the same rule DatabaseService
+   * decides a write changed the row by (ColumnValueChange): a value written
+   * back as it stood is no change, whatever spelling it was sent in.
+   */
+  test.each([
+    ["false", false],
+    ['the text "false"', "false"],
+    ['the text "off"', "off"],
+    ["0", 0],
+  ] as Array<[string, unknown]>)(
+    "a switch written back as it stood (%s over false) is left out; the edit beside it is recorded alone",
+    async (_label: string, written: unknown) => {
+      const before: ServiceLevelObjectiveBurnRateRule = makeBurnRateRule();
+      before.isEnabled = false;
+
+      await harness.recorder.recordUpdate({
+        model: new ServiceLevelObjectiveBurnRateRule(),
+        before,
+        updatedFields: {
+          isEnabled: written,
+          burnRateThreshold: 6,
+        } as JSONObject,
+        itemId: RULE_ID,
+        props: USER_PROPS,
+      });
+
+      expect(changesOf(onlyEntry())).toEqual([
+        { field: "burnRateThreshold", oldValue: 14.4, newValue: 6 },
+      ]);
+    },
+  );
+
+  test("a switch written back as it stood, and nothing else, records nothing and costs no settings read", async () => {
+    const before: ServiceLevelObjectiveBurnRateRule = makeBurnRateRule();
+    before.isEnabled = true;
+
+    await harness.recorder.recordUpdate({
+      model: new ServiceLevelObjectiveBurnRateRule(),
+      before,
+      updatedFields: { isEnabled: true },
+      itemId: RULE_ID,
+      props: USER_PROPS,
+    });
+
+    expect(harness.inserted).toHaveLength(0);
+    expect(harness.findProject).not.toHaveBeenCalled();
+  });
+
+  test("a switch that really turns is recorded, old value and new", async () => {
+    const before: ServiceLevelObjectiveBurnRateRule = makeBurnRateRule();
+    before.isEnabled = true;
+
+    await harness.recorder.recordUpdate({
+      model: new ServiceLevelObjectiveBurnRateRule(),
+      before,
+      updatedFields: { isEnabled: false },
+      itemId: RULE_ID,
+      props: USER_PROPS,
+    });
+
+    expect(changesOf(onlyEntry())).toEqual([
+      { field: "isEnabled", oldValue: true, newValue: false },
+    ]);
+  });
+
+  test("a time written as the same instant in another format, and a number written as its text, are no change", async () => {
+    const before: ServiceLevelObjective = makeSlo();
+    before.archivedAt = new Date("2026-10-01T08:00:00.000Z");
+
+    await harness.recorder.recordUpdate({
+      model: new ServiceLevelObjective(),
+      before,
+      updatedFields: {
+        archivedAt: "2026-10-01T10:00:00.000+02:00",
+        targetPercentage: "99.9",
+        name: "Checkout availability (EU)",
+      },
+      itemId: SLO_ID,
+      props: USER_PROPS,
+    });
+
+    expect(fieldsOf(onlyEntry())).toEqual(["name"]);
+  });
+
+  test("a field the write sends as undefined writes nothing, so it is not recorded", async () => {
+    await harness.recorder.recordUpdate({
+      model: new ServiceLevelObjective(),
+      before: makeSlo(),
+      updatedFields: {
+        targetPercentage: undefined,
+        name: "Renamed",
+      } as unknown as JSONObject,
+      itemId: SLO_ID,
+      props: USER_PROPS,
+    });
+
+    expect(fieldsOf(onlyEntry())).toEqual(["name"]);
+  });
+
   test("the owner notification job marking an owner notified records nothing", async () => {
     project = makeProject({
       enableAuditLogs: true,

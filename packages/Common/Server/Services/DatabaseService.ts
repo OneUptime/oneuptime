@@ -111,6 +111,11 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import type AuditLogServiceType from "./AuditLogService";
 import EnableAuditLogOn from "../../Types/BaseDatabase/EnableAuditLogOn";
 import RelationValueUtil from "../Utils/Database/RelationValueUtil";
+import ColumnValueChange from "../Utils/Database/ColumnValueChange";
+import {
+  coerceBooleanColumnsInJSON,
+  getBooleanColumnWriteError,
+} from "../../Types/Database/BooleanColumnValue";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import RelationNames from "../Utils/Database/RelationNames";
 import ListOrderMaintainer, {
@@ -159,12 +164,38 @@ interface ColumnsByIdUpdateStatement {
 }
 
 /*
+ * An atomic add to one row by id (atomicAddToColumnsByIdWithoutHooks and
+ * atomicAddToColumnsByIdAndGetValuesWithoutHooks): its SET clause, its
+ * parameters (the id last), and the columns it adds to, which the second
+ * one answers the new values of.
+ */
+interface AtomicAddStatement {
+  tableName: string;
+  primaryColumnName: string;
+  setSql: string;
+  params: Array<unknown>;
+  addedColumns: Array<{ propertyName: string; databaseName: string }>;
+}
+
+/*
  * The query a write's hooks are handed in place of the one sent (see
  * pinQueryToRows), and whether it names the rows themselves by _id.
  */
 interface PinnedQuery<TBaseModel extends BaseModel> {
   query: Query<TBaseModel>;
   namesTheRows: boolean;
+}
+
+// One row's share of an update (see getRowWrite).
+interface RowWrite<TBaseModel extends BaseModel> {
+  // The row as the read before the write found it.
+  item: TBaseModel;
+  // What the row is written with, its own _id last.
+  updatedItem: Record<string, unknown>;
+  // What the workflow and the audit log are told the row is written with.
+  written: PartialEntity<TBaseModel>;
+  // What decides whether the write changes the row (getChangedColumns).
+  comparedAs: Record<string, unknown>;
 }
 
 class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
@@ -1017,6 +1048,50 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       throw new BadDataException(
         `Invalid value for ${columnName}. A query operator cannot be used as a value when creating or updating ${this.model.singularName}.`,
       );
+    }
+  }
+
+  /*
+   * Every Boolean column a write names, as the boolean the database stores:
+   * a switch the API, Terraform, a workflow or a script sends as "true",
+   * "yes", "on", "1" or 1 is true, and "false", "no", "off", "0" or 0 is
+   * false - what Postgres stores for them anyway. Done first, in place - on a
+   * model or a plain object alike - so the plan and permission checks, the
+   * service's hooks, the images a record makes public, who archived it and
+   * the workflow and audit entry all read what is stored, never the text;
+   * and again once the service's hooks (and, for a create, the defaults)
+   * have written to it, for what reads the write after them. A value the
+   * database would refuse is left as it is, for
+   * refuseUnstorableBooleanValues. See Types/Database/BooleanColumnValue.
+   */
+  private coerceBooleanColumns(data: unknown): void {
+    if (!data || typeof data !== "object") {
+      return;
+    }
+
+    coerceBooleanColumnsInJSON(data as JSONObject, this.model);
+  }
+
+  /*
+   * Refuses a write whose Boolean column holds a value the database would
+   * refuse - "maybe", 2, "" - with one plain message ("<column> must be true
+   * or false."), before any hook runs and before anything is written. It
+   * used to reach the database and come back as a bare 500. Asked after the
+   * login, credential and plan checks, so a caller who may not write at all
+   * is told that first.
+   */
+  private refuseUnstorableBooleanValues(data: unknown): void {
+    if (!data || typeof data !== "object") {
+      return;
+    }
+
+    const error: string | null = getBooleanColumnWriteError(
+      data as JSONObject,
+      this.model,
+    );
+
+    if (error) {
+      throw new BadDataException(error);
     }
   }
 
@@ -2816,6 +2891,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     items: Array<TBaseModel>,
     data: PartialEntity<TBaseModel>,
     props: DatabaseCommonInteractionProps,
+    switchStamps: Array<SwitchStamp>,
   ): Promise<Map<string, RealtimeReadAccess>> {
     const accessByProject: Map<string, RealtimeReadAccess> = new Map<
       string,
@@ -2836,13 +2912,25 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     const now: RealtimeReadAccess = this.getRealtimeReadAccess();
 
     try {
-      // A row the write leaves as it is sends no update event: nobody asked.
+      /*
+       * A row the write leaves as it is sends no update event: nobody asked.
+       * Judged on what the write puts in that row, built as _updateBy builds
+       * it (getRowWrite) - a switch the row already stands at keeps who
+       * turned it, and when, so those stamps are no change of its, and a
+       * rule's switch is compared as the rule holds it. A column the
+       * database works out in the write itself (getRowWriteSql) is judged
+       * as the write asks for it: what the database will store is not known
+       * until it does.
+       */
       const changing: Array<TBaseModel> = items.filter(
         (item: TBaseModel): boolean => {
-          return !this.hasSameValues({
-            item: item,
-            updatedItem: { ...data, _id: item._id },
-          });
+          return !this.hasSameValues(
+            this.getRowWrite({
+              item: item,
+              data: data,
+              switchStamps: switchStamps,
+            }),
+          );
         },
       );
 
@@ -3060,6 +3148,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   @CaptureSpan()
   public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
+    // Every switch as the database stores it, before anything reads one.
+    this.coerceBooleanColumns(createBy.data);
+
     // With the project's plan where the create needs it. See the helper.
     createBy.props = await this.checkCallerBeforeHooks(
       createBy.props,
@@ -3091,6 +3182,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     // Query operators are for queries, not for write payloads. See the helper.
     this.rejectQueryOperatorsInData(createBy.data);
+
+    // A switch the database would refuse, in one plain sentence. See the helper.
+    this.refuseUnstorableBooleanValues(createBy.data);
 
     this.unwrapHashedStringsForUnhashedColumns(createBy.data);
 
@@ -3128,6 +3222,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     this.enforceTenantRelationMatchesScalar(data, _createdBy.props);
 
     data = this.generateDefaultValues(data);
+
+    /*
+     * A switch the service's hooks or the defaults set is held as the
+     * database stores it too, for the plan check below and every hook after
+     * the write. See coerceBooleanColumns.
+     */
+    this.coerceBooleanColumns(data);
 
     data = this.checkRequiredFields(data);
 
@@ -5205,6 +5306,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     data: UpdateBy<TBaseModel>["data"],
   ): UpdateBy<TBaseModel>["data"] {
     if (!(data instanceof BaseModel)) {
+      // The write as it was given, its switches as the database stores them.
+      this.coerceBooleanColumns(data);
+
       return data;
     }
 
@@ -5234,6 +5338,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       plainData[key] = value;
     }
 
+    this.coerceBooleanColumns(plainData);
+
     return plainData as UpdateBy<TBaseModel>["data"];
   }
 
@@ -5252,6 +5358,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       // Query operators are for queries, not for write payloads. See the helper.
       this.rejectQueryOperatorsInData(updateBy.data);
+
+      // A switch the database would refuse, in one plain sentence. See the helper.
+      this.refuseUnstorableBooleanValues(updateBy.data);
 
       /*
        * Defense in depth for the tenant confused-deputy on the update path.
@@ -5289,6 +5398,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       const onUpdate: OnUpdate<TBaseModel> = updateBy.props.ignoreHooks
         ? { updateBy, carryForward: [] }
         : await this.onBeforeUpdate(updateBy);
+
+      /*
+       * A switch the service's hook set is held as the database stores it
+       * too, for the checks below and every hook after the write. See
+       * coerceBooleanColumns.
+       */
+      this.coerceBooleanColumns(onUpdate.updateBy.data);
 
       // Encrypt data
       updateBy.data = (await this.encrypt(
@@ -5525,97 +5641,34 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
        * about the update too. See getRealtimeAccessBeforeUpdate.
        */
       const realtimeUpdateAccess: Map<string, RealtimeReadAccess> =
-        await this.getRealtimeAccessBeforeUpdate(items, data, updateBy.props);
+        await this.getRealtimeAccessBeforeUpdate(
+          items,
+          data,
+          updateBy.props,
+          switchStamps,
+        );
 
       for (const item of items) {
         /*
-         * _id must be set AFTER the spread: update data can carry an
-         * explicit `_id: undefined` (sanitizeUpdateData strips it from model
-         * instances, but a plain object can still hold it), and spreading it
-         * after _id would clobber the located row's id — save() then sees no
-         * primary key, INSERTs instead of updating, and dies on the first
-         * NOT NULL column.
+         * What this row is written with, what the workflow and the audit log
+         * are told it is written with, and what decides whether it changes.
+         * See the helper.
          */
-        const dataForItem: PartialEntity<TBaseModel> = {
-          ...data,
-        };
+        const rowWrite: RowWrite<TBaseModel> = this.getRowWrite({
+          item: item,
+          data: data,
+          switchStamps: switchStamps,
+        });
 
-        // Only a row whose switch really turns takes its stamps. See the helper.
-        const keptSwitchColumns: Array<string> =
-          this.keepSwitchAttributionOfUnturnedRow(
-            dataForItem,
-            item,
-            switchStamps,
-          );
+        const updatedItem: any = rowWrite.updatedItem;
 
         /*
-         * What this row is written with, for the workflow and the audit log.
          * A column the database works out (getRowWriteSql) is recorded as
-         * it stored it, once the write hands it back.
+         * it stored it, once the write hands it back (below).
          */
-        const writtenData: PartialEntity<TBaseModel> = {
-          ...data,
-        };
-
-        for (const column of keptSwitchColumns) {
-          delete (writtenData as Record<string, unknown>)[column];
-        }
-
-        if (
-          this.model instanceof RelationOnlyRuleBaseModel &&
-          (data as Record<string, unknown>)["criteria"] === undefined &&
-          typeof (data as Record<string, unknown>)["isEnabled"] === "boolean" &&
-          (item as unknown as RelationOnlyRuleBaseModel).criteria !==
-            undefined &&
-          (item as unknown as RelationOnlyRuleBaseModel).criteria !== null
-        ) {
-          const logicalEnabled: boolean = (data as Record<string, unknown>)[
-            "isEnabled"
-          ] as boolean;
-          const existingCriteria: RuleCriteria = (
-            item as unknown as RelationOnlyRuleBaseModel
-          ).criteria!;
-
-          /*
-           * Keep the transport shadow synchronized with the physical state.
-           * Otherwise a later criteria edit that round-trips this JSON without
-           * a top-level isEnabled value can restore a stale enabled state.
-           */
-          (dataForItem as Record<string, unknown>)["criteria"] = {
-            ...existingCriteria,
-            isEnabled: logicalEnabled,
-          };
-          (dataForItem as Record<string, unknown>)["isEnabled"] = logicalEnabled
-            ? null
-            : false;
-        }
-
-        const updatedItem: any = {
-          ...dataForItem,
-          _id: item._id!,
-        } as any;
-        const updatedItemForComparison: any = { ...updatedItem };
-        const updateCriteriaValue: unknown = (data as Record<string, unknown>)[
-          "criteria"
-        ];
-        const existingCriteriaValue: unknown = (
-          item as unknown as RelationOnlyRuleBaseModel
-        ).criteria;
-        const isCriteriaBackedComparison: boolean =
-          (updateCriteriaValue !== undefined && updateCriteriaValue !== null) ||
-          (updateCriteriaValue === undefined &&
-            existingCriteriaValue !== undefined &&
-            existingCriteriaValue !== null);
-
-        if (
-          this.model instanceof RelationOnlyRuleBaseModel &&
-          typeof (data as Record<string, unknown>)["isEnabled"] === "boolean" &&
-          isCriteriaBackedComparison
-        ) {
-          updatedItemForComparison.isEnabled = (
-            data as Record<string, unknown>
-          )["isEnabled"];
-        }
+        const writtenData: PartialEntity<TBaseModel> = rowWrite.written;
+        const updatedItemForComparison: Record<string, unknown> =
+          rowWrite.comparedAs;
 
         if (isDebugLogEnabled) {
           logger.debug("Updated Item", {
@@ -5755,12 +5808,21 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         affectedItems.push(item);
         rowsAsWritten.push(rowAsWritten);
 
+        /*
+         * What the write changed in this row, worked out once: an update
+         * that changed nothing starts no workflow, sends no live update and
+         * adds no audit entry, and one that did tells the workflow just what
+         * it changed. See getChangedColumns.
+         */
+        const changedColumns: JSONObject =
+          this.getModel().enableWorkflowOn?.update ||
+          this.getModel().enableAuditLogOn?.update
+            ? this.getChangedColumns(rowWrite)
+            : {};
+        const isRowChanged: boolean = Object.keys(changedColumns).length > 0;
+
         // hit workflow.
-        if (
-          this.getModel().enableWorkflowOn?.update &&
-          // Only trigger workflow if there's a change in values
-          !this.hasSameValues({ item, updatedItem: updatedItemForComparison })
-        ) {
+        if (this.getModel().enableWorkflowOn?.update && isRowChanged) {
           let tenantId: ObjectID | undefined = updateBy.props.tenantId;
 
           if (!tenantId && this.getModel().getTenantColumn()) {
@@ -5770,8 +5832,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           }
 
           if (tenantId) {
+            /*
+             * The fields the update changed, not every field it sent: a
+             * workflow's Listen on hears a field that changed, never one
+             * written back as it was.
+             */
             await this.onTriggerWorkflow(item.id!, tenantId, "on-update", {
-              updatedFields: JSONFunctions.serialize(writtenData as JSONObject),
+              updatedFields: JSONFunctions.serialize(changedColumns),
             });
 
             await this.onTriggerRealtime(
@@ -5787,10 +5854,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
         if (
           this.getModel().enableAuditLogOn?.update &&
-          !this.hasSameValues({
-            item,
-            updatedItem: updatedItemForComparison,
-          }) &&
+          isRowChanged &&
           item.id
         ) {
           const auditLogService: typeof AuditLogServiceType =
@@ -5948,65 +6012,162 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
   }
 
-  private hasSameValues(data: { item: TBaseModel; updatedItem: any }): boolean {
-    const { item, updatedItem } = data;
-    const columns: string[] = Object.keys(updatedItem);
-    for (const column of columns) {
-      const currentValue: unknown = item.getColumnValue(column);
-      const updatedValue: unknown = updatedItem[column];
-      const columnType: TableColumnType | undefined =
-        item.getTableColumnMetadata(column)?.type;
-      const isJSONColumn: boolean = columnType === TableColumnType.JSON;
+  /*
+   * One row's share of an update, built the one way both the decision before
+   * the write (getRealtimeAccessBeforeUpdate) and the write itself use:
+   *
+   * - updatedItem: what the row is written with. A switch the row already
+   *   stands at keeps who turned it, and when (keepSwitchAttributionOfUnturnedRow).
+   *   A rule's switch written alone keeps its criteria in step with it, and
+   *   is stored as the rule stores it. The row's own _id goes last: update
+   *   data can carry an explicit `_id: undefined` (sanitizeUpdateData strips
+   *   it from model instances, but a plain object can still hold it), and
+   *   spreading it after _id would clobber the located row's id - save()
+   *   then sees no primary key, INSERTs instead of updating, and dies on the
+   *   first NOT NULL column.
+   * - written: what the workflow and the audit log are told the row is
+   *   written with - the update as it was given, without the stamps of a
+   *   switch the row already stands at.
+   * - comparedAs: what decides whether the write changes the row
+   *   (getChangedColumns) - what it is written with, a rule's switch as the
+   *   rule reads it.
+   */
+  private getRowWrite(data: {
+    item: TBaseModel;
+    data: PartialEntity<TBaseModel>;
+    switchStamps: Array<SwitchStamp>;
+  }): RowWrite<TBaseModel> {
+    const { item } = data;
+    const update: Record<string, unknown> = data.data as Record<
+      string,
+      unknown
+    >;
+
+    const dataForItem: Record<string, unknown> = { ...update };
+
+    // Only a row whose switch really turns takes its stamps. See the helper.
+    const keptSwitchColumns: Array<string> =
+      this.keepSwitchAttributionOfUnturnedRow(
+        dataForItem as PartialEntity<TBaseModel>,
+        item,
+        data.switchStamps,
+      );
+
+    const written: Record<string, unknown> = { ...update };
+
+    for (const column of keptSwitchColumns) {
+      delete written[column];
+    }
+
+    const existingCriteria: unknown = (
+      item as unknown as RelationOnlyRuleBaseModel
+    ).criteria;
+
+    if (
+      this.model instanceof RelationOnlyRuleBaseModel &&
+      update["criteria"] === undefined &&
+      typeof update["isEnabled"] === "boolean" &&
+      existingCriteria !== undefined &&
+      existingCriteria !== null
+    ) {
+      const logicalEnabled: boolean = update["isEnabled"] as boolean;
 
       /*
-       * A relation value is a model instance (or an array of them), and those
-       * stringify as "[object Object]" too - so swapping a resource's labels
-       * A,B for C,D compared as unchanged, and the update fired neither its
-       * workflow nor its audit entry. Compare the referenced ids, as sets:
-       * the order a relation comes back in means nothing. When either side
-       * has no ids to compare (the relation was not loaded, or holds something
-       * that is not a reference), fall through to the comparison below.
+       * Keep the transport shadow synchronized with the physical state.
+       * Otherwise a later criteria edit that round-trips this JSON without
+       * a top-level isEnabled value can restore a stale enabled state.
        */
-      if (
-        columnType === TableColumnType.EntityArray ||
-        columnType === TableColumnType.Entity
-      ) {
-        const sameRelationIds: boolean | null =
-          RelationValueUtil.haveSameRelationIds(currentValue, updatedValue);
+      dataForItem["criteria"] = {
+        ...(existingCriteria as RuleCriteria),
+        isEnabled: logicalEnabled,
+      };
+      dataForItem["isEnabled"] = logicalEnabled ? null : false;
+    }
 
-        if (sameRelationIds === false) {
-          return false;
-        }
+    const updatedItem: Record<string, unknown> = {
+      ...dataForItem,
+      _id: item._id!,
+    };
+    const comparedAs: Record<string, unknown> = { ...updatedItem };
 
-        if (sameRelationIds === true) {
-          continue;
-        }
+    const isCriteriaBackedComparison: boolean =
+      (update["criteria"] !== undefined && update["criteria"] !== null) ||
+      (update["criteria"] === undefined &&
+        existingCriteria !== undefined &&
+        existingCriteria !== null);
+
+    if (
+      this.model instanceof RelationOnlyRuleBaseModel &&
+      typeof update["isEnabled"] === "boolean" &&
+      isCriteriaBackedComparison
+    ) {
+      comparedAs["isEnabled"] = update["isEnabled"];
+    }
+
+    return {
+      item: item,
+      updatedItem: updatedItem,
+      written: written as PartialEntity<TBaseModel>,
+      comparedAs: comparedAs,
+    };
+  }
+
+  /*
+   * The columns a row's write changes, with the values written. Each column
+   * the write puts in the row (`comparedAs`) is compared with what the row
+   * held, as the database stores it (ColumnValueChange) - false with false,
+   * null with null, a switch as its boolean, a time as its instant, a
+   * relation as the rows it names, JSON by its content - and a column sent
+   * as undefined writes nothing. The row's own values are read as they are:
+   * getColumnValue answers null for every falsy value, which made writing a
+   * switch back as off, a count of 0 or an empty text count as a change.
+   *
+   * The one answer to whether a write changed a row: it gates the on-update
+   * workflow and its live update, who hears about it before the write
+   * (getRealtimeAccessBeforeUpdate) and the audit entry, so a write that
+   * changes nothing sets off none of them - and it is what an On Update
+   * workflow is told the update changed (`updatedFields`), so its Listen on
+   * hears a field that changed and never one an edit form, Terraform or a
+   * script wrote back as it was. A column is reported with the value the
+   * update wrote, or - one the write worked out itself, a rule's criteria
+   * kept in step with its switch - with the value it stores.
+   */
+  private getChangedColumns(rowWrite: RowWrite<TBaseModel>): JSONObject {
+    const storedRow: Record<string, unknown> =
+      rowWrite.item as unknown as Record<string, unknown>;
+    const written: Record<string, unknown> = rowWrite.written as Record<
+      string,
+      unknown
+    >;
+    const changed: JSONObject = {};
+
+    for (const [column, value] of Object.entries(rowWrite.comparedAs)) {
+      // The row's own id locates it; it is never written.
+      if (column === "_id") {
+        continue;
       }
 
-      /*
-       * Plain JSON objects all stringify through Object.toString as
-       * "[object Object]". Compare their contents instead, while ignoring
-       * insignificant object-key ordering.
-       */
       if (
-        isJSONColumn &&
-        !JSONFunctions.deepEqual(currentValue, updatedValue)
+        ColumnValueChange.isChanged({
+          columnType: rowWrite.item.getTableColumnMetadata(column)?.type,
+          storedValue: storedRow[column],
+          writtenValue: value,
+        })
       ) {
-        return false;
-      }
-
-      if (
-        !isJSONColumn &&
-        /*
-         * `toString()` is necessary so we can compare wrapped values
-         * (e.g. `ObjectID`) with raw values (e.g. `string`)
-         */
-        currentValue?.toString() !== updatedValue?.toString()
-      ) {
-        return false;
+        changed[column] = (
+          Object.prototype.hasOwnProperty.call(written, column)
+            ? written[column]
+            : value
+        ) as JSONValue;
       }
     }
-    return true;
+
+    return changed;
+  }
+
+  // Whether a row's write leaves it as it was. See getChangedColumns.
+  private hasSameValues(rowWrite: RowWrite<TBaseModel>): boolean {
+    return Object.keys(this.getChangedColumns(rowWrite)).length === 0;
   }
 
   @CaptureSpan()
@@ -6547,6 +6708,107 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     add: Partial<Record<keyof TBaseModel, number>>;
     set?: PartialEntity<TBaseModel> | undefined;
   }): Promise<void> {
+    const statement: AtomicAddStatement | null = this.buildAtomicAddStatement(
+      input,
+      "atomicAddToColumnsByIdWithoutHooks",
+    );
+
+    if (!statement) {
+      return;
+    }
+
+    const sql: string = `UPDATE "${statement.tableName}" SET ${statement.setSql} WHERE "${statement.primaryColumnName}" = $${statement.params.length}`;
+
+    await this.getRepository().manager.query(sql, statement.params);
+  }
+
+  /*
+   * The same single-statement, hook-free, no-version-bump add as
+   * `atomicAddToColumnsByIdWithoutHooks`, which also answers what the added
+   * columns became - for a balance that a caller must see as its own write
+   * left it, not as a second read (taken a moment later, after other
+   * writers) says it is. Null when the row does not exist.
+   *
+   * The UPDATE sits in a CTE so the statement is a SELECT of the row it
+   * wrote: TypeORM's postgres `query()` answers a top-level UPDATE with
+   * `[rows, rowCount]` (see updateColumnsByIdIfUnlockedWithoutHooks).
+   *
+   * `add` must name at least one column: there is nothing to answer
+   * otherwise.
+   */
+  @CaptureSpan()
+  public async atomicAddToColumnsByIdAndGetValuesWithoutHooks(input: {
+    id: ObjectID;
+    add: Partial<Record<keyof TBaseModel, number>>;
+    set?: PartialEntity<TBaseModel> | undefined;
+  }): Promise<Partial<Record<keyof TBaseModel, number>> | null> {
+    const methodName: string = "atomicAddToColumnsByIdAndGetValuesWithoutHooks";
+
+    const statement: AtomicAddStatement | null = this.buildAtomicAddStatement(
+      input,
+      methodName,
+    );
+
+    if (!statement || statement.addedColumns.length === 0) {
+      throw new BadDataException(
+        `${methodName}: "add" must name at least one column`,
+      );
+    }
+
+    const returned: string = statement.addedColumns
+      .map((column: { databaseName: string }) => {
+        return `"${column.databaseName}"`;
+      })
+      .join(", ");
+
+    const sql: string = `WITH "updated" AS (UPDATE "${statement.tableName}" SET ${statement.setSql} WHERE "${statement.primaryColumnName}" = $${statement.params.length} RETURNING ${returned}) SELECT ${returned} FROM "updated"`;
+
+    const result: unknown = await this.getRepository().manager.query(
+      sql,
+      statement.params,
+    );
+
+    const row: unknown = Array.isArray(result) ? result[0] : undefined;
+
+    if (!row || typeof row !== "object" || Array.isArray(row)) {
+      return null;
+    }
+
+    const values: Partial<Record<keyof TBaseModel, number>> = {};
+
+    for (const column of statement.addedColumns) {
+      const value: unknown = (row as Record<string, unknown>)[
+        column.databaseName
+      ];
+
+      // A bigint or numeric column comes back from the driver as text.
+      const parsed: number = typeof value === "number" ? value : Number(value);
+
+      if (value === null || value === undefined || !Number.isFinite(parsed)) {
+        throw new BadDataException(
+          `${methodName}: "${column.propertyName}" did not return a number`,
+        );
+      }
+
+      values[column.propertyName as keyof TBaseModel] = parsed;
+    }
+
+    return values;
+  }
+
+  /*
+   * The SET clause and parameters of an atomic add to one row by id, the id
+   * bound last. Null when there is nothing to add or set. `methodName` is
+   * the public method the errors are reported under.
+   */
+  private buildAtomicAddStatement(
+    input: {
+      id: ObjectID;
+      add: Partial<Record<keyof TBaseModel, number>>;
+      set?: PartialEntity<TBaseModel> | undefined;
+    },
+    methodName: string,
+  ): AtomicAddStatement | null {
     if (!input.id) {
       throw new BadDataException("id is required");
     }
@@ -6557,6 +6819,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     const setClauses: Array<string> = [];
     const params: Array<unknown> = [];
+    const addedColumns: Array<{ propertyName: string; databaseName: string }> =
+      [];
 
     const columnFor: (propertyName: string) => ColumnMetadata = (
       propertyName: string,
@@ -6565,7 +6829,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         metadata.findColumnWithPropertyName(propertyName);
       if (!column) {
         throw new BadDataException(
-          `atomicAddToColumnsByIdWithoutHooks: unknown column "${propertyName}" on "${metadata.tableName}"`,
+          `${methodName}: unknown column "${propertyName}" on "${metadata.tableName}"`,
         );
       }
       return column;
@@ -6576,7 +6840,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     )) {
       if (typeof delta !== "number" || !Number.isFinite(delta)) {
         throw new BadDataException(
-          `atomicAddToColumnsByIdWithoutHooks: "${propertyName}" delta must be a finite number`,
+          `${methodName}: "${propertyName}" delta must be a finite number`,
         );
       }
 
@@ -6584,6 +6848,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       params.push(delta);
       const quoted: string = `"${column.databaseName}"`;
       setClauses.push(`${quoted} = COALESCE(${quoted}, 0) + $${params.length}`);
+      addedColumns.push({
+        propertyName: propertyName,
+        databaseName: column.databaseName,
+      });
     }
 
     // Shallow copy — never mutate the caller's object. See the clamp note above.
@@ -6594,7 +6862,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     for (const [propertyName, value] of Object.entries(set)) {
       if (typeof value === "function") {
         throw new BadDataException(
-          `atomicAddToColumnsByIdWithoutHooks: SQL-expression values are not supported (column "${propertyName}"); pass a literal value.`,
+          `${methodName}: SQL-expression values are not supported (column "${propertyName}"); pass a literal value.`,
         );
       }
 
@@ -6604,7 +6872,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     if (setClauses.length === 0) {
-      return;
+      return null;
     }
 
     if (metadata.updateDateColumn) {
@@ -6617,11 +6885,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       metadata.primaryColumns[0]?.databaseName || "_id";
     params.push(input.id.toString());
 
-    const sql: string = `UPDATE "${metadata.tableName}" SET ${setClauses.join(
-      ", ",
-    )} WHERE "${primaryColumnName}" = $${params.length}`;
-
-    await repository.manager.query(sql, params);
+    return {
+      tableName: metadata.tableName,
+      primaryColumnName: primaryColumnName,
+      setSql: setClauses.join(", "),
+      params: params,
+      addedColumns: addedColumns,
+    };
   }
 
   /*

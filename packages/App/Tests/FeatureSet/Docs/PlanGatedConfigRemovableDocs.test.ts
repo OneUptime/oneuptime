@@ -145,9 +145,9 @@ describe("the SCIM guide", () => {
     "### Below the Scale plan",
   );
 
-  it("lists the connections under the upsell, says they stopped, and deleting removes one", () => {
+  it("lists the connections under the upsell, says they only remove people, and deleting removes one", () => {
     expect(section).toContain(
-      "list the connections under the plan's upsell (**SCIM connections still set up**) and say they stopped. Delete a connection to remove it.",
+      "list the connections under the plan's upsell (**SCIM connections still set up**) and say they only remove people. Delete a connection to remove it.",
     );
     expect(section).toContain(
       "Adding a connection, changing one or replacing its bearer token needs **Scale**.",
