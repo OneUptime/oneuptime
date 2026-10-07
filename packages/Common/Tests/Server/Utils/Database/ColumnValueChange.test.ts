@@ -13,7 +13,7 @@ import { describe, expect, test } from "@jest/globals";
  */
 
 function isChanged(
-  columnType: TableColumnType | undefined,
+  columnType: TableColumnType | undefined | null,
   storedValue: unknown,
   writtenValue: unknown,
 ): boolean {

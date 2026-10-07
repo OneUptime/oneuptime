@@ -33,6 +33,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {
@@ -76,16 +77,16 @@ class AtTheHooks extends Error {}
 interface Reached {
   // What each write handed the service's first hook, in order.
   writes: Array<Record<string, unknown>>;
-  createHook: jest.Mock;
-  updateHook: jest.Mock;
+  createHook: Mock<() => void>;
+  updateHook: Mock<() => void>;
 }
 
 // Stops the service's writes at their first hook and records what they carried.
 function stopAtTheHooks(service: DatabaseService<Monitor>): Reached {
   const reached: Reached = {
     writes: [],
-    createHook: jest.fn(),
-    updateHook: jest.fn(),
+    createHook: jest.fn<() => void>(),
+    updateHook: jest.fn<() => void>(),
   };
 
   getJestSpyOn(service, "_onBeforeCreate").mockImplementation(
