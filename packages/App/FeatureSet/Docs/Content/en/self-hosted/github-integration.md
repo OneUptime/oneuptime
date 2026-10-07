@@ -145,24 +145,22 @@ gitHubApp:
 
 **Important:** Restart your OneUptime server after adding these environment variables so they take effect.
 
-### Step 9: Install the GitHub App
+### Step 9: Connect Repositories in OneUptime
 
-1. Go to your GitHub App's public page: `https://github.com/apps/YOUR_APP_NAME`
-2. Click **"Install"** or **"Configure"**
-3. Select the organization or account where you want to install the app
-4. Choose which repositories the app can access:
-   - **All repositories** - Access to all current and future repositories
-   - **Only select repositories** - Choose specific repositories
-5. Click **"Install"**
-
-### Step 10: Connect Repositories in OneUptime
+Start the connection from OneUptime, not from the app's page on GitHub: the link OneUptime sends you to GitHub with is what ties the installation to your project.
 
 1. Log into your OneUptime dashboard
 2. Navigate to **Products** > **Tasks** > **Code Repositories**
-3. Click **"Create Repository"** or use the GitHub App installation flow
-4. If redirected from GitHub, the installation ID will be automatically captured
-5. Select the repositories you want to connect from the list
-6. Click **"Connect"** to link the repository to your OneUptime project
+3. Click **Connect with GitHub App**. OneUptime takes you to GitHub
+4. Select the organization or account to install the app on, and choose which repositories it can access:
+   - **All repositories** - Access to all current and future repositories
+   - **Only select repositories** - Choose specific repositories
+5. Click **Install** (or **Save**, if the app is already installed there)
+6. GitHub sends you back to **Code Repositories**, and every repository in the installation is imported. Repositories later added to or removed from the installation are kept in sync automatically.
+
+**Who can connect.** Connecting imports the installation's repositories into the project, so it needs permission to add code repositories: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member**, or a team with **Create Code Repository**. A team that blocks the permission takes it away. On OneUptime Cloud, code repositories need the Growth plan or above. For anyone else, the card is locked and says what it takes.
+
+**Finish within 15 minutes, in the same browser.** The link works once, for 15 minutes, in the browser that started it. When GitHub sends you back, OneUptime checks the permission again before it imports anything.
 
 ## Environment Variables Reference
 
@@ -206,6 +204,15 @@ Without inbound access, browser authorization and outbound API/Git operations ma
 ## Troubleshooting
 
 ### Common Issues
+
+**"This GitHub connection link is invalid, has expired, or has already been used":**
+
+- Start again from **Code Repositories** and finish on GitHub within 15 minutes, in the same browser
+- Installing the app from its page on GitHub does not connect it to a project. Start from **Code Repositories** in OneUptime
+
+**"You do not have permission to add code repositories to this project":**
+
+- Connecting needs permission to add code repositories (see Step 9). Ask a project admin to grant it
 
 **Not redirected back to OneUptime after installing the GitHub App:**
 

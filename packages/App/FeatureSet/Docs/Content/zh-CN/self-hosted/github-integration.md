@@ -139,24 +139,22 @@ gitHubApp:
 
 **重要提示：** 添加这些环境变量后重启您的 OneUptime 服务器以使其生效。
 
-### 第九步：安装 GitHub App
+### 第九步：在 OneUptime 中连接代码仓库
 
-1. 前往您的 GitHub App 公共页面：`https://github.com/apps/YOUR_APP_NAME`
-2. 点击 **"Install"** 或 **"Configure"**
-3. 选择您要安装应用的组织或账号
-4. 选择应用可以访问哪些代码仓库：
-   - **所有代码仓库** - 访问所有当前和未来的代码仓库
-   - **仅选定的代码仓库** - 选择特定的代码仓库
-5. 点击 **"Install"**
-
-### 第十步：在 OneUptime 中连接代码仓库
+请从 OneUptime 开始连接，而不是从 GitHub 上的应用页面开始：OneUptime 带您前往 GitHub 时使用的链接，会把这次安装绑定到您的项目。
 
 1. 登录您的 OneUptime 控制台
 2. 导航至 **产品** > **任务** > **代码仓库**
-3. 点击 **"创建代码仓库"** 或使用 GitHub App 安装流程
-4. 如果从 GitHub 重定向，安装 ID 将自动捕获
-5. 从列表中选择您要连接的代码仓库
-6. 点击 **"连接"** 将代码仓库链接到您的 OneUptime 项目
+3. 点击 **Connect with GitHub App**，OneUptime 会带您前往 GitHub
+4. 选择要安装应用的组织或账号，并选择应用可以访问哪些代码仓库：
+   - **All repositories** - 访问所有当前和未来的代码仓库
+   - **Only select repositories** - 选择特定的代码仓库
+5. 点击 **Install**（如果应用已安装在那里，则点击 **Save**）
+6. GitHub 会带您回到 **代码仓库**，安装中的所有代码仓库都会被导入。之后在安装中添加或移除的代码仓库会自动保持同步。
+
+**谁可以连接。** 连接会把安装中的代码仓库导入项目，因此需要添加代码仓库的权限：**Project Owner**、**Project Admin**、**Project Member**、**Settings Admin**、**Settings Member**，或拥有 **Create Code Repository** 的团队。屏蔽该权限的团队会收回它。在 OneUptime Cloud 上，代码仓库需要 Growth 套餐或更高套餐。对其他人，卡片会被锁定并说明需要什么。
+
+**请在 15 分钟内、在同一浏览器中完成。** 该链接只能使用一次，有效期 15 分钟，并且只能在发起连接的浏览器中使用。GitHub 带您返回时，OneUptime 会在导入任何内容之前再次检查权限。
 
 ## 环境变量参考
 

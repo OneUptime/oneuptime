@@ -26025,5 +26025,8 @@
   "You do not have permission to run this workflow.": "Sie haben keine Berechtigung, diesen Arbeitsablauf auszuführen.",
   "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here.": "{{count}} weitere Schritte erfordern einen Projekteigentümer oder jemanden mit der Rolle „Billing Admin“ oder der Berechtigung „Manage Billing“ und werden daher hier nicht gezählt.",
   "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here._one": "{{count}} weiterer Schritt erfordert einen Projekteigentümer oder jemanden mit der Rolle „Billing Admin“ oder der Berechtigung „Manage Billing“ und wird daher hier nicht gezählt.",
-  "The event has started, so this can no longer be changed.": "Das Ereignis hat begonnen, daher kann dies nicht mehr geändert werden."
+  "The event has started, so this can no longer be changed.": "Das Ereignis hat begonnen, daher kann dies nicht mehr geändert werden.",
+  "Connecting GitHub needs permission to create code repositories.": "Zum Verbinden mit GitHub brauchen Sie die Berechtigung, Code-Repositories anzulegen.",
+  "Connecting GitHub needs the {{planName}} plan.": "Zum Verbinden mit GitHub brauchen Sie den {{planName}}-Tarif.",
+  "OneUptime could not start the GitHub connection. Please try again.": "OneUptime konnte die Verbindung mit GitHub nicht starten. Bitte versuchen Sie es erneut."
 }

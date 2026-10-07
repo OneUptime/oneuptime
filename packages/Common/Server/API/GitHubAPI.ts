@@ -6,8 +6,9 @@ import Express, {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BadDataException from "../../Types/Exception/BadDataException";
-import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
-import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import BadRequestException from "../../Types/Exception/BadRequestException";
+import Exception from "../../Types/Exception/Exception";
+import ServerException from "../../Types/Exception/ServerException";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import { JSONArray, JSONObject } from "../../Types/JSON";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
@@ -25,12 +26,18 @@ import CodeRepositoryService, {
   ImportReposFromInstallationResult,
 } from "../Services/CodeRepositoryService";
 import ProjectService from "../Services/ProjectService";
-import AccessTokenService from "../Services/AccessTokenService";
 import Project from "../../Models/DatabaseModels/Project";
 import URL from "../../Types/API/URL";
 import UserMiddleware from "../Middleware/UserAuthorization";
-import JSONWebToken from "../Utils/JsonWebToken";
-import { UserTenantAccessPermission } from "../../Types/Permission";
+import WorkspaceOAuthState, {
+  WorkspaceOAuthFlow,
+  WorkspaceOAuthStateRecord,
+} from "../Utils/Workspace/WorkspaceOAuthState";
+import GitHubConnectAccess, {
+  GITHUB_CONNECT_FAILED_MESSAGE,
+  GITHUB_CONNECT_LINK_MESSAGE,
+  GitHubConnectCaller,
+} from "./GitHubConnectAccess";
 
 export default class GitHubAPI {
   /*
@@ -155,75 +162,57 @@ export default class GitHubAPI {
     const router: ExpressRouter = Express.getRouter();
 
     /*
-     * GitHub App installation callback
-     * This is called after a user installs the GitHub App
-     * The state parameter contains base64 encoded JSON with projectId and userId
+     * Where GitHub sends the browser back once the app is installed (the
+     * app's Callback URL and Setup URL both point here).
+     *
+     * Nothing in the redirect says which project or person this is for. Both
+     * come from the one-use state the start route recorded, spent here
+     * (WorkspaceOAuthState): one that is unknown, already used, expired,
+     * issued for another flow or brought back by another browser is refused.
+     * Then, in order, before anything is written: the person the state names
+     * may still add code repositories to that project (GitHubConnectAccess),
+     * GitHub returned an installation and an authorization code, and the code
+     * proves the GitHub account completing the redirect controls that
+     * installation.
      */
     router.get(
       "/github/auth/callback",
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-          // GitHub sends state parameter back which contains projectId and userId
-          const state: string | undefined = req.query["state"]?.toString();
-
-          if (!state) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("State parameter is required"),
-            );
-          }
-
-          // Verify and decode the signed state token
-          let projectId: string | undefined;
-          let userId: string | undefined;
+          let stateRecord: WorkspaceOAuthStateRecord | null = null;
 
           try {
-            const decodedState: JSONObject =
-              JSONWebToken.decodeJsonPayload(state);
-            projectId = decodedState["projectId"] as string | undefined;
-            userId = decodedState["userId"] as string | undefined;
-          } catch {
-            return Response.sendErrorResponse(
+            stateRecord = await WorkspaceOAuthState.consume({
               req,
-              res,
-              new BadDataException(
-                "Invalid or expired state parameter. Please restart the GitHub App installation.",
-              ),
+              state: req.query["state"]?.toString(),
+              flows: [WorkspaceOAuthFlow.GitHubAppInstall],
+            });
+          } catch (stateError) {
+            logger.error(
+              stateError,
+              getLogAttributesFromRequest(req as OneUptimeRequest),
             );
           }
 
-          if (!projectId) {
+          if (!stateRecord) {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Project ID is required in state"),
+              new BadRequestException(GITHUB_CONNECT_LINK_MESSAGE),
             );
           }
 
-          if (!userId) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("User ID is required in state"),
-            );
-          }
+          const projectId: string = stateRecord.projectId.toString();
 
-          // Verify the user is a member of this project
-          const userTenantAccessPermission: UserTenantAccessPermission | null =
-            await AccessTokenService.getUserTenantAccessPermission(
-              new ObjectID(userId),
-              new ObjectID(projectId),
-            );
+          try {
+            await GitHubConnectAccess.assertMayFinish(stateRecord);
+          } catch (refusal) {
+            // A refusal is answered as it is; anything else is an error.
+            if (refusal instanceof Exception) {
+              return Response.sendErrorResponse(req, res, refusal);
+            }
 
-          if (!userTenantAccessPermission) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new NotAuthorizedException(
-                "You do not have access to this project.",
-              ),
-            );
+            throw refusal;
           }
 
           // GitHub sends installation_id in query params after app installation
@@ -351,113 +340,62 @@ export default class GitHubAPI {
             error,
             getLogAttributesFromRequest(req as OneUptimeRequest),
           );
+
+          // Logged above; the browser is told plainly, never the raw error.
           return Response.sendErrorResponse(
             req,
             res,
-            error instanceof Error
-              ? new BadDataException(error.message)
-              : new BadDataException("An error occurred"),
+            error instanceof Exception
+              ? error
+              : new ServerException(GITHUB_CONNECT_FAILED_MESSAGE),
           );
         }
       },
     );
 
-    // Initiate GitHub App installation
+    /*
+     * Start connecting a GitHub App installation to the project.
+     *
+     * Returns the GitHub installation URL for the dashboard to navigate to,
+     * for a signed-in member who may add code repositories to the project the
+     * request names (GitHubConnectAccess). Its `state` is a one-use token
+     * recorded for that person and project and bound to this browser
+     * (WorkspaceOAuthState), which is all the callback above trusts.
+     */
     router.get(
-      "/github/auth/install",
+      "/github/install-url",
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
           if (!GitHubAppName) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException(
-                "GitHub App is not configured. Please set GITHUB_APP_NAME.",
-              ),
+            throw new BadDataException(
+              "GitHub App is not configured. Please set GITHUB_APP_NAME.",
             );
           }
 
-          const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+          const caller: GitHubConnectCaller =
+            await GitHubConnectAccess.assertMayStart(req);
 
-          /*
-           * The state this route signs is what the callback trusts to decide
-           * which project gets the installation, so it must only ever be
-           * issued to the logged-in user for a project they belong to. Taking
-           * the user id from a query parameter — as this route used to — let
-           * anyone mint a valid state for any (project, user) pair without
-           * even holding a session.
-           */
-          if (!oneuptimeRequest.userAuthorization) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new NotAuthenticatedException(
-                "Authentication is required to install the GitHub App.",
-              ),
-            );
-          }
-
-          const projectId: string | undefined =
-            req.query["projectId"]?.toString();
-
-          if (!projectId) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Project ID is required"),
-            );
-          }
-
-          const userId: string =
-            oneuptimeRequest.userAuthorization.userId.toString();
-
-          const userTenantAccessPermission: UserTenantAccessPermission | null =
-            await AccessTokenService.getUserTenantAccessPermission(
-              new ObjectID(userId),
-              new ObjectID(projectId),
-            );
-
-          if (!userTenantAccessPermission) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new NotAuthorizedException(
-                "You do not have access to this project.",
-              ),
-            );
-          }
-
-          /*
-           * Redirect to GitHub App installation page
-           * The state parameter is a signed JWT to prevent tampering
-           * It expires in 1 hour to limit the window for replay attacks
-           */
-          const state: string = JSONWebToken.signJsonPayload(
-            { projectId, userId },
-            3600, // 1 hour expiry
-          );
-
-          const callbackUrl: string = `${HomeClientUrl.toString()}api/github/auth/callback`;
-          const installUrl: string = `https://github.com/apps/${GitHubAppName}/installations/new?state=${encodeURIComponent(state)}&redirect_uri=${encodeURIComponent(callbackUrl)}`;
-
-          return Response.redirect(req, res, URL.fromString(installUrl));
-        } catch (error) {
-          logger.error(
-            "GitHub Install Redirect Error:",
-            getLogAttributesFromRequest(req as OneUptimeRequest),
-          );
-          logger.error(
-            error,
-            getLogAttributesFromRequest(req as OneUptimeRequest),
-          );
-          return Response.sendErrorResponse(
+          const { state } = await WorkspaceOAuthState.create({
             req,
             res,
-            error instanceof Error
-              ? new BadDataException(error.message)
-              : new BadDataException("An error occurred"),
-          );
+            flow: WorkspaceOAuthFlow.GitHubAppInstall,
+            projectId: caller.projectId,
+            userId: caller.userId,
+          });
+
+          const callbackUrl: string = `${HomeClientUrl.toString()}api/github/auth/callback`;
+          const installUrl: string = `https://github.com/apps/${encodeURIComponent(
+            GitHubAppName,
+          )}/installations/new?state=${encodeURIComponent(
+            state,
+          )}&redirect_uri=${encodeURIComponent(callbackUrl)}`;
+
+          return Response.sendJsonObjectResponse(req, res, {
+            installUrl: installUrl,
+          });
+        } catch (error) {
+          return Response.sendErrorResponse(req, res, error as Exception);
         }
       },
     );
