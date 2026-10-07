@@ -836,7 +836,7 @@ describe("feed markdown", () => {
         ),
       ]),
     ).toEqual([
-      `- [checkout-web](${DASHBOARD}/${PROJECT_ID.toString()}/monitors/${MONITOR_ID})`,
+      `- [checkout\\-web](${DASHBOARD}/${PROJECT_ID.toString()}/monitors/${MONITOR_ID})`,
       `- [Host web\\-01](${DASHBOARD}/${PROJECT_ID.toString()}/host/${HOST_ID})`,
       `- [Kubernetes Cluster prod\\-eu](${DASHBOARD}/${PROJECT_ID.toString()}/kubernetes/${CLUSTER_ID})`,
       `- [SLO Checkout availability](${DASHBOARD}/${PROJECT_ID.toString()}/slos/${SLO_ID})`,
@@ -859,13 +859,18 @@ describe("feed markdown", () => {
     ]);
   });
 
-  test("the monitor bullet is the one the created feeds always printed", async () => {
+  /*
+   * The bullet keeps the shape the created feeds always printed; its name,
+   * inside the link's own text, is escaped like every other name, so
+   * "checkout-web" is written "checkout\-web" and reads "checkout-web".
+   */
+  test("the monitor bullet is the one the created feeds always printed, its name escaped", async () => {
     const [line]: Array<string> = getMarkdownLines([
       resource(LinkedAffectedResourceType.Monitor, MONITOR_ID, "checkout-web"),
     ]);
 
     expect(line).toBe(
-      `- [checkout-web](${(
+      `- [checkout\\-web](${(
         await MonitorService.getMonitorLinkInDashboard(
           PROJECT_ID,
           new ObjectID(MONITOR_ID),
@@ -888,6 +893,24 @@ describe("feed markdown", () => {
     expect(line).not.toContain("\n");
     expect(line).toBe(
       `- [Host web\\]\\(https://evil.example\\) \\!\\[p\\]\\(https://tracker.example/p.gif\\) \\# owned](${DASHBOARD}/${PROJECT_ID.toString()}/host/${HOST_ID})`,
+    );
+  });
+
+  test("a hostile monitor name cannot re-point its link, add an image or start a heading", () => {
+    const [line]: Array<string> = getMarkdownLines([
+      resource(
+        LinkedAffectedResourceType.Monitor,
+        MONITOR_ID,
+        "web](https://evil.example) ![p](https://tracker.example/p.gif)\n# owned <!channel>",
+      ),
+    ]);
+
+    expect(line).not.toContain("](https://evil.example)");
+    expect(line).not.toContain("![p](");
+    expect(line).not.toContain("\n");
+    expect(line).not.toContain("<!channel>");
+    expect(line).toBe(
+      `- [web\\]\\(https://evil.example\\) \\!\\[p\\]\\(https://tracker.example/p.gif\\) \\# owned \\<\u2060\\!channel\\>](${DASHBOARD}/${PROJECT_ID.toString()}/monitors/${MONITOR_ID})`,
     );
   });
 

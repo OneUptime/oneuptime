@@ -1,7 +1,11 @@
+import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
 import escapeMarkdownInlineDefault, {
+  WORD_JOINER,
   escapeMarkdownInline,
   escapeMarkdownValue,
+  neutralizeChatControlSequences,
 } from "../../../Utils/Markdown/MarkdownEscape";
+import { neutralizeChatControlSequences as neutralizeChatControlSequencesFromUntrustedMarkdown } from "../../../Utils/Markdown/UntrustedMarkdown";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -446,5 +450,140 @@ describe("escapeMarkdownValue", () => {
         /[\\[\]<]/,
       );
     }
+  });
+});
+
+/*
+ * Both escapers also break chat control sequences. A feed item's Markdown is
+ * posted to Slack, and slackify keeps "<!channel>" and "<@U123>" as they are -
+ * that is how a Slack mention is written - after the Markdown parser has
+ * already consumed the backslash escapes. So a title holding one would page
+ * a channel. With an invisible word joiner after the "<", Slack shows the
+ * characters, and the text still reads as typed.
+ */
+const CHAT_CONTROL_SEQUENCES: Array<string> = [
+  "<!channel>",
+  "<!here>",
+  "<!everyone>",
+  "<!subteam^S0123ABC>",
+  "<!subteam^S0123ABC|@sre>",
+  "<!date^1392734382^{date_short}|Feb 18, 2014>",
+  "<@U0123ABC>",
+  "<@W0123ABC|jane>",
+  "<#C0123ABC>",
+  "<#C0123ABC|general>",
+];
+
+// Characters an HTML or PowerShell paste holds that no chat tool acts on.
+const NOT_CHAT_CONTROL_SEQUENCES: Array<string> = [
+  "<!DOCTYPE html>",
+  "<!-- upstream 502 -->",
+  "<![CDATA[a < b]]>",
+  "<# PowerShell block comment #>",
+  "<https://status.example.com>",
+  "a < b",
+];
+
+type EscapeFunction = (value: string) => string;
+
+const ESCAPERS: Array<[string, EscapeFunction]> = [
+  [
+    "escapeMarkdownValue",
+    (value: string): string => {
+      return escapeMarkdownValue(value);
+    },
+  ],
+  [
+    "escapeMarkdownInline",
+    (value: string): string => {
+      return escapeMarkdownInline(value);
+    },
+  ],
+];
+
+function withoutWordJoiners(text: string): string {
+  return text.split(WORD_JOINER).join("");
+}
+
+function slackTextOf(markdown: string): string {
+  return JSON.stringify(
+    SlackUtil.getMarkdownBlocks({
+      payloadMarkdownBlock: {
+        _type: "WorkspacePayloadMarkdown",
+        text: markdown,
+      },
+    }),
+  );
+}
+
+const SLACK_CONTROL_SEQUENCE_PATTERN: RegExp = /<(?:![a-z]|@[A-Z0-9]|#C)/;
+
+describe("both escapers break chat control sequences", () => {
+  test("the word joiner is U+2060, and both modules share one neutralizer", () => {
+    expect(WORD_JOINER).toBe("⁠");
+    expect(neutralizeChatControlSequencesFromUntrustedMarkdown).toBe(
+      neutralizeChatControlSequences,
+    );
+  });
+
+  describe.each(ESCAPERS)("%s", (_name: string, escape: EscapeFunction) => {
+    test.each(CHAT_CONTROL_SEQUENCES)(
+      "breaks %j with a word joiner, and it renders back as typed",
+      (sequence: string) => {
+        const typed: string = `Checkout is down ${sequence} now`;
+        const escaped: string = escape(typed);
+
+        expect(escaped).toContain(`<${WORD_JOINER}`);
+        expect(renderEscapes(withoutWordJoiners(escaped))).toBe(typed);
+      },
+    );
+
+    test.each(NOT_CHAT_CONTROL_SEQUENCES)(
+      "adds no word joiner to %j",
+      (text: string) => {
+        const escaped: string = escape(text);
+
+        expect(escaped).not.toContain(WORD_JOINER);
+        expect(renderEscapes(escaped)).toBe(text);
+      },
+    );
+
+    test("breaks every sequence in the value, not just the first", () => {
+      const escaped: string = escape("<!here> and <@U1> and <#C1>");
+
+      expect(escaped.split(`<${WORD_JOINER}`)).toHaveLength(4);
+    });
+
+    test("a second pass does not add a second word joiner", () => {
+      const twice: string = escape(escape("<!channel>"));
+
+      expect(twice.split(WORD_JOINER)).toHaveLength(2);
+    });
+
+    test("Slack reads no mention in the escaped value once slackify has converted it", () => {
+      const value: string = CHAT_CONTROL_SEQUENCES.join(" ");
+
+      // The value as typed really does carry live sequences.
+      expect(slackTextOf(value)).toMatch(SLACK_CONTROL_SEQUENCE_PATTERN);
+
+      /*
+       * A backslash escape alone does not stop them: slackify reads the
+       * Markdown first, which consumes the backslash.
+       */
+      expect(slackTextOf(value.replace(/</g, "\\<"))).toMatch(
+        SLACK_CONTROL_SEQUENCE_PATTERN,
+      );
+
+      const slack: string = slackTextOf(`**Title:** ${escape(value)}`);
+
+      expect(slack).not.toMatch(SLACK_CONTROL_SEQUENCE_PATTERN);
+      expect(slack).toContain("&lt;");
+    });
+  });
+
+  test("escapeMarkdownValue still leaves everyday punctuation as typed", () => {
+    expect(escapeMarkdownValue("Site 03 - payments (EU) #42 @jane !now")).toBe(
+      "Site 03 - payments (EU) #42 @jane !now",
+    );
   });
 });

@@ -282,15 +282,23 @@ import {
 import {
   HOSTILE_PAGE_NAME,
   HOSTILE_PAGE_NAME_HTML,
+  HOSTILE_PAGE_NAME_MARKDOWN,
   HOSTILE_RESOURCES_HTML,
+  HOSTILE_RESOURCES_MARKDOWN,
   HOSTILE_RESOURCES_TEXT,
   HOSTILE_TITLE,
   HOSTILE_TITLE_HTML,
+  HOSTILE_TITLE_MARKDOWN,
+  MARKDOWN_TITLE,
   RecordedCompile,
   expectNoHtmlEntities,
+  expectNoUnescapedAngleBracket,
   expectOnlyTheListedHtmlVariables,
+  expectSlackReadsNoMention,
+  expectValuesInertInMarkdown,
   hostileResources,
   recordedCompiles,
+  withoutMarkdownEscapes,
 } from "../Fixtures/SubscriberTemplateCompileFixtures";
 import {
   StatusWrite,
@@ -2341,11 +2349,13 @@ describe("IncidentEpisode:SendNotificationToSubscribers, with status page scope 
  * names of its resources and groups are plain text a project member typed.
  * In an email they must read as those characters; the description is
  * Markdown rendered to HTML and stays HTML. Text channels (a subject, SMS,
- * Slack, Teams, webhooks) show text as written, so they must get no HTML
- * entities at all.
+ * webhooks) show text as written, and Slack and Teams - Markdown - get each
+ * plain value escaped for Markdown, so it reads as written once rendered:
+ * none of them gets an HTML entity.
  */
 describe("IncidentEpisode:SendNotificationToSubscribers escapes plain values in email", () => {
   const HOSTILE_SEVERITY: string = "Major <b>&</b>";
+  const HOSTILE_SEVERITY_MARKDOWN: string = "Major \\<b>&\\</b>";
 
   const ESCAPING_EMAIL_BODY: string =
     '<h1>{{episodeTitle}}</h1><p>{{statusPageName}} / {{episodeSeverity}}</p><div>{{resourcesAffected}}</div><div>{{episodeDescription}}</div><a href="{{detailsUrl}}">Details</a>';
@@ -2402,21 +2412,24 @@ describe("IncidentEpisode:SendNotificationToSubscribers escapes plain values in 
       expectOnlyTheListedHtmlVariables(emailBody[0]!.rawVariables, EVENT);
     });
 
-    test("the subject, SMS, Slack, Teams and webhooks get every value as written", async () => {
+    test("the subject, SMS and webhooks get every value as written, and Slack and Teams get each escaped for Markdown", async () => {
       await runJob();
 
       const text: string = `${HOSTILE_TITLE} on ${HOSTILE_PAGE_NAME} (${HOSTILE_SEVERITY}): ${HOSTILE_RESOURCES_TEXT}`;
+      const markdown: string = `${HOSTILE_TITLE_MARKDOWN} on ${HOSTILE_PAGE_NAME_MARKDOWN} (${HOSTILE_SEVERITY_MARKDOWN}): ${HOSTILE_RESOURCES_MARKDOWN}`;
 
       expect(sentMail()[0]!["subject"]).toBe(text);
       expect(sentSms()).toEqual([
         `${StatusPageSubscriberNotificationMethod.SMS}: ${text}`,
       ]);
       expect(sentSlack()).toEqual([
-        `${StatusPageSubscriberNotificationMethod.Slack}: ${text}`,
+        `${StatusPageSubscriberNotificationMethod.Slack}: ${markdown}`,
       ]);
       expect(sentTeams()).toEqual([
-        `${StatusPageSubscriberNotificationMethod.MicrosoftTeams}: ${text}`,
+        `${StatusPageSubscriberNotificationMethod.MicrosoftTeams}: ${markdown}`,
       ]);
+      // Rendered, the chat message reads exactly what was written.
+      expect(withoutMarkdownEscapes(markdown)).toBe(text);
       for (const message of [
         sentMail()[0]!["subject"] as string,
         ...sentSms(),
@@ -2424,6 +2437,9 @@ describe("IncidentEpisode:SendNotificationToSubscribers escapes plain values in 
         ...sentTeams(),
       ]) {
         expectNoHtmlEntities(message);
+      }
+      for (const message of [...sentSlack(), ...sentTeams()]) {
+        expectNoUnescapedAngleBracket(message);
       }
 
       expect(sentWebhooks()[0]!["statusPageName"]).toBe(HOSTILE_PAGE_NAME);
@@ -2436,7 +2452,7 @@ describe("IncidentEpisode:SendNotificationToSubscribers escapes plain values in 
     });
   });
 
-  test("the default email gets the resource list escaped, and the SMS and chat defaults get it as written", async () => {
+  test("the default email gets the resource list escaped, the SMS gets it as written and the chat defaults as text", async () => {
     mock(
       StatusPageSubscriberService.getStatusPagesToSendNotification,
     ).mockResolvedValue([
@@ -2456,15 +2472,78 @@ describe("IncidentEpisode:SendNotificationToSubscribers escapes plain values in 
     expect(sentSms()).toEqual([
       `Incident ${HOSTILE_TITLE} (${HOSTILE_SEVERITY}) on ${HOSTILE_PAGE_NAME}. Impact: ${HOSTILE_RESOURCES_TEXT}. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
     ]);
-    expect(sentSlack()[0]).toContain(
-      `**Resources Affected:** ${HOSTILE_RESOURCES_TEXT}`,
-    );
-    expect(sentTeams()[0]).toContain(
-      `**Resources Affected:** ${HOSTILE_RESOURCES_TEXT}`,
-    );
+    for (const message of [sentSlack()[0]!, sentTeams()[0]!]) {
+      expect(message).toContain(`## 🚨 Incident - ${HOSTILE_TITLE_MARKDOWN}`);
+      expect(message).toContain(`**Severity:** ${HOSTILE_SEVERITY_MARKDOWN}`);
+      expect(message).toContain(
+        `**Resources Affected:** ${HOSTILE_RESOURCES_MARKDOWN}`,
+      );
+      expectNoUnescapedAngleBracket(message);
+    }
     for (const message of [...sentSms(), ...sentSlack(), ...sentTeams()]) {
       expectNoHtmlEntities(message);
       expect(message).not.toContain("<br/>");
+    }
+  });
+});
+
+/*
+ * A title is often not typed by a person: a monitor fills it in from what it
+ * watched, an incoming email's subject say. A Slack or Teams message is
+ * Markdown, so the title is escaped there, in the default messages and in a
+ * custom template alike: an image, a link or a Slack mention in it stays
+ * text, and reads as written.
+ */
+describe("IncidentEpisode:SendNotificationToSubscribers chat messages show a title as text", () => {
+  beforeEach(() => {
+    const row: IncidentEpisode = episode();
+    row.title = MARKDOWN_TITLE;
+    pendingEpisodes = [row];
+  });
+
+  test("the default Slack and Teams messages", async () => {
+    await runJob();
+
+    expect(sentSlack()).toHaveLength(1);
+    expect(sentTeams()).toHaveLength(1);
+
+    for (const message of [...sentSlack(), ...sentTeams()]) {
+      expectValuesInertInMarkdown(message);
+      expectSlackReadsNoMention(message);
+      expect(withoutMarkdownEscapes(message)).toContain(MARKDOWN_TITLE);
+      // The message's own links are still links.
+      expect(message).toContain(`[View Status Page](${STATUS_PAGE_URL})`);
+    }
+  });
+
+  test("a custom Slack or Teams template", async () => {
+    mock(
+      StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+    ).mockImplementation(async (args: unknown) => {
+      const method: string = (args as JSONObject)[
+        "notificationMethod"
+      ] as string;
+      return method === StatusPageSubscriberNotificationMethod.Slack ||
+        method === StatusPageSubscriberNotificationMethod.MicrosoftTeams
+        ? {
+            templateBody: "**{{episodeTitle}}** [Details]({{detailsUrl}})",
+          }
+        : null;
+    });
+
+    await runJob();
+
+    expect(sentSlack()).toHaveLength(1);
+    expect(sentTeams()).toHaveLength(1);
+
+    for (const message of [...sentSlack(), ...sentTeams()]) {
+      expectValuesInertInMarkdown(message);
+      expectSlackReadsNoMention(message);
+      expect(withoutMarkdownEscapes(message)).toBe(
+        withoutMarkdownEscapes(
+          `**${MARKDOWN_TITLE}** [Details](${DETAILS_URL})`,
+        ),
+      );
     }
   });
 });

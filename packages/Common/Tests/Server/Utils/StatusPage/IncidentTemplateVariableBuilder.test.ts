@@ -7,8 +7,8 @@ import { beforeEach, describe, expect, jest, test } from "@jest/globals";
  * hardest:
  *
  *   - a plain value is plain text everywhere, escaped only where it meets
- *     HTML (the email body compile, the default template's plainText=), and
- *     never escaped twice;
+ *     HTML (the email body compile, the default template's plainText=) or
+ *     Markdown (a custom Slack or Teams message), and never escaped twice;
  *   - a Rich text (Markdown) value goes through the email Markdown renderer,
  *     which escapes raw HTML, and its images are made public when it goes
  *     out;
@@ -72,6 +72,9 @@ import ObjectID from "../../../../Types/ObjectID";
 import SafeHtml from "../../../../Types/SafeHtml";
 import SubscriberNotificationTemplateCompiler from "../../../../Types/StatusPage/SubscriberNotificationTemplateCompiler";
 import Timezone from "../../../../Types/Timezone";
+import SlackUtil from "../../../../Server/Utils/Workspace/Slack/Slack";
+import { WORD_JOINER } from "../../../../Utils/Markdown/MarkdownEscape";
+import { Token, Tokens, marked } from "marked";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -247,12 +250,15 @@ describe("IncidentTemplateVariableBuilder escaping", () => {
       ),
     ).toBe(`<p>${SCRIPT_VALUE_HTML}</p>`);
 
-    // Text channels get it as written.
+    /*
+     * SMS gets it as written. A custom Slack or Teams message is Markdown, so
+     * there it is escaped, and reads as written once rendered.
+     */
     expect(site.plainText["incident.customFields.affected_location"]).toBe(
       SCRIPT_VALUE,
     );
     expect(site.markdown["incident.customFields.affected_location"]).toBe(
-      SCRIPT_VALUE,
+      "\\<script>alert('site')\\</script> Site 03 & 07",
     );
     expect(
       SubscriberNotificationTemplateCompiler.compileTemplate(
@@ -1521,5 +1527,275 @@ describe("IncidentTemplateVariableBuilder feed record", () => {
       markdown.indexOf("Internal"),
     );
     expect(markdown).not.toContain("Empty");
+  });
+});
+
+/*
+ * A custom Slack or Microsoft Teams message is Markdown. Every plain value -
+ * the title, the severity, the state, the page's name, the labels, the
+ * resource and group names, a custom field's text and name - is escaped
+ * where it is placed (escapeMarkdownValue), so it reads as typed and cannot
+ * become an image fetched when the message is shown, a link whose words
+ * hide where it goes, raw HTML or a Slack mention. The addresses OneUptime
+ * builds go in as they are, and a Markdown value (the description, a note)
+ * stays the Markdown it was written as.
+ */
+describe("IncidentTemplateVariableBuilder custom Slack and Teams values", () => {
+  const HOSTILE: string =
+    "![](https://tracker.example/p.png) [Reset your password](https://evil.example/login) <!channel> <@U0123ABC> <img src=x onerror=alert(1)>";
+
+  const HOSTILE_ESCAPED: string = `!\\[\\](https://tracker.example/p.png) \\[Reset your password\\](https://evil.example/login) \\<${WORD_JOINER}!channel> \\<${WORD_JOINER}@U0123ABC> \\<img src=x onerror=alert(1)>`;
+
+  const CHAT_TEMPLATE: string = [
+    "**{{incidentTitle}}** on {{statusPageName}}",
+    "Severity: {{incidentSeverity}}",
+    "State: {{incidentState}}",
+    "Labels: {{incidentLabels}}",
+    "Pages: {{affectedStatusPages}}",
+    "Where: {{incident.customFields.where}} / {{customFields.where}}",
+    "Resources: {{resourcesAffected}}",
+    "[Details]({{detailsUrl}}) - [Status page]({{statusPageUrl}})",
+    "{{incidentDescription}}",
+  ].join("\n\n");
+
+  const PLAIN_VARIABLES: Array<string> = [
+    "incidentTitle",
+    "incidentSeverity",
+    "incidentState",
+    "statusPageName",
+    "incidentLabels",
+    "affectedStatusPages",
+    "incident.customFields.where",
+    "customFields.where",
+  ];
+
+  const HTML_TAG_PATTERN: RegExp = /<[^>]+>/g;
+
+  async function siteWith(value: string): Promise<{
+    site: IncidentStatusPageTemplateVariables;
+    variables: IncidentTemplateVariables;
+  }> {
+    const statusPage: StatusPage = page({ name: "site-03", pageTitle: value });
+    const row: Incident = incident({ Where: value }, [value]);
+    row.title = value;
+    row.incidentSeverity!.name = value;
+
+    const variables: IncidentTemplateVariables =
+      await IncidentTemplateVariableBuilder.build({
+        incident: row,
+        statusPages: [statusPage],
+        markdownVariables: { incidentDescription: "We are **rolling back**." },
+        textVariables: { incidentState: value },
+        customFieldDefinitions: [
+          field({
+            name: "Where",
+            variableKey: "where",
+            includeInSubscriberNotifications: true,
+          }),
+        ],
+      });
+
+    return {
+      variables: variables,
+      site: variables.forStatusPage({
+        statusPage: statusPage,
+        statusPageUrl: STATUS_PAGE_URL,
+        detailsUrl: DETAILS_URL,
+        resources: [resource(value, value)],
+      }),
+    };
+  }
+
+  function tokensOf(markdown: string): Array<Token> {
+    const tokens: Array<Token> = [];
+
+    marked.walkTokens(marked.lexer(markdown), (token: Token): void => {
+      tokens.push(token);
+    });
+
+    return tokens;
+  }
+
+  function readText(markdown: string): string {
+    return (marked.parse(markdown, { async: false }) as string)
+      .replace(HTML_TAG_PATTERN, "")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&amp;/g, "&")
+      .split(WORD_JOINER)
+      .join("");
+  }
+
+  test("every plain value is escaped for Markdown", async () => {
+    const { site } = await siteWith(HOSTILE);
+
+    for (const name of PLAIN_VARIABLES) {
+      expect({ name: name, value: site.markdown[name] }).toEqual({
+        name: name,
+        value: HOSTILE_ESCAPED,
+      });
+    }
+
+    // The resource list names the group and the resource, both escaped.
+    expect(site.markdown["resourcesAffected"]).toContain(HOSTILE_ESCAPED);
+    expect(
+      (site.markdown["resourcesAffected"] as string)
+        .split(HOSTILE_ESCAPED)
+        .join(""),
+    ).not.toMatch(/(?<!\\)[[<]/);
+  });
+
+  test("the addresses go in as they are, and the description stays Markdown", async () => {
+    const { site } = await siteWith(HOSTILE);
+
+    expect(site.markdown["statusPageUrl"]).toBe(STATUS_PAGE_URL);
+    expect(site.markdown["detailsUrl"]).toBe(DETAILS_URL);
+    expect(site.markdown["incidentDescription"]).toBe(
+      "We are **rolling back**.",
+    );
+  });
+
+  test("the message a template makes holds no image, no HTML and no link that hides where it goes", async () => {
+    const { site } = await siteWith(HOSTILE);
+    const message: string =
+      SubscriberNotificationTemplateCompiler.compileTemplate(
+        CHAT_TEMPLATE,
+        site.markdown,
+      );
+    const tokens: Array<Token> = tokensOf(message);
+
+    expect(
+      tokens
+        .filter((token: Token): boolean => {
+          return token.type === "image" || token.type === "html";
+        })
+        .map((token: Token): string => {
+          return token.raw;
+        }),
+    ).toEqual([]);
+
+    // Only the template's own links name an address the text does not show.
+    expect(
+      tokens
+        .filter((token: Token): boolean => {
+          return (
+            token.type === "link" &&
+            (token as Tokens.Link).text !== (token as Tokens.Link).href
+          );
+        })
+        .map((token: Token): string => {
+          return (token as Tokens.Link).href;
+        }),
+    ).toEqual([DETAILS_URL, STATUS_PAGE_URL]);
+
+    // The template's own Markdown still renders.
+    expect(
+      tokens.some((token: Token): boolean => {
+        return token.type === "strong" && token.raw.includes("rolling back");
+      }),
+    ).toBe(true);
+  });
+
+  test("Slack reads no mention in the message", async () => {
+    const { site } = await siteWith(HOSTILE);
+    const message: string =
+      SubscriberNotificationTemplateCompiler.compileTemplate(
+        CHAT_TEMPLATE,
+        site.markdown,
+      );
+
+    const slack: string = SlackUtil.convertMarkdownToSlackRichText(message);
+
+    expect(slack).not.toMatch(/<[!@#]/);
+    expect(slack).not.toMatch(/<https:\/\/(?:evil|tracker)\.example[^|>]*\|/);
+  });
+
+  test("and every value reads exactly as typed", async () => {
+    const { site } = await siteWith(HOSTILE);
+    const text: string = readText(
+      SubscriberNotificationTemplateCompiler.compileTemplate(
+        CHAT_TEMPLATE,
+        site.markdown,
+      ),
+    );
+
+    // Title, page, severity, state, label, page list, field twice, group and resource.
+    expect(text.split(HOSTILE).length - 1).toBeGreaterThanOrEqual(10);
+  });
+
+  test("SMS and the email subject still get every value as written", async () => {
+    const { site } = await siteWith(HOSTILE);
+
+    for (const name of PLAIN_VARIABLES) {
+      expect({ name: name, value: site.plainText[name] }).toEqual({
+        name: name,
+        value: HOSTILE,
+      });
+    }
+  });
+
+  test("an ordinary value is left exactly as typed", async () => {
+    const ordinary: string = "Site 03 - payments (EU) #42 & **now**";
+    const { site } = await siteWith(ordinary);
+
+    for (const name of PLAIN_VARIABLES) {
+      expect({ name: name, value: site.markdown[name] }).toEqual({
+        name: name,
+        value: ordinary,
+      });
+    }
+  });
+
+  test("a field's name is plain text in the default Slack and Teams lines", async () => {
+    const site: IncidentStatusPageTemplateVariables = forSite03(
+      await build({
+        definitions: [
+          field({
+            name: "[Open](https://evil.example) <!here>",
+            variableKey: "open",
+            includeInSubscriberNotifications: true,
+          }),
+          field({
+            name: "<b>Notes</b>",
+            customFieldType: CustomFieldType.LongText,
+            includeInSubscriberNotifications: true,
+          }),
+        ],
+        customFields: {
+          "[Open](https://evil.example) <!here>":
+            "EU [x](https://evil.example)",
+          "<b>Notes</b>": "line [1](https://evil.example)\nline <2>",
+        },
+      }),
+    );
+
+    expect(site.customFieldsMarkdownLines).toEqual([
+      `**\\[Open\\](https://evil.example) \\<${WORD_JOINER}!here>:** EU \\[x\\](https://evil.example)`,
+      "**\\<b>Notes\\</b>:**\nline \\[1\\](https://evil.example)\nline \\<2>",
+    ]);
+  });
+
+  test("a Rich text value stays the Markdown it was written as", async () => {
+    const markdown: string = "- EU [status](https://status.acme.com)\n- US";
+    const site: IncidentStatusPageTemplateVariables = forSite03(
+      await build({
+        definitions: [
+          field({
+            name: "Impact",
+            variableKey: "impact",
+            customFieldType: CustomFieldType.Markdown,
+            includeInSubscriberNotifications: true,
+          }),
+        ],
+        customFields: { Impact: markdown },
+      }),
+    );
+
+    expect(site.markdown["incident.customFields.impact"]).toBe(markdown);
+    expect(site.customFieldsMarkdownLines).toEqual([
+      `**Impact:**\n${markdown}`,
+    ]);
   });
 });
