@@ -1,4 +1,11 @@
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncidentInternalNote from "../../../../Models/DatabaseModels/IncidentInternalNote";
@@ -17,6 +24,8 @@ import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/Datab
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../Types/ObjectID";
+import ProjectService from "../../../../Server/Services/ProjectService";
+import { PlanType } from "../../../../Types/Billing/SubscriptionPlan";
 import Permission, {
   UserPermission,
   UserTenantAccessPermission,
@@ -86,6 +95,14 @@ function createIncident(): Incident {
   incident.id = ObjectID.generate();
   return incident;
 }
+
+beforeEach((): void => {
+  // The project's plan, as the action's checks read it where a plan decides (CallerPlan).
+  jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+    plan: PlanType.Enterprise,
+    isSubscriptionUnpaid: false,
+  });
+});
 
 afterEach((): void => {
   jest.restoreAllMocks();

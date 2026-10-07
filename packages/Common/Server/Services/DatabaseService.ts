@@ -380,24 +380,40 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * hook never acts - unsetting the project's default, making room in an
    * order, deleting child rows - for someone the write is refused to.
    *
-   * For an update, `updateData` is what the caller asked to write: below a
-   * table's update plan the one update allowed is the one that only
-   * switches records off (BillingPermission), and the data is what says so.
+   * For a create or an update, `writeData` is what the caller asked to
+   * write: below a table's update plan the one update allowed is the one
+   * that only switches records off (BillingPermission), and the data is
+   * what says so; a create or update writing a column a plan sells needs
+   * the project's plan.
+   *
+   * Returns the props the rest of the operation goes on with: the caller's
+   * own, with their project's plan when they act in it without one and the
+   * operation is one a plan decides (CallerPlan.withPlanFor). The plan is
+   * read after the refusals that need no lookup, so a read-only credential
+   * or an anonymous caller is refused without one.
    */
-  private checkCallerBeforeHooks(
+  private async checkCallerBeforeHooks(
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
-    updateData?: unknown,
-  ): void {
+    writeData?: unknown,
+  ): Promise<DatabaseCommonInteractionProps> {
     if (type !== DatabaseRequestType.Read) {
       DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
     }
 
     if (props.isRoot || props.isMasterAdmin) {
-      return;
+      return props;
     }
 
     PublicPermission.checkIfUserIsLoggedIn(this.modelType, props, type);
+
+    const propsWithPlan: DatabaseCommonInteractionProps =
+      await CallerPlan.withPlanFor({
+        props: props,
+        modelType: this.modelType,
+        type: type,
+        data: writeData,
+      });
 
     if (
       type === DatabaseRequestType.Create ||
@@ -406,11 +422,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     ) {
       ModelPermission.checkTableWritePermission(
         this.modelType,
-        props,
+        propsWithPlan,
         type,
-        type === DatabaseRequestType.Update ? updateData : undefined,
+        type === DatabaseRequestType.Update ? writeData : undefined,
       );
     }
+
+    return propsWithPlan;
   }
 
   /*
@@ -2574,18 +2592,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   @CaptureSpan()
   public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
-    /*
-     * The project's plan, read when the props act in it without one and the
-     * create is one a plan decides (CallerPlan.withPlanFor).
-     */
-    createBy.props = await CallerPlan.withPlanFor({
-      props: createBy.props,
-      modelType: this.modelType,
-      type: DatabaseRequestType.Create,
-      data: createBy.data,
-    });
-
-    this.checkCallerBeforeHooks(createBy.props, DatabaseRequestType.Create);
+    // With the project's plan where the create needs it. See the helper.
+    createBy.props = await this.checkCallerBeforeHooks(
+      createBy.props,
+      DatabaseRequestType.Create,
+      createBy.data,
+    );
 
     /*
      * A non-root create must not pin the row's own primary key. save() treats
@@ -3905,13 +3917,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   @CaptureSpan()
   public async hardDeleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
     try {
-      deleteBy.props = await CallerPlan.withPlanFor({
-        props: deleteBy.props,
-        modelType: this.modelType,
-        type: DatabaseRequestType.Delete,
-      });
-
-      this.checkCallerBeforeHooks(deleteBy.props, DatabaseRequestType.Delete);
+      deleteBy.props = await this.checkCallerBeforeHooks(
+        deleteBy.props,
+        DatabaseRequestType.Delete,
+      );
 
       /*
        * Only the rows the caller may delete reach the hook. See the helper.
@@ -4023,13 +4032,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     try {
       this.setTelemetryContextFromProps(deleteBy.props);
 
-      deleteBy.props = await CallerPlan.withPlanFor({
-        props: deleteBy.props,
-        modelType: this.modelType,
-        type: DatabaseRequestType.Delete,
-      });
-
-      this.checkCallerBeforeHooks(deleteBy.props, DatabaseRequestType.Delete);
+      deleteBy.props = await this.checkCallerBeforeHooks(
+        deleteBy.props,
+        DatabaseRequestType.Delete,
+      );
 
       if (this.doNotAllowDelete && !deleteBy.props.isRoot) {
         throw new BadDataException("Delete not allowed");
@@ -4301,13 +4307,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     try {
       this.setTelemetryContextFromProps(findBy.props);
 
-      findBy.props = await CallerPlan.withPlanFor({
-        props: findBy.props,
-        modelType: this.modelType,
-        type: DatabaseRequestType.Read,
-      });
-
-      this.checkCallerBeforeHooks(findBy.props, DatabaseRequestType.Read);
+      findBy.props = await this.checkCallerBeforeHooks(
+        findBy.props,
+        DatabaseRequestType.Read,
+      );
 
       // Who is asking, as they asked: whose files they may see.
       const fileReader: RelatedFileReader | null = RelatedFileAccess.getReader(
@@ -4708,14 +4711,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       // A model becomes the columns it writes before anything judges it.
       updateBy.data = this.sanitizeUpdateData(updateBy.data);
 
-      updateBy.props = await CallerPlan.withPlanFor({
-        props: updateBy.props,
-        modelType: this.modelType,
-        type: DatabaseRequestType.Update,
-        data: updateBy.data,
-      });
-
-      this.checkCallerBeforeHooks(
+      updateBy.props = await this.checkCallerBeforeHooks(
         updateBy.props,
         DatabaseRequestType.Update,
         updateBy.data,

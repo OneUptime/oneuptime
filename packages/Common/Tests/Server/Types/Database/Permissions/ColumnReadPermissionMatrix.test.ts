@@ -17,6 +17,7 @@ import Permission, {
   PermissionProps,
 } from "../../../../../Types/Permission";
 import { describe, expect, test } from "@jest/globals";
+import { ON_HIGHEST_PLAN } from "../../../TestingUtils/RequestPlan";
 
 /*
  * Who may read the columns whose read lists named another record's read
@@ -68,6 +69,7 @@ function propsFor(
   return {
     userId: userId,
     tenantId: projectId,
+    ...ON_HIGHEST_PLAN,
     userTenantAccessPermission: {
       [projectId.toString()]: {
         projectId: projectId,

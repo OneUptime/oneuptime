@@ -18,6 +18,7 @@ import Dictionary from "../../../Types/Dictionary";
 import Email from "../../../Types/Email";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
 import ObjectID from "../../../Types/ObjectID";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import Permission, {
   UserGlobalAccessPermission,
   UserTenantAccessPermission,
@@ -493,7 +494,10 @@ describe("POST /status-page/test-email-report authorization", () => {
       .mockResolvedValue(undefined as never);
     jest
       .spyOn(ProjectService, "getCurrentPlan")
-      .mockResolvedValue({ plan: null, isSubscriptionUnpaid: false });
+      .mockResolvedValue({
+        plan: PlanType.Enterprise,
+        isSubscriptionUnpaid: false,
+      });
 
     // Ownership lookups made by the Owned permission scope.
     jest

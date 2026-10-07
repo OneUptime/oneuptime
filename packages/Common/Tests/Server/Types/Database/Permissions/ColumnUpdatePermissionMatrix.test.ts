@@ -19,6 +19,7 @@ import Permission, {
   PermissionProps,
 } from "../../../../../Types/Permission";
 import { describe, expect, test } from "@jest/globals";
+import { ON_HIGHEST_PLAN } from "../../../TestingUtils/RequestPlan";
 
 /*
  * Who may change the columns whose update lists named the wrong permission,
@@ -57,6 +58,7 @@ function propsWith(
   return {
     userId: userId,
     tenantId: projectId,
+    ...ON_HIGHEST_PLAN,
     userTenantAccessPermission: {
       [projectId.toString()]: {
         projectId: projectId,

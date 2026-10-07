@@ -11,11 +11,17 @@ import FindOneBaseModel from "../../../../../Server/Types/Workflow/Components/Ba
 import UpdateManyBaseModel from "../../../../../Server/Types/Workflow/Components/BaseModel/UpdateManyBaseModel";
 import UpdateOneBaseModel from "../../../../../Server/Types/Workflow/Components/BaseModel/UpdateOneBaseModel";
 import DatabaseService from "../../../../../Server/Services/DatabaseService";
+import ProjectService from "../../../../../Server/Services/ProjectService";
+import ComponentCode from "../../../../../Server/Types/Workflow/ComponentCode";
 import Monitor from "../../../../../Models/DatabaseModels/Monitor";
+import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { PlanType } from "../../../../../Types/Billing/SubscriptionPlan";
 import Exception from "../../../../../Types/Exception/Exception";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
-import { afterEach, describe, expect, test } from "@jest/globals";
+import Permission, { UserPermission } from "../../../../../Types/Permission";
+import UserType from "../../../../../Types/UserType";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * https://github.com/OneUptime/oneuptime/issues/3132 - "Update One Monitor"
@@ -86,8 +92,178 @@ function loggedLines(log: jest.Mock): string {
     .join("\n");
 }
 
+beforeEach(() => {
+  // The project's plan, which a step's props carry on a server with billing.
+  jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+    plan: PlanType.Enterprise,
+    isSubscriptionUnpaid: false,
+  });
+});
+
 afterEach(() => {
   jest.restoreAllMocks();
+});
+
+/*
+ * Every step acts as a Project Admin of the project the workflow runs in
+ * (WorkflowPrincipal), never as OneUptime itself, and names the workflow.
+ * The tables, columns and plans a Project Admin may not touch are refused to
+ * it by the checks every other caller meets.
+ */
+describe("who a step acts as", () => {
+  type StepCase = [
+    string,
+    string,
+    unknown,
+    (service: DatabaseService<Monitor>) => ComponentCode,
+    JSONObject,
+  ];
+
+  const created: Monitor = new Monitor();
+  created._id = MONITOR_ID;
+
+  const STEPS: Array<StepCase> = [
+    [
+      "Create One",
+      "create",
+      created,
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new CreateOneBaseModel<Monitor>(service);
+      },
+      { json: { name: "new monitor" } },
+    ],
+    [
+      "Create Many",
+      "create",
+      created,
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new CreateManyBaseModel<Monitor>(service);
+      },
+      { "json-array": [{ name: "new monitor" }] },
+    ],
+    [
+      "Update One",
+      "updateOneBy",
+      1,
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new UpdateOneBaseModel<Monitor>(service);
+      },
+      { query: { _id: MONITOR_ID }, data: { isEnabled: true } },
+    ],
+    [
+      "Update Many",
+      "updateBy",
+      1,
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new UpdateManyBaseModel<Monitor>(service);
+      },
+      { query: { _id: MONITOR_ID }, data: { isEnabled: true } },
+    ],
+    [
+      "Delete One",
+      "deleteOneBy",
+      1,
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new DeleteOneBaseModel<Monitor>(service);
+      },
+      { query: { _id: MONITOR_ID } },
+    ],
+    [
+      "Delete Many",
+      "deleteBy",
+      1,
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new DeleteManyBaseModel<Monitor>(service);
+      },
+      { query: { _id: MONITOR_ID } },
+    ],
+    [
+      "Find One",
+      "findOneBy",
+      null,
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new FindOneBaseModel<Monitor>(service);
+      },
+      { query: { _id: MONITOR_ID }, select: { _id: true } },
+    ],
+    [
+      "Find Many",
+      "findBy",
+      [],
+      (service: DatabaseService<Monitor>): ComponentCode => {
+        return new FindManyBaseModel<Monitor>(service);
+      },
+      { query: { _id: MONITOR_ID }, select: { _id: true } },
+    ],
+  ];
+
+  test.each(STEPS)(
+    "%s acts as a Project Admin of the workflow's project, never as root",
+    async (
+      _name: string,
+      method: string,
+      returned: unknown,
+      make: (service: DatabaseService<Monitor>) => ComponentCode,
+      args: JSONObject,
+    ) => {
+      const service: DatabaseService<Monitor> = makeMonitorService();
+      const call: jest.Mock = jest
+        .spyOn(service, method as never)
+        .mockResolvedValue(returned as never) as unknown as jest.Mock;
+
+      const fixture: OptionsFixture = makeOptions();
+      const result: RunReturnType = await make(service).run(
+        args,
+        fixture.options,
+      );
+
+      expect(result.executePort?.id).toBe("success");
+
+      const props: DatabaseCommonInteractionProps = firstCallArgument(call)[
+        "props"
+      ] as unknown as DatabaseCommonInteractionProps;
+
+      expect(props.isRoot).toBeUndefined();
+      expect(props.isMasterAdmin).toBeUndefined();
+      expect(props.userId).toBeUndefined();
+      expect(props.userType).toBe(UserType.Workflow);
+      expect(props.tenantId).toBe(fixture.projectId);
+      expect(props.workflowId).toBe(fixture.options.workflowId);
+      expect(Object.keys(props.userTenantAccessPermission || {})).toEqual([
+        fixture.projectId.toString(),
+      ]);
+
+      const held: Array<Permission> = (
+        props.userTenantAccessPermission?.[fixture.projectId.toString()]
+          ?.permissions || []
+      ).map((row: UserPermission): Permission => {
+        return row.permission;
+      });
+
+      expect(held).toContain(Permission.ProjectAdmin);
+      expect(held).not.toContain(Permission.ProjectOwner);
+    },
+  );
+
+  test("each step gets props of its own: one step's cannot reach the next", async () => {
+    const service: DatabaseService<Monitor> = makeMonitorService();
+    const call: jest.Mock = jest
+      .spyOn(service, "updateOneBy")
+      .mockResolvedValue(1 as never) as unknown as jest.Mock;
+
+    const fixture: OptionsFixture = makeOptions();
+    const component: UpdateOneBaseModel<Monitor> =
+      new UpdateOneBaseModel<Monitor>(service);
+    const args: JSONObject = {
+      query: { _id: MONITOR_ID },
+      data: { isEnabled: true },
+    };
+
+    await component.run(args, fixture.options);
+    await component.run(args, fixture.options);
+
+    expect(call.mock.calls[0]![0].props).not.toBe(call.mock.calls[1]![0].props);
+  });
 });
 
 describe("Update One - the component reported in issue 3132", () => {

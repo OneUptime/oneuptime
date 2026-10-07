@@ -13,6 +13,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { getJestSpyOn } from "../../Spy";
+import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import {
   afterEach,
   beforeEach,
@@ -56,6 +57,7 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const SIGNED_IN: DatabaseCommonInteractionProps = {
   tenantId: PROJECT_ID,
   userId: new ObjectID("55555555-5555-4555-8555-555555555555"),
+  ...ON_HIGHEST_PLAN,
 };
 
 const id: (n: number) => string = (n: number): string => {

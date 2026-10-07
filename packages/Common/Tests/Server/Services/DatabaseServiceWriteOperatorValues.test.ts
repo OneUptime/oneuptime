@@ -14,6 +14,7 @@ import Permission, {
 } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 
 /*
  * Query operators belong in the `query` of a read/update, never in the `data`
@@ -59,6 +60,7 @@ const memberProps: (
     userId: new ObjectID("00000000-0000-4000-8000-000000000003"),
     tenantId: PROJECT_ID,
     userType: UserType.User,
+    ...ON_HIGHEST_PLAN,
     userTenantAccessPermission: {
       [PROJECT_ID.toString()]: tenantPermission,
     },
