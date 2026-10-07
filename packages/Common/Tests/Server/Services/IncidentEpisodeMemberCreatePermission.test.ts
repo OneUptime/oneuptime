@@ -1,7 +1,11 @@
 import IncidentEpisodeMemberService from "../../../Server/Services/IncidentEpisodeMemberService";
+import IncidentEpisodeService from "../../../Server/Services/IncidentEpisodeService";
+import IncidentService from "../../../Server/Services/IncidentService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
+import Incident from "../../../Models/DatabaseModels/Incident";
+import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeMember, {
   IncidentEpisodeMemberAddedBy,
 } from "../../../Models/DatabaseModels/IncidentEpisodeMember";
@@ -99,6 +103,20 @@ describe("IncidentEpisodeMember first-member create permissions", () => {
     jest
       .spyOn(IncidentEpisodeMemberService, "countBy")
       .mockResolvedValue(new PositiveNumber(0) as never);
+    /*
+     * The caller can see the episode and the incident it adds
+     * (EpisodeMemberPrivateEnds covers one they cannot).
+     */
+    const episode: IncidentEpisode = new IncidentEpisode();
+    episode.projectId = PROJECT_ID;
+    jest
+      .spyOn(IncidentEpisodeService, "findOneById")
+      .mockResolvedValue(episode as never);
+    const incident: Incident = new Incident();
+    incident.projectId = PROJECT_ID;
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(incident as never);
     stubProjectDirectory({});
   });
 
