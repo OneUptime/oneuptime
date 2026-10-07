@@ -155,7 +155,11 @@ export default class BasePermission {
    *   - the record a model is read through (@CanAccessIfCanReadOn): one the
    *     caller's grants on it reach (addParentAccessToQuery);
    *   - the label rule on the records a label-less model's rows name, and a
-   *     block with labels on any model (ReadPermission.addLabelRulesToQuery).
+   *     block with labels on any model (ReadPermission.addLabelRulesToQuery);
+   *   - before all of them, a block with no labels on one of the
+   *     operation's permissions, which takes the whole table away
+   *     (TablePermission.checkTableLevelBlockPermissions) - on an update or
+   *     a delete by query as on a read.
    *
    * Root and master admin callers are left alone, as is a create.
    */
@@ -174,6 +178,8 @@ export default class BasePermission {
     ) {
       return query;
     }
+
+    TablePermission.checkTableLevelBlockPermissions(modelType, props, type);
 
     query = ReadPermission.addLabelRulesToQuery(
       modelType,
