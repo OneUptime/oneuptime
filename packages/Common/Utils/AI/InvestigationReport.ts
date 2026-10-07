@@ -261,6 +261,21 @@ const DIGIT_REGEX: RegExp = /\d/;
 const EVENT_REFERENCE_PATTERN: string = "#(\\d{1,9})(?!\\w)";
 const WORD_CHARACTER_REGEX: RegExp = /\w/;
 const WHITESPACE_CHARACTER_REGEX: RegExp = /\s/;
+
+/*
+ * The server writes an evidence label and the model's name escaped for
+ * Markdown (escapeMarkdownValue): a backslash before punctuation, and an
+ * invisible word joiner inside a chat mention. Read back, each is the text
+ * as typed.
+ */
+const MARKDOWN_BACKSLASH_ESCAPE_REGEX: RegExp = /\\([!-/:-@[-`{-~])/g;
+const WORD_JOINER_REGEX: RegExp = /\u2060/g;
+
+function readEscapedText(text: string): string {
+  return text
+    .replace(MARKDOWN_BACKSLASH_ESCAPE_REGEX, "$1")
+    .replace(WORD_JOINER_REGEX, "");
+}
 const FORBIDDEN_BEFORE_REFERENCE: string = "&/#";
 /*
  * Punctuation that may sit between a qualifier word and its "#": "incidents:
@@ -972,7 +987,7 @@ function readFooterModelName(text: string): string | undefined {
       (index + 1 === text.length ||
         WHITESPACE_CHARACTER_REGEX.test(text.charAt(index + 1)))
     ) {
-      return text.slice(start, index).trim() || undefined;
+      return readEscapedText(text.slice(start, index).trim()) || undefined;
     }
   }
 
@@ -1151,7 +1166,7 @@ function parseEvidenceCheckedEntries(
     }
 
     const citationId: string = (match[1] || "").toUpperCase();
-    const label: string = (match[2] || "").trim();
+    const label: string = readEscapedText((match[2] || "").trim());
 
     if (!citationId || !label || seen.has(citationId)) {
       continue;

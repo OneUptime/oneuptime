@@ -1,5 +1,6 @@
 import AffectedResourcesDisplay from "../../../Components/AffectedResources/AffectedResourcesDisplay";
 import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import AcknowledgedStateUtil from "Common/Utils/AcknowledgedState";
 import { StateListType } from "Common/Utils/StateOrder";
 import ChangeIncidentState from "../../../Components/Incident/ChangeState";
 import LabelsElement from "Common/UI/Components/Label/Labels";
@@ -715,13 +716,29 @@ const IncidentView: FunctionComponent<
 
   type GetIncidentStateFunction = () => IncidentState | undefined;
 
+  /*
+   * The project's acknowledged state, by name, and every state that counts
+   * as acknowledged short of resolved: it and any state placed after it, up
+   * to the resolved one (Common/Utils/AcknowledgedState).
+   */
   const getAcknowledgeState: GetIncidentStateFunction = ():
     | IncidentState
     | undefined => {
-    return incidentStates.find((state: IncidentState) => {
-      return state.isAcknowledgedState;
-    });
+    return (
+      AcknowledgedStateUtil.getAcknowledgedState({
+        list: StateListType.IncidentState,
+        states: incidentStates,
+      }) || undefined
+    );
   };
+
+  const acknowledgedStateIds: Array<string> =
+    AcknowledgedStateUtil.getAcknowledgedUnresolvedStateIds({
+      list: StateListType.IncidentState,
+      states: incidentStates,
+    }).map((stateId: ObjectID) => {
+      return stateId.toString();
+    });
 
   /*
    * The project's resolved state, by name, and every state that counts as
@@ -769,7 +786,7 @@ const IncidentView: FunctionComponent<
   const responseTimes: EventResponseTimes = getEventResponseTimes({
     timelines: timelineDates,
     startedAt: incidentStartedAt,
-    acknowledgedStateId: acknowledgeState?._id?.toString(),
+    acknowledgedStateIds: acknowledgedStateIds,
     resolvedStateIds: resolvedStateIds,
   });
 

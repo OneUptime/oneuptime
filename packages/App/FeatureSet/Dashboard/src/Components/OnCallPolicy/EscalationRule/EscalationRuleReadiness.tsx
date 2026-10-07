@@ -99,9 +99,9 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
  *
  * The expansion mirrors OnCallReadinessService.resolveResponders deliberately:
  *
- *   - a team expands to EVERY member row, with no hasAcceptedInvitation filter,
- *     because TeamMemberService.getUsersInTeam does not filter either. Somebody
- *     who never accepted their invite still gets paged, so they still count.
+ *   - a team expands to its ACCEPTED member rows, as the runtime pages it: a
+ *     pending invitation puts nobody on the team's roster, so somebody who never
+ *     accepted is not paged through it and does not count.
  *   - a schedule expands to its whole layer roster, not to whoever is on call at
  *     this instant. A person in next week's rotation who cannot be reached is a
  *     page that will be missed next week.
@@ -224,6 +224,7 @@ export const fetchTeamMembers: (params: {
       query: {
         teamId: new ObjectID(params.group.id),
         projectId: params.projectId,
+        hasAcceptedInvitation: true,
       },
       limit: LIMIT_PER_PROJECT,
       skip: 0,

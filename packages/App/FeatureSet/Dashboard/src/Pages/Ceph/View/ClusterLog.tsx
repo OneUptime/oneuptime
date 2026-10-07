@@ -119,6 +119,7 @@ const CephClusterClusterLog: FunctionComponent<
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(PAGE_SIZE);
   const [sortBy, setSortBy] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Descending);
   const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
@@ -296,10 +297,21 @@ const CephClusterClusterLog: FunctionComponent<
     return data;
   }, [rows, filterData, sortBy, sortOrder]);
 
+  /*
+   * A refresh can shrink the data set (lines age out of the 24-hour
+   * window), so clamp instead of trusting currentPage — otherwise the
+   * user is stranded on a page past the end, staring at an empty table.
+   */
+  const totalPages: number = Math.max(
+    1,
+    Math.ceil(processedData.length / pageSize),
+  );
+  const effectivePage: number = Math.min(currentPage, totalPages);
+
   const paginatedData: Array<CephLogRow> = useMemo(() => {
-    const start: number = (currentPage - 1) * PAGE_SIZE;
-    return processedData.slice(start, start + PAGE_SIZE);
-  }, [processedData, currentPage]);
+    const start: number = (effectivePage - 1) * pageSize;
+    return processedData.slice(start, start + pageSize);
+  }, [processedData, effectivePage, pageSize]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -439,11 +451,14 @@ const CephClusterClusterLog: FunctionComponent<
           pluralLabel="Log Lines"
           isLoading={false}
           error=""
-          currentPageNumber={currentPage}
+          currentPageNumber={effectivePage}
           totalItemsCount={processedData.length}
-          itemsOnPage={paginatedData.length}
-          onNavigateToPage={(page: number) => {
+          itemsOnPage={pageSize}
+          onNavigateToPage={(page: number, itemsOnPage: number) => {
             setCurrentPage(page);
+            if (itemsOnPage > 0) {
+              setPageSize(itemsOnPage);
+            }
           }}
           sortBy={sortBy as keyof CephLogRow | null}
           sortOrder={sortOrder}

@@ -103,6 +103,22 @@ jobs:
           Tests/Server/Services/AIDailyLimitNoticeAndCatchUpPostgres.test.ts
           --forceExit
 
+      # When a project's AI credits run out: the one conditional UPDATE that
+      # tells the owners once each time (even when servers race) and that a
+      # recharge re-arms, the recharge's atomic credit, and Auto Recharge
+      # charging once for many callers, on a structure-only copy of the
+      # migrated Project table.
+      - name: Test AI credits running out on Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_AI_CREDITS_TESTS: "true"
+          AI_CREDITS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          AI_CREDITS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          AI_CREDITS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/AICreditsRunOutPostgres.test.ts --forceExit
+
       - name: Test episode member deletion on migrated Postgres
         working-directory: packages/Common
         env:
@@ -113,6 +129,21 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/EpisodeMemberDeletePostgres.test.ts --forceExit
+
+      # A person adds only an incident or alert they can see to an episode
+      # they can see, and neither side's feed entry - nor the episode's Slack
+      # / Teams post - names the other side when it is private.
+      - name: Test adding to an episode with private ends on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_EPISODE_MEMBER_PRIVATE_ENDS_TESTS: "true"
+          EPISODE_MEMBER_PRIVATE_ENDS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          EPISODE_MEMBER_PRIVATE_ENDS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          EPISODE_MEMBER_PRIVATE_ENDS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/EpisodeMemberPrivateEndsPostgres.test.ts
+          --forceExit
 
       # An incident's or alert's episode follows the episode's members only:
       # a create or update that names it is refused for every caller, and
@@ -141,6 +172,21 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/EpisodeMemberPrivacyPostgres.test.ts --forceExit
+
+      # A record's live update reaches the people its own read lets read it:
+      # labels, owners, blocks with labels (and the labelled records a
+      # label-less row names), private incidents, a person's own AI
+      # conversation, and deletes decided before the rows go.
+      - name: Test who hears about a record's live updates on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_REALTIME_AUDIENCE_TESTS: "true"
+          REALTIME_AUDIENCE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          REALTIME_AUDIENCE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          REALTIME_AUDIENCE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Realtime/RealtimeAudiencePostgres.test.ts --forceExit
 
       # Clones the migrated Databases tables (DatabaseServer, its endpoints,
       # labels, owners, incident / alert / maintenance links and the
@@ -860,6 +906,26 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/WorkflowVariableOAuthPostgres.test.ts
+          --forceExit
+
+      # Clones the migrated TeamMember and Team tables, every personal
+      # notification table and the on-call history into an isolated schema,
+      # with the foreign keys between them: membership is an accepted
+      # membership of that very project, nothing is sent through the setting
+      # row of somebody who is not a member, removing somebody's last
+      # membership removes their own notification settings for that project
+      # and nothing else while the on-call history stays, and the data
+      # migration's walk removes former members' leftovers only.
+      - name: Test project membership and leaving a project on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PROJECT_MEMBERSHIP_TESTS: "true"
+          PROJECT_MEMBERSHIP_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROJECT_MEMBERSHIP_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROJECT_MEMBERSHIP_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/TeamMember/ProjectMembershipPostgres.test.ts
           --forceExit
 
       # The Enterprise half: GET /team/compliance-status/:teamId end to end -

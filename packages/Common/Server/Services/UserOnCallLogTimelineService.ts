@@ -12,6 +12,9 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import OnCallDutyExecutionLogTimelineStatus from "../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import UserNotificationExecutionStatus from "../../Types/UserNotification/UserNotificationExecutionStatus";
+import UserNotificationStatus from "../../Types/UserNotification/UserNotificationStatus";
+import ColumnLength from "../../Types/Database/ColumnLength";
+import logger from "../Utils/Logger";
 import User from "../../Models/DatabaseModels/User";
 import Model from "../../Models/DatabaseModels/UserOnCallLogTimeline";
 import AlertService from "./AlertService";
@@ -21,6 +24,46 @@ import IncidentEpisodeService from "./IncidentEpisodeService";
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * A page the Notification service deliberately did not send - the
+   * project's balance could not pay for it, the project has the channel
+   * turned off, the project is gone - says so on the person's on-call
+   * timeline, with the reason the message's own log gives, instead of
+   * staying at "Sending" for ever. Like the timeline's other skips (an
+   * unverified number, say), it is recorded as Error: the page did not go
+   * out.
+   *
+   * Never throws: the skip is already in the message's log, and a timeline
+   * row that could not be written must not turn it into a failed send for
+   * whoever asked for it.
+   */
+  @CaptureSpan()
+  public async markNotSent(data: {
+    userOnCallLogTimelineId?: ObjectID | undefined;
+    reason: string;
+  }): Promise<void> {
+    if (!data.userOnCallLogTimelineId) {
+      return;
+    }
+
+    try {
+      await this.updateOneById({
+        id: data.userOnCallLogTimelineId,
+        data: {
+          status: UserNotificationStatus.Error,
+          statusMessage: data.reason.substring(0, ColumnLength.LongText),
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (err) {
+      logger.error(
+        `On-call timeline ${data.userOnCallLogTimelineId.toString()}: could not record that a notification was not sent (${data.reason}): ${err}`,
+      );
+    }
   }
 
   @CaptureSpan()
@@ -144,32 +187,58 @@ export class Service extends DatabaseService<Model> {
           },
         });
 
-        if (isIncident) {
-          // incident.
+        /*
+         * The record itself is acknowledged only when it is not already -
+         * by the one rule (Common/Utils/AcknowledgedState): a colleague may
+         * have acknowledged it first, or moved it on to a state after
+         * Acknowledged, or resolved it. Their page is acknowledged above
+         * either way; acknowledging the record again would be a move back
+         * up its list, refused, and an error page for the responder who
+         * only answered their page.
+         */
+        if (
+          isIncident &&
+          !(await IncidentService.isIncidentAcknowledged({
+            incidentId: item.triggeredByIncidentId!,
+          }))
+        ) {
           await IncidentService.acknowledgeIncident(
             item.triggeredByIncidentId!,
             item.userId!,
           );
         }
 
-        if (isAlert) {
-          // alert.
+        if (
+          isAlert &&
+          !(await AlertService.isAlertAcknowledged({
+            alertId: item.triggeredByAlertId!,
+          }))
+        ) {
           await AlertService.acknowledgeAlert(
             item.triggeredByAlertId!,
             item.userId!,
           );
         }
 
-        if (isAlertEpisode) {
-          // alert episode — stops co-notified responders from escalating.
+        // An episode's - which also stops co-notified responders escalating.
+        if (
+          isAlertEpisode &&
+          !(await AlertEpisodeService.isEpisodeAcknowledged({
+            episodeId: item.triggeredByAlertEpisodeId!,
+          }))
+        ) {
           await AlertEpisodeService.acknowledgeEpisode(
             item.triggeredByAlertEpisodeId!,
             item.userId!,
           );
         }
 
-        if (isIncidentEpisode) {
-          // incident episode — stops co-notified responders from escalating.
+        if (
+          isIncidentEpisode &&
+          !(await IncidentEpisodeService.isEpisodeAcknowledged({
+            episodeId: item.triggeredByIncidentEpisodeId!,
+          }))
+        ) {
           await IncidentEpisodeService.acknowledgeEpisode(
             item.triggeredByIncidentEpisodeId!,
             item.userId!,

@@ -35,6 +35,7 @@ Un usuario está «en» un proyecto cuando es miembro de **al menos un equipo** 
 
 - Las invitaciones crean un miembro de equipo pendiente. El usuario solo cuenta como miembro del proyecto —y solo obtiene algún permiso— **después de aceptar la invitación.**
 - Quitar a un usuario de todos los equipos de un proyecto le retira el acceso a ese proyecto.
+- Quien deja un proyecto deja de recibir sus notificaciones. Sus propios métodos, reglas y ajustes de notificación del proyecto se eliminan con su último equipo — correo, SMS, llamada, WhatsApp, Telegram, push, webhook, Slack y Microsoft Teams, su resumen por correo y el correo aún sin enviar, su número para llamadas entrantes y sus recordatorios de turno —, así que si vuelve a unirse empieza con los valores predeterminados. Lo que todavía lo nombra, como el usuario al que llama una regla de llamadas entrantes o un propietario que se conserva en un incidente resuelto, ya no lo notifica: no se envía nada en nombre de un proyecto a quien no es miembro, y una invitación pendiente todavía no es membresía. Esos lugares muestran **Ya no es miembro** junto a su nombre, para que puedas poner a otra persona. Quien está invitado y aún no ha aceptado muestra en su lugar **Invitación aún no aceptada**.
 - Si su proyecto exige SSO y un usuario aún no se ha autenticado con el proveedor de identidad, se le trata como usuario SSO no autorizado y no ve nada hasta que lo haga. Consulte [SSO](/docs/identity/sso).
 - Con SCIM configurado, su proveedor de identidad puede crear, actualizar y eliminar usuarios y sus pertenencias a equipos automáticamente. Consulte [SCIM](/docs/identity/scim).
 
@@ -176,6 +177,8 @@ Cada campo de un registro se lee con el permiso de lectura del propio registro: 
 Los campos siguen la misma regla. Un bloqueo sin etiquetas sobre el permiso de un campo retira ese campo, y en un recurso operativo el permiso **All Operational Resources** correspondiente abre cada campo que puede abrir cualquiera que pueda leer o modificar el registro, pero no un campo más restringido a propósito, como una clave secreta.
 
 La misma regla decide todo lo demás que pregunta si tiene un permiso: las acciones que no son una simple lectura o escritura —añadir crédito de SMS, llamadas o IA, pagar una factura o probar una regla de notificación— y los botones que muestra OneUptime. Un botón que no puede usar aparece bloqueado y dice por qué; cuando el motivo es un bloqueo en uno de sus equipos, nombra el permiso bloqueado.
+
+Las actualizaciones en vivo siguen la misma regla. Cuando se crea, cambia o elimina un registro, OneUptime avisa a las páginas abiertas de las personas que pueden leer ese registro, y a nadie más. Lo que limita lo que puede leer limita también sus actualizaciones en vivo: etiquetas, propietarios, un bloqueo con etiquetas, un incidente privado o la conversación de IA de otra persona. Cuando un cambio le quita el acceso a un registro, por ejemplo al hacerlo privado, también se avisa a sus páginas abiertas para que dejen de mostrarlo. Un cambio en sus permisos llega a sus páginas abiertas en un plazo de 30 segundos.
 
 Todo usuario con sesión iniciada tiene además un pequeño conjunto de permisos automáticos que cubren cosas como leer su propio perfil y sus propias reglas de notificación. No son permisos de administración y no dan acceso a los datos de nadie más.
 

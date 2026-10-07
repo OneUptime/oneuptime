@@ -31,6 +31,7 @@ import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import StateChangeNote from "../Utils/StateChangeNote";
+import StateChangeFeedEmoji from "../Utils/StateChangeFeedEmoji";
 
 export class Service extends ProjectReferencesService<AlertStateTimeline> {
   public constructor() {
@@ -415,7 +416,6 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
       },
       select: {
         _id: true,
-        isAcknowledgedState: true,
         isCreatedState: true,
         color: true,
         name: true,
@@ -430,22 +430,25 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
       });
 
     /*
+     * Acknowledged by the one rule (Common/Utils/AcknowledgedState): the
+     * acknowledged state, a state placed after it, or a resolved one.
+     */
+    const isAcknowledged: boolean =
+      await AlertStateService.isAcknowledgedAlertState({
+        projectId: createdItem.projectId!,
+        alertStateId: createdItem.alertStateId,
+      });
+
+    /*
      * The state's name is plain text, placed into the feed item's Markdown
      * (posted to Slack and Teams too): escaped, so it reads as typed.
      */
     const stateName: string = escapeMarkdownValue(alertState?.name || "");
-    let stateEmoji: string = "➡️";
-
-    // if resolved state then change emoji to ✅.
-
-    if (isResolvedState) {
-      stateEmoji = "✅";
-    } else if (alertState?.isAcknowledgedState) {
-      // eyes emoji for acknowledged state.
-      stateEmoji = "👀";
-    } else if (alertState?.isCreatedState) {
-      stateEmoji = "🔴";
-    }
+    const stateEmoji: string = StateChangeFeedEmoji.get({
+      isResolved: isResolvedState,
+      isAcknowledged: isAcknowledged,
+      isCreatedState: Boolean(alertState?.isCreatedState),
+    });
 
     const alertNumberResult: {
       number: number | null;

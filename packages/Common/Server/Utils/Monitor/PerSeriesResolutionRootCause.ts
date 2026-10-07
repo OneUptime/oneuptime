@@ -2,6 +2,7 @@ import Dictionary from "../../../Types/Dictionary";
 import { JSONObject } from "../../../Types/JSON";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
+import { escapeMarkdownValue } from "../../../Utils/Markdown/MarkdownEscape";
 
 /*
  * Why one series' alert or incident was auto-resolved.
@@ -13,6 +14,11 @@ import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabel
  * "resolved" email listed, under "Root Cause", the nodes that were still
  * down. This names the series that recovered and the criteria it no
  * longer satisfies instead.
+ *
+ * The root cause is Markdown (the state timeline's feed item, posted to
+ * Slack and Teams, and the resolved email show it), and the series' labels
+ * come from the telemetry: both they and the criteria's name are escaped,
+ * so they read as written.
  */
 export default class PerSeriesResolutionRootCause {
   public static build(input: {
@@ -31,11 +37,11 @@ export default class PerSeriesResolutionRootCause {
       : "";
 
     const series: string = seriesSummary
-      ? `Series "${seriesSummary}"`
+      ? `Series "${escapeMarkdownValue(seriesSummary)}"`
       : "This series";
 
     const criteria: string = criteriaName
-      ? `criteria "${criteriaName}"`
+      ? `criteria "${escapeMarkdownValue(criteriaName)}"`
       : "the criteria that raised it";
 
     return `${series} no longer satisfies ${criteria}.`;

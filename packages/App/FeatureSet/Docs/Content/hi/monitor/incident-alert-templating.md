@@ -181,6 +181,10 @@ First User: {{responseBody.users[0].name}}
 
 यदि कोई path मौजूद नहीं है, तो placeholder जैसा लिखा गया है ठीक वैसा ही output में बना रहता है — `{{responseBody.error.id}}` incident title में ब्रेसेज़ समेत ज्यों का त्यों दिखता है। केवल किसी अनुपस्थित path पर बने `{{#each}}` ब्लॉक हटाए जाते हैं।
 
+### Description और remediation notes में values
+
+Description और remediation notes Markdown होते हैं: ये incident या alert के page पर, email में, और उसके Slack और Microsoft Teams channels में दिखते हैं। Template वहाँ जो values रखता है, वे वही हैं जो monitored system ने भेजा - कोई response body या header, कोई incoming request या email, किसी device या series के labels - इसलिए हर value text के रूप में रखी जाती है। Template उसे जहाँ भी रखे, वह ठीक वैसी ही पढ़ी जाती है जैसी भेजी गई थी, और उसमें मौजूद कोई link, image, HTML tag या `<!channel>` जैसा Slack mention काम करने के बजाय text के रूप में दिखता है। किसी value में अकेला web address फिर भी link बनता है, ऐसा link जो दिखाता है कि वह कहाँ ले जाता है। Template में आप खुद जो Markdown लिखते हैं, वह वैसा ही दिखता है जैसा आपने लिखा।
+
 ## Advanced Usage
 
 ### Array Elements तक पहुंचना

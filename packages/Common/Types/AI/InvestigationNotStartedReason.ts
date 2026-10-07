@@ -4,9 +4,9 @@ export type InvestigationNotStartedCode =
   | "provider_missing"
   /*
    * The project runs on OneUptime's own (billed) LLM provider and has no AI
-   * credits left, with auto-recharge off — every model call would be
-   * refused because the project's AI credits are used up, so no run is
-   * started.
+   * credits left, and Auto Recharge cannot refill them first (it is off, or
+   * its last charge failed) — every model call would be refused because the
+   * project's AI credits are used up, so no run is started.
    */
   | "insufficient_ai_balance"
   /*

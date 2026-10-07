@@ -140,7 +140,6 @@ export default class MicrosoftTeamsAlertEpisodeActions {
           currentAlertState: {
             _id: true,
             name: true,
-            isAcknowledgedState: true,
           },
         },
         props: {
@@ -156,7 +155,16 @@ export default class MicrosoftTeamsAlertEpisodeActions {
         return;
       }
 
-      if (episode.currentAlertState?.isAcknowledgedState) {
+      /*
+       * Already acknowledged, or further along, by the one rule
+       * (Common/Utils/AcknowledgedState): a state placed after Acknowledged
+       * counts too, so it is not moved back up its list.
+       */
+      if (
+        await AlertEpisodeService.isEpisodeAcknowledged({
+          episodeId: episode.id!,
+        })
+      ) {
         logger.debug("Alert episode is already acknowledged", {
           projectId: data.teamsRequest.projectId.toString(),
           alertEpisodeId: episodeId,

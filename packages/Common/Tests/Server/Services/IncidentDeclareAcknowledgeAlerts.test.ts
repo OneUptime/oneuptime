@@ -644,7 +644,7 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
     );
 
     findAcknowledgedState = jest
-      .spyOn(AlertStateService, "findOneBy")
+      .spyOn(AlertStateService, "findAcknowledgedAlertState")
       .mockResolvedValue(acknowledgedAlertState() as never);
     authorize = jest
       .spyOn(AlertStateChangeAuthorization, "assertCanChangeStateOfAlerts")
@@ -788,21 +788,12 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
       ALERT_ID_2,
     ]);
 
-    // The project's Acknowledged state and its order, read as root.
+    /*
+     * The project's Acknowledged state - the first from the top flagged
+     * acknowledged (Common/Utils/AcknowledgedState) - for the project.
+     */
     expect(findAcknowledgedState).toHaveBeenCalledTimes(1);
-    expect(findAcknowledgedState).toHaveBeenCalledWith({
-      query: {
-        projectId: PROJECT_ID,
-        isAcknowledgedState: true,
-      },
-      select: {
-        _id: true,
-        order: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    expect(findAcknowledgedState).toHaveBeenCalledWith(PROJECT_ID);
 
     // The alerts' current state orders, read as root, for the validated ids.
     const stateReads: Array<FindAlertsArgs> = alertStateReads();
@@ -1923,7 +1914,7 @@ describe("declaring and acknowledging in one request, from onBeforeCreate to onC
     stubCreateSuccessChain();
 
     jest
-      .spyOn(AlertStateService, "findOneBy")
+      .spyOn(AlertStateService, "findAcknowledgedAlertState")
       .mockResolvedValue(acknowledgedAlertState() as never);
     authorize = jest
       .spyOn(AlertStateChangeAuthorization, "assertCanChangeStateOfAlerts")

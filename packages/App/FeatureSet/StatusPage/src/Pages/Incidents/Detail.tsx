@@ -38,6 +38,7 @@ import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote"
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import AcknowledgedStateUtil from "Common/Utils/AcknowledgedState";
 import { StateListType } from "Common/Utils/StateOrder";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodePublicNote from "Common/Models/DatabaseModels/IncidentEpisodePublicNote";
@@ -202,18 +203,29 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
           incidentStateTimeline?.startsAt ||
           (incidentStateTimeline?.createdAt as Date),
         type: TimelineItemType.StateChange,
+        /*
+         * Resolved, then acknowledged - the acknowledged state or one placed
+         * after it, short of resolved - by the two rules
+         * (Common/Utils/ResolvedState, Common/Utils/AcknowledgedState).
+         */
         icon: incidentStateTimeline.incidentState.isCreatedState
           ? IconProp.Alert
-          : incidentStateTimeline.incidentState.isAcknowledgedState
-            ? IconProp.TransparentCube
-            : ResolvedStateUtil.isResolved({
+          : ResolvedStateUtil.isResolved({
+                list: StateListType.IncidentState,
+                states: incidentStates,
+                stateId:
+                  incidentStateTimeline.incidentStateId ||
+                  incidentStateTimeline.incidentState.id,
+              })
+            ? IconProp.CheckCircle
+            : AcknowledgedStateUtil.isAcknowledged({
                   list: StateListType.IncidentState,
                   states: incidentStates,
                   stateId:
                     incidentStateTimeline.incidentStateId ||
                     incidentStateTimeline.incidentState.id,
                 })
-              ? IconProp.CheckCircle
+              ? IconProp.TransparentCube
               : IconProp.ArrowCircleRight,
         iconColor: incidentStateTimeline.incidentState.color || Gray500,
       });
@@ -585,18 +597,29 @@ export const getEpisodeEventItem: GetEpisodeEventItemFunction = (
           episodeStateTimeline?.startsAt ||
           (episodeStateTimeline?.createdAt as Date),
         type: TimelineItemType.StateChange,
+        /*
+         * Resolved, then acknowledged - the acknowledged state or one placed
+         * after it, short of resolved - by the two rules
+         * (Common/Utils/ResolvedState, Common/Utils/AcknowledgedState).
+         */
         icon: episodeStateTimeline.incidentState.isCreatedState
           ? IconProp.Alert
-          : episodeStateTimeline.incidentState.isAcknowledgedState
-            ? IconProp.TransparentCube
-            : ResolvedStateUtil.isResolved({
+          : ResolvedStateUtil.isResolved({
+                list: StateListType.IncidentState,
+                states: incidentStates,
+                stateId:
+                  episodeStateTimeline.incidentStateId ||
+                  episodeStateTimeline.incidentState.id,
+              })
+            ? IconProp.CheckCircle
+            : AcknowledgedStateUtil.isAcknowledged({
                   list: StateListType.IncidentState,
                   states: incidentStates,
                   stateId:
                     episodeStateTimeline.incidentStateId ||
                     episodeStateTimeline.incidentState.id,
                 })
-              ? IconProp.CheckCircle
+              ? IconProp.TransparentCube
               : IconProp.ArrowCircleRight,
         iconColor: episodeStateTimeline.incidentState.color || Gray500,
       });

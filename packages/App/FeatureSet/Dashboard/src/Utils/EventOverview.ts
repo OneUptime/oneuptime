@@ -11,7 +11,13 @@ export interface EventResponseTimesInput {
   timelines: Array<EventStateTimelineDate>;
   // declaredAt for an incident, createdAt for an alert.
   startedAt?: Date | undefined;
-  acknowledgedStateId?: string | undefined;
+  /*
+   * The project's states a record is acknowledged but not yet resolved in:
+   * its acknowledged state and any state placed after it, up to the resolved
+   * one (AcknowledgedStateUtil.getAcknowledgedUnresolvedStateIds) - moving
+   * straight into "Investigating" is an acknowledgement too.
+   */
+  acknowledgedStateIds?: Array<string> | undefined;
   /*
    * The project's states that count as resolved: its resolved state and any
    * state placed after it (Common/Utils/ResolvedState).
@@ -66,6 +72,36 @@ export const getFirstTimelineDateForState: GetDateFunction = (
   return firstDate;
 };
 
+/*
+ * The earliest entry for any of the states: when the record first reached
+ * one of them. Undefined when it never did.
+ */
+export const getFirstTimelineDateForStates: (
+  timelines: Array<EventStateTimelineDate>,
+  stateIds: Array<string> | undefined,
+) => Date | undefined = (
+  timelines: Array<EventStateTimelineDate>,
+  stateIds: Array<string> | undefined,
+): Date | undefined => {
+  let firstDate: Date | undefined = undefined;
+
+  for (const stateId of stateIds || []) {
+    const reachedAt: Date | undefined = getFirstTimelineDateForState(
+      timelines,
+      stateId,
+    );
+
+    if (
+      reachedAt &&
+      (!firstDate || reachedAt.getTime() < firstDate.getTime())
+    ) {
+      firstDate = reachedAt;
+    }
+  }
+
+  return firstDate;
+};
+
 export const getEarliestTimelineDate: GetDateFunction = (
   timelines: Array<EventStateTimelineDate>,
 ): Date | undefined => {
@@ -92,27 +128,20 @@ export const getEventResponseTimes: (
   const startedAt: Date | undefined =
     input.startedAt || getEarliestTimelineDate(input.timelines);
 
-  const firstAcknowledgedAt: Date | undefined = getFirstTimelineDateForState(
+  /*
+   * The first move into a state that counts as acknowledged - the
+   * acknowledged state or one placed after it - and the first into one that
+   * counts as resolved.
+   */
+  const firstAcknowledgedAt: Date | undefined = getFirstTimelineDateForStates(
     input.timelines,
-    input.acknowledgedStateId,
+    input.acknowledgedStateIds,
   );
 
-  // The first move into any state that counts as resolved.
-  let resolvedAt: Date | undefined = undefined;
-
-  for (const resolvedStateId of input.resolvedStateIds || []) {
-    const reachedAt: Date | undefined = getFirstTimelineDateForState(
-      input.timelines,
-      resolvedStateId,
-    );
-
-    if (
-      reachedAt &&
-      (!resolvedAt || reachedAt.getTime() < resolvedAt.getTime())
-    ) {
-      resolvedAt = reachedAt;
-    }
-  }
+  const resolvedAt: Date | undefined = getFirstTimelineDateForStates(
+    input.timelines,
+    input.resolvedStateIds,
+  );
 
   const isAcknowledgedByResolution: boolean = Boolean(
     resolvedAt &&

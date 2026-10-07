@@ -1,4 +1,5 @@
 import AIAgentService from "../../../Services/AIAgentService";
+import AIBillingService from "../../../Services/AIBillingService";
 import LlmProviderService from "../../../Services/LlmProviderService";
 import ProjectService from "../../../Services/ProjectService";
 import SubjectCodeFixRun from "../SRE/SubjectCodeFixRun";
@@ -14,6 +15,7 @@ import {
   AIFixReadinessCheck,
 } from "../../../../Types/AI/AIFixReadiness";
 import { IsBillingEnabled } from "../../../EnvironmentConfig";
+import AiAutoRechargeState from "../../../../Types/Billing/AiAutoRechargeState";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import {
   getProjectBalanceWhoCanAddSentence,
@@ -89,11 +91,30 @@ export default class CodeFixReadiness {
     if (isMetered) {
       const project: Project | null = await ProjectService.findOneById({
         id: params.projectId,
-        select: { aiCurrentBalanceInUSDCents: true },
+        select: {
+          aiCurrentBalanceInUSDCents: true,
+          enableAutoRechargeAiBalance: true,
+          autoAiRechargeByBalanceInUSD: true,
+          autoRechargeAiWhenCurrentBalanceFallsInUSD: true,
+        },
         props: { isRoot: true },
       });
 
-      if (!project || (project.aiCurrentBalanceInUSDCents || 0) <= 0) {
+      /*
+       * Used up, and Auto Recharge will not refill them before the first
+       * completion: it is off, or its last charge failed. With it on and set
+       * up, the first completion recharges the credits and runs, as every
+       * billed AI call does (AIService.getAiBalanceBlocker says the same).
+       */
+      const isUsedUp: boolean =
+        !project ||
+        ((project.aiCurrentBalanceInUSDCents || 0) <= 0 &&
+          (await AIBillingService.getAutoRechargeState({
+            projectId: params.projectId,
+            project,
+          })) !== AiAutoRechargeState.Ready);
+
+      if (isUsedUp) {
         return {
           id: "llmProvider",
           ok: false,

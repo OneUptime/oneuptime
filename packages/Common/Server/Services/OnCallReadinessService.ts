@@ -27,6 +27,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
 import Sort from "../Types/Database/Sort";
 import logger from "../Utils/Logger";
+import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
 import { getWhoCanTurnOnClause } from "../../Utils/Project/NotificationChannels";
 import Includes from "../../Types/BaseDatabase/Includes";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
@@ -266,6 +267,26 @@ export interface ReadinessSummary {
  * are several bullet-ish code points and they are indistinguishable on screen).
  */
 export const IDENTIFIER_MASK: string = "•••";
+
+/*
+ * The reasons on a responder who is not a member of the project (they left, and
+ * a layer, a rule or an override still names them). Nothing pages them, so
+ * nothing else about them matters until they are taken off the policy.
+ */
+export const NOT_A_PROJECT_MEMBER_READINESS_REASONS: ReadonlyArray<string> = [
+  "No longer a member of this project - cannot be paged",
+  "Remove them from this policy's escalation rules, schedules and overrides, or invite them back to the project",
+];
+
+/*
+ * The reasons on a responder who was invited to the project and has not
+ * accepted yet. Nothing pages them until they accept, so that is the fix.
+ */
+export const INVITATION_NOT_ACCEPTED_READINESS_REASONS: ReadonlyArray<string> =
+  [
+    "Has not accepted the invitation to this project - cannot be paged",
+    "Ask them to accept their invitation, or remove them from this policy's escalation rules, schedules and overrides",
+  ];
 
 /**
  * What SHAPE an identifier has, which is all masking needs to know. Kept separate from
@@ -965,6 +986,12 @@ export default class OnCallReadinessService {
       responders: responders,
       projectSettings: projectSettings,
       completeness: completeness,
+      // Every one of them is a member: the membership read above found them.
+      memberUserIds: new Set<string>(
+        memberIds.map((memberId: ObjectID): string => {
+          return memberId.toString().toLowerCase();
+        }),
+      ),
     });
 
     for (const one of computed) {
@@ -1098,9 +1125,13 @@ export default class OnCallReadinessService {
    * no table, because it actively certifies a gap as covered. Three deliberate
    * alignments with the runtime:
    *
-   *   - Team members are NOT filtered by hasAcceptedInvitation, because
-   *     TeamMemberService.getUsersInTeam does not filter either. A member who never
-   *     accepted their invite still gets paged, so they still have to be checked.
+   *   - Team members are the ACCEPTED rows only, exactly as the runtime expands a
+   *     team: a pending invitation puts nobody on the team's roster, so somebody who
+   *     never accepted is not paged through it and is not one of its responders.
+   *   - A responder named directly, through a schedule layer or by an override who is
+   *     not a member of the project (they left) is still listed - an admin has to see
+   *     the stale reference to remove it - but as NotReachable, because the runtime
+   *     never pages a non-member (ProjectMembership).
    *   - Schedule layer users are taken WHOLE, not sampled for who is on call right now.
    *     Readiness is a property of the roster, not of this instant; a user in next
    *     week's rotation with no notification rule is a page that will be missed next
@@ -1232,6 +1263,8 @@ export default class OnCallReadinessService {
         query: {
           projectId: projectId,
           teamId: new Includes(teamIds),
+          // The roster the runtime pages: accepted rows only.
+          hasAcceptedInvitation: true,
         },
         select: {
           _id: true,
@@ -1651,6 +1684,11 @@ export default class OnCallReadinessService {
       query: {
         projectId: projectId,
         userId: new Includes(userIds),
+        /*
+         * Accepted rows only: a pending invitation makes nobody a member of the
+         * project, or a responder through the team it is for.
+         */
+        hasAcceptedInvitation: true,
       },
       select: {
         _id: true,
@@ -1693,6 +1731,12 @@ export default class OnCallReadinessService {
     responders: Map<string, ResponderAttachment>;
     projectSettings: ProjectNotificationSettings;
     completeness: ReadCompleteness;
+    /*
+     * The members among the responders, when the caller has already read them
+     * (computeReadinessForUsers resolves membership first). Read here, once for
+     * the whole set, when it has not.
+     */
+    memberUserIds?: Set<string> | undefined;
   }): Promise<Array<UserReadiness>> {
     const userIds: Array<ObjectID> = Array.from(data.responders.keys()).map(
       (userId: string): ObjectID => {
@@ -1703,6 +1747,36 @@ export default class OnCallReadinessService {
     if (userIds.length === 0) {
       return [];
     }
+
+    /*
+     * Whether each responder is a member of the project now. A layer, a rule or an
+     * override can still name somebody who has left; the runtime never pages them
+     * (ProjectMembership), so readiness must not call them reachable either.
+     */
+    const memberUserIds: Set<string> =
+      data.memberUserIds ||
+      (await ProjectMembership.getMemberUserIds({
+        projectId: data.projectId,
+        userIds: userIds,
+      }));
+
+    /*
+     * Among those who are not members, the ones still invited: the fix for
+     * them is to accept, not to be replaced. Read only when there are any.
+     */
+    const nonMemberUserIds: Array<ObjectID> = userIds.filter(
+      (userId: ObjectID): boolean => {
+        return !memberUserIds.has(userId.toString().toLowerCase());
+      },
+    );
+
+    const invitedUserIds: Set<string> =
+      nonMemberUserIds.length > 0
+        ? await ProjectMembership.getInvitedUserIds({
+            projectId: data.projectId,
+            userIds: nonMemberUserIds,
+          })
+        : new Set<string>();
 
     const inputs: ReadinessInputs = await this.loadInputs({
       projectId: data.projectId,
@@ -1749,6 +1823,8 @@ export default class OnCallReadinessService {
           userIdString,
           inputs,
           teamNamesById,
+          memberUserIds.has(userIdString.toLowerCase()),
+          invitedUserIds.has(userIdString.toLowerCase()),
         ),
       );
     }
@@ -2452,6 +2528,8 @@ export default class OnCallReadinessService {
     userIdString: string,
     inputs: ReadinessInputs,
     teamNamesById: Map<string, string>,
+    isProjectMember: boolean,
+    hasPendingInvitation: boolean = false,
   ): UserReadiness {
     const sources: Set<ResponderSource> = attachment.sources;
     const methods: Array<ReadinessMethod> =
@@ -2531,21 +2609,35 @@ export default class OnCallReadinessService {
 
     let status: ReadinessStatus = ReadinessStatus.Ready;
 
-    if (usableMethods.length === 0) {
+    if (!isProjectMember || usableMethods.length === 0) {
       status = ReadinessStatus.NotReachable;
     } else if (uncoveredCells.length > 0) {
       status = ReadinessStatus.PartiallyReady;
     }
 
-    const reasons: Array<string> = this.buildReasons({
-      status: status,
-      methods: methods,
-      verifiedMethods: verifiedMethods,
-      usableMethods: usableMethods,
-      disabledChannels: disabledChannels,
-      uncoveredCells: uncoveredCells,
-      projectSettings: inputs.projectSettings,
-    });
+    /*
+     * Somebody who is not a member of the project is never paged, whatever
+     * methods they have: that is the one sentence that matters about them.
+     * The fix is to take them off the policy (or invite them back) - or, for
+     * somebody still invited, for them to accept.
+     */
+    let reasons: Array<string> = [];
+
+    if (isProjectMember) {
+      reasons = this.buildReasons({
+        status: status,
+        methods: methods,
+        verifiedMethods: verifiedMethods,
+        usableMethods: usableMethods,
+        disabledChannels: disabledChannels,
+        uncoveredCells: uncoveredCells,
+        projectSettings: inputs.projectSettings,
+      });
+    } else if (hasPendingInvitation) {
+      reasons = [...INVITATION_NOT_ACCEPTED_READINESS_REASONS];
+    } else {
+      reasons = [...NOT_A_PROJECT_MEMBER_READINESS_REASONS];
+    }
 
     return {
       userId: user.id!,

@@ -145,6 +145,8 @@ const SERVICES_WITH_THEIR_OWN_CHECKS: Record<string, string> = {
   "AlertService.ts":
     "AlertService.test.ts, AlertProjectScopedReferences.test.ts and the cross-project reference guards",
   "AlertEpisodeService.ts": "AlertEpisodeService.test.ts",
+  "AlertEpisodeMemberService.ts":
+    "EpisodeMemberPrivateEnds.test.ts and EpisodeMemberPrivateEndsPostgres.test.ts (a person's create reads the episode and the alert as the caller: private, foreign and missing answered alike; root writes get the project check)",
   "IncidentService.ts":
     "IncidentService.test.ts and the cross-project reference guards",
   "IncidentAlertService.ts":
@@ -152,6 +154,8 @@ const SERVICES_WITH_THEIR_OWN_CHECKS: Record<string, string> = {
   "DatabaseServerEndpointService.ts":
     "DatabaseServerEndpointService.test.ts and DatabaseServerSqlPostgres.test.ts (a database they may not edit, a foreign and a missing one answered alike; root writes get the project check)",
   "IncidentEpisodeService.ts": "IncidentEpisodeService.test.ts",
+  "IncidentEpisodeMemberService.ts":
+    "EpisodeMemberPrivateEnds.test.ts and EpisodeMemberPrivateEndsPostgres.test.ts (a person's create reads the episode and the incident as the caller: private, foreign and missing answered alike; root writes get the project check)",
   "IncidentTemplateService.ts": "IncidentTemplateService.test.ts",
   "ScheduledMaintenanceService.ts": "ScheduledMaintenanceService.test.ts",
   "ScheduledMaintenanceTemplateService.ts":

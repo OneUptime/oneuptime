@@ -63,10 +63,15 @@ interface MappingCase {
   argumentsObject: JSONObject;
   expectedQuery: JSONObject;
   /*
-   * Unresolved or Resolved, which the route turns into the project's state
-   * ids (Common/Utils/ResolvedState) - not a query on the resolved flag.
+   * Unresolved, Resolved or Acknowledged, which the route turns into the
+   * project's state ids (Common/Utils/ResolvedState,
+   * Common/Utils/AcknowledgedState) - not a query on one flag.
    */
-  expectedResolvedStateFilter?: "unresolved" | "resolved" | undefined;
+  expectedResolvedStateFilter?:
+    | "unresolved"
+    | "resolved"
+    | "acknowledged"
+    | undefined;
   expectedSort: JSONObject;
   expectedLimit: number;
   requestedQuery?: JSONObject | undefined;
@@ -106,13 +111,31 @@ const MAPPING_CASES: Array<MappingCase> = [
       monitorIds: ["monitor"],
       labelIds: ["label"],
     },
+    /*
+     * Acknowledged is the project's acknowledged state and every state
+     * placed after it short of resolved - by where its states sit, never a
+     * query on the acknowledged flag, which left out a state between
+     * Acknowledged and Resolved.
+     */
     expectedQuery: {
-      currentAlertState: { isAcknowledgedState: true },
       alertSeverityId: new Includes(["severity"]),
       currentAlertStateId: new Includes(["state"]),
       monitorId: new Includes(["monitor"]),
       labels: new Includes(["label"]),
     },
+    expectedResolvedStateFilter: "acknowledged",
+    expectedSort: { createdAt: SortOrder.Descending },
+    expectedLimit: 25,
+  },
+  {
+    name: "incident (acknowledged)",
+    componentType: DashboardComponentType.IncidentList,
+    resourceType: "incident",
+    argumentsObject: {
+      stateFilter: "acknowledged",
+    },
+    expectedQuery: {},
+    expectedResolvedStateFilter: "acknowledged",
     expectedSort: { createdAt: SortOrder.Descending },
     expectedLimit: 25,
   },

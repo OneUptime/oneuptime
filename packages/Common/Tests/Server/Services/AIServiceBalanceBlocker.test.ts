@@ -1,7 +1,9 @@
 import AIService, {
+  AI_AUTO_RECHARGE_FAILED_MESSAGE,
   AI_BALANCE_INSUFFICIENT_MESSAGE,
   AI_DISABLED_MESSAGE,
 } from "../../../Server/Services/AIService";
+import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
 import KubernetesClusterAiAccessService, {
   KubernetesClusterAiAccessProjectGates,
 } from "../../../Server/Services/KubernetesClusterAiAccessService";
@@ -21,10 +23,14 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *
  * A blocker exists only when ALL of these hold: billing is on, the
  * project's resolved LLM provider is the OneUptime-hosted (global) one with
- * a per-token cost, the balance is at or below zero, and auto-recharge is
- * off (a project with auto-recharge is topped up when it runs low).
- * Everything else — a free global provider, the project's own provider, no
- * provider at all (its own gap), a positive balance — is no blocker.
+ * a per-token cost, the balance is at or below zero, and Auto Recharge
+ * cannot refill it before the next call - it is off, has nothing to add,
+ * or its last charge failed (AIBillingService.getAutoRechargeState: the
+ * next call would be refused too). With Auto Recharge on and set up, the
+ * next billed call recharges the credits first and runs, so an empty
+ * balance is no blocker. Everything else — a free global provider, the
+ * project's own provider, no provider at all (its own gap), a positive
+ * balance — is no blocker.
  */
 
 type MockBillingGlobal = typeof globalThis & {
@@ -69,26 +75,46 @@ function provider(overrides: Record<string, unknown> = {}): LlmProvider {
   } as unknown as LlmProvider;
 }
 
+// A project row as stored: Auto Recharge's amounts default to 20 and 10 USD.
 function project(overrides: Record<string, unknown> = {}): Project {
   return {
     aiCurrentBalanceInUSDCents: 0,
     enableAutoRechargeAiBalance: false,
+    autoAiRechargeByBalanceInUSD: 20,
+    autoRechargeAiWhenCurrentBalanceFallsInUSD: 10,
+    lowAiBalanceNotificationSentToOwners: false,
     ...overrides,
   } as unknown as Project;
 }
 
+// What the shared cache says about Auto Recharge's last charge.
+let lastChargeFailedAt: string | null = null;
+
 describe("AIService.getAiBalanceBlocker", () => {
   let providerLookup: jest.SpyInstance;
   let projectLookup: jest.SpyInstance;
+  let claimNotice: jest.SpyInstance;
+  let ownerEmail: jest.SpyInstance;
 
   beforeEach(() => {
     setBillingEnabled(true);
+    lastChargeFailedAt = null;
     providerLookup = jest
       .spyOn(LlmProviderService, "getLLMProviderForProject")
       .mockResolvedValue(provider());
     projectLookup = jest
       .spyOn(ProjectService, "findOneById")
       .mockResolvedValue(project());
+    jest.spyOn(GlobalCache, "getString").mockImplementation((async () => {
+      return lastChargeFailedAt;
+    }) as never);
+    // Somebody already told the owners, unless a test says otherwise.
+    claimNotice = jest
+      .spyOn(ProjectService, "claimAiCreditsUsedUpNotice")
+      .mockResolvedValue(false);
+    ownerEmail = jest
+      .spyOn(ProjectService, "sendEmailToProjectOwners")
+      .mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -122,14 +148,18 @@ describe("AIService.getAiBalanceBlocker", () => {
     );
   });
 
-  it("reads the balance and auto-recharge of THIS project, as root", async () => {
+  it("reads the balance and Auto Recharge of THIS project, as root, in one read", async () => {
     await AIService.getAiBalanceBlocker({ projectId: PROJECT_ID });
 
+    expect(projectLookup).toHaveBeenCalledTimes(1);
     expect(projectLookup).toHaveBeenCalledWith({
       id: PROJECT_ID,
       select: {
         aiCurrentBalanceInUSDCents: true,
         enableAutoRechargeAiBalance: true,
+        autoAiRechargeByBalanceInUSD: true,
+        autoRechargeAiWhenCurrentBalanceFallsInUSD: true,
+        lowAiBalanceNotificationSentToOwners: true,
       },
       props: { isRoot: true },
     });
@@ -146,7 +176,7 @@ describe("AIService.getAiBalanceBlocker", () => {
     expect(projectLookup).not.toHaveBeenCalled();
   });
 
-  it("no blocker when auto-recharge is on", async () => {
+  it("no blocker when Auto Recharge is on: the next call recharges the credits first", async () => {
     projectLookup.mockResolvedValue(
       project({ enableAutoRechargeAiBalance: true }),
     );
@@ -154,6 +184,85 @@ describe("AIService.getAiBalanceBlocker", () => {
     expect(
       await AIService.getAiBalanceBlocker({ projectId: PROJECT_ID }),
     ).toBeNull();
+    expect(claimNotice).not.toHaveBeenCalled();
+  });
+
+  it("Auto Recharge on with no amount to add, or no balance to add it at: blocks, as off", async () => {
+    for (const overrides of [
+      { autoAiRechargeByBalanceInUSD: 0 },
+      { autoAiRechargeByBalanceInUSD: null },
+      { autoRechargeAiWhenCurrentBalanceFallsInUSD: 0 },
+    ]) {
+      projectLookup.mockResolvedValue(
+        project({ enableAutoRechargeAiBalance: true, ...overrides }),
+      );
+
+      expect(
+        await AIService.getAiBalanceBlocker({ projectId: PROJECT_ID }),
+      ).toBe(AI_BALANCE_INSUFFICIENT_MESSAGE);
+    }
+  });
+
+  it("Auto Recharge on but its last charge failed: blocks, saying so - the next call would be refused too", async () => {
+    projectLookup.mockResolvedValue(
+      project({ enableAutoRechargeAiBalance: true }),
+    );
+    lastChargeFailedAt = "2026-10-07T08:00:00.000Z";
+
+    expect(await AIService.getAiBalanceBlocker({ projectId: PROJECT_ID })).toBe(
+      AI_AUTO_RECHARGE_FAILED_MESSAGE,
+    );
+  });
+
+  it("a failed charge does not block a project whose Auto Recharge is off: that is the plain message", async () => {
+    lastChargeFailedAt = "2026-10-07T08:00:00.000Z";
+
+    expect(await AIService.getAiBalanceBlocker({ projectId: PROJECT_ID })).toBe(
+      AI_BALANCE_INSUFFICIENT_MESSAGE,
+    );
+  });
+
+  it("a failure that cannot be read (the shared cache is down) reads as none: the call itself decides", async () => {
+    projectLookup.mockResolvedValue(
+      project({ enableAutoRechargeAiBalance: true }),
+    );
+    (GlobalCache.getString as unknown as jest.SpyInstance).mockRejectedValue(
+      new Error("Cache is not connected"),
+    );
+
+    expect(
+      await AIService.getAiBalanceBlocker({ projectId: PROJECT_ID }),
+    ).toBeNull();
+  });
+
+  it("a blocker tells the project's owners the first time: one claim, one email", async () => {
+    claimNotice.mockResolvedValue(true);
+
+    await AIService.getAiBalanceBlocker({ projectId: PROJECT_ID });
+
+    expect(claimNotice).toHaveBeenCalledTimes(1);
+    expect(ownerEmail).toHaveBeenCalledTimes(1);
+    expect(ownerEmail.mock.calls[0]![1]).toMatch(/^AI credits used up for /);
+  });
+
+  it("owners already told about this run-out cost no claim at all", async () => {
+    projectLookup.mockResolvedValue(
+      project({ lowAiBalanceNotificationSentToOwners: true }),
+    );
+
+    expect(await AIService.getAiBalanceBlocker({ projectId: PROJECT_ID })).toBe(
+      AI_BALANCE_INSUFFICIENT_MESSAGE,
+    );
+    expect(claimNotice).not.toHaveBeenCalled();
+    expect(ownerEmail).not.toHaveBeenCalled();
+  });
+
+  it("an email that cannot be sent still answers the blocker", async () => {
+    claimNotice.mockRejectedValue(new Error("database unavailable"));
+
+    expect(await AIService.getAiBalanceBlocker({ projectId: PROJECT_ID })).toBe(
+      AI_BALANCE_INSUFFICIENT_MESSAGE,
+    );
   });
 
   it("no blocker while the balance is positive", async () => {
@@ -221,6 +330,9 @@ describe("AIService.getAiBalanceBlocker", () => {
     expect(AI_BALANCE_INSUFFICIENT_MESSAGE).toBe(
       "This project's AI credit balance is used up and auto-recharge is off, so OneUptime AI cannot run.",
     );
+    expect(AI_AUTO_RECHARGE_FAILED_MESSAGE).toBe(
+      "This project's AI credit balance is used up and auto-recharge could not add more, so OneUptime AI cannot run.",
+    );
   });
 });
 
@@ -239,6 +351,9 @@ describe("KubernetesClusterAiAccessService.getProjectGates and the balance predi
       .spyOn(LlmProviderService, "getLLMProviderForProject")
       .mockResolvedValue(provider());
     jest.spyOn(ProjectService, "findOneById").mockResolvedValue(project());
+    jest
+      .spyOn(ProjectService, "claimAiCreditsUsedUpNotice")
+      .mockResolvedValue(false);
   });
 
   afterEach(() => {

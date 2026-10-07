@@ -381,7 +381,15 @@ describe("scheduled maintenance feed items", () => {
 
     const UPDATED_HEADER: string = "**Resources Affected**:\n";
 
-    async function update(data: JSONObject): Promise<void> {
+    /*
+     * The update's success hook. `listIdsBeforeUpdate` is what the event's
+     * lists held before the write, as onBeforeUpdate reads them; left out,
+     * the event counts as unseen, and every list written as changed.
+     */
+    async function update(
+      data: JSONObject,
+      listIdsBeforeUpdate?: JSONObject,
+    ): Promise<void> {
       await (
         ScheduledMaintenanceService as unknown as {
           onUpdateSuccess: OnUpdateSuccessFunction;
@@ -393,7 +401,16 @@ describe("scheduled maintenance feed items", () => {
             data: data,
             props: { tenantId: PROJECT_ID, userId: undefined },
           },
-          carryForward: null,
+          carryForward: listIdsBeforeUpdate
+            ? {
+                attachments: null,
+                monitorStatus: null,
+                valuesBeforeUpdate: null,
+                listIdsBeforeUpdate: {
+                  [RECORD_ID.toString()]: listIdsBeforeUpdate,
+                },
+              }
+            : null,
         },
         [RECORD_ID],
       );
@@ -436,15 +453,45 @@ describe("scheduled maintenance feed items", () => {
       expect(feedItem).not.toHaveBeenCalled();
     });
 
-    test("clearing the lists, as before, writes no section and reads nothing", async () => {
+    test("clearing lists that held nothing changes nothing: no section, and nothing read", async () => {
       const reads: jest.SpyInstance = answerRelationReads(
         ScheduledMaintenanceService,
         {},
       );
 
-      await update({ monitors: [], hosts: [] });
+      await update({ monitors: [], hosts: [] }, { monitors: [], hosts: [] });
 
       expect(reads).not.toHaveBeenCalled();
+      expect(feedItem).not.toHaveBeenCalled();
+    });
+
+    test("the lists sent back as the event holds them change nothing: no section, and nothing read", async () => {
+      const reads: jest.SpyInstance = answerRelationReads(
+        ScheduledMaintenanceService,
+        {
+          monitors: [related(MONITOR_ID, "checkout-web")],
+          hosts: [related(HOST_ID, "web")],
+        },
+      );
+
+      await update(
+        { monitors: [{ _id: MONITOR_ID }], hosts: [HOST_ID.toUpperCase()] },
+        { monitors: [MONITOR_ID], hosts: [HOST_ID] },
+      );
+
+      expect(reads).not.toHaveBeenCalled();
+      expect(feedItem).not.toHaveBeenCalled();
+    });
+
+    test("clearing lists that held resources reads what the event now affects; nothing left, as before, writes no section", async () => {
+      const reads: jest.SpyInstance = answerRelationReads(
+        ScheduledMaintenanceService,
+        {},
+      );
+
+      await update({ monitors: [], hosts: [] }, { hosts: [HOST_ID] });
+
+      expect(reads).toHaveBeenCalled();
       expect(feedItem).not.toHaveBeenCalled();
     });
   });

@@ -3899,10 +3899,11 @@ export default class StatusPageAPI extends BaseAPI<
 
   /*
    * The project's incident states as a status page is sent them: each one's
-   * id, place and resolved flag - what the page needs to tell, by the one
-   * rule (Common/Utils/ResolvedState), which incidents and episodes are
-   * resolved and which timeline rows mark a resolve. Names stay on the
-   * timeline rows that show them.
+   * id, place and resolved and acknowledged flags - what the page needs to
+   * tell, by the two rules (Common/Utils/ResolvedState,
+   * Common/Utils/AcknowledgedState), which incidents and episodes are
+   * resolved and which timeline rows mark a resolve or an acknowledgement.
+   * Names stay on the timeline rows that show them.
    */
   private async getIncidentStatesForStatusPage(
     projectId: ObjectID,
@@ -3914,6 +3915,7 @@ export default class StatusPageAPI extends BaseAPI<
       select: {
         _id: true,
         isResolvedState: true,
+        isAcknowledgedState: true,
         order: true,
       },
       sort: {

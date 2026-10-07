@@ -129,7 +129,6 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
             currentIncidentState: {
               _id: true,
               name: true,
-              isAcknowledgedState: true,
             },
           },
           props: {
@@ -142,7 +141,16 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
         return;
       }
 
-      if (episode.currentIncidentState?.isAcknowledgedState) {
+      /*
+       * Already acknowledged, or further along, by the one rule
+       * (Common/Utils/AcknowledgedState): a state placed after Acknowledged
+       * counts too, so it is not moved back up its list.
+       */
+      if (
+        await IncidentEpisodeService.isEpisodeAcknowledged({
+          episodeId: episode.id!,
+        })
+      ) {
         logger.debug("Incident episode is already acknowledged");
         return;
       }

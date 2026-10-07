@@ -324,6 +324,30 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   longer reopens an episode or starts a new SLA for the incident. Projects
   whose custom states all sit above the resolved state see no change. See
   [The Active Incidents list](/docs/incidents/states-and-severities#the-active-incidents-list).
+- **A state after your acknowledged state counts as acknowledged
+  everywhere.** An incident, alert or episode in a state you placed
+  between your acknowledged and resolved states — an **Investigating**
+  state below **Acknowledged**, say — already stopped on-call paging, but
+  the mobile app and Microsoft Teams still offered **Acknowledge** for it,
+  and acknowledging an alert or an episode in it (from Teams, Slack or an
+  on-call page) moved it back to **Acknowledged**. Every one of them now
+  asks one rule: the project's acknowledged state, every state after it,
+  and a resolved state count as acknowledged. **Acknowledge** is no longer
+  offered for such a record anywhere, and acknowledging one is refused
+  ("... is already acknowledged.") instead of moving it back; a responder
+  acknowledging their page for it just completes the page. Moving a record
+  straight into such a state now marks the incident's SLA responded —
+  where it used to stay unresponded until the incident was resolved, which
+  could breach the response target — and counts as its acknowledgement in
+  the time to acknowledge on the overview, the **Time to Acknowledge**
+  metric, measurements and the MTTA in Slack and Microsoft Teams summaries.
+  A record resolved without being acknowledged now counts as acknowledged
+  when it was resolved, as the overview already showed it. **Acknowledged**
+  list filters show the records in such states too, and the **Time in
+  State** metric's `isAcknowledgedState` attribute is `true` for them.
+  Projects whose custom states all sit above the acknowledged state see no
+  change. See
+  [What acknowledging does](/docs/incidents/states-and-severities#what-acknowledging-does).
 - **Resolving an incident gives back only the monitors it holds.**
   OneUptime now records whether an incident holds its monitors' status. An
   incident resolved once already and then reopened no longer returns its
@@ -393,6 +417,29 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   description, root cause or remediation notes that was cleared. Taking
   every label off is recorded as "All labels removed.". See
   [What the feed records](/docs/incidents/notes-owners-and-feed#what-the-feed-records).
+- **A scheduled maintenance event's or a monitor's "updated" feed entry
+  records only what changed, too.** Saving an event's **Maintenance
+  Details** or **Affected Resources** card or a monitor's details with
+  nothing changed, or an API client, a workflow, Terraform or a script
+  writing an event or a monitor back as it is, used to add an entry
+  repeating the title (a monitor's name), window, description, reminders,
+  status pages, affected resources and labels it carried - posted to its
+  Slack and Microsoft Teams channels too - and every write that carried an
+  event's labels or its **Send reminders** switch started its reminder
+  interval over. Now each line is written for a value that changed, and
+  nothing for a save that changed nothing; an event's reminder rule is
+  matched again only when its labels change or **Send reminders** is
+  flipped. A time counts as the same when it names the same moment,
+  however it is written, and the reminders, status pages, affected
+  resources and labels as the same set in any order. Clearing an event's
+  description, reminders, status pages or labels, or a monitor's
+  description or labels, is recorded now, and a monitor's name,
+  description and label names show as typed instead of being read as
+  Markdown. An event moved from **Scheduled** straight into a state of
+  your own placed after **Ongoing** now starts the way **Ongoing** does:
+  its monitors change to its **Change Monitor Status to**, where until now
+  they were left as they were. See
+  [Scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events).
 - **On OneUptime Cloud, API keys and SCIM stop working below their plan.**
   A project's API keys need **Growth** and its SCIM connections - the
   project's and its status pages' - need **Scale**. Until now they kept

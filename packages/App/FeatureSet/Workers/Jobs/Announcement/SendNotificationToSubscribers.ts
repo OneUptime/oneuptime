@@ -46,6 +46,8 @@ import SubscriberNotificationTrigger from "Common/Types/StatusPage/SubscriberNot
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
 import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
+import SubscriberMarkdownTemplateValues from "Common/Server/Utils/StatusPage/SubscriberMarkdownTemplateValues";
+import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
 
 /*
  * Two jobs share this send path: one tells subscribers about a new
@@ -377,11 +379,26 @@ const notifySubscribersOfAnnouncement: (data: {
           announcementDescription: announcementDescriptionPlainText,
         };
 
+        /*
+         * A custom Slack or Teams message is Markdown: every plain value -
+         * the title, the status page's name, the resource list - is escaped,
+         * so it reads as typed and cannot become a link, an image, raw HTML
+         * or a chat mention wherever the template places it
+         * (SubscriberMarkdownTemplateValues). The addresses are OneUptime's
+         * own; the description stays the Markdown it was written as.
+         */
         const markdownTemplateVariables: Record<string, string> = {
-          ...templateVariables,
-          resourcesAffected: resourcesAffectedPlainText,
+          ...SubscriberMarkdownTemplateValues.fromPlainValues({
+            ...templateVariables,
+            resourcesAffected: resourcesAffectedPlainText,
+          }),
           announcementDescription: announcement.description || "",
         };
+
+        // The default Slack and Teams messages place the title the same way.
+        const announcementTitleInMarkdown: string = escapeMarkdownValue(
+          announcement.title || "",
+        );
 
         // Send email to Email subscribers.
 
@@ -513,7 +530,7 @@ const notifySubscribersOfAnnouncement: (data: {
                   );
               } else {
                 // Default markdown message
-                slackMessage = `## ${copy.chatHeading} - ${announcement.title || ""}
+                slackMessage = `## ${copy.chatHeading} - ${announcementTitleInMarkdown}
 
 **Description:** ${announcement.description || ""}
 
@@ -545,7 +562,7 @@ const notifySubscribersOfAnnouncement: (data: {
                   );
               } else {
                 // Default markdown message
-                teamsMessage = `## ${copy.chatHeading} - ${announcement.title || ""}
+                teamsMessage = `## ${copy.chatHeading} - ${announcementTitleInMarkdown}
 
 **Description:** ${announcement.description || ""}
 

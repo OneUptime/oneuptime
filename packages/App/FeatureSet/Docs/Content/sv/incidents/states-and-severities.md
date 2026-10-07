@@ -35,7 +35,7 @@ Lägg märke till namnet: det första tillståndet heter **Identifierad**, även
 | Flagga                | Syfte                                                                                                                                                                                                |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `isCreatedState`      | Tillståndet en incident får när ingen valt något. Om inget tillstånd i projektet bär den här flaggan misslyckas skapandet av en incident med ett fel som säger att du ska lägga till ett skapat incidenttillstånd i inställningarna. |
-| `isAcknowledgedState` | Driver knappen **Acknowledge** och nyckeltalsrutan "<tillståndsnamn> in" på incidentens **Översikt**. Vid en tillståndsändring in i det här tillståndet markeras incidentens SLA som besvarad.      |
+| `isAcknowledgedState` | Markerar projektets bekräftade tillstånd: det som **Acknowledge** flyttar en incident till och som bekräftad-rutan är uppkallad efter. En incident i det, i ett tillstånd efter det eller löst är bekräftad — **Acknowledge** erbjuds inte längre för den, jouren slutar larma för den och dess SLA markeras som besvarad. |
 | `isResolvedState`     | Markerar projektets lösta tillstånd: det som **Lös** flyttar en incident till och som nyckeltalsrutan för löst visar. En incident i det, eller i ett tillstånd efter det, är löst — den lämnar **Aktiva incidenter** och en statussidas aktiva del, och dess SLA markeras som löst. |
 
 Bara ett tillstånd per projekt förväntas bära var och en av flaggorna — uppslagningarna hämtar en enda rad. De tre flaggade tillstånden kan byta namn, färg och ordning, men inställningssidan vägrar radera dem och visar ett fel som namnger det skapade, det bekräftade och det lösta tillståndet.
@@ -103,6 +103,18 @@ Det finns fyra sätt en incident byter tillstånd:
 - **Automatiskt.** Ett monitorkriterium med **Lös incident automatiskt** påslaget löser sin incident när kriteriet inte längre uppfylls, och API:et kan uppdatera tillståndet genom `/api/incident-state-timeline`.
 
 Var och en av dem skriver en tidslinjerad. En tillståndsändring gör dessutom några saker du inte behöver be om: den lägger en post i incidentflödet, tilldelar en Incidentansvarig om incidenten inte redan har en, och uppdaterar SLA-klockan. Att återöppna en löst incident startar en ny SLA-post från återöppningstillfället.
+
+## Vad det gör att bekräfta en incident
+
+En incident är bekräftad från det ögonblick den flyttas till ert bekräftade tillstånd, till ett tillstånd efter det — ett **Undersöks**-tillstånd ni har placerat under **Bekräftad**, till exempel — eller till ett löst tillstånd, på vilket av de fyra sätten ovan som helst. Sidan med tillståndsinställningar visar vilka tillstånd det är. När den är bekräftad:
+
+- **Acknowledge erbjuds inte längre.** Varken i incidentens rubrik, i mobilappen (knappen och svepet), i Slack eller Microsoft Teams eller genom `acknowledge_incident` i OneUptimes MCP-server. Att bekräfta den ändå — från ett jourlarm, Slack eller Teams — avvisas med "Incident is already acknowledged." (eller "Incident is already resolved.") i stället för att flytta tillbaka den uppåt i listan.
+- **Jouren slutar larma för den.** Den som bekräftar sitt larm efter att en kollega har bekräftat incidenten, eller flyttat den vidare, får sitt larm bekräftat, och incidenten stannar där den är.
+- **SLA:n markeras som besvarad** vid den första sådana förflyttningen; att gå vidare till senare tillstånd behåller den tiden.
+- **Tiden till bekräftelse räknas till den första förflyttningen** — nyckeltalsrutan på incidentens **Översikt**, mätvärdet **Time to Acknowledge**, en mätning som slutar när incidenten bekräftas och MTTA i sammanfattningar i Slack och Microsoft Teams. En incident som flyttas direkt från **Identifierad** till **Undersöks** bekräftades då; en som löses direkt bekräftades när den löstes.
+- **Ett Bekräftad-filter** — på en instrumentpanels widget med incidentlistor, till exempel — visar incidenterna i ert bekräftade tillstånd och i alla tillstånd efter det, så länge de inte är lösta.
+
+Varningar och episoder följer samma regel med era varningstillstånd.
 
 ## Vad det gör att lösa en incident
 

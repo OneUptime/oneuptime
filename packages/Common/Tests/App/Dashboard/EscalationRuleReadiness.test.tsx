@@ -1929,11 +1929,12 @@ describe("Expanding the groups a level notifies", () => {
   });
 
   /*
-   * No hasAcceptedInvitation filter, mirroring TeamMemberService.getUsersInTeam:
-   * somebody who never accepted their invite still gets paged, so they still
-   * have to be checked.
+   * Accepted members only, as paging expands a team (the escalation rule
+   * reads the team with acceptedOnly): somebody who has not accepted their
+   * invitation is not paged through the team, so there is nothing to check
+   * about them here.
    */
-  test("the team read does not filter on invitations being accepted", async () => {
+  test("the team read is the accepted members only, as paging expands a team", async () => {
     getListMock.mockResolvedValue({
       data: [],
       count: 0,
@@ -1945,7 +1946,7 @@ describe("Expanding the groups a level notifies", () => {
 
     const query: any = (getListMock as any).mock.calls[0][0].query;
 
-    expect(query.hasAcceptedInvitation).toBeUndefined();
+    expect(query.hasAcceptedInvitation).toBe(true);
     expect(query.teamId.toString()).toBe(TEAM_ID);
   });
 

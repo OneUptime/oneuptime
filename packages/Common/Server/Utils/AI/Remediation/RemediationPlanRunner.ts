@@ -752,7 +752,7 @@ export default class RemediationPlanRunner {
 
         await this.postFeedItem({
           suggestion,
-          markdown: `⚡ **${this.describeStrandedSource(suggestion)}: AI planning did not complete** (${reason}) — no runbook was proposed.`,
+          markdown: `⚡ **${escapeMarkdownValue(this.describeStrandedSource(suggestion))}: AI planning did not complete** (${escapeMarkdownValue(reason)}) — no runbook was proposed.`,
           pingWorkspace: false,
         });
       } catch (error) {

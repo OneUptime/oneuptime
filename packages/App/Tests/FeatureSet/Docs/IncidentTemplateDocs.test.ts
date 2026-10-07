@@ -820,13 +820,22 @@ describe("Incident docs", () => {
       expect(episodeMembers).toMatch(
         /const getFeedTitle[\s\S]*?return escapeMarkdownValue\(title \|\| "No title"\);/,
       );
+      /*
+       * Each entry names the incident and the episode through one helper,
+       * whose title (left out for a private end) goes in through
+       * getFeedTitle; joining and leaving each name both sides.
+       */
+      expect(episodeMembers).toMatch(
+        /titleSuffix: `: \$\{getFeedTitle\(data\.title\)\}`/,
+      );
+      expect(episodeMembers).toMatch(/title: incident\?\.title,/);
+      expect(episodeMembers).toMatch(/title: episode\?\.title,/);
       expect(
-        (
-          episodeMembers.match(
-            /getFeedTitle\((?:incident|episode)\?\.title\)/g,
-          ) || []
-        ).length,
-      ).toBe(4);
+        (episodeMembers.match(/describeIncident\(incident\)/g) || []).length,
+      ).toBe(2);
+      expect(
+        (episodeMembers.match(/describeEpisode\(episode\)/g) || []).length,
+      ).toBe(2);
 
       // SLA rules' note reminders, Teams bot replies and on-call messages.
       expect(readSource(SLA_NOTE_REMINDERS_FILE)).toMatch(

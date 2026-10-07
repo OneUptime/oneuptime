@@ -181,6 +181,10 @@ First User: {{responseBody.users[0].name}}
 
 Hvis en sti ikke eksisterer, bliver pladsholderen stående i outputtet nøjagtigt som skrevet — `{{responseBody.error.id}}` optræder ordret, med tuborgklammer og det hele, i hændelsestitlen. Kun `{{#each}}`-blokke over en manglende sti fjernes.
 
+### Værdier i beskrivelser og afhjælpningsnoter
+
+En beskrivelse og afhjælpningsnoter er Markdown: de vises på hændelsens eller alarmens side, i e-mail og i dens Slack- og Microsoft Teams-kanaler. De værdier, en skabelon indsætter der, er det, det overvågede system sendte - en svartekst eller en header, en indgående forespørgsel eller e-mail, en enheds eller en series labels - så hver af dem indsættes som tekst. Den læses præcis som den blev sendt, uanset hvor skabelonen placerer den, og et link, et billede, et HTML-tag eller en Slack-omtale som `<!channel>` i den vises som tekst i stedet for at virke. En bar webadresse i en værdi bliver stadig til et link, et der viser, hvor det fører hen. Den Markdown, du selv skriver i skabelonen, vises, som du skrev den.
+
 ## Avanceret brug
 
 ### Adgang til array-elementer

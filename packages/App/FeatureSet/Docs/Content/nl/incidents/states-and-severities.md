@@ -35,7 +35,7 @@ Let op de naam: de eerste status is **Identified**, ook al noemen verschillende 
 | Vlag                  | Waarvoor                                                                                                                                                                                          |
 | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `isCreatedState`      | De status die een incident krijgt wanneer niemand er een koos. Draagt geen enkele status in het project deze vlag, dan mislukt het aanmaken van een incident met de melding dat je vanuit de instellingen een aangemaakt-status moet toevoegen. |
-| `isAcknowledgedState` | Voedt de knop **Acknowledge** en de stat-tegel "<statusnaam> in" op het **Overzicht** van het incident. Bij een statuswijziging naar deze status wordt de SLA van het incident als beantwoord gemarkeerd. |
+| `isAcknowledgedState` | Markeert de bevestigde status van het project: de status waar **Acknowledge** een incident naartoe zet en waarnaar de bevestigd-tegel heet. Een incident in deze status, in een status erna of opgelost is bevestigd — **Acknowledge** wordt er niet meer voor aangeboden, on-call stopt met oproepen ervoor en de SLA wordt als beantwoord gemarkeerd. |
 | `isResolvedState`     | Markeert de opgeloste status van het project: die waarin **Oplossen** een incident zet en die de opgelost-stat-tegel toont. Een incident in deze status, of in een status erna, is opgelost — het verdwijnt uit **Actieve incidenten** en uit het actieve deel van een statuspagina, en de SLA wordt als opgelost gemarkeerd. |
 
 Per project hoort maar één status elke vlag te dragen — de opzoekacties halen één rij op. De drie gevlagde statussen kun je hernoemen, verkleuren en herschikken, maar de instellingenpagina weigert ze te verwijderen en toont een foutmelding die de aangemaakt-, bevestigd- en opgelost-status benoemt.
@@ -103,6 +103,18 @@ Er zijn vier manieren waarop een incident van status wisselt:
 - **Automatisch.** Een monitorcriterium met **Incident automatisch oplossen** aan lost zijn incident op zodra het criterium niet meer wordt gehaald, en de API kan de status bijwerken via `/api/incident-state-timeline`.
 
 Elk van deze schrijft een tijdlijnrij. Een statuswijziging doet ook een paar dingen waar je niet om hoeft te vragen: er komt een item in de incidentfeed, er wordt een Incident Commander toegewezen als het incident er nog geen heeft, en de SLA-klok wordt bijgewerkt. Een opgelost incident heropenen start een vers SLA-record vanaf het moment van heropenen.
+
+## Wat bevestigen doet
+
+Een incident is bevestigd vanaf het moment dat het naar je bevestigde status gaat, naar een status erna — een status **Onderzoek** die je onder **Bevestigd** hebt gezet, bijvoorbeeld — of naar een opgeloste status, via welke van de vier manieren hierboven ook. De pagina met statusinstellingen laat zien welke statussen dat zijn. Zodra het bevestigd is:
+
+- **Acknowledge wordt niet meer aangeboden.** Niet in de kop van het incident, niet in de mobiele app (de knop en de veegbeweging), niet in Slack of Microsoft Teams en niet via `acknowledge_incident` van de OneUptime MCP-server. Het toch bevestigen — vanuit een on-call-oproep, Slack of Teams — wordt geweigerd met "Incident is already acknowledged." (of "Incident is already resolved."), in plaats van het in zijn lijst terug te zetten.
+- **On-call stopt met oproepen ervoor.** Wie zijn oproep bevestigt nadat een collega het incident bevestigde of verder zette, krijgt zijn oproep bevestigd, en het incident blijft waar het is.
+- **De SLA wordt als beantwoord gemarkeerd** bij de eerste zo'n overgang; verder gaan naar latere statussen houdt dat tijdstip.
+- **De tijd tot bevestiging loopt tot die eerste overgang** — de stat-tegel op het **Overzicht** van het incident, de metric **Time to Acknowledge**, een meting die eindigt wanneer het incident bevestigd wordt, en de MTTA in samenvattingen in Slack en Microsoft Teams. Een incident dat direct van **Identified** naar **Onderzoek** gaat, werd toen bevestigd; een incident dat meteen opgelost wordt, werd bevestigd toen het opgelost werd.
+- **Een filter Bevestigd** — op de incidentlijst-widget van een dashboard, bijvoorbeeld — toont de incidenten in je bevestigde status en in elke status erna, zolang ze niet opgelost zijn.
+
+Alerts en episodes volgen dezelfde regel met je alertstatussen.
 
 ## Wat oplossen doet
 

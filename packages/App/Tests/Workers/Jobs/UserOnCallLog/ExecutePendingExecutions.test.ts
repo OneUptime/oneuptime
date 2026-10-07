@@ -3,13 +3,19 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import UserNotificationExecutionStatus from "Common/Types/UserNotification/UserNotificationExecutionStatus";
 import UserNotificationEventType from "Common/Types/UserNotification/UserNotificationEventType";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
-import UserOnCallLogService from "Common/Server/Services/UserOnCallLogService";
+import UserOnCallLogService, {
+  NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE,
+} from "Common/Server/Services/UserOnCallLogService";
 import UserNotificationRuleService from "Common/Server/Services/UserNotificationRuleService";
 import IncidentService from "Common/Server/Services/IncidentService";
 import AlertService from "Common/Server/Services/AlertService";
 import AlertEpisodeService from "Common/Server/Services/AlertEpisodeService";
 import IncidentEpisodeService from "Common/Server/Services/IncidentEpisodeService";
 import logger from "Common/Server/Utils/Logger";
+import ProjectMembership, {
+  ProjectUserPair,
+} from "Common/Server/Utils/TeamMember/ProjectMembership";
+import UserOnCallLog from "Common/Models/DatabaseModels/UserOnCallLog";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
 /*
@@ -48,6 +54,13 @@ jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
 
 // Import AFTER the jest.mock above (hoisted by jest) so RunCron is already a no-op.
 import { executePendingNotificationLog } from "../../../../FeatureSet/Workers/Jobs/UserOnCallLog/ExecutePendingExecutions";
+import RunCron from "../../../../FeatureSet/Workers/Utils/Cron";
+
+// The tick itself: what the job registered with RunCron when it was imported.
+const runTick: () => Promise<void> = (RunCron as unknown as jest.Mock).mock
+  .calls[0]![2] as () => Promise<void>;
+
+const MEMBER: { isProjectMember: boolean } = { isProjectMember: true };
 
 type PendingLog = Parameters<typeof executePendingNotificationLog>[0];
 
@@ -96,7 +109,7 @@ describe("ExecutePendingExecutions.executePendingNotificationLog", () => {
       .spyOn(UserOnCallLogService, "updateOneById")
       .mockResolvedValue(undefined as never);
 
-    await executePendingNotificationLog(makePendingLog());
+    await executePendingNotificationLog(makePendingLog(), MEMBER);
 
     // The permanent-failure branch marks the log Error.
     expect(updateSpy).toHaveBeenCalledTimes(1);
@@ -116,7 +129,7 @@ describe("ExecutePendingExecutions.executePendingNotificationLog", () => {
       .spyOn(UserOnCallLogService, "updateOneById")
       .mockResolvedValue(undefined as never);
 
-    await executePendingNotificationLog(makePendingLog());
+    await executePendingNotificationLog(makePendingLog(), MEMBER);
 
     /*
      * The log must NOT be marked Error (it stays Executing for the next tick).
@@ -174,6 +187,7 @@ describe("ExecutePendingExecutions.executePendingNotificationLog", () => {
 
     await executePendingNotificationLog(
       makePendingLog({ triggeredByIncidentId: new ObjectID("inc1") }),
+      MEMBER,
     );
 
     expect(updateSpy).toHaveBeenCalledTimes(1);
@@ -182,5 +196,177 @@ describe("ExecutePendingExecutions.executePendingNotificationLog", () => {
 
     // Catch was never entered on the success path.
     expect(logger.error).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A log keeps running its later rules for as long as the event is not
+ * acknowledged, so the person it pages may leave the project while it runs.
+ * Somebody who is no longer a member is not paged again: the log ends with
+ * the reason, and the rules still due for them are not run. Membership is
+ * read once per tick for every pending log (ProjectMembership).
+ */
+describe("ExecutePendingExecutions - the person paged left the project", () => {
+  beforeEach(() => {
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("the log ends with the reason, and no rule of theirs is run", async () => {
+    const ruleType: jest.SpyInstance = jest.spyOn(
+      UserOnCallLogService,
+      "getNotificationRuleType",
+    );
+    const rules: jest.SpyInstance = jest.spyOn(
+      UserNotificationRuleService,
+      "findBy",
+    );
+    const updateSpy: jest.SpyInstance = jest
+      .spyOn(UserOnCallLogService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+
+    await executePendingNotificationLog(
+      makePendingLog({ triggeredByIncidentId: new ObjectID("inc1") }),
+      { isProjectMember: false },
+    );
+
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    const callArg: any = updateSpy.mock.calls[0]![0];
+    expect(callArg.id.toString()).toBe("log1");
+    expect(callArg.data).toEqual({
+      status: UserNotificationExecutionStatus.Completed,
+      statusMessage: NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE,
+    });
+    expect(ruleType).not.toHaveBeenCalled();
+    expect(rules).not.toHaveBeenCalled();
+  });
+
+  test("one membership read per tick, for every pending log; only members' logs go on", async () => {
+    const STAYING: ObjectID = new ObjectID(
+      "10000000-0000-4000-8000-000000000001",
+    );
+    const LEAVING: ObjectID = new ObjectID(
+      "20000000-0000-4000-8000-000000000002",
+    );
+    const PROJECT_1: ObjectID = new ObjectID(
+      "aaaaaaaa-0000-4000-8000-000000000001",
+    );
+    const PROJECT_2: ObjectID = new ObjectID(
+      "bbbbbbbb-0000-4000-8000-000000000002",
+    );
+
+    const logs: Array<UserOnCallLog> = [
+      makePendingLog({
+        id: new ObjectID("log-staying"),
+        projectId: PROJECT_1,
+        userId: STAYING,
+      }),
+      makePendingLog({
+        id: new ObjectID("log-leaving"),
+        projectId: PROJECT_1,
+        userId: LEAVING,
+      }),
+      // A member of PROJECT_2 still - membership is per project.
+      makePendingLog({
+        id: new ObjectID("log-leaving-other-project"),
+        projectId: PROJECT_2,
+        userId: LEAVING,
+      }),
+    ] as unknown as Array<UserOnCallLog>;
+
+    jest
+      .spyOn(UserOnCallLogService, "findAllBy")
+      .mockResolvedValue(logs as never);
+
+    const membershipReads: Array<Array<ProjectUserPair>> = [];
+
+    jest
+      .spyOn(ProjectMembership, "getMemberKeys")
+      .mockImplementation(
+        async (pairs: Array<ProjectUserPair>): Promise<Set<string>> => {
+          membershipReads.push(pairs);
+
+          return new Set<string>([
+            ProjectMembership.getKey(PROJECT_1, STAYING),
+            ProjectMembership.getKey(PROJECT_2, LEAVING),
+          ]);
+        },
+      );
+
+    // Members' logs go on to their rules; stop them there.
+    const ruleType: jest.SpyInstance = jest
+      .spyOn(UserOnCallLogService, "getNotificationRuleType")
+      .mockImplementation((): NotificationRuleType => {
+        throw new Error("stop here");
+      });
+    const updateSpy: jest.SpyInstance = jest
+      .spyOn(UserOnCallLogService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+
+    await runTick();
+
+    expect(membershipReads).toHaveLength(1);
+    expect(
+      membershipReads[0]!.map((pair: ProjectUserPair): string => {
+        return ProjectMembership.getKey(pair.projectId, pair.userId);
+      }),
+    ).toEqual([
+      ProjectMembership.getKey(PROJECT_1, STAYING),
+      ProjectMembership.getKey(PROJECT_1, LEAVING),
+      ProjectMembership.getKey(PROJECT_2, LEAVING),
+    ]);
+
+    // The member logs went on to their rules...
+    expect(ruleType).toHaveBeenCalledTimes(2);
+
+    // ...the former member's log in PROJECT_1 ended, and only that one.
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    const callArg: any = updateSpy.mock.calls[0]![0];
+    expect(callArg.id.toString()).toBe("log-leaving");
+    expect(callArg.data.statusMessage).toBe(
+      NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE,
+    );
+  });
+
+  test("membership that cannot be read runs every log as before, rather than none", async () => {
+    const logs: Array<UserOnCallLog> = [
+      makePendingLog({ id: new ObjectID("log-a") }),
+      makePendingLog({ id: new ObjectID("log-b") }),
+    ] as unknown as Array<UserOnCallLog>;
+
+    jest
+      .spyOn(UserOnCallLogService, "findAllBy")
+      .mockResolvedValue(logs as never);
+    jest
+      .spyOn(ProjectMembership, "getMemberKeys")
+      .mockRejectedValue(new Error("database unavailable"));
+
+    const ruleType: jest.SpyInstance = jest
+      .spyOn(UserOnCallLogService, "getNotificationRuleType")
+      .mockImplementation((): NotificationRuleType => {
+        throw new Error("stop here");
+      });
+    const updateSpy: jest.SpyInstance = jest
+      .spyOn(UserOnCallLogService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+
+    await runTick();
+
+    // Both logs went on to their rules; neither was ended as a former member's.
+    expect(ruleType).toHaveBeenCalledTimes(2);
+    expect(
+      updateSpy.mock.calls.some((call: Array<any>) => {
+        return (
+          call[0]?.data?.statusMessage ===
+          NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE
+        );
+      }),
+    ).toBe(false);
+    expect(logger.error).toHaveBeenCalled();
   });
 });

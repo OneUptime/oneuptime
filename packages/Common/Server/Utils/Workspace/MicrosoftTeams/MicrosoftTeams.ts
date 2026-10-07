@@ -127,6 +127,7 @@ import {
   escapeMarkdownInline,
   escapeMarkdownValue,
 } from "../../../../Utils/Markdown/MarkdownEscape";
+import { neutralizeAiWrittenMarkdown } from "../../../../Utils/Markdown/UntrustedMarkdown";
 
 /*
  * A Markdown link, [text](url), as an incoming webhook's MessageCard turns it
@@ -142,6 +143,53 @@ const MESSAGE_CARD_LINK_PATTERN: RegExp =
 
 // A CommonMark backslash escape: a backslash before ASCII punctuation.
 const MARKDOWN_BACKSLASH_ESCAPE_PATTERN: RegExp = /\\([!-/:-@[-`{-~])/g;
+
+/*
+ * A line (already trimmed) that opens or closes a fence: three or more
+ * backticks or tildes - as leniently as neutralizeAiWrittenMarkdown finds
+ * one, so code that keeps its characters there is shown as code here.
+ */
+const MESSAGE_CARD_FENCE_PATTERN: RegExp = /^(`{3,}|~{3,})/;
+
+type GetMessageCardFenceOpeningFunction = (line: string) => string | null;
+
+/*
+ * The fence a line (already trimmed) opens - its run of backticks or tildes
+ * - or null. A backtick fence's info string has no backtick in it: "```x```
+ * y" is inline code, not a fence.
+ */
+const getMessageCardFenceOpening: GetMessageCardFenceOpeningFunction = (
+  line: string,
+): string | null => {
+  const fence: RegExpExecArray | null = MESSAGE_CARD_FENCE_PATTERN.exec(line);
+
+  if (!fence) {
+    return null;
+  }
+
+  const run: string = fence[1]!;
+
+  if (run.startsWith("`") && line.slice(fence[0].length).includes("`")) {
+    return null;
+  }
+
+  return run;
+};
+
+type EscapeMessageCardCodeFunction = (text: string) => string;
+
+/*
+ * A line of fenced code as a MessageCard section shows it: the characters
+ * HTML would read escaped, so "<img ...>" or a comment in it is text.
+ */
+const escapeMessageCardCode: EscapeMessageCardCodeFunction = (
+  text: string,
+): string => {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+};
 
 // Microsoft Teams apps should always be single-tenant
 const MICROSOFT_TEAMS_APP_TYPE: string = "SingleTenant";
@@ -729,8 +777,15 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     const actions: Array<JSONObject> = [];
     const bodyTextParts: Array<string> = [];
 
-    // Extract title from the first non-empty line and strip markdown heading markers
-    if (lines.length > 0) {
+    /*
+     * Extract title from the first non-empty line and strip markdown heading
+     * markers - unless that line opens a fence: then the card has no title
+     * line, and the fence is read below like any other.
+     */
+    if (
+      lines.length > 0 &&
+      getMessageCardFenceOpening(lines[0] ?? "") === null
+    ) {
       const firstLine: string = lines[0] ?? "";
       title = firstLine
         .replace(/^#+\s*/, "") // remove leading markdown headers like ##
@@ -761,7 +816,41 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       return text.replace(/\s{2,}/g, " ");
     };
 
+    /*
+     * Fenced code - a command, a snippet, a log line - is shown as it is. A
+     * MessageCard has no code blocks, so a "[text](url)" in one would become
+     * a button and an "<img>" or a comment in one HTML: its lines are
+     * escaped for HTML and kept out of the buttons and the facts.
+     */
+    let openFenceRun: string | null = null;
+
     for (const line of lines) {
+      const fence: RegExpExecArray | null =
+        MESSAGE_CARD_FENCE_PATTERN.exec(line);
+      const afterFence: string = fence ? line.slice(fence[0].length) : "";
+
+      if (openFenceRun !== null) {
+        if (
+          fence &&
+          fence[1]![0] === openFenceRun[0] &&
+          fence[1]!.length >= openFenceRun.length &&
+          afterFence.trim() === ""
+        ) {
+          openFenceRun = null;
+        }
+
+        bodyTextParts.push(escapeMessageCardCode(line));
+        continue;
+      }
+
+      const opening: string | null = getMessageCardFenceOpening(line);
+
+      if (opening !== null) {
+        openFenceRun = opening;
+        bodyTextParts.push(escapeMessageCardCode(line));
+        continue;
+      }
+
       // Extract links to actions and keep link display text in-place (without markdown)
       let lineWithoutLinks: string = line;
       let match: RegExpExecArray | null = null;
@@ -3834,13 +3923,22 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           feature: "Microsoft Teams ChatOps",
         });
 
-      // Build a compact "Sources" footer from the server-minted citations.
-      let replyText: string = result.contentInMarkdown;
+      /*
+       * The answer is written from telemetry, which can carry text meant to
+       * steer the model, and it is posted to a chat: it stays the Markdown
+       * the model wrote, with no image, no link whose words hide where it
+       * goes, no HTML tag and no mention in it (neutralizeAiWrittenMarkdown).
+       * A citation's label is text.
+       */
+      let replyText: string = neutralizeAiWrittenMarkdown(
+        result.contentInMarkdown,
+      );
 
+      // Build a compact "Sources" footer from the server-minted citations.
       if (result.citations && result.citations.length > 0) {
         const sourceLines: Array<string> = result.citations.map(
           (citation: AIChatCitation) => {
-            return `• ${citation.label} (${citation.rowCount} rows)`;
+            return `• ${escapeMarkdownValue(citation.label)} (${citation.rowCount} rows)`;
           },
         );
         replyText += `\n\n**Sources**\n${sourceLines.join("\n")}`;

@@ -5,9 +5,11 @@ import AlertMeasurementService from "./AlertMeasurementService";
 import Alert from "../../Models/DatabaseModels/Alert";
 import AlertService from "./AlertService";
 import AlertStateTimeline from "../../Models/DatabaseModels/AlertStateTimeline";
+import AlertState from "../../Models/DatabaseModels/AlertState";
 import AlertStateTimelineService from "./AlertStateTimelineService";
 import AlertStateService from "./AlertStateService";
 import ResolvedStateUtil from "../../Utils/ResolvedState";
+import AcknowledgedStateUtil from "../../Utils/AcknowledgedState";
 import { StateListType } from "../../Utils/StateOrder";
 import AlertMeasurementAnchorType from "../../Types/Alerts/AlertMeasurementAnchorType";
 import AlertStateRole from "../../Types/Alerts/AlertStateRole";
@@ -163,7 +165,6 @@ export class Service extends DatabaseService<Model> {
             name: true,
             order: true,
             isCreatedState: true,
-            isAcknowledgedState: true,
           },
         },
         sort: { startsAt: SortOrder.Ascending },
@@ -171,6 +172,25 @@ export class Service extends DatabaseService<Model> {
         skip: 0,
         props: { isRoot: true },
       });
+
+    const states: Array<AlertState> = await AlertStateService.getAllAlertStates(
+      {
+        projectId: data.projectId,
+        props: { isRoot: true },
+      },
+    );
+
+    const timelineRows: Array<{
+      id: string;
+      stateId: ObjectID | undefined;
+      startsAt: Date | undefined;
+    }> = timelines.map((timeline: AlertStateTimeline) => {
+      return {
+        id: timeline._id?.toString() || "",
+        stateId: timeline.alertStateId,
+        startsAt: timeline.startsAt,
+      };
+    });
 
     /*
      * "The alert is resolved" is each move into a state that counts as
@@ -181,17 +201,25 @@ export class Service extends DatabaseService<Model> {
     const resolutionRowIds: Set<string> = new Set(
       ResolvedStateUtil.getResolutionRows({
         list: StateListType.AlertState,
-        states: await AlertStateService.getAllAlertStates({
-          projectId: data.projectId,
-          props: { isRoot: true },
-        }),
-        timeline: timelines.map((timeline: AlertStateTimeline) => {
-          return {
-            id: timeline._id?.toString() || "",
-            stateId: timeline.alertStateId,
-            startsAt: timeline.startsAt,
-          };
-        }),
+        states: states,
+        timeline: timelineRows,
+      }).map((row: { id: string }) => {
+        return row.id;
+      }),
+    );
+
+    /*
+     * "The alert is acknowledged" the same way: each move into a state
+     * that counts as acknowledged (Common/Utils/AcknowledgedState) - the
+     * project's acknowledged state, one placed after it ("Investigating"),
+     * or a resolved one - from one that does not. Moving on from Acknowledged
+     * to a state after it is not a second acknowledgement.
+     */
+    const acknowledgementRowIds: Set<string> = new Set(
+      AcknowledgedStateUtil.getAcknowledgementRows({
+        list: StateListType.AlertState,
+        states: states,
+        timeline: timelineRows,
       }).map((row: { id: string }) => {
         return row.id;
       }),
@@ -208,7 +236,7 @@ export class Service extends DatabaseService<Model> {
           roles.push(AlertStateRole.Created);
         }
 
-        if (timeline.alertState?.isAcknowledgedState) {
+        if (acknowledgementRowIds.has(timeline._id?.toString() || "")) {
           roles.push(AlertStateRole.Acknowledged);
         }
 
