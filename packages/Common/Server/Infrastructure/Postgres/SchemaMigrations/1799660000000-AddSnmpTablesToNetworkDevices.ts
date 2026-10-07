@@ -6,10 +6,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * the rows of its last walk. Three nullable jsonb columns - adding them
  * rewrites no rows and takes no long lock.
  */
-export class AddSnmpTablesToNetworkDevices1799700000000
+export class AddSnmpTablesToNetworkDevices1799660000000
   implements MigrationInterface
 {
-  public name = "AddSnmpTablesToNetworkDevices1799700000000";
+  public name = "AddSnmpTablesToNetworkDevices1799660000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

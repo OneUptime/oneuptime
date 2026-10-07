@@ -127,6 +127,9 @@ import AlertState from "../../Models/DatabaseModels/AlertState";
 import AlertStateService from "./AlertStateService";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import URL from "../../Types/API/URL";
+import EmptyResponseData from "../../Types/API/EmptyResponse";
+import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../Types/API/HTTPResponse";
 import Exception from "../../Types/Exception/Exception";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import DatabaseConfig from "../DatabaseConfig";
@@ -290,6 +293,14 @@ export const widensAuditLogging: (
   // A value that is not a number cannot be judged: treat it as widening.
   return !Number.isFinite(requestedDays) || requestedDays > currentDays;
 };
+
+/*
+ * How long sendEmailToOwnersAndWait waits for the mail service to take one
+ * owner's email. It takes one in a few seconds; a mail service that hangs
+ * must not hold a run that waits for each email - the migrate Job - for
+ * longer than this.
+ */
+export const OWNER_EMAIL_TIMEOUT_IN_MS: number = 60 * 1000;
 
 export class ProjectService extends ProjectReferencesService<Model> {
   /*
@@ -3351,6 +3362,63 @@ These are no longer recorded against the project and have to be cancelled by han
     return Array.isArray(result) && result.length > 0;
   }
 
+  /*
+   * Claim the one-time notice to a project's owners that its plan stops its
+   * API keys or limits its SCIM connections (PlanDowngradeOwnerNotice): true
+   * only for the one call that writes planCutoffNoticeSentAt, while it is
+   * still empty - so the owners of a project already told, by a plan change
+   * or by an earlier run, are not told again, and two workers running the
+   * notice at once cannot both win. One statement, like
+   * markAiDailyLimitReached: a passive bookkeeping write, no hooks, on a
+   * column the API never reads; a deleted project is never told.
+   */
+  @CaptureSpan()
+  public async claimPlanCutoffNotice(data: {
+    projectId: ObjectID;
+    now: Date;
+  }): Promise<boolean> {
+    const sql: string = `WITH "updated" AS (UPDATE "Project" SET "planCutoffNoticeSentAt" = $1 WHERE "_id" = $2 AND "deletedAt" IS NULL AND "planCutoffNoticeSentAt" IS NULL RETURNING "_id") SELECT "_id" FROM "updated"`;
+
+    const result: unknown = await this.getRepository().manager.query(sql, [
+      data.now,
+      data.projectId.toString(),
+    ]);
+
+    return Array.isArray(result) && result.length > 0;
+  }
+
+  /*
+   * Give back a claim (claimPlanCutoffNotice) whose notice could not be
+   * sent, so a later run tells the owners after all. Only the claim made at
+   * `claimedAt` is given back: one written since stays.
+   */
+  @CaptureSpan()
+  public async releasePlanCutoffNotice(data: {
+    projectId: ObjectID;
+    claimedAt: Date;
+  }): Promise<void> {
+    await this.getRepository().manager.query(
+      `UPDATE "Project" SET "planCutoffNoticeSentAt" = NULL WHERE "_id" = $1 AND "planCutoffNoticeSentAt" = $2`,
+      [data.projectId.toString(), data.claimedAt],
+    );
+  }
+
+  /*
+   * Record that the project's owners were told now - a plan change stopped
+   * its API keys or limited its SCIM connections - whether or not they were
+   * told before.
+   */
+  @CaptureSpan()
+  public async markPlanCutoffNoticeSent(data: {
+    projectId: ObjectID;
+    now: Date;
+  }): Promise<void> {
+    await this.getRepository().manager.query(
+      `UPDATE "Project" SET "planCutoffNoticeSentAt" = $1 WHERE "_id" = $2`,
+      [data.now, data.projectId.toString()],
+    );
+  }
+
   @CaptureSpan()
   public async sendEmailToProjectOwners(
     projectId: ObjectID,
@@ -3364,27 +3432,96 @@ These are no longer recorded against the project and have to be cancelled by han
     }
 
     for (const owner of owners) {
-      MailService.sendMail(
-        {
-          toEmail: owner.email!,
-          templateType: EmailTemplateType.SimpleMessage,
-          vars: {
-            subject: subject,
-            message: message,
-          },
-          subject: subject,
-          isSubjectLiteral: true,
-        },
-        {
-          projectId,
-          userId: owner.id!,
-        },
-      ).catch((err: Error) => {
+      this.sendOwnerEmail({
+        projectId: projectId,
+        owner: owner,
+        subject: subject,
+        message: message,
+      }).catch((err: Error) => {
         logger.error(err, {
           projectId: projectId?.toString(),
         } as LogAttributes);
       });
     }
+  }
+
+  /*
+   * sendEmailToProjectOwners, for a notice that must know it went out: sends
+   * the email to each of the owners given (read with getOwners), waits until
+   * the mail service has taken each one, and says how many it took. For a
+   * notice sent from a process that exits as soon as it is done - a one-time
+   * notice run by the migrate Job - an email not handed over by then would
+   * never leave. Never throws: an email the mail service refused, could not
+   * be reached for, or did not take within OWNER_EMAIL_TIMEOUT_IN_MS, is
+   * logged and not counted - so a mail service that hangs never holds the
+   * run up for longer than that.
+   */
+  @CaptureSpan()
+  public async sendEmailToOwnersAndWait(data: {
+    projectId: ObjectID;
+    owners: Array<User>;
+    subject: string;
+    message: string;
+  }): Promise<number> {
+    let delivered: number = 0;
+
+    for (const owner of data.owners) {
+      try {
+        const response: HTTPResponse<EmptyResponseData> | HTTPErrorResponse =
+          await this.sendOwnerEmail({
+            projectId: data.projectId,
+            owner: owner,
+            subject: data.subject,
+            message: data.message,
+            timeoutInMs: OWNER_EMAIL_TIMEOUT_IN_MS,
+          });
+
+        if (response instanceof HTTPErrorResponse) {
+          logger.error(
+            `The mail service refused an owner email of project ${data.projectId.toString()}: ${response.message}`,
+            {
+              projectId: data.projectId.toString(),
+            } as LogAttributes,
+          );
+          continue;
+        }
+
+        delivered++;
+      } catch (err) {
+        logger.error(err, {
+          projectId: data.projectId.toString(),
+        } as LogAttributes);
+      }
+    }
+
+    return delivered;
+  }
+
+  // One owner's email, as the owner emails above send it.
+  private sendOwnerEmail(data: {
+    projectId: ObjectID;
+    owner: User;
+    subject: string;
+    message: string;
+    timeoutInMs?: number | undefined;
+  }): Promise<HTTPResponse<EmptyResponseData> | HTTPErrorResponse> {
+    return MailService.sendMail(
+      {
+        toEmail: data.owner.email!,
+        templateType: EmailTemplateType.SimpleMessage,
+        vars: {
+          subject: data.subject,
+          message: data.message,
+        },
+        subject: data.subject,
+        isSubjectLiteral: true,
+      },
+      {
+        projectId: data.projectId,
+        userId: data.owner.id!,
+        ...(data.timeoutInMs ? { timeoutInMs: data.timeoutInMs } : {}),
+      },
+    );
   }
 
   /**

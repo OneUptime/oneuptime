@@ -440,19 +440,23 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   its monitors change to its **Change Monitor Status to**, where until now
   they were left as they were. See
   [Scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events).
-- **On OneUptime Cloud, API keys and SCIM stop working below their plan.**
-  A project's API keys need **Growth** and its SCIM connections - the
-  project's and its status pages' - need **Scale**. Until now they kept
-  working after a trial ended or the project moved to a lower plan. Now
-  every request made with one of the project's API keys - the REST API,
-  Terraform, the CLI, MCP clients connected with an API key - is refused
-  with `402` and a message that names the plan, and every SCIM request for
-  its connections is refused with `402` in the SCIM error format, which
-  stops deprovisioning too. Nothing is deleted: they work again as they are
-  as soon as the project is back on the plan, within a minute. The
-  project's owners get an email when a plan change stops them, and
-  **Project Settings** > **Billing** names how many a lower plan stops.
-  People signing in, MCP clients connected by signing in, telemetry
+- **On OneUptime Cloud, API keys stop working below their plan, and SCIM
+  only removes people.** A project's API keys need **Growth** and its SCIM
+  connections - the project's and its status pages' - need **Scale**.
+  Until now they kept working after a trial ended or the project moved to a
+  lower plan. Now every request made with one of the project's API keys -
+  the REST API, Terraform, the CLI, MCP clients connected with an API key -
+  is refused with `402` and a message that names the plan, and every SCIM
+  request that would add or change people or groups is refused with `402`
+  in the SCIM error format. SCIM still deactivates, deletes and removes
+  people on every plan, so anyone who leaves still loses their access.
+  Nothing is deleted: they work fully again as they are as soon as the
+  project is back on the plan, within a minute. The project's owners get
+  an email when a plan change stops them, and the
+  owners of projects that were already below these plans get one email
+  after this upgrade saying what stopped and how to turn it back on.
+  **Project Settings** > **Billing** names how many a lower plan stops or
+  limits. People signing in, MCP clients connected by signing in, telemetry
   ingestion keys, probe keys and agent keys are not affected, and
   self-hosted installs (no plans) see no change. See
   [API keys and SCIM below their plan](/docs/api-reference/api-reference#api-keys-and-scim-below-their-plan).

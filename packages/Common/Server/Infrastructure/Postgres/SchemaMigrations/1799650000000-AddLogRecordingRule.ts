@@ -7,8 +7,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * migration.
  */
 
-export class AddLogRecordingRule1799600000000 implements MigrationInterface {
-  public name: string = "AddLogRecordingRule1799600000000";
+export class AddLogRecordingRule1799650000000 implements MigrationInterface {
+  public name: string = "AddLogRecordingRule1799650000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

@@ -19,8 +19,8 @@ import path from "path";
  *   - Incident Forms is gone: no Forms item in the Incidents menu, no old
  *     page keys, files or breadcrumbs - and the old URLs forward to the same
  *     form in Forms, outside the Incidents layout;
- *   - a form's menu walks the order a form is set up in, and Delete Form is
- *     in Advanced.
+ *   - a form's menu walks the order a form is set up in, and Duplicate Form
+ *     and Delete Form are in Advanced.
  *
  * The behaviour behind these is covered by jsdom tests in Common
  * (FormsPages, FormShareLinkCard, FormBuilderState, FormOnSubmit,
@@ -136,6 +136,14 @@ const PAGES: Array<FormsPageCase> = [
     breadcrumb: ["Project", "Forms", "View Form"],
   },
   {
+    pageKey: "FORM_VIEW_TEMPLATES",
+    relativePath: "`${RouteParams.ModelID}/templates`",
+    pageComponent: "FormTemplates",
+    page: "Pages/Forms/View/Templates",
+    layout: "view",
+    breadcrumb: ["Project", "Forms", "View Form", "Templates"],
+  },
+  {
     pageKey: "FORM_VIEW_ON_SUBMIT",
     relativePath: "`${RouteParams.ModelID}/on-submit`",
     pageComponent: "FormOnSubmit",
@@ -158,6 +166,14 @@ const PAGES: Array<FormsPageCase> = [
     page: "Pages/Forms/View/Submissions",
     layout: "view",
     breadcrumb: ["Project", "Forms", "View Form", "Submissions"],
+  },
+  {
+    pageKey: "FORM_VIEW_DUPLICATE",
+    relativePath: "`${RouteParams.ModelID}/duplicate`",
+    pageComponent: "FormDuplicate",
+    page: "Pages/Forms/View/Duplicate",
+    layout: "view",
+    breadcrumb: ["Project", "Forms", "View Form", "Duplicate Form"],
   },
   {
     pageKey: "FORM_VIEW_DELETE",
@@ -327,10 +343,12 @@ describe("the menus", () => {
     expect(titles).toEqual([
       "Form",
       "Build",
+      "Templates",
       "OnSubmit",
       "Share",
       "Submissions",
       "Advanced",
+      "DuplicateForm",
       "DeleteForm",
     ]);
 
@@ -343,9 +361,11 @@ describe("the menus", () => {
 
     for (const pageKey of [
       "FORM_VIEW",
+      "FORM_VIEW_TEMPLATES",
       "FORM_VIEW_ON_SUBMIT",
       "FORM_VIEW_SHARE",
       "FORM_VIEW_SUBMISSIONS",
+      "FORM_VIEW_DUPLICATE",
       "FORM_VIEW_DELETE",
     ]) {
       expect(code).toContain(

@@ -32,16 +32,16 @@ The usual permissions still decide who can do each, exactly as on the plan. Read
 
 ### API keys and SCIM below their plan
 
-On OneUptime Cloud, a project's API keys work only while the project is on **Growth** or above, and its SCIM connections - the project's own and its status pages' - only while it is on **Scale** or above. When the project moves below that plan, they stop working:
+On OneUptime Cloud, a project's API keys work only while the project is on **Growth** or above, and its SCIM connections - the project's own and its status pages' - work fully only while it is on **Scale** or above. When the project moves below that plan:
 
 - Every request made with one of the project's API keys is refused with `402 Payment Required`, whatever it asks for: the REST API, and everything that calls it with an API key - Terraform, the `oneuptime` CLI, MCP clients connected with an API key, workflows that send one in a request header, and your own scripts. The message names the plan: `API keys need the Growth plan. This project's plan does not include them, so its API keys stopped working. The keys are kept: upgrade the project to Growth in Project Settings > Billing and they work again.`
-- Every SCIM request for one of its connections is refused with `402`, in the SCIM error format, so your identity provider shows why. That stops deprovisioning as well as provisioning ([SCIM below the Scale plan](/docs/identity/scim#below-the-scale-plan)).
+- Its SCIM connections only remove people. Deactivating and deleting people, and removing them from groups, still work, so anyone who leaves still loses their access; every SCIM request that would add or change people or groups is refused with `402`, in the SCIM error format, so your identity provider shows why ([SCIM below the Scale plan](/docs/identity/scim#below-the-scale-plan)).
 
-Nothing is deleted or switched off. The keys and connections are kept, and they work again as they are as soon as the project is back on the plan: no new keys to make, nothing to set up again in your identity provider. A plan change takes effect within a minute.
+Nothing is deleted or switched off. The keys and connections are kept, and they work fully again, as they are, as soon as the project is back on the plan: no new keys to make, nothing to set up again in your identity provider. A plan change takes effect within a minute.
 
-Below **Growth**, **Project Settings** > **API Keys** lists the keys the project still has and says they stopped, so any of them can be deleted (revoked) on every plan. Creating or changing keys needs **Growth**. **Project Settings** > **Billing** names how many API keys and SCIM connections a lower plan stops, on each plan you can pick, and how many the project's plan has stopped; the project's owners get an email when a plan change stops them.
+Below **Growth**, **Project Settings** > **API Keys** lists the keys the project still has and says they stopped, so any of them can be deleted (revoked) on every plan. Creating or changing keys needs **Growth**. **Project Settings** > **Billing** names how many API keys a lower plan stops and how many SCIM connections it limits, on each plan you can pick, and what the project's plan has stopped; the project's owners get an email when a plan change stops them. The owners of projects that were already below these plans when this started get one email saying what stopped and how to turn it back on.
 
-Only a project's API keys and SCIM connections stop. People are not affected: signing in to the dashboard, and MCP clients connected by signing in, work as before. Telemetry ingestion keys, probe keys and agent keys are not API keys, and keep working. Self-hosted installs have no plans, so nothing changes for them.
+Only a project's API keys and SCIM connections are affected. People are not affected: signing in to the dashboard, and MCP clients connected by signing in, work as before. Telemetry ingestion keys, probe keys and agent keys are not API keys, and keep working. Self-hosted installs have no plans, so nothing changes for them.
 
 ### Finding a resource's ID
 
