@@ -962,14 +962,21 @@ export class ProjectService extends ProjectReferencesService<Model> {
         continue;
       }
 
+      /*
+       * Saving Auto Recharge is somebody trying the card on purpose, so it
+       * is tried at once, whatever failed before (ignoreRecentFailure), for
+       * both balances alike.
+       */
       if (updateBy.data.enableAutoRechargeSmsOrCallBalance) {
         await NotificationService.rechargeIfBalanceIsLow(project.id, {
+          enableAutoRechargeSmsOrCallBalance: true,
           autoRechargeSmsOrCallByBalanceInUSD: updateBy.data
-            .autoRechargeSmsOrCallByBalanceInUSD as number,
+            .autoRechargeSmsOrCallByBalanceInUSD as number | undefined,
           autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: updateBy.data
-            .autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD as number,
-          enableAutoRechargeSmsOrCallBalance: updateBy.data
-            .enableAutoRechargeSmsOrCallBalance as boolean,
+            .autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD as
+            | number
+            | undefined,
+          ignoreRecentFailure: true,
         });
       }
 
@@ -3353,13 +3360,158 @@ These are no longer recorded against the project and have to be cancelled by han
   public async claimAiCreditsUsedUpNotice(
     projectId: ObjectID,
   ): Promise<boolean> {
-    const sql: string = `WITH "updated" AS (UPDATE "Project" SET "lowAiBalanceNotificationSentToOwners" = true WHERE "_id" = $1 AND "deletedAt" IS NULL AND "lowAiBalanceNotificationSentToOwners" = false RETURNING "_id") SELECT "_id" FROM "updated"`;
+    return await this.claimOwnerNotice({
+      projectId,
+      column: "lowAiBalanceNotificationSentToOwners",
+    });
+  }
+
+  /*
+   * Record that the project's owners are told its balance for SMS, calls,
+   * WhatsApp and Telegram could not pay for a message, unless they were since
+   * the balance was last added to. True only for the one caller that writes
+   * it - the first message not sent for want of balance - which is the one
+   * that emails them (SmsService, CallService, WhatsAppService,
+   * TelegramService); every other caller, on any server, gets false. Every
+   * recharge clears the flag in the statement that adds the balance
+   * (creditSmsOrCallBalanceInUSDCents), as does a master admin adding
+   * balance (adjustBalance), so the next time it runs out the owners are
+   * told again.
+   *
+   * It used to be read with the project and written back afterwards, so the
+   * messages of a paging storm that found the balance used up together each
+   * read "not told yet", and each emailed every owner.
+   */
+  @CaptureSpan()
+  public async claimSmsOrCallLowBalanceNotice(
+    projectId: ObjectID,
+  ): Promise<boolean> {
+    return await this.claimOwnerNotice({
+      projectId,
+      column: "lowCallAndSMSBalanceNotificationSentToOwners",
+    });
+  }
+
+  /*
+   * One owners' notice flag, claimed in one statement: the condition and the
+   * write are a single UPDATE, so two servers cannot both win. A passive
+   * bookkeeping write - no hooks, no version or updatedAt bump - on a column
+   * the API never reads; a deleted project is never told.
+   */
+  private async claimOwnerNotice(data: {
+    projectId: ObjectID;
+    column:
+      | "lowAiBalanceNotificationSentToOwners"
+      | "lowCallAndSMSBalanceNotificationSentToOwners";
+  }): Promise<boolean> {
+    const sql: string = `WITH "updated" AS (UPDATE "Project" SET "${data.column}" = true WHERE "_id" = $1 AND "deletedAt" IS NULL AND "${data.column}" = false RETURNING "_id") SELECT "_id" FROM "updated"`;
 
     const result: unknown = await this.getRepository().manager.query(sql, [
-      projectId.toString(),
+      data.projectId.toString(),
     ]);
 
     return Array.isArray(result) && result.length > 0;
+  }
+
+  /*
+   * A recharge of the project's balance for SMS, calls, WhatsApp and
+   * Telegram, once the card is charged: the amount is added to whatever the
+   * balance is now, in one statement that answers what it became. The
+   * owners' notices about it are re-armed in the same statement: the next
+   * time it runs low, or a charge fails, or a channel is off, they are told
+   * again.
+   *
+   * It used to be "the balance read before the charge, plus the amount",
+   * written back after the payment provider answered - which lost the cost
+   * of every message sent meanwhile, and let a second recharge running at
+   * the same moment overwrite the first one's credit, so a card charged
+   * twice was credited once.
+   */
+  @CaptureSpan()
+  public async creditSmsOrCallBalanceInUSDCents(data: {
+    projectId: ObjectID;
+    amountInUSDCents: number;
+  }): Promise<number> {
+    ProjectService.assertWholeCents(data.amountInUSDCents);
+
+    const balance: number | null = await this.addToSmsOrCallBalance({
+      projectId: data.projectId,
+      deltaInUSDCents: data.amountInUSDCents,
+      set: ProjectService.getBalanceNotificationFlagResets(
+        ProjectBalanceType.SmsOrCall,
+      ),
+    });
+
+    if (balance === null) {
+      throw new BadDataException("Project not found");
+    }
+
+    return balance;
+  }
+
+  /*
+   * What one SMS, call, WhatsApp or Telegram message cost, taken from the
+   * project's balance once it was handed to the provider: in one statement,
+   * from whatever the balance is now, answering what it became (null when
+   * the project is gone). It used to be "the balance read before sending,
+   * less the cost", written back afterwards - so of the messages a paging
+   * storm sent together, all but one went unpaid, and a recharge landing in
+   * between was written over.
+   *
+   * Messages that find just enough left at the same moment can take the
+   * balance below zero: the cost is owed rather than forgiven, and the next
+   * message waits for balance. A message that went out also re-arms the
+   * owners' "channel is off" notice, as it always has.
+   */
+  @CaptureSpan()
+  public async deductSmsOrCallBalanceInUSDCents(data: {
+    projectId: ObjectID;
+    amountInUSDCents: number;
+  }): Promise<number | null> {
+    ProjectService.assertWholeCents(data.amountInUSDCents);
+
+    return await this.addToSmsOrCallBalance({
+      projectId: data.projectId,
+      // Never -0: nothing taken is nothing taken.
+      deltaInUSDCents: -data.amountInUSDCents || 0,
+      set: {
+        notEnabledSmsOrCallNotificationSentToOwners: false,
+      },
+    });
+  }
+
+  private async addToSmsOrCallBalance(data: {
+    projectId: ObjectID;
+    deltaInUSDCents: number;
+    set: QueryDeepPartialEntity<Model>;
+  }): Promise<number | null> {
+    const values: Partial<Record<keyof Model, number>> | null =
+      await this.atomicAddToColumnsByIdAndGetValuesWithoutHooks({
+        id: data.projectId,
+        add: {
+          smsOrCallCurrentBalanceInUSDCents: data.deltaInUSDCents,
+        },
+        set: data.set,
+      });
+
+    if (!values) {
+      return null;
+    }
+
+    return values.smsOrCallCurrentBalanceInUSDCents ?? null;
+  }
+
+  // An amount of a balance: whole, non-negative cents.
+  private static assertWholeCents(amountInUSDCents: number): void {
+    if (
+      typeof amountInUSDCents !== "number" ||
+      !Number.isInteger(amountInUSDCents) ||
+      amountInUSDCents < 0
+    ) {
+      throw new BadDataException(
+        `A balance amount must be a whole, non-negative number of cents: ${amountInUSDCents}`,
+      );
+    }
   }
 
   /*

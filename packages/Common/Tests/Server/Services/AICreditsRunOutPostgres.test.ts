@@ -1,6 +1,7 @@
 import Entities from "../../../Models/DatabaseModels/Index";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
+import Redis from "../../../Server/Infrastructure/Redis";
 import Semaphore, {
   SemaphoreMutex,
 } from "../../../Server/Infrastructure/Semaphore";
@@ -134,6 +135,8 @@ describePostgres("AI credits running out on Postgres", () => {
       .spyOn(ProjectService, "sendEmailToProjectOwners")
       .mockResolvedValue(undefined);
 
+    // The shared cache is up: the recharge lock is taken from it.
+    jest.spyOn(Redis, "isConnected").mockReturnValue(true);
     jest.spyOn(GlobalCache, "getString").mockImplementation((async (
       namespace: string,
       key: string,
@@ -187,6 +190,7 @@ describePostgres("AI credits running out on Postgres", () => {
       BillingService.hasPaymentMethods,
       BillingService.generateInvoiceAndChargeCustomer,
       ProjectService.sendEmailToProjectOwners,
+      Redis.isConnected,
       GlobalCache.getString,
       GlobalCache.setString,
       GlobalCache.deleteKey,

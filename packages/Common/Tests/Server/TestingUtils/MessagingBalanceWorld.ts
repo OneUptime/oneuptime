@@ -9,46 +9,49 @@ import Project from "../../../Models/DatabaseModels/Project";
 import ObjectID from "../../../Types/ObjectID";
 
 /*
- * A project's AI credits, with everything that touches them behind fakes, so
- * a test can drive the real AIService / AIBillingService paths: the project
- * row (reads, plain updates, the atomic add and decrement, the
- * compare-and-set claims), the payment provider (a charge takes a moment, so
- * concurrent callers really overlap), the shared cache (the auto-recharge
- * failure window, the billing failure notice window) and the distributed
- * lock (a real mutual exclusion, in process).
+ * A project's balance for SMS, calls, WhatsApp and Telegram, with everything
+ * that touches it behind fakes, so a test can drive the real
+ * NotificationService paths: the project row (reads, plain updates, the
+ * one-statement credit and deduction, the owners' notice claim), the payment
+ * provider (a charge takes a moment, so concurrent callers really overlap),
+ * the shared cache (the auto-recharge failure window, the billing failure
+ * notice window) and the distributed lock (a real mutual exclusion, in
+ * process).
  *
- * The row is one plain object; every write lands on it, so what a test reads
- * back is what every writer did, in order.
+ * The row is one plain object; every write lands on it, so what a test
+ * reads back is what every writer did, in order. The credit and the
+ * deduction add to the row as it is when they run - what the one statement
+ * does in Postgres - so a test can tell them from a write-back of a value
+ * read earlier.
  */
 
-export interface AiCreditsRow {
+export interface MessagingBalanceRow {
   _id: string;
   name: string;
-  enableAi: boolean;
   paymentProviderCustomerId: string;
-  aiCurrentBalanceInUSDCents: number;
-  enableAutoRechargeAiBalance: boolean;
-  autoAiRechargeByBalanceInUSD: number;
-  autoRechargeAiWhenCurrentBalanceFallsInUSD: number;
-  lowAiBalanceNotificationSentToOwners: boolean;
-  failedAiBalanceChargeNotificationSentToOwners: boolean;
-  notEnabledAiNotificationSentToOwners: boolean;
+  smsOrCallCurrentBalanceInUSDCents: number;
+  enableAutoRechargeSmsOrCallBalance: boolean;
+  autoRechargeSmsOrCallByBalanceInUSD: number;
+  autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: number;
+  lowCallAndSMSBalanceNotificationSentToOwners: boolean;
+  failedCallAndSMSBalanceChargeNotificationSentToOwners: boolean;
+  notEnabledSmsOrCallNotificationSentToOwners: boolean;
   sendInvoicesByEmail: boolean;
   [column: string]: unknown;
 }
 
-export interface OwnerEmail {
+export interface MessagingBalanceOwnerEmail {
   projectId: string;
   subject: string;
   body: string;
 }
 
-export interface AiCreditsWorld {
-  row: AiCreditsRow;
+export interface MessagingBalanceWorld {
+  row: MessagingBalanceRow;
   // Every charge the payment provider was asked to make, in USD.
   charges: Array<number>;
   // Every email to the project's owners, in order.
-  ownerEmails: Array<OwnerEmail>;
+  ownerEmails: Array<MessagingBalanceOwnerEmail>;
   // What the shared cache holds, by namespace-key.
   cache: Map<string, string>;
   // How many callers held the recharge lock at the same moment, at most.
@@ -59,25 +62,26 @@ export interface AiCreditsWorld {
   failChargesWith: (error: Error | null) => void;
   // hasPaymentMethods answers this.
   setHasPaymentMethods: (value: boolean) => void;
-  // The lock cannot be taken (the shared cache is down, say).
+  // The lock cannot be taken although the cache is connected.
   failLocksWith: (error: Error | null) => void;
   // The shared cache is connected (true unless a test says otherwise).
   setCacheConnected: (value: boolean) => void;
   // How long a charge takes, in ms.
   setChargeDelayInMs: (ms: number) => void;
+  // Called while a charge is with the payment provider.
+  duringCharge: (callback: (() => void) | null) => void;
 }
 
-const DEFAULT_ROW: Omit<AiCreditsRow, "_id"> = {
+const DEFAULT_ROW: Omit<MessagingBalanceRow, "_id"> = {
   name: "Acme Production",
-  enableAi: true,
-  paymentProviderCustomerId: "cus_ai_credits_world",
-  aiCurrentBalanceInUSDCents: 0,
-  enableAutoRechargeAiBalance: true,
-  autoAiRechargeByBalanceInUSD: 20,
-  autoRechargeAiWhenCurrentBalanceFallsInUSD: 10,
-  lowAiBalanceNotificationSentToOwners: false,
-  failedAiBalanceChargeNotificationSentToOwners: false,
-  notEnabledAiNotificationSentToOwners: false,
+  paymentProviderCustomerId: "cus_messaging_balance_world",
+  smsOrCallCurrentBalanceInUSDCents: 0,
+  enableAutoRechargeSmsOrCallBalance: true,
+  autoRechargeSmsOrCallByBalanceInUSD: 20,
+  autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: 10,
+  lowCallAndSMSBalanceNotificationSentToOwners: false,
+  failedCallAndSMSBalanceChargeNotificationSentToOwners: false,
+  notEnabledSmsOrCallNotificationSentToOwners: false,
   sendInvoicesByEmail: false,
 };
 
@@ -87,7 +91,7 @@ function wait(ms: number): Promise<void> {
   });
 }
 
-function toProject(row: AiCreditsRow): Project {
+function toProject(row: MessagingBalanceRow): Project {
   const project: Project = new Project();
 
   for (const [column, value] of Object.entries(row)) {
@@ -99,7 +103,7 @@ function toProject(row: AiCreditsRow): Project {
   return project;
 }
 
-function applyValues(row: AiCreditsRow, values: unknown): void {
+function applyValues(row: MessagingBalanceRow, values: unknown): void {
   for (const [column, value] of Object.entries(
     (values || {}) as Record<string, unknown>,
   )) {
@@ -112,18 +116,18 @@ function applyValues(row: AiCreditsRow, values: unknown): void {
  * afterEach takes them away again) and answers with the world to drive and
  * read.
  */
-export function useAiCreditsWorld(
+export function useMessagingBalanceWorld(
   projectId: ObjectID,
-  values: Partial<AiCreditsRow> = {},
-): AiCreditsWorld {
-  const row: AiCreditsRow = {
+  values: Partial<MessagingBalanceRow> = {},
+): MessagingBalanceWorld {
+  const row: MessagingBalanceRow = {
     ...DEFAULT_ROW,
     ...values,
     _id: projectId.toString(),
-  } as AiCreditsRow;
+  } as MessagingBalanceRow;
 
   const charges: Array<number> = [];
-  const ownerEmails: Array<OwnerEmail> = [];
+  const ownerEmails: Array<MessagingBalanceOwnerEmail> = [];
   const cache: Map<string, string> = new Map<string, string>();
 
   let chargeError: Error | null = null;
@@ -131,6 +135,7 @@ export function useAiCreditsWorld(
   let isCacheConnected: boolean = true;
   let hasPaymentMethods: boolean = true;
   let chargeDelayInMs: number = 20;
+  let whileCharging: (() => void) | null = null;
 
   // The lock: one holder per name, everyone else waits in line.
   const lockQueues: Map<string, Array<() => void>> = new Map();
@@ -150,56 +155,39 @@ export function useAiCreditsWorld(
     return 1;
   }) as never);
 
+  // The recharge's credit: one statement, on the row as it is now.
   jest
-    .spyOn(ProjectService, "updateColumnsByIdWithoutHooks")
-    .mockImplementation((async (data: { data: unknown }) => {
-      applyValues(row, data.data);
+    .spyOn(ProjectService, "creditSmsOrCallBalanceInUSDCents")
+    .mockImplementation((async (data: { amountInUSDCents: number }) => {
+      row.smsOrCallCurrentBalanceInUSDCents += data.amountInUSDCents;
+      row.lowCallAndSMSBalanceNotificationSentToOwners = false;
+      row.failedCallAndSMSBalanceChargeNotificationSentToOwners = false;
+      row.notEnabledSmsOrCallNotificationSentToOwners = false;
+      return row.smsOrCallCurrentBalanceInUSDCents;
     }) as never);
 
+  // A message's cost: one statement, on the row as it is now.
   jest
-    .spyOn(ProjectService, "atomicAddToColumnsByIdWithoutHooks")
-    .mockImplementation((async (data: {
-      add: Record<string, number>;
-      set?: unknown;
-    }) => {
-      for (const [column, delta] of Object.entries(data.add || {})) {
-        row[column] = Number(row[column] || 0) + delta;
-      }
-      applyValues(row, data.set);
+    .spyOn(ProjectService, "deductSmsOrCallBalanceInUSDCents")
+    .mockImplementation((async (data: { amountInUSDCents: number }) => {
+      row.smsOrCallCurrentBalanceInUSDCents -= data.amountInUSDCents;
+      row.notEnabledSmsOrCallNotificationSentToOwners = false;
+      return row.smsOrCallCurrentBalanceInUSDCents;
     }) as never);
 
+  // The owners' low-balance notice: one conditional UPDATE, on the row.
   jest
-    .spyOn(ProjectService, "compareAndSetColumnsByIdWithoutHooks")
-    .mockImplementation((async (data: {
-      data: unknown;
-      expectedData: Record<string, unknown>;
-    }) => {
-      for (const [column, expected] of Object.entries(data.expectedData)) {
-        if (row[column] !== expected) {
-          return false;
-        }
-      }
-
-      applyValues(row, data.data);
-      return true;
-    }) as never);
-
-  // The run-out notice's one conditional UPDATE, on the row.
-  jest
-    .spyOn(ProjectService, "claimAiCreditsUsedUpNotice")
+    .spyOn(ProjectService, "claimSmsOrCallLowBalanceNotice")
     .mockImplementation((async () => {
-      if (row["deletedAt"] || row.lowAiBalanceNotificationSentToOwners) {
+      if (
+        row["deletedAt"] ||
+        row.lowCallAndSMSBalanceNotificationSentToOwners
+      ) {
         return false;
       }
 
-      row.lowAiBalanceNotificationSentToOwners = true;
+      row.lowCallAndSMSBalanceNotificationSentToOwners = true;
       return true;
-    }) as never);
-
-  jest
-    .spyOn(ProjectService, "deductAiBalanceInUSDCents")
-    .mockImplementation((async (data: { amountInUSDCents: number }) => {
-      row.aiCurrentBalanceInUSDCents -= data.amountInUSDCents;
     }) as never);
 
   jest
@@ -225,6 +213,7 @@ export function useAiCreditsWorld(
       _itemText: string,
       amountInUsd: number,
     ) => {
+      whileCharging?.();
       await wait(chargeDelayInMs);
 
       if (chargeError) {
@@ -234,10 +223,18 @@ export function useAiCreditsWorld(
       charges.push(amountInUsd);
     }) as never);
 
+  jest.spyOn(Redis, "isConnected").mockImplementation((): boolean => {
+    return isCacheConnected;
+  });
+
   jest.spyOn(GlobalCache, "getString").mockImplementation((async (
     namespace: string,
     key: string,
   ) => {
+    if (!isCacheConnected) {
+      throw new Error("Cache is not connected");
+    }
+
     return cache.get(`${namespace}-${key}`) || null;
   }) as never);
 
@@ -246,6 +243,10 @@ export function useAiCreditsWorld(
     key: string,
     value: string,
   ) => {
+    if (!isCacheConnected) {
+      throw new Error("Cache is not connected");
+    }
+
     cache.set(`${namespace}-${key}`, value);
   }) as never);
 
@@ -253,6 +254,10 @@ export function useAiCreditsWorld(
     namespace: string,
     key: string,
   ) => {
+    if (!isCacheConnected) {
+      throw new Error("Cache is not connected");
+    }
+
     cache.delete(`${namespace}-${key}`);
   }) as never);
 
@@ -261,6 +266,10 @@ export function useAiCreditsWorld(
     key: string,
     value: string,
   ) => {
+    if (!isCacheConnected) {
+      throw new Error("Cache is not connected");
+    }
+
     const name: string = `${namespace}-${key}`;
 
     if (cache.has(name)) {
@@ -270,10 +279,6 @@ export function useAiCreditsWorld(
     cache.set(name, value);
     return true;
   }) as never);
-
-  jest.spyOn(Redis, "isConnected").mockImplementation((): boolean => {
-    return isCacheConnected;
-  });
 
   jest.spyOn(Semaphore, "lock").mockImplementation((async (data: {
     key: string;
@@ -341,6 +346,9 @@ export function useAiCreditsWorld(
     },
     setChargeDelayInMs: (ms: number): void => {
       chargeDelayInMs = ms;
+    },
+    duringCharge: (callback: (() => void) | null): void => {
+      whileCharging = callback;
     },
   };
 }

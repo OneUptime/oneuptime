@@ -6,6 +6,7 @@ import {
   getRechargeBalanceButtons,
   ProjectBalanceAccess,
 } from "../../Components/ProjectBalance/ProjectBalanceAccess";
+import AutoRechargeFailedNotice from "../../Components/ProjectBalance/AutoRechargeFailedNotice";
 import {
   getProjectColumnsEditGate,
   ProjectColumnsEditGate,
@@ -47,6 +48,9 @@ import React, {
  * form whose save the server then refused. Auto Recharge's Edit is gated on
  * its own columns rather than the Project table's wider update list, for
  * the same reason.
+ *
+ * When Auto Recharge's last charge failed, the page says so first
+ * (AutoRechargeFailedNotice), with what to do or who can.
  */
 const AIBillingSettings: FunctionComponent<
   PageComponentProps
@@ -59,6 +63,8 @@ const AIBillingSettings: FunctionComponent<
   const [rechargeBalanceError, setRechargeBalanceError] = useState<
     string | null
   >(null);
+  // Saving Auto Recharge tries the card at once: ask again whether it failed.
+  const [autoRechargeSaves, setAutoRechargeSaves] = useState<number>(0);
 
   /*
    * Read on every render rather than remembered: the permission snapshot
@@ -74,6 +80,12 @@ const AIBillingSettings: FunctionComponent<
 
   return (
     <Fragment>
+      <AutoRechargeFailedNotice
+        balance={ProjectBalanceType.AI}
+        access={balanceAccess}
+        refreshKey={autoRechargeSaves}
+      />
+
       {/* Current Balance */}
       <CardModelDetail
         name="Current Balance"
@@ -130,6 +142,9 @@ const AIBillingSettings: FunctionComponent<
         }}
         isEditable={autoRechargeGate.isEditable}
         editButtonText="Edit Auto Recharge"
+        onSaveSuccess={() => {
+          setAutoRechargeSaves(autoRechargeSaves + 1);
+        }}
         formFields={[
           {
             field: {

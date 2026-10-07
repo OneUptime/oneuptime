@@ -21,6 +21,7 @@ import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTi
 import WhatsAppLogService from "Common/Server/Services/WhatsAppLogService";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import ProjectBalanceOwnerNotice from "Common/Server/Utils/ProjectBalanceOwnerNotice";
+import MessagingBalance from "Common/Server/Utils/Billing/MessagingBalance";
 import SafeHtml from "Common/Types/SafeHtml";
 import { ProjectNotificationChannel } from "Common/Utils/Project/NotificationChannels";
 import {
@@ -144,12 +145,14 @@ export default class WhatsAppService {
 
       const config: MetaWhatsAppConfig = await getMetaWhatsAppConfig();
 
-      let messageCost: number = 0;
       const shouldChargeForMessage: boolean = IsBillingEnabled;
 
-      if (shouldChargeForMessage) {
-        messageCost = WhatsAppTextDefaultCostInCents / 100;
-      }
+      // What it costs, in whole cents.
+      const messageCostInUSDCents: number = shouldChargeForMessage
+        ? MessagingBalance.getCostInUSDCents({
+            costPerPartInUSDCents: WhatsAppTextDefaultCostInCents,
+          })
+        : 0;
 
       let project: Project | null = null;
 
@@ -210,7 +213,7 @@ export default class WhatsAppService {
           const balanceInUSDCents: number =
             project.smsOrCallCurrentBalanceInUSDCents || 0;
 
-          if (!balanceInUSDCents || balanceInUSDCents < messageCost * 100) {
+          if (!balanceInUSDCents || balanceInUSDCents < messageCostInUSDCents) {
             const shortfall: {
               channel: ProjectNotificationChannel;
               balanceInUSDCents: number;
@@ -218,7 +221,7 @@ export default class WhatsAppService {
             } = {
               channel: ProjectNotificationChannel.WhatsApp,
               balanceInUSDCents: balanceInUSDCents,
-              costInUSDCents: Math.round(messageCost * 100),
+              costInUSDCents: messageCostInUSDCents,
             };
 
             whatsAppLog.status = WhatsAppStatus.LowBalance;
@@ -234,17 +237,14 @@ export default class WhatsAppService {
               },
             });
 
-            if (!project.lowCallAndSMSBalanceNotificationSentToOwners) {
-              await ProjectService.updateOneById({
-                id: project.id!,
-                data: {
-                  lowCallAndSMSBalanceNotificationSentToOwners: true,
-                },
-                props: {
-                  isRoot: true,
-                },
-              });
-
+            // Once each time it runs out, whatever else finds it out too.
+            if (
+              await MessagingBalance.shouldTellOwnersBalanceIsLow({
+                projectId: project.id!,
+                alreadyTold:
+                  project.lowCallAndSMSBalanceNotificationSentToOwners,
+              })
+            ) {
               await ProjectService.sendEmailToProjectOwners(
                 project.id!,
                 `Low WhatsApp message balance for ${project.name || ""}`,
@@ -443,26 +443,13 @@ export default class WhatsAppService {
         : "WhatsApp message sent successfully";
 
       if (shouldChargeForMessage && project) {
-        const deduction: number = Math.floor(messageCost * 100);
-        whatsAppLog.whatsAppCostInUSDCents = deduction;
+        whatsAppLog.whatsAppCostInUSDCents = messageCostInUSDCents;
 
-        project.smsOrCallCurrentBalanceInUSDCents = Math.max(
-          0,
-          Math.floor(
-            (project.smsOrCallCurrentBalanceInUSDCents || 0) - deduction,
-          ),
-        );
-
-        await ProjectService.updateOneById({
-          id: project.id!,
-          data: {
-            smsOrCallCurrentBalanceInUSDCents:
-              project.smsOrCallCurrentBalanceInUSDCents,
-            notEnabledSmsOrCallNotificationSentToOwners: false,
-          },
-          props: {
-            isRoot: true,
-          },
+        // Paid in one statement, from whatever the balance is now.
+        await MessagingBalance.payForSentMessage({
+          projectId: project.id!,
+          channel: ProjectNotificationChannel.WhatsApp,
+          costInUSDCents: messageCostInUSDCents,
         });
       }
     } catch (error: any) {

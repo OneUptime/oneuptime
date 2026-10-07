@@ -218,10 +218,15 @@ describe("turning auto recharge on", () => {
     expect((recharge.mock.calls[0]![0] as ObjectID).toString()).toBe(
       PROJECT_ID.toString(),
     );
+    /*
+     * Saving Auto Recharge is somebody trying the card on purpose: it is
+     * tried at once, whatever failed before, as for AI credits.
+     */
     expect(recharge.mock.calls[0]![1]).toEqual({
+      enableAutoRechargeSmsOrCallBalance: true,
       autoRechargeSmsOrCallByBalanceInUSD: 500,
       autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: 1000,
-      enableAutoRechargeSmsOrCallBalance: true,
+      ignoreRecentFailure: true,
     });
     expect(recharge.mock.invocationCallOrder[0]!).toBeLessThan(
       table.repository.update.mock.invocationCallOrder[0]!,
