@@ -5,6 +5,9 @@ import SeriesLabelDisplay, {
   DisplaySeriesLabel,
 } from "../../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
 
+// Where an HTML tag starts.
+const HTML_TAG_START_PATTERN: RegExp = /<\/?[A-Za-z]/;
+
 /*
  * SeriesLabelDisplay decides what an on-call engineer reads at the top of
  * an alert. The behaviours worth pinning down are the ones that used to
@@ -488,7 +491,8 @@ describe("SeriesLabelDisplay", () => {
         "x` <!channel> [Verify](https://evil.example/v) ![](https://tracker.example/p.png) `y";
       const block: string = SeriesLabelDisplay.buildMarkdownBlock({
         "[Open](https://evil.example/n) <img src=x>": value,
-        "resource.k8s.pod.name": "<a href=\"https://evil.example\">web</a>\n# heading",
+        "resource.k8s.pod.name":
+          '<a href="https://evil.example">web</a>\n# heading',
       });
 
       const tokens: Array<Token> = [];
@@ -513,7 +517,7 @@ describe("SeriesLabelDisplay", () => {
           return (
             token.type === "image" ||
             token.type === "heading" ||
-            (token.type === "html" && /<\/?[A-Za-z]/.test(token.raw))
+            (token.type === "html" && HTML_TAG_START_PATTERN.test(token.raw))
           );
         }),
       ).toEqual([]);

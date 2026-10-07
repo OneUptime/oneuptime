@@ -21,6 +21,11 @@ import { renderAsDashboard } from "../../../Utils/Markdown/DashboardMarkdownRend
 import { describe, expect, test } from "@jest/globals";
 import { Lexer, Token, marked } from "marked";
 
+// Where an HTML tag starts.
+const HTML_TAG_START_PATTERN: RegExp = /<\/?[A-Za-z]/;
+// The addresses the hostile values bring.
+const VALUE_ADDRESS_PATTERN: RegExp = /^https:\/\/(?:evil|tracker)\.example/;
+
 /*
  * WHAT A FILTER FOUND, IN A ROOT CAUSE.
  *
@@ -76,11 +81,9 @@ function expectInert(markdown: string): void {
       .filter((token: Token): boolean => {
         return (
           token.type === "image" ||
-          (token.type === "html" && /<\/?[A-Za-z]/.test(token.raw)) ||
+          (token.type === "html" && HTML_TAG_START_PATTERN.test(token.raw)) ||
           (token.type === "link" &&
-            /^https:\/\/(?:evil|tracker)\.example/.test(
-              (token as { href: string }).href,
-            ) &&
+            VALUE_ADDRESS_PATTERN.test((token as { href: string }).href) &&
             (token as { text: string }).text !==
               (token as { href: string }).href)
         );
@@ -89,7 +92,9 @@ function expectInert(markdown: string): void {
         return token.raw;
       }),
   ).toEqual([]);
-  expect(html).not.toMatch(/<img|<a href="https:\/\/(?:evil|tracker)[^"]*">[^h]/);
+  expect(html).not.toMatch(
+    /<img|<a href="https:\/\/(?:evil|tracker)[^"]*">[^h]/,
+  );
   expect(SlackUtil.convertMarkdownToSlackRichText(markdown)).not.toMatch(
     SLACK_MENTION_PATTERN,
   );
@@ -150,7 +155,10 @@ function step(filterCondition: FilterCondition): MonitorStep {
 async function evaluate(
   filterCondition: FilterCondition,
   dataToProcess: IncomingEmailMonitorRequest | ProbeMonitorResponse = email(),
-): Promise<{ rootCause: string; criteriaResult: MonitorEvaluationCriteriaResult }> {
+): Promise<{
+  rootCause: string;
+  criteriaResult: MonitorEvaluationCriteriaResult;
+}> {
   const evaluationSummary: MonitorEvaluationSummary = {
     evaluatedAt: new Date(),
     criteriaResults: [],

@@ -51,6 +51,13 @@ import {
 } from "@jest/globals";
 import { Lexer, Token, marked } from "marked";
 
+// Where an HTML tag starts.
+const HTML_TAG_START_PATTERN: RegExp = /<\/?[A-Za-z]/;
+// An image the dashboard would draw.
+const DASHBOARD_IMAGE_PATTERN: RegExp = /<img/;
+// A diagram the dashboard would draw.
+const MERMAID_CLASS_PATTERN: RegExp = /language-mermaid/i;
+
 /*
  * TEXT A MONITORED SYSTEM SENT, IN AN ALERT'S OR AN INCIDENT'S DESCRIPTION.
  *
@@ -167,7 +174,7 @@ function expectInert(markdowns: Array<string>): void {
         return token.type === "image";
       }).length,
       htmlTags: tokens.filter((token: Token): boolean => {
-        return token.type === "html" && /<\/?[A-Za-z]/.test(token.raw);
+        return token.type === "html" && HTML_TAG_START_PATTERN.test(token.raw);
       }).length,
       hidingLinks: [
         ...tokens
@@ -201,8 +208,8 @@ function expectInert(markdowns: Array<string>): void {
             return match[0];
           }),
       ],
-      dashboardImage: /<img/.test(html),
-      diagram: /language-mermaid/i.test(html),
+      dashboardImage: DASHBOARD_IMAGE_PATTERN.test(html),
+      diagram: MERMAID_CLASS_PATTERN.test(html),
       slackMention: SLACK_MENTION_PATTERN.test(slack),
     }).toEqual({
       markdown: markdown,
@@ -530,7 +537,8 @@ describe("An incident's description and remediation notes show an email's text a
 describe("An API monitor's response body in a description", () => {
   const RESPONSE: JSONObject = {
     message: "<!channel> [Reset your password](https://evil.example/login)",
-    detail: '<img src="https://tracker.example/p.png"> ![](https://tracker.example/q.png)',
+    detail:
+      '<img src="https://tracker.example/p.png"> ![](https://tracker.example/q.png)',
     "<b>key</b>": "value",
     count: 3,
     healthy: false,
@@ -570,7 +578,10 @@ describe("An API monitor's response body in a description", () => {
       '<html><body><a href="https://evil.example/login">Sign in</a><img src="https://tracker.example/p.png"></body></html>';
 
     const alert: Alert = await openAlert(
-      { title: "Site down", description: "The site answered:\n\n{{responseBody}}" },
+      {
+        title: "Site down",
+        description: "The site answered:\n\n{{responseBody}}",
+      },
       apiResponse(page),
       MonitorType.Website,
     );

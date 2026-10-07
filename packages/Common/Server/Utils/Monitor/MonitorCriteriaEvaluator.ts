@@ -2649,7 +2649,9 @@ ${contextBlock}
       ];
 
       if (target.formulaExpression) {
-        lines.push(`- Formula: ${RootCauseList.code(target.formulaExpression)}`);
+        lines.push(
+          `- Formula: ${RootCauseList.code(target.formulaExpression)}`,
+        );
       }
 
       for (const component of target.components) {
@@ -3430,7 +3432,9 @@ ${contextBlock}
       input.monitorStep.data?.kubernetesMonitor?.resourceFilters?.namespace;
 
     if (namespaceFilter) {
-      clusterDetails.push(`- Namespace: ${escapeMarkdownValue(namespaceFilter)}`);
+      clusterDetails.push(
+        `- Namespace: ${escapeMarkdownValue(namespaceFilter)}`,
+      );
     }
 
     sections.push(
@@ -3790,7 +3794,9 @@ ${contextBlock}
     return MonitorCriteriaEvaluator.buildTelemetryResourceRootCauseContext({
       heading: "Host Details",
       identityLines: hostMonitor
-        ? [`- Host: ${escapeMarkdownValue(hostMonitor.hostIdentifier || "Unknown")}`]
+        ? [
+            `- Host: ${escapeMarkdownValue(hostMonitor.hostIdentifier || "Unknown")}`,
+          ]
         : null,
       monitor: input.monitor,
       monitorStep: input.monitorStep,

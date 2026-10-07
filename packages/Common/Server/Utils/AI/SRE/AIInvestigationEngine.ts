@@ -1018,7 +1018,9 @@ export default class AIInvestigationEngine {
       markdown += `\n\n---\n*Investigated automatically by OneUptime AI — read-only, ${result.toolCallCount} quer${
         result.toolCallCount === 1 ? "y" : "ies"
       } run across your own telemetry${
-        result.modelName ? ` using ${escapeMarkdownValue(result.modelName)}` : ""
+        result.modelName
+          ? ` using ${escapeMarkdownValue(result.modelName)}`
+          : ""
       }. This is an AI-generated first pass; verify before acting.*`;
 
       return markdown;

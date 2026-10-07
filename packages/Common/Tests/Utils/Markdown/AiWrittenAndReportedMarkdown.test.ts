@@ -11,6 +11,9 @@ import { hrefsOf, renderAsDashboard } from "./DashboardMarkdownRenderer";
 import { describe, expect, test } from "@jest/globals";
 import { Lexer, Token, Tokens, marked } from "marked";
 
+// Where an HTML tag starts.
+const HTML_TAG_START_PATTERN: RegExp = /<\/?[A-Za-z]/;
+
 /*
  * TEXT A MONITORED SYSTEM OR OneUptime AI WROTE, IN FEEDS AND CHATS.
  *
@@ -145,7 +148,7 @@ function expectInert(markdowns: Array<string>): void {
         return token.type === "image";
       }).length,
       htmlTags: tokens.filter((token: Token): boolean => {
-        return token.type === "html" && /<\/?[A-Za-z]/.test(token.raw);
+        return token.type === "html" && HTML_TAG_START_PATTERN.test(token.raw);
       }).length,
       dashboardImage: HTML_IMAGE_PATTERN.test(html),
       diagram: MERMAID_CLASS_PATTERN.test(html),
@@ -190,14 +193,23 @@ describe("neutralizeAiWrittenMarkdown", () => {
   });
 
   test.each([
-    ["a link whose words hide where it goes", "[Open the runbook](https://evil.example/login)"],
+    [
+      "a link whose words hide where it goes",
+      "[Open the runbook](https://evil.example/login)",
+    ],
     ["a link with a title", '[Docs](https://evil.example/d "Official docs")'],
-    ["a link by reference", "See [the docs][d].\n\n[d]: https://evil.example/d"],
+    [
+      "a link by reference",
+      "See [the docs][d].\n\n[d]: https://evil.example/d",
+    ],
     ["a collapsed reference", "See [d][].\n\n[d]: https://evil.example/d"],
     ["a shortcut reference", "See [d].\n\n[d]: https://evil.example/d"],
     ["an image", "![status](https://tracker.example/p.png)"],
     ["an image with no words", "![](https://tracker.example/p.png)"],
-    ["an image inside a link", "[![x](https://tracker.example/p.png)](https://evil.example)"],
+    [
+      "an image inside a link",
+      "[![x](https://tracker.example/p.png)](https://evil.example)",
+    ],
     ["an HTML anchor", '<a href="https://evil.example">Open the dashboard</a>'],
     ["an HTML image", '<img src="https://tracker.example/p.png">'],
     ["an HTML block", '<div>\n<a href="https://evil.example">Open</a>\n</div>'],
@@ -221,7 +233,10 @@ describe("neutralizeAiWrittenMarkdown", () => {
     ["a list", "- one\n- two\n  - nested\n1. first\n2. second"],
     ["a table", "| Pod | Restarts |\n| --- | --- |\n| web-1 | 12 |"],
     ["inline code", "Run `kubectl get pods -n prod`."],
-    ["a fenced block", "```bash\nkubectl rollout restart deployment/checkout\n```"],
+    [
+      "a fenced block",
+      "```bash\nkubectl rollout restart deployment/checkout\n```",
+    ],
     ["a quote", "> The deploy at 10:42 changed the pool size."],
     ["a bare address", "See https://status.example.com for updates."],
     ["citations", "The pool ran dry [C1] after the deploy [C2]."],
@@ -268,9 +283,13 @@ describe("neutralizeAiWrittenMarkdown", () => {
     expect(withoutJoiners(result)).toBe(
       "Open [the runbook](https://evil.example/login) now.",
     );
-    expect(tokensOf(result).some((token: Token): boolean => {
-      return token.type === "link" && (token as Tokens.Link).text === "the runbook";
-    })).toBe(false);
+    expect(
+      tokensOf(result).some((token: Token): boolean => {
+        return (
+          token.type === "link" && (token as Tokens.Link).text === "the runbook"
+        );
+      }),
+    ).toBe(false);
   });
 
   test("a bare address stays a link that shows exactly where it goes", () => {
@@ -359,7 +378,7 @@ const REPORTED_VALUES: Array<string> = [
   "<!channel> checkout is down <@U0123ABC>",
   "x` [link](https://evil.example) `y",
   "line one\n```\n[Open](https://evil.example)\n```",
-  "```mermaid\nflowchart TD\n  A@{ img: \"https://tracker.example/m.png\" }",
+  '```mermaid\nflowchart TD\n  A@{ img: "https://tracker.example/m.png" }',
   "[a]: https://tracker.example/p.png",
   "<https://evil.example>",
 ];
@@ -388,7 +407,7 @@ describe("neutralizeUntrustedValue", () => {
       "Checkout is down",
       "HTTP 503 Service Unavailable",
       "x < y and y > z",
-      "{\"error\": \"timeout\", \"retry\": true}",
+      '{"error": "timeout", "retry": true}',
       "",
     ]) {
       expect(neutralizeUntrustedValue(value)).toBe(value);

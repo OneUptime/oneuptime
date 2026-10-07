@@ -10,8 +10,20 @@ import Hostname from "../../../Types/API/Hostname";
 import Protocol from "../../../Types/API/Protocol";
 import URL from "../../../Types/API/URL";
 import ObjectID from "../../../Types/ObjectID";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import { Lexer, Token, Tokens, marked } from "marked";
+
+// Where an HTML tag starts.
+const HTML_TAG_START_PATTERN: RegExp = /<\/?[A-Za-z]/;
+// The addresses the hostile values bring.
+const VALUE_ADDRESS_PATTERN: RegExp = /^https:\/\/(?:evil|tracker)\.example/;
 
 /*
  * A STATUS PAGE'S NAME, IN THE SLACK AND TEAMS MESSAGES A SUBSCRIBER GETS
@@ -86,7 +98,7 @@ function expectNameInert(markdown: string): void {
       .filter((token: Token): boolean => {
         return (
           token.type === "image" ||
-          (token.type === "html" && /<\/?[A-Za-z]/.test(token.raw))
+          (token.type === "html" && HTML_TAG_START_PATTERN.test(token.raw))
         );
       })
       .map((token: Token): string => {
@@ -114,7 +126,7 @@ function expectNameInert(markdown: string): void {
 
     const link: Tokens.Link = token as Tokens.Link;
 
-    if (/^https:\/\/(?:evil|tracker)\.example/.test(link.href)) {
+    if (VALUE_ADDRESS_PATTERN.test(link.href)) {
       expect(link.text.replace(/&amp;/g, "&")).toBe(link.href);
     }
   }
@@ -271,13 +283,15 @@ describe("The Slack and Teams messages a new subscriber gets", () => {
 
 describe("The Slack test notification for a status page", () => {
   test("names the page as typed, on one line, and nothing in the name acts on its own", async () => {
-    jest.spyOn(StatusPageService, "findOneById").mockImplementation((async () => {
-      const page: StatusPage = new StatusPage();
-      page._id = STATUS_PAGE_ID.toString();
-      page.projectId = PROJECT_ID;
-      page.pageTitle = HOSTILE_PAGE_NAME;
-      return page;
-    }) as never);
+    jest
+      .spyOn(StatusPageService, "findOneById")
+      .mockImplementation((async () => {
+        const page: StatusPage = new StatusPage();
+        page._id = STATUS_PAGE_ID.toString();
+        page.projectId = PROJECT_ID;
+        page.pageTitle = HOSTILE_PAGE_NAME;
+        return page;
+      }) as never);
 
     const converted: Array<string> = [];
     const realConvert: (markdown: string) => string =

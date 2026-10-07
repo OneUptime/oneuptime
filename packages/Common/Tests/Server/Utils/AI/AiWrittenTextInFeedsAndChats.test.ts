@@ -38,8 +38,21 @@ import { AIChatCitation } from "../../../../Types/AI/AIChatTypes";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { renderAsDashboard } from "../../../Utils/Markdown/DashboardMarkdownRenderer";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import { Lexer, Token, Tokens, marked } from "marked";
+
+// Where an HTML tag starts.
+const HTML_TAG_START_PATTERN: RegExp = /<\/?[A-Za-z]/;
+// The addresses the hostile values bring.
+const VALUE_ADDRESS_PATTERN: RegExp = /^https:\/\/(?:evil|tracker)\.example/;
 
 /*
  * WHERE OneUptime AI'S TEXT ENTERS FEEDS AND CHATS.
@@ -136,13 +149,13 @@ function expectKeptAndInert(markdown: string): void {
         }
 
         if (token.type === "html") {
-          return /<\/?[A-Za-z]/.test(token.raw);
+          return HTML_TAG_START_PATTERN.test(token.raw);
         }
 
         if (token.type === "link") {
           const link: Tokens.Link = token as Tokens.Link;
           return (
-            /^https:\/\/(?:evil|tracker)\.example/.test(link.href) &&
+            VALUE_ADDRESS_PATTERN.test(link.href) &&
             !link.href.startsWith(
               link.text.replace(/&quot;/g, '"').replace(/&gt;/g, ">"),
             )
@@ -166,7 +179,9 @@ function expectKeptAndInert(markdown: string): void {
   );
 
   // Every word the model wrote is still there to read.
-  expect(withoutJoiners(markdown)).toContain("please [approve the fix](https://evil.example/login)");
+  expect(withoutJoiners(markdown)).toContain(
+    "please [approve the fix](https://evil.example/login)",
+  );
 }
 
 function citation(label: string): AIChatCitation {
@@ -324,10 +339,9 @@ describe("Notes, status updates and incidents OneUptime AI writes", () => {
     incident._id = INCIDENT_ID.toString();
     incident.incidentNumber = 42;
     jest.spyOn(IncidentService, "findOneById").mockResolvedValue(incident);
-    const create: jest.SpiedFunction<typeof IncidentInternalNoteService.create> =
-      jest
-        .spyOn(IncidentInternalNoteService, "create")
-        .mockResolvedValue(new IncidentInternalNote() as never);
+    const create: SpyInstance<typeof IncidentInternalNoteService.create> = jest
+      .spyOn(IncidentInternalNoteService, "create")
+      .mockResolvedValue(new IncidentInternalNote() as never);
 
     await CreateIncidentNoteTool.execute(
       { incidentId: INCIDENT_ID.toString(), note: STEERED },
@@ -347,10 +361,9 @@ describe("Notes, status updates and incidents OneUptime AI writes", () => {
     alert._id = ALERT_ID.toString();
     alert.alertNumber = 9;
     jest.spyOn(AlertService, "findOneById").mockResolvedValue(alert);
-    const create: jest.SpiedFunction<typeof AlertInternalNoteService.create> =
-      jest
-        .spyOn(AlertInternalNoteService, "create")
-        .mockResolvedValue(new AlertInternalNote() as never);
+    const create: SpyInstance<typeof AlertInternalNoteService.create> = jest
+      .spyOn(AlertInternalNoteService, "create")
+      .mockResolvedValue(new AlertInternalNote() as never);
 
     await CreateAlertNoteTool.execute(
       { alertId: ALERT_ID.toString(), note: STEERED },
@@ -370,10 +383,9 @@ describe("Notes, status updates and incidents OneUptime AI writes", () => {
     incident._id = INCIDENT_ID.toString();
     incident.incidentNumber = 42;
     jest.spyOn(IncidentService, "findOneById").mockResolvedValue(incident);
-    const create: jest.SpiedFunction<typeof IncidentPublicNoteService.create> =
-      jest
-        .spyOn(IncidentPublicNoteService, "create")
-        .mockResolvedValue(new IncidentPublicNote() as never);
+    const create: SpyInstance<typeof IncidentPublicNoteService.create> = jest
+      .spyOn(IncidentPublicNoteService, "create")
+      .mockResolvedValue(new IncidentPublicNote() as never);
 
     await PostIncidentStatusUpdateTool.execute(
       { incidentId: INCIDENT_ID.toString(), note: STEERED },
@@ -400,7 +412,7 @@ describe("Notes, status updates and incidents OneUptime AI writes", () => {
     const created: Incident = new Incident();
     created._id = INCIDENT_ID.toString();
     created.incidentNumber = 42;
-    const create: jest.SpiedFunction<typeof IncidentService.create> = jest
+    const create: SpyInstance<typeof IncidentService.create> = jest
       .spyOn(IncidentService, "create")
       .mockResolvedValue(created as never);
 
@@ -442,15 +454,13 @@ describe("A postmortem OneUptime AI drafts", () => {
   });
 
   test("is saved and previewed in the feed with its formatting, acting on nothing", async () => {
-    const update: jest.SpiedFunction<typeof IncidentService.updateOneById> =
-      jest
-        .spyOn(IncidentService, "updateOneById")
-        .mockResolvedValue(undefined as never);
-    const feed: jest.SpiedFunction<
-      typeof IncidentFeedService.createIncidentFeedItem
-    > = jest
-      .spyOn(IncidentFeedService, "createIncidentFeedItem")
+    const update: SpyInstance<typeof IncidentService.updateOneById> = jest
+      .spyOn(IncidentService, "updateOneById")
       .mockResolvedValue(undefined as never);
+    const feed: SpyInstance<typeof IncidentFeedService.createIncidentFeedItem> =
+      jest
+        .spyOn(IncidentFeedService, "createIncidentFeedItem")
+        .mockResolvedValue(undefined as never);
 
     await AIIncidentPostmortemRunner.draftPostmortemOnResolve({
       incidentId: INCIDENT_ID,
@@ -460,9 +470,9 @@ describe("A postmortem OneUptime AI drafts", () => {
     const saved: string = (
       (update.mock.calls[0]![0] as unknown as JSONObject)["data"] as JSONObject
     )["postmortemNote"] as string;
-    const preview: string = (
-      feed.mock.calls[0]![0] as unknown as JSONObject
-    )["moreInformationInMarkdown"] as string;
+    const preview: string = (feed.mock.calls[0]![0] as unknown as JSONObject)[
+      "moreInformationInMarkdown"
+    ] as string;
 
     expectKeptAndInert(saved);
     expectKeptAndInert(preview);

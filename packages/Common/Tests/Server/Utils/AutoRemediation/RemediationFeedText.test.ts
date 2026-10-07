@@ -10,7 +10,11 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import RunbookExecutionStatus from "../../../../Types/Runbook/RunbookExecutionStatus";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import { Lexer, Token, marked } from "marked";
+
+// Where an HTML tag starts.
+const HTML_TAG_START_PATTERN: RegExp = /<\/?[A-Za-z]/;
 
 /*
  * TEXT IN AUTO-REMEDIATION FEED ITEMS.
@@ -33,7 +37,7 @@ function kindsOf(markdown: string): Array<string> {
     new Lexer({ gfm: true }).lex(markdown),
     (token: Token): void => {
       kinds.push(
-        token.type === "html" && !/<\/?[A-Za-z]/.test(token.raw)
+        token.type === "html" && !HTML_TAG_START_PATTERN.test(token.raw)
           ? "text"
           : token.type,
       );
@@ -73,11 +77,15 @@ describe("A command's output quoted in a feed item", () => {
     expect(quoted).toBe(
       "Error: \\<\u2060!channel> \\[Fix it here\\](https://evil.example/fix) !\\[\\](https://tracker.example/p.png) \\<b>now\\</b>",
     );
-    expectText(`⚠️ **Approved AI command plan failed:** command 1 failed: ${quoted}`);
+    expectText(
+      `⚠️ **Approved AI command plan failed:** command 1 failed: ${quoted}`,
+    );
   });
 
   test("is cut to a feed line's length, and the cut cannot leave Markdown open", () => {
-    const quoted: string = capForFeed(`${"x".repeat(2000)} [link](https://evil.example)`);
+    const quoted: string = capForFeed(
+      `${"x".repeat(2000)} [link](https://evil.example)`,
+    );
 
     expect(quoted.length).toBeLessThan(2000);
     expect(quoted.endsWith("…")).toBe(true);
@@ -108,11 +116,10 @@ describe("A runbook's name in the verification feed item", () => {
     jest
       .spyOn(AutoRemediationSuggestionService, "attemptVerificationTransition")
       .mockResolvedValue(1 as never);
-    const feed: jest.SpiedFunction<
-      typeof IncidentFeedService.createIncidentFeedItem
-    > = jest
-      .spyOn(IncidentFeedService, "createIncidentFeedItem")
-      .mockResolvedValue(undefined as never);
+    const feed: SpyInstance<typeof IncidentFeedService.createIncidentFeedItem> =
+      jest
+        .spyOn(IncidentFeedService, "createIncidentFeedItem")
+        .mockResolvedValue(undefined as never);
 
     await RemediationVerifier.verifyPendingRemediations();
 

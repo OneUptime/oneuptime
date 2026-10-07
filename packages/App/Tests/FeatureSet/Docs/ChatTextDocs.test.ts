@@ -37,7 +37,10 @@ describe("Subscribers & Announcements: values in Slack and Teams templates", () 
   test("English names every subscriber message whose plain values are escaped for Markdown", () => {
     const guide: string = readGuide("en", "status-pages/subscribers.md");
     const start: number = guide.indexOf("### Values in templates");
-    const section: string = guide.slice(start, guide.indexOf("\n### ", start + 1));
+    const section: string = guide.slice(
+      start,
+      guide.indexOf("\n### ", start + 1),
+    );
 
     expect(start).toBeGreaterThan(0);
     for (const phrase of [
@@ -116,7 +119,10 @@ describe("AI SRE: what OneUptime AI writes", () => {
       const trust: number = guide.indexOf(
         language === "en" ? "## Trust and safety" : "## اعتماد و ایمنی",
       );
-      const section: string = guide.slice(trust, guide.indexOf("\n## ", trust + 1));
+      const section: string = guide.slice(
+        trust,
+        guide.indexOf("\n## ", trust + 1),
+      );
 
       expect(trust).toBeGreaterThan(0);
       expect(section).toContain("`<!channel>`");
