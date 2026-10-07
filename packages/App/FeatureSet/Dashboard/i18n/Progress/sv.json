@@ -1,9 +1,10 @@
 {
   "baseline": {
-    "keys": 25852,
-    "untranslated": 16629
+    "keys": 25975,
+    "untranslated": 16625
   },
   "sameAsEnglish": [
+    "CloudWatch Metric Streams",
     "Incident {{number}}: {{title}}",
     "Offline",
     "Precision",

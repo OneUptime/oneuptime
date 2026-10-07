@@ -85,7 +85,7 @@ Submissions hold what strangers typed — names, email addresses, and answers th
 
 ## Plan
 
-On OneUptime Cloud, forms need the **Growth** plan or above, and editing a form's **IP Allowlist** needs **Scale**. The links of a project below the **Growth** plan, or whose subscription is unpaid, show the not-available message, and nothing is created.
+On OneUptime Cloud, forms need the **Growth** plan or above, and a form's **IP Allowlist** needs **Scale**, whether it is set when the form is created or edited later. The links of a project below the **Growth** plan, or whose subscription is unpaid, show the not-available message, and nothing is created.
 
 ## Forms through the API
 

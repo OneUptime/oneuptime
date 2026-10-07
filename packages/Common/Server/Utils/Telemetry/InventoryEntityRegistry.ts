@@ -1,6 +1,7 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
+import { CloudResourceKind } from "../../../Types/Cloud/CloudResourceKind";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import IoTDevice from "../../../Models/DatabaseModels/IoTDevice";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
@@ -499,12 +500,29 @@ export const INVENTORY_SOURCES: ReadonlyArray<ErasedInventorySource> = [
     service: CloudResourceService,
     select: {
       resourceIdentifier: true,
+      cloudResourceKind: true,
+      cloudResourceType: true,
+      providerResourceId: true,
       cloudProvider: true,
       cloudRegion: true,
       cloudAccountId: true,
     },
     query: { isArchived: false },
     describe: (row: CloudResource): Dictionary<string> => {
+      /*
+       * A resource discovered from cloud monitoring is identified by the
+       * provider's own id (its ARM id, ARN or full resource name) - what a
+       * CMDB matches on - not by its resourceIdentifier, a hash.
+       */
+      if (row.cloudResourceKind === CloudResourceKind.Resource) {
+        return compactAttributes({
+          "cloud.resource.id": row.providerResourceId,
+          "cloud.resource.type": row.cloudResourceType,
+          "cloud.provider": row.cloudProvider,
+          "cloud.region": row.cloudRegion,
+          "cloud.account.id": row.cloudAccountId,
+        });
+      }
       return compactAttributes({
         "cloud.resource.id": row.resourceIdentifier,
         "cloud.provider": row.cloudProvider,

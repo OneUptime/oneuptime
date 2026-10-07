@@ -1,9 +1,10 @@
 {
   "baseline": {
-    "keys": 25852,
-    "untranslated": 16653
+    "keys": 25975,
+    "untranslated": 16649
   },
   "sameAsEnglish": [
+    "CloudWatch Metric Streams",
     "Offline",
     "Runbook: {{name}}",
     "Runner",

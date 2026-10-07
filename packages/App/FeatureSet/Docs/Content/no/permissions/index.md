@@ -138,6 +138,16 @@ En etikettbegrensning er oppfylt hvis ressursen bærer **minst én** av tillatel
 
 Hvor du finner det: **Innstillinger → Etiketter**.
 
+## Telemetri
+
+Logger, sporinger, metrikker, unntak, profiler og øktavspillinger hører til ressursen som sendte dem: en tjeneste, en vert, en Kubernetes-klynge, en monitor, en RUM-applikasjon og lignende. En telemetritillatelse leser så langt omfanget rekker:
+
+- **Alle ressurser** leser telemetrien til alle ressursene i prosjektet.
+- **Eide** leser telemetrien til ressursene du eller et av teamene dine eier, og telemetri som ikke nevner noen ressurs.
+- **Etiketter** leser telemetrien til ressursene som bærer en av tillatelsens etiketter.
+
+En blokkering med etiketter på en telemetritillatelse utelater telemetrien til ressursene som bærer de etikettene, uansett hva annet du har. Det gjelder overalt der telemetri leses: utforskerne med sine diagrammer, filtre og attributtlister, eksporter, øktavspillinger og det AI-assistenten leser for deg. Listen over metrikknavn viser metrikkene som en tjeneste du kan lese rapporterer, og metrikkene ingen tjeneste rapporterer, for eksempel verts- og klyngemetrikker. Kan du også lese telemetrien til andre typer ressurser, for eksempel verter eller klynger, viser den alle metrikknavn.
+
 ## API-nøkler
 
 API-nøkler får tillatelser direkte på selve nøkkelen — de tilhører ikke team og påvirkes ikke av teammedlemskap.
@@ -159,7 +169,7 @@ For en innlogget bruker, i rekkefølge:
 3. Sjekk blokkeringslisten først. En blokkering uten etiketter på en hvilken som helst tillatelse måltabellen godtar for denne operasjonen, avviser forespørselen umiddelbart, uansett hvilket team den er satt på.
 4. Sjekk tillatelseslisten. Forespørselen trenger minst én tillatelse som måltabellen godtar for denne operasjonen. For en driftsressurs — en overvåker, en hendelse, et dashbord og lignende — teller også den tilsvarende **All Operational Resources**-tillatelsen (Create, Read, Edit eller Delete), med mindre den selv er blokkert.
 5. Bruk omfanget. Tildelinger med omfanget Eide snevrer spørringen inn til eide ressurser; etikettbaserte snevrer inn til treffende etiketter. Er en annen tildeling for samme operasjon bredere, vinner den bredere.
-6. Bruk etikettblokkeringer. En blokkering med etiketter avviser forespørselen hvis målressursen bærer én av dem.
+6. Bruk etikettblokkeringer. En blokkering med etiketter avviser forespørselen hvis målressursen bærer én av dem. Når en post ikke har egne etiketter, for eksempel et notat på en hendelse eller en kunngjøring på en statusside, utelater en blokkering med etiketter på å lese den posten hvis en post den hører til, bærer en av de etikettene.
 
 Hvert felt i en post leses med postens egen lesetillatelse: en tillatelse for en annen type post åpner det aldri. Noen felt er bevisst snevrere. Hemmeligheter leses bare av personer som kan redigere eller administrere posten de hører til, for eksempel en monitors nøkler for innkommende forespørsler og innkommende e-post og dens serveragentnøkkel, eller et arbeidsflyts webhook- og e-postnøkler. Å se opptaket av en øktavspilling krever **Watch Session Replays**, ikke bare **List Session Replays**. Telemetri leses signal for signal: **Read Telemetry Service Log** leser logger, **Read Telemetry Service Traces** leser sporinger, og **Read Telemetry Service Metrics** leser metrikker, metrikkdiagrammer inkludert.
 

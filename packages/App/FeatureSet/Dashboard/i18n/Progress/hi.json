@@ -1,9 +1,10 @@
 {
   "baseline": {
-    "keys": 25852,
-    "untranslated": 16584
+    "keys": 25975,
+    "untranslated": 16580
   },
   "sameAsEnglish": [
+    "CloudWatch Metric Streams",
     "Runbook: {{name}}",
     "Runner",
     "VMware vCenter",

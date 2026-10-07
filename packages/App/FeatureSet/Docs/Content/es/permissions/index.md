@@ -138,6 +138,16 @@ Una restricción por etiquetas se cumple si el recurso lleva **al menos una** de
 
 Dónde encontrarlo: **Configuración → Etiquetas**.
 
+## Telemetría
+
+Los logs, las trazas, las métricas, las excepciones, los perfiles y las reproducciones de sesión pertenecen al recurso que los envió: un servicio, un host, un clúster de Kubernetes, un monitor, una aplicación RUM y similares. Un permiso de telemetría lee hasta donde llega su alcance:
+
+- **Todos los recursos** lee la telemetría de todos los recursos del proyecto.
+- **Propios** lee la telemetría de los recursos que posee usted o uno de sus equipos, y la telemetría que no nombra ningún recurso.
+- **Etiquetas** lee la telemetría de los recursos que llevan una de las etiquetas del permiso.
+
+Un bloqueo con etiquetas en un permiso de telemetría deja fuera la telemetría de los recursos que llevan esas etiquetas, tenga lo que tenga además. Esto se cumple dondequiera que se lea telemetría: los exploradores y sus gráficos, filtros y listas de atributos, las exportaciones, las reproducciones de sesión y lo que el asistente de IA lee por usted. La lista de nombres de métricas muestra las métricas que informa un servicio que usted puede leer y las que no informa ningún servicio, como las métricas de hosts y clústeres. Si también puede leer la telemetría de otros tipos de recursos, como hosts o clústeres, muestra todos los nombres de métricas.
+
 ## Claves de API
 
 A las claves de API se les conceden permisos directamente, en la propia clave: no pertenecen a equipos ni se ven afectadas por la pertenencia a ellos.
@@ -159,7 +169,7 @@ Para un usuario que ha iniciado sesión, en orden:
 3. Comprobar primero la lista de bloqueo. Un bloqueo sin etiquetas sobre cualquier permiso que la tabla de destino acepte para esa operación rechaza la petición de inmediato, sea cual sea el equipo en que esté.
 4. Comprobar la lista de permitidos. La petición necesita al menos un permiso que la tabla de destino acepte para esa operación. En un recurso operativo —un monitor, un incidente, un panel y similares— también cuenta el permiso **All Operational Resources** correspondiente (Create, Read, Edit o Delete), salvo que esté bloqueado.
 5. Aplicar el alcance. Las concesiones con alcance Propios acotan la consulta a los recursos propios; las de etiquetas la acotan a las etiquetas que coincidan. Si cualquier otra concesión para la misma operación es más amplia, gana la más amplia.
-6. Aplicar los bloqueos por etiquetas. Un bloqueo con etiquetas rechaza la petición si el recurso de destino lleva una de ellas.
+6. Aplicar los bloqueos por etiquetas. Un bloqueo con etiquetas rechaza la petición si el recurso de destino lleva una de ellas. Cuando un registro no tiene etiquetas propias, como una nota de un incidente o un anuncio de una página de estado, un bloqueo con etiquetas sobre su lectura lo deja fuera si un registro al que pertenece lleva una de esas etiquetas.
 
 Cada campo de un registro se lee con el permiso de lectura del propio registro: un permiso de otro tipo de registro nunca lo abre. Algunos campos son más restringidos a propósito. Los secretos solo los leen las personas que pueden editar o administrar el registro al que pertenecen, como las claves de solicitudes entrantes y de correo entrante de un monitor y la clave de su agente de servidor, o las claves de webhook y de correo entrante de un flujo de trabajo. Ver la grabación de una reproducción de sesión requiere **Watch Session Replays**, no solo **List Session Replays**. La telemetría se lee señal por señal: **Read Telemetry Service Log** lee los logs, **Read Telemetry Service Traces** lee las trazas y **Read Telemetry Service Metrics** lee las métricas, incluidos los gráficos de métricas.
 

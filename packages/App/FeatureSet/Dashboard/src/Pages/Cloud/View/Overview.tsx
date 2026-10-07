@@ -68,6 +68,9 @@ import {
 import { CLOUD_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CloudMetricDescriptions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { useCloudResourceViewContext } from "./CloudResourceViewContext";
+import CloudMonitoredResourceOverview from "./MonitoredResourceOverview";
+import { isCloudResourceKindResource } from "Common/Types/Cloud/CloudResourceKind";
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
@@ -98,7 +101,7 @@ export const TopInstancesByCpuTitle: FunctionComponent = (): ReactElement => {
   );
 };
 
-const CloudResourceOverview: FunctionComponent<
+const CloudEnvironmentOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -657,6 +660,22 @@ const CloudResourceOverview: FunctionComponent<
       )}
     </TimeRangeZoomScope>
   );
+};
+
+/*
+ * A Cloud row is an environment or a resource discovered from cloud
+ * monitoring (CloudResourceViewContext); each has an Overview of its own.
+ */
+const CloudResourceOverview: FunctionComponent<PageComponentProps> = (
+  props: PageComponentProps,
+): ReactElement => {
+  const { cloudResourceKind } = useCloudResourceViewContext();
+
+  if (isCloudResourceKindResource(cloudResourceKind)) {
+    return <CloudMonitoredResourceOverview {...props} />;
+  }
+
+  return <CloudEnvironmentOverview {...props} />;
 };
 
 export default CloudResourceOverview;

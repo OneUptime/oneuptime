@@ -6,6 +6,7 @@ import CloudResourceInstanceService from "Common/Server/Services/CloudResourceIn
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
+import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
 
 /*
  * ------------------------------------------------------------------
@@ -48,6 +49,20 @@ import ObjectID from "Common/Types/ObjectID";
  * refreshes lastSeenAt on the environment and on every task that is
  * still alive, and only the tasks that really died age out on the
  * following tick.
+ *
+ * Cloud RESOURCES (the IaaS and PaaS resources discovered from Azure
+ * Monitor, CloudWatch and Cloud Monitoring - CloudResourceKind.Resource)
+ * have no instances. They get two steps of their own:
+ *   3. "Not reporting" after CLOUD_RESOURCE_DISCONNECTED_MINUTES (60)
+ *      without a datapoint - longer than an environment's 15, because a
+ *      collector polls the provider's monitoring API every one to five
+ *      minutes and a quiet resource can skip polls. One set-based
+ *      UPDATE (markUnreportedMonitoredResources).
+ *   4. Archived after CLOUD_RESOURCE_AUTO_ARCHIVE_DAYS (default 7) without
+ *      a datapoint - nothing ever reports a resource as deleted, it just
+ *      stops reporting - and restored as soon as it reports again
+ *      (archiveUnseenMonitoredResources / restoreReportingMonitoredResources;
+ *      the rules for a person's own archive and restore live there).
  * ------------------------------------------------------------------
  */
 
@@ -72,12 +87,43 @@ RunCron(
       }
 
       /*
+       * Steps 3 and 4: cloud resources discovered from cloud monitoring.
+       * Each in its own try block, like step 1: one failing must not stop
+       * the others or the instance prune below.
+       */
+      try {
+        await CloudResourceService.markUnreportedMonitoredResources();
+      } catch (err) {
+        logger.error(
+          `${JOB_NAME}: markUnreportedMonitoredResources failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+
+      try {
+        const restored: number =
+          await CloudResourceService.restoreReportingMonitoredResources();
+        const archived: number =
+          await CloudResourceService.archiveUnseenMonitoredResources();
+        if (restored > 0 || archived > 0) {
+          logger.debug(
+            `${JOB_NAME}: restored ${restored} and archived ${archived} cloud resource(s)`,
+          );
+        }
+      } catch (err) {
+        logger.error(
+          `${JOB_NAME}: cloud resource auto-archive failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+
+      /*
        * Step 2: prune stale instance rows for environments that are
        * still believed to be connected.
        */
       const connectedResources: Array<CloudResource> =
         await CloudResourceService.findBy({
           query: {
+            // Only environments have instances.
+            cloudResourceKind: CloudResourceKind.Environment,
             otelCollectorStatus: "connected",
           },
           select: {

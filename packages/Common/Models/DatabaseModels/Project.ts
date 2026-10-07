@@ -684,7 +684,7 @@ export default class Project extends TenantModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Scale,
-    create: PlanType.Free,
+    create: PlanType.Scale,
   })
   public requireSsoForLogin?: boolean = undefined;
 
@@ -3428,7 +3428,7 @@ export default class Project extends TenantModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Enterprise,
-    create: PlanType.Free,
+    create: PlanType.Enterprise,
   })
   public enableAuditLogs?: boolean = undefined;
 
@@ -3513,7 +3513,7 @@ export default class Project extends TenantModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Enterprise,
-    create: PlanType.Free,
+    create: PlanType.Enterprise,
   })
   public auditLogsRetentionInDays?: number = undefined;
 
@@ -3552,7 +3552,7 @@ export default class Project extends TenantModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Enterprise,
-    create: PlanType.Free,
+    create: PlanType.Enterprise,
   })
   public storeSystemEventsInAuditLogs?: boolean = undefined;
 }

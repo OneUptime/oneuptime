@@ -253,4 +253,54 @@ describe("ArrayUtil", () => {
       expect(seen).toEqual([1, 2, 3]);
     });
   });
+
+  describe("mapWithConcurrency", () => {
+    it("answers each item's result in the items' order", async () => {
+      const results: Array<string> = await ArrayUtil.mapWithConcurrency(
+        [3, 1, 2],
+        2,
+        async (item: number): Promise<string> => {
+          // The later items finish first.
+          await Sleep.sleep(item * 2);
+          return `item-${item}`;
+        },
+      );
+
+      expect(results).toEqual(["item-3", "item-1", "item-2"]);
+    });
+
+    it("never exceeds the requested concurrency", async () => {
+      let inFlight: number = 0;
+      let peak: number = 0;
+
+      const results: Array<number> = await ArrayUtil.mapWithConcurrency(
+        Array.from({ length: 20 }, (_v: unknown, i: number) => {
+          return i;
+        }),
+        3,
+        async (item: number): Promise<number> => {
+          inFlight++;
+          peak = Math.max(peak, inFlight);
+          await Sleep.sleep(1);
+          inFlight--;
+          return item * 2;
+        },
+      );
+
+      expect(peak).toBeLessThanOrEqual(3);
+      expect(results[19]).toBe(38);
+    });
+
+    it("answers an empty list for an empty array", async () => {
+      expect(
+        await ArrayUtil.mapWithConcurrency(
+          [] as Array<number>,
+          4,
+          async (item: number): Promise<number> => {
+            return item;
+          },
+        ),
+      ).toEqual([]);
+    });
+  });
 });

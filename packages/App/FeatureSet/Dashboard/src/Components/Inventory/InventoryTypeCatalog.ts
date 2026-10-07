@@ -349,7 +349,7 @@ const CATALOG: Record<EntityType, CatalogEntry> = {
     category: InventoryCategory.Cloud,
     icon: IconProp.Cloud,
     description:
-      "A managed cloud compute environment (ECS / Fargate, Cloud Run, Container Apps, App Runner, Beanstalk, App Engine, App Service) discovered from OpenTelemetry cloud.* resource attributes.",
+      "A managed cloud compute environment (ECS / Fargate, Cloud Run, Container Apps, App Runner, Beanstalk, App Engine, App Service) discovered from OpenTelemetry cloud.* resource attributes, or an IaaS or PaaS resource (a virtual machine, a load balancer, a bucket, a managed database, ...) discovered from the metrics Azure Monitor, CloudWatch or Cloud Monitoring publish about it.",
   },
 
   [EntityType.ExternalService]: {

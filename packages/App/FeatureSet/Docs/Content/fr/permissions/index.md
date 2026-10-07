@@ -138,6 +138,16 @@ Une restriction par étiquettes est satisfaite si la ressource porte **au moins 
 
 Où le trouver : **Paramètres → Étiquettes**.
 
+## Télémétrie
+
+Les logs, les traces, les métriques, les exceptions, les profils et les relectures de session appartiennent à la ressource qui les a envoyés : un service, un hôte, un cluster Kubernetes, un moniteur, une application RUM, etc. Une autorisation de télémétrie lit aussi loin que porte sa portée :
+
+- **Toutes les ressources** lit la télémétrie de toutes les ressources du projet.
+- **Possédées** lit la télémétrie des ressources que vous ou l'une de vos équipes possédez, ainsi que la télémétrie qui ne nomme aucune ressource.
+- **Étiquettes** lit la télémétrie des ressources portant l'une des étiquettes de l'autorisation.
+
+Un blocage avec étiquettes sur une autorisation de télémétrie écarte la télémétrie des ressources portant ces étiquettes, quoi que vous déteniez par ailleurs. Cela vaut partout où la télémétrie est lue : les explorateurs et leurs graphiques, filtres et listes d'attributs, les exports, les relectures de session et ce que l'assistant IA lit pour vous. La liste des noms de métriques montre les métriques que remonte un service que vous pouvez lire, et celles qu'aucun service ne remonte, comme les métriques des hôtes et des clusters. Si vous pouvez aussi lire la télémétrie d'autres types de ressources, comme des hôtes ou des clusters, elle montre tous les noms de métriques.
+
 ## Clés d'API
 
 Les clés d'API reçoivent leurs autorisations directement, sur la clé elle-même — elles n'appartiennent à aucune équipe et ne sont pas affectées par les appartenances.
@@ -159,7 +169,7 @@ Pour un utilisateur connecté, dans l'ordre :
 3. Vérifier d'abord la liste des blocages. Un blocage sans étiquette sur n'importe quelle autorisation que la table cible accepte pour cette opération rejette la requête immédiatement, quelle que soit l'équipe qui le porte.
 4. Vérifier la liste des autorisations accordées. La requête a besoin d'au moins une autorisation que la table cible accepte pour cette opération. Pour une ressource opérationnelle — un moniteur, un incident, un tableau de bord, etc. — l'autorisation **All Operational Resources** correspondante (Create, Read, Edit ou Delete) compte aussi, sauf si elle est elle-même bloquée.
 5. Appliquer la portée. Les attributions en portée Possédées restreignent la requête aux ressources possédées ; celles par étiquettes la restreignent aux étiquettes correspondantes. Si une autre attribution pour la même opération est plus large, c'est la plus large qui l'emporte.
-6. Appliquer les blocages par étiquettes. Un blocage avec étiquettes rejette la requête si la ressource cible en porte une.
+6. Appliquer les blocages par étiquettes. Un blocage avec étiquettes rejette la requête si la ressource cible en porte une. Quand un enregistrement n'a pas d'étiquettes propres, comme une note d'incident ou une annonce de page de statut, un blocage avec étiquettes sur sa lecture l'écarte si un enregistrement auquel il appartient porte l'une de ces étiquettes.
 
 Chaque champ d'un enregistrement se lit avec l'autorisation de lecture de l'enregistrement lui-même : une autorisation portant sur un autre type d'enregistrement ne l'ouvre jamais. Certains champs sont volontairement plus restreints. Les secrets ne sont lus que par les personnes qui peuvent modifier ou administrer l'enregistrement auquel ils appartiennent, comme les clés de requêtes entrantes et d'e-mails entrants d'un moniteur et la clé de son agent serveur, ou les clés de webhook et d'e-mail entrant d'un workflow. Regarder l'enregistrement d'une relecture de session demande **Watch Session Replays**, pas seulement **List Session Replays**. La télémétrie se lit signal par signal : **Read Telemetry Service Log** lit les logs, **Read Telemetry Service Traces** lit les traces et **Read Telemetry Service Metrics** lit les métriques, graphiques de métriques compris.
 

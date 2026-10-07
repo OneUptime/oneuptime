@@ -878,9 +878,10 @@ describe("Form columns", () => {
     expect(billing).toEqual(
       new Dashboard().getColumnBillingAccessControl("ipWhitelist"),
     );
+    // Sold on Scale whenever it is written: on a create as on an update.
     expect(billing).toMatchObject({
       read: PlanType.Free,
-      create: PlanType.Free,
+      create: PlanType.Scale,
       update: PlanType.Scale,
     });
   });

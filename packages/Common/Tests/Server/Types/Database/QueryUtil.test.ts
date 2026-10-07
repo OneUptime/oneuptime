@@ -185,3 +185,122 @@ describe("QueryUtil.serializeQuery — customFields jsonb column", () => {
     expect(rawOperatorSql(result["customFields"])).toContain("IS NULL");
   });
 });
+
+/*
+ * A relation filtered by a plain id (`team: "<id>"`) is a filter on the
+ * relation's key (`teamId`), and serializeQuery writes it there. Whatever
+ * the key already holds - the project a request is scoped to, a block's
+ * condition, the caller's own filter on the key - stays next to it: both
+ * hold, whichever of the two keys the query names first.
+ */
+describe("QueryUtil.serializeQuery — a relation filtered by an id", () => {
+  type ParametersOfFunction = (operator: unknown) => Array<string>;
+
+  // Every value a (possibly nested AND) operator binds.
+  const parametersOf: ParametersOfFunction = (
+    operator: unknown,
+  ): Array<string> => {
+    const findOperator: FindOperator<unknown> =
+      operator as FindOperator<unknown>;
+
+    if (findOperator.type === "and") {
+      return (findOperator.value as unknown as Array<unknown>).flatMap(
+        parametersOf,
+      );
+    }
+
+    return Object.values(
+      (
+        findOperator as unknown as {
+          objectLiteralParameters?: Record<string, unknown>;
+        }
+      ).objectLiteralParameters || {},
+    ).flat() as Array<string>;
+  };
+
+  it("is written to the relation's key when the key holds nothing", () => {
+    const teamId: string = ObjectID.generate().toString();
+
+    const result: Record<string, any> = QueryUtil.serializeQuery(TeamMember, {
+      team: teamId,
+    } as any) as unknown as Record<string, any>;
+
+    expect(result["teamId"]).toBe(teamId);
+    expect(result["team"]).toBeUndefined();
+  });
+
+  it("joins the key's own value instead of replacing it", () => {
+    const scopedProjectId: ObjectID = ObjectID.generate();
+    const otherProjectId: string = ObjectID.generate().toString();
+    const query: Record<string, unknown> = { project: otherProjectId };
+    // Added after the relation, as a permission check adds it.
+    query["projectId"] = scopedProjectId;
+
+    const result: Record<string, any> = QueryUtil.serializeQuery(
+      TeamMember,
+      query as any,
+    ) as unknown as Record<string, any>;
+
+    expect(result["project"]).toBeUndefined();
+    expect(result["projectId"]).toBeInstanceOf(FindOperator);
+    expect(result["projectId"].type).toBe("and");
+    expect(parametersOf(result["projectId"]).sort()).toEqual(
+      [scopedProjectId.toString(), otherProjectId].sort(),
+    );
+  });
+
+  it("joins a key named first in the query too", () => {
+    const scopedProjectId: string = ObjectID.generate().toString();
+    const otherProjectId: string = ObjectID.generate().toString();
+
+    const result: Record<string, any> = QueryUtil.serializeQuery(TeamMember, {
+      projectId: scopedProjectId,
+      project: otherProjectId,
+    } as any) as unknown as Record<string, any>;
+
+    expect(result["project"]).toBeUndefined();
+    expect(result["projectId"].type).toBe("and");
+    expect(parametersOf(result["projectId"]).sort()).toEqual(
+      [scopedProjectId, otherProjectId].sort(),
+    );
+  });
+
+  it("keeps a condition on the key next to the relation's id", () => {
+    const teamA: string = ObjectID.generate().toString();
+    const teamB: string = ObjectID.generate().toString();
+    const teamId: string = ObjectID.generate().toString();
+
+    const result: Record<string, any> = QueryUtil.serializeQuery(TeamMember, {
+      teamId: new Includes([teamA, teamB]),
+      team: teamId,
+    } as any) as unknown as Record<string, any>;
+
+    expect(result["team"]).toBeUndefined();
+    expect(result["teamId"].type).toBe("and");
+    expect(parametersOf(result["teamId"]).sort()).toEqual(
+      [teamA, teamB, teamId].sort(),
+    );
+  });
+
+  it("keeps an empty-key condition next to the relation's id", () => {
+    const teamId: string = ObjectID.generate().toString();
+
+    const result: Record<string, any> = QueryUtil.serializeQuery(TeamMember, {
+      teamId: null,
+      team: teamId,
+    } as any) as unknown as Record<string, any>;
+
+    expect(result["team"]).toBeUndefined();
+    expect(result["teamId"].type).toBe("and");
+    expect(parametersOf(result["teamId"])).toEqual([teamId]);
+  });
+
+  it("refuses a key filter it cannot keep next to the relation's id", () => {
+    expect(() => {
+      QueryUtil.serializeQuery(TeamMember, {
+        teamId: { unexpected: true },
+        team: ObjectID.generate().toString(),
+      } as any);
+    }).toThrow("Cannot combine the filter on team with the filter on teamId.");
+  });
+});

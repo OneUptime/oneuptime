@@ -425,9 +425,20 @@ describe("telemetry facet endpoints (list first)", () => {
       });
 
       expect(listEntities.mock.calls).toHaveLength(1);
+      // A project-wide reader lists every resource: nothing narrowed, nothing taken away.
       expect(listEntities.mock.calls[0]![1]).toEqual([
-        { facetKey: "hostId", searchText: "web", limit: 200 },
-        { facetKey: "iotFleetId", searchText: undefined, limit: 200 },
+        {
+          facetKey: "hostId",
+          searchText: "web",
+          limit: 200,
+          scope: { readableIds: null, blockedIds: [] },
+        },
+        {
+          facetKey: "iotFleetId",
+          searchText: undefined,
+          limit: 200,
+          scope: { readableIds: null, blockedIds: [] },
+        },
       ]);
     });
 
@@ -809,7 +820,12 @@ describe("telemetry facet endpoints (list first)", () => {
       });
 
       expect(listEntities.mock.calls[0]![1]).toEqual([
-        { facetKey: "dockerSwarmClusterId", searchText: "swarm", limit: 50 },
+        {
+          facetKey: "dockerSwarmClusterId",
+          searchText: "swarm",
+          limit: 50,
+          scope: { readableIds: null, blockedIds: [] },
+        },
       ]);
     });
 
