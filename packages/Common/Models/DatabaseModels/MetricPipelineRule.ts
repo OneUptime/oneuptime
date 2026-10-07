@@ -26,8 +26,16 @@ import FilterCondition from "../../Types/Filter/FilterCondition";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
+/*
+ * Telemetry configuration, read by the Telemetry tiers, which do not read
+ * the service catalogue: reading the service a rule names is optional
+ * (isParentReadOptional). A caller who may read services reaches the rules
+ * of the services they may read, and Owned the service's owners
+ * (@OwnedThrough below). A rule that names no service applies to the whole
+ * project.
+ */
 @EnableDocumentation()
-@CanAccessIfCanReadOn("service")
+@CanAccessIfCanReadOn("service", { isParentReadOptional: true })
 @TableBillingAccessControl({
   create: PlanType.Free,
   read: PlanType.Free,

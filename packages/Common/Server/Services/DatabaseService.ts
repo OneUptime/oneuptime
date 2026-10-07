@@ -72,6 +72,8 @@ import Dictionary from "../../Types/Dictionary";
 import BadDataException from "../../Types/Exception/BadDataException";
 import DatabaseNotConnectedException from "../../Types/Exception/DatabaseNotConnectedException";
 import Exception from "../../Types/Exception/Exception";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import NotFoundException from "../../Types/Exception/NotFoundException";
 import HashedString from "../../Types/HashedString";
 import { JSONObject, JSONValue, ObjectType } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
@@ -6395,27 +6397,21 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     select: Select<TBaseModel>;
     props: DatabaseCommonInteractionProps;
   }): Promise<TBaseModel | null> {
-    // Set when the block list asked for the row and it was not there.
-    const lookup: { isMissing: boolean } = { isMissing: false };
-
     try {
       await ModelPermission.checkUpdatePermissionByModel({
         modelType: this.modelType,
         fetchModelWithAccessControlIds:
           async (): Promise<TBaseModel | null> => {
-            const row: TBaseModel | null = await this.findWithAccessControlIds(
-              data.id,
-              data.props,
-            );
-
-            lookup.isMissing = !row;
-
-            return row;
+            return await this.findWithAccessControlIds(data.id, data.props);
           },
         props: data.props,
       });
     } catch (error) {
-      if (lookup.isMissing && error instanceof BadDataException) {
+      /*
+       * A row that is not there, or one the caller may not read, is
+       * answered as nothing (AccessControlPermission.checkRecordByModel).
+       */
+      if (error instanceof NotFoundException) {
         return null;
       }
 
@@ -6438,6 +6434,63 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         isRoot: true,
       },
     });
+  }
+
+  /*
+   * WHY A WRITE BY ID CHANGED NOTHING, for a caller who named one record by
+   * its id and is to be told (BaseAPI's update and delete, and the routes
+   * that write a record named in their path): the record is answered as
+   * missing (NotFoundException, 404) when the caller may not read it -
+   * missing, gone meanwhile, of another project, or outside what they may
+   * read - exactly as a record that does not exist; and refused
+   * (NotAuthorizedException) when they may read it but it is outside what
+   * they may change or delete (their owners, the labels or the parent of
+   * the write). Asked only after the write found nothing, so it costs one
+   * read on that path alone. An update or delete by query keeps answering
+   * with how many rows it changed.
+   */
+  @CaptureSpan()
+  public async getUnwrittenByIdError(data: {
+    id: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    type: DatabaseRequestType.Update | DatabaseRequestType.Delete;
+  }): Promise<Exception> {
+    const name: string = this.getModel().singularName || "Record";
+
+    let isReadable: boolean = false;
+
+    try {
+      isReadable = Boolean(
+        await this.findOneById({
+          id: data.id,
+          select: { _id: true } as Select<TBaseModel>,
+          props: data.props,
+        }),
+      );
+    } catch (error) {
+      /*
+       * A read the caller may not make finds nothing for them either. Any
+       * other failure (the database, a misconfigured model) is not an
+       * answer about the record, and is raised as it is: a 404 would tell
+       * a client - Terraform among them - that the record is gone.
+       */
+      if (
+        !(error instanceof NotAuthorizedException) &&
+        !(error instanceof NotFoundException)
+      ) {
+        throw error;
+      }
+
+      isReadable = false;
+    }
+
+    if (isReadable) {
+      return new NotAuthorizedException(
+        `You do not have permission to ${data.type} this ${name.toLowerCase()}.`,
+      );
+    }
+
+    return new NotFoundException(`${name} not found.`);
   }
 
   @CaptureSpan()

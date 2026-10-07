@@ -135,8 +135,10 @@ describe("DatabaseService.hardDeleteBy under the record rule", () => {
       } as unknown as Query<IncidentInternalNote>,
       limit: 10,
       skip: 0,
+      // A delete keeps to what its caller may read: the notes too.
       props: member([
         row(Permission.ReadProjectIncident, { labelIds: [LABEL_ID] }),
+        row(Permission.ReadIncidentInternalNote),
         row(Permission.DeleteIncidentInternalNote),
       ]),
     });

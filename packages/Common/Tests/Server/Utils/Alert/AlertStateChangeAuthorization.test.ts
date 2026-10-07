@@ -25,6 +25,7 @@ import PermissionScope from "../../../../Types/Database/AccessControl/Permission
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 import NotAuthenticatedException from "../../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
+import NotFoundException from "../../../../Types/Exception/NotFoundException";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission, {
   UserGlobalAccessPermission,
@@ -744,7 +745,12 @@ describe("AlertStateChangeAuthorization.assertCanChangeStateOfAlerts", (): void 
       expectNoWrites(writeSpies);
     });
 
-    test("an AlertMember for label A is refused an unlabelled alert", async (): Promise<void> => {
+    /*
+     * An AlertMember limited to label A reads only alerts carrying it: an
+     * unlabelled alert is one they may not read, so it is answered as
+     * missing, its labels unnamed.
+     */
+    test("an AlertMember for label A is answered as if an unlabelled alert were missing", async (): Promise<void> => {
       const labelA: Label = createLabel("team-a");
       const alertId: ObjectID = ObjectID.generate();
       const findBySpy: FindBySpy = stubAlertReads(
@@ -757,6 +763,32 @@ describe("AlertStateChangeAuthorization.assertCanChangeStateOfAlerts", (): void 
           projectId,
           alertIds: [alertId],
           props: createDatabaseProps([
+            { permission: Permission.AlertMember, labelIds: [labelA.id!] },
+          ]),
+        });
+
+      await expect(promise).rejects.toBeInstanceOf(NotFoundException);
+      await expect(promise).rejects.toThrow("Alert not found.");
+
+      expect(findBySpy).toHaveBeenCalledTimes(1);
+      expectNoWrites(writeSpies);
+    });
+
+    // One they may read but not change is refused, saying why.
+    test("an alert viewer whose AlertMember is limited to label A is refused an unlabelled alert", async (): Promise<void> => {
+      const labelA: Label = createLabel("team-a");
+      const alertId: ObjectID = ObjectID.generate();
+      const findBySpy: FindBySpy = stubAlertReads(
+        [createAlertRow(alertId, [])],
+        [],
+      );
+
+      const promise: Promise<void> =
+        AlertStateChangeAuthorization.assertCanChangeStateOfAlerts({
+          projectId,
+          alertIds: [alertId],
+          props: createDatabaseProps([
+            { permission: Permission.AlertViewer },
             { permission: Permission.AlertMember, labelIds: [labelA.id!] },
           ]),
         });

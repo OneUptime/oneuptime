@@ -20,6 +20,7 @@ import SubscriptionPlan, {
 import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import NotFoundException from "../../Types/Exception/NotFoundException";
 import PaymentRequiredException from "../../Types/Exception/PaymentRequiredException";
 import ObjectID from "../../Types/ObjectID";
 
@@ -235,11 +236,14 @@ export default class TestSendAccess {
       /*
        * Whether labels, a team's block or the column's own permission said
        * no, the caller may not make this change: one sentence for all of
-       * them. A refusal of the column is a BadDataException there.
+       * them. A refusal of the column is a BadDataException there, and a
+       * record the caller may not read is answered as missing
+       * (NotFoundException).
        */
       if (
         error instanceof NotAuthorizedException ||
-        error instanceof BadDataException
+        error instanceof BadDataException ||
+        error instanceof NotFoundException
       ) {
         throw new NotAuthorizedException(data.errorMessage);
       }

@@ -263,6 +263,51 @@ export default class TenantPermission {
     return query;
   }
 
+  /*
+   * A write keeps to the rows its caller may read. A caller who reads a
+   * table only through the automatic CurrentUser permission reads their own
+   * rows, so an update or a delete keeps to their own rows too, whatever
+   * wider permission lets them write (a role that may repair other
+   * members' notification rules, but not read them). Root and master admin
+   * callers are left alone, as is a caller with a read grant of their own.
+   */
+  public static addCurrentUserReadScopeToQuery<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+    type: DatabaseRequestType,
+  ): Query<TBaseModel> {
+    if (
+      props.isRoot ||
+      props.isMasterAdmin ||
+      !TenantPermission.isAccessGrantedOnlyByCurrentUser(
+        modelType,
+        props,
+        DatabaseRequestType.Read,
+      )
+    ) {
+      return query;
+    }
+
+    const model: BaseModel = new modelType();
+
+    if (!model.getUserColumn()) {
+      throw new NotAuthorizedException(
+        `Current user scope is not configured for ${model.singularName}.`,
+      );
+    }
+
+    if (!props.userId) {
+      throw new NotAuthorizedException(
+        `A user session is required to ${type} ${model.singularName}.`,
+      );
+    }
+
+    TenantPermission.addCurrentUserScopeToQuery(model, query, props.userId);
+
+    return query;
+  }
+
   /**
    * Add the authenticated user's ownership predicate without redirecting an
    * operation that explicitly targeted another user. Rejecting a conflict is
