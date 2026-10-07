@@ -56,6 +56,32 @@ const describePostgres: typeof describe =
     ? describe
     : describe.skip;
 
+/*
+ * Removing an alias of a database outside the caller's scope removes nothing.
+ * Since #4526 the record rule reaches an alias through its database
+ * (CanAccessIfCanReadOn, OwnedThrough), so the permission layer answers
+ * before this service's own check could name the database: a label-scoped
+ * caller is refused outright, and an Owned-scoped caller's delete matches no
+ * row. How that layer answers is its own suites' business - by-id writes
+ * outside the caller's scope are moving to "not found" - so any of its
+ * answers that removes nothing passes here, and each test then checks the
+ * alias is still there.
+ */
+const OUT_OF_SCOPE_ALIAS_REMOVAL: RegExp =
+  /not found|you do not have permission to (?:edit it|delete this Database Endpoint)/i;
+
+async function expectNothingRemoved(removal: Promise<number>): Promise<void> {
+  let removed: number = 0;
+
+  try {
+    removed = await removal;
+  } catch (error) {
+    expect((error as Error).message).toMatch(OUT_OF_SCOPE_ALIAS_REMOVAL);
+  }
+
+  expect(removed).toBe(0);
+}
+
 const DAY_MS: number = 24 * 60 * 60 * 1000;
 const HOUR_MS: number = 60 * 60 * 1000;
 
@@ -2068,12 +2094,12 @@ describePostgres("Databases SQL against Postgres", () => {
         source: "user",
       });
 
-      await expect(
+      await expectNothingRemoved(
         DatabaseServerEndpointService.deleteOneById({
           id: theirAlias,
           props: scopedProps(PermissionScope.Labels, [teamA]),
         }),
-      ).rejects.toThrow("you do not have permission to edit it");
+      );
       expect(await endpointsOf(theirs)).toHaveLength(1);
 
       // ...so the endpoint cannot be freed and re-added to their own database.
@@ -2171,12 +2197,12 @@ describePostgres("Databases SQL against Postgres", () => {
         source: "user",
       });
 
-      await expect(
+      await expectNothingRemoved(
         DatabaseServerEndpointService.deleteOneById({
           id: otherAlias,
           props: scopedProps(PermissionScope.Owned),
         }),
-      ).rejects.toThrow("you do not have permission to edit it");
+      );
       expect(await endpointsOf(notOwned)).toHaveLength(1);
 
       await expect(
