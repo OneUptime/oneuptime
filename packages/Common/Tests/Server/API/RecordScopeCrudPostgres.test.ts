@@ -1943,11 +1943,115 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
   );
 
   /*
-   * A RECORD READ THROUGH ITS PARENT (an alert's internal note) is deleted
-   * with its own delete permissions, from a parent the caller may read: the
-   * parent's delete grants are about deleting the parent.
+   * A RECORD READ THROUGH ITS PARENT (an alert's internal note) is changed
+   * and deleted only on a parent the caller may read. A change also keeps
+   * to the parents the caller may edit, as it always has; a delete is the
+   * note's own permission, whatever the caller may delete of alerts.
    */
-  describe("a delete of a record read through its parent", () => {
+  describe("a record read through its parent, changed or deleted", () => {
+    test.each([
+      [
+        "the alert's edit grants limited to a label",
+        [
+          { permission: Permission.ReadAlert },
+          { permission: Permission.EditAlert, labelIds: [productionLabelId] },
+          { permission: Permission.ReadAlertInternalNote },
+          { permission: Permission.EditAlertInternalNote },
+        ],
+        [
+          ["staging", false],
+          ["production", true],
+        ],
+      ],
+      [
+        "the alert's read grants limited to a label",
+        [
+          { permission: Permission.ReadAlert, labelIds: [productionLabelId] },
+          { permission: Permission.ReadAlertInternalNote },
+          { permission: Permission.EditAlertInternalNote },
+        ],
+        [
+          ["staging", false],
+          ["production", true],
+        ],
+      ],
+      [
+        "the alert's read and edit grants limited to different labels",
+        [
+          { permission: Permission.ReadAlert, labelIds: [productionLabelId] },
+          { permission: Permission.EditAlert, labelIds: [stagingLabelId] },
+          { permission: Permission.ReadAlertInternalNote },
+          { permission: Permission.EditAlertInternalNote },
+        ],
+        [
+          ["staging", false],
+          ["production", false],
+          ["both", true],
+        ],
+      ],
+    ] as Array<[string, Array<PermissionRow>, Array<[string, boolean]>]>)(
+      "a note is changed under %s only on an alert the caller may read and edit",
+      async (
+        _label: string,
+        rows: Array<PermissionRow>,
+        cases: Array<[string, boolean]>,
+      ) => {
+        await setTeamPermissions(homeTeamId, homeProjectId, rows);
+
+        const labelsOf: Dictionary<Array<ObjectID>> = {
+          production: [productionLabelId],
+          staging: [stagingLabelId],
+          both: [productionLabelId, stagingLabelId],
+        };
+
+        for (const [alertLabels, isChangeable] of cases) {
+          const alertId: ObjectID = ObjectID.generate();
+          const noteId: ObjectID = ObjectID.generate();
+
+          await insertAlert({
+            id: alertId,
+            projectId: homeProjectId,
+            title: "Disposable alert",
+            labelIds: labelsOf[alertLabels]!,
+          });
+          await insertNote({
+            id: noteId,
+            projectId: homeProjectId,
+            alertId: alertId,
+          });
+
+          const before: unknown = await readColumn(
+            "AlertInternalNote",
+            noteId,
+            "note",
+          );
+          const value: string = `Changed ${ObjectID.generate().toString()}`;
+
+          const outcome: Outcome = await update(
+            "/alert-internal-note",
+            homeUser,
+            noteId,
+            { note: value },
+          );
+
+          expect([
+            alertLabels,
+            await readColumn("AlertInternalNote", noteId, "note"),
+          ]).toEqual([alertLabels, isChangeable ? value : before]);
+
+          if (isChangeable) {
+            expect(outcome.error).toBeUndefined();
+          }
+
+          await removeRows([
+            ["AlertInternalNote", "_id", noteId],
+            ["AlertLabel", "alertId", alertId],
+            ["Alert", "_id", alertId],
+          ]);
+        }
+      },
+    );
+
     test.each([
       [
         "the alert's delete grants limited to another label",

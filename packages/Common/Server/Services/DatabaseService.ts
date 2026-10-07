@@ -4601,14 +4601,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * `query` without its filters on relations - a record named through a
    * relation, or the records a row is linked to - for a statement that
    * cannot join them (hardDeleteBy's DELETE). Its filters on the table's
-   * own columns stay. A query per project (a request across projects) keeps
-   * none: the rows it found are named by id.
+   * own columns stay.
    */
   private getColumnFiltersOf(query: Query<TBaseModel>): Query<TBaseModel> {
-    if (Array.isArray(query)) {
-      return {} as Query<TBaseModel>;
-    }
-
     const filters: Dictionary<unknown> = {};
 
     for (const [key, value] of Object.entries(query as Dictionary<unknown>)) {

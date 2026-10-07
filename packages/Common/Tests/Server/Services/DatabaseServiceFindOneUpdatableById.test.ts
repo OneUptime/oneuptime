@@ -451,16 +451,13 @@ describe("DatabaseService.findOneUpdatableById on a row with no labels of its ow
 
     expect(labelRuleOnStatusPage()).toContain(LABEL_ID.toString());
     expect(scopedLookup().query["_id"]).toBe(DOMAIN_ID.toString());
-    // The block list read the row once, in the caller's project.
-    expect(checkReadMock).toHaveBeenCalledTimes(1);
-    expect(
-      String((checkReadMock.mock.calls[0]![0] as Lookup).query["projectId"]),
-    ).toBe(PROJECT_ID.toString());
+    // The rule is the lookup's: the row is not read again to weigh it.
+    expect(checkReadMock).not.toHaveBeenCalled();
   });
 
-  test("a domain of another project answers nothing, and its status page's labels are never weighed", async () => {
+  test("a domain of another project answers nothing: the lookup keeps to the caller's project", async () => {
     // Nothing of that id in the caller's project.
-    checkReadMock.mockResolvedValue(null as never);
+    scopedLookupMock.mockResolvedValue(null as never);
 
     expect(
       await StatusPageDomainService.findOneUpdatableById({
@@ -474,7 +471,10 @@ describe("DatabaseService.findOneUpdatableById on a row with no labels of its ow
       }),
     ).toBeNull();
 
-    expect(scopedLookupMock).not.toHaveBeenCalled();
+    expect(JSON.stringify(scopedLookup().query["projectId"])).toContain(
+      PROJECT_ID.toString(),
+    );
+    expect(checkReadMock).not.toHaveBeenCalled();
   });
 
   test("an editor whose labels the database finds on the status page gets the domain", async () => {

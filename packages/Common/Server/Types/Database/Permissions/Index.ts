@@ -49,6 +49,12 @@ export default class ModelPermission {
     TBaseModel extends BaseModel,
   >(data: {
     modelType: { new (): TBaseModel };
+    /*
+     * Reads the record as root, with its labels and its project (the
+     * tenant column): a record read without its project is answered as
+     * missing to a caller whose blocks or grants are weighed on it
+     * (AccessControlPermission.checkRecordByModel).
+     */
     fetchModelWithAccessControlIds: () => Promise<TBaseModel | null>;
     /*
      * Whether a query finds a record of the table, run as root: lets the

@@ -88,6 +88,16 @@ export default class AccessControlPermission {
       return;
     }
 
+    /*
+     * A record with no labels of its own is weighed here only where the
+     * caller can look it up under the rule (isRecordFound); otherwise the
+     * query the operation runs with applies the rule
+     * (BasePermission.addRecordScopeToQuery), and nothing need be read.
+     */
+    if (!new modelType().getAccessControlColumn() && !data.isRecordFound) {
+      return;
+    }
+
     // now check if the user has any of these labels in the block list, for this we need to fetch the model first.
     const fetchedModel: TBaseModel | null =
       await this.fetchRecordInCallerProject(data);
@@ -118,8 +128,9 @@ export default class AccessControlPermission {
         }))
       ) {
         /*
-         * The rule weighs every one of these block rows at once: each of
-         * their permissions is named, since any of them may be the one.
+         * The rule weighs every one of these block rows at once, so the
+         * refusal names their permissions and says one of them holds for
+         * this record, not which.
          */
         const blockedPermissions: Array<string> = Array.from(
           new Set<string>(
@@ -134,9 +145,11 @@ export default class AccessControlPermission {
         throw new NotAuthorizedException(
           `You are not authorized to ${type.toLowerCase()} this ${
             fetchedModel.singularName
-          } because ${blockedPermissions.join(", ")} ${
-            blockedPermissions.length === 1 ? "is" : "are"
-          } in your team's permission block list.`,
+          } because ${
+            blockedPermissions.length === 1
+              ? blockedPermissions[0]
+              : `one of ${blockedPermissions.join(", ")}`
+          } is in your team's permission block list.`,
         );
       }
 
@@ -339,6 +352,12 @@ export default class AccessControlPermission {
    * Both checks of one record by model - the team's blocks, then the grants
    * limited to labels - on one read of the record, for an update or a
    * delete by id (UpdatePermission, DeletePermission).
+   *
+   * `fetchModelWithAccessControlIds` reads the record as root with its
+   * labels and its project (the tenant column): a record read without its
+   * project is answered as missing to a caller the checks weigh it for
+   * (fetchRecordInCallerProject), since whose record it is cannot be told.
+   * DatabaseService.findWithAccessControlIds reads it so.
    */
   @CaptureSpan()
   public static async checkRecordByModel<TBaseModel extends BaseModel>(data: {

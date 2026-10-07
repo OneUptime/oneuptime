@@ -4,6 +4,7 @@ import ModelPermission from "../../../../../Server/Types/Database/Permissions/In
 import AccessControlPermission from "../../../../../Server/Types/Database/Permissions/AccessControlPermission";
 import BasePermission from "../../../../../Server/Types/Database/Permissions/BasePermission";
 import DeletePermission from "../../../../../Server/Types/Database/Permissions/DeletePermission";
+import UpdatePermission from "../../../../../Server/Types/Database/Permissions/UpdatePermission";
 import ReadPermission, {
   CheckReadPermissionType,
 } from "../../../../../Server/Types/Database/Permissions/ReadPermission";
@@ -564,55 +565,178 @@ describe("the record rule on every operation", () => {
         ),
       ).toEqual([productionLabelId.toString()]);
     });
+  });
 
-    /*
-     * A note is deleted with the note's own delete permissions, from an
-     * incident the caller may read: the incident's delete grants are about
-     * deleting incidents, not their notes.
-     */
-    test("a note's delete is not narrowed by the incident's delete grants", async () => {
-      const query: Query<IncidentInternalNote> =
-        await DeletePermission.checkDeletePermission(
+  /*
+   * A RECORD READ THROUGH ITS PARENT (an incident's note) keeps to the
+   * incidents the caller may read, on an update and a delete as on a read.
+   * An update also keeps to the incidents the caller may edit, as it always
+   * has; a delete weighs no delete grant on incidents - deleting a note is
+   * the note's own permission.
+   */
+  describe("a record read through its parent, changed or deleted", () => {
+    type Write = {
+      noteQuery: (
+        props: DatabaseCommonInteractionProps,
+      ) => Promise<Query<IncidentInternalNote>>;
+      notePermission: Permission;
+    };
+
+    const update: Write = {
+      noteQuery: (
+        props: DatabaseCommonInteractionProps,
+      ): Promise<Query<IncidentInternalNote>> => {
+        return UpdatePermission.getUpdatableQuery(
           IncidentInternalNote,
           {},
-          member([
-            row(Permission.ReadProjectIncident),
-            row(Permission.DeleteProjectIncident, {
-              labelIds: [productionLabelId],
-              scope: PermissionScope.Labels,
-            }),
-            row(Permission.DeleteIncidentInternalNote),
-          ]),
+          props,
         );
+      },
+      notePermission: Permission.EditIncidentInternalNote,
+    };
 
-      expect((query as Record<string, unknown>)["incident"]).toBeUndefined();
-      expect((query as Record<string, unknown>)["_id"]).toBeUndefined();
-      expect(String(query.projectId)).toBe(projectId.toString());
-    });
-
-    test("a note's delete reaches only the incidents the caller may read", async () => {
-      const query: Query<IncidentInternalNote> =
-        await DeletePermission.checkDeletePermission(
+    const remove: Write = {
+      noteQuery: (
+        props: DatabaseCommonInteractionProps,
+      ): Promise<Query<IncidentInternalNote>> => {
+        return DeletePermission.checkDeletePermission(
           IncidentInternalNote,
           {},
+          props,
+        );
+      },
+      notePermission: Permission.DeleteIncidentInternalNote,
+    };
+
+    // The condition on the note's incident, as the write sends it.
+    const incidentFilterOf: (
+      query: Query<IncidentInternalNote>,
+    ) => { labels?: Array<ObjectID>; _id?: unknown } | undefined = (
+      query: Query<IncidentInternalNote>,
+    ): { labels?: Array<ObjectID>; _id?: unknown } | undefined => {
+      return (query as Record<string, unknown>)["incident"] as
+        | { labels?: Array<ObjectID>; _id?: unknown }
+        | undefined;
+    };
+
+    test.each([
+      ["an update", update],
+      ["a delete", remove],
+    ] as Array<[string, Write]>)(
+      "%s of a note reaches only the incidents the caller may read",
+      async (_label: string, write: Write) => {
+        const query: Query<IncidentInternalNote> = await write.noteQuery(
           member([
             row(Permission.ReadProjectIncident, {
               labelIds: [productionLabelId],
               scope: PermissionScope.Labels,
             }),
-            row(Permission.DeleteIncidentInternalNote),
+            row(Permission.ReadIncidentInternalNote),
+            row(write.notePermission),
           ]),
         );
 
-      const incidentFilter: { labels?: Array<ObjectID> } | undefined = (
-        query as Record<string, unknown>
-      )["incident"] as { labels?: Array<ObjectID> } | undefined;
+        expect((incidentFilterOf(query)?.labels || []).map(String)).toEqual([
+          productionLabelId.toString(),
+        ]);
+      },
+    );
 
-      expect((incidentFilter?.labels || []).map(String)).toEqual([
+    test("a delete of a note is not narrowed by the incident's delete grants", async () => {
+      const query: Query<IncidentInternalNote> = await remove.noteQuery(
+        member([
+          row(Permission.ReadProjectIncident),
+          row(Permission.DeleteProjectIncident, {
+            labelIds: [productionLabelId],
+            scope: PermissionScope.Labels,
+          }),
+          row(Permission.DeleteIncidentInternalNote),
+        ]),
+      );
+
+      expect(incidentFilterOf(query)).toBeUndefined();
+      expect((query as Record<string, unknown>)["_id"]).toBeUndefined();
+      expect(String(query.projectId)).toBe(projectId.toString());
+    });
+
+    test("an update of a note keeps to the incidents the caller may edit, as it always has", async () => {
+      const query: Query<IncidentInternalNote> = await update.noteQuery(
+        member([
+          row(Permission.ReadProjectIncident),
+          row(Permission.EditProjectIncident, {
+            labelIds: [productionLabelId],
+            scope: PermissionScope.Labels,
+          }),
+          row(Permission.ReadIncidentInternalNote),
+          row(Permission.EditIncidentInternalNote),
+        ]),
+      );
+
+      expect((incidentFilterOf(query)?.labels || []).map(String)).toEqual([
+        productionLabelId.toString(),
+      ]);
+      expect(incidentFilterOf(query)?._id).toBeUndefined();
+    });
+
+    test("an update of a note keeps to the incidents the caller may both read and edit", async () => {
+      const query: Query<IncidentInternalNote> = await update.noteQuery(
+        member([
+          row(Permission.ReadProjectIncident, {
+            labelIds: [productionLabelId],
+            scope: PermissionScope.Labels,
+          }),
+          row(Permission.EditProjectIncident, {
+            labelIds: [stagingLabelId],
+            scope: PermissionScope.Labels,
+          }),
+          row(Permission.ReadIncidentInternalNote),
+          row(Permission.EditIncidentInternalNote),
+        ]),
+      );
+
+      // The incident carries a label the caller may edit...
+      expect((incidentFilterOf(query)?.labels || []).map(String)).toEqual([
+        stagingLabelId.toString(),
+      ]);
+      // ...and one the caller may read.
+      expect(valuesOf(incidentFilterOf(query)?._id)).toEqual([
+        productionLabelId.toString(),
+      ]);
+      expect(sqlOf(incidentFilterOf(query)?._id, "incident._id")).toContain(
+        'incident._id IN (SELECT "IncidentLabel"."incidentId" FROM "IncidentLabel"',
+      );
+    });
+
+    test("an update of one note keeps the note's incident filter beside the rule", async () => {
+      const incidentId: ObjectID = ObjectID.generate();
+
+      const query: Query<IncidentInternalNote> =
+        await UpdatePermission.getUpdatableQuery(
+          IncidentInternalNote,
+          { incident: incidentId } as Query<IncidentInternalNote>,
+          member([
+            row(Permission.ReadProjectIncident, {
+              labelIds: [productionLabelId],
+              scope: PermissionScope.Labels,
+            }),
+            row(Permission.EditProjectIncident, {
+              labelIds: [stagingLabelId],
+              scope: PermissionScope.Labels,
+            }),
+            row(Permission.ReadIncidentInternalNote),
+            row(Permission.EditIncidentInternalNote),
+          ]),
+        );
+
+      // The incident asked for, and the one the caller may read, together.
+      expect(valuesOf(incidentFilterOf(query)?._id)).toEqual([
+        incidentId.toString(),
         productionLabelId.toString(),
       ]);
     });
+  });
 
+  describe("DeletePermission.checkDeletePermission, as root", () => {
     test("a root delete keeps to the request's project only", async () => {
       const recordScope: ReturnType<typeof jest.spyOn> = jest.spyOn(
         BasePermission,
@@ -1020,8 +1144,7 @@ describe("the record rule on every operation", () => {
 
     /*
      * The rule weighs every block row of the operation at once, so the
-     * refusal names each of their permissions: any one of them may be the
-     * row to change.
+     * refusal names each of their permissions and says one of them holds.
      */
     test("a refusal under several block rows names each of their permissions", async () => {
       await expect(
@@ -1048,8 +1171,32 @@ describe("the record rule on every operation", () => {
           type: DatabaseRequestType.Update,
         }),
       ).rejects.toThrow(
-        `because ${Permission.EditIncidentInternalNote}, ${Permission.IncidentMember} are in your team's permission block list`,
+        `because one of ${Permission.EditIncidentInternalNote}, ${Permission.IncidentMember} is in your team's permission block list`,
       );
+    });
+
+    test("a note's block check reads nothing when its caller cannot look the note up", async () => {
+      let reads: number = 0;
+
+      await AccessControlPermission.checkAccessControlBlockPermissionByModel({
+        fetchModelWithAccessControlIds:
+          async (): Promise<IncidentInternalNote> => {
+            reads++;
+            return noteIn(projectId);
+          },
+        modelType: IncidentInternalNote,
+        props: member([
+          row(Permission.IncidentMember),
+          row(Permission.EditIncidentInternalNote, {
+            isBlock: true,
+            labelIds: [productionLabelId],
+          }),
+        ]),
+        type: DatabaseRequestType.Update,
+      });
+
+      // The query the update runs with applies the rule instead.
+      expect(reads).toBe(0);
     });
 
     test("an update by id reads the note once, for its blocks and its grants", async () => {
