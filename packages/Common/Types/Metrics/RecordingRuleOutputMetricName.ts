@@ -13,9 +13,9 @@ import {
  * name ("http.server.error_rate") still sets it, on create or later.
  *
  * Underscores, as metric names are written in OpenTelemetry and Prometheus
- * alike. Metric and trace recording rules write into the same metric store,
- * so a made name is kept clear of every rule of the project, of both kinds:
- * two rules writing one series would mix their data.
+ * alike. Metric, trace and log recording rules write into the same metric
+ * store, so a made name is kept clear of every rule of the project, of all
+ * three kinds: two rules writing one series would mix their data.
  *
  * Pure, so the dashboard and the server make the same name from the same
  * rule name.
@@ -52,7 +52,7 @@ export const getOutputMetricNameFromRuleName: GetOutputMetricNameFromRuleNameFun
 
 export type GenerateOutputMetricNameFunction = (data: {
   ruleName: string;
-  // The output metric names the project's recording rules, of both kinds, write.
+  // The output metric names the project's recording rules, of every kind, write.
   existingNames: Iterable<string | null | undefined>;
 }) => string;
 
