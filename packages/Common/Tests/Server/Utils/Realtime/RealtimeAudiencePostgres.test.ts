@@ -16,6 +16,14 @@ import RealtimeReaders, {
   RealtimeReaderIdentity,
 } from "../../../../Server/Utils/Realtime/RealtimeReaders";
 import { RealtimeReadAccess } from "../../../../Server/Utils/Realtime/RealtimeReadAccess";
+import RealtimeSessions, {
+  RealtimeSessionSocket,
+} from "../../../../Server/Utils/Realtime/RealtimeSessions";
+import UserService from "../../../../Server/Services/UserService";
+import UserSessionService, {
+  SessionMetadata,
+} from "../../../../Server/Services/UserSessionService";
+import UserSession from "../../../../Models/DatabaseModels/UserSession";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { PlanType } from "../../../../Types/Billing/SubscriptionPlan";
@@ -139,7 +147,13 @@ class FakeSocketServer {
     const socket: FakeSocket = {
       id: id,
       rooms: new Set<string>([id, room]),
-      data: { realtimeReader: { userId: userId, isMasterAdmin: false } },
+      data: {
+        realtimeReader: {
+          userId: userId,
+          isMasterAdmin: false,
+          expiresAtMs: Date.now() + 60 * 60 * 1000,
+        },
+      },
       received: [],
     };
 
@@ -881,6 +895,167 @@ describePostgres("live updates against a migrated Postgres", () => {
         );
       },
     );
+  });
+
+  /*
+   * Live updates end with the session that opened them. Signing out, a
+   * password change and a block revoke sessions through the session
+   * service, whose write ends the sockets that joined with them - here
+   * against the real tables and the services' real hooks.
+   */
+  describe("live updates end with the session that opened them", () => {
+    let nextSocket: number = 1;
+
+    class SessionSocket implements RealtimeSessionSocket {
+      public id: string = `session-socket-${nextSocket++}`;
+      public data: unknown = undefined;
+      public rooms: Set<string> = new Set<string>([this.id, "a-room"]);
+      public told: Array<string> = [];
+
+      public leave(room: string): void {
+        this.rooms.delete(room);
+      }
+
+      public emit(event: string): boolean {
+        this.told.push(event);
+        return true;
+      }
+
+      public on(): unknown {
+        return this;
+      }
+
+      public hears(): boolean {
+        return (
+          RealtimeSessions.getSession(this) !== null && this.rooms.has("a-room")
+        );
+      }
+    }
+
+    function joinedWith(userId: string, sessionId: ObjectID): SessionSocket {
+      const socket: SessionSocket = new SessionSocket();
+
+      RealtimeSessions.begin(socket, {
+        userId: userId,
+        isMasterAdmin: false,
+        sessionId: sessionId.toString(),
+        expiresAtMs: Date.now() + 15 * 60 * 1000,
+      });
+
+      return socket;
+    }
+
+    async function signIn(userId: string): Promise<ObjectID> {
+      const created: SessionMetadata = await UserSessionService.createSession({
+        userId: new ObjectID(userId),
+        isGlobalLogin: true,
+      });
+
+      return created.session.id!;
+    }
+
+    async function isRevoked(sessionId: ObjectID): Promise<boolean> {
+      const session: UserSession | null = await UserSessionService.findOneById({
+        id: sessionId,
+        select: { isRevoked: true },
+        props: { isRoot: true },
+      });
+
+      return Boolean(session?.isRevoked);
+    }
+
+    let sideEffects: Array<jest.SpyInstance> = [];
+
+    beforeEach(() => {
+      RealtimeSessions.clear();
+
+      // What the writes set off besides the session's end is not looked at here.
+      sideEffects = [
+        jest
+          .spyOn(UserSessionService, "onTriggerWorkflow")
+          .mockResolvedValue(undefined),
+        jest
+          .spyOn(UserService, "onTriggerWorkflow")
+          .mockResolvedValue(undefined),
+        jest.spyOn(PublishedImages, "afterUpdate").mockResolvedValue(undefined),
+        jest
+          .spyOn(StatusPageOverviewCache, "afterUpdate")
+          .mockResolvedValue(undefined),
+        jest
+          .spyOn(AuditLogService, "recordUpdate")
+          .mockResolvedValue(undefined),
+      ];
+    });
+
+    afterEach(() => {
+      for (const sideEffect of sideEffects) {
+        sideEffect.mockRestore();
+      }
+
+      RealtimeSessions.clear();
+    });
+
+    test("signing out ends that session's live updates, and no other session's", async () => {
+      const signedOut: ObjectID = await signIn(MEMBER);
+      const otherDevice: ObjectID = await signIn(MEMBER);
+
+      const tab: SessionSocket = joinedWith(MEMBER, signedOut);
+      const elsewhere: SessionSocket = joinedWith(MEMBER, otherDevice);
+
+      await UserSessionService.revokeSessionById(signedOut, {
+        reason: "User logout",
+      });
+
+      expect(await isRevoked(signedOut)).toBe(true);
+      expect(tab.hears()).toBe(false);
+      expect(tab.told).toEqual(["AuthenticationRequired"]);
+      expect(elsewhere.hears()).toBe(true);
+    });
+
+    test("revoking every session of a person (a password change) ends all of their live updates", async () => {
+      const first: SessionSocket = joinedWith(OWNER, await signIn(OWNER));
+      const second: SessionSocket = joinedWith(OWNER, await signIn(OWNER));
+      const someoneElse: SessionSocket = joinedWith(
+        MEMBER,
+        await signIn(MEMBER),
+      );
+
+      await UserSessionService.revokeAllSessionsByUserId(new ObjectID(OWNER), {
+        reason: "Password changed",
+      });
+
+      expect(first.hears()).toBe(false);
+      expect(second.hears()).toBe(false);
+      expect(someoneElse.hears()).toBe(true);
+    });
+
+    test("blocking someone ends their live updates at once, and their sessions are revoked", async () => {
+      const sessionId: ObjectID = await signIn(LABELS_READER);
+      const tab: SessionSocket = joinedWith(LABELS_READER, sessionId);
+
+      try {
+        await UserService.updateOneById({
+          id: new ObjectID(LABELS_READER),
+          data: { isBlocked: true },
+          props: { isRoot: true },
+        });
+
+        expect(tab.hears()).toBe(false);
+        expect(await isRevoked(sessionId)).toBe(true);
+        expect(
+          RealtimeSessions.wasEnded({
+            userId: LABELS_READER,
+            issuedAtMs: Date.now() - 1000,
+          }),
+        ).toBe(true);
+      } finally {
+        await UserService.updateOneById({
+          id: new ObjectID(LABELS_READER),
+          data: { isBlocked: false },
+          props: { isRoot: true },
+        });
+      }
+    });
   });
 
   describe("a person's own AI conversation", () => {

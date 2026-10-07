@@ -504,9 +504,13 @@ export class Service extends ProjectReferencesService<Model> {
     });
 
     for (const member of teamMembers) {
-      /// Refresh tokens.
+      /*
+       * Refresh tokens. Only the project's refresh below tells their
+       * open live updates.
+       */
       await AccessTokenService.refreshUserGlobalAccessPermission(
         member.userId!,
+        { forgetLiveUpdateReaders: false },
       );
       await AccessTokenService.refreshUserTenantAccessPermission(
         member.userId!,
@@ -692,9 +696,13 @@ export class Service extends ProjectReferencesService<Model> {
           throw new BadDataException("Invalid Project ID");
         }
 
-        /// Refresh tokens.
+        /*
+         * Refresh tokens. Only the project's refresh below tells their
+         * open live updates.
+         */
         await AccessTokenService.refreshUserGlobalAccessPermission(
           member.userId,
+          { forgetLiveUpdateReaders: false },
         );
         await AccessTokenService.refreshUserTenantAccessPermission(
           member.userId,
@@ -813,9 +821,13 @@ export class Service extends ProjectReferencesService<Model> {
         throw new BadDataException("Invalid Project ID");
       }
 
-      /// Refresh tokens.
+      /*
+       * Refresh tokens. Only the project's refresh below tells their
+       * open live updates.
+       */
       await AccessTokenService.refreshUserGlobalAccessPermission(
         teamMember.userId,
+        { forgetLiveUpdateReaders: false },
       );
       await AccessTokenService.refreshUserTenantAccessPermission(
         teamMember.userId,

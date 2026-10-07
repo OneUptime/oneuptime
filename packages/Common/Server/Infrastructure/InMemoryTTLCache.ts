@@ -51,6 +51,15 @@ export default class InMemoryTTLCache<T> {
     this.store.delete(key);
   }
 
+  // Deletes every entry whose key starts with `prefix`.
+  public deleteByPrefix(prefix: string): void {
+    for (const key of Array.from(this.store.keys())) {
+      if (key.startsWith(prefix)) {
+        this.store.delete(key);
+      }
+    }
+  }
+
   public clear(): void {
     this.store.clear();
   }

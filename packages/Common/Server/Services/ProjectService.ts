@@ -79,6 +79,9 @@ import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException
 import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import RealtimeAccessChanges, {
+  RealtimeAccessChangeKind,
+} from "../Utils/Realtime/RealtimeAccessChanges";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import { CREATED_BY_USER_KEYS } from "../Utils/Database/CreatedByUser";
 import Permission from "../../Types/Permission";
@@ -785,6 +788,8 @@ export class ProjectService extends ProjectReferencesService<Model> {
 
     await this.syncInvoiceDetailsToPaymentProvider(updateData, updatedItemIds);
 
+    this.announceSignInRulesChanged(updateData, updatedItemIds);
+
     if (!("isSessionReplayAllowed" in updateData)) {
       return onUpdate;
     }
@@ -864,6 +869,51 @@ export class ProjectService extends ProjectReferencesService<Model> {
         "ProjectService: could not invalidate the audit log settings cache",
       );
       logger.warn(err);
+    }
+  }
+
+  /*
+   * Drops this server's cached sign-in rules (Require SSO, the provider a
+   * project pins) of the project, or of every project when none is named,
+   * so the next request reads them again. Called when they change, here or
+   * on another server (RealtimeAccessChanges).
+   */
+  public forgetSignInRules(projectId?: ObjectID): void {
+    if (!projectId) {
+      this.requireSsoForLoginCache.clear();
+      this.requireSsoWithSsoProviderIdCache.clear();
+      return;
+    }
+
+    this.requireSsoForLoginCache.delete(projectId.toString());
+    this.requireSsoWithSsoProviderIdCache.delete(projectId.toString());
+  }
+
+  /*
+   * A project's sign-in rules now ask for more: Require SSO turned on, or a
+   * provider pinned. Every server reads them again, and the live updates
+   * already open in the project are asked again as their joins were
+   * (RealtimeAccessChanges), so a page that no longer meets them stops
+   * hearing at once, as its API requests are refused at once. Rules that
+   * now ask for less refuse nobody, so they ask nobody again.
+   */
+  private announceSignInRulesChanged(
+    updateData: Record<string, unknown>,
+    updatedItemIds: Array<ObjectID>,
+  ): void {
+    const asksForMore: boolean =
+      updateData["requireSsoForLogin"] === true ||
+      Boolean(updateData["requireSsoWithSsoProviderId"]);
+
+    if (!asksForMore) {
+      return;
+    }
+
+    for (const projectId of updatedItemIds) {
+      RealtimeAccessChanges.announce({
+        kind: RealtimeAccessChangeKind.SignInRulesChanged,
+        projectId: projectId.toString(),
+      });
     }
   }
 
