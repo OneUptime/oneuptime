@@ -489,6 +489,9 @@ export default class PerEntityCriteriaFanOut {
    * separate "1 row" checks.
    */
   private static isTableScopedCheckOn(checkOn: CheckOn | undefined): boolean {
-    return checkOn === CheckOn.SnmpTableValue;
+    return (
+      checkOn === CheckOn.SnmpTableValue ||
+      checkOn === CheckOn.SnmpTableRowIsUnhealthy
+    );
   }
 }

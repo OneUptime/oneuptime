@@ -82,6 +82,7 @@ export default class NetworkInventoryUtil {
           // For the vendor-template auto-apply below.
           autoApplyVendorHealthTemplate: true,
           snmpOids: true,
+          snmpTables: true,
           oidTemplateId: true,
           // For the monitor-backed guard on the poll columns below.
           monitoringMethod: true,
@@ -276,19 +277,44 @@ export default class NetworkInventoryUtil {
       if (
         ownedDevice.autoApplyVendorHealthTemplate &&
         !ownedDevice.oidTemplateId &&
-        (ownedDevice.snmpOids || []).length === 0 &&
         systemInfo?.sysObjectId
       ) {
+        /*
+         * sysDescr rides along because some platforms share an enterprise
+         * arc: Fabric Engine reports Extreme's 1916 exactly as EXOS does.
+         */
         const vendorTemplate: SnmpVendorTemplate | undefined =
-          SnmpVendorTemplateUtil.matchBySysObjectId(systemInfo.sysObjectId);
+          SnmpVendorTemplateUtil.matchDevice({
+            sysObjectId: systemInfo.sysObjectId,
+            sysDescr: systemInfo.sysDescr,
+          });
 
-        if (vendorTemplate) {
+        if (vendorTemplate && (ownedDevice.snmpOids || []).length === 0) {
           deviceUpdate["snmpOids"] = SnmpVendorTemplateUtil.mergeOids(
             [],
             vendorTemplate.id,
           );
           logger.debug(
             `Auto-applied the "${vendorTemplate.label}" vendor health template to network device ${deviceId.toString()} (sysObjectID ${systemInfo.sysObjectId}).`,
+          );
+        }
+
+        /*
+         * The template's SNMP tables seed the device's own tables under the
+         * same rule as its OIDs - only while the device has none, so a
+         * table list someone has edited is never touched by a poll.
+         */
+        if (
+          vendorTemplate?.tables &&
+          vendorTemplate.tables.length > 0 &&
+          (ownedDevice.snmpTables || []).length === 0
+        ) {
+          deviceUpdate["snmpTables"] = SnmpVendorTemplateUtil.mergeTables(
+            [],
+            vendorTemplate.id,
+          );
+          logger.debug(
+            `Auto-applied the "${vendorTemplate.label}" vendor SNMP tables to network device ${deviceId.toString()}.`,
           );
         }
       }

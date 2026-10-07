@@ -213,6 +213,7 @@ export default class MonitorCriteriaObservationBuilder {
         );
       case CheckOn.SnmpTableValue:
       case CheckOn.SnmpTableRowCount:
+      case CheckOn.SnmpTableRowIsUnhealthy:
         return SnmpTableCriteria.describeTableObservation({
           tables: MonitorCriteriaDataExtractor.getProbeMonitorResponse(
             input.dataToProcess,

@@ -810,3 +810,149 @@ describe("SnmpMonitorCriteria routes the table and varbind checks", () => {
     ).resolves.toBeNull();
   });
 });
+
+describe("SnmpTableCriteria.evaluateTableRowIsUnhealthy", () => {
+  function evaluateUnhealthy(input: {
+    tables: Array<SnmpTableSnapshot> | undefined;
+    filterType: FilterType;
+    row?: string | undefined;
+  }): string | null {
+    return SnmpTableCriteria.evaluateTableRowIsUnhealthy({
+      tables: input.tables,
+      criteriaFilter: {
+        checkOn: CheckOn.SnmpTableRowIsUnhealthy,
+        filterType: input.filterType,
+        value: undefined,
+        snmpMonitorOptions: {
+          tableKey: "ipsec_tunnels",
+          tableRow: input.row,
+        },
+      },
+    });
+  }
+
+  it("names the rows outside their healthy values", () => {
+    const result: string | null = evaluateUnhealthy({
+      tables: [THREE_TUNNELS],
+      filterType: FilterType.True,
+    });
+
+    expect(result).toBe(
+      "2 unhealthy row(s) in SNMP table IPsec Tunnels: HQ-Branch2 (Status: inactive), HQ-Branch3 (Status: partially active).",
+    );
+  });
+
+  it("is met by False only when every row is healthy", () => {
+    expect(
+      evaluateUnhealthy({
+        tables: [THREE_TUNNELS],
+        filterType: FilterType.False,
+      }),
+    ).toBeNull();
+
+    expect(
+      evaluateUnhealthy({
+        tables: [tunnels([{ index: "1", name: "A", status: 1 }])],
+        filterType: FilterType.False,
+      }),
+    ).toBe("Every row in SNMP table IPsec Tunnels is healthy.");
+
+    expect(
+      evaluateUnhealthy({
+        tables: [tunnels([{ index: "1", name: "A", status: 1 }])],
+        filterType: FilterType.True,
+      }),
+    ).toBeNull();
+  });
+
+  it("respects the row scope", () => {
+    expect(
+      evaluateUnhealthy({
+        tables: [THREE_TUNNELS],
+        filterType: FilterType.True,
+        row: "HQ-Branch1",
+      }),
+    ).toBeNull();
+    expect(
+      evaluateUnhealthy({
+        tables: [THREE_TUNNELS],
+        filterType: FilterType.True,
+        row: "HQ-Branch3",
+      }),
+    ).toContain("1 unhealthy row(s)");
+  });
+
+  it("is not evaluated for a table that declares no healthy values, has no rows in scope, or failed", () => {
+    expect(
+      SnmpTableCriteria.evaluateTableRowIsUnhealthy({
+        tables: [radios()],
+        criteriaFilter: {
+          checkOn: CheckOn.SnmpTableRowIsUnhealthy,
+          filterType: FilterType.True,
+          value: undefined,
+          snmpMonitorOptions: { tableKey: "wifi_radios" },
+        },
+      }),
+    ).toBeNull();
+
+    expect(
+      evaluateUnhealthy({
+        tables: [THREE_TUNNELS],
+        filterType: FilterType.False,
+        row: "nope",
+      }),
+    ).toBeNull();
+
+    expect(
+      evaluateUnhealthy({
+        tables: [{ ...THREE_TUNNELS, failureCause: "timeout" }],
+        filterType: FilterType.False,
+      }),
+    ).toBeNull();
+  });
+
+  it("is routed by SnmpMonitorCriteria and fans out per row with '*'", async () => {
+    await expect(
+      SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+        dataToProcess: {
+          projectId: ObjectID.generate(),
+          monitorId: ObjectID.generate(),
+          monitorStepId: ObjectID.generate(),
+          probeId: ObjectID.generate(),
+          failureCause: "",
+          isOnline: true,
+          monitoredAt: new Date(),
+          snmpResponse: {
+            isOnline: true,
+            responseTimeInMs: 1,
+            failureCause: "",
+            oidResponses: [],
+            tables: [THREE_TUNNELS],
+          },
+        },
+        criteriaFilter: {
+          checkOn: CheckOn.SnmpTableRowIsUnhealthy,
+          filterType: FilterType.True,
+          value: undefined,
+          snmpMonitorOptions: { tableKey: "ipsec_tunnels", tableRow: "*" },
+        },
+      }),
+    ).resolves.toContain("2 unhealthy row(s)");
+  });
+
+  it("describes the observation", () => {
+    expect(
+      SnmpTableCriteria.describeTableObservation({
+        tables: [THREE_TUNNELS],
+        criteriaFilter: {
+          checkOn: CheckOn.SnmpTableRowIsUnhealthy,
+          filterType: FilterType.True,
+          value: undefined,
+          snmpMonitorOptions: { tableKey: "ipsec_tunnels" },
+        },
+      }),
+    ).toBe(
+      "SNMP table IPsec Tunnels had 3 row(s) in scope, 2 of them unhealthy.",
+    );
+  });
+});

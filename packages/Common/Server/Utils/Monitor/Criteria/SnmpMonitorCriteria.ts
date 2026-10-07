@@ -42,7 +42,8 @@ export default class SnmpMonitorCriteria {
       checkOn === CheckOn.SnmpInterfaceUtilizationPercent ||
       checkOn === CheckOn.SnmpInterfaceErrorsPerSecond ||
       checkOn === CheckOn.SnmpTableValue ||
-      checkOn === CheckOn.SnmpTableRowCount
+      checkOn === CheckOn.SnmpTableRowCount ||
+      checkOn === CheckOn.SnmpTableRowIsUnhealthy
     );
   }
 
@@ -327,6 +328,13 @@ export default class SnmpMonitorCriteria {
 
     if (input.criteriaFilter.checkOn === CheckOn.SnmpTableRowCount) {
       return SnmpTableCriteria.evaluateTableRowCount({
+        tables: snmpResponse?.tables,
+        criteriaFilter: input.criteriaFilter,
+      });
+    }
+
+    if (input.criteriaFilter.checkOn === CheckOn.SnmpTableRowIsUnhealthy) {
+      return SnmpTableCriteria.evaluateTableRowIsUnhealthy({
         tables: snmpResponse?.tables,
         criteriaFilter: input.criteriaFilter,
       });

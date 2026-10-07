@@ -109,6 +109,89 @@ export default class SnmpTableCriteria {
     return `${matchingRows.length} row(s) of SNMP table ${snapshot.name} where ${column.name} ${SnmpTableCriteria.describeFilter(data.criteriaFilter)}: ${described}${more}.`;
   }
 
+  /*
+   * Rows whose status is outside what their table calls healthy (a column's
+   * healthyValues). "True" is met when any in-scope row is unhealthy, "False"
+   * when none is. A table that declares no healthy values has nothing to
+   * judge, so it is never evaluated rather than always healthy.
+   */
+  public static evaluateTableRowIsUnhealthy(data: {
+    tables: Array<SnmpTableSnapshot> | undefined;
+    criteriaFilter: CriteriaFilter;
+  }): string | null {
+    const snapshot: SnmpTableSnapshot | undefined =
+      SnmpTableCriteria.getUsableSnapshot(
+        data.tables,
+        data.criteriaFilter.snmpMonitorOptions?.tableKey,
+      );
+
+    if (!snapshot) {
+      return null;
+    }
+
+    const statusColumns: Array<SnmpTableSnapshotColumn> =
+      snapshot.columns.filter((column: SnmpTableSnapshotColumn) => {
+        return Boolean(column.healthyValues && column.healthyValues.length > 0);
+      });
+
+    if (statusColumns.length === 0) {
+      return null;
+    }
+
+    const rows: Array<SnmpTableSnapshotRow> = SnmpTableListUtil.scopeRows(
+      snapshot,
+      data.criteriaFilter.snmpMonitorOptions?.tableRow,
+    );
+
+    if (rows.length === 0) {
+      return null;
+    }
+
+    const unhealthyRows: Array<SnmpTableSnapshotRow> = rows.filter(
+      (row: SnmpTableSnapshotRow) => {
+        return statusColumns.some((column: SnmpTableSnapshotColumn) => {
+          return row.cells[column.oid]?.isHealthy === false;
+        });
+      },
+    );
+
+    if (data.criteriaFilter.filterType === FilterType.True) {
+      if (unhealthyRows.length === 0) {
+        return null;
+      }
+
+      const described: string = unhealthyRows
+        .slice(0, MAX_ROWS_IN_ROOT_CAUSE)
+        .map((row: SnmpTableSnapshotRow) => {
+          const states: string = statusColumns
+            .filter((column: SnmpTableSnapshotColumn) => {
+              return row.cells[column.oid]?.isHealthy === false;
+            })
+            .map((column: SnmpTableSnapshotColumn) => {
+              return `${column.name}: ${row.cells[column.oid]?.display || "(empty)"}`;
+            })
+            .join(", ");
+          return `${row.label} (${states})`;
+        })
+        .join(", ");
+
+      const more: string =
+        unhealthyRows.length > MAX_ROWS_IN_ROOT_CAUSE
+          ? `, and ${unhealthyRows.length - MAX_ROWS_IN_ROOT_CAUSE} more`
+          : "";
+
+      return `${unhealthyRows.length} unhealthy row(s) in SNMP table ${snapshot.name}: ${described}${more}.`;
+    }
+
+    if (data.criteriaFilter.filterType === FilterType.False) {
+      return unhealthyRows.length === 0
+        ? `Every row in SNMP table ${snapshot.name} is healthy.`
+        : null;
+    }
+
+    return null;
+  }
+
   public static evaluateTableRowCount(data: {
     tables: Array<SnmpTableSnapshot> | undefined;
     criteriaFilter: CriteriaFilter;
@@ -491,6 +574,16 @@ export default class SnmpTableCriteria {
       return `SNMP table ${snapshot.name} had ${rows.length} row(s).`;
     }
 
+    if (data.criteriaFilter.checkOn === CheckOn.SnmpTableRowIsUnhealthy) {
+      const unhealthy: number = rows.filter((row: SnmpTableSnapshotRow) => {
+        return Object.values(row.cells).some((cell: SnmpTableSnapshotCell) => {
+          return cell.isHealthy === false;
+        });
+      }).length;
+
+      return `SNMP table ${snapshot.name} had ${rows.length} row(s) in scope, ${unhealthy} of them unhealthy.`;
+    }
+
     const column: SnmpTableSnapshotColumn | undefined =
       SnmpTableListUtil.findColumn(
         snapshot,
@@ -544,7 +637,8 @@ export default class SnmpTableCriteria {
   public static isTableCheckOn(checkOn: CheckOn | undefined): boolean {
     return (
       checkOn === CheckOn.SnmpTableValue ||
-      checkOn === CheckOn.SnmpTableRowCount
+      checkOn === CheckOn.SnmpTableRowCount ||
+      checkOn === CheckOn.SnmpTableRowIsUnhealthy
     );
   }
 }

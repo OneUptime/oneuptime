@@ -103,6 +103,13 @@ export enum CheckOn {
   // How many rows a walked SNMP table has (or how many match tableRow).
   SnmpTableRowCount = "SNMP Table Row Count",
   /*
+   * True when an in-scope row has a status outside its column's healthy
+   * values - the values a table definition (usually a vendor template)
+   * declares as "fine". One criteria covers a whole tunnel or fan table
+   * without anyone restating which numbers mean up.
+   */
+  SnmpTableRowIsUnhealthy = "SNMP Table Row Is Unhealthy",
+  /*
    * The values carried inside a trap, not its OID. Vendors that send every
    * event under one trap OID - Sophos sends all of them as sfosNotification
    * with the event text in a varbind - can only be told apart this way.
@@ -385,6 +392,7 @@ export class CriteriaFilterUtil {
       checkOn === CheckOn.SnmpIsOnline ||
       checkOn === CheckOn.SnmpWalkIsSucceeding ||
       checkOn === CheckOn.SnmpInterfaceIsDown ||
+      checkOn === CheckOn.SnmpTableRowIsUnhealthy ||
       checkOn === CheckOn.DnsIsOnline ||
       checkOn === CheckOn.DomainIsExpired ||
       checkOn === CheckOn.DnssecChainValid ||
