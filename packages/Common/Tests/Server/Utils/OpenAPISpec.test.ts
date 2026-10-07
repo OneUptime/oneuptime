@@ -332,6 +332,43 @@ describe("OpenAPI specification", () => {
       expect(missing).toEqual([]);
     });
 
+    /*
+     * A request that names one record by its id - read it, change it or
+     * delete it - answers 404 when that record does not exist, belongs to
+     * another project or is one the caller may not read. Generated clients
+     * (the Terraform provider drops a resource from its state on a 404)
+     * read the answer from the spec, so every such operation documents it.
+     */
+    it("documents the 404 of every operation that names one record by its id", () => {
+      const byId: Array<{ path: string; method: string; operation: Operation }> =
+        operations.filter((entry: { path: string; method: string }) => {
+          return (
+            (entry.method === "post" && entry.path.endsWith("/{id}/get-item")) ||
+            ((entry.method === "put" || entry.method === "delete") &&
+              entry.path.endsWith("/{id}"))
+          );
+        });
+
+      // Every model's get, update and delete by id, not a handful.
+      expect(byId.length).toBeGreaterThan(300);
+
+      const missing: Array<string> = byId
+        .filter((entry: { operation: Operation }) => {
+          const notFound: JSONObject | undefined = entry.operation.responses?.[
+            "404"
+          ] as JSONObject | undefined;
+
+          return !String(notFound?.["description"] || "").includes(
+            "may not read",
+          );
+        })
+        .map((entry: { path: string; method: string }) => {
+          return `${entry.method.toUpperCase()} ${entry.path}`;
+        });
+
+      expect(missing).toEqual([]);
+    });
+
     it("uses only numeric statuses or 'default' as response keys", () => {
       const malformed: Array<string> = [];
 
