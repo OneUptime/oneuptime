@@ -144,3 +144,26 @@ describe("the MCP server guide", () => {
     );
   });
 });
+
+describe("the upgrade notes", () => {
+  // Markdown wraps the note's lines; read it as one line of text.
+  const page: string = readPage("en/installation/upgrading.md").replace(
+    /\s+/g,
+    " ",
+  );
+
+  it("say what turning a project's SSO provider off now does, and link to the SSO guide", () => {
+    expect(page).toContain(
+      "**Turning a project's SSO provider off, or deleting it, ends the sign-ins it gave.**",
+    );
+    expect(page).toContain(
+      "Turning the provider on again does not bring those sign-ins back, and a provider that is already off when you upgrade counts as turned off at the upgrade.",
+    );
+    expect(page).toContain(
+      "A new certificate or client secret keeps everyone signed in.",
+    );
+    expect(page).toContain(
+      "[SSO](/docs/identity/sso#turning-a-provider-off-or-deleting-it)",
+    );
+  });
+});
