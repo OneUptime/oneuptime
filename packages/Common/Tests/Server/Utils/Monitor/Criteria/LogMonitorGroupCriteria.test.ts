@@ -22,6 +22,7 @@ import MonitorType from "../../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../../Types/ObjectID";
 import MetricSeriesFingerprint from "../../../../../Utils/Metrics/MetricSeriesFingerprint";
 import { describe, expect, it, jest } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * Contract under test - how one LogCount filter reads a grouped Logs
@@ -171,7 +172,7 @@ describe("LogMonitorCriteria - one group, judged alone", () => {
 
 describe("LogMonitorCriteria - anomaly filters on a grouped monitor", () => {
   it("never matches, and never looks up the whole-monitor baseline", async () => {
-    const getBaselineSpy: jest.SpiedFunction<
+    const getBaselineSpy: SpyInstance<
       typeof LogCountBaselineService.getBaseline
     > = jest.spyOn(LogCountBaselineService, "getBaseline");
 

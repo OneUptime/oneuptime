@@ -13,6 +13,7 @@ import {
 } from "../../../Types/Monitor/SnmpMonitor/SnmpTableListUtil";
 import ObjectID from "../../../Types/ObjectID";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
 /*
@@ -172,7 +173,7 @@ describe("device-specific tables are validated on save", () => {
    */
   test("refuses a malformed table on a tables-only update", async () => {
     const { service, internals } = deviceService();
-    const findSpy: jest.SpiedFunction<NetworkDeviceServiceType["findBy"]> = jest
+    const findSpy: SpyInstance<NetworkDeviceServiceType["findBy"]> = jest
       .spyOn(service, "findBy")
       .mockResolvedValue([] as never);
 
