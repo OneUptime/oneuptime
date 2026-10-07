@@ -126,6 +126,27 @@ export default class AcknowledgedStateUtil {
   }
 
   /*
+   * Whether a record in `stateId` is in the acknowledged stage: acknowledged
+   * (the acknowledged state, or one placed after it) but not resolved -
+   * somebody is on it, and it is not over. What a badge, a filter or a
+   * metric's "acknowledged" attribute names.
+   */
+  public static isAcknowledgedUnresolved(
+    data: StateArgs & {
+      stateId: ObjectID | string | null | undefined;
+    },
+  ): boolean {
+    return (
+      this.isAcknowledged(data) &&
+      !ResolvedStateUtil.isResolved({
+        list: data.list,
+        states: data.states,
+        stateId: data.stateId,
+      })
+    );
+  }
+
+  /*
    * Whether `state` - a state read with its place and flags, such as an
    * incident's currentIncidentState - is acknowledged in a project whose
    * states are `states`. The state itself need not be in the list: its own
@@ -219,6 +240,36 @@ export default class AcknowledgedStateUtil {
       data.list,
       this.getAcknowledgedUnresolvedStates(data),
     );
+  }
+
+  /*
+   * Why Acknowledge is refused for a record in `stateId` - "Incident is
+   * already resolved.", "Alert is already acknowledged." - or null when it
+   * may be acknowledged. What the services that acknowledge say, on every
+   * channel, instead of trying a move back up the list.
+   */
+  public static getAcknowledgeRefusal(
+    data: StateArgs & {
+      stateId: ObjectID | string | null | undefined;
+      // What the record is, for the sentence: "Incident", "Alert", "Episode".
+      subject: string;
+    },
+  ): string | null {
+    if (
+      ResolvedStateUtil.isResolved({
+        list: data.list,
+        states: data.states,
+        stateId: data.stateId,
+      })
+    ) {
+      return `${data.subject} is already resolved.`;
+    }
+
+    if (this.isAcknowledged(data)) {
+      return `${data.subject} is already acknowledged.`;
+    }
+
+    return null;
   }
 
   /*

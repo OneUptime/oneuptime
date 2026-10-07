@@ -38,6 +38,7 @@ import Incident from "../../Models/DatabaseModels/Incident";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import ResolvedStateUtil from "../../Utils/ResolvedState";
+import AcknowledgedStateUtil from "../../Utils/AcknowledgedState";
 import { StateListType } from "../../Utils/StateOrder";
 import Project from "../../Models/DatabaseModels/Project";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -126,8 +127,10 @@ export interface LinkedAlertStateTargets {
  * States are compared by `order`, never by the isAcknowledgedState /
  * isResolvedState flags: projects add custom states (say "Monitoring") between
  * Acknowledged and Resolved, and an incident sitting in one of those has
- * still been acknowledged. An incident project without an Acknowledged (or
- * Resolved) state simply never triggers that half.
+ * still been acknowledged - the one rule (Common/Utils/AcknowledgedState,
+ * Common/Utils/ResolvedState), whose acknowledged and resolved states (the
+ * first from the top flagged so) give the two orders. An incident project
+ * without an Acknowledged (or Resolved) state simply never triggers that half.
  */
 export function getLinkedAlertStateTargets(data: {
   incidentStateOrder: number;
@@ -1425,20 +1428,12 @@ export class Service extends ProjectReferencesService<Model> {
 
     const projectId: ObjectID = data.projectId;
 
+    /*
+     * The project's acknowledged alert state - the first from the top
+     * flagged acknowledged (Common/Utils/AcknowledgedState) - and its place.
+     */
     const acknowledgedState: AlertState | null =
-      await AlertStateService.findOneBy({
-        query: {
-          projectId: projectId,
-          isAcknowledgedState: true,
-        },
-        select: {
-          _id: true,
-          order: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+      await AlertStateService.findAcknowledgedAlertState(projectId);
 
     if (
       !acknowledgedState ||
@@ -1583,20 +1578,9 @@ export class Service extends ProjectReferencesService<Model> {
     } as LogAttributes;
 
     try {
+      // The project's acknowledged alert state (AcknowledgedState).
       const acknowledgedState: AlertState | null =
-        await AlertStateService.findOneBy({
-          query: {
-            projectId: data.projectId,
-            isAcknowledgedState: true,
-          },
-          select: {
-            _id: true,
-            order: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
+        await AlertStateService.findAcknowledgedAlertState(data.projectId);
 
       if (
         !acknowledgedState ||
@@ -2152,9 +2136,14 @@ export class Service extends ProjectReferencesService<Model> {
       return null;
     }
 
-    const acknowledgedIncidentState: IncidentState | undefined =
-      incidentStates.find((state: IncidentState) => {
-        return state.isAcknowledgedState;
+    /*
+     * The project's acknowledged state: the first from the top flagged
+     * acknowledged (Common/Utils/AcknowledgedState).
+     */
+    const acknowledgedIncidentState: IncidentState | null =
+      AcknowledgedStateUtil.getAcknowledgedState({
+        list: StateListType.IncidentState,
+        states: incidentStates,
       });
     // The project's resolved state: the first from the top flagged resolved.
     const resolvedIncidentState: IncidentState | null =
@@ -2195,9 +2184,12 @@ export class Service extends ProjectReferencesService<Model> {
     let resolvedAlertState: AlertState | undefined = undefined;
 
     if (targets.acknowledge) {
-      acknowledgedAlertState = alertStates.find((state: AlertState) => {
-        return state.isAcknowledgedState;
-      });
+      // Where Acknowledge moves an alert (AcknowledgedState).
+      acknowledgedAlertState =
+        AcknowledgedStateUtil.getAcknowledgedState({
+          list: StateListType.AlertState,
+          states: alertStates,
+        }) || undefined;
 
       if (!acknowledgedAlertState) {
         logger.error(

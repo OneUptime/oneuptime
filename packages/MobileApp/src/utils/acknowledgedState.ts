@@ -1,8 +1,8 @@
 import {
   findState,
   getFirstFlaggedState,
-  getResolvedState,
   getStateOrder,
+  isResolvedState,
   type ResolvedRuleState,
   type StateList,
 } from "./resolvedState";
@@ -52,8 +52,8 @@ export function getAcknowledgedState<T extends AcknowledgedRuleState>(
 /**
  * Whether a record in `state` is acknowledged - or further along: resolved
  * counts too - in a project whose states are `states`. The state carries the
- * acknowledged or the resolved flag, or sits at or below the project's
- * acknowledged state, or its resolved state.
+ * acknowledged flag, or sits at or below the project's acknowledged state,
+ * or is resolved by the resolved rule (./resolvedState).
  */
 export function isAcknowledged<T extends AcknowledgedRuleState>(
   states: StateList<T>,
@@ -63,30 +63,17 @@ export function isAcknowledged<T extends AcknowledgedRuleState>(
     return false;
   }
 
-  if (state.isAcknowledgedState === true || state.isResolvedState === true) {
+  if (state.isAcknowledgedState === true || isResolvedState(states, state)) {
     return true;
   }
 
   const order: number | null = getStateOrder(state);
+  const acknowledgedState: T | undefined = getAcknowledgedState(states);
+  const acknowledgedOrder: number | null = acknowledgedState
+    ? getStateOrder(acknowledgedState)
+    : null;
 
-  if (order === null) {
-    return false;
-  }
-
-  for (const builtIn of [
-    getAcknowledgedState(states),
-    getResolvedState(states),
-  ]) {
-    const builtInOrder: number | null = builtIn
-      ? getStateOrder(builtIn)
-      : null;
-
-    if (builtInOrder !== null && order >= builtInOrder) {
-      return true;
-    }
-  }
-
-  return false;
+  return order !== null && acknowledgedOrder !== null && order >= acknowledgedOrder;
 }
 
 /**

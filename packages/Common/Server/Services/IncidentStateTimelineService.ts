@@ -44,7 +44,9 @@ import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import IncidentAlertService from "./IncidentAlertService";
 import ResolvedStateUtil from "../../Utils/ResolvedState";
+import AcknowledgedStateUtil from "../../Utils/AcknowledgedState";
 import { StateListType } from "../../Utils/StateOrder";
+import StateChangeFeedEmoji from "../Utils/StateChangeFeedEmoji";
 
 export class Service extends ProjectReferencesService<IncidentStateTimeline> {
   public constructor() {
@@ -506,7 +508,6 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
         },
         select: {
           _id: true,
-          isAcknowledgedState: true,
           isCreatedState: true,
           color: true,
           name: true,
@@ -574,6 +575,18 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
     });
 
     /*
+     * Whether the incident is acknowledged in this state - the project's
+     * acknowledged state, a state placed after it, or a resolved one - by
+     * the one rule (Common/Utils/AcknowledgedState): what marks the feed
+     * line and the SLA as responded.
+     */
+    const isAcknowledged: boolean = AcknowledgedStateUtil.isAcknowledged({
+      list: StateListType.IncidentState,
+      states: incidentStates,
+      stateId: createdItem.incidentStateId,
+    });
+
+    /*
      * This change resolves the incident: it moves the incident's current
      * state - not a row dated before it - from a state that is not resolved,
      * or from none, into one that is. Moving on from one resolved state to
@@ -587,18 +600,11 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
      * (posted to Slack and Teams too): escaped, so it reads as typed.
      */
     const stateName: string = escapeMarkdownValue(incidentState?.name || "");
-    let stateEmoji: string = "➡️";
-
-    // if resolved state then change emoji to ✅.
-
-    if (isResolved) {
-      stateEmoji = "✅";
-    } else if (incidentState?.isAcknowledgedState) {
-      // eyes emoji for acknowledged state.
-      stateEmoji = "👀";
-    } else if (incidentState?.isCreatedState) {
-      stateEmoji = "🔴";
-    }
+    const stateEmoji: string = StateChangeFeedEmoji.get({
+      isResolved: isResolved,
+      isAcknowledged: isAcknowledged,
+      isCreatedState: Boolean(incidentState?.isCreatedState),
+    });
 
     const incidentNumberResult: {
       number: number | null;
@@ -783,7 +789,7 @@ ${createdItem.rootCause}`,
     this.trackSlaStateChange({
       incidentId: createdItem.incidentId,
       projectId: createdItem.projectId!,
-      isAcknowledgedState: incidentState?.isAcknowledgedState || false,
+      isAcknowledged: isAcknowledged,
       isResolved: isResolved,
       stateChangedAt: createdItem.startsAt || OneUptimeDate.getCurrentDate(),
       previousStateWasResolved: previousStateWasResolved,
@@ -1137,7 +1143,8 @@ ${createdItem.rootCause}`,
   private async trackSlaStateChange(data: {
     incidentId: ObjectID;
     projectId: ObjectID;
-    isAcknowledgedState: boolean;
+    // The new state counts as acknowledged (Common/Utils/AcknowledgedState).
+    isAcknowledged: boolean;
     isResolved: boolean;
     stateChangedAt: Date;
     previousStateWasResolved: boolean;
@@ -1180,8 +1187,13 @@ ${createdItem.rootCause}`,
         return;
       }
 
-      // Track acknowledged state
-      if (data.isAcknowledgedState) {
+      /*
+       * Responded: the incident is acknowledged in its new state - the
+       * acknowledged state, a state placed after it ("Investigating") or a
+       * resolved one. Only an SLA not marked responded yet takes the time,
+       * so moving on through such states keeps the first.
+       */
+      if (data.isAcknowledged) {
         await IncidentSlaService.markResponded({
           incidentId: data.incidentId,
           respondedAt: data.stateChangedAt,

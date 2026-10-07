@@ -13,6 +13,7 @@ import AlertStateTimelineService from "./AlertStateTimelineService";
 import IncidentStateService from "./IncidentStateService";
 import AlertStateService from "./AlertStateService";
 import ResolvedStateUtil from "../../Utils/ResolvedState";
+import AcknowledgedStateUtil from "../../Utils/AcknowledgedState";
 import { StateListType } from "../../Utils/StateOrder";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import Incident from "../../Models/DatabaseModels/Incident";
@@ -79,6 +80,16 @@ interface TimelineData {
   ackAt?: Date | undefined;
   resolvedAt?: Date | undefined;
   declaredAt?: Date | undefined;
+}
+
+/*
+ * Whether a state of the project counts as resolved and as acknowledged, by
+ * the two rules every part of OneUptime reads (Common/Utils/ResolvedState,
+ * Common/Utils/AcknowledgedState).
+ */
+interface SummaryStateRules {
+  isResolved: (stateId: ObjectID | undefined) => boolean;
+  isAcknowledged: (stateId: ObjectID | undefined) => boolean;
 }
 
 // The schedule columns a write or a stored summary holds.
@@ -722,42 +733,67 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
   /*
    * Whether an incident (or incident episode) in a state of the project is
    * resolved - by the one rule (Common/Utils/ResolvedState): the project's
-   * resolved state, or a state placed after it. One read of its states.
+   * resolved state, or a state placed after it - and whether it is
+   * acknowledged - by the one rule (Common/Utils/AcknowledgedState): the
+   * project's acknowledged state, a state placed after it ("Investigating"),
+   * or a resolved one. One read of its states.
    */
-  private static async getIncidentResolvedRule(
+  private static async getIncidentStateRules(
     projectId: ObjectID,
-  ): Promise<(stateId: ObjectID | undefined) => boolean> {
+  ): Promise<SummaryStateRules> {
     const states: Array<unknown> =
       await IncidentStateService.getAllIncidentStates({
         projectId: projectId,
         props: { isRoot: true },
       });
 
-    return (stateId: ObjectID | undefined): boolean => {
-      return ResolvedStateUtil.isResolved({
-        list: StateListType.IncidentState,
-        states: states,
-        stateId: stateId,
-      });
-    };
+    return Service.toStateRules(StateListType.IncidentState, states);
   }
 
   // The same for an alert (or alert episode), by the project's alert states.
-  private static async getAlertResolvedRule(
+  private static async getAlertStateRules(
     projectId: ObjectID,
-  ): Promise<(stateId: ObjectID | undefined) => boolean> {
+  ): Promise<SummaryStateRules> {
     const states: Array<unknown> = await AlertStateService.getAllAlertStates({
       projectId: projectId,
       props: { isRoot: true },
     });
 
-    return (stateId: ObjectID | undefined): boolean => {
-      return ResolvedStateUtil.isResolved({
-        list: StateListType.AlertState,
-        states: states,
-        stateId: stateId,
-      });
+    return Service.toStateRules(StateListType.AlertState, states);
+  }
+
+  private static toStateRules(
+    list: StateListType.IncidentState | StateListType.AlertState,
+    states: Array<unknown>,
+  ): SummaryStateRules {
+    return {
+      isResolved: (stateId: ObjectID | undefined): boolean => {
+        return ResolvedStateUtil.isResolved({
+          list: list,
+          states: states,
+          stateId: stateId,
+        });
+      },
+      isAcknowledged: (stateId: ObjectID | undefined): boolean => {
+        return AcknowledgedStateUtil.isAcknowledged({
+          list: list,
+          states: states,
+          stateId: stateId,
+        });
+      },
     };
+  }
+
+  private static async getIncidentResolvedRule(
+    projectId: ObjectID,
+  ): Promise<(stateId: ObjectID | undefined) => boolean> {
+    return (await Service.getIncidentStateRules(projectId)).isResolved;
+  }
+
+  private static async getAlertResolvedRule(
+    projectId: ObjectID,
+  ): Promise<(stateId: ObjectID | undefined) => boolean> {
+    return (await Service.getAlertStateRules(projectId)).isResolved;
   }
 
   // Check if an item matches the summary's filter conditions
@@ -1110,7 +1146,6 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         currentIncidentState: {
           name: true,
           _id: true,
-          isAcknowledgedState: true,
         },
         currentIncidentStateId: true,
         labels: { _id: true, name: true },
@@ -1134,9 +1169,14 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
 
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
-    // Resolved or open, by the one rule (Common/Utils/ResolvedState).
+    /*
+     * Resolved or open, by the one rule (Common/Utils/ResolvedState), and
+     * acknowledged or not (Common/Utils/AcknowledgedState).
+     */
+    const incidentStateRules: SummaryStateRules =
+      await Service.getIncidentStateRules(projectId);
     const isResolvedIncidentState: (stateId: ObjectID | undefined) => boolean =
-      await Service.getIncidentResolvedRule(projectId);
+      incidentStateRules.isResolved;
 
     // Overview stats
     if (Service.has(items, WorkspaceNotificationSummaryItem.TotalCount)) {
@@ -1222,9 +1262,6 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           select: {
             incidentId: true,
             incidentStateId: true,
-            incidentState: {
-              isAcknowledgedState: true,
-            },
             createdByUser: { name: true, email: true },
             createdAt: true,
           },
@@ -1244,7 +1281,12 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           tl.createdByUser?.email?.toString() ||
           "System";
 
-        if (tl.incidentState?.isAcknowledgedState && !td.ackAt) {
+        /*
+         * The first move into a state that counts as acknowledged - the
+         * acknowledged state, one placed after it, or a resolved one - is
+         * the acknowledgement, as on the incident's overview.
+         */
+        if (incidentStateRules.isAcknowledged(tl.incidentStateId) && !td.ackAt) {
           td.ackBy = userName;
           td.ackAt = tl.createdAt;
         }
@@ -1606,7 +1648,6 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         currentAlertState: {
           name: true,
           _id: true,
-          isAcknowledgedState: true,
         },
         currentAlertStateId: true,
         labels: { _id: true, name: true },
@@ -1629,9 +1670,14 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
 
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
-    // Resolved or open, by the one rule (Common/Utils/ResolvedState).
+    /*
+     * Resolved or open, by the one rule (Common/Utils/ResolvedState), and
+     * acknowledged or not (Common/Utils/AcknowledgedState).
+     */
+    const alertStateRules: SummaryStateRules =
+      await Service.getAlertStateRules(projectId);
     const isResolvedAlertState: (stateId: ObjectID | undefined) => boolean =
-      await Service.getAlertResolvedRule(projectId);
+      alertStateRules.isResolved;
 
     if (Service.has(items, WorkspaceNotificationSummaryItem.TotalCount)) {
       const resolved: number = alerts.filter((a: Alert) => {
@@ -1707,9 +1753,6 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           select: {
             alertId: true,
             alertStateId: true,
-            alertState: {
-              isAcknowledgedState: true,
-            },
             createdByUser: { name: true, email: true },
             createdAt: true,
           },
@@ -1729,7 +1772,12 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           tl.createdByUser?.email?.toString() ||
           "System";
 
-        if (tl.alertState?.isAcknowledgedState && !td.ackAt) {
+        /*
+         * The first move into a state that counts as acknowledged - the
+         * acknowledged state, one placed after it, or a resolved one - is
+         * the acknowledgement, as on the alert's overview.
+         */
+        if (alertStateRules.isAcknowledged(tl.alertStateId) && !td.ackAt) {
           td.ackBy = userName;
           td.ackAt = tl.createdAt;
         }

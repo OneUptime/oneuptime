@@ -928,6 +928,57 @@ describe("IncidentFromAlerts.getAlertsToAcknowledge", () => {
     });
   });
 
+  // The one rule the server reads (Common/Utils/AcknowledgedState).
+  describe("by the one acknowledged rule", () => {
+    test("the Acknowledged state is the first from the top flagged so", () => {
+      const triage: AlertStateForAcknowledgement = {
+        id: "state-triage",
+        order: 3,
+      };
+      const secondFlagged: AlertStateForAcknowledgement = {
+        id: "state-acknowledged-again",
+        order: 4,
+        isAcknowledgedState: true,
+      };
+
+      // Listed with the later flagged state first: its place decides.
+      expect(
+        get(
+          [alertIn("a1", triage.id), alertIn("a2", CREATED.id)],
+          [secondFlagged, CREATED, triage, ACKNOWLEDGED, { ...RESOLVED, order: 5 }],
+        ),
+      ).toEqual({ alertIds: ["a2"], alreadyAcknowledgedCount: 1 });
+    });
+
+    test("an alert in a state flagged Resolved is acknowledged already, placed or not", () => {
+      const unplacedResolved: AlertStateForAcknowledgement = {
+        id: "state-resolved-unplaced",
+        isResolvedState: true,
+      };
+
+      expect(
+        get(
+          [alertIn("a1", unplacedResolved.id), alertIn("a2", CREATED.id)],
+          [CREATED, ACKNOWLEDGED, unplacedResolved],
+        ),
+      ).toEqual({ alertIds: ["a2"], alreadyAcknowledgedCount: 1 });
+    });
+
+    test("an alert in a state flagged Acknowledged is acknowledged already, placed or not", () => {
+      const unplacedAcknowledged: AlertStateForAcknowledgement = {
+        id: "state-acknowledged-unplaced",
+        isAcknowledgedState: true,
+      };
+
+      expect(
+        get(
+          [alertIn("a1", unplacedAcknowledged.id)],
+          [CREATED, ACKNOWLEDGED, unplacedAcknowledged, RESOLVED],
+        ),
+      ).toEqual({ alertIds: [], alreadyAcknowledgedCount: 1 });
+    });
+  });
+
   test("matches state ids case-insensitively and ignoring surrounding spaces", () => {
     const upperAcknowledged: AlertStateForAcknowledgement = {
       id: "AAAAAAAA-AAAA-4AAA-8AAA-000000000002",

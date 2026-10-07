@@ -144,32 +144,58 @@ export class Service extends DatabaseService<Model> {
           },
         });
 
-        if (isIncident) {
-          // incident.
+        /*
+         * The record itself is acknowledged only when it is not already -
+         * by the one rule (Common/Utils/AcknowledgedState): a colleague may
+         * have acknowledged it first, or moved it on to a state after
+         * Acknowledged, or resolved it. Their page is acknowledged above
+         * either way; acknowledging the record again would be a move back
+         * up its list, refused, and an error page for the responder who
+         * only answered their page.
+         */
+        if (
+          isIncident &&
+          !(await IncidentService.isIncidentAcknowledged({
+            incidentId: item.triggeredByIncidentId!,
+          }))
+        ) {
           await IncidentService.acknowledgeIncident(
             item.triggeredByIncidentId!,
             item.userId!,
           );
         }
 
-        if (isAlert) {
-          // alert.
+        if (
+          isAlert &&
+          !(await AlertService.isAlertAcknowledged({
+            alertId: item.triggeredByAlertId!,
+          }))
+        ) {
           await AlertService.acknowledgeAlert(
             item.triggeredByAlertId!,
             item.userId!,
           );
         }
 
-        if (isAlertEpisode) {
-          // alert episode — stops co-notified responders from escalating.
+        // An episode's - which also stops co-notified responders escalating.
+        if (
+          isAlertEpisode &&
+          !(await AlertEpisodeService.isEpisodeAcknowledged({
+            episodeId: item.triggeredByAlertEpisodeId!,
+          }))
+        ) {
           await AlertEpisodeService.acknowledgeEpisode(
             item.triggeredByAlertEpisodeId!,
             item.userId!,
           );
         }
 
-        if (isIncidentEpisode) {
-          // incident episode — stops co-notified responders from escalating.
+        if (
+          isIncidentEpisode &&
+          !(await IncidentEpisodeService.isEpisodeAcknowledged({
+            episodeId: item.triggeredByIncidentEpisodeId!,
+          }))
+        ) {
           await IncidentEpisodeService.acknowledgeEpisode(
             item.triggeredByIncidentEpisodeId!,
             item.userId!,

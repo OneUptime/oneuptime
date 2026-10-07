@@ -1,6 +1,7 @@
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { StateListType } from "Common/Utils/StateOrder";
 import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import AcknowledgedStateUtil from "Common/Utils/AcknowledgedState";
 import ObjectID from "Common/Types/ObjectID";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
@@ -288,11 +289,28 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
     },
   );
 
-  const ackState: IncidentState | undefined = incidentStates.find(
-    (state: IncidentState) => {
-      return state.isAcknowledgedState;
-    },
-  );
+  /*
+   * The project's acknowledged state - where Acknowledge moves the episode:
+   * the first from the top flagged acknowledged - and whether a state counts
+   * as acknowledged: it, any state placed after it, or a resolved one
+   * (Common/Utils/AcknowledgedState). Acknowledge is offered only while the
+   * episode is not.
+   */
+  const ackState: IncidentState | undefined =
+    AcknowledgedStateUtil.getAcknowledgedState({
+      list: StateListType.IncidentState,
+      states: incidentStates,
+    }) || undefined;
+
+  const isAcknowledgedStateId: (stateId: string | undefined) => boolean = (
+    stateId: string | undefined,
+  ): boolean => {
+    return AcknowledgedStateUtil.isAcknowledged({
+      list: StateListType.IncidentState,
+      states: incidentStates,
+      stateId: stateId,
+    });
+  };
 
   // Where Resolve moves the episode: the project's resolved state.
   const resolvedState: IncidentState | undefined =
@@ -301,27 +319,9 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
       states: incidentStates,
     }) || undefined;
 
-  type GetStateIndexFunction = (state: IncidentState | undefined) => number;
-
-  const getStateIndex: GetStateIndexFunction = (
-    state: IncidentState | undefined,
-  ): number => {
-    if (!state) {
-      return -1;
-    }
-
-    return incidentStates.findIndex((incidentState: IncidentState) => {
-      return incidentState.id?.toString() === state.id?.toString();
-    });
-  };
-
-  const currentStateIndex: number = getStateIndex(currentIncidentState);
-  const ackStateIndex: number = getStateIndex(ackState);
-  const resolvedStateIndex: number = getStateIndex(resolvedState);
-
   const actions: Array<EventStateAction> = [];
 
-  if (ackState && currentStateIndex < ackStateIndex) {
+  if (ackState && !isAcknowledgedStateId(currentStateId)) {
     actions.push({
       stateId: ackState.id?.toString() || "",
       label: "Acknowledge",
@@ -339,7 +339,14 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
         id: "episode-resolve-btn",
       });
     }
-  } else if (resolvedState && currentStateIndex < resolvedStateIndex) {
+  } else if (
+    resolvedState &&
+    !ResolvedStateUtil.isResolved({
+      list: StateListType.IncidentState,
+      states: incidentStates,
+      stateId: currentStateId,
+    })
+  ) {
     actions.push({
       stateId: resolvedState.id?.toString() || "",
       label: "Resolve",
@@ -406,22 +413,37 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
    * escalation of the episode and - as it acknowledges its incidents too -
    * of theirs, so the confirm says so.
    */
-  if (selectedIncidentState?.isAcknowledgedState) {
+  /*
+   * Acknowledging it: a move into the project's acknowledged state while it
+   * is not acknowledged yet. Picking a state placed after Acknowledged
+   * ("Investigating") names that state; the acknowledged state picked for a
+   * record already acknowledged - in a state after it - is no
+   * acknowledgement, only a move back up the list.
+   */
+  const isAcknowledgeTarget: boolean = Boolean(
+    ackState?.id &&
+      selectedIncidentState?.id?.toString() === ackState.id.toString() &&
+      !isAcknowledgedStateId(currentStateId),
+  );
+
+  // A move that resolves it: into a resolved state, from one that is not.
+  const isResolveTarget: boolean = Boolean(
+    selectedIncidentState &&
+      ResolvedStateUtil.isResolved({
+        list: StateListType.IncidentState,
+        states: incidentStates,
+        stateId: selectedIncidentState.id,
+      }) &&
+      !timing.isResolved,
+  );
+
+  if (isAcknowledgeTarget) {
     modalTitle = translationKey("Acknowledge Episode");
     modalSubmitButtonText = translationKey("Acknowledge");
     modalDescription = translationKey(
       "This records an acknowledgement on the episode timeline and also updates all incidents in this episode. Any on-call escalation for the episode and its incidents stops.",
     );
-  } else if (
-    // A move that resolves it: into a resolved state, from one that is not.
-    selectedIncidentState &&
-    ResolvedStateUtil.isResolved({
-      list: StateListType.IncidentState,
-      states: incidentStates,
-      stateId: selectedIncidentState.id,
-    }) &&
-    !timing.isResolved
-  ) {
+  } else if (isResolveTarget) {
     modalTitle = translationKey("Resolve Episode");
     modalSubmitButtonText = translationKey("Resolve");
     modalDescription = translationKey(

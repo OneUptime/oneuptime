@@ -70,6 +70,8 @@ import StartingStageUtil, {
   StartingStageCarryForward,
   StartingState,
 } from "../../Utils/StartingStage";
+import AcknowledgedStateUtil from "../../Utils/AcknowledgedState";
+import { StateListType } from "../../Utils/StateOrder";
 
 /*
  * The two names of each reference this service reads off a write itself, ID
@@ -974,6 +976,14 @@ export class Service extends ProjectReferencesService<Model> {
     }
   }
 
+  /*
+   * Acknowledges the episode - and, unless told not to, the incidents in it -
+   * as the user: moves it into its project's acknowledged state, the first
+   * from the top flagged acknowledged. One that is acknowledged already, or
+   * further along, is refused with a sentence that says which
+   * (Common/Utils/AcknowledgedState) rather than moved back up its list, or
+   * logged as acknowledged a second time.
+   */
   @CaptureSpan()
   public async acknowledgeEpisode(
     episodeId: ObjectID,
@@ -984,6 +994,7 @@ export class Service extends ProjectReferencesService<Model> {
       id: episodeId,
       select: {
         projectId: true,
+        currentIncidentStateId: true,
       },
       props: {
         isRoot: true,
@@ -994,18 +1005,31 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException("Episode not found.");
     }
 
-    const incidentState: IncidentState | null =
-      await IncidentStateService.findOneBy({
-        query: {
-          projectId: episode.projectId,
-          isAcknowledgedState: true,
-        },
-        select: {
-          _id: true,
-        },
+    const incidentStates: Array<IncidentState> =
+      await IncidentStateService.getAllIncidentStates({
+        projectId: episode.projectId,
         props: {
           isRoot: true,
         },
+      });
+
+    const refusal: string | null = AcknowledgedStateUtil.getAcknowledgeRefusal(
+      {
+        list: StateListType.IncidentState,
+        states: incidentStates,
+        stateId: episode.currentIncidentStateId,
+        subject: "Episode",
+      },
+    );
+
+    if (refusal) {
+      throw new BadDataException(refusal);
+    }
+
+    const incidentState: IncidentState | null =
+      AcknowledgedStateUtil.getAcknowledgedState({
+        list: StateListType.IncidentState,
+        states: incidentStates,
       });
 
     if (!incidentState || !incidentState.id) {
@@ -1475,7 +1499,8 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * Whether the episode is acknowledged or further along - resolved
-   * included: what stops its on-call escalation (StartingStage).
+   * included: what stops its on-call escalation and takes Acknowledge away
+   * (Common/Utils/AcknowledgedState).
    */
   @CaptureSpan()
   public async isEpisodeAcknowledged(data: {
@@ -1487,13 +1512,10 @@ export class Service extends ProjectReferencesService<Model> {
       return false;
     }
 
-    const startingState: StartingState | null =
-      await IncidentStateService.getStartingState({
-        projectId: episode.projectId!,
-        incidentStateId: episode.currentIncidentStateId,
-      });
-
-    return Boolean(startingState && startingState.stage !== StartingStage.Open);
+    return await IncidentStateService.isAcknowledgedIncidentState({
+      projectId: episode.projectId!,
+      incidentStateId: episode.currentIncidentStateId,
+    });
   }
 
   // The episode's project and current state, as OneUptime.

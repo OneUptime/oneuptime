@@ -5,9 +5,11 @@ import IncidentMeasurementService from "./IncidentMeasurementService";
 import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentService from "./IncidentService";
 import IncidentStateTimeline from "../../Models/DatabaseModels/IncidentStateTimeline";
+import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentStateTimelineService from "./IncidentStateTimelineService";
 import IncidentStateService from "./IncidentStateService";
 import ResolvedStateUtil from "../../Utils/ResolvedState";
+import AcknowledgedStateUtil from "../../Utils/AcknowledgedState";
 import { StateListType } from "../../Utils/StateOrder";
 import IncidentMeasurementAnchorType from "../../Types/Incident/IncidentMeasurementAnchorType";
 import IncidentStateRole from "../../Types/Incident/IncidentStateRole";
@@ -164,7 +166,6 @@ export class Service extends DatabaseService<Model> {
             name: true,
             order: true,
             isCreatedState: true,
-            isAcknowledgedState: true,
           },
         },
         sort: { startsAt: SortOrder.Ascending },
@@ -172,6 +173,23 @@ export class Service extends DatabaseService<Model> {
         skip: 0,
         props: { isRoot: true },
       });
+
+    const states: Array<IncidentState> = await IncidentStateService.getAllIncidentStates({
+      projectId: data.projectId,
+      props: { isRoot: true },
+    });
+
+    const timelineRows: Array<{
+      id: string;
+      stateId: ObjectID | undefined;
+      startsAt: Date | undefined;
+    }> = timelines.map((timeline: IncidentStateTimeline) => {
+      return {
+        id: timeline._id?.toString() || "",
+        stateId: timeline.incidentStateId,
+        startsAt: timeline.startsAt,
+      };
+    });
 
     /*
      * "The incident is resolved" is each move into a state that counts as
@@ -182,17 +200,25 @@ export class Service extends DatabaseService<Model> {
     const resolutionRowIds: Set<string> = new Set(
       ResolvedStateUtil.getResolutionRows({
         list: StateListType.IncidentState,
-        states: await IncidentStateService.getAllIncidentStates({
-          projectId: data.projectId,
-          props: { isRoot: true },
-        }),
-        timeline: timelines.map((timeline: IncidentStateTimeline) => {
-          return {
-            id: timeline._id?.toString() || "",
-            stateId: timeline.incidentStateId,
-            startsAt: timeline.startsAt,
-          };
-        }),
+        states: states,
+        timeline: timelineRows,
+      }).map((row: { id: string }) => {
+        return row.id;
+      }),
+    );
+
+    /*
+     * "The incident is acknowledged" the same way: each move into a state
+     * that counts as acknowledged (Common/Utils/AcknowledgedState) - the
+     * project's acknowledged state, one placed after it ("Investigating"),
+     * or a resolved one - from one that does not. Moving on from Acknowledged
+     * to a state after it is not a second acknowledgement.
+     */
+    const acknowledgementRowIds: Set<string> = new Set(
+      AcknowledgedStateUtil.getAcknowledgementRows({
+        list: StateListType.IncidentState,
+        states: states,
+        timeline: timelineRows,
       }).map((row: { id: string }) => {
         return row.id;
       }),
@@ -209,7 +235,7 @@ export class Service extends DatabaseService<Model> {
           roles.push(IncidentStateRole.Created);
         }
 
-        if (timeline.incidentState?.isAcknowledgedState) {
+        if (acknowledgementRowIds.has(timeline._id?.toString() || "")) {
           roles.push(IncidentStateRole.Acknowledged);
         }
 

@@ -417,6 +417,89 @@ describe.each(LISTS)(
   },
 );
 
+/*
+ * The acknowledged stage - acknowledged but not resolved - is what a badge,
+ * a filter or a metric's "acknowledged" attribute names; and what the
+ * services that acknowledge say instead of moving a record back up its list.
+ */
+describe.each(LISTS)(
+  "the acknowledged stage and the refusal over %s",
+  (_name: string, list: AcknowledgedStateList) => {
+    test.each([
+      [IDENTIFIED, false],
+      [TRIAGE, false],
+      [ACKNOWLEDGED, true],
+      [INVESTIGATING, true],
+      [RESOLVED, false],
+      [CLOSED, false],
+    ] as Array<[Row, boolean]>)(
+      "a record in $name is in the acknowledged stage: %s",
+      (row: Row, expected: boolean) => {
+        expect(
+          AcknowledgedStateUtil.isAcknowledgedUnresolved({
+            list: list,
+            states: ROWS,
+            stateId: row._id,
+          }),
+        ).toBe(expected);
+      },
+    );
+
+    test("a state that is none of the project's is in no stage", () => {
+      expect(
+        AcknowledgedStateUtil.isAcknowledgedUnresolved({
+          list: list,
+          states: ROWS,
+          stateId: "0193c0de-5a7e-4eee-8fff-0000000000ff",
+        }),
+      ).toBe(false);
+    });
+
+    test.each([
+      [IDENTIFIED, null],
+      [TRIAGE, null],
+      [ACKNOWLEDGED, "Incident is already acknowledged."],
+      [INVESTIGATING, "Incident is already acknowledged."],
+      [RESOLVED, "Incident is already resolved."],
+      [CLOSED, "Incident is already resolved."],
+    ] as Array<[Row, string | null]>)(
+      "acknowledging a record in %s is refused with: %s",
+      (row: Row, expected: string | null) => {
+        expect(
+          AcknowledgedStateUtil.getAcknowledgeRefusal({
+            list: list,
+            states: ROWS,
+            stateId: row._id,
+            subject: "Incident",
+          }),
+        ).toBe(expected);
+      },
+    );
+
+    test("the refusal names the record as asked", () => {
+      expect(
+        AcknowledgedStateUtil.getAcknowledgeRefusal({
+          list: list,
+          states: ROWS,
+          stateId: INVESTIGATING._id,
+          subject: "Episode",
+        }),
+      ).toBe("Episode is already acknowledged.");
+    });
+
+    test("a record whose state is none of the project's may be acknowledged", () => {
+      expect(
+        AcknowledgedStateUtil.getAcknowledgeRefusal({
+          list: list,
+          states: ROWS,
+          stateId: undefined,
+          subject: "Alert",
+        }),
+      ).toBeNull();
+    });
+  },
+);
+
 describe("when a record was acknowledged, by its timeline", () => {
   const list: AcknowledgedStateList = StateListType.IncidentState;
   const START: number = Date.parse("2026-10-07T09:00:00.000Z");
