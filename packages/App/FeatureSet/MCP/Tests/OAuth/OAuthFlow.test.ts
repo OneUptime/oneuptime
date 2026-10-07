@@ -470,13 +470,17 @@ describe("MCP OAuth, end to end", () => {
       expect(response.status).toBe(200);
       expect(toolPayload(response).success).toBe(true);
 
-      // The state lookup, then the timeline entry.
+      /*
+       * The state lookup, the incident's current state (one already
+       * acknowledged is not moved back), then the timeline entry.
+       */
       expect(
         api.calls.map((call: FakeApiCall): string => {
           return call.path;
         }),
       ).toEqual([
         "/api/incident-state/get-list",
+        "/api/incident/get-list",
         "/api/incident-state-timeline",
       ]);
 

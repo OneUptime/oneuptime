@@ -9,6 +9,9 @@ import UserNotificationSettingService from "../../Services/UserNotificationSetti
 import QueryHelper from "../../Types/Database/QueryHelper";
 import PostgresErrorTranslator from "../Database/PostgresErrorTranslator";
 import logger from "../Logger";
+import ProjectMembership, {
+  ProjectUserPair,
+} from "../TeamMember/ProjectMembership";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import {
   CLAIM_EPOCH_MINUTES,
@@ -99,6 +102,21 @@ export interface RollupBucket {
 }
 
 /*
+ * Whether a bucket's recipient is a member of its project now, read for the
+ * whole sweep at once (ProjectMembership).
+ */
+export interface RollupRecipientMembership {
+  isProjectMember: boolean;
+}
+
+/*
+ * The batch row's statusMessage when its recipient has left the project:
+ * the queued mail is consumed and not sent.
+ */
+export const ROLLUP_RECIPIENT_NOT_A_MEMBER_MESSAGE: string =
+  "recipient is no longer a member of this project";
+
+/*
  * What one flush attempt ended up doing. Returned rather than logged so the
  * sweep can count outcomes and a test can assert on them without reading log
  * lines.
@@ -108,7 +126,7 @@ export enum RollupFlushOutcome {
   Collision = "collision",
   // The claim won but nothing was still pending by the time it stamped.
   Empty = "empty",
-  // Deliberately not sent: the address or the project went away.
+  // Deliberately not sent: the address, the project or the membership went away.
   Skipped = "skipped",
   Sent = "sent",
   Failed = "failed",
@@ -288,6 +306,21 @@ export default class EmailRollupFlushRunner {
       MAX_BUCKETS_PER_TICK,
     );
 
+    /*
+     * A rollup is project mail, so it reaches only a member of that project.
+     * Whether each recipient still is one is read once for the whole tick
+     * (ProjectMembership); a bucket whose recipient has left is consumed and
+     * skipped below, never sent.
+     */
+    const memberKeys: Set<string> = await ProjectMembership.getMemberKeys(
+      bucketsThisTick.map((bucket: RollupBucket): ProjectUserPair => {
+        return {
+          projectId: bucket.projectId,
+          userId: bucket.userId,
+        };
+      }),
+    );
+
     const stats: RollupSweepStats = {
       now: now,
       cutoff: cutoff,
@@ -314,7 +347,11 @@ export default class EmailRollupFlushRunner {
 
       try {
         const outcome: RollupFlushOutcome =
-          await EmailRollupFlushRunner.flushBucket(bucket, now);
+          await EmailRollupFlushRunner.flushBucket(bucket, now, {
+            isProjectMember: memberKeys.has(
+              ProjectMembership.getKey(bucket.projectId, bucket.userId),
+            ),
+          });
 
         stats.bucketsProcessed = stats.bucketsProcessed + 1;
 
@@ -352,6 +389,7 @@ export default class EmailRollupFlushRunner {
   private static async flushBucket(
     bucket: RollupBucket,
     now: Date,
+    recipient: RollupRecipientMembership,
   ): Promise<RollupFlushOutcome> {
     /*
      * THE CLAIM KEY IS DERIVED FROM THE WALL CLOCK AND NOTHING ELSE.
@@ -435,6 +473,7 @@ export default class EmailRollupFlushRunner {
         bucket,
         batchId,
         now,
+        recipient,
       );
     } catch (err) {
       logger.error(err, {
@@ -486,6 +525,7 @@ export default class EmailRollupFlushRunner {
     bucket: RollupBucket,
     batchId: ObjectID,
     now: Date,
+    recipient: RollupRecipientMembership,
   ): Promise<RollupFlushOutcome> {
     /*
      * STAMP BEFORE SEND, and bounded.
@@ -621,6 +661,21 @@ export default class EmailRollupFlushRunner {
         now: now,
       });
       return RollupFlushOutcome.Empty;
+    }
+
+    /*
+     * After the stamp, so the items are consumed rather than rediscovered
+     * every tick: somebody who has left the project is not sent its mail.
+     */
+    if (!recipient.isProjectMember) {
+      await EmailRollupFlushRunner.finish({
+        batchId: batchId,
+        status: RollupBatchStatus.Skipped,
+        itemCount: stamped,
+        now: now,
+        message: ROLLUP_RECIPIENT_NOT_A_MEMBER_MESSAGE,
+      });
+      return RollupFlushOutcome.Skipped;
     }
 
     /*

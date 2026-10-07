@@ -3,6 +3,7 @@ import CustomFieldMappingService from "../../../Server/Services/CustomFieldMappi
 import MonitorService from "../../../Server/Services/MonitorService";
 import ScheduledMaintenanceFeedService from "../../../Server/Services/ScheduledMaintenanceFeedService";
 import ScheduledMaintenanceService from "../../../Server/Services/ScheduledMaintenanceService";
+import ScheduledMaintenanceStateService from "../../../Server/Services/ScheduledMaintenanceStateService";
 import ScheduledMaintenanceStateTimelineService from "../../../Server/Services/ScheduledMaintenanceStateTimelineService";
 import { OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
@@ -414,6 +415,34 @@ beforeEach(() => {
   stateTimeline = [];
   monitorsNotFlagged = new Set<string>();
 
+  /*
+   * The project's states, in their order. Its own state ("custom") sits
+   * before Ongoing in this list, so an event moved into it straight from
+   * Scheduled has not started; once an event has been ongoing, a later
+   * state of its own still holds what Ongoing held, wherever it sits. (An
+   * event that starts straight into a state of its own placed after Ongoing
+   * is ScheduledMaintenanceStartIntoStateOfItsOwn's.)
+   */
+  jest
+    .spyOn(ScheduledMaintenanceStateService, "getAllScheduledMaintenanceStates")
+    .mockImplementation((async (): Promise<
+      Array<ScheduledMaintenanceState>
+    > => {
+      return (
+        [
+          "scheduled",
+          "custom",
+          "ongoing",
+          "ended",
+          "resolved",
+        ] as Array<StateKind>
+      ).map((kind: StateKind, index: number): ScheduledMaintenanceState => {
+        const projectState: ScheduledMaintenanceState = state(kind);
+        projectState.order = index + 1;
+        return projectState;
+      });
+    }) as never);
+
   eventFindBy = jest
     .spyOn(ScheduledMaintenanceService, "findBy")
     .mockImplementation((async (): Promise<Array<ScheduledMaintenance>> => {
@@ -537,7 +566,7 @@ afterEach(() => {
 });
 
 describe("ScheduledMaintenanceService.onBeforeUpdate: what each event holds before the write", () => {
-  test("an update that writes neither list reads nothing and carries nothing", async () => {
+  test("an update that writes neither list reads neither and carries nothing for them", async () => {
     eventsBeforeWrite = [
       maintenanceEvent({ state: "ongoing", monitors: [MONITOR_A, MONITOR_B] }),
     ];
@@ -546,7 +575,14 @@ describe("ScheduledMaintenanceService.onBeforeUpdate: what each event holds befo
       updateByFor({ title: "Database upgrade" }),
     );
 
-    expect(eventFindBy).not.toHaveBeenCalled();
+    // The title is read (the updated feed item compares it); no list is.
+    for (const call of eventFindBy.mock.calls) {
+      const select: JSONObject = (call[0] as { select: JSONObject }).select;
+
+      expect(select["monitors"]).toBeUndefined();
+      expect(select["networkSites"]).toBeUndefined();
+    }
+
     expect(timelineFindBy).not.toHaveBeenCalled();
     expect(carriedOf(onUpdate)).toBeNull();
   });

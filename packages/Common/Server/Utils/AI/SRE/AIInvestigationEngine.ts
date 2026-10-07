@@ -44,6 +44,8 @@ import ObservabilityAssistant, {
 } from "../Chat/ObservabilityAssistant";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import { escapeMarkdownValue } from "../../../../Utils/Markdown/MarkdownEscape";
+import { neutralizeAiWrittenMarkdown } from "../../../../Utils/Markdown/UntrustedMarkdown";
 
 /*
  * AI SRE — the shared autonomous-investigation engine.
@@ -355,8 +357,9 @@ export default class AIInvestigationEngine {
    *
    * The balance check is the same predicate as the Kubernetes cluster's
    * ai_balance_insufficient gap (AIService.getAiBalanceBlocker): on
-   * OneUptime's own billed provider, with no credits left and auto-recharge
-   * off, every model call would be refused as out of AI credits —
+   * OneUptime's own billed provider, with no credits left and nothing to
+   * refill them first (Auto Recharge off, or its last charge failed), every
+   * model call would be refused as out of AI credits —
    * so a run started now would only fail, be retried, and fail again, and
    * nobody would see why. It fails OPEN: a balance that cannot be read
    * never blocks, because the model call itself still enforces the balance.
@@ -979,6 +982,13 @@ export default class AIInvestigationEngine {
    * counted the same way, as their own "N infrastructure commands run"
    * part appended only when a run used those tools — so every footer of a
    * run that did not stays byte-for-byte what it was.
+   *
+   * The analysis is written from telemetry, which can carry text meant to
+   * steer the model, and this is what the subject's feed, its internal note
+   * and its Slack and Teams channels show. It stays the Markdown the model
+   * wrote, but nothing in it acts on its own (neutralizeAiWrittenMarkdown):
+   * no chat mention, no image or diagram, no link whose words hide where it
+   * goes, no HTML tag. A citation's label and the model's name are text.
    */
   public static buildBrandedMarkdown(
     result: ObservabilityAssistantResult,
@@ -986,7 +996,7 @@ export default class AIInvestigationEngine {
     clusterToolCallCount: number = 0,
     infrastructureToolCallCount: number = 0,
   ): string {
-    let markdown: string = `## 🧠 AI — Automated Root Cause Analysis\n\n${analysisMarkdown}`;
+    let markdown: string = `## 🧠 AI — Automated Root Cause Analysis\n\n${neutralizeAiWrittenMarkdown(analysisMarkdown)}`;
 
     const citations: Array<AIChatCitation> = result.citations || [];
 
@@ -997,11 +1007,11 @@ export default class AIInvestigationEngine {
           AIInvestigationEngine.describeClusterCitationOutcome(citation);
 
         if (clusterOutcome !== null) {
-          markdown += `\n- **[${citation.id}]** ${citation.label} — ${clusterOutcome}`;
+          markdown += `\n- **[${citation.id}]** ${escapeMarkdownValue(citation.label)} — ${clusterOutcome}`;
           continue;
         }
 
-        markdown += `\n- **[${citation.id}]** ${citation.label} — ${citation.rowCount} row(s)`;
+        markdown += `\n- **[${citation.id}]** ${escapeMarkdownValue(citation.label)} — ${citation.rowCount} row(s)`;
       }
     }
 
@@ -1009,7 +1019,9 @@ export default class AIInvestigationEngine {
       markdown += `\n\n---\n*Investigated automatically by OneUptime AI — read-only, ${result.toolCallCount} quer${
         result.toolCallCount === 1 ? "y" : "ies"
       } run across your own telemetry${
-        result.modelName ? ` using ${result.modelName}` : ""
+        result.modelName
+          ? ` using ${escapeMarkdownValue(result.modelName)}`
+          : ""
       }. This is an AI-generated first pass; verify before acting.*`;
 
       return markdown;
@@ -1080,7 +1092,7 @@ export default class AIInvestigationEngine {
     markdown += `\n\n---\n*Investigated automatically by OneUptime AI — read-only, ${counts.join(
       " and ",
     )}${
-      result.modelName ? ` using ${result.modelName}` : ""
+      result.modelName ? ` using ${escapeMarkdownValue(result.modelName)}` : ""
     }. This is an AI-generated first pass; verify before acting.*`;
 
     return markdown;

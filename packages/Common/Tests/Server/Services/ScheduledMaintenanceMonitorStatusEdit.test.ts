@@ -549,8 +549,10 @@ describe("ScheduledMaintenanceService.onBeforeUpdate: Change Monitor Status to, 
           updateByFor({ title: "Database upgrade, part two" }),
         );
 
+        // Its title is read, for the feed; whether it started is never asked.
         expect(statusReads()).toEqual([]);
-        expect(onUpdate.carryForward).toBeNull();
+        expect(statesRead).not.toHaveBeenCalled();
+        expect(carriedStatusOf(onUpdate)).toBeNull();
       });
     },
   );

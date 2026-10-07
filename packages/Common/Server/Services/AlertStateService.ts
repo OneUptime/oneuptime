@@ -12,6 +12,7 @@ import ObjectID from "../../Types/ObjectID";
 import { STATE_LISTS, StateListType } from "../../Utils/StateOrder";
 import StartingStageUtil, { StartingState } from "../../Utils/StartingStage";
 import ResolvedStateUtil from "../../Utils/ResolvedState";
+import AcknowledgedStateUtil from "../../Utils/AcknowledgedState";
 import AlertState from "../../Models/DatabaseModels/AlertState";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
@@ -218,21 +219,24 @@ export class Service extends DatabaseService<AlertState> {
     return resolvedAlertState;
   }
 
+  /*
+   * The project's acknowledged state: the first from the top flagged
+   * acknowledged (Common/Utils/AcknowledgedState), which acknowledging an
+   * alert or an episode moves it into.
+   */
   @CaptureSpan()
   public async getAcknowledgedAlertState(data: {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
   }): Promise<AlertState> {
-    const alertStates: Array<AlertState> = await this.getAllAlertStates({
-      projectId: data.projectId,
-      props: data.props,
-    });
-
-    const ackAlertState: AlertState | undefined = alertStates.find(
-      (alertState: AlertState) => {
-        return alertState?.isAcknowledgedState;
-      },
-    );
+    const ackAlertState: AlertState | null =
+      AcknowledgedStateUtil.getAcknowledgedState({
+        list: StateListType.AlertState,
+        states: await this.getAllAlertStates({
+          projectId: data.projectId,
+          props: data.props,
+        }),
+      });
 
     if (!ackAlertState) {
       throw new BadDataException(
@@ -241,6 +245,65 @@ export class Service extends DatabaseService<AlertState> {
     }
 
     return ackAlertState;
+  }
+
+  // The same, read as OneUptime: null when the project has none.
+  @CaptureSpan()
+  public async findAcknowledgedAlertState(
+    projectId: ObjectID,
+  ): Promise<AlertState | null> {
+    return AcknowledgedStateUtil.getAcknowledgedState({
+      list: StateListType.AlertState,
+      states: await this.getAllAlertStates({
+        projectId: projectId,
+        props: {
+          isRoot: true,
+        },
+      }),
+    });
+  }
+
+  /*
+   * Whether an alert (or an alert episode) in `alertStateId` is acknowledged
+   * - or further along, resolved included (Common/Utils/AcknowledgedState):
+   * what stops its on-call escalation and takes Acknowledge away. False for a
+   * state that is not the project's.
+   */
+  @CaptureSpan()
+  public async isAcknowledgedAlertState(data: {
+    projectId: ObjectID;
+    alertStateId: ObjectID;
+  }): Promise<boolean> {
+    return AcknowledgedStateUtil.isAcknowledged({
+      list: StateListType.AlertState,
+      states: await this.getAllAlertStates({
+        projectId: data.projectId,
+        props: {
+          isRoot: true,
+        },
+      }),
+      stateId: data.alertStateId,
+    });
+  }
+
+  /*
+   * The project's states an alert (or an alert episode) is acknowledged but
+   * not resolved in - the acknowledged state and every state after it, up to
+   * the resolved one: what an "Acknowledged" filter asks for.
+   */
+  @CaptureSpan()
+  public async getAcknowledgedUnresolvedAlertStateIds(
+    projectId: ObjectID,
+  ): Promise<Array<ObjectID>> {
+    return AcknowledgedStateUtil.getAcknowledgedUnresolvedStateIds({
+      list: StateListType.AlertState,
+      states: await this.getAllAlertStates({
+        projectId: projectId,
+        props: {
+          isRoot: true,
+        },
+      }),
+    });
   }
 
   /*

@@ -177,6 +177,10 @@ export default class WhatsAppService {
               isRoot: true,
             },
           });
+          await UserOnCallLogTimelineService.markNotSent({
+            userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+            reason: whatsAppLog.statusMessage!,
+          });
           return;
         }
 
@@ -256,6 +260,10 @@ export default class WhatsAppService {
                 })}`,
               );
             }
+            await UserOnCallLogTimelineService.markNotSent({
+              userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+              reason: whatsAppLog.statusMessage!,
+            });
             return;
           }
         }

@@ -181,6 +181,10 @@ First User: {{responseBody.users[0].name}}
 
 Se um caminho não existir, o marcador permanece na saída exatamente como foi escrito — `{{responseBody.error.id}}` aparece literalmente, chaves e tudo, no título do incidente. Só são removidos os blocos `{{#each}}` sobre um caminho ausente.
 
+### Valores em descrições e notas de remediação
+
+Uma descrição e as notas de remediação são Markdown: são exibidas na página do incidente ou do alerta, no e-mail e nos seus canais do Slack e do Microsoft Teams. Os valores que um modelo coloca ali são o que o sistema monitorado enviou - um corpo ou um cabeçalho de resposta, uma requisição ou um e-mail recebido, os rótulos de um dispositivo ou de uma série - por isso cada um é colocado como texto. Ele é lido exatamente como foi enviado, onde quer que o modelo o coloque, e um link, uma imagem, uma tag HTML ou uma menção do Slack como `<!channel>` nele aparece como texto em vez de agir. Um endereço web solto em um valor ainda vira um link, um que mostra para onde leva. O Markdown que você mesmo escreve no modelo é exibido como você o escreveu.
+
 ## Uso Avançado
 
 ### Acessando Elementos de Array

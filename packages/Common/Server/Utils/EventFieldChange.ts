@@ -7,29 +7,32 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import ReferenceChange from "./Database/ReferenceChange";
 
 /*
- * WHAT AN UPDATE REALLY CHANGES ON AN INCIDENT OR AN ALERT.
+ * WHAT AN UPDATE REALLY CHANGES ON AN INCIDENT, AN ALERT, A SCHEDULED
+ * MAINTENANCE EVENT OR A MONITOR.
  *
- * An incident's or an alert's "updated" feed item - posted to its Slack and
- * Microsoft Teams channels as well - records the title, the root cause, the
- * description, the remediation notes and the labels an update changes. A
- * change of the labels, or of the Send reminders switch, also matches the
- * record's reminder rule again (refreshReminderSchedule), which starts the
- * reminder interval over.
+ * Each of them records an update in its "updated" feed item - posted to its
+ * Slack and Microsoft Teams channels as well - with a line for each text and
+ * for the labels the update changes: an incident's or an alert's title,
+ * root cause, description and remediation notes, an event's title and
+ * description, a monitor's name and description. A change of the labels,
+ * or of the Send reminders switch, also matches an incident's, an alert's
+ * or an event's reminder rule again (refreshReminderSchedule), which starts
+ * the reminder interval over.
  *
  * Updates often write back what a record holds. The Incident Details card
- * sends the title, the severity and the labels with every save; the
- * Description, Root Cause and Remediation pages send their one field; an
- * API client, a workflow or a script may write the whole record back. Those
- * lines used to follow whether an update carried a field, not whether it
- * changed it, so every such save added an "updated" item repeating what it
- * carried, and a labels write restarted the reminder interval even when the
- * labels were the same: a record edited often kept putting its reminders
- * off.
+ * sends the title, the severity and the labels with every save, an event's
+ * Maintenance Details card its title, window, labels, status pages and
+ * reminders, a monitor's Details card its name, description and labels; an
+ * API client, a workflow, Terraform or a script may write the whole record
+ * back. Those lines used to follow whether an update carried a field, not
+ * whether it changed it, so every such save added an "updated" item
+ * repeating what it carried, and a labels write restarted the reminder
+ * interval even when the labels were the same: a record edited often kept
+ * putting its reminders off.
  *
- * So IncidentService and AlertService read what each record holds before
- * the write - in the one stored read of their onBeforeUpdate
- * (recordStoredValuesBeforeUpdate), of the columns the update writes and no
- * others - and compare here:
+ * So each service reads what each record holds before the write - in the
+ * one stored read of its onBeforeUpdate (recordStoredValuesBeforeUpdate),
+ * of the columns the update writes and no others - and compares here:
  *
  * - text as it reads: line endings written as "\n", without the whitespace
  *   around it, and "" for none (normalizeText), as the postmortem note is
@@ -37,20 +40,72 @@ import ReferenceChange from "./Database/ReferenceChange";
  * - labels as the set of labels they name: order, repeats and the spelling
  *   of an id mean nothing (ReferenceChange.isListChanged);
  * - Send reminders as on or off: a record that never set it is on, as the
- *   column's default and the reminder job read it (areRemindersOn).
+ *   column's default and the reminder job read it (areRemindersOn);
+ * - a time as the instant it names, however it was written
+ *   (isInstantChanged).
+ *
+ * Which text columns a record's feed records, which of those hold
+ * Markdown, and whether it has a Send reminders switch, is its kind
+ * (EventFieldKind): INCIDENT_OR_ALERT_FIELDS unless a service says
+ * otherwise. What a scheduled maintenance event compares besides - its
+ * window and its reminders before the event - is in
+ * ScheduledMaintenanceFieldChange, on these same rules.
  *
  * A record the read before the write did not see - it matched the update
  * only when it was written - counts as changed, so a real change is never
- * missed. The severity is compared in each service, under its own names
- * (ReferenceChange.isChanged).
+ * missed. An incident's or an alert's severity is compared in its service,
+ * under its own names (ReferenceChange.isChanged).
  */
 
-// The text columns the feed item records, in the order it lists them.
+// The text columns a feed item records, in the order it lists them.
 export type EventTextColumn =
   | "title"
+  | "name"
   | "rootCause"
   | "description"
   | "remediationNotes";
+
+/*
+ * What one kind of record compares here. Only these columns are read and
+ * compared: a payload naming another (a column the record does not have)
+ * is left to the write to refuse.
+ */
+export interface EventFieldKind {
+  // The text columns its feed records.
+  textColumns: ReadonlyArray<EventTextColumn>;
+  /*
+   * Those of them that hold Markdown, shown in the feed as written. Every
+   * other text is plain text: quoted inertly (escapeMarkdownValue), so it
+   * reads as typed and cannot become a link, an image or HTML.
+   */
+  markdownColumns: ReadonlyArray<EventTextColumn>;
+  // Whether it has a Send reminders switch (enableReminders).
+  hasRemindersSwitch: boolean;
+}
+
+// Incidents and alerts: what each compared from the start.
+export const INCIDENT_OR_ALERT_FIELDS: EventFieldKind = {
+  textColumns: ["title", "rootCause", "description", "remediationNotes"],
+  markdownColumns: ["rootCause", "description", "remediationNotes"],
+  hasRemindersSwitch: true,
+};
+
+// A scheduled maintenance event: its title and description (Markdown).
+export const SCHEDULED_MAINTENANCE_FIELDS: EventFieldKind = {
+  textColumns: ["title", "description"],
+  markdownColumns: ["description"],
+  hasRemindersSwitch: true,
+};
+
+/*
+ * A monitor: its name and description, both plain text - the dashboard
+ * shows a monitor's description as it was typed - and no reminders.
+ */
+export const MONITOR_FIELDS: EventFieldKind = {
+  textColumns: ["name", "description"],
+  markdownColumns: [],
+  hasRemindersSwitch: false,
+};
 
 /*
  * What a record held before an update, for the compared columns the update
@@ -59,6 +114,7 @@ export type EventTextColumn =
  */
 export interface EventValuesBeforeUpdate {
   title?: string | null | undefined;
+  name?: string | null | undefined;
   rootCause?: string | null | undefined;
   description?: string | null | undefined;
   remediationNotes?: string | null | undefined;
@@ -75,8 +131,14 @@ export interface EventFieldSet {
 }
 
 export default class EventFieldChange {
-  public static readonly textColumns: ReadonlyArray<EventTextColumn> = [
+  // An incident's and an alert's text columns (INCIDENT_OR_ALERT_FIELDS).
+  public static readonly textColumns: ReadonlyArray<EventTextColumn> =
+    INCIDENT_OR_ALERT_FIELDS.textColumns;
+
+  // Every text column a feed item records, in the order it lists them.
+  public static readonly feedOrder: ReadonlyArray<EventTextColumn> = [
     "title",
+    "name",
     "rootCause",
     "description",
     "remediationNotes",
@@ -87,6 +149,7 @@ export default class EventFieldChange {
     Record<EventTextColumn, string>
   > = {
     title: "No title provided.",
+    name: "No name provided.",
     rootCause: "Root cause removed.",
     description: "No description provided.",
     remediationNotes: "Remediation notes removed.",
@@ -96,23 +159,26 @@ export default class EventFieldChange {
   public static readonly noLabelsLine: string = "All labels removed.";
 
   /*
-   * The compared columns an update writes. A column left out - or sent as
-   * undefined, which writes nothing - is not written; one sent as null is,
-   * and empties it (a list set to null as well: TypeORM empties it, as []).
+   * The compared columns an update writes, of those `kind` has. A column
+   * left out - or sent as undefined, which writes nothing - is not written;
+   * one sent as null is, and empties it (a list set to null as well:
+   * TypeORM empties it, as []).
    */
   public static getFieldsWritten(
     written: Record<string, unknown> | null | undefined,
+    kind: EventFieldKind = INCIDENT_OR_ALERT_FIELDS,
   ): EventFieldSet {
     const data: Record<string, unknown> = written || {};
 
     return {
-      textColumns: this.textColumns.filter(
+      textColumns: this.inFeedOrder(kind.textColumns).filter(
         (column: EventTextColumn): boolean => {
           return data[column] !== undefined;
         },
       ),
       labels: data["labels"] !== undefined,
-      enableReminders: data["enableReminders"] !== undefined,
+      enableReminders:
+        kind.hasRemindersSwitch && data["enableReminders"] !== undefined,
     };
   }
 
@@ -180,19 +246,22 @@ export default class EventFieldChange {
   }
 
   /*
-   * What an update changed on one record, compared with what it held before
-   * the write. `valuesBeforeUpdate` is undefined for a record that read did
-   * not see: everything the update writes then counts as changed.
+   * What an update changed on one record of `kind`, compared with what it
+   * held before the write. `valuesBeforeUpdate` is undefined for a record
+   * that read did not see: everything the update writes then counts as
+   * changed.
    */
   public static getChanges(data: {
     written: Record<string, unknown> | null | undefined;
     valuesBeforeUpdate: EventValuesBeforeUpdate | undefined;
+    kind?: EventFieldKind | undefined;
   }): EventFieldSet {
     const written: Record<string, unknown> = data.written || {};
     const before: EventValuesBeforeUpdate | undefined = data.valuesBeforeUpdate;
+    const kind: EventFieldKind = data.kind || INCIDENT_OR_ALERT_FIELDS;
 
     return {
-      textColumns: this.textColumns.filter(
+      textColumns: this.inFeedOrder(kind.textColumns).filter(
         (column: EventTextColumn): boolean => {
           return this.isTextChanged({
             writtenValue: written[column],
@@ -204,10 +273,12 @@ export default class EventFieldChange {
         writtenList: written["labels"],
         idsBeforeUpdate: before ? before.labelIds : undefined,
       }),
-      enableReminders: this.isRemindersSwitchChanged({
-        writtenValue: written["enableReminders"],
-        valueBeforeUpdate: before ? before.enableReminders : undefined,
-      }),
+      enableReminders:
+        kind.hasRemindersSwitch &&
+        this.isRemindersSwitchChanged({
+          writtenValue: written["enableReminders"],
+          valueBeforeUpdate: before ? before.enableReminders : undefined,
+        }),
     };
   }
 
@@ -246,6 +317,55 @@ export default class EventFieldChange {
     return (
       this.normalizeText(data.writtenValue) !==
       this.normalizeText(data.valueBeforeUpdate)
+    );
+  }
+
+  /*
+   * The instant a time names, in milliseconds, however it reached the
+   * service: a Date, an ISO string (the API, a workflow) or a number of
+   * milliseconds. Null for no time, and for a value that names none.
+   */
+  public static toInstant(value: unknown): number | null {
+    if (value === undefined || value === null) {
+      return null;
+    }
+
+    let instant: number = NaN;
+
+    if (value instanceof Date) {
+      instant = value.getTime();
+    } else if (typeof value === "number") {
+      instant = value;
+    } else if (typeof value === "string" && value.trim()) {
+      instant = new Date(value.trim()).getTime();
+    }
+
+    return Number.isFinite(instant) ? instant : null;
+  }
+
+  /*
+   * True when the update writes a time that names another instant than the
+   * one the record held (toInstant): a form or an API client that sends the
+   * same time back - as a Date, an ISO string in another time zone, or with
+   * the milliseconds written out - has not changed it. An update that leaves
+   * it out (undefined) writes nothing. A record the read before the write
+   * did not see (valueBeforeUpdate undefined) counts as changed.
+   */
+  public static isInstantChanged(data: {
+    writtenValue: unknown;
+    valueBeforeUpdate: unknown;
+  }): boolean {
+    if (data.writtenValue === undefined) {
+      return false;
+    }
+
+    if (data.valueBeforeUpdate === undefined) {
+      return true;
+    }
+
+    return (
+      this.toInstant(data.writtenValue) !==
+      this.toInstant(data.valueBeforeUpdate)
     );
   }
 
@@ -292,37 +412,36 @@ export default class EventFieldChange {
   /*
    * The feed item's lines for the text and the labels an update changed, in
    * the order the feed lists them, each showing the value the update wrote;
-   * "" when it changed none of them. `recordName` ("Incident", "Alert")
-   * names the description.
+   * "" when it changed none of them. `recordName` ("Incident", "Alert",
+   * "Scheduled Maintenance", "Monitor") names the description.
    *
-   * The title is quoted inertly (escapeMarkdownValue), as the "created" item
-   * quotes it, and so are the label names: neither can become a link, an
-   * image or HTML. The description, root cause and remediation notes are
-   * Markdown, and are shown as written.
+   * A title or a name is quoted inertly (escapeMarkdownValue), as the
+   * "created" item quotes it, and so are the label names: none of them can
+   * become a link, an image or HTML. A text `kind` holds as Markdown is shown
+   * as written; any other text is quoted inertly too, its line breaks kept.
    */
   public static async getFeedMarkdown(data: {
     written: Record<string, unknown> | null | undefined;
     changes: EventFieldSet;
     projectId: ObjectID;
     recordName: string;
+    kind?: EventFieldKind | undefined;
   }): Promise<string> {
     const written: Record<string, unknown> = data.written || {};
+    const kind: EventFieldKind = data.kind || INCIDENT_OR_ALERT_FIELDS;
     let markdown: string = "";
 
-    for (const column of this.textColumns) {
-      if (!data.changes.textColumns.includes(column)) {
-        continue;
-      }
-
-      markdown += this.getTextLine({
+    for (const column of this.inFeedOrder(data.changes.textColumns)) {
+      markdown += this.getTextMarkdown({
         column: column,
         value: written[column],
         recordName: data.recordName,
+        isMarkdown: kind.markdownColumns.includes(column),
       });
     }
 
     if (data.changes.labels) {
-      markdown += await this.getLabelsLine({
+      markdown += await this.getLabelsMarkdown({
         writtenLabels: written["labels"],
         projectId: data.projectId,
       });
@@ -331,10 +450,16 @@ export default class EventFieldChange {
     return markdown;
   }
 
-  private static getTextLine(data: {
+  /*
+   * One text's line in the feed item, showing the value the update wrote:
+   * what emptyTextLines says when it wrote none.
+   */
+  public static getTextMarkdown(data: {
     column: EventTextColumn;
     value: unknown;
     recordName: string;
+    // The text is Markdown (the record's kind says so), shown as written.
+    isMarkdown: boolean;
   }): string {
     const text: string | null =
       typeof data.value === "string" && this.normalizeText(data.value)
@@ -346,7 +471,12 @@ export default class EventFieldChange {
         ? this.emptyTextLines[data.column]
         : data.column === "title"
           ? escapeMarkdownValue(text)
-          : text;
+          : data.isMarkdown
+            ? text
+            : escapeMarkdownValue(text, {
+                // A name is one line; a plain-text description keeps its own.
+                keepLineBreaks: data.column !== "name",
+              });
 
     return `\n\n**${this.getHeading(data.column, data.recordName)}**: \n${shown}\n`;
   }
@@ -358,6 +488,8 @@ export default class EventFieldChange {
     switch (column) {
       case "title":
         return "Title";
+      case "name":
+        return "Name";
       case "rootCause":
         return "📄 Root Cause";
       case "description":
@@ -372,7 +504,7 @@ export default class EventFieldChange {
    * project - or, when the update took every label off, that it did. "" when
    * none of the labels it names can be read (deleted since, say).
    */
-  private static async getLabelsLine(data: {
+  public static async getLabelsMarkdown(data: {
     writtenLabels: unknown;
     projectId: ObjectID;
   }): Promise<string> {
@@ -419,5 +551,14 @@ export default class EventFieldChange {
         return `- ${escapeMarkdownValue(name)}`;
       })
       .join("\n")}\n`;
+  }
+
+  // `columns` in the order the feed lists them, each once.
+  private static inFeedOrder(
+    columns: ReadonlyArray<EventTextColumn>,
+  ): Array<EventTextColumn> {
+    return this.feedOrder.filter((column: EventTextColumn): boolean => {
+      return columns.includes(column);
+    });
   }
 }

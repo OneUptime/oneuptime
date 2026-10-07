@@ -9,6 +9,7 @@ import MonitorService from "./MonitorService";
 import { MonitorFeedEventType } from "../../Models/DatabaseModels/MonitorFeed";
 import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
+import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Select from "../Types/Database/Select";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -277,10 +278,10 @@ class MonitorLabelRuleEngineServiceClass
 
       const rulesPart: string =
         ruleNames.length === 1
-          ? `**${ruleNames[0]}**`
+          ? `**${escapeMarkdownValue(ruleNames[0])}**`
           : ruleNames
               .map((n: string) => {
-                return `**${n}**`;
+                return `**${escapeMarkdownValue(n)}**`;
               })
               .join(", ");
 
@@ -288,7 +289,7 @@ class MonitorLabelRuleEngineServiceClass
         labelNames.length > 0
           ? labelNames
               .map((n: string) => {
-                return `\n- ${n}`;
+                return `\n- ${escapeMarkdownValue(n)}`;
               })
               .join("")
           : "\n- (no named labels)";

@@ -44,6 +44,7 @@ import CommandPlanExecutor, {
 import AutoRemediationRuleEngineService from "../../Services/AutoRemediationRuleEngineService";
 import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
 import logger from "../Logger";
+import { escapeMarkdownValue } from "../../../Utils/Markdown/MarkdownEscape";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import { FindOperator, Raw } from "typeorm";
 
@@ -982,7 +983,8 @@ export default class RemediationVerifier {
       data.outcome.status === AutoRemediationVerificationStatus.Verified
         ? "✅"
         : "⚠️";
-    const markdown: string = `${emoji} **Auto-remediation verification:** ${data.outcome.note}`;
+    // The note names the runbook, as typed: text in the feed item.
+    const markdown: string = `${emoji} **Auto-remediation verification:** ${escapeMarkdownValue(data.outcome.note)}`;
 
     try {
       if (data.suggestion.incidentId && data.suggestion.projectId) {

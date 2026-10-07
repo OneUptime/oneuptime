@@ -35,6 +35,7 @@ import StatusPageSubscriberNotificationMethod from "../../../Types/StatusPage/St
 import StatusPageSubscriberNotificationEventType from "../../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import SubscriberNotificationTemplateVariables from "../../../Types/StatusPage/SubscriberNotificationTemplateVariables";
 import SafeHtml from "../../../Types/SafeHtml";
+import { escapeMarkdownValue } from "../../../Utils/Markdown/MarkdownEscape";
 import {
   afterEach,
   beforeEach,
@@ -714,8 +715,12 @@ describe("scheduled maintenance subscriber notifications: template formats", () 
       expect(sentSms()).toEqual([
         `${StatusPageSubscriberNotificationMethod.SMS}: ${text}`,
       ]);
+      /*
+       * Slack's message is Markdown: each plain value is escaped for it, so
+       * it reads as typed and is no link, image, HTML or mention there.
+       */
       expect(sentSlack()).toEqual([
-        `${StatusPageSubscriberNotificationMethod.Slack}: ${text}`,
+        `${StatusPageSubscriberNotificationMethod.Slack}: ${escapeMarkdownValue(HOSTILE_TITLE)} on ${escapeMarkdownValue(HOSTILE_PAGE_NAME)}: ${escapeMarkdownValue(`${HOSTILE_RESOURCE}, Replica`)}`,
       ]);
       expect(sentWebhookData()["scheduledMaintenanceTitle"]).toBe(
         HOSTILE_TITLE,
@@ -764,7 +769,7 @@ describe("scheduled maintenance subscriber notifications: template formats", () 
       expect(variables["statusPageName"]).toBe(HOSTILE_PAGE_NAME);
     });
 
-    test("the default email gets the resource names escaped, and SMS and Slack get them as written", async () => {
+    test("the default email gets the resource names escaped for HTML, SMS gets them as written, and Slack escaped for Markdown", async () => {
       jest
         .spyOn(StatusPageSubscriberService, "getStatusPagesToSendNotification")
         .mockResolvedValue([hostilePage(false)]);
@@ -788,7 +793,10 @@ describe("scheduled maintenance subscriber notifications: template formats", () 
       expect(sentMail()[0]!.vars["eventTitle"]).toBe(HOSTILE_TITLE);
       expect(sentSms()[0]).toContain(`Impact: ${HOSTILE_RESOURCE}, Replica.`);
       expect(sentSlack()[0]).toContain(
-        `**Resources Affected:** ${HOSTILE_RESOURCE}, Replica`,
+        `## 🔧 Scheduled Maintenance - ${escapeMarkdownValue(HOSTILE_TITLE)}`,
+      );
+      expect(sentSlack()[0]).toContain(
+        `**Resources Affected:** ${escapeMarkdownValue(`${HOSTILE_RESOURCE}, Replica`)}`,
       );
       for (const message of [...sentSms(), ...sentSlack()]) {
         expect(message).not.toMatch(/&(?:amp|lt|gt|quot|#39);/);

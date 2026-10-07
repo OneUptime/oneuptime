@@ -7,6 +7,8 @@ import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement } from "react";
 import UserUtil from "Common/UI/Utils/User";
 import ObjectID from "Common/Types/ObjectID";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   user?: User | JSONObject | undefined | null;
@@ -17,7 +19,50 @@ export interface ComponentProps {
   prefixClassName?: string | undefined;
   emailClassName?: string | undefined;
   hideEmail?: boolean | undefined;
+  /*
+   * The person is no longer a member of the project (ProjectUserElement
+   * finds out): their avatar fades and "No longer a member" takes the email's
+   * line, so whoever looks after this setup knows to replace them. Nothing
+   * of the project reaches them any more.
+   */
+  isNotProjectMember?: boolean | undefined;
+  /*
+   * The person was invited to the project and has not accepted yet: nothing
+   * reaches them until they do, so "Invitation not accepted yet" takes the
+   * email's line the same way.
+   */
+  hasPendingProjectInvitation?: boolean | undefined;
 }
+
+/*
+ * The id of the user a UserElement is drawn for, whichever shape it arrived
+ * in (model, serialized model, plain object).
+ */
+export const getUserElementUserId: (
+  user: User | JSONObject | undefined | null,
+) => ObjectID | null = (
+  user: User | JSONObject | undefined | null,
+): ObjectID | null => {
+  if (user instanceof User) {
+    return user.id || null;
+  }
+
+  for (const key of ["_id", "id"]) {
+    const value: JSONValue | undefined = user?.[key];
+
+    if (!value) {
+      continue;
+    }
+
+    try {
+      return new ObjectID(value.toString());
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+};
 
 /*
  * A user can arrive here as a model instance (Name / Email objects), as the
@@ -57,6 +102,7 @@ const readableValue: ReadableValueFunction = (
 const UserElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   let user: JSONObject | null | undefined = null;
 
   if (props.user instanceof User) {
@@ -135,13 +181,22 @@ const UserElement: FunctionComponent<ComponentProps> = (
      * The name line already falls back to the email when there is no name, so
      * showing the email underneath as well would print it twice.
      */
+    // Nothing of the project reaches them: the avatar fades, and the line says why.
+    const isNotNotified: boolean = Boolean(
+      props.isNotProjectMember || props.hasPendingProjectInvitation,
+    );
+
     const showEmail: boolean = Boolean(
-      !props.hideEmail && name && email && name !== email,
+      !isNotNotified && !props.hideEmail && name && email && name !== email,
     );
 
     return (
       <div className="flex">
-        <div className={AVATAR_WRAPPER_CLASS_NAME}>
+        <div
+          className={`${AVATAR_WRAPPER_CLASS_NAME}${
+            isNotNotified ? " opacity-50 grayscale" : ""
+          }`}
+        >
           <Image
             className="h-8 w-8 rounded-full"
             imageUrl={profileImageUrl}
@@ -169,6 +224,22 @@ const UserElement: FunctionComponent<ComponentProps> = (
               }
             >
               {email}
+            </div>
+          )}
+          {props.isNotProjectMember && (
+            <div
+              data-testid="user-not-project-member"
+              className="truncate text-xs font-medium text-amber-700"
+            >
+              {translator.translateText("No longer a member")}
+            </div>
+          )}
+          {!props.isNotProjectMember && props.hasPendingProjectInvitation && (
+            <div
+              data-testid="user-project-invitation-pending"
+              className="truncate text-xs font-medium text-amber-700"
+            >
+              {translator.translateText("Invitation not accepted yet")}
             </div>
           )}
         </div>

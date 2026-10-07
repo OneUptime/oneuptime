@@ -20,7 +20,9 @@ import ts from "typescript";
  * the dashboard (and the Enterprise Edition, where present):
  *
  * - no user-facing string tells its reader to recharge, or offers
- *   auto-recharge as the way out of used-up AI credits (it is not one);
+ *   auto-recharge as the way out of used-up AI credits (most readers cannot
+ *   turn it on, and these are said only when it cannot refill them; the
+ *   owners' email, which goes to people who may, does say it);
  * - every refusal and every not-sent log uses the shared wording;
  * - nothing about the balance, and no settings page, reaches a status page
  *   visitor;
@@ -223,6 +225,24 @@ describe("the server's refusals use the shared wording", () => {
     expect(source).toContain(
       "throw new BadDataException(PROJECT_AI_CREDITS_USED_UP_MESSAGE);",
     );
+  });
+
+  /*
+   * The owners - who may add credits - are emailed when the AI credits run
+   * out, in the shared words and with the shared link to AI Credits.
+   */
+  test("the owners' email when the AI credits run out uses the shared wording and link", () => {
+    const source: string = read(
+      "Common/Server/Utils/AI/AiCreditsUsedUpOwnerNotice.ts",
+    );
+
+    expect(source).toContain("getProjectAiCreditsUsedUpOwnerSubject(");
+    expect(source).toContain("PROJECT_AI_CREDITS_USED_UP_OWNER_SENTENCE");
+    expect(source).toContain(
+      "PROJECT_AI_AUTO_RECHARGE_COULD_NOT_ADD_OWNER_SENTENCE",
+    );
+    expect(source).toContain("ProjectBalanceOwnerNotice.getHtml(");
+    expect(source).toContain("balance: ProjectBalanceType.AI,");
   });
 
   test("the AI gaps' next step is the shared who-can sentence", () => {

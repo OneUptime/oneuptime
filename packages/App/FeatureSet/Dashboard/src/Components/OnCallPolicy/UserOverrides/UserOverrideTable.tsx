@@ -1,4 +1,4 @@
-import UserElement from "../../../Components/User/User";
+import ProjectUserElement from "../../../Components/User/ProjectUserElement";
 import {
   getUserOverrideFormFields,
   prepareUserOverrideForCreate,
@@ -93,6 +93,7 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
     {
       field: {
         overrideUser: {
+          _id: true,
           name: true,
           email: true,
           profilePictureId: true,
@@ -102,7 +103,7 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
       type: FieldType.Element,
       getElement: (item: OnCallDutyPolicyUserOverride): ReactElement => {
         if (item["overrideUser"]) {
-          return <UserElement user={item["overrideUser"] as User} />;
+          return <ProjectUserElement user={item["overrideUser"] as User} />;
         }
         return <p>{translator.translateText("No user.")}</p>;
       },
@@ -110,6 +111,7 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
     {
       field: {
         routeAlertsToUser: {
+          _id: true,
           name: true,
           email: true,
           profilePictureId: true,
@@ -119,7 +121,10 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
       type: FieldType.Element,
       getElement: (item: OnCallDutyPolicyUserOverride): ReactElement => {
         if (item["routeAlertsToUser"]) {
-          return <UserElement user={item["routeAlertsToUser"] as User} />;
+          // Nobody who has left the project is paged in someone's place.
+          return (
+            <ProjectUserElement user={item["routeAlertsToUser"] as User} />
+          );
         }
         return <p>{translator.translateText("No user.")}</p>;
       },

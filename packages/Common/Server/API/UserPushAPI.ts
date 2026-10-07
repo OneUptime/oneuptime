@@ -15,8 +15,10 @@ import {
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import TestSendAccess, { TestSendToSelfCaller } from "./TestSendAccess";
+import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../Types/ObjectID";
 import PushDeviceType from "../../Types/PushNotification/PushDeviceType";
 import UserPush from "../../Models/DatabaseModels/UserPush";
@@ -49,6 +51,29 @@ export function parseCriticalAlertFlagStrict(raw: unknown): boolean {
   }
 
   throw new BadDataException("isEnabled must be either true or false.");
+}
+
+/*
+ * A push device is registered for one project and pages its owner on that
+ * project's behalf, so only a member of the project may register one (or
+ * turn one back on): somebody who has left cannot give themselves a way to
+ * be reached by it again. The project named in the request is checked, not
+ * trusted (ProjectMembership).
+ */
+export async function assertUserIsMemberOfProject(data: {
+  userId: ObjectID;
+  projectId: ObjectID;
+}): Promise<void> {
+  const memberUserIds: Set<string> = await ProjectMembership.getMemberUserIds({
+    projectId: data.projectId,
+    userIds: [data.userId],
+  });
+
+  if (!memberUserIds.has(data.userId.toString().toLowerCase())) {
+    throw new NotAuthorizedException(
+      "You are not authorized to access this project's data.",
+    );
+  }
 }
 
 function getAuthenticatedUserId(req: ExpressRequest): ObjectID {
@@ -108,11 +133,28 @@ export default class UserPushAPI extends BaseAPI<
             );
           }
 
+          const projectIdString: string = req.body.projectId.toString();
+
+          if (!ObjectID.isValidUUID(projectIdString)) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Project ID is invalid"),
+            );
+          }
+
+          const projectId: ObjectID = new ObjectID(projectIdString);
+
+          await assertUserIsMemberOfProject({
+            userId: userId,
+            projectId: projectId,
+          });
+
           // Check if device is already registered
           const existingDevice: UserPush | null = await this.service.findOneBy({
             query: {
               userId: userId,
-              projectId: new ObjectID(req.body.projectId),
+              projectId: projectId,
               deviceToken: req.body.deviceToken,
             },
             props: {
@@ -136,7 +178,7 @@ export default class UserPushAPI extends BaseAPI<
           // Create new device registration
           const userPush: UserPush = new UserPush();
           userPush.userId = userId;
-          userPush.projectId = new ObjectID(req.body.projectId);
+          userPush.projectId = projectId;
           userPush.deviceToken = req.body.deviceToken;
           userPush.deviceType = req.body.deviceType;
           userPush.deviceName = req.body.deviceName || "Unknown Device";
@@ -163,7 +205,7 @@ export default class UserPushAPI extends BaseAPI<
           try {
             await UserNotificationRuleService.addDefaultNotificationRulesForVerifiedMethod(
               {
-                projectId: new ObjectID(req.body.projectId),
+                projectId: projectId,
                 userId,
                 notificationMethod: {
                   userPushId: savedDevice.id!,
@@ -466,6 +508,20 @@ export default class UserPushAPI extends BaseAPI<
               new BadDataException("Unauthorized access to device"),
             );
           }
+
+          if (!device.projectId) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Device not found"),
+            );
+          }
+
+          // A device pages for its project: only while the owner is a member of it.
+          await assertUserIsMemberOfProject({
+            userId: userId,
+            projectId: device.projectId,
+          });
 
           await this.service.verifyDevice(device._id!.toString());
 

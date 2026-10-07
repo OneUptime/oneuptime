@@ -292,7 +292,7 @@ The second step, **Start and End**, has **Starts when** and **Ends when**. Each 
 | Moment                                  | When it happens                                                              | Stored in the API as                                  |
 | --------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------- |
 | **The incident is declared**            | When the incident started in OneUptime: when it was created, unless someone set an earlier time. | `Declared At` (`Timeline Start` is the same instant)  |
-| **The incident is acknowledged**        | When it reaches your acknowledged state.                                     | `State Role Entered`, role `Acknowledged`             |
+| **The incident is acknowledged**        | When it reaches your acknowledged state, or any state after it (a resolve straight from the start counts too). | `State Role Entered`, role `Acknowledged`             |
 | **The incident is resolved**            | When it reaches your resolved state.                                         | `State Role Entered`, role `Resolved`                 |
 | **The postmortem is published**         | When the incident's postmortem is published.                                 | `Postmortem Posted At`                                |
 | **The incident enters a state you pick** | Any of your incident states. The form then asks which one.                  | `State Entered`, with the state                       |

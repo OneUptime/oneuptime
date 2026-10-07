@@ -36,7 +36,10 @@ import ProbeApiIngestResponse from "../../../../Types/Probe/ProbeApiIngestRespon
 import RollingTime from "../../../../Types/RollingTime/RollingTime";
 import StorageSystem from "../../../../Types/StorageArray/StorageSystem";
 import MetricSeriesFingerprint from "../../../../Utils/Metrics/MetricSeriesFingerprint";
+import SlackUtil from "../../../../Server/Utils/Workspace/Slack/Slack";
+import { WORD_JOINER } from "../../../../Utils/Markdown/MarkdownEscape";
 import { describe, expect, test } from "@jest/globals";
+import { Lexer, Token, marked } from "marked";
 
 /*
  * The root cause a Storage Array monitor writes into its incident / alert:
@@ -206,6 +209,31 @@ function resource(
   };
 }
 
+// Text as read, with marked's HTML escapes undone.
+function withoutHtmlEscapes(text: string): string {
+  return text
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&#x27;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&");
+}
+
+// A link whose words are not the address it goes to.
+function hidesItsAddress(token: Token): boolean {
+  const { text, href } = token as unknown as { text: string; href: string };
+  const words: string = withoutHtmlEscapes(text);
+  let address: string = withoutHtmlEscapes(href);
+
+  try {
+    address = decodeURI(address);
+  } catch {
+    // Compared as it is.
+  }
+
+  return words !== address;
+}
+
 describe("Storage Array root cause: the details block", () => {
   test("names the array, its platform, the metric compared and the step's object filters", () => {
     const step: MonitorStep = stepFor({
@@ -231,6 +259,59 @@ describe("Storage Array root cause: the details block", () => {
         "- Volume Filter: vol-db-01",
         "- Host Filter: esx-01",
       ].join("\n"),
+    );
+  });
+
+  /*
+   * A filter is text the monitor's author typed, shown in a root cause that
+   * reaches the dashboard, email, Slack and Microsoft Teams: it reads as
+   * typed there, and is no link, tag or chat mention.
+   */
+  test("shows each object filter as text, as it was typed", () => {
+    const step: MonitorStep = stepFor({
+      alias: "vol_read_latency",
+      metricName: "purefa_volume_performance_latency_usec",
+      storageSystem: StorageSystem.PureStorageFlashArray,
+      resourceFilters: {
+        volumeName: "[Runbook](https://evil.example/login) <!channel>",
+        hostName: '<img src="https://tracker.example/p.png">',
+      },
+      value: 5000,
+    });
+
+    const text: string = render({
+      monitorStep: step,
+      dataToProcess: response({ monitorStep: step }),
+    });
+
+    expect(text).toContain(
+      [
+        `- Volume Filter: \\[Runbook\\](https://evil.example/login) \\<${WORD_JOINER}!channel>`,
+        '- Host Filter: \\<img src="https://tracker.example/p.png">',
+      ].join("\n"),
+    );
+
+    const tokens: Array<Token> = [];
+
+    marked.walkTokens(new Lexer({ gfm: true }).lex(text), (token: Token) => {
+      tokens.push(token);
+    });
+
+    // A bare address may be a link, showing itself; nothing else is.
+    expect(
+      tokens
+        .filter((token: Token): boolean => {
+          return (
+            token.type === "html" ||
+            (token.type === "link" && hidesItsAddress(token))
+          );
+        })
+        .map((token: Token): string => {
+          return token.raw;
+        }),
+    ).toEqual([]);
+    expect(SlackUtil.convertMarkdownToSlackRichText(text)).not.toMatch(
+      /<!channel>|<https:\/\/evil\.example[^>]*\|/,
     );
   });
 
@@ -507,6 +588,41 @@ describe("Storage Array root cause: the affected resources list", () => {
     expect(text).toContain("1. **Hardware Component** `CH1.FB2` — **0**");
     expect(text).not.toContain("CH1.FB1");
     expect(text).not.toContain("CH1.FB3");
+  });
+
+  /*
+   * A unit no catalog knows labels the value as the exporter wrote it: text
+   * a monitored system chose, so it is no tag or chat mention in the list.
+   */
+  test("a value labelled with a unit no catalog knows reads as text", () => {
+    const step: MonitorStep = stepFor({
+      alias: "vendor_metric",
+      metricName: "purefa_vendor_specific_gauge",
+      value: 0,
+    });
+
+    const text: string = render({
+      monitorStep: step,
+      dataToProcess: response({
+        monitorStep: step,
+        breakdowns: [
+          breakdown({
+            alias: "vendor_metric",
+            metricName: "purefa_vendor_specific_gauge",
+            friendlyName: "Vendor Gauge",
+            metricUnit: "<!here>",
+            resources: [resource({ objectName: "vol-enc-01" }, 7)],
+          }),
+        ],
+      }),
+    });
+
+    expect(text).toContain("`vol-enc-01`");
+    expect(text.split(WORD_JOINER).join("")).toContain("7 \\<!here>");
+    expect(text).not.toMatch(/(^|[^\\])<[A-Za-z!@#/]/m);
+    expect(SlackUtil.convertMarkdownToSlackRichText(text)).not.toMatch(
+      /<[!@#][A-Za-z]/,
+    );
   });
 
   test("a data reduction ratio reads as a ratio, never as a percentage", () => {

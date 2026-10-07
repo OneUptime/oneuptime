@@ -29,6 +29,7 @@ import IncidentEpisodeInternalNote from "../../Models/DatabaseModels/IncidentEpi
 import IncidentEpisodeInternalNoteService from "./IncidentEpisodeInternalNoteService";
 import { JSONObject } from "../../Types/JSON";
 import StateChangeNote from "../Utils/StateChangeNote";
+import StateChangeFeedEmoji from "../Utils/StateChangeFeedEmoji";
 
 export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeline> {
   public constructor() {
@@ -428,7 +429,6 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
         },
         select: {
           _id: true,
-          isAcknowledgedState: true,
           isCreatedState: true,
           color: true,
           name: true,
@@ -436,19 +436,25 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
       });
 
     /*
+     * Acknowledged by the one rule (Common/Utils/AcknowledgedState): the
+     * acknowledged state, a state placed after it, or a resolved one.
+     */
+    const isAcknowledged: boolean =
+      await IncidentStateService.isAcknowledgedIncidentState({
+        projectId: createdItem.projectId!,
+        incidentStateId: createdItem.incidentStateId,
+      });
+
+    /*
      * The state's name is plain text, placed into the feed item's Markdown
      * (posted to Slack and Teams too): escaped, so it reads as typed.
      */
     const stateName: string = escapeMarkdownValue(incidentState?.name || "");
-    let stateEmoji: string = "➡️";
-
-    if (isResolvedState) {
-      stateEmoji = "✅";
-    } else if (incidentState?.isAcknowledgedState) {
-      stateEmoji = "👀";
-    } else if (incidentState?.isCreatedState) {
-      stateEmoji = "🔴";
-    }
+    const stateEmoji: string = StateChangeFeedEmoji.get({
+      isResolved: isResolvedState,
+      isAcknowledged: isAcknowledged,
+      isCreatedState: Boolean(incidentState?.isCreatedState),
+    });
 
     const episode: IncidentEpisode | null =
       await IncidentEpisodeService.findOneById({

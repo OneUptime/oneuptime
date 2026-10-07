@@ -38,12 +38,17 @@ import {
 } from "../../../Utils/Dashboard/Components/DashboardStorageArrayResourceListShared";
 
 /*
- * An incident or alert list's "Unresolved" or "Resolved" filter. Which states
- * that means is the project's (Common/Utils/ResolvedState): its resolved
- * state and any state placed after it are resolved. The policy names the
+ * An incident or alert list's "Unresolved", "Resolved" or "Acknowledged"
+ * filter. Which states that means is the project's: its resolved state and
+ * any state placed after it are resolved (Common/Utils/ResolvedState); its
+ * acknowledged state and any state placed after it, short of resolved, are
+ * acknowledged (Common/Utils/AcknowledgedState). The policy names the
  * filter; the route turns it into the project's state ids.
  */
-export type PublicDashboardResolvedStateFilter = "unresolved" | "resolved";
+export type PublicDashboardResolvedStateFilter =
+  | "unresolved"
+  | "resolved"
+  | "acknowledged";
 
 export interface PublicDashboardResourceListPolicyResult {
   resourceType: string;
@@ -899,11 +904,10 @@ export default class PublicDashboardResourceListPolicy {
         ["unresolved", "resolved", "acknowledged"],
       );
 
-    // Unresolved and Resolved are the project's to say (resolvedStateFilter).
-    if (stateFilter === "acknowledged") {
-      query["currentIncidentState"] = { isAcknowledgedState: true };
-    }
-
+    /*
+     * Unresolved, Resolved and Acknowledged are the project's to say
+     * (resolvedStateFilter): by where its states sit, not by one flag.
+     */
     PublicDashboardResourceListPolicy.addIncludesFromArgument({
       query,
       queryKey: "incidentSeverityId",
@@ -950,11 +954,10 @@ export default class PublicDashboardResourceListPolicy {
         ["unresolved", "resolved", "acknowledged"],
       );
 
-    // Unresolved and Resolved are the project's to say (resolvedStateFilter).
-    if (stateFilter === "acknowledged") {
-      query["currentAlertState"] = { isAcknowledgedState: true };
-    }
-
+    /*
+     * Unresolved, Resolved and Acknowledged are the project's to say
+     * (resolvedStateFilter): by where its states sit, not by one flag.
+     */
     PublicDashboardResourceListPolicy.addIncludesFromArgument({
       query,
       queryKey: "alertSeverityId",
@@ -1901,11 +1904,15 @@ export default class PublicDashboardResourceListPolicy {
     };
   }
 
-  // A list's stored state filter, as far as resolved or not goes.
+  // A list's stored state filter: the states the project's lists say.
   private static toResolvedStateFilter(
     stateFilter: string | undefined,
   ): PublicDashboardResolvedStateFilter | undefined {
-    if (stateFilter === "unresolved" || stateFilter === "resolved") {
+    if (
+      stateFilter === "unresolved" ||
+      stateFilter === "resolved" ||
+      stateFilter === "acknowledged"
+    ) {
       return stateFilter;
     }
 

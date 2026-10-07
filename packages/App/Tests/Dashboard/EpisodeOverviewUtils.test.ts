@@ -70,6 +70,17 @@ const CLOSED: EpisodeTimingState = {
   order: 4,
 };
 
+/*
+ * A state of the project's own placed between Acknowledged and Resolved,
+ * without a flag: an episode in it is acknowledged all the same
+ * (Common/Utils/AcknowledgedState).
+ */
+const INVESTIGATING: EpisodeTimingState = {
+  id: "investigating",
+  name: "Investigating",
+  order: 2.5,
+};
+
 const STATES: Array<EpisodeTimingState> = [CREATED, ACKNOWLEDGED, RESOLVED];
 
 const START: Date = new Date("2026-09-14T18:00:00.000Z");
@@ -133,6 +144,60 @@ describe("getEpisodeTiming", () => {
     expect(timing.isResolved).toBe(true);
     expect(timing.durationEndsAt).toEqual(at(45));
     expect(timing.timeToResolve).toBe("45 minutes");
+  });
+
+  /*
+   * A state of the project's own placed between Acknowledged and Resolved
+   * counts as acknowledged (Common/Utils/AcknowledgedState): an episode
+   * moved straight into it was acknowledged then. Reading the acknowledged
+   * state alone said "Not yet acknowledged" until it was resolved.
+   */
+  test("an episode moved straight into a state after Acknowledged was acknowledged then", () => {
+    const timing: EpisodeTiming = getEpisodeTiming({
+      list: StateListType.IncidentState,
+      startedAt: START,
+      states: [CREATED, ACKNOWLEDGED, INVESTIGATING, RESOLVED],
+      timelines: [
+        { stateId: CREATED.id, startsAt: START },
+        { stateId: INVESTIGATING.id, startsAt: at(9) },
+      ],
+    });
+
+    expect(timing.timeToAcknowledge).toBe("9 minutes");
+    expect(timing.timeToResolve).toBe("Not yet resolved");
+    expect(timing.isResolved).toBe(false);
+  });
+
+  test("moving on from Acknowledged to a state after it keeps the first acknowledgement", () => {
+    const timing: EpisodeTiming = getEpisodeTiming({
+      list: StateListType.AlertState,
+      startedAt: START,
+      states: [CREATED, ACKNOWLEDGED, INVESTIGATING, RESOLVED],
+      timelines: [
+        { stateId: CREATED.id, startsAt: START },
+        { stateId: ACKNOWLEDGED.id, startsAt: at(4) },
+        { stateId: INVESTIGATING.id, startsAt: at(20) },
+      ],
+    });
+
+    expect(timing.timeToAcknowledge).toBe("4 minutes");
+  });
+
+  test("a resolution before the first acknowledgement is the first response", () => {
+    const timing: EpisodeTiming = getEpisodeTiming({
+      list: StateListType.IncidentState,
+      startedAt: START,
+      states: STATES,
+      timelines: [
+        { stateId: CREATED.id, startsAt: START },
+        { stateId: RESOLVED.id, startsAt: at(15) },
+        { stateId: CREATED.id, startsAt: at(30) },
+        { stateId: ACKNOWLEDGED.id, startsAt: at(50) },
+      ],
+    });
+
+    expect(timing.timeToAcknowledge).toBe("15 minutes");
+    expect(timing.timeToResolve).toBe("15 minutes");
   });
 
   test("uses the state names the project configured", () => {

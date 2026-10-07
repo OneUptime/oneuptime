@@ -52,6 +52,8 @@ import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailL
 import StateChangeNoteMessage from "Common/Types/StatusPage/StateChangeNoteMessage";
 import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
+import SubscriberMarkdownTemplateValues from "Common/Server/Utils/StatusPage/SubscriberMarkdownTemplateValues";
+import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
 
 /*
  * Two jobs share this send path: one tells subscribers about a new public
@@ -480,12 +482,30 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
         note: notePlainText,
       };
 
+      /*
+       * A custom Slack or Teams message is Markdown: every plain value - the
+       * title, the status page's name, the state, the resource list - is
+       * escaped, so it reads as typed and cannot become a link, an image, raw
+       * HTML or a chat mention wherever the template places it
+       * (SubscriberMarkdownTemplateValues). The addresses are OneUptime's
+       * own; the description and the note stay the Markdown they were
+       * written as.
+       */
       const markdownTemplateVariables: Record<string, string> = {
-        ...templateVariables,
-        resourcesAffected: resourcesAffectedPlainText,
+        ...SubscriberMarkdownTemplateValues.fromPlainValues({
+          ...templateVariables,
+          resourcesAffected: resourcesAffectedPlainText,
+        }),
         scheduledMaintenanceDescription: event.description || "",
         note: publicNote.note || "",
       };
+
+      // The default Slack and Teams messages place the same plain values.
+      const statusPageNameInMarkdown: string =
+        escapeMarkdownValue(statusPageName);
+      const eventTitleInMarkdown: string = escapeMarkdownValue(
+        event.title || "",
+      );
 
       // Send email to Email subscribers.
 
@@ -622,9 +642,9 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
               );
           } else {
             // Use default hard-coded template
-            markdownMessage = `## Scheduled Maintenance Update - ${statusPageName}
+            markdownMessage = `## Scheduled Maintenance Update - ${statusPageNameInMarkdown}
 
-**Event:** ${event.title || ""}
+**Event:** ${eventTitleInMarkdown}
 ${chatStatusLine}
 **${copy.chatNoteSentence}**
 
@@ -657,9 +677,9 @@ ${chatStatusLine}
               );
           } else {
             // Use default hard-coded template
-            markdownMessage = `## Scheduled Maintenance Update - ${statusPageName}
+            markdownMessage = `## Scheduled Maintenance Update - ${statusPageNameInMarkdown}
 
-**Event:** ${event.title || ""}
+**Event:** ${eventTitleInMarkdown}
 ${chatStatusLine}
 **${copy.chatNoteSentence}**
 

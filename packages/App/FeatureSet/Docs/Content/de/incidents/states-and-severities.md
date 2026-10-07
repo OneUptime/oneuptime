@@ -35,7 +35,7 @@ Achten Sie auf den Namen: Der erste Status heißt **Identified**, auch wenn ihn 
 | Flag                  | Zweck                                                                                                                                                                                                  |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `isCreatedState`      | Der Status, den ein Vorfall erhält, wenn niemand einen gewählt hat. Trägt kein Status im Projekt dieses Flag, schlägt das Anlegen eines Vorfalls mit einem Fehler fehl, der Sie auffordert, in den Einstellungen einen Erstellungsstatus anzulegen. |
-| `isAcknowledgedState` | Treibt die Schaltfläche **Acknowledge** und die Kennzahlkachel „<Statusname> in" auf der **Übersicht** des Vorfalls an. Bei einem Wechsel in diesen Status wird die SLA des Vorfalls als beantwortet markiert. |
+| `isAcknowledgedState` | Kennzeichnet den bestätigten Status des Projekts: den, in den **Acknowledge** einen Vorfall setzt und nach dem die Bestätigt-Kachel benannt ist. Ein Vorfall in diesem Status, in einem Status danach oder ein behobener ist bestätigt – **Acknowledge** wird für ihn nicht mehr angeboten, On-Call alarmiert für ihn nicht mehr, und seine SLA wird als beantwortet markiert. |
 | `isResolvedState`     | Kennzeichnet den behobenen Status des Projekts: den, in den **Beheben** einen Vorfall setzt und den die Behoben-Kachel zeigt. Ein Vorfall in diesem Status oder in einem Status danach ist behoben – er verlässt **Aktive Vorfälle** und den aktiven Bereich einer Statusseite, und seine SLA wird als behoben markiert. |
 
 Pro Projekt sollte jedes Flag nur ein einziger Status tragen – die Abfragen holen jeweils genau eine Zeile. Die drei Status mit Flag lassen sich umbenennen, umfärben und umsortieren, aber die Einstellungsseite verweigert das Löschen und zeigt einen Fehler, der den erstellten, den bestätigten und den behobenen Status benennt.
@@ -103,6 +103,18 @@ Es gibt vier Wege, wie ein Vorfall den Status wechselt:
 - **Automatisch.** Ein Monitor-Kriterium mit aktiviertem **Vorfall automatisch beheben** behebt seinen Vorfall, sobald das Kriterium nicht mehr erfüllt ist, und die API kann den Status über `/api/incident-state-timeline` aktualisieren.
 
 Jeder dieser Wege schreibt eine Zeitachsenzeile. Ein Statuswechsel erledigt außerdem ein paar Dinge, um die Sie nicht bitten müssen: Er schreibt einen Eintrag in den Vorfall-Feed, bestimmt einen Incident Commander, falls der Vorfall noch keinen hat, und aktualisiert die SLA-Uhr. Einen behobenen Vorfall wieder zu öffnen startet einen frischen SLA-Datensatz ab dem Zeitpunkt der Wiedereröffnung.
+
+## Was das Bestätigen bewirkt
+
+Ein Vorfall ist bestätigt, sobald er in Ihren bestätigten Status wechselt, in einen Status danach – etwa einen Status **Untersuchung**, den Sie unter **Bestätigt** platziert haben – oder in einen behobenen Status, gleich, welcher der vier Wege oben ihn dorthin bringt. Die Seite mit den Statuseinstellungen zeigt, welche Status das sind. Sobald er bestätigt ist:
+
+- **Acknowledge wird nicht mehr angeboten.** Weder im Kopf des Vorfalls noch in der mobilen App (Schaltfläche und Wischgeste), in Slack oder Microsoft Teams oder über `acknowledge_incident` des OneUptime-MCP-Servers. Ihn trotzdem zu bestätigen – aus einer On-Call-Benachrichtigung, aus Slack oder Teams – wird mit „Incident is already acknowledged." (oder „Incident is already resolved.") abgelehnt, statt ihn in seiner Liste zurückzusetzen.
+- **On-Call alarmiert für ihn nicht mehr.** Wer seine Benachrichtigung bestätigt, nachdem jemand anderes den Vorfall bestätigt oder weiterbewegt hat, bekommt seine Benachrichtigung bestätigt, und der Vorfall bleibt, wo er ist.
+- **Die SLA wird als beantwortet markiert**, beim ersten solchen Wechsel; weitere Wechsel in spätere Status behalten diesen Zeitpunkt.
+- **Die Zeit bis zur Bestätigung läuft bis zu diesem ersten Wechsel** – die Kennzahlkachel auf der **Übersicht** des Vorfalls, die Metrik **Time to Acknowledge**, eine Messung, die endet, wenn der Vorfall bestätigt wird, und die MTTA in Zusammenfassungen in Slack und Microsoft Teams. Ein Vorfall, der direkt von **Identified** nach **Untersuchung** wechselt, war damit bestätigt; einer, der sofort behoben wird, war mit dem Beheben bestätigt.
+- **Ein Filter „Bestätigt"** – etwa im Vorfalllisten-Widget eines Dashboards – zeigt die Vorfälle in Ihrem bestätigten Status und in jedem Status danach, solange sie nicht behoben sind.
+
+Alerts und Episoden folgen derselben Regel mit Ihren Alert-Status.
 
 ## Was das Beheben bewirkt
 

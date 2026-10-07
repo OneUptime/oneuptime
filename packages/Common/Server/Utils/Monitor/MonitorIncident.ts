@@ -690,8 +690,13 @@ export default class MonitorIncident {
             }),
             seriesLabels,
           });
+          /*
+           * The description and remediation notes are Markdown: what the
+           * monitored system sent goes into them as text
+           * (processMarkdownTemplateString).
+           */
           incident.description = SeriesContextEnricher.enrichDescription({
-            description: MonitorTemplateUtil.processTemplateString({
+            description: MonitorTemplateUtil.processMarkdownTemplateString({
               value: criteriaIncident.description,
               storageMap,
             }),
@@ -927,7 +932,7 @@ export default class MonitorIncident {
 
           if (criteriaIncident.remediationNotes) {
             incident.remediationNotes =
-              MonitorTemplateUtil.processTemplateString({
+              MonitorTemplateUtil.processMarkdownTemplateString({
                 value: criteriaIncident.remediationNotes,
                 storageMap,
               });

@@ -63,6 +63,7 @@ import IncidentEpisodeService from "./IncidentEpisodeService";
 import AlertEpisodeService from "./AlertEpisodeService";
 import ProjectService from "./ProjectService";
 import Project from "../../Models/DatabaseModels/Project";
+import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
 
 export interface MessageBlocksByWorkspaceType {
   workspaceType: WorkspaceType;
@@ -2055,7 +2056,32 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     logger.debug(data, {
       projectId: data.projectId?.toString(),
     } as LogAttributes);
-    const userIds: Array<ObjectID> = data.userIds;
+
+    /*
+     * A channel of the project is joined only by members of the project.
+     * The ids come from owner rows, team rosters (pending invitations
+     * included) and on-call pages, any of which can name somebody who has
+     * left, so they are narrowed to members in one read (ProjectMembership).
+     */
+    const memberUserIds: Set<string> = await ProjectMembership.getMemberUserIds(
+      {
+        projectId: data.projectId,
+        userIds: data.userIds,
+      },
+    );
+
+    const userIds: Array<ObjectID> = data.userIds.filter(
+      (userId: ObjectID): boolean => {
+        return memberUserIds.has(userId.toString().toLowerCase());
+      },
+    );
+
+    if (userIds.length === 0) {
+      logger.debug("No project members to invite. Returning.", {
+        projectId: data.projectId?.toString(),
+      } as LogAttributes);
+      return;
+    }
 
     logger.debug("Users:", {
       projectId: data.projectId?.toString(),

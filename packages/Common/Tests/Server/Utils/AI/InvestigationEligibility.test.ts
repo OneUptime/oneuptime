@@ -187,8 +187,8 @@ describe("investigation enablement reasons", () => {
 
 /*
  * On OneUptime's own billed provider, a project with no AI credits (and
- * auto-recharge off) has every model call refused with "Insufficient AI
- * balance". Starting an investigation then only produces a failed run that
+ * nothing to refill them first: auto-recharge off, or its last charge
+ * failed) has every model call refused with "Insufficient AI balance". Starting an investigation then only produces a failed run that
  * is retried once, with nothing on the incident saying why — so the gate
  * refuses up front with a reason people can act on. It is the same
  * predicate as the cluster's ai_balance_insufficient gap, and it fails OPEN:
@@ -381,9 +381,9 @@ describe("the AI balance gate (insufficient_ai_balance)", () => {
       );
       expect(reason.nextStep).toContain("Project Settings → AI Credits");
       /*
-       * Not "turn on auto-recharge": AI credits are recharged after a call
-       * they paid for, so a used-up balance stays used up until someone
-       * adds credits. And no command: the card names who can, or links.
+       * Not "turn on auto-recharge": the reason is only recorded when it
+       * cannot refill the credits (off, or its last charge failed). And no
+       * command: the card names who can, or links.
        */
       expect(reason.nextStep).not.toMatch(/auto-?recharge/i);
       expect(reason.nextStep).toBe(

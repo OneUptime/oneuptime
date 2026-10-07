@@ -374,3 +374,180 @@ describe("ScheduledMaintenanceStartUtil.hasStarted", () => {
     ).toBe(true);
   });
 });
+
+/*
+ * Whether an event is in progress - started and not yet ended: where it
+ * holds its monitors, paused in its Change Monitor Status to. Ongoing, or a
+ * state of the project's own placed between Ongoing and Ended. A move into
+ * one of them from a state where the event had not started is its start
+ * (ScheduledMaintenanceStateTimelineService).
+ */
+describe("ScheduledMaintenanceStartUtil.isInProgressByFlags", () => {
+  test.each([
+    ["Ongoing", ONGOING, true],
+    ["Scheduled", SCHEDULED, false],
+    ["Ended", ENDED, false],
+    ["Completed", COMPLETED, false],
+  ] as Array<[string, StateSpec, boolean]>)(
+    "%s answers from its own flag",
+    (_name: string, spec: StateSpec, inProgress: boolean) => {
+      expect(
+        ScheduledMaintenanceStartUtil.isInProgressByFlags(model(spec)),
+      ).toBe(inProgress);
+      expect(
+        ScheduledMaintenanceStartUtil.isInProgressByFlags(json(spec)),
+      ).toBe(inProgress);
+    },
+  );
+
+  test("a state of the project's own cannot tell by itself: its place decides", () => {
+    for (const spec of [CONFIRMED, VERIFYING, ARCHIVED]) {
+      expect(
+        ScheduledMaintenanceStartUtil.isInProgressByFlags(model(spec)),
+      ).toBeNull();
+    }
+  });
+
+  test("nothing to read answers nothing", () => {
+    expect(ScheduledMaintenanceStartUtil.isInProgressByFlags(undefined)).toBe(
+      null,
+    );
+    expect(ScheduledMaintenanceStartUtil.isInProgressByFlags(null)).toBe(null);
+    expect(ScheduledMaintenanceStartUtil.isInProgressByFlags("ongoing")).toBe(
+      null,
+    );
+  });
+});
+
+describe("ScheduledMaintenanceStartUtil.isInProgress", () => {
+  test.each([
+    ["Scheduled", SCHEDULED, false],
+    ["Confirmed (the project's own, before Ongoing)", CONFIRMED, false],
+    ["Ongoing", ONGOING, true],
+    ["Verifying (the project's own, after Ongoing)", VERIFYING, true],
+    ["Ended", ENDED, false],
+    ["Completed", COMPLETED, false],
+    ["Archived (the project's own, after Completed)", ARCHIVED, false],
+  ] as Array<[string, StateSpec, boolean]>)(
+    "an event in %s is in progress: %s",
+    (_name: string, spec: StateSpec, inProgress: boolean) => {
+      expect(
+        ScheduledMaintenanceStartUtil.isInProgress({
+          states: STATE_MODELS,
+          state: model(spec),
+        }),
+      ).toBe(inProgress);
+      expect(
+        ScheduledMaintenanceStartUtil.isInProgress({
+          states: PROJECT_STATES.map(json),
+          state: json(spec),
+        }),
+      ).toBe(inProgress);
+    },
+  );
+
+  test("a state of the project's own between Ended and Completed is over, not in progress", () => {
+    const reviewing: StateSpec = {
+      id: "aaaaaaaa-0000-4000-8000-0000000000ae",
+      name: "Reviewing",
+      order: 5.5,
+      kind: "custom",
+    };
+
+    expect(
+      ScheduledMaintenanceStartUtil.isInProgress({
+        states: [...STATE_MODELS, model(reviewing)],
+        state: model(reviewing),
+      }),
+    ).toBe(false);
+    // It has started all the same.
+    expect(
+      ScheduledMaintenanceStartUtil.hasStarted({
+        states: [...STATE_MODELS, model(reviewing)],
+        state: model(reviewing),
+      }),
+    ).toBe(true);
+  });
+
+  test("a state read with no place or flags is placed where the project's list puts it", () => {
+    expect(
+      ScheduledMaintenanceStartUtil.isInProgress({
+        states: STATE_MODELS,
+        state: { _id: VERIFYING.id },
+      }),
+    ).toBe(true);
+    expect(
+      ScheduledMaintenanceStartUtil.isInProgress({
+        states: STATE_MODELS,
+        state: { _id: ` ${CONFIRMED.id.toUpperCase()}` },
+      }),
+    ).toBe(false);
+    // The list's copy of a built-in state answers by its flag.
+    expect(
+      ScheduledMaintenanceStartUtil.isInProgress({
+        states: STATE_MODELS,
+        state: { _id: new ObjectID(ONGOING.id) },
+      }),
+    ).toBe(true);
+    expect(
+      ScheduledMaintenanceStartUtil.isInProgress({
+        states: STATE_MODELS,
+        state: { _id: ENDED.id },
+      }),
+    ).toBe(false);
+  });
+
+  test("a state the list does not hold is placed by its own place", () => {
+    expect(
+      ScheduledMaintenanceStartUtil.isInProgress({
+        states: STATE_MODELS,
+        state: { _id: "aaaaaaaa-0000-4000-8000-0000000000af", order: 4.5 },
+      }),
+    ).toBe(true);
+    expect(
+      ScheduledMaintenanceStartUtil.isInProgress({
+        states: STATE_MODELS,
+        state: { _id: "aaaaaaaa-0000-4000-8000-0000000000b0", order: 2.5 },
+      }),
+    ).toBe(false);
+  });
+
+  test("a state that cannot be placed is not in progress: nothing says it is", () => {
+    expect(
+      ScheduledMaintenanceStartUtil.isInProgress({
+        states: STATE_MODELS,
+        state: { _id: "aaaaaaaa-0000-4000-8000-0000000000b1" },
+      }),
+    ).toBe(false);
+    expect(
+      ScheduledMaintenanceStartUtil.isInProgress({
+        states: [],
+        state: model(VERIFYING),
+      }),
+    ).toBe(false);
+    expect(
+      ScheduledMaintenanceStartUtil.isInProgress({
+        states: STATE_MODELS,
+        state: undefined,
+      }),
+    ).toBe(false);
+  });
+
+  test("with no list to read, Ongoing is still in progress", () => {
+    expect(
+      ScheduledMaintenanceStartUtil.isInProgress({
+        states: [],
+        state: model(ONGOING),
+      }),
+    ).toBe(true);
+  });
+
+  test("the list is read in its order, however it arrives", () => {
+    expect(
+      ScheduledMaintenanceStartUtil.isInProgress({
+        states: [...STATE_MODELS].reverse(),
+        state: model(VERIFYING),
+      }),
+    ).toBe(true);
+  });
+});

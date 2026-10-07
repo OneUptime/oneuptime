@@ -71,6 +71,8 @@ import WorkspaceOAuthState, {
 } from "../Utils/Workspace/WorkspaceOAuthState";
 import WorkspaceOAuthCallbackAccess from "./WorkspaceOAuthCallbackAccess";
 import OneUptimeDate from "../../Types/Date";
+import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
+import { neutralizeAiWrittenMarkdown } from "../../Utils/Markdown/UntrustedMarkdown";
 
 export default class SlackAPI {
   /*
@@ -2031,13 +2033,22 @@ export default class SlackAPI {
       feature: "Slack ChatOps",
     });
 
-    let answerMarkdown: string = result.contentInMarkdown || "";
+    /*
+     * The answer is written from telemetry, which can carry text meant to
+     * steer the model, and it is posted to a channel: it stays the Markdown
+     * the model wrote, with no mention that notifies anybody, no image, no
+     * link whose words hide where it goes and no HTML tag in it
+     * (neutralizeAiWrittenMarkdown). A citation's label is text.
+     */
+    let answerMarkdown: string = neutralizeAiWrittenMarkdown(
+      result.contentInMarkdown || "",
+    );
 
     // Append a compact "Sources" footer from the server-minted citations.
     if (result.citations && result.citations.length > 0) {
       const sourceLines: Array<string> = result.citations.map(
         (citation: AIChatCitation) => {
-          return `• ${citation.label} (${citation.rowCount} rows)`;
+          return `• ${escapeMarkdownValue(citation.label)} (${citation.rowCount} rows)`;
         },
       );
 

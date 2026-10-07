@@ -35,7 +35,7 @@ Fíjate en el nombre: el primer estado es **Identificado**, aunque varias descri
 | Indicador             | Para qué sirve                                                                                                                                                                                       |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `isCreatedState`      | El estado que recibe un incidente cuando nadie eligió ninguno. Si ningún estado del proyecto lleva este indicador, crear un incidente falla con un error que te pide añadir un estado de creación desde los ajustes. |
-| `isAcknowledgedState` | Gobierna el botón **Acknowledge** y el mosaico de estadísticas «<nombre del estado> en» de la **Vista General** del incidente. Al pasar a este estado, el SLA del incidente se marca como respondido. |
+| `isAcknowledgedState` | Marca el estado reconocido del proyecto: aquel al que **Acknowledge** lleva un incidente y que da nombre al mosaico de reconocido. Un incidente en él, en cualquier estado posterior o resuelto está reconocido: ya no se le ofrece **Acknowledge**, la guardia deja de avisar por él y su SLA se marca como respondido. |
 | `isResolvedState`     | Marca el estado resuelto del proyecto: al que **Resolver** lleva el incidente y el que muestra el mosaico de resueltos. Un incidente en él, o en cualquier estado posterior, está resuelto: sale de **Incidentes Activos** y de la sección activa de una página de estado, y su SLA se marca como resuelto. |
 
 Se espera que solo un estado por proyecto lleve cada indicador: las búsquedas recuperan una sola fila. Los tres estados con indicador se pueden renombrar, recolorear y reordenar, pero la página de ajustes se niega a eliminarlos y muestra un error nombrando los estados de creación, reconocimiento y resolución.
@@ -103,6 +103,18 @@ Hay cuatro maneras de que un incidente cambie de estado:
 - **Automáticamente.** Un criterio de monitor con **Resolver incidente automáticamente** activado resuelve su incidente cuando el criterio deja de cumplirse, y la API puede actualizar el estado a través de `/api/incident-state-timeline`.
 
 Todas ellas escriben una fila en la línea de tiempo. Un cambio de estado hace además unas cuantas cosas que no tienes que pedir: publica una entrada en el feed del incidente, asigna un Incident Commander si el incidente aún no tiene ninguno y actualiza el reloj del SLA. Reabrir un incidente resuelto inicia un registro de SLA nuevo desde el momento de la reapertura.
+
+## Qué hace reconocer un incidente
+
+Un incidente está reconocido desde el momento en que pasa a tu estado reconocido, a cualquier estado posterior —un estado **Investigando** que colocaste debajo de **Reconocido**, por ejemplo— o a un estado resuelto, sea cual sea de las cuatro vías anteriores la que lo mueva. La página de ajustes de estados muestra cuáles son esos estados. Una vez reconocido:
+
+- **Ya no se ofrece Acknowledge.** Ni en la cabecera del incidente, ni en la aplicación móvil (su botón y su deslizamiento), ni en Slack o Microsoft Teams, ni con `acknowledge_incident` del servidor MCP de OneUptime. Reconocerlo de todos modos —desde un aviso de guardia, Slack o Teams— se rechaza con "Incident is already acknowledged." (o "Incident is already resolved."), en lugar de devolverlo hacia arriba en su lista.
+- **La guardia deja de avisar por él.** Quien reconoce su aviso después de que otra persona reconociera el incidente, o lo hiciera avanzar, ve su aviso reconocido, y el incidente se queda donde está.
+- **El SLA se marca como respondido** en el primer paso así; seguir avanzando por estados posteriores conserva esa hora.
+- **El tiempo hasta el reconocimiento llega hasta ese primer paso**: el mosaico de la **Vista General** del incidente, la métrica **Time to Acknowledge**, una medición que termina cuando el incidente se reconoce y el MTTA de los resúmenes de Slack y Microsoft Teams. Un incidente que pasa directamente de **Identificado** a **Investigando** quedó reconocido entonces; uno resuelto en el acto quedó reconocido al resolverse.
+- **Un filtro Reconocido** —en el widget de lista de incidentes de un dashboard, por ejemplo— muestra los incidentes en tu estado reconocido y en cualquier estado posterior, mientras no estén resueltos.
+
+Las alertas y los episodios siguen la misma regla con tus estados de alerta.
 
 ## Qué hace resolver un incidente
 

@@ -152,6 +152,18 @@ jest.mock("Common/Server/Services/UserService", () => {
   return { __esModule: true, default: { findOneById: jest.fn() } };
 });
 
+// Every engineer here is a member of the project: the condition is their id.
+jest.mock("Common/Server/Utils/TeamMember/ProjectMembership", () => {
+  return {
+    __esModule: true,
+    default: {
+      userIdWhileMember: jest.fn((data: { userId: unknown }): unknown => {
+        return data.userId;
+      }),
+    },
+  };
+});
+
 jest.mock("../../FeatureSet/Notification/Utils/TwilioConfigHelper", () => {
   return { __esModule: true, getProjectTwilioConfig: jest.fn() };
 });

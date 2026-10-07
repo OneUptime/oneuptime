@@ -460,7 +460,11 @@ describe("the tool handler, reached without the HTTP gate", () => {
 
       expect(result.isError).toBe(false);
       expect(result.payload.success).toBe(true);
-      expect(makeAuthenticatedApiCall).toHaveBeenCalledTimes(2);
+      /*
+       * The acknowledged state, the incident's current state (one already
+       * acknowledged is not moved back), then the timeline entry.
+       */
+      expect(makeAuthenticatedApiCall).toHaveBeenCalledTimes(3);
 
       for (const [options] of makeAuthenticatedApiCall.mock.calls) {
         expect((options as { credential: unknown }).credential).toBe(

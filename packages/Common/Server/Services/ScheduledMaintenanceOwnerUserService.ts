@@ -1,5 +1,6 @@
 import User from "../../Models/DatabaseModels/User";
 import ObjectID from "../../Types/ObjectID";
+import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import ProjectReferencesService from "./ProjectReferencesService";
@@ -82,7 +83,7 @@ export class Service extends ProjectReferencesService<Model> {
               scheduledMaintenanceFeedEventType:
                 ScheduledMaintenanceFeedEventType.OwnerUserRemoved,
               displayColor: Red500,
-              feedInfoInMarkdown: `Removed **${user.name.toString()}** (${user.email?.toString()}) from the scheduled maintenance as the owner.`,
+              feedInfoInMarkdown: `Removed **${escapeMarkdownValue(user.name.toString())}** (${escapeMarkdownValue(user.email?.toString())}) from the scheduled maintenance as the owner.`,
               userId: deleteByUserId || undefined,
             },
           );

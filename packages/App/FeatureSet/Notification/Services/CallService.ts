@@ -275,6 +275,10 @@ export default class CallService {
               isRoot: true,
             },
           });
+          await UserOnCallLogTimelineService.markNotSent({
+            userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+            reason: callLog.statusMessage!,
+          });
           return;
         }
 
@@ -313,6 +317,10 @@ export default class CallService {
               )}`,
             );
           }
+          await UserOnCallLogTimelineService.markNotSent({
+            userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+            reason: callLog.statusMessage!,
+          });
           return;
         }
 
@@ -384,6 +392,10 @@ export default class CallService {
                 })}`,
               );
             }
+            await UserOnCallLogTimelineService.markNotSent({
+              userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+              reason: callLog.statusMessage!,
+            });
             return;
           }
         }
