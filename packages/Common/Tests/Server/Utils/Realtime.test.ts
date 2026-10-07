@@ -422,6 +422,58 @@ describe("Realtime (server) ListenToModelEvent", () => {
       );
     });
 
+    /*
+     * Joining is not hearing about every record in the room: each event is
+     * checked against its record's read, as the person the socket joined
+     * as (RealtimeDelivery.test.ts). The socket keeps who that is.
+     */
+    test("a joined socket keeps who it joined as, for the checks of each event", async () => {
+      memberOf([TENANT_ID]);
+
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(validToken()),
+      );
+
+      await Realtime.handleListenToModelEventRequest(
+        socket.asSocket(),
+        REQUEST as unknown as JSONObject,
+      );
+
+      expect((socket as unknown as { data: JSONObject }).data).toEqual({
+        realtimeReader: { userId: USER_ID, isMasterAdmin: false },
+      });
+    });
+
+    test("a master admin's socket keeps that it is one", async () => {
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(validToken({ isMasterAdmin: true })),
+      );
+
+      await Realtime.handleListenToModelEventRequest(
+        socket.asSocket(),
+        REQUEST as unknown as JSONObject,
+      );
+
+      expect((socket as unknown as { data: JSONObject }).data).toEqual({
+        realtimeReader: { userId: USER_ID, isMasterAdmin: true },
+      });
+    });
+
+    test("a refused socket is not given anyone to hear as", async () => {
+      memberOf([OTHER_TENANT_ID]);
+
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(validToken()),
+      );
+
+      await Realtime.handleListenToModelEventRequest(
+        socket.asSocket(),
+        REQUEST as unknown as JSONObject,
+      );
+
+      expect((socket as unknown as { data?: JSONObject }).data).toBeUndefined();
+    });
+
     test("a master admin joins the room", async () => {
       const socket: FakeServerSocket = new FakeServerSocket(
         cookieWith(validToken({ isMasterAdmin: true })),

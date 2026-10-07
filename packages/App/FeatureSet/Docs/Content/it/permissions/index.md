@@ -177,6 +177,8 @@ I campi seguono la stessa regola. Un blocco senza etichette sull'autorizzazione 
 
 La stessa regola decide tutto il resto che chiede se detenete un'autorizzazione: le azioni che non sono una semplice lettura o scrittura — aggiungere credito SMS, chiamate o IA, pagare una fattura, provare una regola di notifica — e i pulsanti che OneUptime mostra. Un pulsante che non potete usare appare bloccato e dice perché; quando la ragione è un blocco su uno dei vostri team, nomina l'autorizzazione bloccata.
 
+Gli aggiornamenti in tempo reale seguono la stessa regola. Quando un record viene creato, modificato o eliminato, OneUptime avvisa le pagine aperte delle persone che possono leggere quel record, e di nessun altro. Ciò che limita quello che potete leggere limita anche i vostri aggiornamenti in tempo reale: etichette, proprietari, un blocco con etichette, un incidente privato o la conversazione IA di un'altra persona. Quando una modifica vi toglie l'accesso a un record, per esempio rendendolo privato, anche le vostre pagine aperte vengono avvisate, così smettono di mostrarlo. Una modifica alle vostre autorizzazioni raggiunge le vostre pagine aperte entro 30 secondi.
+
 Ogni utente autenticato detiene inoltre un piccolo insieme di autorizzazioni automatiche che coprono cose come leggere il proprio profilo e le proprie regole di notifica. Non sono autorizzazioni amministrative e non danno accesso ai dati di nessun altro.
 
 Le autorizzazioni risolte sono memorizzate in cache per utente e progetto e aggiornate quando cambiano l'appartenenza ai team o le autorizzazioni del team. Se modificate le autorizzazioni e un utente non vede subito il cambiamento, chiedetegli di ricaricare.
