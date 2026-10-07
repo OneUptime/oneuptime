@@ -69,7 +69,7 @@ import WorkspaceOAuthState, {
   WorkspaceOAuthFlow,
   WorkspaceOAuthStateRecord,
 } from "../Utils/Workspace/WorkspaceOAuthState";
-import WorkspaceOAuthCallbackAccess from "../Utils/Workspace/WorkspaceOAuthCallbackAccess";
+import WorkspaceOAuthCallbackAccess from "./WorkspaceOAuthCallbackAccess";
 import OneUptimeDate from "../../Types/Date";
 
 export default class SlackAPI {
@@ -402,7 +402,11 @@ export default class SlackAPI {
             },
           );
         } catch (refusal) {
-          return Response.sendErrorResponse(req, res, refusal as Exception);
+          return Response.sendErrorResponse(
+            req,
+            res,
+            WorkspaceOAuthCallbackAccess.answerFor(refusal),
+          );
         }
 
         const projectId: string = stateRecord.projectId.toString();
@@ -630,7 +634,11 @@ export default class SlackAPI {
             record: stateRecord,
           });
         } catch (refusal) {
-          return Response.sendErrorResponse(req, res, refusal as Exception);
+          return Response.sendErrorResponse(
+            req,
+            res,
+            WorkspaceOAuthCallbackAccess.answerFor(refusal),
+          );
         }
 
         const projectId: string = stateRecord.projectId.toString();

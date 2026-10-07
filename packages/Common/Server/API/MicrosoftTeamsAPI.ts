@@ -50,7 +50,7 @@ import WorkspaceOAuthState, {
   WorkspaceOAuthFlow,
   WorkspaceOAuthStateRecord,
 } from "../Utils/Workspace/WorkspaceOAuthState";
-import WorkspaceOAuthCallbackAccess from "../Utils/Workspace/WorkspaceOAuthCallbackAccess";
+import WorkspaceOAuthCallbackAccess from "./WorkspaceOAuthCallbackAccess";
 
 // Delegated scopes for "sign in with Microsoft Teams" — authorize and token requests must agree.
 const MICROSOFT_TEAMS_USER_SIGN_IN_SCOPES: string =
@@ -923,7 +923,11 @@ export default class MicrosoftTeamsAPI {
             record: stateRecord,
           });
         } catch (refusal) {
-          return Response.sendErrorResponse(req, res, refusal as Exception);
+          return Response.sendErrorResponse(
+            req,
+            res,
+            WorkspaceOAuthCallbackAccess.answerFor(refusal),
+          );
         }
 
         const projectId: ObjectID = stateRecord.projectId;
@@ -1216,7 +1220,15 @@ export default class MicrosoftTeamsAPI {
             );
           }
 
-          // Whoever started admin consent may still connect the project.
+          teamsIntegrationPageUrl = MicrosoftTeamsAPI.getIntegrationPageUrl(
+            stateRecord.projectId,
+          );
+
+          /*
+           * Whoever started admin consent may still connect the project. A
+           * refusal is shown on the integration page, as every failure after
+           * the state is; anything else is this handler's error.
+           */
           try {
             await WorkspaceOAuthCallbackAccess.assertStartedByMayManageConnection(
               {
@@ -1225,12 +1237,20 @@ export default class MicrosoftTeamsAPI {
               },
             );
           } catch (refusal) {
-            return Response.sendErrorResponse(req, res, refusal as Exception);
-          }
+            if (refusal instanceof Exception) {
+              return Response.redirect(
+                req,
+                res,
+                teamsIntegrationPageUrl.addQueryParam(
+                  "error",
+                  refusal.message,
+                  true,
+                ),
+              );
+            }
 
-          teamsIntegrationPageUrl = MicrosoftTeamsAPI.getIntegrationPageUrl(
-            stateRecord.projectId,
-          );
+            throw refusal;
+          }
 
           const error: string | undefined = req.query["error"]?.toString();
           const errorDescription: string | undefined =

@@ -8,6 +8,7 @@ import Response from "../Utils/Response";
 import BadDataException from "../../Types/Exception/BadDataException";
 import BadRequestException from "../../Types/Exception/BadRequestException";
 import Exception from "../../Types/Exception/Exception";
+import ServerException from "../../Types/Exception/ServerException";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import { JSONArray, JSONObject } from "../../Types/JSON";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
@@ -33,6 +34,7 @@ import WorkspaceOAuthState, {
   WorkspaceOAuthStateRecord,
 } from "../Utils/Workspace/WorkspaceOAuthState";
 import GitHubConnectAccess, {
+  GITHUB_CONNECT_FAILED_MESSAGE,
   GITHUB_CONNECT_LINK_MESSAGE,
   GitHubConnectCaller,
 } from "./GitHubConnectAccess";
@@ -338,12 +340,14 @@ export default class GitHubAPI {
             error,
             getLogAttributesFromRequest(req as OneUptimeRequest),
           );
+
+          // Logged above; the browser is told plainly, never the raw error.
           return Response.sendErrorResponse(
             req,
             res,
-            error instanceof Error
-              ? new BadDataException(error.message)
-              : new BadDataException("An error occurred"),
+            error instanceof Exception
+              ? error
+              : new ServerException(GITHUB_CONNECT_FAILED_MESSAGE),
           );
         }
       },

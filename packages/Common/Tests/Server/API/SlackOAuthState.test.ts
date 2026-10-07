@@ -23,6 +23,8 @@ import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SlackAPIClass from "../../../Server/API/SlackAPI";
+import WorkspaceOAuthCallbackAccess from "../../../Server/API/WorkspaceOAuthCallbackAccess";
+import logger from "../../../Server/Utils/Logger";
 import { AppApiClientUrl } from "../../../Server/EnvironmentConfig";
 import SlackAppManifest from "../../../Server/Utils/Workspace/Slack/app-manifest.json";
 import {
@@ -228,6 +230,16 @@ describe("Slack OAuth state", () => {
    * sends them back; null when they are no longer a member.
    */
   let callbackMembership: Array<Permission> | null = null;
+
+  // The callback's next membership read fails the way a database does.
+  function failNextMembershipRead(): void {
+    jest.spyOn(logger, "error").mockImplementation(() => {});
+    (
+      WorkspaceActionAuthorization.getProjectMemberProps as unknown as jest.Mock
+    ).mockImplementationOnce(async () => {
+      throw new Error('relation "TeamMember" does not exist');
+    });
+  }
 
   afterEach(() => {
     jest.restoreAllMocks();
@@ -618,6 +630,26 @@ describe("Slack OAuth state", () => {
       expectNothingWritten();
     });
 
+    test("a check that fails is answered plainly, never with what failed, and connects nothing", async () => {
+      const { state, browser } = await startFlow(INSTALL_START);
+      stubInstallTokenExchange();
+      failNextMembershipRead();
+
+      const response: ProbeResponse = await callback(
+        installCallbackPath(),
+        { code: "slack-code", state },
+        browser,
+      );
+
+      expect(response.status).toBe(500);
+      expect((response.body as JSONObject)["message"]).toBe(
+        WorkspaceOAuthCallbackAccess.COULD_NOT_CHECK_MESSAGE,
+      );
+      expect(JSON.stringify(response.body)).not.toContain("TeamMember");
+      expect(postSpy).not.toHaveBeenCalled();
+      expectNothingWritten();
+    });
+
     test("asks about the person and project the state names, not the path", async () => {
       const { state, browser } = await startFlow(INSTALL_START);
       stubInstallTokenExchange();
@@ -799,6 +831,26 @@ describe("Slack OAuth state", () => {
       expect((response.body as JSONObject)["message"]).toBe(
         WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
       );
+      expect(postSpy).not.toHaveBeenCalled();
+      expectNothingWritten();
+    });
+
+    test("a membership check that fails is answered plainly, never with what failed", async () => {
+      const { state, browser } = await startFlow(SIGN_IN_START);
+      stubSignInTokenExchange();
+      failNextMembershipRead();
+
+      const response: ProbeResponse = await callback(
+        signInCallbackPath(),
+        { code: "slack-code", state },
+        browser,
+      );
+
+      expect(response.status).toBe(500);
+      expect((response.body as JSONObject)["message"]).toBe(
+        WorkspaceOAuthCallbackAccess.COULD_NOT_CHECK_MESSAGE,
+      );
+      expect(JSON.stringify(response.body)).not.toContain("TeamMember");
       expect(postSpy).not.toHaveBeenCalled();
       expectNothingWritten();
     });

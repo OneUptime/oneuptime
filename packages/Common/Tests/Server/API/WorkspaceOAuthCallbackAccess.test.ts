@@ -1,15 +1,20 @@
-import WorkspaceOAuthCallbackAccess from "../../../../Server/Utils/Workspace/WorkspaceOAuthCallbackAccess";
-import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
+import CommonAPI from "../../../Server/API/CommonAPI";
+import WorkspaceOAuthCallbackAccess from "../../../Server/API/WorkspaceOAuthCallbackAccess";
+import WorkspaceActionAuthorization from "../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
 import WorkspaceOAuthState, {
   WorkspaceOAuthFlow,
   WorkspaceOAuthStateRecord,
-} from "../../../../Server/Utils/Workspace/WorkspaceOAuthState";
-import UserService from "../../../../Server/Services/UserService";
-import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
-import ObjectID from "../../../../Types/ObjectID";
-import Permission, { UserPermission } from "../../../../Types/Permission";
-import UserType from "../../../../Types/UserType";
+} from "../../../Server/Utils/Workspace/WorkspaceOAuthState";
+import UserService from "../../../Server/Services/UserService";
+import logger from "../../../Server/Utils/Logger";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import BadRequestException from "../../../Types/Exception/BadRequestException";
+import Exception from "../../../Types/Exception/Exception";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import ServerException from "../../../Types/Exception/ServerException";
+import ObjectID from "../../../Types/ObjectID";
+import Permission, { UserPermission } from "../../../Types/Permission";
+import UserType from "../../../Types/UserType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -21,7 +26,7 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * through where the start lets one through.
  */
 
-jest.mock("../../../../Server/Utils/Logger");
+jest.mock("../../../Server/Utils/Logger");
 
 const REFUSAL: string = "You may not finish this connection.";
 
@@ -35,6 +40,7 @@ describe("WorkspaceOAuthCallbackAccess", () => {
   let memberships: Map<string, Membership>;
   let masterAdmins: Set<string>;
   let membershipRead: jest.SpyInstance;
+  let serverAdminRead: jest.SpyInstance;
 
   beforeEach(() => {
     record = {
@@ -101,7 +107,7 @@ describe("WorkspaceOAuthCallbackAccess", () => {
         },
       );
 
-    jest
+    serverAdminRead = jest
       .spyOn(UserService, "findOneById")
       .mockImplementation(async (data: any): Promise<any> => {
         return { isMasterAdmin: masterAdmins.has(data.id.toString()) };
@@ -191,6 +197,23 @@ describe("WorkspaceOAuthCallbackAccess", () => {
       expect((refusal as Error).message).toBe("database unavailable");
     });
 
+    test("a server-admin read that fails is an error, not a refusal", async () => {
+      grant({ allow: [Permission.ProjectMember] });
+      serverAdminRead.mockImplementation(async () => {
+        throw new Error("database unavailable");
+      });
+
+      const refusal: unknown = await refusalOf(() => {
+        return WorkspaceOAuthCallbackAccess.getStartedByProps({
+          record,
+          errorMessage: REFUSAL,
+        });
+      });
+
+      expect(refusal).not.toBeInstanceOf(NotAuthorizedException);
+      expect((refusal as Error).message).toBe("database unavailable");
+    });
+
     test("whether they are a server admin is read as it is now", async () => {
       grant({ allow: [Permission.Viewer] });
       masterAdmins.add(record.userId.toString());
@@ -229,9 +252,65 @@ describe("WorkspaceOAuthCallbackAccess", () => {
         WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
       );
     });
+
+    test("asks membership alone: whether they are a server admin is not read", async () => {
+      grant({ allow: [Permission.Viewer] });
+
+      await WorkspaceOAuthCallbackAccess.assertStartedByIsMember({ record });
+
+      expect(membershipRead).toHaveBeenCalledTimes(1);
+      expect(serverAdminRead).not.toHaveBeenCalled();
+    });
+
+    test("a server admin who left the project is not a member either", async () => {
+      masterAdmins.add(record.userId.toString());
+
+      const refusal: unknown = await refusalOf(() => {
+        return WorkspaceOAuthCallbackAccess.assertStartedByIsMember({ record });
+      });
+
+      expect(refusal).toBeInstanceOf(NotAuthorizedException);
+    });
   });
 
   describe("assertStartedByMayManageConnection (connecting Slack, Teams admin consent)", () => {
+    test("asks the rule the start asks, with the callback's sentence", async () => {
+      grant({ allow: [Permission.ProjectAdmin] });
+
+      const startRule: jest.SpyInstance = jest.spyOn(
+        CommonAPI,
+        "assertPermittedInProject",
+      );
+
+      await WorkspaceOAuthCallbackAccess.assertStartedByMayManageConnection({
+        record,
+        errorMessage: REFUSAL,
+      });
+
+      expect(startRule).toHaveBeenCalledTimes(1);
+
+      const asked: {
+        databaseProps: DatabaseCommonInteractionProps;
+        allowedPermissions: Array<Permission>;
+        errorMessage?: string | undefined;
+      } = startRule.mock.calls[0]![0] as {
+        databaseProps: DatabaseCommonInteractionProps;
+        allowedPermissions: Array<Permission>;
+        errorMessage?: string | undefined;
+      };
+
+      expect(asked.allowedPermissions).toEqual(
+        WorkspaceOAuthState.MANAGE_CONNECTION_PERMISSIONS,
+      );
+      expect(asked.errorMessage).toBe(REFUSAL);
+      expect(asked.databaseProps.userId?.toString()).toBe(
+        record.userId.toString(),
+      );
+      expect(asked.databaseProps.tenantId?.toString()).toBe(
+        record.projectId.toString(),
+      );
+    });
+
     test.each(WorkspaceOAuthState.MANAGE_CONNECTION_PERMISSIONS)(
       "%s may finish connecting the project",
       async (permission: Permission) => {
@@ -319,6 +398,49 @@ describe("WorkspaceOAuthCallbackAccess", () => {
 
       expect(refusal).toBeInstanceOf(NotAuthorizedException);
       expect((refusal as Error).message).toBe(REFUSAL);
+    });
+  });
+
+  describe("answerFor (what a callback answers when it was not let through)", () => {
+    test("a refusal is answered as it is, with its own sentence and status", () => {
+      const refusal: NotAuthorizedException = new NotAuthorizedException(
+        REFUSAL,
+      );
+
+      expect(WorkspaceOAuthCallbackAccess.answerFor(refusal)).toBe(refusal);
+
+      const badRequest: BadRequestException = new BadRequestException(
+        "This link has already been used.",
+      );
+
+      expect(WorkspaceOAuthCallbackAccess.answerFor(badRequest)).toBe(
+        badRequest,
+      );
+    });
+
+    test("anything else is logged and answered plainly, never with its own message", () => {
+      const failure: Error = new Error(
+        'relation "TeamMember" does not exist at character 15',
+      );
+
+      const answer: Exception = WorkspaceOAuthCallbackAccess.answerFor(failure);
+
+      expect(answer).toBeInstanceOf(ServerException);
+      expect(answer.message).toBe(
+        WorkspaceOAuthCallbackAccess.COULD_NOT_CHECK_MESSAGE,
+      );
+      expect(answer.message).not.toContain("TeamMember");
+      expect(logger.error).toHaveBeenCalledWith(failure);
+    });
+
+    test("something thrown that is not even an Error is answered plainly too", () => {
+      const answer: Exception =
+        WorkspaceOAuthCallbackAccess.answerFor("connection reset");
+
+      expect(answer).toBeInstanceOf(ServerException);
+      expect(answer.message).toBe(
+        WorkspaceOAuthCallbackAccess.COULD_NOT_CHECK_MESSAGE,
+      );
     });
   });
 });

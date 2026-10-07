@@ -29,6 +29,7 @@ import {
   HomeClientUrl,
 } from "../../../Server/EnvironmentConfig";
 import {
+  GITHUB_CONNECT_FAILED_MESSAGE,
   GITHUB_CONNECT_LINK_MESSAGE,
   GITHUB_CONNECT_PERMISSION_MESSAGE,
 } from "../../../Server/API/GitHubConnectAccess";
@@ -782,6 +783,29 @@ describe("Connecting a GitHub App installation", () => {
       expectNoStateIssued(response);
     });
 
+    test("a credential issued for reading only is told the one sentence, before the plan is asked", async () => {
+      useBilling(PlanType.Free);
+
+      const response: ProbeResponse = await start({
+        permissions: [Permission.ProjectOwner],
+        readOnly: true,
+      });
+
+      expect(response.status).toBe(422);
+      expect(messageOf(response)).toBe(GITHUB_CONNECT_PERMISSION_MESSAGE);
+      expectNoStateIssued(response);
+    });
+
+    test("a server admin below the plan is refused at the start, as every request to the project holds one to its plan", async () => {
+      useBilling(PlanType.Free);
+
+      const response: ProbeResponse = await start({ masterAdmin: true });
+
+      expect(response.status).toBe(402);
+      expect(messageOf(response)).toBe(GROWTH_REFUSAL);
+      expectNoStateIssued(response);
+    });
+
     test("someone outside the project is told the one sentence, nothing about its plan", async () => {
       useBilling(PlanType.Free);
 
@@ -1125,6 +1149,26 @@ describe("Connecting a GitHub App installation", () => {
       expectNothingWritten();
     });
 
+    test("a check that fails is answered plainly, never with what failed, before GitHub is asked", async () => {
+      const { state, browser } = await startFlow();
+      (
+        WorkspaceActionAuthorization.getProjectMemberProps as unknown as jest.Mock
+      ).mockImplementationOnce(async () => {
+        throw new Error('relation "TeamMember" does not exist');
+      });
+
+      const response: ProbeResponse = await callback(
+        connectQuery(state),
+        browser,
+      );
+
+      expect(response.status).toBe(500);
+      expect(messageOf(response)).toBe(GITHUB_CONNECT_FAILED_MESSAGE);
+      expect(JSON.stringify(response.body)).not.toContain("TeamMember");
+      expect(verifyInstallation).not.toHaveBeenCalled();
+      expectNothingWritten();
+    });
+
     test("the person and project are the state's, for the membership read too", async () => {
       const { state, browser } = await startFlow();
 
@@ -1171,10 +1215,26 @@ describe("Connecting a GitHub App installation", () => {
       expectNothingWritten();
     });
 
-    test("a server admin is held to the project's plan at the callback, as at the start", async () => {
+    test("a server admin is held to no plan at the callback, as adding a repository by hand holds none", async () => {
       useBilling(PlanType.Growth);
       const { state, browser } = await startFlow({ masterAdmin: true });
       masterAdmins.add(userId.toString());
+      currentPlan = PlanType.Free;
+      getCurrentPlan.mockClear();
+
+      const response: ProbeResponse = await callback(
+        connectQuery(state),
+        browser,
+      );
+
+      expect(response.status).toBe(302);
+      expect(getCurrentPlan).not.toHaveBeenCalled();
+      expect(updateProject).toHaveBeenCalledTimes(1);
+    });
+
+    test("someone who stopped being a server admin since starting is held to the plan again", async () => {
+      useBilling(PlanType.Growth);
+      const { state, browser } = await startFlow({ masterAdmin: true });
       currentPlan = PlanType.Free;
 
       const response: ProbeResponse = await callback(
@@ -1183,6 +1243,7 @@ describe("Connecting a GitHub App installation", () => {
       );
 
       expect(response.status).toBe(402);
+      expect(messageOf(response)).toBe(GROWTH_REFUSAL);
       expectNothingWritten();
     });
 
@@ -1238,6 +1299,25 @@ describe("Connecting a GitHub App installation", () => {
 
       expect(response.status).toBe(400);
       expectNothingWritten();
+    });
+
+    test("a binding that cannot be written is answered plainly, never with what failed, and imports nothing", async () => {
+      const { state, browser } = await startFlow();
+      updateProject.mockImplementation(async () => {
+        throw new Error(
+          'duplicate key value violates unique constraint "Project_pkey"',
+        );
+      });
+
+      const response: ProbeResponse = await callback(
+        connectQuery(state),
+        browser,
+      );
+
+      expect(response.status).toBe(500);
+      expect(messageOf(response)).toBe(GITHUB_CONNECT_FAILED_MESSAGE);
+      expect(JSON.stringify(response.body)).not.toContain("Project_pkey");
+      expect(importRepositories).not.toHaveBeenCalled();
     });
 
     test("still sends the browser back when the import fails: the webhooks retry it", async () => {

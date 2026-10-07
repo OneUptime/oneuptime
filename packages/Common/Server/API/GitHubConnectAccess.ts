@@ -1,12 +1,11 @@
-import { IsBillingEnabled } from "../EnvironmentConfig";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import BillingPermissions from "../Types/Database/Permissions/BillingPermission";
-import ProjectService, { CurrentPlan } from "../Services/ProjectService";
+import CallerPlan from "../Utils/Billing/CallerPlan";
 import { ExpressRequest } from "../Utils/Express";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import WorkspaceOAuthCallbackAccess from "../Utils/Workspace/WorkspaceOAuthCallbackAccess";
 import { WorkspaceOAuthStateRecord } from "../Utils/Workspace/WorkspaceOAuthState";
 import CommonAPI from "./CommonAPI";
+import WorkspaceOAuthCallbackAccess from "./WorkspaceOAuthCallbackAccess";
 import CodeRepository from "../../Models/DatabaseModels/CodeRepository";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
@@ -37,7 +36,13 @@ import ObjectID from "../../Types/ObjectID";
  * (assertMayFinish), before anything is written: the callback learns the
  * project and the person only from that state (WorkspaceOAuthState), never
  * from the redirect, and the state proves nothing about what they may still
- * do. Tests/Server/API/GitHubConnectPermission pins both.
+ * do. Two differences, both deliberate. The credential (2) is asked at the
+ * start only: the callback acts for the person, through their browser, and
+ * carries no credential of its own. And the plan (3) is read at the start as
+ * every request to the project reads it, and at the callback as everything
+ * that acts for a stored person reads it (CallerPlan) - which holds no server
+ * admin to a plan, as adding a code repository by hand holds none.
+ * Tests/Server/API/GitHubConnectPermission pins both.
  */
 
 /*
@@ -54,6 +59,14 @@ export const GITHUB_CONNECT_PERMISSION_MESSAGE: string =
  */
 export const GITHUB_CONNECT_LINK_MESSAGE: string =
   "This GitHub connection link is invalid, has expired, or has already been used. Please connect GitHub again from Code Repositories in your OneUptime project.";
+
+/*
+ * What the callback says when something other than an answer stopped it once
+ * the state was spent - a read or a write that failed. The error itself is
+ * logged, never shown.
+ */
+export const GITHUB_CONNECT_FAILED_MESSAGE: string =
+  "OneUptime could not finish connecting GitHub. Please connect GitHub again from Code Repositories in your OneUptime project.";
 
 // Who is connecting, once the rule has let them.
 export interface GitHubConnectCaller {
@@ -80,6 +93,16 @@ export default class GitHubConnectAccess {
       return CommonAPI.assertAuthenticatedProjectMember(props);
     });
 
+    /*
+     * A credential issued for reading only never connects one, whatever its
+     * member may do or the project's plan - so it is refused before the plan
+     * is asked, with the one sentence rather than an offer of a plan that
+     * would not let it.
+     */
+    GitHubConnectAccess.withOneMessage(() => {
+      DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
+    });
+
     GitHubConnectAccess.assertMayConnect(props);
 
     return {
@@ -91,7 +114,8 @@ export default class GitHubConnectAccess {
   /*
    * When GitHub sends the browser back: the person the spent state names, in
    * its project, as they are now - still a member, read from the database,
-   * still on the plan, still holding the permission.
+   * still on the plan (CallerPlan, which refuses a plan it cannot read),
+   * still holding the permission.
    */
   @CaptureSpan()
   public static async assertMayFinish(
@@ -103,21 +127,15 @@ export default class GitHubConnectAccess {
         errorMessage: GITHUB_CONNECT_PERMISSION_MESSAGE,
       });
 
-    GitHubConnectAccess.assertMayConnect(
-      await GitHubConnectAccess.withProjectPlan(props, record.projectId),
-    );
+    GitHubConnectAccess.assertMayConnect(await CallerPlan.withPlan(props));
   }
 
   /*
-   * Steps 2 to 4, of props that name the project: a credential that may make
-   * changes, the plan, then the create permission. A refusal of the plan says
-   * which plan it takes; every other refusal says the one sentence.
+   * Steps 3 and 4, of props that name the project: the plan, then the create
+   * permission. A refusal of the plan says which plan it takes; every other
+   * refusal says the one sentence.
    */
   private static assertMayConnect(props: DatabaseCommonInteractionProps): void {
-    GitHubConnectAccess.withOneMessage(() => {
-      DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
-    });
-
     BillingPermissions.checkFeatureIsOnPlan(
       CodeRepository,
       props,
@@ -131,29 +149,6 @@ export default class GitHubConnectAccess {
         errorMessage: GITHUB_CONNECT_PERMISSION_MESSAGE,
       });
     });
-  }
-
-  /*
-   * The project's plan, read the way a request to the project reads it
-   * (CommonAPI.getDatabaseCommonInteractionProps), so the callback holds the
-   * person to the plan the start held them to. Nothing is read where billing
-   * is off.
-   */
-  private static async withProjectPlan(
-    props: DatabaseCommonInteractionProps,
-    projectId: ObjectID,
-  ): Promise<DatabaseCommonInteractionProps> {
-    if (!IsBillingEnabled) {
-      return props;
-    }
-
-    const plan: CurrentPlan = await ProjectService.getCurrentPlan(projectId);
-
-    return {
-      ...props,
-      currentPlan: plan.plan || undefined,
-      isSubscriptionUnpaid: plan.isSubscriptionUnpaid,
-    };
   }
 
   /*
