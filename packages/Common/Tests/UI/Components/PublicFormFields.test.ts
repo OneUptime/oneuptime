@@ -4,11 +4,14 @@ import {
   buildPublicFormFields,
   getPublicFormFieldKey,
   getPublicFormInitialValues,
+  getPublicFormValuesFromAnswers,
   packPublicFormAnswers,
 } from "../../../UI/Components/PublicForm/PublicFormFields";
 import {
+  getFormTemplateAnswers,
   PublicForm,
   PublicFormFieldType,
+  PublicFormTemplate,
   validateFormSubmission,
 } from "../../../Types/Form/FormPublic";
 import { JSONObject } from "../../../Types/JSON";
@@ -317,5 +320,163 @@ describe("packPublicFormAnswers: the answers, as the server reads them", () => {
     expect(
       validateFormSubmission({ fields: FORM.fields, data: { answers } }),
     ).toEqual({ isValid: true, answers });
+  });
+});
+
+describe("a template's answers as the form's inputs hold them", () => {
+  const TEMPLATE: PublicFormTemplate = {
+    id: "outage",
+    name: "Application Outage",
+    answers: {
+      title: "The application is down",
+      details: "We are **on it**.",
+      steps: "1. Open\n2. Fail",
+      severity: "minor",
+      offices: ["Berlin", "London"],
+      count: 3,
+      checked: false,
+      when: "2026-10-07T22:00:00.000Z",
+      day: "2026-10-07",
+      email: "ops@example.com",
+    },
+  };
+
+  test("each answer goes under its question's key, in the shape its input holds", () => {
+    expect(
+      getPublicFormValuesFromAnswers({
+        fields: FORM.fields,
+        answers: TEMPLATE.answers,
+      }),
+    ).toEqual({
+      answer_title: "The application is down",
+      answer_details: "We are **on it**.",
+      answer_steps: "1. Open\n2. Fail",
+      answer_severity: "minor",
+      answer_offices: ["Berlin", "London"],
+      answer_count: 3,
+      answer_checked: false,
+      answer_when: "2026-10-07T22:00:00.000Z",
+      answer_day: "2026-10-07",
+      answer_email: "ops@example.com",
+    });
+  });
+
+  test("only the questions listed are read", () => {
+    expect(
+      getPublicFormValuesFromAnswers({
+        fields: FORM.fields.slice(0, 1),
+        answers: { title: "Down", hidden: "Not asked" },
+      }),
+    ).toEqual({ answer_title: "Down" });
+  });
+
+  test("an answer of a shape its input cannot hold is left out", () => {
+    expect(
+      getPublicFormValuesFromAnswers({
+        fields: FORM.fields,
+        answers: {
+          title: 7,
+          checked: "true",
+          offices: [7, "", "Berlin"],
+          count: "",
+          severity: ["minor"],
+          email: "",
+        },
+      }),
+    ).toEqual({ answer_offices: ["Berlin"] });
+  });
+
+  test("a single multi-select choice is a list of one", () => {
+    expect(
+      getPublicFormValuesFromAnswers({
+        fields: FORM.fields,
+        answers: { offices: "London" },
+      }),
+    ).toEqual({ answer_offices: ["London"] });
+  });
+
+  test("no answers, no values", () => {
+    expect(
+      getPublicFormValuesFromAnswers({ fields: FORM.fields, answers: null }),
+    ).toEqual({});
+    expect(
+      getPublicFormValuesFromAnswers({ fields: FORM.fields, answers: undefined }),
+    ).toEqual({});
+  });
+
+  test("the form starts from the template, whose answers win over a question's default", () => {
+    expect(getPublicFormInitialValues(FORM, TEMPLATE)).toMatchObject({
+      answer_title: "The application is down",
+      answer_severity: "minor",
+    });
+  });
+
+  test("a template that leaves a question with a default alone keeps the default", () => {
+    expect(
+      getPublicFormInitialValues(FORM, {
+        id: "a",
+        name: "A",
+        answers: { title: "Down" },
+      }),
+    ).toEqual({
+      answer_severity: "0a0a0a0a-0000-4000-8000-000000000001",
+      answer_title: "Down",
+    });
+  });
+
+  test("no template starts the form as it always started", () => {
+    expect(getPublicFormInitialValues(FORM, null)).toEqual(
+      getPublicFormInitialValues(FORM),
+    );
+    expect(getPublicFormInitialValues(FORM, undefined)).toEqual({
+      answer_severity: "0a0a0a0a-0000-4000-8000-000000000001",
+    });
+  });
+
+  test("a template's answers go back exactly as they came: filled in, then packed", () => {
+    const answers: JSONObject = getFormTemplateAnswers({
+      template: TEMPLATE,
+      fields: FORM.fields,
+    });
+
+    expect(
+      packPublicFormAnswers({
+        form: FORM,
+        values: getPublicFormValuesFromAnswers({
+          fields: FORM.fields,
+          answers,
+        }),
+      }),
+    ).toEqual(answers);
+  });
+
+  test("a form filled in from a template, its required questions answered, is a submission the server accepts", () => {
+    const values: JSONObject = {
+      ...getPublicFormInitialValues(FORM, TEMPLATE),
+      answer_checked: true,
+    };
+
+    const answers: JSONObject = packPublicFormAnswers({ form: FORM, values });
+
+    expect(
+      validateFormSubmission({ fields: FORM.fields, data: { answers } }),
+    ).toMatchObject({ isValid: true });
+  });
+
+  test("a key such as __proto__ never reaches the values' prototype", () => {
+    const values: JSONObject = getPublicFormValuesFromAnswers({
+      fields: [
+        {
+          id: "__proto__",
+          label: "Odd",
+          type: PublicFormFieldType.Text,
+          isRequired: false,
+        },
+      ],
+      answers: JSON.parse('{"__proto__": "x"}') as JSONObject,
+    });
+
+    expect(Object.getPrototypeOf(values)).toBe(Object.prototype);
+    expect(values["answer___proto__"]).toBe("x");
   });
 });
