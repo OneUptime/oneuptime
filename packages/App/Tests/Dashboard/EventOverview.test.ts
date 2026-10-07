@@ -7,6 +7,7 @@ import {
   getEventCreatorName,
   getEventResponseTimes,
   getFirstTimelineDateForState,
+  getFirstTimelineDateForStates,
   getTimeToStateText,
   splitVisibleItems,
 } from "../../FeatureSet/Dashboard/src/Utils/EventOverview";
@@ -29,6 +30,11 @@ const minutesAfterStart: (minutes: number) => Date = (
 const CREATED: string = "state-created";
 const ACKNOWLEDGED: string = "state-acknowledged";
 const RESOLVED: string = "state-resolved";
+/*
+ * A state of the project's own placed between Acknowledged and Resolved: it
+ * counts as acknowledged.
+ */
+const INVESTIGATING: string = "state-investigating";
 // A state of the project's own placed after Resolved: it counts as resolved.
 const CLOSED: string = "state-closed";
 
@@ -77,6 +83,32 @@ describe("getFirstTimelineDateForState", () => {
   });
 });
 
+describe("getFirstTimelineDateForStates", () => {
+  test("returns the earliest entry for any of the states", () => {
+    expect(
+      getFirstTimelineDateForStates(
+        [
+          entry(CREATED, 0),
+          entry(INVESTIGATING, 8),
+          entry(ACKNOWLEDGED, 3),
+          entry(ACKNOWLEDGED, 30),
+        ],
+        [INVESTIGATING, ACKNOWLEDGED],
+      ),
+    ).toEqual(minutesAfterStart(3));
+  });
+
+  test("is undefined without states or a matching entry", () => {
+    const timelines: Array<EventStateTimelineDate> = [entry(CREATED, 0)];
+
+    expect(getFirstTimelineDateForStates(timelines, undefined)).toBeUndefined();
+    expect(getFirstTimelineDateForStates(timelines, [])).toBeUndefined();
+    expect(
+      getFirstTimelineDateForStates(timelines, [ACKNOWLEDGED, RESOLVED]),
+    ).toBeUndefined();
+  });
+});
+
 describe("getEarliestTimelineDate", () => {
   test("returns the earliest dated entry of any state", () => {
     expect(
@@ -103,7 +135,7 @@ describe("getEventResponseTimes", () => {
         entry(RESOLVED, 50),
       ],
       startedAt: START,
-      acknowledgedStateId: ACKNOWLEDGED,
+      acknowledgedStateIds: [ACKNOWLEDGED],
       resolvedStateIds: [RESOLVED],
     });
 
@@ -126,7 +158,7 @@ describe("getEventResponseTimes", () => {
         entry(RESOLVED, 90),
       ],
       startedAt: START,
-      acknowledgedStateId: ACKNOWLEDGED,
+      acknowledgedStateIds: [ACKNOWLEDGED],
       resolvedStateIds: [RESOLVED],
     });
 
@@ -142,7 +174,7 @@ describe("getEventResponseTimes", () => {
     const times: EventResponseTimes = getEventResponseTimes({
       timelines: [entry(CREATED, 0), entry(RESOLVED, 15)],
       startedAt: START,
-      acknowledgedStateId: ACKNOWLEDGED,
+      acknowledgedStateIds: [ACKNOWLEDGED],
       resolvedStateIds: [RESOLVED],
     });
 
@@ -160,7 +192,7 @@ describe("getEventResponseTimes", () => {
         entry(ACKNOWLEDGED, 45),
       ],
       startedAt: START,
-      acknowledgedStateId: ACKNOWLEDGED,
+      acknowledgedStateIds: [ACKNOWLEDGED],
       resolvedStateIds: [RESOLVED],
     });
 
@@ -172,7 +204,7 @@ describe("getEventResponseTimes", () => {
     const times: EventResponseTimes = getEventResponseTimes({
       timelines: [entry(ACKNOWLEDGED, 10), entry(RESOLVED, 10)],
       startedAt: START,
-      acknowledgedStateId: ACKNOWLEDGED,
+      acknowledgedStateIds: [ACKNOWLEDGED],
       resolvedStateIds: [RESOLVED],
     });
 
@@ -184,7 +216,7 @@ describe("getEventResponseTimes", () => {
     const times: EventResponseTimes = getEventResponseTimes({
       timelines: [entry(CREATED, 0), entry(ACKNOWLEDGED, 5), entry(CLOSED, 25)],
       startedAt: START,
-      acknowledgedStateId: ACKNOWLEDGED,
+      acknowledgedStateIds: [ACKNOWLEDGED],
       resolvedStateIds: [RESOLVED, CLOSED],
     });
 
@@ -200,7 +232,7 @@ describe("getEventResponseTimes", () => {
         entry(CLOSED, 40),
       ],
       startedAt: START,
-      acknowledgedStateId: ACKNOWLEDGED,
+      acknowledgedStateIds: [ACKNOWLEDGED],
       resolvedStateIds: [RESOLVED, CLOSED],
     });
 
@@ -211,7 +243,7 @@ describe("getEventResponseTimes", () => {
     const times: EventResponseTimes = getEventResponseTimes({
       timelines: [entry(CREATED, 0)],
       startedAt: START,
-      acknowledgedStateId: ACKNOWLEDGED,
+      acknowledgedStateIds: [ACKNOWLEDGED],
       resolvedStateIds: [RESOLVED],
     });
 
@@ -223,7 +255,7 @@ describe("getEventResponseTimes", () => {
   test("falls back to the earliest timeline entry when there is no explicit start", () => {
     const times: EventResponseTimes = getEventResponseTimes({
       timelines: [entry(ACKNOWLEDGED, 5), entry(CREATED, 2)],
-      acknowledgedStateId: ACKNOWLEDGED,
+      acknowledgedStateIds: [ACKNOWLEDGED],
       resolvedStateIds: [RESOLVED],
     });
 
@@ -237,6 +269,62 @@ describe("getEventResponseTimes", () => {
     });
 
     expect(times.startedAt).toEqual(START);
+  });
+
+  /*
+   * A state of the project's own placed between Acknowledged and Resolved
+   * ("Investigating") counts as acknowledged
+   * (AcknowledgedStateUtil.getAcknowledgedUnresolvedStateIds lists it with
+   * the acknowledged state): an event moved straight into it was answered
+   * then. Reading the acknowledged state alone left it "Not yet
+   * acknowledged" until it was resolved.
+   */
+  test("an event moved straight into a state after Acknowledged was acknowledged then", () => {
+    const times: EventResponseTimes = getEventResponseTimes({
+      timelines: [
+        entry(CREATED, 0),
+        entry(INVESTIGATING, 7),
+        entry(RESOLVED, 30),
+      ],
+      startedAt: START,
+      acknowledgedStateIds: [ACKNOWLEDGED, INVESTIGATING],
+      resolvedStateIds: [RESOLVED],
+    });
+
+    expect(times.acknowledgedAt).toEqual(minutesAfterStart(7));
+    expect(times.resolvedAt).toEqual(minutesAfterStart(30));
+    expect(times.isAcknowledgedByResolution).toBe(false);
+  });
+
+  test("moving on from Acknowledged to a state after it keeps the first acknowledgement", () => {
+    const times: EventResponseTimes = getEventResponseTimes({
+      timelines: [
+        entry(CREATED, 0),
+        entry(ACKNOWLEDGED, 4),
+        entry(INVESTIGATING, 9),
+      ],
+      startedAt: START,
+      acknowledgedStateIds: [ACKNOWLEDGED, INVESTIGATING],
+      resolvedStateIds: [RESOLVED],
+    });
+
+    expect(times.acknowledgedAt).toEqual(minutesAfterStart(4));
+    expect(times.resolvedAt).toBeUndefined();
+  });
+
+  test("the first of any acknowledged state counts, whatever order the list arrives in", () => {
+    const times: EventResponseTimes = getEventResponseTimes({
+      timelines: [
+        entry(ACKNOWLEDGED, 20),
+        entry(INVESTIGATING, 6),
+        entry(CREATED, 0),
+      ],
+      startedAt: START,
+      acknowledgedStateIds: [INVESTIGATING, ACKNOWLEDGED],
+      resolvedStateIds: [RESOLVED],
+    });
+
+    expect(times.acknowledgedAt).toEqual(minutesAfterStart(6));
   });
 
   test("a project without acknowledged or resolved states reports neither", () => {

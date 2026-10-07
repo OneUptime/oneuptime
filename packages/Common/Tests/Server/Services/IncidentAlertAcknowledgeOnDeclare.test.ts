@@ -352,7 +352,7 @@ beforeEach(() => {
   }) as never);
 
   acknowledgedStateLookup = jest
-    .spyOn(AlertStateService, "findOneBy")
+    .spyOn(AlertStateService, "findAcknowledgedAlertState")
     .mockImplementation((async (): Promise<AlertState | null> => {
       const row: StateRow | undefined = acknowledgedAlertStateRow();
 
@@ -989,23 +989,11 @@ describe("validateAcknowledgeAlertsForNewIncident", () => {
     expect(authorization).not.toHaveBeenCalled();
   });
 
-  test("the Acknowledged state is read as root, for the project, with its id and order", async () => {
+  test("the Acknowledged state - the first from the top flagged acknowledged - is read for the project", async () => {
     await validate();
 
     expect(acknowledgedStateLookup).toHaveBeenCalledTimes(1);
-    expect(acknowledgedStateLookup).toHaveBeenCalledWith({
-      query: {
-        projectId: PROJECT_ID,
-        isAcknowledgedState: true,
-      },
-      select: {
-        _id: true,
-        order: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    expect(acknowledgedStateLookup).toHaveBeenCalledWith(PROJECT_ID);
   });
 
   test("the alerts are read once, as root, in the project, for their current state's order - after the state, before the permission check", async () => {
@@ -1383,19 +1371,7 @@ describe("acknowledgeAlertsDeclaredWithIncident: what is written", () => {
     await acknowledge([CREATED_ALERT, SECOND_CREATED_ALERT]);
 
     expect(acknowledgedStateLookup).toHaveBeenCalledTimes(1);
-    expect(acknowledgedStateLookup).toHaveBeenCalledWith({
-      query: {
-        projectId: PROJECT_ID,
-        isAcknowledgedState: true,
-      },
-      select: {
-        _id: true,
-        order: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    expect(acknowledgedStateLookup).toHaveBeenCalledWith(PROJECT_ID);
 
     expect(incidentLookup).toHaveBeenCalledTimes(1);
     expect(incidentLookup).toHaveBeenCalledWith({

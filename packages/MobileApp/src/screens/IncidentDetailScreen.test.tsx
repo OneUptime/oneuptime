@@ -1315,3 +1315,158 @@ describe("The incident in dark mode", () => {
     });
   });
 });
+
+describe("Acknowledged by the order of the project's states (utils/acknowledgedState)", () => {
+  /*
+   * A state the project placed between Acknowledged and Resolved -
+   * "Investigating", "Mitigated" - without the acknowledged flag. An incident
+   * in it has been acknowledged: on-call stopped paging when it got there, and
+   * the server refuses a move back up the list. The screen used to offer
+   * Acknowledge here because the current state was not the acknowledged state
+   * itself, and pressing it could only fail.
+   */
+  const INVESTIGATING_STATE: IncidentState = makeIncidentState({
+    _id: "incident-state-investigating",
+    name: "Investigating",
+    isCreatedState: false,
+    order: 3,
+  });
+  const LATER_RESOLVED_STATE: IncidentState = makeIncidentState({
+    _id: "incident-state-resolved",
+    name: "Resolved",
+    isCreatedState: false,
+    isResolvedState: true,
+    order: 4,
+  });
+  const SECOND_ACKNOWLEDGED_STATE: IncidentState = makeIncidentState({
+    _id: "incident-state-second-acknowledged",
+    name: "Escalated",
+    isCreatedState: false,
+    isAcknowledgedState: true,
+    order: 3,
+  });
+
+  beforeEach(() => {
+    mockIncidentStates.current = queryState<IncidentState[]>({
+      data: [
+        TRIAGE_STATE,
+        ACKNOWLEDGED_STATE,
+        INVESTIGATING_STATE,
+        LATER_RESOLVED_STATE,
+      ],
+    });
+    mockIncidentTimeline.current = queryState<StateTimelineItem[]>();
+    mockIncidentFeed.current = queryState<FeedItem[]>({ data: [] });
+    mockIncidentNotes.current = queryState<NoteItem[]>({ data: [] });
+    changeIncidentStateMock.mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function loadInState(state: IncidentState): void {
+    mockIncidentDetail.current = queryState<IncidentItem | null>({
+      data: makeLoadedIncident({
+        currentIncidentState: makeNamedEntityWithColor({
+          _id: state._id,
+          name: state.name,
+        }),
+      }),
+    });
+  }
+
+  test("an incident in a state after Acknowledged is not offered Acknowledge, only Resolve", async () => {
+    loadInState(INVESTIGATING_STATE);
+    await renderScreen(createTestQueryClient());
+
+    const guidance: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("response-guidance");
+    expect(
+      within(guidance).queryByRole("button", { name: "Acknowledge incident" }),
+    ).toBeNull();
+    expect(
+      within(guidance).getByRole("button", { name: "Resolve incident" }),
+    ).toHaveStyle({ backgroundColor: lightColors.actionPrimary });
+  });
+
+  test("it reads as a response in progress, as an acknowledged incident does", async () => {
+    loadInState(INVESTIGATING_STATE);
+    await renderScreen(createTestQueryClient());
+
+    const guidance: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("response-guidance");
+    expect(within(guidance).getByText("Response in progress")).toBeTruthy();
+    expect(
+      within(guidance).getByText(
+        "A responder has acknowledged this incident. Resolve it once recovery is confirmed.",
+      ),
+    ).toBeTruthy();
+  });
+
+  test("a state before Acknowledged still asks for one", async () => {
+    loadInState(TRIAGE_STATE);
+    await renderScreen(createTestQueryClient());
+
+    expect(
+      screen.getByRole("button", { name: "Acknowledge incident" }),
+    ).toBeTruthy();
+    expect(screen.getByText("Needs a responder")).toBeTruthy();
+  });
+
+  test("a second state flagged acknowledged further down counts as acknowledged too", async () => {
+    mockIncidentStates.current = queryState<IncidentState[]>({
+      data: [
+        TRIAGE_STATE,
+        ACKNOWLEDGED_STATE,
+        SECOND_ACKNOWLEDGED_STATE,
+        LATER_RESOLVED_STATE,
+      ],
+    });
+    loadInState(SECOND_ACKNOWLEDGED_STATE);
+    await renderScreen(createTestQueryClient());
+
+    expect(
+      screen.queryByRole("button", { name: "Acknowledge incident" }),
+    ).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Resolve incident" }),
+    ).toBeTruthy();
+  });
+
+  test("Acknowledge sends the project's acknowledged state - the first flagged from the top - whatever order the states arrive in", async () => {
+    /*
+     * A list that arrives with a lower flagged state first must still move
+     * the incident into Acknowledged: the state the server's own Acknowledge
+     * moves it into.
+     */
+    mockIncidentStates.current = queryState<IncidentState[]>({
+      data: [
+        SECOND_ACKNOWLEDGED_STATE,
+        LATER_RESOLVED_STATE,
+        TRIAGE_STATE,
+        ACKNOWLEDGED_STATE,
+      ],
+    });
+    loadInState(TRIAGE_STATE);
+    const client: QueryClient = createSeedableClient();
+    client.setQueryData(
+      INCIDENT_QUERY_KEY,
+      mockIncidentDetail.current.data as IncidentItem,
+    );
+
+    await renderScreen(client);
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Acknowledge incident" }),
+    );
+
+    await waitFor(() => {
+      expect(changeIncidentStateMock).toHaveBeenCalledWith(
+        PROJECT_ID,
+        INCIDENT_ID,
+        ACKNOWLEDGED_STATE._id,
+      );
+    });
+  });
+});

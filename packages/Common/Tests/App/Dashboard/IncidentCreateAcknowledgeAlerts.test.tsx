@@ -613,10 +613,12 @@ describe("acknowledging the alerts an incident is declared from", () => {
     const stateRequests: Array<any> = requestsFor(AlertState);
     expect(stateRequests).toHaveLength(1);
     expect(stateRequests[0].query).toEqual({});
+    // Each state's place and flags: what the acknowledged rule reads.
     expect(stateRequests[0].select).toEqual({
       _id: true,
       order: true,
       isAcknowledgedState: true,
+      isResolvedState: true,
     });
     expect(stateRequests[0].sort).toEqual({ order: SortOrder.Ascending });
     expect(stateRequests[0].limit).toBe(LIMIT_PER_PROJECT);

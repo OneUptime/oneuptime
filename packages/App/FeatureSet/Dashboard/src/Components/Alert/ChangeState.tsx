@@ -47,6 +47,7 @@ import {
 import { getDeclareIncidentFromAlertAction } from "./DeclareIncidentFromAlert";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import AcknowledgedStateUtil from "Common/Utils/AcknowledgedState";
 import { StateListType } from "Common/Utils/StateOrder";
 import { getEventEndDateForCurrentState } from "../../Utils/EventDuration";
 import {
@@ -321,11 +322,28 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
       })
     : undefined;
 
-  const acknowledgedState: AlertState | undefined = alertStates.find(
-    (state: AlertState) => {
-      return state.isAcknowledgedState;
-    },
-  );
+  /*
+   * The project's acknowledged state - where Acknowledge moves the alert: the
+   * first from the top flagged acknowledged - and whether a state counts as
+   * acknowledged: it, any state placed after it, or a resolved one
+   * (Common/Utils/AcknowledgedState). Acknowledge is offered only while the
+   * alert is not.
+   */
+  const acknowledgedState: AlertState | undefined =
+    AcknowledgedStateUtil.getAcknowledgedState({
+      list: StateListType.AlertState,
+      states: alertStates,
+    }) || undefined;
+
+  const isAcknowledgedStateId: (stateId: string | undefined) => boolean = (
+    stateId: string | undefined,
+  ): boolean => {
+    return AcknowledgedStateUtil.isAcknowledged({
+      list: StateListType.AlertState,
+      states: alertStates,
+      stateId: stateId,
+    });
+  };
 
   /*
    * The project's resolved state - where Resolve moves the alert - and every
@@ -347,22 +365,9 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
     return stateId.toString();
   });
 
-  const currentStateIndex: number = alertStates.findIndex(
-    (state: AlertState) => {
-      return state.id?.toString() === currentAlertState?.id?.toString();
-    },
+  const isAcknowledged: boolean = isAcknowledgedStateId(
+    currentAlertState?.id?.toString(),
   );
-
-  const acknowledgedStateIndex: number = alertStates.findIndex(
-    (state: AlertState) => {
-      return state.isAcknowledgedState;
-    },
-  );
-
-  const isAcknowledged: boolean =
-    acknowledgedStateIndex >= 0 &&
-    currentStateIndex >= 0 &&
-    currentStateIndex >= acknowledgedStateIndex;
 
   const isResolved: boolean = Boolean(
     currentAlertState?.id &&
@@ -463,8 +468,18 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
     ? [declareIncidentAction]
     : [];
 
-  const isAcknowledgeTarget: boolean =
-    selectedAlertState?.isAcknowledgedState || false;
+  /*
+   * Acknowledging it: a move into the project's acknowledged state while it
+   * is not acknowledged yet. Picking a state placed after Acknowledged
+   * ("Investigating") names that state; the acknowledged state picked for a
+   * record already acknowledged - in a state after it - is no
+   * acknowledgement, only a move back up the list.
+   */
+  const isAcknowledgeTarget: boolean = Boolean(
+    !isAcknowledged &&
+      acknowledgedState?.id &&
+      selectedAlertState?.id?.toString() === acknowledgedState.id.toString(),
+  );
   // A move that resolves it: into a resolved state, from one that is not.
   const isResolveTarget: boolean = Boolean(
     !isResolved &&

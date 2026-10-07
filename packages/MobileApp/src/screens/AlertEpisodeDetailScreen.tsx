@@ -26,6 +26,10 @@ import { rgbToHex } from "../utils/color";
 import { formatDateTime } from "../utils/date";
 import { toPlainText } from "../utils/text";
 import { getResolvedState, isResolvedStateId } from "../utils/resolvedState";
+import {
+  getAcknowledgedState,
+  isAcknowledgedById,
+} from "../utils/acknowledgedState";
 import type { AlertsStackParamList } from "../navigation/types";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
 import type { AlertState } from "../api/types";
@@ -267,12 +271,8 @@ export default function AlertEpisodeDetailScreen({
     ? rgbToHex(episode.currentAlertState.color)
     : theme.colors.textTertiary;
 
-  const acknowledgeState: AlertState | undefined = states?.find(
-    (s: AlertState) => {
-      return s.isAcknowledgedState;
-    },
-  );
-  // Where Resolve moves it: the project's resolved state.
+  // Where Acknowledge and Resolve move it: the project's own two states.
+  const acknowledgeState: AlertState | undefined = getAcknowledgedState(states);
   const resolveState: AlertState | undefined = getResolvedState(states);
 
   const currentStateId: string | undefined = episode.currentAlertState?._id;
@@ -282,9 +282,12 @@ export default function AlertEpisodeDetailScreen({
    * (utils/resolvedState).
    */
   const isResolved: boolean = isResolvedStateId(states, currentStateId);
-  const isAcknowledged: boolean = Boolean(
-    acknowledgeState && acknowledgeState._id === currentStateId,
-  );
+  /*
+   * Acknowledged: in the project's acknowledged state or in a state placed
+   * after it ("Investigating"), so Acknowledge - a move back up the list -
+   * is not offered (utils/acknowledgedState).
+   */
+  const isAcknowledged: boolean = isAcknowledgedById(states, currentStateId);
   const rootCauseTextRaw: string = toPlainText(episode.rootCause);
   const rootCauseText: string | undefined =
     rootCauseTextRaw.trim() || undefined;

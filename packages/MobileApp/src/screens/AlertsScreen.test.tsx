@@ -1812,3 +1812,105 @@ describe("In dark mode", () => {
     });
   });
 });
+
+describe("The acknowledge swipe reads the order of the project's states (utils/acknowledgedState)", () => {
+  /*
+   * "Investigating" sits between the acknowledged state and the resolved
+   * one, without the acknowledged flag. An alert in it has been
+   * acknowledged, so the swipe - a move back up the list the server
+   * refuses - is not offered. It used to be, because the row only asked
+   * whether the alert sat in the acknowledged state itself.
+   */
+  const INVESTIGATING_STATE_ID: string = "alert-state-investigating";
+  const LATER_ACKNOWLEDGED_STATE_ID: string = "alert-state-escalated";
+
+  function statesWithInvestigating(): AlertState[] {
+    return [
+      makeAlertState({
+        _id: CREATED_STATE_ID,
+        name: "Created",
+        isCreatedState: true,
+        order: 1,
+      }),
+      makeAlertState({
+        _id: ACKNOWLEDGED_STATE_ID,
+        name: "Taken",
+        isCreatedState: false,
+        isAcknowledgedState: true,
+        order: 2,
+      }),
+      makeAlertState({
+        _id: INVESTIGATING_STATE_ID,
+        name: "Investigating",
+        isCreatedState: false,
+        order: 3,
+      }),
+      makeAlertState({
+        _id: RESOLVED_STATE_ID,
+        name: "Closed out",
+        isCreatedState: false,
+        isResolvedState: true,
+        order: 4,
+      }),
+    ];
+  }
+
+  test("an alert in a state after the acknowledged one offers no acknowledge swipe, and stays active", async () => {
+    mockStates.current = statesWith(statesWithInvestigating());
+    mockAlerts.current = alertsWith({
+      items: [
+        wrapAlert(
+          makeAlert({
+            _id: "alert-6",
+            title: "Being looked at",
+            alertNumber: 21,
+            alertNumberWithPrefix: "#21",
+            currentAlertState: makeNamedEntityWithColor({
+              _id: INVESTIGATING_STATE_ID,
+              name: "Investigating",
+            }),
+          }),
+        ),
+      ],
+    });
+
+    await renderAlertsScreen();
+
+    await waitFor(() => {
+      expect(screen.getByText("Being looked at")).toBeTruthy();
+    });
+
+    expect(screen.getByRole("header", { name: "Active" })).toBeTruthy();
+    expect(screen.queryByText("Acknowledge")).toBeNull();
+  });
+
+  test("the swipe moves an alert into the project's acknowledged state - the first flagged from the top - whatever order the states arrive in", async () => {
+    mockStates.current = statesWith([
+      makeAlertState({
+        _id: LATER_ACKNOWLEDGED_STATE_ID,
+        name: "Escalated",
+        isCreatedState: false,
+        isAcknowledgedState: true,
+        order: 3,
+      }),
+      ...statesWithInvestigating().filter((state: AlertState) => {
+        return state._id !== INVESTIGATING_STATE_ID;
+      }),
+    ]);
+    mockAlerts.current = alertsWith({ items: [activeAlert()] });
+
+    await renderAlertsScreen();
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(ACTIVE_ALERT_LABEL)).toBeTruthy();
+    });
+
+    await swipeToAcknowledge(ACTIVE_ALERT_LABEL);
+
+    expect(mockChangeAlertState).toHaveBeenCalledWith(
+      PROJECT_ID,
+      "alert-1",
+      ACKNOWLEDGED_STATE_ID,
+    );
+  });
+});

@@ -6,6 +6,7 @@ import {
 import ResolvedStateUtil, {
   ResolvedStateList,
 } from "Common/Utils/ResolvedState";
+import AcknowledgedStateUtil from "Common/Utils/AcknowledgedState";
 
 export interface EpisodeTimingState {
   id: string;
@@ -43,38 +44,6 @@ export interface EpisodeTiming {
   durationEndsAt?: Date | undefined;
   isResolved: boolean;
 }
-
-type FindStateFunction = (
-  states: Array<EpisodeTimingState>,
-  predicate: (state: EpisodeTimingState) => boolean,
-) => EpisodeTimingState | undefined;
-
-const findState: FindStateFunction = (
-  states: Array<EpisodeTimingState>,
-  predicate: (state: EpisodeTimingState) => boolean,
-): EpisodeTimingState | undefined => {
-  return states.find((state: EpisodeTimingState) => {
-    return Boolean(state.id) && predicate(state);
-  });
-};
-
-type FirstEntryForStateFunction = (
-  sortedTimelines: Array<EventStateTimelineDate>,
-  stateId: string | undefined,
-) => Date | undefined;
-
-const getFirstEntryForState: FirstEntryForStateFunction = (
-  sortedTimelines: Array<EventStateTimelineDate>,
-  stateId: string | undefined,
-): Date | undefined => {
-  if (!stateId) {
-    return undefined;
-  }
-
-  return sortedTimelines.find((timeline: EventStateTimelineDate) => {
-    return timeline.stateId === stateId;
-  })?.startsAt;
-};
 
 /**
  * The state the episode is in right now according to its timeline: the state
@@ -114,12 +83,15 @@ export function getLatestTimelineStateId(
  * stat bar's "Resolved in": for a reopened episode the two numbers differ.
  */
 export function getEpisodeTiming(input: EpisodeTimingInput): EpisodeTiming {
-  const acknowledgedState: EpisodeTimingState | undefined = findState(
-    input.states,
-    (state: EpisodeTimingState) => {
-      return Boolean(state.isAcknowledgedState);
-    },
-  );
+  /*
+   * The project's acknowledged state, by name: the first from the top
+   * flagged acknowledged (Common/Utils/AcknowledgedState).
+   */
+  const acknowledgedState: EpisodeTimingState | null =
+    AcknowledgedStateUtil.getAcknowledgedState({
+      list: input.list,
+      states: input.states,
+    });
 
   /*
    * The project's resolved state, by name, and every state that counts as
@@ -155,10 +127,19 @@ export function getEpisodeTiming(input: EpisodeTimingInput): EpisodeTiming {
       return a.startsAt!.getTime() - b.startsAt!.getTime();
     });
 
-  const firstAcknowledgedAt: Date | undefined = getFirstEntryForState(
-    sortedTimelines,
-    acknowledgedState?.id,
-  );
+  /*
+   * The first move into a state that counts as acknowledged - the
+   * acknowledged state, a state placed after it ("Investigating"), or a
+   * resolved one (Common/Utils/AcknowledgedState): an episode moved straight
+   * into "Investigating" was acknowledged then, and one resolved straight
+   * away was acknowledged when it resolved.
+   */
+  const firstAcknowledgedAt: Date | undefined =
+    AcknowledgedStateUtil.getFirstAcknowledgedAt({
+      list: input.list,
+      states: input.states,
+      timeline: sortedTimelines,
+    });
 
   // The first move into any state that counts as resolved.
   const firstResolvedAt: Date | undefined = sortedTimelines.find(
@@ -173,14 +154,10 @@ export function getEpisodeTiming(input: EpisodeTimingInput): EpisodeTiming {
 
   let timeToAcknowledge: string = "-";
 
-  if (!firstAcknowledgedAt && !firstResolvedAt) {
+  if (!firstAcknowledgedAt) {
     timeToAcknowledge = "Not yet " + acknowledgedStateName.toLowerCase();
   } else if (startedAt) {
-    // An episode resolved straight away was acknowledged when it resolved.
-    timeToAcknowledge = getEventDurationText(
-      startedAt,
-      (firstAcknowledgedAt || firstResolvedAt)!,
-    );
+    timeToAcknowledge = getEventDurationText(startedAt, firstAcknowledgedAt);
   }
 
   let timeToResolve: string = "-";

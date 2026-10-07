@@ -1010,3 +1010,114 @@ describe("Episode guidance for each response stage", () => {
     expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
   });
 });
+
+describe("Acknowledged by the order of the project's states (utils/acknowledgedState)", () => {
+  /*
+   * A state the project placed between Acknowledged and Resolved, without
+   * the acknowledged flag. An episode in it has been acknowledged - on-call
+   * stopped paging when it got there - so Acknowledge, a move back up the
+   * list the server refuses, is not offered.
+   */
+  const investigatingState: AlertState = makeAlertState({
+    _id: "alert-state-investigating",
+    name: "Investigating",
+    isCreatedState: false,
+    order: 3,
+  });
+  const laterResolvedState: AlertState = makeAlertState({
+    _id: "alert-state-resolved",
+    name: "Resolved",
+    isResolvedState: true,
+    isCreatedState: false,
+    order: 4,
+  });
+  const secondAcknowledgedState: AlertState = makeAlertState({
+    _id: "alert-state-second-acknowledged",
+    name: "Escalated",
+    isAcknowledgedState: true,
+    isCreatedState: false,
+    order: 3,
+  });
+
+  function loadInState(state: AlertState): void {
+    mockEpisodeQuery.current = episodeStateWith({
+      data: makeAlertEpisode({
+        currentAlertState: {
+          _id: state._id,
+          name: state.name,
+          color: state.color,
+        },
+      }),
+    });
+  }
+
+  test("an episode in a state after Acknowledged is not offered Acknowledge, only Resolve", async () => {
+    mockStates.current = [
+      createdState,
+      acknowledgedState,
+      investigatingState,
+      laterResolvedState,
+    ];
+    loadInState(investigatingState);
+
+    await renderScreen(createSeedableClient());
+
+    const guidance: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("response-guidance");
+    expect(
+      within(guidance).queryByRole("button", {
+        name: "Acknowledge alert episode",
+      }),
+    ).toBeNull();
+    expect(
+      within(guidance).getByRole("button", {
+        name: "Resolve alert episode",
+      }),
+    ).toBeTruthy();
+    expect(within(guidance).getByText("Response in progress")).toBeTruthy();
+    expect(
+      within(guidance).getByText(
+        "A responder has acknowledged this alert episode. Resolve it once recovery is confirmed.",
+      ),
+    ).toBeTruthy();
+  });
+
+  test("a second state flagged acknowledged further down counts as acknowledged too", async () => {
+    mockStates.current = [
+      createdState,
+      acknowledgedState,
+      secondAcknowledgedState,
+      laterResolvedState,
+    ];
+    loadInState(secondAcknowledgedState);
+
+    await renderScreen(createSeedableClient());
+
+    expect(
+      screen.queryByRole("button", { name: "Acknowledge alert episode" }),
+    ).toBeNull();
+  });
+
+  test("Acknowledge sends the project's acknowledged state - the first flagged from the top - whatever order the states arrive in", async () => {
+    mockStates.current = [
+      secondAcknowledgedState,
+      laterResolvedState,
+      createdState,
+      acknowledgedState,
+    ];
+
+    await renderScreen(createSeedableClient());
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Acknowledge alert episode" }),
+    );
+
+    await waitFor(() => {
+      expect(mockChangeState).toHaveBeenCalledWith(
+        PROJECT_ID,
+        EPISODE_ID,
+        acknowledgedState._id,
+      );
+    });
+  });
+});
