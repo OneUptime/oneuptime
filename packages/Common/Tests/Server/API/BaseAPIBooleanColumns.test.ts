@@ -88,10 +88,7 @@ function makeApi(modelType: ModelType): {
 
   return {
     service,
-    api: new BaseAPI<BaseModel, DatabaseService<BaseModel>>(
-      modelType,
-      service,
-    ),
+    api: new BaseAPI<BaseModel, DatabaseService<BaseModel>>(modelType, service),
   };
 }
 

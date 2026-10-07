@@ -100,9 +100,7 @@ interface FakeRepository {
 function plainCopy(value: unknown): Record<string, unknown> {
   const copy: Record<string, unknown> = {};
 
-  for (const [key, entry] of Object.entries(
-    value as Record<string, unknown>,
-  )) {
+  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
     if (entry !== undefined && typeof entry !== "function") {
       copy[key] = entry;
     }
@@ -133,7 +131,10 @@ function useRepository(
       return saved;
     }),
     update: jest.fn(
-      async (_criteria: unknown, data: unknown): Promise<{ affected: number }> => {
+      async (
+        _criteria: unknown,
+        data: unknown,
+      ): Promise<{ affected: number }> => {
         repository.written.push(plainCopy(data));
         return { affected: 1 };
       },
@@ -193,7 +194,9 @@ function newMaintenance(isVisibleOnStatusPage: unknown): ScheduledMaintenance {
   return event;
 }
 
-function storedMaintenance(isVisibleOnStatusPage: boolean): ScheduledMaintenance {
+function storedMaintenance(
+  isVisibleOnStatusPage: boolean,
+): ScheduledMaintenance {
   const event: ScheduledMaintenance = new ScheduledMaintenance();
   event._id = RECORD_ID;
   event.projectId = PROJECT_ID;
@@ -287,7 +290,7 @@ describe("create: a switch written as text is the switch the database stores", (
     },
   );
 
-  test("a form created accepting submissions with Enabled written as \"yes\" makes its texts' images public", async () => {
+  test('a form created accepting submissions with Enabled written as "yes" makes its texts\' images public', async () => {
     const service: FormWrites = new FormWrites();
     const repository: FakeRepository = useRepository(service as never);
 
@@ -428,7 +431,7 @@ describe("update: a switch written as text is the switch the database stores", (
       query: { _id: RECORD_ID },
       data: {
         isVisibleOnStatusPage: "Yes",
-        sendSubscriberNotificationsOnBeforeTheEvent: undefined,
+        enableReminders: undefined,
       } as never,
       props: rootProps(),
     });

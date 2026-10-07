@@ -111,6 +111,11 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import type AuditLogServiceType from "./AuditLogService";
 import EnableAuditLogOn from "../../Types/BaseDatabase/EnableAuditLogOn";
 import RelationValueUtil from "../Utils/Database/RelationValueUtil";
+import ColumnValueChange from "../Utils/Database/ColumnValueChange";
+import {
+  coerceBooleanColumnsInJSON,
+  getBooleanColumnWriteError,
+} from "../../Types/Database/BooleanColumnValue";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import RelationNames from "../Utils/Database/RelationNames";
 import ListOrderMaintainer, {
@@ -1017,6 +1022,48 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       throw new BadDataException(
         `Invalid value for ${columnName}. A query operator cannot be used as a value when creating or updating ${this.model.singularName}.`,
       );
+    }
+  }
+
+  /*
+   * Every Boolean column a write names, as the boolean the database stores:
+   * a switch the API, Terraform, a workflow or a script sends as "true",
+   * "yes", "on", "1" or 1 is true, and "false", "no", "off", "0" or 0 is
+   * false - what Postgres stores for them anyway. Done first, in place - on a
+   * model or a plain object alike - so the plan and permission checks, the
+   * service's hooks, the images a record makes public, who archived it and
+   * the workflow and audit entry all read what is stored, never the text.
+   * A value the database would refuse is left as it is, for
+   * refuseUnstorableBooleanValues. See Types/Database/BooleanColumnValue.
+   */
+  private coerceBooleanColumns(data: unknown): void {
+    if (!data || typeof data !== "object") {
+      return;
+    }
+
+    coerceBooleanColumnsInJSON(data as JSONObject, this.model);
+  }
+
+  /*
+   * Refuses a write whose Boolean column holds a value the database would
+   * refuse - "maybe", 2, "" - with one plain message ("<column> must be true
+   * or false."), before any hook runs and before anything is written. It
+   * used to reach the database and come back as a bare 500. Asked after the
+   * login, credential and plan checks, so a caller who may not write at all
+   * is told that first.
+   */
+  private refuseUnstorableBooleanValues(data: unknown): void {
+    if (!data || typeof data !== "object") {
+      return;
+    }
+
+    const error: string | null = getBooleanColumnWriteError(
+      data as JSONObject,
+      this.model,
+    );
+
+    if (error) {
+      throw new BadDataException(error);
     }
   }
 
@@ -3060,6 +3107,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   @CaptureSpan()
   public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
+    // Every switch as the database stores it, before anything reads one.
+    this.coerceBooleanColumns(createBy.data);
+
     // With the project's plan where the create needs it. See the helper.
     createBy.props = await this.checkCallerBeforeHooks(
       createBy.props,
@@ -3091,6 +3141,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     // Query operators are for queries, not for write payloads. See the helper.
     this.rejectQueryOperatorsInData(createBy.data);
+
+    // A switch the database would refuse, in one plain sentence. See the helper.
+    this.refuseUnstorableBooleanValues(createBy.data);
 
     this.unwrapHashedStringsForUnhashedColumns(createBy.data);
 
@@ -5205,6 +5258,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     data: UpdateBy<TBaseModel>["data"],
   ): UpdateBy<TBaseModel>["data"] {
     if (!(data instanceof BaseModel)) {
+      // The write as it was given, its switches as the database stores them.
+      this.coerceBooleanColumns(data);
+
       return data;
     }
 
@@ -5234,6 +5290,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       plainData[key] = value;
     }
 
+    this.coerceBooleanColumns(plainData);
+
     return plainData as UpdateBy<TBaseModel>["data"];
   }
 
@@ -5252,6 +5310,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       // Query operators are for queries, not for write payloads. See the helper.
       this.rejectQueryOperatorsInData(updateBy.data);
+
+      // A switch the database would refuse, in one plain sentence. See the helper.
+      this.refuseUnstorableBooleanValues(updateBy.data);
 
       /*
        * Defense in depth for the tenant confused-deputy on the update path.
@@ -5948,65 +6009,32 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
   }
 
+  /*
+   * Whether an update leaves a row as it was: every column it writes holds
+   * what the row already held, compared as the database stores it
+   * (ColumnValueChange) - false with false, null with null, a switch as its
+   * boolean, a time as its instant, a relation as the rows it names, JSON by
+   * its content - and a column it sends as undefined writes nothing. The
+   * row's own values are read as they are: getColumnValue answers null for
+   * every falsy value, which made writing a switch back as off, a count of 0
+   * or an empty text count as a change. One answer gates the on-update
+   * workflow, the live update and who hears it (getRealtimeAccessBeforeUpdate)
+   * and the audit entry, so a write that changes nothing sets off none of them.
+   */
   private hasSameValues(data: { item: TBaseModel; updatedItem: any }): boolean {
     const { item, updatedItem } = data;
-    const columns: string[] = Object.keys(updatedItem);
-    for (const column of columns) {
-      const currentValue: unknown = item.getColumnValue(column);
-      const updatedValue: unknown = updatedItem[column];
-      const columnType: TableColumnType | undefined =
-        item.getTableColumnMetadata(column)?.type;
-      const isJSONColumn: boolean = columnType === TableColumnType.JSON;
+    const storedRow: Record<string, unknown> = item as unknown as Record<
+      string,
+      unknown
+    >;
 
-      /*
-       * A relation value is a model instance (or an array of them), and those
-       * stringify as "[object Object]" too - so swapping a resource's labels
-       * A,B for C,D compared as unchanged, and the update fired neither its
-       * workflow nor its audit entry. Compare the referenced ids, as sets:
-       * the order a relation comes back in means nothing. When either side
-       * has no ids to compare (the relation was not loaded, or holds something
-       * that is not a reference), fall through to the comparison below.
-       */
-      if (
-        columnType === TableColumnType.EntityArray ||
-        columnType === TableColumnType.Entity
-      ) {
-        const sameRelationIds: boolean | null =
-          RelationValueUtil.haveSameRelationIds(currentValue, updatedValue);
-
-        if (sameRelationIds === false) {
-          return false;
-        }
-
-        if (sameRelationIds === true) {
-          continue;
-        }
-      }
-
-      /*
-       * Plain JSON objects all stringify through Object.toString as
-       * "[object Object]". Compare their contents instead, while ignoring
-       * insignificant object-key ordering.
-       */
-      if (
-        isJSONColumn &&
-        !JSONFunctions.deepEqual(currentValue, updatedValue)
-      ) {
-        return false;
-      }
-
-      if (
-        !isJSONColumn &&
-        /*
-         * `toString()` is necessary so we can compare wrapped values
-         * (e.g. `ObjectID`) with raw values (e.g. `string`)
-         */
-        currentValue?.toString() !== updatedValue?.toString()
-      ) {
-        return false;
-      }
-    }
-    return true;
+    return Object.keys(updatedItem).every((column: string): boolean => {
+      return !ColumnValueChange.isChanged({
+        columnType: item.getTableColumnMetadata(column)?.type,
+        storedValue: storedRow[column],
+        writtenValue: updatedItem[column],
+      });
+    });
   }
 
   @CaptureSpan()

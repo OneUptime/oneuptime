@@ -275,6 +275,51 @@ describe("EventFieldChange.areRemindersOn and isRemindersSwitchChanged", () => {
     expect(EventFieldChange.areRemindersOn(" FALSE ")).toBe(false);
   });
 
+  /*
+   * Off is what the database stores as false, every literal of it: "no",
+   * "off" and 0 used to read as on here while Postgres stored them as off,
+   * so a write the reminder job would never send was taken as one turning
+   * reminders on.
+   */
+  test.each([
+    ['"no"', "no"],
+    ['"off"', "off"],
+    ['"0"', "0"],
+    ["0", 0],
+    ['"f"', "f"],
+  ] as Array<[string, unknown]>)(
+    "%s is off, as the database stores it",
+    (_label: string, value: unknown) => {
+      expect(EventFieldChange.areRemindersOn(value)).toBe(false);
+    },
+  );
+
+  test.each([
+    ['"yes"', "yes"],
+    ['"on"', "on"],
+    ["1", 1],
+  ] as Array<[string, unknown]>)(
+    "%s is on",
+    (_label: string, value: unknown) => {
+      expect(EventFieldChange.areRemindersOn(value)).toBe(true);
+    },
+  );
+
+  test('"no" over on turns reminders off: a real change', () => {
+    expect(
+      EventFieldChange.isRemindersSwitchChanged({
+        writtenValue: "no",
+        valueBeforeUpdate: true,
+      }),
+    ).toBe(true);
+    expect(
+      EventFieldChange.isRemindersSwitchChanged({
+        writtenValue: "no",
+        valueBeforeUpdate: false,
+      }),
+    ).toBe(false);
+  });
+
   test.each([
     ["on over on", true, true, false],
     ["on over never set", true, null, false],

@@ -65,6 +65,16 @@ Conflicting Monitor references were provided. monitorId and monitor are names fo
 
 Either name is checked the same way. The rules about the record you name hold whichever name you send it under: a status page group's parent group must be on the same status page, a status page takes at most three header links, and a group's name must be unique on its status page.
 
+### Switches
+
+A field that is on or off - `isEnabled`, `isVisibleOnStatusPage`, `isArchived` and every other `true` or `false` field - takes `true` or `false`. Text and numbers that the database reads as one of them are taken as that value, the same way for the API, Terraform and workflows: `"true"`, `"yes"`, `"on"`, `"1"` and `1` are `true`, and `"false"`, `"no"`, `"off"`, `"0"` and `0` are `false`, in any case. Everything OneUptime does with the record treats it as that value too: a scheduled maintenance event sent with `"isVisibleOnStatusPage": "true"` shows its images on the status page, and `"isEnabled": "false"` switches a resource off below its plan like `false` does. Any other value, such as `"maybe"`, `""` or `2`, is refused with a `400` that names the field:
+
+```text
+isVisibleOnStatusPage must be true or false.
+```
+
+An update that writes a record's values as they already are changes nothing: it does not start the record's **On Update** workflows, send live updates or add an audit log entry. `false` written over `false` counts as the same value, and so does a time written as the same instant in another format.
+
 ### Who created a record
 
 OneUptime records who created a record — and who archived it, resolved it, acknowledged it or triggered it — from the request itself: the person signed in, or nobody when the request comes with an API key or from a workflow. These fields (`createdByUserId` and the other fields ending in `ByUserId`, with their relations such as `createdByUser`) are read-only, and so is when a record was archived or resolved (`archivedAt`, `markedAsResolvedAt`, `markedAsArchivedAt`): turning `isArchived` or `isResolved` on records who did it and when, and turning it off clears both. Sending a switch as it already stands keeps who turned it, and when.

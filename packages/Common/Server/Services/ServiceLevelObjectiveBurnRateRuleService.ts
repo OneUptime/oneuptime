@@ -46,6 +46,7 @@ import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
 import { ServiceLevelObjectiveFeedEventType } from "../../Models/DatabaseModels/ServiceLevelObjectiveFeed";
 import { Gray500, Green500, Red500 } from "../../Types/BrandColors";
 import OneUptimeDate from "../../Types/Date";
+import { toStoredBoolean } from "../../Types/Database/BooleanColumnValue";
 import {
   SLO_BURN_RATE_RULE_FEED_COLUMNS,
   SloFeedColumn,
@@ -358,10 +359,9 @@ export class Service extends ProjectReferencesService<Model> {
 
     /*
      * The alert and incident options, written back explicitly for the same
-     * reason as the two output flags - and coerced for the same "false"-string
-     * reason: the worker reads autoResolve with `!== false` and the private
-     * flags with `=== true`, so an uncoerced "false" would keep auto-resolving
-     * and an uncoerced "true" would publish a record the user asked to hide.
+     * reason as the two output flags: the worker reads autoResolve with
+     * `!== false` and the private flags with `=== true`, so each holds a
+     * real boolean - the one written, or its default.
      */
     this.normalizeOptionFlags(createBy.data as unknown as Dictionary<unknown>, {
       applyDefaults: true,
@@ -1028,18 +1028,12 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
-     * These three reads are strict `=== false`, and that is only sound because
-     * onBeforeUpdate ran first: validateOutputsOnUpdate coerces both output
-     * flags, so the string `"false"` a form or a raw API call can send has
-     * already become a real boolean by the time it reaches here. If a path
-     * ever reaches onUpdateSuccess without that coercion, `"false" === false`
-     * is false and the orphaned record silently stays open — so the coercion
-     * is load-bearing, not tidiness.
-     *
-     * `isEnabled` is a plain Boolean column with no coercion hook, so a
-     * literal "false" string would slip past this check. That is pre-existing
-     * across every model in the codebase and is not worked around here; the
-     * dashboard's toggle sends a real boolean.
+     * These three reads are strict `=== false`, and that is sound: DatabaseService
+     * turns every Boolean column of a write into the boolean the database
+     * stores before any hook runs (Types/Database/BooleanColumnValue), so a
+     * `"false"` a form or a raw API call sends - for the output flags and for
+     * isEnabled alike - is false by the time it reaches here, and a value the
+     * database would refuse never gets this far.
      */
     const isRuleDisabled: boolean =
       (onUpdate.updateBy.data.isEnabled as boolean | undefined) === false;
@@ -2130,36 +2124,22 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Coerce an API-supplied boolean column. Toggles in the dashboard send real
-   * booleans, but the CRUD API is public and BaseModel.fromJSON does not
-   * coerce Boolean columns, so `"false"` arrives as a non-empty string — which
-   * is truthy, and would quietly turn a rule that declares nothing into a rule
-   * that declares both. An absent value means "leave it at the default", which
-   * is what a create payload that never mentions the field intends.
+   * A flag as the rule holds it: the boolean the database stores for what
+   * was written (toStoredBoolean), or the default when nothing was - absent,
+   * blank, or null, which these NOT NULL columns cannot hold. DatabaseService
+   * already turns a write's Boolean columns into those booleans before any
+   * hook runs, and refuses a value the database would refuse, so `"false"`
+   * from the API arrives here as false; a row read back is read the same
+   * way. A rule that declares nothing is never mistaken for one that
+   * declares both.
    */
   private normalizeBooleanInput(
     value: unknown,
     defaultValue: boolean,
   ): boolean {
-    if (value === undefined || value === null) {
-      return defaultValue;
-    }
+    const stored: unknown = toStoredBoolean(value);
 
-    if (typeof value === "boolean") {
-      return value;
-    }
-
-    if (typeof value === "string") {
-      const normalized: string = value.trim().toLowerCase();
-
-      if (normalized === "") {
-        return defaultValue;
-      }
-
-      return normalized !== "false" && normalized !== "0";
-    }
-
-    return Boolean(value);
+    return typeof stored === "boolean" ? stored : defaultValue;
   }
 
   /*
