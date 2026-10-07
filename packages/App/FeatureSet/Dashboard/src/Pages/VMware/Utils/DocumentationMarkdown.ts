@@ -442,10 +442,10 @@ WantedBy=multi-user.target
  *
  * The first block downloads the collector release the agent pins, the
  * config and the unit into a scratch folder, then installs them with
- * explicit modes: the collector runs as a throwaway user, which must be
- * able to read them whatever root's umask is. tar replaces the binary even
- * while the service runs it, so running the block again, and restarting,
- * is also the upgrade.
+ * explicit modes — the binary keeps the release archive's 0755 — as the
+ * collector runs as a throwaway user, which must be able to read them
+ * whatever root's umask is. tar replaces the binary even while the service
+ * runs it, so running the block again, and restarting, is also the upgrade.
  */
 export function getVMwareNativeInstallCommand(): string {
   return `cd "$(mktemp -d)"
@@ -458,7 +458,7 @@ curl -fsSL -o ${VMWARE_AGENT_SERVICE}.service \\
   ${VMWARE_AGENT_RAW_URL}/${VMWARE_AGENT_NATIVE_UNIT_FILE}
 
 sudo install -d -m 0755 ${VMWARE_AGENT_INSTALL_DIR}
-sudo tar --no-same-owner -xzf otelcol-contrib.tar.gz -C ${VMWARE_AGENT_INSTALL_DIR} otelcol-contrib
+sudo tar --no-same-owner --preserve-permissions -xzf otelcol-contrib.tar.gz -C ${VMWARE_AGENT_INSTALL_DIR} otelcol-contrib
 sudo install -m 0644 otel-collector-config.yaml ${VMWARE_AGENT_INSTALL_DIR}/otel-collector-config.yaml
 sudo install -m 0644 ${VMWARE_AGENT_SERVICE}.service ${VMWARE_AGENT_SERVICE_UNIT_PATH}`;
 }
