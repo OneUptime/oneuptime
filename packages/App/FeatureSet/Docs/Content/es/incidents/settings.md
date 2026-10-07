@@ -172,7 +172,7 @@ Esa misma generación te da disparadores para la propia configuración: **On Cre
 
 Algunos detalles que importan al conectarlos:
 
-- **On Update X** admite un argumento opcional **Listen on** que acota el disparador a las actualizaciones que tocan campos concretos. Déjalo en blanco para que se dispare ante cualquier cambio. Si llega una actualización sin registro de qué campos se movieron, el filtro se omite y el flujo de trabajo se ejecuta igualmente.
+- **On Update X** admite un argumento opcional **Listen on** que acota el disparador a las actualizaciones que cambian campos concretos, sea cual sea el nuevo valor: un interruptor que se apaga o un campo que se vacía también cuentan. Un campo guardado con el valor que ya tiene no es un cambio, así que un formulario de edición que lo reenvía en cada guardado no despierta el flujo de trabajo. Déjalo en blanco para que se dispare ante cualquier cambio. Si llega una actualización sin registro de qué campos cambiaron, el filtro se omite y el flujo de trabajo se ejecuta igualmente.
 - **On Create X** y **On Update X** admiten ambos un argumento obligatorio **Select Fields**; **On Delete X** no admite ninguno.
 - Los tres exponen un único puerto de salida **Éxito**, y cada uno acepta un argumento de ID para que puedas ejecutar el flujo de trabajo a mano contra un registro concreto.
 - Los nombres salen del nombre en singular del modelo, no del de su tabla, y por eso ves **On Create Incident Team Owner** y **On Create Incident User Owner** en vez de nombres con forma de tabla.

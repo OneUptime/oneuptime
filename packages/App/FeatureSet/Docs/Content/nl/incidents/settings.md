@@ -170,7 +170,7 @@ Diezelfde generatie levert ook triggers voor de configuratie zelf: **On Create I
 
 Een paar details die tellen wanneer je deze aan elkaar knoopt:
 
-- **On Update X** heeft een optioneel argument **Listen on** waarmee je de trigger beperkt tot updates die specifieke velden raken. Laat het leeg om bij elke wijziging af te gaan. Komt er een update binnen zonder registratie van welke velden veranderden, dan wordt het filter overgeslagen en draait de workflow toch.
+- **On Update X** heeft een optioneel argument **Listen on** waarmee je de trigger beperkt tot updates die specifieke velden wijzigen, ongeacht de nieuwe waarde: een schakelaar die uit gaat of een veld dat leeggemaakt wordt telt ook. Een veld dat wordt opgeslagen met de waarde die het al heeft is geen wijziging, dus een bewerkformulier dat het bij elke opslag terugstuurt maakt de workflow niet wakker. Laat het leeg om bij elke wijziging af te gaan. Komt er een update binnen zonder registratie van welke velden veranderden, dan wordt het filter overgeslagen en draait de workflow toch.
 - **On Create X** en **On Update X** hebben allebei een verplicht argument **Select Fields**; **On Delete X** heeft geen argumenten.
 - Alle drie hebben één uitgang **Success**, en ze accepteren elk een ID-argument zodat je de workflow met de hand op één record kunt draaien.
 - Namen komen van de enkelvoudsnaam van het model, niet van de tabelnaam — daarom zie je **On Create Incident Team Owner** en **On Create Incident User Owner** in plaats van namen in tabelvorm.

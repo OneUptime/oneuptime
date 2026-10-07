@@ -275,6 +275,12 @@ export const UNCOUNTABLE_FORMS: Array<ListedForm> = [
       "The form builder's preview of the public form above: the same questions drawn the way the public page draws them, in one page, so what the builder shows is what a submitter will see.",
   },
   {
+    file: `${DASHBOARD}/Components/FormBuilder/Templates/FormTemplates.tsx`,
+    form: "BasicFormModal: form-template",
+    reason:
+      "A form template's editor: its name and the Default switch, then the form's own questions, hidden ones too, drawn the way the public page draws them (buildPublicFormFields): as many as the form's author made, none of them required. One page like the public form and the builder's preview, so a template reads as the form it fills in; a Next between its name and its answers would split the two.",
+  },
+  {
     file: `${DASHBOARD}/Components/Dashboard/Canvas/ArgumentsForm.tsx`,
     form: "BasicForm #1",
     reason:

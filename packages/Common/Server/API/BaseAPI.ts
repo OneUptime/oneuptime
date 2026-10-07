@@ -24,6 +24,7 @@ import {
 import PartialEntity from "../../Types/Database/PartialEntity";
 import { coerceNumericColumnsInJSON } from "../../Types/Database/NumericColumnValue";
 import { coerceDateColumnsInJSON } from "../../Types/Database/DateColumnValue";
+import { coerceBooleanColumnsInJSON } from "../../Types/Database/BooleanColumnValue";
 import BadDataException from "../../Types/Exception/BadDataException";
 import BadRequestException from "../../Types/Exception/BadRequestException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
@@ -450,12 +451,21 @@ export default class BaseAPI<
      * `<input type="date">` posts "2027-01-01", and a hook that reads the
      * column back gets a string where it expects a Date. See
      * Types/Database/DateColumnValue.
+     *
+     * And a switch sent as text - "true", "yes", 1 - is the boolean the
+     * database stores for it, as on a create. DatabaseService turns them
+     * for every write and refuses a value the database would refuse; this
+     * keeps the PUT and the POST alike before the service sees either. See
+     * Types/Database/BooleanColumnValue.
      */
     const entityModel: TBaseModel = new this.entityType();
 
-    const item: PartialEntity<TBaseModel> = coerceDateColumnsInJSON(
-      coerceNumericColumnsInJSON(
-        JSONFunctions.deserialize(dataInBody as JSONObject),
+    const item: PartialEntity<TBaseModel> = coerceBooleanColumnsInJSON(
+      coerceDateColumnsInJSON(
+        coerceNumericColumnsInJSON(
+          JSONFunctions.deserialize(dataInBody as JSONObject),
+          entityModel,
+        ),
         entityModel,
       ),
       entityModel,

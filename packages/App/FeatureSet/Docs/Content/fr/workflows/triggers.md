@@ -45,10 +45,12 @@ Traitez cette URL comme un mot de passe. Quiconque la possède peut démarrer vo
 À peu près tout ce qui existe dans OneUptime — moniteurs, incidents, alertes, maintenances planifiées, pages de statut, politiques d'astreinte, équipes — peut déclencher un workflow. Chacun propose trois événements :
 
 - **On Create** — se déclenche quand un nouvel élément est ajouté.
-- **On Update** — se déclenche quand un élément est modifié.
+- **On Update** — se déclenche quand un élément est modifié. Enregistrer un élément avec les valeurs qu'il a déjà, comme un formulaire enregistré sans modification ou un interrupteur envoyé tel qu'il est déjà, n'est pas une modification et ne le déclenche pas.
 - **On Delete** — se déclenche quand un élément est supprimé.
 
 C'est ainsi que vous construisez « quand X se produit dans OneUptime, fais Y » sans avoir à surveiller quoi que ce soit en boucle.
+
+**On Update** peut être limité à certains champs avec **Listen on** : il ne se déclenche alors que lorsqu'une mise à jour modifie l'un d'eux, quelle que soit la nouvelle valeur ; désactiver un interrupteur ou vider un champ compte aussi.
 
 L'enregistrement complet est transmis au bloc suivant. Par exemple, le déclencheur **Incident → On Create** transmet le nouvel incident, si bien que le bloc suivant peut en lire le titre, la description, la sévérité et n'importe quel autre champ.
 

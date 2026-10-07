@@ -172,7 +172,7 @@ Den samme generering giver dig triggere til selve konfigurationen: **On Create I
 
 Et par detaljer, der betyder noget, når du kobler det hele sammen:
 
-- **On Update X** tager et valgfrit **Listen on**-argument, der indsnævrer triggeren til opdateringer, som rører bestemte felter. Lad det stå tomt for at udløse ved enhver ændring. Kommer en opdatering ind uden en registrering af, hvilke felter der flyttede sig, springes filteret over, og workflowet kører alligevel.
+- **On Update X** tager et valgfrit **Listen on**-argument, der indsnævrer triggeren til opdateringer, som ændrer bestemte felter, uanset hvad de ændres til: en kontakt, der slås fra, eller et felt, der ryddes, tæller også. Et felt, der gemmes med den værdi, det allerede har, er ikke en ændring, så en redigeringsformular, der sender det tilbage ved hver gemning, vækker ikke workflowet. Lad det stå tomt for at udløse ved enhver ændring. Kommer en opdatering ind uden en registrering af, hvilke felter der ændrede sig, springes filteret over, og workflowet kører alligevel.
 - **On Create X** og **On Update X** tager begge et påkrævet **Select Fields**-argument; **On Delete X** tager ingen argumenter.
 - Alle tre har én enkelt **Succes**-udgang, og hver af dem tager et ID-argument, så du kan køre workflowet i hånden mod én enkelt post.
 - Navnene kommer fra modellens navn i ental, ikke fra dens tabelnavn — derfor ser du **On Create Incident Team Owner** og **On Create Incident User Owner** frem for tabelformede navne.

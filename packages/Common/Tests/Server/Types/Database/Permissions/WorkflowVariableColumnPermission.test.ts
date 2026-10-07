@@ -174,7 +174,7 @@ describe("ColumnPermissions on WorkflowVariable", () => {
      */
     it("lets a key with EditWorkflowVariable flip the secret toggle", () => {
       expect(
-        checkUpdate({ isSecret: "true" } as Partial<WorkflowVariable>, [
+        checkUpdate({ isSecret: true } as Partial<WorkflowVariable>, [
           Permission.EditWorkflowVariable,
         ]),
       ).not.toThrow();
@@ -182,13 +182,13 @@ describe("ColumnPermissions on WorkflowVariable", () => {
 
     it("lets a project admin and a project owner flip the secret toggle", () => {
       expect(
-        checkUpdate({ isSecret: "true" } as Partial<WorkflowVariable>, [
+        checkUpdate({ isSecret: true } as Partial<WorkflowVariable>, [
           Permission.ProjectAdmin,
         ]),
       ).not.toThrow();
 
       expect(
-        checkUpdate({ isSecret: "true" } as Partial<WorkflowVariable>, [
+        checkUpdate({ isSecret: true } as Partial<WorkflowVariable>, [
           Permission.ProjectOwner,
         ]),
       ).not.toThrow();
@@ -196,7 +196,7 @@ describe("ColumnPermissions on WorkflowVariable", () => {
 
     it("still refuses a read-only key that tries to flip the secret toggle", () => {
       expect(
-        checkUpdate({ isSecret: "true" } as Partial<WorkflowVariable>, [
+        checkUpdate({ isSecret: true } as Partial<WorkflowVariable>, [
           Permission.ReadWorkflowVariable,
         ]),
       ).toThrow(BadDataException);

@@ -460,6 +460,30 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   ingestion keys, probe keys and agent keys are not affected, and
   self-hosted installs (no plans) see no change. See
   [API keys and SCIM below their plan](/docs/api-reference/api-reference#api-keys-and-scim-below-their-plan).
+- **A switch written as text is the switch that is stored, and a save that
+  changes nothing starts nothing.** The API, Terraform and workflows may
+  send an on/off field as text or a number: `"true"`, `"yes"`, `"on"`,
+  `"1"` or `1` for on, `"false"`, `"no"`, `"off"`, `"0"` or `0` for off. The
+  database always stored those as on or off, but OneUptime itself read the
+  text: a scheduled maintenance event sent with
+  `"isVisibleOnStatusPage": "true"` showed on its status page with its
+  images left private, so they did not load there, and a monitor sent with
+  `"isArchived": "false"` stayed unarchived but was stamped with who
+  archived it, and when. Now
+  every such value is the on or off the database stores, everywhere
+  OneUptime reads it. A value the database cannot store, such as `"maybe"`,
+  `""` or `2`, is refused with `400` and a message naming the field
+  (`isEnabled must be true or false.`) instead of a server error; that
+  includes `""` for an SLO burn-rate rule's alert and incident options,
+  which used to be read as their default. Writing a record back with the
+  values it already has - a switch that is off sent as off, a count of 0
+  as 0, the same labels in another order - no longer starts its **On
+  Update** workflows, sends a live update or adds an audit log entry, and
+  an entry for a real change lists only the fields that changed. A
+  workflow's **Listen on** now hears only the fields an update changes, and
+  hears every change to them: one listening on a switch also runs when the
+  switch is turned off, which it used to miss. See
+  [Switches](/docs/api-reference/api-reference#switches).
 - **Runners moved from Project Settings into Runbooks.** Runners are now under
   **Runbooks → Runners** (`…/runbooks/runners`) and Runner Credentials under
   **Runbooks → Runners → Credentials** (`…/runbooks/runner-credentials`), next

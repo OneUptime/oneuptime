@@ -29,6 +29,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
 /*
@@ -101,8 +102,9 @@ async function updateError(
   data: Record<string, unknown>,
   stored: Array<{ triggerEntityType: AIInvestigationRuleTriggerEntity }>,
 ): Promise<{ error: unknown; reads: number }> {
-  const findBy: jest.SpiedFunction<typeof AIInvestigationRuleService.findBy> =
-    jest.spyOn(AIInvestigationRuleService, "findBy").mockResolvedValue(
+  const findBy: SpyInstance<typeof AIInvestigationRuleService.findBy> = jest
+    .spyOn(AIInvestigationRuleService, "findBy")
+    .mockResolvedValue(
       stored.map(
         (row: { triggerEntityType: AIInvestigationRuleTriggerEntity }) => {
           return Object.assign(new AIInvestigationRule(), row);
@@ -250,9 +252,7 @@ describe("AIInvestigationRuleService", () => {
     });
 
     it("reads only the caller's project's rules", async () => {
-      const findBy: jest.SpiedFunction<
-        typeof AIInvestigationRuleService.findBy
-      > = jest
+      const findBy: SpyInstance<typeof AIInvestigationRuleService.findBy> = jest
         .spyOn(AIInvestigationRuleService, "findBy")
         .mockResolvedValue([]);
 

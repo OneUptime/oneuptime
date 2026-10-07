@@ -272,7 +272,7 @@ type SecretFunction = (content: string) => WorkflowVariable;
 const secretVariable: SecretFunction = (content: string): WorkflowVariable => {
   const variable: WorkflowVariable = new WorkflowVariable();
   variable.content = content;
-  variable.isSecret = "true";
+  variable.isSecret = true;
   return variable;
 };
 

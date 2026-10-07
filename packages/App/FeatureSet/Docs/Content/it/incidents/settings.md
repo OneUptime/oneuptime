@@ -172,7 +172,7 @@ La stessa generazione vi dà i trigger per la configurazione stessa: **On Create
 
 Qualche dettaglio che conta quando li collegate:
 
-- **On Update X** accetta un argomento facoltativo **Listen on** che restringe il trigger agli aggiornamenti che toccano determinati campi. Lasciatelo vuoto per scattare a ogni modifica. Se arriva un aggiornamento senza traccia di quali campi si siano mossi, il filtro viene saltato e il workflow parte comunque.
+- **On Update X** accetta un argomento facoltativo **Listen on** che restringe il trigger agli aggiornamenti che cambiano determinati campi, qualunque sia il nuovo valore: anche un interruttore spento o un campo svuotato contano. Un campo salvato con il valore che ha già non è una modifica, quindi un modulo di modifica che lo rimanda a ogni salvataggio non sveglia il workflow. Lasciatelo vuoto per scattare a ogni modifica. Se arriva un aggiornamento senza traccia di quali campi siano cambiati, il filtro viene saltato e il workflow parte comunque.
 - **On Create X** e **On Update X** richiedono entrambi un argomento obbligatorio **Select Fields**; **On Delete X** non accetta argomenti.
 - Tutti e tre espongono un'unica porta d'uscita **Successo**, e ciascuno accetta un argomento ID così potete eseguire il workflow a mano su un singolo record.
 - I nomi derivano dal nome singolare del modello, non dal nome della tabella — ed è per questo che vedete **On Create Incident Team Owner** e **On Create Incident User Owner** invece di nomi modellati sulle tabelle.

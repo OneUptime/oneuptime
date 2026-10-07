@@ -172,7 +172,7 @@ Dieselbe Erzeugung liefert Ihnen Trigger für die Konfiguration selbst: **On Cre
 
 Ein paar Details, die beim Verdrahten zählen:
 
-- **On Update X** nimmt ein optionales Argument **Listen on** entgegen, das den Trigger auf Aktualisierungen bestimmter Felder einengt. Lassen Sie es leer, feuert er bei jeder Änderung. Kommt eine Aktualisierung ohne Vermerk darüber an, welche Felder sich bewegt haben, wird der Filter übersprungen und der Workflow läuft trotzdem.
+- **On Update X** nimmt ein optionales Argument **Listen on** entgegen, das den Trigger auf Aktualisierungen einengt, die bestimmte Felder ändern, ganz gleich, worauf: Ein ausgeschalteter Schalter oder ein geleertes Feld zählt auch. Ein Feld, das mit dem Wert gespeichert wird, den es schon hat, ist keine Änderung; ein Bearbeitungsformular, das es bei jedem Speichern mitschickt, weckt den Workflow also nicht. Lassen Sie es leer, feuert er bei jeder Änderung. Kommt eine Aktualisierung ohne Vermerk darüber an, welche Felder sich geändert haben, wird der Filter übersprungen und der Workflow läuft trotzdem.
 - **On Create X** und **On Update X** verlangen beide das Argument **Select Fields**; **On Delete X** nimmt keine Argumente entgegen.
 - Alle drei haben genau einen Ausgangsport **Erfolg**, und jeder nimmt ein ID-Argument entgegen, damit Sie den Workflow von Hand gegen einen einzelnen Datensatz laufen lassen können.
 - Die Namen stammen vom Singularnamen des Modells, nicht vom Tabellennamen – deshalb sehen Sie **On Create Incident Team Owner** und **On Create Incident User Owner** statt der tabellenförmigen Namen.

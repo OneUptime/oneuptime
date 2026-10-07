@@ -530,6 +530,33 @@ describe("single sign-on a Scale trial left behind, on Free and on Growth", () =
     }
   });
 
+  /*
+   * The API, Terraform and a script may send the switch as text. The
+   * database stores "false" as false, and the write is coerced to it
+   * before the plan is asked about it, so it switches off like false.
+   */
+  test('a switch-off sent as the text "false" switches every provider off like false', async () => {
+    for (const plan of PLANS_BELOW_SCALE) {
+      currentPlan = plan;
+
+      for (const provider of providers) {
+        writes = [];
+
+        expect([
+          plan,
+          provider.name,
+          await update(provider, { isEnabled: "false" }),
+        ]).toEqual([plan, provider.name, "done"]);
+
+        expect([plan, provider.name, writes]).toEqual([
+          plan,
+          provider.name,
+          [{ isEnabled: false }],
+        ]);
+      }
+    }
+  });
+
   test("every provider can be deleted", async () => {
     for (const plan of PLANS_BELOW_SCALE) {
       currentPlan = plan;
@@ -564,7 +591,7 @@ describe("single sign-on a Scale trial left behind, on Free and on Growth", () =
           await update(provider, { isEnabled: true }),
           await update(provider, { name: "Renamed" }),
           await update(provider, { isEnabled: false, name: "Renamed" }),
-          await update(provider, { isEnabled: "false" }),
+          await update(provider, { isEnabled: "true" }),
           await create(provider, { name: "New", isEnabled: false }),
         ]).toEqual([
           plan,

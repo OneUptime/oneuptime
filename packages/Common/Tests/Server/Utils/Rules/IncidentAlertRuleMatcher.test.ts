@@ -18,6 +18,7 @@ import RuleCriteria, {
   RuleCriteriaOperator,
 } from "../../../../Types/Rules/RuleCriteria";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * Whether an incident or an alert matches a rule that decides what OneUptime
@@ -214,7 +215,7 @@ describe("the legacy columns", () => {
   });
 
   test("an invalid pattern never matches, and is logged with the kind of rule", async () => {
-    const warn: jest.SpiedFunction<typeof logger.warn> = jest
+    const warn: SpyInstance<typeof logger.warn> = jest
       .spyOn(logger, "warn")
       .mockImplementation((): void => {
         return undefined;
