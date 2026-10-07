@@ -362,6 +362,15 @@ describe("TeamMemberService removes a leaver's own notification settings", () =>
       };
     });
 
+    /*
+     * The Common Test job deletes ee/ before it runs (core runs without it),
+     * so ee/'s SCIM deprovisioning is only there to scan when ee/ is: the
+     * Enterprise Edition Test job runs this suite again with ee/ present.
+     */
+    const HAS_ENTERPRISE_EDITION: boolean = fs.existsSync(
+      path.join(REPO_ROOT, "ee", "Server"),
+    );
+
     test("the sources are where this looks", () => {
       expect(
         files.some((entry: { file: string }) => {
@@ -370,9 +379,14 @@ describe("TeamMemberService removes a leaver's own notification settings", () =>
       ).toBe(true);
       expect(
         files.some((entry: { file: string }) => {
-          return entry.file.endsWith("Identity/API/SCIM.ts");
+          return entry.file.endsWith("Server/API/UserAPI.ts");
         }),
       ).toBe(true);
+      expect(
+        files.some((entry: { file: string }) => {
+          return entry.file.endsWith("Identity/API/SCIM.ts");
+        }),
+      ).toBe(HAS_ENTERPRISE_EDITION);
     });
 
     test("memberships are removed through TeamMemberService with its hooks", () => {
@@ -405,8 +419,10 @@ describe("TeamMemberService removes a leaver's own notification settings", () =>
         }
       }
 
-      // Team > Members, remove from project, team deletion, SCIM.
-      expect(deleteCalls).toBeGreaterThanOrEqual(5);
+      // Remove from project and team deletion; with ee/, SCIM's as well.
+      expect(deleteCalls).toBeGreaterThanOrEqual(
+        HAS_ENTERPRISE_EDITION ? 5 : 2,
+      );
       expect(offenders).toEqual([]);
     });
   });

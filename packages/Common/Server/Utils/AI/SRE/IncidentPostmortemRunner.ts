@@ -10,6 +10,7 @@ import AIService from "../../../Services/AIService";
 import AIInvestigationEngine from "./AIInvestigationEngine";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import { neutralizeAiWrittenMarkdown } from "../../../../Utils/Markdown/UntrustedMarkdown";
 
 /*
  * AI SRE — auto-draft postmortem on resolve (Phase 3, "close the loop").
@@ -122,9 +123,19 @@ export default class AIIncidentPostmortemRunner {
         return;
       }
 
-      const draft: string = await IncidentService.generatePostmortemFromAI({
-        incidentId,
-      });
+      /*
+       * The draft is written from the incident's timeline and telemetry,
+       * which can carry text meant to steer the model. It is saved on the
+       * incident and previewed in its feed as the Markdown the model wrote,
+       * with nothing in it that acts on its own: no chat mention, no image
+       * or diagram, no link whose words hide where it goes, no HTML tag
+       * (neutralizeAiWrittenMarkdown).
+       */
+      const draft: string = neutralizeAiWrittenMarkdown(
+        await IncidentService.generatePostmortemFromAI({
+          incidentId,
+        }),
+      );
 
       if (!draft || !draft.trim()) {
         return;

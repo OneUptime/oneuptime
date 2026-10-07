@@ -9,6 +9,7 @@ jest.mock("isolated-vm", () => {
 });
 
 import MonitorCriteriaEvaluator from "../../../../Server/Utils/Monitor/MonitorCriteriaEvaluator";
+import SlackUtil from "../../../../Server/Utils/Workspace/Slack/Slack";
 import CompareCriteria from "../../../../Server/Utils/Monitor/Criteria/CompareCriteria";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
@@ -21,6 +22,8 @@ import {
 } from "../../../../Types/Monitor/CriteriaFilter";
 import FilterCondition from "../../../../Types/Filter/FilterCondition";
 import ObjectID from "../../../../Types/ObjectID";
+import { JSONObject } from "../../../../Types/JSON";
+import { PerSeriesCriteriaMatch } from "../../../../Types/Probe/ProbeApiIngestResponse";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -59,6 +62,14 @@ type EvaluatorPrivate = {
     monitor: Monitor;
     monitorStep?: MonitorStep | undefined;
   }) => string | null;
+  buildSeriesAffectedRows: (input: {
+    perSeriesMatches: Array<PerSeriesCriteriaMatch>;
+    worstIsLowest: boolean;
+    toIdentity: (attributes: JSONObject) => JSONObject;
+    withContext: (series: JSONObject, context: JSONObject) => JSONObject;
+    seriesContextAttributes: (fingerprint: string) => Array<JSONObject>;
+    namesObject: (identity: JSONObject) => boolean;
+  }) => Array<{ formattedValue: string }>;
 };
 
 const Evaluator: EvaluatorPrivate =
@@ -404,6 +415,26 @@ describe("MonitorCriteriaEvaluator - Breaching Samples formula components", () =
     );
   });
 
+  /*
+   * A unit no catalog knows is labelled as the exporter wrote it - text a
+   * monitored system chose - beside every value in it and in the
+   * Components list: it reads as written, and is no tag or chat mention.
+   */
+  test("a component's unit it does not know reads as text, beside its value and in the Components list", () => {
+    const ctx: MetricCriteriaContext = formulaContext();
+    ctx.components![0]!.unit = "<!here>";
+    ctx.components![1]!.unit = '<img src="x">';
+
+    const context: string = rootCause(ctx);
+
+    expect(context).toContain("- Components:");
+    expect(context).toContain("   - `a`: ");
+    expect(context).not.toMatch(/(^|[^\\])<[A-Za-z!@#/]/m);
+    expect(SlackUtil.convertMarkdownToSlackRichText(context)).not.toMatch(
+      /<[!@#][A-Za-z]/,
+    );
+  });
+
   test("a component with no value for this sample is left out, not printed as a dash", () => {
     const ctx: MetricCriteriaContext = formulaContext();
     ctx.breachingSamples![0]!.componentValues = [
@@ -442,6 +473,74 @@ describe("MonitorCriteriaEvaluator - the Unit line", () => {
       "- Unit:",
     );
     expect(rootCause(makeContext({ unit: null }))).not.toContain("- Unit:");
+  });
+
+  /*
+   * A unit OneUptime does not know is shown as the exporter wrote it - text
+   * a monitored system chose, in a root cause that reaches Slack and
+   * Microsoft Teams: it reads as written, and is no tag or chat mention.
+   */
+  test("a sample's value labelled with a unit it does not know reads as text", () => {
+    for (const unit of ["<!here>", '<img src="x">']) {
+      const context: string = rootCause(makeContext({ unit }));
+
+      // The value is labelled with the unit as written.
+      expect(sampleValue(context).replace(/\\|\u2060/g, "")).toContain(unit);
+      expect(context).not.toMatch(/(^|[^\\])<[A-Za-z!@#/]/m);
+      expect(SlackUtil.convertMarkdownToSlackRichText(context)).not.toMatch(
+        /<[!@#][A-Za-z]/,
+      );
+    }
+  });
+
+  test("a series row's value labelled with a unit it does not know reads as text", () => {
+    const rows: Array<{ formattedValue: string }> =
+      Evaluator.buildSeriesAffectedRows({
+        perSeriesMatches: [
+          {
+            criteriaMetId: "criteria-1",
+            fingerprint: "series-1",
+            labels: { "resource.k8s.pod.name": "web-1" },
+            rootCause: "",
+            metricContext: makeContext({ unit: "<!here>" }),
+          },
+        ],
+        worstIsLowest: false,
+        toIdentity: (attributes: JSONObject): JSONObject => {
+          return attributes;
+        },
+        withContext: (series: JSONObject): JSONObject => {
+          return series;
+        },
+        seriesContextAttributes: (): Array<JSONObject> => {
+          return [];
+        },
+        namesObject: (): boolean => {
+          return true;
+        },
+      });
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.formattedValue.replace(/\\|\u2060/g, "")).toContain(
+      "<!here>",
+    );
+    expect(rows[0]!.formattedValue).not.toMatch(/(^|[^\\])<[A-Za-z!@#/]/);
+  });
+
+  test("shows a unit it does not know as text, as the exporter wrote it", () => {
+    for (const unit of ["<!here>", '<img src="x">']) {
+      const unitLine: string | undefined = rootCause(makeContext({ unit }))
+        .split("\n")
+        .find((line: string): boolean => {
+          return line.startsWith("- Unit:");
+        });
+
+      expect(unitLine).toBeDefined();
+      expect(unitLine).not.toMatch(/(^|[^\\])<[A-Za-z!@#/]/);
+      expect(SlackUtil.convertMarkdownToSlackRichText(unitLine!)).not.toMatch(
+        /<[!@#][A-Za-z]/,
+      );
+    }
   });
 });
 

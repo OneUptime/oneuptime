@@ -95,6 +95,28 @@ export const MARKDOWN_STATE_NAME: string =
   "[Resolved](https://evil.example/state) <!here>";
 
 /*
+ * Values with a line break in them - the API, an import or a monitor can set
+ * a title, a state's name or a status page's name so - besides a link whose
+ * words hide where it goes and a Slack mention. In a chat message a break
+ * would start a block of its own (a heading, a list item), so each value
+ * reads on one line there, every break a space (onOneLine), and the link and
+ * the mention read as text.
+ */
+export const MULTILINE_TITLE: string =
+  "Upgrade <!channel>\n## [Reset your password](https://evil.example/login)";
+export const MULTILINE_STATE_NAME: string =
+  "Ongoing <!here>\n- [Resolved](https://evil.example/state)";
+export const MULTILINE_PAGE_NAME: string =
+  "Acme <@U0123ABC>\r\n# [Status](https://evil.example/status)";
+export const MULTILINE_RESOURCE_NAME: string =
+  "Checkout <!subteam^S0123ABC>\n> [API](https://evil.example/api)";
+
+// A value as a chat message shows it: on one line, each break a space.
+export function onOneLine(value: string): string {
+  return value.replace(/\r\n|\r|\n/g, " ");
+}
+
+/*
  * No value placed into a Markdown message makes an image, a link to an
  * address the value brought, raw HTML or a chat mention. The template's own
  * links (the status page, unsubscribe) are OneUptime's, and stay links.
@@ -140,6 +162,23 @@ export function expectSlackReadsNoMention(markdown: string): void {
         return link[0];
       }),
   ).toEqual([]);
+}
+
+/*
+ * A Slack or Teams message that placed each of the values: each one reads on
+ * one line, exactly as written, and nothing in them acts on its own there -
+ * as Markdown, and as Slack shows the message.
+ */
+export function expectChatMessageShowsValuesAsText(
+  markdown: string,
+  values: Array<string>,
+): void {
+  expectValuesInertInMarkdown(markdown);
+  expectSlackReadsNoMention(markdown);
+
+  for (const value of values) {
+    expect(withoutMarkdownEscapes(markdown)).toContain(onOneLine(value));
+  }
 }
 
 /*

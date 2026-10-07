@@ -321,9 +321,13 @@ export function doesResourceModeRunRoundUnattended(
   );
 }
 
-// 'Docker host "web-1"' — how a resource round names its resource in copy.
+/*
+ * 'Docker host "web-1"' — how a resource round names its resource in a feed
+ * item. The resource's name is what its agent reported: escaped, so it reads
+ * as written in the feed and in Slack and Teams.
+ */
 function describeResourceForFeed(status: ResourceAiAccessStatus): string {
-  return `${describeResourceNoun(status.resourceType)} "${status.resourceName}"`;
+  return `${describeResourceNoun(status.resourceType)} "${escapeMarkdownValue(status.resourceName)}"`;
 }
 
 // Is `row` ordered before the reference (createdAt, then id as tie-break)?
@@ -2213,10 +2217,13 @@ class AutoRemediationRuleEngineServiceClass {
      */
     let markdown: string;
 
+    // The cluster's name, as its agent reported it, is text in the feed.
+    const clusterName: string = escapeMarkdownValue(cluster.clusterName);
+
     if (wantsUnattended && askFirstReason) {
       markdown = `⚡ **OneUptime AI is composing ${
         data.round > 1 ? "another" : "a"
-      } kubectl fix for cluster "${cluster.clusterName}"**${
+      } kubectl fix for cluster "${clusterName}"**${
         data.round > 1
           ? ` (round ${data.round}) — the previous fix did not recover the service`
           : ""
@@ -2224,17 +2231,17 @@ class AutoRemediationRuleEngineServiceClass {
     } else if (isBypass) {
       markdown =
         data.round > 1
-          ? `⚡ **OneUptime AI is applying another kubectl fix on cluster "${cluster.clusterName}"** (round ${data.round}) — the previous fix did not recover the service. Approvals are bypassed for this cluster, so the new fix runs on its own: every kubectl change the policy allows, safe or riskier — except that ${KUBECTL_ALWAYS_ASKS_SUMMARY}, so AI proposes such a change for your approval; destructive commands never run. ${UNATTENDED_ROUND_PROPOSAL_FEED_SENTENCE} Progress appears here.`
-          : `⚡ **OneUptime AI is fixing cluster "${cluster.clusterName}".** Approvals are bypassed for this cluster: AI is diagnosing with kubectl and will apply whatever fix the policy allows — safe or riskier — on its own, without asking, except that ${KUBECTL_ALWAYS_ASKS_SUMMARY}, so AI proposes such a change for your approval; destructive commands never run. ${UNATTENDED_ROUND_PROPOSAL_FEED_SENTENCE} Progress appears here.`;
+          ? `⚡ **OneUptime AI is applying another kubectl fix on cluster "${clusterName}"** (round ${data.round}) — the previous fix did not recover the service. Approvals are bypassed for this cluster, so the new fix runs on its own: every kubectl change the policy allows, safe or riskier — except that ${KUBECTL_ALWAYS_ASKS_SUMMARY}, so AI proposes such a change for your approval; destructive commands never run. ${UNATTENDED_ROUND_PROPOSAL_FEED_SENTENCE} Progress appears here.`
+          : `⚡ **OneUptime AI is fixing cluster "${clusterName}".** Approvals are bypassed for this cluster: AI is diagnosing with kubectl and will apply whatever fix the policy allows — safe or riskier — on its own, without asking, except that ${KUBECTL_ALWAYS_ASKS_SUMMARY}, so AI proposes such a change for your approval; destructive commands never run. ${UNATTENDED_ROUND_PROPOSAL_FEED_SENTENCE} Progress appears here.`;
     } else if (isAutomatic) {
-      markdown = `⚡ **OneUptime AI is fixing cluster "${cluster.clusterName}".** Automatic remediation is on for this cluster: AI is diagnosing with kubectl and will apply safe changes (${KUBECTL_SAFE_CHANGES_SUMMARY}), plus riskier changes whose shape the cluster's kubectl allowlist names, on its own. A riskier change never runs on its own otherwise: if the round finds only riskier fixes, AI proposes exactly those for your one-click approval; if it also applied safe changes, a riskier fix is proposed only if verification shows the service did not recover. ${capitalizeFirst(
+      markdown = `⚡ **OneUptime AI is fixing cluster "${clusterName}".** Automatic remediation is on for this cluster: AI is diagnosing with kubectl and will apply safe changes (${KUBECTL_SAFE_CHANGES_SUMMARY}), plus riskier changes whose shape the cluster's kubectl allowlist names, on its own. A riskier change never runs on its own otherwise: if the round finds only riskier fixes, AI proposes exactly those for your one-click approval; if it also applied safe changes, a riskier fix is proposed only if verification shows the service did not recover. ${capitalizeFirst(
         KUBECTL_ALWAYS_ASKS_SUMMARY,
       )}, and destructive commands never run. ${UNATTENDED_ROUND_PROPOSAL_FEED_SENTENCE} Progress appears here.`;
     } else {
       markdown =
         data.round > 1
-          ? `⚡ **OneUptime AI is composing another kubectl fix for cluster "${cluster.clusterName}"** (round ${data.round}) — the previous fix did not recover the service. This round asks first: nothing runs until you approve the new plan, which will appear here shortly.`
-          : `⚡ **OneUptime AI is composing a kubectl fix for cluster "${cluster.clusterName}".** Nothing runs until you approve the plan — it will appear here shortly.`;
+          ? `⚡ **OneUptime AI is composing another kubectl fix for cluster "${clusterName}"** (round ${data.round}) — the previous fix did not recover the service. This round asks first: nothing runs until you approve the new plan, which will appear here shortly.`
+          : `⚡ **OneUptime AI is composing a kubectl fix for cluster "${clusterName}".** Nothing runs until you approve the plan — it will appear here shortly.`;
     }
 
     await this.postFeedItem({

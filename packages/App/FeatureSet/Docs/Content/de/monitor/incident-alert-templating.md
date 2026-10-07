@@ -181,6 +181,10 @@ First User: {{responseBody.users[0].name}}
 
 Wenn ein Pfad nicht existiert, bleibt der Platzhalter exakt so in der Ausgabe stehen, wie er geschrieben wurde – `{{responseBody.error.id}}` erscheint wörtlich, mitsamt geschweiften Klammern, im Vorfallstitel. Nur `{{#each}}`-Blöcke über einen fehlenden Pfad werden entfernt.
 
+### Werte in Beschreibungen und Behebungshinweisen
+
+Eine Beschreibung und Behebungshinweise sind Markdown: Sie werden auf der Seite des Vorfalls oder Alarms, in E-Mails und in seinen Slack- und Microsoft-Teams-Kanälen angezeigt. Die Werte, die eine Vorlage dort einsetzt, stammen von dem, was das überwachte System gesendet hat - ein Antworttext oder Header, eine eingehende Anfrage oder E-Mail, die Labels eines Geräts oder einer Serie - deshalb wird jeder von ihnen als Text eingesetzt. Er liest sich genau so, wie er gesendet wurde, egal wo die Vorlage ihn platziert, und ein Link, ein Bild, ein HTML-Tag oder eine Slack-Erwähnung wie `<!channel>` darin erscheint als Text, statt zu wirken. Eine bloße Webadresse in einem Wert wird weiterhin zu einem Link, der zeigt, wohin er führt. Das Markdown, das Sie selbst in die Vorlage schreiben, wird so dargestellt, wie Sie es geschrieben haben.
+
 ## Erweiterte Verwendung
 
 ### Array-Elemente iterieren mit `{{#each}}`

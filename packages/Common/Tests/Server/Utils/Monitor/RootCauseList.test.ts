@@ -1,6 +1,7 @@
 import RootCauseList, {
   RootCauseListItem,
 } from "../../../../Server/Utils/Monitor/RootCauseList";
+import SlackUtil from "../../../../Server/Utils/Workspace/Slack/Slack";
 import { marked, Tokens, Token } from "marked";
 import { describe, expect, test } from "@jest/globals";
 
@@ -231,6 +232,56 @@ describe("RootCauseList.code", () => {
   test("a value with backticks gets a fence one longer than its longest run, padded with spaces", () => {
     expect(RootCauseList.code("a`b")).toBe("`` a`b ``");
     expect(RootCauseList.code("a``b`c")).toBe("``` a``b`c ```");
+  });
+
+  test("a Slack mention in a reported value notifies nobody once the root cause reaches Slack", () => {
+    const value: string =
+      "<!channel> <@U0123ABC> <#C0123ABC> <!subteam^S0123ABC>";
+    const span: string = RootCauseList.code(value);
+
+    // It reads as reported: the word joiner that breaks each mention is invisible.
+    expect(span.split("\u2060").join("")).toBe(`\`${value}\``);
+    /*
+     * Slack's Markdown conversion passes code through untouched, so the
+     * mention has to be broken inside the span itself.
+     */
+    expect(
+      SlackUtil.convertMarkdownToSlackRichText(
+        RootCauseList.render([{ title: span, value: "**3**", details: [] }]),
+      ),
+    ).not.toMatch(/<[!@#][A-Za-z0-9]/);
+  });
+
+  test("Markdown in a reported value stays code: no link, image or HTML in the list", () => {
+    const markdown: string = RootCauseList.render([
+      {
+        title: RootCauseList.code(
+          "x` [Verify](https://evil.example/login) ![](https://tracker.example/p.png) <img src=x> `y",
+        ),
+        value: "**1**",
+        details: [
+          {
+            label: "Pod",
+            value: RootCauseList.code('<a href="https://evil.example">web</a>'),
+          },
+        ],
+      },
+    ]);
+
+    const kinds: Array<string> = [];
+
+    marked.walkTokens(marked.lexer(markdown), (token: Token): void => {
+      kinds.push(token.type);
+    });
+
+    expect(kinds).not.toContain("link");
+    expect(kinds).not.toContain("image");
+    expect(kinds).not.toContain("html");
+    expect(
+      kinds.filter((kind: string): boolean => {
+        return kind === "codespan";
+      }),
+    ).toHaveLength(2);
   });
 
   test("the result parses back to exactly the value", () => {

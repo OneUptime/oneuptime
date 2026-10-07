@@ -1,4 +1,8 @@
 import ObjectID from "../../Types/ObjectID";
+import {
+  escapeMarkdownInline,
+  escapeMarkdownValue,
+} from "../../Utils/Markdown/MarkdownEscape";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/MonitorOwnerTeam";
@@ -82,7 +86,7 @@ export class Service extends ProjectReferencesService<Model> {
             projectId: projectId,
             monitorFeedEventType: MonitorFeedEventType.OwnerTeamRemoved,
             displayColor: Red500,
-            feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Removed team **${team.name}** from the [Monitor ${monitorName}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitorId!)).toString()}) as the owner.`,
+            feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Removed team **${escapeMarkdownValue(team.name)}** from the [Monitor ${escapeMarkdownInline(monitorName)}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitorId!)).toString()}) as the owner.`,
             userId: deleteByUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
@@ -130,7 +134,7 @@ export class Service extends ProjectReferencesService<Model> {
           projectId: projectId,
           monitorFeedEventType: MonitorFeedEventType.OwnerTeamAdded,
           displayColor: Gray500,
-          feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Added team **${team.name}** to the [Monitor ${monitorName}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitorId!)).toString()}) as the owner.`,
+          feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Added team **${escapeMarkdownValue(team.name)}** to the [Monitor ${escapeMarkdownInline(monitorName)}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitorId!)).toString()}) as the owner.`,
           userId: createdByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,

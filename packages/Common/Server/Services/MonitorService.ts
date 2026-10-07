@@ -48,6 +48,10 @@ import MonitorType, {
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 import MonitorStep from "../../Types/Monitor/MonitorStep";
 import ObjectID from "../../Types/ObjectID";
+import {
+  escapeMarkdownInline,
+  escapeMarkdownValue,
+} from "../../Utils/Markdown/MarkdownEscape";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Model from "../../Models/DatabaseModels/Monitor";
 import MonitorTemplate from "../../Models/DatabaseModels/MonitorTemplate";
@@ -1433,7 +1437,8 @@ export class Service extends ProjectReferencesService<Model> {
         });
 
         const projectId: ObjectID = monitor!.projectId!;
-        const monitorName: string = monitor!.name!;
+        // The monitor's name, inside its link's own text.
+        const monitorName: string = escapeMarkdownInline(monitor!.name!);
 
         let shouldAddMonitorFeed: boolean = false;
         let feedInfoInMarkdown: string = `Monitor **[${monitorName}](${(await this.getMonitorLinkInDashboard(projectId!, monitorId!)).toString()}) was updated.**`;
@@ -1492,7 +1497,7 @@ export class Service extends ProjectReferencesService<Model> {
           // add monitor feed.
 
           feedInfoInMarkdown += `\n\n**Name**: 
-    ${onUpdate.updateBy.data.name || "No name provided."}
+    ${escapeMarkdownValue((onUpdate.updateBy.data.name as string) || "No name provided.")}
     `;
           shouldAddMonitorFeed = true;
         }
@@ -1544,7 +1549,7 @@ export class Service extends ProjectReferencesService<Model> {
     
     ${labels
       .map((label: Label) => {
-        return `- ${label.name}`;
+        return `- ${escapeMarkdownValue(label.name)}`;
       })
       .join("\n")}
     `;
@@ -1934,14 +1939,14 @@ export class Service extends ProjectReferencesService<Model> {
 
     let feedInfoInMarkdown: string = `#### 🌎 Monitor Created: 
           
-**${createdItem.name?.trim() || "No name provided."}**:
+**${escapeMarkdownValue(createdItem.name?.trim() || "No name provided.")}**:
 
 ${createdItem.description?.trim() || "No description provided."}
     
 `;
 
     if (monitor?.currentMonitorStatus?.name) {
-      feedInfoInMarkdown += `➡️ **Monitor Status**: ${monitor.currentMonitorStatus.name} \n\n`;
+      feedInfoInMarkdown += `➡️ **Monitor Status**: ${escapeMarkdownValue(monitor.currentMonitorStatus.name)} \n\n`;
     }
 
     if (monitor?.monitorType) {
@@ -1952,7 +1957,7 @@ ${createdItem.description?.trim() || "No description provided."}
       feedInfoInMarkdown += `🏷️ **Labels**:\n`;
 
       for (const label of monitor.labels) {
-        feedInfoInMarkdown += `- ${label.name}\n`;
+        feedInfoInMarkdown += `- ${escapeMarkdownValue(label.name)}\n`;
       }
 
       feedInfoInMarkdown += `\n\n`;

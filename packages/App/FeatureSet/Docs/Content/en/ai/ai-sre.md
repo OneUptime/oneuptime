@@ -305,6 +305,7 @@ On OneUptime Cloud, OneUptime AI on the global provider is paid from the project
 - **Full audit trail.** Every investigation is recorded as an AI run with an ordered event trail (every LLM call and tool call), and every LLM call is metered in the AI Logs page (Project Settings > AI > AI Logs) with token counts and cost.
 - **Secrets are redacted** from tool results before anything is sent to the LLM (tokens, credentials, key patterns).
 - **Self-host = zero third-party egress.** With your own LLM provider (including local Ollama), telemetry never leaves your infrastructure.
+- **What it writes acts on nothing.** OneUptime AI writes from your telemetry, and telemetry can carry text meant to steer it. Wherever its Markdown goes - the report in the feed and the internal note, a drafted postmortem, the notes, status updates and incident descriptions it writes, and its answers in Slack and Microsoft Teams - it keeps its headings, lists, tables and code, but a Slack mention such as `<!channel>` in it notifies nobody, an image shows as a link, a link shows its words and its address as written (a bare address stays a link that shows where it goes), and an HTML tag shows as text.
 
 ## Auto-postmortem
 
