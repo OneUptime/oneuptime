@@ -182,7 +182,10 @@
     "reference": "Il tuo numero di riferimento è {{reference}}.",
     "submitAnother": "Invia un'altra risposta",
     "retryAfter": "Potrai riprovare {{when}}.",
-    "tryAgain": "Riprova"
+    "tryAgain": "Riprova",
+    "templateLabel": "Parti da un modello",
+    "templateDescription": "Scegli un modello per compilare il modulo. Puoi cambiare qualsiasi risposta prima di inviare.",
+    "templateNone": "Nessun modello"
   },
   "errors": {
     "forbidden": {

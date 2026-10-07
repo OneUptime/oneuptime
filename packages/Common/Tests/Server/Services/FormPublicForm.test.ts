@@ -389,6 +389,8 @@ describe("FormService.getPublicForm - what a visitor is told", () => {
         "targetType",
         "fields",
         "targetSettings",
+        // Its templates: the page is told them, the submit answers from them.
+        "templates",
         "successMessage",
         "ipWhitelist",
         // Its branding, the images through its own relations (FormBranding).
@@ -1001,5 +1003,91 @@ describe("FormRecordOptions: the records a choice question can offer", () => {
         source: "Banana" as FormTargetOptionsSource,
       }),
     ).toEqual([]);
+  });
+});
+
+/*
+ * A form's templates, and its hidden questions, as the public page is told
+ * them: the templates by name, with their answers to the questions the page
+ * asks; a hidden question not at all, nor any template's answer to one.
+ */
+describe("getPublicForm - templates and hidden questions", () => {
+  const HIDDEN_FIELDS: Array<FormField> = [
+    ...FIELDS,
+    {
+      id: "internal",
+      source: FormFieldSource.Question,
+      type: CustomFieldType.Text,
+      label: "Routing Code",
+      isRequired: false,
+      isHidden: true,
+    },
+  ];
+
+  const TEMPLATES: JSONArray = [
+    {
+      id: "outage",
+      name: "Application Outage",
+      answers: {
+        title: "The application is down",
+        severity: CRITICAL_SEVERITY_ID,
+        monitors: [WEB_MONITOR_ID],
+        // Not a monitor the form offers: never offered by the template.
+        internal: "ROUTE-TO-TEAM-7",
+      },
+    },
+    {
+      id: "restored",
+      name: "Service Restored",
+      isDefault: true,
+      answers: { title: "Service restored", monitors: [API_MONITOR_ID] },
+    },
+  ] as unknown as JSONArray;
+
+  test("lists the templates, in order, with their answers to the questions the page asks", async () => {
+    storedForm = buildForm({
+      fields: HIDDEN_FIELDS as unknown as JSONArray,
+      templates: TEMPLATES,
+    });
+
+    const form: PublicForm = await getPublicForm();
+
+    expect(form.templates).toEqual([
+      {
+        id: "outage",
+        name: "Application Outage",
+        answers: {
+          title: "The application is down",
+          severity: CRITICAL_SEVERITY_ID,
+          monitors: [WEB_MONITOR_ID],
+        },
+      },
+      {
+        id: "restored",
+        name: "Service Restored",
+        isDefault: true,
+        // The API monitor is not offered by this form.
+        answers: { title: "Service restored" },
+      },
+    ]);
+  });
+
+  test("never tells the page a hidden question, nor a template's answer to one", async () => {
+    storedForm = buildForm({
+      fields: HIDDEN_FIELDS as unknown as JSONArray,
+      templates: TEMPLATES,
+    });
+
+    const told: string = JSON.stringify(await getPublicForm());
+
+    expect(told).not.toContain("internal");
+    expect(told).not.toContain("Routing Code");
+    expect(told).not.toContain("ROUTE-TO-TEAM-7");
+  });
+
+  test("a form with no templates tells the page none", async () => {
+    storedForm = buildForm();
+
+    expect(await getPublicForm()).not.toHaveProperty("templates");
   });
 });

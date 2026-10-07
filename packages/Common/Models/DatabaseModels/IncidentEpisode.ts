@@ -1299,7 +1299,7 @@ export default class IncidentEpisode extends BaseModel {
     required: false,
     title: "Grouping Key",
     description:
-      "Key used for grouping incidents into this episode. Generated from groupByFields of the matching rule.",
+      "Key used for grouping incidents into this episode. Generated from groupByFields of the matching rule. When a private incident opened the episode, its title is in the key only as a keyed hash.",
   })
   @Column({
     type: ColumnType.LongText,

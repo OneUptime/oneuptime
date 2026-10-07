@@ -16,8 +16,10 @@ export interface ComponentProps {
 }
 
 /*
- * A form's menu, in the order a form is set up: build its questions, decide
- * what a submission creates, share its link, then watch what comes in.
+ * A form's menu, in the order a form is set up: build its questions, give
+ * it templates to start from, decide what a submission creates, share its
+ * link, then watch what comes in. Duplicating and deleting the form are
+ * under Advanced.
  */
 const FormViewSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -34,6 +36,16 @@ const FormViewSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.ClipboardDocumentList}
+        />
+        <SideMenuItem
+          link={{
+            title: "Templates",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.FORM_VIEW_TEMPLATES] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.DocumentDuplicate}
         />
         <SideMenuItem
           link={{
@@ -74,6 +86,16 @@ const FormViewSideMenu: FunctionComponent<ComponentProps> = (
       })}
 
       <SideMenuSection title="Advanced">
+        <SideMenuItem
+          link={{
+            title: "Duplicate Form",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.FORM_VIEW_DUPLICATE] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Copy}
+        />
         <SideMenuItem
           link={{
             title: "Delete Form",

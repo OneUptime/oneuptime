@@ -17,9 +17,10 @@ import path from "path";
 /*
  * Every limit on autonomous AI work is opt-in, and everything OneUptime AI
  * does for incidents and alerts lives in the Incidents and Alerts side menus'
- * own AI section: Insights, Logs, Settings (the AI settings page) and Auto
- * Remediation Rules - no longer under Settings → AI and Rules → Auto
- * Remediation Rules. These tests hold the docs to that - the AI SRE page
+ * own AI section: Insights, Logs and Settings (the AI settings page, whose
+ * More settings hold the auto remediation rules - they had a page of their
+ * own in the section, and before that were Rules → Auto Remediation Rules,
+ * with the AI settings under Settings → AI). These tests hold the docs to that - the AI SRE page
  * (English and Persian), every language's incident overview and settings
  * pages, and the 13 → 14 upgrade note - and hold the docs' claims to the code
  * that makes them true: AIWorkloadLimits, the side menus, the routes and the
@@ -233,6 +234,8 @@ const REMOVED_MENU_PATTERNS: ReadonlyArray<RegExp> = [
   /\bAI\s*(?:>|→)\s*Remediation\b/,
   /\b(?:Incidents|Alerts)\s*(?:>|→)\s*Settings\s*(?:>|→)\s*AI\b/,
   /\bRules\s*(?:>|→)\s*Auto Remediation Rules\b/,
+  // The rules' own page in the AI section, folded into AI → Settings.
+  /\bAI\s*(?:>|→)\s*Auto Remediation Rules\b/,
 ];
 
 // The AI SRE page, in the two languages it is written in.
@@ -264,7 +267,7 @@ const AI_SRE_PAGES: Record<string, AiSrePage> = {
     costControlsHeading: "## Cost controls",
     where: "Incidents or Alerts > AI > Settings",
     remediation:
-      "**Incidents > AI > Auto Remediation Rules** and **Alerts > AI > Auto Remediation Rules**",
+      "the auto remediation rules under **More settings** on **Incidents > AI > Settings** and **Alerts > AI > Settings**",
     oldDefaults: [
       "top two severity tiers",
       "Default **30 minutes**",
@@ -313,7 +316,7 @@ const AI_SRE_PAGES: Record<string, AiSrePage> = {
     costControlsHeading: "## کنترل‌های هزینه",
     where: "Incidents یا Alerts > AI > Settings",
     remediation:
-      "**Incidents > AI > Auto Remediation Rules** و **Alerts > AI > Auto Remediation Rules**",
+      "زیر **More settings** در **Incidents > AI > Settings** و **Alerts > AI > Settings**",
     oldDefaults: [
       "دو رده شدت بالای",
       "پیش‌فرض **۳۰ دقیقه**",
@@ -458,7 +461,6 @@ const AI_SECTION_PAGES: ReadonlyArray<keyof MenuLabels> = [
   "insights",
   "logs",
   "settings",
-  "autoRemediationRules",
 ];
 
 // Where the routes and the forwarding from the old addresses are declared.
@@ -773,7 +775,7 @@ describe("AI has no limits by default", () => {
       }
     });
 
-    it("serves the AI settings and the auto-remediation rules under ai/, and forwards their old addresses", () => {
+    it("serves the AI settings under ai/, and forwards the old addresses of them and of the rules", () => {
       const routeMap: string = read(path.join(DASHBOARD_SRC, ROUTE_MAP_SOURCE));
       const moved: string = read(
         path.join(DASHBOARD_SRC, MOVED_PAGE_PATHS_SOURCE),
@@ -781,9 +783,7 @@ describe("AI has no limits by default", () => {
 
       for (const declaration of [
         '[PageMap.INCIDENTS_SETTINGS_AI]: "ai/settings"',
-        '[PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES]: "ai/auto-remediation-rules"',
         '[PageMap.ALERTS_SETTINGS_AI]: "ai/settings"',
-        '[PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES]: "ai/auto-remediation-rules"',
       ]) {
         expect({
           declaration: declaration,
@@ -791,9 +791,14 @@ describe("AI has no limits by default", () => {
         }).toEqual({ declaration: declaration, declared: true });
       }
 
+      // The rules page is gone: nothing routes to it any more.
+      expect(flat(routeMap)).not.toContain("AUTO_REMEDIATION_RULES");
       expect(flat(moved)).toContain('aiSettings: "settings/ai"');
       expect(flat(moved)).toContain(
         'autoRemediationRules: "settings/auto-remediation-rules"',
+      );
+      expect(flat(moved)).toContain(
+        'aiAutoRemediationRules: "ai/auto-remediation-rules"',
       );
     });
   });
@@ -813,7 +818,7 @@ describe("AI has no limits by default", () => {
       }
     });
 
-    it("sends people to AI → Settings and AI → Auto Remediation Rules", () => {
+    it("sends people to AI → Settings, and the rules under its More settings", () => {
       for (const language of Object.keys(AI_SRE_PAGES)) {
         const page: AiSrePage = AI_SRE_PAGES[language] as AiSrePage;
         const markdown: string = flat(read(page.file));
@@ -849,8 +854,9 @@ describe("AI has no limits by default", () => {
             "**Load older entries**",
             "`…/settings/ai`",
             "`…/settings/auto-remediation-rules`",
+            "`…/ai/auto-remediation-rules`",
             "**AI > Settings**",
-            "**AI > Auto Remediation Rules**",
+            "**More settings**",
           ].filter((name: string): boolean => {
             return !markdown.includes(name);
           }),
@@ -931,6 +937,8 @@ describe("AI has no limits by default", () => {
         "on **Incidents → Settings → AI** and **Alerts → Settings → AI**",
         "(Incidents or Alerts → Rules → Auto Remediation Rules)",
         "**Incidents > Rules > Auto Remediation Rules**",
+        "(Incidents or Alerts → AI → Auto Remediation Rules)",
+        "**Incidents > AI > Auto Remediation Rules**",
       ]) {
         expect({
           removed: removed,
@@ -941,7 +949,6 @@ describe("AI has no limits by default", () => {
       for (const kept of [
         "**Incidents > AI > Settings**",
         "**Alerts > AI > Insights**",
-        "(Incidents or Alerts → AI → Auto Remediation Rules)",
         "on the incident AI settings page (Incidents > AI > Settings)",
         "Project Settings > AI > AI Features > Enable AI",
         "**Project Settings → AI → LLM Providers**",
@@ -968,9 +975,29 @@ describe("AI has no limits by default", () => {
           some: true,
         });
 
+        /*
+         * The rules' own page, as each language names the path to it: its
+         * AI section, then the page ("KI → Auto-Behebungsregeln").
+         */
+        const labels: MenuLabels = MENU_LABELS[language] as MenuLabels;
+        const escape: (text: string) => string = (text: string): string => {
+          return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        };
+        const localRulesPage: RegExp = new RegExp(
+          `${escape(labels.ai)}\\**\\s*(?:>|→)\\s*\\**${escape(labels.autoRemediationRules)}`,
+        );
+
         for (const page of pages) {
-          for (const pattern of removedPathsIn(flat(read(page)))) {
+          const markdown: string = flat(read(page));
+
+          for (const pattern of removedPathsIn(markdown)) {
             offenders.push(`${path.relative(CONTENT_DIR, page)}: ${pattern}`);
+          }
+
+          if (localRulesPage.test(markdown)) {
+            offenders.push(
+              `${path.relative(CONTENT_DIR, page)}: ${String(localRulesPage)}`,
+            );
           }
         }
       }

@@ -639,9 +639,10 @@ upgrade moves those fixes to asking first:
 
 Nothing is turned off. Rules, clusters and resources that one of the switches
 kept quiet start proposing fixes, and each fix still waits for a human. To keep
-auto-remediation out of a project, turn off **Enable AI**, or disable its rules
-(Incidents or Alerts → AI → Auto Remediation Rules) and set **Fixes** to
-**Off** on each cluster's and resource's AI agent page. API clients and
+auto-remediation out of a project, turn off **Enable AI**, or turn off **Fix
+new incidents automatically** and **Fix new alerts automatically** (Incidents
+or Alerts → AI → Settings; see [Fixing new incidents and alerts has a switch
+of its own](#fixing-new-incidents-and-alerts-has-a-switch-of-its-own)). API clients and
 Terraform configurations that set `enableAutoRemediation` or
 `enableAiCommandExecution` (`enable_auto_remediation` or
 `enable_ai_command_execution` in Terraform) should stop setting them.
@@ -739,6 +740,49 @@ as it is.
 On Helm with `migrate.hook: true`, `helm upgrade` waits for the migrations, by
 default for 5 minutes. If your AI Logs table is very large, run this upgrade
 with `--timeout 20m`.
+
+### Fixing new incidents and alerts has a switch of its own
+
+**Incidents → AI → Settings** and **Alerts → AI → Settings** each have a new
+switch, **Fix new incidents automatically** and **Fix new alerts
+automatically**. While it is off, nothing new of that kind is fixed: no
+Kubernetes cluster or host fix, and no auto remediation rule. It starts off,
+for new projects too, because it lets OneUptime AI change your
+infrastructure. **Enable AI** still turns all of AI off at once.
+
+The upgrade keeps every project fixing what it fixed before:
+
+- The switch is on for incidents (or alerts) in a project that had an enabled
+  auto remediation rule for them, or fixes on for any of its Kubernetes
+  clusters or hosts. Everywhere else it is off.
+- With rules set up, only the incidents that match one are fixed now. Until
+  now OneUptime AI fixed every incident on the clusters and hosts it was
+  linked to, whatever the rules said, so a project with enabled rules and
+  fixes on for a cluster or host gets one more rule, **Fix every incident with
+  OneUptime AI** (or **Fix every alert with OneUptime AI**), which matches
+  every one and lets OneUptime AI fix it. Delete it to fix only what your
+  other rules match.
+- An auto remediation rule asks three questions now: which incidents (its
+  conditions), **Fix With** (**OneUptime AI** or **Runbooks**) and **Approval**
+  (**Ask before fixing** or **Fix without asking**). An existing rule with no
+  AI setting is a **Runbooks** rule and runs its runbooks as before; one that
+  let AI compose commands or pick a runbook keeps doing that. Their other
+  settings (the command allowlist, the command Runners, the verification
+  window and auto-resolve) are kept, and are set through the API or
+  Terraform: the dashboard no longer shows them.
+- The rules moved from a page of their own into **More settings** on the AI
+  settings page, next to the new **Investigation Rules**, which narrow which
+  incidents (or alerts) are investigated; with none, every one is.
+  `…/ai/auto-remediation-rules` and `…/settings/auto-remediation-rules` open
+  the AI settings page.
+
+API clients and Terraform configurations can turn fixing on with the project's
+`enableAutomaticIncidentRemediation` and `enableAutomaticAlertRemediation`
+(`enable_automatic_incident_remediation` and
+`enable_automatic_alert_remediation` in Terraform), and say what a rule fixes
+with in its `remediationAction` (`OneUptimeAI` or `Runbooks`). A rule created
+without one, with runbooks and no AI setting, is a **Runbooks** rule, as it
+would have run before.
 
 ### Verify the edition and the license
 

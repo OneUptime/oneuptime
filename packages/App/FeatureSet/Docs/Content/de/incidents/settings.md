@@ -21,7 +21,7 @@ Diese Seite ist die Referenz für diese Konfiguration – was auf welcher Seite 
 | **Vorfallsrollen**         | Die Rollen definieren, denen Sie Responder zuweisen, etwa Incident Commander.                              |
 | **Nummernpräfix**  | Die Nummernpräfixe für Vorfälle und Vorfall-Episoden.                                                      |
 
-Was OneUptime AI selbstständig tut, wird nicht hier eingestellt: Dafür gibt es einen eigenen Abschnitt, **Vorfälle → KI**, unter Routen, die mit `/dashboard/{projectId}/incidents/ai/` beginnen. Seine Seite **Einstellungen** schaltet automatische Untersuchung, automatische Code-Korrekturen und Postmortem-Entwürfe ein oder aus und enthält die optionalen Grenzen, unter denen die KI arbeitet – keine davon gilt, bevor Sie sie setzen. Daneben liegen die **Auto-Behebungsregeln**, dazu **Einblicke** und **Protokolle**: was die KI aus Ihren Vorfällen gelernt und was sie alles getan hat. Siehe [AI SRE](/docs/ai/ai-sre).
+Was OneUptime AI selbstständig tut, wird nicht hier eingestellt: Dafür gibt es einen eigenen Abschnitt, **Vorfälle → KI**, unter Routen, die mit `/dashboard/{projectId}/incidents/ai/` beginnen. Seine Seite **Einstellungen** schaltet das Untersuchen neuer Vorfälle, ihr automatisches Beheben (aus, bis Sie es einschalten), Postmortem-Entwürfe und das Öffnen von Pull Requests für Korrekturen und fehlende Telemetrie ein oder aus, und jeder Schalter speichert, sobald Sie ihn umlegen. Die Untersuchungsregeln und Auto-Behebungsregeln, die eingrenzen, welche Vorfälle untersucht und behoben werden, und die optionalen Grenzen, unter denen die KI arbeitet, sind unter **Weitere Einstellungen** eingeklappt – keine davon gilt, bevor Sie sie setzen. Daneben liegen **Einblicke** und **Protokolle**: was die KI aus Ihren Vorfällen gelernt und was sie alles getan hat. Siehe [AI SRE](/docs/ai/ai-sre).
 
 **Vorfallsstatus** und **Vorfallsschweregrad** werden ausführlich unter [Vorfallstatus & Schweregrade](/docs/incidents/states-and-severities) behandelt – der Rest dieser Seite setzt bei **Vorfall-Vorlagen** an.
 
@@ -117,21 +117,22 @@ Ein neues Präfix gilt nur für Vorfälle und Episoden, die danach entstehen. Be
 
 ## Regeln, die beim Anlegen eines Vorfalls laufen
 
-**Vorfälle → Regeln** enthält acht Regel-Engines, **Vorfälle → KI** eine neunte, die **Auto-Behebungsregeln**. Alle machen dasselbe – sie sehen sich einen Vorfall in dem Moment an, in dem er entsteht, und handeln, wenn er passt –, unterscheiden sich aber darin, was sie tun und wie mehrere zutreffende Regeln aufgelöst werden.
+**Vorfälle → Regeln** enthält acht Regel-Engines, **Vorfälle → KI → Einstellungen** zwei weitere, unter **Weitere Einstellungen**: die **Auto-Behebungsregeln** und die **Untersuchungsregeln**. Alle machen dasselbe – sie sehen sich einen Vorfall in dem Moment an, in dem er entsteht, und handeln, wenn er passt –, unterscheiden sich aber darin, was sie tun und wie mehrere zutreffende Regeln aufgelöst werden.
 
 - **Gruppierungsregeln** – fassen verwandte Vorfälle zu Episoden zusammen. Die Regeln werden in Prioritätsreihenfolge ausgewertet; niedrigere Prioritätsnummern zuerst.
 - **Bereitschaftsregeln** – führen Bereitschaftsrichtlinien für passende Vorfälle aus. Weiter unten im Detail.
 - **Eigentümerregeln** – weisen automatisch Eigentümer zu.
 - **Runbook-Regeln** – starten ein [Runbook](/docs/runbooks/index), wenn ein Vorfall passt.
-- **Auto-Behebungsregeln**, unter **KI** – schlagen Behebungs-Runbooks vor oder starten sie, wenn ein Vorfall passt. Steht für den Vorfall eine KI-Untersuchung in der Warteschlange, laufen sie, sobald diese fertig ist, mit ihrer Analyse in der Hand. Siehe [AI SRE](/docs/ai/ai-sre).
+- **Auto-Behebungsregeln**, unter **KI** → **Einstellungen** – welche neuen Vorfälle behoben werden, solange **Neue Vorfälle automatisch beheben** eingeschaltet ist, und wie: durch OneUptime AI oder mit den Runbooks der Regel, mit oder ohne Nachfrage vor dem Beheben. Ohne Regel wird jeder neue Vorfall behoben. Steht für den Vorfall eine KI-Untersuchung in der Warteschlange, laufen sie, sobald diese fertig ist, mit ihrer Analyse in der Hand.
+- **Untersuchungsregeln**, unter **KI** → **Einstellungen** – welche neuen Vorfälle OneUptime AI untersucht. Ohne Regel wird jeder untersucht. Siehe [AI SRE](/docs/ai/ai-sre).
 - **Datenschutzregeln** – entscheiden, ob ein passender Vorfall privat ist.
 - **Beschriftungsregeln** – vergeben automatisch Beschriftungen.
 - **SLA-Regeln** – verfolgen Reaktions- und Behebungszeiten. Die Regeln werden der Reihe nach ausgewertet; niedrigere Reihenfolgenummern zuerst.
 - **Reminder Rules** – erinnern die Eigentümer eines Vorfalls in regelmäßigen Abständen, solange er noch offen ist. Die Regeln werden der Reihe nach ausgewertet, und die erste passende gewinnt.
 
-**Die Reihenfolge-Semantik ist nicht einheitlich.** Gruppierungsregeln, SLA-Regeln und Reminder Rules werden der Reihe nach ausgewertet. Bereitschaftsregeln nicht – dort feuert jede passende Regel. Gehen Sie nicht davon aus, dass ein Modell für alle neun gilt.
+**Die Reihenfolge-Semantik ist nicht einheitlich.** Gruppierungsregeln, SLA-Regeln und Reminder Rules werden der Reihe nach ausgewertet. Bereitschaftsregeln nicht – dort feuert jede passende Regel. Gehen Sie nicht davon aus, dass ein Modell für alle zehn gilt.
 
-Die Seiten **Bereitschaftsregeln**, **Eigentümerregeln**, **Beschriftungsregeln** und **Datenschutzregeln** haben Reiter – **Incident Rules** und **Episode Rules**, jeder mit eigener Tabelle. Konfigurieren Sie den Reiter **Incident Rules**, sofern Sie nicht ausdrücklich Episoden meinen. **Gruppierungsregeln**, **Runbook-Regeln**, **Auto-Behebungsregeln**, **SLA-Regeln** und **Reminder Rules** sind einfache Tabellen.
+Die Seiten **Bereitschaftsregeln**, **Eigentümerregeln**, **Beschriftungsregeln** und **Datenschutzregeln** haben Reiter – **Incident Rules** und **Episode Rules**, jeder mit eigener Tabelle. Konfigurieren Sie den Reiter **Incident Rules**, sofern Sie nicht ausdrücklich Episoden meinen. **Gruppierungsregeln**, **Runbook-Regeln**, **Auto-Behebungsregeln**, **Untersuchungsregeln**, **SLA-Regeln** und **Reminder Rules** sind einfache Tabellen.
 
 ## Bereitschaftsregeln für Vorfälle
 

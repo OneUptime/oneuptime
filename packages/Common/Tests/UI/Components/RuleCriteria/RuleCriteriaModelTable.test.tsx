@@ -354,10 +354,14 @@ More details stay here.
       },
     );
 
-    expect(staticRuleFormFiles).toHaveLength(70);
-    expect(helpFormFiles).toHaveLength(63);
-    // 69, and the five episode rule help texts that now have the heading too.
-    expect(helpMarkdown).toHaveLength(74);
+    /*
+     * The investigation rules form has no help panel, and the auto
+     * remediation rules form lost its own when it became three questions.
+     */
+    expect(staticRuleFormFiles).toHaveLength(71);
+    expect(helpFormFiles).toHaveLength(62);
+    // 68, and the five episode rule help texts that now have the heading too.
+    expect(helpMarkdown).toHaveLength(73);
 
     for (const markdown of helpMarkdown) {
       const transformed: string = replaceRuleCriteriaHelpMarkdown(markdown);

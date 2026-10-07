@@ -182,7 +182,10 @@
     "reference": "आपका संदर्भ नंबर {{reference}} है।",
     "submitAnother": "एक और जवाब भेजें",
     "retryAfter": "आप {{when}} फिर से कोशिश कर सकते हैं।",
-    "tryAgain": "फिर से कोशिश करें"
+    "tryAgain": "फिर से कोशिश करें",
+    "templateLabel": "टेम्पलेट से शुरू करें",
+    "templateDescription": "फ़ॉर्म भरने के लिए एक टेम्पलेट चुनें। सबमिट करने से पहले आप कोई भी उत्तर बदल सकते हैं।",
+    "templateNone": "कोई टेम्पलेट नहीं"
   },
   "errors": {
     "forbidden": {

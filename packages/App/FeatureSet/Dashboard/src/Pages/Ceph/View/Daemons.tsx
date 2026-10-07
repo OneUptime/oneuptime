@@ -23,6 +23,13 @@ import CephResourceModel from "Common/Models/DatabaseModels/CephResource";
 import CephResourceUtils, {
   CephResourceKind,
 } from "../Utils/CephResourceUtils";
+import {
+  ClientSort,
+  ClientSortColumns,
+  compareText,
+  resolveClientSort,
+  sortClientRows,
+} from "../../../Utils/ClientTableSort";
 import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CephMetricDescriptions";
 
 /*
@@ -36,12 +43,17 @@ import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions
 interface CephDaemonRow {
   daemon: string;
   kind: string;
-  hostname: string;
-  version: string;
+  // Null when the daemon never reported one; the cell shows "—".
+  hostname: string | null;
+  version: string | null;
   status: string;
   isHealthy: boolean;
   isWarning: boolean;
 }
+
+type CephDaemonSortKey = "daemon" | "kind" | "status" | "hostname" | "version";
+
+type CephDaemonSort = ClientSort<CephDaemonSortKey>;
 
 const KIND_LABELS: Record<string, string> = {
   Mon: "Monitor",
@@ -54,6 +66,48 @@ const DAEMON_KINDS: Array<CephResourceKind> = ["Mon", "Mgr", "Mds", "Rgw"];
 
 const PAGE_SIZE: number = 25;
 
+/*
+ * How bad a daemon's status is: out of quorum (red) above stale (yellow)
+ * above in quorum or reporting (green). Sorted by its label, "In Quorum"
+ * would lead and "Out of Quorum" would sit between two healthy states.
+ */
+const statusSeverityOf: (row: CephDaemonRow) => number = (
+  row: CephDaemonRow,
+): number => {
+  if (row.isHealthy) {
+    return 0;
+  }
+  return row.isWarning ? 1 : 2;
+};
+
+/*
+ * Every column sorts. Status opens worst first, the rest A to Z - names,
+ * hosts and versions with their numbers in counting order, so rgw.2 comes
+ * before rgw.10 and 18.2.4 before 18.2.10. A missing host or version sorts
+ * last either way.
+ */
+const SORT_COLUMNS: ClientSortColumns<CephDaemonRow, CephDaemonSortKey> = {
+  daemon: { firstSortOrder: SortOrder.Ascending },
+  kind: { firstSortOrder: SortOrder.Ascending },
+  status: { firstSortOrder: SortOrder.Descending, value: statusSeverityOf },
+  hostname: { firstSortOrder: SortOrder.Ascending },
+  version: { firstSortOrder: SortOrder.Ascending },
+};
+
+// The list opens grouped by kind, each kind's daemons A to Z.
+const DEFAULT_SORT: CephDaemonSort = {
+  sortBy: "kind",
+  sortOrder: SortOrder.Ascending,
+};
+
+// Daemons that tie in the sorted column keep the order the list opens on.
+const compareByKindThenName: (a: CephDaemonRow, b: CephDaemonRow) => number = (
+  a: CephDaemonRow,
+  b: CephDaemonRow,
+): number => {
+  return compareText(a.kind, b.kind) || compareText(a.daemon, b.daemon);
+};
+
 const CephClusterDaemons: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -64,6 +118,7 @@ const CephClusterDaemons: FunctionComponent<
   const [error, setError] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(PAGE_SIZE);
+  const [sort, setSort] = useState<CephDaemonSort>(DEFAULT_SORT);
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -111,21 +166,14 @@ const CephClusterDaemons: FunctionComponent<
           return {
             daemon: row.externalId || "",
             kind: KIND_LABELS[kind] || kind,
-            hostname: row.hostname || "—",
-            version: row.daemonVersion || "—",
+            hostname: row.hostname || null,
+            version: row.daemonVersion || null,
             status: status,
             isHealthy: isHealthy,
             isWarning: isWarning,
           };
         },
       );
-
-      list.sort((a: CephDaemonRow, b: CephDaemonRow) => {
-        if (a.kind !== b.kind) {
-          return a.kind.localeCompare(b.kind);
-        }
-        return CephResourceUtils.compareDaemonNames(a.daemon, b.daemon);
-      });
 
       setDaemons(list);
     } catch (err) {
@@ -140,6 +188,16 @@ const CephClusterDaemons: FunctionComponent<
     });
   }, []);
 
+  // Sorted before the page is cut out, so a sort runs across every page.
+  const sortedDaemons: Array<CephDaemonRow> = useMemo(() => {
+    return sortClientRows({
+      rows: daemons,
+      columns: SORT_COLUMNS,
+      sort: sort,
+      tieBreak: compareByKindThenName,
+    });
+  }, [daemons, sort]);
+
   /*
    * A refresh can shrink the list (a daemon that stops reporting is dropped
    * from the inventory), so clamp instead of trusting currentPage — otherwise
@@ -150,8 +208,8 @@ const CephClusterDaemons: FunctionComponent<
 
   const paginatedData: Array<CephDaemonRow> = useMemo(() => {
     const start: number = (effectivePage - 1) * pageSize;
-    return daemons.slice(start, start + pageSize);
-  }, [daemons, effectivePage, pageSize]);
+    return sortedDaemons.slice(start, start + pageSize);
+  }, [sortedDaemons, effectivePage, pageSize]);
 
   const tableColumns: Array<Column<CephDaemonRow>> = useMemo(() => {
     return [
@@ -201,11 +259,13 @@ const CephClusterDaemons: FunctionComponent<
         title: "Host",
         type: FieldType.Text,
         key: "hostname",
+        noValueMessage: "—",
       },
       {
         title: "Version",
         type: FieldType.Text,
         key: "version",
+        noValueMessage: "—",
       },
     ];
   }, []);
@@ -253,9 +313,22 @@ const CephClusterDaemons: FunctionComponent<
             setPageSize(itemsOnPage);
           }
         }}
-        sortOrder={SortOrder.Ascending}
-        sortBy={null}
-        onSortChanged={() => {}}
+        sortOrder={sort.sortOrder}
+        sortBy={sort.sortBy}
+        onSortChanged={(
+          newSortBy: keyof CephDaemonRow | null,
+          newSortOrder: SortOrder,
+        ) => {
+          setSort((current: CephDaemonSort): CephDaemonSort => {
+            return resolveClientSort({
+              columns: SORT_COLUMNS,
+              current: current,
+              requestedSortBy: newSortBy,
+              requestedSortOrder: newSortOrder,
+            });
+          });
+          setCurrentPage(1);
+        }}
         noItemsMessage="No daemons found in the inventory yet. Daemons appear here a few minutes after the Ceph agent starts sending metrics."
       />
     </Card>

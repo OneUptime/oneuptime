@@ -1,5 +1,6 @@
 import { AddIncidentForms1796400000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796400000000-AddIncidentForms";
 import { AddFormBranding1797700000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1797700000000-AddFormBranding";
+import { AddFormTemplates1799500000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1799500000000-AddFormTemplates";
 import {
   LEGACY_PERMISSION_RENAMES,
   MigrateIncidentFormsToForms1797400000000,
@@ -221,6 +222,12 @@ const ADDED_LATER: Array<{
     migration: new AddFormBranding1797700000000(),
     table: "Form",
     columns: ["logoFileId", "logoAltText", "faviconFileId"],
+  },
+  {
+    // A form's templates: named sets of answers a submission starts from.
+    migration: new AddFormTemplates1799500000000(),
+    table: "Form",
+    columns: ["templates"],
   },
 ];
 

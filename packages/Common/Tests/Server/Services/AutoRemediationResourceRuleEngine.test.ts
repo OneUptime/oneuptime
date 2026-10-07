@@ -192,9 +192,14 @@ function mockBaseline(data: {
   jest.spyOn(logger, "debug").mockImplementation((): void => {
     return undefined;
   });
-  // Enable AI is the project's only AI switch.
+  /*
+   * Enable AI, and the signal kind's own "Fix new incidents automatically"
+   * (or alerts), which starts off.
+   */
   jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
     enableAi: true,
+    enableAutomaticIncidentRemediation: true,
+    enableAutomaticAlertRemediation: true,
   } as unknown as Project);
   /*
    * The first read is the subject's existing suggestions; every later read
@@ -311,18 +316,37 @@ describe("AutoRemediationRuleEngineService resource-level remediation", () => {
     expect(markdowns[0]).not.toContain("kubectl");
   });
 
-  it("needs no project switch beyond Enable AI (the resource's own mode is the consent)", async () => {
+  it("needs Enable AI and Fix new incidents automatically; the resource's own mode is the rest of the consent", async () => {
     mockBaseline({});
 
     await AutoRemediationRuleEngineService.applyRulesToIncident(fakeIncident());
 
-    // The baseline project row carries Enable AI and nothing else.
     expect(createdSuggestions).toHaveLength(1);
     expect(ProjectService.findOneById).toHaveBeenCalledWith({
       id: PROJECT_ID,
-      select: { enableAi: true },
+      select: {
+        enableAi: true,
+        enableAutomaticIncidentRemediation: true,
+        enableAutomaticAlertRemediation: true,
+      },
       props: { isRoot: true },
     });
+  });
+
+  it("starts no resource round while Fix new incidents automatically is off - the resource is not even read", async () => {
+    mockBaseline({});
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      enableAi: true,
+      enableAutomaticIncidentRemediation: false,
+      enableAutomaticAlertRemediation: true,
+    } as unknown as Project);
+
+    await AutoRemediationRuleEngineService.applyRulesToIncident(fakeIncident());
+
+    expect(createdSuggestions).toHaveLength(0);
+    expect(resourceStatuses).not.toHaveBeenCalled();
+    expect(enqueue).not.toHaveBeenCalled();
+    expect(feedMarkdowns()).toEqual([]);
   });
 
   it("starts no resource round when Enable AI is off — the resource is not even read", async () => {

@@ -418,19 +418,21 @@ describe("the menus the paths are checked against", () => {
   });
 
   test.each(PRODUCTS_WITH_AI_SECTION)(
-    "the %s menu's AI section holds its AI settings and auto-remediation rules, and Settings no longer does",
+    "the %s menu's AI section holds its AI settings - the auto-remediation rules among them - and Settings no longer does",
     (product: string) => {
       const prefix: string = product === "Incidents" ? "INCIDENTS" : "ALERTS";
 
       expect(getProductAiItems(product)).toEqual(
         expect.arrayContaining([
           { title: "Settings", pageMapKey: `${prefix}_SETTINGS_AI` },
-          {
-            title: "Auto Remediation Rules",
-            pageMapKey: `${prefix}_SETTINGS_AUTO_REMEDIATION_RULES`,
-          },
         ]),
       );
+      // The rules are under the AI settings page's More settings now.
+      expect(
+        getProductAiItems(product).map((item: MenuItem): string => {
+          return item.title;
+        }),
+      ).not.toContain("Auto Remediation Rules");
       expect(
         getProductSettingsItems(product).map((item: MenuItem): string => {
           return item.title;
@@ -489,6 +491,8 @@ describe("the path checks", () => {
     "Limits live under Incidents → AI → Limits.",
     "Turn it on in Alerts > AI > Investigation.",
     "Set up a rule in Incidents → AI → Remediation Rules.",
+    // The rules page folded into Settings: there is no such page any more.
+    "Add one in Incidents → AI → Auto Remediation Rules.",
   ])("refuse %s", (text: string) => {
     expect(findProductAiPathProblems(text)).toHaveLength(1);
   });
@@ -496,7 +500,7 @@ describe("the path checks", () => {
   test.each([
     "Limits live under Incidents → AI → Settings.",
     "Raise or unset it under Alerts > AI > Settings to resume.",
-    "Add one in Incidents → AI → Auto Remediation Rules.",
+    "Add one in Incidents → AI → Settings.",
     // Not a product's AI section: Project Settings has its own AI section.
     "Turn AI on in Project Settings → AI → AI Features.",
   ])("accept %s", (text: string) => {
