@@ -159,11 +159,34 @@ describe("the docs send readers to Number Prefix, never to More Settings", () =>
     },
   );
 
+  /*
+   * The AI settings page has a folded "More settings" section, which holds
+   * the investigation and auto remediation rules, and most languages name it
+   * as they named the old page. The lines that describe the AI settings page
+   * - the one that gives its address, and the one that names its rules - may
+   * name that section; it is not the page that moved.
+   */
+  function withoutAiSettingsFold(language: string, markdown: string): string {
+    const investigationRules: string = `**${uiName(language, "Investigation Rules")}**`;
+
+    return markdown
+      .split("\n")
+      .filter((line: string): boolean => {
+        return (
+          !line.includes("/incidents/ai/") && !line.includes(investigationRules)
+        );
+      })
+      .join("\n");
+  }
+
   it.each(LANGUAGES)(
     "%s: More Settings is named only where its old address is said to forward",
     (language: string) => {
       const oldName: string = `**${MORE_SETTINGS[language]}**`;
-      const settings: string = readPage(SETTINGS_PAGE, language);
+      const settings: string = withoutAiSettingsFold(
+        language,
+        readPage(SETTINGS_PAGE, language),
+      );
 
       expect(count(settings, oldName)).toBe(1);
       expect(count(settings, OLD_ADDRESS_MENTION)).toBe(1);

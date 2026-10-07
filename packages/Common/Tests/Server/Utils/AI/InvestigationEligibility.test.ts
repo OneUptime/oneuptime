@@ -39,6 +39,7 @@ const codes: Array<InvestigationNotStartedCode> = [
   "provider_missing",
   "insufficient_ai_balance",
   "project_daily_limit_reached",
+  "no_investigation_rule_matched",
   "severity_below_threshold",
   "monitor_cooldown",
   "created_resolved",
@@ -53,6 +54,7 @@ const configurationCodes: Array<InvestigationNotStartedCode> = [
   "automatic_investigation_disabled",
   "provider_missing",
   "insufficient_ai_balance",
+  "no_investigation_rule_matched",
   "severity_below_threshold",
 ];
 
@@ -1352,4 +1354,53 @@ describe("the project's own daily AI limits (project_daily_limit_reached)", () =
       expect(create).not.toHaveBeenCalled();
     },
   );
+});
+
+/*
+ * Investigation rules narrow which incidents (or alerts) are investigated:
+ * one that matches none of them was left out on purpose, and the reason
+ * says so - how many rules there were, and where they are.
+ */
+describe("a record no investigation rule matched (no_investigation_rule_matched)", () => {
+  it.each(subjects)(
+    "names how many rules there were, and where they are, for %o",
+    (subject: InvestigationSubject) => {
+      const kind: string = subject.alertId ? "alert" : "incident";
+      const product: string = subject.alertId ? "Alerts" : "Incidents";
+      const recorded: InvestigationNotStartedReason =
+        InvestigationEligibility.reason(
+          "no_investigation_rule_matched",
+          subject,
+          undefined,
+          { rulesChecked: 3 },
+        );
+
+      expect(recorded.title).toBe(
+        `This ${kind} was outside the investigation rules at creation`,
+      );
+      expect(recorded.description).toBe(
+        `When this ${kind} was created, investigation rules were set up for ${kind}s, and it matched none of the 3 rules. Only the ${kind}s that match one are investigated automatically.`,
+      );
+      expect(recorded.nextStep).toBe(
+        `Review the investigation rules under ${product} → AI → Settings → More settings. Changing them does not retry this ${kind}; to look into it anyway, ask OneUptime AI below.`,
+      );
+    },
+  );
+
+  it("counts one rule as one rule, and none as them", () => {
+    const subject: InvestigationSubject = { projectId, incidentId };
+
+    expect(
+      InvestigationEligibility.reason(
+        "no_investigation_rule_matched",
+        subject,
+        undefined,
+        { rulesChecked: 1 },
+      ).description,
+    ).toContain("matched none of the 1 rule.");
+    expect(
+      InvestigationEligibility.reason("no_investigation_rule_matched", subject)
+        .description,
+    ).toContain("matched none of them.");
+  });
 });

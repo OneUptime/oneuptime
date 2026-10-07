@@ -4,7 +4,6 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
 import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRule";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
@@ -12,142 +11,134 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
-import Runner from "Common/Models/DatabaseModels/Runner";
+import AutoRemediationAction from "Common/Types/AutoRemediation/AutoRemediationAction";
 import AutoRemediationExecutionMode from "Common/Types/AutoRemediation/AutoRemediationExecutionMode";
 import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
 import { Blue, Green, Purple, Red, Yellow } from "Common/Types/BrandColors";
-import ListResult from "Common/Types/BaseDatabase/ListResult";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import { isKubernetesAgentRunnerName } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import React, { FunctionComponent, ReactElement } from "react";
+import {
+  AI_LANE_ADVANCED_CARD_TITLES,
+  AI_LANE_REMEDIATION_RULES_TABLE_ID,
+  AI_LANE_RULES_COPY,
+  AiLane,
+  AiLaneAdvancedCard,
+} from "../AISettings/ProjectAiSettingsCopy";
+import { reportEnabledAiLaneRuleCount } from "../AISettings/AiLaneRuleCount";
+import {
+  AUTO_REMEDIATION_APPROVAL_OPTIONS,
+  AUTO_REMEDIATION_APPROVAL_TEXT,
+  AUTO_REMEDIATION_FIX_WITH_OPTIONS,
+  AUTO_REMEDIATION_FIX_WITH_TEXT,
+  AutoRemediationFixWith,
+  doesAutoRemediationRuleAskFirst,
+  getAutoRemediationFixWith,
+  isRunbooksFixWith,
+} from "./AutoRemediationRuleCopy";
 
 export interface ComponentProps {
-  triggerEntityType: AutoRemediationTriggerEntity;
-  entityLabel: string; // "incident" | "alert"
+  lane: AiLane;
+  // How many enabled rules there are, after every read of the table.
+  onRulesLoaded?: ((count: number) => void) | undefined;
 }
+
+export const AI_LANE_REMEDIATION_RULE_TRIGGER: Record<
+  AiLane,
+  AutoRemediationTriggerEntity
+> = {
+  [AiLane.Incident]: AutoRemediationTriggerEntity.Incident,
+  [AiLane.Alert]: AutoRemediationTriggerEntity.Alert,
+};
 
 /*
- * The Runners a rule's composed Bash/SSH commands may target. A
- * kubernetes-agent Runner (the in-cluster Runner the agent chart
- * registers) never runs Bash or SSH — it runs kubectl for its own cluster
- * only — so it is not offered: a rule narrowed to it could never run a
- * command. Recognised by its name, which only the server writes.
+ * Incidents (or Alerts) → Settings → AI → More settings → Auto remediation
+ * rules: which new incidents are fixed, and how, while "Fix new incidents
+ * automatically" is on. With no rule, OneUptime AI fixes every one; with
+ * rules, only those that match at least one are fixed.
+ *
+ * A rule used to be five steps of fourteen fields - runbooks, "let AI pick
+ * the runbook", "let AI compose commands", a command allowlist, command
+ * Runners, an execution mode, a verification window and auto-resolve. From
+ * first principles a rule answers three questions, and that is all it asks:
+ *
+ *   - Which incidents? Its conditions.
+ *   - Who fixes them? OneUptime AI, through the AI agent on the cluster or
+ *     host they affect, or the runbooks the rule names.
+ *   - Ask first? Whether a fix waits for someone to approve it.
+ *
+ * What the old fields hold on a rule saved before is kept and still used
+ * (AutoRemediationRuleEngineService): the form never sends them, so editing
+ * a rule's name or conditions does not change how it fixes. The table names
+ * those rules for what they still do.
  */
-export function buildCommandRunnerOptions(
-  runners: Array<Runner>,
-): Array<DropdownOption> {
-  const options: Array<DropdownOption> = [];
 
-  for (const runner of runners) {
-    const id: string | null = runner._id ? String(runner._id) : null;
-
-    if (!id || isKubernetesAgentRunnerName(runner.name)) {
-      continue;
-    }
-
-    options.push({ value: id, label: runner.name || id });
-  }
-
-  return options;
-}
-
-export async function fetchCommandRunnerOptions(): Promise<
-  Array<DropdownOption>
-> {
-  const result: ListResult<Runner> = await ModelAPI.getList<Runner>({
-    modelType: Runner,
-    query: {},
-    limit: LIMIT_PER_PROJECT,
-    skip: 0,
-    select: { _id: true, name: true },
-    sort: { name: SortOrder.Ascending },
-  });
-
-  return buildCommandRunnerOptions(result.data || []);
-}
-
-const autoRemediationDocumentation: (entityLabel: string) => string = (
-  entityLabel: string,
-): string => {
-  return `
-### How Auto Remediation Rules Work
-
-When a matching ${entityLabel} is created, the rule proposes — or starts — a remediation runbook. No one has to remember which runbook fixes what at 3am.
-
-### Match Criteria
-
-A rule matches when **all** specified criteria pass. Empty criteria are skipped.
-
-- **Monitors** — the ${entityLabel} must come from one of the selected monitors.
-- **Severities** — the ${entityLabel}'s severity must be one of the selected ones.
-- **Labels** — the ${entityLabel} must carry at least one of the selected labels.
-- **Monitor Labels** — the ${entityLabel}'s monitor must carry at least one of the selected labels. This is the natural way to scope a rule to an environment: label your staging monitors \`staging\` and your production monitors \`production\`, then scope full-auto rules to staging only.
-- **Title / Description Pattern** — case-insensitive regex.
-
-### Execution Modes
-
-- **Suggest** (default) — the runbook is proposed on the ${entityLabel} and a human approves it with one click before anything runs.
-- **Full Auto** — the runbook starts immediately, with no human in the loop. Use for well-tested runbooks in low-risk environments. A circuit breaker downgrades the rule to Suggest if it auto-executes more than 3 times in an hour.
-
-### Let AI Pick the Runbook
-
-Instead of always proposing the same runbook, the AI reads the ${entityLabel} and the surrounding telemetry, then picks the most applicable runbook from the attached candidates (or all enabled runbooks when none are attached) — or proposes nothing when none applies. AI-picked runbooks are **always suggest-only**: they never run without human approval, regardless of the execution mode.
-
-### Let AI Compose Commands
-
-When enabled (it wins over "Let AI Pick the Runbook"), the AI diagnoses the ${entityLabel} and composes a plan of Bash/SSH commands for opted-in Runners instead of picking a runbook. It requires at least one Runner with **Runs AI Remediation Commands** turned on; the Command Runners field narrows which Runners the AI may target (empty means any opted-in Runner).
-
-- **Approval flow** — in Suggest mode the whole plan waits for one-click human approval. In Full Auto mode, a command auto-executes only when it matches a Command Allowlist pattern **and** contains no shell chaining (no \`;\`, \`&\`, \`|\`, backticks or command substitution); everything else in the plan still waits for approval.
-- **Command Allowlist** — operator-authored glob patterns like \`systemctl restart *\`. An empty allowlist means nothing auto-executes: every command requires approval.
-- **Built-in denylist** — destructive commands (\`rm -rf\`, \`mkfs\`, \`shutdown\`, piping downloads into a shell, and similar) are refused outright, even with human approval.
-- **Verification + rollback** — after the plan runs, the verification window below checks that the monitors recover. Each command can carry a rollback command, and rollback status is tracked on the suggestion if the plan has to be unwound.
-
-### Guardrails
-
-At most 3 suggestions per ${entityLabel}; a rule never re-proposes on the same ${entityLabel} (a dismissal is a "no"); AI planning is covered by the project's daily autonomous AI token budget; and turning off **Enable AI** in Project Settings → AI Features stops auto-remediation for the whole project.
-`;
+const FIX_WITH_PILLS: Record<
+  AutoRemediationFixWith,
+  { text: string; color: typeof Blue }
+> = {
+  [AutoRemediationFixWith.OneUptimeAi]: {
+    text: AUTO_REMEDIATION_FIX_WITH_TEXT.oneUptimeAi,
+    color: Purple,
+  },
+  [AutoRemediationFixWith.Runbooks]: {
+    text: AUTO_REMEDIATION_FIX_WITH_TEXT.runbooks,
+    color: Blue,
+  },
+  [AutoRemediationFixWith.RunnerCommands]: {
+    text: AUTO_REMEDIATION_FIX_WITH_TEXT.runnerCommands,
+    color: Purple,
+  },
+  [AutoRemediationFixWith.AiPickedRunbook]: {
+    text: AUTO_REMEDIATION_FIX_WITH_TEXT.aiPickedRunbook,
+    color: Purple,
+  },
 };
 
 const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const isIncident: boolean =
-    props.triggerEntityType === AutoRemediationTriggerEntity.Incident;
+  const isIncident: boolean = props.lane === AiLane.Incident;
+  const triggerEntityType: AutoRemediationTriggerEntity =
+    AI_LANE_REMEDIATION_RULE_TRIGGER[props.lane];
 
   return (
     <ModelTable<AutoRemediationRule>
       modelType={AutoRemediationRule}
-      id={`auto-remediation-rules-table-${props.triggerEntityType}`}
-      name={`Settings > Auto Remediation Rules > ${props.triggerEntityType}`}
-      userPreferencesKey={`auto-remediation-rules-table-${props.triggerEntityType}`}
+      id={AI_LANE_REMEDIATION_RULES_TABLE_ID[props.lane]}
+      name="Settings > AI > Auto Remediation Rules"
+      userPreferencesKey={AI_LANE_REMEDIATION_RULES_TABLE_ID[props.lane]}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}
       createEditModalWidth={ModalWidth.Large}
-      query={{ triggerEntityType: props.triggerEntityType }}
+      query={{ triggerEntityType: triggerEntityType }}
       onBeforeCreate={async (item: AutoRemediationRule) => {
-        item.triggerEntityType = props.triggerEntityType;
+        item.triggerEntityType = triggerEntityType;
         return item;
       }}
+      onFetchSuccess={() => {
+        void reportEnabledAiLaneRuleCount<AutoRemediationRule>({
+          modelType: AutoRemediationRule,
+          triggerEntityType: triggerEntityType,
+          onRulesLoaded: props.onRulesLoaded,
+        });
+      }}
       cardProps={{
-        title: "Auto Remediation Rules",
-        description: isIncident
-          ? "Propose or start remediation runbooks automatically when matching incidents are created."
-          : "Propose or start remediation runbooks automatically when matching alerts are created.",
+        title:
+          AI_LANE_ADVANCED_CARD_TITLES[props.lane][
+            AiLaneAdvancedCard.RemediationRules
+          ],
+        description: AI_LANE_RULES_COPY[props.lane].remediationRulesDescription,
       }}
-      helpContent={{
-        title: "How Auto Remediation Rules Work",
-        description: isIncident
-          ? "Match incidents and remediate automatically — with a human in the loop by default."
-          : "Match alerts and remediate automatically — with a human in the loop by default.",
-        markdown: autoRemediationDocumentation(props.entityLabel),
-      }}
+      noItemsMessage={
+        isIncident
+          ? "No rules. Every new incident is fixed while fixing is on."
+          : "No rules. Every new alert is fixed while fixing is on."
+      }
       sortBy="name"
       sortOrder={SortOrder.Ascending}
       selectMoreFields={{
         isEnabled: true,
+        remediationAction: true,
         aiSelectsRunbook: true,
         aiComposesCommands: true,
       }}
@@ -162,26 +153,30 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
       columns={[
         { field: { name: true }, title: "Name", type: FieldType.Text },
         {
-          field: { executionMode: true },
-          title: "Mode",
+          field: { remediationAction: true },
+          title: "Fix With",
           type: FieldType.Text,
           getElement: (item: AutoRemediationRule): ReactElement => {
-            if (item.aiComposesCommands) {
-              return item.executionMode ===
-                AutoRemediationExecutionMode.FullAuto ? (
-                <Pill color={Purple} text="AI Commands (Full Auto)" />
-              ) : (
-                <Pill color={Purple} text="AI Commands (Suggest)" />
-              );
-            }
-            if (item.aiSelectsRunbook) {
-              return <Pill color={Blue} text="AI Suggest" />;
-            }
-            return item.executionMode ===
-              AutoRemediationExecutionMode.FullAuto ? (
-              <Pill color={Yellow} text="Full Auto" />
+            const pill: { text: string; color: typeof Blue } =
+              FIX_WITH_PILLS[getAutoRemediationFixWith(item)];
+            return <Pill color={pill.color} text={pill.text} />;
+          },
+        },
+        {
+          field: { executionMode: true },
+          title: "Approval",
+          type: FieldType.Text,
+          getElement: (item: AutoRemediationRule): ReactElement => {
+            return doesAutoRemediationRuleAskFirst(item) ? (
+              <Pill
+                color={Blue}
+                text={AUTO_REMEDIATION_APPROVAL_TEXT.asksFirst}
+              />
             ) : (
-              <Pill color={Blue} text="Suggest" />
+              <Pill
+                color={Yellow}
+                text={AUTO_REMEDIATION_APPROVAL_TEXT.withoutAsking}
+              />
             );
           },
         },
@@ -199,16 +194,10 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
         },
       ]}
       viewPageRoute={Navigation.getCurrentRoute()}
-      /*
-       * What to run, what the AI may run instead, and how a fix is checked:
-       * three questions that were one step of eight fields.
-       */
       formSteps={[
-        { title: "Basic Info", id: "basic-info" },
-        { title: "Match Criteria", id: "match-criteria" },
-        { title: "Remediation", id: "remediation" },
-        { title: "AI Commands", id: "ai-commands" },
-        { title: "Verification", id: "verification" },
+        { title: "Rule", id: "basic-info" },
+        { title: "Conditions", id: "match-criteria" },
+        { title: "Fix", id: "remediation" },
       ]}
       formFields={[
         {
@@ -219,13 +208,6 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           required: true,
           placeholder: "Restart API pods on high error rate",
           validation: { minLength: 2 },
-        },
-        {
-          field: { description: true },
-          title: "Description",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
         },
         {
           field: { isEnabled: true },
@@ -240,10 +222,6 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           field: { monitors: true },
           title: "Monitors",
           stepId: "match-criteria",
-          sectionTitle: "Match by Attributes",
-          sectionDescription: isIncident
-            ? "Filter incidents by monitor, severity and labels. Leave a filter empty to skip it."
-            : "Filter alerts by monitor, severity and labels. Leave a filter empty to skip it.",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownModal: {
             type: Monitor,
@@ -307,8 +285,6 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           field: { monitorLabels: true },
           title: "Monitor Labels",
           stepId: "match-criteria",
-          description:
-            "Scope by environment: only trigger when the monitor carries one of these labels (e.g. staging).",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownModal: {
             type: Label,
@@ -322,8 +298,6 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           field: { titlePattern: true },
           title: isIncident ? "Incident Title" : "Alert Title",
           stepId: "match-criteria",
-          sectionTitle: "Match by Pattern",
-          sectionDescription: "Case-insensitive regex. Leave empty to skip.",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "database|postgres|db-",
@@ -337,101 +311,58 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           placeholder: "timeout|connection refused",
         },
         {
+          // Who fixes: OneUptime AI or the rule's runbooks.
+          field: { remediationAction: true },
+          title: "Fix With",
+          stepId: "remediation",
+          fieldType: FormFieldSchemaType.CardSelect,
+          cardSelectSingleColumn: true,
+          cardSelectOptions: AUTO_REMEDIATION_FIX_WITH_OPTIONS,
+          required: true,
+          defaultValue: AutoRemediationAction.OneUptimeAI,
+          dataTestId: "auto-remediation-fix-with-field",
+        },
+        {
           field: { runbooks: true },
           title: "Runbooks",
           stepId: "remediation",
-          sectionTitle: "What to Run",
-          sectionDescription:
-            "Deterministic rules propose or start every selected runbook. AI rules pick the most applicable one from this list (or from all enabled runbooks when the list is empty).",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownModal: {
             type: Runbook,
             labelField: "name",
             valueField: "_id",
           },
-          required: false,
+          required: isRunbooksFixWith,
+          showIf: isRunbooksFixWith,
           placeholder: "Select Runbooks",
         },
         {
-          field: { aiSelectsRunbook: true },
-          title: "Let AI Pick the Runbook",
-          stepId: "remediation",
-          description:
-            "The AI reads the telemetry and picks the most applicable runbook — or proposes nothing when none applies. AI-picked runbooks are always suggest-only.",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-        },
-        {
-          field: { aiComposesCommands: true },
-          title: "Let AI Compose Commands",
-          stepId: "ai-commands",
-          description:
-            "Instead of picking a runbook, the AI diagnoses the issue and composes Bash/SSH commands for opted-in Runners. Suggest proposes the plan for one-click approval; Full Auto executes only commands matching the allowlist below. Requires at least one Runner with Runs AI Remediation Commands.",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-        },
-        {
-          field: { commandAllowlist: true },
-          title: "Command Allowlist",
-          stepId: "ai-commands",
-          description:
-            "One glob pattern per entry, e.g. systemctl restart *. Only matching, chain-free commands auto-execute under Full Auto. Leave empty to require approval for every command.",
-          fieldType: FormFieldSchemaType.JSON,
-          required: false,
-          placeholder: '["systemctl restart *", "kubectl rollout restart *"]',
-        },
-        {
-          field: { commandRunners: true },
-          title: "Command Runners",
-          stepId: "ai-commands",
-          description:
-            "Which Runners the AI may target with composed commands. Leave empty to allow any Runner with AI commands enabled. In-cluster Runners installed by the Kubernetes agent chart are not listed: they only ever run kubectl for their own cluster, never Bash or SSH commands.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          /*
-           * Not an entity dropdown: that one lists (and searches) every
-           * Runner row, and kubernetes-agent Runners must not be offered.
-           */
-          fetchDropdownOptions: fetchCommandRunnerOptions,
-          required: false,
-          placeholder: "Select Runners (optional)",
-        },
-        {
+          // Ask first: whether a fix waits for someone to approve it.
           field: { executionMode: true },
-          title: "Execution Mode",
+          title: "Approval",
           stepId: "remediation",
-          description:
-            "Suggest waits for one-click human approval. Full Auto starts the runbook immediately (deterministic rules only — ignored when AI picks the runbook).",
-          fieldType: FormFieldSchemaType.Dropdown,
-          dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-            AutoRemediationExecutionMode,
-          ),
+          fieldType: FormFieldSchemaType.CardSelect,
+          cardSelectSingleColumn: true,
+          cardSelectOptions: AUTO_REMEDIATION_APPROVAL_OPTIONS,
           required: true,
           defaultValue: AutoRemediationExecutionMode.Suggest,
-        },
-        {
-          field: { verificationWindowMinutes: true },
-          title: "Verification Window (Minutes)",
-          stepId: "verification",
-          sectionTitle: "Verify the Outcome",
-          sectionDescription:
-            "A remediation is verified when the monitors return to an operational state within this window after the runbook starts. Verification never delays or suppresses on-call escalation.",
-          fieldType: FormFieldSchemaType.Number,
-          required: false,
-          placeholder: "15",
-        },
-        {
-          field: { autoResolveOnVerifiedRecovery: true },
-          title: "Auto-Resolve on Verified Recovery",
-          stepId: "verification",
-          description:
-            "When verification confirms the monitors recovered, automatically resolve the incident/alert. Off by default.",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
+          dataTestId: "auto-remediation-approval-field",
         },
       ]}
       showRefreshButton={true}
     />
   );
+};
+
+export {
+  AUTO_REMEDIATION_APPROVAL_OPTIONS,
+  AUTO_REMEDIATION_APPROVAL_TEXT,
+  AUTO_REMEDIATION_FIX_WITH_OPTIONS,
+  AUTO_REMEDIATION_FIX_WITH_TEXT,
+  AutoRemediationFixWith,
+  doesAutoRemediationRuleAskFirst,
+  getAutoRemediationFixWith,
+  isRunbooksFixWith,
 };
 
 export default AutoRemediationRulesTable;

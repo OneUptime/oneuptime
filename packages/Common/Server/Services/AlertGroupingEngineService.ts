@@ -34,6 +34,11 @@ import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLim
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import { GroupingOptions } from "../../Utils/StartingStage";
+import EpisodeGroupingKey from "../Utils/Rules/EpisodeGroupingKey";
+import {
+  clearPlaceholdersExcept,
+  replaceAllLiterally,
+} from "../Utils/Rules/GroupingRuleEpisodeTemplate";
 
 export interface GroupingResult {
   grouped: boolean;
@@ -50,19 +55,6 @@ const PRIVATE_ALERT_TEMPLATE_VALUE: string = "Private alert";
 
 // A private alert's title, where the new episode's feed shows its key.
 const PRIVATE_ALERT_TITLE_GROUPING_KEY_PART: string = "title:(private alert)";
-
-type GetTitleGroupingKeyPartFunction = (title: string) => string;
-
-/*
- * What a rule that groups by title adds to the grouping key: the title,
- * lowercased, with every number an X - so "Disk 91% full" and "Disk 95%
- * full" go into the same episode.
- */
-const getTitleGroupingKeyPart: GetTitleGroupingKeyPartFunction = (
-  title: string,
-): string => {
-  return `title:${title.toLowerCase().replace(/\d+/g, "X")}`;
-};
 
 /*
  * The {{variables}} of an episode's title and description templates
@@ -457,7 +449,25 @@ class AlertGroupingEngineServiceClass {
     // Build the grouping key based on groupBy fields
     const groupingKey: string = await this.buildGroupingKey(alert, rule);
 
-    // Create mutex key to prevent race conditions when creating episodes
+    /*
+     * The keys an episode of the alert's group can be stored with: as built,
+     * or with the title hashed when a private alert opened it
+     * (getGroupingKeysToMatch). The alert finds the episode by either.
+     */
+    const groupingKeysToMatch: Array<string> = this.getGroupingKeysToMatch(
+      alert,
+      rule,
+      groupingKey,
+    );
+
+    /*
+     * Create mutex key to prevent race conditions when creating episodes.
+     * It is the key as built, whether the alert is private or not: the same
+     * for every alert of the group, so a private and a public one arriving
+     * together never both open an episode - and the one pods still on the
+     * previous version lock on during a rolling deploy. It names a lock and
+     * is never stored.
+     */
     const mutexKey: string = `${alert.projectId?.toString()}-${rule.id?.toString()}-${groupingKey}`;
 
     let mutex: SemaphoreMutex | null = null;
@@ -494,7 +504,7 @@ class AlertGroupingEngineServiceClass {
         await this.findMatchingActiveEpisode(
           alert.projectId!,
           rule.id!,
-          groupingKey,
+          groupingKeysToMatch,
           timeWindowCutoff,
         );
 
@@ -542,7 +552,7 @@ class AlertGroupingEngineServiceClass {
             await this.findRecentlyResolvedEpisode(
               alert.projectId!,
               rule.id!,
-              groupingKey,
+              groupingKeysToMatch,
               reopenCutoff,
             );
 
@@ -639,7 +649,7 @@ class AlertGroupingEngineServiceClass {
 
     // Group by alert title - only if explicitly enabled
     if (rule.groupByAlertTitle && alert.title) {
-      parts.push(getTitleGroupingKeyPart(alert.title));
+      parts.push(EpisodeGroupingKey.getTitlePart(alert.title));
     }
 
     // Group by alert labels (exact set match) - only if explicitly enabled
@@ -724,11 +734,12 @@ class AlertGroupingEngineServiceClass {
   private async findMatchingActiveEpisode(
     projectId: ObjectID,
     ruleId: ObjectID,
-    groupingKey: string,
+    groupingKeys: Array<string>,
     timeWindowCutoff: Date | null,
   ): Promise<AlertEpisode | null> {
     /*
-     * Find active episode with matching rule and grouping key
+     * Find active episode with matching rule and any of the grouping keys
+     * the group's episodes are stored with (getGroupingKeysToMatch)
      * Active episodes have resolvedAt = null (not yet resolved)
      * If time window is enabled, also filter by lastAlertAddedAt
      * If time window is disabled (timeWindowCutoff is null), find any matching active episode
@@ -736,7 +747,7 @@ class AlertGroupingEngineServiceClass {
     interface EpisodeQueryType {
       projectId: ObjectID;
       alertGroupingRuleId: ObjectID;
-      groupingKey: string;
+      groupingKey: ReturnType<typeof QueryHelper.any>;
       resolvedAt: null;
       lastAlertAddedAt?: ReturnType<typeof QueryHelper.greaterThanEqualTo>;
     }
@@ -744,7 +755,7 @@ class AlertGroupingEngineServiceClass {
     const query: EpisodeQueryType = {
       projectId: projectId,
       alertGroupingRuleId: ruleId,
-      groupingKey: groupingKey,
+      groupingKey: QueryHelper.any(groupingKeys),
       resolvedAt: null, // Only find active (non-resolved) episodes
     };
 
@@ -774,15 +785,19 @@ class AlertGroupingEngineServiceClass {
   private async findRecentlyResolvedEpisode(
     projectId: ObjectID,
     ruleId: ObjectID,
-    groupingKey: string,
+    groupingKeys: Array<string>,
     reopenCutoff: Date,
   ): Promise<AlertEpisode | null> {
-    // Find recently resolved episode with matching rule and grouping key
+    /*
+     * Find recently resolved episode with matching rule and any of the
+     * grouping keys the group's episodes are stored with
+     * (getGroupingKeysToMatch)
+     */
     const episode: AlertEpisode | null = await AlertEpisodeService.findOneBy({
       query: {
         projectId: projectId,
         alertGroupingRuleId: ruleId,
-        groupingKey: groupingKey,
+        groupingKey: QueryHelper.any(groupingKeys),
         resolvedAt: QueryHelper.greaterThanEqualTo(reopenCutoff),
       },
       sort: {
@@ -847,7 +862,11 @@ class AlertGroupingEngineServiceClass {
       );
     }
     newEpisode.alertGroupingRuleId = rule.id!;
-    newEpisode.groupingKey = groupingKey;
+    newEpisode.groupingKey = this.getGroupingKeyToStore(
+      alert,
+      rule,
+      groupingKey,
+    );
     newEpisode.isManuallyCreated = false;
     newEpisode.lastAlertAddedAt = OneUptimeDate.getCurrentDate();
 
@@ -1055,10 +1074,10 @@ class AlertGroupingEngineServiceClass {
 
   /*
    * The grouping key as the new episode's feed shows it. A rule that groups
-   * by title puts the alert's title in the key (getTitleGroupingKeyPart); a
-   * private alert's is shown as private, as everywhere else in the episode
-   * (getEpisodeTemplateValues). The key is stored as built: the alerts that
-   * join later find the episode by it.
+   * by title puts the alert's title in the key
+   * (EpisodeGroupingKey.getTitlePart); a private alert's is shown as
+   * private, as everywhere else in the episode (getEpisodeTemplateValues),
+   * and stored hashed (getGroupingKeyToStore).
    */
   private getGroupingKeyToShow(
     alert: Alert,
@@ -1070,8 +1089,71 @@ class AlertGroupingEngineServiceClass {
     }
 
     return groupingKey
-      .split(getTitleGroupingKeyPart(alert.title))
+      .split(EpisodeGroupingKey.getTitlePart(alert.title))
       .join(PRIVATE_ALERT_TITLE_GROUPING_KEY_PART);
+  }
+
+  /*
+   * The grouping key the new episode is stored with. It is read with the
+   * episode - through the API, by everyone who can see it - so a private
+   * alert's title is in it only hashed (EpisodeGroupingKey), as it is not the
+   * episode's to show (getEpisodeTemplateValues); the alerts that come later
+   * find the episode by that form too (getGroupingKeysToMatch). Any other
+   * alert's key is stored as built, as before.
+   */
+  private getGroupingKeyToStore(
+    alert: Alert,
+    rule: AlertGroupingRule,
+    groupingKey: string,
+  ): string {
+    if (alert.isPrivate !== true) {
+      return groupingKey;
+    }
+
+    return this.getGroupingKeyWithTitleHashed(alert, rule, groupingKey);
+  }
+
+  /*
+   * Every key an episode of the alert's group can be stored with
+   * (getGroupingKeyToStore): as built - opened by an alert that is not
+   * private, or by any alert before titles were hashed - and with the title
+   * hashed - opened by a private one. The alert is matched against both, so
+   * it joins its group's episode whether it is private or not and whoever
+   * opened it.
+   */
+  private getGroupingKeysToMatch(
+    alert: Alert,
+    rule: AlertGroupingRule,
+    groupingKey: string,
+  ): Array<string> {
+    const keyWithTitleHashed: string = this.getGroupingKeyWithTitleHashed(
+      alert,
+      rule,
+      groupingKey,
+    );
+
+    if (keyWithTitleHashed === groupingKey) {
+      return [groupingKey];
+    }
+
+    return [groupingKey, keyWithTitleHashed];
+  }
+
+  // The key as built, with the alert's title in it hashed.
+  private getGroupingKeyWithTitleHashed(
+    alert: Alert,
+    rule: AlertGroupingRule,
+    groupingKey: string,
+  ): string {
+    if (!rule.groupByAlertTitle || !alert.title || !alert.projectId) {
+      return groupingKey;
+    }
+
+    return EpisodeGroupingKey.hashTitle({
+      groupingKey: groupingKey,
+      projectId: alert.projectId,
+      title: alert.title,
+    });
   }
 
   private generateEpisodeTitle(
@@ -1127,33 +1209,13 @@ class AlertGroupingEngineServiceClass {
     template: string,
     alertCount: number = 1,
   ): string {
-    let result: string = template;
-
     /*
-     * Static variables (from first alert)
-     * {{alertTitle}}
+     * The template as the episode stores it, with the count filled in - just
+     * as AlertEpisodeService.updateAlertCount writes the title and
+     * description again as alerts join or leave. So they only ever change by
+     * their count.
      */
-    if (values.alertTitle) {
-      result = result.replace(/\{\{alertTitle\}\}/g, values.alertTitle);
-    }
-
-    // {{alertDescription}}
-    if (values.alertDescription) {
-      result = result.replace(
-        /\{\{alertDescription\}\}/g,
-        values.alertDescription,
-      );
-    }
-
-    // {{monitorName}}
-    if (values.monitorName) {
-      result = result.replace(/\{\{monitorName\}\}/g, values.monitorName);
-    }
-
-    // {{alertSeverity}}
-    if (values.alertSeverity) {
-      result = result.replace(/\{\{alertSeverity\}\}/g, values.alertSeverity);
-    }
+    let result: string = this.preprocessTemplate(values, template);
 
     /*
      * Dynamic variables (updated when alerts are added/removed)
@@ -1168,7 +1230,7 @@ class AlertGroupingEngineServiceClass {
   }
 
   /*
-   * Preprocess template: replace static variables but keep dynamic ones as placeholders
+   * Preprocess template: replace static variables, clear unknown ones and keep dynamic ones as placeholders
    * This is stored on the episode so we can re-render with updated dynamic values later
    */
   private preprocessTemplate(
@@ -1182,12 +1244,17 @@ class AlertGroupingEngineServiceClass {
      * {{alertTitle}}
      */
     if (values.alertTitle) {
-      result = result.replace(/\{\{alertTitle\}\}/g, values.alertTitle);
+      result = replaceAllLiterally(
+        result,
+        /\{\{alertTitle\}\}/g,
+        values.alertTitle,
+      );
     }
 
     // {{alertDescription}}
     if (values.alertDescription) {
-      result = result.replace(
+      result = replaceAllLiterally(
+        result,
         /\{\{alertDescription\}\}/g,
         values.alertDescription,
       );
@@ -1195,20 +1262,30 @@ class AlertGroupingEngineServiceClass {
 
     // {{monitorName}}
     if (values.monitorName) {
-      result = result.replace(/\{\{monitorName\}\}/g, values.monitorName);
+      result = replaceAllLiterally(
+        result,
+        /\{\{monitorName\}\}/g,
+        values.monitorName,
+      );
     }
 
     // {{alertSeverity}}
     if (values.alertSeverity) {
-      result = result.replace(/\{\{alertSeverity\}\}/g, values.alertSeverity);
+      result = replaceAllLiterally(
+        result,
+        /\{\{alertSeverity\}\}/g,
+        values.alertSeverity,
+      );
     }
 
     /*
      * Keep dynamic variables as placeholders (e.g., {{alertCount}})
-     * They will be replaced when title/description is re-rendered
+     * They will be replaced when title/description is re-rendered - and
+     * nothing else is: a variable this alert has no value for (no monitor,
+     * say), or one no alert has, is cleared now, as the title and
+     * description written from this template clear it.
      */
-
-    return result;
+    return clearPlaceholdersExcept(result, "{{alertCount}}");
   }
 
   @CaptureSpan()

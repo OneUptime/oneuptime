@@ -49,6 +49,9 @@ import ResourceAccessContext from "../ResourceAccess/ResourceAccessContext";
 import InfrastructureInvestigationToolkit from "../ResourceAccess/InfrastructureInvestigationToolkit";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import InvestigationRules, {
+  InvestigationRuleScope,
+} from "./InvestigationRules";
 
 /*
  * AI SRE — alert investigation.
@@ -460,6 +463,13 @@ export default class AIAlertInvestigationRunner {
     const alert: Alert | null = await AlertService.findOneById({
       id: alertId,
       select: {
+        // What an investigation rule matches on, and the severity floor.
+        title: true,
+        description: true,
+        alertSeverityId: true,
+        labels: {
+          _id: true,
+        },
         monitorId: true,
         alertSeverity: {
           order: true,
@@ -474,6 +484,24 @@ export default class AIAlertInvestigationRunner {
         investigate: false,
         reason: "alert not found",
         notStartedCode: "eligibility_check_failed",
+      };
+    }
+
+    /*
+     * Investigation rules, when the project has any: only the alerts that
+     * match one are investigated. Checked first - an alert outside every
+     * rule is out whatever its severity.
+     */
+    const scope: InvestigationRuleScope =
+      await InvestigationRules.getAlertScope({ projectId, alert });
+
+    if (!scope.isInScope) {
+      return {
+        investigate: false,
+        notStartedCode: "no_investigation_rule_matched",
+        notStartedDetails: { rulesChecked: scope.rulesChecked },
+        reason: `none of the ${scope.rulesChecked} investigation rules matched`,
+        monitorId: alert.monitorId,
       };
     }
 

@@ -189,6 +189,20 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/EpisodeMemberPrivacyPostgres.test.ts --forceExit
 
+      # An episode a private incident or alert opens is stored with the title
+      # in its grouping key hashed: later records find it, and every episode
+      # stored before titles were hashed, by either form of their key.
+      - name: Test episode grouping keys on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_EPISODE_GROUPING_KEY_TESTS: "true"
+          EPISODE_GROUPING_KEY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          EPISODE_GROUPING_KEY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          EPISODE_GROUPING_KEY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/EpisodeGroupingKeyPostgres.test.ts --forceExit
+
       # A record's live update reaches the people its own read lets read it:
       # labels, owners, blocks with labels (and the labelled records a
       # label-less row names), private incidents, a person's own AI

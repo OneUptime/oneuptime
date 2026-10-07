@@ -566,10 +566,11 @@ describe("AI Features page", () => {
     expect(row).toHaveTextContent(
       /The master switch\. When off, every AI feature in this project stops: Ask AI, investigations, postmortem drafts, auto-remediation and AI commands on Runners\./,
     );
-    // Nothing else in the project has to be switched on as well.
-    expect(row).toHaveTextContent(
-      /Auto-remediation and AI commands on Runners need no other project switch\./,
-    );
+    /*
+     * It no longer says auto-remediation needs no other switch: fixing new
+     * incidents and alerts has a switch of its own on each AI settings page.
+     */
+    expect(row).not.toHaveTextContent(/need no other project switch/);
     expectNoRetiredSwitch(row);
   });
 

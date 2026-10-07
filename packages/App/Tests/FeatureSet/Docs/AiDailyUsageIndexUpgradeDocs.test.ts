@@ -24,7 +24,8 @@ const THIRTEEN_TO_FOURTEEN_HEADING: string =
 const NOTE_HEADING: string =
   "### The AI Logs get an index for the daily AI limits";
 const PREVIOUS_NOTE_HEADING: string = "### AI has no limits by default";
-const NEXT_NOTE_HEADING: string = "### Verify the edition and the license";
+const NEXT_NOTE_HEADING: string =
+  "### Fixing new incidents and alerts has a switch of its own";
 
 const SQL_BLOCK: RegExp = /```sql\n([\s\S]*?)\n```/g;
 const HELM_TIMEOUT: RegExp = /`--timeout (\d+)m`/;

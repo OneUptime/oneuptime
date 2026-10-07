@@ -14,10 +14,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Nullable with no default, so this only adds the column: every project
  * starts as "not told yet".
  */
-export class AddProjectPlanCutoffNoticeSentAt1799400000000
+export class AddProjectPlanCutoffNoticeSentAt1799500000000
   implements MigrationInterface
 {
-  public name: string = "AddProjectPlanCutoffNoticeSentAt1799400000000";
+  public name: string = "AddProjectPlanCutoffNoticeSentAt1799500000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

@@ -15,6 +15,7 @@ import Project from "../../../../Models/DatabaseModels/Project";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
+import InvestigationRules from "../../../../Server/Utils/AI/SRE/InvestigationRules";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -97,6 +98,91 @@ function gate(): Promise<IncidentGateDecision> {
     projectId: PROJECT_ID,
   });
 }
+
+// No investigation rule unless a test sets some: every incident is in scope.
+beforeEach(() => {
+  jest
+    .spyOn(InvestigationRules, "getIncidentScope")
+    .mockResolvedValue({ isInScope: true, rulesChecked: 0 });
+});
+
+describe("AIIncidentInvestigationRunner.shouldInvestigateIncident — investigation rules", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("an incident no rule matches is not investigated, whatever its severity, and says how many rules there are", async () => {
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(
+        fakeIncident({ monitorIds: [MONITOR_A, MONITOR_B], severityOrder: 1 }),
+      );
+    jest
+      .spyOn(InvestigationRules, "getIncidentScope")
+      .mockResolvedValue({ isInScope: false, rulesChecked: 3 });
+    const project: jest.SpyInstance = jest.spyOn(ProjectService, "findOneById");
+    const runs: jest.SpyInstance = mockRecentRunCount(0);
+
+    const decision: IncidentGateDecision = await gate();
+
+    expect(decision).toMatchObject({
+      investigate: false,
+      notStartedCode: "no_investigation_rule_matched",
+      notStartedDetails: { rulesChecked: 3 },
+      monitorId: MONITOR_A,
+    });
+    expect(decision.reason).toContain("investigation rules");
+    // Checked first: neither the floor nor the cooldown is read.
+    expect(project).not.toHaveBeenCalled();
+    expect(runs).not.toHaveBeenCalled();
+  });
+
+  test("an incident a rule matches goes on to the other gates", async () => {
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(fakeIncident({ severityOrder: 3 }));
+    jest
+      .spyOn(InvestigationRules, "getIncidentScope")
+      .mockResolvedValue({ isInScope: true, rulesChecked: 2 });
+    mockProject({ minimumSeverityId: SEVERITY_ID });
+    jest
+      .spyOn(IncidentSeverityService, "findOneById")
+      .mockResolvedValue({ order: 1, name: "Critical" } as never);
+
+    const decision: IncidentGateDecision = await gate();
+
+    expect(decision.investigate).toBe(false);
+    expect(decision.notStartedCode).toBe("severity_below_threshold");
+  });
+
+  test("the rules see the incident with what they match on", async () => {
+    const read: jest.SpyInstance = jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(fakeIncident({}));
+    const scope: jest.SpyInstance = jest
+      .spyOn(InvestigationRules, "getIncidentScope")
+      .mockResolvedValue({ isInScope: true, rulesChecked: 0 });
+    mockProject({});
+    mockRecentRunCount(0);
+
+    expect((await gate()).investigate).toBe(true);
+    expect(read.mock.calls[0]![0]).toMatchObject({
+      id: INCIDENT_ID,
+      select: {
+        title: true,
+        description: true,
+        incidentSeverityId: true,
+        labels: { _id: true },
+        monitors: { _id: true },
+      },
+      props: { isRoot: true },
+    });
+    expect(scope).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      incident: expect.objectContaining({ id: INCIDENT_ID }),
+    });
+  });
+});
 
 describe("AIIncidentInvestigationRunner.shouldInvestigateIncident — severity floor", () => {
   afterEach(() => {

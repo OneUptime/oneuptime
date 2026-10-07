@@ -117,7 +117,7 @@
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Overview** | **All Incidents** و **Active Incidents** — دومی نشانی قرمز با شمار حادثه‌هایی که در وضعیتی بالای وضعیت برطرف‌شده‌اند حمل می‌کند. |
 | **Episodes** | اپیزودهای حادثه، قابلیتی جدا برای گروه‌بندی با صفحه‌های خودش. |
-| **AI** | **Insights**، **Logs**، **Settings**، **Auto Remediation Rules**: آنچه هوش مصنوعی OneUptime از حادثه‌های شما آموخت و هر کاری که برایشان کرد، آنچه اجازه دارد خودش انجام دهد، و قواعدی که حادثه‌ها را با رانبوک‌ها اصلاح می‌کنند. [بررسی‌های هوش مصنوعی](/docs/ai/ai-sre) را ببینید. |
+| **AI** | **Insights**، **Logs**، **Settings**: آنچه هوش مصنوعی OneUptime از حادثه‌های شما آموخت و هر کاری که برایشان کرد، و آنچه اجازه دارد خودش انجام دهد — همراه با قواعدی که تعیین می‌کنند کدام حادثه‌ها را بررسی و اصلاح کند. [بررسی‌های هوش مصنوعی](/docs/ai/ai-sre) را ببینید. |
 | **Workspace** | اتصال‌های **Slack** و **Microsoft Teams** برای حادثه‌ها. |
 | **Rules** | موتورهای قاعده: **Grouping Rules**، **On-Call Rules**، **Owner Rules**، **Runbook Rules**، **Privacy Rules**، **Label Rules**، **SLA Rules**، **Reminder Rules**. |
 | **Settings** | **Incident State**، **Incident Severity**، **Incident Templates**، **Note Templates**، **Postmortem Templates**، **Custom Fields**، **Incident Roles**، **Measurements**، **Linked Alerts**، **Number Prefix**. |
