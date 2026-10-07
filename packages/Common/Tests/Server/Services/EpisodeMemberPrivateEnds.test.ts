@@ -23,6 +23,7 @@ import { OnCreate, OnDelete } from "../../../Server/Types/Database/Hooks";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import { ProjectScopedReferenceException } from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import logger from "../../../Server/Utils/Logger";
+import WorkflowPrincipal from "../../../Server/Utils/Workflow/WorkflowPrincipal";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ForbiddenException from "../../../Types/Exception/ForbiddenException";
@@ -789,6 +790,23 @@ describe.each(KINDS)(
       },
     );
 
+    test("a workflow step, which acts as a Project Admin of its project, is read like one", async () => {
+      const props: DatabaseCommonInteractionProps =
+        WorkflowPrincipal.getPropsWithoutPlan({
+          projectId: PROJECT_ID,
+          workflowId: ObjectID.generate(),
+        });
+
+      await expect(create(props)).resolves.toBeDefined();
+
+      expect(episodeRead).toHaveBeenCalledWith(
+        expect.objectContaining({ id: EPISODE_ID, props: props }),
+      );
+      expect(recordRead).toHaveBeenCalledWith(
+        expect.objectContaining({ id: RECORD_ID, props: props }),
+      );
+    });
+
     test("an API key that can see both adds it", async () => {
       await expect(
         create(userProps(Permission.ProjectAdmin, null)),
@@ -910,7 +928,7 @@ describe.each(KINDS)(
     test.each([
       ["the grouping engine, as root", { isRoot: true }],
       [
-        "a workflow, as root in its project",
+        "a root write made in its project",
         { isRoot: true, tenantId: PROJECT_ID },
       ],
     ] as Array<[string, DatabaseCommonInteractionProps]>)(
@@ -963,6 +981,15 @@ describe.each(KINDS)(
         declared({
           kind: "create",
           props: userProps(Permission.ProjectMember, null),
+        }),
+      ).toEqual(both);
+      expect(
+        declared({
+          kind: "create",
+          props: WorkflowPrincipal.getPropsWithoutPlan({
+            projectId: PROJECT_ID,
+            workflowId: ObjectID.generate(),
+          }),
         }),
       ).toEqual(both);
       expect(declared({ kind: "create", props: { isRoot: true } })).toEqual([]);

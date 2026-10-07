@@ -7,6 +7,7 @@ import AlertEpisodeMemberService from "../../../Server/Services/AlertEpisodeMemb
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import IncidentEpisodeMemberService from "../../../Server/Services/IncidentEpisodeMemberService";
 import WorkspaceNotificationRuleService from "../../../Server/Services/WorkspaceNotificationRuleService";
+import WorkflowPrincipal from "../../../Server/Utils/Workflow/WorkflowPrincipal";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
@@ -601,6 +602,27 @@ describePostgres(
           }
         },
       );
+
+      test(`a workflow step, acting as a Project Admin of its project, adds the private ${kind.noun} to the private episode`, async () => {
+        const s: Seeded = await seed(kind);
+
+        expect(
+          await add(
+            kind,
+            s,
+            s.privateEpisodeId,
+            s.privateRecordId,
+            WorkflowPrincipal.getPropsWithoutPlan({
+              projectId: s.projectId,
+              workflowId: ObjectID.generate(),
+            }),
+          ),
+        ).toBeNull();
+
+        expect(await membersOf(kind, s.privateEpisodeId)).toEqual([
+          s.privateRecordId.toString(),
+        ]);
+      });
 
       test(`OneUptime's own writes, as root, add the private ${kind.noun} - and the episode's entry still does not name it, nor when it leaves`, async () => {
         const s: Seeded = await seed(kind);
