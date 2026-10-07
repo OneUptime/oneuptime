@@ -27,6 +27,7 @@ import PermissionScope from "../../../Types/Database/AccessControl/PermissionSco
 import Dictionary from "../../../Types/Dictionary";
 import Exception from "../../../Types/Exception/Exception";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import NotFoundException from "../../../Types/Exception/NotFoundException";
 import { JSONObject } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
@@ -1410,9 +1411,14 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
       });
 
       test("another project's records are not deleted by id", async () => {
-        await remove("/alert-internal-note", caller, otherNoteId);
-        await remove("/alert", caller, otherAlertId);
-        await remove("/alert", caller, otherLabelledAlertId);
+        // Answered as missing, as a record that does not exist.
+        for (const outcome of [
+          await remove("/alert-internal-note", caller, otherNoteId),
+          await remove("/alert", caller, otherAlertId),
+          await remove("/alert", caller, otherLabelledAlertId),
+        ]) {
+          expect(outcome.error).toBeInstanceOf(NotFoundException);
+        }
 
         expect(await rowExists("AlertInternalNote", otherNoteId)).toBe(true);
         expect(await rowExists("Alert", otherAlertId)).toBe(true);
@@ -2162,6 +2168,9 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
 
         if (isDeletable) {
           expect(outcome.isEmptySuccess).toBe(true);
+        } else {
+          // A note of an alert the caller may not read: answered as missing.
+          expect(outcome.error).toBeInstanceOf(NotFoundException);
         }
 
         await removeRows([
@@ -2172,6 +2181,363 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
       },
     );
   });
+
+  /*
+   * A WRITE NEEDS A READ, through the CRUD routes, for a member's team and
+   * an API key alike:
+   *
+   *   - a permission on an alert's notes without any permission on alerts
+   *     reaches no note: reading, changing and deleting are all refused;
+   *   - an edit or a delete broader than the read stops at what the caller
+   *     may read, on alerts and on the notes read through them;
+   *   - a write by id that reaches no record says so: as a missing record
+   *     (404) when the caller may not read it - or it is not there - and as
+   *     a refusal when they may read it but not change it;
+   *   - an update or a delete by query keeps answering with how many rows
+   *     it changed.
+   */
+  describe.each([
+    ["a member's team", "user"],
+    ["an API key", "apiKey"],
+  ] as Array<[string, "user" | "apiKey"]>)(
+    "a write needs a read, on %s",
+    (_label: string, kind: "user" | "apiKey") => {
+      const callerWith: (rows: Array<PermissionRow>) => Promise<Caller> =
+        async (rows: Array<PermissionRow>): Promise<Caller> => {
+          if (kind === "user") {
+            await setTeamPermissions(homeTeamId, homeProjectId, rows);
+            return homeUser;
+          }
+
+          return { kind: "apiKey", apiKey: await createApiKey(rows) };
+        };
+
+      afterAll(async () => {
+        await setTeamPermissions(homeTeamId, homeProjectId, [
+          { permission: Permission.AlertMember },
+        ]);
+      });
+
+      // A disposable alert carrying these labels, with one note.
+      const disposableAlertWithNote: (
+        labelIds: Array<ObjectID>,
+      ) => Promise<{ alertId: ObjectID; noteId: ObjectID }> = async (
+        labelIds: Array<ObjectID>,
+      ): Promise<{ alertId: ObjectID; noteId: ObjectID }> => {
+        const alertId: ObjectID = ObjectID.generate();
+        const noteId: ObjectID = ObjectID.generate();
+
+        await insertAlert({
+          id: alertId,
+          projectId: homeProjectId,
+          title: "Disposable alert",
+          labelIds: labelIds,
+        });
+        await insertNote({
+          id: noteId,
+          projectId: homeProjectId,
+          alertId: alertId,
+        });
+
+        return { alertId: alertId, noteId: noteId };
+      };
+
+      const removeDisposable: (rows: {
+        alertId: ObjectID;
+        noteId: ObjectID;
+      }) => Promise<void> = async (rows: {
+        alertId: ObjectID;
+        noteId: ObjectID;
+      }): Promise<void> => {
+        await removeRows([
+          ["AlertInternalNote", "_id", rows.noteId],
+          ["AlertLabel", "alertId", rows.alertId],
+          ["Alert", "_id", rows.alertId],
+        ]);
+      };
+
+      const expectAnsweredAsMissing: (outcome: Outcome) => void = (
+        outcome: Outcome,
+      ): void => {
+        expect(outcome.error).toBeInstanceOf(NotFoundException);
+        expect(outcome.isEmptySuccess).toBeUndefined();
+      };
+
+      test("a permission on notes without any permission on alerts reaches no note", async () => {
+        const caller: Caller = await callerWith([
+          { permission: Permission.ReadAlertInternalNote },
+          { permission: Permission.EditAlertInternalNote },
+          { permission: Permission.DeleteAlertInternalNote },
+        ]);
+
+        const listed: Outcome = await list("/alert-internal-note", caller);
+
+        expectRefused(listed);
+        expect((listed.error as Exception).message).toContain(
+          "It is read through its Alert",
+        );
+        expectRefused(await count("/alert-internal-note", caller));
+
+        for (const noteId of [
+          productionNoteId,
+          stagingNoteId,
+          unlabelledNoteId,
+        ]) {
+          expectRefused(await getItem("/alert-internal-note", caller, noteId));
+
+          const before: unknown = await readColumn(
+            "AlertInternalNote",
+            noteId,
+            "note",
+          );
+
+          expectRefused(
+            await update("/alert-internal-note", caller, noteId, {
+              note: `Changed ${ObjectID.generate().toString()}`,
+            }),
+          );
+          expect(await readColumn("AlertInternalNote", noteId, "note")).toEqual(
+            before,
+          );
+        }
+
+        const disposable: { alertId: ObjectID; noteId: ObjectID } =
+          await disposableAlertWithNote([]);
+
+        expectRefused(
+          await remove("/alert-internal-note", caller, disposable.noteId),
+        );
+        expect(await rowExists("AlertInternalNote", disposable.noteId)).toBe(
+          true,
+        );
+
+        // Nor by query: a service's update or delete is refused the same way.
+        const props: DatabaseCommonInteractionProps = await propsOf(caller);
+
+        await expect(
+          noteService.deleteBy({
+            query: { _id: disposable.noteId.toString() },
+            props: props,
+            limit: 1,
+            skip: 0,
+          }),
+        ).rejects.toThrow("It is read through its Alert");
+        expect(await rowExists("AlertInternalNote", disposable.noteId)).toBe(
+          true,
+        );
+
+        await removeDisposable(disposable);
+      });
+
+      test("the notes come back with a permission on alerts", async () => {
+        const caller: Caller = await callerWith([
+          { permission: Permission.ReadAlert },
+          { permission: Permission.ReadAlertInternalNote },
+        ]);
+
+        const listed: Outcome = await list("/alert-internal-note", caller);
+
+        expect(listed.error).toBeUndefined();
+        expect(listed.ids).toEqual(sorted(homeNoteIds));
+      });
+
+      test("an edit broader than the read changes only the alerts and notes the caller may read", async () => {
+        const caller: Caller = await callerWith([
+          { permission: Permission.ReadAlert, labelIds: [productionLabelId] },
+          { permission: Permission.EditAlert },
+          { permission: Permission.ReadAlertInternalNote },
+          { permission: Permission.EditAlertInternalNote },
+        ]);
+
+        for (const [path, table, id, column, isWritable] of [
+          ["/alert", "Alert", productionAlertId, "title", true],
+          ["/alert", "Alert", stagingAlertId, "title", false],
+          ["/alert", "Alert", unlabelledAlertId, "title", false],
+          [
+            "/alert-internal-note",
+            "AlertInternalNote",
+            productionNoteId,
+            "note",
+            true,
+          ],
+          [
+            "/alert-internal-note",
+            "AlertInternalNote",
+            stagingNoteId,
+            "note",
+            false,
+          ],
+          [
+            "/alert-internal-note",
+            "AlertInternalNote",
+            unlabelledNoteId,
+            "note",
+            false,
+          ],
+        ] as Array<[string, string, ObjectID, string, boolean]>) {
+          const before: unknown = await readColumn(table, id, column);
+          const value: string = `Changed ${ObjectID.generate().toString()}`;
+
+          const outcome: Outcome = await update(path, caller, id, {
+            [column]: value,
+          });
+
+          if (isWritable) {
+            expect(outcome.error).toBeUndefined();
+            expect(outcome.isEmptySuccess).toBe(true);
+            expect(await readColumn(table, id, column)).toBe(value);
+          } else {
+            // A record the caller may not read is answered as missing.
+            expectAnsweredAsMissing(outcome);
+            expect(await readColumn(table, id, column)).toEqual(before);
+          }
+        }
+      });
+
+      test("a delete broader than the read deletes only the alerts and notes the caller may read", async () => {
+        const caller: Caller = await callerWith([
+          { permission: Permission.ReadAlert, labelIds: [productionLabelId] },
+          { permission: Permission.DeleteAlert },
+          { permission: Permission.ReadAlertInternalNote },
+          { permission: Permission.DeleteAlertInternalNote },
+        ]);
+
+        for (const [labelIds, isDeletable] of [
+          [[productionLabelId], true],
+          [[stagingLabelId], false],
+          [[], false],
+        ] as Array<[Array<ObjectID>, boolean]>) {
+          const disposable: { alertId: ObjectID; noteId: ObjectID } =
+            await disposableAlertWithNote(labelIds);
+
+          const noteOutcome: Outcome = await remove(
+            "/alert-internal-note",
+            caller,
+            disposable.noteId,
+          );
+          const alertOutcome: Outcome = await remove(
+            "/alert",
+            caller,
+            disposable.alertId,
+          );
+
+          expect(await rowExists("AlertInternalNote", disposable.noteId)).toBe(
+            !isDeletable,
+          );
+          expect(await rowExists("Alert", disposable.alertId)).toBe(
+            !isDeletable,
+          );
+
+          if (isDeletable) {
+            expect(noteOutcome.isEmptySuccess).toBe(true);
+            expect(alertOutcome.isEmptySuccess).toBe(true);
+          } else {
+            expectAnsweredAsMissing(noteOutcome);
+            expectAnsweredAsMissing(alertOutcome);
+          }
+
+          await removeDisposable(disposable);
+        }
+      });
+
+      test("a record the caller may read but not change is refused, not answered as missing", async () => {
+        const caller: Caller = await callerWith([
+          { permission: Permission.ReadAlert },
+          { permission: Permission.EditAlert, labelIds: [productionLabelId] },
+          { permission: Permission.DeleteAlert, labelIds: [productionLabelId] },
+          { permission: Permission.ReadAlertInternalNote },
+          {
+            permission: Permission.EditAlertInternalNote,
+            labelIds: [productionLabelId],
+          },
+          {
+            permission: Permission.DeleteAlertInternalNote,
+            labelIds: [productionLabelId],
+          },
+        ]);
+
+        for (const [path, id] of [
+          ["/alert", stagingAlertId],
+          ["/alert-internal-note", stagingNoteId],
+        ] as Array<[string, ObjectID]>) {
+          for (const outcome of [
+            await update(path, caller, id, {
+              [path === "/alert" ? "title" : "note"]: "Changed",
+            }),
+            await remove(path, caller, id),
+          ]) {
+            expectRefused(outcome);
+            expect(outcome.error).toBeInstanceOf(NotAuthorizedException);
+          }
+        }
+
+        expect(await rowExists("Alert", stagingAlertId)).toBe(true);
+        expect(await rowExists("AlertInternalNote", stagingNoteId)).toBe(true);
+      });
+
+      test("a write by id of a record that is not there answers 404", async () => {
+        const caller: Caller = await callerWith([
+          { permission: Permission.AlertMember },
+        ]);
+
+        for (const path of ["/alert", "/alert-internal-note"]) {
+          const missingId: ObjectID = ObjectID.generate();
+
+          expectAnsweredAsMissing(
+            await update(path, caller, missingId, {
+              [path === "/alert" ? "title" : "note"]: "Changed",
+            }),
+          );
+          expectAnsweredAsMissing(await remove(path, caller, missingId));
+        }
+      });
+
+      test("an update or a delete by query keeps answering with how many rows it changed", async () => {
+        const caller: Caller = await callerWith([
+          { permission: Permission.ReadAlert, labelIds: [productionLabelId] },
+          { permission: Permission.EditAlert },
+          { permission: Permission.DeleteAlert },
+        ]);
+        const props: DatabaseCommonInteractionProps = await propsOf(caller);
+
+        const updated: number = await alertService.updateBy({
+          query: { _id: new Includes(homeAlertIds) },
+          data: { title: `Changed ${ObjectID.generate().toString()}` },
+          props: props,
+          limit: 50,
+          skip: 0,
+        });
+
+        expect(updated).toBe(1);
+
+        const disposable: Array<{ alertId: ObjectID; noteId: ObjectID }> = [
+          await disposableAlertWithNote([productionLabelId]),
+          await disposableAlertWithNote([stagingLabelId]),
+        ];
+
+        const deleted: number = await alertService.deleteBy({
+          query: {
+            _id: new Includes(
+              disposable.map((rows: { alertId: ObjectID }): string => {
+                return rows.alertId.toString();
+              }),
+            ),
+          },
+          props: props,
+          limit: 50,
+          skip: 0,
+        });
+
+        expect(deleted).toBe(1);
+        expect(await rowExists("Alert", disposable[0]!.alertId)).toBe(false);
+        expect(await rowExists("Alert", disposable[1]!.alertId)).toBe(true);
+
+        for (const rows of disposable) {
+          await removeDisposable(rows);
+        }
+      });
+    },
+  );
 
   /*
    * A READ ACROSS PROJECTS (the home page's alerts of every project): each
