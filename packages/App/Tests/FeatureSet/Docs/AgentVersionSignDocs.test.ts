@@ -23,6 +23,7 @@ import {
   VMWARE_AGENT_RECREATE_COMMAND,
   getVMwareAgentDownloadCommand,
   getVMwareAgentUpgradeCommand,
+  getVMwareNativeUpgradeCommand,
 } from "../../../FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
 import {
   STORAGE_ARRAY_AGENT_INSTALL_DIR,
@@ -457,7 +458,7 @@ describe("the Proxmox, Ceph, VMware and Storage Array guides say the sign follow
   );
 
   test.each(["en", "fa"])(
-    "%s VMware: the install script again, or the files and the recreate",
+    "%s VMware: the install script again, the files and the recreate, or the release without Docker",
     (language: string) => {
       const section: string = upgradeSection(
         readGuide(language, "telemetry/vmware.md") as string,
@@ -472,6 +473,10 @@ describe("the Proxmox, Ceph, VMware and Storage Array guides say the sign follow
           "\n" +
           VMWARE_AGENT_RECREATE_COMMAND +
           "\n```",
+      );
+      // The dialog's Without Docker tab: the release the agent pins, again.
+      expect(section).toContain(
+        "```bash\n" + getVMwareNativeUpgradeCommand() + "\n```",
       );
     },
   );

@@ -628,9 +628,26 @@ describe("the install guide embeds the real agent configuration", () => {
     expect(markdownSource).not.toContain("without quotes");
     expect(markdownSource).not.toContain("quotes included");
     expect(markdownSource).not.toContain("keeps your");
-    expect(markdownSource).toContain("single-quote it in \\`.env\\`");
+    // The settings table's password row, for the Docker installs.
+    expect(markdownSource).toContain("single-quote it in `.env`");
     expect(markdownSource).toContain(
       "a password containing \\`$\\`, \\`#\\`, spaces or quotes",
+    );
+  });
+
+  test("it gives systemd's quoting rule for the install without Docker", () => {
+    /*
+     * systemd reads that .env, and systemd 239 (RHEL 8) drops a backslash
+     * even inside single quotes: double quotes with \ and " escaped are the
+     * one form every version reads as typed (VMwareSetupGuide.test.ts reads
+     * the guide's .env with both versions' rules).
+     */
+    expect(markdownSource).toContain(
+      'VCENTER_USERNAME="oneuptime@vsphere.local"\nVCENTER_PASSWORD="a-strong-password"',
+    );
+    expect(markdownSource).toContain("systemdEnvQuote(data.vcenterName)");
+    expect(markdownSource).toContain(
+      "drop a backslash even inside single quotes",
     );
   });
 

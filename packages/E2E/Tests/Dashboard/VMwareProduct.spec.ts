@@ -98,6 +98,24 @@ test.describe.skip("VMware Product Onboarding", () => {
     expect(bodyText).toContain("docker compose up -d");
     expect(bodyText).not.toContain("<YOUR_API_KEY>");
 
+    /*
+     * Without Docker the same settings go in the systemd service's .env,
+     * the user and password double-quoted for systemd, and the service is
+     * started instead of a container.
+     */
+    await page.getByRole("radio", { name: /^Without Docker/ }).click();
+
+    const withoutDockerText: string = await page.locator("body").innerText();
+    expect(withoutDockerText).toMatch(ingestionKeyEnvLineRegex);
+    expect(withoutDockerText).toContain("VMWARE_VCENTER_NAME=my-vcenter");
+    expect(withoutDockerText).toContain(
+      'VCENTER_USERNAME="oneuptime@vsphere.local"',
+    );
+    expect(withoutDockerText).toContain(
+      "sudo systemctl enable oneuptime-vmware-agent",
+    );
+    expect(withoutDockerText).not.toContain("<YOUR_API_KEY>");
+
     // A second key created via "New Key" becomes the selected key.
     const secondKeyName: string =
       "E2E VMware Key " + Faker.generateName().toString();

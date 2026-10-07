@@ -9,6 +9,21 @@ import {
   getAllVMwareMetrics,
 } from "Common/Types/Monitor/VMwareMetricCatalog";
 import { VMwareVCenterNameLabelKeys } from "Common/Server/Utils/Monitor/SeriesResourceLabels";
+import {
+  VMWARE_AGENT_NATIVE_ENV_FILE,
+  VMWARE_AGENT_NATIVE_SELF_METRICS_URL,
+  VMWARE_AGENT_NATIVE_UNIT_FILE,
+  VMWARE_NATIVE_ENV_FILE_COMMAND,
+  VMWARE_NATIVE_LOGS_COMMAND,
+  VMWARE_NATIVE_START_COMMAND,
+  VMWARE_NATIVE_STATUS_COMMAND,
+  VMWARE_NATIVE_UNINSTALL_COMMAND,
+  getVMwareNativeEnvFile,
+  getVMwareNativeInstallCommand,
+  getVMwareNativeUpgradeCommand,
+} from "../../../FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
+import { VMWARE_AGENT_VERSION } from "../../../FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
+import { parseSystemdEnvironmentFile } from "Common/Tests/App/Dashboard/SystemdEnvironmentFile";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -24,6 +39,12 @@ import path from "path";
  * points at a page that was renamed. Each test reads the source of truth —
  * the catalog, the template registry, the compose file, the nav — and checks
  * the shipped pages still tell the same story.
+ *
+ * The install without Docker is held to the in-app setup guide: every
+ * command the page gives for it is the guide's own (so the guide's tests,
+ * and the end-to-end run of Tests/Ops/vmware-agent-native-install.sh over
+ * this very page, cover what readers copy), pinned to the collector release
+ * the agent's files pin.
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../../..");
@@ -105,6 +126,11 @@ function metricTableRows(markdown: string): Map<string, string> {
   }
 
   return rows;
+}
+
+/* A fenced bash block holding exactly the given commands. */
+function bashBlock(commands: string): string {
+  return "```bash\n" + commands + "\n```";
 }
 
 /* Every backticked identifier in a page, in order, duplicates kept. */
@@ -730,6 +756,169 @@ describe("VMware docs", (): void => {
       expect(installScript).toContain(
         'printf -v "$name" \'%s\' "$(dotenv_get "$name" "$ENV_FILE")"',
       );
+    });
+
+    it("documents the install without Docker with the setup guide's own commands, in order", (): void => {
+      const part: string = section(
+        readPage(TELEMETRY_PAGE),
+        "## Alternative — Without Docker",
+      );
+      const blocks: Array<string> = [
+        bashBlock(getVMwareNativeInstallCommand()),
+        bashBlock(VMWARE_NATIVE_ENV_FILE_COMMAND),
+        bashBlock(
+          getVMwareNativeEnvFile({
+            oneuptimeUrl: "YOUR_ONEUPTIME_URL",
+            apiKey: "YOUR_TELEMETRY_INGESTION_TOKEN",
+            vcenterName: "my-vcenter",
+          }),
+        ),
+        bashBlock(VMWARE_NATIVE_START_COMMAND),
+      ];
+      let previous: number = -1;
+      for (const block of blocks) {
+        const at: number = part.indexOf(block);
+        expect({ block, found: at > previous }).toEqual({
+          block,
+          found: true,
+        });
+        previous = at;
+      }
+      expect(codeBlocks(part)).toHaveLength(blocks.length);
+    });
+
+    it("installs without Docker the collector release the agent's files pin", (): void => {
+      const compose: string = fs.readFileSync(
+        path.join(AGENT_DIR, "docker-compose.yml"),
+        "utf8",
+      );
+      const pin: string = (
+        compose.match(
+          /image: otel\/opentelemetry-collector-contrib:(\d+\.\d+\.\d+)/,
+        ) as RegExpMatchArray
+      )[1] as string;
+      expect(pin).toBe(VMWARE_AGENT_VERSION);
+
+      // The install, and the upgrade again: both download the pin.
+      const markdown: string = readPage(TELEMETRY_PAGE);
+      const pins: Array<string> = Array.from(
+        markdown.matchAll(/^VERSION=(\S+)\s/gm),
+      ).map((match: RegExpMatchArray): string => {
+        return match[1] as string;
+      });
+      expect(pins).toEqual([pin, pin]);
+    });
+
+    it("the .env of the install without Docker sets exactly what the collector reads, as systemd reads it", (): void => {
+      const part: string = section(
+        readPage(TELEMETRY_PAGE),
+        "## Alternative — Without Docker",
+      );
+      const env: string = codeBlocks(part).find((block: string): boolean => {
+        return block.startsWith("ONEUPTIME_URL=");
+      }) as string;
+      // As systemd 255 and systemd 239 (RHEL 8) read it.
+      for (const legacy of [false, true]) {
+        const variables: Map<string, string> = parseSystemdEnvironmentFile(
+          env,
+          { legacy },
+        );
+
+        expect(Array.from(variables.keys()).sort()).toEqual(
+          composeEnvironmentVariables().sort(),
+        );
+        expect(variables.get("VCENTER_USERNAME")).toBe(
+          "oneuptime@vsphere.local",
+        );
+        expect(variables.get("VCENTER_PASSWORD")).toBe("a-strong-password");
+      }
+      expect(env).toContain('VCENTER_PASSWORD="a-strong-password"');
+      expect(part).toContain('`DOMAIN\\user` is `"DOMAIN\\\\user"`');
+      expect(part).toContain(
+        "older ones (RHEL 8's, for one) drop a backslash even inside single quotes",
+      );
+    });
+
+    it("links the systemd unit the agent ships, and upgrades and uninstalls without Docker as the guide does", (): void => {
+      const markdown: string = readPage(TELEMETRY_PAGE);
+
+      expect(markdown).toContain(
+        `(https://github.com/OneUptime/oneuptime/blob/master/agents/VMwareAgent/${VMWARE_AGENT_NATIVE_UNIT_FILE})`,
+      );
+      expect(
+        fs.existsSync(path.join(AGENT_DIR, VMWARE_AGENT_NATIVE_UNIT_FILE)),
+      ).toBe(true);
+      expect(section(markdown, "## Upgrading the Agent")).toContain(
+        bashBlock(getVMwareNativeUpgradeCommand()),
+      );
+      expect(section(markdown, "## Uninstalling the Agent")).toContain(
+        bashBlock(VMWARE_NATIVE_UNINSTALL_COMMAND),
+      );
+      expect(section(markdown, "## Verify the Installation")).toContain(
+        bashBlock(
+          `${VMWARE_NATIVE_STATUS_COMMAND}\n${VMWARE_NATIVE_LOGS_COMMAND}`,
+        ),
+      );
+    });
+
+    it("troubleshoots the install without Docker with what it has: the journal, curl and the collector's own counters", (): void => {
+      const part: string = section(
+        readPage(TELEMETRY_PAGE),
+        "### Installed without Docker",
+      );
+
+      // troubleshoot.sh probes from the agent container, so it cannot help here.
+      expect(part).toContain("The diagnostic script needs Docker.");
+      expect(part).not.toContain("bash troubleshoot.sh");
+      expect(part).toContain(
+        `curl -s ${VMWARE_AGENT_NATIVE_SELF_METRICS_URL} | grep -E`,
+      );
+      expect(part).toContain("`Failed with result 'resources'`");
+      expect(part).toContain(`\`${VMWARE_AGENT_NATIVE_ENV_FILE}\``);
+      expect(part).toContain("`update-ca-certificates`");
+      expect(part).toContain("`update-ca-trust`");
+    });
+
+    it("says the install without Docker has no AI agent, and never promises one", (): void => {
+      const markdown: string = readPage(TELEMETRY_PAGE);
+      const part: string = section(markdown, "## Alternative — Without Docker");
+
+      expect(part).toContain(
+        "the [AI agent](#ai-agent) ships only as a container image",
+      );
+      expect(part).not.toContain("AI investigations are on");
+      expect(section(markdown, "## AI agent")).toContain(
+        "`docker compose up -d oneuptime-vmware-ai-agent` (not the collector, which already runs)",
+      );
+    });
+
+    it("keeps the agent README's install without Docker the docs' own", (): void => {
+      const readme: string = fs.readFileSync(
+        path.join(AGENT_DIR, "README.md"),
+        "utf8",
+      );
+
+      for (const block of [
+        bashBlock(getVMwareNativeInstallCommand()),
+        bashBlock(VMWARE_NATIVE_ENV_FILE_COMMAND),
+        bashBlock(
+          getVMwareNativeEnvFile({
+            oneuptimeUrl: "https://oneuptime.com",
+            apiKey: "your-telemetry-ingestion-key",
+            vcenterName: "prod-vcenter",
+          }),
+        ),
+        bashBlock(VMWARE_NATIVE_START_COMMAND),
+        bashBlock(getVMwareNativeUpgradeCommand()),
+        bashBlock(VMWARE_NATIVE_UNINSTALL_COMMAND),
+      ]) {
+        expect({ block, inReadme: readme.includes(block) }).toEqual({
+          block,
+          inReadme: true,
+        });
+      }
+      expect(readme).toContain("## Quick Start — Without Docker");
+      expect(readme).toContain("### Installed without Docker");
     });
 
     it("matches the agent config it documents", (): void => {

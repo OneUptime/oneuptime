@@ -73,7 +73,8 @@ import { ResourceCommandTier } from "../../../Types/ResourceAiAgent/ResourceAiAc
  *   - the host guide offers the Host AI agent, with its own installer, on
  *     Linux only.
  *
- * A guide with no AI agent (Proxmox's native push) claims nothing.
+ * A guide with no AI agent (Proxmox's native push, the VMware agent
+ * installed without Docker) claims nothing.
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../../..");
@@ -282,8 +283,11 @@ describe.each<[string, () => Array<[string, SetupGuideContent]>, string]>([
   [
     "VMware",
     (): Array<[string, SetupGuideContent]> => {
-      return keysOf(VMWARE_INSTALL_METHODS).map(
-        (method: VMwareInstallMethod): [string, SetupGuideContent] => {
+      return keysOf(VMWARE_INSTALL_METHODS)
+        .filter((method: VMwareInstallMethod): boolean => {
+          return method !== "linux-service";
+        })
+        .map((method: VMwareInstallMethod): [string, SetupGuideContent] => {
           return [
             method,
             getVMwareSetupGuide({
@@ -293,8 +297,7 @@ describe.each<[string, () => Array<[string, SetupGuideContent]>, string]>([
               method: method,
             }),
           ];
-        },
-      );
+        });
     },
     "with read-only `govc` commands",
   ],
@@ -353,6 +356,33 @@ describe("the Proxmox native push", () => {
 
     expect(getSetupGuideMarkdown(guide)).not.toContain(
       "AI investigations are on",
+    );
+  });
+});
+
+describe("the VMware agent without Docker", () => {
+  /*
+   * The AI agent ships only as a container image, so the install without
+   * Docker runs the collector alone and promises no AI investigations; it
+   * says why, and points at running the AI agent with Docker elsewhere.
+   */
+  const guide: SetupGuideContent = getVMwareSetupGuide({
+    oneuptimeUrl: URL,
+    apiKey: KEY,
+    hasApiKey: true,
+    method: "linux-service",
+  });
+
+  test("claims no AI investigations: there is no AI agent to run them", () => {
+    expect(getSetupGuideMarkdown(guide)).not.toContain(
+      "AI investigations are on",
+    );
+    expect(lastStep(guide).markdown).not.toContain(ON_BY_DEFAULT);
+  });
+
+  test("says in its install step why there is no AI agent", () => {
+    expect(stepTitled(guide, "Install the agent")).toContain(
+      "the OneUptime AI agent ships only as a container image",
     );
   });
 });
