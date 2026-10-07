@@ -542,6 +542,34 @@ describe("the tool handler, reached without the HTTP gate", () => {
       expect(suggestion).not.toContain("API key");
     });
 
+    /*
+     * The API answers a read by id of a record that does not exist, is in
+     * another project or is one the caller may not read with 404 - never
+     * with an empty success the agent could take for the record.
+     */
+    it("is, for a read by id that answers 404, an error that sends the agent to the list tool", async () => {
+      executeOperation.mockRejectedValue(
+        new OneUptimeApiError(
+          "API request failed: 404 - Incident not found.",
+          404,
+        ) as never,
+      );
+
+      const result: { isError: boolean; payload: any } = await call(
+        API_KEY,
+        "get_incident",
+        { id: INCIDENT_ID },
+      );
+
+      expect(result.isError).toBe(true);
+      expect(result.payload.success).toBe(false);
+      expect(result.payload.statusCode).toBe(404);
+      expect(result.payload.data).toBeUndefined();
+      expect(result.payload.suggestion).toBe(
+        "The resource was not found. Use the corresponding list tool to find valid IDs.",
+      );
+    });
+
     it.each([[400], [404], [429], [500]])(
       "is the same for both kinds of credential on a %d",
       async (statusCode: number) => {

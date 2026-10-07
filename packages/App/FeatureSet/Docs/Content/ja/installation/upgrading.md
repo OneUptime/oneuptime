@@ -172,6 +172,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 - **`oneuptime` CLI が `--version` で実際のバージョンを報告します**（従来はプレースホルダーでした）。
 - **Runner がプロジェクト設定から Runbook に移動しました。** Runner は **Runbook → Runbook エージェント**（`…/runbooks/runners`）、Runner Credentials は **Runbook → Runbook エージェント → 認証情報**（`…/runbooks/runner-credentials`）にあり、Runner がステップを実行する Runbook のすぐ隣に並びます。以前の `…/settings/runners` と `…/settings/runner-credentials` の URL はリダイレクトされるため、ブックマークはそのまま使えます。それ以外の変更はありません。Runner の ID、キー、機能、権限はそのままで、AI コード修正と AI 修復コマンドも引き続き実行します。このリリースより古い Runner イメージは、ログメッセージに引き続き「Project Settings > Runners」と出力します。これは Runbook → Runbook エージェント と読み替えてください。
 - **`RunbookMember` は Runbook を実行し、構築はしません。** このロールは Runbook、Runner、それらのオーナーを作成・削除しなくなり、ラベルとスコープが届く Runbook だけを実行します。Runbook を構築する人には `RunbookAdmin` が必要です。請求ロールは請求ページを読めるようになりました。`BillingViewer` は閲覧のみ、`BillingMember` はさらに請求書をダウンロードし、請求先の連絡先情報を変更します。
+- **すべての付与は届く範囲を絞り込み、読み取れないレコードを ID で読み取ると `404` で応答します。** `POST /api/<resource>/<id>/get-item` は空の本文の `200` ではなく `404` で応答します。ラベルに限定した **All Operational Resources** 権限は、そのラベルが付いたリソースにだけ届きます。インシデントなど別のレコードを通じて読み取られるレコードは、そのレコードの所有スコープに従います。テレメトリーの削除は呼び出し元が読み取れる範囲に限られ、一度に 1 つのプロジェクトで行われます。ステータスページの SSO と OIDC のプロバイダーは、すべてのメンバーではなくプロジェクトのロールが読み取ります。Terraform は読み取れなくなったリソースを state から削除します。
 - 移動または制限されたエンドポイント（`GET /api/global-config/license` と、セルフホストのインストールが提供しなくなったライセンスサーバーのエンドポイントを含む）は、上の [API and endpoint changes](#api-and-endpoint-changes) に記載しています。
 
 ### IPv6 モニター: Ping、Port、SSL

@@ -313,10 +313,10 @@ const StorageArrayOverview: FunctionComponent<
 
     if (!item?.name) {
       /*
-       * get-item returns 200 {} (never 404) for a momentarily-missing item,
-       * so a transient blip looks like "not found". Only escalate that to a
-       * full-page error on the initial load; a background tick keeps the
-       * current view.
+       * A missing or unreadable item comes back as null (the API answers
+       * 404), and so does a momentary blip, so a transient one looks like
+       * "not found". Only escalate that to a full-page error on the initial
+       * load; a background tick keeps the current view.
        */
       if (showLoader) {
         setPageError("Storage array not found.");

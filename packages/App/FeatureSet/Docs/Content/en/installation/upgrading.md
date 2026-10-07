@@ -563,6 +563,53 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   and OIDC providers it could already change. See
   [Changing or deleting a record you may not read](/docs/api-reference/api-reference#changing-or-deleting-a-record-you-may-not-read)
   and [Users, Teams & Permissions](/docs/permissions/index).
+- **Every grant and scope narrows what it reaches, and a read by ID of a
+  record you may not read answers `404`.** The same rule now holds in the
+  places it did not yet reach:
+  - Reading one record by its ID (`POST /api/<resource>/<id>/get-item`)
+    answers `404` when the record does not exist, is in another project or
+    is one the caller may not read - the same answer for each, as a change
+    or a delete by ID already gives. It used to answer `200` with an empty
+    body. The dashboard shows such a record as not found, as before. The
+    MCP tools answer with a not-found error that points to the list tool,
+    and the CLI exits with code `3`. The Terraform provider removes a
+    resource it can no longer read from its state when it refreshes, and
+    the next plan creates it again: give the API key Terraform uses the
+    permissions, and the labels, to read every resource it manages (see
+    [Troubleshooting](/docs/terraform/troubleshooting#a-resource-leaves-the-state-and-the-next-apply-creates-it-again)).
+  - An **All Operational Resources** permission restricted to labels
+    (`ReadAllOperationalResources`, `EditAllOperationalResources`,
+    `DeleteAllOperationalResources`) reached every monitor, incident,
+    status page and other operational resource of the project, whatever
+    its labels. It now reaches the ones carrying one of its labels, as each
+    resource's own permission restricted to the same labels does, and a
+    block with labels on it takes the resources carrying those labels away
+    from what it grants. A team or an API key that needs every resource
+    holds the permission at **All** scope.
+  - When a role may read incidents only at **Owned** scope, the records
+    read through an incident - its notes, state timeline, feed and the
+    like - are those of the incidents its people or their teams own, for
+    reading, changing and deleting alike, whatever the scope of the
+    permission for the records themselves. The same holds for alerts,
+    episodes, scheduled maintenance, monitors, on-call policies, status
+    pages and every other record that others are read through: an episode's
+    notes, or a status page's announcements, used to reach those of every
+    episode or status page.
+  - Deleting telemetry - logs, traces, metrics, exceptions, profiles and
+    session replays - keeps to the resources whose telemetry the caller may
+    both read and delete, less the ones a block with labels takes away,
+    and is made in one project at a time: a request across all of the
+    caller's projects is refused. A delete of one row by its ID that
+    reaches nothing answers `404`, or `422` when the caller may read the
+    row but not delete it.
+  - A status page's SAML and OIDC sign-in providers are read by
+    `ProjectOwner`, `ProjectAdmin`, `ProjectMember`, `Viewer` and the
+    **Read Status Page SSO** and **Read Status Page OIDC** permissions,
+    and no longer by every member who may read the status page. The status
+    page's own sign-in page is not affected.
+
+  See [Reading one record by its ID](/docs/api-reference/api-reference#reading-one-record-by-its-id)
+  and [Users, Teams & Permissions](/docs/permissions/index).
 - **Runbook Member runs runbooks and builds none.** `RunbookMember` could
   create and delete runbooks, Runners and their owners, though not edit
   them. It now opens runbooks and their runs and runs them - starts a run,

@@ -109,6 +109,18 @@ You do not have permission to update this incident.
 
 A delete that reached nothing used to answer `200`. Updates and deletes by query, such as a workflow's update and delete steps, answer with how many records they changed, `0` when they reached none. Terraform reads a `404` on `terraform destroy` as a resource that is already gone.
 
+Telemetry follows the same rule. A delete of logs, traces, metrics, exceptions, profiles or session replays reaches the rows of the resources - services, hosts, clusters and the like - whose telemetry you may both read and delete, and is made in one project at a time: a request across all of your projects is refused. A delete of one row by its ID that reaches nothing answers `404` or `422` as above.
+
+### Reading one record by its ID
+
+A read of one record by its ID - `POST /api/<resource>/<id>/get-item` - answers `404` when the record does not exist, is in another project, or is one you may not read, the same answer for each:
+
+```text
+Incident not found.
+```
+
+It used to answer `200` with an empty body. A list (`get-list`) and a count still answer `200` with the records you may read, none when there are none. The Terraform provider reads a `404` on refresh as a resource that is gone and removes it from the state, so the next plan creates it again: give the API key it uses the permissions, and the labels, to read every resource it manages. The MCP tools answer a `404` with an error that points to the matching list tool, and the CLI exits with code `3`.
+
 ### API Reference
 
 Please click here to check out OneUptime's API reference ➡️ [OneUptime API Reference](/reference). The API reference is available in multiple languages — your preferred language is auto-detected from your browser, and you can switch languages at any time using the selector in the top navigation.
