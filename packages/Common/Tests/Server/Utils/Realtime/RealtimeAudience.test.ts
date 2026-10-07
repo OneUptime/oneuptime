@@ -7,7 +7,10 @@ import {
   RealtimeReader,
 } from "../../../../Server/Utils/Realtime/RealtimeReadAccess";
 import logger from "../../../../Server/Utils/Logger";
-import { TopologyConcurrencyLimiter } from "../../../../Server/Utils/Topology/TopologyConcurrencyLimiter";
+import {
+  TopologyConcurrencyLimiter,
+  TopologyRequestAbandonedError,
+} from "../../../../Server/Utils/Topology/TopologyConcurrencyLimiter";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthenticatedException from "../../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
@@ -512,6 +515,92 @@ describe("RealtimeAudience.getReadableIds", () => {
         return ids.size === 0;
       }),
     ).toBe(true);
+  });
+
+  test("at the deadline a read still waiting for a slot gives its place up, quietly", async () => {
+    const user: string = ObjectID.generate().toString();
+    const reads: Array<string> = [];
+    const signals: Array<AbortSignal | undefined> = [];
+    const logged: jest.SpyInstance = jest
+      .spyOn(logger, "error")
+      .mockImplementation((): void => {});
+
+    // Every slot is taken: the read waits until it is given up.
+    jest
+      .spyOn(TopologyConcurrencyLimiter.prototype, "run")
+      .mockImplementation(
+        <T>(
+          _projectId: string,
+          _work: () => Promise<T>,
+          signal?: AbortSignal,
+        ): Promise<T> => {
+          signals.push(signal);
+
+          return new Promise<T>(
+            (_resolve: (value: T) => void, reject: (err: Error) => void) => {
+              signal?.addEventListener("abort", (): void => {
+                reject(new TopologyRequestAbandonedError());
+              });
+            },
+          );
+        },
+      );
+
+    const startedAt: number = Date.now();
+
+    const readable: Map<
+      string,
+      Set<string>
+    > = await RealtimeAudience.getReadableIds({
+      tenantId: PROJECT,
+      access: accessWith({
+        getReadableIds: async (userId: string): Promise<Array<string>> => {
+          reads.push(userId);
+          return [RECORD_A];
+        },
+      }),
+      readers: [identity(user)],
+      modelIds: [RECORD_A],
+      deadlineMs: Date.now() + 30,
+    });
+
+    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(signals).toHaveLength(1);
+    expect(signals[0]?.aborted).toBe(true);
+    expect(reads).toEqual([]);
+    expect(readable.get(keyOf(user))!.size).toBe(0);
+    expect(logged).not.toHaveBeenCalled();
+  });
+
+  test("without a deadline a read waits as the read limits let it", async () => {
+    const user: string = ObjectID.generate().toString();
+    const signals: Array<AbortSignal | undefined> = [];
+
+    jest
+      .spyOn(TopologyConcurrencyLimiter.prototype, "run")
+      .mockImplementation(
+        async <T>(
+          _projectId: string,
+          work: () => Promise<T>,
+          signal?: AbortSignal,
+        ): Promise<T> => {
+          signals.push(signal);
+          return await work();
+        },
+      );
+
+    await RealtimeAudience.getReadableIds({
+      tenantId: PROJECT,
+      access: accessWith({
+        getReadableIds: async (): Promise<Array<string>> => {
+          return [RECORD_A];
+        },
+      }),
+      readers: [identity(user)],
+      modelIds: [RECORD_A],
+    });
+
+    expect(signals).toEqual([undefined]);
   });
 
   test("a read whose slot comes only after the deadline is not made", async () => {

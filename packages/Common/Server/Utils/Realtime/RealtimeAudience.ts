@@ -4,7 +4,10 @@ import {
   normalizeRealtimeId,
 } from "./RealtimeReadAccess";
 import RealtimeReaders, { RealtimeReaderIdentity } from "./RealtimeReaders";
-import { TopologyConcurrencyLimiter } from "../Topology/TopologyConcurrencyLimiter";
+import {
+  TopologyConcurrencyLimiter,
+  TopologyRequestAbandonedError,
+} from "../Topology/TopologyConcurrencyLimiter";
 import logger, { LogAttributes } from "../Logger";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
@@ -63,13 +66,16 @@ export default class RealtimeAudience {
    * `onlyFor`, when given, picks the readers worth asking; the others read
    * none of the records here. `deadlineMs` (a time, as Date.now() counts)
    * is when the answer stops being wanted: a person not worked out by then
-   * reads none of them, and no read starts after it.
+   * reads none of them, no read starts after it, and a read still waiting
+   * for a slot gives its place up at once. `ownerIds` is handed to the
+   * access with the records (RealtimeReadAccess.getReadableIds).
    */
   public static async getReadableIds(data: {
     tenantId: string;
     access: RealtimeReadAccess;
     readers: Array<RealtimeReaderIdentity>;
     modelIds: Array<string>;
+    ownerIds?: ReadonlyMap<string, string> | undefined;
     onlyFor?: ((reader: RealtimeReader) => Promise<boolean>) | undefined;
     deadlineMs?: number | undefined;
   }): Promise<Map<string, Set<string>>> {
@@ -88,30 +94,50 @@ export default class RealtimeAudience {
       people.set(RealtimeReaders.getKey(identity, data.tenantId), identity);
     }
 
-    await ArrayUtil.forEachWithConcurrency(
-      Array.from(people.entries()),
-      RealtimeAudience.READERS_AT_A_TIME,
-      async ([key, identity]: [
-        string,
-        RealtimeReaderIdentity,
-      ]): Promise<void> => {
-        if (RealtimeAudience.isPast(data.deadlineMs)) {
-          return;
-        }
+    // At the deadline, reads still waiting for a slot leave the queue.
+    const deadline: AbortController | null =
+      data.deadlineMs !== undefined ? new AbortController() : null;
+    const deadlineTimer: ReturnType<typeof setTimeout> | null = deadline
+      ? setTimeout(
+          (): void => {
+            deadline.abort();
+          },
+          Math.max(0, data.deadlineMs! - Date.now()),
+        )
+      : null;
 
-        readable.set(
-          key,
-          await RealtimeAudience.getReadableIdsOf({
-            identity: identity,
-            tenantId: data.tenantId,
-            access: data.access,
-            modelIds: distinctIds,
-            onlyFor: data.onlyFor,
-            deadlineMs: data.deadlineMs,
-          }),
-        );
-      },
-    );
+    try {
+      await ArrayUtil.forEachWithConcurrency(
+        Array.from(people.entries()),
+        RealtimeAudience.READERS_AT_A_TIME,
+        async ([key, identity]: [
+          string,
+          RealtimeReaderIdentity,
+        ]): Promise<void> => {
+          if (RealtimeAudience.isPast(data.deadlineMs)) {
+            return;
+          }
+
+          readable.set(
+            key,
+            await RealtimeAudience.getReadableIdsOf({
+              identity: identity,
+              tenantId: data.tenantId,
+              access: data.access,
+              modelIds: distinctIds,
+              ownerIds: data.ownerIds,
+              onlyFor: data.onlyFor,
+              deadlineMs: data.deadlineMs,
+              signal: deadline?.signal,
+            }),
+          );
+        },
+      );
+    } finally {
+      if (deadlineTimer) {
+        clearTimeout(deadlineTimer);
+      }
+    }
 
     return readable;
   }
@@ -125,8 +151,10 @@ export default class RealtimeAudience {
     tenantId: string;
     access: RealtimeReadAccess;
     modelIds: Array<string>;
+    ownerIds?: ReadonlyMap<string, string> | undefined;
     onlyFor?: ((reader: RealtimeReader) => Promise<boolean>) | undefined;
     deadlineMs?: number | undefined;
+    signal?: AbortSignal | undefined;
   }): Promise<Set<string>> {
     const logAttributes: LogAttributes = {
       projectId: data.tenantId,
@@ -197,6 +225,7 @@ export default class RealtimeAudience {
         data.modelIds.map((id: string): ObjectID => {
           return new ObjectID(id);
         }),
+        data.ownerIds,
       );
     };
 
@@ -204,7 +233,7 @@ export default class RealtimeAudience {
       // An answer from what the access already knows needs no read slot.
       const ids: Array<string> = data.access.answersWithoutReading
         ? await read()
-        : await RealtimeAudience.limiter.run(data.tenantId, read);
+        : await RealtimeAudience.limiter.run(data.tenantId, read, data.signal);
 
       const asked: Set<string> = new Set<string>(data.modelIds);
 
@@ -218,6 +247,12 @@ export default class RealtimeAudience {
       if (err instanceof TooManyRequestsException) {
         logger.warn(
           "Realtime: too many live update checks are waiting on this server; a listener does not hear about this change.",
+          logAttributes,
+        );
+      } else if (err instanceof TopologyRequestAbandonedError) {
+        // Its time ran out while it waited: the answer is no longer wanted.
+        logger.debug(
+          "Realtime: a live update check was not reached in time; a listener does not hear about this change.",
           logAttributes,
         );
       } else if (

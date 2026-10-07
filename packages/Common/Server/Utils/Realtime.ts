@@ -57,6 +57,12 @@ export enum ListenToModelEventOutcome {
  */
 const READER_OF_SOCKET_KEY: string = "realtimeReader";
 
+// One event waiting for delivery: its record, and the resource it belongs to.
+interface PendingModelEvent {
+  modelId: string;
+  ownerId?: string | undefined;
+}
+
 /*
  * The events of one model, project and kind waiting for (or in) delivery,
  * in the order they happened. One delivery works out who hears about all
@@ -67,7 +73,7 @@ interface PendingModelEvents {
   tableName: string;
   eventType: ModelEventType;
   access: RealtimeReadAccess;
-  modelIds: Array<string>;
+  events: Array<PendingModelEvent>;
   draining: boolean;
 }
 
@@ -97,9 +103,18 @@ export default abstract class Realtime {
    * who reads them. Past it the write goes ahead without that decision -
    * nobody hears about the deleted rows, and an update is heard by those
    * who can read the rows after it - so a write never waits long on live
-   * updates.
+   * updates. Without a queue for read slots the decision takes
+   * milliseconds; this bounds it when the server is busy.
    */
-  public static readonly BEFORE_WRITE_DECISION_TIMEOUT_IN_MS: number = 5000;
+  public static readonly BEFORE_WRITE_DECISION_TIMEOUT_IN_MS: number = 2000;
+
+  /*
+   * The longest a delivery works out who hears about its batch. A listener
+   * whose read has not started by then does not hear about the batch: the
+   * listeners were found when the delivery began, and an answer much later
+   * would go to sockets that may have moved on.
+   */
+  public static readonly DELIVERY_DECISION_TIMEOUT_IN_MS: number = 10_000;
 
   private static pendingEvents: Map<string, PendingModelEvents> = new Map<
     string,
@@ -497,6 +512,10 @@ export default abstract class Realtime {
    * Returns as soon as the event is queued: who hears about it is worked
    * out after the write, with the other events of the same model, project
    * and kind that arrive meanwhile (deliver), so a write never waits for it.
+   *
+   * `ownerId` is the resource the record belongs to, when its writer names
+   * it (telemetry rows, which are not looked up by id): it travels with the
+   * event to `access` (RealtimeReadAccess.getReadableIds).
    */
   @CaptureSpan()
   public static async emitModelEvent(data: {
@@ -505,6 +524,7 @@ export default abstract class Realtime {
     modelId: ObjectID;
     modelType: { new (): BaseModel | AnalyticsBaseModel };
     access: RealtimeReadAccess;
+    ownerId?: string | undefined;
   }): Promise<void> {
     const emitLogAttributes: LogAttributes = {
       projectId: data.tenantId?.toString(),
@@ -538,6 +558,7 @@ export default abstract class Realtime {
       tableName: model.tableName,
       eventType: data.eventType,
       modelId: data.modelId.toString(),
+      ownerId: data.ownerId,
       access: data.access,
     });
   }
@@ -701,6 +722,7 @@ export default abstract class Realtime {
     tableName: string;
     eventType: ModelEventType;
     modelId: string;
+    ownerId?: string | undefined;
     access: RealtimeReadAccess;
   }): void {
     let accessId: number | undefined = this.accessIds.get(event.access);
@@ -725,14 +747,14 @@ export default abstract class Realtime {
         tableName: event.tableName,
         eventType: event.eventType,
         access: event.access,
-        modelIds: [],
+        events: [],
         draining: false,
       };
 
       this.pendingEvents.set(key, pending);
     }
 
-    if (pending.modelIds.length >= this.MAX_WAITING_EVENTS) {
+    if (pending.events.length >= this.MAX_WAITING_EVENTS) {
       logger.warn(
         `Realtime: too many ${event.tableName} events are waiting to be delivered; this one is dropped.`,
         { projectId: event.tenantId } as LogAttributes,
@@ -740,7 +762,7 @@ export default abstract class Realtime {
       return;
     }
 
-    pending.modelIds.push(event.modelId);
+    pending.events.push({ modelId: event.modelId, ownerId: event.ownerId });
 
     if (pending.draining) {
       // The delivery in progress takes it with the next batch.
@@ -766,8 +788,8 @@ export default abstract class Realtime {
       // The events queued in the same turn as this one go with it.
       await Promise.resolve();
 
-      while (pending.modelIds.length > 0) {
-        const modelIds: Array<string> = pending.modelIds.splice(
+      while (pending.events.length > 0) {
+        const events: Array<PendingModelEvent> = pending.events.splice(
           0,
           this.MAX_EVENTS_PER_DELIVERY,
         );
@@ -778,7 +800,7 @@ export default abstract class Realtime {
             tableName: pending.tableName,
             eventType: pending.eventType,
             access: pending.access,
-            modelIds: modelIds,
+            events: events,
           });
         } catch (err) {
           logger.error(err, { projectId: pending.tenantId } as LogAttributes);
@@ -804,10 +826,25 @@ export default abstract class Realtime {
     tableName: string;
     eventType: ModelEventType;
     access: RealtimeReadAccess;
-    modelIds: Array<string>;
+    events: Array<PendingModelEvent>;
   }): Promise<void> {
-    if (!this.socketServer || batch.modelIds.length === 0) {
+    if (!this.socketServer || batch.events.length === 0) {
       return;
+    }
+
+    const modelIds: Array<string> = batch.events.map(
+      (event: PendingModelEvent): string => {
+        return event.modelId;
+      },
+    );
+
+    // The resource of each record, where its writer named one.
+    const ownerIds: Map<string, string> = new Map<string, string>();
+
+    for (const event of batch.events) {
+      if (event.ownerId) {
+        ownerIds.set(normalizeRealtimeId(event.modelId), event.ownerId);
+      }
     }
 
     const roomId: string = RealtimeUtil.getRoomId(
@@ -818,7 +855,7 @@ export default abstract class Realtime {
 
     const recordRoomIds: Map<string, string> = new Map<string, string>();
 
-    for (const modelId of batch.modelIds) {
+    for (const modelId of modelIds) {
       recordRoomIds.set(
         modelId,
         RealtimeUtil.getRoomId(
@@ -835,7 +872,35 @@ export default abstract class Realtime {
       ...Array.from(recordRoomIds.values()),
     ]);
 
-    if (listening.length === 0) {
+    // The sockets of each person listening, by RealtimeReaders.getKey.
+    const listeners: Map<
+      string,
+      { identity: RealtimeReaderIdentity; sockets: Array<ListeningSocket> }
+    > = new Map<
+      string,
+      { identity: RealtimeReaderIdentity; sockets: Array<ListeningSocket> }
+    >();
+
+    for (const socket of listening) {
+      const identity: RealtimeReaderIdentity | null =
+        this.getReaderOfSocket(socket);
+
+      // A socket that never said who it is hears nothing.
+      if (!identity) {
+        continue;
+      }
+
+      const key: string = RealtimeReaders.getKey(identity, batch.tenantId);
+      const listener: {
+        identity: RealtimeReaderIdentity;
+        sockets: Array<ListeningSocket>;
+      } = listeners.get(key) || { identity: identity, sockets: [] };
+
+      listener.sockets.push(socket);
+      listeners.set(key, listener);
+    }
+
+    if (listeners.size === 0) {
       return;
     }
 
@@ -845,56 +910,32 @@ export default abstract class Realtime {
     > = await RealtimeAudience.getReadableIds({
       tenantId: batch.tenantId,
       access: batch.access,
-      readers: this.getReadersOfSockets(listening),
-      modelIds: batch.modelIds,
+      readers: Array.from(listeners.values()).map(
+        (listener: {
+          identity: RealtimeReaderIdentity;
+          sockets: Array<ListeningSocket>;
+        }): RealtimeReaderIdentity => {
+          return listener.identity;
+        },
+      ),
+      modelIds: modelIds,
+      ownerIds: ownerIds,
+      deadlineMs: Date.now() + this.DELIVERY_DECISION_TIMEOUT_IN_MS,
     });
 
-    // The sockets of each person who may read anything of the batch.
-    const socketsOfReaders: Array<{
-      readable: Set<string>;
-      sockets: Array<ListeningSocket>;
-    }> = [];
-
-    const socketsByReader: Map<string, Array<ListeningSocket>> = new Map<
-      string,
-      Array<ListeningSocket>
-    >();
-
-    for (const socket of listening) {
-      const identity: RealtimeReaderIdentity | null =
-        this.getReaderOfSocket(socket);
-
-      if (!identity) {
-        continue;
-      }
-
-      const key: string = RealtimeReaders.getKey(identity, batch.tenantId);
-      const sockets: Array<ListeningSocket> = socketsByReader.get(key) || [];
-      sockets.push(socket);
-      socketsByReader.set(key, sockets);
-    }
-
-    for (const [key, sockets] of socketsByReader.entries()) {
-      const readableIds: Set<string> | undefined = readable.get(key);
-
-      if (readableIds && readableIds.size > 0) {
-        socketsOfReaders.push({ readable: readableIds, sockets: sockets });
-      }
-    }
-
     // Each event, as often as it happened, to exactly those sockets.
-    for (const modelId of batch.modelIds) {
+    for (const modelId of modelIds) {
       const recordRoomId: string = recordRoomIds.get(modelId)!;
       const normalizedId: string = normalizeRealtimeId(modelId);
       const inRoom: Array<string> = [];
       const inRecordRoom: Array<string> = [];
 
-      for (const reader of socketsOfReaders) {
-        if (!reader.readable.has(normalizedId)) {
+      for (const [key, listener] of listeners) {
+        if (!readable.get(key)?.has(normalizedId)) {
           continue;
         }
 
-        for (const socket of reader.sockets) {
+        for (const socket of listener.sockets) {
           if (socket.rooms.has(roomId)) {
             inRoom.push(socket.id);
           }

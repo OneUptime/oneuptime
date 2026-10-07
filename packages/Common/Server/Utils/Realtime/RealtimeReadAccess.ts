@@ -46,11 +46,14 @@ export interface RealtimeReadAccess {
   readsEveryRecord(reader: RealtimeReader): Promise<boolean>;
   /*
    * Of `modelIds` - records of the reader's project - the ones the reader
-   * may read now.
+   * may read now. `ownerIds`, when given, names the resource each record
+   * belongs to (by normalizeRealtimeId), as the writer queued it with the
+   * event: telemetry rows, which are not looked up by id.
    */
   getReadableIds(
     reader: RealtimeReader,
     modelIds: Array<ObjectID>,
+    ownerIds?: ReadonlyMap<string, string> | undefined,
   ): Promise<Array<string>>;
 }
 
@@ -87,11 +90,12 @@ export function readableByEither(
     getReadableIds: async (
       reader: RealtimeReader,
       modelIds: Array<ObjectID>,
+      ownerIds?: ReadonlyMap<string, string> | undefined,
     ): Promise<Array<string>> => {
       const [readableNow, readableBefore]: [Array<string>, Array<string>] =
         await Promise.all([
-          now.getReadableIds(reader, modelIds),
-          before.getReadableIds(reader, modelIds),
+          now.getReadableIds(reader, modelIds, ownerIds),
+          before.getReadableIds(reader, modelIds, ownerIds),
         ]);
 
       return Array.from(

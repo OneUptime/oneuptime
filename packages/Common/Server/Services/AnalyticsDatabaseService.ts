@@ -2496,12 +2496,6 @@ export default class AnalyticsDatabaseService<
         if (Realtime.isInitialized()) {
           const promises: Array<Promise<void>> = [];
 
-          /*
-           * Who may hear about these rows: see getRealtimeReadAccess, which
-           * answers for them from the resource each belongs to.
-           */
-          this.rememberRealtimeRows(items);
-
           for (const item of items) {
             const tenantId: ObjectID | null = item.getTenantColumnValue();
 
@@ -2509,6 +2503,10 @@ export default class AnalyticsDatabaseService<
               continue;
             }
 
+            /*
+             * Who may hear about the row: see getRealtimeReadAccess, which
+             * answers from the resource the row belongs to, sent with it.
+             */
             promises.push(
               Realtime.emitModelEvent({
                 modelId: item.id!,
@@ -2516,6 +2514,7 @@ export default class AnalyticsDatabaseService<
                 eventType: ModelEventType.Create,
                 modelType: this.modelType,
                 access: this.getRealtimeReadAccess(),
+                ownerId: this.getRealtimeOwnerId(item),
               }),
             );
           }
@@ -2664,76 +2663,24 @@ export default class AnalyticsDatabaseService<
     return this.model;
   }
 
-  /*
-   * How many rows waiting for their live update this service keeps the
-   * resource of (rememberRealtimeRows), and for how long: past either a row
-   * is let go (when the next rows are noted), and one no longer kept is
-   * read as one with no resource - only people whose scope reaches every
-   * resource hear about it.
-   */
-  public static readonly REALTIME_ROWS_KEPT: number = 20_000;
-  public static readonly REALTIME_ROW_TTL_IN_MS: number = 2 * 60 * 1000;
-
-  // The resource of each row whose live update may still be on its way.
-  private realtimeRowResources: Map<
-    string,
-    { resourceId: string; expiresAtMs: number }
-  > = new Map<string, { resourceId: string; expiresAtMs: number }>();
-
   private realtimeReadAccess: RealtimeReadAccess | null = null;
 
   /*
-   * Notes the resource each of these rows belongs to (@OwnedThrough), for
-   * getRealtimeReadAccess to answer for them once their events are
-   * delivered. Bounded: see REALTIME_ROWS_KEPT and REALTIME_ROW_TTL_IN_MS.
+   * The resource a row belongs to (@OwnedThrough), sent with its live
+   * update for getRealtimeReadAccess to answer by. Undefined for a row that
+   * names none, or a model with no owning resource.
    */
-  public rememberRealtimeRows(items: Array<TBaseModel>): void {
+  public getRealtimeOwnerId(item: TBaseModel): string | undefined {
     const ownedThrough: OwnedThroughMetadata | undefined =
       this.getOwnedThrough();
 
-    // A model with no owning resource is read with the table: nothing to note.
     if (!ownedThrough) {
-      return;
+      return undefined;
     }
 
-    const now: number = Date.now();
+    const resourceId: unknown = item.getColumnValue(ownedThrough.fkColumn);
 
-    // Oldest first: the rows past their time go.
-    for (const [rowId, row] of this.realtimeRowResources) {
-      if (row.expiresAtMs > now) {
-        break;
-      }
-
-      this.realtimeRowResources.delete(rowId);
-    }
-
-    for (const item of items) {
-      if (!item.id) {
-        continue;
-      }
-
-      const rowId: string = normalizeRealtimeId(item.id);
-      const resourceId: unknown = item.getColumnValue(ownedThrough.fkColumn);
-
-      this.realtimeRowResources.delete(rowId);
-      this.realtimeRowResources.set(rowId, {
-        resourceId: resourceId ? String(resourceId) : "",
-        expiresAtMs: now + AnalyticsDatabaseService.REALTIME_ROW_TTL_IN_MS,
-      });
-
-      if (
-        this.realtimeRowResources.size >
-        AnalyticsDatabaseService.REALTIME_ROWS_KEPT
-      ) {
-        const oldest: string | undefined = this.realtimeRowResources
-          .keys()
-          .next().value;
-
-        if (oldest !== undefined) {
-          this.realtimeRowResources.delete(oldest);
-        }
-      }
-    }
+    return resourceId ? String(resourceId) : undefined;
   }
 
   /*
@@ -2743,11 +2690,11 @@ export default class AnalyticsDatabaseService<
    * itself (ModelPermission.checkReadPermission - the table, a block with
    * no labels, the plan), then the caller's read scope (getReadScope -
    * their label and Owned grants, less what a block with labels takes
-   * away), against the resource each row belongs to (@OwnedThrough, noted
-   * by rememberRealtimeRows when the rows were written). Both are worked
-   * out once per reader and kept with them (RealtimeReader.remember), so
-   * the answer needs no read of its own. One access per service, so the
-   * events of every insert into the table merge into one delivery.
+   * away), against the resource each row belongs to (@OwnedThrough, sent
+   * with the row's event: getRealtimeOwnerId). Both are worked out once
+   * per reader and kept with them (RealtimeReader.remember), so the answer
+   * needs no read of its own. One access per service, so the events of
+   * every insert into the table merge into one delivery.
    *
    * A service that narrows its reads further on its own (onBeforeFind, or a
    * findBy of its own) is not modelled here, so nobody hears about its rows
@@ -2788,6 +2735,7 @@ export default class AnalyticsDatabaseService<
       getReadableIds: async (
         reader: RealtimeReader,
         modelIds: Array<ObjectID>,
+        ownerIds?: ReadonlyMap<string, string> | undefined,
       ): Promise<Array<string>> => {
         if (narrowsReadsOnItsOwn) {
           return [];
@@ -2806,13 +2754,13 @@ export default class AnalyticsDatabaseService<
           .filter((modelId: string): boolean => {
             /*
              * A row of a model with no owning resource is read with the
-             * table, and one whose resource is empty (or no longer noted)
-             * matches only a scope that reaches every resource - as the
-             * read's own condition on the resource column does.
+             * table, and one whose resource is empty (or not sent) matches
+             * only a scope that reaches every resource - as the read's own
+             * condition on the resource column does.
              */
             return TelemetryReadScopeUtil.isReadable(
               scope,
-              this.realtimeRowResources.get(modelId)?.resourceId || "",
+              ownerIds?.get(modelId) || "",
             );
           });
       },

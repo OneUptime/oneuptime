@@ -231,6 +231,59 @@ describe("RealtimeReaders", () => {
     });
   });
 
+  describe("each person's entries are indexed, so forgetting them reads only theirs", () => {
+    test("the index follows entries as they come and go: expiry, the cap, a failed lookup, forgetting", async () => {
+      const clock: jest.SpyInstance = jest.spyOn(Date, "now");
+      clock.mockReturnValue(1_000_000);
+
+      await RealtimeReaders.getReader(person, PROJECT);
+      await RealtimeReaders.getReader(person, OTHER_PROJECT);
+      await RealtimeReaders.getReader(
+        { userId: OTHER_USER, isMasterAdmin: false },
+        PROJECT,
+      );
+
+      expect(RealtimeReaders.size()).toBe(3);
+      expect(RealtimeReaders.indexedPeople()).toBe(2);
+
+      // Forgetting one project keeps the person indexed for the other.
+      RealtimeReaders.forgetUser(USER, PROJECT);
+      expect(RealtimeReaders.size()).toBe(2);
+      expect(RealtimeReaders.indexedPeople()).toBe(2);
+
+      // An expired entry built again stays indexed once.
+      clock.mockReturnValue(1_000_000 + RealtimeReaders.ENTRY_TTL_IN_MS + 1);
+      await RealtimeReaders.getReader(person, OTHER_PROJECT);
+      expect(RealtimeReaders.size()).toBe(2);
+
+      RealtimeReaders.forgetUser(USER);
+      expect(RealtimeReaders.size()).toBe(1);
+      expect(RealtimeReaders.indexedPeople()).toBe(1);
+
+      // A lookup that fails leaves nothing behind in the index.
+      (
+        RealtimeReaders.buildProps as unknown as jest.Mock
+      ).mockRejectedValueOnce(new Error("The database is not answering"));
+      await expect(
+        RealtimeReaders.getReader(person, PROJECT),
+      ).rejects.toThrow();
+      await Promise.resolve();
+      expect(RealtimeReaders.indexedPeople()).toBe(1);
+
+      RealtimeReaders.forgetUser(OTHER_USER);
+      expect(RealtimeReaders.size()).toBe(0);
+      expect(RealtimeReaders.indexedPeople()).toBe(0);
+    });
+
+    test("forgetting someone with nothing held changes nothing", async () => {
+      await RealtimeReaders.getReader(person, PROJECT);
+
+      RealtimeReaders.forgetUser(OTHER_USER);
+
+      expect(RealtimeReaders.size()).toBe(1);
+    });
+  });
+
   describe("forgetting a person when their permissions change", () => {
     test("in one project: that entry is built again, the others are kept", async () => {
       await RealtimeReaders.getReader(person, PROJECT);

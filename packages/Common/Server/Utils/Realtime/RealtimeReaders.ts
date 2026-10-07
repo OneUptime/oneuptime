@@ -66,6 +66,12 @@ export default class RealtimeReaders {
     ReaderEntry
   >();
 
+  // The keys of each person's entries, so forgetting them reads only theirs.
+  private static keysByUser: Map<string, Set<string>> = new Map<
+    string,
+    Set<string>
+  >();
+
   // The person in the project, as entries and audiences are keyed.
   public static getKey(
     identity: RealtimeReaderIdentity,
@@ -100,7 +106,7 @@ export default class RealtimeReaders {
     }
 
     if (cached) {
-      RealtimeReaders.entries.delete(key);
+      RealtimeReaders.deleteEntry(key);
     }
 
     const pending: Promise<RealtimeReader | null> =
@@ -121,7 +127,7 @@ export default class RealtimeReaders {
         .next().value;
 
       if (oldestKey !== undefined) {
-        RealtimeReaders.entries.delete(oldestKey);
+        RealtimeReaders.deleteEntry(oldestKey);
       }
     }
 
@@ -132,12 +138,12 @@ export default class RealtimeReaders {
       reader: pending,
     };
 
-    RealtimeReaders.entries.set(key, entry);
+    RealtimeReaders.setEntry(key, entry);
 
     // A failed lookup is not kept: the next event asks again.
     pending.catch((): void => {
       if (RealtimeReaders.entries.get(key) === entry) {
-        RealtimeReaders.entries.delete(key);
+        RealtimeReaders.deleteEntry(key);
       }
     });
 
@@ -158,22 +164,56 @@ export default class RealtimeReaders {
       ? projectId.toString().toLowerCase()
       : undefined;
 
-    for (const [key, entry] of Array.from(RealtimeReaders.entries.entries())) {
-      if (entry.userId !== user) {
+    for (const key of Array.from(RealtimeReaders.keysByUser.get(user) || [])) {
+      const entry: ReaderEntry | undefined = RealtimeReaders.entries.get(key);
+
+      if (entry && project && entry.projectId !== project) {
         continue;
       }
 
-      if (project && entry.projectId !== project) {
-        continue;
-      }
-
-      RealtimeReaders.entries.delete(key);
+      RealtimeReaders.deleteEntry(key);
     }
   }
 
   // Forgets everyone. For tests.
   public static clear(): void {
     RealtimeReaders.entries.clear();
+    RealtimeReaders.keysByUser.clear();
+  }
+
+  private static setEntry(key: string, entry: ReaderEntry): void {
+    RealtimeReaders.entries.set(key, entry);
+
+    const keys: Set<string> =
+      RealtimeReaders.keysByUser.get(entry.userId) || new Set<string>();
+
+    keys.add(key);
+    RealtimeReaders.keysByUser.set(entry.userId, keys);
+  }
+
+  private static deleteEntry(key: string): void {
+    const entry: ReaderEntry | undefined = RealtimeReaders.entries.get(key);
+
+    RealtimeReaders.entries.delete(key);
+
+    if (!entry) {
+      return;
+    }
+
+    const keys: Set<string> | undefined = RealtimeReaders.keysByUser.get(
+      entry.userId,
+    );
+
+    keys?.delete(key);
+
+    if (keys && keys.size === 0) {
+      RealtimeReaders.keysByUser.delete(entry.userId);
+    }
+  }
+
+  // People whose entries are indexed right now. For tests.
+  public static indexedPeople(): number {
+    return RealtimeReaders.keysByUser.size;
   }
 
   // People held right now. For tests.

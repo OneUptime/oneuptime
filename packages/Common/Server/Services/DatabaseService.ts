@@ -2567,9 +2567,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   /*
    * The query a read by `props` would run, before the caller's own
-   * conditions: the service's read hooks, then the permission check, as
-   * findBy applies them. Null when it cannot be worked out here - see
-   * readsEveryRecordInProject.
+   * conditions: what findBy narrows it to (narrowRead - the read's own
+   * steps, not a copy of them). Null when it cannot be worked out here -
+   * see readsEveryRecordInProject.
    */
   private async getNarrowedReadQuery(
     props: DatabaseCommonInteractionProps,
@@ -2585,33 +2585,20 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     try {
-      const checkedProps: DatabaseCommonInteractionProps =
-        await this.checkCallerBeforeHooks(props, DatabaseRequestType.Read);
-
-      const findBy: FindBy<TBaseModel> = {
+      const narrowed: { findBy: FindBy<TBaseModel> } = await this.narrowRead({
         query: {},
         select: {
           _id: true,
         } as Select<TBaseModel>,
         skip: 0,
         limit: 1,
-        props: checkedProps,
-      };
-
-      const onFind: OnFind<TBaseModel> = checkedProps.ignoreHooks
-        ? { findBy, carryForward: null }
-        : await this.onBeforeFind(findBy);
-
-      const result: CheckReadPermissionType<TBaseModel> =
-        await ModelPermission.checkReadQueryPermission(
-          this.modelType,
-          this.getRuleCriteriaEffectiveEnabledQuery(onFind.findBy.query),
-          onFind.findBy.select || null,
-          onFind.findBy.props,
-        );
+        props: props,
+      });
 
       return (
-        (result.query as Query<TBaseModel> | Array<Query<TBaseModel>>) || null
+        (narrowed.findBy.query as
+          | Query<TBaseModel>
+          | Array<Query<TBaseModel>>) || null
       );
     } catch (err) {
       logger.debug(err, {
@@ -2827,13 +2814,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    */
   private async getRealtimeAccessBeforeUpdate(
     items: Array<TBaseModel>,
-    dataKeys: Array<string>,
+    data: PartialEntity<TBaseModel>,
     props: DatabaseCommonInteractionProps,
   ): Promise<Map<string, RealtimeReadAccess>> {
     const accessByProject: Map<string, RealtimeReadAccess> = new Map<
       string,
       RealtimeReadAccess
     >();
+
+    const dataKeys: Array<string> = Object.keys(data);
 
     if (
       items.length === 0 ||
@@ -2847,10 +2836,24 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     const now: RealtimeReadAccess = this.getRealtimeReadAccess();
 
     try {
+      // A row the write leaves as it is sends no update event: nobody asked.
+      const changing: Array<TBaseModel> = items.filter(
+        (item: TBaseModel): boolean => {
+          return !this.hasSameValues({
+            item: item,
+            updatedItem: { ...data, _id: item._id },
+          });
+        },
+      );
+
+      if (changing.length === 0) {
+        return accessByProject;
+      }
+
       const columns: Array<string> = this.getColumnsWrittenBy(dataKeys);
 
       await Promise.all(
-        Array.from(this.getRealtimeIdsByProject(items, props).entries()).map(
+        Array.from(this.getRealtimeIdsByProject(changing, props).entries()).map(
           async ([tenantId, modelIds]: [string, Array<ObjectID>]) => {
             const before: RealtimeReadAccess =
               await Realtime.snapshotReadAccess({
@@ -4798,6 +4801,75 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return await this._findBy(findBy);
   }
 
+  /*
+   * What findBy narrows a read to before it queries: the caller's check,
+   * the service's read hooks, the rule criteria and the permission check,
+   * in that order. _findBy queries with it, and readsEveryRecordInProject
+   * and getColumnsNarrowingReadOf look at the conditions it adds - one
+   * place, so a record's live updates follow exactly the read that finds
+   * it.
+   */
+  private async narrowRead(findBy: FindBy<TBaseModel>): Promise<{
+    findBy: FindBy<TBaseModel>;
+    carryForward: any;
+    relationSelect: RelationSelect<TBaseModel> | null;
+    fileReader: RelatedFileReader | null;
+  }> {
+    findBy.props = await this.checkCallerBeforeHooks(
+      findBy.props,
+      DatabaseRequestType.Read,
+    );
+
+    // Who is asking, as they asked: whose files they may see.
+    const fileReader: RelatedFileReader | null = RelatedFileAccess.getReader(
+      findBy.props,
+    );
+
+    if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
+      findBy.sort = {
+        createdAt: SortOrder.Descending,
+      };
+    }
+
+    const onFind: OnFind<TBaseModel> = findBy.props.ignoreHooks
+      ? { findBy, carryForward: [] }
+      : await this.onBeforeFind(findBy);
+    const onBeforeFind: FindBy<TBaseModel> = { ...onFind.findBy };
+
+    if (!onBeforeFind.select || Object.keys(onBeforeFind.select).length === 0) {
+      onBeforeFind.select = {} as any;
+    }
+
+    if (!(onBeforeFind.select as any)["_id"]) {
+      (onBeforeFind.select as any)["_id"] = true;
+    }
+
+    onBeforeFind.query = this.getRuleCriteriaEffectiveEnabledQuery(
+      onBeforeFind.query,
+    );
+
+    const result: {
+      query: Query<TBaseModel>;
+      select: Select<TBaseModel> | null;
+      relationSelect: RelationSelect<TBaseModel> | null;
+    } = await ModelPermission.checkReadQueryPermission(
+      this.modelType,
+      onBeforeFind.query,
+      onBeforeFind.select || null,
+      onBeforeFind.props,
+    );
+
+    onBeforeFind.query = result.query;
+    onBeforeFind.select = result.select || undefined;
+
+    return {
+      findBy: onBeforeFind,
+      carryForward: onFind.carryForward,
+      relationSelect: result.relationSelect,
+      fileReader: fileReader,
+    };
+  }
+
   private async _findBy(
     findBy: FindBy<TBaseModel>,
     withDeleted?: boolean | undefined,
@@ -4805,56 +4877,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     try {
       this.setTelemetryContextFromProps(findBy.props);
 
-      findBy.props = await this.checkCallerBeforeHooks(
-        findBy.props,
-        DatabaseRequestType.Read,
-      );
-
-      // Who is asking, as they asked: whose files they may see.
-      const fileReader: RelatedFileReader | null = RelatedFileAccess.getReader(
-        findBy.props,
-      );
-
-      if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
-        findBy.sort = {
-          createdAt: SortOrder.Descending,
-        };
-      }
-
-      const onFind: OnFind<TBaseModel> = findBy.props.ignoreHooks
-        ? { findBy, carryForward: [] }
-        : await this.onBeforeFind(findBy);
-      const onBeforeFind: FindBy<TBaseModel> = { ...onFind.findBy };
-      const carryForward: any = onFind.carryForward;
-
-      if (
-        !onBeforeFind.select ||
-        Object.keys(onBeforeFind.select).length === 0
-      ) {
-        onBeforeFind.select = {} as any;
-      }
-
-      if (!(onBeforeFind.select as any)["_id"]) {
-        (onBeforeFind.select as any)["_id"] = true;
-      }
-
-      onBeforeFind.query = this.getRuleCriteriaEffectiveEnabledQuery(
-        onBeforeFind.query,
-      );
-
-      const result: {
-        query: Query<TBaseModel>;
-        select: Select<TBaseModel> | null;
+      const narrowed: {
+        findBy: FindBy<TBaseModel>;
+        carryForward: any;
         relationSelect: RelationSelect<TBaseModel> | null;
-      } = await ModelPermission.checkReadQueryPermission(
-        this.modelType,
-        onBeforeFind.query,
-        onBeforeFind.select || null,
-        onBeforeFind.props,
-      );
+        fileReader: RelatedFileReader | null;
+      } = await this.narrowRead(findBy);
 
-      onBeforeFind.query = result.query;
-      onBeforeFind.select = result.select || undefined;
+      const onBeforeFind: FindBy<TBaseModel> = narrowed.findBy;
+      const carryForward: any = narrowed.carryForward;
+      const fileReader: RelatedFileReader | null = narrowed.fileReader;
+      const result: { relationSelect: RelationSelect<TBaseModel> | null } = {
+        relationSelect: narrowed.relationSelect,
+      };
 
       const mapEffectiveEnabled: boolean = Boolean(
         (onBeforeFind.select as Record<string, unknown> | undefined)?.[
@@ -5490,11 +5525,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
        * about the update too. See getRealtimeAccessBeforeUpdate.
        */
       const realtimeUpdateAccess: Map<string, RealtimeReadAccess> =
-        await this.getRealtimeAccessBeforeUpdate(
-          items,
-          dataKeys,
-          updateBy.props,
-        );
+        await this.getRealtimeAccessBeforeUpdate(items, data, updateBy.props);
 
       for (const item of items) {
         /*

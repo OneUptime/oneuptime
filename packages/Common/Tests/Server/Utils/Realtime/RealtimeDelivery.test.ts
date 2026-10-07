@@ -1,6 +1,7 @@
 import IO from "../../../../Server/Infrastructure/SocketIO";
 import Realtime from "../../../../Server/Utils/Realtime";
 import RealtimeReaders from "../../../../Server/Utils/Realtime/RealtimeReaders";
+import RealtimeAudience from "../../../../Server/Utils/Realtime/RealtimeAudience";
 import {
   NO_READER_ACCESS,
   RealtimeReadAccess,
@@ -296,6 +297,84 @@ describe("Realtime: a record's live update reaches only people who may read it",
   afterEach(async () => {
     await Realtime.waitForPendingDeliveries();
     jest.restoreAllMocks();
+  });
+
+  test("the resource an event's writer names travels with the event to the access", async () => {
+    const asked: Array<Map<string, string>> = [];
+    const access: RealtimeReadAccess = {
+      readsEveryRecord: async (): Promise<boolean> => {
+        return false;
+      },
+      getReadableIds: async (
+        _reader: RealtimeReader,
+        modelIds: Array<ObjectID>,
+        ownerIds?: ReadonlyMap<string, string>,
+      ): Promise<Array<string>> => {
+        asked.push(new Map(ownerIds || []));
+        return modelIds.map((id: ObjectID): string => {
+          return id.toString();
+        });
+      },
+    };
+
+    server.addSocket({
+      rooms: [roomOf("Incident", ModelEventType.Create)],
+      userId: LABELS_READER,
+    });
+
+    // Queued together, so they are delivered together.
+    await Promise.all([
+      Realtime.emitModelEvent({
+        tenantId: TENANT_ID,
+        eventType: ModelEventType.Create,
+        modelId: new ObjectID(RECORD_A),
+        modelType: Incident,
+        access: access,
+        ownerId: "resource-of-a",
+      }),
+      Realtime.emitModelEvent({
+        tenantId: TENANT_ID,
+        eventType: ModelEventType.Create,
+        modelId: new ObjectID(RECORD_B),
+        modelType: Incident,
+        access: access,
+      }),
+    ]);
+    await Realtime.waitForPendingDeliveries();
+
+    expect(asked).toEqual([new Map([[RECORD_A, "resource-of-a"]])]);
+  });
+
+  test("a delivery works its audience out within DELIVERY_DECISION_TIMEOUT_IN_MS", async () => {
+    const access: FakeReadAccess = new FakeReadAccess();
+    access.readableByUser.set(LABELS_READER, new Set([RECORD_A]));
+
+    server.addSocket({
+      rooms: [roomOf("Incident", ModelEventType.Update)],
+      userId: LABELS_READER,
+    });
+
+    const audience: jest.SpyInstance = jest.spyOn(
+      RealtimeAudience,
+      "getReadableIds",
+    );
+    const startedAt: number = Date.now();
+
+    await emit(access, RECORD_A);
+    await Realtime.waitForPendingDeliveries();
+
+    expect(audience).toHaveBeenCalledTimes(1);
+
+    const deadlineMs: number = (
+      audience.mock.calls[0]![0] as { deadlineMs: number }
+    ).deadlineMs;
+
+    expect(deadlineMs).toBeGreaterThanOrEqual(
+      startedAt + Realtime.DELIVERY_DECISION_TIMEOUT_IN_MS,
+    );
+    expect(deadlineMs).toBeLessThanOrEqual(
+      Date.now() + Realtime.DELIVERY_DECISION_TIMEOUT_IN_MS,
+    );
   });
 
   test("a reader of every record hears about every event, as before, without a read per record", async () => {

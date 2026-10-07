@@ -972,6 +972,25 @@ describe("updating records: who could read them before the write hears about it 
     },
   );
 
+  test("a write that leaves the rows as they are decides nothing before it", async () => {
+    jest.spyOn(Realtime, "isInitialized").mockReturnValue(true);
+
+    await update({ isPrivate: true });
+    expect(snapshot).toHaveBeenCalledTimes(1);
+
+    snapshot.mockClear();
+    order.length = 0;
+
+    // The same again: the row is private already, and sends no event.
+    await update({ isPrivate: true });
+
+    expect(snapshot).not.toHaveBeenCalled();
+    expect(order).toEqual(["write"]);
+    expect(
+      (service.onTriggerRealtime as unknown as jest.SpyInstance).mock.calls,
+    ).toHaveLength(1);
+  });
+
   test("Realtime not running here, or a model that sends no update events: nothing is decided", async () => {
     jest.spyOn(Realtime, "isInitialized").mockReturnValue(false);
 

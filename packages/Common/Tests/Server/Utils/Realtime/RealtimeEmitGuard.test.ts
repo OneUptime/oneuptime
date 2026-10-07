@@ -245,16 +245,15 @@ describe("every live update goes through the one check", () => {
       path.join(COMMON_SERVER, "Services/AnalyticsDatabaseService.ts"),
       "utf8",
     );
-    const remembered: number = analytics.indexOf(
-      "this.rememberRealtimeRows(items);",
+    const emit: RegExpMatchArray | null = analytics.match(
+      /Realtime\.emitModelEvent\(\{([\s\S]*?)\}\)/,
     );
-    const emitted: number = analytics.indexOf("Realtime.emitModelEvent({");
 
-    // The rows' resources are noted before their events are queued...
-    expect(remembered).toBeGreaterThan(0);
-    expect(emitted).toBeGreaterThan(remembered);
-    // ...with the one access of the service, so every insert merges.
-    expect(analytics).toMatch(/access: this\.getRealtimeReadAccess\(\),/);
+    expect(emit).not.toBeNull();
+    // The one access of the service, so every insert's events merge...
+    expect(emit![1]).toMatch(/access: this\.getRealtimeReadAccess\(\),/);
+    // ...and the resource each row belongs to, sent with its event.
+    expect(emit![1]).toMatch(/ownerId: this\.getRealtimeOwnerId\(item\),/);
   });
 
   test("an update event carries who could read the rows before the write, when it may change that", () => {
