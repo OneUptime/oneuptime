@@ -181,6 +181,10 @@ First User: {{responseBody.users[0].name}}
 
 Hvis en sti ikke eksisterer, blir plassholderen stående i utdataene nøyaktig slik den ble skrevet — `{{responseBody.error.id}}` vises ordrett, krøllparenteser og alt, i hendelsestittelen. Bare `{{#each}}`-blokker over en manglende sti fjernes.
 
+### Verdier i beskrivelser og utbedringsnotater
+
+En beskrivelse og utbedringsnotater er Markdown: de vises på hendelsens eller varselets side, i e-post og i Slack- og Microsoft Teams-kanalene dens. Verdiene en mal setter inn der, er det det overvåkede systemet sendte - en svartekst eller en header, en innkommende forespørsel eller e-post, etikettene til en enhet eller en serie - så hver av dem settes inn som tekst. Den leses nøyaktig slik den ble sendt, uansett hvor malen plasserer den, og en lenke, et bilde, en HTML-tagg eller en Slack-omtale som `<!channel>` i den vises som tekst i stedet for å virke. En naken nettadresse i en verdi blir fortsatt en lenke, en som viser hvor den fører. Markdown du selv skriver i malen, vises slik du skrev den.
+
 ## Avansert bruk
 
 ### Tilgang til array-elementer
