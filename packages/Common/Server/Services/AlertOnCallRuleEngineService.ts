@@ -12,10 +12,12 @@ import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
+import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import OnCallRulePolicyScope from "../Utils/Rules/OnCallRulePolicyScope";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
@@ -93,6 +95,18 @@ class AlertOnCallRuleEngineServiceClass {
           }
         }
       }
+
+      // Only the project's own policies are ever paged (see OnCallRulePolicyScope).
+      await OnCallRulePolicyScope.keepPoliciesInProject({
+        projectId: alert.projectId,
+        matchedPolicies: matchedPolicies,
+        matchedRules: matchedRules,
+        ruleKind: "Alert on-call",
+        logAttributes: {
+          projectId: alert.projectId.toString(),
+          alertId: alert.id.toString(),
+        } as LogAttributes,
+      });
 
       if (matchedPolicies.size === 0) {
         return;
@@ -218,10 +232,10 @@ class AlertOnCallRuleEngineServiceClass {
 
       const rulesPart: string =
         ruleNames.length === 1
-          ? `**${ruleNames[0]}**`
+          ? `**${escapeMarkdownValue(ruleNames[0])}**`
           : ruleNames
               .map((n: string) => {
-                return `**${n}**`;
+                return `**${escapeMarkdownValue(n)}**`;
               })
               .join(", ");
 
@@ -229,7 +243,7 @@ class AlertOnCallRuleEngineServiceClass {
         policyNames.length > 0
           ? policyNames
               .map((n: string) => {
-                return `\n- ${n}`;
+                return `\n- ${escapeMarkdownValue(n)}`;
               })
               .join("")
           : "\n- (no named policies)";

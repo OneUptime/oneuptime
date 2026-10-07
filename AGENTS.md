@@ -14,6 +14,8 @@ After generating the migration file, you MUST also register it in `packages/Comm
 
 CI enforces this. The "Postgres Schema Drift" workflow migrates an empty database with every registered migration and then generates a migration against the result; anything it can still generate is drift and fails the job. Run the same check locally with `npm run check-postgres-schema-drift` — it prints the exact statements that are missing.
 
+If the generated migration builds an index (`CREATE INDEX`) or adds a foreign key (`ALTER TABLE ... ADD CONSTRAINT ... FOREIGN KEY`) on a table that already exists, those statements block the table's writers for the whole scan. Move them into a migration of their own with `public transaction: boolean = false;` and pass each one, exactly as generated, to `OnlineDdl.createIndex` / `OnlineDdl.addForeignKey` (`packages/Common/Server/Infrastructure/Postgres/OnlineDdl.ts`), which build it online. The `SchemaMigrationsOnlineDdl` test enforces this for new migrations.
+
 #### Clickhouse
 
 Clickhouse migrations are written manually. Please write the migration code in DataMigrations and follow the same pattern as other migrations.

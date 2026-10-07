@@ -19,6 +19,8 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import ProgressBar, {
   ProgressBarSize,
 } from "Common/UI/Components/ProgressBar/ProgressBar";
+import { PluralTemplate, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -52,6 +54,19 @@ export interface ComponentProps {
   userId: ObjectID | null;
   projectId: ObjectID | null;
 }
+
+/*
+ * Under the progress bar while a step is Blocked. The one step that can be -
+ * a verified method on a channel the project has off - needs a project
+ * owner, a Billing Admin or someone with Manage Billing (the channel
+ * switches' own update permissions), so that is who this names. It once
+ * said "a project admin", who may not turn a channel on.
+ */
+export const BLOCKED_STEPS_NOTE: PluralTemplate = {
+  one: "{{count}} more step needs a project owner, a Billing Admin or someone with Manage Billing, so it is not counted here.",
+  other:
+    "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here.",
+};
 
 interface HeadlinePresentation {
   icon: IconProp;
@@ -125,6 +140,7 @@ const SkeletonRows: FunctionComponent = (): ReactElement => {
 const SetupChecklist: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const state: SetupChecklistState = useSetupChecklist({
     userId: props.userId,
     projectId: props.projectId,
@@ -205,7 +221,7 @@ const SetupChecklist: FunctionComponent<ComponentProps> = (
           </div>
           <div className="min-w-0">
             <div className={`text-sm font-semibold ${headline.titleClassName}`}>
-              {checklist.headline}
+              {translator.translateText(checklist.headline)}
             </div>
             {checklist.headlineConsequence ? (
               <div
@@ -240,9 +256,10 @@ const SetupChecklist: FunctionComponent<ComponentProps> = (
                 data-testid="setup-checklist-blocked-note"
                 className="mt-2 text-xs font-medium text-amber-700"
               >
-                {checklist.blockedCount === 1
-                  ? "1 more step needs a project admin, so it is not counted here."
-                  : `${checklist.blockedCount} more steps need a project admin, so they are not counted here.`}
+                {translator.translatePlural(
+                  BLOCKED_STEPS_NOTE,
+                  checklist.blockedCount,
+                )}
               </div>
             ) : (
               <></>
@@ -260,10 +277,10 @@ const SetupChecklist: FunctionComponent<ComponentProps> = (
                 data-testid={`setup-checklist-section-${section.key}`}
               >
                 <div className="text-sm font-semibold text-gray-900">
-                  {section.title}
+                  {translator.translateText(section.title)}
                 </div>
                 <div className="mb-3 mt-1 text-sm text-gray-500">
-                  {section.description}
+                  {translator.translateText(section.description)}
                 </div>
                 <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                   {section.steps.map((step: SetupStep): ReactElement => {

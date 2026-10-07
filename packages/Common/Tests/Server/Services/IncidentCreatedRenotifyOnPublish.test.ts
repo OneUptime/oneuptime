@@ -116,6 +116,27 @@ function publishUpdate(data: {
   };
 }
 
+/*
+ * The reads this hook makes for the 'created' notification: those of its
+ * columns. Showing the incident is also read once for its postmortem - a
+ * postmortem published while it was hidden is sent when it is shown
+ * (IncidentPostmortemPublication.isShownByUpdate) - which is not this
+ * hook's.
+ */
+function createdNotificationReads(): Array<Record<string, unknown>> {
+  return findByMock.mock.calls
+    .map((call: Array<unknown>): Record<string, unknown> => {
+      return call[0] as Record<string, unknown>;
+    })
+    .filter((findBy: Record<string, unknown>): boolean => {
+      return Boolean(
+        (findBy["select"] as Record<string, unknown> | undefined)?.[
+          "subscriberNotificationStatusOnIncidentCreated"
+        ],
+      );
+    });
+}
+
 async function runHook(
   updateBy: UpdateBy<Incident>,
 ): Promise<Record<string, unknown>> {
@@ -207,9 +228,8 @@ describe("IncidentService.onBeforeUpdate: notify subscribers when a hidden incid
       }),
     );
 
-    expect(findByMock).toHaveBeenCalledTimes(1);
-    const findBy: Record<string, unknown> = findByMock.mock
-      .calls[0]![0] as Record<string, unknown>;
+    expect(createdNotificationReads()).toHaveLength(1);
+    const findBy: Record<string, unknown> = createdNotificationReads()[0]!;
 
     expect(findBy["props"]).toEqual({ isRoot: true });
     expect(findBy["query"]).toEqual({ _id: incidentId.toString() });
@@ -233,8 +253,8 @@ describe("IncidentService.onBeforeUpdate: notify subscribers when a hidden incid
 
     test("when the box is absent", async () => {
       expectNothingQueued(await runHook(publishUpdate({})));
-      // It does not even look at the stored incident.
-      expect(findByMock).not.toHaveBeenCalled();
+      // It does not even look at the stored 'created' notification.
+      expect(createdNotificationReads()).toEqual([]);
     });
 
     test("when the box is unticked", async () => {
@@ -440,12 +460,14 @@ describe("IncidentService.onBeforeUpdate: notify subscribers when a hidden incid
       "Queued by the API",
     );
     /*
-     * The publish check reads nothing for it. The only read is the resend's
-     * own: whether to empty the record of told pages so the API resend
-     * reaches every page, as it always did.
+     * The publish check reads nothing for it. The only read of the 'created'
+     * notification is the resend's own: whether to empty the record of told
+     * pages so the API resend reaches every page, as it always did.
      */
-    for (const call of findByMock.mock.calls) {
-      expect((call[0] as { select: Record<string, unknown> }).select).toEqual({
+    expect(createdNotificationReads()).not.toEqual([]);
+
+    for (const findBy of createdNotificationReads()) {
+      expect(findBy["select"]).toEqual({
         _id: true,
         subscriberNotificationStatusOnIncidentCreated: true,
       });
@@ -467,7 +489,7 @@ describe("IncidentService.onBeforeUpdate: notify subscribers when a hidden incid
     );
   });
 
-  test("a root write turning notify-on-create off wins over the box", async () => {
+  test("a root write turning notify-on-create off wins over the box: nothing is queued", async () => {
     const data: Record<string, unknown> = await runHook(
       publishUpdate({
         miscDataProps: IncidentCreatedRenotify.getMiscDataProps(),
@@ -477,9 +499,14 @@ describe("IncidentService.onBeforeUpdate: notify subscribers when a hidden incid
       }),
     );
 
-    expect(data["subscriberNotificationStatusOnIncidentCreated"]).toBe(
-      StatusPageSubscriberNotificationStatus.Skipped,
-    );
+    /*
+     * The box is read against the flag as the update leaves it, and the
+     * flag itself never writes the 'created' status: it stays as it is.
+     */
+    expect(
+      data["subscriberNotificationStatusOnIncidentCreated"],
+    ).toBeUndefined();
+    expect(data["subscriberNotificationStatusMessage"]).toBeUndefined();
   });
 
   test("works for a non-root incident member's edit as well", async () => {

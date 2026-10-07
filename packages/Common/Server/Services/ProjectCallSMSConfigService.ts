@@ -4,7 +4,6 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import Model from "../../Models/DatabaseModels/ProjectCallSMSConfig";
 import Phone from "../../Types/Phone";
 import CreateBy from "../Types/Database/CreateBy";
-import UpdateBy from "../Types/Database/UpdateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
@@ -17,8 +16,8 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import IncomingCallPolicyPhoneNumberService from "./IncomingCallPolicyPhoneNumberService";
 import IncomingCallPolicyPhoneNumber from "../../Models/DatabaseModels/IncomingCallPolicyPhoneNumber";
 import ModelPermission from "../Types/Database/Permissions/Index";
-import Query from "../Types/Database/Query";
 import PositiveNumber from "../../Types/PositiveNumber";
+import ProjectDefaultRow from "../Utils/Database/ProjectDefaultRow";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -29,18 +28,6 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    /*
-     * This hook can change the project's other configs (only one of them is
-     * the default), so it first makes sure the caller may create a config at
-     * all, as onBeforeDelete does for a delete. DatabaseService asks the same
-     * again before it saves; for a root caller this returns at once.
-     */
-    ModelPermission.checkCreatePermissions(
-      Model,
-      createBy.data,
-      createBy.props,
-    );
-
     const projectId: ObjectID | undefined = createBy.data.projectId;
 
     /*
@@ -61,24 +48,26 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    if (createBy.data.isProjectDefault && projectId) {
-      await this.updateBy({
-        query: {
-          projectId: projectId,
-          isProjectDefault: true,
-        },
-        data: {
-          isProjectDefault: false,
-        },
-        props: {
-          isRoot: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-      });
-    }
-
     return { createBy, carryForward: [] };
+  }
+
+  /*
+   * A config saved as the project default takes the default from the
+   * project's other configs - only now that it exists, so a create that is
+   * refused or fails leaves the project's default where it was.
+   */
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    _onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    await ProjectDefaultRow.afterCreate({
+      service: this,
+      defaultColumn: "isProjectDefault",
+      createdItem: createdItem,
+    });
+
+    return createdItem;
   }
 
   /*
@@ -105,71 +94,24 @@ export class Service extends DatabaseService<Model> {
     return configCount.toNumber() === 0;
   }
 
+  /*
+   * Making a config the default takes it from the others in its project, once
+   * the update has made it (so after every permission check), and only for
+   * the configs the update actually wrote.
+   */
   @CaptureSpan()
-  protected override async onBeforeUpdate(
-    updateBy: UpdateBy<Model>,
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
-    if (updateBy.data.isProjectDefault === true) {
-      /*
-       * Making one config the default takes it from the others in its
-       * project, so the rows are looked up through what the caller may
-       * update, before anything else is read or changed. DatabaseService
-       * scopes the update itself the same way afterwards; for a root caller
-       * the query comes back as it is.
-       */
-      const updatableQuery: Query<Model> =
-        await ModelPermission.checkUpdateQueryPermissions(
-          Model,
-          updateBy.query,
-          updateBy.data,
-          updateBy.props,
-        );
+    await ProjectDefaultRow.afterUpdate({
+      service: this,
+      defaultColumn: "isProjectDefault",
+      updatedData: onUpdate.updateBy.data,
+      updatedItemIds: updatedItemIds,
+    });
 
-      const itemsToUpdate: Array<Model> = await this.findBy({
-        query: updatableQuery,
-        select: {
-          _id: true,
-          projectId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-      });
-
-      const projectIds: Set<string> = new Set();
-      const itemIds: Set<string> = new Set();
-      for (const item of itemsToUpdate) {
-        if (item.projectId) {
-          projectIds.add(item.projectId.toString());
-        }
-        if (item._id) {
-          itemIds.add(item._id);
-        }
-      }
-
-      for (const projectIdStr of projectIds) {
-        const projectId: ObjectID = new ObjectID(projectIdStr);
-        await this.updateBy({
-          query: {
-            projectId: projectId,
-            isProjectDefault: true,
-            _id: QueryHelper.notInOrNull(Array.from(itemIds)),
-          },
-          data: {
-            isProjectDefault: false,
-          },
-          props: {
-            isRoot: true,
-          },
-          limit: LIMIT_MAX,
-          skip: 0,
-        });
-      }
-    }
-
-    return { updateBy, carryForward: null };
+    return onUpdate;
   }
 
   @CaptureSpan()

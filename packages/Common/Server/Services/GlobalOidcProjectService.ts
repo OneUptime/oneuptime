@@ -3,6 +3,7 @@ import Model from "../../Models/DatabaseModels/GlobalOidcProject";
 import Team from "../../Models/DatabaseModels/Team";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -150,7 +151,11 @@ export class Service extends DatabaseService<Model> {
     );
 
     if (projectId) {
-      createBy.data.projectId = projectId;
+      RelationIdUtil.stamp(
+        createBy.data as unknown as Record<string, unknown>,
+        ["projectId", "project"],
+        projectId,
+      );
     }
 
     await validateGlobalProviderProjectTeams({
@@ -174,8 +179,12 @@ export class Service extends DatabaseService<Model> {
       | undefined;
 
     if (teams && teams.length > 0) {
-      const explicitProjectId: ObjectID | undefined = updateBy.data
-        .projectId as unknown as ObjectID | undefined;
+      // A project the update names, under either of its names.
+      const explicitProjectId: ObjectID | null = RelationIdUtil.readConsistent(
+        updateBy.data as unknown as Record<string, unknown>,
+        ["projectId", "project"],
+        "Project",
+      );
 
       if (explicitProjectId) {
         await validateGlobalProviderProjectTeams({

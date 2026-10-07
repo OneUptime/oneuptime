@@ -1,3 +1,4 @@
+import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import KubernetesClusterLabelRule from "../../Models/DatabaseModels/KubernetesClusterLabelRule";
@@ -185,11 +186,23 @@ class KubernetesClusterLabelRuleEngineServiceClass
         }),
     );
 
-    const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
-      (id: string) => {
+    /*
+     * Only the project's own labels. The rules' lists are checked when a
+     * rule is saved, but a rule saved before that can still name another
+     * project's label, and the labels are attached here as root.
+     */
+    const newLabelIds: Array<string> = await RuleRecordScope.keepIdsInProject({
+      projectId: kubernetesCluster.projectId,
+      ids: Array.from(labelIdsToAdd).filter((id: string) => {
         return !existingLabelIds.has(id);
-      },
-    );
+      }),
+      modelType: Label,
+      description: "labels of Kubernetes cluster label rules",
+      logAttributes: {
+        projectId: kubernetesCluster.projectId.toString(),
+        kubernetesClusterId: kubernetesCluster.id.toString(),
+      } as LogAttributes,
+    });
     if (newLabelIds.length === 0) {
       return RuleApplicationResultUtil.alreadyApplied();
     }

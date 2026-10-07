@@ -136,7 +136,7 @@ jobs:
             output/playwright/user-flows-ui/test-results
           retention-days: 7
 
-  # Nineteen browser suites that each bundle real Dashboard or Status Page
+  # Twenty-one browser suites that each bundle real Dashboard or Status Page
   # sources with esbuild and serve them against fixture data: no database or
   # Docker stack. They used to run one after another in a single 41-minute
   # job, the longest of every pull request's checks. They are independent -
@@ -178,6 +178,7 @@ jobs:
               test-alerts-ui
               test-pencil-button-ui
               test-navigation-search-ui
+              test-color-picker-ui
           - group: 3
             browsers: chromium firefox
             suites: >-
@@ -189,6 +190,7 @@ jobs:
               test-security-events-empty-states-ui
               test-status-page-search-ui
               test-label-rule-transfer-ui
+              test-diagrams-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -281,6 +283,8 @@ jobs:
             output/playwright/monitor-overview-ui/test-results
             output/playwright/chart-time-zoom-ui/*.png
             output/playwright/chart-time-zoom-ui/test-results
+            output/playwright/color-picker-ui/*.png
+            output/playwright/color-picker-ui/test-results
             output/playwright/security-events-empty-states-ui/*.png
             output/playwright/security-events-empty-states-ui/test-results
             output/playwright/status-page-search/test-results
@@ -298,4 +302,5 @@ jobs:
             output/playwright/topology/*.png
             output/playwright/topology/test-results
             output/playwright/workflow-builder-ui/test-results
+            output/playwright/diagrams-ui/test-results
           retention-days: 7

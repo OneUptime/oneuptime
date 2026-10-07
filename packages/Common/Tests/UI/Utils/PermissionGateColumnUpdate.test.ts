@@ -102,27 +102,43 @@ describe("PermissionGate.checkColumnUpdate", () => {
     );
   });
 
-  test("a monitor's Disable Monitoring column is held to its own list too", () => {
+  test("a monitor's Disable Monitoring switch is open to whoever may edit the monitor", () => {
     /*
-     * The Monitor table's update list has Edit Project Monitor; the
-     * column's has Create Project Monitor instead. The server checks both.
+     * The column's update list is the monitor's own, Edit Monitor included.
+     * It used to list Create Monitor instead, which locked the Monitoring
+     * switch for somebody allowed to edit monitors.
      */
-    permissionsForTest = [Permission.EditProjectMonitor];
+    for (const permission of [
+      Permission.EditProjectMonitor,
+      Permission.MonitorMember,
+      Permission.MonitorAdmin,
+      Permission.ProjectMember,
+    ]) {
+      permissionsForTest = [permission];
 
-    expect(
-      PermissionGate.check(new Monitor(), ModelAction.Update).isAllowed,
-    ).toBe(true);
-    expect(
-      PermissionGate.checkColumnUpdate(new Monitor(), "disableActiveMonitoring")
-        .isAllowed,
-    ).toBe(false);
+      expect([
+        permission,
+        PermissionGate.checkColumnUpdate(
+          new Monitor(),
+          "disableActiveMonitoring",
+        ),
+      ]).toEqual([permission, { isAllowed: true }]);
+    }
+  });
 
-    permissionsForTest = [Permission.MonitorMember];
+  test("Create Monitor alone does not unlock the Disable Monitoring switch", () => {
+    permissionsForTest = [Permission.CreateProjectMonitor];
 
-    expect(
-      PermissionGate.checkColumnUpdate(new Monitor(), "disableActiveMonitoring")
-        .isAllowed,
-    ).toBe(true);
+    const result: PermissionGateResult = PermissionGate.checkColumnUpdate(
+      new Monitor(),
+      "disableActiveMonitoring",
+    );
+
+    expect(result).toEqual(
+      PermissionGate.check(new Monitor(), ModelAction.Update),
+    );
+    expect(result.isAllowed).toBe(false);
+    expect(result.disabledReason).toContain("Edit Monitor.");
   });
 
   test("without the record's permission, it answers what the record's gate answers", () => {
@@ -205,7 +221,7 @@ describe("PermissionGate.getMissingPermissionMessage is unchanged", () => {
         ModelAction.Update,
       ),
     ).toBe(
-      "You do not have permission to update this Project. You need one of these permissions: Project Owner, Project Admin, Manage Billing, Edit Project.",
+      "You do not have permission to update this Project. You need one of these permissions: Project Owner, Project Admin, Billing Admin, Manage Billing, Edit Project.",
     );
   });
 });

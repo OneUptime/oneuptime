@@ -393,6 +393,7 @@ describe("Incoming Email trigger: its address is managed here", () => {
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.EditWorkflow,
+    Permission.WorkflowAdmin,
   ])("%s is offered Reset address", (permission: Permission) => {
     mockPermissions = [permission];
 
@@ -403,7 +404,7 @@ describe("Incoming Email trigger: its address is managed here", () => {
     ).toBeEnabled();
   });
 
-  test("Delete Workflow alone may update a workflow but not its key, so the reset stays locked", () => {
+  test("Delete Workflow alone may not update a workflow, so the reset stays locked", () => {
     mockPermissions = [Permission.DeleteWorkflow];
 
     render(<ComponentSettingsModal {...modalProps()} />);
@@ -421,7 +422,7 @@ describe("Incoming Email trigger: its address is managed here", () => {
     );
 
     expect(screen.getByRole("tooltip")).toHaveTextContent(
-      "You do not have permission to reset this email address. You need one of these permissions: Project Owner, Project Admin, Edit Workflow.",
+      "You do not have permission to reset this email address. You need one of these permissions: Project Owner, Project Admin, Edit Workflow, Workflow Admin.",
     );
   });
 

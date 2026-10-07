@@ -36,9 +36,12 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
-import { getPlanNeededToChangeColumn } from "../../../UI/Components/ModelSwitch/ModelSwitchUtil";
+import { getPlanNeededToWriteColumn } from "../../../UI/Components/ModelSwitch/ModelSwitchUtil";
 import ProjectUtil from "../../../UI/Utils/Project";
-import { getPlanNeededForDashboardAccess } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Sharing/DashboardSharingCopy";
+import {
+  getPlanNeededForDashboardAccess,
+  getPlanNeededToComeBackToDashboardAccess,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Sharing/DashboardSharingCopy";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 import { getJestSpyOn } from "../../Spy";
 
@@ -59,12 +62,17 @@ import { getJestSpyOn } from "../../Spy";
  *     to the password carries one whenever none is stored, so a visitor
  *     who entered it gets in;
  *   - on OneUptime Cloud (billing on), the column check (ColumnPermission,
- *     which refuses a write that carries a plan-gated column, changed or
- *     not) refuses exactly the moves that change isPublicDashboard below
- *     Growth - so moving between the two public choices, and changing the
- *     password, works on every plan - and the Sharing page's plan pill
- *     names a plan for exactly those moves. The IP allowlist (Scale) is
- *     never part of a choice's write;
+ *     which refuses a write that carries a plan-gated column switched on,
+ *     changed or not) refuses exactly the moves that make a dashboard
+ *     PUBLIC below Growth. Making one private again ("Only people in this
+ *     project") takes isPublicDashboard back to its default, which every
+ *     plan may write: a dashboard a trial left public can always be made
+ *     private (a paid feature can always be switched off). Moving between
+ *     the two public choices, and changing the password, works on every
+ *     plan. The Sharing page's plan pill names a plan for exactly the moves
+ *     the server refuses, and its dialog for a move off a choice the plan
+ *     does not include names the plan coming back needs. The IP allowlist
+ *     (Scale) is never part of a choice's write;
  *   - with billing off (every self-hosted install), no move is refused.
  *
  * The plans are read from SUBSCRIPTION_PLAN_* in the environment, which this
@@ -535,7 +543,7 @@ describe.each([
   },
 );
 
-describe("on OneUptime Cloud, a move is refused below Growth exactly when it changes isPublicDashboard", () => {
+describe("on OneUptime Cloud, a move is refused below Growth exactly when it makes the dashboard public", () => {
   beforeEach(() => {
     setTestBillingEnabled(true);
   });
@@ -559,7 +567,7 @@ describe("on OneUptime Cloud, a move is refused below Growth exactly when it cha
     "%s, moved to %s",
     (_label: string, to: DashboardAccess, from: DashboardAccessState) => {
       const data: Dashboard = writeFor(from, to);
-      const changesPublic: boolean = data.isPublicDashboard !== undefined;
+      const makesPublic: boolean = data.isPublicDashboard === true;
 
       // A choice never writes the IP allowlist, so its plan never stands in the way.
       expect(data.ipWhitelist).toBeUndefined();
@@ -568,7 +576,7 @@ describe("on OneUptime Cloud, a move is refused below Growth exactly when it cha
 
       for (const plan of PLANS) {
         const expected: string =
-          plan === PlanType.Free && changesPublic ? GROWTH_REFUSAL : "allowed";
+          plan === PlanType.Free && makesPublic ? GROWTH_REFUSAL : "allowed";
 
         expect([plan, checkWrite(data, plan)]).toEqual([plan, expected]);
 
@@ -581,21 +589,81 @@ describe("on OneUptime Cloud, a move is refused below Growth exactly when it cha
           plan,
         );
 
+        const getPlanNeeded: (
+          column: string,
+          value: unknown,
+        ) => PlanType | null = (
+          column: string,
+          value: unknown,
+        ): PlanType | null => {
+          return getPlanNeededToWriteColumn(new Dashboard(), column, value);
+        };
+
         const planNeeded: PlanType | null = getPlanNeededForDashboardAccess({
           from,
           to,
-          getPlanNeeded: (column: string): PlanType | null => {
-            return getPlanNeededToChangeColumn(new Dashboard(), column);
-          },
+          getPlanNeeded,
         });
 
         expect([plan, planNeeded]).toEqual([
           plan,
           expected === "allowed" ? null : PlanType.Growth,
         ]);
+
+        /*
+         * A move off a public dashboard to "Only people in this project",
+         * below Growth: allowed, and the dialog says sharing it again needs
+         * Growth. Every other move says nothing of the kind.
+         */
+        const planToComeBack: PlanType | null =
+          getPlanNeededToComeBackToDashboardAccess({ from, to, getPlanNeeded });
+
+        const isLeavingPublic: boolean =
+          getDashboardAccess(from) !== DashboardAccess.ProjectOnly &&
+          to === DashboardAccess.ProjectOnly;
+
+        expect([plan, planToComeBack]).toEqual([
+          plan,
+          plan === PlanType.Free && isLeavingPublic ? PlanType.Growth : null,
+        ]);
       }
     },
   );
+
+  test("stopping sharing a dashboard a trial left public works on Free; sharing it again does not", () => {
+    const publicDashboard: DashboardAccessState = {
+      isPublicDashboard: true,
+      enableMasterPassword: true,
+      hasMasterPassword: true,
+    };
+
+    const stop: Dashboard = writeFor(
+      publicDashboard,
+      DashboardAccess.ProjectOnly,
+    );
+
+    // Back to the defaults: private, and the password switch off.
+    expect(stop.isPublicDashboard).toBe(false);
+    expect(stop.enableMasterPassword).toBe(false);
+    expect(checkWrite(stop, PlanType.Free)).toBe("allowed");
+
+    // Sharing it again, from private, needs Growth - with a link or a password.
+    const privateDashboard: DashboardAccessState = {
+      isPublicDashboard: false,
+      enableMasterPassword: false,
+      hasMasterPassword: true,
+    };
+
+    for (const to of [
+      DashboardAccess.AnyoneWithLink,
+      DashboardAccess.AnyoneWithPassword,
+    ]) {
+      expect([
+        to,
+        checkWrite(writeFor(privateDashboard, to), PlanType.Free),
+      ]).toEqual([to, GROWTH_REFUSAL]);
+    }
+  });
 
   test("a write that carries the public switch unchanged is refused below Growth too, which is why only changed columns are sent", () => {
     // A public dashboard saved as public again, with its password switch.

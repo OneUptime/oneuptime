@@ -5,7 +5,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import UpdateBy from "../Types/Database/UpdateBy";
 import ApiKeyService from "./ApiKeyService";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
@@ -46,7 +46,7 @@ export interface ApiKeyPermissionRow {
   isBlockPermission: boolean | undefined;
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   /*
    * Cache of `(projectId, apiKeyId) -> permission rows`. Project is part of
    * the key and the database query deliberately: even a malformed legacy row
@@ -185,9 +185,12 @@ export class Service extends DatabaseService<Model> {
      * during save. From here onward the validated scalar IDs are the only
      * persistence source of truth.
      */
-    createBy.data.apiKeyId = apiKeyId;
+    RelationIdUtil.stamp(
+      createBy.data as unknown as Record<string, unknown>,
+      ["apiKeyId", "apiKey"],
+      apiKeyId,
+    );
     createBy.data.projectId = projectId;
-    delete createBy.data.apiKey;
     delete createBy.data.project;
 
     return { apiKeyId, projectId };
@@ -403,6 +406,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     this.clearCache();
 
     if (!createBy.data.permission) {
@@ -429,8 +434,8 @@ export class Service extends DatabaseService<Model> {
 
     const existingPermission: Model | null = await this.findOneBy({
       query: {
-        apiKeyId: createBy.data.apiKeyId,
-        projectId: createBy.data.projectId,
+        apiKeyId: references.apiKeyId,
+        projectId: references.projectId,
         permission: createBy.data.permission,
         isBlockPermission: isBlockPermission,
       },
@@ -453,8 +458,8 @@ export class Service extends DatabaseService<Model> {
 
       const existingPermission: Model | null = await this.findOneBy({
         query: {
-          apiKeyId: createBy.data.apiKeyId,
-          projectId: createBy.data.projectId,
+          apiKeyId: references.apiKeyId,
+          projectId: references.projectId,
           permission: createBy.data.permission,
           isBlockPermission: !isBlockPermission,
         },
@@ -488,6 +493,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * We don't know which keys are being updated without a query; updates
      * are rare so clearing is cheap.

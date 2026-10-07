@@ -6,6 +6,7 @@ import Project from "../../../../Models/DatabaseModels/Project";
 import IncidentService from "../../../Services/IncidentService";
 import IncidentFeedService from "../../../Services/IncidentFeedService";
 import ProjectService from "../../../Services/ProjectService";
+import AIService from "../../../Services/AIService";
 import AIInvestigationEngine from "./AIInvestigationEngine";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -18,10 +19,13 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * IncidentService.generatePostmortemFromAI) and saves it to the incident for a
  * human to review and edit — turning a ~90-minute manual writeup into a review.
  *
- * It NEVER overwrites a postmortem that already exists (human work wins), is
+ * It NEVER overwrites a postmortem that already exists (human work wins),
+ * never drafts into one already switched on for the status page (the draft
+ * would go out unreviewed, and subscribers be told about it), is
  * gated by its own per-project opt-in (Project.enableAutomaticPostmortemDraft)
- * plus the same AI switch, LLM provider and AI balance as investigations, and
- * is fire-and-forget: failures are logged, never surfaced to the resolve flow.
+ * plus the same AI switch, LLM provider, AI balance and project daily AI
+ * limits as investigations, and is fire-and-forget: failures are logged,
+ * never surfaced to the resolve flow.
  */
 const MAX_FEED_PREVIEW_CHARS: number = 6000;
 
@@ -32,8 +36,9 @@ export default class AIIncidentPostmortemRunner {
    * project's Slack/Teams channels where an investigation only reads. Both
    * are on for new projects; a project that existed before keeps its own
    * value, and unset reads as off (=== true). The AI kill switch, the LLM
-   * provider and the AI balance gate it exactly as they gate an
-   * investigation.
+   * provider, the AI balance and the project's own daily AI limits gate it
+   * exactly as they gate an investigation: a draft refused by a limit would
+   * only log an error for every incident resolved until midnight UTC.
    */
   public static async isEnabledForProject(
     projectId: ObjectID,
@@ -43,6 +48,10 @@ export default class AIIncidentPostmortemRunner {
       select: {
         enableAi: true,
         enableAutomaticPostmortemDraft: true,
+        aiDailyTokenLimit: true,
+        aiDailySpendLimitInUSD: true,
+        aiDailyTokenLimitReachedAt: true,
+        aiDailySpendLimitReachedAt: true,
       },
       props: { isRoot: true },
     });
@@ -55,8 +64,15 @@ export default class AIIncidentPostmortemRunner {
       return false;
     }
 
+    if (
+      (await AIInvestigationEngine.getProviderOrBalanceReason(projectId)) !==
+      null
+    ) {
+      return false;
+    }
+
     return (
-      (await AIInvestigationEngine.getProviderOrBalanceReason(projectId)) ===
+      (await AIService.getReachedProjectDailyLimit({ projectId, project })) ===
       null
     );
   }
@@ -79,6 +95,7 @@ export default class AIIncidentPostmortemRunner {
           _id: true,
           incidentNumber: true,
           postmortemNote: true,
+          showPostmortemOnStatusPage: true,
         },
         props: { isRoot: true },
       });
@@ -92,6 +109,16 @@ export default class AIIncidentPostmortemRunner {
         incident.postmortemNote &&
         incident.postmortemNote.trim().length > 0
       ) {
+        return;
+      }
+
+      /*
+       * A draft is for a human to review. Saved into a postmortem already
+       * switched on for the status page, it would be the note the status
+       * page shows the moment it is written - published unreviewed, and
+       * announced to every subscriber (IncidentPostmortemPublication).
+       */
+      if (incident.showPostmortemOnStatusPage === true) {
         return;
       }
 

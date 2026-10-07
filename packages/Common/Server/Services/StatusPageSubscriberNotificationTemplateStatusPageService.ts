@@ -1,14 +1,22 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import StatusPageSubscriberNotificationTemplateService from "./StatusPageSubscriberNotificationTemplateService";
 import Model from "../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplateStatusPage";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import Query from "../Types/Database/Query";
 import UpdateBy from "../Types/Database/UpdateBy";
 import SubscriberTemplateIncidentRecordAccess from "../Utils/StatusPage/SubscriberTemplateIncidentRecordAccess";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+
+// The two names of each reference this service checks, ID column first.
+const TEMPLATE_KEYS: Array<string> = [
+  "statusPageSubscriberNotificationTemplateId",
+  "statusPageSubscriberNotificationTemplate",
+];
+const STATUS_PAGE_KEYS: Array<string> = ["statusPageId", "statusPage"];
 
 /*
  * Linking a custom subscriber notification template to a status page sends
@@ -22,7 +30,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
  * everything the template holds. Root and master admin writes are not
  * checked.
  */
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -31,11 +39,15 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.props.isRoot && !createBy.props.isMasterAdmin) {
-      const templateId: ObjectID | undefined =
-        createBy.data.statusPageSubscriberNotificationTemplateId ||
-        createBy.data.statusPageSubscriberNotificationTemplate?.id ||
-        undefined;
+      // The template, under either of its names (the two must agree).
+      const templateId: ObjectID | null = RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        TEMPLATE_KEYS,
+        "Status Page Subscriber Notification Template",
+      );
 
       await this.assertCanLink({
         templateIds: templateId ? [templateId] : [],
@@ -50,33 +62,36 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     if (updateBy.props.isRoot || updateBy.props.isMasterAdmin) {
       return { updateBy, carryForward: null };
     }
 
-    const data: {
-      statusPageSubscriberNotificationTemplateId?: unknown;
-      statusPageId?: unknown;
-    } = updateBy.data as unknown as {
-      statusPageSubscriberNotificationTemplateId?: unknown;
-      statusPageId?: unknown;
-    };
+    const data: Record<string, unknown> = updateBy.data as unknown as Record<
+      string,
+      unknown
+    >;
 
-    const writesTemplate: boolean =
-      data.statusPageSubscriberNotificationTemplateId !== undefined &&
-      data.statusPageSubscriberNotificationTemplateId !== null;
-    const writesStatusPage: boolean = data.statusPageId !== undefined;
+    // The template and the page, each under either of its names.
+    const writtenTemplateId: ObjectID | null = RelationIdUtil.readConsistent(
+      data,
+      TEMPLATE_KEYS,
+      "Status Page Subscriber Notification Template",
+    );
+    const writesStatusPage: boolean = RelationIdUtil.isPresent(
+      data,
+      STATUS_PAGE_KEYS,
+    );
 
-    if (!writesTemplate && !writesStatusPage) {
+    if (!writtenTemplateId && !writesStatusPage) {
       return { updateBy, carryForward: null };
     }
 
     let templateIds: Array<ObjectID> = [];
 
-    if (writesTemplate) {
-      templateIds = [
-        new ObjectID(String(data.statusPageSubscriberNotificationTemplateId)),
-      ];
+    if (writtenTemplateId) {
+      templateIds = [writtenTemplateId];
     } else {
       // Moved to another page: the templates the links already point at.
       const query: Query<Model> = updateBy.props.tenantId

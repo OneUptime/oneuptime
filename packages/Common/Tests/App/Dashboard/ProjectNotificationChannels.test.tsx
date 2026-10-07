@@ -21,8 +21,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
  * A project's four notification channels - SMS, phone calls, WhatsApp and
- * Telegram - start off, and only a project owner (or someone who manages
- * billing) may turn them on. The server refuses a method on a channel that
+ * Telegram - start off, and only a project owner (or someone with Manage
+ * Billing) may turn them on - not a project admin. The server refuses a method on a channel that
  * is off, so the first phone number a responder added on a new project was
  * a refusal pointing at a settings page most of them may not change, where
  * the four switches sat behind an Edit button and a two-step dialog.
@@ -33,9 +33,12 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     switch saved anywhere on the screen heard at once;
  *   - the panel that replaces a list's Add button while its channel is off
  *     (NotificationChannelOffPanel): the switch itself for those who may
- *     change it, one sentence for everyone else;
+ *     change it, one sentence naming exactly who can for everyone else;
  *   - the Notification Channels card on Project Settings: four switches that
- *     save in place, locked for anyone the server would refuse.
+ *     save in place, locked - with who can change them - for anyone the
+ *     server would refuse;
+ *   - who may turn them on (canChangeProjectNotificationChannels): exactly
+ *     the people the columns' update permissions let in.
  *
  * Only the network and the plan are stubbed. The permission gate, the
  * switch row and the Toggle are the real ones, reading the signed-in
@@ -106,16 +109,21 @@ import NotificationChannelOffPanel, {
   NOTIFICATION_CHANNEL_OFF_SENTENCE_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/NotificationChannelOffPanel";
 import ProjectNotificationChannelsStore, {
+  canChangeProjectNotificationChannels,
   fetchProjectNotificationChannels,
   getProjectChannelState,
+  getProjectNotificationChannelsAccess,
   getProjectNotificationChannelsSelect,
   isAddingOffered,
   isCodeResendOffered,
+  isKnownNotToChangeProjectNotificationChannels,
   ProjectChannelState,
   ProjectNotificationChannels,
+  ProjectNotificationChannelsAccess,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/ProjectNotificationChannels";
 import ProjectNotificationChannelsCard, {
   PROJECT_NOTIFICATION_CHANNELS_CARD_TEST_ID,
+  PROJECT_NOTIFICATION_CHANNELS_WHO_CAN_CHANGE_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/ProjectNotificationChannelsCard";
 import ProjectNotificationChannelsCopy, {
   CHANNEL_GATED_METHOD_LISTS,
@@ -133,9 +141,10 @@ import ProjectNotificationChannelsCopy, {
 import Project from "../../../Models/DatabaseModels/Project";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import ObjectID from "../../../Types/ObjectID";
-import Permission from "../../../Types/Permission";
+import Permission, { PermissionHelper } from "../../../Types/Permission";
 import { announceModelSwitchSaved } from "../../../UI/Components/ModelSwitch/ModelSwitchEvents";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
+import { PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS } from "../../../Utils/Project/NotificationChannels";
 
 const PROJECT_ID: string = "dddddddd-4444-4444-8444-444444444444";
 const OTHER_PROJECT_ID: string = "eeeeeeee-5555-4555-8555-555555555555";
@@ -308,7 +317,7 @@ describe("the four channels", () => {
     }
   });
 
-  test("only project owners and billing managers may change them, which is why most responders cannot", () => {
+  test("only project owners, Billing Admins and billing managers may change them, which is why most responders cannot", () => {
     const project: Project = new Project();
 
     for (const definition of PROJECT_NOTIFICATION_CHANNELS) {
@@ -324,7 +333,11 @@ describe("the four channels", () => {
           .sort(),
       ]).toEqual([
         definition.column,
-        [Permission.ProjectOwner, Permission.ManageProjectBilling].sort(),
+        [
+          Permission.ProjectOwner,
+          Permission.BillingAdmin,
+          Permission.ManageProjectBilling,
+        ].sort(),
       ]);
     }
   });
@@ -899,6 +912,8 @@ describe("the panel at the top of a list while its channel is off", () => {
     ["a project admin", [Permission.ProjectAdmin]],
     ["someone who may edit the project", [Permission.EditProject]],
     ["a project member", [Permission.ProjectMember]],
+    ["a billing member", [Permission.BillingMember]],
+    ["a billing viewer", [Permission.BillingViewer]],
   ] as Array<[string, Array<Permission>]>)(
     "%s, whom the server would refuse, gets one sentence and no switch",
     (_who: string, permissions: Array<Permission>) => {
@@ -927,6 +942,24 @@ describe("the panel at the top of a list while its channel is off", () => {
     ).not.toHaveAttribute("aria-disabled", "true");
   });
 
+  test("a Billing Admin may change it too, so gets the switch and no sentence", () => {
+    signIn({ permissions: [Permission.BillingAdmin] });
+
+    for (const definition of CHANNEL_GATED_METHOD_LISTS) {
+      renderPanel(definition.list, ProjectChannelState.Off);
+
+      expect(screen.getByRole("switch")).not.toHaveAttribute(
+        "aria-disabled",
+        "true",
+      );
+      expect(
+        screen.queryByTestId(NOTIFICATION_CHANNEL_OFF_SENTENCE_TEST_ID),
+      ).not.toBeInTheDocument();
+
+      cleanup();
+    }
+  });
+
   test("a master admin, with no project permission at all, gets the switch", () => {
     signIn({ permissions: [], isMasterAdmin: true });
 
@@ -937,13 +970,81 @@ describe("the panel at the top of a list while its channel is off", () => {
     ).toBeInTheDocument();
   });
 
-  test("the sentence names who can turn it on", () => {
+  test("the sentence says what is off, then exactly who can turn it on, and where", () => {
     for (const definition of CHANNEL_GATED_METHOD_LISTS) {
-      expect(definition.offSentence).toMatch(
-        /is off in this project\. A project owner can turn (it|them) on\.$|which is off in this project\. A project owner can turn it on\.$|are off in this project\. A project owner can turn them on\.$/,
+      expect([definition.list, definition.offSentence]).toEqual([
+        definition.list,
+        expect.stringMatching(
+          /off in this project\. A project owner, a Billing Admin or someone with Manage Billing can turn (it|them) on in Project Settings → Notification Settings\.$/,
+        ),
+      ]);
+
+      /*
+       * Never the role that cannot: a project admin may not change it. The
+       * Billing Admin role may, by the name the permission picker shows.
+       */
+      expect(definition.offSentence.toLowerCase()).not.toContain(
+        "project admin",
       );
+      expect(definition.offSentence).toContain("a Billing Admin");
     }
   });
+
+  test("calls are 'them', every other channel 'it', as each sentence's own subject is", () => {
+    const pronouns: Record<string, string> = {};
+    const TURN_THEM_ON: RegExp = / can turn them on /;
+
+    for (const definition of CHANNEL_GATED_METHOD_LISTS) {
+      pronouns[definition.list] = TURN_THEM_ON.test(definition.offSentence)
+        ? "them"
+        : "it";
+    }
+
+    expect(pronouns).toEqual({
+      [ChannelGatedMethodList.SMS]: "it",
+      [ChannelGatedMethodList.Call]: "them",
+      [ChannelGatedMethodList.WhatsApp]: "it",
+      [ChannelGatedMethodList.Telegram]: "it",
+      [ChannelGatedMethodList.IncomingCallNumber]: "it",
+    });
+
+    expect(
+      getChannelGatedMethodList(ChannelGatedMethodList.Call).offSentence,
+    ).toMatch(/^Phone calls are off in this project\./);
+  });
+
+  test.each([
+    ["a project admin", [Permission.ProjectAdmin]],
+    ["someone who may edit the project", [Permission.EditProject]],
+    ["a project member", [Permission.ProjectMember]],
+    ["a viewer", [Permission.Viewer]],
+  ] as Array<[string, Array<Permission>]>)(
+    "%s is told who can - a project owner, a Billing Admin or someone with Manage Billing - in the panel's one sentence",
+    (_who: string, permissions: Array<Permission>) => {
+      signIn({ permissions: permissions });
+
+      for (const definition of CHANNEL_GATED_METHOD_LISTS) {
+        renderPanel(definition.list, ProjectChannelState.Off);
+
+        const sentence: HTMLElement = screen.getByTestId(
+          NOTIFICATION_CHANNEL_OFF_SENTENCE_TEST_ID,
+        );
+
+        expect(sentence.textContent).toBe(definition.offSentence);
+        expect(sentence).toHaveTextContent(
+          "A project owner, a Billing Admin or someone with Manage Billing",
+        );
+        expect(sentence).toHaveTextContent(
+          "Project Settings → Notification Settings",
+        );
+        expect(sentence.textContent?.toLowerCase()).not.toContain(
+          "project admin",
+        );
+
+        cleanup();
+      }
+    },
+  );
 
   test("incoming call numbers are verified by text, so their list carries the SMS switch with its own words", () => {
     const definition: ChannelGatedMethodListDefinition =
@@ -1001,6 +1102,161 @@ describe("the panel at the top of a list while its channel is off", () => {
   });
 });
 
+describe("who may turn the channels on", () => {
+  test("exactly the people each column's update permissions let in: a project owner, a Billing Admin, or someone with Manage Billing", () => {
+    const project: Project = new Project();
+
+    for (const definition of PROJECT_NOTIFICATION_CHANNELS) {
+      expect([
+        definition.column,
+        [
+          ...(project.getColumnAccessControlFor(definition.column)?.update ||
+            []),
+        ].sort(),
+      ]).toEqual([
+        definition.column,
+        [...PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS].sort(),
+      ]);
+    }
+  });
+
+  test.each([
+    ["a project owner", [Permission.ProjectOwner], true],
+    ["someone with Manage Billing", [Permission.ManageProjectBilling], true],
+    ["a project admin", [Permission.ProjectAdmin], false],
+    ["someone who may edit the project", [Permission.EditProject], false],
+    ["a project member", [Permission.ProjectMember], false],
+    ["a billing admin", [Permission.BillingAdmin], true],
+    ["a billing member", [Permission.BillingMember], false],
+    ["a billing viewer", [Permission.BillingViewer], false],
+  ] as Array<[string, Array<Permission>, boolean]>)(
+    "%s: %s",
+    (_who: string, permissions: Array<Permission>, expected: boolean) => {
+      signIn({ permissions: permissions });
+
+      expect(canChangeProjectNotificationChannels()).toBe(expected);
+
+      for (const channel of Object.values(ProjectNotificationChannel)) {
+        expect([
+          channel,
+          canChangeProjectNotificationChannels([channel]),
+        ]).toEqual([channel, expected]);
+      }
+    },
+  );
+
+  test("a master admin may, with no project permission at all", () => {
+    signIn({ permissions: [], isMasterAdmin: true });
+
+    expect(canChangeProjectNotificationChannels()).toBe(true);
+  });
+
+  test("nobody may while the permissions are still on their way: nothing is offered that could be refused", () => {
+    localStorage.removeItem("global_permissions");
+    localStorage.removeItem("project_permissions");
+
+    expect(canChangeProjectNotificationChannels()).toBe(false);
+  });
+
+  /*
+   * One answer for every place that offers the switch, a link to it, or a
+   * line saying who can: Yes, No - or Unknown while the permission snapshot
+   * is still on its way, when nobody is offered the switch and nobody is
+   * told they lack a permission.
+   */
+  test.each([
+    [
+      "a project owner",
+      { permissions: [Permission.ProjectOwner] },
+      ProjectNotificationChannelsAccess.Yes,
+    ],
+    [
+      "someone with Manage Billing",
+      { permissions: [Permission.ManageProjectBilling] },
+      ProjectNotificationChannelsAccess.Yes,
+    ],
+    [
+      "a Billing Admin",
+      { permissions: [Permission.BillingAdmin] },
+      ProjectNotificationChannelsAccess.Yes,
+    ],
+    [
+      "a master admin",
+      { permissions: [], isMasterAdmin: true },
+      ProjectNotificationChannelsAccess.Yes,
+    ],
+    [
+      "a project admin",
+      { permissions: [Permission.ProjectAdmin] },
+      ProjectNotificationChannelsAccess.No,
+    ],
+    [
+      "someone who may edit the project",
+      { permissions: [Permission.EditProject] },
+      ProjectNotificationChannelsAccess.No,
+    ],
+    [
+      "a project member",
+      { permissions: [Permission.ProjectMember] },
+      ProjectNotificationChannelsAccess.No,
+    ],
+  ] as Array<[string, Session, ProjectNotificationChannelsAccess]>)(
+    "for %s the answer is %s, the same for every channel",
+    (
+      _who: string,
+      session: Session,
+      expected: ProjectNotificationChannelsAccess,
+    ) => {
+      signIn(session);
+
+      expect(getProjectNotificationChannelsAccess()).toBe(expected);
+
+      for (const channel of Object.values(ProjectNotificationChannel)) {
+        expect([
+          channel,
+          getProjectNotificationChannelsAccess([channel]),
+        ]).toEqual([channel, expected]);
+      }
+
+      expect(canChangeProjectNotificationChannels()).toBe(
+        expected === ProjectNotificationChannelsAccess.Yes,
+      );
+      expect(isKnownNotToChangeProjectNotificationChannels()).toBe(
+        expected === ProjectNotificationChannelsAccess.No,
+      );
+    },
+  );
+
+  test("while the permissions are on their way the answer is Unknown: neither offered the switch nor told who can", () => {
+    localStorage.removeItem("global_permissions");
+    localStorage.removeItem("project_permissions");
+
+    expect(getProjectNotificationChannelsAccess()).toBe(
+      ProjectNotificationChannelsAccess.Unknown,
+    );
+    expect(canChangeProjectNotificationChannels()).toBe(false);
+    expect(isKnownNotToChangeProjectNotificationChannels()).toBe(false);
+  });
+
+  test("no single project permission but those three lets anyone in", () => {
+    const allowed: Array<Permission> = [];
+
+    for (const props of PermissionHelper.getTenantPermissionProps()) {
+      const permission: Permission = props.permission;
+
+      signIn({ permissions: [permission] });
+
+      if (canChangeProjectNotificationChannels()) {
+        allowed.push(permission);
+      }
+    }
+
+    expect(allowed.sort()).toEqual(
+      [...PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS].sort(),
+    );
+  });
+});
+
 describe("the Notification Channels card on Project Settings", () => {
   const renderCard: () => Promise<void> = async (): Promise<void> => {
     render(<ProjectNotificationChannelsCard />);
@@ -1009,6 +1265,76 @@ describe("the Notification Channels card on Project Settings", () => {
       expect(screen.queryByTestId("component-loader")).not.toBeInTheDocument();
     });
   };
+
+  test.each([
+    ["a project admin", [Permission.ProjectAdmin]],
+    ["someone who may edit the project", [Permission.EditProject]],
+  ] as Array<[string, Array<Permission>]>)(
+    "%s, whose switches are locked, is told in so many words who can change them",
+    async (_who: string, permissions: Array<Permission>) => {
+      signIn({ permissions: permissions });
+      getItemMock.mockResolvedValue(projectWith(ALL_OFF) as never);
+
+      await renderCard();
+
+      const line: HTMLElement = screen.getByTestId(
+        PROJECT_NOTIFICATION_CHANNELS_WHO_CAN_CHANGE_TEST_ID,
+      );
+
+      expect(line).toHaveTextContent(
+        ProjectNotificationChannelsCopy.whoCanChange,
+      );
+      expect(ProjectNotificationChannelsCopy.whoCanChange).toBe(
+        "A project owner, a Billing Admin or someone with Manage Billing can change these.",
+      );
+      // Above the rows, inside the card.
+      expect(
+        screen.getByTestId(PROJECT_NOTIFICATION_CHANNELS_CARD_TEST_ID),
+      ).toContainElement(line);
+    },
+  );
+
+  test.each([
+    ["a project owner", { permissions: [Permission.ProjectOwner] }],
+    [
+      "someone with Manage Billing",
+      { permissions: [Permission.ManageProjectBilling] },
+    ],
+    ["a Billing Admin", { permissions: [Permission.BillingAdmin] }],
+    ["a master admin", { permissions: [], isMasterAdmin: true }],
+  ] as Array<[string, Session]>)(
+    "%s, who may flip the switches, is not told to ask anyone",
+    async (_who: string, session: Session) => {
+      signIn(session);
+      getItemMock.mockResolvedValue(projectWith(ALL_OFF) as never);
+
+      await renderCard();
+
+      expect(
+        screen.queryByTestId(
+          PROJECT_NOTIFICATION_CHANNELS_WHO_CAN_CHANGE_TEST_ID,
+        ),
+      ).not.toBeInTheDocument();
+
+      for (const element of screen.getAllByRole("switch")) {
+        expect(element).not.toHaveAttribute("aria-disabled", "true");
+      }
+    },
+  );
+
+  test("says nothing about who can while the permissions are still on their way", async () => {
+    localStorage.removeItem("global_permissions");
+    localStorage.removeItem("project_permissions");
+    getItemMock.mockResolvedValue(projectWith(ALL_OFF) as never);
+
+    await renderCard();
+
+    expect(
+      screen.queryByTestId(
+        PROJECT_NOTIFICATION_CHANNELS_WHO_CAN_CHANGE_TEST_ID,
+      ),
+    ).not.toBeInTheDocument();
+  });
 
   test("reads the current project's four switches and draws one row each, in order, as they are", async () => {
     getItemMock.mockResolvedValue(

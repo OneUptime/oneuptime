@@ -10,7 +10,7 @@ import JSONWebToken from "../Utils/JsonWebToken";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProductAnalytics from "../Utils/ProductAnalytics";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorStatusService from "./MonitorStatusService";
 import ProjectService, { CurrentPlan } from "./ProjectService";
 import StatusPageDomainService from "./StatusPageDomainService";
@@ -52,7 +52,6 @@ import StatusPageSubscriberNotificationTemplateService from "./StatusPageSubscri
 import StatusPageSubscriberNotificationTemplate from "../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationEventType from "../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
-import { StatusPageApiRoute } from "../../ServiceRoute";
 import ProjectSMTPConfigService from "./ProjectSmtpConfigService";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import StatusPageResourceService from "./StatusPageResourceService";
@@ -79,6 +78,7 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import UptimeUtil, { UptimeWindow } from "../../Utils/Uptime/UptimeUtil";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 import IP from "../../Types/IP/IP";
+import { STATUS_PAGE_SMS_SUBSCRIPTIONS_SMS_OFF_MESSAGE } from "../../Utils/Project/NotificationChannels";
 import { resolveClientIp } from "../Utils/ClientIp";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
@@ -116,6 +116,7 @@ import StatusPageReportScheduleUtil, {
   StatusPageReportScheduleColumns,
   StatusPageReportScheduleWrite,
 } from "../../Utils/StatusPage/ReportSchedule";
+import StatusPageEmailLogo from "../Utils/StatusPage/StatusPageEmailLogo";
 
 export {
   StatusPageReport,
@@ -222,7 +223,7 @@ export const INCIDENT_COUNT_STATUS_PAGE_SELECT: Select<StatusPage> = {
   onlyShowScopedIncidents: true,
 };
 
-export class Service extends DatabaseService<StatusPage> {
+export class Service extends ProjectReferencesService<StatusPage> {
   /*
    * Caches the resolved status page URL per statusPageId. `getStatusPageURL`
    * is called inside per-subscriber notification loops (see
@@ -270,6 +271,29 @@ export class Service extends DatabaseService<StatusPage> {
       return;
     }
     this.statusPageDomainToIdCache.clear();
+  }
+
+  /*
+   * The project a status page belongs to, which never changes: its project
+   * column alone, read by its id as root. The page's cached overview is
+   * kept by its project's generation (StatusPageOverviewCache), which keeps
+   * this once per page. Null when there is no such page.
+   */
+  @CaptureSpan()
+  public async getProjectIdOfStatusPage(
+    statusPageId: ObjectID,
+  ): Promise<ObjectID | null> {
+    if (!ObjectID.isValidUUID(statusPageId.toString())) {
+      return null;
+    }
+
+    const statusPage: StatusPage | null = await this.findOneById({
+      id: statusPageId,
+      select: { projectId: true },
+      props: { isRoot: true },
+    });
+
+    return statusPage?.projectId || null;
   }
 
   /*
@@ -413,6 +437,8 @@ export class Service extends DatabaseService<StatusPage> {
   protected override async onBeforeCreate(
     createBy: CreateBy<StatusPage>,
   ): Promise<OnCreate<StatusPage>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.projectId) {
       throw new BadDataException("projectId is required");
     }
@@ -1258,6 +1284,8 @@ export class Service extends DatabaseService<StatusPage> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<StatusPage>,
   ): Promise<OnUpdate<StatusPage>> {
+    await super.onBeforeUpdate(updateBy);
+
     // is enabling SMS subscribers.
 
     if (updateBy.data.enableSmsSubscribers) {
@@ -1280,7 +1308,7 @@ export class Service extends DatabaseService<StatusPage> {
 
         if (!isSMSEnabled) {
           throw new BadDataException(
-            "SMS notifications are not enabled for this project. Please enable SMS notifications in the Project Settings > Notifications Settings.",
+            STATUS_PAGE_SMS_SUBSCRIPTIONS_SMS_OFF_MESSAGE,
           );
         }
       }
@@ -1491,9 +1519,6 @@ export class Service extends DatabaseService<StatusPage> {
     const statusPageName: string =
       statuspage.pageTitle || statuspage.name || "Status Page";
 
-    const statusPageIdString: string | null =
-      statuspage.id?.toString() || statuspage._id?.toString() || null;
-
     const report: StatusPageReport = await this.getReportByStatusPage({
       statusPageId: statuspage.id!,
       reportPeriod: Service.getReportPeriodForStatusPage(statuspage),
@@ -1537,13 +1562,11 @@ export class Service extends DatabaseService<StatusPage> {
         detailsUrl: statusPageURL,
         hasResources: report.totalResources > 0 ? "true" : "false",
         report: report as any,
-        logoUrl:
-          statuspage.logoFileId && statusPageIdString
-            ? new URL(httpProtocol, host)
-                .addRoute(StatusPageApiRoute)
-                .addRoute(`/logo/${statusPageIdString}`)
-                .toString()
-            : "",
+        logoUrl: StatusPageEmailLogo.getLogoUrl({
+          statusPage: statuspage,
+          host: host,
+          httpProtocol: httpProtocol,
+        }),
         isPublicStatusPage: statuspage.isPublicStatusPage ? "true" : "false",
 
         unsubscribeUrl: unsubscribeUrl?.toString() || "",

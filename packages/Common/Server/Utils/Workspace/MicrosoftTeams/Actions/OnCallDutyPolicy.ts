@@ -7,6 +7,7 @@ import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import { TurnContext } from "botbuilder";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
+import { escapeMarkdownValue } from "../../../../../Utils/Markdown/MarkdownEscape";
 import OnCallDutyPolicyService from "../../../../Services/OnCallDutyPolicyService";
 import OnCallDutyPolicy from "../../../../../Models/DatabaseModels/OnCallDutyPolicy";
 import UserNotificationEventType from "../../../../../Types/UserNotification/UserNotificationEventType";
@@ -102,7 +103,7 @@ export default class MicrosoftTeamsOnCallDutyActions {
       switch (actionType) {
         case MicrosoftTeamsOnCallDutyActionType.ViewOnCallDuty:
           await turnContext.sendActivity(
-            `**${onCallDutyPolicy.name}**\n\n${onCallDutyPolicy.description || "No description"}`,
+            `**${escapeMarkdownValue(onCallDutyPolicy.name)}**\n\n${onCallDutyPolicy.description || "No description"}`,
           );
           break;
 

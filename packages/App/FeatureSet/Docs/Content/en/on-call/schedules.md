@@ -2,6 +2,8 @@
 
 An on-call schedule decides who is on call at any moment. People take turns in it: each is on call for a while, then the next one takes over. Add a schedule to an on-call policy's escalation rules, and the policy pages whoever is on call in it when that level runs.
 
+On OneUptime Cloud, on-call schedules are on the **Growth** plan and above. A schedule a project still has keeps paging the people on it, through the escalation rules that name it, after a Growth trial ends or the plan goes down. So below **Growth**, the **On-Call Schedules** page shows the plan note with the schedules still set up under it, where you can delete them. Creating or changing a schedule needs **Growth**.
+
 ## Who takes turns
 
 When you create a schedule on the **On-Call Schedules** page, the form asks for its **Name** and **Who takes turns?**. Click **Add user** and pick the people, in the order they take turns: they are on call one at a time, and the first one is on call as soon as the schedule is created. They become the schedule's first layer, **Layer 1**, on call around the clock. The new schedule then opens on its **Layers** page, where you can change the rotation or add more layers.
@@ -21,6 +23,8 @@ While somebody takes turns and nothing under **More fields** is changed, its fol
 A schedule's rotation is made of layers, on its **Layers** page. Layers are read from the top down: the highest layer with someone on call is the one that pages, so put the main rotation on top and fall-back cover below it.
 
 **Add Layer** adds a layer that starts the way the first one does: on call from now, each person for a week, around the clock. Expand a layer to add people to it, and to change when it starts, how often it hands off, when it first hands off and the hours it is on call.
+
+Each person keeps one colour everywhere, so you can follow them at a glance: on every layer, in the final schedule and its overrides, and on the **Schedule Timeline**.
 
 ## Creating schedules with the API or Terraform
 

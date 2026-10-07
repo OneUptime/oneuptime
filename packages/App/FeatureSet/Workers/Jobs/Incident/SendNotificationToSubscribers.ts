@@ -30,6 +30,7 @@ import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource"
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import StatusPageVisibility from "Common/Types/StatusPage/StatusPageVisibility";
 import IncidentCreatedRenotify from "Common/Types/StatusPage/IncidentCreatedRenotify";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
@@ -63,6 +64,7 @@ import SubscriberNotificationRunLimit, {
   SubscriberNotificationProjectSlot,
 } from "Common/Server/Utils/StatusPage/SubscriberNotificationRunLimit";
 import SubscriberNotificationFanOut from "Common/Server/Utils/StatusPage/SubscriberNotificationFanOut";
+import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
 
 // The status message of a 'created' notification that reached everyone.
 const SENT_MESSAGE: string =
@@ -148,7 +150,9 @@ RunCron(
           title: true,
           description: true,
           projectId: true,
+          // Whether a status page shows it (StatusPageVisibility): visible, and not private.
           isVisibleOnStatusPage: true,
+          isPrivate: true,
           monitors: {
             _id: true,
           },
@@ -291,7 +295,7 @@ RunCron(
            * which puts the row back to Pending; the reason is what the
            * notification badge shows.
            */
-          if (!incident.isVisibleOnStatusPage) {
+          if (!StatusPageVisibility.isShown(incident)) {
             logger.debug(
               `Incident ${incident.id} is not visible on status page; marking subscriber notifications as Skipped.`,
             );
@@ -763,11 +767,11 @@ RunCron(
                       ]);
                     } else {
                       // Use default hard-coded template
-                      markdownMessage = `## 🚨 Incident - ${incident.title || ""}
+                      markdownMessage = `## 🚨 Incident - ${escapeMarkdownValue(incident.title || "")}
 
-**Severity:** ${incident.incidentSeverity?.name || " - "}
+**Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || " - ")}
 
-**Resources Affected:** ${resourcesAffectedPlainText}
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}
 
 **Description:** ${incident.description || ""}
 
@@ -814,9 +818,9 @@ ${slackCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsub
                       ]);
                     } else {
                       // Use default hard-coded template
-                      markdownMessage = `## 🚨 Incident - ${incident.title || ""}
-**Severity:** ${incident.incidentSeverity?.name || " - "}
-**Resources Affected:** ${resourcesAffectedPlainText}
+                      markdownMessage = `## 🚨 Incident - ${escapeMarkdownValue(incident.title || "")}
+**Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || " - ")}
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}
 **Description:** ${incident.description || ""}
 ${teamsCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
                       await incidentTemplateVariables.recordIncludedFieldsSent();

@@ -261,13 +261,14 @@ export interface ActorCredentialInput {
  * OAuth, "via Master API Key" for the instance master key (which acts as the
  * master admin user). Null for an ordinary dashboard change.
  *
- * Also null for a project API key. That entry has no person behind it - the
- * key IS the actor, and is shown as one - so there is no "via" to add.
+ * Also null for a project API key or a workflow step. Neither entry has a
+ * person behind it - the key, or the workflow, IS the actor, and is shown as
+ * one - so there is no "via" to add.
  */
 export const getActorCredentialLabel: (
   entry: ActorCredentialInput,
 ) => string | null = (entry: ActorCredentialInput): string | null => {
-  if (entry.userType === "API") {
+  if (entry.userType === "API" || entry.userType === "Workflow") {
     return null;
   }
 

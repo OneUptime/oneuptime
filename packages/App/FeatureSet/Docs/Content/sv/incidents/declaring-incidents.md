@@ -46,7 +46,7 @@ Monitorerna kommer först, för sig: statussidor ser en incident genom dess moni
 
 - **Monitorer** — en sökruta som bifogar de monitorer som incidenten påverkar (`monitors`). En statussida visar incidenten, och meddelar sina prenumeranter, när den listar en av dessa monitorer.
 - **Ändra övervakningsstatus till** — valfritt, och visas först när minst en monitor är vald. Sätter varje monitor i incidenten till en övervakningsstatus, så att det är en enda åtgärd att deklarera incidenten och markera dess monitorer som försämrade. En malls status visas så snart du väljer en monitor; utan vald monitor sparas ingen status.
-- **Andra påverkade resurser** — en andra sökruta för allt annat som incidenten påverkar: värdar, Kubernetes-kluster, Docker- och Podman-värdar, Proxmox-, Ceph- och Docker Swarm-kluster, vCenter, IoT-flottor, databaser och tjänster. Det är separata relationer på incidenten (`hosts`, `kubernetesClusters`, `services` med flera).
+- **Andra påverkade resurser** — en andra sökruta för allt annat som incidenten påverkar: värdar, Kubernetes-kluster, Docker- och Podman-värdar, Proxmox-, Ceph- och Docker Swarm-kluster, vCenter, lagringsmatriser, IoT-flottor, databaser och tjänster. Det är separata relationer på incidenten (`hosts`, `kubernetesClusters`, `services` med flera).
 
 Incidentens kort **Berörda resurser** frågar på samma sätt när du redigerar det senare.
 
@@ -160,11 +160,11 @@ Skapandeanropet gör mer än att skriva en rad. I tur och ordning:
 5. **Etikettregler körs** och lägger till etiketter som matchar incidenten.
 6. **Jourregler körs.** Varje aktiverad regel under **Incidenter → Regler → Jourregler** vars kriterier matchar lägger sina policyer på incidenten. Det finns ingen prioritetsordning och ingen kortslutning — alla matchande regler utlöses och policyerna avdubbletteras.
 7. **Runbook-regler körs** och kopplar på och startar matchande runbooks. Se [Runbooks](/docs/runbooks/index).
-8. **Jourpolicyer körs.** Varje policy på incidenten — vald i guiden, ärvd från en mall eller tillagd av en regel — körs parallellt med händelsetypen `IncidentCreated`. Att en policy misslyckas stoppar inte de andra.
+8. **Jourpolicyer körs.** Varje policy på incidenten — vald i guiden, ärvd från en mall eller tillagd av en regel — körs parallellt med händelsetypen `IncidentCreated`. Att en policy misslyckas stoppar inte de andra. En incident som deklareras redan bekräftad eller löst kör ingen av dem: ingen larmas, och dess feed säger det och nämner dem vid namn.
 9. **Prenumeranter köas**, om **Meddela statussideprenumeranter** lämnades påslaget och incidenten är synlig på statussidan. Leveransen sköts av ett bakgrundsjobb, inte inuti din förfrågan.
 10. **Arbetsflöden utlöses.** Utlösaren **On Create Incident** startar varje arbetsflöde som byggts på den. Se [Översikt över arbetsflöden](/docs/workflows/index).
 
-Därifrån är incidenten aktiv: den räknas mot märket **Aktiva incidenter** i incidenternas sidomeny (varje tillstånd utan flaggan `isResolvedState` räknas som aktivt), den dyker upp på statussidorna som bär någon av dess monitorer, och dess **Tillståndstidslinje** börjar registrera.
+Därifrån är incidenten aktiv: den räknas mot märket **Aktiva incidenter** i incidenternas sidomeny (varje tillstånd ovanför ert lösta tillstånd räknas som aktivt), den dyker upp på statussidorna som bär någon av dess monitorer, och dess **Tillståndstidslinje** börjar registrera.
 
 ## Läs vidare
 

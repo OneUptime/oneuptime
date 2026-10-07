@@ -28,7 +28,9 @@ import Project from "../../../../Models/DatabaseModels/Project";
 import LlmProvider from "../../../../Models/DatabaseModels/LlmProvider";
 import AIRunService from "../../../Services/AIRunService";
 import AIRunEventService from "../../../Services/AIRunEventService";
-import AIService from "../../../Services/AIService";
+import AIService, {
+  PROJECT_DAILY_AI_LIMIT_REACHED_PATTERN,
+} from "../../../Services/AIService";
 import ProjectService from "../../../Services/ProjectService";
 import LlmProviderService from "../../../Services/LlmProviderService";
 import AIInvestigationQueue from "./InvestigationQueue";
@@ -85,10 +87,21 @@ const CODE_FIX_RECOMMENDATION_PERSIST_ATTEMPTS: number = 3;
 /*
  * Failures a retry cannot fix within the run's usefulness window: missing/
  * broken provider configuration and budget exhaustion (both messages minted
- * by our own gating in AIService/LLMService, so they are stable to match).
+ * by our own gating in AIService/LLMService, so they are stable to match),
+ * and the project's own daily AI limits, which hold until midnight UTC.
  */
 const PERMANENT_FAILURE_RE: RegExp =
   /no llm provider configured|llm provider type is not configured|token budget exhausted/i;
+
+// Whether a run's failure is one no retry can get past (see above).
+export const isPermanentInvestigationFailure: (message: string) => boolean = (
+  message: string,
+): boolean => {
+  return (
+    PERMANENT_FAILURE_RE.test(message) ||
+    PROJECT_DAILY_AI_LIMIT_REACHED_PATTERN.test(message)
+  );
+};
 
 /*
  * The tools that reach a Kubernetes cluster rather than the project's
@@ -221,9 +234,10 @@ export interface InvestigationRequest {
 export default class AIInvestigationEngine {
   /*
    * Shared gate: AI enabled, the subject's auto-investigation opt-in on, an
-   * LLM provider configured, and AI credits to pay for it. Incidents and
-   * alerts each have their own opt-in so they can be enabled independently.
-   * Runs before any (subject-specific) context assembly.
+   * LLM provider configured, AI credits to pay for it, and room left under
+   * the project's own daily AI limits. Incidents and alerts each have their
+   * own opt-in so they can be enabled independently. Runs before any
+   * (subject-specific) context assembly.
    */
   @CaptureSpan()
   public static async isEnabledForProject(
@@ -243,6 +257,12 @@ export default class AIInvestigationEngine {
         enableAi: true,
         enableAutomaticIncidentInvestigation: true,
         enableAutomaticAlertInvestigation: true,
+        // The project's own daily AI limits, checked last on this same row.
+        aiDailyTokenLimit: true,
+        aiDailySpendLimitInUSD: true,
+        // When each last stopped AI: telling the owners costs no read then.
+        aiDailyTokenLimitReachedAt: true,
+        aiDailySpendLimitReachedAt: true,
       },
       props: { isRoot: true },
     });
@@ -264,7 +284,34 @@ export default class AIInvestigationEngine {
       return "automatic_investigation_disabled";
     }
 
-    return this.getProviderOrBalanceReason(projectId);
+    const providerOrBalance:
+      | "provider_missing"
+      | "insufficient_ai_balance"
+      | null = await this.getProviderOrBalanceReason(projectId);
+
+    if (providerOrBalance) {
+      return providerOrBalance;
+    }
+
+    /*
+     * The project's own daily AI limits (Project Settings → AI Features →
+     * More settings): once one is reached, every model call is refused
+     * until midnight UTC, so a run started now would only fail. Fails open
+     * like the balance check - the model call still enforces the limits.
+     */
+    if (
+      await AIService.getReachedProjectDailyLimit({
+        projectId,
+        project,
+      })
+    ) {
+      logger.debug(
+        `AI: skipping autonomous AI work for project ${projectId.toString()} — it has reached its own daily AI limit.`,
+      );
+      return "project_daily_limit_reached";
+    }
+
+    return null;
   }
 
   /*
@@ -309,7 +356,7 @@ export default class AIInvestigationEngine {
    * The balance check is the same predicate as the Kubernetes cluster's
    * ai_balance_insufficient gap (AIService.getAiBalanceBlocker): on
    * OneUptime's own billed provider, with no credits left and auto-recharge
-   * off, every model call would be refused with "Insufficient AI balance" —
+   * off, every model call would be refused as out of AI credits —
    * so a run started now would only fail, be retried, and fail again, and
    * nobody would see why. It fails OPEN: a balance that cannot be read
    * never blocks, because the model call itself still enforces the balance.
@@ -756,7 +803,7 @@ export default class AIInvestigationEngine {
           aiRunId,
           attemptCount: data.attemptCount,
           errorMessage: message,
-          isPermanent: PERMANENT_FAILURE_RE.test(message),
+          isPermanent: isPermanentInvestigationFailure(message),
         });
 
       /*

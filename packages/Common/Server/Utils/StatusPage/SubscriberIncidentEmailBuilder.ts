@@ -1,7 +1,6 @@
 import Incident from "../../../Models/DatabaseModels/Incident";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageSubscriberNotificationTemplate from "../../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
-import { StatusPageApiRoute } from "../../../ServiceRoute";
 import Hostname from "../../../Types/API/Hostname";
 import Protocol from "../../../Types/API/Protocol";
 import URL from "../../../Types/API/URL";
@@ -14,6 +13,8 @@ import ObjectID from "../../../Types/ObjectID";
 import StatusPageSubscriberNotificationEventType from "../../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "../../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import EmailColorUtil from "../../../Utils/Email/EmailColorUtil";
+import Color from "../../../Types/Color";
+import StateChangeNoteMessage from "../../../Types/StatusPage/StateChangeNoteMessage";
 import {
   SubscriberEmailTemplateChoice,
   SubscriberEmailTemplateChoiceReason,
@@ -27,6 +28,7 @@ import IncidentTemplateVariableBuilder, {
   IncidentStatusPageTemplateVariables,
   IncidentTemplateVariables,
 } from "./IncidentTemplateVariableBuilder";
+import StatusPageEmailLogo from "./StatusPageEmailLogo";
 
 /*
  * The email a status page's subscribers get about an incident - its subject
@@ -117,6 +119,20 @@ export interface SubscriberIncidentEmail {
   envelope: EmailEnvelope;
 }
 
+/*
+ * The state the incident moved to, for a public note posted with that state
+ * change (IncidentPublicNote.postedWithIncidentState). The note is then the
+ * one message subscribers get about the change, so its 'posted' email names
+ * the state: in the subject, the way the state change email did, and in a
+ * Status row (StateChangeNoteMessage). Left out for a note posted on its
+ * own, and for every other email, which read as they always have.
+ */
+export interface SubscriberIncidentNoteStateChange {
+  name: string;
+  // Paints the state in its own colour when it has a usable one.
+  color?: Color | string | null | undefined;
+}
+
 // One status page's email, before it is addressed to anyone.
 export interface SubscriberIncidentStatusPageEmail {
   // Which email the page's subscribers get, and why.
@@ -145,6 +161,10 @@ export default class SubscriberIncidentEmailBuilder {
    * {{affectedStatusPages}}. A public note's event takes the note and when
    * it says it was posted - an update reads it fresh from the row, and only a
    * note with none falls back to now.
+   *
+   * {{incidentState}} is the incident's state right now, except on the
+   * 'posted' email of a note posted with a state change, where it is the
+   * state that change moved to (stateChange): the state the note is about.
    */
   public static async buildTemplateVariables(data: {
     event: SubscriberIncidentEmailEvent;
@@ -154,6 +174,7 @@ export default class SubscriberIncidentEmailBuilder {
       | {
           text: string | null | undefined;
           postedAt: Date | null | undefined;
+          stateChange?: SubscriberIncidentNoteStateChange | undefined;
         }
       | undefined;
   }): Promise<IncidentTemplateVariables> {
@@ -167,6 +188,9 @@ export default class SubscriberIncidentEmailBuilder {
       });
     }
 
+    const stateChange: SubscriberIncidentNoteStateChange | undefined =
+      this.getNoteStateChange(data.event, data.note?.stateChange);
+
     return IncidentTemplateVariableBuilder.build({
       incident: data.incident,
       statusPages: data.statusPages,
@@ -174,12 +198,33 @@ export default class SubscriberIncidentEmailBuilder {
         note: data.note?.text,
       },
       textVariables: {
-        incidentState: data.incident.currentIncidentState?.name || "",
+        incidentState:
+          stateChange?.name || data.incident.currentIncidentState?.name || "",
         postedAt: OneUptimeDate.getDateAsUserFriendlyFormattedString(
           data.note?.postedAt || OneUptimeDate.getCurrentDate(),
         ),
       },
     });
+  }
+
+  /*
+   * The state change a note's email names: only the 'posted' email of a note
+   * posted with one, and only a state with a name.
+   */
+  public static getNoteStateChange(
+    event: SubscriberIncidentEmailEvent,
+    stateChange: SubscriberIncidentNoteStateChange | null | undefined,
+  ): SubscriberIncidentNoteStateChange | undefined {
+    if (
+      event !== SubscriberIncidentEmailEvent.IncidentPublicNoteCreated ||
+      !stateChange ||
+      !stateChange.name ||
+      !stateChange.name.trim()
+    ) {
+      return undefined;
+    }
+
+    return stateChange;
   }
 
   /*
@@ -195,23 +240,6 @@ export default class SubscriberIncidentEmailBuilder {
           .addRoute(`/incidents/${data.incidentId.toString()}`)
           .toString()
       : data.statusPageUrl;
-  }
-
-  // The status page's logo, for the default email, or "" when it has none.
-  public static getLogoUrl(data: {
-    statusPage: StatusPage;
-    host: Hostname;
-    httpProtocol: Protocol;
-  }): string {
-    const statusPageId: string | null =
-      data.statusPage.id?.toString() || data.statusPage._id?.toString() || null;
-
-    return data.statusPage.logoFileId && statusPageId
-      ? new URL(data.httpProtocol, data.host)
-          .addRoute(StatusPageApiRoute)
-          .addRoute(`/logo/${statusPageId}`)
-          .toString()
-      : "";
   }
 
   /*
@@ -264,10 +292,15 @@ export default class SubscriberIncidentEmailBuilder {
    * instance's host and protocol for the logo.
    *
    * The page needs what StatusPageSubscriberService.
-   * getStatusPagesToSendNotification reads: its names, logoFileId,
+   * getStatusPagesToSendNotification reads: its names, its logo with the
+   * logo's project (STATUS_PAGE_EMAIL_LOGO_SELECT),
    * isPublicStatusPage, smtpConfig and the footer text columns. The default
    * email paints the severity in its own colour when the incident was read
    * with incidentSeverity.color; without it the severity stays plain text.
+   *
+   * The 'posted' email of a note posted with a state change (stateChange)
+   * names the state: the subject the state change email had, and a Status
+   * row in the default email, in the state's own colour.
    */
   public static async forStatusPage(data: {
     event: SubscriberIncidentEmailEvent;
@@ -279,8 +312,11 @@ export default class SubscriberIncidentEmailBuilder {
     pageTemplateVariables: IncidentStatusPageTemplateVariables;
     host: Hostname;
     httpProtocol: Protocol;
+    stateChange?: SubscriberIncidentNoteStateChange | undefined;
   }): Promise<SubscriberIncidentStatusPageEmail> {
     const copy: SubscriberIncidentEmailCopy = EMAIL_COPY[data.event];
+    const stateChange: SubscriberIncidentNoteStateChange | undefined =
+      this.getNoteStateChange(data.event, data.stateChange);
     const statusPage: StatusPage = data.statusPage;
     const incidentTemplateVariables: IncidentTemplateVariables =
       data.incidentTemplateVariables;
@@ -339,7 +375,12 @@ export default class SubscriberIncidentEmailBuilder {
                 emailTemplate!.emailSubject,
                 plainTextTemplateVariables,
               )
-            : copy.customTemplateSubjectPrefix + incidentTitle;
+            : stateChange
+              ? StateChangeNoteMessage.getIncidentCustomTemplateEmailSubject({
+                  stateName: stateChange.name,
+                  incidentTitle: incidentTitle,
+                })
+              : copy.customTemplateSubjectPrefix + incidentTitle;
 
           return {
             subject: compiledSubject,
@@ -362,7 +403,12 @@ export default class SubscriberIncidentEmailBuilder {
       };
     }
 
-    const subject: string = copy.defaultSubjectPrefix + incidentTitle;
+    const subject: string = stateChange
+      ? StateChangeNoteMessage.getIncidentEmailSubject({
+          stateName: stateChange.name,
+          incidentTitle: incidentTitle,
+        })
+      : copy.defaultSubjectPrefix + incidentTitle;
 
     // What the default email reads that does not vary per subscriber.
     const pageVars: JSONObject = {
@@ -370,7 +416,8 @@ export default class SubscriberIncidentEmailBuilder {
         IncidentTemplateVariableBuilder.getStatusPageName(statusPage),
       statusPageUrl: data.statusPageUrl,
       detailsUrl: data.detailsUrl,
-      logoUrl: this.getLogoUrl({
+      // "" when the page's logo route would not serve its logo.
+      logoUrl: StatusPageEmailLogo.getLogoUrl({
         statusPage: statusPage,
         host: data.host,
         httpProtocol: data.httpProtocol,
@@ -391,6 +438,19 @@ export default class SubscriberIncidentEmailBuilder {
       subscriberEmailNotificationFooterText:
         StatusPageServiceType.getSubscriberEmailFooterText(statusPage),
     };
+
+    /*
+     * The state a note posted with a state change moved the incident to, in
+     * its own colour: the template's Status row shows only when it is set.
+     */
+    if (stateChange) {
+      pageVars["incidentState"] = stateChange.name;
+
+      Object.assign(
+        pageVars,
+        EmailColorUtil.getTemplateVariables("incidentState", stateChange.color),
+      );
+    }
 
     // The event's own content, rendered from Markdown once per send.
     if (data.event === SubscriberIncidentEmailEvent.IncidentCreated) {

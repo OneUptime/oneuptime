@@ -87,6 +87,28 @@ helm upgrade --install {{ .Release.Name }} oneuptime/oneuptime --namespace={{ .R
 
 Details: HelmChart/Docs/Keda.md
 {{- end }}
+{{- /*
+  A new runtime pod waits at boot for the migrate Job to apply the schema
+  migrations its code needs (migrate.runtimeWaitTimeoutSeconds), and has not
+  started meanwhile, so its startup probe must outlast that wait. The probe
+  kills it after about periodSeconds x (failureThreshold - 1). Pods of an
+  install with migrate.hook do not wait (see _helpers.tpl).
+*/}}
+{{- if and .Values.migrate.enabled (not .Values.deployment.disableDeployments) .Values.startupProbe.enabled (not (kindIs "invalid" .Values.migrate.runtimeWaitTimeoutSeconds)) (not (and .Values.migrate.hook .Release.IsInstall)) }}
+{{- $migrationWait := int .Values.migrate.runtimeWaitTimeoutSeconds }}
+{{- $startupWindow := mul (sub (int .Values.startupProbe.failureThreshold) 1) (int .Values.startupProbe.periodSeconds) }}
+{{- if and (gt $migrationWait 0) (ge $migrationWait $startupWindow) }}
+
+WARNING: migrate.runtimeWaitTimeoutSeconds ({{ $migrationWait }}) is not below the startup probe window ({{ $startupWindow }} s = startupProbe.periodSeconds x (startupProbe.failureThreshold - 1)).
+
+A new pod waits at boot until the migrate Job has applied the schema migrations
+its code needs, and has not started while it waits. A wait this long is cut
+short by the startup probe, which kills the pod instead of letting it give up
+with an error that names the missing migrations, and every restart backs off
+longer before the pod can try again. Lower migrate.runtimeWaitTimeoutSeconds, or
+raise startupProbe.failureThreshold.
+{{- end }}
+{{- end }}
 {{- if .Values.vllm.enabled }}
 
 vLLM (local LLM server) is enabled. Its OpenAI-compatible endpoint inside the cluster is:

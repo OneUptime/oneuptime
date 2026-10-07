@@ -58,6 +58,7 @@ export const CONTAINER_SPECIFICITY: Partial<Record<EntityType, number>> = {
   [EntityType.VMwareVCenter]: 0,
   [EntityType.VMwareCluster]: 1,
   [EntityType.CephCluster]: 0,
+  [EntityType.StorageArray]: 0,
   [EntityType.DockerSwarmCluster]: 0,
   [EntityType.Host]: 1,
   [EntityType.KubernetesNamespace]: 1,

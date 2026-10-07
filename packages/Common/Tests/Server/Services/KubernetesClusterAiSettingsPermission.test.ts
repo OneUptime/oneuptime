@@ -17,7 +17,7 @@ import ColumnPermissions from "../../../Server/Types/Database/Permissions/Column
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import TablePermission from "../../../Server/Types/Database/Permissions/TablePermission";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
-import { holdsAnyPermission } from "../../../Server/Utils/Runbook/RunbookExecutePermission";
+import CallerPermission from "../../../Server/Utils/Permission/CallerPermission";
 import KubernetesAiAgent from "../../../Models/DatabaseModels/KubernetesAiAgent";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
@@ -33,6 +33,15 @@ import Permission, {
 import RunbookCredentialType from "../../../Types/Runbook/RunbookCredentialType";
 import { getJestSpyOn } from "../../Spy";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * Who may make OneUptime AI do MORE on a Kubernetes cluster.
@@ -284,6 +293,7 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
         id: CREDENTIAL_ID,
         credentialType: RunbookCredentialType.Kubernetes,
       } as unknown as RunbookCredential);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -299,18 +309,18 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
      */
     it("builds props the permission helper reads", () => {
       expect(
-        holdsAnyPermission({
-          props: propsWith(Permission.ProjectAdmin),
-          projectId: PROJECT_ID,
-          allowed: [Permission.ProjectAdmin],
-        }),
+        CallerPermission.holdsAnyOf(
+          propsWith(Permission.ProjectAdmin),
+          [Permission.ProjectAdmin],
+          { projectId: PROJECT_ID },
+        ),
       ).toBe(true);
       expect(
-        holdsAnyPermission({
-          props: propsWith(Permission.SettingsMember),
-          projectId: PROJECT_ID,
-          allowed: [Permission.ProjectAdmin],
-        }),
+        CallerPermission.holdsAnyOf(
+          propsWith(Permission.SettingsMember),
+          [Permission.ProjectAdmin],
+          { projectId: PROJECT_ID },
+        ),
       ).toBe(false);
     });
 
@@ -488,6 +498,7 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
 
     beforeEach(() => {
       clusterLookup.mockResolvedValue([cluster(configured)]);
+      stubProjectDirectory({});
     });
 
     /*
@@ -740,6 +751,7 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
 
     beforeEach(() => {
       clusterLookup.mockResolvedValue([cluster(bound)]);
+      stubProjectDirectory({});
     });
 
     it.each(CLEARING_WRITES)(
@@ -820,49 +832,52 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
       ).resolves.toBeDefined();
     });
 
-    it("reads the agent rows only for a write that clears a binding, scoped to the cluster's project", async () => {
+    /*
+     * Every operator write of an AI setting reads the cluster's agent row
+     * once — whether the agent sets investigation and fixes decides what the
+     * write may change, and, for a write that clears a binding, whether the
+     * cluster has an agent at all. One query, scoped to the cluster's
+     * project, whatever the write touches.
+     */
+    it("reads the agent rows once per AI write, scoped to the cluster's project", async () => {
+      const writes: Array<Record<string, unknown>> = [
+        { isAiInvestigationEnabled: false },
+        { aiRemediationMode: KubernetesAiRemediationMode.Disabled },
+        { aiAccessRunnerId: RUNNER_ID },
+        { aiAccessRunnerId: null },
+      ];
+
+      for (const data of writes) {
+        await hooks().onBeforeUpdate(
+          updateBy(data, propsWith(Permission.SettingsMember)),
+        );
+      }
+
+      expect(agentLookup).toHaveBeenCalledTimes(writes.length);
+
+      for (const args of agentLookup.mock.calls) {
+        const call: {
+          projectId: ObjectID;
+          kubernetesClusterIds: Array<ObjectID>;
+        } = args[0] as {
+          projectId: ObjectID;
+          kubernetesClusterIds: Array<ObjectID>;
+        };
+        expect(call.projectId.toString()).toBe(PROJECT_ID.toString());
+        expect(
+          call.kubernetesClusterIds.map((id: ObjectID) => {
+            return id.toString();
+          }),
+        ).toEqual([CLUSTER_ID.toString()]);
+      }
+    });
+
+    it("negative control: a write of no AI setting reads no agent row", async () => {
       await hooks().onBeforeUpdate(
-        updateBy(
-          { isAiInvestigationEnabled: false },
-          propsWith(Permission.SettingsMember),
-        ),
-      );
-      await hooks().onBeforeUpdate(
-        updateBy(
-          { aiRemediationMode: KubernetesAiRemediationMode.Disabled },
-          propsWith(Permission.SettingsMember),
-        ),
-      );
-      await hooks().onBeforeUpdate(
-        updateBy(
-          { aiAccessRunnerId: RUNNER_ID },
-          propsWith(Permission.SettingsMember),
-        ),
+        updateBy({ name: "renamed" }, propsWith(Permission.SettingsMember)),
       );
 
       expect(agentLookup).not.toHaveBeenCalled();
-
-      await hooks().onBeforeUpdate(
-        updateBy(
-          { aiAccessRunnerId: null },
-          propsWith(Permission.SettingsMember),
-        ),
-      );
-
-      expect(agentLookup).toHaveBeenCalledTimes(1);
-      const call: {
-        projectId: ObjectID;
-        kubernetesClusterIds: Array<ObjectID>;
-      } = agentLookup.mock.calls[0]![0] as {
-        projectId: ObjectID;
-        kubernetesClusterIds: Array<ObjectID>;
-      };
-      expect(call.projectId.toString()).toBe(PROJECT_ID.toString());
-      expect(
-        call.kubernetesClusterIds.map((id: ObjectID) => {
-          return id.toString();
-        }),
-      ).toEqual([CLUSTER_ID.toString()]);
     });
 
     it("is not gated for the server's own (root) writes", async () => {
@@ -1113,6 +1128,10 @@ describe("KubernetesCluster AI access through updateOneById", () => {
   let feedItems: jest.SpyInstance;
 
   beforeEach(() => {
+    // No Kubernetes AI agent unless a test says otherwise.
+    jest
+      .spyOn(KubernetesAiAgentService, "findForClusters")
+      .mockResolvedValue(new Map<string, KubernetesAiAgent>());
     getJestSpyOn(KubernetesClusterService, "_findBy").mockResolvedValue([
       cluster({
         _id: CLUSTER_ID.toString(),
@@ -1141,6 +1160,7 @@ describe("KubernetesCluster AI access through updateOneById", () => {
     jest
       .spyOn(KubernetesClusterService, "getKubernetesClusterMarkdownLink")
       .mockResolvedValue("[Kubernetes Cluster prod-us](https://x)");
+    stubProjectDirectory({});
   });
 
   afterEach(() => {

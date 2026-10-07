@@ -1,11 +1,12 @@
 "use strict";
 
-// The app's HTTP dependency: answers GET /ping.
+// The app's HTTP dependency: answers GET /ping (inside the app's requests) and
+// GET /tick (the app's background call).
 const http = require("http");
 
 http
   .createServer((req, res) => {
-    if (req.url === "/ping") {
+    if (req.url === "/ping" || req.url === "/tick") {
       res.writeHead(200, { "content-type": "text/plain" });
       res.end("pong");
       return;

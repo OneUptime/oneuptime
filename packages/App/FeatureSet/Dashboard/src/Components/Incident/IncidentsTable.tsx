@@ -1,4 +1,6 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import { StateListType } from "Common/Utils/StateOrder";
 import AffectedResourcesCell from "../AffectedResources/AffectedResourcesCell";
 import ProjectUtil from "Common/UI/Utils/Project";
 import IncidentElement from "./Incident";
@@ -29,6 +31,7 @@ import Search from "Common/Types/BaseDatabase/Search";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
@@ -130,9 +133,31 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
     useState<BulkActionOnClickProps<Incident> | null>(null);
   const [visibleIncidents, setVisibleIncidents] = useState<Array<Incident>>([]);
 
+  /*
+   * The project's states that count as resolved: its resolved state and any
+   * state placed after it (Common/Utils/ResolvedState).
+   */
+  const resolvedStateIds: Array<string> = ResolvedStateUtil.getResolvedStateIds(
+    {
+      list: StateListType.IncidentState,
+      states: incidentStates,
+    },
+  ).map((stateId: ObjectID) => {
+    return stateId.toString();
+  });
+
+  const isIncidentResolved: (incident: Incident) => boolean = (
+    incident: Incident,
+  ): boolean => {
+    const stateId: string | undefined =
+      incident.currentIncidentState?._id?.toString();
+
+    return Boolean(stateId && resolvedStateIds.includes(stateId));
+  };
+
   const resolvedIncidentIds: Array<string> = visibleIncidents
     .filter((incident: Incident) => {
-      return Boolean(incident.currentIncidentState?.isResolvedState);
+      return isIncidentResolved(incident);
     })
     .map((incident: Incident) => {
       return incident.id?.toString() || "";
@@ -147,7 +172,9 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
   } = useEventTimelineEndDates<IncidentStateTimeline>({
     eventIds: resolvedIncidentIds,
     eventIdField: "incidentId",
+    stateIdField: "incidentStateId",
     timelineModelType: IncidentStateTimeline,
+    resolvedStateIds: resolvedStateIds,
   });
 
   const { noteTemplates } = useNoteTemplates<IncidentNoteTemplate>({
@@ -713,6 +740,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             _id: true,
             projectId: true,
           },
+          storageArrays: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
           dockerSwarmClusters: {
             name: true,
             _id: true,
@@ -808,9 +840,9 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           {
             field: {
               currentIncidentState: {
+                _id: true,
                 name: true,
                 color: true,
-                isResolvedState: true,
               },
             },
             title: "State",
@@ -902,6 +934,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 _id: true,
                 projectId: true,
               },
+              storageArrays: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
               dockerSwarmClusters: {
                 name: true,
                 _id: true,
@@ -943,6 +980,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                   proxmoxClusters={item.proxmoxClusters || []}
                   vmwareVCenters={item.vmwareVCenters || []}
                   cephClusters={item.cephClusters || []}
+                  storageArrays={item.storageArrays || []}
                   dockerSwarmClusters={item.dockerSwarmClusters || []}
                   iotFleets={item.iotFleets || []}
                   databaseServers={item.databaseServers || []}
@@ -970,9 +1008,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             disableCsvExport: true,
             getElement: (item: Incident): ReactElement => {
               const incidentId: string = item.id?.toString() || "";
-              const isResolved: boolean = Boolean(
-                item.currentIncidentState?.isResolvedState,
-              );
+              const isResolved: boolean = isIncidentResolved(item);
               const resolvedAt: Date | undefined = incidentId
                 ? resolvedAtByIncidentId[incidentId]
                 : undefined;
@@ -1121,6 +1157,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           noteTitle="Public Note"
           noteDescription="Post a public note about this state change to the status page. The same note is added to every incident you selected."
           noteTemplates={noteTemplates}
+          noteModel={new IncidentPublicNote()}
           showNotifyStatusPageSubscribers={true}
           onClose={() => {
             setShowBulkStateChangeModal(false);

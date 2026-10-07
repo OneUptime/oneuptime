@@ -18,6 +18,8 @@ Voor een project:
 4. **Instellen als projectstandaard** staat aan bij de eerste configuratie van het project, zodat sms-berichten en oproepen aan projectleden, inclusief bereikbaarheidsmeldingen, er direct na het opslaan via gaan. Schakel het uit als dit account alleen voor statuspagina's of inkomende oproepen is. Bij elke volgende configuratie staat de schakelaar uit: schakel hem in, of kies **Instellen als projectstandaard** in het rijmenu van de configuratie, om die berichten erheen te verplaatsen. Een API-verzoek dat `isProjectDefault` weglaat, wordt op dezelfde manier behandeld.
 5. Sla op. Slechts één configuratie kan de projectstandaard zijn. Statuspagina's gebruiken de configuratie die expliciet aan elke statuspagina is toegewezen.
 
+**SMS** en **Telefoonoproepen** staan in elk project eerst uit, en zolang ze uit staan, kan niemand in het project er een telefoonnummer voor toevoegen. Een projecteigenaar of iemand met **Billing Admin** of **Manage Billing** zet ze aan in de kaart **Meldingskanalen** op dezelfde pagina.
+
 Voor een standaard voor de hele installatie kan een beheerder ook **Admin Dashboard > Settings > Call and SMS** openen, de Twilio-inloggegevens en telefoonnummers bewerken en opslaan. Meldingen aan leden gebruiken deze algemene configuratie als hun project geen standaard heeft. Houd het Auth Token geheim.
 
 ## 3. Configureer netwerktoegang
@@ -91,7 +93,7 @@ Voor ontwikkeling beschrijft Twilio's [handleiding voor webhooktests](https://ww
 ## 4. Test aflevering en callbacks afzonderlijk
 
 1. Controleer buiten het bedrijfsnetwerk en de VPN of de callbackhostnaam naar de openbare gateway verwijst en een geldig TLS-certificaat toont. Een browser-GET test deze POST-callbacks niet.
-2. Gebruik **Send Test SMS** en **Send Test Call** in de Twilio-configuratie van het project. Controleer de ontvangst op de telefoon van de ontvanger.
+2. Gebruik **Send Test SMS** en **Send Test Call** in de Twilio-configuratie van het project. Controleer de ontvangst op de telefoon van de ontvanger. Voor beide is toestemming nodig om Twilio-configuraties toe te voegen: **Project Owner**, **Project Admin**, of **Create Call and SMS** en **Read Call and SMS** in een eigen rol.
 3. Configureer het geverifieerde sms-/oproepcontact en de meldingsregels van de gebruiker en activeer daarna een gecontroleerde bereikbaarheidsmelding. Druk op 1 en controleer de bevestiging in OneUptime. Als u beleid voor inkomende oproepen gebruikt, bel dan het ingestelde nummer en controleer de routering en het oproeplogboek.
 4. Controleer de sms-afleverstatus in OneUptime en in de berichtenlogs van Twilio. Een geaccepteerd verzendverzoek bewijst niet dat het bericht is afgeleverd; [Twilio rapporteert latere statuswijzigingen via callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 

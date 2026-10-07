@@ -162,30 +162,30 @@ Le regole di escalation decidono chi viene chiamato quando qualcuno compone il n
 3. Fare clic su **Aggiungi regola di escalation**
 4. Compilare la regola. È un solo passaggio:
    - **Chi chiamare**: una pianificazione di reperibilità o una persona. Una pianificazione fa squillare il telefono di chi è reperibile in essa quando arriva la chiamata. Le persone sono i membri del progetto.
-   - **Durata dello squillo (in secondi)**: per quanto tempo squilla il loro telefono prima che la chiamata passi alla regola successiva. Parte da 30 secondi, e Twilio accetta da 5 a 600.
+   - **Durata dello squillo (in secondi)**: per quanto tempo squilla il loro telefono prima che la chiamata passi alla regola successiva. Parte da 20 secondi, e Twilio accetta da 5 a 600.
    - **Nome** e **Descrizione** sono facoltativi, sotto **Altri campi**. Una regola senza nome viene mostrata in base alla sua posizione nell'elenco: **Level 1**, **Level 2**.
 5. Salvarla e aggiungere una regola per ogni pianificazione o persona da provare dopo
 
 Le regole vengono chiamate dall'alto verso il basso nell'elenco, e una nuova regola viene aggiunta in fondo. Per cambiare l'ordine, trascinare una regola dalla maniglia in alto a sinistra; da tastiera, mettere a fuoco la maniglia, premere Spazio, spostarla con i tasti freccia e premere di nuovo Spazio.
 
-> **Attenzione alla segreteria**: mantenere la **Durata dello squillo** più breve del tempo dopo cui il telefono della persona invia una chiamata senza risposta alla segreteria. Se risponde prima la segreteria, chi chiama viene collegato a essa e la chiamata non passa alla regola successiva. Twilio aggiunge qualche secondo a ogni squillo.
+> **Attenzione alla segreteria**: mantenere la **Durata dello squillo** più breve del tempo dopo cui il telefono della persona invia una chiamata senza risposta alla segreteria. Se risponde prima la segreteria, chi chiama viene collegato a essa e la chiamata non passa alla regola successiva. Twilio aggiunge qualche secondo a ogni squillo. Per questo una nuova regola parte da 20 secondi. Le regole aggiunte quando il valore predefinito era 30 secondi mantengono i loro 30: se le loro chiamate finiscono in segreteria, ridurre la **Durata dello squillo** di quelle regole.
 
 ### Esempio di Regola di Escalation
 
 ```mermaid
 flowchart TD
     subgraph "Catena di Escalation"
-        A[Level 1: Pianificazione di reperibilità principale<br/>Squilla 30 secondi] --> B[Level 2: Pianificazione di reperibilità secondaria<br/>Squilla 30 secondi]
-        B --> C[Level 3: Responsabile tecnico<br/>Squilla 30 secondi]
+        A[Level 1: Pianificazione di reperibilità principale<br/>Squilla 20 secondi] --> B[Level 2: Pianificazione di reperibilità secondaria<br/>Squilla 20 secondi]
+        B --> C[Level 3: Responsabile tecnico<br/>Squilla 20 secondi]
         C --> D[Messaggio Nessuna Risposta]
     end
 ```
 
 | Livello | Chi chiamare                              | Durata dello squillo |
 | ------- | ----------------------------------------- | -------------------- |
-| Level 1 | Pianificazione di reperibilità principale | 30 secondi           |
-| Level 2 | Pianificazione di reperibilità secondaria | 30 secondi           |
-| Level 3 | Responsabile tecnico (una persona)        | 30 secondi           |
+| Level 1 | Pianificazione di reperibilità principale | 20 secondi           |
+| Level 2 | Pianificazione di reperibilità secondaria | 20 secondi           |
+| Level 3 | Responsabile tecnico (una persona)        | 20 secondi           |
 
 ## Fase 7: Configurare i Messaggi Vocali (Opzionale)
 
@@ -215,11 +215,11 @@ Personalizzare i messaggi che i chiamanti sentono:
 | Impostazione                      | Descrizione                                                                                                                                                                       |
 | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Chi chiamare                      | Una pianificazione di reperibilità, che chiama chi è reperibile in essa, o una persona. Ogni regola chiama una delle due                                                          |
-| Durata dello squillo (in secondi) | Per quanto tempo squilla il telefono prima che la chiamata passi alla regola successiva (predefinito: 30; da 5 a 600)                                                            |
+| Durata dello squillo (in secondi) | Per quanto tempo squilla il telefono prima che la chiamata passi alla regola successiva (predefinito: 20; da 5 a 600)                                                            |
 | Nome e Descrizione                | Facoltativi, sotto Altri campi. Una regola senza nome viene mostrata come Level 1, Level 2 e così via, in base alla sua posizione nell'elenco                                       |
 | Ordine                            | La posizione della regola nell'elenco: le regole vengono chiamate dall'alto verso il basso. Si imposta trascinando le regole; tramite l'API, una nuova regola senza ordine va in fondo |
 
-Tramite l'API, una regola imposta `onCallDutyPolicyScheduleId` o `userId` (uno dei due, mai entrambi) e `escalateAfterSeconds`: la durata dello squillo, 30 se omessa.
+Tramite l'API, una regola imposta `onCallDutyPolicyScheduleId` o `userId` (uno dei due, mai entrambi) e `escalateAfterSeconds`: la durata dello squillo, 20 se omessa.
 
 ## Visualizzazione dei Log delle Chiamate
 
@@ -246,6 +246,8 @@ Affinché gli utenti possano ricevere chiamate in entrata, devono avere un numer
 3. Verificano il numero di telefono tramite codice SMS
 
 Solo gli utenti con numeri di telefono verificati possono essere chiamati attraverso le regole di escalation.
+
+I numeri per le chiamate in entrata vengono verificati via SMS, quindi prima il progetto deve avere **SMS** attivo. Un proprietario del progetto o qualcuno con **Billing Admin** o **Manage Billing** lo attiva nella scheda **Canali di notifica** di **Impostazioni del progetto > Notifiche > Impostazioni notifiche**.
 
 ## Rilascio di un Numero di Telefono
 

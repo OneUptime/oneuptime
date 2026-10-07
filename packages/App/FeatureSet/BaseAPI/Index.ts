@@ -10,7 +10,9 @@ import NotificationAPI from "Common/Server/API/NotificationAPI";
 import AIBillingAPI from "Common/Server/API/AIBillingAPI";
 import AIChatAPI from "Common/Server/API/AIChatAPI";
 import AIReadinessAPI from "Common/Server/API/AIReadinessAPI";
+import AIDailyUsageAPI from "Common/Server/API/AIDailyUsageAPI";
 import AIInvestigationAPI from "Common/Server/API/AIInvestigationAPI";
+import IncidentAlertAiActivityAPI from "Common/Server/API/IncidentAlertAiActivityAPI";
 import AIInvestigationConversationAPI from "Common/Server/API/AIInvestigationConversationAPI";
 import AIInsightAPI from "Common/Server/API/AIInsightAPI";
 import AutoRemediationAPI from "Common/Server/API/AutoRemediationAPI";
@@ -169,6 +171,7 @@ import VMwareResourceAPI from "Common/Server/API/VMwareResourceAPI";
 import IoTDeviceAPI from "Common/Server/API/IoTDeviceAPI";
 import DockerSwarmResourceAPI from "Common/Server/API/DockerSwarmResourceAPI";
 import CephResourceAPI from "Common/Server/API/CephResourceAPI";
+import StorageArrayResourceAPI from "Common/Server/API/StorageArrayResourceAPI";
 import KubernetesContainer from "Common/Models/DatabaseModels/KubernetesContainer";
 import KubernetesContainerService, {
   Service as KubernetesContainerServiceType,
@@ -426,6 +429,14 @@ import CephClusterOwnerRuleService, {
 import CephClusterLabelRuleService, {
   Service as CephClusterLabelRuleServiceType,
 } from "Common/Server/Services/CephClusterLabelRuleService";
+
+import StorageArrayOwnerRuleService, {
+  Service as StorageArrayOwnerRuleServiceType,
+} from "Common/Server/Services/StorageArrayOwnerRuleService";
+
+import StorageArrayLabelRuleService, {
+  Service as StorageArrayLabelRuleServiceType,
+} from "Common/Server/Services/StorageArrayLabelRuleService";
 
 import RunbookOwnerRuleService, {
   Service as RunbookOwnerRuleServiceType,
@@ -741,6 +752,9 @@ import DockerSwarmClusterService, {
 import CephClusterService, {
   Service as CephClusterServiceType,
 } from "Common/Server/Services/CephClusterService";
+import StorageArrayService, {
+  Service as StorageArrayServiceType,
+} from "Common/Server/Services/StorageArrayService";
 import ProxmoxClusterOwnerTeamService, {
   Service as ProxmoxClusterOwnerTeamServiceType,
 } from "Common/Server/Services/ProxmoxClusterOwnerTeamService";
@@ -771,6 +785,12 @@ import CephClusterOwnerTeamService, {
 import CephClusterOwnerUserService, {
   Service as CephClusterOwnerUserServiceType,
 } from "Common/Server/Services/CephClusterOwnerUserService";
+import StorageArrayOwnerTeamService, {
+  Service as StorageArrayOwnerTeamServiceType,
+} from "Common/Server/Services/StorageArrayOwnerTeamService";
+import StorageArrayOwnerUserService, {
+  Service as StorageArrayOwnerUserServiceType,
+} from "Common/Server/Services/StorageArrayOwnerUserService";
 import DatabaseServerService, {
   Service as DatabaseServerServiceType,
 } from "Common/Server/Services/DatabaseServerService";
@@ -1122,6 +1142,9 @@ import AutoRemediationRuleService, {
 import AutoRemediationSuggestionService, {
   Service as AutoRemediationSuggestionServiceType,
 } from "Common/Server/Services/AutoRemediationSuggestionService";
+import AutoRemediationDecisionService, {
+  Service as AutoRemediationDecisionServiceType,
+} from "Common/Server/Services/AutoRemediationDecisionService";
 import RunnerService, {
   Service as RunnerServiceType,
 } from "Common/Server/Services/RunnerService";
@@ -1259,6 +1282,8 @@ import IoTFleetLabelRule from "Common/Models/DatabaseModels/IoTFleetLabelRule";
 import DockerSwarmClusterLabelRule from "Common/Models/DatabaseModels/DockerSwarmClusterLabelRule";
 import CephClusterOwnerRule from "Common/Models/DatabaseModels/CephClusterOwnerRule";
 import CephClusterLabelRule from "Common/Models/DatabaseModels/CephClusterLabelRule";
+import StorageArrayOwnerRule from "Common/Models/DatabaseModels/StorageArrayOwnerRule";
+import StorageArrayLabelRule from "Common/Models/DatabaseModels/StorageArrayLabelRule";
 import RunbookOwnerRule from "Common/Models/DatabaseModels/RunbookOwnerRule";
 import RunbookLabelRule from "Common/Models/DatabaseModels/RunbookLabelRule";
 import ScheduledMaintenanceOwnerRule from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerRule";
@@ -1362,6 +1387,9 @@ import DockerSwarmClusterOwnerUser from "Common/Models/DatabaseModels/DockerSwar
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import CephClusterOwnerTeam from "Common/Models/DatabaseModels/CephClusterOwnerTeam";
 import CephClusterOwnerUser from "Common/Models/DatabaseModels/CephClusterOwnerUser";
+import StorageArray from "Common/Models/DatabaseModels/StorageArray";
+import StorageArrayOwnerTeam from "Common/Models/DatabaseModels/StorageArrayOwnerTeam";
+import StorageArrayOwnerUser from "Common/Models/DatabaseModels/StorageArrayOwnerUser";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import DatabaseServerEndpoint from "Common/Models/DatabaseModels/DatabaseServerEndpoint";
 import DatabaseServerOwnerTeam from "Common/Models/DatabaseModels/DatabaseServerOwnerTeam";
@@ -1467,6 +1495,7 @@ import RunbookOwnerUser from "Common/Models/DatabaseModels/RunbookOwnerUser";
 import RunbookRule from "Common/Models/DatabaseModels/RunbookRule";
 import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRule";
 import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
+import AutoRemediationDecision from "Common/Models/DatabaseModels/AutoRemediationDecision";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import RunnerOwnerTeam from "Common/Models/DatabaseModels/RunnerOwnerTeam";
@@ -1572,6 +1601,10 @@ import CephClusterFeed from "Common/Models/DatabaseModels/CephClusterFeed";
 import CephClusterFeedService, {
   Service as CephClusterFeedServiceType,
 } from "Common/Server/Services/CephClusterFeedService";
+import StorageArrayFeed from "Common/Models/DatabaseModels/StorageArrayFeed";
+import StorageArrayFeedService, {
+  Service as StorageArrayFeedServiceType,
+} from "Common/Server/Services/StorageArrayFeedService";
 import DatabaseServerFeed from "Common/Models/DatabaseModels/DatabaseServerFeed";
 import DatabaseServerFeedService, {
   Service as DatabaseServerFeedServiceType,
@@ -2230,6 +2263,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<CephClusterFeed, CephClusterFeedServiceType>(
         CephClusterFeed,
         CephClusterFeedService,
+      ).getRouter(),
+    );
+
+    // Storage array feed
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<StorageArrayFeed, StorageArrayFeedServiceType>(
+        StorageArrayFeed,
+        StorageArrayFeedService,
       ).getRouter(),
     );
 
@@ -2952,6 +2994,22 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<StorageArrayOwnerRule, StorageArrayOwnerRuleServiceType>(
+        StorageArrayOwnerRule,
+        StorageArrayOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<StorageArrayLabelRule, StorageArrayLabelRuleServiceType>(
+        StorageArrayLabelRule,
+        StorageArrayLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<DatabaseServerOwnerRule, DatabaseServerOwnerRuleServiceType>(
         DatabaseServerOwnerRule,
         DatabaseServerOwnerRuleService,
@@ -3312,6 +3370,11 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new CephResourceAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new StorageArrayResourceAPI().getRouter(),
     );
 
     app.use(
@@ -3925,6 +3988,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         AutoRemediationSuggestion,
         AutoRemediationSuggestionService,
+      ).getRouter(),
+    );
+
+    // Read-only: the rule engine writes these (AutoRemediationDecisionRecorder).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AutoRemediationDecision, AutoRemediationDecisionServiceType>(
+        AutoRemediationDecision,
+        AutoRemediationDecisionService,
       ).getRouter(),
     );
 
@@ -4700,6 +4772,30 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<CephClusterOwnerUser, CephClusterOwnerUserServiceType>(
         CephClusterOwnerUser,
         CephClusterOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<StorageArray, StorageArrayServiceType>(
+        StorageArray,
+        StorageArrayService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<StorageArrayOwnerTeam, StorageArrayOwnerTeamServiceType>(
+        StorageArrayOwnerTeam,
+        StorageArrayOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<StorageArrayOwnerUser, StorageArrayOwnerUserServiceType>(
+        StorageArrayOwnerUser,
+        StorageArrayOwnerUserService,
       ).getRouter(),
     );
 
@@ -5535,8 +5631,14 @@ const BaseAPIFeatureSet: FeatureSet = {
     // AI code-fix readiness — the gates the AI Tasks page renders
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIReadinessAPI);
 
+    // What a project's AI used today, against its own daily AI limits
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIDailyUsageAPI);
+
     // AI SRE — live incident investigation panel data
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIInvestigationAPI);
+
+    // The AI section of the Incidents and Alerts menus: AI Insights and Logs.
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, IncidentAlertAiActivityAPI);
 
     // AI SRE — the shared conversation in the investigation box
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIInvestigationConversationAPI);

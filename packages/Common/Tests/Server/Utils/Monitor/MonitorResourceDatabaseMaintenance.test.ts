@@ -135,6 +135,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { mockProjectStates } from "../../TestingUtils/Services/ProjectStatesHelper";
 
 // The house workaround for @jest/globals vs @types/jest spy typing.
 type SpyLike = {
@@ -405,6 +406,11 @@ function databaseIdsOf(model: Incident | Alert): Array<string> {
 
 describe("MonitorResourceUtil.monitorResource: scheduled maintenance on a database", () => {
   beforeEach(() => {
+    /*
+     * The project's incident and alert states: open records are read by
+     * the states that are not resolved (Common/Utils/ResolvedState).
+     */
+    mockProjectStates();
     jest.clearAllMocks();
 
     maintenanceEvents = [];

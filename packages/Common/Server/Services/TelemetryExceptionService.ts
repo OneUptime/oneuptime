@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/TelemetryException";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import AIRun from "../../Models/DatabaseModels/AIRun";
@@ -34,6 +34,26 @@ import PullRequestState from "../../Types/CodeRepository/PullRequestState";
 import { normalizeExceptionText } from "../Utils/Telemetry/ExceptionSanitizer";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
+import TelemetryReadScopeUtil, {
+  TelemetryReadScope,
+} from "../Utils/Telemetry/TelemetryReadScope";
+import { Raw, SelectQueryBuilder } from "typeorm";
+import ReadPermission from "../Types/Database/Permissions/ReadPermission";
+import AnalyticsModelPermission from "../Types/AnalyticsDatabase/ModelPermission";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
+import CountBy from "../Types/Database/CountBy";
+import DeleteBy from "../Types/Database/DeleteBy";
+import FindBy from "../Types/Database/FindBy";
+import { OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
+import TablePermission from "../Types/Database/Permissions/TablePermission";
+import QueryUtil from "../Types/Database/QueryUtil";
+import UpdateBy from "../Types/Database/UpdateBy";
+import PerProjectReadScope from "../Utils/Telemetry/PerProjectReadScope";
+import { combineWithPrivacyClause } from "../Utils/PrivacyFilterUtil";
+import HeldPermissionsUtil from "../../Types/HeldPermissions";
+import { FindWhereProperty } from "../../Types/BaseDatabase/Query";
+import PositiveNumber from "../../Types/PositiveNumber";
+import Text from "../../Types/Text";
 
 /*
  * Hard cap on the fingerprint NOT IN list handed to the ClickHouse count
@@ -71,9 +91,250 @@ export interface DashboardSummaryResult {
   serviceSummaries: Array<DashboardServiceSummary>;
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * AN EXCEPTION GROUP IS READ AS THE TELEMETRY IT CAME FROM.
+   *
+   * primaryEntityId names the resource whose telemetry reported the
+   * exception - a service, a host, a cluster ... - or the project, for
+   * telemetry that names none. Reads, counts, updates and deletes reach only
+   * the groups of the resources the caller's grants for that operation
+   * reach, by the rule every telemetry read follows (TelemetryReadScope): a
+   * grant over the whole project reaches every group, a label grant the
+   * groups of the resources carrying its labels, an Owned grant those of the
+   * resources the caller or one of their teams own (and the project's
+   * unattributed ones), and a block with labels takes away the groups of the
+   * resources carrying them. The occurrences behind a group (ExceptionInstance)
+   * follow the same scope, so the list, its counts and the occurrences agree.
+   */
+  @CaptureSpan()
+  protected override async onBeforeFind(
+    findBy: FindBy<Model>,
+  ): Promise<OnFind<Model>> {
+    findBy.query = await this.addExceptionScope(
+      findBy.query,
+      findBy.props,
+      DatabaseRequestType.Read,
+    );
+
+    return { findBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  public override async countBy(
+    countBy: CountBy<Model>,
+  ): Promise<PositiveNumber> {
+    countBy.query = await this.addExceptionScope(
+      countBy.query,
+      countBy.props,
+      DatabaseRequestType.Read,
+    );
+
+    return super.countBy(countBy);
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
+    updateBy.query = await this.addExceptionScope(
+      updateBy.query,
+      updateBy.props,
+      DatabaseRequestType.Update,
+    );
+
+    return { updateBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    deleteBy.query = await this.addExceptionScope(
+      deleteBy.query,
+      deleteBy.props,
+      DatabaseRequestType.Delete,
+    );
+
+    return { deleteBy, carryForward: null };
+  }
+
+  /*
+   * Narrows a query on exception groups to the caller's scope for the
+   * operation (see above): on the group's resource for a read in one
+   * project, and on the group's id, project by project, for a read across
+   * the caller's projects (PerProjectReadScope). Left alone for root,
+   * master admins and callers whose grants reach every resource with
+   * nothing blocked.
+   */
+  public async addExceptionScope<TQuery>(
+    query: TQuery,
+    props: DatabaseCommonInteractionProps,
+    operation: DatabaseRequestType,
+  ): Promise<TQuery> {
+    if (props.isRoot || props.isMasterAdmin) {
+      return query;
+    }
+
+    // A copy: the caller's own query object is left as it was.
+    const record: Record<string, unknown> = {
+      ...((query || {}) as Record<string, unknown>),
+    };
+
+    if (PerProjectReadScope.isAcrossProjects(props)) {
+      const clause: FindWhereProperty<any> | null =
+        await PerProjectReadScope.getClauseAcrossProjects({
+          props: props,
+          tableName: new Model().tableName || "TelemetryException",
+          getClauseInProject: async (
+            projectProps: DatabaseCommonInteractionProps,
+          ): Promise<FindWhereProperty<any> | null> => {
+            return this.getScopeIdClause(
+              await this.getExceptionScope(projectProps, operation),
+            );
+          },
+        });
+
+      if (!clause) {
+        return query;
+      }
+
+      const idQuery: Record<string, unknown> = QueryUtil.serializeQuery(Model, {
+        _id: record["_id"],
+      } as never) as Record<string, unknown>;
+
+      record["_id"] = combineWithPrivacyClause(
+        this.getSupportedFilter(idQuery["_id"], "_id"),
+        clause,
+      );
+
+      return record as unknown as TQuery;
+    }
+
+    const clause: FindWhereProperty<any> | null = this.getScopeKeyClause(
+      await this.getExceptionScope(props, operation),
+    );
+
+    if (!clause) {
+      return query;
+    }
+
+    const keyQuery: Record<string, unknown> = QueryUtil.serializeQuery(Model, {
+      primaryEntityId: record["primaryEntityId"],
+    } as never) as Record<string, unknown>;
+
+    record["primaryEntityId"] = combineWithPrivacyClause(
+      this.getSupportedFilter(keyQuery["primaryEntityId"], "primaryEntityId"),
+      clause,
+    );
+
+    return record as unknown as TQuery;
+  }
+
+  /*
+   * Whose exception groups the caller may reach in their project for an
+   * operation: the grants the model's list for it gives, by the rule every
+   * telemetry read follows (AnalyticsModelPermission.getReadScopeForPermissions).
+   * A block with no labels refuses.
+   */
+  private async getExceptionScope(
+    props: DatabaseCommonInteractionProps,
+    operation: DatabaseRequestType,
+  ): Promise<TelemetryReadScope> {
+    const model: Model = new Model();
+
+    return await AnalyticsModelPermission.getReadScopeForPermissions({
+      props: props,
+      permissions: TablePermission.getTablePermission(Model, operation),
+      wildcard: HeldPermissionsUtil.getModelWildcard({
+        isOperationalResource: model.isOperationalResource,
+        operation: operation,
+      }),
+      includeProjectScope: true,
+      recordName: model.pluralName || "Exceptions",
+      operation: operation,
+    });
+  }
+
+  /*
+   * The scope as a condition on a group's resource, or null when it reaches
+   * every resource. A group whose resource is not recorded belongs to none,
+   * so a block with labels leaves it.
+   */
+  private getScopeKeyClause(
+    scope: TelemetryReadScope,
+  ): FindWhereProperty<any> | null {
+    if (TelemetryReadScopeUtil.isProjectWide(scope)) {
+      return null;
+    }
+
+    const readableIds: Array<string> | null =
+      TelemetryReadScopeUtil.getReadableIds(scope);
+
+    if (readableIds !== null) {
+      return QueryHelper.any(
+        readableIds.length > 0
+          ? readableIds
+          : [TelemetryReadScopeUtil.NO_RESOURCE_ID],
+      );
+    }
+
+    return QueryHelper.notInOrNull(TelemetryReadScopeUtil.getBlockedIds(scope));
+  }
+
+  // The same condition on a group's id, for a read across projects.
+  private getScopeIdClause(
+    scope: TelemetryReadScope,
+  ): FindWhereProperty<any> | null {
+    if (TelemetryReadScopeUtil.isProjectWide(scope)) {
+      return null;
+    }
+
+    const table: string = (
+      new Model().tableName || "TelemetryException"
+    ).replace(/"/g, '""');
+    const readableIds: Array<string> | null =
+      TelemetryReadScopeUtil.getReadableIds(scope);
+    const idsRid: string = "exceptionScope_" + Text.generateRandomText(10);
+
+    if (readableIds !== null) {
+      return Raw(
+        (alias: string): string => {
+          return `${alias} IN (SELECT "${table}"."_id" FROM "${table}" WHERE "${table}"."primaryEntityId" IN (:...${idsRid}))`;
+        },
+        {
+          [idsRid]:
+            readableIds.length > 0
+              ? readableIds
+              : [TelemetryReadScopeUtil.NO_RESOURCE_ID],
+        },
+      );
+    }
+
+    return Raw(
+      (alias: string): string => {
+        return `${alias} NOT IN (SELECT "${table}"."_id" FROM "${table}" WHERE "${table}"."primaryEntityId" IN (:...${idsRid}))`;
+      },
+      { [idsRid]: TelemetryReadScopeUtil.getBlockedIds(scope) },
+    );
+  }
+
+  /*
+   * A caller's filter on the column the scope is added to, once serialized,
+   * as the read block keeps one (ReadPermission.getSupportedFilter): a shape
+   * that cannot be kept next to the scope is refused, not dropped.
+   */
+  private getSupportedFilter(serialized: unknown, column: string): unknown {
+    return ReadPermission.getSupportedFilter(
+      serialized,
+      `Unsupported filter on ${column}: use one id, a list of ids, or a query operator.`,
+    );
   }
 
   /*
@@ -859,9 +1120,43 @@ export class Service extends DatabaseService<Model> {
       totalOccurrences: string | null;
     }
 
-    const rows: Array<AggregateRow> = (await this.getQueryBuilder(
-      "TelemetryException",
-    )
+    /*
+     * The raw GROUP BY below reads every group of the project, so it is
+     * narrowed here to the resources whose exceptions the caller may read -
+     * the scope every read of exception groups follows (addExceptionScope).
+     */
+    const scope: TelemetryReadScope = await this.getExceptionScope(
+      props,
+      DatabaseRequestType.Read,
+    );
+
+    const readableIds: Array<string> | null =
+      TelemetryReadScopeUtil.getReadableIds(scope);
+    const blockedIds: Array<string> =
+      TelemetryReadScopeUtil.getBlockedIds(scope);
+
+    if (readableIds !== null && readableIds.length === 0) {
+      return [];
+    }
+
+    const queryBuilder: SelectQueryBuilder<Model> =
+      this.getQueryBuilder("TelemetryException");
+
+    if (readableIds !== null) {
+      queryBuilder.andWhere(
+        `"TelemetryException"."primaryEntityId" IN (:...readableResourceIds)`,
+        { readableResourceIds: readableIds },
+      );
+    }
+
+    if (blockedIds.length > 0) {
+      queryBuilder.andWhere(
+        `"TelemetryException"."primaryEntityId" NOT IN (:...blockedResourceIds)`,
+        { blockedResourceIds: blockedIds },
+      );
+    }
+
+    const rows: Array<AggregateRow> = (await queryBuilder
       .select(`"TelemetryException"."primaryEntityId"`, "primaryEntityId")
       .addSelect(
         `"TelemetryException"."primaryEntityType"`,
@@ -872,7 +1167,7 @@ export class Service extends DatabaseService<Model> {
         `COALESCE(SUM("TelemetryException"."occuranceCount"), 0)`,
         "totalOccurrences",
       )
-      .where(`"TelemetryException"."projectId" = :projectId`, {
+      .andWhere(`"TelemetryException"."projectId" = :projectId`, {
         projectId: projectId.toString(),
       })
       .andWhere(`"TelemetryException"."isResolved" = false`)

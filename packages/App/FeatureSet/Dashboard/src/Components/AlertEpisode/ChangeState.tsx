@@ -1,4 +1,6 @@
 import BadDataException from "Common/Types/Exception/BadDataException";
+import { StateListType } from "Common/Utils/StateOrder";
+import ResolvedStateUtil from "Common/Utils/ResolvedState";
 import ObjectID from "Common/Types/ObjectID";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
@@ -7,6 +9,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertEpisodeStateTimeline from "Common/Models/DatabaseModels/AlertEpisodeStateTimeline";
+import AlertEpisodeInternalNote from "Common/Models/DatabaseModels/AlertEpisodeInternalNote";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -154,6 +157,7 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
             isCreatedState: true,
             name: true,
             color: true,
+            order: true,
           },
           sort: {
             order: SortOrder.Ascending,
@@ -287,11 +291,12 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
     },
   );
 
-  const resolvedState: AlertState | undefined = alertStates.find(
-    (state: AlertState) => {
-      return state.isResolvedState;
-    },
-  );
+  // Where Resolve moves the episode: the project's resolved state.
+  const resolvedState: AlertState | undefined =
+    ResolvedStateUtil.getResolvedState({
+      list: StateListType.AlertState,
+      states: alertStates,
+    }) || undefined;
 
   type GetStateIndexFunction = (state: AlertState | undefined) => number;
 
@@ -345,10 +350,12 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
     // Alert episodes have no declaredAt: they start when they are created.
     startedAt: episode?.createdAt || undefined,
     resolvedAt: episode?.resolvedAt || undefined,
+    list: StateListType.AlertState,
     states: alertStates.map((state: AlertState) => {
       return {
         id: state.id?.toString() || "",
         name: state.name,
+        order: state.order,
         isAcknowledgedState: state.isAcknowledgedState,
         isResolvedState: state.isResolvedState,
       };
@@ -402,7 +409,16 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
     modalDescription = translationKey(
       "This records an acknowledgement on the episode timeline and also updates all alerts in this episode. Any on-call escalation for the episode and its alerts stops.",
     );
-  } else if (selectedAlertState?.isResolvedState) {
+  } else if (
+    // A move that resolves it: into a resolved state, from one that is not.
+    selectedAlertState &&
+    ResolvedStateUtil.isResolved({
+      list: StateListType.AlertState,
+      states: alertStates,
+      stateId: selectedAlertState.id,
+    }) &&
+    !timing.isResolved
+  ) {
     modalTitle = translationKey("Resolve Episode");
     modalSubmitButtonText = translationKey("Resolve");
     modalDescription = translationKey(
@@ -523,6 +539,8 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
                 "Post a private note about this state change.",
               ),
               noteTemplates: noteTemplates,
+              // Offered only to someone who may post a private note.
+              noteModel: new AlertEpisodeInternalNote(),
             }),
             formType: FormType.Create,
           }}

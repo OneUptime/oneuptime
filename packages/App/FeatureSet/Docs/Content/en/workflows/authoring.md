@@ -62,7 +62,7 @@ Below that, from top to bottom:
 The footer holds:
 
 - **Delete** — remove this block. It asks first, and names the block by its kind and identifier, such as **Send Email (send-email-2)**, so you know which of several alike blocks goes.
-- **Run just this step** — run this one block on its own, without the rest of the workflow. Values it would have read from other steps come through empty, and anything it sends, writes or deletes really happens.
+- **Run just this step** — run this one block on its own, without the rest of the workflow. Values it would have read from other steps come through empty, and anything it sends, writes or deletes really happens. It skips every condition before the block, so only people who can edit the workflow can use it.
 
 ### Using values from earlier blocks
 
@@ -117,7 +117,7 @@ To pause a workflow without deleting it, switch **Enabled** off. No new runs sta
 - Drag blocks to move them. The layout is saved.
 - To delete a line, drag either of its ends off the dot and drop it on empty canvas.
 - To delete a block, click it and use **Delete** at the bottom of its settings dialog. Selecting a block or a line and pressing Backspace also removes it.
-- There's no way to duplicate a single block. **Duplicate Workflow** on the workflow's **Settings** page copies the whole thing, and the copy lands disabled.
+- There's no way to duplicate a single block. **Duplicate Workflow** on the workflow's **Settings** page copies the whole thing. The copy's name is filled in, numbered past the project's workflows ("Nightly Sync" is copied as "Nightly Sync 2"), and the copy opens, disabled.
 - Stack blocks top to bottom so they read in the direction they run — inputs are on the top edge, outputs on the bottom, so the flow naturally goes downward.
 
 ## Where to read next

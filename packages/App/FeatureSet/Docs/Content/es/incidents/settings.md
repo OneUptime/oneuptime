@@ -12,7 +12,6 @@ Abre **Incidentes** en la navegación izquierda y despliega **Ajustes** al final
 
 | Página                       | Qué haces ahí                                                                                                       |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| **IA**                       | Activar o desactivar la investigación automática, las correcciones de código automáticas y los borradores de post-mortem, y fijar los límites opcionales con los que trabaja la IA: ninguno se aplica hasta que lo fijas. Consulta [AI SRE](/docs/ai/ai-sre). |
 | **Estado del Incidente**     | Añadir, renombrar, recolorear y reordenar los estados por los que pasa un incidente.                                |
 | **Gravedad del Incidente**   | Añadir, renombrar, recolorear y reordenar los niveles de severidad.                                                  |
 | **Plantillas de Incidentes** | Rellenar de antemano un incidente entero: título, descripción, recursos, políticas de guardia, propietarios y etiquetas. |
@@ -22,9 +21,11 @@ Abre **Incidentes** en la navegación izquierda y despliega **Ajustes** al final
 | **Roles de Incidente**       | Definir los roles a los que asignas a quienes responden, como Incident Commander.                                   |
 | **Prefijo de número**              | Los prefijos de número de incidente y de episodio de incidente.                                                     |
 
+Lo que OneUptime AI hace por su cuenta no se configura aquí: tiene una sección propia, **Incidentes → IA**, en rutas que empiezan por `/dashboard/{projectId}/incidents/ai/`. Su página **Ajustes** activa o desactiva la investigación automática, las correcciones de código automáticas y los borradores de post-mortem, y guarda los límites opcionales con los que trabaja la IA: ninguno se aplica hasta que lo fijas. Al lado están las **Reglas de autorremediación**, con **Análisis** y **Registros**: lo que la IA aprendió de tus incidentes y todo lo que hizo. Consulta [AI SRE](/docs/ai/ai-sre).
+
 **Estado del Incidente** y **Gravedad del Incidente** se tratan a fondo en [Estados y severidades de incidentes](/docs/incidents/states-and-severities); el resto de esta página arranca a partir de **Plantillas de Incidentes**.
 
-Despliega **Reglas** y aparecen nueve pantallas más: **Reglas de Agrupación**, **Reglas de guardia**, **Reglas del propietario**, **Reglas de runbook**, **Reglas de autorremediación**, **Reglas de privacidad**, **Reglas de etiquetas**, **Reglas de SLA** y **Reminder Rules**. Las vemos más abajo.
+Despliega **Reglas** y aparecen ocho pantallas más: **Reglas de Agrupación**, **Reglas de guardia**, **Reglas del propietario**, **Reglas de runbook**, **Reglas de privacidad**, **Reglas de etiquetas**, **Reglas de SLA** y **Reminder Rules**. Las vemos más abajo.
 
 ## Plantillas de incidente
 
@@ -116,13 +117,13 @@ Un prefijo nuevo solo se aplica a los incidentes y episodios creados después. L
 
 ## Reglas que se ejecutan al crear un incidente
 
-**Incidentes → Reglas** reúne nueve motores de reglas. Todos hacen el mismo trabajo —mirar un incidente en cuanto se crea y actuar si coincide—, pero se diferencian en lo que hacen y en cómo se resuelven varias reglas coincidentes.
+**Incidentes → Reglas** reúne ocho motores de reglas, e **Incidentes → IA**, un noveno: las **Reglas de autorremediación**. Todos hacen el mismo trabajo —mirar un incidente en cuanto se crea y actuar si coincide—, pero se diferencian en lo que hacen y en cómo se resuelven varias reglas coincidentes.
 
 - **Reglas de Agrupación** — agrupan incidentes relacionados en episodios. Las reglas se evalúan por orden de prioridad; los números de prioridad más bajos van primero.
 - **Reglas de guardia** — ejecutan políticas de guardia para los incidentes coincidentes. Las vemos en detalle más abajo.
 - **Reglas del propietario** — asignan propietarios automáticamente.
 - **Reglas de runbook** — arrancan un [runbook](/docs/runbooks/index) cuando un incidente coincide.
-- **Reglas de autorremediación** — proponen o arrancan runbooks de remediación cuando un incidente coincide. Si hay una investigación de IA en cola para el incidente, se ejecutan cuando termina, con su análisis a mano. Consulta [AI SRE](/docs/ai/ai-sre).
+- **Reglas de autorremediación**, en **IA** — proponen o arrancan runbooks de remediación cuando un incidente coincide. Si hay una investigación de IA en cola para el incidente, se ejecutan cuando termina, con su análisis a mano. Consulta [AI SRE](/docs/ai/ai-sre).
 - **Reglas de privacidad** — deciden si un incidente coincidente es privado.
 - **Reglas de etiquetas** — aplican etiquetas automáticamente.
 - **Reglas de SLA** — hacen seguimiento de los tiempos de respuesta y resolución. Las reglas se evalúan en orden; los números de orden más bajos van primero.

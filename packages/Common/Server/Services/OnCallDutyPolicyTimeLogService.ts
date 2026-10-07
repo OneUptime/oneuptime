@@ -1,12 +1,22 @@
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/OnCallDutyPolicyTimeLog";
 import QueryHelper from "../Types/Database/QueryHelper";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * Time logs are written by OneUptime as people go on and off call, for
+   * whoever the roster names at that moment - who may have left the project
+   * since. Refusing one would only lose the log. A time log written by an API
+   * call or a workflow is checked like any other write.
+   */
+  protected override checksServerWrites(): boolean {
+    return false;
   }
 
   public async startTimeLogForUser(data: {

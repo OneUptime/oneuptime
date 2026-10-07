@@ -2,7 +2,7 @@ import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/LogDropFilter";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate } from "../Types/Database/Hooks";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
@@ -38,9 +38,15 @@ export class Service extends DatabaseService<Model> {
     return { createBy, carryForward: null };
   }
 
-  protected override async onBeforeUpdate(
+  /*
+   * Runs once the caller has passed the permission checks, with the query
+   * narrowed to the rows they may write - so the stored rows read below to
+   * merge the update over are never another project's, and a refusal never
+   * describes one.
+   */
+  protected override async onBeforeUpdateUniqueCheck(
     updateBy: UpdateBy<Model>,
-  ): Promise<OnUpdate<Model>> {
+  ): Promise<void> {
     /*
      * An update can make a row invalid without naming every field: flipping
      * `action` to "sample" while the stored `samplePercentage` is null, or
@@ -61,7 +67,7 @@ export class Service extends DatabaseService<Model> {
       incomingFilterQuery !== undefined;
 
     if (!touchesValidatedFields) {
-      return { updateBy, carryForward: null };
+      return;
     }
 
     if (
@@ -70,7 +76,7 @@ export class Service extends DatabaseService<Model> {
       isSqlExpressionValue(incomingFilterQuery)
     ) {
       // Cannot evaluate a raw SQL expression here. See isSqlExpressionValue.
-      return { updateBy, carryForward: null };
+      return;
     }
 
     const existingRows: Array<Model> = await this.findBy({
@@ -106,8 +112,6 @@ export class Service extends DatabaseService<Model> {
 
       validateDropFilter(merged, VALIDATION_OPTIONS);
     }
-
-    return { updateBy, carryForward: null };
   }
 
   /*

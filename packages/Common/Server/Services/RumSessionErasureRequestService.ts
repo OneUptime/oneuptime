@@ -1,10 +1,11 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model, {
   RumSessionErasureRequestStatus,
   RumSessionErasureRequestType,
 } from "../../Models/DatabaseModels/RumSessionErasureRequest";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import OneUptimeDate from "../../Types/Date";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import CreateBy from "../Types/Database/CreateBy";
@@ -21,7 +22,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
  * be executed is worse than a rejected one - the requester believes their
  * data is gone.
  */
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -30,6 +31,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     const requestType: RumSessionErasureRequestType | undefined =
       createBy.data.requestType;
 
@@ -70,12 +73,19 @@ export class Service extends DatabaseService<Model> {
      * (not cascaded) when the application is deleted - which is precisely
      * when the erasure still needs to run.
      */
+    // The application under either of its names (the two must agree).
+    const rumApplicationId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      createBy.data as unknown as Record<string, unknown>,
+      ["rumApplicationId", "rumApplication"],
+      "RUM Application",
+    );
+
     if (
       requestType === RumSessionErasureRequestType.ByRumApplication &&
-      createBy.data.rumApplicationId &&
+      rumApplicationId &&
       !createBy.data.targetValue
     ) {
-      createBy.data.targetValue = createBy.data.rumApplicationId.toString();
+      createBy.data.targetValue = rumApplicationId.toString();
     }
 
     /*
@@ -89,16 +99,18 @@ export class Service extends DatabaseService<Model> {
     createBy.data.sessionsDeleted = 0;
     createBy.data.chunksDeleted = 0;
 
+    /*
+     * Asked for by the person making the request. DatabaseService has
+     * already taken out whatever requestedByUser the request named, under
+     * both names (UserAttribution), so with no person on it - an API key -
+     * nobody is named as having asked.
+     */
     if (createBy.props.userId) {
-      createBy.data.requestedByUserId = createBy.props.userId;
-    } else {
-      /*
-       * No authenticated user (an API key, say). Deleting rather than
-       * leaving the field alone matters: a client-supplied value would
-       * otherwise persist and attribute the erasure to somebody who never
-       * asked for it.
-       */
-      delete createBy.data.requestedByUserId;
+      RelationIdUtil.stamp(
+        createBy.data as unknown as Record<string, unknown>,
+        ["requestedByUserId", "requestedByUser"],
+        createBy.props.userId,
+      );
     }
 
     return { createBy, carryForward: null };

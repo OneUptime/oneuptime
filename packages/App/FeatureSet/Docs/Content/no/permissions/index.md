@@ -54,6 +54,10 @@ Teamene **Owners** og **Admin** er bevisst låst: tillatelsene deres kan ikke re
 
 `ProjectOwner` er det høyeste tilgangsnivået: fakturering, sletting av prosjektet og alt en administrator kan gjøre. `ProjectAdmin` dekker alt bortsett fra fakturering og sletting av prosjektet.
 
+Å slå SMS, telefonanrop, WhatsApp eller Telegram av eller på for prosjektet regnes som fakturering, fordi hver melding koster penger. Bare `ProjectOwner`, rollen `BillingAdmin` (**Billing Admin**) og tillatelsen `ManageProjectBilling` (**Manage Billing**) kan endre disse bryterne, under **Prosjektinnstillinger > Varsler > Varselinnstillinger** — ikke `ProjectAdmin`.
+
+Å fylle på prosjektets forhåndsbetalte saldoer regnes også som fakturering. På OneUptime Cloud betales SMS, telefonanrop, WhatsApp og Telegram fra saldoen under **Prosjektinnstillinger > Varsler > Varselinnstillinger**, og KI fra AI-kredittene under **Prosjektinnstillinger > KI > AI-kreditter**. Bare en prosjekteier eller noen med **Manage Billing** kan fylle dem på eller endre **Automatisk påfylling** for dem — ikke en prosjektadministrator. En melding om en saldo som er i ferd med å gå tom, sier hvem som kan fylle den på, og bare de personene får en knapp **Fyll på saldo** som virker, eller en lenke til siden.
+
 Opprett så mange ekstra team du vil — «Frontend-vakt», «Support», «Skrivebeskyttede revisorer» — og gi hvert av dem tillatelsene det trenger.
 
 Hvor du finner det: **Innstillinger → Team**. Åpne et team for å komme til **Members** og **Permissions**; **Block Permissions** ligger under **More settings** nederst på Permissions-siden.
@@ -71,6 +75,8 @@ En rolle samler et helt produktområde på ett av tre nivåer:
 - **Viewer** — kun lesing.
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` og så videre. Roller er nesten alltid riktig valg — de forblir korrekte etter hvert som OneUptime får nye funksjoner, fordi en ny overvåkerrelatert tabell legges inn under de eksisterende overvåkerrollene i stedet for å kreve en ny tildeling fra deg.
+
+Arbeidsflyter er unntaket. En arbeidsflyt kjører trinnene sine inne i prosjektet, så `WorkflowMember` åpner arbeidsflyter og kjøringene deres og kjører dem for hånd, men oppretter, endrer eller sletter dem ikke. `WorkflowAdmin` bygger dem. Se [Konfigurasjon av arbeidsflyter](/docs/workflows/configuration).
 
 Alle {{PERMISSION_ROLE_COUNT}} rollene står i [Tillatelsesreferansen](/docs/permissions/reference).
 
@@ -93,7 +99,7 @@ Hvert team har to lister:
 
 En tillatelse kan ikke bære begrensningsetiketter i begge listene samtidig; OneUptime avviser den andre med en forklaring.
 
-Fordi en brukers tilgang er unionen på tvers av alle teamene vedkommende er med i, opphever en blokkering i ett team **ikke** en tillatelse i et annet. Blokkeringer begrenser teamet de er satt på. Har noen mer tilgang enn du venter, sjekk alle teamene vedkommende tilhører.
+En brukers tillatelser legges sammen på tvers av alle teamene vedkommende er med i, men en blokkering gjelder alt brukeren gjør: en blokkering uten etiketter i ett team fjerner funksjonen også der et annet team tillater den, og en blokkering gir aldri noe. Har noen mindre tilgang enn du venter, se etter en blokkering i hvert av teamene deres; har de mer, se etter en tillatelse i hvert team.
 
 ## Omfang: hvor langt en tillatt rettighet rekker
 
@@ -132,6 +138,16 @@ En etikettbegrensning er oppfylt hvis ressursen bærer **minst én** av tillatel
 
 Hvor du finner det: **Innstillinger → Etiketter**.
 
+## Telemetri
+
+Logger, sporinger, metrikker, unntak, profiler og øktavspillinger hører til ressursen som sendte dem: en tjeneste, en vert, en Kubernetes-klynge, en monitor, en RUM-applikasjon og lignende. En telemetritillatelse leser så langt omfanget rekker:
+
+- **Alle ressurser** leser telemetrien til alle ressursene i prosjektet.
+- **Eide** leser telemetrien til ressursene du eller et av teamene dine eier, og telemetri som ikke nevner noen ressurs.
+- **Etiketter** leser telemetrien til ressursene som bærer en av tillatelsens etiketter.
+
+En blokkering med etiketter på en telemetritillatelse utelater telemetrien til ressursene som bærer de etikettene, uansett hva annet du har. Det gjelder overalt der telemetri leses: utforskerne med sine diagrammer, filtre og attributtlister, eksporter, øktavspillinger og det AI-assistenten leser for deg. Listen over metrikknavn viser metrikkene som en tjeneste du kan lese rapporterer, og metrikkene ingen tjeneste rapporterer, for eksempel verts- og klyngemetrikker. Kan du også lese telemetrien til andre typer ressurser, for eksempel verter eller klynger, viser den alle metrikknavn.
+
 ## API-nøkler
 
 API-nøkler får tillatelser direkte på selve nøkkelen — de tilhører ikke team og påvirkes ikke av teammedlemskap.
@@ -150,10 +166,16 @@ For en innlogget bruker, i rekkefølge:
 
 1. Finn teamene brukeren tilhører i dette prosjektet — bare godtatte invitasjoner teller.
 2. Samle alle tillatelsesrader fra disse teamene — tillatte og blokkerte, hver med etiketter og omfang.
-3. Sjekk blokkeringslisten først. En treff-blokkering uten etiketter avviser forespørselen umiddelbart.
-4. Sjekk tillatelseslisten. Forespørselen trenger minst én tillatelse som måltabellen godtar for denne operasjonen.
+3. Sjekk blokkeringslisten først. En blokkering uten etiketter på en hvilken som helst tillatelse måltabellen godtar for denne operasjonen, avviser forespørselen umiddelbart, uansett hvilket team den er satt på.
+4. Sjekk tillatelseslisten. Forespørselen trenger minst én tillatelse som måltabellen godtar for denne operasjonen. For en driftsressurs — en overvåker, en hendelse, et dashbord og lignende — teller også den tilsvarende **All Operational Resources**-tillatelsen (Create, Read, Edit eller Delete), med mindre den selv er blokkert.
 5. Bruk omfanget. Tildelinger med omfanget Eide snevrer spørringen inn til eide ressurser; etikettbaserte snevrer inn til treffende etiketter. Er en annen tildeling for samme operasjon bredere, vinner den bredere.
-6. Bruk etikettblokkeringer. En blokkering med etiketter avviser forespørselen hvis målressursen bærer én av dem.
+6. Bruk etikettblokkeringer. En blokkering med etiketter avviser forespørselen hvis målressursen bærer én av dem. Når en post ikke har egne etiketter, for eksempel et notat på en hendelse eller en kunngjøring på en statusside, utelater en blokkering med etiketter på å lese den posten hvis en post den hører til, bærer en av de etikettene.
+
+Hvert felt i en post leses med postens egen lesetillatelse: en tillatelse for en annen type post åpner det aldri. Noen felt er bevisst snevrere. Hemmeligheter leses bare av personer som kan redigere eller administrere posten de hører til, for eksempel en monitors nøkler for innkommende forespørsler og innkommende e-post og dens serveragentnøkkel, eller et arbeidsflyts webhook- og e-postnøkler. Å se opptaket av en øktavspilling krever **Watch Session Replays**, ikke bare **List Session Replays**. Telemetri leses signal for signal: **Read Telemetry Service Log** leser logger, **Read Telemetry Service Traces** leser sporinger, og **Read Telemetry Service Metrics** leser metrikker, metrikkdiagrammer inkludert.
+
+Felt følger samme regel. En blokkering uten etiketter på tillatelsen til et felt fjerner feltet, og for en driftsressurs åpner den tilsvarende **All Operational Resources**-tillatelsen hvert felt som alle som kan lese eller endre posten, kan åpne — men ikke et felt som er bevisst snevrere, som en hemmelig nøkkel.
+
+Den samme regelen avgjør alt annet som spør om du har en tillatelse: handlinger som ikke er en enkel lesing eller skriving — å legge til SMS-, samtale- eller AI-kreditt, betale en faktura eller teste en varslingsregel — og knappene OneUptime viser. En knapp du ikke får bruke, vises låst og sier hvorfor; er en blokkering i et av teamene dine årsaken, navngir den den blokkerte tillatelsen.
 
 Enhver innlogget bruker har i tillegg et lite sett automatiske tillatelser som dekker ting som å lese sin egen profil og sine egne varslingsregler. Dette er ikke administratorrettigheter, og de gir ikke tilgang til andres data.
 

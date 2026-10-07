@@ -15,6 +15,7 @@ import Permission from "../../../../../Types/Permission";
 import UserType from "../../../../../Types/UserType";
 import { getJestSpyOn } from "../../../../Spy";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { ON_HIGHEST_PLAN } from "../../../TestingUtils/RequestPlan";
 
 /*
  * Every throw below is deliberate and asserted on, but @CaptureSpan hands each
@@ -143,6 +144,10 @@ const entryPoints: Array<EntryPoint> = [
 type PropsCase = [string, () => DatabaseCommonInteractionProps];
 
 // Callers with no credentials at all: the expired-session shape.
+/*
+ * A request naming a project carries the project's plan (CommonAPI reads it
+ * for every request with a tenant), signed in or not.
+ */
 const anonymousCases: Array<PropsCase> = [
   [
     "no props at all",
@@ -153,7 +158,7 @@ const anonymousCases: Array<PropsCase> = [
   [
     "a tenant but no user",
     (): DatabaseCommonInteractionProps => {
-      return { tenantId: ObjectID.generate() };
+      return { tenantId: ObjectID.generate(), ...ON_HIGHEST_PLAN };
     },
   ],
   [
@@ -165,7 +170,11 @@ const anonymousCases: Array<PropsCase> = [
   [
     "a Public caller with a tenant",
     (): DatabaseCommonInteractionProps => {
-      return { tenantId: ObjectID.generate(), userType: UserType.Public };
+      return {
+        tenantId: ObjectID.generate(),
+        userType: UserType.Public,
+        ...ON_HIGHEST_PLAN,
+      };
     },
   ],
 ];
@@ -178,7 +187,11 @@ const credentialedCases: Array<PropsCase> = [
   [
     "a signed-in user",
     (): DatabaseCommonInteractionProps => {
-      return { userId: ObjectID.generate(), tenantId: ObjectID.generate() };
+      return {
+        userId: ObjectID.generate(),
+        tenantId: ObjectID.generate(),
+        ...ON_HIGHEST_PLAN,
+      };
     },
   ],
   [
@@ -190,7 +203,11 @@ const credentialedCases: Array<PropsCase> = [
   [
     "a project API key (no user)",
     (): DatabaseCommonInteractionProps => {
-      return { tenantId: ObjectID.generate(), userType: UserType.API };
+      return {
+        tenantId: ObjectID.generate(),
+        userType: UserType.API,
+        ...ON_HIGHEST_PLAN,
+      };
     },
   ],
   [
@@ -351,6 +368,7 @@ describe("ModelPermission: anonymous refusals become 401 (stubbed underlying che
 
       const props: DatabaseCommonInteractionProps = {
         tenantId: ObjectID.generate(),
+        ...ON_HIGHEST_PLAN,
       };
 
       await expect(entry.call(props)).resolves.toBe(sentinel);

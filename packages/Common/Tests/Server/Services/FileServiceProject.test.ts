@@ -73,6 +73,19 @@ async function stampedProject(
   return result.createBy.data.projectId as ObjectID | null | undefined;
 }
 
+/*
+ * Access to PROJECT_ID, as the request was resolved with for a member or an
+ * API key of it: an upload goes only into a project its uploader can act in.
+ */
+const PROJECT_ACCESS: Partial<DatabaseCommonInteractionProps> = {
+  userTenantAccessPermission: {
+    [PROJECT_ID.toString()]: {
+      projectId: PROJECT_ID,
+      permissions: [],
+    },
+  },
+} as unknown as Partial<DatabaseCommonInteractionProps>;
+
 afterEach(() => {
   jest.restoreAllMocks();
 });
@@ -86,6 +99,7 @@ describe("File.projectId: the project a file was uploaded in", () => {
             props: {
               userId: new ObjectID("5d7f3c0a-4c55-4d3e-9a3e-2d4a7d1c9f03"),
               tenantId: PROJECT_ID,
+              ...PROJECT_ACCESS,
             },
           }),
         ),
@@ -99,7 +113,7 @@ describe("File.projectId: the project a file was uploaded in", () => {
         String(
           await stampedProject(
             upload({
-              props: { tenantId: PROJECT_ID },
+              props: { tenantId: PROJECT_ID, ...PROJECT_ACCESS },
               projectId: claimed,
             }),
           ),

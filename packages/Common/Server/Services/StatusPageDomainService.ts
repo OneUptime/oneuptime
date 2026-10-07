@@ -12,7 +12,7 @@ import { CertificateOrderReason } from "../Utils/Greenlock/CertificateOrderBudge
 import CertificateOrderFailures from "../Utils/Greenlock/CertificateOrderFailures";
 import CertificateReissueOrder from "../Utils/Greenlock/CertificateReissueOrder";
 import logger, { LogAttributes } from "../Utils/Logger";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import DomainService from "./DomainService";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../Types/API/HTTPResponse";
@@ -20,6 +20,7 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import AcmeCertificate from "../../Models/DatabaseModels/AcmeCertificate";
 import DomainModel from "../../Models/DatabaseModels/Domain";
 import StatusPageDomain from "../../Models/DatabaseModels/StatusPageDomain";
@@ -36,7 +37,7 @@ import { CustomDomainCertificate } from "../../Types/CustomDomain/CustomDomainCe
 
 const STATUS_PAGE_DOMAIN_EGRESS_LABEL: string = "Status page domain";
 
-export class Service extends DatabaseService<StatusPageDomain> {
+export class Service extends ProjectReferencesService<StatusPageDomain> {
   /*
    * How many status pages the provisioning sweep checks at once. Each check is
    * one bounded request out to a customer domain, so this is about not letting
@@ -115,6 +116,8 @@ export class Service extends DatabaseService<StatusPageDomain> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<StatusPageDomain>,
   ): Promise<OnUpdate<StatusPageDomain>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * Create-time validation alone leaves the value editable afterwards —
      * subdomain is ProjectMember-updatable.
@@ -132,10 +135,21 @@ export class Service extends DatabaseService<StatusPageDomain> {
   protected override async onBeforeCreate(
     createBy: CreateBy<StatusPageDomain>,
   ): Promise<OnCreate<StatusPageDomain>> {
+    await super.onBeforeCreate(createBy);
+
+    /*
+     * The domain under either of its names (the two must agree), kept in
+     * the ID column for the saved row.
+     */
+    const domainId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      createBy.data as unknown as Record<string, unknown>,
+      ["domainId", "domain"],
+      "Domain",
+    );
+
     const domain: DomainModel | null = await DomainService.findOneBy({
       query: {
-        _id:
-          createBy.data.domainId?.toString() || createBy.data.domain?._id || "",
+        _id: domainId?.toString() || "",
       },
       select: { domain: true, isVerified: true },
       props: {

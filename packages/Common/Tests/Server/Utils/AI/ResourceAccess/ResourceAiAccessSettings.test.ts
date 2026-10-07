@@ -8,11 +8,20 @@ import ResourceAiAccessSettings, {
   ResourceAiAccessWriteCarryForward,
 } from "../../../../../Server/Utils/AI/ResourceAccess/ResourceAiAccessSettings";
 import DatabaseService from "../../../../../Server/Services/DatabaseService";
+import ResourceAiAgentService from "../../../../../Server/Services/ResourceAiAgentService";
 import UserService from "../../../../../Server/Services/UserService";
 import { OnUpdate } from "../../../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../../../Server/Types/Database/UpdateBy";
 import logger from "../../../../../Server/Utils/Logger";
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import CephCluster from "../../../../../Models/DatabaseModels/CephCluster";
+import DatabaseServer from "../../../../../Models/DatabaseModels/DatabaseServer";
+import DockerHost from "../../../../../Models/DatabaseModels/DockerHost";
+import DockerSwarmCluster from "../../../../../Models/DatabaseModels/DockerSwarmCluster";
+import Host from "../../../../../Models/DatabaseModels/Host";
+import PodmanHost from "../../../../../Models/DatabaseModels/PodmanHost";
+import ProxmoxCluster from "../../../../../Models/DatabaseModels/ProxmoxCluster";
+import VMwareVCenter from "../../../../../Models/DatabaseModels/VMwareVCenter";
 import {
   RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS,
   RESOURCE_AI_ALLOWLIST_EXAMPLES,
@@ -267,13 +276,41 @@ describe("ResourceAiAccessSettings constants", () => {
     ]);
   });
 
-  it("starts a never-configured resource from the column defaults: investigation off, fixes Off", () => {
+  it("starts a never-configured resource from the column defaults: investigation on, fixes Off", () => {
     expect(NEVER_CONFIGURED_RESOURCE_AI_ACCESS).toEqual({
-      isAiInvestigationEnabled: false,
+      isAiInvestigationEnabled: true,
       aiRemediationMode: ResourceAiRemediationMode.Disabled,
       aiCommandAllowlist: [],
     });
   });
+
+  /*
+   * The snapshot IS the column defaults: it is the "before" a first write
+   * is judged and recorded against, so it must move with them.
+   */
+  it.each([
+    ["DockerHost", DockerHost],
+    ["PodmanHost", PodmanHost],
+    ["DockerSwarmCluster", DockerSwarmCluster],
+    ["ProxmoxCluster", ProxmoxCluster],
+    ["VMwareVCenter", VMwareVCenter],
+    ["CephCluster", CephCluster],
+    ["DatabaseServer", DatabaseServer],
+    ["Host", Host],
+  ])(
+    "matches %s's column defaults",
+    (_name: string, model: { new (): BaseModel }) => {
+      const instance: BaseModel = new model();
+
+      expect(
+        instance.getTableColumnMetadata("isAiInvestigationEnabled")
+          .defaultValue,
+      ).toBe(NEVER_CONFIGURED_RESOURCE_AI_ACCESS.isAiInvestigationEnabled);
+      expect(
+        instance.getTableColumnMetadata("aiRemediationMode").defaultValue,
+      ).toBe(NEVER_CONFIGURED_RESOURCE_AI_ACCESS.aiRemediationMode);
+    },
+  );
 });
 
 describe("ResourceAiAccessSettings.validateSettings", () => {
@@ -736,6 +773,19 @@ describe("ResourceAiAccessSettings.checkUpdate", () => {
 
   beforeEach(() => {
     service = fakeService([row()]);
+    /*
+     * Investigation and fixes chosen in OneUptime: no agent reports them
+     * (one older than these settings, or none yet). What happens while an
+     * agent sets them is ResourceAiSettingsSetByAgent.test.ts's business;
+     * the last tests here pin only that it comes before who may loosen.
+     */
+    jest
+      .spyOn(ResourceAiAgentService, "getAiSettingsSourcesForResources")
+      .mockResolvedValue(new Map());
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   function check(
@@ -806,6 +856,9 @@ describe("ResourceAiAccessSettings.checkUpdate", () => {
           isAiInvestigationEnabled: true,
           aiRemediationMode: ResourceAiRemediationMode.RequireApproval,
           aiCommandAllowlist: ["docker stop web"],
+          // Where they are set, read with them: chosen in OneUptime here.
+          aiAccessConfiguredAt: null,
+          aiSettingsSource: "oneuptime",
         },
       },
     });
@@ -938,6 +991,70 @@ describe("ResourceAiAccessSettings.checkUpdate", () => {
         propsWith(Permission.SettingsMember),
       ),
     ).rejects.toThrow(NotAuthorizedException);
+  });
+
+  it("set by the agent: a change is refused for everyone, master admins too, before who may loosen", async () => {
+    jest
+      .spyOn(ResourceAiAgentService, "getAiSettingsSourcesForResources")
+      .mockResolvedValue(
+        new Map([
+          [RESOURCE_ID.toString().toLowerCase(), "agent_configuration"],
+        ]),
+      );
+
+    for (const props of [
+      propsWith(Permission.SettingsMember),
+      propsWith(Permission.ProjectOwner),
+      { isMasterAdmin: true, userId: ObjectID.generate() },
+    ]) {
+      await expect(
+        check(
+          { aiRemediationMode: ResourceAiRemediationMode.Automatic },
+          props,
+        ),
+      ).rejects.toThrow(BadDataException);
+    }
+    await expect(
+      check(
+        { aiRemediationMode: ResourceAiRemediationMode.Automatic },
+        propsWith(Permission.SettingsMember),
+      ),
+    ).rejects.toThrow(/ONEUPTIME_AI_FIXES/);
+    expect(service.updateBy).not.toHaveBeenCalled();
+  });
+
+  it("set by the agent: re-posting what the resource has passes", async () => {
+    jest
+      .spyOn(ResourceAiAgentService, "getAiSettingsSourcesForResources")
+      .mockResolvedValue(
+        new Map([[RESOURCE_ID.toString().toLowerCase(), "agent_defaults"]]),
+      );
+
+    await expect(
+      check(
+        {
+          isAiInvestigationEnabled: false,
+          aiRemediationMode: ResourceAiRemediationMode.Disabled,
+        },
+        propsWith(Permission.SettingsMember),
+      ),
+    ).resolves.not.toBeNull();
+  });
+
+  it("where the settings come from cannot be read: a change is refused, not let past the agent", async () => {
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      // expected: the read failed
+    });
+    jest
+      .spyOn(ResourceAiAgentService, "getAiSettingsSourcesForResources")
+      .mockRejectedValue(new Error("connection refused"));
+
+    await expect(
+      check(
+        { isAiInvestigationEnabled: true },
+        { isMasterAdmin: true, userId: ObjectID.generate() },
+      ),
+    ).rejects.toThrow(BadDataException);
   });
 });
 

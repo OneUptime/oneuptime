@@ -46,7 +46,7 @@ Les moniteurs viennent en premier, à part : les pages de statut voient un incid
 
 - **Moniteurs** — un champ de recherche qui rattache les moniteurs concernés par l'incident (`monitors`). Une page de statut affiche l'incident, et prévient ses abonnés, lorsqu'elle répertorie l'un de ces moniteurs.
 - **Changer le statut du moniteur en** — facultatif, et affiché seulement dès qu'au moins un moniteur est choisi. Applique un statut à chaque moniteur de l'incident, de sorte que déclarer l'incident et marquer ses moniteurs comme dégradés se fasse en une seule action. Le statut d'un modèle apparaît dès que vous choisissez un moniteur ; sans moniteur choisi, aucun statut n'est enregistré.
-- **Autres ressources affectées** — un second champ de recherche pour tout le reste de ce que l'incident touche : hôtes, clusters Kubernetes, hôtes Docker et Podman, clusters Proxmox, Ceph et Docker Swarm, vCenters, flottes IoT, bases de données et services. Ce sont des relations distinctes de l'incident (`hosts`, `kubernetesClusters`, `services` et d'autres).
+- **Autres ressources affectées** — un second champ de recherche pour tout le reste de ce que l'incident touche : hôtes, clusters Kubernetes, hôtes Docker et Podman, clusters Proxmox, Ceph et Docker Swarm, vCenters, baies de stockage, flottes IoT, bases de données et services. Ce sont des relations distinctes de l'incident (`hosts`, `kubernetesClusters`, `services` et d'autres).
 
 La carte **Ressources affectées** de l'incident pose les mêmes questions quand vous la modifiez plus tard.
 
@@ -160,11 +160,11 @@ L'appel de création fait bien plus qu'écrire une ligne. Dans l'ordre :
 5. **Les règles d'étiquettes s'exécutent**, ajoutant les étiquettes qui correspondent à l'incident.
 6. **Les règles d'astreinte s'exécutent.** Chaque règle activée dans **Incidents → Règles → Règles d'astreinte** dont les critères correspondent ajoute ses politiques à l'incident. Il n'y a ni ordre de priorité ni court-circuit — toutes les règles correspondantes se déclenchent et les politiques sont dédupliquées.
 7. **Les règles de runbook s'exécutent**, rattachant et démarrant les runbooks correspondants. Voyez [Runbooks](/docs/runbooks/index).
-8. **Les politiques d'astreinte s'exécutent.** Chaque politique portée par l'incident — choisie dans l'assistant, héritée d'un modèle ou ajoutée par une règle — est exécutée en parallèle avec le type d'événement `IncidentCreated`. L'échec d'une politique n'arrête pas les autres.
+8. **Les politiques d'astreinte s'exécutent.** Chaque politique portée par l'incident — choisie dans l'assistant, héritée d'un modèle ou ajoutée par une règle — est exécutée en parallèle avec le type d'événement `IncidentCreated`. L'échec d'une politique n'arrête pas les autres. Un incident déclaré déjà pris en compte ou résolu n'en exécute aucune : personne n'est alerté, et son fil d'activité l'indique en les nommant.
 9. **Les abonnés sont mis en file**, si **Notifier les abonnés de la page de statut** est resté activé et que l'incident est visible sur la page de statut. La livraison est prise en charge par une tâche de fond, pas en ligne avec votre requête.
 10. **Les workflows se déclenchent.** Le déclencheur **On Create Incident** lance tout workflow bâti dessus. Voyez [Présentation des workflows](/docs/workflows/index).
 
-À partir de là, l'incident est vivant : il compte dans le badge **Incidents actifs** du menu latéral Incidents (tout état non marqué `isResolvedState` compte comme actif), il apparaît sur les pages de statut qui portent l'un de ses moniteurs, et sa **Chronologie d'état** commence à enregistrer.
+À partir de là, l'incident est vivant : il compte dans le badge **Incidents actifs** du menu latéral Incidents (tout état au-dessus de votre état résolu compte comme actif), il apparaît sur les pages de statut qui portent l'un de ses moniteurs, et sa **Chronologie d'état** commence à enregistrer.
 
 ## Où lire ensuite
 

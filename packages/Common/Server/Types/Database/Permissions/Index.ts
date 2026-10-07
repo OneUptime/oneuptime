@@ -4,13 +4,16 @@ import Select from "../Select";
 import CreatePermission from "./CreatePermission";
 import DeletePermission from "./DeletePermission";
 import ReadPermission, { CheckReadPermissionType } from "./ReadPermission";
+import TablePermission from "./TablePermission";
 import UpdatePermission from "./UpdatePermission";
+import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import NotAuthenticatedException from "../../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
+import CallerPlan from "../../../Utils/Billing/CallerPlan";
 
 export default class ModelPermission {
   /*
@@ -51,6 +54,15 @@ export default class ModelPermission {
   }): Promise<void> {
     DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(data.props);
 
+    data = {
+      ...data,
+      props: await CallerPlan.withPlanFor({
+        props: data.props,
+        modelType: data.modelType,
+        type: DatabaseRequestType.Delete,
+      }),
+    };
+
     try {
       return await DeletePermission.checkDeletePermissionByModel(data);
     } catch (error) {
@@ -58,6 +70,11 @@ export default class ModelPermission {
     }
   }
 
+  /*
+   * `updateData` is what the update writes, when the caller has it: below
+   * the table's update plan, an update that only switches the record off
+   * still passes the plan check (BillingPermission).
+   */
   @CaptureSpan()
   public static async checkUpdatePermissionByModel<
     TBaseModel extends BaseModel,
@@ -65,8 +82,19 @@ export default class ModelPermission {
     modelType: { new (): TBaseModel };
     fetchModelWithAccessControlIds: () => Promise<TBaseModel | null>;
     props: DatabaseCommonInteractionProps;
+    updateData?: unknown;
   }): Promise<void> {
     DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(data.props);
+
+    data = {
+      ...data,
+      props: await CallerPlan.withPlanFor({
+        props: data.props,
+        modelType: data.modelType,
+        type: DatabaseRequestType.Update,
+        data: data.updateData,
+      }),
+    };
 
     try {
       return await UpdatePermission.checkUpdatePermissionByModel(data);
@@ -83,11 +111,96 @@ export default class ModelPermission {
   ): Promise<Query<TBaseModel>> {
     DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
 
+    props = await CallerPlan.withPlanFor({
+      props: props,
+      modelType: modelType,
+      type: DatabaseRequestType.Delete,
+    });
+
     try {
       return await DeletePermission.checkDeletePermission(
         modelType,
         query,
         props,
+      );
+    } catch (error) {
+      throw ModelPermission.toAnonymousRefusal(error, props);
+    }
+  }
+
+  /*
+   * The part of a create, update or delete permission check that does not
+   * depend on what is written or on which rows: may this caller write this
+   * table at all, in the project the request is made in. The full checks
+   * (checkCreatePermissions, checkUpdateQueryPermissions,
+   * checkDeleteQueryPermission) ask the same question first, so this refuses
+   * nothing they would let through. DatabaseService asks it before a
+   * service's hooks run, so a hook never acts for a caller the write is
+   * going to be refused for anyway.
+   *
+   * For an update, `updateData` is what the caller asked to write: below
+   * the table's update plan, an update that only switches records off is
+   * allowed (BillingPermission), and only the data shows that.
+   */
+  public static checkTableWritePermission<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    props: DatabaseCommonInteractionProps,
+    type:
+      | DatabaseRequestType.Create
+      | DatabaseRequestType.Update
+      | DatabaseRequestType.Delete,
+    updateData?: unknown,
+  ): void {
+    DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
+
+    if (props.isRoot || props.isMasterAdmin) {
+      return;
+    }
+
+    try {
+      if (type === DatabaseRequestType.Create) {
+        CreatePermission.checkCreateBlockPermissions(modelType, props);
+      }
+
+      TablePermission.checkTableLevelPermissions(
+        modelType,
+        props,
+        type,
+        updateData,
+      );
+    } catch (error) {
+      throw ModelPermission.toAnonymousRefusal(error, props);
+    }
+  }
+
+  /*
+   * The rows an update may change, as a query - see
+   * UpdatePermission.getUpdatableQuery. For a root or master admin caller the
+   * query comes back as it is. `updateData` is what the update writes, when
+   * the caller already has it (for the plan check, see BillingPermission).
+   */
+  @CaptureSpan()
+  public static async getUpdatableQuery<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+    updateData?: unknown,
+  ): Promise<Query<TBaseModel>> {
+    DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
+
+    props = await CallerPlan.withPlanFor({
+      props: props,
+      modelType: modelType,
+      type: DatabaseRequestType.Update,
+      data: updateData,
+    });
+
+    try {
+      return await UpdatePermission.getUpdatableQuery(
+        modelType,
+        query,
+        props,
+        updateData,
       );
     } catch (error) {
       throw ModelPermission.toAnonymousRefusal(error, props);
@@ -102,6 +215,13 @@ export default class ModelPermission {
     props: DatabaseCommonInteractionProps,
   ): Promise<Query<TBaseModel>> {
     DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
+
+    props = await CallerPlan.withPlanFor({
+      props: props,
+      modelType: modelType,
+      type: DatabaseRequestType.Update,
+      data: data,
+    });
 
     try {
       return await UpdatePermission.checkUpdatePermissions(
@@ -137,6 +257,12 @@ export default class ModelPermission {
     select: Select<TBaseModel> | null,
     props: DatabaseCommonInteractionProps,
   ): Promise<CheckReadPermissionType<TBaseModel>> {
+    props = await CallerPlan.withPlanFor({
+      props: props,
+      modelType: modelType,
+      type: DatabaseRequestType.Read,
+    });
+
     try {
       return await ReadPermission.checkReadPermission(
         modelType,

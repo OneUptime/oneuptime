@@ -2,13 +2,16 @@ import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import AlertStateService from "./AlertStateService";
 import UserService from "./UserService";
+import CreatedByUser from "../Utils/Database/CreatedByUser";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import PositiveNumber from "../../Types/PositiveNumber";
 import AlertState from "../../Models/DatabaseModels/AlertState";
 import AlertEpisode from "../../Models/DatabaseModels/AlertEpisode";
@@ -23,8 +26,9 @@ import AlertEpisodeService from "./AlertEpisodeService";
 import AlertEpisodeInternalNote from "../../Models/DatabaseModels/AlertEpisodeInternalNote";
 import AlertEpisodeInternalNoteService from "./AlertEpisodeInternalNoteService";
 import { JSONObject } from "../../Types/JSON";
+import StateChangeNote from "../Utils/StateChangeNote";
 
-export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
+export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline> {
   public constructor() {
     super(AlertEpisodeStateTimeline);
     if (IsBillingEnabled) {
@@ -36,6 +40,8 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
   protected override async onBeforeCreate(
     createBy: CreateBy<AlertEpisodeStateTimeline>,
   ): Promise<OnCreate<AlertEpisodeStateTimeline>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.alertEpisodeId) {
       throw new BadDataException("alertEpisodeId is null");
     }
@@ -46,6 +52,26 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
       if (!createBy.data.startsAt) {
         createBy.data.startsAt = OneUptimeDate.getCurrentDate();
       }
+
+      /*
+       * The private note that comes with the change, if any (a blank one is
+       * none). It is posted once the change is saved (onCreateSuccess), as
+       * the person changing the state, so that it comes after the change in
+       * the episode's feed and a change that fails leaves no note behind.
+       * Whether they may post it is asked now, before the change takes its
+       * lock or reads the timeline, with the check the note's own create
+       * runs: a change whose note they may not post is refused whole, with
+       * one plain message, rather than saved and then answered with an
+       * error (StateChangeNote).
+       */
+      const privateNotesToPost: Array<AlertEpisodeInternalNote> =
+        StateChangeNote.preparePrivateNotes({
+          noteModelType: AlertEpisodeInternalNote,
+          stateChange: createBy.data,
+          eventColumn: "alertEpisodeId",
+          miscDataProps: createBy.miscDataProps as JSONObject | undefined,
+          props: createBy.props,
+        });
 
       try {
         mutex = await Semaphore.lock({
@@ -59,34 +85,27 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
         } as LogAttributes);
       }
 
-      if (
-        (createBy.data.createdByUserId ||
-          createBy.data.createdByUser ||
-          createBy.props.userId) &&
-        !createBy.data.rootCause
-      ) {
-        let userId: ObjectID | undefined = createBy.data.createdByUserId;
+      // Who made the change, under either name of it: see CreatedByUser.
+      const changedByUserId: ObjectID | null = CreatedByUser.getId(
+        createBy.data,
+        createBy.props,
+      );
 
-        if (createBy.props.userId) {
-          userId = createBy.props.userId;
-        }
-
-        if (createBy.data.createdByUser && createBy.data.createdByUser.id) {
-          userId = createBy.data.createdByUser.id;
-        }
-
-        if (userId) {
-          createBy.data.rootCause = `Episode state created by ${await UserService.getUserMarkdownString(
-            {
-              userId: userId!,
-              projectId: createBy.data.projectId || createBy.props.tenantId!,
-            },
-          )}`;
-        }
+      if (changedByUserId && !createBy.data.rootCause) {
+        createBy.data.rootCause = `Episode state created by ${await UserService.getUserMarkdownString(
+          {
+            userId: changedByUserId,
+            projectId: createBy.data.projectId || createBy.props.tenantId!,
+          },
+        )}`;
       }
 
-      const alertStateId: ObjectID | undefined | null =
-        createBy.data.alertStateId || createBy.data.alertState?.id;
+      // Under either of its names; the two must agree.
+      const alertStateId: ObjectID | null = RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        ["alertStateId", "alertState"],
+        "Alert State",
+      );
 
       if (!alertStateId) {
         throw new BadDataException("alertStateId is null");
@@ -185,21 +204,12 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
         alertEpisodeId: createBy.data.alertEpisodeId?.toString(),
       } as LogAttributes);
 
-      /*
-       * The note a user writes when they change the state. It is not a column
-       * on this model, so it travels alongside the create and becomes an
-       * internal note on the episode once the timeline row exists.
-       */
-      const privateNote: string | undefined = (
-        createBy.miscDataProps as JSONObject | undefined
-      )?.["privateNote"] as string | undefined;
-
       return {
         createBy,
         carryForward: {
           statusTimelineBeforeThisStatus: stateBeforeThis || null,
           statusTimelineAfterThisStatus: stateAfterThis || null,
-          privateNote: privateNote,
+          privateNotesToPost: privateNotesToPost,
           mutex: mutex,
         },
       };
@@ -312,6 +322,17 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
       } as LogAttributes);
     }
 
+    /*
+     * Whether the episode is resolved in this state, by the one rule
+     * (Common/Utils/ResolvedState): the project's resolved state, or a state
+     * placed after it, flagged or not.
+     */
+    const isResolvedState: boolean =
+      await AlertStateService.isResolvedAlertState({
+        projectId: createdItem.projectId!,
+        alertStateId: createdItem.alertStateId,
+      });
+
     // Update episode's current state if this is the latest timeline entry
     if (!createdItem.endsAt) {
       const updateData: {
@@ -321,23 +342,29 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
         currentAlertStateId: createdItem.alertStateId,
       };
 
-      // Check if the new state is a resolved state and update resolvedAt accordingly
-      const newAlertState: AlertState | null =
-        await AlertStateService.findOneById({
-          id: createdItem.alertStateId,
-          select: {
-            isResolvedState: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
+      /*
+       * resolvedAt is when the episode was resolved: stamped when it moves
+       * into a resolved state, kept while it moves on from one resolved
+       * state to another ("Resolved" to "Closed"), and cleared when it is
+       * reopened into one that is not. The Active episode lists, grouping
+       * and auto-resolve read it.
+       */
+      if (isResolvedState) {
+        const episode: AlertEpisode | null =
+          await AlertEpisodeService.findOneById({
+            id: createdItem.alertEpisodeId,
+            select: {
+              resolvedAt: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
 
-      if (newAlertState?.isResolvedState) {
-        // Set resolvedAt when transitioning to resolved state
-        updateData.resolvedAt = OneUptimeDate.getCurrentDate();
+        if (!episode?.resolvedAt) {
+          updateData.resolvedAt = OneUptimeDate.getCurrentDate();
+        }
       } else {
-        // Clear resolvedAt when transitioning away from resolved state
         updateData.resolvedAt = null;
       }
 
@@ -392,7 +419,6 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
       },
       select: {
         _id: true,
-        isResolvedState: true,
         isAcknowledgedState: true,
         isCreatedState: true,
         color: true,
@@ -400,10 +426,14 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
       },
     });
 
-    const stateName: string = alertState?.name || "";
+    /*
+     * The state's name is plain text, placed into the feed item's Markdown
+     * (posted to Slack and Teams too): escaped, so it reads as typed.
+     */
+    const stateName: string = escapeMarkdownValue(alertState?.name || "");
     let stateEmoji: string = "➡️";
 
-    if (alertState?.isResolvedState) {
+    if (isResolvedState) {
       stateEmoji = "✅";
     } else if (alertState?.isAcknowledgedState) {
       stateEmoji = "👀";
@@ -446,21 +476,17 @@ export class Service extends DatabaseService<AlertEpisodeStateTimeline> {
       },
     });
 
-    if (onCreate.carryForward.privateNote) {
-      const privateNote: string = onCreate.carryForward.privateNote;
-
-      const episodeInternalNote: AlertEpisodeInternalNote =
-        new AlertEpisodeInternalNote();
-      episodeInternalNote.alertEpisodeId = createdItem.alertEpisodeId;
-      episodeInternalNote.note = privateNote;
-      episodeInternalNote.createdAt = createdItem.startsAt!;
-      episodeInternalNote.projectId = createdItem.projectId!;
-
-      await AlertEpisodeInternalNoteService.create({
-        data: episodeInternalNote,
-        props: onCreate.createBy.props,
-      });
-    }
+    /*
+     * The private notes that came with the change, which onBeforeCreate built
+     * and made sure may be posted: posted now, after the change, at the time
+     * the change was saved with, as the person who changed the state.
+     */
+    await StateChangeNote.postPrivateNotes({
+      notes: onCreate.carryForward.privateNotesToPost,
+      noteService: AlertEpisodeInternalNoteService,
+      savedStateChange: createdItem,
+      props: onCreate.createBy.props,
+    });
 
     return createdItem;
   }

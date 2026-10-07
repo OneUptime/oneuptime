@@ -358,6 +358,8 @@ The `Bearer` scheme is case-insensitive. A request that carries an API key is ne
 
 Tool errors are returned as in-band tool results (`isError: true`) with a `statusCode`, details, and a suggestion — not as MCP protocol errors — so agents can read the failure and self-correct.
 
+On OneUptime Cloud, API keys work only while the project is on **Growth** or above. Below it, every tool that needs the key answers `402` with a message that names the plan, and the agent is told not to retry. Nothing is deleted: the key works again as it is once the project is back on Growth, with nothing to reconnect. A client connected by signing in acts as a person and keeps working ([API keys and SCIM below their plan](/docs/api-reference/api-reference#api-keys-and-scim-below-their-plan)).
+
 ## Workflow Tools
 
 Beyond the per-resource CRUD tools, the server ships purpose-built workflow tools for incident and alert response:
@@ -549,6 +551,7 @@ Ensure your API key - or, for a client that signed in, your own account - has th
 - Verify the API key in your OneUptime settings
 - Check for extra spaces or characters
 - Ensure the key hasn't expired
+- On OneUptime Cloud, a `402` that says API keys need the Growth plan means the project is below it: upgrade the project in **Project Settings** > **Billing**, and the same key works again
 
 ### Session Errors
 

@@ -5,7 +5,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import logger, { LogAttributes } from "../Utils/Logger";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import DatabaseServerFeed, {
   DatabaseServerFeedEventType,
 } from "../../Models/DatabaseModels/DatabaseServerFeed";
@@ -15,13 +15,29 @@ import { OnCreate } from "../Types/Database/Hooks";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import DatabaseServerService from "./DatabaseServerService";
 
-export class Service extends DatabaseService<DatabaseServerFeed> {
+export class Service extends ProjectReferencesService<DatabaseServerFeed> {
   public constructor() {
     super(DatabaseServerFeed);
 
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
+  }
+
+  // Its refusals name what it looks up: the create permission comes first.
+  protected override checksCreatePermissionFirst(): boolean {
+    return true;
+  }
+
+  /*
+   * Feed items are mostly written by OneUptime itself as things happen, naming
+   * the record they are about and crediting whoever did it - someone who may
+   * have left the project since, or an admin from outside it. Refusing one of
+   * those would only lose the item. A feed item written by an API call or a
+   * workflow is checked like any other write.
+   */
+  protected override checksServerWrites(): boolean {
+    return false;
   }
 
   /*
@@ -34,6 +50,8 @@ export class Service extends DatabaseService<DatabaseServerFeed> {
   protected override async onBeforeCreate(
     createBy: CreateBy<DatabaseServerFeed>,
   ): Promise<OnCreate<DatabaseServerFeed>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.props.isRoot) {
       ModelPermission.checkCreatePermissions(
         DatabaseServerFeed,

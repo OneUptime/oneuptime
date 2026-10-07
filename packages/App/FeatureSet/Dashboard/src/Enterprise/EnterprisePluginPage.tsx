@@ -6,10 +6,11 @@ import EnterpriseFeatureUpgrade, {
 import {
   EnterpriseRequiredPlan,
   isEnterpriseFeatureEligible,
+  isKnownToBeBelowPlan,
 } from "./EnterpriseEligibility";
 import { EnterprisePluginComponent } from "./EnterprisePlugins";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import React, { ReactElement, Suspense } from "react";
+import React, { ReactElement, ReactNode, Suspense } from "react";
 
 /*
  * What a core shell renders in place of an enterprise screen: the ee plugin
@@ -68,6 +69,13 @@ export type ComponentProps<TPluginProps> = {
   isEligible?: boolean | undefined;
   // Shown while a lazy plugin downloads. Defaults to the in-card loader.
   loadingElement?: ReactElement | undefined;
+  /*
+   * A paid feature can always be switched off, on any plan: drawn under the
+   * upsell for a project known to be below the plan (isKnownToBeBelowPlan),
+   * so what a trial left on there can be put back to its default. Never for
+   * an edition upsell, nor while the plan loads.
+   */
+  belowPlan?: ReactNode | undefined;
 } & UpsellProps;
 
 export const getUpgradeReason: (
@@ -103,16 +111,24 @@ const EnterprisePluginPage: <TPluginProps>(
   if (!isEligible || !Plugin) {
     const reason: EnterpriseUpgradeReason = getUpgradeReason(isEligible);
 
-    if (props.renderUpsell) {
-      return props.renderUpsell(reason);
-    }
+    const belowPlan: ReactNode =
+      props.belowPlan && !isEligible && isKnownToBeBelowPlan(props.requiredPlan)
+        ? props.belowPlan
+        : null;
 
     return (
-      <EnterpriseFeatureUpgrade
-        {...(props.upsell as EnterprisePluginUpsellProps)}
-        requiredPlan={props.requiredPlan}
-        reason={reason}
-      />
+      <>
+        {props.renderUpsell ? (
+          props.renderUpsell(reason)
+        ) : (
+          <EnterpriseFeatureUpgrade
+            {...(props.upsell as EnterprisePluginUpsellProps)}
+            requiredPlan={props.requiredPlan}
+            reason={reason}
+          />
+        )}
+        {belowPlan || <></>}
+      </>
     );
   }
 

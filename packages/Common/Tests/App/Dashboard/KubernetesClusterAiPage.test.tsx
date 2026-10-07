@@ -34,11 +34,13 @@ import {
   AI_AGENT_SIGNED_OFF_TEXT,
   AI_AGENT_SILENT_TEXT,
   AI_AGENT_STATUS_POLL_INTERVAL_MS,
+  KUBERNETES_AGENT_SET_INVESTIGATION_STEP_TEXT,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAiAgentStatus";
 import {
   getAiAgentHelmCommands,
   getAiAgentWriteDisclosure,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAiAccessSetup";
+import { KUBERNETES_AI_SETTINGS_SET_BY_TEXT } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAiAgentSettings";
 import {
   INVESTIGATION_ON_SENTENCE,
   KUBECTL_ALLOWLIST_FIELD_DESCRIPTION,
@@ -50,6 +52,7 @@ import {
 import {
   AI_ACCESS_PROTECTIONS_TITLE,
   AI_FIXES_MODE_TONES,
+  AI_FIXES_OFF_AGENT_SET_HINT,
   formatAiAccessProtections,
   getAiFixesFieldDescription,
   getAiFixesOffHint,
@@ -72,8 +75,10 @@ import {
   KubernetesAiAgentSummary,
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
+  KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
   KUBERNETES_AI_AGENT_DISPLAY_NAME,
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
+import { fillTemplate } from "../../../UI/Utils/TranslateTemplate";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import RunbookCredentialType from "../../../Types/Runbook/RunbookCredentialType";
@@ -725,6 +730,57 @@ async function findDialogTitled(title: string): Promise<HTMLElement> {
   return dialog;
 }
 
+/*
+ * The agent card's actions sit in one ⋯ beside its status: "We can have
+ * both of these buttons, like "Test Connection" and "Reset Agent," in a
+ * more button style with three dots."
+ */
+const ACTIONS_BUTTON_TEST_ID: string = "ai-agent-actions-button";
+const TEST_ACTION_TEST_ID: string = "ai-agent-test-button";
+const SWITCH_ACTION_TEST_ID: string = "ai-agent-switch-button";
+const RESET_ACTION_TEST_ID: string = "ai-agent-reset-button";
+
+// The agent card's header: its status, then its ⋯ when it has one.
+async function agentCardHeader(): Promise<HTMLElement> {
+  const card: HTMLElement | null = (await findText(AGENT_CARD_TITLE)).closest(
+    '[data-testid="card"]',
+  );
+  if (!card) {
+    throw new Error(`"${AGENT_CARD_TITLE}" is not inside a card.`);
+  }
+  return within(card).getByTestId("card-header-actions");
+}
+
+// Opens the agent card's ⋯ and returns the menu it opened.
+async function openAgentActions(): Promise<HTMLElement> {
+  fireEvent.click(await findTestId(ACTIONS_BUTTON_TEST_ID));
+  return await screen.findByRole("menu", {}, { timeout: WAIT_TIMEOUT });
+}
+
+// The ⋯'s items, by label, in the order they are listed.
+function actionLabels(menu: HTMLElement): Array<string> {
+  return within(menu)
+    .getAllByRole("menuitem")
+    .map((item: HTMLElement): string => {
+      return (item.textContent || "").trim();
+    });
+}
+
+// Picks one of the agent card's actions from its ⋯.
+async function pickAgentAction(testId: string): Promise<void> {
+  const menu: HTMLElement = await openAgentActions();
+  fireEvent.click(within(menu).getByTestId(testId));
+}
+
+// The page has loaded, and its agent card has no ⋯ at all.
+async function expectNoAgentActions(): Promise<void> {
+  await findTestId("ai-agent-status");
+  expect(screen.queryByTestId(ACTIONS_BUTTON_TEST_ID)).not.toBeInTheDocument();
+  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  expect(screen.queryByTestId(TEST_ACTION_TEST_ID)).not.toBeInTheDocument();
+  expect(screen.queryByTestId(RESET_ACTION_TEST_ID)).not.toBeInTheDocument();
+}
+
 beforeEach(() => {
   window.localStorage.clear();
   window.sessionStorage.clear();
@@ -778,8 +834,17 @@ describe("the Kubernetes AI agent card", () => {
     expect(screen.getByTestId("ai-agent-sentence")).toHaveTextContent(
       "The AI agent is running in this cluster.",
     );
+    // The agent's version as it reported it, drawn by AgentVersion.
     expect(screen.getByTestId("ai-agent-meta")).toHaveTextContent(
-      "agent v14.1.0 · kubectl v1.31.2 · Read-only",
+      "agent 14.1.0 · kubectl v1.31.2 · Read-only",
+    );
+    /*
+     * A div, not a paragraph: AgentVersion opens its upgrade dialog beside
+     * the version, and a dialog cannot sit inside a <p>.
+     */
+    expect(screen.getByTestId("ai-agent-meta").tagName).toBe("DIV");
+    expect(screen.getByTestId("ai-agent-version")).toHaveTextContent(
+      "agent 14.1.0",
     );
     expect(screen.getByTestId("ai-agent-meta")).toHaveTextContent(
       /^last seen /,
@@ -819,15 +884,22 @@ describe("the Kubernetes AI agent card", () => {
         "Installed under another release or namespace? Use yours.",
       ),
     ).toBeInTheDocument();
-    expect(
-      screen.queryByTestId("ai-agent-test-button"),
-    ).not.toBeInTheDocument();
+    // Nothing to test or reset, so no ⋯ at all.
+    await expectNoAgentActions();
     expect(screen.queryByTestId("ai-agent-ready")).not.toBeInTheDocument();
     expect(screen.queryByTestId("ai-agent-meta")).not.toBeInTheDocument();
-    // No agent row: nothing to reset, even for an admin.
-    expect(
-      screen.queryByTestId("ai-agent-reset-button"),
-    ).not.toBeInTheDocument();
+  });
+
+  // No agent row: nothing to reset, even for an admin.
+  test("not installed: an admin gets no ⋯ either", async () => {
+    grant(ADMIN_PERMISSIONS);
+    serve(notInstalledStatus());
+    openAgentPage();
+
+    expect(await findTestId("ai-agent-status")).toHaveTextContent(
+      "Not installed",
+    );
+    await expectNoAgentActions();
   });
 
   test("offline: the logs command for the namespace the agent reported", async () => {
@@ -838,8 +910,11 @@ describe("the Kubernetes AI agent card", () => {
     expect(screen.getByTestId("ai-agent-sentence")).toHaveTextContent(
       "The AI agent has not checked in for over 5 minutes. Check its pod:",
     );
+    // The key, with the server's alive window in its {{minutes}}.
     expect(screen.getByTestId("ai-agent-sentence")).toHaveTextContent(
-      AI_AGENT_SILENT_TEXT,
+      fillTemplate(AI_AGENT_SILENT_TEXT, {
+        minutes: KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
+      }),
     );
     expect(codeIn(screen.getByTestId("ai-agent-logs-command"))).toBe(
       "kubectl logs -n monitoring -l component=ai-agent --tail=100",
@@ -903,10 +978,15 @@ describe("the Kubernetes AI agent card", () => {
     expect(codeIn(screen.getByTestId("ai-agent-install-command"))).toBe(
       getAiAgentHelmCommands().install,
     );
-    // The connection can still be tested through it.
-    expect(screen.getByTestId("ai-agent-test-button")).not.toBeDisabled();
+    // The connection can still be tested through it - and that is all.
+    const menu: HTMLElement = await openAgentActions();
+    expect(actionLabels(menu)).toEqual(["Test connection"]);
+    expect(within(menu).getByTestId(TEST_ACTION_TEST_ID)).toHaveAttribute(
+      "aria-disabled",
+      "false",
+    );
     expect(
-      screen.queryByTestId("ai-agent-switch-button"),
+      within(menu).queryByTestId(SWITCH_ACTION_TEST_ID),
     ).not.toBeInTheDocument();
   });
 
@@ -943,8 +1023,11 @@ describe("the Kubernetes AI agent card", () => {
     expect(screen.getByTestId("ai-agent-sentence")).toHaveTextContent(
       'Reached through Runner "bash-runner" with credential "prod-east token".',
     );
+    // A member may test it, but not switch it to the agent.
+    const menu: HTMLElement = await openAgentActions();
+    expect(actionLabels(menu)).toEqual(["Test connection"]);
     expect(
-      screen.queryByTestId("ai-agent-switch-button"),
+      within(menu).queryByTestId(SWITCH_ACTION_TEST_ID),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByTestId("ai-agent-install-command"),
@@ -981,6 +1064,265 @@ describe("the Kubernetes AI agent card", () => {
     expect(
       screen.queryByTestId("ai-access-automatic-investigation"),
     ).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * "We can have both of these buttons, like "Test Connection" and "Reset
+ * Agent," in a more button style with three dots." The card's header keeps
+ * the agent's status in sight and puts every action in one ⋯ beside it.
+ * Who is offered what is what the buttons offered before.
+ */
+describe("the agent card's ⋯", () => {
+  test("the header shows the status and one ⋯ - no row of buttons", async () => {
+    grant(ADMIN_PERMISSIONS);
+    serve(advancedStatus());
+    openAgentPage();
+
+    const header: HTMLElement = await agentCardHeader();
+    const status: HTMLElement = within(header).getByTestId("ai-agent-status");
+    const trigger: HTMLElement = within(header).getByRole("button", {
+      name: "AI agent actions",
+    });
+
+    expect(status).toHaveTextContent(
+      "Connected through Runner bash-runner (advanced)",
+    );
+    // Three actions offered, one button in the header.
+    expect(within(header).getAllByRole("button")).toEqual([trigger]);
+    expect(trigger).toHaveAttribute("data-testid", ACTIONS_BUTTON_TEST_ID);
+    expect(trigger).toHaveAttribute("aria-haspopup", "menu");
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(trigger.textContent).toBe("");
+    // The status first, then the ⋯.
+    expect(
+      status.compareDocumentPosition(trigger) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(within(header).queryByText("Test connection")).toBeNull();
+    expect(within(header).queryByText("Reset agent")).toBeNull();
+    expect(within(header).queryByText("Switch to the AI agent")).toBeNull();
+  });
+
+  /*
+   * One row per kind of user and agent: what the ⋯ holds, and which of it
+   * is locked. "none" is no ⋯ at all.
+   */
+  test.each([
+    {
+      name: "an admin of a connected agent",
+      permissions: ADMIN_PERMISSIONS,
+      status: (): KubernetesClusterAiAccessStatus => {
+        return makeStatus();
+      },
+      expected: ["Test connection", "Reset agent"],
+      locked: [],
+    },
+    {
+      name: "a member of a connected agent",
+      permissions: MEMBER_PERMISSIONS,
+      status: (): KubernetesClusterAiAccessStatus => {
+        return makeStatus();
+      },
+      expected: ["Test connection"],
+      locked: [],
+    },
+    {
+      name: "a reader of a connected agent",
+      permissions: READER_PERMISSIONS,
+      status: (): KubernetesClusterAiAccessStatus => {
+        return makeStatus();
+      },
+      expected: ["Test connection"],
+      locked: ["Test connection"],
+    },
+    {
+      name: "an admin of an offline agent",
+      permissions: ADMIN_PERMISSIONS,
+      status: (): KubernetesClusterAiAccessStatus => {
+        return makeStatus({}, silentAgent());
+      },
+      expected: ["Test connection", "Reset agent"],
+      locked: [],
+    },
+    {
+      name: "an admin on the previous in-cluster Runner (no agent to reset)",
+      permissions: ADMIN_PERMISSIONS,
+      status: (): KubernetesClusterAiAccessStatus => {
+        return legacyStatus();
+      },
+      expected: ["Test connection"],
+      locked: [],
+    },
+    {
+      name: "an admin reading an older server's status, with no agent field at all",
+      permissions: ADMIN_PERMISSIONS,
+      status: (): KubernetesClusterAiAccessStatus => {
+        const older: Partial<KubernetesClusterAiAccessStatus> = legacyStatus();
+        delete older.aiAgent;
+        return older as KubernetesClusterAiAccessStatus;
+      },
+      expected: ["Test connection"],
+      locked: [],
+    },
+    {
+      name: "an admin of an advanced binding with the agent online",
+      permissions: ADMIN_PERMISSIONS,
+      status: (): KubernetesClusterAiAccessStatus => {
+        return advancedStatus();
+      },
+      expected: ["Test connection", "Switch to the AI agent", "Reset agent"],
+      locked: [],
+    },
+    {
+      name: "a member of an advanced binding with the agent online",
+      permissions: MEMBER_PERMISSIONS,
+      status: (): KubernetesClusterAiAccessStatus => {
+        return advancedStatus();
+      },
+      expected: ["Test connection"],
+      locked: [],
+    },
+  ])(
+    "$name: $expected",
+    async (row: {
+      name: string;
+      permissions: Array<Permission>;
+      status: () => KubernetesClusterAiAccessStatus;
+      expected: Array<string>;
+      locked: Array<string>;
+    }) => {
+      grant(row.permissions);
+      serve(row.status());
+      openAgentPage();
+
+      const menu: HTMLElement = await openAgentActions();
+
+      expect(actionLabels(menu)).toEqual(row.expected);
+      for (const item of within(menu).getAllByRole("menuitem")) {
+        const label: string = (item.textContent || "").trim();
+        expect({
+          label,
+          locked: item.getAttribute("aria-disabled") === "true",
+        }).toEqual({ label, locked: row.locked.includes(label) });
+      }
+    },
+  );
+
+  test.each([
+    {
+      name: "nothing installed, for an admin",
+      permissions: ADMIN_PERMISSIONS,
+    },
+    {
+      name: "nothing installed, for a member",
+      permissions: MEMBER_PERMISSIONS,
+    },
+    {
+      name: "nothing installed, for a reader",
+      permissions: READER_PERMISSIONS,
+    },
+  ])(
+    "$name: no ⋯",
+    async (row: { name: string; permissions: Array<Permission> }) => {
+      grant(row.permissions);
+      serve(notInstalledStatus());
+      openAgentPage();
+
+      await expectNoAgentActions();
+      expect(
+        within(await agentCardHeader()).getByTestId("ai-agent-status"),
+      ).toHaveTextContent("Not installed");
+    },
+  );
+
+  test("works from the keyboard: Enter opens it, the arrows reach Reset agent, Enter asks first", async () => {
+    grant(ADMIN_PERMISSIONS);
+    openAgentPage();
+
+    const trigger: HTMLElement = await findTestId(ACTIONS_BUTTON_TEST_ID);
+    act(() => {
+      trigger.focus();
+    });
+    fireEvent.click(trigger);
+    const menu: HTMLElement = await screen.findByRole(
+      "menu",
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    await waitFor(
+      () => {
+        expect(within(menu).getByTestId(TEST_ACTION_TEST_ID)).toHaveFocus();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    fireEvent.keyDown(within(menu).getByTestId(TEST_ACTION_TEST_ID), {
+      key: "ArrowDown",
+    });
+    expect(within(menu).getByTestId(RESET_ACTION_TEST_ID)).toHaveFocus();
+    fireEvent.keyDown(within(menu).getByTestId(RESET_ACTION_TEST_ID), {
+      key: "Enter",
+    });
+
+    const confirm: HTMLElement = await findDialogTitled("Reset the AI agent?");
+    expect(confirm).toHaveTextContent("revokes the agent's key");
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    expect(postsTo(RESET_ROUTE)).toHaveLength(0);
+  });
+
+  test("Escape closes it, picks nothing and hands focus back", async () => {
+    grant(ADMIN_PERMISSIONS);
+    openAgentPage();
+
+    const menu: HTMLElement = await openAgentActions();
+    fireEvent.keyDown(menu, { key: "Escape" });
+
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    expect(screen.getByTestId(ACTIONS_BUTTON_TEST_ID)).toHaveFocus();
+    expect(postsTo(TEST_ROUTE)).toHaveLength(0);
+    expect(postsTo(RESET_ROUTE)).toHaveLength(0);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  test("survives a status poll while it is open", async () => {
+    jest.useFakeTimers();
+    grant(ADMIN_PERMISSIONS);
+    openAgentPage();
+
+    const menu: HTMLElement = await openAgentActions();
+    const before: number = postsTo(STATUS_ROUTE).length;
+
+    await act(async () => {
+      jest.advanceTimersByTime(AI_AGENT_STATUS_POLL_INTERVAL_MS);
+    });
+
+    await waitFor(
+      () => {
+        expect(postsTo(STATUS_ROUTE).length).toBeGreaterThan(before);
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(screen.getByRole("menu")).toBe(menu);
+    expect(actionLabels(menu)).toEqual(["Test connection", "Reset agent"]);
+  });
+
+  test("appears once an agent connects while the page is open", async () => {
+    jest.useFakeTimers();
+    grant(ADMIN_PERMISSIONS);
+    postSpy
+      .mockResolvedValueOnce(statusResponse(notInstalledStatus()))
+      .mockResolvedValue(statusResponse(makeStatus()));
+    openAgentPage();
+
+    await expectNoAgentActions();
+
+    await act(async () => {
+      jest.advanceTimersByTime(AI_AGENT_STATUS_POLL_INTERVAL_MS);
+    });
+
+    const menu: HTMLElement = await openAgentActions();
+    expect(actionLabels(menu)).toEqual(["Test connection", "Reset agent"]);
   });
 });
 
@@ -1248,9 +1590,7 @@ describe("Needs attention", () => {
     expect(
       within(steps[0]!).getByTestId("ai-agent-gap-number"),
     ).toHaveTextContent("1.");
-    expect(steps[0]).toHaveTextContent(
-      "Add AI credits to this project, or turn on auto-recharge.",
-    );
+    expect(steps[0]).toHaveTextContent("Add AI credits to this project.");
     expect(steps[1]).toHaveAttribute(
       "data-testid",
       "ai-agent-gap-llm_provider_missing",
@@ -1648,7 +1988,6 @@ describe("Needs attention", () => {
     const expected: Array<[string, string, string]> = [
       ["project_ai_disabled", "Open AI Features", "settings/ai-features"],
       ["llm_provider_missing", "Open LLM Providers", "settings/llm-providers"],
-      ["ai_balance_insufficient", "Open AI Credits", "settings/ai-credits"],
     ];
     for (const [code, linkText, path] of expected) {
       const row: HTMLElement = await findTestId(`ai-agent-gap-${code}`);
@@ -1657,8 +1996,109 @@ describe("Needs attention", () => {
         `/dashboard/${PROJECT_ID}/${path}`,
       );
     }
+
+    // AI credits are not an admin's to add: who can, instead of a link.
+    const credits: HTMLElement = await findTestId(
+      "ai-agent-gap-ai_balance_insufficient",
+    );
+    expect(
+      within(credits).queryByText("Open AI Credits"),
+    ).not.toBeInTheDocument();
+    expect(credits).toHaveTextContent(
+      "A project owner or someone with Manage Billing can add AI credits.",
+    );
+
     // No switch on this page flips a project setting.
     expect(screen.queryByRole("switch")).not.toBeInTheDocument();
+  });
+
+  /*
+   * AI credits are added by a project owner or someone with Manage Billing
+   * - not a project admin, whose recharge the server refuses. So the AI
+   * Credits link is for exactly those people; everyone else is told who
+   * can, and nobody is told anything while the permissions are on their
+   * way.
+   */
+  test.each([
+    ["a project owner", Permission.ProjectOwner],
+    ["someone with Manage Billing", Permission.ManageProjectBilling],
+  ])(
+    "out of AI credits: %s is linked to AI Credits",
+    async (_who: string, permission: Permission) => {
+      grant([...BASE_PERMISSIONS, permission]);
+      serve(
+        makeStatus({
+          isInvestigationReady: false,
+          gaps: [gap("ai_balance_insufficient")],
+        }),
+      );
+      openAgentPage();
+
+      const row: HTMLElement = await findTestId(
+        "ai-agent-gap-ai_balance_insufficient",
+      );
+      expect(
+        within(row)
+          .getByText("Open AI Credits")
+          .closest("a")
+          ?.getAttribute("href"),
+      ).toBe(`/dashboard/${PROJECT_ID}/settings/ai-credits`);
+      expect(
+        within(row).queryByTestId("ai-agent-gap-who-can-add-ai-credits"),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  test.each([
+    ["a project admin", ADMIN_PERMISSIONS],
+    ["a member", MEMBER_PERMISSIONS],
+  ])(
+    "out of AI credits: %s is told who can add them - not linked, not sent to an admin",
+    async (_who: string, permissions: Array<Permission>) => {
+      grant(permissions);
+      serve(
+        makeStatus({
+          isInvestigationReady: false,
+          gaps: [gap("ai_balance_insufficient")],
+        }),
+      );
+      openAgentPage();
+
+      const row: HTMLElement = await findTestId(
+        "ai-agent-gap-ai_balance_insufficient",
+      );
+      expect(
+        within(row).getByTestId("ai-agent-gap-who-can-add-ai-credits"),
+      ).toHaveTextContent(
+        "A project owner or someone with Manage Billing can add AI credits.",
+      );
+      expect(
+        within(row).queryByText("Open AI Credits"),
+      ).not.toBeInTheDocument();
+      expect(row).not.toHaveTextContent("Ask a project owner or admin.");
+      expect(row).toHaveTextContent("Add AI credits to this project.");
+      expect(row).not.toHaveTextContent(/auto-recharge/i);
+    },
+  );
+
+  test("out of AI credits: before the permissions arrive, neither a link nor who can", async () => {
+    grant([]);
+    serve(
+      makeStatus({
+        isInvestigationReady: false,
+        gaps: [gap("ai_balance_insufficient")],
+      }),
+    );
+    openAgentPage();
+
+    const row: HTMLElement = await findTestId(
+      "ai-agent-gap-ai_balance_insufficient",
+    );
+    expect(within(row).queryByText("Open AI Credits")).not.toBeInTheDocument();
+    expect(
+      within(row).queryByTestId("ai-agent-gap-who-can-add-ai-credits"),
+    ).not.toBeInTheDocument();
+    expect(row).not.toHaveTextContent("Ask a project owner or admin.");
   });
 
   test("project-level gaps tell a member who to ask", async () => {
@@ -2070,6 +2510,318 @@ describe("What AI may do", () => {
   });
 });
 
+/*
+ * "This particular thing should be synced with the agent, and I should not
+ * be able to manually edit it. When I try to edit it, show me options and
+ * commands to update the agent based on which option I want to select."
+ *
+ * While the cluster's Kubernetes AI agent sets investigation and fixes
+ * (status.aiSettingsSource), the card says so and Change opens a dialog of
+ * options and the chart command for the one picked — nothing is saved
+ * here. The kubectl allowlist stays OneUptime's.
+ */
+describe("What AI may do, set by the agent", () => {
+  function agentSetStatus(
+    overrides: Partial<KubernetesClusterAiAccessStatus> = {},
+    agent: KubernetesAiAgentSummary = makeAgent(),
+  ): KubernetesClusterAiAccessStatus {
+    return makeStatus(
+      {
+        aiSettingsSource: "agent_configuration",
+        remediationMode: KubernetesAiRemediationMode.RequireApproval,
+        gaps: [],
+        ...overrides,
+      },
+      agent,
+    );
+  }
+
+  async function openAgentSettingsDialog(): Promise<HTMLElement> {
+    fireEvent.click(await findTestId("ai-access-change-button"));
+    return await findTestId("agent-ai-settings-dialog");
+  }
+
+  function pickCard(dialog: HTMLElement, field: string, value: string): void {
+    const card: HTMLElement = within(
+      within(dialog).getByTestId(field),
+    ).getByTestId(`card-select-option-${value}`);
+    fireEvent.click(card);
+    expect(card).toHaveAttribute("aria-checked", "true");
+  }
+
+  test("the card says the agent's configuration sets them, behind a lock", async () => {
+    serve(agentSetStatus());
+    openAgentPage();
+
+    const line: HTMLElement = await findTestId("ai-access-set-by");
+    expect(line).toHaveAttribute("data-set-by-agent", "true");
+    expect(line).toHaveTextContent(
+      KUBERNETES_AI_SETTINGS_SET_BY_TEXT.agent_configuration,
+    );
+    expect(screen.queryByTestId("ai-access-set-by-action")).toBeNull();
+    // The settings themselves read as always.
+    expect(screen.getByTestId("ai-access-fixes-badge")).toHaveTextContent(
+      "Ask for approval",
+    );
+    expect(screen.getByTestId("ai-access-fixes-badge")).toHaveAttribute(
+      "data-tone",
+      "on",
+    );
+  });
+
+  test("its defaults: the line says the chart names neither setting", async () => {
+    serve(agentSetStatus({ aiSettingsSource: "agent_defaults" }));
+    openAgentPage();
+
+    expect(await findTestId("ai-access-set-by")).toHaveTextContent(
+      KUBERNETES_AI_SETTINGS_SET_BY_TEXT.agent_defaults,
+    );
+    const dialog: HTMLElement = await openAgentSettingsDialog();
+    expect(dialog).toHaveAttribute("data-source", "agent_defaults");
+  });
+
+  test("Change opens the options and the chart command, never the edit form, and saves nothing", async () => {
+    serve(agentSetStatus());
+    openAgentPage();
+
+    const dialog: HTMLElement = await openAgentSettingsDialog();
+    expect(dialog).toHaveAttribute("data-source", "agent_configuration");
+    expect(
+      within(dialog).getByTestId("agent-ai-settings-in-effect"),
+    ).toHaveTextContent(
+      "In effect now: investigation on, fixes Ask for approval.",
+    );
+    // No form: nothing here is saved.
+    expect(screen.queryByTestId("ai-investigation-field")).toBeNull();
+    expect(screen.queryByTestId("ai-remediation-mode-field")).toBeNull();
+
+    /*
+     * The agent is read-only and fixes are on: the chart's write access
+     * comes with the upgrade — scoped (recommended) or cluster-wide.
+     */
+    const commands: ReturnType<typeof getAiAgentHelmCommands> =
+      getAiAgentHelmCommands({ investigation: true, fixes: "RequireApproval" });
+    expect(
+      codeIn(within(dialog).getByTestId("agent-ai-settings-command-scoped")),
+    ).toBe(commands.enableRemediationScoped);
+    expect(
+      within(dialog).getByTestId("agent-ai-settings-write-disclosure"),
+    ).toHaveTextContent(getAiAgentWriteDisclosure());
+    fireEvent.click(within(dialog).getByText("The whole cluster"));
+    expect(
+      codeIn(
+        within(dialog).getByTestId("agent-ai-settings-command-cluster-wide"),
+      ),
+    ).toBe(commands.enableRemediation);
+
+    // Instructions only: the one button is Close, and nothing is saved.
+    expect(screen.queryByTestId("modal-footer-submit-button")).toBeNull();
+    fireEvent.click(screen.getByTestId("modal-footer-close-button"));
+    await waitFor(
+      () => {
+        expect(screen.queryByTestId("agent-ai-settings-dialog")).toBeNull();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(updateByIdSpy).not.toHaveBeenCalled();
+  });
+
+  test("each option picked shows the command that sets exactly it", async () => {
+    serve(agentSetStatus());
+    openAgentPage();
+    const dialog: HTMLElement = await openAgentSettingsDialog();
+
+    // Fixes off: one upgrade, and no write access to grant.
+    pickCard(dialog, "agent-ai-settings-fixes", "Disabled");
+    expect(
+      codeIn(within(dialog).getByTestId("agent-ai-settings-command")),
+    ).toBe(
+      getAiAgentHelmCommands({ investigation: true, fixes: "Disabled" })
+        .applySettings,
+    );
+    expect(
+      within(dialog).queryByTestId("agent-ai-settings-command-scoped"),
+    ).toBeNull();
+
+    // Investigation off too.
+    pickCard(dialog, "agent-ai-settings-investigation", "off");
+    expect(
+      codeIn(within(dialog).getByTestId("agent-ai-settings-command")),
+    ).toContain("--set aiAgent.investigation=false");
+
+    // Bypass approval: back to the write-access upgrades.
+    pickCard(dialog, "agent-ai-settings-fixes", "BypassApproval");
+    expect(
+      codeIn(within(dialog).getByTestId("agent-ai-settings-command-scoped")),
+    ).toContain("--set aiAgent.fixes=bypass-approval");
+    expect(updateByIdSpy).not.toHaveBeenCalled();
+  });
+
+  test("an agent that may already write gets one command for any mode, and is told fixes off removes it", async () => {
+    serve(
+      agentSetStatus(
+        {},
+        makeAgent({
+          posture: {
+            clusterIdentifier: "prod-east",
+            inCluster: true,
+            allowWrites: true,
+            writeNamespaces: ["web"],
+            kubectlVersion: "v1.31.2",
+          },
+        }),
+      ),
+    );
+    openAgentPage();
+    const dialog: HTMLElement = await openAgentSettingsDialog();
+
+    pickCard(dialog, "agent-ai-settings-fixes", "Automatic");
+    expect(
+      codeIn(within(dialog).getByTestId("agent-ai-settings-command")),
+    ).toBe(
+      getAiAgentHelmCommands({ investigation: true, fixes: "Automatic" })
+        .applySettings,
+    );
+    expect(
+      within(dialog).queryByTestId("agent-ai-settings-fixes-off-note"),
+    ).toBeNull();
+
+    pickCard(dialog, "agent-ai-settings-fixes", "Disabled");
+    expect(
+      within(dialog).getByTestId("agent-ai-settings-fixes-off-note"),
+    ).toBeInTheDocument();
+  });
+
+  test("anyone who can see the page may open the instructions, a reader included", async () => {
+    grant(READER_PERMISSIONS);
+    serve(agentSetStatus());
+    openAgentPage();
+
+    const change: HTMLElement = await findTestId("ai-access-change-button");
+    expect(change).not.toBeDisabled();
+    fireEvent.click(change);
+    expect(await findTestId("agent-ai-settings-dialog")).toBeInTheDocument();
+  });
+
+  test("fixes off: the hint sends the reader to Change for the command, not to a choice the page cannot save", async () => {
+    serve(
+      agentSetStatus({ remediationMode: KubernetesAiRemediationMode.Disabled }),
+    );
+    openAgentPage();
+
+    expect(await findTestId("ai-access-fixes-off-hint")).toHaveTextContent(
+      AI_FIXES_OFF_AGENT_SET_HINT,
+    );
+  });
+
+  test("investigation off: the step points at the chart, and Show how opens the command with investigation on", async () => {
+    serve(
+      agentSetStatus({
+        isInvestigationEnabled: false,
+        isInvestigationReady: false,
+        gaps: [gap("investigation_disabled", "investigation")],
+      }),
+    );
+    openAgentPage();
+
+    const step: HTMLElement = await findTestId(
+      "ai-agent-gap-investigation_disabled",
+    );
+    expect(step).toHaveTextContent(
+      KUBERNETES_AGENT_SET_INVESTIGATION_STEP_TEXT,
+    );
+    // No Turn on: the server would refuse it.
+    expect(
+      screen.queryByTestId("ai-agent-gap-turn-on-investigation"),
+    ).toBeNull();
+
+    fireEvent.click(
+      within(step).getByTestId("ai-agent-gap-show-investigation-command"),
+    );
+    const dialog: HTMLElement = await findTestId("agent-ai-settings-dialog");
+    expect(
+      within(
+        within(dialog).getByTestId("agent-ai-settings-investigation"),
+      ).getByTestId("card-select-option-on"),
+    ).toHaveAttribute("aria-checked", "true");
+    expect(
+      codeIn(within(dialog).getByTestId("agent-ai-settings-command-scoped")),
+    ).toContain("--set aiAgent.investigation=true");
+  });
+
+  test("Automatic: the allowlist stays editable here, alone, and only it is sent", async () => {
+    serve(
+      agentSetStatus({
+        remediationMode: KubernetesAiRemediationMode.Automatic,
+        kubectlAllowlist: [SET_IMAGE_PATTERN, PATCH_PATTERN],
+      }),
+    );
+    serveCluster({
+      aiRemediationMode: KubernetesAiRemediationMode.Automatic,
+      aiKubectlCommandAllowlist: [SET_IMAGE_PATTERN, PATCH_PATTERN],
+    });
+    openAgentPage();
+
+    fireEvent.click(await findTestId("kubectl-allowlist-in-effect-edit"));
+    const dialog: HTMLElement = await findDialogTitled(
+      "Edit the kubectl allowlist",
+    );
+    await within(dialog).findByTestId(
+      "kubectl-allowlist-field",
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
+    // Investigation and fixes are the agent's: not on this form.
+    expect(within(dialog).queryByTestId("ai-investigation-field")).toBeNull();
+    expect(
+      within(dialog).queryByTestId("ai-remediation-mode-field"),
+    ).toBeNull();
+
+    await setAllowlistText(dialog, SET_IMAGE_PATTERN);
+    saveChangeModal(dialog);
+
+    expect(await waitForOneUpdate()).toEqual({
+      aiKubectlCommandAllowlist: [SET_IMAGE_PATTERN],
+    });
+  });
+
+  test("negative control: chosen here, Change opens the edit form, and the line offers to move them to the chart", async () => {
+    serve(makeStatus({ aiSettingsSource: "oneuptime" }));
+    openAgentPage();
+
+    const line: HTMLElement = await findTestId("ai-access-set-by");
+    expect(line).toHaveAttribute("data-set-by-agent", "false");
+    expect(line).toHaveTextContent(
+      KUBERNETES_AI_SETTINGS_SET_BY_TEXT.oneuptime,
+    );
+
+    fireEvent.click(within(line).getByTestId("ai-access-set-by-action"));
+    const dialog: HTMLElement = await findTestId("agent-ai-settings-dialog");
+    expect(dialog).toHaveAttribute("data-source", "oneuptime");
+    fireEvent.click(
+      within(
+        screen.getByRole("dialog", { name: /Change what AI may do/ }),
+      ).getByTestId("modal-footer-close-button"),
+    );
+    await waitFor(
+      () => {
+        expect(screen.queryByTestId("agent-ai-settings-dialog")).toBeNull();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    await openChangeModal();
+  });
+
+  test("negative control: a cluster on an advanced Runner has no such line (the agent does not run its commands)", async () => {
+    serve(advancedStatus());
+    openAgentPage();
+
+    await findTestId("ai-access-fixes");
+    expect(screen.queryByTestId("ai-access-set-by")).toBeNull();
+  });
+});
+
 describe("automatic investigation footer", () => {
   test("reads On for both and offers nothing more", async () => {
     grant(ADMIN_PERMISSIONS);
@@ -2112,15 +2864,17 @@ describe("automatic investigation footer", () => {
     const confirm: HTMLElement = await findDialogTitled(
       "Turn on automatic investigation?",
     );
-    expect(confirm).toHaveTextContent(
-      "This applies to every new incident and alert in Acme, not just this cluster. Limits live under Incidents → Settings → AI.",
+    expect(
+      within(confirm).getByTestId("confirm-modal-description").textContent,
+    ).toBe(
+      "This applies to every new incident and alert in Acme, not just this cluster. Limits live under Incidents → AI → Settings.",
     );
     expect(
       within(confirm)
         .getByText("Open settings")
         .closest("a")
         ?.getAttribute("href"),
-    ).toBe(`/dashboard/${PROJECT_ID}/incidents/settings/ai`);
+    ).toBe(`/dashboard/${PROJECT_ID}/incidents/ai/settings`);
     expect(updateByIdSpy).not.toHaveBeenCalled();
 
     fireEvent.click(within(confirm).getByText("Turn on"));
@@ -2151,7 +2905,11 @@ describe("automatic investigation footer", () => {
     const confirm: HTMLElement = await findDialogTitled(
       "Turn on automatic investigation?",
     );
-    expect(confirm).toHaveTextContent("every new alert in Acme");
+    expect(
+      within(confirm).getByTestId("confirm-modal-description").textContent,
+    ).toBe(
+      "This applies to every new alert in Acme, not just this cluster. Limits live under Incidents → AI → Settings.",
+    );
     fireEvent.click(within(confirm).getByText("Turn on"));
 
     expect(await waitForOneUpdate()).toEqual({
@@ -2917,7 +3675,9 @@ describe("Switch to the AI agent", () => {
     serve(advancedStatus());
     openAgentPage();
 
-    fireEvent.click(await findTestId("ai-agent-switch-button"));
+    await pickAgentAction(SWITCH_ACTION_TEST_ID);
+    // The menu closes as the dialog opens.
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
     const confirm: HTMLElement = await findDialogTitled(
       "Switch to the AI agent?",
     );
@@ -2927,7 +3687,7 @@ describe("Switch to the AI agent", () => {
     expect(confirm).toHaveTextContent("(Read-only)");
     expect(updateByIdSpy).not.toHaveBeenCalled();
 
-    fireEvent.click(within(confirm).getByText("Switch"));
+    fireEvent.click(within(confirm).getByText("Switch to the AI agent"));
 
     expect(await waitForOneUpdate()).toEqual({
       aiAccessRunnerId: null,
@@ -2942,19 +3702,65 @@ describe("Switch to the AI agent", () => {
     grant(ADMIN_PERMISSIONS);
     serve(advancedStatus({ aiAgent: silentAgent() }));
     openAgentPage();
-    await findTestId("ai-agent-status");
+    let menu: HTMLElement = await openAgentActions();
+    expect(actionLabels(menu)).toEqual(["Test connection", "Reset agent"]);
     expect(
-      screen.queryByTestId("ai-agent-switch-button"),
+      within(menu).queryByTestId(SWITCH_ACTION_TEST_ID),
     ).not.toBeInTheDocument();
     cleanup();
 
     grant(MEMBER_PERMISSIONS);
     serve(advancedStatus());
     openAgentPage();
-    await findTestId("ai-agent-status");
+    menu = await openAgentActions();
+    expect(actionLabels(menu)).toEqual(["Test connection"]);
     expect(
-      screen.queryByTestId("ai-agent-switch-button"),
+      within(menu).queryByTestId(SWITCH_ACTION_TEST_ID),
     ).not.toBeInTheDocument();
+  });
+
+  test("sits between the test and the reset, with an icon of its own", async () => {
+    grant(ADMIN_PERMISSIONS);
+    serve(advancedStatus());
+    openAgentPage();
+
+    const menu: HTMLElement = await openAgentActions();
+
+    expect(actionLabels(menu)).toEqual([
+      "Test connection",
+      "Switch to the AI agent",
+      "Reset agent",
+    ]);
+    // Side by side the two buttons both wore the refresh arrows.
+    expect(
+      within(menu).getByTestId(SWITCH_ACTION_TEST_ID).querySelector("svg")
+        ?.innerHTML,
+    ).not.toBe(
+      within(menu).getByTestId(RESET_ACTION_TEST_ID).querySelector("svg")
+        ?.innerHTML,
+    );
+  });
+
+  test("backing out of the dialog switches nothing", async () => {
+    grant(ADMIN_PERMISSIONS);
+    serve(advancedStatus());
+    openAgentPage();
+
+    await pickAgentAction(SWITCH_ACTION_TEST_ID);
+    const confirm: HTMLElement = await findDialogTitled(
+      "Switch to the AI agent?",
+    );
+    fireEvent.click(within(confirm).getByText("Cancel"));
+
+    await waitFor(
+      () => {
+        expect(
+          screen.queryByText("Switch to the AI agent?"),
+        ).not.toBeInTheDocument();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(updateByIdSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -2963,7 +3769,7 @@ describe("Reset agent", () => {
     grant(ADMIN_PERMISSIONS);
     openAgentPage();
 
-    fireEvent.click(await findTestId("ai-agent-reset-button"));
+    await pickAgentAction(RESET_ACTION_TEST_ID);
     const confirm: HTMLElement = await findDialogTitled("Reset the AI agent?");
     expect(confirm).toHaveTextContent("revokes the agent's key");
     expect(postsTo(RESET_ROUTE)).toHaveLength(0);
@@ -3005,7 +3811,7 @@ describe("Reset agent", () => {
     });
     openAgentPage();
 
-    fireEvent.click(await findTestId("ai-agent-reset-button"));
+    await pickAgentAction(RESET_ACTION_TEST_ID);
     const confirm: HTMLElement = await findDialogTitled("Reset the AI agent?");
     fireEvent.click(within(confirm).getByText("Reset agent"));
 
@@ -3041,7 +3847,7 @@ describe("Reset agent", () => {
     });
     openAgentPage();
 
-    fireEvent.click(await findTestId("ai-agent-reset-button"));
+    await pickAgentAction(RESET_ACTION_TEST_ID);
     const confirm: HTMLElement = await findDialogTitled("Reset the AI agent?");
     fireEvent.click(within(confirm).getByText("Reset agent"));
 
@@ -3061,16 +3867,46 @@ describe("Reset agent", () => {
     grant(ADMIN_PERMISSIONS);
     serve(makeStatus({}, silentAgent()));
     openAgentPage();
-    expect(await findTestId("ai-agent-reset-button")).toBeInTheDocument();
+    let menu: HTMLElement = await openAgentActions();
+    expect(within(menu).getByTestId(RESET_ACTION_TEST_ID)).toHaveAttribute(
+      "aria-disabled",
+      "false",
+    );
     cleanup();
 
     grant(MEMBER_PERMISSIONS);
     serve(makeStatus());
     openAgentPage();
-    await findTestId("ai-agent-status");
+    menu = await openAgentActions();
+    expect(actionLabels(menu)).toEqual(["Test connection"]);
     expect(
-      screen.queryByTestId("ai-agent-reset-button"),
+      within(menu).queryByTestId(RESET_ACTION_TEST_ID),
     ).not.toBeInTheDocument();
+  });
+
+  test("backing out of the dialog resets nothing, and focus goes back to the ⋯", async () => {
+    grant(ADMIN_PERMISSIONS);
+    openAgentPage();
+
+    await pickAgentAction(RESET_ACTION_TEST_ID);
+    const confirm: HTMLElement = await findDialogTitled("Reset the AI agent?");
+    fireEvent.click(within(confirm).getByText("Cancel"));
+
+    await waitFor(
+      () => {
+        expect(
+          screen.queryByText("Reset the AI agent?"),
+        ).not.toBeInTheDocument();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(postsTo(RESET_ROUTE)).toHaveLength(0);
+    await waitFor(
+      () => {
+        expect(screen.getByTestId(ACTIONS_BUTTON_TEST_ID)).toHaveFocus();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
   });
 });
 
@@ -3079,8 +3915,15 @@ describe("Test connection", () => {
     grant(READER_PERMISSIONS);
     openAgentPage();
 
-    const button: HTMLElement = await findTestId("ai-agent-test-button");
-    expect(button).toBeDisabled();
+    const menu: HTMLElement = await openAgentActions();
+    // Locked, not hidden - and nothing else is offered to a reader.
+    expect(actionLabels(menu)).toEqual(["Test connection"]);
+    const item: HTMLElement = within(menu).getByTestId(TEST_ACTION_TEST_ID);
+    expect(item).toHaveAttribute("aria-disabled", "true");
+    expect(item).toHaveAccessibleDescription(
+      /Testing the connection needs permission to edit this cluster/,
+    );
+    expect(item).toHaveAccessibleDescription(/Edit Kubernetes Cluster/);
     expect(
       screen.getByTestId("ai-agent-test-permission-note"),
     ).toHaveTextContent(
@@ -3090,18 +3933,19 @@ describe("Test connection", () => {
       screen.getByTestId("ai-agent-test-permission-note"),
     ).toHaveTextContent("Edit Kubernetes Cluster");
 
-    fireEvent.click(button);
+    fireEvent.click(item);
     expect(postsTo(TEST_ROUTE)).toHaveLength(0);
+    expect(
+      screen.queryByTestId("ai-agent-test-progress"),
+    ).not.toBeInTheDocument();
   });
 
-  test("is hidden while the permission snapshot has not landed", async () => {
+  test("is hidden while the permission snapshot has not landed - and so is the ⋯", async () => {
     grant([]);
     openAgentPage();
 
     await findText(AGENT_CARD_TITLE);
-    expect(
-      screen.queryByTestId("ai-agent-test-button"),
-    ).not.toBeInTheDocument();
+    await expectNoAgentActions();
     expect(
       screen.queryByTestId("ai-agent-test-permission-note"),
     ).not.toBeInTheDocument();
@@ -3122,18 +3966,25 @@ describe("Test connection", () => {
     });
     openAgentPage();
 
-    const button: HTMLElement = await findTestId("ai-agent-test-button");
-    expect(button).not.toBeDisabled();
+    let menu: HTMLElement = await openAgentActions();
+    const item: HTMLElement = within(menu).getByTestId(TEST_ACTION_TEST_ID);
+    expect(item).not.toBeDisabled();
+    expect(item).toHaveAttribute("aria-disabled", "false");
 
-    fireEvent.click(button);
-    fireEvent.click(button);
+    fireEvent.click(item);
 
-    await waitFor(
-      () => {
-        expect(screen.getByTestId("ai-agent-test-button")).toBeDisabled();
-      },
-      { timeout: WAIT_TIMEOUT },
+    // The menu closes; the card says the test is running.
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    expect(await findTestId("ai-agent-test-progress")).toHaveTextContent(
+      "Testing the connection…",
     );
+
+    // Opened again while it runs, the test is locked: it runs once.
+    menu = await openAgentActions();
+    expect(within(menu).getByTestId(TEST_ACTION_TEST_ID)).toBeDisabled();
+    fireEvent.click(within(menu).getByTestId(TEST_ACTION_TEST_ID));
+    fireEvent.keyDown(menu, { key: "Escape" });
+
     expect(postsTo(TEST_ROUTE)).toHaveLength(1);
     expect(postsTo(TEST_ROUTE)[0]!["data"]).toEqual({
       clusterId: CLUSTER_ID.toString(),
@@ -3179,7 +4030,167 @@ describe("Test connection", () => {
     expect(within(results).getAllByText("succeeded")).toHaveLength(2);
     expect(results).toHaveTextContent("Server Version: v1.31.0");
     expect(results).toHaveTextContent("kubectl auth can-i --list");
-    expect(screen.getByTestId("ai-agent-test-button")).not.toBeDisabled();
+    // The result replaces the running line, and the test can run again.
+    expect(
+      screen.queryByTestId("ai-agent-test-progress"),
+    ).not.toBeInTheDocument();
+    menu = await openAgentActions();
+    expect(within(menu).getByTestId(TEST_ACTION_TEST_ID)).not.toBeDisabled();
+  });
+
+  /*
+   * The old button carried the test's spinner. The ⋯ closes as the test
+   * starts, so the card says it is running - in the agent card, where the
+   * result then appears - and a screen reader hears it.
+   */
+  test("the running test is said in the agent card, not in the closed menu", async () => {
+    let answer: (value: HTTPResponse<JSONObject>) => void = (): void => {
+      // replaced below
+    };
+    serve(makeStatus(), {
+      test: (): Promise<HTTPResponse<JSONObject>> => {
+        return new Promise(
+          (resolve: (value: HTTPResponse<JSONObject>) => void) => {
+            answer = resolve;
+          },
+        );
+      },
+    });
+    openAgentPage();
+
+    await pickAgentAction(TEST_ACTION_TEST_ID);
+
+    const progress: HTMLElement = await findTestId("ai-agent-test-progress");
+    expect(progress).toHaveAttribute("role", "status");
+    expect(progress).toHaveTextContent("Testing the connection…");
+    const agentCard: HTMLElement | null = (
+      await findText(AGENT_CARD_TITLE)
+    ).closest('[data-testid="card"]');
+    expect(agentCard).toContainElement(progress);
+    // Nothing from before is left beside it.
+    expect(
+      screen.queryByTestId("ai-agent-test-results"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("ai-agent-test-error")).not.toBeInTheDocument();
+
+    await act(async () => {
+      answer(
+        new HTTPResponse<JSONObject>(
+          200,
+          {
+            ok: false,
+            message: "kubectl could not run successfully.",
+            results: [],
+          },
+          {},
+        ),
+      );
+    });
+
+    expect(await findTestId("ai-agent-test-results")).toHaveTextContent(
+      "The connection is not working yet",
+    );
+    expect(
+      screen.queryByTestId("ai-agent-test-progress"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a new test clears the last result while it runs", async () => {
+    let calls: number = 0;
+    let answerSecond: (value: HTTPResponse<JSONObject>) => void = (): void => {
+      // replaced below
+    };
+    serve(makeStatus(), {
+      test: (): Promise<HTTPResponse<JSONObject>> => {
+        calls++;
+        if (calls === 1) {
+          return Promise.resolve(
+            new HTTPResponse<JSONObject>(
+              200,
+              { ok: true, message: "First run.", results: [] },
+              {},
+            ),
+          );
+        }
+        return new Promise(
+          (resolve: (value: HTTPResponse<JSONObject>) => void) => {
+            answerSecond = resolve;
+          },
+        );
+      },
+    });
+    openAgentPage();
+
+    await pickAgentAction(TEST_ACTION_TEST_ID);
+    expect(await findTestId("ai-agent-test-results")).toHaveTextContent(
+      "First run.",
+    );
+
+    await pickAgentAction(TEST_ACTION_TEST_ID);
+
+    expect(await findTestId("ai-agent-test-progress")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("ai-agent-test-results"),
+    ).not.toBeInTheDocument();
+
+    await act(async () => {
+      answerSecond(
+        new HTTPResponse<JSONObject>(
+          200,
+          { ok: true, message: "Second run.", results: [] },
+          {},
+        ),
+      );
+    });
+
+    expect(await findTestId("ai-agent-test-results")).toHaveTextContent(
+      "Second run.",
+    );
+    expect(postsTo(TEST_ROUTE)).toHaveLength(2);
+  });
+
+  test("the test from the Needs attention step shows the same running line", async () => {
+    let answer: (value: HTTPResponse<JSONObject>) => void = (): void => {
+      // replaced below
+    };
+    serve(
+      makeStatus({
+        isInvestigationReady: false,
+        gaps: [gap("last_access_check_failed", "both")],
+      }),
+      {
+        test: (): Promise<HTTPResponse<JSONObject>> => {
+          return new Promise(
+            (resolve: (value: HTTPResponse<JSONObject>) => void) => {
+              answer = resolve;
+            },
+          );
+        },
+      },
+    );
+    openAgentPage();
+
+    fireEvent.click(await findTestId("ai-agent-gap-test-connection"));
+
+    expect(await findTestId("ai-agent-test-progress")).toBeInTheDocument();
+    // The ⋯'s test is locked while it runs.
+    const menu: HTMLElement = await openAgentActions();
+    expect(within(menu).getByTestId(TEST_ACTION_TEST_ID)).toBeDisabled();
+
+    await act(async () => {
+      answer(
+        new HTTPResponse<JSONObject>(
+          200,
+          { ok: true, message: "Works.", results: [] },
+          {},
+        ),
+      );
+    });
+
+    expect(await findTestId("ai-agent-test-results")).toHaveTextContent(
+      "Works.",
+    );
+    expect(postsTo(TEST_ROUTE)).toHaveLength(1);
   });
 
   test("shows a failed command with its exit code", async () => {
@@ -3207,7 +4218,7 @@ describe("Test connection", () => {
     });
     openAgentPage();
 
-    fireEvent.click(await findTestId("ai-agent-test-button"));
+    await pickAgentAction(TEST_ACTION_TEST_ID);
 
     expect(
       await findText("The connection is not working yet"),
@@ -3230,7 +4241,7 @@ describe("Test connection", () => {
     });
     openAgentPage();
 
-    fireEvent.click(await findTestId("ai-agent-test-button"));
+    await pickAgentAction(TEST_ACTION_TEST_ID);
 
     const error: HTMLElement = await findTestId("ai-agent-test-error");
     expect(error).toHaveTextContent("The test could not run");
@@ -3252,7 +4263,7 @@ describe("Test connection", () => {
     });
     openAgentPage();
 
-    fireEvent.click(await findTestId("ai-agent-test-button"));
+    await pickAgentAction(TEST_ACTION_TEST_ID);
 
     const error: HTMLElement = await findTestId("ai-agent-test-error");
     expect(error).toHaveTextContent(

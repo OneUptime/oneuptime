@@ -25,6 +25,15 @@ import PaymentRequiredException from "../../Types/Exception/PaymentRequiredExcep
 import SubscriptionPlan, {
   PlanType,
 } from "../../Types/Billing/SubscriptionPlan";
+import ProjectAiDailyLimits, {
+  PROJECT_AI_DAILY_LIMIT_REACHED_AT_COLUMNS,
+  PROJECT_AI_DAILY_LIMITS_LOCATION,
+  ProjectAiDailyLimit,
+  ProjectAiDailyLimitValues,
+  ProjectAiDailyUsage,
+} from "../../Types/AI/ProjectAiDailyLimits";
+import ProjectAiDailyLimitOwnerNotice from "../Utils/AI/ProjectAiDailyLimitOwnerNotice";
+import { PROJECT_AI_CREDITS_USED_UP_MESSAGE } from "../../Utils/Project/ProjectBalance";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 
@@ -322,6 +331,70 @@ export const AI_DISABLED_MESSAGE: string =
 export const AI_BALANCE_INSUFFICIENT_MESSAGE: string =
   "This project's AI credit balance is used up and auto-recharge is off, so OneUptime AI cannot run.";
 
+/*
+ * Where a project's own daily AI limits are set, as every refusal names it.
+ */
+export const PROJECT_DAILY_AI_LIMITS_LOCATION: string =
+  PROJECT_AI_DAILY_LIMITS_LOCATION;
+
+/*
+ * What every refusal by a project's own daily AI limit says, in its first
+ * words. The investigation engine reads it to tell this refusal - which no
+ * retry can get past before midnight UTC - from a provider failure worth
+ * retrying, so the words must stay as they are.
+ */
+export const PROJECT_DAILY_AI_LIMIT_REACHED_PATTERN: RegExp =
+  /reached its daily AI (?:token|spend) limit/i;
+
+/*
+ * Where a project stands against its own daily AI limits (Project Settings
+ * → AI Features → More settings) for one piece of AI work: see
+ * Types/AI/ProjectAiDailyLimits for what the limits mean.
+ */
+export interface ProjectAiDailyLimitStatus extends ProjectAiDailyLimitValues {
+  // The limit that stops the work, or null when it may run.
+  reachedLimit: ProjectAiDailyLimit | null;
+  // Since midnight UTC. Zero when no limit applied, so nothing was counted.
+  usage: ProjectAiDailyUsage;
+  // Whether the spend limit counts for this work: it is billed.
+  isSpendCounted: boolean;
+  // When the count starts again: the next midnight UTC.
+  resetsAt: Date;
+  /*
+   * When the reached limit last stopped AI before - its ...ReachedAt column
+   * - as the project row carried it: null for never, undefined when the
+   * row did not carry the column or nothing is reached. The owners' notice
+   * reads it to tell, at no cost, that they were told today.
+   */
+  lastReachedAt?: Date | null | undefined;
+}
+
+/*
+ * The one sentence that says a project's own daily AI limit stopped some AI
+ * work: in the AI Logs, on a failed run, in Ask AI, in Slack and Microsoft
+ * Teams, and from every "Generate with AI" button. It says which limit, how
+ * much was used, when AI starts again, and who can change the limit and
+ * where. It is said to whoever asked - who may not be one of the people who
+ * can change the limit - so it names them rather than telling the reader
+ * to (the project's owners are emailed with a link to the setting:
+ * ProjectAiDailyLimitOwnerNotice).
+ */
+export const getProjectDailyLimitMessage: (
+  status: Pick<
+    ProjectAiDailyLimitStatus,
+    "reachedLimit" | "tokenLimit" | "spendLimitInUSD" | "usage"
+  >,
+) => string = (
+  status: Pick<
+    ProjectAiDailyLimitStatus,
+    "reachedLimit" | "tokenLimit" | "spendLimitInUSD" | "usage"
+  >,
+): string => {
+  return `${ProjectAiDailyLimits.getReachedSentence(
+    status,
+  )} OneUptime AI starts again at midnight UTC. ${ProjectAiDailyLimits.getWhoCanChangeSentence()}`;
+};
+
 export interface AILogRequest {
   projectId: ObjectID;
   userId?: ObjectID | undefined;
@@ -556,6 +629,267 @@ export class Service extends BaseService {
   }
 
   /*
+   * Would AI work in this project be billed to its AI credits? The same test
+   * executeWithLogging applies to every call (shouldBill): billing is on and
+   * the provider is the OneUptime-hosted (global) one with a per-token cost.
+   * Takes the provider when the caller already resolved it; otherwise it is
+   * the provider the project's own AI work uses.
+   */
+  @CaptureSpan()
+  public async isProjectAiBilled(data: {
+    projectId: ObjectID;
+    llmProvider?: LlmProvider | null | undefined;
+  }): Promise<boolean> {
+    if (!IsBillingEnabled) {
+      return false;
+    }
+
+    const llmProvider: LlmProvider | null =
+      data.llmProvider !== undefined
+        ? data.llmProvider
+        : await LlmProviderService.getLLMProviderForProject(data.projectId);
+
+    return Boolean(
+      llmProvider &&
+        llmProvider.isGlobalLlm === true &&
+        (llmProvider.costPerMillionTokensInUSDCents || 0) > 0,
+    );
+  }
+
+  /*
+   * Where the project stands against its own daily AI limits (Project
+   * Settings → AI Features → More settings) for one piece of AI work - a
+   * ceiling over everything its AI does, above the incident and alert
+   * limits. See Types/AI/ProjectAiDailyLimits.
+   *
+   * Costs nothing when the project has no limit: the limits come from the
+   * row the caller already read when it hands it over (executeWithLogging
+   * does), and today's usage is summed only when a limit applies to the
+   * work. A spend limit applies only to work billed to the project's AI
+   * credits - `isBilled` when the caller knows, else the project's provider
+   * decides - so it never stops AI on the project's own provider, and where
+   * AI is not billed there is none.
+   *
+   * Throws when it cannot read what it needs; getReachedProjectDailyLimit
+   * is the non-throwing form.
+   */
+  @CaptureSpan()
+  public async getProjectDailyLimitStatus(data: {
+    projectId: ObjectID;
+    // The project row with its two limit columns, when already read.
+    project?: Project | null | undefined;
+    // Whether this work is billed to the project's AI credits, when known.
+    isBilled?: boolean | undefined;
+    // The provider this work would use, when already resolved.
+    llmProvider?: LlmProvider | null | undefined;
+  }): Promise<ProjectAiDailyLimitStatus> {
+    const now: Date = OneUptimeDate.getCurrentDate();
+
+    const project: Project | null =
+      data.project !== undefined
+        ? data.project
+        : await ProjectService.findOneById({
+            id: data.projectId,
+            select: {
+              aiDailyTokenLimit: true,
+              aiDailySpendLimitInUSD: true,
+              // When each limit last stopped AI: the owners' notice reads it.
+              aiDailyTokenLimitReachedAt: true,
+              aiDailySpendLimitReachedAt: true,
+            },
+            props: { isRoot: true },
+          });
+
+    const limits: ProjectAiDailyLimitValues = ProjectAiDailyLimits.getLimits({
+      project: project
+        ? {
+            aiDailyTokenLimit: project.aiDailyTokenLimit,
+            aiDailySpendLimitInUSD: project.aiDailySpendLimitInUSD,
+          }
+        : null,
+      isBillingEnabled: IsBillingEnabled,
+    });
+
+    const status: ProjectAiDailyLimitStatus = {
+      ...limits,
+      reachedLimit: null,
+      usage: { usedTokensToday: 0, spentTodayInUSDCents: 0 },
+      isSpendCounted: false,
+      resetsAt: ProjectAiDailyLimits.getNextReset(now),
+    };
+
+    if (!ProjectAiDailyLimits.hasLimit(limits)) {
+      return status;
+    }
+
+    status.isSpendCounted =
+      limits.spendLimitInUSD !== null &&
+      (data.isBilled !== undefined
+        ? data.isBilled
+        : await this.isProjectAiBilled({
+            projectId: data.projectId,
+            llmProvider: data.llmProvider,
+          }));
+
+    // A spend limit alone does not apply to work that is not billed.
+    if (limits.tokenLimit === null && !status.isSpendCounted) {
+      return status;
+    }
+
+    const used: { totalTokens: number; billedCostInUSDCents: number } =
+      await LlmLogService.getProjectUsageSince({
+        projectId: data.projectId,
+        since: ProjectAiDailyLimits.getDayStart(now),
+      });
+
+    status.usage = {
+      usedTokensToday: used.totalTokens,
+      spentTodayInUSDCents: used.billedCostInUSDCents,
+    };
+
+    status.reachedLimit = ProjectAiDailyLimits.getReachedLimit({
+      limits,
+      usage: status.usage,
+      isSpendCounted: status.isSpendCounted,
+    });
+
+    if (status.reachedLimit && project) {
+      status.lastReachedAt =
+        project[PROJECT_AI_DAILY_LIMIT_REACHED_AT_COLUMNS[status.reachedLimit]];
+    }
+
+    return status;
+  }
+
+  /*
+   * A project's own daily AI limit stopped some AI work: tell its owners,
+   * the first time it does on a UTC day (ProjectAiDailyLimitOwnerNotice -
+   * once a day for each limit, whichever server, refusal or skip comes
+   * first). Never throws and never delays the work's own outcome beyond the
+   * one email of the day.
+   */
+  private async tellOwnersDailyLimitReached(
+    projectId: ObjectID,
+    status: ProjectAiDailyLimitStatus,
+  ): Promise<void> {
+    try {
+      await ProjectAiDailyLimitOwnerNotice.notifyIfFirstToday({
+        projectId,
+        status,
+        lastReachedAt: status.lastReachedAt,
+      });
+    } catch (error) {
+      logger.error(
+        `AI: could not tell the owners of project ${projectId.toString()} that a daily AI limit was reached: ${error}`,
+      );
+    }
+  }
+
+  /*
+   * The project's own daily AI limit that stops new AI work now, or null.
+   *
+   * For the places that decide whether to START AI work - the investigation
+   * gate and queue, the postmortem draft, on-resolve grading, the Slack and
+   * Microsoft Teams questions - so that work is skipped, or refused in one
+   * clear message, instead of failing on its first model call. It fails
+   * OPEN: limits that cannot be read never stop anything here, because the
+   * model call itself (executeWithLogging) still enforces them. A limit it
+   * finds reached tells the project's owners, the first time that day.
+   */
+  @CaptureSpan()
+  public async getReachedProjectDailyLimit(data: {
+    projectId: ObjectID;
+    project?: Project | null | undefined;
+    llmProvider?: LlmProvider | null | undefined;
+  }): Promise<ProjectAiDailyLimitStatus | null> {
+    let status: ProjectAiDailyLimitStatus;
+
+    try {
+      status = await this.getProjectDailyLimitStatus(data);
+    } catch (error) {
+      logger.error(
+        `AI: could not check the daily AI limits of project ${data.projectId.toString()}; not stopping on them: ${error}`,
+      );
+      return null;
+    }
+
+    if (!status.reachedLimit) {
+      return null;
+    }
+
+    await this.tellOwnersDailyLimitReached(data.projectId, status);
+
+    return status;
+  }
+
+  /*
+   * What the project's AI has used today, against its own daily limits, for
+   * the AI Features page to show (POST /ai/daily-usage). Usage is counted
+   * whether or not a limit is set - it is what someone choosing a limit
+   * needs to know - and spend only where AI is billed.
+   */
+  @CaptureSpan()
+  public async getProjectDailyUsage(projectId: ObjectID): Promise<{
+    limits: ProjectAiDailyLimitValues;
+    usage: ProjectAiDailyUsage;
+    reachedLimit: ProjectAiDailyLimit | null;
+    dayStartedAt: Date;
+    resetsAt: Date;
+  }> {
+    const now: Date = OneUptimeDate.getCurrentDate();
+    const dayStartedAt: Date = ProjectAiDailyLimits.getDayStart(now);
+
+    const [project, used]: [
+      Project | null,
+      { totalTokens: number; billedCostInUSDCents: number },
+    ] = await Promise.all([
+      ProjectService.findOneById({
+        id: projectId,
+        select: {
+          aiDailyTokenLimit: true,
+          aiDailySpendLimitInUSD: true,
+        },
+        props: { isRoot: true },
+      }),
+      LlmLogService.getProjectUsageSince({
+        projectId,
+        since: dayStartedAt,
+      }),
+    ]);
+
+    const limits: ProjectAiDailyLimitValues = ProjectAiDailyLimits.getLimits({
+      project: project
+        ? {
+            aiDailyTokenLimit: project.aiDailyTokenLimit,
+            aiDailySpendLimitInUSD: project.aiDailySpendLimitInUSD,
+          }
+        : null,
+      isBillingEnabled: IsBillingEnabled,
+    });
+
+    const usage: ProjectAiDailyUsage = {
+      usedTokensToday: used.totalTokens,
+      spentTodayInUSDCents: IsBillingEnabled ? used.billedCostInUSDCents : 0,
+    };
+
+    return {
+      limits,
+      usage,
+      /*
+       * Spend that reached its limit stops every billed call, so it is
+       * shown as reached whatever provider the next call would use.
+       */
+      reachedLimit: ProjectAiDailyLimits.getReachedLimit({
+        limits,
+        usage,
+        isSpendCounted: true,
+      }),
+      dayStartedAt,
+      resetsAt: ProjectAiDailyLimits.getNextReset(now),
+    };
+  }
+
+  /*
    * G4 daily budget: has this project consumed the selected subject lane's
    * daily autonomous-token allowance (UTC day)? Counts only that lane's
    * AUTONOMOUS_AI_FEATURES tokens, so chat usage neither eats the autonomous
@@ -649,15 +983,24 @@ export class Service extends BaseService {
      * user a readable refusal (Slack, Teams) checks first and posts one. Both
      * are about DELIVERY, and both still land here if they forget.
      *
-     * The row is read once and carried to the balance check below, so on the
-     * billing path this costs no extra query. Off the billing path it adds a
-     * single primary-key read per LLM call — set against a provider round
-     * trip measured in seconds, and against the alternative of billing a
-     * project that told us not to.
+     * The row is read once and carried to the balance check and the
+     * project's daily limits below, so on the billing path this costs no
+     * extra query. Off the billing path it adds a single primary-key read
+     * per LLM call — set against a provider round trip measured in seconds,
+     * and against the alternative of billing a project that told us not to.
      */
     const project: Project | null = await ProjectService.findOneById({
       id: request.projectId,
-      select: { enableAi: true, aiCurrentBalanceInUSDCents: true },
+      select: {
+        enableAi: true,
+        aiCurrentBalanceInUSDCents: true,
+        // The project's own daily AI limits, checked below on this same row.
+        aiDailyTokenLimit: true,
+        aiDailySpendLimitInUSD: true,
+        // When each last stopped AI, so a refusal tells the owners at no cost.
+        aiDailyTokenLimitReachedAt: true,
+        aiDailySpendLimitReachedAt: true,
+      },
       props: { isRoot: true },
     });
 
@@ -737,7 +1080,7 @@ export class Service extends BaseService {
      * provider, and only when it actually has a per-token cost. A free global
      * provider (costPerMillionTokensInUSDCents = 0, the default) consumes no
      * balance, so it must not require or block on one either — otherwise a $0
-     * provider would still fail with "Insufficient AI balance".
+     * provider would still be refused as out of AI credits.
      */
     const shouldBill: boolean =
       IsBillingEnabled &&
@@ -748,10 +1091,14 @@ export class Service extends BaseService {
      * Check balance if billing enabled and using global provider. The row was
      * already read for the kill switch above and is non-null past that gate,
      * so this reuses it rather than issuing a second read of the same row.
+     *
+     * Said to whoever asked - most of whom cannot add credits - so the
+     * refusal names who can, and where (Utils/Project/ProjectBalance), and
+     * the AI Logs row says the same.
      */
     if (shouldBill && (project!.aiCurrentBalanceInUSDCents || 0) <= 0) {
       logEntry.status = LlmLogStatus.InsufficientBalance;
-      logEntry.statusMessage = "Insufficient AI balance";
+      logEntry.statusMessage = PROJECT_AI_CREDITS_USED_UP_MESSAGE;
       logEntry.requestCompletedAt = new Date();
       logEntry.durationMs = new Date().getTime() - startTime.getTime();
 
@@ -760,9 +1107,49 @@ export class Service extends BaseService {
         props: { isRoot: true },
       });
 
-      throw new BadDataException(
-        "Insufficient AI balance. Please recharge your AI balance in Project Settings > AI Credits.",
+      throw new BadDataException(PROJECT_AI_CREDITS_USED_UP_MESSAGE);
+    }
+
+    /*
+     * The project's own daily AI limits (Project Settings → AI Features →
+     * More settings): a ceiling over EVERY call, Ask AI and every other
+     * interactive feature included, not only autonomous work - it is what
+     * the project's owners chose to let AI use in a day. The token limit
+     * counts every call; the spend limit only calls billed to the project's
+     * AI credits, which this one is exactly when shouldBill. Checked before
+     * the call, so the call that crosses a limit finishes and nothing starts
+     * after it, until midnight UTC. No limit set costs no query: the limits
+     * are on the row read above. Logged like the balance refusal, so the AI
+     * Logs show every refused call and why.
+     */
+    const projectDailyLimit: ProjectAiDailyLimitStatus =
+      await this.getProjectDailyLimitStatus({
+        projectId: request.projectId,
+        project,
+        isBilled: shouldBill,
+      });
+
+    if (projectDailyLimit.reachedLimit) {
+      const limitMessage: string =
+        getProjectDailyLimitMessage(projectDailyLimit);
+
+      logEntry.status = LlmLogStatus.BudgetExceeded;
+      logEntry.statusMessage = limitMessage.substring(0, 490);
+      logEntry.requestCompletedAt = new Date();
+      logEntry.durationMs = new Date().getTime() - startTime.getTime();
+
+      await LlmLogService.create({
+        data: logEntry,
+        props: { isRoot: true },
+      });
+
+      // The first refusal of the day tells the project's owners.
+      await this.tellOwnersDailyLimitReached(
+        request.projectId,
+        projectDailyLimit,
       );
+
+      throw new BadDataException(limitMessage);
     }
 
     /*
@@ -781,8 +1168,8 @@ export class Service extends BaseService {
 
       if (budget.exhausted) {
         const settingsLocation: string = request.incidentId
-          ? "Incidents > Settings > AI"
-          : "Alerts > Settings > AI";
+          ? "Incidents > AI > Settings"
+          : "Alerts > AI > Settings";
         const budgetMessage: string = `Daily autonomous AI token budget exhausted (${budget.usedTokensToday.toLocaleString()} of ${budget.limitInTokens?.toLocaleString()} tokens used today). Autonomous AI requests resume tomorrow (UTC) — raise or unset the limit under ${settingsLocation}.`;
 
         logEntry.status = LlmLogStatus.BudgetExceeded;
@@ -815,6 +1202,15 @@ export class Service extends BaseService {
 
       if (llmProvider.modelName) {
         llmConfig.modelName = llmProvider.modelName;
+      }
+
+      /*
+       * Lets an operator-configured provider reach a private address, such as
+       * the Helm chart's in-cluster vLLM, where project-owned providers are
+       * refused one.
+       */
+      if (LlmProviderService.isUnownedGlobalProvider(llmProvider)) {
+        llmConfig.isGlobalProvider = true;
       }
 
       // Execute LLM call

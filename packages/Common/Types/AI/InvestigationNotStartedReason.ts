@@ -5,11 +5,25 @@ export type InvestigationNotStartedCode =
   /*
    * The project runs on OneUptime's own (billed) LLM provider and has no AI
    * credits left, with auto-recharge off — every model call would be
-   * refused with "Insufficient AI balance", so no run is started.
+   * refused because the project's AI credits are used up, so no run is
+   * started.
    */
   | "insufficient_ai_balance"
+  /*
+   * The project had reached one of its own daily AI limits (Project
+   * Settings → AI Features → More settings) - the token limit, or the
+   * spend limit on billed AI - so no run is started until midnight UTC.
+   */
+  | "project_daily_limit_reached"
   | "severity_below_threshold"
   | "monitor_cooldown"
+  /*
+   * The incident or alert was created already resolved (its Initial State,
+   * a template's, the API...): it was over before it was recorded, so there
+   * was nothing to investigate (Common/Utils/StartingStage). Only ever
+   * recorded at creation.
+   */
+  | "created_resolved"
   | "daily_budget_exhausted"
   | "budget_check_failed"
   | "enqueue_failed"

@@ -6,6 +6,7 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
+import AlertInternalNote from "Common/Models/DatabaseModels/AlertInternalNote";
 import React, {
   Fragment,
   FunctionComponent,
@@ -45,6 +46,9 @@ import {
 } from "../AI/AIInvestigationStatus";
 import { getDeclareIncidentFromAlertAction } from "./DeclareIncidentFromAlert";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import { StateListType } from "Common/Utils/StateOrder";
+import { getEventEndDateForCurrentState } from "../../Utils/EventDuration";
 import {
   translatableTerm,
   TranslatableTerm,
@@ -205,6 +209,7 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
           isCreatedState: true,
           name: true,
           color: true,
+          order: true,
         },
         sort: {
           order: SortOrder.Ascending,
@@ -322,11 +327,25 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
     },
   );
 
-  const resolvedState: AlertState | undefined = alertStates.find(
-    (state: AlertState) => {
-      return state.isResolvedState;
+  /*
+   * The project's resolved state - where Resolve moves the alert - and every
+   * state that counts as resolved: it and any state placed after it
+   * (Common/Utils/ResolvedState).
+   */
+  const resolvedState: AlertState | undefined =
+    ResolvedStateUtil.getResolvedState({
+      list: StateListType.AlertState,
+      states: alertStates,
+    }) || undefined;
+
+  const resolvedStateIds: Array<string> = ResolvedStateUtil.getResolvedStateIds(
+    {
+      list: StateListType.AlertState,
+      states: alertStates,
     },
-  );
+  ).map((stateId: ObjectID) => {
+    return stateId.toString();
+  });
 
   const currentStateIndex: number = alertStates.findIndex(
     (state: AlertState) => {
@@ -340,21 +359,15 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
     },
   );
 
-  const resolvedStateIndex: number = alertStates.findIndex(
-    (state: AlertState) => {
-      return state.isResolvedState;
-    },
-  );
-
   const isAcknowledged: boolean =
     acknowledgedStateIndex >= 0 &&
     currentStateIndex >= 0 &&
     currentStateIndex >= acknowledgedStateIndex;
 
-  const isResolved: boolean =
-    resolvedStateIndex >= 0 &&
-    currentStateIndex >= 0 &&
-    currentStateIndex >= resolvedStateIndex;
+  const isResolved: boolean = Boolean(
+    currentAlertState?.id &&
+      resolvedStateIds.includes(currentAlertState.id.toString()),
+  );
 
   const getActions: () => Array<EventStateAction> =
     (): Array<EventStateAction> => {
@@ -401,26 +414,28 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
   let durationPrefix: string = translationKey("Ongoing for");
   let durationEndsAt: Date | undefined = undefined;
 
-  if (isResolved && resolvedState) {
-    const resolvedTimelines: Array<AlertStateTimeline> =
-      alertStateTimelines.filter((timeline: AlertStateTimeline) => {
-        return (
-          timeline.alertStateId?.toString() === resolvedState.id?.toString()
-        );
-      });
+  /*
+   * Resolved now - in the resolved state, or a state placed after it: the
+   * duration runs to when it was resolved this time.
+   */
+  const resolvedAt: Date | undefined = getEventEndDateForCurrentState(
+    alertStateTimelines.map((timeline: AlertStateTimeline) => {
+      return {
+        stateId: timeline.alertStateId?.toString(),
+        startsAt: timeline.startsAt,
+      };
+    }),
+    resolvedStateIds,
+  );
 
-    const lastResolvedTimeline: AlertStateTimeline | undefined =
-      resolvedTimelines[resolvedTimelines.length - 1];
-
-    if (lastResolvedTimeline?.startsAt) {
-      /*
-       * "Lasted", not "Resolved in": this runs to the CURRENT resolution,
-       * while the stat bar's "Resolved in" counts to the FIRST one, so a
-       * reopened alert would show one label with two different numbers.
-       */
-      durationPrefix = translationKey("Lasted");
-      durationEndsAt = lastResolvedTimeline.startsAt;
-    }
+  if (isResolved && resolvedAt) {
+    /*
+     * "Lasted", not "Resolved in": this runs to the CURRENT resolution,
+     * while the stat bar's "Resolved in" counts to the FIRST one, so a
+     * reopened alert would show one label with two different numbers.
+     */
+    durationPrefix = translationKey("Lasted");
+    durationEndsAt = resolvedAt;
   }
 
   const openModalForState: (stateId: string) => void = (
@@ -450,7 +465,12 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
 
   const isAcknowledgeTarget: boolean =
     selectedAlertState?.isAcknowledgedState || false;
-  const isResolveTarget: boolean = selectedAlertState?.isResolvedState || false;
+  // A move that resolves it: into a resolved state, from one that is not.
+  const isResolveTarget: boolean = Boolean(
+    !isResolved &&
+      selectedAlertState?.id &&
+      resolvedStateIds.includes(selectedAlertState.id.toString()),
+  );
 
   /*
    * The modal looks its title, description and button text up; the ones
@@ -590,6 +610,8 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
               noteTemplates: alertNoteTemplates.map(
                 toBulkStateChangeNoteTemplate,
               ),
+              // Offered only to someone who may post a private note.
+              noteModel: new AlertInternalNote(),
             }),
             formType: FormType.Create,
           }}

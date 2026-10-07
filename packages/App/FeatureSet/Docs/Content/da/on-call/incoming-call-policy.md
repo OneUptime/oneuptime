@@ -162,30 +162,30 @@ Eskaleringsregler bestemmer, hvem der ringes til, når nogen ringer til politikk
 3. Klik på **Tilføj eskaleringsregel**
 4. Udfyld reglen. Det er ét trin:
    - **Hvem der skal ringes til**: en vagtplan eller én person. En vagtplan ringer til den, der har vagt i den, når opkaldet kommer ind. Personerne er medlemmerne af dit projekt.
-   - **Ringetid (i sekunder)**: hvor længe deres telefon ringer, før opkaldet går videre til næste regel. Den starter på 30 sekunder, og Twilio tager 5 til 600.
+   - **Ringetid (i sekunder)**: hvor længe deres telefon ringer, før opkaldet går videre til næste regel. Den starter på 20 sekunder, og Twilio tager 5 til 600.
    - **Navn** og **Beskrivelse** er valgfrie og ligger under **Flere felter**. En regel uden navn vises efter sin plads på listen: **Level 1**, **Level 2**.
 5. Gem den, og tilføj en regel for hver vagtplan eller person, der skal prøves derefter
 
 Reglerne ringes op fra toppen af listen og nedad, og en ny regel tilføjes nederst. Træk en regel i håndtaget øverst til venstre for at ændre rækkefølgen; fra tastaturet fokuserer du håndtaget, trykker på mellemrum, flytter reglen med piletasterne og trykker på mellemrum igen.
 
-> **Husk telefonsvareren**: hold **Ringetid** kortere end den tid, det tager, før personens telefon sender et ubesvaret opkald til telefonsvareren. Hvis telefonsvareren svarer først, forbindes den, der ringer, til den, og opkaldet går ikke videre til næste regel. Twilio lægger selv et par sekunder til hver opringning.
+> **Husk telefonsvareren**: hold **Ringetid** kortere end den tid, det tager, før personens telefon sender et ubesvaret opkald til telefonsvareren. Hvis telefonsvareren svarer først, forbindes den, der ringer, til den, og opkaldet går ikke videre til næste regel. Twilio lægger selv et par sekunder til hver opringning. Derfor starter en ny regel på 20 sekunder. Regler, der blev tilføjet, da standarden var 30 sekunder, beholder deres 30: hvis deres opkald ender på telefonsvareren, så sænk **Ringetid** på de regler.
 
 ### Eksempel på eskaleringsregel
 
 ```mermaid
 flowchart TD
     subgraph "Eskaleringskæde"
-        A[Level 1: Primær vagtplan<br/>Ring i 30 sekunder] --> B[Level 2: Sekundær vagtplan<br/>Ring i 30 sekunder]
-        B --> C[Level 3: Ingeniørleder<br/>Ring i 30 sekunder]
+        A[Level 1: Primær vagtplan<br/>Ring i 20 sekunder] --> B[Level 2: Sekundær vagtplan<br/>Ring i 20 sekunder]
+        B --> C[Level 3: Ingeniørleder<br/>Ring i 20 sekunder]
         C --> D[Besked om intet svar]
     end
 ```
 
 | Niveau  | Hvem der skal ringes til  | Ringetid    |
 | ------- | ------------------------- | ----------- |
-| Level 1 | Primær vagtplan           | 30 sekunder |
-| Level 2 | Sekundær vagtplan         | 30 sekunder |
-| Level 3 | Ingeniørleder (en person) | 30 sekunder |
+| Level 1 | Primær vagtplan           | 20 sekunder |
+| Level 2 | Sekundær vagtplan         | 20 sekunder |
+| Level 3 | Ingeniørleder (en person) | 20 sekunder |
 
 ## Trin 7: Konfigurer stemmebeskeder (valgfrit)
 
@@ -215,11 +215,11 @@ Tilpas de beskeder, opkaldere hører:
 | Indstilling              | Beskrivelse                                                                                                                                              |
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Hvem der skal ringes til | En vagtplan, der ringer til den, der har vagt i den, eller én person. Hver regel ringer til én af dem                                                     |
-| Ringetid (i sekunder)    | Hvor længe telefonen ringer, før opkaldet går videre til næste regel (standard: 30; fra 5 til 600)                                                        |
+| Ringetid (i sekunder)    | Hvor længe telefonen ringer, før opkaldet går videre til næste regel (standard: 20; fra 5 til 600)                                                        |
 | Navn og Beskrivelse      | Valgfrie, under Flere felter. En regel uden navn vises som Level 1, Level 2 og så videre efter sin plads på listen                                          |
 | Rækkefølge               | Reglens plads på listen: reglerne ringes op fra toppen og nedad. Ændres ved at trække reglerne; via API'et lægges en ny regel uden rækkefølge nederst |
 
-Via API'et angiver en regel `onCallDutyPolicyScheduleId` eller `userId` (én af dem, aldrig begge) og `escalateAfterSeconds`: ringetiden, 30 når den udelades.
+Via API'et angiver en regel `onCallDutyPolicyScheduleId` eller `userId` (én af dem, aldrig begge) og `escalateAfterSeconds`: ringetiden, 20 når den udelades.
 
 ## Visning af opkaldslogge
 
@@ -246,6 +246,8 @@ For at brugere kan modtage indgående opkald, skal de have et bekræftet telefon
 3. Bekræft telefonnummeret via SMS-kode
 
 Kun brugere med bekræftede telefonnumre kan ringes op via eskaleringsregler.
+
+Numre til indgående opkald verificeres via SMS, så **SMS** skal først være slået til for projektet. En projektejer eller nogen med **Billing Admin** eller **Manage Billing** slår det til i kortet **Notifikationskanaler** under **Projektindstillinger > Notifikationer > Notifikationsindstillinger**.
 
 ## Frigørelse af et telefonnummer
 

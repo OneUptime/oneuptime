@@ -2,7 +2,7 @@
 
 Hver hændelse bærer to klassifikationer: en **tilstand**, der siger hvor langt den er i din indsats, og en **alvorsgrad**, der siger hvor ondt det gør. I dashboardet ligner de hinanden — begge vises som farvede plaketter på listen over hændelser, og begge er projektafgrænsede lister, du kan omdøbe og give nye farver. De laver vidt forskellige ting.
 
-Tilstande styrer adfærd. Tre booleske flag på tilstandsrækkerne afgør, hvilke hændelser der tæller som aktive, hvilke knapper der dukker op i hændelsens sidehoved, hvornår SLA-uret stopper, og hvornår hændelsen forsvinder fra din statusside. Alvorsgrader styrer ingenting i sig selv — de er etiketter, der beskriver påvirkning, og som andre regler kan matche på.
+Tilstande styrer adfærd. Tre booleske flag på tilstandsrækkerne afgør sammen med tilstandenes rækkefølge, hvilke hændelser der tæller som aktive, hvilke knapper der dukker op i hændelsens sidehoved, hvornår SLA-uret stopper, og hvornår hændelsen forsvinder fra din statusside. Alvorsgrader styrer ingenting i sig selv — de er etiketter, der beskriver påvirkning, og som andre regler kan matche på.
 
 Begge lister oprettes sammen med dit projekt, og begge redigeres under **Hændelser → Indstillinger**. Den sektion af hændelsernes sidemenu er sammenklappet som standard, så fold **Indstillinger** ud, før du går på jagt.
 
@@ -36,7 +36,7 @@ Bemærk navnet: den første tilstand hedder **Identified**, selv om flere beskri
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `isCreatedState`      | Den tilstand en hændelse får, når ingen har valgt en. Bærer ingen tilstand i projektet dette flag, fejler oprettelsen af en hændelse med en fejl, der beder dig tilføje en oprettet hændelsestilstand fra indstillingerne. |
 | `isAcknowledgedState` | Driver knappen **Acknowledge** og nøgletalsfeltet "<tilstandsnavn> i" på hændelsens **Oversigt**. Ved et skift til denne tilstand markeres hændelsens SLA som besvaret.                               |
-| `isResolvedState`     | Driver knappen **Løs** og det løste nøgletalsfelt, definerer listen **Aktive hændelser** og er det, der fjerner hændelsen fra en statussides aktive sektion. Markerer SLA'en som løst.                |
+| `isResolvedState`     | Markerer projektets løste tilstand: den, **Løs** flytter en hændelse til, og som det løste nøgletalsfelt viser. En hændelse i den, eller i en tilstand efter den, er løst — den forsvinder fra **Aktive hændelser** og fra en statussides aktive sektion, og dens SLA markeres som løst. |
 
 Kun én tilstand per projekt forventes at bære hvert flag — opslagene henter en enkelt række. De tre flagbærende tilstande kan omdøbes, få nye farver og flyttes rundt, men indstillingssiden nægter at slette dem og viser en fejl, der nævner den oprettede, den bekræftede og den løste tilstand.
 
@@ -44,7 +44,7 @@ Fordi brugerfladen læser tilstandsnavne dynamisk, ændrer en omdøbning, hvad d
 
 ## At tilføje dine egne tilstande
 
-Gå til **Hændelser → Indstillinger → Hændelsesstatus**. Siden er en ordnet liste sorteret stigende efter `order`, og nye tilstande føjes til slutningen. Træk i en række for at flytte den.
+Gå til **Hændelser → Indstillinger → Hændelsesstatus**. Siden er en ordnet liste sorteret stigende efter `order`, og en ny tilstand tilføjes lige over den løste tilstand. Træk i en række for at flytte den.
 
 **Felter på en tilstand:**
 
@@ -54,7 +54,7 @@ Gå til **Hændelser → Indstillinger → Hændelsesstatus**. Siden er en ordne
 
 Du kan ikke sætte de tre flag fra denne formular — de hører til de forudoprettede rækker. En tilstand, du tilføjer, er derfor uden flag, hvilket har to konsekvenser, det er værd at planlægge efter:
 
-- **Den tæller som aktiv.** **Aktive hændelser** er defineret som "den aktuelle tilstand er ikke den løste tilstand", så alt andet end den løste tilstand holder hændelsen på den aktive liste og med i tælleren i sidemenuen.
+- **Over den løste tilstand holder den hændelsen aktiv.** **Aktive hændelser** rummer de hændelser, hvis aktuelle tilstand ligger over den løste tilstand, så en tilstand, du tilføjer der, holder hændelsen på den aktive liste og med i tælleren i sidemenuen. En tilstand, der trækkes ned under den løste tilstand, tæller som løst overalt — på de aktive lister, på statussider, i påmindelser og i SLA'en — og at flytte en hændelse ind i den fra **Løst** er ikke en ny løsning.
 - **Dens overgangsknap er generisk.** I stedet for **Acknowledge** eller **Løs** hedder bekræftelsesdialogen **Markér hændelse som `<tilstandsnavn>`** med indsend-knappen **Mark as `<tilstandsnavn>`**.
 
 En almindelig løsning er at indsætte et triage- eller afhjælpningstrin mellem den bekræftede og den løste tilstand — for eksempel ved at trække en ny tilstand "Mitigated" ind, så den ligger efter **Bekræftet** og før **Løst**.
@@ -104,6 +104,15 @@ Der er fire måder, en hændelse skifter tilstand på:
 
 Hver eneste af dem skriver en tidslinjerække. Et tilstandsskift gør også et par ting, du ikke behøver at bede om: det skriver et punkt i hændelsesfeedet, tildeler en Hændelsesleder, hvis hændelsen ikke har en endnu, og opdaterer SLA-uret. At genåbne en løst hændelse starter en frisk SLA-optegnelse fra genåbningstidspunktet.
 
+## Hvad det gør at løse en hændelse
+
+En hændelse bliver løst, når den flyttes fra en tilstand over din løste tilstand til den løste tilstand eller til en tilstand efter den — uanset hvilken af de fire måder ovenfor der flytter den. Hver løsning:
+
+- **Giver de monitorer tilbage, som hændelsen holder.** En hændelse, der erklæres åben, holder sine monitorer: den satte dem i sin **Change Monitor Status to**-status, hvis den angiver en, og satte, når den blev erklæret manuelt, deres overvågning på pause. En redigering, mens den er åben — tilføjede monitorer eller en ændret status — får den også til at holde dem. Løsningen genoptager deres overvågning og sætter dem tilbage til driftsklar, medmindre en anden åben hændelse stadig er på dem, og derefter holder hændelsen ingenting. En hændelse, der blev erklæret allerede løst, giver derfor intet tilbage, og det gør en ny løsning efter en genåbning heller ikke: en status, monitorerne har fået i mellemtiden — fra deres prober, fra vedligeholdelse eller sat manuelt — bliver stående.
+- **Markerer SLA'en som løst** og skriver, når OneUptime AI's udkast til postmortems er slået til, et udkast til en postmortem.
+
+At gå videre fra **Løst** til en tilstand efter den — **Lukket**, for eksempel — er ikke en ny løsning: intet af dette kører igen, og ingen ny SLA starter. En hændelse, der blev erklæret, før OneUptime begyndte at registrere dette, giver sine monitorer tilbage ved sin næste løsning, som før.
+
 ## Tilstandstidslinjen
 
 Hændelsens side **Tilstandstidslinje** i hændelsens sidemenu er revisionssporet over hver tilstand, hændelsen har været i. Kortet på den side hedder **Statustidslinje**, og det er sorteret nyeste først.
@@ -125,11 +134,11 @@ Tidslinjerækker kan oprettes og slettes, men ikke redigeres. At slette den fork
 
 ## Listen Aktive hændelser
 
-**Hændelser → Aktive hændelser** er den liste, du holder øje med på en vagt. Definitionen er præcis én betingelse: hændelsens aktuelle tilstand er en tilstand, hvor `isResolvedState` er falsk. Intet andet tæller med — ikke alvorsgrad, ikke alder, ikke om nogen har bekræftet den.
+**Hændelser → Aktive hændelser** er den liste, du holder øje med på en vagt. Definitionen er præcis én betingelse: hændelsens aktuelle tilstand ligger over din løste tilstand — den første tilstand i rækkefølgen, der er flagget `isResolvedState`. Intet andet tæller med — ikke alvorsgrad, ikke alder, ikke om nogen har bekræftet den.
 
 Punktet i sidemenuen bærer et rødt tællemærke, der bruger den samme forespørgsel, så mærket og listen altid er enige. Er der intet at se, siger siden det.
 
-Den praktiske konsekvens: enhver egen tilstand, du tilføjer, holder hændelser på denne liste. Det er som regel det, du vil have — "Mitigated" er ikke "færdig" — men det betyder også, at mærket først bliver ryddet, når hændelserne faktisk når den løste tilstand.
+Den praktiske konsekvens: en egen tilstand, du tilføjer over den løste tilstand, holder hændelser på denne liste — "Mitigated" er ikke "færdig" — og en, du placerer efter den, tager dem af listen, ligesom den løste tilstand gør. Advarsler og episoder følger samme regel med deres egne tilstande, og tællerne i sidemenuen, påmindelser, statussider og mobilappen læser den alle.
 
 ## At fortælle statussidens abonnenter om et tilstandsskift
 
@@ -144,7 +153,9 @@ Notifikation bestilles per tidslinjerække med **Underret statussideabonnenter**
 - **Hændelsen er ikke synlig på statussiden** (`isVisibleOnStatusPage` er slået fra).
 - **Statussiden har hændelser slået fra** (`showIncidentsOnStatusPage` er slået fra). Den her gælder per statusside — andre sider, der viser den samme monitor, får stadig besked.
 
-**Én ting mere, der ændrer udfaldet.** Skriver du en **Offentlig note** i dialogen ved tilstandsskift, markeres tidslinjerækken som allerede underrettet frem for at blive sat i kø. Det er noten selv, der når abonnenterne, så de får én besked i stedet for to. Begivenhedstypen bag den rene tilstandsskiftbesked er `Subscriber Incident State Changed`.
+**Én ting mere, der ændrer udfaldet.** Skriver du en **Offentlig note** i dialogen ved tilstandsskift, markeres tidslinjerækken som allerede underrettet frem for at blive sat i kø. Det er noten selv, der når abonnenterne, så de får én besked i stedet for to. Den besked nævner den nye tilstand på hver kanal, sådan som tilstandsskiftbeskeden ville have gjort: for eksempel `[Resolved Incident] <title>` i e-mailens emne og `**Status:** Resolved` i Slack og Microsoft Teams. Noten kræver tilladelse til at oprette offentlige noter: uden den tilbyder dialogen ikke noten, og et tilstandsskift sendt med en note afvises, så tilstanden forbliver uændret. Begivenhedstypen bag den rene tilstandsskiftbesked er `Subscriber Incident State Changed`.
+
+Alarmer, alarmepisoder og hændelsesepisoder tilbyder i stedet en privat note ved et tilstandsskift (**Tilføj en privat note**), og den virker på samme måde: noten kræver sin egen tilladelse (**Create Alert Internal Note**, **Create Alert Episode Internal Note** eller **Create Incident Episode Internal Note** i en brugerdefineret rolle; de indbyggede alarm-, hændelses- og projektroller har dem), og et tilstandsskift sendt med en privat note af en, der mangler den, afvises helt, så tilstanden forbliver uændret.
 
 For hvem der modtager dem, og hvordan skabelonerne vælges, se [Abonnenter og meddelelser](/docs/status-pages/subscribers).
 
@@ -154,7 +165,7 @@ Tre uafhængige ting afgør, om en hændelse overhovedet er på den offentlige s
 
 - **Vis hændelser** (`showIncidentsOnStatusPage`) på selve statussiden.
 - **Synlig på statussiden** (`isVisibleOnStatusPage`) på hændelsen — en kontakt på hændelsens side **Indstillinger**. Den er slået til som standard og findes ikke i erklæringsguiden; et monitorkriterium kan sætte den med **Vis hændelse på statusside**.
-- **Den aktuelle tilstand er ikke den løste tilstand.** Det er det, der fjerner en hændelse fra den aktive sektion: statussidens forespørgsel henter hændelser, hvis aktuelle tilstand er en hvilken som helst uløst tilstand. Du arkiverer eller lukker ikke noget — du løser det, og så flytter det over i historikken.
+- **Den aktuelle tilstand ligger over den løste tilstand.** Det er det, der fjerner en hændelse fra den aktive sektion: statussidens forespørgsel henter hændelser, hvis aktuelle tilstand ligger over din løste tilstand, så den løste tilstand og enhver tilstand efter den tager hændelsen af. Du arkiverer eller lukker ikke noget — du løser det, og så flytter det over i historikken.
 
 **Private hændelser dukker aldrig op.** At slå **Privat hændelse** til skjuler hændelsen fra alle statussider uanset kontakterne ovenfor og begrænser den til dens ejere plus projektadministratorer og -ejere.
 

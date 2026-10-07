@@ -31,6 +31,7 @@ import Button, {
 import Card from "Common/UI/Components/Card/Card";
 import ChoiceRows, {
   ChoiceRowOption,
+  getChoicePlanLeftoverText,
 } from "Common/UI/Components/ChoiceRows/ChoiceRows";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -39,7 +40,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
-import { getPlanNeededToChangeColumn } from "Common/UI/Components/ModelSwitch/ModelSwitchUtil";
+import { getPlanNeededToWriteColumn } from "Common/UI/Components/ModelSwitch/ModelSwitchUtil";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { getAllEnvVars } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -67,6 +68,7 @@ import StatusPageAccessCopy, {
   getAccessChoiceTestId,
   getNobodyCanSignInReason,
   getPlanNeededForAccess,
+  getPlanNeededToComeBackToAccess,
   getStatusPageAccessSelect,
   getStatusPageAccessState,
   isPasswordRequiredInDialog,
@@ -76,6 +78,7 @@ import StatusPageAccessCopy, {
   STATUS_PAGE_ACCESS_GATED_COLUMNS,
   STATUS_PAGE_ACCESS_CHANGE_PASSWORD_TEST_ID,
   STATUS_PAGE_ACCESS_NOBODY_CAN_SIGN_IN_TEST_ID,
+  STATUS_PAGE_ACCESS_PLAN_LEFTOVER_TEST_ID,
   STATUS_PAGE_ACCESS_SIGN_IN_METHODS_TEST_ID,
 } from "./StatusPageAccessCopy";
 
@@ -98,9 +101,12 @@ import StatusPageAccessCopy, {
  * - Under "Anyone with the password", while it is the choice: Change
  *   Password.
  * - A choice the plan does not include shows the plan and cannot be picked
- *   (making a page private or public again needs Growth on OneUptime
- *   Cloud; moving between the two private choices does not). Someone who
- *   may not edit the status page sees the choices locked, with why.
+ *   (making a page private needs Growth on OneUptime Cloud; moving between
+ *   the two private choices does not). Making it public again never needs a
+ *   plan: a page a trial left private can always be opened up, and the
+ *   dialog for that move says that making it private again needs Growth.
+ *   Someone who may not edit the status page sees the choices locked, with
+ *   why.
  */
 
 export interface ComponentProps {
@@ -230,6 +236,17 @@ const StatusPageAccessCard: FunctionComponent<ComponentProps> = (
 
   const statusPageIdString: string = props.statusPageId.toString();
   const model: StatusPage = new StatusPage();
+
+  /*
+   * The plan a column needs for the value a move writes to it: none to put
+   * isPublicStatusPage back to its default (public), on any plan.
+   */
+  const getPlanNeeded: (column: string, value: unknown) => PlanType | null = (
+    column: string,
+    value: unknown,
+  ): PlanType | null => {
+    return getPlanNeededToWriteColumn(model, column, value);
+  };
 
   const routeTo: (pageKey: PageMap) => Route = (pageKey: PageMap): Route => {
     return RouteUtil.populateRouteParams(RouteMap[pageKey] as Route, {
@@ -578,9 +595,7 @@ const StatusPageAccessCard: FunctionComponent<ComponentProps> = (
             : getPlanNeededForAccess({
                 from: page.state,
                 to: access,
-                getPlanNeeded: (column: string): PlanType | null => {
-                  return getPlanNeededToChangeColumn(model, column);
-                },
+                getPlanNeeded: getPlanNeeded,
               });
 
           let details: ReactNode = undefined;
@@ -766,6 +781,17 @@ const StatusPageAccessCard: FunctionComponent<ComponentProps> = (
         getNobodyCanSignInReason(methods),
     );
 
+    /*
+     * Leaving a choice the plan does not include (a trial left the page
+     * private): the move needs no plan, coming back does - said before it
+     * is saved.
+     */
+    const planToComeBack: PlanType | null = getPlanNeededToComeBackToAccess({
+      from: page.state,
+      to: pending,
+      getPlanNeeded: getPlanNeeded,
+    });
+
     return (
       <ConfirmModal
         title={copy.title}
@@ -778,6 +804,16 @@ const StatusPageAccessCard: FunctionComponent<ComponentProps> = (
                 data-testid={`${STATUS_PAGE_ACCESS_NOBODY_CAN_SIGN_IN_TEST_ID}-confirm`}
               >
                 {translate(StatusPageAccessCopy.confirmNobodyCanSignIn)}
+              </p>
+            ) : (
+              <></>
+            )}
+            {planToComeBack ? (
+              <p data-testid={STATUS_PAGE_ACCESS_PLAN_LEFTOVER_TEST_ID}>
+                {getChoicePlanLeftoverText(translator, {
+                  choiceTitle: ACCESS_CHOICE_COPY[from].title,
+                  planNeeded: planToComeBack,
+                })}
               </p>
             ) : (
               <></>

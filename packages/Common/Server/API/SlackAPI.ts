@@ -43,7 +43,12 @@ import WorkspaceProjectAuthToken, {
 } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import CommonAPI from "./CommonAPI";
-import AIService, { AI_DISABLED_MESSAGE } from "../Services/AIService";
+import TestSendAccess, { TestSendCaller } from "./TestSendAccess";
+import AIService, {
+  AI_DISABLED_MESSAGE,
+  getProjectDailyLimitMessage,
+  ProjectAiDailyLimitStatus,
+} from "../Services/AIService";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Dictionary from "../../Types/Dictionary";
@@ -64,9 +69,17 @@ import WorkspaceOAuthState, {
   WorkspaceOAuthFlow,
   WorkspaceOAuthStateRecord,
 } from "../Utils/Workspace/WorkspaceOAuthState";
+import WorkspaceOAuthCallbackAccess from "./WorkspaceOAuthCallbackAccess";
 import OneUptimeDate from "../../Types/Date";
 
 export default class SlackAPI {
+  /*
+   * What someone who may not connect the project to Slack is told, when the
+   * connection starts and again when Slack sends the browser back.
+   */
+  public static readonly CONNECT_PERMISSION_MESSAGE: string =
+    "You do not have permission to connect this project to Slack.";
+
   // Generous: the server-side channel fetch caches up to ~100k channels.
   public static readonly MAX_CHANNEL_CACHE_ENTRIES: number = 100000;
 
@@ -258,8 +271,7 @@ export default class SlackAPI {
             databaseProps: databaseProps,
             allowedPermissions:
               WorkspaceOAuthState.MANAGE_CONNECTION_PERMISSIONS,
-            errorMessage:
-              "You do not have permission to connect this project to Slack.",
+            errorMessage: SlackAPI.CONNECT_PERMISSION_MESSAGE,
           });
 
           if (!SlackAppClientId) {
@@ -378,6 +390,22 @@ export default class SlackAPI {
             req,
             res,
             new BadRequestException(WorkspaceOAuthState.INVALID_STATE_MESSAGE),
+          );
+        }
+
+        // Whoever started the install may still connect the project.
+        try {
+          await WorkspaceOAuthCallbackAccess.assertStartedByMayManageConnection(
+            {
+              record: stateRecord,
+              errorMessage: SlackAPI.CONNECT_PERMISSION_MESSAGE,
+            },
+          );
+        } catch (refusal) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            WorkspaceOAuthCallbackAccess.answerFor(refusal),
           );
         }
 
@@ -597,6 +625,19 @@ export default class SlackAPI {
             req,
             res,
             new BadRequestException(WorkspaceOAuthState.INVALID_STATE_MESSAGE),
+          );
+        }
+
+        // Whoever started the sign-in is still a member of the project.
+        try {
+          await WorkspaceOAuthCallbackAccess.assertStartedByIsMember({
+            record: stateRecord,
+          });
+        } catch (refusal) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            WorkspaceOAuthCallbackAccess.answerFor(refusal),
           );
         }
 
@@ -1061,27 +1102,20 @@ export default class SlackAPI {
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-          const databaseProps: DatabaseCommonInteractionProps =
-            await CommonAPI.getDatabaseCommonInteractionProps(req);
-
           /*
-           * Posting into a channel is a side effect, so membership alone is
-           * not enough. Anyone who could create a workspace notification rule
-           * - including its team block list, which the CRUD create enforces
-           * too - can already make OneUptime post to this channel; a Viewer,
+           * Posting into a channel is what a notification rule does, so the
+           * test asks what adding a rule asks (TestSendAccess): a signed-in
+           * member, on a credential that may make changes, on the plan rules
+           * are sold on, who could create a rule - team blocks counted.
+           * Anyone who could can already make OneUptime post here; a Viewer,
            * or a member whose team is blocked from creating rules, cannot.
-           * getUserMiddleware admits unauthenticated requests as "public", so
-           * the membership check is mandatory as well.
            */
-          const projectId: ObjectID =
-            CommonAPI.assertAuthenticatedProjectMember(databaseProps);
-
-          CommonAPI.assertCanCreateTable({
-            modelType: WorkspaceNotificationRule,
-            props: databaseProps,
-            errorMessage:
-              "You do not have permission to send test notifications in this project.",
-          });
+          const caller: TestSendCaller = await TestSendAccess.assertMaySendTest(
+            {
+              req: req,
+              modelType: WorkspaceNotificationRule,
+            },
+          );
 
           const channelId: string =
             typeof req.body?.["channelId"] === "string"
@@ -1091,9 +1125,9 @@ export default class SlackAPI {
           // Slack has no chats or teams: only the channel id is forwarded.
           await WorkspaceNotificationRuleService.sendTestNotificationToDestination(
             {
-              projectId: projectId,
+              projectId: caller.projectId,
               workspaceType: WorkspaceType.Slack,
-              testByUserId: databaseProps.userId!,
+              testByUserId: caller.userId,
               channelId: channelId,
             },
           );
@@ -1643,6 +1677,24 @@ export default class SlackAPI {
                 return;
               }
 
+              /*
+               * The project's own daily AI limits, read before we
+               * acknowledge for the same reason: a question refused by a
+               * limit would leave "Looking into it…" unanswered.
+               */
+              const dailyLimitRefusal: string | null =
+                await SlackAPI.getDailyLimitRefusal(context.projectId);
+
+              if (dailyLimitRefusal) {
+                await SlackUtil.sendMessageToThread({
+                  authToken: context.projectAuthToken,
+                  channelId: slackChannelId,
+                  threadTs: threadTs,
+                  text: dailyLimitRefusal,
+                });
+                return;
+              }
+
               // Immediate acknowledgement so the user sees we are working.
               try {
                 await SlackUtil.sendMessageToThread({
@@ -1794,6 +1846,24 @@ export default class SlackAPI {
               data: {
                 response_type: "ephemeral",
                 text: SlackAPI.getAiDisabledMessage(),
+              },
+              headers: {
+                ["Content-Type"]: "application/json",
+              },
+            });
+            return;
+          }
+
+          // The project's own daily AI limits: refused the same way.
+          const dailyLimitRefusal: string | null =
+            await SlackAPI.getDailyLimitRefusal(context.projectId);
+
+          if (dailyLimitRefusal) {
+            await API.post({
+              url: URL.fromString(responseUrl),
+              data: {
+                response_type: "ephemeral",
+                text: dailyLimitRefusal,
               },
               headers: {
                 ["Content-Type"]: "application/json",
@@ -2086,5 +2156,20 @@ export default class SlackAPI {
    */
   private static getAiDisabledMessage(): string {
     return AI_DISABLED_MESSAGE;
+  }
+
+  /*
+   * The same for the project's own daily AI limits (Project Settings → AI
+   * Features → More settings): the sentence that says which limit was
+   * reached and when AI starts again, or null while there is room. Read
+   * before the acknowledgement, like the AI switch.
+   */
+  private static async getDailyLimitRefusal(
+    projectId: ObjectID,
+  ): Promise<string | null> {
+    const reached: ProjectAiDailyLimitStatus | null =
+      await AIService.getReachedProjectDailyLimit({ projectId });
+
+    return reached ? getProjectDailyLimitMessage(reached) : null;
   }
 }

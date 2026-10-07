@@ -22,8 +22,13 @@ import {
 } from "./ModelSwitchEvents";
 import {
   getPlanNeededToChangeColumn,
+  getPlanNeededToFlipSwitch,
   getStoredValueForSwitch,
+  getSwitchPlanLeftover,
   ModelSwitchColumn,
+  SWITCH_PLAN_LEFTOVER_COPY,
+  SWITCH_PLAN_LOCKED_COPY,
+  SwitchPlanLeftover,
 } from "./ModelSwitchUtil";
 import React, {
   MutableRefObject,
@@ -55,6 +60,13 @@ import React, {
  * - Where a plan has to be upgraded for the switch to be changed, the plan's
  *   name is beside it before anyone tries - the same pill a table shows for
  *   a plan feature.
+ * - A paid feature can always be switched off, on any plan: the server takes
+ *   the column back to its default whatever the plan (see
+ *   PlanGatedColumnDefault). So a switch a trial left on - email reports on
+ *   a project now on Free, say - can still be flipped back, and the row says
+ *   so under the switch, with the plan it takes to flip it again
+ *   (getSwitchPlanLeftover). Flipping it on keeps needing the plan: the pill
+ *   says which, and the server's refusal says it again.
  * - A switch whose change can lock people out (requiring SSO, say) asks
  *   first: getConfirmation names the dialog for the way it is being turned.
  *   The switch shows where it is going while the dialog is open, and goes
@@ -124,6 +136,20 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
    * status `${dataTestId}-status`.
    */
   dataTestId?: string | undefined;
+  /*
+   * Lock the switch, saying the plan, whenever flipping it from where it is
+   * needs a plan the project does not have - instead of letting the server
+   * refuse it. For a switch drawn under a plan's upsell, which is there only
+   * so what a trial left on can be switched back off: once it is, it stays.
+   */
+  locksWhenPlanNeeded?: boolean | undefined;
+  /*
+   * Lock the switch where it is, saying why (an English sentence, shown as
+   * its tooltip): for a switch the record's other settings decide while they
+   * hold, such as Visible on Status Page on a private episode. A missing
+   * permission's reason comes first.
+   */
+  lockedReason?: string | undefined;
 }
 
 export enum ModelSwitchSaveState {
@@ -188,6 +214,16 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
     model,
     props.column,
   );
+
+  // Locked by the plan: see locksWhenPlanNeeded.
+  const planNeededToFlip: PlanType | null = props.locksWhenPlanNeeded
+    ? getPlanNeededToFlipSwitch({
+        model: model,
+        column: props.column,
+        isOn: isOn,
+        isInverted: props.isInverted,
+      })
+    : null;
 
   useEffect(() => {
     return subscribeToModelSwitchSaved({
@@ -259,7 +295,7 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
   };
 
   const change: (value: boolean) => void = (value: boolean): void => {
-    if (isBusyRef.current || !updateGate.isAllowed) {
+    if (isBusyRef.current || !updateGate.isAllowed || planNeededToFlip) {
       return;
     }
 
@@ -318,20 +354,67 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
 
   const descriptionText: string | undefined = props.getDescription?.(isOn);
 
+  /*
+   * A plan feature left on by a trial that ended (or a move to a lower
+   * plan): the switch can still go back to the column's default - the
+   * server allows that on any plan - and the row says so, and what it takes
+   * to come back. Only for someone who may change it.
+   */
+  const leftover: SwitchPlanLeftover | null = updateGate.isAllowed
+    ? getSwitchPlanLeftover({
+        model: model,
+        column: props.column,
+        isOn: isOn,
+        isInverted: props.isInverted,
+      })
+    : null;
+
+  const leftoverNote: ReactElement | undefined = leftover ? (
+    <span
+      className="mt-1 block"
+      data-testid={
+        props.dataTestId ? `${props.dataTestId}-plan-leftover` : undefined
+      }
+    >
+      {translator.translateTemplate(
+        SWITCH_PLAN_LEFTOVER_COPY[leftover.canTurn],
+        {
+          planName: leftover.planNeeded,
+        },
+      )}
+    </span>
+  ) : undefined;
+
   // Translated here, as one element: the Toggle would look a string up again.
   const description: ReactElement | undefined =
-    descriptionText || props.note ? (
+    descriptionText || props.note || leftoverNote ? (
       <>
         {descriptionText ? translator.translateText(descriptionText) : ""}
         {descriptionText && props.note ? " " : ""}
         {props.note ? translator.translateText(props.note) : ""}
+        {leftoverNote || ""}
       </>
     ) : undefined;
 
   const isLocked: boolean =
     saveState === ModelSwitchSaveState.Saving ||
     saveState === ModelSwitchSaveState.Confirming ||
-    !updateGate.isAllowed;
+    !updateGate.isAllowed ||
+    Boolean(props.lockedReason) ||
+    Boolean(planNeededToFlip);
+
+  /*
+   * Why it is locked: the missing permission first, then what the record
+   * says (lockedReason), then the plan.
+   */
+  const lockedReason: string | undefined =
+    updateGate.disabledReason ||
+    props.lockedReason ||
+    (planNeededToFlip
+      ? translator.translateTemplate(SWITCH_PLAN_LOCKED_COPY, {
+          planName: planNeededToFlip,
+        })
+      : undefined);
 
   const getSaveStateElement: () => ReactNode = (): ReactNode => {
     if (saveState === ModelSwitchSaveState.Saving) {
@@ -377,7 +460,7 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
           description={description}
           value={isOn}
           disabled={isLocked}
-          tooltip={updateGate.disabledReason}
+          tooltip={lockedReason}
           error={error || undefined}
           dataTestId={props.dataTestId}
           onChange={(value: boolean) => {

@@ -12,7 +12,7 @@ Una pagina di stato supporta cinque canali. Loro e la pagina su cui i visitatori
 
 - **Mostra pagina iscritti** (`showSubscriberPageOnStatusPage`) — attivo per impostazione predefinita. Mette la voce **Iscriviti** nella barra di navigazione della pagina di stato, dove i visitatori si iscrivono tramite i canali qui sotto.
 - **E-mail** (`enableEmailSubscribers`) — attivo per impostazione predefinita. Tutto il resto resta spento finché non lo accendi tu.
-- **SMS** (`enableSmsSubscribers`) — spento per impostazione predefinita. Su OneUptime Cloud ogni SMS viene pagato con il credito SMS e chiamate del progetto, a meno che la pagina non abbia una propria **Configurazione Twilio**. Per accenderlo, il progetto deve avere attivo anche **SMS** nella scheda **Canali di notifica**, in **Impostazioni del progetto > Notifiche > Impostazioni notifiche**.
+- **SMS** (`enableSmsSubscribers`) — spento per impostazione predefinita. Su OneUptime Cloud ogni SMS viene pagato con il credito SMS e chiamate del progetto, a meno che la pagina non abbia una propria **Configurazione Twilio**. Per accenderlo, il progetto deve avere attivo anche **SMS** nella scheda **Canali di notifica**, in **Impostazioni del progetto > Notifiche > Impostazioni notifiche**. Può attivarlo un proprietario del progetto o qualcuno con **Billing Admin** o **Manage Billing**.
 - **Slack** (`enableSlackSubscribers`) — spento per impostazione predefinita.
 - **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — spento per impostazione predefinita.
 - **Webhook** (`enableWebhookSubscribers`) — spento per impostazione predefinita.

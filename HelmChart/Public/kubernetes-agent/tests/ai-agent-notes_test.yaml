@@ -51,7 +51,7 @@ tests:
       - notMatchRegexRaw:
           pattern: "any image as any ServiceAccount"
 
-  - it: offers a read-only install the one upgrade that grants write access, for this release, after a repo update
+  - it: offers a read-only install the one upgrade that turns fixes on, for this release, after a repo update
     release:
       name: my-agent
       namespace: monitoring
@@ -60,10 +60,14 @@ tests:
       oneuptime.url: https://oneuptime.example.com
       oneuptime.apiKey: key-123
     asserts:
+      # aiAgent.fixes grants the write RBAC; investigation is named too, so
+      # the command never leaves it to a default.
       - matchRegexRaw:
-          pattern: "  helm repo update\n  helm upgrade my-agent oneuptime/kubernetes-agent -n monitoring --reuse-values --set aiAgent.remediation.enabled=true --set \"aiAgent.remediation.namespaces=\\{web,api\\}\" --set aiAgent.remediation.nodeOperations=false\n"
+          pattern: "  helm repo update\n  helm upgrade my-agent oneuptime/kubernetes-agent -n monitoring --reset-then-reuse-values --set aiAgent.investigation=true --set aiAgent.fixes=ask-for-approval --set \"aiAgent.remediation.namespaces=\\{web,api\\}\" --set aiAgent.remediation.nodeOperations=false\n"
       - matchRegexRaw:
-          pattern: "grant write access in the\nnamespaces it may change \\(each must already exist\\)"
+          pattern: "pick how fixes run and the\nnamespaces it may change \\(each must already exist\\)"
+      - notMatchRegexRaw:
+          pattern: "aiAgent.remediation.enabled=true"
       - matchRegexRaw:
           pattern: "kubectl logs -n monitoring -l component=ai-agent --tail=100"
 
@@ -97,7 +101,7 @@ tests:
       - matchRegexRaw:
           pattern: "The Kubernetes AI agent is off \\(aiAgent.enabled=false\\)."
       - matchRegexRaw:
-          pattern: "  helm repo update\n  helm upgrade oneuptime-agent oneuptime/kubernetes-agent -n oneuptime --reuse-values --set aiAgent.enabled=true\n"
+          pattern: "  helm repo update\n  helm upgrade oneuptime-agent oneuptime/kubernetes-agent -n oneuptime --reset-then-reuse-values --set aiAgent.enabled=true\n"
       - notMatchRegexRaw:
           pattern: "component=ai-agent"
       - notMatchRegexRaw:
@@ -114,18 +118,21 @@ tests:
           pattern: "  - Kubernetes AI agent: lets OneUptime AI run kubectl to investigate AND fix incidents and alerts\n"
       - matchRegexRaw:
           pattern: "Kubernetes AI agent: on, with write access."
-      # The server picks "ask for approval" only on a cluster's first
-      # connection, and keeps settings someone already picked.
+      # The release names neither setting: the agent's defaults apply only
+      # where nobody chose the settings on the cluster's AI agent page.
       - matchRegexRaw:
-          pattern: "A cluster whose agent connects for the first time with write access starts in\n\"ask for approval\", unless AI settings were already picked on its AI agent\npage before the install, which are kept as chosen. Otherwise pick how fixes\nrun on that page."
+          pattern: "This release does not set what OneUptime AI may do on this cluster, so the\nagent uses its defaults \\(investigation on, fixes ask-for-approval\\), unless\nsomeone already chose them on the cluster's AI agent page, which keeps them.\nTo set them here instead:\n  --set aiAgent.investigation=true --set aiAgent.fixes=ask-for-approval\n"
       - notMatchRegexRaw:
           pattern: "ask for approval by default"
+      # The deprecated switch is named, with what replaces it.
+      - matchRegexRaw:
+          pattern: "Write access comes from aiAgent.remediation.enabled, which aiAgent.fixes\nreplaces: set aiAgent.fixes from now on."
       # Set explicitly, so nothing was carried over.
       - notMatchRegexRaw:
           pattern: "carried over"
-      # No grant-writes command when writes are already on.
+      # No turn-fixes-on command when writes are already on.
       - notMatchRegexRaw:
-          pattern: "--set aiAgent.remediation.enabled=true"
+          pattern: "--set aiAgent.fixes=ask-for-approval --set \"aiAgent.remediation.namespaces"
 
   - it: says what cluster-wide write access amounts to and what holds the line in the system namespaces
     set:
@@ -169,7 +176,8 @@ tests:
       - notMatchRegexRaw:
           pattern: "bound cluster-wide"
       # A RoleBinding in a namespace that does not exist fails the upgrade;
-      # say so, and how to go back to cluster-wide under --reuse-values.
+      # say so, and how to go back to cluster-wide (leaving the flag out of an
+      # upgrade keeps a stored list).
       - matchRegexRaw:
           pattern: "Each listed namespace must already exist: the chart creates a RoleBinding in\neach and never creates a namespace, so a missing one fails every install or\nupgrade with 'namespaces \"<name>\" not found'."
       - matchRegexRaw:
@@ -193,7 +201,10 @@ tests:
       - matchRegexRaw:
           pattern: "Kubernetes AI agent: on, read-only."
       - matchRegexRaw:
-          pattern: "--reuse-values --set aiAgent.remediation.enabled=true"
+          pattern: "--reset-then-reuse-values --set aiAgent.investigation=true --set aiAgent.fixes=ask-for-approval"
+      # Nothing names the settings: the agent's defaults, unless chosen in OneUptime.
+      - matchRegexRaw:
+          pattern: "This release does not set what OneUptime AI may do on this cluster"
 
   - it: renders the read-only notes on a 14.0.x release that stored aiAccess.enabled=false, never the off branch
     values:
@@ -221,7 +232,7 @@ tests:
       - matchRegexRaw:
           pattern: "Kubernetes AI agent: on, with write access."
       - matchRegexRaw:
-          pattern: "Write access was carried over from aiAccess.remediation.enabled; change it\nwith aiAgent.remediation.\\* from now on."
+          pattern: "Write access was carried over from aiAccess.remediation.enabled; set\naiAgent.fixes from now on."
       - matchRegexRaw:
           pattern: "Write access is bound only in: web, api \\(aiAccess.remediation.namespaces\\)."
       - matchRegexRaw:
@@ -359,3 +370,39 @@ tests:
           pattern: "--set aiAccess"
       - notMatchRegexRaw:
           pattern: "0\\.7\\.0"
+
+  - it: says what the release sets AI to do, and where to change it, once it names the settings
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAgent.investigation: false
+      aiAgent.fixes: automatic
+    asserts:
+      - matchRegexRaw:
+          pattern: "Kubernetes AI agent: on, with write access."
+      - matchRegexRaw:
+          pattern: "What OneUptime AI may do on this cluster, set by this release: investigation\noff, fixes automatic. The cluster's AI agent page shows them;\nchange them here, with aiAgent.investigation \\(true or false\\) and\naiAgent.fixes \\(off, ask-for-approval, automatic or bypass-approval\\).\n"
+      - notMatchRegexRaw:
+          pattern: "This release does not set"
+      # Neither a deprecated switch nor a carry-over to point at.
+      - notMatchRegexRaw:
+          pattern: "aiAgent.remediation.enabled"
+      - notMatchRegexRaw:
+          pattern: "carried over"
+
+  - it: reads read-only when fixes are off, even over aiAgent.remediation.enabled=true
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAgent.fixes: "off"
+      aiAgent.remediation.enabled: true
+    asserts:
+      - matchRegexRaw:
+          pattern: "Kubernetes AI agent: on, read-only."
+      - matchRegexRaw:
+          pattern: "set by this release: investigation\non, fixes off."
+      # The turn-fixes-on command keeps investigation as the release set it.
+      - matchRegexRaw:
+          pattern: "--set aiAgent.investigation=true --set aiAgent.fixes=ask-for-approval"

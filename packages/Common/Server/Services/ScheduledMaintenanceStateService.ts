@@ -128,6 +128,8 @@ export class Service extends DatabaseService<ScheduledMaintenanceState> {
           isResolvedState: true,
           isOngoingState: true,
           isScheduledState: true,
+          // All four built-in kinds, as ScheduledMaintenanceStartUtil reads them.
+          isEndedState: true,
           order: true,
           name: true,
         },

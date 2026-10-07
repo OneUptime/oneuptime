@@ -70,6 +70,13 @@ export interface ComponentProps {
    * behind "more details".
    */
   statusText?: string | undefined;
+  /*
+   * Draws the status as waiting - a clock - rather than skipped: a
+   * notification held back until something happens, such as a postmortem
+   * that is sent when its hidden incident is made visible. Its colour stays
+   * the status's own.
+   */
+  isWaiting?: boolean | undefined;
   className?: string;
   onResendNotification?:
     | ((options: ResendNotificationOptions) => void)
@@ -194,6 +201,7 @@ const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
     status,
     subscriberNotificationStatusMessage,
     statusText,
+    isWaiting,
     className = "",
     onResendNotification,
     resendConfirmation,
@@ -213,7 +221,10 @@ const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
     tailwindColor: string;
     text: string;
     icon: IconProp;
-  } = getNotificationStatusInfo(status);
+  } = {
+    ...getNotificationStatusInfo(status),
+    ...(isWaiting ? { icon: IconProp.Clock } : {}),
+  };
 
   // Retry after a failure; Resend after a success, where it is offered.
   const resendAction: SubscriberNotificationResendAction | null =

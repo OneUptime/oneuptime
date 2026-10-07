@@ -43,7 +43,7 @@ Open **Notes → Public Notes** in the incident side menu and write in the compo
 
 **See who the note will reach.** While **Notify status page subscribers** is ticked, a **Will notify** line under it lists the status pages the note will go to, with an "up to" subscriber count per channel, and the pages that list the incident's monitors but will not be told, with the reason. When nobody will be told it shows nothing, unless the incident is hidden from status pages or its status page scope is the reason. It follows the incident's status page scope, so a note on an incident limited to two site pages says it will reach those two. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 
-**See what they will get.** Under the same checkbox, **Preview notification** shows the email each of those status pages' subscribers will get for the note you are writing, and which template it uses and why. **Send test to me** sends that email to your own account email, and to nobody else. See [Previewing the email before it is sent](/docs/status-pages/subscribers#previewing-the-email-before-it-is-sent).
+**See what they will get.** Beside the same checkbox, **Preview** shows the email each of those status pages' subscribers will get for the note you are writing, and which template it uses and why. It stays grey until the note has some text. **Send test to me** sends that email to your own account email, and to nobody else. See [Previewing the email before it is sent](/docs/status-pages/subscribers#previewing-the-email-before-it-is-sent).
 
 **The posting time is the note's real timestamp.** Status pages sort and display public notes by `postedAt`, not by when you typed them — so if you're catching the status page up on an update you sent 40 minutes ago, choose **Posted now** and set when it actually happened. If a note arrives through the API without one, OneUptime stamps the current time.
 
@@ -67,6 +67,15 @@ Where they diverge is who can fetch the file:
 - **Private note attachments** are only reachable through the authenticated dashboard API. There is no status page route for them.
 
 That makes attachments the same public/private decision as the note text. A customer-facing timeline image goes on a public note; a config dump goes on a private one.
+
+Images follow the same decision. An image you paste or drop into a note, or add with **Upload Image**, is stored in the incident's project and shown inside the note, and who can see it follows the note:
+
+- **In a private note** — or in a public note before it is posted — an image is shown only to the members of the project, signed in the way the project requires. Anyone else who opens its address sees nothing, as if there were no image there.
+- **In a public note** an image is shown to everyone who can see the note: on the status page, and in the emails its subscribers get. A public note is shown with its incident, never without it: while the incident is hidden from status pages or private, its notes' images are shown only to the members of the project too.
+
+Every upload starts private, from the dashboard and from the API alike. An image is viewable by everyone only while something your status pages show has it in it: a public note while its incident, episode or scheduled maintenance event is shown on status pages, an announcement, the incident's description while the incident is **Visible on Status Page** and not private, its postmortem once that is published there too, an episode's or a scheduled maintenance event's description while it is shown on status pages (never while the episode is private), and the status page's own overview, group and resource descriptions. When that stops — the incident is hidden or made private, the image is edited out, the note or the incident is deleted — the image is private again, unless something else your status pages show still has it in it. A form's description and thank-you message show their images to everyone the same way, while the form is accepting submissions.
+
+Reading a note through the API, Terraform or a workflow lists only the attachments the reader may open: files of the note's project, and public files. An attachment a note names from another project is left out of the list, as if the note did not have it.
 
 ## Generating a note with AI
 
@@ -103,7 +112,7 @@ Creating a public note with **Notify Status Page Subscribers** on does not by it
 1. **Notify Status Page Subscribers** must be on. If it isn't, the note is stamped as skipped the moment it's created. It starts off on incidents that were declared without notifying subscribers.
 2. The note must belong to an incident that still exists.
 3. The incident must have at least one monitor attached — with no monitors there is no status page resource to route the note to.
-4. The incident's **Visible on Status Page** flag (`isVisibleOnStatusPage`) must be true.
+4. The incident's **Visible on Status Page** flag (`isVisibleOnStatusPage`) must be true, and the incident must not be private (`isPrivate`). A private incident is hidden from every status page, whatever the flag says — see [Keeping an incident off the status page](/docs/incidents/states-and-severities#keeping-an-incident-off-the-status-page).
 5. Each status page the incident reaches must have **Show Incidents** (`showIncidentsOnStatusPage`) turned on. The pages it reaches are the ones that list its monitors, narrowed to the pages the incident is limited to, if any. An incident that is not limited to any page skips the pages that only show incidents limited to them. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 6. Each subscriber must pass their own preferences — not unsubscribed, and subscribed to this resource and to the `Incident` event type where the page lets subscribers choose.
 
@@ -143,7 +152,7 @@ The card header also has an **Actions** menu so you can act without leaving the 
 
 - **Execute Runbook** — start a [runbook](/docs/runbooks/index) against this incident.
 - **Execute On-Call Policy** — page a policy on demand.
-- **Add Public Note** — the **Public Notes** page's composer, in a dialog: write the note, then **Post update**. Templates, **Draft with AI**, attachments, **Notify status page subscribers** with who it will reach, and **Preview notification** are all there. The note is posted now; to backdate it, choose **Posted now**.
+- **Add Public Note** — the **Public Notes** page's composer, in a dialog: write the note, then **Post update**. Templates, **Draft with AI**, attachments, **Notify status page subscribers** with who it will reach, and **Preview** are all there. The note is posted now; to backdate it, choose **Posted now**.
 - **Add Private Note** — the **Private Notes** page's composer, in a dialog: write the note, then **Add note**.
 
 Both are locked, naming the missing permission, for someone who may not write notes. After a note is posted the dialog closes and the feed shows it.
@@ -160,8 +169,8 @@ Everything else is behind the **⋯** button next to it, the same **More options
 
 Feed items are written by the incident service itself, by both note services, by the state timeline, by owner and member changes, by linking and unlinking alerts, by the rule engines, by on-call execution, by the AI investigation and postmortem runners, and by the notification cron jobs. The event types cover:
 
-- **The incident itself** — `IncidentCreated`, `IncidentUpdated`, `IncidentStateChanged`. An `IncidentUpdated` entry also records the status pages added to or removed from the incident's scope.
-- **Notes and write-ups** — `PublicNote`, `PrivateNote`, `RootCause`, `RemediationNotes`, `PostmortemNote`.
+- **The incident itself** — `IncidentCreated`, `IncidentUpdated`, `IncidentStateChanged`. An `IncidentUpdated` entry records what an edit changed: the title, description, root cause, remediation notes, labels, severity, monitors and the status put on them, and the status pages added to or removed from the incident's scope. It has a line for each value that changed and none for a value saved as it was, so saving a card with nothing changed, or an API client or a workflow writing the incident back as it is, adds no entry at all. Text that reads the same is the same (line endings and the spaces around it aside), and labels are the same set in any order; a value that was cleared reads as removed, and taking every label off as "All labels removed.". An alert's **Alert updated** entries work the same way.
+- **Notes and write-ups** — `PublicNote`, `PrivateNote`, `RootCause`, `RemediationNotes`, `PostmortemNote`. A `PostmortemNote` item is written when the postmortem's note changes, not every time the postmortem is saved.
 - **People** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`.
 - **Linked alerts** — `AlertLinked` and `AlertUnlinked`, shown as **Alert Linked** and **Alert Unlinked**.
 - **Notifications** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
@@ -185,6 +194,8 @@ Open **Team → Owners** in the incident side menu. The **Owners** card shows a 
 
 Owner users and owner teams are separate records — adding a team makes every member of that team an owner for notification purposes without listing them individually.
 
+Only your project's own teams and members can be owners. The picker offers only them, and owners added through the API, Terraform or a workflow are held to the same: a team from another project, or someone who is not a member of the project, is refused.
+
 ## How owners get assigned
 
 There are four routes onto the owners list:
@@ -200,12 +211,14 @@ Adding the same person twice is safe; owners already assigned are not duplicated
 
 **Incident Owner Rules** auto-assign owner users and teams when matching incidents are created — the routing layer that means a database incident lands on the database team without anyone thinking about it. You'll find them with the rest of the incident automation covered in [Incident Settings & Automation](/docs/incidents/settings).
 
-The rule form has four steps — **Basic Info**, **Match Criteria**, **Owners** and **Inherit Owners**:
+The rule form has two steps — **Match**, the conditions an incident must meet, then **Owners**, what the rule adds:
 
 - **Owners** — **Add owner** opens one list of people and teams; click each one to add it, and remove a pick with the **×** on its chip. When the rule matches, every person and team picked is added as an owner, and already-assigned owners are not duplicated.
-- **Inherit Owners** — assign owners from related entities instead of naming them. **Inherit Owners From Monitors** makes every owner of the incident's monitors an owner of the incident, and **Inherit Owners From Hosts**, **… From Kubernetes Clusters**, **… From Docker Hosts**, **… From Podman Hosts** and **… From Services** do the same for those resources.
+- **Inherit Owners**, folded under **Owners** — assign owners from related entities instead of naming them. **Inherit Owners From Monitors** makes every owner of the incident's monitors an owner of the incident, and **Inherit Owners From Hosts**, **… From Kubernetes Clusters**, **… From Docker Hosts**, **… From Podman Hosts** and **… From Services** do the same for those resources.
 
-A **Notify Owners** toggle controls whether people find out. Leave it on for real routing; turn it off to add owners silently — useful when a rule is a bookkeeping convenience rather than a page.
+A new rule has to add someone: pick at least one owner, or turn on an **Inherit Owners** switch. The API and Terraform refuse a new rule that adds no one too. Its **Name** is filled in from the owners you pick — or, on a rule that only inherits, from its switches (_Inherit owners from monitors_) — until you type a name of your own. Editing a rule never insists on owners, so an older rule that adds nothing can still be renamed or switched off; the list marks it **Adds nothing**. See [Label and Owner Rules](/docs/configuration/label-and-owner-rules).
+
+**Notify Owners**, under **More fields**, controls whether people find out. Leave it on for real routing; turn it off to add owners silently — useful when a rule is a bookkeeping convenience rather than a page.
 
 Every rule execution is written to the incident feed, so you can always tell whether a person was added by a rule or by a human.
 

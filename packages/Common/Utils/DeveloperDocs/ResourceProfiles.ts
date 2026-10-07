@@ -1,8 +1,10 @@
 import { DatabaseBaseModelType } from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Alert from "../../Models/DatabaseModels/Alert";
+import AlertEpisodeMember from "../../Models/DatabaseModels/AlertEpisodeMember";
 import AlertInternalNote from "../../Models/DatabaseModels/AlertInternalNote";
 import AlertStateTimeline from "../../Models/DatabaseModels/AlertStateTimeline";
 import Incident from "../../Models/DatabaseModels/Incident";
+import IncidentEpisodeMember from "../../Models/DatabaseModels/IncidentEpisodeMember";
 import IncidentInternalNote from "../../Models/DatabaseModels/IncidentInternalNote";
 import IncidentOwnerTeam from "../../Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentPublicNote from "../../Models/DatabaseModels/IncidentPublicNote";
@@ -34,6 +36,7 @@ import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import Recurring from "../../Types/Events/Recurring";
 import EventInterval from "../../Types/Events/EventInterval";
 import { JSONValue } from "../../Types/JSON";
+import { DEFAULT_INCOMING_CALL_RING_SECONDS } from "../../Types/IncomingCall/IncomingCallRingTime";
 import MonitorType from "../../Types/Monitor/MonitorType";
 import RestrictionTimes from "../../Types/OnCallDutyPolicy/RestrictionTimes";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -777,15 +780,16 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
     tasks: [
       {
         title: "Its incidents",
-        description: "The incidents grouped into this episode.",
+        description:
+          "The incidents grouped into this episode, newest added first, each by its ID. An incident can be in several episodes, and its own episode ID names only the latest.",
         scopes: ["view"],
-        modelType: Incident,
+        modelType: IncidentEpisodeMember,
         operation: "list",
         query: [
           { column: "incidentEpisodeId", operator: "equals", value: THIS },
         ],
-        select: ["title", "incidentSeverityId", "declaredAt"],
-        sort: { column: "declaredAt", order: "DESC" },
+        select: ["incidentId", "addedAt", "addedBy"],
+        sort: { column: "addedAt", order: "DESC" },
       },
     ],
   },
@@ -940,13 +944,14 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
     tasks: [
       {
         title: "Its alerts",
-        description: "The alerts grouped into this episode.",
+        description:
+          "The alerts grouped into this episode, newest added first, each by its ID. An alert can be in several episodes, and its own episode ID names only the latest.",
         scopes: ["view"],
-        modelType: Alert,
+        modelType: AlertEpisodeMember,
         operation: "list",
         query: [{ column: "alertEpisodeId", operator: "equals", value: THIS }],
-        select: ["title", "alertSeverityId", "createdAt"],
-        sort: { column: "createdAt", order: "DESC" },
+        select: ["alertId", "addedAt", "addedBy"],
+        sort: { column: "addedAt", order: "DESC" },
       },
     ],
   },
@@ -1511,8 +1516,7 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
     recipes: [
       {
         title: "Route calls to a schedule",
-        description:
-          "Rings whoever is on call in one of your schedules, for 30 seconds before the next rule.",
+        description: `Rings whoever is on call in one of your schedules, for ${DEFAULT_INCOMING_CALL_RING_SECONDS} seconds before the next rule.`,
         scopes: ["view"],
         blocks: [
           {
@@ -1522,7 +1526,10 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
               field("incomingCallPolicyId", THIS),
               field("name", literal("On-call engineer")),
               field("onCallDutyPolicyScheduleId", live()),
-              field("escalateAfterSeconds", literal(30)),
+              field(
+                "escalateAfterSeconds",
+                literal(DEFAULT_INCOMING_CALL_RING_SECONDS),
+              ),
             ],
           },
         ],
@@ -1545,7 +1552,10 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
               field("incomingCallPolicyId", ref("policy")),
               field("name", literal("On-call engineer")),
               field("onCallDutyPolicyScheduleId", live()),
-              field("escalateAfterSeconds", literal(30)),
+              field(
+                "escalateAfterSeconds",
+                literal(DEFAULT_INCOMING_CALL_RING_SECONDS),
+              ),
             ],
           },
         ],
@@ -1794,6 +1804,16 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
     fields: [
       field("name", literal("ceph-production")),
       field("description", literal("Production Ceph cluster.")),
+      "labels",
+    ],
+  },
+
+  StorageArray: {
+    createNote:
+      "The OneUptime Storage Array Agent adds a storage array the first time it reports. Its name must match the storage.array.name the agent reports.",
+    fields: [
+      field("name", literal("pure-prod-01")),
+      field("description", literal("Production Pure Storage FlashArray.")),
       "labels",
     ],
   },

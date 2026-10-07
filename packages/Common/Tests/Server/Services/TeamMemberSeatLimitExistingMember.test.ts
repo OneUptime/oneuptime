@@ -37,6 +37,15 @@ import HashedString from "../../../Types/HashedString";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * The seat limit and the free plan's one-member limit count people, not
@@ -284,6 +293,10 @@ beforeEach(() => {
   jest.spyOn(AuditLogService, "recordCreate").mockResolvedValue(undefined);
   jest
     .spyOn(ModelPermission, "checkCreatePermissions")
+    .mockReturnValue(undefined);
+  // The same check's table part, as DatabaseService asks it before the hook.
+  jest
+    .spyOn(ModelPermission, "checkTableWritePermission")
     .mockReturnValue(undefined);
   jest.spyOn(ProductAnalytics, "captureForUser").mockImplementation(() => {});
 

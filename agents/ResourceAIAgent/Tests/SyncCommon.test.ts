@@ -61,13 +61,14 @@ function labels(items: Array<{ label: string }>): Array<string> {
 }
 
 describe("the real copy list", () => {
-  test("names the two policy directories and the two single files", () => {
+  test("names the two policy directories and the three single files", () => {
     assert.deepStrictEqual(SyncCommon.loadCopyList(), {
       commonPolicyDirectories: [
         "Types/ResourceAiAgent",
         "Utils/AiRemediation/Resource",
       ],
       commonPolicyFiles: [
+        "Types/AI/AgentAiSettings.ts",
         "Types/AutoRemediation/AiRemediationCommandPolicyVerdict.ts",
         "Types/Runbook/RunnerJobOrigin.ts",
       ],
@@ -89,6 +90,7 @@ describe("the real copy list", () => {
       "Utils/AiRemediation/Resource/ResourceCommandPolicy.ts",
       "Utils/AiRemediation/Resource/ResourceCommandPolicyCore.ts",
       "Utils/AiRemediation/Resource/ResourceOutputRedactor.ts",
+      "Types/AI/AgentAiSettings.ts",
       "Types/AutoRemediation/AiRemediationCommandPolicyVerdict.ts",
       "Types/Runbook/RunnerJobOrigin.ts",
     ]) {
@@ -139,6 +141,7 @@ describe("against a scratch repository", () => {
     write("Types/ResourceAiAgent/.DS_Store", "finder junk");
     write("Utils/AiRemediation/Resource/ResourceCommandPolicy.ts", "p\n");
     write("Utils/AiRemediation/Resource/Database/Catalog.ts", "c\n");
+    write("Types/AI/AgentAiSettings.ts", "s\n");
     write("Types/AutoRemediation/AiRemediationCommandPolicyVerdict.ts", "v\n");
     write("Types/Runbook/RunnerJobOrigin.ts", "o\n");
     // Not in the list: never copied.
@@ -151,6 +154,7 @@ describe("against a scratch repository", () => {
 
   test("every file of the listed directories (recursively, dotfiles aside) and the single files", () => {
     assert.deepStrictEqual(SyncCommon.getCommonRelativePaths(roots), [
+      "Types/AI/AgentAiSettings.ts",
       "Types/AutoRemediation/AiRemediationCommandPolicyVerdict.ts",
       "Types/ResourceAiAgent/AiResourceType.ts",
       "Types/Runbook/RunnerJobOrigin.ts",
@@ -160,14 +164,14 @@ describe("against a scratch repository", () => {
   });
 
   test("missing copies drift; sync copies them byte for byte; then nothing drifts", () => {
-    assert.strictEqual(SyncCommon.findDrift(roots).length, 5);
+    assert.strictEqual(SyncCommon.findDrift(roots).length, 6);
 
     const result: {
       copied: Array<Copy>;
       removed: Array<{ label: string; target: string }>;
     } = SyncCommon.sync(roots);
 
-    assert.strictEqual(result.copied.length, 5);
+    assert.strictEqual(result.copied.length, 6);
     assert.deepStrictEqual(result.removed, []);
     assert.deepStrictEqual(SyncCommon.findDrift(roots), []);
 
@@ -267,6 +271,7 @@ describe("against a scratch repository", () => {
     assert.deepStrictEqual(
       SyncCommon.listFilesRecursively(path.join(common, "Types")),
       [
+        "AI/AgentAiSettings.ts",
         "AutoRemediation/AiRemediationCommandPolicyVerdict.ts",
         "Other.ts",
         "ResourceAiAgent/AiResourceType.ts",

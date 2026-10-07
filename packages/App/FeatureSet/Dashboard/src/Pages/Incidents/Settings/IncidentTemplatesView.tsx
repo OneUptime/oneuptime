@@ -1,5 +1,6 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import AffectedResourcesDisplay from "../../../Components/AffectedResources/AffectedResourcesDisplay";
+import ChangeMonitorStatusToElement from "../../../Components/MonitorStatus/ChangeMonitorStatusToElement";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "../../../Utils/PageMap";
@@ -169,7 +170,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Initial Incident State",
             stepId: "incident-details",
             description:
-              "Incidents declared from this template start in this state. Leave it empty for the usual starting state.",
+              "Incidents declared from this template start in this state. Leave it empty for the usual starting state. An incident that starts acknowledged or resolved pages no one.",
             fieldType: FormFieldSchemaType.Dropdown,
             // In the same order, with the same colours, as on create.
             dropdownModal: {
@@ -565,6 +566,24 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     dockerHosts={item.dockerHosts || []}
                     podmanHosts={item.podmanHosts || []}
                     services={item.services || []}
+                  />
+                );
+              },
+            },
+            // What its Edit asks under the monitors, shown with them.
+            {
+              field: {
+                changeMonitorStatusTo: {
+                  name: true,
+                  color: true,
+                },
+              },
+              title: "Change Monitor Status to",
+              fieldType: FieldType.Entity,
+              getElement: (item: IncidentTemplate): ReactElement => {
+                return (
+                  <ChangeMonitorStatusToElement
+                    monitorStatus={item.changeMonitorStatusTo}
                   />
                 );
               },

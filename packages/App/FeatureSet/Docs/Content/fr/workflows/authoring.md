@@ -97,7 +97,7 @@ Pour mettre un workflow en pause sans le supprimer, désactivez **Activé**. Auc
 - Faites glisser les blocs pour les déplacer. La disposition est enregistrée.
 - Pour supprimer une ligne, faites glisser l'une de ses extrémités hors du point et lâchez-la sur une zone vide du canevas.
 - Pour supprimer un bloc, cliquez dessus et utilisez **Supprimer** en bas de sa boîte de dialogue de paramètres. Sélectionner un bloc ou une ligne puis appuyer sur Retour arrière fonctionne aussi.
-- Impossible de dupliquer un bloc isolé. **Duplicate Workflow**, sur la page **Paramètres** du workflow, en copie l'intégralité, et la copie arrive désactivée.
+- Impossible de dupliquer un bloc isolé. **Duplicate Workflow**, sur la page **Paramètres** du workflow, en copie l'intégralité. Le nom de la copie est déjà rempli, numéroté après les workflows du projet (« Nightly Sync » est copié en « Nightly Sync 2 »), et la copie s'ouvre, désactivée.
 - Empilez les blocs de haut en bas pour qu'ils se lisent dans le sens où ils s'exécutent — les entrées sont sur le bord supérieur, les sorties sur le bord inférieur, le flux descend donc naturellement.
 
 ## Où lire ensuite

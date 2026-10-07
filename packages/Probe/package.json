@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/probe",
-  "version": "14.0.14",
+  "version": "14.0.15",
   "description": "",
   "repository": {
     "type": "git",
@@ -54,5 +54,10 @@
   },
   "allowScripts": {
     "msnodesqlv8@5.2.2": true
+  },
+  "overrides": {
+    "@istanbuljs/load-nyc-config": {
+      "js-yaml": "^4.3.2"
+    }
   }
 }

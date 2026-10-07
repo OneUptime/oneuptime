@@ -38,6 +38,21 @@ import { MigrateIncidentFormsToForms1797400000000 } from "./1797400000000-Migrat
 import { AddRunbookRuleMatchCriteria1797500000000 } from "./1797500000000-AddRunbookRuleMatchCriteria";
 import { AddSeverityAndStateColorsToNotificationEmailRollup1797600000000 } from "./1797600000000-AddSeverityAndStateColorsToNotificationEmailRollup";
 import { AddFormBranding1797700000000 } from "./1797700000000-AddFormBranding";
+import { AddMonitorLinkedResourcesAndRemediationDecision1797800000000 } from "./1797800000000-AddMonitorLinkedResourcesAndRemediationDecision";
+import { BackfillFileOwners1797900000000 } from "./1797900000000-BackfillFileOwners";
+import { TurnOnResourceAiInvestigationByDefault1798000000000 } from "./1798000000000-TurnOnResourceAiInvestigationByDefault";
+import { StartFileUploadsPrivate1798100000000 } from "./1798100000000-StartFileUploadsPrivate";
+import { AddProjectAiDailyLimits1798200000000 } from "./1798200000000-AddProjectAiDailyLimits";
+import { AddLlmLogProjectCreatedAtIndex1798300000000 } from "./1798300000000-AddLlmLogProjectCreatedAtIndex";
+import { AddPublicNotePostedWithState1798400000000 } from "./1798400000000-AddPublicNotePostedWithState";
+import { StartIncomingCallRulesAtTwentySeconds1798600000000 } from "./1798600000000-StartIncomingCallRulesAtTwentySeconds";
+import { AddStorageArrayTables1798700000000 } from "./1798700000000-AddStorageArrayTables";
+import { AddWorkspaceSummaryTimezone1798900000000 } from "./1798900000000-AddWorkspaceSummaryTimezone";
+import { AddIncidentHoldsMonitors1798950000000 } from "./1798950000000-AddIncidentHoldsMonitors";
+import { AddProjectAiDailyLimitReachedAt1799000000000 } from "./1799000000000-AddProjectAiDailyLimitReachedAt";
+import { MarkPostmortemsWaitingForHiddenIncidents1799100000000 } from "./1799100000000-MarkPostmortemsWaitingForHiddenIncidents";
+import { HidePrivateIncidentsFromStatusPages1799200000000 } from "./1799200000000-HidePrivateIncidentsFromStatusPages";
+import { AddCloudMonitoredResourceColumns1799300000000 } from "./1799300000000-AddCloudMonitoredResourceColumns";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1276,4 +1291,19 @@ export default [
   AddRunbookRuleMatchCriteria1797500000000,
   AddSeverityAndStateColorsToNotificationEmailRollup1797600000000,
   AddFormBranding1797700000000,
+  AddMonitorLinkedResourcesAndRemediationDecision1797800000000,
+  BackfillFileOwners1797900000000,
+  TurnOnResourceAiInvestigationByDefault1798000000000,
+  StartFileUploadsPrivate1798100000000,
+  AddProjectAiDailyLimits1798200000000,
+  AddLlmLogProjectCreatedAtIndex1798300000000,
+  AddPublicNotePostedWithState1798400000000,
+  StartIncomingCallRulesAtTwentySeconds1798600000000,
+  AddStorageArrayTables1798700000000,
+  AddWorkspaceSummaryTimezone1798900000000,
+  AddIncidentHoldsMonitors1798950000000,
+  AddProjectAiDailyLimitReachedAt1799000000000,
+  MarkPostmortemsWaitingForHiddenIncidents1799100000000,
+  HidePrivateIncidentsFromStatusPages1799200000000,
+  AddCloudMonitoredResourceColumns1799300000000,
 ];

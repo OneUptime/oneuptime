@@ -292,9 +292,14 @@ describe("no page decides liveness from connectionStatus", () => {
     ).toContain("lastAlive: true");
   });
 
+  /*
+   * And the name and posture, which say whether the Kubernetes agent chart
+   * installed the Runner - which decides how the version's upgrade dialog
+   * says to upgrade it (the chart, or the Runner image).
+   */
   test("the Runner Status card selects lastAlive", () => {
     expect(readCode(...RUNNER_VIEW)).toContain(
-      "selectMoreFields: { lastAlive: true }",
+      "selectMoreFields: { lastAlive: true, name: true, hostInfo: true }",
     );
   });
 

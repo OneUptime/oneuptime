@@ -1,16 +1,22 @@
 import NotificationMethodTabs from "../../../../Components/NotificationMethods/NotificationMethodTabs";
 import {
+  canChangeProjectNotificationChannels,
   getProjectChannelState,
   isCodeResendOffered,
   ProjectChannelState,
   ProjectNotificationChannels,
   useProjectNotificationChannels,
 } from "../../../../Components/NotificationMethods/ProjectNotificationChannels";
-import { ProjectNotificationChannel } from "../../../../Components/NotificationMethods/ProjectNotificationChannelsCopy";
+import ProjectNotificationChannelsCopy, {
+  ProjectNotificationChannel,
+} from "../../../../Components/NotificationMethods/ProjectNotificationChannelsCopy";
+import PageMap from "../../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../../Utils/RouteMap";
 import PageComponentProps from "../../../PageComponentProps";
 import { UserOnCallContextValue, useUserOnCallContext } from "./Context";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
+import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -27,6 +33,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Link from "Common/UI/Components/Link/Link";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -135,6 +142,10 @@ const ADDABLE_CHANNEL_SWITCHES: Record<
   [AdminAddableChannel.WhatsApp]: ProjectNotificationChannel.WhatsApp,
 };
 
+// The note under the Add form's Method field while a channel is off.
+export const CHANNELS_OFF_DESCRIPTION_TEST_ID: string =
+  "add-method-channels-off";
+
 const ALL_ADDABLE_CHANNELS: Array<AdminAddableChannel> = [
   AdminAddableChannel.Email,
   AdminAddableChannel.SMS,
@@ -145,9 +156,9 @@ const ALL_ADDABLE_CHANNELS: Array<AdminAddableChannel> = [
 /*
  * The channels the Add form offers: email always, and SMS, calls and
  * WhatsApp while the project has them on. A channel that is off is not
- * offered, because the server refuses the method ("SMS notifications are
- * disabled for this project") - the commonest action of this page would be
- * a refusal on every new project, where all three start off.
+ * offered, because the server refuses the method ("SMS is off in this
+ * project. ...") - the commonest action of this page would be a refusal on
+ * every new project, where all three start off.
  *
  * A channel is only left out when it is KNOWN to be off. While the answer
  * is on its way, or when it could not be read, every channel is offered as
@@ -751,6 +762,42 @@ const UserViewNotificationMethods: FunctionComponent<
     offeredChannels.length < ALL_ADDABLE_CHANNELS.length;
 
   /*
+   * Under the Method dropdown while a channel is off: why it is missing,
+   * and - for someone who may turn it on (a project owner, or someone with
+   * Manage Billing) - a link straight to the switches; for everyone else,
+   * who can. A project admin, who can add methods here, may not.
+   */
+  const getChannelsOffDescription: () => ReactElement = (): ReactElement => {
+    return (
+      <span data-testid={CHANNELS_OFF_DESCRIPTION_TEST_ID}>
+        {canChangeProjectNotificationChannels() ? (
+          <TranslatedSentence
+            template="Channels that are off in this project are not offered. Turn them on in {{settingsLink}}."
+            slots={{
+              settingsLink: (
+                <Link
+                  to={RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.SETTINGS_NOTIFICATION_SETTINGS] as Route,
+                  )}
+                  className="font-medium text-indigo-600 underline hover:text-indigo-800"
+                >
+                  {translator.translateText(
+                    ProjectNotificationChannelsCopy.settingsLinkText,
+                  )}
+                </Link>
+              ),
+            }}
+          />
+        ) : (
+          translator.translateText(
+            "Channels that are off in this project are not offered. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notification Settings.",
+          )
+        )}
+      </span>
+    );
+  };
+
+  /*
    * What the admin can add, said as what they CAN do: only the channels the
    * project has on (each sentence whole, so a locale can word it its way).
    */
@@ -1005,8 +1052,7 @@ const UserViewNotificationMethods: FunctionComponent<
                  */
                 ...(isAnyChannelOff
                   ? {
-                      description:
-                        "Channels that are off in this project are not offered. A project owner can turn them on in Project Settings → Notification Settings.",
+                      description: getChannelsOffDescription(),
                     }
                   : {}),
                 fieldType: FormFieldSchemaType.Dropdown,

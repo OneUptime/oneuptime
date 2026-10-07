@@ -91,6 +91,8 @@ Inom ungefär en minut bör värden visas i OneUptime-instrumentpanelen med mät
 
 ## Uppgradera agenten
 
+När agenten är äldre än din OneUptime visas en varningssymbol bredvid **Agentversion** i Docker-värdens **Översikt**. Välj den för att se de här kommandona.
+
 ```bash
 docker pull oneuptime/docker-agent:release
 docker rm -f oneuptime-docker-agent

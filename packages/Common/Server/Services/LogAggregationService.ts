@@ -13,6 +13,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import Includes from "../../Types/BaseDatabase/Includes";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import TelemetryReadScopeUtil from "../Utils/Telemetry/TelemetryReadScope";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import { getResourceFacetServiceTypeMap } from "../../Types/Telemetry/ResourceFacetCatalog";
@@ -54,6 +55,8 @@ export interface HistogramRequest {
   endTime: Date;
   bucketSizeInMinutes: number;
   serviceIds?: Array<ObjectID> | undefined;
+  // Resources whose rows are left out whatever else matches.
+  excludedServiceIds?: Array<ObjectID> | undefined;
   entityKeys?: Array<string> | undefined;
   /*
    * Resource-facet selections (host / Kubernetes cluster / Proxmox
@@ -86,6 +89,8 @@ export interface FacetRequest {
   facetKey: string;
   limit?: number | undefined;
   serviceIds?: Array<ObjectID> | undefined;
+  // Resources whose rows are left out whatever else matches.
+  excludedServiceIds?: Array<ObjectID> | undefined;
   entityKeys?: Array<string> | undefined;
   /*
    * Resource-facet selections (host / Kubernetes cluster / Proxmox
@@ -118,6 +123,8 @@ export interface AnalyticsRequest {
   aggregation: AnalyticsAggregation;
   aggregationField?: string | undefined;
   serviceIds?: Array<ObjectID> | undefined;
+  // Resources whose rows are left out whatever else matches.
+  excludedServiceIds?: Array<ObjectID> | undefined;
   /*
    * Resource-facet selections (host / Kubernetes cluster / Proxmox
    * cluster / ... — any ResourceFacetCatalog type) already resolved to
@@ -174,6 +181,8 @@ export interface ErrorPatternFilters {
   startTime: Date;
   endTime: Date;
   serviceIds?: Array<ObjectID> | undefined;
+  // Resources whose rows are left out whatever else matches.
+  excludedServiceIds?: Array<ObjectID> | undefined;
   entityKeys?: Array<string> | undefined;
   resourceScopes?: Array<ResourceEntityScope> | undefined;
   /** Defaults to DEFAULT_ERROR_LOG_SEVERITIES when absent or empty. */
@@ -963,6 +972,7 @@ export class LogAggregationService {
     request: Pick<
       HistogramRequest,
       | "serviceIds"
+      | "excludedServiceIds"
       | "entityKeys"
       | "resourceScopes"
       | "severityTexts"
@@ -973,18 +983,7 @@ export class LogAggregationService {
       | "attributes"
     >,
   ): void {
-    if (request.serviceIds && request.serviceIds.length > 0) {
-      statement.append(
-        SQL` AND primaryEntityId IN (${{
-          type: TableColumnType.ObjectID,
-          value: new Includes(
-            request.serviceIds.map((id: ObjectID) => {
-              return id.toString();
-            }),
-          ),
-        }})`,
-      );
-    }
+    TelemetryReadScopeUtil.appendServiceFilter(statement, request);
 
     if (request.entityKeys && request.entityKeys.length > 0) {
       statement.append(
@@ -1139,6 +1138,8 @@ export class LogAggregationService {
     endTime: Date;
     limit: number;
     serviceIds?: Array<ObjectID> | undefined;
+    // Resources whose rows are left out whatever else matches.
+    excludedServiceIds?: Array<ObjectID> | undefined;
     severityTexts?: Array<string> | undefined;
     bodySearchText?: string | undefined;
     traceIds?: Array<string> | undefined;
@@ -1335,6 +1336,8 @@ export class LogAggregationService {
     endTime: Date;
     filterQuery: string;
     serviceIds?: Array<ObjectID> | undefined;
+    // Resources whose rows are left out whatever else matches.
+    excludedServiceIds?: Array<ObjectID> | undefined;
     severityTexts?: Array<string> | undefined;
     bodySearchText?: string | undefined;
   }): Promise<{

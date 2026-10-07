@@ -3,11 +3,11 @@ import Model from "../../Models/DatabaseModels/LlmProvider";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import ObjectID from "../../Types/ObjectID";
-import UpdateBy from "../Types/Database/UpdateBy";
 import QueryHelper from "../Types/Database/QueryHelper";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ProjectDefaultRow from "../Utils/Database/ProjectDefaultRow";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -22,80 +22,40 @@ export class Service extends DatabaseService<Model> {
       createBy.data.isDefault = true;
     }
 
-    // If this provider is being set as default, unset other defaults in the same project
-    if (createBy.data.isDefault && createBy.data.projectId) {
-      await this.updateBy({
-        query: {
-          projectId: createBy.data.projectId,
-          isDefault: true,
-        },
-        data: {
-          isDefault: false,
-        },
-        props: {
-          isRoot: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-      });
-    }
-
     return { createBy, carryForward: null };
   }
 
-  protected override async onBeforeUpdate(
-    updateBy: UpdateBy<Model>,
+  /*
+   * A provider saved as its project's default takes the default from the
+   * project's other providers - only now that it exists, so a create that
+   * is refused or fails leaves the project's default where it was.
+   */
+  protected override async onCreateSuccess(
+    _onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    await ProjectDefaultRow.afterCreate({
+      service: this,
+      defaultColumn: "isDefault",
+      createdItem: createdItem,
+    });
+
+    return createdItem;
+  }
+
+  // The same for a provider an update made the default.
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
-    // If setting isDefault to true, we need to unset other defaults in the same project
-    if (updateBy.data.isDefault === true) {
-      // Get the items being updated to find their project IDs
-      const itemsToUpdate: Array<Model> = await this.findBy({
-        query: updateBy.query,
-        select: {
-          _id: true,
-          projectId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-      });
+    await ProjectDefaultRow.afterUpdate({
+      service: this,
+      defaultColumn: "isDefault",
+      updatedData: onUpdate.updateBy.data,
+      updatedItemIds: updatedItemIds,
+    });
 
-      // Collect unique project IDs
-      const projectIds: Set<string> = new Set();
-      const itemIds: Set<string> = new Set();
-      for (const item of itemsToUpdate) {
-        if (item.projectId) {
-          projectIds.add(item.projectId.toString());
-        }
-        if (item._id) {
-          itemIds.add(item._id);
-        }
-      }
-
-      // For each project, unset the default on other providers
-      for (const projectIdStr of projectIds) {
-        const projectId: ObjectID = new ObjectID(projectIdStr);
-        await this.updateBy({
-          query: {
-            projectId: projectId,
-            isDefault: true,
-            _id: QueryHelper.notInOrNull(Array.from(itemIds)),
-          },
-          data: {
-            isDefault: false,
-          },
-          props: {
-            isRoot: true,
-          },
-          limit: LIMIT_MAX,
-          skip: 0,
-        });
-      }
-    }
-
-    return { updateBy, carryForward: null };
+    return onUpdate;
   }
 
   @CaptureSpan()
@@ -117,6 +77,8 @@ export class Service extends DatabaseService<Model> {
         modelName: true,
         additionalParams: true,
         isGlobalLlm: true,
+        // isUnownedGlobalProvider reads it.
+        projectId: true,
         costPerMillionTokensInUSDCents: true,
       },
       props: {
@@ -143,6 +105,7 @@ export class Service extends DatabaseService<Model> {
         modelName: true,
         additionalParams: true,
         isGlobalLlm: true,
+        projectId: true,
         costPerMillionTokensInUSDCents: true,
       },
       props: {
@@ -155,6 +118,23 @@ export class Service extends DatabaseService<Model> {
     }
 
     return null;
+  }
+
+  /*
+   * Is this a global provider that no project owns? Then no project member can
+   * have chosen where it points: isGlobalLlm is writable by no project role,
+   * and a project's writes are scoped to its own projectId, so its Base URL
+   * comes from the operator's environment (SeedGlobalLlmProviderFromEnv, which
+   * the Helm chart drives for the bundled vLLM) or a master admin. LLMService
+   * lets such a provider reach private addresses where the deployment refuses
+   * them to providers a project configures (LLMProviderConfig.isGlobalProvider).
+   *
+   * Both halves are required. isGlobalLlm alone would also cover a row that
+   * carries a projectId, whose Base URL that project's members can edit. The
+   * row must have been read with projectId selected.
+   */
+  public isUnownedGlobalProvider(provider: Model): boolean {
+    return provider.isGlobalLlm === true && !provider.projectId;
   }
 
   /*

@@ -97,6 +97,39 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Everything this project's AI has used since the given time, whatever
+   * it was doing: every token of every call (any feature, any provider,
+   * Ask AI included), and what was billed to the project's AI credits. One
+   * SQL aggregate, read on the hot path of the project's own daily limits
+   * (Project Settings → AI Features) - only when the project has set one.
+   *
+   * Spend is the cost of the calls that were billed (wasBilled): only a
+   * call through the OneUptime-hosted provider, with billing on, is. A call
+   * that was refused or failed wrote 0 tokens and no cost, so it counts for
+   * nothing. Rows are never deleted by anyone but the retention sweep
+   * (LlmLog has no delete permission), which keeps 3 days - more than the
+   * one day this ever reads.
+   */
+  @CaptureSpan()
+  public async getProjectUsageSince(data: {
+    projectId: ObjectID;
+    since: Date;
+  }): Promise<{ totalTokens: number; billedCostInUSDCents: number }> {
+    const rows: Array<{
+      totalTokens: string | number | null;
+      billedCostInUSDCents: string | number | null;
+    }> = await this.getRepository().manager.query(
+      `SELECT COALESCE(SUM("log"."totalTokens"), 0) AS "totalTokens", COALESCE(SUM(CASE WHEN "log"."wasBilled" = true THEN "log"."costInUSDCents" ELSE 0 END), 0) AS "billedCostInUSDCents" FROM "LlmLog" AS "log" WHERE "log"."projectId" = $1 AND "log"."createdAt" >= $2 AND "log"."deletedAt" IS NULL`,
+      [data.projectId.toString(), data.since],
+    );
+
+    return {
+      totalTokens: Number(rows[0]?.totalTokens || 0),
+      billedCostInUSDCents: Number(rows[0]?.billedCostInUSDCents || 0),
+    };
+  }
+
+  /*
    * Per-run LLM usage for the server-mediated code-fix agent loop budgets
    * (B4 Tier 0): how many completion calls a run has made and how many
    * output tokens they produced. One SQL aggregate over the run's LlmLog

@@ -159,6 +159,11 @@ test("start to finish: register, heartbeat, run a job, sign off last", async () 
       podNamespace: "oneuptime-agent",
       kubectlVersion: "v1.36.4",
       agentChartVersion: "14.0.8",
+      aiSettings: {
+        investigation: true,
+        fixes: "Disabled",
+        isConfigured: false,
+      },
     },
   });
 

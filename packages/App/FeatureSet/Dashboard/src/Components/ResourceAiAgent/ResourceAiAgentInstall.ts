@@ -11,11 +11,21 @@ import {
   RESOURCE_AI_WRITE_TARGETS_ENV,
 } from "Common/Types/ResourceAiAgent/ResourceAiAccess";
 import {
+  AGENT_AI_FIXES_SETTING_VALUES,
+  AI_FIXES_ENV,
+  AI_INVESTIGATION_ENV,
+} from "Common/Types/AI/AgentAiSettings";
+import {
   translatableTerm,
   TranslatableTerm,
   translateTemplate,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import { AgentAiSettingsChoice } from "../AiAccess/AiAccessModes";
+import {
+  AgentAiSettingsInstructions,
+  areFixesOn,
+} from "../AiAccess/AgentAiSettingsInstructions";
 
 /*
  * How to install a resource's AI agent, and how to give it write access,
@@ -266,8 +276,10 @@ const INSTALL_SPECS: Readonly<Record<AiResourceType, InstallSpec>> = {
       {
         name: "PVE_HOST",
         composeValue: "${PVE_HOST:-}",
-        description:
+        // A key: the extractor skips a plain description with a URL in it.
+        description: translationKey(
           "Any node of the cluster; the agent calls https://PVE_HOST:8006/api2/json.",
+        ),
       },
       {
         name: "PVE_PORT",
@@ -717,6 +729,9 @@ export function getResourceAiAgentComposeSnippet(data: {
     ...spec.connectionVariables.map((variable: ConnectionVariable): string => {
       return `      - ${variable.name}=${variable.composeValue}`;
     }),
+    // What OneUptime AI may do here: the agent's own settings, from .env.
+    `      - ${AI_INVESTIGATION_ENV}=\${${AI_INVESTIGATION_ENV}:-}`,
+    `      - ${AI_FIXES_ENV}=\${${AI_FIXES_ENV}:-}`,
     `      - ${RESOURCE_AI_ALLOW_WRITES_ENV}=\${${RESOURCE_AI_ALLOW_WRITES_ENV}:-false}`,
     `      - ${RESOURCE_AI_WRITE_TARGETS_ENV}=\${${RESOURCE_AI_WRITE_TARGETS_ENV}:-}`,
     `      - ${RESOURCE_AI_PROTECTED_TARGETS_ENV}=\${${RESOURCE_AI_PROTECTED_TARGETS_ENV}:-}`,
@@ -915,6 +930,18 @@ export function getResourceAiAgentInstall(data: {
         },
       ),
       {
+        name: AI_INVESTIGATION_ENV,
+        value: "(empty)",
+        description:
+          "true or false: whether AI may run read-only commands while it investigates. Set it (or the next one) and the AI agent page follows the agent, read-only. Empty: the agent's default, on.",
+      },
+      {
+        name: AI_FIXES_ENV,
+        value: "(empty)",
+        description:
+          "How AI may apply a fix: off, ask-for-approval, automatic or bypass-approval. Fixes also need the next variable. Empty: the agent's default, ask-for-approval when writes are allowed, else off.",
+      },
+      {
         name: RESOURCE_AI_ALLOW_WRITES_ENV,
         value: "false",
         description:
@@ -1022,6 +1049,185 @@ ${RESOURCE_AI_WRITE_TARGETS_ENV}=${spec.writeTargetsExample}`
     allTargetsEnv: `${RESOURCE_AI_ALLOW_WRITES_ENV}=true`,
     restartCommand: composeCommand(resourceType, `up -d ${service}`),
   };
+}
+
+/*
+ * The .env lines that set what OneUptime AI may do on the resource: the
+ * agent's own investigation and fixes settings, and the write switch fixes
+ * need (on exactly when fixes are; off, it keeps the agent read-only).
+ */
+export function getResourceAiAgentSettingsEnv(
+  choice: AgentAiSettingsChoice,
+): string {
+  return `${AI_INVESTIGATION_ENV}=${choice.investigation ? "true" : "false"}
+${AI_FIXES_ENV}=${AGENT_AI_FIXES_SETTING_VALUES[choice.fixes]}
+${RESOURCE_AI_ALLOW_WRITES_ENV}=${areFixesOn(choice) ? "true" : "false"}`;
+}
+
+export const RESOURCE_AI_SETTINGS_ENV_STEP_TITLE: string = translationKey(
+  "Set what AI may do in the agent's .env",
+);
+
+export const RESOURCE_AI_SETTINGS_RESTART_STEP_TITLE: string =
+  translationKey("Restart the agent");
+
+export const RESOURCE_AI_SETTINGS_UPGRADE_STEP_TITLE: string = translationKey(
+  "Upgrade and restart the agent",
+);
+
+/*
+ * How to set this choice where the resource's AI agent runs, for the
+ * "Change what AI may do" dialog: the .env lines, then the restart that
+ * reads them — the same .env and restart the write-access instructions
+ * use. A collector usually installed with install.sh (plain containers) is
+ * told first how to do it there.
+ *
+ * An agent that does not report these settings is older than them and
+ * would ignore the lines: its restart pulls the newer image first (the AI
+ * agent version's own upgrade command), and install.sh pulls it anyway.
+ */
+export function getResourceAiAgentSettingsInstructions(data: {
+  resourceType: AiResourceType;
+  choice: AgentAiSettingsChoice;
+  // False for an agent older than these settings (it reports none).
+  doesAgentReportSettings: boolean;
+}): AgentAiSettingsInstructions {
+  const spec: InstallSpec = INSTALL_SPECS[data.resourceType];
+  const service: string = getResourceAiAgentServiceName(data.resourceType);
+  const isAgentOlder: boolean = !data.doesAgentReportSettings;
+
+  const intro: Array<{ text: string; dataTestId: string }> = spec.directory
+    ? []
+    : [
+        {
+          text: isAgentOlder
+            ? translateTemplate(
+                "Installed the {{collectorName}} with install.sh? Run it again with these set in its environment: it pulls the newer agent and starts it with them. Started the agent with {{runtime}} run? Pull {{image}}, remove the agent ({{runtime}} rm -f {{service}}) and start it again with them as -e flags.",
+                {
+                  collectorName: translatableTerm(spec.collectorName),
+                  runtime: spec.runtime,
+                  service: service,
+                  image: RESOURCE_AI_AGENT_IMAGE,
+                },
+              )
+            : translateTemplate(
+                "Installed the {{collectorName}} with install.sh? Run it again with these set in its environment: it starts the agent again with them. Started the agent with {{runtime}} run? Remove it ({{runtime}} rm -f {{service}}) and start it again with them as -e flags.",
+                {
+                  collectorName: translatableTerm(spec.collectorName),
+                  runtime: spec.runtime,
+                  service: service,
+                },
+              ),
+          dataTestId: "agent-ai-settings-installer-note",
+        },
+      ];
+
+  const notes: Array<{ text: string; dataTestId: string }> = [];
+
+  if (areFixesOn(data.choice)) {
+    if (spec.writeTargetNoun) {
+      notes.push({
+        text: translateTemplate(
+          "Add {{writeTargets}} to limit the {{targets}} fixes may change.",
+          {
+            writeTargets: RESOURCE_AI_WRITE_TARGETS_ENV,
+            targets: translatableTerm(spec.writeTargetNoun),
+          },
+        ),
+        dataTestId: "agent-ai-settings-write-targets-note",
+      });
+    }
+
+    notes.push({
+      text: getResourceAiAgentWriteDisclosure(data.resourceType),
+      dataTestId: "agent-ai-settings-write-disclosure",
+    });
+  }
+
+  return {
+    intro,
+    steps: [
+      {
+        title: RESOURCE_AI_SETTINGS_ENV_STEP_TITLE,
+        description: spec.directory
+          ? translateTemplate(
+              "In the .env next to its docker-compose.yml ({{directory}}):",
+              { directory: spec.directory },
+            )
+          : translateTemplate(
+              "With Compose: in the .env next to your docker-compose.yml.",
+            ),
+        dataTestId: "agent-ai-settings-step-env",
+        ways: [
+          {
+            label: RESOURCE_AI_SETTINGS_ENV_STEP_TITLE,
+            code: getResourceAiAgentSettingsEnv(data.choice),
+            dataTestId: "agent-ai-settings-env",
+          },
+        ],
+      },
+      isAgentOlder
+        ? {
+            title: RESOURCE_AI_SETTINGS_UPGRADE_STEP_TITLE,
+            description: translateTemplate(
+              "This agent is older than these settings and would ignore them, so pull the newer image as you restart it:",
+            ),
+            dataTestId: "agent-ai-settings-step-restart",
+            ways: [
+              {
+                label: RESOURCE_AI_SETTINGS_UPGRADE_STEP_TITLE,
+                code: getResourceAiAgentUpgradeCommand(data.resourceType),
+                dataTestId: "agent-ai-settings-restart",
+              },
+            ],
+          }
+        : {
+            title: RESOURCE_AI_SETTINGS_RESTART_STEP_TITLE,
+            dataTestId: "agent-ai-settings-step-restart",
+            ways: [
+              {
+                label: RESOURCE_AI_SETTINGS_RESTART_STEP_TITLE,
+                code: composeCommand(data.resourceType, `up -d ${service}`),
+                dataTestId: "agent-ai-settings-restart",
+              },
+            ],
+          },
+    ],
+    notes,
+  };
+}
+
+/*
+ * How to upgrade a resource's AI agent: pull its image and recreate its
+ * service, from the directory of its docker-compose.yml — what the AI agent
+ * page's install instructions started. Without a resource type, the same
+ * for every service of that docker-compose.yml.
+ */
+export function getResourceAiAgentUpgradeCommand(
+  resourceType?: AiResourceType | null | undefined,
+): string {
+  if (!resourceType) {
+    return `${COMPOSE_DIRECTORY_COMMENT}
+docker compose pull
+docker compose up -d`;
+  }
+
+  const spec: InstallSpec = INSTALL_SPECS[resourceType];
+  const service: string = getResourceAiAgentServiceName(resourceType);
+
+  return `${composeCommand(resourceType, `pull ${service}`)}
+${spec.runtime} compose up -d ${service}`;
+}
+
+/*
+ * The collector's own install script, run again, starts its AI agent on the
+ * newest image too: for a collector usually installed that way (Docker and
+ * Podman hosts start plain containers with it).
+ */
+export function doesInstallScriptStartResourceAiAgent(
+  resourceType: AiResourceType,
+): boolean {
+  return INSTALL_SPECS[resourceType].directory === null;
 }
 
 /*

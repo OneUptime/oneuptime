@@ -18,6 +18,8 @@ Für ein Projekt:
 4. **Als Projektstandard festlegen** ist bei der ersten Konfiguration des Projekts eingeschaltet, sodass SMS und Anrufe an die Projektmitglieder, einschließlich Bereitschaftsbenachrichtigungen, nach dem Speichern sofort über sie laufen. Schalten Sie es aus, wenn dieses Konto nur für Statusseiten oder eingehende Anrufe gedacht ist. Bei jeder weiteren Konfiguration ist der Schalter aus: Schalten Sie ihn ein oder wählen Sie im Zeilenmenü der Konfiguration **Als Projektstandard festlegen**, um diese Nachrichten auf sie umzustellen. Eine API-Anfrage, die `isProjectDefault` weglässt, wird genauso behandelt.
 5. Speichern Sie. Nur eine Konfiguration kann Projektstandard sein. Statusseiten verwenden die ihnen jeweils ausdrücklich zugewiesene Konfiguration.
 
+**SMS** und **Telefonanrufe** sind in jedem Projekt zunächst ausgeschaltet, und solange sie aus sind, kann niemand im Projekt eine Telefonnummer dafür hinzufügen. Ein Projekteigentümer oder jemand mit **Billing Admin** oder **Manage Billing** schaltet sie in der Karte **Benachrichtigungskanäle** auf derselben Seite ein.
+
 Für einen installationsweiten Standard kann ein Administrator stattdessen **Admin-Dashboard > Einstellungen > Anrufe und SMS** öffnen, die Twilio-Zugangsdaten und Telefonnummern bearbeiten und speichern. Mitgliederbenachrichtigungen verwenden diese globale Konfiguration, wenn ihr Projekt keinen Standard hat. Halten Sie das Auth Token geheim.
 
 ## 3. Netzwerkzugriff konfigurieren
@@ -91,7 +93,7 @@ Für die Entwicklung beschreibt Twilios [Webhook-Testanleitung](https://www.twil
 ## 4. Zustellung und Callbacks getrennt testen
 
 1. Prüfen Sie außerhalb von Firmennetz und VPN, ob der Callback-Hostname zum öffentlichen Gateway aufgelöst wird und ein gültiges TLS-Zertifikat liefert. Ein Browser-GET testet diese POST-Callbacks nicht.
-2. Verwenden Sie **Test-SMS senden** und **Testanruf senden** in der Twilio-Konfiguration des Projekts. Bestätigen Sie den Empfang auf dem Zieltelefon.
+2. Verwenden Sie **Test-SMS senden** und **Testanruf senden** in der Twilio-Konfiguration des Projekts. Bestätigen Sie den Empfang auf dem Zieltelefon. Beide brauchen die Berechtigung, Twilio-Konfigurationen anzulegen: **Project Owner**, **Project Admin** oder **Create Call and SMS** und **Read Call and SMS** in einer eigenen Rolle.
 3. Konfigurieren Sie den verifizierten SMS-/Anrufkontakt und die Benachrichtigungsregeln des Benutzers und lösen Sie anschließend kontrolliert eine Bereitschaftswarnung aus. Drücken Sie 1 und prüfen Sie die Bestätigung in OneUptime. Wenn Sie Richtlinien für eingehende Anrufe verwenden, rufen Sie die konfigurierte Nummer an und prüfen Sie Routing und Anrufprotokoll.
 4. Prüfen Sie den SMS-Zustellstatus in OneUptime und in Twilios Nachrichtenprotokollen. Ein angenommener Sendeauftrag beweist keine Zustellung; [Twilio meldet spätere Statusänderungen durch Callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 

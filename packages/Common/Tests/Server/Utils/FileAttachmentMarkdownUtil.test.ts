@@ -1,5 +1,7 @@
 import ObjectID from "../../../Types/ObjectID";
 import File from "../../../Models/DatabaseModels/File";
+import { WORD_JOINER } from "../../../Utils/Markdown/MarkdownEscape";
+import { marked } from "marked";
 
 /*
  * FileService reaches Postgres, so it is faked. The behaviour worth pinning is
@@ -204,6 +206,69 @@ describe("FileAttachmentMarkdownUtil.buildAttachmentMarkdown", () => {
       });
 
     expect(markdown).toContain("[Attachment](");
+  });
+
+  /*
+   * A file's name is whatever the uploader called it. It is the text of a
+   * link in a feed item that the dashboard renders and that is posted to
+   * Slack and Teams, so every Markdown character in it is escaped: the link
+   * still goes to the file, and its text still reads as the name.
+   */
+  test("a file's name is text inside its link, and reads as typed", async () => {
+    const id: ObjectID = ObjectID.generate();
+    const name: string =
+      "report](https://evil.example/x) ![](https://tracker.example/p.png) <!channel> <b>q3</b>.pdf";
+
+    findByMock.mockResolvedValue([makeFile({ id: id.toString(), name: name })]);
+
+    const markdown: string =
+      await FileAttachmentMarkdownUtil.buildAttachmentMarkdown({
+        modelId,
+        attachmentIds: [id],
+        attachmentApiPath,
+      });
+
+    const html: string = marked.parse(markdown, { async: false }) as string;
+    const links: Array<RegExpMatchArray> = Array.from(
+      html.matchAll(/<a href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/g),
+    );
+
+    expect(html).not.toContain("<img");
+    expect(html).not.toContain("<b>");
+    expect(
+      links.map((link: RegExpMatchArray): string => {
+        return link[1]!;
+      }),
+    ).toEqual([
+      expect.stringContaining(`${modelId.toString()}/${id.toString()}`),
+    ]);
+    expect(
+      links[0]![2]!
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&amp;/g, "&")
+        .split(WORD_JOINER)
+        .join(""),
+    ).toBe(name);
+  });
+
+  test("an ordinary file name keeps its link text as typed once rendered", async () => {
+    const id: ObjectID = ObjectID.generate();
+
+    findByMock.mockResolvedValue([
+      makeFile({ id: id.toString(), name: "q3_report-final (v2).pdf" }),
+    ]);
+
+    const markdown: string =
+      await FileAttachmentMarkdownUtil.buildAttachmentMarkdown({
+        modelId,
+        attachmentIds: [id],
+        attachmentApiPath,
+      });
+
+    expect(marked.parse(markdown, { async: false }) as string).toContain(
+      ">q3_report-final (v2).pdf</a>",
+    );
   });
 
   test("should build the route from the given api path", async () => {

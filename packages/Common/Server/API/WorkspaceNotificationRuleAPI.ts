@@ -9,8 +9,7 @@ import {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
-import CommonAPI from "./CommonAPI";
-import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import TestSendAccess, { TestSendCaller } from "./TestSendAccess";
 import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNotificationRule";
 import ObjectID from "../../Types/ObjectID";
 
@@ -21,51 +20,41 @@ export default class WorkspaceNotificationRuleAPI extends BaseAPI<
   public constructor() {
     super(WorkspaceNotificationRule, WorkspaceNotificationRuleService);
 
+    /*
+     * "Test Rule": posts a test message for one rule into its Slack or
+     * Microsoft Teams channels - and, for a rule that makes a channel per
+     * event, creates one and invites the rule's people to it. It asks what
+     * every test send asks (TestSendAccess): a signed-in member, on a
+     * credential that may make changes, on the plan rules are sold on, who
+     * could create a rule - whoever could make OneUptime post into these
+     * channels anyway - and a rule they may read, in their own project.
+     * testRule then reads the rule as OneUptime to send it.
+     */
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/test/:workspaceNotifcationRuleId`,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const databaseProps: DatabaseCommonInteractionProps =
-            await CommonAPI.getDatabaseCommonInteractionProps(req);
-
-          /*
-           * getUserMiddleware lets unauthenticated requests through as
-           * "public", and testRule loads the rule as root and then posts a
-           * test message into that project's Slack / Teams channels — it can
-           * even create channels. Require an authenticated member of the
-           * project, and of the rule's own project at that: testRule takes
-           * the project from the rule it loaded, so the caller-supplied
-           * tenant alone proves nothing about the rule id in the path.
-           */
-          const projectId: ObjectID =
-            CommonAPI.assertAuthenticatedProjectMember(databaseProps);
-
           const ruleId: ObjectID = new ObjectID(
             req.params["workspaceNotifcationRuleId"] as string,
           );
 
-          const rule: WorkspaceNotificationRule | null =
-            await this.service.findOneById({
-              id: ruleId,
-              select: {
-                projectId: true,
+          const caller: TestSendCaller = await TestSendAccess.assertMaySendTest(
+            {
+              req: req,
+              modelType: WorkspaceNotificationRule,
+              record: {
+                service: this.service,
+                id: ruleId,
               },
-              props: {
-                isRoot: true,
-              },
-            });
-
-          CommonAPI.assertResourceBelongsToProject({
-            resourceProjectId: rule?.projectId,
-            projectId: projectId,
-          });
+            },
+          );
 
           await this.service.testRule({
             ruleId: ruleId,
-            props: databaseProps,
-            projectId: projectId,
-            testByUserId: databaseProps.userId!,
+            props: caller.props,
+            projectId: caller.projectId,
+            testByUserId: caller.userId,
           });
 
           return Response.sendEmptySuccessResponse(req, res);

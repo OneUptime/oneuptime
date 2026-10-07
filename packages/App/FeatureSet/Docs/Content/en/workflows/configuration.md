@@ -94,7 +94,7 @@ Webhook triggers give you a unique URL. Anyone who knows the URL can hit it. To 
 - For sensitive workflows, ask the calling system to send a shared token as a header (like `X-Webhook-Token`) and check it with an **If / Else** block before doing anything important. Save the expected token as a secret variable.
 - For very sensitive workflows, prefer a OneUptime event trigger and a manual import step instead of a public webhook.
 
-Only people who can edit the workflow — **Project Owner**, **Project Admin**, or **Edit Workflow** — can see or reset its webhook URL. Anyone with the URL can start the workflow, which read-only roles can't do by hand, so they see a note saying who to ask instead.
+Only people who can edit the workflow — **Project Owner**, **Project Admin**, **Workflow Admin** or **Edit Workflow** — can see or reset its webhook URL. Anyone with the URL can start the workflow from anywhere, without signing in, so everyone else sees a note saying who to ask instead. That includes a **Workflow Member**, who runs the workflow by hand from the **Builder**.
 
 ## Incoming email security
 
@@ -105,7 +105,7 @@ The Incoming Email trigger gives the workflow an address of its own, and anyone 
 - Anyone can put any sender on an email, so **From** is not proof of who sent it. Before a workflow does anything important, check something only the real sender knows — a token in the subject or a header — with a **Conditions** block. Save the expected token as a secret variable.
 - The key is masked in everything the run receives — **To**, **CC**, the headers and the bodies — because the run's log is visible to anyone who can read the workflow's runs.
 
-Only people who can edit the workflow — **Project Owner**, **Project Admin**, or **Edit Workflow** — can see or reset its address. Everyone else sees a note saying who to ask.
+Only people who can edit the workflow — **Project Owner**, **Project Admin**, **Workflow Admin** or **Edit Workflow** — can see or reset its address. Everyone else sees a note saying who to ask.
 
 ## Outbound network access
 
@@ -131,14 +131,43 @@ Built-in bounds keep unattended calls finite: System Instructions, Prompt, and s
 
 ## Permissions
 
-Workflows respect your project's role-based access control. The relevant permissions:
+Workflows respect your project's role-based access control. The three workflow roles:
 
-- **Create / Read / Edit / Delete Workflow** — the basic permissions on the workflow itself.
-- **Edit Workflow** — also what it takes to run a workflow by hand, and to see or reset its webhook URL and incoming email address. Viewers can open the builder but can't see the URL or the address.
+- **Workflow Admin** — builds workflows: creates, changes, runs and deletes them, and manages the variables they use.
+- **Workflow Member** — uses them: opens workflows and their runs, and runs a workflow by hand with **Run Workflow**. A member can't create, change or delete a workflow, or run one of its steps on its own.
+- **Workflow Viewer** — reads workflows and their runs.
+
+**Project Owner** and **Project Admin** can do everything a Workflow Admin can. **Project Member** can create and delete workflows, but not change or run them.
+
+The single permissions, for a team or an API key that needs exactly one thing:
+
+- **Create / Read / Edit / Delete Workflow** — the basic permissions on the workflow itself. Changing a workflow, including turning it on or off and archiving it, takes **Edit Workflow**; **Delete Workflow** only deletes.
+- **Edit Workflow** — also what it takes to run one step on its own with **Run just this step**, and to see or reset a workflow's webhook URL and incoming email address. Running a whole workflow by hand takes **Edit Workflow**, **Workflow Admin** or **Workflow Member**.
 - **Read Workflow Log** — needed to view runs.
 - **Read / Create / Edit / Delete Workflow Variable** — control over the global variables list.
 
-Most engineers should have create/edit/read on workflows but not on variables. Save variable edit access for the people who manage your project's secrets.
+A run by hand only reaches workflows you can open: a role limited to some labels, or to the workflows your team owns, runs only those. Someone who can't run a workflow sees **Run Workflow** greyed out, with the reason in its tooltip.
+
+Give the people who build automation **Workflow Admin**, and the people who only start it **Workflow Member**. Save variable edit access for the people who manage your project's secrets.
+
+## What workflow steps can do
+
+The steps that read and change OneUptime records — the Find, Create, Update and Delete components, and the On Create, On Update and On Delete triggers — act as a **Project Admin** of the workflow's project. Whoever built the workflow, a step meets the same checks a Project Admin meets in the dashboard and the API:
+
+- **Only the workflow's own project.** A step reads and writes the records of the project the workflow belongs to and no other, and an Update never moves a record to another project.
+- **Only what a Project Admin may do.** A step can grant only the team and API key permissions a Project Admin holds itself, so it can't hand out **Project Owner**, billing or project-deletion permissions, and it can't add someone to a team whose permissions go beyond a Project Admin's, such as the owners' team. A step can't read who created a probe or an AI agent, which only project owners see.
+- **Only what your plan includes.** On OneUptime Cloud, a step that creates or changes something your plan doesn't include is refused with the plan it needs, just as the dashboard is. Self-hosted installations without billing have no plan limits.
+- **Nothing OneUptime keeps for itself.** These are refused to everyone, workflows included:
+  - editing or deleting a feed entry (incident, alert, episode, monitor, on-call policy and scheduled maintenance feeds);
+  - writing a notification log (SMS, call, email, WhatsApp, Telegram, push, webhook and workspace message logs);
+  - values OneUptime sets as things happen: whether a custom domain's CNAME is verified, a team's protection switches (**Is Team Editable**, **Is Team Deleteable**, **Is Permissions Editable**, **Should Have At Least One Member**), which incident role is the primary one and whether it can be deleted, whether an owner or member has been notified, reminder times and counts, who is on call on a schedule now and next, an on-call run's progress, an SLO's current burn rate and error budget, a monitor paused by an incident or a maintenance event, a status page private user's password reset token and last sign-in, the facts a service reports about itself (version, runtime, cloud), and a detection rule's or threat feed's last run;
+  - declaring an incident from a template by sending `createdIncidentTemplateId` to **Create One Incident** — read the template with a **Find One Incident Template** step and pass its values instead;
+  - changing which record a record belongs to after it is created, such as the monitor an owner row is for or the incident a note is on.
+- **As no person.** A record a workflow creates names no creator, and the audit log names the workflow, by its name at the time, as who made the change.
+
+When a check refuses a step, the step takes its **Error** output without making the refused change, and the run log names the step and the reason in plain words, for example *"Create One Team Permission" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Read it under the workflow's [Runs](/docs/workflows/runs-and-logs). A Create Many step creates its records one at a time and stops at the first one refused: the records it created before that one are kept.
+
+Steps that talk to other systems — API, Email, Slack, Microsoft Teams, Discord, Telegram, Custom Code and Generate Text with AI — don't read or change OneUptime records, so none of this changes them.
 
 ## Plan limits
 

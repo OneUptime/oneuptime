@@ -43,7 +43,6 @@ import SelectEntityField from "Common/UI/Types/SelectEntityField";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import NotificationMethodUtil from "Common/UI/Utils/NotificationMethodUtil";
-import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import User from "Common/UI/Utils/User";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -55,6 +54,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 
 /*
  * One pickable notification method, described WITHOUT its underlying row.
@@ -737,9 +737,8 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
   const canDeleteRules: boolean =
     isEditable &&
     Boolean(
-      new UserNotificationRule().hasDeletePermissions(
-        PermissionUtil.getAllPermissions(),
-      ) || User.isMasterAdmin(),
+      PermissionGate.check(new UserNotificationRule(), ModelAction.Delete)
+        .isAllowed || User.isMasterAdmin(),
     );
 
   type DeleteRuleFunction = (rule: UserNotificationRule) => Promise<void>;

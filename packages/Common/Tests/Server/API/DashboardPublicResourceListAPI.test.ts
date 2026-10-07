@@ -17,6 +17,7 @@ import PodmanResourceService from "../../../Server/Services/PodmanResourceServic
 import ProxmoxResourceService from "../../../Server/Services/ProxmoxResourceService";
 import ServiceLevelObjectiveService from "../../../Server/Services/ServiceLevelObjectiveService";
 import SpanService from "../../../Server/Services/SpanService";
+import StorageArrayResourceService from "../../../Server/Services/StorageArrayResourceService";
 import VMwareResourceService from "../../../Server/Services/VMwareResourceService";
 import PublicDashboardResourceListPolicy, {
   BuildPublicDashboardResourceListPolicyData,
@@ -49,6 +50,13 @@ import {
   it,
 } from "@jest/globals";
 import { FindOperator } from "typeorm";
+
+import {
+  INCIDENT_STATE_IDS,
+  idsOfAnyFilter,
+  mockProjectStates,
+  openStateIds,
+} from "../TestingUtils/Services/ProjectStatesHelper";
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {
@@ -292,6 +300,19 @@ const RESOURCE_ROUTE_CASES: Array<ResourceRouteCase> = [
     kind: "Pool",
   },
   {
+    resourceType: "storage-array-resource",
+    componentType: DashboardComponentType.StorageArrayVolumeList,
+    service: StorageArrayResourceService,
+    kind: "Volume",
+  },
+  {
+    resourceType: "storage-array-resource",
+    componentType: DashboardComponentType.StorageArrayHardwareList,
+    service: StorageArrayResourceService,
+    // Three kinds, pinned with Includes (asserted on its own below).
+    kind: null,
+  },
+  {
     resourceType: "docker-swarm-resource",
     componentType: DashboardComponentType.DockerSwarmNodeList,
     service: DockerSwarmResourceService,
@@ -338,6 +359,7 @@ const ALL_SERVICES: Array<ListService> = [
   ProxmoxResourceService,
   VMwareResourceService,
   CephResourceService,
+  StorageArrayResourceService,
   DockerSwarmResourceService,
   SpanService,
   LogService,
@@ -473,6 +495,8 @@ describe("DashboardAPI public resource-list", () => {
     setDashboardWidgets([]);
 
     jest.spyOn(DashboardService, "findOneById").mockResolvedValue(dashboard);
+    // Unresolved and Resolved are read off the project's states.
+    mockProjectStates();
 
     for (const service of ALL_SERVICES) {
       jest
@@ -534,7 +558,7 @@ describe("DashboardAPI public resource-list", () => {
       }
     });
 
-    it("does not return sibling-only Proxmox, VMware or Swarm fields", async () => {
+    it("does not return sibling-only Proxmox, VMware, Swarm or Storage Array fields", async () => {
       const cases: Array<{
         resourceType: string;
         componentType: DashboardComponentType;
@@ -583,6 +607,20 @@ describe("DashboardAPI public resource-list", () => {
           service: DockerSwarmResourceService,
           included: "latestCpuPercent",
           excluded: "desiredReplicas",
+        },
+        {
+          resourceType: "storage-array-resource",
+          componentType: DashboardComponentType.StorageArrayVolumeList,
+          service: StorageArrayResourceService,
+          included: "readLatencyUsec",
+          excluded: "status",
+        },
+        {
+          resourceType: "storage-array-resource",
+          componentType: DashboardComponentType.StorageArrayHardwareList,
+          service: StorageArrayResourceService,
+          included: "status",
+          excluded: "readLatencyUsec",
         },
       ];
 
@@ -875,9 +913,11 @@ describe("DashboardAPI public resource-list", () => {
       const findByArgs: JSONObject = getFindByArgs(IncidentService);
       const query: JSONObject = findByArgs["query"] as JSONObject;
 
-      expect(query["currentIncidentState"]).toEqual({
-        isResolvedState: false,
-      });
+      // Unresolved: the project's states above its resolved state.
+      expect(query["currentIncidentState"]).toBeUndefined();
+      expect(idsOfAnyFilter(query["currentIncidentStateId"])).toEqual(
+        openStateIds(INCIDENT_STATE_IDS),
+      );
       expect(query["incidentSeverityId"]).toBeInstanceOf(Includes);
       expect((query["incidentSeverityId"] as Includes).values).toEqual([
         severityId.toString(),
@@ -907,6 +947,46 @@ describe("DashboardAPI public resource-list", () => {
         "query"
       ] as JSONObject;
       expect(query["kind"]).toBe("Pod");
+    });
+
+    it("pins a storage array hardware widget to its three kinds, whatever the caller asks", async () => {
+      const hardware: BuiltWidget = buildWidget({
+        componentType: DashboardComponentType.StorageArrayHardwareList,
+      });
+      setDashboardWidgets([hardware.widget]);
+
+      await callRoute({
+        resourceType: "storage-array-resource",
+        body: {
+          componentId: hardware.componentId.toString(),
+          query: { kind: "Volume", status: "ok" },
+        },
+      });
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      const query: JSONObject = getFindByArgs(StorageArrayResourceService)[
+        "query"
+      ] as JSONObject;
+      expect(query["kind"]).toEqual(
+        new Includes(["Hardware", "Drive", "Controller"]),
+      );
+      expect(query["status"]).toBeUndefined();
+      expect(query["projectId"]).toBe(projectId);
+    });
+
+    it("never serves storage array inventory from a dashboard without a storage array widget", async () => {
+      const monitor: BuiltWidget = buildWidget({
+        componentType: DashboardComponentType.MonitorList,
+      });
+      setDashboardWidgets([monitor.widget]);
+
+      await callRoute({
+        resourceType: "storage-array-resource",
+        body: { componentId: monitor.componentId.toString() },
+      });
+
+      expect(getThrownError()).toBeInstanceOf(BadDataException);
+      expectNothingListed();
     });
 
     describe("published monitor label variable selections", () => {

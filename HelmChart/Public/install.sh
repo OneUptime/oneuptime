@@ -169,9 +169,35 @@ sudo helm repo add oneuptime https://oneuptime.com/chart || echo "OneUptime alre
 sudo helm repo update
 
 
+# Upgrades release $1 to chart $2 (any further arguments are passed on),
+# keeping the values set on the release and taking every other value from the
+# new chart. Not --reuse-values: it renders the new chart with the previous
+# release's values, the old chart's defaults included, so a default the new
+# chart changed (an image, a new setting) would never apply.
+# --reset-then-reuse-values (Helm 3.14+) does this in one flag; an older Helm
+# gets the same by passing the release's own values (helm get values, without
+# --all) back with -f.
+function upgradeKeepingValues {
+    local release="$1"
+    local chart="$2"
+    shift 2
+    if sudo helm upgrade --help | grep -q -- '--reset-then-reuse-values'
+    then
+        sudo helm upgrade "$release" "$chart" --reset-then-reuse-values "$@"
+    else
+        local values
+        values=$(mktemp)
+        sudo helm get values "$release" -o yaml > "$values" &&
+            sudo helm upgrade "$release" "$chart" -f "$values" "$@"
+        local status=$?
+        rm -f "$values"
+        return $status
+    fi
+}
+
 function updateinstallation {
     sudo k delete job oneuptime-InitScript || echo "InitScript already deleted"
-    sudo helm upgrade --reuse-values fi oneuptime/OneUptime \
+    upgradeKeepingValues fi oneuptime/OneUptime \
         --set image.tag=$AVAILABLE_VERSION
 }
 
@@ -221,7 +247,7 @@ then
         fi
     else
         sudo k delete job oneuptime-InitScript || echo "InitScript already deleted"
-        sudo helm upgrade --reuse-values fi ./HelmChart/public/oneuptime
+        upgradeKeepingValues fi ./HelmChart/public/oneuptime
     fi
 else
     if [[ $DEPLOYED_VERSION_BUILD -eq 0 ]]

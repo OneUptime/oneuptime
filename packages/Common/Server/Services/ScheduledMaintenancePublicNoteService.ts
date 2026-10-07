@@ -1,7 +1,7 @@
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import OneUptimeDate from "../../Types/Date";
 import Model from "../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
@@ -18,10 +18,11 @@ import PublicNoteSubscriberNotificationDefault from "../../Types/StatusPage/Publ
 import Query from "../Types/Database/Query";
 import File from "../../Models/DatabaseModels/File";
 import FileAttachmentMarkdownUtil from "../Utils/FileAttachmentMarkdownUtil";
-import { syncIsPublicForMarkdownImages } from "../Utils/InlineImageAccessTokenSync";
 import SubscriberNotificationResendAccess from "../Utils/StatusPage/SubscriberNotificationResendAccess";
+import StateChangePublicNote from "../Utils/StatusPage/StateChangePublicNote";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -30,6 +31,23 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
+    /*
+     * The state the event moved to, when this is the note a state change
+     * posts with it - what its subscriber messages name ("Status:
+     * Ongoing"). Only that note carries one (StateChangePublicNote): any
+     * other create, whatever it sent, has none.
+     */
+    RelationIdUtil.stamp(
+      createBy.data as unknown as Record<string, unknown>,
+      [
+        "postedWithScheduledMaintenanceStateId",
+        "postedWithScheduledMaintenanceState",
+      ],
+      StateChangePublicNote.getStatePostedWith(createBy.data),
+    );
+
     if (!createBy.data.postedAt) {
       createBy.data.postedAt = OneUptimeDate.getCurrentDate();
     }
@@ -135,6 +153,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     await SubscriberNotificationResendAccess.assertPublicNoteResendAllowed({
       modelType: Model,
       service: this,
@@ -175,17 +195,6 @@ export class Service extends DatabaseService<Model> {
   ): Promise<Model> {
     const userId: ObjectID | null | undefined =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
-
-    /*
-     * A public note is always rendered on the status page, so any inline
-     * image the markdown editor uploaded as private must flip to public
-     * for anonymous status page viewers to be able to render it.
-     */
-    await syncIsPublicForMarkdownImages(
-      createdItem.note,
-      true,
-      `scheduled maintenance public note ${createdItem.id?.toString()}`,
-    );
 
     const scheduledMaintenanceId: ObjectID =
       createdItem.scheduledMaintenanceId!;
@@ -258,12 +267,6 @@ ${(createdItem.note || "") + attachmentsMarkdown}
       for (const updatedItem of updatedItems) {
         const scheduledMaintenance: ScheduledMaintenance =
           updatedItem.scheduledMaintenance!;
-
-        await syncIsPublicForMarkdownImages(
-          updatedItem.note,
-          true,
-          `scheduled maintenance public note ${updatedItem.id?.toString()}`,
-        );
 
         const attachmentsMarkdown: string = await this.getAttachmentsMarkdown(
           updatedItem.id!,

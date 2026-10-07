@@ -139,7 +139,9 @@ describe.each(LANGUAGES)("%s: the feed's note actions", (language: string) => {
     expect(publicNote).toContain("**Posted now**");
     expect(publicNote).toContain("**Draft with AI**");
     expect(publicNote).toContain("**Notify status page subscribers**");
-    expect(publicNote).toContain("**Preview notification**");
+    // The link as it reads on screen, beside the checkbox.
+    expect(publicNote).toContain("**Preview**");
+    expect(publicNote).not.toContain("**Preview notification**");
   });
 
   test("Add Private Note is the composer: posted with Add note", () => {

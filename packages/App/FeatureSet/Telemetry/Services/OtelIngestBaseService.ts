@@ -16,6 +16,9 @@ import IoTFleetService from "Common/Server/Services/IoTFleetService";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import CephClusterService from "Common/Server/Services/CephClusterService";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import StorageArrayService from "Common/Server/Services/StorageArrayService";
+import StorageArray from "Common/Models/DatabaseModels/StorageArray";
+import { StorageSystemUtil } from "Common/Types/StorageArray/StorageSystem";
 import DockerSwarmClusterService from "Common/Server/Services/DockerSwarmClusterService";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import ProxmoxResourceService from "Common/Server/Services/ProxmoxResourceService";
@@ -23,7 +26,9 @@ import HostService from "Common/Server/Services/HostService";
 import Host from "Common/Models/DatabaseModels/Host";
 import ServerlessFunctionService from "Common/Server/Services/ServerlessFunctionService";
 import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
-import CloudResourceService from "Common/Server/Services/CloudResourceService";
+import CloudResourceService, {
+  CloudMonitoredResourceFindOrCreateResult,
+} from "Common/Server/Services/CloudResourceService";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import RumApplicationService from "Common/Server/Services/RumApplicationService";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
@@ -91,6 +96,11 @@ import {
   normalizeCloudPlatform,
 } from "Common/Types/Cloud/CloudPlatform";
 import { resolveCloudInstanceName } from "Common/Utils/Telemetry/CloudInstanceIdentity";
+import {
+  CloudMonitoredResource,
+  buildCloudMonitoredResourceIdentifier,
+} from "Common/Types/Cloud/CloudMonitoredResource";
+import EventLoop from "Common/Server/Utils/EventLoop";
 
 /*
  * A maintenance fence that one autoDiscover* attempt armed, recorded so
@@ -432,6 +442,7 @@ export default abstract class OtelIngestBaseService {
     this.containerNameL1Memo.clear();
     this.maintenanceFenceNegativeMemo.clear();
     this.unresolvedDatabaseServerMemo.clear();
+    this.unresolvedCloudMonitoredResourceMemo.clear();
   }
 
   /*
@@ -611,6 +622,12 @@ export default abstract class OtelIngestBaseService {
    *      still routes via #1 — cluster discovery and the
    *      attribute-scoped dashboards work regardless, but per-cluster
    *      retention only applies to batches that land here.
+   *   4b'. Else if a StorageArray was discovered → ServiceType.StorageArray,
+   *      primaryEntityId = array row id, serviceName `storage-array/<name>`.
+   *      Same reason as Ceph: the shipped Storage Array Agent configs use the
+   *      prometheus receiver, which synthesizes service.name, so they DELETE
+   *      service.name / service.instance.id and stamp only
+   *      `storage.array.name` (+ `storage.system`).
    *   4c. Else if a VMwareVCenter was discovered → ServiceType.VMwareVCenter,
    *      primaryEntityId = vCenter row id, serviceName `vmware/<name>`.
    *      The OTel `vcenter` receiver does not synthesize a service.name,
@@ -638,6 +655,7 @@ export default abstract class OtelIngestBaseService {
     proxmoxClusterId?: ObjectID | null;
     vmwareVCenterId?: ObjectID | null;
     cephClusterId?: ObjectID | null;
+    storageArrayId?: ObjectID | null;
     dockerSwarmClusterId?: ObjectID | null;
     serverlessFunctionId?: ObjectID | null;
     cloudResourceId?: ObjectID | null;
@@ -814,6 +832,7 @@ export default abstract class OtelIngestBaseService {
     proxmoxClusterId?: ObjectID | null;
     vmwareVCenterId?: ObjectID | null;
     cephClusterId?: ObjectID | null;
+    storageArrayId?: ObjectID | null;
     dockerSwarmClusterId?: ObjectID | null;
     serverlessFunctionId?: ObjectID | null;
     cloudResourceId?: ObjectID | null;
@@ -915,6 +934,18 @@ export default abstract class OtelIngestBaseService {
         serviceName: clusterName ? `ceph/${clusterName}` : "Ceph Cluster",
         resourceId: data.cephClusterId,
         primaryEntityType: ServiceType.CephCluster,
+        projectId: data.projectId,
+      });
+    }
+
+    if (data.storageArrayId) {
+      const arrayName: string | null = this.getStorageArrayNameFromAttributes(
+        data.attributes,
+      );
+      return await OTelIngestService.buildResourceMetadataForNonService({
+        serviceName: arrayName ? `storage-array/${arrayName}` : "Storage Array",
+        resourceId: data.storageArrayId,
+        primaryEntityType: ServiceType.StorageArray,
         projectId: data.projectId,
       });
     }
@@ -2118,6 +2149,165 @@ export default abstract class OtelIngestBaseService {
     }
   }
 
+  /*
+   * `storage.array.name` is the storage array join key — a OneUptime-defined
+   * resource attribute (no upstream semconv exists) stamped by the Storage
+   * Array Agent collector config from the STORAGE_ARRAY_NAME env.
+   */
+  protected static getStorageArrayNameFromAttributes(
+    attributes: JSONArray,
+  ): string | null {
+    return this.getStringAttribute(attributes, "storage.array.name");
+  }
+
+  /*
+   * The platform the agent declares in `storage.system` (STORAGE_SYSTEM in
+   * its .env), normalized; null when absent or malformed. Only a fallback
+   * for the platform the metric names imply — see
+   * OtelMetricsIngestService.flushStorageArraySnapshotBuffers.
+   */
+  protected static getDeclaredStorageSystemFromAttributes(
+    attributes: JSONArray,
+  ): string | null {
+    return StorageSystemUtil.normalize(
+      this.getStringAttribute(attributes, "storage.system"),
+    );
+  }
+
+  private static readonly STORAGE_ARRAY_ID_CACHE_NAMESPACE: string =
+    "storage-array-id";
+  private static readonly STORAGE_ARRAY_ID_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60; // 1 day
+
+  @CaptureSpan()
+  protected static async autoDiscoverStorageArray(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    /*
+     * Fences armed below, released by the catch block. See
+     * releaseMaintenanceFences.
+     */
+    const armedFences: Array<MaintenanceFence> = [];
+    try {
+      const arrayName: string | null = this.getStorageArrayNameFromAttributes(
+        data.attributes,
+      );
+
+      if (!arrayName) {
+        return null;
+      }
+
+      const cacheKey: string = `${data.projectId.toString()}:${arrayName}`;
+      let arrayIdStr: string | null = await this.getEntityIdFromCaches(
+        this.STORAGE_ARRAY_ID_CACHE_NAMESPACE,
+        cacheKey,
+      );
+
+      if (!arrayIdStr) {
+        const array: StorageArray =
+          await StorageArrayService.findOrCreateByName({
+            projectId: data.projectId,
+            name: arrayName,
+          });
+
+        if (array._id) {
+          arrayIdStr = array._id.toString();
+          await this.setEntityIdInCaches(
+            this.STORAGE_ARRAY_ID_CACHE_NAMESPACE,
+            cacheKey,
+            arrayIdStr,
+            this.STORAGE_ARRAY_ID_CACHE_EXPIRY_SECONDS,
+          );
+        }
+      }
+
+      if (arrayIdStr) {
+        const arrayId: ObjectID = new ObjectID(arrayIdStr);
+        /*
+         * Same fence rationale as the Ceph path — skip the per-batch
+         * maintenance UPDATE + label upsert when we already ran it within
+         * the fence window.
+         */
+        if (await this.shouldRunMaintenance("storage-array", arrayIdStr)) {
+          armedFences.push({ scope: "storage-array", id: arrayIdStr });
+          const agentVersion: string | null = this.getStringAttribute(
+            data.attributes,
+            "oneuptime.agent.version",
+          );
+          /*
+           * The platform is deliberately not written here. The metrics
+           * snapshot derives it from the metric names (purefa_ / purefb_),
+           * which a collector config cannot get wrong, and takes the
+           * declared `storage.system` only for a platform it has no
+           * catalog for (OtelMetricsIngestService.
+           * flushStorageArraySnapshotBuffers). Writing it from both made
+           * the column flip whenever the two disagreed: a FlashBlade .env
+           * without STORAGE_SYSTEM gets the compose default,
+           * purestorage.flasharray.
+           */
+          await StorageArrayService.updateLastSeen(arrayId, {
+            agentVersion: agentVersion || undefined,
+          });
+          await this.promoteOneuptimeLabelsToStorageArray({
+            projectId: data.projectId,
+            storageArrayId: arrayId,
+            attributes: data.attributes,
+          });
+        }
+        return arrayId;
+      }
+
+      return null;
+    } catch (err) {
+      await this.releaseMaintenanceFences(armedFences);
+      logger.error(
+        "Error auto-discovering storage array: " + (err as Error).message,
+      );
+      return null;
+    }
+  }
+
+  /*
+   * Promote `oneuptime.label.<dim>=<val>` resource attributes into project
+   * labels and attach them to the discovered storage array. Mirrors the
+   * Ceph cluster label promotion. Throttled per-array inside `attachLabels`
+   * so steady-state ingest with unchanged labels costs one in-memory cache
+   * lookup.
+   */
+  protected static async promoteOneuptimeLabelsToStorageArray(data: {
+    projectId: ObjectID;
+    storageArrayId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<void> {
+    try {
+      const labelNames: Array<string> = extractOneuptimeLabelNames(
+        data.attributes,
+      );
+      if (labelNames.length === 0) {
+        return;
+      }
+      const labelIds: Array<ObjectID> =
+        await LabelService.findOrCreateLabelsByNames({
+          projectId: data.projectId,
+          labelNames,
+        });
+      if (labelIds.length === 0) {
+        return;
+      }
+      await StorageArrayService.attachLabels({
+        storageArrayId: data.storageArrayId,
+        labelIds,
+      });
+    } catch (err) {
+      logger.warn(
+        `Storage array label promotion failed for ${data.storageArrayId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
   private static readonly SERVERLESS_FUNCTION_ID_CACHE_NAMESPACE: string =
     "serverless-function-id";
   private static readonly SERVERLESS_FUNCTION_ID_CACHE_EXPIRY_SECONDS: number =
@@ -2682,6 +2872,149 @@ export default abstract class OtelIngestBaseService {
         }`,
       );
     }
+  }
+
+  private static readonly CLOUD_MONITORED_RESOURCE_ID_CACHE_NAMESPACE: string =
+    "cloud-monitored-resource-id";
+  private static readonly CLOUD_MONITORED_RESOURCE_ID_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60; // 1 day
+
+  /*
+   * How many resources one request may look up in Postgres - the ones no
+   * cache knows yet. A collector's first poll of a large subscription names
+   * thousands of resources; the rest are found by the next polls, each a
+   * minute or five apart, instead of one request holding a worker for all
+   * of them.
+   */
+  public static readonly CLOUD_MONITORED_RESOURCE_MAX_LOOKUPS_PER_REQUEST: number = 200;
+
+  /*
+   * L1 for resources that could not be resolved to a row - in practice, a
+   * project at its auto-create budget. Without it every poll would look up
+   * every such resource again. One minute: a budget freed by the archive
+   * sweep is picked up on the next poll after that.
+   */
+  private static readonly unresolvedCloudMonitoredResourceMemo: InProcessMemo<boolean> =
+    new InProcessMemo<boolean>({
+      ttlInMs: 60 * 1000,
+      maxEntries: 10_000,
+    });
+
+  /*
+   * Cloud resources from cloud monitoring: the distinct resources one
+   * request's metric rows named (CloudMonitoredResourceCollector), each
+   * found or created as a Cloud Resource and sighted.
+   *
+   * Unlike the other autoDiscover* methods this is not about the request's
+   * OTel resource. A cloud-monitoring receiver sends a whole account's or
+   * subscription's resources under one OTel resource, and names each
+   * datapoint's own resource on the datapoint - so the work is per
+   * resource the rows named, after the rows are written:
+   *
+   *   - the row id goes through the same L1 memo / Redis cache as every
+   *     discovered entity; only a miss reaches Postgres, and at most
+   *     CLOUD_MONITORED_RESOURCE_MAX_LOOKUPS_PER_REQUEST of those per request;
+   *   - the sighting (lastSeenAt, status, what the provider reports) runs
+   *     behind the same maintenance fence, once per resource per window;
+   *   - a failure costs that resource its sighting this time, never the
+   *     request: the fences it armed are released, and it is logged once.
+   *
+   * Returns how many resources were sighted or already known.
+   */
+  @CaptureSpan()
+  protected static async autoDiscoverCloudMonitoredResources(data: {
+    projectId: ObjectID;
+    resources: Array<CloudMonitoredResource>;
+  }): Promise<number> {
+    let lookups: number = 0;
+    let resolved: number = 0;
+    let failures: number = 0;
+    let firstFailure: string = "";
+
+    for (let index: number = 0; index < data.resources.length; index++) {
+      if (index > 0 && index % 25 === 0) {
+        await EventLoop.yieldToEventLoop();
+      }
+
+      const resource: CloudMonitoredResource = data.resources[index]!;
+      const armedFences: Array<MaintenanceFence> = [];
+
+      try {
+        const resourceIdentifier: string =
+          buildCloudMonitoredResourceIdentifier(resource);
+        const cacheKey: string = `${data.projectId.toString()}:${resourceIdentifier}`;
+
+        if (this.unresolvedCloudMonitoredResourceMemo.get(cacheKey)) {
+          continue;
+        }
+
+        let cloudResourceIdStr: string | null =
+          await this.getEntityIdFromCaches(
+            this.CLOUD_MONITORED_RESOURCE_ID_CACHE_NAMESPACE,
+            cacheKey,
+          );
+
+        if (!cloudResourceIdStr) {
+          if (
+            lookups >= this.CLOUD_MONITORED_RESOURCE_MAX_LOOKUPS_PER_REQUEST
+          ) {
+            continue;
+          }
+          lookups++;
+
+          const found: CloudMonitoredResourceFindOrCreateResult =
+            await CloudResourceService.findOrCreateMonitoredResource({
+              projectId: data.projectId,
+              resource: resource,
+            });
+
+          if (!found.cloudResource?._id) {
+            this.unresolvedCloudMonitoredResourceMemo.set(cacheKey, true);
+            continue;
+          }
+
+          cloudResourceIdStr = found.cloudResource._id.toString();
+          await this.setEntityIdInCaches(
+            this.CLOUD_MONITORED_RESOURCE_ID_CACHE_NAMESPACE,
+            cacheKey,
+            cloudResourceIdStr,
+            this.CLOUD_MONITORED_RESOURCE_ID_CACHE_EXPIRY_SECONDS,
+          );
+        }
+
+        resolved++;
+
+        if (
+          await this.shouldRunMaintenance(
+            "cloud-monitored-resource",
+            cloudResourceIdStr,
+          )
+        ) {
+          armedFences.push({
+            scope: "cloud-monitored-resource",
+            id: cloudResourceIdStr,
+          });
+          await CloudResourceService.recordMonitoredResourceSighting({
+            cloudResourceId: new ObjectID(cloudResourceIdStr),
+            resource: resource,
+          });
+        }
+      } catch (err) {
+        await this.releaseMaintenanceFences(armedFences);
+        failures++;
+        if (!firstFailure) {
+          firstFailure = err instanceof Error ? err.message : String(err);
+        }
+      }
+    }
+
+    if (failures > 0) {
+      logger.error(
+        `Cloud resource discovery failed for ${failures} of ${data.resources.length} resource(s) in project ${data.projectId.toString()}; they are retried on the next request. First error: ${firstFailure}`,
+      );
+    }
+
+    return resolved;
   }
 
   /*

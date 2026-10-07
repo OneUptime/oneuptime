@@ -122,7 +122,7 @@ Kortets rubrik har också en meny **Åtgärder** så att du kan agera utan att l
 
 - **Execute Runbook** — kör ett [runbook](/docs/runbooks/index) mot den här incidenten.
 - **Kör jourpolicy** — larma en policy på begäran.
-- **Add Public Note** — skrivrutan från sidan Offentliga anteckningar, i en dialog: skriv anteckningen och välj **Post update**. Mallar, **Draft with AI**, bilagor, **Notify status page subscribers** med vilka den når och **Preview notification** finns alla där. Anteckningen publiceras nu; välj **Posted now** för en tidigare tidpunkt.
+- **Add Public Note** — skrivrutan från sidan Offentliga anteckningar, i en dialog: skriv anteckningen och välj **Post update**. Mallar, **Draft with AI**, bilagor, **Notify status page subscribers** med vilka den når och **Preview** finns alla där. Anteckningen publiceras nu; välj **Posted now** för en tidigare tidpunkt.
 - **Lägg till privat anteckning** — skrivrutan från sidan Privata anteckningar, i en dialog: skriv anteckningen och välj **Add note**.
 
 Allt annat ligger bakom knappen **⋯** bredvid, samma knapp **Fler alternativ** som en tabells kortrubrik har, så att rubriken visar så få knappar som möjligt:

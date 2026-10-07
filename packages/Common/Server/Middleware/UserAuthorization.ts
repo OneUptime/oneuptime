@@ -36,13 +36,23 @@ import GlobalSsoProjectService from "../Services/GlobalSsoProjectService";
 import GlobalOidcProjectService from "../Services/GlobalOidcProjectService";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import Permission, {
-  PermissionHelper,
   UserGlobalAccessPermission,
-  UserPermission,
   UserTenantAccessPermission,
 } from "../../Types/Permission";
 import UserType from "../../Types/UserType";
 import UserPermissionUtil from "../Utils/UserPermission/UserPermission";
+import CallerPermission from "../Utils/Permission/CallerPermission";
+
+/*
+ * What a request's session is, as every route reads it (readRequestSession):
+ * no session at all, a token that does not verify or has expired, a blocked
+ * user's, or a user's.
+ */
+export type RequestSession =
+  | { kind: "none" }
+  | { kind: "invalid"; error: unknown }
+  | { kind: "blocked"; session: JSONWebTokenData }
+  | { kind: "user"; session: JSONWebTokenData };
 
 export default class UserMiddleware {
   /*
@@ -91,6 +101,66 @@ export default class UserMiddleware {
     }
 
     return undefined;
+  }
+
+  /**
+   * The session a request carries, read the one way every route reads it:
+   * the access token (cookie or bearer), verified, of a user who is not
+   * blocked. resolveRequestUser answers each kind for the API; routes that
+   * only need to know who is asking use getSessionUser. Throws when whether
+   * the user is blocked cannot be looked up: a lookup that fails is an
+   * error, not a pass.
+   */
+  @CaptureSpan()
+  public static async readRequestSession(
+    req: ExpressRequest,
+  ): Promise<RequestSession> {
+    const accessToken: string | undefined =
+      UserMiddleware.getAccessTokenFromExpressRequest(req);
+
+    if (!accessToken) {
+      return { kind: "none" };
+    }
+
+    let session: JSONWebTokenData;
+
+    try {
+      session = JSONWebToken.decode(accessToken);
+    } catch (error) {
+      return { kind: "invalid", error: error };
+    }
+
+    /*
+     * The access token is a stateless JWT that lives for 15 minutes, and
+     * blocking a user revokes their sessions but cannot recall a token already
+     * issued. Without this check a blocked user keeps full access until it
+     * expires. The answer is cached per node (UserService.isUserBlocked), so
+     * this is one primary-key lookup per user per minute, not per request.
+     */
+    if (await UserService.isUserBlocked(session.userId)) {
+      return { kind: "blocked", session: session };
+    }
+
+    return { kind: "user", session: session };
+  }
+
+  /**
+   * The signed-in user a request's session belongs to, decided exactly as
+   * the API decides it (readRequestSession), or null: no session, one that
+   * does not verify or has expired, or a blocked user's. For routes that
+   * answer someone who is not signed in the same way as someone who may not
+   * see what they asked for - the image routes (FileViewerAccess) - so an
+   * expired session is no one, rather than a 401. Throws when the
+   * blocked-user lookup fails.
+   */
+  @CaptureSpan()
+  public static async getSessionUser(
+    req: ExpressRequest,
+  ): Promise<JSONWebTokenData | null> {
+    const requestSession: RequestSession =
+      await UserMiddleware.readRequestSession(req);
+
+    return requestSession.kind === "user" ? requestSession.session : null;
   }
 
   @CaptureSpan()
@@ -574,17 +644,21 @@ export default class UserMiddleware {
       );
     }
 
-    const accessToken: string | undefined =
-      UserMiddleware.getAccessTokenFromExpressRequest(req);
+    // The session, read as every route reads it. A failed lookup is an error.
+    let requestSession: RequestSession;
 
-    if (!accessToken) {
+    try {
+      requestSession = await UserMiddleware.readRequestSession(req);
+    } catch (err) {
+      return Response.sendErrorResponse(req, res, err as Exception);
+    }
+
+    if (requestSession.kind === "none") {
       oneuptimeRequest.userType = UserType.Public;
       return next();
     }
 
-    try {
-      oneuptimeRequest.userAuthorization = JSONWebToken.decode(accessToken);
-    } catch (err) {
+    if (requestSession.kind === "invalid") {
       if (options.treatInvalidAccessTokenAsAnonymous) {
         // decode() has already logged why the token was refused.
         oneuptimeRequest.userType = UserType.Public;
@@ -592,7 +666,10 @@ export default class UserMiddleware {
       }
 
       // if the token is invalid or expired, return 401 so clients can refresh the token.
-      logger.error(err, getLogAttributesFromRequest(oneuptimeRequest));
+      logger.error(
+        requestSession.error,
+        getLogAttributesFromRequest(oneuptimeRequest),
+      );
       return Response.sendErrorResponse(
         req,
         res,
@@ -603,30 +680,13 @@ export default class UserMiddleware {
     }
 
     /*
-     * The access token is a stateless JWT that lives for 15 minutes, and
-     * blocking a user revokes their sessions but cannot recall a token already
-     * issued. Without this check a blocked user keeps full access until it
-     * expires. The answer is cached per node (UserService.isUserBlocked), so
-     * this is one primary-key lookup per user per minute, not per request.
-     *
-     * A 401, like an expired token: the client asks /refresh-token for a new
-     * one, which is refused for a blocked user, and signs them out. A lookup
-     * that fails is an error, not a pass.
+     * A blocked user's token: a 401, like an expired token. The client asks
+     * /refresh-token for a new one, which is refused for a blocked user, and
+     * signs them out.
      */
-    let isUserBlocked: boolean;
-
-    try {
-      isUserBlocked = await UserService.isUserBlocked(
-        oneuptimeRequest.userAuthorization.userId,
-      );
-    } catch (err) {
-      return Response.sendErrorResponse(req, res, err as Exception);
-    }
-
-    if (isUserBlocked) {
+    if (requestSession.kind === "blocked") {
       if (options.treatInvalidAccessTokenAsAnonymous) {
         // As for a token that does not decode: the public routes never read who is asking.
-        delete oneuptimeRequest.userAuthorization;
         oneuptimeRequest.userType = UserType.Public;
         return next();
       }
@@ -637,6 +697,8 @@ export default class UserMiddleware {
         new NotAuthenticatedException(ExceptionMessages.UserBlocked),
       );
     }
+
+    oneuptimeRequest.userAuthorization = requestSession.session;
 
     if (oneuptimeRequest.userAuthorization.isMasterAdmin) {
       oneuptimeRequest.userType = UserType.MasterAdmin;
@@ -838,8 +900,17 @@ export default class UserMiddleware {
     return !req.userType || req.userType === UserType.Public;
   }
 
+  /*
+   * A route guard: the caller must hold one of `permissions` in the project
+   * the request is for, by the rule every permission check follows
+   * (CallerPermission): only an allow row grants, and a block with no labels
+   * on any of them refuses. Pass `wildcard` when the list is an operational
+   * resource's own list for the operation, as the model-backed API accepts
+   * the *AllOperationalResources wildcard for it too.
+   */
   public static requirePermission(data: {
     permissions: Array<Permission>;
+    wildcard?: Permission | undefined;
   }): (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -897,16 +968,18 @@ export default class UserMiddleware {
         );
       }
 
-      const userPermissions: Array<Permission> =
-        userTenantPermission.permissions.map((p: UserPermission) => {
-          return p.permission;
-        });
-
+      /*
+       * Only allow rows grant: a block row names a permission in order to
+       * deny it, so holding one never counts as holding the permission. A
+       * block with no labels on any of these takes the route away, whatever
+       * else the caller holds, as it takes away the tables these routes
+       * stand in for.
+       */
       if (
-        !PermissionHelper.doesPermissionsIntersect(
-          userPermissions,
-          data.permissions,
-        )
+        !CallerPermission.holdsAnyOf(oneuptimeRequest, data.permissions, {
+          projectId: tenantId,
+          wildcard: data.wildcard,
+        })
       ) {
         return Response.sendErrorResponse(
           req,

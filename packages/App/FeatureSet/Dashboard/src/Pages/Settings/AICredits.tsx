@@ -1,9 +1,24 @@
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
+import {
+  getProjectBalanceAccess,
+  getProjectBalanceCardDescription,
+  getRechargeBalanceButtons,
+  ProjectBalanceAccess,
+} from "../../Components/ProjectBalance/ProjectBalanceAccess";
+import {
+  getProjectColumnsEditGate,
+  ProjectColumnsEditGate,
+} from "./ProjectColumnEditGate";
+import {
+  PROJECT_BALANCE_AUTO_RECHARGE_COLUMNS,
+  ProjectBalanceType,
+} from "Common/Utils/Project/ProjectBalance";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
-import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -20,9 +35,23 @@ import React, {
   useState,
 } from "react";
 
+/*
+ * Project Settings -> AI Credits (listed only where billing is on): the
+ * balance OneUptime AI is paid from on the OneUptime-hosted provider, and
+ * its Auto Recharge.
+ *
+ * Only a project owner or someone with Manage Billing may add AI credits or
+ * change Auto Recharge (Common/Utils/Project/ProjectBalance). So the balance
+ * card asks them to recharge it and offers the button; everyone else is
+ * told who can, and the button stays locked, saying why - it used to open a
+ * form whose save the server then refused. Auto Recharge's Edit is gated on
+ * its own columns rather than the Project table's wider update list, for
+ * the same reason.
+ */
 const AIBillingSettings: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showRechargeBalanceModal, setShowRechargeBalanceModal] =
     useState<boolean>(false);
   const [isRechargeBalanceLoading, setIsRechargeBalanceLoading] =
@@ -31,6 +60,18 @@ const AIBillingSettings: FunctionComponent<
     string | null
   >(null);
 
+  /*
+   * Read on every render rather than remembered: the permission snapshot
+   * arrives on a response header, and may land after the first paint.
+   */
+  const balanceAccess: ProjectBalanceAccess = getProjectBalanceAccess(
+    ProjectBalanceType.AI,
+  );
+  const autoRechargeGate: ProjectColumnsEditGate = getProjectColumnsEditGate({
+    fields: [...PROJECT_BALANCE_AUTO_RECHARGE_COLUMNS[ProjectBalanceType.AI]],
+    buttonTitle: "Edit Auto Recharge",
+  });
+
   return (
     <Fragment>
       {/* Current Balance */}
@@ -38,19 +79,19 @@ const AIBillingSettings: FunctionComponent<
         name="Current Balance"
         cardProps={{
           title: "Current Balance",
-          description:
-            "AI features are paid from this balance, in USD. Recharge it, or turn on Auto Recharge so it never runs out.",
-          buttons: [
-            {
-              title: "Recharge Balance",
-              icon: IconProp.Add,
-              onClick: () => {
-                setShowRechargeBalanceModal(true);
-                setRechargeBalanceError(null);
-                setIsRechargeBalanceLoading(false);
-              },
+          description: getProjectBalanceCardDescription(
+            ProjectBalanceType.AI,
+            balanceAccess,
+          ),
+          buttons: getRechargeBalanceButtons({
+            access: balanceAccess,
+            translator: translator,
+            onRecharge: () => {
+              setShowRechargeBalanceModal(true);
+              setRechargeBalanceError(null);
+              setIsRechargeBalanceLoading(false);
             },
-          ],
+          }),
         }}
         isEditable={false}
         modelDetailProps={{
@@ -85,8 +126,9 @@ const AIBillingSettings: FunctionComponent<
           title: "Auto Recharge",
           description:
             "Enable Auto Recharge for AI balance. This will make sure you always have enough balance for AI services.",
+          buttons: autoRechargeGate.lockedButtons,
         }}
-        isEditable={true}
+        isEditable={autoRechargeGate.isEditable}
         editButtonText="Edit Auto Recharge"
         formFields={[
           {

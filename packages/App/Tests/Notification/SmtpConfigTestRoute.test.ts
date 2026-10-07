@@ -1,4 +1,5 @@
 import { mockRouter } from "Common/Tests/Server/API/Helpers";
+import { ON_HIGHEST_PLAN } from "Common/Tests/Server/TestingUtils/RequestPlan";
 import CommonAPI from "Common/Server/API/CommonAPI";
 import ProjectSMTPConfigService from "Common/Server/Services/ProjectSmtpConfigService";
 import Response from "Common/Server/Utils/Response";
@@ -132,9 +133,14 @@ function buildMemberProps(data: {
   projectId: ObjectID;
   userId: ObjectID;
 }): DatabaseCommonInteractionProps {
+  /*
+   * Project Admin: one who could add the config, and so may send its test
+   * (TestSendAccess). Who else may, and who may not, is
+   * TestSendRoutesAskTheRule.test.ts.
+   */
   const memberPermission: UserPermission = {
     _type: "UserPermission",
-    permission: Permission.ProjectMember,
+    permission: Permission.ProjectAdmin,
     labelIds: [],
   };
 
@@ -151,6 +157,8 @@ function buildMemberProps(data: {
     tenantId: data.projectId,
     userId: data.userId,
     userTenantAccessPermission: permissionMap,
+    // The project's plan, as CommonAPI reads it for the project a request names.
+    ...ON_HIGHEST_PLAN,
   };
 }
 
@@ -425,30 +433,41 @@ describe("POST /smtp-config/test", () => {
     });
 
     /*
-     * The ownership check can only work if the read asks for the column it
-     * compares. Pin the inputs, not just the outcome.
+     * The config is read twice: first as the caller, for their one project
+     * (the test is theirs only if they may read it), and only then as root,
+     * for the secrets the send needs. Pin the inputs, not just the outcome.
      */
-    test("reads the config as root and selects its projectId", async () => {
+    test("reads the config as the caller first, and as root only for its secrets", async () => {
       await callTestRoute({
         smtpConfigId: configId.toString(),
         toEmail: TO_EMAIL,
       });
 
-      expect(findOneByIdSpy).toHaveBeenCalledTimes(1);
+      expect(findOneByIdSpy).toHaveBeenCalledTimes(2);
 
-      const readArgs: {
+      type ReadArgs = {
         id: ObjectID;
         select: Dictionary<boolean>;
-        props: Dictionary<boolean>;
-      } = findOneByIdSpy.mock.calls[0]![0] as {
-        id: ObjectID;
-        select: Dictionary<boolean>;
-        props: Dictionary<boolean>;
+        props: DatabaseCommonInteractionProps;
       };
 
-      expect(readArgs.id.toString()).toBe(configId.toString());
-      expect(readArgs.select["projectId"]).toBe(true);
-      expect(readArgs.props["isRoot"]).toBe(true);
+      const asCaller: ReadArgs = findOneByIdSpy.mock.calls[0]![0] as ReadArgs;
+      const asRoot: ReadArgs = findOneByIdSpy.mock.calls[1]![0] as ReadArgs;
+
+      expect(asCaller.id.toString()).toBe(configId.toString());
+      expect(asCaller.select["projectId"]).toBe(true);
+      expect(asCaller.select["password"]).toBeUndefined();
+      expect(asCaller.props.isRoot).toBeFalsy();
+      expect(asCaller.props.userId?.toString()).toBe(callerUserId.toString());
+      expect(asCaller.props.tenantId?.toString()).toBe(
+        callerProjectId.toString(),
+      );
+      expect(asCaller.props.isMultiTenantRequest).toBe(false);
+
+      expect(asRoot.id.toString()).toBe(configId.toString());
+      expect(asRoot.select["projectId"]).toBe(true);
+      expect(asRoot.select["password"]).toBe(true);
+      expect(asRoot.props.isRoot).toBe(true);
     });
   });
 
@@ -477,7 +496,11 @@ describe("POST /smtp-config/test", () => {
     expect(Response.sendEmptySuccessResponse).not.toHaveBeenCalled();
   });
 
-  test("refuses when the named config does not exist", async () => {
+  /*
+   * A config that does not exist is answered like another project's, so the
+   * route tells nobody which config ids exist.
+   */
+  test("refuses when the named config does not exist, as it refuses another project's", async () => {
     mockProps(
       buildMemberProps({
         projectId: callerProjectId,
@@ -486,15 +509,23 @@ describe("POST /smtp-config/test", () => {
     );
     mockConfigInProject(null);
 
-    await callTestRoute({
+    const missing: RouteCallResult = await callTestRoute({
       smtpConfigId: configId.toString(),
       toEmail: TO_EMAIL,
     });
 
-    expect(Response.sendErrorResponse).toHaveBeenCalledTimes(1);
-    expect(
-      (Response.sendErrorResponse as unknown as jest.Mock).mock.calls[0]![2],
-    ).toBeInstanceOf(BadDataException);
+    mockConfigInProject(otherProjectId);
+
+    const foreign: RouteCallResult = await callTestRoute({
+      smtpConfigId: configId.toString(),
+      toEmail: TO_EMAIL,
+    });
+
+    expect(missing.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+    expect(foreign.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+    expect((missing.thrownToNext as Exception).message).toBe(
+      (foreign.thrownToNext as Exception).message,
+    );
     expect(MailService.send).not.toHaveBeenCalled();
   });
 

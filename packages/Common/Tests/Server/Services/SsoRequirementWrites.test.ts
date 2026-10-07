@@ -19,6 +19,7 @@ import FakeEnterpriseModule, {
 } from "../Enterprise/FakeEnterpriseModule";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 import { getJestSpyOn } from "../../Spy";
+import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import {
   afterEach,
   beforeEach,
@@ -95,6 +96,7 @@ const ownerProps: () => DatabaseCommonInteractionProps =
     return {
       userId: USER_ID,
       tenantId: PROJECT_ID,
+      ...ON_HIGHEST_PLAN,
       userGlobalAccessPermission: {
         projectIds: [PROJECT_ID],
       } as unknown as UserGlobalAccessPermission,
@@ -279,6 +281,15 @@ describe("SSO requirement writes go through unchanged in every edition", () => {
       ModelPermission,
       "checkUpdateQueryPermissions",
     ).mockImplementation(
+      async (_modelType: unknown, query: unknown): Promise<unknown> => {
+        return query;
+      },
+    );
+    // The same checks, as DatabaseService asks them before the hooks.
+    getJestSpyOn(ModelPermission, "checkTableWritePermission").mockReturnValue(
+      undefined,
+    );
+    getJestSpyOn(ModelPermission, "getUpdatableQuery").mockImplementation(
       async (_modelType: unknown, query: unknown): Promise<unknown> => {
         return query;
       },

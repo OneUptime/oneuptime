@@ -22,6 +22,8 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionConfig";
+import { CloudResourceKind } from "../../Types/Cloud/CloudResourceKind";
+import Dictionary from "../../Types/Dictionary";
 import {
   Column,
   Entity,
@@ -86,7 +88,7 @@ import {
   pluralName: "Cloud Resources",
   icon: IconProp.Cloud,
   tableDescription:
-    "Managed cloud compute auto-discovered from OpenTelemetry cloud.platform (e.g. AWS ECS/Fargate, GCP Cloud Run, Azure Container Apps, Elastic Beanstalk, App Runner).",
+    "Cloud environments - managed compute auto-discovered from OpenTelemetry cloud.platform (e.g. AWS ECS/Fargate, GCP Cloud Run, Azure Container Apps, Elastic Beanstalk, App Runner) - and cloud resources: the IaaS and PaaS resources (virtual machines, load balancers, buckets, managed databases, queues, ...) discovered from the metrics Azure Monitor, Amazon CloudWatch and Google Cloud Monitoring publish about them.",
 })
 @Entity({
   name: "CloudResource",
@@ -482,6 +484,165 @@ export default class CloudResource extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public cloudAccountId?: string = undefined;
+
+  /*
+   * ---- Cloud resources discovered from cloud monitoring -------------------
+   *
+   * A row is an environment (the default, and the only kind a person can
+   * create) or a resource: one IaaS or PaaS resource a cloud provider runs,
+   * discovered by ingest from the metrics the provider's monitoring API
+   * publishes about it (Common/Types/Cloud/CloudMonitoredResource). The
+   * columns below are written by ingest for resources only - an
+   * environment leaves them empty - and no person can set them: they are
+   * what the provider reports.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCloudResource,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Cloud Resource Kind",
+    description:
+      "environment: a managed compute environment discovered from the cloud.platform, cloud.account.id and cloud.region resource attributes of a workload's own telemetry. resource: one IaaS or PaaS resource (a virtual machine, a load balancer, a bucket, a managed database, ...) discovered from the metrics Azure Monitor, Amazon CloudWatch or Google Cloud Monitoring publish about it.",
+    defaultValue: CloudResourceKind.Environment,
+    example: "resource",
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    default: CloudResourceKind.Environment,
+  })
+  public cloudResourceKind?: CloudResourceKind = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCloudResource,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Cloud Resource Type",
+    description:
+      "For a resource: the provider's type for it - the Azure Resource Manager type (Microsoft.Compute/virtualMachines), the AWS CloudFormation type (AWS::EC2::Instance) or the Google Cloud Monitoring resource type (gce_instance).",
+    example: "Microsoft.Compute/virtualMachines",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public cloudResourceType?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCloudResource,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.VeryLongText,
+    title: "Provider Resource ID",
+    description:
+      "For a resource: the provider's id for it - its Azure resource id, its AWS ARN or its Google Cloud full resource name. Where the metrics do not name the resource completely (an AWS resource whose ARN needs an id no metric reports), a readable composite of what they do name.",
+    example:
+      "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-prod/providers/Microsoft.Compute/virtualMachines/vm-prod-01",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.VeryLongText,
+  })
+  public providerResourceId?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCloudResource,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Cloud Resource Group",
+    description: "For an Azure resource: the resource group it belongs to.",
+    example: "rg-prod",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public cloudResourceGroup?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCloudResource,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Telemetry Attributes",
+    description:
+      "For a resource: the metric attributes, exactly as stored, that select its metrics - for example azuremonitor.resource_id, or the CloudWatch Namespace and identifying Dimensions with the account and region. The resource's pages and the monitors created from them filter on these.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public telemetryAttributes?: Dictionary<string> = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -979,6 +1140,40 @@ export default class CloudResource extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public archivedByUserId?: ObjectID = undefined;
+
+  /*
+   * When the auto-archive sweep last archived this resource for going
+   * unseen (CloudResourceService.archiveUnseenMonitoredResources). Only a row the
+   * sweep archived is restored when it reports again - never one a person
+   * archived - and a row a person restored keeps it until it reports, so the
+   * sweep does not archive it again behind their back.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCloudResource,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Auto Archived At",
+    description:
+      "For a resource: when it was archived automatically for sending no metrics for the auto-archive period. Cleared when it reports again.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public autoArchivedAt?: Date = undefined;
 
   @ColumnAccessControl({
     create: [],

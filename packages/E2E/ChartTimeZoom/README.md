@@ -241,6 +241,21 @@ range and Reset zoom joins it), and they used to take the width out of the name:
 name is not cut, every control stays inside the hero without covering it, the page
 never scrolls sideways, and a name longer than the row still truncates.
 
+### An outdated agent version
+
+`AgentVersionSign.spec.ts` (same fixture and command) opens the cluster Overview with
+`?appVersion=14.0.14`, the version the server says it runs (the fixture leaves
+`APP_VERSION` unset otherwise, as on a dev build). The cluster's agent reports
+`1.9.0`, so its Agent Version on Cluster Details carries the warning sign: the spec
+hovers it for "A newer agent is available: 14.0.14", opens the upgrade dialog, reads
+the chart's upgrade command, closes it with the keyboard and checks the focus comes
+back. Without `?appVersion` the same version reads as plain text. At a phone's width
+the dialog fits the screen. The Host Overview's collector reports `0.154.0`, older than
+the `0.161.0` the host guide pins, so its Agent Version carries the sign without any
+`?appVersion`: the spec opens the host upgrade, checks the four Linux tabs (the fixture
+host reports `os.type` linux), the link to the host's setup guide for the config, and
+the Docker and Debian commands.
+
 ## Explorers: a double-click right after a drag
 
 `ExplorerHistogramDoubleClick.spec.ts` (23 tests, same fixture and command) pins
@@ -363,7 +378,8 @@ then open
 `http://127.0.0.1:4233/dashboard/10000000-0000-4000-8000-000000000001/host/62000000-0000-4000-8000-000000000001`,
 `http://127.0.0.1:4233/dashboard/10000000-0000-4000-8000-000000000001/traces` or
 `http://127.0.0.1:4233/dashboard/10000000-0000-4000-8000-000000000001/logs`.
-Add `?theme=dark` for dark mode. `--watch` rebuilds the bundle when a source file
+Add `?theme=dark` for dark mode, and `?appVersion=14.0.14` to have the server
+report a version agents are compared with. `--watch` rebuilds the bundle when a source file
 changes; refresh the browser. A browser outside Playwright runs on the real clock,
 so its windows are today's; the generated telemetry, spans and logs fill any
 window. To hold the explorers' next answers from the console:

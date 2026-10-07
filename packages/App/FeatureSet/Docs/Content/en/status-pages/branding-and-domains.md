@@ -34,6 +34,8 @@ The first card, **Logo and Cover Image**, has an **Edit Images** button that ope
 - **Title and Description** — the card notes this is also used for SEO. **Edit** opens **Page Title** (placeholder `Please enter page title here.`) and **Page Description**. This is what search engines and link previews show, so write it for a customer, not for your team.
 - **Favicon** — **Edit Favicon** opens the **Favicon** image upload. This is the little icon in the browser tab.
 
+The logo, the cover image and the favicon are files uploaded in the status page's own project, and that is checked whenever one is saved — from the dashboard, the API, Terraform or a workflow. A file uploaded in another project is refused with the words a file that no longer exists gets: "The logo's file could not be found. Upload the logo again.", "The cover image's file could not be found. Upload the cover image again." or "The favicon's file could not be found. Upload the favicon again." Uploading the image again from the page fixes it. Your status page shows only images of its own project; an image it cannot show is left out, as if the page had none. The dashboard, the API and Terraform read the page's images the same way: an image of another project comes back as no image at all. The emails the page sends — to subscribers, and to private users about their sign-in — show its logo the same way: a logo the page cannot show is left out of them too, rather than shown as a broken image.
+
 ### Header links
 
 The **Header Links** table ("Header Links for your status page") holds the links in the status page's header. Each link has a **Title** and a **Link** (a URL, placeholder `https://link.com`), and rows are reordered by dragging. With none configured the table says **No status header link for this status page**, with **Create Status Page Header Link** under it.
@@ -42,7 +44,7 @@ Good for: pointing visitors back to your marketing site, your docs, or a support
 
 ### Overview page description
 
-**Overview Page Description** is the first thing on the status page's overview, above the announcements, the overall status and your resources. **Edit Description** opens a markdown field. Use it for a sentence of context: what this page covers, and where to go for support.
+**Overview Page Description** is the first thing on the status page's overview, above the announcements, the overall status and your resources. **Edit Description** opens a markdown field. Use it for a sentence of context: what this page covers, and where to go for support. An image you put in it is shown to every visitor of the page.
 
 ### Footer
 
@@ -92,6 +94,8 @@ They used to be two cards of their own, **Overall Uptime Percent** and **Downtim
 - **Footer HTML** — the same, for the footer.
 - **Custom CSS** — placeholder `Insert Custom CSS here.`
 - **Custom JavaScript** — placeholder `Insert Custom JavaScript here.`
+
+On OneUptime Cloud, adding or changing any of them needs the **Growth** plan. Emptying one works on every plan, so custom code a trial added can always be removed.
 
 **There is no theme picker.** OneUptime status pages have no theme or brand-color setting: the only built-in color controls anywhere are **Default Bar Color** and the history chart bar color rules, under **More settings** on the **Branding** page. Fonts, background colors, accent colors and layout tweaks all go through **Custom CSS** here. If you have been looking for a "brand color" field, this is the answer — there isn't one, and this box is the escape hatch.
 
@@ -190,6 +194,14 @@ The **Status** column says where each domain is on its way to HTTPS, in one of s
 | Uses your uploaded certificate.                             | The record is verified, and the domain is served with the certificate you uploaded.                                                                                               |
 
 If a row stays on "Waiting for DNS" long after you created the record, check that the record's name is the full domain and that its value matches your installation's CNAME record exactly. If it says it could not issue a free certificate, check for a CAA record that leaves out `letsencrypt.org` and, on a self-hosted install, that your server answers on port 80.
+
+## Who can check and reissue
+
+**Check now**, ordering a domain's certificate and **Reissue SSL** change the domain, so they need permission to edit it: **Edit Status Page Domain**, or a role that includes it (Project Owner, Project Admin, Project Member, Status Page Admin or Status Page Member).
+
+Someone who can only read the domain, such as a Viewer or a Status Page Viewer, still sees the **Status** column and the record to add in **DNS Setup**. For them **Check now** and **Reissue SSL** are locked, and say which permission they need. OneUptime keeps checking every domain and ordering its certificate on its own either way.
+
+The same goes for API keys. A key that can only read status page domains can't call `verify-cname`, `order-ssl` or `reissue-ssl` on `/status-page-domain`. Give it **Read Status Page Domain** and **Edit Status Page Domain** if it needs to.
 
 ## Powered by OneUptime
 

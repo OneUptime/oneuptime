@@ -114,10 +114,11 @@ consoles, including pending uploads. Use increasing counters for both platforms;
 do not blindly increment the historical values above. A replacement binary needs
 a new build identifier if the earlier one has already been uploaded to that store.
 
-As of this guide, committed `eas.json` has an empty production build profile and
-does not explicitly set `cli.appVersionSource` or `autoIncrement`. For the manual
-numbering procedure here, merge `"appVersionSource": "local"` into its `cli`
-object and keep production auto-increment disabled. If the project has since
+Since 1.5.0, the committed `app.json` carries the counters of the latest
+release, and committed `eas.json` sets `"appVersionSource": "local"` without
+`autoIncrement`, so EAS builds with exactly the counters in `app.json`. Bump
+them in a commit before freezing the snapshot rather than as an uncommitted
+override, and keep production auto-increment disabled. If the project has since
 moved to remote versioning, inspect/synchronize the EAS counters and use that
 established workflow instead. Remote versioning ignores local build counters;
 see [Expo version management](https://docs.expo.dev/build-reference/app-versions/).
@@ -276,10 +277,39 @@ its SHA-256. Inspect the iOS IPA's `Payload/*.app/Info.plist` for bundle identif
 version/build, deployment minimum, and SDK/Xcode metadata. Store-side processing
 and validation remain required even after local checks pass.
 
-The optional `EXPO_IOS_CRITICAL_ALERTS_ENTITLEMENT=true` switch in `app.config.js`
-must remain off unless Apple has granted that entitlement to this team and the
-provisioning profile supports it. Normal push notifications do not require this
-critical-alert capability. See [the feature notes](README.md#critical-on-call-alerts).
+### Critical alerts entitlement
+
+Store builds carry Apple's critical-alerts entitlement: the `production` profile
+in `eas.json` sets `EXPO_IOS_CRITICAL_ALERTS_ENTITLEMENT=true`, which
+`app.config.js` turns into
+`com.apple.developer.usernotifications.critical-alerts`. See
+[the feature notes](README.md#critical-on-call-alerts). Apple lists Critical
+Alerts as **Assigned** under the App ID's **Capability Requests** tab. Since 6
+October 2026 it has been enabled on App ID `com.oneuptime.oncall`, and the EAS
+App Store profile includes it. Builds up to and including 1.4.0 lacked it. A
+build without it still signs, uploads and passes review, but iOS then plays
+critical pages like ordinary notifications, so check the IPA's entitlements for
+it every release.
+
+Changing an App ID's capabilities invalidates every provisioning profile for
+that App ID, including profiles EAS does not manage. A
+`--freeze-credentials` build cannot repair the profile, so if signing reports a
+missing critical-alerts entitlement, first confirm the capability is enabled on
+the App ID. EAS's capability sync does not manage this capability. Then
+regenerate the App Store profile with an Apple sign-in before building:
+
+```bash
+EXPO_NO_CAPABILITY_SYNC=1 EXPO_APPLE_TEAM_ID=8TX4M8BXZ4 \
+  eas credentials:configure-build -p ios -e production
+```
+
+On 6 October 2026, answering **Yes** to _reuse the original profile_ failed:
+EAS calls Apple's legacy regeneration endpoint, which kept returning _Service
+not available because of maintenance activities_ while Apple's status page
+showed every service available. Answering **No** to reuse and **Yes** to
+_Generate a new Apple Provisioning Profile_ created a working profile through
+the current API. The old, invalid profile remains in the portal and is no
+longer used by EAS.
 
 ## 5. Publish Android through Play Console
 
@@ -326,7 +356,7 @@ and remaining Play Console steps first. See
 
 ## 6. Upload iOS, then submit App Review
 
-Merge this target into the snapshot's `eas.json` without replacing other profiles:
+The committed `eas.json` already contains this submit target:
 
 ```json
 {

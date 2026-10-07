@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/cli",
-  "version": "14.0.14",
+  "version": "14.0.15",
   "description": "OneUptime CLI - Command-line interface for managing OneUptime resources",
   "repository": {
     "type": "git",
@@ -40,5 +40,10 @@
     "nodemon": "^3.1.11",
     "ts-jest": "^29.4.6",
     "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "@istanbuljs/load-nyc-config": {
+      "js-yaml": "^4.3.2"
+    }
   }
 }

@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorService from "./MonitorService";
 import NetworkAlertPolicyEngineService, {
   MAX_INLINE_RECONCILE_DEVICES,
@@ -7,13 +7,10 @@ import NetworkDeviceLabelRuleEngineService from "./NetworkDeviceLabelRuleEngineS
 import NetworkDeviceOwnerRuleEngineService from "./NetworkDeviceOwnerRuleEngineService";
 import NetworkSiteAssignmentRuleService from "./NetworkSiteAssignmentRuleService";
 import NetworkSiteService from "./NetworkSiteService";
-import NetworkSnmpCredentialProfileService from "./NetworkSnmpCredentialProfileService";
 import ProbeService from "./ProbeService";
 import Model from "../../Models/DatabaseModels/NetworkDevice";
 import Monitor from "../../Models/DatabaseModels/Monitor";
-import NetworkSite from "../../Models/DatabaseModels/NetworkSite";
 import NetworkSiteAssignmentRule from "../../Models/DatabaseModels/NetworkSiteAssignmentRule";
-import NetworkSnmpCredentialProfile from "../../Models/DatabaseModels/NetworkSnmpCredentialProfile";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -34,8 +31,6 @@ import { normalizeMac } from "../../Utils/Monitor/EndpointAttachmentUtil";
 import { SiteAssignmentRuleRunResult } from "../../Types/NetworkAutomation/RuleRunResult";
 import { NetworkDeviceMonitoringMethodUtil } from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
-import NetworkDeviceOidTemplate from "../../Models/DatabaseModels/NetworkDeviceOidTemplate";
-import NetworkDeviceOidTemplateService from "./NetworkDeviceOidTemplateService";
 import SnmpOid from "../../Types/Monitor/SnmpMonitor/SnmpOid";
 import SnmpOidListUtil, {
   MAX_DEVICE_SPECIFIC_OIDS,
@@ -176,10 +171,12 @@ function isSiteWrite(dataKeys: Array<string>): boolean {
 
 /*
  * The site a payload moves the device to, or null when it clears the site (or
- * carries no resolvable id).
+ * carries no resolvable id). readConsistent for the reason the references
+ * below use it: a payload writing `siteId` and `site` at different sites
+ * would have one of them acted on and the other stored, so it is refused.
  */
 function readSiteIdFromData(data: Record<string, unknown>): ObjectID | null {
-  return RelationIdUtil.read(data, SITE_KEYS);
+  return RelationIdUtil.readConsistent(data, SITE_KEYS, "Network Site");
 }
 
 // Both spellings of "the monitor that reports this device's health".
@@ -496,7 +493,7 @@ export class EmptySiteAssignmentRuleCache {
   }
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   /*
    * The projects known to have no site-assignment rules. Exposed so tests can
    * reset it between cases, and so a future invalidation hook on
@@ -509,6 +506,18 @@ export class Service extends DatabaseService<Model> {
 
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * The probe is checked by this service's own hooks below with
+   * ProbeService.isProbeAttachableToProject: the project's own probes and
+   * the global ones, in one answer for an id from another project and one
+   * that matches nothing. Everything else a device names - its site, its OID
+   * Collection Template, its SNMP Credential Profile, its monitor, its role
+   * and labels - is checked by ProjectReferencesService.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["probe"];
   }
 
   /**
@@ -1075,90 +1084,6 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * The FK behind siteId only requires the NetworkSite row to exist, not that
-   * it belongs to the device's project. Without this check a tenant can point
-   * a device at another project's site and make onUpdateSuccess drive rollup
-   * writes there under root props. Mirrors the parentSiteId guard in
-   * NetworkSiteService.onBeforeCreate.
-   */
-  private async assertSiteBelongsToProject(data: {
-    siteId: ObjectID;
-    projectId: ObjectID | undefined;
-  }): Promise<void> {
-    if (!data.projectId) {
-      return;
-    }
-
-    const site: NetworkSite | null = await NetworkSiteService.findOneById({
-      id: data.siteId,
-      select: {
-        _id: true,
-        projectId: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!site) {
-      throw new BadDataException("Network site not found.");
-    }
-
-    if (
-      site.projectId &&
-      site.projectId.toString() !== data.projectId.toString()
-    ) {
-      throw new BadDataException(
-        "Network site must belong to the same project.",
-      );
-    }
-  }
-
-  /*
-   * Same hole as siteId, and it matters more here: the FK behind
-   * oidTemplateId only requires the row to exist, not that it belongs to the
-   * device's project. Tenant scoping is applied to the ROOT query only, so a
-   * device pointed at another project's template would leak that template's
-   * name and OID list through every nested `select: { oidTemplate: ... }` the
-   * dashboard makes - and the poll would ship those OIDs to this project's
-   * probe. Refuse the link at the point it is written, rather than auditing
-   * it afterwards at poll time.
-   */
-  private async assertOidTemplateBelongsToProject(data: {
-    oidTemplateId: ObjectID;
-    projectId: ObjectID | undefined;
-  }): Promise<void> {
-    if (!data.projectId) {
-      return;
-    }
-
-    const oidTemplate: NetworkDeviceOidTemplate | null =
-      await NetworkDeviceOidTemplateService.findOneById({
-        id: data.oidTemplateId,
-        select: {
-          _id: true,
-          projectId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!oidTemplate) {
-      throw new BadDataException("OID Collection Template not found.");
-    }
-
-    if (
-      oidTemplate.projectId &&
-      oidTemplate.projectId.toString() !== data.projectId.toString()
-    ) {
-      throw new BadDataException(
-        "OID Collection Template must belong to the same project.",
-      );
-    }
-  }
-
-  /*
    * The FK behind `probeId` only requires the Probe row to exist. Probe ids
    * reach the server from the browser — the device create form, the settings
    * page and the bulk "Set probe" action all post one — so without this
@@ -1195,53 +1120,6 @@ export class Service extends DatabaseService<Model> {
     if (!isAttachable) {
       throw new BadDataException(
         "Probe not found or it does not belong to this project.",
-      );
-    }
-  }
-
-  /*
-   * Same hole as the probe, on the other half of the poll: a credential
-   * profile is read LIVE at poll time
-   * (NetworkDeviceHydrationUtil.resolveSnmpCredentials), so a device pointed
-   * at another project's profile would be walked with that project's
-   * community string or v3 credentials — put on the wire, inside this
-   * project's network, by this project's probe.
-   *
-   * The resolver drops a mismatched reference as a backstop and pings the
-   * device instead. This is the half that stops the reference being written
-   * at all, and it is the half that tells the operator why.
-   */
-  @CaptureSpan()
-  private async assertSnmpCredentialProfileBelongsToProject(data: {
-    snmpCredentialProfileId: ObjectID;
-    projectId: ObjectID | undefined;
-  }): Promise<void> {
-    if (!data.projectId) {
-      return;
-    }
-
-    const profile: NetworkSnmpCredentialProfile | null =
-      await NetworkSnmpCredentialProfileService.findOneById({
-        id: data.snmpCredentialProfileId,
-        select: {
-          _id: true,
-          projectId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!profile) {
-      throw new BadDataException("SNMP Credential Profile not found.");
-    }
-
-    if (
-      profile.projectId &&
-      profile.projectId.toString() !== data.projectId.toString()
-    ) {
-      throw new BadDataException(
-        "SNMP Credential Profile must belong to the same project.",
       );
     }
   }
@@ -1311,25 +1189,23 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    /*
+     * The site, the OID Collection Template, the SNMP Credential Profile, the
+     * monitor and the rest must be the project's own: a device pointed at
+     * another project's site would drive rollup writes there, its template
+     * would ship that project's OIDs to this project's probe, and its profile
+     * would put that project's credentials on the wire. Both spellings of
+     * each are read (the dashboard posts the relation, not the id column).
+     */
+    await super.onBeforeCreate(createBy);
+
     normalizeMacAddressOnWrite(
       createBy.data as unknown as Record<string, unknown>,
     );
 
-    /*
-     * Read both spellings: the dashboard posts the `site` relation, not the
-     * `siteId` column, so guarding only `siteId` let a UI-created device
-     * point at another project's site.
-     */
     const siteId: ObjectID | null = readSiteIdFromData(
       createBy.data as unknown as Record<string, unknown>,
     );
-
-    if (siteId) {
-      await this.assertSiteBelongsToProject({
-        siteId: siteId,
-        projectId: createBy.data.projectId,
-      });
-    }
 
     /*
      * DatabaseService stamps the tenant column AFTER this hook runs, so a
@@ -1339,8 +1215,11 @@ export class Service extends DatabaseService<Model> {
      * write shape every UI create takes.
      */
     const createProjectId: ObjectID | undefined =
-      createBy.data.projectId ||
-      createBy.data.project?.id ||
+      RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        ["projectId", "project"],
+        "Project",
+      ) ||
       createBy.props.tenantId ||
       undefined;
 
@@ -1355,28 +1234,17 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
-    const createSnmpCredentialProfileId: ObjectID | null =
-      readSnmpCredentialProfileIdFromData(
-        createBy.data as unknown as Record<string, unknown>,
-      );
-
-    if (createSnmpCredentialProfileId) {
-      await this.assertSnmpCredentialProfileBelongsToProject({
-        snmpCredentialProfileId: createSnmpCredentialProfileId,
-        projectId: createProjectId,
-      });
-    }
+    /*
+     * Read, and for conflicting spellings refused, even though the generic
+     * check above has already checked the profile is the project's.
+     */
+    readSnmpCredentialProfileIdFromData(
+      createBy.data as unknown as Record<string, unknown>,
+    );
 
     const createOidTemplateId: ObjectID | null = readOidTemplateIdFromData(
       createBy.data as unknown as Record<string, unknown>,
     );
-
-    if (createOidTemplateId) {
-      await this.assertOidTemplateBelongsToProject({
-        oidTemplateId: createOidTemplateId,
-        projectId: createBy.data.projectId,
-      });
-    }
 
     if (createBy.data.snmpOids !== undefined) {
       // Same budget rule as onBeforeUpdate: the tight cap is what linking costs.
@@ -1391,10 +1259,6 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    const monitorId: ObjectID | null = readMonitorIdFromData(
-      createBy.data as unknown as Record<string, unknown>,
-    );
-
     /*
      * The monitor is NOT required. Discovery import is why: a subnet sweep
      * finds ping-only hosts in bulk and there is no monitor to bind them to
@@ -1403,21 +1267,14 @@ export class Service extends DatabaseService<Model> {
      * Pending, tagged "No monitor", which is exactly true until somebody
      * points a monitor at it.
      *
-     * But any binding that IS supplied is tenant-checked, whatever the
-     * monitoring method. This guard used to sit inside the monitor-backed
-     * branch below, which left a Probe-method create (or one with the method
-     * omitted) free to persist another project's monitor FK: the FK only
-     * proves the Monitor row exists, a Probe device may legitimately carry a
-     * monitorId (NetworkSiteService.onMonitorStatusChanged stamps from it),
-     * and a nested select through the relation reads that monitor's
-     * configuration. The update path runs the same check.
+     * But any binding that IS supplied is the project's own, whatever the
+     * monitoring method - the generic check above saw to that, for a
+     * Probe-method create as much as a monitor-backed one: a Probe device may
+     * legitimately carry a monitorId (NetworkSiteService.onMonitorStatusChanged
+     * stamps from it), and a nested select through the relation reads that
+     * monitor's configuration. Conflicting spellings are still refused here.
      */
-    if (monitorId) {
-      await this.assertMonitorBelongsToProject({
-        monitorId: monitorId,
-        projectId: createBy.data.projectId,
-      });
-    }
+    readMonitorIdFromData(createBy.data as unknown as Record<string, unknown>);
 
     if (
       NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
@@ -1459,40 +1316,15 @@ export class Service extends DatabaseService<Model> {
         });
 
       if (inheritedProbeId) {
-        createBy.data.probeId = inheritedProbeId;
+        RelationIdUtil.stamp(
+          createBy.data as unknown as Record<string, unknown>,
+          PROBE_KEYS,
+          inheritedProbeId,
+        );
       }
     }
 
     return { createBy, carryForward: null };
-  }
-
-  /*
-   * The FK behind monitorId only requires the Monitor row to exist, not that
-   * it belongs to the device's project — the same hole assertSiteBelongsToProject
-   * closes for sites. Without this a tenant could bind a device to another
-   * project's monitor and read its status through the device.
-   */
-  @CaptureSpan()
-  private async assertMonitorBelongsToProject(data: {
-    monitorId: ObjectID;
-    projectId: ObjectID | undefined;
-  }): Promise<void> {
-    if (!data.projectId) {
-      throw new BadDataException("Project ID is required.");
-    }
-
-    const monitor: Monitor | null = await MonitorService.findOneBy({
-      query: {
-        _id: data.monitorId,
-        projectId: data.projectId,
-      },
-      select: { _id: true },
-      props: { isRoot: true },
-    });
-
-    if (!monitor) {
-      throw new BadDataException("Monitor not found.");
-    }
   }
 
   /*
@@ -1597,6 +1429,15 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    /*
+     * The site, monitor, OID Collection Template, SNMP Credential Profile and
+     * the rest an update adds must be the project's own, for every project
+     * the update touches (see onBeforeCreate for why each one matters). Ids
+     * the matched devices already hold are left alone, so a device saved
+     * before this check stays editable.
+     */
+    await super.onBeforeUpdate(updateBy);
+
     const dataKeys: Array<string> = Object.keys(updateBy.data || {});
 
     /*
@@ -1679,10 +1520,9 @@ export class Service extends DatabaseService<Model> {
     const newProbeId: ObjectID | null = readProbeIdFromData(
       updateBy.data as unknown as Record<string, unknown>,
     );
-    const newSnmpCredentialProfileId: ObjectID | null =
-      readSnmpCredentialProfileIdFromData(
-        updateBy.data as unknown as Record<string, unknown>,
-      );
+    readSnmpCredentialProfileIdFromData(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
 
     const isSiteChange: boolean = isSiteWrite(dataKeys);
     const isIdentityChange: boolean = SITE_RULE_IDENTITY_COLUMNS.some(
@@ -1836,88 +1676,17 @@ export class Service extends DatabaseService<Model> {
       updateBy.data as unknown as Record<string, unknown>,
     );
 
-    if (newSiteId) {
-      const checkedProjectIds: Set<string> = new Set();
-
-      for (const previousDevice of previousDevices) {
-        if (
-          !previousDevice.projectId ||
-          checkedProjectIds.has(previousDevice.projectId.toString())
-        ) {
-          continue;
-        }
-        checkedProjectIds.add(previousDevice.projectId.toString());
-
-        await this.assertSiteBelongsToProject({
-          siteId: newSiteId,
-          projectId: previousDevice.projectId,
-        });
-      }
-    }
-
-    /*
-     * The monitor guard on the UPDATE path. Until this existed only
-     * onBeforeCreate checked the binding, so a device could be created
-     * clean and then re-pointed at another project's monitor with a plain
-     * update — and read that monitor's status through the device, since
-     * refreshStampedMonitorStatus stamps whatever `monitorId` names. One
-     * check per distinct project in the matched set, like the site guard
-     * above. An unbind (null) has nothing to check.
-     */
-    if (newMonitorId) {
-      const checkedMonitorProjectIds: Set<string> = new Set();
-
-      for (const previousDevice of previousDevices) {
-        if (
-          !previousDevice.projectId ||
-          checkedMonitorProjectIds.has(previousDevice.projectId.toString())
-        ) {
-          continue;
-        }
-        checkedMonitorProjectIds.add(previousDevice.projectId.toString());
-
-        await this.assertMonitorBelongsToProject({
-          monitorId: newMonitorId,
-          projectId: previousDevice.projectId,
-        });
-      }
-    }
-
     const newOidTemplateId: ObjectID | null = readOidTemplateIdFromData(
       updateBy.data as unknown as Record<string, unknown>,
     );
 
     /*
-     * Same shape as the site guard above: one check per distinct project in
-     * the matched set, because a single updateBy can span devices from more
-     * than one project when a root caller issues it.
-     */
-    if (newOidTemplateId) {
-      const checkedTemplateProjectIds: Set<string> = new Set();
-
-      for (const previousDevice of previousDevices) {
-        if (
-          !previousDevice.projectId ||
-          checkedTemplateProjectIds.has(previousDevice.projectId.toString())
-        ) {
-          continue;
-        }
-        checkedTemplateProjectIds.add(previousDevice.projectId.toString());
-
-        await this.assertOidTemplateBelongsToProject({
-          oidTemplateId: newOidTemplateId,
-          projectId: previousDevice.projectId,
-        });
-      }
-    }
-
-    /*
-     * The polling tenancy guards on the UPDATE path. A device created clean
-     * and then re-pointed with a plain update is the same breach as one
-     * created that way, so both hooks check both references. One check per
-     * distinct project in the matched set, like the guards above — a single
-     * updateBy can span projects when a root caller issues it, and the
-     * payload names ONE probe and ONE profile for all of them.
+     * The probe on the UPDATE path - the site, monitor, template and
+     * credential profile were checked by the generic check above. A device
+     * created clean and then re-pointed with a plain update is the same
+     * breach as one created that way. One check per distinct project in the
+     * matched set: a single updateBy can span projects when a root caller
+     * issues it, and the payload names ONE probe for all of them.
      *
      * A clear (null) points at nothing and has nothing to check.
      */
@@ -1939,13 +1708,6 @@ export class Service extends DatabaseService<Model> {
       if (newProbeId) {
         await this.assertProbeIsAttachableToProject({
           probeId: newProbeId,
-          projectId: projectId,
-        });
-      }
-
-      if (newSnmpCredentialProfileId) {
-        await this.assertSnmpCredentialProfileBelongsToProject({
-          snmpCredentialProfileId: newSnmpCredentialProfileId,
           projectId: projectId,
         });
       }
@@ -2095,7 +1857,11 @@ export class Service extends DatabaseService<Model> {
       });
 
     if (inheritedProbeId) {
-      data.updateBy.data.probeId = inheritedProbeId;
+      RelationIdUtil.stamp(
+        data.updateBy.data as unknown as Record<string, unknown>,
+        PROBE_KEYS,
+        inheritedProbeId,
+      );
     }
   }
 

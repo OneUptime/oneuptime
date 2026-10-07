@@ -49,7 +49,7 @@ Det skillet betyr mer enn det høres ut som:
 
 - `isCreatedState` avgjør hvor en ny hendelse starter. Hvis ingen tilstand velges eksplisitt ved opprettelse, leter OneUptime etter prosjektets opprettede tilstand og bruker den.
 - `isAcknowledgedState` og `isResolvedState` styrer knappene **Acknowledge** og **Løs** i hendelsestoppen, de to statistikkflisene på hendelsens **Oversikt**, og telleren **Aktive hendelser** i sidemenyen.
-- **Aktive hendelser** er definert utelukkende som «gjeldende tilstand er ikke den løste tilstanden». Enhver egendefinert tilstand du legger til, er derfor aktiv med mindre den er den løste.
+- **Aktive hendelser** er definert utelukkende som «gjeldende tilstand ligger over den løste tilstanden». En egendefinert tilstand du legger til over den løste tilstanden, er derfor aktiv; en du plasserer etter den, teller som løst, slik den løste tilstanden gjør.
 
 **Merk navngivningen.** Den første forhåndsopprettede tilstanden heter **Identifisert**, selv om flere beskrivelser inne i produktet fremdeles kaller den den opprettede tilstanden. Leter du etter «Created» i prosjektets tilstandsliste, er det raden som heter **Identifisert**.
 
@@ -102,7 +102,7 @@ De som responderer, bekrefter hendelsen, knytter til berørte ressurser, kjører
 
 ### 4. Den blir løst
 
-Å klikke **Løs** flytter hendelsen til den løste tilstanden, stempler tilstandstidslinjen, stopper varighetsklokken og fjerner hendelsen fra den aktive delen av enhver statusside den vistes på. Ingenting annet trenger å endres for at det skal skje — det er flagget for løst tilstand statussidespørringen ser på.
+Å klikke **Løs** flytter hendelsen til den løste tilstanden, stempler tilstandstidslinjen, stopper varighetsklokken, gir tilbake overvåkingene den holder, og fjerner hendelsen fra den aktive delen av enhver statusside den vistes på. Ingenting annet trenger å endres for at det skal skje — en statusside viser bare hendelser i en tilstand over den løste tilstanden. Se [Hendelsestilstander og alvorlighetsgrader](/docs/incidents/states-and-severities).
 
 Etterpå kan du skrive en etteranalyse og eventuelt publisere den på statussiden.
 
@@ -112,13 +112,14 @@ Etterpå kan du skrive en etteranalyse og eventuelt publisere den på statusside
 
 | Seksjon           | Hva du gjør der                                                                                                                                                            |
 | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Oversikt**      | **Alle hendelser** og **Aktive hendelser** — den siste bærer en rød teller med antall hendelser som ikke er i den løste tilstanden.                                        |
+| **Oversikt**      | **Alle hendelser** og **Aktive hendelser** — den siste bærer en rød teller med antall hendelser i en tilstand over den løste tilstanden.                                        |
 | **Episoder**      | Hendelsesepisoder, en egen grupperingsfunksjon med sine egne sider.                                                                                                        |
+| **KI** | **Innsikt**, **Logger**, **Innstillinger**, **Regler for automatisk utbedring**: hva OneUptime AI har lært av hendelsene dine og alt den har gjort for dem, hva den får gjøre på egen hånd, og reglene som retter hendelser med runbooks. Se [AI SRE](/docs/ai/ai-sre). |
 | **Arbeidsområde** | **Slack**- og **Microsoft Teams**-tilkoblinger for hendelser.                                                                                                              |
-| **Regler**        | Regelmotorene: **Grupperingsregler**, **Vaktregler**, **Eierregler**, **Runbook-regler**, **Regler for automatisk utbedring**, **Personvernregler**, **Etikettregler**, **SLA-regler**, **Reminder Rules**. |
-| **Innstillinger** | **KI**, **Hendelsesstatus**, **Hendelsesalvor**, **Hendelsesmaler**, **Notatmaler**, **Postmortem-maler**, **Egendefinerte felt**, **Hendelsesroller**, **Nummerprefiks**. |
+| **Regler**        | Regelmotorene: **Grupperingsregler**, **Vaktregler**, **Eierregler**, **Runbook-regler**, **Personvernregler**, **Etikettregler**, **SLA-regler**, **Reminder Rules**. |
+| **Innstillinger** | **Hendelsesstatus**, **Hendelsesalvor**, **Hendelsesmaler**, **Notatmaler**, **Postmortem-maler**, **Egendefinerte felt**, **Hendelsesroller**, **Nummerprefiks**. |
 
-**Regler** og **Innstillinger** er sammenslått som standard — utvid dem for å finne sidene resten av denne dokumentasjonen viser til. Hendelseskonfigurasjon ligger ikke under Prosjektinnstillinger; alt sammen bor her.
+**KI**, **Regler** og **Innstillinger** er sammenslått som standard — utvid dem for å finne sidene resten av denne dokumentasjonen viser til. Hendelseskonfigurasjon ligger ikke under Prosjektinnstillinger; alt sammen bor her.
 
 Selve hendelseslisten viser **Hendelsesnummer**, **Tittel**, **Tilstand**, **Alvorlighetsgrad**, **Berørte ressurser**, **Erklært**, **Varighet**, **Etiketter** og **Eiere**, med masseoperasjonen **Endre tilstand** for å lukke flere om gangen.
 
@@ -144,7 +145,7 @@ Selve hendelseslisten viser **Hendelsesnummer**, **Tittel**, **Tilstand**, **Alv
 - **Overvåkinger oppdager problemet; hendelser dokumenterer det.** En kriterieregel på en overvåking kan erklære en hendelse automatisk og forhåndsutfylle tittel, alvorlighetsgrad, vaktpolicyer, eiere, etiketter og utbedringsnotater. Se [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating) for variablene du har tilgjengelig der.
 - **Vaktpolicyer står for tilkallingen.** Knytt til policyer på trinnet **Vakt** i erklæringsveiviseren, på en mal, eller via **Hendelser → Regler → Vaktregler**. Hver regel som treffer, utløses — settet som kjøres, er unionen av alle treff pluss alt du har knyttet til direkte, uten duplikater.
 - **Runbooks forteller folk hva de skal gjøre.** Runbook-regler knytter til en prosedyre automatisk når en hendelse som treffer opprettes, og de som responderer kan starte en for hånd fra hendelsen. Se [Runbooks – Oversikt](/docs/runbooks/index).
-- **Statussider forteller kundene.** En hendelse vises i en statussides aktive liste når siden har hendelser slått på, hendelsen er merket som synlig på statussiden, og gjeldende tilstand ikke er den løste tilstanden. Private hendelser er alltid skjult fra hver eneste statusside. Se [Statussider – Oversikt](/docs/status-pages/index).
+- **Statussider forteller kundene.** En hendelse vises i en statussides aktive liste når siden har hendelser slått på, hendelsen er merket som synlig på statussiden, og gjeldende tilstand ligger over den løste tilstanden. Private hendelser er alltid skjult fra hver eneste statusside. Se [Statussider – Oversikt](/docs/status-pages/index).
 - **Arbeidsflyter automatiserer rundt den.** Triggerne **On Create Incident**, **On Update Incident** og **On Delete Incident** lar deg bygge kodefri automatisering oppå hendelseslivssyklusen. Se [Oversikt over arbeidsflyter](/docs/workflows/index).
 
 ## Hvor du leser videre

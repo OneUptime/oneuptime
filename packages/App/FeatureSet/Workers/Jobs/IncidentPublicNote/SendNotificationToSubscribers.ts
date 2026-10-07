@@ -26,6 +26,7 @@ import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource"
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import StatusPageVisibility from "Common/Types/StatusPage/StatusPageVisibility";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
 } from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
@@ -45,8 +46,10 @@ import {
 import SubscriberIncidentEmailBuilder, {
   SubscriberIncidentEmail,
   SubscriberIncidentEmailEvent,
+  SubscriberIncidentNoteStateChange,
   SubscriberIncidentStatusPageEmail,
 } from "Common/Server/Utils/StatusPage/SubscriberIncidentEmailBuilder";
+import StateChangeNoteMessage from "Common/Types/StatusPage/StateChangeNoteMessage";
 import IncidentStatusPageScope, {
   ResolvedIncidentStatusPages,
 } from "Common/Server/Utils/StatusPage/IncidentStatusPageScope";
@@ -67,6 +70,7 @@ import Email from "Common/Types/Email";
 import SubscriberNotificationTrigger from "Common/Types/StatusPage/SubscriberNotificationTrigger";
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
+import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
 
 /*
  * Two jobs share this send path: one tells subscribers about a new public
@@ -348,7 +352,9 @@ const notifySubscribersOfIncidentPublicNote: (data: {
         currentIncidentState: {
           name: true,
         },
+        // Whether a status page shows it (StatusPageVisibility): visible, and not private.
         isVisibleOnStatusPage: true,
+        isPrivate: true,
         incidentNumber: true,
         incidentNumberWithPrefix: true,
         // {{incidentLabels}} and the custom fields (IncidentTemplateVariableBuilder).
@@ -402,7 +408,21 @@ const notifySubscribersOfIncidentPublicNote: (data: {
       incidentId: incident.id?.toString(),
     };
 
-    if (!incident.isVisibleOnStatusPage) {
+    /*
+     * The state the incident moved to, when this note was posted with that
+     * state change (IncidentPublicNote.postedWithIncidentState). The note is
+     * then the one message subscribers get about the change, so every
+     * default message of it names the state (StateChangeNoteMessage). Not
+     * for an edit's update notification, which keeps its own words: the
+     * incident may have moved on since.
+     */
+    const stateChange: SubscriberIncidentNoteStateChange | undefined =
+      SubscriberIncidentEmailBuilder.getNoteStateChange(copy.emailEvent, {
+        name: incidentPublicNote.postedWithIncidentState?.name || "",
+        color: incidentPublicNote.postedWithIncidentState?.color,
+      });
+
+    if (!StatusPageVisibility.isShown(incident)) {
       // Set status to Skipped for non-visible incidents
       logger.debug(
         `Incident ${incident.id} is not visible on status page; marking public note ${incidentPublicNote.id} as Skipped.`,
@@ -471,6 +491,7 @@ const notifySubscribersOfIncidentPublicNote: (data: {
         note: {
           text: incidentPublicNote.note,
           postedAt: incidentPublicNote.postedAt,
+          stateChange: stateChange,
         },
       });
 
@@ -561,6 +582,7 @@ const notifySubscribersOfIncidentPublicNote: (data: {
             pageTemplateVariables: pageTemplateVariables,
             host: host,
             httpProtocol: httpProtocol,
+            stateChange: stateChange,
           });
 
         // Fetch the other channels' custom templates for this page (if any)
@@ -607,6 +629,14 @@ const notifySubscribersOfIncidentPublicNote: (data: {
           pageTemplateVariables.customFieldsMarkdownLines.length > 0
             ? `${pageTemplateVariables.customFieldsMarkdownLines.join("\n")}\n`
             : "";
+
+        /*
+         * "**Status:** Resolved", under the severity, for a note posted with
+         * a state change: where the state change message has it.
+         */
+        const chatStatusLine: string = stateChange
+          ? `${StateChangeNoteMessage.getChatStatusLine(stateChange.name)}\n`
+          : "";
 
         /*
          * Every subscriber of the page, read in batches past LIMIT_MAX, a
@@ -715,7 +745,15 @@ const notifySubscribersOfIncidentPublicNote: (data: {
                 ]);
               } else {
                 // Use default hard-coded template
-                smsMessage = `Incident update: ${incident.title || "-"} on ${statusPageName}. ${copy.smsNoteSentence} Details: ${incidentDetailsUrl}. Unsub: ${smsUnsubscribeUrl}`;
+                const smsHeadline: string = stateChange
+                  ? StateChangeNoteMessage.getIncidentSmsHeadline({
+                      stateName: stateChange.name,
+                      incidentTitle: incident.title || "-",
+                      statusPageName: statusPageName,
+                    })
+                  : `Incident update: ${incident.title || "-"} on ${statusPageName}.`;
+
+                smsMessage = `${smsHeadline} ${copy.smsNoteSentence} Details: ${incidentDetailsUrl}. Unsub: ${smsUnsubscribeUrl}`;
               }
 
               const sms: SMS = {
@@ -817,13 +855,13 @@ const notifySubscribersOfIncidentPublicNote: (data: {
                 ]);
               } else {
                 // Use default hard-coded template
-                markdownMessage = `## Incident - ${incident.title || ""}
+                markdownMessage = `## Incident - ${escapeMarkdownValue(incident.title || "")}
 
 **${copy.chatNoteSentence}**
 
-**Resources Affected:** ${resourcesAffectedPlainText}
-**Severity:** ${incident.incidentSeverity?.name || " - "}
-${chatCustomFields}
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}
+**Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || " - ")}
+${chatStatusLine}${chatCustomFields}
 **Note:**
 ${incidentPublicNote.note || ""}
 
@@ -869,13 +907,13 @@ ${incidentPublicNote.note || ""}
                 ]);
               } else {
                 // Use default hard-coded template
-                markdownMessage = `## Incident - ${incident.title || ""}
+                markdownMessage = `## Incident - ${escapeMarkdownValue(incident.title || "")}
 
 **${copy.chatNoteSentence}**
 
-**Resources Affected:** ${resourcesAffectedPlainText}
-**Severity:** ${incident.incidentSeverity?.name || " - "}
-${chatCustomFields}
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}
+**Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || " - ")}
+${chatStatusLine}${chatCustomFields}
 **Note:**
 ${incidentPublicNote.note || ""}
 
@@ -931,6 +969,10 @@ ${incidentPublicNote.note || ""}
                             incident.incidentSeverity?.name || "",
                           resourcesAffected: resourcesAffectedPlainText,
                           note: incidentPublicNote.note || "",
+                          // The state a note posted with a state change moved the incident to.
+                          ...(stateChange
+                            ? { incidentState: stateChange.name }
+                            : {}),
                           detailsUrl: incidentDetailsUrl,
                           // The fields marked "Include in Subscriber Notifications", by key.
                           customFields:
@@ -1148,6 +1190,11 @@ RunCron(
             projectId: true,
             // An update notification this one covers (getUpdateNotificationCoveredByPost).
             subscriberNotificationStatusOnNoteUpdated: true,
+            // The state change it was posted with, which its messages name.
+            postedWithIncidentState: {
+              name: true,
+              color: true,
+            },
           },
         });
 

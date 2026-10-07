@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/react-native-replay",
-  "version": "14.0.14",
+  "version": "14.0.15",
   "description": "Privacy-first OneUptime session replay recorder for React Native applications.",
   "repository": {
     "type": "git",
@@ -62,5 +62,10 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "overrides": {
+    "@istanbuljs/load-nyc-config": {
+      "js-yaml": "^4.3.2"
+    }
   }
 }

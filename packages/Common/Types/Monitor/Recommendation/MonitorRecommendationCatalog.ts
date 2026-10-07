@@ -59,6 +59,12 @@ import {
   getServiceAlertTemplates,
 } from "../ServiceAlertTemplates";
 import {
+  StorageArrayAlertTemplate,
+  getAllStorageArrayAlertTemplates,
+  getStorageArrayAlertTemplatesForSystem,
+} from "../StorageArrayAlertTemplates";
+import { StorageSystemUtil } from "../../StorageArray/StorageSystem";
+import {
   VMwareAlertTemplate,
   getAllVMwareAlertTemplates,
 } from "../VMwareAlertTemplates";
@@ -87,6 +93,7 @@ export interface MonitorRecommendationResourceTypeDefinition {
     | "vcenterIdentifier"
     | "hostIdentifier"
     | "fleetIdentifier"
+    | "arrayIdentifier"
     | "rumApplicationId"
     | "serviceId"
     | "databaseServerId";
@@ -337,6 +344,65 @@ function getCephRecommendations(): Array<MonitorRecommendation> {
   });
 }
 
+/*
+ * The storage array adapter — two functions for the same reason as
+ * Service's. `getStorageArrayRecommendations` answers "what should THIS
+ * array be offered", which depends on its platform (a FlashBlade exports no
+ * purefa_* series); `getAllStorageArrayRecommendations` answers "what can an
+ * array ever be offered".
+ */
+function normalizeStorageArrayTemplate(
+  template: StorageArrayAlertTemplate,
+): MonitorRecommendation {
+  return normalize({
+    resourceType: MonitorRecommendationResourceType.StorageArray,
+    monitorType: MonitorType.StorageArray,
+    template: template,
+    getMonitorStep: (args: MonitorRecommendationArgs) => {
+      return template.getMonitorStep({
+        arrayIdentifier: args.resourceIdentifier,
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+        defaultAlertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+      });
+    },
+  });
+}
+
+/*
+ * No known platform -> nothing, like a database without an engine. Every
+ * template reads one platform's metrics (purefa_* or purefb_*), so offering
+ * both sets to an array whose platform is not known yet would put two cards
+ * of the same name ("Critical Array Alert") on one array, one of which could
+ * never fire — and an array of a platform OneUptime ships no templates for
+ * would be offered Pure Storage's. The array reports its platform with its
+ * first batch (the agent stamps `storage.system`; ingest also reads it off
+ * the metric names), so the wait is one scrape.
+ */
+function getStorageArrayRecommendations(
+  context?: MonitorRecommendationContext | undefined,
+): Array<MonitorRecommendation> {
+  if (!StorageSystemUtil.isKnownSystem(context?.storageSystem)) {
+    return [];
+  }
+
+  return getStorageArrayAlertTemplatesForSystem(context?.storageSystem).map(
+    (template: StorageArrayAlertTemplate) => {
+      return normalizeStorageArrayTemplate(template);
+    },
+  );
+}
+
+function getAllStorageArrayRecommendations(): Array<MonitorRecommendation> {
+  return getAllStorageArrayAlertTemplates().map(
+    (template: StorageArrayAlertTemplate) => {
+      return normalizeStorageArrayTemplate(template);
+    },
+  );
+}
+
 function getIoTRecommendations(): Array<MonitorRecommendation> {
   return getAllIoTAlertTemplates().map((template: IoTAlertTemplate) => {
     return normalize({
@@ -584,6 +650,15 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
       identifierFieldName: "clusterIdentifier",
       icon: IconProp.Database,
       getRecommendations: getCephRecommendations,
+    },
+    {
+      resourceType: MonitorRecommendationResourceType.StorageArray,
+      monitorTypes: [MonitorType.StorageArray],
+      resourceLabel: "Storage Array",
+      identifierFieldName: "arrayIdentifier",
+      icon: IconProp.StorageArray,
+      getRecommendations: getStorageArrayRecommendations,
+      getAllPossibleRecommendations: getAllStorageArrayRecommendations,
     },
     {
       resourceType: MonitorRecommendationResourceType.IoTDevice,

@@ -1,5 +1,5 @@
 import ProjectUser, { ProjectUserResult } from "../../../Utils/ProjectUser";
-import { getColorForUserId, getUserInitials } from "./LayerUserColors";
+import { getUserAvatarStyle, getUserInitials } from "./LayerUserColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -197,8 +197,8 @@ const AddLayerUserModal: FunctionComponent<ComponentProps> = (
               ) : null}
 
               <span
-                className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white shadow-sm ring-2 ring-white"
-                style={{ backgroundColor: getColorForUserId(user.userId) }}
+                className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold shadow-sm ring-2 ring-white"
+                style={getUserAvatarStyle(user.userId)}
               >
                 {getUserInitials(user.name, user.email)}
               </span>

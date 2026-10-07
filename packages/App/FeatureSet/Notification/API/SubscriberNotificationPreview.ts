@@ -1,6 +1,9 @@
 import MailService, { RenderedEmail } from "../Services/MailService";
 import User from "Common/Models/DatabaseModels/User";
 import CommonAPI from "Common/Server/API/CommonAPI";
+import TestSendAccess, {
+  TestSendCaller,
+} from "Common/Server/API/TestSendAccess";
 import SubscriberNotificationPreviewRateLimit from "Common/Server/Middleware/SubscriberNotificationPreviewRateLimit";
 import SubscriberNotificationTestSendRateLimit from "Common/Server/Middleware/SubscriberNotificationTestSendRateLimit";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
@@ -76,13 +79,20 @@ const NOTHING_SENT_MESSAGES: Record<
     "Nothing would be sent: no status page that lists these monitors will show this incident.",
 };
 
-// The caller, as a signed-in member of the project in the tenant header.
+/*
+ * The caller of a preview, as a signed-in member of the project in the
+ * tenant header, read for that one project - as the test send below reads
+ * it (TestSendAccess.getCaller). A preview sends nothing, so unlike a test it
+ * stays open to a credential issued for reading only.
+ */
 async function getCaller(req: ExpressRequest): Promise<{
   props: DatabaseCommonInteractionProps;
   projectId: ObjectID;
 }> {
-  const props: DatabaseCommonInteractionProps =
-    await CommonAPI.getDatabaseCommonInteractionProps(req);
+  const props: DatabaseCommonInteractionProps = {
+    ...(await CommonAPI.getDatabaseCommonInteractionProps(req)),
+    isMultiTenantRequest: false,
+  };
 
   const projectId: ObjectID = CommonAPI.assertAuthenticatedProjectMember(props);
 
@@ -168,10 +178,13 @@ router.post(
   SubscriberNotificationTestSendRateLimit.getMiddleware(),
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
-      const caller: {
-        props: DatabaseCommonInteractionProps;
-        projectId: ObjectID;
-      } = await getCaller(req);
+      /*
+       * A test the caller sends themselves, as a signed-in member of the
+       * project, on a credential that may make changes, read for that one
+       * project (TestSendAccess). Who may see an incident's audience, and
+       * which incident and pages, the builder decides below.
+       */
+      const caller: TestSendCaller = await TestSendAccess.getCaller(req);
 
       const request: SubscriberNotificationSendTestRequest =
         SubscriberNotificationPreviewBuilder.parseSendTestRequest(req.body);
@@ -183,7 +196,7 @@ router.post(
        * signed up with but never proved they own.
        */
       const user: User | null = await UserService.findOneById({
-        id: caller.props.userId!,
+        id: caller.userId,
         select: {
           email: true,
           isEmailVerified: true,
@@ -249,7 +262,7 @@ router.post(
             ),
             projectId: caller.projectId,
             statusPageId: new ObjectID(page.statusPageId),
-            userId: caller.props.userId,
+            userId: caller.userId,
             timeout: TEST_EMAIL_TIMEOUT_IN_MS,
           },
         );

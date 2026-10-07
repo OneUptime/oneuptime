@@ -14,12 +14,14 @@ import TablePermission from "../../../Server/Types/Database/Permissions/TablePer
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import ColumnBillingAccessControl from "../../../Types/BaseDatabase/ColumnBillingAccessControl";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { ON_HIGHEST_PLAN } from "../../Server/TestingUtils/RequestPlan";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import ColumnLength from "../../../Types/Database/ColumnLength";
 import ColumnType from "../../../Types/Database/ColumnType";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import { getUniqueColumnBy } from "../../../Types/Database/UniqueColumnBy";
+import UserAttribution from "../../../Types/Database/UserAttribution";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import {
   FormFieldSource,
@@ -208,7 +210,9 @@ function propsWith(permission: Permission): DatabaseCommonInteractionProps {
     ],
   };
 
+  // A member's request carries the project's plan: these ask about roles, not plans.
   return {
+    ...ON_HIGHEST_PLAN,
     tenantId: PROJECT_ID,
     userId: ObjectID.generate(),
     userType: UserType.User,
@@ -617,17 +621,19 @@ describe("Form: who may build, read and change a form", () => {
     }).toThrow(NotAuthorizedException);
   });
 
+  /*
+   * Who created or deleted a form is OneUptime's to say (UserAttribution):
+   * DatabaseService takes both out of every write it does not make itself,
+   * and the column check skips them as computed, so a client that still
+   * sends one is not refused for it - and the value is never stored.
+   */
   test("nobody can set who deleted a form", () => {
-    const form: Form = formPayload();
-    form.deletedByUserId = ObjectID.generate();
+    const model: Form = new Form();
 
-    expect(() => {
-      ModelPermission.checkCreatePermissions(
-        Form,
-        form,
-        propsWith(Permission.ProjectOwner),
-      );
-    }).toThrow("deletedByUserId");
+    expect(model.getTableColumnMetadata("deletedByUserId").computed).toBe(true);
+    expect(UserAttribution.getColumns(model)).toEqual(
+      expect.arrayContaining(["deletedByUser", "deletedByUserId"]),
+    );
   });
 });
 
@@ -731,7 +737,7 @@ describe("Form columns", () => {
     },
   );
 
-  test.each(["project", "projectId", "createdByUser", "createdByUserId"])(
+  test.each(["project", "projectId"])(
     "%s is set on create and never changed",
     (column: string) => {
       expect(access(model, column)).toEqual({
@@ -739,6 +745,19 @@ describe("Form columns", () => {
         read: FORM_READERS,
         update: [],
       });
+    },
+  );
+
+  // OneUptime decides who created a form: readable, written by no request.
+  test.each(["createdByUser", "createdByUserId"])(
+    "%s is read by form readers and written by no request",
+    (column: string) => {
+      expect(access(model, column)).toEqual({
+        create: [],
+        read: FORM_READERS,
+        update: [],
+      });
+      expect(model.getTableColumnMetadata(column).computed).toBe(true);
     },
   );
 
@@ -862,9 +881,10 @@ describe("Form columns", () => {
     expect(billing).toEqual(
       new Dashboard().getColumnBillingAccessControl("ipWhitelist"),
     );
+    // Sold on Scale whenever it is written: on a create as on an update.
     expect(billing).toMatchObject({
       read: PlanType.Free,
-      create: PlanType.Free,
+      create: PlanType.Scale,
       update: PlanType.Scale,
     });
   });

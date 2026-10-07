@@ -717,6 +717,11 @@ enum Permission {
   DeleteCephClusterOwnerRule = "DeleteCephClusterOwnerRule",
   EditCephClusterOwnerRule = "EditCephClusterOwnerRule",
   ReadCephClusterOwnerRule = "ReadCephClusterOwnerRule",
+  // Storage Array Owner Rule Permissions
+  CreateStorageArrayOwnerRule = "CreateStorageArrayOwnerRule",
+  DeleteStorageArrayOwnerRule = "DeleteStorageArrayOwnerRule",
+  EditStorageArrayOwnerRule = "EditStorageArrayOwnerRule",
+  ReadStorageArrayOwnerRule = "ReadStorageArrayOwnerRule",
 
   // vCenter (VMware) Owner Rule Permissions
   CreateVMwareVCenterOwnerRule = "CreateVMwareVCenterOwnerRule",
@@ -735,6 +740,11 @@ enum Permission {
   DeleteCephClusterLabelRule = "DeleteCephClusterLabelRule",
   EditCephClusterLabelRule = "EditCephClusterLabelRule",
   ReadCephClusterLabelRule = "ReadCephClusterLabelRule",
+  // Storage Array Label Rule Permissions
+  CreateStorageArrayLabelRule = "CreateStorageArrayLabelRule",
+  DeleteStorageArrayLabelRule = "DeleteStorageArrayLabelRule",
+  EditStorageArrayLabelRule = "EditStorageArrayLabelRule",
+  ReadStorageArrayLabelRule = "ReadStorageArrayLabelRule",
 
   // vCenter (VMware) Label Rule Permissions
   CreateVMwareVCenterLabelRule = "CreateVMwareVCenterLabelRule",
@@ -1113,6 +1123,9 @@ enum Permission {
   CreateCephClusterFeed = "CreateCephClusterFeed",
   EditCephClusterFeed = "EditCephClusterFeed",
   ReadCephClusterFeed = "ReadCephClusterFeed",
+  CreateStorageArrayFeed = "CreateStorageArrayFeed",
+  EditStorageArrayFeed = "EditStorageArrayFeed",
+  ReadStorageArrayFeed = "ReadStorageArrayFeed",
 
   CreateVMwareVCenterFeed = "CreateVMwareVCenterFeed",
   EditVMwareVCenterFeed = "EditVMwareVCenterFeed",
@@ -1558,6 +1571,10 @@ enum Permission {
   DeleteCephCluster = "DeleteCephCluster",
   EditCephCluster = "EditCephCluster",
   ReadCephCluster = "ReadCephCluster",
+  CreateStorageArray = "CreateStorageArray",
+  DeleteStorageArray = "DeleteStorageArray",
+  EditStorageArray = "EditStorageArray",
+  ReadStorageArray = "ReadStorageArray",
 
   CreateVMwareVCenter = "CreateVMwareVCenter",
   DeleteVMwareVCenter = "DeleteVMwareVCenter",
@@ -1601,6 +1618,10 @@ enum Permission {
   DeleteCephClusterOwnerTeam = "DeleteCephClusterOwnerTeam",
   EditCephClusterOwnerTeam = "EditCephClusterOwnerTeam",
   ReadCephClusterOwnerTeam = "ReadCephClusterOwnerTeam",
+  CreateStorageArrayOwnerTeam = "CreateStorageArrayOwnerTeam",
+  DeleteStorageArrayOwnerTeam = "DeleteStorageArrayOwnerTeam",
+  EditStorageArrayOwnerTeam = "EditStorageArrayOwnerTeam",
+  ReadStorageArrayOwnerTeam = "ReadStorageArrayOwnerTeam",
 
   CreateVMwareVCenterOwnerTeam = "CreateVMwareVCenterOwnerTeam",
   DeleteVMwareVCenterOwnerTeam = "DeleteVMwareVCenterOwnerTeam",
@@ -1616,6 +1637,10 @@ enum Permission {
   DeleteCephClusterOwnerUser = "DeleteCephClusterOwnerUser",
   EditCephClusterOwnerUser = "EditCephClusterOwnerUser",
   ReadCephClusterOwnerUser = "ReadCephClusterOwnerUser",
+  CreateStorageArrayOwnerUser = "CreateStorageArrayOwnerUser",
+  DeleteStorageArrayOwnerUser = "DeleteStorageArrayOwnerUser",
+  EditStorageArrayOwnerUser = "EditStorageArrayOwnerUser",
+  ReadStorageArrayOwnerUser = "ReadStorageArrayOwnerUser",
 
   CreateVMwareVCenterOwnerUser = "CreateVMwareVCenterOwnerUser",
   DeleteVMwareVCenterOwnerUser = "DeleteVMwareVCenterOwnerUser",
@@ -2629,8 +2654,14 @@ export class PermissionHelper {
       {
         permission: Permission.BillingAdmin,
         title: "Billing Admin",
+        /*
+         * What the role grants, and no more: the four notification channel
+         * switches (Project's enableSmsNotifications and the three beside
+         * it). The plan, payment methods, invoices and balance are checked
+         * against Project Owner and Manage Billing.
+         */
         description:
-          "Full control over project billing, invoices, and payment methods.",
+          "Turns the project's SMS, phone call, WhatsApp and Telegram notifications on and off. Changing the plan, payment methods or balance takes Project Owner or Manage Billing.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2669,7 +2700,7 @@ export class PermissionHelper {
         permission: Permission.WorkflowAdmin,
         title: "Workflow Admin",
         description:
-          "Full control over workflows, workflow logs, and workflow variables.",
+          "Builds workflows: creates, edits, runs and deletes them, manages workflow variables, and reads every run.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2679,7 +2710,7 @@ export class PermissionHelper {
         permission: Permission.WorkflowMember,
         title: "Workflow Member",
         description:
-          "Can create, edit, and delete workflows and workflow variables.",
+          "Opens workflows and their runs, and runs workflows by hand. Cannot create, change or delete them.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -3650,6 +3681,36 @@ export class PermissionHelper {
         title: "Read Ceph Cluster Feed",
         description:
           "This permission can read the activity feed of a Ceph cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.CreateStorageArrayFeed,
+        title: "Create Storage Array Feed",
+        description:
+          "This permission can create the activity feed of a storage array in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditStorageArrayFeed,
+        title: "Edit Storage Array Feed",
+        description:
+          "This permission can edit the activity feed of a storage array in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadStorageArrayFeed,
+        title: "Read Storage Array Feed",
+        description:
+          "This permission can read the activity feed of a storage array in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -9518,6 +9579,44 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
       },
+      {
+        permission: Permission.CreateStorageArray,
+        title: "Create Storage Array",
+        description:
+          "This permission can create Storage Array in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteStorageArray,
+        title: "Delete Storage Array",
+        description:
+          "This permission can delete Storage Array of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditStorageArray,
+        title: "Edit Storage Array",
+        description: "This permission can edit Storage Array of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadStorageArray,
+        title: "Read Storage Array",
+        description: "This permission can read Storage Array of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
 
       {
         permission: Permission.CreateVMwareVCenter,
@@ -10650,6 +10749,46 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
       },
+      {
+        permission: Permission.CreateStorageArrayOwnerTeam,
+        title: "Create Storage Array Team Owner",
+        description:
+          "This permission can create Storage Array Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteStorageArrayOwnerTeam,
+        title: "Delete Storage Array Team Owner",
+        description:
+          "This permission can delete Storage Array Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditStorageArrayOwnerTeam,
+        title: "Edit Storage Array Team Owner",
+        description:
+          "This permission can edit Storage Array Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadStorageArrayOwnerTeam,
+        title: "Read Storage Array Team Owner",
+        description:
+          "This permission can read Storage Array Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
 
       {
         permission: Permission.CreateVMwareVCenterOwnerTeam,
@@ -10768,6 +10907,46 @@ export class PermissionHelper {
         title: "Read Ceph Cluster User Owner",
         description:
           "This permission can read Ceph Cluster User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.CreateStorageArrayOwnerUser,
+        title: "Create Storage Array User Owner",
+        description:
+          "This permission can create Storage Array User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteStorageArrayOwnerUser,
+        title: "Delete Storage Array User Owner",
+        description:
+          "This permission can delete Storage Array User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditStorageArrayOwnerUser,
+        title: "Edit Storage Array User Owner",
+        description:
+          "This permission can edit Storage Array User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadStorageArrayOwnerUser,
+        title: "Read Storage Array User Owner",
+        description:
+          "This permission can read Storage Array User Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13451,7 +13630,10 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
 
-      // Ceph Cluster Owner Rule Permissions
+      /*
+       * Ceph Cluster Owner Rule Permissions
+       * Storage Array Owner Rule Permissions
+       */
       {
         permission: Permission.CreateCephClusterOwnerRule,
         title: "Create Ceph Cluster Owner Rule",
@@ -13487,6 +13669,46 @@ export class PermissionHelper {
         title: "Read Ceph Cluster Owner Rule",
         description:
           "This permission can read Ceph Cluster Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.CreateStorageArrayOwnerRule,
+        title: "Create Storage Array Owner Rule",
+        description:
+          "This permission can create Storage Array Owner Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteStorageArrayOwnerRule,
+        title: "Delete Storage Array Owner Rule",
+        description:
+          "This permission can delete Storage Array Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditStorageArrayOwnerRule,
+        title: "Edit Storage Array Owner Rule",
+        description:
+          "This permission can edit Storage Array Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadStorageArrayOwnerRule,
+        title: "Read Storage Array Owner Rule",
+        description:
+          "This permission can read Storage Array Owner Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13577,7 +13799,10 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
 
-      // Ceph Cluster Label Rule Permissions
+      /*
+       * Ceph Cluster Label Rule Permissions
+       * Storage Array Label Rule Permissions
+       */
       {
         permission: Permission.CreateCephClusterLabelRule,
         title: "Create Ceph Cluster Label Rule",
@@ -13613,6 +13838,46 @@ export class PermissionHelper {
         title: "Read Ceph Cluster Label Rule",
         description:
           "This permission can read Ceph Cluster Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.CreateStorageArrayLabelRule,
+        title: "Create Storage Array Label Rule",
+        description:
+          "This permission can create Storage Array Label Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteStorageArrayLabelRule,
+        title: "Delete Storage Array Label Rule",
+        description:
+          "This permission can delete Storage Array Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditStorageArrayLabelRule,
+        title: "Edit Storage Array Label Rule",
+        description:
+          "This permission can edit Storage Array Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadStorageArrayLabelRule,
+        title: "Read Storage Array Label Rule",
+        description:
+          "This permission can read Storage Array Label Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

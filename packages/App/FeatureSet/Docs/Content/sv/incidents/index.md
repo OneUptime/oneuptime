@@ -49,7 +49,7 @@ Den skillnaden betyder mer än den låter:
 
 - `isCreatedState` avgör var en ny incident börjar. Om inget tillstånd väljs uttryckligen vid skapandet letar OneUptime upp projektets skapade tillstånd och använder det.
 - `isAcknowledgedState` och `isResolvedState` driver knapparna **Acknowledge** och **Lös** i incidentens rubrik, de två nyckeltalsrutorna på incidentens **Översikt** och antalsmärket **Aktiva incidenter** i sidomenyn.
-- **Aktiva incidenter** definieras helt enkelt som "det aktuella tillståndet är inte det lösta tillståndet". Varje eget tillstånd du lägger till räknas därför som aktivt så länge det inte är det lösta.
+- **Aktiva incidenter** definieras helt enkelt som "det aktuella tillståndet ligger ovanför det lösta tillståndet". Ett eget tillstånd du lägger till ovanför det lösta tillståndet räknas därför som aktivt; ett du placerar efter det räknas som löst, precis som det lösta tillståndet.
 
 **Lägg märke till namngivningen.** Det första färdiga tillståndet heter **Identifierad**, även om flera beskrivningar inne i produkten fortfarande kallar det det skapade tillståndet. Om du letar efter "Created" i ditt projekts tillståndslista är det raden som heter **Identifierad**.
 
@@ -102,7 +102,7 @@ De som svarar bekräftar incidenten, kopplar på berörda resurser, kör runbook
 
 ### 4. Den löses
 
-Att klicka på **Lös** flyttar incidenten till det lösta tillståndet, stämplar tillståndstidslinjen, stoppar varaktighetsklockan och tar bort incidenten från den aktiva delen av varje statussida där den visades. Inget annat behöver ändras för att det ska hända — det är flaggan för löst tillstånd som statussidans fråga tittar på.
+Att klicka på **Lös** flyttar incidenten till det lösta tillståndet, stämplar tillståndstidslinjen, stoppar varaktighetsklockan, lämnar tillbaka de monitorer den håller och tar bort incidenten från den aktiva delen av varje statussida där den visades. Inget annat behöver ändras för att det ska hända — en statussida visar bara incidenter i ett tillstånd ovanför det lösta tillståndet. Se [Incidentstatusar och allvarlighetsgrader](/docs/incidents/states-and-severities).
 
 Därefter kan du skriva en efteranalys och, om du vill, publicera den på statussidan.
 
@@ -112,13 +112,14 @@ Därefter kan du skriva en efteranalys och, om du vill, publicera den på status
 
 | Sektion            | Vad du gör där                                                                                                                                                         |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Översikt**       | **Alla incidenter** och **Aktiva incidenter** — den senare bär ett rött märke med antalet incidenter som inte är i det lösta tillståndet.                              |
+| **Översikt**       | **Alla incidenter** och **Aktiva incidenter** — den senare bär ett rött märke med antalet incidenter i ett tillstånd ovanför det lösta tillståndet.                              |
 | **Episoder**       | Incidentepisoder, en separat grupperingsfunktion med egna sidor.                                                                                                        |
+| **AI** | **Insikter**, **Loggar**, **Inställningar**, **Regler för automatisk åtgärd**: vad OneUptime AI har lärt sig av dina incidenter och allt den har gjort för dem, vad den får göra på egen hand, och reglerna som åtgärdar incidenter med runbooks. Se [AI SRE](/docs/ai/ai-sre). |
 | **Arbetsyta**      | Kopplingarna till **Slack** och **Microsoft Teams** för incidenter.                                                                                                     |
-| **Regler**         | Regelmotorerna: **Grupperingsregler**, **Jourregler**, **Ägarregler**, **Runbook-regler**, **Regler för automatisk åtgärd**, **Sekretessregler**, **Etikettregler**, **SLA-regler**, **Reminder Rules**. |
-| **Inställningar**  | **AI**, **Incidentstatus**, **Incidentallvar**, **Incidentmallar**, **Anteckningsmallar**, **Postmortem-mallar**, **Anpassade fält**, **Incidentroller**, **Nummerprefix**. |
+| **Regler**         | Regelmotorerna: **Grupperingsregler**, **Jourregler**, **Ägarregler**, **Runbook-regler**, **Sekretessregler**, **Etikettregler**, **SLA-regler**, **Reminder Rules**. |
+| **Inställningar**  | **Incidentstatus**, **Incidentallvar**, **Incidentmallar**, **Anteckningsmallar**, **Postmortem-mallar**, **Anpassade fält**, **Incidentroller**, **Nummerprefix**. |
 
-**Regler** och **Inställningar** är ihopfällda som standard — fäll ut dem för att hitta sidorna som resten av den här dokumentationen hänvisar till. Incidentkonfigurationen ligger inte under Projektinställningar; allt bor här.
+**AI**, **Regler** och **Inställningar** är ihopfällda som standard — fäll ut dem för att hitta sidorna som resten av den här dokumentationen hänvisar till. Incidentkonfigurationen ligger inte under Projektinställningar; allt bor här.
 
 Själva incidentlistan visar **Incidentnummer**, **Titel**, **Tillstånd**, **Allvarlighetsgrad**, **Berörda resurser**, **Deklarerad**, **Varaktighet**, **Etiketter** och **Ägare**, med massåtgärden **Ändra tillstånd** för att stänga flera på en gång.
 
@@ -144,7 +145,7 @@ Själva incidentlistan visar **Incidentnummer**, **Titel**, **Tillstånd**, **Al
 - **Monitorer upptäcker problemet; incidenter registrerar det.** En kriterieregel på en monitor kan deklarera en incident automatiskt och förifylla titel, allvarlighetsgrad, jourpolicyer, ägare, etiketter och åtgärdsanteckningar. Se [Incident- och varningsmallar](/docs/monitor/incident-alert-templating) för variablerna som finns där.
 - **Jourpolicyer sköter larmningen.** Koppla på policyer i steget **Jour** i deklarationsguiden, på en mall, eller via **Incidenter → Regler → Jourregler**. Varje matchande regel utlöses — mängden som körs är unionen av alla träffar plus allt som kopplats på direkt, avdubblettad.
 - **Runbooks talar om för folk vad de ska göra.** Runbook-regler kopplar på en procedur automatiskt när en matchande incident skapas, och de som svarar kan starta en för hand från incidenten. Se [Runbooks – Översikt](/docs/runbooks/index).
-- **Statussidor berättar för kunderna.** En incident visas i en statussidas aktiva lista när sidan har incidenter påslaget, incidenten är markerad som synlig på statussidan och dess aktuella tillstånd inte är det lösta. Privata incidenter döljs alltid från varje statussida. Se [Statussidor – Översikt](/docs/status-pages/index).
+- **Statussidor berättar för kunderna.** En incident visas i en statussidas aktiva lista när sidan har incidenter påslaget, incidenten är markerad som synlig på statussidan och dess aktuella tillstånd ligger ovanför det lösta tillståndet. Privata incidenter döljs alltid från varje statussida. Se [Statussidor – Översikt](/docs/status-pages/index).
 - **Arbetsflöden automatiserar runt den.** Utlösarna **On Create Incident**, **On Update Incident** och **On Delete Incident** låter dig bygga kodfri automation ovanpå incidentens livscykel. Se [Översikt över arbetsflöden](/docs/workflows/index).
 
 ## Läs vidare

@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/IncidentSla";
 import IncidentSlaRule from "../../Models/DatabaseModels/IncidentSlaRule";
 import Incident from "../../Models/DatabaseModels/Incident";
@@ -13,7 +13,7 @@ import IncidentService from "./IncidentService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {
@@ -27,6 +27,13 @@ export class Service extends DatabaseService<Model> {
     projectId: ObjectID;
     declaredAt: Date;
     incident?: Incident;
+    /*
+     * When the incident was already responded to as its SLA starts: an
+     * incident declared already acknowledged (StartingStage) was responded
+     * to the moment it was declared, so its response deadline is not
+     * missed for it.
+     */
+    respondedAt?: Date | undefined;
   }): Promise<Model | null> {
     logger.debug(
       `Creating SLA record for incident ${data.incidentId} in project ${data.projectId}`,
@@ -91,6 +98,10 @@ export class Service extends DatabaseService<Model> {
 
     if (resolutionDeadline) {
       sla.resolutionDeadline = resolutionDeadline;
+    }
+
+    if (data.respondedAt) {
+      sla.respondedAt = data.respondedAt;
     }
 
     try {

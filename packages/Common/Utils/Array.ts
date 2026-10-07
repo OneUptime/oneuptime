@@ -38,6 +38,33 @@ export default class ArrayUtil {
     );
   }
 
+  /*
+   * forEachWithConcurrency that keeps what the handler answers for each
+   * item, in the items' order: at most `concurrency` items in flight.
+   */
+  public static async mapWithConcurrency<T, R>(
+    array: Array<T>,
+    concurrency: number,
+    mapper: (item: T) => Promise<R>,
+  ): Promise<Array<R>> {
+    const results: Array<R> = new Array<R>(array.length);
+    const indexes: Array<number> = array.map(
+      (_item: T, index: number): number => {
+        return index;
+      },
+    );
+
+    await ArrayUtil.forEachWithConcurrency(
+      indexes,
+      concurrency,
+      async (index: number): Promise<void> => {
+        results[index] = await mapper(array[index] as T);
+      },
+    );
+
+    return results;
+  }
+
   public static mergeStringArrays(
     array1: Array<string>,
     array2: Array<string>,

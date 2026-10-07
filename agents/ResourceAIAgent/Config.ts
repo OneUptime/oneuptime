@@ -16,6 +16,13 @@ import {
   RESOURCE_AI_ALLOW_WRITES_ENV,
   RESOURCE_AI_WRITE_TARGETS_ENV,
 } from "./Common/Types/ResourceAiAgent/ResourceAiAccess";
+import {
+  AI_FIXES_ENV,
+  AI_INVESTIGATION_ENV,
+  AgentAiSettings,
+  ResolvedAgentAiSettings,
+  resolveAgentAiSettings,
+} from "./Common/Types/AI/AgentAiSettings";
 
 /*
  * The agent's configuration, read from the environment. The agent runs as a
@@ -107,11 +114,27 @@ export interface AgentConfig {
   /*
    * Whether AI-composed writes may run. Only "true" allows them; unset,
    * "false" and anything else (a typo, "yes", "readonly") refuse — a
-   * security switch must never read a plausible "off" as "on".
+   * security switch must never read a plausible "off" as "on". Also false
+   * while aiSettings.fixes is off: an agent configured not to fix anything
+   * never writes.
    */
   allowWrites: boolean;
   // The switch exactly as set (null when unset), for refusal messages.
   allowWritesSetting: string | null;
+  /*
+   * What this agent's configuration lets OneUptime AI do on the resource
+   * (ONEUPTIME_AI_INVESTIGATION and ONEUPTIME_AI_FIXES), reported on
+   * registration and every heartbeat. When the configuration names neither,
+   * these are the agent's defaults (isConfigured false), which OneUptime
+   * applies only to a resource whose settings nobody chose on its AI agent
+   * page.
+   */
+  aiSettings: AgentAiSettings;
+  /*
+   * The write switch is on, but fixes are off in the configuration, so
+   * writes are refused anyway — for the refusal's message.
+   */
+  writesOffByFixes: boolean;
   /*
    * RESOURCE_AI_WRITE_TARGETS_ENV as globs: trimmed, without blanks or
    * duplicates, case kept (target globs match case-sensitively). Empty
@@ -683,7 +706,7 @@ export function parseConfig(env: NodeJS.ProcessEnv): ParsedConfig {
 
   const allowWritesSetting: string | null =
     env[RESOURCE_AI_ALLOW_WRITES_ENV] ?? null;
-  let allowWrites: boolean = parseSwitch(allowWritesSetting);
+  const writeSwitch: boolean = parseSwitch(allowWritesSetting);
 
   const unrecognised: string | null = describeUnrecognisedSwitch({
     name: RESOURCE_AI_ALLOW_WRITES_ENV,
@@ -694,6 +717,21 @@ export function parseConfig(env: NodeJS.ProcessEnv): ParsedConfig {
   if (unrecognised) {
     warnings.push(unrecognised);
   }
+
+  /*
+   * What AI may do here, as the .env configures it. With fixes off the
+   * agent refuses every write itself, whatever the write switch says.
+   */
+  const ai: ResolvedAgentAiSettings = resolveAgentAiSettings({
+    investigationSetting: env[AI_INVESTIGATION_ENV] ?? null,
+    fixesSetting: env[AI_FIXES_ENV] ?? null,
+    allowWrites: writeSwitch,
+    allowWritesName: RESOURCE_AI_ALLOW_WRITES_ENV,
+  });
+
+  warnings.push(...ai.warnings);
+
+  let allowWrites: boolean = ai.allowWrites;
 
   const writeTargets: ParsedTargetList = parseTargetList(
     env[RESOURCE_AI_WRITE_TARGETS_ENV],
@@ -746,6 +784,8 @@ export function parseConfig(env: NodeJS.ProcessEnv): ParsedConfig {
       identityDetails: identity ? identity.details : {},
       allowWrites,
       allowWritesSetting,
+      aiSettings: ai.settings,
+      writesOffByFixes: writeSwitch && !ai.allowWrites,
       writeTargets: writeTargets.targets,
       protectedTargets: protectedTargets.targets,
       port: parsePort(env["PORT"]),

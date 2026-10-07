@@ -1,10 +1,7 @@
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
-import QueryHelper from "../Types/Database/QueryHelper";
-import DatabaseService from "./DatabaseService";
-import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
+import ProjectReferencesService from "./ProjectReferencesService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -19,8 +16,9 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
 import { OnCallShiftChangeReason } from "../Utils/OnCall/OnCallShiftChangeListeners";
 import logger from "../Utils/Logger";
+import ContiguousOrder from "../Utils/Database/ContiguousOrder";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -160,6 +158,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.onCallDutyPolicyScheduleId) {
       throw new BadDataException("onCallDutyPolicyScheduleId is required");
     }
@@ -182,12 +182,6 @@ export class Service extends DatabaseService<Model> {
       createBy.data.order = count.toNumber() + 1;
     }
 
-    await this.rearrangeOrder(
-      createBy.data.order,
-      createBy.data.onCallDutyPolicyScheduleId!,
-      true,
-    );
-
     return {
       createBy,
       carryForward: null,
@@ -203,6 +197,7 @@ export class Service extends DatabaseService<Model> {
       select: {
         onCallDutyPolicyScheduleId: true,
         projectId: true,
+        order: true,
       },
       props: {
         isRoot: true,
@@ -211,6 +206,23 @@ export class Service extends DatabaseService<Model> {
 
     if (!resource || !resource.onCallDutyPolicyScheduleId) {
       return createdItem;
+    }
+
+    /*
+     * The layers at the new layer's place and after it move one place down -
+     * now that it exists, so a create that is refused or fails leaves the
+     * schedule's order as it was.
+     */
+    if (resource.order && resource.projectId) {
+      await ContiguousOrder.afterCreate({
+        service: this,
+        list: {
+          onCallDutyPolicyScheduleId: resource.onCallDutyPolicyScheduleId,
+          projectId: resource.projectId,
+        },
+        createdItemId: createdItem.id!,
+        order: resource.order,
+      });
     }
 
     await this.refreshScheduleRosterBestEffort(
@@ -229,6 +241,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     this.validateRotationInterval(updateBy.data.rotation);
     this.validateRestrictionTimes(updateBy.data.restrictionTimes);
 
@@ -317,21 +331,40 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
+  /*
+   * Only for a layer the delete actually removed: the layers after it close
+   * its gap (within its schedule and project) and the roster is refreshed.
+   */
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _itemIdsBeforeDelete: ObjectID[],
+    itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<Model>> {
     const deleteBy: DeleteBy<Model> = onDelete.deleteBy;
     const resource: Model | null = onDelete.carryForward;
 
-    if (!deleteBy.props.isRoot && resource) {
-      if (resource && resource.order && resource.onCallDutyPolicyScheduleId) {
-        await this.rearrangeOrder(
-          resource.order,
-          resource.onCallDutyPolicyScheduleId,
-          false,
-        );
+    const wasDeleted: boolean = Boolean(
+      resource &&
+        resource.id &&
+        itemIdsBeforeDelete.some((id: ObjectID): boolean => {
+          return id.toString() === resource.id!.toString();
+        }),
+    );
+
+    if (!deleteBy.props.isRoot && resource && wasDeleted) {
+      if (
+        resource.order &&
+        resource.onCallDutyPolicyScheduleId &&
+        resource.projectId
+      ) {
+        await ContiguousOrder.afterDelete({
+          service: this,
+          list: {
+            onCallDutyPolicyScheduleId: resource.onCallDutyPolicyScheduleId,
+            projectId: resource.projectId,
+          },
+          order: resource.order,
+        });
 
         await this.refreshScheduleRosterBestEffort(
           resource.onCallDutyPolicyScheduleId,
@@ -348,54 +381,6 @@ export class Service extends DatabaseService<Model> {
       deleteBy: deleteBy,
       carryForward: null,
     };
-  }
-
-  private async rearrangeOrder(
-    currentOrder: number,
-    onCallDutyPolicyScheduleId: ObjectID,
-    increaseOrder: boolean = true,
-  ): Promise<void> {
-    // get status page resource with this order.
-    const resources: Array<Model> = await this.findBy({
-      query: {
-        order: QueryHelper.greaterThanEqualTo(currentOrder),
-        onCallDutyPolicyScheduleId: onCallDutyPolicyScheduleId,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-      select: {
-        _id: true,
-        order: true,
-      },
-      sort: {
-        order: SortOrder.Ascending,
-      },
-    });
-
-    let newOrder: number = currentOrder;
-
-    for (const resource of resources) {
-      if (increaseOrder) {
-        newOrder = resource.order! + 1;
-      } else {
-        newOrder = resource.order! - 1;
-      }
-
-      await this.updateOneBy({
-        query: {
-          _id: resource._id!,
-        },
-        data: {
-          order: newOrder,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-    }
   }
 }
 

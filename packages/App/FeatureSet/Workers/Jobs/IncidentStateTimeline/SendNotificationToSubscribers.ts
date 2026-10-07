@@ -1,6 +1,5 @@
 import RunCron from "../../Utils/Cron";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { StatusPageApiRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
@@ -39,6 +38,7 @@ import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource"
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import StatusPageVisibility from "Common/Types/StatusPage/StatusPageVisibility";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import { Blue500, Red500, Yellow500 } from "Common/Types/BrandColors";
@@ -67,6 +67,8 @@ import SubscriberNotificationRunLimit, {
 } from "Common/Server/Utils/StatusPage/SubscriberNotificationRunLimit";
 import SubscriberNotificationFanOut from "Common/Server/Utils/StatusPage/SubscriberNotificationFanOut";
 import Email from "Common/Types/Email";
+import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
+import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
 
 RunCron(
   "IncidentStateTimeline:SendNotificationToSubscribers",
@@ -250,7 +252,9 @@ RunCron(
                 name: true,
                 color: true,
               },
+              // Whether a status page shows it (StatusPageVisibility): visible, and not private.
               isVisibleOnStatusPage: true,
+              isPrivate: true,
               incidentNumber: true,
               incidentNumberWithPrefix: true,
               // {{incidentLabels}} and the custom fields (IncidentTemplateVariableBuilder).
@@ -303,7 +307,7 @@ RunCron(
             continue;
           }
 
-          if (!incident.isVisibleOnStatusPage) {
+          if (!StatusPageVisibility.isShown(incident)) {
             logger.debug(
               `Incident ${incident.id} not visible on status page; marking as Skipped.`,
               {
@@ -419,8 +423,6 @@ RunCron(
                 await StatusPageService.getStatusPageURL(statuspage.id);
               const statusPageName: string =
                 statuspage.pageTitle || statuspage.name || "Status Page";
-              const statusPageIdString: string | null =
-                statuspage.id?.toString() || statuspage._id?.toString() || null;
 
               const incidentDetailsUrl: string =
                 incident.id && statusPageURL
@@ -776,13 +778,11 @@ RunCron(
                                 statusPageName: statusPageName,
                                 statusPageUrl: statusPageURL,
                                 detailsUrl: incidentDetailsUrl,
-                                logoUrl:
-                                  statuspage.logoFileId && statusPageIdString
-                                    ? new URL(httpProtocol, host)
-                                        .addRoute(StatusPageApiRoute)
-                                        .addRoute(`/logo/${statusPageIdString}`)
-                                        .toString()
-                                    : "",
+                                logoUrl: StatusPageEmailLogo.getLogoUrl({
+                                  statusPage: statuspage,
+                                  host: host,
+                                  httpProtocol: httpProtocol,
+                                }),
                                 isPublicStatusPage:
                                   statuspage.isPublicStatusPage
                                     ? "true"
@@ -846,18 +846,18 @@ RunCron(
                       ]);
                     } else {
                       // Use default hard-coded template
-                      slackTitle = `🚨 ## Incident - ${incident.title || " - "}
+                      slackTitle = `🚨 ## Incident - ${escapeMarkdownValue(incident.title || " - ")}
 
 `;
 
                       if (resourcesAffectedPlainText) {
                         slackTitle += `
-**Resources Affected:** ${resourcesAffectedPlainText}`;
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}`;
                       }
 
                       slackTitle += `
-**Severity:** ${incident.incidentSeverity?.name || " - "}
-**Status:** ${incidentStateName}${chatCustomFields}
+**Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || " - ")}
+**Status:** ${escapeMarkdownValue(incidentStateName)}${chatCustomFields}
 
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
                       await incidentTemplateVariables.recordIncludedFieldsSent();
@@ -901,18 +901,18 @@ RunCron(
                       ]);
                     } else {
                       // Use default hard-coded template
-                      teamsTitle = `🚨 ## Incident - ${incident.title || " - "}
+                      teamsTitle = `🚨 ## Incident - ${escapeMarkdownValue(incident.title || " - ")}
 
 `;
 
                       if (resourcesAffectedPlainText) {
                         teamsTitle += `
-**Resources Affected:** ${resourcesAffectedPlainText}`;
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}`;
                       }
 
                       teamsTitle += `
-**Severity:** ${incident.incidentSeverity?.name || " - "}
-**Status:** ${incidentStateName}${chatCustomFields}
+**Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || " - ")}
+**Status:** ${escapeMarkdownValue(incidentStateName)}${chatCustomFields}
 
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
                       await incidentTemplateVariables.recordIncludedFieldsSent();
@@ -1031,7 +1031,7 @@ RunCron(
               incidentFeedEventType:
                 IncidentFeedEventType.SubscriberNotificationSent,
               displayColor: Red500,
-              feedInfoInMarkdown: `📧 **Not every Status Page Subscriber was notified** about the state change of the [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}) to **${incidentStateTimeline.incidentState.name}**`,
+              feedInfoInMarkdown: `📧 **Not every Status Page Subscriber was notified** about the state change of the [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}) to **${escapeMarkdownValue(incidentStateTimeline.incidentState.name)}**`,
               /*
                * Each status page with what was sent and what failed, and the
                * subject its email went out with; then the custom field values
@@ -1057,7 +1057,7 @@ RunCron(
               incidentFeedEventType:
                 IncidentFeedEventType.SubscriberNotificationSent,
               displayColor: Blue500,
-              feedInfoInMarkdown: `📧 **Status Page Subscribers have been notified** about the state change of the [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}) to **${incidentStateTimeline.incidentState.name}**`,
+              feedInfoInMarkdown: `📧 **Status Page Subscribers have been notified** about the state change of the [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}) to **${escapeMarkdownValue(incidentStateTimeline.incidentState.name)}**`,
               /*
                * Each status page, the subject its email went out with, and
                * what was sent; then the custom field values sent.
@@ -1084,7 +1084,7 @@ RunCron(
               incidentFeedEventType:
                 IncidentFeedEventType.SubscriberNotificationSent,
               displayColor: Yellow500,
-              feedInfoInMarkdown: `📧 **No notification sent to subscribers** for the state change of [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}) to **${incidentStateTimeline.incidentState.name}**`,
+              feedInfoInMarkdown: `📧 **No notification sent to subscribers** for the state change of [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}) to **${escapeMarkdownValue(incidentStateTimeline.incidentState.name)}**`,
               moreInformationInMarkdown: [
                 "Subscriber notifications were skipped because every associated status page either hides incidents, is left out by this incident's status page scope, or had no matching subscribers.",
                 deliveryMarkdown,

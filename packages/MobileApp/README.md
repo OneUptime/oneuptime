@@ -227,16 +227,23 @@ escalated - never owner subscriptions or note-posted notices.
   settings; the app opens that screen when the switch is turned on. Channel
   settings are frozen by Android at creation, so changing them means shipping a
   new channel id, not editing `src/notifications/channels.ts`.
-- **iOS** needs Apple's critical-alerts entitlement, which is **not** enabled by
-  default because a build declaring an entitlement the Apple team has not been
-  granted fails to sign. Once Apple grants it:
+- **iOS** needs Apple's critical-alerts entitlement. Apple has granted it to
+  the team that publishes the official app, and the `production` profile in
+  `eas.json` sets `EXPO_IOS_CRITICAL_ALERTS_ENTITLEMENT: "true"`, so store
+  builds carry it. It stays **off** by default everywhere else because a build
+  declaring an entitlement its Apple team has not been granted fails to sign.
+  A fork that signs with its own Apple team must remove that `env` entry until
+  Apple grants the entitlement to that team. For a local native build with the
+  entitlement:
 
   ```bash
   EXPO_IOS_CRITICAL_ALERTS_ENTITLEMENT=true npm run prebuild
   ```
 
-  or set `EXPO_IOS_CRITICAL_ALERTS_ENTITLEMENT: "true"` in the relevant
-  `eas.json` build profile's `env`.
+  The App ID must have **Critical Alerts** enabled (Apple Developer >
+  Identifiers > Additional Capabilities), and the provisioning profile must be
+  regenerated after enabling it. EAS's capability sync does not manage this
+  capability.
 
 Without the OS capability the app does not pretend: the settings screen reads
 the real state back from the OS and tells the responder which setting is

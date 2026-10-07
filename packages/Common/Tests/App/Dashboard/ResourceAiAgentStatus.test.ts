@@ -1,6 +1,10 @@
-import { describe, expect, test } from "@jest/globals";
+import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import i18next from "i18next";
+import path from "path";
 import {
   RESOURCE_AI_ACCESS_INSIGHTS_ROUTE,
+  RESOURCE_AI_ACCESS_LOGS_ROUTE,
   RESOURCE_AI_ACCESS_RESET_AGENT_ROUTE,
   RESOURCE_AI_ACCESS_STATUS_ROUTE,
   RESOURCE_AI_ACCESS_TEST_ROUTE,
@@ -8,7 +12,10 @@ import {
   RESOURCE_AI_AGENT_STATUS_POLL_INTERVAL_MS,
   RESOURCE_AI_CHOICE_GAP_CODES,
   RESOURCE_AI_REFUSED_REGISTRATION_WARNING_WINDOW_MS,
+  RESOURCE_AGENT_SET_INVESTIGATION_STEP_TEXT,
+  RESOURCE_AI_SETTINGS_SET_BY_TEXT,
   ResourceAccessTestResult,
+  ResourceAiAgentMeta,
   ResourceAiAttention,
   ResourceAiAttentionStep,
   describeResourceAiAgentWriteAccess,
@@ -18,6 +25,7 @@ import {
   getResourceAiAgentCardState,
   getResourceAiAgentGapAction,
   getResourceAiAgentGoneText,
+  getResourceAiAgentMeta,
   getResourceAiAgentMetaParts,
   getResourceAiAgentNotInstalledText,
   getResourceAiAgentOfflineReason,
@@ -33,6 +41,9 @@ import {
   getResourceAiAttentionStepText,
   getResourceAiAttentionTitle,
   getResourceAiRefusedRegistrationWarning,
+  getResourceAiSettingsChoice,
+  getResourceAiSettingsSource,
+  isResourceAiSettingsSetByAgent,
   isResourceUnreachable,
   parseResourceAccessTestResult,
   parseResourceAiAccessStatus,
@@ -46,6 +57,7 @@ import {
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import {
   RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+  RESOURCE_AI_ACCESS_LOGS_PATH,
   RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
   RESOURCE_AI_ACCESS_STATUS_PATH,
   RESOURCE_AI_ACCESS_TEST_PATH,
@@ -157,6 +169,106 @@ function makeStatus(
   };
 }
 
+/*
+ * Where the resource's investigation and fixes are set (status.
+ * aiSettingsSource): while its AI agent sets them, the page shows them
+ * read-only, and the "investigation off" step points where the agent runs.
+ */
+describe("settings the agent sets", () => {
+  test.each([
+    ["agent_configuration", "agent_configuration", true],
+    ["agent_defaults", "agent_defaults", true],
+    ["oneuptime", "oneuptime", false],
+    [undefined, "oneuptime", false],
+    ["something new", "oneuptime", false],
+  ])(
+    "status.aiSettingsSource %j reads as %s",
+    (value: unknown, source: string, isSetByAgent: boolean) => {
+      const status: ResourceAiAccessStatus = makeStatus({
+        aiSettingsSource: value as ResourceAiAccessStatus["aiSettingsSource"],
+      });
+
+      expect(getResourceAiSettingsSource(status)).toBe(source);
+      expect(isResourceAiSettingsSetByAgent(status)).toBe(isSetByAgent);
+    },
+  );
+
+  test("parsing a status keeps where its settings are set", () => {
+    const parsed: ResourceAiAccessStatus | null = parseResourceAiAccessStatus({
+      ...makeStatus(),
+      aiSettingsSource: "agent_configuration",
+    });
+
+    expect(parsed && getResourceAiSettingsSource(parsed)).toBe(
+      "agent_configuration",
+    );
+  });
+
+  test("what is in effect, as a choice", () => {
+    expect(
+      getResourceAiSettingsChoice(
+        makeStatus({
+          isAiInvestigationEnabled: false,
+          aiRemediationMode: ResourceAiRemediationMode.BypassApproval,
+        }),
+      ),
+    ).toEqual({ investigation: false, fixes: "BypassApproval" });
+    // A mode this build does not know reads as Off.
+    expect(
+      getResourceAiSettingsChoice(
+        makeStatus({
+          aiRemediationMode: "Everything" as ResourceAiRemediationMode,
+        }),
+      ).fixes,
+    ).toBe("Disabled");
+  });
+
+  test("the line above the rows names the agent and its variables", () => {
+    for (const text of [
+      RESOURCE_AI_SETTINGS_SET_BY_TEXT.agent_configuration,
+      RESOURCE_AI_SETTINGS_SET_BY_TEXT.agent_defaults,
+      RESOURCE_AI_SETTINGS_SET_BY_TEXT.oneuptime,
+    ]) {
+      expect(text).toContain("{{agent}}");
+      expect(text).toContain("ONEUPTIME_AI_INVESTIGATION");
+      expect(text).toContain("ONEUPTIME_AI_FIXES");
+    }
+  });
+
+  test("investigation off, set by the agent: the step points where it runs and offers the lines", () => {
+    const investigationOff: ResourceAiAccessGap = gap("investigation_disabled");
+    const status: ResourceAiAccessStatus = makeStatus({
+      aiSettingsSource: "agent_configuration",
+      isAiInvestigationEnabled: false,
+      gaps: [investigationOff],
+    });
+
+    expect(getResourceAiAgentGapAction(investigationOff, status)).toBe(
+      "set_investigation_in_agent",
+    );
+    expect(
+      getResourceAiAttentionStepText(investigationOff, status, DOCKER),
+    ).toBe(`Turn on AI investigation where the ${DOCKER.agentName} runs.`);
+    expect(RESOURCE_AGENT_SET_INVESTIGATION_STEP_TEXT).toContain("{{agent}}");
+  });
+
+  test("negative control: chosen here, the Turn on button stays", () => {
+    const investigationOff: ResourceAiAccessGap = gap("investigation_disabled");
+    const status: ResourceAiAccessStatus = makeStatus({
+      aiSettingsSource: "oneuptime",
+      isAiInvestigationEnabled: false,
+      gaps: [investigationOff],
+    });
+
+    expect(getResourceAiAgentGapAction(investigationOff, status)).toBe(
+      "turn_on_investigation",
+    );
+    expect(
+      getResourceAiAttentionStepText(investigationOff, status, DOCKER),
+    ).toBe("Turn on AI investigation.");
+  });
+});
+
 describe("the descriptors", () => {
   const MODELS: Record<AiResourceType, unknown> = {
     [AiResourceType.DockerHost]: DockerHost,
@@ -169,38 +281,46 @@ describe("the descriptors", () => {
     [AiResourceType.Host]: Host,
   };
 
-  const PAGES: Record<AiResourceType, [PageMap, PageMap]> = {
+  const PAGES: Record<AiResourceType, [PageMap, PageMap, PageMap]> = {
     [AiResourceType.DockerHost]: [
       PageMap.DOCKER_HOST_VIEW_AI_AGENT,
       PageMap.DOCKER_HOST_VIEW_AI_INSIGHTS,
+      PageMap.DOCKER_HOST_VIEW_AI_LOGS,
     ],
     [AiResourceType.PodmanHost]: [
       PageMap.PODMAN_HOST_VIEW_AI_AGENT,
       PageMap.PODMAN_HOST_VIEW_AI_INSIGHTS,
+      PageMap.PODMAN_HOST_VIEW_AI_LOGS,
     ],
     [AiResourceType.DockerSwarmCluster]: [
       PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_AGENT,
       PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_INSIGHTS,
+      PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_LOGS,
     ],
     [AiResourceType.ProxmoxCluster]: [
       PageMap.PROXMOX_CLUSTER_VIEW_AI_AGENT,
       PageMap.PROXMOX_CLUSTER_VIEW_AI_INSIGHTS,
+      PageMap.PROXMOX_CLUSTER_VIEW_AI_LOGS,
     ],
     [AiResourceType.VMwareVCenter]: [
       PageMap.VMWARE_VCENTER_VIEW_AI_AGENT,
       PageMap.VMWARE_VCENTER_VIEW_AI_INSIGHTS,
+      PageMap.VMWARE_VCENTER_VIEW_AI_LOGS,
     ],
     [AiResourceType.CephCluster]: [
       PageMap.CEPH_CLUSTER_VIEW_AI_AGENT,
       PageMap.CEPH_CLUSTER_VIEW_AI_INSIGHTS,
+      PageMap.CEPH_CLUSTER_VIEW_AI_LOGS,
     ],
     [AiResourceType.DatabaseServer]: [
       PageMap.DATABASE_SERVER_VIEW_AI_AGENT,
       PageMap.DATABASE_SERVER_VIEW_AI_INSIGHTS,
+      PageMap.DATABASE_SERVER_VIEW_AI_LOGS,
     ],
     [AiResourceType.Host]: [
       PageMap.HOST_VIEW_AI_AGENT,
       PageMap.HOST_VIEW_AI_INSIGHTS,
+      PageMap.HOST_VIEW_AI_LOGS,
     ],
   };
 
@@ -220,6 +340,7 @@ describe("the descriptors", () => {
       expect(descriptor.modelType).toBe(MODELS[type]);
       expect(descriptor.agentPage).toBe(PAGES[type][0]);
       expect(descriptor.insightsPage).toBe(PAGES[type][1]);
+      expect(descriptor.logsPage).toBe(PAGES[type][2]);
     },
   );
 
@@ -294,6 +415,7 @@ describe("the descriptors", () => {
         descriptor.commandsCardTitle,
         descriptor.writeExamples,
         descriptor.riskierExamples,
+        descriptor.riskierChanges,
       ]) {
         expect(value.trim().length).toBeGreaterThan(0);
       }
@@ -314,16 +436,19 @@ describe("the routes and request body", () => {
     expect(RESOURCE_AI_ACCESS_INSIGHTS_ROUTE).toBe(
       RESOURCE_AI_ACCESS_INSIGHTS_PATH,
     );
+    expect(RESOURCE_AI_ACCESS_LOGS_ROUTE).toBe(RESOURCE_AI_ACCESS_LOGS_PATH);
     expect([
       RESOURCE_AI_ACCESS_STATUS_ROUTE,
       RESOURCE_AI_ACCESS_TEST_ROUTE,
       RESOURCE_AI_ACCESS_RESET_AGENT_ROUTE,
       RESOURCE_AI_ACCESS_INSIGHTS_ROUTE,
+      RESOURCE_AI_ACCESS_LOGS_ROUTE,
     ]).toEqual([
       "/resource-ai-access/status",
       "/resource-ai-access/test",
       "/resource-ai-access/reset-agent",
       "/resource-ai-access/insights",
+      "/resource-ai-access/logs",
     ]);
   });
 
@@ -653,18 +778,33 @@ describe("the command under the sentence", () => {
 });
 
 describe("the meta line", () => {
-  test("last seen, the agent's version, the resource's version and what it may change", () => {
+  /*
+   * The agent's version is drawn by the page with AgentVersion (an outdated
+   * agent gets its sign and upgrade dialog), so the words leave it out and
+   * say where it goes: after "last seen".
+   */
+  test("last seen, then the agent's version (drawn by the page), the resource's version and what it may change", () => {
     const parts: Array<string> = getResourceAiAgentMetaParts(
       makeStatus(),
       DOCKER,
     );
 
     expect(parts[0]).toMatch(/^last seen /);
-    expect(parts.slice(1)).toEqual([
-      "agent v14.1.0",
-      "Docker 27.3.1",
-      "Read-only",
-    ]);
+    expect(parts.slice(1)).toEqual(["Docker 27.3.1", "Read-only"]);
+
+    const meta: ResourceAiAgentMeta = getResourceAiAgentMeta(
+      makeStatus(),
+      DOCKER,
+    );
+    expect(meta.lastSeen).toMatch(/^last seen /);
+    expect(meta.showsAgentVersion).toBe(true);
+    expect(meta.rest).toEqual(["Docker 27.3.1", "Read-only"]);
+  });
+
+  test("no agent, no version to show", () => {
+    expect(getResourceAiAgentMeta(makeStatus({ agent: null }), DOCKER)).toEqual(
+      { lastSeen: null, showsAgentVersion: false, rest: [] },
+    );
   });
 
   test("is empty before an agent registered", () => {
@@ -688,7 +828,7 @@ describe("the meta line", () => {
     ).toEqual([]);
   });
 
-  test("falls back to the posture's agent version", () => {
+  test("an agent that reported only its posture still says what it may change", () => {
     expect(
       getResourceAiAgentMetaParts(
         makeStatus({
@@ -703,7 +843,7 @@ describe("the meta line", () => {
         }),
         DOCKER,
       ),
-    ).toEqual(["agent v14.2.0", "Read-only"]);
+    ).toEqual(["Read-only"]);
   });
 
   test("what the agent may change, from its posture", () => {
@@ -1218,10 +1358,8 @@ describe("Needs attention's steps", () => {
       "llm_provider_missing",
       "Add an AI provider for this project, or use OneUptime AI credits.",
     ],
-    [
-      "ai_balance_insufficient",
-      "Add AI credits to this project, or turn on auto-recharge.",
-    ],
+    // Not "or turn on auto-recharge": that does not refill used-up credits.
+    ["ai_balance_insufficient", "Add AI credits to this project."],
     // Retired: Enable AI covers it, so it asks for the same thing.
     ["auto_remediation_disabled_for_project", "Turn on AI for this project."],
   ])("%s: %s", (code: string, text: string) => {
@@ -1366,7 +1504,7 @@ describe("the write-access instructions", () => {
   });
 });
 
-describe("the AI Insights page's pointer to the agent page", () => {
+describe("the AI Insights and AI Logs pages' pointer to the agent page", () => {
   test("only when AI cannot run commands on the resource", () => {
     expect(getResourceAiAgentPageHint(null, DOCKER)).toBeNull();
     expect(getResourceAiAgentPageHint(makeStatus(), DOCKER)).toBeNull();
@@ -1455,5 +1593,167 @@ describe("parseResourceAccessTestResult", () => {
         errorMessage: null,
       },
     ]);
+  });
+});
+
+/*
+ * The agent card's sentence and every "Needs attention" step are looked up
+ * in the Dashboard's locale files (src/Locales/README.md), each one whole
+ * key with the agent's and the resource's names in {{placeholders}}. The
+ * connected and unreachable sentences and most steps used to be template
+ * literals and plain strings that read English in every language.
+ *
+ * A pseudo-locale wraps every en.json entry in ‹ ›, so a sentence that was
+ * looked up comes back wrapped, and so does a name translated along with
+ * it. These run last: they set up the global i18next instance the functions
+ * read.
+ */
+describe("in the reader's language", () => {
+  const ENGLISH: Record<string, unknown> = JSON.parse(
+    fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../../App/FeatureSet/Dashboard/src/Locales/en.json",
+      ),
+      "utf8",
+    ),
+  ) as Record<string, unknown>;
+
+  const LOOKED_UP: RegExp = /^‹[^]*›$/;
+
+  const ALL_GAP_CODES: Array<ResourceAiAccessGapCode> = Object.keys(
+    SERVER_FLAGS,
+  ) as Array<ResourceAiAccessGapCode>;
+
+  const unreachable: (reachError?: string) => ResourceAiAccessStatus = (
+    reachError?: string,
+  ): ResourceAiAccessStatus => {
+    return makeStatus({
+      agent: makeAgent({
+        posture: makePosture({ reachable: false, reachError }),
+      }),
+    });
+  };
+
+  // Every state, and each branch a step's wording depends on.
+  const STATUSES: Array<ResourceAiAccessStatus> = [
+    makeStatus(),
+    makeStatus({ aiSettingsSource: "agent_configuration" }),
+    unreachable("Cannot connect to the Docker daemon"),
+    unreachable(),
+    makeStatus({ agent: null }),
+    makeStatus({
+      agent: makeAgent({ isOnline: false, lastAliveAt: minutesBefore(30) }),
+    }),
+  ];
+
+  beforeAll(async () => {
+    const pseudo: Record<string, string> = {};
+
+    for (const [key, value] of Object.entries(ENGLISH)) {
+      if (typeof value === "string") {
+        pseudo[key] = `‹${value}›`;
+      }
+    }
+
+    await i18next.init({
+      lng: "xx",
+      fallbackLng: "en",
+      resources: { xx: { translation: pseudo } },
+      interpolation: { escapeValue: false },
+      keySeparator: false,
+      nsSeparator: false,
+    });
+  });
+
+  afterAll(async () => {
+    await i18next.changeLanguage("en");
+  });
+
+  test("every state's sentence, for every resource, is looked up whole", () => {
+    for (const descriptor of Object.values(RESOURCE_AI_AGENT_DESCRIPTORS)) {
+      for (const status of STATUSES) {
+        expect({
+          resource: descriptor.resourceType,
+          state: getResourceAiAgentCardState(status),
+          sentence: getResourceAiAgentStateSentence(status, descriptor, NOW),
+        }).toEqual({
+          resource: descriptor.resourceType,
+          state: getResourceAiAgentCardState(status),
+          sentence: expect.stringMatching(LOOKED_UP),
+        });
+      }
+    }
+
+    // The agent's and the resource's names are translated with it.
+    expect(getResourceAiAgentStateSentence(makeStatus(), DOCKER, NOW)).toBe(
+      "‹The ‹Docker AI agent› is running next to this ‹Docker host›.›",
+    );
+    // The agent's own error goes in as it reported it.
+    expect(
+      getResourceAiAgentStateSentence(
+        unreachable("Cannot connect to the Docker daemon"),
+        DOCKER,
+        NOW,
+      ),
+    ).toBe(
+      "‹The ‹Docker AI agent› is running, but it could not reach this ‹Docker host› at its last check: Cannot connect to the Docker daemon Check its logs:›",
+    );
+  });
+
+  test("the pill says a key the Pill looks up", () => {
+    for (const status of STATUSES) {
+      const text: string = getResourceAiAgentStatusPill(status).text;
+
+      expect(ENGLISH[text]).toBe(text);
+    }
+  });
+
+  test("the headline and every step: the page's words looked up, or the server's untouched", () => {
+    for (const descriptor of Object.values(RESOURCE_AI_AGENT_DESCRIPTORS)) {
+      for (const status of STATUSES) {
+        for (const code of ALL_GAP_CODES) {
+          const text: string = getResourceAiAttentionStepText(
+            serverGap(code),
+            status,
+            descriptor,
+          );
+
+          expect({ code, text }).toEqual({
+            code,
+            text: LOOKED_UP.test(text) ? text : `Next step for ${code}`,
+          });
+        }
+
+        expect(
+          getResourceAiAttentionTitle(
+            { ...status, gaps: ALL_GAP_CODES.map(serverGap) },
+            descriptor,
+          ),
+        ).toMatch(LOOKED_UP);
+      }
+    }
+
+    /*
+     * Every step this page words is looked up; only remediation_disabled,
+     * a choice rather than a gap, keeps the server's.
+     */
+    expect(
+      ALL_GAP_CODES.filter((code: ResourceAiAccessGapCode): boolean => {
+        return !LOOKED_UP.test(
+          getResourceAiAttentionStepText(serverGap(code), makeStatus(), DOCKER),
+        );
+      }),
+    ).toEqual(["remediation_disabled"]);
+
+    expect(
+      getResourceAiAttentionStepText(
+        serverGap("ai_agent_unreachable_resource"),
+        unreachable("refused"),
+        DATABASE,
+      ),
+    ).toBe(
+      "‹Let the ‹Database AI agent› reach this ‹database server› (its error and the logs command are above), then test the connection.›",
+    );
   });
 });

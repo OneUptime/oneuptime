@@ -23,6 +23,7 @@ import { createAlertNote } from "../api/alertNotes";
 import { rgbToHex } from "../utils/color";
 import { formatDateTime } from "../utils/date";
 import { toPlainText } from "../utils/text";
+import { getResolvedState, isResolvedStateId } from "../utils/resolvedState";
 import type { AlertsStackParamList } from "../navigation/types";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
 import type { AlertState } from "../api/types";
@@ -247,14 +248,16 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
       return s.isAcknowledgedState;
     },
   );
-  const resolveState: AlertState | undefined = states?.find((s: AlertState) => {
-    return s.isResolvedState;
-  });
+  // Where Resolve moves it: the project's resolved state.
+  const resolveState: AlertState | undefined = getResolvedState(states);
 
   const currentStateId: string | undefined = alert.currentAlertState?._id;
-  const isResolved: boolean = Boolean(
-    resolveState && resolveState._id === currentStateId,
-  );
+  /*
+   * Resolved: in the project's resolved state or in a state placed after
+   * it ("Closed"), so there is nothing left to acknowledge or resolve
+   * (utils/resolvedState).
+   */
+  const isResolved: boolean = isResolvedStateId(states, currentStateId);
   const isAcknowledged: boolean = Boolean(
     acknowledgeState && acknowledgeState._id === currentStateId,
   );

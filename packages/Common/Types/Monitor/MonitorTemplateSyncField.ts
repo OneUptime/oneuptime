@@ -165,6 +165,11 @@ export default class MonitorTemplateSyncFieldUtil {
         "Docker Swarm cluster",
       ],
       [MonitorType.Ceph]: ["cephMonitor", "clusterIdentifier", "Ceph cluster"],
+      [MonitorType.StorageArray]: [
+        "storageArrayMonitor",
+        "arrayIdentifier",
+        "Storage array",
+      ],
       [MonitorType.IoTDevice]: ["iotMonitor", "fleetIdentifier", "IoT fleet"],
     };
     const infrastructureConfig: [string, string, string] | undefined =
@@ -172,7 +177,13 @@ export default class MonitorTemplateSyncFieldUtil {
     if (infrastructureConfig) {
       const [prefix, identity, label]: [string, string, string] =
         infrastructureConfig;
-      add(`${prefix}.${identity}`, label);
+      add(
+        `${prefix}.${identity}`,
+        label,
+        monitorType === MonitorType.StorageArray
+          ? "Keep the array and its storage platform together."
+          : undefined,
+      );
       if (monitorType === MonitorType.Kubernetes) {
         add(`${prefix}.resources`, "Resource scope and filters");
       } else if (
@@ -284,6 +295,16 @@ export default class MonitorTemplateSyncFieldUtil {
       return [
         "kubernetesMonitor.resourceScope",
         "kubernetesMonitor.resourceFilters",
+      ];
+    }
+    if (field === "storageArrayMonitor.arrayIdentifier") {
+      /*
+       * The platform decides which label a hardware filter reads (FlashArray
+       * `component_name`, FlashBlade `name`), so a kept array keeps its own.
+       */
+      return [
+        "storageArrayMonitor.arrayIdentifier",
+        "storageArrayMonitor.storageSystem",
       ];
     }
     return [field];

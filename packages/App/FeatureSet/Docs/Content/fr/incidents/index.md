@@ -49,7 +49,7 @@ Cette distinction compte davantage qu'il n'y paraît :
 
 - `isCreatedState` décide où démarre un nouvel incident. Si aucun état n'est explicitement choisi à la création, OneUptime cherche l'état de création du projet et l'utilise.
 - `isAcknowledgedState` et `isResolvedState` pilotent les boutons **Acknowledge** et **Résoudre** de l'en-tête de l'incident, les deux tuiles de statistiques de la **Vue d'ensemble** de l'incident, et le badge de comptage **Incidents actifs** du menu latéral.
-- **Incidents actifs** se définit uniquement comme « l'état courant n'est pas l'état résolu ». Tout état personnalisé que vous ajoutez est donc actif, sauf s'il s'agit de l'état résolu.
+- **Incidents actifs** se définit uniquement comme « l'état courant se trouve au-dessus de l'état résolu ». Un état personnalisé que vous ajoutez au-dessus de l'état résolu est donc actif ; un état placé après lui compte comme résolu, comme l'état résolu lui-même.
 
 **Attention au nom.** Le premier état initialisé s'appelle **Identifié**, même si plusieurs descriptions dans le produit continuent de l'appeler l'état de création. Si vous cherchez « Created » dans la liste d'états de votre projet, c'est la ligne nommée **Identifié**.
 
@@ -102,7 +102,7 @@ Les intervenants prennent l'incident en compte, rattachent les ressources affect
 
 ### 4. Il est résolu
 
-Cliquer sur **Résoudre** fait passer l'incident à l'état résolu, horodate la chronologie d'état, arrête le compteur de durée et retire l'incident de la section active de toute page de statut où il s'affichait. Rien d'autre n'a besoin de changer pour cela — l'indicateur d'état résolu est ce que regarde la requête de la page de statut.
+Cliquer sur **Résoudre** fait passer l'incident à l'état résolu, horodate la chronologie d'état, arrête le compteur de durée, rend les moniteurs qu'il retient et retire l'incident de la section active de toute page de statut où il s'affichait. Rien d'autre n'a besoin de changer pour cela — une page de statut n'affiche que les incidents dans un état au-dessus de l'état résolu. Voyez [États et sévérités des incidents](/docs/incidents/states-and-severities).
 
 Ensuite, vous pouvez écrire un post-mortem et, si vous le souhaitez, le publier sur la page de statut.
 
@@ -112,13 +112,14 @@ Ouvrez **Incidents** dans la navigation de gauche. Son menu latéral est organis
 
 | Section                | Ce que vous y faites                                                                                                                                                     |
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Vue d'ensemble**     | **Tous les incidents** et **Incidents actifs** — ce dernier porte un badge rouge comptant les incidents qui ne sont pas à l'état résolu.                                  |
+| **Vue d'ensemble**     | **Tous les incidents** et **Incidents actifs** — ce dernier porte un badge rouge comptant les incidents dans un état au-dessus de l'état résolu.                                  |
 | **Épisodes**           | Les épisodes d'incident, une fonctionnalité de regroupement distincte avec ses propres pages.                                                                             |
+| **IA** | **Analyses**, **Journaux**, **Paramètres**, **Règles de remédiation automatique** : ce que OneUptime AI a appris de vos incidents et tout ce qu'il a fait pour eux, ce qu'il peut faire de lui-même, et les règles qui corrigent les incidents avec des runbooks. Voir [AI SRE](/docs/ai/ai-sre). |
 | **Espace de travail**  | Les connexions **Slack** et **Microsoft Teams** pour les incidents.                                                                                                      |
-| **Règles**             | Les moteurs de règles : **Règles de regroupement**, **Règles d'astreinte**, **Règles de propriétaire**, **Règles de runbook**, **Règles de remédiation automatique**, **Règles de confidentialité**, **Règles d'étiquettes**, **Règles SLA**, **Reminder Rules**. |
-| **Paramètres**         | **IA**, **État de l'incident**, **Gravité de l'incident**, **Modèles d'incident**, **Modèles de notes**, **Modèles de post-mortem**, **Champs personnalisés**, **Rôles d'incident**, **Préfixe de numéro**. |
+| **Règles**             | Les moteurs de règles : **Règles de regroupement**, **Règles d'astreinte**, **Règles de propriétaire**, **Règles de runbook**, **Règles de confidentialité**, **Règles d'étiquettes**, **Règles SLA**, **Reminder Rules**. |
+| **Paramètres**         | **État de l'incident**, **Gravité de l'incident**, **Modèles d'incident**, **Modèles de notes**, **Modèles de post-mortem**, **Champs personnalisés**, **Rôles d'incident**, **Préfixe de numéro**. |
 
-**Règles** et **Paramètres** sont repliés par défaut — dépliez-les pour trouver les pages auxquelles renvoie le reste de cette documentation. La configuration des incidents n'est pas dans les Paramètres du projet : tout vit ici.
+**IA**, **Règles** et **Paramètres** sont repliés par défaut — dépliez-les pour trouver les pages auxquelles renvoie le reste de cette documentation. La configuration des incidents n'est pas dans les Paramètres du projet : tout vit ici.
 
 La liste des incidents elle-même affiche **Numéro d'incident**, **Titre**, **État**, **Gravité**, **Ressources affectées**, **Déclaré**, **Durée**, **Étiquettes** et **Propriétaires**, avec une action groupée **Modifier l'état** pour en clore plusieurs d'un coup.
 
@@ -144,7 +145,7 @@ Ouvrez un incident et vous obtenez un menu latéral gauche, groupé ainsi :
 - **Les moniteurs repèrent le problème ; les incidents le consignent.** Une règle de critères de moniteur peut déclarer un incident automatiquement, en préremplissant titre, gravité, politiques d'astreinte, propriétaires, étiquettes et notes de remédiation. Voyez [Modèles d'incident et d'alerte](/docs/monitor/incident-alert-templating) pour les variables disponibles.
 - **Les politiques d'astreinte se chargent d'alerter.** Rattachez des politiques à l'étape **Astreinte** de l'assistant de déclaration, sur un modèle, ou via **Incidents → Règles → Règles d'astreinte**. Toutes les règles correspondantes se déclenchent — l'ensemble exécuté est l'union de toutes les correspondances plus ce qui est rattaché directement, dédupliqué.
 - **Les runbooks disent quoi faire.** Les règles de runbook rattachent une procédure automatiquement à la création d'un incident correspondant, et les intervenants peuvent en lancer une à la main depuis l'incident. Voyez [Vue d'ensemble des Runbooks](/docs/runbooks/index).
-- **Les pages de statut informent les clients.** Un incident apparaît dans la liste active d'une page de statut quand la page affiche les incidents, que l'incident est marqué visible sur la page de statut, et que son état courant n'est pas l'état résolu. Les incidents privés sont masqués de toutes les pages de statut, sans exception. Voyez [Vue d'ensemble des pages de statut](/docs/status-pages/index).
+- **Les pages de statut informent les clients.** Un incident apparaît dans la liste active d'une page de statut quand la page affiche les incidents, que l'incident est marqué visible sur la page de statut, et que son état courant se trouve au-dessus de l'état résolu. Les incidents privés sont masqués de toutes les pages de statut, sans exception. Voyez [Vue d'ensemble des pages de statut](/docs/status-pages/index).
 - **Les workflows automatisent autour.** Les déclencheurs **On Create Incident**, **On Update Incident** et **On Delete Incident** vous permettent de construire de l'automatisation sans code par-dessus le cycle de vie de l'incident. Voyez [Présentation des workflows](/docs/workflows/index).
 
 ## Où lire ensuite

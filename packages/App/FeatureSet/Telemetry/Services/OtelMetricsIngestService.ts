@@ -39,6 +39,7 @@ import DatabaseCallEntityKeyResolver, {
   DatabaseCallerSource,
 } from "./DatabaseCallEntityKeys";
 import MessagingEntityKeyResolver from "./MessagingEntityKeys";
+import CloudMonitoredResourceCollector from "./CloudMonitoredResources";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { TELEMETRY_METRIC_FLUSH_BATCH_SIZE } from "../Config";
 import MetricPipelineRuleService, {
@@ -86,6 +87,21 @@ import VMwareResourceService, {
 } from "Common/Server/Services/VMwareResourceService";
 import VMwareVCenterService from "Common/Server/Services/VMwareVCenterService";
 import CephClusterService from "Common/Server/Services/CephClusterService";
+import StorageArrayService from "Common/Server/Services/StorageArrayService";
+import StorageArrayResourceService, {
+  ParsedStorageArrayResource,
+} from "Common/Server/Services/StorageArrayResourceService";
+import {
+  STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES,
+  StorageArrayResourceBufferEntry,
+  StorageArraySnapshotBufferEntry,
+  StorageArraySnapshotDerivedExtras,
+  bufferStorageArraySnapshotMetric,
+  deriveStorageArraySnapshotExtras,
+  getVolumeConnectionCounts,
+  getStorageArrayResourceRows,
+  resolveStorageArraySystem,
+} from "Common/Server/Utils/Telemetry/StorageArraySnapshotScan";
 import IoTDeviceService, {
   ParsedIoTDevice,
   IoTDeviceLatestMetric,
@@ -562,6 +578,14 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       totalMemoryBytes: number | null;
       processCount: number | null;
       containerRuntime: string | null;
+      /*
+       * The oneuptime.agent.version the host's collector stamps (the host
+       * guide's config does). Written with the rest of the batch's host
+       * facts, so a new or upgraded collector's version shows on the host
+       * with its first batch instead of waiting for the next fenced
+       * maintenance pass.
+       */
+      agentVersion: string | null;
       hasInfraSignal: boolean;
       labelNames: Set<string>;
     }
@@ -629,6 +653,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           totalMemoryBytes: null,
           processCount: null,
           containerRuntime: null,
+          agentVersion: null,
           hasInfraSignal: false,
           labelNames: new Set<string>(),
         };
@@ -673,6 +698,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         entry.containerRuntime = OtelIngestBaseService.getStringAttribute(
           ras,
           "container.runtime",
+        );
+      }
+      if (!entry.agentVersion) {
+        entry.agentVersion = OtelIngestBaseService.getStringAttribute(
+          ras,
+          "oneuptime.agent.version",
         );
       }
 
@@ -734,6 +765,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           totalMemoryBytes: entry.totalMemoryBytes ?? undefined,
           processCount: entry.processCount ?? undefined,
           containerRuntime: entry.containerRuntime ?? undefined,
+          agentVersion: entry.agentVersion ?? undefined,
         });
 
         if (entry.labelNames.size > 0) {
@@ -830,6 +862,15 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
        */
       const messagingEntityKeys: MessagingEntityKeyResolver =
         new MessagingEntityKeyResolver(projectId);
+
+      /*
+       * The cloud resources the rows of a cloud-monitoring receiver name
+       * (Azure Monitor, CloudWatch, Cloud Monitoring) - one per datapoint,
+       * collected for discovery once the rows are written. Memoized for
+       * this request only - see CloudMonitoredResources.
+       */
+      const cloudMonitoredResources: CloudMonitoredResourceCollector =
+        new CloudMonitoredResourceCollector();
 
       /*
        * Hosts already heartbeated in this batch. The hostmetrics receiver
@@ -952,6 +993,20 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         string,
         CephClusterSnapshotBufferEntry
       > = new Map();
+      const storageArrayResourceMetricsBuffer: Map<
+        string,
+        Map<string, StorageArrayResourceBufferEntry>
+      > = new Map();
+      const storageArraySnapshotBuffer: Map<
+        string,
+        StorageArraySnapshotBufferEntry
+      > = new Map();
+      /*
+       * The platform each storage array's agent declared in
+       * `storage.system`, normalized, by array id. Only a fallback for what
+       * the metric names imply — see flushStorageArraySnapshotBuffers.
+       */
+      const storageArrayDeclaredSystems: Map<string, string> = new Map();
       const iotResourceMetricsBuffer: Map<
         string,
         Map<string, IoTDeviceBufferEntry>
@@ -1050,7 +1105,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
 
           /*
            * Auto-discover Kubernetes cluster, Docker host, Proxmox
-           * cluster, VMware vCenter, Ceph cluster and database server from
+           * cluster, VMware vCenter, Ceph cluster, storage array and
+           * database server from
            * resource attributes. The lookups are independent — they read
            * different attributes and don't share state — so issue them
            * concurrently to collapse per-resource latency.
@@ -1064,10 +1120,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             proxmoxClusterId,
             vmwareVCenterId,
             cephClusterId,
+            storageArrayId,
             dockerSwarmClusterId,
             iotFleetId,
             databaseServerId,
           ]: [
+            ObjectID | null,
             ObjectID | null,
             ObjectID | null,
             ObjectID | null,
@@ -1102,6 +1160,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               projectId,
               attributes: resourceAttributes_raw,
             }),
+            this.autoDiscoverStorageArray({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
             this.autoDiscoverDockerSwarmCluster({
               projectId,
               attributes: resourceAttributes_raw,
@@ -1116,6 +1178,19 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               receiverSystemHint: databaseReceiverSystemHint,
             }),
           ]);
+
+          if (storageArrayId) {
+            const declaredStorageSystem: string | null =
+              this.getDeclaredStorageSystemFromAttributes(
+                resourceAttributes_raw,
+              );
+            if (declaredStorageSystem) {
+              storageArrayDeclaredSystems.set(
+                storageArrayId.toString(),
+                declaredStorageSystem,
+              );
+            }
+          }
 
           /*
            * A native-push node's own status push also reports the
@@ -1227,6 +1302,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               proxmoxClusterId,
               vmwareVCenterId,
               cephClusterId,
+              storageArrayId,
               dockerSwarmClusterId,
               serverlessFunctionId,
               cloudResourceId,
@@ -1728,6 +1804,25 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                         }
 
                         /*
+                         * Storage array identity lives in datapoint
+                         * labels too (`name`, `host`, `component_name`
+                         * on the purefa_* / purefb_* series), so the
+                         * same raw-datapoint buffering applies.
+                         */
+                        if (
+                          storageArrayId &&
+                          STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES.has(metricName)
+                        ) {
+                          bufferStorageArraySnapshotMetric({
+                            arrayIdStr: storageArrayId.toString(),
+                            metricName,
+                            datapoint: datapoint as JSONObject,
+                            resourceBuffer: storageArrayResourceMetricsBuffer,
+                            arrayBuffer: storageArraySnapshotBuffer,
+                          });
+                        }
+
+                        /*
                          * VMware identity lives in the RESOURCE
                          * attributes (the vcenter receiver emits one
                          * resource per vSphere object); the buffer
@@ -1884,6 +1979,13 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                          */
                         messagingEntityKeys.appendToMetricRow(metricRow);
 
+                        /*
+                         * A cloud-monitoring datapoint is about one cloud
+                         * resource, named on the datapoint - read off the
+                         * FINAL row, like the queue key above.
+                         */
+                        cloudMonitoredResources.observeMetricRow(metricRow);
+
                         dbMetrics.push(metricRow);
                         totalMetricsProcessed++;
 
@@ -2000,11 +2102,38 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         clusterBuffer: cephClusterSnapshotBuffer,
       });
 
+      await this.flushStorageArraySnapshotBuffers({
+        projectId,
+        resourceBuffer: storageArrayResourceMetricsBuffer,
+        arrayBuffer: storageArraySnapshotBuffer,
+        declaredSystems: storageArrayDeclaredSystems,
+      });
+
       await this.flushIoTSnapshotBuffers({
         projectId,
         resourceBuffer: iotResourceMetricsBuffer,
         fleetBuffer: iotFleetSnapshotBuffer,
       });
+
+      /*
+       * Cloud resources the rows named - after the rows are durably written,
+       * and best-effort like the snapshot buffers above: discovery must
+       * never fail a batch whose telemetry already landed.
+       */
+      try {
+        await this.autoDiscoverCloudMonitoredResources({
+          projectId,
+          resources: cloudMonitoredResources.getResources(),
+        });
+      } catch (cloudResourceError) {
+        logger.error(
+          `Cloud resource discovery failed (best-effort): ${
+            cloudResourceError instanceof Error
+              ? cloudResourceError.message
+              : String(cloudResourceError)
+          }`,
+        );
+      }
 
       if (totalMetricsProcessed === 0) {
         logger.warn("No valid metrics were processed from the request");
@@ -3918,6 +4047,145 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       } catch (err) {
         logger.warn(
           `Ceph snapshot writeback (cluster) failed for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+  }
+
+  /*
+   * Drain the storage array buffers: inventory upsert, then the StorageArray
+   * snapshot columns — computed from the SAME buffer the inventory rows were
+   * upserted from (single-source rule). Failures are logged and swallowed:
+   * snapshots are best-effort and must never affect ClickHouse ingest.
+   *
+   * declaredSystems holds each array's declared `storage.system`; an array
+   * that sent no Pure series at all is visited for it too, so an array of a
+   * platform OneUptime has no catalog for is still labelled
+   * (resolveStorageArraySystem decides when the declaration counts).
+   */
+  private static async flushStorageArraySnapshotBuffers(data: {
+    projectId: ObjectID;
+    resourceBuffer: Map<string, Map<string, StorageArrayResourceBufferEntry>>;
+    arrayBuffer: Map<string, StorageArraySnapshotBufferEntry>;
+    declaredSystems: Map<string, string>;
+  }): Promise<void> {
+    const arrayIdStrs: Set<string> = new Set<string>([
+      ...data.resourceBuffer.keys(),
+      ...data.arrayBuffer.keys(),
+      ...data.declaredSystems.keys(),
+    ]);
+
+    for (const arrayIdStr of arrayIdStrs) {
+      const byKey: Map<string, StorageArrayResourceBufferEntry> | undefined =
+        data.resourceBuffer.get(arrayIdStr);
+      const snap: StorageArraySnapshotBufferEntry | undefined =
+        data.arrayBuffer.get(arrayIdStr);
+      const entries: Array<StorageArrayResourceBufferEntry> =
+        getStorageArrayResourceRows(
+          byKey ? Array.from(byKey.values()) : [],
+          snap,
+        );
+
+      if (entries.length > 0) {
+        try {
+          const resources: Array<ParsedStorageArrayResource> = entries.map(
+            (e: StorageArrayResourceBufferEntry) => {
+              return {
+                kind: e.kind,
+                externalId: e.externalId,
+                name: e.name,
+                status: e.status,
+                statusDetail: e.statusDetail,
+                componentType: e.componentType,
+                model: e.model,
+                firmwareVersion: e.firmwareVersion,
+                groupName: e.groupName,
+                capacityBytes: e.capacityBytes,
+                usedBytes: e.usedBytes,
+                dataReductionRatio: e.dataReductionRatio,
+                readLatencyUsec: e.readLatencyUsec,
+                writeLatencyUsec: e.writeLatencyUsec,
+                readIops: e.readIops,
+                writeIops: e.writeIops,
+                readBytesPerSec: e.readBytesPerSec,
+                writeBytesPerSec: e.writeBytesPerSec,
+                temperatureCelsius: e.temperatureCelsius,
+                replicationLagMs: e.replicationLagMs,
+                connectionCount: e.connectionCount,
+                details: e.details,
+                lastSeenAt: e.observedAt,
+              };
+            },
+          );
+          await StorageArrayResourceService.bulkUpsert({
+            projectId: data.projectId,
+            storageArrayId: new ObjectID(arrayIdStr),
+            resources,
+          });
+        } catch (err) {
+          logger.warn(
+            `Storage array snapshot writeback (inventory) failed for storage array ${arrayIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+
+      /*
+       * A volume detached from its last host drops out of
+       * purefa_host_connections_info, so the upsert above never writes its
+       * count again. A batch that knows every connection zeroes the rest —
+       * after the upsert, outside it: an array whose last host was deleted
+       * has no row to upsert and still has counts to clear.
+       */
+      const volumeConnectionCounts: Record<string, number> | null =
+        getVolumeConnectionCounts(entries, snap);
+      if (volumeConnectionCounts) {
+        try {
+          /*
+           * The named volumes' counts get their own UPDATE too: the
+           * connection-only rows above ride the upsert's lastSeenAt guard,
+           * which drops them when the volumes scrape was flushed first.
+           */
+          await StorageArrayResourceService.setVolumeConnectionCounts({
+            storageArrayId: new ObjectID(arrayIdStr),
+            connectionCounts: volumeConnectionCounts,
+          });
+          await StorageArrayResourceService.resetVolumeConnectionCounts({
+            storageArrayId: new ObjectID(arrayIdStr),
+            connectedVolumeNames: Object.keys(volumeConnectionCounts),
+          });
+        } catch (err) {
+          logger.warn(
+            `Storage array snapshot writeback (volume connections) failed for storage array ${arrayIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+
+      try {
+        /*
+         * Counts are only written when the batch carried the matching
+         * series — never zero a count on a partial batch
+         * (deriveStorageArraySnapshotExtras owns that contract).
+         */
+        const extras: StorageArraySnapshotDerivedExtras =
+          deriveStorageArraySnapshotExtras(entries, snap);
+
+        const storageSystem: string | undefined = resolveStorageArraySystem({
+          derived: extras.storageSystem,
+          declared: data.declaredSystems.get(arrayIdStr),
+        });
+        if (storageSystem) {
+          extras.storageSystem = storageSystem;
+        }
+
+        if (Object.keys(extras).length > 0) {
+          await StorageArrayService.updateLastSeen(
+            new ObjectID(arrayIdStr),
+            extras,
+          );
+        }
+      } catch (err) {
+        logger.warn(
+          `Storage array snapshot writeback (array) failed for storage array ${arrayIdStr}: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
     }

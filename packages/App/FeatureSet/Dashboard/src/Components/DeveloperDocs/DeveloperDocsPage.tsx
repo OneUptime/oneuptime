@@ -42,12 +42,10 @@ import Route from "Common/Types/API/Route";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
 import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import Permission, { PermissionHelper } from "Common/Types/Permission";
 import { getApiReadSelect } from "Common/Utils/DeveloperDocs/ExampleBuilder";
 import {
   addDeveloperDocsLookupResult,
@@ -76,7 +74,6 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import { HOST, HTTP_PROTOCOL, VERSION } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import PermissionUtil from "Common/UI/Utils/Permission";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import User from "Common/UI/Utils/User";
 import React, {
@@ -86,6 +83,7 @@ import React, {
   useState,
 } from "react";
 import { useParams } from "react-router-dom";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 
 /*
  * A Developer page: Terraform, API or AI Assistants, for one resource (its
@@ -114,57 +112,22 @@ export interface ComponentProps extends PageComponentProps {
   page: DeveloperDocsPageType;
 }
 
-// Columns every request may select (ColumnPermissions.getExcludedColumnNames).
-const ALWAYS_READABLE_COLUMNS: ReadonlyArray<string> = [
-  "_id",
-  "createdAt",
-  "updatedAt",
-];
-
-function getViewerPermissions(): Array<Permission> {
-  return PermissionUtil.getAllPermissions();
-}
-
-// Whether the viewer may read a column (ModelDetail's rule).
-function canReadColumn(descriptor: TerraformAttributeDescriptor): boolean {
-  if (User.isMasterAdmin()) {
-    return true;
-  }
-
-  return PermissionHelper.doesPermissionsIntersect(
-    getViewerPermissions(),
-    descriptor.readPermissions,
-  );
-}
-
-// Whether the viewer may read a column of any model, by name.
+/*
+ * Whether the viewer may read a column of a model, by name: the one rule
+ * every select follows (PermissionGate.canReadColumn) - the columns every
+ * select may name, and any other by the server's column check, the table's
+ * operational-resource wildcard included.
+ */
 function canReadModelColumn(
   modelType: DatabaseBaseModelType,
   column: string,
 ): boolean {
-  if (User.isMasterAdmin() || ALWAYS_READABLE_COLUMNS.includes(column)) {
-    return true;
-  }
-
-  const access: ColumnAccessControl | null =
-    new modelType().getColumnAccessControlFor(column);
-
-  return PermissionHelper.doesPermissionsIntersect(
-    getViewerPermissions(),
-    access?.read || [],
-  );
+  return PermissionGate.canReadColumn(new modelType(), column);
 }
 
 // Whether the viewer may list a model at all.
 function canReadModel(modelType: DatabaseBaseModelType): boolean {
-  if (User.isMasterAdmin()) {
-    return true;
-  }
-
-  return PermissionHelper.doesPermissionsIntersect(
-    getViewerPermissions(),
-    new modelType().readRecordPermissions || [],
-  );
+  return PermissionGate.check(new modelType(), ModelAction.Read).isAllowed;
 }
 
 function toPageKind(page: DeveloperDocsPageType): DeveloperDocsPageKind {
@@ -635,7 +598,9 @@ const DeveloperDocsPage: FunctionComponent<ComponentProps> = (
           select: getDeveloperDocsRecordSelect({
             modelType,
             page: props.page,
-            canRead: canReadColumn,
+            canRead: (descriptor: TerraformAttributeDescriptor): boolean => {
+              return canReadModelColumn(modelType, descriptor.columnName);
+            },
             canReadColumn: (column: string): boolean => {
               return canReadModelColumn(modelType, column);
             },

@@ -2,6 +2,7 @@ import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import IncidentTemplateOwnerTeamService from "./IncidentTemplateOwnerTeamService";
 import IncidentTemplateOwnerUserService from "./IncidentTemplateOwnerUserService";
 import IncidentSeverityService from "./IncidentSeverityService";
@@ -20,13 +21,16 @@ import ObjectID from "../../Types/ObjectID";
 import Model from "../../Models/DatabaseModels/IncidentTemplate";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ProjectScopedReferenceValidator, {
+  getWrittenRelationReferences,
   HeldRelationIds,
   ProjectScopedReference,
   ProjectScopedRelation,
-  resolveReferenceId,
   resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
-import { getAffectedResourceRelations } from "../Utils/Database/AffectedResourceRelations";
+import {
+  getAffectedResourceColumns,
+  getAffectedResourceRelations,
+} from "../Utils/Database/AffectedResourceRelations";
 import Query from "../Types/Database/Query";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
@@ -34,9 +38,32 @@ import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 import StatusPageReadAccess from "../Utils/StatusPage/StatusPageReadAccess";
 import IncidentScopeAddedPagesNotification from "../../Types/StatusPage/IncidentScopeAddedPagesNotification";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * The initial state, the severity, the monitor status to switch to and
+   * every list a template carries are checked by this service's own hooks
+   * below, with ProjectScopedReferenceValidator and its own words.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return [
+      "initialIncidentState",
+      "incidentSeverity",
+      "changeMonitorStatusTo",
+    ];
+  }
+
+  protected override getListsCheckedByService(): Array<string> {
+    return [
+      "monitors",
+      "labels",
+      "onCallDutyPolicies",
+      "statusPages",
+      ...getAffectedResourceColumns(this.getModel()),
+    ];
   }
 
   /*
@@ -54,6 +81,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     const projectId: ObjectID | undefined =
       createBy.props.tenantId || createBy.data.projectId;
 
@@ -97,6 +126,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * The scope flag follows a write to the list and nothing else: a client
      * value is dropped, and deleting the template's pages (join rows
@@ -292,31 +323,36 @@ export class Service extends DatabaseService<Model> {
     ];
   }
 
+  /*
+   * Each relation by both of its names: the API takes the ID column and the
+   * relation alike, and the template's cards write the relation. A write
+   * may carry both; each is checked, and the two must agree.
+   */
   private getProjectScopedReferences(
     data: Model | QueryDeepPartialEntity<Model>,
   ): Array<ProjectScopedReference> {
     return [
-      {
+      ...getWrittenRelationReferences({
+        payload: data,
+        idColumn: "initialIncidentStateId",
+        relation: "initialIncidentState",
         modelName: "Incident State",
-        id:
-          resolveReferenceId(data.initialIncidentStateId) ||
-          resolveReferenceId(data.initialIncidentState),
         service: IncidentStateService,
-      },
-      {
+      }),
+      ...getWrittenRelationReferences({
+        payload: data,
+        idColumn: "incidentSeverityId",
+        relation: "incidentSeverity",
         modelName: "Incident Severity",
-        id:
-          resolveReferenceId(data.incidentSeverityId) ||
-          resolveReferenceId(data.incidentSeverity),
         service: IncidentSeverityService,
-      },
-      {
+      }),
+      ...getWrittenRelationReferences({
+        payload: data,
+        idColumn: "changeMonitorStatusToId",
+        relation: "changeMonitorStatusTo",
         modelName: "Monitor Status",
-        id:
-          resolveReferenceId(data.changeMonitorStatusToId) ||
-          resolveReferenceId(data.changeMonitorStatusTo),
         service: MonitorStatusService,
-      },
+      }),
     ];
   }
 

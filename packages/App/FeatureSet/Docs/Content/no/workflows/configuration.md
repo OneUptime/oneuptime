@@ -96,14 +96,36 @@ Innebygde grenser holder ubemannede kall endelige: System Instructions, Prompt o
 
 ## Tillatelser
 
-Arbeidsflyter respekterer prosjektets rollebaserte tilgangsstyring. De relevante tillatelsene:
+Arbeidsflyter respekterer prosjektets rollebaserte tilgangsstyring. De tre arbeidsflytrollene:
 
-- **Create / Read / Edit / Delete Workflow** — de grunnleggende tillatelsene på selve arbeidsflyten.
-- **Run Workflow** — nødvendig for å kjøre en arbeidsflyt for hånd eller utløse en via API.
+- **Workflow Admin** — bygger arbeidsflyter: oppretter, endrer, kjører og sletter dem, og forvalter variablene de bruker.
+- **Workflow Member** — bruker dem: åpner arbeidsflyter og kjøringene deres, og kjører en arbeidsflyt for hånd med **Kjør arbeidsflyt**. Et medlem kan ikke opprette, endre eller slette en arbeidsflyt, eller kjøre ett av trinnene for seg selv.
+- **Workflow Viewer** — leser arbeidsflyter og kjøringene deres.
+
+**Project Owner** og **Project Admin** kan alt en Workflow Admin kan. **Project Member** kan opprette og slette arbeidsflyter, men ikke endre eller kjøre dem.
+
+De enkelte tillatelsene, for et team eller en API-nøkkel som trenger nøyaktig én ting:
+
+- **Create / Read / Edit / Delete Workflow** — de grunnleggende tillatelsene på selve arbeidsflyten. Å endre en arbeidsflyt, også å slå den av eller på og arkivere den, krever **Edit Workflow**; **Delete Workflow** sletter bare.
+- **Edit Workflow** — er også det som skal til for å kjøre ett trinn for seg selv med **Run just this step**, og for å se eller tilbakestille en arbeidsflyts webhook-URL og innkommende e-postadresse. Å kjøre en hel arbeidsflyt for hånd krever **Edit Workflow**, **Workflow Admin** eller **Workflow Member**.
 - **Read Workflow Log** — nødvendig for å se kjøringer.
 - **Read / Create / Edit / Delete Workflow Variable** — kontroll over listen med globale variabler.
 
-De fleste utviklere bør ha opprett/rediger/les på arbeidsflyter, men ikke på variabler. Spar redigeringstilgang på variabler til dem som forvalter prosjektets hemmeligheter.
+En kjøring for hånd når bare arbeidsflyter du kan åpne: en rolle som er begrenset til enkelte etiketter, eller til arbeidsflytene teamet ditt eier, kjører bare dem. Den som ikke kan kjøre en arbeidsflyt, ser **Kjør arbeidsflyt** nedtonet, med årsaken i verktøytipset.
+
+Gi dem som bygger automatisering **Workflow Admin**, og dem som bare starter den **Workflow Member**. Spar redigeringstilgang på variabler til dem som forvalter prosjektets hemmeligheter.
+
+## Hva arbeidsflyttrinn kan gjøre
+
+Trinnene som leser og endrer OneUptime-poster (komponentene Find, Create, Update og Delete og utløserne On Create, On Update og On Delete) handler som en **Project Admin** i arbeidsflytens prosjekt. De møter de samme kontrollene som en Project Admin i dashbordet og API-et:
+
+- **Bare arbeidsflytens eget prosjekt.** Et trinn leser eller endrer aldri et annet prosjekts poster, og en Update flytter aldri en post til et annet prosjekt.
+- **Bare det en Project Admin kan gjøre.** Et trinn kan ikke gi tillatelser som en Project Admin ikke selv har (som **Project Owner** eller fakturering), og kan ikke legge noen til i et team med flere tillatelser, som eiernes team.
+- **Bare det planen deres inkluderer.** På OneUptime Cloud avvises det planen deres ikke inkluderer, med navnet på planen som trengs.
+- **Ingenting OneUptime holder styr på selv.** Feedoppføringer kan ikke redigeres eller slettes, varslingslogger kan ikke skrives, og verdier OneUptime setter selv (som en bekreftet CNAME, et teams beskyttelsesbrytere eller hvem som har vakt nå) kan ikke endres. Et **Create One Incident**-trinn kan heller ikke erklære en hendelse fra en mal (`createdIncidentTemplateId`): les malen med **Find One Incident Template**, og send verdiene videre.
+- **Som ingen person.** En post en arbeidsflyt oppretter har ingen oppretter, og revisjonsloggen oppgir arbeidsflyten som den som gjorde endringen.
+
+Et avvist trinn tar **Error**-utgangen sin uten å gjøre den avviste endringen, og kjøreloggen sier hvilket trinn som ble avvist og hvorfor. Et Create Many-trinn oppretter postene sine én om gangen og stopper ved den avviste; postene som ble opprettet før den, blir værende. Trinn som snakker med andre systemer (API, e-post, chat, Custom Code, AI) påvirkes ikke.
 
 ## Plangrenser
 

@@ -890,6 +890,13 @@ describe("the OpenTelemetry collector pin", () => {
     "agents/DockerSwarmAgent/docker-compose.yml",
     "agents/VMwareAgent/docker-compose.yml",
     "agents/DatabaseAgent/docker-compose.yml",
+    "agents/StorageArrayAgent/docker-compose.yml",
+    // Pinned since the agents report their version (they ran :latest).
+    "agents/ProxmoxAgent/docker-compose.yml",
+    "agents/CephAgent/docker-compose.yml",
+    // The journald wrapper image the Proxmox README and guide build.
+    "agents/ProxmoxAgent/README.md",
+    "packages/App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown.ts",
     "Tests/Ops/validate-collector-configs.sh",
     "Tests/Ops/ContainerAgentDockerApiVersionRuntime.test.js",
     "packages/App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown.ts",
@@ -917,11 +924,14 @@ describe("the OpenTelemetry collector pin", () => {
     );
   });
 
-  test("the Swarm, VMware and Database compose files run the pinned collector", () => {
+  test("the Swarm, VMware, Database, Proxmox, Ceph and Storage Array compose files run the pinned collector", () => {
     for (const file of [
       "agents/DockerSwarmAgent/docker-compose.yml",
       "agents/VMwareAgent/docker-compose.yml",
       "agents/DatabaseAgent/docker-compose.yml",
+      "agents/ProxmoxAgent/docker-compose.yml",
+      "agents/CephAgent/docker-compose.yml",
+      "agents/StorageArrayAgent/docker-compose.yml",
     ]) {
       const compose = yaml.load(read(file));
       const images = Object.values(compose.services)
@@ -936,4 +946,41 @@ describe("the OpenTelemetry collector pin", () => {
       ]);
     }
   });
+
+  /*
+   * These agents are the stock collector plus a config, so the config is
+   * what tells OneUptime the agent's version: it must stamp exactly the pin
+   * the compose file beside it runs, or the version sign on the resource's
+   * page compares the wrong number. The Storage Array agent runs one of
+   * three configs (the kind of array decides which), so each stamps it.
+   */
+  test.each([
+    ["ProxmoxAgent", "otel-collector-config.yaml"],
+    ["CephAgent", "otel-collector-config.yaml"],
+    ["VMwareAgent", "otel-collector-config.yaml"],
+    ["StorageArrayAgent", "otel-collector-config.yaml"],
+    ["StorageArrayAgent", "otel-collector-config.flasharray-exporter.yaml"],
+    ["StorageArrayAgent", "otel-collector-config.flashblade.yaml"],
+  ])(
+    "agents/%s/%s stamps the pin as oneuptime.agent.version",
+    (agent, file) => {
+      const config = yaml.load(read(`agents/${agent}/${file}`));
+      const stamps = config.processors.resource.attributes.filter(
+        (attribute) => {
+          return attribute.key === "oneuptime.agent.version";
+        },
+      );
+      expect(stamps).toEqual([
+        {
+          key: "oneuptime.agent.version",
+          value: pinsIn(`agents/${agent}/docker-compose.yml`)[0],
+          action: "upsert",
+        },
+      ]);
+      // Every pipeline runs the processor that stamps it.
+      for (const pipeline of Object.values(config.service.pipelines)) {
+        expect(pipeline.processors).toContain("resource");
+      }
+    },
+  );
 });

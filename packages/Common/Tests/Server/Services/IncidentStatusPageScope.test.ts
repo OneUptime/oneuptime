@@ -228,6 +228,29 @@ async function runBeforeUpdate(updateBy: UpdateBy<Incident>): Promise<{
   };
 }
 
+/*
+ * The incident reads made for the status page scope or the 'created'
+ * notification: those asking for the pages, the record of told pages or
+ * where the notification stands. (A title an update writes is read as well,
+ * so its feed line follows a real change - EventFieldChange - which is
+ * another read, for another question.)
+ */
+function scopeAndNotificationReads(): Array<Array<unknown>> {
+  return incidentFindBy.mock.calls.filter((call: Array<unknown>): boolean => {
+    const select: Record<string, unknown> =
+      (call[0] as { select?: Record<string, unknown> }).select || {};
+
+    return [
+      "statusPages",
+      "statusPagesNotifiedOnCreation",
+      "isScopedToStatusPages",
+      "subscriberNotificationStatusOnIncidentCreated",
+    ].some((column: string): boolean => {
+      return select[column] !== undefined;
+    });
+  });
+}
+
 function scopeChangeOf(
   carryForward: Dictionary<{ statusPageScopeChange?: ScopeCarryForward }>,
   id: string = incidentId,
@@ -380,7 +403,7 @@ describe("IncidentService.onBeforeUpdate: isScopedToStatusPages follows statusPa
       }
 
       // Nothing about the scope was read.
-      expect(incidentFindBy).not.toHaveBeenCalled();
+      expect(scopeAndNotificationReads()).toHaveLength(0);
       expect(statusPageFindBy).not.toHaveBeenCalled();
     },
   );
@@ -423,7 +446,7 @@ describe("IncidentService.onBeforeUpdate: isScopedToStatusPages follows statusPa
 
     expect(data).not.toHaveProperty("isScopedToStatusPages");
     expect(data).not.toHaveProperty("statusPages");
-    expect(incidentFindBy).not.toHaveBeenCalled();
+    expect(scopeAndNotificationReads()).toHaveLength(0);
   });
 
   test("a client cannot write the record of notified pages", async () => {
@@ -1511,13 +1534,18 @@ describe("IncidentService.onBeforeUpdate: a resend of the 'created' notification
     expect(data).not.toHaveProperty("statusPagesNotifiedOnCreation");
   });
 
-  test("turning notifying on creation on (root) resends to every page", async () => {
+  test("writing notifying on creation (root) is no resend: the message and its record are left alone", async () => {
     storedIncidents = [
       storedIncident({
         statusPagesNotifiedOnCreation: [PAGE_A],
       }),
     ];
 
+    /*
+     * A client writing the whole incident back sends the flag as true. That
+     * used to queue the 'created' message and empty the record, so every
+     * page heard it again (NotifyFlagUpdateNoResend.test.ts).
+     */
     const { data } = await runBeforeUpdate(
       scopeUpdate({
         data: {
@@ -1527,10 +1555,10 @@ describe("IncidentService.onBeforeUpdate: a resend of the 'created' notification
       }),
     );
 
-    expect(data["subscriberNotificationStatusOnIncidentCreated"]).toBe(
-      StatusPageSubscriberNotificationStatus.Pending,
-    );
-    expect(data["statusPagesNotifiedOnCreation"]).toEqual([]);
+    expect(
+      data["subscriberNotificationStatusOnIncidentCreated"],
+    ).toBeUndefined();
+    expect(data["statusPagesNotifiedOnCreation"]).toBeUndefined();
   });
 
   test("a bulk resend empties the record when any matched incident would reach nobody", async () => {
@@ -1579,7 +1607,7 @@ describe("IncidentService.onBeforeUpdate: a resend of the 'created' notification
   test("an update that does not resend reads nothing for it", async () => {
     await runBeforeUpdate(scopeUpdate({ data: { title: "Renamed" } }));
 
-    expect(incidentFindBy).not.toHaveBeenCalled();
+    expect(scopeAndNotificationReads()).toHaveLength(0);
   });
 
   test("the resend's read is limited to the caller's project", async () => {
@@ -1701,10 +1729,20 @@ describe("IncidentService.onBeforeUpdate: publishing tells the pages added while
 
     await runBeforeUpdate(publish());
 
+    /*
+     * The publish check's own read. (Showing the incident is read once more,
+     * for its postmortem: one published while the incident was hidden is
+     * sent when it is shown - IncidentPostmortemPublication.isShownByUpdate.)
+     */
+    expect(scopeAndNotificationReads()).toHaveLength(1);
+
     const findBy: {
       query: Record<string, unknown>;
       select: Record<string, unknown>;
-    } = incidentFindBy.mock.calls[0]![0];
+    } = scopeAndNotificationReads()[0]![0] as {
+      query: Record<string, unknown>;
+      select: Record<string, unknown>;
+    };
 
     expect(findBy.select["statusPages"]).toEqual({ _id: true });
     expect(findBy.select["statusPagesNotifiedOnCreation"]).toBe(true);

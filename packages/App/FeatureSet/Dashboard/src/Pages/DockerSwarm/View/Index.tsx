@@ -5,9 +5,14 @@ import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster"
 import DockerSwarmResourceModel from "Common/Models/DatabaseModels/DockerSwarmResource";
 import Card from "Common/UI/Components/Card/Card";
 import PageMap from "../../../Utils/PageMap";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
 import { getDockerSwarmClusterConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
+import ResourceAiAgentStatusSummaryCard from "../../../Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
+import { getResourceAiAgentDescriptor } from "../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
+import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
 import Route from "Common/Types/API/Route";
 import React, {
   FunctionComponent,
@@ -515,14 +520,6 @@ const DockerSwarmClusterOverview: FunctionComponent<
         }),
       });
     }
-    if (cluster.agentVersion) {
-      specChips.push({
-        icon: IconProp.Terminal,
-        label: translator.translateTemplate("Agent {{version}}", {
-          version: String(cluster.agentVersion),
-        }),
-      });
-    }
 
     return (
       <div className="relative mb-6 rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -590,7 +587,7 @@ const DockerSwarmClusterOverview: FunctionComponent<
             </div>
           </div>
 
-          {specChips.length > 0 && (
+          {(specChips.length > 0 || Boolean(cluster.agentVersion)) && (
             <div className="mt-4 flex flex-wrap gap-1.5">
               {specChips.map((chip: SpecChip, idx: number): ReactElement => {
                 return (
@@ -608,6 +605,16 @@ const DockerSwarmClusterOverview: FunctionComponent<
                   </span>
                 );
               })}
+              {/*
+               * The agent's version chip, last. A sign on it, when the
+               * agent is behind the collector this release pins, opens how
+               * to upgrade it.
+               */}
+              <AgentVersion
+                kind={AgentKind.DockerSwarmAgent}
+                version={cluster.agentVersion}
+                variant="chip"
+              />
             </div>
           )}
         </div>
@@ -783,6 +790,18 @@ const DockerSwarmClusterOverview: FunctionComponent<
           </ul>
         )}
       </Card>
+
+      {/*
+       * Last on the page: the Docker Swarm AI agent's connection, whether AI
+       * may investigate, and how fixes run, linking to AI → AI agent.
+       */}
+      <ResourceAiAgentStatusSummaryCard
+        descriptor={getResourceAiAgentDescriptor(
+          AiResourceType.DockerSwarmCluster,
+        )}
+        resourceId={modelId}
+        refreshToken={lastRefreshedAt ? lastRefreshedAt.getTime() : undefined}
+      />
     </div>
   );
 };

@@ -1,4 +1,5 @@
-import DatabaseService, { EntityManager } from "./DatabaseService";
+import { EntityManager } from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/NetworkDeviceDiagnostic";
 import NetworkDevice from "../../Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceService from "./NetworkDeviceService";
@@ -75,7 +76,7 @@ function readAffectedRowCount(result: unknown): number {
   return result.length;
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
     /*
@@ -104,6 +105,7 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
     const data: Record<string, unknown> = createBy.data as unknown as Record<
       string,
       unknown
@@ -235,21 +237,21 @@ export class Service extends DatabaseService<Model> {
      */
     data["project"] = undefined;
 
-    createBy.data.networkDeviceId = networkDeviceId;
+    RelationIdUtil.stamp(
+      data,
+      ["networkDeviceId", "networkDevice"],
+      networkDeviceId,
+    );
     createBy.data.hostname = hostname;
-    createBy.data.probeId = probeId;
-    createBy.data.status = NetworkDeviceDiagnosticStatus.Pending;
-
     /*
-     * A caller that posted `probe: null` meant "no preference", and the
-     * device's probe was chosen above. The relation object has to go, not
-     * just the FK: TypeORM derives the join column from the relation when
-     * both are set, and null there would persist as NULL over the probeId
-     * this hook just chose.
+     * The probe chosen above - the caller's, or the device's own when the
+     * caller named none. A caller that posted `probe: null` meant "no
+     * preference", and stamp removes that relation too: TypeORM derives the
+     * join column from the relation when both are set, and null there would
+     * persist as NULL over the probeId this hook just chose.
      */
-    if (data["probe"] === null) {
-      data["probe"] = undefined;
-    }
+    RelationIdUtil.stamp(data, PROBE_RELATION_KEYS, probeId);
+    createBy.data.status = NetworkDeviceDiagnosticStatus.Pending;
 
     /*
      * `undefined` rather than null, through a cast because

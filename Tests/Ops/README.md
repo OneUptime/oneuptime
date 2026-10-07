@@ -204,10 +204,13 @@ RE2, where a pattern that is linear in RE2 can still be exponential.
 
 Not part of `npm test`, because it needs docker and helm. It runs
 `otelcol validate` from the pinned `otel/opentelemetry-collector-contrib:0.161.0`
-image over the four agent configs, over the Database Agent's per-receiver
-configs (as shipped, and again with every optional metric their comments list
-switched on), and over both collector ConfigMaps rendered out of the
-`kubernetes-agent` chart.
+image over the Docker, Podman, Docker Swarm and VMware agent configs, over the
+Storage Array Agent's three configs (as shipped, and again with their
+commented-out syslog receivers and `logs` pipeline uncommented — and it checks
+that an empty `STORAGE_ARRAY_NAME` stops the collector), over the Database
+Agent's per-receiver configs (as shipped, and again with every optional metric
+their comments list switched on), and over both collector ConfigMaps rendered
+out of the `kubernetes-agent` chart.
 
 That is not a YAML check. `validate` constructs every component and builds the
 stanza operator graph for real, which compiles the RE2 regexes and the expr-lang
@@ -276,6 +279,86 @@ only a log line's `error` field, reports a failed EXPLAIN as a warning rather
 than a missing grant, and hands the ingestion key to a digest-pinned curl image
 on stdin, never on a command line.
 
+### `StorageArrayAgentConfigs.test.js`
+
+The Storage Array Agent (`agents/StorageArrayAgent`) is config-only: a stock
+collector image plus one config per way of reading an array — a FlashArray's
+native OpenMetrics endpoint (`otel-collector-config.yaml`), Pure's FlashArray
+exporter for an older Purity//FA, and Pure's FlashBlade exporter. OneUptime
+registers and inventories an array from what these configs stamp and how they
+scrape, so their shape is pinned, per config:
+
+- the scrape jobs, their endpoints and intervals (FlashArray: array 60s;
+  volumes, hosts, pods 2m; directories 30m — FlashBlade: array 60s; file
+  systems and object store 5m), each `scrape_timeout` within its interval, and
+  every job's `scrape_endpoint` label, which ingest
+  (`StorageArraySnapshotScan`) reads to know a batch is a complete list;
+- how each reaches the array: `https` with `namespace=purefa` and the
+  unquoted TLS switch for the native endpoint, the exporter service with
+  `endpoint=<array>` for the others, the read-only API token as a Bearer token
+  in all of them;
+- only the volumes and hosts jobs drop the latency breakdown dimensions;
+- the `resource` processor upserts `storage.array.name`, `storage.system`
+  and `oneuptime.agent.version` (equal to the compose image pin) and deletes
+  `service.name` / `service.instance.id`; the `batch` processor has no
+  `send_batch_max_size`; one metrics pipeline into one `otlphttp` exporter;
+  the syslog option ships commented out on the port the compose file
+  publishes when it is uncommented;
+- `docker-compose.yml` mounts the config `STORAGE_ARRAY_COLLECTOR_CONFIG`
+  names, defaults the two optional settings, and starts each exporter pinned,
+  unpublished, credential-free and read-only under its own profile;
+- `install.sh` gives each config the platform and profile that match it,
+  downloads every file, writes exactly the variables the configs read (the
+  user's quoted), reuses them on a re-run, recreates the container so a re-run
+  starts the config it just downloaded (`--force-recreate`), and installs
+  where the systemd unit and `troubleshoot.sh` look; `troubleshoot.sh` probes
+  the array the way each config scrapes it and hands the API token to curl on
+  stdin.
+
+### `StorageArrayAgentScripts.test.js`
+
+Runs the Storage Array Agent's `install.sh` and `troubleshoot.sh` for real in
+a scratch directory, with `docker` and `curl` replaced by recording stubs. It
+pins what the installer writes for each array type (config, compose profile
+and platform agree; the address loses its scheme; the `.env` is mode 600 and
+quoted for Compose; a re-run reads it back without asking; a sha256 of every
+file it installed is recorded in `.agent-files.sha256`, so an upgrade keeps
+only a file you edited as `<file>.bak.<timestamp>` — not the configs a version
+bump changed — and, with no record, keeps every file that differs; every
+profile's exporter is stopped before `docker compose up -d --force-recreate`,
+so a re-run starts the collector on the config it just downloaded), and what
+the doctor concludes from each answer the array probe can get: a native
+FlashArray, a refused token (the array's `401` or the exporter's `failed to
+login`), a FlashArray without the native endpoint (`404`), an untrusted
+certificate, an exporter whose profile is off, a FlashBlade, a misconfigured
+endpoint or array name — and that the array's API token never appears on a
+command line.
+
+### `ProxmoxCephAgentInstallers.test.js`
+
+Runs the Proxmox and Ceph agents' `install.sh` for real in a scratch
+directory, with `docker`, `curl` and `ceph` replaced by recording stubs.
+Running either script again is the upgrade (the dialog beside an outdated
+agent version offers it), so the suite pins that a re-run keeps the answers:
+every variable `docker-compose.yml` reads is read back from `.env` exactly as
+Docker Compose reads it — including an unquoted `.env` from the previous
+script and values added by hand (`PVE_VERIFY_SSL`,
+`ONEUPTIME_AI_INVESTIGATION`), which that script dropped — an exported
+variable still overrides it, and nothing is asked again (the AI agent's
+questions and the offer to create the Ceph client run on a fresh install
+only). It also pins that values are written quoted for Compose and the
+`.env` is mode 600; that a file the reader edited is kept as
+`<file>.bak.<timestamp>` (a sha256 record in `.agent-files.sha256` tells an
+edit from an upgrade, and with no record every differing file is kept); that
+the images are pulled (a failed pull is not fatal), Compose is started from
+`.env` alone and `--force-recreate` starts the collector on the config the run
+just downloaded; and that the scripts' `.env` helpers are the VMware and
+Database installers' own. Where `docker compose` runs, the written `.env` is
+read back through the real `docker compose config`: a cluster name with ` #`,
+a token secret with `$` and quotes and the exporter's profile reach the
+containers as typed. CI must run that check; elsewhere it is skipped with the
+reason logged.
+
 ### `ContainerAgentAiInstallers.test.js`
 
 Runs the Docker, Podman and Docker Swarm agents' `install.sh` for real in a
@@ -294,8 +377,8 @@ installed there before.
 
 ### `AgentTroubleshootTokenCheck.test.js`
 
-Runs the ingestion-key check of the Ceph, Proxmox, VMware and Docker Swarm
-agents' `troubleshoot.sh` (with `docker` stubbed) and of the Kubernetes agent
+Runs the ingestion-key check of the Ceph, Proxmox, VMware, Storage Array and
+Docker Swarm agents' `troubleshoot.sh` (with `docker` stubbed) and of the Kubernetes agent
 chart's (with `kubectl`, and the local `curl` and `sleep`, stubbed) against
 each answer a OneUptime server can give (GH#3978). Ingest refuses a bad key
 with 401 (missing, unknown, expired) or 422 (disabled, or a browser key from a
@@ -310,6 +393,12 @@ collector). The matrix pins the verdicts:
 
 The Docker Swarm check has no `/fluentd` fallback, so there an old server that
 does not refuse the key stays inconclusive.
+
+With the collector down there is no container environment to read, and the
+Ceph, Proxmox, VMware and Storage Array checks fall back to the `.env` their
+`install.sh` writes quoted for Docker Compose: the suite pins that they read
+it as Compose does, so the probe asks the URL and sends the key without the
+quotes.
 
 ### `ContainerAgentDockerApiVersion.test.js`
 
@@ -680,6 +769,22 @@ languages with the same build modes and default query suite under the same
 categories (so the alerts carry over), and runs nothing until the
 `CODEQL_ADVANCED_SETUP` repository variable is `true` - GitHub refuses an
 advanced setup's results while default setup is on.
+
+### `JestIgnorePatterns.test.js`
+
+Jest matches `testPathIgnorePatterns`, `modulePathIgnorePatterns`,
+`transformIgnorePatterns`, `coveragePathIgnorePatterns` and
+`watchPathIgnorePatterns` against absolute paths, so an entry written as a
+bare name also matches the directories the checkout lives under: with
+`"dist"`, a worktree at `.claude/worktrees/distracted-dhawan-5e965a` made
+Common's jest find no tests at all, even one named on the command line. The
+suite reads every jest config in the repository (`jest.config.*` and
+`package.json` `"jest"` blocks) and checks that moving the checkout under
+directories whose names merely contain an ignored word changes nothing a
+config ignores, that such a directory inside a package is not ignored either,
+and that each package's build output, its `node_modules` and App's recorder
+suites still are. Write entries as whole path segments: `"/dist/"` for a name
+at any depth, `"<rootDir>/build/"` for one directory of the package.
 
 ### `agent-ebpf-e2e/`
 

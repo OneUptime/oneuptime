@@ -36,6 +36,15 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * PasswordHash has a known, pre-existing TS5.9 compile failure under ts-jest
@@ -116,6 +125,7 @@ describe("ApiKeyPermissionService.findPermissionsByApiKeyId", () => {
      * test would leak into the next without an explicit clear.
      */
     ApiKeyPermissionService.clearCache();
+    stubProjectDirectory({});
   });
 
   afterEach(() => {

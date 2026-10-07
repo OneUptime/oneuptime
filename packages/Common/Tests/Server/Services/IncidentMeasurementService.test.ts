@@ -22,6 +22,15 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -153,6 +162,7 @@ describe("IncidentMeasurementService", () => {
     jest
       .spyOn(IncidentStateService, "findBy")
       .mockResolvedValue([] as Array<IncidentState> as never);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {

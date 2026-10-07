@@ -2,8 +2,10 @@ import TeamsElement from "../../Components/Team/TeamsElement";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import PlanGatedPage from "../../Components/Billing/PlanGatedPage";
+import { ProjectOidcProvidersLeftover } from "../../Components/Billing/IdentityPlanLeftovers";
 import { SSO_REQUIRED_PLAN } from "../../Enterprise/EnterpriseEligibility";
 import { useDefaultSsoTeamsInitialValues } from "../../Components/Sso/UseDefaultSsoTeams";
+import { getSsoTeamsGrantNote } from "../../Components/Sso/SsoTeamsGrantNote";
 import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -97,6 +99,7 @@ const OIDCSettings: FunctionComponent<PageComponentProps> = (
           viewPageRoute={Navigation.getCurrentRoute()}
           formFields={getOidcProviderFormFields<ProjectOIDC>({
             withTeams: true,
+            getTeamsFooterElement: getSsoTeamsGrantNote,
           })}
           createInitialValues={createInitialValues}
           onCreateSuccess={(
@@ -252,7 +255,10 @@ const OIDCSettings: FunctionComponent<PageComponentProps> = (
 
 /*
  * Every edition includes single sign-on. OneUptime Cloud sells it on the
- * Scale plan, so there a project below Scale sees the plan upsell instead.
+ * Scale plan, so there a project below Scale sees the plan upsell instead,
+ * with the OIDC providers the project still has under it: they keep signing
+ * people in until they are turned off or deleted
+ * (ProjectOidcProvidersLeftover).
  */
 const OIDCPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -293,6 +299,7 @@ const OIDCPage: FunctionComponent<PageComponentProps> = (
           },
         ],
       }}
+      belowPlan={<ProjectOidcProvidersLeftover />}
     >
       <OIDCSettings {...props} />
     </PlanGatedPage>

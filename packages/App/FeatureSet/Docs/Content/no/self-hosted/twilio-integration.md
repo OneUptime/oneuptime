@@ -18,6 +18,8 @@ For et prosjekt:
 4. **Angi som prosjektstandard** er slått på for prosjektets første konfigurasjon, så SMS-er og anrop til prosjektmedlemmer, inkludert vaktvarsler, går gjennom den så snart du lagrer. Slå den av hvis kontoen bare er for statussider eller innkommende anrop. For alle senere konfigurasjoner er innstillingen slått av: slå den på, eller velg **Angi som prosjektstandard** i radmenyen til konfigurasjonen, for å flytte disse meldingene dit. En API-forespørsel som utelater `isProjectDefault`, behandles på samme måte.
 5. Lagre. Bare én konfigurasjon kan være prosjektets standard. Statussider bruker konfigurasjonen som er uttrykkelig tilordnet hver statusside.
 
+**SMS** og **Telefonanrop** er av i hvert prosjekt, og til de er slått på, kan ingen i prosjektet legge til et telefonnummer for dem. En prosjekteier eller noen med **Billing Admin** eller **Manage Billing** slår dem på i kortet **Varslingskanaler** på samme side.
+
 For en standard for hele installasjonen kan en administrator i stedet åpne **Admin Dashboard > Settings > Call and SMS**, redigere Twilio-påloggingsinformasjonen og telefonnumrene og lagre. Medlemsvarsler bruker denne globale konfigurasjonen når prosjektet ikke har en standard. Hold Auth Token hemmelig.
 
 ## 3. Konfigurer nettverkstilgang
@@ -91,7 +93,7 @@ For utvikling beskriver Twilios [veiledning for webhook-testing](https://www.twi
 ## 4. Test levering og tilbakekall hver for seg
 
 1. Kontroller utenfor bedriftsnettverket og VPN at callback-vertsnavnet peker til den offentlige gatewayen og presenterer et gyldig TLS-sertifikat. En GET fra nettleseren tester ikke disse POST-callbackene.
-2. Bruk **Send Test SMS** og **Send Test Call** i prosjektets Twilio-konfigurasjon. Bekreft mottak på mottakerens telefon.
+2. Bruk **Send Test SMS** og **Send Test Call** i prosjektets Twilio-konfigurasjon. Bekreft mottak på mottakerens telefon. Begge krever tillatelse til å legge til Twilio-konfigurasjoner: **Project Owner**, **Project Admin** eller **Create Call and SMS** og **Read Call and SMS** i en egendefinert rolle.
 3. Konfigurer brukerens bekreftede SMS-/anropskontakt og varslingsregler, og utløs deretter et kontrollert vaktvarsel. Trykk på 1, og kontroller bekreftelsen i OneUptime. Hvis du bruker policyer for innkommende anrop, ringer du det konfigurerte nummeret og kontrollerer ruting og anropslogg.
 4. Kontroller SMS-leveringsstatus i OneUptime og Twilios meldingslogger. En akseptert sending er ikke bevis på levering; [Twilio rapporterer senere statusendringer gjennom tilbakekall](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 

@@ -6,8 +6,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * The database server's AI Insights page (AI → Insights): what OneUptime AI
- * investigated and changed on this database server, and every command it ran here.
- * The page itself is the generic ResourceAiInsightsPage.
+ * has learned about this database server from its own work there, and what
+ * deserves attention. The page itself is the generic ResourceAiInsightsPage;
+ * everything AI did, newest first, is AI → Logs.
  */
 const DatabaseServerAiInsights: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,

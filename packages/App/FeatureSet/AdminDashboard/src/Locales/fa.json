@@ -831,7 +831,6 @@
   "Webhook Secret Token": "توکن محرمانه وب‌هوک",
   "Webhook Verify Token": "توکن تأیید وب‌هوک",
   "Webhook verify token": "توکن تأیید وب‌هوک",
-  "Who would you like the owner of this project to be? If you leave this blank - you will be the owner of the project": "می‌خواهید مالک این پروژه چه کسی باشد؟ اگر این را خالی بگذارید، خودتان مالک پروژه خواهید بود",
   "Yearly Plan": "طرح سالانه",
   "You can find this in your Twilio console.": "این را در کنسول Twilio خود پیدا می‌کنید.",
   "Your bot's Telegram username, without the leading @. Telegram usernames end in 'bot'.": "نام کاربری ربات شما در Telegram، بدون @ ابتدای آن. نام‌های کاربری Telegram به 'bot' ختم می‌شوند.",

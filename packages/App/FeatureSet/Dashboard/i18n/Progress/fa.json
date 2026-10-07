@@ -1,7 +1,12 @@
 {
   "baseline": {
-    "keys": 24715,
-    "untranslated": 16382
+    "keys": 25975,
+    "untranslated": 16547
   },
-  "sameAsEnglish": []
+  "sameAsEnglish": [
+    "CloudWatch Metric Streams",
+    "Runner",
+    "VMware vCenter",
+    "kubectl set image deployment/web * -n web"
+  ]
 }

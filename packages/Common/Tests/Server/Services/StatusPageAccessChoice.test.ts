@@ -35,9 +35,12 @@ import {
   StatusPageAccess,
   StatusPageAccessState,
 } from "../../../Types/StatusPage/StatusPageAccess";
-import { getPlanNeededToChangeColumn } from "../../../UI/Components/ModelSwitch/ModelSwitchUtil";
+import { getPlanNeededToWriteColumn } from "../../../UI/Components/ModelSwitch/ModelSwitchUtil";
 import ProjectUtil from "../../../UI/Utils/Project";
-import { getPlanNeededForAccess } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageAccessCopy";
+import {
+  getPlanNeededForAccess,
+  getPlanNeededToComeBackToAccess,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageAccessCopy";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 import { getJestSpyOn } from "../../Spy";
 
@@ -53,11 +56,15 @@ import { getJestSpyOn } from "../../Spy";
  *     choice made - from every state a page can start in, and never leaves
  *     a page in a state it reads as another choice;
  *   - on OneUptime Cloud (billing on), the column check (ColumnPermission,
- *     which refuses a write that carries a plan-gated column, changed or
- *     not) refuses exactly the moves that change isPublicStatusPage below
- *     Growth - so moving between the two private choices works on every
- *     plan - and the dashboard's plan pill names a plan for exactly those
- *     moves;
+ *     which refuses a write that carries a plan-gated column away from its
+ *     default, changed or not) refuses exactly the moves that make a page
+ *     PRIVATE below Growth. Making one public again takes
+ *     isPublicStatusPage back to its default, which every plan may write (a
+ *     paid feature can always be switched off), and moving between the two
+ *     private choices works on every plan. The dashboard's plan pill names
+ *     a plan for exactly the moves the server refuses, and its dialog for a
+ *     move off a choice the plan does not include names the plan coming
+ *     back needs;
  *   - with billing off (every self-hosted install), no move is refused.
  *
  * The plans are read from SUBSCRIPTION_PLAN_* in the environment, which this
@@ -439,7 +446,7 @@ describe("the server lets in whoever the choice says", () => {
   });
 });
 
-describe("on OneUptime Cloud, a move is refused below Growth exactly when it changes isPublicStatusPage", () => {
+describe("on OneUptime Cloud, a move is refused below Growth exactly when it makes the page private", () => {
   beforeEach(() => {
     setTestBillingEnabled(true);
   });
@@ -464,13 +471,18 @@ describe("on OneUptime Cloud, a move is refused below Growth exactly when it cha
     "%s, moved to %s",
     (_label: string, from: StatusPageAccessState, to: StatusPageAccess) => {
       const data: StatusPage = writeFor(from, to);
-      const changesPublic: boolean = data.isPublicStatusPage !== undefined;
+      /*
+       * Making the page private needs Growth. Making it public again puts
+       * isPublicStatusPage back to its default, which every plan may write:
+       * a page a trial left private never stays that way for want of a plan.
+       */
+      const makesPrivate: boolean = data.isPublicStatusPage === false;
 
       getJestSpyOn(ProjectUtil, "getCurrentPlan");
 
       for (const plan of PLANS) {
         const expected: string =
-          plan === PlanType.Free && changesPublic ? GROWTH_REFUSAL : "allowed";
+          plan === PlanType.Free && makesPrivate ? GROWTH_REFUSAL : "allowed";
 
         expect([plan, checkWrite(data, plan)]).toEqual([plan, expected]);
 
@@ -483,21 +495,74 @@ describe("on OneUptime Cloud, a move is refused below Growth exactly when it cha
           plan,
         );
 
+        const getPlanNeeded: (
+          column: string,
+          value: unknown,
+        ) => PlanType | null = (
+          column: string,
+          value: unknown,
+        ): PlanType | null => {
+          return getPlanNeededToWriteColumn(new StatusPage(), column, value);
+        };
+
         const planNeeded: PlanType | null = getPlanNeededForAccess({
           from,
           to,
-          getPlanNeeded: (column: string): PlanType | null => {
-            return getPlanNeededToChangeColumn(new StatusPage(), column);
-          },
+          getPlanNeeded,
         });
 
         expect([plan, planNeeded]).toEqual([
           plan,
           expected === "allowed" ? null : PlanType.Growth,
         ]);
+
+        /*
+         * A move off a private page to "Anyone with the link", below Growth:
+         * allowed, and the dialog says making it private again needs Growth.
+         * Every other move says nothing of the kind.
+         */
+        const planToComeBack: PlanType | null = getPlanNeededToComeBackToAccess(
+          { from, to, getPlanNeeded },
+        );
+
+        const isLeavingPrivate: boolean =
+          getStatusPageAccess(from) !== StatusPageAccess.Anyone &&
+          to === StatusPageAccess.Anyone;
+
+        expect([plan, planToComeBack]).toEqual([
+          plan,
+          plan === PlanType.Free && isLeavingPrivate ? PlanType.Growth : null,
+        ]);
       }
     },
   );
+
+  test("a page a trial left private can be made public on Free; making it private again cannot", () => {
+    const privatePage: StatusPageAccessState = {
+      isPublicStatusPage: false,
+      enableMasterPassword: true,
+      hasMasterPassword: true,
+    };
+
+    const open: StatusPage = writeFor(privatePage, StatusPageAccess.Anyone);
+
+    // Back to the defaults: public, and the password switch off.
+    expect(open.isPublicStatusPage).toBe(true);
+    expect(open.enableMasterPassword).toBe(false);
+    expect(checkWrite(open, PlanType.Free)).toBe("allowed");
+
+    const publicPage: StatusPageAccessState = {
+      isPublicStatusPage: true,
+      enableMasterPassword: false,
+      hasMasterPassword: true,
+    };
+
+    for (const to of [StatusPageAccess.SignIn, StatusPageAccess.Password]) {
+      expect([to, checkWrite(writeFor(publicPage, to), PlanType.Free)]).toEqual(
+        [to, GROWTH_REFUSAL],
+      );
+    }
+  });
 
   test("a write that carries the public switch unchanged is refused below Growth too, which is why only changed columns are sent", () => {
     // A private page saved as private again.

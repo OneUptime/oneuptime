@@ -1,6 +1,6 @@
 {
     "name": "@oneuptime/test-server",
-  "version": "14.0.14",
+  "version": "14.0.15",
     "description": "",
     "repository": {
         "type": "git",
@@ -31,5 +31,10 @@
         "nodemon": "^3.1.14",
         "ts-jest": "^28.0.2",
         "typescript": "^5.9.3"
+    },
+    "overrides": {
+        "@istanbuljs/load-nyc-config": {
+            "js-yaml": "^4.3.2"
+        }
     }
 }

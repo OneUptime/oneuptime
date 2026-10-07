@@ -7,7 +7,13 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import React, { FunctionComponent, ReactElement } from "react";
 import { MemoryRouter, Route as PageRoute, Routes } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -33,7 +39,11 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     DOM id prefix no other page uses, and the database's scope note (which
  *     of its telemetry the retention covers; it used to be a banner above
  *     the cards);
- *   - Settings > Telemetry keeps the project's default retention everywhere.
+ *   - Settings > Telemetry keeps the project's default retention everywhere;
+ *   - on OneUptime Cloud below Scale, a paid feature can always be switched
+ *     off: each page reads the record's override columns once, and while
+ *     one is set (a Scale trial left it) offers to remove it under the
+ *     upsell, writing them back to nothing (RetentionOverrideLeftover).
  *
  * The plugins come from a stand-in for src/Enterprise/Plugins; `null` means
  * "the real module", which in this jest config is the empty Community stub.
@@ -97,6 +107,7 @@ jest.mock("../../../../App/FeatureSet/Dashboard/src/Enterprise/Plugins", () => {
 });
 
 const getItemMock: MockFunction = getJestMockFunction();
+const updateByIdMock: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -107,6 +118,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       },
       getItem: (...args: Array<unknown>): unknown => {
         return getItemMock(...args);
+      },
+      updateById: (...args: Array<unknown>): unknown => {
+        return updateByIdMock(...args);
       },
       getList: (): Promise<{
         data: Array<unknown>;
@@ -197,6 +211,7 @@ import ServiceSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Serv
 import TelemetrySettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/TelemetrySettings";
 import VMwareSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/View/Settings";
 import { getTelemetryRetentionUpsell } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/TelemetryResourceRetentionSettings";
+import { RETENTION_OVERRIDE_LEFTOVER_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/RetentionOverrideLeftoverCopy";
 import { TELEMETRY_RETENTION_REQUIRED_PLAN } from "../../../../App/FeatureSet/Dashboard/src/Enterprise/EnterpriseEligibility";
 import { TelemetryResourceRetentionSettingsProps } from "../../../../App/FeatureSet/Dashboard/src/Enterprise/EnterprisePlugins";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
@@ -450,6 +465,9 @@ const renderTelemetrySettings: () => Promise<void> =
     await settle();
   };
 
+// What the record read holds in its override columns (nothing, by default).
+let storedOverrides: Record<string, unknown> = {};
+
 // getItem calls that read a retention override column.
 const overrideReads: () => Array<unknown> = (): Array<unknown> => {
   return getItemMock.mock.calls.filter((call: Array<unknown>): boolean => {
@@ -494,9 +512,15 @@ beforeEach(() => {
     }): Promise<BaseModel> => {
       const model: BaseModel = new request.modelType();
       model.id = MODEL_ID;
+      Object.assign(model, storedOverrides);
       return model;
     },
   );
+  storedOverrides = {};
+  updateByIdMock.mockReset();
+  updateByIdMock.mockImplementation(async (): Promise<unknown> => {
+    return {};
+  });
   jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
   jest
     .spyOn(ProjectUtil, "getCurrentPlan")
@@ -641,6 +665,82 @@ describe.each(RESOURCE_PAGES)(
       expect(
         screen.queryByTestId("resource-retention-plugin"),
       ).not.toBeInTheDocument();
+
+      /*
+       * One read, of this record's two override columns only: whether a
+       * trial left one to remove. Nothing set, nothing more is drawn.
+       */
+      expect(overrideReads()).toHaveLength(1);
+      expect(overrideReads()[0]).toEqual([
+        expect.objectContaining({
+          modelType: pageCase.modelType,
+          id: MODEL_ID,
+          select: {
+            retainTelemetryDataForDays: true,
+            telemetryRetentionConfig: true,
+          },
+        }),
+      ]);
+      expect(
+        screen.queryByTestId(RETENTION_OVERRIDE_LEFTOVER_TEST_ID),
+      ).not.toBeInTheDocument();
+    });
+
+    test("on OneUptime Cloud below Scale: an override a Scale trial left is offered for removal under the upsell, and removing it writes both columns back to nothing", async () => {
+      pinCloud(PlanType.Free);
+      pluginsForTest = STUB_PLUGINS;
+      storedOverrides = { retainTelemetryDataForDays: 90 };
+
+      await renderResourcePage(pageCase);
+
+      expect(screen.getAllByText("Upgrade to Scale").length).toBeGreaterThan(0);
+      expect(
+        screen.getByTestId(RETENTION_OVERRIDE_LEFTOVER_TEST_ID),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: "Retention Override" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "Telemetry from here is kept for its own retention, not the project's. Your plan does not include retention overrides: you can remove this one, but setting one again needs the Scale plan.",
+        ),
+      ).toBeInTheDocument();
+
+      await act(async () => {
+        fireEvent.click(
+          screen.getByRole("button", { name: "Remove Override" }),
+        );
+      });
+      await settle();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+      });
+      await settle();
+
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+      expect(updateByIdMock.mock.calls[0]![0]).toEqual(
+        expect.objectContaining({
+          modelType: pageCase.modelType,
+          id: MODEL_ID,
+          data: {
+            retainTelemetryDataForDays: null,
+            telemetryRetentionConfig: null,
+          },
+        }),
+      );
+    });
+
+    test("on OneUptime Cloud on Scale: no leftover is looked for, the plugin has the cards", async () => {
+      pinCloud(PlanType.Scale);
+      pluginsForTest = STUB_PLUGINS;
+      storedOverrides = { retainTelemetryDataForDays: 90 };
+
+      await renderResourcePage(pageCase);
+
+      expect(
+        screen.queryByTestId(RETENTION_OVERRIDE_LEFTOVER_TEST_ID),
+      ).not.toBeInTheDocument();
       expect(overrideReads()).toEqual([]);
     });
 
@@ -761,5 +861,49 @@ describe("Settings > Telemetry", () => {
     expect(
       screen.queryByTestId("telemetry-retention-by-type-plugin"),
     ).not.toBeInTheDocument();
+    // Nothing set: nothing is offered.
+    expect(
+      screen.queryByTestId(RETENTION_OVERRIDE_LEFTOVER_TEST_ID),
+    ).not.toBeInTheDocument();
+  });
+
+  test("on OneUptime Cloud below Scale: retention by type a Scale trial left is offered for removal, which writes it back to nothing", async () => {
+    pinCloud(PlanType.Growth);
+    pluginsForTest = STUB_PLUGINS;
+    storedOverrides = { telemetryRetentionConfig: { logs: { default: 90 } } };
+
+    await renderTelemetrySettings();
+
+    expect(
+      screen.getByTestId(RETENTION_OVERRIDE_LEFTOVER_TEST_ID),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Some types of telemetry are kept for their own retention, not the project's default. Your plan does not include retention by telemetry type: you can remove it, but setting it again needs the Scale plan.",
+      ),
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Remove Override" }));
+    });
+    await settle();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    });
+    await settle();
+
+    expect(updateByIdMock.mock.calls[0]![0]).toEqual(
+      expect.objectContaining({
+        modelType: Project,
+        id: PROJECT_ID,
+        data: { telemetryRetentionConfig: null },
+      }),
+    );
+    expect(
+      screen.getByText(
+        "Removed. Telemetry is kept for the project's default retention from now on.",
+      ),
+    ).toBeInTheDocument();
   });
 });

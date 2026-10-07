@@ -71,6 +71,8 @@ jest.mock("Common/Server/Services/IncidentService", () => {
       findAllBy: jest.fn(),
       // IncidentStatusPageScope reads each incident's status page scope.
       findBy: jest.fn(),
+      // The look again after a skip (requeueIfPublishedSinceRead).
+      findOneById: jest.fn(),
       updateOneById: jest.fn(),
       getIncidentLinkInDashboard: jest.fn(),
       // The claim (SubscriberNotificationClaim).
@@ -273,20 +275,29 @@ import {
 import {
   HOSTILE_PAGE_NAME,
   HOSTILE_PAGE_NAME_HTML,
+  HOSTILE_PAGE_NAME_MARKDOWN,
   HOSTILE_RESOURCES_HTML,
+  HOSTILE_RESOURCES_MARKDOWN,
   HOSTILE_RESOURCES_TEXT,
   HOSTILE_TITLE,
   HOSTILE_TITLE_HTML,
+  HOSTILE_TITLE_MARKDOWN,
+  MARKDOWN_TITLE,
   RecordedCompile,
   expectNoHtmlEntities,
+  expectNoUnescapedAngleBracket,
   expectOnlyTheListedHtmlVariables,
+  expectSlackReadsNoMention,
+  expectValuesInertInMarkdown,
   hostileResources,
   recordedCompiles,
+  withoutMarkdownEscapes,
 } from "../Fixtures/SubscriberTemplateCompileFixtures";
 import IncidentCustomFieldService from "Common/Server/Services/IncidentCustomFieldService";
 import {
   AFFECTED_LOCATION,
   AFFECTED_LOCATION_HTML,
+  AFFECTED_LOCATION_MARKDOWN,
   CUSTOM_FIELD_DEFINITIONS,
   CUSTOM_FIELD_PLACEHOLDERS_CASES,
   CustomFieldPlaceholdersCase,
@@ -385,7 +396,8 @@ let storedScopes: Dictionary<StoredIncidentScope> = {};
 
 /*
  * The job skips an incident unless its postmortem is shown on the status
- * page and subscribers are to be told when it is published.
+ * page - switched on, with a note - and subscribers are to be told when it
+ * is published.
  */
 function incident(): Incident {
   const row: Incident = new Incident();
@@ -625,6 +637,12 @@ beforeEach(() => {
     }) as never,
   );
   mock(IncidentService.updateOneById).mockResolvedValue(1 as never);
+  // Looked at again after a skip: still as the run read it.
+  mock(IncidentService.findOneById).mockImplementation(
+    async (): Promise<Incident> => {
+      return pendingIncidents[0]!;
+    },
+  );
   // This run wins every claim unless a test says otherwise.
   mock(IncidentService.compareAndSetColumnsByIdWithoutHooks).mockResolvedValue(
     true as never,
@@ -768,6 +786,27 @@ describe("Incident:SendPostmortemNotificationToSubscribers, skipping", () => {
       message:
         "Incident is not set to show postmortem on status page. Skipping notifications to subscribers.",
     },
+    /*
+     * The status page shows a postmortem only with a note, so one switched
+     * on without one - or emptied after it was queued, or sent again through
+     * the API - announces nothing (IncidentPostmortemPublication).
+     */
+    {
+      name: "a postmortem without a note",
+      change: (row: Incident): void => {
+        delete row.postmortemNote;
+      },
+      message:
+        "The postmortem has no note, so the status page does not show it. Skipping notifications to subscribers.",
+    },
+    {
+      name: "a postmortem whose note is only whitespace",
+      change: (row: Incident): void => {
+        row.postmortemNote = "  \n\n  ";
+      },
+      message:
+        "The postmortem has no note, so the status page does not show it. Skipping notifications to subscribers.",
+    },
     {
       name: "an incident not set to notify on postmortem published",
       change: (row: Incident): void => {
@@ -783,6 +822,28 @@ describe("Incident:SendPostmortemNotificationToSubscribers, skipping", () => {
       },
       message:
         "No monitors are attached to this incident. Skipping notifications to subscribers.",
+    },
+    /*
+     * The status page shows a postmortem only on an incident it shows. The
+     * skip says it waits for the incident: showing it sends the postmortem
+     * (IncidentPostmortemPublication.isShownByUpdate).
+     */
+    {
+      name: "an incident hidden from status pages",
+      change: (row: Incident): void => {
+        row.isVisibleOnStatusPage = false;
+      },
+      message:
+        "Incident is hidden from status pages. Subscribers will be sent the postmortem when the incident is made visible on status pages.",
+    },
+    // A private incident is hidden from every status page, whatever its switch says.
+    {
+      name: "a private incident",
+      change: (row: Incident): void => {
+        row.isPrivate = true;
+      },
+      message:
+        "Incident is hidden from status pages. Subscribers will be sent the postmortem when the incident is made visible on status pages.",
     },
   ];
 
@@ -809,6 +870,230 @@ describe("Incident:SendPostmortemNotificationToSubscribers, skipping", () => {
       ).toBe(testCase.message);
     },
   );
+
+  /*
+   * The run decides from the incident as it read it, before its claim. A
+   * postmortem published after that read - while the run held the
+   * notification, so the update found it on its way and queued nothing -
+   * would be skipped as not shown and never announced. So after a skip for
+   * a postmortem the status page does not show, the run looks again, and
+   * queues it again when the status page shows it now.
+   */
+  describe("a postmortem published while the run held its notification", () => {
+    const notShownCases: Array<SkipCase> = cases.slice(0, 3);
+
+    function published(): Incident {
+      const row: Incident = incident();
+      row.showPostmortemOnStatusPage = true;
+      row.postmortemNote = POSTMORTEM;
+      return row;
+    }
+
+    test.each(notShownCases)(
+      "$name, published since the run read it, is queued again for the next run",
+      async (testCase: SkipCase) => {
+        const row: Incident = incident();
+        testCase.change(row);
+        pendingIncidents = [row];
+        mock(IncidentService.findOneById).mockResolvedValue(
+          published() as never,
+        );
+
+        await runJob();
+
+        expect(sentMail()).toHaveLength(0);
+        // Claimed, skipped as read, then queued again - only from that skip.
+        expect(postmortemStatuses()).toEqual([
+          StatusPageSubscriberNotificationStatus.InProgress,
+          StatusPageSubscriberNotificationStatus.Skipped,
+          StatusPageSubscriberNotificationStatus.Pending,
+        ]);
+
+        const requeue: JSONObject = mock(
+          IncidentService.compareAndSetColumnsByIdWithoutHooks,
+        ).mock.calls[1]![0] as JSONObject;
+
+        // Only while it is still the skip this run wrote.
+        expect(requeue["expectedData"]).toEqual({
+          subscriberNotificationStatusOnPostmortemPublished:
+            StatusPageSubscriberNotificationStatus.Skipped,
+          subscriberNotificationStatusMessageOnPostmortemPublished:
+            testCase.message,
+        });
+        expect(
+          (requeue["data"] as JSONObject)[
+            "subscriberNotificationStatusMessageOnPostmortemPublished"
+          ],
+        ).toBe("Postmortem published. Subscribers will be notified shortly.");
+      },
+    );
+
+    test.each(notShownCases)(
+      "$name, still not shown when the run looks again, stays skipped",
+      async (testCase: SkipCase) => {
+        const row: Incident = incident();
+        testCase.change(row);
+        pendingIncidents = [row];
+
+        await runJob();
+
+        expect(postmortemStatuses()).toEqual([
+          StatusPageSubscriberNotificationStatus.InProgress,
+          StatusPageSubscriberNotificationStatus.Skipped,
+        ]);
+        expect(IncidentService.findOneById).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    test("the other skips do not look again: they do not hang on the publish", async () => {
+      const row: Incident = incident();
+      row.notifySubscribersOnPostmortemPublished = false;
+      pendingIncidents = [row];
+      mock(IncidentService.findOneById).mockResolvedValue(published() as never);
+
+      await runJob();
+
+      expect(IncidentService.findOneById).not.toHaveBeenCalled();
+      expect(postmortemStatuses()).toEqual([
+        StatusPageSubscriberNotificationStatus.InProgress,
+        StatusPageSubscriberNotificationStatus.Skipped,
+      ]);
+    });
+  });
+
+  /*
+   * The run decides from the incident as it read it, before its claim. An
+   * update that showed the incident after that read - while the run held the
+   * notification, so the update found it on its way - would leave it skipped
+   * as waiting for an incident that is shown already. So after a skip for a
+   * hidden incident, the run looks again, and queues it again when the
+   * incident is shown now and its postmortem published.
+   */
+  describe("an incident made visible while the run held its notification", () => {
+    function hiddenRow(): Incident {
+      const row: Incident = incident();
+      row.isVisibleOnStatusPage = false;
+      return row;
+    }
+
+    test("shown since the run read it, it is queued again for the next run, from that skip only", async () => {
+      pendingIncidents = [hiddenRow()];
+      // Looked at again: shown now, with its postmortem published.
+      mock(IncidentService.findOneById).mockResolvedValue(incident() as never);
+
+      await runJob();
+
+      expect(sentMail()).toHaveLength(0);
+      expect(postmortemStatuses()).toEqual([
+        StatusPageSubscriberNotificationStatus.InProgress,
+        StatusPageSubscriberNotificationStatus.Skipped,
+        StatusPageSubscriberNotificationStatus.Pending,
+      ]);
+
+      const requeue: JSONObject = mock(
+        IncidentService.compareAndSetColumnsByIdWithoutHooks,
+      ).mock.calls[1]![0] as JSONObject;
+
+      // Only while it is still the skip this run wrote.
+      expect(requeue["expectedData"]).toEqual({
+        subscriberNotificationStatusOnPostmortemPublished:
+          StatusPageSubscriberNotificationStatus.Skipped,
+        subscriberNotificationStatusMessageOnPostmortemPublished:
+          "Incident is hidden from status pages. Subscribers will be sent the postmortem when the incident is made visible on status pages.",
+      });
+      expect(requeue["data"]).toEqual({
+        subscriberNotificationStatusOnPostmortemPublished:
+          StatusPageSubscriberNotificationStatus.Pending,
+        subscriberNotificationStatusMessageOnPostmortemPublished:
+          "Incident made visible on status pages. Subscribers will be sent its postmortem shortly.",
+      });
+    });
+
+    test("looked at again by its id, for its visibility and its postmortem only", async () => {
+      pendingIncidents = [hiddenRow()];
+
+      await runJob();
+
+      expect(IncidentService.findOneById).toHaveBeenCalledTimes(1);
+      expect(
+        (
+          mock(IncidentService.findOneById).mock.calls[0]![0] as {
+            select: JSONObject;
+            props: JSONObject;
+          }
+        ).select,
+      ).toEqual({
+        isVisibleOnStatusPage: true,
+        isPrivate: true,
+        showPostmortemOnStatusPage: true,
+        postmortemNote: true,
+      });
+    });
+
+    test("shown since, but private, it stays skipped: a private incident is hidden", async () => {
+      pendingIncidents = [hiddenRow()];
+      const now: Incident = incident();
+      now.isPrivate = true;
+      mock(IncidentService.findOneById).mockResolvedValue(now as never);
+
+      await runJob();
+
+      expect(postmortemStatuses()).toEqual([
+        StatusPageSubscriberNotificationStatus.InProgress,
+        StatusPageSubscriberNotificationStatus.Skipped,
+      ]);
+    });
+
+    test("reads whether the incident is private along with its visibility", async () => {
+      await runJob();
+
+      const select: JSONObject = (
+        mock(IncidentService.findAllBy).mock.calls[0]![0] as {
+          select: JSONObject;
+        }
+      ).select;
+
+      expect(select["isVisibleOnStatusPage"]).toBe(true);
+      expect(select["isPrivate"]).toBe(true);
+    });
+
+    test("still hidden when the run looks again, it stays skipped, waiting for the incident", async () => {
+      pendingIncidents = [hiddenRow()];
+
+      await runJob();
+
+      expect(postmortemStatuses()).toEqual([
+        StatusPageSubscriberNotificationStatus.InProgress,
+        StatusPageSubscriberNotificationStatus.Skipped,
+      ]);
+    });
+
+    test("shown since, but with its postmortem taken off the status page, it stays skipped", async () => {
+      pendingIncidents = [hiddenRow()];
+      const now: Incident = incident();
+      now.showPostmortemOnStatusPage = false;
+      mock(IncidentService.findOneById).mockResolvedValue(now as never);
+
+      await runJob();
+
+      expect(postmortemStatuses()).toEqual([
+        StatusPageSubscriberNotificationStatus.InProgress,
+        StatusPageSubscriberNotificationStatus.Skipped,
+      ]);
+    });
+
+    test("gone by the time the run looks again, it stays skipped", async () => {
+      pendingIncidents = [hiddenRow()];
+      mock(IncidentService.findOneById).mockResolvedValue(null as never);
+
+      await runJob();
+
+      expect(postmortemStatuses()).toEqual([
+        StatusPageSubscriberNotificationStatus.InProgress,
+        StatusPageSubscriberNotificationStatus.Skipped,
+      ]);
+    });
+  });
 
   test.each(cases)(
     "$name is not skipped when it changed since the run read it",
@@ -1181,11 +1466,13 @@ describe("Incident:SendPostmortemNotificationToSubscribers, with a status page s
  * names of its resources and groups are plain text a project member typed.
  * In an email they must read as those characters; the postmortem is
  * Markdown rendered to HTML and stays HTML. Text channels (a subject, SMS,
- * Slack, Teams, webhooks) show text as written, so they must get no HTML
- * entities at all.
+ * webhooks) show text as written, and Slack and Teams - Markdown - get each
+ * plain value escaped for Markdown, so it reads as written once rendered:
+ * none of them gets an HTML entity.
  */
 describe("Incident:SendPostmortemNotificationToSubscribers escapes plain values in email", () => {
   const HOSTILE_SEVERITY: string = "Sev <1> & 'worst'";
+  const HOSTILE_SEVERITY_MARKDOWN: string = "Sev \\<1> & 'worst'";
 
   const ESCAPING_EMAIL_BODY: string =
     '<h1>{{incidentTitle}}</h1><p>{{statusPageName}} / {{incidentSeverity}}</p><div>{{resourcesAffected}}</div><div>{{postmortemNote}}</div><a href="{{detailsUrl}}">Details</a>';
@@ -1250,21 +1537,24 @@ describe("Incident:SendPostmortemNotificationToSubscribers escapes plain values 
       );
     });
 
-    test("the subject, SMS, Slack, Teams and webhooks get every value as written", async () => {
+    test("the subject, SMS and webhooks get every value as written, and Slack and Teams get each escaped for Markdown", async () => {
       await runJob();
 
       const text: string = `${HOSTILE_TITLE} on ${HOSTILE_PAGE_NAME} (${HOSTILE_SEVERITY}): ${HOSTILE_RESOURCES_TEXT}`;
+      const markdown: string = `${HOSTILE_TITLE_MARKDOWN} on ${HOSTILE_PAGE_NAME_MARKDOWN} (${HOSTILE_SEVERITY_MARKDOWN}): ${HOSTILE_RESOURCES_MARKDOWN}`;
 
       expect(sentMail()[0]!["subject"]).toBe(text);
       expect(sentSms()).toEqual([
         `${StatusPageSubscriberNotificationMethod.SMS}: ${text}`,
       ]);
       expect(sentSlack()).toEqual([
-        `${StatusPageSubscriberNotificationMethod.Slack}: ${text}`,
+        `${StatusPageSubscriberNotificationMethod.Slack}: ${markdown}`,
       ]);
       expect(sentTeams()).toEqual([
-        `${StatusPageSubscriberNotificationMethod.MicrosoftTeams}: ${text}`,
+        `${StatusPageSubscriberNotificationMethod.MicrosoftTeams}: ${markdown}`,
       ]);
+      // Rendered, the chat message reads exactly what was written.
+      expect(withoutMarkdownEscapes(markdown)).toBe(text);
       for (const message of [
         sentMail()[0]!["subject"] as string,
         ...sentSms(),
@@ -1272,6 +1562,9 @@ describe("Incident:SendPostmortemNotificationToSubscribers escapes plain values 
         ...sentTeams(),
       ]) {
         expectNoHtmlEntities(message);
+      }
+      for (const message of [...sentSlack(), ...sentTeams()]) {
+        expectNoUnescapedAngleBracket(message);
       }
 
       expect(sentWebhooks()[0]!["statusPageName"]).toBe(HOSTILE_PAGE_NAME);
@@ -1284,7 +1577,7 @@ describe("Incident:SendPostmortemNotificationToSubscribers escapes plain values 
     });
   });
 
-  test("the default email gets the resource list escaped, and the SMS and chat defaults get it as written", async () => {
+  test("the default email gets the resource list escaped, the SMS gets it as written and the chat defaults as text", async () => {
     mock(
       StatusPageSubscriberService.getStatusPagesToSendNotification,
     ).mockResolvedValue([hostilePage(false)] as never);
@@ -1302,15 +1595,80 @@ describe("Incident:SendPostmortemNotificationToSubscribers escapes plain values 
     expect(sentSms()).toEqual([
       `Postmortem: ${HOSTILE_TITLE} (${HOSTILE_SEVERITY}) on ${HOSTILE_PAGE_NAME}. Impact: ${HOSTILE_RESOURCES_TEXT}. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
     ]);
-    expect(sentSlack()[0]).toContain(
-      `**Resources Affected:** ${HOSTILE_RESOURCES_TEXT}`,
-    );
-    expect(sentTeams()[0]).toContain(
-      `**Resources Affected:** ${HOSTILE_RESOURCES_TEXT}`,
-    );
+    for (const message of [sentSlack()[0]!, sentTeams()[0]!]) {
+      expect(message).toContain(
+        `## 🚨 Incident Postmortem - ${HOSTILE_TITLE_MARKDOWN}`,
+      );
+      expect(message).toContain(`**Severity:** ${HOSTILE_SEVERITY_MARKDOWN}`);
+      expect(message).toContain(
+        `**Resources Affected:** ${HOSTILE_RESOURCES_MARKDOWN}`,
+      );
+      expectNoUnescapedAngleBracket(message);
+    }
     for (const message of [...sentSms(), ...sentSlack(), ...sentTeams()]) {
       expectNoHtmlEntities(message);
       expect(message).not.toContain("<br/>");
+    }
+  });
+});
+
+/*
+ * A title is often not typed by a person: a monitor fills it in from what it
+ * watched, an incoming email's subject say. A Slack or Teams message is
+ * Markdown, so the title is escaped there, in the default messages and in a
+ * custom template alike: an image, a link or a Slack mention in it stays
+ * text, and reads as written.
+ */
+describe("Incident:SendPostmortemNotificationToSubscribers chat messages show a title as text", () => {
+  beforeEach(() => {
+    const row: Incident = incident();
+    row.title = MARKDOWN_TITLE;
+    pendingIncidents = [row];
+  });
+
+  test("the default Slack and Teams messages", async () => {
+    await runJob();
+
+    expect(sentSlack()).toHaveLength(1);
+    expect(sentTeams()).toHaveLength(1);
+
+    for (const message of [...sentSlack(), ...sentTeams()]) {
+      expectValuesInertInMarkdown(message);
+      expectSlackReadsNoMention(message);
+      expect(withoutMarkdownEscapes(message)).toContain(MARKDOWN_TITLE);
+      // The message's own links are still links.
+      expect(message).toContain(`[View Status Page](${STATUS_PAGE_URL})`);
+    }
+  });
+
+  test("a custom Slack or Teams template", async () => {
+    mock(
+      StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+    ).mockImplementation(async (args: unknown) => {
+      const method: string = (args as JSONObject)[
+        "notificationMethod"
+      ] as string;
+      return method === StatusPageSubscriberNotificationMethod.Slack ||
+        method === StatusPageSubscriberNotificationMethod.MicrosoftTeams
+        ? {
+            templateBody: "**{{incidentTitle}}** [Details]({{detailsUrl}})",
+          }
+        : null;
+    });
+
+    await runJob();
+
+    expect(sentSlack()).toHaveLength(1);
+    expect(sentTeams()).toHaveLength(1);
+
+    for (const message of [...sentSlack(), ...sentTeams()]) {
+      expectValuesInertInMarkdown(message);
+      expectSlackReadsNoMention(message);
+      expect(withoutMarkdownEscapes(message)).toBe(
+        withoutMarkdownEscapes(
+          `**${MARKDOWN_TITLE}** [Details](${DETAILS_URL})`,
+        ),
+      );
     }
   });
 });
@@ -1423,7 +1781,7 @@ describe("Incident:SendPostmortemNotificationToSubscribers with incident custom 
 
 **Postmortem:** ${POSTMORTEM}
 
-**Affected Location:** ${AFFECTED_LOCATION}
+**Affected Location:** ${AFFECTED_LOCATION_MARKDOWN}
 
 **Acknowledgement:** No
 
@@ -1437,7 +1795,7 @@ ${IMPACT_DETAILS}
 **Severity:** Critical
 **Resources Affected:** Checkout API
 **Postmortem:** ${POSTMORTEM}
-**Affected Location:** ${AFFECTED_LOCATION}
+**Affected Location:** ${AFFECTED_LOCATION_MARKDOWN}
 **Acknowledgement:** No
 **Impact Details:**
 ${IMPACT_DETAILS}

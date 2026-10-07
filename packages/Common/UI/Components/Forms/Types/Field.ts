@@ -4,6 +4,7 @@ import {
   CheckboxCategory,
 } from "../../CategoryCheckbox/CategoryCheckboxTypes";
 import {
+  CardSelectCatalog,
   CardSelectOption,
   CardSelectOptionGroup,
 } from "../../CardSelect/CardSelect";
@@ -146,13 +147,15 @@ export default interface Field<TEntity> {
     | undefined;
   cardSelectSingleColumn?: boolean | undefined;
   /*
-   * Give the card picker a search box and collapse its groups behind their
-   * headers. Both are opt in: a picker with a handful of cards reads fine as
-   * a plain grid, and turning them on there would only add chrome.
+   * Give the card picker a search box, and lay a big catalog out as compact
+   * rows with its common choices first and the rest behind a More button,
+   * shrinking to the choice made with a Change button (CardSelectCatalog).
+   * Both are opt in: a picker with a handful of cards reads fine as a plain
+   * grid, and turning them on there would only add chrome.
    */
   cardSelectSearchable?: boolean | undefined;
   cardSelectSearchPlaceholder?: string | undefined;
-  cardSelectCollapsibleGroups?: boolean | undefined;
+  cardSelectCatalog?: CardSelectCatalog | undefined;
   fetchDropdownOptions?:
     | ((
         item: FormValues<TEntity>,
@@ -269,6 +272,20 @@ export default interface Field<TEntity> {
    */
   isAtDefault?: ((values: FormValues<TEntity>) => boolean) | undefined;
   /*
+   * For a custom element that keeps what it edits in other form values - a
+   * switch and its minutes in two of a rule's columns, a line about an old
+   * setting the record still holds - what it is set to, worked out from
+   * those values: the element's own form value says nothing of it. Null
+   * while it holds nothing of the user's; otherwise what its chip on a
+   * folded section's header says after its name, already in the reader's
+   * language ("30 minutes"), or "" for the name alone. A folded section and
+   * a review step read it in place of the field's own value and default:
+   * whether the field is set and what its chip says (isFormFieldValueSet,
+   * getFoldedFieldValue), and what its review row shows (FormSummary, which
+   * reads "" as Configured). isAtDefault is not asked.
+   */
+  getFoldedValue?: ((values: FormValues<TEntity>) => string | null) | undefined;
+  /*
    * The default of the column the field writes, as its model declares it -
    * filled in by ModelForm, on Create and Edit alike, for a field that names
    * no default of its own (Utils/CreateFormDefaults). Not a value the field
@@ -331,6 +348,16 @@ export default interface Field<TEntity> {
   // set this to true if you want to show this field in the form even when the form is in edit mode.
   doNotShowWhenEditing?: boolean | undefined;
   doNotShowWhenCreating?: boolean | undefined;
+
+  /*
+   * `required` applies to a Create form only: on an Edit form the field is
+   * optional. For what a new record must have but an older one may lack - a
+   * label or owner rule must add something when it is made, yet a rule saved
+   * before the form asked can still be renamed or switched off
+   * (Dashboard Utils/Form/ResourceRuleForm). Read by ModelForm, which knows
+   * whether it creates or edits; a BasicForm used on its own ignores it.
+   */
+  doNotRequireWhenEditing?: boolean | undefined;
 
   /*
    * The field only drives the form: it fills in, or edits a part of,

@@ -27,6 +27,7 @@ import DatabaseServerOwnerTeamService from "../../../Server/Services/DatabaseSer
 import DatabaseServerOwnerUserService from "../../../Server/Services/DatabaseServerOwnerUserService";
 import DatabaseServerService from "../../../Server/Services/DatabaseServerService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import logger from "../../../Server/Utils/Logger";
 import {
   RuleApplicationResult,
@@ -180,6 +181,8 @@ beforeEach(() => {
     DatabaseServerFeedService,
     "createDatabaseServerFeedItem",
   ).mockResolvedValue(undefined);
+  // The labels and teams the rules name are the project's.
+  stubProjectDirectory({});
 });
 
 afterEach(() => {
@@ -542,6 +545,8 @@ describe("DatabaseServerOwnerRuleEngineService", () => {
     getJestSpyOn(TeamMemberService, "isUserMemberOfProject").mockResolvedValue(
       true,
     );
+    // The teams the rules name are the project's.
+    stubProjectDirectory({});
   }
 
   test("reads the database criteria fields and the owners to add", () => {

@@ -60,6 +60,17 @@ if [ -z "${ONEUPTIME_AI_PROTECTED_TARGETS+set}" ]; then
     ONEUPTIME_AI_PROTECTED_TARGETS="$(env_file_value ONEUPTIME_AI_PROTECTED_TARGETS)"
 fi
 
+# What OneUptime AI may do on the cluster: ONEUPTIME_AI_INVESTIGATION (true or
+# false) and ONEUPTIME_AI_FIXES (off, ask-for-approval, automatic or
+# bypass-approval). Kept like the target lists: unset here, the .env's value
+# stays; set (even to empty), it replaces it.
+if [ -z "${ONEUPTIME_AI_INVESTIGATION+set}" ]; then
+    ONEUPTIME_AI_INVESTIGATION="$(env_file_value ONEUPTIME_AI_INVESTIGATION)"
+fi
+if [ -z "${ONEUPTIME_AI_FIXES+set}" ]; then
+    ONEUPTIME_AI_FIXES="$(env_file_value ONEUPTIME_AI_FIXES)"
+fi
+
 # The AI agent's node, service and task commands only work on a manager. On
 # a worker, or an engine outside any swarm, it can run nothing, so it is left
 # out there: a worker's agent would only wait. Only a definite answer counts
@@ -116,6 +127,8 @@ chmod +x inventory-snapshot.sh
 ONEUPTIME_URL=${ONEUPTIME_URL}
 ONEUPTIME_SERVICE_TOKEN=${ONEUPTIME_SERVICE_TOKEN}
 DOCKER_SWARM_CLUSTER_NAME=${DOCKER_SWARM_CLUSTER_NAME}
+ONEUPTIME_AI_INVESTIGATION=${ONEUPTIME_AI_INVESTIGATION}
+ONEUPTIME_AI_FIXES=${ONEUPTIME_AI_FIXES}
 ONEUPTIME_AI_ALLOW_WRITES=${ONEUPTIME_AI_ALLOW_WRITES}
 ONEUPTIME_AI_WRITE_TARGETS=${ONEUPTIME_AI_WRITE_TARGETS}
 ONEUPTIME_AI_PROTECTED_TARGETS=${ONEUPTIME_AI_PROTECTED_TARGETS}
@@ -169,13 +182,13 @@ elif [ "${INSTALL_AI_AGENT}" = "false" ]; then
         echo "An AI agent installed earlier is still there; remove it with: docker rm -f ${AI_AGENT_SERVICE}"
     fi
 elif [ "${ONEUPTIME_AI_ALLOW_WRITES}" = "true" ]; then
-    echo "OneUptime AI agent: ${AI_AGENT_SERVICE}. It may apply the fixes you allow on the"
-    echo "cluster's AI agent page in OneUptime (never to itself or the collector)."
+    echo "OneUptime AI agent: ${AI_AGENT_SERVICE}. It may apply the fixes you allow (never"
+    echo "to itself or the collector): ONEUPTIME_AI_FIXES in ${INSTALL_DIR}/.env sets how."
 else
     echo "OneUptime AI agent: ${AI_AGENT_SERVICE}, read-only: OneUptime AI can look at the"
     echo "swarm's nodes, services and tasks while it investigates, but not change them."
     echo "To let it apply fixes (a rolling restart, rollback or scale of a service), set"
-    echo "ONEUPTIME_AI_ALLOW_WRITES=true in ${INSTALL_DIR}/.env and run:"
+    echo "ONEUPTIME_AI_ALLOW_WRITES=true and ONEUPTIME_AI_FIXES=ask-for-approval (or"
+    echo "automatic, or bypass-approval) in ${INSTALL_DIR}/.env and run:"
     echo "  cd ${INSTALL_DIR} && docker compose up -d"
-    echo "then choose on the cluster's AI agent page whether each fix needs approval."
 fi

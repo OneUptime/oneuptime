@@ -101,6 +101,7 @@ export default class MonitorOverviewFamilyUtil {
       case MonitorType.Proxmox:
       case MonitorType.VMware:
       case MonitorType.Ceph:
+      case MonitorType.StorageArray:
       case MonitorType.IoTDevice:
         return MonitorOverviewFamily.Infrastructure;
 

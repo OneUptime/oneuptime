@@ -13,6 +13,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
 import { useWorkspaceSideMenuSection } from "../../Components/Workspace/WorkspaceSideMenuSection";
+import useUnresolvedStateIds from "../../Components/EventView/useUnresolvedStateIds";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import ObjectID from "Common/Types/ObjectID";
 
 export interface ComponentProps {
   project?: Project | undefined;
@@ -31,6 +34,13 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       microsoftTeams: PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
       connect: PageMap.INCIDENTS_WORKSPACE_CONNECTIONS,
     });
+
+  /*
+   * Active: in a state above the project's resolved state - a state placed
+   * after it counts as resolved (Common/Utils/ResolvedState). The badge
+   * counts once the states are read.
+   */
+  const { unresolvedStateIds } = useUnresolvedStateIds("incident");
 
   const sections: SideMenuSectionProps[] = [
     {
@@ -55,12 +65,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon: IconProp.Alert,
           badgeType: BadgeType.DANGER,
           modelType: Incident,
-          countQuery: {
-            projectId: props.project?._id,
-            currentIncidentState: {
-              isResolvedState: false,
-            },
-          } as any,
+          countQuery: unresolvedStateIds
+            ? ({
+                projectId: props.project?._id,
+                currentIncidentStateId: new Includes(
+                  unresolvedStateIds.map((stateId: ObjectID) => {
+                    return stateId.toString();
+                  }),
+                ),
+              } as any)
+            : undefined,
         },
       ],
     },
@@ -99,6 +113,56 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           },
           icon: IconProp.Book,
+        },
+      ],
+    },
+    /*
+     * Everything OneUptime AI does for incidents, in one place: what it
+     * learned (Insights), what it did (Logs), how it is set up (Settings)
+     * and the rules that let it fix things (Auto Remediation Rules). Folded
+     * down to its title until opened, like the AI section of every menu
+     * (SideMenuSectionState.ts), and open by itself on its pages.
+     */
+    {
+      title: "AI",
+      items: [
+        {
+          link: {
+            title: "Insights",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_AI_INSIGHTS] as Route,
+            ),
+          },
+          icon: IconProp.LightBulb,
+        },
+        {
+          link: {
+            title: "Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_AI_LOGS] as Route,
+            ),
+          },
+          icon: IconProp.QueueList,
+        },
+        {
+          link: {
+            title: "Settings",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_AI] as Route,
+            ),
+          },
+          icon: IconProp.Settings,
+        },
+        {
+          link: {
+            title: "Auto Remediation Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES
+              ] as Route,
+            ),
+          },
+          icon: IconProp.Bolt,
         },
       ],
     },
@@ -150,17 +214,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
         {
           link: {
-            title: "Auto Remediation Rules",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES
-              ] as Route,
-            ),
-          },
-          icon: IconProp.Bolt,
-        },
-        {
-          link: {
             title: "Privacy Rules",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.INCIDENTS_SETTINGS_PRIVACY_RULES] as Route,
@@ -201,19 +254,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       title: "Settings",
       defaultCollapsed: true,
       items: [
-        /*
-         * First: this page governs the work AI does on its own for every
-         * incident, and nothing limits that work until a limit is set there.
-         */
-        {
-          link: {
-            title: "AI",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENTS_SETTINGS_AI] as Route,
-            ),
-          },
-          icon: IconProp.Sparkles,
-        },
         {
           link: {
             title: "Incident State",

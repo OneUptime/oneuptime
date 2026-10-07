@@ -5,6 +5,8 @@ import {
 } from "./AiAccessModes";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { ReactElement, ReactNode } from "react";
 
 /*
@@ -13,33 +15,43 @@ import React, { ReactElement, ReactNode } from "react";
  * may do (an icon, a title, a badge that says where it stands, and one
  * plain sentence), the next-step hint under a row, the allowlist in
  * effect, and the every-mode protections, folded away until asked for.
+ *
+ * Like Card, Pill and Alert, each one translates its own text props: hand
+ * it the English key (src/Locales/README.md). Text already in the reader's
+ * language passes through unchanged.
  */
 
+/*
+ * A setting has two looks only: off is gray, on is green, whatever the
+ * mode (see AiAccessBadgeTone). Red (danger) is for an AI agent that
+ * stopped working, never a setting, and amber stays for what needs doing.
+ * Every class here has a dark-theme rule in Theme.css (App/Tests/
+ * Dashboard/AiAccessDarkMode.test.ts).
+ */
 const BADGE_CLASSES: Readonly<Record<AiAccessBadgeTone, string>> = {
-  off: "bg-gray-50 text-gray-600 ring-gray-500/20",
-  on: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
-  automatic: "bg-indigo-50 text-indigo-700 ring-indigo-600/20",
-  bypass: "bg-amber-50 text-amber-800 ring-amber-600/30",
+  off: "bg-gray-50 text-gray-600 ring-gray-200",
+  on: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  danger: "bg-red-50 text-red-700 ring-red-200",
 };
 
 const BADGE_DOT_CLASSES: Readonly<Record<AiAccessBadgeTone, string>> = {
-  off: "bg-gray-400",
+  off: "bg-gray-300",
   on: "bg-emerald-500",
-  automatic: "bg-indigo-500",
-  bypass: "bg-amber-500",
+  danger: "bg-red-500",
 };
 
 const ROW_ICON_CLASSES: Readonly<Record<AiAccessBadgeTone, string>> = {
   off: "bg-gray-100 text-gray-500",
   on: "bg-emerald-50 text-emerald-600",
-  automatic: "bg-indigo-50 text-indigo-600",
-  bypass: "bg-amber-50 text-amber-600",
+  danger: "bg-red-50 text-red-600",
 };
 
 export function AiAccessBadgeElement(props: {
   badge: AiAccessBadge;
   dataTestId: string;
 }): ReactElement {
+  const translator: Translator = useTranslator();
+
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${
@@ -52,7 +64,7 @@ export function AiAccessBadgeElement(props: {
         className={`h-1.5 w-1.5 rounded-full ${BADGE_DOT_CLASSES[props.badge.tone]}`}
         aria-hidden="true"
       />
-      {props.badge.text}
+      {translator.translateText(props.badge.text)}
     </span>
   );
 }
@@ -71,6 +83,7 @@ export interface AiAccessRowProps {
 }
 
 export function AiAccessRow(props: AiAccessRowProps): ReactElement {
+  const translator: Translator = useTranslator();
   // Children left out with `cond ? <X /> : null` are not children.
   const hasChildren: boolean =
     React.Children.toArray(props.children).length > 0;
@@ -90,7 +103,9 @@ export function AiAccessRow(props: AiAccessRowProps): ReactElement {
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-          <h3 className="text-sm font-semibold text-gray-900">{props.title}</h3>
+          <h3 className="text-sm font-semibold text-gray-900">
+            {translator.translateText(props.title)}
+          </h3>
           <AiAccessBadgeElement
             badge={props.badge}
             dataTestId={`${props.dataTestId}-badge`}
@@ -100,7 +115,7 @@ export function AiAccessRow(props: AiAccessRowProps): ReactElement {
           className="mt-1 text-sm leading-6 text-gray-600"
           data-testid={`${props.dataTestId}-value`}
         >
-          {props.sentence}
+          {translator.translateText(props.sentence)}
         </p>
         {hasChildren ? (
           <div className="mt-3 space-y-3">{props.children}</div>
@@ -108,6 +123,56 @@ export function AiAccessRow(props: AiAccessRowProps): ReactElement {
           <></>
         )}
       </div>
+    </div>
+  );
+}
+
+/*
+ * Where investigation and fixes are set, above the rows. While the agent
+ * sets them (a lock: they are read-only here) it says where, and the
+ * card's Change button shows the command that changes them. For an agent
+ * that could carry them but does not yet, it says they are chosen here and
+ * offers to show how to move them to the agent.
+ */
+export function AiAccessSetBy(props: {
+  text: string;
+  isSetByAgent: boolean;
+  actionText?: string | undefined;
+  onAction?: (() => void) | undefined;
+  dataTestId: string;
+}): ReactElement {
+  const translator: Translator = useTranslator();
+
+  return (
+    <div
+      className="mb-5 flex flex-col gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 sm:flex-row sm:items-start sm:gap-3"
+      data-testid={props.dataTestId}
+      data-set-by-agent={props.isSetByAgent ? "true" : "false"}
+    >
+      <div className="flex min-w-0 flex-1 items-start gap-2.5">
+        <Icon
+          icon={props.isSetByAgent ? IconProp.Lock : IconProp.CommandLine}
+          className="mt-0.5 h-4 w-4 flex-none text-gray-500"
+        />
+        <p
+          className="min-w-0 text-sm leading-6 text-gray-700"
+          data-testid={`${props.dataTestId}-text`}
+        >
+          {translator.translateText(props.text)}
+        </p>
+      </div>
+      {props.actionText && props.onAction ? (
+        <button
+          type="button"
+          onClick={props.onAction}
+          className="flex-none self-start rounded-md text-sm font-medium leading-6 text-indigo-600 hover:text-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 sm:pl-2"
+          data-testid={`${props.dataTestId}-action`}
+        >
+          {translator.translateText(props.actionText)}
+        </button>
+      ) : (
+        <></>
+      )}
     </div>
   );
 }
@@ -129,6 +194,8 @@ export function AiAccessHint(props: {
   text: string;
   dataTestId: string;
 }): ReactElement {
+  const translator: Translator = useTranslator();
+
   return (
     <div
       className="flex items-start gap-1.5 text-sm leading-6 text-gray-500"
@@ -138,16 +205,18 @@ export function AiAccessHint(props: {
         icon={IconProp.LightBulb}
         className="mt-1 h-4 w-4 flex-none text-gray-400"
       />
-      <span>{props.text}</span>
+      <span>{translator.translateText(props.text)}</span>
     </div>
   );
 }
 
-export const AI_ACCESS_ALLOWLIST_EMPTY_TEXT: string =
-  "None — riskier fixes always wait for approval.";
+export const AI_ACCESS_ALLOWLIST_EMPTY_TEXT: string = translationKey(
+  "None — riskier fixes always wait for approval.",
+);
 
-export const AI_ACCESS_ALLOWLIST_INTRO_TEXT: string =
-  "A riskier fix that matches one of these also runs on its own:";
+export const AI_ACCESS_ALLOWLIST_INTRO_TEXT: string = translationKey(
+  "A riskier fix that matches one of these also runs on its own:",
+);
 
 /*
  * The allowlist the command policy actually uses. Only Automatic mode
@@ -158,14 +227,38 @@ export function AiAccessAllowlist(props: {
   title: string;
   patterns: ReadonlyArray<string>;
   dataTestId: string;
+  /*
+   * An edit action beside the title, for a page whose Change button opens
+   * something else (the agent sets the modes; the allowlist stays here).
+   */
+  editText?: string | undefined;
+  onEdit?: (() => void) | undefined;
 }): ReactElement {
+  const translator: Translator = useTranslator();
+
   return (
     <div data-testid={props.dataTestId}>
-      <p className="text-xs font-medium text-gray-700">{props.title}</p>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <p className="text-xs font-medium text-gray-700">
+          {translator.translateText(props.title)}
+        </p>
+        {props.editText && props.onEdit ? (
+          <button
+            type="button"
+            onClick={props.onEdit}
+            className="rounded-md text-xs font-medium text-indigo-600 hover:text-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
+            data-testid={`${props.dataTestId}-edit`}
+          >
+            {translator.translateText(props.editText)}
+          </button>
+        ) : (
+          <></>
+        )}
+      </div>
       {props.patterns.length > 0 ? (
         <>
           <p className="mt-0.5 text-xs leading-5 text-gray-500">
-            {AI_ACCESS_ALLOWLIST_INTRO_TEXT}
+            {translator.translateText(AI_ACCESS_ALLOWLIST_INTRO_TEXT)}
           </p>
           <ul className="mt-2 flex flex-wrap gap-1.5">
             {props.patterns.map(
@@ -184,7 +277,7 @@ export function AiAccessAllowlist(props: {
         </>
       ) : (
         <p className="mt-0.5 text-xs leading-5 text-gray-500">
-          {AI_ACCESS_ALLOWLIST_EMPTY_TEXT}
+          {translator.translateText(AI_ACCESS_ALLOWLIST_EMPTY_TEXT)}
         </p>
       )}
     </div>
@@ -199,6 +292,8 @@ export function AiAccessAllowlist(props: {
 export function AiAccessProtections(props: {
   protections: ReadonlyArray<string>;
 }): ReactElement {
+  const translator: Translator = useTranslator();
+
   return (
     <details
       className="group rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
@@ -209,7 +304,7 @@ export function AiAccessProtections(props: {
           icon={IconProp.ShieldCheck}
           className="h-4 w-4 flex-none text-gray-500"
         />
-        <span>{AI_ACCESS_PROTECTIONS_TITLE}</span>
+        <span>{translator.translateText(AI_ACCESS_PROTECTIONS_TITLE)}</span>
         {/* Icon wraps its svg in a div: the wrapper takes the margin. */}
         <span className="ml-auto flex-none">
           <Icon
@@ -223,7 +318,9 @@ export function AiAccessProtections(props: {
         data-testid="ai-access-protections-list"
       >
         {props.protections.map((protection: string): ReactElement => {
-          return <li key={protection}>{protection}</li>;
+          return (
+            <li key={protection}>{translator.translateText(protection)}</li>
+          );
         })}
       </ul>
     </details>
@@ -239,9 +336,11 @@ export function AiAccessPermissionNote(props: {
   cannotText: string;
   dataTestId: string;
 }): ReactElement {
+  const translator: Translator = useTranslator();
+
   return (
     <div
-      className="flex gap-3 rounded-lg border border-blue-100 bg-blue-50/60 px-3 py-2.5"
+      className="flex gap-3 rounded-lg border border-blue-100 bg-blue-50/50 px-3 py-2.5"
       data-testid={props.dataTestId}
     >
       <Icon
@@ -249,8 +348,12 @@ export function AiAccessPermissionNote(props: {
         className="h-5 w-5 flex-none text-blue-500"
       />
       <div className="text-xs leading-5">
-        <p className="text-gray-800">{props.canText}</p>
-        <p className="text-gray-600">{props.cannotText}</p>
+        <p className="text-gray-800">
+          {translator.translateText(props.canText)}
+        </p>
+        <p className="text-gray-600">
+          {translator.translateText(props.cannotText)}
+        </p>
       </div>
     </div>
   );
@@ -266,6 +369,8 @@ export function AiAccessActionPanel(props: {
   dataTestId: string;
   children: ReactNode;
 }): ReactElement {
+  const translator: Translator = useTranslator();
+
   return (
     <div
       className="space-y-3 rounded-lg border border-amber-200 bg-amber-50/60 px-4 py-3"
@@ -276,7 +381,7 @@ export function AiAccessActionPanel(props: {
           icon={IconProp.Alert}
           className="h-4 w-4 flex-none text-amber-600"
         />
-        <span>{props.title}</span>
+        <span>{translator.translateText(props.title)}</span>
       </div>
       {props.children}
     </div>

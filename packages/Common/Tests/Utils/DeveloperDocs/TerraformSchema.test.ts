@@ -6,6 +6,7 @@ import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluste
 import EmailVerificationToken from "../../../Models/DatabaseModels/EmailVerificationToken";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
+import Models from "../../../Models/DatabaseModels/Index";
 import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import Label from "../../../Models/DatabaseModels/Label";
@@ -25,6 +26,7 @@ import {
   getTerraformModelOperations,
   getTerraformTypeName,
   isServerManagedColumn,
+  SERVER_MANAGED_COLUMNS_BY_TABLE,
   TerraformAttributeDescriptor,
   TerraformSecretKind,
   TerraformValueKind,
@@ -115,7 +117,6 @@ describe("a workflow's attributes", () => {
       "project_id",
       "name",
       "description",
-      "created_by_user_id",
       "is_archived",
       "is_enabled",
       "graph",
@@ -159,12 +160,19 @@ describe("a workflow's attributes", () => {
     }
   });
 
-  test("the project and the creator are filled in by the server", () => {
+  test("the project is filled in by the server", () => {
     expect(attribute(Workflow, "project_id").isServerManaged).toBe(true);
-    expect(attribute(Workflow, "created_by_user_id").isServerManaged).toBe(
-      true,
-    );
     expect(attribute(Workflow, "name").isServerManaged).toBe(false);
+  });
+
+  test("who created it is no attribute at all: OneUptime decides it", () => {
+    expect(
+      getTerraformAttributes(Workflow).map(
+        (descriptor: TerraformAttributeDescriptor): string => {
+          return descriptor.attributeName;
+        },
+      ),
+    ).not.toContain("created_by_user_id");
   });
 });
 
@@ -237,8 +245,53 @@ describe("server-managed columns", () => {
     );
     expect(isServerManagedColumn("AnyTable", "lastSeenAt")).toBe(true);
     expect(isServerManagedColumn("AnyTable", "nextPollAt")).toBe(true);
-    expect(isServerManagedColumn("Incident", "incidentEpisodeId")).toBe(true);
+    expect(isServerManagedColumn("Incident", "postmortemPostedAt")).toBe(true);
     expect(isServerManagedColumn("StatusPage", "sendNextReportBy")).toBe(true);
+  });
+
+  test("every column listed by table is an attribute of that table's resource", () => {
+    /*
+     * The list is for columns a configuration could set but should leave to
+     * the server. A listed column that is no attribute at all - nobody may
+     * write it - contradicts its own model, as the episode an incident or
+     * alert is in once did.
+     */
+    const notAttributes: Array<string> = [];
+
+    for (const [tableName, columns] of Object.entries(
+      SERVER_MANAGED_COLUMNS_BY_TABLE,
+    )) {
+      const modelType: DatabaseBaseModelType | undefined = (
+        Models as Array<DatabaseBaseModelType>
+      ).find((candidate: DatabaseBaseModelType): boolean => {
+        return new candidate().tableName === tableName;
+      });
+
+      expect({ tableName, found: Boolean(modelType) }).toEqual({
+        tableName,
+        found: true,
+      });
+
+      for (const column of columns) {
+        if (!getTerraformAttribute(modelType!, column)) {
+          notAttributes.push(`${tableName}.${column}`);
+        }
+      }
+    }
+
+    expect(notAttributes).toEqual([]);
+  });
+
+  test("an incident's or alert's episode is no attribute: OneUptime sets it from the episode's members", () => {
+    for (const [modelType, column] of [
+      [Incident, "incidentEpisodeId"],
+      [Alert, "alertEpisodeId"],
+    ] as Array<[DatabaseBaseModelType, string]>) {
+      expect(getTerraformAttribute(modelType, column)).toBeUndefined();
+      expect(attributeNames(modelType)).not.toContain(
+        toTerraformSnakeCase(column),
+      );
+    }
   });
 
   test("configuration is not", () => {
@@ -327,6 +380,27 @@ describe("what an attribute points at", () => {
   test("an attribute carries its column's description, for the pages to explain it", () => {
     expect(attribute(Incident, "title").description).toBe(
       "Title of this incident",
+    );
+  });
+
+  /*
+   * A scheduled maintenance event's Change Monitor Status to can be changed
+   * until the event starts (the server refuses a change after): in the
+   * update schema as in the create schema, so a plan changes it in place
+   * rather than replacing the event, and its description says when.
+   */
+  test("a scheduled maintenance event's change_monitor_status_to_id is set on create and changed in place", () => {
+    const status: TerraformAttributeDescriptor = attribute(
+      ScheduledMaintenance,
+      "change_monitor_status_to_id",
+    );
+
+    expect(status.inCreateSchema).toBe(true);
+    expect(status.inUpdateSchema).toBe(true);
+    expect(status.isServerManaged).toBe(false);
+    expect(status.isRequired).toBe(false);
+    expect(status.description).toBe(
+      "Relation to Monitor Status Object ID. The monitors attached to this event change to this status when the event starts, and back to operational when it ends. It can be changed until the event starts.",
     );
   });
 

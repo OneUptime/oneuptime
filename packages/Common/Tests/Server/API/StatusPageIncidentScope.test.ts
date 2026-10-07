@@ -9,6 +9,8 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
 import StatusPageAPI from "../../../Server/API/StatusPageAPI";
+import FileService from "../../../Server/Services/FileService";
+import { FileOwners } from "../../../Server/Utils/File/FileOwnership";
 import IncidentEpisodeMemberService from "../../../Server/Services/IncidentEpisodeMemberService";
 import IncidentEpisodePublicNoteService from "../../../Server/Services/IncidentEpisodePublicNoteService";
 import IncidentEpisodeService from "../../../Server/Services/IncidentEpisodeService";
@@ -47,6 +49,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import { FindOperator } from "typeorm";
 
 /*
  * What a public status page shows of an incident limited to some status pages
@@ -143,6 +146,13 @@ const HIDDEN_SCOPED_TO_B: string = "a0000000-0000-4000-8000-000000000005";
 // On the second monitor, limited to Site A: a member of a mixed episode.
 const SECOND_SCOPED_TO_A: string = "a0000000-0000-4000-8000-000000000006";
 const OTHER_PROJECT_INCIDENT: string = "a0000000-0000-4000-8000-000000000007";
+/*
+ * Private, with Visible on Status Page still on - as a write of the switch
+ * alone used to leave one. A private incident is hidden from every status
+ * page (StatusPageVisibility), so neither is shown anywhere, by any route.
+ */
+const PRIVATE_UNSCOPED: string = "a0000000-0000-4000-8000-000000000008";
+const PRIVATE_SCOPED_TO_A: string = "a0000000-0000-4000-8000-000000000009";
 
 const ALL_INCIDENTS: Array<string> = [
   UNSCOPED,
@@ -152,6 +162,8 @@ const ALL_INCIDENTS: Array<string> = [
   HIDDEN_SCOPED_TO_B,
   SECOND_SCOPED_TO_A,
   OTHER_PROJECT_INCIDENT,
+  PRIVATE_UNSCOPED,
+  PRIVATE_SCOPED_TO_A,
 ];
 
 // The episodes, by their member incidents.
@@ -160,12 +172,19 @@ const EPISODE_MIXED: string = "e0000000-0000-4000-8000-000000000002";
 const EPISODE_SCOPED_TO_A_AND_C: string =
   "e0000000-0000-4000-8000-000000000003";
 const EPISODE_NOWHERE: string = "e0000000-0000-4000-8000-000000000004";
+// Its only incident is private: a private incident takes no episode to a page.
+const EPISODE_THROUGH_PRIVATE_INCIDENT: string =
+  "e0000000-0000-4000-8000-000000000005";
+// Private itself, with Visible on Status Page on, over an incident pages show.
+const PRIVATE_EPISODE: string = "e0000000-0000-4000-8000-000000000006";
 
 const ALL_EPISODES: Array<string> = [
   EPISODE_SCOPED_TO_A,
   EPISODE_MIXED,
   EPISODE_SCOPED_TO_A_AND_C,
   EPISODE_NOWHERE,
+  EPISODE_THROUGH_PRIVATE_INCIDENT,
+  PRIVATE_EPISODE,
 ];
 
 /*
@@ -201,6 +220,7 @@ interface IncidentFixture {
   // null: not limited to any status page.
   scopedTo: Array<string> | null;
   isVisibleOnStatusPage: boolean;
+  isPrivate?: boolean | undefined;
   createdAt: Date;
 }
 
@@ -208,6 +228,7 @@ interface EpisodeFixture {
   id: string;
   title: string;
   memberIncidentIds: Array<string>;
+  isPrivate?: boolean | undefined;
 }
 
 const PAGES: Array<PageFixture> = [
@@ -306,6 +327,26 @@ const INCIDENTS: Array<IncidentFixture> = [
     isVisibleOnStatusPage: true,
     createdAt: hoursAgo(1),
   },
+  {
+    id: PRIVATE_UNSCOPED,
+    title: "Private: checkout is down everywhere",
+    projectId: PROJECT_ID,
+    monitorIds: [SHARED_MONITOR, SECOND_MONITOR],
+    scopedTo: null,
+    isVisibleOnStatusPage: true,
+    isPrivate: true,
+    createdAt: hoursAgo(0.5),
+  },
+  {
+    id: PRIVATE_SCOPED_TO_A,
+    title: "Private: payments are slow at Site A",
+    projectId: PROJECT_ID,
+    monitorIds: [SECOND_MONITOR],
+    scopedTo: [SITE_A, SITE_C],
+    isVisibleOnStatusPage: true,
+    isPrivate: true,
+    createdAt: hoursAgo(0.25),
+  },
 ];
 
 const EPISODES: Array<EpisodeFixture> = [
@@ -328,6 +369,17 @@ const EPISODES: Array<EpisodeFixture> = [
     id: EPISODE_NOWHERE,
     title: "Closed site episode",
     memberIncidentIds: [SCOPED_TO_DELETED_PAGE],
+  },
+  {
+    id: EPISODE_THROUGH_PRIVATE_INCIDENT,
+    title: "Private incident's episode",
+    memberIncidentIds: [PRIVATE_UNSCOPED, PRIVATE_SCOPED_TO_A],
+  },
+  {
+    id: PRIVATE_EPISODE,
+    title: "Private episode",
+    memberIncidentIds: [UNSCOPED],
+    isPrivate: true,
   },
 ];
 
@@ -404,6 +456,30 @@ function operatorParameters(operator: unknown): Array<unknown> | null {
   return Object.values(raw.objectLiteralParameters || {});
 }
 
+/*
+ * The privacy clause every status page read adds (StatusPageVisibilityQuery):
+ * the privacy filters' anonymous form, `isPrivate IS NULL OR isPrivate =
+ * FALSE`, alone or combined with a condition of the query's own. Anything
+ * else on isPrivate is not what the status page code sends.
+ */
+function matchesPrivacy(isPrivate: boolean, expected: unknown): boolean {
+  const operator: FindOperator<unknown> = expected as FindOperator<unknown>;
+
+  if (!(operator instanceof FindOperator) || !operator.getSql) {
+    throw new Error(
+      `Unexpected isPrivate condition in a test query: ${String(expected)}`,
+    );
+  }
+
+  const sql: string = operator.getSql("private_column");
+
+  if (sql !== "(private_column IS NULL OR private_column = FALSE)") {
+    throw new Error(`Unexpected isPrivate clause in a test query: ${sql}`);
+  }
+
+  return !isPrivate;
+}
+
 function matchesValue(actual: unknown, expected: unknown): boolean {
   const parameters: Array<unknown> | null = operatorParameters(expected);
 
@@ -467,6 +543,8 @@ function incidentMatches(
           return matchesValue(incident.projectId.toString(), expected);
         case "isVisibleOnStatusPage":
           return matchesValue(incident.isVisibleOnStatusPage, expected);
+        case "isPrivate":
+          return matchesPrivacy(incident.isPrivate === true, expected);
         case "showPostmortemOnStatusPage":
           return matchesValue(true, expected);
         case "isScopedToStatusPages":
@@ -533,6 +611,7 @@ function incidentRow(fixture: IncidentFixture): Dictionary<unknown> {
     declaredAt: fixture.createdAt,
     updatedAt: fixture.createdAt,
     isVisibleOnStatusPage: fixture.isVisibleOnStatusPage,
+    isPrivate: fixture.isPrivate === true,
     showPostmortemOnStatusPage: true,
     postmortemNote: `${fixture.title}: what happened`,
     postmortemPostedAt: fixture.createdAt,
@@ -705,6 +784,8 @@ function episodeMatches(
           return matchesValue(PROJECT_ID.toString(), expected);
         case "isVisibleOnStatusPage":
           return matchesValue(true, expected);
+        case "isPrivate":
+          return matchesPrivacy(fixture.isPrivate === true, expected);
         case "currentIncidentStateId":
           return matchesValue(UNRESOLVED_STATE_ID, expected);
         default:
@@ -722,7 +803,28 @@ type IncidentRead = {
 
 let incidentReads: Array<IncidentRead> = [];
 
+/*
+ * Who each attachment belongs to: every file here was uploaded in the
+ * project of the page that serves it, unless a test says otherwise.
+ */
+function mockFileOwners(projectId: ObjectID = PROJECT_ID): void {
+  jest.spyOn(FileService, "getFileOwners").mockImplementation((async (
+    fileIds: Array<ObjectID>,
+  ): Promise<Map<string, FileOwners>> => {
+    return new Map(
+      fileIds.map((fileId: ObjectID): [string, FileOwners] => {
+        return [
+          fileId.toString().toLowerCase(),
+          { projectId: projectId, createdByUserId: null },
+        ];
+      }),
+    );
+  }) as never);
+}
+
 function mockDatabase(): void {
+  mockFileOwners();
+
   // The per-request read access check: every page here is public.
   (
     jest.spyOn(StatusPageService, "findOneById") as unknown as jest.SpyInstance
@@ -1350,7 +1452,11 @@ describe("StatusPageAPI shows an incident only on the status pages in its scope"
       labelled(
         episodeCases,
         (episodeId: string, pageId: string, shown: boolean): string => {
-          return `"${episodeTitleOf(episodeId)}" on ${pageName(pageId)}: ${shown ? "shown" : "404"}`;
+          const isHiddenOnPage: boolean =
+            episodeId === PRIVATE_EPISODE &&
+            INCIDENTS_SHOWN[pageId]!.includes(UNSCOPED);
+
+          return `"${episodeTitleOf(episodeId)}" on ${pageName(pageId)}: ${shown ? "shown" : isHiddenOnPage ? "nothing of it" : "404"}`;
         },
       ),
     )(
@@ -1370,6 +1476,24 @@ describe("StatusPageAPI shows an incident only on the status pages in its scope"
         if (shown) {
           expect(result.error).toBeUndefined();
           expect(idsOf(result.payload!["episodes"])).toEqual([episodeId]);
+          return;
+        }
+
+        /*
+         * A private episode over an incident the page shows: the page is
+         * one of its incidents', but the episode is shown on none, so
+         * nothing of it is sent - as for an episode switched off.
+         */
+        if (
+          episodeId === PRIVATE_EPISODE &&
+          INCIDENTS_SHOWN[pageId]!.includes(UNSCOPED)
+        ) {
+          expect(result.error).toBeUndefined();
+          expect(idsOf(result.payload!["episodes"])).toEqual([]);
+          expect(result.payload!["episodePublicNotes"]).toEqual([]);
+          expect(JSON.stringify(result.payload)).not.toContain(
+            episodeTitleOf(episodeId),
+          );
           return;
         }
 
@@ -1474,6 +1598,11 @@ describe("StatusPageAPI shows an incident only on the status pages in its scope"
       [UNSCOPED, SITE_B, true],
       [UNSCOPED, SITE_C, false],
       [SCOPED_TO_DELETED_PAGE, SITE_A, false],
+      // Private, with Visible on Status Page on: served on no page.
+      [PRIVATE_UNSCOPED, SITE_A, false],
+      [PRIVATE_UNSCOPED, SITE_B, false],
+      [PRIVATE_SCOPED_TO_A, SITE_A, false],
+      [PRIVATE_SCOPED_TO_A, SITE_C, false],
     ];
 
     function incidentAttachmentLabel(
@@ -1542,6 +1671,11 @@ describe("StatusPageAPI shows an incident only on the status pages in its scope"
       [EPISODE_MIXED, SITE_C, false],
       [EPISODE_SCOPED_TO_A_AND_C, SITE_C, true],
       [EPISODE_NOWHERE, SITE_A, false],
+      // A private episode, and one whose incidents are all private.
+      [PRIVATE_EPISODE, SITE_A, false],
+      [PRIVATE_EPISODE, SITE_B, false],
+      [EPISODE_THROUGH_PRIVATE_INCIDENT, SITE_A, false],
+      [EPISODE_THROUGH_PRIVATE_INCIDENT, SITE_B, false],
     ];
 
     it.each(
@@ -1576,6 +1710,214 @@ describe("StatusPageAPI shows an incident only on the status pages in its scope"
         }
       },
     );
+
+    /*
+     * A page serves only files of its own project, whatever wrote the
+     * record that points at them - answered exactly as an attachment that
+     * is not there.
+     */
+    it("never serves an attachment that is a file of another project", async () => {
+      mockFileOwners(OTHER_PROJECT_ID);
+
+      const postmortem: RouteResult = await download({
+        route: POSTMORTEM_ATTACHMENT_ROUTE,
+        params: {
+          statusPageId: SITE_A,
+          incidentId: SCOPED_TO_A,
+          fileId: fileIdFor(SCOPED_TO_A),
+        },
+      });
+
+      expectNotFound(postmortem);
+
+      const note: RouteResult = await download({
+        route: INCIDENT_NOTE_ATTACHMENT_ROUTE,
+        params: {
+          statusPageId: SITE_A,
+          incidentId: SCOPED_TO_A,
+          noteId: noteIdFor(SCOPED_TO_A),
+          fileId: fileIdFor(noteIdFor(SCOPED_TO_A)),
+        },
+      });
+
+      expectNotFound(note);
+
+      const episodeNote: RouteResult = await download({
+        route: EPISODE_NOTE_ATTACHMENT_ROUTE,
+        params: {
+          statusPageId: SITE_A,
+          episodeId: EPISODE_SCOPED_TO_A,
+          noteId: noteIdFor(EPISODE_SCOPED_TO_A),
+          fileId: fileIdFor(noteIdFor(EPISODE_SCOPED_TO_A)),
+        },
+      });
+
+      expectNotFound(episodeNote);
+    });
+  });
+
+  /*
+   * A private incident or episode is visible only to its owners and the
+   * project's admins and owners, so no status page shows it, by any route,
+   * whatever its Visible on Status Page switch says (StatusPageVisibility).
+   * The shared expectations above already leave both out; these name it.
+   */
+  describe("a private incident or episode", () => {
+    const PRIVATE_TITLES: Array<string> = [
+      titleOf(PRIVATE_UNSCOPED),
+      titleOf(PRIVATE_SCOPED_TO_A),
+      episodeTitleOf(PRIVATE_EPISODE),
+      episodeTitleOf(EPISODE_THROUGH_PRIVATE_INCIDENT),
+    ];
+
+    const PRIVATE_IDS: Array<string> = [
+      PRIVATE_UNSCOPED,
+      PRIVATE_SCOPED_TO_A,
+      PRIVATE_EPISODE,
+      EPISODE_THROUGH_PRIVATE_INCIDENT,
+    ];
+
+    function expectNothingPrivate(payload: JSONObject): void {
+      const text: string = JSON.stringify(payload);
+
+      for (const title of PRIVATE_TITLES) {
+        expect(text).not.toContain(title);
+      }
+
+      for (const id of PRIVATE_IDS) {
+        expect(text).not.toContain(id);
+      }
+    }
+
+    it.each(pageCases(ALL_SITES))(
+      "is not in %s's overview: active incidents, uptime bars or episodes",
+      async (_page: string, pageId: string) => {
+        const payload: JSONObject = await getJson({
+          route: OVERVIEW_ROUTE,
+          params: { statusPageIdOrDomain: pageId },
+        });
+
+        expect(idsOf(payload["activeIncidents"])).not.toContain(
+          PRIVATE_UNSCOPED,
+        );
+        expect(idsOf(payload["timelineIncidents"])).not.toContain(
+          PRIVATE_UNSCOPED,
+        );
+        expect(idsOf(payload["activeEpisodes"])).not.toContain(PRIVATE_EPISODE);
+        expectNothingPrivate(payload);
+      },
+    );
+
+    it.each(pageCases(ALL_SITES))(
+      "is not in %s's incident list, which the RSS feed reads",
+      async (_page: string, pageId: string) => {
+        const payload: JSONObject = await getJson({
+          route: INCIDENTS_ROUTE,
+          params: { statusPageIdOrDomain: pageId },
+        });
+
+        expectNothingPrivate(payload);
+      },
+    );
+
+    it.each(pageCases(ALL_SITES))(
+      "is not in %s's episode list",
+      async (_page: string, pageId: string) => {
+        const payload: JSONObject = await getJson({
+          route: EPISODES_ROUTE,
+          params: { statusPageIdOrDomain: pageId },
+        });
+
+        expectNothingPrivate(payload);
+      },
+    );
+
+    it.each(
+      labelled(
+        ALL_SITES.flatMap((pageId: string): Array<[string, string]> => {
+          return [
+            [PRIVATE_UNSCOPED, pageId],
+            [PRIVATE_SCOPED_TO_A, pageId],
+          ];
+        }),
+        (incidentId: string, pageId: string): string => {
+          return `"${titleOf(incidentId)}" on ${pageName(pageId)}`;
+        },
+      ),
+    )(
+      "opened by id, sends nothing of it: %s",
+      async (_label: string, incidentId: string, pageId: string) => {
+        const payload: JSONObject = await getJson({
+          route: INCIDENT_DETAIL_ROUTE,
+          params: { statusPageIdOrDomain: pageId, incidentId: incidentId },
+        });
+
+        expect(idsOf(payload["incidents"])).toEqual([]);
+        expect(payload["incidentPublicNotes"]).toEqual([]);
+        expect(payload["incidentStateTimelines"]).toEqual([]);
+        expectNothingPrivate(payload);
+      },
+    );
+
+    it("does not take its episode to a page: an episode linked only through private incidents is listed nowhere", async () => {
+      for (const pageId of ALL_SITES) {
+        const list: JSONObject = await getJson({
+          route: EPISODES_ROUTE,
+          params: { statusPageIdOrDomain: pageId },
+        });
+
+        expect(idsOf(list["episodes"])).not.toContain(
+          EPISODE_THROUGH_PRIVATE_INCIDENT,
+        );
+
+        const detail: RouteResult = await invokeRoute({
+          method: "post",
+          route: EPISODE_DETAIL_ROUTE,
+          params: {
+            statusPageIdOrDomain: pageId,
+            episodeId: EPISODE_THROUGH_PRIVATE_INCIDENT,
+          },
+        });
+
+        expect(detail.error).toBeInstanceOf(NotFoundException);
+      }
+    });
+
+    it("does not lend an episode its monitors: a shown episode is drawn against its members that are not private", async () => {
+      const siteA: JSONObject = await getJson({
+        route: OVERVIEW_ROUTE,
+        params: { statusPageIdOrDomain: SITE_A },
+      });
+
+      // The mixed episode is unchanged by a private incident on its monitors.
+      expect(episodeMonitors(siteA, "activeEpisodes", EPISODE_MIXED)).toEqual(
+        sorted([SHARED_MONITOR, SECOND_MONITOR]),
+      );
+    });
+
+    it("reads every incident a page shows with the privacy clause, in SQL", async () => {
+      for (const pageId of ALL_SITES) {
+        await getJson({
+          route: OVERVIEW_ROUTE,
+          params: { statusPageIdOrDomain: pageId },
+        });
+        await getJson({
+          route: INCIDENTS_ROUTE,
+          params: { statusPageIdOrDomain: pageId },
+        });
+        await getJson({
+          route: EPISODES_ROUTE,
+          params: { statusPageIdOrDomain: pageId },
+        });
+      }
+
+      expect(incidentReads.length).toBeGreaterThan(0);
+
+      for (const read of incidentReads) {
+        // matchesPrivacy has checked the clause is the public one.
+        expect(read.query).toHaveProperty("isPrivate");
+      }
+    });
   });
 
   describe("the public JSON never names an incident's scope", () => {
@@ -1818,11 +2160,24 @@ describe("StatusPageAPI shows an incident only on the status pages in its scope"
               SCOPED_TO_A_AND_C,
               SECOND_SCOPED_TO_A,
               OTHER_PROJECT_INCIDENT,
+              PRIVATE_UNSCOPED,
+              PRIVATE_SCOPED_TO_A,
             ],
           ],
-          // Visibility and project are the member query's to filter, not scope.
-          [SITE_B, [UNSCOPED, HIDDEN_SCOPED_TO_B, OTHER_PROJECT_INCIDENT]],
-          [SITE_C, [SCOPED_TO_A_AND_C]],
+          /*
+           * Visibility, privacy and project are the member query's to
+           * filter, not scope.
+           */
+          [
+            SITE_B,
+            [
+              UNSCOPED,
+              HIDDEN_SCOPED_TO_B,
+              OTHER_PROJECT_INCIDENT,
+              PRIVATE_UNSCOPED,
+            ],
+          ],
+          [SITE_C, [SCOPED_TO_A_AND_C, PRIVATE_SCOPED_TO_A]],
         ] as Array<[string, Array<string>]>,
         (pageId: string): string => {
           return pageName(pageId);

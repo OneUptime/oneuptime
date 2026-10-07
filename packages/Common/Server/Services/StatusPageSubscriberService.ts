@@ -12,7 +12,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import UpdateBy from "../Types/Database/UpdateBy";
 import logger, { LogAttributes } from "../Utils/Logger";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import MailService from "./MailService";
 import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
@@ -20,7 +20,6 @@ import ProjectService, { CurrentPlan } from "./ProjectService";
 import SmsService from "./SmsService";
 import StatusPageService from "./StatusPageService";
 import { STATUS_PAGE_ARCHIVED_NO_NEW_SUBSCRIBERS_MESSAGE } from "../../Types/StatusPage/StatusPageArchive";
-import { StatusPageApiRoute } from "../../ServiceRoute";
 import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
 import URL from "../../Types/API/URL";
@@ -29,6 +28,7 @@ import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import Model from "../../Models/DatabaseModels/StatusPageSubscriber";
@@ -63,6 +63,13 @@ import StatusPageSubscriberUnsubscribeNotice, {
   StatusPageSubscriberUnsubscribeNoticeEmail,
   StatusPageSubscriberUnsubscribeSource,
 } from "../Utils/StatusPage/StatusPageSubscriberUnsubscribeNotice";
+import {
+  getProjectNotificationChannelOffMessage,
+  ProjectNotificationChannel,
+} from "../../Utils/Project/NotificationChannels";
+import StatusPageEmailLogo, {
+  STATUS_PAGE_EMAIL_LOGO_SELECT,
+} from "../Utils/StatusPage/StatusPageEmailLogo";
 
 /*
  * For an UPDATE ... RETURNING, the postgres driver hands TypeORM's
@@ -132,6 +139,26 @@ interface UnsubscribedAtCarryForward {
  */
 const statusPageSignUps: WeakSet<Model> = new WeakSet<Model>();
 
+/*
+ * What a visitor signing up by SMS hears when SMS sign-ups are not open:
+ * the page's own SMS switch is off (StatusPageAPI's subscribe endpoints), or
+ * the project has SMS off (onBeforeCreate below). One sentence whichever
+ * check refuses. A visitor has no project settings, so nothing about who
+ * can turn it on.
+ */
+export const SMS_SIGN_UP_UNAVAILABLE_MESSAGE: string =
+  "SMS subscribers not enabled for this status page.";
+
+/*
+ * What onBeforeCreate hands onCreateSuccess: the status page the subscriber
+ * is for, and the cancelled subscriptions of the same contact on that page
+ * that the new one replaces (none, as a rule, or one).
+ */
+interface SubscriberCreateCarryForward {
+  statusPage: StatusPage;
+  replacedSubscriberIds: Array<ObjectID>;
+}
+
 // How many subscribers the backfill and the token top-up handle per statement.
 const UNSUBSCRIBE_COLUMNS_BATCH_SIZE: number = 1000;
 
@@ -142,7 +169,7 @@ export interface StatusPageSubscriberUnsubscribeBackfillResult {
   markedAddedByTeam: number;
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -220,6 +247,18 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     data: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(data);
+
+    /*
+     * The status page under either of its names (the two must agree), kept
+     * in the ID column for everything below and for the saved row.
+     */
+    RelationIdUtil.readIntoIdColumn(
+      data.data as unknown as Record<string, unknown>,
+      ["statusPageId", "statusPage"],
+      "Status Page",
+    );
+
     logger.debug("onBeforeCreate called with data:", {
       projectId: data.data.projectId?.toString(),
       statusPageId: data.data.statusPageId?.toString(),
@@ -305,31 +344,42 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    let subscriber: Model | null = null;
+    /*
+     * Every subscription this contact already has on the page - all of them,
+     * not one: while a cancelled one is being replaced (see onCreateSuccess)
+     * the contact has both it and the new one, and the new one must count.
+     */
+    let contactSubscriptions: Array<Model> = [];
 
     if (data.data.subscriberEmail) {
       logger.debug(`Subscriber Email: ${data.data.subscriberEmail}`, {
         projectId: data.data.projectId?.toString(),
         statusPageId: data.data.statusPageId?.toString(),
       } as LogAttributes);
-      subscriber = await this.findOneBy({
+      contactSubscriptions = await this.findBy({
         query: {
           statusPageId: data.data.statusPageId,
+          projectId: projectId,
           subscriberEmail: data.data.subscriberEmail,
         },
         select: {
           _id: true,
           isUnsubscribed: true,
         },
+        limit: LIMIT_MAX,
+        skip: 0,
         props: {
           isRoot: true,
           ignoreHooks: true,
         },
       });
-      logger.debug(`Found Subscriber by Email: ${JSON.stringify(subscriber)}`, {
-        projectId: data.data.projectId?.toString(),
-        statusPageId: data.data.statusPageId?.toString(),
-      } as LogAttributes);
+      logger.debug(
+        `Found Subscribers by Email: ${JSON.stringify(contactSubscriptions)}`,
+        {
+          projectId: data.data.projectId?.toString(),
+          statusPageId: data.data.statusPageId?.toString(),
+        } as LogAttributes,
+      );
     }
 
     if (data.data.subscriberPhone) {
@@ -350,33 +400,51 @@ export class Service extends DatabaseService<Model> {
           projectId: data.data.projectId?.toString(),
           statusPageId: data.data.statusPageId?.toString(),
         } as LogAttributes);
+        /*
+         * The team (the dashboard, an API key, a workflow) is told who can
+         * turn SMS on; a visitor on the status page is not.
+         */
         throw new BadDataException(
-          "SMS notifications are not enabled for this project. Please enable SMS notifications in the Project Settings > Notifications Settings.",
+          statusPageSignUps.has(data.data)
+            ? SMS_SIGN_UP_UNAVAILABLE_MESSAGE
+            : getProjectNotificationChannelOffMessage(
+                ProjectNotificationChannel.SMS,
+              ),
         );
       }
 
-      subscriber = await this.findOneBy({
+      contactSubscriptions = await this.findBy({
         query: {
           statusPageId: data.data.statusPageId,
+          projectId: projectId,
           subscriberPhone: data.data.subscriberPhone,
         },
         select: {
           _id: true,
           isUnsubscribed: true,
         },
+        limit: LIMIT_MAX,
+        skip: 0,
         props: {
           isRoot: true,
           ignoreHooks: true,
         },
       });
 
-      logger.debug(`Found Subscriber by Phone: ${JSON.stringify(subscriber)}`, {
-        projectId: data.data.projectId?.toString(),
-        statusPageId: data.data.statusPageId?.toString(),
-      } as LogAttributes);
+      logger.debug(
+        `Found Subscribers by Phone: ${JSON.stringify(contactSubscriptions)}`,
+        {
+          projectId: data.data.projectId?.toString(),
+          statusPageId: data.data.statusPageId?.toString(),
+        } as LogAttributes,
+      );
     }
 
-    if (subscriber && !subscriber.isUnsubscribed) {
+    if (
+      contactSubscriptions.some((subscription: Model): boolean => {
+        return !subscription.isUnsubscribed;
+      })
+    ) {
       logger.debug("Subscriber is already subscribed and not unsubscribed.", {
         projectId: data.data.projectId?.toString(),
         statusPageId: data.data.statusPageId?.toString(),
@@ -386,22 +454,18 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    // if the user is unsubscribed, delete this record and it'll create a new one.
-    if (subscriber) {
-      logger.debug("Subscriber is unsubscribed. Deleting old record.", {
-        projectId: data.data.projectId?.toString(),
-        statusPageId: data.data.statusPageId?.toString(),
-      } as LogAttributes);
-      await this.deleteOneBy({
-        query: {
-          _id: subscriber?._id as string,
-        },
-        props: {
-          ignoreHooks: true,
-          isRoot: true,
-        },
+    /*
+     * A contact who cancelled and subscribes again gets a new subscription,
+     * and the cancelled one is removed once the new one exists
+     * (onCreateSuccess) - so a create that is refused or fails leaves it.
+     */
+    const replacedSubscriberIds: Array<ObjectID> = contactSubscriptions
+      .map((subscription: Model): ObjectID | null => {
+        return subscription.id;
+      })
+      .filter((id: ObjectID | null): id is ObjectID => {
+        return Boolean(id);
       });
-    }
 
     const statuspages: Array<StatusPage> =
       await this.getStatusPagesToSendNotification([data.data.statusPageId]);
@@ -586,7 +650,12 @@ export class Service extends DatabaseService<Model> {
       statusPageId: data.data.statusPageId?.toString(),
     } as LogAttributes);
 
-    return { createBy: data, carryForward: statuspage };
+    const carryForward: SubscriberCreateCarryForward = {
+      statusPage: statuspage,
+      replacedSubscriberIds: replacedSubscriberIds,
+    };
+
+    return { createBy: data, carryForward: carryForward };
   }
 
   /*
@@ -605,6 +674,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     const isUnsubscribed: unknown = (
       updateBy.data as unknown as JSONObject | undefined
     )?.["isUnsubscribed"];
@@ -1134,6 +1205,41 @@ export class Service extends DatabaseService<Model> {
       return createdItem;
     }
 
+    const carryForward: SubscriberCreateCarryForward | undefined =
+      onCreate.carryForward as SubscriberCreateCarryForward | undefined;
+    const statusPageOfSubscriber: StatusPage | undefined =
+      carryForward?.statusPage;
+
+    /*
+     * The contact's cancelled subscriptions on this page go now that the new
+     * one exists: links to them stop working. Only cancelled ones, of the
+     * same status page and project as the new subscriber.
+     */
+    const replacedSubscriberIds: Array<ObjectID> =
+      carryForward?.replacedSubscriberIds || [];
+
+    if (replacedSubscriberIds.length > 0 && createdItem.projectId) {
+      logger.debug("Subscriber is unsubscribed. Deleting old record.", {
+        projectId: createdItem.projectId?.toString(),
+        statusPageId: createdItem.statusPageId?.toString(),
+      } as LogAttributes);
+
+      await this.deleteBy({
+        query: {
+          _id: QueryHelper.any(replacedSubscriberIds),
+          projectId: createdItem.projectId,
+          statusPageId: createdItem.statusPageId,
+          isUnsubscribed: true,
+        },
+        limit: replacedSubscriberIds.length,
+        skip: 0,
+        props: {
+          ignoreHooks: true,
+          isRoot: true,
+        },
+      });
+    }
+
     const statusPageURL: string = await StatusPageService.getStatusPageURL(
       createdItem.statusPageId,
     );
@@ -1142,8 +1248,8 @@ export class Service extends DatabaseService<Model> {
     } as LogAttributes);
 
     const statusPageName: string =
-      onCreate.carryForward.pageTitle ||
-      onCreate.carryForward.name ||
+      statusPageOfSubscriber?.pageTitle ||
+      statusPageOfSubscriber?.name ||
       "Status Page";
     logger.debug(`Status Page Name: ${statusPageName}`, {
       projectId: createdItem.projectId?.toString(),
@@ -1203,8 +1309,7 @@ export class Service extends DatabaseService<Model> {
        */
       const smsUnsubscribeLink: string =
         StatusPageSubscriberUnsubscribe.buildSmsLink({
-          isPublicStatusPage: (onCreate.carryForward as StatusPage | undefined)
-            ?.isPublicStatusPage,
+          isPublicStatusPage: statusPageOfSubscriber?.isPublicStatusPage,
           statusPageUrl: statusPageURL,
           subscriberId: createdItem.id!,
           unsubscribeUrl: unsubscribeLink,
@@ -1450,7 +1555,7 @@ Stay informed about service availability! 🚀`;
         _id: subscriber.statusPageId.toString(),
       },
       select: {
-        logoFileId: true,
+        ...STATUS_PAGE_EMAIL_LOGO_SELECT,
         isPublicStatusPage: true,
         pageTitle: true,
         name: true,
@@ -1510,8 +1615,6 @@ Stay informed about service availability! 🚀`;
     logger.debug(`HTTP Protocol: ${httpProtocol}`, {
       statusPageSubscriberId: data.subscriberId?.toString(),
     } as LogAttributes);
-    const statusPageIdString: string | null =
-      statusPage.id?.toString() || statusPage._id?.toString() || null;
 
     const confirmSubscriptionLink: string = this.getConfirmSubscriptionLink({
       statusPageUrl: statusPageURL,
@@ -1597,13 +1700,11 @@ Stay informed about service availability! 🚀`;
             templateType: EmailTemplateType.ConfirmStatusPageSubscription,
             vars: {
               statusPageName: statusPageName,
-              logoUrl:
-                statusPage.logoFileId && statusPageIdString
-                  ? new URL(httpProtocol, host)
-                      .addRoute(StatusPageApiRoute)
-                      .addRoute(`/logo/${statusPageIdString}`)
-                      .toString()
-                  : "",
+              logoUrl: StatusPageEmailLogo.getLogoUrl({
+                statusPage: statusPage,
+                host: host,
+                httpProtocol: httpProtocol,
+              }),
               statusPageUrl: statusPageURL,
               isPublicStatusPage: statusPage.isPublicStatusPage
                 ? "true"
@@ -1686,7 +1787,7 @@ Stay informed about service availability! 🚀`;
         _id: subscriber.statusPageId.toString(),
       },
       select: {
-        logoFileId: true,
+        ...STATUS_PAGE_EMAIL_LOGO_SELECT,
         isPublicStatusPage: true,
         pageTitle: true,
         name: true,
@@ -1746,8 +1847,6 @@ Stay informed about service availability! 🚀`;
     logger.debug(`HTTP Protocol: ${httpProtocol}`, {
       statusPageSubscriberId: data.subscriberId?.toString(),
     } as LogAttributes);
-    const statusPageIdString: string | null =
-      statusPage.id?.toString() || statusPage._id?.toString() || null;
 
     const unsubscribeLink: string = this.getUnsubscribeLink(
       URL.fromString(statusPageURL),
@@ -1822,13 +1921,11 @@ Stay informed about service availability! 🚀`;
             templateType: EmailTemplateType.SubscribedToStatusPage,
             vars: {
               statusPageName: statusPageName,
-              logoUrl:
-                statusPage.logoFileId && statusPageIdString
-                  ? new URL(httpProtocol, host)
-                      .addRoute(StatusPageApiRoute)
-                      .addRoute(`/logo/${statusPageIdString}`)
-                      .toString()
-                  : "",
+              logoUrl: StatusPageEmailLogo.getLogoUrl({
+                statusPage: statusPage,
+                host: host,
+                httpProtocol: httpProtocol,
+              }),
               statusPageUrl: statusPageURL,
               isPublicStatusPage: statusPage.isPublicStatusPage
                 ? "true"
@@ -2479,7 +2576,7 @@ Stay informed about service availability! 🚀`;
         pageTitle: true,
         projectId: true,
         isPublicStatusPage: true,
-        logoFileId: true,
+        ...STATUS_PAGE_EMAIL_LOGO_SELECT,
         allowSubscribersToChooseResources: true,
         subscriberEmailNotificationFooterText: true,
         enableCustomSubscriberEmailNotificationFooterText: true,

@@ -1,6 +1,11 @@
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
+import {
+  getInheritingLabelRuleActionFields,
+  getLabelRuleActionFields,
+  getLabelRuleFormSteps,
+} from "../../../Utils/Form/ResourceRuleForm";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
@@ -134,41 +139,8 @@ const AlertRulesTable: FunctionComponent<RulesTableProps> = (
           },
         },
       ]}
-      formSteps={[
-        { title: "Basic Info", id: "basic-info" },
-        { title: "Match Criteria", id: "match-criteria", columns: 2 },
-        { title: "Labels", id: "labels" },
-        /*
-         * The labels to attach, then which resources to inherit labels
-         * from: two questions that were one step of seven fields.
-         */
-        { title: "Inherit Labels", id: "inherit-labels", columns: 2 },
-      ]}
+      formSteps={getLabelRuleFormSteps<AlertLabelRule>()}
       formFields={[
-        {
-          field: { name: true },
-          title: "Name",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          placeholder: "Inherit monitor labels onto database alerts",
-          validation: { minLength: 2 },
-        },
-        {
-          field: { description: true },
-          title: "Description",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-        },
-        {
-          field: { isEnabled: true },
-          title: "Enabled",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description: "Enable or disable this rule.",
-        },
         {
           field: { monitors: true },
           title: "Monitors",
@@ -262,79 +234,7 @@ const AlertRulesTable: FunctionComponent<RulesTableProps> = (
           required: false,
           placeholder: "production|critical",
         },
-        {
-          field: { labelsToAdd: true },
-          title: "Labels to Add",
-          stepId: "labels",
-          sectionTitle: "Labels to Attach",
-          sectionDescription:
-            "When this rule matches, every selected label is attached to the alert. Existing labels are preserved.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: Label,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: false,
-          placeholder: "Select Labels",
-        },
-        {
-          field: { inheritLabelsFromMonitors: true },
-          title: "Inherit Labels From Monitor",
-          stepId: "inherit-labels",
-          sectionTitle: "Inherit Labels",
-          sectionDescription:
-            "Optionally copy labels from related entities onto the alert.",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description:
-            "When this rule matches, also copy every label of the alert's monitor onto the alert.",
-        },
-        {
-          field: { inheritLabelsFromHosts: true },
-          title: "Inherit Labels From Hosts",
-          stepId: "inherit-labels",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description:
-            "Copy every label of the alert's affected hosts onto the alert.",
-        },
-        {
-          field: { inheritLabelsFromKubernetesClusters: true },
-          title: "Inherit Labels From Kubernetes Clusters",
-          stepId: "inherit-labels",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description:
-            "Copy every label of the alert's affected Kubernetes clusters onto the alert.",
-        },
-        {
-          field: { inheritLabelsFromDockerHosts: true },
-          title: "Inherit Labels From Docker Hosts",
-          stepId: "inherit-labels",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description:
-            "Copy every label of the alert's affected Docker hosts onto the alert.",
-        },
-        {
-          field: { inheritLabelsFromPodmanHosts: true },
-          title: "Inherit Labels From Podman Hosts",
-          stepId: "inherit-labels",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description:
-            "Copy every label of the alert's affected Podman hosts onto the alert.",
-        },
-        {
-          field: { inheritLabelsFromServices: true },
-          title: "Inherit Labels From Services",
-          stepId: "inherit-labels",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description:
-            "Copy every label of the alert's affected services onto the alert.",
-        },
+        ...getInheritingLabelRuleActionFields<AlertLabelRule>("alert"),
       ]}
       showRefreshButton={true}
     />
@@ -408,36 +308,8 @@ const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
           },
         },
       ]}
-      formSteps={[
-        { title: "Basic Info", id: "basic-info" },
-        { title: "Match Criteria", id: "match-criteria", columns: 2 },
-        { title: "Labels", id: "labels" },
-      ]}
+      formSteps={getLabelRuleFormSteps<AlertEpisodeLabelRule>()}
       formFields={[
-        {
-          field: { name: true },
-          title: "Name",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          placeholder: "Tag P1 episodes with critical label",
-          validation: { minLength: 2 },
-        },
-        {
-          field: { description: true },
-          title: "Description",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-        },
-        {
-          field: { isEnabled: true },
-          title: "Enabled",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description: "Enable or disable this rule.",
-        },
         {
           field: { alertSeverities: true },
           title: "Alert Severities",
@@ -489,22 +361,7 @@ const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
           required: false,
           placeholder: "timeout|connection refused",
         },
-        {
-          field: { labelsToAdd: true },
-          title: "Labels to Add",
-          stepId: "labels",
-          sectionTitle: "Labels to Attach",
-          sectionDescription:
-            "When this rule matches, every selected label is attached to the episode. Existing labels are preserved.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: Label,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: false,
-          placeholder: "Select Labels",
-        },
+        ...getLabelRuleActionFields<AlertEpisodeLabelRule>(),
       ]}
       showRefreshButton={true}
     />

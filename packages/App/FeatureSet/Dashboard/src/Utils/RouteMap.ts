@@ -113,6 +113,7 @@ export const KubernetesRoutePath: Dictionary<string> = {
   [PageMap.KUBERNETES_CLUSTER_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_AI]: `${RouteParams.ModelID}/ai`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_AI_LOGS]: `${RouteParams.ModelID}/ai/logs`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_COSTS]: `${RouteParams.ModelID}/costs`,
@@ -218,6 +219,7 @@ export const DockerRoutePath: Dictionary<string> = {
   [PageMap.DOCKER_HOST_VIEW_CONTAINER_DETAIL]: `${RouteParams.ModelID}/containers/${RouteParams.SubModelID}`,
   [PageMap.DOCKER_HOST_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
   [PageMap.DOCKER_HOST_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
+  [PageMap.DOCKER_HOST_VIEW_AI_LOGS]: `${RouteParams.ModelID}/ai/logs`,
   [PageMap.DOCKER_HOST_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.DOCKER_HOST_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.DOCKER_HOST_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
@@ -246,6 +248,7 @@ export const PodmanRoutePath: Dictionary<string> = {
   [PageMap.PODMAN_HOST_VIEW_CONTAINER_DETAIL]: `${RouteParams.ModelID}/containers/${RouteParams.SubModelID}`,
   [PageMap.PODMAN_HOST_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
   [PageMap.PODMAN_HOST_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
+  [PageMap.PODMAN_HOST_VIEW_AI_LOGS]: `${RouteParams.ModelID}/ai/logs`,
   [PageMap.PODMAN_HOST_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.PODMAN_HOST_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.PODMAN_HOST_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
@@ -279,6 +282,7 @@ export const ProxmoxRoutePath: Dictionary<string> = {
   [PageMap.PROXMOX_CLUSTER_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
   [PageMap.PROXMOX_CLUSTER_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
   [PageMap.PROXMOX_CLUSTER_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_AI_LOGS]: `${RouteParams.ModelID}/ai/logs`,
   [PageMap.PROXMOX_CLUSTER_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.PROXMOX_CLUSTER_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.PROXMOX_CLUSTER_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
@@ -313,6 +317,7 @@ export const VMwareRoutePath: Dictionary<string> = {
   [PageMap.VMWARE_VCENTER_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
   [PageMap.VMWARE_VCENTER_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
   [PageMap.VMWARE_VCENTER_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
+  [PageMap.VMWARE_VCENTER_VIEW_AI_LOGS]: `${RouteParams.ModelID}/ai/logs`,
   [PageMap.VMWARE_VCENTER_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.VMWARE_VCENTER_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.VMWARE_VCENTER_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
@@ -373,6 +378,7 @@ export const DockerSwarmRoutePath: Dictionary<string> = {
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_LOGS]: `${RouteParams.ModelID}/ai/logs`,
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
@@ -403,6 +409,7 @@ export const CephRoutePath: Dictionary<string> = {
   [PageMap.CEPH_CLUSTER_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
   [PageMap.CEPH_CLUSTER_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
   [PageMap.CEPH_CLUSTER_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
+  [PageMap.CEPH_CLUSTER_VIEW_AI_LOGS]: `${RouteParams.ModelID}/ai/logs`,
   [PageMap.CEPH_CLUSTER_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.CEPH_CLUSTER_VIEW_CLUSTER_LOG]: `${RouteParams.ModelID}/cluster-log`,
   [PageMap.CEPH_CLUSTER_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
@@ -424,10 +431,51 @@ export const CephRoutePath: Dictionary<string> = {
   [PageMap.CEPH_ARCHIVED]: `archived`,
 };
 
+/*
+ * Detail routes (volumes/:subModelId, hosts/:subModelId, ...) carry the
+ * StorageArrayResource externalId — the object's own name on the array —
+ * percent-encoded as one path segment: FlashArray volume names contain `/`
+ * (volume groups) and `::` (pods).
+ */
+export const StorageArrayRoutePath: Dictionary<string> = {
+  [PageMap.STORAGE_ARRAY_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.STORAGE_ARRAY_VIEW_VOLUMES]: `${RouteParams.ModelID}/volumes`,
+  [PageMap.STORAGE_ARRAY_VIEW_VOLUME_DETAIL]: `${RouteParams.ModelID}/volumes/${RouteParams.SubModelID}`,
+  [PageMap.STORAGE_ARRAY_VIEW_HOSTS]: `${RouteParams.ModelID}/hosts`,
+  [PageMap.STORAGE_ARRAY_VIEW_HOST_DETAIL]: `${RouteParams.ModelID}/hosts/${RouteParams.SubModelID}`,
+  [PageMap.STORAGE_ARRAY_VIEW_REPLICATION]: `${RouteParams.ModelID}/replication`,
+  [PageMap.STORAGE_ARRAY_VIEW_HARDWARE]: `${RouteParams.ModelID}/hardware`,
+  [PageMap.STORAGE_ARRAY_VIEW_DIRECTORIES]: `${RouteParams.ModelID}/directories`,
+  [PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEMS]: `${RouteParams.ModelID}/file-systems`,
+  [PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEM_DETAIL]: `${RouteParams.ModelID}/file-systems/${RouteParams.SubModelID}`,
+  [PageMap.STORAGE_ARRAY_VIEW_BUCKETS]: `${RouteParams.ModelID}/buckets`,
+  [PageMap.STORAGE_ARRAY_VIEW_BUCKET_DETAIL]: `${RouteParams.ModelID}/buckets/${RouteParams.SubModelID}`,
+  [PageMap.STORAGE_ARRAY_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
+  [PageMap.STORAGE_ARRAY_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
+  [PageMap.STORAGE_ARRAY_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.STORAGE_ARRAY_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.STORAGE_ARRAY_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+  [PageMap.STORAGE_ARRAY_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
+  [PageMap.STORAGE_ARRAY_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
+  [PageMap.STORAGE_ARRAY_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.STORAGE_ARRAY_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
+  [PageMap.STORAGE_ARRAY_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
+  [PageMap.STORAGE_ARRAY_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.STORAGE_ARRAY_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.STORAGE_ARRAY_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.STORAGE_ARRAYS_DOCUMENTATION]: `documentation`,
+  [PageMap.STORAGE_ARRAYS_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.STORAGE_ARRAYS_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
+  [PageMap.STORAGE_ARRAYS_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.STORAGE_ARRAYS_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
+  [PageMap.STORAGE_ARRAYS_ARCHIVED]: `archived`,
+};
+
 export const HostRoutePath: Dictionary<string> = {
   [PageMap.HOST_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.HOST_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
   [PageMap.HOST_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
+  [PageMap.HOST_VIEW_AI_LOGS]: `${RouteParams.ModelID}/ai/logs`,
   [PageMap.HOST_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.HOST_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.HOST_VIEW_PROCESSES]: `${RouteParams.ModelID}/processes`,
@@ -488,6 +536,7 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
   [PageMap.CLOUD_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
   [PageMap.CLOUD_ARCHIVED]: `archived`,
+  [PageMap.CLOUD_MONITORED_RESOURCES]: `resources`,
 };
 
 export const DatabaseRoutePath: Dictionary<string> = {
@@ -503,6 +552,7 @@ export const DatabaseRoutePath: Dictionary<string> = {
   [PageMap.DATABASE_SERVER_VIEW_ENDPOINTS]: `${RouteParams.ModelID}/endpoints`,
   [PageMap.DATABASE_SERVER_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
   [PageMap.DATABASE_SERVER_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
+  [PageMap.DATABASE_SERVER_VIEW_AI_LOGS]: `${RouteParams.ModelID}/ai/logs`,
   [PageMap.DATABASE_SERVER_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.DATABASE_SERVER_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.DATABASE_SERVER_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
@@ -904,15 +954,23 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_SETTINGS_EPISODE_LABEL_RULE_VIEW]: `settings/label-rules/episodes/${RouteParams.ModelID}`,
   [PageMap.INCIDENTS_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.INCIDENTS_SETTINGS_RUNBOOK_RULES]: "settings/runbook-rules",
-  [PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES]:
-    "settings/auto-remediation-rules",
   [PageMap.INCIDENTS_SETTINGS_SLA_RULES]: "settings/sla-rules",
   [PageMap.INCIDENTS_SETTINGS_REMINDER_RULES]: "settings/reminder-rules",
   [PageMap.INCIDENTS_SETTINGS_ROLES]: "settings/roles",
   [PageMap.INCIDENTS_SETTINGS_MEASUREMENTS]: "settings/measurements",
   [PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS]: "settings/linked-alerts",
   [PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX]: "settings/number-prefix",
-  [PageMap.INCIDENTS_SETTINGS_AI]: "settings/ai",
+
+  /*
+   * The AI section. Settings and Auto Remediation Rules were at settings/ai
+   * and settings/auto-remediation-rules, which forward here
+   * (MOVED_AI_SECTION_PATHS).
+   */
+  [PageMap.INCIDENTS_AI_INSIGHTS]: "ai/insights",
+  [PageMap.INCIDENTS_AI_LOGS]: "ai/logs",
+  [PageMap.INCIDENTS_SETTINGS_AI]: "ai/settings",
+  [PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES]:
+    "ai/auto-remediation-rules",
 
   [PageMap.INCIDENT_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.INCIDENT_VIEW_STATE_TIMELINE]: `${RouteParams.ModelID}/state-timeline`,
@@ -977,12 +1035,19 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERTS_SETTINGS_EPISODE_LABEL_RULE_VIEW]: `settings/label-rules/episodes/${RouteParams.ModelID}`,
   [PageMap.ALERTS_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.ALERTS_SETTINGS_RUNBOOK_RULES]: "settings/runbook-rules",
-  [PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES]:
-    "settings/auto-remediation-rules",
   [PageMap.ALERTS_SETTINGS_REMINDER_RULES]: "settings/reminder-rules",
   [PageMap.ALERTS_SETTINGS_MEASUREMENTS]: "settings/measurements",
   [PageMap.ALERTS_SETTINGS_NUMBER_PREFIX]: "settings/number-prefix",
-  [PageMap.ALERTS_SETTINGS_AI]: "settings/ai",
+
+  /*
+   * The AI section. Settings and Auto Remediation Rules were at settings/ai
+   * and settings/auto-remediation-rules, which forward here
+   * (MOVED_AI_SECTION_PATHS).
+   */
+  [PageMap.ALERTS_AI_INSIGHTS]: "ai/insights",
+  [PageMap.ALERTS_AI_LOGS]: "ai/logs",
+  [PageMap.ALERTS_SETTINGS_AI]: "ai/settings",
+  [PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES]: "ai/auto-remediation-rules",
 
   [PageMap.ALERT_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.ALERT_VIEW_STATE_TIMELINE]: `${RouteParams.ModelID}/state-timeline`,
@@ -1651,6 +1716,22 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  /*
+   * The AI section's pages, Insights first: the "AI" crumb of the section's
+   * other pages links to the first page declared under …/alerts/ai.
+   */
+  [PageMap.ALERTS_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.ALERTS_AI_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_AI_LOGS]
+    }`,
+  ),
+
   [PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES]
@@ -2194,6 +2275,22 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENTS_SETTINGS_RUNBOOK_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_RUNBOOK_RULES]
+    }`,
+  ),
+
+  /*
+   * The AI section's pages, Insights first: the "AI" crumb of the section's
+   * other pages links to the first page declared under …/incidents/ai.
+   */
+  [PageMap.INCIDENTS_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_AI_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_AI_LOGS]
     }`,
   ),
 
@@ -2908,6 +3005,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.KUBERNETES_CLUSTER_VIEW_AI_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_AI_LOGS]
+    }`,
+  ),
+
   [PageMap.KUBERNETES_CLUSTER_VIEW_AI_AGENT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/kubernetes/${
       KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_AI_AGENT]
@@ -3461,6 +3564,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DOCKER_HOST_VIEW_AI_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_HOST_VIEW_AI_LOGS]
+    }`,
+  ),
+
   [PageMap.DOCKER_HOST_VIEW_AI_AGENT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/docker/${
       DockerRoutePath[PageMap.DOCKER_HOST_VIEW_AI_AGENT]
@@ -3617,6 +3726,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.PODMAN_HOST_VIEW_AI_INSIGHTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/podman/${
       PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.PODMAN_HOST_VIEW_AI_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_AI_LOGS]
     }`,
   ),
 
@@ -3806,6 +3921,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.PROXMOX_CLUSTER_VIEW_AI_INSIGHTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/proxmox/${
       ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_AI_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_AI_LOGS]
     }`,
   ),
 
@@ -4001,6 +4122,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.VMWARE_VCENTER_VIEW_AI_INSIGHTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/vmware/${
       VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.VMWARE_VCENTER_VIEW_AI_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW_AI_LOGS]
     }`,
   ),
 
@@ -4343,6 +4470,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_LOGS]
+    }`,
+  ),
+
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_AGENT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
       DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_AGENT]
@@ -4520,6 +4653,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.CEPH_CLUSTER_VIEW_AI_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_AI_LOGS]
+    }`,
+  ),
+
   [PageMap.CEPH_CLUSTER_VIEW_AI_AGENT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/ceph/${
       CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_AI_AGENT]
@@ -4627,6 +4766,202 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  // Storage Arrays
+
+  [PageMap.STORAGE_ARRAYS_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/*`,
+  ),
+
+  [PageMap.STORAGE_ARRAYS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_VOLUMES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_VOLUMES]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_VOLUME_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_VOLUME_DETAIL]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_HOSTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_HOSTS]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_HOST_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_HOST_DETAIL]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_REPLICATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_REPLICATION]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_HARDWARE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_HARDWARE]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_DIRECTORIES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_DIRECTORIES]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEMS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEMS]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEM_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEM_DETAIL]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_BUCKETS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_BUCKETS]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_BUCKET_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_BUCKET_DETAIL]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_RECOMMENDATIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_RECOMMENDATIONS]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_INCIDENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_INCIDENTS]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_ALERTS]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_SCHEDULED_MAINTENANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_SCHEDULED_MAINTENANCE]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_FEED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_FEED]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAYS_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAYS_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAYS_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAYS_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAYS_SETTINGS_OWNER_RULE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAYS_SETTINGS_OWNER_RULE_VIEW]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAYS_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAYS_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAYS_SETTINGS_LABEL_RULE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAYS_SETTINGS_LABEL_RULE_VIEW]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAYS_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAYS_ARCHIVED]
+    }`,
+  ),
+
   // Hosts
 
   [PageMap.HOST_ROOT]: new Route(`/dashboard/${RouteParams.ProjectID}/host/*`),
@@ -4648,6 +4983,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.HOST_VIEW_AI_INSIGHTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/host/${
       HostRoutePath[PageMap.HOST_VIEW_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.HOST_VIEW_AI_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_VIEW_AI_LOGS]
     }`,
   ),
 
@@ -4901,6 +5242,12 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/cloud`,
   ),
 
+  [PageMap.CLOUD_MONITORED_RESOURCES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_MONITORED_RESOURCES]
+    }`,
+  ),
+
   [PageMap.CLOUD_RESOURCE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW]
@@ -5068,6 +5415,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DATABASE_SERVER_VIEW_AI_INSIGHTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/databases/${
       DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.DATABASE_SERVER_VIEW_AI_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_AI_LOGS]
     }`,
   ),
 

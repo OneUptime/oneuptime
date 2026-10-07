@@ -8,6 +8,8 @@ import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource"
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import URL from "Common/Types/API/URL";
+import Color from "Common/Types/Color";
+import StateChangeNoteMessage from "Common/Types/StatusPage/StateChangeNoteMessage";
 import OneUptimeDate from "Common/Types/Date";
 import Email from "Common/Types/Email";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
@@ -1419,7 +1421,7 @@ describe("ScheduledMaintenancePublicNote custom template variables", () => {
         queryArgs(ScheduledMaintenanceService.findOneById).select[
           "currentScheduledMaintenanceState"
         ],
-      ).toEqual({ name: true });
+      ).toEqual({ name: true, color: true });
     },
   );
 
@@ -2161,6 +2163,223 @@ describe("ScheduledMaintenancePublicNote unsubscribe links", () => {
      */
     expectEveryUnsubscribeLinkToCarryAToken(
       StatusPageSubscriberService.getUnsubscribeLink,
+    );
+  });
+});
+
+/*
+ * A NOTE POSTED WITH A STATE CHANGE NAMES THE STATE, ON EVERY CHANNEL.
+ *
+ * "Mark Scheduled Maintenance as Ongoing" with a public note and "Notify
+ * Status Page Subscribers" on sends subscribers the note, once (#4411), and
+ * nothing else: so the note's messages say what the change was. The note
+ * carries the state the event moved to
+ * (ScheduledMaintenancePublicNote.postedWithScheduledMaintenanceState), and
+ * every default message names it the way the state change's own message did
+ * (StateChangeNoteMessage). A note posted on its own reads as it always has.
+ */
+describe("ScheduledMaintenancePublicNote: a note posted with a state change names the state", () => {
+  const COMPLETED: string = "Completed";
+  const COMPLETED_COLOR: string = "#2563eb";
+
+  function completedState(): ScheduledMaintenanceState {
+    const state: ScheduledMaintenanceState = new ScheduledMaintenanceState();
+    state.name = COMPLETED;
+    state.color = new Color(COMPLETED_COLOR);
+    return state;
+  }
+
+  // The note "Mark Scheduled Maintenance as Completed" posted, notifying.
+  function stateChangeNote(
+    state?: ScheduledMaintenanceState | null,
+  ): ScheduledMaintenancePublicNote {
+    const note: ScheduledMaintenancePublicNote = publicNote({
+      subscriberNotificationStatusOnNoteCreated:
+        StatusPageSubscriberNotificationStatus.Pending,
+    });
+
+    if (state !== null) {
+      note.postedWithScheduledMaintenanceState = state || completedState();
+    }
+
+    return note;
+  }
+
+  test("the job reads the state with the note, and only for the 'posted' notification", async () => {
+    await runJob(CREATED_JOB);
+
+    expect(
+      queryArgs(ScheduledMaintenancePublicNoteService.findAllBy).select[
+        "postedWithScheduledMaintenanceState"
+      ],
+    ).toEqual({ name: true, color: true });
+
+    jest.clearAllMocks();
+    await runJob(UPDATED_JOB);
+
+    expect(
+      queryArgs(ScheduledMaintenancePublicNoteService.findAllBy).select[
+        "postedWithScheduledMaintenanceState"
+      ],
+    ).toBeUndefined();
+  });
+
+  test("email: the state change email's subject, and a Status row in the state's colour", async () => {
+    createdNotes = [stateChangeNote()];
+
+    await runJob(CREATED_JOB);
+
+    expect(sentMail()).toHaveLength(1);
+    const mail: JSONObject = sentMail()[0]!;
+    const vars: JSONObject = mail["vars"] as JSONObject;
+
+    expect(mail["templateType"]).toBe(
+      EmailTemplateType.SubscriberScheduledMaintenanceEventNoteCreated,
+    );
+    expect(mail["subject"]).toBe(
+      `[Completed Scheduled Maintenance] ${EVENT_TITLE}`,
+    );
+    expect(vars["eventState"]).toBe(COMPLETED);
+    expect(vars["eventStateColor"]).toBe(COMPLETED_COLOR);
+    expect(typeof vars["eventStateTextColor"]).toBe("string");
+    expect(vars["note"]).toBe(NOTE_HTML);
+  });
+
+  test("SMS: says what the event is now, as the state change SMS did", async () => {
+    createdNotes = [stateChangeNote()];
+
+    await runJob(CREATED_JOB);
+
+    expect(sentSms()).toEqual([
+      `Maintenance ${EVENT_TITLE} on Acme Status is Completed. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
+    ]);
+  });
+
+  test("Slack and Microsoft Teams: a Status line under the event, then the note", async () => {
+    createdNotes = [stateChangeNote()];
+
+    await runJob(CREATED_JOB);
+
+    for (const message of [sentSlack()[0]!, sentTeams()[0]!]) {
+      expect(message).toContain(
+        `**Event:** ${EVENT_TITLE}\n\n**Status:** Completed\n\n**New Note Added**`,
+      );
+      expect(message).toContain(`**Note:** ${NOTE}`);
+    }
+  });
+
+  test("webhook: the ScheduledMaintenanceNoteCreated payload carries scheduledMaintenanceState, as ScheduledMaintenanceStateChanged does", async () => {
+    createdNotes = [stateChangeNote()];
+
+    await runJob(CREATED_JOB);
+
+    const payload: JSONObject = sentWebhooks()[0]!;
+    const data: JSONObject = payload["data"] as JSONObject;
+
+    expect(payload["eventType"]).toBe("ScheduledMaintenanceNoteCreated");
+    expect(data["scheduledMaintenanceState"]).toBe(COMPLETED);
+    expect(data["note"]).toBe(NOTE);
+  });
+
+  test("custom templates get the state the change moved to as {{scheduledMaintenanceState}}, not the event's state when it is sent", async () => {
+    // The event's state when the job runs is Ongoing (STATE_NAME).
+    createdNotes = [stateChangeNote()];
+    useCustomTemplates({
+      eventType:
+        StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteCreated,
+      body: "state={{scheduledMaintenanceState}}",
+    });
+
+    await runJob(CREATED_JOB);
+
+    expect(sentCustomMessages()).toEqual(
+      expectedCustomMessages({ body: `state=${COMPLETED}` }),
+    );
+  });
+
+  test("a custom email template with no subject of its own falls back to the state change's subject", async () => {
+    createdNotes = [stateChangeNote()];
+    mock(
+      StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+    ).mockImplementation(async (args: unknown) => {
+      return (args as JSONObject)["notificationMethod"] ===
+        StatusPageSubscriberNotificationMethod.Email
+        ? customTemplate("<p>{{note}}</p>")
+        : null;
+    });
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([statusPage({ withCustomDelivery: true })] as never);
+
+    await runJob(CREATED_JOB);
+
+    expect(sentMail()[0]!["subject"]).toBe(
+      `[Scheduled Maintenance Completed] ${EVENT_TITLE}`,
+    );
+  });
+
+  test("a note posted on its own keeps the messages it always had", async () => {
+    createdNotes = [stateChangeNote(null)];
+
+    await runJob(CREATED_JOB);
+
+    expect(sentMail()[0]!["subject"]).toBe(
+      `[Update Scheduled Maintenance] ${EVENT_TITLE}`,
+    );
+    expect((sentMail()[0]!["vars"] as JSONObject)["eventState"]).toBe(
+      undefined,
+    );
+    expect(sentSms()[0]).toBe(
+      `Maintenance update: ${EVENT_TITLE} on Acme Status. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
+    );
+    for (const message of [sentSlack()[0]!, sentTeams()[0]!]) {
+      expect(message).not.toContain("**Status:**");
+      expect(message).toContain(
+        `**Event:** ${EVENT_TITLE}\n\n**New Note Added**`,
+      );
+    }
+    expect(
+      (sentWebhooks()[0]!["data"] as JSONObject)["scheduledMaintenanceState"],
+    ).toBeUndefined();
+  });
+
+  test("an edit's update notification keeps its own words: the event may have moved on since", async () => {
+    const note: ScheduledMaintenancePublicNote = stateChangeNote();
+    note.subscriberNotificationStatusOnNoteCreated =
+      StatusPageSubscriberNotificationStatus.Success;
+    updatedNotes = [note];
+
+    await runJob(UPDATED_JOB);
+
+    expect(sentMail()[0]!["subject"]).toBe(
+      `[Scheduled Maintenance Note Updated] ${EVENT_TITLE}`,
+    );
+    expect(sentSlack()[0]).not.toContain("**Status:**");
+    expect(
+      (sentWebhooks()[0]!["data"] as JSONObject)["scheduledMaintenanceState"],
+    ).toBeUndefined();
+  });
+
+  test("the words are StateChangeNoteMessage's", async () => {
+    createdNotes = [stateChangeNote()];
+
+    await runJob(CREATED_JOB);
+
+    expect(sentMail()[0]!["subject"]).toBe(
+      StateChangeNoteMessage.getScheduledMaintenanceEmailSubject({
+        stateName: COMPLETED,
+        eventTitle: EVENT_TITLE,
+      }),
+    );
+    expect(sentSms()[0]).toContain(
+      StateChangeNoteMessage.getScheduledMaintenanceSmsHeadline({
+        stateName: COMPLETED,
+        eventTitle: EVENT_TITLE,
+        statusPageName: "Acme Status",
+      }),
+    );
+    expect(sentTeams()[0]).toContain(
+      StateChangeNoteMessage.getChatStatusLine(COMPLETED),
     );
   });
 });

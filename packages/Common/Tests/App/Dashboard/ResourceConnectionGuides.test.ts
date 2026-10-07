@@ -17,6 +17,7 @@ import {
   getProxmoxClusterConnectionGuide,
   getRumApplicationConnectionGuide,
   getServerlessFunctionConnectionGuide,
+  getStorageArrayConnectionGuide,
   getVMwareVCenterConnectionGuide,
   quoteForShell,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceConnection/ResourceConnectionGuides";
@@ -35,6 +36,10 @@ import { getDockerSwarmSetupGuide } from "../../../../App/FeatureSet/Dashboard/s
 import { getProxmoxSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown";
 import { getCephSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationMarkdown";
 import { getVMwareSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
+import {
+  DEFAULT_STORAGE_ARRAY_PLATFORM,
+  getStorageArraySetupGuide,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/DocumentationMarkdown";
 import {
   getHostCollectorConfig,
   getHostSetupGuide,
@@ -190,6 +195,14 @@ const GUIDES: Array<[string, GuideCase]> = [
       build: getVMwareVCenterConnectionGuide,
       resourceNoun: "vCenter",
       agentName: "OneUptime VMware Agent",
+    },
+  ],
+  [
+    "Storage array",
+    {
+      build: getStorageArrayConnectionGuide,
+      resourceNoun: "storage array",
+      agentName: "OneUptime Storage Array Agent",
     },
   ],
   [
@@ -628,6 +641,30 @@ describe.each([
       agentDirectory: "VMwareAgent",
       containerName: "oneuptime-vmware-agent",
       variable: "VMWARE_VCENTER_NAME",
+    },
+  ],
+  [
+    "Storage Array",
+    {
+      build: getStorageArrayConnectionGuide,
+      /*
+       * One guide covers the install script and Docker Compose for the
+       * picked platform, so both methods read the same document.
+       */
+      setupGuide: (
+        _method: ComposeInstallMethod,
+        name: string,
+      ): SetupGuideContent => {
+        return getStorageArraySetupGuide({
+          ...VARS,
+          hasApiKey: true,
+          platform: DEFAULT_STORAGE_ARRAY_PLATFORM,
+          arrayName: name,
+        });
+      },
+      agentDirectory: "StorageArrayAgent",
+      containerName: "oneuptime-storage-array-agent",
+      variable: "STORAGE_ARRAY_NAME",
     },
   ],
 ] as Array<[string, ComposeCase]>)(

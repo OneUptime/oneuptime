@@ -471,9 +471,12 @@ describe("KubernetesClusterAiAccessService gap next steps", () => {
           return gap.code;
         }),
     ).toEqual(["project_ai_disabled"]);
-    // Credits are still bought where credits live.
+    /*
+     * Credits are still bought where credits live - by the people who may
+     * buy them, named for everyone else who reads the gap.
+     */
     expect(stepOf("ai_balance_insufficient")).toBe(
-      "Add AI credits under Project Settings → AI Credits (or enable auto-recharge).",
+      "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI Credits.",
     );
   });
 
@@ -502,7 +505,7 @@ describe("the shared install and logs commands", () => {
       [
         "helm repo update",
         "helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\",
-        "  --namespace oneuptime-agent --reuse-values \\",
+        "  --namespace oneuptime-agent --reset-then-reuse-values \\",
         "  --set aiAgent.enabled=true",
       ].join("\n"),
     );
@@ -543,12 +546,22 @@ describe("the shared install and logs commands", () => {
  * The complete command lives on the AI agent page, so the step names it.
  */
 describe("the read-only gap's next step, by who runs kubectl", () => {
-  it("the AI agent: aiAgent.remediation.* and the AI agent page", () => {
+  it("the AI agent: aiAgent.fixes, aiAgent.remediation.* and the AI agent page", () => {
     expect(getRemediationWriteAccessNextStep("ai_agent")).toBe(
       REMEDIATION_WRITE_ACCESS_NEXT_STEP,
     );
+    /*
+     * Fixes are the agent's setting: the chart's aiAgent.fixes turns them on
+     * and grants the write access they need, so the step names it (and its
+     * other on modes) rather than the older remediation.enabled switch.
+     */
     expect(REMEDIATION_WRITE_ACCESS_NEXT_STEP).toContain(
-      "--set aiAgent.remediation.enabled=true",
+      "--set aiAgent.fixes=ask-for-approval",
+    );
+    expect(REMEDIATION_WRITE_ACCESS_NEXT_STEP).toContain("automatic");
+    expect(REMEDIATION_WRITE_ACCESS_NEXT_STEP).toContain("bypass-approval");
+    expect(REMEDIATION_WRITE_ACCESS_NEXT_STEP).not.toContain(
+      "aiAgent.remediation.enabled",
     );
     expect(REMEDIATION_WRITE_ACCESS_NEXT_STEP).toContain(
       "aiAgent.remediation.namespaces",
@@ -561,7 +574,7 @@ describe("the read-only gap's next step, by who runs kubectl", () => {
     expect(REMEDIATION_WRITE_ACCESS_NEXT_STEP).not.toContain("aiAccess");
   });
 
-  it("the previous in-cluster Runner: upgrade the chart to the AI agent, then aiAgent.remediation.enabled", () => {
+  it("the previous in-cluster Runner: upgrade the chart to the AI agent, with aiAgent.fixes", () => {
     expect(getRemediationWriteAccessNextStep("legacy_runner")).toBe(
       LEGACY_RUNNER_REMEDIATION_WRITE_ACCESS_NEXT_STEP,
     );
@@ -572,7 +585,10 @@ describe("the read-only gap's next step, by who runs kubectl", () => {
       "the Kubernetes AI agent replaces this Runner",
     );
     expect(LEGACY_RUNNER_REMEDIATION_WRITE_ACCESS_NEXT_STEP).toContain(
-      "--set aiAgent.remediation.enabled=true",
+      "--set aiAgent.fixes=ask-for-approval",
+    );
+    expect(LEGACY_RUNNER_REMEDIATION_WRITE_ACCESS_NEXT_STEP).not.toContain(
+      "aiAgent.remediation.enabled",
     );
     expect(LEGACY_RUNNER_REMEDIATION_WRITE_ACCESS_NEXT_STEP).not.toContain(
       "aiAccess",

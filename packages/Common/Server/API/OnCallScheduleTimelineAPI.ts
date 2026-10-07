@@ -5,6 +5,8 @@ import OnCallDutyPolicyScheduleOwnerTeamService from "../Services/OnCallDutyPoli
 import OnCallDutyPolicyScheduleService from "../Services/OnCallDutyPolicyScheduleService";
 import TeamMemberService from "../Services/TeamMemberService";
 import TeamService from "../Services/TeamService";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
+import BillingPermissions from "../Types/Database/Permissions/BillingPermission";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Express, {
   ExpressRequest,
@@ -527,6 +529,18 @@ router.get(
       const projectId: ObjectID =
         CommonAPI.assertAuthenticatedProjectMember(props);
       const userId: ObjectID = props.userId as ObjectID;
+
+      /*
+       * Working out who is on call over time is what the Growth plan sells.
+       * A project below it may still read the schedules it has - to find
+       * and delete them (Types/Billing/PlanGatedTable) - so the read below
+       * no longer stands in for the plan: it is asked here.
+       */
+      BillingPermissions.checkFeatureIsOnPlan(
+        OnCallDutyPolicySchedule,
+        props,
+        DatabaseRequestType.Read,
+      );
 
       // The rosters are layer-user data: require what reading them requires.
       assertCanReadTable({

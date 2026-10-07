@@ -1,5 +1,5 @@
 import { GapBlock, OverriddenSegment, ShiftBar } from "./TimelineBar";
-import { getTimelineColorForUserId } from "./TimelineColors";
+import { getColorForUserId } from "../OnCallScheduleLayer/LayerUserColors";
 import TimelineModel, {
   TimelineSchedule,
   TimelineShift,
@@ -151,7 +151,7 @@ const TimelineRow: FunctionComponent<ComponentProps> = (
             <span
               className="inline-block h-2 w-2 shrink-0 rounded-sm"
               style={{
-                backgroundColor: getTimelineColorForUserId(active.userId),
+                backgroundColor: getColorForUserId(active.userId),
               }}
             />
             <span className="truncate font-medium text-gray-800">

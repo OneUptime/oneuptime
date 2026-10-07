@@ -1,3 +1,4 @@
+import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Alert from "../../Models/DatabaseModels/Alert";
 import AlertLabelRule from "../../Models/DatabaseModels/AlertLabelRule";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
@@ -21,6 +22,7 @@ import ServiceService from "./ServiceService";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
+import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Select from "../Types/Database/Select";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -366,11 +368,23 @@ class AlertLabelRuleEngineServiceClass
         }),
     );
 
-    const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
-      (id: string) => {
+    /*
+     * Only the project's own labels. The rules' lists are checked when a
+     * rule is saved, but a rule saved before that can still name another
+     * project's label, and the labels are attached here as root.
+     */
+    const newLabelIds: Array<string> = await RuleRecordScope.keepIdsInProject({
+      projectId: alert.projectId,
+      ids: Array.from(labelIdsToAdd).filter((id: string) => {
         return !existingLabelIds.has(id);
-      },
-    );
+      }),
+      modelType: Label,
+      description: "labels of alert label rules",
+      logAttributes: {
+        projectId: alert.projectId.toString(),
+        alertId: alert.id.toString(),
+      } as LogAttributes,
+    });
     if (newLabelIds.length === 0) {
       return RuleApplicationResultUtil.alreadyApplied();
     }
@@ -462,10 +476,10 @@ class AlertLabelRuleEngineServiceClass
 
       const rulesPart: string =
         ruleNames.length === 1
-          ? `**${ruleNames[0]}**`
+          ? `**${escapeMarkdownValue(ruleNames[0])}**`
           : ruleNames
               .map((n: string) => {
-                return `**${n}**`;
+                return `**${escapeMarkdownValue(n)}**`;
               })
               .join(", ");
 
@@ -473,7 +487,7 @@ class AlertLabelRuleEngineServiceClass
         labelNames.length > 0
           ? labelNames
               .map((n: string) => {
-                return `\n- ${n}`;
+                return `\n- ${escapeMarkdownValue(n)}`;
               })
               .join("")
           : "\n- (no named labels)";

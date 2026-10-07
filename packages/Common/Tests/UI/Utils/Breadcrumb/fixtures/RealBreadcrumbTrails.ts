@@ -171,13 +171,23 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getAlertsBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/alerts/settings/ai",
-    titles: ["Project", "Alerts", "AI", "Investigation"],
+    pagePattern: "/dashboard/:projectId/alerts/ai/insights",
+    titles: ["Project", "Alerts", "AI", "Insights"],
   },
   {
     getter: "getAlertsBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/alerts/settings/auto-remediation-rules",
-    titles: ["Project", "Alerts", "AI", "Remediation"],
+    pagePattern: "/dashboard/:projectId/alerts/ai/logs",
+    titles: ["Project", "Alerts", "AI", "Logs"],
+  },
+  {
+    getter: "getAlertsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/alerts/ai/settings",
+    titles: ["Project", "Alerts", "AI", "Settings"],
+  },
+  {
+    getter: "getAlertsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/alerts/ai/auto-remediation-rules",
+    titles: ["Project", "Alerts", "AI", "Auto Remediation Rules"],
   },
   {
     getter: "getAlertsBreadcrumbs",
@@ -960,14 +970,23 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getIncidentsBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/incidents/settings/ai",
-    titles: ["Project", "Incidents", "AI", "Investigation"],
+    pagePattern: "/dashboard/:projectId/incidents/ai/insights",
+    titles: ["Project", "Incidents", "AI", "Insights"],
   },
   {
     getter: "getIncidentsBreadcrumbs",
-    pagePattern:
-      "/dashboard/:projectId/incidents/settings/auto-remediation-rules",
-    titles: ["Project", "Incidents", "AI", "Remediation"],
+    pagePattern: "/dashboard/:projectId/incidents/ai/logs",
+    titles: ["Project", "Incidents", "AI", "Logs"],
+  },
+  {
+    getter: "getIncidentsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/incidents/ai/settings",
+    titles: ["Project", "Incidents", "AI", "Settings"],
+  },
+  {
+    getter: "getIncidentsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/incidents/ai/auto-remediation-rules",
+    titles: ["Project", "Incidents", "AI", "Auto Remediation Rules"],
   },
   {
     getter: "getIncidentsBreadcrumbs",
@@ -2895,6 +2914,226 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "Settings",
       "Subscriber Notification Templates",
       "View Template",
+    ],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays",
+    titles: ["Project", "Storage Arrays"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id",
+    titles: ["Project", "Storage Arrays", "View Storage Array"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/alerts",
+    titles: ["Project", "Storage Arrays", "View Storage Array", "Alerts"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/audit-logs",
+    titles: ["Project", "Storage Arrays", "View Storage Array", "Audit Logs"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/buckets",
+    titles: ["Project", "Storage Arrays", "View Storage Array", "Buckets"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/buckets/:subModelId",
+    titles: [
+      "Project",
+      "Storage Arrays",
+      "View Storage Array",
+      "Buckets",
+      "Bucket Detail",
+    ],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/delete",
+    titles: [
+      "Project",
+      "Storage Arrays",
+      "View Storage Array",
+      "Delete Storage Array",
+    ],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/directories",
+    titles: ["Project", "Storage Arrays", "View Storage Array", "Directories"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/documentation",
+    titles: [
+      "Project",
+      "Storage Arrays",
+      "View Storage Array",
+      "Documentation",
+    ],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/feed",
+    titles: ["Project", "Storage Arrays", "View Storage Array", "Feed"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/file-systems",
+    titles: ["Project", "Storage Arrays", "View Storage Array", "File Systems"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern:
+      "/dashboard/:projectId/storage-arrays/:id/file-systems/:subModelId",
+    titles: [
+      "Project",
+      "Storage Arrays",
+      "View Storage Array",
+      "File Systems",
+      "File System Detail",
+    ],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/hardware",
+    titles: ["Project", "Storage Arrays", "View Storage Array", "Hardware"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/hosts",
+    titles: ["Project", "Storage Arrays", "View Storage Array", "Hosts"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/hosts/:subModelId",
+    titles: [
+      "Project",
+      "Storage Arrays",
+      "View Storage Array",
+      "Hosts",
+      "Host Detail",
+    ],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/incidents",
+    titles: ["Project", "Storage Arrays", "View Storage Array", "Incidents"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/insights",
+    titles: [
+      "Project",
+      "Storage Arrays",
+      "View Storage Array",
+      "Resource Usage",
+    ],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/logs",
+    titles: ["Project", "Storage Arrays", "View Storage Array", "Logs"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/metrics",
+    titles: ["Project", "Storage Arrays", "View Storage Array", "Metrics"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/owners",
+    titles: ["Project", "Storage Arrays", "View Storage Array", "Owners"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/recommendations",
+    titles: [
+      "Project",
+      "Storage Arrays",
+      "View Storage Array",
+      "Recommendations",
+    ],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/replication",
+    titles: ["Project", "Storage Arrays", "View Storage Array", "Replication"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern:
+      "/dashboard/:projectId/storage-arrays/:id/scheduled-maintenance",
+    titles: [
+      "Project",
+      "Storage Arrays",
+      "View Storage Array",
+      "Scheduled Maintenance",
+    ],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/settings",
+    titles: ["Project", "Storage Arrays", "View Storage Array", "Settings"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/volumes",
+    titles: ["Project", "Storage Arrays", "View Storage Array", "Volumes"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/:id/volumes/:subModelId",
+    titles: [
+      "Project",
+      "Storage Arrays",
+      "View Storage Array",
+      "Volumes",
+      "Volume Detail",
+    ],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/documentation",
+    titles: ["Project", "Storage Arrays", "Documentation"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/settings/label-rules",
+    titles: ["Project", "Storage Arrays", "Settings", "Label Rules"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern:
+      "/dashboard/:projectId/storage-arrays/settings/label-rules/:id",
+    titles: [
+      "Project",
+      "Storage Arrays",
+      "Settings",
+      "Label Rules",
+      "View Rule",
+    ],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/storage-arrays/settings/owner-rules",
+    titles: ["Project", "Storage Arrays", "Settings", "Owner Rules"],
+  },
+  {
+    getter: "getStorageArrayBreadcrumbs",
+    pagePattern:
+      "/dashboard/:projectId/storage-arrays/settings/owner-rules/:id",
+    titles: [
+      "Project",
+      "Storage Arrays",
+      "Settings",
+      "Owner Rules",
+      "View Rule",
     ],
   },
   {

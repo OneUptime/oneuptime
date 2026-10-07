@@ -1,10 +1,13 @@
 import AIIncidentPostmortemRunner from "../../../../Server/Utils/AI/SRE/IncidentPostmortemRunner";
 import AIInvestigationEngine from "../../../../Server/Utils/AI/SRE/AIInvestigationEngine";
-import AIService from "../../../../Server/Services/AIService";
+import AIService, {
+  AI_BALANCE_INSUFFICIENT_MESSAGE,
+} from "../../../../Server/Services/AIService";
 import IncidentFeedService from "../../../../Server/Services/IncidentFeedService";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import LlmProviderService from "../../../../Server/Services/LlmProviderService";
 import ProjectService from "../../../../Server/Services/ProjectService";
+import LlmLogService from "../../../../Server/Services/LlmLogService";
 import logger from "../../../../Server/Utils/Logger";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import { IncidentFeedEventType } from "../../../../Models/DatabaseModels/IncidentFeed";
@@ -36,8 +39,7 @@ const INCIDENT_ID: ObjectID = new ObjectID(
   "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
 );
 
-const BALANCE_BLOCKER: string =
-  "This project is out of AI credits. Add credits under Project Settings → AI Credits, or turn on auto-recharge.";
+const BALANCE_BLOCKER: string = AI_BALANCE_INSUFFICIENT_MESSAGE;
 
 function mockProject(
   project: Record<string, unknown> | null,
@@ -80,16 +82,21 @@ describe("AIIncidentPostmortemRunner.isEnabledForProject", () => {
     jest.restoreAllMocks();
   });
 
-  it("reads the project as root with the AI switch and the draft's own switch", async () => {
+  it("reads the project as root with the AI switch, the draft's own switch and the project's daily AI limits, once", async () => {
     const find: jest.SpyInstance = mockProject(draftOn());
 
     await AIIncidentPostmortemRunner.isEnabledForProject(PROJECT_ID);
 
+    expect(find).toHaveBeenCalledTimes(1);
     expect(find).toHaveBeenCalledWith({
       id: PROJECT_ID,
       select: {
         enableAi: true,
         enableAutomaticPostmortemDraft: true,
+        aiDailyTokenLimit: true,
+        aiDailySpendLimitInUSD: true,
+        aiDailyTokenLimitReachedAt: true,
+        aiDailySpendLimitReachedAt: true,
       },
       props: { isRoot: true },
     });
@@ -191,6 +198,49 @@ describe("AIIncidentPostmortemRunner.isEnabledForProject", () => {
     expect(blocker).toHaveBeenCalledWith(
       expect.objectContaining({ projectId: PROJECT_ID }),
     );
+  });
+
+  /*
+   * The project's own daily AI limits gate the draft the way they gate an
+   * investigation: past one, the draft call would be refused - and logged
+   * as an error - for every incident resolved until midnight UTC, so it is
+   * skipped quietly instead.
+   */
+  it("is off once the project has reached its own daily AI limit", async () => {
+    mockProject(draftOn({ aiDailyTokenLimit: 5000 }));
+    jest.spyOn(LlmLogService, "getProjectUsageSince").mockResolvedValue({
+      totalTokens: 5000,
+      billedCostInUSDCents: 0,
+    });
+
+    expect(
+      await AIIncidentPostmortemRunner.isEnabledForProject(PROJECT_ID),
+    ).toBe(false);
+  });
+
+  it("is on while there is room under the project's daily AI limit", async () => {
+    mockProject(draftOn({ aiDailyTokenLimit: 5000 }));
+    jest.spyOn(LlmLogService, "getProjectUsageSince").mockResolvedValue({
+      totalTokens: 4999,
+      billedCostInUSDCents: 0,
+    });
+
+    expect(
+      await AIIncidentPostmortemRunner.isEnabledForProject(PROJECT_ID),
+    ).toBe(true);
+  });
+
+  it("with no daily AI limit set, counts nothing", async () => {
+    mockProject(draftOn());
+    const usage: jest.SpyInstance = jest.spyOn(
+      LlmLogService,
+      "getProjectUsageSince",
+    );
+
+    expect(
+      await AIIncidentPostmortemRunner.isEnabledForProject(PROJECT_ID),
+    ).toBe(true);
+    expect(usage).not.toHaveBeenCalled();
   });
 });
 
@@ -326,6 +376,42 @@ describe("AIIncidentPostmortemRunner.draftPostmortemOnResolve", () => {
     expect(generate).not.toHaveBeenCalled();
     expect(incidentUpdate).not.toHaveBeenCalled();
     expect(feed).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Saved into a postmortem switched on for the status page, the draft would
+   * be what the status page shows the moment it is written: published
+   * unreviewed, and announced to every subscriber.
+   */
+  it("never drafts into a postmortem switched on for the status page", async () => {
+    incidentRead.mockResolvedValue({
+      id: INCIDENT_ID,
+      incidentNumber: 42,
+      postmortemNote: undefined,
+      showPostmortemOnStatusPage: true,
+    } as unknown as Incident);
+
+    await resolve();
+
+    expect(generate).not.toHaveBeenCalled();
+    expect(incidentUpdate).not.toHaveBeenCalled();
+    expect(feed).not.toHaveBeenCalled();
+  });
+
+  it("reads whether the postmortem is switched on before drafting", async () => {
+    await resolve();
+
+    expect(
+      (incidentRead.mock.calls[0]![0] as { select: Record<string, unknown> })
+        .select,
+    ).toEqual(
+      expect.objectContaining({
+        postmortemNote: true,
+        showPostmortemOnStatusPage: true,
+      }),
+    );
+    // Switched off, so the draft is saved for review.
+    expect(incidentUpdate).toHaveBeenCalledTimes(1);
   });
 
   it("writes nothing when the model returns an empty draft", async () => {

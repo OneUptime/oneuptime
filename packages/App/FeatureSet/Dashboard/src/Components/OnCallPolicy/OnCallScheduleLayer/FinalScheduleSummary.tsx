@@ -1,4 +1,4 @@
-import { getColorForUserId, getUserInitials } from "./LayerUserColors";
+import { getUserAvatarStyle, getUserInitials } from "./LayerUserColors";
 import {
   formatDurationFromSeconds,
   formatRelativeStart,
@@ -122,8 +122,8 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
   ): ReactElement => {
     return (
       <span
-        className={`inline-flex flex-shrink-0 items-center justify-center rounded-full font-semibold text-white ${sizeClass}`}
-        style={{ backgroundColor: getColorForUserId(userId) }}
+        className={`inline-flex flex-shrink-0 items-center justify-center rounded-full font-semibold ${sizeClass}`}
+        style={getUserAvatarStyle(userId)}
       >
         {getInitials(userId)}
       </span>

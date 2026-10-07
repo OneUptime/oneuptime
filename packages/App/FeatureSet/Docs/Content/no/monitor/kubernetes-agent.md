@@ -234,24 +234,19 @@ Se Helm-kartets [`values.yaml`](https://github.com/OneUptime/oneuptime/blob/mast
 helm repo update
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
-  --reuse-values
+  --reset-then-reuse-values
 ```
 
-`--reuse-values` beholder den eksisterende konfigurasjonen din; send eventuelle nye `--set`-overstyringer på toppen av det.
+`--reset-then-reuse-values` (Helm 3.14+) beholder verdiene du har satt (forhåndsinnstilling, klyngenavn, filtre), og henter alle andre verdier fra det nye chartet; send eventuelle nye `--set`-overstyringer oppå den. På Helm 3.13 eller eldre oppgraderer du i stedet med verdiene du har satt:
 
-> **Obs: `--reuse-values` slår ikke sammen nye standardverdier fra Helm-kartet.** Helm gjenbruker dine tidligere rendrede verdier ordrett — så ethvert nytt toppnivåfelt som er lagt til i en nyere kartversjon (f.eks. `profiling.*`, `ebpf.features.*`) forblir usatt på din eksisterende utgivelse, og malen rendres som om du hadde deaktivert det.
->
-> **Helm 3.14+** — bytt til `--reset-then-reuse-values`. Den leser standardverdiene i kartet på nytt for nøkler du ikke har overstyrt:
->
-> ```bash
-> helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
->   --namespace oneuptime-kubernetes-agent \
->   --reset-then-reuse-values
-> ```
->
-> **Helm 3.13 eller eldre** — dropp `--reuse-values` og send dine opprinnelige `--set`-flagg (eller `-f values.yaml`) eksplisitt. Nye kartstandarder vil gjelde for alt du ikke overstyrer.
->
-> Hvis pods for en ny funksjon (f.eks. `kubernetes-agent-profiling-*`) ikke dukker opp etter oppgradering, er dette nesten alltid grunnen. `helm get values <release>` viser hva Helm faktisk har — felt som mangler i utdataene betyr at standardverdier ikke ble slått sammen for dem.
+```bash
+helm repo update
+helm get values oneuptime-agent --namespace oneuptime-kubernetes-agent -o yaml > values.yaml && \
+  helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent -f values.yaml
+```
+
+Ikke bruk `--reuse-values`: den beholder også standardverdiene fra chartet du oppgraderer fra, så et nyere charts standardverdier (blant annet eBPF-imaget) blir aldri tatt i bruk. Når en release kjører på et eldre charts standardverdier, avsluttes notatene Helm skriver ut etter installasjonen eller oppgraderingen med en advarsel og kommandoen som retter det.
 
 > **eBPF-span-metrikker har fått nye navn.** `ebpf.features.spanMetrics` sender nå `traces.span.metrics.calls` og `traces.span.metrics.duration` (sekunder) i stedet for `traces_spanmetrics_calls_total` og `traces_spanmetrics_latency`: de samme seriene under navnene OBI beholder (de gamle har OBI avviklet). Et dashbord, et diagram eller en metrikk-monitor på et gammelt navn får ingen nye data etter oppgraderingen, uten noen feilmelding — flytt det til det nye navnet, og oppdater også `filters.metrics`-oppføringer som nevner et gammelt navn.
 
@@ -271,7 +266,7 @@ Klyngen din blokkerer hostPath. Bytt til en API-modus-forhåndsinnstilling:
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set preset=gke-autopilot   # or eks-fargate
 ```
 

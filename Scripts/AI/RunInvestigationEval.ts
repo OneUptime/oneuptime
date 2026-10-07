@@ -23,7 +23,9 @@ import fs from "fs";
  * the npm script, which also points DATABASE_HOST/PORT at the host-exposed
  * dev Postgres (localhost:5400 — config.env's `postgres` hostname only
  * resolves inside compose) and sets RUN_DATABASE_MIGRATIONS_ON_BOOT=false so
- * a read-only eval can never run schema migrations.
+ * a read-only eval can never run schema migrations, and
+ * DATABASE_MIGRATION_WAIT_TIMEOUT_MS=0 so it does not wait for them either on
+ * a dev database that is behind the code (it logs which ones are missing).
  *
  * Args:
  *   --project=<objectId>   limit the corpus to one project

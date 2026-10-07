@@ -56,8 +56,10 @@ import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArg
  *    cluster's: every editor may make AI do less, and making it do more is
  *    the service's check, not the ACL's. None of them can be set on create.
  *  - The three aiAccess* columns are written only by the server.
- *  - Defaults: investigation off, remediation Disabled, so a resource nobody
- *    configured lets AI do nothing until its agent or an operator says so.
+ *  - Defaults: investigation on and remediation Disabled, as on a cluster:
+ *    AI investigations are on by default, so a resource nobody configured
+ *    is investigated read-only as soon as its agent connects, and nothing is
+ *    changed until an operator allows fixes.
  *  - Column for column they are declared like the cluster's analogous
  *    columns (same database types), so stored values and the API behave the
  *    same.
@@ -482,22 +484,43 @@ describe.each(caseTable())(
     });
 
     describe("defaults and storage", () => {
-      it("investigation is off by default, in the API metadata and the column", () => {
+      it("investigation is on by default, in the API metadata and the column", () => {
         const metadata: ReturnType<BaseModel["getTableColumnMetadata"]> =
           model.getTableColumnMetadata("isAiInvestigationEnabled");
 
         expect(metadata.type).toBe(TableColumnType.Boolean);
         expect(metadata.required).toBe(true);
         expect(metadata.isDefaultValueColumn).toBe(true);
-        expect(metadata.defaultValue).toBe(false);
+        expect(metadata.defaultValue).toBe(true);
         expect(
           declaredColumn(resource.model, "isAiInvestigationEnabled").options,
         ).toEqual(
           expect.objectContaining({
             type: ColumnType.Boolean,
             nullable: false,
-            default: false,
+            default: true,
           }),
+        );
+      });
+
+      // AI investigations are on by default everywhere: a cluster's too.
+      it("investigation starts the way a cluster's does", () => {
+        const ours: ColumnMetadataArgs = declaredColumn(
+          resource.model,
+          "isAiInvestigationEnabled",
+        );
+        const theirs: ColumnMetadataArgs = declaredColumn(
+          KubernetesCluster,
+          "isAiInvestigationEnabled",
+        );
+
+        expect(ours.options.default).toBe(theirs.options.default);
+        expect(
+          model.getTableColumnMetadata("isAiInvestigationEnabled").defaultValue,
+        ).toBe(
+          new KubernetesCluster().getTableColumnMetadata(
+            "isAiInvestigationEnabled",
+          ).defaultValue,
         );
       });
 
@@ -564,9 +587,8 @@ describe.each(caseTable())(
 
       /*
        * The same database shape as the cluster's analogous column, so the two
-       * stacks store (and the drift check sees) the same thing. Only the
-       * investigation default differs on purpose: a cluster's is on, a
-       * resource's is off until its agent or an operator turns it on.
+       * stacks store (and the drift check sees) the same thing. The defaults
+       * agree too: investigation on, fixes Disabled (pinned above).
        */
       it.each(Object.entries(KUBERNETES_TWIN))(
         "%s is stored like KubernetesCluster.%s",
@@ -652,14 +674,15 @@ describe.each(caseTable())(
         },
       );
 
-      it("isAiInvestigationEnabled says it is off by default, nothing is changed, and every editor may flip it", () => {
+      it("isAiInvestigationEnabled says it is on by default, nothing is changed, and every editor may flip it", () => {
         const text: string = description(
           resource.model,
           "isAiInvestigationEnabled",
         );
 
         expect(text).toMatch(/Nothing is ever changed by an investigation/);
-        expect(text).toMatch(/Off by default/);
+        expect(text).toMatch(/On by default/);
+        expect(text).not.toMatch(/Off by default/);
         expect(text).toContain(
           `Anyone who may edit the ${resource.noun} can turn it on or off`,
         );

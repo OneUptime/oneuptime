@@ -110,15 +110,21 @@ jobs:
       # catches all three — and it is the only check that runs the same
       # collector binary the agent images are built FROM.
       #
-      # Runs the pinned collector image over the four agent configs and over
-      # both collector ConfigMaps rendered out of the kubernetes-agent chart.
+      # Runs the pinned collector image over the Docker, Podman, Docker Swarm,
+      # VMware, Proxmox and Ceph agent configs, the Storage Array agent's three
+      # configs (also with their syslog receivers uncommented), every Database
+      # agent config,
+      # and both collector ConfigMaps rendered out of the kubernetes-agent chart
+      # (the Deployment's also with the opt-in ebpf.dropUnlinkedClientCalls on).
       - run: bash Tests/Ops/validate-collector-configs.sh
       # `validate` proves the agent's OTTL parses; this proves what it DOES.
-      # It runs the Kubernetes agent's filter/ebpf-unlinked-db exactly as the
-      # chart renders it, in the collector image the chart ships, and checks
-      # which spans survive: unlinked eBPF database spans dropped, request
-      # traces and SDK spans kept. A wrong condition here is not a crash, it
-      # is a customer's traces quietly missing (or the one-span flood back).
+      # It runs the Kubernetes agent's eBPF span filters exactly as the chart
+      # renders them, in the collector image the chart ships, and checks which
+      # spans survive: unlinked eBPF database spans dropped (and, with the
+      # opt-in ebpf.dropUnlinkedClientCalls, other unlinked client calls),
+      # request traces, messaging and SDK spans kept. A wrong condition here is
+      # not a crash, it is a customer's traces quietly missing (or the one-span
+      # flood back).
       - run: bash Tests/Ops/agent-trace-filter-behaviour.sh
       # The same for the agent's metrics: filter/ebpf-node-inspector as the
       # chart renders it, in the same collector image, fed datapoints shaped
@@ -147,7 +153,7 @@ jobs:
       #
       # It pulls the image the chart renders, so a tag nobody can pull fails
       # it: a chart pinning such an image puts every node in ImagePullBackOff.
-      # It also pulls OBI v0.13.0, the release a --reuse-values upgrade keeps,
-      # and loads the render for that tag in it.
+      # It also pulls OBI v0.13.0, what a --reuse-values upgrade from chart
+      # 14.0.12 keeps, and loads the render for that tag in it.
       # Last in the job, so a red run here never skips the steps above.
       - run: bash Tests/Ops/agent-obi-config-load.sh

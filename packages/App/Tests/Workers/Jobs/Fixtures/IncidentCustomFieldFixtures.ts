@@ -37,10 +37,16 @@ export function incidentLabels(): Array<Label> {
 
 export const INCIDENT_LABELS: string = "EU, Payments";
 
-// A plain value with markup in it: escaped in an email, as written elsewhere.
+/*
+ * A plain value with markup in it: escaped in an email, escaped for Markdown
+ * in Slack and Teams (so it reads as written there), as written in SMS and
+ * webhooks.
+ */
 export const AFFECTED_LOCATION: string = "<b>Site 03</b> & Site 07";
 export const AFFECTED_LOCATION_HTML: string =
   "&lt;b&gt;Site 03&lt;/b&gt; &amp; Site 07";
+export const AFFECTED_LOCATION_MARKDOWN: string =
+  "\\<b>Site 03\\</b> & Site 07";
 
 export const IMPACT_DETAILS: string = "Card payments **fail** in the EU.";
 export const IMPACT_DETAILS_HTML: string =
@@ -99,7 +105,7 @@ export const EXPECTED_CUSTOM_FIELD_ROWS: Array<JSONObject> = [
 
 // The same fields as Markdown lines, for the default Slack and Teams messages.
 export const EXPECTED_CUSTOM_FIELD_LINES: Array<string> = [
-  `**Affected Location:** ${AFFECTED_LOCATION}`,
+  `**Affected Location:** ${AFFECTED_LOCATION_MARKDOWN}`,
   "**Acknowledgement:** No",
   `**Impact Details:**\n${IMPACT_DETAILS}`,
 ];

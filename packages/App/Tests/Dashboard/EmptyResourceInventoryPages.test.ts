@@ -32,6 +32,12 @@ interface ResourceInventoryPageCase {
   readonly countState: string;
   readonly countSetter: string;
   readonly documentationCard: string;
+  /*
+   * False for a list whose rows only discovery creates - the Cloud Resources
+   * discovered from cloud monitoring, which no form could identify - so it
+   * has no create button, and nothing hides its guide but discovery.
+   */
+  readonly isCreateable?: boolean | undefined;
 }
 
 const RESOURCE_INVENTORY_PAGES: ReadonlyArray<ResourceInventoryPageCase> = [
@@ -100,6 +106,14 @@ const RESOURCE_INVENTORY_PAGES: ReadonlyArray<ResourceInventoryPageCase> = [
     documentationCard: "CephDocumentationCard",
   },
   {
+    label: "storage arrays",
+    relativePath: "StorageArray/StorageArrays.tsx",
+    modelType: "StorageArray",
+    countState: "arrayCount",
+    countSetter: "setArrayCount",
+    documentationCard: "StorageArrayDocumentationCard",
+  },
+  {
     label: "hosts",
     relativePath: "Host/Hosts.tsx",
     modelType: "Host",
@@ -146,6 +160,15 @@ const RESOURCE_INVENTORY_PAGES: ReadonlyArray<ResourceInventoryPageCase> = [
     countState: "count",
     countSetter: "setCount",
     documentationCard: "MessageQueueDocumentationCard",
+  },
+  {
+    label: "cloud resources discovered from cloud monitoring",
+    relativePath: "Cloud/MonitoredResources.tsx",
+    modelType: "CloudResource",
+    countState: "count",
+    countSetter: "setCount",
+    documentationCard: "CloudMonitoringDocumentationCard",
+    isCreateable: false,
   },
 ];
 
@@ -214,7 +237,7 @@ describe("empty resource inventory page catalog", () => {
       },
     ).sort();
 
-    expect(RESOURCE_INVENTORY_PAGES).toHaveLength(14);
+    expect(RESOURCE_INVENTORY_PAGES).toHaveLength(16);
     expect(discoveredPages).toEqual(testedPages);
   });
 
@@ -247,13 +270,15 @@ describe.each(RESOURCE_INVENTORY_PAGES)(
       );
     });
 
-    test("keeps manual creation available", () => {
+    test("keeps manual creation available, where rows can be made by hand", () => {
       const tableStart: number = source.indexOf(modelTable);
       const tableEnd: number = source.indexOf("/>", tableStart);
 
       expect(tableStart).toBeGreaterThan(-1);
       expect(source.slice(tableStart, tableEnd)).toContain(
-        "isCreateable={true}",
+        resourceCase.isCreateable === false
+          ? "isCreateable={false}"
+          : "isCreateable={true}",
       );
     });
 
@@ -278,6 +303,12 @@ describe.each(RESOURCE_INVENTORY_PAGES)(
     });
 
     test("hides the guide immediately after the first manual creation", () => {
+      if (resourceCase.isCreateable === false) {
+        // Nothing is created here: no create callback to count it.
+        expect(source).not.toContain("onCreateSuccess={");
+        return;
+      }
+
       const createSuccessStart: number = source.indexOf("onCreateSuccess={");
       const createSuccessEnd: number = source.indexOf(
         "isDeleteable=",

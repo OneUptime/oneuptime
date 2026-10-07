@@ -1,10 +1,13 @@
 import TeamsElement from "../../Components/Team/TeamsElement";
 import RequireSsoForLoginCard from "../../Components/Project/RequireSsoForLoginCard";
+import RequireSsoForLoginLeftover from "../../Components/Project/RequireSsoForLoginLeftover";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import PlanGatedPage from "../../Components/Billing/PlanGatedPage";
+import { ProjectSamlProvidersLeftover } from "../../Components/Billing/IdentityPlanLeftovers";
 import { SSO_REQUIRED_PLAN } from "../../Enterprise/EnterpriseEligibility";
 import { useDefaultSsoTeamsInitialValues } from "../../Components/Sso/UseDefaultSsoTeams";
+import { getSsoTeamsGrantNote } from "../../Components/Sso/SsoTeamsGrantNote";
 import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -50,8 +53,10 @@ interface SamlConfigDialogTarget {
  *
  * Adding one asks for what the identity provider gives - its sign-on URL,
  * issuer and certificate - and the teams newcomers join (the members team
- * to start with); the signature and digest methods and the description are
- * filled in under Advanced (Common/UI/Components/Sso/SamlProviderFormFields).
+ * to start with, and only teams the person could invite someone to: a
+ * picked team beyond that is named under Teams, see SsoTeamsGrantNote); the
+ * signature and digest methods and the description are filled in under
+ * Advanced (Common/UI/Components/Sso/SamlProviderFormFields).
  * Once it is saved, the dialog with the Entity ID and Reply URL to give the
  * identity provider opens straight away: that is the next thing to do.
  */
@@ -95,6 +100,7 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
           viewPageRoute={Navigation.getCurrentRoute()}
           formFields={getSamlProviderFormFields<ProjectSSO>({
             withTeams: true,
+            getTeamsFooterElement: getSsoTeamsGrantNote,
           })}
           createInitialValues={createInitialValues}
           onCreateSuccess={(
@@ -269,7 +275,12 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
 
 /*
  * Every edition includes single sign-on. OneUptime Cloud sells it on the
- * Scale plan, so there a project below Scale sees the plan upsell instead.
+ * Scale plan, so there a project below Scale sees the plan upsell instead -
+ * with "Require SSO for Login" under it while a Scale trial (or a move down
+ * from Scale) left the project requiring SSO, so it can always be turned
+ * off (RequireSsoForLoginLeftover), and the SAML providers the project
+ * still has, which keep signing people in until they are turned off or
+ * deleted (ProjectSamlProvidersLeftover).
  */
 const SSOPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -310,6 +321,14 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
           },
         ],
       }}
+      belowPlan={
+        <>
+          <RequireSsoForLoginLeftover
+            projectId={ProjectUtil.getCurrentProjectId()!}
+          />
+          <ProjectSamlProvidersLeftover />
+        </>
+      }
     >
       <SSOSettings {...props} />
     </PlanGatedPage>

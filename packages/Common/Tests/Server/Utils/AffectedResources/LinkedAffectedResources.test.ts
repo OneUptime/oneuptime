@@ -12,6 +12,7 @@ import PodmanHostService from "../../../../Server/Services/PodmanHostService";
 import ProxmoxClusterService from "../../../../Server/Services/ProxmoxClusterService";
 import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMaintenanceService";
 import ServiceService from "../../../../Server/Services/ServiceService";
+import StorageArrayService from "../../../../Server/Services/StorageArrayService";
 import VMwareVCenterService from "../../../../Server/Services/VMwareVCenterService";
 import LinkedAffectedResources, {
   LINKED_AFFECTED_RESOURCE_RELATIONS,
@@ -154,6 +155,7 @@ describe("the relation table", () => {
       "proxmoxClusters",
       "vmwareVCenters",
       "cephClusters",
+      "storageArrays",
       "dockerSwarmClusters",
       "iotFleets",
       "databaseServers",
@@ -251,6 +253,12 @@ describe("dashboard links match each resource's own link", () => {
       LinkedAffectedResourceType.CephCluster,
       (): Promise<URL> => {
         return CephClusterService.getCephClusterLinkInDashboard(PROJECT, ID);
+      },
+    ],
+    [
+      LinkedAffectedResourceType.StorageArray,
+      (): Promise<URL> => {
+        return StorageArrayService.getStorageArrayLinkInDashboard(PROJECT, ID);
       },
     ],
     [
@@ -371,6 +379,43 @@ describe("collect", () => {
         LinkedAffectedResourceType.ServiceLevelObjective,
         SLO_ID,
         "Checkout",
+      ),
+    ]);
+  });
+
+  test("a storage array is listed after the Ceph cluster, before the swarm", () => {
+    const ARRAY_ID: string = "0193c0de-dddd-4aaa-8bbb-0000000000a7";
+    const CEPH_ID: string = "0193c0de-dddd-4aaa-8bbb-0000000000a8";
+    const SWARM_ID: string = "0193c0de-dddd-4aaa-8bbb-0000000000a9";
+
+    const resources: Array<LinkedAffectedResource> =
+      LinkedAffectedResources.collect({
+        projectId: PROJECT_ID,
+        records: [
+          {
+            projectId: PROJECT_ID,
+            dockerSwarmClusters: [row(SWARM_ID, "swarm-prod")],
+            storageArrays: [
+              row(ARRAY_ID, "pure-prod-01"),
+              // Another project's array, linked before the write guard.
+              row(OTHER_HOST_ID, "pure-elsewhere", OTHER_PROJECT_ID),
+            ],
+            cephClusters: [row(CEPH_ID, "ceph-prod")],
+          },
+        ],
+      });
+
+    expect(resources).toEqual([
+      resource(LinkedAffectedResourceType.CephCluster, CEPH_ID, "ceph-prod"),
+      resource(
+        LinkedAffectedResourceType.StorageArray,
+        ARRAY_ID,
+        "pure-prod-01",
+      ),
+      resource(
+        LinkedAffectedResourceType.DockerSwarmCluster,
+        SWARM_ID,
+        "swarm-prod",
       ),
     ]);
   });
@@ -791,20 +836,41 @@ describe("feed markdown", () => {
         ),
       ]),
     ).toEqual([
-      `- [checkout-web](${DASHBOARD}/${PROJECT_ID.toString()}/monitors/${MONITOR_ID})`,
+      `- [checkout\\-web](${DASHBOARD}/${PROJECT_ID.toString()}/monitors/${MONITOR_ID})`,
       `- [Host web\\-01](${DASHBOARD}/${PROJECT_ID.toString()}/host/${HOST_ID})`,
       `- [Kubernetes Cluster prod\\-eu](${DASHBOARD}/${PROJECT_ID.toString()}/kubernetes/${CLUSTER_ID})`,
       `- [SLO Checkout availability](${DASHBOARD}/${PROJECT_ID.toString()}/slos/${SLO_ID})`,
     ]);
   });
 
-  test("the monitor bullet is the one the created feeds always printed", async () => {
+  test("a storage array bullet is labelled and links to its storage arrays page", () => {
+    const ARRAY_ID: string = "0193c0de-dddd-4aaa-8bbb-0000000000a7";
+
+    expect(
+      getMarkdownLines([
+        resource(
+          LinkedAffectedResourceType.StorageArray,
+          ARRAY_ID,
+          "pure-prod-01",
+        ),
+      ]),
+    ).toEqual([
+      `- [Storage Array pure\\-prod\\-01](${DASHBOARD}/${PROJECT_ID.toString()}/storage-arrays/${ARRAY_ID})`,
+    ]);
+  });
+
+  /*
+   * The bullet keeps the shape the created feeds always printed; its name,
+   * inside the link's own text, is escaped like every other name, so
+   * "checkout-web" is written "checkout\-web" and reads "checkout-web".
+   */
+  test("the monitor bullet is the one the created feeds always printed, its name escaped", async () => {
     const [line]: Array<string> = getMarkdownLines([
       resource(LinkedAffectedResourceType.Monitor, MONITOR_ID, "checkout-web"),
     ]);
 
     expect(line).toBe(
-      `- [checkout-web](${(
+      `- [checkout\\-web](${(
         await MonitorService.getMonitorLinkInDashboard(
           PROJECT_ID,
           new ObjectID(MONITOR_ID),
@@ -827,6 +893,24 @@ describe("feed markdown", () => {
     expect(line).not.toContain("\n");
     expect(line).toBe(
       `- [Host web\\]\\(https://evil.example\\) \\!\\[p\\]\\(https://tracker.example/p.gif\\) \\# owned](${DASHBOARD}/${PROJECT_ID.toString()}/host/${HOST_ID})`,
+    );
+  });
+
+  test("a hostile monitor name cannot re-point its link, add an image or start a heading", () => {
+    const [line]: Array<string> = getMarkdownLines([
+      resource(
+        LinkedAffectedResourceType.Monitor,
+        MONITOR_ID,
+        "web](https://evil.example) ![p](https://tracker.example/p.gif)\n# owned <!channel>",
+      ),
+    ]);
+
+    expect(line).not.toContain("](https://evil.example)");
+    expect(line).not.toContain("![p](");
+    expect(line).not.toContain("\n");
+    expect(line).not.toContain("<!channel>");
+    expect(line).toBe(
+      `- [web\\]\\(https://evil.example\\) \\!\\[p\\]\\(https://tracker.example/p.gif\\) \\# owned \\<\u2060\\!channel\\>](${DASHBOARD}/${PROJECT_ID.toString()}/monitors/${MONITOR_ID})`,
     );
   });
 

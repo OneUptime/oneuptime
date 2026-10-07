@@ -259,7 +259,6 @@ export default class MicrosoftTeamsIncidentActions {
           currentIncidentState: {
             _id: true,
             name: true,
-            isResolvedState: true,
           },
         },
         props: {
@@ -275,8 +274,13 @@ export default class MicrosoftTeamsIncidentActions {
         return;
       }
 
-      // Check if already resolved
-      if (incident.currentIncidentState?.isResolvedState) {
+      /*
+       * Check if already resolved
+       * Resolved by the one rule (Common/Utils/ResolvedState).
+       */
+      if (
+        await IncidentService.isIncidentResolved({ incidentId: incident.id! })
+      ) {
         logger.debug("Incident is already resolved", {
           projectId: data.teamsRequest.projectId.toString(),
           incidentId: incidentId,
@@ -423,8 +427,8 @@ export default class MicrosoftTeamsIncidentActions {
 
       const declaredAt: Date | undefined =
         incident.declaredAt || incident.createdAt || undefined;
-      // The title is plain text, escaped as MarkdownEscape says a title must be.
-      const message: string = `**Incident Details**\n\n**Title:** ${escapeMarkdownValue(incident.title)}\n**Description:** ${incident.description || "No description"}\n**State:** ${incident.currentIncidentState?.name || "Unknown"}\n**Severity:** ${incident.incidentSeverity?.name || "Unknown"}\n**Declared At:** ${declaredAt ? new Date(declaredAt).toLocaleString() : "Unknown"}`;
+      // The title and the state and severity names are plain text, escaped as MarkdownEscape says a title must be.
+      const message: string = `**Incident Details**\n\n**Title:** ${escapeMarkdownValue(incident.title)}\n**Description:** ${incident.description || "No description"}\n**State:** ${escapeMarkdownValue(incident.currentIncidentState?.name || "Unknown")}\n**Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || "Unknown")}\n**Declared At:** ${declaredAt ? new Date(declaredAt).toLocaleString() : "Unknown"}`;
 
       await turnContext.sendActivity(message);
       return;

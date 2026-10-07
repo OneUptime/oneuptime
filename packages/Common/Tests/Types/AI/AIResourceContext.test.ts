@@ -114,6 +114,37 @@ describe("infrastructure resource context validation", () => {
     },
   );
 
+  test("Storage arrays reuse the telemetry catalog's facet and label", () => {
+    expect(getAIResourceDefinition(AIResourceType.StorageArray)).toEqual(
+      expect.objectContaining({
+        type: AIResourceType.StorageArray,
+        facetKey: "storageArrayId",
+        serviceType: ServiceType.StorageArray,
+        label: "Storage Array",
+        pluralLabel: "Storage Arrays",
+      }),
+    );
+  });
+
+  test.each([
+    AIResourceSubresourceKind.Osd,
+    AIResourceSubresourceKind.Pod.toLowerCase(),
+    AIResourceSubresourceKind.VirtualMachine,
+    AIResourceSubresourceKind.Container,
+  ])(
+    "a storage array refuses a child kind it does not have - %p",
+    (kind: string) => {
+      expect(
+        AIChatPageContextHelper.sanitize(
+          resource({
+            resourceType: AIResourceType.StorageArray,
+            subresource: { kind, key: "x" },
+          }),
+        ),
+      ).toBeUndefined();
+    },
+  );
+
   test("IoT fleet telemetry keeps its historical discriminator", () => {
     expect(getAIResourceDefinition(AIResourceType.IoTFleet)).toEqual(
       expect.objectContaining({
@@ -157,6 +188,23 @@ describe("infrastructure resource context validation", () => {
       "vm-23",
     ],
     [AIResourceType.CephCluster, AIResourceSubresourceKind.Osd, "osd.3"],
+    [
+      AIResourceType.StorageArray,
+      AIResourceSubresourceKind.Volume,
+      "vol-db-01",
+    ],
+    [AIResourceType.StorageArray, AIResourceSubresourceKind.Host, "esx-01"],
+    [
+      AIResourceType.StorageArray,
+      AIResourceSubresourceKind.Hardware,
+      "CT0.FAN0",
+    ],
+    [
+      AIResourceType.StorageArray,
+      AIResourceSubresourceKind.FileSystem,
+      "fs-home",
+    ],
+    [AIResourceType.StorageArray, AIResourceSubresourceKind.Bucket, "bkt-1"],
     [
       AIResourceType.ServerlessFunction,
       AIResourceSubresourceKind.Instance,

@@ -48,7 +48,9 @@ export const IDENTITY_REQUIRED_PLAN: EnterpriseRequiredPlan = PlanType.Scale;
  * Single sign-on (SAML and OIDC, for projects and status pages) is part of
  * every edition. OneUptime Cloud sells it on Scale: @TableBillingAccessControl
  * on ProjectSso, ProjectOidc, StatusPageSso and StatusPageOidc says Scale, and
- * so does the update rule on Project.requireSsoForLogin.
+ * so do the rules on Project.requireSsoForLogin and
+ * StatusPage.requireSsoForLogin (@ColumnBillingAccessControl: turning it on
+ * needs Scale, turning it off works on every plan).
  */
 export const SSO_REQUIRED_PLAN: EnterpriseRequiredPlan = PlanType.Scale;
 
@@ -121,6 +123,31 @@ export const isEnterpriseFeatureEligible: (
   }
 
   return IS_ENTERPRISE_EDITION;
+};
+
+/*
+ * Whether the current project is KNOWN to be on a plan below `requiredPlan`,
+ * on OneUptime Cloud: its plan has loaded and does not reach it. Not while
+ * the plan is unknown (not loaded yet, or one the Dashboard cannot read),
+ * and never with billing off. What a page draws under its upsell for a
+ * project below the plan - the switches a trial left on, which can always
+ * be switched off - waits for this, so a project on the plan never sees
+ * them flash, or reads anything for them, while its plan loads.
+ */
+export const isKnownToBeBelowPlan: (requiredPlan: PlanType) => boolean = (
+  requiredPlan: PlanType,
+): boolean => {
+  if (!BILLING_ENABLED) {
+    return false;
+  }
+
+  const currentPlan: PlanType | null = getCurrentPlanOrNull();
+
+  if (!currentPlan) {
+    return false;
+  }
+
+  return !isPlanAtLeast(requiredPlan, currentPlan);
 };
 
 /*

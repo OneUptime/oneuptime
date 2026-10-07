@@ -437,10 +437,11 @@ describe("Declare Incident", () => {
     );
   });
 
-  test("the summary step says Yes or No, then who, then the preview when something can be sent", () => {
+  test("the summary step says Yes or No with the preview beside it when something can be sent, then who", () => {
     expect(source).toContain(
-      'getSummaryElement: (item: FormValues<Incident>) => { return ( <> <BooleanValue value={isNotifyTicked(item)} dataTestId="incident-create-notify-subscribers-value" /> {getAudienceSummary(item)} {isNotifyingSubscribers(item) && hasMonitors(item) ? ( <SubscriberNotificationPreviewButton',
+      'getSummaryElement: (item: FormValues<Incident>) => { return ( <> <div className="flex flex-wrap items-center gap-x-3 gap-y-1" data-testid="incident-create-notify-subscribers-line" > <BooleanValue value={isNotifyTicked(item)} dataTestId="incident-create-notify-subscribers-value" /> {isNotifyingSubscribers(item) && hasMonitors(item) ? ( <SubscriberNotificationPreviewButton',
     );
+    expect(source).toContain("</div> {getAudienceSummary(item)} </> ); },");
     expect(source).toContain(
       'import BooleanValue from "Common/UI/Components/Detail/BooleanValue";',
     );

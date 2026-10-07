@@ -1,7 +1,16 @@
 {
   "baseline": {
-    "keys": 24715,
-    "untranslated": 16479
+    "keys": 25975,
+    "untranslated": 16646
   },
-  "sameAsEnglish": []
+  "sameAsEnglish": [
+    "Offline",
+    "Pattern {{number}}: {{problem}}",
+    "Runbook: {{name}}",
+    "Runner",
+    "VMware vCenter",
+    "cluster",
+    "host",
+    "kubectl set image deployment/web * -n web"
+  ]
 }

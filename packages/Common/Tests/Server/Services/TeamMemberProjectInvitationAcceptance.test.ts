@@ -33,6 +33,15 @@ import HashedString from "../../../Types/HashedString";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * Acceptance is per project, not per team.
@@ -283,6 +292,7 @@ beforeEach(() => {
     )
     .mockResolvedValue(undefined as never);
   jest.spyOn(ProductAnalytics, "captureForUser").mockReturnValue(undefined);
+  stubProjectDirectory({});
 });
 
 afterEach(() => {
@@ -496,6 +506,7 @@ describe("TeamMemberService.onBeforeCreate - adding a member of the project by e
 describe("TeamMemberService.onBeforeCreate - somebody who is not in the project yet is still invited", () => {
   beforeEach(() => {
     isMemberSpy.mockResolvedValue(false);
+    stubProjectDirectory({});
   });
 
   test("a project admin's invitation stays pending", async () => {
@@ -587,6 +598,7 @@ describe("TeamMemberService.onBeforeCreate - only an accepted membership makes s
 
   beforeEach(() => {
     isMemberSpy.mockRestore();
+    stubProjectDirectory({});
   });
 
   function countAcceptedMembershipsIn(projectIds: Array<ObjectID>): void {
@@ -747,6 +759,7 @@ describe("TeamMemberService.onBeforeCreate - a refused duplicate has no side eff
     duplicateLookupSpy.mockResolvedValue(
       membershipRow({ userId: USER_ID, projectId: PROJECT_ID, id: MEMBER_ID }),
     );
+    stubProjectDirectory({});
   });
 
   test("nobody is emailed about a membership that is never created", async () => {
@@ -804,6 +817,7 @@ describe("TeamMemberService.onCreateSuccess - joining accepts the rest of the pr
     acceptPendingSpy = jest
       .spyOn(TeamMemberService, "acceptPendingInvitationsInProject")
       .mockResolvedValue(0);
+    stubProjectDirectory({});
   });
 
   function onCreate(hasAcceptedInvitation: boolean): {
@@ -882,6 +896,7 @@ describe("TeamMemberService.onUpdateSuccess - accepting one invitation accepts t
       .mockResolvedValue([
         membershipRow({ userId: USER_ID, projectId: PROJECT_ID }),
       ]);
+    stubProjectDirectory({});
   });
 
   function onUpdate(data: Record<string, unknown>): OnUpdate<TeamMember> {
@@ -1001,6 +1016,7 @@ describe("TeamMemberService.acceptPendingInvitationsInProject", () => {
 
   beforeEach(() => {
     updateSpy = jest.spyOn(TeamMemberService, "updateBy").mockResolvedValue(2);
+    stubProjectDirectory({});
   });
 
   function lastUpdate(): UpdateBy<TeamMember> {
@@ -1151,6 +1167,7 @@ describe("TeamMemberService.acceptPendingInvitationsOfProjectMembers - the data 
     acceptPendingSpy = jest
       .spyOn(TeamMemberService, "acceptPendingInvitationsInProject")
       .mockResolvedValue(2);
+    stubProjectDirectory({});
   });
 
   test("reads only pending invitations of people with an accepted membership in the same project", async () => {

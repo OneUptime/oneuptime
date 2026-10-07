@@ -3,20 +3,25 @@
  * the call moves on to the next rule: the rule's escalateAfterSeconds
  * column, shown as "Ring for (in seconds)".
  *
- * It is the timeout of Twilio's <Dial>. Twilio rings for 30 seconds when it
- * is given none, and takes no more than 600; a rule saved without one rings
- * for 30 too (the column's default). Twilio adds a few seconds of its own to
- * every <Dial>, so a phone rings a little longer than this.
+ * It is the timeout of Twilio's <Dial>, which takes no more than 600. Twilio
+ * adds a few seconds of its own to every <Dial>, so a phone rings a little
+ * longer than this.
  *
  * Mind voicemail: a phone that sends an unanswered call to voicemail before
  * the time is up has the call answered - by its voicemail - and the call
- * stops there instead of moving on to the next rule.
+ * stops there instead of moving on to the next rule. So a new rule rings for
+ * 20 seconds, to move on before most voicemail picks up: the column's
+ * default (what the API and Terraform store when a rule leaves it out) and
+ * what the dashboard's form starts with. It used to be 30, Twilio's own
+ * default for a <Dial> given no timeout, and many phones go to voicemail
+ * sooner. Rules saved then keep the 30 they hold: a default applies when a
+ * rule is created, and nothing rewrites a rule's ring time.
  *
- * React-free and server-safe: the dashboard's form, the incoming call
- * webhook and their tests all read it.
+ * React-free and server-safe: the model, the dashboard's form, the incoming
+ * call webhook and their tests all read it.
  */
 
-export const DEFAULT_INCOMING_CALL_RING_SECONDS: number = 30;
+export const DEFAULT_INCOMING_CALL_RING_SECONDS: number = 20;
 
 // The shortest ring Twilio's <Dial> takes.
 export const MIN_INCOMING_CALL_RING_SECONDS: number = 5;

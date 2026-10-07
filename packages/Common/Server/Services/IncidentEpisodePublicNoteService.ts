@@ -1,7 +1,7 @@
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import OneUptimeDate from "../../Types/Date";
 import Model from "../../Models/DatabaseModels/IncidentEpisodePublicNote";
 import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
@@ -18,10 +18,9 @@ import PublicNoteSubscriberNotificationDefault from "../../Types/StatusPage/Publ
 import Query from "../Types/Database/Query";
 import File from "../../Models/DatabaseModels/File";
 import FileAttachmentMarkdownUtil from "../Utils/FileAttachmentMarkdownUtil";
-import { syncIsPublicForMarkdownImages } from "../Utils/InlineImageAccessTokenSync";
 import SubscriberNotificationResendAccess from "../Utils/StatusPage/SubscriberNotificationResendAccess";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -89,6 +88,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.postedAt) {
       createBy.data.postedAt = OneUptimeDate.getCurrentDate();
     }
@@ -194,6 +195,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     await SubscriberNotificationResendAccess.assertPublicNoteResendAllowed({
       modelType: Model,
       service: this,
@@ -234,17 +237,6 @@ export class Service extends DatabaseService<Model> {
   ): Promise<Model> {
     const userId: ObjectID | null | undefined =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
-
-    /*
-     * A public note is always rendered on the status page, so any inline
-     * image the markdown editor uploaded as private must flip to public
-     * for anonymous status page viewers to be able to render it.
-     */
-    await syncIsPublicForMarkdownImages(
-      createdItem.note,
-      true,
-      `incident episode public note ${createdItem.id?.toString()}`,
-    );
 
     const incidentEpisodeId: ObjectID = createdItem.incidentEpisodeId!;
     const projectId: ObjectID = createdItem.projectId!;
@@ -314,12 +306,6 @@ ${(createdItem.note || "") + attachmentsMarkdown}
 
       for (const updatedItem of updatedItems) {
         const episode: IncidentEpisode = updatedItem.incidentEpisode!;
-
-        await syncIsPublicForMarkdownImages(
-          updatedItem.note,
-          true,
-          `incident episode public note ${updatedItem.id?.toString()}`,
-        );
 
         const attachmentsMarkdown: string = await this.getAttachmentsMarkdown(
           updatedItem.id!,

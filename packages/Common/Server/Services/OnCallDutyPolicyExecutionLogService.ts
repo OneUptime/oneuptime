@@ -1,6 +1,6 @@
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import OnCallDutyPolicyEscalationRuleService from "./OnCallDutyPolicyEscalationRuleService";
 import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
@@ -14,6 +14,11 @@ import { Blue500, Green500, Red500, Yellow500 } from "../../Types/BrandColors";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import ObjectID from "../../Types/ObjectID";
+import {
+  escapeMarkdownInline,
+  escapeMarkdownValue,
+} from "../../Utils/Markdown/MarkdownEscape";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import Color from "../../Types/Color";
 import AlertFeedService from "./AlertFeedService";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
@@ -28,12 +33,22 @@ import AlertEpisodeService from "./AlertEpisodeService";
 import IncidentEpisodeService from "./IncidentEpisodeService";
 import { IsNull, UpdateResult } from "typeorm";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 30);
     }
+  }
+
+  /*
+   * Execution logs are written by OneUptime as it runs an on-call policy, for
+   * the policy, incident or alert it is paging about. Refusing one would stop
+   * the page. An execution log written by an API call or a workflow is checked
+   * like any other write.
+   */
+  protected override checksServerWrites(): boolean {
+    return false;
   }
 
   /**
@@ -78,6 +93,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.status) {
       createBy.data.status = OnCallDutyPolicyStatus.Scheduled;
     }
@@ -86,8 +103,19 @@ export class Service extends DatabaseService<Model> {
       createBy.data.statusMessage = "Scheduled.";
     }
 
+    /*
+     * Triggered by the person making the request. DatabaseService has
+     * already taken out whatever triggeredByUser the request named, under
+     * both names (UserAttribution), so with no person on it - an API key, a
+     * workflow - nobody triggered it by hand. Stamped with stamp, so a
+     * relation a server caller names beside it is not what is stored.
+     */
     if (createBy.props.userId) {
-      createBy.data.triggeredByUserId = createBy.props.userId;
+      RelationIdUtil.stamp(
+        createBy.data as unknown as Record<string, unknown>,
+        ["triggeredByUserId", "triggeredByUser"],
+        createBy.props.userId,
+      );
     }
 
     createBy.data.onCallPolicyExecutionRepeatCount = 1;
@@ -168,7 +196,7 @@ export class Service extends DatabaseService<Model> {
           incidentOrAlertLink = `[Incident Episode ${incidentEpisodeNumberResult.numberWithPrefix || "#" + incidentEpisodeNumberResult.number}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(createdItem.projectId!, createdItem.triggeredByIncidentEpisodeId)).toString()})`;
         }
 
-        const feedInfoInMarkdown: string = `**📞 On Call Policy Started Executing:** On Call Policy **${onCallPolicy.name}** started executing for ${incidentOrAlertLink}. Users on call on this policy will now be notified.`;
+        const feedInfoInMarkdown: string = `**📞 On Call Policy Started Executing:** On Call Policy **${escapeMarkdownValue(onCallPolicy.name)}** started executing for ${incidentOrAlertLink}. Users on call on this policy will now be notified.`;
 
         if (
           onCallPolicy &&
@@ -470,7 +498,7 @@ export class Service extends DatabaseService<Model> {
 
           const feedInfoInMarkdown: string = `**${this.getEmojiByStatus(onCalldutyPolicyExecutionLog.status)} On Call Policy Status Updated for ${incidentOrAlertLink}:**
 
- On-call policy **[${onCallPolicy.name?.toString()}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(onCallPolicy.projectId!, onCallPolicy.id!)).toString()})** status updated to **${onCalldutyPolicyExecutionLog.status}**`;
+ On-call policy **[${escapeMarkdownInline(onCallPolicy.name?.toString())}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(onCallPolicy.projectId!, onCallPolicy.id!)).toString()})** status updated to **${onCalldutyPolicyExecutionLog.status}**`;
 
           if (onCalldutyPolicyExecutionLog.triggeredByIncidentId) {
             await IncidentFeedService.createIncidentFeedItem({

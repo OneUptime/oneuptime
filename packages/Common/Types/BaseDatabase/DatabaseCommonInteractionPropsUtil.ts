@@ -1,4 +1,5 @@
 import Permission, { UserPermission } from "../Permission";
+import HeldPermissionsUtil from "../HeldPermissions";
 import DatabaseCommonInteractionProps from "./DatabaseCommonInteractionProps";
 import NotAuthenticatedException from "../Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../Exception/NotAuthorizedException";
@@ -51,7 +52,23 @@ export default class DatabaseCommonInteractionPropsUtil {
     }
 
     return (
-      props.userType !== UserType.API && props.userType !== UserType.MasterAdmin
+      !DatabaseCommonInteractionPropsUtil.isProjectPrincipalWithoutPerson(
+        props,
+      ) && props.userType !== UserType.MasterAdmin
+    );
+  }
+
+  /*
+   * A caller that acts in a project without being a person: one of the
+   * project's API keys, or a step of one of its workflows (WorkflowPrincipal).
+   * It has no userId and is no less signed in for that - what it may do is
+   * whatever its permission rows say, read like anyone else's.
+   */
+  public static isProjectPrincipalWithoutPerson(
+    props: DatabaseCommonInteractionProps,
+  ): boolean {
+    return (
+      props.userType === UserType.API || props.userType === UserType.Workflow
     );
   }
 
@@ -135,14 +152,18 @@ export default class DatabaseCommonInteractionPropsUtil {
     }
 
     if (props.tenantId && props.userTenantAccessPermission) {
-      // Include Tenant Permission in userPermissions.
+      /*
+       * Include Tenant Permission in userPermissions. A row is a block when
+       * it says so and an allow otherwise - the one reading of the flag
+       * (HeldPermissionsUtil.isBlockRow) every permission check shares.
+       */
       userPermissions = [
         ...userPermissions,
         ...(props.userTenantAccessPermission[
           props.tenantId.toString()
         ]?.permissions.filter((userPermission: UserPermission) => {
           return (
-            userPermission.isBlockPermission ===
+            HeldPermissionsUtil.isBlockRow(userPermission) ===
             (permissionType === PermissionType.Block)
           );
         }) || []),
@@ -150,5 +171,27 @@ export default class DatabaseCommonInteractionPropsUtil {
     }
 
     return userPermissions;
+  }
+
+  /*
+   * Every row the CRUD path weighs for a caller: the allow rows (global
+   * permissions among them, Public for everyone) and the block rows of
+   * getUserPermissions. Only ever handed to the rule (HeldPermissionsUtil
+   * .fromRows, or a column check that does): mapped to a flat list of
+   * permission names, it would count a block as a grant.
+   */
+  public static getPermissionRows(
+    props: DatabaseCommonInteractionProps,
+  ): Array<UserPermission> {
+    return [
+      ...DatabaseCommonInteractionPropsUtil.getUserPermissions(
+        props,
+        PermissionType.Allow,
+      ),
+      ...DatabaseCommonInteractionPropsUtil.getUserPermissions(
+        props,
+        PermissionType.Block,
+      ),
+    ];
   }
 }

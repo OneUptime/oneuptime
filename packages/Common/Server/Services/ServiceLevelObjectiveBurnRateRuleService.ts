@@ -24,13 +24,17 @@ import ProjectScopedReferenceValidator, {
   ProjectScopedReference,
   resolveReferenceId,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import logger, { LogAttributes } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import AlertService from "./AlertService";
+import AlertStateService from "./AlertStateService";
 import AlertSeverityService from "./AlertSeverityService";
 import AlertStateTimelineService from "./AlertStateTimelineService";
 import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import IncidentService from "./IncidentService";
+import IncidentStateService from "./IncidentStateService";
 import IncidentSeverityService from "./IncidentSeverityService";
 import IncidentStateTimelineService from "./IncidentStateTimelineService";
 import LabelService from "./LabelService";
@@ -221,9 +225,38 @@ const normalizeId: NormalizeIdFunction = (id: string): string => {
   return id.trim().toLowerCase();
 };
 
-export class Service extends DatabaseService<Model> {
+// The two severities a rule may name, as readSeverityIds reads them.
+interface SeverityIds {
+  alertSeverityId: ObjectID | undefined;
+  incidentSeverityId: ObjectID | undefined;
+}
+
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * The SLO the rule belongs to, the severities, the on-call policies, the
+   * labels and the owners the rule copies onto what it opens are checked by
+   * this service's own hooks below, with their own words - the SLO first, on
+   * create and on update (a workflow can move a rule; a person cannot).
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["serviceLevelObjective", "alertSeverity", "incidentSeverity"];
+  }
+
+  protected override getListsCheckedByService(): Array<string> {
+    return [
+      "onCallDutyPolicies",
+      "incidentOnCallDutyPolicies",
+      "alertLabels",
+      "incidentLabels",
+      "alertOwnerTeams",
+      "incidentOwnerTeams",
+      "alertOwnerUsers",
+      "incidentOwnerUsers",
+    ];
   }
 
   /*
@@ -248,6 +281,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     /*
      * Every numeric column can arrive as a string: the dashboard's number
      * fields hand Formik `e.target.value`, ModelForm copies it verbatim and
@@ -369,8 +404,7 @@ export class Service extends DatabaseService<Model> {
 
     await this.validateSeverityReferences({
       projectId: projectId,
-      alertSeverityId: createBy.data.alertSeverityId,
-      incidentSeverityId: createBy.data.incidentSeverityId,
+      ...this.readSeverityIds(createBy.data as unknown as Dictionary<unknown>),
     });
 
     await this.validateRoutingReferences({
@@ -425,6 +459,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     // Same string-arrival path as onBeforeCreate: coerce, validate, write back.
     const newThreshold: unknown = updateBy.data.burnRateThreshold as unknown;
 
@@ -453,6 +489,8 @@ export class Service extends DatabaseService<Model> {
     }
 
     await this.validateOutputsOnUpdate(updateBy);
+
+    await this.validateServiceLevelObjectiveOnUpdate(updateBy);
 
     await this.validateSeverityReferencesOnUpdate(updateBy);
 
@@ -1224,9 +1262,10 @@ export class Service extends DatabaseService<Model> {
       query: {
         projectId: data.projectId,
         seriesFingerprint: fingerprint,
-        currentAlertState: {
-          isResolvedState: false,
-        },
+        // Open: above the project's resolved state (Common/Utils/ResolvedState).
+        currentAlertStateId: QueryHelper.any(
+          await AlertStateService.getUnresolvedAlertStateIds(data.projectId),
+        ),
       },
       select: {
         _id: true,
@@ -1316,6 +1355,29 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * The severities a payload names. Each arrives as its id column or as the
+   * relation - the dashboard posts the relation, and TypeORM writes either to
+   * the same column - so both are read, and two that disagree are refused
+   * rather than one of them checked and the other saved.
+   */
+  private readSeverityIds(data: Dictionary<unknown>): SeverityIds {
+    return {
+      alertSeverityId:
+        RelationIdUtil.readConsistent(
+          data,
+          ["alertSeverityId", "alertSeverity"],
+          "alert severity",
+        ) || undefined,
+      incidentSeverityId:
+        RelationIdUtil.readConsistent(
+          data,
+          ["incidentSeverityId", "incidentSeverity"],
+          "incident severity",
+        ) || undefined,
+    };
+  }
+
+  /*
    * Both severity columns are plain foreign keys with no project scoping of
    * their own, so the public CRUD API will happily persist a severity that
    * belongs to a different project. Nothing notices until the worker fires:
@@ -1363,6 +1425,45 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * The SLO is create-only for people (its column's update list is empty),
+   * but a root write skips that list, so moving a rule to another SLO is
+   * checked exactly as creating it there: pinned to each project the update
+   * touches, a foreign SLO answered like a missing one.
+   */
+  private async validateServiceLevelObjectiveOnUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const data: Dictionary<unknown> = (updateBy.data ||
+      {}) as unknown as Dictionary<unknown>;
+
+    const serviceLevelObjectives: Array<unknown> = [
+      data["serviceLevelObjectiveId"],
+      data["serviceLevelObjective"],
+    ];
+
+    if (
+      SloRecordReferenceValidator.getReferencedIds(serviceLevelObjectives)
+        .length === 0
+    ) {
+      return;
+    }
+
+    const projectIds: Array<ObjectID> = updateBy.props.tenantId
+      ? [updateBy.props.tenantId]
+      : await this.getProjectIdsForUpdateQuery(updateBy);
+
+    for (const projectId of projectIds) {
+      await SloRecordReferenceValidator.validateServiceLevelObjectivesBelongToProject(
+        {
+          projectId: projectId,
+          serviceLevelObjectives: serviceLevelObjectives,
+          subject: "SLO burn rate rule",
+        },
+      );
+    }
+  }
+
+  /*
    * The update twin. A root or API update does not always carry a tenantId, so
    * fall back to the projects of the rows the query actually matches — the
    * shape ScheduledMaintenanceService uses for the same problem.
@@ -1370,10 +1471,12 @@ export class Service extends DatabaseService<Model> {
   private async validateSeverityReferencesOnUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
-    const alertSeverityId: ObjectID | undefined = updateBy.data
-      .alertSeverityId as ObjectID | undefined;
-    const incidentSeverityId: ObjectID | undefined = updateBy.data
-      .incidentSeverityId as ObjectID | undefined;
+    const severityIds: SeverityIds = this.readSeverityIds(
+      (updateBy.data || {}) as unknown as Dictionary<unknown>,
+    );
+    const alertSeverityId: ObjectID | undefined = severityIds.alertSeverityId;
+    const incidentSeverityId: ObjectID | undefined =
+      severityIds.incidentSeverityId;
 
     if (!alertSeverityId && !incidentSeverityId) {
       return;
@@ -1885,9 +1988,12 @@ export class Service extends DatabaseService<Model> {
       query: {
         projectId: data.projectId,
         seriesFingerprint: fingerprint,
-        currentIncidentState: {
-          isResolvedState: false,
-        },
+        // Open: above the project's resolved state (Common/Utils/ResolvedState).
+        currentIncidentStateId: QueryHelper.any(
+          await IncidentStateService.getUnresolvedIncidentStateIds(
+            data.projectId,
+          ),
+        ),
       },
       select: {
         _id: true,

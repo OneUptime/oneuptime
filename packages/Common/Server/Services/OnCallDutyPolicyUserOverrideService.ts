@@ -1,5 +1,6 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import ObjectID from "../../Types/ObjectID";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import DatabaseConfig from "../DatabaseConfig";
 import URL from "../../Types/API/URL";
 import OnCallDutyPolicyUserOverride from "../../Models/DatabaseModels/OnCallDutyPolicyUserOverride";
@@ -53,7 +54,7 @@ interface ScheduleServiceForOverrides {
   }) => Promise<void>;
 }
 
-export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
+export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverride> {
   public constructor() {
     super(OnCallDutyPolicyUserOverride);
   }
@@ -172,6 +173,8 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
   protected override async onBeforeCreate(
     createBy: CreateBy<OnCallDutyPolicyUserOverride>,
   ): Promise<OnCreate<OnCallDutyPolicyUserOverride>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.startsAt || !createBy.data.endsAt) {
       throw new BadDataException("Start time and end time are required");
     }
@@ -187,16 +190,25 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
       throw new BadDataException("Start time must be before end time");
     }
 
-    // make sure overrideUser and routealertsToUser are not the same
-    const overrideUserId: ObjectID | undefined | null =
-      createBy.data.overrideUserId || createBy.data.overrideUser?.id;
+    /*
+     * make sure overrideUser and routealertsToUser are not the same - each
+     * under either of its names (the two must agree)
+     */
+    const overrideUserId: ObjectID | null = RelationIdUtil.readConsistent(
+      createBy.data as unknown as Record<string, unknown>,
+      ["overrideUserId", "overrideUser"],
+      "Override User",
+    );
 
     if (!overrideUserId) {
       throw new BadDataException("Override user is required");
     }
 
-    const routeAlertsToUserId: ObjectID | undefined | null =
-      createBy.data.routeAlertsToUserId || createBy.data.routeAlertsToUser?.id;
+    const routeAlertsToUserId: ObjectID | null = RelationIdUtil.readConsistent(
+      createBy.data as unknown as Record<string, unknown>,
+      ["routeAlertsToUserId", "routeAlertsToUser"],
+      "Route Alerts To User",
+    );
 
     if (!routeAlertsToUserId) {
       throw new BadDataException("Route alerts to user is required");
@@ -322,6 +334,8 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<OnCallDutyPolicyUserOverride>,
   ): Promise<OnUpdate<OnCallDutyPolicyUserOverride>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * Capture each affected override's PRE-update project + overrideUserId so
      * onUpdateSuccess can also refresh the OLD user's schedules. onUpdateSuccess

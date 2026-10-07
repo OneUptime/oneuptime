@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/NetworkDeviceLink";
 import NetworkDeviceService from "./NetworkDeviceService";
 import NetworkDevice from "../../Models/DatabaseModels/NetworkDevice";
@@ -110,7 +110,7 @@ const assertNoSqlExpression: (
   }
 };
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -150,6 +150,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     const data: Record<string, unknown> = createBy.data as unknown as Record<
       string,
       unknown
@@ -161,13 +163,19 @@ export class Service extends DatabaseService<Model> {
       ...PARENT_DEVICE_KEYS,
     ]);
 
-    const fromDeviceId: ObjectID | null = RelationIdUtil.read(
+    /*
+     * Each end, and the parent below, under either of its names: the two
+     * must agree, so the devices checked are the devices linked.
+     */
+    const fromDeviceId: ObjectID | null = RelationIdUtil.readConsistent(
       data,
       FROM_DEVICE_KEYS,
+      "From Device",
     );
-    const toDeviceId: ObjectID | null = RelationIdUtil.read(
+    const toDeviceId: ObjectID | null = RelationIdUtil.readConsistent(
       data,
       TO_DEVICE_KEYS,
+      "To Device",
     );
 
     if (!fromDeviceId || !toDeviceId) {
@@ -200,7 +208,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     assertParentIsAnEnd(
-      RelationIdUtil.read(data, PARENT_DEVICE_KEYS),
+      RelationIdUtil.readConsistent(data, PARENT_DEVICE_KEYS, "Parent Device"),
       fromDeviceId,
       toDeviceId,
     );
@@ -238,6 +246,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     const data: Record<string, unknown> = (updateBy.data ||
       {}) as unknown as Record<string, unknown>;
 
@@ -253,18 +263,18 @@ export class Service extends DatabaseService<Model> {
 
     assertNoSqlExpression(data, hierarchyKeys);
 
-    const writtenFromDeviceId: ObjectID | null = RelationIdUtil.read(
+    const writtenFromDeviceId: ObjectID | null = RelationIdUtil.readConsistent(
       data,
       FROM_DEVICE_KEYS,
+      "From Device",
     );
-    const writtenToDeviceId: ObjectID | null = RelationIdUtil.read(
+    const writtenToDeviceId: ObjectID | null = RelationIdUtil.readConsistent(
       data,
       TO_DEVICE_KEYS,
+      "To Device",
     );
-    const writtenParentDeviceId: ObjectID | null = RelationIdUtil.read(
-      data,
-      PARENT_DEVICE_KEYS,
-    );
+    const writtenParentDeviceId: ObjectID | null =
+      RelationIdUtil.readConsistent(data, PARENT_DEVICE_KEYS, "Parent Device");
 
     /*
      * Writing the parent key with an empty value is how a hierarchy is

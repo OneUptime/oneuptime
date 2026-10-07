@@ -43,6 +43,15 @@ import Permission, {
   PermissionHelper,
   PermissionProps,
 } from "../../../Types/Permission";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * NetworkAlertPolicy: the contracts that live in metadata and in wiring, and
@@ -304,21 +313,25 @@ describe("the policy's columns", () => {
   });
 
   /*
-   * The template columns take the MonitorTemplate's own read permissions
-   * (the NetworkDeviceAutoImportRule precedent): selecting the relation
-   * reads a template's name and type, so it costs what reading a template
-   * costs. Writing them, by contrast, is gated on the policy's own
-   * permissions and never on a cross-model monitor permission.
+   * Which template a policy uses is part of the policy: the template columns
+   * are read and written under the policy's own permissions, like every other
+   * column of it, and never under a cross-model one. The template's own
+   * fields stay with the template's permissions; a relation select brings
+   * only what the template lets a joined row show.
    */
   test.each(["monitorTemplate", "monitorTemplateId"])(
-    "%s is read under the monitor template's permissions and written under the policy's",
+    "%s is read and written under the policy's own permissions",
     (columnName: string) => {
       const accessControl: ColumnAccessControl = accessControlFor(
         policy,
         columnName,
       );
 
-      expect(accessControl.read).toContain(Permission.ReadMonitorTemplate);
+      expect([...accessControl.read].sort()).toEqual(
+        [...policy.getReadPermissions()].sort(),
+      );
+      expect(accessControl.read).toContain(Permission.ReadNetworkAlertPolicy);
+      expect(accessControl.read).not.toContain(Permission.ReadMonitorTemplate);
       expect(accessControl.create).toContain(
         Permission.CreateNetworkAlertPolicy,
       );
@@ -860,6 +873,7 @@ describe("NetworkAlertPolicyService.onBeforeCreate", () => {
   beforeEach(() => {
     mockNoTemplateConflicts();
     mockScopeAndPermissionChecksPass();
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -1190,6 +1204,7 @@ describe("NetworkAlertPolicyService.onBeforeUpdate", () => {
   beforeEach(() => {
     mockNoTemplateConflicts();
     mockScopeAndPermissionChecksPass();
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -1476,6 +1491,7 @@ describe("NetworkAlertPolicyService scope id validation", () => {
     mockNoTemplateConflicts();
     mockScopeAndPermissionChecksPass();
     mockTemplateOwnedBy(PROJECT_ID);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -1616,6 +1632,7 @@ describe("NetworkAlertPolicyService monitor-provisioning permission", () => {
   beforeEach(() => {
     mockNoTemplateConflicts();
     mockTemplateOwnedBy(PROJECT_ID);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {

@@ -10,6 +10,8 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import { STATE_LISTS, StateListType } from "../../Utils/StateOrder";
+import StartingStageUtil, { StartingState } from "../../Utils/StartingStage";
+import ResolvedStateUtil from "../../Utils/ResolvedState";
 import AlertState from "../../Models/DatabaseModels/AlertState";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
@@ -107,6 +109,12 @@ export class Service extends DatabaseService<AlertState> {
     return alertStates;
   }
 
+  /*
+   * The project's states an alert (or an alert episode) is still open in:
+   * every state above the resolved state, top first. Everything from the
+   * resolved state down counts as resolved, flagged or not
+   * (Common/Utils/ResolvedState).
+   */
   @CaptureSpan()
   public async getUnresolvedAlertStates(
     projectId: ObjectID,
@@ -117,19 +125,74 @@ export class Service extends DatabaseService<AlertState> {
       props: props,
     });
 
-    const unresolvedAlertStates: Array<AlertState> = [];
-
-    for (const state of alertStates) {
-      if (!state.isResolvedState) {
-        unresolvedAlertStates.push(state);
-      } else {
-        break; // everything after resolved state is resolved
-      }
-    }
-
-    return unresolvedAlertStates;
+    return ResolvedStateUtil.getUnresolvedStates({
+      list: StateListType.AlertState,
+      states: alertStates,
+    });
   }
 
+  /*
+   * The ids of getUnresolvedAlertStates, read as OneUptime: what a query for
+   * the project's open alerts or alert episodes matches their current state
+   * against (currentAlertStateId: QueryHelper.any(...)).
+   */
+  @CaptureSpan()
+  public async getUnresolvedAlertStateIds(
+    projectId: ObjectID,
+  ): Promise<Array<ObjectID>> {
+    return ResolvedStateUtil.getUnresolvedStateIds({
+      list: StateListType.AlertState,
+      states: await this.getAllAlertStates({
+        projectId: projectId,
+        props: {
+          isRoot: true,
+        },
+      }),
+    });
+  }
+
+  // The project's states that count as resolved, as getUnresolvedAlertStateIds.
+  @CaptureSpan()
+  public async getResolvedAlertStateIds(
+    projectId: ObjectID,
+  ): Promise<Array<ObjectID>> {
+    return ResolvedStateUtil.getResolvedStateIds({
+      list: StateListType.AlertState,
+      states: await this.getAllAlertStates({
+        projectId: projectId,
+        props: {
+          isRoot: true,
+        },
+      }),
+    });
+  }
+
+  /*
+   * Whether an alert (or an alert episode) in `alertStateId` is resolved
+   * (Common/Utils/ResolvedState). False for a state that is not the
+   * project's.
+   */
+  @CaptureSpan()
+  public async isResolvedAlertState(data: {
+    projectId: ObjectID;
+    alertStateId: ObjectID;
+  }): Promise<boolean> {
+    return ResolvedStateUtil.isResolved({
+      list: StateListType.AlertState,
+      states: await this.getAllAlertStates({
+        projectId: data.projectId,
+        props: {
+          isRoot: true,
+        },
+      }),
+      stateId: data.alertStateId,
+    });
+  }
+
+  /*
+   * The project's resolved state: the first from the top flagged resolved,
+   * which resolving an alert or an episode moves it into.
+   */
   @CaptureSpan()
   public async getResolvedAlertState(data: {
     projectId: ObjectID;
@@ -140,11 +203,11 @@ export class Service extends DatabaseService<AlertState> {
       props: data.props,
     });
 
-    const resolvedAlertState: AlertState | undefined = alertStates.find(
-      (alertState: AlertState) => {
-        return alertState?.isResolvedState;
-      },
-    );
+    const resolvedAlertState: AlertState | null =
+      ResolvedStateUtil.getResolvedState({
+        list: StateListType.AlertState,
+        states: alertStates,
+      });
 
     if (!resolvedAlertState) {
       throw new BadDataException(
@@ -178,6 +241,63 @@ export class Service extends DatabaseService<AlertState> {
     }
 
     return ackAlertState;
+  }
+
+  /*
+   * The project's created state: where a new alert or alert episode starts
+   * when its create names no state (AlertService, AlertEpisodeService), as
+   * every one OneUptime raises itself does. Such a record starts open
+   * (StartingStage), with no need to read the rest of the list.
+   */
+  @CaptureSpan()
+  public async getCreatedAlertStateId(projectId: ObjectID): Promise<ObjectID> {
+    const createdAlertState: AlertState | null = await this.findOneBy({
+      query: {
+        projectId: projectId,
+        isCreatedState: true,
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!createdAlertState || !createdAlertState.id) {
+      throw new BadDataException(
+        "Created alert state not found for this project. Please add created alert state from settings.",
+      );
+    }
+
+    return createdAlertState.id;
+  }
+
+  /*
+   * Where an alert or an alert episode starts when it is created in
+   * `alertStateId` (StartingStage): open, acknowledged or resolved, and so
+   * what its create sets off - no on-call from acknowledged on, nothing that
+   * answers a live problem once resolved. One read of the project's whole
+   * list, as OneUptime, which only holds the project's own states: null
+   * when `alertStateId` is not one of them, which also checks that it is.
+   */
+  @CaptureSpan()
+  public async getStartingState(data: {
+    projectId: ObjectID;
+    alertStateId: ObjectID;
+  }): Promise<StartingState | null> {
+    const alertStates: Array<AlertState> = await this.getAllAlertStates({
+      projectId: data.projectId,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return StartingStageUtil.getStartingState({
+      definition: STATE_LISTS[StateListType.AlertState],
+      states: alertStates,
+      stateId: data.alertStateId,
+    });
   }
 }
 export default new Service();

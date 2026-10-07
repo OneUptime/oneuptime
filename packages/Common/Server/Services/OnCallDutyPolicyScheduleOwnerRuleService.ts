@@ -1,7 +1,7 @@
-import DatabaseService from "./DatabaseService";
+import LabelAndOwnerRuleBaseService from "./LabelAndOwnerRuleBaseService";
 import Model from "../../Models/DatabaseModels/OnCallDutyPolicyScheduleOwnerRule";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends LabelAndOwnerRuleBaseService<Model> {
   public constructor() {
     super(Model);
   }

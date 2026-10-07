@@ -3,14 +3,14 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import Permission, { PermissionHelper } from "Common/Types/Permission";
+import Permission from "Common/Types/Permission";
 import SideMenu, {
   SideMenuSectionProps,
   SideMenuItemProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
-import PermissionUtil from "Common/UI/Utils/Permission";
 import UserUtil from "Common/UI/Utils/User";
 import React, { FunctionComponent, ReactElement } from "react";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -131,10 +131,7 @@ const UserViewSideMenu: FunctionComponent<ComponentProps> = (
      * model id.
      */
     (Boolean(signedInUserId) && signedInUserId === props.modelId.toString()) ||
-    PermissionHelper.doesPermissionsIntersect(
-      PermissionUtil.getAllPermissions(),
-      NOTIFICATION_RULE_READ_PERMISSIONS,
-    );
+    PermissionGate.holdsAnyOf(NOTIFICATION_RULE_READ_PERMISSIONS);
 
   if (canReadNotificationRules) {
     sections.push({

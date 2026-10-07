@@ -22,6 +22,18 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
+import ProjectNotificationChannelOwnerNotice from "Common/Server/Utils/ProjectNotificationChannelOwnerNotice";
+import ProjectBalanceOwnerNotice from "Common/Server/Utils/ProjectBalanceOwnerNotice";
+import SafeHtml from "Common/Types/SafeHtml";
+import {
+  getProjectBalanceMessageNotSentReason,
+  getProjectBalanceShortfallSentence,
+  ProjectBalanceType,
+} from "Common/Utils/Project/ProjectBalance";
+import {
+  getProjectNotificationChannelOffMessage,
+  ProjectNotificationChannel,
+} from "Common/Utils/Project/NotificationChannels";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
 import CallLog from "Common/Models/DatabaseModels/CallLog";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -268,7 +280,9 @@ export default class CallService {
 
         if (!project.enableCallNotifications) {
           callLog.status = CallStatus.Error;
-          callLog.statusMessage = `Call notifications are not enabled for this project. Please enable Call notifications in Project Settings.`;
+          callLog.statusMessage = getProjectNotificationChannelOffMessage(
+            ProjectNotificationChannel.Call,
+          );
           // The project turned calls off. Refusing to dial is the setting working.
           logger.error(callLog.statusMessage, EXTERNAL_FAULT);
           await CallLogService.create({
@@ -291,7 +305,12 @@ export default class CallService {
             await ProjectService.sendEmailToProjectOwners(
               project.id!,
               "Call notifications not enabled for " + (project.name || ""),
-              `We tried to make a call to ${callRequest.to.toString()}. <br/> <br/> This Call was not sent because call notifications are not enabled for this project. Please enable call notifications in Project Settings.`,
+              `We tried to make a call to ${callRequest.to.toString()}. <br/> <br/> This call was not made. ${ProjectNotificationChannelOwnerNotice.getHtml(
+                {
+                  channel: ProjectNotificationChannel.Call,
+                  projectId: project.id!,
+                },
+              )}`,
             );
           }
           return;
@@ -311,9 +330,30 @@ export default class CallService {
 
           project.smsOrCallCurrentBalanceInUSDCents = updatedBalance;
 
-          if (!project.smsOrCallCurrentBalanceInUSDCents) {
+          /*
+           * Nothing left, or less than this call costs. The log (which the
+           * project's members read, as they read a person's on-call
+           * timeline) says who can add balance and where; the owners, who
+           * may, are told to, with a link - once, until the balance is
+           * topped up again (Utils/Project/ProjectBalance).
+           */
+          const balanceInUSDCents: number =
+            project.smsOrCallCurrentBalanceInUSDCents || 0;
+
+          if (!balanceInUSDCents || balanceInUSDCents < callCost * 100) {
+            const shortfall: {
+              channel: ProjectNotificationChannel;
+              balanceInUSDCents: number;
+              costInUSDCents: number;
+            } = {
+              channel: ProjectNotificationChannel.Call,
+              balanceInUSDCents: balanceInUSDCents,
+              costInUSDCents: Math.round(callCost * 100),
+            };
+
             callLog.status = CallStatus.LowBalance;
-            callLog.statusMessage = `Project ${options.projectId.toString()} does not have enough Call balance.`;
+            callLog.statusMessage =
+              getProjectBalanceMessageNotSentReason(shortfall);
             // Tenant billing state, not a defect — the owners get emailed below.
             logger.error(callLog.statusMessage, EXTERNAL_FAULT);
             await CallLogService.create({
@@ -336,43 +376,12 @@ export default class CallService {
               await ProjectService.sendEmailToProjectOwners(
                 project.id!,
                 "Low SMS and Call Balance for " + (project.name || ""),
-                `We tried to make a call to ${callRequest.to.toString()}. This call was not made because project does not have enough balance to make calls. Current balance is ${
-                  (project.smsOrCallCurrentBalanceInUSDCents || 0) / 100
-                } USD. Required balance to send this SMS should is ${callCost} USD. Please enable auto recharge or recharge manually.`,
-              );
-            }
-            return;
-          }
-
-          if (project.smsOrCallCurrentBalanceInUSDCents < callCost * 100) {
-            callLog.status = CallStatus.LowBalance;
-            callLog.statusMessage = `Project does not have enough balance to make this call. Current balance is ${
-              project.smsOrCallCurrentBalanceInUSDCents / 100
-            } USD. Required balance is ${callCost} USD to make this call.`;
-            // Tenant billing state, not a defect — the owners get emailed below.
-            logger.error(callLog.statusMessage, EXTERNAL_FAULT);
-            await CallLogService.create({
-              data: callLog,
-              props: {
-                isRoot: true,
-              },
-            });
-            if (!project.lowCallAndSMSBalanceNotificationSentToOwners) {
-              await ProjectService.updateOneById({
-                data: {
-                  lowCallAndSMSBalanceNotificationSentToOwners: true,
-                },
-                id: project.id!,
-                props: {
-                  isRoot: true,
-                },
-              });
-              await ProjectService.sendEmailToProjectOwners(
-                project.id!,
-                "Low SMS and Call Balance for " + (project.name || ""),
-                `We tried to make a call to ${callRequest.to.toString()}. This call was not made because project does not have enough balance to make a call. Current balance is ${
-                  project.smsOrCallCurrentBalanceInUSDCents / 100
-                } USD. Required balance is ${callCost} USD to make this call. Please enable auto recharge or recharge manually.`,
+                `We tried to make a call to ${callRequest.to.toString()}. <br/> <br/> This call was not made. ${SafeHtml.escape(
+                  getProjectBalanceShortfallSentence(shortfall),
+                )} ${ProjectBalanceOwnerNotice.getHtml({
+                  balance: ProjectBalanceType.SmsOrCall,
+                  projectId: project.id!,
+                })}`,
               );
             }
             return;

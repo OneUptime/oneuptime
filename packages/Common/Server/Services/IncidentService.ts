@@ -9,6 +9,7 @@ import FindBy from "../Types/Database/FindBy";
 import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import IncidentCustomField from "../../Models/DatabaseModels/IncidentCustomField";
 import CustomFieldMappingService from "./CustomFieldMappingService";
 import IncidentCustomFieldService from "./IncidentCustomFieldService";
@@ -45,13 +46,26 @@ import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import { applyIncidentSelfPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
 import ProjectScopedReferenceValidator, {
+  getWrittenRelationReferences,
   HeldRelationIds,
   ProjectScopedReference,
   ProjectScopedRelation,
-  resolveReferenceId,
   resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
-import { getAffectedResourceRelations } from "../Utils/Database/AffectedResourceRelations";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import ReferenceChange from "../Utils/Database/ReferenceChange";
+import EventFieldChange, {
+  EventFieldSet,
+  EventValuesBeforeUpdate,
+} from "../Utils/EventFieldChange";
+import CreatedByUser from "../Utils/Database/CreatedByUser";
+import EpisodeMembershipReference, {
+  INCIDENT_EPISODE_REFERENCE,
+} from "../Utils/Episode/EpisodeMembershipReference";
+import {
+  getAffectedResourceColumns,
+  getAffectedResourceRelations,
+} from "../Utils/Database/AffectedResourceRelations";
 import Query from "../Types/Database/Query";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SloRecordReferenceValidator from "../Utils/Slo/SloRecordReferenceValidator";
@@ -59,6 +73,12 @@ import UserNotificationEventType from "../../Types/UserNotification/UserNotifica
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import IncidentCreatedRenotify from "../../Types/StatusPage/IncidentCreatedRenotify";
 import IncidentCreatedResend from "../../Types/StatusPage/IncidentCreatedResend";
+import IncidentPostmortemPublication, {
+  IncidentPostmortemStoredState,
+  PostmortemNotificationAction,
+} from "../../Types/StatusPage/IncidentPostmortemPublication";
+import StatusPageVisibility from "../../Types/StatusPage/StatusPageVisibility";
+import StatusPageVisibilityQuery from "../Utils/StatusPage/StatusPageVisibilityQuery";
 import IncidentScopeAddedPagesNotification, {
   IncidentScopeAddedPagesNotificationAction,
   StatusPageScopeChange,
@@ -69,6 +89,7 @@ import StatusPageService from "./StatusPageService";
 import StatusPageReadAccess from "../Utils/StatusPage/StatusPageReadAccess";
 import SubscriberNotificationResendAccess from "../Utils/StatusPage/SubscriberNotificationResendAccess";
 import Select from "../Types/Database/Select";
+import PartialEntity from "../../Types/Database/PartialEntity";
 import DockerHost from "../../Models/DatabaseModels/DockerHost";
 import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
 import Host from "../../Models/DatabaseModels/Host";
@@ -105,7 +126,6 @@ import IncidentFeedService from "./IncidentFeedService";
 import IncidentSlaService from "./IncidentSlaService";
 import IncidentReminderRuleService from "./IncidentReminderRuleService";
 import IncidentReminderRule from "../../Models/DatabaseModels/IncidentReminderRule";
-import { setIsPublicForMarkdownImages } from "../Utils/InlineImageAccessTokenSync";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import IncidentGroupingEngineService from "./IncidentGroupingEngineService";
 import IncidentLabelRuleEngineService from "./IncidentLabelRuleEngineService";
@@ -147,6 +167,14 @@ import {
   INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY,
   INCIDENT_ALERT_IDS_TO_LINK_KEY,
 } from "../../Types/Incident/IncidentAlertLink";
+import OnCallNotRunOnCreate from "../Utils/OnCall/OnCallNotRunOnCreate";
+import StartingStageUtil, {
+  StartingStage,
+  StartingStageCarryForward,
+  StartingState,
+} from "../../Utils/StartingStage";
+import ResolvedStateUtil from "../../Utils/ResolvedState";
+import { StateListType } from "../../Utils/StateOrder";
 
 /*
  * How an update changed an incident's status page scope, for its feed item.
@@ -188,6 +216,13 @@ type UpdateCarryForward = Dictionary<{
    * off (undefined otherwise).
    */
   isResolvedBeforeUpdate?: boolean | undefined;
+  /*
+   * Whether the incident held its monitors before the update
+   * (Incident.holdsMonitors): false for one that never did, or gave them
+   * back, so a monitor taken off it has nothing of the incident's to give
+   * back. Null for an incident from before it was recorded.
+   */
+  holdsMonitorsBeforeUpdate?: boolean | null | undefined;
   // The monitor status the incident put its monitors in before the update.
   oldChangeMonitorStatusIdTo: ObjectID | undefined;
   // The monitor status the update writes; undefined when it writes none.
@@ -198,24 +233,81 @@ type UpdateCarryForward = Dictionary<{
    */
   isChangeMonitorStatusToCleared?: boolean | undefined;
   statusPageScopeChange?: StatusPageScopeCarryForward | undefined;
+  /*
+   * The severity the incident held before the update (null: none), read only
+   * when the update writes one, so onUpdateSuccess runs the severity's side
+   * effects for a real change only (recordStoredValuesBeforeUpdate).
+   */
+  severityIdBeforeUpdate?: string | null | undefined;
+  /*
+   * The incident's postmortem before the update - whether it was switched on
+   * for the status page and its note, when the update writes either, and
+   * where its subscriber notification stood - and, when the update may show
+   * the incident, whether the status page showed it and why the
+   * notification was settled (IncidentPostmortemPublication.isComparedBy).
+   * So onUpdateSuccess tells subscribers once, when the update publishes the
+   * postmortem or first shows it on status pages, and records a note that
+   * really changed (recordStoredValuesBeforeUpdate).
+   */
+  postmortemBeforeUpdate?: IncidentPostmortemStoredState | undefined;
+  /*
+   * The title, root cause, description, remediation notes, labels and Send
+   * reminders switch the incident held before the update - those the update
+   * writes, and no others - so its feed item and its reminder refresh follow
+   * a real change (recordStoredValuesBeforeUpdate, EventFieldChange).
+   */
+  valuesBeforeUpdate?: EventValuesBeforeUpdate | undefined;
 }>;
 
 /*
- * What onBeforeCreate hands to onCreateSuccess. Null unless the incident is
- * being declared from alerts.
+ * What onBeforeCreate hands to onCreateSuccess: how far along the incident
+ * starts (StartingStage), which decides what its create sets off, and the
+ * alerts it is being declared from, if any. Null only for a success hook run
+ * without one, which then sets off what a new incident always did.
  */
-type IncidentCreateCarryForward = {
-  // Validated, deduplicated alert ids to link once the incident exists.
-  alertIdsToLink: Array<ObjectID>;
-  /*
-   * Acknowledge alerts once they are linked, as the declaring user
-   * (INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY) - what stops their escalation.
-   * When asked to: the project's Acknowledged alert state, and the alerts
-   * not acknowledged yet, which the caller was checked for. Null otherwise.
-   */
-  acknowledgedAlertStateId: ObjectID | null;
-  alertIdsToAcknowledge: Array<ObjectID>;
-} | null;
+type IncidentCreateCarryForward =
+  | (StartingStageCarryForward & {
+      /*
+       * Validated, deduplicated alert ids to link once the incident exists.
+       * Empty unless the incident is being declared from alerts.
+       */
+      alertIdsToLink: Array<ObjectID>;
+      /*
+       * Acknowledge alerts once they are linked, as the declaring user
+       * (INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY) - what stops their
+       * escalation. When asked to: the project's Acknowledged alert state,
+       * and the alerts not acknowledged yet, which the caller was checked
+       * for. Null otherwise.
+       */
+      acknowledgedAlertStateId: ObjectID | null;
+      alertIdsToAcknowledge: Array<ObjectID>;
+    })
+  | null;
+
+/*
+ * The two names of each reference this service reads off a write itself, ID
+ * column first. A write may name a reference under either, and the two must
+ * agree (RelationIdUtil.readConsistent), so what the service checks and acts
+ * on is what is stored.
+ */
+const CURRENT_STATE_KEYS: Array<string> = [
+  "currentIncidentStateId",
+  "currentIncidentState",
+];
+const SEVERITY_KEYS: Array<string> = ["incidentSeverityId", "incidentSeverity"];
+const CHANGE_MONITOR_STATUS_KEYS: Array<string> = [
+  "changeMonitorStatusToId",
+  "changeMonitorStatusTo",
+];
+const TEMPLATE_KEYS: Array<string> = [
+  "createdIncidentTemplateId",
+  "createdIncidentTemplate",
+];
+
+// Where an incident's postmortem notification stands, as read.
+type PostmortemNotificationStatusRead = {
+  status: StatusPageSubscriberNotificationStatus | null;
+};
 
 type IncidentUpdatePayload = {
   postmortemNote?: string | null;
@@ -228,12 +320,35 @@ type IncidentUpdatePayload = {
   [key: string]: unknown;
 };
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
+  }
+
+  /*
+   * The severity and the monitor status to switch to, the monitors, the
+   * labels, the on-call policies, the status pages, the SLOs and the
+   * affected-resource lists are checked by this service's own hooks below, with
+   * ProjectScopedReferenceValidator and its own words. Everything else an
+   * incident names - its episode, its state, the probe that opened it - is
+   * checked by ProjectReferencesService.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["incidentSeverity", "changeMonitorStatusTo"];
+  }
+
+  protected override getListsCheckedByService(): Array<string> {
+    return [
+      "monitors",
+      "labels",
+      "onCallDutyPolicies",
+      "statusPages",
+      "serviceLevelObjectives",
+      ...getAffectedResourceColumns(this.getModel()),
+    ];
   }
 
   @CaptureSpan()
@@ -255,65 +370,62 @@ export class Service extends DatabaseService<Model> {
     return super.countBy(countBy);
   }
 
+  /*
+   * Whether the incident is resolved: its state is at or below its
+   * project's resolved state, or flagged resolved - the one rule
+   * (Common/Utils/ResolvedState) that reminders, monitor edits, Slack and
+   * Microsoft Teams, auto-remediation and everything else read.
+   */
   @CaptureSpan()
   public async isIncidentResolved(data: {
     incidentId: ObjectID;
   }): Promise<boolean> {
-    const incident: Model | null = await this.findOneBy({
-      query: {
-        _id: data.incidentId,
-      },
-      select: {
-        projectId: true,
-        currentIncidentState: {
-          order: true,
-        },
-      },
-      props: {
-        isRoot: true,
-      },
+    const incident: Model = await this.getIncidentWithState(data.incidentId);
+
+    if (!incident.currentIncidentStateId) {
+      return false;
+    }
+
+    return await IncidentStateService.isResolvedIncidentState({
+      projectId: incident.projectId!,
+      incidentStateId: incident.currentIncidentStateId,
     });
-
-    if (!incident) {
-      throw new BadDataException("Incident not found");
-    }
-
-    if (!incident.projectId) {
-      throw new BadDataException("Incident Project ID not found");
-    }
-
-    const resolvedIncidentState: IncidentState =
-      await IncidentStateService.getResolvedIncidentState({
-        projectId: incident.projectId,
-        props: {
-          isRoot: true,
-        },
-      });
-
-    const currentIncidentStateOrder: number =
-      incident.currentIncidentState!.order!;
-    const resolvedIncidentStateOrder: number = resolvedIncidentState.order!;
-
-    if (currentIncidentStateOrder >= resolvedIncidentStateOrder) {
-      return true;
-    }
-
-    return false;
   }
 
+  /*
+   * Whether the incident is acknowledged or further along - resolved
+   * included: what stops its on-call escalation. Read with the same rule
+   * (StartingStage): at or below the acknowledged state, or flagged
+   * acknowledged or resolved.
+   */
   @CaptureSpan()
   public async isIncidentAcknowledged(data: {
     incidentId: ObjectID;
   }): Promise<boolean> {
+    const incident: Model = await this.getIncidentWithState(data.incidentId);
+
+    if (!incident.currentIncidentStateId) {
+      return false;
+    }
+
+    const startingState: StartingState | null =
+      await IncidentStateService.getStartingState({
+        projectId: incident.projectId!,
+        incidentStateId: incident.currentIncidentStateId,
+      });
+
+    return Boolean(startingState && startingState.stage !== StartingStage.Open);
+  }
+
+  // The incident's project and current state, as OneUptime.
+  private async getIncidentWithState(incidentId: ObjectID): Promise<Model> {
     const incident: Model | null = await this.findOneBy({
       query: {
-        _id: data.incidentId,
+        _id: incidentId,
       },
       select: {
         projectId: true,
-        currentIncidentState: {
-          order: true,
-        },
+        currentIncidentStateId: true,
       },
       props: {
         isRoot: true,
@@ -328,23 +440,30 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Incident Project ID not found");
     }
 
-    const ackIncidentState: IncidentState =
-      await IncidentStateService.getAcknowledgedIncidentState({
-        projectId: incident.projectId,
-        props: {
-          isRoot: true,
+    return incident;
+  }
+
+  /*
+   * The row of an incident's state timeline it was first resolved with: the
+   * first move into a state that counts as resolved (ResolvedState).
+   */
+  private getFirstResolutionRow(data: {
+    incidentStates: Array<IncidentState>;
+    incidentStateTimelines: Array<IncidentStateTimeline>;
+  }): IncidentStateTimeline | undefined {
+    return ResolvedStateUtil.getResolutionRows({
+      list: StateListType.IncidentState,
+      states: data.incidentStates,
+      timeline: data.incidentStateTimelines.map(
+        (timeline: IncidentStateTimeline) => {
+          return {
+            stateId: timeline.incidentStateId,
+            startsAt: timeline.startsAt,
+            timeline: timeline,
+          };
         },
-      });
-
-    const currentIncidentStateOrder: number =
-      incident.currentIncidentState!.order!;
-    const ackIncidentStateOrder: number = ackIncidentState.order!;
-
-    if (currentIncidentStateOrder >= ackIncidentStateOrder) {
-      return true;
-    }
-
-    return false;
+      ),
+    })[0]?.timeline;
   }
 
   @CaptureSpan()
@@ -434,23 +553,18 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Incident not found.");
     }
 
-    const incidentState: IncidentState | null =
-      await IncidentStateService.findOneBy({
-        query: {
-          projectId: incident.projectId,
-          isResolvedState: true,
-        },
-        select: {
-          _id: true,
-        },
+    // The project's resolved state: the first from the top flagged resolved.
+    const incidentState: IncidentState =
+      await IncidentStateService.getResolvedIncidentState({
+        projectId: incident.projectId,
         props: {
           isRoot: true,
         },
       });
 
-    if (!incidentState || !incidentState.id) {
+    if (!incidentState.id) {
       throw new BadDataException(
-        "Acknowledged state not found for this project. Please add acknowledged state from settings.",
+        "Resolved state not found for this project. Please add resolved state from settings.",
       );
     }
 
@@ -544,6 +658,18 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
+    /*
+     * The incident's episode follows its episode membership: only
+     * IncidentEpisodeMemberService moves it (EpisodeMembershipReference).
+     */
+    EpisodeMembershipReference.refuseWriteMadeInProject({
+      payload: updateBy.data,
+      props: updateBy.props,
+      reference: INCIDENT_EPISODE_REFERENCE,
+    });
+
     /*
      * Records which monitors the update takes off and puts on each incident,
      * the monitor status it writes, and whether the incident was resolved
@@ -556,9 +682,15 @@ export class Service extends DatabaseService<Model> {
       updateBy.props,
     );
 
-    if (updateBy.data.isPrivate === true) {
-      updateBy.data.isVisibleOnStatusPage = false;
-    }
+    /*
+     * Visible on Status Page and Private Incident as they are stored, and a
+     * private incident hidden from status pages (StatusPageVisibility):
+     * making an incident private switches Visible on Status Page off with
+     * it, whoever writes it. Before anything below reads the update.
+     */
+    StatusPageVisibility.normalizeWrite(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
 
     this.stripServiceOwnedScopeColumns(updateBy);
 
@@ -601,6 +733,7 @@ export class Service extends DatabaseService<Model> {
           },
           projectId: true,
           changeMonitorStatusToId: true,
+          holdsMonitors: true,
         },
         limit: LIMIT_MAX,
         skip: 0,
@@ -610,21 +743,20 @@ export class Service extends DatabaseService<Model> {
       /*
        * The monitor status the update writes, in any shape the API accepts
        * (an id, a bare uuid string or a relation object), so the status an
-       * update writes is never mistaken for one it leaves alone.
+       * update writes is never mistaken for one it leaves alone. Read under
+       * both of its names, which must agree, so the status put on the
+       * monitors is the one stored on the incident.
        */
-      const monitorStatusIdInUpdate: ObjectID | string | undefined =
-        resolveReferenceId(data["changeMonitorStatusToId"]) ||
-        resolveReferenceId(data["changeMonitorStatusTo"]);
-
       const newMonitorChangeStatusIdTo: ObjectID | undefined =
-        monitorStatusIdInUpdate
-          ? new ObjectID(monitorStatusIdInUpdate.toString())
-          : undefined;
+        RelationIdUtil.readConsistent(
+          data,
+          CHANGE_MONITOR_STATUS_KEYS,
+          "Monitor Status",
+        ) || undefined;
 
       const isChangeMonitorStatusToCleared: boolean =
         !newMonitorChangeStatusIdTo &&
-        (data["changeMonitorStatusToId"] === null ||
-          data["changeMonitorStatusTo"] === null);
+        RelationIdUtil.isPresent(data, CHANGE_MONITOR_STATUS_KEYS);
 
       const monitorIdsAfterUpdate: Array<string> = isMonitorListUpdated
         ? this.getMonitorIdsInUpdate(data["monitors"])
@@ -659,6 +791,7 @@ export class Service extends DatabaseService<Model> {
             monitorsRemoved.length > 0
               ? await this.isIncidentResolved({ incidentId: incident.id! })
               : undefined,
+          holdsMonitorsBeforeUpdate: incident.holdsMonitors,
           monitorsAdded: monitorIdsAfterUpdate
             .filter((monitorId: string): boolean => {
               return !storedMonitorIds.includes(monitorId);
@@ -673,27 +806,19 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    // Set notification status based on shouldStatusPageSubscribersBeNotifiedOnIncidentCreated if it's being updated
-    if (
-      updateBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated !==
-      undefined
-    ) {
-      if (
-        updateBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated ===
-        false
-      ) {
-        updateBy.data.subscriberNotificationStatusOnIncidentCreated =
-          StatusPageSubscriberNotificationStatus.Skipped;
-        updateBy.data.subscriberNotificationStatusMessage =
-          "Notifications skipped as subscribers are not to be notified for this incident.";
-      } else if (
-        updateBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated ===
-        true
-      ) {
-        updateBy.data.subscriberNotificationStatusOnIncidentCreated =
-          StatusPageSubscriberNotificationStatus.Pending;
-      }
-    }
+    await this.recordStoredValuesBeforeUpdate(updateBy, carryForward);
+
+    /*
+     * Notifying subscribers that the incident was created
+     * (shouldStatusPageSubscribersBeNotifiedOnIncidentCreated) is decided
+     * when it is declared. An update that writes it - only root and master
+     * admins can - leaves the 'created' message alone: re-sending the value
+     * the incident holds used to send that message to every status page
+     * again, and turning it on does not send a message the incident was
+     * declared without. Turned off, a message still queued is skipped by
+     * the job that would send it, which reads the flag. Retry, Resend and
+     * the API's Pending are how the message is sent again.
+     */
 
     await this.queueCreatedNotificationResendToAllStatusPagesIfRequested(
       updateBy,
@@ -771,6 +896,193 @@ export class Service extends DatabaseService<Model> {
   // A monitor's id as getMonitorIdsInUpdate writes it, for comparing the two.
   private getMonitorIdForComparison(monitor: Monitor): string {
     return (monitor._id?.toString() || "").trim().toLowerCase();
+  }
+
+  /*
+   * What onUpdateSuccess compares an update with: each incident it matches
+   * as it is stored, read here, before the write, so a side effect follows a
+   * real change only. Updates often write back what an incident holds - a
+   * dashboard card sends every field it shows with each save, and an API
+   * client or a workflow may write the whole incident. One read, of the
+   * columns the update needs compared and no others, and only when it needs
+   * any:
+   *
+   * - the severity, when the update writes one under either of its names. A
+   *   severity change records itself in the incident feed, recalculates the
+   *   SLA deadlines, re-matches the reminder rule and counts in the
+   *   SeverityChange metric (ReferenceChange);
+   * - the postmortem - its note, its Publish on Status Page switch and where
+   *   its subscriber notification stands - when the update writes the note
+   *   or the switch. Subscribers are told once, when an update publishes the
+   *   postmortem, and the feed records a note that really changed
+   *   (IncidentPostmortemPublication). The Edit Postmortem form sends the
+   *   note with every save, so its being there is no news;
+   * - the incident's Visible on Status Page and Private Incident, and where
+   *   its postmortem's notification stands and why, when the update may show
+   *   the incident (it switches Visible on Status Page on, or writes Private
+   *   Incident off). A postmortem published while the incident was hidden
+   *   was skipped for that reason, and showing the incident sends it then
+   *   (IncidentPostmortemPublication.isShownByUpdate). The incident's
+   *   Settings form sends both switches with every save, so only a hidden
+   *   incident it shows counts. The postmortem's note is not read for this:
+   *   the rare update that does show such an incident reads it once it is
+   *   written;
+   * - the title, root cause, description, remediation notes, labels and
+   *   Send reminders switch the update writes. The "Incident updated" feed
+   *   item records each one that really changed, and a labels change or the
+   *   switch flipped matches the reminder rule again, which starts the
+   *   reminder interval over (EventFieldChange). The Incident Details card
+   *   sends the title, the severity and the labels with every save.
+   */
+  private async recordStoredValuesBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+    carryForward: UpdateCarryForward,
+  ): Promise<void> {
+    const writtenSeverityId: ObjectID | null = RelationIdUtil.readConsistent(
+      updateBy.data as unknown as Record<string, unknown>,
+      SEVERITY_KEYS,
+      "Incident Severity",
+    );
+
+    const isPostmortemWritten: boolean =
+      IncidentPostmortemPublication.isWrittenBy(
+        updateBy.data as unknown as Record<string, unknown>,
+      );
+
+    // Whether it may show the incident, and with it a postmortem that waits.
+    const mayShowIncident: boolean =
+      IncidentPostmortemPublication.mayShowIncident(
+        updateBy.data as unknown as Record<string, unknown>,
+      );
+
+    // Either of the two, by the rule onUpdateSuccess acts on (isComparedBy).
+    const isPostmortemCompared: boolean =
+      IncidentPostmortemPublication.isComparedBy(
+        updateBy.data as unknown as Record<string, unknown>,
+      );
+
+    const fieldsWritten: EventFieldSet = EventFieldChange.getFieldsWritten(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
+
+    const isFieldWritten: boolean = EventFieldChange.isAnySet(fieldsWritten);
+
+    if (!writtenSeverityId && !isPostmortemCompared && !isFieldWritten) {
+      return;
+    }
+
+    const select: Select<Model> = {
+      _id: true,
+      ...(writtenSeverityId
+        ? {
+            incidentSeverityId: true,
+          }
+        : {}),
+      ...(isPostmortemWritten
+        ? {
+            postmortemNote: true,
+            showPostmortemOnStatusPage: true,
+          }
+        : {}),
+      ...(isPostmortemCompared
+        ? {
+            subscriberNotificationStatusOnPostmortemPublished: true,
+          }
+        : {}),
+      ...(mayShowIncident
+        ? {
+            isVisibleOnStatusPage: true,
+            isPrivate: true,
+            subscriberNotificationStatusMessageOnPostmortemPublished: true,
+          }
+        : {}),
+      ...(EventFieldChange.getSelect(fieldsWritten) as Select<Model>),
+    };
+
+    const incidents: Array<Model> = await this.findIncidentsForUpdateHook({
+      updateBy: updateBy,
+      select: select,
+    });
+
+    for (const incident of incidents) {
+      if (!incident.id) {
+        continue;
+      }
+
+      const incidentId: string = incident.id.toString();
+
+      carryForward[incidentId] = {
+        monitorsRemoved: [],
+        monitorsAdded: [],
+        oldChangeMonitorStatusIdTo: undefined,
+        newMonitorChangeStatusIdTo: undefined,
+        ...carryForward[incidentId],
+        ...(writtenSeverityId
+          ? {
+              severityIdBeforeUpdate: incident.incidentSeverityId
+                ? incident.incidentSeverityId.toString()
+                : null,
+            }
+          : {}),
+        ...(isPostmortemCompared
+          ? {
+              postmortemBeforeUpdate: {
+                ...(isPostmortemWritten
+                  ? {
+                      showPostmortemOnStatusPage:
+                        incident.showPostmortemOnStatusPage,
+                      postmortemNote: incident.postmortemNote,
+                    }
+                  : {}),
+                subscriberNotificationStatusOnPostmortemPublished:
+                  incident.subscriberNotificationStatusOnPostmortemPublished,
+                ...(mayShowIncident
+                  ? {
+                      isVisibleOnStatusPage: incident.isVisibleOnStatusPage,
+                      isPrivate: incident.isPrivate,
+                      subscriberNotificationStatusMessageOnPostmortemPublished:
+                        incident.subscriberNotificationStatusMessageOnPostmortemPublished,
+                    }
+                  : {}),
+              },
+            }
+          : {}),
+        ...(isFieldWritten
+          ? {
+              valuesBeforeUpdate: EventFieldChange.getValuesBeforeUpdate({
+                record: incident,
+                fields: fieldsWritten,
+              }),
+            }
+          : {}),
+      };
+    }
+  }
+
+  /*
+   * A private incident is hidden from every status page (StatusPageVisibility),
+   * so an update that turns Visible on Status Page on and leaves Private
+   * Incident as it is shows only the incidents that are not private - the
+   * same as the incident's Settings form, which sends both switches with
+   * every save, has always done. It holds whoever writes: the API,
+   * Terraform, a workflow.
+   *
+   * Each incident is decided by itself, by the database, in its own row's
+   * write (DatabaseService.getRowWriteSql): Visible on Status Page is stored
+   * on only while the incident is not private as it is then, so no privacy
+   * write landing at the same moment - a privacy rule, another editor -
+   * leaves both on. What the write stored is what the workflow trigger, the
+   * realtime event, the audit log and the incident's images are decided by.
+   * No earlier read, and no other incident, decides it. Every status page
+   * read and subscriber job leaves a private incident out whatever its
+   * switch says.
+   */
+  protected override getRowWriteSql(
+    data: PartialEntity<Model>,
+  ): Dictionary<string> {
+    return StatusPageVisibilityQuery.getRowWriteSql(
+      data as unknown as Record<string, unknown>,
+    );
   }
 
   /*
@@ -984,10 +1296,14 @@ export class Service extends DatabaseService<Model> {
   /*
    * Whether an update itself asks for the 'created' notification to go out
    * again: it sets the status to Pending - the API route of resending it,
-   * and the dashboard's Retry - turns notifying on creation on, which
-   * onBeforeUpdate maps to Pending, or asks for it to be sent to every
-   * status page again (IncidentCreatedResend, the dashboard's Resend). Read
-   * before any hook adds a Pending of its own.
+   * and the dashboard's Retry - or asks for it to be sent to every status
+   * page again (IncidentCreatedResend, the dashboard's Resend). Read before
+   * any hook adds a Pending of its own.
+   *
+   * Writing shouldStatusPageSubscribersBeNotifiedOnIncidentCreated is no
+   * such request, whatever its value: a client writing the whole incident
+   * back sends it as true, and that emptied the record of told pages and
+   * sent the message to every page again.
    */
   private isCreatedNotificationResendRequested(
     updateBy: UpdateBy<Model>,
@@ -995,8 +1311,6 @@ export class Service extends DatabaseService<Model> {
     return (
       updateBy.data.subscriberNotificationStatusOnIncidentCreated ===
         StatusPageSubscriberNotificationStatus.Pending ||
-      updateBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated ===
-        true ||
       IncidentCreatedResend.isRequested(updateBy.miscDataProps)
     );
   }
@@ -1191,9 +1505,10 @@ export class Service extends DatabaseService<Model> {
    * runs after this hook.
    *
    * An update that sets the status itself - the API route of resetting it to
-   * Pending, or the notify-on-create flag above - is left alone. An update
-   * that matches several incidents queues only when every one of them
-   * qualifies, because the write applies the same data to all of them.
+   * Pending - is left alone. Notifying on creation is read as the update
+   * leaves it, so one that turns it off in the same write queues nothing.
+   * An update that matches several incidents queues only when every one of
+   * them qualifies, because the write applies the same data to all of them.
    */
   private async queueCreatedNotificationOnPublishIfRequested(
     updateBy: UpdateBy<Model>,
@@ -1242,8 +1557,13 @@ export class Service extends DatabaseService<Model> {
               : incident.isPrivate,
           subscriberNotificationStatusOnIncidentCreated:
             incident.subscriberNotificationStatusOnIncidentCreated,
+          // As this update leaves it, like the privacy above.
           shouldStatusPageSubscribersBeNotifiedOnIncidentCreated:
-            incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+            this.getValueAfterUpdate(
+              updateBy.data
+                .shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+              incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+            ),
           // The pages it is limited to once this update is written.
           statusPages:
             updateBy.data.statusPages !== undefined
@@ -1553,7 +1873,11 @@ export class Service extends DatabaseService<Model> {
             subscriberNotificationStatusOnIncidentCreated:
               incident.subscriberNotificationStatusOnIncidentCreated,
             shouldStatusPageSubscribersBeNotifiedOnIncidentCreated:
-              incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+              this.getValueAfterUpdate(
+                updateBy.data
+                  .shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+                incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+              ),
             isVisibleOnStatusPage: this.getValueAfterUpdate(
               updateBy.data.isVisibleOnStatusPage,
               incident.isVisibleOnStatusPage,
@@ -1647,8 +1971,9 @@ export class Service extends DatabaseService<Model> {
    * write (getRecordToSeedOnQueue): the job then tells only the added pages.
    *
    * An update that sets the status itself - the API route of resetting it to
-   * Pending, the notify-on-create flag, or publishing a hidden incident - is
-   * left alone. An update that matches several incidents queues only when it
+   * Pending, or publishing a hidden incident - is left alone. Notifying on
+   * creation is read as the update leaves it, like the visibility and the
+   * privacy. An update that matches several incidents queues only when it
    * may for every one of them, because the write applies the same data to
    * all. For the same reason it cannot write a record that differs between
    * them, or overwrite the record of an incident that has one, and is refused
@@ -1920,17 +2245,35 @@ export class Service extends DatabaseService<Model> {
   private async validateProjectScopedReferences(
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
-    const incidentStateId: ObjectID | string | undefined =
-      resolveReferenceId(updateBy.data.currentIncidentStateId) ||
-      resolveReferenceId(updateBy.data.currentIncidentState);
-
-    const incidentSeverityId: ObjectID | string | undefined =
-      resolveReferenceId(updateBy.data.incidentSeverityId) ||
-      resolveReferenceId(updateBy.data.incidentSeverity);
-
-    const changeMonitorStatusToId: ObjectID | string | undefined =
-      resolveReferenceId(updateBy.data.changeMonitorStatusToId) ||
-      resolveReferenceId(updateBy.data.changeMonitorStatusTo);
+    /*
+     * The state, the severity and the monitor status, each by both of its
+     * names: the API takes the ID column and the relation alike, and every
+     * name that holds an id is checked. Two names that disagree are refused
+     * before anything is read.
+     */
+    const references: Array<ProjectScopedReference> = [
+      ...getWrittenRelationReferences({
+        payload: updateBy.data,
+        idColumn: "currentIncidentStateId",
+        relation: "currentIncidentState",
+        modelName: "Incident State",
+        service: IncidentStateService,
+      }),
+      ...getWrittenRelationReferences({
+        payload: updateBy.data,
+        idColumn: "incidentSeverityId",
+        relation: "incidentSeverity",
+        modelName: "Incident Severity",
+        service: IncidentSeverityService,
+      }),
+      ...getWrittenRelationReferences({
+        payload: updateBy.data,
+        idColumn: "changeMonitorStatusToId",
+        relation: "changeMonitorStatusTo",
+        modelName: "Monitor Status",
+        service: MonitorStatusService,
+      }),
+    ];
 
     /*
      * The SLOs this incident affects: a relation list the API accepts on
@@ -1959,9 +2302,7 @@ export class Service extends DatabaseService<Model> {
       );
 
     if (
-      !incidentStateId &&
-      !incidentSeverityId &&
-      !changeMonitorStatusToId &&
+      references.length === 0 &&
       !hasServiceLevelObjectiveIds &&
       relations.length === 0
     ) {
@@ -1998,22 +2339,8 @@ export class Service extends DatabaseService<Model> {
         );
       }
 
-      const references: Array<ProjectScopedReference> = [
-        {
-          modelName: "Incident State",
-          id: incidentStateId,
-          service: IncidentStateService,
-        },
-        {
-          modelName: "Incident Severity",
-          id: incidentSeverityId,
-          service: IncidentSeverityService,
-        },
-        {
-          modelName: "Monitor Status",
-          id: changeMonitorStatusToId,
-          service: MonitorStatusService,
-        },
+      const referencesInProject: Array<ProjectScopedReference> = [
+        ...references,
         ...ProjectScopedReferenceValidator.getRelationReferences({
           payload: updateBy.data,
           relations: relations,
@@ -2022,18 +2349,14 @@ export class Service extends DatabaseService<Model> {
         }),
       ];
 
-      if (
-        references.every((reference: ProjectScopedReference) => {
-          return !reference.id;
-        })
-      ) {
+      if (referencesInProject.length === 0) {
         continue;
       }
 
       await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
         projectId: projectId,
         subject: "incident",
-        references: references,
+        references: referencesInProject,
       });
     }
   }
@@ -2105,12 +2428,34 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
+    /*
+     * A new incident is in no episode: it joins one through grouping or the
+     * episode's members (EpisodeMembershipReference). Refused before the
+     * incident number is taken.
+     */
+    EpisodeMembershipReference.refuseWriteMadeInProject({
+      payload: createBy.data,
+      props: createBy.props,
+      reference: INCIDENT_EPISODE_REFERENCE,
+    });
+
     if (!createBy.props.tenantId && !createBy.props.isRoot) {
       throw new BadDataException("ProjectId required to create incident.");
     }
 
-    if (createBy.data.isPrivate === true) {
-      createBy.data.isVisibleOnStatusPage = false;
+    /*
+     * A private incident is hidden from every status page
+     * (StatusPageVisibility): created private, it is created with Visible on
+     * Status Page off, and nobody is told it was created - whoever creates
+     * it, with whatever the request says for either.
+     */
+    StatusPageVisibility.normalizeWrite(
+      createBy.data as unknown as Record<string, unknown>,
+    );
+
+    if (StatusPageVisibility.isPrivate(createBy.data)) {
       createBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated =
         false;
     }
@@ -2160,8 +2505,6 @@ export class Service extends DatabaseService<Model> {
      * incident behind that is missing some of its alerts. The alerts are
      * linked in onCreateSuccess, once the incident exists.
      */
-    let carryForward: IncidentCreateCarryForward = null;
-
     const alertIdsToLink: unknown =
       createBy.miscDataProps?.[INCIDENT_ALERT_IDS_TO_LINK_KEY];
 
@@ -2188,15 +2531,6 @@ export class Service extends DatabaseService<Model> {
         alertIds: validatedAlertIds,
         props: createBy.props,
       });
-
-    if (validatedAlertIds.length > 0) {
-      carryForward = {
-        alertIdsToLink: validatedAlertIds,
-        acknowledgedAlertStateId:
-          alertsToAcknowledge?.acknowledgedAlertStateId || null,
-        alertIdsToAcknowledge: alertsToAcknowledge?.alertIdsToAcknowledge || [],
-      };
-    }
 
     if (!createBy.data.declaredAt) {
       createBy.data.declaredAt = OneUptimeDate.getCurrentDate();
@@ -2227,34 +2561,61 @@ export class Service extends DatabaseService<Model> {
     // Determine the initial incident state
     let initialIncidentStateId: ObjectID | undefined = undefined;
 
+    /*
+     * Where the incident starts (StartingStage), read with the state it
+     * starts in: one read of the project's states both places a picked
+     * state, or a template's, and tells whether it is the project's own.
+     * Open for the created state, where it starts when neither names one.
+     */
+    let startingStage: StartingStage = StartingStage.Open;
+
+    // Whether that read found the state among the project's own.
+    let isStatePlacedByStartingRead: boolean = false;
+
     // Declared from a template whose status pages were all deleted.
     let isScopedToNothingByTemplate: boolean = false;
 
-    // If currentIncidentStateId is already provided (manual selection), use it
-    if (createBy.data.currentIncidentStateId) {
-      initialIncidentStateId = createBy.data.currentIncidentStateId;
+    const createData: Record<string, unknown> =
+      createBy.data as unknown as Record<string, unknown>;
 
-      // Validate that the provided state exists and belongs to the project
-      const providedState: IncidentState | null =
-        await IncidentStateService.findOneBy({
-          query: {
-            _id: initialIncidentStateId.toString(),
-            projectId: projectId,
-          },
-          select: {
-            _id: true,
-          },
-          props: {
-            isRoot: true,
-          },
+    /*
+     * A state the caller picked, and the template they declare from, each
+     * under either of its names (the two must agree), so a pick sent as the
+     * relation counts the same as one sent as the ID.
+     */
+    const pickedIncidentStateId: ObjectID | null =
+      RelationIdUtil.readConsistent(
+        createData,
+        CURRENT_STATE_KEYS,
+        "Incident State",
+      );
+
+    const incidentTemplateId: ObjectID | null = RelationIdUtil.readConsistent(
+      createData,
+      TEMPLATE_KEYS,
+      "Incident Template",
+    );
+
+    // A state the caller picked (manual selection) is where the incident starts.
+    if (pickedIncidentStateId) {
+      initialIncidentStateId = pickedIncidentStateId;
+
+      // It has to be one of the project's states.
+      const pickedStart: StartingState | null =
+        await IncidentStateService.getStartingState({
+          projectId: projectId,
+          incidentStateId: pickedIncidentStateId,
         });
 
-      if (!providedState) {
+      if (!pickedStart) {
         throw new BadDataException(
           "Invalid incident state provided. The state does not exist or does not belong to this project.",
         );
       }
-    } else if (createBy.data.createdIncidentTemplateId) {
+
+      startingStage = pickedStart.stage;
+      isStatePlacedByStartingRead = true;
+    } else if (incidentTemplateId) {
       /*
        * Created from a template — pull every field we may want to
        * inherit and apply each one only if the caller didn't already
@@ -2268,7 +2629,7 @@ export class Service extends DatabaseService<Model> {
       const incidentTemplate: IncidentTemplate | null =
         await IncidentTemplateService.findOneBy({
           query: {
-            _id: createBy.data.createdIncidentTemplateId.toString(),
+            _id: incidentTemplateId.toString(),
             projectId: projectId,
           },
           select: {
@@ -2295,43 +2656,54 @@ export class Service extends DatabaseService<Model> {
         });
 
       if (incidentTemplate?.initialIncidentStateId) {
-        initialIncidentStateId = incidentTemplate.initialIncidentStateId;
-
-        // Validate that the template's state exists and belongs to the project
-        const templateState: IncidentState | null =
-          await IncidentStateService.findOneBy({
-            query: {
-              _id: initialIncidentStateId.toString(),
-              projectId: projectId,
-            },
-            select: {
-              _id: true,
-            },
-            props: {
-              isRoot: true,
-            },
+        /*
+         * The template's state, while it is one of the project's states.
+         * One deleted since, or never the project's, leaves the incident to
+         * start in the created state.
+         */
+        const templateStart: StartingState | null =
+          await IncidentStateService.getStartingState({
+            projectId: projectId,
+            incidentStateId: incidentTemplate.initialIncidentStateId,
           });
 
-        if (!templateState) {
-          // Fall back to default if template state is invalid
-          initialIncidentStateId = undefined;
+        if (templateStart) {
+          initialIncidentStateId = incidentTemplate.initialIncidentStateId;
+          startingStage = templateStart.stage;
+          isStatePlacedByStartingRead = true;
         }
       }
 
       if (incidentTemplate) {
+        /*
+         * A severity or a monitor status the caller sent, under either of
+         * its names, wins over the template's. The template's is written
+         * with stamp, so no other name is left beside it to be stored
+         * instead.
+         */
         if (
-          !createBy.data.incidentSeverityId?.toString() &&
+          !RelationIdUtil.readConsistent(
+            createData,
+            SEVERITY_KEYS,
+            "Incident Severity",
+          ) &&
           incidentTemplate.incidentSeverityId
         ) {
-          createBy.data.incidentSeverityId =
-            incidentTemplate.incidentSeverityId;
+          RelationIdUtil.stamp(
+            createData,
+            SEVERITY_KEYS,
+            incidentTemplate.incidentSeverityId,
+          );
         }
         if (
-          createBy.data.changeMonitorStatusToId === undefined &&
+          !RelationIdUtil.isPresent(createData, CHANGE_MONITOR_STATUS_KEYS) &&
           incidentTemplate.changeMonitorStatusToId
         ) {
-          createBy.data.changeMonitorStatusToId =
-            incidentTemplate.changeMonitorStatusToId;
+          RelationIdUtil.stamp(
+            createData,
+            CHANGE_MONITOR_STATUS_KEYS,
+            incidentTemplate.changeMonitorStatusToId,
+          );
         }
         if (
           createBy.data.title === undefined &&
@@ -2483,29 +2855,15 @@ export class Service extends DatabaseService<Model> {
       isScopedToNothingByTemplate: isScopedToNothingByTemplate,
     });
 
-    // If no custom state is provided or found, fall back to default created state
+    /*
+     * With no state picked, and none from a template, the incident starts in
+     * the project's created state - as every incident a monitor declares
+     * does - which is open (StartingStage) with no need to read the rest of
+     * the project's states.
+     */
     if (!initialIncidentStateId) {
-      const incidentState: IncidentState | null =
-        await IncidentStateService.findOneBy({
-          query: {
-            projectId: projectId,
-            isCreatedState: true,
-          },
-          select: {
-            _id: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-      if (!incidentState || !incidentState.id) {
-        throw new BadDataException(
-          "Created incident state not found for this project. Please add created incident state from settings.",
-        );
-      }
-
-      initialIncidentStateId = incidentState.id;
+      initialIncidentStateId =
+        await IncidentStateService.getCreatedIncidentStateId(projectId);
     }
 
     /*
@@ -2529,25 +2887,33 @@ export class Service extends DatabaseService<Model> {
       projectId: projectId,
       subject: "incident",
       references: [
-        {
-          modelName: "Incident State",
-          id: initialIncidentStateId,
-          service: IncidentStateService,
-        },
-        {
+        /*
+         * The state it starts in - unless the read of where it starts found
+         * it among the project's states: a state picked or a template's.
+         */
+        ...(isStatePlacedByStartingRead
+          ? []
+          : [
+              {
+                modelName: "Incident State",
+                id: initialIncidentStateId,
+                service: IncidentStateService,
+              },
+            ]),
+        ...getWrittenRelationReferences({
+          payload: createBy.data,
+          idColumn: "incidentSeverityId",
+          relation: "incidentSeverity",
           modelName: "Incident Severity",
-          id:
-            resolveReferenceId(createBy.data.incidentSeverityId) ||
-            resolveReferenceId(createBy.data.incidentSeverity),
           service: IncidentSeverityService,
-        },
-        {
+        }),
+        ...getWrittenRelationReferences({
+          payload: createBy.data,
+          idColumn: "changeMonitorStatusToId",
+          relation: "changeMonitorStatusTo",
           modelName: "Monitor Status",
-          id:
-            resolveReferenceId(createBy.data.changeMonitorStatusToId) ||
-            resolveReferenceId(createBy.data.changeMonitorStatusTo),
           service: MonitorStatusService,
-        },
+        }),
         ...ProjectScopedReferenceValidator.getRelationReferences({
           payload: createBy.data,
           relations: this.getProjectScopedRelations(),
@@ -2577,42 +2943,65 @@ export class Service extends DatabaseService<Model> {
       statusPagesFromCaller: statusPagesFromCaller,
     });
 
+    /*
+     * How far along it starts (StartingStage), as read with its state above,
+     * is handed to onCreateSuccess, which decides on it what the create sets
+     * off: an incident declared already acknowledged pages nobody, and one
+     * declared resolved also sets off nothing that answers a live problem.
+     *
+     * The alerts to acknowledge are asked for only with alerts to link (the
+     * validator refuses the request otherwise), so they are empty, and the
+     * state null, for an incident declared from no alerts.
+     */
+    /*
+     * Whether the incident holds its monitors (Incident.holdsMonitors),
+     * whatever the write sent - it is OneUptime's to record. One declared
+     * open holds them: it puts them in its monitor status and, declared by
+     * hand, pauses their monitoring, and its resolve gives them back. One
+     * declared already resolved does neither (onCreateSuccess), so it holds
+     * nothing, and no resolve of it - after a reopen, say - gives anything
+     * back.
+     */
+    createBy.data.holdsMonitors = StartingStageUtil.isOngoing(startingStage);
+
+    const carryForward: IncidentCreateCarryForward = {
+      startingStage: startingStage,
+      alertIdsToLink: validatedAlertIds,
+      acknowledgedAlertStateId:
+        alertsToAcknowledge?.acknowledgedAlertStateId || null,
+      alertIdsToAcknowledge: alertsToAcknowledge?.alertIdsToAcknowledge || [],
+    };
+
     const incidentCounterResult: {
       counter: number;
       prefix: string | undefined;
     } = await ProjectService.incrementAndGetIncidentCounter(projectId);
 
-    createBy.data.currentIncidentStateId = initialIncidentStateId;
+    // The state it starts in, and no other name of it to be stored instead.
+    RelationIdUtil.stamp(
+      createData,
+      CURRENT_STATE_KEYS,
+      initialIncidentStateId,
+    );
     createBy.data.incidentNumber = incidentCounterResult.counter;
     createBy.data.incidentNumberWithPrefix = NumberPrefixUtil.formatNumber(
       incidentCounterResult.prefix,
       incidentCounterResult.counter,
     );
 
-    if (
-      (createBy.data.createdByUserId ||
-        createBy.data.createdByUser ||
-        createBy.props.userId) &&
-      !createBy.data.rootCause
-    ) {
-      let userId: ObjectID | undefined = createBy.data.createdByUserId;
+    // Who declared it, under either name of it: see CreatedByUser.
+    const declaredByUserId: ObjectID | null = CreatedByUser.getId(
+      createBy.data,
+      createBy.props,
+    );
 
-      if (createBy.props.userId) {
-        userId = createBy.props.userId;
-      }
-
-      if (createBy.data.createdByUser && createBy.data.createdByUser.id) {
-        userId = createBy.data.createdByUser.id;
-      }
-
-      if (userId) {
-        createBy.data.rootCause = `Incident created by ${await UserService.getUserMarkdownString(
-          {
-            userId: userId!,
-            projectId: projectId,
-          },
-        )}`;
-      }
+    if (declaredByUserId && !createBy.data.rootCause) {
+      createBy.data.rootCause = `Incident created by ${await UserService.getUserMarkdownString(
+        {
+          userId: declaredByUserId,
+          projectId: projectId,
+        },
+      )}`;
     }
 
     // Set notification status based on shouldStatusPageSubscribersBeNotifiedOnIncidentCreated
@@ -2722,6 +3111,19 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
+     * How far along the incident starts, as onBeforeCreate read it
+     * (StartingStage). Declared already acknowledged, no on-call policy
+     * runs. Declared resolved, it is over, and nothing below that answers a
+     * live problem runs either: no channel, monitor status, paused
+     * monitoring, runbook, grouping, SLA, AI investigation or remediation.
+     * Its rules, its owners, its feed and its first state still happen.
+     */
+    const startingStage: StartingStage = StartingStageUtil.fromCarryForward(
+      onCreate.carryForward,
+    );
+    const isOngoing: boolean = StartingStageUtil.isOngoing(startingStage);
+
+    /*
      * Whether an AI investigation run was enqueued for this incident — set
      * by the investigation step below and read by the auto-remediation step
      * after it: an enqueued investigation DEFERS remediation until the run
@@ -2758,8 +3160,13 @@ export class Service extends DatabaseService<Model> {
     // Execute operations sequentially with error handling
     privacyRulesApplied
       .then(async () => {
+        /*
+         * No channel is opened for an incident declared resolved. Its
+         * created feed entry still goes to the channels the workspace rules
+         * name.
+         */
         try {
-          if (createdItem.projectId && createdItem.id) {
+          if (createdItem.projectId && createdItem.id && isOngoing) {
             return await this.handleIncidentWorkspaceOperationsAsync(
               createdItem,
             );
@@ -2931,8 +3338,19 @@ export class Service extends DatabaseService<Model> {
         }
       })
       .then(async () => {
+        /*
+         * An incident declared resolved leaves its monitors' status alone:
+         * only resolving puts them back, and it is resolved already, so
+         * nothing ever would. In turn its first state - resolved - gives
+         * them nothing back (handleIncidentStateChangeAsync), so a status a
+         * monitor holds for another reason stays.
+         */
         try {
-          if (createdItem.changeMonitorStatusToId && createdItem.projectId) {
+          if (
+            createdItem.changeMonitorStatusToId &&
+            createdItem.projectId &&
+            isOngoing
+          ) {
             return await this.handleMonitorStatusChangeAsync(
               createdItem,
               onCreate,
@@ -2952,6 +3370,14 @@ export class Service extends DatabaseService<Model> {
         }
       })
       .then(async () => {
+        /*
+         * Nor does it pause their monitoring: nothing would ever resume it,
+         * since only resolving the incident does.
+         */
+        if (!isOngoing) {
+          return Promise.resolve();
+        }
+
         try {
           return await this.disableActiveMonitoringIfManualIncident(
             createdItem.id!,
@@ -3025,6 +3451,11 @@ export class Service extends DatabaseService<Model> {
         }
       })
       .then(async () => {
+        // No runbook is started for an incident declared resolved.
+        if (!isOngoing) {
+          return;
+        }
+
         try {
           await RunbookRuleEngineService.applyRulesToIncident(createdItem);
         } catch (error) {
@@ -3043,7 +3474,10 @@ export class Service extends DatabaseService<Model> {
             createdItem.onCallDutyPolicies?.length &&
             createdItem.onCallDutyPolicies?.length > 0
           ) {
-            return await this.executeOnCallDutyPoliciesAsync(createdItem);
+            return await this.executeOnCallDutyPoliciesAsync(
+              createdItem,
+              startingStage,
+            );
           }
           return Promise.resolve();
         } catch (error) {
@@ -3059,9 +3493,21 @@ export class Service extends DatabaseService<Model> {
         }
       })
       .then(async () => {
-        // Process incident for grouping into episodes
+        /*
+         * Process incident for grouping into episodes - unless it was
+         * declared resolved: it is over. One declared already acknowledged
+         * may join an episode that is open, but never opens or reopens one
+         * (GroupingOptions): a new episode runs its own on-call policies, and
+         * would page for the incident after all.
+         */
+        if (!isOngoing) {
+          return;
+        }
+
         try {
-          await IncidentGroupingEngineService.processIncident(createdItem);
+          await IncidentGroupingEngineService.processIncident(createdItem, {
+            mayOpenEpisode: StartingStageUtil.pagesOnCall(startingStage),
+          });
         } catch (error) {
           logger.error(
             `Incident grouping failed in IncidentService.onCreateSuccess: ${error}`,
@@ -3074,7 +3520,17 @@ export class Service extends DatabaseService<Model> {
         }
       })
       .then(async () => {
-        // Create SLA record for incident if a matching rule exists
+        /*
+         * Create SLA record for incident if a matching rule exists. An
+         * incident declared resolved has nothing left to respond to or
+         * resolve in time: it starts none. One declared acknowledged was
+         * responded to when it was declared, so its response deadline cannot
+         * be missed for it.
+         */
+        if (!isOngoing) {
+          return;
+        }
+
         try {
           if (
             createdItem.projectId &&
@@ -3085,6 +3541,9 @@ export class Service extends DatabaseService<Model> {
               incidentId: createdItem.id,
               projectId: createdItem.projectId,
               declaredAt: createdItem.declaredAt,
+              ...(startingStage === StartingStage.Acknowledged
+                ? { respondedAt: createdItem.declaredAt }
+                : {}),
             });
           }
         } catch (error) {
@@ -3127,10 +3586,17 @@ export class Service extends DatabaseService<Model> {
          */
         try {
           if (createdItem.projectId && createdItem.id) {
+            /*
+             * An incident declared resolved was over before it was declared:
+             * nothing to investigate. The runner records why on its AI card -
+             * after what stops OneUptime AI for the whole project, such as AI
+             * being off, which the card then names instead.
+             */
             aiInvestigationEnqueued =
               await AIIncidentInvestigationRunner.investigateNewIncident({
                 incidentId: createdItem.id,
                 projectId: createdItem.projectId,
+                createdResolved: !isOngoing,
               });
           }
         } catch (error) {
@@ -3152,14 +3618,20 @@ export class Service extends DatabaseService<Model> {
          * remediation planner always has the posted root cause analysis as
          * input instead of racing it. Without an investigation (opt-out,
          * gates, budget) remediation fires here immediately — it must
-         * never silently depend on the AI lane being enabled.
+         * never silently depend on the AI lane being enabled. Deferred, the
+         * Remediation card says it waits for the analysis
+         * (AutoRemediationRuleEngineService.onIncidentCreated/onAlertCreated).
          */
+        // Nothing is left to remediate for an incident declared resolved.
+        if (!isOngoing) {
+          return;
+        }
+
         try {
-          if (!aiInvestigationEnqueued) {
-            await AutoRemediationRuleEngineService.applyRulesToIncident(
-              createdItem,
-            );
-          }
+          await AutoRemediationRuleEngineService.onIncidentCreated({
+            incident: createdItem,
+            isInvestigationQueued: aiInvestigationEnqueued,
+          });
         } catch (error) {
           logger.error(
             `Apply auto-remediation rules failed in IncidentService.onCreateSuccess: ${error}`,
@@ -3218,12 +3690,10 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * Who declared the incident, as "Linked by" on the links and the actor of
-   * their feed entries. A user is recorded as themselves and an API key as
-   * nobody: Incident.createdByUserId is writable by the create payload, and
-   * an API key must not be able to name somebody else as the one who linked
-   * the alerts (IncidentAlertService.onBeforeCreate applies the same rule to
-   * a link created directly). Only an internal root caller is trusted to
-   * name the incident's creator.
+   * their feed entries: the incident's creator, as DatabaseService decided
+   * it (UserAttribution). A user is recorded as themselves and an API key or
+   * a workflow as nobody; only OneUptime's own server code names a creator
+   * itself.
    */
   private getDeclaringUserId(
     onCreate: OnCreate<Model>,
@@ -3525,12 +3995,13 @@ ${incident.description || "No description provided."}
 
 `;
 
+      // The state and severity names are plain text, escaped as the title is.
       if (incident.currentIncidentState?.name) {
-        feedInfoInMarkdown += `🔴 **Incident State**: ${incident.currentIncidentState.name} \n\n`;
+        feedInfoInMarkdown += `🔴 **Incident State**: ${escapeMarkdownValue(incident.currentIncidentState.name)} \n\n`;
       }
 
       if (incident.incidentSeverity?.name) {
-        feedInfoInMarkdown += `⚠️ **Severity**: ${incident.incidentSeverity.name} \n\n`;
+        feedInfoInMarkdown += `⚠️ **Severity**: ${escapeMarkdownValue(incident.incidentSeverity.name)} \n\n`;
       }
 
       /*
@@ -3643,6 +4114,11 @@ ${incident.remediationNotes || "No remediation notes provided."}
         rootCause: createdItem.rootCause,
         stateChangeLog: createdItem.createdStateLog,
         timelineStartsAt: createdItem.declaredAt,
+        /*
+         * Declared already resolved, the incident holds none of its monitors
+         * (onBeforeCreate recorded holdsMonitors false), so its first state -
+         * resolved - gives them nothing back (IncidentStateTimelineService).
+         */
         props: {
           isRoot: true,
         },
@@ -3656,15 +4132,33 @@ ${incident.remediationNotes || "No remediation notes provided."}
     }
   }
 
+  /*
+   * Runs the incident's on-call policies - the ones its create named,
+   * inherited from a template, or added by its on-call rules - when it
+   * starts open. Declared already acknowledged or resolved, somebody is on
+   * it or it is over: none of them runs, and its feed says so instead,
+   * naming them (OnCallNotRunOnCreate).
+   */
   @CaptureSpan()
   private async executeOnCallDutyPoliciesAsync(
     createdItem: Model,
+    startingStage: StartingStage,
   ): Promise<void> {
     try {
       if (
         createdItem.onCallDutyPolicies?.length &&
         createdItem.onCallDutyPolicies?.length > 0
       ) {
+        if (!StartingStageUtil.pagesOnCall(startingStage)) {
+          await OnCallNotRunOnCreate.createFeedItem({
+            record: { incidentId: createdItem.id! },
+            projectId: createdItem.projectId!,
+            stage: startingStage,
+            policies: createdItem.onCallDutyPolicies,
+          });
+          return;
+        }
+
         // Execute all on-call policies in parallel
         const policyPromises: Promise<void>[] =
           createdItem.onCallDutyPolicies.map((policy: OnCallDutyPolicy) => {
@@ -3929,6 +4423,244 @@ ${incident.remediationNotes || "No remediation notes provided."}
     );
   }
 
+  /*
+   * What an update that writes the postmortem's note or its Publish on
+   * Status Page switch, or switches the incident's Visible on Status Page
+   * on, does to one incident, compared with the postmortem as it was before
+   * the write (recordStoredValuesBeforeUpdate; see
+   * IncidentPostmortemPublication):
+   *
+   * - a note that reads differently is recorded in the incident feed, and
+   *   its Slack and Microsoft Teams channels, once: "Postmortem Note
+   *   updated", or "cleared" when it was emptied. Writing back the note the
+   *   incident holds - every save of the Edit Postmortem form does - records
+   *   nothing;
+   * - an update that publishes the postmortem - the status page did not show
+   *   it, and does now - queues its subscriber notification
+   *   (getNotificationAction). Saving it again, editing it while it is
+   *   published and taking it off the status page queue nothing; publishing
+   *   it again after that does;
+   * - an update that shows a hidden incident queues its postmortem's
+   *   notification that was skipped because the incident was hidden - and
+   *   only that one, and only while the incident and its postmortem are on
+   *   the status page once the update is written: one that was sent, failed
+   *   or skipped for another reason stays as it is.
+   *
+   * Called once the update is written, and after the note's inline images
+   * were made public, so the notification never links to images the status
+   * page cannot show yet.
+   */
+  private async applyPostmortemUpdate(data: {
+    incidentId: ObjectID;
+    projectId: ObjectID;
+    incidentLabel: string;
+    incidentLink: URL;
+    userId: ObjectID | undefined;
+    written: Record<string, unknown>;
+    postmortemBeforeUpdate: IncidentPostmortemStoredState | undefined;
+  }): Promise<void> {
+    const comparison: {
+      stored: IncidentPostmortemStoredState | undefined;
+      written: Record<string, unknown>;
+    } = {
+      stored: data.postmortemBeforeUpdate,
+      written: data.written,
+    };
+
+    if (IncidentPostmortemPublication.isNoteChanged(comparison)) {
+      const noteValue: string =
+        typeof data.written["postmortemNote"] === "string"
+          ? data.written["postmortemNote"]
+          : "";
+
+      const postmortemFeedMarkdown: string =
+        IncidentPostmortemPublication.hasNote(noteValue)
+          ? `**📘 Postmortem Note updated for [${data.incidentLabel}](${data.incidentLink.toString()})**\n\n${noteValue}`
+          : `**📘 Postmortem Note cleared for [${data.incidentLabel}](${data.incidentLink.toString()})**\n\n_No postmortem note provided._`;
+
+      await IncidentFeedService.createIncidentFeedItem({
+        incidentId: data.incidentId,
+        projectId: data.projectId,
+        incidentFeedEventType: IncidentFeedEventType.PostmortemNote,
+        displayColor: Blue500,
+        feedInfoInMarkdown: postmortemFeedMarkdown,
+        userId: data.userId,
+        workspaceNotification: {
+          sendWorkspaceNotification: true,
+        },
+      });
+    }
+
+    const action: PostmortemNotificationAction =
+      IncidentPostmortemPublication.getNotificationAction(comparison);
+
+    if (action === PostmortemNotificationAction.Queue) {
+      await this.queuePostmortemNotification({
+        incidentId: data.incidentId,
+        postmortemBeforeUpdate: data.postmortemBeforeUpdate,
+      });
+    }
+
+    if (action === PostmortemNotificationAction.QueueIfSkippedMeanwhile) {
+      /*
+       * It was on its way when the update read it. The run holding it may
+       * have read the postmortem before this update published it, and so
+       * skip it as not shown: looked at again now that the update is
+       * written, a notification skipped in the meantime is queued again.
+       */
+      const current: PostmortemNotificationStatusRead | null =
+        await this.readPostmortemNotificationStatus(data.incidentId);
+
+      if (
+        current &&
+        current.status === StatusPageSubscriberNotificationStatus.Skipped
+      ) {
+        await this.setPostmortemNotificationPending({
+          incidentId: data.incidentId,
+          expectedStatus: current.status,
+        });
+      }
+    }
+
+    if (action === PostmortemNotificationAction.QueueIfSkippedAsHidden) {
+      /*
+       * The update showed the incident. Its postmortem's notification was
+       * skipped because the incident was hidden - or was on its way, and the
+       * run holding it may have skipped it so from a read made before this
+       * update. So the incident is read again now that the update is
+       * written, and the notification goes back in the queue if it is due
+       * (isDueOnceShown: skipped for that reason, with the incident and its
+       * postmortem on the status page now) - only while it still stands at
+       * that skip, which also keeps two updates that both show the incident
+       * from queueing it twice. (The send job looks again after such a skip
+       * too, for a skip settled after this.)
+       */
+      const current: Model | null = await this.findOneById({
+        id: data.incidentId,
+        select: {
+          isVisibleOnStatusPage: true,
+          isPrivate: true,
+          showPostmortemOnStatusPage: true,
+          postmortemNote: true,
+          subscriberNotificationStatusOnPostmortemPublished: true,
+          subscriberNotificationStatusMessageOnPostmortemPublished: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (IncidentPostmortemPublication.isDueOnceShown(current)) {
+        await this.setPostmortemNotificationPending({
+          incidentId: data.incidentId,
+          expectedStatus: StatusPageSubscriberNotificationStatus.Skipped,
+          expectedMessage: IncidentPostmortemPublication.hiddenIncidentMessage,
+          message: IncidentPostmortemPublication.shownQueuedMessage,
+        });
+      }
+    }
+  }
+
+  /*
+   * Queues the postmortem's subscriber notification from where it stood
+   * before the update. An incident the read before the write did not see
+   * has no such record, so where it stands now is read instead, and a
+   * notification on its way already is left to go.
+   */
+  private async queuePostmortemNotification(data: {
+    incidentId: ObjectID;
+    postmortemBeforeUpdate: IncidentPostmortemStoredState | undefined;
+  }): Promise<void> {
+    if (data.postmortemBeforeUpdate) {
+      await this.setPostmortemNotificationPending({
+        incidentId: data.incidentId,
+        expectedStatus:
+          data.postmortemBeforeUpdate
+            .subscriberNotificationStatusOnPostmortemPublished ?? null,
+      });
+      return;
+    }
+
+    const current: PostmortemNotificationStatusRead | null =
+      await this.readPostmortemNotificationStatus(data.incidentId);
+
+    if (!current || IncidentPostmortemPublication.isOnItsWay(current.status)) {
+      return;
+    }
+
+    await this.setPostmortemNotificationPending({
+      incidentId: data.incidentId,
+      expectedStatus: current.status,
+    });
+  }
+
+  // Where the postmortem's subscriber notification stands; null when the incident is gone.
+  private async readPostmortemNotificationStatus(
+    incidentId: ObjectID,
+  ): Promise<PostmortemNotificationStatusRead | null> {
+    const incident: Model | null = await this.findOneById({
+      id: incidentId,
+      select: {
+        subscriberNotificationStatusOnPostmortemPublished: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!incident) {
+      return null;
+    }
+
+    return {
+      status:
+        incident.subscriberNotificationStatusOnPostmortemPublished ?? null,
+    };
+  }
+
+  /*
+   * Puts the postmortem's subscriber notification back to Pending, with a
+   * message saying why (`message`, else that the postmortem was published),
+   * for Incident:SendPostmortemNotificationToSubscribers to send it - only
+   * while it still stands at `expectedStatus`, and with `expectedMessage`
+   * when one is given, so a notification someone else queued again, a job
+   * claimed, or a run settled for another reason in the meantime is left to
+   * them. A hook-free write of those two columns, like the job's own claim
+   * (SubscriberNotificationClaim).
+   */
+  private async setPostmortemNotificationPending(data: {
+    incidentId: ObjectID;
+    expectedStatus: StatusPageSubscriberNotificationStatus | null;
+    expectedMessage?: string | null | undefined;
+    message?: string | undefined;
+  }): Promise<void> {
+    const isQueued: boolean = await this.compareAndSetColumnsByIdWithoutHooks({
+      id: data.incidentId,
+      data: {
+        subscriberNotificationStatusOnPostmortemPublished:
+          StatusPageSubscriberNotificationStatus.Pending,
+        subscriberNotificationStatusMessageOnPostmortemPublished:
+          data.message || IncidentPostmortemPublication.queuedMessage,
+      },
+      // A null status or message is matched as null (IS NOT DISTINCT FROM).
+      expectedData: {
+        subscriberNotificationStatusOnPostmortemPublished: data.expectedStatus,
+        ...(data.expectedMessage !== undefined
+          ? {
+              subscriberNotificationStatusMessageOnPostmortemPublished:
+                data.expectedMessage,
+            }
+          : {}),
+      } as unknown as PartialEntity<Model>,
+    });
+
+    if (!isQueued) {
+      logger.debug(
+        `Not queueing incident ${data.incidentId.toString()}'s postmortem notification: it changed since the update read it.`,
+      );
+    }
+  }
+
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
@@ -3970,16 +4702,40 @@ ${incident.remediationNotes || "No remediation notes provided."}
       }
     }
 
-    if (
-      onUpdate.updateBy.data.currentIncidentStateId &&
-      onUpdate.updateBy.props.tenantId
-    ) {
+    /*
+     * The state the update wrote, under either of its names: onBeforeUpdate
+     * refused two that disagree, so this reads one value.
+     */
+    const updatedIncidentStateId: ObjectID | null =
+      RelationIdUtil.readConsistent(
+        onUpdate.updateBy.data as unknown as Record<string, unknown>,
+        CURRENT_STATE_KEYS,
+        "Incident State",
+      );
+
+    /*
+     * The severity the update wrote, under either of its names: the
+     * dashboard's forms send the relation, the API, Terraform, workflows and
+     * the AI tools the ID column, and onBeforeUpdate refused two that
+     * disagree. Its feed entry, SLA recalculation, reminder refresh and
+     * metric run for each incident whose severity this changed - compared
+     * with the severity it held before the write
+     * (recordStoredValuesBeforeUpdate) - so writing back the severity an
+     * incident holds runs none of them.
+     */
+    const writtenIncidentSeverityId: ObjectID | null =
+      RelationIdUtil.readConsistent(
+        onUpdate.updateBy.data as unknown as Record<string, unknown>,
+        SEVERITY_KEYS,
+        "Incident Severity",
+      );
+
+    if (updatedIncidentStateId && onUpdate.updateBy.props.tenantId) {
       for (const itemId of updatedItemIds) {
         await this.changeIncidentState({
           projectId: onUpdate.updateBy.props.tenantId as ObjectID,
           incidentId: itemId,
-          incidentStateId: onUpdate.updateBy.data
-            .currentIncidentStateId as ObjectID,
+          incidentStateId: updatedIncidentStateId,
           notifyOwners: true,
           shouldNotifyStatusPageSubscribers: true,
           isSubscribersNotified: false,
@@ -3991,6 +4747,17 @@ ${incident.remediationNotes || "No remediation notes provided."}
         });
       }
     }
+
+    /*
+     * Whether the update writes the postmortem's note or its switch, or may
+     * show the incident, and with it the postmortem for the first time: what
+     * applyPostmortemUpdate looks at, by the same rule
+     * recordStoredValuesBeforeUpdate read for.
+     */
+    const isPostmortemCompared: boolean =
+      IncidentPostmortemPublication.isComparedBy(
+        onUpdate.updateBy.data as unknown as Record<string, unknown>,
+      );
 
     if (updatedItemIds.length > 0) {
       for (const incidentId of updatedItemIds) {
@@ -4022,68 +4789,57 @@ ${incident.remediationNotes || "No remediation notes provided."}
         const createdByUserId: ObjectID | undefined | null =
           onUpdate.updateBy.props.userId;
 
-        if (
-          Object.prototype.hasOwnProperty.call(
-            updatedIncidentData,
-            "postmortemNote",
-          )
-        ) {
-          const noteValue: string =
-            (updatedIncidentData.postmortemNote as string) || "";
-          const hasNoteContent: boolean = noteValue.trim().length > 0;
-
-          const postmortemFeedMarkdown: string = hasNoteContent
-            ? `**📘 Postmortem Note updated for [${incidentLabel}](${incidentLink.toString()})**\n\n${noteValue}`
-            : `**📘 Postmortem Note cleared for [${incidentLabel}](${incidentLink.toString()})**\n\n_No postmortem note provided._`;
-
-          await IncidentFeedService.createIncidentFeedItem({
-            incidentId,
-            projectId,
-            incidentFeedEventType: IncidentFeedEventType.PostmortemNote,
-            displayColor: Blue500,
-            feedInfoInMarkdown: postmortemFeedMarkdown,
+        /*
+         * The postmortem's inline images are already public if it is shown
+         * on the status page, private if not: DatabaseService made them so
+         * as it wrote the update, before this hook (PublishedImages), so
+         * the notification queued below never links to a private image.
+         */
+        if (isPostmortemCompared) {
+          await this.applyPostmortemUpdate({
+            incidentId: incidentId,
+            projectId: projectId,
+            incidentLabel: incidentLabel,
+            incidentLink: incidentLink,
             userId: createdByUserId || undefined,
-            workspaceNotification: {
-              sendWorkspaceNotification: true,
-            },
-          });
-
-          // Set subscriber notification status to Pending so the cron job will send notifications
-          await this.updateOneById({
-            id: incidentId,
-            data: {
-              subscriberNotificationStatusOnPostmortemPublished:
-                StatusPageSubscriberNotificationStatus.Pending,
-            },
-            props: {
-              isRoot: true,
-              ignoreHooks: true,
-            },
+            written: updatedIncidentData as Record<string, unknown>,
+            postmortemBeforeUpdate: (
+              onUpdate.carryForward as UpdateCarryForward | undefined
+            )?.[incidentId.toString()]?.postmortemBeforeUpdate,
           });
         }
 
-        // Re-evaluate reminder schedule when reminders are enabled or disabled for this incident
-        if (
-          Object.prototype.hasOwnProperty.call(
-            updatedIncidentData,
-            "enableReminders",
-          )
-        ) {
-          try {
-            await this.refreshReminderSchedule({
-              incidentId: incidentId,
-              projectId: projectId,
-            });
-          } catch (reminderError) {
-            logger.error(
-              `Reminder rescheduling failed in IncidentService.onUpdateSuccess: ${reminderError}`,
-              {
-                projectId: projectId?.toString(),
-                incidentId: incidentId?.toString(),
-              } as LogAttributes,
-            );
-          }
-        }
+        const isSeverityChanged: boolean = ReferenceChange.isChanged({
+          writtenId: writtenIncidentSeverityId,
+          idBeforeUpdate: (
+            onUpdate.carryForward as UpdateCarryForward | undefined
+          )?.[incidentId.toString()]?.severityIdBeforeUpdate,
+        });
+
+        /*
+         * What the update changed of the title, root cause, description,
+         * remediation notes, labels and Send reminders switch, against what
+         * the incident held before the write (recordStoredValuesBeforeUpdate).
+         * One the read did not see counts as changed.
+         */
+        const fieldChanges: EventFieldSet = EventFieldChange.getChanges({
+          written: updatedIncidentData,
+          valuesBeforeUpdate: (
+            onUpdate.carryForward as UpdateCarryForward | undefined
+          )?.[incidentId.toString()]?.valuesBeforeUpdate,
+        });
+
+        /*
+         * The reminder rule is matched on the severity and the labels, and
+         * reminders can be switched on or off. One refresh covers whatever
+         * of those the update changed - clearing the labels included - and
+         * none runs when it changed none of them: each refresh restarts the
+         * interval, so writing back the labels the incident has must not.
+         */
+        const shouldRefreshReminders: boolean =
+          isSeverityChanged ||
+          fieldChanges.labels ||
+          fieldChanges.enableReminders;
 
         // emit postmortem completion time metric when postmortemPostedAt is set
         if (
@@ -4201,187 +4957,31 @@ ${incident.remediationNotes || "No remediation notes provided."}
           }
         }
 
-        /*
-         * Sync isPublic on inline post-mortem images. The markdown
-         * editor uploads them as private; they must flip to public
-         * exactly when the post-mortem is shown on the status page so
-         * that anonymous status-page viewers can render the
-         * screenshots without exposing private artefacts.
-         */
-        const postmortemNoteChanged: boolean =
-          Object.prototype.hasOwnProperty.call(
-            updatedIncidentData,
-            "postmortemNote",
-          );
-        const postmortemVisibilityChanged: boolean =
-          Object.prototype.hasOwnProperty.call(
-            updatedIncidentData,
-            "showPostmortemOnStatusPage",
-          );
-
-        if (postmortemNoteChanged || postmortemVisibilityChanged) {
-          try {
-            const incidentForSync: Model | null = await this.findOneById({
-              id: incidentId,
-              select: {
-                postmortemNote: true,
-                showPostmortemOnStatusPage: true,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-
-            if (incidentForSync) {
-              await setIsPublicForMarkdownImages(
-                incidentForSync.postmortemNote || "",
-                Boolean(incidentForSync.showPostmortemOnStatusPage),
-              );
-            }
-          } catch (syncError) {
-            logger.error(
-              `Failed to sync inline post-mortem image visibility: ${syncError}`,
-              {
-                projectId: projectId?.toString(),
-                incidentId: incidentId?.toString(),
-              } as LogAttributes,
-            );
-          }
-        }
-
         let shouldAddIncidentFeed: boolean = false;
         let feedInfoInMarkdown: string = `**[${incidentLabel}](${incidentLink.toString()}) was updated.**`;
 
-        if (
-          Object.prototype.hasOwnProperty.call(updatedIncidentData, "title")
-        ) {
-          // Plain text, escaped as in the "Incident Created" item.
-          const title: string = escapeMarkdownValue(
-            (updatedIncidentData.title as string) || "No title provided.",
-          );
-          feedInfoInMarkdown += `\n\n**Title**: \n${title}\n`;
-          shouldAddIncidentFeed = true;
-        }
-
-        if (
-          Object.prototype.hasOwnProperty.call(updatedIncidentData, "rootCause")
-        ) {
-          const rootCause: string =
-            (updatedIncidentData.rootCause as string) || "";
-          const rootCauseText: string = rootCause.trim().length
-            ? rootCause
-            : "Root cause removed.";
-          feedInfoInMarkdown += `\n\n**📄 Root Cause**: \n${rootCauseText}\n`;
-          shouldAddIncidentFeed = true;
-        }
-
-        if (
-          Object.prototype.hasOwnProperty.call(
-            updatedIncidentData,
-            "description",
-          )
-        ) {
-          const description: string =
-            (updatedIncidentData.description as string) ||
-            "No description provided.";
-          feedInfoInMarkdown += `\n\n**Incident Description**: \n${description}\n`;
-          shouldAddIncidentFeed = true;
-        }
-
-        if (
-          Object.prototype.hasOwnProperty.call(
-            updatedIncidentData,
-            "remediationNotes",
-          )
-        ) {
-          const remediationNotes: string =
-            (updatedIncidentData.remediationNotes as string) || "";
-          const remediationText: string = remediationNotes.trim().length
-            ? remediationNotes
-            : "Remediation notes removed.";
-          feedInfoInMarkdown += `\n\n**🎯 Remediation Notes**: \n${remediationText}\n`;
-          shouldAddIncidentFeed = true;
-        }
-
-        if (
-          updatedIncidentData.labels &&
-          (updatedIncidentData.labels as Array<Label>).length > 0 &&
-          Array.isArray(updatedIncidentData.labels)
-        ) {
-          const labelIds: Array<ObjectID> = (updatedIncidentData.labels as any)
-            .map((label: Label) => {
-              if (label._id) {
-                return new ObjectID(label._id?.toString());
-              }
-
-              return null;
-            })
-            .filter((labelId: ObjectID | null) => {
-              return labelId !== null;
-            });
-
-          const labels: Array<Label> = await LabelService.findBy({
-            query: {
-              _id: QueryHelper.any(labelIds),
-            },
-            select: {
-              name: true,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            props: {
-              isRoot: true,
-            },
-          });
-
-          if (labels.length > 0) {
-            feedInfoInMarkdown += `\n\n**🏷️ Labels**:
-
-${labels
-  .map((label: Label) => {
-    return `- ${label.name}`;
-  })
-  .join("\n")}
-`;
-
-            shouldAddIncidentFeed = true;
-          }
-        }
-
         /*
-         * Re-match reminder rule on any labels change (including clearing all
-         * labels), since labels can change which reminder rule matches.
+         * A line for each of the title, root cause, description, remediation
+         * notes and labels the update really changed: writing back what the
+         * incident holds - every save of a card sends its fields - adds none.
          */
-        if (
-          updatedIncidentData.labels &&
-          Array.isArray(updatedIncidentData.labels)
-        ) {
-          try {
-            await this.refreshReminderSchedule({
-              incidentId: incidentId,
-              projectId: projectId,
-            });
-          } catch (reminderError) {
-            logger.error(
-              `Reminder rescheduling failed in IncidentService.onUpdateSuccess: ${reminderError}`,
-              {
-                projectId: projectId?.toString(),
-                incidentId: incidentId?.toString(),
-              } as LogAttributes,
-            );
-          }
+        const fieldsMarkdown: string = await EventFieldChange.getFeedMarkdown({
+          written: updatedIncidentData,
+          changes: fieldChanges,
+          projectId: projectId,
+          recordName: "Incident",
+        });
+
+        if (fieldsMarkdown) {
+          feedInfoInMarkdown += fieldsMarkdown;
+          shouldAddIncidentFeed = true;
         }
 
-        if (
-          updatedIncidentData.incidentSeverity &&
-          (updatedIncidentData.incidentSeverity as any)._id
-        ) {
+        if (isSeverityChanged && writtenIncidentSeverityId) {
           const incidentSeverity: IncidentSeverity | null =
             await IncidentSeverityService.findOneBy({
               query: {
-                _id: new ObjectID(
-                  (updatedIncidentData.incidentSeverity as any)?._id.toString(),
-                ),
+                _id: writtenIncidentSeverityId,
               },
               select: {
                 name: true,
@@ -4393,7 +4993,7 @@ ${labels
 
           if (incidentSeverity) {
             feedInfoInMarkdown += `\n\n**⚠️ Incident Severity**:
-${incidentSeverity.name}
+${escapeMarkdownValue(incidentSeverity.name)}
 `;
 
             shouldAddIncidentFeed = true;
@@ -4406,22 +5006,6 @@ ${incidentSeverity.name}
             } catch (slaError) {
               logger.error(
                 `SLA recalculation failed in IncidentService.onUpdateSuccess: ${slaError}`,
-                {
-                  projectId: projectId?.toString(),
-                  incidentId: incidentId?.toString(),
-                } as LogAttributes,
-              );
-            }
-
-            // Re-match reminder rule when severity changes
-            try {
-              await this.refreshReminderSchedule({
-                incidentId: incidentId,
-                projectId: projectId,
-              });
-            } catch (reminderError) {
-              logger.error(
-                `Reminder rescheduling failed in IncidentService.onUpdateSuccess: ${reminderError}`,
                 {
                   projectId: projectId?.toString(),
                   incidentId: incidentId?.toString(),
@@ -4505,6 +5089,23 @@ ${incidentSeverity.name}
           }
         }
 
+        if (shouldRefreshReminders) {
+          try {
+            await this.refreshReminderSchedule({
+              incidentId: incidentId,
+              projectId: projectId,
+            });
+          } catch (reminderError) {
+            logger.error(
+              `Reminder rescheduling failed in IncidentService.onUpdateSuccess: ${reminderError}`,
+              {
+                projectId: projectId?.toString(),
+                incidentId: incidentId?.toString(),
+              } as LogAttributes,
+            );
+          }
+        }
+
         const carryForward: UpdateCarryForward | undefined =
           onUpdate.carryForward;
 
@@ -4538,8 +5139,9 @@ ${incidentSeverity.name}
 
               feedInfoInMarkdown += `\n\n**🗑️ Monitors Removed**:\n`;
 
+              // Each name is plain text inside its link's own text.
               for (const monitor of monitorsRemoved) {
-                feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitor.id!)).toString()})\n`;
+                feedInfoInMarkdown += `- [${escapeMarkdownInline(monitor.name)}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitor.id!)).toString()})\n`;
               }
 
               shouldAddIncidentFeed = true;
@@ -4572,7 +5174,7 @@ ${incidentSeverity.name}
               feedInfoInMarkdown += `\n\n**🌎 Monitors Added**:\n`;
 
               for (const monitor of monitorsAdded) {
-                feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitor.id!)).toString()})\n`;
+                feedInfoInMarkdown += `- [${escapeMarkdownInline(monitor.name)}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitor.id!)).toString()})\n`;
               }
 
               shouldAddIncidentFeed = true;
@@ -4628,7 +5230,7 @@ ${incidentSeverity.name}
                 });
 
               if (oldMonitorStatus && newMonitorStatus) {
-                feedInfoInMarkdown += `\n\n**🔄 Monitor Status Changed**:\n- **From** ${oldMonitorStatus.name} to ${newMonitorStatus.name}`;
+                feedInfoInMarkdown += `\n\n**🔄 Monitor Status Changed**:\n- **From** ${escapeMarkdownValue(oldMonitorStatus.name)} to ${escapeMarkdownValue(newMonitorStatus.name)}`;
                 shouldAddIncidentFeed = true;
               }
             }
@@ -4686,13 +5288,15 @@ ${incidentSeverity.name}
    *
    * The monitors taken off the incident are restored, unless another open
    * incident still holds them (markMonitorsActiveForMonitoring), when the
-   * incident was open before the update. That includes an update that
-   * resolves it as well: resolving restores only the monitors it still
-   * holds (IncidentStateTimelineService), so this is the only restore the
-   * ones taken off get. A monitor taken off an incident that was resolved
+   * incident was open before the update and held its monitors
+   * (Incident.holdsMonitors). That includes an update that resolves it as
+   * well: resolving restores only the monitors it still holds
+   * (IncidentStateTimelineService), so this is the only restore the ones
+   * taken off get. A monitor taken off an incident that was resolved
    * already was restored when it resolved, and restoring it again could
    * overwrite a status set since (maintenance, or a manual monitor's status
-   * set by hand).
+   * set by hand) - as could restoring one of an incident that never held
+   * its monitors (declared already resolved, and reopened since).
    *
    * A resolved incident, as it stands after the update, does nothing else
    * to its monitors. Nothing would clear what it did: an added monitor of a
@@ -4704,7 +5308,10 @@ ${incidentSeverity.name}
    *   as creating it did (disableActiveMonitoringIfManualIncident);
    * - puts the monitors added in its status, and all of its monitors only
    *   when the edit changes that status. Every save used to put all of them
-   *   in it again, overwriting a status a probe had set since.
+   *   in it again, overwriting a status a probe had set since;
+   * - holds its monitors from then on (Incident.holdsMonitors), so its
+   *   resolve gives them back - even one that held nothing before, as an
+   *   incident declared already resolved and reopened since.
    */
   private async updateMonitorsForIncidentEdit(data: {
     projectId: ObjectID;
@@ -4717,7 +5324,8 @@ ${incidentSeverity.name}
 
     if (
       carryForward.monitorsRemoved.length > 0 &&
-      !carryForward.isResolvedBeforeUpdate
+      !carryForward.isResolvedBeforeUpdate &&
+      carryForward.holdsMonitorsBeforeUpdate !== false
     ) {
       // change these monitors back to operational state.
       await this.markMonitorsActiveForMonitoring(
@@ -4740,6 +5348,14 @@ ${incidentSeverity.name}
      */
     if (await this.isIncidentResolved({ incidentId: data.incidentId })) {
       return;
+    }
+
+    // What the edit does next, it does to monitors the incident then holds.
+    if (carryForward.holdsMonitorsBeforeUpdate !== true) {
+      await this.recordHoldsMonitors({
+        incidentId: data.incidentId,
+        holdsMonitors: true,
+      });
     }
 
     if (carryForward.monitorsAdded.length > 0) {
@@ -4913,32 +5529,18 @@ ${incidentSeverity.name}
     }
   }
 
+  // Whether another open incident declared by hand still holds the monitor.
   @CaptureSpan()
   public async doesMonitorHasMoreActiveManualIncidents(
     monitorId: ObjectID,
     proojectId: ObjectID,
   ): Promise<boolean> {
-    const resolvedState: IncidentState | null =
-      await IncidentStateService.findOneBy({
-        query: {
-          projectId: proojectId,
-          isResolvedState: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-          order: true,
-        },
-      });
-
     const incidentCount: PositiveNumber = await this.countBy({
       query: {
         monitors: QueryHelper.inRelationArray([monitorId]),
-        currentIncidentState: {
-          order: QueryHelper.lessThan(resolvedState?.order as number),
-        },
+        currentIncidentStateId: QueryHelper.any(
+          await IncidentStateService.getUnresolvedIncidentStateIds(proojectId),
+        ),
         isCreatedAutomatically: false,
       },
       props: {
@@ -4949,32 +5551,18 @@ ${incidentSeverity.name}
     return incidentCount.toNumber() > 0;
   }
 
+  // Whether any open incident lists the monitor (Common/Utils/ResolvedState).
   @CaptureSpan()
   public async doesMonitorHaveActiveIncidents(
     monitorId: ObjectID,
     projectId: ObjectID,
   ): Promise<boolean> {
-    const resolvedState: IncidentState | null =
-      await IncidentStateService.findOneBy({
-        query: {
-          projectId: projectId,
-          isResolvedState: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-          order: true,
-        },
-      });
-
     const incidentCount: PositiveNumber = await this.countBy({
       query: {
         monitors: QueryHelper.inRelationArray([monitorId]),
-        currentIncidentState: {
-          order: QueryHelper.lessThan(resolvedState?.order as number),
-        },
+        currentIncidentStateId: QueryHelper.any(
+          await IncidentStateService.getUnresolvedIncidentStateIds(projectId),
+        ),
       },
       props: {
         isRoot: true,
@@ -5124,6 +5712,7 @@ ${incidentSeverity.name}
         monitors: {
           _id: true,
         },
+        holdsMonitors: true,
       },
       props: {
         isRoot: true,
@@ -5145,7 +5734,18 @@ ${incidentSeverity.name}
   ): Promise<OnDelete<Model>> {
     if (onDelete.carryForward && onDelete.carryForward.incidents) {
       for (const incident of onDelete.carryForward.incidents) {
-        if (incident.monitors && incident.monitors.length > 0) {
+        /*
+         * Deleting an incident gives back the monitors it holds - and those
+         * of an incident from before that was recorded, which is how
+         * monitors an older incident left offline are freed. One that holds
+         * nothing (declared already resolved, or resolved since) has nothing
+         * of theirs to give back.
+         */
+        if (
+          incident.monitors &&
+          incident.monitors.length > 0 &&
+          incident.holdsMonitors !== false
+        ) {
           await this.markMonitorsActiveForMonitoring(
             incident.projectId!,
             incident.monitors,
@@ -5277,6 +5877,28 @@ ${incidentSeverity.name}
     await IncidentStateTimelineService.create({
       data: statusTimeline,
       props: props || {},
+    });
+  }
+
+  /*
+   * Records whether the incident holds its monitors (Incident.holdsMonitors):
+   * OneUptime's own bookkeeping, written as root and without the update
+   * hooks - it changes nothing anyone sees, and nothing to tell anyone.
+   */
+  @CaptureSpan()
+  public async recordHoldsMonitors(data: {
+    incidentId: ObjectID;
+    holdsMonitors: boolean;
+  }): Promise<void> {
+    await this.updateOneById({
+      id: data.incidentId,
+      data: {
+        holdsMonitors: data.holdsMonitors,
+      },
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
     });
   }
 
@@ -5641,7 +6263,6 @@ ${incidentSeverity.name}
           incidentState: {
             name: true,
             isAcknowledgedState: true,
-            isResolvedState: true,
             isCreatedState: true,
           },
           startsAt: true,
@@ -5652,6 +6273,15 @@ ${incidentSeverity.name}
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    // Which of them count as resolved (Common/Utils/ResolvedState).
+    const incidentStates: Array<IncidentState> =
+      await IncidentStateService.getAllIncidentStates({
+        projectId: incident.projectId,
         props: {
           isRoot: true,
         },
@@ -5790,17 +6420,20 @@ ${incidentSeverity.name}
         }
       }
 
-      // time to resolve
-      const isIncidentResolved: boolean = incidentStateTimelines.some(
-        (timeline: IncidentStateTimeline) => {
-          return timeline.incidentState?.isResolvedState;
-        },
-      );
-
+      /*
+       * Time to resolve: until the incident first moved into a state that
+       * counts as resolved (Common/Utils/ResolvedState) - the project's
+       * resolved state, or one placed after it.
+       */
       const resolvedIncidentStateTimeline: IncidentStateTimeline | undefined =
-        incidentStateTimelines.find((timeline: IncidentStateTimeline) => {
-          return timeline.incidentState?.isResolvedState;
+        this.getFirstResolutionRow({
+          incidentStates: incidentStates,
+          incidentStateTimelines: incidentStateTimelines,
         });
+
+      const isIncidentResolved: boolean = Boolean(
+        resolvedIncidentStateTimeline,
+      );
 
       if (isIncidentResolved && resolvedIncidentStateTimeline) {
         // register the metric type so the catalog stays complete across refreshes.
@@ -5948,8 +6581,12 @@ ${incidentSeverity.name}
             timeline.incidentState?.isCreatedState?.toString() || "false",
           isAcknowledgedState:
             timeline.incidentState?.isAcknowledgedState?.toString() || "false",
-          isResolvedState:
-            timeline.incidentState?.isResolvedState?.toString() || "false",
+          // Whether the state counts as resolved, as everywhere else.
+          isResolvedState: ResolvedStateUtil.isResolved({
+            list: StateListType.IncidentState,
+            states: incidentStates,
+            stateId: timeline.incidentStateId,
+          }).toString(),
         };
         timeInStateMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
           timeInStateMetric.attributes,

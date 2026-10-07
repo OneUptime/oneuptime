@@ -10,6 +10,8 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import { STATE_LISTS, StateListType } from "../../Utils/StateOrder";
+import StartingStageUtil, { StartingState } from "../../Utils/StartingStage";
+import ResolvedStateUtil from "../../Utils/ResolvedState";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
@@ -108,6 +110,12 @@ export class Service extends DatabaseService<IncidentState> {
     return incidentStates;
   }
 
+  /*
+   * The project's states an incident (or an incident episode) is still open
+   * in: every state above the resolved state, top first. Everything from the
+   * resolved state down counts as resolved, flagged or not
+   * (Common/Utils/ResolvedState).
+   */
   @CaptureSpan()
   public async getUnresolvedIncidentStates(
     projectId: ObjectID,
@@ -119,19 +127,74 @@ export class Service extends DatabaseService<IncidentState> {
         props: props,
       });
 
-    const unresolvedIncidentStates: Array<IncidentState> = [];
-
-    for (const state of incidentStates) {
-      if (!state.isResolvedState) {
-        unresolvedIncidentStates.push(state);
-      } else {
-        break; // everything after resolved state is resolved
-      }
-    }
-
-    return unresolvedIncidentStates;
+    return ResolvedStateUtil.getUnresolvedStates({
+      list: StateListType.IncidentState,
+      states: incidentStates,
+    });
   }
 
+  /*
+   * The ids of getUnresolvedIncidentStates, read as OneUptime: what a query
+   * for the project's open incidents or incident episodes matches their
+   * current state against (currentIncidentStateId: QueryHelper.any(...)).
+   */
+  @CaptureSpan()
+  public async getUnresolvedIncidentStateIds(
+    projectId: ObjectID,
+  ): Promise<Array<ObjectID>> {
+    return ResolvedStateUtil.getUnresolvedStateIds({
+      list: StateListType.IncidentState,
+      states: await this.getAllIncidentStates({
+        projectId: projectId,
+        props: {
+          isRoot: true,
+        },
+      }),
+    });
+  }
+
+  // The project's states that count as resolved, as getUnresolvedIncidentStateIds.
+  @CaptureSpan()
+  public async getResolvedIncidentStateIds(
+    projectId: ObjectID,
+  ): Promise<Array<ObjectID>> {
+    return ResolvedStateUtil.getResolvedStateIds({
+      list: StateListType.IncidentState,
+      states: await this.getAllIncidentStates({
+        projectId: projectId,
+        props: {
+          isRoot: true,
+        },
+      }),
+    });
+  }
+
+  /*
+   * Whether an incident (or an incident episode) in `incidentStateId` is
+   * resolved (Common/Utils/ResolvedState). False for a state that is not
+   * the project's.
+   */
+  @CaptureSpan()
+  public async isResolvedIncidentState(data: {
+    projectId: ObjectID;
+    incidentStateId: ObjectID;
+  }): Promise<boolean> {
+    return ResolvedStateUtil.isResolved({
+      list: StateListType.IncidentState,
+      states: await this.getAllIncidentStates({
+        projectId: data.projectId,
+        props: {
+          isRoot: true,
+        },
+      }),
+      stateId: data.incidentStateId,
+    });
+  }
+
+  /*
+   * The project's resolved state: the first from the top flagged resolved,
+   * which resolving an incident or an episode moves it into.
+   */
   @CaptureSpan()
   public async getResolvedIncidentState(data: {
     projectId: ObjectID;
@@ -143,9 +206,10 @@ export class Service extends DatabaseService<IncidentState> {
         props: data.props,
       });
 
-    const resolvedIncidentState: IncidentState | undefined =
-      incidentStates.find((incidentState: IncidentState) => {
-        return incidentState?.isResolvedState;
+    const resolvedIncidentState: IncidentState | null =
+      ResolvedStateUtil.getResolvedState({
+        list: StateListType.IncidentState,
+        states: incidentStates,
       });
 
     if (!resolvedIncidentState) {
@@ -181,6 +245,69 @@ export class Service extends DatabaseService<IncidentState> {
     }
 
     return ackIncidentState;
+  }
+
+  /*
+   * The project's created state: where a new incident or incident episode
+   * starts when its create names no state and, for an incident, no template
+   * names one (IncidentService, IncidentEpisodeService) - as every incident a
+   * monitor declares and every episode a grouping rule opens does. Such a
+   * record starts open (StartingStage), with no need to read the rest of the
+   * list.
+   */
+  @CaptureSpan()
+  public async getCreatedIncidentStateId(
+    projectId: ObjectID,
+  ): Promise<ObjectID> {
+    const createdIncidentState: IncidentState | null = await this.findOneBy({
+      query: {
+        projectId: projectId,
+        isCreatedState: true,
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!createdIncidentState || !createdIncidentState.id) {
+      throw new BadDataException(
+        "Created incident state not found for this project. Please add created incident state from settings.",
+      );
+    }
+
+    return createdIncidentState.id;
+  }
+
+  /*
+   * Where an incident or an incident episode starts when it is created in
+   * `incidentStateId` (StartingStage): open, acknowledged or resolved, and
+   * so what its create sets off - no on-call from acknowledged on, nothing
+   * that answers a live problem once resolved. One read of the project's
+   * whole list, as OneUptime, which only holds the project's own states:
+   * null when `incidentStateId` is not one of them, which also checks that
+   * it is.
+   */
+  @CaptureSpan()
+  public async getStartingState(data: {
+    projectId: ObjectID;
+    incidentStateId: ObjectID;
+  }): Promise<StartingState | null> {
+    const incidentStates: Array<IncidentState> =
+      await this.getAllIncidentStates({
+        projectId: data.projectId,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    return StartingStageUtil.getStartingState({
+      definition: STATE_LISTS[StateListType.IncidentState],
+      states: incidentStates,
+      stateId: data.incidentStateId,
+    });
   }
 }
 export default new Service();

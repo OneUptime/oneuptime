@@ -114,21 +114,21 @@ As regras de escalonamento decidem para quem ligar quando alguém disca o númer
 3. Clique em **Adicionar regra de escalonamento**
 4. Preencha a regra. É um único passo:
    - **Para quem ligar**: um agendamento de plantão ou uma pessoa. Um agendamento faz tocar o telefone de quem estiver de plantão nele quando a chamada chegar. As pessoas são os membros do seu projeto.
-   - **Tempo de toque (em segundos)**: por quanto tempo o telefone delas toca antes de a chamada passar para a próxima regra. Começa em 30 segundos, e o Twilio aceita de 5 a 600.
+   - **Tempo de toque (em segundos)**: por quanto tempo o telefone delas toca antes de a chamada passar para a próxima regra. Começa em 20 segundos, e o Twilio aceita de 5 a 600.
    - **Nome** e **Descrição** são opcionais e ficam em **Mais campos**. Uma regra sem nome aparece conforme sua posição na lista: **Level 1**, **Level 2**.
 5. Salve-a e adicione uma regra para cada agendamento ou pessoa a tentar em seguida
 
 As regras são chamadas de cima para baixo na lista, e uma regra nova é adicionada ao final. Para mudar a ordem, arraste uma regra pela alça no canto superior esquerdo; pelo teclado, foque a alça, pressione Espaço, mova-a com as setas e pressione Espaço novamente.
 
-> **Cuidado com a caixa postal**: mantenha o **Tempo de toque** menor do que o tempo que o telefone da pessoa leva para mandar uma chamada não atendida para a caixa postal. Se a caixa postal atender primeiro, quem liga é conectado a ela e a chamada não passa para a próxima regra. O Twilio acrescenta alguns segundos a cada toque.
+> **Cuidado com a caixa postal**: mantenha o **Tempo de toque** menor do que o tempo que o telefone da pessoa leva para mandar uma chamada não atendida para a caixa postal. Se a caixa postal atender primeiro, quem liga é conectado a ela e a chamada não passa para a próxima regra. O Twilio acrescenta alguns segundos a cada toque. Por isso uma regra nova começa em 20 segundos. As regras adicionadas quando o padrão era 30 segundos mantêm os seus 30: se as chamadas delas caírem na caixa postal, diminua o **Tempo de toque** dessas regras.
 
 ### Exemplo de Regra de Escalonamento
 
 | Nível   | Para quem ligar                   | Tempo de toque |
 | ------- | --------------------------------- | -------------- |
-| Level 1 | Agendamento de plantão principal  | 30 segundos    |
-| Level 2 | Agendamento de plantão secundário | 30 segundos    |
-| Level 3 | Líder de engenharia (uma pessoa)  | 30 segundos    |
+| Level 1 | Agendamento de plantão principal  | 20 segundos    |
+| Level 2 | Agendamento de plantão secundário | 20 segundos    |
+| Level 3 | Líder de engenharia (uma pessoa)  | 20 segundos    |
 
 ## Passo 7: Configurar Mensagens de Voz (Opcional)
 
@@ -158,11 +158,11 @@ Personalize as mensagens que os chamadores ouvem:
 | Configuração                 | Descrição                                                                                                                                              |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Para quem ligar              | Um agendamento de plantão, que liga para quem estiver de plantão nele, ou uma pessoa. Cada regra liga para um deles                                    |
-| Tempo de toque (em segundos) | Por quanto tempo o telefone toca antes de a chamada passar para a próxima regra (padrão: 30; de 5 a 600)                                               |
+| Tempo de toque (em segundos) | Por quanto tempo o telefone toca antes de a chamada passar para a próxima regra (padrão: 20; de 5 a 600)                                               |
 | Nome e Descrição             | Opcionais, em Mais campos. Uma regra sem nome aparece como Level 1, Level 2 e assim por diante, conforme sua posição na lista                            |
 | Ordem                        | A posição da regra na lista: as regras são chamadas de cima para baixo. Muda-se arrastando as regras; pela API, uma regra nova sem ordem vai para o final |
 
-Pela API, uma regra define `onCallDutyPolicyScheduleId` ou `userId` (um deles, nunca os dois) e `escalateAfterSeconds`: o tempo de toque, 30 quando omitido.
+Pela API, uma regra define `onCallDutyPolicyScheduleId` ou `userId` (um deles, nunca os dois) e `escalateAfterSeconds`: o tempo de toque, 20 quando omitido.
 
 ## Visualizando Logs de Chamadas
 
@@ -189,6 +189,8 @@ Para que os usuários recebam chamadas de entrada, eles devem ter um número de 
 3. Verificam o número de telefone via código SMS
 
 Apenas usuários com números de telefone verificados podem ser chamados através de regras de escalonamento.
+
+Os números para chamadas recebidas são verificados por SMS, então **SMS** precisa estar ligado no projeto primeiro. Um proprietário do projeto ou alguém com **Billing Admin** ou **Manage Billing** o liga no cartão **Canais de notificação** em **Configurações do projeto > Notificações > Configurações de notificação**.
 
 ## Liberando um Número de Telefone
 

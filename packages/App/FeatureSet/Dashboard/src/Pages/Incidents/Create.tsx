@@ -8,6 +8,7 @@ import MarkdownUtil from "Common/UI/Utils/Markdown";
 import React, {
   Fragment,
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useEffect,
   useMemo,
@@ -26,6 +27,7 @@ import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
@@ -33,6 +35,11 @@ import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Service from "Common/Models/DatabaseModels/Service";
+import MonitorLinkedResourcesPrefill, {
+  MonitorLinkedResourcesPrefillState,
+  useMonitorLinkedResourcesPrefillState,
+} from "../../Components/AffectedResources/MonitorLinkedResourcesPrefill";
+import { INCIDENT_PREFILL_PAYLOAD_KEYS } from "../../Components/AffectedResources/MonitorLinkedResourcesPrefillRules";
 import AffectedResourcesPicker, {
   AffectedResourceType,
   isAffectedResourcesPayload,
@@ -68,6 +75,7 @@ import IncidentRoleFormField, {
 import FetchIncidentRoleAssignments from "../../Components/IncidentRole/FetchIncidentRoleAssignments";
 import {
   CustomElementProps,
+  FieldFooterProps,
   FormFieldCollapsibleSection,
 } from "Common/UI/Components/Forms/Types/Field";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
@@ -372,10 +380,10 @@ const advancedSection: FormFieldCollapsibleSection<Incident> =
  *
  * Together the two pickers offer what the incident's own Edit offers, split
  * the same way, so an incident declared from a Proxmox cluster's, a
- * vCenter's, a Ceph or Docker Swarm cluster's or an IoT fleet's Incidents
- * tab keeps it picked (Components/CreateFromRecord). Each editor and its
- * review step's read-only picker take the same list, so the summary names
- * every type the editor lets the user pick.
+ * vCenter's, a Ceph or Docker Swarm cluster's, a storage array's or an IoT
+ * fleet's Incidents tab keeps it picked (Components/CreateFromRecord). Each
+ * editor and its review step's read-only picker take the same list, so the
+ * summary names every type the editor lets the user pick.
  */
 const MONITOR_RESOURCE_TYPES: Array<AffectedResourceType> = ["Monitor"];
 
@@ -387,6 +395,7 @@ const OTHER_AFFECTED_RESOURCE_TYPES: Array<AffectedResourceType> = [
   "ProxmoxCluster",
   "VMwareVCenter",
   "CephCluster",
+  "StorageArray",
   "DockerSwarmCluster",
   "IoTFleet",
   "DatabaseServer",
@@ -462,6 +471,10 @@ interface TemplateOwners {
 const IncidentCreate: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  // What the picked monitors' linked resources added (survives step changes).
+  const linkedResourcesPrefill: MutableRefObject<MonitorLinkedResourcesPrefillState> =
+    useMonitorLinkedResourcesPrefillState();
+
   const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   // Declaring from a template whose status pages have all been deleted.
@@ -1569,7 +1582,7 @@ const IncidentCreate: FunctionComponent<
                   title: "Initial State",
                   stepId: "incident-details",
                   description:
-                    "Leave empty for the usual starting state. Pick a later state to record an incident that is already acknowledged or resolved.",
+                    "Leave empty for the usual starting state. Pick a later state to record an incident that is already acknowledged or resolved. No one is paged for it.",
                   fieldType: FormFieldSchemaType.Dropdown,
                   dropdownModal: {
                     type: IncidentState,
@@ -1842,6 +1855,9 @@ const IncidentCreate: FunctionComponent<
                           values.vmwareVCenters as Array<VMwareVCenter>
                         }
                         cephClusters={values.cephClusters as Array<CephCluster>}
+                        storageArrays={
+                          values.storageArrays as Array<StorageArray>
+                        }
                         dockerSwarmClusters={
                           values.dockerSwarmClusters as Array<DockerSwarmCluster>
                         }
@@ -1880,6 +1896,7 @@ const IncidentCreate: FunctionComponent<
                           proxmoxClusters: payload.proxmoxClusters,
                           vmwareVCenters: payload.vmwareVCenters,
                           cephClusters: payload.cephClusters,
+                          storageArrays: payload.storageArrays,
                           dockerSwarmClusters: payload.dockerSwarmClusters,
                           iotFleets: payload.iotFleets,
                           databaseServers: payload.databaseServers,
@@ -1887,6 +1904,25 @@ const IncidentCreate: FunctionComponent<
                         } as FormValues<Incident>);
                       });
                     }
+                  },
+                  /*
+                   * What the picked monitors are linked to, added here
+                   * (MonitorLinkedResourcesPrefill).
+                   */
+                  getFooterElement: (
+                    values: FormValues<Incident>,
+                    _error?: string,
+                    footer?: FieldFooterProps,
+                  ) => {
+                    return (
+                      <MonitorLinkedResourcesPrefill
+                        monitorIds={values.monitors}
+                        values={values as Record<string, unknown>}
+                        footer={footer}
+                        payloadKeys={INCIDENT_PREFILL_PAYLOAD_KEYS}
+                        state={linkedResourcesPrefill}
+                      />
+                    );
                   },
                   /*
                    * The form holds bare IDs once the picker has written to
@@ -1905,6 +1941,7 @@ const IncidentCreate: FunctionComponent<
                       item.proxmoxClusters,
                       item.vmwareVCenters,
                       item.cephClusters,
+                      item.storageArrays,
                       item.dockerSwarmClusters,
                       item.iotFleets,
                       item.databaseServers,
@@ -1937,6 +1974,9 @@ const IncidentCreate: FunctionComponent<
                           item.vmwareVCenters as Array<VMwareVCenter>
                         }
                         cephClusters={item.cephClusters as Array<CephCluster>}
+                        storageArrays={
+                          item.storageArrays as Array<StorageArray>
+                        }
                         dockerSwarmClusters={
                           item.dockerSwarmClusters as Array<DockerSwarmCluster>
                         }
@@ -2050,38 +2090,45 @@ const IncidentCreate: FunctionComponent<
                   },
                   /*
                    * On the last step: whether the box is ticked, as every
-                   * other box there says it; who that reaches; and what they
-                   * will be sent - each status page's email, from the
-                   * incident as declared here. There is nothing to preview
-                   * when nothing will be sent: notifying is off, the
-                   * incident will be private, or it is on no monitor.
+                   * other box there says it, with what they will be sent
+                   * beside it - 'Preview', each status page's email from
+                   * the incident as declared here, on the same line as the
+                   * Yes it belongs to ("Yes · Preview") - and who that
+                   * reaches under them. There is nothing to preview when
+                   * nothing will be sent: notifying is off, the incident
+                   * will be private, or it is on no monitor.
                    */
                   getSummaryElement: (item: FormValues<Incident>) => {
                     return (
                       <>
-                        <BooleanValue
-                          value={isNotifyTicked(item)}
-                          dataTestId="incident-create-notify-subscribers-value"
-                        />
-                        {getAudienceSummary(item)}
-                        {isNotifyingSubscribers(item) && hasMonitors(item) ? (
-                          <SubscriberNotificationPreviewButton
-                            dataTestId="incident-create-preview-notification"
-                            getRequest={() => {
-                              return getIncidentCreatedPreviewRequest({
-                                values: item as Record<string, unknown>,
-                                customFields: packCustomFieldFormValues({
-                                  definitions: detailsStepDefinitions,
-                                  formValues: item as JSONObject,
-                                  startingCustomFields: startingCustomFields,
-                                  isShown: isAskedOnIncidentForm,
-                                }),
-                              });
-                            }}
+                        <div
+                          className="flex flex-wrap items-center gap-x-3 gap-y-1"
+                          data-testid="incident-create-notify-subscribers-line"
+                        >
+                          <BooleanValue
+                            value={isNotifyTicked(item)}
+                            dataTestId="incident-create-notify-subscribers-value"
                           />
-                        ) : (
-                          <></>
-                        )}
+                          {isNotifyingSubscribers(item) && hasMonitors(item) ? (
+                            <SubscriberNotificationPreviewButton
+                              dataTestId="incident-create-preview-notification"
+                              getRequest={() => {
+                                return getIncidentCreatedPreviewRequest({
+                                  values: item as Record<string, unknown>,
+                                  customFields: packCustomFieldFormValues({
+                                    definitions: detailsStepDefinitions,
+                                    formValues: item as JSONObject,
+                                    startingCustomFields: startingCustomFields,
+                                    isShown: isAskedOnIncidentForm,
+                                  }),
+                                });
+                              }}
+                            />
+                          ) : (
+                            <></>
+                          )}
+                        </div>
+                        {getAudienceSummary(item)}
                       </>
                     );
                   },
@@ -2089,7 +2136,7 @@ const IncidentCreate: FunctionComponent<
                 /*
                  * Hidden registrations so ModelForm.getSelectFields includes
                  * kubernetesClusters/dockerHosts/podmanHosts/
-                 * proxmoxClusters/vmwareVCenters/cephClusters/
+                 * proxmoxClusters/vmwareVCenters/cephClusters/storageArrays/
                  * dockerSwarmClusters/iotFleets/databaseServers/services on
                  * load and submit. (hosts is the Other Affected Resources
                  * picker's anchor, so it needs no registration of its own.)
@@ -2146,6 +2193,16 @@ const IncidentCreate: FunctionComponent<
                 },
                 {
                   field: { cephClusters: true },
+                  stepId: "resources-affected",
+                  title: "",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  showIf: () => {
+                    return false;
+                  },
+                },
+                {
+                  field: { storageArrays: true },
                   stepId: "resources-affected",
                   title: "",
                   fieldType: FormFieldSchemaType.Text,

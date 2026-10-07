@@ -139,24 +139,22 @@ gitHubApp:
 
 **Important :** Redémarrez votre serveur OneUptime après avoir ajouté ces variables d'environnement pour qu'elles prennent effet.
 
-### Étape 9 : Installer l'application GitHub
+### Étape 9 : Connecter des dépôts dans OneUptime
 
-1. Allez sur la page publique de votre application GitHub : `https://github.com/apps/VOTRE_APP_NAME`
-2. Cliquez sur **« Installer »** ou **« Configurer »**
-3. Sélectionnez l'organisation ou le compte où vous souhaitez installer l'application
-4. Choisissez les dépôts auxquels l'application peut accéder :
-   - **Tous les dépôts** — Accès à tous les dépôts actuels et futurs
-   - **Uniquement les dépôts sélectionnés** — Choisissez des dépôts spécifiques
-5. Cliquez sur **« Installer »**
-
-### Étape 10 : Connecter des dépôts dans OneUptime
+Lancez la connexion depuis OneUptime, et non depuis la page de l'application sur GitHub : c'est le lien avec lequel OneUptime vous envoie sur GitHub qui rattache l'installation à votre projet.
 
 1. Connectez-vous à votre tableau de bord OneUptime
 2. Accédez à **Produits** > **Tâches** > **Dépôts de code**
-3. Cliquez sur **« Créer un dépôt »** ou utilisez le flux d'installation de l'application GitHub
-4. Si redirigé depuis GitHub, l'ID d'installation sera automatiquement capturé
-5. Sélectionnez les dépôts que vous souhaitez connecter dans la liste
-6. Cliquez sur **« Connecter »** pour lier le dépôt à votre projet OneUptime
+3. Cliquez sur **Se connecter avec l'application GitHub**. OneUptime vous emmène sur GitHub
+4. Sélectionnez l'organisation ou le compte où installer l'application, puis choisissez les dépôts auxquels elle peut accéder :
+   - **All repositories** — Accès à tous les dépôts actuels et futurs
+   - **Only select repositories** — Choisissez des dépôts spécifiques
+5. Cliquez sur **Install** (ou **Save** si l'application y est déjà installée)
+6. GitHub vous renvoie vers **Dépôts de code**, et tous les dépôts de l'installation sont importés. Les dépôts ajoutés à l'installation ou retirés plus tard restent synchronisés automatiquement.
+
+**Qui peut connecter.** La connexion importe les dépôts de l'installation dans le projet ; elle demande donc la permission d'ajouter des dépôts de code, que donnent **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** ou une équipe disposant de **Create Code Repository**. Une équipe qui bloque la permission la retire. Sur OneUptime Cloud, les dépôts de code demandent le forfait Growth ou supérieur. Pour toute autre personne, la carte est verrouillée et indique ce qu'il faut.
+
+**Terminez en 15 minutes, dans le même navigateur.** Le lien ne fonctionne qu'une fois, pendant 15 minutes, dans le navigateur qui l'a lancé. Quand GitHub vous renvoie, OneUptime vérifie à nouveau la permission avant d'importer quoi que ce soit.
 
 ## Référence des variables d'environnement
 

@@ -1,4 +1,5 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import { StateListType } from "Common/Utils/StateOrder";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
 import AlertEpisodeFeedElement from "../../../Components/AlertEpisode/AlertEpisodeFeed";
 import PageComponentProps from "../../PageComponentProps";
@@ -33,6 +34,7 @@ import React, {
 import UserElement from "../../../Components/User/User";
 import ChangeEpisodeState from "../../../Components/AlertEpisode/ChangeState";
 import Alert from "Common/Models/DatabaseModels/Alert";
+import AlertEpisodeMember from "Common/Models/DatabaseModels/AlertEpisodeMember";
 import TelemetrySnapshotPanel from "../../../Components/Telemetry/TelemetrySnapshotPanel";
 import {
   DerivedTelemetrySnapshot,
@@ -46,9 +48,14 @@ import EventStatTile from "../../../Components/EventView/EventStatTile";
 import LiveDuration from "../../../Components/EventView/LiveDuration";
 import EpisodeMembersCard from "../../../Components/EpisodeView/EpisodeMembersCard";
 import {
+  ALERT_EPISODE_MEMBERSHIP,
   ALERT_EPISODE_MEMBER_SELECT,
   getAlertEpisodeMemberRow,
 } from "../../../Components/EpisodeView/EpisodeMembers";
+import {
+  FetchedEpisodeMembers,
+  fetchEpisodeMembers,
+} from "../../../Components/EpisodeView/FetchEpisodeMembers";
 import {
   EpisodeTiming,
   getEpisodeTiming,
@@ -94,7 +101,9 @@ const AlertEpisodeView: FunctionComponent<
   /*
    * Telemetry snapshot of the episode's FIRST member alert (earliest
    * created): the first member's evaluation window is the "what kicked
-   * this off" view.
+   * this off" view. Members are the episode's membership, as on the member
+   * card: an alert that joined this episode and then a later one is still
+   * this one's.
    */
   const [telemetrySnapshot, setTelemetrySnapshot] =
     useState<DerivedTelemetrySnapshot>(EMPTY_TELEMETRY_SNAPSHOT);
@@ -122,27 +131,32 @@ const AlertEpisodeView: FunctionComponent<
     requestIdRef.current = requestId;
 
     try {
-      const [memberAlerts, episodeTimelines, stateList, loaded]: [
-        ListResult<Alert>,
+      const [firstMembers, episodeTimelines, stateList, loaded]: [
+        FetchedEpisodeMembers<Alert> | null,
         ListResult<AlertEpisodeStateTimeline>,
         ListResult<AlertState>,
         AlertEpisode | null,
       ] = await Promise.all([
-        ModelAPI.getList({
+        /*
+         * The one read here the page can do without: it takes the episode's
+         * membership as well as its alerts, and a reader who may not read
+         * the membership (a custom role) still gets the overview, without
+         * the panel.
+         */
+        fetchEpisodeMembers<Alert, AlertEpisodeMember>({
+          episodeId: modelId,
+          membership: ALERT_EPISODE_MEMBERSHIP,
           modelType: Alert,
-          query: {
-            alertEpisodeId: modelId,
-          },
-          limit: 1,
-          skip: 0,
           select: {
             _id: true,
             telemetryQuery: true,
             seriesLabels: true,
           },
-          sort: {
-            createdAt: SortOrder.Ascending,
-          },
+          sortField: "createdAt",
+          sortOrder: SortOrder.Ascending,
+          limit: 1,
+        }).catch((): null => {
+          return null;
         }),
         ModelAPI.getList({
           modelType: AlertEpisodeStateTimeline,
@@ -191,7 +205,7 @@ const AlertEpisodeView: FunctionComponent<
         return;
       }
 
-      const firstMember: Alert | undefined = memberAlerts.data[0];
+      const firstMember: Alert | undefined = firstMembers?.members[0];
 
       setTelemetrySnapshot(
         deriveTelemetrySnapshot({
@@ -278,10 +292,12 @@ const AlertEpisodeView: FunctionComponent<
     // Alert episodes have no declaredAt: they start when they are created.
     startedAt: episode?.createdAt || undefined,
     resolvedAt: episode?.resolvedAt || undefined,
+    list: StateListType.AlertState,
     states: alertStates.map((state: AlertState) => {
       return {
         id: state.id?.toString() || "",
         name: state.name,
+        order: state.order,
         isAcknowledgedState: state.isAcknowledgedState,
         isResolvedState: state.isResolvedState,
       };
@@ -379,10 +395,10 @@ const AlertEpisodeView: FunctionComponent<
 
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
         <div className="min-w-0 xl:col-span-2">
-          <EpisodeMembersCard<Alert>
+          <EpisodeMembersCard<Alert, AlertEpisodeMember>
             modelType={Alert}
             episodeId={modelId}
-            episodeIdField="alertEpisodeId"
+            membership={ALERT_EPISODE_MEMBERSHIP}
             select={ALERT_EPISODE_MEMBER_SELECT}
             sortField="createdAt"
             toRow={getAlertEpisodeMemberRow}

@@ -7,7 +7,11 @@ import {
 } from "./OverridePresentation";
 import { OverrideUserInfo } from "./ScheduleOverrides";
 import LayerUser from "./LayerUser";
-import { getColorForUserId, getUserInitials } from "./LayerUserColors";
+import {
+  getColorForUserId,
+  getUserAvatarStyle,
+  getUserInitials,
+} from "./LayerUserColors";
 import {
   formatRelativeStart,
   summarizeRestriction,
@@ -276,8 +280,8 @@ const LayerCard: FunctionComponent<ComponentProps> = (
               return (
                 <Tooltip key={rowKey} text={name || email || "Unknown user"}>
                   <span
-                    className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-semibold text-white ring-2 ring-white"
-                    style={{ backgroundColor: getColorForUserId(userId) }}
+                    className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-semibold ring-2 ring-white"
+                    style={getUserAvatarStyle(userId)}
                   >
                     {getUserInitials(name, email)}
                   </span>

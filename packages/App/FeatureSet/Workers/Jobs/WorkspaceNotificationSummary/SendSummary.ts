@@ -1,7 +1,7 @@
 import RunCron from "../../Utils/Cron";
 import OneUptimeDate from "Common/Types/Date";
-import Recurring from "Common/Types/Events/Recurring";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
+import WorkspaceSummaryScheduleUtil from "Common/Utils/Workspace/WorkspaceSummarySchedule";
 import WorkspaceNotificationSummaryService from "Common/Server/Services/WorkspaceNotificationSummaryService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import logger from "Common/Server/Utils/Logger";
@@ -27,16 +27,31 @@ RunCron(
           _id: true,
           nextSendAt: true,
           recurringInterval: true,
+          sendFirstReportAt: true,
+          timezone: true,
         },
       });
 
     for (const summary of summariesToSend) {
       try {
-        // Calculate next send time using calendar-correct math
-        const nextSendAt: Date = Recurring.getNextDateInterval(
-          summary.nextSendAt!,
-          summary.recurringInterval!,
-        );
+        /*
+         * The schedule's first occurrence after now, counted from the first
+         * summary on the clock of the summary's time zone
+         * (WorkspaceSummaryScheduleUtil) - one interval on, normally, at
+         * the same time of day there all year. Moving on by one interval
+         * from a send long past (a worker that was down) left it in the
+         * past, and the summary went out once a minute until it caught up;
+         * stepping in UTC moved a 09:00 Berlin summary to 08:00 there once
+         * the clocks went back.
+         */
+        const nextSendAt: Date =
+          WorkspaceSummaryScheduleUtil.getNextSendAfterDue({
+            dueAt: summary.nextSendAt!,
+            recurringInterval: summary.recurringInterval!,
+            sendFirstReportAt: summary.sendFirstReportAt,
+            timezone: summary.timezone,
+            now: OneUptimeDate.getCurrentDate(),
+          });
 
         // Update nextSendAt first to prevent double-sends
         await WorkspaceNotificationSummaryService.updateOneById({

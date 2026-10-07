@@ -39,9 +39,10 @@ export default class TemplateVariablesCatalog {
     /**
      * Attribute keys the user has configured on the metric query
      * (e.g. ["host.name", "region"]). For metric/kubernetes/docker/
-     * proxmox/vmware/ceph monitors, these become per-series template variables
-     * — one incident fires per unique value combination, and each
-     * incident can reference the label values via `{{host.name}}` etc.
+     * proxmox/vmware/ceph/storage array monitors, these become per-series
+     * template variables — one incident fires per unique value combination,
+     * and each incident can reference the label values via `{{host.name}}`
+     * etc.
      */
     seriesAttributeKeys?: Array<string> | undefined;
   }): Array<TemplateVariableGroup> {
@@ -65,7 +66,8 @@ export default class TemplateVariablesCatalog {
       input.monitorType === MonitorType.DockerSwarm ||
       input.monitorType === MonitorType.Proxmox ||
       input.monitorType === MonitorType.VMware ||
-      input.monitorType === MonitorType.Ceph
+      input.monitorType === MonitorType.Ceph ||
+      input.monitorType === MonitorType.StorageArray
     ) {
       groups.push(
         TemplateVariablesCatalog.seriesLabelsGroup(input.seriesAttributeKeys),
@@ -264,6 +266,45 @@ export default class TemplateVariablesCatalog {
             {
               key: "incomingRequestReceivedAt",
               description: "Timestamp the request was received.",
+            },
+          ],
+        };
+
+      /*
+       * The cap in the description is MaxEmailValueLengthInTitle
+       * (Common/Server/Utils/Monitor/MonitorTemplateUtil.ts).
+       */
+      case MonitorType.IncomingEmail:
+        return {
+          title: "Incoming Email",
+          description:
+            "The email that triggered the incident or alert. A scheduled check for missing email uses the last email received. In a title, each value is cut to one line of at most 150 characters.",
+          variables: [
+            {
+              key: "emailSubject",
+              description: "Subject of the email.",
+              example: "[FAILED] Nightly backup",
+            },
+            {
+              key: "emailFrom",
+              description: "Sender's email address.",
+              example: "alerts@example.com",
+            },
+            {
+              key: "emailTo",
+              description:
+                "Who the email was sent to. This monitor's own address is masked.",
+              example: "monitor-[REDACTED]@inbound.example.com",
+            },
+            {
+              key: "emailBody",
+              description: "Plain text body of the email.",
+            },
+            {
+              key: "emailReceivedAt",
+              description:
+                "When the email was received. Empty until the first email arrives.",
+              example: "2026-07-14T09:55:00.000Z",
             },
           ],
         };
@@ -713,6 +754,7 @@ export default class TemplateVariablesCatalog {
       case MonitorType.Proxmox:
       case MonitorType.VMware:
       case MonitorType.Ceph:
+      case MonitorType.StorageArray:
         return {
           title: "Metric",
           variables: [

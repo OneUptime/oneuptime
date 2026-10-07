@@ -124,6 +124,7 @@ import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
+import AutoRemediationDecision from "Common/Models/DatabaseModels/AutoRemediationDecision";
 import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
@@ -795,9 +796,14 @@ const roles = {
 
 /*
  * Tables the pages read that are intentionally empty in this workspace (no
- * custom fields, note templates, runbook runs or remediation suggestions).
- * Registering them marks them as modelled, so they never show up in
- * `unhandled`.
+ * custom fields, note templates, runbook runs, remediation suggestions or
+ * remediation decisions). Registering them marks them as modelled, so they
+ * never show up in `unhandled`.
+ *
+ * The incident and alert Remediation card reads the rule engine's decisions
+ * (what auto-remediation did, or why it did nothing) beside the suggestions.
+ * With neither, the API answers two empty lists and the card stays hidden,
+ * as for an incident or alert from before the rule engine recorded them.
  */
 for (const modelType of [
   IncidentCustomField,
@@ -808,6 +814,7 @@ for (const modelType of [
   ScheduledMaintenanceNoteTemplate,
   RunbookExecution,
   AutoRemediationSuggestion,
+  AutoRemediationDecision,
 ]) {
   table(modelType);
 }
@@ -831,6 +838,16 @@ function monitorLink(record) {
  */
 const INCIDENT_EPISODE_NUMBER = 12;
 const ALERT_EPISODE_NUMBER = 7;
+/*
+ * The episodes incident #1038 and alert #305 joined after #12 and #7. A
+ * record can be in several episodes, and its own incidentEpisodeId /
+ * alertEpisodeId names only the latest (IncidentEpisodeMemberService keeps
+ * it so), so these two point at the later ones. Episodes #12 and #7 still
+ * list them: an episode's members are its membership rows. Only the link and
+ * the membership row are modelled, not the later episodes themselves.
+ */
+const LATER_INCIDENT_EPISODE_NUMBER = 13;
+const LATER_ALERT_EPISODE_NUMBER = 8;
 
 // ?fail=resend: why the first delivery failed, and why the retry is refused.
 const RESEND_FAILURE_STATUS_MESSAGE =
@@ -977,6 +994,10 @@ const incidentEpisodeRecord = make(IncidentEpisode, {
   _id: ID.incidentEpisode(INCIDENT_EPISODE_NUMBER),
   title: "Checkout degradation — Sep 14",
 });
+const laterIncidentEpisodeRecord = make(IncidentEpisode, {
+  _id: ID.incidentEpisode(LATER_INCIDENT_EPISODE_NUMBER),
+  title: "Cart service errors — Sep 14",
+});
 
 const PRIOR_INCIDENT_ROOT_CAUSE =
   "The orders database connection pool was exhausted, so checkout requests queued for a connection.";
@@ -1040,7 +1061,8 @@ defineIncident({
   resolvedAt: at("18:10"),
   resolvedBy: people.sam,
   services: [services.checkout],
-  episode: incidentEpisodeRecord,
+  // Also in episode #13, which it joined later: see LATER_INCIDENT_EPISODE_NUMBER.
+  episode: laterIncidentEpisodeRecord,
 });
 defineIncident({
   number: 1040,
@@ -1145,6 +1167,10 @@ insert(IncidentMember, {
 const alertEpisodeRecord = make(AlertEpisode, {
   _id: ID.alertEpisode(ALERT_EPISODE_NUMBER),
   title: "Payment webhook failures — Sep 14",
+});
+const laterAlertEpisodeRecord = make(AlertEpisode, {
+  _id: ID.alertEpisode(LATER_ALERT_EPISODE_NUMBER),
+  title: "Payment latency — Sep 14",
 });
 
 function defineAlert(spec) {
@@ -1292,7 +1318,8 @@ for (const [number, title, severity, createdAt] of ALERT_MEMBERS) {
     resolvedBy: people.alex,
     monitor: monitors.webhookErrors,
     services: [services.payments],
-    episode: alertEpisodeRecord,
+    // #305 is also in episode #8, which it joined later: see LATER_ALERT_EPISODE_NUMBER.
+    episode: number === 305 ? laterAlertEpisodeRecord : alertEpisodeRecord,
   });
 }
 
@@ -1574,6 +1601,20 @@ for (const [number, addedAt] of [
     matchedRule: incidentGroupingRule,
   });
 }
+insert(IncidentEpisodeMember, {
+  incidentEpisodeId: new ObjectID(
+    ID.incidentEpisode(LATER_INCIDENT_EPISODE_NUMBER),
+  ),
+  incidentId: new ObjectID(ID.incident(1038)),
+  incident: make(
+    Incident,
+    table(Incident).find((record) => {
+      return record.incidentNumber === 1038;
+    }),
+  ),
+  addedAt: at("18:09"),
+  addedBy: "manual",
+});
 const incidentEpisodeTimeline = [
   [incidentStates.created, at("17:56"), undefined],
 ];
@@ -1739,6 +1780,18 @@ for (const [number, addedAt] of [
     matchedRule: alertGroupingRule,
   });
 }
+insert(AlertEpisodeMember, {
+  alertEpisodeId: new ObjectID(ID.alertEpisode(LATER_ALERT_EPISODE_NUMBER)),
+  alertId: new ObjectID(ID.alert(305)),
+  alert: make(
+    Alert,
+    table(Alert).find((record) => {
+      return record.alertNumber === 305;
+    }),
+  ),
+  addedAt: at("18:07"),
+  addedBy: "manual",
+});
 const alertEpisodeTimeline = [[alertStates.created, at("17:40"), undefined]];
 if (isAcknowledged) {
   alertEpisodeTimeline.push([

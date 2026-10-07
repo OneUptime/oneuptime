@@ -10,6 +10,11 @@ import IncidentEpisodeService from "./IncidentEpisodeService";
 import AlertEpisodeService from "./AlertEpisodeService";
 import IncidentStateTimelineService from "./IncidentStateTimelineService";
 import AlertStateTimelineService from "./AlertStateTimelineService";
+import IncidentStateService from "./IncidentStateService";
+import AlertStateService from "./AlertStateService";
+import ResolvedStateUtil from "../../Utils/ResolvedState";
+import { StateListType } from "../../Utils/StateOrder";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import Incident from "../../Models/DatabaseModels/Incident";
 import Alert from "../../Models/DatabaseModels/Alert";
 import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
@@ -19,7 +24,10 @@ import AlertStateTimeline from "../../Models/DatabaseModels/AlertStateTimeline";
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import LinkedAffectedResources from "../Utils/AffectedResources/LinkedAffectedResources";
-import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
+import {
+  escapeMarkdownInline,
+  escapeMarkdownValue,
+} from "../../Utils/Markdown/MarkdownEscape";
 import WorkspaceNotificationLogService from "./WorkspaceNotificationLogService";
 import WorkspaceNotificationStatus from "../../Types/Workspace/WorkspaceNotificationStatus";
 import WorkspaceNotificationActionType from "../../Types/Workspace/WorkspaceNotificationActionType";
@@ -43,6 +51,18 @@ import NotificationRuleCondition, {
 import FilterCondition from "../../Types/Filter/FilterCondition";
 import { WorkspaceNotificationRuleUtil } from "../../Types/Workspace/NotificationRules/NotificationRuleUtil";
 import IncidentNotificationRule from "../../Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
+import CreateBy from "../Types/Database/CreateBy";
+import UpdateBy from "../Types/Database/UpdateBy";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import PartialEntity from "../../Types/Database/PartialEntity";
+import WorkspaceSummaryScheduleUtil, {
+  WorkspaceSummaryScheduleColumns,
+  WorkspaceSummaryScheduleWrite,
+} from "../../Utils/Workspace/WorkspaceSummarySchedule";
+import Timezone from "../../Types/Timezone";
+import User from "../../Models/DatabaseModels/User";
+import UserService from "./UserService";
 
 /*
  * NOTE ON FORMATTING:
@@ -61,9 +81,434 @@ interface TimelineData {
   declaredAt?: Date | undefined;
 }
 
+// The schedule columns a write or a stored summary holds.
+const getScheduleColumns: (
+  source: Record<string, unknown>,
+) => WorkspaceSummaryScheduleColumns = (
+  source: Record<string, unknown>,
+): WorkspaceSummaryScheduleColumns => {
+  return {
+    recurringInterval: source[
+      "recurringInterval"
+    ] as WorkspaceSummaryScheduleColumns["recurringInterval"],
+    sendFirstReportAt: source[
+      "sendFirstReportAt"
+    ] as WorkspaceSummaryScheduleColumns["sendFirstReportAt"],
+    nextSendAt: source[
+      "nextSendAt"
+    ] as WorkspaceSummaryScheduleColumns["nextSendAt"],
+    isEnabled: source[
+      "isEnabled"
+    ] as WorkspaceSummaryScheduleColumns["isEnabled"],
+    timezone: source["timezone"] as WorkspaceSummaryScheduleColumns["timezone"],
+  };
+};
+
+// Writes the columns a schedule rule added into a write's data.
+const applyScheduleWrite: (
+  data: Record<string, unknown>,
+  write: WorkspaceSummaryScheduleWrite,
+) => void = (
+  data: Record<string, unknown>,
+  write: WorkspaceSummaryScheduleWrite,
+): void => {
+  if (write.recurringInterval) {
+    data["recurringInterval"] = write.recurringInterval;
+  }
+
+  if (write.sendFirstReportAt) {
+    data["sendFirstReportAt"] = write.sendFirstReportAt;
+  }
+
+  if (write.nextSendAt) {
+    data["nextSendAt"] = write.nextSendAt;
+  }
+
+  if (write.timezone) {
+    data["timezone"] = write.timezone;
+  }
+};
+
+// One summary's next send, for an update that matched several needing different ones.
+interface SummaryNextSendWrite {
+  summaryId: ObjectID;
+  nextSendAt: Date;
+}
+
+interface SummaryUpdateCarryForward {
+  nextSendWrites: Array<SummaryNextSendWrite>;
+}
+
+// What giving the summaries made before they had a time zone one did.
+export interface WorkspaceSummaryTimezoneBackfillResult {
+  // Summaries that took their creator's time zone.
+  fromCreator: number;
+  // Summaries with no creator, or a creator with no time zone: UTC, as before.
+  utc: number;
+}
+
+// How many summaries one pass of the backfill reads.
+const TIMEZONE_BACKFILL_BATCH_SIZE: number = 100;
+
 export class Service extends DatabaseService<WorkspaceNotificationSummary> {
   public constructor() {
     super(WorkspaceNotificationSummary);
+  }
+
+  /*
+   * A new summary gets the schedule it leaves out (WorkspaceSummaryScheduleUtil):
+   * the time zone of the person creating it (the dashboard sends the one it
+   * shows; through the API, the time zone in the creator's profile, and UTC
+   * when no person creates it - an API key, a workflow), every week, the
+   * first one at 09:00 there on the next Monday, and its next send worked
+   * out from them. Without a next send the report worker never sent a
+   * summary created through the API at all; the dashboard used to work it
+   * out itself, and for a first summary dated in the past it set one in the
+   * past, which the worker then caught up on with a summary a minute.
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<WorkspaceNotificationSummary>,
+  ): Promise<OnCreate<WorkspaceNotificationSummary>> {
+    const data: Record<string, unknown> = createBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+    const write: WorkspaceSummaryScheduleColumns = getScheduleColumns(data);
+
+    const problem: string | null =
+      WorkspaceSummaryScheduleUtil.getWriteProblem(write);
+
+    if (problem) {
+      throw new BadDataException(problem);
+    }
+
+    const creatorTimezone: Timezone | undefined =
+      WorkspaceSummaryScheduleUtil.toTimezone(write.timezone)
+        ? undefined
+        : await this.getCreatorTimezone(createBy.props);
+
+    applyScheduleWrite(
+      data,
+      WorkspaceSummaryScheduleUtil.getCreateWrite({
+        write: write,
+        timezone: creatorTimezone,
+      }),
+    );
+
+    return { createBy: createBy, carryForward: null };
+  }
+
+  /*
+   * The time zone in the profile of the person a write comes from, under
+   * the name the dashboard offers for it - or nothing: an API key or a
+   * workflow is no person, and a person may have none.
+   */
+  private async getCreatorTimezone(
+    props: DatabaseCommonInteractionProps,
+  ): Promise<Timezone | undefined> {
+    if (!props.userId) {
+      return undefined;
+    }
+
+    const user: User | null = await UserService.findOneById({
+      id: props.userId,
+      select: {
+        timezone: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return WorkspaceSummaryScheduleUtil.toCurrentTimezone(user?.timezone);
+  }
+
+  /*
+   * A summary rescheduled - how often, the first summary's date or the time
+   * zone really changed - or switched back on gets its next send worked out
+   * again, on its time zone's clock (the dashboard's edit form sends the
+   * schedule and the time zone back unchanged on every save, and that
+   * changes nothing). It used to keep the next send it had: a new first
+   * summary date did nothing, a new interval waited for the old one's send,
+   * and a summary switched back on after a month sent at once for the month
+   * it was off.
+   *
+   * An update of one summary - every update from the dashboard or the API
+   * by id - carries its next send in the same write. One that matched
+   * several summaries needing different ones writes each one's after the
+   * update (onUpdateSuccess), as one write cannot hold them all.
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<WorkspaceNotificationSummary>,
+  ): Promise<OnUpdate<WorkspaceNotificationSummary>> {
+    const data: Record<string, unknown> = updateBy.data as Record<
+      string,
+      unknown
+    >;
+    const write: WorkspaceSummaryScheduleColumns = getScheduleColumns(data);
+
+    if (!WorkspaceSummaryScheduleUtil.isRescheduleWrite(write)) {
+      return { updateBy: updateBy, carryForward: null };
+    }
+
+    const problem: string | null =
+      WorkspaceSummaryScheduleUtil.getWriteProblem(write);
+
+    if (problem) {
+      throw new BadDataException(problem);
+    }
+
+    if (write.nextSendAt !== undefined) {
+      return { updateBy: updateBy, carryForward: null };
+    }
+
+    const summaries: Array<WorkspaceNotificationSummary> = await this.findBy({
+      query: updateBy.query,
+      select: {
+        _id: true,
+        recurringInterval: true,
+        sendFirstReportAt: true,
+        nextSendAt: true,
+        isEnabled: true,
+        timezone: true,
+      },
+      props: {
+        isRoot: true,
+      },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+    });
+
+    const now: Date = OneUptimeDate.getCurrentDate();
+
+    const nextSendWrites: Array<SummaryNextSendWrite> = [];
+
+    for (const summary of summaries) {
+      const scheduleWrite: WorkspaceSummaryScheduleWrite =
+        WorkspaceSummaryScheduleUtil.getUpdateWrite({
+          write: write,
+          stored: getScheduleColumns(
+            summary as unknown as Record<string, unknown>,
+          ),
+          now: now,
+        });
+
+      if (scheduleWrite.nextSendAt && summary.id) {
+        nextSendWrites.push({
+          summaryId: summary.id,
+          nextSendAt: scheduleWrite.nextSendAt,
+        });
+      }
+    }
+
+    const first: SummaryNextSendWrite | undefined = nextSendWrites[0];
+
+    if (!first) {
+      return { updateBy: updateBy, carryForward: null };
+    }
+
+    const isSameForEverySummary: boolean =
+      nextSendWrites.length === summaries.length &&
+      nextSendWrites.every((entry: SummaryNextSendWrite): boolean => {
+        return entry.nextSendAt.getTime() === first.nextSendAt.getTime();
+      });
+
+    if (isSameForEverySummary) {
+      data["nextSendAt"] = first.nextSendAt;
+      return { updateBy: updateBy, carryForward: null };
+    }
+
+    const carryForward: SummaryUpdateCarryForward = {
+      nextSendWrites: nextSendWrites,
+    };
+
+    return { updateBy: updateBy, carryForward: carryForward };
+  }
+
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<WorkspaceNotificationSummary>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<WorkspaceNotificationSummary>> {
+    const carryForward: SummaryUpdateCarryForward | null =
+      onUpdate.carryForward as SummaryUpdateCarryForward | null;
+
+    if (!carryForward?.nextSendWrites?.length) {
+      return onUpdate;
+    }
+
+    const updatedIds: Set<string> = new Set<string>(
+      updatedItemIds.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    );
+
+    /*
+     * Each summary's own next send, for an update that matched several
+     * needing different ones. Only for the summaries the update wrote, and
+     * without the hooks: the values are worked out already.
+     */
+    for (const entry of carryForward.nextSendWrites) {
+      if (!updatedIds.has(entry.summaryId.toString())) {
+        continue;
+      }
+
+      await this.updateOneById({
+        id: entry.summaryId,
+        data: {
+          nextSendAt: entry.nextSendAt,
+        } as PartialEntity<WorkspaceNotificationSummary>,
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+    }
+
+    return onUpdate;
+  }
+
+  /*
+   * Gives every summary made before summaries had a time zone one: its
+   * creator's, as the dashboard read the time its creator picked on that
+   * clock - so a summary set for 09:00 in Berlin goes out at 09:00 there
+   * after the clocks change, as it was meant to. A summary with no creator
+   * (an API key or a workflow made it), or whose creator has no time zone,
+   * gets UTC: what it has been read in all along.
+   *
+   * Only the time zone is written, and without the update hooks: no next
+   * send moves, so no summary goes out early, late or twice because of it.
+   * The report worker counts each one's sends on its new clock from its
+   * next send on (WorkspaceSummaryScheduleUtil.getNextSendAfterDue).
+   *
+   * Safe to run twice at once, as the data migration runner requires: a
+   * summary is only written while it still has no time zone, so a time zone
+   * someone picked in the meantime is kept.
+   */
+  @CaptureSpan()
+  public async fillTimezonesFromCreators(): Promise<WorkspaceSummaryTimezoneBackfillResult> {
+    const result: WorkspaceSummaryTimezoneBackfillResult = {
+      fromCreator: 0,
+      utc: 0,
+    };
+
+    const seenSummaryIds: Set<string> = new Set<string>();
+
+    for (;;) {
+      const summaries: Array<WorkspaceNotificationSummary> = await this.findBy({
+        query: {
+          timezone: QueryHelper.isNull(),
+        },
+        select: {
+          _id: true,
+          createdByUserId: true,
+        },
+        skip: 0,
+        limit: TIMEZONE_BACKFILL_BATCH_SIZE,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const unseen: Array<WorkspaceNotificationSummary> = summaries.filter(
+        (summary: WorkspaceNotificationSummary): boolean => {
+          return (
+            Boolean(summary.id) && !seenSummaryIds.has(summary.id!.toString())
+          );
+        },
+      );
+
+      // Nothing left - or nothing this pass could write: never loop on it.
+      if (unseen.length === 0) {
+        break;
+      }
+
+      const creatorTimezones: Map<string, Timezone> =
+        await this.getTimezonesOfUsers(
+          unseen
+            .map((summary: WorkspaceNotificationSummary): string => {
+              return summary.createdByUserId?.toString() || "";
+            })
+            .filter((userId: string): boolean => {
+              return Boolean(userId);
+            }),
+        );
+
+      for (const summary of unseen) {
+        seenSummaryIds.add(summary.id!.toString());
+
+        const creatorTimezone: Timezone | undefined = creatorTimezones.get(
+          summary.createdByUserId?.toString() || "",
+        );
+
+        const updated: number = await this.updateOneBy({
+          query: {
+            _id: summary.id!.toString(),
+            timezone: QueryHelper.isNull(),
+          },
+          data: {
+            timezone:
+              creatorTimezone || WorkspaceSummaryScheduleUtil.DEFAULT_TIMEZONE,
+          } as PartialEntity<WorkspaceNotificationSummary>,
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
+
+        if (updated <= 0) {
+          continue;
+        }
+
+        if (creatorTimezone) {
+          result.fromCreator++;
+        } else {
+          result.utc++;
+        }
+      }
+    }
+
+    return result;
+  }
+
+  // Each user's time zone, under the name the dashboard offers for it, by user id.
+  private async getTimezonesOfUsers(
+    userIds: Array<string>,
+  ): Promise<Map<string, Timezone>> {
+    const timezones: Map<string, Timezone> = new Map<string, Timezone>();
+    const uniqueUserIds: Array<string> = Array.from(new Set(userIds));
+
+    if (uniqueUserIds.length === 0) {
+      return timezones;
+    }
+
+    const users: Array<User> = await UserService.findBy({
+      query: {
+        _id: QueryHelper.any(uniqueUserIds),
+      },
+      select: {
+        _id: true,
+        timezone: true,
+      },
+      skip: 0,
+      limit: uniqueUserIds.length,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const user of users) {
+      const timezone: Timezone | undefined =
+        WorkspaceSummaryScheduleUtil.toCurrentTimezone(user.timezone);
+
+      if (user.id && timezone) {
+        timezones.set(user.id.toString(), timezone);
+      }
+    }
+
+    return timezones;
   }
 
   @CaptureSpan()
@@ -96,6 +541,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           summaryItems: true,
           filters: true,
           filterCondition: true,
+          timezone: true,
         },
         props: {
           isRoot: true,
@@ -247,8 +693,20 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     return parts.join(" ");
   }
 
-  private static formatDate(date: Date): string {
-    return OneUptimeDate.getDateAsLocalFormattedString(date, true);
+  /*
+   * A day of the reporting period, as the summary's time zone reads it: a
+   * summary that goes out at 09:00 on Monday in Sydney - Sunday in UTC -
+   * covers the week up to Monday.
+   */
+  private static formatDate(
+    date: Date,
+    timezone?: Timezone | undefined,
+  ): string {
+    return OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+      date: date,
+      format: "MMM DD, YYYY",
+      timezone: timezone || WorkspaceSummaryScheduleUtil.DEFAULT_TIMEZONE,
+    });
   }
 
   private static has(
@@ -259,6 +717,47 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       return true;
     }
     return items.includes(item);
+  }
+
+  /*
+   * Whether an incident (or incident episode) in a state of the project is
+   * resolved - by the one rule (Common/Utils/ResolvedState): the project's
+   * resolved state, or a state placed after it. One read of its states.
+   */
+  private static async getIncidentResolvedRule(
+    projectId: ObjectID,
+  ): Promise<(stateId: ObjectID | undefined) => boolean> {
+    const states: Array<unknown> =
+      await IncidentStateService.getAllIncidentStates({
+        projectId: projectId,
+        props: { isRoot: true },
+      });
+
+    return (stateId: ObjectID | undefined): boolean => {
+      return ResolvedStateUtil.isResolved({
+        list: StateListType.IncidentState,
+        states: states,
+        stateId: stateId,
+      });
+    };
+  }
+
+  // The same for an alert (or alert episode), by the project's alert states.
+  private static async getAlertResolvedRule(
+    projectId: ObjectID,
+  ): Promise<(stateId: ObjectID | undefined) => boolean> {
+    const states: Array<unknown> = await AlertStateService.getAllAlertStates({
+      projectId: projectId,
+      props: { isRoot: true },
+    });
+
+    return (stateId: ObjectID | undefined): boolean => {
+      return ResolvedStateUtil.isResolved({
+        list: StateListType.AlertState,
+        states: states,
+        stateId: stateId,
+      });
+    };
   }
 
   // Check if an item matches the summary's filter conditions
@@ -515,9 +1014,14 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       -days,
     );
 
-    const fromDateStr: string = Service.formatDate(fromDate);
+    const timezone: Timezone = WorkspaceSummaryScheduleUtil.getTimezone(
+      summary.timezone,
+    );
+
+    const fromDateStr: string = Service.formatDate(fromDate, timezone);
     const toDateStr: string = Service.formatDate(
       OneUptimeDate.getCurrentDate(),
+      timezone,
     );
 
     // Title
@@ -546,6 +1050,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         projectId: summary.projectId!,
         filters: summary.filters || undefined,
         filterCondition: summary.filterCondition || undefined,
+        timezone: timezone,
       });
     } else {
       await this.buildAlertBlocks({
@@ -556,6 +1061,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         projectId: summary.projectId!,
         filters: summary.filters || undefined,
         filterCondition: summary.filterCondition || undefined,
+        timezone: timezone,
       });
     }
 
@@ -579,6 +1085,8 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     projectId: ObjectID;
     filters?: Array<NotificationRuleCondition> | undefined;
     filterCondition?: FilterCondition | undefined;
+    // The summary's time zone: the dates in its list are read in it.
+    timezone?: Timezone | undefined;
   }): Promise<void> {
     if (data.type === WorkspaceNotificationSummaryType.IncidentEpisode) {
       await this.buildIncidentEpisodeBlocks(data);
@@ -602,9 +1110,9 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         currentIncidentState: {
           name: true,
           _id: true,
-          isResolvedState: true,
           isAcknowledgedState: true,
         },
+        currentIncidentStateId: true,
         labels: { _id: true, name: true },
         monitors: { name: true, _id: true },
         createdAt: true,
@@ -626,10 +1134,14 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
 
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
+    // Resolved or open, by the one rule (Common/Utils/ResolvedState).
+    const isResolvedIncidentState: (stateId: ObjectID | undefined) => boolean =
+      await Service.getIncidentResolvedRule(projectId);
+
     // Overview stats
     if (Service.has(items, WorkspaceNotificationSummaryItem.TotalCount)) {
       const resolved: number = incidents.filter((i: Incident) => {
-        return i.currentIncidentState?.isResolvedState;
+        return isResolvedIncidentState(i.currentIncidentStateId);
       }).length;
       const open: number = incidents.length - resolved;
 
@@ -653,7 +1165,9 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (map.size > 0) {
         const parts: Array<string> = [];
         for (const [sev, count] of map) {
-          parts.push(`${sev}: ${Service.bold(String(count))}`);
+          parts.push(
+            `${escapeMarkdownValue(sev)}: ${Service.bold(String(count))}`,
+          );
         }
         blocks.push(
           Service.md(`${Service.bold("By Severity:")}  ${parts.join("  ·  ")}`),
@@ -671,7 +1185,9 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (map.size > 0) {
         const parts: Array<string> = [];
         for (const [state, count] of map) {
-          parts.push(`${state}: ${Service.bold(String(count))}`);
+          parts.push(
+            `${escapeMarkdownValue(state)}: ${Service.bold(String(count))}`,
+          );
         }
         blocks.push(
           Service.md(`${Service.bold("By State:")}  ${parts.join("  ·  ")}`),
@@ -705,13 +1221,15 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           },
           select: {
             incidentId: true,
+            incidentStateId: true,
             incidentState: {
               isAcknowledgedState: true,
-              isResolvedState: true,
             },
             createdByUser: { name: true, email: true },
             createdAt: true,
           },
+          // The first resolve and acknowledgement come first.
+          sort: { createdAt: SortOrder.Ascending },
           props: { isRoot: true },
         });
 
@@ -730,7 +1248,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           td.ackBy = userName;
           td.ackAt = tl.createdAt;
         }
-        if (tl.incidentState?.isResolvedState && !td.resolvedAt) {
+        if (isResolvedIncidentState(tl.incidentStateId) && !td.resolvedAt) {
           td.resolvedBy = userName;
           td.resolvedAt = tl.createdAt;
         }
@@ -826,13 +1344,19 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         // Meta line
         const meta: Array<string> = [];
         if (inc.incidentSeverity?.name) {
-          meta.push(`Severity: ${Service.bold(inc.incidentSeverity.name)}`);
+          meta.push(
+            `Severity: ${Service.bold(escapeMarkdownValue(inc.incidentSeverity.name))}`,
+          );
         }
         if (inc.currentIncidentState?.name) {
-          meta.push(`State: ${Service.bold(inc.currentIncidentState.name)}`);
+          meta.push(
+            `State: ${Service.bold(escapeMarkdownValue(inc.currentIncidentState.name))}`,
+          );
         }
         if (inc.declaredAt) {
-          meta.push(`Declared: ${Service.formatDate(inc.declaredAt)}`);
+          meta.push(
+            `Declared: ${Service.formatDate(inc.declaredAt, data.timezone)}`,
+          );
         }
         if (meta.length > 0) {
           text += `\n${meta.join("  ·  ")}`;
@@ -845,12 +1369,12 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         ) {
           if (td?.ackBy && td?.ackAt) {
             ackResolve.push(
-              `Ack: ${Service.bold(td.ackBy)} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || inc.createdAt!, td.ackAt))}`,
+              `Ack: ${Service.bold(escapeMarkdownValue(td.ackBy))} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || inc.createdAt!, td.ackAt))}`,
             );
           } else if (td?.resolvedBy && td?.resolvedAt) {
             // If not explicitly acknowledged but resolved, ack time = resolve time
             ackResolve.push(
-              `Ack: ${Service.bold(td.resolvedBy)} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || inc.createdAt!, td.resolvedAt))}`,
+              `Ack: ${Service.bold(escapeMarkdownValue(td.resolvedBy))} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || inc.createdAt!, td.resolvedAt))}`,
             );
           } else {
             ackResolve.push(`_Not yet acknowledged_`);
@@ -859,9 +1383,9 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         if (Service.has(items, WorkspaceNotificationSummaryItem.WhoResolved)) {
           if (td?.resolvedBy && td?.resolvedAt) {
             ackResolve.push(
-              `Resolved: ${Service.bold(td.resolvedBy)} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || inc.createdAt!, td.resolvedAt))}`,
+              `Resolved: ${Service.bold(escapeMarkdownValue(td.resolvedBy))} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || inc.createdAt!, td.resolvedAt))}`,
             );
-          } else if (!inc.currentIncidentState?.isResolvedState) {
+          } else if (!isResolvedIncidentState(inc.currentIncidentStateId)) {
             ackResolve.push(`_Not yet resolved_`);
           }
         }
@@ -884,6 +1408,8 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     projectId: ObjectID;
     filters?: Array<NotificationRuleCondition> | undefined;
     filterCondition?: FilterCondition | undefined;
+    // The summary's time zone: the dates in its list are read in it.
+    timezone?: Timezone | undefined;
   }): Promise<void> {
     const { blocks, items, fromDate, projectId } = data;
 
@@ -901,8 +1427,8 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           currentIncidentState: {
             name: true,
             _id: true,
-            isResolvedState: true,
           },
+          currentIncidentStateId: true,
           labels: { _id: true, name: true },
           createdAt: true,
           resolvedAt: true,
@@ -924,8 +1450,13 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
     if (Service.has(items, WorkspaceNotificationSummaryItem.TotalCount)) {
+      // Resolved or open, by the one rule (Common/Utils/ResolvedState).
+      const isResolvedIncidentState: (
+        stateId: ObjectID | undefined,
+      ) => boolean = await Service.getIncidentResolvedRule(projectId);
+
       const resolved: number = episodes.filter((e: IncidentEpisode) => {
-        return e.currentIncidentState?.isResolvedState;
+        return isResolvedIncidentState(e.currentIncidentStateId);
       }).length;
       blocks.push(
         Service.md(
@@ -946,7 +1477,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (map.size > 0) {
         const parts: Array<string> = [];
         for (const [sev, c] of map) {
-          parts.push(`${sev}: ${Service.bold(String(c))}`);
+          parts.push(`${escapeMarkdownValue(sev)}: ${Service.bold(String(c))}`);
         }
         blocks.push(
           Service.md(`${Service.bold("By Severity:")}  ${parts.join("  ·  ")}`),
@@ -963,7 +1494,9 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (map.size > 0) {
         const parts: Array<string> = [];
         for (const [state, c] of map) {
-          parts.push(`${state}: ${Service.bold(String(c))}`);
+          parts.push(
+            `${escapeMarkdownValue(state)}: ${Service.bold(String(c))}`,
+          );
         }
         blocks.push(
           Service.md(`${Service.bold("By State:")}  ${parts.join("  ·  ")}`),
@@ -1010,13 +1543,19 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         let text: string = `${Service.bold(Service.link(linkUrl, escapeMarkdownInline(ep.title || "Untitled Episode")))}`;
         const meta: Array<string> = [];
         if (ep.incidentSeverity?.name) {
-          meta.push(`Severity: ${Service.bold(ep.incidentSeverity.name)}`);
+          meta.push(
+            `Severity: ${Service.bold(escapeMarkdownValue(ep.incidentSeverity.name))}`,
+          );
         }
         if (ep.currentIncidentState?.name) {
-          meta.push(`State: ${Service.bold(ep.currentIncidentState.name)}`);
+          meta.push(
+            `State: ${Service.bold(escapeMarkdownValue(ep.currentIncidentState.name))}`,
+          );
         }
         if (ep.createdAt) {
-          meta.push(`Created: ${Service.formatDate(ep.createdAt)}`);
+          meta.push(
+            `Created: ${Service.formatDate(ep.createdAt, data.timezone)}`,
+          );
         }
         if (ep.resolvedAt && ep.createdAt) {
           meta.push(
@@ -1042,6 +1581,8 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     projectId: ObjectID;
     filters?: Array<NotificationRuleCondition> | undefined;
     filterCondition?: FilterCondition | undefined;
+    // The summary's time zone: the dates in its list are read in it.
+    timezone?: Timezone | undefined;
   }): Promise<void> {
     if (data.type === WorkspaceNotificationSummaryType.AlertEpisode) {
       await this.buildAlertEpisodeBlocks(data);
@@ -1065,9 +1606,9 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         currentAlertState: {
           name: true,
           _id: true,
-          isResolvedState: true,
           isAcknowledgedState: true,
         },
+        currentAlertStateId: true,
         labels: { _id: true, name: true },
         monitor: { name: true, _id: true },
         createdAt: true,
@@ -1088,9 +1629,13 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
 
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
+    // Resolved or open, by the one rule (Common/Utils/ResolvedState).
+    const isResolvedAlertState: (stateId: ObjectID | undefined) => boolean =
+      await Service.getAlertResolvedRule(projectId);
+
     if (Service.has(items, WorkspaceNotificationSummaryItem.TotalCount)) {
       const resolved: number = alerts.filter((a: Alert) => {
-        return a.currentAlertState?.isResolvedState;
+        return isResolvedAlertState(a.currentAlertStateId);
       }).length;
       blocks.push(
         Service.md(
@@ -1111,7 +1656,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (map.size > 0) {
         const parts: Array<string> = [];
         for (const [sev, c] of map) {
-          parts.push(`${sev}: ${Service.bold(String(c))}`);
+          parts.push(`${escapeMarkdownValue(sev)}: ${Service.bold(String(c))}`);
         }
         blocks.push(
           Service.md(`${Service.bold("By Severity:")}  ${parts.join("  ·  ")}`),
@@ -1128,7 +1673,9 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (map.size > 0) {
         const parts: Array<string> = [];
         for (const [state, c] of map) {
-          parts.push(`${state}: ${Service.bold(String(c))}`);
+          parts.push(
+            `${escapeMarkdownValue(state)}: ${Service.bold(String(c))}`,
+          );
         }
         blocks.push(
           Service.md(`${Service.bold("By State:")}  ${parts.join("  ·  ")}`),
@@ -1159,13 +1706,15 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           query: { projectId, alertId: QueryHelper.any(ids) },
           select: {
             alertId: true,
+            alertStateId: true,
             alertState: {
               isAcknowledgedState: true,
-              isResolvedState: true,
             },
             createdByUser: { name: true, email: true },
             createdAt: true,
           },
+          // The first resolve and acknowledgement come first.
+          sort: { createdAt: SortOrder.Ascending },
           props: { isRoot: true },
         });
 
@@ -1184,7 +1733,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           td.ackBy = userName;
           td.ackAt = tl.createdAt;
         }
-        if (tl.alertState?.isResolvedState && !td.resolvedAt) {
+        if (isResolvedAlertState(tl.alertStateId) && !td.resolvedAt) {
           td.resolvedBy = userName;
           td.resolvedAt = tl.createdAt;
         }
@@ -1262,17 +1811,24 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           .toString();
         const td: TimelineData | undefined = tlMap.get(id);
 
-        let text: string = `${Service.bold(Service.link(linkUrl, `${display} — ${a.title || "Untitled"}`))}`;
+        // The title inside the link's text, escaped as an incident's is.
+        let text: string = `${Service.bold(Service.link(linkUrl, `${display} — ${escapeMarkdownInline(a.title || "Untitled")}`))}`;
 
         const meta: Array<string> = [];
         if (a.alertSeverity?.name) {
-          meta.push(`Severity: ${Service.bold(a.alertSeverity.name)}`);
+          meta.push(
+            `Severity: ${Service.bold(escapeMarkdownValue(a.alertSeverity.name))}`,
+          );
         }
         if (a.currentAlertState?.name) {
-          meta.push(`State: ${Service.bold(a.currentAlertState.name)}`);
+          meta.push(
+            `State: ${Service.bold(escapeMarkdownValue(a.currentAlertState.name))}`,
+          );
         }
         if (a.createdAt) {
-          meta.push(`Created: ${Service.formatDate(a.createdAt)}`);
+          meta.push(
+            `Created: ${Service.formatDate(a.createdAt, data.timezone)}`,
+          );
         }
         if (meta.length > 0) {
           text += `\n${meta.join("  ·  ")}`;
@@ -1284,12 +1840,12 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         ) {
           if (td?.ackBy && td?.ackAt) {
             ackResolve.push(
-              `Ack: ${Service.bold(td.ackBy)} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || a.createdAt!, td.ackAt))}`,
+              `Ack: ${Service.bold(escapeMarkdownValue(td.ackBy))} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || a.createdAt!, td.ackAt))}`,
             );
           } else if (td?.resolvedBy && td?.resolvedAt) {
             // If not explicitly acknowledged but resolved, ack time = resolve time
             ackResolve.push(
-              `Ack: ${Service.bold(td.resolvedBy)} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || a.createdAt!, td.resolvedAt))}`,
+              `Ack: ${Service.bold(escapeMarkdownValue(td.resolvedBy))} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || a.createdAt!, td.resolvedAt))}`,
             );
           } else {
             ackResolve.push(`_Not yet acknowledged_`);
@@ -1298,9 +1854,9 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         if (Service.has(items, WorkspaceNotificationSummaryItem.WhoResolved)) {
           if (td?.resolvedBy && td?.resolvedAt) {
             ackResolve.push(
-              `Resolved: ${Service.bold(td.resolvedBy)} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || a.createdAt!, td.resolvedAt))}`,
+              `Resolved: ${Service.bold(escapeMarkdownValue(td.resolvedBy))} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || a.createdAt!, td.resolvedAt))}`,
             );
-          } else if (!a.currentAlertState?.isResolvedState) {
+          } else if (!isResolvedAlertState(a.currentAlertStateId)) {
             ackResolve.push(`_Not yet resolved_`);
           }
         }
@@ -1323,6 +1879,8 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     projectId: ObjectID;
     filters?: Array<NotificationRuleCondition> | undefined;
     filterCondition?: FilterCondition | undefined;
+    // The summary's time zone: the dates in its list are read in it.
+    timezone?: Timezone | undefined;
   }): Promise<void> {
     const { blocks, items, fromDate, projectId } = data;
 
@@ -1336,7 +1894,8 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         title: true,
         description: true,
         alertSeverity: { name: true, _id: true },
-        currentAlertState: { name: true, _id: true, isResolvedState: true },
+        currentAlertState: { name: true, _id: true },
+        currentAlertStateId: true,
         labels: { _id: true, name: true },
         createdAt: true,
         resolvedAt: true,
@@ -1358,8 +1917,12 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
     if (Service.has(items, WorkspaceNotificationSummaryItem.TotalCount)) {
+      // Resolved or open, by the one rule (Common/Utils/ResolvedState).
+      const isResolvedAlertState: (stateId: ObjectID | undefined) => boolean =
+        await Service.getAlertResolvedRule(projectId);
+
       const resolved: number = episodes.filter((e: AlertEpisode) => {
-        return e.currentAlertState?.isResolvedState;
+        return isResolvedAlertState(e.currentAlertStateId);
       }).length;
       blocks.push(
         Service.md(
@@ -1380,7 +1943,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (map.size > 0) {
         const parts: Array<string> = [];
         for (const [sev, c] of map) {
-          parts.push(`${sev}: ${Service.bold(String(c))}`);
+          parts.push(`${escapeMarkdownValue(sev)}: ${Service.bold(String(c))}`);
         }
         blocks.push(
           Service.md(`${Service.bold("By Severity:")}  ${parts.join("  ·  ")}`),
@@ -1397,7 +1960,9 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (map.size > 0) {
         const parts: Array<string> = [];
         for (const [state, c] of map) {
-          parts.push(`${state}: ${Service.bold(String(c))}`);
+          parts.push(
+            `${escapeMarkdownValue(state)}: ${Service.bold(String(c))}`,
+          );
         }
         blocks.push(
           Service.md(`${Service.bold("By State:")}  ${parts.join("  ·  ")}`),
@@ -1440,16 +2005,23 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           .addRoute(`/${projectId.toString()}/alerts/episodes/${id}`)
           .toString();
 
-        let text: string = `${Service.bold(Service.link(linkUrl, ep.title || "Untitled Episode"))}`;
+        // The title inside the link's text, escaped as an incident episode's is.
+        let text: string = `${Service.bold(Service.link(linkUrl, escapeMarkdownInline(ep.title || "Untitled Episode")))}`;
         const meta: Array<string> = [];
         if (ep.alertSeverity?.name) {
-          meta.push(`Severity: ${Service.bold(ep.alertSeverity.name)}`);
+          meta.push(
+            `Severity: ${Service.bold(escapeMarkdownValue(ep.alertSeverity.name))}`,
+          );
         }
         if (ep.currentAlertState?.name) {
-          meta.push(`State: ${Service.bold(ep.currentAlertState.name)}`);
+          meta.push(
+            `State: ${Service.bold(escapeMarkdownValue(ep.currentAlertState.name))}`,
+          );
         }
         if (ep.createdAt) {
-          meta.push(`Created: ${Service.formatDate(ep.createdAt)}`);
+          meta.push(
+            `Created: ${Service.formatDate(ep.createdAt, data.timezone)}`,
+          );
         }
         if (ep.resolvedAt && ep.createdAt) {
           meta.push(

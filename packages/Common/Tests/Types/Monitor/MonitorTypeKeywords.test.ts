@@ -271,6 +271,10 @@ describe("MonitorType keywords", () => {
       ["esxi", MonitorType.VMware],
       ["vcenter", MonitorType.VMware],
       ["osd", MonitorType.Ceph],
+      ["flasharray", MonitorType.StorageArray],
+      ["flashblade", MonitorType.StorageArray],
+      ["pure storage", MonitorType.StorageArray],
+      ["everpure", MonitorType.StorageArray],
       ["sensor", MonitorType.IoTDevice],
       ["imap", MonitorType.IncomingEmail],
     ])(
@@ -304,6 +308,7 @@ describe("MonitorType keywords", () => {
       expect(results).toContain(MonitorType.Kubernetes);
       expect(results).toContain(MonitorType.Docker);
       expect(results).toContain(MonitorType.Ceph);
+      expect(results).toContain(MonitorType.StorageArray);
       expect(results).not.toContain(MonitorType.Website);
     });
 

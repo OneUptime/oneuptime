@@ -1,13 +1,30 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import BadDataException from "../../Types/Exception/BadDataException";
-import ObjectID from "../../Types/ObjectID";
 import IncomingCallPolicyEscalationRule from "../../Models/DatabaseModels/IncomingCallPolicyEscalationRule";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 
-export class Service extends DatabaseService<IncomingCallPolicyEscalationRule> {
+/*
+ * The two names of who a rule calls - a user or an on-call schedule - and of
+ * the policy it belongs to, ID column first. A rule may be written under
+ * either name of each, and the two must agree (RelationIdUtil.readConsistent),
+ * so a rule sent with the relations is held to the same rules as one sent
+ * with the IDs.
+ */
+const USER_KEYS: Array<string> = ["userId", "user"];
+const SCHEDULE_KEYS: Array<string> = [
+  "onCallDutyPolicyScheduleId",
+  "onCallDutyPolicySchedule",
+];
+const POLICY_KEYS: Array<string> = [
+  "incomingCallPolicyId",
+  "incomingCallPolicy",
+];
+
+export class Service extends ProjectReferencesService<IncomingCallPolicyEscalationRule> {
   public constructor() {
     super(IncomingCallPolicyEscalationRule);
   }
@@ -15,10 +32,19 @@ export class Service extends DatabaseService<IncomingCallPolicyEscalationRule> {
   protected override async onBeforeCreate(
     createBy: CreateBy<IncomingCallPolicyEscalationRule>,
   ): Promise<OnCreate<IncomingCallPolicyEscalationRule>> {
-    // Validate mutual exclusivity: either userId OR onCallDutyPolicyScheduleId must be set
-    const hasUser: boolean = Boolean(createBy.data.userId);
+    await super.onBeforeCreate(createBy);
+
+    const data: Record<string, unknown> = createBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    // Validate mutual exclusivity: either a user OR an on-call schedule must be set
+    const hasUser: boolean = Boolean(
+      RelationIdUtil.readConsistent(data, USER_KEYS, "User"),
+    );
     const hasSchedule: boolean = Boolean(
-      createBy.data.onCallDutyPolicyScheduleId,
+      RelationIdUtil.readConsistent(data, SCHEDULE_KEYS, "On-Call Schedule"),
     );
 
     if (!hasUser && !hasSchedule) {
@@ -33,7 +59,9 @@ export class Service extends DatabaseService<IncomingCallPolicyEscalationRule> {
       );
     }
 
-    if (!createBy.data.incomingCallPolicyId) {
+    if (
+      !RelationIdUtil.readConsistent(data, POLICY_KEYS, "Incoming Call Policy")
+    ) {
       throw new BadDataException("incomingCallPolicyId is required");
     }
 
@@ -88,20 +116,28 @@ export class Service extends DatabaseService<IncomingCallPolicyEscalationRule> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<IncomingCallPolicyEscalationRule>,
   ): Promise<OnUpdate<IncomingCallPolicyEscalationRule>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * Enforce user/schedule mutual exclusivity on update (parity with onBeforeCreate).
      * Only runs when the update actually touches one of the routing-target fields, so
      * internal updates (status/order via isRoot) are unaffected.
      */
-    const data: UpdateBy<IncomingCallPolicyEscalationRule>["data"] =
-      updateBy.data;
+    const data: Record<string, unknown> = updateBy.data as unknown as Record<
+      string,
+      unknown
+    >;
     const isTouchingTarget: boolean =
-      data.userId !== undefined ||
-      data.onCallDutyPolicyScheduleId !== undefined;
+      RelationIdUtil.isPresent(data, USER_KEYS) ||
+      RelationIdUtil.isPresent(data, SCHEDULE_KEYS);
 
     if (isTouchingTarget && updateBy.query._id) {
-      const settingUser: boolean = Boolean(data.userId);
-      const settingSchedule: boolean = Boolean(data.onCallDutyPolicyScheduleId);
+      const settingUser: boolean = Boolean(
+        RelationIdUtil.readConsistent(data, USER_KEYS, "User"),
+      );
+      const settingSchedule: boolean = Boolean(
+        RelationIdUtil.readConsistent(data, SCHEDULE_KEYS, "On-Call Schedule"),
+      );
 
       if (settingUser && settingSchedule) {
         throw new BadDataException(
@@ -109,19 +145,15 @@ export class Service extends DatabaseService<IncomingCallPolicyEscalationRule> {
         );
       }
 
-      // Setting one target clears the other so a rule can never hold both.
-      const nullableData: {
-        userId?: ObjectID | null;
-        onCallDutyPolicyScheduleId?: ObjectID | null;
-      } = data as {
-        userId?: ObjectID | null;
-        onCallDutyPolicyScheduleId?: ObjectID | null;
-      };
+      /*
+       * Setting one target clears the other, under both of its names, so a
+       * rule can never hold both.
+       */
       if (settingUser) {
-        nullableData.onCallDutyPolicyScheduleId = null;
+        RelationIdUtil.stamp(data, SCHEDULE_KEYS, null);
       }
       if (settingSchedule) {
-        nullableData.userId = null;
+        RelationIdUtil.stamp(data, USER_KEYS, null);
       }
 
       const existing: IncomingCallPolicyEscalationRule | null =
@@ -145,12 +177,12 @@ export class Service extends DatabaseService<IncomingCallPolicyEscalationRule> {
        */
       const willHaveUser: boolean = settingUser
         ? true
-        : data.userId === undefined
+        : !RelationIdUtil.isPresent(data, USER_KEYS)
           ? Boolean(existing?.userId)
           : false;
       const willHaveSchedule: boolean = settingSchedule
         ? true
-        : data.onCallDutyPolicyScheduleId === undefined
+        : !RelationIdUtil.isPresent(data, SCHEDULE_KEYS)
           ? Boolean(existing?.onCallDutyPolicyScheduleId)
           : false;
 

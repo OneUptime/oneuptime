@@ -714,10 +714,12 @@ clickhouseOperator:
 # =============================================================================
 # Database migrations (dedicated Job — enabled by default).
 #
-# Schema + data migrations run ONCE per release in a dedicated pre-upgrade /
-# post-install Job (App/Migrate.ts), connecting directly to the backend. The
-# runtime app/worker/nginx pods are gated off (RUN_DATABASE_MIGRATIONS_ON_BOOT=
-# false). See HelmChart/Docs/Postgres.md.
+# Schema + data migrations run ONCE per release in a dedicated Job
+# (App/Migrate.ts), connecting directly to the backend: an async Job by default,
+# a pre-upgrade / post-install hook with migrate.hook. The runtime
+# app/worker/nginx pods are gated off (RUN_DATABASE_MIGRATIONS_ON_BOOT=false),
+# and each waits at boot for the schema migrations its code needs before it
+# starts (migrate.runtimeWaitTimeoutSeconds). See HelmChart/Docs/Postgres.md.
 #
 # KEEP THIS ENABLED. The migration runners take no advisory lock, so this Job
 # is the only thing making one runner the single runner. Setting enabled: false
@@ -725,10 +727,11 @@ clickhouseOperator:
 # at once and unserialized — two replicas can read the same migration as "not
 # executed" and both run it.
 #
-# Behavior: deploys gate on the migration Job (cleaner, atomic, no cross-pod
-# race). An init container waits for the database first, so a fresh install does
-# not race the bundled Postgres / CNPG bootstrap; on a very slow first-time
-# cluster bootstrap you may need a longer `helm upgrade --install --timeout`.
+# Behavior: one runner, so no cross-pod race, and no new pod serves until the
+# schema migrations it needs are applied. An init container waits for the
+# database first, so a fresh install does not race the bundled Postgres / CNPG
+# bootstrap; on a very slow first-time cluster bootstrap you may need a longer
+# `helm upgrade --install --timeout`.
 # docker-compose and enabled: false installs run the boot path with no lock at
 # all, so data migrations must be written to tolerate concurrent runs.
 migrate:
@@ -736,17 +739,39 @@ migrate:
   # Whether the deploy WAITS for migrations:
   #   false (default): migrations run as an async background Job (both install and
   #     upgrade) — helm returns immediately and pods roll while migrations run.
-  #     Non-blocking deploys, BUT pods may run before migrations finish, so keep
-  #     your migrations backward-compatible (expand/contract: new code must
-  #     tolerate the old schema). On a FRESH install the app pods come up against
-  #     an un-migrated database and stay unready (likely CrashLoopBackOff) until
-  #     the Job finishes creating the schema — they self-heal once it does.
+  #     A new pod does not start on a schema older than its code: it waits at
+  #     boot, unready (the old pods keep serving), until the schema migrations
+  #     it needs are applied — see runtimeWaitTimeoutSeconds. On a FRESH install
+  #     the pods likewise wait for the Job to create the schema instead of
+  #     crash-looping. Keep migrations backward-compatible all the same
+  #     (expand/contract): the OLD pods serve on the NEW schema until replaced.
   #   true: migrations run as a BLOCKING Helm hook (post-install on install,
-  #     pre-upgrade on upgrade) — the deploy waits before rolling new pods, so new
-  #     code never hits an un-migrated schema.
-  # Note: `helm upgrade --wait` waits for the async Job too, so don't pass --wait
-  # if you want it non-blocking.
+  #     pre-upgrade on upgrade) — `helm upgrade` waits for them, data migrations
+  #     included, before rolling new pods, and fails the release if they outlast
+  #     its --timeout (5m by default). A post-install hook runs only after the
+  #     release's pods exist — after they are READY under `helm install --wait`
+  #     and Argo CD (which renders every sync as an install, so there the Job is
+  #     always a PostSync hook) — so with hook: true the pods of an install do
+  #     not wait for it (DATABASE_MIGRATION_WAIT_TIMEOUT_MS=0), as before.
+  # Note: `helm upgrade --wait` waits for the new pods to be ready, and they now
+  # wait for the schema migrations, so a --wait (or --atomic) deploy lasts until
+  # those are applied: size --timeout for them. It does not wait for the Job
+  # itself (data migrations included) unless you add --wait-for-jobs.
   hook: false
+  # How long each new runtime pod (app, worker, telemetry-writer, nginx) waits at
+  # boot for the schema migrations its code needs, in seconds (rendered as
+  # DATABASE_MIGRATION_WAIT_TIMEOUT_MS). Meanwhile it has not started: its
+  # startup probe fails, it gets no traffic, the old pods keep serving. It goes
+  # on as soon as the migrations are applied. When the time runs out it exits
+  # with an error naming the missing migrations, is restarted, and waits again —
+  # it never serves on the older schema. Keep it below the startup probe window,
+  # startupProbe.periodSeconds x (startupProbe.failureThreshold - 1) = 17
+  # minutes by default, with room for the rest of the boot, so a pod gives up by
+  # itself rather than being killed by the probe (with startupProbe.enabled:
+  # false the liveness probe kills a waiting pod after about two minutes).
+  # 0 = do not wait: start on the schema as found, as before this setting.
+  # Empty = the app's default (900).
+  runtimeWaitTimeoutSeconds: 900
   # Auto-clean finished async Jobs after this many seconds (hook: false only).
   ttlSecondsAfterFinished: 86400
   # Job retries (handles the DB not being ready yet on a fresh install).
@@ -1088,10 +1113,12 @@ outboundConnections:
   # projects on this instance belong to people who should not reach your
   # internal network. Always on when billing.enabled is true, whatever this
   # says. Does not change which targets webhooks (above) or
-  # probes.<key>.allowPrivateNetworkMonitors allow. With it on, a refused host
-  # name (webhooks and workflow requests included) is reported as "... could
-  # not be reached." without saying what it resolved to; LOG_LEVEL=DEBUG logs
-  # the reason.
+  # probes.<key>.allowPrivateNetworkMonitors allow, and does not apply to
+  # Global LLM Providers (vllm.globalProvider, or one added in the Admin
+  # Dashboard): you choose their address, not a project. With it on, a refused
+  # host name (webhooks and workflow requests included) is reported as "...
+  # could not be reached." without saying what it resolved to; LOG_LEVEL=DEBUG
+  # logs the reason.
   blockPrivateNetwork: false
 
 # VAPID Configuration for Web Push Notifications
@@ -2210,10 +2237,14 @@ runner:
 # vLLM: self-hosted, OpenAI-compatible LLM inference server (https://docs.vllm.ai)
 # for running local models in-cluster instead of calling OpenAI/Anthropic/etc.
 # Note: This is disabled by default. Enabling it requires NVIDIA GPU nodes
-# (device plugin or GPU Operator installed). Once running, connect OneUptime to
-# it from the dashboard: AI Agents > LLM Providers > Create LLM Provider,
-# with LLM Provider "OpenAI" and Base URL:
+# (device plugin or GPU Operator installed). Once running, it is registered as
+# a Global LLM Provider automatically (see vllm.globalProvider below). To
+# connect it by hand instead: Project Settings > AI > LLM Providers > Create
+# LLM Provider, with LLM Provider "OpenAI Compatible" and Base URL:
 #   http://<release>-vllm.<namespace>.svc.<clusterDomain>:8000/v1
+# With billing.enabled or outboundConnections.blockPrivateNetwork on, a
+# project's own provider cannot reach that address; add it in the Admin
+# Dashboard under Settings > Global LLM Providers instead.
 vllm:
   enabled: false
   # N replicas = N independent copies of the model (each replica needs its own
@@ -2275,8 +2306,7 @@ vllm:
   # Optional API key. When set, /v1/* requires "Authorization: Bearer <key>"
   # (injected as VLLM_API_KEY via a chart-managed secret) - use the same value
   # as the API Key in the OneUptime LLM Provider form. When unset, the server is
-  # unauthenticated (in-cluster ClusterIP only) and any placeholder value
-  # satisfies the form.
+  # unauthenticated (in-cluster ClusterIP only); leave the form's API Key blank.
   apiKey: ""
   # Alternative to apiKey: reference an existing secret containing the API key.
   existingApiKeySecret:
@@ -2296,10 +2326,14 @@ vllm:
   # the auto-registered provider on the next deploy, and manual edits to its
   # env-managed fields (name, description, type, model, base URL, API key) in the
   # Admin Dashboard are overwritten (other fields, e.g. token cost, are kept).
-  # Note: project-scoped AI Agents cannot
-  # use global providers (product rule) - they still need a project-specific
-  # LLM Provider. Intended for self-hosted installs; with billing.enabled=true
-  # global providers are subject to AI-credit balance checks.
+  # A project's own LLM Provider takes precedence; AI fix tasks fall back to
+  # this one when a project has none. Works with billing.enabled=true and
+  # outboundConnections.blockPrivateNetwork=true: they refuse private addresses
+  # such as this Service's ClusterIP only to providers a project configures,
+  # and this provider's address comes from the chart, not from a project.
+  # Loopback and link-local addresses stay refused for every provider. With
+  # billing.enabled=true, global providers are subject to AI-credit balance
+  # checks once you set their token cost in the Admin Dashboard.
   globalProvider:
     enabled: true
     # Display name of the auto-registered provider in the dashboard.

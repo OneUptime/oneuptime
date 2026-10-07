@@ -1,8 +1,42 @@
 import Includes from "../../Types/BaseDatabase/Includes";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { FindWhereProperty } from "../../Types/BaseDatabase/Query";
 import ObjectID from "../../Types/ObjectID";
+import Permission from "../../Types/Permission";
 import QueryHelper from "../Types/Database/QueryHelper";
+import CallerPermission from "./Permission/CallerPermission";
 import { And, Equal, FindOperator } from "typeorm";
+
+// Who sees every private record of a project (incidents, alerts, episodes).
+export const PRIVATE_RECORD_BYPASS_PERMISSIONS: ReadonlyArray<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+];
+
+/*
+ * Whether the caller sees every private incident, alert or episode of the
+ * project, not only the ones they own: root and master-admin contexts, and
+ * project owners and admins - held the way every permission check reads it
+ * (CallerPermission). A block row for either role is no grant, and a block
+ * with no labels on either takes it away. Seeing every private record
+ * reaches the whole project, so only a grant that reaches the whole project
+ * counts (projectWideOnly): one limited to some labels does not.
+ */
+export function shouldBypassRecordPrivacy(
+  props: DatabaseCommonInteractionProps,
+): boolean {
+  if (props.isRoot || props.isMasterAdmin) {
+    return true;
+  }
+
+  if (!props.tenantId) {
+    return false;
+  }
+
+  return CallerPermission.holdsAnyOf(props, PRIVATE_RECORD_BYPASS_PERMISSIONS, {
+    projectWideOnly: true,
+  });
+}
 
 /*
  * Combines a caller-supplied filter value with a privacy Raw clause so that

@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import CephClusterLabelRuleEngineService from "./CephClusterLabelRuleEngineService";
 import CephClusterOwnerRuleEngineService from "./CephClusterOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/CephCluster";
@@ -49,7 +49,7 @@ const CEPH_CLUSTER_MATCH_COLUMN: MatchColumn = matchedOnName({
   resourceName: "Ceph cluster",
 });
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -208,9 +208,9 @@ export class Service extends DatabaseService<Model> {
    * Two callers share this throttle with DISJOINT extras shapes: the
    * metrics snapshot flush (version + counts/health, every batch) and
    * the fenced autoDiscoverCephCluster maintenance path (agentVersion
-   * + optional fsid only — and usually an all-null fingerprint, since
-   * the shipped agent config stamps neither oneuptime.agent.version
-   * nor ceph.cluster.fsid by default). The single fingerprint covers
+   * + optional fsid only — the shipped agent config stamps
+   * oneuptime.agent.version, and ceph.cluster.fsid only when someone
+   * uncomments it). The single fingerprint covers
    * the whole extras object, so each alternation between the two
    * shapes busts the throttle: at most one extra Postgres UPDATE per
    * maintenance-fence window (~5 min), which is accepted. Do NOT key
@@ -581,6 +581,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     ResourceAiAccessSettings.checkCreate({
       resourceType: AiResourceType.CephCluster,
       createBy,
@@ -599,6 +601,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     return {
       updateBy,
       carryForward: await ResourceAiAccessSettings.checkUpdate({

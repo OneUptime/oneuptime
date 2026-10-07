@@ -9,11 +9,14 @@ import SmsService from "./SmsService";
 import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
 import ChannelVerification from "../Utils/ChannelVerification";
 import Project from "../../Models/DatabaseModels/Project";
 import Model from "../../Models/DatabaseModels/UserIncomingCallNumber";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { INCOMING_CALL_NUMBER_SMS_OFF_MESSAGE } from "../../Utils/Project/NotificationChannels";
+import { INCOMING_CALL_NUMBER_BALANCE_TOO_LOW_MESSAGE } from "../../Utils/Project/ProjectBalance";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -46,9 +49,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (!project.enableSmsNotifications) {
-      throw new BadDataException(
-        "SMS notifications are disabled for this project. Please enable them in Project Settings > Notification Settings.",
-      );
+      throw new BadDataException(INCOMING_CALL_NUMBER_SMS_OFF_MESSAGE);
     }
 
     /*
@@ -65,15 +66,25 @@ export class Service extends DatabaseService<Model> {
       (project.smsOrCallCurrentBalanceInUSDCents as number) <= 100 &&
       IsBillingEnabled
     ) {
-      throw new BadDataException(
-        "Your SMS balance is low. Please recharge your SMS balance in Project Settings > Notification Settings.",
-      );
+      throw new BadDataException(INCOMING_CALL_NUMBER_BALANCE_TOO_LOW_MESSAGE);
     }
+
+    /*
+     * Whose number this is: the user the write names under either name, or
+     * - when it names nobody - the person adding it, whom CreatePermission
+     * stamps as the owner after this hook.
+     */
+    const userId: ObjectID | undefined =
+      RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        ["userId", "user"],
+        "User",
+      ) || createBy.props.userId;
 
     // Check if user already has a verified phone number for this project
     const existingVerifiedNumber: Model | null = await this.findOneBy({
       query: {
-        userId: createBy.data.userId!,
+        userId: userId!,
         projectId: createBy.data.projectId!,
         isVerified: true,
       },
@@ -150,9 +161,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (!project.enableSmsNotifications) {
-      throw new BadDataException(
-        "SMS notifications are disabled for this project. Please enable them in Project Settings > Notification Settings.",
-      );
+      throw new BadDataException(INCOMING_CALL_NUMBER_SMS_OFF_MESSAGE);
     }
 
     /*
@@ -169,9 +178,7 @@ export class Service extends DatabaseService<Model> {
       (project.smsOrCallCurrentBalanceInUSDCents as number) <= 100 &&
       IsBillingEnabled
     ) {
-      throw new BadDataException(
-        "Your SMS balance is low. Please recharge your SMS balance in Project Settings > Notification Settings.",
-      );
+      throw new BadDataException(INCOMING_CALL_NUMBER_BALANCE_TOO_LOW_MESSAGE);
     }
 
     /*

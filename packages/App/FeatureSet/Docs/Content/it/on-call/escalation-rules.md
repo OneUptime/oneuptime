@@ -29,9 +29,13 @@ Da chiusa, l'intestazione di **Altri campi** nomina i due campi e mostra quelli 
 
 Quando un incidente o un avviso raggiunge la policy, **Level 1** avvisa subito i suoi destinatari. Se nessuno conferma entro la sua attesa, viene avvisato **Level 2**, e così via lungo l'elenco. Trascorsa l'attesa dell'ultimo livello senza conferma, la policy ricomincia da **Level 1** se il suo **Criterio di ripetizione** (sotto le regole) prevede la ripetizione, per tutte le volte consentite, altrimenti si ferma.
 
+Un incidente, un avviso o un episodio creato già riconosciuto o risolto — registrato a posteriori — non esegue nessuna delle sue policy: nessuno viene avvisato, e il suo feed lo indica nominandole.
+
 Il riepilogo in cima alla pagina **Regole di escalation** mostra l'intera scala: quando viene avvisato ogni livello, chi avvisa e cosa succede dopo l'ultimo. Un livello i cui destinatari non possono essere avvisati tutti lo segnala sulla sua scheda; fai clic sull'etichetta per vedere chi e perché.
 
 Ogni persona avvisata da un livello viene raggiunta secondo le proprie regole di reperibilità: **Impostazioni utente** > **Regole di reperibilità**, con una scheda per incidenti, episodi di incidente, avvisi ed episodi di avviso, e un riquadro per ogni gravità che indica quale metodo di notifica viene usato e dopo quanto tempo. Un amministratore del progetto può vedere e modificare le regole di un membro in **Utenti** > il membro > **Regole di reperibilità**.
+
+SMS, chiamate telefoniche, WhatsApp e Telegram sono disattivati in un nuovo progetto: su OneUptime Cloud ogni messaggio viene pagato con il credito del progetto, e un'installazione self-hosted ha prima bisogno di un account Twilio o di un bot Telegram configurato. Finché un canale è disattivato, nessuno nel progetto può aggiungervi un metodo. Solo un proprietario del progetto o qualcuno con il ruolo **Billing Admin** o l'autorizzazione **Manage Billing** può attivarne uno, nella scheda **Canali di notifica** di **Impostazioni del progetto > Notifiche > Impostazioni notifiche** — un amministratore del progetto non può. A tutti gli altri viene detto esattamente chi può farlo, ovunque un canale sia disattivato: sopra il loro elenco di metodi su quel canale, nella loro checklist di configurazione e nel messaggio che ricevono quando qualcosa ne ha bisogno.
 
 ## Modificare, riordinare ed eliminare le regole
 

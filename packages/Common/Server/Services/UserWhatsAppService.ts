@@ -18,6 +18,11 @@ import ChannelVerification from "../Utils/ChannelVerification";
 import Project from "../../Models/DatabaseModels/Project";
 import Model from "../../Models/DatabaseModels/UserWhatsApp";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import {
+  getProjectNotificationChannelOffMessage,
+  ProjectNotificationChannel,
+} from "../../Utils/Project/NotificationChannels";
+import { getProjectBalanceTooLowMessage } from "../../Utils/Project/ProjectBalance";
 import WhatsAppMessage from "../../Types/WhatsApp/WhatsAppMessage";
 import {
   WhatsAppTemplateIds,
@@ -115,7 +120,9 @@ export class Service extends DatabaseService<Model> {
 
     if (!project.enableWhatsAppNotifications) {
       throw new BadDataException(
-        "WhatsApp notifications are disabled for this project. Please enable them in Project Settings > Notification Settings.",
+        getProjectNotificationChannelOffMessage(
+          ProjectNotificationChannel.WhatsApp,
+        ),
       );
     }
 
@@ -124,7 +131,7 @@ export class Service extends DatabaseService<Model> {
       IsBillingEnabled
     ) {
       throw new BadDataException(
-        "Your WhatsApp balance is low. Please recharge your balance in Project Settings > Notification Settings.",
+        getProjectBalanceTooLowMessage(ProjectNotificationChannel.WhatsApp),
       );
     }
 

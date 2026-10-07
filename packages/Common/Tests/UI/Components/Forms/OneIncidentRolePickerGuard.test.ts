@@ -811,7 +811,7 @@ describe("3. no template or declare form seeds the state a record starts in", ()
       );
 
       expect(field).toContain(
-        'description: "Incidents declared from this template start in this state. Leave it empty for the usual starting state.",',
+        'description: "Incidents declared from this template start in this state. Leave it empty for the usual starting state. An incident that starts acknowledged or resolved pages no one.",',
       );
       expect(field).toContain('placeholder: "The usual starting state",');
       expect(field).toContain("required: false,");

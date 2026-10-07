@@ -10,7 +10,7 @@ import { ActiveMonitoringMeteredPlan } from "../Types/Billing/MeteredPlan/AllMet
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import CustomFieldMappingService from "./CustomFieldMappingService";
 import CustomFieldMappingSourceResource from "../../Types/CustomField/CustomFieldMappingSourceResource";
 import MonitorLabelRuleEngineService from "./MonitorLabelRuleEngineService";
@@ -82,7 +82,11 @@ import WorkspaceNotificationRuleService, {
 } from "./WorkspaceNotificationRuleService";
 import MonitorStepsProjectValidator from "../Utils/Monitor/MonitorStepsProjectValidator";
 import ProjectScopedReferenceValidator, {
+  getWrittenRelationReferences,
+  ProjectScopedReference,
+  ProjectScopedRelation,
   resolveReferenceId,
+  resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
 import MonitorWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Monitor";
 import MonitorFeedService from "./MonitorFeedService";
@@ -98,6 +102,10 @@ import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil
 import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
 import MonitorTemplateService from "./MonitorTemplateService";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import {
+  getAffectedResourceColumns,
+  getAffectedResourceRelations,
+} from "../Utils/Database/AffectedResourceRelations";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import HostAddressUtil from "../../Utils/HostAddressUtil";
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
@@ -111,6 +119,22 @@ import ProbeMonitorsNotification, {
 const MONITOR_TEMPLATE_RELATION_KEYS: Array<string> = [
   "monitorTemplateId",
   "monitorTemplate",
+];
+
+/*
+ * The two names of a monitor's current status, ID column first. A write may
+ * name it under either, and the two must agree (RelationIdUtil
+ * .readConsistent), so the status the service acts on is the status stored.
+ */
+const CURRENT_MONITOR_STATUS_KEYS: Array<string> = [
+  "currentMonitorStatusId",
+  "currentMonitorStatus",
+];
+
+// The network device an auto-provisioned monitor comes from, by both names.
+const AUTO_PROVISIONED_NETWORK_DEVICE_KEYS: Array<string> = [
+  "autoProvisionedNetworkDeviceId",
+  "autoProvisionedNetworkDevice",
 ];
 
 /*
@@ -136,9 +160,28 @@ export interface MonitorProbeFlagChanges {
   isAllProbesDisconnectedFromThisMonitor?: boolean | undefined;
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * The monitor template, the monitors this one depends on, the statuses
+   * that hold back its alerts and the affected-resource lists are checked by
+   * this service's own hooks below, with their own words. Everything else a
+   * monitor names - its labels, its alert policy - is checked by
+   * ProjectReferencesService.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["monitorTemplate"];
+  }
+
+  protected override getListsCheckedByService(): Array<string> {
+    return [
+      "dependsOnMonitors",
+      "suppressAlertsWhenParentMonitorStatuses",
+      ...getAffectedResourceColumns(this.getModel()),
+    ];
   }
 
   private async validateMonitorTemplateReference(data: {
@@ -153,9 +196,17 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    /*
+     * Pinned to the monitor's project, so another project's template reads
+     * exactly like one that does not exist - for a root caller too, whose
+     * read is not tenant-scoped.
+     */
     const monitorTemplate: MonitorTemplate | null =
-      await MonitorTemplateService.findOneById({
-        id: data.monitorTemplateId,
+      await MonitorTemplateService.findOneBy({
+        query: {
+          _id: data.monitorTemplateId,
+          projectId: data.projectId,
+        },
         select: {
           _id: true,
           projectId: true,
@@ -172,15 +223,6 @@ export class Service extends DatabaseService<Model> {
 
     if (!monitorTemplate) {
       throw new BadDataException("Monitor template not found.");
-    }
-
-    if (
-      !monitorTemplate.projectId ||
-      monitorTemplate.projectId.toString() !== data.projectId.toString()
-    ) {
-      throw new BadDataException(
-        "Monitor template must belong to the same project as the monitor.",
-      );
     }
 
     if (!data.monitorType || monitorTemplate.monitorType !== data.monitorType) {
@@ -653,17 +695,26 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * currentMonitorStatusId is writable by any project member and its FK is
      * ON DELETE NO ACTION, so an id from another project here leaves that
      * project undeletable — the same shape monitorSteps had. The
      * 1785240000000 migration repaired the rows that existed then; this stops
      * new ones. It stays NO ACTION on purpose: deleting a status monitors are
-     * currently in should be blocked, not cascaded.
+     * currently in should be blocked, not cascaded. By both of its names:
+     * every name that holds an id is checked, and two that disagree are
+     * refused.
      */
-    const currentMonitorStatusId: ObjectID | string | undefined =
-      resolveReferenceId(updateBy.data.currentMonitorStatusId) ||
-      resolveReferenceId(updateBy.data.currentMonitorStatus);
+    const currentMonitorStatusReferences: Array<ProjectScopedReference> =
+      getWrittenRelationReferences({
+        payload: updateBy.data,
+        idColumn: "currentMonitorStatusId",
+        relation: "currentMonitorStatus",
+        modelName: "Monitor Status",
+        service: MonitorStatusService,
+      });
 
     const updateDataKeys: Array<string> = Object.keys(updateBy.data || {});
 
@@ -783,7 +834,7 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    if (currentMonitorStatusId) {
+    if (currentMonitorStatusReferences.length > 0) {
       const projectIds: Array<ObjectID> = updateBy.props.tenantId
         ? [updateBy.props.tenantId]
         : await this.getProjectIdsForUpdateQuery(updateBy);
@@ -793,17 +844,20 @@ export class Service extends DatabaseService<Model> {
           {
             projectId: projectId,
             subject: "monitor",
-            references: [
-              {
-                modelName: "Monitor Status",
-                id: currentMonitorStatusId,
-                service: MonitorStatusService,
-              },
-            ],
+            references: currentMonitorStatusReferences,
           },
         );
       }
     }
+
+    await this.validateLinkedResourcesBelongToProject({
+      payload: updateBy.data,
+      getProjectIds: async (): Promise<Array<ObjectID>> => {
+        return updateBy.props.tenantId
+          ? [updateBy.props.tenantId]
+          : await this.getProjectIdsForUpdateQuery(updateBy);
+      },
+    });
 
     if (
       updateBy.data.dependsOnMonitors !== undefined ||
@@ -1268,6 +1322,46 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  /*
+   * The resources a monitor watches (hosts, clusters, databases, services
+   * and the rest of an incident's affected-resource lists) must belong to
+   * the monitor's project. Each one is copied onto every incident and alert
+   * the monitor opens, where it puts the record on that resource's pages and
+   * hands OneUptime AI a cluster or host to investigate and fix - so another
+   * project's id here would let this project reach that project's
+   * infrastructure. An empty list only removes links and needs no check.
+   */
+  private async validateLinkedResourcesBelongToProject(data: {
+    payload: unknown;
+    getProjectIds: () => Promise<Array<ObjectID>>;
+  }): Promise<void> {
+    const relations: Array<ProjectScopedRelation> =
+      getAffectedResourceRelations(this.getModel()).filter(
+        (relation: ProjectScopedRelation): boolean => {
+          return (
+            resolveReferenceIds(
+              (data.payload as Dictionary<unknown>)?.[relation.column],
+            ).length > 0
+          );
+        },
+      );
+
+    if (relations.length === 0) {
+      return;
+    }
+
+    for (const projectId of await data.getProjectIds()) {
+      await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+        projectId: projectId,
+        subject: "monitor",
+        references: ProjectScopedReferenceValidator.getRelationReferences({
+          payload: data.payload,
+          relations: relations,
+        }),
+      });
+    }
+  }
+
   private async getProjectIdsForUpdateQuery(
     updateBy: UpdateBy<Model>,
   ): Promise<Array<ObjectID>> {
@@ -1300,14 +1394,22 @@ export class Service extends DatabaseService<Model> {
     onUpdate: OnUpdate<Model>,
     updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<Model>> {
-    if (
-      onUpdate.updateBy.data.currentMonitorStatusId &&
-      onUpdate.updateBy.props.tenantId
-    ) {
+    /*
+     * The status the update wrote, under either of its names: onBeforeUpdate
+     * refused two that disagree, so this reads one value.
+     */
+    const updatedMonitorStatusId: ObjectID | null =
+      RelationIdUtil.readConsistent(
+        onUpdate.updateBy.data as unknown as Record<string, unknown>,
+        CURRENT_MONITOR_STATUS_KEYS,
+        "Monitor Status",
+      );
+
+    if (updatedMonitorStatusId && onUpdate.updateBy.props.tenantId) {
       await this.changeMonitorStatus(
         onUpdate.updateBy.props.tenantId as ObjectID,
         updatedItemIds as Array<ObjectID>,
-        onUpdate.updateBy.data.currentMonitorStatusId as ObjectID,
+        updatedMonitorStatusId,
         true, // notifyOwners = true
         "This status was changed when the monitor was updated.",
         undefined,
@@ -1555,6 +1657,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.monitorType) {
       throw new BadDataException("Monitor type required to create monitor.");
     }
@@ -1666,7 +1770,14 @@ export class Service extends DatabaseService<Model> {
       createBy.data.incomingEmailSecretKey = ObjectID.generate();
     }
 
-    if (createBy.data.autoProvisionedNetworkDeviceId) {
+    const autoProvisionedNetworkDeviceId: ObjectID | null =
+      RelationIdUtil.readIntoIdColumn(
+        createBy.data as unknown as Record<string, unknown>,
+        AUTO_PROVISIONED_NETWORK_DEVICE_KEYS,
+        "Auto-Provisioned Network Device",
+      );
+
+    if (autoProvisionedNetworkDeviceId) {
       if (!monitorTemplateId) {
         throw new BadDataException(
           "An auto-provisioned Network Device monitor must be linked to a monitor template.",
@@ -1681,13 +1792,22 @@ export class Service extends DatabaseService<Model> {
 
       NetworkDeviceMonitorTemplateUtil.assertMonitorStepsBoundToNetworkDevice({
         monitorSteps: createBy.data.monitorSteps,
-        networkDeviceId: createBy.data.autoProvisionedNetworkDeviceId,
+        networkDeviceId: autoProvisionedNetworkDeviceId,
       });
     }
 
     await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({
       monitorSteps: createBy.data.monitorSteps,
       projectId: createBy.props.tenantId,
+    });
+
+    await this.validateLinkedResourcesBelongToProject({
+      payload: createBy.data,
+      getProjectIds: async (): Promise<Array<ObjectID>> => {
+        const projectId: ObjectID | undefined =
+          createBy.props.tenantId || createBy.data.projectId;
+        return projectId ? [projectId] : [];
+      },
     });
 
     await this.validateDependencyConfiguration({
@@ -1747,7 +1867,15 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    createBy.data.currentMonitorStatusId = monitorStatus.id;
+    /*
+     * Whatever status the write named under either name: stamp leaves no
+     * other name of it to be stored instead.
+     */
+    RelationIdUtil.stamp(
+      createBy.data as unknown as Record<string, unknown>,
+      CURRENT_MONITOR_STATUS_KEYS,
+      monitorStatus.id,
+    );
 
     return { createBy, carryForward: null };
   }

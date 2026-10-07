@@ -14,6 +14,7 @@ enum MonitorType {
   Proxmox = "Proxmox",
   VMware = "VMware",
   Ceph = "Ceph",
+  StorageArray = "Storage Array",
   IoTDevice = "IoT Device",
   IP = "IP",
   IncomingRequest = "Incoming Request",
@@ -95,6 +96,29 @@ export interface MonitorTypeCategory {
 }
 
 export class MonitorTypeHelper {
+  /*
+   * The monitor types most people create, in the order Create Monitor lists
+   * them before anything else. Every other type the picker offers is one
+   * search, or one "More monitor types" press, away (the picker leaves its
+   * categories folded behind that button). Kept short on purpose: six
+   * compact rows a new user can read at a glance, where the whole catalog
+   * used to be a wall of headings and counts.
+   *
+   * Website and API are the uptime checks nearly every project starts with;
+   * Ping, Port and SSL Certificate are the next things people watch on a
+   * host; Incoming Request covers heartbeats from cron jobs and webhooks.
+   */
+  public static getCommonMonitorTypes(): Array<MonitorType> {
+    return [
+      MonitorType.Website,
+      MonitorType.API,
+      MonitorType.Ping,
+      MonitorType.Port,
+      MonitorType.SSLCertificate,
+      MonitorType.IncomingRequest,
+    ];
+  }
+
   public static getMonitorTypeCategories(): Array<MonitorTypeCategory> {
     return [
       {
@@ -144,6 +168,7 @@ export class MonitorTypeHelper {
           MonitorType.Proxmox,
           MonitorType.VMware,
           MonitorType.Ceph,
+          MonitorType.StorageArray,
           MonitorType.IoTDevice,
         ],
       },
@@ -188,6 +213,7 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.Proxmox ||
       monitorType === MonitorType.VMware ||
       monitorType === MonitorType.Ceph ||
+      monitorType === MonitorType.StorageArray ||
       monitorType === MonitorType.IoTDevice
     );
   }
@@ -418,6 +444,27 @@ export class MonitorTypeHelper {
           "rados",
           "cluster",
           "object storage",
+        ],
+      },
+      {
+        monitorType: MonitorType.StorageArray,
+        title: "Storage Array",
+        description:
+          "Array health, alerts, capacity, latency and hardware of Pure Storage FlashArray and FlashBlade.",
+        icon: IconProp.StorageArray,
+        keywords: [
+          "storage",
+          "storage array",
+          "san",
+          "nas",
+          "pure storage",
+          "everpure",
+          "flasharray",
+          "flashblade",
+          "volume",
+          "capacity",
+          "latency",
+          "replication",
         ],
       },
       {
@@ -885,6 +932,7 @@ export class MonitorTypeHelper {
       MonitorType.Proxmox,
       MonitorType.VMware,
       MonitorType.Ceph,
+      MonitorType.StorageArray,
       MonitorType.IoTDevice,
     ];
   }

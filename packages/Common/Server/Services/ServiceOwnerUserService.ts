@@ -1,5 +1,5 @@
 import ObjectID from "../../Types/ObjectID";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/ServiceOwnerUser";
 import ServiceFeedService from "./ServiceFeedService";
 import { ServiceFeedEventType } from "../../Models/DatabaseModels/ServiceFeed";
@@ -11,7 +11,7 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import ServiceService from "./ServiceService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }

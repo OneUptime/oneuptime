@@ -89,7 +89,7 @@ To check the eBPF instrumentation logs:
   kubectl logs -n {{ .Release.Namespace }} -l component=ebpf-instrument -c ebpf-instrument --tail=100
 
 To turn eBPF auto-instrumentation off:
-  helm upgrade {{ .Release.Name }} oneuptime/kubernetes-agent -n {{ .Release.Namespace }} --reuse-values --set ebpf.enabled=false
+  helm upgrade {{ .Release.Name }} oneuptime/kubernetes-agent -n {{ .Release.Namespace }} --reset-then-reuse-values --set ebpf.enabled=false
 {{- end }}
 
 Your cluster should appear in OneUptime within a few minutes at:
@@ -105,15 +105,29 @@ it, and a self-hosted OneUptime server older than this chart has no AI agent
 API, so upgrade OneUptime first):
   kubectl logs -n {{ .Release.Namespace }} -l component=ai-agent --tail=100
 Turn it off with --set aiAgent.enabled=false.
-{{- if $aiAgent.allowWrites }}
+{{- if $aiAgent.aiSettingsConfigured }}
 
-A cluster whose agent connects for the first time with write access starts in
-"ask for approval", unless AI settings were already picked on its AI agent
-page before the install, which are kept as chosen. Otherwise pick how fixes
-run on that page.
+What OneUptime AI may do on this cluster, set by this release: investigation
+{{ ternary "on" "off" $aiAgent.investigation }}, fixes {{ $aiAgent.fixes }}. The cluster's AI agent page shows them;
+change them here, with aiAgent.investigation (true or false) and
+aiAgent.fixes (off, ask-for-approval, automatic or bypass-approval).
+{{- else }}
+
+This release does not set what OneUptime AI may do on this cluster, so the
+agent uses its defaults (investigation on, fixes {{ $aiAgent.fixes }}), unless
+someone already chose them on the cluster's AI agent page, which keeps them.
+To set them here instead:
+  --set aiAgent.investigation=true --set aiAgent.fixes={{ $aiAgent.fixes }}
+{{- end }}
+{{- if $aiAgent.allowWrites }}
 {{- if eq $aiAgent.writesKey "aiAccess.remediation.enabled" }}
-Write access was carried over from aiAccess.remediation.enabled; change it
-with aiAgent.remediation.* from now on.
+
+Write access was carried over from aiAccess.remediation.enabled; set
+aiAgent.fixes from now on.
+{{- else if eq $aiAgent.writesKey "aiAgent.remediation.enabled" }}
+
+Write access comes from aiAgent.remediation.enabled, which aiAgent.fixes
+replaces: set aiAgent.fixes from now on.
 {{- end }}
 
 What write access amounts to: patch on workloads and pods (and create on
@@ -153,11 +167,10 @@ a node fix already when it is proposed or approved.
 {{- end }}
 {{- else }}
 
-To let OneUptime AI also fix what it finds, grant write access in the
-namespaces it may change (each must already exist), then pick how fixes run
-on the cluster's AI agent page:
+To let OneUptime AI also fix what it finds, pick how fixes run and the
+namespaces it may change (each must already exist):
   helm repo update
-  helm upgrade {{ .Release.Name }} oneuptime/kubernetes-agent -n {{ .Release.Namespace }} --reuse-values --set aiAgent.remediation.enabled=true --set "aiAgent.remediation.namespaces={web,api}" --set aiAgent.remediation.nodeOperations=false
+  helm upgrade {{ .Release.Name }} oneuptime/kubernetes-agent -n {{ .Release.Namespace }} --reset-then-reuse-values --set aiAgent.investigation={{ $aiAgent.investigation }} --set aiAgent.fixes=ask-for-approval --set "aiAgent.remediation.namespaces={web,api}" --set aiAgent.remediation.nodeOperations=false
 {{- end }}
 {{- else }}
 
@@ -165,7 +178,7 @@ The Kubernetes AI agent is off (aiAgent.enabled=false). To let OneUptime AI
 run read-only kubectl on this cluster while it investigates, refresh your
 chart index and upgrade:
   helm repo update
-  helm upgrade {{ .Release.Name }} oneuptime/kubernetes-agent -n {{ .Release.Namespace }} --reuse-values --set aiAgent.enabled=true
+  helm upgrade {{ .Release.Name }} oneuptime/kubernetes-agent -n {{ .Release.Namespace }} --reset-then-reuse-values --set aiAgent.enabled=true
 {{- end }}
 
 If it stays "Disconnected" or no data shows up (most often a wrong/revoked
@@ -176,3 +189,54 @@ script for a one-shot root-cause verdict:
 
 Or validate your ingestion key directly (200 = valid, 401 = unknown/revoked):
   curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" {{ .Values.oneuptime.url }}/otlp/v1/validate
+{{- /*
+Upgrades. --reset-then-reuse-values takes this chart's defaults and keeps the
+values somebody set; --reuse-values keeps the old chart's defaults too, so a
+default a newer chart changes never applies (templates/_stale-defaults.tpl).
+A release that already renders with an older chart's defaults gets the
+warning, with the upgrade that fixes it, instead of the general advice.
+*/ -}}
+{{- $defaults := include "kubernetes-agent.staleDefaults" . | fromJson }}
+{{- $helmUpgrade := printf "helm upgrade %s oneuptime/kubernetes-agent -n %s" .Release.Name .Release.Namespace }}
+{{- $helmGetValues := printf "helm get values %s -n %s -o yaml > values.yaml" .Release.Name .Release.Namespace }}
+{{- if $defaults.stale }}
+
+WARNING: this release did not get this chart's defaults.
+{{- if $defaults.from }}
+It renders with the defaults of chart {{ $defaults.from }} (chartDefaultsVersion), not
+with those of this chart, {{ .Chart.Version }}.
+{{- else }}
+It renders with an older chart's defaults (its values have no
+chartDefaultsVersion), not with those of this chart, {{ .Chart.Version }}.
+{{- end }}
+`helm upgrade --reuse-values` does that: it keeps the previous release's
+values, the old chart's defaults included. So does a values file copied from
+an older chart's values.yaml (or from `helm get values --all`). Either way, a
+default this chart added or changed never applies.
+{{- if $defaults.ebpfImageTagStale }}
+Stale here:
+  - ebpf.image.tag is {{ $defaults.ebpfImageTag | quote }}; this chart's default is {{ include "kubernetes-agent.defaultEbpfImageTag" . | quote }}
+    (OBI, the eBPF instrumentation). Kept if you set it yourself.
+{{- end }}
+After --reuse-values, apply this chart's defaults and keep the values you set
+(Helm 3.14+):
+  helm repo update
+  {{ $helmUpgrade }} --version {{ .Chart.Version }} --reset-then-reuse-values
+Helm before 3.14:
+  helm repo update
+  {{ $helmGetValues }} && {{ $helmUpgrade }} --version {{ .Chart.Version }} -f values.yaml
+After a copied values file, keep only the values you changed in it
+(chartDefaultsVersion is not one of them) and upgrade with -f and that file,
+without --reuse-values or --reset-then-reuse-values: they, and the commands
+above, would keep the copy this release stored.
+{{- else }}
+
+To upgrade to a newer chart, keeping the values you set (Helm 3.14+):
+  helm repo update
+  {{ $helmUpgrade }} --reset-then-reuse-values
+Helm before 3.14:
+  helm repo update
+  {{ $helmGetValues }} && {{ $helmUpgrade }} -f values.yaml
+Not --reuse-values: it keeps this chart's defaults too, so a newer chart's
+defaults (its eBPF image among them) would never apply.
+{{- end }}

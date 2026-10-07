@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/browser-recorder",
-  "version": "14.0.14",
+  "version": "14.0.15",
   "private": false,
   "description": "OneUptime session replay browser recorder. Shipped to third-party origins as an IIFE bundle.",
   "repository": {
@@ -46,5 +46,10 @@
     "jest-environment-jsdom": "^30.5.2",
     "ts-jest": "^29.4.7",
     "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "@istanbuljs/load-nyc-config": {
+      "js-yaml": "^4.3.2"
+    }
   }
 }

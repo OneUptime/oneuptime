@@ -49,7 +49,7 @@ Diese Unterscheidung wiegt schwerer, als sie klingt:
 
 - `isCreatedState` legt fest, wo ein neuer Vorfall beginnt. Wird beim Anlegen kein Status ausdrücklich gewählt, sucht OneUptime den Erstellungsstatus des Projekts und verwendet ihn.
 - `isAcknowledgedState` und `isResolvedState` steuern die Schaltflächen **Acknowledge** und **Beheben** im Vorfall-Header, die beiden Kennzahlkacheln auf der **Übersicht** des Vorfalls und das Zähler-Badge **Aktive Vorfälle** im Seitenmenü.
-- **Aktive Vorfälle** ist ausschließlich definiert als „der aktuelle Status ist nicht der behobene Status". Jeder eigene Status, den Sie ergänzen, gilt daher als aktiv, solange er nicht der behobene ist.
+- **Aktive Vorfälle** ist ausschließlich definiert als „der aktuelle Status liegt über dem behobenen Status". Ein eigener Status, den Sie über dem behobenen Status ergänzen, gilt daher als aktiv; einer, den Sie danach einordnen, gilt wie der behobene Status als behoben.
 
 **Achten Sie auf die Benennung.** Der erste angelegte Status heißt **Identified**, auch wenn ihn mehrere Beschreibungen im Produkt weiterhin Erstellungsstatus nennen. Wenn Sie in der Statusliste Ihres Projekts nach „Created" suchen: Gemeint ist die Zeile **Identified**.
 
@@ -102,7 +102,7 @@ Responder bestätigen den Vorfall, hängen betroffene Ressourcen an, führen Run
 
 ### 4. Er wird behoben
 
-Ein Klick auf **Beheben** setzt den Vorfall auf den behobenen Status, hält das in der Zustands-Zeitachse fest, stoppt die Dauer-Uhr und nimmt den Vorfall aus dem aktiven Bereich jeder Statusseite, auf der er zu sehen war. Mehr muss sich dafür nicht ändern – die Statusseiten-Abfrage schaut allein auf das Flag des behobenen Status.
+Ein Klick auf **Beheben** setzt den Vorfall auf den behobenen Status, hält das in der Zustands-Zeitachse fest, stoppt die Dauer-Uhr, gibt die Monitore zurück, die er hält, und nimmt den Vorfall aus dem aktiven Bereich jeder Statusseite, auf der er zu sehen war. Mehr muss sich dafür nicht ändern – eine Statusseite zeigt nur Vorfälle in einem Status über dem behobenen Status. Siehe [Vorfallstatus & Schweregrade](/docs/incidents/states-and-severities).
 
 Danach können Sie ein Postmortem schreiben und es optional auf der Statusseite veröffentlichen.
 
@@ -112,13 +112,14 @@ Danach können Sie ein Postmortem schreiben und es optional auf der Statusseite 
 
 | Abschnitt          | Was Sie dort tun                                                                                                                                                       |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Übersicht**      | **Alle Vorfälle** und **Aktive Vorfälle** – Letzteres trägt ein rotes Badge mit der Anzahl der Vorfälle, die nicht im behobenen Status sind.                            |
+| **Übersicht**      | **Alle Vorfälle** und **Aktive Vorfälle** – Letzteres trägt ein rotes Badge mit der Anzahl der Vorfälle, deren Status über dem behobenen Status liegt.                            |
 | **Episoden**       | Vorfall-Episoden, eine eigenständige Gruppierungsfunktion mit eigenen Seiten.                                                                                           |
+| **KI** | **Einblicke**, **Protokolle**, **Einstellungen**, **Auto-Behebungsregeln**: was OneUptime AI aus Ihren Vorfällen gelernt hat und alles, was es für sie getan hat, was es selbstständig tun darf, und die Regeln, die Vorfälle mit Runbooks beheben. Siehe [AI SRE](/docs/ai/ai-sre). |
 | **Arbeitsbereich** | **Slack**- und **Microsoft Teams**-Verbindungen für Vorfälle.                                                                                                           |
-| **Regeln**         | Die Regel-Engines: **Gruppierungsregeln**, **Bereitschaftsregeln**, **Eigentümerregeln**, **Runbook-Regeln**, **Auto-Behebungsregeln**, **Datenschutzregeln**, **Beschriftungsregeln**, **SLA-Regeln**, **Reminder Rules**. |
-| **Einstellungen**  | **KI**, **Vorfallsstatus**, **Vorfallsschweregrad**, **Vorfall-Vorlagen**, **Notiz-Vorlagen**, **Postmortem-Vorlagen**, **Benutzerdefinierte Felder**, **Vorfallsrollen**, **Nummernpräfix**. |
+| **Regeln**         | Die Regel-Engines: **Gruppierungsregeln**, **Bereitschaftsregeln**, **Eigentümerregeln**, **Runbook-Regeln**, **Datenschutzregeln**, **Beschriftungsregeln**, **SLA-Regeln**, **Reminder Rules**. |
+| **Einstellungen**  | **Vorfallsstatus**, **Vorfallsschweregrad**, **Vorfall-Vorlagen**, **Notiz-Vorlagen**, **Postmortem-Vorlagen**, **Benutzerdefinierte Felder**, **Vorfallsrollen**, **Nummernpräfix**. |
 
-**Regeln** und **Einstellungen** sind standardmäßig eingeklappt – klappen Sie sie auf, um die Seiten zu finden, auf die sich der Rest dieser Dokumentation bezieht. Die Vorfallkonfiguration liegt nicht in den Projekteinstellungen; sie ist vollständig hier zu Hause.
+**KI**, **Regeln** und **Einstellungen** sind standardmäßig eingeklappt – klappen Sie sie auf, um die Seiten zu finden, auf die sich der Rest dieser Dokumentation bezieht. Die Vorfallkonfiguration liegt nicht in den Projekteinstellungen; sie ist vollständig hier zu Hause.
 
 Die Vorfallliste selbst zeigt **Vorfallnummer**, **Titel**, **Status**, **Schweregrad**, **Betroffene Ressourcen**, **Erklärt**, **Dauer**, **Beschriftungen** und **Eigentümer**, dazu die Massenaktion **Status ändern**, um mehrere auf einmal zu schließen.
 
@@ -144,7 +145,7 @@ Die Vorfallliste selbst zeigt **Vorfallnummer**, **Titel**, **Status**, **Schwer
 - **Monitore entdecken das Problem; Vorfälle halten es fest.** Eine Monitor-Kriterienregel kann einen Vorfall automatisch melden und dabei Titel, Schweregrad, Bereitschaftsrichtlinien, Eigentümer, Beschriftungen und Behebungs-Notizen vorbelegen. Welche Variablen dort zur Verfügung stehen, steht unter [Vorfall- & Warnmeldungsvorlagen](/docs/monitor/incident-alert-templating).
 - **Bereitschaftsrichtlinien übernehmen das Alarmieren.** Hängen Sie Richtlinien im Schritt **Bereitschaft** des Melde-Assistenten an, an eine Vorlage oder über **Vorfälle → Regeln → Bereitschaftsregeln**. Jede passende Regel greift – ausgeführt wird die Vereinigung aller Treffer plus alles direkt Angehängte, ohne Dubletten.
 - **Runbooks sagen den Leuten, was zu tun ist.** Runbook-Regeln hängen automatisch eine Prozedur an, wenn ein passender Vorfall entsteht, und Responder können eine davon aus dem Vorfall heraus von Hand starten. Siehe [Runbooks – Übersicht](/docs/runbooks/index).
-- **Statusseiten informieren Kunden.** Ein Vorfall erscheint in der aktiven Liste einer Statusseite, wenn auf der Seite Vorfälle aktiviert sind, der Vorfall als auf der Statusseite sichtbar markiert ist und sein aktueller Status nicht der behobene ist. Private Vorfälle sind auf jeder Statusseite ausgeblendet, immer. Siehe [Statusseiten – Übersicht](/docs/status-pages/index).
+- **Statusseiten informieren Kunden.** Ein Vorfall erscheint in der aktiven Liste einer Statusseite, wenn auf der Seite Vorfälle aktiviert sind, der Vorfall als auf der Statusseite sichtbar markiert ist und sein aktueller Status über dem behobenen Status liegt. Private Vorfälle sind auf jeder Statusseite ausgeblendet, immer. Siehe [Statusseiten – Übersicht](/docs/status-pages/index).
 - **Workflows automatisieren drumherum.** Mit den Triggern **On Create Incident**, **On Update Incident** und **On Delete Incident** bauen Sie Automatisierung ohne Code auf dem Vorfall-Lebenszyklus auf. Siehe [Workflows – Übersicht](/docs/workflows/index).
 
 ## Wo Sie als Nächstes lesen sollten

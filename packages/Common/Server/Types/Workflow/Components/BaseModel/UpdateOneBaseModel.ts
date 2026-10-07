@@ -2,6 +2,7 @@ import DatabaseService from "../../../../Services/DatabaseService";
 import Query from "../../../Database/Query";
 import ComponentCode, { RunOptions, RunReturnType } from "../../ComponentCode";
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import QueryDeepPartialEntity from "../../../../../Types/Database/PartialEntity";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../../Types/JSON";
@@ -12,7 +13,11 @@ import ComponentMetadata, {
 } from "../../../../../Types/Workflow/Component";
 import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
-import { applyTenantColumn, normalizeModelKeys } from "./ModelArguments";
+import { normalizeModelKeys, withoutTenantColumn } from "./ModelArguments";
+import {
+  getCustomFieldsToMerge,
+  updateOneMergingCustomFields,
+} from "./CustomFieldsArgument";
 import logComponentError from "./LogComponentError";
 
 export default class UpdateOneBaseModel<
@@ -92,13 +97,13 @@ export default class UpdateOneBaseModel<
         );
       }
 
-      args["data"] = applyTenantColumn(
+      // The record stays in its project. See withoutTenantColumn.
+      args["data"] = withoutTenantColumn(
         normalizeModelKeys(
           args["data"] as JSONObject,
           this.modelService.getModel(),
         ),
         this.modelService.getModel(),
-        options.projectId,
       );
 
       if (!args["query"]) {
@@ -133,14 +138,32 @@ export default class UpdateOneBaseModel<
         ] = options.projectId;
       }
 
-      const itemsUpdated: number = await this.modelService.updateOneBy({
-        query: query,
-        data: args["data"] as QueryDeepPartialEntity<TBaseModel>,
-        props: {
-          isRoot: true,
-          tenantId: options.projectId,
-        },
-      });
+      const data: JSONObject = args["data"] as JSONObject;
+
+      // A Project Admin of the project, never root. See getStepProps.
+      const props: DatabaseCommonInteractionProps =
+        await this.getStepProps(options);
+
+      // Custom fields are merged into what the record holds. See the helper.
+      const customFields: JSONObject | null = getCustomFieldsToMerge(
+        data,
+        this.modelService.getModel(),
+      );
+
+      const itemsUpdated: number = customFields
+        ? await updateOneMergingCustomFields({
+            modelService: this.modelService,
+            query: query,
+            data: data,
+            customFields: customFields,
+            props: props,
+            log: options.log,
+          })
+        : await this.modelService.updateOneBy({
+            query: query,
+            data: data as QueryDeepPartialEntity<TBaseModel>,
+            props: props,
+          });
 
       /*
        * A query that matches nothing is not an error, but reporting it as a
@@ -164,6 +187,7 @@ export default class UpdateOneBaseModel<
         error: err,
         model: this.modelService?.getModel() || null,
         log: options.log,
+        stepTitle: this.getMetadata().title,
       });
 
       return {

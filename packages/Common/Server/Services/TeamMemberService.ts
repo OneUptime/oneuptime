@@ -15,7 +15,7 @@ import ProductAnalytics from "../Utils/ProductAnalytics";
 import UserRegistrationToken from "../Utils/UserRegistrationToken";
 import AccessTokenService from "./AccessTokenService";
 import BillingService from "./BillingService";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import MailService from "./MailService";
 import ProjectService from "./ProjectService";
 import TeamPermissionService from "./TeamPermissionService";
@@ -38,6 +38,7 @@ import Name from "../../Types/Name";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../Types/ObjectID";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Project from "../../Models/DatabaseModels/Project";
 import Team from "../../Models/DatabaseModels/Team";
@@ -79,7 +80,11 @@ export interface OnCallLeaveCleanupResult {
   rotatedProjectFeedIds: Array<string>;
 }
 
-export class TeamMemberService extends DatabaseService<TeamMember> {
+// The two names of a membership's team and person, ID column first.
+const TEAM_KEYS: Array<string> = ["teamId", "team"];
+const USER_KEYS: Array<string> = ["userId", "user"];
+
+export class TeamMemberService extends ProjectReferencesService<TeamMember> {
   /*
    * Caches the user's accepted team memberships per project. Auth middleware
    * calls this on every authenticated request to evaluate the `Owned`
@@ -92,6 +97,17 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
 
   public constructor() {
     super(TeamMember);
+  }
+
+  /*
+   * The user is the person being invited, who is not a member of the
+   * project until this row exists - an invitation by email names someone
+   * who may not even have an account yet - so the membership the generic
+   * check asks for cannot apply to them. The team must be the project's own,
+   * for every caller, workflows included.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["user"];
   }
 
   /*
@@ -122,10 +138,33 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
   protected override async onBeforeCreate(
     createBy: CreateBy<TeamMember>,
   ): Promise<OnCreate<TeamMember>> {
+    await super.onBeforeCreate(createBy);
+
+    const createData: Record<string, unknown> =
+      createBy.data as unknown as Record<string, unknown>;
+
+    /*
+     * The team and the person, each under either of its names: the two must
+     * agree (RelationIdUtil.readConsistent), and each is then written under
+     * its ID column alone (stamp), so every check below reads the team and
+     * the person the membership is stored with.
+     */
     const projectId: ObjectID | undefined =
       createBy.data.projectId || createBy.props.tenantId;
-    const teamId: ObjectID | null =
-      createBy.data.teamId || createBy.data.team?.id || null;
+    const teamId: ObjectID | null = RelationIdUtil.readConsistent(
+      createData,
+      TEAM_KEYS,
+      "Team",
+    );
+    const namedUserId: ObjectID | null = RelationIdUtil.readConsistent(
+      createData,
+      USER_KEYS,
+      "User",
+    );
+
+    if (namedUserId) {
+      RelationIdUtil.stamp(createData, USER_KEYS, namedUserId);
+    }
 
     if (!projectId) {
       throw new BadDataException("Project Id is required to invite a member");
@@ -136,7 +175,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     }
 
     createBy.data.projectId = projectId;
-    createBy.data.teamId = teamId;
+    RelationIdUtil.stamp(createData, TEAM_KEYS, teamId);
 
     if (!createBy.props.isRoot && !createBy.props.isMasterAdmin) {
       if (
@@ -355,7 +394,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         }
       }
 
-      createBy.data.userId = user.id!;
+      RelationIdUtil.stamp(createData, USER_KEYS, user.id!);
 
       invitedUser = user;
     }
@@ -368,7 +407,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     const member: TeamMember | null = await this.findOneBy({
       query: {
         userId: createBy.data.userId!,
-        teamId: createBy.data.teamId || new ObjectID(createBy.data.team!._id!),
+        teamId: teamId,
       },
       props: {
         isRoot: true,
@@ -523,6 +562,8 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<TeamMember>,
   ): Promise<OnUpdate<TeamMember>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * CurrentUser may set this column so an invitee can accept a pending
      * invitation. The inverse transition is not a safe way to leave: merely
@@ -768,13 +809,13 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
      */
     if (createdItem.hasAcceptedInvitation) {
       await this.acceptPendingInvitationsInProject({
-        userId: onCreate.createBy.data.userId!,
+        userId: createdItem.userId!,
         projectId: onCreate.createBy.data.projectId!,
       });
     }
 
     await this.refreshTokens(
-      onCreate.createBy.data.userId!,
+      createdItem.userId!,
       onCreate.createBy.data.projectId!,
     );
 
@@ -789,7 +830,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
      */
     if (createdItem.hasAcceptedInvitation) {
       await this.addDefaultNotificationSettingsAndRules({
-        userId: onCreate.createBy.data.userId!,
+        userId: createdItem.userId!,
         projectId: onCreate.createBy.data.projectId!,
       });
     }
@@ -909,25 +950,12 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       );
     }
 
-    // check if there's one member in the team.
+    /*
+     * Check if there's one member in the team. The members' on-call time logs
+     * are closed once they are actually removed (onDeleteSuccess), so a
+     * removal refused here leaves them on call.
+     */
     for (const member of members) {
-      OnCallDutyPolicyTimeLogService.endTimeForUser({
-        projectId: member.projectId!,
-        userId: member.userId!,
-        /*
-         * scope to the team being left so the user's still-active logs from
-         * other teams, direct escalation assignments, and schedule rosters stay
-         * open (audit F17).
-         */
-        teamId: member.teamId!,
-        endsAt: OneUptimeDate.getCurrentDate(),
-      }).catch((err: Error) => {
-        logger.error(err, {
-          projectId: member.projectId?.toString(),
-          userId: member.userId?.toString(),
-        } as LogAttributes);
-      });
-
       if (member.team?.shouldHaveAtLeastOneMember) {
         if (!member.hasAcceptedInvitation) {
           continue;
@@ -967,7 +995,13 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<TeamMember>,
+    itemIdsBeforeDelete?: Array<ObjectID>,
   ): Promise<OnDelete<TeamMember>> {
+    this.endOnCallTimeLogsOfRemovedMembers(
+      onDelete.carryForward as Array<TeamMember>,
+      itemIdsBeforeDelete,
+    );
+
     /*
      * remove-user-from-project deletes every membership of one user in one
      * deleteBy, so the same (user, project) can appear several times here;
@@ -1085,6 +1119,53 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     }
 
     return onDelete;
+  }
+
+  /*
+   * A removed member's open on-call time logs for the team they left end
+   * now. Only for the memberships the delete removed (DatabaseService hands
+   * their ids to onDeleteSuccess); called without them, every member read
+   * before the delete counts. Fire and forget, as before: a failure is
+   * logged.
+   */
+  private endOnCallTimeLogsOfRemovedMembers(
+    members: Array<TeamMember>,
+    removedIds: Array<ObjectID> | undefined,
+  ): void {
+    const removed: Set<string> | null = removedIds
+      ? new Set(
+          removedIds.map((id: ObjectID): string => {
+            return id.toString();
+          }),
+        )
+      : null;
+
+    for (const member of members || []) {
+      if (removed && (!member.id || !removed.has(member.id.toString()))) {
+        continue;
+      }
+
+      if (!member.projectId || !member.userId) {
+        continue;
+      }
+
+      OnCallDutyPolicyTimeLogService.endTimeForUser({
+        projectId: member.projectId,
+        userId: member.userId,
+        /*
+         * scope to the team being left so the user's still-active logs from
+         * other teams, direct escalation assignments, and schedule rosters stay
+         * open (audit F17).
+         */
+        teamId: member.teamId!,
+        endsAt: OneUptimeDate.getCurrentDate(),
+      }).catch((err: Error) => {
+        logger.error(err, {
+          projectId: member.projectId?.toString(),
+          userId: member.userId?.toString(),
+        } as LogAttributes);
+      });
+    }
   }
 
   /**

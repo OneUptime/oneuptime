@@ -30,7 +30,15 @@ import React, { FunctionComponent, ReactElement } from "react";
  * "Require SSO for Login" are switches that save on flip and ask first,
  * with a red button - and the page never asks the server for the license. On OneUptime Cloud (billing on) only the
  * plan decides: a project below Scale, or one whose plan cannot be read,
- * sees the Scale plan upsell - never the Enterprise Edition one.
+ * sees the Scale plan upsell - never the Enterprise Edition one. A paid
+ * feature can always be switched off, on any plan: a project a Scale trial
+ * left requiring SSO keeps its "Require SSO for Login" switch under the
+ * upsell, where it can be turned off (RequireSsoForLoginLeftover), and so
+ * does a status page (StatusPageRequireSsoLeftover). Configuration a lower
+ * plan cannot use can still be seen, switched off and removed: the
+ * providers a page still has are listed under the upsell, to turn off or
+ * delete (PlanLeftoverTable). Below Scale those are the only requests a
+ * page makes - whether SSO is required, and how many providers are left.
  *
  * The URLs the pages print (SAML ACS and Entity ID, OIDC redirect URI and
  * audience, the test links) are what customers configured in their identity
@@ -382,9 +390,14 @@ jest.mock("../../../UI/Components/ModelSwitch/ModelSwitchCard", () => {
       modelId: { toString: () => string };
       column: string;
       cardTitle: string;
+      cardDescription?: unknown;
       title: string;
       getConfirmation?:
         | ((isTurningOn: boolean) => MockSwitchConfirmation | undefined)
+        | undefined;
+      locksWhenPlanNeeded?: boolean | undefined;
+      initialItem?:
+        | ({ id?: { toString: () => string } | null } & Record<string, unknown>)
         | undefined;
       dataTestId: string;
     }): ReactElement => {
@@ -400,6 +413,11 @@ jest.mock("../../../UI/Components/ModelSwitch/ModelSwitchCard", () => {
           data-model-id={props.modelId.toString()}
           data-column={props.column}
           data-card-title={props.cardTitle}
+          data-card-description={
+            typeof props.cardDescription === "string"
+              ? props.cardDescription
+              : ""
+          }
           data-title={props.title}
           data-asks-turning-on={String(Boolean(turningOn))}
           data-asks-turning-off={String(Boolean(turningOff))}
@@ -407,6 +425,13 @@ jest.mock("../../../UI/Components/ModelSwitch/ModelSwitchCard", () => {
             turningOn?.submitButtonType ===
               buttonModule.ButtonStyleType["DANGER"],
           )}
+          data-locks-when-plan-needed={String(
+            Boolean(props.locksWhenPlanNeeded),
+          )}
+          data-initial-item-id={props.initialItem?.id?.toString() || ""}
+          data-initial-value={
+            props.initialItem ? String(props.initialItem[props.column]) : ""
+          }
         />
       );
     },
@@ -428,10 +453,33 @@ import { ModalType } from "../../../UI/Components/ModelTable/BaseModelTable";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 import { getJestSpyOn } from "../../Spy";
+import URL from "../../../Types/API/URL";
+import { APP_API_URL } from "../../../UI/Config";
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const STATUS_PAGE_ID: string = "22222222-2222-4222-8222-222222222222";
 const PROVIDER_ID: string = mockProviderRow._id;
+
+/*
+ * The one request the project's SSO page makes below Scale: whether the
+ * project requires SSO. Built from APP_API_URL as the page builds it, so
+ * the suite passes whatever HOST the environment sets (CI sets localhost).
+ */
+const PROJECT_READ_URL: string = URL.fromString(APP_API_URL.toString())
+  .addRoute(`/project/${PROJECT_ID}/get-item`)
+  .toString();
+
+// Whether the status page requires SSO, read by its SSO page below Scale.
+const STATUS_PAGE_READ_URL: string = URL.fromString(APP_API_URL.toString())
+  .addRoute(`/status-page/${STATUS_PAGE_ID}/get-item`)
+  .toString();
+
+// How many providers a page still has, counted below Scale.
+const countUrl: (crudPath: string) => string = (crudPath: string): string => {
+  return URL.fromString(APP_API_URL.toString())
+    .addRoute(`${crudPath}/count`)
+    .toString();
+};
 
 /*
  * The "Require SSO for Login" switch cards, as the stand-in draws them: the
@@ -494,6 +542,11 @@ interface PageCase {
   featureName: string;
   // The plugin key that used to serve the screen from ee/.
   retiredPluginKey: string;
+  // Below Scale: the table of the providers the page still has.
+  leftover: {
+    table: string;
+    countPath: string;
+  };
 }
 
 const PAGE_CASES: Array<PageCase> = [
@@ -532,6 +585,10 @@ const PAGE_CASES: Array<PageCase> = [
     upsellTitle: "Single Sign On (SSO)",
     featureName: "SAML Single Sign On",
     retiredPluginKey: "SettingsSSO",
+    leftover: {
+      table: "plan-leftover-project-saml-providers",
+      countPath: "/project-sso",
+    },
   },
   {
     name: "Settings > OIDC",
@@ -566,6 +623,10 @@ const PAGE_CASES: Array<PageCase> = [
     upsellTitle: "OpenID Connect (OIDC)",
     featureName: "OIDC Single Sign On",
     retiredPluginKey: "SettingsOIDC",
+    leftover: {
+      table: "plan-leftover-project-oidc-providers",
+      countPath: "/project-oidc",
+    },
   },
   {
     name: "Status page > SSO",
@@ -600,6 +661,10 @@ const PAGE_CASES: Array<PageCase> = [
     upsellTitle: "Status Page SSO",
     featureName: "Status Page SAML SSO",
     retiredPluginKey: "StatusPageSSO",
+    leftover: {
+      table: "plan-leftover-status-page-saml-providers",
+      countPath: "/status-page-sso",
+    },
   },
   {
     name: "Status page > OIDC",
@@ -632,6 +697,10 @@ const PAGE_CASES: Array<PageCase> = [
     upsellTitle: "Status Page OIDC",
     featureName: "Status Page OIDC SSO",
     retiredPluginKey: "StatusPageOIDC",
+    leftover: {
+      table: "plan-leftover-status-page-oidc-providers",
+      countPath: "/status-page-oidc",
+    },
   },
 ];
 
@@ -662,6 +731,44 @@ const LICENSE_TEST_IDS: Array<string> = [
 
 let apiFetch: ReturnType<typeof getJestSpyOn>;
 let licenseAnswer: JSONObject | null = null;
+/*
+ * Whether the project requires SSO, as GET /project/:id/get-item answers
+ * (null: the request fails).
+ */
+let projectRequiresSsoForTest: boolean | null = null;
+// Whether the status page requires SSO (null: the request fails).
+let statusPageRequiresSsoForTest: boolean | null = null;
+// How many providers a page still has (null: the count fails).
+let providerCountForTest: number | null = 0;
+
+// The URL of a request the page made through API.fetch.
+const requestUrl: (call: Array<unknown>) => string = (
+  call: Array<unknown>,
+): string => {
+  const request: { url?: { toString: () => string } } = call[0] as {
+    url?: { toString: () => string };
+  };
+
+  return request.url?.toString() || "";
+};
+
+// The license requests the page made: there must never be one.
+const licenseRequests: () => Array<string> = (): Array<string> => {
+  return apiFetch.mock.calls
+    .map((call: Array<unknown>): string => {
+      return requestUrl(call);
+    })
+    .filter((url: string): boolean => {
+      return url.includes("license");
+    });
+};
+
+// Every request the page made, as URLs.
+const allRequests: () => Array<string> = (): Array<string> => {
+  return apiFetch.mock.calls.map((call: Array<unknown>): string => {
+    return requestUrl(call);
+  });
+};
 
 const makeProject: () => Project = (): Project => {
   const project: Project = new Project();
@@ -753,7 +860,7 @@ const expectConfigurationScreen: (pageCase: PageCase) => void = (
   expect(screen.queryByText(/Enterprise/)).not.toBeInTheDocument();
 
   // The page never asks for the license.
-  expect(apiFetch).not.toHaveBeenCalled();
+  expect(licenseRequests()).toEqual([]);
 };
 
 const expectPlanUpsell: (pageCase: PageCase) => void = (
@@ -802,6 +909,9 @@ beforeEach(() => {
   currentPlanForTest = null;
   currentPlanThrows = false;
   licenseAnswer = null;
+  projectRequiresSsoForTest = null;
+  statusPageRequiresSsoForTest = null;
+  providerCountForTest = 0;
   mockDefaultInviteTeam.team = null;
   mockDefaultInviteTeam.lookups = 0;
   clearPlugins();
@@ -817,7 +927,54 @@ beforeEach(() => {
   );
 
   apiFetch = getJestSpyOn(API, "fetch").mockImplementation(
-    async (): Promise<unknown> => {
+    async (...args: Array<unknown>): Promise<unknown> => {
+      if (requestUrl(args).endsWith("/count")) {
+        if (providerCountForTest === null) {
+          throw new Error("network down");
+        }
+
+        return {
+          isSuccess: (): boolean => {
+            return true;
+          },
+          data: { count: providerCountForTest },
+        };
+      }
+
+      if (
+        requestUrl(args).includes(`/status-page/${STATUS_PAGE_ID}/get-item`)
+      ) {
+        if (statusPageRequiresSsoForTest === null) {
+          throw new Error("network down");
+        }
+
+        return {
+          isSuccess: (): boolean => {
+            return true;
+          },
+          data: {
+            _id: STATUS_PAGE_ID,
+            requireSsoForLogin: statusPageRequiresSsoForTest,
+          },
+        };
+      }
+
+      if (requestUrl(args).includes(`/project/${PROJECT_ID}/get-item`)) {
+        if (projectRequiresSsoForTest === null) {
+          throw new Error("network down");
+        }
+
+        return {
+          isSuccess: (): boolean => {
+            return true;
+          },
+          data: {
+            _id: PROJECT_ID,
+            requireSsoForLogin: projectRequiresSsoForTest,
+          },
+        };
+      }
+
       if (!licenseAnswer) {
         throw new Error("network down");
       }
@@ -931,13 +1088,36 @@ describe.each(PAGE_CASES)("$name", (pageCase: PageCase) => {
 
   test.each([PlanType.Free, PlanType.Growth])(
     "on OneUptime Cloud with the %s plan: the Scale plan upsell, never the screen",
-    (plan: PlanType) => {
+    async (plan: PlanType) => {
       pinCloud(plan);
 
       renderPage(pageCase);
 
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
       expectPlanUpsell(pageCase);
-      expect(apiFetch).not.toHaveBeenCalled();
+      expect(licenseRequests()).toEqual([]);
+
+      /*
+       * Every page counts the providers it still has (none here), and asks
+       * whether SSO is still required - the project's on its settings pages,
+       * the status page's on a status page's - so it can be turned off
+       * before the last provider is (it is not required here).
+       */
+      expect(allRequests().sort()).toEqual(
+        [
+          pageCase.name.startsWith("Settings")
+            ? PROJECT_READ_URL
+            : STATUS_PAGE_READ_URL,
+          countUrl(pageCase.leftover.countPath),
+        ].sort(),
+      );
+      expect(
+        screen.queryByTestId(`model-table-${pageCase.leftover.table}`),
+      ).not.toBeInTheDocument();
     },
   );
 
@@ -1212,6 +1392,429 @@ describe.each(
     expect(
       providerTable(pageCase).getAttribute("data-form-fields"),
     ).not.toMatch(/teams/);
+  });
+});
+
+/*
+ * Settings > SSO below Scale: a project a Scale trial (or a move down from
+ * Scale) left requiring SSO still requires it, and its providers still sign
+ * people in. A paid feature can always be switched off, on any plan, so the
+ * switch is drawn under the upsell while the project requires SSO - with no
+ * line about the test link, which is not on that page - and turning it off
+ * asks nothing, as on the full page.
+ */
+describe("Settings > SSO below Scale: Require SSO for Login stays reachable while the project requires it", () => {
+  const settingsSso: PageCase = PAGE_CASES.find(
+    (pageCase: PageCase): boolean => {
+      return pageCase.name === "Settings > SSO";
+    },
+  ) as PageCase;
+
+  const settle: () => Promise<void> = async (): Promise<void> => {
+    await act(async () => {
+      for (let i: number = 0; i < 6; i++) {
+        await Promise.resolve();
+      }
+    });
+  };
+
+  test.each([PlanType.Free, PlanType.Growth])(
+    "on %s, a project that requires SSO gets the switch under the upsell",
+    async (plan: PlanType) => {
+      pinCloud(plan);
+      projectRequiresSsoForTest = true;
+
+      renderPage(settingsSso);
+
+      await settle();
+
+      // Still the upsell: no providers, no test link.
+      expect(screen.getAllByText("Upgrade to Scale")).toHaveLength(2);
+      expect(
+        screen.queryByTestId(`model-table-${settingsSso.table}`),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(settingsSso.testLink, { exact: true }),
+      ).not.toBeInTheDocument();
+
+      const requireSso: HTMLElement = screen.getByTestId(
+        REQUIRE_SSO_SWITCH_CARD,
+      );
+
+      expect(requireSso).toHaveAttribute("data-model", "Project");
+      expect(requireSso).toHaveAttribute("data-model-id", PROJECT_ID);
+      expect(requireSso).toHaveAttribute("data-column", "requireSsoForLogin");
+      expect(requireSso).toHaveAttribute("data-card-title", "SSO Settings");
+      // No "test with the link above": the link is not on this page.
+      expect(requireSso).toHaveAttribute("data-card-description", "");
+      expect(requireSso).toHaveAttribute("data-title", "Require SSO for Login");
+      // Turning it off asks nothing; turning it on still asks, in red.
+      expect(requireSso).toHaveAttribute("data-asks-turning-off", "false");
+      expect(requireSso).toHaveAttribute("data-asks-turning-on", "true");
+      expect(requireSso).toHaveAttribute("data-danger-turning-on", "true");
+      /*
+       * Drawn only to be switched off: once off it locks, naming the plan
+       * turning it on again needs, so the switch cannot be pressed into a
+       * refusal. And it starts from the project already read for it: the
+       * card reads nothing more.
+       */
+      expect(requireSso).toHaveAttribute("data-locks-when-plan-needed", "true");
+      expect(requireSso).toHaveAttribute("data-initial-item-id", PROJECT_ID);
+      expect(requireSso).toHaveAttribute("data-initial-value", "true");
+
+      // Under the upsell, not in place of it.
+      expect(
+        Boolean(
+          screen
+            .getByText(settingsSso.featureName)
+            .compareDocumentPosition(requireSso) &
+            Node.DOCUMENT_POSITION_FOLLOWING,
+        ),
+      ).toBe(true);
+
+      /*
+       * It asked only whether the project requires SSO, and how many
+       * providers are left - never for the license.
+       */
+      expect(allRequests().sort()).toEqual(
+        [PROJECT_READ_URL, countUrl("/project-sso")].sort(),
+      );
+      expect(
+        apiFetch.mock.calls.find((call: Array<unknown>): boolean => {
+          return requestUrl(call) === PROJECT_READ_URL;
+        })![0],
+      ).toEqual(
+        expect.objectContaining({
+          data: { select: { requireSsoForLogin: true } },
+        }),
+      );
+    },
+  );
+
+  test("a project that does not require SSO gets the upsell alone", async () => {
+    pinCloud(PlanType.Free);
+    projectRequiresSsoForTest = false;
+
+    renderPage(settingsSso);
+
+    await settle();
+
+    expectPlanUpsell(settingsSso);
+  });
+
+  test("a read that fails draws nothing more: the upsell is the page", async () => {
+    pinCloud(PlanType.Growth);
+    projectRequiresSsoForTest = null;
+
+    renderPage(settingsSso);
+
+    await settle();
+
+    expectPlanUpsell(settingsSso);
+  });
+
+  test("on a plan that has SSO the full page's switch is the one shown, with its test link line", async () => {
+    pinCloud(PlanType.Scale);
+    projectRequiresSsoForTest = true;
+
+    renderPage(settingsSso);
+
+    await settle();
+
+    expect(screen.getAllByTestId(REQUIRE_SSO_SWITCH_CARD)).toHaveLength(1);
+    expect(screen.getByTestId(REQUIRE_SSO_SWITCH_CARD)).toHaveAttribute(
+      "data-card-description",
+      "Test SSO with the link above before you require it.",
+    );
+    // The full page's switch is not a leftover: it never locks, and reads its own.
+    expect(screen.getByTestId(REQUIRE_SSO_SWITCH_CARD)).toHaveAttribute(
+      "data-locks-when-plan-needed",
+      "false",
+    );
+    expect(screen.getByTestId(REQUIRE_SSO_SWITCH_CARD)).toHaveAttribute(
+      "data-initial-item-id",
+      "",
+    );
+    // The page itself knows: nothing is read for the switch under an upsell.
+    expect(allRequests()).toEqual([]);
+  });
+
+  /*
+   * The project's OIDC providers sign the same people in: turning the last
+   * one off while the project requires SSO would leave nobody a way in, so
+   * Settings > OIDC draws the switch too.
+   */
+  test("Settings > OIDC draws it too, while the project requires SSO", async () => {
+    const settingsOidc: PageCase = PAGE_CASES.find(
+      (pageCase: PageCase): boolean => {
+        return pageCase.name === "Settings > OIDC";
+      },
+    ) as PageCase;
+
+    pinCloud(PlanType.Free);
+    projectRequiresSsoForTest = true;
+
+    renderPage(settingsOidc);
+
+    await settle();
+
+    expect(screen.getAllByText("Upgrade to Scale")).toHaveLength(2);
+
+    const requireSso: HTMLElement = screen.getByTestId(REQUIRE_SSO_SWITCH_CARD);
+
+    expect(requireSso).toHaveAttribute("data-model", "Project");
+    expect(requireSso).toHaveAttribute("data-model-id", PROJECT_ID);
+    expect(requireSso).toHaveAttribute("data-locks-when-plan-needed", "true");
+    expect(requireSso).toHaveAttribute("data-initial-value", "true");
+    expect(allRequests().sort()).toEqual(
+      [PROJECT_READ_URL, countUrl("/project-oidc")].sort(),
+    );
+  });
+
+  test("the status page SSO page never draws the project's switch", async () => {
+    const statusPageSso: PageCase = PAGE_CASES.find(
+      (pageCase: PageCase): boolean => {
+        return pageCase.name === "Status page > SSO";
+      },
+    ) as PageCase;
+
+    pinCloud(PlanType.Free);
+    projectRequiresSsoForTest = true;
+
+    renderPage(statusPageSso);
+
+    await settle();
+
+    expectPlanUpsell(statusPageSso);
+    // Its own: whether the status page requires SSO, and its providers.
+    expect(allRequests().sort()).toEqual(
+      [STATUS_PAGE_READ_URL, countUrl("/status-page-sso")].sort(),
+    );
+  });
+});
+
+/*
+ * Configuration a lower plan cannot use can still be seen, switched off and
+ * removed. A provider a Scale trial left keeps signing people in, so below
+ * Scale each page lists the providers it still has under the upsell
+ * (PlanLeftoverTable): nothing to add or edit, Turn off for the ones that
+ * are on, Delete for all. Its behaviour is PlanLeftoverTable.test.tsx's;
+ * here, that every page draws it, for its own providers, in the right
+ * place.
+ */
+describe.each(PAGE_CASES)(
+  "$name below Scale: the providers it still has",
+  (pageCase: PageCase) => {
+    const settle: () => Promise<void> = async (): Promise<void> => {
+      await act(async () => {
+        for (let i: number = 0; i < 8; i++) {
+          await Promise.resolve();
+        }
+      });
+    };
+
+    test.each([PlanType.Free, PlanType.Growth])(
+      "on %s they are listed under the upsell, to turn off or delete, and nothing can be added or edited",
+      async (plan: PlanType) => {
+        pinCloud(plan);
+        providerCountForTest = 2;
+
+        renderPage(pageCase);
+
+        await settle();
+
+        // Still the upsell: the configuration screen is not there.
+        expect(screen.getAllByText("Upgrade to Scale")).toHaveLength(2);
+        expect(
+          screen.queryByTestId(`model-table-${pageCase.table}`),
+        ).not.toBeInTheDocument();
+
+        const leftover: HTMLElement = screen.getByTestId(
+          `model-table-${pageCase.leftover.table}`,
+        );
+
+        expect(leftover).toHaveAttribute("data-createable", "false");
+        expect(leftover).toHaveAttribute("data-editable", "false");
+        expect(leftover).toHaveAttribute("data-deleteable", "true");
+        expect(leftover).toHaveAttribute("data-form-fields", "");
+
+        // Under the upsell, not in place of it.
+        expect(
+          Boolean(
+            screen
+              .getByText(pageCase.featureName)
+              .compareDocumentPosition(leftover) &
+              Node.DOCUMENT_POSITION_FOLLOWING,
+          ),
+        ).toBe(true);
+
+        expect(licenseRequests()).toEqual([]);
+      },
+    );
+
+    test("a count that fails draws nothing more: the upsell is the page", async () => {
+      pinCloud(PlanType.Free);
+      providerCountForTest = null;
+
+      renderPage(pageCase);
+
+      await settle();
+
+      expectPlanUpsell(pageCase);
+      expect(
+        screen.queryByTestId(`model-table-${pageCase.leftover.table}`),
+      ).not.toBeInTheDocument();
+    });
+
+    test("on Scale the configuration screen is the page, and nothing is counted for it", async () => {
+      pinCloud(PlanType.Scale);
+      providerCountForTest = 2;
+
+      renderPage(pageCase);
+
+      await settle();
+
+      expectConfigurationScreen(pageCase);
+      expect(
+        screen.queryByTestId(`model-table-${pageCase.leftover.table}`),
+      ).not.toBeInTheDocument();
+      expect(
+        allRequests().filter((url: string): boolean => {
+          return url.endsWith("/count");
+        }),
+      ).toEqual([]);
+    });
+
+    test("with billing off (self-hosted) the configuration screen is the page, and nothing is counted", async () => {
+      providerCountForTest = 2;
+
+      renderPage(pageCase);
+
+      await settle();
+
+      expectConfigurationScreen(pageCase);
+      expect(
+        allRequests().filter((url: string): boolean => {
+          return url.endsWith("/count");
+        }),
+      ).toEqual([]);
+    });
+  },
+);
+
+describe("Status page > SSO below Scale: Require SSO for Login stays reachable while the status page requires it", () => {
+  const statusPageSso: PageCase = PAGE_CASES.find(
+    (pageCase: PageCase): boolean => {
+      return pageCase.name === "Status page > SSO";
+    },
+  ) as PageCase;
+
+  const settle: () => Promise<void> = async (): Promise<void> => {
+    await act(async () => {
+      for (let i: number = 0; i < 8; i++) {
+        await Promise.resolve();
+      }
+    });
+  };
+
+  test.each([PlanType.Free, PlanType.Growth])(
+    "on %s, a status page that requires SSO gets its switch under the upsell, so turning its providers off cannot shut its viewers out",
+    async (plan: PlanType) => {
+      pinCloud(plan);
+      statusPageRequiresSsoForTest = true;
+
+      renderPage(statusPageSso);
+
+      await settle();
+
+      expect(screen.getAllByText("Upgrade to Scale")).toHaveLength(2);
+
+      const requireSso: HTMLElement = screen.getByTestId(
+        STATUS_PAGE_REQUIRE_SSO_SWITCH_CARD,
+      );
+
+      expect(requireSso).toHaveAttribute("data-model", "StatusPage");
+      expect(requireSso).toHaveAttribute("data-model-id", STATUS_PAGE_ID);
+      expect(requireSso).toHaveAttribute("data-column", "requireSsoForLogin");
+      expect(requireSso).toHaveAttribute("data-title", "Require SSO for Login");
+      // No "test with the link above": the link is not on this page.
+      expect(requireSso).toHaveAttribute("data-card-description", "");
+      // It starts from the status page already read for it.
+      expect(requireSso).toHaveAttribute(
+        "data-initial-item-id",
+        STATUS_PAGE_ID,
+      );
+      expect(requireSso).toHaveAttribute("data-initial-value", "true");
+
+      // The project's switch is not on a status page's page.
+      expect(
+        screen.queryByTestId(REQUIRE_SSO_SWITCH_CARD),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  test("a status page that does not require SSO gets no switch", async () => {
+    pinCloud(PlanType.Free);
+    statusPageRequiresSsoForTest = false;
+
+    renderPage(statusPageSso);
+
+    await settle();
+
+    expectPlanUpsell(statusPageSso);
+  });
+
+  /*
+   * Its OIDC providers sign the same viewers in: turning the last one off
+   * while the status page requires SSO would shut them out just the same,
+   * so its OIDC page draws the switch too.
+   */
+  test("its OIDC page draws it too, while the status page requires SSO", async () => {
+    const statusPageOidc: PageCase = PAGE_CASES.find(
+      (pageCase: PageCase): boolean => {
+        return pageCase.name === "Status page > OIDC";
+      },
+    ) as PageCase;
+
+    pinCloud(PlanType.Free);
+    statusPageRequiresSsoForTest = true;
+
+    renderPage(statusPageOidc);
+
+    await settle();
+
+    expect(screen.getAllByText("Upgrade to Scale")).toHaveLength(2);
+
+    const requireSso: HTMLElement = screen.getByTestId(
+      STATUS_PAGE_REQUIRE_SSO_SWITCH_CARD,
+    );
+
+    expect(requireSso).toHaveAttribute("data-model", "StatusPage");
+    expect(requireSso).toHaveAttribute("data-model-id", STATUS_PAGE_ID);
+    expect(requireSso).toHaveAttribute("data-initial-value", "true");
+    expect(
+      screen.queryByTestId(REQUIRE_SSO_SWITCH_CARD),
+    ).not.toBeInTheDocument();
+    expect(allRequests().sort()).toEqual(
+      [STATUS_PAGE_READ_URL, countUrl("/status-page-oidc")].sort(),
+    );
+  });
+
+  test("its OIDC page draws nothing for it when the status page does not require SSO", async () => {
+    const statusPageOidc: PageCase = PAGE_CASES.find(
+      (pageCase: PageCase): boolean => {
+        return pageCase.name === "Status page > OIDC";
+      },
+    ) as PageCase;
+
+    pinCloud(PlanType.Free);
+    statusPageRequiresSsoForTest = false;
+
+    renderPage(statusPageOidc);
+
+    await settle();
+
+    expectPlanUpsell(statusPageOidc);
   });
 });
 

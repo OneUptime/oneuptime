@@ -311,7 +311,7 @@ describe("Control Plane", () => {
       [
         "helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\",
         "  --namespace oneuptime-agent \\",
-        "  --reuse-values \\",
+        "  --reset-then-reuse-values \\",
         "  --set controlPlane.enabled=true",
       ].join("\n"),
     );
@@ -395,7 +395,7 @@ describe("Control Plane", () => {
         [
           "helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\",
           "  --namespace oneuptime-agent \\",
-          "  --reuse-values \\",
+          "  --reset-then-reuse-values \\",
           ...flags.map((flag: string, index: number): string => {
             return `  ${flag}${index < flags.length - 1 ? " \\" : ""}`;
           }),
@@ -673,7 +673,7 @@ describe("Service Mesh", () => {
         [
           "helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\",
           "  --namespace oneuptime-agent \\",
-          "  --reuse-values \\",
+          "  --reset-then-reuse-values \\",
           "  --set serviceMesh.enabled=true \\",
           `  --set serviceMesh.provider=${provider}`,
         ].join("\n"),

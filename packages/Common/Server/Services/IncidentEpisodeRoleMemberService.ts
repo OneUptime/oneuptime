@@ -1,5 +1,5 @@
 import ObjectID from "../../Types/ObjectID";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/IncidentEpisodeRoleMember";
 import IncidentMember from "../../Models/DatabaseModels/IncidentMember";
 import IncidentMemberService from "./IncidentMemberService";
@@ -12,9 +12,10 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import TeamMemberService from "./TeamMemberService";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -23,16 +24,26 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
+    // The project the role is saved in: the request's, else the row's own.
     const projectId: ObjectID | undefined =
-      createBy.data.projectId || createBy.props.tenantId;
+      createBy.props.tenantId || createBy.data.projectId;
+
+    // The person, under either of their names (the two must agree).
+    const userId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      createBy.data as unknown as Record<string, unknown>,
+      ["userId", "user"],
+      "User",
+    );
 
     // Only a member of the project can hold a role on its episodes.
     if (
       projectId &&
-      createBy.data.userId &&
+      userId &&
       !(await TeamMemberService.isUserMemberOfProject({
         projectId: projectId,
-        userId: createBy.data.userId,
+        userId: userId,
       }))
     ) {
       throw new BadDataException(

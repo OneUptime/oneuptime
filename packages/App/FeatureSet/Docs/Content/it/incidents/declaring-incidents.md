@@ -46,7 +46,7 @@ I monitor vengono per primi, a parte: le pagine di stato vedono un incidente att
 
 - **Monitor** — una casella di ricerca che collega i monitor interessati dall'incidente (`monitors`). Una pagina di stato mostra l'incidente, e avvisa i suoi iscritti, quando elenca uno di questi monitor.
 - **Cambia lo stato del monitor in** — facoltativo, e mostrato solo quando è scelto almeno un monitor. Applica uno stato a ogni monitor dell'incidente, così dichiarare l'incidente e segnare i monitor come degradati è un'unica azione. Lo stato di un modello compare appena scegliete un monitor; senza monitor scelti non viene salvato alcuno stato.
-- **Altre risorse interessate** — una seconda casella di ricerca per tutto il resto che l'incidente interessa: host, cluster Kubernetes, host Docker e Podman, cluster Proxmox, Ceph e Docker Swarm, vCenter, flotte IoT, database e servizi. Sono relazioni distinte dell'incidente (`hosts`, `kubernetesClusters`, `services` e altre).
+- **Altre risorse interessate** — una seconda casella di ricerca per tutto il resto che l'incidente interessa: host, cluster Kubernetes, host Docker e Podman, cluster Proxmox, Ceph e Docker Swarm, vCenter, array di storage, flotte IoT, database e servizi. Sono relazioni distinte dell'incidente (`hosts`, `kubernetesClusters`, `services` e altre).
 
 La scheda **Risorse interessate** dell'incidente chiede allo stesso modo quando la modificate in seguito.
 
@@ -160,11 +160,11 @@ La chiamata di creazione fa molto più che scrivere una riga. Nell'ordine:
 5. **Vengono eseguite le regole delle etichette**, che aggiungono le etichette corrispondenti all'incidente.
 6. **Vengono eseguite le regole di reperibilità.** Ogni regola attiva in **Incidenti → Regole → Regole di reperibilità** i cui criteri corrispondono aggiunge le proprie policy all'incidente. Non c'è un ordine di priorità né un'interruzione anticipata: scattano tutte le regole corrispondenti e le policy vengono deduplicate.
 7. **Vengono eseguite le regole di runbook**, che collegano e avviano i runbook corrispondenti. Vedete [Runbook](/docs/runbooks/index).
-8. **Vengono eseguite le policy di reperibilità.** Ogni policy sull'incidente — scelta nella procedura guidata, ereditata da un modello o aggiunta da una regola — viene eseguita in parallelo con il tipo di evento `IncidentCreated`. Se una policy fallisce, le altre proseguono.
+8. **Vengono eseguite le policy di reperibilità.** Ogni policy sull'incidente — scelta nella procedura guidata, ereditata da un modello o aggiunta da una regola — viene eseguita in parallelo con il tipo di evento `IncidentCreated`. Se una policy fallisce, le altre proseguono. Un incidente dichiarato già riconosciuto o risolto non ne esegue nessuna: nessuno viene avvisato, e il suo feed lo indica nominandole.
 9. **Gli iscritti vengono messi in coda**, se **Notifica gli iscritti alla pagina di stato** è rimasta attiva e l'incidente è visibile sulla pagina di stato. La consegna è gestita da un job in background, non in linea con la vostra richiesta.
 10. **Scattano i workflow.** Il trigger **On Create Incident** avvia qualsiasi workflow costruito su di esso. Vedete [Panoramica dei workflow](/docs/workflows/index).
 
-Da lì in poi l'incidente è vivo: conta per il badge **Incidenti attivi** nel menu laterale di Incidenti (è attivo qualsiasi stato non contrassegnato `isResolvedState`), compare sulle pagine di stato che ospitano uno dei suoi monitor e la sua **Cronologia stato** inizia a registrare.
+Da lì in poi l'incidente è vivo: conta per il badge **Incidenti attivi** nel menu laterale di Incidenti (è attivo qualsiasi stato sopra il vostro stato risolto), compare sulle pagine di stato che ospitano uno dei suoi monitor e la sua **Cronologia stato** inizia a registrare.
 
 ## Dove leggere ora
 

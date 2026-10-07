@@ -22,13 +22,13 @@ Puedes ejecutar el **OpenTelemetry Collector** como un servicio directamente en 
 
 ## Paso 1 — Instalar el OpenTelemetry Collector
 
-Elige la sección correspondiente a tu sistema operativo. Todos los ejemplos asumen que estás instalando la última versión de `otelcol-contrib` desde [opentelemetry-collector-releases](https://github.com/open-telemetry/opentelemetry-collector-releases/releases).
+Elige la sección correspondiente a tu sistema operativo. Todos los ejemplos instalan `otelcol-contrib` **v0.161.0** desde [opentelemetry-collector-releases](https://github.com/open-telemetry/opentelemetry-collector-releases/releases): la versión que fija OneUptime y que las configuraciones del paso 2 informan como versión del agente del host (consulta "Actualizar el recolector" más abajo).
 
 ### Linux (Debian / Ubuntu)
 
 ```bash
 ARCH=$(dpkg --print-architecture)   # amd64 or arm64
-VERSION=0.156.0                      # pick the latest release tag
+VERSION=0.161.0                      # the release OneUptime pins
 
 curl -L -o otelcol-contrib.deb \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.deb"
@@ -42,7 +42,7 @@ El paquete Debian instala el binario en `/usr/bin/otelcol-contrib`, la configura
 
 ```bash
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
-VERSION=0.156.0
+VERSION=0.161.0
 
 sudo rpm -ivh \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.rpm"
@@ -54,7 +54,7 @@ Las rutas coinciden con las del paquete Debian (`/usr/bin/otelcol-contrib`, `/et
 
 ```bash
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/arm64/arm64/')
-VERSION=0.156.0
+VERSION=0.161.0
 
 curl -L -o otelcol-contrib.tar.gz \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_darwin_${ARCH}.tar.gz"
@@ -83,7 +83,7 @@ El nombre del artefacto debe **empezar por `otelcol-contrib_`**. La compilación
 Desde un símbolo del sistema de PowerShell **elevado**, ejecuta el bloque completo — cada línea depende de las variables definidas más arriba:
 
 ```powershell
-$VERSION = "0.156.0"                          # use v0.155.0 or later for the Services tab
+$VERSION = "0.161.0"                          # the release OneUptime pins; v0.155.0+ has the Services tab
 $ARCH    = "amd64"                            # use "arm64" on ARM hosts
 $dest    = "C:\Program Files\otelcol-contrib"
 $tar     = "$env:TEMP\otelcol-contrib.tar.gz"
@@ -131,6 +131,9 @@ processors:
       - key: service.name
         value: host-telemetry
         action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
 
 exporters:
   otlphttp:
@@ -141,6 +144,7 @@ exporters:
 
 - **`batch`** agrupa los registros antes de exportarlos para que no pagues un viaje HTTP de ida y vuelta por cada registro.
 - **`resource`** marca cada registro con `service.name`. Usa un valor diferente por host (por ejemplo, `prod-web-01`) si quieres que cada máquina aparezca como su propio servicio de telemetría en OneUptime.
+- **`oneuptime.agent.version`** es la versión del recolector para la que es esta configuración. OneUptime la muestra como la **Versión del agente** del host; cámbiala solo junto con el recolector que instales (consulta "Actualizar el recolector" más abajo).
 - **`otlphttp`** envía a OneUptime a través de HTTPS con el token de ingestión adjunto.
 
 ### Métricas del host (Linux, macOS, Windows)
@@ -416,6 +420,9 @@ processors:
       - key: service.name
         value: linux-host
         action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
 
 exporters:
   otlphttp:
@@ -489,6 +496,9 @@ processors:
     attributes:
       - key: service.name
         value: macos-host
+        action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
         action: upsert
 
 exporters:
@@ -574,6 +584,9 @@ processors:
     attributes:
       - key: service.name
         value: windows-host
+        action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
         action: upsert
 
 exporters:
@@ -673,6 +686,12 @@ El servicio se ejecuta bajo `LocalSystem` de forma predeterminada, que tiene los
 3. Abre **Métricas** — las métricas del host (CPU, memoria, sistema de archivos, etc.) deberían aparecer en un minuto.
 4. Abre **Registros** — tus logs de archivos / entradas de journald / Windows Event Logs deberían estar transmitiéndose. Entre los atributos útiles para búsquedas se incluyen `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id` y `winlog.provider.name`.
 5. Si habilitaste el receptor `systemd` (Linux) o `windows_service` (Windows), abre **Infraestructura → Hosts**, elige el host y revisa la pestaña **Systemd Units** / **Servicios** — cada unidad de la que se haga scrape debería aparecer con su estado actual.
+
+## Actualizar el recolector
+
+Cada configuración de esta página marca, en su procesador `resource`, la versión del recolector para la que es como `oneuptime.agent.version`. OneUptime la muestra como **Versión del agente** en la **Vista general** del host y pone una señal de advertencia a su lado cuando OneUptime fija una versión más nueva. Selecciona la señal para ver cómo actualizar según la forma en que instalaste: la configuración guardada de nuevo y luego la nueva versión instalada sobre la anterior.
+
+Para actualizar a mano, instala la nueva versión como instalaste esta (paso 1, con la nueva `VERSION`), cambia `oneuptime.agent.version` en tu configuración a esa misma versión y reinicia el recolector (paso 3). Un recolector cuya configuración no marca ninguna versión no muestra ninguna, y nunca una señal.
 
 ## Reducir el volumen de datos recopilados
 
@@ -850,18 +869,18 @@ service:
       exporters: [otlphttp]
 ```
 
-> **¿Estás editando la configuración que OneUptime generó para ti?** La canalización de arriba coincide con los ejemplos completos de esta página. La configuración del panel (Hosts → Documentación) nombra las cosas de otra manera: sus procesadores son `resourcedetection` y `batch` (**no** hay procesador `resource`) y su exportador es `otlphttp/oneuptime`. Referenciar un procesador que no está definido detiene el recolector al arrancar con `references processor "resource" which is not configured`. Añade el filtro a lo que ya está ahí en lugar de pegar este bloque encima:
+> **¿Estás editando la configuración que OneUptime generó para ti?** La canalización de arriba coincide con los ejemplos completos de esta página. La configuración del panel (Hosts → Documentación) nombra las cosas de otra manera: sus procesadores son `resourcedetection`, `resource` y `batch`, y su exportador es `otlphttp/oneuptime`. Referenciar un procesador o exportador que no está definido detiene el recolector al arrancar. Añade el filtro a lo que ya está ahí en lugar de pegar este bloque encima:
 >
 > ```yaml
 > service:
 >   pipelines:
 >     metrics:
 >       receivers: [hostmetrics]
->       processors: [filter/drop-metrics, resourcedetection, batch]
+>       processors: [filter/drop-metrics, resourcedetection, resource, batch]
 >       exporters: [otlphttp/oneuptime]
 > ```
 >
-> Conserva `resourcedetection` — OneUptime asocia la telemetría a un host usando el `host.name` / `host.id` que este establece. Esa configuración generada es además **solo de métricas**: no tiene ninguna canalización `logs:` hasta que añadas una, así que un `filter/drop-low-severity` no tiene nada que filtrar hasta que añadas junto a él un receptor `filelog` o `journald`.
+> Conserva `resourcedetection` — OneUptime asocia la telemetría a un host usando el `host.name` / `host.id` que este establece — y `resource`, que informa la versión del recolector. Esa configuración generada es además **solo de métricas**: no tiene ninguna canalización `logs:` hasta que añadas una, así que un `filter/drop-low-severity` no tiene nada que filtrar hasta que añadas junto a él un receptor `filelog` o `journald`.
 
 > **En macOS, usa el tarball, no Homebrew.** La fórmula de Homebrew incluye el recolector **core**, y `filter` es un procesador exclusivo de contrib — el recolector se negará a arrancar independientemente de si tu YAML es correcto.
 
@@ -913,6 +932,9 @@ processors:
     attributes:
       - key: service.name
         value: linux-host
+        action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
         action: upsert
 
 exporters:

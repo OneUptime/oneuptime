@@ -9,7 +9,7 @@
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set cost.enabled=true
 ```
 
@@ -38,7 +38,7 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set cost.enabled=true \
   --set cost.engine.url=http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090
 ```
@@ -135,7 +135,7 @@ cost:
 
 - **صفحه‌های Costs خالی‌اند** — گزارش‌های عامل هزینه را بررسی کنید: `kubectl logs -n <agent namespace> deploy/<release>-kubernetes-agent-cost`. خطای `401` یعنی کلید دریافت نامعتبر است؛ پیام `cost engine did not answer any known allocation path` یعنی موتور هنوز بالا نیامده (OpenCost همراه پس از نصب چند دقیقه زمان می‌خواهد تا نخستین پنجره‌هایش را قیمت‌گذاری کند) یا `cost.engine.url` اشتباه است.
 - **‏OpenCost همراه آماده نیست** — `kubectl logs -n <agent namespace> deploy/<release>-kubernetes-agent-opencost`. گزارش می‌دهد چه ارائه‌دهنده ابری‌ای تشخیص داده و آیا داده قیمت‌گذاری بارگذاری شده است.
-- **‏`mkdir /var/configs: permission denied` در گزارش OpenCost** — اشکالی در نمودار که در نمودار ۰٫۶٫۱ رفع شد. OpenCost به‌عنوان غیر ریشه و بدون پوشه پیکربندی قابل نوشتن اجرا می‌شد، پس `Error downloading default pricing data` باعث می‌شد API تخصیصش نتواند پاسخ دهد و پیمایشگر بایستد — در حالی که پاد `Running` می‌ماند، `/healthz` سبز می‌ماند و سنجه‌های هزینه گره همچنان منتشر می‌شدند. نمودار را ارتقا دهید (`helm repo update && helm upgrade ... --reuse-values`)؛ سطرهای هزینه در پیمایش بعدی پدیدار می‌شوند.
+- **‏`mkdir /var/configs: permission denied` در گزارش OpenCost** — اشکالی در نمودار که در نمودار ۰٫۶٫۱ رفع شد. OpenCost به‌عنوان غیر ریشه و بدون پوشه پیکربندی قابل نوشتن اجرا می‌شد، پس `Error downloading default pricing data` باعث می‌شد API تخصیصش نتواند پاسخ دهد و پیمایشگر بایستد — در حالی که پاد `Running` می‌ماند، `/healthz` سبز می‌ماند و سنجه‌های هزینه گره همچنان منتشر می‌شدند. نمودار را ارتقا دهید (`helm repo update && helm upgrade ... --reset-then-reuse-values`)؛ سطرهای هزینه در پیمایش بعدی پدیدار می‌شوند.
 - **قالب داشبورد داده‌ای نشان نمی‌دهد** — قالب سنجه‌های هزینه برداشت‌شده را می‌خواند؛ تأیید کنید `cost.metrics.enabled` برابر `true` باشد.
 - **کارت Right-Sizing خالی است** — یا پنجره کوتاه‌تر از ۲۴ ساعتی است که یک توصیه لازم دارد (بازه زمانی را گشاد کنید)، یا هر کانتینری از پیش در ۱۵٪ درخواست توصیه‌شده‌اش است، که کارت صریح می‌گویدش.
 - **توصیه‌های حافظه `-` نشان می‌دهند اما CPU کار می‌کند** — هیچ اوج حافظه‌ای به کارساز نرسیده، پس حافظه به‌جای حدس زدن از میانگین، عمداً بدون اندازه‌گذاری رها شده است. روی نصبی با موتور بیرونی، `cost.engine.prometheusUrl` را تنظیم کنید. کارت گزارش می‌دهد این چند کانتینر را متأثر می‌کند.

@@ -96,14 +96,36 @@ AI 元件有一條明確的資料外送邊界：
 
 ## 權限
 
-工作流程遵循你專案的角色型存取控制。相關的權限有：
+工作流程遵循你專案的角色型存取控制。工作流程有三個角色：
 
-- **Create / Read / Edit / Delete Workflow**——對工作流程本身的基本權限。
-- **執行工作流程**——手動執行工作流程或透過 API 觸發時需要。
+- **Workflow Admin**——建置工作流程：建立、變更、執行和刪除工作流程，並管理它們使用的變數。
+- **Workflow Member**——使用工作流程：開啟工作流程及其執行紀錄，並透過 **執行工作流程** 手動執行工作流程。成員不能建立、變更或刪除工作流程，也不能單獨執行其中的某個步驟。
+- **Workflow Viewer**——檢視工作流程及其執行紀錄。
+
+**Project Owner** 和 **Project Admin** 可以做 Workflow Admin 能做的一切。**Project Member** 可以建立和刪除工作流程，但不能變更或執行它們。
+
+個別權限，適用於只需要一項能力的團隊或 API 金鑰：
+
+- **Create / Read / Edit / Delete Workflow**——對工作流程本身的基本權限。變更工作流程（包括開啟、關閉和封存）需要 **Edit Workflow**；**Delete Workflow** 只能刪除。
+- **Edit Workflow**——用 **Run just this step** 單獨執行一個步驟，以及檢視或重設工作流程的 Webhook URL 和傳入電子郵件地址，也需要這個權限。手動執行整個工作流程需要 **Edit Workflow**、**Workflow Admin** 或 **Workflow Member**。
 - **Read Workflow Log**——檢視執行紀錄時需要。
 - **Read / Create / Edit / Delete Workflow Variable**——對全域變數清單的控制權。
 
-大多數工程師應該對工作流程有建立／編輯／讀取權限，但對變數沒有。把變數的編輯權留給管理專案密鑰的那些人。
+手動執行只能用於你能開啟的工作流程：僅限部分標籤，或僅限你的團隊擁有的工作流程的角色，只能執行這些工作流程。不能執行工作流程的人會看到 **執行工作流程** 呈灰色，提示中會說明原因。
+
+把 **Workflow Admin** 給建置自動化的人，把 **Workflow Member** 給只需要啟動它的人。把變數的編輯權留給管理專案密鑰的那些人。
+
+## 工作流程步驟可以做什麼
+
+讀取和變更 OneUptime 記錄的步驟（Find、Create、Update、Delete 元件，以及 On Create、On Update、On Delete 觸發器）會以工作流程所屬專案的 **Project Admin** 身分執行。它們與 Project Admin 在儀表板和 API 中一樣，接受相同的檢查：
+
+- **只限工作流程自己的專案。** 步驟絕不會讀取或變更其他專案的記錄，Update 也絕不會把記錄移到其他專案。
+- **只做 Project Admin 能做的事。** 步驟不能授予 Project Admin 自己沒有的權限（例如 **Project Owner** 或帳務），也不能把任何人加入權限更多的團隊，例如擁有者團隊。
+- **只限你的方案包含的功能。** 在 OneUptime Cloud 上，你的方案不包含的功能會被拒絕，並說明需要哪個方案。
+- **不碰 OneUptime 自己維護的內容。** 動態項目不能編輯或刪除，通知紀錄不能寫入，OneUptime 自己設定的值（例如已驗證的 CNAME、團隊的保護開關或目前誰在值班）不能變更。**Create One Incident** 步驟也不能依據範本宣告事件（`createdIncidentTemplateId`）：請用 **Find One Incident Template** 讀取範本，再傳入它的值。
+- **不以任何人的身分。** 工作流程建立的記錄沒有建立者，稽核紀錄會把工作流程記為做出變更的一方。
+
+被拒絕的步驟會走它的 **Error** 輸出，不會做出被拒絕的變更，執行紀錄會說明哪個步驟被拒絕以及原因。Create Many 步驟逐筆建立紀錄，遇到被拒絕的那一筆就停下；在它之前建立的紀錄會保留。與其他系統通訊的步驟（API、電子郵件、聊天、Custom Code、AI）不受影響。
 
 ## 方案限制
 

@@ -83,7 +83,9 @@ import {
   KubernetesAiAccessGapCode,
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
+  KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
+import { fillTemplate } from "../../../UI/Utils/TranslateTemplate";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
   UserTenantAccessPermission,
@@ -822,7 +824,11 @@ describe("the AI agent card follows the real status", () => {
     expect(getAiAgentOverviewState(status).text).toBe("Offline");
     // It never signed off: its heartbeats stopped.
     expect(getAiAgentOfflineReason(status)).toBe("silent");
-    expect(getAiAgentStateSentence(status)).toBe(AI_AGENT_SILENT_TEXT);
+    expect(getAiAgentStateSentence(status)).toBe(
+      fillTemplate(AI_AGENT_SILENT_TEXT, {
+        minutes: KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
+      }),
+    );
   });
 
   /*
@@ -1913,7 +1919,7 @@ describe("Needs attention, from the server's own statuses", () => {
       ],
       [
         "ai_balance_insufficient",
-        "Add AI credits to this project, or turn on auto-recharge.",
+        "Add AI credits to this project.",
         "open_ai_credits",
       ],
     ]);

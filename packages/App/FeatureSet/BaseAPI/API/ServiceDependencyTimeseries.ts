@@ -3,11 +3,8 @@ import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedExceptio
 import { JSONObject } from "Common/Types/JSON";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
-import Permission, {
-  PermissionHelper,
-  UserPermission,
-} from "Common/Types/Permission";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
+import CallerPermission from "Common/Server/Utils/Permission/CallerPermission";
 import CommonAPI from "Common/Server/API/CommonAPI";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Express, {
@@ -23,6 +20,10 @@ import SpanService from "Common/Server/Services/SpanService";
 import Service from "Common/Models/DatabaseModels/Service";
 import Span from "Common/Models/AnalyticsModels/Span";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
+import TelemetryReadAccess from "Common/Server/Utils/Telemetry/TelemetryReadAccess";
+import TelemetryReadScopeUtil, {
+  TelemetryReadScope,
+} from "Common/Server/Utils/Telemetry/TelemetryReadScope";
 
 /*
  * On-demand call history for one service-dependency edge: time-bucketed
@@ -100,22 +101,16 @@ export default class ServiceDependencyTimeseriesAPI {
            * This endpoint reads span-derived data, so holding read on the
            * Service model alone is not enough — gate on the Span analytics
            * model's own read ACL (TelemetryViewer, ReadTelemetryServiceTraces,
-           * ...), mirroring what the standard analytics API would enforce.
+           * ...), mirroring what the standard analytics API would enforce:
+           * read by the rule every permission check follows
+           * (CallerPermission), the operational-resource wildcard included.
            */
           if (!props.isRoot && !props.isMasterAdmin) {
-            const userPermissions: Array<Permission> = (
-              props.userTenantAccessPermission?.[props.tenantId.toString()]
-                ?.permissions || []
-            ).map((userPermission: UserPermission) => {
-              return userPermission.permission;
-            });
-            const spanReadPermissions: Array<Permission> =
-              new Span().accessControl?.read || [];
             if (
-              !PermissionHelper.doesPermissionsIntersect(
-                userPermissions,
-                spanReadPermissions,
-              )
+              !CallerPermission.holdsModelPermission(props, {
+                model: new Span(),
+                operation: "read",
+              })
             ) {
               throw new NotAuthorizedException(
                 "You do not have permission to read traces for this project.",
@@ -214,6 +209,31 @@ export default class ServiceDependencyTimeseriesAPI {
               MAX_RESULT_BUCKETS
           ) {
             bucketSeconds = requestedBucketSeconds;
+          }
+
+          /*
+           * Reading a service's record is not reading its spans: the series
+           * is built from both services' spans, so both must be services
+           * whose traces the caller may read (TelemetryReadAccess, the
+           * scope every telemetry read follows - a label or Owned grant, a
+           * block with labels). An edge with a side they may not read is
+           * answered as one with no calls, the way every telemetry read
+           * answers for a resource out of scope.
+           */
+          const traceScope: TelemetryReadScope =
+            await TelemetryReadAccess.getScope(Span, props);
+
+          if (
+            !TelemetryReadScopeUtil.isReadable(traceScope, callerServiceId) ||
+            !TelemetryReadScopeUtil.isReadable(traceScope, calleeServiceId)
+          ) {
+            return Response.sendJsonObjectResponse(req, res, {
+              bucketSeconds: bucketSeconds,
+              callerServiceId: callerServiceId.toString(),
+              calleeServiceId: calleeServiceId.toString(),
+              truncated: false,
+              buckets: [],
+            } as unknown as JSONObject);
           }
 
           const projectIdSql: string = escapeSql(props.tenantId.toString());

@@ -36,6 +36,15 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 jest.mock("../../../Server/EnvironmentConfig", () => {
   const billingFlag: typeof import("../Enterprise/TestBillingFlag") =
@@ -268,6 +277,7 @@ beforeEach(() => {
   getJestSpyOn(AuditLogService, "recordUpdate").mockResolvedValue(
     undefined as never,
   );
+  stubProjectDirectory({});
 });
 
 afterEach(() => {

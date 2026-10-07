@@ -138,6 +138,34 @@ describe("translation calls", () => {
     ]);
   });
 
+  /*
+   * A term is translated with the sentence it fills, by looking its text up,
+   * so a literal one must be in en.json even when nothing else uses it.
+   */
+  test("takes the text a translatableTerm puts in a sentence", () => {
+    const result: SourceScanResult = scan(`
+      const a = translator.translateTemplate("Instrument {{function}}.", {
+        function: fn.name || translatableTerm("this function"),
+      });
+      const b = translatableTerm("authenticator app", { inSentence: true });
+      const c = translatableTerm(isAlert ? "Alert" : "Incident");
+      const d = translatableTerm(model.singularName || "item");
+      const e = translatableTerm(model.pluralName, { inSentence: true });
+      const f = translatableTerm(state?.name || "");
+    `);
+
+    expect(textsOf(result)).toEqual([
+      "Instrument {{function}}.",
+      "this function",
+      "authenticator app",
+      "Alert",
+      "Incident",
+      "item",
+    ]);
+    expect(kindOf(result, "this function")).toBe("call");
+    expect(hardcodedOf(result)).toEqual([]);
+  });
+
   test("ignores calls to functions that do not translate", () => {
     const result: SourceScanResult = scan(`
       const a = format("Some text here");
@@ -307,6 +335,34 @@ describe("user-facing properties and attributes", () => {
         scan(`const a = <MonitorForm template="incident-template-1" />;`),
       ),
     ).toEqual([]);
+  });
+
+  /*
+   * The "What AI may do" building blocks look up these props themselves,
+   * like Card and Pill look up theirs, so a page hands them English.
+   */
+  test("reads the AI access building blocks' own copy props", () => {
+    expect(
+      textsOf(
+        scan(`
+          const a = (
+            <>
+              <AiAccessRow sentence="AI never proposes or runs a fix." />
+              <AiAccessPermissionNote
+                canText="You can lower fixes."
+                cannotText="Turning fixes on needs an admin."
+              />
+              <AiAccessAllowlist editText="Edit" />
+            </>
+          );
+        `),
+      ),
+    ).toEqual([
+      "AI never proposes or runs a fix.",
+      "You can lower fixes.",
+      "Turning fixes on needs an admin.",
+      "Edit",
+    ]);
   });
 
   test("lists the names it treats as copy", () => {

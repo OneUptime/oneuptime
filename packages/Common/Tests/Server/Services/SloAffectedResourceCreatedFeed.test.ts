@@ -267,19 +267,19 @@ describe("incident created feed item", () => {
 
     expect(markdown.split(RESOURCES_AFFECTED_HEADER)).toHaveLength(2);
     expect(resourcesAffectedLines(markdown)).toEqual([
-      `- [checkout-web](${monitorLink(MONITOR_ID)})`,
+      `- [checkout\\-web](${monitorLink(MONITOR_ID)})`,
       `- [SLO Checkout availability](${sloLink(SLO_ID)})`,
       `- [SLO Search latency p95](${sloLink(OTHER_SLO_ID)})`,
     ]);
   });
 
-  test("a monitors-only incident reads exactly as before", async () => {
+  test("a monitors-only incident reads as before: the same bullet, its name escaped", async () => {
     await createIncidentFeed(
       buildIncident({ monitors: [buildMonitor(MONITOR_ID, "checkout-web")] }),
     );
 
     expect(resourcesAffectedLines(postedMarkdown(incidentFeedItem))).toEqual([
-      `- [checkout-web](${monitorLink(MONITOR_ID)})`,
+      `- [checkout\\-web](${monitorLink(MONITOR_ID)})`,
     ]);
   });
 
@@ -488,12 +488,12 @@ describe("alert created feed item", () => {
 
     expect(markdown.split(RESOURCES_AFFECTED_HEADER)).toHaveLength(2);
     expect(resourcesAffectedLines(markdown)).toEqual([
-      `- [checkout-web](${monitorLink(MONITOR_ID)})`,
+      `- [checkout\\-web](${monitorLink(MONITOR_ID)})`,
       `- [SLO Checkout availability](${sloLink(SLO_ID)})`,
     ]);
   });
 
-  test("a monitor-only alert reads exactly as before", async () => {
+  test("a monitor-only alert reads as before: the same bullet, its name escaped", async () => {
     mockAlertRow(
       buildAlert({ monitor: buildMonitor(MONITOR_ID, "checkout-web") }),
     );
@@ -501,7 +501,7 @@ describe("alert created feed item", () => {
     await createAlertFeed(ALERT_ID);
 
     expect(resourcesAffectedLines(postedMarkdown(alertFeedItem))).toEqual([
-      `- [checkout-web](${monitorLink(MONITOR_ID)})`,
+      `- [checkout\\-web](${monitorLink(MONITOR_ID)})`,
     ]);
   });
 

@@ -56,56 +56,15 @@ interface ListedStep {
 
 const DASHBOARD: string = "packages/App/FeatureSet/Dashboard/src";
 
-const INHERIT_CHECKLIST_REASON: string =
-  "One question - which resources to inherit from - answered with six switches of one kind, laid out in two columns. Splitting a checklist across steps would make it harder to answer, not easier.";
-
 /*
  * Steps over the limit that stay as they are, and why. A step split later
- * must leave this list (the guard says so).
+ * must leave this list (the guard says so). The incident, alert and
+ * scheduled maintenance label and owner rules' six-switch inherit
+ * checklists left it: they fold under Inherit Labels / Inherit Owners on
+ * the rule's Labels or Owners step (Dashboard Utils/Form/ResourceRuleForm),
+ * one row there.
  */
 export const LONG_STEPS_ALLOWED: Array<ListedStep> = [
-  ...[
-    [
-      "Alerts/Settings/AlertOwnerRules.tsx",
-      "RuleTable: Settings > Alert Owner Rules",
-    ],
-    [
-      "Incidents/Settings/IncidentOwnerRules.tsx",
-      "RuleTable: Settings > Incident Owner Rules",
-    ],
-    [
-      "ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceOwnerRules.tsx",
-      "RuleTable: Settings > Scheduled Maintenance Owner Rules",
-    ],
-  ].map(([file, form]: Array<string>): ListedStep => {
-    return {
-      file: `${DASHBOARD}/Pages/${file}`,
-      form: form!,
-      step: "inherit-owners",
-      reason: INHERIT_CHECKLIST_REASON,
-    };
-  }),
-  ...[
-    [
-      "Alerts/Settings/AlertLabelRules.tsx",
-      "LabelRuleTable: Settings > Alert Label Rules",
-    ],
-    [
-      "Incidents/Settings/IncidentLabelRules.tsx",
-      "LabelRuleTable: Settings > Incident Label Rules",
-    ],
-    [
-      "ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceLabelRules.tsx",
-      "LabelRuleTable: Settings > Scheduled Maintenance Label Rules",
-    ],
-  ].map(([file, form]: Array<string>): ListedStep => {
-    return {
-      file: `${DASHBOARD}/Pages/${file}`,
-      form: form!,
-      step: "inherit-labels",
-      reason: INHERIT_CHECKLIST_REASON,
-    };
-  }),
   /*
    * Read since the form's fields stopped going through a wrapper the scan
    * could not follow (the owner-user loader the owners picker replaced).
@@ -487,9 +446,10 @@ describe("the project's stepped forms", () => {
     /*
      * Grouping rules ask two questions and then create: Grouping (how to
      * group, how close together, name) and which incidents. Group By shows
-     * only for a custom mix of switches, and the last three only behind
-     * "Show advanced settings" (each switch-and-minutes setting is one
-     * control, so Episode Lifecycle holds three).
+     * only for a custom mix of switches. Everything else a rule can do -
+     * paging and owners, the episode lifecycle, the details - is one More
+     * fields fold at the end of Grouping, one row there, where a Show
+     * advanced settings switch used to add three more steps.
      */
     ...[
       ["Alerts/Settings/AlertGroupingRules.tsx", "Alert"],
@@ -498,16 +458,15 @@ describe("the project's stepped forms", () => {
       return [
         `${DASHBOARD}/Pages/${file}`,
         `ModelTable: Settings > ${kind} Grouping Rules`,
-        [
-          "grouping",
-          "group-by",
-          "match-criteria",
-          "episode-lifecycle",
-          "details",
-          "on-call-ownership",
-        ],
+        ["grouping", "group-by", "match-criteria"],
       ];
     }),
+    /*
+     * The event rules' owners and inherit checklist were split over two
+     * steps; now they share the rule's one Owners (or Labels) step, the six
+     * switches folded under Inherit Owners (Inherit Labels) - which keeps
+     * that step at five rows on the Edit form, and four on Create.
+     */
     ...[
       ["Alerts/Settings/AlertOwnerRules.tsx", "Alert"],
       ["Incidents/Settings/IncidentOwnerRules.tsx", "Incident"],
@@ -519,7 +478,7 @@ describe("the project's stepped forms", () => {
       return [
         `${DASHBOARD}/Pages/${file}`,
         `RuleTable: Settings > ${kind} Owner Rules`,
-        ["basic-info", "match-criteria", "owners", "inherit-owners"],
+        ["match-criteria", "owners"],
       ];
     }),
     ...[
@@ -533,7 +492,7 @@ describe("the project's stepped forms", () => {
       return [
         `${DASHBOARD}/Pages/${file}`,
         `LabelRuleTable: Settings > ${kind} Label Rules`,
-        ["basic-info", "match-criteria", "labels", "inherit-labels"],
+        ["match-criteria", "labels"],
       ];
     }),
     ...[

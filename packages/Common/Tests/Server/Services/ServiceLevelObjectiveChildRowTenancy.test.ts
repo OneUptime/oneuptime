@@ -38,11 +38,21 @@ import ServiceLevelObjectiveService from "../../../Server/Services/ServiceLevelO
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import TeamService from "../../../Server/Services/TeamService";
 import ProjectScopedReferenceValidator from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
+import RelationIdUtil from "../../../Server/Utils/Database/RelationIdUtil";
 import SloLegacyMonitorLabelAdoption from "../../../Server/Utils/Slo/SloLegacyMonitorLabelAdoption";
 import SloOwnerReferenceValidator from "../../../Server/Utils/Slo/SloOwnerReferenceValidator";
 import SloRecordReferenceValidator from "../../../Server/Utils/Slo/SloRecordReferenceValidator";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * The rows that hang off an SLO - owner users, owner teams, burn rate rules
@@ -316,6 +326,12 @@ interface ChildRowCase {
   name: string;
   service: unknown;
   subject: string;
+  /*
+   * The service reads the SLO's two names together
+   * (RelationIdUtil.readConsistent), so two that name different SLOs are
+   * refused as such before any lookup.
+   */
+  readsBothNamesTogether?: boolean | undefined;
   // A create payload that is valid in every way except the SLO under test.
   buildData: (slo: {
     serviceLevelObjectiveId?: string | undefined;
@@ -367,6 +383,7 @@ const CHILD_ROW_CASES: Array<ChildRowCase> = [
     name: "ServiceLevelObjectiveMonitorRuleService",
     service: ServiceLevelObjectiveMonitorRuleService,
     subject: "SLO monitor rule",
+    readsBothNamesTogether: true,
     buildData: (slo: Record<string, unknown>): Record<string, unknown> => {
       return {
         projectId: PROJECT_ID,
@@ -380,6 +397,7 @@ const CHILD_ROW_CASES: Array<ChildRowCase> = [
 
 beforeEach(() => {
   installFakeTables();
+  stubProjectDirectory({});
 });
 
 afterEach(() => {
@@ -459,6 +477,18 @@ CHILD_ROW_CASES.forEach((childRowCase: ChildRowCase) => {
           props: { tenantId: PROJECT_ID },
         }),
       );
+
+      if (childRowCase.readsBothNamesTogether) {
+        // Refused as two names that disagree, naming the fields and no id.
+        expect(message).toBe(
+          RelationIdUtil.getConflictMessage("Service Level Objective", [
+            "serviceLevelObjectiveId",
+            "serviceLevelObjective",
+          ]),
+        );
+        expect(sloLookups).toHaveLength(0);
+        return;
+      }
 
       // Only the id that failed is echoed back.
       expect(message).toContain(`"${FOREIGN_SLO_ID}"`);

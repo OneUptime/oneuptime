@@ -22,6 +22,7 @@ import TableBillingAccessControl from "../../Types/Database/AccessControl/TableB
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import Recurring from "../../Types/Events/Recurring";
+import Timezone from "../../Types/Timezone";
 import NotificationRuleCondition from "../../Types/Workspace/NotificationRules/NotificationRuleCondition";
 import FilterCondition from "../../Types/Filter/FilterCondition";
 
@@ -68,6 +69,8 @@ import FilterCondition from "../../Types/Filter/FilterCondition";
   read: PlanType.Growth,
   update: PlanType.Growth,
   delete: PlanType.Growth,
+  // Posts after a downgrade: readable on every plan.
+  readableBelowPlan: true,
 })
 @CrudApiEndpoint(new Route("/workspace-notification-summary"))
 @Entity({
@@ -459,6 +462,58 @@ class WorkspaceNotificationSummary extends BaseModel {
     nullable: true,
   })
   public sendFirstReportAt?: Date = undefined;
+
+  /*
+   * The time zone the schedule is read in (WorkspaceSummaryScheduleUtil):
+   * the summary goes out at the same time of day there all year. Stepped in
+   * UTC, a summary set for 09:00 in Berlin went out at 08:00 there once the
+   * clocks went back. Null reads as UTC, as every summary did before it had
+   * a time zone.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateWorkspaceNotificationSummary,
+    ],
+    read: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadWorkspaceNotificationSummary,
+    ],
+    update: [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditWorkspaceNotificationSummary,
+    ],
+  })
+  @TableColumn({
+    title: "Timezone",
+    description:
+      "The IANA time zone the summary's schedule is read in, such as Europe/Berlin or America/New_York. The summary goes out at the same time of day there all year, also after the clocks change for daylight saving time. Left out when the summary is created, it is the time zone in the creator's profile, or UTC when no person creates it (an API key or a workflow). A summary without one is read in UTC.",
+    required: false,
+    unique: false,
+    type: TableColumnType.ShortText,
+    example: "Europe/Berlin",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    unique: false,
+    nullable: true,
+  })
+  public timezone?: Timezone = undefined;
 
   @ColumnAccessControl({
     create: [

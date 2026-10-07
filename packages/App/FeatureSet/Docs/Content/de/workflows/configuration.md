@@ -96,14 +96,36 @@ Eingebaute Grenzen halten unbeaufsichtigte Aufrufe endlich: System Instructions,
 
 ## Berechtigungen
 
-Workflows richten sich nach der rollenbasierten Zugriffssteuerung Ihres Projekts. Die relevanten Berechtigungen:
+Workflows richten sich nach der rollenbasierten Zugriffssteuerung Ihres Projekts. Die drei Workflow-Rollen:
 
-- **Create / Read / Edit / Delete Workflow** – die Grundberechtigungen auf den Workflow selbst.
-- **Run Workflow** – nötig, um einen Workflow von Hand auszuführen oder ihn über die API auszulösen.
+- **Workflow Admin** – baut Workflows: erstellt, ändert, führt aus und löscht sie und verwaltet die Variablen, die sie nutzen.
+- **Workflow Member** – nutzt sie: öffnet Workflows und ihre Ausführungen und führt einen Workflow mit **Arbeitsablauf ausführen** von Hand aus. Ein Mitglied kann keinen Workflow erstellen, ändern oder löschen und keinen seiner Schritte für sich ausführen.
+- **Workflow Viewer** – liest Workflows und ihre Ausführungen.
+
+**Project Owner** und **Project Admin** können alles, was ein Workflow Admin kann. **Project Member** kann Workflows erstellen und löschen, aber nicht ändern oder ausführen.
+
+Die einzelnen Berechtigungen, für ein Team oder einen API-Schlüssel, der genau eine Sache braucht:
+
+- **Create / Read / Edit / Delete Workflow** – die Grundberechtigungen auf den Workflow selbst. Einen Workflow zu ändern, auch ihn ein- oder auszuschalten und zu archivieren, erfordert **Edit Workflow**; **Delete Workflow** löscht nur.
+- **Edit Workflow** – ist auch nötig, um mit **Nur diesen Schritt ausführen** einen einzelnen Schritt für sich auszuführen und um die Webhook-URL und die Adresse für eingehende E-Mails eines Workflows zu sehen oder zurückzusetzen. Einen ganzen Workflow von Hand auszuführen erfordert **Edit Workflow**, **Workflow Admin** oder **Workflow Member**.
 - **Read Workflow Log** – nötig, um Ausführungen anzusehen.
 - **Read / Create / Edit / Delete Workflow Variable** – Kontrolle über die Liste der globalen Variablen.
 
-Die meisten Entwickler sollten auf Workflows Create/Edit/Read haben, auf Variablen aber nicht. Heben Sie den Schreibzugriff auf Variablen für die Leute auf, die die Geheimnisse Ihres Projekts verwalten.
+Eine Ausführung von Hand erreicht nur Workflows, die Sie öffnen können: Eine Rolle, die auf bestimmte Beschriftungen oder auf die Workflows Ihres Teams beschränkt ist, führt nur diese aus. Wer einen Workflow nicht ausführen darf, sieht **Arbeitsablauf ausführen** ausgegraut, mit dem Grund im Tooltip.
+
+Geben Sie den Leuten, die Automatisierung bauen, **Workflow Admin** und denen, die sie nur starten, **Workflow Member**. Heben Sie den Schreibzugriff auf Variablen für die Leute auf, die die Geheimnisse Ihres Projekts verwalten.
+
+## Was Workflow-Schritte dürfen
+
+Die Schritte, die OneUptime-Datensätze lesen und ändern – die Komponenten Find, Create, Update und Delete sowie die Trigger On Create, On Update und On Delete –, handeln als **Project Admin** des Projekts, zu dem der Workflow gehört. Für sie gelten dieselben Prüfungen wie für einen Project Admin im Dashboard und in der API:
+
+- **Nur das eigene Projekt des Workflows.** Ein Schritt liest und ändert nie Datensätze eines anderen Projekts, und ein Update verschiebt nie einen Datensatz in ein anderes Projekt.
+- **Nur, was ein Project Admin darf.** Ein Schritt kann keine Berechtigungen vergeben, die ein Project Admin selbst nicht hat (etwa **Project Owner** oder Abrechnung), und niemanden einem Team mit mehr Berechtigungen hinzufügen, etwa dem Team der Eigentümer.
+- **Nur, was Ihr Plan enthält.** Auf OneUptime Cloud wird abgelehnt, was Ihr Plan nicht enthält, mit dem Namen des Plans, der dafür nötig ist.
+- **Nichts, was OneUptime selbst verwaltet.** Feed-Einträge lassen sich nicht bearbeiten oder löschen, Benachrichtigungsprotokolle nicht schreiben, und Werte, die OneUptime selbst setzt (etwa ein bestätigter CNAME, die Schutzschalter eines Teams oder wer gerade Bereitschaft hat), nicht ändern. Ein Schritt **Create One Incident** kann auch keinen Vorfall aus einer Vorlage anlegen (`createdIncidentTemplateId`): Lesen Sie die Vorlage mit **Find One Incident Template** und übergeben Sie ihre Werte.
+- **Als keine Person.** Ein Datensatz, den ein Workflow anlegt, nennt keinen Ersteller, und das Audit-Log nennt den Workflow als den, der die Änderung vorgenommen hat.
+
+Ein abgelehnter Schritt nimmt seinen Ausgang **Error**, ohne die abgelehnte Änderung vorzunehmen, und das Ausführungsprotokoll sagt, welcher Schritt abgelehnt wurde und warum. Ein Schritt „Create Many“ legt seine Datensätze nacheinander an und hält beim abgelehnten an; die zuvor angelegten bleiben bestehen. Schritte, die mit anderen Systemen sprechen (API, E-Mail, Chat, Custom Code, KI), sind nicht betroffen.
 
 ## Plan-Grenzen
 

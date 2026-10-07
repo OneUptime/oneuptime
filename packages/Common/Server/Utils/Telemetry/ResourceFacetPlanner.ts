@@ -5,6 +5,7 @@ import ResourceFacetResolver, {
   ResourceFacetListSpec,
 } from "./ResourceFacetResolver";
 import CaptureSpan from "./CaptureSpan";
+import { TelemetryReadScope } from "./TelemetryReadScope";
 
 /*
  * Orchestrates a telemetry facets request that mixes resource facets (value
@@ -46,6 +47,12 @@ export interface ResourceFacetListRequest {
   // Per-facet sidebar search, applied to the Postgres lookup.
   facetSearchText?: Record<string, string> | undefined;
   limit: number;
+  /*
+   * Whose telemetry the caller may read (TelemetryReadAccess.getScope): what
+   * each resource facet lists and keeps (ResourceFacetResolver). Absent:
+   * every resource of the project.
+   */
+  scope?: TelemetryReadScope | undefined;
 }
 
 export interface PerFacetCountRequest extends ResourceFacetListRequest {
@@ -90,6 +97,7 @@ export default class ResourceFacetPlanner {
               facetKey,
               searchText: request.facetSearchText?.[facetKey],
               limit: request.limit,
+              scope: request.scope,
             };
           },
         );
@@ -141,6 +149,8 @@ export default class ResourceFacetPlanner {
     facetKeys: Array<string>;
     listed: ListedResourceFacets;
     countsFor: (facetKey: string) => Map<string, number>;
+    // The caller's scope (see ResourceFacetResolver.mergeCounts).
+    scope?: TelemetryReadScope | undefined;
   }): Record<string, Array<ResolvedFacetValue>> {
     const merged: Record<string, Array<ResolvedFacetValue>> = {};
 
@@ -154,6 +164,7 @@ export default class ResourceFacetPlanner {
         ? ResourceFacetResolver.mergeCounts(
             data.listed[facetKey] || [],
             data.countsFor(facetKey),
+            data.scope,
           )
         : [];
     }
@@ -217,6 +228,7 @@ export default class ResourceFacetPlanner {
               ResourceFacetResolver.mergeCounts(
                 listed[facetKey] || [],
                 ResourceFacetPlanner.toCountMap(values),
+                request.scope,
               ),
             ] as const;
           },

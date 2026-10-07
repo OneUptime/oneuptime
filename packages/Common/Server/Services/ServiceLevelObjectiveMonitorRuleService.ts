@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import LabelService from "./LabelService";
 import ServiceLevelObjectiveFeedService from "./ServiceLevelObjectiveFeedService";
 import ServiceLevelObjectiveMonitorRuleEngineService from "./ServiceLevelObjectiveMonitorRuleEngineService";
@@ -33,7 +33,7 @@ import ModelPermission from "../Types/Database/Permissions/Index";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { resolveReferenceId } from "../Utils/Database/ProjectScopedReferenceValidator";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import SloRecordReferenceValidator from "../Utils/Slo/SloRecordReferenceValidator";
 import SloLegacyMonitorLabelAdoption from "../Utils/Slo/SloLegacyMonitorLabelAdoption";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -75,19 +75,36 @@ interface RuleDeleteCarryForward {
   rulesToDelete: Array<Model>;
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * The SLO is checked by SloRecordReferenceValidator (pinned to the project,
+   * ids only). The generic check covers the rest.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["serviceLevelObjective"];
   }
 
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    const serviceLevelObjectiveId: ObjectID | string | undefined =
-      resolveReferenceId(
-        createBy.data.serviceLevelObjectiveId ||
-          createBy.data.serviceLevelObjective,
+    // The project's own records only, before anything here reads one.
+    await super.onBeforeCreate(createBy);
+
+    /*
+     * The SLO, under either of its names: the two must agree, so the SLO the
+     * rule is checked against - and whose legacy labels it adopts below - is
+     * the one stored.
+     */
+    const serviceLevelObjectiveId: ObjectID | null =
+      RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        ["serviceLevelObjectiveId", "serviceLevelObjective"],
+        "Service Level Objective",
       );
 
     if (!serviceLevelObjectiveId) {
@@ -186,6 +203,9 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    // The project's own records only, before anything here reads one.
+    await super.onBeforeUpdate(updateBy);
+
     MonitorRulePatternValidator.validate({
       namePattern: updateBy.data.monitorNamePattern as string | undefined,
       descriptionPattern: updateBy.data.monitorDescriptionPattern as
@@ -566,12 +586,11 @@ export class Service extends DatabaseService<Model> {
    * SLO would attach this project's monitors to it - and reveal, through the
    * feed and the Monitors page, which monitors this project has.
    *
-   * SloRecordReferenceValidator rather than ProjectScopedReferenceValidator.
-   * That one reads the referenced row as root and names a foreign one in its
-   * error ("belong to a different project: Service Level Objective <name>"),
-   * which confirms another tenant's SLO exists and hands its name to anyone
-   * holding its id. This lookup is pinned to the rule's project, selects only
-   * ids, and gives a foreign id the same answer as an id that matches nothing.
+   * SloRecordReferenceValidator checks it: pinned to the rule's project,
+   * selecting only ids, and giving a foreign id the same answer as an id
+   * that matches nothing - in words that name the SLO, which is why the
+   * generic reference check leaves this relation to it
+   * (getRelationsCheckedByService).
    */
   private async assertServiceLevelObjectiveIsInScope(data: {
     projectId: ObjectID | undefined;

@@ -6,12 +6,15 @@ import AIAlertInvestigationRunner from "../../../../Server/Utils/AI/SRE/AlertInv
 import AIIncidentInvestigationRunner from "../../../../Server/Utils/AI/SRE/IncidentInvestigationRunner";
 import AIInvestigationQueue from "../../../../Server/Utils/AI/SRE/InvestigationQueue";
 import Semaphore from "../../../../Server/Infrastructure/Semaphore";
-import AIService from "../../../../Server/Services/AIService";
+import AIService, {
+  AI_BALANCE_INSUFFICIENT_MESSAGE,
+} from "../../../../Server/Services/AIService";
 import AIRunService from "../../../../Server/Services/AIRunService";
 import AlertService from "../../../../Server/Services/AlertService";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import LlmProviderService from "../../../../Server/Services/LlmProviderService";
+import LlmLogService from "../../../../Server/Services/LlmLogService";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import Project from "../../../../Models/DatabaseModels/Project";
@@ -35,8 +38,10 @@ const codes: Array<InvestigationNotStartedCode> = [
   "automatic_investigation_disabled",
   "provider_missing",
   "insufficient_ai_balance",
+  "project_daily_limit_reached",
   "severity_below_threshold",
   "monitor_cooldown",
+  "created_resolved",
   "daily_budget_exhausted",
   "budget_check_failed",
   "enqueue_failed",
@@ -51,8 +56,7 @@ const configurationCodes: Array<InvestigationNotStartedCode> = [
   "severity_below_threshold",
 ];
 
-const BALANCE_BLOCKER: string =
-  "This project is out of AI credits. Add credits under Project Settings → AI Credits, or turn on auto-recharge.";
+const BALANCE_BLOCKER: string = AI_BALANCE_INSUFFICIENT_MESSAGE;
 
 /*
  * AIService.getAiBalanceBlocker — the one AI balance predicate shared with
@@ -376,7 +380,15 @@ describe("the AI balance gate (insufficient_ai_balance)", () => {
         } was created, so its automatic investigation did not start.`,
       );
       expect(reason.nextStep).toContain("Project Settings → AI Credits");
-      expect(reason.nextStep).toContain("auto-recharge");
+      /*
+       * Not "turn on auto-recharge": AI credits are recharged after a call
+       * they paid for, so a used-up balance stays used up until someone
+       * adds credits. And no command: the card names who can, or links.
+       */
+      expect(reason.nextStep).not.toMatch(/auto-?recharge/i);
+      expect(reason.nextStep).toBe(
+        `Review AI credits under Project Settings → AI Credits. Adding credits later does not retry this ${subject.alertId ? "alert" : "incident"}.`,
+      );
     },
   );
 
@@ -394,10 +406,10 @@ describe("the AI balance gate (insufficient_ai_balance)", () => {
       expect(reason.code).toBe("insufficient_ai_balance");
       expect(reason.source).toBe("current_configuration");
       expect(reason.title).toBe("The project is currently out of AI credits");
-      expect(reason.nextStep).toContain(
-        "Add AI credits under Project Settings → AI Credits",
+      expect(reason.nextStep).toBe(
+        `New ${subject.alertId ? "alert" : "incident"}s can be investigated once AI credits are added under Project Settings → AI Credits. Existing records are not automatically retried.`,
       );
-      expect(reason.nextStep).toContain("auto-recharge");
+      expect(reason.nextStep).not.toMatch(/auto-?recharge/i);
       // The subject gate and the daily budget are never reached.
       expect(
         AIAlertInvestigationRunner.shouldInvestigateAlert,
@@ -1028,4 +1040,316 @@ describe("investigation diagnostic boundaries", () => {
       }),
     ).resolves.toBeNull();
   });
+});
+
+/*
+ * An incident or alert created already resolved was over before it was
+ * recorded: its create queues no investigation and records why
+ * (created_resolved), so its AI card says so instead of "no investigation
+ * was recorded". Only ever recorded at creation, never derived from the
+ * current settings, and nothing in the settings would change it.
+ */
+describe("a record created already resolved (created_resolved)", () => {
+  it.each([
+    [{ projectId, incidentId }, "incident"],
+    [{ projectId, alertId }, "alert"],
+  ] as Array<[InvestigationSubject, string]>)(
+    "says plainly why the %o was not investigated, and what to do instead",
+    (subject: InvestigationSubject, kind: string) => {
+      const reason: InvestigationNotStartedReason =
+        InvestigationEligibility.reason("created_resolved", subject);
+
+      expect(reason.code).toBe("created_resolved");
+      expect(reason.source).toBe("recorded");
+      expect(reason.title).toBe(`This ${kind} was created already resolved`);
+      expect(reason.description).toBe(
+        "It was already resolved when it was created, so OneUptime AI did not investigate it automatically.",
+      );
+      expect(reason.nextStep).toBe(
+        "To look into it anyway, ask OneUptime AI below.",
+      );
+      // A recorded fact, not a reading of the current settings.
+      expect(reason.description).not.toContain("current conditions");
+      expect(Number.isFinite(Date.parse(reason.evaluatedAt))).toBe(true);
+    },
+  );
+
+  it.each(subjects)(
+    "is recorded once, without hooks, for %o",
+    async (subject: InvestigationSubject) => {
+      const updateAlert: jest.SpyInstance = jest
+        .spyOn(AlertService, "updateColumnsByIdWithoutHooks")
+        .mockResolvedValue(undefined);
+      const updateIncident: jest.SpyInstance = jest
+        .spyOn(IncidentService, "updateColumnsByIdWithoutHooks")
+        .mockResolvedValue(undefined);
+
+      await InvestigationEligibility.recordSkipped(subject, "created_resolved");
+
+      const update: jest.SpyInstance = subject.alertId
+        ? updateAlert
+        : updateIncident;
+
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          expectedData: { projectId, aiInvestigationDecision: null },
+          data: {
+            aiInvestigationDecision: expect.objectContaining({
+              code: "created_resolved",
+              source: "recorded",
+            }),
+          },
+        }),
+      );
+    },
+  );
+
+  it.each(subjects)(
+    "the recorded reason is what the card reads back for %o",
+    async (subject: InvestigationSubject) => {
+      const recorded: InvestigationNotStartedReason =
+        InvestigationEligibility.reason("created_resolved", subject);
+
+      jest
+        .spyOn(AlertService, "findOneBy")
+        .mockResolvedValue({ aiInvestigationDecision: recorded } as never);
+      jest
+        .spyOn(IncidentService, "findOneBy")
+        .mockResolvedValue({ aiInvestigationDecision: recorded } as never);
+
+      expect(await InvestigationEligibility.getNotStartedReason(subject)).toBe(
+        recorded,
+      );
+    },
+  );
+});
+
+/*
+ * The project's own daily AI limits (Project Settings → AI Features → More
+ * settings) are a ceiling over everything its AI does. Once one is reached
+ * every model call is refused until midnight UTC, so an investigation
+ * started then would only fail and be retried: the gate refuses up front,
+ * with a reason that names where the limit is changed. It reads the limits
+ * on the row it already reads (no second project read) and fails OPEN, like
+ * the balance check: the model call itself still enforces the limits.
+ */
+describe("the project's own daily AI limits (project_daily_limit_reached)", () => {
+  function projectWithLimit(limit: number | undefined): Project {
+    const project: Project = enabledProject();
+
+    if (limit !== undefined) {
+      project.aiDailyTokenLimit = limit;
+    }
+
+    return project;
+  }
+
+  function mockUsage(usedTokensToday: number): jest.SpyInstance {
+    return jest.spyOn(LlmLogService, "getProjectUsageSince").mockResolvedValue({
+      totalTokens: usedTokensToday,
+      billedCostInUSDCents: 0,
+    });
+  }
+
+  beforeEach(() => {
+    jest
+      .spyOn(LlmProviderService, "getLLMProviderForProject")
+      .mockResolvedValue(new LlmProvider());
+    mockBalanceBlocker(null);
+  });
+
+  it.each(["Alert", "Incident"] as const)(
+    "refuses a %s investigation once the project's daily token limit is reached",
+    async (kind: "Alert" | "Incident") => {
+      jest
+        .spyOn(ProjectService, "findOneById")
+        .mockResolvedValue(projectWithLimit(1000));
+      mockUsage(1000);
+
+      expect(
+        await AIInvestigationEngine.getDisabledReason(projectId, kind),
+      ).toBe("project_daily_limit_reached");
+      expect(
+        await AIInvestigationEngine.isEnabledForProject(projectId, kind),
+      ).toBe(false);
+    },
+  );
+
+  it("lets the investigation start while there is room", async () => {
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue(projectWithLimit(1000));
+    mockUsage(999);
+
+    expect(
+      await AIInvestigationEngine.getDisabledReason(projectId, "Incident"),
+    ).toBeNull();
+  });
+
+  it("with no limit set, counts nothing at all", async () => {
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue(projectWithLimit(undefined));
+    const usage: jest.SpyInstance = mockUsage(999_999_999);
+
+    expect(
+      await AIInvestigationEngine.getDisabledReason(projectId, "Incident"),
+    ).toBeNull();
+    expect(usage).not.toHaveBeenCalled();
+  });
+
+  it("reads the limits on the row it already reads: one project read", async () => {
+    const read: jest.SpyInstance = jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue(projectWithLimit(1000));
+    mockUsage(10);
+
+    await AIInvestigationEngine.getDisabledReason(projectId, "Alert");
+
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(read).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          aiDailyTokenLimit: true,
+          aiDailySpendLimitInUSD: true,
+        }),
+      }),
+    );
+  });
+
+  it("fails OPEN when the usage cannot be read: logged, never blocking", async () => {
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue(projectWithLimit(1000));
+    jest
+      .spyOn(LlmLogService, "getProjectUsageSince")
+      .mockRejectedValue(new Error("database down"));
+    const errorLog: jest.SpyInstance = jest
+      .spyOn(logger, "error")
+      .mockImplementation((): void => {
+        return undefined;
+      });
+
+    expect(
+      await AIInvestigationEngine.getDisabledReason(projectId, "Incident"),
+    ).toBeNull();
+    expect(errorLog).toHaveBeenCalledWith(
+      expect.stringContaining("could not check the daily AI limits"),
+    );
+  });
+
+  it.each([
+    ["AI is off", { enableAi: false }, "ai_disabled"],
+    [
+      "automatic investigation is off",
+      { enableAutomaticAlertInvestigation: false },
+      "automatic_investigation_disabled",
+    ],
+  ] as const)(
+    "is not what is said when %s - the switch is the reason",
+    async (
+      _label: string,
+      overrides: Partial<Project>,
+      expected: InvestigationNotStartedCode,
+    ) => {
+      jest
+        .spyOn(ProjectService, "findOneById")
+        .mockResolvedValue(Object.assign(projectWithLimit(1), overrides));
+      const usage: jest.SpyInstance = mockUsage(5);
+
+      expect(
+        await AIInvestigationEngine.getDisabledReason(projectId, "Alert"),
+      ).toBe(expected);
+      expect(usage).not.toHaveBeenCalled();
+    },
+  );
+
+  it("an empty balance is said before the limit", async () => {
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue(projectWithLimit(1));
+    mockBalanceBlocker(BALANCE_BLOCKER);
+    const usage: jest.SpyInstance = mockUsage(5);
+
+    expect(
+      await AIInvestigationEngine.getDisabledReason(projectId, "Alert"),
+    ).toBe("insufficient_ai_balance");
+    expect(usage).not.toHaveBeenCalled();
+  });
+
+  it.each(subjects)(
+    "explains the recorded skip, pointing at the project's daily limits, for %o",
+    (subject: InvestigationSubject) => {
+      const reason: InvestigationNotStartedReason =
+        InvestigationEligibility.reason("project_daily_limit_reached", subject);
+
+      expect(reason.code).toBe("project_daily_limit_reached");
+      expect(reason.source).toBe("recorded");
+      expect(reason.title).toBe(
+        "The project's daily AI limit had been reached at creation",
+      );
+      expect(reason.description).toBe(
+        `This project had reached one of its own daily AI limits when this ${
+          subject.alertId ? "alert" : "incident"
+        } was created, so its automatic investigation did not start.`,
+      );
+      // It is taken back after the reset (InvestigationLimitCatchUp).
+      expect(reason.nextStep).toBe(
+        `OneUptime AI investigates this ${
+          subject.alertId ? "alert" : "incident"
+        } after the limit resets at midnight UTC, if it is still open then, or as soon as the limit is raised or removed under Project Settings → AI Features → More settings.`,
+      );
+      expect(reason.nextStep).not.toContain("not automatically retried");
+    },
+  );
+
+  it.each(subjects)(
+    "explains the current condition, pointing at the project's daily limits, for %o",
+    async (subject: InvestigationSubject) => {
+      mockMissingDecision();
+      jest
+        .spyOn(AIInvestigationEngine, "getDisabledReason")
+        .mockResolvedValue("project_daily_limit_reached");
+
+      const reason: InvestigationNotStartedReason =
+        await InvestigationEligibility.getNotStartedReason(subject);
+
+      expect(reason.code).toBe("project_daily_limit_reached");
+      expect(reason.source).toBe("current_configuration");
+      expect(reason.title).toBe(
+        "The project's daily AI limit is currently reached",
+      );
+      expect(reason.nextStep).toContain(
+        "Project Settings → AI Features → More settings",
+      );
+      expect(reason.nextStep).toContain("midnight UTC");
+      // The subject gate and the lane budget are never reached.
+      expect(
+        AIAlertInvestigationRunner.shouldInvestigateAlert,
+      ).not.toHaveBeenCalled();
+      expect(AIService.getAutonomousDailyBudgetStatus).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(subjects)(
+    "records the skip when a %o is created past the limit, and queues nothing",
+    async (subject: InvestigationSubject) => {
+      jest
+        .spyOn(ProjectService, "findOneById")
+        .mockResolvedValue(projectWithLimit(100));
+      mockUsage(100);
+      const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
+      const recorded: jest.SpyInstance = jest
+        .spyOn(InvestigationEligibility, "recordSkipped")
+        .mockResolvedValue(undefined);
+
+      expect(await trigger(subject)).toBe(false);
+      expect(recorded).toHaveBeenCalledWith(
+        expect.objectContaining({ projectId }),
+        "project_daily_limit_reached",
+      );
+      expect(create).not.toHaveBeenCalled();
+    },
+  );
 });

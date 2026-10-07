@@ -117,6 +117,7 @@ import RepairHashedStringEnvelopeSecrets from "./RepairHashedStringEnvelopeSecre
 import MoveGoogleSecOpsConnectionsToSecurityEventConnections from "./MoveGoogleSecOpsConnectionsToSecurityEventConnections";
 import BackfillAuditLogRootResource from "./BackfillAuditLogRootResource";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
+import AddAuditLogWorkflowColumns from "./AddAuditLogWorkflowColumns";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
 import ScheduleRemindersMissedByReminderRuleLookup from "./ScheduleRemindersMissedByReminderRuleLookup";
 import RepairKubernetesDashboardClusterCpuTile from "./RepairKubernetesDashboardClusterCpuTile";
@@ -126,6 +127,11 @@ import AcceptPendingTeamInvitationsOfProjectMembers from "./AcceptPendingTeamInv
 import AddIncomingCallMissedNotificationSettingsForUsers from "./AddIncomingCallMissedNotificationSettingsForUsers";
 import NormalizeListOrder from "./NormalizeListOrder";
 import RewriteMeasurementPointsInTheirUnit from "./RewriteMeasurementPointsInTheirUnit";
+import SetFileVisibilityFromPublishedRecords from "./SetFileVisibilityFromPublishedRecords";
+import SetWorkspaceSummaryTimezones from "./SetWorkspaceSummaryTimezones";
+import AddTelemetryServiceMetricsPermissions from "./AddTelemetryServiceMetricsPermissions";
+import HideImagesOfPrivateIncidents from "./HideImagesOfPrivateIncidents";
+import HideImagesOfHiddenRecordNotes from "./HideImagesOfHiddenRecordNotes";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -592,6 +598,63 @@ const DataMigrations: Array<DataMigrationBase> = [
    * requirement, so it sits before the last slot.
    */
   new RewriteMeasurementPointsInTheirUnit(),
+  /*
+   * A file is public exactly while a record shows it to everyone, or while
+   * it is a probe's or an AI agent's icon: images published records show
+   * become public, and public files nothing published shows become private
+   * (PublishedImages). Postgres-only, idempotent. No ordering requirement,
+   * so it sits before the last slot.
+   */
+  new SetFileVisibilityFromPublishedRecords(),
+  /*
+   * Workspace summaries have a time zone, and their schedule is read on its
+   * clock: each one made before then gets its creator's (UTC when it has no
+   * creator with one), so a summary set for 09:00 keeps going out at 09:00
+   * after the clocks change. Writes only the time zone, no next send.
+   * Postgres-only, idempotent. No ordering requirement beyond the schema
+   * migration that adds the column, so it sits before the last slot.
+   */
+  new SetWorkspaceSummaryTimezones(),
+  /*
+   * Metric data points are read with Read Telemetry Service Metrics now,
+   * where their table, routes and AI tools named Read Telemetry Service
+   * Traces. Keeps the metric reads of every team and API key holding Read
+   * Traces where they were: a Read Metrics with the same scope and labels,
+   * added or set (copied, never renamed; blocks and writes are not
+   * copied). Postgres-only and idempotent; every grantee whose reads
+   * change, and every write it cannot make, is logged. No ordering
+   * requirement, so it sits before the last slot.
+   */
+  new AddTelemetryServiceMetricsPermissions(),
+  /*
+   * A private incident or episode is never shown on a status page, so the
+   * images of one stored private with Visible on Status Page still on, made
+   * public as if it were shown, become private again - unless a published
+   * record still shows them, or they are icons (PublishedImages).
+   * Postgres-only, idempotent. No ordering requirement, so it sits before
+   * the last slot.
+   */
+  new HideImagesOfPrivateIncidents(),
+  /*
+   * A public note shows its images only while the incident, episode or
+   * scheduled maintenance event it belongs to is shown on status pages, so
+   * the images of public notes of records no status page shows - and the
+   * images a private record kept public through its own notes - become
+   * private again, unless a published record still shows them, or they are
+   * icons (PublishedImages). Postgres-only, idempotent, never makes a file
+   * public. After HideImagesOfPrivateIncidents; no other ordering
+   * requirement, so it sits before the last slot.
+   */
+  new HideImagesOfHiddenRecordNotes(),
+  /*
+   * Workflow steps act as a Project Admin of their project, not as
+   * OneUptime itself (WorkflowPrincipal): adds the two audit-log columns
+   * that name the workflow whose step made a change (AuditLogV2.workflowId,
+   * workflowName). Metadata-only and idempotent; rows written before it read
+   * as "not made by a workflow". No ordering requirement, so it sits before
+   * the last slot.
+   */
+  new AddAuditLogWorkflowColumns(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

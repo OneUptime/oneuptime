@@ -7,6 +7,14 @@ import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 
+/*
+ * Starts every scheduled event whose start time has passed: moves it into
+ * its project's ongoing state. The move does the rest, as any start does
+ * (ScheduledMaintenanceStateTimelineService): it stops probing the event's
+ * monitors and changes them to the event's Change Monitor Status to, read
+ * as it is stored at that moment. That status can be changed until the
+ * event starts, so it is not read here, up to a minute before.
+ */
 RunCron(
   "ScheduledMaintenance:ChangeStateToOngoing",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -26,11 +34,7 @@ RunCron(
         select: {
           _id: true,
           projectId: true,
-          changeMonitorStatusToId: true,
           shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing: true,
-          monitors: {
-            _id: true,
-          },
         },
       });
 
@@ -67,11 +71,6 @@ RunCron(
         props: {
           isRoot: true,
         },
-      });
-
-      // change attached monitor states.
-      await ScheduledMaintenanceService.changeAttachedMonitorStates(event, {
-        isRoot: true,
       });
     }
   },

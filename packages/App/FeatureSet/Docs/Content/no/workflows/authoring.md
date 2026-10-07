@@ -97,7 +97,7 @@ Vil du sette en arbeidsflyt på pause uten å slette den, slår du av **Aktivert
 - Dra i blokker for å flytte dem. Oppsettet lagres.
 - Vil du slette en linje, drar du en av endene av prikken og slipper den på tomt lerret.
 - Vil du slette en blokk, klikker du på den og bruker **Slett** nederst i innstillingsdialogen. Du kan også markere en blokk eller en linje og trykke Backspace.
-- Det finnes ingen måte å duplisere én enkelt blokk på. **Duplicate Workflow** på arbeidsflytens **Innstillinger**-side kopierer det hele, og kopien lander deaktivert.
+- Det finnes ingen måte å duplisere én enkelt blokk på. **Duplicate Workflow** på arbeidsflytens **Innstillinger**-side kopierer det hele. Navnet på kopien er fylt ut, nummerert forbi prosjektets arbeidsflyter ("Nightly Sync" kopieres som "Nightly Sync 2"), og kopien åpnes, deaktivert.
 - Stable blokkene ovenfra og ned så de leses i den retningen de kjører — inndata ligger på overkanten og utdata på underkanten, så flyten går naturlig nedover.
 
 ## Hvor du leser videre

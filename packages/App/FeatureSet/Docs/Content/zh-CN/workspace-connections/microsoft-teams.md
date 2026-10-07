@@ -20,6 +20,20 @@
 4. **配置告警和计划维护通知**
    - 类似的规则也可以应用于告警和计划维护，方法是导航到各自的页面并配置所需规则。
 
+## 测试规则
+
+规则所在行的 **测试规则** 会把这条规则的一条测试消息发到它指定的频道，让你看到消息送达。如果规则会为每个事件创建频道，测试也会创建一个，并邀请规则中的人员加入。
+
+和 **项目设置** > **Workspace** > **Microsoft Teams** 中频道旁边的 **发送测试** 一样，它需要创建通知规则的权限：**Project Owner**、**Project Admin**、**Project Member**、**Settings Admin**、**Settings Member**，或自定义角色中的 **Create Workspace Notification Rule** 和 **Read Workspace Notification Rule**。对于只能查看规则的人（例如 **Viewer**），**测试规则** 是锁定的，它的提示会说明需要什么；API 会以 "You do not have permission to send test notifications in this project." 拒绝其测试。在 OneUptime Cloud 上，测试规则和添加规则一样需要 **Growth** 套餐。
+
+在 OneUptime Cloud 上，频道或聊天旁边的 **发送测试** 也需要 **Growth** 套餐，因为向频道发帖正是规则和摘要所做的事。摘要上的 **立即发送测试** 需要创建摘要的权限（自定义角色中的 **Create Workspace Notification Summary** 和 **Read Workspace Notification Summary**），在 OneUptime Cloud 上还需要 **Growth** 套餐；对其他人它是锁定的，它的提示会说明需要什么。以只读权限连接的 MCP 客户端不能发送任何测试。
+
+## 摘要
+
+**事件** > **Workspace** > **Microsoft Teams**（以及 **警报**）的 **Summary** 选项卡会定期向你指定的频道发布汇总：有多少事件或警报、确认和解决的速度，以及带链接的列表。新摘要每周发送一次，涵盖最近 7 天。将 **发送首份报告时间** 留空，第一份摘要会在下一周、下一天或下个月开始时的 09:00 发送；表单会显示具体时间。
+
+摘要按其 **时区** 的时钟发送，时区默认是你的时区。摘要在该时区全年保持同一时间：设为柏林 09:00 的摘要在夏令时调整时钟后仍按柏林时间 09:00 发送，消息中的日期也按柏林时间显示。通过 API 时，请以 IANA 时区名称发送 `timezone`，例如 `Europe/Berlin`。未指定时区创建的摘要会使用创建者个人资料中的时区；由 API 密钥创建时使用 UTC。
+
 ## 自托管部署的网络访问
 
 有关出站连接、入站回调和私有部署的说明，请参阅[Microsoft Teams 集成](/docs/self-hosted/microsoft-teams-integration)中的网络访问部分。

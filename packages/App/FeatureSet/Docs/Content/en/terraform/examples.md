@@ -249,6 +249,8 @@ resource "oneuptime_scheduled_maintenance_event" "db_upgrade" {
 
 *(Adapted from E2E test `30-scheduled-maintenance-crud`. Timestamps are RFC3339; equal instants in different notations do not cause drift.)*
 
+To put the event's monitors in a status while it runs, attach them with `monitors` and set `change_monitor_status_to_id` to one of your monitor statuses: the monitors change to it when the event starts, and back to operational when it ends. Terraform changes `change_monitor_status_to_id` in place until the event starts. Once the event has started, its monitors are already in the status, and an apply that changes it fails with "Change Monitor Status to can no longer be changed: this event has already started."
+
 ## Incident severities and states
 
 Customize your incident taxonomy — severities rank impact, states model the lifecycle. `order` controls display position.

@@ -35,6 +35,7 @@ const EVENT_ID: string = "66666666-6666-4666-8666-666666666666";
 const OTHER_EVENT_ID: string = "77777777-7777-4777-8777-777777777777";
 
 const getItemMock: MockFunction = getJestMockFunction();
+const getListMock: MockFunction = getJestMockFunction();
 const updateByIdMock: MockFunction = getJestMockFunction();
 const changeStateRenderMock: MockFunction = getJestMockFunction();
 const changeStateMountMock: MockFunction = getJestMockFunction();
@@ -64,6 +65,10 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
     default: {
       getItem: (...args: Array<any>) => {
         return getItemMock(...args);
+      },
+      // The project's states, read with the event for whether it has started.
+      getList: (...args: Array<any>) => {
+        return getListMock(...args);
       },
       updateById: (...args: Array<any>) => {
         return updateByIdMock(...args);
@@ -264,6 +269,14 @@ jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
 });
 
 import ScheduledMaintenanceView from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/View/Index";
+import ChangeMonitorStatusToElement from "../../../../App/FeatureSet/Dashboard/src/Components/MonitorStatus/ChangeMonitorStatusToElement";
+import StartedEventMonitorStatus from "../../../../App/FeatureSet/Dashboard/src/Components/ScheduledMaintenance/StartedEventMonitorStatus";
+import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
+import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
+import ProjectUtil from "../../../UI/Utils/Project";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import { EventStatusFact } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventStatusPanel";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
@@ -333,7 +346,10 @@ interface FeedProps {
 
 interface DetailField {
   title?: string;
+  description?: string;
+  fieldType?: string;
   field: Record<string, unknown>;
+  showIf?: (values: unknown) => boolean;
   getElement?: (item: ScheduledMaintenance) => React.ReactElement;
   getCustomElement?: (
     values: Record<string, unknown>,
@@ -357,6 +373,11 @@ interface CardProps {
     headerLayout?: string;
   };
   formFields: Array<DetailField>;
+  onBeforeUpdate?: (
+    item: ScheduledMaintenance,
+    miscDataProps: Record<string, unknown>,
+    formValues: Record<string, unknown>,
+  ) => Promise<ScheduledMaintenance>;
   modelDetailProps: {
     style?: DetailStyle;
     showDetailsInNumberOfColumns?: number;
@@ -372,6 +393,79 @@ const PAGE_PROPS: PageComponentProps = {
 } as unknown as PageComponentProps;
 
 let currentEventId: string = EVENT_ID;
+
+const PROJECT_ID: string = "88888888-8888-4888-8888-888888888888";
+
+/*
+ * The project's scheduled maintenance states, as the page reads them: in
+ * their order, with their flags. Two custom states sit among the built-in
+ * ones - one before the event starts, one while it runs.
+ */
+interface StateRecord {
+  id: string;
+  name: string;
+  order: number;
+  isScheduledState?: boolean;
+  isOngoingState?: boolean;
+  isEndedState?: boolean;
+  isResolvedState?: boolean;
+}
+
+const SCHEDULED_STATE: StateRecord = {
+  id: "99999999-9999-4999-8999-000000000001",
+  name: "Scheduled",
+  order: 1,
+  isScheduledState: true,
+};
+const PREPARING_STATE: StateRecord = {
+  id: "99999999-9999-4999-8999-000000000002",
+  name: "Preparing",
+  order: 2,
+};
+const ONGOING_STATE: StateRecord = {
+  id: "99999999-9999-4999-8999-000000000003",
+  name: "Ongoing",
+  order: 3,
+  isOngoingState: true,
+};
+const VERIFYING_STATE: StateRecord = {
+  id: "99999999-9999-4999-8999-000000000004",
+  name: "Verifying",
+  order: 4,
+};
+const ENDED_STATE: StateRecord = {
+  id: "99999999-9999-4999-8999-000000000005",
+  name: "Ended",
+  order: 5,
+  isEndedState: true,
+};
+const COMPLETED_STATE: StateRecord = {
+  id: "99999999-9999-4999-8999-000000000006",
+  name: "Completed",
+  order: 6,
+  isResolvedState: true,
+};
+
+const PROJECT_STATES: Array<StateRecord> = [
+  SCHEDULED_STATE,
+  PREPARING_STATE,
+  ONGOING_STATE,
+  VERIFYING_STATE,
+  ENDED_STATE,
+  COMPLETED_STATE,
+];
+
+// A state as the API answers it: only what was selected, flags as stored.
+function stateOf(record: StateRecord): ScheduledMaintenanceState {
+  const state: ScheduledMaintenanceState = new ScheduledMaintenanceState();
+  state._id = record.id;
+  state.order = record.order;
+  state.isScheduledState = Boolean(record.isScheduledState);
+  state.isOngoingState = Boolean(record.isOngoingState);
+  state.isEndedState = Boolean(record.isEndedState);
+  state.isResolvedState = Boolean(record.isResolvedState);
+  return state;
+}
 
 function makeEvent(overrides?: {
   title?: string;
@@ -469,6 +563,15 @@ describe("Scheduled maintenance overview page", () => {
       return new ObjectID(currentEventId);
     });
     getItemMock.mockReset();
+    getListMock.mockReset();
+    getListMock.mockImplementation((async () => {
+      const data: Array<ScheduledMaintenanceState> =
+        PROJECT_STATES.map(stateOf);
+      return { data, count: data.length, skip: 0, limit: LIMIT_PER_PROJECT };
+    }) as never);
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockImplementation(() => {
+      return new ObjectID(PROJECT_ID);
+    });
     updateByIdMock.mockReset();
     changeStateRenderMock.mockReset();
     changeStateMountMock.mockReset();
@@ -543,13 +646,84 @@ describe("Scheduled maintenance overview page", () => {
         shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded: true,
         statusPages: { _id: true, name: true },
         createdByUser: { name: true, email: true },
-        // Its state and whether it is completed, for the Measurements card.
+        /*
+         * Its state and whether it is completed, for the Measurements card;
+         * with its place and the other flags, whether it has started, for
+         * the Affected Resources card's Change Monitor Status to.
+         */
         currentScheduledMaintenanceState: {
           _id: true,
+          order: true,
+          isScheduledState: true,
+          isOngoingState: true,
           isEndedState: true,
           isResolvedState: true,
         },
       });
+    });
+
+    test("reads the project's states, in their order, together with the event", async () => {
+      const item: Deferred<ScheduledMaintenance> =
+        createDeferred<ScheduledMaintenance>();
+      getItemMock.mockReturnValue(item.promise);
+
+      await renderPage();
+
+      // Out before the event's own read has answered.
+      expect(getItemMock).toHaveBeenCalledTimes(1);
+      expect(getListMock).toHaveBeenCalledTimes(1);
+
+      const request: {
+        modelType: unknown;
+        query: Record<string, unknown>;
+        select: Record<string, unknown>;
+        sort: Record<string, unknown>;
+        limit: number;
+        skip: number;
+      } = getListMock.mock.calls[0]![0];
+
+      expect(request.modelType).toBe(ScheduledMaintenanceState);
+      expect(String(request.query["projectId"])).toBe(PROJECT_ID);
+      expect(request.select).toEqual({
+        _id: true,
+        order: true,
+        isScheduledState: true,
+        isOngoingState: true,
+        isEndedState: true,
+        isResolvedState: true,
+      });
+      expect(request.sort).toEqual({ order: SortOrder.Ascending });
+      expect(request.limit).toBe(LIMIT_PER_PROJECT);
+      expect(request.skip).toBe(0);
+
+      item.resolve(makeEvent());
+      await flush();
+
+      expect(screen.getByTestId("change-state")).toBeInTheDocument();
+      // Read once per load, not once per render.
+      expect(getListMock).toHaveBeenCalledTimes(1);
+    });
+
+    test("a failed read of the states still shows the event", async () => {
+      getItemMock.mockResolvedValue(makeEvent() as never);
+      getListMock.mockRejectedValue(new Error("States exploded") as never);
+
+      await renderPage();
+
+      expect(screen.getByTestId("change-state")).toBeInTheDocument();
+      expect(screen.queryByText("States exploded")).toBe(null);
+    });
+
+    test("without a project there are no states to read, and the event still shows", async () => {
+      jest.spyOn(ProjectUtil, "getCurrentProjectId").mockImplementation(() => {
+        return null;
+      });
+      getItemMock.mockResolvedValue(makeEvent() as never);
+
+      await renderPage();
+
+      expect(getListMock).not.toHaveBeenCalled();
+      expect(screen.getByTestId("change-state")).toBeInTheDocument();
     });
 
     test("a failed first load shows the error with a working retry", async () => {
@@ -1379,6 +1553,7 @@ describe("Scheduled maintenance overview page", () => {
       "proxmoxClusters",
       "vmwareVCenters",
       "cephClusters",
+      "storageArrays",
       "dockerSwarmClusters",
       "iotFleets",
       "databaseServers",
@@ -1388,8 +1563,9 @@ describe("Scheduled maintenance overview page", () => {
 
     /*
      * Split as Create Scheduled Maintenance Event is: the monitors in a
-     * picker of their own, every other resource the model supports in a
-     * second one - together each relation once.
+     * picker of their own, the status they change to right under them,
+     * every other resource the model supports in a second picker - together
+     * each relation once.
      */
     test("offers every resource type the model supports, the monitors apart", async () => {
       getItemMock.mockResolvedValue(makeEvent() as never);
@@ -1407,13 +1583,19 @@ describe("Scheduled maintenance overview page", () => {
       };
 
       const monitors: Record<string, unknown> = pickerPropsOf(0);
-      const others: Record<string, unknown> = pickerPropsOf(1);
+      const others: Record<string, unknown> = pickerPropsOf(2);
 
       expect(Object.keys(resources.formFields[0]!.field)).toEqual(["monitors"]);
       expect(monitors["resourceTypes"]).toEqual(["Monitor"]);
       expect(monitors).toHaveProperty("monitors");
 
-      expect(Object.keys(resources.formFields[1]!.field)).toEqual(["hosts"]);
+      // The status the monitors change to, right under them.
+      expect(Object.keys(resources.formFields[1]!.field)).toEqual([
+        "changeMonitorStatusTo",
+      ]);
+      expect(resources.formFields[1]!.title).toBe("Change Monitor Status to");
+
+      expect(Object.keys(resources.formFields[2]!.field)).toEqual(["hosts"]);
       expect(others["resourceTypes"]).toEqual([
         "Host",
         "KubernetesCluster",
@@ -1422,6 +1604,7 @@ describe("Scheduled maintenance overview page", () => {
         "ProxmoxCluster",
         "VMwareVCenter",
         "CephCluster",
+        "StorageArray",
         "DockerSwarmCluster",
         "IoTFleet",
         "DatabaseServer",
@@ -1436,12 +1619,12 @@ describe("Scheduled maintenance overview page", () => {
         }
       }
 
-      // No monitor status: an event's is chosen when it is created.
+      // The status is asked once, in its own field.
       expect(
-        resources.formFields.map((field: DetailField): string => {
-          return Object.keys(field.field)[0]!;
+        resources.formFields.filter((field: DetailField): boolean => {
+          return Object.keys(field.field)[0] === "changeMonitorStatusTo";
         }),
-      ).not.toContain("changeMonitorStatusTo");
+      ).toHaveLength(1);
     });
 
     test("each picker writes back its own relations from the payload, and only those", async () => {
@@ -1483,7 +1666,7 @@ describe("Scheduled maintenance overview page", () => {
         monitors: ["monitors-id"],
       });
 
-      const byOthers: Record<string, unknown> = await writtenBy(1);
+      const byOthers: Record<string, unknown> = await writtenBy(2);
 
       expect(byOthers["title"]).toBe("kept");
       expect(byOthers).not.toHaveProperty("monitors");
@@ -1501,8 +1684,9 @@ describe("Scheduled maintenance overview page", () => {
       await renderPage();
 
       const resources: CardProps = cardProps("Affected Resources");
+      // After the monitors and their status: the other picker and its registrations.
       const registered: Array<string> = resources.formFields
-        .slice(1)
+        .slice(2)
         .map((field: DetailField): string => {
           return Object.keys(field.field)[0]!;
         });
@@ -1526,6 +1710,282 @@ describe("Scheduled maintenance overview page", () => {
           [],
         );
       }
+    });
+  });
+
+  /*
+   * The maintainer's decision: an event's Change Monitor Status to can be
+   * changed until the event starts, and is read-only once it is ongoing or
+   * over, with a line saying why. The page tells the card which, from the
+   * event's state read with its place among the project's states.
+   */
+  describe("Change Monitor Status to on the affected resources card", () => {
+    const STATUS_ID: string = "55555555-5555-4555-8555-555555555555";
+    const MONITOR_ID: string = "22222222-2222-4222-8222-222222222222";
+    const BEFORE_START_DESCRIPTION: string =
+      "When the event starts, its monitors change to this status, and back to operational when it ends.";
+    const STARTED_DESCRIPTION: string =
+      "The event has started, so this can no longer be changed.";
+
+    function eventIn(record: StateRecord | null): ScheduledMaintenance {
+      const event: ScheduledMaintenance = makeEvent();
+
+      if (record) {
+        event.currentScheduledMaintenanceState = stateOf(record);
+      }
+
+      return event;
+    }
+
+    function statusField(): DetailField {
+      const field: DetailField = cardProps("Affected Resources").formFields[1]!;
+
+      expect(Object.keys(field.field)).toEqual(["changeMonitorStatusTo"]);
+
+      return field;
+    }
+
+    function expectEditable(): void {
+      const field: DetailField = statusField();
+
+      expect(field.fieldType).toBe(FormFieldSchemaType.Dropdown);
+      expect(field.description).toBe(BEFORE_START_DESCRIPTION);
+    }
+
+    function expectReadOnly(): void {
+      const field: DetailField = statusField();
+
+      expect(field.fieldType).toBe(FormFieldSchemaType.CustomComponent);
+      expect(field.description).toBe(STARTED_DESCRIPTION);
+    }
+
+    // The event an Edit is about to send, holding a status under both names.
+    function itemWithStatus(): ScheduledMaintenance {
+      const item: ScheduledMaintenance = new ScheduledMaintenance();
+      const status: MonitorStatus = new MonitorStatus();
+      status._id = STATUS_ID;
+      item.changeMonitorStatusTo = status;
+      item.changeMonitorStatusToId = new ObjectID(STATUS_ID);
+      const monitor: Monitor = new Monitor();
+      monitor._id = MONITOR_ID;
+      item.monitors = [monitor];
+      return item;
+    }
+
+    async function sentBy(
+      formValues: Record<string, unknown>,
+    ): Promise<ScheduledMaintenance> {
+      const onBeforeUpdate: CardProps["onBeforeUpdate"] =
+        cardProps("Affected Resources").onBeforeUpdate;
+
+      expect(onBeforeUpdate).toBeDefined();
+
+      return await onBeforeUpdate!(itemWithStatus(), {}, formValues);
+    }
+
+    test.each([
+      ["Scheduled", SCHEDULED_STATE],
+      ["a custom state before Ongoing", PREPARING_STATE],
+    ])(
+      "in %s it can be changed: the Edit asks it",
+      async (_state: string, record: StateRecord) => {
+        getItemMock.mockResolvedValue(eventIn(record) as never);
+
+        await renderPage();
+
+        expectEditable();
+      },
+    );
+
+    test.each([
+      ["Ongoing", ONGOING_STATE],
+      ["a custom state while it runs", VERIFYING_STATE],
+      ["Ended", ENDED_STATE],
+      ["Completed", COMPLETED_STATE],
+    ])(
+      "in %s it has started: the Edit shows it read-only, with why",
+      async (_state: string, record: StateRecord) => {
+        getItemMock.mockResolvedValue(eventIn(record) as never);
+
+        await renderPage();
+
+        expectReadOnly();
+      },
+    );
+
+    test("an event in no state yet has not started", async () => {
+      getItemMock.mockResolvedValue(eventIn(null) as never);
+
+      await renderPage();
+
+      expectEditable();
+    });
+
+    test("without the states, a built-in state still decides by its flag", async () => {
+      getListMock.mockRejectedValue(new Error("States exploded") as never);
+      getItemMock.mockResolvedValue(eventIn(ONGOING_STATE) as never);
+
+      await renderPage();
+
+      expectReadOnly();
+    });
+
+    /*
+     * Its place is unknown without the list, so the Edit asks it; the server
+     * still refuses a change once the event has started.
+     */
+    test("without the states, a custom state is taken as not started", async () => {
+      getListMock.mockRejectedValue(new Error("States exploded") as never);
+      getItemMock.mockResolvedValue(eventIn(VERIFYING_STATE) as never);
+
+      await renderPage();
+
+      expectEditable();
+    });
+
+    test("once the event is marked ongoing, the next load shows it read-only", async () => {
+      getItemMock
+        .mockResolvedValueOnce(eventIn(SCHEDULED_STATE) as never)
+        .mockResolvedValueOnce(eventIn(ONGOING_STATE) as never);
+
+      await renderPage();
+
+      expectEditable();
+
+      fireEvent.click(screen.getByRole("button", { name: "Complete action" }));
+      await flush();
+
+      expect(getItemMock).toHaveBeenCalledTimes(2);
+      expectReadOnly();
+    });
+
+    test.each([
+      ["before the event starts", SCHEDULED_STATE],
+      ["once it has started", ONGOING_STATE],
+    ])(
+      "%s, it is shown only while the Edit holds a monitor",
+      async (_when: string, record: StateRecord) => {
+        getItemMock.mockResolvedValue(eventIn(record) as never);
+
+        await renderPage();
+
+        const showIf: ((values: unknown) => boolean) | undefined =
+          statusField().showIf;
+
+        expect(showIf).toBeDefined();
+        expect(showIf!({ monitors: [MONITOR_ID] })).toBe(true);
+        expect(showIf!({ monitors: [] })).toBe(false);
+        expect(showIf!({})).toBe(false);
+      },
+    );
+
+    test("once it has started, the Edit draws the status the event holds", async () => {
+      getItemMock.mockResolvedValue(eventIn(ONGOING_STATE) as never);
+
+      await renderPage();
+
+      const element: React.ReactElement = statusField().getCustomElement!(
+        { changeMonitorStatusTo: STATUS_ID },
+        {},
+      );
+
+      expect(element.type).toBe(StartedEventMonitorStatus);
+      expect((element.props as { monitorStatus: unknown }).monitorStatus).toBe(
+        STATUS_ID,
+      );
+    });
+
+    test("before the event starts, a save with a monitor sends the status picked", async () => {
+      getItemMock.mockResolvedValue(eventIn(SCHEDULED_STATE) as never);
+
+      await renderPage();
+
+      const sent: ScheduledMaintenance = await sentBy({
+        monitors: [MONITOR_ID],
+        changeMonitorStatusTo: STATUS_ID,
+      });
+
+      expect(String(sent.changeMonitorStatusTo?._id)).toBe(STATUS_ID);
+      expect(String(sent.changeMonitorStatusToId)).toBe(STATUS_ID);
+    });
+
+    test("before the event starts, a save without a monitor sends no status", async () => {
+      getItemMock.mockResolvedValue(eventIn(SCHEDULED_STATE) as never);
+
+      await renderPage();
+
+      const sent: ScheduledMaintenance = await sentBy({ monitors: [] });
+
+      expect(sent.changeMonitorStatusTo).toBeUndefined();
+      expect(sent.changeMonitorStatusToId).toBeUndefined();
+    });
+
+    test.each([
+      ["Ongoing", ONGOING_STATE],
+      ["Ended", ENDED_STATE],
+      ["a custom state while it runs", VERIFYING_STATE],
+    ])(
+      "in %s, a save sends no status, and the monitors as picked",
+      async (_state: string, record: StateRecord) => {
+        getItemMock.mockResolvedValue(eventIn(record) as never);
+
+        await renderPage();
+
+        const sent: ScheduledMaintenance = await sentBy({
+          monitors: [MONITOR_ID],
+          changeMonitorStatusTo: STATUS_ID,
+        });
+
+        expect(sent.changeMonitorStatusTo).toBeUndefined();
+        expect(sent.changeMonitorStatusToId).toBeUndefined();
+        expect(
+          (sent.monitors || []).map((monitor: Monitor): string => {
+            return String(monitor._id);
+          }),
+        ).toEqual([MONITOR_ID]);
+      },
+    );
+
+    /*
+     * The card shows what its Edit asks under the monitors: the status they
+     * change to when the event starts - left out while it has no monitor.
+     */
+    test("the card shows the status, with the monitors", async () => {
+      getItemMock.mockResolvedValue(eventIn(SCHEDULED_STATE) as never);
+
+      await renderPage();
+
+      const field: DetailField =
+        cardProps("Affected Resources").modelDetailProps.fields[1]!;
+
+      expect(field.field).toEqual({
+        changeMonitorStatusTo: { name: true, color: true },
+      });
+      expect(field.title).toBe("Change Monitor Status to");
+
+      const withMonitor: ScheduledMaintenance = itemWithStatus();
+      const withoutMonitor: ScheduledMaintenance = new ScheduledMaintenance();
+      withoutMonitor.monitors = [];
+
+      expect(field.showIf!(withMonitor)).toBe(true);
+      expect(field.showIf!(withoutMonitor)).toBe(false);
+      expect(field.showIf!(new ScheduledMaintenance())).toBe(false);
+
+      const element: React.ReactElement = field.getElement!(withMonitor);
+
+      expect(element.type).toBe(ChangeMonitorStatusToElement);
+      expect(
+        (element.props as { monitorStatus?: MonitorStatus }).monitorStatus,
+      ).toBe(withMonitor.changeMonitorStatusTo);
+
+      // With no status: the element says the monitors keep theirs.
+      const none: React.ReactElement = field.getElement!(
+        new ScheduledMaintenance(),
+      );
+
+      expect(
+        (none.props as { monitorStatus?: MonitorStatus }).monitorStatus,
+      ).toBeUndefined();
     });
   });
 

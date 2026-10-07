@@ -2,7 +2,7 @@ import crypto from "crypto";
 import User from "../../Models/DatabaseModels/User";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import ObjectID from "../../Types/ObjectID";
 import Version from "../../Types/Version";
 import Model, {
@@ -34,6 +34,7 @@ import PushNotificationMessage from "../../Types/PushNotification/PushNotificati
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import QueryHelper from "../Types/Database/QueryHelper";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil";
@@ -80,7 +81,7 @@ const PROBE_AUTH_KEY_REVOKED_SENTINEL: string = "revoked";
  */
 const PROBE_CACHE_OPERATION_TIMEOUT_IN_MS: number = 2000;
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -425,6 +426,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.key) {
       createBy.data.key = ObjectID.generate().toString();
     }
@@ -439,14 +442,22 @@ export class Service extends DatabaseService<Model> {
   /*
    * A probe icon is rendered by the id-based image route, which serves
    * only public files. The file picker uploads it private, so attaching
-   * it to a probe is the point at which it becomes public.
+   * it to a probe is the point at which it becomes public - when it is a
+   * file of the probe's own project (FileService.makeRecordFilePublic).
+   * The icon is read back from the saved row, like an update's: whichever
+   * name the create sent it under, that is the one stored.
    */
   @CaptureSpan()
   protected override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
-    await FileService.makeFilePublic(createdItem.iconFileId);
+    if (createdItem.id) {
+      await FileService.makeStoredIconsPublic({
+        service: this,
+        recordIds: [createdItem.id],
+      });
+    }
 
     return createdItem;
   }
@@ -594,6 +605,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     const carryForward: any = {
       probesToNotifyOwners: [],
     };
@@ -642,9 +655,17 @@ export class Service extends DatabaseService<Model> {
       await this.invalidateProbeAuthCache(updatedItemIds);
     }
 
-    await FileService.makeFilePublic(
-      onUpdate.updateBy.data.iconFileId as ObjectID | undefined,
-    );
+    if (
+      RelationIdUtil.isWritten(Object.keys(onUpdate.updateBy.data), [
+        "iconFileId",
+        "iconFile",
+      ])
+    ) {
+      await FileService.makeStoredIconsPublic({
+        service: this,
+        recordIds: updatedItemIds,
+      });
+    }
 
     if (
       onUpdate.carryForward &&

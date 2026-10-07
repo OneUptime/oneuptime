@@ -425,9 +425,20 @@ describe("telemetry facet endpoints (list first)", () => {
       });
 
       expect(listEntities.mock.calls).toHaveLength(1);
+      // A project-wide reader lists every resource: nothing narrowed, nothing taken away.
       expect(listEntities.mock.calls[0]![1]).toEqual([
-        { facetKey: "hostId", searchText: "web", limit: 200 },
-        { facetKey: "iotFleetId", searchText: undefined, limit: 200 },
+        {
+          facetKey: "hostId",
+          searchText: "web",
+          limit: 200,
+          scope: { readableIds: null, blockedIds: [] },
+        },
+        {
+          facetKey: "iotFleetId",
+          searchText: undefined,
+          limit: 200,
+          scope: { readableIds: null, blockedIds: [] },
+        },
       ]);
     });
 
@@ -593,6 +604,32 @@ describe("telemetry facet endpoints (list first)", () => {
       expect(result.facets).toEqual({
         vmwareVCenterId: [{ value: "vc-1", count: 12, displayName: "vc-eu" }],
         proxmoxClusterId: [],
+      });
+    });
+
+    test("a storage array with rows is counted and merged under its own facet key", async () => {
+      listedRows = {
+        storageArrayId: [{ id: "sa-1", displayName: "pure-prod-01" }],
+      };
+      const counts: { counted: Array<string> } = stubPerFacetCounts(
+        MetricAggregationService,
+        { storageArrayId: [{ value: "sa-1", count: 7 }] },
+      );
+
+      const result: CallResult = await callRoute({
+        uri: METRICS_ROUTE,
+        request: viewerRequest,
+        body: { facetKeys: ["storageArrayId", "cephClusterId"] },
+      });
+
+      expect(listedFacetKeys()).toEqual(["storageArrayId", "cephClusterId"]);
+      // The Ceph facet listed no rows, so only the storage array is counted.
+      expect(counts.counted).toEqual(["storageArrayId"]);
+      expect(result.facets).toEqual({
+        storageArrayId: [
+          { value: "sa-1", count: 7, displayName: "pure-prod-01" },
+        ],
+        cephClusterId: [],
       });
     });
   });
@@ -783,7 +820,12 @@ describe("telemetry facet endpoints (list first)", () => {
       });
 
       expect(listEntities.mock.calls[0]![1]).toEqual([
-        { facetKey: "dockerSwarmClusterId", searchText: "swarm", limit: 50 },
+        {
+          facetKey: "dockerSwarmClusterId",
+          searchText: "swarm",
+          limit: 50,
+          scope: { readableIds: null, blockedIds: [] },
+        },
       ]);
     });
 

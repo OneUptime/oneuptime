@@ -84,7 +84,7 @@ const UUID_V4: RegExp =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 const NO_PERMISSION: string =
-  "You do not have permission to reset this webhook URL. You need one of these permissions: Project Owner, Project Admin, Edit Workflow.";
+  "You do not have permission to reset this webhook URL. You need one of these permissions: Project Owner, Project Admin, Edit Workflow, Workflow Admin.";
 
 /*
  * Single roles and the combinations a real member is likely to hold. Every
@@ -192,6 +192,7 @@ describe("getWebhookSecretKeySelect", () => {
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.EditWorkflow,
+    Permission.WorkflowAdmin,
   ])("asks for the key for %s", (permission: Permission) => {
     mockPermissions = [permission];
 
@@ -204,7 +205,6 @@ describe("getWebhookSecretKeySelect", () => {
     Permission.WorkflowViewer,
     Permission.ReadWorkflow,
     Permission.ProjectMember,
-    Permission.WorkflowAdmin,
     Permission.WorkflowMember,
   ])(
     "asks for nothing for %s, so the builder still loads",
@@ -257,6 +257,7 @@ describe("getWebhookSecretKeyResetGate", () => {
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.EditWorkflow,
+    Permission.WorkflowAdmin,
   ])("lets %s reset the URL", (permission: Permission) => {
     mockPermissions = [permission];
 
@@ -272,7 +273,7 @@ describe("getWebhookSecretKeyResetGate", () => {
     });
   });
 
-  test("Delete Workflow can update a workflow, but not its key", () => {
+  test("Delete Workflow alone may not update a workflow, nor reset its key", () => {
     mockPermissions = [Permission.DeleteWorkflow];
 
     const gate: PermissionGateResult = getWebhookSecretKeyResetGate();

@@ -1,6 +1,14 @@
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import SCIMMiddleware from "../../../Server/Identity/Middleware/SCIMAuthorization";
 import ProjectSCIMService from "Common/Server/Services/ProjectSCIMService";
+import ProjectService from "Common/Server/Services/ProjectService";
 import StatusPageSCIMService from "Common/Server/Services/StatusPageSCIMService";
 import {
   ExpressRequest,
@@ -12,6 +20,7 @@ import StatusPageSCIM from "Common/Models/DatabaseModels/StatusPageSCIM";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import ObjectID from "Common/Types/ObjectID";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 
 /*
  * This middleware is the entire authentication boundary for SCIM. Everything
@@ -130,6 +139,21 @@ const buildStatusPageConfig: BuildStatusPageConfigFunction =
 
     return config;
   };
+
+/*
+ * A SCIM request that authenticates is held to its project's plan
+ * (PlanCutoffCredentialAccess) when BILLING_ENABLED is set - as the ee CI
+ * job sets it and a bare local run does not. Unstubbed, that is a real
+ * ProjectService.findOneById. On a plan that includes SCIM the request goes
+ * on, the same either way; SCIMPlanCutoff.test.ts covers the plans below.
+ * Each describe restores its mocks after every test, so this re-stubs it.
+ */
+beforeEach(() => {
+  jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+    plan: PlanType.Scale,
+    isSubscriptionUnpaid: false,
+  });
+});
 
 describe("a request with no usable credential never reaches a lookup", () => {
   afterEach(() => {

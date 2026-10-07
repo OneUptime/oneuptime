@@ -35,6 +35,8 @@ Status pages live under **Status Pages** in the dashboard's left navigation, in 
 
 That's the whole create form. The list you land back on shows **Name**, **Description**, **Labels** and **Owners**, and can be filtered by **Status Page ID**, **Name** and **Description**.
 
+A page created through the API or Terraform is held to the same plans as the settings described below. On OneUptime Cloud, creating a page with a setting your plan does not include switched on - for example private, a list hidden, custom HTML, CSS or JavaScript, email reports, SMS, Slack, Microsoft Teams or webhook subscribers, an IP allowlist - is refused with `402 Payment Required`, and the message names the plan. Each setting's plan is given with it below. Settings left at their defaults, as this form leaves them, work on every plan.
+
 Open the new page and you land on its **Overview** screen, which carries two cards: **Status Page Preview URL** with a link to the page itself, and **Status Page Details** where you can edit the name, description and labels you just set.
 
 Next, in rough order of usefulness:
@@ -69,6 +71,8 @@ Two naming quirks worth knowing before you go looking:
 
 Outside an individual page, the **Status Pages** section itself lists **All Status Pages**, and a **More** section holds **Announcements**. A collapsed **Settings** section holds **Announcement Templates**, **Subscriber Templates**, **Custom Fields**, **Owner Rules** and **Label Rules**, which are project-wide and shared across every status page. A collapsed **Advanced** section holds **Archived**: the status pages you took offline (see [Archiving a status page](#archiving-a-status-page)).
 
+**Label Rules** and **Owner Rules** label new status pages and give them owners. A rule takes two steps — **Match**, the conditions a status page must meet, then **Labels** (or **Owners**), what the rule adds — and its **Name** is filled in from what you pick. A new rule has to add at least one label or owner; editing one never insists, and the list marks an older rule that adds nothing **Adds nothing**. See [Label and Owner Rules](/docs/configuration/label-and-owner-rules).
+
 ## What visitors see
 
 The public page is its own app, with a small set of routes:
@@ -83,6 +87,8 @@ The public page is its own app, with a small set of routes:
 
 The top nav bar always shows **Overview**; the rest appear only when enabled. **Incidents**, **Announcements** and **Scheduled Events** each need their toggle on; **Subscribe** needs both **Show Subscriber Page** and at least one subscriber channel enabled. A private page also gets a **Logout** item.
 
+A single incident, episode, announcement or scheduled event opens only when the page would list it, whatever its history window: a private incident or episode, one hidden from status pages, a scheduled event hidden from status pages, or an announcement scheduled for later is not found by its link either.
+
 ### The overview page
 
 The overview is the page most visitors ever see. Top to bottom it renders:
@@ -95,6 +101,8 @@ The overview is the page most visitors ever see. Top to bottom it renders:
 6. **Scheduled Maintenance Events**.
 
 A brand-new page with nothing on it shows an empty state telling you to add resources from the dashboard — which is your cue to head to the **Resources** screen.
+
+The overview a visitor is shown is at most 15 seconds old, and anything you take off the page leaves it within a second: an incident, episode or scheduled event you hide from status pages, make private, limit to other pages or delete, an announcement you end, move to later or delete, a public note you delete, and a resource, group or monitor you remove from the page or delete. Other edits, such as a new title, show within those 15 seconds.
 
 For what puts an incident on this page in the first place, and what takes it off again, see [Incident States & Severities](/docs/incidents/states-and-severities).
 
@@ -115,7 +123,7 @@ What visitors see is set in one card: **What your status page shows**, on **Stat
 
 **A list that is off** is gone from the page, with its item in the nav bar if it has one; its public endpoint refuses, and the page's subscribers are not notified about that kind of event. Its row then shows only its switch: how far back a hidden list goes, and whether it shows labels, change nothing.
 
-**Plans.** On OneUptime Cloud, a setting your plan cannot change shows the plan it needs beside it. The four list switches, the three labels switches and the episodes' history need **Growth**; showing the overall uptime percent and hiding the "Powered by OneUptime" line need **Scale**. The other history windows, **Uptime History**, **Precision**, **Counts as downtime** and **Only Show Incidents Scoped to This Page** can be changed on every plan, and each saves on its own: a page whose overall uptime percent is already on can change its precision on any plan.
+**Plans.** On OneUptime Cloud, a setting your plan cannot change shows the plan it needs beside it. The four list switches, the three labels switches and the episodes' history need **Growth**; showing the overall uptime percent and hiding the "Powered by OneUptime" line need **Scale**. The other history windows, **Uptime History**, **Precision**, **Counts as downtime** and **Only Show Incidents Scoped to This Page** can be changed on every plan, and each saves on its own: a page whose overall uptime percent is already on can change its precision on any plan. Putting a setting back the way a new page has it — showing a list again, hiding labels or the overall uptime percent, showing the "Powered by OneUptime" line, the episodes' history back to 14 days — works on every plan, so nothing a trial changed stays that way for want of a plan: the switch says it can still go back, and which plan it takes to change it again.
 
 Whether the page shows a **Subscribe** item (**Show Subscriber Page**, `showSubscriberPageOnStatusPage`, on by default), and which channels visitors can subscribe by, are not set on this screen: both are in the **Channels** card on **Subscribers → Subscriber Settings** (see [Subscription channels](/docs/status-pages/subscribers#subscription-channels)).
 
@@ -139,9 +147,11 @@ Not every status page is for the public. Who can see a page is one choice, the f
 
 Picking a choice asks you to confirm, saying what changes for visitors, and saves at once. There is no Edit button.
 
+**Images.** An image in what the page shows — a public note, an announcement, a description — is opened by its own long, unguessable address, which works without signing in, so that the emails your subscribers get can show it too. The page itself still asks for the sign-in or the password.
+
 **What it stores.** The choice is three columns, which the API and Terraform read and write as before: `isPublicStatusPage`, `enableMasterPassword` and `masterPassword`. Visitors are asked for the password only on a page that is not public, with `enableMasterPassword` on and a password set; a private page with the switch on but no password is a sign-in page. Picking **Anyone with the link** also turns `enableMasterPassword` off, since a public page never asks for it. The **Access** screen writes only the columns a choice changes.
 
-**Plans.** On OneUptime Cloud, making a page private, or public again, needs the **Growth** plan: on a lower plan those choices show the plan they need and can't be picked. Moving between **Only people who sign in** and **Anyone with the password** works on every plan, and so does **Change Password**.
+**Plans.** On OneUptime Cloud, making a page private needs the **Growth** plan: on a lower plan the two private choices show the plan they need and can't be picked. Making it public again — **Anyone with the link** — works on every plan, so a page left private when a trial ended, or after a move to a lower plan, can always be opened up; the dialog says that making it private again needs **Growth**. Moving between **Only people who sign in** and **Anyone with the password** works on every plan, and so does **Change Password**.
 
 ### Private users
 
@@ -153,11 +163,11 @@ Add the people who may sign in on **Status Pages → your page → Security → 
 
 For a private page tied to your identity provider, **Status Pages → your page → Security → SSO** configures SAML: you enter the sign-on URL, issuer and x509 certificate, and the signature and digest methods are filled in under **More fields**. **Status Pages → your page → Security → OIDC** configures OpenID Connect: you enter the issuer, client ID and secret, and the discovery URL, scopes and claim names are filled in under **More fields**. **SCIM** provisions private users from the IdP automatically. On OneUptime Cloud all three need the Scale plan or above. On a self-hosted installation, SSO and OIDC are part of every edition, and SCIM needs the [Enterprise Edition](/docs/self-hosted/enterprise).
 
-Under the providers, the **SSO Settings** card holds the **Require SSO for Login** switch (`requireSsoForLogin`, off by default), which saves the moment you flip it. Turning it on asks first, because from then on private users can't sign in with an email and password: only people your SSO or OIDC provider lets in can see the page. Test SSO with the link on that screen before you turn it on. It matters only while **Only people who sign in** is the choice, and the **Access** screen lists it as **SSO required** under that choice.
+Under the providers, the **SSO Settings** card holds the **Require SSO for Login** switch (`requireSsoForLogin`, off by default), which saves the moment you flip it. Turning it on asks first, because from then on private users can't sign in with an email and password: only people your SSO or OIDC provider lets in can see the page. Test SSO with the link on that screen before you turn it on. It matters only while **Only people who sign in** is the choice, and the **Access** screen lists it as **SSO required** under that choice. On OneUptime Cloud, turning it on needs the **Scale** plan, and turning it off works on every plan. A page that still requires SSO after a Scale trial ends, or after a move to a lower plan, keeps requiring it until someone turns it off: its **SSO** and **OIDC** pages show the switch under the plan's upsell for that.
 
 ### IP allowlist
 
-Under **More settings** on **Access**, the **IP Allowlist** card (the `ipWhitelist` column) limits a page to known networks. It applies whoever the page is open to: a visitor from any other address is refused, even with the password or a private user account. Enter one entry per line — an IPv4 or IPv6 address, or an IPv4 range such as `10.0.0.0/8`; a line that is neither is refused when you save. Leave it empty to let every address in. While the list is in force, the folded **More settings** header shows **IP Allowlist** with the number of entries it holds. On OneUptime Cloud, changing it needs the **Scale** plan.
+Under **More settings** on **Access**, the **IP Allowlist** card (the `ipWhitelist` column) limits a page to known networks. It applies whoever the page is open to: a visitor from any other address is refused, even with the password or a private user account. Enter one entry per line — an IPv4 or IPv6 address, or an IPv4 range such as `10.0.0.0/8`; a line that is neither is refused when you save. Leave it empty to let every address in. While the list is in force, the folded **More settings** header shows **IP Allowlist** with the number of entries it holds. On OneUptime Cloud, changing it needs the **Scale** plan; emptying it works on every plan.
 
 ## The embeddable badge and the RSS feed
 

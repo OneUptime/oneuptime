@@ -1,10 +1,18 @@
+import CountBy from "../Types/Database/CountBy";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { OnCreate, OnDelete } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import FindBy from "../Types/Database/FindBy";
+import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
+import UpdateBy from "../Types/Database/UpdateBy";
+import ProjectReferencesService from "./ProjectReferencesService";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import { applyIncidentRelatedRecordPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
+import { applyIncidentEpisodeRelatedRecordPrivacyFilter } from "../Utils/IncidentEpisode/IncidentEpisodePrivacyFilter";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import Model from "../../Models/DatabaseModels/IncidentEpisodeMember";
 import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
@@ -40,7 +48,7 @@ const getFeedTitle: GetFeedTitleFunction = (
   return escapeMarkdownValue(title || "No title");
 };
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {
@@ -48,10 +56,59 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  /*
+   * A member row reveals both of its ends, so it is only visible to a user
+   * who can see the private incident AND the private episode. The two
+   * filters write different keys (incidentId / incidentEpisodeId) and
+   * compose. Relation joins (`select: { incident: { title } }`, as the
+   * episode's Incidents tab sends) run neither IncidentService's nor
+   * IncidentEpisodeService's onBeforeFind, so these are the only thing
+   * keeping a private incident's title out of an episode's member list, and
+   * a private episode's incidents from anyone who knows its id. This
+   * service's own reads are made as root, which neither filter narrows.
+   */
+  private applyPrivacyFilters<T>(
+    query: T,
+    props: DatabaseCommonInteractionProps,
+  ): T {
+    return applyIncidentEpisodeRelatedRecordPrivacyFilter(
+      applyIncidentRelatedRecordPrivacyFilter(query, props),
+      props,
+    );
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeFind(
+    findBy: FindBy<Model>,
+  ): Promise<OnFind<Model>> {
+    findBy.query = this.applyPrivacyFilters(findBy.query, findBy.props);
+    return { findBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  public override async countBy(
+    countBy: CountBy<Model>,
+  ): Promise<PositiveNumber> {
+    countBy.query = this.applyPrivacyFilters(countBy.query, countBy.props);
+    return super.countBy(countBy);
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
+    updateBy.query = this.applyPrivacyFilters(updateBy.query, updateBy.props);
+    return { updateBy, carryForward: null };
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.incidentEpisodeId) {
       throw new BadDataException("incidentEpisodeId is required");
     }
@@ -86,6 +143,22 @@ export class Service extends DatabaseService<Model> {
     if (existingMember) {
       throw new BadDataException(
         "Incident is already a member of this episode",
+      );
+    }
+
+    /*
+     * Added by the person making the request. DatabaseService has already
+     * taken out whatever addedByUser the request named, under both names
+     * (UserAttribution), so with no person on it - an API key, a workflow -
+     * nobody is named. OneUptime's own writes - adding by hand for the
+     * person who asked, as the grouping engine does - name that person
+     * themselves, and keep it.
+     */
+    if (createBy.props.userId && !createBy.props.isRoot) {
+      RelationIdUtil.stamp(
+        createBy.data as unknown as Record<string, unknown>,
+        ["addedByUserId", "addedByUser"],
+        createBy.props.userId,
       );
     }
 
@@ -219,6 +292,9 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
+    // Only members the caller can see are deleted, and carried forward.
+    deleteBy.query = this.applyPrivacyFilters(deleteBy.query, deleteBy.props);
+
     // Get the member records before deletion
     const membersToDelete: Model[] = await this.findBy({
       query: deleteBy.query,
@@ -250,11 +326,31 @@ export class Service extends DatabaseService<Model> {
     if (membersDeleted && membersDeleted.length > 0) {
       for (const member of membersDeleted) {
         if (member.incidentId) {
-          // Clear the episode reference from the incident
+          /*
+           * Point the incident at the latest episode it is still a member of
+           * (it can be in more than one, so leaving one must not unlink it
+           * from another), or at none. None must be null: an update skips a
+           * column given as undefined.
+           */
+          const remainingMember: Model | null = await this.findOneBy({
+            query: {
+              incidentId: member.incidentId,
+            },
+            select: {
+              incidentEpisodeId: true,
+            },
+            sort: {
+              createdAt: SortOrder.Descending,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
           await IncidentService.updateOneById({
             id: member.incidentId,
             data: {
-              incidentEpisodeId: undefined as any,
+              incidentEpisodeId: remainingMember?.incidentEpisodeId || null,
             },
             props: {
               isRoot: true,

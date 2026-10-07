@@ -130,8 +130,13 @@ describe("scheduled maintenance overview: loading", () => {
     expect(page).toContain(
       "const isCurrentEventLoaded: boolean = loadedEvent?.modelId === modelIdString;",
     );
+    /*
+     * With the project's states, read alongside it: what tells whether the
+     * event has started (its Change Monitor Status to can be changed until
+     * then).
+     */
     expect(page).toContain(
-      "setLoadedEvent({ modelId: modelIdString, item: item });",
+      "setLoadedEvent({ modelId: modelIdString, item: item, states: states, });",
     );
     expect(page).toContain(
       "return current?.modelId === modelIdString ? current : null;",
@@ -348,8 +353,15 @@ describe("scheduled maintenance overview: details card", () => {
 
   test("drops the unused timeline request", () => {
     expect(page).not.toContain("onBeforeFetch");
-    expect(page).not.toContain("LIMIT_PER_PROJECT");
     expect(page).not.toContain("ScheduledMaintenanceStateTimeline");
+    /*
+     * The one list the page reads is the project's states, for whether the
+     * event has started - not the event's timeline.
+     */
+    expect(count(page, "ModelAPI.getList")).toBe(1);
+    expect(page).toContain(
+      "await ModelAPI.getList<ScheduledMaintenanceState>({ modelType: ScheduledMaintenanceState,",
+    );
   });
 
   test("orders the fields with the number last-but-one and the id last", () => {
@@ -446,6 +458,7 @@ describe("scheduled maintenance overview: affected resources", () => {
       type: "VMwareVCenter",
     },
     { relation: "cephClusters", model: "CephCluster", type: "CephCluster" },
+    { relation: "storageArrays", model: "StorageArray", type: "StorageArray" },
     {
       relation: "dockerSwarmClusters",
       model: "DockerSwarmCluster",
@@ -495,16 +508,27 @@ describe("scheduled maintenance overview: affected resources", () => {
     },
   );
 
+  /*
+   * Told whether the event has started: its Change Monitor Status to is
+   * asked until then, shown read-only after, and the save sends it only
+   * while it can be changed.
+   */
   test("the card's Edit draws the shared fields", () => {
     expect(page).toContain(
-      "formFields={getScheduledMaintenanceAffectedResourcesFormFields()}",
+      "formFields={getScheduledMaintenanceAffectedResourcesFormFields({ hasEventStarted: hasEventStarted, })}",
+    );
+    expect(page).toContain(
+      "onBeforeUpdate={getScheduledMaintenanceAffectedResourcesOnBeforeUpdate( { hasEventStarted: hasEventStarted, }, )}",
+    );
+    expect(page).toContain(
+      "const hasEventStarted: boolean = hasScheduledMaintenanceEventStarted({ states: loadedEvent?.states || [], currentState: scheduledMaintenance?.currentScheduledMaintenanceState, });",
     );
   });
 
   test("the pickers' resource types list every relation, the monitors apart, in the incident page's order plus network sites", () => {
     expect(editFields).toContain('resourceTypes={["Monitor"]}');
     expect(editFields).toContain(
-      'resourceTypes={[ "Host", "KubernetesCluster", "DockerHost", "PodmanHost", "ProxmoxCluster", "VMwareVCenter", "CephCluster", "DockerSwarmCluster", "IoTFleet", "DatabaseServer", "NetworkSite", "Service", ]}',
+      'resourceTypes={[ "Host", "KubernetesCluster", "DockerHost", "PodmanHost", "ProxmoxCluster", "VMwareVCenter", "CephCluster", "StorageArray", "DockerSwarmCluster", "IoTFleet", "DatabaseServer", "NetworkSite", "Service", ]}',
     );
   });
 });

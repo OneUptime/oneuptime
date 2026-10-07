@@ -32,7 +32,14 @@ import MonitorType from "../../../../Types/Monitor/MonitorType";
 import Name from "../../../../Types/Name";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  ALERT_STATE_IDS,
+  idsOfAnyFilter,
+  mockProjectStates,
+  openStateIds,
+  resolvedStateIds,
+} from "../../TestingUtils/Services/ProjectStatesHelper";
 
 /*
  * These tests lock in the new filtering surface of query_alerts and
@@ -108,12 +115,21 @@ function buildMonitor(data: { name: string; status?: MonitorStatus }): Monitor {
   return monitor;
 }
 
+beforeEach(() => {
+  /*
+   * The project's alert states: active is every state above its resolved
+   * state, resolved the rest - Closed, placed after Resolved without the
+   * flag, included (Common/Utils/ResolvedState).
+   */
+  mockProjectStates();
+});
+
 afterEach(() => {
   jest.restoreAllMocks();
 });
 
 describe("query_alerts — state filter", () => {
-  test("state='active' filters on isResolvedState=false and drops the createdAt window", async () => {
+  test("state='active' filters on the project's unresolved states and drops the createdAt window", async () => {
     const findBySpy: jest.SpyInstance = jest
       .spyOn(AlertService, "findBy")
       .mockResolvedValue([buildAlert()] as never);
@@ -127,9 +143,11 @@ describe("query_alerts — state filter", () => {
     );
 
     const callArgs: JSONObject = findBySpy.mock.calls[0]?.[0] as JSONObject;
-    expect(callArgs["query"]).toEqual({
-      currentAlertState: { isResolvedState: false },
-    });
+    const activeQuery: JSONObject = callArgs["query"] as JSONObject;
+    expect(Object.keys(activeQuery)).toEqual(["currentAlertStateId"]);
+    expect(idsOfAnyFilter(activeQuery["currentAlertStateId"])).toEqual(
+      openStateIds(ALERT_STATE_IDS),
+    );
     expect(callArgs["props"]).toBe(ctx.props);
 
     // countBy must see the exact same query the rows came from.
@@ -156,11 +174,13 @@ describe("query_alerts — state filter", () => {
     const query: JSONObject = (findBySpy.mock.calls[0]?.[0] as JSONObject)[
       "query"
     ] as JSONObject;
-    expect(query["currentAlertState"]).toEqual({ isResolvedState: false });
+    expect(idsOfAnyFilter(query["currentAlertStateId"])).toEqual(
+      openStateIds(ALERT_STATE_IDS),
+    );
     expect(query["createdAt"]).toBeDefined();
   });
 
-  test("state='resolved' filters on isResolvedState=true within the default window", async () => {
+  test("state='resolved' filters on the project's resolved states within the default window", async () => {
     const findBySpy: jest.SpyInstance = jest
       .spyOn(AlertService, "findBy")
       .mockResolvedValue([buildAlert({ state: "Resolved" })] as never);
@@ -176,7 +196,9 @@ describe("query_alerts — state filter", () => {
     const query: JSONObject = (findBySpy.mock.calls[0]?.[0] as JSONObject)[
       "query"
     ] as JSONObject;
-    expect(query["currentAlertState"]).toEqual({ isResolvedState: true });
+    expect(idsOfAnyFilter(query["currentAlertStateId"])).toEqual(
+      resolvedStateIds(ALERT_STATE_IDS),
+    );
     expect(query["createdAt"]).toBeDefined();
     expect(result.citationLabel).toBe("Resolved alerts, last 24h (1 found)");
   });
@@ -195,6 +217,7 @@ describe("query_alerts — state filter", () => {
       "query"
     ] as JSONObject;
     expect(query["currentAlertState"]).toBeUndefined();
+    expect(query["currentAlertStateId"]).toBeUndefined();
     expect(query["createdAt"]).toBeDefined();
     expect(result.citationLabel).toBe("Alerts, last 24h (1 found)");
   });

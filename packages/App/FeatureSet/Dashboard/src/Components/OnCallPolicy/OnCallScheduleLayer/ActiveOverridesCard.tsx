@@ -1,5 +1,5 @@
 import { formatShiftInstant } from "./LayerSummary";
-import { getColorForUserId, getUserInitials } from "./LayerUserColors";
+import { getUserAvatarStyle, getUserInitials } from "./LayerUserColors";
 import {
   OverrideScopeKind,
   OverrideSummaryRow,
@@ -67,8 +67,8 @@ const ActiveOverridesCard: FunctionComponent<ComponentProps> = (
     const info: OverrideUserDisplayInfo | undefined = props.userById[userId];
     return (
       <span
-        className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white"
-        style={{ backgroundColor: getColorForUserId(userId) }}
+        className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-semibold"
+        style={getUserAvatarStyle(userId)}
       >
         {getUserInitials(info?.name || "", info?.email || "")}
       </span>

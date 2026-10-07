@@ -5,6 +5,8 @@ import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import CephResourceModel from "Common/Models/DatabaseModels/CephResource";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Label from "Common/Models/DatabaseModels/Label";
 import LabelsElement from "Common/UI/Components/Label/Labels";
@@ -19,6 +21,9 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
 import { getCephClusterConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
+import ResourceAiAgentStatusSummaryCard from "../../../Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
+import { getResourceAiAgentDescriptor } from "../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
+import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI, {
@@ -1718,10 +1723,17 @@ const CephClusterOverview: FunctionComponent<
                 agentVersion: true,
               },
               title: "Agent Version",
-              fieldType: FieldType.Text,
-              placeholder: "Not reported",
+              fieldType: FieldType.Element,
               showIf: (item: CephCluster): boolean => {
                 return Boolean(item.agentVersion);
+              },
+              getElement: (item: CephCluster): ReactElement => {
+                return (
+                  <AgentVersion
+                    kind={AgentKind.CephAgent}
+                    version={item.agentVersion}
+                  />
+                );
               },
             },
             {
@@ -1746,6 +1758,16 @@ const CephClusterOverview: FunctionComponent<
             },
           ],
         }}
+      />
+
+      {/*
+       * Last on the page: the Ceph AI agent's connection, whether AI may
+       * investigate, and how fixes run, linking to AI → AI agent.
+       */}
+      <ResourceAiAgentStatusSummaryCard
+        descriptor={getResourceAiAgentDescriptor(AiResourceType.CephCluster)}
+        resourceId={modelId}
+        refreshToken={lastRefreshedAt ? lastRefreshedAt.getTime() : undefined}
       />
     </TimeRangeZoomScope>
   );

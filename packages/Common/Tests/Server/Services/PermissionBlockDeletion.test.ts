@@ -21,6 +21,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { getJestSpyOn } from "../../Spy";
+import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import {
   afterEach,
   beforeEach,
@@ -30,6 +31,15 @@ import {
   test,
 } from "@jest/globals";
 import { FindOperator } from "typeorm";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 jest.mock("../../../Server/Utils/PasswordHash", () => {
   return { __esModule: true, default: class PasswordHashStub {} };
@@ -115,6 +125,7 @@ function props(
   return {
     userId,
     tenantId: projectId,
+    ...ON_HIGHEST_PLAN,
     userGlobalAccessPermission: {
       projectIds: [projectId],
       globalPermissions: [Permission.Public, Permission.User],
@@ -291,6 +302,7 @@ describe.each(serviceCases)(
         AccessTokenService,
         "refreshUserTenantAccessPermission",
       ).mockResolvedValue(undefined);
+      stubProjectDirectory({});
     });
 
     afterEach(() => {

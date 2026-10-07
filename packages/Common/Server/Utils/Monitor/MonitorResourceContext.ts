@@ -1,5 +1,10 @@
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import logger from "../Logger";
+import LinkedAffectedResources, {
+  LinkedAffectedResource,
+  LinkedAffectedResourceType,
+} from "../AffectedResources/LinkedAffectedResources";
+import MonitorService from "../../Services/MonitorService";
 import MonitorStepResourceIdentity from "./MonitorStepResourceIdentity";
 import { SeriesResourceRefs } from "./SeriesResourceLabels";
 import SeriesResourceLinker, {
@@ -92,6 +97,54 @@ export default class MonitorResourceContextUtil {
     }
   }
 
+  /*
+   * The resources someone linked to the monitor by hand (Monitor > Overview
+   * > Linked Resources) - what a website, API or synthetic monitor watches,
+   * which its configuration cannot name. Merged into every incident and
+   * alert the monitor creates, next to what resolveResourceContextForMonitor
+   * finds in the config, so a "site is down" incident is about the cluster
+   * serving the site and OneUptime AI can investigate and fix it there.
+   *
+   * A database read, unlike the config path's no-op for such monitors, so
+   * callers make it only when they are about to create a record (and at
+   * most once per evaluation). Never throws: a failed read links nothing
+   * rather than failing the probe or telemetry job that creates the record.
+   */
+  public static async resolveLinkedResourcesForMonitor(input: {
+    monitor: Monitor;
+  }): Promise<SeriesResolvedResourceIds> {
+    const resolved: SeriesResolvedResourceIds = this.emptyContext();
+
+    if (!input.monitor.id || !input.monitor.projectId) {
+      return resolved;
+    }
+
+    try {
+      const resources: Array<LinkedAffectedResource> =
+        await LinkedAffectedResources.readForMonitors({
+          service: MonitorService,
+          projectId: input.monitor.projectId,
+          monitorIds: [input.monitor.id],
+        });
+
+      for (const resource of resources) {
+        const key: keyof SeriesResolvedResourceIds | undefined =
+          LINKED_RESOURCE_KEYS[resource.type];
+
+        if (key && !resolved[key].includes(resource.id)) {
+          resolved[key].push(resource.id);
+        }
+      }
+
+      return resolved;
+    } catch (err) {
+      logger.error(
+        `Failed to read the linked resources of monitor ${input.monitor.id?.toString()}: ${err}`,
+      );
+      return this.emptyContext();
+    }
+  }
+
   public static emptyContext(): SeriesResolvedResourceIds {
     return {
       hostIds: [],
@@ -105,6 +158,25 @@ export default class MonitorResourceContextUtil {
       dockerSwarmClusterIds: [],
       iotFleetIds: [],
       databaseServerIds: [],
+      storageArrayIds: [],
     };
   }
 }
+
+// Where each kind of linked resource goes in a resolved context.
+const LINKED_RESOURCE_KEYS: Partial<
+  Record<LinkedAffectedResourceType, keyof SeriesResolvedResourceIds>
+> = {
+  [LinkedAffectedResourceType.Host]: "hostIds",
+  [LinkedAffectedResourceType.KubernetesCluster]: "kubernetesClusterIds",
+  [LinkedAffectedResourceType.DockerHost]: "dockerHostIds",
+  [LinkedAffectedResourceType.PodmanHost]: "podmanHostIds",
+  [LinkedAffectedResourceType.ProxmoxCluster]: "proxmoxClusterIds",
+  [LinkedAffectedResourceType.VMwareVCenter]: "vmwareVCenterIds",
+  [LinkedAffectedResourceType.CephCluster]: "cephClusterIds",
+  [LinkedAffectedResourceType.StorageArray]: "storageArrayIds",
+  [LinkedAffectedResourceType.DockerSwarmCluster]: "dockerSwarmClusterIds",
+  [LinkedAffectedResourceType.IoTFleet]: "iotFleetIds",
+  [LinkedAffectedResourceType.DatabaseServer]: "databaseServerIds",
+  [LinkedAffectedResourceType.Service]: "serviceIds",
+};

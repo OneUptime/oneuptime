@@ -2,6 +2,7 @@ import PageMap from "./PageMap";
 import RouteMap, { RouteUtil } from "./RouteMap";
 import RouteParams from "./RouteParams";
 import Route from "Common/Types/API/Route";
+import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import { NavItem, MoreMenuItem } from "Common/UI/Components/Navbar/NavBar";
 import { useTranslation } from "react-i18next";
@@ -16,6 +17,11 @@ export interface DashboardNavigationItems {
    * product at once.
    */
   moreMenuCategoriesAlwaysOpen: Array<string>;
+  /*
+   * The icon each folded category's row is drawn with, by the same
+   * translated name its items carry.
+   */
+  moreMenuCategoryIcons: Dictionary<IconProp>;
   rightElement: NavItem;
 }
 
@@ -609,6 +615,16 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "gcp",
         "google cloud",
         "cloud resources",
+        "iaas",
+        "paas",
+        "cloudwatch",
+        "azure monitor",
+        "cloud monitoring",
+        "ec2",
+        "rds",
+        "s3",
+        "virtual machines",
+        "load balancers",
       ],
       description: t("navbar.items.cloudDescription"),
       route: RouteUtil.populateRouteParams(
@@ -674,6 +690,30 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       ),
       activeRoute: RouteMap[PageMap.CEPH_CLUSTERS],
       icon: IconProp.Ceph,
+      iconColor: "blue",
+      category: infrastructureCategory,
+    },
+    {
+      title: t("navbar.items.storageArraysTitle", "Storage Arrays"),
+      keywords: [
+        "storage",
+        "san",
+        "nas",
+        "pure storage",
+        "everpure",
+        "flasharray",
+        "flashblade",
+        "volumes",
+      ],
+      description: t(
+        "navbar.items.storageArraysDescription",
+        "Monitor storage arrays such as Pure Storage FlashArray and FlashBlade.",
+      ),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.STORAGE_ARRAYS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.STORAGE_ARRAYS],
+      icon: IconProp.StorageArray,
       iconColor: "blue",
       category: infrastructureCategory,
     },
@@ -843,6 +883,24 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
    */
   const moreMenuCategoriesAlwaysOpen: Array<string> = [essentialsCategory];
 
+  /*
+   * A folded category is a row of the menu's list of categories, drawn with
+   * an icon of its own: one that names the whole category and is not drawn
+   * like any product in the menu, so a row never passes for a product. AI
+   * is the one exception: it wears the sparkles that mark AI across the
+   * app, as the AI / LLM product does.
+   */
+  const moreMenuCategoryIcons: Dictionary<IconProp> = {
+    [observabilityCategory]: IconProp.PresentationChartLine,
+    [aiCategory]: IconProp.Sparkles,
+    [codeCategory]: IconProp.Code,
+    [resourcesCategory]: IconProp.Layers,
+    [infrastructureCategory]: IconProp.ServerStack,
+    [analyticsAutomationCategory]: IconProp.Layout,
+    // A gear, but not Project Settings' own.
+    [settingsCategory]: IconProp.Cog8Tooth,
+  };
+
   // Define the right element (User Settings)
   const rightElement: NavItem = {
     id: "user-settings-nav-bar-item",
@@ -858,6 +916,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     navItems,
     moreMenuItems,
     moreMenuCategoriesAlwaysOpen,
+    moreMenuCategoryIcons,
     rightElement,
   };
 }

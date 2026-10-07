@@ -15,6 +15,10 @@ import RunnerJobOrigin, {
 } from "../Common/Types/Runbook/RunnerJobOrigin";
 import ResourceCommandPolicy from "../Common/Utils/AiRemediation/Resource/ResourceCommandPolicy";
 import { ResourceCommandPolicyResult } from "../Common/Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
+import {
+  AGENT_AI_FIXES_SETTING_VALUES,
+  AI_FIXES_ENV,
+} from "../Common/Types/AI/AgentAiSettings";
 
 /*
  * The checks every executor runs FIRST in prepare(), before any
@@ -34,7 +38,8 @@ import { ResourceCommandPolicyResult } from "../Common/Utils/AiRemediation/Resou
  *      program, same normalized arguments, a tier no lower than the server
  *      claimed — or the two sides disagree and the command is refused;
  *   5. an investigation may only run Read-tier commands;
- *   6. a write needs ONEUPTIME_AI_ALLOW_WRITES=true on this agent;
+ *   6. a write needs ONEUPTIME_AI_ALLOW_WRITES=true on this agent, and
+ *      fixes that are not off (ONEUPTIME_AI_FIXES);
  *   7. the write scope: never a protected target, only
  *      ONEUPTIME_AI_WRITE_TARGETS when set.
  *
@@ -358,9 +363,11 @@ export default class PrepareGuard {
     if (result.tier !== ResourceCommandTier.Read) {
       if (!config.allowWrites) {
         return {
-          refusal: `${refused}: "${result.displayCommand}" changes the ${info.displayName}, and this agent is read-only (${describeWriteSwitch(
-            config.allowWritesSetting,
-          )}). To let OneUptime AI apply fixes, set ${RESOURCE_AI_ALLOW_WRITES_ENV}=true on the agent and restart it.`,
+          refusal: config.writesOffByFixes
+            ? `${refused}: "${result.displayCommand}" changes the ${info.displayName}, and AI fixes are off in this agent's configuration (${AI_FIXES_ENV}=${AGENT_AI_FIXES_SETTING_VALUES.Disabled}). To let OneUptime AI apply fixes, set ${AI_FIXES_ENV}=${AGENT_AI_FIXES_SETTING_VALUES.RequireApproval} (or ${AGENT_AI_FIXES_SETTING_VALUES.Automatic}, or ${AGENT_AI_FIXES_SETTING_VALUES.BypassApproval}) on the agent and restart it.`
+            : `${refused}: "${result.displayCommand}" changes the ${info.displayName}, and this agent is read-only (${describeWriteSwitch(
+                config.allowWritesSetting,
+              )}). To let OneUptime AI apply fixes, set ${RESOURCE_AI_ALLOW_WRITES_ENV}=true on the agent and restart it.`,
         };
       }
 

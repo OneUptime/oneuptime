@@ -12,6 +12,7 @@ import BaseModel, {
 } from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ProxmoxCluster from "../../../../../Models/DatabaseModels/ProxmoxCluster";
 import CephCluster from "../../../../../Models/DatabaseModels/CephCluster";
+import StorageArray from "../../../../../Models/DatabaseModels/StorageArray";
 import DatabaseServer from "../../../../../Models/DatabaseModels/DatabaseServer";
 import DockerSwarmCluster from "../../../../../Models/DatabaseModels/DockerSwarmCluster";
 import VMwareVCenter from "../../../../../Models/DatabaseModels/VMwareVCenter";
@@ -22,6 +23,7 @@ import Log from "../../../../../Models/AnalyticsModels/Log";
 import Span from "../../../../../Models/AnalyticsModels/Span";
 import Metric from "../../../../../Models/AnalyticsModels/Metric";
 import { AnalyticsBaseModelType } from "../../../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import { TelemetryReadScope } from "../../../../../Server/Utils/Telemetry/TelemetryReadScope";
 import AnalyticsModelPermission from "../../../../../Server/Types/AnalyticsDatabase/ModelPermission";
 import AnalyticsQuery from "../../../../../Server/Types/AnalyticsDatabase/Query";
 import DatabaseRequestType from "../../../../../Server/Types/BaseDatabase/DatabaseRequestType";
@@ -36,6 +38,7 @@ import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/Da
 import Includes from "../../../../../Types/BaseDatabase/Includes";
 import PermissionScope from "../../../../../Types/Database/AccessControl/PermissionScope";
 import LIMIT_MAX from "../../../../../Types/Database/LimitMax";
+import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../../../Types/Permission";
@@ -71,6 +74,13 @@ const INFRASTRUCTURE: Array<InfrastructureCase> = [
     fkColumn: "cephClusterId",
     readPermission: Permission.ReadCephCluster,
     serviceType: ServiceType.CephCluster,
+  },
+  {
+    name: "StorageArray",
+    modelType: StorageArray,
+    fkColumn: "storageArrayId",
+    readPermission: Permission.ReadStorageArray,
+    serviceType: ServiceType.StorageArray,
   },
   {
     name: "DockerSwarmCluster",
@@ -471,6 +481,8 @@ describe.each(INFRASTRUCTURE)(
       expect(lookups(entry.name).model).toHaveBeenCalledWith({
         query: { labels: [LABEL_ID], projectId: PROJECT_ID },
         select: { _id: true },
+        // Read page by page, in a stable order, to the end of the list.
+        sort: { _id: SortOrder.Ascending },
         props: { isRoot: true },
         skip: 0,
         limit: LIMIT_MAX,
@@ -551,8 +563,8 @@ describe("infrastructure scope composition", () => {
       { _id: LABELED_ID.toString() },
     ]);
 
-    const ids: Array<ObjectID> | null =
-      await AnalyticsModelPermission.getAccessibleServiceIdsForAnalyticsModel(
+    const scope: TelemetryReadScope =
+      await AnalyticsModelPermission.getReadScope(
         Log,
         propsFor([
           grant(Permission.ProjectMember, PermissionScope.Owned),
@@ -561,7 +573,7 @@ describe("infrastructure scope composition", () => {
         DatabaseRequestType.Read,
       );
 
-    expect(new Set(ids?.map(String))).toEqual(
+    expect(new Set(scope.readableIds)).toEqual(
       new Set([
         OWNED_ID.toString(),
         TEAM_OWNED_ID.toString(),
@@ -582,13 +594,13 @@ describe("infrastructure scope composition", () => {
       Span,
       Metric,
     ] as Array<AnalyticsBaseModelType>) {
-      const ids: Array<ObjectID> | null =
-        await AnalyticsModelPermission.getAccessibleServiceIdsForAnalyticsModel(
+      const scope: TelemetryReadScope =
+        await AnalyticsModelPermission.getReadScope(
           modelType,
           props,
           DatabaseRequestType.Read,
         );
-      expect(ids?.map(String)).toContain(OWNED_ID.toString());
+      expect(scope.readableIds).toContain(OWNED_ID.toString());
     }
     expect(lookups("VMwareVCenter").user).toHaveBeenCalledTimes(1);
     expect(lookups("VMwareVCenter").team).toHaveBeenCalledTimes(1);

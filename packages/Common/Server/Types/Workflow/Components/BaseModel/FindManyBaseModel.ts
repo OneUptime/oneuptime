@@ -165,11 +165,16 @@ export default class FindManyBaseModel<
         select: select,
         limit: new PositiveNumber(args["limit"] as number),
         skip: new PositiveNumber(args["skip"] as number),
-        props: {
-          isRoot: true,
-          tenantId: options.projectId,
-        },
+        // A Project Admin of the project, never root. See getStepProps.
+        props: await this.getStepProps(options),
       });
+
+      /*
+       * The records' files come back only when they are the project's to
+       * see: the read is the project's (a Project Admin of it), so
+       * DatabaseService holds it to the files that project may see
+       * (RelatedFileAccess), as it does every read made for someone.
+       */
 
       return {
         returnValues: {
@@ -182,6 +187,7 @@ export default class FindManyBaseModel<
         error: err,
         model: this.modelService?.getModel() || null,
         log: options.log,
+        stepTitle: this.getMetadata().title,
       });
 
       return {

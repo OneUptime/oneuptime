@@ -124,6 +124,7 @@ const EXPECTED_SLOT: Record<MonitorType, Slot> = {
   [MonitorType.Proxmox]: Slot.Telemetry,
   [MonitorType.VMware]: Slot.Telemetry,
   [MonitorType.Ceph]: Slot.Telemetry,
+  [MonitorType.StorageArray]: Slot.Telemetry,
   [MonitorType.IoTDevice]: Slot.Telemetry,
 };
 

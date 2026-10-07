@@ -2,7 +2,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnUpdate, OnDelete } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/IncidentMeasurement";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentStateService from "./IncidentStateService";
@@ -43,7 +43,7 @@ const TIMESTAMP_ANCHOR_SOURCES: Record<string, string> = {
   [IncidentMeasurementAnchorType.PostmortemPostedAt]: "postmortemPostedAt",
 };
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public static readonly METRIC_NAME_PREFIX: string =
     "oneuptime.incident.measurement.";
 
@@ -55,6 +55,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     /*
      * Made from the name when the create leaves the key out; a key that was
      * sent must be valid and not another measurement's.
@@ -88,10 +90,14 @@ export class Service extends DatabaseService<Model> {
       startStateId: MeasurementStateReference.getStateIdForCreate({
         stateId: createBy.data.startIncidentStateId,
         state: createBy.data.startIncidentState,
+        stateIdKey: "startIncidentStateId",
+        stateKey: "startIncidentState",
       }),
       endStateId: MeasurementStateReference.getStateIdForCreate({
         stateId: createBy.data.endIncidentStateId,
         state: createBy.data.endIncidentState,
+        stateIdKey: "endIncidentStateId",
+        stateKey: "endIncidentState",
       }),
       startStateRole: createBy.data.startIncidentStateRole,
       endStateRole: createBy.data.endIncidentStateRole,
@@ -113,6 +119,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * Read as a plain record rather than Partial<Model>: the model graph is
      * deep enough that instantiating the partial here trips the compiler's

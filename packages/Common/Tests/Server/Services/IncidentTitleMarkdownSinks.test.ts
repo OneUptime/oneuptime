@@ -52,6 +52,7 @@ import {
 } from "@jest/globals";
 import type { TurnContext } from "botbuilder";
 import { Token, Tokens, marked } from "marked";
+import { mockProjectStates } from "../TestingUtils/Services/ProjectStatesHelper";
 
 /*
  * An incident's title is plain text, typed by whoever declared the incident
@@ -215,6 +216,11 @@ function sentText(turnContext: TurnContext): string {
 }
 
 beforeEach(() => {
+  /*
+   * The project's incident and alert states: open records are read by
+   * the states that are not resolved (Common/Utils/ResolvedState).
+   */
+  mockProjectStates();
   incidentFeed = jest
     .spyOn(IncidentFeedService, "createIncidentFeedItem")
     .mockResolvedValue(undefined as never);
@@ -251,6 +257,10 @@ describe("episode feed items", () => {
     jest
       .spyOn(IncidentEpisodeService, "updateLastIncidentAddedAt")
       .mockResolvedValue(undefined as never);
+    // Removed from its only episode.
+    jest
+      .spyOn(IncidentEpisodeMemberService, "findOneBy")
+      .mockResolvedValue(null);
   }
 
   function member(): IncidentEpisodeMember {

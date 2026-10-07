@@ -15,11 +15,13 @@ import {
  * The service owns the throttle; what this file protects is the layer above
  * it, which is where the two mistakes that matter live:
  *
- *   - The route must be behind UserMiddleware and must check access with the
- *     CALLER'S props, not with isRoot. Every other read on this route runs as
- *     root (it has to - the row carries fields the caller may not read), so
- *     the one scoped query is the whole tenancy boundary. Lose it and the
- *     route reissues certificates for any domain id in the fleet.
+ *   - The route must be behind UserMiddleware and must ask, with the
+ *     CALLER'S props, what an update of the domain asks: reissuing replaces
+ *     the domain's certificate, a change, so it takes the domain's edit
+ *     permissions and the domain must be inside the caller's update scope
+ *     (CustomDomainRoutes.getChangeRefusal; the permission matrix is
+ *     CustomDomainChangePermission.test.ts). Every other read on this route
+ *     runs as root, so that scoped query is the whole tenancy boundary.
  *   - A caller who is refused must never reach the CA. Anything that spends
  *     the shared Let's Encrypt allowance before the access check is a way for
  *     a stranger to spend it.
@@ -100,7 +102,9 @@ import {
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import TooManyRequestsException from "../../../Types/Exception/TooManyRequestsException";
 import ObjectID from "../../../Types/ObjectID";
-import PositiveNumber from "../../../Types/PositiveNumber";
+import Permission from "../../../Types/Permission";
+import { DOMAIN_NOT_CHANGEABLE_MESSAGE } from "../../../Server/API/CustomDomainRoutes";
+import { customDomainCaller } from "./CustomDomainCallers";
 
 type MockedFn = ReturnType<typeof jest.fn>;
 
@@ -121,6 +125,8 @@ type Surface = {
   service: typeof StatusPageDomainService | typeof DashboardDomainService;
   // Module path re-required by the "custom domains switched off" case below.
   apiModulePath: string;
+  // What somebody who may read and edit this kind of domain holds.
+  editorPermissions: Array<Permission>;
 };
 
 const surfaces: Array<[string, Surface]> = [
@@ -134,6 +140,10 @@ const surfaces: Array<[string, Surface]> = [
       route: "/status-page-domain/reissue-ssl/:id",
       service: StatusPageDomainService,
       apiModulePath: "../../../Server/API/StatusPageDomainAPI",
+      editorPermissions: [
+        Permission.ReadStatusPageDomain,
+        Permission.EditStatusPageDomain,
+      ],
     },
   ],
   [
@@ -146,15 +156,18 @@ const surfaces: Array<[string, Surface]> = [
       route: "/dashboard-domain/reissue-ssl/:id",
       service: DashboardDomainService,
       apiModulePath: "../../../Server/API/DashboardDomainAPI",
+      editorPermissions: [
+        Permission.ReadDashboardDomain,
+        Permission.EditDashboardDomain,
+      ],
     },
   ],
 ];
 
 describe.each(surfaces)("%s reissue-ssl", (_name: string, surface: Surface) => {
-  const callerProps: DatabaseCommonInteractionProps = {
-    userId: ObjectID.generate(),
-    tenantId: ObjectID.generate(),
-  } as DatabaseCommonInteractionProps;
+  const callerProps: DatabaseCommonInteractionProps = customDomainCaller({
+    permissions: surface.editorPermissions,
+  });
 
   let domainId: ObjectID;
 
@@ -176,6 +189,24 @@ describe.each(surfaces)("%s reissue-ssl", (_name: string, surface: Surface) => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
+
+  /*
+   * The one lookup the route makes: the domain, read as root on the query
+   * the update check narrowed to the caller's scope.
+   */
+  const inScope: () => MockedFn = (): MockedFn => {
+    return jest.spyOn(surface.service, "findOneBy").mockResolvedValue({
+      _id: domainId.toString(),
+      id: domainId,
+    } as never) as unknown as MockedFn;
+  };
+
+  // The same lookup for a domain outside the caller's scope: nothing.
+  const outOfScope: () => MockedFn = (): MockedFn => {
+    return jest
+      .spyOn(surface.service, "findOneBy")
+      .mockResolvedValue(null as never) as unknown as MockedFn;
+  };
 
   type CallRouteResult = {
     next: MockedFn;
@@ -225,34 +256,38 @@ describe.each(surfaces)("%s reissue-ssl", (_name: string, surface: Surface) => {
   });
 
   describe("access control", () => {
-    test("scopes the existence check to the caller's own props", async () => {
-      const countSpy: MockedFn = jest
-        .spyOn(surface.service, "countBy")
-        .mockResolvedValue(new PositiveNumber(1)) as unknown as MockedFn;
+    test("looks for the domain inside the caller's update scope", async () => {
+      const findSpy: MockedFn = inScope();
 
       jest.spyOn(surface.service, "reissueCert").mockResolvedValue(undefined);
 
       await callRoute();
 
-      expect(countSpy).toHaveBeenCalledTimes(1);
+      expect(findSpy).toHaveBeenCalledTimes(1);
 
-      const countArgs: { query: { _id: string }; props: unknown } = countSpy
-        .mock.calls[0]![0] as { query: { _id: string }; props: unknown };
+      const lookup: {
+        query: Record<string, unknown>;
+        props: Record<string, unknown>;
+      } = findSpy.mock.calls[0]![0] as {
+        query: Record<string, unknown>;
+        props: Record<string, unknown>;
+      };
 
-      expect(countArgs.query._id).toBe(domainId.toString());
+      expect(lookup.query["_id"]).toBe(domainId.toString());
 
       /*
-       * The whole tenancy boundary. isRoot here would make every domain id in
-       * the fleet reissuable by any signed-in user.
+       * The whole tenancy boundary: the lookup runs as root on a query the
+       * caller's own props narrowed to their project, as an update of the
+       * domain would be narrowed.
        */
-      expect(countArgs.props).toBe(callerProps);
-      expect((countArgs.props as { isRoot?: boolean }).isRoot).toBeFalsy();
+      expect(JSON.stringify(lookup.query["projectId"])).toContain(
+        callerProps.tenantId!.toString(),
+      );
+      expect(lookup.props).toEqual({ isRoot: true });
     });
 
     test("a domain the caller cannot see is refused and never reaches the CA", async () => {
-      jest
-        .spyOn(surface.service, "countBy")
-        .mockResolvedValue(new PositiveNumber(0));
+      outOfScope();
 
       const reissueSpy: MockedFn = jest
         .spyOn(surface.service, "reissueCert")
@@ -266,9 +301,7 @@ describe.each(surfaces)("%s reissue-ssl", (_name: string, surface: Surface) => {
     });
 
     test("the refusal does not say whether the domain exists", async () => {
-      jest
-        .spyOn(surface.service, "countBy")
-        .mockResolvedValue(new PositiveNumber(0));
+      outOfScope();
       jest.spyOn(surface.service, "reissueCert").mockResolvedValue(undefined);
 
       await callRoute();
@@ -276,15 +309,13 @@ describe.each(surfaces)("%s reissue-ssl", (_name: string, surface: Surface) => {
       const error: Error = sendErrorResponseMock.mock
         .calls[0]![2] as unknown as Error;
 
-      expect(error.message).toContain("does not exist or user does not have");
+      expect(error.message).toBe(DOMAIN_NOT_CHANGEABLE_MESSAGE);
     });
   });
 
   describe("the happy path", () => {
     test("reissues the domain named in the url and answers success", async () => {
-      jest
-        .spyOn(surface.service, "countBy")
-        .mockResolvedValue(new PositiveNumber(1));
+      inScope();
 
       const reissueSpy: MockedFn = jest
         .spyOn(surface.service, "reissueCert")
@@ -310,9 +341,7 @@ describe.each(surfaces)("%s reissue-ssl", (_name: string, surface: Surface) => {
      * "try again in 3 hours" into "Server Error. Please try again".
      */
     test("a cooldown refusal is passed on with its message", async () => {
-      jest
-        .spyOn(surface.service, "countBy")
-        .mockResolvedValue(new PositiveNumber(1));
+      inScope();
 
       const cooldown: TooManyRequestsException = new TooManyRequestsException(
         "Please try again in 3 hours.",
@@ -329,9 +358,7 @@ describe.each(surfaces)("%s reissue-ssl", (_name: string, surface: Surface) => {
     });
 
     test("a failed order is not reported to the customer as a success", async () => {
-      jest
-        .spyOn(surface.service, "countBy")
-        .mockResolvedValue(new PositiveNumber(1));
+      inScope();
 
       jest
         .spyOn(surface.service, "reissueCert")
@@ -412,8 +439,9 @@ describe("reissue-ssl with custom domains switched off", () => {
       const FreshAPI: new () => unknown = require(
         disabled.apiModulePath,
       ).default;
+      type FreshService = { reissueCert: unknown; findOneBy: unknown };
       // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-      const freshService: { reissueCert: unknown; countBy: unknown } = require(
+      const freshService: FreshService = require(
         disabled.serviceModulePath,
       ).default;
       const responseModulePath: string = "../../../Server/Utils/Response";
@@ -427,11 +455,9 @@ describe("reissue-ssl with custom domains switched off", () => {
         .spyOn(freshService as never, "reissueCert")
         .mockResolvedValue(undefined as never) as unknown as MockedFn;
 
-      const countSpy: MockedFn = jest
-        .spyOn(freshService as never, "countBy")
-        .mockResolvedValue(
-          new PositiveNumber(1) as never,
-        ) as unknown as MockedFn;
+      const findSpy: MockedFn = jest
+        .spyOn(freshService as never, "findOneBy")
+        .mockResolvedValue({ _id: "row" } as never) as unknown as MockedFn;
 
       freshResponse.sendErrorResponse.mockClear();
       freshResponse.sendEmptySuccessResponse.mockClear();
@@ -459,7 +485,7 @@ describe("reissue-ssl with custom domains switched off", () => {
        * Refused before the row is even looked up — the switch is off for the
        * whole installation, so there is nothing about this domain to check.
        */
-      expect(countSpy).not.toHaveBeenCalled();
+      expect(findSpy).not.toHaveBeenCalled();
 
       jest.restoreAllMocks();
       jest.dontMock("../../../Server/EnvironmentConfig");

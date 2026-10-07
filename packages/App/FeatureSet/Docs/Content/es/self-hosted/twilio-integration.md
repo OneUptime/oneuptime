@@ -18,6 +18,8 @@ Para un proyecto:
 4. **Establecer como predeterminado del proyecto** está activado en la primera configuración del proyecto, así que los SMS y las llamadas a los miembros del proyecto, incluidas las notificaciones de guardia, pasan por ella en cuanto guarde. Desactívelo si esta cuenta es solo para páginas de estado o llamadas entrantes. En cualquier configuración posterior el interruptor empieza desactivado: actívelo, o elija **Establecer como predeterminado del proyecto** en el menú de la fila de la configuración, para que esos mensajes pasen por ella. Una solicitud a la API que omite `isProjectDefault` se trata igual.
 5. Guarde. Solo una configuración puede ser la predeterminada del proyecto. Las páginas de estado utilizan la configuración asignada explícitamente a cada página.
 
+**SMS** y **Llamadas telefónicas** empiezan apagados en cada proyecto y, hasta que se enciendan, nadie en el proyecto puede añadir un número de teléfono para ellos. Un propietario del proyecto o alguien con **Billing Admin** o **Manage Billing** los enciende en la tarjeta **Canales de notificación** de la misma página.
+
 Para establecer una configuración predeterminada para toda la instalación, un administrador puede abrir **Panel de administración > Configuración > Llamadas y SMS**, editar las credenciales y números de Twilio y guardar. Las notificaciones a los miembros usan esta configuración global cuando su proyecto no tiene una predeterminada. Mantenga el Auth Token confidencial.
 
 ## 3. Configure el acceso a la red
@@ -91,7 +93,7 @@ Para desarrollo, la [guía de pruebas de webhooks de Twilio](https://www.twilio.
 ## 4. Pruebe la entrega y los callbacks por separado
 
 1. Desde fuera de la red corporativa y del VPN, verifique que el nombre de host de callbacks resuelve a la pasarela pública y presenta un certificado TLS válido. Un GET del navegador no prueba estos callbacks POST.
-2. Utilice **Enviar SMS de prueba** y **Enviar llamada de prueba** en la configuración de Twilio del proyecto. Confirme la recepción en el teléfono de destino.
+2. Utilice **Enviar SMS de prueba** y **Enviar llamada de prueba** en la configuración de Twilio del proyecto. Confirme la recepción en el teléfono de destino. Ambos necesitan permiso para añadir configuraciones de Twilio: **Project Owner**, **Project Admin**, o **Create Call and SMS** y **Read Call and SMS** en un rol personalizado.
 3. Configure el contacto verificado del usuario para SMS/llamadas y sus reglas de notificación; después, active una alerta de guardia controlada. Pulse 1 y confirme el reconocimiento en OneUptime. Si usa políticas de llamadas entrantes, llame al número configurado y compruebe el enrutamiento y el registro de llamadas.
 4. Compruebe el estado de entrega del SMS en OneUptime y en los registros de mensajes de Twilio. La aceptación de un envío no demuestra su entrega; [Twilio informa de los cambios de estado posteriores mediante callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 

@@ -1,4 +1,5 @@
 import CephCluster from "./CephCluster";
+import StorageArray from "./StorageArray";
 import DatabaseServer from "./DatabaseServer";
 import DockerHost from "./DockerHost";
 import DockerResource from "./DockerResource";
@@ -1188,6 +1189,60 @@ export default class Incident extends BaseModel {
     },
   })
   public cephClusters?: Array<CephCluster> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: StorageArray,
+    title: "Storage Arrays",
+    description: "List of storage arrays affected by this incident.",
+  })
+  @ManyToMany(
+    () => {
+      return StorageArray;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "IncidentStorageArray",
+    inverseJoinColumn: {
+      name: "storageArrayId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "incidentId",
+      referencedColumnName: "_id",
+    },
+  })
+  public storageArrays?: Array<StorageArray> = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -2744,6 +2799,45 @@ export default class Incident extends BaseModel {
   })
   public isCreatedAutomatically?: boolean = undefined;
 
+  /*
+   * Whether the incident holds its monitors, recorded by OneUptime: true
+   * from when it is declared open, or from when an edit while it is open
+   * puts its monitors in its monitor status; false for one declared already
+   * resolved, which never held them, and from when a resolve gives them
+   * back. Resolving gives back only what it holds - so an incident declared
+   * resolved, reopened and resolved again gives back nothing it never had.
+   * Null for incidents from before it was recorded: their resolve gives the
+   * monitors back, as it always did, and records false.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadProjectIncident,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    computed: true,
+    type: TableColumnType.Boolean,
+    title: "Holds Monitors",
+    description:
+      "Whether this incident is holding its monitors - keeping them in its monitor status, or their monitoring paused - so that resolving it gives them back: their monitoring resumes and their status returns to operational. True from when the incident is declared open, or from when an edit while it is open puts its monitors in its monitor status. False for an incident declared already resolved, which never held them, and once a resolve has given them back. Empty for incidents from before it was recorded, which give their monitors back when they are resolved. Set by OneUptime; it cannot be written.",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+  })
+  public holdsMonitors?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -3292,15 +3386,21 @@ export default class Incident extends BaseModel {
   })
   public reminderNotificationSentCount?: number = undefined;
 
+  /*
+   * The episode this incident is in: the latest one it is still a member of,
+   * or none. Membership is the IncidentEpisodeMember rows, and this only
+   * mirrors them - IncidentEpisodeMemberService points it at an episode the
+   * incident joins and, when the incident leaves one, at the latest episode
+   * it is still in. Written any other way it names an episode the incident
+   * is not a member of: the episode's overview lists the incident while its
+   * members do not, and an incident created with it set is never grouped,
+   * so no member row is ever made for it. So nobody may write it, under
+   * either name: an incident joins or leaves an episode through the
+   * episode's members. IncidentService refuses the writes that skip column
+   * permissions too (EpisodeMembershipReference).
+   */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.IncidentAdmin,
-      Permission.IncidentMember,
-      Permission.CreateProjectIncident,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -3311,21 +3411,15 @@ export default class Incident extends BaseModel {
       Permission.IncidentViewer,
       Permission.ReadProjectIncident,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.IncidentAdmin,
-      Permission.IncidentMember,
-      Permission.EditProjectIncident,
-    ],
+    update: [],
   })
   @TableColumn({
     manyToOneRelationColumn: "incidentEpisodeId",
     type: TableColumnType.Entity,
     modelType: IncidentEpisode,
     title: "Incident Episode",
-    description: "Relation to Incident Episode this incident belongs to",
+    description:
+      "The latest Incident Episode this incident is a member of. Read-only: set by OneUptime when the incident is added to or removed from an episode's members (Incident Episode Member).",
   })
   @ManyToOne(
     () => {
@@ -3341,15 +3435,9 @@ export default class Incident extends BaseModel {
   @JoinColumn({ name: "incidentEpisodeId" })
   public incidentEpisode?: IncidentEpisode = undefined;
 
+  // Read-only, like the relation above: see there.
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.IncidentAdmin,
-      Permission.IncidentMember,
-      Permission.CreateProjectIncident,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -3360,21 +3448,15 @@ export default class Incident extends BaseModel {
       Permission.IncidentViewer,
       Permission.ReadProjectIncident,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.IncidentAdmin,
-      Permission.IncidentMember,
-      Permission.EditProjectIncident,
-    ],
+    update: [],
   })
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: false,
     title: "Incident Episode ID",
-    description: "ID of the Incident Episode this incident belongs to",
+    description:
+      "ID of the latest Incident Episode this incident is a member of. Read-only: set by OneUptime when the incident is added to or removed from an episode's members (Incident Episode Member).",
   })
   @Column({
     type: ColumnType.ObjectID,

@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import OnCallDutyPolicyExecutionLogService from "./OnCallDutyPolicyExecutionLogService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
@@ -63,7 +63,7 @@ interface FirstResponderJoin {
   row: BaseModel;
 }
 
-export class Service extends DatabaseService<OnCallDutyPolicy> {
+export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
   public constructor() {
     super(OnCallDutyPolicy);
   }

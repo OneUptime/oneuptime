@@ -138,12 +138,13 @@ export default class SloFeedUtil {
 
   /*
    * `[Jane Doe](<dashboard link to the user>)` for the acting user of a feed
-   * item. UserService.getUserMarkdownString interpolates the name raw, and a
-   * user's name is theirs to set - `x](https://evil)` would re-point the link
-   * in every SLO feed they touch - so the SLO feed builds its own.
+   * item, the name escaped inside the link's own text as
+   * UserService.getUserMarkdownString escapes it - a user's name is theirs to
+   * set, and `x](https://evil)` must not re-point the link.
    *
-   * Returns null when there is no such user, so callers can fall back to "no
-   * user" wording rather than printing an empty link.
+   * Unlike UserService.getUserMarkdownString it returns null when there is
+   * no such user, so callers can fall back to "no user" wording rather than
+   * printing an empty link, and it trims the name.
    */
   public static async getUserMarkdown(data: {
     userId: ObjectID | undefined | null;

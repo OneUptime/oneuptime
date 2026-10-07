@@ -2,7 +2,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import IoTFleetService from "./IoTFleetService";
 import IoTFleet from "../../Models/DatabaseModels/IoTFleet";
 import GlobalCache from "../Infrastructure/GlobalCache";
@@ -15,6 +15,7 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Model from "../../Models/DatabaseModels/IoTDeviceCredential";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 
 /*
  * Cache TTLs mirror TelemetryIngestionKeyService: the positive TTL is
@@ -32,6 +33,9 @@ const LAST_CONNECTED_CACHE_NAMESPACE: string =
   "iot-device-credential-last-connected";
 const LAST_CONNECTED_THROTTLE_SECONDS: number = 60;
 
+// The fleet's two names, ID column first: a write may use either.
+const IOT_FLEET_KEYS: Array<string> = ["iotFleetId", "iotFleet"];
+
 /*
  * Everything the MQTT broker needs to authenticate and scope a
  * device-credential CONNECT: the tenant, and the (fleet, device)
@@ -46,7 +50,7 @@ export interface IoTDeviceCredentialContext {
   secretKey: string;
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   private contextCache: InMemoryTTLCache<IoTDeviceCredentialContext | null> =
     new InMemoryTTLCache(10_000);
 
@@ -58,6 +62,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     /*
      * Always server-generate the secret. secretKey is a computed
      * column (create ACL []), and computed columns are skipped rather
@@ -68,13 +74,32 @@ export class Service extends DatabaseService<Model> {
     createBy.data.secretKey = ObjectID.generate();
 
     /*
+     * The fleet under either of its names, kept in the ID column for the
+     * checks below and for the saved row.
+     */
+    const iotFleetId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      createBy.data as unknown as Record<string, unknown>,
+      IOT_FLEET_KEYS,
+      "IoT Fleet",
+    );
+
+    /*
+     * The project the credential is saved in: the request's - which
+     * DatabaseService has written on the row before the hooks, and writes
+     * again after them - else the one a write without a project on the
+     * request names.
+     */
+    const projectId: ObjectID | undefined =
+      createBy.props.tenantId || createBy.data.projectId || undefined;
+
+    /*
      * The tenant column (projectId) is forced to the caller's project
      * by the framework, but the iotFleetId relation is not — reject a
      * fleet that belongs to another project so a credential cannot be
      * attached to a victim fleet (which would let it steer that
      * fleet's inventory cleanup and mint a cross-tenant auth context).
      */
-    await this.validateFleetBelongsToProject(createBy);
+    await this.validateFleetBelongsToProject({ projectId, iotFleetId });
 
     /*
      * Byte-exact duplicate guard. The DB unique index is
@@ -83,21 +108,26 @@ export class Service extends DatabaseService<Model> {
      * wrongly reject two legitimately-distinct device ids that differ
      * only in case.
      */
-    await this.validateDeviceIdIsUnique(createBy);
+    await this.validateDeviceIdIsUnique({
+      projectId,
+      iotFleetId,
+      externalId: createBy.data.externalId,
+    });
 
     return { createBy, carryForward: null };
   }
 
   @CaptureSpan()
-  private async validateFleetBelongsToProject(
-    createBy: CreateBy<Model>,
-  ): Promise<void> {
-    if (!createBy.data.iotFleetId || !createBy.data.projectId) {
+  private async validateFleetBelongsToProject(data: {
+    projectId: ObjectID | undefined;
+    iotFleetId: ObjectID | null;
+  }): Promise<void> {
+    if (!data.iotFleetId || !data.projectId) {
       return;
     }
 
     const fleet: IoTFleet | null = await IoTFleetService.findOneById({
-      id: createBy.data.iotFleetId,
+      id: data.iotFleetId,
       select: {
         _id: true,
         projectId: true,
@@ -107,29 +137,27 @@ export class Service extends DatabaseService<Model> {
 
     if (
       !fleet?.projectId ||
-      fleet.projectId.toString() !== createBy.data.projectId.toString()
+      fleet.projectId.toString() !== data.projectId.toString()
     ) {
       throw new BadDataException("IoT Fleet not found in this project.");
     }
   }
 
   @CaptureSpan()
-  private async validateDeviceIdIsUnique(
-    createBy: CreateBy<Model>,
-  ): Promise<void> {
-    if (
-      !createBy.data.projectId ||
-      !createBy.data.iotFleetId ||
-      !createBy.data.externalId
-    ) {
+  private async validateDeviceIdIsUnique(data: {
+    projectId: ObjectID | undefined;
+    iotFleetId: ObjectID | null;
+    externalId: string | undefined;
+  }): Promise<void> {
+    if (!data.projectId || !data.iotFleetId || !data.externalId) {
       return;
     }
 
     const existingCount: PositiveNumber = await this.countBy({
       query: {
-        projectId: createBy.data.projectId,
-        iotFleetId: createBy.data.iotFleetId,
-        externalId: createBy.data.externalId,
+        projectId: data.projectId,
+        iotFleetId: data.iotFleetId,
+        externalId: data.externalId,
       },
       props: { isRoot: true },
     });
@@ -158,6 +186,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     // isEnabled flips must reach the broker — same reasoning as delete.
     this.contextCache.clear();
     return { updateBy, carryForward: null };

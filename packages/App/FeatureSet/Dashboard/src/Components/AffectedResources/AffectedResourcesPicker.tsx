@@ -1,4 +1,5 @@
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
@@ -18,16 +19,10 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Search from "Common/Types/BaseDatabase/Search";
 import IconProp from "Common/Types/Icon/IconProp";
-import Permission, {
-  PermissionHelper,
-  UserPermission,
-  UserTenantAccessPermission,
-} from "Common/Types/Permission";
 import DROPDOWN_MENU_Z_INDEX from "Common/UI/Components/Dropdown/DropdownMenuZIndex";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { consumePressForAnchoredPopup } from "Common/UI/Types/LayeredDismissal";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import PermissionUtil from "Common/UI/Utils/Permission";
 import User from "Common/UI/Utils/User";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
@@ -47,6 +42,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 
 export type AffectedResourceType =
   | "Monitor"
@@ -57,6 +53,7 @@ export type AffectedResourceType =
   | "ProxmoxCluster"
   | "VMwareVCenter"
   | "CephCluster"
+  | "StorageArray"
   | "DockerSwarmCluster"
   | "IoTFleet"
   | "DatabaseServer"
@@ -94,6 +91,7 @@ export interface AffectedResourcesPayload {
   proxmoxClusters: Array<string> | undefined;
   vmwareVCenters: Array<string> | undefined;
   cephClusters: Array<string> | undefined;
+  storageArrays: Array<string> | undefined;
   dockerSwarmClusters: Array<string> | undefined;
   iotFleets: Array<string> | undefined;
   databaseServers: Array<string> | undefined;
@@ -115,6 +113,7 @@ export interface ComponentProps {
   proxmoxClusters?: Array<ProxmoxCluster> | undefined;
   vmwareVCenters?: Array<VMwareVCenter> | undefined;
   cephClusters?: Array<CephCluster> | undefined;
+  storageArrays?: Array<StorageArray> | undefined;
   dockerSwarmClusters?: Array<DockerSwarmCluster> | undefined;
   iotFleets?: Array<IoTFleet> | undefined;
   databaseServers?: Array<DatabaseServer> | undefined;
@@ -222,6 +221,14 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
     key: "cephClusters",
     supportsLabels: true,
   },
+  StorageArray: {
+    label: "Storage Array",
+    pluralLabel: "Storage Arrays",
+    icon: IconProp.StorageArray,
+    modelType: StorageArray,
+    key: "storageArrays",
+    supportsLabels: true,
+  },
   DockerSwarmCluster: {
     label: "Docker Swarm Cluster",
     pluralLabel: "Docker Swarm Clusters",
@@ -269,10 +276,11 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
 };
 
 /*
- * The default set. Proxmox / VMware / Ceph / Docker Swarm / IoT / Database are
- * deliberately NOT here: a page only gets them by naming them in `resourceTypes`,
- * because offering a type the page's onChange handler does not write
- * back would silently drop the user's selection on save.
+ * The default set. Proxmox / VMware / Ceph / Storage Array / Docker Swarm /
+ * IoT / Database are deliberately NOT here: a page only gets them by naming
+ * them in `resourceTypes`, because offering a type the page's onChange
+ * handler does not write back would silently drop the user's selection on
+ * save.
  */
 const ALL_TYPES: Array<AffectedResourceType> = [
   "Monitor",
@@ -586,29 +594,22 @@ const filterTypesByReadPermission: (types: Array<AffectedResourceType>) => {
   if (User.isMasterAdmin()) {
     return { allowed: types, denied: [] };
   }
-  const userPerms: UserTenantAccessPermission | null =
-    PermissionUtil.getProjectPermissions();
-  if (!userPerms || !userPerms.permissions) {
+  if (!PermissionGate.hasPermissionSnapshot()) {
     /*
      * No permissions cached yet — let the API decide; the catch block
      * around each request will silence per-type 403s.
      */
     return { allowed: types, denied: [] };
   }
-  const flatUserPerms: Array<Permission> = userPerms.permissions.map(
-    (p: UserPermission): Permission => {
-      return p.permission;
-    },
-  );
   const allowed: Array<AffectedResourceType> = [];
   const denied: Array<AffectedResourceType> = [];
   for (const type of types) {
     const cfg: ResourceConfig = RESOURCE_CONFIG[type];
-    const required: Array<Permission> = new cfg.modelType()
-      .readRecordPermissions;
+    const model: BaseModel = new cfg.modelType();
+    // The model's read gate, read the way the server reads it.
     if (
-      required.length === 0 ||
-      PermissionHelper.doesPermissionsIntersect(required, flatUserPerms)
+      model.readRecordPermissions.length === 0 ||
+      PermissionGate.check(model, ModelAction.Read).isAllowed
     ) {
       allowed.push(type);
     } else {
@@ -717,6 +718,11 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     if (resourceTypes.includes("CephCluster")) {
       items.push(...toItems(props.cephClusters, "CephCluster", cache, failed));
     }
+    if (resourceTypes.includes("StorageArray")) {
+      items.push(
+        ...toItems(props.storageArrays, "StorageArray", cache, failed),
+      );
+    }
     if (resourceTypes.includes("DockerSwarmCluster")) {
       items.push(
         ...toItems(
@@ -751,6 +757,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     props.proxmoxClusters,
     props.vmwareVCenters,
     props.cephClusters,
+    props.storageArrays,
     props.dockerSwarmClusters,
     props.iotFleets,
     props.databaseServers,
@@ -1208,6 +1215,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
       proxmoxClusters: idsFor("ProxmoxCluster"),
       vmwareVCenters: idsFor("VMwareVCenter"),
       cephClusters: idsFor("CephCluster"),
+      storageArrays: idsFor("StorageArray"),
       dockerSwarmClusters: idsFor("DockerSwarmCluster"),
       iotFleets: idsFor("IoTFleet"),
       databaseServers: idsFor("DatabaseServer"),

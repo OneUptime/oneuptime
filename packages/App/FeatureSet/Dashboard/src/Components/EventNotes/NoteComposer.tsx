@@ -79,9 +79,9 @@ export interface ComponentProps {
    */
   notifyAudience?: ReactElement | undefined;
   /*
-   * What the notification would look like ('Preview notification' for
-   * incident public notes), from the note as it is being written. Shown with
-   * the audience while the notify checkbox is ticked.
+   * What the notification would look like ('Preview' for incident public
+   * notes), from the note as it is being written. Shown beside the notify
+   * checkbox's label, on its line, while it is ticked.
    */
   notifyPreview?: ((values: NoteComposerValues) => ReactElement) | undefined;
   isPostedAtEditable: boolean;
@@ -427,12 +427,30 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
             className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
           />
           <div className="min-w-0">
-            <label
-              htmlFor={notifyId}
-              className="block cursor-pointer text-sm font-medium text-gray-900"
+            {/*
+             * The box and its preview on one line ("Notify status page
+             * subscribers · Preview"), as the summary of Declare Incident
+             * puts the preview beside its Yes. The preview wraps under the
+             * label when the two do not fit.
+             */}
+            <div
+              className="flex flex-wrap items-center gap-x-3 gap-y-0.5"
+              data-testid="note-notify-line"
             >
-              {tx(props.notifyOption.title)}
-            </label>
+              <label
+                htmlFor={notifyId}
+                className="block cursor-pointer text-sm font-medium text-gray-900"
+              >
+                {tx(props.notifyOption.title)}
+              </label>
+              {props.values.shouldNotify && props.notifyPreview ? (
+                <div className="flex" data-testid="note-notify-preview">
+                  {props.notifyPreview(props.values)}
+                </div>
+              ) : (
+                <></>
+              )}
+            </div>
             <p
               className="mt-0.5 text-xs text-gray-500"
               data-testid="note-notify-description"
@@ -446,13 +464,6 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
             {props.values.shouldNotify && props.notifyAudience ? (
               <div data-testid="note-notify-audience">
                 {props.notifyAudience}
-              </div>
-            ) : (
-              <></>
-            )}
-            {props.values.shouldNotify && props.notifyPreview ? (
-              <div data-testid="note-notify-preview">
-                {props.notifyPreview(props.values)}
               </div>
             ) : (
               <></>

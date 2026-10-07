@@ -115,11 +115,14 @@ import OnCallDutyPolicyScheduleOwnerTeamService from "../../../Server/Services/O
 import OnCallDutyPolicyScheduleService from "../../../Server/Services/OnCallDutyPolicyScheduleService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import TeamService from "../../../Server/Services/TeamService";
+import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
+import BillingPermissions from "../../../Server/Types/Database/Permissions/BillingPermission";
 import { ExpressRequest } from "../../../Server/Utils/Express";
 import OnCallCalendarFeedRenderer, {
   CachedScheduleSegments,
   ScheduleInfo,
 } from "../../../Server/Utils/OnCall/OnCallCalendarFeedRenderer";
+import OnCallDutyPolicySchedule from "../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../Types/Date";
@@ -155,6 +158,7 @@ import {
 import express from "express";
 import http from "http";
 import { AddressInfo } from "net";
+import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 
 // -- Harness ----------------------------------------------------------------
 
@@ -259,6 +263,7 @@ function buildMemberProps(data: {
   return {
     tenantId: data.projectId,
     userId: data.userId,
+    ...ON_HIGHEST_PLAN,
     userTenantAccessPermission: permissionMap,
   };
 }
@@ -1202,6 +1207,58 @@ describe("GET /on-call-schedule-timeline: the gate", () => {
       }),
     ).toBe(true);
     expect(teamFindBy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Working out who is on call over time is what the Growth plan sells. A
+ * project below it may still read the schedules it has - to find and delete
+ * them (Types/Billing/PlanGatedTable) - so the schedule read no longer
+ * stands in for the plan: the route asks it, before anything is read.
+ */
+describe("GET /on-call-schedule-timeline: the plan", () => {
+  test("the route asks the schedules' own plan for reading, with the caller's props", async () => {
+    const planCheck: jest.SpyInstance = jest.spyOn(
+      BillingPermissions,
+      "checkFeatureIsOnPlan",
+    );
+
+    const result: HttpResult = await request(timelinePath());
+
+    expect(result.status).toBe(200);
+    expect(planCheck).toHaveBeenCalledTimes(1);
+
+    const [modelType, props, type] = planCheck.mock.calls[0] as [
+      unknown,
+      DatabaseCommonInteractionProps,
+      DatabaseRequestType,
+    ];
+
+    expect(modelType).toBe(OnCallDutyPolicySchedule);
+    expect(type).toBe(DatabaseRequestType.Read);
+    expect(props.isRoot).toBeFalsy();
+    expect(props.tenantId?.toString()).toBe(projectId.toString());
+  });
+
+  test("below Growth the timeline is refused with the plan's name, and nothing is read or rendered", async () => {
+    jest
+      .spyOn(BillingPermissions, "checkFeatureIsOnPlan")
+      .mockImplementation((): void => {
+        throw new PaymentRequiredException(
+          "Please upgrade your plan to Growth to access this feature",
+        );
+      });
+
+    const result: HttpResult = await request(timelinePath());
+
+    expect(result.status).toBe(ExceptionCode.PaymentRequiredException);
+    expect(
+      (JSON.parse(result.body) as Record<string, unknown>)["message"],
+    ).toBe("Please upgrade your plan to Growth to access this feature");
+    expect(scheduleFindBy).not.toHaveBeenCalled();
+    expect(layerUserFindBy).not.toHaveBeenCalled();
+    expect(tryAcquireRenderSlot).not.toHaveBeenCalled();
+    expect(loadSegments).not.toHaveBeenCalled();
   });
 });
 

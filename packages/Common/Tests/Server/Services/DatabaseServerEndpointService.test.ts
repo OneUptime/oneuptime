@@ -40,6 +40,15 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { getJestSpyOn } from "../../Spy";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * DatabaseServerEndpointService - the one-owner-per-endpoint table.
@@ -599,6 +608,7 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
       DatabaseServerFeedService,
       "createDatabaseServerFeedItem",
     ).mockResolvedValue(undefined);
+    stubProjectDirectory({});
   });
 
   test("canonicalizes what was typed and forces a removable user alias", async () => {
@@ -718,7 +728,9 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
           }),
           props: memberProps(),
         }),
-      ).rejects.toThrow("Conflicting database references were provided.");
+      ).rejects.toThrow(
+        /^Conflicting database references were provided\. databaseServerId and databaseServer are names for the same field/i,
+      );
       expect(save).not.toHaveBeenCalled();
       expect(findParent).not.toHaveBeenCalled();
     });
@@ -764,6 +776,68 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
       const saved: any = save.mock.calls[0]![0];
       expect(saved.databaseServerId.toString()).toBe(DATABASE_ID.toString());
       expect(saved.databaseServer).toBeUndefined();
+    });
+  });
+
+  /*
+   * The project check every service runs (ProjectReferencesService) leaves
+   * the database to this service, so a person hears the same sentence for a
+   * database of another project, one that does not exist and one they may
+   * not edit. The check is real here: the project has DATABASE_ID only.
+   */
+  describe("the project check and the service's own answer agree", () => {
+    const MISSING_DATABASE_ID: ObjectID = new ObjectID(
+      "33333333-3333-4333-8333-333333333333",
+    );
+
+    beforeEach(() => {
+      addDatabase({ id: OTHER_DATABASE_ID, projectId: OTHER_PROJECT_ID });
+      stubProjectDirectory({
+        projectId: PROJECT_ID,
+        records: { DatabaseServer: [DATABASE_ID.toString()] },
+        elsewhere: [OTHER_DATABASE_ID.toString()],
+      });
+    });
+
+    test.each([
+      ["another project's database", OTHER_DATABASE_ID],
+      ["a database that does not exist", MISSING_DATABASE_ID],
+    ])(
+      "a person naming %s hears what a database they may not edit gets",
+      async (_case: string, databaseId: ObjectID) => {
+        await expect(
+          DatabaseServerEndpointService.create({
+            data: aliasRequest("orders-db.example.com", {
+              databaseServerId: databaseId,
+            }),
+            props: memberProps(),
+          }),
+        ).rejects.toThrow(
+          "Database not found, or you do not have permission to edit it.",
+        );
+        expect(save).not.toHaveBeenCalled();
+      },
+    );
+
+    test("a root write may name only the project's database", async () => {
+      for (const databaseId of [OTHER_DATABASE_ID, MISSING_DATABASE_ID]) {
+        const data: DatabaseServerEndpoint = aliasRequest(
+          "orders-db.example.com:5432",
+          { databaseServerId: databaseId },
+        );
+        data.projectId = PROJECT_ID;
+
+        await expect(
+          DatabaseServerEndpointService.create({
+            data: data,
+            props: { isRoot: true },
+          }),
+        ).rejects.toThrow(
+          `This database endpoint references records that are not in this project: Database "${databaseId.toString()}". Please pick values from this project and try again.`,
+        );
+      }
+
+      expect(save).not.toHaveBeenCalled();
     });
   });
 
@@ -1195,6 +1269,7 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
       ).mockResolvedValue(
         "[Database PostgreSQL orders-db.example.com:5432](/db)",
       );
+      stubProjectDirectory({});
     });
 
     test("an alias a person adds is an edit on the database's Feed, naming the endpoint and who added it", async () => {
@@ -1399,7 +1474,16 @@ describe("DatabaseServerEndpointService - removing endpoints", () => {
   });
 
   test("the lookup only looks inside the caller's project, as root", async () => {
-    const endpointId: string = ObjectID.generate().toString();
+    /*
+     * An endpoint of the caller's project, so the delete reaches its hook:
+     * DatabaseService runs no hook for a delete that names no row the caller
+     * may delete.
+     */
+    addDatabase({ id: DATABASE_ID });
+    const endpointId: string = addEndpoint({
+      databaseServerId: DATABASE_ID,
+      endpoint: "replica-db.example.com:5432",
+    }).id!.toString();
 
     await DatabaseServerEndpointService.deleteBy({
       query: { _id: endpointId, projectId: OTHER_PROJECT_ID },
@@ -1590,6 +1674,7 @@ describe("DatabaseServerEndpointService - removing endpoints", () => {
       ).mockResolvedValue(
         "[Database PostgreSQL orders-db.example.com:5432](/db)",
       );
+      stubProjectDirectory({});
     });
 
     test("an alias a person removes is an edit on its database's Feed, naming the endpoint and who removed it", async () => {
@@ -1726,6 +1811,7 @@ describe("DatabaseServerEndpointService - endpoint lifecycle", () => {
         service,
         "updateColumnsByIdWithoutHooks",
       ).mockResolvedValue(undefined);
+      stubProjectDirectory({});
     });
 
     test("a match after more than an hour moves lastMatchedAt to now, without bumping updatedAt", async () => {

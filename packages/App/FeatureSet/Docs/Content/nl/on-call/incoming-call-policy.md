@@ -162,30 +162,30 @@ Escalatieregels bepalen wie er gebeld wordt wanneer iemand het nummer van het be
 3. Klik op **Escalatieregel toevoegen**
 4. Vul de regel in. Het is één stap:
    - **Wie er gebeld wordt**: een bereikbaarheidsschema of één persoon. Een schema laat de telefoon overgaan van wie er op dat moment dienst heeft in dat schema. Personen zijn de leden van uw project.
-   - **Overgaan gedurende (in seconden)**: hoe lang hun telefoon overgaat voordat de oproep naar de volgende regel gaat. Dit begint op 30 seconden, en Twilio accepteert 5 tot 600.
+   - **Overgaan gedurende (in seconden)**: hoe lang hun telefoon overgaat voordat de oproep naar de volgende regel gaat. Dit begint op 20 seconden, en Twilio accepteert 5 tot 600.
    - **Naam** en **Beschrijving** zijn optioneel en staan onder **Meer velden**. Een regel zonder naam wordt getoond volgens zijn plaats in de lijst: **Level 1**, **Level 2**.
 5. Sla de regel op en voeg een regel toe voor elk schema of elke persoon die daarna geprobeerd moet worden
 
 Regels worden van boven naar beneden gebeld, en een nieuwe regel komt onderaan. Sleep een regel aan de greep linksboven om de volgorde te wijzigen; met het toetsenbord focust u de greep, drukt u op Spatie, verplaatst u de regel met de pijltjestoetsen en drukt u nogmaals op Spatie.
 
-> **Let op voicemail**: houd **Overgaan gedurende** korter dan de tijd waarna de telefoon van de persoon een onbeantwoorde oproep naar de voicemail stuurt. Neemt de voicemail eerst op, dan wordt de beller daarmee verbonden en gaat de oproep niet naar de volgende regel. Twilio voegt bij elke oproep zelf een paar seconden toe.
+> **Let op voicemail**: houd **Overgaan gedurende** korter dan de tijd waarna de telefoon van de persoon een onbeantwoorde oproep naar de voicemail stuurt. Neemt de voicemail eerst op, dan wordt de beller daarmee verbonden en gaat de oproep niet naar de volgende regel. Twilio voegt bij elke oproep zelf een paar seconden toe. Daarom begint een nieuwe regel op 20 seconden. Regels die zijn toegevoegd toen de standaard 30 seconden was, houden hun 30: komen hun oproepen in de voicemail terecht, verlaag dan bij die regels **Overgaan gedurende**.
 
 ### Voorbeeld van escalatieregel
 
 ```mermaid
 flowchart TD
     subgraph "Escalation Chain"
-        A[Level 1: Primary on-call schedule<br/>Ring for 30 seconds] --> B[Level 2: Secondary on-call schedule<br/>Ring for 30 seconds]
-        B --> C[Level 3: Engineering lead<br/>Ring for 30 seconds]
+        A[Level 1: Primary on-call schedule<br/>Ring for 20 seconds] --> B[Level 2: Secondary on-call schedule<br/>Ring for 20 seconds]
+        B --> C[Level 3: Engineering lead<br/>Ring for 20 seconds]
         C --> D[No Answer Message]
     end
 ```
 
 | Niveau  | Wie er gebeld wordt             | Overgaan gedurende |
 | ------- | ------------------------------- | ------------------ |
-| Level 1 | Primair bereikbaarheidsschema   | 30 seconden        |
-| Level 2 | Secundair bereikbaarheidsschema | 30 seconden        |
-| Level 3 | Engineeringleider (een persoon) | 30 seconden        |
+| Level 1 | Primair bereikbaarheidsschema   | 20 seconden        |
+| Level 2 | Secundair bereikbaarheidsschema | 20 seconden        |
+| Level 3 | Engineeringleider (een persoon) | 20 seconden        |
 
 ## Stap 7: Gespreksberichten configureren (optioneel)
 
@@ -215,11 +215,11 @@ Pas de berichten aan die bellers horen:
 | Instelling                       | Beschrijving                                                                                                                                                   |
 | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Wie er gebeld wordt              | Een bereikbaarheidsschema, dat belt wie er dienst heeft, of één persoon. Elke regel belt een van beide                                                        |
-| Overgaan gedurende (in seconden) | Hoe lang de telefoon overgaat voordat de oproep naar de volgende regel gaat (standaard: 30; van 5 tot 600)                                                    |
+| Overgaan gedurende (in seconden) | Hoe lang de telefoon overgaat voordat de oproep naar de volgende regel gaat (standaard: 20; van 5 tot 600)                                                    |
 | Naam en Beschrijving             | Optioneel, onder Meer velden. Een regel zonder naam wordt getoond als Level 1, Level 2 enzovoort, volgens zijn plaats in de lijst                             |
 | Volgorde                         | De plaats van de regel in de lijst: regels worden van boven naar beneden gebeld. Wijzig die door de regels te slepen; via de API komt een nieuwe regel zonder volgorde onderaan |
 
-Via de API stelt een regel `onCallDutyPolicyScheduleId` of `userId` in (een van beide, nooit allebei) en `escalateAfterSeconds`: hoe lang de telefoon overgaat, 30 als die wordt weggelaten.
+Via de API stelt een regel `onCallDutyPolicyScheduleId` of `userId` in (een van beide, nooit allebei) en `escalateAfterSeconds`: hoe lang de telefoon overgaat, 20 als die wordt weggelaten.
 
 ## Gesprekslogboeken bekijken
 
@@ -246,6 +246,8 @@ Gebruikers moeten een geverifieerd telefoonnummer hebben om inkomende gesprekken
 3. Verifieer het telefoonnummer via sms-code
 
 Alleen gebruikers met geverifieerde telefoonnummers kunnen worden gebeld via escalatieregels.
+
+Nummers voor inkomende gesprekken worden via sms geverifieerd, dus **SMS** moet eerst aan staan voor het project. Een projecteigenaar of iemand met **Billing Admin** of **Manage Billing** zet het aan in de kaart **Meldingskanalen** onder **Projectinstellingen > Meldingen > Meldingsinstellingen**.
 
 ## Een telefoonnummer vrijgeven
 

@@ -65,7 +65,15 @@ const MARKDOWN_EDITOR_FILE: string = path.join(
   "Common/UI/Components/Markdown.tsx/MarkdownEditor.tsx",
 );
 
-// Places, besides IncidentService's feed items, that put a title into Markdown.
+/*
+ * Places, besides IncidentService's feed items, that put a title into Markdown.
+ * Writes the lines of an incident's (and an alert's) "updated" feed item.
+ */
+const EVENT_FIELD_CHANGE_FILE: string = path.join(
+  REPO_ROOT,
+  "Common/Server/Utils/EventFieldChange.ts",
+);
+
 const EPISODE_MEMBER_SERVICE_FILE: string = path.join(
   REPO_ROOT,
   "Common/Server/Services/IncidentEpisodeMemberService.ts",
@@ -181,8 +189,10 @@ const DETAILS_STEP_IS_DASHBOARD_ONLY_TOO: Record<string, string> = {
 
 /*
  * createdIncidentTemplateId: the wording that told API users to send it, and
- * the words every remaining mention must carry instead - that a workflow or
- * an incident form sets it, or that a request sending it is refused.
+ * the words every remaining mention must carry instead - that an incident
+ * form sets it, or that a request sending it is refused. A workflow step
+ * acts as a Project Admin of its project (WorkflowPrincipal), and no role
+ * may send the column, so a step is refused it too.
  */
 const STALE_TEMPLATE_ID_CLAIMS: Record<string, ReadonlyArray<string>> = {
   en: [
@@ -200,8 +210,8 @@ const STALE_TEMPLATE_ID_CLAIMS: Record<string, ReadonlyArray<string>> = {
 };
 
 const TEMPLATE_ID_SETTERS: Record<string, ReadonlyArray<string>> = {
-  en: ["workflow", "is refused"],
-  fa: ["گردش کار", "رد می‌شود"],
+  en: ["form", "is refused"],
+  fa: ["فرم", "رد می‌شود"],
 };
 
 const TEMPLATE_ID_REFUSED: Record<string, string> = {
@@ -211,8 +221,8 @@ const TEMPLATE_ID_REFUSED: Record<string, string> = {
 
 // How the declaring page's note on it starts: a paragraph after the field list.
 const TEMPLATE_ID_NOTE_START: Record<string, string> = {
-  en: "An API key cannot declare from a template",
-  fa: "کلید API نمی‌تواند از روی قالب اعلام کند",
+  en: "An API key or a workflow step cannot declare from a template",
+  fa: "کلید API یا گام یک گردش کار نمی‌تواند از روی قالب اعلام کند",
 };
 
 /*
@@ -795,8 +805,13 @@ describe("Incident docs", () => {
       expect(incidentService).toMatch(
         /\*\*\$\{escapeMarkdownValue\(incident\.title \|\| "No title provided\."\)\}\*\*/,
       );
-      expect(incidentService).toMatch(
-        /escapeMarkdownValue\(\s*\(updatedIncidentData\.title as string\)/,
+      /*
+       * The "updated" item's lines - the new title among them - are written
+       * by EventFieldChange, which alerts share.
+       */
+      expect(incidentService).toMatch(/EventFieldChange\.getFeedMarkdown\(/);
+      expect(readSource(EVENT_FIELD_CHANGE_FILE)).toMatch(
+        /data\.column === "title"\s*\?\s*escapeMarkdownValue\(text\)/,
       );
 
       // The items for joining or leaving an episode, on both feeds.
@@ -1129,7 +1144,7 @@ describe("Incident docs", () => {
   });
 
   describe("createdIncidentTemplateId", () => {
-    it("can only be set by OneUptime itself: no role may send it, workflows create as root, and a state skips the template", () => {
+    it("can only be set by OneUptime itself: no role may send it, a workflow step neither, and a state skips the template", () => {
       const access: ColumnAccessControl | null =
         new Incident().getColumnAccessControlFor("createdIncidentTemplateId");
 
@@ -1137,11 +1152,17 @@ describe("Incident docs", () => {
       expect(access?.create).toEqual([]);
       expect(access?.update).toEqual([]);
 
-      expect(readSource(WORKFLOW_CREATE_COMPONENT_FILE)).toMatch(
-        /this\.modelService\.create\(\{[\s\S]*?props:\s*\{\s*isRoot:\s*true,/,
+      // A workflow's create acts as a Project Admin of its project, not as root.
+      const createComponent: string = readSource(
+        WORKFLOW_CREATE_COMPONENT_FILE,
       );
+
+      expect(createComponent).toMatch(
+        /this\.modelService\.create\(\{[\s\S]*?props:\s*await this\.getStepProps\(options\),/,
+      );
+      expect(createComponent).not.toMatch(/isRoot\s*:/);
       expect(readSource(INCIDENT_SERVICE_FILE)).toMatch(
-        /if \(createBy\.data\.currentIncidentStateId\) \{[\s\S]*?\} else if \(createBy\.data\.createdIncidentTemplateId\) \{/,
+        /if \(pickedIncidentStateId\) \{[\s\S]*?\} else if \(incidentTemplateId\) \{/,
       );
     });
 
@@ -1218,7 +1239,7 @@ describe("Incident docs", () => {
       }
     });
 
-    it("is not implied by the status page guide either: a workflow or an incident form declares from a template, in every language", () => {
+    it("is not implied by the status page guide either: an incident form declares from a template, never a workflow step, in every language", () => {
       for (const language of LANGUAGES) {
         const markdown: string = readPage(STATUS_PAGE_SCOPE_PAGE, language);
         const paragraph: string =
@@ -1239,7 +1260,7 @@ describe("Incident docs", () => {
         }).toEqual({
           language: language,
           stale: false,
-          workflow: true,
+          workflow: false,
           form: true,
         });
       }

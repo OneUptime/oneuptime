@@ -1252,7 +1252,7 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
         compliantCount: 1,
         nonCompliantCount: 2,
         warnings: [
-          "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. Turn them on in Project Settings > Notification Settings.",
+          "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notification Settings.",
         ],
       },
     ]);
@@ -1422,7 +1422,7 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
       ComplianceNotificationChannel.SMS,
     ]);
     expect(rulesOf(payload)[0]!["warnings"]).toEqual([
-      "Call and SMS notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. Turn them on in Project Settings > Notification Settings.",
+      "Call and SMS notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notification Settings.",
     ]);
     // The switches are the rule's problem; Ada fails only on what she lacks.
     expect(reasonsFor(payload, ada)).toEqual([

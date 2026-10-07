@@ -13,10 +13,16 @@ import WorkspaceType, {
 } from "Common/Types/Workspace/WorkspaceType";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  FunctionComponent,
+  MutableRefObject,
+  ReactElement,
+  useRef,
+} from "react";
 import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
+import { isFilterConditionNeeded } from "Common/Types/Filter/FilterConditionUtil";
 import NotificationRuleConditions from "./NotificationRuleConditions";
 import NotificationRuleCondition from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
 import Field from "Common/UI/Components/Forms/Types/Field";
@@ -82,27 +88,22 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
     | AlertNotificationRule
     | ScheduledMaintenanceNotificationRule;
 
-  // When the rule fires.
-  const conditionFields: Array<Field<NotificationRulesType>> = [
-    {
-      field: {
-        filterCondition: true,
-      },
-      title: "Filter Condition",
-      fieldType: FormFieldSchemaType.RadioButton,
-      required: true,
-      radioButtonOptions: [
-        {
-          title: "Any",
-          value: FilterCondition.Any,
-        },
-        {
-          title: "All",
+  // The rule as it is on this render, for handlers drawn on an earlier one.
+  const latestValue: MutableRefObject<IncidentNotificationRule | undefined> =
+    useRef<IncidentNotificationRule | undefined>(props.value);
+  latestValue.current = props.value;
 
-          value: FilterCondition.All,
-        },
-      ],
-    },
+  /*
+   * When the rule fires: its conditions, then - once there are two to
+   * combine - whether all of them must be met or any one is enough
+   * (isFilterConditionNeeded). With one condition, All and Any fire on the
+   * same events: the rule's conditions step refuses a condition without an
+   * operator, the only kind the matcher (WorkspaceNotificationRuleUtil)
+   * reads differently under the two. Hidden, the choice keeps what the rule
+   * holds - All for a new rule (WorkspaceNotificationRulesTable) - and the
+   * rule is saved with it, so it fires exactly as it would have.
+   */
+  const conditionFields: Array<Field<NotificationRulesType>> = [
     {
       field: {
         filters: true,
@@ -124,8 +125,14 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
             monitorStatus={props.monitorStatus}
             onChange={(value: Array<NotificationRuleCondition>) => {
               if (props.onChange) {
+                /*
+                 * Onto the rule as it is now, not as it was when this
+                 * element was drawn: BasicForm keeps its fields - and this
+                 * closure - a render behind, so a condition removed right
+                 * after Any was picked handed the old match condition back.
+                 */
                 props.onChange({
-                  ...props.value!,
+                  ...latestValue.current!,
                   filters: value,
                 });
               }
@@ -133,6 +140,28 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
             value={props.value?.filters || []}
           />
         );
+      },
+    },
+    {
+      field: {
+        filterCondition: true,
+      },
+      title: "Match Condition",
+      description: "Should all conditions match, or just any one of them?",
+      fieldType: FormFieldSchemaType.RadioButton,
+      required: true,
+      radioButtonOptions: [
+        {
+          title: "All",
+          value: FilterCondition.All,
+        },
+        {
+          title: "Any",
+          value: FilterCondition.Any,
+        },
+      ],
+      showIf: (formValue: FormValues<NotificationRulesType>): boolean => {
+        return isFilterConditionNeeded(formValue.filters);
       },
     },
   ];

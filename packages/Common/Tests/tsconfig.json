@@ -1,9 +1,10 @@
 {
   /*
    * The project every file in this directory belongs to: exactly
-   * ../tsconfig.tests.json, the program `npm run compile-tests` type-checks.
-   * Its "include" and "exclude" are inherited and resolve against
-   * packages/Common, where they are written.
+   * ../tsconfig.tests.json, the program `npm run compile-tests` type-checks
+   * (in parts - see ../Scripts/compile-tests.js). Its "include" and
+   * "exclude" are inherited and resolve against packages/Common, where they
+   * are written.
    *
    * It exists because TypeScript picks a file's project by the nearest
    * tsconfig.json - editors, and ESLint's typed linting (projectService in

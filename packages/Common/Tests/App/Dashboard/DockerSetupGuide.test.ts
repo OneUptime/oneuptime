@@ -13,6 +13,9 @@ import {
   DOCKER_EXAMPLE_HOST_NAME,
   DOCKER_INSTALL_METHODS,
   DockerInstallMethod,
+  DOCKER_AI_AGENT_TOPIC_TITLE,
+  getDockerAiAgentComposeService,
+  getDockerAiAgentRunCommand,
   getDockerComposeFile,
   getDockerRunCommand,
   getDockerSetupGuide,
@@ -35,7 +38,10 @@ import {
  *
  *   - the reader's URL and key in every command and file that needs them;
  *   - only the chosen way's commands on screen;
- *   - configuration, the AI agent, upgrades and the log driver folded under
+ *   - the OneUptime AI agent started with the collector — AI investigations
+ *     are on by default, as with agents/DockerAgent's own install.sh and
+ *     docker-compose.yml — with how to install without it;
+ *   - configuration, fixes, upgrades and the log driver folded under
  *     Advanced, known problems under Troubleshooting;
  *   - that every image, container name, mount and variable the guide uses
  *     is the one agents/DockerAgent really ships — the guide is copied by
@@ -358,8 +364,10 @@ describe.each(METHODS)("the %s guide", (method: DockerInstallMethod) => {
     const steps: string = stepsText(guide);
     for (const advanced of [
       "DOCKER_API_VERSION",
-      "ONEUPTIME_AI_",
-      DOCKER_AI_AGENT_IMAGE,
+      // Fixes are opt-in: their switches stay under Advanced.
+      "ONEUPTIME_AI_ALLOW_WRITES",
+      "ONEUPTIME_AI_WRITE_TARGETS",
+      "ONEUPTIME_AI_PROTECTED_TARGETS",
       "daemon.json",
       "docker pull",
       "docker rm",
@@ -397,7 +405,7 @@ describe.each(METHODS)("the %s guide", (method: DockerInstallMethod) => {
     expect(titles(guide.advanced)).toEqual([
       "Environment variables",
       "Collect logs from every container (json-file log driver)",
-      "Add the OneUptime AI agent",
+      DOCKER_AI_AGENT_TOPIC_TITLE,
       "Pin the image version",
       "Upgrade or uninstall the agent",
       "What the agent collects",
@@ -499,26 +507,97 @@ describe.each(METHODS)("the %s guide", (method: DockerInstallMethod) => {
     }
   });
 
-  test("the AI agent topic starts it the way this method runs things", () => {
-    const topic: string = topicTitled(
-      guide.advanced,
-      "Add the OneUptime AI agent",
-    ).markdown;
-    expect(topic).toContain(DOCKER_AI_AGENT_IMAGE);
-    expect(topic).toContain(DOCKER_AI_AGENT_CONTAINER_NAME);
-    expect(topic).toContain("ONEUPTIME_AI_AGENT_RESOURCE_TYPE=docker");
-    expect(topic).toContain("**AI → AI agent**");
+  /*
+   * AI investigations are on by default, as with agents/DockerAgent's own
+   * install.sh and docker-compose.yml: the install step starts the AI agent
+   * beside the collector, with the same URL, key and host name.
+   */
+  test("the install step starts the AI agent beside the collector, the way this method runs things", () => {
+    const install: string = guide.steps[0]!.markdown || "";
+    const values: { oneuptimeUrl: string; apiKey: string; hostName: string } = {
+      oneuptimeUrl: URL,
+      apiKey: KEY,
+      hostName: DOCKER_EXAMPLE_HOST_NAME,
+    };
+
+    expect(install).toContain(DOCKER_AI_AGENT_IMAGE);
+    expect(install).toContain("ONEUPTIME_AI_AGENT_RESOURCE_TYPE=docker");
     if (isCli) {
-      expect(topic).toContain(`--name ${DOCKER_AI_AGENT_CONTAINER_NAME}`);
-      expect(topic).toContain("-e ONEUPTIME_AI_ALLOW_WRITES=true");
-      expect(topic).toContain(
+      const collector: number = install.indexOf(getDockerRunCommand(values));
+      const aiAgent: number = install.indexOf(
+        getDockerAiAgentRunCommand(values),
+      );
+      expect(collector).toBeGreaterThan(-1);
+      // After the collector, in a code block of its own.
+      expect(aiAgent).toBeGreaterThan(collector);
+      expect(install).toContain(
+        `\`\`\`bash\n${getDockerAiAgentRunCommand(values)}\n\`\`\``,
+      );
+      expect(install).toContain(`--name ${DOCKER_AI_AGENT_CONTAINER_NAME}`);
+      expect(getDockerAiAgentRunCommand(values)).toContain(
         `-e DOCKER_HOST_NAME="${DOCKER_EXAMPLE_HOST_NAME}"`,
       );
     } else {
-      expect(topic).toContain(`  ${DOCKER_AI_AGENT_CONTAINER_NAME}:\n`);
-      expect(topic).toContain("- ONEUPTIME_AI_ALLOW_WRITES=true");
-      expect(topic).toContain(`- DOCKER_HOST_NAME=${DOCKER_EXAMPLE_HOST_NAME}`);
+      const services: Record<string, ComposeService> = composeServices(
+        getDockerComposeFile(values),
+      );
+      expect(Object.keys(services)).toEqual([
+        DOCKER_AGENT_CONTAINER_NAME,
+        DOCKER_AI_AGENT_CONTAINER_NAME,
+      ]);
+      expect(
+        services[DOCKER_AI_AGENT_CONTAINER_NAME]!["environment"],
+      ).toContain(`DOCKER_HOST_NAME=${DOCKER_EXAMPLE_HOST_NAME}`);
+      expect(install).toContain(getDockerAiAgentComposeService(values));
+      // `docker compose up -d` in the next step starts both.
+      expect(guide.steps[1]!.markdown).toContain("docker compose up -d");
     }
+  });
+
+  test("the install step says AI investigations are on by default, and how to install without them", () => {
+    const install: string = guide.steps[0]!.markdown || "";
+    expect(install).toContain("**AI investigations are on by default**");
+    expect(install).toContain("read-only `docker` commands");
+    expect(install).toContain("changes nothing unless you allow fixes");
+    expect(install).toContain(
+      `see **${DOCKER_AI_AGENT_TOPIC_TITLE}** under Advanced`,
+    );
+    expect(install).toContain(
+      isCli
+        ? "Skip this command to run the collector without AI investigations."
+        : `Delete the \`${DOCKER_AI_AGENT_CONTAINER_NAME}\` service to run the collector without AI investigations.`,
+    );
+  });
+
+  test("the AI agent topic says how to allow fixes and how to leave it out, the way this method runs things", () => {
+    expect(DOCKER_AI_AGENT_TOPIC_TITLE).toBe("The OneUptime AI agent");
+    const topic: SetupGuideTopic = topicTitled(
+      guide.advanced,
+      DOCKER_AI_AGENT_TOPIC_TITLE,
+    );
+    expect(topic.summary).toContain("On by default");
+    expect(topic.markdown).toContain(`\`${DOCKER_AI_AGENT_CONTAINER_NAME}\``);
+    expect(topic.markdown).toContain("**AI investigations are on by default**");
+    expect(topic.markdown).toContain("**AI → AI agent**");
+    expect(topic.markdown).toContain("**What AI may do**");
+    expect(topic.markdown).toContain("**Overview**");
+    if (isCli) {
+      expect(topic.markdown).toContain("-e ONEUPTIME_AI_ALLOW_WRITES=true");
+      expect(topic.markdown).toContain(
+        `\`docker rm -f ${DOCKER_AI_AGENT_CONTAINER_NAME}\``,
+      );
+    } else {
+      expect(topic.markdown).toContain("- ONEUPTIME_AI_ALLOW_WRITES=true");
+      expect(topic.markdown).toContain(
+        "`docker compose up -d --remove-orphans`",
+      );
+    }
+  });
+
+  test("the verify step says where the AI agent shows up", () => {
+    const verify: string = guide.steps[guide.steps.length - 1]!.markdown || "";
+    expect(verify).toContain("**AI → AI agent**");
+    expect(verify).toContain("**Overview**");
   });
 
   test("upgrades and uninstalls the way this method installed", () => {
@@ -527,9 +606,17 @@ describe.each(METHODS)("the %s guide", (method: DockerInstallMethod) => {
       "Upgrade or uninstall the agent",
     ).markdown;
     if (isCli) {
+      /*
+       * The AI agent is part of the install, so the one upgrade command
+       * pulls and removes both, and says it only once.
+       */
       expect(topic).toContain(
-        `docker pull ${DOCKER_AGENT_IMAGE}\ndocker rm -f ${DOCKER_AGENT_CONTAINER_NAME}`,
+        `docker pull ${DOCKER_AGENT_IMAGE}\ndocker pull ${DOCKER_AI_AGENT_IMAGE}\ndocker rm -f ${DOCKER_AGENT_CONTAINER_NAME} ${DOCKER_AI_AGENT_CONTAINER_NAME}`,
       );
+      expect(topic.split(`docker pull ${DOCKER_AI_AGENT_IMAGE}`)).toHaveLength(
+        2,
+      );
+      expect(topic).toContain("run both `docker run` commands from step 2");
       expect(topic).toContain(`docker rm -f ${DOCKER_AI_AGENT_CONTAINER_NAME}`);
     } else {
       expect(topic).toContain("docker compose pull\ndocker compose up -d");
@@ -808,12 +895,12 @@ describe("the guide matches agents/DockerAgent", () => {
   });
 
   test("the AI agent's compose service is a part of the agent's own", () => {
-    const serviceBlock: string = composeMarkdown.match(
-      /```yaml\n( {2}oneuptime-docker-ai-agent:[\s\S]*?)```/,
+    // The install step's docker-compose.yml, with both services.
+    const file: string = composeMarkdown.match(
+      /```yaml\n(services:\n[\s\S]*?)```/,
     )![1]!;
-    const service: ComposeService = composeServices(
-      `services:\n${serviceBlock}`,
-    )[DOCKER_AI_AGENT_CONTAINER_NAME]!;
+    const service: ComposeService =
+      composeServices(file)[DOCKER_AI_AGENT_CONTAINER_NAME]!;
 
     for (const key of Object.keys(service)) {
       if (key === "environment") {

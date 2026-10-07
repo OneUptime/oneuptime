@@ -19,6 +19,8 @@ Projekt-SCIM ermöglicht Identity Providern, Teammitglieder innerhalb von OneUpt
 
 ### Projekt-SCIM einrichten
 
+Nur ein Projekteigentümer kann die SCIM-Verbindung eines Projekts hinzufügen oder ändern oder ihr Bearer-Token anzeigen oder zurücksetzen: Über SCIM kann Ihr Identity Provider Personen zu jedem Team im Projekt hinzufügen.
+
 1. **Zu Projekteinstellungen navigieren**
 
    - Gehen Sie zu Ihrem OneUptime-Projekt

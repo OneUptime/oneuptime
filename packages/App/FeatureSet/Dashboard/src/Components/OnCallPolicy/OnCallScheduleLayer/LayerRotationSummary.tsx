@@ -1,4 +1,8 @@
-import { getColorForUserId, getUserInitials } from "./LayerUserColors";
+import {
+  UserAvatarStyle,
+  getUserAvatarStyle,
+  getUserInitials,
+} from "./LayerUserColors";
 import {
   formatDurationFromSeconds,
   formatRelativeStart,
@@ -56,7 +60,8 @@ export interface ComponentProps {
 
 interface UserDisplay {
   name: string;
-  color: string;
+  // The person's colour and the initials' colour on it, as every card draws them.
+  avatarStyle: UserAvatarStyle;
   initials: string;
   /*
    * True when this person is covering via an override rather than through the
@@ -101,7 +106,7 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
     if (!usersById[userId]) {
       usersById[userId] = {
         name,
-        color: getColorForUserId(userId),
+        avatarStyle: getUserAvatarStyle(userId),
         initials: getUserInitials(
           user?.name?.toString() || "",
           user?.email?.toString() || "",
@@ -144,7 +149,7 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
           substitute.name ||
           substitute.email ||
           translator.translateTemplate("Unknown user"),
-        color: getColorForUserId(userId),
+        avatarStyle: getUserAvatarStyle(userId),
         initials: getUserInitials(
           substitute.name || "",
           substitute.email || "",
@@ -155,7 +160,7 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
 
     return {
       name: translator.translateTemplate("Unknown user"),
-      color: getColorForUserId(userId),
+      avatarStyle: getUserAvatarStyle(userId),
       initials: "?",
     };
   };
@@ -252,8 +257,8 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
             <React.Fragment key={`order-${i}`}>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-white py-0.5 pl-0.5 pr-2 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200">
                 <span
-                  className="inline-flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-semibold text-white"
-                  style={{ backgroundColor: user.color }}
+                  className="inline-flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-semibold"
+                  style={user.avatarStyle}
                 >
                   {user.initials}
                 </span>
@@ -293,8 +298,8 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
         }`}
       >
         <span
-          className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white"
-          style={{ backgroundColor: user.color }}
+          className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-semibold"
+          style={user.avatarStyle}
         >
           {user.initials}
         </span>

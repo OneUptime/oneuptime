@@ -15,12 +15,21 @@ import { DetailStyle } from "Common/UI/Components/Detail/Detail";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import AffectedResourcesDisplay from "../../../Components/AffectedResources/AffectedResourcesDisplay";
-import { getScheduledMaintenanceAffectedResourcesFormFields } from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceAffectedResourcesFormFields";
+import {
+  getScheduledMaintenanceAffectedResourcesFormFields,
+  getScheduledMaintenanceAffectedResourcesOnBeforeUpdate,
+} from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceAffectedResourcesFormFields";
+import { hasScheduledMaintenanceEventStarted } from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceMonitorStatus";
+import ChangeMonitorStatusToElement from "../../../Components/MonitorStatus/ChangeMonitorStatusToElement";
+import ProjectUtil from "Common/UI/Utils/Project";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
 import EventMeasurementsCard from "../../../Components/Measurement/EventMeasurementsCard";
 import {
@@ -206,7 +215,57 @@ export const ScheduledMaintenanceWindowStats: FunctionComponent<
 interface LoadedScheduledMaintenance {
   modelId: string;
   item: ScheduledMaintenance;
+  /*
+   * The project's states, with their places and flags: with the event's
+   * own state, what tells whether it has started.
+   */
+  states: Array<ScheduledMaintenanceState>;
 }
+
+/*
+ * The project's scheduled maintenance states, in their order, with what
+ * tells one kind from another. Read with the event, for whether it has
+ * started (its Change Monitor Status to can be changed until then). A
+ * failed read answers no states rather than failing the page: the event's
+ * own state still decides for the built-in states, and the server refuses
+ * a change after the start whatever the page shows.
+ */
+const fetchScheduledMaintenanceStates: () => Promise<
+  Array<ScheduledMaintenanceState>
+> = async (): Promise<Array<ScheduledMaintenanceState>> => {
+  const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+  if (!projectId) {
+    return [];
+  }
+
+  try {
+    const states: ListResult<ScheduledMaintenanceState> =
+      await ModelAPI.getList<ScheduledMaintenanceState>({
+        modelType: ScheduledMaintenanceState,
+        query: {
+          projectId: projectId,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: {
+          _id: true,
+          order: true,
+          isScheduledState: true,
+          isOngoingState: true,
+          isEndedState: true,
+          isResolvedState: true,
+        },
+        sort: {
+          order: SortOrder.Ascending,
+        },
+      });
+
+    return states.data;
+  } catch {
+    return [];
+  }
+};
 
 // A failed resend, stamped with the event it failed for.
 interface ResendNotificationErrorState {
@@ -245,6 +304,10 @@ const ScheduledMaintenanceView: FunctionComponent<
       latestRequestRef.current = requestNumber;
 
       try {
+        // Out together with the event's own read.
+        const statesRequest: Promise<Array<ScheduledMaintenanceState>> =
+          fetchScheduledMaintenanceStates();
+
         const item: ScheduledMaintenance | null =
           await ModelAPI.getItem<ScheduledMaintenance>({
             modelType: ScheduledMaintenance,
@@ -271,15 +334,22 @@ const ScheduledMaintenanceView: FunctionComponent<
               /*
                * For the Measurements card: whether the event has ended
                * (nothing it waits for comes after that), and which state it
-               * is in (a new one is when its values can have changed).
+               * is in (a new one is when its values can have changed). With
+               * its place and the other flags, whether it has started: its
+               * Change Monitor Status to can be changed until then.
                */
               currentScheduledMaintenanceState: {
                 _id: true,
+                order: true,
+                isScheduledState: true,
+                isOngoingState: true,
                 isEndedState: true,
                 isResolvedState: true,
               },
             },
           });
+
+        const states: Array<ScheduledMaintenanceState> = await statesRequest;
 
         // A newer request (another event, or a later refresh) owns the page now.
         if (requestNumber !== latestRequestRef.current) {
@@ -287,7 +357,11 @@ const ScheduledMaintenanceView: FunctionComponent<
         }
 
         if (item) {
-          setLoadedEvent({ modelId: modelIdString, item: item });
+          setLoadedEvent({
+            modelId: modelIdString,
+            item: item,
+            states: states,
+          });
           setLoadError("");
         } else {
           setLoadedEvent(null);
@@ -378,6 +452,14 @@ const ScheduledMaintenanceView: FunctionComponent<
 
   const scheduledMaintenance: ScheduledMaintenance | undefined =
     loadedEvent?.item;
+  /*
+   * Whether the event has started: its Change Monitor Status to can be
+   * changed until then, and is read-only after (Affected Resources).
+   */
+  const hasEventStarted: boolean = hasScheduledMaintenanceEventStarted({
+    states: loadedEvent?.states || [],
+    currentState: scheduledMaintenance?.currentScheduledMaintenanceState,
+  });
   const eventStartsAt: Date | undefined = scheduledMaintenance?.startsAt;
   const eventEndsAt: Date | undefined = scheduledMaintenance?.endsAt;
   const eventTitle: string | undefined =
@@ -809,9 +891,18 @@ const ScheduledMaintenanceView: FunctionComponent<
             }}
             /*
              * Split as Create Scheduled Maintenance Event is: the monitors
-             * on their own, and everything else the event affects below.
+             * on their own, the status they change to under them, and
+             * everything else the event affects below. The status can be
+             * changed until the event starts, and is read-only after.
              */
-            formFields={getScheduledMaintenanceAffectedResourcesFormFields()}
+            onBeforeUpdate={getScheduledMaintenanceAffectedResourcesOnBeforeUpdate(
+              {
+                hasEventStarted: hasEventStarted,
+              },
+            )}
+            formFields={getScheduledMaintenanceAffectedResourcesFormFields({
+              hasEventStarted: hasEventStarted,
+            })}
             modelDetailProps={{
               showDetailsInNumberOfColumns: 1,
               /*
@@ -858,6 +949,10 @@ const ScheduledMaintenanceView: FunctionComponent<
                       name: true,
                       _id: true,
                     },
+                    storageArrays: {
+                      name: true,
+                      _id: true,
+                    },
                     dockerSwarmClusters: {
                       name: true,
                       _id: true,
@@ -893,12 +988,38 @@ const ScheduledMaintenanceView: FunctionComponent<
                         proxmoxClusters={item.proxmoxClusters || []}
                         vmwareVCenters={item.vmwareVCenters || []}
                         cephClusters={item.cephClusters || []}
+                        storageArrays={item.storageArrays || []}
                         dockerSwarmClusters={item.dockerSwarmClusters || []}
                         iotFleets={item.iotFleets || []}
                         databaseServers={item.databaseServers || []}
                         networkSites={item.networkSites || []}
                         services={item.services || []}
                         columns={1}
+                      />
+                    );
+                  },
+                },
+                /*
+                 * What its Edit asks under the monitors, shown with them:
+                 * the status they change to when the event starts. Left out
+                 * while the event has no monitor, as the Edit leaves it out.
+                 */
+                {
+                  field: {
+                    changeMonitorStatusTo: {
+                      name: true,
+                      color: true,
+                    },
+                  },
+                  title: "Change Monitor Status to",
+                  fieldType: FieldType.Entity,
+                  showIf: (item: ScheduledMaintenance): boolean => {
+                    return (item.monitors || []).length > 0;
+                  },
+                  getElement: (item: ScheduledMaintenance): ReactElement => {
+                    return (
+                      <ChangeMonitorStatusToElement
+                        monitorStatus={item.changeMonitorStatusTo}
                       />
                     );
                   },

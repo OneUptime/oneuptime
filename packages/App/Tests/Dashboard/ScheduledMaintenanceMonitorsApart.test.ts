@@ -10,6 +10,7 @@ import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import Permission from "Common/Types/Permission";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -32,8 +33,11 @@ import path from "path";
  *   - a template always asks for it: it also applies to the monitors picked
  *     when an event is scheduled from the template, and to the events a
  *     recurring template schedules;
- *   - the event's Edit has no status at all, as before: the API takes an
- *     event's monitor status on create only.
+ *   - the event's Edit asks for it as Create does - once a monitor is
+ *     picked - until the event starts (the maintainer's decision); once the
+ *     event has started it shows the status read-only, with why, and the
+ *     save sends none (ScheduledMaintenanceMonitorStatus). The server
+ *     refuses a change after the start too.
  *
  * The rules are checked directly; the forms are read from source, as React
  * components that an App test must not import.
@@ -70,6 +74,7 @@ const EVENT_OTHER_TYPES: Array<string> = [
   "ProxmoxCluster",
   "VMwareVCenter",
   "CephCluster",
+  "StorageArray",
   "DockerSwarmCluster",
   "IoTFleet",
   "DatabaseServer",
@@ -148,9 +153,9 @@ describe("the rules, on a scheduled maintenance event", () => {
 });
 
 /*
- * Why the event's Edit asks for no status: the API takes the event's
- * monitor status on create only. Should that change, the Edit can ask for
- * it under the monitors, as Create does - and this is the test to revisit.
+ * What lets the event's Edit ask for the status: whoever may edit the event
+ * may change it, through the relation the form writes as through its ID
+ * column. Until the event starts, that is - the server holds that line.
  */
 describe("the columns the forms write", () => {
   function updatePermissions(
@@ -163,10 +168,21 @@ describe("the columns the forms write", () => {
     return access[column]?.update;
   }
 
-  test("an event's monitor status is chosen when it is created, and taken by no update", () => {
+  test("an event's monitor status is changed by whoever edits the event, by either name", () => {
     const event: ScheduledMaintenance = new ScheduledMaintenance();
+    const editors: Array<Permission> = [...event.getUpdatePermissions()].sort();
 
-    expect(updatePermissions(event, "changeMonitorStatusTo")).toEqual([]);
+    expect(editors).toContain(Permission.EditProjectScheduledMaintenance);
+    expect(
+      [...(updatePermissions(event, "changeMonitorStatusTo") || [])].sort(),
+    ).toEqual(editors);
+    expect(
+      [...(updatePermissions(event, "changeMonitorStatusToId") || [])].sort(),
+    ).toEqual(editors);
+    // The same people who edit its monitors.
+    expect([...(updatePermissions(event, "monitors") || [])].sort()).toEqual(
+      editors,
+    );
     expect(
       (
         event.getColumnAccessControlForAllColumns()["changeMonitorStatusTo"]
@@ -191,13 +207,27 @@ describe("the columns the forms write", () => {
     }
   });
 
-  test("a template's status is chosen with the template, as an event's is", () => {
+  /*
+   * A template's status is changed on its Affected Resources card too: by
+   * whoever may edit the template, through the relation the card writes as
+   * through its ID column - at any time, as a template never starts.
+   */
+  test("a template's status is changed by whoever edits the template, by either name", () => {
+    const template: ScheduledMaintenanceTemplate =
+      new ScheduledMaintenanceTemplate();
+    const editors: Array<Permission> = [
+      ...template.getUpdatePermissions(),
+    ].sort();
+
+    expect(editors).toContain(Permission.EditScheduledMaintenanceTemplate);
     expect(
-      updatePermissions(
-        new ScheduledMaintenanceTemplate(),
-        "changeMonitorStatusTo",
-      ),
-    ).toEqual([]);
+      [...(updatePermissions(template, "changeMonitorStatusTo") || [])].sort(),
+    ).toEqual(editors);
+    expect(
+      [
+        ...(updatePermissions(template, "changeMonitorStatusToId") || []),
+      ].sort(),
+    ).toEqual(editors);
   });
 });
 
@@ -221,6 +251,28 @@ function objectAround(source: string, marker: string): string {
     throw new Error(`Expected exactly one ${marker}`);
   }
 
+  return objectAt(source, at, marker);
+}
+
+// Every object literal around `marker`, in source order. Throws if none.
+function objectsAround(source: string, marker: string): Array<string> {
+  const objects: Array<string> = [];
+  let at: number = source.indexOf(marker);
+
+  while (at >= 0) {
+    objects.push(objectAt(source, at, marker));
+    at = source.indexOf(marker, at + 1);
+  }
+
+  if (objects.length === 0) {
+    throw new Error(`Expected ${marker}`);
+  }
+
+  return objects;
+}
+
+// The object literal around the marker found at `at`.
+function objectAt(source: string, at: number, marker: string): string {
   let depth: number = 0;
   let start: number = -1;
 
@@ -304,11 +356,17 @@ function fieldOrder(source: string, keys: Array<string>): Array<string> {
 enum StatusRule {
   // Asked once a monitor is picked, and never sent without one.
   OnceAMonitorIsPicked = "once a monitor is picked",
+  /*
+   * As OnceAMonitorIsPicked until the event starts; from then on shown
+   * read-only, with why, and never sent.
+   */
+  UntilTheEventStarts = "once a monitor is picked, until the event starts",
   // Always asked: it also applies to the monitors picked later.
   Always = "always",
-  // Not asked: the API takes it on create only.
-  NotAsked = "not asked",
 }
+
+const STARTED_DESCRIPTION: string =
+  "The event has started, so this can no longer be changed.";
 
 interface ScheduledMaintenanceForm {
   file: string;
@@ -327,7 +385,7 @@ const FORMS: Array<ScheduledMaintenanceForm> = [
   {
     file: EDIT_FILE,
     label: "the event's Affected Resources Edit",
-    status: StatusRule.NotAsked,
+    status: StatusRule.UntilTheEventStarts,
     otherTypes: EVENT_OTHER_TYPES,
   },
   {
@@ -348,14 +406,27 @@ describe.each(FORMS)("$label", (form: ScheduledMaintenanceForm) => {
   const source: string = dense(form.file);
 
   test("asks for the monitors, then the status they change to, then the other resources", () => {
-    const expected: Array<string> =
-      form.status === StatusRule.NotAsked
-        ? ["monitors", "hosts"]
-        : ["monitors", "changeMonitorStatusTo", "hosts"];
+    if (form.status === StatusRule.UntilTheEventStarts) {
+      /*
+       * The status field is built by a function of its own (asked or shown
+       * read-only), and listed between the two pickers.
+       */
+      const listed: number = source.indexOf(
+        "getMonitorStatusField(options.hasEventStarted),",
+      );
 
-    expect(
-      fieldOrder(source, ["monitors", "changeMonitorStatusTo", "hosts"]),
-    ).toEqual(expected);
+      expect(listed).toBeGreaterThan(
+        source.indexOf("field: { monitors: true, }"),
+      );
+      expect(listed).toBeLessThan(source.indexOf("field: { hosts: true, }"));
+      expect(
+        source.indexOf("getMonitorStatusField(options.hasEventStarted)", 0),
+      ).toBe(listed);
+    } else {
+      expect(
+        fieldOrder(source, ["monitors", "changeMonitorStatusTo", "hosts"]),
+      ).toEqual(["monitors", "changeMonitorStatusTo", "hosts"]);
+    }
 
     expect(objectAround(source, "field: { monitors: true, }")).toContain(
       'title: "Monitors",',
@@ -399,6 +470,7 @@ describe.each(FORMS)("$label", (form: ScheduledMaintenanceForm) => {
       ProxmoxCluster: "proxmoxClusters",
       VMwareVCenter: "vmwareVCenters",
       CephCluster: "cephClusters",
+      StorageArray: "storageArrays",
       DockerSwarmCluster: "dockerSwarmClusters",
       IoTFleet: "iotFleets",
       DatabaseServer: "databaseServers",
@@ -425,20 +497,63 @@ describe.each(FORMS)("$label", (form: ScheduledMaintenanceForm) => {
     expect(source).not.toContain('"Change Monitor Status to "');
   });
 
-  if (form.status === StatusRule.NotAsked) {
-    test("asks for no monitor status: an event's is chosen when it is created", () => {
-      expect(source).not.toContain("changeMonitorStatusTo");
-    });
-  } else {
-    test("Change Monitor Status to is never folded", () => {
-      const status: string = objectAround(
-        source,
-        "field: { changeMonitorStatusTo: true, }",
-      );
+  test("Change Monitor Status to is never folded", () => {
+    const fields: Array<string> = objectsAround(
+      source,
+      "field: { changeMonitorStatusTo: true, }",
+    );
 
+    for (const status of fields) {
       expect(status).toContain('title: "Change Monitor Status to",');
       expect(status).not.toContain("collapsibleSection");
-      expect(status).toContain("type: MonitorStatus,");
+    }
+
+    // Picked from the project's monitor statuses wherever it can be changed.
+    expect(
+      fields.filter((status: string): boolean => {
+        return status.includes("type: MonitorStatus,");
+      }),
+    ).toHaveLength(1);
+  });
+
+  if (form.status === StatusRule.UntilTheEventStarts) {
+    test("until the event starts the status is asked once a monitor is picked; after, it is shown read-only with why", () => {
+      const [shown, asked] = objectsAround(
+        source,
+        "field: { changeMonitorStatusTo: true, }",
+      ) as [string, string];
+
+      // The started branch comes first, and returns early.
+      expect(source).toContain(
+        "if (hasEventStarted) { return { field: { changeMonitorStatusTo: true, },",
+      );
+
+      // Read-only, with why: no picker, the status drawn, nothing to change.
+      expect(shown).toContain(
+        "fieldType: FormFieldSchemaType.CustomComponent,",
+      );
+      expect(shown).toContain(`description: "${STARTED_DESCRIPTION}",`);
+      expect(shown).toContain(
+        "<StartedEventMonitorStatus monitorStatus={values.changeMonitorStatusTo} />",
+      );
+      expect(shown).not.toContain("dropdownModal");
+      expect(shown).toContain("showIf: hasMonitors,");
+
+      // Asked as Create asks it.
+      expect(asked).toContain("fieldType: FormFieldSchemaType.Dropdown,");
+      expect(asked).toContain(`description: "${EVENT_STATUS_DESCRIPTION}",`);
+      expect(asked).toContain("type: MonitorStatus,");
+      expect(asked).toContain('placeholder: "Monitor Status",');
+      expect(asked).toContain("showIf: hasMonitors,");
+      expect(source).toContain(
+        "const hasMonitors: (values: FormValues<ScheduledMaintenance>) => boolean = ( values: FormValues<ScheduledMaintenance>, ): boolean => { return hasPickedMonitors(values); };",
+      );
+    });
+
+    test("the save sends the status only while a monitor is picked, and never once the event has started", () => {
+      expect(source).toContain(
+        "return getScheduledMaintenanceAffectedResourcesToSave({ item: item, formValues: formValues, hasEventStarted: options.hasEventStarted, });",
+      );
     });
   }
 
@@ -491,8 +606,12 @@ describe("the event's page", () => {
       page.indexOf("modelDetailProps={{", start),
     );
 
+    // Told whether the event has started, for its Change Monitor Status to.
     expect(card).toContain(
-      "formFields={getScheduledMaintenanceAffectedResourcesFormFields()}",
+      "formFields={getScheduledMaintenanceAffectedResourcesFormFields({ hasEventStarted: hasEventStarted, })}",
+    );
+    expect(card).toContain(
+      "onBeforeUpdate={getScheduledMaintenanceAffectedResourcesOnBeforeUpdate( { hasEventStarted: hasEventStarted, }, )}",
     );
     expect(card).toContain("createEditModalWidth={ModalWidth.Medium}");
     // Nothing is picked on the page itself any more.
@@ -583,6 +702,7 @@ describe("the split's copy, in every language", () => {
     "Search and attach the monitors affected by this scheduled maintenance.",
     "Search and attach hosts, clusters, container hosts, databases, IoT fleets, network sites, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.",
     EVENT_STATUS_DESCRIPTION,
+    STARTED_DESCRIPTION,
     "No monitors affected by this scheduled maintenance event.",
     "No other resources affected by this scheduled maintenance event.",
     "Status of the monitors will not be changed when this scheduled maintenance event starts.",

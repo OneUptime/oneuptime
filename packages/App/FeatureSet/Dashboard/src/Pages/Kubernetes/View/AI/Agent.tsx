@@ -15,9 +15,10 @@ import {
   AiAgentStatusPill,
   canSwitchToAiAgent,
   describeAiAgentWriteAccess,
+  AiAgentMeta,
   getAiAgentAttention,
   getAiAgentCardCommand,
-  getAiAgentMetaParts,
+  getAiAgentMeta,
   getAiAgentPodNamespace,
   getAiAgentStateSentence,
   getAiAgentStatusPill,
@@ -26,11 +27,18 @@ import {
   getAutomaticInvestigationConfirmation,
   getAutomaticInvestigationLine,
   getAutomaticInvestigationTurnOnChanges,
+  getKubernetesAiSettingsSource,
   getRefusedRegistrationWarning,
   isAdvancedRunnerTarget,
   parseStatus,
   shouldShowWriteAccessCommands,
 } from "../../Utils/KubernetesAiAgentStatus";
+import {
+  KUBERNETES_AI_SETTINGS_SET_BY_TEXT,
+  canKubernetesAgentSetAiSettings,
+  getKubernetesAiSettingsChoice,
+  getKubernetesAiSettingsInstructions,
+} from "../../Utils/KubernetesAiAgentSettings";
 import {
   AiAgentHelmCommands,
   getAiAgentClusterWideCommandNote,
@@ -57,7 +65,6 @@ import {
   buildKubernetesAiCredentialOptions,
   buildKubernetesAiRunnerDirectory,
   buildKubernetesAiRunnerOptions,
-  capitalizeFirst,
   getAllowlistInEffect,
   getEveryModeProtections,
   getKubectlAllowlistRemovalOnlyError,
@@ -78,6 +85,12 @@ import {
   validateKubectlAllowlistText,
 } from "../../Utils/KubernetesAiAccessSettings";
 import {
+  getProjectBalanceAccess,
+  ProjectBalanceAccess,
+} from "../../../../Components/ProjectBalance/ProjectBalanceAccess";
+import { WHO_CAN_ADD_AI_CREDITS } from "../../../../Components/ProjectBalance/ProjectBalanceCopy";
+import { ProjectBalanceType } from "Common/Utils/Project/ProjectBalance";
+import {
   KubernetesAiAccessEditCapabilities,
   canChangeProjectAiSettings,
   canConfigureUnattendedKubernetesAiAccess,
@@ -94,8 +107,11 @@ import {
   AI_ACCESS_FIXES_ROW_TITLE,
   AI_ACCESS_INVESTIGATION_ROW_TITLE,
   AI_FIXES_MODE_ICONS,
+  AI_FIXES_OFF_AGENT_SET_HINT,
+  AgentAiSettingsChoice,
   formatAiAccessProtections,
   getAiAccessCardDescription,
+  getAiAccessLooseningRefusal,
   getAiFixesBadge,
   getAiFixesFieldDescription,
   getAiFixesModeCardTitle,
@@ -111,7 +127,20 @@ import {
   AiAccessProtections,
   AiAccessRow,
   AiAccessRows,
+  AiAccessSetBy,
 } from "../../../../Components/AiAccess/AiAccessRow";
+import AgentAiSettingsModal from "../../../../Components/AiAccess/AgentAiSettingsModal";
+import { AgentAiSettingsInstructions } from "../../../../Components/AiAccess/AgentAiSettingsInstructions";
+import AgentVersion from "../../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../../Components/AgentVersion/AgentKind";
+import {
+  AiAgentAction,
+  getAiAgentActions,
+} from "../../../../Components/AiAccess/AiAgentActions";
+import {
+  AiAgentTestProgress,
+  getAiAgentCardButtons,
+} from "../../../../Components/AiAccess/AiAgentActionsMenu";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -131,6 +160,7 @@ import {
   KubernetesAiAutomaticInvestigationSettings,
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
+  KUBERNETES_AI_AGENT_DISPLAY_NAME,
 } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 import RunbookCredentialType from "Common/Types/Runbook/RunbookCredentialType";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
@@ -174,6 +204,11 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  AgentAiSettingsSource,
+  isAgentAiSettingsSourceAgent,
+} from "Common/Types/AI/AgentAiSettings";
 import React, {
   Fragment,
   FunctionComponent,
@@ -188,7 +223,10 @@ import React, {
 import { Navigate, useParams } from "react-router-dom";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
+  ComposedValue,
+  composedValue,
   translatableTerm,
+  translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 
@@ -197,8 +235,10 @@ import {
  * this cluster and what it may do there, in three cards at most —
  *
  *  A. "Kubernetes AI agent": the connection, with the one command that
- *     fixes a missing or offline agent, a connection test, and the admin
- *     actions (reset the agent; move an advanced Runner binding over to it).
+ *     fixes a missing or offline agent. Its status sits in the header with
+ *     one ⋯ beside it for the connection test and the admin actions (move
+ *     an advanced Runner binding over to the agent; reset the agent) -
+ *     Components/AiAccess/AiAgentActions.ts.
  *  B. "Needs attention": the server's gaps as ONE item, only when there
  *     are any — a headline saying what AI cannot do here, then one short
  *     step per gap with its action. The page never builds a readiness
@@ -209,7 +249,8 @@ import {
  *     where it stands and one plain sentence — the rows are shared with
  *     every other resource's page (Components/AiAccess).
  *
- * What AI did on the cluster lives on the AI Insights page (AI → Insights).
+ * What AI did on the cluster lives on the AI Logs page (AI → Logs), and
+ * what it learned there on the AI Insights page (AI → Insights).
  */
 
 interface AccessTestResult {
@@ -226,6 +267,13 @@ interface AccessTestResult {
 
 // The confirmations the page asks for before an action.
 type PendingConfirmation = "reset" | "switch" | "automatic_investigation";
+
+// What an unbind field's sentence calls a binding whose name is unknown.
+const UNNAMED_BOUND_RUNNER: string = translationKey("a Runner");
+
+const UNNAMED_BOUND_CREDENTIAL: string = translationKey(
+  "a Kubernetes credential",
+);
 
 const PILL_COLORS: Record<AiAgentStatusPill["tone"], Color> = {
   success: Green500,
@@ -291,15 +339,29 @@ function parseAccessTestResult(data: JSONObject): AccessTestResult {
   };
 }
 
-// What an editor without the admin set may change here, and what they may not.
+/*
+ * What an editor without the admin set may change here, and what they may
+ * not. AiAccessPermissionNote looks its texts up; the permissions are
+ * listed in the language of the sentence they end.
+ */
 function AdminPermissionNote(): ReactElement {
+  const translator: Translator = useTranslator();
+
   return (
     <AiAccessPermissionNote
       canText="You can turn investigation on or off, lower fixes and remove allowlist patterns."
-      cannotText={`Turning fixes on or up, adding allowlist patterns, or choosing a Runner needs ${formatNameList(
-        getKubernetesAiAccessAdminPermissionTitles(),
-        "or",
-      )}.`}
+      cannotText={translator.translateTemplate(
+        "Turning fixes on or up, adding allowlist patterns, or choosing a Runner needs {{permissions}}.",
+        {
+          permissions: composedValue((sentence: Translator): string => {
+            return formatNameList(
+              getKubernetesAiAccessAdminPermissionTitles(),
+              "or",
+              sentence,
+            );
+          }),
+        },
+      )}
       dataTestId="kubernetes-ai-access-admin-note"
     />
   );
@@ -312,6 +374,11 @@ interface SettingsModalProps {
   isAdvancedBinding: boolean;
   // The cluster has a Kubernetes AI agent row (status.aiAgent).
   hasAiAgent: boolean;
+  /*
+   * The cluster's Kubernetes AI agent sets investigation and fixes: the
+   * form edits the kubectl allowlist alone (the server refuses the rest).
+   */
+  isSetByAgent?: boolean | undefined;
   onClose: () => void;
   onSaved: () => void;
 }
@@ -393,8 +460,11 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
           });
 
         if (!cluster) {
+          // ErrorMessage shows it in the reader's language.
           throw new Error(
-            "Could not read this cluster's AI settings. It may have been deleted, or you may no longer have access to it.",
+            translationKey(
+              "Could not read this cluster's AI settings. It may have been deleted, or you may no longer have access to it.",
+            ),
           );
         }
 
@@ -437,7 +507,10 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
             return result.data || [];
           } catch (err) {
             errors.push(
-              `The Runner list could not be loaded, so the Runner binding is left as it is: ${API.getFriendlyMessage(err)}`,
+              translator.translateTemplate(
+                "The Runner list could not be loaded, so the Runner binding is left as it is: {{error}}",
+                { error: API.getFriendlyMessage(err) },
+              ),
             );
             return null;
           }
@@ -467,7 +540,10 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
             return result.data || [];
           } catch (err) {
             errors.push(
-              `The credential list could not be loaded, so the credential binding is left as it is: ${API.getFriendlyMessage(err)}`,
+              translator.translateTemplate(
+                "The credential list could not be loaded, so the credential binding is left as it is: {{error}}",
+                { error: API.getFriendlyMessage(err) },
+              ),
             );
             return null;
           }
@@ -513,6 +589,7 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
       isCredentialPickerAvailable,
       isAdvancedBinding: props.isAdvancedBinding,
       hasAiAgent: props.hasAiAgent,
+      isSetByAgent: props.isSetByAgent,
     });
   }, [
     saved,
@@ -521,6 +598,7 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
     isCredentialPickerAvailable,
     props.isAdvancedBinding,
     props.hasAiAgent,
+    props.isSetByAgent,
   ]);
 
   const runnerDirectory: Record<string, KubernetesAiRunnerDirectoryEntry> =
@@ -585,43 +663,48 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
           },
         );
 
-    const result: Fields<KubernetesAiAccessSettingsFormValues> = [
-      {
-        field: { isAiInvestigationEnabled: true },
-        title: "Investigate with kubectl",
-        stepId: "investigation-and-fixes",
-        description:
-          "Read-only: get, describe, logs, events, top. An investigation never changes the cluster.",
-        fieldType: FormFieldSchemaType.Toggle,
-        required: false,
-        dataTestId: "ai-investigation-field",
-      },
-      {
-        // One card per mode, each saying what it does.
-        field: { aiRemediationMode: true },
-        title: AI_ACCESS_FIXES_ROW_TITLE,
-        stepId: "investigation-and-fixes",
-        description: getAiFixesFieldDescription("cluster"),
-        fieldType: FormFieldSchemaType.CardSelect,
-        cardSelectSingleColumn: true,
-        required: true,
-        dataTestId: "ai-remediation-mode-field",
-        cardSelectOptions: modes.map(
-          (mode: KubernetesAiRemediationMode): CardSelectOption => {
-            return {
-              value: mode,
-              title: getAiFixesModeCardTitle({
-                mode,
-                savedMode: saved.aiRemediationMode,
-                shortNames: REMEDIATION_MODE_SHORT_NAMES,
-              }),
-              description: REMEDIATION_MODE_OPTION_DESCRIPTIONS[mode],
-              icon: AI_FIXES_MODE_ICONS[mode],
-            };
-          },
-        ),
-      },
-    ];
+    const investigationAndFixes: Fields<KubernetesAiAccessSettingsFormValues> =
+      [
+        {
+          field: { isAiInvestigationEnabled: true },
+          title: "Investigate with kubectl",
+          stepId: "investigation-and-fixes",
+          description:
+            "Read-only: get, describe, logs, events, top. An investigation never changes the cluster.",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          dataTestId: "ai-investigation-field",
+        },
+        {
+          // One card per mode, each saying what it does.
+          field: { aiRemediationMode: true },
+          title: AI_ACCESS_FIXES_ROW_TITLE,
+          stepId: "investigation-and-fixes",
+          description: getAiFixesFieldDescription("cluster"),
+          fieldType: FormFieldSchemaType.CardSelect,
+          cardSelectSingleColumn: true,
+          required: true,
+          dataTestId: "ai-remediation-mode-field",
+          cardSelectOptions: modes.map(
+            (mode: KubernetesAiRemediationMode): CardSelectOption => {
+              return {
+                value: mode,
+                title: getAiFixesModeCardTitle({
+                  mode,
+                  savedMode: saved.aiRemediationMode,
+                  shortNames: REMEDIATION_MODE_SHORT_NAMES,
+                }),
+                description: REMEDIATION_MODE_OPTION_DESCRIPTIONS[mode],
+                icon: AI_FIXES_MODE_ICONS[mode],
+              };
+            },
+          ),
+        },
+      ];
+
+    // While the agent sets them, its chart changes them, not this form.
+    const result: Fields<KubernetesAiAccessSettingsFormValues> =
+      offered.investigationAndFixes === false ? [] : investigationAndFixes;
 
     if (offered.allowlist) {
       result.push({
@@ -634,6 +717,10 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
         required: false,
         placeholder: "kubectl set image deployment/web * -n web",
         dataTestId: "kubectl-allowlist-field",
+        /*
+         * The mode is not on the form while the agent sets it: the saved
+         * one (Automatic, or the allowlist link is not offered) decides.
+         */
         showIf: isAllowlistFieldShown,
         customValidation: (
           values: FormValues<KubernetesAiAccessSettingsFormValues>,
@@ -674,7 +761,8 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
               "Bound now: {{runner}}. Unbinding moves this cluster to its Kubernetes AI agent. Choosing a Runner needs permission to read Runners (one of: {{permissions}}).",
               {
                 runner:
-                  saved.aiAccessRunnerName || translatableTerm("a Runner"),
+                  saved.aiAccessRunnerName ||
+                  translatableTerm(UNNAMED_BOUND_RUNNER),
                 permissions: getKubernetesRunnerPermissionTitles().join(", "),
               },
             )
@@ -682,7 +770,8 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
               "Bound now: {{runner}}. Unbinding stops OneUptime AI from running kubectl on this cluster until it has an AI agent. Choosing a Runner needs permission to read Runners (one of: {{permissions}}).",
               {
                 runner:
-                  saved.aiAccessRunnerName || translatableTerm("a Runner"),
+                  saved.aiAccessRunnerName ||
+                  translatableTerm(UNNAMED_BOUND_RUNNER),
                 permissions: getKubernetesRunnerPermissionTitles().join(", "),
               },
             ),
@@ -719,7 +808,7 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
           {
             credential:
               saved.aiAccessCredentialName ||
-              translatableTerm("a Kubernetes credential"),
+              translatableTerm(UNNAMED_BOUND_CREDENTIAL),
             permissions: getKubernetesCredentialPermissionTitles().join(", "),
           },
         ),
@@ -812,14 +901,21 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
     }
 
     if (!canConfigureUnattended) {
-      const loosening: Array<string> = getKubernetesAiAccessLooseningChanges({
-        saved,
-        changes,
-        hasAiAgent: props.hasAiAgent,
-      });
-      if (loosening.length > 0) {
+      const getLoosening: (sentence?: Translator) => Array<string> = (
+        sentence?: Translator,
+      ): Array<string> => {
+        return getKubernetesAiAccessLooseningChanges(
+          { saved, changes, hasAiAgent: props.hasAiAgent },
+          sentence,
+        );
+      };
+
+      if (getLoosening().length > 0) {
         setSaveError(
-          `${capitalizeFirst(loosening.join(", "))} needs one of these permissions: ${getKubernetesAiAccessAdminPermissionTitles().join(", ")}.`,
+          getAiAccessLooseningRefusal({
+            getChanges: getLoosening,
+            permissionTitles: getKubernetesAiAccessAdminPermissionTitles(),
+          }),
         );
         return;
       }
@@ -905,7 +1001,11 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
   return (
     <>
       <Modal
-        title="Change what AI may do"
+        title={
+          props.isSetByAgent
+            ? "Edit the kubectl allowlist"
+            : "Change what AI may do"
+        }
         submitButtonText="Save"
         submitButtonType={ButtonType.Submit}
         modalWidth={ModalWidth.Medium}
@@ -916,7 +1016,11 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
         secondaryButton={footer.secondaryButton}
       >
         <div className="space-y-4">
-          {!canConfigureUnattended ? <AdminPermissionNote /> : <></>}
+          {!canConfigureUnattended && !props.isSetByAgent ? (
+            <AdminPermissionNote />
+          ) : (
+            <></>
+          )}
 
           {notes.length > 0 ? (
             <div className="space-y-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
@@ -1035,6 +1139,13 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
   const [testError, setTestError] = useState<string>("");
   const [refresher, setRefresher] = useState<boolean>(false);
   const [isEditingSettings, setIsEditingSettings] = useState<boolean>(false);
+  /*
+   * The "Change what AI may do" dialog for settings the agent sets (or that
+   * could move to it): open with what it should start on, or null.
+   */
+  const [agentSettingsDialog, setAgentSettingsDialog] = useState<{
+    turnOnInvestigation: boolean;
+  } | null>(null);
   /*
    * What the Change modal offers, read when it opens. Kept in state so a
    * status poll re-rendering the page cannot rebuild the open form.
@@ -1159,7 +1270,8 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
   /*
    * One page action at a time (reset, switch, a gap's one-click fix, the
    * automatic-investigation opt-in). A confirmed action reports a failure
-   * inside its dialog; an unconfirmed one on the page.
+   * inside its dialog; an unconfirmed one on the page. The notice is a
+   * translation key: the success Alert shows it in the reader's language.
    */
   const runPageAction: (data: {
     run: () => Promise<void>;
@@ -1221,13 +1333,15 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
     });
   };
 
-  // Shown in every state, like the AI Insights page's heading.
+  // Shown in every state, like the AI Insights and AI Logs pages' headings.
   const heading: ReactElement = (
     <div className="mb-5" data-testid="ai-agent-page-heading">
       <h2 className="text-lg font-semibold text-gray-900">
-        {AI_AGENT_PAGE_TITLE}
+        {translator.translateText(AI_AGENT_PAGE_TITLE)}
       </h2>
-      <p className="mt-1 text-sm text-gray-500">{AI_AGENT_PAGE_SUBTITLE}</p>
+      <p className="mt-1 text-sm text-gray-500">
+        {translator.translateText(AI_AGENT_PAGE_SUBTITLE)}
+      </p>
     </div>
   );
 
@@ -1263,12 +1377,39 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
   const canConfigureUnattended: boolean =
     canConfigureUnattendedKubernetesAiAccess();
   const canChangeProjectSettings: boolean = canChangeProjectAiSettings();
+  /*
+   * AI credits are added by a project owner or someone with Manage Billing
+   * - not a project admin - so their step has its own gate.
+   */
+  const aiCreditsAccess: ProjectBalanceAccess = getProjectBalanceAccess(
+    ProjectBalanceType.AI,
+  );
 
   const aiAgent: KubernetesAiAgentSummary | null = getAiAgentSummary(status);
   const pill: AiAgentStatusPill = getAiAgentStatusPill(status);
   const command: AiAgentCardCommand = getAiAgentCardCommand(status);
-  const helmCommands: AiAgentHelmCommands = getAiAgentHelmCommands();
-  const metaParts: Array<string> = getAiAgentMetaParts(status);
+  const aiSettingsSource: AgentAiSettingsSource =
+    getKubernetesAiSettingsSource(status);
+  const isSetByAgent: boolean = isAgentAiSettingsSourceAgent(aiSettingsSource);
+  // Settings chosen here that could move to the agent's chart.
+  const canMoveSettingsToAgent: boolean =
+    !isSetByAgent && canKubernetesAgentSetAiSettings(status);
+  const currentChoice: AgentAiSettingsChoice =
+    getKubernetesAiSettingsChoice(status);
+  /*
+   * The write-access upgrades set what is in effect, so granting write
+   * access never changes investigation or the fixes mode on the way.
+   */
+  const helmCommands: AiAgentHelmCommands = getAiAgentHelmCommands({
+    investigation: currentChoice.investigation,
+    fixes:
+      currentChoice.fixes === KubernetesAiRemediationMode.Disabled
+        ? KubernetesAiRemediationMode.RequireApproval
+        : currentChoice.fixes,
+  });
+  const meta: AiAgentMeta = getAiAgentMeta(status);
+  const isAgentVersionShown: boolean =
+    meta.showsAgentVersion && Boolean(aiAgent?.agentVersion);
   const refusedWarning: string | null = getRefusedRegistrationWarning(aiAgent);
   const attention: AiAgentAttention | null = getAiAgentAttention(status);
   const isAdvanced: boolean = isAdvancedRunnerTarget(status);
@@ -1282,15 +1423,15 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
   const automaticInvestigation: KubernetesAiAutomaticInvestigationSettings | null =
     getAutomaticInvestigation(status);
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-  const projectName: string =
-    props.currentProject?.name ||
-    ProjectUtil.getCurrentProject()?.name ||
-    "this project";
+  const projectName: string | undefined =
+    props.currentProject?.name || ProjectUtil.getCurrentProject()?.name;
   const lastCheckedAt: string = status.evaluatedAt
     ? OneUptimeDate.getDateAsFormattedString(
         OneUptimeDate.fromString(status.evaluatedAt),
       )
     : "";
+  // A failed refresh's message, in the reader's language when it has a key.
+  const refreshError: string = translator.translateText(error) || error;
 
   const renderAsk: () => ReactElement = (): ReactElement => {
     return (
@@ -1298,11 +1439,12 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
         className="text-xs font-medium text-gray-500"
         data-testid="ai-agent-gap-ask"
       >
-        {ASK_PROJECT_ADMIN_TEXT}
+        {translator.translateText(ASK_PROJECT_ADMIN_TEXT)}
       </p>
     );
   };
 
+  // `title` is a translation key, shown in the reader's language.
   const renderSettingsLink: (
     pageMap: PageMap,
     title: string,
@@ -1312,16 +1454,35 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
         to={RouteUtil.populateRouteParams(RouteMap[pageMap] as Route)}
         className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800"
       >
-        <span>{title}</span>
+        <span>{translator.translateText(title)}</span>
         <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
       </Link>
     );
+  };
+
+  const openAgentSettingsDialog: (turnOnInvestigation: boolean) => void = (
+    turnOnInvestigation: boolean,
+  ): void => {
+    setAgentSettingsDialog({ turnOnInvestigation });
   };
 
   const renderStepAction: (action: AiAgentGapAction | null) => ReactElement = (
     action: AiAgentGapAction | null,
   ): ReactElement => {
     switch (action) {
+      case "set_investigation_in_agent":
+        // Instructions only: anyone who can see the page may read them.
+        return (
+          <Button
+            title="Show how"
+            buttonStyle={ButtonStyleType.NORMAL}
+            buttonSize={ButtonSize.Small}
+            dataTestId="ai-agent-gap-show-investigation-command"
+            onClick={() => {
+              openAgentSettingsDialog(true);
+            }}
+          />
+        );
       case "turn_on_investigation":
         return settingsGate.isAllowed ? (
           <Button
@@ -1336,7 +1497,9 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
                 run: async (): Promise<void> => {
                   await updateCluster({ isAiInvestigationEnabled: true });
                 },
-                notice: "AI may now investigate this cluster with kubectl.",
+                notice: translationKey(
+                  "AI may now investigate this cluster with kubectl.",
+                ),
                 isConfirmed: false,
               }).catch(() => {
                 // handled inside runPageAction
@@ -1348,19 +1511,40 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
         );
       case "open_ai_features":
         return canChangeProjectSettings
-          ? renderSettingsLink(PageMap.SETTINGS_AI_FEATURES, "Open AI Features")
+          ? renderSettingsLink(
+              PageMap.SETTINGS_AI_FEATURES,
+              translationKey("Open AI Features"),
+            )
           : renderAsk();
       case "open_llm_providers":
         return canChangeProjectSettings
           ? renderSettingsLink(
               PageMap.SETTINGS_AI_LLM_PROVIDERS,
-              "Open LLM Providers",
+              translationKey("Open LLM Providers"),
             )
           : renderAsk();
       case "open_ai_credits":
-        return canChangeProjectSettings
-          ? renderSettingsLink(PageMap.SETTINGS_AI_CREDITS, "Open AI Credits")
-          : renderAsk();
+        /*
+         * The link only for someone who may add credits; everyone else is
+         * told who can. Nothing while the permissions are on their way.
+         */
+        if (aiCreditsAccess === ProjectBalanceAccess.Yes) {
+          return renderSettingsLink(
+            PageMap.SETTINGS_AI_CREDITS,
+            translationKey("Open AI Credits"),
+          );
+        }
+
+        return aiCreditsAccess === ProjectBalanceAccess.No ? (
+          <p
+            className="text-xs font-medium text-gray-500"
+            data-testid="ai-agent-gap-who-can-add-ai-credits"
+          >
+            {translator.translateText(WHO_CAN_ADD_AI_CREDITS)}
+          </p>
+        ) : (
+          <></>
+        );
       case "view_runner":
         return status.runner && canPickKubernetesRunner() ? (
           <Link
@@ -1399,78 +1583,60 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
     }
   };
 
-  const agentButtons: Array<ReactElement> = [];
+  /*
+   * The agent card's ⋯. There is nothing to test before anything can reach
+   * the cluster; switching needs an advanced binding and an online agent,
+   * and resetting a registered agent.
+   */
+  const agentActions: Array<AiAgentAction> = getAiAgentActions({
+    testConnection: {
+      hasTarget,
+      gate: testGate,
+      permissionRequirement: getAccessTestPermissionRequirement(),
+      isRunning: isTesting,
+      onRun: (): void => {
+        runTest().catch(() => {
+          // handled inside runTest
+        });
+      },
+    },
+    switchToAgent: {
+      isOffered: canSwitchToAiAgent(status) && canConfigureUnattended,
+      onClick: (): void => {
+        setConfirmationError("");
+        setPendingConfirmation("switch");
+      },
+    },
+    resetAgent: {
+      isOffered: aiAgent !== null && canResetKubernetesAiAgent(),
+      onClick: (): void => {
+        setConfirmationError("");
+        setPendingConfirmation("reset");
+      },
+    },
+    isActing,
+  });
 
   /*
-   * There is nothing to test before anything can reach the cluster. Without
-   * edit permission the button stays, locked, with the reason in its
-   * tooltip; it is dropped only when there is nothing honest to say (the
-   * permission snapshot has not landed).
+   * While the agent sets investigation and fixes, Change shows how to change
+   * them in the agent — instructions, so it is offered to everyone who can
+   * see the page; the server refuses an edit here anyway.
    */
-  if (hasTarget && (testGate.isAllowed || testGate.disabledReason)) {
-    agentButtons.push(
-      <Button
-        key="test"
-        title="Test connection"
-        icon={IconProp.Play}
-        buttonStyle={ButtonStyleType.NORMAL}
-        buttonSize={ButtonSize.Normal}
-        isLoading={isTesting}
-        disabled={isTesting || !testGate.isAllowed}
-        tooltip={
-          testGate.isAllowed ? undefined : getAccessTestPermissionRequirement()
-        }
-        dataTestId="ai-agent-test-button"
-        onClick={() => {
-          if (!testGate.isAllowed || !hasTarget) {
-            return;
-          }
-          runTest().catch(() => {
-            // handled inside runTest
-          });
-        }}
-      />,
-    );
-  }
-
-  if (canSwitchToAiAgent(status) && canConfigureUnattended) {
-    agentButtons.push(
-      <Button
-        key="switch"
-        title="Switch to the AI agent"
-        icon={IconProp.Refresh}
-        buttonStyle={ButtonStyleType.NORMAL}
-        buttonSize={ButtonSize.Normal}
-        disabled={isActing}
-        dataTestId="ai-agent-switch-button"
-        onClick={() => {
-          setConfirmationError("");
-          setPendingConfirmation("switch");
-        }}
-      />,
-    );
-  }
-
-  if (aiAgent && canResetKubernetesAiAgent()) {
-    agentButtons.push(
-      <Button
-        key="reset"
-        title="Reset agent"
-        icon={IconProp.Refresh}
-        buttonStyle={ButtonStyleType.NORMAL}
-        buttonSize={ButtonSize.Normal}
-        disabled={isActing}
-        dataTestId="ai-agent-reset-button"
-        onClick={() => {
-          setConfirmationError("");
-          setPendingConfirmation("reset");
-        }}
-      />,
-    );
-  }
-
-  const settingsButtons: Array<ReactElement> =
-    settingsGate.isAllowed || settingsGate.disabledReason
+  const settingsButtons: Array<ReactElement> = isSetByAgent
+    ? [
+        <Button
+          key="change"
+          title="Change"
+          icon={IconProp.Edit}
+          buttonStyle={ButtonStyleType.NORMAL}
+          buttonSize={ButtonSize.Normal}
+          dataTestId="ai-access-change-button"
+          onClick={() => {
+            openAgentSettingsDialog(false);
+          }}
+        />,
+      ]
+    : settingsGate.isAllowed || settingsGate.disabledReason
       ? [
           <Button
             key="change"
@@ -1512,8 +1678,9 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
                   "/kubernetes-cluster/ai-access/reset-agent",
                 );
               },
-              notice:
+              notice: translationKey(
                 "The AI agent was reset. It reconnects on its own within a few minutes.",
+              ),
               isConfirmed: true,
             }).catch(() => {
               // handled inside runPageAction
@@ -1524,9 +1691,14 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
     }
 
     if (pendingConfirmation === "switch") {
-      const writeAccess: string | null = describeAiAgentWriteAccess(
+      // What the agent may change, in the language of the sentence it ends.
+      const writeAccess: ComposedValue | null = describeAiAgentWriteAccess(
         aiAgent?.posture,
-      );
+      )
+        ? composedValue((sentence: Translator): string => {
+            return describeAiAgentWriteAccess(aiAgent?.posture, sentence) || "";
+          })
+        : null;
       return (
         <ConfirmModal
           title="Switch to the AI agent?"
@@ -1561,7 +1733,8 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
                     { runner: status.runner?.name || "" },
                   )
           }
-          submitButtonText="Switch"
+          // Not "Switch": that key is a network switch elsewhere.
+          submitButtonText="Switch to the AI agent"
           isLoading={isActing}
           error={confirmationError || undefined}
           onClose={() => {
@@ -1575,7 +1748,9 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
                   aiAccessCredentialId: null,
                 });
               },
-              notice: "AI now reaches this cluster through its AI agent.",
+              notice: translationKey(
+                "AI now reaches this cluster through its AI agent.",
+              ),
               isConfirmed: true,
             }).catch(() => {
               // handled inside runPageAction
@@ -1606,7 +1781,8 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
             runPageAction({
               run: async (): Promise<void> => {
                 if (!projectId) {
-                  throw new Error("No project is selected.");
+                  // The dialog's error Alert shows it in the reader's language.
+                  throw new Error(translationKey("No project is selected."));
                 }
                 await ModelAPI.updateById<Project>({
                   modelType: Project,
@@ -1616,7 +1792,9 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
                   ),
                 });
               },
-              notice: "Automatic investigation is on for this project.",
+              notice: translationKey(
+                "Automatic investigation is on for this project.",
+              ),
               isConfirmed: true,
             }).catch(() => {
               // handled inside runPageAction
@@ -1647,11 +1825,17 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
         <Alert
           type={AlertType.WARNING}
           strongTitle="Could not refresh the AI agent status"
-          title={`${error}${
+          title={
             lastCheckedAt
-              ? ` Showing the last status from ${lastCheckedAt}; this page retries on its own.`
-              : " Showing the last known status; this page retries on its own."
-          }`}
+              ? translator.translateTemplate(
+                  "{{error}} Showing the last status from {{time}}; this page retries on its own.",
+                  { error: refreshError, time: lastCheckedAt },
+                )
+              : translator.translateTemplate(
+                  "{{error}} Showing the last known status; this page retries on its own.",
+                  { error: refreshError },
+                )
+          }
           dataTestId="ai-access-refresh-warning"
         />
       ) : (
@@ -1691,7 +1875,7 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
             />
           </span>
         }
-        buttons={agentButtons}
+        buttons={getAiAgentCardButtons(agentActions)}
       >
         <div className="space-y-4">
           <p className="text-sm text-gray-900" data-testid="ai-agent-sentence">
@@ -1704,7 +1888,7 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
                 <CodeBlock language="bash" code={helmCommands.install} />
               </div>
               <p className="text-xs text-gray-500">
-                {AI_AGENT_OTHER_RELEASE_TEXT}
+                {translator.translateText(AI_AGENT_OTHER_RELEASE_TEXT)}
               </p>
             </div>
           ) : command === "logs" ? (
@@ -1718,10 +1902,41 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
             <></>
           )}
 
-          {metaParts.length > 0 ? (
-            <p className="text-xs text-gray-500" data-testid="ai-agent-meta">
-              {metaParts.join(" · ")}
-            </p>
+          {meta.lastSeen || isAgentVersionShown || meta.rest.length > 0 ? (
+            <div className="text-xs text-gray-500" data-testid="ai-agent-meta">
+              {[
+                ...(meta.lastSeen
+                  ? [<span key="last-seen">{meta.lastSeen}</span>]
+                  : []),
+                ...(isAgentVersionShown
+                  ? [
+                      <span key="agent-version" data-testid="ai-agent-version">
+                        <TranslatedSentence
+                          template="agent {{version}}"
+                          slots={{
+                            version: (
+                              <AgentVersion
+                                kind={AgentKind.KubernetesAgent}
+                                version={aiAgent?.agentVersion}
+                              />
+                            ),
+                          }}
+                        />
+                      </span>,
+                    ]
+                  : []),
+                ...meta.rest.map((part: string): ReactElement => {
+                  return <span key={part}>{part}</span>;
+                }),
+              ].map((part: ReactElement, index: number): ReactElement => {
+                return (
+                  <Fragment key={`meta-${index}`}>
+                    {index > 0 ? " · " : ""}
+                    {part}
+                  </Fragment>
+                );
+              })}
+            </div>
           ) : (
             <></>
           )}
@@ -1735,7 +1950,9 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
                 icon={IconProp.CheckCircle}
                 className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-600"
               />
-              <p className="text-sm text-emerald-900">{AI_AGENT_READY_TEXT}</p>
+              <p className="text-sm text-emerald-900">
+                {translator.translateText(AI_AGENT_READY_TEXT)}
+              </p>
             </div>
           ) : (
             <></>
@@ -1761,6 +1978,8 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
           ) : (
             <></>
           )}
+
+          {isTesting ? <AiAgentTestProgress /> : <></>}
 
           {testError ? (
             <Alert
@@ -1896,6 +2115,25 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
         description={getAiAccessCardDescription("cluster")}
         buttons={settingsButtons}
       >
+        {isSetByAgent ? (
+          <AiAccessSetBy
+            text={KUBERNETES_AI_SETTINGS_SET_BY_TEXT[aiSettingsSource]}
+            isSetByAgent={true}
+            dataTestId="ai-access-set-by"
+          />
+        ) : canMoveSettingsToAgent ? (
+          <AiAccessSetBy
+            text={KUBERNETES_AI_SETTINGS_SET_BY_TEXT.oneuptime}
+            isSetByAgent={false}
+            actionText="Show how"
+            onAction={() => {
+              openAgentSettingsDialog(false);
+            }}
+            dataTestId="ai-access-set-by"
+          />
+        ) : (
+          <></>
+        )}
         <AiAccessRows>
           <AiAccessRow
             icon={IconProp.MagnifyingGlass}
@@ -1936,7 +2174,7 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
                     className="text-xs font-medium text-gray-500"
                     data-testid="ai-access-automatic-investigation-ask"
                   >
-                    {ASK_PROJECT_ADMIN_TEXT}
+                    {translator.translateText(ASK_PROJECT_ADMIN_TEXT)}
                   </p>
                 )}
               </div>
@@ -1954,9 +2192,13 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
           >
             {remediationMode === KubernetesAiRemediationMode.Disabled ? (
               <AiAccessHint
-                text={getAiFixesOffHint(
-                  settingsGate.isAllowed && canConfigureUnattended,
-                )}
+                text={
+                  isSetByAgent
+                    ? AI_FIXES_OFF_AGENT_SET_HINT
+                    : getAiFixesOffHint(
+                        settingsGate.isAllowed && canConfigureUnattended,
+                      )
+                }
                 dataTestId="ai-access-fixes-off-hint"
               />
             ) : null}
@@ -1965,6 +2207,22 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
                 title="kubectl allowlist"
                 patterns={allowlistInEffect}
                 dataTestId="kubectl-allowlist-in-effect"
+                /*
+                 * The allowlist stays OneUptime's: with the agent setting
+                 * the modes, Change shows the chart command, so the list is
+                 * edited from here.
+                 */
+                editText={
+                  isSetByAgent &&
+                  settingsGate.isAllowed &&
+                  (canConfigureUnattended || allowlistInEffect.length > 0)
+                    ? "Edit"
+                    : undefined
+                }
+                onEdit={() => {
+                  setEditCapabilities(getKubernetesAiAccessEditCapabilities());
+                  setIsEditingSettings(true);
+                }}
               />
             ) : null}
             {isAdvanced &&
@@ -2033,12 +2291,34 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
           capabilities={editCapabilities}
           isAdvancedBinding={isAdvanced}
           hasAiAgent={aiAgent !== null}
+          isSetByAgent={isSetByAgent}
           onClose={() => {
             setIsEditingSettings(false);
           }}
           onSaved={() => {
             setIsEditingSettings(false);
             refresh();
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {agentSettingsDialog ? (
+        <AgentAiSettingsModal
+          agentName={KUBERNETES_AI_AGENT_DISPLAY_NAME}
+          source={aiSettingsSource}
+          current={currentChoice}
+          turnOnInvestigation={agentSettingsDialog.turnOnInvestigation}
+          fixesShortNames={REMEDIATION_MODE_SHORT_NAMES}
+          fixesDescriptions={REMEDIATION_MODE_OPTION_DESCRIPTIONS}
+          getInstructions={(
+            choice: AgentAiSettingsChoice,
+          ): AgentAiSettingsInstructions => {
+            return getKubernetesAiSettingsInstructions({ choice, status });
+          }}
+          onClose={() => {
+            setAgentSettingsDialog(null);
           }}
         />
       ) : (

@@ -1,6 +1,5 @@
 import RunCron from "../../Utils/Cron";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { StatusPageApiRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
@@ -32,6 +31,7 @@ import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscri
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import IncidentPostmortemPublication from "Common/Types/StatusPage/IncidentPostmortemPublication";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
@@ -62,6 +62,85 @@ import SubscriberNotificationRunLimit, {
 } from "Common/Server/Utils/StatusPage/SubscriberNotificationRunLimit";
 import SubscriberNotificationFanOut from "Common/Server/Utils/StatusPage/SubscriberNotificationFanOut";
 import Email from "Common/Types/Email";
+import ObjectID from "Common/Types/ObjectID";
+import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
+import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
+
+/*
+ * A run decides from the incident as it read it, which was before it
+ * claimed the notification. An update made after that read - while this run
+ * held the notification, so the update found it on its way - would see its
+ * effect undone by a skip settled from that read:
+ *
+ * - a postmortem published since would be skipped as not shown, and never
+ *   announced;
+ * - an incident shown since would be skipped as hidden, left waiting for an
+ *   incident that is shown already.
+ *
+ * So once such a skip is settled, the incident is looked at again: if the
+ * status page shows the postmortem now - and, after a skip for a hidden
+ * incident, the incident too (IncidentPostmortemPublication.isIncidentShown)
+ * - the notification goes back in the queue for the next run, only while it
+ * still stands at the skip this run wrote. A postmortem published since on an
+ * incident that is still hidden goes back too: the next run skips it as
+ * waiting for the incident, and showing the incident sends it. (Each update
+ * looks again too, for a skip settled before it was written; see
+ * IncidentPostmortemPublication.getNotificationAction.)
+ */
+const requeueIfChangedSinceRead: (data: {
+  incidentId: ObjectID;
+  // The skip this run wrote: its reason, in the job's words.
+  skipMessage: string;
+}) => Promise<void> = async (data: {
+  incidentId: ObjectID;
+  skipMessage: string;
+}): Promise<void> => {
+  const current: Incident | null = await IncidentService.findOneById({
+    id: data.incidentId,
+    select: {
+      isVisibleOnStatusPage: true,
+      isPrivate: true,
+      showPostmortemOnStatusPage: true,
+      postmortemNote: true,
+    },
+    props: {
+      isRoot: true,
+    },
+  });
+
+  const isHiddenIncidentSkip: boolean =
+    data.skipMessage === IncidentPostmortemPublication.hiddenIncidentMessage;
+
+  if (
+    !IncidentPostmortemPublication.isPublished(current) ||
+    (isHiddenIncidentSkip &&
+      !IncidentPostmortemPublication.isIncidentShown(current))
+  ) {
+    return;
+  }
+
+  logger.debug(
+    `Incident ${data.incidentId.toString()}'s postmortem ${isHiddenIncidentSkip ? "was shown on status pages" : "was published"} while this run held its notification; queueing it again.`,
+  );
+
+  await IncidentService.compareAndSetColumnsByIdWithoutHooks({
+    id: data.incidentId,
+    data: {
+      subscriberNotificationStatusOnPostmortemPublished:
+        StatusPageSubscriberNotificationStatus.Pending,
+      subscriberNotificationStatusMessageOnPostmortemPublished:
+        isHiddenIncidentSkip
+          ? IncidentPostmortemPublication.shownQueuedMessage
+          : IncidentPostmortemPublication.queuedMessage,
+    },
+    expectedData: {
+      subscriberNotificationStatusOnPostmortemPublished:
+        StatusPageSubscriberNotificationStatus.Skipped,
+      subscriberNotificationStatusMessageOnPostmortemPublished:
+        data.skipMessage,
+    },
+  });
+};
 
 RunCron(
   "Incident:SendPostmortemNotificationToSubscribers",
@@ -104,7 +183,9 @@ RunCron(
           title: true,
           description: true,
           projectId: true,
+          // Whether the status page shows the incident (isIncidentShown).
           isVisibleOnStatusPage: true,
+          isPrivate: true,
           monitors: {
             _id: true,
           },
@@ -191,9 +272,21 @@ RunCron(
             continue;
           }
 
-          if (!incident.showPostmortemOnStatusPage) {
+          /*
+           * The status page shows the postmortem only while Publish on
+           * Status Page is on and its note says something
+           * (IncidentPostmortemPublication), so one it does not show -
+           * switched off, switched on and never written, emptied after it
+           * was queued, or sent again through the API - has nothing to
+           * announce.
+           */
+          if (!IncidentPostmortemPublication.isPublished(incident)) {
+            const skipMessage: string = incident.showPostmortemOnStatusPage
+              ? IncidentPostmortemPublication.noNoteMessage
+              : IncidentPostmortemPublication.notShownMessage;
+
             logger.debug(
-              `Incident ${incident.id} is not set to show postmortem on status page; marking as Skipped.`,
+              `Incident ${incident.id}'s postmortem is not on the status page; marking as Skipped.`,
               {
                 projectId: incident.projectId?.toString(),
                 incidentId: incident.id?.toString(),
@@ -205,12 +298,17 @@ RunCron(
                 subscriberNotificationStatusOnPostmortemPublished:
                   StatusPageSubscriberNotificationStatus.Skipped,
                 subscriberNotificationStatusMessageOnPostmortemPublished:
-                  "Incident is not set to show postmortem on status page. Skipping notifications to subscribers.",
+                  skipMessage,
               },
               props: {
                 isRoot: true,
                 ignoreHooks: true,
               },
+            });
+
+            await requeueIfChangedSinceRead({
+              incidentId: incident.id!,
+              skipMessage: skipMessage,
             });
             continue;
           }
@@ -286,9 +384,17 @@ RunCron(
             },
           );
 
-          if (!incident.isVisibleOnStatusPage) {
+          /*
+           * The status page does not show a hidden incident, nor its
+           * postmortem - and a private incident is hidden from every status
+           * page, whatever its switch says (isIncidentShown). The skip says
+           * so, and that it is sent once the incident is made visible: the
+           * update that shows it queues it again
+           * (IncidentPostmortemPublication.isShownByUpdate).
+           */
+          if (!IncidentPostmortemPublication.isIncidentShown(incident)) {
             logger.debug(
-              `Incident ${incident.id} is not visible on status page; skipping subscriber notifications.`,
+              `Incident ${incident.id} is not visible on status page; skipping subscriber notifications until it is made visible.`,
               {
                 projectId: incident.projectId?.toString(),
                 incidentId: incident.id?.toString(),
@@ -301,7 +407,7 @@ RunCron(
                 subscriberNotificationStatusOnPostmortemPublished:
                   StatusPageSubscriberNotificationStatus.Skipped,
                 subscriberNotificationStatusMessageOnPostmortemPublished:
-                  "Incident is not visible on status page. Skipping notifications to subscribers.",
+                  IncidentPostmortemPublication.hiddenIncidentMessage,
               },
               props: {
                 isRoot: true,
@@ -309,6 +415,10 @@ RunCron(
               },
             });
 
+            await requeueIfChangedSinceRead({
+              incidentId: incident.id!,
+              skipMessage: IncidentPostmortemPublication.hiddenIncidentMessage,
+            });
             continue; // Do not send notification to subscribers if incident is not visible on status page.
           }
 
@@ -453,8 +563,6 @@ RunCron(
                 await StatusPageService.getStatusPageURL(statuspage.id);
               const statusPageName: string =
                 statuspage.pageTitle || statuspage.name || "Status Page";
-              const statusPageIdString: string | null =
-                statuspage.id?.toString() || statuspage._id?.toString() || null;
 
               const incidentDetailsUrl: string =
                 incident.id && statusPageURL
@@ -672,13 +780,11 @@ RunCron(
                                 statusPageName: statusPageName,
                                 statusPageUrl: statusPageURL,
                                 detailsUrl: incidentDetailsUrl,
-                                logoUrl:
-                                  statuspage.logoFileId && statusPageIdString
-                                    ? new URL(httpProtocol, host)
-                                        .addRoute(StatusPageApiRoute)
-                                        .addRoute(`/logo/${statusPageIdString}`)
-                                        .toString()
-                                    : "",
+                                logoUrl: StatusPageEmailLogo.getLogoUrl({
+                                  statusPage: statuspage,
+                                  host: host,
+                                  httpProtocol: httpProtocol,
+                                }),
                                 isPublicStatusPage:
                                   statuspage.isPublicStatusPage
                                     ? "true"
@@ -847,11 +953,11 @@ RunCron(
                         slackTemplate.templateBody,
                       ]);
                     } else {
-                      markdownMessage = `## 🚨 Incident Postmortem - ${incident.title || ""}
+                      markdownMessage = `## 🚨 Incident Postmortem - ${escapeMarkdownValue(incident.title || "")}
 
-**Severity:** ${incident.incidentSeverity?.name || " - "}
+**Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || " - ")}
 
-**Resources Affected:** ${resourcesAffectedPlainText}
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}
 
 **Postmortem:** ${incident.postmortemNote || ""}
 
@@ -914,9 +1020,9 @@ ${slackCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsub
                         teamsTemplate.templateBody,
                       ]);
                     } else {
-                      teamsMarkdownMessage = `## 🚨 Incident Postmortem - ${incident.title || ""}
-**Severity:** ${incident.incidentSeverity?.name || " - "}
-**Resources Affected:** ${resourcesAffectedPlainText}
+                      teamsMarkdownMessage = `## 🚨 Incident Postmortem - ${escapeMarkdownValue(incident.title || "")}
+**Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || " - ")}
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}
 **Postmortem:** ${incident.postmortemNote || ""}
 ${teamsCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
                       await incidentTemplateVariables.recordIncludedFieldsSent();

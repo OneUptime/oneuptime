@@ -111,10 +111,10 @@ const JOIN_TABLES: Array<string> = [
 ];
 
 const CALL_SWITCHED_OFF_WARNING: string =
-  "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. Turn them on in Project Settings > Notification Settings.";
+  "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notification Settings.";
 
 const WHATSAPP_SWITCHED_OFF_WARNING: string =
-  "WhatsApp is switched off for this project, so members cannot add a WhatsApp number to meet this rule. Turn it on in Project Settings > Notification Settings.";
+  "WhatsApp is switched off for this project, so members cannot add a WhatsApp number to meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notification Settings.";
 
 const SEVERITIES_DELETED_WARNING: string =
   "Every severity this rule was scoped to has been deleted, so it is paused. Edit it to choose new severities, or delete it.";
@@ -1114,7 +1114,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
 
     expect(await warnings()).toEqual([
       [
-        "Call and SMS notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. Turn them on in Project Settings > Notification Settings.",
+        "Call and SMS notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notification Settings.",
       ],
       [CALL_SWITCHED_OFF_WARNING, WHATSAPP_SWITCHED_OFF_WARNING],
     ]);
@@ -1137,7 +1137,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
 
     expect(await warnings()).toEqual([
       [
-        "SMS notifications are switched off for this project, so members will not be notified by SMS even when they meet this rule. Turn them on in Project Settings > Notification Settings.",
+        "SMS notifications are switched off for this project, so members will not be notified by SMS even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notification Settings.",
       ],
       [WHATSAPP_SWITCHED_OFF_WARNING],
     ]);

@@ -15,11 +15,7 @@ import ServiceUnavailableException from "../../Types/Exception/ServiceUnavailabl
 import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
 import ObjectID from "../../Types/ObjectID";
 import { JSONObject } from "../../Types/JSON";
-import Permission, {
-  PermissionHelper,
-  UserPermission,
-  UserTenantAccessPermission,
-} from "../../Types/Permission";
+import { PermissionHelper } from "../../Types/Permission";
 import RunnerJobOrigin from "../../Types/Runbook/RunnerJobOrigin";
 import RunnerJobStatus from "../../Types/Runbook/RunnerJobStatus";
 import {
@@ -33,14 +29,17 @@ import {
   KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
   KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
 } from "../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
+import { AiActivityInsights } from "../../Types/AI/AiActivityInsights";
 import {
-  KUBERNETES_CLUSTER_AI_INSIGHTS_COMMAND_WINDOW_IN_DAYS,
-  KUBERNETES_CLUSTER_AI_INSIGHTS_LIMIT,
-  KUBERNETES_CLUSTER_AI_INSIGHTS_RATIONALE_MAX_LENGTH,
-  KubernetesClusterAiInsightFix,
-  KubernetesClusterAiInsightInvestigation,
-  KubernetesClusterAiInsights,
-} from "../../Types/Kubernetes/KubernetesClusterAiInsights";
+  KUBERNETES_CLUSTER_AI_ACCESS_INSIGHTS_PATH,
+  KUBERNETES_CLUSTER_AI_ACCESS_LOGS_PATH,
+  KUBERNETES_CLUSTER_AI_LOGS_COMMAND_WINDOW_IN_DAYS,
+  KUBERNETES_CLUSTER_AI_LOGS_LIMIT,
+  KUBERNETES_CLUSTER_AI_LOGS_RATIONALE_MAX_LENGTH,
+  KubernetesClusterAiLogFix,
+  KubernetesClusterAiLogInvestigation,
+  KubernetesClusterAiLogs,
+} from "../../Types/Kubernetes/KubernetesClusterAiLogs";
 import AIRunType from "../../Types/AI/AIRunType";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import RunbookStepType from "../../Types/Runbook/RunbookStepType";
@@ -63,7 +62,15 @@ import KubernetesClusterAiAccessService from "../Services/KubernetesClusterAiAcc
 import RunnerJobService from "../Services/RunnerJobService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import logger from "../Utils/Logger";
-import { holdsAnyUnblockedPermission } from "../Utils/Runbook/RunbookExecutePermission";
+import CallerPermission from "../Utils/Permission/CallerPermission";
+import InvestigationReportSummary from "../Utils/AI/SRE/InvestigationReportSummary";
+import AiActivityInsightsReader, {
+  AiActivityInsightsScope,
+} from "../Utils/AI/ActivityInsights/AiActivityInsightsReader";
+import {
+  KubernetesClusterIdLabelKeys,
+  KubernetesClusterNameLabelKeys,
+} from "../Utils/Monitor/SeriesResourceLabels";
 import KubectlJobRunner, {
   KUBECTL_CLAIM_TIMEOUT_MS,
   KubectlJobOutcome,
@@ -72,8 +79,8 @@ import KubectlJobRunner, {
 const router: ExpressRouter = Express.getRouter();
 
 /*
- * The custom calls behind a cluster's AI pages (AI → Agent and
- * AI → Insights). Everything else there is ordinary CRUD on
+ * The custom calls behind a cluster's AI pages (AI → Insights, AI → Logs
+ * and AI → Agent). Everything else there is ordinary CRUD on
  * KubernetesCluster (the two switches, the allowlist, an advanced Runner
  * and credential).
  *
@@ -99,9 +106,15 @@ const router: ExpressRouter = Express.getRouter();
  *     holds it is locked out and the real pod registers afresh within a
  *     few minutes. For the people who may loosen AI access.
  *
+ *   POST /kubernetes-cluster/ai-access/logs         { clusterId }
+ *     Everything AI did on the cluster, newest first, as summaries: the AI
+ *     Logs page. Same read gate as the status.
+ *
  *   POST /kubernetes-cluster/ai-access/insights     { clusterId }
- *     What AI investigated and changed on the cluster, as summaries. Same
- *     read gate as the status.
+ *     What AI learned on the cluster and what deserves attention
+ *     (AiActivityInsights): the AI Insights page. Same read gate as the
+ *     status; what it says about incidents, alerts and findings follows
+ *     the caller's own read access to those (AiActivityInsightsReader).
  */
 
 async function getLoggedInProps(
@@ -168,10 +181,11 @@ async function findAccessibleCluster(data: {
 }
 
 /*
- * Mirrors KubernetesCluster's update ACL; a block row is a denial, not a
- * grant. The access test is read-only, but it spends the bound Runner's
- * time and prints the RBAC the Runner holds, so it is for the people who
- * may edit the cluster.
+ * Mirrors KubernetesCluster's update ACL, read the way every permission
+ * check reads it (CallerPermission): a block row is a denial, not a grant,
+ * and a block with no labels on that list takes the test away. The access
+ * test is read-only, but it spends the bound Runner's time and prints the
+ * RBAC the Runner holds, so it is for the people who may edit the cluster.
  */
 function assertCanEditCluster(
   props: DatabaseCommonInteractionProps,
@@ -181,19 +195,13 @@ function assertCanEditCluster(
     return;
   }
 
-  const allowed: Array<Permission> =
-    new KubernetesCluster().getUpdatePermissions();
-
-  const tenantPermission: UserTenantAccessPermission | undefined =
-    props.userTenantAccessPermission?.[projectId.toString()];
-
-  const hasPermission: boolean = Boolean(
-    tenantPermission?.permissions?.some((p: UserPermission): boolean => {
-      return !p.isBlockPermission && allowed.includes(p.permission);
-    }),
-  );
-
-  if (!hasPermission) {
+  if (
+    !CallerPermission.holdsModelPermission(
+      props,
+      { model: new KubernetesCluster(), operation: "update" },
+      { projectId: projectId },
+    )
+  ) {
     throw new NotAuthorizedException(
       "You need permission to edit this Kubernetes cluster to run its AI access test.",
     );
@@ -527,12 +535,21 @@ function assertCanResetAiAgent(
   props: DatabaseCommonInteractionProps,
   projectId: ObjectID,
 ): void {
+  /*
+   * A block row for any of these is a denial even when a grant is present,
+   * labelled or not: resetting reaches the agent whatever labels it has.
+   */
   if (
-    !holdsAnyUnblockedPermission({
+    !props.isRoot &&
+    !props.isMasterAdmin &&
+    !CallerPermission.holdsAnyOf(
       props,
-      projectId,
-      allowed: KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
-    })
+      KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
+      {
+        projectId: projectId,
+        labelledBlocksRefuse: true,
+      },
+    )
   ) {
     throw new NotAuthorizedException(
       `You need one of these permissions to reset this cluster's Kubernetes AI agent: ${PermissionHelper.getPermissionTitles(
@@ -578,11 +595,19 @@ function canReadCredentials(
   props: DatabaseCommonInteractionProps,
   projectId: ObjectID,
 ): boolean {
-  return holdsAnyUnblockedPermission({
+  /*
+   * A block row for any of these is a denial even when a grant is present,
+   * labelled or not: a credential's name says nothing about its labels.
+   */
+  if (props.isRoot || props.isMasterAdmin) {
+    return true;
+  }
+
+  return CallerPermission.holdsAnyOf(
     props,
-    projectId,
-    allowed: KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
-  });
+    KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
+    { projectId: projectId, labelledBlocksRefuse: true },
+  );
 }
 
 router.post(
@@ -868,16 +893,16 @@ router.post(
 );
 
 /*
- * How many of the cluster's newest kubectl jobs the insights read to find
- * the AI runs and suggestions that ran commands on it. Each AI run runs at
- * most a handful, so this reaches well past the newest 25 of either.
+ * How many of the cluster's newest kubectl jobs the logs read to find the
+ * AI runs and suggestions that ran commands on it. Each AI run runs at most
+ * a handful, so this reaches well past the newest 25 of either.
  */
-const INSIGHTS_JOB_SCAN_LIMIT: number = 500;
+const LOGS_JOB_SCAN_LIMIT: number = 500;
 
-// How many incidents and alerts linked to the cluster the insights read.
-const INSIGHTS_LINKED_SUBJECT_LIMIT: number = 200;
+// How many incidents and alerts linked to the cluster the logs read.
+const LOGS_LINKED_SUBJECT_LIMIT: number = 200;
 
-// What the insights' merge reads off every row it unions.
+// What the logs' merge reads off every row it unions.
 interface BaseRow {
   id?: ObjectID | null | undefined;
   createdAt?: Date | undefined;
@@ -919,8 +944,8 @@ function mergeNewest<T extends BaseRow>(
 }
 
 /*
- * What OneUptime AI investigated and changed on one cluster, as summaries
- * (KubernetesClusterAiInsights). Read as root: the caller has already been
+ * Everything OneUptime AI did on one cluster, newest first, as summaries
+ * (KubernetesClusterAiLogs). Read as root: the caller has already been
  * checked for read access to the cluster (findAccessibleCluster), and the
  * rows it summarises — AI runs, suggestions, Runner jobs — have narrower
  * read ACLs of their own, so reading them under the viewer's props would
@@ -931,21 +956,21 @@ function mergeNewest<T extends BaseRow>(
  *   (their RunnerJob rows name it), UNION investigations of incidents and
  *   alerts linked to it — which also covers one whose cluster access was
  *   not set up, so it never ran kubectl. Newest first, at most
- *   KUBERNETES_CLUSTER_AI_INSIGHTS_LIMIT.
+ *   KUBERNETES_CLUSTER_AI_LOGS_LIMIT.
  * - fixes: suggestions the cluster's Fixes setting produced (their
  *   kubernetesClusterId), UNION any suggestion whose kubectl ran on this
  *   cluster (a rule's round, too). Newest first, same limit.
  * - commandCounts: kubectl commands in the last
- *   KUBERNETES_CLUSTER_AI_INSIGHTS_COMMAND_WINDOW_IN_DAYS days. The AI
- *   agent page's connection tests have no AI run behind them and are not
- *   counted, the way the project's investigation brake leaves them out.
+ *   KUBERNETES_CLUSTER_AI_LOGS_COMMAND_WINDOW_IN_DAYS days. The AI agent
+ *   page's connection tests have no AI run behind them and are not counted,
+ *   the way the project's investigation brake leaves them out.
  */
-export async function getClusterAiInsights(data: {
+export async function getClusterAiLogs(data: {
   projectId: ObjectID;
   clusterId: ObjectID;
-}): Promise<KubernetesClusterAiInsights> {
+}): Promise<KubernetesClusterAiLogs> {
   const { projectId, clusterId } = data;
-  const limit: number = KUBERNETES_CLUSTER_AI_INSIGHTS_LIMIT;
+  const limit: number = KUBERNETES_CLUSTER_AI_LOGS_LIMIT;
 
   const jobs: Array<RunnerJob> = await RunnerJobService.findBy({
     query: {
@@ -955,7 +980,7 @@ export async function getClusterAiInsights(data: {
     },
     select: { _id: true, aiRunId: true, autoRemediationSuggestionId: true },
     sort: { createdAt: SortOrder.Descending },
-    limit: INSIGHTS_JOB_SCAN_LIMIT,
+    limit: LOGS_JOB_SCAN_LIMIT,
     skip: 0,
     props: { isRoot: true },
   });
@@ -988,7 +1013,7 @@ export async function getClusterAiInsights(data: {
         },
         select: { _id: true },
         sort: { createdAt: SortOrder.Descending },
-        limit: INSIGHTS_LINKED_SUBJECT_LIMIT,
+        limit: LOGS_LINKED_SUBJECT_LIMIT,
         skip: 0,
         props: { isRoot: true },
       }),
@@ -999,14 +1024,14 @@ export async function getClusterAiInsights(data: {
         },
         select: { _id: true },
         sort: { createdAt: SortOrder.Descending },
-        limit: INSIGHTS_LINKED_SUBJECT_LIMIT,
+        limit: LOGS_LINKED_SUBJECT_LIMIT,
         skip: 0,
         props: { isRoot: true },
       }),
     ]);
 
-  const investigations: Array<KubernetesClusterAiInsightInvestigation> =
-    await getInsightInvestigations({
+  const investigations: Array<KubernetesClusterAiLogInvestigation> =
+    await getLogInvestigations({
       projectId,
       runIds: Array.from(runIdsFromJobs.values()),
       incidentIds: getIds(linkedIncidents),
@@ -1014,7 +1039,7 @@ export async function getClusterAiInsights(data: {
       limit,
     });
 
-  const fixes: Array<KubernetesClusterAiInsightFix> = await getInsightFixes({
+  const fixes: Array<KubernetesClusterAiLogFix> = await getLogFixes({
     projectId,
     clusterId,
     suggestionIds: Array.from(suggestionIdsFromJobs.values()),
@@ -1022,7 +1047,7 @@ export async function getClusterAiInsights(data: {
   });
 
   const since: Date = OneUptimeDate.getSomeDaysAgo(
-    KUBERNETES_CLUSTER_AI_INSIGHTS_COMMAND_WINDOW_IN_DAYS,
+    KUBERNETES_CLUSTER_AI_LOGS_COMMAND_WINDOW_IN_DAYS,
   );
 
   const countCommands: (
@@ -1077,7 +1102,7 @@ function getIds(
     });
 }
 
-const INSIGHT_RUN_SELECT: Record<string, boolean> = {
+const LOG_RUN_SELECT: Record<string, boolean> = {
   _id: true,
   status: true,
   analysisTldr: true,
@@ -1087,13 +1112,13 @@ const INSIGHT_RUN_SELECT: Record<string, boolean> = {
   triggeredByAlertId: true,
 };
 
-async function getInsightInvestigations(data: {
+async function getLogInvestigations(data: {
   projectId: ObjectID;
   runIds: Array<ObjectID>;
   incidentIds: Array<ObjectID>;
   alertIds: Array<ObjectID>;
   limit: number;
-}): Promise<Array<KubernetesClusterAiInsightInvestigation>> {
+}): Promise<Array<KubernetesClusterAiLogInvestigation>> {
   const reads: Array<Promise<Array<AIRun>>> = [];
 
   const readRuns: (query: Record<string, unknown>) => Promise<Array<AIRun>> = (
@@ -1105,7 +1130,7 @@ async function getInsightInvestigations(data: {
         projectId: data.projectId,
         runType: AIRunType.Investigation,
       } as never,
-      select: INSIGHT_RUN_SELECT,
+      select: LOG_RUN_SELECT,
       sort: { createdAt: SortOrder.Descending },
       limit: data.limit,
       skip: 0,
@@ -1146,33 +1171,45 @@ async function getInsightInvestigations(data: {
     }),
   );
 
-  const [incidents, alerts]: [Array<Incident>, Array<Alert>] =
-    await Promise.all([
-      incidentIds.length > 0
-        ? IncidentService.findBy({
-            query: {
-              projectId: data.projectId,
-              _id: QueryHelper.any(incidentIds),
-            },
-            select: { _id: true, title: true, incidentNumber: true },
-            limit: incidentIds.length,
-            skip: 0,
-            props: { isRoot: true },
-          })
-        : Promise.resolve([]),
-      alertIds.length > 0
-        ? AlertService.findBy({
-            query: {
-              projectId: data.projectId,
-              _id: QueryHelper.any(alertIds),
-            },
-            select: { _id: true, title: true },
-            limit: alertIds.length,
-            skip: 0,
-            props: { isRoot: true },
-          })
-        : Promise.resolve([]),
-    ]);
+  const [incidents, alerts, reportSummaries]: [
+    Array<Incident>,
+    Array<Alert>,
+    Map<string, string>,
+  ] = await Promise.all([
+    incidentIds.length > 0
+      ? IncidentService.findBy({
+          query: {
+            projectId: data.projectId,
+            _id: QueryHelper.any(incidentIds),
+          },
+          select: { _id: true, title: true, incidentNumber: true },
+          limit: incidentIds.length,
+          skip: 0,
+          props: { isRoot: true },
+        })
+      : Promise.resolve([]),
+    alertIds.length > 0
+      ? AlertService.findBy({
+          query: {
+            projectId: data.projectId,
+            _id: QueryHelper.any(alertIds),
+          },
+          select: { _id: true, title: true },
+          limit: alertIds.length,
+          skip: 0,
+          props: { isRoot: true },
+        })
+      : Promise.resolve([]),
+    /*
+     * A completed run without a TL;DR still published a report, and its
+     * own Summary stands in (InvestigationReportSummary): the page never
+     * says "No summary was recorded." about a run that has one.
+     */
+    InvestigationReportSummary.getForRuns({
+      projectId: data.projectId,
+      runs: InvestigationReportSummary.getRunsWithoutTldr(runs),
+    }),
+  ]);
 
   const incidentsById: Map<string, Incident> = new Map<string, Incident>(
     incidents.map((incident: Incident): [string, Incident] => {
@@ -1185,7 +1222,7 @@ async function getInsightInvestigations(data: {
     }),
   );
 
-  return runs.map((run: AIRun): KubernetesClusterAiInsightInvestigation => {
+  return runs.map((run: AIRun): KubernetesClusterAiLogInvestigation => {
     const incident: Incident | undefined = run.triggeredByIncidentId
       ? incidentsById.get(run.triggeredByIncidentId.toString())
       : undefined;
@@ -1197,6 +1234,7 @@ async function getInsightInvestigations(data: {
       aiRunId: run.id!.toString(),
       status: run.status,
       analysisTldr: run.analysisTldr || undefined,
+      reportSummary: reportSummaries.get(run.id!.toString()),
       createdAt: toIsoString(run.createdAt),
       completedAt: toIsoString(run.completedAt),
       incident: run.triggeredByIncidentId
@@ -1228,7 +1266,7 @@ function getUniqueIds(ids: Array<ObjectID | undefined>): Array<ObjectID> {
   return Array.from(byId.values());
 }
 
-const INSIGHT_FIX_SELECT: Record<string, boolean> = {
+const LOG_FIX_SELECT: Record<string, boolean> = {
   _id: true,
   status: true,
   executionMode: true,
@@ -1240,12 +1278,12 @@ const INSIGHT_FIX_SELECT: Record<string, boolean> = {
   alertId: true,
 };
 
-async function getInsightFixes(data: {
+async function getLogFixes(data: {
   projectId: ObjectID;
   clusterId: ObjectID;
   suggestionIds: Array<ObjectID>;
   limit: number;
-}): Promise<Array<KubernetesClusterAiInsightFix>> {
+}): Promise<Array<KubernetesClusterAiLogFix>> {
   const readSuggestions: (
     query: Record<string, unknown>,
   ) => Promise<Array<AutoRemediationSuggestion>> = (
@@ -1253,7 +1291,7 @@ async function getInsightFixes(data: {
   ): Promise<Array<AutoRemediationSuggestion>> => {
     return AutoRemediationSuggestionService.findBy({
       query: { ...query, projectId: data.projectId } as never,
-      select: INSIGHT_FIX_SELECT,
+      select: LOG_FIX_SELECT,
       sort: { createdAt: SortOrder.Descending },
       limit: data.limit,
       skip: 0,
@@ -1270,7 +1308,7 @@ async function getInsightFixes(data: {
   }
 
   return mergeNewest(await Promise.all(reads), data.limit).map(
-    (suggestion: AutoRemediationSuggestion): KubernetesClusterAiInsightFix => {
+    (suggestion: AutoRemediationSuggestion): KubernetesClusterAiLogFix => {
       return {
         id: suggestion.id!.toString(),
         status: suggestion.status,
@@ -1279,7 +1317,7 @@ async function getInsightFixes(data: {
         rationale: suggestion.rationaleMarkdown
           ? suggestion.rationaleMarkdown.slice(
               0,
-              KUBERNETES_CLUSTER_AI_INSIGHTS_RATIONALE_MAX_LENGTH,
+              KUBERNETES_CLUSTER_AI_LOGS_RATIONALE_MAX_LENGTH,
             )
           : undefined,
         createdAt: toIsoString(suggestion.createdAt),
@@ -1357,7 +1395,7 @@ router.post(
 );
 
 router.post(
-  "/kubernetes-cluster/ai-access/insights",
+  KUBERNETES_CLUSTER_AI_ACCESS_LOGS_PATH,
   UserMiddleware.getUserMiddleware,
   async (
     req: ExpressRequest,
@@ -1374,10 +1412,74 @@ router.post(
         tenantId,
       });
 
-      const insights: KubernetesClusterAiInsights = await getClusterAiInsights({
+      const logs: KubernetesClusterAiLogs = await getClusterAiLogs({
         projectId: tenantId,
         clusterId: cluster.id!,
       });
+
+      Response.sendJsonObjectResponse(req, res, logs as unknown as JSONObject);
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
+ * How the AI Insights reader finds a cluster's activity: its kubectl jobs,
+ * the incidents and alerts linked through kubernetesClusters, the rounds
+ * its Fixes setting produced, and the labels that name the cluster itself
+ * (every subject here carries them, so they are never a hotspot).
+ */
+export function getClusterAiActivityInsightsScope(data: {
+  projectId: ObjectID;
+  props: DatabaseCommonInteractionProps;
+  cluster: KubernetesCluster;
+}): AiActivityInsightsScope {
+  return {
+    projectId: data.projectId,
+    props: data.props,
+    scopeId: data.cluster.id!,
+    commandJobQuery: {
+      kubernetesClusterId: data.cluster.id!,
+      stepType: RunbookStepType.Kubectl,
+    },
+    subjectRelation: "kubernetesClusters",
+    ownFixQuery: { kubernetesClusterId: data.cluster.id! },
+    scopeLabelKeys: [
+      ...KubernetesClusterIdLabelKeys,
+      ...KubernetesClusterNameLabelKeys,
+    ],
+    scopeNames: data.cluster.name ? [data.cluster.name] : [],
+  };
+}
+
+router.post(
+  KUBERNETES_CLUSTER_AI_ACCESS_INSIGHTS_PATH,
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+      const tenantId: ObjectID = CommonAPI.assertTenantScoped(props);
+
+      const cluster: KubernetesCluster = await findAccessibleCluster({
+        req,
+        props,
+        tenantId,
+      });
+
+      const insights: AiActivityInsights = await AiActivityInsightsReader.read(
+        getClusterAiActivityInsightsScope({
+          projectId: tenantId,
+          props,
+          cluster,
+        }),
+      );
 
       Response.sendJsonObjectResponse(
         req,

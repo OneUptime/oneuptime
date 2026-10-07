@@ -287,6 +287,128 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   IP itself. Hostname targets are unchanged.
 - **The `oneuptime` CLI reports its real version** for `--version` instead of a
   placeholder.
+- **A new alert or episode starts in the state its create names.** The API,
+  Terraform (`current_alert_state_id`, `current_incident_state_id`) and
+  workflows can name the state an alert, an alert episode or an incident
+  episode starts in, as the dashboard's **Initial State** field does. Before,
+  that state was replaced with the project's created state; a Terraform config
+  that set it got a different value back than it planned. A create that names
+  no state still starts in the created state, and a state of another project
+  is refused. See
+  [The state a new record starts in](/docs/api-reference/api-reference#the-state-a-new-record-starts-in).
+- **A record created already acknowledged or resolved pages no one.** An
+  incident, alert or episode created in a later state — through **Initial
+  State**, a template's initial state, the API, Terraform or a workflow — no
+  longer runs its on-call policies; its feed says so instead. One created
+  resolved is also no longer grouped into an episode, remediated,
+  investigated by OneUptime AI, or given a Slack or Microsoft Teams channel,
+  and an incident created resolved leaves its monitors' status and
+  monitoring alone and starts no SLA. One created acknowledged starts its
+  SLA already responded to. Records created in the created state, as every
+  monitor-opened one is, are unchanged. See
+  [Declared already acknowledged or resolved](/docs/incidents/declaring-incidents#declared-already-acknowledged-or-resolved).
+- **A state after your resolved state counts as resolved everywhere.** An
+  incident, alert or episode in a state you placed after the resolved state
+  — a **Closed** state below **Resolved**, say — used to count as resolved
+  in some places and as open in others. Every one of them now asks one
+  rule: the project's resolved state, and every state after it, is
+  resolved. Records in such a state leave the **Active Incidents** and
+  **Active Alerts** lists and their side-menu counts, the incident and
+  alert lists on dashboards, the active episodes and the mobile app's
+  lists of open records; Slack and Microsoft Teams summaries count them as
+  resolved, and status page timelines show such a row as resolved. A
+  monitor or an SLO burn-rate rule whose incident or alert sits in such a
+  state opens a new one the next time it fires, where it used to take the
+  old one for still open. Moving an incident straight into such a state
+  resolves it as **Resolved** does, and moving one on from **Resolved** no
+  longer reopens an episode or starts a new SLA for the incident. Projects
+  whose custom states all sit above the resolved state see no change. See
+  [The Active Incidents list](/docs/incidents/states-and-severities#the-active-incidents-list).
+- **Resolving an incident gives back only the monitors it holds.**
+  OneUptime now records whether an incident holds its monitors' status. An
+  incident resolved once already and then reopened no longer returns its
+  monitors to operational when it is resolved again, so a status they got
+  in between — from their probes, maintenance or set by hand — stays;
+  editing its monitors, or the status it puts them in, while it is open
+  makes it hold them again. Incidents from before the upgrade give their
+  monitors back on their next resolve, as they always did. See
+  [What resolving does](/docs/incidents/states-and-severities#what-resolving-does).
+- **An incident's or alert's episode is set by the episode's members
+  only.** `incidentEpisodeId` and `alertEpisodeId` (and the `incidentEpisode`
+  and `alertEpisode` relations) are read-only. The API, Terraform
+  (`incident_episode_id`, `alert_episode_id`), the MCP tools and workflows
+  could write them without adding the record to the episode: the episode's
+  overview then listed an incident or alert its **Members** page did not, and
+  one created with an episode set was never grouped. A create or update that
+  sends one is now refused, with a message pointing at the episode's members:
+  add the record with `POST /api/incident-episode-member` (or
+  `/api/alert-episode-member`) and delete that member to take it out, and the
+  episode reference follows. Reading it is unchanged. A Terraform
+  configuration that sets `incident_episode_id` or `alert_episode_id` must
+  drop it once you upgrade the provider, which only reads them now; the
+  `oneuptime_incident_episode_member` and `oneuptime_alert_episode_member`
+  resources manage membership. See
+  [The episode an incident or alert is in](/docs/api-reference/api-reference#the-episode-an-incident-or-alert-is-in).
+- **New incoming call escalation rules ring for 20 seconds, not 30.** Many
+  phones send an unanswered call to voicemail within 30 seconds, and a
+  voicemail that answers ends the call there instead of moving it on to the
+  next rule. The dashboard's **Ring for (in seconds)**, the API
+  (`escalateAfterSeconds`) and the Terraform provider
+  (`escalate_after_seconds`) now start a new rule at 20. Rules that already
+  exist keep the ring time they have: the upgrade changes only the column's
+  default. A Terraform configuration that leaves `escalate_after_seconds` out
+  will plan `30 -> 20` for the rules it manages once you upgrade the provider;
+  set `escalate_after_seconds = 30` to keep 30. See
+  [Incoming Call Policy](/docs/on-call/incoming-call-policy).
+- **Slack and Microsoft Teams summaries keep their time of day when the
+  clocks change.** A summary now has a time zone, and its schedule is read
+  on that clock. Until now it was read in UTC, so a summary set for 09:00 in
+  Berlin went out at 08:00 there once the clocks went back. The upgrade
+  gives each existing summary the time zone in its creator's profile, the
+  clock the dashboard showed them, or UTC when it has no creator with one
+  (an API key made it), which is what it was read in until now. No next
+  send moves during the upgrade; from its next send on, a summary that had
+  drifted an hour goes back to its first summary's time of day, and a
+  monthly summary on the 29th to 31st no longer slides to the 28th. The
+  API and Terraform (`timezone`) take an IANA time zone name; a summary
+  created without one takes its creator's profile time zone, or UTC when
+  an API key creates it, and a name that is not a time zone is refused.
+  See [Summaries](/docs/workspace-connections/slack#summaries).
+- **An incident's or alert's "updated" feed entry records only what
+  changed.** Saving the **Incident Details** card after changing only the
+  title, or an API client, a workflow or a script writing an incident or
+  an alert back as it is, used to add an entry repeating the title,
+  description, root cause, remediation notes and labels it carried — posted
+  to the incident's or alert's Slack and Microsoft Teams channels too — and
+  every write that carried the labels or the **Send reminders** switch
+  started the reminder interval over, even when nothing changed, so an
+  incident that was edited often kept putting its reminders off. Now each
+  line is written for a value that changed, and nothing for a save that
+  changed nothing; the reminder rule is matched again, and the interval
+  starts over, only when the severity or the labels change or **Send
+  reminders** is flipped. Text that reads the same counts as the same
+  (line endings and the spaces around it aside), and labels as the same
+  set in any order. Alerts now also record a root cause changed on its own
+  page, which they used to drop unless the title changed with it, and a
+  description, root cause or remediation notes that was cleared. Taking
+  every label off is recorded as "All labels removed.". See
+  [What the feed records](/docs/incidents/notes-owners-and-feed#what-the-feed-records).
+- **On OneUptime Cloud, API keys and SCIM stop working below their plan.**
+  A project's API keys need **Growth** and its SCIM connections - the
+  project's and its status pages' - need **Scale**. Until now they kept
+  working after a trial ended or the project moved to a lower plan. Now
+  every request made with one of the project's API keys - the REST API,
+  Terraform, the CLI, MCP clients connected with an API key - is refused
+  with `402` and a message that names the plan, and every SCIM request for
+  its connections is refused with `402` in the SCIM error format, which
+  stops deprovisioning too. Nothing is deleted: they work again as they are
+  as soon as the project is back on the plan, within a minute. The
+  project's owners get an email when a plan change stops them, and
+  **Project Settings** > **Billing** names how many a lower plan stops.
+  People signing in, MCP clients connected by signing in, telemetry
+  ingestion keys, probe keys and agent keys are not affected, and
+  self-hosted installs (no plans) see no change. See
+  [API keys and SCIM below their plan](/docs/api-reference/api-reference#api-keys-and-scim-below-their-plan).
 - **Runners moved from Project Settings into Runbooks.** Runners are now under
   **Runbooks → Runners** (`…/runbooks/runners`) and Runner Credentials under
   **Runbooks → Runners → Credentials** (`…/runbooks/runner-credentials`), next
@@ -300,6 +422,27 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that
   self-hosted installs no longer serve.
+
+### Workflow steps act as a Project Admin
+
+A workflow's Find, Create, Update and Delete steps, and its On Create, On Update and On Delete triggers, used to act as OneUptime itself: no permission, column or plan check applied to them. They now act as a **Project Admin** of the workflow's project, on the project's plan. See [What workflow steps can do](/docs/workflows/configuration#what-workflow-steps-can-do).
+
+What changes for an existing workflow:
+
+- A step that granted a team or an API key a permission a Project Admin doesn't hold — **Project Owner**, billing or project deletion, or any permission outside a Project Admin's — is refused, and so is a step that adds someone to a team with more permissions than a Project Admin, such as the owners' team.
+- A step that edited or deleted a feed entry, wrote a notification log, set a value OneUptime keeps for itself (a verified CNAME, a team's protection switches, the primary incident role, notified and reminder fields, who is on call now, an SLO's results, a private user's password reset token…) or moved a record to another parent is refused. The list is on that page.
+- A **Create One Incident** step that declared from a template by sending `createdIncidentTemplateId` is refused. Read the template with a **Find One Incident Template** step and pass its values to **Create One Incident** instead.
+- A step that selects who created a probe or an AI agent is refused.
+- On OneUptime Cloud, a step that creates or changes what the project's plan doesn't include is refused with the plan it needs, as the dashboard is.
+- An Update step no longer writes the project: a record stays in its project, as before.
+
+A refused step takes its **Error** output without making the refused change, and its run log names the step and the reason (a Create Many step stops at the record refused, keeping the ones it created before it). After the upgrade, look over your workflows' **Runs** for refused steps.
+
+What does not change: the API, Terraform and the MCP server already held their callers to these checks, and still do, so nothing changes for them. Workflow steps that talk to other systems (API, Email, chat, Custom Code, AI) are not affected. Who may edit or run a workflow is unchanged.
+
+The audit log now records the changes a workflow's steps make and names the workflow, by its name at the time. They used to be system events, recorded only when **Store System Events** was turned on. The two new audit log columns, `workflowId` and `workflowName`, are added on start; entries written before the upgrade read as before.
+
+Slack and Microsoft Teams actions are held to the project's plan too: paging an on-call policy from chat on a plan that doesn't include on-call is refused with the plan it needs, as it is in the dashboard.
 
 ### IPv6 Ping, Port and SSL monitors
 
@@ -365,7 +508,7 @@ Agent retired in OneUptime 12
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set aiAgent.enabled=true
 ```
 
@@ -373,6 +516,31 @@ Use your own release name and namespace if they differ. The Kubernetes agent
 page's [Upgrading the Agent](/docs/telemetry/kubernetes-agent#upgrading-the-agent)
 has the details, and [AI SRE — Cluster access](/docs/ai/ai-sre#cluster-access-let-oneuptime-ai-run-kubectl)
 explains what the agent may do and how to let it fix what it finds.
+
+### What AI may do is set on the AI agent
+
+Investigation and fixes on a Kubernetes cluster or an infrastructure resource
+are now the AI agent's own settings — the chart's `aiAgent.investigation` and
+`aiAgent.fixes`, or `ONEUPTIME_AI_INVESTIGATION` and `ONEUPTIME_AI_FIXES`
+where a resource AI agent runs. The agent reports them, OneUptime applies
+them, and the AI agent page shows them read-only: **Change** shows the
+command for each option instead of saving anything.
+
+- **Settings you chose stay.** A cluster or resource whose AI settings someone
+  chose on its AI agent page keeps them until its agent's configuration names
+  them. An agent or chart older than this release reports nothing, and the
+  page sets them as before.
+- **A configuration that names them wins.** OneUptime then refuses a change
+  made anywhere else — the AI agent page, the API, Terraform — until the
+  configuration stops naming them. The command allowlist stays on the page.
+- **Nothing chosen yet: the agent's defaults.** Investigation on, and fixes
+  **Ask for approval** when the agent has write access, else **Off**.
+- A cluster whose AI commands run through a Runner you bound keeps its
+  settings on the page.
+
+[AI SRE — Cluster access](/docs/ai/ai-sre#cluster-access-let-oneuptime-ai-run-kubectl)
+and [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)
+have the commands.
 
 ### Enable AI is the only AI switch
 
@@ -401,7 +569,7 @@ upgrade moves those fixes to asking first:
 Nothing is turned off. Rules, clusters and resources that one of the switches
 kept quiet start proposing fixes, and each fix still waits for a human. To keep
 auto-remediation out of a project, turn off **Enable AI**, or disable its rules
-(Incidents or Alerts → Rules → Auto Remediation Rules) and set **Fixes** to
+(Incidents or Alerts → AI → Auto Remediation Rules) and set **Fixes** to
 **Off** on each cluster's and resource's AI agent page. API clients and
 Terraform configurations that set `enableAutoRemediation` or
 `enableAiCommandExecution` (`enable_auto_remediation` or
@@ -412,7 +580,7 @@ Terraform configurations that set `enableAutoRemediation` or
 A project created after the upgrade starts with every AI feature switched on,
 not only automatic incident and alert investigation: postmortem drafts,
 automatic code fixes and instrumentation fixes (Incidents or Alerts →
-Settings → AI), and AI Insights with its fix pull requests and auto-archiving
+AI → Settings), and AI Insights with its fix pull requests and auto-archiving
 of expected-denial exceptions (AI → Insights → Settings).
 
 Projects that already exist keep the settings they have; the upgrade switches
@@ -452,19 +620,54 @@ repository. A cooldown is still held to at most 1440 minutes (a day).
 
 To keep the old limits, set them yourself: **Minimum Severity To
 Investigate**, the cooldown, the concurrency caps and the daily fix task limits
-on **Incidents → Settings → AI** and **Alerts → Settings → AI**, and **Max Open
+on **Incidents → AI → Settings** and **Alerts → AI → Settings**, and **Max Open
 Fix Pull Requests** on each repository's **Settings** page. AI work outside
 incidents and alerts has no setting, so it runs without these limits. Nothing
 changes for the **Daily Incident AI Token Limit** and **Daily Alert AI Token
 Limit** (0 still pauses that lane) or for the investigation time limit: they
 were already unset by default, which means no limit.
 
-The AI settings also moved in the Incidents and Alerts side menus, and the
-**AI** section there is gone. Its **Investigation** page is now **Settings →
-AI**, the first item under **Settings**, and its **Remediation** page is now
-**Rules → Auto Remediation Rules**, right after **Runbook Rules**. The URLs
-(`…/settings/ai` and `…/settings/auto-remediation-rules`) have not changed, so
-bookmarks keep working.
+The AI pages also changed in the Incidents and Alerts side menus. Each menu's
+**AI** section, right after **Episodes** and folded until you open it, holds
+everything OneUptime AI does for that signal type: **Insights** and **Logs**,
+which are new, then **Settings**, the page that was called **Investigation**,
+and **Auto Remediation Rules**, the page that was called **Remediation**. Their
+addresses moved from `…/settings/ai` and `…/settings/auto-remediation-rules` to
+`…/ai/settings` and `…/ai/auto-remediation-rules`. The old addresses open the
+new pages, so bookmarks keep working.
+
+### The AI Logs get an index for the daily AI limits
+
+A project's daily AI limits (**Project Settings → AI Features → More
+settings**) and the incident and alert daily token limits add up the day's AI
+Logs before every AI call. Until now that read every AI Log the project had
+ever written, and a self-hosted install keeps them all. The upgrade adds an
+index on the AI Logs (`LlmLog`), on the project and the time of each call, so
+each check reads only that day's. The AI Logs page lists a project's logs
+faster too.
+
+Nothing to do: the index is built online during the upgrade
+(`CREATE INDEX CONCURRENTLY`), and AI calls keep working while it builds. On a
+large AI Logs table this takes a few minutes. The build waits at most two
+minutes behind any one long-running transaction, such as a backup, and runs at
+most fifteen. If it cannot finish, the upgrade still completes, the limits keep
+working without the index, and the log says so and how to build it. Run this
+on the OneUptime database, outside a transaction, at any time:
+
+```sql
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "IDX_LLM_LOG_PROJECT_CREATED_AT"
+  ON "LlmLog" ("projectId", "createdAt");
+```
+
+If the log says an unfinished (INVALID) copy was left behind, drop it first
+with `DROP INDEX CONCURRENTLY IF EXISTS "IDX_LLM_LOG_PROJECT_CREATED_AT";`.
+That happens when a backup runs through the upgrade: the backup holds the
+table until it finishes. An index you build this way before upgrading is kept
+as it is.
+
+On Helm with `migrate.hook: true`, `helm upgrade` waits for the migrations, by
+default for 5 minutes. If your AI Logs table is very large, run this upgrade
+with `--timeout 20m`.
 
 ### Verify the edition and the license
 

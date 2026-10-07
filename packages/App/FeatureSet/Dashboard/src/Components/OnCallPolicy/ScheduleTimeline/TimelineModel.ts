@@ -1,4 +1,4 @@
-import { getTimelineColorForUserId } from "./TimelineColors";
+import { getColorForUserId } from "../OnCallScheduleLayer/LayerUserColors";
 import {
   ScheduleTimelineResponse,
   ScheduleTimelineScheduleJson,
@@ -474,7 +474,7 @@ export default class TimelineModel {
         people.push({
           userId,
           userName: entry.userName,
-          color: getTimelineColorForUserId(userId),
+          color: getColorForUserId(userId),
           onCallMilliseconds: ScheduleTimelineLayout.sumWithin(
             entry.intervals,
             window,

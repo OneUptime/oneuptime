@@ -743,7 +743,16 @@ insert(Host, {
   description: "Edge API gateway in front of the checkout services.",
   hostIdentifier: HOST_IDENTIFIER,
   otelCollectorStatus: "connected",
-  agentVersion: "1.9.0",
+  /*
+   * The collector release its config stamps: older than the 0.161.0 the
+   * host guide pins, so its Agent Version carries the sign
+   * (AgentVersionSign.spec.ts). `?hostAgentVersion=` reports another one
+   * for one page load.
+   */
+  agentVersion:
+    new window.URLSearchParams(window.location.search).get(
+      "hostAgentVersion",
+    ) || "0.154.0",
   lastSeenAt: ago(15 * SECOND),
   osType: "linux",
   osVersion: "Ubuntu 24.04.1 LTS",
@@ -2606,6 +2615,42 @@ async function handleApi(method, options) {
       aiAgent: null,
       automaticInvestigation: {},
       gaps: [],
+    });
+  }
+
+  /*
+   * The host Overview's "AI agent" card reads whether OneUptime AI can reach
+   * the host (the route every resource but a cluster uses). Not part of the
+   * zoom or the agent version; answered "no AI agent yet", as the server
+   * answers for a host nobody installed one on, so the card settles and the
+   * page makes no other call.
+   */
+  if (
+    method === "POST" &&
+    parsed.pathname.endsWith("/resource-ai-access/status")
+  ) {
+    if (body.resourceType !== "Host" || body.resourceId !== HOST_ID) {
+      throw fail(404, "Resource not found.");
+    }
+    return ok({
+      resourceType: "Host",
+      resourceId: HOST_ID,
+      resourceName: "api-gateway-01",
+      isAiInvestigationEnabled: true,
+      aiRemediationMode: "Disabled",
+      aiCommandAllowlist: [],
+      agent: null,
+      gaps: [
+        {
+          code: "ai_agent_not_connected",
+          title: "No AI agent is connected",
+          nextStep: "Install the OneUptime AI agent on this host.",
+          blocksInvestigation: true,
+          blocksRemediation: true,
+        },
+      ],
+      isInvestigationReady: false,
+      isRemediationReady: false,
     });
   }
 

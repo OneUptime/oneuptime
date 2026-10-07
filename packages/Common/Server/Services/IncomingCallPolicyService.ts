@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import IncomingCallPolicy from "../../Models/DatabaseModels/IncomingCallPolicy";
 import IncomingCallPolicyLabelRuleEngineService from "./IncomingCallPolicyLabelRuleEngineService";
 import IncomingCallPolicyOwnerRuleEngineService from "./IncomingCallPolicyOwnerRuleEngineService";
@@ -79,7 +79,7 @@ function normalizeProjectCallSMSConfigId(
   return persistedId !== undefined ? persistedId : publicId;
 }
 
-export class Service extends DatabaseService<IncomingCallPolicy> {
+export class Service extends ProjectReferencesService<IncomingCallPolicy> {
   public constructor() {
     super(IncomingCallPolicy);
   }
@@ -88,6 +88,8 @@ export class Service extends DatabaseService<IncomingCallPolicy> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<IncomingCallPolicy>,
   ): Promise<OnUpdate<IncomingCallPolicy>> {
+    await super.onBeforeUpdate(updateBy);
+
     const hasProjectCallSMSConfigId: boolean =
       Object.prototype.hasOwnProperty.call(
         updateBy.data,

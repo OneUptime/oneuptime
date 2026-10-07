@@ -5,19 +5,22 @@ import InvestigationNotStartedReason, {
   InvestigationNotStartedCode,
 } from "Common/Types/AI/InvestigationNotStartedReason";
 import Project from "Common/Models/DatabaseModels/Project";
+import { PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN } from "Common/Types/AI/ProjectAiDailyLimits";
+import { PROJECT_BALANCE_RECHARGE_PERMISSIONS } from "Common/Utils/Project/ProjectBalance";
+import { WHO_CAN_ADD_AI_CREDITS } from "../ProjectBalance/ProjectBalanceCopy";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
-import Permission, { PermissionHelper } from "Common/Types/Permission";
+import Permission from "Common/Types/Permission";
 import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
-import PermissionUtil from "Common/UI/Utils/Permission";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
 
 interface ComponentProps {
   subjectType: "incident" | "alert";
@@ -76,8 +79,10 @@ const KNOWN_REASON_CODES: Array<InvestigationNotStartedCode> = [
   "automatic_investigation_disabled",
   "provider_missing",
   "insufficient_ai_balance",
+  "project_daily_limit_reached",
   "severity_below_threshold",
   "monitor_cooldown",
+  "created_resolved",
   "daily_budget_exhausted",
   "budget_check_failed",
   "enqueue_failed",
@@ -126,6 +131,17 @@ function getEnableAiUpdatePermissions(): Array<Permission> {
   return new Project().getColumnAccessControlFor("enableAi")?.update || [];
 }
 
+/*
+ * Who may change the project's own daily AI limits, the same way: from the
+ * token limit column's update access control.
+ */
+function getDailyAiLimitUpdatePermissions(): Array<Permission> {
+  return (
+    new Project().getColumnAccessControlFor(PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN)
+      ?.update || []
+  );
+}
+
 export function getSettingsAction(
   code: InvestigationNotStartedCode,
   subjectType: "incident" | "alert",
@@ -148,15 +164,29 @@ export function getSettingsAction(
   /*
    * Only produced when billing is on, which is exactly when AI Credits is
    * in the settings menu. Recharging takes the permissions AIBillingAPI's
-   * /ai/recharge checks.
+   * /ai/recharge checks (Utils/Project/ProjectBalance), and everyone else is
+   * told who has them.
    */
   if (code === "insufficient_ai_balance") {
     return {
       label: "Add AI credits",
       page: PageMap.SETTINGS_AI_CREDITS,
-      permissions: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+      permissions: [...PROJECT_BALANCE_RECHARGE_PERMISSIONS],
+      whoCanAct: WHO_CAN_ADD_AI_CREDITS,
+    };
+  }
+
+  /*
+   * The project's own daily AI limits live under More settings on Project
+   * Settings → AI Features, which every install shows.
+   */
+  if (code === "project_daily_limit_reached") {
+    return {
+      label: "Go to Project Settings → AI Features",
+      page: PageMap.SETTINGS_AI_FEATURES,
+      permissions: getDailyAiLimitUpdatePermissions(),
       whoCanAct: translationKey(
-        "A project owner or someone with Manage Billing can add AI credits.",
+        "A project owner or someone with Manage Billing can change the project's daily AI limits in Project Settings → AI Features.",
       ),
     };
   }
@@ -177,10 +207,16 @@ export function getSettingsAction(
     };
   }
 
+  /*
+   * No setting would have changed these, so there is no page to send anyone
+   * to - a record created already resolved among them: the reason's own next
+   * step says what to do.
+   */
   if (
     code === "budget_check_failed" ||
     code === "enqueue_failed" ||
-    code === "eligibility_check_failed"
+    code === "eligibility_check_failed" ||
+    code === "created_resolved"
   ) {
     return null;
   }
@@ -260,11 +296,7 @@ const InvestigationNotStarted: FunctionComponent<ComponentProps> = (
       ? getSettingsAction(reason?.code || "no_run_recorded", subjectType)
       : null;
   const canReviewSettings: boolean = Boolean(
-    action &&
-      PermissionHelper.doesPermissionsIntersect(
-        action.permissions,
-        PermissionUtil.getAllPermissions(),
-      ),
+    action && PermissionGate.holdsAnyOf(action.permissions),
   );
   const sourceLabel: string = translator.translateText(
     reason?.source === "recorded"

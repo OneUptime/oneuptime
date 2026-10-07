@@ -43,6 +43,34 @@ never revoke it.
                       always names exactly the RoleBindings rendered.
   extraEnv            aiAgent.extraEnv when the key is present, else
                       aiAccess.extraEnv (an egress proxy, say).
+What OneUptime AI may do on the cluster — the two settings the cluster's AI →
+Agent page shows, Investigation and Fixes — is decided here too:
+  aiSettingsConfigured
+                      aiAgent.investigation is a bool, or aiAgent.fixes is
+                      set. Then both variables are rendered
+                      (ONEUPTIME_AI_INVESTIGATION, ONEUPTIME_AI_FIXES), the
+                      agent reports them as configured, OneUptime applies
+                      them to the cluster and the AI → Agent page shows them
+                      read-only. A release that names neither renders
+                      neither: the agent reports its defaults, which
+                      OneUptime applies only to a cluster whose settings
+                      nobody chose on its AI → Agent page — so settings an
+                      operator chose there are never replaced by defaults
+                      nobody chose. values.yaml leaves both unset for the
+                      same reason as remediation.* below: a default there
+                      would count as named for every upgrade that takes the
+                      chart's defaults (GitOps, --reset-then-reuse-values).
+  investigation       aiAgent.investigation when it is a bool, else true.
+  fixes               aiAgent.fixes when set: off, ask-for-approval,
+                      automatic or bypass-approval (a YAML `off` arrives as
+                      the bool false and reads as off; anything else fails
+                      the render). Unset: ask-for-approval when the legacy
+                      write switch above is on, else off — what OneUptime
+                      picked for a cluster whose agent connected that way.
+                      When set, fixes also decide allowWrites (writesKey
+                      "aiAgent.fixes"): every level but off grants the write
+                      RBAC, and off grants none, whatever
+                      aiAgent.remediation.enabled says.
 namespacesKey, writesKey and extraEnvKey name the value each setting came
 from, so a refusal or a note points at the value to change.
 aiAccess.image and aiAccess.resources are never read: on 14.0.x releases they
@@ -69,6 +97,33 @@ tests/ai-agent-notes_test.yaml render every rule against 14.0.x-shaped values.
 {{- $writesKey = "aiAgent.remediation.enabled" -}}
 {{- end }}
 {{- /*
+What AI may do (aiAgent.investigation, aiAgent.fixes). `fixes: off` in a values
+file is YAML 1.1's false, so the bool false reads as "off"; true says nothing
+about a level and is refused, like any other value that is not one.
+*/}}
+{{- $investigationSet := kindIs "bool" $aiAgent.investigation -}}
+{{- $investigation := true -}}
+{{- if $investigationSet }}
+{{- $investigation = $aiAgent.investigation -}}
+{{- end }}
+{{- $fixes := "" -}}
+{{- if kindIs "bool" $aiAgent.fixes }}
+{{- if $aiAgent.fixes }}
+{{- fail "aiAgent.fixes is true, which is not a level. Set it to off, ask-for-approval, automatic or bypass-approval." }}
+{{- end }}
+{{- $fixes = "off" -}}
+{{- else if not (kindIs "invalid" $aiAgent.fixes) }}
+{{- $fixes = toString $aiAgent.fixes | trim -}}
+{{- end }}
+{{- $fixesSet := ne $fixes "" -}}
+{{- if and $fixesSet (not (has $fixes (list "off" "ask-for-approval" "automatic" "bypass-approval"))) }}
+{{- fail (printf "aiAgent.fixes is %q. Set it to off, ask-for-approval, automatic or bypass-approval." $fixes) }}
+{{- end }}
+{{- if $fixesSet }}
+{{- $allowWrites = ne $fixes "off" -}}
+{{- $writesKey = "aiAgent.fixes" -}}
+{{- end }}
+{{- /*
 An agent that is off is granted nothing, so nothing about its writes is
 checked either: aiAgent.enabled=false must render nothing, not fail the whole
 chart (collector included) over a namespace list no RoleBinding will use.
@@ -76,6 +131,11 @@ chart (collector included) over a namespace list no RoleBinding will use.
 {{- if not $enabled }}
 {{- $allowWrites = false -}}
 {{- end }}
+{{- /* Unset fixes read as the agent's default: ask-for-approval with write access, else off. */}}
+{{- if not $fixesSet }}
+{{- $fixes = ternary "ask-for-approval" "off" $allowWrites -}}
+{{- end }}
+{{- $aiSettingsConfigured := or $investigationSet $fixesSet -}}
 {{- $nodeOperations := true -}}
 {{- if kindIs "bool" $legacyRemediation.nodeOperations }}
 {{- $nodeOperations = $legacyRemediation.nodeOperations -}}
@@ -109,5 +169,5 @@ chart (collector included) over a namespace list no RoleBinding will use.
 {{- $extraEnvKey = "aiAccess.extraEnv" -}}
 {{- end }}
 {{- /* One line: actions that span lines need a Helm built with Go 1.16+. */ -}}
-{{- toJson (dict "enabled" $enabled "allowWrites" $allowWrites "writesKey" $writesKey "allowNodeOperations" (and $allowWrites $nodeOperations) "writeNamespaces" $writeNamespaces "namespacesKey" $namespacesKey "extraEnv" $extraEnv "extraEnvKey" $extraEnvKey) -}}
+{{- toJson (dict "enabled" $enabled "allowWrites" $allowWrites "writesKey" $writesKey "allowNodeOperations" (and $allowWrites $nodeOperations) "writeNamespaces" $writeNamespaces "namespacesKey" $namespacesKey "extraEnv" $extraEnv "extraEnvKey" $extraEnvKey "aiSettingsConfigured" $aiSettingsConfigured "investigation" $investigation "fixes" $fixes) -}}
 {{- end }}

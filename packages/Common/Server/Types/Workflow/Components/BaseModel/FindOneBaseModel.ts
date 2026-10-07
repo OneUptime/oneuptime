@@ -136,11 +136,16 @@ export default class FindOneBaseModel<
       const model: TBaseModel | null = await this.modelService.findOneBy({
         query: query,
         select: select,
-        props: {
-          isRoot: true,
-          tenantId: options.projectId,
-        },
+        // A Project Admin of the project, never root. See getStepProps.
+        props: await this.getStepProps(options),
       });
+
+      /*
+       * The record's files come back only when they are the project's to
+       * see: the read is the project's (a Project Admin of it), so
+       * DatabaseService holds it to the files that project may see
+       * (RelatedFileAccess), as it does every read made for someone.
+       */
 
       return {
         returnValues: {
@@ -155,6 +160,7 @@ export default class FindOneBaseModel<
         error: err,
         model: this.modelService?.getModel() || null,
         log: options.log,
+        stepTitle: this.getMetadata().title,
       });
 
       return {

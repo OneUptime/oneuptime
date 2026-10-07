@@ -1,4 +1,6 @@
 import AffectedResourcesDisplay from "../../../Components/AffectedResources/AffectedResourcesDisplay";
+import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import { StateListType } from "Common/Utils/StateOrder";
 import ChangeIncidentState from "../../../Components/Incident/ChangeState";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
@@ -42,7 +44,6 @@ import React, {
 import UserElement from "../../../Components/User/User";
 import { canWriteNoteColumn } from "../../../Components/EventNotes/EventNotesUtil";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
-import PermissionUtil from "Common/UI/Utils/Permission";
 import User from "Common/UI/Utils/User";
 import Card from "Common/UI/Components/Card/Card";
 import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
@@ -618,7 +619,7 @@ const IncidentView: FunctionComponent<
       model: incidentModelForPermissions,
       column: "subscriberNotificationStatusOnIncidentCreated",
       action: "update",
-      userPermissions: PermissionUtil.getAllPermissions(),
+      held: PermissionGate.getHeldPermissions(),
       isMasterAdmin: User.isMasterAdmin(),
     });
 
@@ -722,13 +723,29 @@ const IncidentView: FunctionComponent<
     });
   };
 
+  /*
+   * The project's resolved state, by name, and every state that counts as
+   * resolved: it and any state placed after it (Common/Utils/ResolvedState).
+   */
   const getResolvedState: GetIncidentStateFunction = ():
     | IncidentState
     | undefined => {
-    return incidentStates.find((state: IncidentState) => {
-      return state.isResolvedState;
-    });
+    return (
+      ResolvedStateUtil.getResolvedState({
+        list: StateListType.IncidentState,
+        states: incidentStates,
+      }) || undefined
+    );
   };
+
+  const resolvedStateIds: Array<string> = ResolvedStateUtil.getResolvedStateIds(
+    {
+      list: StateListType.IncidentState,
+      states: incidentStates,
+    },
+  ).map((stateId: ObjectID) => {
+    return stateId.toString();
+  });
 
   const acknowledgeState: IncidentState | undefined = getAcknowledgeState();
   const resolvedState: IncidentState | undefined = getResolvedState();
@@ -753,13 +770,13 @@ const IncidentView: FunctionComponent<
     timelines: timelineDates,
     startedAt: incidentStartedAt,
     acknowledgedStateId: acknowledgeState?._id?.toString(),
-    resolvedStateId: resolvedState?._id?.toString(),
+    resolvedStateIds: resolvedStateIds,
   });
 
   const durationStartDate: Date | undefined = responseTimes.startedAt;
   const durationEndDate: Date | undefined = getEventEndDateForCurrentState(
     timelineDates,
-    resolvedState?._id?.toString(),
+    resolvedStateIds,
   );
 
   type FormatDateFunction = (date: Date | undefined) => string | undefined;
@@ -1562,6 +1579,10 @@ const IncidentView: FunctionComponent<
                       name: true,
                       _id: true,
                     },
+                    storageArrays: {
+                      name: true,
+                      _id: true,
+                    },
                     dockerSwarmClusters: {
                       name: true,
                       _id: true,
@@ -1603,6 +1624,7 @@ const IncidentView: FunctionComponent<
                         proxmoxClusters={item.proxmoxClusters || []}
                         vmwareVCenters={item.vmwareVCenters || []}
                         cephClusters={item.cephClusters || []}
+                        storageArrays={item.storageArrays || []}
                         dockerSwarmClusters={item.dockerSwarmClusters || []}
                         iotFleets={item.iotFleets || []}
                         databaseServers={item.databaseServers || []}

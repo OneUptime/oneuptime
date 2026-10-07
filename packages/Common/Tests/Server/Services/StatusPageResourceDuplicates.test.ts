@@ -7,7 +7,23 @@ import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResourc
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
-import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * Contract under test - a status page lists a monitor once.
@@ -40,6 +56,9 @@ const OTHER_STATUS_PAGE_ID: ObjectID = new ObjectID(
 );
 const PROJECT_ID: ObjectID = new ObjectID(
   "33333333-3333-4333-8333-333333333333",
+);
+const OTHER_PROJECT_ID: ObjectID = new ObjectID(
+  "99999999-9999-4999-8999-999999999999",
 );
 const GROUP_ID: ObjectID = new ObjectID("44444444-4444-4444-8444-444444444444");
 const OTHER_GROUP_ID: ObjectID = new ObjectID(
@@ -155,6 +174,13 @@ function mockService(rows: Array<StatusPageResource>): {
           if (
             query.statusPageId &&
             row.statusPageId?.toString() !== query.statusPageId.toString()
+          ) {
+            return false;
+          }
+
+          if (
+            query.projectId &&
+            row.projectId?.toString() !== query.projectId.toString()
           ) {
             return false;
           }
@@ -433,7 +459,7 @@ describe("StatusPageResourceService duplicate rules", () => {
       ).resolves.toBeDefined();
     });
 
-    it("looks for a duplicate by status page and monitor only", async () => {
+    it("looks for a duplicate by status page and monitor only, in the page's own project", async () => {
       const mocks: ReturnType<typeof mockService> = mockService([]);
 
       await onBeforeCreate(
@@ -443,6 +469,7 @@ describe("StatusPageResourceService duplicate rules", () => {
       const duplicateLookup: any = (mocks.findOneBy.mock.calls[0] as any)[0];
       expect(duplicateLookup.query).toEqual({
         statusPageId: STATUS_PAGE_ID,
+        projectId: PROJECT_ID,
         monitorId: MONITOR_ID,
       });
       expect(duplicateLookup.props.isRoot).toBe(true);
@@ -560,6 +587,31 @@ describe("StatusPageResourceService duplicate rules", () => {
       ).resolves.toBeDefined();
     });
 
+    it("takes the monitor it already has, sent in another case, as unchanged", async () => {
+      // Postgres reads a uuid back in lower case; a form may send it in upper.
+      const storedMonitorId: ObjectID = new ObjectID(
+        "abcdefab-cdef-4abc-8def-abcdefabcdef",
+      );
+
+      const mocks: ReturnType<typeof mockService> = mockService([
+        makeResource({ id: resourceId(1), monitorId: storedMonitorId }),
+        makeResource({ id: resourceId(2), monitorId: storedMonitorId }),
+      ]);
+
+      await expect(
+        onBeforeUpdate(
+          updateBy({
+            id: resourceId(1),
+            monitor: new ObjectID(storedMonitorId.toString().toUpperCase()),
+            displayName: "Renamed",
+          }),
+        ),
+      ).resolves.toBeDefined();
+
+      // One read: the resource being updated. No duplicate lookup after it.
+      expect(mocks.findOneBy).toHaveBeenCalledTimes(1);
+    });
+
     it("looks for the duplicate by status page and the new monitor", async () => {
       const mocks: ReturnType<typeof mockService> = mockService([
         makeResource({ id: resourceId(1), monitorId: OTHER_MONITOR_ID }),
@@ -643,6 +695,7 @@ describe("StatusPageResourceService duplicate rules", () => {
       await expect(
         StatusPageResourceService.isResourceAlreadyOnStatusPage({
           statusPageId: STATUS_PAGE_ID,
+          projectId: PROJECT_ID,
           monitorId: MONITOR_ID,
         }),
       ).resolves.toBe(true);
@@ -654,6 +707,7 @@ describe("StatusPageResourceService duplicate rules", () => {
       await expect(
         StatusPageResourceService.isResourceAlreadyOnStatusPage({
           statusPageId: STATUS_PAGE_ID,
+          projectId: PROJECT_ID,
           monitorId: OTHER_MONITOR_ID,
         }),
       ).resolves.toBe(false);
@@ -665,6 +719,7 @@ describe("StatusPageResourceService duplicate rules", () => {
       await expect(
         StatusPageResourceService.isResourceAlreadyOnStatusPage({
           statusPageId: STATUS_PAGE_ID,
+          projectId: PROJECT_ID,
           monitorId: MONITOR_ID,
           excludeResourceId: resourceId(1),
         }),
@@ -680,6 +735,7 @@ describe("StatusPageResourceService duplicate rules", () => {
       await expect(
         StatusPageResourceService.isResourceAlreadyOnStatusPage({
           statusPageId: STATUS_PAGE_ID,
+          projectId: PROJECT_ID,
           monitorId: MONITOR_ID,
           excludeResourceId: resourceId(1),
         }),
@@ -694,10 +750,222 @@ describe("StatusPageResourceService duplicate rules", () => {
       await expect(
         StatusPageResourceService.isResourceAlreadyOnStatusPage({
           statusPageId: STATUS_PAGE_ID,
+          projectId: PROJECT_ID,
         }),
       ).resolves.toBe(false);
 
       expect(mocks.findOneBy).not.toHaveBeenCalled();
     });
+
+    it("looks only inside the project it is given", async () => {
+      const foreign: StatusPageResource = makeResource({
+        id: resourceId(1),
+        monitorId: MONITOR_ID,
+      });
+      foreign.projectId = OTHER_PROJECT_ID;
+      const mocks: ReturnType<typeof mockService> = mockService([foreign]);
+
+      await expect(
+        StatusPageResourceService.isResourceAlreadyOnStatusPage({
+          statusPageId: STATUS_PAGE_ID,
+          projectId: PROJECT_ID,
+          monitorId: MONITOR_ID,
+        }),
+      ).resolves.toBe(false);
+
+      const query: any = (mocks.findOneBy.mock.calls[0]![0] as any).query;
+      expect(query.projectId.toString()).toBe(PROJECT_ID.toString());
+      expect(query.statusPageId.toString()).toBe(STATUS_PAGE_ID.toString());
+    });
+  });
+});
+
+/*
+ * The status page, the group, the monitor and the monitor group are each a
+ * reference with two names - the relation the dashboard's forms post and
+ * the ID column the API and server code use - and the service reads every
+ * one of them under either name. The group decides which list a new
+ * resource is numbered in (here, and in onCreateSuccess, which moves the
+ * resources after it): a group named only by the relation used to number
+ * the resource in the list of resources with no group.
+ */
+describe("StatusPageResourceService, under either name of a reference", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function createByRelations(data: {
+    statusPage?: ObjectID | undefined;
+    statusPageGroup?: ObjectID | undefined;
+    monitor?: ObjectID | undefined;
+  }): CreateBy<StatusPageResource> {
+    const resource: StatusPageResource = new StatusPageResource();
+    resource.projectId = PROJECT_ID;
+    resource.displayName = "New Resource";
+
+    const record: Record<string, unknown> = resource as unknown as Record<
+      string,
+      unknown
+    >;
+
+    if (data.statusPage) {
+      record["statusPage"] = { _id: data.statusPage.toString() };
+    } else {
+      resource.statusPageId = STATUS_PAGE_ID;
+    }
+
+    if (data.statusPageGroup) {
+      record["statusPageGroup"] = { _id: data.statusPageGroup.toString() };
+    }
+
+    if (data.monitor) {
+      record["monitor"] = { _id: data.monitor.toString() };
+    }
+
+    return {
+      data: resource,
+      props: { isRoot: true },
+    } as CreateBy<StatusPageResource>;
+  }
+
+  function countQuery(
+    countBy: ReturnType<typeof mockService>["countBy"],
+  ): Record<string, unknown> {
+    return (countBy.mock.calls[0]![0] as { query: Record<string, unknown> })
+      .query;
+  }
+
+  it("numbers a resource in the group named by the relation", async () => {
+    const mocks: ReturnType<typeof mockService> = mockService([]);
+
+    await onBeforeCreate(createByRelations({ statusPageGroup: GROUP_ID }));
+
+    expect(String(countQuery(mocks.countBy)["statusPageGroupId"])).toBe(
+      GROUP_ID.toString(),
+    );
+    expect(String(countQuery(mocks.countBy)["statusPageId"])).toBe(
+      STATUS_PAGE_ID.toString(),
+    );
+  });
+
+  it("numbers a resource named in no group in the list with no group", async () => {
+    const mocks: ReturnType<typeof mockService> = mockService([]);
+
+    await onBeforeCreate(createByRelations({}));
+
+    // QueryHelper.isNull(), not an id.
+    expect(countQuery(mocks.countBy)["statusPageGroupId"]).not.toBeInstanceOf(
+      ObjectID,
+    );
+    expect(String(countQuery(mocks.countBy)["statusPageGroupId"])).not.toBe(
+      GROUP_ID.toString(),
+    );
+  });
+
+  it("keeps the group named by the relation in its ID column, for the list the saved row is ordered in", async () => {
+    mockService([]);
+
+    const create: CreateBy<StatusPageResource> = createByRelations({
+      statusPageGroup: GROUP_ID,
+    });
+
+    await onBeforeCreate(create);
+
+    expect(create.data.statusPageGroupId?.toString()).toBe(GROUP_ID.toString());
+  });
+
+  it("takes a status page named by the relation alone, and looks for duplicates on it", async () => {
+    const mocks: ReturnType<typeof mockService> = mockService([
+      makeResource({ id: resourceId(1), monitorId: MONITOR_ID }),
+    ]);
+
+    const create: CreateBy<StatusPageResource> = createByRelations({
+      statusPage: STATUS_PAGE_ID,
+      monitor: MONITOR_ID,
+    });
+
+    await expect(onBeforeCreate(create)).rejects.toThrow(
+      new BadDataException(DUPLICATE_MONITOR_MESSAGE),
+    );
+
+    const lookup: { query: Record<string, unknown> } = mocks.findOneBy.mock
+      .calls[0]![0] as unknown as { query: Record<string, unknown> };
+
+    expect(String(lookup.query["statusPageId"])).toBe(
+      STATUS_PAGE_ID.toString(),
+    );
+    expect(create.data.statusPageId?.toString()).toBe(
+      STATUS_PAGE_ID.toString(),
+    );
+  });
+
+  it("keeps the monitor named by the relation in its ID column", async () => {
+    mockService([]);
+
+    const create: CreateBy<StatusPageResource> = createByRelations({
+      monitor: MONITOR_ID,
+    });
+
+    await onBeforeCreate(create);
+
+    expect(create.data.monitorId?.toString()).toBe(MONITOR_ID.toString());
+  });
+
+  it("refuses a monitor named differently under its two names, before it looks anything up", async () => {
+    const mocks: ReturnType<typeof mockService> = mockService([]);
+
+    const create: CreateBy<StatusPageResource> = createByRelations({
+      monitor: OTHER_MONITOR_ID,
+    });
+    create.data.monitorId = MONITOR_ID;
+
+    await expect(onBeforeCreate(create)).rejects.toThrow(
+      "Conflicting Monitor references were provided. monitorId and monitor are names for the same field and must hold the same value: send only one of them, or the same id in each.",
+    );
+    expect(mocks.findOneBy).not.toHaveBeenCalled();
+  });
+
+  it("refuses a group named differently under its two names", async () => {
+    mockService([]);
+
+    const create: CreateBy<StatusPageResource> = createByRelations({
+      statusPageGroup: GROUP_ID,
+    });
+    create.data.statusPageGroupId = OTHER_GROUP_ID;
+
+    await expect(onBeforeCreate(create)).rejects.toThrow(
+      "Conflicting Status Page Group references were provided.",
+    );
+  });
+
+  it("refuses an update naming a monitor differently under its two names", async () => {
+    mockService([makeResource({ id: resourceId(1), monitorId: MONITOR_ID })]);
+
+    const update: UpdateBy<StatusPageResource> = updateBy({
+      id: resourceId(1),
+      monitorId: MONITOR_ID,
+      monitor: OTHER_MONITOR_ID,
+    });
+
+    await expect(onBeforeUpdate(update)).rejects.toThrow(
+      "Conflicting Monitor references were provided.",
+    );
+  });
+
+  it("reads one monitor named the same under both names on update", async () => {
+    mockService([
+      makeResource({ id: resourceId(1), monitorId: OTHER_MONITOR_ID }),
+      makeResource({ id: resourceId(2), monitorId: MONITOR_ID }),
+    ]);
+
+    await expect(
+      onBeforeUpdate(
+        updateBy({
+          id: resourceId(1),
+          monitorId: MONITOR_ID,
+          monitor: MONITOR_ID,
+        }),
+      ),
+    ).rejects.toThrow(new BadDataException(DUPLICATE_MONITOR_MESSAGE));
   });
 });

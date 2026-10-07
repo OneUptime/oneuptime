@@ -157,10 +157,16 @@ const RETIRED_SWITCH_WORDING: Array<RegExp> = [
 ];
 
 /*
- * Every Project column the page may read or write. Anything else on a
- * request is a field riding along.
+ * Every Project column the page may read or write: Enable AI, and the
+ * project's daily AI limits in the Daily limits card under More settings.
+ * Anything else on a request is a field riding along.
  */
-const AI_FEATURES_COLUMNS: Array<string> = ["_id", "enableAi"];
+const AI_FEATURES_COLUMNS: Array<string> = [
+  "_id",
+  "enableAi",
+  "aiDailyTokenLimit",
+  "aiDailySpendLimitInUSD",
+];
 
 let project: Project;
 let getItemSpy: ReturnType<typeof jest.spyOn>;
@@ -403,7 +409,7 @@ describe("who may change Enable AI", () => {
 /*
  * The shared gate the cards of Project settings use in place of
  * CardModelDetail's table-level one: the AI limit cards under Advanced on
- * Incidents and Alerts → Settings → AI, Linked Alerts and the number
+ * Incidents and Alerts → AI → Settings, Linked Alerts and the number
  * prefixes. (A switch gates itself the same way, on its own column:
  * PermissionGate.checkColumnUpdate.)
  */
@@ -577,23 +583,37 @@ describe("AI Features page", () => {
     expectNoRetiredSwitch(document.body);
   });
 
-  test("reads the project it is on, and only Enable AI", async () => {
+  test("reads the project it is on: Enable AI and the daily AI limits, nothing else", async () => {
     openAiFeatures();
     await enableAiSwitch();
 
     await waitFor(
       () => {
-        expect(itemRequests().length).toBeGreaterThan(0);
+        expect(
+          itemRequests().some(
+            (request: { select?: Record<string, unknown> }): boolean => {
+              return Boolean(request.select?.["aiDailyTokenLimit"]);
+            },
+          ),
+        ).toBe(true);
       },
       { timeout: WAIT_TIMEOUT },
     );
+
+    // Enable AI's switch reads its own column.
+    expect(
+      itemRequests().some(
+        (request: { select?: Record<string, unknown> }): boolean => {
+          return Boolean(request.select?.["enableAi"]);
+        },
+      ),
+    ).toBe(true);
 
     for (const call of getItemSpy.mock.calls) {
       const request: { id?: unknown; select?: Record<string, unknown> } =
         call[0] as { id?: unknown; select?: Record<string, unknown> };
 
       expect(String(request.id)).toBe(PROJECT_ID);
-      expect(request.select).toHaveProperty("enableAi");
 
       for (const column of Object.keys(request.select || {})) {
         expect(AI_FEATURES_COLUMNS).toContain(column);
@@ -802,7 +822,7 @@ describe("settings menu, route and breadcrumbs", () => {
   });
 });
 
-describe("Incidents → Settings → AI", () => {
+describe("Incidents → AI → Settings", () => {
   const POSTMORTEM_SWITCH: string =
     "Draft a postmortem when an incident resolves";
 
@@ -817,7 +837,7 @@ describe("Incidents → Settings → AI", () => {
         currentProject={null}
         hasPaymentMethod={true}
       />,
-      `/dashboard/${PROJECT_ID}/incidents/settings/ai`,
+      `/dashboard/${PROJECT_ID}/incidents/ai/settings`,
     );
   }
 

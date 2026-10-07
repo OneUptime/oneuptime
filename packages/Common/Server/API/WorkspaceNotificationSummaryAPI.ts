@@ -9,11 +9,9 @@ import {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
-import CommonAPI from "./CommonAPI";
-import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import TestSendAccess, { TestSendCaller } from "./TestSendAccess";
 import WorkspaceNotificationSummary from "../../Models/DatabaseModels/WorkspaceNotificationSummary";
 import ObjectID from "../../Types/ObjectID";
-import BadDataException from "../../Types/Exception/BadDataException";
 
 export default class WorkspaceNotificationSummaryAPI extends BaseAPI<
   WorkspaceNotificationSummary,
@@ -22,39 +20,41 @@ export default class WorkspaceNotificationSummaryAPI extends BaseAPI<
   public constructor() {
     super(WorkspaceNotificationSummary, WorkspaceNotificationSummaryService);
 
+    /*
+     * "Send Test Now": posts one summary into its Slack or Microsoft Teams
+     * channels right away. It asks what every test send asks
+     * (TestSendAccess): a signed-in member, on a credential that may make
+     * changes, on the plan summaries are sold on - asked here, since a
+     * project below it may still read the summaries it has, to switch them
+     * off or delete them - who could create a summary, and a summary they
+     * may read, in their own project. testSummary then reads the summary as
+     * OneUptime to send it.
+     */
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/test/:workspaceNotificationSummaryId`,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const databaseProps: DatabaseCommonInteractionProps =
-            await CommonAPI.getDatabaseCommonInteractionProps(req);
-
           const summaryId: ObjectID = new ObjectID(
             req.params["workspaceNotificationSummaryId"] as string,
           );
 
-          // Verify the summary belongs to the user's project
-          const summary: WorkspaceNotificationSummary | null =
-            await this.service.findOneById({
-              id: summaryId,
-              select: { projectId: true },
-              props: databaseProps,
-            });
-
-          if (!summary) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Summary not found or access denied"),
-            );
-          }
+          const caller: TestSendCaller = await TestSendAccess.assertMaySendTest(
+            {
+              req: req,
+              modelType: WorkspaceNotificationSummary,
+              record: {
+                service: this.service,
+                id: summaryId,
+              },
+            },
+          );
 
           await this.service.testSummary({
             summaryId: summaryId,
-            props: databaseProps,
-            projectId: databaseProps.tenantId!,
-            testByUserId: databaseProps.userId!,
+            props: caller.props,
+            projectId: caller.projectId,
+            testByUserId: caller.userId,
           });
 
           return Response.sendEmptySuccessResponse(req, res);

@@ -32,6 +32,7 @@ import AlertFeedService from "Common/Server/Services/AlertFeedService";
 import ObjectID from "Common/Types/ObjectID";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
+import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
 
 RunCron(
   "AlertOwner:SendCreatedResourceEmail",
@@ -459,7 +460,7 @@ RunCron(
             eventType,
           });
 
-          moreAlertFeedInformationInMarkdown += `**Notified**: ${user.name} (${user.email})\n`;
+          moreAlertFeedInformationInMarkdown += `**Notified**: ${escapeMarkdownValue(user.name?.toString())} (${escapeMarkdownValue(user.email?.toString())})\n`;
         } catch (e) {
           logger.error("Error in sending alert created resource notification");
           logger.error(e);

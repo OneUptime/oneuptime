@@ -4,6 +4,7 @@
  * jest.spyOn returns with this repo's jest-mock version.
  */
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { mockProjectStates } from "../TestingUtils/Services/ProjectStatesHelper";
 
 /*
  * PasswordHash carries a pre-existing TS5.9 diagnostic that fails any suite
@@ -403,6 +404,11 @@ function callHook(
 }
 
 beforeEach(() => {
+  /*
+   * The project's states: an open alert or incident is in a state above
+   * its resolved state (Common/Utils/ResolvedState).
+   */
+  mockProjectStates();
   events = [];
   repositoryFailure = null;
   alertTimelines = [];
@@ -624,18 +630,11 @@ describe("Deleting a burn rate rule by id, the way the CRUD API does", () => {
     ).toContain(OTHER_RULE_ID.toString());
 
     /*
-     * The before-delete read was pinned to the caller's project, so the other
-     * project's rule never even reached the carry-forward.
+     * The caller may delete no row the request names, so DatabaseService
+     * returns before the delete hooks run: the other project's rule never
+     * reaches a carry-forward, and no success hook fires for it.
      */
-    expect(deleteSuccessSpy).toHaveBeenCalledTimes(1);
-
-    const hookCall: [CarriedDelete, Array<ObjectID>] = deleteSuccessSpy.mock
-      .calls[0] as [CarriedDelete, Array<ObjectID>];
-    const onDelete: CarriedDelete = hookCall[0];
-    const deletedIds: Array<ObjectID> = hookCall[1];
-
-    expect(onDelete.carryForward!["itemsToDelete"]).toEqual([]);
-    expect(deletedIds).toEqual([]);
+    expect(deleteSuccessSpy).not.toHaveBeenCalled();
   });
 
   test("the same admin deleting their own rule resolves its open alert and incident only after the row is gone, and describes it", async () => {
@@ -751,14 +750,8 @@ describe("Deleting an SLO by id, the way the CRUD API does", () => {
     expect(sloRows).toHaveLength(2);
     expect(ruleRows).toHaveLength(3);
 
-    const hookCall: [CarriedDelete, Array<ObjectID>] = deleteSuccessSpy.mock
-      .calls[0] as [CarriedDelete, Array<ObjectID>];
-    const onDelete: CarriedDelete = hookCall[0];
-    const deletedIds: Array<ObjectID> = hookCall[1];
-
-    expect(onDelete.carryForward!["itemsToDelete"]).toEqual([]);
-    expect(onDelete.carryForward!["burnRateRules"]).toEqual([]);
-    expect(deletedIds).toEqual([]);
+    // Nothing the caller may delete, so no delete hook ran at all.
+    expect(deleteSuccessSpy).not.toHaveBeenCalled();
   });
 
   test("the same admin deleting their own SLO resolves what each of its rules left open, after Postgres has cascaded the rules away", async () => {

@@ -18,12 +18,20 @@ import { JSONObject } from "../../../../Types/JSON";
 import Name from "../../../../Types/Name";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  INCIDENT_STATE_IDS,
+  idsOfAnyFilter,
+  mockProjectStates,
+  openStateIds,
+  resolvedStateIds,
+} from "../../TestingUtils/Services/ProjectStatesHelper";
 
 /*
  * query_incidents grew a state filter, skip pagination and owner details.
  * These tests lock in the load-bearing behavior: state="active" filters on
- * the canonical isResolvedState flag WITHOUT a createdAt window (so an open
+ * the project's unresolved states - every state above its resolved state
+ * (Common/Utils/ResolvedState) - WITHOUT a createdAt window (so an open
  * incident from months ago still answers "what's active right now?"), skip
  * pagination reports the true total, and detail mode surfaces owner teams
  * and users scoped to the ctx tenant.
@@ -67,12 +75,16 @@ function mockList(data: { incidents: Array<Incident>; total: number }): {
   };
 }
 
+beforeEach(() => {
+  mockProjectStates();
+});
+
 afterEach(() => {
   jest.restoreAllMocks();
 });
 
 describe("query_incidents — state filter", () => {
-  test("state=active filters on isResolvedState=false with NO createdAt window", async () => {
+  test("state=active filters on the project's unresolved states with NO createdAt window", async () => {
     const spies: { findBySpy: jest.SpyInstance; countBySpy: jest.SpyInstance } =
       mockList({ incidents: [buildIncident()], total: 1 });
 
@@ -85,7 +97,9 @@ describe("query_incidents — state filter", () => {
       .calls[0]?.[0] as JSONObject;
     const query: JSONObject = callArgs["query"] as JSONObject;
 
-    expect(query["currentIncidentState"]).toEqual({ isResolvedState: false });
+    expect(idsOfAnyFilter(query["currentIncidentStateId"])).toEqual(
+      openStateIds(INCIDENT_STATE_IDS),
+    );
     // An open incident created months ago must still be found.
     expect(query["createdAt"]).toBeUndefined();
 
@@ -114,11 +128,13 @@ describe("query_incidents — state filter", () => {
       .calls[0]?.[0] as JSONObject;
     const query: JSONObject = callArgs["query"] as JSONObject;
 
-    expect(query["currentIncidentState"]).toEqual({ isResolvedState: false });
+    expect(idsOfAnyFilter(query["currentIncidentStateId"])).toEqual(
+      openStateIds(INCIDENT_STATE_IDS),
+    );
     expect(query["createdAt"]).toBeDefined();
   });
 
-  test("state=resolved filters on isResolvedState=true within the window", async () => {
+  test("state=resolved filters on the project's resolved states within the window", async () => {
     const spies: { findBySpy: jest.SpyInstance } = mockList({
       incidents: [],
       total: 0,
@@ -133,7 +149,9 @@ describe("query_incidents — state filter", () => {
       .calls[0]?.[0] as JSONObject;
     const query: JSONObject = callArgs["query"] as JSONObject;
 
-    expect(query["currentIncidentState"]).toEqual({ isResolvedState: true });
+    expect(idsOfAnyFilter(query["currentIncidentStateId"])).toEqual(
+      resolvedStateIds(INCIDENT_STATE_IDS),
+    );
     expect(query["createdAt"]).toBeDefined();
     expect(result.citationLabel).toBe(
       "Resolved incidents, last 168h (0 total)",
@@ -156,6 +174,7 @@ describe("query_incidents — state filter", () => {
     const query: JSONObject = callArgs["query"] as JSONObject;
 
     expect(query["currentIncidentState"]).toBeUndefined();
+    expect(query["currentIncidentStateId"]).toBeUndefined();
     expect(query["createdAt"]).toBeDefined();
     expect(callArgs["props"]).toBe(ctx.props);
     expect(callArgs["limit"]).toBe(10);

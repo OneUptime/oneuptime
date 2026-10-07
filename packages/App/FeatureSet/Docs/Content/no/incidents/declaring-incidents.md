@@ -46,7 +46,7 @@ Monitorene kommer først, for seg selv: statussider ser en hendelse gjennom moni
 
 - **Monitorer** — et søkefelt som knytter til monitorene hendelsen påvirker (`monitors`). En statusside viser hendelsen, og varsler abonnentene sine, når den viser en av disse monitorene.
 - **Endre overvåkingsstatus til** — valgfri, og vises først når minst én monitor er valgt. Setter hver monitor i hendelsen til en overvåkingsstatus, slik at det å erklære hendelsen og merke monitorene som redusert er én handling. En mals status vises så snart du velger en monitor; uten valgt monitor lagres ingen status.
-- **Andre berørte ressurser** — et andre søkefelt for alt annet hendelsen påvirker: verter, Kubernetes-klynger, Docker- og Podman-verter, Proxmox-, Ceph- og Docker Swarm-klynger, vCentre, IoT-flåter, databaser og tjenester. Det er separate relasjoner på hendelsen (`hosts`, `kubernetesClusters`, `services` med flere).
+- **Andre berørte ressurser** — et andre søkefelt for alt annet hendelsen påvirker: verter, Kubernetes-klynger, Docker- og Podman-verter, Proxmox-, Ceph- og Docker Swarm-klynger, vCentre, lagringsmatriser, IoT-flåter, databaser og tjenester. Det er separate relasjoner på hendelsen (`hosts`, `kubernetesClusters`, `services` med flere).
 
 Hendelsens kort **Berørte ressurser** spør på samme måte når du redigerer det senere.
 
@@ -160,11 +160,11 @@ Opprettelseskallet gjør mer enn å skrive en rad. I rekkefølge:
 5. **Etikettregler kjører**, og legger til etikettene som passer hendelsen.
 6. **Vaktregler kjører.** Hver aktivert regel på **Hendelser → Regler → Vaktregler** hvis kriterier treffer, legger sine policyer på hendelsen. Det finnes ingen prioritetsrekkefølge og ingen kortslutning — alle regler som treffer utløses, og policyene dedupliseres.
 7. **Runbook-regler kjører**, og knytter til og starter runbooks som treffer. Se [Runbooks](/docs/runbooks/index).
-8. **Vaktpolicyer kjøres.** Hver policy på hendelsen — valgt i veiviseren, arvet fra en mal, eller lagt til av en regel — kjøres parallelt med hendelsestypen `IncidentCreated`. At én policy feiler, stopper ikke de andre.
+8. **Vaktpolicyer kjøres.** Hver policy på hendelsen — valgt i veiviseren, arvet fra en mal, eller lagt til av en regel — kjøres parallelt med hendelsestypen `IncidentCreated`. At én policy feiler, stopper ikke de andre. En hendelse som erklæres allerede bekreftet eller løst, kjører ingen av dem: ingen varsles, og feeden sier det og nevner dem ved navn.
 9. **Abonnenter køes**, hvis **Varsle statussideabonnenter** ble stående på og hendelsen er synlig på statussiden. Utsendelsen håndteres av en bakgrunnsjobb, ikke inline med forespørselen din.
 10. **Arbeidsflyter utløses.** Triggeren **On Create Incident** starter enhver arbeidsflyt som er bygget på den. Se [Oversikt over arbeidsflyter](/docs/workflows/index).
 
-Derfra er hendelsen i live: den teller mot telleren **Aktive hendelser** i sidemenyen for Hendelser (enhver tilstand som ikke er flagget `isResolvedState` teller som aktiv), den vises på statussidene som bærer en av overvåkingene dens, og **Tilstandstidslinje** begynner å registrere.
+Derfra er hendelsen i live: den teller mot telleren **Aktive hendelser** i sidemenyen for Hendelser (enhver tilstand over den løste tilstanden din teller som aktiv), den vises på statussidene som bærer en av overvåkingene dens, og **Tilstandstidslinje** begynner å registrere.
 
 ## Hvor du leser videre
 

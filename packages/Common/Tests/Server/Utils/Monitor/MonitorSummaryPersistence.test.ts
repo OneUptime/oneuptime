@@ -27,6 +27,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import { mockProjectStates } from "../../TestingUtils/Services/ProjectStatesHelper";
 
 /*
  * The point of the whole feature: the Monitor Summary has to land on the
@@ -119,6 +120,11 @@ describe("The monitor summary is stored on the incident / alert it created", () 
   let createdAlerts: Array<Alert> = [];
 
   beforeEach(() => {
+    /*
+     * The project's incident and alert states: open records are read by
+     * the states that are not resolved (Common/Utils/ResolvedState).
+     */
+    mockProjectStates();
     createdIncidents = [];
     createdAlerts = [];
 
@@ -145,7 +151,13 @@ describe("The monitor summary is stored on the incident / alert it created", () 
         dockerSwarmClusterIds: [],
         iotFleetIds: [],
         databaseServerIds: [],
+        storageArrayIds: [],
       });
+
+    // Linked by hand (Monitor > Overview > Linked Resources): nothing here.
+    jest
+      .spyOn(MonitorResourceContextUtil, "resolveLinkedResourcesForMonitor")
+      .mockResolvedValue(MonitorResourceContextUtil.emptyContext());
 
     jest
       .spyOn(NetworkDeviceOwnerUserService, "getDeviceOwnersForMonitor")

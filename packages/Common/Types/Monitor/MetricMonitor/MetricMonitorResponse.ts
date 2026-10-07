@@ -162,6 +162,49 @@ export interface CephResourceBreakdown extends PlatformResourceBreakdownSource {
   attributes: Dictionary<string>;
 }
 
+/**
+ * One object of a storage array in a Storage Array monitor's per-series
+ * breakdown. Pure Storage FlashArray / FlashBlade keep object identity in
+ * DATAPOINT labels (stored unprefixed in ClickHouse, like Ceph's
+ * `ceph_daemon`); which ones are present depends on the metric the series
+ * belongs to.
+ */
+export interface StorageArrayAffectedResource {
+  /**
+   * `name` label — a volume, pod, directory, controller or network
+   * interface on a FlashArray; a file system, bucket or hardware component
+   * on a FlashBlade. The metric name says which.
+   */
+  objectName?: string | undefined;
+  /** `host` label — FlashArray host series. */
+  hostName?: string | undefined;
+  /** `component_name` label — FlashArray hardware and drive series. */
+  componentName?: string | undefined;
+  /** `component_type` label — the kind of FlashArray hardware component. */
+  componentType?: string | undefined;
+  /** `local_pod` label — FlashArray pod replica-link series. */
+  podName?: string | undefined;
+  /** `summary` label — one open alert (purefa_alerts_open / purefb_alerts_open). */
+  alertSummary?: string | undefined;
+  metricValue: number;
+  /**
+   * Lowest sample seen for this resource in the monitoring window — what a
+   * criteria that fires when the metric FALLS breached on. See
+   * KubernetesAffectedResource.lowestMetricValue.
+   */
+  lowestMetricValue?: number | undefined;
+}
+
+export interface StorageArrayResourceBreakdown
+  extends PlatformResourceBreakdownSource {
+  /** The `storage.array.name` the agent stamps — one per array. */
+  arrayName: string;
+  metricName: string;
+  metricFriendlyName: string;
+  affectedResources: Array<StorageArrayAffectedResource>;
+  attributes: Dictionary<string>;
+}
+
 export interface DockerSwarmAffectedResource {
   /** `container.name` datapoint label — a Swarm task's container is `<service>.<slot>.<taskid>`. */
   containerName?: string | undefined;
@@ -214,6 +257,13 @@ export default interface MetricMonitorResponse {
   proxmoxResourceBreakdowns?: Array<ProxmoxResourceBreakdown> | undefined;
   vmwareResourceBreakdowns?: Array<VMwareResourceBreakdown> | undefined;
   cephResourceBreakdowns?: Array<CephResourceBreakdown> | undefined;
+  /*
+   * Plural only: storage arrays shipped after the singular fields above
+   * were retired, so no payload ever carried a singular one.
+   */
+  storageArrayResourceBreakdowns?:
+    | Array<StorageArrayResourceBreakdown>
+    | undefined;
   dockerSwarmResourceBreakdowns?:
     | Array<DockerSwarmResourceBreakdown>
     | undefined;

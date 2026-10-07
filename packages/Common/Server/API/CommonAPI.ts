@@ -8,18 +8,19 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SpanUtil from "../Utils/Telemetry/SpanUtil";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import TablePermission from "../Types/Database/Permissions/TablePermission";
-import { DatabaseBaseModelType } from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseBaseModel, {
+  DatabaseBaseModelType,
+} from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import Permission, {
   PermissionHelper,
   PermissionProps,
-  UserPermission,
 } from "../../Types/Permission";
-import DatabaseCommonInteractionPropsUtil, {
-  PermissionType,
-} from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import DatabaseCommonInteractionPropsUtil from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import HeldPermissionsUtil from "../../Types/HeldPermissions";
+import CallerPermission from "../Utils/Permission/CallerPermission";
 
 export default class CommonAPI {
   /*
@@ -237,6 +238,11 @@ export default class CommonAPI {
    * than admitting them - a model whose read access is purely public has no
    * business behind this guard, and failing closed is the safe direction.
    *
+   * The caller's rows are read the way every permission check reads them
+   * (CallerPermission): only an allow row grants, so a team's explicit BLOCK
+   * row for one of these is never a grant of it, and a block with no labels
+   * on any of them refuses, whatever else the caller holds.
+   *
    * Master admins bypass, matching every other permission gate in the API.
    */
   public static assertPermittedInProject(data: {
@@ -250,35 +256,10 @@ export default class CommonAPI {
       return;
     }
 
-    const tenantAssignablePermissions: Array<Permission> =
-      PermissionHelper.getTenantPermissionProps().map(
-        (permissionProps: PermissionProps) => {
-          return permissionProps.permission;
-        },
-      );
-
-    const requiredPermissions: Array<Permission> =
-      data.allowedPermissions.filter((permission: Permission) => {
-        return tenantAssignablePermissions.includes(permission);
-      });
-
-    /*
-     * Allow-only: getUserPermissions discriminates grants from denials by
-     * isBlockPermission, so a team's explicit BLOCK row for one of these
-     * permissions must never be counted as a grant of it.
-     */
-    const grantedPermissions: Array<Permission> =
-      DatabaseCommonInteractionPropsUtil.getUserPermissions(
-        data.databaseProps,
-        PermissionType.Allow,
-      ).map((userPermission: UserPermission) => {
-        return userPermission.permission;
-      });
-
     if (
-      !PermissionHelper.doesPermissionsIntersect(
-        grantedPermissions,
-        requiredPermissions,
+      !CallerPermission.holdsAnyOf(
+        data.databaseProps,
+        CommonAPI.getTenantAssignablePermissions(data.allowedPermissions),
       )
     ) {
       throw new NotAuthorizedException(
@@ -288,13 +269,82 @@ export default class CommonAPI {
     }
   }
 
+  // The permissions of `permissions` a team can be granted in a project.
+  private static getTenantAssignablePermissions(
+    permissions: Array<Permission>,
+  ): Array<Permission> {
+    const tenantAssignablePermissions: Array<Permission> =
+      PermissionHelper.getTenantPermissionProps().map(
+        (permissionProps: PermissionProps) => {
+          return permissionProps.permission;
+        },
+      );
+
+    return permissions.filter((permission: Permission) => {
+      return tenantAssignablePermissions.includes(permission);
+    });
+  }
+
+  /*
+   * The two halves of what the CRUD path asks before an operation on a
+   * model, in its order: an Allow grant from the model's list for the
+   * operation - or, for an operational resource, the *AllOperationalResources
+   * wildcard, as TablePermission accepts it - and then no unlabelled team
+   * BLOCK row on any permission in that list, refused with the message that
+   * names the block (checkTableLevelBlockPermissions).
+   */
+  private static assertCanOperateOnTable(data: {
+    modelType: DatabaseBaseModelType;
+    props: DatabaseCommonInteractionProps;
+    operation: DatabaseRequestType.Read | DatabaseRequestType.Create;
+    errorMessage?: string | undefined;
+  }): void {
+    CommonAPI.assertCredentialsPresent(data.props);
+
+    if (data.props.isMasterAdmin) {
+      return;
+    }
+
+    const model: DatabaseBaseModel = new data.modelType();
+
+    const permissions: Array<Permission> =
+      data.operation === DatabaseRequestType.Create
+        ? model.getCreatePermissions()
+        : model.getReadPermissions();
+
+    if (
+      !CallerPermission.isGrantedAny(
+        data.props,
+        CommonAPI.getTenantAssignablePermissions(permissions),
+        {
+          wildcard: HeldPermissionsUtil.getModelWildcard({
+            isOperationalResource: model.isOperationalResource,
+            operation: data.operation,
+          }),
+        },
+      )
+    ) {
+      throw new NotAuthorizedException(
+        data.errorMessage ||
+          "You do not have permission to access this project's data.",
+      );
+    }
+
+    TablePermission.checkTableLevelBlockPermissions(
+      data.modelType,
+      data.props,
+      data.operation,
+    );
+  }
+
   /*
    * Throws unless the caller could read `modelType` through its CRUD
    * endpoint. That read has two halves and both are applied here: an Allow
-   * grant from the model's read list (assertPermittedInProject), and no
-   * unlabelled team BLOCK row on any permission in that list
-   * (checkTableLevelBlockPermissions) - a block overrides every Allow the
-   * team holds. Master admins bypass both, as they do in ReadPermission.
+   * grant from the model's read list (the wildcard included, for an
+   * operational resource), and no unlabelled team BLOCK row on any
+   * permission in that list (checkTableLevelBlockPermissions) - a block
+   * overrides every Allow the team holds. Master admins bypass both, as they
+   * do in ReadPermission.
    *
    * This is the table half only. Label and owned-scope rules are row rules,
    * so a route that must honour them still has to read the rows with the
@@ -306,53 +356,42 @@ export default class CommonAPI {
     props: DatabaseCommonInteractionProps;
     errorMessage?: string | undefined;
   }): void {
-    CommonAPI.assertPermittedInProject({
-      databaseProps: data.props,
-      allowedPermissions: new data.modelType().getReadPermissions(),
-      errorMessage: data.errorMessage,
+    CommonAPI.assertCanOperateOnTable({
+      ...data,
+      operation: DatabaseRequestType.Read,
     });
-
-    if (!data.props.isMasterAdmin) {
-      TablePermission.checkTableLevelBlockPermissions(
-        data.modelType,
-        data.props,
-        DatabaseRequestType.Read,
-      );
-    }
   }
 
   /*
    * Throws unless the caller could create `modelType` through its CRUD
    * endpoint. That create has two halves and both are applied here: an Allow
-   * grant from the model's create list (assertPermittedInProject), and no
-   * unlabelled team BLOCK row on any permission in that list
-   * (checkTableLevelBlockPermissions) - a block overrides every Allow the
-   * team holds. Master admins bypass both, as they do in CreatePermission.
+   * grant from the model's create list (the wildcard included, for an
+   * operational resource), and no unlabelled team BLOCK row on any
+   * permission in that list (checkTableLevelBlockPermissions) - a block
+   * overrides every Allow the team holds. Master admins bypass both, as they
+   * do in CreatePermission.
    *
    * Use it for a custom route whose side effect is only acceptable from
    * someone who could create that model anyway, so the route cannot be used
    * to get around a team block the CRUD endpoint honours. Like
    * assertPermittedInProject, it must be called after
    * assertAuthenticatedProjectMember has confirmed the tenant.
+   *
+   * A credential issued for reading only (an MCP client connected
+   * read-only) is refused first, whatever its member may do, as that create
+   * refuses it.
    */
   public static assertCanCreateTable(data: {
     modelType: DatabaseBaseModelType;
     props: DatabaseCommonInteractionProps;
     errorMessage?: string | undefined;
   }): void {
-    CommonAPI.assertPermittedInProject({
-      databaseProps: data.props,
-      allowedPermissions: new data.modelType().getCreatePermissions(),
-      errorMessage: data.errorMessage,
-    });
+    DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(data.props);
 
-    if (!data.props.isMasterAdmin) {
-      TablePermission.checkTableLevelBlockPermissions(
-        data.modelType,
-        data.props,
-        DatabaseRequestType.Create,
-      );
-    }
+    CommonAPI.assertCanOperateOnTable({
+      ...data,
+      operation: DatabaseRequestType.Create,
+    });
   }
 
   @CaptureSpan()

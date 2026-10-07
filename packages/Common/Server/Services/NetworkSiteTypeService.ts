@@ -8,7 +8,7 @@ import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import UpdateOneBy from "../Types/Database/UpdateOneBy";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import NetworkSiteService from "./NetworkSiteService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
@@ -87,7 +87,7 @@ const assertIsUnitLevelIsNotSqlExpression: (
   }
 };
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -693,14 +693,17 @@ export class Service extends DatabaseService<Model> {
       props: { isRoot: true },
     });
 
-    if (!parent) {
+    /*
+     * The hook's project check (ProjectReferencesService) has already
+     * refused a parent that is not this project's. Should one get here all
+     * the same, another project's type reads like one that does not exist.
+     */
+    if (
+      !parent ||
+      !parent.projectId ||
+      !sameId(parent.projectId, data.projectId)
+    ) {
       throw new BadDataException("Parent Network Site Type not found.");
-    }
-
-    if (!parent.projectId || !sameId(parent.projectId, data.projectId)) {
-      throw new BadDataException(
-        "Parent Network Site Type must belong to the same project.",
-      );
     }
 
     if (parent.isUnitLevel === true) {
@@ -1017,6 +1020,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     const data: Record<string, unknown> = createBy.data as unknown as Record<
       string,
       unknown
@@ -1052,6 +1057,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     const data: Record<string, unknown> = (updateBy.data ||
       {}) as unknown as Record<string, unknown>;
     assertIsUnitLevelIsNotSqlExpression(data);

@@ -5,13 +5,10 @@ import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import DatabaseCommonInteractionPropsUtil, {
-  PermissionType,
-} from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import Columns from "../../../../Types/Database/Columns";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
-import { PermissionHelper, UserPermission } from "../../../../Types/Permission";
+import { PermissionHelper } from "../../../../Types/Permission";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export default class SelectPermission {
@@ -23,16 +20,10 @@ export default class SelectPermission {
   ): void {
     const model: BaseModel = new modelType();
 
-    const userPermissions: Array<UserPermission> =
-      DatabaseCommonInteractionPropsUtil.getUserPermissions(
-        props,
-        PermissionType.Allow,
-      );
-
     const canReadOnTheseColumns: Columns =
       ColumnPermissions.getModelColumnsByPermissions(
         modelType,
-        userPermissions || [],
+        ColumnPermissions.getColumnCheckRows(props),
         DatabaseRequestType.Read,
       );
 

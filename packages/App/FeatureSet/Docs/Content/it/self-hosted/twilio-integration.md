@@ -18,6 +18,8 @@ Per un progetto:
 4. **Imposta come predefinito del progetto** è attivo per la prima configurazione del progetto, quindi gli SMS e le chiamate ai membri del progetto, incluse le notifiche di reperibilità, passano da essa appena salva. Lo disattivi se questo account serve solo per le pagine di stato o le chiamate in arrivo. Per ogni configurazione successiva l'interruttore parte disattivato: lo attivi, oppure scelga **Imposta come predefinito del progetto** nel menu della riga della configurazione, per spostare questi messaggi su di essa. Una richiesta API che omette `isProjectDefault` viene trattata allo stesso modo.
 5. Salvi. Una sola configurazione può essere quella predefinita del progetto. Le pagine di stato utilizzano la configurazione assegnata esplicitamente a ciascuna pagina.
 
+**SMS** e **Chiamate telefoniche** partono disattivati in ogni progetto e, finché non vengono attivati, nessuno nel progetto può aggiungere un numero di telefono per essi. Un proprietario del progetto o qualcuno con **Billing Admin** o **Manage Billing** li attiva nella scheda **Canali di notifica** della stessa pagina.
+
 Per una configurazione predefinita per l'intera installazione, un amministratore può invece aprire **Dashboard amministratore > Impostazioni > Chiamate e SMS**, modificare le credenziali e i numeri Twilio e salvare. Le notifiche ai membri utilizzano questa configurazione globale quando il loro progetto non ne ha una predefinita. Mantenga riservato l'Auth Token.
 
 ## 3. Configurare l'accesso alla rete
@@ -91,7 +93,7 @@ Per lo sviluppo, la [guida Twilio ai test dei webhook](https://www.twilio.com/do
 ## 4. Verificare separatamente consegna e callback
 
 1. Dall'esterno della rete aziendale e della VPN, verifichi che il nome host dei callback risolva al gateway pubblico e presenti un certificato TLS valido. Un GET del browser non verifica questi callback POST.
-2. Utilizzi **Invia SMS di prova** e **Invia chiamata di prova** nella configurazione Twilio del progetto. Confermi la ricezione sul telefono destinatario.
+2. Utilizzi **Invia SMS di prova** e **Invia chiamata di prova** nella configurazione Twilio del progetto. Confermi la ricezione sul telefono destinatario. Entrambi richiedono il permesso di aggiungere configurazioni Twilio: **Project Owner**, **Project Admin**, oppure **Create Call and SMS** e **Read Call and SMS** in un ruolo personalizzato.
 3. Configuri il contatto verificato dell'utente per SMS/chiamate e le regole di notifica, quindi attivi un avviso di reperibilità controllato. Prema 1 e verifichi la conferma in OneUptime. Se utilizza criteri per le chiamate in ingresso, chiami il numero configurato e verifichi l'instradamento e il registro delle chiamate.
 4. Verifichi lo stato di consegna dell'SMS in OneUptime e nei registri dei messaggi Twilio. Un invio accettato non dimostra la consegna; [Twilio comunica le modifiche di stato successive tramite callback](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 

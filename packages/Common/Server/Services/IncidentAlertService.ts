@@ -7,7 +7,9 @@ import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import ModelPermission from "../Types/Database/Permissions/Index";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService, {
+  ProjectReferenceWrite,
+} from "./ProjectReferencesService";
 import AlertFeedService from "./AlertFeedService";
 import AlertOwnerTeamService from "./AlertOwnerTeamService";
 import AlertOwnerUserService from "./AlertOwnerUserService";
@@ -35,6 +37,8 @@ import AlertState from "../../Models/DatabaseModels/AlertState";
 import Incident from "../../Models/DatabaseModels/Incident";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
+import ResolvedStateUtil from "../../Utils/ResolvedState";
+import { StateListType } from "../../Utils/StateOrder";
 import Project from "../../Models/DatabaseModels/Project";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { Gray500, Yellow500 } from "../../Types/BrandColors";
@@ -52,6 +56,7 @@ import {
 } from "../../Types/Incident/IncidentAlertLink";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
+import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 
 /*
  * The project's two linked alert switches: acknowledge linked alerts when the
@@ -269,6 +274,11 @@ export interface LinkedAlertMention {
  * for a private alert: its number and link are kept so the entry still says
  * what happened, but its title is never written where people who cannot see
  * the alert read it (the incident's feed and Slack / Microsoft Teams posts).
+ *
+ * The title is plain text - an alert's is often filled in by a monitor from
+ * an incoming email or request - escaped as MarkdownEscape says a title must
+ * be, so it reads as typed and cannot become a link, an image, raw HTML or a
+ * chat mention in the feed or in the posts.
  */
 function describeLinkedRecord(data: {
   label: string;
@@ -286,7 +296,10 @@ function describeLinkedRecord(data: {
     };
   }
 
-  return { subject: subject, titleSuffix: `: ${data.title || "No title"}` };
+  return {
+    subject: subject,
+    titleSuffix: `: ${escapeMarkdownValue(data.title || "No title")}`,
+  };
 }
 
 /*
@@ -387,12 +400,27 @@ function withNumber(label: string, number: string): string {
 const NOT_VISIBLE_ALERTS_MESSAGE: string =
   "One or more of the selected alerts do not exist in this project, or you do not have access to them.";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
+  }
+
+  /*
+   * On a create, the incident and the alert are checked by this service's
+   * own hook: read as the caller, so a private one they cannot open, one of
+   * another project and one that does not exist all get the same answer,
+   * and pinned to the project for every write. A generic check first would
+   * answer the last two in other words than the first. Nobody can change a
+   * link's ends (their columns take no update), but a workflow writes as
+   * root: an update naming them gets the generic check.
+   */
+  protected override getRelationsCheckedByService(
+    write?: ProjectReferenceWrite,
+  ): Array<string> {
+    return write?.kind === "update" ? [] : ["incident", "alert"];
   }
 
   /*
@@ -481,6 +509,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     updateBy.query = this.applyPrivacyFilters(updateBy.query, updateBy.props);
     return { updateBy, carryForward: null };
   }
@@ -496,11 +526,17 @@ export class Service extends DatabaseService<Model> {
    * This hook runs before DatabaseService checks the caller's create
    * permission, so every refusal is worded so it reveals nothing about
    * records the caller cannot see.
+   *
+   * "Linked by" is the link's creator, which DatabaseService decides as it
+   * does for every record (UserAttribution): whoever made the request, and
+   * nobody for an API key or a workflow.
    */
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     const data: Record<string, unknown> = createBy.data as unknown as Record<
       string,
       unknown
@@ -540,8 +576,8 @@ export class Service extends DatabaseService<Model> {
     }
 
     createBy.data.projectId = projectId;
-    createBy.data.incidentId = incidentId;
-    createBy.data.alertId = alertId;
+    RelationIdUtil.stamp(data, ["incidentId", "incident"], incidentId);
+    RelationIdUtil.stamp(data, ["alertId", "alert"], alertId);
 
     if (!createBy.props.isRoot) {
       /*
@@ -583,19 +619,6 @@ export class Service extends DatabaseService<Model> {
           "The alert to link does not exist in this project, or you do not have access to it.",
         );
       }
-
-      /*
-       * "Linked by" is whoever made the request. sanitizeCreateOrUpdate
-       * stamps it for a user; an API key has no user, and must not be able
-       * to name somebody else as the one who linked the alert.
-       */
-      if (createBy.props.userId) {
-        createBy.data.createdByUserId = createBy.props.userId;
-      } else {
-        delete createBy.data.createdByUserId;
-      }
-
-      delete createBy.data.createdByUser;
     }
 
     await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
@@ -2133,9 +2156,11 @@ export class Service extends DatabaseService<Model> {
       incidentStates.find((state: IncidentState) => {
         return state.isAcknowledgedState;
       });
-    const resolvedIncidentState: IncidentState | undefined =
-      incidentStates.find((state: IncidentState) => {
-        return state.isResolvedState;
+    // The project's resolved state: the first from the top flagged resolved.
+    const resolvedIncidentState: IncidentState | null =
+      ResolvedStateUtil.getResolvedState({
+        list: StateListType.IncidentState,
+        states: incidentStates,
       });
 
     const targets: LinkedAlertStateTargets = getLinkedAlertStateTargets({
@@ -2183,9 +2208,11 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (targets.resolve) {
-      resolvedAlertState = alertStates.find((state: AlertState) => {
-        return state.isResolvedState;
-      });
+      resolvedAlertState =
+        ResolvedStateUtil.getResolvedState({
+          list: StateListType.AlertState,
+          states: alertStates,
+        }) || undefined;
 
       if (!resolvedAlertState) {
         logger.error(

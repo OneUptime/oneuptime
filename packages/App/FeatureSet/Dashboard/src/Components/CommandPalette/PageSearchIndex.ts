@@ -188,6 +188,74 @@ const workspaceSection: (pages: {
   };
 };
 
+/*
+ * The AI section of the Incidents and Alerts menus: what OneUptime AI
+ * learned (Insights), what it did (Logs), what it may do on its own
+ * (Settings) and the rules for its fixes.
+ *
+ * Each area lists it after its Settings section, though the menu shows it
+ * before Workspace: between equally good matches the palette keeps this
+ * order, and "incident settings" should open the pages of Incidents >
+ * Settings before the AI section's own Settings page.
+ */
+const incidentAlertAiSection: (pages: {
+  insights: PageMap;
+  logs: PageMap;
+  settings: PageMap;
+  autoRemediationRules: PageMap;
+}) => PageSearchSection = (pages: {
+  insights: PageMap;
+  logs: PageMap;
+  settings: PageMap;
+  autoRemediationRules: PageMap;
+}): PageSearchSection => {
+  return {
+    title: "AI",
+    pages: [
+      {
+        page: pages.insights,
+        title: "Insights",
+        icon: IconProp.LightBulb,
+        keywords: [
+          "ai insights",
+          "recurring problems",
+          "root causes",
+          "what ai found",
+        ],
+      },
+      {
+        page: pages.logs,
+        title: "Logs",
+        icon: IconProp.QueueList,
+        keywords: [
+          "ai logs",
+          "ai activity",
+          "ai investigations",
+          "ai fixes",
+          "ai commands",
+        ],
+      },
+      {
+        page: pages.settings,
+        title: "Settings",
+        icon: IconProp.Settings,
+        keywords: [
+          "ai settings",
+          "ai investigation",
+          "root cause",
+          "ai limits",
+        ],
+      },
+      {
+        page: pages.autoRemediationRules,
+        title: "Auto Remediation Rules",
+        icon: IconProp.Bolt,
+        keywords: ["self healing", "auto fix"],
+      },
+    ],
+  };
+};
+
 // A resource product's own Settings and Advanced sections.
 const resourceSettingsSections: (pages: {
   ownerRules: PageMap;
@@ -661,12 +729,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.BookOpen,
           },
           {
-            page: PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES,
-            title: "Auto Remediation Rules",
-            icon: IconProp.Bolt,
-            keywords: ["self healing", "auto fix"],
-          },
-          {
             page: PageMap.INCIDENTS_SETTINGS_PRIVACY_RULES,
             title: "Privacy Rules",
             icon: IconProp.Lock,
@@ -690,12 +752,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       {
         title: "Settings",
         pages: [
-          {
-            page: PageMap.INCIDENTS_SETTINGS_AI,
-            title: "AI",
-            icon: IconProp.Sparkles,
-            keywords: ["ai investigation", "root cause"],
-          },
           {
             page: PageMap.INCIDENTS_SETTINGS_STATE,
             title: "Incident State",
@@ -750,6 +806,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
         ],
       },
+      incidentAlertAiSection({
+        insights: PageMap.INCIDENTS_AI_INSIGHTS,
+        logs: PageMap.INCIDENTS_AI_LOGS,
+        settings: PageMap.INCIDENTS_SETTINGS_AI,
+        autoRemediationRules: PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES,
+      }),
     ],
   },
   {
@@ -819,12 +881,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.BookOpen,
           },
           {
-            page: PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES,
-            title: "Auto Remediation Rules",
-            icon: IconProp.Bolt,
-            keywords: ["self healing", "auto fix"],
-          },
-          {
             page: PageMap.ALERTS_SETTINGS_PRIVACY_RULES,
             title: "Privacy Rules",
             icon: IconProp.Lock,
@@ -842,12 +898,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       {
         title: "Settings",
         pages: [
-          {
-            page: PageMap.ALERTS_SETTINGS_AI,
-            title: "AI",
-            icon: IconProp.Sparkles,
-            keywords: ["ai investigation", "root cause"],
-          },
           {
             page: PageMap.ALERTS_SETTINGS_STATE,
             title: "Alert State",
@@ -880,6 +930,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
         ],
       },
+      incidentAlertAiSection({
+        insights: PageMap.ALERTS_AI_INSIGHTS,
+        logs: PageMap.ALERTS_AI_LOGS,
+        settings: PageMap.ALERTS_SETTINGS_AI,
+        autoRemediationRules: PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES,
+      }),
     ],
   },
   {
@@ -1806,7 +1862,23 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
     sections: [
       {
         title: "Cloud",
-        pages: [allListPage(PageMap.CLOUD_RESOURCES, "All Environments")],
+        pages: [
+          allListPage(PageMap.CLOUD_RESOURCES, "All Environments"),
+          {
+            ...allListPage(PageMap.CLOUD_MONITORED_RESOURCES, "All Resources"),
+            keywords: [
+              "iaas",
+              "paas",
+              "virtual machines",
+              "load balancers",
+              "buckets",
+              "managed databases",
+              "azure monitor",
+              "cloudwatch",
+              "cloud monitoring",
+            ],
+          },
+        ],
       },
       ...resourceSettingsSections({
         ownerRules: PageMap.CLOUD_SETTINGS_OWNER_RULES,
@@ -1875,6 +1947,27 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         ownerRules: PageMap.CEPH_SETTINGS_OWNER_RULES,
         labelRules: PageMap.CEPH_SETTINGS_LABEL_RULES,
         archived: PageMap.CEPH_ARCHIVED,
+      }),
+    ],
+  },
+  {
+    id: "storage-arrays",
+    title: "Storage Arrays",
+    productPage: PageMap.STORAGE_ARRAYS,
+    icon: IconProp.StorageArray,
+    iconColor: "blue",
+    sections: [
+      {
+        title: "Storage Arrays",
+        pages: [
+          allListPage(PageMap.STORAGE_ARRAYS, "All Storage Arrays"),
+          documentation(PageMap.STORAGE_ARRAYS_DOCUMENTATION),
+        ],
+      },
+      ...resourceSettingsSections({
+        ownerRules: PageMap.STORAGE_ARRAYS_SETTINGS_OWNER_RULES,
+        labelRules: PageMap.STORAGE_ARRAYS_SETTINGS_LABEL_RULES,
+        archived: PageMap.STORAGE_ARRAYS_ARCHIVED,
       }),
     ],
   },

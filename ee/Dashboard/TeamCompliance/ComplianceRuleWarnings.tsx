@@ -3,6 +3,7 @@ import {
   getRuleWarningGroups,
   isFixedInProjectNotificationSettings,
 } from "./ComplianceView";
+import { canChangeProjectNotificationChannels } from "@oneuptime/dashboard/Components/NotificationMethods/ProjectNotificationChannels";
 import PageMap from "@oneuptime/dashboard/Utils/PageMap";
 import RouteMap, { RouteUtil } from "@oneuptime/dashboard/Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -19,8 +20,14 @@ import React, { FunctionComponent, ReactElement } from "react";
  * Problems with a rule itself rather than with any member - above all, a rule
  * on a channel the project has switched off (Call is off by default), which no
  * member can ever pass however carefully they set themselves up. Said once, at
- * the top, with the rule it is about and a way to the setting that fixes it,
- * so nobody spends an afternoon chasing members over a project switch.
+ * the top, with the rule it is about, so nobody spends an afternoon chasing
+ * members over a project switch.
+ *
+ * Only a project owner, a Billing Admin or someone with Manage Billing may
+ * switch a channel on (the Project columns' own update permissions), so only
+ * they get the link to the switches; everyone else reads in the warning
+ * itself who can, and where. A link to a page whose switches are all locked
+ * would only send them to be refused.
  *
  * A rule whose every severity was deleted is listed here too, though paused:
  * nobody paused it on purpose, and it checks nothing until an admin edits it.
@@ -39,11 +46,11 @@ const ComplianceRuleWarnings: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  const showSettingsLink: boolean = groups.some(
-    (group: RuleWarningGroup): boolean => {
+  const showSettingsLink: boolean =
+    canChangeProjectNotificationChannels() &&
+    groups.some((group: RuleWarningGroup): boolean => {
       return isFixedInProjectNotificationSettings(group);
-    },
-  );
+    });
 
   const title: string =
     groups.length === 1

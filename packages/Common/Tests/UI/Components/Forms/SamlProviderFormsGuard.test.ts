@@ -69,7 +69,7 @@ const SAML_FORMS: Array<SamlForm> = [
     label: "ModelTable: Settings > Project SSO",
     host: "ModelTable",
     builderCall:
-      "formFields={getSamlProviderFormFields<ProjectSSO>({ withTeams: true, })}",
+      "formFields={getSamlProviderFormFields<ProjectSSO>({ withTeams: true, getTeamsFooterElement: getSsoTeamsGrantNote, })}",
   },
   {
     file: `${DASHBOARD}/Pages/StatusPages/View/SSO.tsx`,
@@ -363,6 +363,24 @@ describe("the SAML provider forms ask only for what the identity provider gives;
       "const createInitialValues: FormValues<ProjectSSO> | undefined = useDefaultSsoTeamsInitialValues<ProjectSSO>();",
     );
     expect(source).toContain("createInitialValues={createInitialValues}");
+  });
+
+  /*
+   * People who sign in with it join its teams, so the server saves it only
+   * with teams the person saving it could invite someone to; the form names
+   * a picked team beyond that under Teams (SsoTeamsGrantNote).
+   */
+  test("only the project's form names the picked teams the person could not invite someone to", () => {
+    expect(
+      SAML_FORMS.filter((samlForm: SamlForm): boolean => {
+        return samlForm.builderCall.includes(
+          "getTeamsFooterElement: getSsoTeamsGrantNote",
+        );
+      }),
+    ).toEqual([SAML_FORMS[0]]);
+    expect(dense(SAML_FORMS[0]!.file)).toContain(
+      'import { getSsoTeamsGrantNote } from "../../Components/Sso/SsoTeamsGrantNote";',
+    );
   });
 
   test.each(SAML_FORMS.slice(0, 3))(

@@ -9,6 +9,7 @@ import Model, {
 } from "../../Models/DatabaseModels/UserOnCallShiftReminder";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import PositiveNumber from "../../Types/PositiveNumber";
 
 /*
@@ -20,6 +21,9 @@ import PositiveNumber from "../../Types/PositiveNumber";
  * project, and a lead time inside 15 minutes ... 2 weeks. A duplicate lead
  * is answered with a message rather than a unique-violation 500.
  */
+// The two names of the reminder's owner, ID column first.
+const USER_KEYS: Array<string> = ["userId", "user"];
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -36,13 +40,30 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("projectId is required");
     }
 
-    if (!createBy.data.userId && createBy.props.userId) {
-      createBy.data.userId = createBy.props.userId;
-    }
+    /*
+     * The owner the client sent, under either of its names (the two must
+     * agree), or the session user when it sent none - written under the ID
+     * column alone, so the duplicate check below and the row agree on whose
+     * reminder it is.
+     */
+    const userId: ObjectID | null =
+      RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        USER_KEYS,
+        "User",
+      ) ||
+      createBy.props.userId ||
+      null;
 
-    if (!createBy.data.userId) {
+    if (!userId) {
       throw new BadDataException("userId is required");
     }
+
+    RelationIdUtil.stamp(
+      createBy.data as unknown as Record<string, unknown>,
+      USER_KEYS,
+      userId,
+    );
 
     createBy.data.projectId = projectId;
 
@@ -53,7 +74,7 @@ export class Service extends DatabaseService<Model> {
     const duplicates: PositiveNumber = await this.countBy({
       query: {
         projectId: projectId,
-        userId: createBy.data.userId,
+        userId: userId,
         minutesBeforeShift: createBy.data.minutesBeforeShift,
       },
       props: {

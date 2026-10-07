@@ -3,6 +3,8 @@ import Icon, { SizeProp } from "../Icon/Icon";
 import React, {
   FunctionComponent,
   ReactElement,
+  useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -26,6 +28,22 @@ export interface CardSelectOption {
 export interface CardSelectOptionGroup {
   label: string;
   options: Array<CardSelectOption>;
+}
+
+/*
+ * A picker over a catalog too big to read at once (the monitor type picker):
+ * the common choices first, everything else one "More …" press or one search
+ * away, and once a choice is made, just that choice with a Change button.
+ */
+export interface CardSelectCatalog {
+  /*
+   * The values of the choices most people make, in the order they are
+   * listed first. Every other option waits behind the More button, under
+   * its group's heading.
+   */
+  commonOptionValues: Array<string>;
+  // What the More button says ("More monitor types").
+  moreOptionsText: string;
 }
 
 export function isCardSelectOptionGroup(
@@ -61,11 +79,10 @@ export interface ComponentProps {
   searchable?: boolean | undefined;
   searchPlaceholder?: string | undefined;
   /*
-   * Opt in to collapsing groups behind their headers. Off by default. Only
-   * has an effect on grouped options: the first group and the group holding
-   * the current selection start open, the rest start closed behind a count.
+   * Opt in to the catalog layout (CardSelectCatalog). Off by default: a
+   * handful of cards reads fine as a plain grid.
    */
-  collapsibleGroups?: boolean | undefined;
+  catalog?: CardSelectCatalog | undefined;
 }
 
 interface RenderGroup {
@@ -273,6 +290,80 @@ export const normalizeCardSelectGroups: NormalizeGroupsFunction = (
   return groups;
 };
 
+export interface CardSelectCatalogSections {
+  // The common choices, in the order the catalog names them.
+  commonOptions: Array<CardSelectOption>;
+  /*
+   * Everything else, still under its own group's heading, with the common
+   * choices taken out so nothing is listed twice. Groups left empty are
+   * dropped.
+   */
+  moreGroups: Array<RenderGroup>;
+}
+
+type CatalogSectionsFunction = (data: {
+  options: Array<CardSelectOption | CardSelectOptionGroup>;
+  commonOptionValues: Array<string>;
+}) => CardSelectCatalogSections;
+
+/**
+ * Splits a catalog into its common choices and the rest. A common value no
+ * option carries is skipped, and so is a repeat.
+ */
+export const getCardSelectCatalogSections: CatalogSectionsFunction = (data: {
+  options: Array<CardSelectOption | CardSelectOptionGroup>;
+  commonOptionValues: Array<string>;
+}): CardSelectCatalogSections => {
+  const groups: Array<RenderGroup> = normalizeCardSelectGroups(data.options);
+  const allOptions: Array<CardSelectOption> = groups.flatMap(
+    (group: RenderGroup) => {
+      return group.options;
+    },
+  );
+
+  const commonOptions: Array<CardSelectOption> = [];
+
+  for (const value of data.commonOptionValues) {
+    const option: CardSelectOption | undefined = allOptions.find(
+      (candidate: CardSelectOption) => {
+        return candidate.value === value;
+      },
+    );
+
+    if (option && !commonOptions.includes(option)) {
+      commonOptions.push(option);
+    }
+  }
+
+  const commonValues: Set<string> = new Set<string>(
+    commonOptions.map((option: CardSelectOption) => {
+      return option.value;
+    }),
+  );
+
+  const moreGroups: Array<RenderGroup> = groups
+    .map((group: RenderGroup): RenderGroup => {
+      return {
+        label: group.label,
+        options: group.options.filter((option: CardSelectOption) => {
+          return !commonValues.has(option.value);
+        }),
+      };
+    })
+    .filter((group: RenderGroup) => {
+      return group.options.length > 0;
+    });
+
+  return { commonOptions, moreGroups };
+};
+
+/*
+ * Where keyboard focus goes once the next render is on screen: the summary's
+ * Change button after a pick, the search box (or the chosen card) after
+ * Change, the first newly shown card after More.
+ */
+type PendingFocus = "change" | "picker" | "first-more-option";
+
 const CardSelect: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -282,19 +373,48 @@ const CardSelect: FunctionComponent<ComponentProps> = (
     useRef<HTMLInputElement>(null);
   const containerRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
+  const changeButtonRef: React.RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
+  const summaryTitleId: string = useId();
+  const moreOptionsId: string = useId();
 
-  /*
-   * Groups the user has toggled by hand, by label. Anything absent falls back
-   * to the default below, so a group does not spring shut again the moment
-   * the selection moves elsewhere.
-   */
-  const [toggledGroups, setToggledGroups] = useState<Record<string, boolean>>(
-    {},
-  );
+  // Catalog layout: whether More was pressed, and whether Change was.
+  const [isShowingMoreOptions, setIsShowingMoreOptions] =
+    useState<boolean>(false);
+  const [isChangingSelection, setIsChangingSelection] =
+    useState<boolean>(false);
+  const [pendingFocus, setPendingFocus] = useState<PendingFocus | null>(null);
 
   const groups: Array<RenderGroup> = useMemo(() => {
     return normalizeCardSelectGroups(props.options);
   }, [props.options]);
+
+  const catalogSections: CardSelectCatalogSections | null = useMemo(() => {
+    if (!props.catalog) {
+      return null;
+    }
+
+    return getCardSelectCatalogSections({
+      options: props.options,
+      commonOptionValues: props.catalog.commonOptionValues,
+    });
+  }, [props.options, props.catalog]);
+
+  const selectedOption: CardSelectOption | undefined = useMemo(() => {
+    if (!props.value) {
+      return undefined;
+    }
+
+    for (const group of groups) {
+      for (const option of group.options) {
+        if (option.value === props.value) {
+          return option;
+        }
+      }
+    }
+
+    return undefined;
+  }, [groups, props.value]);
 
   const tokens: Array<string> = useMemo(() => {
     return getCardSelectSearchTokens(search);
@@ -307,6 +427,31 @@ const CardSelect: FunctionComponent<ComponentProps> = (
       return total + group.options.length;
     }, 0);
   }, [groups]);
+
+  /*
+   * A catalog with a choice made shows just that choice, until Change is
+   * pressed. A value no option carries (a monitor type the picker no longer
+   * offers) has nothing to summarise, so the picker stays open.
+   */
+  const isShowingSummary: boolean = Boolean(
+    catalogSections && selectedOption && !isChangingSelection,
+  );
+
+  /*
+   * The rest of the catalog is on screen once More is pressed, and whenever
+   * the choice already made is one of them - Change on a Kubernetes monitor
+   * must not hide Kubernetes behind a button.
+   */
+  const isSelectionInMoreOptions: boolean = Boolean(
+    catalogSections &&
+      selectedOption &&
+      catalogSections.moreGroups.some((group: RenderGroup) => {
+        return group.options.includes(selectedOption);
+      }),
+  );
+
+  const areMoreOptionsShown: boolean =
+    isShowingMoreOptions || isSelectionInMoreOptions;
 
   /*
    * A search flattens the groups. Ranked results in nine separate headed
@@ -383,81 +528,63 @@ const CardSelect: FunctionComponent<ComponentProps> = (
     };
   }, [groups, tokens, isSearching]);
 
-  type IsGroupExpandedFunction = (
-    group: RenderGroup,
-    groupIndex: number,
-  ) => boolean;
-
-  const isGroupExpanded: IsGroupExpandedFunction = (
-    group: RenderGroup,
-    groupIndex: number,
-  ): boolean => {
-    // Unlabelled groups have no header to collapse behind.
-    if (!props.collapsibleGroups || !group.label) {
-      return true;
-    }
-
-    const toggled: boolean | undefined = toggledGroups[group.label];
-
-    if (toggled !== undefined) {
-      return toggled;
-    }
-
-    // The group holding the current selection, so re-entering a form shows it.
-    if (
-      props.value &&
-      group.options.some((option: CardSelectOption) => {
-        return option.value === props.value;
-      })
-    ) {
-      return true;
-    }
-
-    /*
-     * The first group is the common case in every catalog that bothers to
-     * order itself, so it is the one worth opening for a user who has not
-     * told us anything yet.
-     */
-    return groupIndex === 0;
-  };
-
   const gridClassName: string = props.singleColumn
-    ? "grid grid-cols-1 gap-4"
-    : props.maxColumns === 2
-      ? "grid grid-cols-1 gap-4 sm:grid-cols-2"
-      : "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3";
+    ? catalogSections
+      ? "grid grid-cols-1 gap-2"
+      : "grid grid-cols-1 gap-4"
+    : catalogSections
+      ? // Compact rows read best two to a line: a third column wraps them.
+        "grid grid-cols-1 gap-2 sm:grid-cols-2"
+      : props.maxColumns === 2
+        ? "grid grid-cols-1 gap-4 sm:grid-cols-2"
+        : "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3";
 
   /*
    * The cards on screen, in the order they are rendered. A search reorders
-   * them and a folded group removes them, so this is recomputed rather than
-   * taken from props.
+   * them and the catalog layout holds some back, so this is recomputed
+   * rather than taken from props.
    */
   const visibleOptionValues: Array<string> = useMemo(() => {
+    const valuesOf: (options: Array<CardSelectOption>) => Array<string> = (
+      options: Array<CardSelectOption>,
+    ): Array<string> => {
+      return options.map((option: CardSelectOption) => {
+        return option.value;
+      });
+    };
+
+    if (isShowingSummary) {
+      return [];
+    }
+
     if (isSearching) {
       return searchResults.map((result: ScoredOption) => {
         return result.option.value;
       });
     }
 
-    const values: Array<string> = [];
+    if (catalogSections) {
+      return [
+        ...valuesOf(catalogSections.commonOptions),
+        ...(areMoreOptionsShown
+          ? catalogSections.moreGroups.flatMap((group: RenderGroup) => {
+              return valuesOf(group.options);
+            })
+          : []),
+      ];
+    }
 
-    groups.forEach((group: RenderGroup, groupIndex: number) => {
-      if (!isGroupExpanded(group, groupIndex)) {
-        return;
-      }
-
-      for (const option of group.options) {
-        values.push(option.value);
-      }
+    return groups.flatMap((group: RenderGroup) => {
+      return valuesOf(group.options);
     });
-
-    return values;
-    /*
-     * isGroupExpanded is read here rather than listed: it is rebuilt every
-     * render, and everything it actually depends on - the groups, the manual
-     * toggles and the current value - is in the list.
-     */
-  }, [groups, isSearching, searchResults, toggledGroups, props.value]);
+  }, [
+    groups,
+    isSearching,
+    searchResults,
+    catalogSections,
+    areMoreOptionsShown,
+    isShowingSummary,
+  ]);
 
   /*
    * One tab stop for the whole group, which is what a radiogroup is supposed
@@ -480,6 +607,65 @@ const CardSelect: FunctionComponent<ComponentProps> = (
       ) || null;
 
     card?.focus();
+  };
+
+  /*
+   * Moves focus once the render that brings its target is on screen. A pick
+   * swaps the picker for the summary, so the card that had focus is gone:
+   * focus goes to Change, where the picker was, rather than falling back to
+   * the page.
+   */
+  useEffect(() => {
+    if (!pendingFocus) {
+      return;
+    }
+
+    if (pendingFocus === "change") {
+      if (!isShowingSummary) {
+        // The parent has not handed the pick back yet.
+        return;
+      }
+
+      changeButtonRef.current?.focus();
+    } else if (pendingFocus === "picker") {
+      if (searchInputRef.current) {
+        searchInputRef.current.focus();
+      } else if (activeOptionValue) {
+        focusCard(activeOptionValue);
+      }
+    } else if (pendingFocus === "first-more-option") {
+      const firstMoreOption: CardSelectOption | undefined =
+        catalogSections?.moreGroups[0]?.options[0];
+
+      if (firstMoreOption) {
+        focusCard(firstMoreOption.value);
+      }
+    }
+
+    setPendingFocus(null);
+  }, [pendingFocus, isShowingSummary]);
+
+  type ChooseFunction = (value: string) => void;
+
+  const choose: ChooseFunction = (value: string): void => {
+    if (catalogSections) {
+      /*
+       * Picking the choice already made only closes the picker again: there
+       * is nothing to change, and onChange would reset whatever the form
+       * built on it (the criteria a monitor type seeded).
+       */
+      const isSameChoice: boolean = value === props.value;
+
+      setIsChangingSelection(false);
+      setSearch("");
+      setPendingFocus("change");
+
+      if (isSameChoice) {
+        return;
+      }
+    }
+
+    props.onChange(value);
   };
 
   type MoveFocusFunction = (fromValue: string, offset: number) => void;
@@ -512,6 +698,38 @@ const CardSelect: FunctionComponent<ComponentProps> = (
     focusCard(nextValue);
   };
 
+  type OptionKeyDownFunction = (
+    event: React.KeyboardEvent,
+    option: CardSelectOption,
+  ) => void;
+
+  const onOptionKeyDown: OptionKeyDownFunction = (
+    event: React.KeyboardEvent,
+    option: CardSelectOption,
+  ): void => {
+    /*
+     * Manual activation: arrows move focus, Enter or Space chooses.
+     * Selecting on focus would fire onChange for every card arrowed
+     * past, and on this form that resets the criteria below.
+     */
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      choose(option.value);
+      return;
+    }
+
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+      event.preventDefault();
+      moveFocus(option.value, 1);
+      return;
+    }
+
+    if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+      event.preventDefault();
+      moveFocus(option.value, -1);
+    }
+  };
+
   type RenderCardFunction = (option: CardSelectOption) => ReactElement;
 
   const renderCard: RenderCardFunction = (
@@ -525,30 +743,10 @@ const CardSelect: FunctionComponent<ComponentProps> = (
         tabIndex={option.value === activeOptionValue ? props.tabIndex || 0 : -1}
         data-card-select-value={option.value}
         onClick={() => {
-          props.onChange(option.value);
+          choose(option.value);
         }}
-        onKeyDown={(e: React.KeyboardEvent) => {
-          /*
-           * Manual activation: arrows move focus, Enter or Space chooses.
-           * Selecting on focus would fire onChange for every card arrowed
-           * past, and on this form that resets the criteria below.
-           */
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            props.onChange(option.value);
-            return;
-          }
-
-          if (e.key === "ArrowRight" || e.key === "ArrowDown") {
-            e.preventDefault();
-            moveFocus(option.value, 1);
-            return;
-          }
-
-          if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
-            e.preventDefault();
-            moveFocus(option.value, -1);
-          }
+        onKeyDown={(event: React.KeyboardEvent) => {
+          onOptionKeyDown(event, option);
         }}
         className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm transition-all duration-200 hover:border-indigo-400 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
           isSelected
@@ -603,10 +801,182 @@ const CardSelect: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * The catalog layout's option: one compact row - a small icon, the title
+   * and one line of description - so six common choices fit in three short
+   * lines of two, where a card each took a screen.
+   */
+  const renderRow: RenderCardFunction = (
+    option: CardSelectOption,
+  ): ReactElement => {
+    const isSelected: boolean = props.value === option.value;
+
+    return (
+      <div
+        key={option.value}
+        tabIndex={option.value === activeOptionValue ? props.tabIndex || 0 : -1}
+        data-card-select-value={option.value}
+        onClick={() => {
+          choose(option.value);
+        }}
+        onKeyDown={(event: React.KeyboardEvent) => {
+          onOptionKeyDown(event, option);
+        }}
+        className={`relative flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 transition-colors duration-150 hover:border-indigo-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
+          isSelected
+            ? "border-indigo-500 bg-indigo-50/50"
+            : "border-gray-200 bg-white hover:bg-gray-50"
+        }`}
+        role="radio"
+        aria-checked={isSelected}
+        data-testid={`card-select-option-${option.value}`}
+      >
+        <div
+          className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md ${
+            isSelected ? "bg-indigo-100" : "bg-gray-100"
+          }`}
+        >
+          <Icon
+            icon={option.icon}
+            className={`h-4 w-4 ${
+              isSelected ? "text-indigo-600" : "text-gray-600"
+            }`}
+          />
+        </div>
+        <div className="min-w-0 flex-1">
+          <span className="block text-sm font-medium text-gray-900">
+            {translator.translateText(option.title)}
+          </span>
+          <span className="mt-0.5 block text-xs leading-5 text-gray-500">
+            {translator.translateText(option.description)}
+          </span>
+        </div>
+        {isSelected && (
+          <Icon
+            icon={IconProp.CheckCircle}
+            className="h-5 w-5 flex-shrink-0 text-indigo-500"
+          />
+        )}
+      </div>
+    );
+  };
+
+  const renderOption: RenderCardFunction = catalogSections
+    ? renderRow
+    : renderCard;
+
+  const renderError: () => ReactElement | null = (): ReactElement | null => {
+    if (!props.error) {
+      return null;
+    }
+
+    return (
+      <p className="mt-2 text-sm text-red-600" role="alert">
+        {props.error}
+      </p>
+    );
+  };
+
+  /*
+   * The choice made, on one line, in place of the whole catalog: what was
+   * picked and a way to pick again. Nothing else on the form moves while
+   * someone reads it.
+   */
+  if (isShowingSummary && selectedOption) {
+    return (
+      <div data-testid={props.dataTestId}>
+        <div
+          role="group"
+          aria-labelledby={props.ariaLabelledby}
+          data-testid="card-select-summary"
+          data-card-select-value={selectedOption.value}
+          className="flex items-center gap-3 rounded-lg border border-indigo-200 bg-indigo-50/50 px-3 py-2.5"
+        >
+          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-indigo-100">
+            <Icon
+              icon={selectedOption.icon}
+              className="h-4 w-4 text-indigo-600"
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <span
+              id={summaryTitleId}
+              className="block text-sm font-medium text-gray-900"
+              data-testid="card-select-summary-title"
+            >
+              {translator.translateText(selectedOption.title)}
+            </span>
+            <span className="mt-0.5 block text-xs leading-5 text-gray-500">
+              {translator.translateText(selectedOption.description)}
+            </span>
+          </div>
+          <button
+            ref={changeButtonRef}
+            type="button"
+            tabIndex={props.tabIndex || 0}
+            aria-describedby={summaryTitleId}
+            data-testid="card-select-change"
+            className="flex-shrink-0 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm transition-colors duration-150 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+            onClick={() => {
+              setIsChangingSelection(true);
+              setPendingFocus("picker");
+            }}
+          >
+            {translator.translateText("Change")}
+          </button>
+        </div>
+        {renderError()}
+      </div>
+    );
+  }
+
+  const searchSummary: string = isSearching
+    ? translator.translateTemplate(
+        isShowingClosestMatches
+          ? "Showing {{shown}} closest of {{total}}"
+          : "Showing {{shown}} of {{total}}",
+        {
+          shown: translator.formatNumber(searchResults.length),
+          total: translator.formatNumber(totalOptionCount),
+        },
+      )
+    : catalogSections
+      ? // The catalog says nothing while idle: the common rows say it all.
+        ""
+      : translator.translatePlural(
+          {
+            one: "{{count}} to choose from. Search by name, category, or what you want to watch.",
+            other:
+              "{{count}} to choose from. Search by name, category, or what you want to watch.",
+          },
+          totalOptionCount,
+        );
+
   return (
-    <div data-testid={props.dataTestId}>
+    <div
+      data-testid={props.dataTestId}
+      onKeyDown={(event: React.KeyboardEvent) => {
+        /*
+         * Escape while picking again keeps the choice already made. The
+         * search box's own Escape, which clears what was typed, runs first
+         * and stops here.
+         */
+        if (
+          event.key === "Escape" &&
+          catalogSections &&
+          isChangingSelection &&
+          selectedOption
+        ) {
+          event.stopPropagation();
+          event.preventDefault();
+          setIsChangingSelection(false);
+          setSearch("");
+          setPendingFocus("change");
+        }
+      }}
+    >
       {props.searchable && (
-        <div className="mb-5">
+        <div className={catalogSections ? "mb-3" : "mb-5"}>
           <div className="relative flex items-center gap-3 rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm transition-all duration-200 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500">
             <Icon
               icon={IconProp.Search}
@@ -647,7 +1017,7 @@ const CardSelect: FunctionComponent<ComponentProps> = (
                  */
                 if (event.key === "Enter" && searchResults[0]) {
                   event.preventDefault();
-                  props.onChange(searchResults[0].option.value);
+                  choose(searchResults[0].option.value);
                   return;
                 }
 
@@ -674,28 +1044,11 @@ const CardSelect: FunctionComponent<ComponentProps> = (
             )}
           </div>
           <p
-            className="mt-2 text-xs text-gray-500"
+            className={searchSummary ? "mt-2 text-xs text-gray-500" : "sr-only"}
             data-testid="card-select-search-summary"
             role="status"
           >
-            {isSearching
-              ? translator.translateTemplate(
-                  isShowingClosestMatches
-                    ? "Showing {{shown}} closest of {{total}}"
-                    : "Showing {{shown}} of {{total}}",
-                  {
-                    shown: translator.formatNumber(searchResults.length),
-                    total: translator.formatNumber(totalOptionCount),
-                  },
-                )
-              : translator.translatePlural(
-                  {
-                    one: "{{count}} to choose from. Search by name, category, or what you want to watch.",
-                    other:
-                      "{{count}} to choose from. Search by name, category, or what you want to watch.",
-                  },
-                  totalOptionCount,
-                )}
+            {searchSummary}
           </p>
         </div>
       )}
@@ -720,7 +1073,7 @@ const CardSelect: FunctionComponent<ComponentProps> = (
         {isSearching && (
           <div className={gridClassName}>
             {searchResults.map((result: ScoredOption) => {
-              return renderCard(result.option);
+              return renderOption(result.option);
             })}
           </div>
         )}
@@ -753,16 +1106,66 @@ const CardSelect: FunctionComponent<ComponentProps> = (
           </div>
         )}
 
-        {!isSearching &&
-          groups.map((group: RenderGroup, groupIndex: number) => {
-            const expanded: boolean = isGroupExpanded(group, groupIndex);
-            const canCollapse: boolean = Boolean(
-              props.collapsibleGroups && group.label,
-            );
+        {!isSearching && catalogSections && (
+          <>
+            <div className={gridClassName} data-testid="card-select-common">
+              {catalogSections.commonOptions.map((option: CardSelectOption) => {
+                return renderOption(option);
+              })}
+            </div>
 
+            {catalogSections.moreGroups.length > 0 && !areMoreOptionsShown && (
+              <button
+                type="button"
+                aria-expanded={false}
+                aria-controls={moreOptionsId}
+                data-testid="card-select-more"
+                className="mt-3 inline-flex items-center gap-1.5 rounded-md py-1 text-sm font-medium text-indigo-600 transition-colors duration-150 hover:text-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                onClick={() => {
+                  setIsShowingMoreOptions(true);
+                  setPendingFocus("first-more-option");
+                }}
+              >
+                <Icon icon={IconProp.ChevronDown} className="h-4 w-4" />
+                {translator.translateText(props.catalog!.moreOptionsText)}
+              </button>
+            )}
+
+            {areMoreOptionsShown && (
+              <div id={moreOptionsId} data-testid="card-select-more-options">
+                {catalogSections.moreGroups.map(
+                  (group: RenderGroup, groupIndex: number) => {
+                    return (
+                      <div
+                        key={group.label || groupIndex}
+                        className="mt-5"
+                        data-testid={`card-select-group-${group.label || groupIndex}`}
+                      >
+                        {group.label && (
+                          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                            {translator.translateText(group.label)}
+                          </p>
+                        )}
+                        <div className={gridClassName}>
+                          {group.options.map((option: CardSelectOption) => {
+                            return renderOption(option);
+                          })}
+                        </div>
+                      </div>
+                    );
+                  },
+                )}
+              </div>
+            )}
+          </>
+        )}
+
+        {!isSearching &&
+          !catalogSections &&
+          groups.map((group: RenderGroup, groupIndex: number) => {
             return (
               <div key={groupIndex} className={groupIndex > 0 ? "mt-8" : ""}>
-                {group.label && !canCollapse && (
+                {group.label && (
                   <div className="relative mb-4">
                     <div
                       className="absolute inset-0 flex items-center"
@@ -778,52 +1181,16 @@ const CardSelect: FunctionComponent<ComponentProps> = (
                   </div>
                 )}
 
-                {group.label && canCollapse && (
-                  <button
-                    type="button"
-                    aria-expanded={expanded}
-                    data-testid={`card-select-group-${group.label}`}
-                    className="mb-4 flex w-full items-center gap-2 border-b border-gray-200 pb-2 text-left"
-                    onClick={() => {
-                      setToggledGroups((previous: Record<string, boolean>) => {
-                        return {
-                          ...previous,
-                          [group.label as string]: !expanded,
-                        };
-                      });
-                    }}
-                  >
-                    <Icon
-                      icon={
-                        expanded ? IconProp.ChevronDown : IconProp.ChevronRight
-                      }
-                      className="h-4 w-4 flex-shrink-0 text-gray-400"
-                    />
-                    <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                      {translator.translateText(group.label)}
-                    </span>
-                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
-                      {group.options.length}
-                    </span>
-                  </button>
-                )}
-
-                {expanded && (
-                  <div className={gridClassName}>
-                    {group.options.map((option: CardSelectOption) => {
-                      return renderCard(option);
-                    })}
-                  </div>
-                )}
+                <div className={gridClassName}>
+                  {group.options.map((option: CardSelectOption) => {
+                    return renderOption(option);
+                  })}
+                </div>
               </div>
             );
           })}
       </div>
-      {props.error && (
-        <p className="mt-2 text-sm text-red-600" role="alert">
-          {props.error}
-        </p>
-      )}
+      {renderError()}
     </div>
   );
 };

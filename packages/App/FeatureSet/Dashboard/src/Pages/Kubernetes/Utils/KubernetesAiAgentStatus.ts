@@ -15,9 +15,19 @@ import {
   isKubernetesAgentRunnerPosture,
 } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 import { KUBERNETES_AGENT_HELM_NAMESPACE } from "./DocumentationMarkdown";
+import { readAiSettingsSource } from "../../../Components/AiAccess/AiAccessModes";
+import { ADD_AI_CREDITS_STEP } from "../../../Components/ProjectBalance/ProjectBalanceCopy";
 import {
+  AgentAiSettingsSource,
+  isAgentAiSettingsSourceAgent,
+} from "Common/Types/AI/AgentAiSettings";
+import {
+  getGlobalTranslator,
+  TemplateValues,
   translatableTerm,
   translateTemplate,
+  translationKey,
+  Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -28,6 +38,12 @@ import {
  * Every decision here is made from the status the server computed
  * (KubernetesClusterAiAccessService): the page never builds a second,
  * client-side idea of readiness next to the server's gaps.
+ *
+ * The words are the Dashboard's translation keys (src/Locales/README.md).
+ * A constant is the English key, looked up where the page shows it; a
+ * function answers in the reader's language, each sentence whole with its
+ * values in {{placeholders}}, so the Overview's card reads it translated
+ * too.
  *
  * Import-clean on purpose (Common types, OneUptimeDate and
  * DocumentationMarkdown only), so the suites read it without a browser.
@@ -45,45 +61,91 @@ export const AI_AGENT_STATUS_POLL_INTERVAL_MS: number = 30_000;
 export const REFUSED_REGISTRATION_WARNING_WINDOW_MS: number =
   24 * 60 * 60 * 1000;
 
-// The page's heading, matching the AI Insights page's title and subtitle.
-export const AI_AGENT_PAGE_TITLE: string = "AI agent";
+// The page's heading, matching the AI Insights and AI Logs pages' headings.
+export const AI_AGENT_PAGE_TITLE: string = translationKey("AI agent");
 
-export const AI_AGENT_PAGE_SUBTITLE: string =
-  "Whether OneUptime AI can reach this cluster, and what it may do there.";
+export const AI_AGENT_PAGE_SUBTITLE: string = translationKey(
+  "Whether OneUptime AI can reach this cluster, and what it may do there.",
+);
 
-export const AI_AGENT_READY_TEXT: string =
-  "Ready — AI will inspect this cluster with read-only kubectl when it investigates an incident or alert here.";
+export const AI_AGENT_READY_TEXT: string = translationKey(
+  "Ready — AI will inspect this cluster with read-only kubectl when it investigates an incident or alert here.",
+);
 
-export const AI_AGENT_NOT_INSTALLED_TEXT: string =
-  "Install the AI agent — it runs in your cluster, read-only, using your Kubernetes agent's key. This page updates within a minute.";
+export const AI_AGENT_NOT_INSTALLED_TEXT: string = translationKey(
+  "Install the AI agent — it runs in your cluster, read-only, using your Kubernetes agent's key. This page updates within a minute.",
+);
 
-export const AI_AGENT_OTHER_RELEASE_TEXT: string =
-  "Installed under another release or namespace? Use yours.";
-
-export const AI_AGENT_UPGRADE_CHART_TEXT: string =
-  "Upgrade the Kubernetes agent chart to switch to the new AI agent — your settings carry over.";
-
-export const AI_AGENT_LEGACY_RUNNER_TEXT: string = `Works today. ${AI_AGENT_UPGRADE_CHART_TEXT}`;
+export const AI_AGENT_OTHER_RELEASE_TEXT: string = translationKey(
+  "Installed under another release or namespace? Use yours.",
+);
 
 /*
- * An offline previous Runner does not "work today", so its sentence keeps
- * only the way forward.
+ * The previous in-cluster Runner: what it does today, then the way forward
+ * — upgrading the chart, which carries the settings over. Each is one key
+ * with both sentences in it, so a locale words them together.
  */
-export const AI_AGENT_LEGACY_RUNNER_OFFLINE_TEXT: string = `The previous in-cluster Runner is offline. ${AI_AGENT_UPGRADE_CHART_TEXT}`;
+export const AI_AGENT_LEGACY_RUNNER_TEXT: string = translationKey(
+  "Works today. Upgrade the Kubernetes agent chart to switch to the new AI agent — your settings carry over.",
+);
+
+// An offline previous Runner does not "work today": only the way forward.
+export const AI_AGENT_LEGACY_RUNNER_OFFLINE_TEXT: string = translationKey(
+  "The previous in-cluster Runner is offline. Upgrade the Kubernetes agent chart to switch to the new AI agent — your settings carry over.",
+);
 
 /*
  * The three ways the agent can be offline (see getAiAgentOfflineReason),
  * each ending where the logs command below it takes over.
  */
-export const AI_AGENT_SIGNED_OFF_TEXT: string =
-  "The AI agent signed off or was reset. It reconnects on its own within a few minutes. If it does not, check its pod:";
+export const AI_AGENT_SIGNED_OFF_TEXT: string = translationKey(
+  "The AI agent signed off or was reset. It reconnects on its own within a few minutes. If it does not, check its pod:",
+);
 
-export const AI_AGENT_GONE_TEXT: string =
-  "The AI agent disconnected and has not come back. Check its pod:";
+export const AI_AGENT_GONE_TEXT: string = translationKey(
+  "The AI agent disconnected and has not come back. Check its pod:",
+);
 
-export const AI_AGENT_SILENT_TEXT: string = `The AI agent has not checked in for over ${KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES} minutes. Check its pod:`;
+// {{minutes}} is the server's alive window.
+export const AI_AGENT_SILENT_TEXT: string = translationKey(
+  "The AI agent has not checked in for over {{minutes}} minutes. Check its pod:",
+);
 
-export const ASK_PROJECT_ADMIN_TEXT: string = "Ask a project owner or admin.";
+export const ASK_PROJECT_ADMIN_TEXT: string = translationKey(
+  "Ask a project owner or admin.",
+);
+
+// A Runner's name where the status has none.
+const UNNAMED_RUNNER: string = translationKey("(unnamed)");
+
+// Where the cluster's investigation and fixes are set, as its status says.
+export function getKubernetesAiSettingsSource(
+  status: KubernetesClusterAiAccessStatus,
+): AgentAiSettingsSource {
+  return readAiSettingsSource(status.aiSettingsSource);
+}
+
+/*
+ * Does the cluster's Kubernetes AI agent set investigation and fixes (its
+ * chart's aiAgent.investigation / aiAgent.fixes, or its defaults)? Then
+ * the page shows them read-only, and changes them with a chart command.
+ */
+export function isKubernetesAiSettingsSetByAgent(
+  status: KubernetesClusterAiAccessStatus,
+): boolean {
+  return isAgentAiSettingsSourceAgent(getKubernetesAiSettingsSource(status));
+}
+
+// The "Needs attention" step for investigation the agent keeps off.
+export const KUBERNETES_AGENT_SET_INVESTIGATION_STEP_TEXT: string =
+  translationKey("Turn on AI investigation on the Kubernetes agent chart.");
+
+/*
+ * The route a cluster's AI access status is read from, with { clusterId }:
+ * the AI agent page, and the Overview's two cards that show it.
+ */
+export const KUBERNETES_AI_ACCESS_STATUS_ROUTE: string =
+  "/kubernetes-cluster/ai-access/status";
 
 /*
  * The status as the route returns it, or null when the body is not one.
@@ -242,7 +304,7 @@ export function getAiAgentStatusPill(
         text: translateTemplate(
           "Connected through Runner {{name}} (advanced)",
           {
-            name: status.runner?.name || translatableTerm("(unnamed)"),
+            name: status.runner?.name || translatableTerm(UNNAMED_RUNNER),
           },
         ),
         tone: "success",
@@ -255,15 +317,35 @@ export function getAiAgentStatusPill(
   }
 }
 
-// "Runner "ops" with credential "prod token"" for the advanced states.
+/*
+ * 'Reached through Runner "ops" with credential "prod token".' for the
+ * advanced states, and that the Runner is offline when it is. Each case is
+ * one key, so a locale words its sentences together.
+ */
 function describeAdvancedBinding(
   status: KubernetesClusterAiAccessStatus,
+  isRunnerOffline: boolean,
 ): string {
-  const runnerName: string = status.runner?.name || "(unnamed)";
+  const values: TemplateValues = {
+    runner: status.runner?.name || translatableTerm(UNNAMED_RUNNER),
+    credential: status.credentialName || "",
+  };
 
-  return status.credentialName
-    ? `Reached through Runner "${runnerName}" with credential "${status.credentialName}".`
-    : `Reached through Runner "${runnerName}".`;
+  if (status.credentialName) {
+    return translateTemplate(
+      isRunnerOffline
+        ? 'Reached through Runner "{{runner}}" with credential "{{credential}}". The Runner is offline.'
+        : 'Reached through Runner "{{runner}}" with credential "{{credential}}".',
+      values,
+    );
+  }
+
+  return translateTemplate(
+    isRunnerOffline
+      ? 'Reached through Runner "{{runner}}". The Runner is offline.'
+      : 'Reached through Runner "{{runner}}".',
+    values,
+  );
 }
 
 /*
@@ -325,20 +407,24 @@ export function getAiAgentStateSentence(
 ): string {
   switch (getAiAgentCardState(status)) {
     case "connected":
-      return "The AI agent is running in this cluster.";
+      return translateTemplate("The AI agent is running in this cluster.");
     case "offline":
-      return OFFLINE_SENTENCES[getAiAgentOfflineReason(status, now)];
+      // Only the silent sentence has a {{minutes}}.
+      return translateTemplate(
+        OFFLINE_SENTENCES[getAiAgentOfflineReason(status, now)],
+        { minutes: KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES },
+      );
     case "not_installed":
-      return AI_AGENT_NOT_INSTALLED_TEXT;
+      return translateTemplate(AI_AGENT_NOT_INSTALLED_TEXT);
     case "legacy_runner":
-      return AI_AGENT_LEGACY_RUNNER_TEXT;
+      return translateTemplate(AI_AGENT_LEGACY_RUNNER_TEXT);
     case "legacy_runner_offline":
-      return AI_AGENT_LEGACY_RUNNER_OFFLINE_TEXT;
+      return translateTemplate(AI_AGENT_LEGACY_RUNNER_OFFLINE_TEXT);
     case "advanced_runner":
-      return describeAdvancedBinding(status);
+      return describeAdvancedBinding(status, false);
     case "advanced_runner_offline":
     default:
-      return `${describeAdvancedBinding(status)} The Runner is offline.`;
+      return describeAdvancedBinding(status, true);
   }
 }
 
@@ -387,25 +473,31 @@ export function getAiAgentPodNamespace(
  * "Read-only", "Can change: web, api" or "Can change: whole cluster"
  * (writeNamespaces empty means cluster-wide; absent means an older Runner
  * that never said where). Null without a posture.
+ *
+ * In `translator`'s language: the reader's, unless it goes into a sentence
+ * as a composedValue() of it.
  */
 export function describeAiAgentWriteAccess(
   posture: KubernetesAgentPosture | undefined,
+  translator: Translator = getGlobalTranslator(),
 ): string | null {
   if (!posture) {
     return null;
   }
 
   if (posture.allowWrites !== true) {
-    return "Read-only";
+    return translator.translateTemplate("Read-only");
   }
 
   if (!posture.writeNamespaces) {
-    return "Can change the cluster";
+    return translator.translateTemplate("Can change the cluster");
   }
 
   return posture.writeNamespaces.length === 0
-    ? "Can change: whole cluster"
-    : `Can change: ${posture.writeNamespaces.join(", ")}`;
+    ? translator.translateTemplate("Can change: whole cluster")
+    : translator.translateTemplate("Can change: {{namespaces}}", {
+        namespaces: posture.writeNamespaces.join(", "),
+      });
 }
 
 // "node operations on/off" for a target that may write; null otherwise.
@@ -417,11 +509,11 @@ export function describeAiAgentNodeOperations(
   }
 
   if (posture.allowNodeOperations === true) {
-    return "node operations on";
+    return translateTemplate("node operations on");
   }
 
   if (posture.allowNodeOperations === false) {
-    return "node operations off";
+    return translateTemplate("node operations off");
   }
 
   return null;
@@ -436,18 +528,27 @@ function withVersionPrefix(version: string): string {
 }
 
 /*
- * The card's meta line, part by part (joined with " · "): when the target
- * was last seen, the agent's version, kubectl's version, and what it may
- * change. A Runner reached with a credential reports no write scope — its
- * credential's RBAC decides — so none is shown for it.
+ * The card's meta line: when the target was last seen, then — when the
+ * target is the cluster's own agent — the agent's version, which the page
+ * draws with AgentVersion (so an outdated agent gets its sign and upgrade
+ * dialog, like every other agent version), then kubectl's version and what
+ * it may change. A Runner reached with a credential reports no write scope
+ * — its credential's RBAC decides — so none is shown for it.
  */
-export function getAiAgentMetaParts(
+export interface AiAgentMeta {
+  lastSeen: string | null;
+  // The agent's version goes here, drawn by the page.
+  showsAgentVersion: boolean;
+  rest: Array<string>;
+}
+
+export function getAiAgentMeta(
   status: KubernetesClusterAiAccessStatus,
-): Array<string> {
+): AiAgentMeta {
   const state: AiAgentCardState = getAiAgentCardState(status);
 
   if (state === "not_installed") {
-    return [];
+    return { lastSeen: null, showsAgentVersion: false, rest: [] };
   }
 
   const agent: KubernetesAiAgentSummary | null = getAiAgentSummary(status);
@@ -463,16 +564,13 @@ export function getAiAgentMetaParts(
 
   const parts: Array<string> = [];
 
-  if (lastAliveAt) {
-    parts.push(
-      `last seen ${OneUptimeDate.fromNow(OneUptimeDate.fromString(lastAliveAt))}`,
-    );
-  }
+  const lastSeen: string | null = lastAliveAt
+    ? translateTemplate("last seen {{time}}", {
+        time: OneUptimeDate.fromNow(OneUptimeDate.fromString(lastAliveAt)),
+      })
+    : null;
 
-  if (isAgentTarget && agent?.agentVersion) {
-    parts.push(`agent ${withVersionPrefix(agent.agentVersion)}`);
-  }
-
+  // A tool and its version: nothing in it to translate.
   if (posture?.kubectlVersion) {
     parts.push(`kubectl ${withVersionPrefix(posture.kubectlVersion)}`);
   }
@@ -490,7 +588,20 @@ export function getAiAgentMetaParts(
     }
   }
 
-  return parts;
+  return {
+    lastSeen,
+    showsAgentVersion: isAgentTarget && agent !== null,
+    rest: parts,
+  };
+}
+
+// The meta line's words, in order, without the agent's version.
+export function getAiAgentMetaParts(
+  status: KubernetesClusterAiAccessStatus,
+): Array<string> {
+  const meta: AiAgentMeta = getAiAgentMeta(status);
+
+  return [...(meta.lastSeen ? [meta.lastSeen] : []), ...meta.rest];
 }
 
 /*
@@ -529,9 +640,10 @@ export function getRefusedRegistrationWarning(
     return null;
   }
 
-  return `Another agent tried to register for this cluster at ${OneUptimeDate.getDateAsFormattedString(
-    refusedAt,
-  )} while this one was online. If the chart is installed twice with the same cluster name, remove one or give it its own clusterName.`;
+  return translateTemplate(
+    "Another agent tried to register for this cluster at {{time}} while this one was online. If the chart is installed twice with the same cluster name, remove one or give it its own clusterName.",
+    { time: OneUptimeDate.getDateAsFormattedString(refusedAt) },
+  );
 }
 
 /*
@@ -558,6 +670,8 @@ export function getAttentionGaps(
  */
 export type AiAgentGapAction =
   | "turn_on_investigation"
+  // The agent keeps investigation off: show the chart command that turns it on.
+  | "set_investigation_in_agent"
   | "open_ai_features"
   | "open_llm_providers"
   | "open_ai_credits"
@@ -570,7 +684,9 @@ export function getAiAgentGapAction(
 ): AiAgentGapAction | null {
   switch (gap.code) {
     case "investigation_disabled":
-      return "turn_on_investigation";
+      return isKubernetesAiSettingsSetByAgent(status)
+        ? "set_investigation_in_agent"
+        : "turn_on_investigation";
     /*
      * project_auto_remediation_disabled and
      * project_ai_command_execution_disabled are retired (Enable AI covers
@@ -628,18 +744,35 @@ export function getAiAgentAttentionTitle(
     ) && status.remediationMode !== KubernetesAiRemediationMode.Disabled;
 
   if (blocksInvestigation && blocksFixes && areFixesOn) {
-    return "OneUptime AI can't investigate this cluster or run fixes on it";
+    return translateTemplate(
+      "OneUptime AI can't investigate this cluster or run fixes on it",
+    );
   }
 
   if (blocksInvestigation) {
-    return "OneUptime AI can't investigate this cluster";
+    return translateTemplate("OneUptime AI can't investigate this cluster");
   }
 
   if (blocksFixes) {
-    return "OneUptime AI can't run fixes on this cluster";
+    return translateTemplate("OneUptime AI can't run fixes on this cluster");
   }
 
-  return "OneUptime AI can't do all of its job on this cluster";
+  return translateTemplate(
+    "OneUptime AI can't do all of its job on this cluster",
+  );
+}
+
+/*
+ * The cluster's agent, as a step names it: "Install the {{agent}} …". Cased
+ * for the middle of a sentence, where French writes "l'agent IA
+ * Kubernetes" and its card title "Agent IA Kubernetes".
+ */
+function getAgentValues(): TemplateValues {
+  return {
+    agent: translatableTerm(KUBERNETES_AI_AGENT_DISPLAY_NAME, {
+      inSentence: true,
+    }),
+  };
 }
 
 // The server's own words, for a gap this page has none for.
@@ -659,7 +792,10 @@ function getRunnerStepText(
   status: KubernetesClusterAiAccessStatus,
 ): string {
   if (isLegacyRunnerTarget(status)) {
-    return `Upgrade the Kubernetes agent chart with the command above. The ${KUBERNETES_AI_AGENT_DISPLAY_NAME} replaces the previous in-cluster Runner.`;
+    return translateTemplate(
+      "Upgrade the Kubernetes agent chart with the command above. The {{agent}} replaces the previous in-cluster Runner.",
+      getAgentValues(),
+    );
   }
 
   if (!isAdvancedRunnerTarget(status)) {
@@ -668,14 +804,24 @@ function getRunnerStepText(
 
   switch (gap.code) {
     case "runner_offline":
-      return "Start the Runner and make sure it can reach your OneUptime URL.";
+      return translateTemplate(
+        "Start the Runner and make sure it can reach your OneUptime URL.",
+      );
     case "runner_ai_commands_disabled":
-      return 'Turn on "Runs AI Remediation Commands" on the Runner.';
+      return translateTemplate(
+        'Turn on "Runs AI Remediation Commands" on the Runner.',
+      );
     case "credential_on_agent_runner":
-      return `With Change below, choose a Runner created in the dashboard, or clear the Runner to use the ${KUBERNETES_AI_AGENT_DISPLAY_NAME}.`;
+      return translateTemplate(
+        "With Change below, choose a Runner created in the dashboard, or clear the Runner to use the {{agent}}.",
+        getAgentValues(),
+      );
     default:
       // credential_missing, and a Runner that did not say which cluster.
-      return `With Change below, choose a Kubernetes credential the Runner may use, or clear the Runner to use the ${KUBERNETES_AI_AGENT_DISPLAY_NAME}.`;
+      return translateTemplate(
+        "With Change below, choose a Kubernetes credential the Runner may use, or clear the Runner to use the {{agent}}.",
+        getAgentValues(),
+      );
   }
 }
 
@@ -692,22 +838,31 @@ export function getAiAgentAttentionStepText(
   status: KubernetesClusterAiAccessStatus,
   now: Date = OneUptimeDate.getCurrentDate(),
 ): string {
-  const agentName: string = KUBERNETES_AI_AGENT_DISPLAY_NAME;
-
   switch (gap.code) {
     case "ai_agent_not_connected":
     case "no_runner_bound":
-      return `Install the ${agentName} with the command above.`;
+      return translateTemplate(
+        "Install the {{agent}} with the command above.",
+        getAgentValues(),
+      );
     case "ai_agent_offline":
       // Right after a sign-off or reset the card says it reconnects itself.
-      return getAiAgentOfflineReason(status, now) === "signed_off"
-        ? `Wait a few minutes for the ${agentName} to reconnect. If it does not, its logs say why (the command is above).`
-        : `Bring the ${agentName} back online. Its logs say why it is offline (the command is above).`;
+      return translateTemplate(
+        getAiAgentOfflineReason(status, now) === "signed_off"
+          ? "Wait a few minutes for the {{agent}} to reconnect. If it does not, its logs say why (the command is above)."
+          : "Bring the {{agent}} back online. Its logs say why it is offline (the command is above).",
+        getAgentValues(),
+      );
     case "runner_missing":
-      return "Reload this page. The Runner this cluster was bound to was just deleted.";
+      return translateTemplate(
+        "Reload this page. The Runner this cluster was bound to was just deleted.",
+      );
     case "runner_cluster_mismatch":
       return getKubernetesAiAccessTargetKind(status.runner) === "ai_agent"
-        ? `Reset the ${agentName}. It reconnects on its own within a few minutes.`
+        ? translateTemplate(
+            "Reset the {{agent}}. It reconnects on its own within a few minutes.",
+            getAgentValues(),
+          )
         : getRunnerStepText(gap, status);
     case "runner_offline":
     case "runner_ai_commands_disabled":
@@ -715,16 +870,26 @@ export function getAiAgentAttentionStepText(
     case "credential_on_agent_runner":
       return getRunnerStepText(gap, status);
     case "investigation_disabled":
-      return "Turn on AI investigation with kubectl.";
+      return translateTemplate(
+        isKubernetesAiSettingsSetByAgent(status)
+          ? KUBERNETES_AGENT_SET_INVESTIGATION_STEP_TEXT
+          : "Turn on AI investigation with kubectl.",
+      );
     case "remediation_write_access_missing":
       // The commands are below for the agent and the previous Runner alike.
       if (shouldShowWriteAccessCommands(status)) {
-        return isLegacyRunnerTarget(status)
-          ? `Upgrade to the ${agentName} with write access, using the commands below.`
-          : `Give the ${agentName} write access with the commands below.`;
+        return translateTemplate(
+          isLegacyRunnerTarget(status)
+            ? "Upgrade to the {{agent}} with write access, using the commands below."
+            : "Give the {{agent}} write access with the commands below.",
+          getAgentValues(),
+        );
       }
       return isAdvancedRunnerTarget(status)
-        ? `Set ${KUBECTL_ALLOW_WRITES_ENV}=true on the Runner's host and restart it.`
+        ? translateTemplate(
+            "Set {{variable}}=true on the Runner's host and restart it.",
+            { variable: KUBECTL_ALLOW_WRITES_ENV },
+          )
         : getServerStepText(gap);
     /*
      * project_auto_remediation_disabled and
@@ -735,15 +900,23 @@ export function getAiAgentAttentionStepText(
     case "project_ai_disabled":
     case "project_auto_remediation_disabled":
     case "project_ai_command_execution_disabled":
-      return "Turn on AI for this project.";
+      return translateTemplate("Turn on AI for this project.");
     case "llm_provider_missing":
-      return "Add an AI provider for this project, or use OneUptime AI credits.";
+      return translateTemplate(
+        "Add an AI provider for this project, or use OneUptime AI credits.",
+      );
+    /*
+     * Not "or turn on auto-recharge": AI credits are recharged after a call
+     * they paid for, so a balance that is used up stays used up until
+     * someone adds credits. Who can is the step's action
+     * (ProjectBalance/ProjectBalanceAccess).
+     */
     case "ai_balance_insufficient":
-      return "Add AI credits to this project, or turn on auto-recharge.";
+      return translateTemplate(ADD_AI_CREDITS_STEP);
     case "last_access_check_failed":
       // Nothing to test before anything can reach the cluster.
       return status.runner
-        ? "Test the connection again."
+        ? translateTemplate("Test the connection again.")
         : getServerStepText(gap);
     default:
       return getServerStepText(gap);
@@ -825,12 +998,25 @@ export function getAutomaticInvestigation(
   return settings;
 }
 
+/*
+ * The project's opt-ins in one line, above the footer's "Turn on": one
+ * whole sentence, each opt-in's state translated along with it.
+ */
+export const AUTOMATIC_INVESTIGATION_LINE: string = translationKey(
+  "Automatic investigation for new incidents in this project: {{incidents}} · alerts: {{alerts}}",
+);
+
+const OPT_IN_ON: string = translationKey("On");
+
+const OPT_IN_OFF: string = translationKey("Off");
+
 export function getAutomaticInvestigationLine(
   settings: KubernetesAiAutomaticInvestigationSettings,
 ): string {
-  return `Automatic investigation for new incidents in this project: ${
-    settings.incidents ? "On" : "Off"
-  } · alerts: ${settings.alerts ? "On" : "Off"}`;
+  return translateTemplate(AUTOMATIC_INVESTIGATION_LINE, {
+    incidents: translatableTerm(settings.incidents ? OPT_IN_ON : OPT_IN_OFF),
+    alerts: translatableTerm(settings.alerts ? OPT_IN_ON : OPT_IN_OFF),
+  });
 }
 
 // The flags a one-click "Turn on" writes: only the ones that are off.
@@ -848,19 +1034,44 @@ export function getAutomaticInvestigationTurnOnChanges(
   };
 }
 
-// What the confirm dialog says before turning them on.
+/*
+ * What the confirm dialog says before turning them on: one whole sentence
+ * for each set of opt-ins it turns on, so a locale words each one its own
+ * way and puts the project's name where its grammar wants it.
+ */
+export const AUTOMATIC_INVESTIGATION_CONFIRMATIONS: {
+  incidentsAndAlerts: string;
+  incidents: string;
+  alerts: string;
+} = {
+  incidentsAndAlerts: translationKey(
+    "This applies to every new incident and alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.",
+  ),
+  incidents: translationKey(
+    "This applies to every new incident in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.",
+  ),
+  alerts: translationKey(
+    "This applies to every new alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.",
+  ),
+};
+
+// The project in the confirmation when the page does not know its name.
+const UNNAMED_PROJECT: string = translationKey("this project");
+
 export function getAutomaticInvestigationConfirmation(data: {
   settings: KubernetesAiAutomaticInvestigationSettings;
-  projectName: string;
+  projectName?: string | undefined;
 }): string {
-  const what: string =
+  const template: string =
     !data.settings.incidents && !data.settings.alerts
-      ? "every new incident and alert"
+      ? AUTOMATIC_INVESTIGATION_CONFIRMATIONS.incidentsAndAlerts
       : !data.settings.incidents
-        ? "every new incident"
-        : "every new alert";
+        ? AUTOMATIC_INVESTIGATION_CONFIRMATIONS.incidents
+        : AUTOMATIC_INVESTIGATION_CONFIRMATIONS.alerts;
 
-  return `This applies to ${what} in ${data.projectName}, not just this cluster. Limits live under Incidents → Settings → AI.`;
+  return translateTemplate(template, {
+    project: data.projectName || translatableTerm(UNNAMED_PROJECT),
+  });
 }
 
 /*

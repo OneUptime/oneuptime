@@ -35,6 +35,8 @@ import { DataSource } from "typeorm";
  *     merge, sort and cut the way one query would have;
  *   - the counts include only the project's incidents visible on status
  *     pages;
+ *   - a private incident is shown, counted and reached on no page, with
+ *     Visible on Status Page on or not (StatusPageVisibility);
  *   - resolvePagesForIncidents reads the scope an incident has in the
  *     database, and the status pages' onlyShowScopedIncidents.
  *
@@ -51,6 +53,8 @@ const TABLES: Array<string> = [
   "Project",
   "ProjectSMTPConfig",
   "ProjectCallSMSConfig",
+  // A page's logo file is read to decide whether its emails show the logo.
+  "File",
   "StatusPage",
   "StatusPageGroup",
   "Monitor",
@@ -133,6 +137,9 @@ describePostgres("IncidentStatusPageScope against a migrated Postgres", () => {
   let hiddenUnscoped: ObjectID;
   let otherProjectIncident: ObjectID;
   let scopedToScopedOnly: ObjectID;
+  // Private, with Visible on Status Page on: shown nowhere.
+  let privateUnscoped: ObjectID;
+  let privateScopedToAAndScopedOnly: ObjectID;
 
   async function seedProject(id: ObjectID): Promise<void> {
     await database.query(
@@ -201,14 +208,15 @@ describePostgres("IncidentStatusPageScope against a migrated Postgres", () => {
     declaredAt: string;
     scopedTo?: Array<ObjectID>;
     isVisibleOnStatusPage?: boolean;
+    isPrivate?: boolean;
     project?: ObjectID;
   }): Promise<ObjectID> {
     const id: ObjectID = ObjectID.generate();
     await database.query(
       `INSERT INTO "${schema}"."Incident"
          ("_id", "projectId", "title", "slug", "currentIncidentStateId", "incidentSeverityId",
-          "version", "declaredAt", "isVisibleOnStatusPage", "isScopedToStatusPages")
-         VALUES ($1, $2, $3, $4, $5, $6, 1, $7, $8, $9)`,
+          "version", "declaredAt", "isVisibleOnStatusPage", "isScopedToStatusPages", "isPrivate")
+         VALUES ($1, $2, $3, $4, $5, $6, 1, $7, $8, $9, $10)`,
       [
         id.toString(),
         (data.project || projectId).toString(),
@@ -219,6 +227,7 @@ describePostgres("IncidentStatusPageScope against a migrated Postgres", () => {
         data.declaredAt,
         data.isVisibleOnStatusPage !== false,
         data.scopedTo !== undefined,
+        data.isPrivate === true,
       ],
     );
     await database.query(
@@ -313,6 +322,18 @@ describePostgres("IncidentStatusPageScope against a migrated Postgres", () => {
       declaredAt: "2026-05-08T00:00:00Z",
       scopedTo: [pageScopedOnly, pageB],
     });
+    // The newest of all: were one shown, it would be first everywhere.
+    privateUnscoped = await seedIncident({
+      monitorId: sharedMonitor,
+      declaredAt: "2026-05-09T00:00:00Z",
+      isPrivate: true,
+    });
+    privateScopedToAAndScopedOnly = await seedIncident({
+      monitorId: sharedMonitor,
+      declaredAt: "2026-05-10T00:00:00Z",
+      scopedTo: [pageA, pageScopedOnly],
+      isPrivate: true,
+    });
   });
 
   // The monitors each page lists, as the status page API reads them.
@@ -376,6 +397,44 @@ describePostgres("IncidentStatusPageScope against a migrated Postgres", () => {
     }
   });
 
+  test("a private incident is shown on no page, scoped to it or not, even with Visible on Status Page on", async () => {
+    for (const page of [
+      statusPage(pageA, false),
+      statusPage(pageB, false),
+      statusPage(pageScopedOnly, true),
+    ]) {
+      const shown: Array<string> = await shownOn(page);
+
+      expect(shown).not.toContain(privateUnscoped.toString());
+      expect(shown).not.toContain(privateScopedToAAndScopedOnly.toString());
+    }
+  });
+
+  test("read with hidden incidents too, a page gets its hidden ones but never a private one", async () => {
+    const withHidden: Array<string> = ids(
+      await IncidentStatusPageScope.findIncidentsForStatusPage({
+        statusPage: statusPage(pageA, false),
+        query: {
+          monitors: monitorsOn(statusPage(pageA, false)) as never,
+          projectId: projectId,
+        },
+        select: { _id: true },
+        sort: { declaredAt: SortOrder.Descending },
+        limit: 50,
+        skip: 0,
+        props: { isRoot: true },
+        includeHiddenIncidents: true,
+      }),
+    );
+
+    expect(withHidden).toEqual([
+      hiddenUnscoped.toString(),
+      unscopedOther.toString(),
+      scopedToA.toString(),
+      unscopedShared.toString(),
+    ]);
+  });
+
   test("the limit and skip cut the merged list, not each half", async () => {
     expect(await shownOn(statusPage(pageA, false), { limit: 2 })).toEqual([
       unscopedOther.toString(),
@@ -433,6 +492,18 @@ describePostgres("IncidentStatusPageScope against a migrated Postgres", () => {
     expect(await find(statusPage(pageA, false), scopedToB)).toBeNull();
     expect(
       await find(statusPage(pageScopedOnly, true), unscopedShared),
+    ).toBeNull();
+
+    // A private incident, on a page it is in the scope of or not.
+    expect(await find(statusPage(pageA, false), privateUnscoped)).toBeNull();
+    expect(
+      await find(statusPage(pageA, false), privateScopedToAAndScopedOnly),
+    ).toBeNull();
+    expect(
+      await find(
+        statusPage(pageScopedOnly, true),
+        privateScopedToAAndScopedOnly,
+      ),
     ).toBeNull();
   });
 
@@ -494,6 +565,20 @@ describePostgres("IncidentStatusPageScope against a migrated Postgres", () => {
         incidents: [incidentOn(scopedToDeletedPage, sharedMonitor)],
       });
     expect(nowhere.statusPages).toEqual([]);
+
+    // A private incident reaches no page, scoped or not.
+    for (const privateIncident of [
+      privateUnscoped,
+      privateScopedToAAndScopedOnly,
+    ]) {
+      expect(
+        (
+          await IncidentStatusPageScope.resolvePagesForIncidents({
+            incidents: [incidentOn(privateIncident, sharedMonitor)],
+          })
+        ).statusPages,
+      ).toEqual([]);
+    }
 
     // An episode of the two: the union.
     const episode: ResolvedIncidentStatusPages =

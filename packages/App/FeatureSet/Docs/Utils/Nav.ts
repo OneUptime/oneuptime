@@ -103,6 +103,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/configuration/ip-addresses",
       },
       {
+        title: "Label and Owner Rules",
+        url: "/docs/configuration/label-and-owner-rules",
+      },
+      {
         title: "Import and Export Label Rules",
         url: "/docs/configuration/label-rule-import-export",
       },
@@ -233,6 +237,10 @@ const DocsNav: NavGroup[] = [
     title: "Monitor",
     links: [
       {
+        title: "Creating a Monitor",
+        url: "/docs/monitor/create-monitor",
+      },
+      {
         title: "Monitor Templates",
         url: "/docs/monitor/monitor-templates",
       },
@@ -343,6 +351,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "Ceph Monitor",
         url: "/docs/monitor/ceph-monitor",
+      },
+      {
+        title: "Storage Array Monitor",
+        url: "/docs/monitor/storage-array-monitor",
       },
       {
         title: "IoT Device Monitor",
@@ -845,6 +857,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/telemetry/ceph",
       },
       {
+        title: "Storage Array Agent",
+        url: "/docs/telemetry/storage-arrays",
+      },
+      {
         title: "Docker Swarm Agent",
         url: "/docs/telemetry/docker-swarm",
       },
@@ -906,6 +922,16 @@ const DocsNav: NavGroup[] = [
       {
         title: "Cloud Troubleshooting",
         url: "/docs/telemetry/cloud-troubleshooting",
+      },
+      /*
+       * The IaaS and PaaS resources discovered from Azure Monitor,
+       * CloudWatch and Cloud Monitoring - the Cloud product's other list,
+       * after the environments' pages. Its URL contains no other link's
+       * path and no other link contains it.
+       */
+      {
+        title: "Cloud Resources (IaaS & PaaS)",
+        url: "/docs/telemetry/cloud-resources",
       },
     ],
   },

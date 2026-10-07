@@ -26,6 +26,12 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   read: PlanType.Growth,
   update: PlanType.Growth,
   delete: PlanType.Growth,
+  /*
+   * Kept after a downgrade, but stops authenticating until the project is
+   * back on the plan (Types/Billing/PlanCutoffCredentials): readable on
+   * every plan, to see what stopped and delete it.
+   */
+  readableBelowPlan: true,
 })
 @EnableDocumentation()
 @TenantColumn("projectId")

@@ -1,0 +1,1649 @@
+import Incident from "../../../Models/DatabaseModels/Incident";
+import { IncidentFeedEventType } from "../../../Models/DatabaseModels/IncidentFeed";
+import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
+import CustomFieldMappingService from "../../../Server/Services/CustomFieldMappingService";
+import IncidentFeedService from "../../../Server/Services/IncidentFeedService";
+import IncidentMeasurementValueService from "../../../Server/Services/IncidentMeasurementValueService";
+import IncidentService from "../../../Server/Services/IncidentService";
+import IncidentSeverityService from "../../../Server/Services/IncidentSeverityService";
+import IncidentSlaService from "../../../Server/Services/IncidentSlaService";
+import IncidentStateTimelineService from "../../../Server/Services/IncidentStateTimelineService";
+import MutableMetricService from "../../../Server/Services/MutableMetricService";
+import { OnUpdate } from "../../../Server/Types/Database/Hooks";
+import UpdateBy from "../../../Server/Types/Database/UpdateBy";
+import PublishedImages from "../../../Server/Utils/File/PublishedImages";
+import * as InlineImageAccessTokenSync from "../../../Server/Utils/InlineImageAccessTokenSync";
+import TelemetryUtil from "../../../Server/Utils/Telemetry/Telemetry";
+import URL from "../../../Types/API/URL";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import ObjectID from "../../../Types/ObjectID";
+import Permission, { UserPermission } from "../../../Types/Permission";
+import IncidentPostmortemPublication from "../../../Types/StatusPage/IncidentPostmortemPublication";
+import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import getJestMockFunction, { MockFunction } from "../../MockType";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+
+/*
+ * SUBSCRIBERS HEAR ABOUT A POSTMORTEM ONCE, WHEN IT IS PUBLISHED.
+ *
+ * Found in #4422: any incident update that carried postmortemNote - changed
+ * or not - put the postmortem's subscriber notification back to Pending and
+ * added a "Postmortem Note updated" feed item (posted to Slack and Microsoft
+ * Teams too). The Edit Postmortem form sends the note with every save, so
+ * every save of a published postmortem emailed, texted and messaged every
+ * subscriber of its status pages again; an API client or a workflow writing
+ * the whole incident back did the same.
+ *
+ * What holds now: subscribers are told when the postmortem is published -
+ * the first time it is on the status page, meaning Publish on Status Page is
+ * on and the note says something (the status page shows nothing else). A
+ * save that leaves the postmortem as it was does nothing. Editing a
+ * published postmortem changes what the status page shows and is recorded
+ * in the feed, once, but tells nobody. Taking it off the status page and
+ * publishing it again tells them again: they saw it go.
+ *
+ * These run the real onBeforeUpdate and hand what it carries forward to the
+ * real onUpdateSuccess; only the database and the side effects' own
+ * services are stubbed.
+ */
+
+const PROJECT_ID: ObjectID = new ObjectID(
+  "0193c0de-9057-4aaa-8bbb-000000000001",
+);
+const USER_ID: ObjectID = new ObjectID("0193c0de-9057-4aaa-8bbb-000000000002");
+const RECORD_ID: string = "0193c0de-9057-4aaa-8bbb-0000000000a1";
+const SECOND_RECORD_ID: string = "0193c0de-9057-4aaa-8bbb-0000000000a2";
+
+const NOTE: string =
+  "## What happened\n\nCheckout returned errors for 12 minutes after a bad deploy.";
+const EDITED_NOTE: string = `${NOTE}\n\n## Follow-ups\n\n- Add a canary stage to the checkout deploy.`;
+const PUBLISHED_AT: Date = new Date("2026-10-05T09:30:00.000Z");
+
+type OnBeforeUpdate = (updateBy: UpdateBy<never>) => Promise<OnUpdate<never>>;
+type OnUpdateSuccess = (
+  onUpdate: OnUpdate<never>,
+  updatedItemIds: Array<ObjectID>,
+) => Promise<OnUpdate<never>>;
+
+interface Hooks {
+  onBeforeUpdate: OnBeforeUpdate;
+  onUpdateSuccess: OnUpdateSuccess;
+}
+
+// The incident's postmortem as stored.
+interface StoredPostmortem {
+  showPostmortemOnStatusPage: boolean;
+  postmortemNote: string | null;
+  status: StatusPageSubscriberNotificationStatus;
+  notifySubscribersOnPostmortemPublished?: boolean;
+  // Why the notification stands where it does.
+  message?: string | null;
+  // The incident's Visible on Status Page and Private Incident.
+  isVisibleOnStatusPage?: boolean | null;
+  isPrivate?: boolean;
+}
+
+// Someone who may edit incidents, as the API sees them.
+function editor(): DatabaseCommonInteractionProps {
+  return {
+    userId: USER_ID,
+    tenantId: PROJECT_ID,
+    userTenantAccessPermission: {
+      [PROJECT_ID.toString()]: {
+        _type: "UserTenantAccessPermission",
+        projectId: PROJECT_ID,
+        permissions: [Permission.ProjectAdmin].map(
+          (permission: Permission): UserPermission => {
+            return {
+              _type: "UserPermission",
+              permission: permission,
+              labelIds: [],
+              isBlockPermission: false,
+            };
+          },
+        ),
+      },
+    },
+  };
+}
+
+/*
+ * What the Edit Postmortem form sends on Save Changes: every field it has,
+ * whatever changed (ModelForm submits each of its fields, hidden ones too).
+ */
+function editPostmortemFormSave(values: {
+  note: string | null;
+  publish: boolean;
+  notify?: boolean;
+}): Record<string, unknown> {
+  return {
+    postmortemNote: values.note,
+    postmortemAttachments: [],
+    showPostmortemOnStatusPage: values.publish,
+    notifySubscribersOnPostmortemPublished: values.notify ?? true,
+    postmortemPostedAt: values.publish ? PUBLISHED_AT : null,
+  };
+}
+
+let stored: Record<string, StoredPostmortem> = {};
+
+let incidentReads: MockFunction;
+let updateOneById: MockFunction;
+let compareAndSet: MockFunction;
+let feed: MockFunction;
+
+function storedIncident(id: string): Incident {
+  const incident: Incident = new Incident();
+  incident._id = id;
+  incident.projectId = PROJECT_ID;
+  incident.incidentNumber = 42;
+  incident.incidentNumberWithPrefix = "INC-42";
+
+  const row: StoredPostmortem | undefined = stored[id];
+
+  if (row) {
+    incident.showPostmortemOnStatusPage = row.showPostmortemOnStatusPage;
+    incident.postmortemNote = row.postmortemNote as string;
+    incident.notifySubscribersOnPostmortemPublished =
+      row.notifySubscribersOnPostmortemPublished ?? true;
+    incident.subscriberNotificationStatusOnPostmortemPublished = row.status;
+
+    if (row.message !== undefined) {
+      incident.subscriberNotificationStatusMessageOnPostmortemPublished =
+        row.message as string;
+    }
+
+    if (row.isVisibleOnStatusPage !== undefined) {
+      incident.isVisibleOnStatusPage = row.isVisibleOnStatusPage as boolean;
+    }
+
+    if (row.isPrivate !== undefined) {
+      incident.isPrivate = row.isPrivate;
+    }
+  }
+
+  return incident;
+}
+
+beforeEach(() => {
+  stored = {
+    [RECORD_ID]: {
+      showPostmortemOnStatusPage: false,
+      postmortemNote: NOTE,
+      // Settled when the incident was declared: nothing was on the page.
+      status: StatusPageSubscriberNotificationStatus.Skipped,
+    },
+  };
+
+  // Every record named here is the project's own.
+  stubProjectDirectory({});
+
+  jest
+    .spyOn(CustomFieldMappingService, "applyMappingsToUpdate")
+    .mockResolvedValue(undefined as never);
+  jest
+    .spyOn(CustomFieldMappingService, "restampAfterMultiRowUpdate")
+    .mockReturnValue(undefined as never);
+
+  incidentReads = getJestMockFunction();
+  incidentReads.mockImplementation(async (): Promise<Array<Incident>> => {
+    return Object.keys(stored).map(storedIncident);
+  });
+  jest
+    .spyOn(IncidentService, "findBy")
+    .mockImplementation(incidentReads as never);
+
+  jest
+    .spyOn(IncidentService, "findOneById")
+    .mockImplementation((async (findOneById: {
+      id: ObjectID;
+    }): Promise<Incident> => {
+      return storedIncident(findOneById.id.toString());
+    }) as never);
+
+  jest
+    .spyOn(IncidentService, "getIncidentLinkInDashboard")
+    .mockResolvedValue(URL.fromString("https://oneuptime.test/i") as never);
+
+  updateOneById = getJestMockFunction();
+  updateOneById.mockResolvedValue(undefined as never);
+  jest
+    .spyOn(IncidentService, "updateOneById")
+    .mockImplementation(updateOneById as never);
+
+  compareAndSet = getJestMockFunction();
+  compareAndSet.mockResolvedValue(true as never);
+  jest
+    .spyOn(IncidentService, "compareAndSetColumnsByIdWithoutHooks")
+    .mockImplementation(compareAndSet as never);
+
+  feed = getJestMockFunction();
+  feed.mockResolvedValue(undefined as never);
+  jest
+    .spyOn(IncidentFeedService, "createIncidentFeedItem")
+    .mockImplementation(feed as never);
+
+  // Published At moves the incident's metrics; none of that is looked at here.
+  jest
+    .spyOn(IncidentService, "refreshIncidentMetrics")
+    .mockResolvedValue(undefined as never);
+  jest
+    .spyOn(IncidentMeasurementValueService, "recomputeForIncident")
+    .mockResolvedValue(undefined as never);
+  jest
+    .spyOn(IncidentStateTimelineService, "getResolvedStateIdForProject")
+    .mockResolvedValue(ObjectID.generate() as never);
+  jest
+    .spyOn(IncidentStateTimelineService, "findOneBy")
+    .mockResolvedValue(null as never);
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
+async function runUpdate(
+  data: Record<string, unknown>,
+  options: {
+    query?: Record<string, unknown>;
+    updatedIds?: Array<string>;
+    props?: DatabaseCommonInteractionProps;
+    // What happens between the hooks' read and the write: a job, say.
+    meanwhile?: (onUpdate: OnUpdate<never>) => void;
+  } = {},
+): Promise<OnUpdate<never>> {
+  const hooks: Hooks = IncidentService as unknown as Hooks;
+
+  const onUpdate: OnUpdate<never> = await hooks.onBeforeUpdate({
+    query: (options.query || { _id: RECORD_ID }) as never,
+    data: data as never,
+    props: options.props || editor(),
+    limit: 1,
+    skip: 0,
+  });
+
+  options.meanwhile?.(onUpdate);
+
+  return await hooks.onUpdateSuccess(
+    onUpdate,
+    (options.updatedIds || [RECORD_ID]).map((id: string): ObjectID => {
+      return new ObjectID(id);
+    }),
+  );
+}
+
+interface QueueWrite {
+  id: string;
+  data: Record<string, unknown>;
+  expectedData?: Record<string, unknown> | undefined;
+}
+
+/*
+ * Every write that puts the postmortem notification back to Pending - what
+ * the send job picks up - however it is made.
+ */
+function postmortemNotificationsQueued(): Array<QueueWrite> {
+  const writes: Array<QueueWrite> = [];
+
+  for (const call of [
+    ...updateOneById.mock.calls,
+    ...compareAndSet.mock.calls,
+  ]) {
+    const input: {
+      id: ObjectID;
+      data: Record<string, unknown>;
+      expectedData?: Record<string, unknown>;
+    } = call[0] as {
+      id: ObjectID;
+      data: Record<string, unknown>;
+      expectedData?: Record<string, unknown>;
+    };
+
+    if (
+      input.data["subscriberNotificationStatusOnPostmortemPublished"] ===
+      StatusPageSubscriberNotificationStatus.Pending
+    ) {
+      writes.push({
+        id: input.id.toString(),
+        data: input.data,
+        expectedData: input.expectedData,
+      });
+    }
+  }
+
+  return writes;
+}
+
+function postmortemFeedItems(): Array<string> {
+  return feed.mock.calls
+    .filter((call: Array<unknown>): boolean => {
+      return (
+        (call[0] as { incidentFeedEventType: IncidentFeedEventType })
+          .incidentFeedEventType === IncidentFeedEventType.PostmortemNote
+      );
+    })
+    .map((call: Array<unknown>): string => {
+      return (call[0] as { feedInfoInMarkdown: string }).feedInfoInMarkdown;
+    });
+}
+
+describe("the Edit Postmortem form, saved again and again, tells subscribers once", () => {
+  test("publishing the postmortem queues its notification once", async () => {
+    await runUpdate(editPostmortemFormSave({ note: NOTE, publish: true }));
+
+    expect(postmortemNotificationsQueued()).toHaveLength(1);
+    expect(postmortemNotificationsQueued()[0]!.id).toBe(RECORD_ID);
+  });
+
+  test("saving the published postmortem again, unchanged, queues nothing and records nothing", async () => {
+    stored[RECORD_ID] = {
+      showPostmortemOnStatusPage: true,
+      postmortemNote: NOTE,
+      status: StatusPageSubscriberNotificationStatus.Success,
+    };
+
+    await runUpdate(editPostmortemFormSave({ note: NOTE, publish: true }));
+
+    expect(postmortemNotificationsQueued()).toEqual([]);
+    expect(postmortemFeedItems()).toEqual([]);
+  });
+
+  test("editing the published postmortem records the new note once and tells nobody", async () => {
+    stored[RECORD_ID] = {
+      showPostmortemOnStatusPage: true,
+      postmortemNote: NOTE,
+      status: StatusPageSubscriberNotificationStatus.Success,
+    };
+
+    await runUpdate(
+      editPostmortemFormSave({ note: EDITED_NOTE, publish: true }),
+    );
+
+    expect(postmortemNotificationsQueued()).toEqual([]);
+    expect(postmortemFeedItems()).toHaveLength(1);
+    expect(postmortemFeedItems()[0]).toContain("Postmortem Note updated");
+    expect(postmortemFeedItems()[0]).toContain("Add a canary stage");
+  });
+
+  test("taking the postmortem off the status page tells nobody", async () => {
+    stored[RECORD_ID] = {
+      showPostmortemOnStatusPage: true,
+      postmortemNote: NOTE,
+      status: StatusPageSubscriberNotificationStatus.Success,
+    };
+
+    await runUpdate(editPostmortemFormSave({ note: NOTE, publish: false }));
+
+    expect(postmortemNotificationsQueued()).toEqual([]);
+    expect(postmortemFeedItems()).toEqual([]);
+  });
+
+  test("publishing it again after it was taken off tells subscribers again: they saw it go", async () => {
+    stored[RECORD_ID] = {
+      showPostmortemOnStatusPage: false,
+      postmortemNote: NOTE,
+      // Told when it was first published.
+      status: StatusPageSubscriberNotificationStatus.Success,
+    };
+
+    await runUpdate(editPostmortemFormSave({ note: NOTE, publish: true }));
+
+    expect(postmortemNotificationsQueued()).toHaveLength(1);
+  });
+
+  test("a day of saves - write, publish, save, fix a typo, save - queues it once", async () => {
+    // What the database and the send job do between the saves.
+    const save: (values: {
+      note: string | null;
+      publish: boolean;
+    }) => Promise<void> = async (values: {
+      note: string | null;
+      publish: boolean;
+    }): Promise<void> => {
+      const queuedBefore: number = postmortemNotificationsQueued().length;
+
+      await runUpdate(editPostmortemFormSave(values));
+
+      stored[RECORD_ID] = {
+        ...stored[RECORD_ID]!,
+        showPostmortemOnStatusPage: values.publish,
+        postmortemNote: values.note,
+      };
+
+      if (postmortemNotificationsQueued().length > queuedBefore) {
+        // The job ran and told everyone.
+        stored[RECORD_ID]!.status =
+          StatusPageSubscriberNotificationStatus.Success;
+      }
+    };
+
+    stored[RECORD_ID] = {
+      showPostmortemOnStatusPage: false,
+      postmortemNote: null,
+      status: StatusPageSubscriberNotificationStatus.Skipped,
+    };
+
+    await save({ note: NOTE, publish: false });
+    await save({ note: NOTE, publish: true });
+    await save({ note: NOTE, publish: true });
+    await save({ note: EDITED_NOTE, publish: true });
+    await save({ note: EDITED_NOTE, publish: true });
+
+    expect(postmortemNotificationsQueued()).toHaveLength(1);
+    // The note written, then the typo fix: each change once, nothing else.
+    expect(postmortemFeedItems()).toHaveLength(2);
+  });
+
+  test("the queued notification says why it is waiting, and is written only while it stands where it was read", async () => {
+    await runUpdate(editPostmortemFormSave({ note: NOTE, publish: true }));
+
+    expect(postmortemNotificationsQueued()).toEqual([
+      {
+        id: RECORD_ID,
+        data: {
+          subscriberNotificationStatusOnPostmortemPublished:
+            StatusPageSubscriberNotificationStatus.Pending,
+          subscriberNotificationStatusMessageOnPostmortemPublished:
+            IncidentPostmortemPublication.queuedMessage,
+        },
+        expectedData: {
+          subscriberNotificationStatusOnPostmortemPublished:
+            StatusPageSubscriberNotificationStatus.Skipped,
+        },
+      },
+    ]);
+
+    /*
+     * A hook-free write of those two columns, like the job's own claim: no
+     * second update of the incident, no workflow run, no audit entry.
+     */
+    expect(updateOneById).not.toHaveBeenCalled();
+  });
+
+  test("a notification someone else queued, or a job claimed, since the read is left to them", async () => {
+    // The compare-and-set finds the status moved on.
+    compareAndSet.mockResolvedValue(false as never);
+
+    await expect(
+      runUpdate(editPostmortemFormSave({ note: NOTE, publish: true })),
+    ).resolves.toBeDefined();
+
+    expect(compareAndSet).toHaveBeenCalledTimes(1);
+    // Nothing writes it a second way.
+    expect(updateOneById).not.toHaveBeenCalled();
+  });
+});
+
+describe("what counts as published: the status page shows the postmortem", () => {
+  test("switching publishing on with no note tells nobody, and writing the note then tells them once", async () => {
+    stored[RECORD_ID] = {
+      showPostmortemOnStatusPage: false,
+      postmortemNote: null,
+      status: StatusPageSubscriberNotificationStatus.Skipped,
+    };
+
+    await runUpdate(editPostmortemFormSave({ note: null, publish: true }));
+
+    expect(postmortemNotificationsQueued()).toEqual([]);
+
+    stored[RECORD_ID] = {
+      showPostmortemOnStatusPage: true,
+      postmortemNote: null,
+      status: StatusPageSubscriberNotificationStatus.Skipped,
+    };
+
+    await runUpdate(editPostmortemFormSave({ note: NOTE, publish: true }));
+
+    expect(postmortemNotificationsQueued()).toHaveLength(1);
+    expect(postmortemFeedItems()).toHaveLength(1);
+  });
+
+  test("writing the note and publishing it in one save records the note and tells subscribers, once each", async () => {
+    stored[RECORD_ID] = {
+      showPostmortemOnStatusPage: false,
+      postmortemNote: null,
+      status: StatusPageSubscriberNotificationStatus.Skipped,
+    };
+
+    await runUpdate(editPostmortemFormSave({ note: NOTE, publish: true }));
+
+    expect(postmortemNotificationsQueued()).toHaveLength(1);
+    expect(postmortemFeedItems()).toHaveLength(1);
+    expect(postmortemFeedItems()[0]).toContain("Postmortem Note updated");
+  });
+
+  test("emptying a published postmortem's note records it as cleared and tells nobody; writing one again tells them again", async () => {
+    stored[RECORD_ID] = {
+      showPostmortemOnStatusPage: true,
+      postmortemNote: NOTE,
+      status: StatusPageSubscriberNotificationStatus.Success,
+    };
+
+    await runUpdate(editPostmortemFormSave({ note: "", publish: true }));
+
+    expect(postmortemNotificationsQueued()).toEqual([]);
+    expect(postmortemFeedItems()).toHaveLength(1);
+    expect(postmortemFeedItems()[0]).toContain("Postmortem Note cleared");
+
+    // The status page stopped showing it; the note coming back is news.
+    stored[RECORD_ID] = {
+      showPostmortemOnStatusPage: true,
+      postmortemNote: "",
+      status: StatusPageSubscriberNotificationStatus.Success,
+    };
+
+    await runUpdate(editPostmortemFormSave({ note: NOTE, publish: true }));
+
+    expect(postmortemNotificationsQueued()).toHaveLength(1);
+  });
+
+  test.each([
+    ["whitespace around it", `\n\n${NOTE}   \n`],
+    ["Windows line endings", NOTE.replace(/\n/g, "\r\n")],
+  ])(
+    "the published note saved again with %s is the same note: nothing is recorded or sent",
+    async (_label: string, note: string) => {
+      stored[RECORD_ID] = {
+        showPostmortemOnStatusPage: true,
+        postmortemNote: NOTE,
+        status: StatusPageSubscriberNotificationStatus.Success,
+      };
+
+      await runUpdate(editPostmortemFormSave({ note: note, publish: true }));
+
+      expect(postmortemNotificationsQueued()).toEqual([]);
+      expect(postmortemFeedItems()).toEqual([]);
+    },
+  );
+
+  test("no note saved as an empty one is no change", async () => {
+    stored[RECORD_ID] = {
+      showPostmortemOnStatusPage: false,
+      postmortemNote: null,
+      status: StatusPageSubscriberNotificationStatus.Skipped,
+    };
+
+    await runUpdate(editPostmortemFormSave({ note: "", publish: false }));
+
+    expect(postmortemNotificationsQueued()).toEqual([]);
+    expect(postmortemFeedItems()).toEqual([]);
+  });
+
+  test("a note written while publishing is off is recorded, and tells nobody until it is published", async () => {
+    stored[RECORD_ID] = {
+      showPostmortemOnStatusPage: false,
+      postmortemNote: null,
+      status: StatusPageSubscriberNotificationStatus.Skipped,
+    };
+
+    await runUpdate(editPostmortemFormSave({ note: NOTE, publish: false }));
+
+    expect(postmortemNotificationsQueued()).toEqual([]);
+    expect(postmortemFeedItems()).toHaveLength(1);
+  });
+});
+
+describe("updates that are not the Edit Postmortem form", () => {
+  test("an API client writing the whole incident back, postmortem unchanged, sets off nothing", async () => {
+    stored[RECORD_ID] = {
+      showPostmortemOnStatusPage: true,
+      postmortemNote: NOTE,
+      status: StatusPageSubscriberNotificationStatus.Success,
+    };
+
+    await runUpdate({
+      title: "Checkout errors",
+      postmortemNote: NOTE,
+      showPostmortemOnStatusPage: true,
+      notifySubscribersOnPostmortemPublished: true,
+      postmortemPostedAt: PUBLISHED_AT,
+    });
+
+    expect(postmortemNotificationsQueued()).toEqual([]);
+    expect(postmortemFeedItems()).toEqual([]);
+  });
+
+  test("the API or Terraform switching publishing on over a written note tells subscribers once", async () => {
+    await runUpdate({ showPostmortemOnStatusPage: true });
+
+    expect(postmortemNotificationsQueued()).toHaveLength(1);
+    // The note did not change, so the feed has nothing to record.
+    expect(postmortemFeedItems()).toEqual([]);
+  });
+
+  test("the API or Terraform changing the note of a published postmortem records it and tells nobody", async () => {
+    stored[RECORD_ID] = {
+      showPostmortemOnStatusPage: true,
+      postmortemNote: NOTE,
+      status: StatusPageSubscriberNotificationStatus.Success,
+    };
+
+    await runUpdate({ postmortemNote: EDITED_NOTE });
+
+    expect(postmortemNotificationsQueued()).toEqual([]);
+    expect(postmortemFeedItems()).toHaveLength(1);
+  });
+
+  test("an AI draft written into a postmortem switched on with no note is the moment it is published", async () => {
+    stored[RECORD_ID] = {
+      showPostmortemOnStatusPage: true,
+      postmortemNote: null,
+      status: StatusPageSubscriberNotificationStatus.Skipped,
+    };
+
+    // As IncidentPostmortemRunner writes it, as root.
+    await runUpdate({ postmortemNote: NOTE }, { props: { isRoot: true } });
+
+    expect(postmortemNotificationsQueued()).toHaveLength(1);
+    expect(postmortemFeedItems()).toHaveLength(1);
+  });
+
+  test("an AI draft written into an unpublished postmortem is recorded and tells nobody", async () => {
+    stored[RECORD_ID] = {
+      showPostmortemOnStatusPage: false,
+      postmortemNote: null,
+      status: StatusPageSubscriberNotificationStatus.Skipped,
+    };
+
+    await runUpdate({ postmortemNote: NOTE }, { props: { isRoot: true } });
+
+    expect(postmortemNotificationsQueued()).toEqual([]);
+    expect(postmortemFeedItems()).toHaveLength(1);
+  });
+
+  test.each([true, false])(
+    "writing Notify Subscribers (%s) on its own reads nothing and sends nothing",
+    async (notify: boolean) => {
+      stored[RECORD_ID] = {
+        showPostmortemOnStatusPage: true,
+        postmortemNote: NOTE,
+        status: StatusPageSubscriberNotificationStatus.Skipped,
+        notifySubscribersOnPostmortemPublished: !notify,
+      };
+
+      await runUpdate({ notifySubscribersOnPostmortemPublished: notify });
+
+      expect(postmortemNotificationsQueued()).toEqual([]);
+      expect(postmortemFeedItems()).toEqual([]);
+      expect(incidentReads).not.toHaveBeenCalled();
+    },
+  );
+
+  test("publishing with Notify Subscribers off still queues it: the job reads the switch and skips it with its reason", async () => {
+    await runUpdate(
+      editPostmortemFormSave({ note: NOTE, publish: true, notify: false }),
+    );
+
+    expect(postmortemNotificationsQueued()).toHaveLength(1);
+  });
+
+  test("Retry or the API's Pending sent with the publish is the one Pending written: the hook adds none of its own", async () => {
+    stored[RECORD_ID] = {
+      showPostmortemOnStatusPage: false,
+      postmortemNote: NOTE,
+      status: StatusPageSubscriberNotificationStatus.Failed,
+    };
+
+    const onUpdate: OnUpdate<never> = await runUpdate({
+      showPostmortemOnStatusPage: true,
+      subscriberNotificationStatusOnPostmortemPublished:
+        StatusPageSubscriberNotificationStatus.Pending,
+    });
+
+    expect(compareAndSet).not.toHaveBeenCalled();
+    expect(updateOneById).not.toHaveBeenCalled();
+    // The caller's own Pending goes out with the update itself.
+    expect(
+      (onUpdate.updateBy.data as unknown as Record<string, unknown>)[
+        "subscriberNotificationStatusOnPostmortemPublished"
+      ],
+    ).toBe(StatusPageSubscriberNotificationStatus.Pending);
+  });
+
+  test("a status the caller sets with the publish is theirs: nothing is queued over it", async () => {
+    stored[RECORD_ID] = {
+      showPostmortemOnStatusPage: false,
+      postmortemNote: NOTE,
+      // Told when it was first published.
+      status: StatusPageSubscriberNotificationStatus.Success,
+    };
+
+    await runUpdate({
+      showPostmortemOnStatusPage: true,
+      subscriberNotificationStatusOnPostmortemPublished:
+        StatusPageSubscriberNotificationStatus.Skipped,
+    });
+
+    expect(postmortemNotificationsQueued()).toEqual([]);
+  });
+
+  test("the status written back as it is stored - a client writing the whole incident back - is no choice: publishing still tells subscribers, once", async () => {
+    await runUpdate({
+      title: "Checkout errors",
+      postmortemNote: NOTE,
+      showPostmortemOnStatusPage: true,
+      notifySubscribersOnPostmortemPublished: true,
+      subscriberNotificationStatusOnPostmortemPublished:
+        StatusPageSubscriberNotificationStatus.Skipped,
+    });
+
+    expect(postmortemNotificationsQueued()).toEqual([
+      expect.objectContaining({
+        id: RECORD_ID,
+        expectedData: {
+          subscriberNotificationStatusOnPostmortemPublished:
+            StatusPageSubscriberNotificationStatus.Skipped,
+        },
+      }),
+    ]);
+  });
+
+  test('a hand-written request\'s "true" publishes it too, as Postgres stores it', async () => {
+    await runUpdate({ showPostmortemOnStatusPage: "true" });
+
+    expect(postmortemNotificationsQueued()).toHaveLength(1);
+  });
+
+  test.each([
+    [
+      "still waiting for the job - an incident declared moments ago",
+      StatusPageSubscriberNotificationStatus.Pending,
+    ],
+    ["being sent", StatusPageSubscriberNotificationStatus.InProgress],
+  ])(
+    "publishing while the notification is %s queues nothing more: it is on its way",
+    async (_label: string, status: StatusPageSubscriberNotificationStatus) => {
+      stored[RECORD_ID] = {
+        showPostmortemOnStatusPage: false,
+        postmortemNote: NOTE,
+        status: status,
+      };
+
+      await runUpdate(editPostmortemFormSave({ note: NOTE, publish: true }));
+
+      expect(postmortemNotificationsQueued()).toEqual([]);
+    },
+  );
+
+  /*
+   * A run claims a notification, then decides from the incident as it read
+   * it before the claim. A publish that lands right after the claim finds
+   * the notification on its way, so it queues nothing - and the run, having
+   * read the postmortem unpublished, skips it. So the update looks again
+   * once it is written: skipped in the meantime, it is queued again. (The
+   * send job looks again after such a skip too; see its tests.)
+   */
+  test.each([
+    ["being sent", StatusPageSubscriberNotificationStatus.InProgress],
+    ["still waiting", StatusPageSubscriberNotificationStatus.Pending],
+  ])(
+    "published while the notification was %s, and the run holding it skipped it before the update was written: queued again, once",
+    async (_label: string, status: StatusPageSubscriberNotificationStatus) => {
+      stored[RECORD_ID] = {
+        showPostmortemOnStatusPage: false,
+        postmortemNote: NOTE,
+        status: status,
+      };
+
+      await runUpdate(editPostmortemFormSave({ note: NOTE, publish: true }), {
+        meanwhile: (): void => {
+          // The run settles it from what it read: not shown.
+          stored[RECORD_ID]!.status =
+            StatusPageSubscriberNotificationStatus.Skipped;
+        },
+      });
+
+      expect(postmortemNotificationsQueued()).toEqual([
+        {
+          id: RECORD_ID,
+          data: {
+            subscriberNotificationStatusOnPostmortemPublished:
+              StatusPageSubscriberNotificationStatus.Pending,
+            subscriberNotificationStatusMessageOnPostmortemPublished:
+              IncidentPostmortemPublication.queuedMessage,
+          },
+          // Only while it is still the skip it read.
+          expectedData: {
+            subscriberNotificationStatusOnPostmortemPublished:
+              StatusPageSubscriberNotificationStatus.Skipped,
+          },
+        },
+      ]);
+    },
+  );
+
+  test.each([
+    ["sent it", StatusPageSubscriberNotificationStatus.Success],
+    ["failed part-way", StatusPageSubscriberNotificationStatus.Failed],
+    ["is still sending it", StatusPageSubscriberNotificationStatus.InProgress],
+  ])(
+    "published while the notification was being sent, and the run holding it %s: nothing more is queued",
+    async (_label: string, settled: StatusPageSubscriberNotificationStatus) => {
+      stored[RECORD_ID] = {
+        showPostmortemOnStatusPage: false,
+        postmortemNote: NOTE,
+        status: StatusPageSubscriberNotificationStatus.InProgress,
+      };
+
+      await runUpdate(editPostmortemFormSave({ note: NOTE, publish: true }), {
+        meanwhile: (): void => {
+          stored[RECORD_ID]!.status = settled;
+        },
+      });
+
+      expect(postmortemNotificationsQueued()).toEqual([]);
+    },
+  );
+
+  /*
+   * The note's images are made public by DatabaseService as it writes the
+   * update, before this hook runs (PublishedImages; the order is held by
+   * DatabaseServicePublishedImages.test.ts), so the notification this hook
+   * queues never links to a private image - and the hook itself leaves the
+   * images alone.
+   */
+  test("the hook that queues the notification leaves the note's images to the write before it", async () => {
+    const imageSync: MockFunction = getJestMockFunction();
+    imageSync.mockResolvedValue(undefined as never);
+    jest
+      .spyOn(PublishedImages, "setImagesVisibility")
+      .mockImplementation(imageSync as never);
+    jest
+      .spyOn(InlineImageAccessTokenSync, "setIsPublicForMarkdownImages")
+      .mockImplementation(imageSync as never);
+
+    await runUpdate(editPostmortemFormSave({ note: NOTE, publish: true }), {
+      meanwhile: (): void => {
+        // The write itself.
+        stored[RECORD_ID]!.showPostmortemOnStatusPage = true;
+      },
+    });
+
+    expect(compareAndSet).toHaveBeenCalledTimes(1);
+    expect(imageSync).not.toHaveBeenCalled();
+  });
+});
+
+describe("the stored postmortem is read once, before the write", () => {
+  function postmortemReads(): Array<{
+    select: Record<string, unknown>;
+    query: Record<string, unknown>;
+  }> {
+    return incidentReads.mock.calls
+      .map((call: Array<unknown>) => {
+        return call[0] as {
+          select: Record<string, unknown>;
+          query: Record<string, unknown>;
+        };
+      })
+      .filter(
+        (read: {
+          select: Record<string, unknown>;
+          query: Record<string, unknown>;
+        }): boolean => {
+          return read.select?.["postmortemNote"] === true;
+        },
+      );
+  }
+
+  test("with only the columns compared, within the caller's project", async () => {
+    await runUpdate(editPostmortemFormSave({ note: NOTE, publish: true }));
+
+    expect(postmortemReads()).toHaveLength(1);
+    expect(postmortemReads()[0]!.select).toEqual({
+      _id: true,
+      postmortemNote: true,
+      showPostmortemOnStatusPage: true,
+      subscriberNotificationStatusOnPostmortemPublished: true,
+    });
+    expect(postmortemReads()[0]!.query).toEqual(
+      expect.objectContaining({ _id: RECORD_ID, projectId: PROJECT_ID }),
+    );
+  });
+
+  test("an update that writes neither the note nor the switch reads none of it, and does nothing to the postmortem", async () => {
+    await runUpdate({ title: "Renamed", postmortemPostedAt: PUBLISHED_AT });
+
+    expect(postmortemReads()).toEqual([]);
+    expect(postmortemNotificationsQueued()).toEqual([]);
+    expect(postmortemFeedItems()).toEqual([]);
+  });
+
+  test("an update that writes a severity and the postmortem reads both in the one read", async () => {
+    const MINOR: string = "0193c0de-9057-4aaa-8bbb-0000000000b1";
+    const CRITICAL: string = "0193c0de-9057-4aaa-8bbb-0000000000b2";
+
+    incidentReads.mockImplementation(async (): Promise<Array<Incident>> => {
+      const incident: Incident = storedIncident(RECORD_ID);
+      incident.incidentSeverityId = new ObjectID(MINOR);
+      return [incident];
+    });
+
+    jest
+      .spyOn(IncidentSeverityService, "findOneBy")
+      .mockImplementation((async (): Promise<IncidentSeverity> => {
+        const severity: IncidentSeverity = new IncidentSeverity();
+        severity._id = CRITICAL;
+        severity.name = "Critical";
+        return severity;
+      }) as never);
+    jest
+      .spyOn(IncidentSlaService, "recalculateDeadlines")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(IncidentService, "refreshReminderSchedule")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(IncidentService, "getIncidentMetricContext")
+      .mockResolvedValue({ baseMetricAttributes: {} } as never);
+    jest
+      .spyOn(
+        IncidentService as unknown as {
+          getMetricRetentionDays: () => Promise<number>;
+        },
+        "getMetricRetentionDays",
+      )
+      .mockResolvedValue(30 as never);
+    jest
+      .spyOn(MutableMetricService, "createMutableMetrics")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(TelemetryUtil, "indexMetricNameServiceNameMap")
+      .mockResolvedValue(undefined as never);
+
+    await runUpdate({
+      incidentSeverityId: new ObjectID(CRITICAL),
+      ...editPostmortemFormSave({ note: NOTE, publish: true }),
+    });
+
+    expect(incidentReads).toHaveBeenCalledTimes(1);
+    expect(
+      (incidentReads.mock.calls[0]![0] as { select: Record<string, unknown> })
+        .select,
+    ).toEqual({
+      _id: true,
+      incidentSeverityId: true,
+      postmortemNote: true,
+      showPostmortemOnStatusPage: true,
+      subscriberNotificationStatusOnPostmortemPublished: true,
+    });
+
+    // Both comparisons ran on that one read.
+    expect(postmortemNotificationsQueued()).toHaveLength(1);
+    expect(IncidentSlaService.recalculateDeadlines).toHaveBeenCalledTimes(1);
+  });
+
+  test("one update over two incidents queues the notification only for the one it publishes", async () => {
+    stored = {
+      [RECORD_ID]: {
+        showPostmortemOnStatusPage: false,
+        postmortemNote: NOTE,
+        status: StatusPageSubscriberNotificationStatus.Skipped,
+      },
+      [SECOND_RECORD_ID]: {
+        showPostmortemOnStatusPage: true,
+        postmortemNote: NOTE,
+        status: StatusPageSubscriberNotificationStatus.Success,
+      },
+    };
+
+    await runUpdate(
+      { showPostmortemOnStatusPage: true },
+      {
+        query: { projectId: PROJECT_ID },
+        updatedIds: [RECORD_ID, SECOND_RECORD_ID],
+      },
+    );
+
+    expect(postmortemReads()).toHaveLength(1);
+    expect(
+      postmortemNotificationsQueued().map((write: QueueWrite): string => {
+        return write.id;
+      }),
+    ).toEqual([RECORD_ID]);
+  });
+
+  test("an incident the read did not see counts as changed, so a real publish is never missed", async () => {
+    // The write found a second incident the read before it did not.
+    await runUpdate(
+      { postmortemNote: NOTE, showPostmortemOnStatusPage: true },
+      { updatedIds: [RECORD_ID, SECOND_RECORD_ID] },
+    );
+
+    const queued: Array<QueueWrite> = postmortemNotificationsQueued();
+
+    // The stored incident had the note already: published by this update.
+    expect(
+      queued.map((write: QueueWrite): string => {
+        return write.id;
+      }),
+    ).toEqual([RECORD_ID, SECOND_RECORD_ID]);
+    // With no status read before the write, it is guarded on where it stands now.
+    expect(queued[1]!.expectedData).toEqual({
+      subscriberNotificationStatusOnPostmortemPublished: null,
+    });
+    // Its note counts as written fresh; the stored one's did not change.
+    expect(postmortemFeedItems()).toHaveLength(1);
+  });
+
+  test("an incident the read did not see whose notification is on its way now is left to go", async () => {
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockImplementation((async (findOneById: {
+        id: ObjectID;
+      }): Promise<Incident> => {
+        const incident: Incident = storedIncident(findOneById.id.toString());
+        if (findOneById.id.toString() === SECOND_RECORD_ID) {
+          incident.subscriberNotificationStatusOnPostmortemPublished =
+            StatusPageSubscriberNotificationStatus.InProgress;
+        }
+        return incident;
+      }) as never);
+
+    await runUpdate(
+      { postmortemNote: NOTE, showPostmortemOnStatusPage: true },
+      { updatedIds: [RECORD_ID, SECOND_RECORD_ID] },
+    );
+
+    expect(
+      postmortemNotificationsQueued().map((write: QueueWrite): string => {
+        return write.id;
+      }),
+    ).toEqual([RECORD_ID]);
+  });
+});
+
+describe("the feed item for a changed note", () => {
+  function postmortemFeedCalls(): Array<Record<string, unknown>> {
+    return feed.mock.calls
+      .map((call: Array<unknown>) => {
+        return call[0] as Record<string, unknown>;
+      })
+      .filter((input: Record<string, unknown>): boolean => {
+        return (
+          input["incidentFeedEventType"] ===
+          IncidentFeedEventType.PostmortemNote
+        );
+      });
+  }
+
+  test("names the incident, carries the new note, credits the editor and goes to the workspace channels", async () => {
+    stored[RECORD_ID] = {
+      showPostmortemOnStatusPage: true,
+      postmortemNote: NOTE,
+      status: StatusPageSubscriberNotificationStatus.Success,
+    };
+
+    await runUpdate(
+      editPostmortemFormSave({ note: EDITED_NOTE, publish: true }),
+    );
+
+    expect(postmortemFeedCalls()).toHaveLength(1);
+
+    const item: Record<string, unknown> = postmortemFeedCalls()[0]!;
+
+    expect(item["feedInfoInMarkdown"]).toBe(
+      `**📘 Postmortem Note updated for [Incident INC-42](https://oneuptime.test/i)**\n\n${EDITED_NOTE}`,
+    );
+    expect(String(item["incidentId"])).toBe(RECORD_ID);
+    expect(String(item["userId"])).toBe(USER_ID.toString());
+    expect(item["workspaceNotification"]).toEqual({
+      sendWorkspaceNotification: true,
+    });
+  });
+
+  test("an emptied note is recorded as cleared", async () => {
+    stored[RECORD_ID] = {
+      showPostmortemOnStatusPage: false,
+      postmortemNote: NOTE,
+      status: StatusPageSubscriberNotificationStatus.Skipped,
+    };
+
+    await runUpdate({ postmortemNote: null });
+
+    expect(postmortemFeedCalls()).toHaveLength(1);
+    expect(postmortemFeedCalls()[0]!["feedInfoInMarkdown"]).toBe(
+      "**📘 Postmortem Note cleared for [Incident INC-42](https://oneuptime.test/i)**\n\n_No postmortem note provided._",
+    );
+  });
+});
+
+/*
+ * A POSTMORTEM PUBLISHED WHILE ITS INCIDENT IS HIDDEN IS SENT WHEN THE
+ * INCIDENT IS SHOWN (found in #4429).
+ *
+ * The status page shows a postmortem only on an incident it shows - Visible
+ * on Status Page on, and not private - so the send job skips the
+ * notification of a postmortem published while its incident is hidden,
+ * saying it waits for the incident. The update that shows the incident is
+ * then the moment the status page first shows the postmortem: it queues that
+ * notification - and only that one - once. It used to queue nothing, so
+ * nobody was ever told.
+ */
+describe("showing a hidden incident sends the postmortem that waits for it", () => {
+  // The incident's Settings form, saved with Visible on Status Page on.
+  const SHOW: Record<string, unknown> = {
+    isVisibleOnStatusPage: true,
+    isPrivate: false,
+  };
+
+  // Published while the incident was hidden, and skipped for that reason.
+  function waitingForTheIncident(
+    overrides: Partial<StoredPostmortem> = {},
+  ): StoredPostmortem {
+    return {
+      showPostmortemOnStatusPage: true,
+      postmortemNote: NOTE,
+      status: StatusPageSubscriberNotificationStatus.Skipped,
+      message: IncidentPostmortemPublication.hiddenIncidentMessage,
+      isVisibleOnStatusPage: false,
+      isPrivate: false,
+      ...overrides,
+    };
+  }
+
+  // The read before the write, of the incident's visibility.
+  function visibilityReads(): Array<{
+    select: Record<string, unknown>;
+    query: Record<string, unknown>;
+  }> {
+    return incidentReads.mock.calls
+      .map((call: Array<unknown>) => {
+        return call[0] as {
+          select: Record<string, unknown>;
+          query: Record<string, unknown>;
+        };
+      })
+      .filter(
+        (read: {
+          select: Record<string, unknown>;
+          query: Record<string, unknown>;
+        }): boolean => {
+          return read.select?.["isVisibleOnStatusPage"] === true;
+        },
+      );
+  }
+
+  /*
+   * The update as the API runs it, with its write made to the stored
+   * incidents it matches (as the update leaves them, after its hooks):
+   * reading an incident again once the update is written sees the switches
+   * it wrote.
+   */
+  async function update(
+    data: Record<string, unknown>,
+    options: {
+      query?: Record<string, unknown>;
+      updatedIds?: Array<string>;
+      // What else happens once it is written, before the success hook.
+      meanwhile?: () => void;
+    } = {},
+  ): Promise<OnUpdate<never>> {
+    return await runUpdate(data, {
+      ...options,
+      meanwhile: (onUpdate: OnUpdate<never>): void => {
+        const written: Record<string, unknown> = onUpdate.updateBy
+          .data as unknown as Record<string, unknown>;
+
+        for (const id of options.updatedIds || [RECORD_ID]) {
+          const row: StoredPostmortem | undefined = stored[id];
+
+          if (!row) {
+            continue;
+          }
+
+          if (written["isVisibleOnStatusPage"] !== undefined) {
+            row.isVisibleOnStatusPage =
+              IncidentPostmortemPublication.isSwitchedOn(
+                written["isVisibleOnStatusPage"],
+              );
+          }
+
+          if (written["isPrivate"] !== undefined) {
+            row.isPrivate = IncidentPostmortemPublication.isSwitchedOn(
+              written["isPrivate"],
+            );
+          }
+
+          if (written["showPostmortemOnStatusPage"] !== undefined) {
+            row.showPostmortemOnStatusPage =
+              IncidentPostmortemPublication.isSwitchedOn(
+                written["showPostmortemOnStatusPage"],
+              );
+          }
+
+          if (written["postmortemNote"] !== undefined) {
+            row.postmortemNote =
+              typeof written["postmortemNote"] === "string"
+                ? written["postmortemNote"]
+                : null;
+          }
+        }
+
+        options.meanwhile?.();
+      },
+    });
+  }
+
+  // The reads after the write, of where the postmortem stands now.
+  function readsAfterTheWrite(): Array<Record<string, unknown>> {
+    return (IncidentService.findOneById as unknown as MockFunction).mock.calls
+      .map((call: Array<unknown>): Record<string, unknown> => {
+        return (call[0] as { select: Record<string, unknown> }).select;
+      })
+      .filter((select: Record<string, unknown>): boolean => {
+        return select["isVisibleOnStatusPage"] === true;
+      });
+  }
+
+  beforeEach(() => {
+    stored[RECORD_ID] = waitingForTheIncident();
+  });
+
+  test("queues it once, from the skip, with its own reason, without a second update of the incident", async () => {
+    await update(SHOW);
+
+    expect(postmortemNotificationsQueued()).toEqual([
+      {
+        id: RECORD_ID,
+        data: {
+          subscriberNotificationStatusOnPostmortemPublished:
+            StatusPageSubscriberNotificationStatus.Pending,
+          subscriberNotificationStatusMessageOnPostmortemPublished:
+            IncidentPostmortemPublication.shownQueuedMessage,
+        },
+        // Only while it still stands skipped because the incident was hidden.
+        expectedData: {
+          subscriberNotificationStatusOnPostmortemPublished:
+            StatusPageSubscriberNotificationStatus.Skipped,
+          subscriberNotificationStatusMessageOnPostmortemPublished:
+            IncidentPostmortemPublication.hiddenIncidentMessage,
+        },
+      },
+    ]);
+    expect(updateOneById).not.toHaveBeenCalled();
+    // Showing the incident records no "Postmortem Note updated".
+    expect(postmortemFeedItems()).toEqual([]);
+  });
+
+  test("reads the incident's switches and the notification before the write - never the note - and the postmortem after it, by its id", async () => {
+    await update(SHOW);
+
+    expect(visibilityReads()).toHaveLength(1);
+    expect(visibilityReads()[0]!.select).toEqual({
+      _id: true,
+      subscriberNotificationStatusOnPostmortemPublished: true,
+      isVisibleOnStatusPage: true,
+      isPrivate: true,
+      subscriberNotificationStatusMessageOnPostmortemPublished: true,
+    });
+    expect(visibilityReads()[0]!.query).toEqual(
+      expect.objectContaining({ _id: RECORD_ID, projectId: PROJECT_ID }),
+    );
+
+    // Once written: is it still due, with the incident and its postmortem shown?
+    expect(readsAfterTheWrite()).toEqual([
+      {
+        isVisibleOnStatusPage: true,
+        isPrivate: true,
+        showPostmortemOnStatusPage: true,
+        postmortemNote: true,
+        subscriberNotificationStatusOnPostmortemPublished: true,
+        subscriberNotificationStatusMessageOnPostmortemPublished: true,
+      },
+    ]);
+  });
+
+  test("an incident whose postmortem waits for nothing is not read again after the write", async () => {
+    stored[RECORD_ID] = waitingForTheIncident({
+      status: StatusPageSubscriberNotificationStatus.Success,
+      message: null,
+    });
+
+    await update(SHOW);
+
+    expect(readsAfterTheWrite()).toEqual([]);
+    expect(compareAndSet).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ["was sent already", StatusPageSubscriberNotificationStatus.Success, null],
+    [
+      "failed",
+      StatusPageSubscriberNotificationStatus.Failed,
+      "Not every subscriber was sent this notification.",
+    ],
+    [
+      "was skipped with Notify Subscribers off",
+      StatusPageSubscriberNotificationStatus.Skipped,
+      "Incident is not set to notify subscribers on postmortem published. Skipping notifications to subscribers.",
+    ],
+    [
+      "was skipped for an incident without monitors",
+      StatusPageSubscriberNotificationStatus.Skipped,
+      "No monitors are attached to this incident. Skipping notifications to subscribers.",
+    ],
+    [
+      "was skipped in an earlier release's words - an incident shown since, which the migration left as it was",
+      StatusPageSubscriberNotificationStatus.Skipped,
+      "Incident is not visible on status page. Skipping notifications to subscribers.",
+    ],
+  ] as Array<[string, StatusPageSubscriberNotificationStatus, string | null]>)(
+    "a notification that %s is left as it is",
+    async (
+      _label: string,
+      status: StatusPageSubscriberNotificationStatus,
+      message: string | null,
+    ) => {
+      stored[RECORD_ID] = waitingForTheIncident({
+        status: status,
+        message: message,
+      });
+
+      await update(SHOW);
+
+      expect(postmortemNotificationsQueued()).toEqual([]);
+      expect(compareAndSet).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a postmortem that is not published sends nothing", async () => {
+    stored[RECORD_ID] = waitingForTheIncident({
+      showPostmortemOnStatusPage: false,
+    });
+
+    await update(SHOW);
+
+    expect(postmortemNotificationsQueued()).toEqual([]);
+    expect(compareAndSet).not.toHaveBeenCalled();
+  });
+
+  test("a postmortem emptied since it was skipped sends nothing", async () => {
+    stored[RECORD_ID] = waitingForTheIncident({ postmortemNote: "   " });
+
+    await update(SHOW);
+
+    expect(postmortemNotificationsQueued()).toEqual([]);
+  });
+
+  test("an incident already shown sends nothing when its switch is saved again", async () => {
+    stored[RECORD_ID] = waitingForTheIncident({ isVisibleOnStatusPage: true });
+
+    await update(SHOW);
+
+    expect(postmortemNotificationsQueued()).toEqual([]);
+    expect(readsAfterTheWrite()).toEqual([]);
+  });
+
+  test("hiding the incident reads nothing of the postmortem and sends nothing", async () => {
+    await update({ isVisibleOnStatusPage: false });
+
+    expect(visibilityReads()).toEqual([]);
+    expect(postmortemNotificationsQueued()).toEqual([]);
+  });
+
+  test("the Settings form's save of a hidden incident - both switches, Private Incident off - reads nothing of the postmortem and sends nothing", async () => {
+    await update({ isVisibleOnStatusPage: false, isPrivate: false });
+
+    expect(visibilityReads()).toEqual([]);
+    expect(readsAfterTheWrite()).toEqual([]);
+    expect(postmortemNotificationsQueued()).toEqual([]);
+  });
+
+  test("made private in the same update, the incident stays hidden: nothing is read for the postmortem or sent", async () => {
+    await update({ isVisibleOnStatusPage: true, isPrivate: true });
+
+    expect(visibilityReads()).toEqual([]);
+    expect(postmortemNotificationsQueued()).toEqual([]);
+  });
+
+  test("a private incident switched on stays hidden: nothing is sent", async () => {
+    stored[RECORD_ID] = waitingForTheIncident({ isPrivate: true });
+
+    await update({ isVisibleOnStatusPage: true });
+
+    expect(postmortemNotificationsQueued()).toEqual([]);
+    expect(compareAndSet).not.toHaveBeenCalled();
+  });
+
+  test("a private incident switched on and made not private in one save sends it", async () => {
+    stored[RECORD_ID] = waitingForTheIncident({ isPrivate: true });
+
+    await update(SHOW);
+
+    expect(postmortemNotificationsQueued()).toHaveLength(1);
+  });
+
+  test("an incident switched on while private sends it when it is made not private", async () => {
+    stored[RECORD_ID] = waitingForTheIncident({
+      isVisibleOnStatusPage: true,
+      isPrivate: true,
+    });
+
+    await update({ isPrivate: false });
+
+    expect(postmortemNotificationsQueued()).toHaveLength(1);
+  });
+
+  test('a hand-written request\'s "true" shows it too', async () => {
+    await update({ isVisibleOnStatusPage: "true" });
+
+    expect(postmortemNotificationsQueued()).toHaveLength(1);
+  });
+
+  test("taken off the status page in the same update, it sends nothing", async () => {
+    await update({ ...SHOW, showPostmortemOnStatusPage: false });
+
+    expect(postmortemNotificationsQueued()).toEqual([]);
+  });
+
+  test("a status the update sets itself is the caller's: nothing is queued over it", async () => {
+    const onUpdate: OnUpdate<never> = await update({
+      ...SHOW,
+      subscriberNotificationStatusOnPostmortemPublished:
+        StatusPageSubscriberNotificationStatus.Pending,
+    });
+
+    expect(compareAndSet).not.toHaveBeenCalled();
+    expect(
+      (onUpdate.updateBy.data as unknown as Record<string, unknown>)[
+        "subscriberNotificationStatusOnPostmortemPublished"
+      ],
+    ).toBe(StatusPageSubscriberNotificationStatus.Pending);
+  });
+
+  test("Notify Subscribers is not read: the job skips it, with its reason, if it is off", async () => {
+    stored[RECORD_ID] = waitingForTheIncident({
+      notifySubscribersOnPostmortemPublished: false,
+    });
+
+    await update(SHOW);
+
+    expect(postmortemNotificationsQueued()).toHaveLength(1);
+    expect(visibilityReads()[0]!.select).not.toHaveProperty(
+      "notifySubscribersOnPostmortemPublished",
+    );
+    expect(readsAfterTheWrite()[0]).not.toHaveProperty(
+      "notifySubscribersOnPostmortemPublished",
+    );
+  });
+
+  test("a notification someone else queued since the read is left to them", async () => {
+    compareAndSet.mockResolvedValue(false as never);
+
+    await expect(update(SHOW)).resolves.toBeDefined();
+
+    expect(compareAndSet).toHaveBeenCalledTimes(1);
+    expect(updateOneById).not.toHaveBeenCalled();
+  });
+
+  test("skipped as hidden by the run that held it while the update was read: queued once the update is written", async () => {
+    stored[RECORD_ID] = waitingForTheIncident({
+      status: StatusPageSubscriberNotificationStatus.InProgress,
+      message: IncidentPostmortemPublication.queuedMessage,
+    });
+
+    await update(SHOW, {
+      meanwhile: (): void => {
+        // The run settles it from what it read: the incident was hidden.
+        stored[RECORD_ID]!.status =
+          StatusPageSubscriberNotificationStatus.Skipped;
+        stored[RECORD_ID]!.message =
+          IncidentPostmortemPublication.hiddenIncidentMessage;
+        // The write itself.
+        stored[RECORD_ID]!.isVisibleOnStatusPage = true;
+      },
+    });
+
+    expect(postmortemNotificationsQueued()).toEqual([
+      expect.objectContaining({
+        id: RECORD_ID,
+        expectedData: {
+          subscriberNotificationStatusOnPostmortemPublished:
+            StatusPageSubscriberNotificationStatus.Skipped,
+          subscriberNotificationStatusMessageOnPostmortemPublished:
+            IncidentPostmortemPublication.hiddenIncidentMessage,
+        },
+      }),
+    ]);
+  });
+
+  test.each([
+    [
+      "still sending it",
+      StatusPageSubscriberNotificationStatus.InProgress,
+      null,
+    ],
+    ["sent it", StatusPageSubscriberNotificationStatus.Success, null],
+    [
+      "skipped it for another reason",
+      StatusPageSubscriberNotificationStatus.Skipped,
+      "No monitors are attached to this incident. Skipping notifications to subscribers.",
+    ],
+  ] as Array<[string, StatusPageSubscriberNotificationStatus, string | null]>)(
+    "shown while the notification was being sent, and the run holding it %s: nothing more is queued",
+    async (
+      _label: string,
+      settled: StatusPageSubscriberNotificationStatus,
+      message: string | null,
+    ) => {
+      stored[RECORD_ID] = waitingForTheIncident({
+        status: StatusPageSubscriberNotificationStatus.InProgress,
+        message: IncidentPostmortemPublication.queuedMessage,
+      });
+
+      await update(SHOW, {
+        meanwhile: (): void => {
+          stored[RECORD_ID]!.status = settled;
+          stored[RECORD_ID]!.message = message;
+          stored[RECORD_ID]!.isVisibleOnStatusPage = true;
+        },
+      });
+
+      expect(postmortemNotificationsQueued()).toEqual([]);
+    },
+  );
+
+  test("hidden again by another update before this one's look: nothing is queued, and it keeps waiting", async () => {
+    await update(SHOW, {
+      meanwhile: (): void => {
+        // Another update hid it again after this one was written.
+        stored[RECORD_ID]!.isVisibleOnStatusPage = false;
+      },
+    });
+
+    expect(postmortemNotificationsQueued()).toEqual([]);
+  });
+
+  test("one update over two incidents queues only the one whose postmortem waits for it", async () => {
+    stored = {
+      [RECORD_ID]: waitingForTheIncident(),
+      [SECOND_RECORD_ID]: waitingForTheIncident({
+        status: StatusPageSubscriberNotificationStatus.Success,
+        message: null,
+      }),
+    };
+
+    await update(SHOW, {
+      query: { projectId: PROJECT_ID },
+      updatedIds: [RECORD_ID, SECOND_RECORD_ID],
+    });
+
+    expect(visibilityReads()).toHaveLength(1);
+    expect(
+      postmortemNotificationsQueued().map((write: QueueWrite): string => {
+        return write.id;
+      }),
+    ).toEqual([RECORD_ID]);
+  });
+
+  test("an incident the read did not see is decided from where it stands once the update is written", async () => {
+    stored = {
+      [RECORD_ID]: waitingForTheIncident({
+        status: StatusPageSubscriberNotificationStatus.Success,
+        message: null,
+      }),
+    };
+
+    // The write found a second incident the read before it did not.
+    await update(SHOW, {
+      updatedIds: [RECORD_ID, SECOND_RECORD_ID],
+      meanwhile: (): void => {
+        stored[SECOND_RECORD_ID] = waitingForTheIncident({
+          isVisibleOnStatusPage: true,
+        });
+      },
+    });
+
+    expect(
+      postmortemNotificationsQueued().map((write: QueueWrite): string => {
+        return write.id;
+      }),
+    ).toEqual([SECOND_RECORD_ID]);
+  });
+
+  test("shown and published in one update, the publish queues it - once", async () => {
+    stored[RECORD_ID] = waitingForTheIncident({
+      showPostmortemOnStatusPage: false,
+    });
+
+    await update({
+      ...SHOW,
+      ...editPostmortemFormSave({ note: NOTE, publish: true }),
+    });
+
+    expect(postmortemNotificationsQueued()).toEqual([
+      expect.objectContaining({
+        data: {
+          subscriberNotificationStatusOnPostmortemPublished:
+            StatusPageSubscriberNotificationStatus.Pending,
+          subscriberNotificationStatusMessageOnPostmortemPublished:
+            IncidentPostmortemPublication.queuedMessage,
+        },
+        expectedData: {
+          subscriberNotificationStatusOnPostmortemPublished:
+            StatusPageSubscriberNotificationStatus.Skipped,
+        },
+      }),
+    ]);
+  });
+
+  test("the one read before the write also serves the title and the postmortem the same update writes", async () => {
+    await update({
+      ...SHOW,
+      title: "Checkout errors",
+      postmortemNote: NOTE,
+    });
+
+    expect(incidentReads).toHaveBeenCalledTimes(1);
+    expect(postmortemNotificationsQueued()).toHaveLength(1);
+  });
+});

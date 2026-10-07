@@ -1,15 +1,14 @@
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/AlertReminderRule";
 import Alert from "../../Models/DatabaseModels/Alert";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
-import AlertState from "../../Models/DatabaseModels/AlertState";
 import Label from "../../Models/DatabaseModels/Label";
 import AlertService from "./AlertService";
 import AlertStateService from "./AlertStateService";
 import QueryHelper from "../Types/Database/QueryHelper";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -18,7 +17,7 @@ import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLim
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import RuleCriteriaMatcher from "../../Utils/Rules/RuleCriteriaMatcher";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {
@@ -98,27 +97,12 @@ export class Service extends DatabaseService<Model> {
     );
 
     try {
-      const unresolvedStates: Array<AlertState> =
-        await AlertStateService.findBy({
-          query: {
-            projectId: projectId,
-            isResolvedState: false,
-          },
-          select: {
-            _id: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        });
-
-      const unresolvedStateIds: Array<ObjectID> = unresolvedStates
-        .map((state: AlertState) => {
-          return state.id!;
-        })
-        .filter(Boolean);
+      /*
+       * The states a subject is still open in, by the one rule
+       * (Common/Utils/ResolvedState): above the project's resolved state.
+       */
+      const unresolvedStateIds: Array<ObjectID> =
+        await AlertStateService.getUnresolvedAlertStateIds(projectId);
 
       if (unresolvedStateIds.length === 0) {
         return;

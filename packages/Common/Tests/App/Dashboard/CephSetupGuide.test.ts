@@ -8,6 +8,7 @@ import {
   CEPH_AGENT_CONTAINER,
   CEPH_AGENT_INSTALL_DIR,
   CEPH_AGENT_RAW_URL,
+  CEPH_AGENT_RECREATE_COMMAND,
   CEPH_AGENT_SOURCE_URL,
   CEPH_AI_AGENT_CONTAINER,
   CEPH_EXAMPLE_CLUSTER_NAME,
@@ -15,6 +16,8 @@ import {
   CEPH_INSTALL_METHODS,
   CephInstallMethod,
   DEFAULT_CEPH_INSTALL_METHOD,
+  getCephAgentDownloadCommand,
+  getCephAgentUpgradeCommand,
   getCephInstallScriptCommand,
   getCephSetupGuide,
   resolveCephInstallMethod,
@@ -429,18 +432,71 @@ describe.each(METHOD_KEYS)("the %s guide", (method: CephInstallMethod) => {
     ).toContain(codeBlock("yaml", CEPH_AGENT_COLLECTOR_CONFIG));
   });
 
+  /*
+   * The collector image is pinned in docker-compose.yml and the config
+   * stamps the pin as the agent's version, so pulling alone never moves the
+   * agent forward. An install-script install runs the script again: it
+   * reuses the .env (nothing is asked again), downloads both files and
+   * recreates the agent, leaving the AI agent's ceph/ folder as it is. A
+   * Docker Compose install downloads both files itself and recreates
+   * (Compose recreates a container for a new image, never for a new config
+   * file). The dialog beside an outdated version shows the same blocks
+   * (AgentUpgradeGuides.test.ts).
+   */
+  test("the upgrade is the install script again, or both pinned files and a recreate", () => {
+    const upgrade: string = topicTitled(
+      guide.advanced,
+      "Upgrade or uninstall the agent",
+    ).markdown;
+
+    expect(upgrade).toContain("pulling alone does not move the agent forward");
+    expect(upgrade).toContain("**Agent Version**");
+    expect(upgrade).not.toMatch(/docker compose pull\ndocker compose up -d\n/);
+
+    if (method === "install-script") {
+      expect(upgrade).toContain(
+        codeBlock("bash", getCephAgentUpgradeCommand()),
+      );
+      expect(upgrade).toContain("Run the install script again.");
+      expect(upgrade).toContain(
+        "It reuses every value in your existing `.env` (nothing is asked again)",
+      );
+      expect(upgrade).toContain(
+        "a file you edited is kept next to the new one as `<file>.bak.<timestamp>`",
+      );
+      expect(upgrade).toContain(
+        "The AI agent's `ceph/` folder stays as it is:",
+      );
+      expect(upgrade).not.toContain("curl -fsSLO");
+      expect(upgrade).not.toContain("--force-recreate");
+      return;
+    }
+
+    const download: string = getCephAgentDownloadCommand();
+    expect(upgrade).toContain(codeBlock("bash", download));
+    expect(upgrade).toContain(codeBlock("bash", CEPH_AGENT_RECREATE_COMMAND));
+    expect(upgrade.indexOf(download)).toBeLessThan(
+      upgrade.indexOf(CEPH_AGENT_RECREATE_COMMAND),
+    );
+    expect(download).toBe(
+      [
+        `curl -fsSLO ${CEPH_AGENT_RAW_URL}/docker-compose.yml`,
+        `curl -fsSLO ${CEPH_AGENT_RAW_URL}/otel-collector-config.yaml`,
+      ].join("\n"),
+    );
+    expect(CEPH_AGENT_RECREATE_COMMAND).toBe(
+      "docker compose pull\ndocker compose up -d --force-recreate",
+    );
+    expect(upgrade).toContain("your `.env` stays");
+    expect(upgrade).not.toContain("install.sh");
+  });
+
   test("commands in the agent's folder run where this method installs it", () => {
     const upgrade: string = topicTitled(
       guide.advanced,
       "Upgrade or uninstall the agent",
     ).markdown;
     if (method === "install-script") {
-      expect(upgrade).toContain(
-        codeBlock(
-          "bash",
-          `cd ${CEPH_AGENT_INSTALL_DIR}\ndocker compose pull\ndocker compose up -d`,
-        ),
-      );
       expect(upgrade).toContain(
         codeBlock("bash", `cd ${CEPH_AGENT_INSTALL_DIR}\ndocker compose down`),
       );
@@ -456,7 +512,10 @@ describe.each(METHOD_KEYS)("the %s guide", (method: CephInstallMethod) => {
       }
     } else {
       expect(upgrade).toContain(
-        codeBlock("bash", "docker compose pull\ndocker compose up -d"),
+        codeBlock(
+          "bash",
+          "docker compose pull\ndocker compose up -d --force-recreate",
+        ),
       );
       expect(upgrade).toContain("the one with `docker-compose.yml`");
       expect(markdown).not.toContain(CEPH_AGENT_INSTALL_DIR);
@@ -484,6 +543,12 @@ describe.each(METHOD_KEYS)("the %s guide", (method: CephInstallMethod) => {
     expect(ai.includes("The install script offers to create them")).toBe(
       method === "install-script",
     );
+    // Only a fresh install offers it: a re-run, the upgrade, asks nothing.
+    expect(
+      ai.includes(
+        "offers to create them on a fresh install, when `ceph` works with admin rights",
+      ),
+    ).toBe(method === "install-script");
   });
 
   test("links to the Ceph agent and monitor documentation", () => {
@@ -640,14 +705,38 @@ describe("the install script", () => {
     expect(install).toContain("The script adds the square brackets.");
     expect(install).toContain("**OneUptime AI agent**");
     expect(install).toContain(
-      `It installs to \`${CEPH_AGENT_INSTALL_DIR}\` and starts the agent with Docker Compose.`,
+      `It installs to \`${CEPH_AGENT_INSTALL_DIR}\`, writes a \`0600\` \`.env\` file and starts the agent with Docker Compose.`,
     );
+  });
+
+  /*
+   * install.sh reuses the .env it finds, so running it again keeps the
+   * answers and is the upgrade: the install step says so where the reader
+   * first meets the script.
+   */
+  test("says that running the script again keeps the answers and is the upgrade", () => {
+    expect(installStep(guideFor("install-script"))).toContain(
+      "Running the script again reuses everything in that `.env` instead of asking again, so it is also how you upgrade.",
+    );
+  });
+
+  test("the upgrade runs the script with nothing in its environment, which would override the .env", () => {
+    expect(getCephAgentUpgradeCommand()).toBe(
+      [
+        `curl -sSL ${CEPH_AGENT_RAW_URL}/install.sh -o install.sh`,
+        "bash install.sh",
+      ].join("\n"),
+    );
+    expect(getCephAgentUpgradeCommand()).not.toContain("ONEUPTIME_");
   });
 
   test("shows none of the Docker Compose instructions", () => {
     const guide: SetupGuideContent = guideFor("install-script");
     const markdown: string = getSetupGuideMarkdown(guide);
-    expect(markdown).not.toContain("curl -fsSLO");
+    // The script downloads the files, also to upgrade.
+    for (const block of getSetupGuideCodeBlocks(guide)) {
+      expect(block).not.toContain("curl -fsSLO");
+    }
     expect(markdown).not.toContain("mkdir oneuptime-ceph-agent");
     expect(markdown).not.toContain(
       `CEPH_CLUSTER_NAME=${CEPH_EXAMPLE_CLUSTER_NAME}`,
@@ -872,15 +961,22 @@ describe("drift guards against agents/CephAgent", () => {
     }
   });
 
-  test("the install script writes every required variable to .env", () => {
+  test("the install script writes every variable of the table to .env, quoted for Compose", () => {
     const script: string = readAgentFile("install.sh");
     const rows: Map<string, { required: string; description: string }> =
       envTableRows(guideFor("install-script"));
-    for (const [name, row] of rows) {
-      if (row.required === "Yes") {
-        expect(script).toMatch(new RegExp(`^${name}=\\$${name}$`, "m"));
-      }
+    expect(rows.size).toBe(4);
+    for (const name of rows.keys()) {
+      expect(script).toContain(`\n${name}=$(compose_env_quote "$${name}")\n`);
     }
+  });
+
+  test("the install script reuses an existing .env instead of asking again", () => {
+    const script: string = readAgentFile("install.sh");
+    expect(script).toContain("reusing it.");
+    expect(script).toContain(
+      'printf -v "$name" \'%s\' "$(dotenv_get "$name" "$ENV_FILE")"',
+    );
   });
 
   test("the install script honours a preset URL and key, which prefilling relies on", () => {
@@ -936,6 +1032,31 @@ describe("drift guards against agents/CephAgent", () => {
     });
     expect(containers).toContain(CEPH_AGENT_CONTAINER);
     expect(containers).toContain(CEPH_AI_AGENT_CONTAINER);
+  });
+
+  /*
+   * The agent reports the collector it pins (oneuptime.agent.version): the
+   * compose file must run exactly that collector, never :latest, which
+   * would make the reported version a guess.
+   */
+  test("runs the pinned collector, and its config reports the pin", () => {
+    const compose: Record<string, any> = yaml.load(
+      readAgentFile("docker-compose.yml"),
+    ) as Record<string, any>;
+    const image: string = compose["services"]["oneuptime-ceph-agent"]["image"];
+    expect(image).toMatch(
+      /^otel\/opentelemetry-collector-contrib:\d+\.\d+\.\d+$/,
+    );
+    const pin: string = image.split(":")[1] as string;
+    expect(CEPH_AGENT_COLLECTOR_CONFIG).toContain(
+      `      - key: oneuptime.agent.version\n        value: "${pin}"\n        action: upsert\n`,
+    );
+  });
+
+  test("the install script recreates the containers, so a re-run starts the new config", () => {
+    expect(readAgentFile("install.sh")).toMatch(
+      /^docker compose up -d --force-recreate$/m,
+    );
   });
 
   test("the AI agent's client, keyring folder and status port are the compose file's", () => {

@@ -1,5 +1,7 @@
 import MeasurementStateReference from "../../../../Server/Utils/Measurement/MeasurementStateReference";
+import RelationIdUtil from "../../../../Server/Utils/Database/RelationIdUtil";
 import IncidentState from "../../../../Models/DatabaseModels/IncidentState";
+import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import { describe, expect, test } from "@jest/globals";
 
@@ -10,7 +12,9 @@ import { describe, expect, test } from "@jest/globals";
  * state picker sends the relation; the services only read the id column,
  * so every such measurement set up in the dashboard was refused with "Pick
  * the state this measurement starts from". These pin reading the state
- * from whichever the request sent.
+ * from whichever the request sent - and refusing a request whose two names
+ * hold different states, as every reference is refused
+ * (RelationIdUtil.readConsistent): the two are one database column.
  */
 
 const STATE_ID: string = "33333333-3333-4333-8333-333333333333";
@@ -75,6 +79,42 @@ describe("MeasurementStateReference.getStateIdForCreate", () => {
       }),
     ).toBeUndefined();
   });
+
+  test("reads one state named under both names, in any case", () => {
+    expect(
+      MeasurementStateReference.getStateIdForCreate({
+        stateId: new ObjectID(STATE_ID.toUpperCase()),
+        state: state(STATE_ID),
+      })?.toLowerCase(),
+    ).toBe(STATE_ID);
+  });
+
+  test("refuses two different states, naming both fields", () => {
+    expect(() => {
+      MeasurementStateReference.getStateIdForCreate({
+        stateId: new ObjectID(STATE_ID),
+        state: state(OTHER_STATE_ID),
+        stateIdKey: "startIncidentStateId",
+        stateKey: "startIncidentState",
+      });
+    }).toThrow(
+      new BadDataException(
+        RelationIdUtil.getConflictMessage("State", [
+          "startIncidentStateId",
+          "startIncidentState",
+        ]),
+      ),
+    );
+  });
+
+  test("refuses a state beside a clear", () => {
+    expect(() => {
+      MeasurementStateReference.getStateIdForCreate({
+        stateId: null,
+        state: state(STATE_ID),
+      });
+    }).toThrow(BadDataException);
+  });
 });
 
 describe("MeasurementStateReference.getStateIdForUpdate", () => {
@@ -102,8 +142,35 @@ describe("MeasurementStateReference.getStateIdForUpdate", () => {
     ).toBe(OTHER_STATE_ID);
   });
 
-  test("takes the state the update picks, from the id column, which wins over the relation", () => {
+  test("takes the state the update picks, from the id column", () => {
     expect(
+      MeasurementStateReference.getStateIdForUpdate({
+        update: {
+          startIncidentStateId: new ObjectID(OTHER_STATE_ID),
+        },
+        stateIdKey: "startIncidentStateId",
+        stateKey: "startIncidentState",
+        storedStateId: stored,
+      }),
+    ).toBe(OTHER_STATE_ID);
+  });
+
+  test("takes one state the update names under both names", () => {
+    expect(
+      MeasurementStateReference.getStateIdForUpdate({
+        update: {
+          startIncidentStateId: new ObjectID(OTHER_STATE_ID),
+          startIncidentState: state(OTHER_STATE_ID),
+        },
+        stateIdKey: "startIncidentStateId",
+        stateKey: "startIncidentState",
+        storedStateId: stored,
+      }),
+    ).toBe(OTHER_STATE_ID);
+  });
+
+  test("refuses an update naming two different states, naming both fields", () => {
+    expect(() => {
       MeasurementStateReference.getStateIdForUpdate({
         update: {
           startIncidentStateId: new ObjectID(OTHER_STATE_ID),
@@ -112,8 +179,29 @@ describe("MeasurementStateReference.getStateIdForUpdate", () => {
         stateIdKey: "startIncidentStateId",
         stateKey: "startIncidentState",
         storedStateId: stored,
-      }),
-    ).toBe(OTHER_STATE_ID);
+      });
+    }).toThrow(
+      new BadDataException(
+        RelationIdUtil.getConflictMessage("State", [
+          "startIncidentStateId",
+          "startIncidentState",
+        ]),
+      ),
+    );
+  });
+
+  test("refuses an update clearing the state under one name and naming one under the other", () => {
+    expect(() => {
+      MeasurementStateReference.getStateIdForUpdate({
+        update: {
+          startIncidentStateId: null,
+          startIncidentState: state(STATE_ID),
+        },
+        stateIdKey: "startIncidentStateId",
+        stateKey: "startIncidentState",
+        storedStateId: stored,
+      });
+    }).toThrow(BadDataException);
   });
 
   test("an update that clears the state leaves none, rather than the stored one", () => {

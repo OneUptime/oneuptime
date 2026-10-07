@@ -38,6 +38,23 @@ import {
 } from "../../../../Types/Rum/WebVitals";
 import ServiceType from "../../../../Types/Telemetry/ServiceType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { TelemetryReadScope } from "../../../../Server/Utils/Telemetry/TelemetryReadScope";
+
+/*
+ * The read scope a caller's grants give, as the analytics permission layer
+ * hands it to the tools (ModelPermission.getReadScope): null reads every
+ * service, a list only those.
+ */
+function readScopeOf(ids: Array<ObjectID> | null): TelemetryReadScope {
+  return {
+    readableIds: ids
+      ? ids.map((id: ObjectID): string => {
+          return id.toString();
+        })
+      : null,
+    blockedIds: [],
+  };
+}
 
 const projectId: ObjectID = new ObjectID(
   "11111111-1111-1111-1111-111111111111",
@@ -702,6 +719,58 @@ describe("RUM tools through the real toolbox authorization and execution path", 
     },
   );
 
+  /*
+   * The vitals are metric data points: reading the application is not
+   * enough, its metrics have to be readable too, or the tool is refused
+   * before it reads anything rather than failing inside the metric query.
+   */
+  test.each([
+    [[Permission.ReadRumApplication]],
+    [[Permission.ReadRumApplication, Permission.ReadTelemetryServiceTraces]],
+    [[Permission.ReadRumApplication, Permission.ReadTelemetryServiceLog]],
+  ])(
+    "query_rum_web_vitals is refused to %j, who may not read metrics, before any data access",
+    async (allowed: Array<Permission>) => {
+      const findOne: jest.SpyInstance = jest
+        .spyOn(RumApplicationService, "findOneBy")
+        .mockResolvedValue(application());
+      const fetch: jest.SpyInstance = jest
+        .spyOn(MetricService, "aggregateBy")
+        .mockResolvedValue(aggregate({}));
+
+      const outcome: ToolCallOutcome = await AIToolbox.executeTool({
+        name: "query_rum_web_vitals",
+        args: args,
+        ctx: context(allowed),
+      });
+
+      expect(outcome.success).toBe(false);
+      expect(findOne).not.toHaveBeenCalled();
+      expect(fetch).not.toHaveBeenCalled();
+    },
+  );
+
+  test("query_rum_web_vitals runs for who may read the application and its metrics", async () => {
+    jest
+      .spyOn(RumApplicationService, "findOneBy")
+      .mockResolvedValue(application());
+    const fetch: jest.SpyInstance = jest
+      .spyOn(MetricService, "aggregateBy")
+      .mockResolvedValue(aggregate({ "web_vital.lcp": 3000 }));
+
+    const outcome: ToolCallOutcome = await AIToolbox.executeTool({
+      name: "query_rum_web_vitals",
+      args: args,
+      ctx: context([
+        Permission.ReadRumApplication,
+        Permission.ReadTelemetryServiceMetrics,
+      ]),
+    });
+
+    expect(outcome.success).toBe(true);
+    expect(fetch).toHaveBeenCalled();
+  });
+
   test.each(["query_rum_applications", "query_rum_web_vitals"])(
     "denies %s for cross-project and multi-tenant contexts",
     async (name: string) => {
@@ -748,8 +817,8 @@ describe("RUM browser trace scoping", () => {
     "intersects an application request with owned/label-scoped analytics access",
     async (allowed: unknown, expected: unknown) => {
       jest
-        .spyOn(ModelPermission, "getAccessibleServiceIdsForAnalyticsModel")
-        .mockResolvedValue(allowed as Array<ObjectID>);
+        .spyOn(ModelPermission, "getReadScope")
+        .mockResolvedValue(readScopeOf(allowed as Array<ObjectID>));
       const query: jest.SpyInstance = jest
         .spyOn(TraceAggregationService, "getAnalyticsTable")
         .mockResolvedValue([]);

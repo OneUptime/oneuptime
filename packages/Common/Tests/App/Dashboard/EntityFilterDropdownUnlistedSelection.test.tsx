@@ -290,6 +290,7 @@ describe("EntityFilterDropdown keeps a saved selection past the list's row cap",
     EntityFilterModelType.ProxmoxCluster,
     EntityFilterModelType.VMwareVCenter,
     EntityFilterModelType.CephCluster,
+    EntityFilterModelType.StorageArray,
     EntityFilterModelType.DockerSwarmCluster,
     EntityFilterModelType.NetworkSiteType,
   ])(

@@ -9,6 +9,11 @@
  * that QueueWorkflow.addWorkflowToQueue was NEVER called. An error response on
  * its own would not prove the work was stopped.
  *
+ * Who may: the workflow's editors (WORKFLOW_EDIT_PERMISSIONS, the Workflow
+ * model's update list), on a workflow they may change - the update scope of
+ * their grants. A Workflow Member runs whole workflows (the manual run) but
+ * not one step on its own, which skips every condition before it.
+ *
  * The route deliberately enqueues rather than executing inline. Everything the
  * queue enforces — the workflow being enabled, a paid subscription, the plan's
  * run limit, a WorkflowLog for the audit trail, and running on a worker rather
@@ -40,6 +45,11 @@ import Permission, {
   UserTenantAccessPermission,
 } from "Common/Types/Permission";
 import UserType from "Common/Types/UserType";
+import {
+  WORKFLOW_EDIT_PERMISSIONS,
+  WORKFLOW_RUN_PERMISSIONS,
+  WORKFLOW_STEP_RUN_REFUSED_MESSAGE,
+} from "Common/Types/Workflow/WorkflowRunPermissions";
 import {
   afterEach,
   beforeAll,
@@ -214,6 +224,8 @@ type BuildPropsFunction = (data: {
   projectId: ObjectID;
   userId: ObjectID;
   permissions: Array<Permission>;
+  // Permissions a team holds as blocks with no labels.
+  blocked?: Array<Permission> | undefined;
   isMasterAdmin?: boolean | undefined;
 }) => DatabaseCommonInteractionProps;
 
@@ -221,6 +233,7 @@ const buildUserProps: BuildPropsFunction = (data: {
   projectId: ObjectID;
   userId: ObjectID;
   permissions: Array<Permission>;
+  blocked?: Array<Permission> | undefined;
   isMasterAdmin?: boolean | undefined;
 }): DatabaseCommonInteractionProps => {
   const permissionMap: Dictionary<UserTenantAccessPermission> = {};
@@ -228,15 +241,27 @@ const buildUserProps: BuildPropsFunction = (data: {
   permissionMap[data.projectId.toString()] = {
     _type: "UserTenantAccessPermission",
     projectId: data.projectId,
-    permissions: data.permissions.map((permission: Permission) => {
-      const userPermission: UserPermission = {
-        _type: "UserPermission",
-        permission: permission,
-        labelIds: [],
-      };
+    permissions: [
+      ...data.permissions.map((permission: Permission) => {
+        const userPermission: UserPermission = {
+          _type: "UserPermission",
+          permission: permission,
+          labelIds: [],
+        };
 
-      return userPermission;
-    }),
+        return userPermission;
+      }),
+      ...(data.blocked || []).map((permission: Permission) => {
+        const userPermission: UserPermission = {
+          _type: "UserPermission",
+          permission: permission,
+          labelIds: [],
+          isBlockPermission: true,
+        };
+
+        return userPermission;
+      }),
+    ],
   } as UserTenantAccessPermission;
 
   return {
@@ -256,6 +281,7 @@ describe("POST /workflow/run-step/:workflowId", () => {
 
   let getPropsSpy: jest.SpyInstance;
   let findOneByIdSpy: jest.SpyInstance;
+  let findOneUpdatableByIdSpy: jest.SpyInstance;
   let addWorkflowToQueueSpy: jest.SpyInstance;
 
   beforeAll(() => {
@@ -273,6 +299,15 @@ describe("POST /workflow/run-step/:workflowId", () => {
 
     getPropsSpy = jest.spyOn(CommonAPI, "getDatabaseCommonInteractionProps");
     findOneByIdSpy = jest.spyOn(WorkflowService, "findOneById");
+    // The caller may change the workflow unless a test says otherwise.
+    findOneUpdatableByIdSpy = jest
+      .spyOn(WorkflowService, "findOneUpdatableById")
+      .mockImplementation(async () => {
+        const workflow: WorkflowModel = new WorkflowModel();
+        workflow.id = workflowId;
+
+        return workflow as never;
+      });
     addWorkflowToQueueSpy = jest
       .spyOn(QueueWorkflow, "addWorkflowToQueue")
       .mockResolvedValue(undefined as never);
@@ -348,7 +383,7 @@ describe("POST /workflow/run-step/:workflowId", () => {
       );
     });
 
-    test("lets a master admin through", async () => {
+    test("lets a master admin through, without asking what their grants reach", async () => {
       getPropsSpy.mockResolvedValue(
         buildUserProps({
           projectId: callerProjectId,
@@ -358,10 +393,99 @@ describe("POST /workflow/run-step/:workflowId", () => {
         }) as never,
       );
       mockWorkflowInProject(callerProjectId);
+      findOneUpdatableByIdSpy.mockResolvedValue(null as never);
 
       await callRunStepRoute({ workflowId: workflowId.toString() });
 
+      expect(findOneUpdatableByIdSpy).not.toHaveBeenCalled();
       expect(addWorkflowToQueueSpy).toHaveBeenCalledTimes(1);
+    });
+
+    test("the step list is exactly the Workflow model's update list, in its order", () => {
+      expect([...WORKFLOW_EDIT_PERMISSIONS]).toEqual(
+        new WorkflowModel().getUpdatePermissions(),
+      );
+    });
+
+    test.each([...WORKFLOW_EDIT_PERMISSIONS])(
+      "lets a caller holding %s run a step of a workflow they may change",
+      async (permission: Permission) => {
+        getPropsSpy.mockResolvedValue(
+          buildUserProps({
+            projectId: callerProjectId,
+            userId: callerUserId,
+            permissions: [permission],
+          }) as never,
+        );
+        mockWorkflowInProject(callerProjectId);
+
+        const result: RouteCallResult = await callRunStepRoute({
+          workflowId: workflowId.toString(),
+        });
+
+        expect(result.thrownToNext).toBeUndefined();
+        expect(addWorkflowToQueueSpy).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    // The wildcard that edits every operational resource runs a step too.
+    test("lets Edit All Operational Resources run a step", async () => {
+      getPropsSpy.mockResolvedValue(
+        buildUserProps({
+          projectId: callerProjectId,
+          userId: callerUserId,
+          permissions: [Permission.EditAllOperationalResources],
+        }) as never,
+      );
+      mockWorkflowInProject(callerProjectId);
+
+      const result: RouteCallResult = await callRunStepRoute({
+        workflowId: workflowId.toString(),
+      });
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(addWorkflowToQueueSpy).toHaveBeenCalledTimes(1);
+    });
+
+    /*
+     * Whether the caller may change THIS workflow is the update scope of
+     * their grants - labels, owned scope, blocks - asked with their own
+     * props, once its project has matched.
+     */
+    test("asks whether the caller may change this workflow, with their own props", async () => {
+      const props: DatabaseCommonInteractionProps = buildUserProps({
+        projectId: callerProjectId,
+        userId: callerUserId,
+        permissions: [Permission.WorkflowAdmin],
+      });
+
+      getPropsSpy.mockResolvedValue(props as never);
+      mockWorkflowInProject(callerProjectId);
+
+      await callRunStepRoute({ workflowId: workflowId.toString() });
+
+      expect(findOneUpdatableByIdSpy).toHaveBeenCalledTimes(1);
+
+      const args: { id: ObjectID; props: DatabaseCommonInteractionProps } =
+        findOneUpdatableByIdSpy.mock.calls[0]![0] as {
+          id: ObjectID;
+          props: DatabaseCommonInteractionProps;
+        };
+
+      expect(args.id.toString()).toBe(workflowId.toString());
+      expect(args.props).toBe(props);
+
+      // The project comes off the row, read as OneUptime, before that.
+      const projectRead: {
+        select: Dictionary<boolean>;
+        props: Dictionary<boolean>;
+      } = findOneByIdSpy.mock.calls[0]![0] as {
+        select: Dictionary<boolean>;
+        props: Dictionary<boolean>;
+      };
+
+      expect(projectRead.select).toEqual({ projectId: true });
+      expect(projectRead.props["isRoot"]).toBe(true);
     });
   });
 
@@ -470,6 +594,106 @@ describe("POST /workflow/run-step/:workflowId", () => {
       );
     });
 
+    /*
+     * A Workflow Member may run the whole workflow, from its trigger, but
+     * not one step on its own: that skips every condition before it, so it
+     * is a builder's test.
+     */
+    test("the caller is a Workflow Member, who runs whole workflows only", async () => {
+      expect(WORKFLOW_RUN_PERMISSIONS).toContain(Permission.WorkflowMember);
+      expect(WORKFLOW_EDIT_PERMISSIONS).not.toContain(
+        Permission.WorkflowMember,
+      );
+
+      getPropsSpy.mockResolvedValue(
+        buildUserProps({
+          projectId: callerProjectId,
+          userId: callerUserId,
+          permissions: [Permission.WorkflowMember],
+        }) as never,
+      );
+      mockWorkflowInProject(callerProjectId);
+
+      const result: RouteCallResult = await callRunStepRoute({
+        workflowId: workflowId.toString(),
+      });
+
+      expect(addWorkflowToQueueSpy).not.toHaveBeenCalled();
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect((result.thrownToNext as NotAuthorizedException).message).toBe(
+        WORKFLOW_STEP_RUN_REFUSED_MESSAGE,
+      );
+      // Refused before anything is read.
+      expect(findOneByIdSpy).not.toHaveBeenCalled();
+      expect(findOneUpdatableByIdSpy).not.toHaveBeenCalled();
+    });
+
+    test("the caller's edit grants do not reach this workflow", async () => {
+      getPropsSpy.mockResolvedValue(
+        buildUserProps({
+          projectId: callerProjectId,
+          userId: callerUserId,
+          permissions: [Permission.EditWorkflow],
+        }) as never,
+      );
+      mockWorkflowInProject(callerProjectId);
+      findOneUpdatableByIdSpy.mockResolvedValue(null as never);
+
+      const result: RouteCallResult = await callRunStepRoute({
+        workflowId: workflowId.toString(),
+      });
+
+      expect(addWorkflowToQueueSpy).not.toHaveBeenCalled();
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect((result.thrownToNext as NotAuthorizedException).message).toBe(
+        WORKFLOW_STEP_RUN_REFUSED_MESSAGE,
+      );
+    });
+
+    test("the caller is blocked on one of the workflow's labels", async () => {
+      getPropsSpy.mockResolvedValue(
+        buildUserProps({
+          projectId: callerProjectId,
+          userId: callerUserId,
+          permissions: [Permission.EditWorkflow],
+        }) as never,
+      );
+      mockWorkflowInProject(callerProjectId);
+      findOneUpdatableByIdSpy.mockRejectedValue(
+        new NotAuthorizedException("blocked on the label Payments") as never,
+      );
+
+      const result: RouteCallResult = await callRunStepRoute({
+        workflowId: workflowId.toString(),
+      });
+
+      expect(addWorkflowToQueueSpy).not.toHaveBeenCalled();
+      expect((result.thrownToNext as NotAuthorizedException).message).toBe(
+        WORKFLOW_STEP_RUN_REFUSED_MESSAGE,
+      );
+    });
+
+    // Only an allow row grants, and a block with no labels takes it away.
+    test("the caller's edit grant is blocked with no labels on another team", async () => {
+      getPropsSpy.mockResolvedValue(
+        buildUserProps({
+          projectId: callerProjectId,
+          userId: callerUserId,
+          permissions: [Permission.EditWorkflow],
+          blocked: [Permission.EditWorkflow],
+        }) as never,
+      );
+      mockWorkflowInProject(callerProjectId);
+
+      const result: RouteCallResult = await callRunStepRoute({
+        workflowId: workflowId.toString(),
+      });
+
+      expect(addWorkflowToQueueSpy).not.toHaveBeenCalled();
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(findOneByIdSpy).not.toHaveBeenCalled();
+    });
+
     test("the caller holds no permission on the claimed project", async () => {
       getPropsSpy.mockResolvedValue(
         buildUserProps({
@@ -510,6 +734,28 @@ describe("POST /workflow/run-step/:workflowId", () => {
     });
 
     /*
+     * Deleting workflows is not editing one, and running a step needs what
+     * editing the workflow needs.
+     */
+    test("the caller may only delete workflows", async () => {
+      getPropsSpy.mockResolvedValue(
+        buildUserProps({
+          projectId: callerProjectId,
+          userId: callerUserId,
+          permissions: [Permission.DeleteWorkflow],
+        }) as never,
+      );
+      mockWorkflowInProject(callerProjectId);
+
+      const result: RouteCallResult = await callRunStepRoute({
+        workflowId: workflowId.toString(),
+      });
+
+      expect(addWorkflowToQueueSpy).not.toHaveBeenCalled();
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+    });
+
+    /*
      * The claimed tenant comes from a caller-supplied header, so being a
      * legitimate member of SOME project cannot be enough.
      */
@@ -529,6 +775,11 @@ describe("POST /workflow/run-step/:workflowId", () => {
 
       expect(addWorkflowToQueueSpy).not.toHaveBeenCalled();
       expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      /*
+       * The update check names a row's labels when it refuses, so it is
+       * never asked about another project's workflow.
+       */
+      expect(findOneUpdatableByIdSpy).not.toHaveBeenCalled();
     });
 
     /*

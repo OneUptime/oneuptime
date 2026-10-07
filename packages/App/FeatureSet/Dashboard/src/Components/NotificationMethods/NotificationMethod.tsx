@@ -13,7 +13,6 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
 import ObjectID from "Common/Types/ObjectID";
-import Permission from "Common/Types/Permission";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -21,7 +20,6 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import NotificationMethodUtil, {
@@ -52,6 +50,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 
 export interface ComponentProps {
   item: BaseModel;
@@ -1186,9 +1185,8 @@ const canDeleteModel: CanDeleteFunction = <
     return true;
   }
 
-  const permissions: Array<Permission> = PermissionUtil.getAllPermissions();
-
-  return new modelType().hasDeletePermissions(permissions);
+  // The model's delete gate, read the way the server reads it.
+  return PermissionGate.check(new modelType(), ModelAction.Delete).isAllowed;
 };
 
 export function useNotificationMethodDeleteGuard<TBaseModel extends BaseModel>(

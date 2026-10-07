@@ -44,8 +44,10 @@ import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorStepMetricViewConfigUtil from "Common/Types/Monitor/MonitorStepMetricViewConfigUtil";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
+import { isFilterConditionNeeded } from "Common/Types/Filter/FilterConditionUtil";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import CriteriaNameUtil from "../../../Utils/Form/Monitor/CriteriaName";
+import { getCriteriaFilterCountText } from "../../../Utils/Form/Monitor/CriteriaFilterCount";
 
 export interface ComponentProps {
   monitorStatusDropdownOptions: Array<DropdownOption>;
@@ -123,14 +125,23 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
     ObjectID | undefined
   >(monitorCriteriaInstance?.data?.monitorStatusId);
 
-  const filterConditionOptions: Array<DropdownOption> =
-    DropdownUtil.getDropdownOptionsFromEnum(FilterCondition);
-
   const translator: Translator = useTranslator();
+
+  // All, then Any, each in the reader's language.
+  const filterConditionOptions: Array<DropdownOption> =
+    DropdownUtil.getDropdownOptionsFromEnum(FilterCondition).map(
+      (option: DropdownOption): DropdownOption => {
+        return {
+          ...option,
+          label: translator.translateText(option.label) || option.label,
+        };
+      },
+    );
 
   // Ties each label to its field, so a screen reader names the field.
   const nameInputId: string = useId();
   const descriptionInputId: string = useId();
+  const filterConditionLabelId: string = useId();
 
   /*
    * The name the filters give this criteria. A criteria added with "Add
@@ -257,12 +268,15 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
     }
   };
 
-  // Calculate summary information for badges
-  const filterCount: number =
-    monitorCriteriaInstance?.data?.filters?.length || 0;
-  const filterCondition: FilterCondition =
-    monitorCriteriaInstance?.data?.filterCondition || FilterCondition.All;
-  const filterSummary: string = `${filterCount} filter${filterCount !== 1 ? "s" : ""}${filterCount > 1 ? `, ${filterCondition === FilterCondition.All ? "ALL" : "ANY"} match` : ""}`;
+  /*
+   * What the folded Filters section says: how many filters, and how they
+   * combine once there are two - as the criteria's own folded header says.
+   */
+  const filterSummary: string = getCriteriaFilterCountText({
+    translator: translator,
+    filters: monitorCriteriaInstance?.data?.filters,
+    filterCondition: monitorCriteriaInstance?.data?.filterCondition,
+  });
 
   // Calculate actions summary
   const getActionsSummary: () => string = (): string => {
@@ -381,38 +395,6 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
         className="mb-4"
       >
         <div>
-          <div className="mb-3">
-            <FieldLabelElement
-              title={
-                props.monitorType === MonitorType.Kubernetes ||
-                props.monitorType === MonitorType.Metrics
-                  ? "Match Condition"
-                  : "Filter Condition"
-              }
-              description={
-                props.monitorType === MonitorType.Kubernetes ||
-                props.monitorType === MonitorType.Metrics
-                  ? "Should all rules match, or just any one of them?"
-                  : "Select All if you want all the criteria to be met. Select any if you like any criteria to be met."
-              }
-              required={true}
-            />
-            <Radio
-              value={
-                monitorCriteriaInstance?.data?.filterCondition ||
-                FilterCondition.All
-              }
-              options={filterConditionOptions}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                changeFilters({
-                  filterCondition: value as FilterCondition,
-                });
-              }}
-            />
-          </div>
-
           <NetworkDeviceCriteriaCatalogueContext.Provider
             value={networkDeviceCatalogue}
           >
@@ -431,6 +413,48 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
               }}
             />
           </NetworkDeviceCriteriaCatalogueContext.Provider>
+
+          {/*
+           * All or Any, once there are two filters to combine
+           * (isFilterConditionNeeded): with one, a criteria is met when that
+           * filter is, whichever is picked. Below the filters, so it
+           * appears without moving the filter just added. Hidden, the
+           * criteria keeps the condition it holds - All for a new one - and
+           * is saved with it.
+           */}
+          {isFilterConditionNeeded(monitorCriteriaInstance?.data?.filters) && (
+            <div
+              className="mt-4"
+              data-testid="monitor-criteria-filter-condition"
+            >
+              <FieldLabelElement
+                id={filterConditionLabelId}
+                title="Match Condition"
+                description={
+                  props.monitorType === MonitorType.Kubernetes ||
+                  props.monitorType === MonitorType.Metrics
+                    ? "Should all rules match, or just any one of them?"
+                    : "Should all filters match, or just any one of them?"
+                }
+                required={true}
+              />
+              <Radio
+                ariaLabelledby={filterConditionLabelId}
+                value={
+                  monitorCriteriaInstance?.data?.filterCondition ||
+                  FilterCondition.All
+                }
+                options={filterConditionOptions}
+                onChange={(
+                  value: DropdownValue | Array<DropdownValue> | null,
+                ) => {
+                  changeFilters({
+                    filterCondition: value as FilterCondition,
+                  });
+                }}
+              />
+            </div>
+          )}
         </div>
       </CollapsibleSection>
 

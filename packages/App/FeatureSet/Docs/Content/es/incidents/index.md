@@ -49,7 +49,7 @@ Esa distinción importa más de lo que parece:
 
 - `isCreatedState` decide dónde empieza un incidente nuevo. Si no se selecciona un estado explícitamente al crearlo, OneUptime busca el estado de creación del proyecto y lo usa.
 - `isAcknowledgedState` e `isResolvedState` gobiernan los botones **Acknowledge** y **Resolver** de la cabecera del incidente, los dos mosaicos de estadísticas de la **Vista General** y la insignia con el recuento de **Incidentes Activos** del menú lateral.
-- **Incidentes Activos** se define única y exclusivamente como «el estado actual no es el estado resuelto». Por tanto, cualquier estado propio que añadas cuenta como activo salvo que sea el resuelto.
+- **Incidentes Activos** se define única y exclusivamente como «el estado actual está por encima del estado resuelto». Por tanto, un estado propio que añadas por encima del estado resuelto cuenta como activo; uno que coloques después cuenta como resuelto, igual que el estado resuelto.
 
 **Fíjate en el nombre.** El primer estado inicial se llama **Identificado**, aunque varias descripciones dentro del producto lo siguen llamando estado de creación. Si buscas «Created» en la lista de estados de tu proyecto, es la fila llamada **Identificado**.
 
@@ -102,7 +102,7 @@ Quienes responden reconocen el incidente, adjuntan recursos afectados, ejecutan 
 
 ### 4. Se resuelve
 
-Hacer clic en **Resolver** mueve el incidente al estado resuelto, sella la línea de tiempo de estado, detiene el reloj de duración y retira el incidente de la sección activa de cualquier página de estado en la que se estuviera mostrando. No hace falta cambiar nada más: el indicador de estado resuelto es lo que mira la consulta de la página de estado.
+Hacer clic en **Resolver** mueve el incidente al estado resuelto, sella la línea de tiempo de estado, detiene el reloj de duración, devuelve los monitores que retiene y retira el incidente de la sección activa de cualquier página de estado en la que se estuviera mostrando. No hace falta cambiar nada más: una página de estado solo muestra incidentes en un estado por encima del estado resuelto. Consulta [Estados y severidades de incidentes](/docs/incidents/states-and-severities).
 
 A partir de ahí puedes escribir un post mortem y, si quieres, publicarlo en la página de estado.
 
@@ -112,13 +112,14 @@ Abre **Incidentes** en la navegación lateral. Su menú lateral está organizado
 
 | Sección                    | Qué haces ahí                                                                                                                                                     |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Vista General**          | **Todos los Incidentes** e **Incidentes Activos**; esta última lleva una insignia roja con el recuento de incidentes que no están en el estado resuelto.           |
+| **Vista General**          | **Todos los Incidentes** e **Incidentes Activos**; esta última lleva una insignia roja con el recuento de incidentes en un estado por encima del estado resuelto.           |
 | **Episodios**              | Los episodios de incidente, una funcionalidad de agrupación aparte con sus propias páginas.                                                                        |
+| **IA** | **Análisis**, **Registros**, **Ajustes**, **Reglas de autorremediación**: lo que OneUptime AI aprendió de tus incidentes y todo lo que hizo con ellos, lo que puede hacer por su cuenta y las reglas que corrigen incidentes con runbooks. Consulta [AI SRE](/docs/ai/ai-sre). |
 | **Espacio de trabajo**     | Las conexiones de **Slack** y **Microsoft Teams** para incidentes.                                                                                                |
-| **Reglas**                 | Los motores de reglas: **Reglas de Agrupación**, **Reglas de guardia**, **Reglas del propietario**, **Reglas de runbook**, **Reglas de autorremediación**, **Reglas de privacidad**, **Reglas de etiquetas**, **Reglas de SLA**, **Reminder Rules**. |
-| **Ajustes**                | **IA**, **Estado del Incidente**, **Gravedad del Incidente**, **Plantillas de Incidentes**, **Plantillas de Notas**, **Plantillas Post-mortem**, **Campos Personalizados**, **Roles de Incidente**, **Prefijo de número**. |
+| **Reglas**                 | Los motores de reglas: **Reglas de Agrupación**, **Reglas de guardia**, **Reglas del propietario**, **Reglas de runbook**, **Reglas de privacidad**, **Reglas de etiquetas**, **Reglas de SLA**, **Reminder Rules**. |
+| **Ajustes**                | **Estado del Incidente**, **Gravedad del Incidente**, **Plantillas de Incidentes**, **Plantillas de Notas**, **Plantillas Post-mortem**, **Campos Personalizados**, **Roles de Incidente**, **Prefijo de número**. |
 
-**Reglas** y **Ajustes** aparecen contraídos de forma predeterminada: despliégalos para encontrar las páginas a las que se refiere el resto de esta documentación. La configuración de incidentes no está bajo Ajustes del proyecto; vive toda aquí.
+**IA**, **Reglas** y **Ajustes** aparecen contraídos de forma predeterminada: despliégalos para encontrar las páginas a las que se refiere el resto de esta documentación. La configuración de incidentes no está bajo Ajustes del proyecto; vive toda aquí.
 
 La propia lista de incidentes muestra **Número de incidente**, **Título**, **Estado**, **Gravedad**, **Recursos afectados**, **Declarado**, **Duración**, **Etiquetas** y **Propietarios**, con una acción masiva **Cambiar estado** para cerrar varios de golpe.
 
@@ -144,7 +145,7 @@ Abre un incidente y tendrás un menú lateral izquierdo, agrupado así:
 - **Los monitores detectan el problema; los incidentes lo registran.** Una regla de criterios de monitor puede declarar un incidente automáticamente, rellenando de antemano título, severidad, políticas de guardia, propietarios, etiquetas y notas de remediación. Las variables disponibles ahí están en [Plantillas de incidentes y alertas](/docs/monitor/incident-alert-templating).
 - **Las políticas de guardia son las que avisan.** Adjunta políticas en el paso **De guardia** del asistente de declaración, en una plantilla, o mediante **Incidentes → Reglas → Reglas de guardia**. Se dispara toda regla coincidente: el conjunto ejecutado es la unión de todas las coincidencias más lo adjuntado directamente, sin duplicados.
 - **Los runbooks le dicen a la gente qué hacer.** Las reglas de runbook adjuntan un procedimiento automáticamente cuando se crea un incidente coincidente, y quienes responden pueden iniciar uno a mano desde el incidente. Consulta [Visión general de los Runbooks](/docs/runbooks/index).
-- **Las páginas de estado informan a los clientes.** Un incidente aparece en la lista activa de una página de estado cuando la página tiene los incidentes activados, el incidente está marcado como visible en la página de estado y su estado actual no es el resuelto. Los incidentes privados quedan ocultos en todas las páginas de estado, siempre. Consulta [Visión general de las páginas de estado](/docs/status-pages/index).
+- **Las páginas de estado informan a los clientes.** Un incidente aparece en la lista activa de una página de estado cuando la página tiene los incidentes activados, el incidente está marcado como visible en la página de estado y su estado actual está por encima del estado resuelto. Los incidentes privados quedan ocultos en todas las páginas de estado, siempre. Consulta [Visión general de las páginas de estado](/docs/status-pages/index).
 - **Los flujos de trabajo automatizan alrededor.** Los disparadores **On Create Incident**, **On Update Incident** y **On Delete Incident** te permiten construir automatización sin código sobre el ciclo de vida del incidente. Consulta [Visión general de los flujos de trabajo](/docs/workflows/index).
 
 ## Qué leer a continuación

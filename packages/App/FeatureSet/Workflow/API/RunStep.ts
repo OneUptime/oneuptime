@@ -1,17 +1,10 @@
 import QueueWorkflow from "../Services/QueueWorkflow";
+import WorkflowRunAccess from "../Utils/WorkflowRunAccess";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import ObjectID from "Common/Types/ObjectID";
-import Permission, {
-  PermissionHelper,
-  UserPermission,
-  UserTenantAccessPermission,
-} from "Common/Types/Permission";
 import CommonAPI from "Common/Server/API/CommonAPI";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
-import WorkflowService from "Common/Server/Services/WorkflowService";
-import Workflow from "Common/Models/DatabaseModels/Workflow";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -91,39 +84,28 @@ export default class RunStepAPI {
         await CommonAPI.getDatabaseCommonInteractionProps(req);
 
       /*
-       * Same four gates as the manual run, in the same order and for the same
-       * reasons — see App/FeatureSet/Workflow/API/Manual.ts. getUserMiddleware
-       * is a context loader rather than a gate, so an unauthenticated request
-       * reaches here tagged Public; this route runs component code, so it has
-       * to prove the caller itself.
+       * The manual run's gates, in the same order and for the same reasons -
+       * see App/FeatureSet/Workflow/API/Manual.ts - with the permission an
+       * edit takes. getUserMiddleware is a context loader rather than a gate,
+       * so an unauthenticated request reaches here tagged Public; this route
+       * runs component code, so it has to prove the caller itself.
        */
       const projectId: ObjectID =
         CommonAPI.assertAuthenticatedProjectMember(databaseProps);
 
       /*
-       * The tenant above is only the project the caller claimed in the header.
-       * Take the owning project off the workflow row and require the two to
-       * match, so a member of project A cannot reach project B's workflow by
-       * sending their own header.
+       * Running one step on its own skips every step and condition before
+       * it, so it can do what the workflow as built never would: a builder's
+       * test, which takes permission to edit this workflow - Workflow
+       * Members, who may run the whole workflow, may not run one step of it.
+       * The tenant above is only the project the caller claimed in the
+       * header, so the workflow's own project must match it, and the
+       * workflow must be one the caller may change (WorkflowRunAccess).
        */
-      const workflow: Workflow | null = await WorkflowService.findOneById({
-        id: workflowId,
-        select: {
-          projectId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      CommonAPI.assertResourceBelongsToProject({
-        resourceProjectId: workflow?.projectId,
-        projectId: projectId,
-      });
-
-      RunStepAPI.assertCallerCanRunWorkflow({
+      await WorkflowRunAccess.assertMayRunStep({
         databaseProps: databaseProps,
         projectId: projectId,
+        workflowId: workflowId,
       });
 
       await QueueWorkflow.addWorkflowToQueue({
@@ -137,43 +119,6 @@ export default class RunStepAPI {
       });
     } catch (err) {
       next(err);
-    }
-  }
-
-  /*
-   * Running one step executes component code inside the project just as a full
-   * run does, so it is gated on the same write-level permissions as updating
-   * the Workflow model — identical to the manual run. Anyone who can reach the
-   * builder's settings panel already holds these.
-   */
-  private static assertCallerCanRunWorkflow(data: {
-    databaseProps: DatabaseCommonInteractionProps;
-    projectId: ObjectID;
-  }): void {
-    if (data.databaseProps.isMasterAdmin) {
-      return;
-    }
-
-    const tenantPermission: UserTenantAccessPermission | undefined =
-      data.databaseProps.userTenantAccessPermission?.[
-        data.projectId.toString()
-      ];
-
-    const callerPermissions: Array<Permission> = (
-      tenantPermission?.permissions || []
-    ).map((userPermission: UserPermission) => {
-      return userPermission.permission;
-    });
-
-    if (
-      !PermissionHelper.doesPermissionsIntersect(
-        callerPermissions,
-        new Workflow().getUpdatePermissions(),
-      )
-    ) {
-      throw new NotAuthorizedException(
-        "You do not have permission to run this workflow.",
-      );
     }
   }
 }

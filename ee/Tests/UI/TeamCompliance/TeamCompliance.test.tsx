@@ -175,7 +175,7 @@ const CALL_LABEL: string =
   "Call for incidents (Critical Incident and Major Incident)";
 
 const CALL_WARNING: string =
-  "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. Turn them on in Project Settings > Notification Settings.";
+  "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notification Settings.";
 
 interface Deferred<T> {
   promise: Promise<T>;
@@ -1178,6 +1178,15 @@ describe("the verdict", () => {
 });
 
 describe("rule warnings", () => {
+  /*
+   * The banner's link to the switches is for the people who may flip them:
+   * a project owner, or someone with Manage Billing. These tests read as one
+   * of them unless they say otherwise.
+   */
+  beforeEach(() => {
+    mockPermissions = [Permission.ProjectOwner];
+  });
+
   test("a rule on a channel the project has switched off", async () => {
     const status: TeamComplianceStatusJSON = standardStatus();
     status.complianceSettings[1]!.warnings = [CALL_WARNING];
@@ -1200,6 +1209,75 @@ describe("rule warnings", () => {
     expect(
       within(ruleRow(CALL_RULE_ID)).getByTestId("compliance-rule-warning-chip"),
     ).toHaveAttribute("aria-label", `Warning: ${CALL_WARNING}`);
+  });
+
+  test("someone with Manage Billing gets the link to the switches too", async () => {
+    mockPermissions = [Permission.ManageProjectBilling];
+
+    const status: TeamComplianceStatusJSON = standardStatus();
+    status.complianceSettings[1]!.warnings = [CALL_WARNING];
+
+    await renderPage(status);
+
+    expect(
+      within(screen.getByTestId("compliance-rule-warnings")).getByRole("link", {
+        name: /Open notification settings/,
+      }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID.toString()}/settings/notification-settings`,
+    );
+  });
+
+  /*
+   * A project admin may write a team's rules but may not switch a channel
+   * on. The link would only take them to switches that are all locked; the
+   * warning already says who can, and where.
+   */
+  test.each([
+    ["a project admin", [Permission.ProjectAdmin]],
+    ["someone who may only read the team", [Permission.ProjectMember]],
+  ] as Array<[string, Array<string>]>)(
+    "%s gets no link to the switches, and the warning says who can turn the channel on",
+    async (_who: string, permissions: Array<string>) => {
+      mockPermissions = permissions;
+
+      const status: TeamComplianceStatusJSON = standardStatus();
+      status.complianceSettings[1]!.warnings = [CALL_WARNING];
+
+      await renderPage(status);
+
+      const banner: HTMLElement = screen.getByTestId(
+        "compliance-rule-warnings",
+      );
+
+      expect(banner).toHaveTextContent(
+        "1 rule has a problem members cannot fix",
+      );
+      expect(
+        screen.queryByTestId("compliance-rule-warnings-settings-link"),
+      ).not.toBeInTheDocument();
+      expect(within(banner).queryByRole("link")).toBeNull();
+      expect(
+        screen.getByTestId(`compliance-rule-warning-${CALL_RULE_ID}`),
+      ).toHaveTextContent(
+        "A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notification Settings.",
+      );
+    },
+  );
+
+  test("while the permissions are still on their way, nobody is offered the link", async () => {
+    mockPermissions = [];
+
+    const status: TeamComplianceStatusJSON = standardStatus();
+    status.complianceSettings[1]!.warnings = [CALL_WARNING];
+
+    await renderPage(status);
+
+    expect(screen.getByTestId("compliance-rule-warnings")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("compliance-rule-warnings-settings-link"),
+    ).not.toBeInTheDocument();
   });
 
   test("several rules, and no settings link when no switchable channel is involved", async () => {
@@ -1252,7 +1330,7 @@ describe("rule warnings", () => {
    */
   test("a WhatsApp rule's warning links to the project's notification settings", async () => {
     const warning: string =
-      "WhatsApp is switched off for this project, so members cannot add a WhatsApp number to meet this rule. Turn it on in Project Settings > Notification Settings.";
+      "WhatsApp is switched off for this project, so members cannot add a WhatsApp number to meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notification Settings.";
 
     await renderPage(
       buildStatus({

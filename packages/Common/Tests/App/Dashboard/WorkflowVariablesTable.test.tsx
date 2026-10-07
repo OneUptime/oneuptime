@@ -612,8 +612,6 @@ const CREATE_ONLY_ROLES: Array<RoleCase> = [
     ],
   },
   { label: "Project Member", permissions: [Permission.ProjectMember] },
-  { label: "Workflow Admin", permissions: [Permission.WorkflowAdmin] },
-  { label: "Workflow Member", permissions: [Permission.WorkflowMember] },
   /*
    * A workflow variable is not an operational resource, so the Edit All
    * wildcard does not widen its update list - here or on the server.
@@ -631,6 +629,8 @@ const CREATE_ONLY_ROLES: Array<RoleCase> = [
 const CREATE_AND_UPDATE_ROLES: Array<RoleCase> = [
   { label: "Project Admin", permissions: [Permission.ProjectAdmin] },
   { label: "Project Owner", permissions: [Permission.ProjectOwner] },
+  // Workflow Admin builds workflows, and manages the variables they use.
+  { label: "Workflow Admin", permissions: [Permission.WorkflowAdmin] },
   {
     label: "Create and Edit Workflow Variables",
     permissions: [
@@ -1238,6 +1238,25 @@ describe.each(PAGE_CASES)("the $page variables list", (pageCase: PageCase) => {
         "You do not have permission to create this Workflow Variable",
       );
       expect(button.tooltip).toContain("Create Workflow Variables");
+    });
+
+    /*
+     * A Workflow Member runs workflows and does not build them, so creates
+     * no variables either - the server refuses them, and the menu says so.
+     */
+    test("is locked for a Workflow Member, naming the permissions that would let them", () => {
+      permissionsForTest = [Permission.WorkflowMember];
+
+      renderPage(pageCase.page);
+
+      const button: CardButtonEntry = oauthMenuButton();
+
+      expect(button.disabled).toBe(true);
+      expect(button.tooltip).toContain(
+        "You do not have permission to create this Workflow Variable",
+      );
+      expect(button.tooltip).toContain("Workflow Admin");
+      expect(button.tooltip).not.toContain("Workflow Member");
     });
 
     test("does nothing when pressed while locked", () => {

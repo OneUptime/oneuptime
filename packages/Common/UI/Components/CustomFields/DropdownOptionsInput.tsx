@@ -209,14 +209,16 @@ const DropdownOptionsInput: FunctionComponent<ComponentProps> = (
                         },
                       )}
                 </span>
+                {/*
+                 * One line per option: the color as a small button with its
+                 * name, the swatches in a popover.
+                 */}
                 <ColorPicker
+                  layout="compact"
                   dataTestId={`dropdown-option-color-${index}`}
                   ariaLabelledby={`dropdown-option-color-${option.id}-label`}
                   placeholder="No color"
-                  value={option.color}
-                  initialValue={
-                    option.color ? Color.fromString(option.color) : undefined
-                  }
+                  value={option.color || ""}
                   onChange={(color: Color | null) => {
                     updateColorAt(option.id, color);
                   }}

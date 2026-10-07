@@ -7,6 +7,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import ScheduledMaintenanceCustomField from "../../Models/DatabaseModels/ScheduledMaintenanceCustomField";
 import CustomFieldMappingService from "./CustomFieldMappingService";
 import MonitorService from "./MonitorService";
@@ -28,6 +29,10 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import {
+  escapeMarkdownInline,
+  escapeMarkdownValue,
+} from "../../Utils/Markdown/MarkdownEscape";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import Model from "../../Models/DatabaseModels/ScheduledMaintenance";
@@ -36,13 +41,17 @@ import ScheduledMaintenanceOwnerUser from "../../Models/DatabaseModels/Scheduled
 import ScheduledMaintenanceState from "../../Models/DatabaseModels/ScheduledMaintenanceState";
 import MonitorStatusService from "./MonitorStatusService";
 import ProjectScopedReferenceValidator, {
+  getWrittenRelationReferences,
   HeldRelationIds,
   ProjectScopedReference,
   ProjectScopedRelation,
-  resolveReferenceId,
   resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
-import { getAffectedResourceRelations } from "../Utils/Database/AffectedResourceRelations";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import {
+  getAffectedResourceColumns,
+  getAffectedResourceRelations,
+} from "../Utils/Database/AffectedResourceRelations";
 import Query from "../Types/Database/Query";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ScheduledMaintenanceStateTimeline from "../../Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
@@ -50,7 +59,6 @@ import User from "../../Models/DatabaseModels/User";
 import Recurring from "../../Types/Events/Recurring";
 import OneUptimeDate from "../../Types/Date";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { StatusPageApiRoute } from "../../ServiceRoute";
 import Dictionary from "../../Types/Dictionary";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import SMS from "../../Types/SMS/SMS";
@@ -99,6 +107,9 @@ import StatusPageSubscriberNotificationEventType from "../../Types/StatusPage/St
 import StatusPageSubscriberNotificationMethod from "../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import NetworkSite from "../../Models/DatabaseModels/NetworkSite";
 import Select from "../Types/Database/Select";
+import StatusPageEmailLogo from "../Utils/StatusPage/StatusPageEmailLogo";
+import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
+import ScheduledMaintenanceStartUtil from "../../Utils/ScheduledMaintenanceStart";
 
 /*
  * The attachments whose membership an ongoing event acts on. Monitors are
@@ -123,6 +134,16 @@ const STATE_KIND_SELECT: Select<ScheduledMaintenanceState> = {
   isOngoingState: true,
   isEndedState: true,
   isResolvedState: true,
+};
+
+/*
+ * A state with its place in the project's list as well: what tells whether
+ * an event in a state of the project's own has started
+ * (ScheduledMaintenanceStartUtil).
+ */
+const STATE_PLACE_SELECT: Select<ScheduledMaintenanceState> = {
+  ...STATE_KIND_SELECT,
+  order: true,
 };
 
 /*
@@ -151,7 +172,57 @@ type AttachmentsBeforeUpdate = {
 };
 
 // Keyed by event id.
-type UpdateCarryForward = Dictionary<AttachmentsBeforeUpdate>;
+type AttachmentsCarryForward = Dictionary<AttachmentsBeforeUpdate>;
+
+/*
+ * The Change Monitor Status to one event the update matched held just
+ * before the write, read when the update writes it under either name
+ * (getMonitorStatusBeforeUpdate). onUpdateSuccess compares it with what the
+ * write stored: only a real change is named in the feed, and put on the
+ * monitors of an event that started in between.
+ */
+type MonitorStatusBeforeUpdate = {
+  projectId: ObjectID | undefined;
+  // Lower-cased (toMonitorStatusKey); null when it held none.
+  monitorStatusId: string | null;
+};
+
+/*
+ * What onBeforeUpdate hands to onUpdateSuccess, each part keyed by event id
+ * and null unless the update writes what it is read for. The whole of it is
+ * null when neither is.
+ */
+type UpdateCarryForward = {
+  attachments: AttachmentsCarryForward | null;
+  monitorStatus: Dictionary<MonitorStatusBeforeUpdate> | null;
+};
+
+/*
+ * The two names of an event's state, ID column first. A write may name it
+ * under either, and the two must agree (RelationIdUtil.readConsistent), so
+ * the state the service acts on is the state stored.
+ */
+const STATE_KEYS: Array<string> = [
+  "currentScheduledMaintenanceStateId",
+  "currentScheduledMaintenanceState",
+];
+
+/*
+ * The two names of the monitor status an event changes its monitors to when
+ * it starts (Change Monitor Status to), ID column first. They must agree too.
+ */
+const MONITOR_STATUS_KEYS: Array<string> = [
+  "changeMonitorStatusToId",
+  "changeMonitorStatusTo",
+];
+
+/*
+ * What a change to an event's Change Monitor Status to gets once the event
+ * has started (getMonitorStatusBeforeUpdate) - from the dashboard, the API,
+ * Terraform or a workflow alike.
+ */
+export const MONITOR_STATUS_LOCKED_AFTER_START_MESSAGE: string =
+  "Change Monitor Status to can no longer be changed: this event has already started.";
 
 /*
  * What the write actually attached to and detached from one event, from its
@@ -169,12 +240,32 @@ type AttachmentChange = {
   eventAfterUpdate: Model | null;
 };
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
+  }
+
+  /*
+   * The monitor status to switch to, the monitors, the labels, the status
+   * pages and the affected-resource lists are checked by this service's own
+   * hooks below, with ProjectScopedReferenceValidator and its own words.
+   * Everything else an event names - its state, say - is checked by
+   * ProjectReferencesService.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["changeMonitorStatusTo"];
+  }
+
+  protected override getListsCheckedByService(): Array<string> {
+    return [
+      "monitors",
+      "labels",
+      "statusPages",
+      ...getAffectedResourceColumns(this.getModel()),
+    ];
   }
 
   @CaptureSpan()
@@ -490,8 +581,6 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
 
           if (subscriber.subscriberEmail) {
             // send email here.
-            const statusPageIdString: string | null =
-              statuspage.id?.toString() || statuspage._id?.toString() || null;
 
             const scheduledAtHtml: string =
               OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
@@ -511,13 +600,11 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
               statusPageName: statusPageName,
               statusPageUrl: statusPageURL,
               detailsUrl: scheduledEventDetailsUrl,
-              logoUrl:
-                statuspage.logoFileId && statusPageIdString
-                  ? new URL(httpProtocol, host)
-                      .addRoute(StatusPageApiRoute)
-                      .addRoute(`/logo/${statusPageIdString}`)
-                      .toString()
-                  : "",
+              logoUrl: StatusPageEmailLogo.getLogoUrl({
+                statusPage: statuspage,
+                host: host,
+                httpProtocol: httpProtocol,
+              }),
               isPublicStatusPage: statuspage.isPublicStatusPage
                 ? "true"
                 : "false",
@@ -649,6 +736,8 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     if (
       updateBy.query._id &&
       (updateBy.data.sendSubscriberNotificationsOnBeforeTheEvent ||
@@ -737,35 +826,28 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
       }
     }
 
-    // Set notification status based on shouldStatusPageSubscribersBeNotifiedOnEventCreated if it's being updated
-    if (
-      updateBy.data.shouldStatusPageSubscribersBeNotifiedOnEventCreated !==
-      undefined
-    ) {
-      if (
-        updateBy.data.shouldStatusPageSubscribersBeNotifiedOnEventCreated ===
-        false
-      ) {
-        updateBy.data.subscriberNotificationStatusOnEventScheduled =
-          StatusPageSubscriberNotificationStatus.Skipped;
-        updateBy.data.subscriberNotificationStatusMessage =
-          "Notifications skipped as subscribers are not to be notified for this scheduled maintenance.";
-      } else if (
-        updateBy.data.shouldStatusPageSubscribersBeNotifiedOnEventCreated ===
-        true
-      ) {
-        updateBy.data.subscriberNotificationStatusOnEventScheduled =
-          StatusPageSubscriberNotificationStatus.Pending;
-      }
-    }
+    /*
+     * Notifying subscribers that the event was scheduled
+     * (shouldStatusPageSubscribersBeNotifiedOnEventCreated) is decided when
+     * it is created. An update that writes it - only root and master admins
+     * can - leaves the 'scheduled' message alone: re-sending the value the
+     * event holds used to send that message to every subscriber again, and
+     * turning it on does not send a message the event was created without.
+     * Turned off, a message still queued is skipped by the job that would
+     * send it, which reads the flag.
+     */
 
     await this.validateProjectScopedReferences(updateBy);
+
+    // Refused once the event has started; read before the write either way.
+    const monitorStatusBeforeUpdate: Dictionary<MonitorStatusBeforeUpdate> | null =
+      await this.getMonitorStatusBeforeUpdate(updateBy);
 
     /*
      * Read before the write, because afterwards the detached monitors are no
      * longer on the event and nothing else remembers them.
      */
-    const carryForward: UpdateCarryForward | null =
+    const attachmentsBeforeUpdate: AttachmentsCarryForward | null =
       await this.getAttachmentsBeforeUpdate(updateBy);
 
     /*
@@ -779,10 +861,182 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
       updateBy: updateBy,
     });
 
+    const carryForward: UpdateCarryForward | null =
+      attachmentsBeforeUpdate || monitorStatusBeforeUpdate
+        ? {
+            attachments: attachmentsBeforeUpdate,
+            monitorStatus: monitorStatusBeforeUpdate,
+          }
+        : null;
+
     return {
       updateBy,
       carryForward: carryForward,
     };
+  }
+
+  /*
+   * CHANGE MONITOR STATUS TO CAN BE CHANGED UNTIL THE EVENT STARTS.
+   *
+   * An event's monitors change to that status when it starts - the move into
+   * its ongoing state reads it then (ScheduledMaintenanceStateTimelineService)
+   * - and back to operational when it ends. So whoever may edit the event can
+   * change it, under either name, while the event waits to start. Once the
+   * event has started (ScheduledMaintenanceStartUtil: ongoing, ended,
+   * completed, or a state of the project's own after Ongoing) a change is
+   * refused, for every event the update matches, with one plain message
+   * (MONITOR_STATUS_LOCKED_AFTER_START_MESSAGE): its monitors were moved by
+   * the status it held, and would not follow a new one.
+   *
+   * Sending back the status an event already holds is no change, and goes
+   * through whatever the event's state: a form or an API client that sends a
+   * whole record back is not refused for a field it did not touch.
+   *
+   * Returns the status each event the update matches held just before the
+   * write, for onUpdateSuccess, or null, with nothing read, when the update
+   * does not write it. Read as root but held to the tenant's project, like
+   * the other update reads here.
+   */
+  private async getMonitorStatusBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<Dictionary<MonitorStatusBeforeUpdate> | null> {
+    const data: Record<string, unknown> = updateBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    if (!RelationIdUtil.isPresent(data, MONITOR_STATUS_KEYS)) {
+      return null;
+    }
+
+    // Two names that disagree are refused (validateProjectScopedReferences did already).
+    const newMonitorStatusId: string | null = this.toMonitorStatusKey(
+      RelationIdUtil.readConsistent(
+        data,
+        MONITOR_STATUS_KEYS,
+        "Monitor Status",
+      ),
+    );
+
+    const scheduledMaintenanceEvents: Array<Model> = await this.findBy({
+      query: updateBy.props.tenantId
+        ? { ...updateBy.query, projectId: updateBy.props.tenantId }
+        : updateBy.query,
+      select: {
+        _id: true,
+        projectId: true,
+        changeMonitorStatusToId: true,
+        currentScheduledMaintenanceState: STATE_PLACE_SELECT,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const monitorStatusBeforeUpdate: Dictionary<MonitorStatusBeforeUpdate> = {};
+
+    // Each project's states, read at most once, and only when a state needs them.
+    const statesByProjectId: Map<
+      string,
+      Array<ScheduledMaintenanceState>
+    > = new Map<string, Array<ScheduledMaintenanceState>>();
+
+    for (const scheduledMaintenanceEvent of scheduledMaintenanceEvents) {
+      if (!scheduledMaintenanceEvent.id) {
+        continue;
+      }
+
+      const storedMonitorStatusId: string | null = this.toMonitorStatusKey(
+        scheduledMaintenanceEvent.changeMonitorStatusToId,
+      );
+
+      monitorStatusBeforeUpdate[scheduledMaintenanceEvent.id.toString()] = {
+        projectId: scheduledMaintenanceEvent.projectId,
+        monitorStatusId: storedMonitorStatusId,
+      };
+
+      if (storedMonitorStatusId === newMonitorStatusId) {
+        continue;
+      }
+
+      if (
+        await this.hasScheduledMaintenanceStarted({
+          scheduledMaintenanceEvent: scheduledMaintenanceEvent,
+          statesByProjectId: statesByProjectId,
+        })
+      ) {
+        throw new BadDataException(MONITOR_STATUS_LOCKED_AFTER_START_MESSAGE);
+      }
+    }
+
+    return monitorStatusBeforeUpdate;
+  }
+
+  /*
+   * Whether an event read with its state's place and flags has started
+   * (ScheduledMaintenanceStartUtil). A built-in state answers by its flag;
+   * only a state of the project's own needs the project's list, which is
+   * read once per project into statesByProjectId.
+   */
+  private async hasScheduledMaintenanceStarted(data: {
+    scheduledMaintenanceEvent: Model;
+    statesByProjectId: Map<string, Array<ScheduledMaintenanceState>>;
+  }): Promise<boolean> {
+    const currentState: ScheduledMaintenanceState | undefined =
+      data.scheduledMaintenanceEvent.currentScheduledMaintenanceState;
+
+    const startedByFlags: boolean | null =
+      ScheduledMaintenanceStartUtil.hasStartedByFlags(currentState);
+
+    if (startedByFlags !== null) {
+      return startedByFlags;
+    }
+
+    const projectId: ObjectID | undefined =
+      data.scheduledMaintenanceEvent.projectId;
+
+    if (!currentState || !projectId) {
+      return false;
+    }
+
+    const projectKey: string = projectId.toString();
+
+    let states: Array<ScheduledMaintenanceState> | undefined =
+      data.statesByProjectId.get(projectKey);
+
+    if (!states) {
+      states =
+        await ScheduledMaintenanceStateService.getAllScheduledMaintenanceStates(
+          {
+            projectId: projectId,
+            props: {
+              isRoot: true,
+            },
+          },
+        );
+
+      data.statesByProjectId.set(projectKey, states);
+    }
+
+    return ScheduledMaintenanceStartUtil.hasStarted({
+      states: states,
+      state: currentState,
+    });
+  }
+
+  /*
+   * A monitor status id as the checks compare it: trimmed and lower-cased,
+   * since Postgres compares uuids by value whatever their case. Null for
+   * none.
+   */
+  private toMonitorStatusKey(
+    value: ObjectID | string | null | undefined,
+  ): string | null {
+    const key: string = value ? value.toString().trim().toLowerCase() : "";
+
+    return key || null;
   }
 
   /*
@@ -798,7 +1052,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
    */
   private async getAttachmentsBeforeUpdate(
     updateBy: UpdateBy<Model>,
-  ): Promise<UpdateCarryForward | null> {
+  ): Promise<AttachmentsCarryForward | null> {
     const columns: Array<AttachmentColumn> = ATTACHMENT_COLUMNS.filter(
       (column: AttachmentColumn): boolean => {
         /*
@@ -814,7 +1068,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
       return null;
     }
 
-    const carryForward: UpdateCarryForward = {};
+    const carryForward: AttachmentsCarryForward = {};
 
     /*
      * One read per list. A find that selects two many-to-many relations
@@ -948,13 +1202,28 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
   private async validateProjectScopedReferences(
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
-    const stateId: ObjectID | string | undefined =
-      resolveReferenceId(updateBy.data.currentScheduledMaintenanceStateId) ||
-      resolveReferenceId(updateBy.data.currentScheduledMaintenanceState);
-
-    const monitorStatusId: ObjectID | string | undefined =
-      resolveReferenceId(updateBy.data.changeMonitorStatusToId) ||
-      resolveReferenceId(updateBy.data.changeMonitorStatusTo);
+    /*
+     * The state and the monitor status, each by both of its names: the API
+     * takes the ID column and the relation alike, and every name that holds
+     * an id is checked. Two names that disagree are refused before anything
+     * is read.
+     */
+    const references: Array<ProjectScopedReference> = [
+      ...getWrittenRelationReferences({
+        payload: updateBy.data,
+        idColumn: "currentScheduledMaintenanceStateId",
+        relation: "currentScheduledMaintenanceState",
+        modelName: "Scheduled Maintenance State",
+        service: ScheduledMaintenanceStateService,
+      }),
+      ...getWrittenRelationReferences({
+        payload: updateBy.data,
+        idColumn: "changeMonitorStatusToId",
+        relation: "changeMonitorStatusTo",
+        modelName: "Monitor Status",
+        service: MonitorStatusService,
+      }),
+    ];
 
     // An empty list only removes rows and needs no check.
     const relations: Array<ProjectScopedRelation> =
@@ -968,7 +1237,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
         },
       );
 
-    if (!stateId && !monitorStatusId && relations.length === 0) {
+    if (references.length === 0 && relations.length === 0) {
       return;
     }
 
@@ -993,17 +1262,8 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
         : undefined;
 
     for (const projectId of projectIds) {
-      const references: Array<ProjectScopedReference> = [
-        {
-          modelName: "Scheduled Maintenance State",
-          id: stateId,
-          service: ScheduledMaintenanceStateService,
-        },
-        {
-          modelName: "Monitor Status",
-          id: monitorStatusId,
-          service: MonitorStatusService,
-        },
+      const referencesInProject: Array<ProjectScopedReference> = [
+        ...references,
         ...ProjectScopedReferenceValidator.getRelationReferences({
           payload: updateBy.data,
           relations: relations,
@@ -1012,18 +1272,14 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
         }),
       ];
 
-      if (
-        references.every((reference: ProjectScopedReference) => {
-          return !reference.id;
-        })
-      ) {
+      if (referencesInProject.length === 0) {
         continue;
       }
 
       await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
         projectId: projectId,
         subject: "scheduled maintenance event",
-        references: references,
+        references: referencesInProject,
       });
     }
   }
@@ -1225,6 +1481,8 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.props.tenantId && !createBy.data.projectId) {
       throw new BadDataException(
         "ProjectId required to create scheduled maintenance.",
@@ -1254,13 +1512,22 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
       );
     }
 
-    createBy.data.currentScheduledMaintenanceStateId =
-      scheduledMaintenanceState.id;
+    /*
+     * Every event starts scheduled, whatever state the write named under
+     * either name: stamp leaves no other name of it to be stored instead.
+     */
+    RelationIdUtil.stamp(
+      createBy.data as unknown as Record<string, unknown>,
+      STATE_KEYS,
+      scheduledMaintenanceState.id,
+    );
 
     /*
-     * changeMonitorStatusToId comes straight from the API caller or a
-     * template, and nothing checked it belongs to this project. Persisting
-     * another project's id leaves that project undeletable.
+     * The monitor status to switch to comes straight from the API caller or
+     * a template, under either of its names, and nothing checked it belongs
+     * to this project. Persisting another project's id leaves that project
+     * undeletable. Every name that holds an id is checked, and two that
+     * disagree are refused.
      *
      * The monitors, labels and status pages lists are checked too: the event
      * changes the status of every listed monitor and notifies the subscribers
@@ -1277,13 +1544,13 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
       projectId: projectId,
       subject: "scheduled maintenance event",
       references: [
-        {
+        ...getWrittenRelationReferences({
+          payload: createBy.data,
+          idColumn: "changeMonitorStatusToId",
+          relation: "changeMonitorStatusTo",
           modelName: "Monitor Status",
-          id:
-            resolveReferenceId(createBy.data.changeMonitorStatusToId) ||
-            resolveReferenceId(createBy.data.changeMonitorStatusTo),
           service: MonitorStatusService,
-        },
+        }),
         ...ProjectScopedReferenceValidator.getRelationReferences({
           payload: createBy.data,
           relations: this.getProjectScopedRelations(),
@@ -1696,7 +1963,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
 
       let feedInfoInMarkdown: string = `#### 🕒 Scheduled Maintenance ${scheduledMaintenance.scheduledMaintenanceNumberWithPrefix || "#" + scheduledMaintenance.scheduledMaintenanceNumber?.toString()} Created:
             
-**${scheduledMaintenance.title || "No title provided."}**:
+**${escapeMarkdownValue(scheduledMaintenance.title || "No title provided.")}**:
       
 ${scheduledMaintenance.description || "No description provided."}
       
@@ -1712,7 +1979,7 @@ ${scheduledMaintenance.description || "No description provided."}
       }
 
       if (scheduledMaintenance.currentScheduledMaintenanceState?.name) {
-        feedInfoInMarkdown += `⏳ **Scheduled Maintenance State**: ${scheduledMaintenance.currentScheduledMaintenanceState.name} \n\n`;
+        feedInfoInMarkdown += `⏳ **Scheduled Maintenance State**: ${escapeMarkdownValue(scheduledMaintenance.currentScheduledMaintenanceState.name)} \n\n`;
       }
 
       // Everything the event's Affected Resources card lists, monitors first.
@@ -2401,12 +2668,183 @@ ${scheduledMaintenance.description || "No description provided."}
 
       markdown += `\n\n**${section.title}**:\n`;
 
+      // Each name is plain text inside its link's own text.
       for (const monitor of monitors) {
-        markdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(data.projectId, monitor.id!)).toString()})\n`;
+        markdown += `- [${escapeMarkdownInline(monitor.name)}](${(await MonitorService.getMonitorLinkInDashboard(data.projectId, monitor.id!)).toString()})\n`;
       }
     }
 
     return markdown;
+  }
+
+  /*
+   * The Change Monitor Status to an update stored on one event, when it is
+   * not the one the event held before the write (what onBeforeUpdate read):
+   * an id, or null when the update cleared it. Null as a whole when the
+   * update did not change it - it did not write it, or wrote back the
+   * status the event already held.
+   */
+  private getMonitorStatusChange(data: {
+    data: Record<string, unknown>;
+    monitorStatusBeforeUpdate: MonitorStatusBeforeUpdate | undefined;
+  }): { monitorStatusId: string | null } | null {
+    if (
+      !data.monitorStatusBeforeUpdate ||
+      !RelationIdUtil.isPresent(data.data, MONITOR_STATUS_KEYS)
+    ) {
+      return null;
+    }
+
+    // onBeforeUpdate refused two names that disagree, so this reads one value.
+    const monitorStatusId: string | null = this.toMonitorStatusKey(
+      RelationIdUtil.readConsistent(
+        data.data,
+        MONITOR_STATUS_KEYS,
+        "Monitor Status",
+      ),
+    );
+
+    if (monitorStatusId === data.monitorStatusBeforeUpdate.monitorStatusId) {
+      return null;
+    }
+
+    return { monitorStatusId: monitorStatusId };
+  }
+
+  /*
+   * A Change Monitor Status to the update changed, put on the monitors of
+   * an event that holds them by now. onBeforeUpdate let the change through
+   * because the event had not started; when it started before the write
+   * landed - the ChangeStateToOngoing job at its start time, Mark as
+   * Ongoing, or this very update moving it - the move put its monitors in
+   * the status it read then, which may be the one this write replaced. The
+   * monitors follow the status the event holds, as if the write had come
+   * first. MonitorService.changeMonitorStatus leaves a monitor already in it
+   * as it is, so a monitor the move did reach in the new status is not
+   * written twice.
+   *
+   * A status cleared changes nothing: the monitors keep the status they
+   * have until the event ends and puts them back to operational. An event
+   * that does not hold its monitors (still scheduled, or over) has nothing
+   * to apply it to.
+   *
+   * The write has committed: whatever fails here is logged, never turned
+   * into an error.
+   */
+  private async applyMonitorStatusToStartedEvent(data: {
+    scheduledMaintenanceId: ObjectID;
+    projectId: ObjectID | undefined;
+    monitorStatusId: string | null;
+  }): Promise<void> {
+    if (!data.monitorStatusId || !data.projectId) {
+      return;
+    }
+
+    const logAttributes: LogAttributes = {
+      projectId: data.projectId.toString(),
+      scheduledMaintenanceId: data.scheduledMaintenanceId.toString(),
+    } as LogAttributes;
+
+    try {
+      const scheduledMaintenanceEvent: Model | null = await this.findOneById({
+        id: data.scheduledMaintenanceId,
+        select: {
+          _id: true,
+          currentScheduledMaintenanceState: STATE_KIND_SELECT,
+          monitors: {
+            _id: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const monitorIds: Array<ObjectID> = this.getIdsNotIn({
+        ids: resolveReferenceIds(scheduledMaintenanceEvent?.monitors),
+        exclude: [],
+      });
+
+      if (!scheduledMaintenanceEvent || monitorIds.length === 0) {
+        return;
+      }
+
+      const isHoldingMonitors: boolean =
+        await ScheduledMaintenanceStateTimelineService.isScheduledMaintenanceHoldingMonitors(
+          {
+            scheduledMaintenanceId: data.scheduledMaintenanceId,
+            projectId: data.projectId,
+            currentState:
+              scheduledMaintenanceEvent.currentScheduledMaintenanceState,
+          },
+        );
+
+      if (!isHoldingMonitors) {
+        return;
+      }
+
+      const eventWithStatus: Model = new Model(data.scheduledMaintenanceId);
+      eventWithStatus.projectId = data.projectId;
+      eventWithStatus.changeMonitorStatusToId = new ObjectID(
+        data.monitorStatusId,
+      );
+      eventWithStatus.monitors = monitorIds.map(
+        (monitorId: ObjectID): Monitor => {
+          return new Monitor(monitorId);
+        },
+      );
+
+      await this.changeAttachedMonitorStates(eventWithStatus, {
+        isRoot: true,
+      });
+    } catch (err) {
+      logger.error(
+        `ScheduledMaintenanceService.applyMonitorStatusToStartedEvent: could not put the monitors of scheduled maintenance ${data.scheduledMaintenanceId.toString()} in the status it changes them to; the update itself is saved.`,
+        logAttributes,
+      );
+      logger.error(err, logAttributes);
+    }
+  }
+
+  /*
+   * "Change Monitor Status to" for the updated feed item: the status the
+   * event now changes its monitors to, by name, or that they keep theirs -
+   * the words its Affected Resources card uses. The name is read held to
+   * the project, so a status that is not the project's is never named; an
+   * empty line then.
+   */
+  private async getMonitorStatusFeedMarkdown(data: {
+    projectId: ObjectID | undefined;
+    monitorStatusId: string | null;
+  }): Promise<string> {
+    if (!data.monitorStatusId) {
+      return `\n\n**Change Monitor Status to**: Monitors keep their status.`;
+    }
+
+    if (!data.projectId) {
+      return "";
+    }
+
+    const monitorStatus: MonitorStatus | null =
+      await MonitorStatusService.findOneBy({
+        query: {
+          _id: data.monitorStatusId,
+          projectId: data.projectId,
+        },
+        select: {
+          name: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!monitorStatus?.name) {
+      return "";
+    }
+
+    // The status's name is plain text.
+    return `\n\n**Change Monitor Status to**: ${escapeMarkdownValue(monitorStatus.name)}`;
   }
 
   @CaptureSpan()
@@ -2447,16 +2885,22 @@ ${scheduledMaintenance.description || "No description provided."}
       }
     }
 
-    if (
-      onUpdate.updateBy.data.currentScheduledMaintenanceStateId &&
-      onUpdate.updateBy.props.tenantId
-    ) {
+    /*
+     * The state the update wrote, under either of its names: onBeforeUpdate
+     * refused two that disagree, so this reads one value.
+     */
+    const updatedStateId: ObjectID | null = RelationIdUtil.readConsistent(
+      onUpdate.updateBy.data as unknown as Record<string, unknown>,
+      STATE_KEYS,
+      "Scheduled Maintenance State",
+    );
+
+    if (updatedStateId && onUpdate.updateBy.props.tenantId) {
       for (const itemId of updatedItemIds) {
         await this.changeScheduledMaintenanceState({
           projectId: onUpdate.updateBy.props.tenantId as ObjectID,
           scheduledMaintenanceId: itemId,
-          scheduledMaintenanceStateId: onUpdate.updateBy.data
-            .currentScheduledMaintenanceStateId as ObjectID,
+          scheduledMaintenanceStateId: updatedStateId,
           shouldNotifyStatusPageSubscribers: true,
           isSubscribersNotified: false,
           notifyOwners: true, // notifyOwners = true
@@ -2476,9 +2920,34 @@ ${scheduledMaintenance.description || "No description provided."}
         const createdByUserId: ObjectID | undefined | null =
           onUpdate.updateBy.props.userId;
 
-        const attachmentsBeforeUpdate: AttachmentsBeforeUpdate | undefined = (
-          onUpdate.carryForward as UpdateCarryForward | null | undefined
-        )?.[scheduledMaintenanceId.toString()];
+        const carryForward: UpdateCarryForward | null | undefined =
+          onUpdate.carryForward as UpdateCarryForward | null | undefined;
+
+        const attachmentsBeforeUpdate: AttachmentsBeforeUpdate | undefined =
+          carryForward?.attachments?.[scheduledMaintenanceId.toString()];
+
+        const monitorStatusBeforeUpdate: MonitorStatusBeforeUpdate | undefined =
+          carryForward?.monitorStatus?.[scheduledMaintenanceId.toString()];
+
+        /*
+         * The Change Monitor Status to the write stored, when it is another
+         * than the event held: onBeforeUpdate let it through because the
+         * event had not started. Null when the update did not change it -
+         * sending back the status the event held is no change.
+         */
+        const changedMonitorStatus: { monitorStatusId: string | null } | null =
+          this.getMonitorStatusChange({
+            data: onUpdate.updateBy.data as unknown as Record<string, unknown>,
+            monitorStatusBeforeUpdate: monitorStatusBeforeUpdate,
+          });
+
+        if (changedMonitorStatus && monitorStatusBeforeUpdate) {
+          await this.applyMonitorStatusToStartedEvent({
+            scheduledMaintenanceId: scheduledMaintenanceId,
+            projectId: monitorStatusBeforeUpdate.projectId,
+            monitorStatusId: changedMonitorStatus.monitorStatusId,
+          });
+        }
 
         let attachmentChange: AttachmentChange | null = null;
 
@@ -2518,7 +2987,7 @@ ${scheduledMaintenance.description || "No description provided."}
           // add scheduledMaintenance feed.
 
           feedInfoInMarkdown += `\n\n**Title**: 
-${onUpdate.updateBy.data.title || "No title provided."}
+${escapeMarkdownValue((onUpdate.updateBy.data.title as string) || "No title provided.")}
 `;
           shouldAddScheduledMaintenanceFeed = true;
         }
@@ -2645,6 +3114,34 @@ ${LinkedAffectedResources.getMarkdownLines({
           }
         }
 
+        // Under the monitors it acts on, as the Affected Resources card shows it.
+        if (changedMonitorStatus && monitorStatusBeforeUpdate) {
+          // A line the name could not be read for is left out, not the item.
+          try {
+            const monitorStatusMarkdown: string =
+              await this.getMonitorStatusFeedMarkdown({
+                projectId: monitorStatusBeforeUpdate.projectId,
+                monitorStatusId: changedMonitorStatus.monitorStatusId,
+              });
+
+            if (monitorStatusMarkdown) {
+              feedInfoInMarkdown += monitorStatusMarkdown;
+              shouldAddScheduledMaintenanceFeed = true;
+            }
+          } catch (err) {
+            const logAttributes: LogAttributes = {
+              projectId: monitorStatusBeforeUpdate.projectId?.toString(),
+              scheduledMaintenanceId: scheduledMaintenanceId.toString(),
+            } as LogAttributes;
+
+            logger.error(
+              `ScheduledMaintenanceService.onUpdateSuccess: could not name the monitor status scheduled maintenance ${scheduledMaintenanceId.toString()} now changes its monitors to in its feed.`,
+              logAttributes,
+            );
+            logger.error(err, logAttributes);
+          }
+        }
+
         if (
           onUpdate.updateBy.data.statusPages &&
           onUpdate.updateBy.data.statusPages.length > 0 &&
@@ -2683,7 +3180,7 @@ ${LinkedAffectedResources.getMarkdownLines({
 
 ${statusPages
   .map((statusPage: StatusPage) => {
-    return `- ${statusPage.name}`;
+    return `- ${escapeMarkdownValue(statusPage.name)}`;
   })
   .join("\n")}
 `;
@@ -2730,7 +3227,7 @@ ${statusPages
 
 ${labels
   .map((label: Label) => {
-    return `- ${label.name}`;
+    return `- ${escapeMarkdownValue(label.name)}`;
   })
   .join("\n")}
 `;

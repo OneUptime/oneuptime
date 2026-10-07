@@ -453,6 +453,16 @@ export const RULE_CRITERIA_FIELDS_BY_MODEL: Readonly<
     "statusPageNamePattern",
     "statusPageDescriptionPattern",
   ],
+  StorageArrayLabelRule: [
+    "storageArrayLabels",
+    "storageArrayNamePattern",
+    "storageArrayDescriptionPattern",
+  ],
+  StorageArrayOwnerRule: [
+    "storageArrayLabels",
+    "storageArrayNamePattern",
+    "storageArrayDescriptionPattern",
+  ],
   VMwareVCenterLabelRule: [
     "vmwareVCenterLabels",
     "vmwareVCenterNamePattern",

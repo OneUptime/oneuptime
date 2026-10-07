@@ -34,7 +34,7 @@ curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/Ce
 bash install.sh
 ```
 
-اسکریپت نشانی OneUptime، توکن دریافت تله‌متری، نام خوشه و نقطه‌های پایانی mgr شما را می‌پرسد، در `/opt/oneuptime-ceph-agent` نصب می‌کند، و عامل را با Docker Compose آغاز می‌کند.
+اسکریپت نشانی OneUptime، توکن دریافت تله‌متری، نام خوشه و نقطه‌های پایانی mgr شما را می‌پرسد، در `/opt/oneuptime-ceph-agent` نصب می‌کند، با دسترسی `0600` فایل `.env` می‌نویسد، و عامل را با Docker Compose آغاز می‌کند. اجرای دوباره اسکریپت به‌جای پرسیدن دوباره، همه‌چیز را از همان `.env` بازاستفاده می‌کند، و [ارتقای عامل](#ارتقای-عامل) هم همین است.
 
 ## جایگزین — Docker Compose
 
@@ -131,10 +131,22 @@ sudo systemctl enable --now oneuptime-ceph-agent
 
 ## ارتقای عامل
 
+عامل نسخه جمع‌کننده‌ای را که فایل‌هایش سنجاق کرده‌اند به‌عنوان **Agent Version** خود گزارش می‌کند. وقتی آن نسخه از نسخه‌ای که این انتشار OneUptime سنجاق کرده قدیمی‌تر باشد، نشانه هشداری کنارش در **Overview** خوشه پدیدار می‌شود. آن را برگزینید تا همین فرمان‌ها را ببینید. عاملی که پیش از گزارش نسخه در فایل‌هایش نصب شده، تا وقتی به این روش ارتقا نیابد نسخه‌ای نشان نمی‌دهد.
+
+ایمیج جمع‌کننده در `docker-compose.yml` سنجاق شده و پیکربندی‌اش فایلی کنار آن است، پس pull به‌تنهایی عامل را جلو نمی‌برد. `install.sh` را دوباره اجرا کنید: هر مقدار `.env` موجود شما را بازاستفاده می‌کند (چیزی دوباره پرسیده نمی‌شود)، `docker-compose.yml` و `otel-collector-config.yaml` را تازه می‌کند (فایلی را که ویرایش کرده بودید به‌صورت `<file>.bak.<timestamp>` نگه می‌دارد)، ایمیج‌ها را pull می‌کند و عامل را دوباره می‌سازد تا جمع‌کننده پیکربندی تازه‌اش را بخواند. پوشه `ceph/` عامل هوش مصنوعی همان‌طور که هست می‌ماند.
+
 ```bash
-cd /opt/oneuptime-ceph-agent
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/install.sh -o install.sh
+bash install.sh
+```
+
+آن را با Docker Compose نصب کرده‌اید؟ در پوشه عامل هر دو فایل را دوباره دانلود کنید (هر تغییری را که در آن‌ها داده بودید دوباره اعمال کنید)، سپس ایمیج‌ها را pull کنید و عامل را دوباره بسازید:
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/docker-compose.yml
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/otel-collector-config.yaml
 docker compose pull
-docker compose up -d
+docker compose up -d --force-recreate
 ```
 
 ## حذف نصب عامل

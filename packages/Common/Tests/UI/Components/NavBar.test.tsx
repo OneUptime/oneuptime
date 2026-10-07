@@ -9,6 +9,8 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
 import Route from "../../../Types/API/Route";
 import IconProp from "../../../Types/Icon/IconProp";
+import Icon from "../../../UI/Components/Icon/Icon";
+import { DEFAULT_CATEGORY_ICON } from "../../../UI/Components/Navbar/NavBarCategoryToggle";
 import Navigation from "../../../UI/Utils/Navigation";
 import { Location } from "react-router-dom";
 
@@ -282,13 +284,9 @@ describe("Navbar", () => {
       expect(
         screen.getByRole("group", { name: "Essentials" }),
       ).toContainElement(screen.getByRole("link", { name: "Monitors" }));
-      // The same row as a folded line, so the names line up; no chevron.
-      expect(heading.parentElement).toHaveClass(
-        "border",
-        "border-transparent",
-        "px-2",
-        "py-2",
-      );
+      // Lined up with the icons of the rows around it; no chevron.
+      expect(heading.parentElement).toHaveClass("px-3", "py-2");
+      expect(heading.parentElement).not.toHaveClass("border");
       expect(heading.parentElement!.querySelector("svg")).toBeNull();
       expect(heading).toHaveClass("leading-4", "uppercase");
 
@@ -302,6 +300,183 @@ describe("Navbar", () => {
           window.localStorage.getItem("oneuptime-navbar-product-categories")!,
         ),
       ).toEqual({ Essentials: false });
+    });
+
+    // What <Icon icon={icon} /> draws, to compare a row's glyph against.
+    function glyphOf(icon: IconProp): string {
+      const { container, unmount } = render(<Icon icon={icon} />);
+      const markup: string = container.querySelector("svg")!.innerHTML;
+      unmount();
+      return markup;
+    }
+
+    // The glyph a category's row draws before its name.
+    function categoryIcon(category: string): string {
+      const heading: HTMLElement = screen.getByRole("heading", {
+        level: 3,
+        name: category,
+      });
+      return heading.querySelector("svg")!.innerHTML;
+    }
+
+    it("draws each folded category with the icon it was given, and the menu's own for the rest", () => {
+      openPhoneMenu({
+        moreMenuCategoriesAlwaysOpen: ["Essentials"],
+        moreMenuCategoryIcons: { Infrastructure: IconProp.ServerStack },
+      });
+
+      expect(categoryIcon("Infrastructure")).toBe(
+        glyphOf(IconProp.ServerStack),
+      );
+      expect(categoryIcon("Observability")).toBe(
+        glyphOf(DEFAULT_CATEGORY_ICON),
+      );
+    });
+
+    it("draws a category row as the product rows are: the icon before the name, the same size", () => {
+      openPhoneMenu({
+        moreMenuCategoriesAlwaysOpen: ["Essentials"],
+        moreMenuCategoryIcons: { Infrastructure: IconProp.ServerStack },
+      });
+
+      const productIcon: SVGElement = screen
+        .getByRole("link", { name: "Monitors" })
+        .querySelector("svg")!;
+      const rowIcon: SVGElement = screen
+        .getByRole("heading", { level: 3, name: "Infrastructure" })
+        .querySelector("svg")!;
+
+      for (const token of ["mr-1", "h-4", "w-4", "stroke-2"]) {
+        expect([token, productIcon.classList.contains(token)]).toEqual([
+          token,
+          true,
+        ]);
+        expect([token, rowIcon.classList.contains(token)]).toEqual([
+          token,
+          true,
+        ]);
+      }
+      expect(
+        screen.getByRole("button", { name: "Infrastructure" }),
+      ).toHaveClass("text-base", "font-medium", "text-gray-900");
+    });
+
+    it("sets the folded categories apart from the products above them with a rule", () => {
+      openPhoneMenu({ moreMenuCategoriesAlwaysOpen: ["Essentials"] });
+
+      const first: HTMLElement = screen.getByRole("group", {
+        name: "Observability",
+      });
+      const next: HTMLElement = screen.getByRole("group", {
+        name: "Infrastructure",
+      });
+
+      expect(first).toHaveClass("mt-1", "border-t", "border-gray-100", "pt-2");
+      expect(first).not.toHaveClass("pt-1");
+      // One rule for the run, not one per row.
+      expect(next).toHaveClass("pt-1");
+      expect(next).not.toHaveClass("border-t");
+      expect(screen.getByRole("group", { name: "Essentials" })).not.toHaveClass(
+        "border-t",
+      );
+    });
+
+    it("starts a rule at each run of folded categories, wherever the open ones fall", () => {
+      openPhoneMenu({ moreMenuCategoriesAlwaysOpen: ["Observability"] });
+
+      // Essentials fold here and come first, right after Home.
+      expect(screen.getByRole("group", { name: "Essentials" })).toHaveClass(
+        "border-t",
+      );
+      expect(
+        screen.getByRole("group", { name: "Observability" }),
+      ).not.toHaveClass("border-t");
+      expect(screen.getByRole("group", { name: "Infrastructure" })).toHaveClass(
+        "border-t",
+      );
+    });
+
+    it("indents an opened category's products under its row, on a guide line", () => {
+      openPhoneMenu({ moreMenuCategoriesAlwaysOpen: ["Essentials"] });
+
+      const toggle: HTMLElement = screen.getByRole("button", {
+        name: "Infrastructure",
+      });
+      fireEvent.click(toggle);
+
+      const body: HTMLElement = document.getElementById(
+        toggle.getAttribute("aria-controls")!,
+      )!;
+      expect(body).toContainElement(
+        screen.getByRole("link", { name: "Hosts" }),
+      );
+      expect(body).toHaveClass("ml-5", "border-l", "border-gray-100", "pl-1");
+
+      // The essentials, which never fold, are not indented.
+      const essentials: HTMLElement = screen
+        .getByRole("link", { name: "Monitors" })
+        .closest("div.space-y-1") as HTMLElement;
+      expect(essentials).not.toHaveClass("ml-5");
+      expect(essentials).not.toHaveClass("border-l");
+    });
+  });
+
+  describe("the desktop products menu", () => {
+    it("draws each folded category's row with the icon the navbar was given for it", () => {
+      Object.defineProperty(window, "innerWidth", {
+        configurable: true,
+        writable: true,
+        value: 1280,
+      });
+      Navigation.setLocation({
+        pathname: "/dashboard/home",
+        search: "",
+        hash: "",
+        state: null,
+        key: "test",
+      } as Location);
+      Element.prototype.scrollIntoView = (): void => {};
+
+      render(
+        <Navbar
+          items={[
+            {
+              id: "home-nav-bar-item",
+              title: "Home",
+              icon: IconProp.Home,
+              route: new Route("/dashboard/home"),
+            },
+          ]}
+          moreMenuItems={[
+            {
+              title: "Monitors",
+              description: "Check uptime.",
+              icon: IconProp.AltGlobe,
+              route: new Route("/dashboard/monitors"),
+              category: "Essentials",
+            },
+            {
+              title: "Hosts",
+              description: "Watch servers.",
+              icon: IconProp.Server,
+              route: new Route("/dashboard/hosts"),
+              category: "Infrastructure",
+            },
+          ]}
+          moreMenuCategoriesAlwaysOpen={["Essentials"]}
+          moreMenuCategoryIcons={{ Infrastructure: IconProp.ServerStack }}
+        />,
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Products" }));
+
+      const row: HTMLElement = screen
+        .getByRole("button", { name: "Infrastructure" })
+        .closest("div.relative") as HTMLElement;
+      const { container } = render(<Icon icon={IconProp.ServerStack} />);
+
+      expect(row.querySelector("svg")!.innerHTML).toBe(
+        container.querySelector("svg")!.innerHTML,
+      );
     });
   });
 

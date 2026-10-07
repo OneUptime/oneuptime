@@ -26,6 +26,15 @@ import PositiveNumber from "../../../Types/PositiveNumber";
 import EmailMessage from "../../../Types/Email/EmailMessage";
 import HashedString from "../../../Types/HashedString";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * "Accept the invitation automatically" - the checkbox a master admin gets on
@@ -256,6 +265,7 @@ beforeEach(() => {
       "updateSubscriptionSeatsByUniqueTeamMembersInProject",
     )
     .mockResolvedValue(undefined as never);
+  stubProjectDirectory({});
 });
 
 afterEach(() => {
@@ -642,6 +652,7 @@ describe("TeamMemberService.onUpdateSuccess - accepting an invitation by hand st
     row.user = verifiedUser();
 
     jest.spyOn(TeamMemberService, "findBy").mockResolvedValue([row]);
+    stubProjectDirectory({});
   });
 
   test("accepting adds the same defaults the auto-accept path adds", async () => {

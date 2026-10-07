@@ -21,6 +21,10 @@ import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/Stat
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import IncidentCreatedRenotify from "Common/Types/StatusPage/IncidentCreatedRenotify";
 import IncidentScopeAddedPagesNotification from "Common/Types/StatusPage/IncidentScopeAddedPagesNotification";
+import {
+  getProjectNotificationChannelOffMessage,
+  ProjectNotificationChannel,
+} from "Common/Utils/Project/NotificationChannels";
 
 /*
  * Incident created subscriber notifications. These tests drive a tick of the
@@ -274,21 +278,30 @@ import {
 import {
   HOSTILE_PAGE_NAME,
   HOSTILE_PAGE_NAME_HTML,
+  HOSTILE_PAGE_NAME_MARKDOWN,
   HOSTILE_RESOURCES_HTML,
+  HOSTILE_RESOURCES_MARKDOWN,
   HOSTILE_RESOURCES_TEXT,
   HOSTILE_TITLE,
   HOSTILE_TITLE_HTML,
+  HOSTILE_TITLE_MARKDOWN,
+  MARKDOWN_TITLE,
   RecordedCompile,
   expectNoHtmlEntities,
+  expectNoUnescapedAngleBracket,
   expectOnlyTheListedHtmlVariables,
+  expectSlackReadsNoMention,
+  expectValuesInertInMarkdown,
   hostileResources,
   recordedCompiles,
+  withoutMarkdownEscapes,
 } from "../Fixtures/SubscriberTemplateCompileFixtures";
 import IncidentCustomFieldService from "Common/Server/Services/IncidentCustomFieldService";
 import { IncidentTemplateCustomFieldDefinition } from "Common/Server/Utils/StatusPage/IncidentTemplateVariableBuilder";
 import {
   AFFECTED_LOCATION,
   AFFECTED_LOCATION_HTML,
+  AFFECTED_LOCATION_MARKDOWN,
   CUSTOM_FIELD_DEFINITIONS,
   CUSTOM_FIELD_PLACEHOLDERS_CASES,
   CustomFieldPlaceholdersCase,
@@ -1165,6 +1178,84 @@ describe("Incident:SendNotificationToSubscribers, for an incident hidden from st
     expect(sentMail()).toHaveLength(0);
   });
 
+  /*
+   * A private incident is hidden from every status page, whatever its
+   * Visible on Status Page switch says (StatusPageVisibility): its
+   * 'created' notification is skipped the same way, and tells nobody.
+   */
+  test("a private incident is skipped the same way, even with Visible on Status Page on", async () => {
+    for (const isPrivate of [true, "true"] as Array<unknown>) {
+      jest.clearAllMocks();
+      mock(IncidentService.updateOneById).mockResolvedValue(1 as never);
+      mock(
+        IncidentService.compareAndSetColumnsByIdWithoutHooks,
+      ).mockResolvedValue(true as never);
+
+      const row: Incident = incident();
+      (row as unknown as JSONObject)["isPrivate"] = isPrivate as boolean;
+      pendingIncidents = [row];
+
+      await runJob();
+
+      expect(statusWritesFor(INCIDENT_ID)).toEqual([
+        {
+          subscriberNotificationStatusOnIncidentCreated:
+            StatusPageSubscriberNotificationStatus.Skipped,
+          subscriberNotificationStatusMessage:
+            IncidentCreatedRenotify.hiddenFromStatusPagesMessage,
+        },
+      ]);
+      expect(sentMail()).toHaveLength(0);
+      expect(sentSms()).toHaveLength(0);
+      expect(sentSlack()).toHaveLength(0);
+      expect(sentTeams()).toHaveLength(0);
+      expect(sentWebhooks()).toHaveLength(0);
+      expect(StatusPageResourceService.findByMonitors).not.toHaveBeenCalled();
+      expect(IncidentFeedService.createIncidentFeedItem).not.toHaveBeenCalled();
+    }
+  });
+
+  test("a private incident is skipped while a public one in the same run is announced", async () => {
+    const privateIncident: Incident = incident();
+    privateIncident.isPrivate = true;
+    const publicIncident: Incident = incident();
+    publicIncident._id = SECOND_INCIDENT_ID.toString();
+    publicIncident.isPrivate = false;
+    pendingIncidents = [privateIncident, publicIncident];
+
+    await runJob();
+
+    expect(statusesWritten(INCIDENT_ID)).toEqual([
+      StatusPageSubscriberNotificationStatus.InProgress,
+      StatusPageSubscriberNotificationStatus.Skipped,
+    ]);
+    expect(statusesWritten(SECOND_INCIDENT_ID)).toEqual([
+      StatusPageSubscriberNotificationStatus.InProgress,
+      StatusPageSubscriberNotificationStatus.Success,
+    ]);
+    expect(sentMail()).toHaveLength(1);
+  });
+
+  test("reads whether each incident is private, with its Visible on Status Page switch", async () => {
+    await runJob();
+
+    const notifyQuery: JSONObject = mock(IncidentService.findAllBy)
+      .mock.calls.map((call: Array<unknown>): JSONObject => {
+        return call[0] as JSONObject;
+      })
+      .find((args: JSONObject): boolean => {
+        return (
+          (args["query"] as JSONObject)[
+            "shouldStatusPageSubscribersBeNotifiedOnIncidentCreated"
+          ] === true
+        );
+      })!;
+
+    expect(notifyQuery["select"]).toEqual(
+      expect.objectContaining({ isVisibleOnStatusPage: true, isPrivate: true }),
+    );
+  });
+
   test("a hidden incident without monitors is skipped for having no monitors", async () => {
     const row: Incident = hiddenIncident();
     row.monitors = [];
@@ -1958,11 +2049,14 @@ describe("Incident:SendNotificationToSubscribers, with a status page scope", () 
  * names of its resources and groups are plain text a project member typed.
  * In an email they must read as those characters: unescaped, a title such as
  * `<a href="...">Reset your password</a>` is a live link in an email the
- * subscriber trusts. Text channels (a subject, SMS, Slack, Teams, webhooks)
- * show text as written, so they must get no HTML entities at all.
+ * subscriber trusts. Text channels (a subject, SMS, webhooks) show text as
+ * written, and Slack and Teams - Markdown - get each value escaped for
+ * Markdown, so it reads as written once rendered: none of them gets an HTML
+ * entity.
  */
 describe("Incident:SendNotificationToSubscribers escapes plain values in email", () => {
   const HOSTILE_SEVERITY: string = "P1 <urgent> & loud";
+  const HOSTILE_SEVERITY_MARKDOWN: string = "P1 \\<urgent> & loud";
 
   const ESCAPING_EMAIL_BODY: string =
     '<h1>{{incidentTitle}}</h1><p>{{statusPageName}} / {{incidentSeverity}}</p><div>{{resourcesAffected}}</div><div>{{incidentDescription}}</div><a href="{{detailsUrl}}">Details</a> <a href="{{unsubscribeUrl}}">Unsubscribe</a>';
@@ -2042,21 +2136,24 @@ describe("Incident:SendNotificationToSubscribers escapes plain values in email",
       );
     });
 
-    test("the subject, SMS, Slack and Teams get every value as written", async () => {
+    test("the subject and SMS get every value as written, and Slack and Teams get each escaped for Markdown", async () => {
       await runJob();
 
       const text: string = `${HOSTILE_TITLE} on ${HOSTILE_PAGE_NAME} (${HOSTILE_SEVERITY}): ${HOSTILE_RESOURCES_TEXT}`;
+      const markdown: string = `${HOSTILE_TITLE_MARKDOWN} on ${HOSTILE_PAGE_NAME_MARKDOWN} (${HOSTILE_SEVERITY_MARKDOWN}): ${HOSTILE_RESOURCES_MARKDOWN}`;
 
       expect(sentMail()[0]!["subject"]).toBe(text);
       expect(sentSms()).toEqual([
         `${StatusPageSubscriberNotificationMethod.SMS}: ${text}`,
       ]);
       expect(sentSlack()).toEqual([
-        `${StatusPageSubscriberNotificationMethod.Slack}: ${text}`,
+        `${StatusPageSubscriberNotificationMethod.Slack}: ${markdown}`,
       ]);
       expect(sentTeams()).toEqual([
-        `${StatusPageSubscriberNotificationMethod.MicrosoftTeams}: ${text}`,
+        `${StatusPageSubscriberNotificationMethod.MicrosoftTeams}: ${markdown}`,
       ]);
+      // Rendered, the chat message reads exactly what was written.
+      expect(withoutMarkdownEscapes(markdown)).toBe(text);
 
       for (const message of [
         sentMail()[0]!["subject"] as string,
@@ -2065,6 +2162,9 @@ describe("Incident:SendNotificationToSubscribers escapes plain values in email",
         ...sentTeams(),
       ]) {
         expectNoHtmlEntities(message);
+      }
+      for (const message of [...sentSlack(), ...sentTeams()]) {
+        expectNoUnescapedAngleBracket(message);
       }
     });
 
@@ -2113,24 +2213,87 @@ describe("Incident:SendNotificationToSubscribers escapes plain values in email",
       expect(sentMail()[0]!["subject"]).toBe(`[Incident] ${HOSTILE_TITLE}`);
     });
 
-    test("SMS, Slack and Teams list the resources as written, never as HTML", async () => {
+    test("SMS, Slack and Teams list the resources as text, never as HTML", async () => {
       await runJob();
 
       expect(sentSms()).toEqual([
         `Incident ${HOSTILE_TITLE} (${HOSTILE_SEVERITY}) on ${HOSTILE_PAGE_NAME}. Impact: ${HOSTILE_RESOURCES_TEXT}. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
       ]);
-      expect(sentSlack()[0]).toContain(
-        `**Resources Affected:** ${HOSTILE_RESOURCES_TEXT}`,
-      );
-      expect(sentTeams()[0]).toContain(
-        `**Resources Affected:** ${HOSTILE_RESOURCES_TEXT}`,
-      );
+      for (const message of [sentSlack()[0]!, sentTeams()[0]!]) {
+        expect(message).toContain(`## 🚨 Incident - ${HOSTILE_TITLE_MARKDOWN}`);
+        expect(message).toContain(`**Severity:** ${HOSTILE_SEVERITY_MARKDOWN}`);
+        expect(message).toContain(
+          `**Resources Affected:** ${HOSTILE_RESOURCES_MARKDOWN}`,
+        );
+        expectNoUnescapedAngleBracket(message);
+      }
 
       for (const message of [...sentSms(), ...sentSlack(), ...sentTeams()]) {
         expectNoHtmlEntities(message);
         expect(message).not.toContain("<br/>");
       }
     });
+  });
+});
+
+/*
+ * A title is often not typed by a person: a monitor fills it in from what it
+ * watched, an incoming email's subject say. A Slack or Teams message is
+ * Markdown, so the title is escaped there, in the default messages and in a
+ * custom template alike: an image, a link or a Slack mention in it stays
+ * text, and reads as written.
+ */
+describe("Incident:SendNotificationToSubscribers chat messages show a title as text", () => {
+  beforeEach(() => {
+    const row: Incident = incident();
+    row.title = MARKDOWN_TITLE;
+    pendingIncidents = [row];
+  });
+
+  test("the default Slack and Teams messages", async () => {
+    await runJob();
+
+    expect(sentSlack()).toHaveLength(1);
+    expect(sentTeams()).toHaveLength(1);
+
+    for (const message of [...sentSlack(), ...sentTeams()]) {
+      expectValuesInertInMarkdown(message);
+      expectSlackReadsNoMention(message);
+      expect(withoutMarkdownEscapes(message)).toContain(MARKDOWN_TITLE);
+      // The message's own links are still links.
+      expect(message).toContain(`[View Status Page](${STATUS_PAGE_URL})`);
+    }
+  });
+
+  test("a custom Slack or Teams template", async () => {
+    mock(
+      StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+    ).mockImplementation(async (args: unknown) => {
+      const method: string = (args as JSONObject)[
+        "notificationMethod"
+      ] as string;
+      return method === StatusPageSubscriberNotificationMethod.Slack ||
+        method === StatusPageSubscriberNotificationMethod.MicrosoftTeams
+        ? {
+            templateBody: "**{{incidentTitle}}** [Details]({{detailsUrl}})",
+          }
+        : null;
+    });
+
+    await runJob();
+
+    expect(sentSlack()).toHaveLength(1);
+    expect(sentTeams()).toHaveLength(1);
+
+    for (const message of [...sentSlack(), ...sentTeams()]) {
+      expectValuesInertInMarkdown(message);
+      expectSlackReadsNoMention(message);
+      expect(withoutMarkdownEscapes(message)).toBe(
+        withoutMarkdownEscapes(
+          `**${MARKDOWN_TITLE}** [Details](${DETAILS_URL})`,
+        ),
+      );
+    }
   });
 });
 
@@ -2155,7 +2318,8 @@ describe("Incident unsubscribe links", () => {
  * the default email, Slack, Teams and webhook messages, in their order; the
  * default SMS stays as it was. Every field is offered to custom templates as
  * {{incident.customFields.<key>}} (and the older {{customFields.<key>}}),
- * escaped in an email body and as written elsewhere.
+ * escaped in an email body, escaped for Markdown in Slack and Teams, and as
+ * written elsewhere.
  * The feed item records the values that went out.
  */
 describe("Incident:SendNotificationToSubscribers with incident custom fields", () => {
@@ -2250,7 +2414,7 @@ describe("Incident:SendNotificationToSubscribers with incident custom fields", (
 
 **Description:** ${DESCRIPTION}
 
-**Affected Location:** ${AFFECTED_LOCATION}
+**Affected Location:** ${AFFECTED_LOCATION_MARKDOWN}
 
 **Acknowledgement:** No
 
@@ -2264,7 +2428,7 @@ ${IMPACT_DETAILS}
 **Severity:** Critical
 **Resources Affected:** Checkout API
 **Description:** ${DESCRIPTION}
-**Affected Location:** ${AFFECTED_LOCATION}
+**Affected Location:** ${AFFECTED_LOCATION_MARKDOWN}
 **Acknowledgement:** No
 **Impact Details:**
 ${IMPACT_DETAILS}
@@ -2520,7 +2684,7 @@ ${IMPACT_DETAILS}
         });
       });
 
-      test("every field is placed by its key: escaped in the email body, as written elsewhere", async () => {
+      test("every field is placed by its key: escaped in the email body and for Markdown in chat, as written elsewhere", async () => {
         await runJob();
 
         expect((sentMail()[0]!["vars"] as JSONObject)["body"]).toBe(
@@ -2553,7 +2717,7 @@ ${IMPACT_DETAILS}
           expect(message).toBe(
             [
               method,
-              `location=[${AFFECTED_LOCATION}]`,
+              `location=[${AFFECTED_LOCATION_MARKDOWN}]`,
               "ack=[No]",
               `impact=[${IMPACT_DETAILS}]`,
               `ticket=[${INTERNAL_TICKET}]`,
@@ -2823,7 +2987,7 @@ describe("Incident:SendNotificationToSubscribers, when a send falls short", () =
         options["failIfNotSent"] === true
           ? httpError(
               400,
-              "SMS not sent: SMS notifications are not enabled for this project.",
+              `SMS not sent: ${getProjectNotificationChannelOffMessage(ProjectNotificationChannel.SMS)}`,
             )
           : undefined,
       );

@@ -36,6 +36,27 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import SloWindowType from "../../../Types/ServiceLevelObjective/SloWindowType";
 import { describe, expect, it, beforeEach, afterEach } from "@jest/globals";
+import {
+  ALERT_STATE_IDS,
+  INCIDENT_STATE_IDS,
+  idsOfAnyFilter,
+  mockProjectStates,
+  openStateIds,
+} from "../TestingUtils/Services/ProjectStatesHelper";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+  /*
+   * The project's states: an open alert or incident is in a state above
+   * its resolved state (Common/Utils/ResolvedState).
+   */
+  mockProjectStates();
+});
 
 /*
  * Contract under test for ServiceLevelObjectiveService:
@@ -227,6 +248,7 @@ async function expectBadData(
 describe("ServiceLevelObjectiveService.onBeforeCreate - target percentage guard", () => {
   beforeEach(() => {
     jest.spyOn(MonitorStatusService, "findBy").mockResolvedValue([]);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -380,6 +402,7 @@ describe("ServiceLevelObjectiveService.onBeforeUpdate - target percentage guard"
 describe("ServiceLevelObjectiveService - window days validation", () => {
   beforeEach(() => {
     jest.spyOn(MonitorStatusService, "findBy").mockResolvedValue([]);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -530,6 +553,7 @@ describe("ServiceLevelObjectiveService - window days validation", () => {
 describe("ServiceLevelObjectiveService - numeric columns supplied as strings", () => {
   beforeEach(() => {
     jest.spyOn(MonitorStatusService, "findBy").mockResolvedValue([]);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -898,6 +922,7 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - burn rate rule seeding 
     burnRateRuleCreateSpy = jest
       .spyOn(ServiceLevelObjectiveBurnRateRuleService, "create")
       .mockResolvedValue(makeBurnRateRule(RULE_ID));
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -1206,6 +1231,7 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - default alert severity"
     burnRateRuleCreateSpy = jest
       .spyOn(ServiceLevelObjectiveBurnRateRuleService, "create")
       .mockResolvedValue(makeBurnRateRule(RULE_ID));
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -1300,6 +1326,7 @@ describe("ServiceLevelObjectiveService.onUpdateSuccess", () => {
     findOneByIdSpy = jest
       .spyOn(ServiceLevelObjectiveService, "findOneById")
       .mockResolvedValue(makeSlo({ projectId: PROJECT_ID }));
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -1522,6 +1549,7 @@ describe("ServiceLevelObjectiveService.onBeforeDelete", () => {
     ruleFindBySpy = jest
       .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
       .mockResolvedValue([]);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -1689,6 +1717,7 @@ describe("ServiceLevelObjectiveService.resolveOpenBurnRateAlertsAndIncidentsForS
         "clearOpenOutputStateForRule",
       )
       .mockResolvedValue(undefined);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -2003,21 +2032,29 @@ describe("ServiceLevelObjectiveService.resolveOpenBurnRateAlertsAndIncidentsForS
 
     const alertFindByArg: { query: Record<string, unknown> } = alertFindBySpy
       .mock.calls[0]![0] as { query: Record<string, unknown> };
-    expect(alertFindByArg.query).toEqual({
-      projectId: PROJECT_ID,
-      seriesFingerprint: fingerprint,
-      currentAlertState: { isResolvedState: false },
-    });
+    expect(alertFindByArg.query["projectId"]).toEqual(PROJECT_ID);
+    expect(alertFindByArg.query["seriesFingerprint"]).toBe(fingerprint);
+    // Unresolved: in a state above the project's resolved state.
+    expect(idsOfAnyFilter(alertFindByArg.query["currentAlertStateId"])).toEqual(
+      openStateIds(ALERT_STATE_IDS),
+    );
+    expect(Object.keys(alertFindByArg.query).sort()).toEqual(
+      ["currentAlertStateId", "projectId", "seriesFingerprint"].sort(),
+    );
 
     const incidentFindByArg: { query: Record<string, unknown> } =
       incidentFindBySpy.mock.calls[0]![0] as {
         query: Record<string, unknown>;
       };
-    expect(incidentFindByArg.query).toEqual({
-      projectId: PROJECT_ID,
-      seriesFingerprint: fingerprint,
-      currentIncidentState: { isResolvedState: false },
-    });
+    expect(incidentFindByArg.query["projectId"]).toEqual(PROJECT_ID);
+    expect(incidentFindByArg.query["seriesFingerprint"]).toBe(fingerprint);
+    // Unresolved: in a state above the project's resolved state.
+    expect(
+      idsOfAnyFilter(incidentFindByArg.query["currentIncidentStateId"]),
+    ).toEqual(openStateIds(INCIDENT_STATE_IDS));
+    expect(Object.keys(incidentFindByArg.query).sort()).toEqual(
+      ["currentIncidentStateId", "projectId", "seriesFingerprint"].sort(),
+    );
 
     // And both actually resolved, through their own state timeline tables.
     expect(alertTimelineCreateSpy).toHaveBeenCalledTimes(1);
@@ -2464,6 +2501,7 @@ describe("ServiceLevelObjectiveService - applying the monitor rules", () => {
     jest
       .spyOn(ServiceLevelObjectiveBurnRateRuleService, "create")
       .mockResolvedValue(makeBurnRateRule(RULE_ID));
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -2644,6 +2682,7 @@ describe("ServiceLevelObjectiveService - applying the label and owner rules", ()
     jest
       .spyOn(ServiceLevelObjectiveBurnRateRuleService, "create")
       .mockResolvedValue(makeBurnRateRule(RULE_ID));
+    stubProjectDirectory({});
   });
 
   afterEach(() => {

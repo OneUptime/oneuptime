@@ -31,6 +31,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
+import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
 
 /*
  * Cap the number of alerts we list inline in the email body. Anything beyond
@@ -392,7 +393,7 @@ RunCron(
             eventType,
           });
 
-          moreEpisodeFeedInformationInMarkdown += `**Notified**: ${user.name} (${user.email}) — ${alertCountInBatch} alert(s)\n`;
+          moreEpisodeFeedInformationInMarkdown += `**Notified**: ${escapeMarkdownValue(user.name?.toString())} (${escapeMarkdownValue(user.email?.toString())}) — ${alertCountInBatch} alert(s)\n`;
         } catch (e) {
           logger.error(
             "Error in sending alert-added-to-episode batch notification",

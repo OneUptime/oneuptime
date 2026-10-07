@@ -4,6 +4,11 @@ import SmsLog from "Common/Models/DatabaseModels/SmsLog";
 import NotificationService from "Common/Server/Services/NotificationService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import SmsLogService from "Common/Server/Services/SmsLogService";
+import {
+  getProjectNotificationChannelOffMessage,
+  ProjectNotificationChannel,
+} from "Common/Utils/Project/NotificationChannels";
+import { getProjectBalanceMessageNotSentReason } from "Common/Utils/Project/ProjectBalance";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
@@ -61,10 +66,20 @@ jest.mock("Common/Server/EnvironmentConfig", () => {
     "Common/Server/EnvironmentConfig",
   ) as Record<string, unknown>;
 
+  const URLType: { fromString: (url: string) => unknown } = (
+    jest.requireActual("Common/Types/API/URL") as {
+      default: { fromString: (url: string) => unknown };
+    }
+  ).default;
+
   return {
     __esModule: true,
     ...actual,
     IsBillingEnabled: true,
+    // Where the owners' email links to the switch.
+    DashboardClientUrl: URLType.fromString(
+      "https://oneuptime.example.com/dashboard",
+    ),
   };
 });
 
@@ -212,7 +227,10 @@ describe("an SMS the Notification service does not send", () => {
 
       expect(error).toBeInstanceOf(BadDataException);
       expect((error as BadDataException).message).toBe(
-        "SMS not sent: SMS notifications are not enabled for this project. Please enable SMS notifications in Project Settings.",
+        `SMS not sent: ${getProjectNotificationChannelOffMessage(ProjectNotificationChannel.SMS)}`,
+      );
+      expect((error as BadDataException).message).toBe(
+        "SMS not sent: SMS is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notification Settings.",
       );
       // The tenant's setting, not a defect.
       expect(declaredErrorClass(error)).toEqual({
@@ -237,6 +255,44 @@ describe("an SMS the Notification service does not send", () => {
       expect(ProjectService.sendEmailToProjectOwners).toHaveBeenCalledTimes(1);
     });
 
+    /*
+     * The log is read by anyone who may read the project's SMS logs, most of
+     * whom may not turn SMS on: it says who can, and where.
+     */
+    test("the SMS log says SMS is off and who can turn it on", async () => {
+      await send({});
+
+      expect(loggedRows()[0]!.statusMessage).toBe(
+        getProjectNotificationChannelOffMessage(ProjectNotificationChannel.SMS),
+      );
+      expect(loggedRows()[0]!.statusMessage).toContain(
+        "A project owner, a Billing Admin or someone with Manage Billing",
+      );
+    });
+
+    /*
+     * The owners may turn SMS on, so their email tells them to, if it should
+     * be on, and links straight to the switch.
+     */
+    test("the owners' email links straight to the switch on Notification Settings", async () => {
+      project!.notEnabledSmsOrCallNotificationSentToOwners = false;
+
+      await send({});
+
+      const call: Array<unknown> = (
+        ProjectService.sendEmailToProjectOwners as unknown as jest.Mock
+      ).mock.calls[0]!;
+      const body: string = call[2] as string;
+      const link: string = `https://oneuptime.example.com/dashboard/${PROJECT_ID.toString()}/settings/notification-settings`;
+
+      expect(call[0]).toEqual(PROJECT_ID);
+      expect(body).toContain(
+        "This SMS was not sent. SMS is off in this project. If it should be on, turn it on in Project Settings &gt; Notification Settings.",
+      );
+      expect(body).toContain(`<a href="${link}">${link}</a>`);
+      expect(body).not.toContain("Please enable");
+    });
+
     test("failIfNotSent: false is the quiet return", async () => {
       await expect(send({ failIfNotSent: false })).resolves.toBeUndefined();
     });
@@ -252,7 +308,14 @@ describe("an SMS the Notification service does not send", () => {
 
       expect(error).toBeInstanceOf(BadDataException);
       expect((error as BadDataException).message).toBe(
-        `SMS not sent: Project ${PROJECT_ID.toString()} does not have enough SMS balance.`,
+        `SMS not sent: ${getProjectBalanceMessageNotSentReason({
+          channel: ProjectNotificationChannel.SMS,
+          balanceInUSDCents: 0,
+          costInUSDCents: 10,
+        })}`,
+      );
+      expect((error as BadDataException).message).toBe(
+        "SMS not sent: This project's balance is used up. A project owner or someone with Manage Billing can add balance in Project Settings > Notification Settings.",
       );
       expect(createMessage).not.toHaveBeenCalled();
       expect(loggedRows()).toHaveLength(1);
@@ -266,8 +329,8 @@ describe("an SMS the Notification service does not send", () => {
         send({ failIfNotSent: true, onGlobalTwilioAccount: true }),
       );
 
-      expect((error as BadDataException).message).toMatch(
-        /^SMS not sent: Project does not have enough balance to send SMS\./,
+      expect((error as BadDataException).message).toBe(
+        "SMS not sent: This project's balance (0.01 USD) is less than this SMS costs (0.10 USD). A project owner or someone with Manage Billing can add balance in Project Settings > Notification Settings.",
       );
       expect(createMessage).not.toHaveBeenCalled();
       expect(loggedRows()[0]!.status).toBe(SmsStatus.LowBalance);
@@ -333,9 +396,14 @@ describe("an SMS the Notification service does not send", () => {
       ProjectService.sendEmailToProjectOwners as unknown as jest.Mock
     ).mock.calls[0]![2] as string;
 
-    expect(body).not.toContain("<a href");
+    expect(body).not.toContain('<a href="https://evil.example"');
     expect(body).toContain(
       "Incident &lt;a href=&quot;https://evil.example&quot;&gt;Verify billing&lt;/a&gt; on Site 03.",
+    );
+    // The one link is OneUptime's own: the page to add balance on.
+    expect(body.match(/<a href=/g)).toHaveLength(1);
+    expect(body).toContain(
+      `<a href="https://oneuptime.example.com/dashboard/${PROJECT_ID.toString()}/settings/notification-settings">`,
     );
   });
 });

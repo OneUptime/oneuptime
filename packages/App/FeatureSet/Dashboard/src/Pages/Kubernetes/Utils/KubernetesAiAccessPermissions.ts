@@ -1,7 +1,4 @@
-import Permission, {
-  UserPermission,
-  UserTenantAccessPermission,
-} from "Common/Types/Permission";
+import Permission from "Common/Types/Permission";
 import {
   KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
   KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
@@ -10,12 +7,16 @@ import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import RunbookCredential from "Common/Models/DatabaseModels/RunbookCredential";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
-import PermissionUtil from "Common/UI/Utils/Permission";
 import PermissionGate, {
   ModelAction,
+  PermissionGateOptions,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
-import User from "Common/UI/Utils/User";
+import {
+  getAiAccessTestPermissionMessage,
+  getAiAccessTestPermissionRequirement,
+} from "../../../Components/AiAccess/AiAccessModes";
+import { KUBERNETES_AI_AGENT_NOUN } from "./KubernetesAiAgentStatusSummary";
 
 /*
  * What the signed-in user may do on a cluster's AI pages, read from the
@@ -26,25 +27,15 @@ import User from "Common/UI/Utils/User";
 
 /*
  * Whether the signed-in user holds one of `allowed` in this project, read
- * the way the server reads it: from the project's permission rows only,
- * and a BLOCK row is a denial rather than a grant. A master admin holds
- * everything.
+ * the way the server reads it (PermissionGate.holdsAnyOf): a BLOCK row is a
+ * denial rather than a grant, and a block with no labels on any of them
+ * takes them away. A master admin holds everything.
  */
 export function holdsKubernetesAiAccessPermission(
   allowed: Array<Permission>,
+  options?: PermissionGateOptions | undefined,
 ): boolean {
-  if (User.isMasterAdmin()) {
-    return true;
-  }
-
-  const tenantPermission: UserTenantAccessPermission | null =
-    PermissionUtil.getProjectPermissions();
-
-  return Boolean(
-    tenantPermission?.permissions?.some((row: UserPermission): boolean => {
-      return !row.isBlockPermission && allowed.includes(row.permission);
-    }),
-  );
+  return PermissionGate.holdsAnyOf(allowed, options);
 }
 
 /*
@@ -64,10 +55,14 @@ export function canConfigureUnattendedKubernetesAiAccess(): boolean {
 
 /*
  * Resetting the agent revokes its key; the pod registers again on its own.
- * The server gates the route on the admin set.
+ * The server gates the route on the admin set, and counts a block on any of
+ * them as a refusal, labelled or not.
  */
 export function canResetKubernetesAiAgent(): boolean {
-  return canConfigureUnattendedKubernetesAiAccess();
+  return holdsKubernetesAiAccessPermission(
+    KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
+    { labelledBlocksRefuse: true },
+  );
 }
 
 /*
@@ -140,11 +135,19 @@ export function getAccessTestPermissionGate(): PermissionGateResult {
   return PermissionGate.check(new KubernetesCluster(), ModelAction.Update);
 }
 
+// Who may edit the cluster, and so run the test.
+function getAccessTestPermissionTitles(): Array<string> {
+  return PermissionGate.getPermissionTitles(
+    new KubernetesCluster().getUpdatePermissions(),
+  );
+}
+
 // Why the test is locked, for the disabled button's tooltip and note.
 export function getAccessTestPermissionRequirement(): string {
-  return `Testing the connection needs permission to edit this cluster (one of: ${PermissionGate.getPermissionTitles(
-    new KubernetesCluster().getUpdatePermissions(),
-  ).join(", ")}).`;
+  return getAiAccessTestPermissionRequirement({
+    noun: KUBERNETES_AI_AGENT_NOUN,
+    permissionTitles: getAccessTestPermissionTitles(),
+  });
 }
 
 /*
@@ -152,7 +155,10 @@ export function getAccessTestPermissionRequirement(): string {
  * about CHANGING the cluster's AI access, which the user did not try.
  */
 export function getAccessTestPermissionMessage(): string {
-  return `${getAccessTestPermissionRequirement()} Nothing on the cluster or in its AI settings was changed.`;
+  return getAiAccessTestPermissionMessage({
+    noun: KUBERNETES_AI_AGENT_NOUN,
+    permissionTitles: getAccessTestPermissionTitles(),
+  });
 }
 
 /*

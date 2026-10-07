@@ -1,3 +1,4 @@
+import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeLabelRule from "../../Models/DatabaseModels/IncidentEpisodeLabelRule";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
@@ -9,6 +10,7 @@ import LabelService from "./LabelService";
 import { IncidentEpisodeFeedEventType } from "../../Models/DatabaseModels/IncidentEpisodeFeed";
 import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
+import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Select from "../Types/Database/Select";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -175,11 +177,23 @@ class IncidentEpisodeLabelRuleEngineServiceClass
         }),
     );
 
-    const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
-      (id: string) => {
+    /*
+     * Only the project's own labels. The rules' lists are checked when a
+     * rule is saved, but a rule saved before that can still name another
+     * project's label, and the labels are attached here as root.
+     */
+    const newLabelIds: Array<string> = await RuleRecordScope.keepIdsInProject({
+      projectId: episode.projectId,
+      ids: Array.from(labelIdsToAdd).filter((id: string) => {
         return !existingLabelIds.has(id);
-      },
-    );
+      }),
+      modelType: Label,
+      description: "labels of incident episode label rules",
+      logAttributes: {
+        projectId: episode.projectId.toString(),
+        episodeId: episode.id.toString(),
+      } as LogAttributes,
+    });
     if (newLabelIds.length === 0) {
       return RuleApplicationResultUtil.alreadyApplied();
     }
@@ -255,10 +269,10 @@ class IncidentEpisodeLabelRuleEngineServiceClass
 
       const rulesPart: string =
         ruleNames.length === 1
-          ? `**${ruleNames[0]}**`
+          ? `**${escapeMarkdownValue(ruleNames[0])}**`
           : ruleNames
               .map((n: string) => {
-                return `**${n}**`;
+                return `**${escapeMarkdownValue(n)}**`;
               })
               .join(", ");
 
@@ -266,7 +280,7 @@ class IncidentEpisodeLabelRuleEngineServiceClass
         labelNames.length > 0
           ? labelNames
               .map((n: string) => {
-                return `\n- ${n}`;
+                return `\n- ${escapeMarkdownValue(n)}`;
               })
               .join("")
           : "\n- (no named labels)";

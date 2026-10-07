@@ -91,6 +91,8 @@ docker logs -f oneuptime-docker-agent
 
 ## 에이전트 업그레이드
 
+에이전트가 OneUptime보다 오래된 경우, Docker 호스트의 **개요**에서 **에이전트 버전** 옆에 경고 표시가 나타납니다. 이를 선택하면 이 명령들을 볼 수 있습니다.
+
 ```bash
 docker pull oneuptime/docker-agent:release
 docker rm -f oneuptime-docker-agent

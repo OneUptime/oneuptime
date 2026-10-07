@@ -22,6 +22,15 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * Editing an incident's Affected Resources sends its monitor list, and the
@@ -71,6 +80,11 @@ const ACKNOWLEDGED_STATE: string = "f4000000-0000-4000-8000-0000000000a2";
 
 const HOST_ID: string = "a5000000-0000-4000-8000-000000000001";
 
+/*
+ * A monitor's name sits inside its link's own text in the feed, so it is
+ * escaped there (escapeMarkdownInline): "payments-api" is written
+ * "payments\-api" and still reads "payments-api" once rendered.
+ */
 const MONITOR_NAMES: Dictionary<string> = {
   [MONITOR_A]: "checkout-web",
   [MONITOR_B]: "payments-api",
@@ -116,6 +130,12 @@ interface StoredIncident {
   // Resolved before the update, and after it unless the update moves it.
   isResolved: boolean;
   isCreatedAutomatically: boolean;
+  /*
+   * Whether it holds its monitors (Incident.holdsMonitors): false for one
+   * declared already resolved, or resolved since; null for one from before
+   * it was recorded.
+   */
+  holdsMonitors: boolean | null;
 }
 
 function storedIncident(
@@ -128,6 +148,7 @@ function storedIncident(
     changeMonitorStatusToId: OFFLINE,
     isResolved: false,
     isCreatedAutomatically: false,
+    holdsMonitors: true,
     ...overrides,
   };
 }
@@ -172,6 +193,8 @@ let disableActiveMonitoring: MockFunction;
 let isIncidentResolved: MockFunction;
 let createFeedItem: MockFunction;
 let monitorUpdateOneById: MockFunction;
+// What the edits recorded about the monitors each incident holds.
+let holdsRecorded: Array<{ incidentId: string; holdsMonitors: boolean }> = [];
 
 /*
  * Whether an incident is resolved at this point of the update: as stored
@@ -371,6 +394,7 @@ beforeEach(() => {
         incident._id = stored.id;
         incident.projectId = projectId;
         incident.monitors = stored.monitorIds.map(monitorStub);
+        incident.holdsMonitors = stored.holdsMonitors as boolean;
         if (stored.changeMonitorStatusToId) {
           incident.changeMonitorStatusToId = new ObjectID(
             stored.changeMonitorStatusToId,
@@ -415,6 +439,20 @@ beforeEach(() => {
   jest
     .spyOn(IncidentService, "isIncidentResolved")
     .mockImplementation(isIncidentResolved as never);
+
+  holdsRecorded = [];
+  jest
+    .spyOn(IncidentService, "recordHoldsMonitors")
+    .mockImplementation(((data: {
+      incidentId: ObjectID;
+      holdsMonitors: boolean;
+    }): Promise<void> => {
+      holdsRecorded.push({
+        incidentId: data.incidentId.toString(),
+        holdsMonitors: data.holdsMonitors,
+      });
+      return Promise.resolve();
+    }) as never);
 
   markMonitorsActive = getJestMockFunction();
   markMonitorsActive.mockResolvedValue(undefined);
@@ -501,15 +539,88 @@ beforeEach(() => {
   jest
     .spyOn(CustomFieldMappingService, "restampAfterMultiRowUpdate")
     .mockReturnValue(undefined as never);
+  stubProjectDirectory({});
 });
 
 afterEach(() => {
   jest.restoreAllMocks();
 });
 
+describe("IncidentService: an edit and the monitors the incident holds (Incident.holdsMonitors)", () => {
+  test("a monitor taken off an incident that holds nothing (declared resolved, reopened since) is not restored: there is nothing of the incident's to give back", async () => {
+    storedIncidents = [
+      storedIncident({
+        monitorIds: [MONITOR_A, MONITOR_B],
+        holdsMonitors: false,
+      }),
+    ];
+
+    await runUpdate({
+      monitors: [{ _id: MONITOR_A }],
+      changeMonitorStatusTo: { _id: OFFLINE },
+    });
+
+    expect(markMonitorsActive).not.toHaveBeenCalled();
+  });
+
+  test("a monitor taken off an incident from before it was recorded (null) is restored, as it always was", async () => {
+    storedIncidents = [
+      storedIncident({
+        monitorIds: [MONITOR_A, MONITOR_B],
+        holdsMonitors: null,
+      }),
+    ];
+
+    await runUpdate({
+      monitors: [{ _id: MONITOR_A }],
+      changeMonitorStatusTo: { _id: OFFLINE },
+    });
+
+    expect(monitorsRestored()).toEqual([[MONITOR_B]]);
+  });
+
+  test("an edit that puts an open incident's monitors in its status makes it hold them, before it does - so its resolve gives them back", async () => {
+    storedIncidents = [storedIncident({ holdsMonitors: false })];
+
+    await runUpdate({
+      monitors: [{ _id: MONITOR_A }, { _id: MONITOR_B }],
+      changeMonitorStatusTo: { _id: OFFLINE },
+    });
+
+    expect(holdsRecorded).toEqual([
+      { incidentId: INCIDENT_ID, holdsMonitors: true },
+    ]);
+    expect(statusChanges()).toEqual([[[MONITOR_B], OFFLINE]]);
+  });
+
+  test("an incident that holds its monitors already records nothing more", async () => {
+    await runUpdate({
+      monitors: [{ _id: MONITOR_A }, { _id: MONITOR_B }],
+      changeMonitorStatusTo: { _id: OFFLINE },
+    });
+
+    expect(holdsRecorded).toEqual([]);
+  });
+
+  test("an edit of a resolved incident records nothing: it touches no monitor", async () => {
+    storedIncidents = [
+      storedIncident({ isResolved: true, holdsMonitors: false }),
+    ];
+
+    await runUpdate({
+      monitors: [{ _id: MONITOR_A }, { _id: MONITOR_B }],
+      changeMonitorStatusTo: { _id: OFFLINE },
+    });
+
+    expect(holdsRecorded).toEqual([]);
+    expect(changeMonitorStatus).not.toHaveBeenCalled();
+  });
+});
+
 describe("IncidentService: editing the monitors of a resolved incident", () => {
   beforeEach(() => {
     storedIncidents = [storedIncident({ isResolved: true })];
+    stubProjectDirectory({});
   });
 
   test("adding a monitor puts no monitor back in the incident's status, and the feed still lists it", async () => {
@@ -525,8 +636,9 @@ describe("IncidentService: editing the monitors of a resolved incident", () => {
     const markdown: string | undefined = feedMarkdownFor();
 
     expect(markdown).toContain(
-      `**🌎 Monitors Added**:\n- [payments-api](${monitorLink(MONITOR_B)})\n`,
+      `**🌎 Monitors Added**:\n- [payments\\-api](${monitorLink(MONITOR_B)})\n`,
     );
+    expect(markdown).not.toContain("checkout\\-web");
     expect(markdown).not.toContain("checkout-web");
     expect(markdown).not.toContain("Monitor Status Changed");
   });
@@ -560,7 +672,7 @@ describe("IncidentService: editing the monitors of a resolved incident", () => {
     expect(markMonitorsActive).not.toHaveBeenCalled();
     expect(changeMonitorStatus).not.toHaveBeenCalled();
     expect(feedMarkdownFor()).toContain(
-      `**🗑️ Monitors Removed**:\n- [payments-api](${monitorLink(MONITOR_B)})\n`,
+      `**🗑️ Monitors Removed**:\n- [payments\\-api](${monitorLink(MONITOR_B)})\n`,
     );
   });
 
@@ -657,7 +769,7 @@ describe("IncidentService: editing the monitors of an open incident", () => {
     expect(markMonitorsActive).not.toHaveBeenCalled();
 
     expect(feedMarkdownFor()).toContain(
-      `**🌎 Monitors Added**:\n- [payments-api](${monitorLink(MONITOR_B)})\n`,
+      `**🌎 Monitors Added**:\n- [payments\\-api](${monitorLink(MONITOR_B)})\n`,
     );
   });
 
@@ -723,7 +835,7 @@ describe("IncidentService: editing the monitors of an open incident", () => {
     expect(changeMonitorStatus).not.toHaveBeenCalled();
     expect(disableActiveMonitoring).not.toHaveBeenCalled();
     expect(feedMarkdownFor()).toContain(
-      `**🗑️ Monitors Removed**:\n- [payments-api](${monitorLink(MONITOR_B)})\n`,
+      `**🗑️ Monitors Removed**:\n- [payments\\-api](${monitorLink(MONITOR_B)})\n`,
     );
   });
 
@@ -877,7 +989,7 @@ describe("IncidentService: an update that changes the incident's state and its m
     // The state is read before the write, while it is still open.
     expect(order).toEqual(["isIncidentResolved:false", "changeIncidentState"]);
     expect(feedMarkdownFor()).toContain(
-      `**🗑️ Monitors Removed**:\n- [payments-api](${monitorLink(MONITOR_B)})\n`,
+      `**🗑️ Monitors Removed**:\n- [payments\\-api](${monitorLink(MONITOR_B)})\n`,
     );
   });
 
@@ -1033,10 +1145,10 @@ describe("IncidentService: an update that changes the incident's state and its m
     expect(monitorsRestored()).toEqual([[MONITOR_A]]);
     expect(changeMonitorStatus).not.toHaveBeenCalled();
     expect(feedMarkdownFor(INCIDENT_ID)).toContain(
-      `**🗑️ Monitors Removed**:\n- [checkout-web](${monitorLink(MONITOR_A)})\n`,
+      `**🗑️ Monitors Removed**:\n- [checkout\\-web](${monitorLink(MONITOR_A)})\n`,
     );
     expect(feedMarkdownFor(SECOND_INCIDENT_ID)).toContain(
-      `**🗑️ Monitors Removed**:\n- [search-api](${monitorLink(MONITOR_C)})\n`,
+      `**🗑️ Monitors Removed**:\n- [search\\-api](${monitorLink(MONITOR_C)})\n`,
     );
   });
 });
@@ -1044,6 +1156,7 @@ describe("IncidentService: an update that changes the incident's state and its m
 describe("IncidentService: an update that sends the monitor status without the monitor list", () => {
   beforeEach(() => {
     storedIncidents = [storedIncident({ monitorIds: [MONITOR_A, MONITOR_B] })];
+    stubProjectDirectory({});
   });
 
   test("does not throw, and takes no monitor off the incident", async () => {
@@ -1146,6 +1259,7 @@ describe("IncidentService: the feed's monitor status line", () => {
 describe("IncidentService.onBeforeUpdate: which monitors an update adds and removes", () => {
   beforeEach(() => {
     storedIncidents = [storedIncident({ monitorIds: [MONITOR_A, MONITOR_B] })];
+    stubProjectDirectory({});
   });
 
   function addedIds(carryForward: MonitorCarryForward): Array<string> {
@@ -1230,18 +1344,65 @@ describe("IncidentService.onBeforeUpdate: which monitors an update adds and remo
     expect(carryForward.newMonitorChangeStatusIdTo).toBeUndefined();
   });
 
-  test("a status sent is not a clear, even next to a null relation", async () => {
-    const carryForward: MonitorCarryForward = monitorCarryForwardOf(
-      await runBeforeUpdate(
+  test("a status sent beside a cleared relation is refused: the two names disagree", async () => {
+    /*
+     * One name clears the status and the other sets it, and which of the two
+     * is stored depends on the shape of the write - so neither is guessed.
+     */
+    await expect(
+      runBeforeUpdate(
         makeUpdateBy({
           changeMonitorStatusTo: null,
           changeMonitorStatusToId: DEGRADED,
+        }),
+      ),
+    ).rejects.toThrow(
+      "Conflicting Monitor Status references were provided. changeMonitorStatusToId and changeMonitorStatusTo are names for the same field and must hold the same value: send only one of them, or the same id in each.",
+    );
+  });
+
+  test("a status sent under the relation alone is the status written", async () => {
+    const carryForward: MonitorCarryForward = monitorCarryForwardOf(
+      await runBeforeUpdate(
+        makeUpdateBy({
+          changeMonitorStatusTo: { _id: DEGRADED },
         }),
       ),
     );
 
     expect(carryForward.isChangeMonitorStatusToCleared).toBe(false);
     expect(String(carryForward.newMonitorChangeStatusIdTo)).toBe(DEGRADED);
+  });
+
+  test("the same status under both names is the status written", async () => {
+    const carryForward: MonitorCarryForward = monitorCarryForwardOf(
+      await runBeforeUpdate(
+        makeUpdateBy({
+          changeMonitorStatusTo: { _id: DEGRADED },
+          changeMonitorStatusToId: DEGRADED.toUpperCase(),
+        }),
+      ),
+    );
+
+    expect(carryForward.isChangeMonitorStatusToCleared).toBe(false);
+    expect(String(carryForward.newMonitorChangeStatusIdTo).toLowerCase()).toBe(
+      DEGRADED.toLowerCase(),
+    );
+  });
+
+  test("a clear under both names records clearing the status", async () => {
+    const carryForward: MonitorCarryForward = monitorCarryForwardOf(
+      await runBeforeUpdate(
+        makeUpdateBy({
+          monitors: [MONITOR_A, MONITOR_B],
+          changeMonitorStatusTo: null,
+          changeMonitorStatusToId: null,
+        }),
+      ),
+    );
+
+    expect(carryForward.isChangeMonitorStatusToCleared).toBe(true);
+    expect(carryForward.newMonitorChangeStatusIdTo).toBeUndefined();
   });
 
   test.each([
@@ -1288,13 +1449,34 @@ describe("IncidentService.onBeforeUpdate: which monitors an update adds and remo
     },
   );
 
-  test("an update that touches neither reads no incident", async () => {
+  test("an update that touches neither reads no monitors and changes none", async () => {
     const onUpdate: OnUpdate<Incident> = await runBeforeUpdate(
       makeUpdateBy({ title: "Renamed" }),
     );
 
-    expect(onUpdate.carryForward).toEqual({});
-    expect(IncidentService.findBy).not.toHaveBeenCalled();
+    /*
+     * The title is read before the write, so its feed line follows a real
+     * change (EventFieldChange): that read asks for no monitor, and what it
+     * carries forward takes no monitor off, puts none on and sets no status.
+     */
+    for (const entry of Object.values(
+      (onUpdate.carryForward || {}) as Record<string, Record<string, unknown>>,
+    )) {
+      expect(entry["monitorsRemoved"]).toEqual([]);
+      expect(entry["monitorsAdded"]).toEqual([]);
+      expect(entry["newMonitorChangeStatusIdTo"]).toBeUndefined();
+      expect(entry["isChangeMonitorStatusToCleared"]).toBeUndefined();
+    }
+
+    for (const call of (
+      IncidentService.findBy as unknown as { mock: { calls: Array<unknown> } }
+    ).mock.calls) {
+      const select: Record<string, unknown> =
+        (call as Array<{ select?: Record<string, unknown> }>)[0]?.select || {};
+
+      expect(select["monitors"]).toBeUndefined();
+      expect(select["changeMonitorStatusToId"]).toBeUndefined();
+    }
   });
 });
 
@@ -1354,7 +1536,7 @@ describe("IncidentService: an update that matches several incidents", () => {
     // Both feeds still record the edit.
     expect(feedMarkdownFor(INCIDENT_ID)).toContain("**🌎 Monitors Added**:");
     expect(feedMarkdownFor(SECOND_INCIDENT_ID)).toContain(
-      `**🗑️ Monitors Removed**:\n- [search-api](${monitorLink(MONITOR_C)})\n`,
+      `**🗑️ Monitors Removed**:\n- [search\\-api](${monitorLink(MONITOR_C)})\n`,
     );
   });
 });

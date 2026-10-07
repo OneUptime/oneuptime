@@ -1,5 +1,5 @@
 import ObjectID from "../../Types/ObjectID";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/DatabaseServerOwnerTeam";
 import DatabaseServerFeedService from "./DatabaseServerFeedService";
 import { DatabaseServerFeedEventType } from "../../Models/DatabaseModels/DatabaseServerFeed";
@@ -13,7 +13,7 @@ import ModelPermission from "../Types/Database/Permissions/Index";
 import DatabaseServerService from "./DatabaseServerService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -22,7 +22,8 @@ export class Service extends DatabaseService<Model> {
    * A caller adding an owner: the create permission first (so the lookup
    * below is no way to probe for databases), then the database must be in
    * the caller's project - by its FK column and its relation object alike.
-   * Root writes (owner rules) choose their own database.
+   * Root writes (owner rules) choose their own database, which the generic
+   * reference check below still holds to the project.
    */
   @CaptureSpan()
   protected override async onBeforeCreate(
@@ -39,6 +40,12 @@ export class Service extends DatabaseService<Model> {
         createBy,
       );
     }
+
+    /*
+     * Then the team or user, and the database once more for a root write: every
+     * reference must be the project's (see ProjectReferencesService).
+     */
+    await super.onBeforeCreate(createBy);
 
     return { createBy: createBy, carryForward: null };
   }

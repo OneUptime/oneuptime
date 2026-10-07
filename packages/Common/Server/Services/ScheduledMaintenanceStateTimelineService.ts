@@ -3,7 +3,7 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorService from "./MonitorService";
 import MonitorStatusService from "./MonitorStatusService";
 import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
@@ -19,7 +19,7 @@ import ObjectID from "../../Types/ObjectID";
 import NetworkSite from "../../Models/DatabaseModels/NetworkSite";
 import NetworkSiteService from "./NetworkSiteService";
 import PositiveNumber from "../../Types/PositiveNumber";
-import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import StateChangeSubscriberNotification from "../../Types/StatusPage/StateChangeSubscriberNotification";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../Models/DatabaseModels/MonitorStatusTimeline";
@@ -31,6 +31,8 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import StateChangePublicNote from "../Utils/StatusPage/StateChangePublicNote";
 import logger, { LogAttributes } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -58,7 +60,7 @@ const STATE_KIND_SELECT: Select<ScheduledMaintenanceState> = {
  */
 const TIMELINE_REPLAY_BATCH_SIZE: number = 100;
 
-export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> {
+export class Service extends ProjectReferencesService<ScheduledMaintenanceStateTimeline> {
   public constructor() {
     super(ScheduledMaintenanceStateTimeline);
     if (IsBillingEnabled) {
@@ -117,6 +119,8 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
   protected override async onBeforeCreate(
     createBy: CreateBy<ScheduledMaintenanceStateTimeline>,
   ): Promise<OnCreate<ScheduledMaintenanceStateTimeline>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.scheduledMaintenanceId) {
       throw new BadDataException("scheduledMaintenanceId is null");
     }
@@ -140,12 +144,64 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
         createBy.data.startsAt = OneUptimeDate.getCurrentDate();
       }
 
-      const scheduledMaintenanceStateId: ObjectID | undefined | null =
-        createBy.data.scheduledMaintenanceStateId ||
-        createBy.data.scheduledMaintenanceState?.id;
+      // Under either of its names; the two must agree.
+      const scheduledMaintenanceStateId: ObjectID | null =
+        RelationIdUtil.readConsistent(
+          createBy.data as unknown as Record<string, unknown>,
+          ["scheduledMaintenanceStateId", "scheduledMaintenanceState"],
+          "Scheduled Maintenance State",
+        );
 
       if (!scheduledMaintenanceStateId) {
         throw new BadDataException("scheduledMaintenanceStateId is null");
+      }
+
+      // The public note that comes with the change, if any (a blank one is none).
+      const publicNote: string | undefined =
+        StateChangeSubscriberNotification.getPublicNote(
+          createBy.miscDataProps as JSONObject | undefined,
+        );
+
+      /*
+       * The note, as it will be posted below - before the change, as the
+       * person changing the state, so that a note they may not post refuses
+       * the change too. Asked now, before anything is read or written, with
+       * the check the note's own create runs, so the refusal says what it
+       * means for the change (StateChangePublicNote).
+       */
+      let scheduledMaintenancePublicNote:
+        | ScheduledMaintenancePublicNote
+        | undefined = undefined;
+
+      if (publicNote) {
+        scheduledMaintenancePublicNote = new ScheduledMaintenancePublicNote();
+        scheduledMaintenancePublicNote.scheduledMaintenanceId =
+          createBy.data.scheduledMaintenanceId;
+        scheduledMaintenancePublicNote.note = publicNote;
+        scheduledMaintenancePublicNote.postedAt = createBy.data.startsAt;
+        scheduledMaintenancePublicNote.createdAt = createBy.data.startsAt;
+
+        const noteProjectId: ObjectID | undefined =
+          createBy.data.projectId || createBy.props.tenantId;
+
+        if (noteProjectId) {
+          scheduledMaintenancePublicNote.projectId = noteProjectId;
+        }
+
+        scheduledMaintenancePublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
+          Boolean(createBy.data.shouldStatusPageSubscribersBeNotified);
+
+        // Its messages name the state the event moves to.
+        StateChangePublicNote.markPostedWith(
+          scheduledMaintenancePublicNote,
+          scheduledMaintenanceStateId,
+        );
+
+        StateChangePublicNote.assertCallerMayPost({
+          noteModelType: ScheduledMaintenancePublicNote,
+          note: scheduledMaintenancePublicNote,
+          props: createBy.props,
+        });
       }
 
       /*
@@ -285,46 +341,25 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
         }
       }
 
-      const publicNote: string | undefined = (
-        createBy.miscDataProps as JSONObject | undefined
-      )?.["publicNote"] as string | undefined;
-
-      if (publicNote) {
-        const scheduledMaintenancePublicNote: ScheduledMaintenancePublicNote =
-          new ScheduledMaintenancePublicNote();
-        scheduledMaintenancePublicNote.scheduledMaintenanceId =
-          createBy.data.scheduledMaintenanceId;
-        scheduledMaintenancePublicNote.note = publicNote;
-        scheduledMaintenancePublicNote.postedAt = createBy.data.startsAt;
-        scheduledMaintenancePublicNote.createdAt = createBy.data.startsAt;
-        scheduledMaintenancePublicNote.projectId = createBy.data.projectId!;
-        scheduledMaintenancePublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
-          Boolean(createBy.data.shouldStatusPageSubscribersBeNotified);
-
-        // mark status page subscribers as notified for this state change because we dont want to send duplicate (two) emails one for public note and one for state change.
-        if (
-          scheduledMaintenancePublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated
-        ) {
-          createBy.data.subscriberNotificationStatus =
-            StatusPageSubscriberNotificationStatus.Success;
-        }
-
+      // The note goes first: a note that cannot be posted refuses the change.
+      if (scheduledMaintenancePublicNote) {
         await ScheduledMaintenancePublicNoteService.create({
           data: scheduledMaintenancePublicNote,
           props: createBy.props,
         });
       }
 
-      // Set notification status based on shouldStatusPageSubscribersBeNotified
-      if (createBy.data.shouldStatusPageSubscribersBeNotified === false) {
-        createBy.data.subscriberNotificationStatus =
-          StatusPageSubscriberNotificationStatus.Skipped;
-        createBy.data.subscriberNotificationStatusMessage =
-          "Notifications skipped as subscribers are not to be notified for this scheduled maintenance state change.";
-      } else if (createBy.data.shouldStatusPageSubscribersBeNotified === true) {
-        createBy.data.subscriberNotificationStatus =
-          StatusPageSubscriberNotificationStatus.Pending;
-      }
+      /*
+       * The change's own notification, decided once: when it notifies
+       * subscribers and a note came with it, the note is the one message
+       * they get (StateChangeSubscriberNotification).
+       */
+      StateChangeSubscriberNotification.applyToStateChange({
+        stateChange: createBy.data,
+        hasPublicNote: Boolean(publicNote),
+        skippedMessage:
+          "Notifications skipped as subscribers are not to be notified for this scheduled maintenance state change.",
+      });
 
       return {
         createBy,
@@ -593,6 +628,8 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
         select: {
           _id: true,
           projectId: true,
+          // As it is stored now: the status the event starts with (below).
+          changeMonitorStatusToId: true,
           monitors: {
             _id: true,
           },
@@ -640,6 +677,11 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
             },
           });
         }
+
+        await this.applyMonitorStatusWhenStarting({
+          scheduledMaintenanceEvent: scheduledMaintenanceEvent,
+          isCurrentState: !createdItem.endsAt,
+        });
       }
     }
 
@@ -732,6 +774,8 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<ScheduledMaintenanceStateTimeline>,
   ): Promise<OnUpdate<ScheduledMaintenanceStateTimeline>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * Resolved before the update runs, because the update may narrow or move
      * the rows the query matches -- and because a row can be repointed at a
@@ -906,6 +950,63 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
         "Error while recomputing network site rollups after a scheduled maintenance state change:",
       );
       logger.error(error);
+    }
+  }
+
+  /*
+   * WHEN AN EVENT STARTS, ITS MONITORS CHANGE TO ITS CHANGE MONITOR STATUS
+   * TO - THE ONE IT HOLDS AT THAT MOMENT.
+   *
+   * Every way an event starts comes through here, as the move into its
+   * ongoing state: the ChangeStateToOngoing job at its start time, Mark as
+   * Ongoing on its page, the Slack and Microsoft Teams actions, a state
+   * change through the API, Terraform or a workflow. The status is read
+   * from the event as it is stored now (the read above), so a status
+   * changed after the event was scheduled - it can be, until the event
+   * starts - is the one applied. The job used to apply the status it had
+   * read up to a minute before, and a start by hand applied none.
+   *
+   * Only when this row is the event's current state (isCurrentState): a row
+   * filled in between two others, back in its timeline, starts nothing.
+   *
+   * The state change has committed: a failure here is logged, never turned
+   * into an error. Each monitor already in the status is left as it is
+   * (MonitorService.changeMonitorStatus).
+   */
+  private async applyMonitorStatusWhenStarting(data: {
+    scheduledMaintenanceEvent: ScheduledMaintenance;
+    isCurrentState: boolean;
+  }): Promise<void> {
+    const scheduledMaintenanceEvent: ScheduledMaintenance =
+      data.scheduledMaintenanceEvent;
+
+    if (
+      !data.isCurrentState ||
+      !scheduledMaintenanceEvent.changeMonitorStatusToId ||
+      !scheduledMaintenanceEvent.projectId ||
+      !scheduledMaintenanceEvent.id
+    ) {
+      return;
+    }
+
+    try {
+      await ScheduledMaintenanceService.changeAttachedMonitorStates(
+        scheduledMaintenanceEvent,
+        {
+          isRoot: true,
+        },
+      );
+    } catch (err) {
+      const logAttributes: LogAttributes = {
+        projectId: scheduledMaintenanceEvent.projectId.toString(),
+        scheduledMaintenanceId: scheduledMaintenanceEvent.id.toString(),
+      } as LogAttributes;
+
+      logger.error(
+        `ScheduledMaintenanceStateTimelineService.applyMonitorStatusWhenStarting: could not change the monitors of scheduled maintenance ${scheduledMaintenanceEvent.id.toString()} to the status it starts with; the state change itself is saved.`,
+        logAttributes,
+      );
+      logger.error(err, logAttributes);
     }
   }
 

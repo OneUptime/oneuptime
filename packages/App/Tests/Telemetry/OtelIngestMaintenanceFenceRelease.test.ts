@@ -58,6 +58,7 @@ import RumApplicationService from "Common/Server/Services/RumApplicationService"
 import RumApplicationClientService from "Common/Server/Services/RumApplicationClientService";
 import ServerlessFunctionService from "Common/Server/Services/ServerlessFunctionService";
 import ServerlessFunctionInstanceService from "Common/Server/Services/ServerlessFunctionInstanceService";
+import StorageArrayService from "Common/Server/Services/StorageArrayService";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 /*
@@ -84,7 +85,7 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *
  * Only the Kubernetes path used to release its fence on failure. Every
  * autoDiscover* now records what it armed and releases it in its catch
- * block. This suite pins that for all eleven, plus the two properties that
+ * block. This suite pins that for every one of them, plus the two properties that
  * make "record what you armed" better than "clear the obvious key":
  *
  *   - a successful batch releases NOTHING, so the throttle the fence
@@ -183,6 +184,16 @@ const FENCE_CASES: Array<FenceCase> = [
     scope: "ceph-cluster",
     attributes: [stringAttribute("ceph.cluster.name", "ceph-1")] as JSONArray,
     gated: { service: CephClusterService, method: "updateLastSeen" },
+  },
+  {
+    name: "autoDiscoverStorageArray",
+    method: "autoDiscoverStorageArray",
+    scope: "storage-array",
+    attributes: [
+      stringAttribute("storage.array.name", "pure-prod-01"),
+      stringAttribute("storage.system", "purestorage.flasharray"),
+    ] as JSONArray,
+    gated: { service: StorageArrayService, method: "updateLastSeen" },
   },
   {
     name: "autoDiscoverServerless",
@@ -517,9 +528,17 @@ describe("maintenance fence release coverage", () => {
      * in FENCE_CASES — an autoDiscover* that only logs in its catch block
      * is exactly the bug this suite exists to catch.
      */
-    const covered: Array<string> = FENCE_CASES.map((c: FenceCase) => {
-      return c.method;
-    });
+    const covered: Array<string> = [
+      ...FENCE_CASES.map((c: FenceCase) => {
+        return c.method;
+      }),
+      /*
+       * Takes the request's distinct cloud resources rather than one
+       * resource's attributes, so it has a suite of its own that holds it to
+       * the same rule: CloudMonitoredResourceDiscovery.test.ts.
+       */
+      "autoDiscoverCloudMonitoredResources",
+    ];
 
     const declared: Array<string> = Object.getOwnPropertyNames(
       OtelIngestBaseService,

@@ -138,6 +138,12 @@ const RESOURCE_MAPPINGS: Array<ResourceMapping> = [
     nameColumn: "name",
   },
   {
+    relation: "storageArrays",
+    ids: ["storageArrayId", "storageArrayIds"],
+    names: attributeAliases("storage.array.name"),
+    nameColumn: "name",
+  },
+  {
     relation: "dockerSwarmClusters",
     ids: ["dockerSwarmClusterId", "dockerSwarmClusterIds"],
     names: attributeAliases("docker.swarm.cluster.name"),
@@ -180,6 +186,7 @@ const PRIMARY_TYPE_RELATIONS: Partial<Record<ServiceType, string>> = {
   [ServiceType.ProxmoxCluster]: "proxmoxClusters",
   [ServiceType.VMwareVCenter]: "vmwareVCenters",
   [ServiceType.CephCluster]: "cephClusters",
+  [ServiceType.StorageArray]: "storageArrays",
   [ServiceType.DockerSwarmCluster]: "dockerSwarmClusters",
   // The telemetry discriminator is historical: its id is the owning fleet.
   [ServiceType.IoTDevice]: "iotFleets",
@@ -774,6 +781,15 @@ function buildQueryScope(config: MetricQueryConfigData): EventOverlayScope {
       : []),
     ...(hasAny(attributes, attributeAliases("ceph.cluster.name"))
       ? ["ceph_daemon", "pool_id", "pool_name"]
+      : []),
+    /*
+     * A storage array names its volumes, pods, directories, file systems
+     * and buckets in `name`, its hosts in `host` and its hardware in
+     * `component_name` (StorageArrayMetricCatalog) — generic keys, so they
+     * only mean an object of the array when the array is in scope.
+     */
+    ...(hasAny(attributes, attributeAliases("storage.array.name"))
+      ? ["name", "host", "component_name"]
       : []),
     ...attributeAliases(
       "vcenter.host.name",

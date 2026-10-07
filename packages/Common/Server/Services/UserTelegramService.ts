@@ -17,6 +17,11 @@ import Project from "../../Models/DatabaseModels/Project";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import Model from "../../Models/DatabaseModels/UserTelegram";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import {
+  getProjectNotificationChannelOffMessage,
+  ProjectNotificationChannel,
+} from "../../Utils/Project/NotificationChannels";
+import { getProjectBalanceTooLowMessage } from "../../Utils/Project/ProjectBalance";
 import TelegramVerificationToken from "../Utils/TelegramVerificationToken";
 import {
   QueryDeepPartialEntity,
@@ -180,7 +185,9 @@ export class Service extends DatabaseService<Model> {
 
     if (!project.enableTelegramNotifications) {
       throw new BadDataException(
-        "Telegram notifications are disabled for this project. Please enable them in Project Settings > Notification Settings.",
+        getProjectNotificationChannelOffMessage(
+          ProjectNotificationChannel.Telegram,
+        ),
       );
     }
 
@@ -189,7 +196,7 @@ export class Service extends DatabaseService<Model> {
       IsBillingEnabled
     ) {
       throw new BadDataException(
-        "Your notification balance is low. Please recharge your balance in Project Settings > Notification Settings.",
+        getProjectBalanceTooLowMessage(ProjectNotificationChannel.Telegram),
       );
     }
 

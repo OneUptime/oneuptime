@@ -183,11 +183,21 @@ const EXPIRED_YESTERDAY: Day = day({
  * retentionDate from midnight to an hour from now: under the old TTL the
  * rows expired so far would be deleted at the next TTL merge; under the
  * rounded one none of them goes before midnight.
+ *
+ * Its last row is exactly an hour from now (in the day's last hour, its
+ * last second), so the part always holds a row still ahead of now. A part
+ * whose rows have all passed their old TTL is dropped whole at its next
+ * TTL merge, by the bounds it was written with, without its rows being
+ * read again under the rounded TTL - which deletes nothing a read could
+ * still return, but is not the rewrite this day is here to show. Spread
+ * over ROWS - 1 steps, the last row lands on the end of the span, not a
+ * step short of it (short of 23:59:59 by seven minutes late in the day,
+ * before the end-of-day guard above starts).
  */
 const EXPIRING_TODAY: Day = day({
   name: "expiring today",
   daysAgo: 25,
-  time: `day + toIntervalSecond(intDiv(number * least(${SECONDS_INTO_TODAY} + 3600, 86399), ${ROWS}))`,
+  time: `day + toIntervalSecond(intDiv(number * least(${SECONDS_INTO_TODAY} + 3600, 86399), ${ROWS - 1}))`,
   createdAt: "time",
   retentionDate: "createdAt + INTERVAL 25 DAY",
 });

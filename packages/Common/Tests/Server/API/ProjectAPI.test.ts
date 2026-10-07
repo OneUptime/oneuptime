@@ -14,6 +14,7 @@ import {
 } from "../../../Server/Utils/Express";
 import Response from "../../../Server/Utils/Response";
 import { mockRouter } from "./Helpers";
+import { permissionRow, tenantPermissionsFor } from "./PermissionRows";
 import { describe, expect, it } from "@jest/globals";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
@@ -23,7 +24,7 @@ import PositiveNumber from "../../../Types/PositiveNumber";
 import Project from "../../../Models/DatabaseModels/Project";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import BadDataException from "../../../Types/Exception/BadDataException";
-import Permission, { UserPermission } from "../../../Types/Permission";
+import Permission from "../../../Types/Permission";
 
 jest.mock("../../../Server/EnvironmentConfig", () => {
   return {
@@ -288,14 +289,9 @@ describe("ProjectAPI", () => {
       mockRequest.params = { id: projectId.toString() };
       mockRequest.tenantId = projectId;
       mockRequest.body = { data: { paymentProviderPlanId: planId } };
-
-      jest
-        .spyOn(ProjectAPI.prototype, "getPermissionsForTenant")
-        .mockResolvedValue([
-          {
-            permission: Permission.ProjectOwner,
-          } as UserPermission,
-        ]);
+      mockRequest.userTenantAccessPermission = tenantPermissionsFor(projectId, [
+        Permission.ProjectOwner,
+      ]);
 
       await mockRouter
         .match("put", "/project/:id/change-plan")
@@ -310,6 +306,48 @@ describe("ProjectAPI", () => {
         mockRequest,
         mockResponse,
       );
+    });
+
+    it("should refuse an owner whose Project Owner another team blocks", async () => {
+      const projectId: ObjectID = ObjectID.generate();
+
+      mockRequest.params = { id: projectId.toString() };
+      mockRequest.tenantId = projectId;
+      mockRequest.body = { data: { paymentProviderPlanId: planId } };
+      mockRequest.userTenantAccessPermission = tenantPermissionsFor(projectId, [
+        Permission.ProjectOwner,
+        permissionRow(Permission.ProjectOwner, { isBlock: true }),
+      ]);
+
+      await mockRouter
+        .match("put", "/project/:id/change-plan")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      expect(
+        (nextFunction as unknown as jest.Mock).mock.calls[0]?.[0],
+      ).toBeInstanceOf(BadDataException);
+      expect(ProjectService.changePlan).not.toHaveBeenCalled();
+    });
+
+    it("should refuse a member whose only Manage Project Billing row is a block", async () => {
+      const projectId: ObjectID = ObjectID.generate();
+
+      mockRequest.params = { id: projectId.toString() };
+      mockRequest.tenantId = projectId;
+      mockRequest.body = { data: { paymentProviderPlanId: planId } };
+      mockRequest.userTenantAccessPermission = tenantPermissionsFor(projectId, [
+        Permission.ProjectMember,
+        permissionRow(Permission.ManageProjectBilling, { isBlock: true }),
+      ]);
+
+      await mockRouter
+        .match("put", "/project/:id/change-plan")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      expect(
+        (nextFunction as unknown as jest.Mock).mock.calls[0]?.[0],
+      ).toBeInstanceOf(BadDataException);
+      expect(ProjectService.changePlan).not.toHaveBeenCalled();
     });
   });
 

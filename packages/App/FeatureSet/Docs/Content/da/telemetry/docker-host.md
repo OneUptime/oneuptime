@@ -91,6 +91,8 @@ Inden for cirka et minut bør værten fremgå i OneUptime-dashboardet med metrik
 
 ## Opgradering af agenten
 
+Når agenten er ældre end din OneUptime, vises et advarselstegn ved siden af **Agentversion** på Docker-værtens **Oversigt**. Vælg det for at se disse kommandoer.
+
 ```bash
 docker pull oneuptime/docker-agent:release
 docker rm -f oneuptime-docker-agent

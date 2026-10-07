@@ -1,4 +1,6 @@
 import ChangeAlertState from "../../../Components/Alert/ChangeState";
+import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import { StateListType } from "Common/Utils/StateOrder";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
@@ -49,6 +51,7 @@ import AffectedResourcesPicker, {
   isAffectedResourcesPayload,
 } from "../../../Components/AffectedResources/AffectedResourcesPicker";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import Host from "Common/Models/DatabaseModels/Host";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
@@ -641,13 +644,29 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     });
   };
 
+  /*
+   * The project's resolved state, by name, and every state that counts as
+   * resolved: it and any state placed after it (Common/Utils/ResolvedState).
+   */
   const getResolvedState: GetAlertStateFunction = ():
     | AlertState
     | undefined => {
-    return alertStates.find((state: AlertState) => {
-      return state.isResolvedState;
-    });
+    return (
+      ResolvedStateUtil.getResolvedState({
+        list: StateListType.AlertState,
+        states: alertStates,
+      }) || undefined
+    );
   };
+
+  const resolvedStateIds: Array<string> = ResolvedStateUtil.getResolvedStateIds(
+    {
+      list: StateListType.AlertState,
+      states: alertStates,
+    },
+  ).map((stateId: ObjectID) => {
+    return stateId.toString();
+  });
 
   const acknowledgeState: AlertState | undefined = getAcknowledgeState();
   const resolvedState: AlertState | undefined = getResolvedState();
@@ -671,13 +690,13 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     timelines: timelineDates,
     startedAt: alertStartedAt,
     acknowledgedStateId: acknowledgeState?._id?.toString(),
-    resolvedStateId: resolvedState?._id?.toString(),
+    resolvedStateIds: resolvedStateIds,
   });
 
   const durationStartDate: Date | undefined = responseTimes.startedAt;
   const durationEndDate: Date | undefined = getEventEndDateForCurrentState(
     timelineDates,
-    resolvedState?._id?.toString(),
+    resolvedStateIds,
   );
 
   type FormatDateFunction = (date: Date | undefined) => string | undefined;
@@ -1368,6 +1387,9 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         values.vmwareVCenters as Array<VMwareVCenter>
                       }
                       cephClusters={values.cephClusters as Array<CephCluster>}
+                      storageArrays={
+                        values.storageArrays as Array<StorageArray>
+                      }
                       dockerSwarmClusters={
                         values.dockerSwarmClusters as Array<DockerSwarmCluster>
                       }
@@ -1384,6 +1406,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         "ProxmoxCluster",
                         "VMwareVCenter",
                         "CephCluster",
+                        "StorageArray",
                         "DockerSwarmCluster",
                         "IoTFleet",
                         "DatabaseServer",
@@ -1412,6 +1435,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         proxmoxClusters: payload.proxmoxClusters,
                         vmwareVCenters: payload.vmwareVCenters,
                         cephClusters: payload.cephClusters,
+                        storageArrays: payload.storageArrays,
                         dockerSwarmClusters: payload.dockerSwarmClusters,
                         iotFleets: payload.iotFleets,
                         databaseServers: payload.databaseServers,
@@ -1472,6 +1496,15 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               {
                 field: { cephClusters: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { storageArrays: true },
                 title: "",
                 fieldType: FormFieldSchemaType.Text,
                 required: false,
@@ -1562,6 +1595,10 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       name: true,
                       _id: true,
                     },
+                    storageArrays: {
+                      name: true,
+                      _id: true,
+                    },
                     dockerSwarmClusters: {
                       name: true,
                       _id: true,
@@ -1603,6 +1640,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         proxmoxClusters={item.proxmoxClusters || []}
                         vmwareVCenters={item.vmwareVCenters || []}
                         cephClusters={item.cephClusters || []}
+                        storageArrays={item.storageArrays || []}
                         dockerSwarmClusters={item.dockerSwarmClusters || []}
                         iotFleets={item.iotFleets || []}
                         databaseServers={item.databaseServers || []}

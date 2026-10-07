@@ -688,6 +688,42 @@ describe("infrastructure page guidance", () => {
     expect(section).not.toContain('"namespace":');
   });
 
+  test("a storage array volume is quoted as a parent-scoped hint, not child-only evidence", () => {
+    const section: string = buildPageContextSection({
+      type: AIChatPageContextType.Resource,
+      resourceType: AIResourceType.StorageArray,
+      entityId: ENTITY_ID,
+      entityTitle: "pure-prod-01",
+      subresource: { kind: AIResourceSubresourceKind.Volume, key: "vol-db" },
+    });
+    expect(section).toContain('a Storage Array titled "pure-prod-01"');
+    expect(section).toContain(
+      JSON.stringify({
+        resourceType: AIResourceType.StorageArray,
+        resourceId: ENTITY_ID,
+      }),
+    );
+    expect(section).toContain('"kind":"Volume","key":"vol-db"');
+    expect(section).toContain("returns the parent resource's data");
+    expect(section).toContain("never describe it as child-only measurements");
+  });
+
+  test("the system prompt routes storage arrays through the infrastructure tools", () => {
+    const prompt: string = buildObservabilityChatSystemPrompt({
+      currentTime: new Date("2026-07-16T00:00:00Z"),
+      permissionMode: AIChatPermissionMode.ReadOnly,
+    });
+    const infrastructureLine: string | undefined = prompt
+      .split("\n")
+      .find((line: string): boolean => {
+        return line.startsWith("- For infrastructure (");
+      });
+    expect(infrastructureLine).toBeDefined();
+    expect(infrastructureLine).toContain("Ceph, storage arrays, serverless");
+    expect(infrastructureLine).toContain(QueryTelemetryResourcesTool.name);
+    expect(infrastructureLine).toContain(QueryResourceTelemetryTool.name);
+  });
+
   test("an explicit namespace is quoted with the child hint", () => {
     const section: string = buildPageContextSection({
       type: AIChatPageContextType.Resource,

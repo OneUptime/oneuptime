@@ -44,7 +44,8 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --create-namespace \
   --set oneuptime.url="YOUR_ONEUPTIME_URL" \
   --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
-  --set clusterName="my-cluster"
+  --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true
 ```
 
 ### GKE Autopilot
@@ -56,6 +57,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set oneuptime.url="YOUR_ONEUPTIME_URL" \
   --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
   --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true \
   --set preset=gke-autopilot
 ```
 
@@ -68,8 +70,11 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set oneuptime.url="YOUR_ONEUPTIME_URL" \
   --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
   --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true \
   --set preset=eks-fargate
 ```
+
+**AI による調査はデフォルトで有効です。** `aiAgent.enabled=true` は collector と並べて Kubernetes AI エージェントを実行します。このクラスターでインシデントやアラートが発生すると、OneUptime AI は読み取り専用の `kubectl`（`get`、`describe`、`logs`、`events`、`top`）で調査し、何も変更しません。修正は許可するまで無効のままです。AI エージェントなしでインストールするには、代わりに `--set aiAgent.enabled=false` を使用してください。
 
 ## ステップ 4 — インストールを検証する
 
@@ -221,7 +226,7 @@ Kubernetesイベントはエージェントで名前空間別にフィルタリ�
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set sampling.traces.percentage=10
 ```
 
@@ -304,7 +309,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set cost.enabled=true
 ```
 
@@ -348,14 +353,25 @@ clusterName: prod
 
 ## エージェントのアップグレード
 
+エージェントが OneUptime より古い場合、クラスターの **クラスターの詳細** にある **エージェントバージョン** の横に警告サインが表示されます。それを選ぶと、このコマンドが表示されます。
+
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values
+  --reset-then-reuse-values
 ```
 
-`--reuse-values` は既存の構成 (プリセット、クラスター名、フィルター) を保持します。新しい `--set` の上書きはその上に渡してください。
+`--reset-then-reuse-values` (Helm 3.14 以降) は、設定した値 (プリセット、クラスター名、フィルター) を保持し、それ以外の値はすべて新しいチャートから取ります。新しい `--set` の上書きはその上に渡してください。Helm 3.13 以前では、代わりに設定した値を使ってアップグレードします:
+
+```bash
+helm repo update
+helm get values kubernetes-agent --namespace oneuptime-agent -o yaml > values.yaml && \
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent -f values.yaml
+```
+
+`--reuse-values` は使わないでください。アップグレード元のチャートのデフォルト値も保持されるため、新しいチャートのデフォルト値 (新しい eBPF イメージなど) が適用されません。リリースが古いチャートのデフォルト値で動いている場合、インストールやアップグレードの後に Helm が表示するノートの最後に、警告とそれを直すコマンドが表示されます。
 
 > **eBPF のスパンメトリクスの名前が変わりました。** `ebpf.features.spanMetrics` は `traces_spanmetrics_calls_total` と `traces_spanmetrics_latency` の代わりに `traces.span.metrics.calls` と `traces.span.metrics.duration`(秒)を送信するようになりました。系列は同じで、名前だけが OBI の維持する名前に変わります(旧名は OBI で非推奨)。旧名を使うダッシュボード、チャート、メトリクスモニターは、アップグレード後はエラーも出ないまま新しいデータを受け取らなくなります。新しい名前に切り替え、旧名を含む `filters.metrics` のエントリも更新してください。
 
@@ -428,7 +444,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 エージェントはデフォルトで **カバレッジ** を重視して調整されています — クラスター全体からメトリクス、Pod ログ、eBPF トレースを送信するため、すべてのダッシュボードとモニターが初日から機能します。大規模またはビジー状態のクラスターでは、それが必要以上のテレメトリになる場合があり、取り込み量の増加 (そして OneUptime Cloud ではコストの増加) として現れます。ここに書かれていることは何も必須ではありませんが、クラスターが望む以上に送信している場合は、これらが調整すべきつまみです — おおよそ影響の大きい順に並べています。
 
-コツは、すべてを収集して保存料を支払うのではなく、**見ないものは収集しないようにする** ことです。以下のすべてのレバーは Helm の値なので、`helm upgrade --reuse-values` に対して `--set` で適用でき、同じ方法でロールバックできます。
+コツは、すべてを収集して保存料を支払うのではなく、**見ないものは収集しないようにする** ことです。以下のすべてのレバーは Helm の値なので、`helm upgrade --reset-then-reuse-values` に対して `--set` で適用でき、同じ方法でロールバックできます。
 
 ### データ量の発生源
 
@@ -456,7 +472,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set-json 'namespaceFilters.rules=[{"action":"include","namespaces":["default","production"],"scopes":["podLogs"]}]'
   ```
 
@@ -466,7 +482,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set filters.logs.minSeverity=WARN
   ```
 
@@ -476,7 +492,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set logs.enabled=false
   ```
 
@@ -490,7 +506,7 @@ eBPF は、コード変更なしでトレース、RED メトリクス、サー�
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set ebpf.enabled=false
   ```
 
@@ -498,7 +514,7 @@ eBPF は、コード変更なしでトレース、RED メトリクス、サー�
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set ebpf.features.networkMetrics=false \
     --set ebpf.features.tcpStats=false \
     --set ebpf.features.spanMetrics=false
@@ -510,7 +526,7 @@ eBPF は、コード変更なしでトレース、RED メトリクス、サー�
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set ebpf.autoTargetExe='*/python,*/java'
   ```
 
@@ -522,7 +538,7 @@ eBPF は、コード変更なしでトレース、RED メトリクス、サー�
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set collectionInterval=60s \
   --set hostMetrics.collectionInterval=60s \
   --set cadvisor.scrapeInterval=60s
@@ -550,7 +566,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set filters.metrics.matchType=regexp \
     --set-json 'filters.metrics.exclude=["^container_network_"]'
   ```
@@ -561,7 +577,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set-json 'namespaceFilters.rules=[{"action":"exclude","namespaces":["noisy-*"],"scopes":["metrics"]}]'
   ```
 
@@ -585,7 +601,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set sampling.traces.percentage=10
 ```
 
@@ -679,7 +695,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set preset=gke-autopilot   # or eks-fargate
 ```
 
@@ -701,7 +717,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
    ```bash
    helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-     --namespace oneuptime-agent --reuse-values \
+     --namespace oneuptime-agent --reset-then-reuse-values \
      --set oneuptime.apiKey=<LIVE_KEY>
    ```
 

@@ -64,6 +64,15 @@ Volte para **Runbooks → Agentes de runbook**. Em cerca de 60 segundos a linha 
 - Confirme que o host alcança sua URL OneUptime com `curl`.
 - Confirme que o ID e a chave foram copiados sem espaços em branco.
 
+### 5. Mantenha o agente atualizado
+
+Quando um agente executa uma versão mais antiga que o seu OneUptime, um sinal de aviso aparece ao lado da sua **Versão do Agente de Runbook** na página dele. Selecione-o para ver como atualizar: baixe a nova imagem e remova o contêiner, depois execute novamente o comando de instalação do passo 2. Um agente instalado pelo chart do agente Kubernetes é atualizado com esse chart.
+
+```bash
+docker pull oneuptime/runner:release
+docker rm -f oneuptime-runner
+```
+
 ## Apontar um passo para um agente
 
 No seu runbook adicione um passo Bash ou JavaScript. O formulário tem um dropdown **Agente de Runbook** listando todos os agentes do projeto atual (com indicador de conectado/desconectado):

@@ -52,6 +52,7 @@ const META_BY_TYPE: Record<EntityType, EntityTypeMeta> = {
     color: "#7dd3fc",
   },
   [EntityType.CephCluster]: { label: "Ceph Cluster", color: "#dc2626" },
+  [EntityType.StorageArray]: { label: "Storage Array", color: "#ea580c" },
   [EntityType.DockerSwarmCluster]: {
     label: "Swarm Cluster",
     color: "#0e7490",

@@ -5,11 +5,11 @@ import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorGroupResourceService from "./MonitorGroupResourceService";
-import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ContiguousOrder from "../Utils/Database/ContiguousOrder";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -17,66 +17,39 @@ import Model from "../../Models/DatabaseModels/StatusPageResource";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorGroupResource from "../../Models/DatabaseModels/MonitorGroupResource";
 
-/**
- * The ways a create or update can name the resource's target. Everything
- * server side sets the foreign key column, but the dashboard's resource form
- * posts the relation - and the relation does NOT arrive in the same shape on
- * both write paths:
- *
- *   - create goes through BaseAPI.createItem, which revives the body with
- *     BaseModel.fromJSON, so `monitor` is a real Monitor and `monitor.id` is
- *     an ObjectID;
- *   - update goes through BaseAPI.updateItem, which only runs
- *     JSONFunctions.deserialize. That revives ObjectID/DateTime values, but
- *     never nested models, so `monitor` stays the plain `{ _id: "<uuid>" }`
- *     the browser sent and has no `id` at all.
- *
- * Reading only `.id` therefore silently saw nothing on every edit-form save,
- * which is the whole path the update guard exists for - so this accepts the
- * id however it arrives.
+/*
+ * The two names of each reference this service reads off a write itself, ID
+ * column first. Everything server side sets the ID column, while the
+ * dashboard's resource form posts the relation - a real Monitor on create
+ * (BaseModel.fromJSON), the plain `{ _id: "<uuid>" }` the browser sent on
+ * update - and RelationIdUtil reads either shape. The two names must agree
+ * (RelationIdUtil.readConsistent): the id checked is the id stored.
  */
-type StatusPageResourceTargetValue =
-  | ObjectID
-  | string
-  | { id?: unknown; _id?: unknown }
-  | null
-  | undefined;
-
-interface StatusPageResourceTargetInput {
-  monitorId?: StatusPageResourceTargetValue;
-  monitor?: StatusPageResourceTargetValue;
-  monitorGroupId?: StatusPageResourceTargetValue;
-  monitorGroup?: StatusPageResourceTargetValue;
-}
-
-function toTargetObjectID(
-  value: StatusPageResourceTargetValue,
-): ObjectID | null {
-  if (!value) {
-    return null;
-  }
-
-  if (value instanceof ObjectID) {
-    return value;
-  }
-
-  if (typeof value === "string") {
-    return new ObjectID(value);
-  }
-
-  if (typeof value === "object") {
-    return (
-      toTargetObjectID(value.id as StatusPageResourceTargetValue) ||
-      toTargetObjectID(value._id as StatusPageResourceTargetValue)
-    );
-  }
-
-  return null;
-}
+const STATUS_PAGE_KEYS: Array<string> = ["statusPageId", "statusPage"];
+const STATUS_PAGE_GROUP_KEYS: Array<string> = [
+  "statusPageGroupId",
+  "statusPageGroup",
+];
+const MONITOR_KEYS: Array<string> = ["monitorId", "monitor"];
+const MONITOR_GROUP_KEYS: Array<string> = ["monitorGroupId", "monitorGroup"];
 
 interface StatusPageResourceTarget {
   monitorId: ObjectID | null;
   monitorGroupId: ObjectID | null;
+}
+
+/*
+ * A resource moved to another place by a non-root update: where it was, where
+ * it goes, and its list. Read before the update (onBeforeUpdate) and acted on
+ * after it (onUpdateSuccess), only if the update wrote that resource.
+ */
+interface ResourceMove {
+  resourceId: ObjectID;
+  previousOrder: number;
+  newOrder: number;
+  statusPageId: ObjectID;
+  statusPageGroupId: ObjectID | null;
+  projectId: ObjectID;
 }
 
 /**
@@ -93,7 +66,7 @@ function duplicateResourceException(
   );
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -247,20 +220,29 @@ export class Service extends DatabaseService<Model> {
   }
 
   /**
-   * The id of the thing a resource points at, whichever way the caller
-   * expressed it. The dashboard's resource form posts the relation
-   * (`monitor: { _id }`) while everything server side sets the foreign key
-   * column, and both mean the same resource.
+   * The id of the thing a resource points at, under either of its names:
+   * the dashboard's resource form posts the relation (`monitor: { _id }`)
+   * while everything server side sets the ID column, and both mean the same
+   * resource. Two names that disagree are refused. A create also keeps the
+   * id in the ID column (`fillIdColumns`), so the saved row has it whichever
+   * name the write used.
    */
   private getResourceMonitorTarget(
-    data: StatusPageResourceTargetInput,
+    data: Record<string, unknown>,
+    fillIdColumns: boolean = false,
   ): StatusPageResourceTarget {
+    const read: (keys: Array<string>, title: string) => ObjectID | null = (
+      keys: Array<string>,
+      title: string,
+    ): ObjectID | null => {
+      return fillIdColumns
+        ? RelationIdUtil.readIntoIdColumn(data, keys, title)
+        : RelationIdUtil.readConsistent(data, keys, title);
+    };
+
     return {
-      monitorId:
-        toTargetObjectID(data.monitorId) || toTargetObjectID(data.monitor),
-      monitorGroupId:
-        toTargetObjectID(data.monitorGroupId) ||
-        toTargetObjectID(data.monitorGroup),
+      monitorId: read(MONITOR_KEYS, "Monitor"),
+      monitorGroupId: read(MONITOR_GROUP_KEYS, "Monitor Group"),
     };
   }
 
@@ -276,11 +258,13 @@ export class Service extends DatabaseService<Model> {
    * bulk add modal, and the API.
    *
    * The check is status-page-wide rather than per group: a monitor in two
-   * groups is still a monitor a visitor sees twice.
+   * groups is still a monitor a visitor sees twice. It reads the page in its
+   * own project only, so it says nothing about another project's page.
    */
   @CaptureSpan()
   public async isResourceAlreadyOnStatusPage(data: {
     statusPageId: ObjectID;
+    projectId: ObjectID;
     monitorId?: ObjectID | null | undefined;
     monitorGroupId?: ObjectID | null | undefined;
     excludeResourceId?: ObjectID | null | undefined;
@@ -291,6 +275,7 @@ export class Service extends DatabaseService<Model> {
 
     const query: Query<Model> = {
       statusPageId: data.statusPageId,
+      projectId: data.projectId,
     };
 
     if (data.monitorId) {
@@ -320,19 +305,50 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    if (!createBy.data.statusPageId) {
+    await super.onBeforeCreate(createBy);
+
+    const createData: Record<string, unknown> =
+      createBy.data as unknown as Record<string, unknown>;
+
+    /*
+     * The status page and the group, each under either of its names, and
+     * kept in the ID column for the checks below and for the saved row:
+     * onCreateSuccess orders the list the row is in by them.
+     */
+    const statusPageId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      createData,
+      STATUS_PAGE_KEYS,
+      "Status Page",
+    );
+
+    if (!statusPageId) {
       throw new BadDataException(
         "Status Page Resource statusPageId is required",
       );
     }
 
+    const statusPageGroupId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      createData,
+      STATUS_PAGE_GROUP_KEYS,
+      "Status Page Group",
+    );
+
+    const projectId: ObjectID | undefined =
+      createBy.props.tenantId || createBy.data.projectId;
+
+    if (!projectId) {
+      throw new BadDataException("Status Page Resource projectId is required");
+    }
+
     const target: StatusPageResourceTarget = this.getResourceMonitorTarget(
-      createBy.data as unknown as StatusPageResourceTargetInput,
+      createData,
+      true,
     );
 
     if (
       await this.isResourceAlreadyOnStatusPage({
-        statusPageId: createBy.data.statusPageId,
+        statusPageId: statusPageId,
+        projectId: projectId,
         monitorId: target.monitorId,
         monitorGroupId: target.monitorGroupId,
       })
@@ -341,20 +357,12 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (!createBy.data.order) {
-      const query: Query<Model> = {
-        statusPageId: createBy.data.statusPageId,
-        statusPageGroupId:
-          createBy.data.statusPageGroupId || QueryHelper.isNull(),
-      };
-
-      if (createBy.data.statusPageGroupId) {
-        (query as any)["statusPageGroupId"] = createBy.data.statusPageGroupId;
-      } else {
-        (query as any)["statusPageGroupId"] = QueryHelper.isNull();
-      }
-
       const count: PositiveNumber = await this.countBy({
-        query: query,
+        query: this.getOrderList({
+          statusPageId: statusPageId,
+          statusPageGroupId: statusPageGroupId,
+          projectId: projectId,
+        }),
         props: {
           isRoot: true,
         },
@@ -363,17 +371,41 @@ export class Service extends DatabaseService<Model> {
       createBy.data.order = count.toNumber() + 1;
     }
 
-    await this.rearrangeOrder(
-      createBy.data.order,
-      createBy.data.statusPageId,
-      createBy.data.statusPageGroupId || null,
-      true,
-    );
-
     return {
       createBy: createBy,
       carryForward: null,
     };
+  }
+
+  /*
+   * The resources at the new resource's place and after it move one place
+   * down - now that it exists, so a create that is refused or fails leaves
+   * the status page's order as it was.
+   */
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    _onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    if (
+      createdItem.id &&
+      createdItem.order &&
+      createdItem.statusPageId &&
+      createdItem.projectId
+    ) {
+      await ContiguousOrder.afterCreate({
+        service: this,
+        list: this.getOrderList({
+          statusPageId: createdItem.statusPageId,
+          statusPageGroupId: createdItem.statusPageGroupId || null,
+          projectId: createdItem.projectId,
+        }),
+        createdItemId: createdItem.id,
+        order: createdItem.order,
+      });
+    }
+
+    return createdItem;
   }
 
   @CaptureSpan()
@@ -398,6 +430,7 @@ export class Service extends DatabaseService<Model> {
           order: true,
           statusPageId: true,
           statusPageGroupId: true,
+          projectId: true,
         },
       });
     }
@@ -408,23 +441,38 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
+  /*
+   * The resources after a deleted one close its gap - only when the resource
+   * was actually deleted, within its own list and project.
+   */
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _itemIdsBeforeDelete: ObjectID[],
+    itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<Model>> {
     const deleteBy: DeleteBy<Model> = onDelete.deleteBy;
     const resource: Model | null = onDelete.carryForward;
 
-    if (!deleteBy.props.isRoot && resource) {
-      if (resource && resource.order && resource.statusPageId) {
-        await this.rearrangeOrder(
-          resource.order,
-          resource.statusPageId,
-          resource.statusPageGroupId || null,
-          false,
-        );
-      }
+    if (
+      !deleteBy.props.isRoot &&
+      resource &&
+      resource.id &&
+      resource.order &&
+      resource.statusPageId &&
+      resource.projectId &&
+      itemIdsBeforeDelete.some((id: ObjectID): boolean => {
+        return id.toString() === resource.id!.toString();
+      })
+    ) {
+      await ContiguousOrder.afterDelete({
+        service: this,
+        list: this.getOrderList({
+          statusPageId: resource.statusPageId,
+          statusPageGroupId: resource.statusPageGroupId || null,
+          projectId: resource.projectId,
+        }),
+        order: resource.order,
+      });
     }
 
     return {
@@ -437,13 +485,15 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * Pointing an existing resource at a monitor the page already lists is the
      * same duplicate onBeforeCreate refuses, just reached from the edit form.
      */
     const updatedTarget: StatusPageResourceTarget =
       this.getResourceMonitorTarget(
-        updateBy.data as unknown as StatusPageResourceTargetInput,
+        updateBy.data as unknown as Record<string, unknown>,
       );
 
     if (
@@ -453,6 +503,9 @@ export class Service extends DatabaseService<Model> {
       const resourceBeingUpdated: Model | null = await this.findOneBy({
         query: {
           _id: updateBy.query._id!,
+          ...(updateBy.props.tenantId
+            ? { projectId: updateBy.props.tenantId }
+            : {}),
         },
         props: {
           isRoot: true,
@@ -460,37 +513,51 @@ export class Service extends DatabaseService<Model> {
         select: {
           _id: true,
           statusPageId: true,
+          projectId: true,
           monitorId: true,
           monitorGroupId: true,
         },
       });
 
-      const currentTarget: StatusPageResourceTarget =
-        this.getResourceMonitorTarget(
-          (resourceBeingUpdated ||
-            {}) as unknown as StatusPageResourceTargetInput,
-        );
+      const currentTarget: StatusPageResourceTarget = {
+        monitorId: resourceBeingUpdated?.monitorId || null,
+        monitorGroupId: resourceBeingUpdated?.monitorGroupId || null,
+      };
 
       /*
        * The edit form is a ModelForm, so it posts every field it collects -
        * the monitor included - even when all the operator changed was the
        * display name. Checking an unchanged target would refuse those saves
        * on a status page that already carries a duplicate from before this
-       * rule existed, which would leave both of its rows uneditable.
+       * rule existed, which would leave both of its rows uneditable. The ids
+       * are compared in any case, as Postgres compares them: the form may
+       * send one in a case other than the one the database reads back.
        */
+      const isSameId: (
+        sent: ObjectID | null,
+        stored: ObjectID | null,
+      ) => boolean = (
+        sent: ObjectID | null,
+        stored: ObjectID | null,
+      ): boolean => {
+        return (
+          !sent ||
+          sent.toString().trim().toLowerCase() ===
+            (stored?.toString() || "").trim().toLowerCase()
+        );
+      };
+
       const isTargetUnchanged: boolean =
-        (!updatedTarget.monitorId ||
-          updatedTarget.monitorId.toString() ===
-            currentTarget.monitorId?.toString()) &&
-        (!updatedTarget.monitorGroupId ||
-          updatedTarget.monitorGroupId.toString() ===
-            currentTarget.monitorGroupId?.toString());
+        isSameId(updatedTarget.monitorId, currentTarget.monitorId) &&
+        isSameId(updatedTarget.monitorGroupId, currentTarget.monitorGroupId);
 
       if (
         resourceBeingUpdated?.statusPageId &&
+        resourceBeingUpdated.projectId &&
         !isTargetUnchanged &&
         (await this.isResourceAlreadyOnStatusPage({
           statusPageId: resourceBeingUpdated.statusPageId,
+          projectId: resourceBeingUpdated.projectId,
           monitorId: updatedTarget.monitorId,
           monitorGroupId: updatedTarget.monitorGroupId,
           excludeResourceId: resourceBeingUpdated.id,
@@ -499,6 +566,14 @@ export class Service extends DatabaseService<Model> {
         throw duplicateResourceException(updatedTarget);
       }
     }
+
+    /*
+     * A resource moved to another place: where it is now is read here, and
+     * the resources it passes step aside once the update has moved it - only
+     * those strictly between its old and new place. Nothing is written before
+     * the update.
+     */
+    let move: ResourceMove | null = null;
 
     if (updateBy.data.order && !updateBy.props.isRoot && updateBy.query._id) {
       const resource: Model | null = await this.findOneBy({
@@ -512,129 +587,76 @@ export class Service extends DatabaseService<Model> {
           order: true,
           statusPageId: true,
           statusPageGroupId: true,
+          projectId: true,
           _id: true,
         },
       });
 
-      const currentOrder: number = resource?.order as number;
-      const newOrder: number = updateBy.data.order as number;
-
-      const resources: Array<Model> = await this.findBy({
-        query: {
-          statusPageId: resource?.statusPageId as ObjectID,
-          statusPageGroupId:
-            resource?.statusPageGroupId || QueryHelper.isNull(),
-        },
-
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-        select: {
-          order: true,
-          statusPageId: true,
-          statusPageGroupId: true,
-          _id: true,
-        },
-      });
-
-      if (currentOrder > newOrder) {
-        // moving up.
-
-        for (const resource of resources) {
-          if (resource.order! >= newOrder && resource.order! < currentOrder) {
-            // increment order.
-            await this.updateOneBy({
-              query: {
-                _id: resource._id!,
-              },
-              data: {
-                order: resource.order! + 1,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-          }
-        }
-      }
-
-      if (newOrder > currentOrder) {
-        // moving down.
-
-        for (const resource of resources) {
-          if (resource.order! <= newOrder) {
-            // increment order.
-            await this.updateOneBy({
-              query: {
-                _id: resource._id!,
-              },
-              data: {
-                order: resource.order! - 1,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-          }
-        }
+      if (
+        resource &&
+        resource.id &&
+        resource.order &&
+        resource.statusPageId &&
+        resource.projectId
+      ) {
+        move = {
+          resourceId: resource.id,
+          previousOrder: resource.order,
+          newOrder: updateBy.data.order as number,
+          statusPageId: resource.statusPageId,
+          statusPageGroupId: resource.statusPageGroupId || null,
+          projectId: resource.projectId,
+        };
       }
     }
 
-    return { updateBy, carryForward: null };
+    return { updateBy, carryForward: move };
   }
 
-  private async rearrangeOrder(
-    currentOrder: number,
-    statusPageId: ObjectID,
-    statusPageGroupId: ObjectID | null,
-    increaseOrder: boolean = true,
-  ): Promise<void> {
-    // get status page resource with this order.
-    const resources: Array<Model> = await this.findBy({
-      query: {
-        order: QueryHelper.greaterThanEqualTo(currentOrder),
-        statusPageId: statusPageId,
-        statusPageGroupId: statusPageGroupId
-          ? statusPageGroupId
-          : QueryHelper.isNull(),
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-      select: {
-        _id: true,
-        order: true,
-      },
-      sort: {
-        order: SortOrder.Ascending,
-      },
-    });
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    const move: ResourceMove | null =
+      (onUpdate.carryForward as ResourceMove) || null;
 
-    let newOrder: number = currentOrder;
-
-    for (const resource of resources) {
-      if (increaseOrder) {
-        newOrder = resource.order! + 1;
-      } else {
-        newOrder = resource.order! - 1;
-      }
-
-      await this.updateOneBy({
-        query: {
-          _id: resource._id!,
-        },
-        data: {
-          order: newOrder,
-        },
-        props: {
-          isRoot: true,
-        },
+    if (
+      move &&
+      updatedItemIds.some((id: ObjectID): boolean => {
+        return id.toString() === move.resourceId.toString();
+      })
+    ) {
+      await ContiguousOrder.afterMove({
+        service: this,
+        list: this.getOrderList({
+          statusPageId: move.statusPageId,
+          statusPageGroupId: move.statusPageGroupId,
+          projectId: move.projectId,
+        }),
+        movedItemId: move.resourceId,
+        previousOrder: move.previousOrder,
+        newOrder: move.newOrder,
       });
     }
+
+    return onUpdate;
+  }
+
+  /*
+   * The resources numbered together: those of the same status page and the
+   * same group (or of no group), in the resource's own project.
+   */
+  private getOrderList(data: {
+    statusPageId: ObjectID;
+    statusPageGroupId: ObjectID | null;
+    projectId: ObjectID;
+  }): Query<Model> {
+    return {
+      statusPageId: data.statusPageId,
+      statusPageGroupId: data.statusPageGroupId || QueryHelper.isNull(),
+      projectId: data.projectId,
+    };
   }
 }
 export default new Service();

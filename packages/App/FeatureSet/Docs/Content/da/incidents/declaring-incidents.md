@@ -46,7 +46,7 @@ Monitorerne kommer først, for sig selv: statussider ser en hændelse gennem den
 
 - **Monitorer** — et søgefelt, der tilknytter de monitorer, hændelsen påvirker (`monitors`). En statusside viser hændelsen og giver sine abonnenter besked, når den viser en af disse monitorer.
 - **Skift overvågningsstatus til** — valgfri, og vises først, når mindst én monitor er valgt. Sætter hver monitor i hændelsen til en overvågningsstatus, så det at erklære hændelsen og markere dens monitorer som forringede er én handling. En skabelons status vises, så snart du vælger en monitor; uden nogen valgt monitor gemmes der ingen status.
-- **Andre berørte ressourcer** — et andet søgefelt til alt andet, hændelsen påvirker: værter, Kubernetes-klynger, Docker- og Podman-værter, Proxmox-, Ceph- og Docker Swarm-klynger, vCentre, IoT-flåder, databaser og tjenester. Det er separate relationer på hændelsen (`hosts`, `kubernetesClusters`, `services` med flere).
+- **Andre berørte ressourcer** — et andet søgefelt til alt andet, hændelsen påvirker: værter, Kubernetes-klynger, Docker- og Podman-værter, Proxmox-, Ceph- og Docker Swarm-klynger, vCentre, storage-arrays, IoT-flåder, databaser og tjenester. Det er separate relationer på hændelsen (`hosts`, `kubernetesClusters`, `services` med flere).
 
 Hændelsens kort **Berørte ressourcer** spørger på samme måde, når du redigerer det senere.
 
@@ -160,11 +160,11 @@ Oprettelseskaldet gør mere end at skrive en række. I rækkefølge:
 5. **Etiketregler kører** og tilføjer de etiketter, der matcher hændelsen.
 6. **Vagtregler kører.** Hver aktiveret regel under **Hændelser → Regler → Vagtregler**, hvis kriterier matcher, føjer sine politikker til hændelsen. Der er ingen prioritetsrækkefølge og ingen kortslutning — alle matchende regler udløses, og politikkerne renses for dubletter.
 7. **Runbook-regler kører** og knytter samt starter matchende runbooks. Se [Runbooks](/docs/runbooks/index).
-8. **Vagtpolitikker udføres.** Hver politik på hændelsen — valgt i guiden, arvet fra en skabelon eller tilføjet af en regel — udføres parallelt med begivenhedstypen `IncidentCreated`. At én politik fejler, stopper ikke de andre.
+8. **Vagtpolitikker udføres.** Hver politik på hændelsen — valgt i guiden, arvet fra en skabelon eller tilføjet af en regel — udføres parallelt med begivenhedstypen `IncidentCreated`. At én politik fejler, stopper ikke de andre. En hændelse, der erklæres allerede bekræftet eller løst, udfører ingen af dem: ingen tilkaldes, og dens feed siger det og nævner dem ved navn.
 9. **Abonnenter sættes i kø**, hvis **Underret statussideabonnenter** blev ladt slået til, og hændelsen er synlig på statussiden. Leveringen håndteres af et baggrundsjob, ikke inline med din anmodning.
 10. **Workflows udløses.** Triggeren **On Create Incident** starter alle workflows bygget på den. Se [Workflows – Oversigt](/docs/workflows/index).
 
-Derfra er hændelsen i live: den tæller med i mærket **Aktive hændelser** i hændelsernes sidemenu (enhver tilstand, der ikke er flagget `isResolvedState`, tæller som aktiv), den optræder på de statussider, der bærer en af dens monitorer, og dens **Tilstandstidslinje** begynder at registrere.
+Derfra er hændelsen i live: den tæller med i mærket **Aktive hændelser** i hændelsernes sidemenu (enhver tilstand over din løste tilstand tæller som aktiv), den optræder på de statussider, der bærer en af dens monitorer, og dens **Tilstandstidslinje** begynder at registrere.
 
 ## Læs videre
 

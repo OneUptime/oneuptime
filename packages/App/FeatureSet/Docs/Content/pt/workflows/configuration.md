@@ -96,14 +96,36 @@ Limites embutidos mantêm as chamadas não supervisionadas finitas: System Instr
 
 ## Permissões
 
-Workflows respeitam o controle de acesso baseado em papéis do seu projeto. As permissões relevantes:
+Workflows respeitam o controle de acesso baseado em papéis do seu projeto. As três funções de workflow:
 
-- **Create / Read / Edit / Delete Workflow** — as permissões básicas sobre o próprio workflow.
-- **Run Workflow** — necessária para rodar um workflow à mão ou disparar um via API.
+- **Workflow Admin** — constrói workflows: cria, altera, executa e exclui, e gerencia as variáveis que eles usam.
+- **Workflow Member** — usa os workflows: abre os workflows e suas execuções, e executa um workflow à mão com **Executar fluxo de trabalho**. Um membro não pode criar, alterar ou excluir um workflow, nem executar uma de suas etapas sozinha.
+- **Workflow Viewer** — lê os workflows e suas execuções.
+
+**Project Owner** e **Project Admin** podem fazer tudo o que um Workflow Admin faz. **Project Member** pode criar e excluir workflows, mas não alterá-los nem executá-los.
+
+As permissões individuais, para uma equipe ou chave de API que precisa de exatamente uma coisa:
+
+- **Create / Read / Edit / Delete Workflow** — as permissões básicas sobre o próprio workflow. Alterar um workflow, inclusive ligá-lo, desligá-lo e arquivá-lo, exige **Edit Workflow**; **Delete Workflow** só exclui.
+- **Edit Workflow** — também é o que se precisa para executar uma única etapa sozinha com **Run just this step**, e para ver ou redefinir a URL do webhook e o endereço de e-mail de entrada de um workflow. Executar um workflow inteiro à mão exige **Edit Workflow**, **Workflow Admin** ou **Workflow Member**.
 - **Read Workflow Log** — necessária para ver as execuções.
 - **Read / Create / Edit / Delete Workflow Variable** — controle sobre a lista de variáveis globais.
 
-A maioria das pessoas de engenharia deveria ter criar/editar/ler em workflows, mas não em variáveis. Reserve o acesso de edição de variáveis para quem cuida dos segredos do projeto.
+Uma execução à mão só alcança os workflows que você consegue abrir: uma função limitada a alguns rótulos, ou aos workflows que sua equipe possui, executa só esses. Quem não pode executar um workflow vê **Executar fluxo de trabalho** esmaecido, com o motivo na dica.
+
+Dê **Workflow Admin** a quem constrói a automação e **Workflow Member** a quem só a inicia. Reserve o acesso de edição de variáveis para quem cuida dos segredos do projeto.
+
+## O que os passos de um workflow podem fazer
+
+Os passos que leem e alteram registros do OneUptime (os componentes Find, Create, Update e Delete e os gatilhos On Create, On Update e On Delete) agem como um **Project Admin** do projeto do workflow. Passam pelas mesmas verificações que um Project Admin no painel e na API:
+
+- **Somente o projeto do próprio workflow.** Um passo nunca lê nem altera registros de outro projeto, e um Update nunca move um registro para outro projeto.
+- **Somente o que um Project Admin pode fazer.** Um passo não pode conceder permissões que um Project Admin não tem (como **Project Owner** ou faturamento), nem adicionar alguém a uma equipe com mais permissões, como a equipe de proprietários.
+- **Somente o que o seu plano inclui.** No OneUptime Cloud, o que o seu plano não inclui é recusado com o nome do plano necessário.
+- **Nada do que o OneUptime mantém por conta própria.** Entradas de feed não podem ser editadas nem excluídas, registros de notificações não podem ser escritos, e valores que o OneUptime define por conta própria (como um CNAME verificado, os interruptores de proteção de uma equipe ou quem está de plantão agora) não podem ser alterados. Um passo **Create One Incident** também não pode declarar um incidente a partir de um modelo (`createdIncidentTemplateId`): leia o modelo com **Find One Incident Template** e passe os seus valores.
+- **Como nenhuma pessoa.** Um registro que um workflow cria não tem criador, e o log de auditoria nomeia o workflow como autor da alteração.
+
+Um passo recusado segue pela sua saída **Error** sem fazer a alteração recusada, e o log da execução diz qual passo foi recusado e por quê. Um passo Create Many cria seus registros um de cada vez e para no recusado; os criados antes dele permanecem. Passos que falam com outros sistemas (API, e-mail, chat, Custom Code, IA) não são afetados.
 
 ## Limites do plano
 

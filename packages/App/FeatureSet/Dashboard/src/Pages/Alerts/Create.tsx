@@ -7,6 +7,7 @@ import MarkdownUtil from "Common/UI/Utils/Markdown";
 import React, {
   Fragment,
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useMemo,
 } from "react";
@@ -19,6 +20,7 @@ import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
@@ -26,12 +28,18 @@ import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Service from "Common/Models/DatabaseModels/Service";
+import MonitorLinkedResourcesPrefill, {
+  MonitorLinkedResourcesPrefillState,
+  useMonitorLinkedResourcesPrefillState,
+} from "../../Components/AffectedResources/MonitorLinkedResourcesPrefill";
+import { ALERT_PREFILL_PAYLOAD_KEYS } from "../../Components/AffectedResources/MonitorLinkedResourcesPrefillRules";
 import AffectedResourcesPicker, {
   AffectedResourceType,
   isAffectedResourcesPayload,
 } from "../../Components/AffectedResources/AffectedResourcesPicker";
 import {
   CustomElementProps,
+  FieldFooterProps,
   FormFieldCollapsibleSection,
 } from "Common/UI/Components/Forms/Types/Field";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
@@ -74,8 +82,8 @@ const advancedSection: FormFieldCollapsibleSection<Alert> =
 /*
  * Every resource type besides the monitor that an alert can affect: what
  * the alert's own Edit offers, so an alert created from a Proxmox cluster's,
- * a vCenter's, a Ceph or Docker Swarm cluster's or an IoT fleet's Alerts tab
- * keeps it picked (Components/CreateFromRecord).
+ * a vCenter's, a Ceph or Docker Swarm cluster's, a storage array's or an IoT
+ * fleet's Alerts tab keeps it picked (Components/CreateFromRecord).
  */
 const OTHER_AFFECTED_RESOURCE_TYPES: Array<AffectedResourceType> = [
   "Host",
@@ -85,6 +93,7 @@ const OTHER_AFFECTED_RESOURCE_TYPES: Array<AffectedResourceType> = [
   "ProxmoxCluster",
   "VMwareVCenter",
   "CephCluster",
+  "StorageArray",
   "DockerSwarmCluster",
   "IoTFleet",
   "DatabaseServer",
@@ -92,6 +101,10 @@ const OTHER_AFFECTED_RESOURCE_TYPES: Array<AffectedResourceType> = [
 ];
 
 const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  // What the picked monitors' linked resources added (survives step changes).
+  const linkedResourcesPrefill: MutableRefObject<MonitorLinkedResourcesPrefillState> =
+    useMonitorLinkedResourcesPrefillState();
+
   const translator: Translator = useTranslator();
 
   /*
@@ -188,7 +201,7 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   title: "Initial State",
                   stepId: "alert-details",
                   description:
-                    "Leave empty for the usual starting state. Pick a later state to record an alert that is already acknowledged or resolved.",
+                    "Leave empty for the usual starting state. Pick a later state to record an alert that is already acknowledged or resolved. No one is paged for it.",
                   fieldType: FormFieldSchemaType.Dropdown,
                   dropdownModal: {
                     type: AlertState,
@@ -340,6 +353,9 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                           values.vmwareVCenters as Array<VMwareVCenter>
                         }
                         cephClusters={values.cephClusters as Array<CephCluster>}
+                        storageArrays={
+                          values.storageArrays as Array<StorageArray>
+                        }
                         dockerSwarmClusters={
                           values.dockerSwarmClusters as Array<DockerSwarmCluster>
                         }
@@ -372,6 +388,7 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                           proxmoxClusters: payload.proxmoxClusters,
                           vmwareVCenters: payload.vmwareVCenters,
                           cephClusters: payload.cephClusters,
+                          storageArrays: payload.storageArrays,
                           dockerSwarmClusters: payload.dockerSwarmClusters,
                           iotFleets: payload.iotFleets,
                           databaseServers: payload.databaseServers,
@@ -379,6 +396,25 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         } as FormValues<Alert>);
                       });
                     }
+                  },
+                  /*
+                   * What the picked monitor is linked to, added here
+                   * (MonitorLinkedResourcesPrefill).
+                   */
+                  getFooterElement: (
+                    values: FormValues<Alert>,
+                    _error?: string,
+                    footer?: FieldFooterProps,
+                  ) => {
+                    return (
+                      <MonitorLinkedResourcesPrefill
+                        monitorIds={values.monitor}
+                        values={values as Record<string, unknown>}
+                        footer={footer}
+                        payloadKeys={ALERT_PREFILL_PAYLOAD_KEYS}
+                        state={linkedResourcesPrefill}
+                      />
+                    );
                   },
                   /*
                    * The form holds bare IDs here, and the generic summary
@@ -395,6 +431,7 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       item.proxmoxClusters,
                       item.vmwareVCenters,
                       item.cephClusters,
+                      item.storageArrays,
                       item.dockerSwarmClusters,
                       item.iotFleets,
                       item.databaseServers,
@@ -427,6 +464,9 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                           item.vmwareVCenters as Array<VMwareVCenter>
                         }
                         cephClusters={item.cephClusters as Array<CephCluster>}
+                        storageArrays={
+                          item.storageArrays as Array<StorageArray>
+                        }
                         dockerSwarmClusters={
                           item.dockerSwarmClusters as Array<DockerSwarmCluster>
                         }
@@ -446,10 +486,10 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 /*
                  * Hidden registrations so ModelForm.getSelectFields includes
                  * kubernetesClusters/dockerHosts/podmanHosts/proxmoxClusters/
-                 * vmwareVCenters/cephClusters/dockerSwarmClusters/iotFleets/
-                 * databaseServers/services. (hosts is already the picker's
-                 * anchor field above so it doesn't need an extra
-                 * registration.)
+                 * vmwareVCenters/cephClusters/storageArrays/
+                 * dockerSwarmClusters/iotFleets/databaseServers/services.
+                 * (hosts is already the picker's anchor field above so it
+                 * doesn't need an extra registration.)
                  */
                 {
                   field: { kubernetesClusters: true },
@@ -503,6 +543,16 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 },
                 {
                   field: { cephClusters: true },
+                  stepId: "on-call",
+                  title: "",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  showIf: () => {
+                    return false;
+                  },
+                },
+                {
+                  field: { storageArrays: true },
                   stepId: "on-call",
                   title: "",
                   fieldType: FormFieldSchemaType.Text,

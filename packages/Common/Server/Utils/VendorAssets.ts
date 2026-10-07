@@ -9,6 +9,12 @@ import {
 import logger from "./Logger";
 import fs from "fs";
 import path from "path";
+import {
+  MERMAID_BROWSER_BUILD_DIRECTORY,
+  MERMAID_BROWSER_CHUNK_DIRECTORY,
+  MERMAID_BROWSER_ENTRY,
+  isMermaidBrowserFile,
+} from "../../UI/esbuild-mermaid";
 
 /**
  * Serves the browser libraries our server-rendered pages need, from this
@@ -71,32 +77,24 @@ export const OneUptimeLogoUrl: string = `${VendorAssetsRoute}/${BrandAssetsRoute
 export const OneUptimeFaviconUrl: string = `${VendorAssetsRoute}/${BrandAssetsRouteSegment}/favicons/oneuptime-up-v1.svg`;
 
 /**
- * Mermaid is a dependency of Common already (Common/UI renders diagrams in
- * markdown with it), so it is on disk in every image and there is no reason to
- * commit a second copy. Resolved rather than hard-coded because npm may hoist
- * it above Common's own node_modules.
+ * mermaid, for the docs and the blog. Not a committed copy and not mermaid's
+ * own dist bundles, which carry their own copies of its dependencies: a build
+ * of mermaid's ES module source with the dependencies npm installed for
+ * Common, katex among them. Common/Scripts/build-mermaid-browser.js writes it
+ * here when the App and Home images are built (Common/UI/esbuild-mermaid.js
+ * has the details, and the names this mount shares with the build). A service
+ * whose image does not build it - the probe, the workers - answers 404, as it
+ * would for any other missing asset.
  */
-export function getMermaidDistPath(): string | null {
-  try {
-    return path.join(
-      path.dirname(require.resolve("mermaid/package.json")),
-      "dist",
-    );
-  } catch (error) {
-    logger.error(
-      "mermaid could not be resolved. Diagrams in docs and blog posts will not render.",
-    );
-    logger.error(error);
-    return null;
-  }
-}
+export const MermaidBuildPath: string = MERMAID_BROWSER_BUILD_DIRECTORY;
 
-/*
- * Mermaid's dist directory also carries type definitions, sourcemaps and its
- * own docs. Only the code the browser actually imports gets served - the
- * entrypoint plus the diagram chunks it lazily pulls in.
- */
-const MERMAID_SERVABLE_EXTENSIONS: Array<string> = [".js", ".mjs"];
+export const MermaidRouteSegment: string = "mermaid";
+
+/** The module the docs and the blog import. Its chunks sit under chunks/. */
+export const MermaidEntryFilename: string = MERMAID_BROWSER_ENTRY;
+
+/** What a view imports to draw diagrams. */
+export const MermaidEntryUrl: string = `${VendorAssetsRoute}/${MermaidRouteSegment}/${MermaidEntryFilename}`;
 
 /*
  * A year, for paths that cannot change meaning: tailwind and highlight name
@@ -105,16 +103,74 @@ const MERMAID_SERVABLE_EXTENSIONS: Array<string> = [".js", ".mjs"];
 const IMMUTABLE_CACHE_MAX_AGE_MILLISECONDS: number = 365 * 24 * 60 * 60 * 1000;
 
 /*
- * An hour, for mermaid's two entrypoints. Those names are stable while
- * everything they import is content-hashed, so a year-old cached copy of
- * mermaid.esm.min.mjs would go on asking for chunk filenames that a mermaid
- * upgrade has already deleted - and the diagrams would stay broken, for that
- * one visitor, until the cache entry aged out.
+ * An hour, for mermaid's entry. Its name is stable while everything it imports
+ * is content-hashed, so a year-old cached copy would go on asking for chunk
+ * filenames that a mermaid upgrade has already replaced - and the diagrams
+ * would stay broken, for that one visitor, until the cache entry aged out.
  */
 const REVALIDATE_CACHE_MAX_AGE_MILLISECONDS: number = 60 * 60 * 1000;
 
-/* Where mermaid puts the hashed chunks, relative to its own mount. */
-const MERMAID_CHUNK_PREFIX: string = "/chunks/";
+/* Where the build puts its content-hashed chunks, relative to its mount. */
+const MERMAID_CHUNK_PREFIX: string = `/${MERMAID_BROWSER_CHUNK_DIRECTORY}/`;
+
+export type CreateMermaidAssetsHandlerFunction = (
+  directory: string,
+) => RequestHandler;
+
+/**
+ * Serves a mermaid build from `directory`: the entry for an hour, its chunks
+ * for a year, and only the paths a build has (isMermaidBrowserFile: the entry,
+ * or a chunk one directory down). Anything else - another extension, a dot
+ * segment, a hidden file, a second directory level, mermaid's prebuilt bundle
+ * names, a missing chunk, or every path when no build is there - falls
+ * through to the 404 that terminates the prefix, so a non-canonical path
+ * cannot reach a file under another path's cache rules.
+ */
+export const createMermaidAssetsHandler: CreateMermaidAssetsHandlerFunction = (
+  directory: string,
+): RequestHandler => {
+  const serveImmutable: RequestHandler = ExpressStatic(directory, {
+    maxAge: IMMUTABLE_CACHE_MAX_AGE_MILLISECONDS,
+    index: false,
+    redirect: false,
+  }) as RequestHandler;
+
+  const serveRevalidating: RequestHandler = ExpressStatic(directory, {
+    maxAge: REVALIDATE_CACHE_MAX_AGE_MILLISECONDS,
+    index: false,
+    redirect: false,
+  }) as RequestHandler;
+
+  let checkedForBuild: boolean = false;
+
+  return (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+    /* Express has already stripped the mount path: req.path is "/...". */
+    if (!req.path.startsWith("/") || !isMermaidBrowserFile(req.path.slice(1))) {
+      return next();
+    }
+
+    /*
+     * Said once, when the first diagram is asked for, rather than when the
+     * server starts: every service mounts this, and only the App and Home
+     * images build mermaid.
+     */
+    if (!checkedForBuild) {
+      checkedForBuild = true;
+
+      if (!fs.existsSync(path.join(directory, MERMAID_BROWSER_ENTRY))) {
+        logger.error(
+          `mermaid for the docs and the blog is not built in ${directory}, so their diagrams cannot be drawn. Run node Common/Scripts/build-mermaid-browser.js once; the App and Home images run it when they are built.`,
+        );
+      }
+    }
+
+    if (req.path.startsWith(MERMAID_CHUNK_PREFIX)) {
+      return serveImmutable(req, res, next);
+    }
+
+    return serveRevalidating(req, res, next);
+  };
+};
 
 export type MountVendorAssetsFunction = (app: ExpressApplication) => void;
 
@@ -159,39 +215,10 @@ const mountVendorAssets: MountVendorAssetsFunction = (
     );
   }
 
-  const mermaidDistPath: string | null = getMermaidDistPath();
-
-  if (mermaidDistPath) {
-    const serveImmutable: RequestHandler = ExpressStatic(mermaidDistPath, {
-      maxAge: IMMUTABLE_CACHE_MAX_AGE_MILLISECONDS,
-      index: false,
-      redirect: false,
-    }) as RequestHandler;
-
-    const serveRevalidating: RequestHandler = ExpressStatic(mermaidDistPath, {
-      maxAge: REVALIDATE_CACHE_MAX_AGE_MILLISECONDS,
-      index: false,
-      redirect: false,
-    }) as RequestHandler;
-
-    app.use(
-      `${VendorAssetsRoute}/mermaid`,
-      (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-        const extension: string = path.extname(req.path).toLowerCase();
-
-        if (!MERMAID_SERVABLE_EXTENSIONS.includes(extension)) {
-          return next();
-        }
-
-        /* Express has already stripped the mount path, so this is "/chunks/...". */
-        if (req.path.startsWith(MERMAID_CHUNK_PREFIX)) {
-          return serveImmutable(req, res, next);
-        }
-
-        return serveRevalidating(req, res, next);
-      },
-    );
-  }
+  app.use(
+    `${VendorAssetsRoute}/${MermaidRouteSegment}`,
+    createMermaidAssetsHandler(MermaidBuildPath),
+  );
 
   /*
    * Terminates the prefix. Registered unconditionally, and last, because the

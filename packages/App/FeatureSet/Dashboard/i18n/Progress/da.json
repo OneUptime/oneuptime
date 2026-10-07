@@ -1,9 +1,15 @@
 {
   "baseline": {
-    "keys": 24715,
-    "untranslated": 16478
+    "keys": 25975,
+    "untranslated": 16649
   },
   "sameAsEnglish": [
+    "CloudWatch Metric Streams",
+    "Offline",
+    "Runbook: {{name}}",
+    "Runner",
+    "agent {{version}}",
+    "kubectl set image deployment/web * -n web",
     "{{count}} match"
   ]
 }

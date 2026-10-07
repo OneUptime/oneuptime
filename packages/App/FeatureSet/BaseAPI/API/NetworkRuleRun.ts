@@ -2,15 +2,11 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import Permission, {
-  PermissionHelper,
-  UserPermission,
-} from "Common/Types/Permission";
+import Permission, { PermissionHelper } from "Common/Types/Permission";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
-import DatabaseCommonInteractionPropsUtil, {
-  PermissionType,
-} from "Common/Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import HeldPermissionsUtil from "Common/Types/HeldPermissions";
 import CommonAPI from "Common/Server/API/CommonAPI";
+import CallerPermission from "Common/Server/Utils/Permission/CallerPermission";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import TablePermission from "Common/Server/Types/Database/Permissions/TablePermission";
 import DatabaseRequestType from "Common/Server/Types/BaseDatabase/DatabaseRequestType";
@@ -74,29 +70,43 @@ import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/Da
  */
 
 /*
- * The permissions a caller must hold to run a rule of this kind: the rule
- * model's update ACL, intersected with nothing — both it and NetworkDevice's
- * update ACL have to be satisfied, checked separately below.
+ * Every check below reads the caller's permissions the way every permission
+ * check reads them (CallerPermission): only an allow row grants - a team's
+ * block row is never a grant - and a block with no labels on a model's list
+ * takes the operation away, as it does on the CRUD path. The model's own
+ * list is asked, so an operational resource accepts its
+ * *AllOperationalResources wildcard too.
  */
-function getUpdatePermissions(model: DatabaseBaseModel): Array<Permission> {
-  return model.getUpdatePermissions() || [];
+function holdsModelPermission(
+  props: DatabaseCommonInteractionProps,
+  model: DatabaseBaseModel,
+  operation: "create" | "update",
+): boolean {
+  return CallerPermission.holdsModelPermission(props, {
+    model: model,
+    operation: operation,
+  });
 }
 
-function callerPermissions(
+/*
+ * The allow half alone, where a check of its own follows that refuses a
+ * block with the message naming it (checkTableLevelBlockPermissions).
+ */
+function isGrantedModelPermission(
   props: DatabaseCommonInteractionProps,
-): Array<Permission> {
-  /*
-   * Read through getUserPermissions(Allow) rather than off
-   * userTenantAccessPermission directly: those entries hold grants AND
-   * denials together, discriminated only by isBlockPermission, so mapping
-   * them raw would count a team's explicit block as a grant.
-   */
-  return DatabaseCommonInteractionPropsUtil.getUserPermissions(
+  model: DatabaseBaseModel,
+  operation: "create" | "update",
+): boolean {
+  return CallerPermission.isGrantedAny(
     props,
-    PermissionType.Allow,
-  ).map((userPermission: UserPermission) => {
-    return userPermission.permission;
-  });
+    CallerPermission.getModelPermissions(model, operation),
+    {
+      wildcard: HeldPermissionsUtil.getModelWildcard({
+        isOperationalResource: model.isOperationalResource,
+        operation: operation,
+      }),
+    },
+  );
 }
 
 function assertCanRunRule(data: {
@@ -115,17 +125,7 @@ function assertCanRunRule(data: {
     return;
   }
 
-  const held: Array<Permission> = callerPermissions(data.props);
-
-  const holdsAnyOf: (required: Array<Permission>) => boolean = (
-    required: Array<Permission>,
-  ): boolean => {
-    return held.some((permission: Permission) => {
-      return required.includes(permission);
-    });
-  };
-
-  if (!holdsAnyOf(getUpdatePermissions(data.ruleModel))) {
+  if (!holdsModelPermission(data.props, data.ruleModel, "update")) {
     throw new NotAuthorizedException(
       `You do not have permission to run ${data.ruleLabel}.`,
     );
@@ -137,7 +137,7 @@ function assertCanRunRule(data: {
    * through a rule, which is exactly the permission it does not have.
    */
   if (data.deviceWriteKind === "create") {
-    if (!holdsAnyOf(new NetworkDevice().getCreatePermissions() || [])) {
+    if (!isGrantedModelPermission(data.props, new NetworkDevice(), "create")) {
       throw new NotAuthorizedException(
         `You do not have permission to create network devices, which running ${data.ruleLabel} does. Missing permission: ${PermissionHelper.getTitle(
           Permission.CreateNetworkDevice,
@@ -162,7 +162,7 @@ function assertCanRunRule(data: {
     return;
   }
 
-  if (!holdsAnyOf(getUpdatePermissions(new NetworkDevice()))) {
+  if (!holdsModelPermission(data.props, new NetworkDevice(), "update")) {
     throw new NotAuthorizedException(
       `You do not have permission to update network devices, which running ${data.ruleLabel} does. Missing permission: ${PermissionHelper.getTitle(
         Permission.EditNetworkDevice,
@@ -184,15 +184,7 @@ function assertCanCreateMonitor(props: DatabaseCommonInteractionProps): void {
     return;
   }
 
-  const held: Array<Permission> = callerPermissions(props);
-  const createPermissions: Array<Permission> =
-    new Monitor().getCreatePermissions() || [];
-
-  if (
-    !held.some((permission: Permission): boolean => {
-      return createPermissions.includes(permission);
-    })
-  ) {
+  if (!isGrantedModelPermission(props, new Monitor(), "create")) {
     throw new NotAuthorizedException(
       `You do not have permission to create monitors, which running this auto-import rule does. Missing permission: ${PermissionHelper.getTitle(
         Permission.CreateProjectMonitor,

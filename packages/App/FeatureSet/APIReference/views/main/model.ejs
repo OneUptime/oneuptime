@@ -13,8 +13,13 @@
          <h1 class="font-bold text-3xl text-ink tracking-tight mb-3">
             <%= pageData.title -%>
          </h1>
+         <%#
+            Model names and descriptions are not translated. Each English string
+            is isolated, so on a right-to-left page its full stop stays at its
+            end instead of being carried to the start of the line.
+         -%>
          <p class="text-lg text-ink-muted leading-relaxed max-w-2xl">
-            <%= pageData.description -%>
+            <bdi><%= pageData.description -%></bdi>
          </p>
       </div>
 
@@ -40,15 +45,15 @@
                            <%= pageData.columns[Object.keys(pageData.columns)[i]].type -%>
                         <% } %>
                         <% if(pageData.columns[Object.keys(pageData.columns)[i]].required){ %>
-                           <span class="ml-1.5 inline-flex items-center rounded-full bg-warn-soft px-2 py-0.5 text-xs font-medium text-warn ring-1 ring-inset ring-warn/30"><%= t('ui.required') %></span>
+                           <span class="ms-1.5 inline-flex items-center rounded-full bg-warn-soft px-2 py-0.5 text-xs font-medium text-warn ring-1 ring-inset ring-warn/30"><%= t('ui.required') %></span>
                         <% } %>
                      </dd>
                      <dt class="sr-only"><%= t('ui.srDescription') %></dt>
                      <dd class="w-full flex-none text-sm [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
                         <p class="text-ink-muted">
-                           <%= pageData.columns[Object.keys(pageData.columns)[i]].description -%>
+                           <bdi><%= pageData.columns[Object.keys(pageData.columns)[i]].description -%></bdi>
                            <button type="button"
-                                 class="ml-1 cursor-pointer text-xs font-medium text-accent transition-colors hover:text-accent-strong hover:underline"
+                                 class="ms-1 cursor-pointer text-xs font-medium text-accent transition-colors hover:text-accent-strong hover:underline"
                                  data-permissions-toggle
                                  aria-expanded="false"
                                  aria-controls="<%= Object.keys(pageData.columns)[i] -%>-permissions"><%= t('pages.model.viewPermissions') %></button>
@@ -515,7 +520,7 @@
                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-1">
                               <dd><code class="inline-code text-xs"><%= pageData.tablePermissions.read[i].permission -%></code></dd>
                               <dd class="font-mono text-xs text-ink-subtle"><%= pageData.tablePermissions.read[i].title -%></dd>
-                              <dd class="w-full text-xs text-ink-muted mt-1"><%= pageData.tablePermissions.read[i].description -%></dd>
+                              <dd class="w-full text-xs text-ink-muted mt-1"><bdi><%= pageData.tablePermissions.read[i].description -%></bdi></dd>
                            </dl>
                         </li>
                      <% } %>
@@ -545,7 +550,7 @@
                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-1">
                               <dd><code class="inline-code text-xs"><%= pageData.tablePermissions.create[i].permission -%></code></dd>
                               <dd class="font-mono text-xs text-ink-subtle"><%= pageData.tablePermissions.create[i].title -%></dd>
-                              <dd class="w-full text-xs text-ink-muted mt-1"><%= pageData.tablePermissions.create[i].description -%></dd>
+                              <dd class="w-full text-xs text-ink-muted mt-1"><bdi><%= pageData.tablePermissions.create[i].description -%></bdi></dd>
                            </dl>
                         </li>
                      <% } %>
@@ -575,7 +580,7 @@
                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-1">
                               <dd><code class="inline-code text-xs"><%= pageData.tablePermissions.update[i].permission -%></code></dd>
                               <dd class="font-mono text-xs text-ink-subtle"><%= pageData.tablePermissions.update[i].title -%></dd>
-                              <dd class="w-full text-xs text-ink-muted mt-1"><%= pageData.tablePermissions.update[i].description -%></dd>
+                              <dd class="w-full text-xs text-ink-muted mt-1"><bdi><%= pageData.tablePermissions.update[i].description -%></bdi></dd>
                            </dl>
                         </li>
                      <% } %>
@@ -605,7 +610,7 @@
                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-1">
                               <dd><code class="inline-code text-xs"><%= pageData.tablePermissions.delete[i].permission -%></code></dd>
                               <dd class="font-mono text-xs text-ink-subtle"><%= pageData.tablePermissions.delete[i].title -%></dd>
-                              <dd class="w-full text-xs text-ink-muted mt-1"><%= pageData.tablePermissions.delete[i].description -%></dd>
+                              <dd class="w-full text-xs text-ink-muted mt-1"><bdi><%= pageData.tablePermissions.delete[i].description -%></bdi></dd>
                            </dl>
                         </li>
                      <% } %>

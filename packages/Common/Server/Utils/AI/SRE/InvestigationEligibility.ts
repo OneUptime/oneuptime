@@ -84,9 +84,33 @@ export default class InvestigationEligibility {
         description: recorded
           ? `This project had no AI credits left when this ${kind} was created, so its automatic investigation did not start.`
           : "This project is currently out of AI credits, so new automatic investigations cannot start.",
+        /*
+         * Where the credits are, and what adding them does - not who: the
+         * dashboard offers the AI Credits link to those who may add them
+         * and names who can to everyone else (InvestigationNotStarted), so
+         * nobody is told to add credits they cannot. Not "turn on
+         * auto-recharge": AI credits are recharged after a call they paid
+         * for, so an empty balance stays empty until someone adds credits.
+         */
         nextStep: recorded
-          ? "Review AI credits under Project Settings → AI Credits, or turn on auto-recharge. Adding credits later does not retry this record."
-          : "Add AI credits under Project Settings → AI Credits, or turn on auto-recharge. Existing records are not automatically retried.",
+          ? `Review AI credits under Project Settings → AI Credits. Adding credits later does not retry this ${kind}.`
+          : `New ${kind}s can be investigated once AI credits are added under Project Settings → AI Credits. Existing records are not automatically retried.`,
+      },
+      project_daily_limit_reached: {
+        title: recorded
+          ? "The project's daily AI limit had been reached at creation"
+          : "The project's daily AI limit is currently reached",
+        description: recorded
+          ? `This project had reached one of its own daily AI limits when this ${kind} was created, so its automatic investigation did not start.`
+          : "This project has reached one of its own daily AI limits today, so new automatic investigations cannot start.",
+        /*
+         * A recorded skip is taken back once the limit no longer stops AI
+         * (InvestigationLimitCatchUp): after the reset, or as soon as the
+         * limit is raised or removed, while the record is still open.
+         */
+        nextStep: recorded
+          ? `OneUptime AI investigates this ${kind} after the limit resets at midnight UTC, if it is still open then, or as soon as the limit is raised or removed under Project Settings → AI Features → More settings.`
+          : "Raise or remove the limit under Project Settings → AI Features → More settings, or wait for midnight UTC, when usage resets. Existing records are not automatically retried.",
       },
       severity_below_threshold: {
         title: recorded
@@ -105,6 +129,11 @@ export default class InvestigationEligibility {
           : `An investigation for an affected monitor was queued or started within the current ${cooldownWindow} cooldown window, which prevents another automatic ${kind} investigation right now.`,
         nextStep:
           "Review recent investigations for the affected monitor, or adjust the investigation cooldown for new records. An earlier run may still be queued, running, or may have failed.",
+      },
+      created_resolved: {
+        title: `This ${kind} was created already resolved`,
+        description: `It was already resolved when it was created, so OneUptime AI did not investigate it automatically.`,
+        nextStep: "To look into it anyway, ask OneUptime AI below.",
       },
       daily_budget_exhausted: {
         title:

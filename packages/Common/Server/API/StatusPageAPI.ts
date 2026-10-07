@@ -2,7 +2,6 @@ import UserMiddleware from "../Middleware/UserAuthorization";
 import PublicDashboardRateLimit, {
   PublicDashboardRateLimitBucket,
 } from "../Middleware/PublicDashboardRateLimit";
-import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import AcmeChallengeService from "../Services/AcmeChallengeService";
 import IncidentEpisodeService from "../Services/IncidentEpisodeService";
 import IncidentEpisodeMemberService from "../Services/IncidentEpisodeMemberService";
@@ -34,8 +33,9 @@ import UptimeDailyAggregateUtil from "../../Utils/StatusPage/UptimeDailyAggregat
 import MonitorGroupMergedDowntimeUtil from "../../Utils/StatusPage/MonitorGroupMergedDowntimeUtil";
 import StatusPageSsoService from "../Services/StatusPageSsoService";
 import StatusPageOidcService from "../Services/StatusPageOidcService";
-import StatusPageSubscriberService from "../Services/StatusPageSubscriberService";
-import ModelPermission from "../Types/Database/Permissions/Index";
+import StatusPageSubscriberService, {
+  SMS_SIGN_UP_UNAVAILABLE_MESSAGE,
+} from "../Services/StatusPageSubscriberService";
 import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
@@ -52,6 +52,7 @@ import {
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
+import TestSendAccess from "./TestSendAccess";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ArrayUtil from "../../Utils/Array";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -62,7 +63,6 @@ import Dictionary from "../../Types/Dictionary";
 import Email from "../../Types/Email";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
-import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import { JSONArray, JSONObject } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
@@ -117,7 +117,6 @@ import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
 import DatabaseConfig from "../DatabaseConfig";
 import CookieUtil from "../Utils/Cookie";
-import { StatusPageApiRoute } from "../../ServiceRoute";
 import ProjectSmtpConfigService from "../Services/ProjectSmtpConfigService";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
@@ -135,6 +134,8 @@ import ArchivedMonitorResources from "../../Utils/StatusPage/ArchivedMonitorReso
 import IncidentStatusPageScope, {
   INCIDENT_SCOPE_SELECT,
 } from "../Utils/StatusPage/IncidentStatusPageScope";
+import StatusPageVisibilityQuery from "../Utils/StatusPage/StatusPageVisibilityQuery";
+import StatusPageOverviewCache from "../Utils/StatusPage/StatusPageOverviewCache";
 import { StatusPageSubscriberUnsubscribeSource } from "../Utils/StatusPage/StatusPageSubscriberUnsubscribeNotice";
 import StatusPageSubscriberUnsubscribe, {
   StatusPageSubscriberUnsubscribeDetails,
@@ -146,6 +147,8 @@ import StatusPagesListingMonitors, {
 import StatusPagesListingMonitorsBuilder, {
   StatusPagesListingMonitorsRequest,
 } from "../Utils/StatusPage/StatusPagesListingMonitorsBuilder";
+import FileOwnership from "../Utils/File/FileOwnership";
+import StatusPageEmailLogo from "../Utils/StatusPage/StatusPageEmailLogo";
 
 /*
  * A manage-subscription request is unauthenticated, and one Slack or Microsoft
@@ -193,81 +196,78 @@ const resolveStatusPageIdOrThrow: ResolveStatusPageIdOrThrowFunction = async (
   return statusPageId;
 };
 
+/*
+ * The images a status page shows: its logo, cover image and favicon, each a
+ * File the page points at by id.
+ */
+const STATUS_PAGE_IMAGES: Array<{
+  relation: "logoFile" | "coverImageFile" | "faviconFile";
+  id: "logoFileId" | "coverImageFileId" | "faviconFileId";
+}> = [
+  { relation: "logoFile", id: "logoFileId" },
+  { relation: "coverImageFile", id: "coverImageFileId" },
+  { relation: "faviconFile", id: "faviconFileId" },
+];
+
+// How a status page image is read for serving: its bytes, and its project.
+const SERVED_IMAGE_SELECT: {
+  file: true;
+  _id: true;
+  fileType: true;
+  name: true;
+  projectId: true;
+} = {
+  file: true,
+  _id: true,
+  fileType: true,
+  name: true,
+  projectId: true,
+};
+
+type KeepOwnStatusPageImagesFunction = (statusPage: StatusPage) => void;
+
+/*
+ * A status page's images as its public pages may show them: only files of
+ * the page's own project (FileOwnership). An image of another project, or
+ * of none, is left out as if the page had none - its id too, so the page
+ * does not ask for it. The page read must carry its projectId and each
+ * image's; neither is sent.
+ */
+export const keepOwnStatusPageImages: KeepOwnStatusPageImagesFunction = (
+  statusPage: StatusPage,
+): void => {
+  for (const image of STATUS_PAGE_IMAGES) {
+    const file: File | undefined = FileOwnership.keepProjectFile(
+      statusPage[image.relation],
+      statusPage.projectId,
+    );
+
+    if (file) {
+      delete file.projectId;
+      continue;
+    }
+
+    delete statusPage[image.relation];
+    delete statusPage[image.id];
+  }
+
+  delete statusPage.projectId;
+};
+
 export default class StatusPageAPI extends BaseAPI<
   StatusPage,
   StatusPageServiceType
 > {
   /*
-   * Post-auth overview responses keyed by resolved statusPageId. The payload
-   * is user-independent (authorization is a binary gate checked per-request,
-   * before any cache read), so one short-TTL snapshot per page per process
-   * serves every viewer. See buildOverviewResponse.
+   * Post-auth overview responses, kept per resolved statusPageId for a few
+   * seconds (StatusPageOverviewCache). The payload is user-independent
+   * (authorization is a binary gate checked per-request, before any cache
+   * read), so one short-lived snapshot per page per process serves every
+   * viewer; a record a page stops showing - made private, hidden, deleted -
+   * leaves every process's snapshot at once. See buildOverviewResponse.
    */
-  private static overviewResponseCache: InMemoryTTLCache<JSONObject> =
-    new InMemoryTTLCache<JSONObject>(500);
-
-  /*
-   * In-flight overview builds keyed by the same cache key, so concurrent
-   * cold-cache requests share one build instead of stampeding the database.
-   */
-  private static overviewResponseInFlight: Map<string, Promise<JSONObject>> =
-    new Map();
-
-  private static readonly OVERVIEW_CACHE_TTL_MS: number = 15_000;
-
   public static clearOverviewResponseCache(): void {
-    this.overviewResponseCache.clear();
-    this.overviewResponseInFlight.clear();
-  }
-
-  /*
-   * Holding one of StatusPage's update roles is not the same as being allowed
-   * to update a given page: team block rows, label-restricted grants and
-   * Owned-scoped grants all narrow it. Apply the checks a CRUD update of this
-   * page would run - block and label rules against the loaded page, then the
-   * query narrowing (tenant, labels, Owned scope) - and require the page to
-   * survive them. `statusPage` must have been loaded with its labels.
-   */
-  private static async assertCanUpdateStatusPage(data: {
-    statusPage: StatusPage;
-    projectId: ObjectID;
-    props: DatabaseCommonInteractionProps;
-  }): Promise<void> {
-    await ModelPermission.checkUpdatePermissionByModel({
-      modelType: StatusPage,
-      fetchModelWithAccessControlIds: async (): Promise<StatusPage> => {
-        return data.statusPage;
-      },
-      props: data.props,
-    });
-
-    const permittedQuery: Query<StatusPage> =
-      await ModelPermission.checkUpdateQueryPermissions(
-        StatusPage,
-        {
-          _id: data.statusPage.id!,
-          projectId: data.projectId,
-        },
-        {},
-        data.props,
-      );
-
-    const permittedStatusPage: StatusPage | null =
-      await StatusPageService.findOneBy({
-        query: permittedQuery,
-        select: {
-          _id: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!permittedStatusPage) {
-      throw new NotAuthorizedException(
-        "You do not have permission to send this status page's report.",
-      );
-    }
+    StatusPageOverviewCache.clear();
   }
 
   public constructor() {
@@ -358,19 +358,21 @@ export default class StatusPageAPI extends BaseAPI<
                 isArchived: false,
               },
               select: {
-                faviconFile: {
-                  file: true,
-                  _id: true,
-                  fileType: true,
-                  name: true,
-                },
+                projectId: true,
+                faviconFile: SERVED_IMAGE_SELECT,
               },
               props: {
                 isRoot: true,
               },
             });
 
-          if (!statusPage || !statusPage.faviconFile) {
+          // Only a file of the page's own project. See keepOwnStatusPageImages.
+          const favicon: File | undefined = FileOwnership.keepProjectFile(
+            statusPage?.faviconFile,
+            statusPage?.projectId,
+          );
+
+          if (!statusPage || !favicon) {
             logger.debug(
               "Favicon file not found. Returning default favicon.",
               getLogAttributesFromRequest(req as any),
@@ -384,11 +386,11 @@ export default class StatusPageAPI extends BaseAPI<
           }
 
           logger.debug(
-            `Favicon file found. Sending file: ${statusPage.faviconFile.name}`,
+            `Favicon file found. Sending file: ${favicon.name}`,
             getLogAttributesFromRequest(req as any),
           );
 
-          return Response.sendFileResponse(req, res, statusPage.faviconFile);
+          return Response.sendFileResponse(req, res, favicon);
         } catch (error) {
           if (error instanceof NotFoundException) {
             return Response.sendErrorResponse(req, res, error);
@@ -420,19 +422,21 @@ export default class StatusPageAPI extends BaseAPI<
                 isArchived: false,
               },
               select: {
-                logoFile: {
-                  file: true,
-                  _id: true,
-                  fileType: true,
-                  name: true,
-                },
+                projectId: true,
+                logoFile: SERVED_IMAGE_SELECT,
               },
               props: {
                 isRoot: true,
               },
             });
 
-          if (!statusPage || !statusPage.logoFile) {
+          // Only a file of the page's own project. See keepOwnStatusPageImages.
+          const logo: File | undefined = FileOwnership.keepProjectFile(
+            statusPage?.logoFile,
+            statusPage?.projectId,
+          );
+
+          if (!logo) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -440,7 +444,7 @@ export default class StatusPageAPI extends BaseAPI<
             );
           }
 
-          return Response.sendFileResponse(req, res, statusPage.logoFile);
+          return Response.sendFileResponse(req, res, logo);
         } catch (error) {
           if (error instanceof NotFoundException) {
             return Response.sendErrorResponse(req, res, error);
@@ -472,19 +476,21 @@ export default class StatusPageAPI extends BaseAPI<
                 isArchived: false,
               },
               select: {
-                coverImageFile: {
-                  file: true,
-                  _id: true,
-                  fileType: true,
-                  name: true,
-                },
+                projectId: true,
+                coverImageFile: SERVED_IMAGE_SELECT,
               },
               props: {
                 isRoot: true,
               },
             });
 
-          if (!statusPage || !statusPage.coverImageFile) {
+          // Only a file of the page's own project. See keepOwnStatusPageImages.
+          const coverImage: File | undefined = FileOwnership.keepProjectFile(
+            statusPage?.coverImageFile,
+            statusPage?.projectId,
+          );
+
+          if (!coverImage) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -492,7 +498,7 @@ export default class StatusPageAPI extends BaseAPI<
             );
           }
 
-          return Response.sendFileResponse(req, res, statusPage.coverImageFile);
+          return Response.sendFileResponse(req, res, coverImage);
         } catch (error) {
           if (error instanceof NotFoundException) {
             return Response.sendErrorResponse(req, res, error);
@@ -980,9 +986,13 @@ export default class StatusPageAPI extends BaseAPI<
     );
 
     /*
-     * Sends the status page's report to an address the caller chooses, so it
-     * is gated like editing the status page: an authenticated member of the
-     * project that owns it who could update this particular page.
+     * "Send Test Report": sends the status page's report to an address the
+     * caller chooses. A report is a setting of its page - switched on, never
+     * created - so the test asks what switching reports on asks of this one
+     * page (TestSendAccess.assertMaySendTestOfSetting): a signed-in member of
+     * its project, on a credential that may make changes, who could edit
+     * this particular page (team blocks, labels and owned scope counted) and
+     * its Is Report Enabled setting, on the plan reports are sold on.
      */
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/test-email-report`,
@@ -990,24 +1000,6 @@ export default class StatusPageAPI extends BaseAPI<
       UserMiddleware.requireUserAuthentication,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          /*
-           * This route acts on one page in one project, and the permission
-           * checks below must be evaluated for that single tenant, so the
-           * request is never treated as multi-tenant.
-           */
-          const props: DatabaseCommonInteractionProps = {
-            ...(await CommonAPI.getDatabaseCommonInteractionProps(req)),
-            isMultiTenantRequest: false,
-          };
-          const projectId: ObjectID =
-            CommonAPI.assertAuthenticatedProjectMember(props);
-          CommonAPI.assertPermittedInProject({
-            databaseProps: props,
-            allowedPermissions: new StatusPage().getUpdatePermissions(),
-            errorMessage:
-              "You do not have permission to send this status page's report.",
-          });
-
           if (
             !req.body["statusPageId"] ||
             !ObjectID.isValidUUID(req.body["statusPageId"].toString())
@@ -1020,31 +1012,17 @@ export default class StatusPageAPI extends BaseAPI<
             req.body["statusPageId"].toString() as string,
           );
 
-          const statusPage: StatusPage | null =
-            await StatusPageService.findOneById({
+          await TestSendAccess.assertMaySendTestOfSetting({
+            req: req,
+            record: {
+              service: StatusPageService,
               id: statusPageId,
-              select: {
-                _id: true,
-                projectId: true,
-                labels: {
-                  _id: true,
-                  name: true,
-                },
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-
-          CommonAPI.assertResourceBelongsToProject({
-            resourceProjectId: statusPage?.projectId,
-            projectId,
-          });
-
-          await StatusPageAPI.assertCanUpdateStatusPage({
-            statusPage: statusPage!,
-            projectId,
-            props,
+            },
+            switchOn: {
+              isReportEnabled: true,
+            },
+            errorMessage:
+              "You do not have permission to send this status page's report.",
           });
 
           await StatusPageService.sendEmailReport({
@@ -1122,6 +1100,8 @@ export default class StatusPageAPI extends BaseAPI<
 
           const select: Select<StatusPage> = {
             _id: true,
+            // Only to hold the page's images to its project; never sent.
+            projectId: true,
             slug: true,
             coverImageFileId: true,
             logoFileId: true,
@@ -1143,24 +1123,9 @@ export default class StatusPageAPI extends BaseAPI<
             allowSubscribersToChooseResources: true,
             allowSubscribersToChooseEventTypes: true,
             requireSsoForLogin: true,
-            coverImageFile: {
-              file: true,
-              _id: true,
-              fileType: true,
-              name: true,
-            },
-            faviconFile: {
-              file: true,
-              _id: true,
-              fileType: true,
-              name: true,
-            },
-            logoFile: {
-              file: true,
-              _id: true,
-              fileType: true,
-              name: true,
-            },
+            coverImageFile: SERVED_IMAGE_SELECT,
+            faviconFile: SERVED_IMAGE_SELECT,
+            logoFile: SERVED_IMAGE_SELECT,
             showIncidentsOnStatusPage: true,
             showAnnouncementsOnStatusPage: true,
             showScheduledMaintenanceEventsOnStatusPage: true,
@@ -1206,6 +1171,9 @@ export default class StatusPageAPI extends BaseAPI<
 
           // Not part of what the page renders.
           delete item.isArchived;
+
+          // Only images of the page's own project, and no project id.
+          keepOwnStatusPageImages(item);
 
           /*
            * Whether the page asks visitors for the master password, by the
@@ -1966,42 +1934,24 @@ export default class StatusPageAPI extends BaseAPI<
           req: req,
         });
 
-        // Resolved id, so domain-served and id-served views share one entry.
-        const cacheKey: string = statusPageId.toString();
-
         /*
-         * The cached JSONObject is shared across requests and must never be
+         * Kept by the resolved id, so domain-served and id-served views share
+         * one entry, and by its project's generation, so a record the page
+         * stops showing is not served from it (StatusPageOverviewCache). The
+         * cached JSONObject is shared across requests and must never be
          * mutated after build.
          */
-        let response: JSONObject | undefined =
-          StatusPageAPI.overviewResponseCache.get(cacheKey);
-
-        if (!response) {
-          let inFlight: Promise<JSONObject> | undefined =
-            StatusPageAPI.overviewResponseInFlight.get(cacheKey);
-
-          if (!inFlight) {
-            inFlight = this.buildOverviewResponse(statusPageId);
-            StatusPageAPI.overviewResponseInFlight.set(cacheKey, inFlight);
-
-            inFlight
-              .then((builtResponse: JSONObject) => {
-                StatusPageAPI.overviewResponseCache.set(
-                  cacheKey,
-                  builtResponse,
-                  StatusPageAPI.OVERVIEW_CACHE_TTL_MS,
-                );
-              })
-              .catch(() => {
-                // Failed builds are never cached; the next request rebuilds.
-              })
-              .finally(() => {
-                StatusPageAPI.overviewResponseInFlight.delete(cacheKey);
-              });
-          }
-
-          response = await inFlight;
-        }
+        const response: JSONObject = await StatusPageOverviewCache.getOrBuild({
+          statusPageId: statusPageId,
+          readProjectId: async (): Promise<ObjectID | null> => {
+            return await StatusPageService.getProjectIdOfStatusPage(
+              statusPageId,
+            );
+          },
+          build: async (): Promise<JSONObject> => {
+            return await this.buildOverviewResponse(statusPageId);
+          },
+        });
 
         // These can serve private-page data on a GET; never let shared caches store them.
         Response.setNoCacheHeaders(res);
@@ -2485,19 +2435,25 @@ export default class StatusPageAPI extends BaseAPI<
       statusPage.showScheduledEventHistoryInDays || 14,
     );
 
-    let query: Query<ScheduledMaintenance> = {
-      startsAt: QueryHelper.inBetween(historyDays, today),
-      statusPages: [statusPageId] as any,
-      projectId: statusPage.projectId!,
-      isVisibleOnStatusPage: true,
-    };
+    /*
+     * Only events the page shows (StatusPageVisibilityQuery): one asked for
+     * by its id too. By id there is no history window, so a link to an
+     * older event keeps working - but an event hidden from status pages is
+     * not one this page shows, however it is asked for.
+     */
+    let query: Query<ScheduledMaintenance> =
+      StatusPageVisibilityQuery.shownScheduledMaintenance({
+        startsAt: QueryHelper.inBetween(historyDays, today),
+        statusPages: [statusPageId] as any,
+        projectId: statusPage.projectId!,
+      });
 
     if (scheduledMaintenanceId) {
-      query = {
+      query = StatusPageVisibilityQuery.shownScheduledMaintenance({
         _id: scheduledMaintenanceId.toString(),
         statusPages: [statusPageId] as any,
         projectId: statusPage.projectId!,
-      };
+      });
     }
 
     let scheduledEventsSelect: Select<ScheduledMaintenance> = {
@@ -2551,14 +2507,13 @@ export default class StatusPageAPI extends BaseAPI<
     if (!scheduledMaintenanceId) {
       futureScheduledMaintenanceEvents =
         await ScheduledMaintenanceService.findBy({
-          query: {
+          query: StatusPageVisibilityQuery.shownScheduledMaintenance({
             currentScheduledMaintenanceState: {
               isScheduledState: true,
             } as any,
             statusPages: [statusPageId] as any,
             projectId: statusPage.projectId!,
-            isVisibleOnStatusPage: true,
-          },
+          }),
           select: scheduledEventsSelect,
           sort: {
             createdAt: SortOrder.Ascending,
@@ -2784,18 +2739,30 @@ export default class StatusPageAPI extends BaseAPI<
       statusPage.showAnnouncementHistoryInDays || 14,
     );
 
-    let query: Query<StatusPageAnnouncement> = {
-      statusPages: [statusPageId] as any,
-      showAnnouncementAt: QueryHelper.inBetween(historyDays, today),
-      projectId: statusPage.projectId!,
-    };
+    /*
+     * Only announcements the page shows (StatusPageVisibilityQuery): one
+     * asked for by its id too. By id there is no history window, so a link
+     * to an older announcement keeps working - but one scheduled for later
+     * is not shown yet, however it is asked for.
+     */
+    let query: Query<StatusPageAnnouncement> =
+      StatusPageVisibilityQuery.shownAnnouncements(
+        {
+          statusPages: [statusPageId] as any,
+          projectId: statusPage.projectId!,
+        },
+        { since: historyDays, now: today },
+      );
 
     if (announcementId) {
-      query = {
-        statusPages: [statusPageId] as any,
-        _id: announcementId.toString(),
-        projectId: statusPage.projectId!,
-      };
+      query = StatusPageVisibilityQuery.shownAnnouncements(
+        {
+          statusPages: [statusPageId] as any,
+          _id: announcementId.toString(),
+          projectId: statusPage.projectId!,
+        },
+        { now: today },
+      );
     }
 
     const announcements: Array<StatusPageAnnouncement> =
@@ -3025,9 +2992,7 @@ export default class StatusPageAPI extends BaseAPI<
         `SMS subscribers not enabled for status page with ID: ${statusPageId}`,
         getLogAttributesFromRequest(req as any),
       );
-      throw new BadDataException(
-        "SMS subscribers not enabled for this status page.",
-      );
+      throw new BadDataException(SMS_SIGN_UP_UNAVAILABLE_MESSAGE);
     }
 
     const identifiers: Array<unknown> = [
@@ -3300,8 +3265,6 @@ export default class StatusPageAPI extends BaseAPI<
         if (subscriberEmail) {
           const host: Hostname = await DatabaseConfig.getHost();
           const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-          const statusPageIdString: string | null =
-            statusPage.id?.toString() || statusPage._id?.toString() || null;
 
           if (manageEmailTemplate?.templateBody && statusPage.smtpConfig) {
             // The body is HTML, so the (plain-text) values are escaped into it.
@@ -3344,13 +3307,11 @@ export default class StatusPageAPI extends BaseAPI<
                 vars: {
                   statusPageName: statusPageNameStr,
                   statusPageUrl: statusPageURL,
-                  logoUrl:
-                    statusPage.logoFileId && statusPageIdString
-                      ? new URL(httpProtocol, host)
-                          .addRoute(StatusPageApiRoute)
-                          .addRoute(`/logo/${statusPageIdString}`)
-                          .toString()
-                      : "",
+                  logoUrl: StatusPageEmailLogo.getLogoUrl({
+                    statusPage: statusPage,
+                    host: host,
+                    httpProtocol: httpProtocol,
+                  }),
                   isPublicStatusPage: statusPage.isPublicStatusPage
                     ? "true"
                     : "false",
@@ -3543,9 +3504,7 @@ export default class StatusPageAPI extends BaseAPI<
         `SMS subscribers not enabled for status page with ID: ${objectId}`,
         getLogAttributesFromRequest(req as any),
       );
-      throw new BadDataException(
-        "SMS subscribers not enabled for this status page.",
-      );
+      throw new BadDataException(SMS_SIGN_UP_UNAVAILABLE_MESSAGE);
     }
 
     // if no email or phone, throw error.
@@ -3939,6 +3898,36 @@ export default class StatusPageAPI extends BaseAPI<
   }
 
   /*
+   * The project's incident states as a status page is sent them: each one's
+   * id, place and resolved flag - what the page needs to tell, by the one
+   * rule (Common/Utils/ResolvedState), which incidents and episodes are
+   * resolved and which timeline rows mark a resolve. Names stay on the
+   * timeline rows that show them.
+   */
+  private async getIncidentStatesForStatusPage(
+    projectId: ObjectID,
+  ): Promise<Array<IncidentState>> {
+    return await IncidentStateService.findBy({
+      query: {
+        projectId: projectId,
+      },
+      select: {
+        _id: true,
+        isResolvedState: true,
+        order: true,
+      },
+      sort: {
+        order: SortOrder.Ascending,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  /*
    * Every incident a public status page is sent goes through here - the
    * overview's active and timeline incidents, and the incident list and
    * detail - so it is where the page's JSON, and the overview cache, are made
@@ -4050,11 +4039,15 @@ export default class StatusPageAPI extends BaseAPI<
       statusPage.showIncidentHistoryInDays || 14,
     );
 
+    /*
+     * Only incidents the page shows: IncidentStatusPageScope keeps every
+     * query it runs to incidents visible on status pages that are not
+     * private (StatusPageVisibility), in SQL.
+     */
     let incidentQuery: Query<Incident> = {
       monitors: monitorsOnStatusPage as any,
       projectId: statusPage.projectId!,
       createdAt: QueryHelper.inBetween(historyDays, today),
-      isVisibleOnStatusPage: true,
     };
 
     if (incidentId) {
@@ -4062,7 +4055,6 @@ export default class StatusPageAPI extends BaseAPI<
         monitors: monitorsOnStatusPage as any,
         projectId: statusPage.projectId!,
         _id: incidentId.toString(),
-        isVisibleOnStatusPage: true,
       };
     }
 
@@ -4153,7 +4145,6 @@ export default class StatusPageAPI extends BaseAPI<
             statusPage: statusPage,
             query: {
               monitors: monitorsOnStatusPage as any,
-              isVisibleOnStatusPage: true,
               currentIncidentStateId: QueryHelper.any(
                 unresolvbedIncidentStateIds,
               ),
@@ -4227,9 +4218,12 @@ export default class StatusPageAPI extends BaseAPI<
           createdAt: true,
           startsAt: true,
           incidentId: true,
+          incidentStateId: true,
           incidentState: {
             name: true,
             color: true,
+            isCreatedState: true,
+            isAcknowledgedState: true,
           },
         },
         sort: {
@@ -4244,22 +4238,9 @@ export default class StatusPageAPI extends BaseAPI<
       });
     }
 
-    // get all the incident states for this project.
+    // The project's incident states: where its resolved state sits.
     const incidentStates: Array<IncidentState> =
-      await IncidentStateService.findBy({
-        query: {
-          projectId: statusPage.projectId!,
-        },
-        select: {
-          isResolvedState: true,
-          order: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+      await this.getIncidentStatesForStatusPage(statusPage.projectId!);
 
     const response: JSONObject = {
       incidentPublicNotes: BaseModel.toJSONArray(
@@ -4345,7 +4326,10 @@ export default class StatusPageAPI extends BaseAPI<
      * Note: We don't filter by incident.isVisibleOnStatusPage here because
      * episode visibility is independent of incident visibility.
      * An episode should show if episode.isVisibleOnStatusPage is true,
-     * regardless of whether its member incidents are visible.
+     * regardless of whether its member incidents are visible. A private
+     * incident is another matter: it never takes its episode to a status
+     * page (includeHiddenIncidents reads hidden incidents, never private
+     * ones), and a private episode is never shown (shownEpisodes).
      */
     const incidentQuery: Query<Incident> = {
       monitors: monitorsOnStatusPage as any,
@@ -4377,6 +4361,7 @@ export default class StatusPageAPI extends BaseAPI<
         props: {
           isRoot: true,
         },
+        includeHiddenIncidents: true,
       });
     }
 
@@ -4413,22 +4398,22 @@ export default class StatusPageAPI extends BaseAPI<
       }
     }
 
-    let episodeQuery: Query<IncidentEpisode> = {
-      _id: QueryHelper.any(
-        Array.from(episodeIdsFromMembers).map((id: string) => {
-          return new ObjectID(id);
-        }),
-      ),
-      projectId: statusPage.projectId!,
-      isVisibleOnStatusPage: true,
-    };
+    // Only episodes the page shows: visible on status pages and not private.
+    let episodeQuery: Query<IncidentEpisode> =
+      StatusPageVisibilityQuery.shownEpisodes({
+        _id: QueryHelper.any(
+          Array.from(episodeIdsFromMembers).map((id: string) => {
+            return new ObjectID(id);
+          }),
+        ),
+        projectId: statusPage.projectId!,
+      });
 
     if (episodeId) {
-      episodeQuery = {
+      episodeQuery = StatusPageVisibilityQuery.shownEpisodes({
         _id: episodeId.toString(),
         projectId: statusPage.projectId!,
-        isVisibleOnStatusPage: true,
-      };
+      });
 
       // When viewing a specific episode, also fetch its members directly
       const episodeMembersForSpecificEpisode: Array<IncidentEpisodeMember> =
@@ -4455,8 +4440,9 @@ export default class StatusPageAPI extends BaseAPI<
        * could be read from any of its status pages by id - including an
        * episode whose incidents are all limited to other status pages. Like
        * the list, it does not ask whether the incidents themselves are
-       * visible on status pages, and unlike the list, it has no history
-       * window: a link to an older episode keeps working.
+       * visible on status pages - but never counts a private one - and
+       * unlike the list, it has no history window: a link to an older
+       * episode keeps working.
        */
       const episodeMemberIncidentIds: Array<ObjectID> =
         episodeMembersForSpecificEpisode
@@ -4482,6 +4468,7 @@ export default class StatusPageAPI extends BaseAPI<
               props: {
                 isRoot: true,
               },
+              includeHiddenIncidents: true,
             })
           : null;
 
@@ -4529,7 +4516,11 @@ export default class StatusPageAPI extends BaseAPI<
         isAcknowledgedState: true,
         isResolvedState: true,
       },
-      incidentCount: true,
+      /*
+       * Not the episode's incidentCount: it counts every incident in the
+       * episode, private ones included, and a status page shows none of
+       * those (StatusPageVisibility).
+       */
     };
 
     if (statusPage.showEpisodeLabelsOnStatusPage) {
@@ -4575,16 +4566,15 @@ export default class StatusPageAPI extends BaseAPI<
 
       const activeEpisodes: Array<IncidentEpisode> =
         await IncidentEpisodeService.findBy({
-          query: {
+          query: StatusPageVisibilityQuery.shownEpisodes({
             _id: QueryHelper.any(
               Array.from(episodeIdsFromMembers).map((id: string) => {
                 return new ObjectID(id);
               }),
             ),
-            isVisibleOnStatusPage: true,
             currentIncidentStateId: QueryHelper.any(unresolvedIncidentStateIds),
             projectId: statusPage.projectId!,
-          },
+          }),
           select: selectEpisodes,
           sort: {
             declaredAt: SortOrder.Descending,
@@ -4627,16 +4617,18 @@ export default class StatusPageAPI extends BaseAPI<
      * Fetch incidents with their monitors. Read by id, so the scope is
      * applied here, in memory: a member incident limited to other status
      * pages does not tell this page which of its monitors the episode
-     * affects. (An episode viewed by id brings all of its members.)
+     * affects. (An episode viewed by id brings all of its members.) A
+     * private member is left out of the read itself: its monitors are not
+     * the episode's to show.
      */
     let memberIncidents: Array<Incident> = [];
     if (memberIncidentIds.length > 0) {
       memberIncidents = this.keepMemberIncidentsInScope({
         incidents: await IncidentService.findBy({
-          query: {
+          query: StatusPageVisibilityQuery.notPrivateIncidents({
             _id: QueryHelper.any(memberIncidentIds),
             projectId: statusPage.projectId!,
-          },
+          }),
           select: {
             _id: true,
             monitors: {
@@ -4739,12 +4731,12 @@ export default class StatusPageAPI extends BaseAPI<
           createdAt: true,
           startsAt: true,
           incidentEpisodeId: true,
+          incidentStateId: true,
           incidentState: {
             name: true,
             color: true,
             isCreatedState: true,
             isAcknowledgedState: true,
-            isResolvedState: true,
           },
         },
         sort: {
@@ -4758,22 +4750,9 @@ export default class StatusPageAPI extends BaseAPI<
       });
     }
 
-    // Get all incident states for this project
+    // The project's incident states: where its resolved state sits.
     const incidentStates: Array<IncidentState> =
-      await IncidentStateService.findBy({
-        query: {
-          projectId: statusPage.projectId!,
-        },
-        select: {
-          isResolvedState: true,
-          order: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+      await this.getIncidentStatesForStatusPage(statusPage.projectId!);
 
     // Serialize episodes and add monitors to each
     const episodesJson: JSONArray = BaseModel.toJSONArray(
@@ -5333,7 +5312,6 @@ export default class StatusPageAPI extends BaseAPI<
               currentIncidentStateId: QueryHelper.any(
                 unresolvedIncidentStateIds,
               ),
-              isVisibleOnStatusPage: true,
               projectId: statusPage.projectId!,
             },
             select: select,
@@ -5398,12 +5376,12 @@ export default class StatusPageAPI extends BaseAPI<
           createdAt: true,
           startsAt: true,
           incidentId: true,
+          incidentStateId: true,
           incidentState: {
             _id: true,
             name: true,
             color: true,
             isCreatedState: true,
-            isResolvedState: true,
             isAcknowledgedState: true,
           },
         },
@@ -5431,10 +5409,11 @@ export default class StatusPageAPI extends BaseAPI<
      * join, up to LIMIT_PER_PROJECT rows) just to discover episode
      * membership — on every overview view, even though most pages have
      * zero active episodes most of the time. One indexed COUNT of the
-     * project's unresolved, visible episodes lets us skip all of it in
-     * the common case. Behavior-preserving: the final activeEpisodes
-     * query applies exactly these three constraints, so count == 0
-     * implies the block's outputs stay empty.
+     * project's unresolved episodes status pages show (visible, not
+     * private) lets us skip all of it in the common case.
+     * Behavior-preserving: the final activeEpisodes query applies exactly
+     * these constraints, so count == 0 implies the block's outputs stay
+     * empty.
      */
     let unresolvedIncidentStateIds: Array<ObjectID> = [];
     let hasActiveEpisodes: boolean = false;
@@ -5457,11 +5436,10 @@ export default class StatusPageAPI extends BaseAPI<
 
       const activeEpisodeCount: PositiveNumber =
         await IncidentEpisodeService.countBy({
-          query: {
+          query: StatusPageVisibilityQuery.shownEpisodes({
             projectId: statusPage.projectId!,
-            isVisibleOnStatusPage: true,
             currentIncidentStateId: QueryHelper.any(unresolvedIncidentStateIds),
-          },
+          }),
           props: {
             isRoot: true,
           },
@@ -5483,7 +5461,6 @@ export default class StatusPageAPI extends BaseAPI<
           statusPage: statusPage,
           query: {
             monitors: monitorsOnStatusPage as any,
-            isVisibleOnStatusPage: true,
             projectId: statusPage.projectId!,
           },
           select: {
@@ -5557,7 +5534,7 @@ export default class StatusPageAPI extends BaseAPI<
             isAcknowledgedState: true,
             isResolvedState: true,
           },
-          incidentCount: true,
+          // Not incidentCount: it counts private incidents too (see getEpisodes).
         };
 
         if (statusPage.showEpisodeLabelsOnStatusPage) {
@@ -5571,16 +5548,15 @@ export default class StatusPageAPI extends BaseAPI<
         }
 
         activeEpisodes = await IncidentEpisodeService.findBy({
-          query: {
+          query: StatusPageVisibilityQuery.shownEpisodes({
             _id: QueryHelper.any(
               Array.from(episodeIdsFromMembers).map((id: string) => {
                 return new ObjectID(id);
               }),
             ),
             currentIncidentStateId: QueryHelper.any(unresolvedIncidentStateIds),
-            isVisibleOnStatusPage: true,
             projectId: statusPage.projectId!,
-          },
+          }),
           select: selectEpisodes,
           sort: {
             declaredAt: SortOrder.Descending,
@@ -5626,11 +5602,10 @@ export default class StatusPageAPI extends BaseAPI<
           if (memberIncidentIds.length > 0) {
             memberIncidents = this.keepMemberIncidentsInScope({
               incidents: await IncidentService.findBy({
-                query: {
+                query: StatusPageVisibilityQuery.shownIncidents({
                   _id: QueryHelper.any(memberIncidentIds),
-                  isVisibleOnStatusPage: true,
                   projectId: statusPage.projectId!,
-                },
+                }),
                 select: {
                   _id: true,
                   monitors: {
@@ -5757,12 +5732,12 @@ export default class StatusPageAPI extends BaseAPI<
                   createdAt: true,
                   startsAt: true,
                   incidentEpisodeId: true,
+                  incidentStateId: true,
                   incidentState: {
                     name: true,
                     color: true,
                     isCreatedState: true,
                     isAcknowledgedState: true,
-                    isResolvedState: true,
                   },
                 },
                 sort: {
@@ -5787,12 +5762,14 @@ export default class StatusPageAPI extends BaseAPI<
 
     if (statusPage.showAnnouncementsOnStatusPage) {
       activeAnnouncements = await StatusPageAnnouncementService.findBy({
-        query: {
-          statusPages: statusPageId as any,
-          showAnnouncementAt: QueryHelper.lessThan(today),
-          endAnnouncementAt: QueryHelper.greaterThanOrNull(today),
-          projectId: statusPage.projectId!,
-        },
+        query: StatusPageVisibilityQuery.shownAnnouncements(
+          {
+            statusPages: statusPageId as any,
+            endAnnouncementAt: QueryHelper.greaterThanOrNull(today),
+            projectId: statusPage.projectId!,
+          },
+          { now: today },
+        ),
         select: {
           createdAt: true,
           title: true,
@@ -5844,14 +5821,13 @@ export default class StatusPageAPI extends BaseAPI<
 
     if (statusPage.showScheduledMaintenanceEventsOnStatusPage) {
       scheduledMaintenanceEvents = await ScheduledMaintenanceService.findBy({
-        query: {
+        query: StatusPageVisibilityQuery.shownScheduledMaintenance({
           currentScheduledMaintenanceState: {
             isOngoingState: true,
           } as any,
           statusPages: statusPageId as any,
           projectId: statusPage.projectId!,
-          isVisibleOnStatusPage: true,
-        },
+        }),
         select: scheduledEventsSelect,
         sort: {
           startsAt: SortOrder.Ascending,
@@ -5869,14 +5845,13 @@ export default class StatusPageAPI extends BaseAPI<
     if (statusPage.showScheduledMaintenanceEventsOnStatusPage) {
       futureScheduledMaintenanceEvents =
         await ScheduledMaintenanceService.findBy({
-          query: {
+          query: StatusPageVisibilityQuery.shownScheduledMaintenance({
             currentScheduledMaintenanceState: {
               isScheduledState: true,
             } as any,
             statusPages: statusPageId as any,
             projectId: statusPage.projectId!,
-            isVisibleOnStatusPage: true,
-          },
+          }),
           select: scheduledEventsSelect,
           sort: {
             startsAt: SortOrder.Ascending,
@@ -6012,7 +5987,6 @@ export default class StatusPageAPI extends BaseAPI<
           query: {
             monitors: monitorsOnStatusPage as any,
             declaredAt: QueryHelper.inBetween(startDate, endDate),
-            isVisibleOnStatusPage: true,
             projectId: statusPage.projectId!,
           },
           select: {
@@ -6050,6 +6024,16 @@ export default class StatusPageAPI extends BaseAPI<
         monitorGroupCurrentStatuses,
       });
 
+    /*
+     * The project's incident states, read only when an active incident or
+     * episode is drawn: its timeline marks a row in the resolved state, or in
+     * one placed after it, as resolved (Common/Utils/ResolvedState).
+     */
+    const incidentStates: Array<IncidentState> =
+      activeIncidents.length > 0 || activeEpisodes.length > 0
+        ? await this.getIncidentStatesForStatusPage(statusPage.projectId!)
+        : [];
+
     const response: JSONObject = {
       overallStatus: overallStatus
         ? BaseModel.toJSON(overallStatus, MonitorStatus)
@@ -6077,6 +6061,7 @@ export default class StatusPageAPI extends BaseAPI<
       ),
 
       activeIncidents: this.serializeIncidentsForStatusPage(activeIncidents),
+      incidentStates: BaseModel.toJSONArray(incidentStates, IncidentState),
 
       activeEpisodes: activeEpisodesJson,
       episodePublicNotes: BaseModel.toJSONArray(
@@ -6188,19 +6173,25 @@ export default class StatusPageAPI extends BaseAPI<
       throw new NotFoundException("Attachment not found");
     }
 
+    // Only an announcement the page shows already.
     const announcement: StatusPageAnnouncement | null =
       await StatusPageAnnouncementService.findOneBy({
-        query: {
-          _id: announcementId.toString(),
-          projectId: statusPage.projectId!,
-          statusPages: [statusPageId] as any,
-        },
+        query: StatusPageVisibilityQuery.shownAnnouncements(
+          {
+            _id: announcementId.toString(),
+            projectId: statusPage.projectId!,
+            statusPages: [statusPageId] as any,
+          },
+          { now: OneUptimeDate.getCurrentDate() },
+        ),
         select: {
           attachments: {
             _id: true,
             file: true,
             fileType: true,
             name: true,
+            // Read with the file, so serving it asks nothing more.
+            projectId: true,
           },
         },
         props: {
@@ -6212,18 +6203,15 @@ export default class StatusPageAPI extends BaseAPI<
       throw new NotFoundException("Attachment not found");
     }
 
-    const attachment: File | undefined = announcement.attachments?.find(
-      (file: File) => {
-        const attachmentId: string | null = file._id
-          ? file._id.toString()
-          : file.id
-            ? file.id.toString()
-            : null;
-        return attachmentId === fileId.toString();
-      },
-    );
+    // One of its files, uploaded in the page's own project.
+    const attachment: File | undefined =
+      await FileOwnership.findProjectAttachment({
+        files: announcement.attachments,
+        fileId: fileId,
+        projectId: statusPage.projectId,
+      });
 
-    if (!attachment || !attachment.file) {
+    if (!attachment) {
       throw new NotFoundException("Attachment not found");
     }
 
@@ -6291,14 +6279,14 @@ export default class StatusPageAPI extends BaseAPI<
       throw new NotFoundException("Attachment not found");
     }
 
+    // Only an event the page shows.
     const scheduledMaintenance: ScheduledMaintenance | null =
       await ScheduledMaintenanceService.findOneBy({
-        query: {
+        query: StatusPageVisibilityQuery.shownScheduledMaintenance({
           _id: scheduledMaintenanceId.toString(),
           projectId: statusPage.projectId!,
-          isVisibleOnStatusPage: true,
           statusPages: statusPageId as any,
-        },
+        }),
         select: {
           _id: true,
         },
@@ -6324,6 +6312,8 @@ export default class StatusPageAPI extends BaseAPI<
             file: true,
             fileType: true,
             name: true,
+            // Read with the file, so serving it asks nothing more.
+            projectId: true,
           },
         },
         props: {
@@ -6335,17 +6325,15 @@ export default class StatusPageAPI extends BaseAPI<
       throw new NotFoundException("Attachment not found");
     }
 
+    // One of its files, uploaded in the page's own project.
     const attachment: File | undefined =
-      scheduledMaintenancePublicNote.attachments?.find((file: File) => {
-        const attachmentId: string | null = file._id
-          ? file._id.toString()
-          : file.id
-            ? file.id.toString()
-            : null;
-        return attachmentId === fileId.toString();
+      await FileOwnership.findProjectAttachment({
+        files: scheduledMaintenancePublicNote.attachments,
+        fileId: fileId,
+        projectId: statusPage.projectId,
       });
 
-    if (!attachment || !attachment.file) {
+    if (!attachment) {
       throw new NotFoundException("Attachment not found");
     }
 
@@ -6422,7 +6410,6 @@ export default class StatusPageAPI extends BaseAPI<
         query: {
           _id: incidentId.toString(),
           projectId: statusPage.projectId!,
-          isVisibleOnStatusPage: true,
           showPostmortemOnStatusPage: true,
           monitors: monitorsOnStatusPage as any,
         },
@@ -6432,6 +6419,8 @@ export default class StatusPageAPI extends BaseAPI<
             file: true,
             fileType: true,
             name: true,
+            // Read with the file, so serving it asks nothing more.
+            projectId: true,
           },
         },
         props: {
@@ -6443,18 +6432,15 @@ export default class StatusPageAPI extends BaseAPI<
       throw new NotFoundException("Attachment not found");
     }
 
-    const attachment: File | undefined = incident.postmortemAttachments?.find(
-      (file: File) => {
-        const attachmentId: string | null = file._id
-          ? file._id.toString()
-          : file.id
-            ? file.id.toString()
-            : null;
-        return attachmentId === fileId.toString();
-      },
-    );
+    // One of its files, uploaded in the page's own project.
+    const attachment: File | undefined =
+      await FileOwnership.findProjectAttachment({
+        files: incident.postmortemAttachments,
+        fileId: fileId,
+        projectId: statusPage.projectId,
+      });
 
-    if (!attachment || !attachment.file) {
+    if (!attachment) {
       throw new NotFoundException("Attachment not found");
     }
 
@@ -6539,7 +6525,6 @@ export default class StatusPageAPI extends BaseAPI<
         query: {
           _id: incidentId.toString(),
           projectId: statusPage.projectId!,
-          isVisibleOnStatusPage: true,
           monitors: monitorsOnStatusPage as any,
         },
         select: {
@@ -6567,6 +6552,8 @@ export default class StatusPageAPI extends BaseAPI<
             file: true,
             fileType: true,
             name: true,
+            // Read with the file, so serving it asks nothing more.
+            projectId: true,
           },
         },
         props: {
@@ -6578,18 +6565,15 @@ export default class StatusPageAPI extends BaseAPI<
       throw new NotFoundException("Attachment not found");
     }
 
-    const attachment: File | undefined = incidentPublicNote.attachments?.find(
-      (file: File) => {
-        const attachmentId: string | null = file._id
-          ? file._id.toString()
-          : file.id
-            ? file.id.toString()
-            : null;
-        return attachmentId === fileId.toString();
-      },
-    );
+    // One of its files, uploaded in the page's own project.
+    const attachment: File | undefined =
+      await FileOwnership.findProjectAttachment({
+        files: incidentPublicNote.attachments,
+        fileId: fileId,
+        projectId: statusPage.projectId,
+      });
 
-    if (!attachment || !attachment.file) {
+    if (!attachment) {
       throw new NotFoundException("Attachment not found");
     }
 
@@ -6702,7 +6686,6 @@ export default class StatusPageAPI extends BaseAPI<
         query: {
           _id: QueryHelper.any(incidentIds),
           projectId: statusPage.projectId!,
-          isVisibleOnStatusPage: true,
           monitors: monitorsOnStatusPage as any,
         },
         select: {
@@ -6717,14 +6700,13 @@ export default class StatusPageAPI extends BaseAPI<
       throw new NotFoundException("Attachment not found");
     }
 
-    // Verify the episode exists and is visible
+    // Verify the episode exists and the page shows it: visible, not private.
     const episode: IncidentEpisode | null =
       await IncidentEpisodeService.findOneBy({
-        query: {
+        query: StatusPageVisibilityQuery.shownEpisodes({
           _id: episodeId.toString(),
           projectId: statusPage.projectId!,
-          isVisibleOnStatusPage: true,
-        },
+        }),
         select: {
           _id: true,
         },
@@ -6750,6 +6732,8 @@ export default class StatusPageAPI extends BaseAPI<
             file: true,
             fileType: true,
             name: true,
+            // Read with the file, so serving it asks nothing more.
+            projectId: true,
           },
         },
         props: {
@@ -6761,18 +6745,15 @@ export default class StatusPageAPI extends BaseAPI<
       throw new NotFoundException("Attachment not found");
     }
 
-    const attachment: File | undefined = episodePublicNote.attachments?.find(
-      (file: File) => {
-        const attachmentId: string | null = file._id
-          ? file._id.toString()
-          : file.id
-            ? file.id.toString()
-            : null;
-        return attachmentId === fileId.toString();
-      },
-    );
+    // One of its files, uploaded in the page's own project.
+    const attachment: File | undefined =
+      await FileOwnership.findProjectAttachment({
+        files: episodePublicNote.attachments,
+        fileId: fileId,
+        projectId: statusPage.projectId,
+      });
 
-    if (!attachment || !attachment.file) {
+    if (!attachment) {
       throw new NotFoundException("Attachment not found");
     }
 

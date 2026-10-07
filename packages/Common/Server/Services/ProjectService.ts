@@ -29,8 +29,10 @@ import {
 import SessionReplayGateCacheStore from "../Utils/SessionReplay/SessionReplayGateCacheStore";
 import AccessTokenService from "./AccessTokenService";
 import type AuditLogServiceType from "./AuditLogService";
+import PlanDowngradeOwnerNotice from "../Utils/Billing/PlanDowngradeOwnerNotice";
 import BillingService from "./BillingService";
 import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import DeletedProjectService from "./DeletedProjectService";
 import IncidentSeverityService from "./IncidentSeverityService";
 import IncidentStateService from "./IncidentStateService";
@@ -76,8 +78,19 @@ import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException
 import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import { CREATED_BY_USER_KEYS } from "../Utils/Database/CreatedByUser";
 import Permission from "../../Types/Permission";
 import DataResidencyUtil from "../../Utils/Project/DataResidency";
+import ProjectAiDailyLimits, {
+  PROJECT_AI_DAILY_LIMIT_REACHED_AT_COLUMNS,
+  PROJECT_AI_DAILY_SPEND_LIMIT_COLUMN,
+  PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN,
+  ProjectAiDailyLimit,
+  ProjectAiDailyLimitColumn,
+  ProjectAiDailyLimitReachedAtColumn,
+} from "../../Types/AI/ProjectAiDailyLimits";
+import { coerceNumericColumnValue } from "../../Types/Database/NumericColumnValue";
 import NumberPrefixUtil, {
   NUMBER_PREFIX_COLUMNS,
   NumberPrefixColumn,
@@ -275,7 +288,7 @@ export const widensAuditLogging: (
   return !Number.isFinite(requestedDays) || requestedDays > currentDays;
 };
 
-export class ProjectService extends DatabaseService<Model> {
+export class ProjectService extends ProjectReferencesService<Model> {
   /*
    * Suppresses repeated `lastActive` UPDATEs from a single API node. 60s of
    * staleness on "last seen" is acceptable; an UPDATE per request is not.
@@ -301,12 +314,30 @@ export class ProjectService extends DatabaseService<Model> {
    * Caches the current billing plan per project. `getCurrentPlan` is hit
    * by `CommonAPI.getDatabaseCommonInteractionProps` on every
    * authenticated request when billing is enabled — without caching,
-   * that's one Postgres findOneById per API call to a billable project.
+   * that's one Postgres findOneById per API call to a billable project —
+   * and by the API-key and SCIM middleware, which refuse a project's keys
+   * and SCIM connections below their plan (PlanCutoffCredentialAccess).
    * Plans change rarely (subscription create / cancel / change), so a
-   * 60s staleness window is acceptable.
+   * 60s staleness window is acceptable. A plan change drops the project's
+   * entry on the server that made it (forgetCurrentPlan), so there the
+   * new plan applies at once, and everywhere else within the 60 seconds.
    */
   private currentPlanCache: InMemoryTTLCache<CurrentPlan> =
     new InMemoryTTLCache(10_000);
+
+  /*
+   * Counts this server's plan changes (forgetCurrentPlan). A plan read that
+   * was under way when the plan changed may hold the old plan, so it is
+   * returned but not cached: otherwise it would put the old plan back for
+   * another minute, after forgetCurrentPlan had dropped it.
+   */
+  private currentPlanChanges: number = 0;
+
+  /*
+   * How long a project's plan is cached on a server: the longest a plan
+   * change takes to reach a server that did not make it.
+   */
+  public static readonly CURRENT_PLAN_CACHE_TTL_MS: number = 60_000;
 
   public constructor() {
     super(Model);
@@ -372,19 +403,80 @@ export class ProjectService extends DatabaseService<Model> {
     }
   }
 
+  /*
+   * Runs on every create and update, before the write, for each of the
+   * project's own daily AI limits the data carries (Types/AI/
+   * ProjectAiDailyLimits). A blank one is stored as null - no limit, which
+   * is what clearing the field in the dashboard means - a typed "200000"
+   * as the number it is, and a limit must otherwise be a whole number within
+   * its bounds, at least 1: AI is turned off with Enable AI, not with a
+   * limit of 0. The spend limit counts only what is billed to AI credits,
+   * so on a server without billing it cannot be set (it would limit
+   * nothing); clearing it is always allowed.
+   */
+  public applyAiDailyLimitRules(
+    data: Partial<Record<ProjectAiDailyLimitColumn, unknown>>,
+  ): void {
+    const values: Record<string, unknown> = data as Record<string, unknown>;
+
+    for (const column of [
+      PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN,
+      PROJECT_AI_DAILY_SPEND_LIMIT_COLUMN,
+    ]) {
+      if (values[column] === undefined) {
+        continue;
+      }
+
+      if (
+        typeof values[column] === "string" &&
+        (values[column] as string).trim().length === 0
+      ) {
+        values[column] = null;
+      }
+
+      values[column] = coerceNumericColumnValue(values[column]);
+
+      const error: string | null = ProjectAiDailyLimits.getWriteError(
+        column,
+        values[column],
+      );
+
+      if (error) {
+        throw new BadDataException(error);
+      }
+
+      if (
+        column === PROJECT_AI_DAILY_SPEND_LIMIT_COLUMN &&
+        values[column] !== null &&
+        !IsBillingEnabled
+      ) {
+        throw new BadDataException(
+          "The daily AI spend limit counts AI credits, which this server does not bill, so it can only be set where billing is enabled. Use the daily AI token limit instead.",
+        );
+      }
+    }
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     data: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(data);
+
     if (!data.data.name) {
       throw new BadDataException("Project name is required");
     }
 
     this.applyDataResidencyRules(data.data);
     this.applyNumberPrefixRules(data.data);
+    this.applyAiDailyLimitRules(data.data);
 
     if (data.props.userId) {
-      data.data.createdByUserId = data.props.userId;
+      RelationIdUtil.stamp(
+        data.data as unknown as Record<string, unknown>,
+        CREATED_BY_USER_KEYS,
+        data.props.userId,
+      );
     } else {
       throw new NotAuthorizedException(
         "User should be logged in to create the project.",
@@ -452,6 +544,22 @@ export class ProjectService extends DatabaseService<Model> {
 
       data.data.planName = this.getPlanType(data.data.paymentProviderPlanId);
 
+      /*
+       * The project's own settings that a plan sells (its audit logs,
+       * Require SSO) are checked against the plan it is created on, after
+       * this hook, by the create's column check (ColumnPermission) - as
+       * every record's settings are checked against its project's plan.
+       * Not against the plan of the project the request was sent from,
+       * nor against none when it was sent from no project. A new project
+       * has no subscription yet, so none that is unpaid. A copy: the
+       * request's own props are left as they are.
+       */
+      data.props = {
+        ...data.props,
+        currentPlan: data.data.planName,
+        isSubscriptionUnpaid: false,
+      };
+
       if (data.data.paymentProviderPromoCode) {
         /*
          * check if it exists in promcode table. Not all promocodes are in the table, only reseller ones are.
@@ -516,12 +624,25 @@ export class ProjectService extends DatabaseService<Model> {
             data.data.resellerLicenseId = promoCode.resellerLicenseId;
           }
 
+          /*
+           * The promo code's reseller and plan, under their ID columns
+           * alone: a relation the request sent beside one would otherwise
+           * be stored in its place.
+           */
           if (promoCode.resellerId) {
-            data.data.resellerId = promoCode.resellerId;
+            RelationIdUtil.stamp(
+              data.data as unknown as Record<string, unknown>,
+              ["resellerId", "reseller"],
+              promoCode.resellerId,
+            );
           }
 
           if (promoCode.resellerPlanId) {
-            data.data.resellerPlanId = promoCode.resellerPlanId;
+            RelationIdUtil.stamp(
+              data.data as unknown as Record<string, unknown>,
+              ["resellerPlanId", "resellerPlan"],
+              promoCode.resellerPlanId,
+            );
           }
         }
       }
@@ -648,6 +769,8 @@ export class ProjectService extends DatabaseService<Model> {
 
     this.invalidateAuditLogSettingsCache(updateData, updatedItemIds);
 
+    await this.syncInvoiceDetailsToPaymentProvider(updateData, updatedItemIds);
+
     if (!("isSessionReplayAllowed" in updateData)) {
       return onUpdate;
     }
@@ -734,6 +857,8 @@ export class ProjectService extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * Any project field could have changed; invalidate the in-process cache
      * of the SSO flag. Cheap to refetch on the next request.
@@ -748,6 +873,7 @@ export class ProjectService extends DatabaseService<Model> {
 
     this.applyDataResidencyRules(updateBy.data);
     this.applyNumberPrefixRules(updateBy.data);
+    this.applyAiDailyLimitRules(updateBy.data);
 
     await this.assertAuditLogSettingsChangeIsLicensed({
       requested: updateBy.data as unknown as Record<string, unknown>,
@@ -764,84 +890,6 @@ export class ProjectService extends DatabaseService<Model> {
 
     if (IsBillingEnabled) {
       if (
-        updateBy.data.businessDetails ||
-        updateBy.data.businessDetailsCountry ||
-        updateBy.data.financeAccountingEmail ||
-        updateBy.data.sendInvoicesByEmail !== undefined
-      ) {
-        logger.debug(
-          `[Invoice Email] ProjectService.onBeforeUpdate - syncing billing details to Stripe`,
-        );
-        logger.debug(
-          `[Invoice Email] Fields being updated - businessDetails: ${Boolean(updateBy.data.businessDetails)}, businessDetailsCountry: ${Boolean(updateBy.data.businessDetailsCountry)}, financeAccountingEmail: ${Boolean(updateBy.data.financeAccountingEmail)}, sendInvoicesByEmail: ${updateBy.data.sendInvoicesByEmail}`,
-        );
-
-        // Sync to Stripe.
-        const project: Model | null = await this.findOneById({
-          id: new ObjectID(updateBy.query._id! as string),
-          select: {
-            paymentProviderCustomerId: true,
-            financeAccountingEmail: true,
-            sendInvoicesByEmail: true,
-          },
-          props: { isRoot: true },
-        });
-
-        logger.debug(
-          `[Invoice Email] Project found - paymentProviderCustomerId: ${project?.paymentProviderCustomerId}, existing sendInvoicesByEmail: ${(project as any)?.sendInvoicesByEmail}`,
-        );
-
-        if (project?.paymentProviderCustomerId) {
-          try {
-            const sendInvoicesByEmailValue: boolean | null =
-              updateBy.data.sendInvoicesByEmail !== undefined
-                ? (updateBy.data.sendInvoicesByEmail as boolean)
-                : (project as any).sendInvoicesByEmail || null;
-
-            logger.debug(
-              `[Invoice Email] Calling BillingService.updateCustomerBusinessDetails with sendInvoicesByEmail: ${sendInvoicesByEmailValue}`,
-            );
-
-            await BillingService.updateCustomerBusinessDetails(
-              project.paymentProviderCustomerId,
-              (updateBy.data.businessDetails as string) || "",
-              (updateBy.data.businessDetailsCountry as string) || null,
-              (updateBy.data.financeAccountingEmail as string) ||
-                (project as any).financeAccountingEmail ||
-                null,
-              sendInvoicesByEmailValue,
-            );
-
-            logger.debug(
-              `[Invoice Email] Successfully synced billing details to Stripe for customer ${project.paymentProviderCustomerId}`,
-            );
-          } catch (err) {
-            logger.error(
-              `[Invoice Email] Failed to update Stripe customer business details: ${err}`,
-              { projectId: updateBy.query._id?.toString() } as LogAttributes,
-            );
-          }
-        } else {
-          logger.debug(
-            `[Invoice Email] No paymentProviderCustomerId found, skipping Stripe sync`,
-          );
-        }
-      }
-      if (updateBy.data.enableAutoRechargeSmsOrCallBalance) {
-        await NotificationService.rechargeIfBalanceIsLow(
-          new ObjectID(updateBy.query._id! as string),
-          {
-            autoRechargeSmsOrCallByBalanceInUSD: updateBy.data
-              .autoRechargeSmsOrCallByBalanceInUSD as number,
-            autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: updateBy.data
-              .autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD as number,
-            enableAutoRechargeSmsOrCallBalance: updateBy.data
-              .enableAutoRechargeSmsOrCallBalance as boolean,
-          },
-        );
-      }
-
-      if (
         updateBy.data.paymentProviderPlanId &&
         !updateBy.props.ignoreHooks &&
         !updateBy.props.isRoot
@@ -853,6 +901,128 @@ export class ProjectService extends DatabaseService<Model> {
     }
 
     return { updateBy, carryForward: [] };
+  }
+
+  /*
+   * Turning auto recharge on tops the SMS and call balance up at once when it
+   * is already below the threshold. A charge is never made for a change that
+   * is refused, so it is made here: once the caller has passed every
+   * permission check (the auto recharge columns need Manage Billing), for
+   * the projects the update is narrowed to - and still before the write, so
+   * a charge that fails (no card, say) refuses the change, as it always has.
+   */
+  @CaptureSpan()
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    if (
+      !IsBillingEnabled ||
+      !updateBy.data.enableAutoRechargeSmsOrCallBalance
+    ) {
+      return;
+    }
+
+    // The same rows, and the same window of them, the update writes.
+    const projects: Array<Model> = await this.findBy({
+      query: updateBy.query,
+      select: {
+        _id: true,
+      },
+      limit:
+        updateBy.limit instanceof PositiveNumber
+          ? updateBy.limit.toNumber()
+          : updateBy.limit,
+      skip:
+        updateBy.skip instanceof PositiveNumber
+          ? updateBy.skip.toNumber()
+          : updateBy.skip,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const project of projects) {
+      if (!project.id) {
+        continue;
+      }
+
+      await NotificationService.rechargeIfBalanceIsLow(project.id, {
+        autoRechargeSmsOrCallByBalanceInUSD: updateBy.data
+          .autoRechargeSmsOrCallByBalanceInUSD as number,
+        autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: updateBy.data
+          .autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD as number,
+        enableAutoRechargeSmsOrCallBalance: updateBy.data
+          .enableAutoRechargeSmsOrCallBalance as boolean,
+      });
+    }
+  }
+
+  /*
+   * The invoice details the payment provider holds follow the project's once
+   * an update of them has been made - so after every permission check (they
+   * need Manage Billing) and only for the projects the update wrote. The
+   * provider is sent what the project now holds. A failure is logged and
+   * does not undo the update.
+   */
+  private async syncInvoiceDetailsToPaymentProvider(
+    updateData: Record<string, unknown>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<void> {
+    const invoiceDetailColumns: Array<string> = [
+      "businessDetails",
+      "businessDetailsCountry",
+      "financeAccountingEmail",
+      "sendInvoicesByEmail",
+    ];
+
+    if (
+      !IsBillingEnabled ||
+      !invoiceDetailColumns.some((column: string): boolean => {
+        return updateData[column] !== undefined;
+      })
+    ) {
+      return;
+    }
+
+    for (const projectId of updatedItemIds) {
+      try {
+        const project: Model | null = await this.findOneById({
+          id: projectId,
+          select: {
+            paymentProviderCustomerId: true,
+            businessDetails: true,
+            businessDetailsCountry: true,
+            financeAccountingEmail: true,
+            sendInvoicesByEmail: true,
+          },
+          props: { isRoot: true },
+        });
+
+        if (!project?.paymentProviderCustomerId) {
+          logger.debug(
+            `[Invoice Email] No paymentProviderCustomerId found, skipping Stripe sync`,
+          );
+          continue;
+        }
+
+        await BillingService.updateCustomerBusinessDetails(
+          project.paymentProviderCustomerId,
+          project.businessDetails || "",
+          project.businessDetailsCountry || null,
+          project.financeAccountingEmail || null,
+          project.sendInvoicesByEmail ?? null,
+        );
+
+        logger.debug(
+          `[Invoice Email] Successfully synced billing details to Stripe for customer ${project.paymentProviderCustomerId}`,
+        );
+      } catch (err) {
+        logger.error(
+          `[Invoice Email] Failed to update Stripe customer business details: ${err}`,
+          { projectId: projectId.toString() } as LogAttributes,
+        );
+      }
+    }
   }
 
   /*
@@ -1116,12 +1286,28 @@ export class ProjectService extends DatabaseService<Model> {
     });
 
     /*
+     * The new plan applies to the next request: what the project's API keys
+     * and SCIM connections may do turns on it (PlanCutoffCredentialAccess).
+     */
+    this.forgetCurrentPlan(project.id!);
+
+    /*
      * Raised after the row is written, because the row is what makes these ids
      * unreachable: it now carries the replacements.
      */
     this.alertOnSubscriptionsPendingCancellation({
       projectId: project.id!,
       subscriptionIds: subscription.subscriptionIdsPendingCancellation,
+    });
+
+    /*
+     * A move below the plan the project's API keys or SCIM connections need
+     * stops them; its owners are told once, now, what stopped. Never throws.
+     */
+    await PlanDowngradeOwnerNotice.notifyIfStopped({
+      projectId: project.id!,
+      fromPlanId: project.paymentProviderPlanId,
+      toPlanId: params.paymentProviderPlanId,
     });
 
     this.capturePlanChangeAnalytics({
@@ -3018,6 +3204,8 @@ These are no longer recorded against the project and have to be cancelled by han
       return cached;
     }
 
+    const planChangesBeforeRead: number = this.currentPlanChanges;
+
     const project: Model | null = await this.findOneById({
       id: projectId,
       select: {
@@ -3056,8 +3244,58 @@ These are no longer recorded against the project and have to be cancelled by han
           project.paymentProviderMeteredSubscriptionStatus!,
         ),
     };
-    this.currentPlanCache.set(cacheKey, result, 60_000);
+    if (planChangesBeforeRead === this.currentPlanChanges) {
+      this.currentPlanCache.set(
+        cacheKey,
+        result,
+        ProjectService.CURRENT_PLAN_CACHE_TTL_MS,
+      );
+    }
+
     return result;
+  }
+
+  /*
+   * Drop this server's cached plan of the project, so the next request
+   * reads the plan just written - and keep a read already under way from
+   * caching the plan it read before the change (currentPlanChanges). Other
+   * servers keep theirs until it expires (CURRENT_PLAN_CACHE_TTL_MS).
+   */
+  public forgetCurrentPlan(projectId: ObjectID): void {
+    this.currentPlanChanges++;
+    this.currentPlanCache.delete(projectId.toString());
+  }
+
+  /*
+   * Record that one of the project's own daily AI limits stopped OneUptime
+   * AI at `now`, if it had not yet that UTC day. True only for the one call
+   * that writes it - the first of the day for that limit - which is the
+   * caller that tells the project's owners (ProjectAiDailyLimitOwnerNotice):
+   * everyone else gets false, whatever moment of the day they ask.
+   *
+   * One statement: the condition and the write are a single UPDATE, so two
+   * servers refusing AI calls at the same moment cannot both win. A passive
+   * bookkeeping write - no hooks, no version or updatedAt bump - on a column
+   * the API never reads.
+   */
+  @CaptureSpan()
+  public async markAiDailyLimitReached(data: {
+    projectId: ObjectID;
+    limit: ProjectAiDailyLimit;
+    now: Date;
+  }): Promise<boolean> {
+    const column: ProjectAiDailyLimitReachedAtColumn =
+      PROJECT_AI_DAILY_LIMIT_REACHED_AT_COLUMNS[data.limit];
+
+    const sql: string = `WITH "updated" AS (UPDATE "Project" SET "${column}" = $1 WHERE "_id" = $2 AND "deletedAt" IS NULL AND ("${column}" IS NULL OR "${column}" < $3) RETURNING "_id") SELECT "_id" FROM "updated"`;
+
+    const result: unknown = await this.getRepository().manager.query(sql, [
+      data.now,
+      data.projectId.toString(),
+      ProjectAiDailyLimits.getDayStart(data.now),
+    ]);
+
+    return Array.isArray(result) && result.length > 0;
   }
 
   @CaptureSpan()
@@ -3280,6 +3518,9 @@ These are no longer recorded against the project and have to be cancelled by han
         isRoot: true,
       },
     });
+
+    // The subscription's new status applies to the next request.
+    this.forgetCurrentPlan(project.id!);
 
     this.alertOnSubscriptionsPendingCancellation({
       projectId: project.id!,

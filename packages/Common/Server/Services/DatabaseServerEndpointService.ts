@@ -1,4 +1,6 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService, {
+  ProjectReferenceWrite,
+} from "./ProjectReferencesService";
 import DatabaseServerFeedService from "./DatabaseServerFeedService";
 import DatabaseServerService from "./DatabaseServerService";
 import Model from "../../Models/DatabaseModels/DatabaseServerEndpoint";
@@ -87,15 +89,33 @@ const ENDPOINT_EXAMPLE: string =
  * a person typing "Orders-DB.example.com" must land on the same key ingest
  * computes for `server.address=orders-db.example.com`.
  */
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
 
   /*
+   * The database a person adds an alias to is checked by this service's own
+   * create hook, pinned to the project and to what they may edit, with one
+   * answer for a database of another project, one that does not exist and
+   * one they may not edit. A root create (discovery, claimEndpoint) and every
+   * update get the generic check.
+   */
+  protected override getRelationsCheckedByService(
+    write?: ProjectReferenceWrite,
+  ): Array<string> {
+    if (write && (write.kind === "update" || write.props.isRoot)) {
+      return [];
+    }
+
+    return ["databaseServer"];
+  }
+
+  /*
    * A person adding an alias. Root writes (the discovery paths, through
-   * claimEndpoint) pass through untouched: they already hold a canonical
-   * endpoint and handle ownership themselves.
+   * claimEndpoint) pass through once the generic check has found their
+   * database to be the project's: they already hold a canonical endpoint
+   * and handle ownership themselves.
    *
    * Adding an endpoint is an EDIT of the database it is added to: it decides
    * which traffic that database's pages show and - one owner per endpoint -
@@ -110,6 +130,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (createBy.props.isRoot) {
       return { createBy: createBy, carryForward: null };
     }
@@ -223,7 +245,11 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    data.databaseServerId = databaseServerId;
+    RelationIdUtil.stamp(
+      data as unknown as Record<string, unknown>,
+      ["databaseServerId", "databaseServer"],
+      databaseServerId,
+    );
     data.endpoint = formatted;
     /*
      * Forced, whatever the caller sent: a person only ever adds a removable

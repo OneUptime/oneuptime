@@ -22,13 +22,13 @@ Du kan köra **OpenTelemetry Collector** som en tjänst direkt på dina Linux-, 
 
 ## Steg 1 — Installera OpenTelemetry Collector
 
-Välj avsnittet för ditt operativsystem. Alla exempel förutsätter att du installerar den senaste `otelcol-contrib`-versionen från [opentelemetry-collector-releases](https://github.com/open-telemetry/opentelemetry-collector-releases/releases).
+Välj avsnittet för ditt operativsystem. Alla exempel installerar `otelcol-contrib` **v0.161.0** från [opentelemetry-collector-releases](https://github.com/open-telemetry/opentelemetry-collector-releases/releases): den version som OneUptime låser och som konfigurationerna i steg 2 rapporterar som värdens agentversion (se "Uppgradera collectorn" nedan).
 
 ### Linux (Debian / Ubuntu)
 
 ```bash
 ARCH=$(dpkg --print-architecture)   # amd64 or arm64
-VERSION=0.156.0                      # pick the latest release tag
+VERSION=0.161.0                      # the release OneUptime pins
 
 curl -L -o otelcol-contrib.deb \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.deb"
@@ -42,7 +42,7 @@ Debian-paketet installerar binären på `/usr/bin/otelcol-contrib`, standardkonf
 
 ```bash
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
-VERSION=0.156.0
+VERSION=0.161.0
 
 sudo rpm -ivh \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.rpm"
@@ -54,7 +54,7 @@ Sökvägarna matchar Debian-paketet (`/usr/bin/otelcol-contrib`, `/etc/otelcol-c
 
 ```bash
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/arm64/arm64/')
-VERSION=0.156.0
+VERSION=0.161.0
 
 curl -L -o otelcol-contrib.tar.gz \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_darwin_${ARCH}.tar.gz"
@@ -83,7 +83,7 @@ Artefaktnamnet måste **börja med `otelcol-contrib_`**. Core-`otelcol_`-bygget 
 Kör hela blocket i ett svep från en **förhöjd** PowerShell-prompt — varje rad förutsätter variablerna som satts ovanför:
 
 ```powershell
-$VERSION = "0.156.0"                          # use v0.155.0 or later for the Services tab
+$VERSION = "0.161.0"                          # the release OneUptime pins; v0.155.0+ has the Services tab
 $ARCH    = "amd64"                            # use "arm64" on ARM hosts
 $dest    = "C:\Program Files\otelcol-contrib"
 $tar     = "$env:TEMP\otelcol-contrib.tar.gz"
@@ -131,6 +131,9 @@ processors:
       - key: service.name
         value: host-telemetry
         action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
 
 exporters:
   otlphttp:
@@ -141,6 +144,7 @@ exporters:
 
 - **`batch`** grupperar poster före export så att du inte betalar en HTTP-tur-och-retur per post.
 - **`resource`** stämplar varje post med `service.name`. Använd ett annat värde per värd (t.ex. `prod-web-01`) om du vill att varje maskin ska visas som sin egen telemetritjänst i OneUptime.
+- **`oneuptime.agent.version`** är den collectorversion som den här konfigurationen är avsedd för. OneUptime visar den som värdens **Agentversion**; ändra den bara tillsammans med den collector du installerar (se "Uppgradera collectorn" nedan).
 - **`otlphttp`** skickar till OneUptime över HTTPS med inmatningstoken bifogad.
 
 ### Värdmetriker (Linux, macOS, Windows)
@@ -416,6 +420,9 @@ processors:
       - key: service.name
         value: linux-host
         action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
 
 exporters:
   otlphttp:
@@ -489,6 +496,9 @@ processors:
     attributes:
       - key: service.name
         value: macos-host
+        action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
         action: upsert
 
 exporters:
@@ -574,6 +584,9 @@ processors:
     attributes:
       - key: service.name
         value: windows-host
+        action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
         action: upsert
 
 exporters:
@@ -673,6 +686,12 @@ Tjänsten körs under `LocalSystem` som standard, vilket har de behörigheter so
 3. Öppna **Mätvärden** — värdmetriker (CPU, minne, filsystem osv.) bör visas inom en minut.
 4. Öppna **Loggar** — dina filloggar / journald-poster / Windows Event Logs bör strömma in. Användbara sökbara attribut inkluderar `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id` och `winlog.provider.name`.
 5. Om du aktiverade mottagaren `systemd` (Linux) eller `windows_service` (Windows), öppna **Infrastruktur → Värdar**, välj värden och kontrollera fliken **Systemd Units** / **Tjänster** — varje skrapad enhet bör listas med sitt aktuella tillstånd.
+
+## Uppgradera collectorn
+
+Varje konfiguration på den här sidan stämplar i sin `resource`-processor den collectorversion den är avsedd för som `oneuptime.agent.version`. OneUptime visar den som **Agentversion** i värdens **Översikt** och sätter en varningssymbol bredvid när OneUptime låser en nyare version. Välj symbolen för att se hur du uppgraderar på samma sätt som du installerade: konfigurationen sparad igen, sedan den nya versionen installerad ovanpå den gamla.
+
+För att uppgradera för hand installerar du den nya versionen på samma sätt som du installerade den här (steg 1, med den nya `VERSION`), sätter `oneuptime.agent.version` i din konfiguration till samma version och startar om collectorn (steg 3). En collector vars konfiguration inte stämplar någon version visar ingen, och aldrig någon symbol.
 
 ## Minska volymen av insamlad data
 
@@ -850,18 +869,18 @@ service:
       exporters: [otlphttp]
 ```
 
-> **Redigerar du konfigurationen som OneUptime genererade åt dig?** Pipelinen ovan matchar de kompletta exemplen på den här sidan. Konfigurationen från instrumentpanelen (Värdar → Dokumentation) namnger saker annorlunda: dess processorer är `resourcedetection` och `batch` (det finns **ingen** `resource`-processor) och dess exportör är `otlphttp/oneuptime`. Att referera till en processor som inte är definierad stoppar collectorn vid start med `references processor "resource" which is not configured`. Lägg till filtret i det som redan finns i stället för att klistra in det här blocket över det:
+> **Redigerar du konfigurationen som OneUptime genererade åt dig?** Pipelinen ovan matchar de kompletta exemplen på den här sidan. Konfigurationen från instrumentpanelen (Värdar → Dokumentation) namnger saker annorlunda: dess processorer är `resourcedetection`, `resource` och `batch`, och dess exportör är `otlphttp/oneuptime`. Att referera till en processor eller exportör som inte är definierad stoppar collectorn vid start. Lägg till filtret i det som redan finns i stället för att klistra in det här blocket över det:
 >
 > ```yaml
 > service:
 >   pipelines:
 >     metrics:
 >       receivers: [hostmetrics]
->       processors: [filter/drop-metrics, resourcedetection, batch]
+>       processors: [filter/drop-metrics, resourcedetection, resource, batch]
 >       exporters: [otlphttp/oneuptime]
 > ```
 >
-> Behåll `resourcedetection` — OneUptime matchar telemetri mot en värd med hjälp av `host.name` / `host.id` som den sätter. Den genererade konfigurationen är också **enbart metriker**: den har ingen `logs:`-pipeline förrän du lägger till en, så en `filter/drop-low-severity` har inget att filtrera förrän du lägger till en `filelog`- eller `journald`-mottagare vid sidan av den.
+> Behåll `resourcedetection` — OneUptime matchar telemetri mot en värd med hjälp av `host.name` / `host.id` som den sätter — och `resource`, som rapporterar collectorns version. Den genererade konfigurationen är också **enbart metriker**: den har ingen `logs:`-pipeline förrän du lägger till en, så en `filter/drop-low-severity` har inget att filtrera förrän du lägger till en `filelog`- eller `journald`-mottagare vid sidan av den.
 
 > **På macOS, använd tarballen, inte Homebrew.** Homebrew-formeln levererar **core**-collectorn, och `filter` är en processor som bara finns i contrib — collectorn kommer att vägra starta oavsett om din YAML är korrekt eller inte.
 
@@ -913,6 +932,9 @@ processors:
     attributes:
       - key: service.name
         value: linux-host
+        action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
         action: upsert
 
 exporters:

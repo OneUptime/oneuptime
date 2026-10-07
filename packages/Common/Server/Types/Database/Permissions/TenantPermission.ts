@@ -14,6 +14,7 @@ import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedExc
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
+import CallerPlan from "../../../Utils/Billing/CallerPlan";
 
 /*
  * Permissions auto-granted to every logged-in tenant user. Holding only these
@@ -37,6 +38,11 @@ const AUTO_GRANTED_TENANT_PERMISSIONS: ReadonlyArray<Permission> = [
 ];
 
 export default class TenantPermission {
+  /*
+   * `updateData` is what an update writes, handed on to each project's own
+   * permission check in a multi-tenant request: below a table's update plan
+   * only an update that switches records off passes (BillingPermission).
+   */
   @CaptureSpan()
   public static async addTenantScopeToQuery<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
@@ -44,6 +50,7 @@ export default class TenantPermission {
     select: Select<TBaseModel> | null,
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
+    updateData?: unknown,
   ): Promise<Query<TBaseModel>> {
     const model: BaseModel = new modelType();
 
@@ -159,8 +166,40 @@ export default class TenantPermission {
       let lastException: Error | null = null;
       const queryForEachProject: Query<TBaseModel> = { ...query };
 
-      for (const projectId of projectIDs) {
-        if (!props.userId) {
+      /*
+       * Each project is checked on its own plan - never on the plan of the
+       * project the request named - read when a plan decides the operation
+       * (CallerPlan), for every project at once rather than one after
+       * another. A project whose plan cannot be read is left out, as one the
+       * caller may not reach is.
+       */
+      const propsByProject: Array<DatabaseCommonInteractionProps | Error> =
+        props.userId
+          ? await Promise.all(
+              projectIDs.map(
+                async (
+                  projectId: ObjectID,
+                ): Promise<DatabaseCommonInteractionProps | Error> => {
+                  try {
+                    return await CallerPlan.withPlanFor({
+                      props: CallerPlan.inProjectWithoutPlan(props, projectId),
+                      modelType: modelType,
+                      type: type,
+                      data: updateData,
+                    });
+                  } catch (error) {
+                    return error instanceof Error
+                      ? error
+                      : new Error(String(error));
+                  }
+                },
+              ),
+            )
+          : [];
+
+      for (const projectProps of propsByProject) {
+        if (projectProps instanceof Error) {
+          lastException = projectProps;
           continue;
         }
 
@@ -170,13 +209,9 @@ export default class TenantPermission {
               modelType,
               { ...queryForEachProject },
               select,
-              {
-                ...props,
-                isMultiTenantRequest: false,
-                tenantId: projectId,
-                userTenantAccessPermission: props.userTenantAccessPermission,
-              },
+              projectProps,
               type,
+              updateData,
             );
 
           queries.push({

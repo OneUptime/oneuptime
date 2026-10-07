@@ -4,6 +4,7 @@
  * jest.spyOn returns with this repo's jest-mock version.
  */
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import Label from "../../../Models/DatabaseModels/Label";
 import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
@@ -235,6 +236,8 @@ beforeEach(() => {
   jest
     .spyOn(TeamMemberService, "isUserMemberOfProject")
     .mockResolvedValue(true);
+  // ... and their teams the project's (OwnerRuleAssignment.test.ts covers others').
+  stubProjectDirectory({});
 });
 
 afterEach(() => {

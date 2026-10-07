@@ -36,6 +36,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import { mockProjectStates } from "../../TestingUtils/Services/ProjectStatesHelper";
 
 /*
  * A monitor criteria names the on-call policies to page and the labels to
@@ -178,6 +179,11 @@ describe("MonitorIncident drops criteria references the project cannot use", () 
   let labelLookup: jest.Mock;
 
   beforeEach(() => {
+    /*
+     * The project's incident and alert states: open records are read by
+     * the states that are not resolved (Common/Utils/ResolvedState).
+     */
+    mockProjectStates();
     createdIncidents = [];
 
     // No incident is already open for this monitor.
@@ -211,7 +217,13 @@ describe("MonitorIncident drops criteria references the project cannot use", () 
         dockerSwarmClusterIds: [],
         iotFleetIds: [],
         databaseServerIds: [],
+        storageArrayIds: [],
       });
+
+    // Linked by hand (Monitor > Overview > Linked Resources): nothing here.
+    jest
+      .spyOn(MonitorResourceContextUtil, "resolveLinkedResourcesForMonitor")
+      .mockResolvedValue(MonitorResourceContextUtil.emptyContext());
 
     jest
       .spyOn(NetworkDeviceOwnerUserService, "getDeviceOwnersForMonitor")

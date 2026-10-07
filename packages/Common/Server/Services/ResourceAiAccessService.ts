@@ -27,6 +27,12 @@ import {
   ResourceAiRemediationMode,
   parseResourceAiRemediationMode,
 } from "../../Types/ResourceAiAgent/ResourceAiAccess";
+import {
+  AI_FIXES_ENV,
+  AI_INVESTIGATION_ENV,
+  AgentAiSettingsSource,
+  isAgentAiSettingsSourceAgent,
+} from "../../Types/AI/AgentAiSettings";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
@@ -472,6 +478,20 @@ export class ResourceAiAccessServiceClass {
     const remediationMode: ResourceAiRemediationMode =
       resource.aiRemediationMode;
 
+    /*
+     * Where investigation and fixes are set: by the resource's AI agent
+     * (its configuration, or its defaults on a resource nobody configured),
+     * or in OneUptime. The columns above already hold the agent's values —
+     * it writes them on every report that changes them.
+     */
+    const aiSettingsSource: AgentAiSettingsSource =
+      ResourceAiAgentService.getAiSettingsSource({
+        reported: posture?.aiSettings || undefined,
+        resource,
+      });
+    const isSetByAgent: boolean =
+      isAgentAiSettingsSourceAgent(aiSettingsSource);
+
     if (!agent) {
       gaps.push({
         code: "ai_agent_not_connected",
@@ -530,7 +550,9 @@ export class ResourceAiAccessServiceClass {
       gaps.push({
         code: "investigation_disabled",
         title: `AI investigation is turned off for this ${noun}`,
-        nextStep: `Turn on AI investigation on ${page}.`,
+        nextStep: isSetByAgent
+          ? `Set ${AI_INVESTIGATION_ENV}=true where the ${info.agentDisplayName} runs and restart it; ${page} shows how.`
+          : `Turn on AI investigation on ${page}.`,
         blocksInvestigation: true,
         blocksRemediation: false,
       });
@@ -540,7 +562,9 @@ export class ResourceAiAccessServiceClass {
       gaps.push({
         code: "remediation_disabled",
         title: `AI fixes are turned off for this ${noun}`,
-        nextStep: `Set "Fixes" to "Ask for approval", "Automatic" or "Bypass approval" on ${page}.`,
+        nextStep: isSetByAgent
+          ? `Set ${AI_FIXES_ENV} to ask-for-approval, automatic or bypass-approval (and ${RESOURCE_AI_ALLOW_WRITES_ENV}=true) where the ${info.agentDisplayName} runs and restart it; ${page} shows how.`
+          : `Set "Fixes" to "Ask for approval", "Automatic" or "Bypass approval" on ${page}.`,
         blocksInvestigation: false,
         blocksRemediation: true,
       });
@@ -602,6 +626,7 @@ export class ResourceAiAccessServiceClass {
       resourceName: resource.name,
       isAiInvestigationEnabled: resource.isAiInvestigationEnabled,
       aiRemediationMode: remediationMode,
+      aiSettingsSource,
       aiCommandAllowlist: resource.aiCommandAllowlist,
       aiAccessConfiguredAt: toIsoString(resource.aiAccessConfiguredAt) || null,
       aiAccessLastVerifiedAt:

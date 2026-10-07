@@ -1,13 +1,30 @@
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import {
   FoldedSectionItem,
   foldedSectionItem,
 } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
+import ProjectAiDailyLimits, {
+  MAX_PROJECT_AI_DAILY_SPEND_LIMIT_IN_USD,
+  MAX_PROJECT_AI_DAILY_TOKEN_LIMIT,
+  MIN_PROJECT_AI_DAILY_SPEND_LIMIT_IN_USD,
+  MIN_PROJECT_AI_DAILY_TOKEN_LIMIT,
+  PROJECT_AI_DAILY_SPEND_LIMIT_COLUMN,
+  PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN,
+  ProjectAiDailyLimit,
+  ProjectAiDailyLimitColumn,
+  ProjectAiDailyLimitValues,
+  ProjectAiDailyUsage,
+} from "Common/Types/AI/ProjectAiDailyLimits";
 
 /*
- * What the project's AI settings pages say, in one place: Incidents →
- * Settings → AI, Alerts → Settings → AI, AI → Insights → Settings and
- * Project Settings → AI Features.
+ * What the project's AI settings pages say, in one place: Incidents → AI
+ * → Settings, Alerts → AI → Settings, AI → Insights → Settings and Project
+ * Settings → AI Features.
  *
  * Those pages used to put every AI behaviour behind an Update button: the
  * incident and alert pages showed nine read-only rows whose Update opened a
@@ -29,6 +46,10 @@ import {
  * Terraform: new projects still start with every AI behaviour on
  * (ProjectService's NEW_PROJECT_AI_DEFAULT_COLUMNS), and Enable AI is still
  * the project's only AI switch.
+ *
+ * Project Settings → AI Features has a More settings fold of its own, with
+ * the project's daily limits on everything OneUptime AI does - a ceiling
+ * above the incident and alert limits (see the end of this file).
  *
  * Kept free of React so the pages and App/Tests read these exact strings.
  * Every sentence is wrapped in translationKey() so npm run i18n:extract
@@ -754,5 +775,311 @@ export const PROJECT_AI_OFF_SENTENCE_TEST_ID: string =
 
 export const PROJECT_AI_PROVIDER_NOTICE_TEST_ID: string =
   "project-ai-provider-notice";
+
+/*
+ * Project Settings → AI Features → More settings: the project's own daily
+ * limits on OneUptime AI (Common/Types/AI/ProjectAiDailyLimits). "Just like
+ * we have more settings for the incident AI page ... daily token limit or
+ * daily spend limit (if it is SaaS)" - the maintainer.
+ *
+ * One card, Daily limits: the token limit everywhere, and the spend limit
+ * only where AI is billed (BILLING_ENABLED), since only there is anything
+ * spent. Folded, the section names the card - a chip once a limit is set -
+ * and says in a sentence what applies and what AI has used today, so the
+ * limit is never a number picked blind: "Nothing limits how much OneUptime
+ * AI uses each day. Used today: 45,210 tokens." / "At most 200,000 tokens a
+ * day. Used today: 12,345 tokens." Once a limit is reached it says that,
+ * and until when, instead.
+ */
+export const PROJECT_AI_ADVANCED_SECTION_TEST_ID: string =
+  "project-ai-advanced-section";
+
+// The one card in it, by key, for the folded header.
+export const PROJECT_AI_DAILY_LIMITS_CARD_KEY: string = "DailyLimits";
+
+export const ProjectAiDailyLimitsCopy: {
+  sectionDescription: string;
+  cardTitle: string;
+  noLimitSummary: string;
+  spendLimitSummary: string;
+  reachedSummary: string;
+  fieldError: string;
+} = {
+  sectionDescription: translationKey(
+    "Limits on how much OneUptime AI uses across the whole project each day, above the incident and alert limits.",
+  ),
+  // The same title as the incident and alert pages' daily limits.
+  cardTitle: translationKey("Daily limits"),
+  noLimitSummary: translationKey(
+    "Nothing limits how much OneUptime AI uses each day.",
+  ),
+  spendLimitSummary: translationKey("At most {{amount}} of AI credits a day."),
+  reachedSummary: translationKey(
+    "Today's limit is reached, so OneUptime AI is paused until midnight UTC.",
+  ),
+  fieldError: translationKey(
+    "{{field}} must be a whole number from {{min}} to {{max}}. Leave it empty for no limit.",
+  ),
+};
+
+export const PROJECT_AI_TOKEN_LIMIT_SUMMARY: PluralTemplate = {
+  one: "At most {{count}} token a day.",
+  other: "At most {{count}} tokens a day.",
+};
+
+export const PROJECT_AI_TOKEN_AND_SPEND_LIMIT_SUMMARY: PluralTemplate = {
+  one: "At most {{count}} token and {{amount}} of AI credits a day.",
+  other: "At most {{count}} tokens and {{amount}} of AI credits a day.",
+};
+
+export const PROJECT_AI_USED_TODAY: PluralTemplate = {
+  one: "Used today: {{count}} token.",
+  other: "Used today: {{count}} tokens.",
+};
+
+export const PROJECT_AI_USED_TODAY_WITH_SPEND: PluralTemplate = {
+  one: "Used today: {{count}} token and {{amount}} of AI credits.",
+  other: "Used today: {{count}} tokens and {{amount}} of AI credits.",
+};
+
+/*
+ * The limit columns the Daily limits card shows and edits: the spend limit
+ * only where AI is billed.
+ */
+export const getProjectAiDailyLimitColumns: (
+  isBillingEnabled: boolean,
+) => Array<ProjectAiDailyLimitColumn> = (
+  isBillingEnabled: boolean,
+): Array<ProjectAiDailyLimitColumn> => {
+  return isBillingEnabled
+    ? [PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN, PROJECT_AI_DAILY_SPEND_LIMIT_COLUMN]
+    : [PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN];
+};
+
+// The limits a read of the project holds, as this install enforces them.
+export const getProjectAiDailyLimitsFromItem: (data: {
+  item: Record<string, unknown>;
+  isBillingEnabled: boolean;
+}) => ProjectAiDailyLimitValues = (data: {
+  item: Record<string, unknown>;
+  isBillingEnabled: boolean;
+}): ProjectAiDailyLimitValues => {
+  return ProjectAiDailyLimits.getLimits({
+    project: data.item,
+    isBillingEnabled: data.isBillingEnabled,
+  });
+};
+
+/*
+ * Today's usage from POST /ai/daily-usage, or null when the answer cannot
+ * be read - the sentence then says only what applies.
+ */
+export const parseProjectAiDailyUsage: (
+  answer: unknown,
+) => ProjectAiDailyUsage | null = (
+  answer: unknown,
+): ProjectAiDailyUsage | null => {
+  if (!answer || typeof answer !== "object" || Array.isArray(answer)) {
+    return null;
+  }
+
+  const data: Record<string, unknown> = answer as Record<string, unknown>;
+  const usedTokensToday: unknown = data["usedTokensToday"];
+  const spentTodayInUSDCents: unknown = data["spentTodayInUSDCents"];
+
+  if (
+    typeof usedTokensToday !== "number" ||
+    !Number.isFinite(usedTokensToday) ||
+    usedTokensToday < 0
+  ) {
+    return null;
+  }
+
+  return {
+    usedTokensToday,
+    spentTodayInUSDCents:
+      typeof spentTodayInUSDCents === "number" &&
+      Number.isFinite(spentTodayInUSDCents) &&
+      spentTodayInUSDCents > 0
+        ? spentTodayInUSDCents
+        : 0,
+  };
+};
+
+// What the folded More settings header lists: the Daily limits card.
+export const getProjectAiAdvancedItems: (
+  limits: ProjectAiDailyLimitValues | null,
+) => Array<FoldedSectionItem> = (
+  limits: ProjectAiDailyLimitValues | null,
+): Array<FoldedSectionItem> => {
+  return [
+    foldedSectionItem(ProjectAiDailyLimitsCopy.cardTitle, {
+      key: PROJECT_AI_DAILY_LIMITS_CARD_KEY,
+      isSet: limits ? ProjectAiDailyLimits.hasLimit(limits) : false,
+    }),
+  ];
+};
+
+/*
+ * The line under the folded More settings header, translated: what applies
+ * ("Nothing limits how much OneUptime AI uses each day." / "At most 200,000
+ * tokens a day."), then what AI used today, or - once a limit is reached -
+ * that AI is paused until midnight UTC. Nothing until the card has read: a
+ * "nothing limits AI" said before the limits are known could be untrue.
+ * Spend is spoken of only where AI is billed.
+ */
+export const getProjectAiAdvancedSummary: (data: {
+  limits: ProjectAiDailyLimitValues | null;
+  usage: ProjectAiDailyUsage | null;
+  isBillingEnabled: boolean;
+  translator: Translator;
+}) => string | undefined = (data: {
+  limits: ProjectAiDailyLimitValues | null;
+  usage: ProjectAiDailyUsage | null;
+  isBillingEnabled: boolean;
+  translator: Translator;
+}): string | undefined => {
+  if (!data.limits) {
+    return undefined;
+  }
+
+  const tokenLimit: number | null = data.limits.tokenLimit;
+  const spendLimitInUSD: number | null = data.isBillingEnabled
+    ? data.limits.spendLimitInUSD
+    : null;
+
+  const sentences: Array<string> = [];
+
+  if (tokenLimit !== null && spendLimitInUSD !== null) {
+    sentences.push(
+      data.translator.translatePlural(
+        PROJECT_AI_TOKEN_AND_SPEND_LIMIT_SUMMARY,
+        tokenLimit,
+        { amount: ProjectAiDailyLimits.formatUsd(spendLimitInUSD * 100) },
+      ),
+    );
+  } else if (tokenLimit !== null) {
+    sentences.push(
+      data.translator.translatePlural(
+        PROJECT_AI_TOKEN_LIMIT_SUMMARY,
+        tokenLimit,
+      ),
+    );
+  } else if (spendLimitInUSD !== null) {
+    sentences.push(
+      data.translator.translateTemplate(
+        ProjectAiDailyLimitsCopy.spendLimitSummary,
+        { amount: ProjectAiDailyLimits.formatUsd(spendLimitInUSD * 100) },
+      ),
+    );
+  } else {
+    sentences.push(
+      data.translator.translateText(ProjectAiDailyLimitsCopy.noLimitSummary) ||
+        ProjectAiDailyLimitsCopy.noLimitSummary,
+    );
+  }
+
+  if (data.usage) {
+    const reached: ProjectAiDailyLimit | null =
+      ProjectAiDailyLimits.getReachedLimit({
+        limits: { tokenLimit, spendLimitInUSD },
+        usage: data.usage,
+        isSpendCounted: true,
+      });
+
+    if (reached) {
+      sentences.push(
+        data.translator.translateText(
+          ProjectAiDailyLimitsCopy.reachedSummary,
+        ) || ProjectAiDailyLimitsCopy.reachedSummary,
+      );
+    } else if (data.isBillingEnabled) {
+      sentences.push(
+        data.translator.translatePlural(
+          PROJECT_AI_USED_TODAY_WITH_SPEND,
+          data.usage.usedTokensToday,
+          {
+            amount: ProjectAiDailyLimits.formatUsd(
+              data.usage.spentTodayInUSDCents,
+            ),
+          },
+        ),
+      );
+    } else {
+      sentences.push(
+        data.translator.translatePlural(
+          PROJECT_AI_USED_TODAY,
+          data.usage.usedTokensToday,
+        ),
+      );
+    }
+  }
+
+  return sentences.join(" ");
+};
+
+// Digits only: what a whole number typed into a limit field looks like.
+const WHOLE_NUMBER_TEXT: RegExp = /^\d+$/;
+
+/*
+ * Why a value typed into a limit field cannot be saved, translated, or null
+ * when it can: empty (no limit), or a whole number within the limit's
+ * bounds. The server holds the same rule (ProjectService).
+ */
+export const getProjectAiDailyLimitFieldError: (data: {
+  column: ProjectAiDailyLimitColumn;
+  value: unknown;
+  fieldTitle: string;
+  translator: Translator;
+}) => string | null = (data: {
+  column: ProjectAiDailyLimitColumn;
+  value: unknown;
+  fieldTitle: string;
+  translator: Translator;
+}): string | null => {
+  if (
+    data.value === null ||
+    data.value === undefined ||
+    (typeof data.value === "string" && data.value.trim().length === 0)
+  ) {
+    return null;
+  }
+
+  const parsed: number =
+    typeof data.value === "number"
+      ? data.value
+      : typeof data.value === "string" &&
+          WHOLE_NUMBER_TEXT.test(data.value.trim())
+        ? Number(data.value.trim())
+        : Number.NaN;
+
+  const isTokens: boolean = data.column === PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN;
+
+  if (
+    ProjectAiDailyLimits.getWriteError(
+      data.column,
+      Number.isFinite(parsed) ? parsed : data.value,
+    ) === null
+  ) {
+    return null;
+  }
+
+  return data.translator.translateTemplate(
+    ProjectAiDailyLimitsCopy.fieldError,
+    {
+      field: translatableTerm(data.fieldTitle),
+      min: data.translator.formatNumber(
+        isTokens
+          ? MIN_PROJECT_AI_DAILY_TOKEN_LIMIT
+          : MIN_PROJECT_AI_DAILY_SPEND_LIMIT_IN_USD,
+      ),
+      max: data.translator.formatNumber(
+        isTokens
+          ? MAX_PROJECT_AI_DAILY_TOKEN_LIMIT
+          : MAX_PROJECT_AI_DAILY_SPEND_LIMIT_IN_USD,
+      ),
+    },
+  );
+};
 
 export default AI_LANE_SWITCHES;

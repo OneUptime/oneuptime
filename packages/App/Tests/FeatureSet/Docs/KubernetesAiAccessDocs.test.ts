@@ -18,6 +18,7 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAiAccessSetup";
 import { REMEDIATION_MODE_SHORT_NAMES } from "../../../FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAiAccessSettings";
 import {
+  AI_AGENT_APPLY_SETTINGS_COMMAND,
   AI_AGENT_CLUSTER_WIDE_WRITE_COMMAND,
   AI_AGENT_INSTALL_COMMAND,
   AI_AGENT_PAGE,
@@ -91,7 +92,9 @@ function getKubernetesInstallationMarkdown(data: {
  *   (getAiAgentHelmCommands), verbatim: `helm repo update` first (an old
  *   local index serves a chart whose schema rejects aiAgent.* with
  *   "Additional property aiAgent is not allowed"), the release name and
- *   namespace the dashboard's install instructions create, --reuse-values,
+ *   namespace the dashboard's install instructions create,
+ *   --reset-then-reuse-values (never --reuse-values, which keeps the old
+ *   chart's defaults),
  *   the install first and read-only, write access a separate step, and the
  *   cluster-wide command resetting a stored namespace list.
  * - No chart version is named: published charts carry the OneUptime
@@ -102,7 +105,7 @@ function getKubernetesInstallationMarkdown(data: {
  *   namespaces that always need a human, the agent's own namespace, and
  *   aiAgent.remediation.namespaces.
  * - The AI SRE page describes the model as the product builds it: on by
- *   default and read-only, the AI → Agent and AI → Insights pages, Test
+ *   default and read-only, the AI → Agent, AI → Insights and AI → Logs pages, Test
  *   connection and Reset agent, every fix mode and every-mode protection the
  *   server enforces, who may turn fixes on (the permission titles come from
  *   the permission catalog), the deny list, and that the agent is not a
@@ -141,6 +144,8 @@ const DOCS_PAGES: Array<string> = [
 const TRAILING_CONTINUATION_PATTERN: RegExp = /\\\s*$/;
 // The chart version the docs once named; no customer's install carries it.
 const CHART_070_PATTERN: RegExp = /\b0\.7\.0\b/;
+// The --reuse-values flag itself, not --reset-then-reuse-values.
+const REUSE_VALUES_FLAG_PATTERN: RegExp = /(^|\s)--reuse-values(\s|$)/;
 const OUTER_BOUND_PATTERN: RegExp = /outer bound/i;
 // What patch access to workloads amounts to.
 const WORKLOAD_PATCH_EQUIVALENCE_PATTERN: RegExp =
@@ -239,14 +244,15 @@ describe("Kubernetes AI agent setup commands", () => {
       AI_AGENT_CLUSTER_WIDE_WRITE_COMMAND,
     ]) {
       expect(command).toContain(
-        `helm upgrade ${target.release} oneuptime/kubernetes-agent \\\n  --namespace ${target.namespace} --reuse-values`,
+        `helm upgrade ${target.release} oneuptime/kubernetes-agent \\\n  --namespace ${target.namespace} --reset-then-reuse-values`,
       );
     }
   });
 
-  it("offers exactly the three shared commands on the cluster's AI agent page", () => {
+  it("offers exactly the shared commands on the cluster's AI agent page", () => {
     expect(getAiAgentHelmCommands()).toEqual({
       install: AI_AGENT_INSTALL_COMMAND,
+      applySettings: AI_AGENT_APPLY_SETTINGS_COMMAND,
       enableRemediationScoped: AI_AGENT_SCOPED_WRITE_COMMAND,
       enableRemediation: AI_AGENT_CLUSTER_WIDE_WRITE_COMMAND,
     });
@@ -315,12 +321,14 @@ describe("Kubernetes AI agent setup commands", () => {
               "helm upgrade kubernetes-agent oneuptime/kubernetes-agent",
             ),
             namespace: block.includes("--namespace oneuptime-agent "),
-            reuseValues: block.includes("--reuse-values"),
+            keepsReleaseValues: block.includes("--reset-then-reuse-values"),
+            reuseValues: REUSE_VALUES_FLAG_PATTERN.test(block),
           }).toEqual({
             block,
             release: true,
             namespace: true,
-            reuseValues: true,
+            keepsReleaseValues: true,
+            reuseValues: false,
           });
         }
       });
@@ -330,16 +338,23 @@ describe("Kubernetes AI agent setup commands", () => {
         expect(blocks[0]).not.toContain("aiAgent.remediation");
         expect(
           blocks.slice(1).some((block: string): boolean => {
-            return block.includes("--set aiAgent.remediation.enabled=true");
+            return block.includes("--set aiAgent.fixes=ask-for-approval");
           }),
         ).toBe(true);
+        // aiAgent.fixes replaces the deprecated write switch everywhere.
+        for (const block of blocks) {
+          expect({
+            block,
+            deprecated: block.includes("aiAgent.remediation.enabled"),
+          }).toEqual({ block, deprecated: false });
+        }
       });
 
       it("offers a cluster-wide command that resets a stored namespace list", () => {
         expect(
           blocks.some((block: string): boolean => {
             return (
-              block.includes("--set aiAgent.remediation.enabled=true") &&
+              block.includes("--set aiAgent.fixes=ask-for-approval") &&
               block.includes(EMPTY_LIST_RESET_FLAG)
             );
           }),
@@ -425,9 +440,18 @@ describe("Kubernetes AI agent setup commands", () => {
       CHART_NOTES,
       CHART_VALUES,
     ]) {
+      /*
+       * Except values.yaml's chartDefaultsVersion, Chart.yaml's version in
+       * the repository: the release pipeline stamps the published one with
+       * the version it publishes the chart as, which is what customers see.
+       */
+      const text: string =
+        file === CHART_VALUES
+          ? read(file).replace(/^chartDefaultsVersion: .*$/m, "")
+          : read(file);
       expect({
         file: relative(file),
-        namesChart070: CHART_070_PATTERN.test(read(file)),
+        namesChart070: CHART_070_PATTERN.test(text),
       }).toEqual({ file: relative(file), namesChart070: false });
     }
 
@@ -548,11 +572,14 @@ describe("the AI SRE page's cluster-access section", () => {
     expect(agent).toContain("nothing to set up in the dashboard");
   });
 
-  it("names the cluster's AI section: the AI agent page and the AI Insights page", () => {
+  it("names the cluster's AI section: the AI agent, AI Insights and AI Logs pages", () => {
     expect(section).toContain("Kubernetes → cluster → AI");
     expect(section).toContain("- **Agent** — the cluster's **AI agent** page");
     expect(section).toContain(
-      "- **Insights** — the cluster's **AI Insights** page",
+      "- **Insights** — the cluster's **AI Insights** page: what OneUptime AI has learned about the cluster from its own work there, and what deserves your attention (see [What AI learned on a cluster](#what-ai-learned-on-a-cluster)).",
+    );
+    expect(section).toContain(
+      "- **Logs** — the cluster's **AI Logs** page: everything OneUptime AI did on the cluster, newest first (see [Everything AI did on a cluster](#everything-ai-did-on-a-cluster)).",
     );
   });
 
@@ -579,26 +606,62 @@ describe("the AI SRE page's cluster-access section", () => {
     expect(OLD_AI_PAGE_PATTERN.test("the cluster's AI Insights page")).toBe(
       false,
     );
-  });
-
-  it("describes Test connection and Reset agent", () => {
-    expect(section).toContain(
-      "**Test connection** on the AI agent page runs `kubectl version` and `kubectl auth can-i --list` through the agent",
-    );
-    expect(section).toContain(
-      "**Reset agent** on the AI agent page makes the server forget the agent's key; the pod reconnects on its own",
+    expect(OLD_AI_PAGE_PATTERN.test("the cluster's **AI Logs** page")).toBe(
+      false,
     );
   });
 
-  it("describes the command history as what the AI Insights page shows, not as command output", () => {
-    const insights: string = getSection(
+  it("describes Test connection and Reset agent, in the ⋯ next to the agent's status", () => {
+    expect(section).toContain(
+      "**Test connection**, in the **⋯** menu next to the agent's status on the AI agent page, runs `kubectl version` and `kubectl auth can-i --list` through the agent",
+    );
+    expect(section).toContain(
+      "**Reset agent**, in the same menu, makes the server forget the agent's key once you confirm it; the pod reconnects on its own",
+    );
+  });
+
+  it("describes the command history as what the AI Logs page shows, not as command output", () => {
+    const logs: string = getSection(
       section,
       "### Everything AI did on a cluster",
     );
 
     expect(section).not.toMatch(/with its output/);
+    expect(logs).toContain("**AI Logs** page (AI → Logs)");
+    expect(logs).toContain("the command, its status and when it ran");
+    // The page was renamed: an old bookmark still lands somewhere useful.
+    expect(logs).toContain(
+      "This page used to be called AI Insights; a bookmark of its old address now opens the AI Insights page, which links here.",
+    );
+    // A summary is never "not recorded" when the report has one.
+    expect(logs).toContain(
+      "An investigation's summary is its TL;DR or, when no TL;DR could be written, the summary its report opens with.",
+    );
+  });
+
+  it("describes the AI Insights page as derived from what OneUptime recorded, not as a list", () => {
+    const insights: string = getSection(
+      section,
+      "### What AI learned on a cluster",
+    );
+
     expect(insights).toContain("**AI Insights** page (AI → Insights)");
-    expect(insights).toContain("the command, its status and when it ran");
+    for (const card of [
+      "- **Needs attention**",
+      "- **Last 30 days**",
+      "- **Problems OneUptime AI investigated**",
+      "- **Hotspots**",
+      "- **Fixes**",
+      "- **Preventive insights**",
+    ]) {
+      expect(insights).toContain(card);
+    }
+    expect(insights).toContain("no model is called to build it");
+    expect(insights).toContain(
+      "it only names incidents and alerts they may read",
+    );
+    // The chronological list is the AI Logs page's, not this one's.
+    expect(insights).not.toContain("every kubectl command");
   });
 
   it("says when Automatic proposes a riskier change for one-click approval", () => {
@@ -970,8 +1033,16 @@ describe("enabling AI investigations and postmortems, on the AI SRE page", () =>
     expect(page).not.toContain("AI Credits > Enable AI");
   });
 
-  it("says the Cloud global provider needs AI credits or auto-recharge", () => {
+  /*
+   * Auto Recharge only tops up credits that have not run out, so it is not
+   * a way to start; and only an owner or Manage Billing may add them.
+   */
+  it("says the Cloud global provider needs AI credits, and who adds them", () => {
     expect(enabling).toContain("the project needs AI credits");
+    expect(enabling).toContain(
+      "a project owner or someone with **Manage Billing** adds them on **Project Settings > AI > AI Credits**",
+    );
+    expect(enabling).not.toContain("or auto-recharge");
   });
 
   /*
@@ -1199,5 +1270,24 @@ describe("the Kubernetes AI agent and auto-remediation rules", () => {
         neverRuleRunner: NEVER_RULE_RUNNER_PATTERN.test(copy.text),
       }).toEqual({ file: copy.label, neverRuleRunner: true });
     }
+  });
+});
+
+/*
+ * The cluster's AI section has three pages since AI Insights was split:
+ * AI Logs lists everything AI did (the commands included), AI Insights
+ * sums up what AI learned. The Kubernetes agent page names each for what
+ * it holds.
+ */
+describe("the Kubernetes agent page's pointers to the AI pages", () => {
+  it("sends what AI did to AI Logs and what it learned to AI Insights", () => {
+    const page: string = read(KUBERNETES_AGENT_PAGE);
+
+    expect(page).toContain(
+      "Everything AI did with it is on the cluster's **AI Logs** page (AI → Logs), and what AI learned there — the problems it keeps investigating, what it found, how its fixes turned out — on the **AI Insights** page (AI → Insights).",
+    );
+    expect(page).not.toContain(
+      "What AI did with it is on the cluster's **AI Insights** page",
+    );
   });
 });

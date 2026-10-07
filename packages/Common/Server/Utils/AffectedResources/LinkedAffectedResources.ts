@@ -5,6 +5,7 @@ import Select from "../../Types/Database/Select";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../Models/DatabaseModels/Incident";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import URL from "../../../Types/API/URL";
 import ObjectID from "../../../Types/ObjectID";
@@ -50,6 +51,7 @@ export enum LinkedAffectedResourceType {
   ProxmoxCluster = "ProxmoxCluster",
   VMwareVCenter = "VMwareVCenter",
   CephCluster = "CephCluster",
+  StorageArray = "StorageArray",
   DockerSwarmCluster = "DockerSwarmCluster",
   IoTFleet = "IoTFleet",
   DatabaseServer = "DatabaseServer",
@@ -139,6 +141,12 @@ export const LINKED_AFFECTED_RESOURCE_RELATIONS: ReadonlyArray<LinkedAffectedRes
       type: LinkedAffectedResourceType.CephCluster,
       label: "Ceph Cluster",
       dashboardRoute: "ceph",
+    },
+    {
+      column: "storageArrays",
+      type: LinkedAffectedResourceType.StorageArray,
+      label: "Storage Array",
+      dashboardRoute: "storage-arrays",
     },
     {
       column: "dockerSwarmClusters",
@@ -286,6 +294,24 @@ export default class LinkedAffectedResources {
       model: new ScheduledMaintenance(),
       projectId: data.projectId,
       recordIds: [data.scheduledMaintenanceId],
+    });
+  }
+
+  /*
+   * The resources the monitors watch (Monitor > Overview > Linked
+   * Resources): the same lists an incident's affected resources hold, read
+   * and project-checked the same way.
+   */
+  public static async readForMonitors(data: {
+    service: LinkedAffectedResourceReader<Monitor>;
+    projectId: ObjectID;
+    monitorIds: Array<ObjectID>;
+  }): Promise<Array<LinkedAffectedResource>> {
+    return await LinkedAffectedResources.read({
+      service: data.service,
+      model: new Monitor(),
+      projectId: data.projectId,
+      recordIds: data.monitorIds,
     });
   }
 
@@ -507,9 +533,10 @@ export default class LinkedAffectedResources {
    * the SLO's shape, `- [Host <name>](<link>)`, so the reader can tell a host
    * from a cluster from a service.
    *
-   * Those names are escaped: feeds render without safe mode and the same
-   * markdown goes to Slack and Teams, and a host or cluster name can come
-   * from an agent rather than from someone typing it.
+   * Every name, a monitor's included, is escaped (escapeMarkdownInline, as
+   * it sits inside the link's own text): feeds render without safe mode and
+   * the same markdown goes to Slack and Teams, and a host or cluster name
+   * can come from an agent rather than from someone typing it.
    */
   public static getMarkdownLines(data: {
     dashboardUrl: URL;
@@ -537,7 +564,7 @@ export default class LinkedAffectedResources {
       }).toString();
 
       if (resource.type === LinkedAffectedResourceType.Monitor) {
-        lines.push(`- [${resource.name}](${link})`);
+        lines.push(`- [${escapeMarkdownInline(resource.name)}](${link})`);
         continue;
       }
 

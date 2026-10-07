@@ -96,14 +96,36 @@ Ingebouwde grenzen houden onbemande aanroepen eindig: System Instructions, Promp
 
 ## Machtigingen
 
-Workflows respecteren de rolgebaseerde toegangscontrole van je project. De relevante machtigingen:
+Workflows respecteren de rolgebaseerde toegangscontrole van je project. De drie workflowrollen:
 
-- **Create / Read / Edit / Delete Workflow** — de basisrechten op de workflow zelf.
-- **Run Workflow** — nodig om een workflow met de hand uit te voeren of er via de API een te triggeren.
+- **Workflow Admin** — bouwt workflows: maakt, wijzigt, voert uit en verwijdert ze, en beheert de variabelen die ze gebruiken.
+- **Workflow Member** — gebruikt ze: opent workflows en hun runs, en voert een workflow met de hand uit met **Workflow uitvoeren**. Een lid kan geen workflow maken, wijzigen of verwijderen, en geen van de stappen ervan los uitvoeren.
+- **Workflow Viewer** — leest workflows en hun runs.
+
+**Project Owner** en **Project Admin** kunnen alles wat een Workflow Admin kan. **Project Member** kan workflows maken en verwijderen, maar niet wijzigen of uitvoeren.
+
+De losse machtigingen, voor een team of een API-sleutel dat precies één ding nodig heeft:
+
+- **Create / Read / Edit / Delete Workflow** — de basisrechten op de workflow zelf. Een workflow wijzigen, ook aan- of uitzetten en archiveren, vereist **Edit Workflow**; **Delete Workflow** verwijdert alleen.
+- **Edit Workflow** — is ook nodig om één stap los uit te voeren met **Run just this step**, en om de webhook-URL en het inkomende e-mailadres van een workflow te zien of opnieuw in te stellen. Een hele workflow met de hand uitvoeren vereist **Edit Workflow**, **Workflow Admin** of **Workflow Member**.
 - **Read Workflow Log** — nodig om runs te bekijken.
 - **Read / Create / Edit / Delete Workflow Variable** — zeggenschap over de lijst met globale variabelen.
 
-De meeste engineers hebben create/edit/read op workflows nodig, maar niet op variabelen. Houd bewerkrechten op variabelen bij de mensen die de geheimen van je project beheren.
+Een run met de hand bereikt alleen workflows die je kunt openen: een rol die beperkt is tot bepaalde labels, of tot de workflows waarvan je team eigenaar is, voert alleen die uit. Wie een workflow niet mag uitvoeren, ziet **Workflow uitvoeren** grijs, met de reden in de tooltip.
+
+Geef de mensen die automatisering bouwen **Workflow Admin**, en de mensen die die alleen starten **Workflow Member**. Houd bewerkrechten op variabelen bij de mensen die de geheimen van je project beheren.
+
+## Wat workflowstappen mogen
+
+De stappen die OneUptime-records lezen en wijzigen (de componenten Find, Create, Update en Delete en de triggers On Create, On Update en On Delete) handelen als **Project Admin** van het project van de workflow. Ze krijgen dezelfde controles als een Project Admin in het dashboard en de API:
+
+- **Alleen het eigen project van de workflow.** Een stap leest of wijzigt nooit records van een ander project, en een Update verplaatst nooit een record naar een ander project.
+- **Alleen wat een Project Admin mag.** Een stap kan geen rechten geven die een Project Admin zelf niet heeft (zoals **Project Owner** of facturering), en kan niemand toevoegen aan een team met meer rechten, zoals het team van de eigenaren.
+- **Alleen wat uw abonnement bevat.** Op OneUptime Cloud wordt geweigerd wat uw abonnement niet bevat, met de naam van het abonnement dat nodig is.
+- **Niets wat OneUptime zelf bijhoudt.** Feeditems kunnen niet worden bewerkt of verwijderd, meldingslogboeken kunnen niet worden geschreven, en waarden die OneUptime zelf instelt (zoals een geverifieerde CNAME, de beveiligingsschakelaars van een team of wie nu dienst heeft) kunnen niet worden gewijzigd. Een **Create One Incident**-stap kan ook geen incident vanuit een sjabloon declareren (`createdIncidentTemplateId`): lees het sjabloon met **Find One Incident Template** en geef de waarden door.
+- **Als geen persoon.** Een record dat een workflow aanmaakt heeft geen maker, en het auditlogboek noemt de workflow als degene die de wijziging deed.
+
+Een geweigerde stap neemt zijn uitgang **Error** zonder de geweigerde wijziging te maken, en het uitvoeringslogboek zegt welke stap werd geweigerd en waarom. Een Create Many-stap maakt zijn records één voor één aan en stopt bij het geweigerde; de records die ervoor zijn aangemaakt, blijven bestaan. Stappen die met andere systemen praten (API, e-mail, chat, Custom Code, AI) veranderen niet.
 
 ## Planlimieten
 

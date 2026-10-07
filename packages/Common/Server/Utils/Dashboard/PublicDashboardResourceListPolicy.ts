@@ -31,6 +31,19 @@ import DashboardModelQueryInterpolation, {
 } from "../../../Utils/Dashboard/ModelQueryVariableInterpolation";
 import DashboardVariableInterpolation from "../../../Utils/Dashboard/VariableInterpolation";
 import DashboardLabelVariable from "../../../Utils/Dashboard/LabelVariable";
+import {
+  STORAGE_ARRAY_HARDWARE_UNHEALTHY_FILTER,
+  STORAGE_ARRAY_HARDWARE_WIDGET_KINDS,
+  STORAGE_ARRAY_UNHEALTHY_COMPONENT_STATUSES,
+} from "../../../Utils/Dashboard/Components/DashboardStorageArrayResourceListShared";
+
+/*
+ * An incident or alert list's "Unresolved" or "Resolved" filter. Which states
+ * that means is the project's (Common/Utils/ResolvedState): its resolved
+ * state and any state placed after it are resolved. The policy names the
+ * filter; the route turns it into the project's state ids.
+ */
+export type PublicDashboardResolvedStateFilter = "unresolved" | "resolved";
 
 export interface PublicDashboardResourceListPolicyResult {
   resourceType: string;
@@ -38,6 +51,7 @@ export interface PublicDashboardResourceListPolicyResult {
   select: JSONObject;
   sort: JSONObject;
   limit: number;
+  resolvedStateFilter?: PublicDashboardResolvedStateFilter | undefined;
 }
 
 export interface BuildPublicDashboardResourceListPolicyData {
@@ -52,6 +66,7 @@ interface PolicyDraft {
   query: Record<string, unknown>;
   sort: JSONObject;
   limit: number;
+  resolvedStateFilter?: PublicDashboardResolvedStateFilter | undefined;
   attributeToColumn?: AttributeToColumnMap | undefined;
   interpolateAttributeMap?: boolean | undefined;
 }
@@ -179,6 +194,23 @@ const CEPH_POOL_ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
 };
 
 /*
+ * Pure Storage names a volume in the `name` label of every per-volume series
+ * and a hardware component or drive in `component_name`; both are stored
+ * verbatim as StorageArrayResource.externalId. These maps must stay
+ * byte-identical to ATTRIBUTE_TO_COLUMN in the dashboard's
+ * DashboardStorageArrayVolumeListComponent /
+ * DashboardStorageArrayHardwareListComponent — here they are the copy a
+ * public dashboard applies.
+ */
+const STORAGE_ARRAY_VOLUME_ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
+  name: "externalId",
+};
+
+const STORAGE_ARRAY_HARDWARE_ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
+  component_name: "externalId",
+};
+
+/*
  * Produces the complete server-owned policy for one already-selected public
  * dashboard widget. No caller-supplied project, kind, filter, sort, or limit is
  * copied. The route adds the dashboard's projectId after this policy returns.
@@ -256,6 +288,9 @@ export default class PublicDashboardResourceListPolicy {
       ),
       sort: draft.sort,
       limit: draft.limit,
+      ...(draft.resolvedStateFilter
+        ? { resolvedStateFilter: draft.resolvedStateFilter }
+        : {}),
     };
   }
 
@@ -505,6 +540,38 @@ export default class PublicDashboardResourceListPolicy {
           objects: true,
           cephClusterId: true,
           cephCluster: { name: true },
+        };
+      case DashboardComponentType.StorageArrayVolumeList:
+        return {
+          _id: true,
+          name: true,
+          externalId: true,
+          kind: true,
+          groupName: true,
+          capacityBytes: true,
+          usedBytes: true,
+          readLatencyUsec: true,
+          writeLatencyUsec: true,
+          readIops: true,
+          writeIops: true,
+          metricsUpdatedAt: true,
+          storageArrayId: true,
+          storageArray: { name: true },
+        };
+      case DashboardComponentType.StorageArrayHardwareList:
+        return {
+          _id: true,
+          name: true,
+          externalId: true,
+          kind: true,
+          status: true,
+          statusDetail: true,
+          componentType: true,
+          model: true,
+          capacityBytes: true,
+          temperatureCelsius: true,
+          storageArrayId: true,
+          storageArray: { name: true },
         };
       case DashboardComponentType.DockerSwarmNodeList:
         return {
@@ -778,6 +845,14 @@ export default class PublicDashboardResourceListPolicy {
         return PublicDashboardResourceListPolicy.buildCephPoolPolicy(
           argumentsObject,
         );
+      case DashboardComponentType.StorageArrayVolumeList:
+        return PublicDashboardResourceListPolicy.buildStorageArrayVolumePolicy(
+          argumentsObject,
+        );
+      case DashboardComponentType.StorageArrayHardwareList:
+        return PublicDashboardResourceListPolicy.buildStorageArrayHardwarePolicy(
+          argumentsObject,
+        );
       case DashboardComponentType.DockerSwarmNodeList:
         return PublicDashboardResourceListPolicy.buildDockerSwarmNodePolicy(
           argumentsObject,
@@ -824,11 +899,8 @@ export default class PublicDashboardResourceListPolicy {
         ["unresolved", "resolved", "acknowledged"],
       );
 
-    if (stateFilter === "unresolved") {
-      query["currentIncidentState"] = { isResolvedState: false };
-    } else if (stateFilter === "resolved") {
-      query["currentIncidentState"] = { isResolvedState: true };
-    } else if (stateFilter === "acknowledged") {
+    // Unresolved and Resolved are the project's to say (resolvedStateFilter).
+    if (stateFilter === "acknowledged") {
       query["currentIncidentState"] = { isAcknowledgedState: true };
     }
 
@@ -862,6 +934,8 @@ export default class PublicDashboardResourceListPolicy {
       query,
       sort: { createdAt: SortOrder.Descending },
       argumentsObject,
+      resolvedStateFilter:
+        PublicDashboardResourceListPolicy.toResolvedStateFilter(stateFilter),
     });
   }
 
@@ -876,11 +950,8 @@ export default class PublicDashboardResourceListPolicy {
         ["unresolved", "resolved", "acknowledged"],
       );
 
-    if (stateFilter === "unresolved") {
-      query["currentAlertState"] = { isResolvedState: false };
-    } else if (stateFilter === "resolved") {
-      query["currentAlertState"] = { isResolvedState: true };
-    } else if (stateFilter === "acknowledged") {
+    // Unresolved and Resolved are the project's to say (resolvedStateFilter).
+    if (stateFilter === "acknowledged") {
       query["currentAlertState"] = { isAcknowledgedState: true };
     }
 
@@ -910,6 +981,8 @@ export default class PublicDashboardResourceListPolicy {
     });
 
     return PublicDashboardResourceListPolicy.listDraft({
+      resolvedStateFilter:
+        PublicDashboardResourceListPolicy.toResolvedStateFilter(stateFilter),
       resourceType: "alert",
       query,
       sort: { createdAt: SortOrder.Descending },
@@ -1441,6 +1514,80 @@ export default class PublicDashboardResourceListPolicy {
     };
   }
 
+  private static buildStorageArrayVolumePolicy(
+    argumentsObject: Record<string, unknown>,
+  ): PolicyDraft {
+    const query: Record<string, unknown> = { kind: "Volume" };
+    PublicDashboardResourceListPolicy.addIncludesFromArgument({
+      query,
+      queryKey: "storageArrayId",
+      argumentsObject,
+      argumentKey: "storageArrayIds",
+    });
+
+    return {
+      ...PublicDashboardResourceListPolicy.listDraft({
+        resourceType: "storage-array-resource",
+        query,
+        sort: { name: SortOrder.Ascending },
+        argumentsObject,
+      }),
+      attributeToColumn: STORAGE_ARRAY_VOLUME_ATTRIBUTE_TO_COLUMN,
+    };
+  }
+
+  /*
+   * Hardware components, drives and controllers. The kind is ALWAYS pinned
+   * to those three — to one of them when the widget's kind filter names it —
+   * so the widget can never be widened to volumes, hosts or buckets. The
+   * status filter only narrows, to the statuses that count as unhealthy
+   * hardware.
+   */
+  private static buildStorageArrayHardwarePolicy(
+    argumentsObject: Record<string, unknown>,
+  ): PolicyDraft {
+    const kinds: Array<string> = [...STORAGE_ARRAY_HARDWARE_WIDGET_KINDS];
+
+    const kindFilter: string | undefined =
+      PublicDashboardResourceListPolicy.optionalEnum(
+        argumentsObject,
+        "kindFilter",
+        kinds,
+      );
+
+    const query: Record<string, unknown> = {
+      kind: kindFilter ? kindFilter : new Includes(kinds),
+    };
+    PublicDashboardResourceListPolicy.addIncludesFromArgument({
+      query,
+      queryKey: "storageArrayId",
+      argumentsObject,
+      argumentKey: "storageArrayIds",
+    });
+
+    const statusFilter: string | undefined =
+      PublicDashboardResourceListPolicy.optionalEnum(
+        argumentsObject,
+        "statusFilter",
+        [STORAGE_ARRAY_HARDWARE_UNHEALTHY_FILTER],
+      );
+    if (statusFilter === STORAGE_ARRAY_HARDWARE_UNHEALTHY_FILTER) {
+      query["status"] = new Includes([
+        ...STORAGE_ARRAY_UNHEALTHY_COMPONENT_STATUSES,
+      ]);
+    }
+
+    return {
+      ...PublicDashboardResourceListPolicy.listDraft({
+        resourceType: "storage-array-resource",
+        query,
+        sort: { name: SortOrder.Ascending },
+        argumentsObject,
+      }),
+      attributeToColumn: STORAGE_ARRAY_HARDWARE_ATTRIBUTE_TO_COLUMN,
+    };
+  }
+
   private static buildDockerSwarmNodePolicy(
     argumentsObject: Record<string, unknown>,
   ): PolicyDraft {
@@ -1737,6 +1884,7 @@ export default class PublicDashboardResourceListPolicy {
     sort: JSONObject;
     argumentsObject: Record<string, unknown>;
     fallbackLimit?: number | undefined;
+    resolvedStateFilter?: PublicDashboardResolvedStateFilter | undefined;
   }): PolicyDraft {
     return {
       resourceType: data.resourceType,
@@ -1747,7 +1895,21 @@ export default class PublicDashboardResourceListPolicy {
         fallback: data.fallbackLimit || DEFAULT_LIST_LIMIT,
         ceiling: LIMIT_PER_PROJECT,
       }),
+      ...(data.resolvedStateFilter
+        ? { resolvedStateFilter: data.resolvedStateFilter }
+        : {}),
     };
+  }
+
+  // A list's stored state filter, as far as resolved or not goes.
+  private static toResolvedStateFilter(
+    stateFilter: string | undefined,
+  ): PublicDashboardResolvedStateFilter | undefined {
+    if (stateFilter === "unresolved" || stateFilter === "resolved") {
+      return stateFilter;
+    }
+
+    return undefined;
   }
 
   private static addCollectorStatusFilter(

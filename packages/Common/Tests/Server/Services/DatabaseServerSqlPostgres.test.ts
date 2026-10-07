@@ -2018,7 +2018,7 @@ describePostgres("Databases SQL against Postgres", () => {
           data: data,
           props: scopedProps(PermissionScope.All),
         }),
-      ).rejects.toThrow("Conflicting database references");
+      ).rejects.toThrow(/Conflicting database references/i);
 
       const onlyRelation: any = new DatabaseServerEndpoint();
       onlyRelation.endpoint = "cross.example.com";

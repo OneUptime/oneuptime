@@ -674,6 +674,49 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
     ],
   },
   {
+    name: "Storage Arrays",
+    group: WidgetCategoryGroup.Infrastructure,
+    icon: IconProp.StorageArray,
+    description:
+      "Live inventory from any connected storage array, such as a Pure Storage FlashArray or FlashBlade — populated by the OneUptime Storage Array Agent.",
+    items: [
+      {
+        type: DashboardComponentType.StorageArrayVolumeList,
+        label: "Volumes",
+        icon: IconProp.Database,
+        description:
+          "Volumes with used and provisioned capacity, read/write latency, and IOPS.",
+        keywords: [
+          "storage array",
+          "pure storage",
+          "flasharray",
+          "volume",
+          "lun",
+          "latency",
+          "iops",
+          "capacity",
+        ],
+      },
+      {
+        type: DashboardComponentType.StorageArrayHardwareList,
+        label: "Hardware",
+        icon: IconProp.CPUChip,
+        description:
+          "The hardware wall — components, drives, and controllers colored by status.",
+        keywords: [
+          "storage array",
+          "pure storage",
+          "flasharray",
+          "flashblade",
+          "hardware",
+          "drive",
+          "controller",
+          "health",
+        ],
+      },
+    ],
+  },
+  {
     name: "Network",
     group: WidgetCategoryGroup.Infrastructure,
     icon: IconProp.Map,

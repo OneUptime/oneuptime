@@ -162,30 +162,30 @@ Les règles d'escalade décident qui est appelé quand quelqu'un compose le num�
 3. Cliquez sur **Ajouter une règle d'escalade**
 4. Remplissez la règle. C'est une seule étape :
    - **Qui appeler** : un planning d'astreinte ou une personne. Un planning fait sonner la personne d'astreinte dans ce planning au moment de l'appel. Les personnes sont les membres de votre projet.
-   - **Durée de sonnerie (en secondes)** : combien de temps leur téléphone sonne avant que l'appel passe à la règle suivante. Elle commence à 30 secondes, et Twilio accepte de 5 à 600.
+   - **Durée de sonnerie (en secondes)** : combien de temps leur téléphone sonne avant que l'appel passe à la règle suivante. Elle commence à 20 secondes, et Twilio accepte de 5 à 600.
    - **Nom** et **Description** sont facultatifs, sous **Plus de champs**. Une règle sans nom est affichée selon sa place dans la liste : **Level 1**, **Level 2**.
 5. Enregistrez-la, puis ajoutez une règle pour chaque planning ou personne à essayer ensuite
 
 Les règles sont appelées du haut de la liste vers le bas, et une nouvelle règle est ajoutée à la fin. Pour changer l'ordre, faites glisser une règle par la poignée en haut à gauche ; au clavier, placez le focus sur la poignée, appuyez sur Espace, déplacez-la avec les flèches, puis appuyez de nouveau sur Espace.
 
-> **Attention à la messagerie** : gardez la **Durée de sonnerie** plus courte que le délai au bout duquel le téléphone de la personne renvoie un appel sans réponse vers sa messagerie. Si la messagerie répond d'abord, l'appelant y est connecté et l'appel ne passe pas à la règle suivante. Twilio ajoute quelques secondes à chaque sonnerie.
+> **Attention à la messagerie** : gardez la **Durée de sonnerie** plus courte que le délai au bout duquel le téléphone de la personne renvoie un appel sans réponse vers sa messagerie. Si la messagerie répond d'abord, l'appelant y est connecté et l'appel ne passe pas à la règle suivante. Twilio ajoute quelques secondes à chaque sonnerie. C'est pourquoi une nouvelle règle commence à 20 secondes. Les règles ajoutées quand la valeur par défaut était de 30 secondes gardent leurs 30 : si leurs appels aboutissent sur la messagerie, réduisez la **Durée de sonnerie** de ces règles.
 
 ### Exemple de règle d'escalade
 
 ```mermaid
 flowchart TD
     subgraph "Chaîne d'escalade"
-        A[Level 1 : planning d'astreinte principal<br/>Sonner 30 secondes] --> B[Level 2 : planning d'astreinte secondaire<br/>Sonner 30 secondes]
-        B --> C[Level 3 : responsable de l'ingénierie<br/>Sonner 30 secondes]
+        A[Level 1 : planning d'astreinte principal<br/>Sonner 20 secondes] --> B[Level 2 : planning d'astreinte secondaire<br/>Sonner 20 secondes]
+        B --> C[Level 3 : responsable de l'ingénierie<br/>Sonner 20 secondes]
         C --> D[Message sans réponse]
     end
 ```
 
 | Niveau  | Qui appeler                                | Durée de sonnerie |
 | ------- | ------------------------------------------ | ----------------- |
-| Level 1 | Planning d'astreinte principal             | 30 secondes       |
-| Level 2 | Planning d'astreinte secondaire            | 30 secondes       |
-| Level 3 | Responsable de l'ingénierie (une personne) | 30 secondes       |
+| Level 1 | Planning d'astreinte principal             | 20 secondes       |
+| Level 2 | Planning d'astreinte secondaire            | 20 secondes       |
+| Level 3 | Responsable de l'ingénierie (une personne) | 20 secondes       |
 
 ## Étape 7 : Configurer les messages vocaux (optionnel)
 
@@ -215,11 +215,11 @@ Personnalisez les messages entendus par les appelants :
 | Paramètre                       | Description                                                                                                                                                              |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Qui appeler                     | Un planning d'astreinte, qui appelle la personne d'astreinte, ou une personne. Chaque règle appelle l'un des deux                                                        |
-| Durée de sonnerie (en secondes) | Combien de temps le téléphone sonne avant que l'appel passe à la règle suivante (par défaut : 30 ; de 5 à 600)                                                          |
+| Durée de sonnerie (en secondes) | Combien de temps le téléphone sonne avant que l'appel passe à la règle suivante (par défaut : 20 ; de 5 à 600)                                                          |
 | Nom et Description              | Facultatifs, sous Plus de champs. Une règle sans nom est affichée comme Level 1, Level 2 et ainsi de suite, selon sa place dans la liste                                       |
 | Ordre                           | La place de la règle dans la liste : les règles sont appelées de haut en bas. Se règle en faisant glisser les règles ; via l'API, une nouvelle règle sans ordre va à la fin |
 
-Via l'API, une règle définit `onCallDutyPolicyScheduleId` ou `userId` (l'un des deux, jamais les deux) et `escalateAfterSeconds` : la durée de sonnerie, 30 si elle est omise.
+Via l'API, une règle définit `onCallDutyPolicyScheduleId` ou `userId` (l'un des deux, jamais les deux) et `escalateAfterSeconds` : la durée de sonnerie, 20 si elle est omise.
 
 ## Consultation des journaux d'appels
 
@@ -246,6 +246,8 @@ Pour que les utilisateurs reçoivent des appels entrants, ils doivent avoir un n
 3. Vérifient le numéro de téléphone via un code SMS
 
 Seuls les utilisateurs avec des numéros de téléphone vérifiés peuvent être appelés via les règles d'escalade.
+
+Les numéros d'appels entrants sont vérifiés par SMS, donc **SMS** doit d'abord être activé pour le projet. Un propriétaire du projet ou une personne disposant de **Billing Admin** ou de **Manage Billing** l'active dans la carte **Canaux de notification** de **Paramètres du projet > Notifications > Paramètres de notification**.
 
 ## Libérer un numéro de téléphone
 

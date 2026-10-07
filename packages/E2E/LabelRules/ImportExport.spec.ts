@@ -513,6 +513,12 @@ test.describe("Label rule JSON transfer through the Dashboard and API", () => {
       payload: portableFile([rule("Invalid enabled", { isEnabled: "true" })]),
       message: /must be true or false/i,
     },
+    {
+      // A new rule must add something, as the server insists on every create.
+      title: "a rule that adds nothing",
+      payload: portableFile([rule("Adds nothing", { labelsToAdd: [] })]),
+      message: /This label rule adds nothing/,
+    },
   ];
 
   invalidPayloads.forEach((invalid: InvalidPayload) => {

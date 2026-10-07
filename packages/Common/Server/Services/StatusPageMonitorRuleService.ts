@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import StatusPageMonitorRuleEngineService from "./StatusPageMonitorRuleEngineService";
 import StatusPageGroupService from "./StatusPageGroupService";
 import StatusPageResourceService from "./StatusPageResourceService";
@@ -14,9 +14,8 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import ProjectScopedReferenceValidator, {
-  resolveReferenceId,
-} from "../Utils/Database/ProjectScopedReferenceValidator";
+import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import StatusPageMonitorRulePatternValidator from "../Utils/StatusPage/MonitorRulePatternValidator";
 import logger, { LogAttributes } from "../Utils/Logger";
 import {
@@ -24,16 +23,54 @@ import {
   isValidRuleCriteria,
 } from "../../Utils/Rules/RuleCriteriaMatcher";
 
-export class Service extends DatabaseService<Model> {
+/*
+ * The two names of a rule's page and of its group, ID column first. A write
+ * may name each under either, and the two must agree
+ * (RelationIdUtil.readConsistent), so the page and the group checked are the
+ * ones stored.
+ */
+const STATUS_PAGE_KEYS: Array<string> = ["statusPageId", "statusPage"];
+const STATUS_PAGE_GROUP_KEYS: Array<string> = [
+  "statusPageGroupId",
+  "statusPageGroup",
+];
+
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * The page and its group are checked by assertReferencesAreInScope, which
+   * also holds the group to the page. The generic check covers the rest.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["statusPage", "statusPageGroup"];
   }
 
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    if (!createBy.data.statusPageId) {
+    // The project's own records only, before anything here reads one.
+    await super.onBeforeCreate(createBy);
+
+    const createData: Record<string, unknown> =
+      createBy.data as unknown as Record<string, unknown>;
+
+    const statusPageId: ObjectID | null = RelationIdUtil.readConsistent(
+      createData,
+      STATUS_PAGE_KEYS,
+      "Status Page",
+    );
+
+    const statusPageGroupId: ObjectID | null = RelationIdUtil.readConsistent(
+      createData,
+      STATUS_PAGE_GROUP_KEYS,
+      "Status Page Group",
+    );
+
+    if (!statusPageId) {
       throw new BadDataException(
         "Status Page ID is required to create a status page monitor rule.",
       );
@@ -53,12 +90,8 @@ export class Service extends DatabaseService<Model> {
 
     await this.assertReferencesAreInScope({
       projectId: createBy.props.tenantId || createBy.data.projectId,
-      statusPageId: resolveReferenceId(
-        createBy.data.statusPageId || createBy.data.statusPage,
-      ),
-      statusPageGroupId: resolveReferenceId(
-        createBy.data.statusPageGroupId || createBy.data.statusPageGroup,
-      ),
+      statusPageId: statusPageId,
+      statusPageGroupId: statusPageGroupId || undefined,
     });
 
     return {
@@ -87,6 +120,9 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    // The project's own records only, before anything here reads one.
+    await super.onBeforeUpdate(updateBy);
+
     StatusPageMonitorRulePatternValidator.validate({
       namePattern: updateBy.data.monitorNamePattern as string | undefined,
       descriptionPattern: updateBy.data.monitorDescriptionPattern as
@@ -108,9 +144,10 @@ export class Service extends DatabaseService<Model> {
      * scope checks the create path makes apply here. statusPageId is
      * create-only in the column ACL, so only the group can move.
      */
-    const nextGroupId: ObjectID | string | undefined = resolveReferenceId(
-      (updateBy.data as Record<string, unknown>)["statusPageGroupId"] ||
-        (updateBy.data as Record<string, unknown>)["statusPageGroup"],
+    const nextGroupId: ObjectID | null = RelationIdUtil.readConsistent(
+      updateBy.data as unknown as Record<string, unknown>,
+      STATUS_PAGE_GROUP_KEYS,
+      "Status Page Group",
     );
 
     if (nextGroupId) {

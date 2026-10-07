@@ -1,4 +1,5 @@
 import ObjectID from "../../Types/ObjectID";
+import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import IncidentGroupingRule from "../../Models/DatabaseModels/IncidentGroupingRule";
 import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
@@ -7,6 +8,8 @@ import IncidentEpisodeMember, {
 } from "../../Models/DatabaseModels/IncidentEpisodeMember";
 import IncidentEpisodeRoleMember from "../../Models/DatabaseModels/IncidentEpisodeRoleMember";
 import Label from "../../Models/DatabaseModels/Label";
+import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
+import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -33,6 +36,7 @@ import { Green500 } from "../../Types/BrandColors";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import { GroupingOptions } from "../../Utils/StartingStage";
 import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
 
 export interface GroupingResult {
@@ -67,7 +71,10 @@ export const replaceAllLiterally: ReplaceAllLiterallyFunction = (
 
 class IncidentGroupingEngineServiceClass {
   @CaptureSpan()
-  public async processIncident(incident: Incident): Promise<GroupingResult> {
+  public async processIncident(
+    incident: Incident,
+    options: GroupingOptions = {},
+  ): Promise<GroupingResult> {
     logger.debug(`Processing incident ${incident.id} for grouping`, {
       projectId: incident.projectId?.toString(),
     } as LogAttributes);
@@ -197,6 +204,7 @@ class IncidentGroupingEngineServiceClass {
           const result: GroupingResult = await this.groupIncidentWithRule(
             incident,
             rule,
+            options,
           );
           return result;
         }
@@ -506,6 +514,7 @@ class IncidentGroupingEngineServiceClass {
   private async groupIncidentWithRule(
     incident: Incident,
     rule: IncidentGroupingRule,
+    options: GroupingOptions = {},
   ): Promise<GroupingResult> {
     // Build the grouping key based on groupBy fields
     const groupingKey: string = await this.buildGroupingKey(incident, rule);
@@ -574,6 +583,15 @@ class IncidentGroupingEngineServiceClass {
           episodeId: existingEpisode.id,
           isNewEpisode: false,
         };
+      }
+
+      /*
+       * No open episode to join, and the incident may not open or reopen one
+       * (GroupingOptions): a new episode would page its own on-call policies
+       * for an incident that pages nobody. It stays on its own.
+       */
+      if (options.mayOpenEpisode === false) {
+        return { grouped: false };
       }
 
       // Check if we can reopen a recently resolved episode (only if enabled)
@@ -954,14 +972,39 @@ class IncidentGroupingEngineServiceClass {
       }
     }
 
-    // Copy on-call policies from rule
-    if (rule.onCallDutyPolicies && rule.onCallDutyPolicies.length > 0) {
-      newEpisode.onCallDutyPolicies = rule.onCallDutyPolicies;
+    /*
+     * The rule's on-call policies and episode labels, copied onto the episode
+     * as root - only the project's own (see RuleRecordScope).
+     */
+    const ruleLogAttributes: LogAttributes = {
+      projectId: incident.projectId?.toString(),
+    };
+    const ruleDescription: string = `grouping rule ${rule.name || rule.id?.toString() || ""}`;
+
+    const onCallDutyPolicies: Array<OnCallDutyPolicy> =
+      await RuleRecordScope.keepRecordsInProject({
+        projectId: incident.projectId!,
+        records: rule.onCallDutyPolicies,
+        modelType: OnCallDutyPolicy,
+        description: `on-call policies of ${ruleDescription}`,
+        logAttributes: ruleLogAttributes,
+      });
+
+    if (onCallDutyPolicies.length > 0) {
+      newEpisode.onCallDutyPolicies = onCallDutyPolicies;
     }
 
-    // Copy episode labels from rule
-    if (rule.episodeLabels && rule.episodeLabels.length > 0) {
-      newEpisode.labels = rule.episodeLabels;
+    const episodeLabels: Array<Label> =
+      await RuleRecordScope.keepRecordsInProject({
+        projectId: incident.projectId!,
+        records: rule.episodeLabels,
+        modelType: Label,
+        description: `episode labels of ${ruleDescription}`,
+        logAttributes: ruleLogAttributes,
+      });
+
+    if (episodeLabels.length > 0) {
+      newEpisode.labels = episodeLabels;
     }
 
     try {
@@ -1066,8 +1109,18 @@ class IncidentGroupingEngineServiceClass {
             ? `Grouping by: ${groupByParts.join(", ")}`
             : "Grouping all matching incidents together";
 
-        let moreInfo: string = `**Rule:** ${rule.name || "Unnamed Rule"}\n\n`;
-        moreInfo += `**Grouping Key:** \`${groupingKey}\`\n\n`;
+        /*
+         * The rule's name is plain text, and so is the grouping key: it can
+         * hold the title the rule groups by. Both are escaped. The key is not
+         * put in a code span: a "`" in the title would end the span early, a
+         * backslash cannot escape one there, and chat tools pass a code
+         * span's text on as it is. It is escaped as prose
+         * (escapeMarkdownValue) rather than character by character: a
+         * title often holds an address, and a backslash put inside a bare
+         * address would become part of the link renderers make of it.
+         */
+        let moreInfo: string = `**Rule:** ${escapeMarkdownValue(rule.name || "Unnamed Rule")}\n\n`;
+        moreInfo += `**Grouping Key:** ${escapeMarkdownValue(groupingKey)}\n\n`;
         moreInfo += `**${groupByDescription}**`;
 
         if (rule.enableTimeWindow && rule.timeWindowMinutes) {
@@ -1081,7 +1134,7 @@ class IncidentGroupingEngineServiceClass {
             incidentEpisodeFeedEventType:
               IncidentEpisodeFeedEventType.EpisodeCreated,
             displayColor: Green500,
-            feedInfoInMarkdown: `**Episode Created** by grouping rule **${rule.name || "Unnamed Rule"}**`,
+            feedInfoInMarkdown: `**Episode Created** by grouping rule **${escapeMarkdownValue(rule.name || "Unnamed Rule")}**`,
             moreInformationInMarkdown: moreInfo,
           });
         } catch (feedError) {

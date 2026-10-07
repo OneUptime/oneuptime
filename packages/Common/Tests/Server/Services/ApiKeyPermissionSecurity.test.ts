@@ -20,6 +20,16 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * PasswordHash has a known, pre-existing TS5.9 compile failure under ts-jest
@@ -88,6 +98,7 @@ function props(
   return {
     userId,
     tenantId,
+    ...ON_HIGHEST_PLAN,
     userGlobalAccessPermission: {
       projectIds: [tenantId],
       globalPermissions: [Permission.Public, Permission.User],
@@ -227,6 +238,7 @@ describe("ApiKeyPermissionService create boundaries", () => {
       ApiKeyPermissionService,
       "findOneBy",
     ).mockResolvedValue(null);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -581,6 +593,7 @@ describe("ApiKeyPermissionService update boundaries", () => {
       ApiKeyPermissionService,
       "findOneBy",
     ).mockResolvedValue(null);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {

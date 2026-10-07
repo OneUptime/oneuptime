@@ -1,4 +1,6 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import { StateListType } from "Common/Utils/StateOrder";
 import ProjectUtil from "Common/UI/Utils/Project";
 import AlertElement from "./Alert";
 import AppLink from "../AppLink/AppLink";
@@ -21,6 +23,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
 import Search from "Common/Types/BaseDatabase/Search";
 import Alert from "Common/Models/DatabaseModels/Alert";
+import AlertInternalNote from "Common/Models/DatabaseModels/AlertInternalNote";
 import AlertCustomField from "Common/Models/DatabaseModels/AlertCustomField";
 import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
 import AlertOwnerTeam from "Common/Models/DatabaseModels/AlertOwnerTeam";
@@ -122,9 +125,31 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
     useState<BulkActionOnClickProps<Alert> | null>(null);
   const [visibleAlerts, setVisibleAlerts] = useState<Array<Alert>>([]);
 
+  /*
+   * The project's states that count as resolved: its resolved state and any
+   * state placed after it (Common/Utils/ResolvedState).
+   */
+  const resolvedStateIds: Array<string> = ResolvedStateUtil.getResolvedStateIds(
+    {
+      list: StateListType.AlertState,
+      states: alertStates,
+    },
+  ).map((stateId: ObjectID) => {
+    return stateId.toString();
+  });
+
+  const isAlertResolved: (alert: Alert) => boolean = (
+    alert: Alert,
+  ): boolean => {
+    const stateId: string | undefined =
+      alert.currentAlertState?._id?.toString();
+
+    return Boolean(stateId && resolvedStateIds.includes(stateId));
+  };
+
   const resolvedAlertIds: Array<string> = visibleAlerts
     .filter((alert: Alert) => {
-      return Boolean(alert.currentAlertState?.isResolvedState);
+      return isAlertResolved(alert);
     })
     .map((alert: Alert) => {
       return alert.id?.toString() || "";
@@ -139,7 +164,9 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
   } = useEventTimelineEndDates<AlertStateTimeline>({
     eventIds: resolvedAlertIds,
     eventIdField: "alertId",
+    stateIdField: "alertStateId",
     timelineModelType: AlertStateTimeline,
+    resolvedStateIds: resolvedStateIds,
   });
 
   const { noteTemplates } = useNoteTemplates<AlertNoteTemplate>({
@@ -733,6 +760,11 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             _id: true,
             projectId: true,
           },
+          storageArrays: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
           dockerSwarmClusters: {
             name: true,
             _id: true,
@@ -827,9 +859,9 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
           {
             field: {
               currentAlertState: {
+                _id: true,
                 name: true,
                 color: true,
-                isResolvedState: true,
               },
             },
             title: "State",
@@ -928,6 +960,11 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                 _id: true,
                 projectId: true,
               },
+              storageArrays: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
               dockerSwarmClusters: {
                 name: true,
                 _id: true,
@@ -983,6 +1020,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                   proxmoxClusters={item.proxmoxClusters || []}
                   vmwareVCenters={item.vmwareVCenters || []}
                   cephClusters={item.cephClusters || []}
+                  storageArrays={item.storageArrays || []}
                   dockerSwarmClusters={item.dockerSwarmClusters || []}
                   iotFleets={item.iotFleets || []}
                   databaseServers={item.databaseServers || []}
@@ -1010,9 +1048,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             disableCsvExport: true,
             getElement: (item: Alert): ReactElement => {
               const alertId: string = item.id?.toString() || "";
-              const isResolved: boolean = Boolean(
-                item.currentAlertState?.isResolvedState,
-              );
+              const isResolved: boolean = isAlertResolved(item);
               const resolvedAt: Date | undefined = alertId
                 ? resolvedAtByAlertId[alertId]
                 : undefined;
@@ -1095,6 +1131,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
           noteTitle="Private Note"
           noteDescription="Add an optional private note about this state change. Only your team can see it, and the same note is added to every alert you selected."
           noteTemplates={noteTemplates}
+          noteModel={new AlertInternalNote()}
           onClose={() => {
             setShowBulkStateChangeModal(false);
             setBulkActionProps(null);

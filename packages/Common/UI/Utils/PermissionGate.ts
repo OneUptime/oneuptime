@@ -1,5 +1,9 @@
 import { CardButtonSchema } from "../Components/Card/Card";
 import Dictionary from "../../Types/Dictionary";
+import HeldPermissionsUtil, {
+  HeldPermissions,
+  HeldPermissionsOptions,
+} from "../../Types/HeldPermissions";
 import Permission, {
   PermissionHelper,
   PermissionProps,
@@ -31,6 +35,15 @@ const MISSING_PERMISSION_TEMPLATES: Record<string, string> = {
     "You do not have permission to delete this {{itemName}}.",
   ),
 };
+
+/*
+ * The tooltip's second sentence when a team's block is what refuses: the
+ * user may well hold one of the permissions the operation asks for, so
+ * listing them would only puzzle them.
+ */
+export const BLOCKED_PERMISSION_TEMPLATE: string = translationKey(
+  "A team you are on blocks {{permissions}}.",
+);
 
 /*
  * The four record-level operations a user can be gated on. Deliberately not the
@@ -85,19 +98,47 @@ export interface PermissionCheckableModel {
 /*
  * A model that declares column-level access control. Separate from
  * PermissionCheckableModel because column gating answers a different question
- * ("may this field be SELECTED?") and only the database models carry it.
+ * ("may this field be SELECTED?") and only the database models carry it. The
+ * table's own lists, when the model has them, let a column that admits
+ * everyone its table does accept the table's operational-resource wildcard,
+ * as the server's column check does.
  */
 export interface ColumnPermissionCheckableModel {
   getColumnAccessControlForAllColumns: () => Dictionary<ColumnAccessControl>;
+  getCreatePermissions?: (() => Array<Permission>) | undefined;
+  getReadPermissions?: (() => Array<Permission>) | undefined;
+  getUpdatePermissions?: (() => Array<Permission>) | undefined;
+  isOperationalResource?: boolean | undefined;
 }
 
-export interface PermissionGateOptions {
+// The operations a column declares permissions for.
+export type ColumnOperation = "create" | "read" | "update";
+
+/*
+ * A form field, as far as what it writes goes (Forms/Types/Field and
+ * ModelForm's ModelField): the column it edits, and the ways a field can
+ * stand for something other than one column.
+ */
+export interface PermissionCheckableFormField {
+  field?: Record<string, unknown> | undefined;
+  overrideField?: unknown;
+  peoplePicker?: unknown;
+  showEvenIfPermissionDoesNotExist?: boolean | undefined;
+}
+
+export interface PermissionGateOptions extends HeldPermissionsOptions {
   /*
-   * Overrides the permissions read from storage. Only used by tests and by
-   * callers that already hold a snapshot they want every gate on the screen to
-   * agree with.
+   * Overrides the permissions read from storage with a flat list of
+   * permissions held, nothing blocked. Only used by tests and by callers
+   * that already hold a snapshot they want every gate on the screen to agree
+   * with.
    */
   permissions?: Array<Permission> | undefined;
+  /*
+   * Overrides the permissions read from storage with a whole snapshot,
+   * blocks included (HeldPermissionsUtil.fromRows). Wins over `permissions`.
+   */
+  held?: HeldPermissions | undefined;
   /*
    * The noun to use in the message when the model's own singularName is not
    * what the user sees on screen ("Monitor" vs "Monitor Template").
@@ -140,8 +181,103 @@ const getPermissionProps: GetPermissionPropsFunction =
  * saw a fully working create page that only failed at submit with a validation
  * error about a field they never got to fill in (issue #3306). The button now
  * stays on screen, disabled, and says which permission is missing.
+ *
+ * It is the dashboard's one reader of the permission snapshot for "may the
+ * user do this?", by the rule the server follows (Types/HeldPermissions): an
+ * allow row grants and a block row never does, a block with no labels on any
+ * permission an action accepts refuses it, and an operational resource's own
+ * list accepts its *AllOperationalResources wildcard too. Anything that is not
+ * a model operation asks holdsAnyOf.
  */
 export default class PermissionGate {
+  /*
+   * What the user holds: the options' snapshot when one is given, else the
+   * stored one. Read through PermissionUtil's getAllPermissions (the flat
+   * list of what is held, blocks already taken out) and getProjectPermissions
+   * (the rows, for the blocks) so a page that mocks the snapshot is read the
+   * same way.
+   */
+  public static getHeldPermissions(
+    options?: PermissionGateOptions | undefined,
+  ): HeldPermissions {
+    if (options?.held) {
+      return options.held;
+    }
+
+    if (options?.permissions) {
+      return HeldPermissionsUtil.fromPermissions(options.permissions);
+    }
+
+    const rows: HeldPermissions = HeldPermissionsUtil.fromRows({
+      rows: PermissionUtil.getProjectPermissions()?.permissions || [],
+    });
+
+    const allowed: Array<Permission> = [
+      ...new Set(PermissionUtil.getAllPermissions() || []),
+    ].filter((permission: Permission): boolean => {
+      return !rows.blocked.includes(permission);
+    });
+
+    return {
+      allowed: allowed,
+      allowedProjectWide: allowed.filter((permission: Permission): boolean => {
+        // Held without a project row (globally) reaches the whole project.
+        return (
+          !rows.allowed.includes(permission) ||
+          rows.allowedProjectWide.includes(permission)
+        );
+      }),
+      blocked: rows.blocked,
+      blockedForSomeLabels: rows.blockedForSomeLabels,
+    };
+  }
+
+  /*
+   * Whether the permission snapshot has landed - it arrives on an API
+   * response header, so it is empty for the first paint after a fresh login
+   * and for a moment after the project is switched. Until it lands there is
+   * nothing honest to say about what the user may do. Always true for a
+   * master admin, who may do everything.
+   */
+  public static hasPermissionSnapshot(
+    options?: PermissionGateOptions | undefined,
+  ): boolean {
+    return (
+      User.isMasterAdmin() || this.isLoaded(this.getHeldPermissions(options))
+    );
+  }
+
+  /*
+   * Whether `held` is a snapshot at all (HeldPermissionsUtil.isLoaded):
+   * anything in it, a block included - a member whose every row is a block
+   * has a snapshot, and it refuses. An empty one has not landed yet.
+   */
+  private static isLoaded(held: HeldPermissions): boolean {
+    return HeldPermissionsUtil.isLoaded(held);
+  }
+
+  /*
+   * Whether the user holds one of `permissions`: an allow row for one of
+   * them (or for `options.wildcard`) and no block with no labels on any of
+   * them. A master admin holds everything; before the snapshot has loaded
+   * nobody holds anything. For anything that is not a model operation - a
+   * custom route's permission list, a role check.
+   */
+  public static holdsAnyOf(
+    permissions: ReadonlyArray<Permission>,
+    options?: PermissionGateOptions | undefined,
+  ): boolean {
+    if (User.isMasterAdmin()) {
+      return true;
+    }
+
+    return HeldPermissionsUtil.holdsAnyOf(
+      this.getHeldPermissions(options),
+      permissions,
+      options,
+    );
+  }
+
   public static check(
     model: PermissionCheckableModel,
     action: ModelAction,
@@ -155,9 +291,6 @@ export default class PermissionGate {
     if (User.isMasterAdmin()) {
       return { isAllowed: true };
     }
-
-    const userPermissions: Array<Permission> =
-      options?.permissions ?? PermissionUtil.getAllPermissions();
 
     const modelPermissions: Array<Permission> = this.getModelPermissions(
       model,
@@ -174,24 +307,63 @@ export default class PermissionGate {
       return { isAllowed: false };
     }
 
+    const held: HeldPermissions = this.getHeldPermissions(options);
+
     /*
      * The permission snapshot arrives on a response header, so it is empty for
      * the first paint after a fresh login and for a moment after the project is
      * switched. Telling somebody they need a permission they actually hold is
      * worse than briefly not offering the button, so this case stays hidden.
      */
-    if (userPermissions.length === 0) {
+    if (!this.isLoaded(held)) {
       return { isAllowed: false };
     }
 
-    if (this.hasPermission(model, action, userPermissions)) {
+    /*
+     * The server widens a model's declared permissions with the matching
+     * *AllOperationalResources wildcard for anything marked
+     * @OperationalResource (TablePermission, and its analytics twin). Without
+     * the same step here, somebody granted "Edit All Operational Resources" -
+     * and nothing else - was told by every gate in the UI that they could not
+     * edit a monitor, an incident or a dashboard, while the API happily
+     * accepted the write. The gate must not be stricter than the endpoint it
+     * is standing in front of - nor, with a team's block, looser.
+     */
+    if (this.snapshotAllows(model, action, { ...options, held: held })) {
       return { isAllowed: true };
     }
 
     return {
       isAllowed: false,
-      disabledReason: this.getMissingPermissionMessage(model, action, options),
+      disabledReason: this.buildMissingPermissionMessage({
+        singularName: options?.singularName || model.singularName || "item",
+        verb: (options?.verb?.trim() || action).toLowerCase(),
+        permissions: modelPermissions,
+        held: held,
+      }),
     };
+  }
+
+  /*
+   * Whether the permission snapshot itself allows a model operation - the
+   * rule check applies, without its master-admin short circuit: one of the
+   * model's permissions (or its operational-resource wildcard) held, and no
+   * block with no labels on any of them. For a caller whose layout must not
+   * change for a master admin (the table's auto-added bulk Delete).
+   */
+  public static snapshotAllows(
+    model: PermissionCheckableModel,
+    action: ModelAction,
+    options?: PermissionGateOptions | undefined,
+  ): boolean {
+    return HeldPermissionsUtil.holdsModelPermission(
+      this.getHeldPermissions(options),
+      {
+        isOperationalResource: model.isOperationalResource,
+        operation: action,
+        modelPermissions: this.getModelPermissions(model, action),
+      },
+    );
   }
 
   /*
@@ -201,9 +373,8 @@ export default class PermissionGate {
    * to as well (ColumnPermission refuses a column the user's permissions do
    * not cover, whatever the table allows). Many columns are narrower than
    * their table: a project's settings columns leave out Manage Billing, and
-   * a monitor's "Disable Monitoring" lists Create Project Monitor where the
-   * table lists Edit Project Monitor. Gated on the table alone, such a
-   * control works until the save, which the server then refuses.
+   * its billing columns leave out Edit Project. Gated on the table alone,
+   * such a control works until the save, which the server then refuses.
    *
    * Like check, it never accuses on an empty permission snapshot: it then
    * answers what the record's gate answered (which, on its own, is "not
@@ -229,18 +400,19 @@ export default class PermissionGate {
     const columnPermissions: Array<Permission> =
       model.getColumnAccessControlForAllColumns()[columnName]?.update || [];
 
-    const userPermissions: Array<Permission> =
-      options?.permissions ?? PermissionUtil.getAllPermissions();
+    const held: HeldPermissions = this.getHeldPermissions(options);
 
-    if (columnPermissions.length === 0 || userPermissions.length === 0) {
+    if (columnPermissions.length === 0 || !this.isLoaded(held)) {
       return recordGate;
     }
 
     if (
-      PermissionHelper.doesPermissionsIntersect(
-        userPermissions,
-        columnPermissions,
-      )
+      HeldPermissionsUtil.holdsColumnPermission(held, {
+        isOperationalResource: model.isOperationalResource,
+        operation: "update",
+        tablePermissions: this.getTablePermissions(model, "update"),
+        columnPermissions: columnPermissions,
+      })
     ) {
       return recordGate;
     }
@@ -251,6 +423,170 @@ export default class PermissionGate {
         singularName: options?.singularName || model.singularName || "item",
         verb: (options?.verb?.trim() || ModelAction.Update).toLowerCase(),
         permissions: columnPermissions,
+        held: held,
+      }),
+    };
+  }
+
+  /*
+   * Whether an edit form over a record may be offered: the record's own
+   * update gate (check), and then at least one of the form's columns. The
+   * form leaves out every field its viewer may not update (ModelForm weighs
+   * each by holdsColumnPermission), so a form none of whose columns the
+   * viewer may change opens empty and saves nothing. Many records' columns
+   * are narrower than the record: a project's name is for its owners,
+   * Manage Billing and Edit Project, its retention settings for owners and
+   * admins, its notification channels for owners, Billing Admins and Manage
+   * Billing - while the Project's own list lets in all of them.
+   *
+   * Refused that way, the reason names every permission that would open at
+   * least one of the columns. A form with a field that is not a plain
+   * column (getFormUpdateColumns answers null) is left to the record gate,
+   * and the server checks what is written. Like check, it never accuses
+   * anyone before the permission snapshot has landed.
+   */
+  public static checkFormUpdate(
+    model: PermissionCheckableModel & ColumnPermissionCheckableModel,
+    fields: ReadonlyArray<PermissionCheckableFormField> | undefined,
+    options?: PermissionGateOptions | undefined,
+  ): PermissionGateResult {
+    const recordGate: PermissionGateResult = this.check(
+      model,
+      ModelAction.Update,
+      options,
+    );
+
+    if (!recordGate.isAllowed || User.isMasterAdmin()) {
+      return recordGate;
+    }
+
+    const columns: Array<string> | null = this.getFormUpdateColumns(fields);
+
+    if (!columns || columns.length === 0) {
+      return recordGate;
+    }
+
+    const held: HeldPermissions = this.getHeldPermissions(options);
+
+    if (!this.isLoaded(held)) {
+      return recordGate;
+    }
+
+    const mayChangeOne: boolean = columns.some((column: string): boolean => {
+      return this.holdsColumnPermission(model, column, "update", {
+        ...options,
+        held: held,
+      });
+    });
+
+    if (mayChangeOne) {
+      return recordGate;
+    }
+
+    const opening: Array<Permission> = [];
+
+    for (const column of columns) {
+      for (const permission of model.getColumnAccessControlForAllColumns()[
+        column
+      ]?.update || []) {
+        if (!opening.includes(permission)) {
+          opening.push(permission);
+        }
+      }
+    }
+
+    return {
+      isAllowed: false,
+      disabledReason: this.buildMissingPermissionMessage({
+        singularName: options?.singularName || model.singularName || "item",
+        verb: (options?.verb?.trim() || ModelAction.Update).toLowerCase(),
+        permissions: opening,
+        held: held,
+      }),
+    };
+  }
+
+  /*
+   * The model columns an edit form writes, as ModelForm weighs them: the
+   * key of each field's `field`. Null when a field is anything else - a
+   * people picker, an overridden key, a field without a column, or one
+   * shown whatever the permission - so the form cannot be judged by its
+   * columns alone.
+   */
+  public static getFormUpdateColumns(
+    fields: ReadonlyArray<PermissionCheckableFormField> | undefined,
+  ): Array<string> | null {
+    const columns: Array<string> = [];
+
+    for (const field of fields || []) {
+      if (
+        field.peoplePicker ||
+        field.overrideField ||
+        field.showEvenIfPermissionDoesNotExist ||
+        !field.field
+      ) {
+        return null;
+      }
+
+      const keys: Array<string> = Object.keys(field.field);
+
+      if (keys.length !== 1) {
+        return null;
+      }
+
+      if (!columns.includes(keys[0]!)) {
+        columns.push(keys[0]!);
+      }
+    }
+
+    return columns;
+  }
+
+  /*
+   * A gate over a list somebody chose by hand rather than a model's own - a
+   * custom route's permission list, such as who may run a workflow
+   * (Types/Workflow/WorkflowRunPermissions) - read by the rule check follows:
+   * an allow row for one of `permissions` (or for `options.wildcard`, when
+   * the list is an operational resource's own) and no block with no labels
+   * on any of them. A master admin is allowed; nobody is told they lack a
+   * permission before the snapshot has landed.
+   *
+   * Refused, the reason is `sentence` - a whole sentence saying what the
+   * user may not do, looked up as one translation key - followed by the
+   * permissions that would let them, or by the team block that stops them,
+   * as check words its own.
+   */
+  public static checkPermissions(
+    permissions: ReadonlyArray<Permission>,
+    options: PermissionGateOptions & { sentence: string },
+  ): PermissionGateResult {
+    if (User.isMasterAdmin()) {
+      return { isAllowed: true };
+    }
+
+    if (permissions.length === 0) {
+      return { isAllowed: false };
+    }
+
+    const held: HeldPermissions = this.getHeldPermissions(options);
+
+    if (!this.isLoaded(held)) {
+      return { isAllowed: false };
+    }
+
+    if (HeldPermissionsUtil.holdsAnyOf(held, permissions, options)) {
+      return { isAllowed: true };
+    }
+
+    const translator: Translator = getGlobalTranslator();
+
+    return {
+      isAllowed: false,
+      disabledReason: this.appendPermissionsToSentence({
+        sentence:
+          translator.translateText(options.sentence) || options.sentence,
+        permissions: [...permissions],
+        held: held,
       }),
     };
   }
@@ -269,22 +605,23 @@ export default class PermissionGate {
       singularName: options?.singularName || model.singularName || "item",
       verb: (options?.verb?.trim() || action).toLowerCase(),
       permissions: this.getModelPermissions(model, action),
+      held: this.getHeldPermissions(options),
     });
   }
 
   /*
-   * "You do not have permission to <verb> this <item>." and, when there are
-   * permissions to name, "You need one of these permissions: ...".
+   * "You do not have permission to <verb> this <item>." and, when a team's
+   * block is what refuses, "A team you are on blocks ..."; otherwise, when
+   * there are permissions to name, "You need one of these permissions: ...".
    */
   private static buildMissingPermissionMessage(data: {
     singularName: string;
     verb: string;
     permissions: Array<Permission>;
+    held: HeldPermissions;
   }): string {
     const singularName: string = data.singularName;
     const verb: string = data.verb;
-
-    const titles: Array<string> = this.getPermissionTitles(data.permissions);
 
     const translator: Translator = getGlobalTranslator();
     const template: string | undefined = MISSING_PERMISSION_TEMPLATES[verb];
@@ -301,18 +638,60 @@ export default class PermissionGate {
           },
         );
 
-    if (titles.length === 0) {
+    return this.appendPermissionsToSentence({
+      sentence: sentence,
+      permissions: data.permissions,
+      held: data.held,
+    });
+  }
+
+  /*
+   * A refusal's first sentence, already in the reader's language, then -
+   * when a team's block is what refuses - "A team you are on blocks ...";
+   * otherwise, when there are permissions to name, "You need one of these
+   * permissions: ...".
+   */
+  private static appendPermissionsToSentence(data: {
+    sentence: string;
+    permissions: Array<Permission>;
+    held: HeldPermissions;
+  }): string {
+    const sentence: string = data.sentence;
+    const translator: Translator = getGlobalTranslator();
+
+    const translateTitles: (permissions: Array<Permission>) => string = (
+      permissions: Array<Permission>,
+    ): string => {
+      return this.getPermissionTitles(permissions)
+        .map((title: string): string => {
+          return translator.translateText(title) || title;
+        })
+        .join(", ");
+    };
+
+    const blockedPermissions: Array<Permission> = data.permissions.filter(
+      (permission: Permission): boolean => {
+        return data.held.blocked.includes(permission);
+      },
+    );
+
+    if (blockedPermissions.length > 0) {
+      return `${sentence} ${translator.translateTemplate(
+        BLOCKED_PERMISSION_TEMPLATE,
+        {
+          permissions: translateTitles(blockedPermissions),
+        },
+      )}`;
+    }
+
+    if (this.getPermissionTitles(data.permissions).length === 0) {
       return sentence;
     }
 
     return `${sentence} ${translator.translateTemplate(
       "You need one of these permissions: {{permissions}}.",
       {
-        permissions: titles
-          .map((title: string): string => {
-            return translator.translateText(title) || title;
-          })
-          .join(", "),
+        permissions: translateTitles(data.permissions),
       },
     )}`;
   }
@@ -357,79 +736,25 @@ export default class PermissionGate {
     return titles;
   }
 
-  private static hasPermission(
-    model: PermissionCheckableModel,
-    action: ModelAction,
-    userPermissions: Array<Permission>,
-  ): boolean {
-    if (this.hasDeclaredPermission(model, action, userPermissions)) {
-      return true;
-    }
-
-    /*
-     * The server widens a model's declared permissions with the matching
-     * *AllOperationalResources wildcard for anything marked
-     * @OperationalResource (TablePermission.getEffectiveModelPermissions, and
-     * its analytics twin). Without the same step here, somebody granted
-     * "Edit All Operational Resources" - and nothing else - was told by every
-     * gate in the UI that they could not edit a monitor, an incident or a
-     * dashboard, while the API happily accepted the write. The gate must not
-     * be stricter than the endpoint it is standing in front of.
-     */
-    const wildcard: Permission | null = this.getOperationalWildcard(
-      model,
-      action,
-    );
-
-    return Boolean(wildcard && userPermissions.includes(wildcard));
-  }
-
-  private static hasDeclaredPermission(
-    model: PermissionCheckableModel,
-    action: ModelAction,
-    userPermissions: Array<Permission>,
-  ): boolean {
-    switch (action) {
-      case ModelAction.Create:
-        return model.hasCreatePermissions(userPermissions);
-      case ModelAction.Read:
-        return model.hasReadPermissions(userPermissions);
-      case ModelAction.Update:
-        return model.hasUpdatePermissions(userPermissions);
-      case ModelAction.Delete:
-        return model.hasDeletePermissions(userPermissions);
-      default:
-        return false;
-    }
-  }
-
   /*
-   * The wildcard that covers this operation on this model, or null when the
-   * model is not an operational resource. Kept out of getModelPermissions on
-   * purpose: that list is what the "you need one of these permissions"
-   * sentence is built from, and the server names only the model's own
-   * permissions there too.
+   * The table's own list for an operation, which decides whether a column
+   * that lets in everyone it does accepts the table's operational-resource
+   * wildcard (HeldPermissionsUtil.getColumnWildcard), as the server's column
+   * check reads it.
    */
-  private static getOperationalWildcard(
-    model: PermissionCheckableModel,
-    action: ModelAction,
-  ): Permission | null {
-    if (!model.isOperationalResource) {
-      return null;
+  private static getTablePermissions(
+    model: ColumnPermissionCheckableModel,
+    operation: ColumnOperation,
+  ): Array<Permission> {
+    if (operation === "create") {
+      return model.getCreatePermissions?.() || [];
     }
 
-    switch (action) {
-      case ModelAction.Create:
-        return Permission.CreateAllOperationalResources;
-      case ModelAction.Read:
-        return Permission.ReadAllOperationalResources;
-      case ModelAction.Update:
-        return Permission.EditAllOperationalResources;
-      case ModelAction.Delete:
-        return Permission.DeleteAllOperationalResources;
-      default:
-        return null;
+    if (operation === "read") {
+      return model.getReadPermissions?.() || [];
     }
+
+    return model.getUpdatePermissions?.() || [];
   }
 
   /*
@@ -470,23 +795,30 @@ export default class PermissionGate {
   }
 
   /*
-   * Whether the signed-in user may SELECT a column.
+   * Whether the signed-in user may SELECT a column - the one rule every
+   * table, detail, form and page asks before building a select.
    *
    * Column access control is enforced differently from record access control:
    * asking for a column you cannot read is not degraded, it is fatal.
-   * ColumnPermission throws `User is not allowed to read on <column> column of
-   * <model>` and the whole request fails, so one unreadable field in a select
-   * takes down the entire page rather than blanking one value. That is why
-   * ModelAction has no column-level members (see the comment on the enum) and
-   * why callers must ask this BEFORE building the select, not after.
+   * SelectPermission refuses the whole request for one column the caller may
+   * not read, so one unreadable field in a select takes down the entire page
+   * rather than blanking one value. That is why ModelAction has no
+   * column-level members (see the comment on the enum) and why callers must
+   * ask this BEFORE building the select, not after.
+   *
+   * Asked the way the server asks it (HeldPermissionsUtil.canSelectColumn):
+   * a column the server never checks (_id, createdAt, updatedAt, deletedAt,
+   * version) when the model declares no read rule for it - a database model
+   * gives them its own read list, which is then followed - and any other
+   * column by holdsColumnPermission: one of its read permissions held,
+   * Public by everyone, no block with no labels on any of them, the table's
+   * wildcard for a column that admits everyone its table does, and a column
+   * that declares no read permission closed, as the server closes it.
    *
    * Deliberately fails closed. When the permission snapshot has not landed yet
-   * this returns false and the caller omits the field: the page renders
-   * without that one value, which is recoverable. Failing open would send the
+   * only Public is held and the caller omits the rest: the page renders
+   * without those values, which is recoverable. Failing open would send the
    * column anyway and hard-fail the request, which is not.
-   *
-   * A column with no declared read ACL is readable - there is nothing to
-   * enforce, and ColumnPermission agrees.
    */
   public static canReadColumn(
     model: ColumnPermissionCheckableModel,
@@ -497,21 +829,75 @@ export default class PermissionGate {
       return true;
     }
 
-    const accessControl: ColumnAccessControl | undefined =
-      model.getColumnAccessControlForAllColumns()[columnName];
+    return HeldPermissionsUtil.canSelectColumn(
+      this.getHeldPermissions(options),
+      {
+        column: columnName,
+        isOperationalResource: model.isOperationalResource,
+        tablePermissions: this.getTablePermissions(model, "read"),
+        readPermissions:
+          model.getColumnAccessControlForAllColumns()[columnName]?.read,
+      },
+    );
+  }
 
-    const columnPermissions: Array<Permission> = accessControl?.read || [];
-
-    if (columnPermissions.length === 0) {
+  /*
+   * Whether the user may read, create or update one column, exactly as the
+   * server's column check decides it (HeldPermissionsUtil
+   * .holdsColumnPermission, which ColumnPermission asks too): an allow row
+   * for one of the column's permissions for the operation - Public counts
+   * for everyone, as the server adds it - no block with no labels on any of
+   * them, and the table's wildcard for a column that admits everyone its
+   * table does. A column that names no permission for the operation is
+   * closed to everyone. Before the snapshot has loaded only Public is held -
+   * a public form still shows its fields to a visitor - so a caller that
+   * wants the server to decide until then asks hasPermissionSnapshot first.
+   * A select asks canReadColumn, which adds the columns every select may
+   * name.
+   */
+  public static holdsColumnPermission(
+    model: ColumnPermissionCheckableModel,
+    columnName: string,
+    operation: ColumnOperation,
+    options?: PermissionGateOptions | undefined,
+  ): boolean {
+    if (User.isMasterAdmin()) {
       return true;
     }
 
-    const userPermissions: Array<Permission> =
-      options?.permissions ?? PermissionUtil.getAllPermissions();
+    const columnPermissions: Array<Permission> =
+      model.getColumnAccessControlForAllColumns()[columnName]?.[operation] ||
+      [];
 
-    return PermissionHelper.doesPermissionsIntersect(
-      userPermissions,
-      columnPermissions,
+    return HeldPermissionsUtil.holdsColumnPermission(
+      this.getHeldPermissions(options),
+      {
+        isOperationalResource: model.isOperationalResource,
+        operation: operation,
+        tablePermissions: this.getTablePermissions(model, operation),
+        columnPermissions: columnPermissions,
+      },
+    );
+  }
+
+  /*
+   * Whether a form can offer a picker for a relation column: the user may
+   * read the column (the picked record is shown and saved through it) AND
+   * may list the records the picker offers, which takes reading that other
+   * model. A column is read with its own record's permission, so reading it
+   * does not mean the picker's list may be read: offered to somebody who may
+   * not list the related records, the picker's request is refused and the
+   * field can never be filled. Fails closed like canReadColumn.
+   */
+  public static canPickRelation(
+    model: ColumnPermissionCheckableModel,
+    columnName: string,
+    relatedModel: PermissionCheckableModel,
+    options?: PermissionGateOptions | undefined,
+  ): boolean {
+    return (
+      this.canReadColumn(model, columnName, options) &&
+      this.check(relatedModel, ModelAction.Read, options).isAllowed
     );
   }
 

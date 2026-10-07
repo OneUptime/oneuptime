@@ -162,30 +162,30 @@ Las reglas de escalado deciden a quién se llama cuando alguien marca el número
 3. Haz clic en **Añadir regla de escalado**
 4. Completa la regla. Es un solo paso:
    - **A quién llamar**: una programación de guardia o una persona. Una programación hace sonar el teléfono de quien esté de guardia en ella cuando llega la llamada. Las personas son los miembros de tu proyecto.
-   - **Duración del timbre (en segundos)**: cuánto tiempo suena su teléfono antes de que la llamada pase a la siguiente regla. Empieza en 30 segundos, y Twilio acepta de 5 a 600.
+   - **Duración del timbre (en segundos)**: cuánto tiempo suena su teléfono antes de que la llamada pase a la siguiente regla. Empieza en 20 segundos, y Twilio acepta de 5 a 600.
    - **Nombre** y **Descripción** son opcionales y están en **Más campos**. Una regla sin nombre se muestra según su lugar en la lista: **Level 1**, **Level 2**.
 5. Guárdala y añade una regla por cada programación o persona que se deba probar después
 
 Las reglas se llaman de arriba abajo en la lista, y una regla nueva se añade al final. Para cambiar el orden, arrastra una regla por el asa de su esquina superior izquierda; con el teclado, enfoca el asa, pulsa Espacio, muévela con las flechas y vuelve a pulsar Espacio.
 
-> **Ojo con el buzón de voz**: mantén la **Duración del timbre** por debajo del tiempo que tarda el teléfono de la persona en enviar una llamada no contestada al buzón de voz. Si el buzón contesta antes, quien llama queda conectado a él y la llamada no pasa a la siguiente regla. Twilio añade unos segundos propios a cada timbre.
+> **Ojo con el buzón de voz**: mantén la **Duración del timbre** por debajo del tiempo que tarda el teléfono de la persona en enviar una llamada no contestada al buzón de voz. Si el buzón contesta antes, quien llama queda conectado a él y la llamada no pasa a la siguiente regla. Twilio añade unos segundos propios a cada timbre. Por eso una regla nueva empieza en 20 segundos. Las reglas añadidas cuando el valor predeterminado era de 30 segundos conservan sus 30: si sus llamadas acaban en el buzón de voz, baja la **Duración del timbre** de esas reglas.
 
 ### Ejemplo de regla de escalada
 
 ```mermaid
 flowchart TD
     subgraph "Cadena de escalada"
-        A[Level 1: Programación de guardia principal<br/>Sonar 30 segundos] --> B[Level 2: Programación de guardia secundaria<br/>Sonar 30 segundos]
-        B --> C[Level 3: Responsable de ingeniería<br/>Sonar 30 segundos]
+        A[Level 1: Programación de guardia principal<br/>Sonar 20 segundos] --> B[Level 2: Programación de guardia secundaria<br/>Sonar 20 segundos]
+        B --> C[Level 3: Responsable de ingeniería<br/>Sonar 20 segundos]
         C --> D[Mensaje sin respuesta]
     end
 ```
 
 | Nivel   | A quién llamar                          | Duración del timbre |
 | ------- | --------------------------------------- | ------------------- |
-| Level 1 | Programación de guardia principal       | 30 segundos         |
-| Level 2 | Programación de guardia secundaria      | 30 segundos         |
-| Level 3 | Responsable de ingeniería (una persona) | 30 segundos         |
+| Level 1 | Programación de guardia principal       | 20 segundos         |
+| Level 2 | Programación de guardia secundaria      | 20 segundos         |
+| Level 3 | Responsable de ingeniería (una persona) | 20 segundos         |
 
 ## Paso 7: Configurar mensajes de voz (opcional)
 
@@ -215,11 +215,11 @@ Personaliza los mensajes que escuchan los llamantes:
 | Ajuste                            | Descripción                                                                                                                                                       |
 | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | A quién llamar                    | Una programación de guardia, que llama a quien esté de guardia en ella, o una persona. Cada regla llama a una de ellas                                            |
-| Duración del timbre (en segundos) | Cuánto tiempo suena el teléfono antes de que la llamada pase a la siguiente regla (predeterminado: 30; de 5 a 600)                                               |
+| Duración del timbre (en segundos) | Cuánto tiempo suena el teléfono antes de que la llamada pase a la siguiente regla (predeterminado: 20; de 5 a 600)                                               |
 | Nombre y Descripción              | Opcionales, en Más campos. Una regla sin nombre se muestra como Level 1, Level 2, etc., según su lugar en la lista                                                 |
 | Orden                             | El lugar de la regla en la lista: las reglas se llaman de arriba abajo. Se cambia arrastrando las reglas; mediante la API, una regla nueva sin orden va al final |
 
-Mediante la API, una regla indica `onCallDutyPolicyScheduleId` o `userId` (uno de los dos, nunca ambos) y `escalateAfterSeconds`: la duración del timbre, 30 si se omite.
+Mediante la API, una regla indica `onCallDutyPolicyScheduleId` o `userId` (uno de los dos, nunca ambos) y `escalateAfterSeconds`: la duración del timbre, 20 si se omite.
 
 ## Ver registros de llamadas
 
@@ -246,6 +246,8 @@ Para que los usuarios puedan recibir llamadas entrantes, deben tener un número 
 3. Verifican el número de teléfono mediante código SMS
 
 Solo los usuarios con números de teléfono verificados pueden ser contactados a través de las reglas de escalada.
+
+Los números para llamadas entrantes se verifican por SMS, así que primero el proyecto debe tener **SMS** encendido. Un propietario del proyecto o alguien con **Billing Admin** o **Manage Billing** lo enciende en la tarjeta **Canales de notificación** de **Ajustes del proyecto > Notificaciones > Ajustes de Notificación**.
 
 ## Liberar un número de teléfono
 

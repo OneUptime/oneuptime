@@ -15,6 +15,9 @@ import Permission, {
   PermissionHelper,
   UserPermission,
 } from "../../../../Types/Permission";
+import HeldPermissionsUtil, {
+  HeldPermissions,
+} from "../../../../Types/HeldPermissions";
 
 export default class TablePermission {
   @CaptureSpan()
@@ -44,17 +47,29 @@ export default class TablePermission {
     return modelPermissions;
   }
 
+  /*
+   * `updateData` is what an update writes, for the plan check: below a
+   * table's update plan, an update that only switches records off is still
+   * allowed, and only the data shows whether it does (BillingPermission).
+   * Without it, such an update is refused.
+   */
   @CaptureSpan()
   public static checkTableLevelPermissions(
     modelType: DatabaseBaseModelType,
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
+    updateData?: unknown,
   ): void {
     // 1 CHECK: PUBLIC check -- Check if this is a public request and if public is allowed.
     PublicPermission.checkIfUserIsLoggedIn(modelType, props, type);
 
-    // 2nd CHECK: Is user project in active state?
-    BillingPermissions.checkBillingPermissions(modelType, props, type);
+    // 2nd CHECK: Is user project in active state, and on the plan this needs?
+    BillingPermissions.checkBillingPermissions(
+      modelType,
+      props,
+      type,
+      type === DatabaseRequestType.Update ? updateData : undefined,
+    );
 
     /*
      * 3rd CHECK: Is this a create of enterprise configuration that the
@@ -69,29 +84,20 @@ export default class TablePermission {
       EditionPermissions.checkEditionPermissions(modelType, props, type);
     }
 
-    // 4th CHECK: Does user have access to CRUD data on this model.
-    const userPermissions: Array<UserPermission> =
-      DatabaseCommonInteractionPropsUtil.getUserPermissions(
-        props,
-        PermissionType.Allow,
-      );
-
+    /*
+     * 4th CHECK: Does user have access to CRUD data on this model - an allow
+     * row for one of its permissions, or for the operational-resource
+     * wildcard (HeldPermissionsUtil). Blocks are refused in a step of their
+     * own (checkTableLevelBlockPermissions).
+     */
     const modelPermissions: Array<Permission> =
       TablePermission.getTablePermission(modelType, type);
 
-    const effectiveModelPermissions: Array<Permission> =
-      TablePermission.getEffectiveModelPermissions(
-        modelType,
-        modelPermissions,
-        type,
-      );
-
     if (
-      !PermissionHelper.doesPermissionsIntersect(
-        userPermissions.map((userPermission: UserPermission) => {
-          return userPermission.permission;
-        }) || [],
-        effectiveModelPermissions,
+      !HeldPermissionsUtil.isGrantedAny(
+        TablePermission.getHeldPermissions(props),
+        modelPermissions,
+        { wildcard: TablePermission.getModelWildcard(modelType, type) },
       )
     ) {
       const permissions: Array<string> =
@@ -112,48 +118,54 @@ export default class TablePermission {
   }
 
   /*
-   * Resolves the model's enumerated permissions plus any wildcards that should
-   * grant access. See Internal/Docs/PermissionsSimplification.md.
-   *
-   * Operational-resource wildcard: models marked @OperationalResource also
-   * accept the matching *AllOperationalResources wildcard (ReadAllOperationalResources for read,
-   * EditAllOperationalResources for update, etc.). Scope (All/Owned/Labels) on the
-   * permission row is evaluated in a later step, not here.
+   * What the caller holds, read as the CRUD path reads it: the allow rows
+   * and global permissions (Public among them for everyone) and the block
+   * rows (DatabaseCommonInteractionPropsUtil.getPermissionRows).
    */
-  private static getEffectiveModelPermissions(
-    modelType: DatabaseBaseModelType,
-    modelPermissions: Array<Permission>,
-    type: DatabaseRequestType,
-  ): Array<Permission> {
-    const effective: Array<Permission> = [...modelPermissions];
-
-    const model: BaseModel = new modelType();
-    if (model.isOperationalResource) {
-      const wildcard: Permission | null =
-        TablePermission.getWildcardPermissionForOperation(type);
-      if (wildcard && !effective.includes(wildcard)) {
-        effective.push(wildcard);
-      }
-    }
-
-    return effective;
+  public static getHeldPermissions(
+    props: DatabaseCommonInteractionProps,
+  ): HeldPermissions {
+    return HeldPermissionsUtil.fromRows({
+      rows: DatabaseCommonInteractionPropsUtil.getPermissionRows(props),
+    });
   }
 
-  private static getWildcardPermissionForOperation(
+  /*
+   * The *AllOperationalResources wildcard an operation on the model accepts
+   * as well (ReadAllOperationalResources for read, EditAllOperationalResources
+   * for update, ...): models marked @OperationalResource only. Scope
+   * (All/Owned/Labels) on the permission row is evaluated in a later step,
+   * not here.
+   */
+  public static getModelWildcard(
+    modelType: DatabaseBaseModelType,
     type: DatabaseRequestType,
   ): Permission | null {
-    switch (type) {
-      case DatabaseRequestType.Read:
-        return Permission.ReadAllOperationalResources;
-      case DatabaseRequestType.Update:
-        return Permission.EditAllOperationalResources;
-      case DatabaseRequestType.Delete:
-        return Permission.DeleteAllOperationalResources;
-      case DatabaseRequestType.Create:
-        return Permission.CreateAllOperationalResources;
-      default:
-        return null;
-    }
+    return HeldPermissionsUtil.getModelWildcard({
+      isOperationalResource: new modelType().isOperationalResource,
+      operation: type,
+    });
+  }
+
+  /*
+   * The permissions whose allow rows grant this operation
+   * (HeldPermissionsUtil.getGrantingPermissions): the model's own list, and
+   * its wildcard unless a block with no labels takes the wildcard away or
+   * the list is empty (nobody may do the operation). For a later step that
+   * weighs the scope of the rows that grant (OwnedScopePermission).
+   */
+  public static getGrantingPermissions(
+    modelType: DatabaseBaseModelType,
+    type: DatabaseRequestType,
+    props: DatabaseCommonInteractionProps,
+  ): Array<Permission> {
+    return HeldPermissionsUtil.getGrantingPermissions(
+      TablePermission.getHeldPermissions(props),
+      {
+        modelPermissions: TablePermission.getTablePermission(modelType, type),
+        wildcard: TablePermission.getModelWildcard(modelType, type),
+      },
+    );
   }
 
   @CaptureSpan()

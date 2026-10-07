@@ -19,6 +19,10 @@ If you are using **OneUptime SaaS** (cloud-hosted version), you can use the **Gl
 
 If you prefer to use your own API keys or a specific provider, you can still configure a custom LLM Provider following the instructions below.
 
+The Global LLM Provider is paid from the project's AI credits. To cap what AI may spend each day, set a **Daily AI Spend Limit (USD)** under **Project Settings → AI Features → More settings**; a **Daily AI Token Limit** there caps tokens on any provider, your own included. See [the project's own daily limits](/docs/ai/ai-sre#the-projects-own-daily-limits).
+
+OneUptime SaaS can only reach LLM endpoints on the public internet. It cannot connect to a model on your private network, such as a self-hosted Ollama or vLLM server. To use a model you run yourself, self-host OneUptime on a network that can reach it, or expose the model at a public endpoint — see [Choosing a Base URL for a Self-Hosted Model](#choosing-a-base-url-for-a-self-hosted-model).
+
 ## Self-Hosted: Zero-Config via Environment Variables
 
 On a self-hosted instance, the fastest way to enable AI features for **every project at once** is to set the `GLOBAL_LLM_PROVIDER_*` environment variables on your OneUptime server — in `config.env` for Docker Compose, or through Helm values. At startup, OneUptime registers (and keeps in sync) a Global LLM Provider from them; no per-project dashboard setup is needed, and AI fix tasks use it too when a project has no provider of its own.
@@ -31,11 +35,13 @@ On a self-hosted instance, the fastest way to enable AI features for **every pro
 | `GLOBAL_LLM_PROVIDER_MODEL_NAME` | Model to use (required for OpenAI-compatible servers, recommended elsewhere)                                       |
 | `GLOBAL_LLM_PROVIDER_NAME`       | Optional friendly name shown in the dashboard                                                                      |
 
-**Example: local Ollama**
+**Example: self-hosted Ollama**
 
 ```bash
 GLOBAL_LLM_PROVIDER_TYPE=Ollama
-GLOBAL_LLM_PROVIDER_BASE_URL=http://your-ollama-host:11434
+# An address the OneUptime server can reach. Never localhost: see
+# "Choosing a Base URL for a Self-Hosted Model" below.
+GLOBAL_LLM_PROVIDER_BASE_URL=http://ollama:11434
 GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
 # No API key needed — Ollama is keyless.
 ```
@@ -129,19 +135,27 @@ Ollama allows you to run open-source LLMs locally or on your own infrastructure.
 
 1. Install Ollama from [ollama.ai](https://ollama.ai)
 2. Pull your desired model: `ollama pull llama3.1`
-3. Ensure Ollama is running and accessible
+3. Ensure Ollama is running and reachable from the OneUptime server. A native install listens on `127.0.0.1` only, so start it with `OLLAMA_HOST=0.0.0.0:11434` to accept connections from other machines and containers (the official `ollama/ollama` Docker image already does this)
 4. Select **Ollama** as the LLM Provider
-5. Enter the Base URL (e.g., `http://localhost:11434`)
+5. Enter the Base URL: the Ollama server's address as the OneUptime server reaches it, such as `http://ollama:11434` (OneUptime adds `/api/chat` itself). `localhost` does not work — see [Choosing a Base URL for a Self-Hosted Model](#choosing-a-base-url-for-a-self-hosted-model)
 6. Enter the model name you pulled
 
-**Example Configuration:**
+**Example Configuration (Ollama as a service named `ollama` on OneUptime's Docker Compose network):**
 
 ```
-Name: Local Ollama
+Name: Self-Hosted Ollama
 LLM Provider: Ollama
-Base URL: http://localhost:11434
+Base URL: http://ollama:11434
 Model Name: llama3.1
 ```
+
+**Raise the context window.** Unless told otherwise, Ollama runs a model with a small context window (4,096 tokens on current releases, 2,048 on older ones) and silently cuts off whatever does not fit. OneUptime's AI features send their tool definitions with every request, and those alone can take several thousand tokens. When they are cut off, there is no error: the model just answers that it has no tool for the question. Set a larger `num_ctx` in the provider's **Additional Parameters**:
+
+```json
+{ "options": { "num_ctx": 16384 } }
+```
+
+OneUptime merges this `options` object into the options it sends to Ollama, so list only the settings you want to change. A larger context window needs more memory, so pick a size your model supports and your hardware can hold. To raise the default for every client instead, set `OLLAMA_CONTEXT_LENGTH` on the Ollama server. For a global provider registered from `GLOBAL_LLM_PROVIDER_*` variables, set **Additional Parameters** in the Admin Dashboard under **Settings** > **Global LLM Providers**; the startup sync leaves that field alone.
 
 **Popular Ollama Models:**
 
@@ -152,13 +166,34 @@ Model Name: llama3.1
 
 > Note: OneUptime's AI features are agentic — they rely heavily on tool calling. Use `llama3.1` or newer (or another tool-calling-capable model). Small models or models without tool-calling support (e.g. `llama2`, the original `llama3`) produce poor results: they cannot query your monitors, incidents, or telemetry, so investigations come back empty or hallucinated.
 
+### Choosing a Base URL for a Self-Hosted Model
+
+The Base URL of a self-hosted model — Ollama, vLLM, LM Studio, or any other OpenAI-compatible server — must be an address the **OneUptime server** can reach. Your browser never connects to it.
+
+**Loopback addresses are always refused.** Before connecting, OneUptime checks every address the Base URL's host name resolves to. `localhost`, `127.0.0.1`, `[::1]` and `0.0.0.0`, as well as link-local and cloud metadata addresses such as `169.254.169.254`, are refused in every deployment, self-hosted included. This is by design: a provider's Base URL must not be usable to reach services on the OneUptime server itself. Inside Docker Compose or Kubernetes, `localhost` would be the OneUptime container anyway, not the machine that runs your model.
+
+Use a private address or an internal host name instead:
+
+| Where the model server runs                                          | Base URL                                                                                                                                                   |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A service on OneUptime's Docker Compose network (`oneuptime`)        | The service name, e.g. `http://ollama:11434`                                                                                                               |
+| The same Kubernetes cluster as OneUptime                             | The Service DNS name, e.g. `http://ollama.<namespace>.svc.cluster.local:11434` — the same pattern as the [bundled vLLM](#self-hosted-vllm-on-kubernetes-helm) |
+| The host machine itself, outside any container                       | The host's LAN IP, e.g. `http://192.168.1.20:11434`, or `http://host.docker.internal:11434` on Docker Desktop                                              |
+| Another machine on your network                                      | Its private IP or internal host name, e.g. `http://10.0.0.12:11434`                                                                                        |
+
+OpenAI-compatible servers follow the same rules with their own port and `/v1` path, e.g. `http://vllm:8000/v1`, or `http://192.168.1.20:1234/v1` for LM Studio. Like a native Ollama install, LM Studio listens on `127.0.0.1` only until you turn on **Serve on Local Network** in its server settings.
+
+**Private addresses work on self-hosted installs.** A self-hosted OneUptime can reach private network addresses, such as `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10` and IPv6 `fc00::/7`, unless you set `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`, which refuses them the way OneUptime Cloud does. That setting does not apply to a Global LLM Provider, which an administrator configures (with the `GLOBAL_LLM_PROVIDER_*` variables or in the Admin Dashboard) rather than a project: it can still reach private addresses. Loopback and link-local addresses stay refused for every provider.
+
+**OneUptime Cloud (SaaS) cannot reach private networks.** It refuses private network addresses, and host names that resolve to them, for every LLM provider. To use a model that runs on your own infrastructure, either self-host OneUptime on a network that can reach it, or expose the model at a publicly reachable endpoint. Protect a public endpoint with an API key: the **Ollama** provider sends no credentials, while **OpenAI Compatible** sends the API Key as a bearer token (Ollama also serves an OpenAI-compatible API under `/v1`, so it can sit behind a reverse proxy that checks the key).
+
 ### OpenAI Compatible (vLLM, LocalAI, LM Studio, etc.)
 
 Use the **OpenAI Compatible** provider for any server that implements the OpenAI `/chat/completions` API but is not OpenAI itself — for example [vLLM](https://docs.vllm.ai), [LocalAI](https://localai.io), [LM Studio](https://lmstudio.ai), or text-generation-webui. These are typically self-hosted at your own URL and often run without authentication.
 
 1. Start your OpenAI-compatible server and note its base URL (it usually ends in `/v1`)
 2. Select **OpenAI Compatible** as the LLM Provider
-3. Enter the **Base URL** (required), e.g. `http://your-server:8000/v1`
+3. Enter the **Base URL** (required), e.g. `http://your-server:8000/v1`. It must be reachable from the OneUptime server, so not `localhost` — see [Choosing a Base URL for a Self-Hosted Model](#choosing-a-base-url-for-a-self-hosted-model)
 4. Enter the **Model Name** (required) — it must match a model your server exposes
 5. Enter the **API Key** only if your server requires one; leave it blank for keyless servers
 
@@ -192,7 +227,7 @@ If you self-host OneUptime with the Helm chart, you can run [vLLM](https://docs.
 If you disabled auto-registration (`vllm.globalProvider.enabled: false`), create the provider manually:
 
 1. Select **OpenAI Compatible** as the LLM Provider (vLLM speaks the OpenAI API)
-2. Enter the in-cluster Base URL: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1`
+2. Enter the in-cluster Base URL: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1` (replace `cluster.local` if you changed `global.clusterDomain`)
 3. Enter the Model Name: the full HuggingFace model id (or `vllm.servedModelName` if you set one)
 4. Enter the API Key only if you set `vllm.apiKey`; leave it blank for a keyless vLLM
 
@@ -206,7 +241,9 @@ Model Name: Qwen/Qwen2.5-1.5B-Instruct
 API Key: (leave blank unless vllm.apiKey is set)
 ```
 
-See the [Helm chart README](https://github.com/OneUptime/oneuptime/tree/master/HelmChart/Public/oneuptime#local-models-with-vllm) for GPU scheduling, gated models and tuning options.
+With billing enabled, or with `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` (`outboundConnections.blockPrivateNetwork: true` in the Helm values), a project's own provider cannot reach this in-cluster address, which resolves to a private cluster IP. Create the provider in the Admin Dashboard under **Settings** > **Global LLM Providers** instead, with the same fields: a Global LLM Provider can reach that address.
+
+See the [Helm chart's vLLM guide](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/ai-vllm.md) for GPU scheduling, gated models and tuning options.
 
 ## Using Custom Base URLs
 
@@ -228,8 +265,9 @@ For enterprise deployments or when using proxy services, you can specify a custo
 ### Connection Issues
 
 - **OpenAI/Anthropic**: Verify your API key is valid and has sufficient credits
-- **Ollama**: Ensure the Ollama server is running and the Base URL is correct
+- **Ollama**: Ensure the Ollama server is running, listens on an address the OneUptime server can reach (`OLLAMA_HOST=0.0.0.0:11434` for a native install), and the Base URL points to that address
 - **OpenAI Compatible**: Ensure the Base URL ends in `/v1` (or matches your server), the Model Name matches a model your server exposes, and only set an API Key if your server requires one
+- **"…points to an address OneUptime is not allowed to connect to"**: the Base URL resolves to a refused address — `localhost` or another loopback address, or, on OneUptime Cloud, a private network address. (OneUptime Cloud reports a refused host name as "…could not be reached" instead.) See [Choosing a Base URL for a Self-Hosted Model](#choosing-a-base-url-for-a-self-hosted-model)
 - **Firewall**: Check that your network allows outbound connections to the provider's API
 
 ### Model Not Found

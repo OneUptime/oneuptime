@@ -44,7 +44,8 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --create-namespace \
   --set oneuptime.url="YOUR_ONEUPTIME_URL" \
   --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
-  --set clusterName="my-cluster"
+  --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true
 ```
 
 ### GKE Autopilot
@@ -56,6 +57,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set oneuptime.url="YOUR_ONEUPTIME_URL" \
   --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
   --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true \
   --set preset=gke-autopilot
 ```
 
@@ -68,8 +70,11 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set oneuptime.url="YOUR_ONEUPTIME_URL" \
   --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
   --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true \
   --set preset=eks-fargate
 ```
+
+**AI investigations are on by default.** `aiAgent.enabled=true` runs the [Kubernetes AI agent](#kubernetes-ai-agent) next to the collector: when an incident or alert is raised on this cluster, OneUptime AI investigates it with read-only `kubectl` (`get`, `describe`, `logs`, `events`, `top`) and changes nothing. Fixes stay off until you allow them. To install without it, use `--set aiAgent.enabled=false` instead.
 
 ## Step 4 — Verify the Installation
 
@@ -228,7 +233,7 @@ The filters above remove a **category** of telemetry — a namespace, a severity
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set sampling.traces.percentage=10
 ```
 
@@ -297,7 +302,7 @@ The cluster's **Control Plane** page charts etcd, the API server, the scheduler 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set controlPlane.enabled=true
 ```
 
@@ -306,7 +311,7 @@ Each component is scraped at the addresses in its own list: `controlPlane.etcd.e
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set controlPlane.enabled=true \
   --set "controlPlane.apiServer.endpoints={https://kubernetes.default.svc:443/metrics}"
 ```
@@ -329,7 +334,7 @@ The **CoreDNS** tab of the Control Plane page charts DNS queries, latency, the c
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set coreDns.enabled=true
 ```
 
@@ -342,7 +347,7 @@ The cluster's **Service Mesh** page charts Istio and Linkerd. The agent scrapes 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set serviceMesh.enabled=true \
   --set serviceMesh.provider=istio
 ```
@@ -360,7 +365,7 @@ See what every namespace, workload, and pod actually costs — including idle ca
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set cost.enabled=true
 ```
 
@@ -406,29 +411,39 @@ Labels are matched case-insensitively, so an existing manually-created `Producti
 
 When an incident or alert is raised on this cluster, OneUptime AI investigates it. The chart's **Kubernetes AI agent** gives it a terminal: it runs read-only `kubectl` the way an on-call engineer would (describe the failing pod, read its events, tail the crashing container's logs, check node capacity) and cites every command on the incident page.
 
-The agent is **on by default** and **read-only**: one small Deployment (`kubernetes-agent-ai-agent`, pod label `component=ai-agent`, image `oneuptime/kubernetes-ai-agent`) whose ServiceAccount may only read. It registers itself with the same `oneuptime.apiKey` and `clusterName` the collector uses, so there is nothing to set up in the dashboard: the cluster's **AI agent** page (Kubernetes → cluster → AI → Agent) shows it as Connected within a minute, and its **Test connection** button runs `kubectl version` and `kubectl auth can-i --list` through it. What AI did with it is on the cluster's **AI Insights** page (AI → Insights). The agent ships a pinned kubectl (v1.36.4). It is not a Runner and never appears under Runbooks → Runners: OneUptime never hands it a credential, never runs runbooks on it, and it is never accepted as an auto-remediation rule's command Runner.
+The agent is **on by default** and **read-only**: one small Deployment (`kubernetes-agent-ai-agent`, pod label `component=ai-agent`, image `oneuptime/kubernetes-ai-agent`) whose ServiceAccount may only read. It registers itself with the same `oneuptime.apiKey` and `clusterName` the collector uses, so there is nothing to set up in the dashboard: the cluster's **AI agent** page (Kubernetes → cluster → AI → Agent) shows it as Connected within a minute, and **Test connection**, in the **⋯** menu next to that status, runs `kubectl version` and `kubectl auth can-i --list` through it. Everything AI did with it is on the cluster's **AI Logs** page (AI → Logs), and what AI learned there — the problems it keeps investigating, what it found, how its fixes turned out — on the **AI Insights** page (AI → Insights). The agent ships a pinned kubectl (v1.36.4). It is not a Runner and never appears under Runbooks → Runners: OneUptime never hands it a credential, never runs runbooks on it, and it is never accepted as an auto-remediation rule's command Runner.
 
 On an agent installed before the AI agent existed, refresh your chart index first, then upgrade (on a self-hosted OneUptime, upgrade OneUptime first — see [Upgrading the Agent](#upgrading-the-agent)):
 
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set aiAgent.enabled=true
 ```
 
 Use the release name and namespace you installed the agent with, if they differ (`helm list -A | grep kubernetes-agent` shows them). Without `helm repo update`, Helm may resolve the chart you installed from, which does not know `aiAgent` and fails with `Additional property aiAgent is not allowed`. Published chart versions follow the OneUptime version, so if `helm show values oneuptime/kubernetes-agent | grep aiAgent` prints nothing, your index is still old. To run the chart without the AI agent, pass `--set aiAgent.enabled=false`.
 
+### What AI may do
+
+What OneUptime AI may do on the cluster is set in the chart, with two values, and the cluster's AI agent page shows them under **What AI may do** without a way to change them there:
+
+- `aiAgent.investigation` — `true`: AI runs read-only `kubectl` while it investigates an incident or alert on the cluster. `false`: it still investigates, with the data OneUptime already has.
+- `aiAgent.fixes` — `off`, `ask-for-approval`, `automatic` or `bypass-approval` (below). Every level but `off` grants the AI agent write access; `off` grants none, and the agent then refuses every write itself.
+
+The AI agent reports both to OneUptime, which applies them to the cluster and refuses a change made anywhere else — the AI agent page, the API or Terraform. **Change** on that page shows the command for the option you pick. Both are unset in `values.yaml`: a release that sets neither lets the agent use its defaults (investigation on, fixes off), and OneUptime applies those only to a cluster whose settings nobody chose on its AI agent page — settings someone chose there are kept as they are, and the page shows how to move them to the chart.
+
 ### Let AI fix what it finds
 
-Fixes are off until you grant write access — a separate, optional step, and one chart flag. The recommended form grants it only in the namespaces AI may fix, with node operations off:
+Fixes are off until you turn them on with `aiAgent.fixes` — a separate, optional step that also grants the AI agent write access. The recommended form grants it only in the namespaces AI may fix, with node operations off:
 
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set aiAgent.enabled=true \
-  --set aiAgent.remediation.enabled=true \
+  --set aiAgent.investigation=true \
+  --set aiAgent.fixes=ask-for-approval \
   --set "aiAgent.remediation.namespaces={web,api}" \
   --set aiAgent.remediation.nodeOperations=false
 ```
@@ -438,32 +453,35 @@ Or cluster-wide:
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set aiAgent.enabled=true \
-  --set aiAgent.remediation.enabled=true \
+  --set aiAgent.investigation=true \
+  --set aiAgent.fixes=ask-for-approval \
   --set-json 'aiAgent.remediation.namespaces=[]'
 ```
 
-Every namespace you list must already exist: the chart creates one RoleBinding in each and never creates a namespace, so a missing one fails the whole upgrade — the collector's too — with `namespaces "api" not found`. Create it first, or take it off the list, and take a namespace off the list before you delete it. With `--reuse-values`, leaving the flag out keeps the stored list; `--set-json 'aiAgent.remediation.namespaces=[]'` (Helm 3.10+) goes back to cluster-wide — not `={}`, which Helm reads as one empty name. `--set aiAgent.remediation.namespaces=null` does not reset a stored list under `--reuse-values`: Helm keeps the stored list. `aiAgent.remediation.nodeOperations=false` keeps fixes off nodes; set it to `true` to let AI cordon, uncordon, drain and taint nodes.
+Every namespace you list must already exist: the chart creates one RoleBinding in each and never creates a namespace, so a missing one fails the whole upgrade — the collector's too — with `namespaces "api" not found`. Create it first, or take it off the list, and take a namespace off the list before you delete it. Leaving the flag out of an upgrade keeps the stored list; `--set-json 'aiAgent.remediation.namespaces=[]'` (Helm 3.10+) goes back to cluster-wide — not `={}`, which Helm reads as one empty name. `--set aiAgent.remediation.namespaces=null` does not reset a stored list under `--reuse-values`: Helm keeps the stored list. `aiAgent.remediation.nodeOperations=false` keeps fixes off nodes; set it to `true` to let AI cordon, uncordon, drain and taint nodes.
 
-If nobody has chosen AI settings for the cluster yet, granting write access starts it in **ask for approval**: OneUptime AI composes the exact `kubectl` plan and a human approves it with one click on the incident. If someone already picked AI settings on the cluster's AI agent page, they are kept exactly as chosen — the mode stays **Off** unless someone changed it, because the server never flips a switch an operator owns — so open the AI agent page after the upgrade and pick the mode under **What AI may do**. Turning fixes on takes a Project Owner, a Project Admin or **Edit Auto Remediation Rule**:
+`aiAgent.fixes` picks how fixes run; to turn them off again, upgrade with `--set aiAgent.fixes=off`, which also removes the write access:
 
-- **ask for approval** — a human approves every plan with one click;
+- **ask-for-approval** — OneUptime AI composes the exact `kubectl` plan and a human approves it with one click on the incident;
 - **automatic** — safe changes run on their own; a riskier change never does. When the round could only find riskier fixes, it ends by proposing exactly those for one-click approval; when it also ran a safe fix, the riskier one is proposed only if verification shows the safe fix did not recover the signal (the follow-up round, which asks);
-- **bypass approval** — AI does not ask: every change the policy allows runs on its own, follow-up rounds included, except that a round asks when the hourly circuit breaker trips, when another unattended OneUptime AI round is still changing or verifying the same cluster, or when it follows a fix whose rollback did not complete.
+- **bypass-approval** — AI does not ask: every change the policy allows runs on its own, follow-up rounds included, except that a round asks when the hourly circuit breaker trips, when another unattended OneUptime AI round is still changing or verifying the same cluster, or when it follows a fix whose rollback did not complete.
 
-Whatever the mode, a write in kube-system, kube-public or kube-node-lease always needs a human, and so do a `drain`, a `taint` and a `patch` of a node (a drain evicts pods in every namespace, the agent's own included, and a `NoExecute` taint does too, whether `kubectl taint` or a node `patch` sets it); a custom resource is judged by its namespace, even one named like a built-in kind; and the AI agent never changes anything in its own namespace, outside `aiAgent.remediation.namespaces`, or on a node with `aiAgent.remediation.nodeOperations=false`. OneUptime reads that scope from what the AI agent reports and refuses such a fix when it is proposed or approved, not only in the agent. In both unattended modes a round proposes its plan for approval instead of running it when the hourly circuit breaker trips or another unattended round already holds the cluster. See [AI SRE — Cluster access](/docs/ai/ai-sre) for what each mode may run, what the command policy refuses outright, and who may change the mode.
+Whatever the mode, a write in kube-system, kube-public or kube-node-lease always needs a human, and so do a `drain`, a `taint` and a `patch` of a node (a drain evicts pods in every namespace, the agent's own included, and a `NoExecute` taint does too, whether `kubectl taint` or a node `patch` sets it); a custom resource is judged by its namespace, even one named like a built-in kind; and the AI agent never changes anything in its own namespace, outside `aiAgent.remediation.namespaces`, or on a node with `aiAgent.remediation.nodeOperations=false`. OneUptime reads that scope from what the AI agent reports and refuses such a fix when it is proposed or approved, not only in the agent. In both unattended modes a round proposes its plan for approval instead of running it when the hourly circuit breaker trips or another unattended round already holds the cluster. See [AI SRE — Cluster access](/docs/ai/ai-sre) for what each mode may run and what the command policy refuses outright.
 
 **What the write access amounts to.** Patch/update on workloads, pods and CronJobs, and create on Jobs, in a namespace is equivalent to running any image as any ServiceAccount in that namespace and reading its Secrets — a pod template can name any image, ServiceAccount and Secret volume. So the chart's RBAC bounds *where* the AI agent may write, not what a write may do: the command policy refuses pod-template security patches, patches that replace the pod spec or a whole `containers` list, `set serviceaccount`, `create … --image`, `expose --overrides` (which can create a Job or any other kind of object instead of a Service) and patch bodies that are not JSON. It does not refuse `set image`, or a patch of an image field: that is a riskier change — the new image runs as the workload's own ServiceAccount, with its Secrets — which a human approves unless the cluster bypasses approvals or its allowlist names the command. With `aiAgent.remediation.namespaces` empty the write role is bound cluster-wide, which RBAC cannot keep out of kube-system, kube-public, kube-node-lease or the agent's own namespace; there the policy and the AI agent hold the line. List namespaces and the chart binds it in those alone, and a write anywhere else is refused when it is proposed or approved, and again by the AI agent.
 
 ### AI agent values
 
-`aiAgent.remediation.*` and `aiAgent.extraEnv` are not set in `values.yaml`, so a value stored under the old `aiAccess` key keeps applying until you set them (see [Upgrading the Agent](#upgrading-the-agent)). The defaults the table gives for them apply only when neither the `aiAgent` key nor the `aiAccess` one is set.
+`aiAgent.remediation.*` and `aiAgent.extraEnv` are not set in `values.yaml`, so a value stored under the old `aiAccess` key keeps applying until you set them (see [Upgrading the Agent](#upgrading-the-agent)). The defaults the table gives for them apply only when neither the `aiAgent` key nor the `aiAccess` one is set. `aiAgent.investigation` and `aiAgent.fixes` are not set either, so AI settings chosen on a cluster's AI agent page stay until you set one of them.
 
 | Value | Default | What it does |
 | --- | --- | --- |
 | `aiAgent.enabled` | `true` | Run the Kubernetes AI agent with read-only RBAC (cluster-wide). `false` removes it. |
-| `aiAgent.remediation.enabled` | `false` | Also grant the write verbs OneUptime AI's fixes use: patch/update on Deployments, StatefulSets, DaemonSets, ReplicaSets (and their scale subresource), Jobs, CronJobs, Pods and HPAs; create on Jobs and HPAs; delete on Pods and Jobs only. It never grants Secrets, `exec`, `attach`, `port-forward`, CRDs or RBAC writes, so a change to any other kind — deleting a Deployment, labelling a Service or ConfigMap — fails with `Forbidden` even when approved. |
+| `aiAgent.investigation` | unset (`true`) | Whether OneUptime AI runs read-only `kubectl` while it investigates. The cluster's AI agent page shows it read-only. |
+| `aiAgent.fixes` | unset (`off`) | `off`, `ask-for-approval`, `automatic` or `bypass-approval`. Every level but `off` grants the write verbs below. The cluster's AI agent page shows it read-only. |
+| `aiAgent.remediation.enabled` | `false` | Deprecated by `aiAgent.fixes`, and read only while that is unset. Also grant the write verbs OneUptime AI's fixes use: patch/update on Deployments, StatefulSets, DaemonSets, ReplicaSets (and their scale subresource), Jobs, CronJobs, Pods and HPAs; create on Jobs and HPAs; delete on Pods and Jobs only. It never grants Secrets, `exec`, `attach`, `port-forward`, CRDs or RBAC writes, so a change to any other kind — deleting a Deployment, labelling a Service or ConfigMap — fails with `Forbidden` even when approved. |
 | `aiAgent.remediation.namespaces` | `[]` | Bind the write role only in these namespaces, one RoleBinding each; a write elsewhere is refused when it is proposed or approved, and by the AI agent. Each must already exist, or the upgrade fails. Empty binds it cluster-wide; `--set-json 'aiAgent.remediation.namespaces=[]'` resets a stored list (`--set aiAgent.remediation.namespaces=null` does not reset a stored list under `--reuse-values`). The agent's own namespace cannot be listed. |
 | `aiAgent.remediation.nodeOperations` | `true` | With `remediation.enabled`, also grant cordon/uncordon/taint (patch on nodes) and drain (pod evictions), cluster-wide. Set `false` to keep fixes off nodes: no node RBAC, node operations are refused when proposed or approved, and the AI agent refuses them (`ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS=false`). |
 | `aiAgent.image.repository` | `oneuptime/kubernetes-ai-agent` | The agent image. Point it at your mirror if nodes cannot pull from Docker Hub. |
@@ -485,18 +503,29 @@ kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100
 - **A refusal that clears on its own** — a previous agent pod that still reports in (a pod replaced without a clean shutdown), or the old in-cluster Runner still shutting down during an upgrade. The agent retries after the wait the server names.
 - **A refusal that needs you** — an empty or too-long `clusterName`, or a project that has reached its limit of AI agents; the log names what to change. If an agent never connects and its log says `Another Kubernetes AI agent for cluster "<name>" is online`, two installs share one `clusterName` (the AI agent page warns about it too): the one already connected keeps it for as long as it runs, so give each cluster its own `clusterName` or remove the extra release. An ingestion key with a **Pinned Service Name** cannot register the agent — give the chart a key without one.
 
-**Reset agent** on the AI agent page makes the server forget the agent's key (a Project Owner, a Project Admin or **Edit Auto Remediation Rule** may do it); the pod reconnects on its own within a few minutes. The agent's readiness does not depend on OneUptime, so a misconfigured AI agent never fails `helm upgrade --wait` — only a pod that cannot pull its image does.
+**Reset agent**, in the **⋯** menu next to the agent's status on the AI agent page, makes the server forget the agent's key once you confirm it (a Project Owner, a Project Admin or **Edit Auto Remediation Rule** may do it); the pod reconnects on its own within a few minutes. The agent's readiness does not depend on OneUptime, so a misconfigured AI agent never fails `helm upgrade --wait` — only a pod that cannot pull its image does.
 
 ## Upgrading the Agent
+
+When the agent is older than your OneUptime, a warning sign appears beside **Agent Version** in the cluster's **Cluster Details**. Select it to see this command.
 
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values
+  --reset-then-reuse-values
 ```
 
-`--reuse-values` keeps your existing configuration (preset, cluster name, filters); pass any new `--set` overrides on top of it. It never picks up defaults a newer chart added, though — on Helm 3.14+ use `--reset-then-reuse-values` instead, which keeps your overrides and fills in the new defaults for everything else.
+`--reset-then-reuse-values` (Helm 3.14+) keeps the values you set (preset, cluster name, filters) and takes every other value from the new chart; pass any new `--set` overrides on top of it. On Helm 3.13 or earlier, upgrade with the values you set instead:
+
+```bash
+helm repo update
+helm get values kubernetes-agent --namespace oneuptime-agent -o yaml > values.yaml && \
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent -f values.yaml
+```
+
+Don't use `--reuse-values`: it also keeps the defaults of the chart you upgrade from, so a newer chart's defaults (its eBPF image among them) never apply. When a release runs on an older chart's defaults, the notes Helm prints after the install or upgrade end with a warning and the command that fixes it.
 
 If the upgrade fails with `namespaces "<name>" not found`, `aiAgent.remediation.namespaces` (or the older `aiAccess.remediation.namespaces`) lists a namespace that does not exist (or no longer does): the chart puts a RoleBinding in each listed namespace and never creates one. Create the namespace, or upgrade with the list minus that namespace (`--set "aiAgent.remediation.namespaces={web}"`), or with `--set-json 'aiAgent.remediation.namespaces=[]'` to go back to the cluster-wide binding. `--set aiAgent.remediation.namespaces=null` does not reset a stored list under `--reuse-values`, so it fails with the same error.
 
@@ -511,7 +540,7 @@ The chart now runs the [Kubernetes AI agent](#kubernetes-ai-agent) by default. I
 
 Your `aiAccess` settings carry over:
 
-- Write access (`aiAccess.enabled` with `aiAccess.remediation.enabled`), `aiAccess.remediation.namespaces`, `aiAccess.remediation.nodeOperations` and `aiAccess.extraEnv` keep applying until you set the matching `aiAgent.*` value, which always wins. Revoke write access with `--set aiAgent.remediation.enabled=false`, go back to cluster-wide with `--set-json 'aiAgent.remediation.namespaces=[]'`, and clear a stored proxy setting with `--set-json 'aiAgent.extraEnv=[]'`.
+- Write access (`aiAccess.enabled` with `aiAccess.remediation.enabled`), `aiAccess.remediation.namespaces`, `aiAccess.remediation.nodeOperations` and `aiAccess.extraEnv` keep applying until you set the matching `aiAgent.*` value, which always wins. Revoke write access with `--set aiAgent.fixes=off`, go back to cluster-wide with `--set-json 'aiAgent.remediation.namespaces=[]'`, and clear a stored proxy setting with `--set-json 'aiAgent.extraEnv=[]'`.
 - `aiAccess.enabled=false` does not turn the AI agent off; `--set aiAgent.enabled=false` does.
 - `aiAccess.image` and `aiAccess.resources` are not carried over: the AI agent is a different image, with its own `aiAgent.image` and `aiAgent.resources`.
 - In OneUptime, each cluster keeps its AI settings, with two changes made when the server is upgraded: a cluster whose Runner someone had unbound or deleted (the in-cluster Runner or any other) starts with **Investigate with kubectl** and fixes off (turn them back on on its AI agent page), and **Automatic** or **Bypass approval** on a cluster whose project never turned on **Enable AI Command Execution** becomes **Ask for approval** — that switch used to hold those fixes back, and fixes through the AI agent no longer need it.
@@ -563,6 +592,8 @@ Those standalone database calls arrive as one-span traces named after a bare com
 
 One trade-off: OneUptime discovers databases, and draws them on the service map, from database client spans. A database that only background work talks to — a worker's queue, a cron job's warehouse — is then no longer discovered from traces and appears on the service map as a remote endpoint. Its metrics are unaffected. Set `ebpf.dropUnlinkedDatabaseCalls=false` to keep those spans.
 
+Background work's HTTP and gRPC calls — a worker querying ClickHouse over HTTP, a controller renewing its Kubernetes lease — also arrive as one-span traces (`POST /`, `PUT /apis/*/...`). Set `ebpf.dropUnlinkedClientCalls=true` to drop them as well, together with calls OBI could not place in their request's trace, which look the same; database, messaging and GenAI calls (MCP included) are never dropped by it. It is off by default because it costs data: when the called service runs on the same node, OBI links the request it handled under the call, so the call is the root of that trace, and dropping it leaves the trace without its root. With `ebpf.contextPropagation` on, that happens on any node, and also to a service that runs its own OpenTelemetry SDK. The service map also reads these calls: a dependency that only background work calls is then drawn from OBI's service graph metrics alone, and an edge also seen inside requests counts only those calls. A service's overview counts its spans, so a worker or probe whose spans are mostly these calls shows far fewer requests, and its error rate and p95 latency cover only the spans left. OBI's client request metrics still count every call.
+
 On a self-hosted OneUptime, upgrade the server before the agent: the eBPF tracer this chart runs (OBI v0.14) names called services and reports message brokers' own spans in ways older OneUptime servers do not read.
 
 Names come from the traffic: HTTP spans use the app's route template when OBI can read it, and otherwise a pattern derived from the URL with id-like segments replaced by `*` — set `ebpf.routes.patterns` to name them yourself. OBI reads the route templates of Go (net/http, Gorilla mux, Gin), Java (Spring, JAX-RS), Node.js (Express, Fastify, Koa, NestJS, Next.js), Python (Django, FastAPI, Flask), Ruby (Rails), .NET (ASP.NET Core attribute routes) and PHP (Symfony, Laravel, Slim) apps. Application-level names such as `OrderService.charge` exist only in code and need an OpenTelemetry SDK.
@@ -608,7 +639,7 @@ It is off because injecting the header means rewriting traffic that is already i
 
 Out of the box the agent is tuned for **coverage** — it ships metrics, pod logs, and eBPF traces from the whole cluster so every dashboard and monitor works on day one. On large or busy clusters that can be more telemetry than you need, which shows up as higher ingest volume (and, on OneUptime Cloud, higher cost). Nothing here is required, but if a cluster is sending more than you want, these are the knobs to turn — roughly in order of impact.
 
-The trick is to **stop collecting what you will not look at**, rather than to collect everything and pay to store it. Every lever below is a Helm value, so you can apply it with `--set` on `helm upgrade --reuse-values` and roll it back the same way.
+The trick is to **stop collecting what you will not look at**, rather than to collect everything and pay to store it. Every lever below is a Helm value, so you can apply it with `--set` on `helm upgrade --reset-then-reuse-values` and roll it back the same way.
 
 ### Where the volume comes from
 
@@ -636,7 +667,7 @@ Container logs are almost always the largest slice of ingest, because it is one 
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set-json 'namespaceFilters.rules=[{"action":"include","namespaces":["default","production"],"scopes":["podLogs"]}]'
   ```
 
@@ -646,7 +677,7 @@ Container logs are almost always the largest slice of ingest, because it is one 
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set filters.logs.minSeverity=WARN
   ```
 
@@ -656,7 +687,7 @@ Container logs are almost always the largest slice of ingest, because it is one 
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set logs.enabled=false
   ```
 
@@ -670,7 +701,7 @@ eBPF gives you traces, RED metrics, the service map, and network-flow metrics wi
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set ebpf.enabled=false
   ```
 
@@ -678,7 +709,7 @@ eBPF gives you traces, RED metrics, the service map, and network-flow metrics wi
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set ebpf.features.networkMetrics=false \
     --set ebpf.features.tcpStats=false \
     --set ebpf.features.spanMetrics=false
@@ -690,7 +721,7 @@ eBPF gives you traces, RED metrics, the service map, and network-flow metrics wi
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set 'ebpf.autoTargetExe=*/python\,*/java'
   ```
 
@@ -702,7 +733,7 @@ Metric volume is directly proportional to how often the agent scrapes. Doubling 
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set collectionInterval=60s \
   --set hostMetrics.collectionInterval=60s \
   --set cadvisor.scrapeInterval=60s
@@ -730,7 +761,7 @@ Cardinality (the number of distinct time series) matters as much as frequency, b
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set filters.metrics.matchType=regexp \
     --set-json 'filters.metrics.exclude=["^container_network_"]'
   ```
@@ -741,7 +772,7 @@ Cardinality (the number of distinct time series) matters as much as frequency, b
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set-json 'namespaceFilters.rules=[{"action":"exclude","namespaces":["noisy-*"],"scopes":["metrics"]}]'
   ```
 
@@ -765,7 +796,7 @@ Every lever above buys volume by giving something up: a namespace you stop watch
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set sampling.traces.percentage=10
 ```
 
@@ -859,7 +890,7 @@ Your cluster blocks `hostPath` — common on **GKE Autopilot** and **EKS Fargate
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set preset=gke-autopilot   # or eks-fargate
 ```
 
@@ -881,7 +912,7 @@ The most common reason — especially after a reinstall — is a **wrong or revo
 
    ```bash
    helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-     --namespace oneuptime-agent --reuse-values \
+     --namespace oneuptime-agent --reset-then-reuse-values \
      --set oneuptime.apiKey=<LIVE_KEY>
    ```
 

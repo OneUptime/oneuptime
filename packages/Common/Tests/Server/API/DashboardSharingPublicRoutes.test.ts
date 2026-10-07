@@ -46,6 +46,8 @@ import {
 } from "../../../Server/Utils/Express";
 import { expressErrorHandler } from "../../../Server/Utils/StartServer";
 import Dashboard from "../../../Models/DatabaseModels/Dashboard";
+import File from "../../../Models/DatabaseModels/File";
+import MimeType from "../../../Types/File/MimeType";
 import {
   DASHBOARD_ACCESS_CHOICES,
   DashboardAccess,
@@ -54,7 +56,6 @@ import {
   getDashboardAccessChanges,
   isDashboardMasterPasswordRequired,
   isDashboardPasswordNeededFor,
-  isDashboardPublic,
 } from "../../../Types/Dashboard/DashboardAccess";
 import {
   DASHBOARD_MASTER_PASSWORD_INVALID_MESSAGE,
@@ -104,11 +105,14 @@ if (
  * columns that change, with a password whenever the move needs one), a
  * visitor gets exactly what the choice says, with billing on and off:
  *
- *   - Only people in this project: the link answers nobody; the password
- *     route says the dashboard is not public.
- *   - Anyone with the link: the link opens; there is no password to enter.
- *   - Anyone with the link and a password: the link asks for the password,
- *     the password unlocks it, and the unlocked visitor gets in. Never the
+ *   - Only people in this project: the link answers nobody, and every
+ *     route reads exactly as it does for a dashboard that does not exist -
+ *     the metadata, the password route and the overview alike.
+ *   - Anyone with the link: the link opens, the metadata carries everything,
+ *     and there is no password to enter.
+ *   - Anyone with the link and a password: the metadata carries only what
+ *     the password prompt shows (the name, the page title, the favicon), the
+ *     password unlocks it, and the unlocked visitor gets the rest. Never the
  *     locked state, where the server lets nobody in.
  *
  * And a dashboard already locked (the switch on, no password - the API can
@@ -119,6 +123,54 @@ if (
 const DASHBOARD_ID: ObjectID = new ObjectID(
   "da5a0000-0000-4000-8000-000000000001",
 );
+
+// An id no dashboard has: what every refusal of the link must read like.
+const MISSING_DASHBOARD_ID: ObjectID = new ObjectID(
+  "da5a0000-0000-4000-8000-0000000000ff",
+);
+
+// The dashboard's project, and so its images' (a dashboard shows only its own).
+const DASHBOARD_PROJECT_ID: ObjectID = new ObjectID(
+  "da5a0000-0000-4000-8000-0000000000ee",
+);
+
+const imageFile: (bytes: string) => File = (bytes: string): File => {
+  const file: File = new File();
+  file.file = Buffer.from(bytes);
+  file.fileType = MimeType.png;
+  file.projectId = DASHBOARD_PROJECT_ID;
+  return file;
+};
+
+const base64Of: (bytes: string) => string = (bytes: string): string => {
+  return Buffer.from(bytes).toString("base64");
+};
+
+// What the password prompt shows: all a locked link's metadata may carry.
+const PROMPT_METADATA: JSONObject = {
+  _id: DASHBOARD_ID.toString(),
+  name: "Checkout",
+  isPublicDashboard: true,
+  enableMasterPassword: true,
+  pageTitle: "Checkout status",
+  faviconFile: { file: base64Of("favicon-bytes"), fileType: "image/png" },
+  description: "",
+  pageDescription: "",
+  logoFile: null,
+};
+
+// The whole answer, for a visitor the link lets in.
+const fullMetadata: (enableMasterPassword: boolean) => JSONObject = (
+  enableMasterPassword: boolean,
+): JSONObject => {
+  return {
+    ...PROMPT_METADATA,
+    enableMasterPassword,
+    description: "Orders and payments",
+    pageDescription: "How checkout is doing right now",
+    logoFile: { file: base64Of("logo-bytes"), fileType: "image/png" },
+  };
+};
 
 const PASSWORD: string = "open sesame";
 
@@ -191,7 +243,13 @@ const storedDashboard: (state: DashboardAccessState) => Dashboard = (
   const dashboard: Dashboard = new Dashboard();
   dashboard.id = DASHBOARD_ID;
   dashboard._id = DASHBOARD_ID.toString();
+  dashboard.projectId = DASHBOARD_PROJECT_ID;
   dashboard.name = "Checkout";
+  dashboard.description = "Orders and payments";
+  dashboard.pageTitle = "Checkout status";
+  dashboard.pageDescription = "How checkout is doing right now";
+  dashboard.logoFile = imageFile("logo-bytes");
+  dashboard.faviconFile = imageFile("favicon-bytes");
   dashboard.isPublicDashboard = state.isPublicDashboard === true;
   dashboard.enableMasterPassword = state.enableMasterPassword === true;
   dashboard.isArchived = false;
@@ -387,32 +445,47 @@ describe("a dashboard's public link answers whoever its Sharing choice says", ()
     jest.restoreAllMocks();
   });
 
-  const metadata: () => Promise<HttpResult> = (): Promise<HttpResult> => {
-    return send({
-      port,
-      method: "POST",
-      path: `/api/dashboard/metadata/${DASHBOARD_ID.toString()}`,
-    });
-  };
-
-  const overview: (cookie?: string | undefined) => Promise<HttpResult> = (
+  const metadata: (
     cookie?: string | undefined,
+    dashboardId?: ObjectID | undefined,
+  ) => Promise<HttpResult> = (
+    cookie?: string | undefined,
+    dashboardId?: ObjectID | undefined,
   ): Promise<HttpResult> => {
     return send({
       port,
-      method: "GET",
-      path: `/api/dashboard/overview/${DASHBOARD_ID.toString()}`,
+      method: "POST",
+      path: `/api/dashboard/metadata/${(dashboardId || DASHBOARD_ID).toString()}`,
       cookie,
     });
   };
 
-  const unlock: (password: string) => Promise<HttpResult> = (
+  const overview: (
+    cookie?: string | undefined,
+    dashboardId?: ObjectID | undefined,
+  ) => Promise<HttpResult> = (
+    cookie?: string | undefined,
+    dashboardId?: ObjectID | undefined,
+  ): Promise<HttpResult> => {
+    return send({
+      port,
+      method: "GET",
+      path: `/api/dashboard/overview/${(dashboardId || DASHBOARD_ID).toString()}`,
+      cookie,
+    });
+  };
+
+  const unlock: (
     password: string,
+    dashboardId?: ObjectID | undefined,
+  ) => Promise<HttpResult> = (
+    password: string,
+    dashboardId?: ObjectID | undefined,
   ): Promise<HttpResult> => {
     return send({
       port,
       method: "POST",
-      path: `/api/dashboard/master-password/${DASHBOARD_ID.toString()}`,
+      path: `/api/dashboard/master-password/${(dashboardId || DASHBOARD_ID).toString()}`,
       body: { password },
     });
   };
@@ -445,17 +518,9 @@ describe("a dashboard's public link answers whoever its Sharing choice says", ()
 
           expect(getDashboardAccess(state)).toBe(to);
 
-          // The public app's first request says what the rule says...
+          // The public app's first request never carries the password's hash or salt...
           const meta: HttpResult = await metadata();
 
-          expect(meta.status).toBe(200);
-          expect(meta.body?.["isPublicDashboard"]).toBe(
-            isDashboardPublic(state),
-          );
-          expect(meta.body?.["enableMasterPassword"]).toBe(
-            isDashboardMasterPasswordRequired(state),
-          );
-          // ...and never carries the password's hash or salt.
           expect(JSON.stringify(meta.body)).not.toContain("stored-hash");
           expect(JSON.stringify(meta.body)).not.toContain("new-hash");
           expect(JSON.stringify(meta.body)).not.toContain("salt");
@@ -464,18 +529,43 @@ describe("a dashboard's public link answers whoever its Sharing choice says", ()
           const unlocked: HttpResult = await unlock(PASSWORD);
 
           if (to === DashboardAccess.ProjectOnly) {
+            /*
+             * ...and for a dashboard only its project sees, every route says
+             * exactly what it says for a dashboard that does not exist.
+             */
+            expect(meta.status).toBe(404);
+            expect(errorMessageOf(meta)).toBe("Dashboard not found");
+            expect(meta).toEqual(
+              await metadata(undefined, MISSING_DASHBOARD_ID),
+            );
+
             expect(anonymous.status).toBe(401);
             expect(errorMessageOf(anonymous)).toBe(
               "This dashboard is not available.",
             );
-            expect(unlocked.status).toBe(400);
-            expect(errorMessageOf(unlocked)).toBe(
-              "This dashboard is not publicly accessible.",
+            expect(anonymous).toEqual(
+              await overview(undefined, MISSING_DASHBOARD_ID),
+            );
+
+            expect(unlocked.status).toBe(404);
+            expect(errorMessageOf(unlocked)).toBe("Dashboard not found");
+            expect(unlocked).toEqual(
+              await unlock(PASSWORD, MISSING_DASHBOARD_ID),
             );
             return;
           }
 
+          // ...says the link answers, and whether it asks for the password.
+          expect(meta.status).toBe(200);
+          expect(meta.body?.["isPublicDashboard"]).toBe(true);
+          expect(meta.body?.["enableMasterPassword"]).toBe(
+            isDashboardMasterPasswordRequired(state),
+          );
+
           if (to === DashboardAccess.AnyoneWithLink) {
+            // Everything, to anyone with the link.
+            expect(meta.body).toEqual(fullMetadata(false));
+
             expect(anonymous.status).toBe(200);
             expect(anonymous.body?.["name"]).toBe("Checkout");
             // There is no password to enter.
@@ -486,7 +576,10 @@ describe("a dashboard's public link answers whoever its Sharing choice says", ()
             return;
           }
 
-          // The password: asked for, it unlocks, and the visitor gets in.
+          // The password: the prompt shows the name, title and favicon only...
+          expect(meta.body).toEqual(PROMPT_METADATA);
+
+          // ...it is asked for, it unlocks, and the visitor gets in.
           expect(anonymous.status).toBe(401);
           expect(errorMessageOf(anonymous)).toBe(
             DASHBOARD_MASTER_PASSWORD_REQUIRED_MESSAGE,
@@ -509,6 +602,9 @@ describe("a dashboard's public link answers whoever its Sharing choice says", ()
 
           expect(afterUnlock.status).toBe(200);
           expect(afterUnlock.body?.["name"]).toBe("Checkout");
+
+          // Unlocked, the metadata carries the rest too.
+          expect((await metadata(cookie)).body).toEqual(fullMetadata(true));
         });
       },
     );
@@ -523,7 +619,7 @@ describe("a dashboard's public link answers whoever its Sharing choice says", ()
       const meta: HttpResult = await metadata();
 
       expect(meta.status).toBe(200);
-      expect(meta.body?.["enableMasterPassword"]).toBe(true);
+      expect(meta.body).toEqual(PROMPT_METADATA);
 
       const anonymous: HttpResult = await overview();
 
@@ -541,7 +637,7 @@ describe("a dashboard's public link answers whoever its Sharing choice says", ()
       expect(unlockCookieFrom(unlocked)).toBeUndefined();
     });
 
-    it("a private dashboard with its password switch left on tells the public app nothing about a password", async () => {
+    it("a private dashboard with its password switch left on tells the public app nothing at all, not even about a password", async () => {
       stored = storedDashboard({
         isPublicDashboard: false,
         enableMasterPassword: true,
@@ -550,10 +646,40 @@ describe("a dashboard's public link answers whoever its Sharing choice says", ()
 
       const meta: HttpResult = await metadata();
 
-      expect(meta.status).toBe(200);
-      expect(meta.body?.["isPublicDashboard"]).toBe(false);
-      // The effective value: a private dashboard never asks for the password.
-      expect(meta.body?.["enableMasterPassword"]).toBe(false);
+      expect(meta.status).toBe(404);
+      expect(meta).toEqual(await metadata(undefined, MISSING_DASHBOARD_ID));
+      expect(JSON.stringify(meta.body)).not.toContain("Checkout");
+    });
+
+    it("a private dashboard's metadata stays hidden from a visitor holding an unlock cookie it once set", async () => {
+      // Shared with a password: the visitor unlocks it...
+      stored = storedDashboard({
+        isPublicDashboard: true,
+        enableMasterPassword: true,
+        hasMasterPassword: true,
+      });
+
+      const cookie: string | undefined = unlockCookieFrom(
+        await unlock(PASSWORD),
+      );
+
+      expect(cookie).toBeDefined();
+
+      // ...and then it goes back to the project only.
+      stored = dashboardAfter(
+        {
+          isPublicDashboard: true,
+          enableMasterPassword: true,
+          hasMasterPassword: true,
+        },
+        DashboardAccess.ProjectOnly,
+      );
+
+      const meta: HttpResult = await metadata(cookie);
+
+      expect(meta.status).toBe(404);
+      expect(meta).toEqual(await metadata(cookie, MISSING_DASHBOARD_ID));
+      expect((await overview(cookie)).status).toBe(401);
     });
   });
 });

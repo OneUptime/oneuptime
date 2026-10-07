@@ -50,9 +50,17 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectUser,
   ],
   delete: [Permission.ProjectOwner, Permission.DeleteProject],
+  /*
+   * Billing Admin is here for the four notification channel switches
+   * (enableSmsNotifications, enableCallNotifications,
+   * enableWhatsAppNotifications, enableTelegramNotifications) and nothing
+   * else: every other column's own update list leaves it out, and the
+   * server checks both lists on every update.
+   */
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
+    Permission.BillingAdmin,
     Permission.ManageProjectBilling,
     Permission.EditProject,
   ],
@@ -632,7 +640,7 @@ export default class Project extends TenantModel {
       Permission.Viewer,
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
-      Permission.ReadWorkflow,
+      Permission.ProjectUser,
     ],
     update: [],
   })
@@ -676,7 +684,7 @@ export default class Project extends TenantModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Scale,
-    create: PlanType.Free,
+    create: PlanType.Scale,
   })
   public requireSsoForLogin?: boolean = undefined;
 
@@ -1117,6 +1125,14 @@ export default class Project extends TenantModel {
   })
   public autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD?: number = undefined;
 
+  /*
+   * The four notification channel switches - SMS, WhatsApp, Telegram and
+   * phone calls - are turned on and off by a project owner, a Billing Admin
+   * or someone with Manage Billing: every message they send costs money, so
+   * switching them is billing. Not a project admin, whose role leaves billing
+   * out. Common/Utils/Project/NotificationChannels words who can, and a test
+   * holds its list to these four update lists.
+   */
   @ColumnAccessControl({
     create: [],
     read: [
@@ -1128,7 +1144,11 @@ export default class Project extends TenantModel {
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
     ],
-    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+    update: [
+      Permission.ProjectOwner,
+      Permission.BillingAdmin,
+      Permission.ManageProjectBilling,
+    ],
   })
   @TableColumn({
     required: true,
@@ -1157,7 +1177,11 @@ export default class Project extends TenantModel {
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
     ],
-    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+    update: [
+      Permission.ProjectOwner,
+      Permission.BillingAdmin,
+      Permission.ManageProjectBilling,
+    ],
   })
   @TableColumn({
     required: true,
@@ -1186,7 +1210,11 @@ export default class Project extends TenantModel {
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
     ],
-    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+    update: [
+      Permission.ProjectOwner,
+      Permission.BillingAdmin,
+      Permission.ManageProjectBilling,
+    ],
   })
   @TableColumn({
     required: true,
@@ -1215,7 +1243,11 @@ export default class Project extends TenantModel {
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
     ],
-    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+    update: [
+      Permission.ProjectOwner,
+      Permission.BillingAdmin,
+      Permission.ManageProjectBilling,
+    ],
   })
   @TableColumn({
     required: true,
@@ -1535,6 +1567,117 @@ export default class Project extends TenantModel {
     type: ColumnType.Boolean,
   })
   public enableAi?: boolean = undefined;
+
+  /*
+   * The project's own daily limits on OneUptime AI, a ceiling above the
+   * incident and alert limits: see Types/AI/ProjectAiDailyLimits. Both are
+   * unset (no limit) until someone sets one, and only the people who may
+   * turn AI on or off may set them - a project owner, or someone with
+   * Manage Billing - since they decide what AI may cost the project. A
+   * project is never created with one: new projects have no limits, like
+   * every other AI limit.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Daily AI Token Limit",
+    description:
+      "The most tokens OneUptime AI may use in this project each UTC day, across every AI feature: Ask AI, investigations, postmortem drafts, fix pull requests, insight triage, workflows, runbooks and Slack or Microsoft Teams questions. Once it is reached, new AI work is refused until midnight UTC. The incident and alert daily limits still apply under it. Unset means no limit; a limit is a whole number of at least 1 (to turn AI off, use Enable AI).",
+    example: 200000,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public aiDailyTokenLimit?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Daily AI Spend Limit (USD)",
+    description:
+      "OneUptime Cloud: the most AI credits, in whole US dollars, OneUptime AI may spend in this project each UTC day. Only calls billed to the project's AI credits count, so it never stops AI that runs on the project's own LLM provider. Once it is reached, billed AI work is refused until midnight UTC. Ignored where AI is not billed (self-hosted). Unset means no limit; a limit is at least 1 (to turn AI off, use Enable AI).",
+    example: 25,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public aiDailySpendLimitInUSD?: number = undefined;
+
+  /*
+   * When each of the two limits above last stopped OneUptime AI: the first
+   * time it did on the latest UTC day it did (Types/AI/ProjectAiDailyLimits,
+   * PROJECT_AI_DAILY_LIMIT_REACHED_AT_COLUMNS). The conditional UPDATE that
+   * writes one, once a day, is what decides the project's owners are emailed
+   * (Server/Utils/AI/ProjectAiDailyLimitOwnerNotice), and the investigation
+   * catch-up reads them to find the projects whose skipped incidents and
+   * alerts may be waiting for the reset. Internal, like the owner notice
+   * flags below: no one reads or writes them through the API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    hideColumnInDocumentation: true,
+    type: TableColumnType.Date,
+    title: "Daily AI Token Limit Reached At",
+    description:
+      "Internal: when the project's daily AI token limit last stopped OneUptime AI - the first time on that UTC day. The project's owners are emailed then, once a day.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public aiDailyTokenLimitReachedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    hideColumnInDocumentation: true,
+    type: TableColumnType.Date,
+    title: "Daily AI Spend Limit Reached At",
+    description:
+      "Internal: when the project's daily AI spend limit last stopped OneUptime AI - the first time on that UTC day. The project's owners are emailed then, once a day.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public aiDailySpendLimitReachedAt?: Date = undefined;
 
   /*
    * The per-feature AI switches below (this one down to
@@ -2934,7 +3077,7 @@ export default class Project extends TenantModel {
     update: [],
   })
   @TableColumn({
-    manyToOneRelationColumn: "ResellerPlanId",
+    manyToOneRelationColumn: "resellerPlanId",
     type: TableColumnType.Entity,
     modelType: ResellerPlan,
     hideColumnInDocumentation: true,
@@ -3285,7 +3428,7 @@ export default class Project extends TenantModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Enterprise,
-    create: PlanType.Free,
+    create: PlanType.Enterprise,
   })
   public enableAuditLogs?: boolean = undefined;
 
@@ -3370,7 +3513,7 @@ export default class Project extends TenantModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Enterprise,
-    create: PlanType.Free,
+    create: PlanType.Enterprise,
   })
   public auditLogsRetentionInDays?: number = undefined;
 
@@ -3409,7 +3552,7 @@ export default class Project extends TenantModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Enterprise,
-    create: PlanType.Free,
+    create: PlanType.Enterprise,
   })
   public storeSystemEventsInAuditLogs?: boolean = undefined;
 }

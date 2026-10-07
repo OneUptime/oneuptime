@@ -20,8 +20,13 @@ jest.mock(
   },
 );
 
-import NetworkDeviceAutoImportRuleService from "../../../Server/Services/NetworkDeviceAutoImportRuleService";
+import NetworkDeviceAutoImportRuleService, {
+  MONITOR_TEMPLATE_NOT_FOUND_MESSAGE,
+  OID_TEMPLATE_NOT_FOUND_MESSAGE,
+} from "../../../Server/Services/NetworkDeviceAutoImportRuleService";
 import MonitorTemplateService from "../../../Server/Services/MonitorTemplateService";
+import NetworkDeviceOidTemplateService from "../../../Server/Services/NetworkDeviceOidTemplateService";
+import NetworkDeviceOidTemplate from "../../../Models/DatabaseModels/NetworkDeviceOidTemplate";
 import NetworkAlertPolicyService from "../../../Server/Services/NetworkAlertPolicyService";
 import NetworkAlertPolicy from "../../../Models/DatabaseModels/NetworkAlertPolicy";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
@@ -74,15 +79,17 @@ const TEMPLATE_UPDATE_PERMISSIONS: Array<Permission> = [
   Permission.ProjectAdmin,
   Permission.EditNetworkDeviceAutoImportRule,
 ];
-const MONITOR_TEMPLATE_READ_PERMISSIONS: Array<Permission> = [
+/*
+ * Which template a rule applies is read with the rule itself, like every
+ * other column of it: whoever may read the rule sees its template. The
+ * template's own fields stay with the template's permissions.
+ */
+const RULE_READ_PERMISSIONS: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
   Permission.ProjectMember,
   Permission.Viewer,
-  Permission.MonitorAdmin,
-  Permission.MonitorMember,
-  Permission.MonitorViewer,
-  Permission.ReadMonitorTemplate,
+  Permission.ReadNetworkDeviceAutoImportRule,
 ];
 
 function makeCreateBy(
@@ -171,11 +178,14 @@ describe("NetworkDeviceAutoImportRule monitor template column access", () => {
   );
 
   it.each(MONITOR_TEMPLATE_COLUMNS)(
-    "%s requires monitor-template permission to read",
+    "%s is read with the rule's own read permissions",
     (columnName: string) => {
-      expect(rule.getColumnAccessControlFor(columnName)?.read).toEqual(
-        MONITOR_TEMPLATE_READ_PERMISSIONS,
-      );
+      const read: Array<Permission> =
+        rule.getColumnAccessControlFor(columnName)?.read || [];
+
+      expect(read).toEqual(RULE_READ_PERMISSIONS);
+      expect([...read].sort()).toEqual([...rule.getReadPermissions()].sort());
+      expect(read).not.toContain(Permission.ReadMonitorTemplate);
     },
   );
 });
@@ -293,14 +303,67 @@ describe("NetworkDeviceAutoImportRuleService.onBeforeCreate monitor template val
     ).rejects.toThrow("Monitor template not found.");
   });
 
-  it("rejects a monitor template from another project", async () => {
+  /*
+   * A root write reads the template past the tenant; another project's
+   * template still reads exactly like one that does not exist.
+   */
+  it("rejects a monitor template from another project like one that does not exist", async () => {
     mockMonitorTemplate({ projectId: OTHER_PROJECT_ID });
+
+    const refusal: unknown = await (NetworkDeviceAutoImportRuleService as any)
+      .onBeforeCreate(makeCreateBy({ monitorTemplateId: TEMPLATE_ID }))
+      .catch((error: unknown) => {
+        return error;
+      });
+
+    expect(refusal).toBeInstanceOf(BadDataException);
+    expect((refusal as Error).message).toBe(MONITOR_TEMPLATE_NOT_FOUND_MESSAGE);
+  });
+
+  it("rejects an OID Collection Template from another project like one that does not exist", async () => {
+    const foreignTemplate: NetworkDeviceOidTemplate =
+      new NetworkDeviceOidTemplate();
+    foreignTemplate._id = TEMPLATE_ID.toString();
+    foreignTemplate.projectId = OTHER_PROJECT_ID;
+
+    const findOidTemplateSpy: jest.SpyInstance = jest
+      .spyOn(NetworkDeviceOidTemplateService, "findOneById")
+      .mockResolvedValue(foreignTemplate);
+
+    const foreign: unknown = await (NetworkDeviceAutoImportRuleService as any)
+      .onBeforeCreate(makeCreateBy({ oidTemplateId: TEMPLATE_ID }))
+      .catch((error: unknown) => {
+        return error;
+      });
+
+    findOidTemplateSpy.mockResolvedValue(null);
+
+    const missing: unknown = await (NetworkDeviceAutoImportRuleService as any)
+      .onBeforeCreate(makeCreateBy({ oidTemplateId: TEMPLATE_ID }))
+      .catch((error: unknown) => {
+        return error;
+      });
+
+    expect(foreign).toBeInstanceOf(BadDataException);
+    expect((foreign as Error).message).toBe(OID_TEMPLATE_NOT_FOUND_MESSAGE);
+    expect((missing as Error).message).toBe(OID_TEMPLATE_NOT_FOUND_MESSAGE);
+  });
+
+  it("accepts an OID Collection Template of the rule's own project", async () => {
+    const ownTemplate: NetworkDeviceOidTemplate =
+      new NetworkDeviceOidTemplate();
+    ownTemplate._id = TEMPLATE_ID.toString();
+    ownTemplate.projectId = PROJECT_ID;
+
+    jest
+      .spyOn(NetworkDeviceOidTemplateService, "findOneById")
+      .mockResolvedValue(ownTemplate);
 
     await expect(
       (NetworkDeviceAutoImportRuleService as any).onBeforeCreate(
-        makeCreateBy({ monitorTemplateId: TEMPLATE_ID }),
+        makeCreateBy({ oidTemplateId: TEMPLATE_ID }),
       ),
-    ).rejects.toThrow("Monitor template must belong to the same project.");
+    ).resolves.toBeDefined();
   });
 
   it("rejects a monitor template without a project", async () => {

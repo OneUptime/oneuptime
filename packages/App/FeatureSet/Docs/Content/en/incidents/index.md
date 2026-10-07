@@ -51,7 +51,7 @@ That distinction matters more than it sounds:
 
 - `isCreatedState` decides where a new incident starts. If no state is explicitly selected on create, OneUptime looks for the project's created state and uses it.
 - `isAcknowledgedState` and `isResolvedState` drive the **Acknowledge** and **Resolve** buttons in the incident header, the two stat tiles on the incident **Overview**, and the **Active Incidents** count badge in the side menu.
-- **Active Incidents** is defined purely as "the current state is not the resolved state". Any custom state you add is therefore active unless it is the resolved one.
+- **Active Incidents** is defined purely as "the current state sits above the resolved state". A custom state you add above the resolved state is therefore active; one you place after it counts as resolved, as the resolved state does.
 
 **Note the naming.** The first seeded state is named **Identified**, even though several descriptions inside the product still call it the created state. If you are looking for "Created" in your project's state list, it is the row named **Identified**.
 
@@ -105,7 +105,7 @@ Responders acknowledge the incident, attach affected resources, link the alerts 
 
 ### 4. It gets resolved
 
-Clicking **Resolve** moves the incident to the resolved state, stamps the state timeline, stops the duration clock, and removes the incident from the active section of any status page it was showing on. Nothing else has to change for that to happen — the resolved state flag is what the status page query looks at.
+Clicking **Resolve** moves the incident to the resolved state, stamps the state timeline, stops the duration clock, gives back the monitors it holds, and removes the incident from the active section of any status page it was showing on. Nothing else has to change for that to happen — a status page shows only incidents in a state above the resolved state. See [What resolving does](/docs/incidents/states-and-severities#what-resolving-does).
 
 After that you can write a postmortem and, optionally, publish it to the status page.
 
@@ -115,13 +115,14 @@ Open **Incidents** in the left navigation. Its side menu is organized into secti
 
 | Section       | What you do there                                                                                                                                                          |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Overview**  | **All Incidents** and **Active Incidents** — the latter carries a red badge with the count of incidents that are not in the resolved state.                                |
+| **Overview**  | **All Incidents** and **Active Incidents** — the latter carries a red badge with the count of incidents in a state above the resolved state.                                |
 | **Episodes**  | Incident episodes, a separate grouping feature with its own pages.                                                                                                         |
+| **AI**        | **Insights**, **Logs**, **Settings**, **Auto Remediation Rules**: what OneUptime AI learned from your incidents and everything it did for them, what it may do on its own, and the rules that fix incidents with runbooks. See [AI SRE](/docs/ai/ai-sre). |
 | **Workspace** | The chat workspaces this project has connected: **Slack**, **Microsoft Teams** or both, each with its notification rules for incidents. With neither connected, it holds **Connect Slack or Teams**, a page showing both and how to connect them. |
-| **Rules**     | The rule engines: **Grouping Rules**, **On-Call Rules**, **Owner Rules**, **Runbook Rules**, **Auto Remediation Rules**, **Privacy Rules**, **Label Rules**, **SLA Rules**, **Reminder Rules**. |
-| **Settings**  | **AI**, **Incident State**, **Incident Severity**, **Incident Templates**, **Note Templates**, **Postmortem Templates**, **Custom Fields**, **Incident Roles**, **Measurements**, **Linked Alerts**, **Number Prefix**. |
+| **Rules**     | The rule engines: **Grouping Rules**, **On-Call Rules**, **Owner Rules**, **Runbook Rules**, **Privacy Rules**, **Label Rules**, **SLA Rules**, **Reminder Rules**. |
+| **Settings**  | **Incident State**, **Incident Severity**, **Incident Templates**, **Note Templates**, **Postmortem Templates**, **Custom Fields**, **Incident Roles**, **Measurements**, **Linked Alerts**, **Number Prefix**. |
 
-**Overview** and **Episodes** are open; **Workspace**, **Rules**, **Settings** and **Developer** are collapsed by default, so the menu opens on the lists you use every day. Click a section's title to expand it and find the pages the rest of these docs refer to; a section also opens by itself whenever you are on one of its pages. Incident configuration is not under Project Settings; it all lives here.
+**Overview** and **Episodes** are open; **AI**, **Workspace**, **Rules**, **Settings** and **Developer** are collapsed by default, so the menu opens on the lists you use every day. Click a section's title to expand it and find the pages the rest of these docs refer to; a section also opens by itself whenever you are on one of its pages. Incident configuration is not under Project Settings; it all lives here.
 
 The incidents list itself shows **Incident Number**, **Title**, **State**, **Severity**, **Resources Affected**, **Declared**, **Duration**, **Labels** and **Owners**, with a **Change State** bulk action for closing several at once.
 
@@ -134,7 +135,7 @@ Open an incident and you get a left side menu, grouped like this:
 - **SLA** — SLA tracking for this incident.
 - **Description**, **Root Cause**, **Remediation** — three markdown pages. The description is the one that shows on your status page.
 - **Runbooks** — runbook executions attached to this incident.
-- **Postmortem** — the write-up and its attachments, which you can optionally publish to the status page. **Edit Postmortem Note** asks for the note and attachments, then **Publish on Status Page**; only while that is on does it ask **Notify Subscribers** and **Postmortem Published At**, which turning publishing on sets to now. **Generate with AI** drafts the note for you, and **Apply Template** — shown once the project has a postmortem template — starts it from one.
+- **Postmortem** — the write-up and its attachments, which you can optionally publish to the status page. **Edit Postmortem Note** asks for the note and attachments, then **Publish on Status Page**; only while that is on does it ask **Notify Subscribers** and **Postmortem Published At**, which turning publishing on sets to now. **Generate with AI** drafts the note for you, and **Apply Template** — shown once the project has a postmortem template — starts it from one. Subscribers are told once, when the postmortem is published: the first time the status page shows it, which takes **Publish on Status Page** on and a note written. Saving it again, or editing it while it is published, updates the status page and tells nobody; publishing it again after taking it off the status page tells them again. One published while the incident is hidden is sent when the incident is made visible. See [The postmortem](/docs/status-pages/subscribers#the-postmortem).
 - **Linked Alerts** — the alerts linked to this incident, with each alert's current state, and who linked it and when. Alerts have a matching **Linked Incidents** page. See [Linked Alerts](/docs/incidents/linked-alerts).
 - **Roles**, **On-Call Executions**, **Owners** — who is on it, which policies fired, and who gets notified.
 - **Notification Logs**, **AI Logs**, **Audit Logs** — what was sent and what changed. The first two are under **Notifications**, which starts collapsed: click **Notifications** to show them. **Audit Logs** is under **Advanced**.
@@ -149,7 +150,7 @@ Open an incident and you get a left side menu, grouped like this:
 - **Alerts are the signals; incidents are the response.** Link the alerts an incident explains to it, from either side, and two project switches, on for new projects, acknowledge and resolve those alerts along with the incident. See [Linked Alerts](/docs/incidents/linked-alerts).
 - **On-call policies do the paging.** Attach policies on the **On-Call & Roles** step of the declare wizard, on a template, or through **Incidents → Rules → On-Call Rules**. Every matching rule fires — the executed set is the union of all matches plus anything attached directly, deduplicated.
 - **Runbooks tell people what to do.** Runbook rules attach a procedure automatically when a matching incident is created, and responders can start one by hand from the incident. See [Runbooks Overview](/docs/runbooks/index).
-- **Status pages tell customers.** An incident shows in a status page's active list when the page lists one of its monitors, the page has incidents enabled, the incident is marked visible on the status page, and its current state is not the resolved state. An incident limited to some status pages shows only on those. Private incidents are hidden from every status page, always. See [Status Pages Overview](/docs/status-pages/index) and [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
+- **Status pages tell customers.** An incident shows in a status page's active list when the page lists one of its monitors, the page has incidents enabled, the incident is marked visible on the status page, and its current state sits above the resolved state. An incident limited to some status pages shows only on those. Private incidents are hidden from every status page, always. See [Status Pages Overview](/docs/status-pages/index) and [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 - **Workflows automate around it.** The **On Create Incident**, **On Update Incident** and **On Delete Incident** triggers let you build no-code automation on top of the incident lifecycle. See [Workflows Overview](/docs/workflows/index).
 
 ## Where to read next

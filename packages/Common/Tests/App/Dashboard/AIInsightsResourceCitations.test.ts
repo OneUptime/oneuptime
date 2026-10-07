@@ -27,6 +27,7 @@ const RESOURCE_ROUTES: Array<[AIResourceType, string]> = [
   [AIResourceType.ProxmoxCluster, "proxmox"],
   [AIResourceType.VMwareVCenter, "vmware"],
   [AIResourceType.CephCluster, "ceph"],
+  [AIResourceType.StorageArray, "storage-arrays"],
   [AIResourceType.ServerlessFunction, "serverless"],
   [AIResourceType.CloudResource, "cloud"],
   [AIResourceType.IoTFleet, "iot"],

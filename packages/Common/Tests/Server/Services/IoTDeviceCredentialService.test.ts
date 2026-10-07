@@ -124,6 +124,15 @@ import {
   IoTDeviceCredentialContext,
   Service as IoTDeviceCredentialServiceType,
 } from "../../../Server/Services/IoTDeviceCredentialService";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * The protected hooks and the private cache, reachable for the test. Driving
@@ -248,6 +257,7 @@ beforeEach(() => {
   cacheGetString.mockResolvedValue(null);
   cacheSetString.mockReset();
   cacheSetString.mockResolvedValue(undefined);
+  stubProjectDirectory({});
 });
 
 describe("the device secret is always server-generated", () => {
@@ -467,6 +477,160 @@ describe("a device id is unique within its fleet, byte-exact", () => {
     );
 
     expect(harness.countBy.mock.calls).toHaveLength(0);
+  });
+});
+
+/*
+ * The fleet is a reference with two names - the relation (`iotFleet`, which
+ * the dashboard's forms post) and its ID column (`iotFleetId`) - and both
+ * rules above hold whichever name a registration uses. A fleet named only
+ * by the relation used to skip the duplicate check (the unique index then
+ * failed the insert instead) and the service's own fleet check.
+ */
+describe("the fleet is read under either of its names", () => {
+  test("a second registration naming the fleet by the relation is refused", async () => {
+    const harness: Harness = buildService();
+    harness.countBy.mockResolvedValue(new PositiveNumber(1));
+
+    await expect(
+      harness.internals.onBeforeCreate(
+        createByModel({
+          projectId: PROJECT_ID,
+          iotFleet: { _id: FLEET_ID.toString() },
+          externalId: "Device-01",
+        }),
+      ),
+    ).rejects.toThrow(
+      "A device with this Device ID is already registered in this fleet.",
+    );
+
+    const query: Record<string, unknown> = lastCall(harness.countBy)[
+      "query"
+    ] as Record<string, unknown>;
+
+    expect(String(query["iotFleetId"])).toBe(FLEET_ID.toString());
+    expect(query["externalId"]).toBe("Device-01");
+  });
+
+  test("a fleet named by the relation is looked up, and another project's is refused", async () => {
+    const harness: Harness = buildService();
+    findOneFleetById.mockResolvedValue(fleetIn(OTHER_PROJECT_ID));
+
+    await expect(
+      harness.internals.onBeforeCreate(
+        createByModel({
+          projectId: PROJECT_ID,
+          iotFleet: { _id: OTHER_FLEET_ID.toString() },
+          externalId: "Device-01",
+        }),
+      ),
+    ).rejects.toThrow("IoT Fleet not found in this project.");
+
+    expect(
+      String(
+        (findOneFleetById.mock.calls[0]![0] as Record<string, unknown>)["id"],
+      ),
+    ).toBe(OTHER_FLEET_ID.toString());
+  });
+
+  test("the fleet named by the relation is kept in its ID column, for the saved row", async () => {
+    const harness: Harness = buildService();
+    const createBy: CreateBy<Model> = createByModel({
+      projectId: PROJECT_ID,
+      iotFleet: { _id: FLEET_ID.toString() },
+      externalId: "Device-01",
+    });
+
+    await harness.internals.onBeforeCreate(createBy);
+
+    expect(String(writtenValues(createBy)["iotFleetId"])).toBe(
+      FLEET_ID.toString(),
+    );
+  });
+
+  test("a fleet named differently under its two names is refused before anything is read", async () => {
+    const harness: Harness = buildService();
+
+    await expect(
+      harness.internals.onBeforeCreate(
+        createByModel({
+          projectId: PROJECT_ID,
+          iotFleetId: FLEET_ID,
+          iotFleet: { _id: OTHER_FLEET_ID.toString() },
+          externalId: "Device-01",
+        }),
+      ),
+    ).rejects.toThrow(
+      "Conflicting IoT Fleet references were provided. iotFleetId and iotFleet are names for the same field and must hold the same value: send only one of them, or the same id in each.",
+    );
+
+    expect(findOneFleetById.mock.calls).toHaveLength(0);
+    expect(harness.countBy.mock.calls).toHaveLength(0);
+  });
+});
+
+/*
+ * The project a credential is saved in is the request's: DatabaseService
+ * stamps it after this hook, whatever the payload's projectId said. Both
+ * checks read that project, so a payload naming another project neither
+ * moves the fleet check nor the duplicate check there.
+ */
+describe("the checks read the project the credential is saved in", () => {
+  function createInProject(payload: Record<string, unknown>): CreateBy<Model> {
+    return {
+      data: Object.assign(new Model(), payload) as Model,
+      props: { tenantId: PROJECT_ID, userId: CREDENTIAL_ID },
+    };
+  }
+
+  test("a fleet of the project named in the payload, not the request's, is refused", async () => {
+    const harness: Harness = buildService();
+    findOneFleetById.mockResolvedValue(fleetIn(OTHER_PROJECT_ID));
+
+    await expect(
+      harness.internals.onBeforeCreate(
+        createInProject({
+          projectId: OTHER_PROJECT_ID,
+          iotFleetId: FLEET_ID,
+          externalId: "Device-01",
+        }),
+      ),
+    ).rejects.toThrow("IoT Fleet not found in this project.");
+  });
+
+  test("the duplicate check counts the request's project", async () => {
+    const harness: Harness = buildService();
+
+    await harness.internals.onBeforeCreate(
+      createInProject({
+        projectId: OTHER_PROJECT_ID,
+        iotFleetId: FLEET_ID,
+        externalId: "Device-01",
+      }),
+    );
+
+    const query: Record<string, unknown> = lastCall(harness.countBy)[
+      "query"
+    ] as Record<string, unknown>;
+
+    expect(String(query["projectId"])).toBe(PROJECT_ID.toString());
+  });
+
+  test("a registration that names no project checks the request's", async () => {
+    const harness: Harness = buildService();
+
+    await harness.internals.onBeforeCreate(
+      createInProject({ iotFleetId: FLEET_ID, externalId: "Device-01" }),
+    );
+
+    expect(findOneFleetById.mock.calls).toHaveLength(1);
+    expect(
+      String(
+        (lastCall(harness.countBy)["query"] as Record<string, unknown>)[
+          "projectId"
+        ],
+      ),
+    ).toBe(PROJECT_ID.toString());
   });
 });
 

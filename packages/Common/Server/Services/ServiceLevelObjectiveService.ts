@@ -23,7 +23,7 @@ import { resolveReferenceId } from "../Utils/Database/ProjectScopedReferenceVali
 import logger, { LogAttributes } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import AlertSeverityService from "./AlertSeverityService";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorStatusService from "./MonitorStatusService";
 import ProjectService from "./ProjectService";
 import ServiceLevelObjectiveBurnRateRuleService from "./ServiceLevelObjectiveBurnRateRuleService";
@@ -112,15 +112,28 @@ interface SloDeleteCarryForward {
   burnRateRules: Array<ServiceLevelObjectiveBurnRateRule>;
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * OneUptime's own writes to an SLO are the monitor rule engine's
+   * membership sync, which attaches and releases the monitors it read pinned
+   * to the SLO's own project, and the evaluator's numbers - neither names a
+   * record anyone typed. An SLO written by an API call or a workflow is
+   * checked like any other write.
+   */
+  protected override checksServerWrites(): boolean {
+    return false;
   }
 
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.projectId) {
       throw new BadDataException("projectId is required");
     }
@@ -339,6 +352,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * Same string-arrival path as onBeforeCreate — coerce, validate, and write
      * the number back onto the update payload.
@@ -1169,7 +1184,7 @@ export class Service extends DatabaseService<Model> {
 
     /*
      * A dashboard, API-key or Terraform create carries an acting user; a
-     * workflow or other automation creating as root does not, and the item
+     * workflow step or OneUptime's own automation does not, and the item
      * then says so instead of naming somebody.
      */
     const createdByUserId: ObjectID | undefined =
@@ -1615,8 +1630,8 @@ export class Service extends DatabaseService<Model> {
    * The column stays in the API so upgrades do not break, and it is still
    * written: a dashboard tab opened before the upgrade sends it with every
    * save of the SLO form, and so can an API client or a workflow written
-   * against the previous release. Workflows write as root, which is why every
-   * caller is handled here, not only users - nothing on this release writes
+   * against the previous release. A workflow step is no person, which is why
+   * every caller is handled here, not only users - nothing on this release writes
    * the column for its own reasons. Nothing else on this release reads it
    * either, so storing it and moving on left the SLO measuring something other
    * than what the caller had just saved. It is applied instead, the way this

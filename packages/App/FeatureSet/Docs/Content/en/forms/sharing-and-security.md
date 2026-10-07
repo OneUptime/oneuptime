@@ -33,6 +33,8 @@ To stop taking submissions without deleting the form, turn **Accepting Submissio
 
 After a submission, the page says "Thank you — your response was submitted." and gives the number of what was created, then your **Thank-You Message**, in Markdown. Use it to say what happens next, and where to go when something is urgent. Without one, the page shows only the standard message.
 
+An image in the form's description or thank-you message is shown to everyone who opens the link while the form is **Accepting Submissions**. Turn the form off, or take the image out, and the image is private again, unless something else everyone sees still has it in it.
+
 ## What protects a form
 
 Every request passes these checks, in this order:
@@ -54,7 +56,7 @@ To limit a form to your own networks, fill in **IP Allowlist** on the **Access**
 
 The list is checked whenever it is saved — from the dashboard, the API, Terraform or a workflow — and a line that could never match is refused with a message that names it. Leave the list empty to allow every network. Once it has an entry, a request whose address cannot be established is refused.
 
-On OneUptime Cloud, editing the IP allowlist needs the **Scale** plan, like the IP allowlist of a [public dashboard](/docs/dashboards/sharing).
+On OneUptime Cloud, setting the IP allowlist needs the **Scale** plan - when a form is created with one through the API as when it is edited - like the IP allowlist of a [public dashboard](/docs/dashboards/sharing). Emptying it works on every plan.
 
 ### Requests from other websites
 

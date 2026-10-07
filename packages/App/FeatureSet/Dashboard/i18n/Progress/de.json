@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 24715,
-    "untranslated": 4066
+    "keys": 25975,
+    "untranslated": 4384
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -362,6 +362,7 @@
     "Router",
     "Router Discovery - Region 1100",
     "Runbook",
+    "Runbook: {{name}}",
     "Runbooks",
     "Runner",
     "Réunion",
@@ -465,6 +466,7 @@
     "VLAN",
     "VMID",
     "VMs",
+    "VMware vCenter",
     "Vanuatu",
     "Variable",
     "Version",
