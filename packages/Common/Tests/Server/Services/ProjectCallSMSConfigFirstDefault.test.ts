@@ -17,6 +17,7 @@ import Phone from "../../../Types/Phone";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import UserType from "../../../Types/UserType";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import {
   afterEach,
   beforeEach,
@@ -97,6 +98,7 @@ const memberProps: MemberPropsFunction = (
     userId: USER_ID,
     tenantId: PROJECT_ID,
     userType: UserType.User,
+    ...ON_HIGHEST_PLAN,
     userTenantAccessPermission: {
       [memberOf.toString()]: tenantPermission,
     },

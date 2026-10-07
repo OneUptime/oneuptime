@@ -75,6 +75,7 @@ import Permission, { UserPermission } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "0193c0de-7e57-4aaa-8bbb-000000000001",
@@ -103,6 +104,7 @@ function personWith(
     userId: USER_ID,
     userType: UserType.User,
     tenantId: PROJECT_ID,
+    ...ON_HIGHEST_PLAN,
     userTenantAccessPermission: {
       [PROJECT_ID.toString()]: {
         _type: "UserTenantAccessPermission",

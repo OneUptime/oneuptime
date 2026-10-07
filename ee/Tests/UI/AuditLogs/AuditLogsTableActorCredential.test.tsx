@@ -143,6 +143,8 @@ interface EntryData {
   apiKeyName?: string | undefined;
   mcpOAuthGrantId?: ObjectID | undefined;
   mcpClientName?: string | undefined;
+  workflowId?: ObjectID | undefined;
+  workflowName?: string | undefined;
 }
 
 type MakeEntryFunction = (data: EntryData) => AuditLog;
@@ -177,6 +179,12 @@ const makeEntry: MakeEntryFunction = (data: EntryData): AuditLog => {
   }
   if (data.mcpClientName !== undefined) {
     entry.mcpClientName = data.mcpClientName;
+  }
+  if (data.workflowId !== undefined) {
+    entry.workflowId = data.workflowId;
+  }
+  if (data.workflowName !== undefined) {
+    entry.workflowName = data.workflowName;
   }
 
   return entry;
@@ -286,6 +294,61 @@ describe("the table asks for the credential columns", () => {
     );
 
     expect(titles).toContain("Actor");
+  });
+});
+
+/*
+ * A workflow step acts as no person (WorkflowPrincipal), so a change it made
+ * is the workflow's: the cell names the workflow, as it was called at the
+ * time, and adds no "via" line.
+ */
+describe("a change a workflow made", () => {
+  const WORKFLOW_ID: ObjectID = new ObjectID(
+    "99999999-9999-4999-8999-999999999999",
+  );
+
+  test("the table asks for the workflow's id and name", () => {
+    expect(capturedTableProps?.selectMoreFields).toEqual(
+      expect.objectContaining({ workflowId: true, workflowName: true }),
+    );
+  });
+
+  test("the workflow is the actor, by its name", () => {
+    const cell: HTMLElement = renderActorCell({
+      userType: "Workflow",
+      workflowId: WORKFLOW_ID,
+      workflowName: "Close stale incidents",
+    });
+
+    const actor: HTMLElement = within(cell).getByTestId(
+      "audit-log-workflow-actor",
+    );
+
+    expect(actor).toHaveTextContent("Close stale incidents");
+    expect(actor).toHaveTextContent("Workflow");
+    expect(within(cell).queryByTestId(CREDENTIAL_TEST_ID)).toBeNull();
+  });
+
+  test("a workflow with no name reads as Workflow", () => {
+    const cell: HTMLElement = renderActorCell({
+      userType: "Workflow",
+      workflowId: WORKFLOW_ID,
+    });
+
+    const actor: HTMLElement = within(cell).getByTestId(
+      "audit-log-workflow-actor",
+    );
+
+    expect(actor.textContent).toBe("WorkflowWorkflow");
+  });
+
+  test("it is not drawn as OneUptime's own change", () => {
+    const cell: HTMLElement = renderActorCell({
+      userType: "Workflow",
+      workflowName: "Close stale incidents",
+    });
+
+    expect(cell).not.toHaveTextContent("System");
   });
 });
 

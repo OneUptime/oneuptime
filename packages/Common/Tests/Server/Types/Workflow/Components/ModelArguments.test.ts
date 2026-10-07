@@ -5,6 +5,7 @@ import {
   applyTenantColumn,
   describeModelColumns,
   normalizeModelKeys,
+  withoutTenantColumn,
 } from "../../../../../Server/Types/Workflow/Components/BaseModel/ModelArguments";
 import Monitor from "../../../../../Models/DatabaseModels/Monitor";
 import Project from "../../../../../Models/DatabaseModels/Project";
@@ -312,6 +313,56 @@ describe("applyTenantColumn", () => {
     applyTenantColumn(input, new Monitor(), PROJECT_ID);
 
     expect(input).toEqual({ project: "some-other-project" });
+  });
+});
+
+/*
+ * What an update step writes: a record stays in the project it is in. No
+ * caller may change a record's project, so an update writing it - even its
+ * own project's id - would be refused to a step, which acts as a Project
+ * Admin (WorkflowPrincipal).
+ */
+describe("withoutTenantColumn", () => {
+  test("leaves out the tenant column, under either of its names", () => {
+    expect(
+      withoutTenantColumn(
+        {
+          name: "keep me",
+          projectId: "some-other-project",
+          project: { _id: "some-other-project" },
+        },
+        new Monitor(),
+      ),
+    ).toEqual({ name: "keep me" });
+  });
+
+  test("writes no project of its own", () => {
+    expect(
+      withoutTenantColumn({ isEnabled: true }, new Monitor())["projectId"],
+    ).toBeUndefined();
+  });
+
+  test("keeps relations that point at some other column", () => {
+    expect(
+      withoutTenantColumn(
+        { currentMonitorStatus: { _id: MONITOR_ID } },
+        new Monitor(),
+      ),
+    ).toEqual({ currentMonitorStatus: { _id: MONITOR_ID } });
+  });
+
+  test("leaves a model without a tenant column untouched, and the input as it was", () => {
+    const model: Monitor = new Monitor();
+    jest.spyOn(model, "getTenantColumn").mockReturnValue(null);
+
+    const input: JSONObject = { name: "unchanged", projectId: "kept" };
+
+    expect(withoutTenantColumn(input, model)).toBe(input);
+
+    const other: JSONObject = { project: "some-other-project" };
+    withoutTenantColumn(other, new Monitor());
+
+    expect(other).toEqual({ project: "some-other-project" });
   });
 });
 

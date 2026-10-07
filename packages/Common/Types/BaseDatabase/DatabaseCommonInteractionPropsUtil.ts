@@ -52,7 +52,23 @@ export default class DatabaseCommonInteractionPropsUtil {
     }
 
     return (
-      props.userType !== UserType.API && props.userType !== UserType.MasterAdmin
+      !DatabaseCommonInteractionPropsUtil.isProjectPrincipalWithoutPerson(
+        props,
+      ) && props.userType !== UserType.MasterAdmin
+    );
+  }
+
+  /*
+   * A caller that acts in a project without being a person: one of the
+   * project's API keys, or a step of one of its workflows (WorkflowPrincipal).
+   * It has no userId and is no less signed in for that - what it may do is
+   * whatever its permission rows say, read like anyone else's.
+   */
+  public static isProjectPrincipalWithoutPerson(
+    props: DatabaseCommonInteractionProps,
+  ): boolean {
+    return (
+      props.userType === UserType.API || props.userType === UserType.Workflow
     );
   }
 

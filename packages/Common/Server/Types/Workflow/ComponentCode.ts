@@ -7,7 +7,9 @@ import Exception from "../../../Types/Exception/Exception";
 import { JSONArray, JSONObject, JSONValue } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import ComponentMetadata, { Port } from "../../../Types/Workflow/Component";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
+import WorkflowPrincipal from "../../Utils/Workflow/WorkflowPrincipal";
 
 export interface ExecuteChildWorkflow {
   workflowId: ObjectID;
@@ -24,6 +26,11 @@ export interface RunOptions {
   log: (item: string | JSONObject | Error | JSONArray | JSONValue) => void;
   workflowLogId: ObjectID;
   workflowId: ObjectID;
+  /*
+   * The workflow's name, for the audit trail of what its steps change
+   * (WorkflowPrincipal). Nothing checks it.
+   */
+  workflowName?: string | undefined;
   projectId: ObjectID;
   onError: (exception: Exception) => Exception;
   /**
@@ -70,6 +77,22 @@ export default class ComponentCode {
     }
 
     return this.metadata;
+  }
+
+  /*
+   * The props a step reads and writes its project's records with: a Project
+   * Admin of the project the workflow runs in, on the project's plan, and no
+   * person (WorkflowPrincipal). Never root - a step can do what a Project
+   * Admin can do, and no more.
+   */
+  protected async getStepProps(
+    options: RunOptions,
+  ): Promise<DatabaseCommonInteractionProps> {
+    return await WorkflowPrincipal.getProps({
+      projectId: options.projectId,
+      workflowId: options.workflowId,
+      workflowName: options.workflowName,
+    });
   }
 
   @CaptureSpan()

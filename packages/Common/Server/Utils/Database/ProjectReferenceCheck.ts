@@ -189,9 +189,9 @@ export default class ProjectReferenceCheck {
 
   /*
    * A write OneUptime makes itself: as root, with no project on the request
-   * - a job, an engine, a service's own helper. Requests made in a project
-   * carry it: an API call, and a workflow, which writes as root with its
-   * project's tenant. A master admin is a person, not the server.
+   * - a job, an engine, a service's own helper. Writes made in a project
+   * carry it: an API call, a workflow step, and an engine writing that
+   * project's records as root. A master admin is a person, not the server.
    */
   public static isServerWrite(props: DatabaseCommonInteractionProps): boolean {
     return Boolean(props.isRoot) && !props.tenantId;

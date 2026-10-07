@@ -46,6 +46,8 @@ import SlackUtil from "../../../../../Server/Utils/Workspace/Slack/Slack";
 import WorkspaceActionAuthorization from "../../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
 import Dictionary from "../../../../../Types/Dictionary";
 import ObjectID from "../../../../../Types/ObjectID";
+import ProjectService from "../../../../../Server/Services/ProjectService";
+import { PlanType } from "../../../../../Types/Billing/SubscriptionPlan";
 import Permission, {
   UserPermission,
   UserTenantAccessPermission,
@@ -161,6 +163,11 @@ function directMessageTexts(): Array<string> {
 }
 
 beforeEach((): void => {
+  // The project's plan, as the action's checks read it where a plan decides (CallerPlan).
+  jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+    plan: PlanType.Enterprise,
+    isSubscriptionUnpaid: false,
+  });
   jest.spyOn(Response, "sendJsonObjectResponse").mockImplementation(() => {});
   jest.spyOn(Response, "sendTextResponse").mockImplementation(() => {});
   jest.spyOn(Response, "sendErrorResponse").mockImplementation(() => {});

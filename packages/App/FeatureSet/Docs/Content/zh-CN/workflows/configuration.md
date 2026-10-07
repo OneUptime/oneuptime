@@ -115,6 +115,18 @@ AI 组件有一条明确的出口边界：
 
 把 **Workflow Admin** 给构建自动化的人，把 **Workflow Member** 给只需要启动它的人。把变量的编辑权留给管你项目密钥的那些人。
 
+## 工作流步骤可以做什么
+
+读取和更改 OneUptime 记录的步骤（Find、Create、Update、Delete 组件，以及 On Create、On Update、On Delete 触发器）以工作流所属项目的 **Project Admin** 身份运行。它们与 Project Admin 在仪表板和 API 中一样，接受相同的检查：
+
+- **只限工作流自己的项目。** 步骤绝不会读取或更改其他项目的记录，Update 也绝不会把记录移到其他项目。
+- **只做 Project Admin 能做的事。** 步骤不能授予 Project Admin 自己没有的权限（例如 **Project Owner** 或计费），也不能把任何人加入权限更多的团队，例如所有者团队。
+- **只限你的套餐包含的功能。** 在 OneUptime Cloud 上，你的套餐不包含的功能会被拒绝，并说明需要哪个套餐。
+- **不触碰 OneUptime 自己维护的内容。** 动态条目不能编辑或删除，通知日志不能写入，OneUptime 自己设置的值（例如已验证的 CNAME、团队的保护开关或当前谁在值班）不能更改。**Create One Incident** 步骤也不能根据模板声明事件（`createdIncidentTemplateId`）：请用 **Find One Incident Template** 读取模板，再传入它的值。
+- **不以任何人的身份。** 工作流创建的记录没有创建者，审计日志会把工作流记为做出更改的一方。
+
+被拒绝的步骤会走它的 **Error** 输出，不会做出被拒绝的更改，运行日志会说明哪个步骤被拒绝以及原因。Create Many 步骤逐条创建记录，遇到被拒绝的那条就停下；在它之前创建的记录会保留。与其他系统通信的步骤（API、电子邮件、聊天、Custom Code、AI）不受影响。
+
 ## 套餐限制
 
 OneUptime Cloud 在较小的套餐上会限制每月的运行次数。你当前的限额显示在 **项目设置 → 账单** 下。用满之后，新的触发会被拒绝，直到下一个计费周期。自托管安装没有这个限制。

@@ -9,6 +9,8 @@ import IncidentEpisodeMemberService from "../../../Server/Services/IncidentEpiso
 import IncidentGroupingEngineService from "../../../Server/Services/IncidentGroupingEngineService";
 import IncidentPublicNoteService from "../../../Server/Services/IncidentPublicNoteService";
 import UserService from "../../../Server/Services/UserService";
+import ProjectService from "../../../Server/Services/ProjectService";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import {
   RunOptions,
   RunReturnType,
@@ -94,6 +96,11 @@ function runOptions(): RunOptions {
 
 beforeEach(() => {
   stubProjectDirectory({});
+  // The project's plan, which a step's props carry on a server with billing.
+  jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+    plan: PlanType.Enterprise,
+    isSubscriptionUnpaid: false,
+  });
   // A workflow component logs the stop at the hooks as its error.
   getJestSpyOn(logger, "error").mockImplementation((): void => {});
 });
@@ -136,6 +143,14 @@ describe("a workflow cannot name who did something to a record", () => {
       Monitor,
     );
     const reached: () => Record<string, unknown> = stopAtTheHooks(service);
+
+    /*
+     * The step updates as a Project Admin of its project, so the rows it may
+     * write are read before the hooks run: here, the one it names.
+     */
+    const record: Monitor = new Monitor();
+    record._id = RECORD_ID;
+    getJestSpyOn(service, "_findBy").mockResolvedValue([record]);
 
     await new UpdateOneBaseModel<Monitor>(service).run(
       {

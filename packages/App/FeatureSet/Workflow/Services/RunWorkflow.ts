@@ -380,6 +380,8 @@ export interface RunStack {
 export default class RunWorkflow {
   private logs: Array<string> = [];
   private workflowId: ObjectID | null = null;
+  // For the audit trail of what the run's steps change (WorkflowPrincipal).
+  private workflowName: string | null = null;
   private projectId: ObjectID | null = null;
   private workflowLogId: ObjectID | null = null;
   private callChain: Array<string> = [];
@@ -494,6 +496,7 @@ export default class RunWorkflow {
           projectId: true,
           isEnabled: true,
           isArchived: true,
+          name: true,
         },
         props: {
           isRoot: true,
@@ -503,6 +506,8 @@ export default class RunWorkflow {
       if (!workflow) {
         throw new BadDataException("Workflow not found");
       }
+
+      this.workflowName = workflow.name || null;
 
       if (!workflow.graph) {
         throw new BadDataException("Workflow graph not found");
@@ -1730,6 +1735,7 @@ export default class RunWorkflow {
           this.log(data);
         },
         workflowId: this.workflowId!,
+        workflowName: this.workflowName || undefined,
         workflowLogId: this.workflowLogId!,
         projectId: callingProjectId,
         getRemainingExecutionTimeInMs: (): number => {

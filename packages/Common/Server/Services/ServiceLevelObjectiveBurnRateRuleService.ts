@@ -1426,9 +1426,9 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * The SLO is create-only for people (its column's update list is empty),
-   * but a workflow writes as root, so moving a rule to another SLO is checked
-   * exactly as creating it there: pinned to each project the update touches,
-   * a foreign SLO answered like a missing one.
+   * but a root write skips that list, so moving a rule to another SLO is
+   * checked exactly as creating it there: pinned to each project the update
+   * touches, a foreign SLO answered like a missing one.
    */
   private async validateServiceLevelObjectiveOnUpdate(
     updateBy: UpdateBy<Model>,

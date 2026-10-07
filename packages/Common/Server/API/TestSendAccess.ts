@@ -1,6 +1,8 @@
 import { IsBillingEnabled, getAllEnvVars } from "../EnvironmentConfig";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import BillingPermissions from "../Types/Database/Permissions/BillingPermission";
+import PlanGates from "../Types/Database/Permissions/PlanGates";
+import CallerPlan from "../Utils/Billing/CallerPlan";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import Query from "../Types/Database/Query";
 import Select from "../Types/Database/Select";
@@ -318,8 +320,9 @@ export default class TestSendAccess {
    * and the plan of each column `switchOn` writes, asked before any
    * permission or read - as the Dashboard asks it first, and as a test of
    * something created asks its create plan first. A project below it is
-   * refused with that plan's name. Nothing is asked where billing is off or
-   * the plan is not known, as everywhere else.
+   * refused with that plan's name. Nothing is asked where billing is off;
+   * a caller whose plan is not known is refused where a column needs one,
+   * never read as being on any plan (CallerPlan).
    */
   private static assertSwitchOnIsOnPlan<
     TBaseModel extends DatabaseBaseModel,
@@ -337,13 +340,22 @@ export default class TestSendAccess {
 
     const currentPlan: PlanType | undefined = data.props.currentPlan;
 
-    if (!IsBillingEnabled || !currentPlan) {
+    if (!IsBillingEnabled) {
       return;
     }
 
     for (const column of Object.keys(data.switchOn)) {
       const requiredPlan: PlanType | undefined =
         data.model.getColumnBillingAccessControl(column)?.update;
+
+      if (PlanGates.isMetByEveryPlan(requiredPlan)) {
+        continue;
+      }
+
+      if (!currentPlan) {
+        CallerPlan.assertPlanKnown(data.props);
+        continue;
+      }
 
       if (
         requiredPlan &&
