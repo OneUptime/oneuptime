@@ -321,22 +321,23 @@ export default class BasePermission {
       },
     );
 
-    return lists.filter(
-      (labelIds: Array<ObjectID>, index: number): boolean => {
-        return !lists.some(
-          (other: Array<ObjectID>, otherIndex: number): boolean => {
-            if (otherIndex === index || !BasePermission.isWithin(other, labelIds)) {
-              return false;
-            }
+    return lists.filter((labelIds: Array<ObjectID>, index: number): boolean => {
+      return !lists.some(
+        (other: Array<ObjectID>, otherIndex: number): boolean => {
+          if (
+            otherIndex === index ||
+            !BasePermission.isWithin(other, labelIds)
+          ) {
+            return false;
+          }
 
-            // Two lists of the same labels: the first one is kept.
-            return (
-              !BasePermission.isWithin(labelIds, other) || otherIndex < index
-            );
-          },
-        );
-      },
-    );
+          // Two lists of the same labels: the first one is kept.
+          return (
+            !BasePermission.isWithin(labelIds, other) || otherIndex < index
+          );
+        },
+      );
+    });
   }
 
   /*
@@ -395,7 +396,12 @@ export default class BasePermission {
     const parentModelType: { new (): BaseModel } =
       tableColumnMetadata.modelType;
 
-    BasePermission.checkParentIsReadable(modelType, parentModelType, props, type);
+    BasePermission.checkParentIsReadable(
+      modelType,
+      parentModelType,
+      props,
+      type,
+    );
 
     /*
      * The parents a block with labels takes away, and what is read through

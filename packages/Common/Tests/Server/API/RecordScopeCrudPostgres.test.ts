@@ -2202,15 +2202,18 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
   ] as Array<[string, "user" | "apiKey"]>)(
     "a write needs a read, on %s",
     (_label: string, kind: "user" | "apiKey") => {
-      const callerWith: (rows: Array<PermissionRow>) => Promise<Caller> =
-        async (rows: Array<PermissionRow>): Promise<Caller> => {
-          if (kind === "user") {
-            await setTeamPermissions(homeTeamId, homeProjectId, rows);
-            return homeUser;
-          }
+      const callerWith: (
+        rows: Array<PermissionRow>,
+      ) => Promise<Caller> = async (
+        rows: Array<PermissionRow>,
+      ): Promise<Caller> => {
+        if (kind === "user") {
+          await setTeamPermissions(homeTeamId, homeProjectId, rows);
+          return homeUser;
+        }
 
-          return { kind: "apiKey", apiKey: await createApiKey(rows) };
-        };
+        return { kind: "apiKey", apiKey: await createApiKey(rows) };
+      };
 
       afterAll(async () => {
         await setTeamPermissions(homeTeamId, homeProjectId, [

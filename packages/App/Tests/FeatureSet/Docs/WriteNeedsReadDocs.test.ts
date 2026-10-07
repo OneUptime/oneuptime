@@ -110,9 +110,11 @@ describe("Docs: a write needs a read", () => {
         "`ReadProjectIncident`",
         "`ReadIncidentInternalNote`",
       ]) {
-        expect([language, permission, paragraph.includes(permission)]).toEqual(
-          [language, permission, true],
-        );
+        expect([language, permission, paragraph.includes(permission)]).toEqual([
+          language,
+          permission,
+          true,
+        ]);
       }
 
       // Step 7 follows step 6 directly: the steps are one list.
@@ -148,7 +150,9 @@ describe("Docs: a write needs a read", () => {
     expect(page).toContain(
       "- `422` when you may read the record but not change or delete it, with the reason:",
     );
-    expect(page).toContain("A delete that reached nothing used to answer `200`.");
+    expect(page).toContain(
+      "A delete that reached nothing used to answer `200`.",
+    );
     expect(page).toContain(
       "Terraform reads a `404` on `terraform destroy` as a resource that is already gone.",
     );

@@ -407,16 +407,16 @@ export default class AccessControlPermission {
    * nothing else to look at - and false when the operation's own checks
    * are to weigh it, and say why it is refused.
    */
-  private static async isRecordKeptByEveryRule<TBaseModel extends BaseModel>(
-    data: {
-      fetchModelWithAccessControlIds: () => Promise<TBaseModel | null>;
-      isRecordFound?: (query: Query<TBaseModel>) => Promise<boolean>;
-      modelType: { new (): TBaseModel };
-      props: DatabaseCommonInteractionProps;
-      type: DatabaseRequestType;
-      updateData?: unknown;
-    },
-  ): Promise<boolean> {
+  private static async isRecordKeptByEveryRule<
+    TBaseModel extends BaseModel,
+  >(data: {
+    fetchModelWithAccessControlIds: () => Promise<TBaseModel | null>;
+    isRecordFound?: (query: Query<TBaseModel>) => Promise<boolean>;
+    modelType: { new (): TBaseModel };
+    props: DatabaseCommonInteractionProps;
+    type: DatabaseRequestType;
+    updateData?: unknown;
+  }): Promise<boolean> {
     const { modelType, props, type } = data;
 
     if (props.isRoot || props.isMasterAdmin) {

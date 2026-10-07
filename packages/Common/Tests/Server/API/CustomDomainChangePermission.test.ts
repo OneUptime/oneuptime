@@ -434,7 +434,11 @@ describe.each(KINDS)("%s", (_label: string, kind: Kind) => {
 
           await callAs(
             customDomainCaller({
-              permissions: [kind.parentReadPermission, kind.readPermission, permission],
+              permissions: [
+                kind.parentReadPermission,
+                kind.readPermission,
+                permission,
+              ],
             }),
             kind,
             changeRoute.route,
@@ -503,7 +507,10 @@ describe.each(KINDS)("%s", (_label: string, kind: Kind) => {
        * own permissions without one to read that reach no domain, and the
        * route never looks for it or reaches the certificate authority.
        */
-      test.each([["a member's team", false], ["an API key", true]])(
+      test.each([
+        ["a member's team", false],
+        ["an API key", true],
+      ])(
         "%s with the domain's own permissions but none to read what it belongs to is refused",
         async (_label: string, isApiKey: boolean) => {
           const spies: Spies = stubDomainTable(kind);
@@ -635,10 +642,10 @@ describe.each(KINDS)("%s", (_label: string, kind: Kind) => {
 
         const props: DatabaseCommonInteractionProps = customDomainCaller({
           permissions: [
-              kind.parentReadPermission,
-              kind.readPermission,
-              kind.editPermission,
-            ],
+            kind.parentReadPermission,
+            kind.readPermission,
+            kind.editPermission,
+          ],
         });
 
         await callAs(props, kind, changeRoute.route);
@@ -679,10 +686,10 @@ describe.each(KINDS)("%s", (_label: string, kind: Kind) => {
 
         const props: DatabaseCommonInteractionProps = customDomainCaller({
           permissions: [
-              kind.parentReadPermission,
-              kind.readPermission,
-              kind.editPermission,
-            ],
+            kind.parentReadPermission,
+            kind.readPermission,
+            kind.editPermission,
+          ],
         });
 
         props.userTenantAccessPermission![

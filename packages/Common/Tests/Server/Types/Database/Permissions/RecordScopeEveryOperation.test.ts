@@ -15,7 +15,6 @@ import IncidentInternalNote from "../../../../../Models/DatabaseModels/IncidentI
 import Label from "../../../../../Models/DatabaseModels/Label";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PermissionScope from "../../../../../Types/Database/AccessControl/PermissionScope";
-import BadDataException from "../../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import NotFoundException from "../../../../../Types/Exception/NotFoundException";
 import Includes from "../../../../../Types/BaseDatabase/Includes";
@@ -62,6 +61,12 @@ type Operation =
 
 const OPERATIONS: Array<Operation> = [
   DatabaseRequestType.Read,
+  DatabaseRequestType.Update,
+  DatabaseRequestType.Delete,
+];
+
+// The operations that change records: a write needs a read.
+const WRITES: Array<Operation> = [
   DatabaseRequestType.Update,
   DatabaseRequestType.Delete,
 ];
@@ -293,7 +298,7 @@ describe("the record rule on every operation", () => {
       },
     );
 
-    test.each([DatabaseRequestType.Update, DatabaseRequestType.Delete])(
+    test.each(WRITES)(
       "a block on the %s permission leaves the other operations alone",
       async (blocked: Operation) => {
         for (const operation of OPERATIONS) {
@@ -327,7 +332,7 @@ describe("the record rule on every operation", () => {
      * deleting them away too, and a block with labels on reading them leaves
      * the same notes out of a write as out of a read.
      */
-    test.each([DatabaseRequestType.Update, DatabaseRequestType.Delete])(
+    test.each(WRITES)(
       "a block with no labels on the read permission takes a %s away too",
       async (operation: Operation) => {
         await expect(
@@ -349,7 +354,7 @@ describe("the record rule on every operation", () => {
       },
     );
 
-    test.each([DatabaseRequestType.Update, DatabaseRequestType.Delete])(
+    test.each(WRITES)(
       "a block with labels on the read permission leaves the same notes out of a %s",
       async (operation: Operation) => {
         const query: Query<IncidentInternalNote> =
@@ -479,13 +484,13 @@ describe("the record rule on every operation", () => {
           DatabaseRequestType.Update,
         );
 
-      expect((query._id as FindOperator<unknown>).type).toBe("and");
+      expect((query._id as unknown as FindOperator<unknown>).type).toBe("and");
       expect(valuesOf(query._id).sort()).toEqual(
         [productionLabelId.toString(), stagingLabelId.toString()].sort(),
       );
     });
 
-    test.each([DatabaseRequestType.Update, DatabaseRequestType.Delete])(
+    test.each(WRITES)(
       "a caller who may read no note is refused a %s, whatever they may write",
       async (operation: Operation) => {
         await expect(
