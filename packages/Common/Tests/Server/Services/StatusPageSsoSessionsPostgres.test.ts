@@ -8,11 +8,15 @@ import {
   END_SIGN_INS_OF_STATUS_PAGE_SAML_PROVIDERS_OFF,
 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1799910000000-EndSignInsOfGlobalAndStatusPageSsoProvidersAlreadyOff";
 import { END_STATUS_PAGE_SSO_SESSIONS_WITHOUT_PROVIDER } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1799920000000-EndStatusPageSsoSessionsWithoutProvider";
+import StatusPageOidcService from "../../../Server/Services/StatusPageOidcService";
 import StatusPagePrivateUserSessionService from "../../../Server/Services/StatusPagePrivateUserSessionService";
 import StatusPageService from "../../../Server/Services/StatusPageService";
+import StatusPageSsoService from "../../../Server/Services/StatusPageSsoService";
+import AuditLogService from "../../../Server/Services/AuditLogService";
 import CookieUtil from "../../../Server/Utils/Cookie";
 import { ExpressRequest } from "../../../Server/Utils/Express";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
+import OneUptimeDate from "../../../Types/Date";
 import Email from "../../../Types/Email";
 import ObjectID from "../../../Types/ObjectID";
 import { DataSource } from "typeorm";
@@ -26,14 +30,18 @@ import { DataSource } from "typeorm";
  * The real tables are cloned into an isolated schema; nothing else is
  * touched. The rule is asked the two ways the product asks it - a page read
  * (StatusPageService.hasReadAccess) and a refresh or login code
- * (doesSignInStillCount) - and must agree:
+ * (doesSignInStillCount, which reads the page's own Require SSO for Login
+ * in the same read) - and must agree:
  *
  *   - a session signed in with one of the page's SAML or OIDC providers
  *     counts while that provider is the page's, on, and not turned off since
  *     the session began; turning it off or deleting it ends the session, and
  *     turning it on again does not bring it back;
+ *   - turning a provider off through its service writes when, by the
+ *     database's clock, the clock the sessions' own times are kept by; one
+ *     that was off already keeps the time it has;
  *   - a session no provider signed in counts only while the page does not
- *     require SSO.
+ *     require SSO; a session whose page is gone counts nowhere.
  *
  * And the data fixes the upgrade runs: providers already off are treated as
  * turned off at the upgrade, and the live sessions of people only SSO ever
@@ -45,6 +53,7 @@ const describePostgres: typeof describe =
     : describe.skip;
 
 const TABLES: Array<string> = [
+  "StatusPage",
   "StatusPagePrivateUser",
   "StatusPagePrivateUserSession",
   "StatusPageSSO",
@@ -134,6 +143,10 @@ describePostgres("status page SSO sessions against Postgres", () => {
       }).join(", ")}`,
     );
     await query(
+      `INSERT INTO "${schema}"."StatusPage" ("_id", "projectId", "name", "slug", "requireSsoForLogin", "version") VALUES ($1, $2, 'Synthetic', 'synthetic', false, 1)`,
+      [statusPageId.toString(), projectId.toString()],
+    );
+    await query(
       `INSERT INTO "${schema}"."StatusPagePrivateUser" ("_id", "projectId", "statusPageId", "version") VALUES ($1, $2, $3, 1)`,
       [userId.toString(), projectId.toString(), statusPageId.toString()],
     );
@@ -180,15 +193,23 @@ describePostgres("status page SSO sessions against Postgres", () => {
     }
   });
 
-  // The rule, asked both ways the product asks it; they must agree.
+  /*
+   * The rule, asked both ways the product asks it; they must agree. The page
+   * read is handed the page (StatusPageService.findOneById, stubbed); the
+   * refresh reads the page's row, kept the same here.
+   */
   async function stillCounts(): Promise<boolean> {
+    await query(
+      `UPDATE "${schema}"."StatusPage" SET "requireSsoForLogin" = $1`,
+      [Boolean(statusPage.requireSsoForLogin)],
+    );
+
     const byPageRead: boolean = (
       await StatusPageService.hasReadAccess({ statusPageId, req })
     ).hasReadAccess;
     const byRefresh: boolean =
       await StatusPagePrivateUserSessionService.doesSignInStillCount({
         sessionId,
-        requiresSso: Boolean(statusPage.requireSsoForLogin),
       });
 
     expect(byRefresh).toBe(byPageRead);
@@ -300,6 +321,200 @@ describePostgres("status page SSO sessions against Postgres", () => {
       expect(await stillCounts()).toBe(false);
     });
   });
+
+  test("a session whose page is gone is not renewed", async () => {
+    expect(
+      await StatusPagePrivateUserSessionService.doesSignInStillCount({
+        sessionId,
+      }),
+    ).toBe(true);
+
+    await query(`UPDATE "${schema}"."StatusPage" SET "deletedAt" = NOW()`);
+    expect(
+      await StatusPagePrivateUserSessionService.doesSignInStillCount({
+        sessionId,
+      }),
+    ).toBe(false);
+
+    await query(`DELETE FROM "${schema}"."StatusPage"`);
+    expect(
+      await StatusPagePrivateUserSessionService.doesSignInStillCount({
+        sessionId,
+      }),
+    ).toBe(false);
+  });
+
+  describe.each([
+    [
+      "SAML",
+      "StatusPageSSO",
+      "statusPageSsoId",
+      (): ObjectID => {
+        return samlProviderId;
+      },
+      StatusPageSsoService,
+    ],
+    [
+      "OIDC",
+      "StatusPageOIDC",
+      "statusPageOidcId",
+      (): ObjectID => {
+        return oidcProviderId;
+      },
+      StatusPageOidcService,
+    ],
+  ])(
+    "turning the page's %s provider off through its service",
+    (
+      _label: string,
+      table: string,
+      column: string,
+      providerId: () => ObjectID,
+      service: typeof StatusPageSsoService | typeof StatusPageOidcService,
+    ) => {
+      const turn: (isEnabled: boolean) => Promise<void> = async (
+        isEnabled: boolean,
+      ): Promise<void> => {
+        await service.updateOneById({
+          id: providerId(),
+          data: { isEnabled } as never,
+          props: { isRoot: true },
+        });
+      };
+
+      const stampOf: () => Promise<Date | null> =
+        async (): Promise<Date | null> => {
+          const rows: Array<{ signInsEndedAt: Date | null }> = await query(
+            `SELECT "signInsEndedAt" FROM "${schema}"."${table}" WHERE "_id" = $1`,
+            [providerId().toString()],
+          );
+          return rows[0]!.signInsEndedAt;
+        };
+
+      beforeEach(async () => {
+        await query(
+          `UPDATE "${schema}"."StatusPagePrivateUserSession" SET "${column}" = $1`,
+          [providerId().toString()],
+        );
+        jest.spyOn(AuditLogService, "recordUpdate").mockResolvedValue();
+        jest
+          .spyOn(service as never, "onTriggerRealtime")
+          .mockResolvedValue(undefined as never);
+        jest
+          .spyOn(service as never, "onTriggerWorkflow")
+          .mockResolvedValue(undefined as never);
+      });
+
+      test("writes when, by the database's clock, in the same write; the session ends and stays ended", async () => {
+        const before: Date = (
+          (await query(`SELECT NOW() AS "now"`)) as Array<{ now: Date }>
+        )[0]!.now;
+
+        await turn(false);
+
+        const stamp: Date | null = await stampOf();
+        const after: Date = (
+          (await query(`SELECT NOW() AS "now"`)) as Array<{ now: Date }>
+        )[0]!.now;
+
+        expect(stamp).toBeInstanceOf(Date);
+        expect(stamp!.getTime()).toBeGreaterThanOrEqual(before.getTime());
+        expect(stamp!.getTime()).toBeLessThanOrEqual(after.getTime());
+        expect(await stillCounts()).toBe(false);
+
+        await turn(true);
+        expect((await stampOf())!.getTime()).toBe(stamp!.getTime());
+        expect(await stillCounts()).toBe(false);
+      });
+
+      test("one off already keeps the time it has", async () => {
+        const stampedAt: string = "2026-01-01T00:00:00.000Z";
+        await query(
+          `UPDATE "${schema}"."${table}" SET "isEnabled" = false, "signInsEndedAt" = $1`,
+          [stampedAt],
+        );
+
+        await turn(false);
+
+        expect((await stampOf())!.toISOString()).toBe(stampedAt);
+      });
+
+      test("an app server whose clock runs behind the database's still ends the sessions begun before the turn-off", async () => {
+        // This server thinks it is two hours earlier than the database does.
+        const behind: Date = new Date(Date.now() - 2 * 60 * 60 * 1000);
+        const clock: jest.SpyInstance = jest
+          .spyOn(OneUptimeDate, "getCurrentDate")
+          .mockReturnValue(behind);
+
+        try {
+          await turn(false);
+          await turn(true);
+        } finally {
+          clock.mockRestore();
+        }
+
+        // Signed in an hour ago by the database's clock: before the turn-off, whatever this server's clock says.
+        expect((await stampOf())!.getTime()).toBeGreaterThan(
+          behind.getTime() + 60 * 60 * 1000,
+        );
+        expect(await stillCounts()).toBe(false);
+      });
+
+      test("turning several off at once: each that was on gets the database's time, one off already keeps its own", async () => {
+        const offAlready: ObjectID = ObjectID.generate();
+        const stampedAt: string = "2026-01-01T00:00:00.000Z";
+
+        // A second provider of the same kind on the page, off since January.
+        await query(
+          `CREATE TEMP TABLE "copy_${table}" AS SELECT * FROM "${schema}"."${table}" WHERE "_id" = $1`,
+          [providerId().toString()],
+        );
+        await query(
+          `UPDATE "copy_${table}" SET "_id" = $1, "isEnabled" = false, "signInsEndedAt" = $2, "name" = 'Off already'`,
+          [offAlready.toString(), stampedAt],
+        );
+        await query(
+          `INSERT INTO "${schema}"."${table}" SELECT * FROM "copy_${table}"`,
+        );
+        await query(`DROP TABLE "copy_${table}"`);
+
+        await service.updateBy({
+          query: { statusPageId: statusPageId } as never,
+          data: { isEnabled: false } as never,
+          limit: 10,
+          skip: 0,
+          props: { isRoot: true },
+        });
+
+        const rows: Array<{ _id: string; signInsEndedAt: Date | null }> =
+          await query(
+            `SELECT "_id", "signInsEndedAt" FROM "${schema}"."${table}"`,
+          );
+        const stamps: Record<string, Date | null> = {};
+
+        for (const row of rows) {
+          stamps[row._id] = row.signInsEndedAt;
+        }
+
+        expect(stamps[offAlready.toString()]!.toISOString()).toBe(stampedAt);
+        expect(stamps[providerId().toString()]).toBeInstanceOf(Date);
+        expect(stamps[providerId().toString()]!.toISOString()).not.toBe(
+          stampedAt,
+        );
+        expect(await stillCounts()).toBe(false);
+      });
+
+      test("a session that began after it was turned on again counts", async () => {
+        await turn(false);
+        await turn(true);
+
+        await query(
+          `UPDATE "${schema}"."StatusPagePrivateUserSession" SET "createdAt" = NOW() + INTERVAL '1 second'`,
+        );
+        expect(await stillCounts()).toBe(true);
+      });
+    },
+  );
 
   describe("the data fixes the upgrade runs", () => {
     test("a provider that is off is treated as turned off now; one that is on, or stamped already, keeps what it has", async () => {

@@ -11,7 +11,19 @@ export { TimeoutError as SemaphoreLockTimeoutError } from "redis-semaphore";
 export type SemaphoreMutex = Mutex;
 export type SemaphorePermit = RedisSemaphore;
 
+// Where a lock taken by lock() lives in Valkey, and how long it lasts each time.
+interface HeldLock {
+  key: string;
+  lockTimeout: number;
+}
+
 export default class Semaphore {
+  // The locks lock() took, for keepLock to hold for longer.
+  private static heldLocks: WeakMap<SemaphoreMutex, HeldLock> = new WeakMap<
+    SemaphoreMutex,
+    HeldLock
+  >();
+
   // returns the mutex id
   @CaptureSpan()
   public static async lock(data: {
@@ -85,7 +97,58 @@ export default class Semaphore {
 
     await mutex.acquire();
 
+    Semaphore.heldLocks.set(mutex, {
+      key: data.namespace + "-" + key,
+      lockTimeout: data.lockTimeout,
+    });
+
     return mutex;
+  }
+
+  /*
+   * Holds a lock taken with lock() for another lockTimeout from now, at a
+   * step its holder picks - between the pages of a long check, say - rather
+   * than on a timer (refreshInterval): a lock its holder stops keeping still
+   * runs out lockTimeout after it was last kept, so one whose work failed
+   * half way is never held for as long as the process lives.
+   *
+   * True when the lock was still this holder's, and now lasts another
+   * lockTimeout. False when it was given back, ran out or was lost (a Valkey
+   * restart): another holder may have it now. Throws when Valkey cannot be
+   * reached.
+   */
+  @CaptureSpan()
+  public static async keepLock(mutex: SemaphoreMutex): Promise<boolean> {
+    const held: HeldLock | undefined = Semaphore.heldLocks.get(mutex);
+
+    if (!held) {
+      throw new Error("Only a lock taken with Semaphore.lock can be kept.");
+    }
+
+    if (!mutex.isAcquired) {
+      return false;
+    }
+
+    const client: ClientType | null = Redis.getClient();
+
+    if (!client) {
+      throw new Error("Redis client is not connected");
+    }
+
+    /*
+     * The same lock, named by the identifier it was taken with: trying to
+     * take it re-asserts it for another lockTimeout when Valkey still holds
+     * it for this holder, and fails when it does not (redis-semaphore's
+     * acquiredExternally). Never refreshed on a timer either.
+     */
+    const kept: SemaphoreMutex = new Mutex(client, held.key, {
+      identifier: mutex.identifier,
+      acquiredExternally: true,
+      lockTimeout: held.lockTimeout,
+      refreshInterval: 0,
+    });
+
+    return await kept.tryAcquire();
   }
 
   @CaptureSpan()

@@ -27,6 +27,7 @@ import SsoSignInWays, {
   SignInReach,
   StrandReason,
   StrandedProject,
+  StrandedProjectList,
   StrandedProjects,
   describeStrandedProjects,
   getGlobalProviderReach,
@@ -56,9 +57,14 @@ import SsoSignInWays, {
  *   - the write and its check hold the lock on the server's sign-in rules
  *     (ProjectSsoProviderChanges.lockSignInChange), which every change
  *     whose check reads them holds too, so none comes between what this one
- *     read and what it writes. A write that only lets a provider sign more
- *     people in - turning it or an attachment on, lifting the restriction,
- *     a new certificate - takes no lock and is never refused.
+ *     read and what it writes. It is taken once every permission check has
+ *     passed (the services' onUpdatePermitted and onCreatePermitted; a
+ *     delete has no later hook than onBeforeDelete), kept while the check
+ *     reads, and given back as soon as the write is done (afterWrite, first
+ *     in the success hooks) or fails (the error hooks). A write that only
+ *     lets a provider sign more people in - turning it or an attachment on,
+ *     lifting the restriction, a new certificate - takes no lock and is
+ *     never refused.
  *
  * Every server hearing of the change is the services' part
  * (announceGlobalSignInChange).
@@ -72,8 +78,7 @@ export interface GlobalSsoProviderWrite {
   turnsOneOff: boolean;
   /*
    * The lock on the server's sign-in rules, held from before the rows were
-   * read until the write is done (afterWrite). A write that fails in
-   * between leaves it to run out.
+   * read until the write is done or fails (afterWrite).
    */
   locks?: Array<SemaphoreMutex> | undefined;
 }
@@ -112,39 +117,46 @@ function capitalize(text: string): string {
 
 /*
  * Why a global change is refused, in words that name the projects it would
- * strand and say what to do first.
+ * strand and say what to do first: a sentence for the projects that
+ * require this provider by id, and one for those it would leave with no
+ * provider at all.
  */
 export function getGlobalChangeRefusalMessage(
   stranded: StrandedProjects,
 ): string {
-  const projects: string = describeStrandedProjects(stranded);
-  const isOne: boolean = stranded.count === 1;
-  const them: string = isOne ? "it" : "them";
+  const sentences: Array<string> = [];
 
-  const named: Array<StrandedProject> = stranded.firstProjects;
+  const required: StrandedProjectList =
+    stranded.byReason[StrandReason.RequiredProvider];
 
-  if (
-    named.length > 0 &&
-    named.every((project: StrandedProject): boolean => {
-      return project.reason === StrandReason.RequiredProvider;
-    })
-  ) {
-    return `${capitalize(projects)} ${
-      isOne ? "requires" : "require"
-    } sign-in with this SSO provider. Turn off Require SSO for Login there first, so people can still sign in.`;
+  if (required.count > 0) {
+    sentences.push(
+      `${capitalize(describeStrandedProjects(required))} ${
+        required.count === 1 ? "requires" : "require"
+      } sign-in with this SSO provider. Require another provider there, or turn off Require SSO for Login, first, so people can still sign in.`,
+    );
   }
 
-  if (
-    named.every((project: StrandedProject): boolean => {
-      return project.requiresSsoItself;
-    })
-  ) {
-    return `This change would leave ${projects} with no SSO provider people can sign in with, and ${
-      isOne ? "it requires" : "they require"
-    } SSO. Turn on another SSO provider for ${them} first, or turn off Require SSO for Login there.`;
+  const noProvider: StrandedProjectList =
+    stranded.byReason[StrandReason.NoProvider];
+
+  if (noProvider.count > 0) {
+    const projects: string = describeStrandedProjects(noProvider);
+    const isOne: boolean = noProvider.count === 1;
+    const them: string = isOne ? "it" : "them";
+
+    sentences.push(
+      noProvider.firstProjects.every((project: StrandedProject): boolean => {
+        return project.requiresSsoItself;
+      })
+        ? `This change would leave ${projects} with no SSO provider people can sign in with, and ${
+            isOne ? "it requires" : "they require"
+          } SSO. Turn on another SSO provider for ${them} first, or turn off Require SSO for Login there.`
+        : `This server requires SSO for everyone, and this change would leave ${projects} with no SSO provider people can sign in with. Turn on another SSO provider for ${them} first.`,
+    );
   }
 
-  return `This server requires SSO for everyone, and this change would leave ${projects} with no SSO provider people can sign in with. Turn on another SSO provider for ${them} first.`;
+  return sentences.join(" ");
 }
 
 export default class GlobalSsoProviderChanges {
@@ -157,10 +169,11 @@ export default class GlobalSsoProviderChanges {
     new WeakMap<WriteKey, GlobalSsoProviderWrite>();
 
   /*
-   * Before an update to a global provider (onBeforeUpdate): one that turns
-   * it off or restricts it to its attached projects is checked, under the
-   * lock on the server's sign-in rules, against the projects it would stop
-   * signing people in to. Null for any other update, which takes no lock.
+   * Before an update to a global provider is written (onUpdatePermitted,
+   * once every permission check has passed): one that turns it off or
+   * restricts it to its attached projects is checked, under the lock on the
+   * server's sign-in rules, against the projects it would stop signing
+   * people in to. Null for any other update, which takes no lock.
    */
   public static async beforeProviderUpdate<TModel extends BaseModel>(data: {
     providerType: GlobalSsoProviderType;
@@ -238,9 +251,9 @@ export default class GlobalSsoProviderChanges {
 
   /*
    * The last step before an update to a global provider is written
-   * (onUpdatePermitted): one that turns it off writes when, in the same
-   * write (SsoSignInsEnded.stampWhenTurnedOff), using what
-   * beforeProviderUpdate found under the lock.
+   * (onUpdatePermitted, after beforeProviderUpdate): one that turns it off
+   * writes when, in the same write (SsoSignInsEnded.stampWhenTurnedOff),
+   * using what beforeProviderUpdate found under the lock.
    */
   public static async beforeProviderWrite<TModel extends BaseModel>(data: {
     service: DatabaseService<TModel>;
@@ -308,11 +321,12 @@ export default class GlobalSsoProviderChanges {
   }
 
   /*
-   * Before an attachment is added (onBeforeCreate, its project already
-   * resolved): the first attachment of a provider restricted to its attached
-   * projects narrows it from every project to that one, and one added off
-   * to none. Checked under the lock either way, so a provider restricted at
-   * the same moment reads it.
+   * Before an attachment is added (onCreatePermitted, once every permission
+   * and clash check has passed; onBeforeCreate resolved its project): the
+   * first attachment of a provider restricted to its attached projects
+   * narrows it from every project to that one, and one added off to none.
+   * Checked under the lock either way, so a provider restricted at the same
+   * moment reads it.
    */
   public static async beforeAttachmentCreate(data: {
     providerType: GlobalSsoProviderType;
@@ -367,10 +381,10 @@ export default class GlobalSsoProviderChanges {
   }
 
   /*
-   * Before an update to attachments (onBeforeUpdate): one that turns them
-   * off or moves them - to another project or another provider - is checked
-   * under the lock. Turning them on, or changing their teams, only widens or
-   * changes nothing: no lock, no check.
+   * Before an update to attachments is written (onUpdatePermitted): one
+   * that turns them off or moves them - to another project or another
+   * provider - is checked under the lock. Turning them on, or changing their
+   * teams, only widens or changes nothing: no lock, no check.
    */
   public static async beforeAttachmentUpdate<TModel extends BaseModel>(data: {
     providerType: GlobalSsoProviderType;
@@ -483,11 +497,12 @@ export default class GlobalSsoProviderChanges {
   }
 
   /*
-   * Once the write is done, or refused after its before-hook (the success
-   * hooks): its lock is given back, once.
+   * Once the write is done (first in the success hooks) or has failed (the
+   * error hooks, and a create's own wrapper): its lock is given back, once.
+   * Never throws.
    */
   public static async afterWrite<TModel extends BaseModel>(
-    written: UpdateBy<TModel> | DeleteBy<TModel>,
+    written: UpdateBy<TModel> | DeleteBy<TModel> | CreateBy<TModel>,
   ): Promise<void> {
     const key: WriteKey = keyOf(written);
     const write: GlobalSsoProviderWrite | undefined =
@@ -498,11 +513,7 @@ export default class GlobalSsoProviderChanges {
     await GlobalSsoProviderChanges.release(write);
   }
 
-  /*
-   * Gives a write's lock back, once. For a create, whose CreateBy may not
-   * reach the success hook as the same object, the write itself is carried
-   * forward (carryForward) and given back here.
-   */
+  // Gives a write's lock back, once.
   public static async release(
     write: GlobalSsoProviderWrite | null | undefined,
   ): Promise<void> {
@@ -526,8 +537,9 @@ export default class GlobalSsoProviderChanges {
   /*
    * Takes the lock on the server's sign-in rules, works the write out from
    * what it reads under it, and refuses it when it would strand a project.
-   * The lock is held for the write (afterWrite), or given back at once when
-   * the write is refused.
+   * The lock is kept while the check reads, page by page, and once more
+   * when it is done, so the write has the whole time; it is held for the
+   * write (afterWrite), or given back at once when the write is refused.
    */
   private static async lockAndCheck(data: {
     key: WriteKey;
@@ -546,13 +558,22 @@ export default class GlobalSsoProviderChanges {
       };
 
       const stranded: StrandedProjects =
-        await SsoSignInWays.findStrandedProjects({
-          globalProviders: write.reachChanges,
-        });
+        await SsoSignInWays.findStrandedProjects(
+          {
+            globalProviders: write.reachChanges,
+          },
+          {
+            keepLocks: async (): Promise<void> => {
+              await ProjectSsoProviderChanges.keepSignInChange(locks);
+            },
+          },
+        );
 
       if (stranded.count > 0) {
         throw new BadDataException(getGlobalChangeRefusalMessage(stranded));
       }
+
+      await ProjectSsoProviderChanges.keepSignInChange(locks);
 
       GlobalSsoProviderChanges.writes.set(data.key, write);
 

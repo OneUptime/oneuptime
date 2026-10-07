@@ -3,6 +3,7 @@ import Model from "../../Models/DatabaseModels/GlobalOidc";
 import ObjectID from "../../Types/ObjectID";
 import { fillOidcProviderDefaults } from "../../Types/SSO/OidcProviderDefaults";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import Exception from "../../Types/Exception/Exception";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -90,32 +91,33 @@ export class Service extends DatabaseService<Model> {
    * node that served it and the TTL bounds every other node.
    */
 
-  /*
-   * Turning the provider off, or restricting it to its attached projects,
-   * is refused when it would leave a project that requires SSO with no
-   * provider to sign in with, and holds the lock on the server's sign-in
-   * rules until it is written (Utils/GlobalSsoProviderChanges).
-   */
   @CaptureSpan()
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     clearGlobalSsoAuthorizationCaches();
 
+    return { updateBy, carryForward: null };
+  }
+
+  /*
+   * Once every permission check has passed: turning the provider off, or
+   * restricting it to its attached projects, is refused when it would leave
+   * a project that requires SSO with no provider to sign in with, and holds
+   * the lock on the server's sign-in rules until it is written or fails
+   * (Utils/GlobalSsoProviderChanges). Turning it off writes when, in the
+   * same write: the sign-ins it gave end.
+   */
+  @CaptureSpan()
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
     await GlobalSsoProviderChanges.beforeProviderUpdate<Model>({
       providerType: SsoProviderType.GlobalOIDC,
       service: this,
       updateBy: updateBy,
     });
 
-    return { updateBy, carryForward: null };
-  }
-
-  // Turning the provider off writes when, in the same write: the sign-ins it gave end.
-  @CaptureSpan()
-  protected override async onUpdatePermitted(
-    updateBy: UpdateBy<Model>,
-  ): Promise<void> {
     await GlobalSsoProviderChanges.beforeProviderWrite<Model>({
       service: this,
       updateBy: updateBy,
@@ -127,6 +129,9 @@ export class Service extends DatabaseService<Model> {
     onUpdate: OnUpdate<Model>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
+    // Written: the lock is given back before anything else.
+    await GlobalSsoProviderChanges.afterWrite(onUpdate.updateBy);
+
     clearGlobalSsoAuthorizationCaches();
 
     /*
@@ -141,9 +146,20 @@ export class Service extends DatabaseService<Model> {
       announceGlobalSignInChange();
     }
 
-    await GlobalSsoProviderChanges.afterWrite(onUpdate.updateBy);
-
     return onUpdate;
+  }
+
+  // Failed, or refused, once its hooks ran: the lock it held is given back.
+  @CaptureSpan()
+  protected override async onUpdateError(
+    error: Exception,
+    onUpdate?: OnUpdate<Model> | undefined,
+  ): Promise<Exception> {
+    if (onUpdate) {
+      await GlobalSsoProviderChanges.afterWrite(onUpdate.updateBy);
+    }
+
+    return error;
   }
 
   /*
@@ -171,6 +187,9 @@ export class Service extends DatabaseService<Model> {
     onDelete: OnDelete<Model>,
     itemIdsBeforeDelete: Array<ObjectID>,
   ): Promise<OnDelete<Model>> {
+    // Deleted: the lock is given back before anything else.
+    await GlobalSsoProviderChanges.afterWrite(onDelete.deleteBy);
+
     clearGlobalSsoAuthorizationCaches();
 
     // A deleted provider vouches for nobody: asked again on every server.
@@ -178,9 +197,20 @@ export class Service extends DatabaseService<Model> {
       announceGlobalSignInChange();
     }
 
-    await GlobalSsoProviderChanges.afterWrite(onDelete.deleteBy);
-
     return onDelete;
+  }
+
+  // Failed, or refused, once its hooks ran: the lock it held is given back.
+  @CaptureSpan()
+  protected override async onDeleteError(
+    error: Exception,
+    onDelete?: OnDelete<Model> | undefined,
+  ): Promise<Exception> {
+    if (onDelete) {
+      await GlobalSsoProviderChanges.afterWrite(onDelete.deleteBy);
+    }
+
+    return error;
   }
 
   /*

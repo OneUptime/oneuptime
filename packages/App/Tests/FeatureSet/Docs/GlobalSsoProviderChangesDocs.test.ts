@@ -93,6 +93,15 @@ describe("the Global SSO guide", () => {
       expect(section).toContain(
         "The message names the projects, or the first few and how many there are. Turn on another provider for them first, one of their own or a global one, or turn off **Require SSO for Login** there.",
       );
+      expect(section).toContain(
+        "A project that requires this very provider is named apart: require another provider there, or turn off **Require SSO for Login**, first.",
+      );
+    });
+
+    it("says a change saved while another takes long is refused, to be saved again", () => {
+      expect(section).toContain(
+        'a change is refused with "Another change to who can sign in with SSO is being saved. Try again in a moment.": save it again.',
+      );
     });
 
     it("says changes that let a provider sign more people in are never refused", () => {
@@ -111,6 +120,9 @@ describe("the Global SSO guide", () => {
       );
       expect(section).toContain(
         "While a project has none, turning the switch on is refused, and the message names the projects (or, when there are many, the first few and how many). Turn on a global provider, or a provider in those projects, first.",
+      );
+      expect(section).toContain(
+        "A project that requires a specific provider needs that one: while it is off, deleted, or does not sign people in to the project, the message names the project apart - turn that provider on, or require another one there, first.",
       );
     });
 
@@ -161,6 +173,12 @@ describe("the status pages guide", () => {
   it("says turning a provider off or deleting it signs out the private users it signed in", () => {
     expect(section).toContain(
       "Turning a status page's SSO or OIDC provider off, or deleting it, signs out the private users it signed in: their sessions end at their next request, and turning the provider on again does not bring them back - they sign in with it again.",
+    );
+  });
+
+  it("says turning off the last provider of a page that requires SSO leaves nobody able to sign in, and how to move providers", () => {
+    expect(section).toContain(
+      "On a page that requires SSO, turning off its last provider leaves nobody able to sign in until you turn one on again or turn **Require SSO for Login** off; to move to another provider, set up and test the new one before you turn the old one off.",
     );
   });
 

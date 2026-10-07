@@ -5,7 +5,9 @@ import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import logger from "../../../Server/Utils/Logger";
 import ProjectSsoProviderChanges from "../../../Server/Utils/ProjectSsoProviderChanges";
-import SsoSignInWays from "../../../Server/Utils/SsoSignInWays";
+import SsoSignInWays, {
+  noStrandedProjects,
+} from "../../../Server/Utils/SsoSignInWays";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../Types/ObjectID";
 import { UserGlobalAccessPermission } from "../../../Types/Permission";
@@ -312,10 +314,12 @@ describe("SSO requirement writes go through unchanged in every edition", () => {
       ProjectSsoProviderChanges,
       "lockSignInChange",
     ).mockResolvedValue([]);
-    getJestSpyOn(SsoSignInWays, "findStrandedProjects").mockResolvedValue({
-      firstProjects: [],
-      count: 0,
-    });
+    getJestSpyOn(SsoSignInWays, "dependsOnServerRules").mockResolvedValue(
+      false,
+    );
+    getJestSpyOn(SsoSignInWays, "findStrandedProjects").mockResolvedValue(
+      noStrandedProjects(),
+    );
 
     stubRepository(
       ProjectService,

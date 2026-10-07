@@ -21,7 +21,13 @@ import { afterEach, describe, expect, test } from "@jest/globals";
 interface MockMutex {
   acquire: jest.Mock;
   release: jest.Mock;
+  tryAcquire: jest.Mock;
+  identifier: string;
+  isAcquired: boolean;
 }
+
+// What a re-assert of a held lock finds in Valkey: still the holder's, or not.
+let stillHeld: boolean = true;
 
 jest.mock("redis-semaphore", () => {
   const actual: Record<string, unknown> = jest.requireActual(
@@ -31,10 +37,18 @@ jest.mock("redis-semaphore", () => {
   return {
     ...actual,
     Mutex: jest.fn().mockImplementation((): MockMutex => {
-      return {
+      const mutex: MockMutex = {
         acquire: jest.fn(async (): Promise<void> => {}),
-        release: jest.fn(async (): Promise<void> => {}),
+        release: jest.fn(async (): Promise<void> => {
+          mutex.isAcquired = false;
+        }),
+        tryAcquire: jest.fn(async (): Promise<boolean> => {
+          return stillHeld;
+        }),
+        identifier: `holder-${Math.random()}`,
+        isAcquired: true,
       };
+      return mutex;
     }),
   };
 });
@@ -61,6 +75,7 @@ function lastMockMutex(): MockMutex {
 afterEach(() => {
   jest.restoreAllMocks();
   redisMutexConstructor.mockClear();
+  stillHeld = true;
 });
 
 describe("Semaphore exclusive mutex", () => {
@@ -274,6 +289,84 @@ describe("Semaphore exclusive mutex", () => {
     await Semaphore.release(mutex);
 
     expect(lastMockMutex().release).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * A holder that keeps a lock at steps of its own - a long check, page by
+   * page - re-asserts it for another lockTimeout without a refresh timer:
+   * the same lock, named by the identifier it was taken with, is tried
+   * again as one acquired already (redis-semaphore's acquiredExternally),
+   * which re-asserts it in Valkey only while Valkey still holds it for
+   * this holder.
+   */
+  test("keepLock re-asserts the held lock, by its key and identifier, for another lockTimeout, with no refresh timer", async () => {
+    const client: ClientType = mockRedisClient();
+
+    const mutex: SemaphoreMutex = await Semaphore.lock({
+      key: "server",
+      namespace: "ProjectSsoProviderChanges.keepAWayIn",
+      lockTimeout: 10_000,
+      refreshInterval: 0,
+    });
+
+    await expect(Semaphore.keepLock(mutex)).resolves.toBe(true);
+
+    expect(redisMutexConstructor).toHaveBeenLastCalledWith(
+      client,
+      "ProjectSsoProviderChanges.keepAWayIn-server",
+      {
+        identifier: mutex.identifier,
+        acquiredExternally: true,
+        lockTimeout: 10_000,
+        refreshInterval: 0,
+      },
+    );
+    expect(lastMockMutex().tryAcquire).toHaveBeenCalledTimes(1);
+    expect(lastMockMutex().acquire).not.toHaveBeenCalled();
+  });
+
+  test("keepLock answers false for a lock Valkey no longer holds for this holder", async () => {
+    mockRedisClient();
+
+    const mutex: SemaphoreMutex = await Semaphore.lock({
+      key: "server",
+      namespace: "ns",
+    });
+    stillHeld = false;
+
+    await expect(Semaphore.keepLock(mutex)).resolves.toBe(false);
+  });
+
+  test("keepLock answers false for a lock given back, without asking Valkey", async () => {
+    mockRedisClient();
+
+    const mutex: SemaphoreMutex = await Semaphore.lock({
+      key: "server",
+      namespace: "ns",
+    });
+    await Semaphore.release(mutex);
+    const constructed: number = redisMutexConstructor.mock.calls.length;
+
+    await expect(Semaphore.keepLock(mutex)).resolves.toBe(false);
+    expect(redisMutexConstructor.mock.calls.length).toBe(constructed);
+  });
+
+  test("keepLock refuses a lock it did not take, and throws when Valkey cannot be reached", async () => {
+    mockRedisClient();
+
+    await expect(
+      Semaphore.keepLock({ isAcquired: true } as unknown as SemaphoreMutex),
+    ).rejects.toThrow("Only a lock taken with Semaphore.lock can be kept.");
+
+    const mutex: SemaphoreMutex = await Semaphore.lock({
+      key: "server",
+      namespace: "ns",
+    });
+    jest.spyOn(Redis, "getClient").mockReturnValue(null);
+
+    await expect(Semaphore.keepLock(mutex)).rejects.toThrow(
+      "Redis client is not connected",
+    );
   });
 
   test("two different keys produce two independent mutexes", async () => {

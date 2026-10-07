@@ -12,6 +12,7 @@ import SsoSignInWays, {
   ProjectSignInRule,
   StrandReason,
   StrandedProject,
+  StrandedProjectList,
   StrandedProjects,
   describeStrandedProjects,
   toIdString,
@@ -35,9 +36,13 @@ import SsoSignInWays, {
  *     always were (UserMiddleware), so they can always turn it off again.
  *
  * The check is the one every change to who can sign in asks (SsoSignInWays),
- * under the lock those changes hold (ProjectSsoProviderChanges.
- * lockSignInChange): the project's own lock, and the one on the server's
- * sign-in rules, held until the write is done. Turning Require SSO off, or
+ * under the locks those changes hold (ProjectSsoProviderChanges.
+ * lockSignInChange), held until the write is done or fails: the project's
+ * own lock, and - when the project would rely on the global providers or
+ * the provider it requires is not one of its own that is on - the one on
+ * the server's sign-in rules, kept while the check reads. A project with a
+ * provider of its own that is on needs neither the check nor that lock
+ * (SsoSignInWays.dependsOnServerRules). Turning Require SSO off, or
  * clearing the provider a project requires, asks for less and is never
  * refused or locked.
  */
@@ -49,22 +54,55 @@ export const REQUIRED_PROVIDER_CANNOT_SIGN_IN_MESSAGE: string =
   "The SSO provider this project would require cannot sign people in to it: it is off, it was deleted, or it does not sign people in to this project. Turn it on first, or require another provider.";
 
 /*
- * Why the server's Require SSO for Login is refused, naming the projects
- * that have no provider to sign in with.
+ * Why the server's Require SSO for Login is refused, naming the projects it
+ * would lock out and saying what to do about each: those with no provider
+ * to sign in with, and those that require a provider by id that cannot
+ * sign anyone in to them.
  */
 export function getServerRuleRefusalMessage(
   stranded: StrandedProjects,
 ): string {
-  const projects: string = describeStrandedProjects(stranded);
-  const isOne: boolean = stranded.count === 1;
+  const sentences: Array<string> = [];
 
-  return `${projects.charAt(0).toUpperCase()}${projects.slice(1)} ${
-    isOne ? "has" : "have"
-  } no SSO provider people can sign in with, so requiring SSO for everyone would lock ${
-    isOne ? "its" : "their"
-  } members out. Turn on a global SSO provider, or an SSO provider in ${
-    isOne ? "that project" : "each of them"
-  }, first.`;
+  const noProvider: StrandedProjectList =
+    stranded.byReason[StrandReason.NoProvider];
+
+  if (noProvider.count > 0) {
+    const isOne: boolean = noProvider.count === 1;
+
+    sentences.push(
+      `${capitalize(describeStrandedProjects(noProvider))} ${
+        isOne ? "has" : "have"
+      } no SSO provider people can sign in with, so requiring SSO for everyone would lock ${
+        isOne ? "its" : "their"
+      } members out. Turn on a global SSO provider, or an SSO provider in ${
+        isOne ? "that project" : "each of them"
+      }, first.`,
+    );
+  }
+
+  const required: StrandedProjectList =
+    stranded.byReason[StrandReason.RequiredProvider];
+
+  if (required.count > 0) {
+    const isOne: boolean = required.count === 1;
+
+    sentences.push(
+      `${capitalize(describeStrandedProjects(required))} ${
+        isOne ? "requires" : "require"
+      } sign-in with an SSO provider that cannot sign people in to ${
+        isOne ? "it" : "them"
+      } - it is off, it was deleted, or it does not sign people in there - so requiring SSO for everyone would lock ${
+        isOne ? "its" : "their"
+      } members out. Turn that provider on, or require another provider there, first.`,
+    );
+  }
+
+  return sentences.join(" ");
+}
+
+function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 // A write that asks for more, worked out before it runs: the locks it holds.
@@ -82,12 +120,16 @@ export default class SsoRequirementChanges {
     new WeakMap<UpdateBy<BaseModel>, SsoRequirementWrite>();
 
   /*
-   * Before an update to projects (ProjectService.onBeforeUpdate, with the
+   * Before an update to projects is written (ProjectService.
+   * onUpdatePermitted, once every permission check has passed, with the
    * rows the caller may write): one that turns Require SSO for Login on, or
-   * names the provider a project requires, is checked under the projects'
-   * lock and the lock on the server's sign-in rules. Only a project whose
-   * rule the write actually changes is checked: one that already requires
-   * SSO and has it saved again is not.
+   * names the provider a project requires, is read under the projects'
+   * lock. Only a project whose rule the write actually changes is checked:
+   * one that already requires SSO and has it saved again is not, and a
+   * write that changes no project's rule gives its locks back at once.
+   * When a project would rely on more than its own providers that are on,
+   * the lock on the server's sign-in rules is taken too, after the
+   * projects', and the check runs under both.
    */
   public static async beforeProjectUpdate(data: {
     updateBy: UpdateBy<Project>;
@@ -119,7 +161,7 @@ export default class SsoRequirementChanges {
     const locks: Array<SemaphoreMutex> =
       await ProjectSsoProviderChanges.lockSignInChange({
         projectIds: projectIdsToLock,
-        wholeServer: true,
+        wholeServer: false,
       });
 
     try {
@@ -175,11 +217,36 @@ export default class SsoRequirementChanges {
         }
       }
 
-      if (tightened.size > 0) {
+      // Asks no more of any project: nothing to check, nothing to hold.
+      if (tightened.size === 0) {
+        await ProjectSsoProviderChanges.releaseSignInChange(locks);
+        return null;
+      }
+
+      if (
+        await SsoSignInWays.dependsOnServerRules({
+          projectRules: tightened,
+        })
+      ) {
+        // Taken after the projects' locks, as every writer takes them.
+        locks.push(
+          ...(await ProjectSsoProviderChanges.lockSignInChange({
+            projectIds: [],
+            wholeServer: true,
+          })),
+        );
+
         const stranded: StrandedProjects =
-          await SsoSignInWays.findStrandedProjects({
-            projectRules: tightened,
-          });
+          await SsoSignInWays.findStrandedProjects(
+            {
+              projectRules: tightened,
+            },
+            {
+              keepLocks: async (): Promise<void> => {
+                await ProjectSsoProviderChanges.keepSignInChange(locks);
+              },
+            },
+          );
 
         const first: StrandedProject | undefined = stranded.firstProjects[0];
 
@@ -190,6 +257,8 @@ export default class SsoRequirementChanges {
               : NO_SSO_PROVIDER_TO_REQUIRE_MESSAGE,
           );
         }
+
+        await ProjectSsoProviderChanges.keepSignInChange(locks);
       }
 
       const write: SsoRequirementWrite = { locks };
@@ -205,10 +274,11 @@ export default class SsoRequirementChanges {
   }
 
   /*
-   * Before an update to the server's settings (GlobalConfigService.
-   * onBeforeUpdate): one that turns the server's Require SSO for Login on,
-   * from off, is checked under the lock on the server's sign-in rules
-   * against every project that does not require SSO itself.
+   * Before an update to the server's settings is written
+   * (GlobalConfigService.onUpdatePermitted): one that turns the server's
+   * Require SSO for Login on, from off, is checked under the lock on the
+   * server's sign-in rules - kept while the check reads every project, page
+   * by page - against every project that does not require SSO itself.
    */
   public static async beforeServerUpdate(data: {
     updateBy: UpdateBy<GlobalConfig>;
@@ -243,13 +313,22 @@ export default class SsoRequirementChanges {
       // On already: it asks no more of anyone.
       if (!config || !config.requireSsoForLogin) {
         const stranded: StrandedProjects =
-          await SsoSignInWays.findStrandedProjects({
-            turnsOnServerRule: true,
-          });
+          await SsoSignInWays.findStrandedProjects(
+            {
+              turnsOnServerRule: true,
+            },
+            {
+              keepLocks: async (): Promise<void> => {
+                await ProjectSsoProviderChanges.keepSignInChange(locks);
+              },
+            },
+          );
 
         if (stranded.count > 0) {
           throw new BadDataException(getServerRuleRefusalMessage(stranded));
         }
+
+        await ProjectSsoProviderChanges.keepSignInChange(locks);
       }
 
       const write: SsoRequirementWrite = { locks };
@@ -264,7 +343,10 @@ export default class SsoRequirementChanges {
     }
   }
 
-  // Once the write is done (the success hooks): its locks are given back, once.
+  /*
+   * Once the write is done (first in the success hooks) or has failed (the
+   * error hooks): its locks are given back, once. Never throws.
+   */
   public static async afterUpdate<TModel extends BaseModel>(
     updateBy: UpdateBy<TModel>,
   ): Promise<void> {

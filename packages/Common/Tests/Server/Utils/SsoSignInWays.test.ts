@@ -21,11 +21,13 @@ import SsoSignInWays, {
   STRANDED_PROJECTS_NAMED,
   SignInReach,
   StrandReason,
+  StrandedProjectList,
   StrandedProjects,
   decideStrandReason,
   describeStrandedProjects,
   getGlobalProviderReach,
   getLostReach,
+  noStrandedProjects,
   wayKey,
 } from "../../../Server/Utils/SsoSignInWays";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
@@ -52,8 +54,10 @@ type SpyInstance = ReturnType<typeof getJestSpyOn>;
  * restricted, an attachment added, turned off, moved or removed, Require SSO
  * for Login turned on for a project or the server. It answers with the
  * projects the change would leave with no provider to sign in with, and
- * why. Here over projects and providers held in memory: every database read
- * the check makes goes through the services stubbed below.
+ * why; and, for a change to projects alone, whether the answer can depend
+ * on the server's sign-in rules at all (dependsOnServerRules). Here over
+ * projects and providers held in memory: every database read the check
+ * makes goes through the services stubbed below.
  */
 
 const id: (n: number) => string = (n: number): string => {
@@ -219,7 +223,10 @@ beforeEach(() => {
     }): Promise<Array<Project>> => {
       return projects
         .filter((row: ProjectRow): boolean => {
-          return asks(data.query, "requireSsoForLogin", row.requireSsoForLogin);
+          return (
+            asks(data.query, "_id", row.id) &&
+            asks(data.query, "requireSsoForLogin", row.requireSsoForLogin)
+          );
         })
         .sort((a: ProjectRow, b: ProjectRow): number => {
           return a.id.localeCompare(b.id);
@@ -639,17 +646,17 @@ describe("how a refusal names the projects", () => {
   const strandedOf: (
     count: number,
     names: Array<string>,
-  ) => StrandedProjects = (
+  ) => StrandedProjectList = (
     count: number,
     names: Array<string>,
-  ): StrandedProjects => {
+  ): StrandedProjectList => {
     return {
       count,
       firstProjects: names.map(
         (
           name: string,
           index: number,
-        ): StrandedProjects["firstProjects"][number] => {
+        ): StrandedProjectList["firstProjects"][number] => {
           return {
             projectId: id(index + 1),
             name,
@@ -690,7 +697,7 @@ describe("the projects a change would leave with no way in", () => {
           },
         ],
       }),
-    ).resolves.toEqual({ firstProjects: [], count: 0 });
+    ).resolves.toEqual(noStrandedProjects());
 
     expect(projectPageReads).not.toHaveBeenCalled();
     expect(serverRuleReads).not.toHaveBeenCalled();
@@ -781,7 +788,7 @@ describe("the projects a change would leave with no way in", () => {
         SsoSignInWays.findStrandedProjects({
           globalProviders: [turnedOff(SsoProviderType.GlobalSSO, GLOBAL_SAML)],
         }),
-      ).resolves.toEqual({ firstProjects: [], count: 0 });
+      ).resolves.toEqual(noStrandedProjects());
 
       expect(ownSamlReads).not.toHaveBeenCalled();
     });
@@ -807,7 +814,7 @@ describe("the projects a change would leave with no way in", () => {
         SsoSignInWays.findStrandedProjects({
           globalProviders: [turnedOff(SsoProviderType.GlobalSSO, GLOBAL_SAML)],
         }),
-      ).resolves.toEqual({ firstProjects: [], count: 0 });
+      ).resolves.toEqual(noStrandedProjects());
 
       oidcAttachments[0]!.isEnabled = false;
 
@@ -857,7 +864,7 @@ describe("the projects a change would leave with no way in", () => {
         SsoSignInWays.findStrandedProjects({
           globalProviders: [turnedOff(SsoProviderType.GlobalSSO, GLOBAL_SAML)],
         }),
-      ).resolves.toEqual({ firstProjects: [], count: 0 });
+      ).resolves.toEqual(noStrandedProjects());
     });
   });
 
@@ -881,8 +888,82 @@ describe("the projects a change would leave with no way in", () => {
     );
 
     expect(namesOf(stranded)).toEqual(["Beta"]);
-    // The projects it names are read by id; nothing is paged through.
-    expect(projectPageReads).not.toHaveBeenCalled();
+    // The projects it names are read by id, in one read; nothing is paged through.
+    expect(projectPageReads).toHaveBeenCalledTimes(1);
+    expect(
+      Object.keys(
+        (
+          projectPageReads.mock.calls[0]![0] as {
+            query: Record<string, unknown>;
+          }
+        ).query,
+      ),
+    ).toEqual(["_id"]);
+  });
+
+  test("the projects a change names are read together, a page at a time, not one by one", async () => {
+    const named: Array<string> = [];
+
+    for (let n: number = 1; n <= 501; n++) {
+      named.push(id(5000 + n));
+      projects.push(
+        project(id(5000 + n), `Project ${n}`, { requireSsoForLogin: true }),
+      );
+    }
+
+    const oneByOne: SpyInstance = getJestSpyOn(ProjectService, "findOneById");
+
+    const stranded: StrandedProjects = await SsoSignInWays.findStrandedProjects(
+      {
+        globalProviders: [
+          {
+            providerType: SsoProviderType.GlobalSSO,
+            providerId: GLOBAL_SAML,
+            before: reachOf(...named),
+            after: REACHES_NO_PROJECT,
+          },
+        ],
+      },
+    );
+
+    expect(stranded.count).toBe(501);
+    expect(oneByOne).not.toHaveBeenCalled();
+    expect(
+      projectPageReads.mock.calls.map((call: Array<unknown>): number => {
+        return (call[0] as { limit: number }).limit;
+      }),
+    ).toEqual([500, 1]);
+  });
+
+  test("each reason is counted and named apart, for the refusal to say what to do about each", async () => {
+    projects = [
+      project(ACME, "Acme", {
+        requireSsoForLogin: true,
+        requiredProviderId: GLOBAL_SAML,
+      }),
+      project(BETA, "Beta", { requireSsoForLogin: true }),
+      project(GAMMA, "Gamma", { requireSsoForLogin: true }),
+    ];
+    ownSaml = [{ id: ACME_SAML, projectId: ACME, isEnabled: true }];
+
+    const stranded: StrandedProjects = await SsoSignInWays.findStrandedProjects(
+      {
+        globalProviders: [turnedOff(SsoProviderType.GlobalSSO, GLOBAL_SAML)],
+      },
+    );
+
+    expect(stranded.count).toBe(3);
+    expect(
+      namesOf({
+        ...stranded,
+        ...stranded.byReason[StrandReason.RequiredProvider],
+      }),
+    ).toEqual(["Acme"]);
+    expect(stranded.byReason[StrandReason.RequiredProvider].count).toBe(1);
+    expect(
+      namesOf({ ...stranded, ...stranded.byReason[StrandReason.NoProvider] }),
+    ).toEqual(["Beta", "Gamma"]);
+    expect(stranded.byReason[StrandReason.NoProvider].count).toBe(2);
   });
 
   test("a project it stops reaching that is gone is left out", async () => {
@@ -894,7 +975,7 @@ describe("the projects a change would leave with no way in", () => {
       },
     );
 
-    expect(stranded).toEqual({ firstProjects: [], count: 0 });
+    expect(stranded).toEqual(noStrandedProjects());
   });
 
   test("a project's own provider taken away strands it when nothing else signs people in to it", async () => {
@@ -937,7 +1018,7 @@ describe("the projects a change would leave with no way in", () => {
       SsoSignInWays.findStrandedProjects({
         projectProvidersTakenAway: takeAway,
       }),
-    ).resolves.toEqual({ firstProjects: [], count: 0 });
+    ).resolves.toEqual(noStrandedProjects());
   });
 
   describe("Require SSO for Login turned on for a project", () => {
@@ -972,10 +1053,7 @@ describe("the projects a change would leave with no way in", () => {
       });
 
       ownSaml = [{ id: ACME_SAML, projectId: ACME, isEnabled: true }];
-      await expect(turnOn(ACME)).resolves.toEqual({
-        firstProjects: [],
-        count: 0,
-      });
+      await expect(turnOn(ACME)).resolves.toEqual(noStrandedProjects());
     });
 
     test("a global provider that reaches it counts", async () => {
@@ -1076,8 +1154,65 @@ describe("the projects a change would leave with no way in", () => {
 
       await expect(
         SsoSignInWays.findStrandedProjects({ turnsOnServerRule: true }),
-      ).resolves.toEqual({ firstProjects: [], count: 0 });
+      ).resolves.toEqual(noStrandedProjects());
     });
+  });
+
+  test("the caller's locks are kept before each page the check reads", async () => {
+    for (let n: number = 1; n <= 501; n++) {
+      projects.push(
+        project(id(1000 + n), `Project ${n}`, { requireSsoForLogin: false }),
+      );
+    }
+
+    const steps: Array<string> = [];
+    projectPageReads.mockImplementation((async (): Promise<Array<Project>> => {
+      steps.push("read");
+      return steps.filter((step: string): boolean => {
+        return step === "read";
+      }).length === 1
+        ? projects.slice(0, 500).map(toProject)
+        : projects.slice(500).map(toProject);
+    }) as never);
+
+    await SsoSignInWays.findStrandedProjects(
+      { turnsOnServerRule: true },
+      {
+        keepLocks: async (): Promise<void> => {
+          steps.push("keep");
+        },
+      },
+    );
+
+    expect(steps).toEqual(["keep", "read", "keep", "read"]);
+  });
+
+  test("a lock found lost while the check reads stops it there", async () => {
+    for (let n: number = 1; n <= 501; n++) {
+      projects.push(
+        project(id(1000 + n), `Project ${n}`, { requireSsoForLogin: false }),
+      );
+    }
+
+    let keeps: number = 0;
+
+    await expect(
+      SsoSignInWays.findStrandedProjects(
+        { turnsOnServerRule: true },
+        {
+          keepLocks: async (): Promise<void> => {
+            keeps++;
+
+            if (keeps === 2) {
+              throw new Error("The lock was lost");
+            }
+          },
+        },
+      ),
+    ).rejects.toThrow("The lock was lost");
+
+    // The first page only.
+    expect(projectPageReads).toHaveBeenCalledTimes(1);
   });
 
   test("names the first few and counts them all, reading the projects a page at a time", async () => {
@@ -1109,5 +1244,163 @@ describe("the projects a change would leave with no way in", () => {
       [500, 500, { _id: SortOrder.Ascending }],
       [1000, 500, { _id: SortOrder.Ascending }],
     ]);
+  });
+});
+
+describe("whether a change to projects alone depends on the server's sign-in rules", () => {
+  type TakenAway = Map<
+    string,
+    Array<{
+      providerType: SsoProviderType.ProjectSSO | SsoProviderType.ProjectOIDC;
+      id: string;
+    }>
+  >;
+
+  const takeAway: (projectId: string, providerId: string) => TakenAway = (
+    projectId: string,
+    providerId: string,
+  ): TakenAway => {
+    return new Map([
+      [
+        projectId,
+        [{ providerType: SsoProviderType.ProjectSSO, id: providerId }],
+      ],
+    ]);
+  };
+
+  beforeEach(() => {
+    projects = [project(ACME, "Acme", { requireSsoForLogin: true })];
+    ownSaml = [{ id: ACME_SAML, projectId: ACME, isEnabled: true }];
+    ownOidc = [{ id: BETA_OIDC, projectId: ACME, isEnabled: true }];
+  });
+
+  test("a provider taken away while the project keeps another of its own does not, and reads neither the server's rule nor the global providers", async () => {
+    const globalReads: SpyInstance = getJestSpyOn(GlobalSsoService, "findBy");
+
+    await expect(
+      SsoSignInWays.dependsOnServerRules({
+        projectProvidersTakenAway: takeAway(ACME, ACME_SAML),
+      }),
+    ).resolves.toBe(false);
+
+    expect(serverRuleReads).not.toHaveBeenCalled();
+    expect(globalReads).not.toHaveBeenCalled();
+  });
+
+  test("its last own provider taken away does: then only the global providers, or the server's rule, decide", async () => {
+    ownOidc = [];
+
+    await expect(
+      SsoSignInWays.dependsOnServerRules({
+        projectProvidersTakenAway: takeAway(ACME, ACME_SAML),
+      }),
+    ).resolves.toBe(true);
+
+    // Whatever the project requires itself: the server may require it.
+    projects = [project(ACME, "Acme", { requireSsoForLogin: false })];
+    await expect(
+      SsoSignInWays.dependsOnServerRules({
+        projectProvidersTakenAway: takeAway(ACME, ACME_SAML),
+      }),
+    ).resolves.toBe(true);
+  });
+
+  test("taking away the provider it requires does, even with others of its own on", async () => {
+    projects = [
+      project(ACME, "Acme", {
+        requireSsoForLogin: false,
+        requiredProviderId: ACME_SAML,
+      }),
+    ];
+
+    await expect(
+      SsoSignInWays.dependsOnServerRules({
+        projectProvidersTakenAway: takeAway(ACME, ACME_SAML),
+      }),
+    ).resolves.toBe(true);
+
+    // Requiring another, it keeps that one whatever the server's rules are.
+    projects = [
+      project(ACME, "Acme", {
+        requireSsoForLogin: true,
+        requiredProviderId: GLOBAL_SAML,
+      }),
+    ];
+    await expect(
+      SsoSignInWays.dependsOnServerRules({
+        projectProvidersTakenAway: takeAway(ACME, ACME_SAML),
+      }),
+    ).resolves.toBe(false);
+  });
+
+  test("Require SSO for Login turned on: not with one of its own providers on, and the provider it requires one of them", async () => {
+    const turnOn: (requiredProviderId: string | null) => Promise<boolean> = (
+      requiredProviderId: string | null,
+    ): Promise<boolean> => {
+      return SsoSignInWays.dependsOnServerRules({
+        projectRules: new Map([
+          [ACME, { requireSsoForLogin: true, requiredProviderId }],
+        ]),
+      });
+    };
+
+    await expect(turnOn(null)).resolves.toBe(false);
+    await expect(turnOn(ACME_SAML)).resolves.toBe(false);
+
+    // A global provider, or one that is off or gone: the server's providers decide.
+    await expect(turnOn(GLOBAL_SAML)).resolves.toBe(true);
+    ownSaml[0]!.isEnabled = false;
+    await expect(turnOn(ACME_SAML)).resolves.toBe(true);
+
+    // None of its own on.
+    ownOidc = [];
+    await expect(turnOn(null)).resolves.toBe(true);
+  });
+
+  test("a change to the global providers or to the server's rule always does, without reading", async () => {
+    await expect(
+      SsoSignInWays.dependsOnServerRules({
+        globalProviders: [turnedOff(SsoProviderType.GlobalSSO, GLOBAL_SAML)],
+      }),
+    ).resolves.toBe(true);
+    await expect(
+      SsoSignInWays.dependsOnServerRules({ turnsOnServerRule: true }),
+    ).resolves.toBe(true);
+
+    expect(projectPageReads).not.toHaveBeenCalled();
+    expect(ownSamlReads).not.toHaveBeenCalled();
+  });
+
+  test("a project that is gone is left out", async () => {
+    await expect(
+      SsoSignInWays.dependsOnServerRules({
+        projectProvidersTakenAway: takeAway(DELTA, ACME_SAML),
+      }),
+    ).resolves.toBe(false);
+  });
+
+  test("the projects are read together, and their own providers once per kind", async () => {
+    const changed: TakenAway = new Map();
+
+    for (let n: number = 1; n <= 20; n++) {
+      const projectId: string = id(7000 + n);
+      projects.push(
+        project(projectId, `Project ${n}`, { requireSsoForLogin: true }),
+      );
+      ownSaml.push({ id: id(8000 + n), projectId, isEnabled: true });
+      ownOidc.push({ id: id(9000 + n), projectId, isEnabled: true });
+      changed.set(projectId, [
+        { providerType: SsoProviderType.ProjectSSO, id: id(8000 + n) },
+      ]);
+    }
+
+    await expect(
+      SsoSignInWays.dependsOnServerRules({
+        projectProvidersTakenAway: changed,
+      }),
+    ).resolves.toBe(false);
+
+    expect(projectPageReads).toHaveBeenCalledTimes(1);
+    expect(ownSamlReads).toHaveBeenCalledTimes(1);
   });
 });

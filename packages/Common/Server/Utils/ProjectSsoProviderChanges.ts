@@ -52,10 +52,16 @@ import SsoSignInWays, {
  *     it is written, so what it read is still true when it lands: two
  *     writes at once cannot each take away what the other counted on, and
  *     none can miss a provider another turned on a moment before. One that
- *     may take a provider away also holds the lock on the server's sign-in
- *     rules (lockSignInChange): its check counts the global providers and
- *     reads the server's Require SSO for Login, which global changes write
- *     under that lock.
+ *     leaves a project none of its own providers on, or takes away the one
+ *     it requires, also holds the lock on the server's sign-in rules
+ *     (lockSignInChange): the project then relies on the global providers
+ *     and the server's Require SSO for Login, which global changes write
+ *     under that lock. One that leaves the project a provider of its own
+ *     keeps a way in whatever those are, and holds only the project's lock
+ *     (SsoSignInWays.dependsOnServerRules);
+ *   - a write that fails once it holds a lock gives it back
+ *     (afterFailedWrite, the services' error hooks); a lock nobody gives
+ *     back runs out (LOCK_TIMEOUT_IN_MS).
  *
  * Any other change - a new certificate or client secret, other addresses,
  * other teams, a new name - leaves the sign-ins the provider gave as they
@@ -81,10 +87,9 @@ export interface ProjectSsoProviderWrite {
   turnedOn: Array<ProjectSsoProviderRow>;
   /*
    * The locks held on the projects of the rows the write names, and on the
-   * server's sign-in rules when it may take a provider away, from before
-   * they were read until the write is done (afterUpdate/afterDelete). A
-   * write that fails in between leaves them to run out
-   * (LOCK_TIMEOUT_IN_MS).
+   * server's sign-in rules when a project it touches relies on them, from
+   * before they were read until the write is done (afterUpdate/afterDelete)
+   * or fails (afterFailedWrite).
    */
   locks?: Array<SemaphoreMutex> | undefined;
 }
@@ -104,13 +109,20 @@ export const PROVIDER_CHANGE_IN_PROGRESS_MESSAGE: string =
 export const SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE: string =
   "Another change to who can sign in with SSO is being saved. Try again in a moment.";
 
-// How long a lock is held at most: a read, a check and one write.
+/*
+ * How long a lock lasts from when it was taken, or last kept
+ * (keepSignInChange): a read, a check and one write. A check that reads
+ * many projects keeps its locks page by page, so it never outlives them; a
+ * lock its holder stops keeping - its write failed half way, and nothing
+ * gave it back - runs out this long after.
+ */
 const LOCK_TIMEOUT_IN_MS: number = 10_000;
 
 /*
- * How long a write waits for a lock: longer than a lock can be held, so one
- * a failed write never gave back runs out before a write waiting for it
- * gives up.
+ * How long a write waits for a lock: longer than a lock nobody keeps lasts,
+ * so one a failed write never gave back runs out before a write waiting for
+ * it gives up. A write that waits on a long check another change keeps
+ * going is refused instead ("try again in a moment").
  */
 const LOCK_WAIT_IN_MS: number = 15_000;
 
@@ -215,7 +227,6 @@ export default class ProjectSsoProviderChanges {
         query: data.updateBy.query,
         limit: data.updateBy.limit,
         skip: data.updateBy.skip,
-        mayTakeAway: isEnabled === false,
         decide: (
           rows: Array<ProjectSsoProviderRow>,
         ): ProjectSsoProviderWrite => {
@@ -297,7 +308,6 @@ export default class ProjectSsoProviderChanges {
       query: data.deleteBy.query,
       limit: data.deleteBy.limit,
       skip: data.deleteBy.skip,
-      mayTakeAway: true,
       decide: (rows: Array<ProjectSsoProviderRow>): ProjectSsoProviderWrite => {
         return {
           takenAway: rows.filter((row: ProjectSsoProviderRow): boolean => {
@@ -329,6 +339,21 @@ export default class ProjectSsoProviderChanges {
   }
 
   /*
+   * After an update or delete that failed once its before-hook had run
+   * (onUpdateError, onDeleteError): nothing was written, so nobody is told,
+   * and its locks are given back at once rather than left to run out.
+   */
+  public static async afterFailedWrite(
+    write: ProjectSsoProviderWrite | null | undefined,
+  ): Promise<void> {
+    if (!write) {
+      return;
+    }
+
+    await ProjectSsoProviderChanges.release(write);
+  }
+
+  /*
    * A project that requires SSO keeps a provider to sign in with: one it
    * requires by id (requireSsoWithSsoProviderId) cannot go, and without one
    * the last provider that is on - the project's SAML and OIDC providers
@@ -342,34 +367,18 @@ export default class ProjectSsoProviderChanges {
   public static async assertProjectsKeepASignIn(data: {
     providerType: ProjectSsoProviderType;
     takenAway: Array<ProjectSsoProviderRow>;
+    // Keeps the change's locks while the check reads (keepSignInChange).
+    keepLocks?: (() => Promise<void>) | undefined;
   }): Promise<void> {
-    const takenAwayByProject: Map<
-      string,
-      Array<{ providerType: ProjectSsoProviderType; id: string }>
-    > = new Map<
-      string,
-      Array<{ providerType: ProjectSsoProviderType; id: string }>
-    >();
-
-    for (const [projectId, ids] of ProjectSsoProviderChanges.groupByProject(
-      data.takenAway,
-    )) {
-      takenAwayByProject.set(
-        projectId,
-        Array.from(ids).map(
-          (
-            id: string,
-          ): { providerType: ProjectSsoProviderType; id: string } => {
-            return { providerType: data.providerType, id };
-          },
-        ),
-      );
-    }
-
     const stranded: StrandedProjects = await SsoSignInWays.findStrandedProjects(
       {
-        projectProvidersTakenAway: takenAwayByProject,
+        projectProvidersTakenAway:
+          ProjectSsoProviderChanges.toTakenAwayByProject(
+            data.providerType,
+            data.takenAway,
+          ),
       },
+      { keepLocks: data.keepLocks },
     );
 
     const first: StrandedProject | undefined = stranded.firstProjects[0];
@@ -453,6 +462,38 @@ export default class ProjectSsoProviderChanges {
     return locks;
   }
 
+  /*
+   * Keeps a change's locks: each lasts another LOCK_TIMEOUT_IN_MS from now.
+   * A check keeps them between the pages it reads and once more when it is
+   * done, just before the write: so a check that reads many projects never
+   * outlives its locks, and the write that follows has the whole time. A
+   * lock found gone - it ran out, or Valkey lost it - refuses the change, as
+   * a busy one does: another change may hold it now, and what this one read
+   * may no longer be true. When Valkey cannot be reached the change goes
+   * on, as it does when it could not lock.
+   */
+  public static async keepSignInChange(
+    locks: Array<SemaphoreMutex>,
+  ): Promise<void> {
+    for (const lock of locks) {
+      let isKept: boolean = true;
+
+      try {
+        isKept = await Semaphore.keepLock(lock);
+      } catch (err) {
+        logger.warn(
+          "SSO sign-in change: could not keep a lock; checking it as it is.",
+        );
+        logger.warn(err);
+        continue;
+      }
+
+      if (!isKept) {
+        throw new BadDataException(SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE);
+      }
+    }
+  }
+
   // Gives back the locks of a change. Never throws: a lock not given back runs out.
   public static async releaseSignInChange(
     locks: Array<SemaphoreMutex>,
@@ -472,10 +513,19 @@ export default class ProjectSsoProviderChanges {
    * each of their projects: the rows are read once to learn the projects,
    * the projects are locked, and the rows are read again, so no other turn
    * off, turn on or delete of the projects' providers comes between what
-   * this write reads and what it writes. A write that may take a provider
-   * away also locks the server's sign-in rules, which its check reads, and
-   * is checked under the same locks. They are held until the write is done
-   * (afterUpdate, afterDelete), or given back at once when it is refused.
+   * this write reads and what it writes.
+   *
+   * A write that takes a provider away is checked. When a project it
+   * touches would be left none of its own providers on, or loses the one it
+   * requires, the project relies on the server's sign-in rules - the global
+   * providers, the server's Require SSO for Login - so the write locks
+   * those too, after the projects, and is checked under every lock, kept
+   * while the check reads. Otherwise each project keeps a provider of its
+   * own whatever the server's rules are, and the write needs no check and
+   * no other lock (SsoSignInWays.dependsOnServerRules).
+   *
+   * The locks are held until the write is done (afterUpdate, afterDelete)
+   * or fails (afterFailedWrite), or given back at once when it is refused.
    * Without Valkey the write still reads and checks, unlocked.
    */
   private static async lockReadAndCheck<TModel extends BaseModel>(data: {
@@ -484,7 +534,6 @@ export default class ProjectSsoProviderChanges {
     query: Query<TModel>;
     limit: PositiveNumber | number;
     skip: PositiveNumber | number;
-    mayTakeAway: boolean;
     decide: (rows: Array<ProjectSsoProviderRow>) => ProjectSsoProviderWrite;
   }): Promise<ProjectSsoProviderWrite> {
     const rowsToLock: Array<ProjectSsoProviderRow> =
@@ -504,7 +553,7 @@ export default class ProjectSsoProviderChanges {
         projectIds: Array.from(
           ProjectSsoProviderChanges.groupByProject(rowsToLock).keys(),
         ),
-        wholeServer: data.mayTakeAway,
+        wholeServer: false,
       });
 
     try {
@@ -519,11 +568,33 @@ export default class ProjectSsoProviderChanges {
 
       write.locks = locks;
 
-      if (write.takenAway.length > 0) {
+      if (
+        write.takenAway.length > 0 &&
+        (await SsoSignInWays.dependsOnServerRules({
+          projectProvidersTakenAway:
+            ProjectSsoProviderChanges.toTakenAwayByProject(
+              data.providerType,
+              write.takenAway,
+            ),
+        }))
+      ) {
+        // Taken after the projects' locks, as every writer takes them.
+        locks.push(
+          ...(await ProjectSsoProviderChanges.lockSignInChange({
+            projectIds: [],
+            wholeServer: true,
+          })),
+        );
+
         await ProjectSsoProviderChanges.assertProjectsKeepASignIn({
           providerType: data.providerType,
           takenAway: write.takenAway,
+          keepLocks: async (): Promise<void> => {
+            await ProjectSsoProviderChanges.keepSignInChange(locks);
+          },
         });
+
+        await ProjectSsoProviderChanges.keepSignInChange(locks);
       }
 
       return write;
@@ -531,6 +602,37 @@ export default class ProjectSsoProviderChanges {
       await ProjectSsoProviderChanges.releaseSignInChange(locks);
       throw err;
     }
+  }
+
+  // The providers a write takes away, by project, as the check reads them.
+  private static toTakenAwayByProject(
+    providerType: ProjectSsoProviderType,
+    takenAway: Array<ProjectSsoProviderRow>,
+  ): Map<string, Array<{ providerType: ProjectSsoProviderType; id: string }>> {
+    const byProject: Map<
+      string,
+      Array<{ providerType: ProjectSsoProviderType; id: string }>
+    > = new Map<
+      string,
+      Array<{ providerType: ProjectSsoProviderType; id: string }>
+    >();
+
+    for (const [projectId, ids] of ProjectSsoProviderChanges.groupByProject(
+      takenAway,
+    )) {
+      byProject.set(
+        projectId,
+        Array.from(ids).map(
+          (
+            id: string,
+          ): { providerType: ProjectSsoProviderType; id: string } => {
+            return { providerType: providerType, id };
+          },
+        ),
+      );
+    }
+
+    return byProject;
   }
 
   // Gives back the write's locks, once.

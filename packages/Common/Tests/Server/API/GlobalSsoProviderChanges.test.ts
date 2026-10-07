@@ -82,8 +82,10 @@ jest.mock("../../../Server/Utils/Response", () => {
  *   - turning the server's Require SSO for Login on needs a provider for
  *     every project that does not require SSO itself;
  *   - the check and the write hold the lock on the server's sign-in rules,
- *     given back once the write is done or refused; a write that only lets
- *     a provider sign more people in takes no lock and is never refused.
+ *     taken once every other check has passed, kept while the check runs,
+ *     and given back once the write is done, refused or fails; a write that
+ *     only lets a provider sign more people in takes no lock and is never
+ *     refused.
  */
 
 const id: (n: number) => string = (n: number): string => {
@@ -134,6 +136,13 @@ let events: Array<string> = [];
 let busyLock: string | null = null;
 let locksFail: boolean = false;
 let announced: Array<RealtimeAccessChange> = [];
+
+// The locks kept while a check ran, and those found lost meanwhile.
+let kept: Array<string> = [];
+let lostLocks: Array<string> = [];
+
+// The database refuses every write of this kind it is asked for.
+let failing: "update" | "delete" | "save" | null = null;
 
 // The values a repository `where` asks a column for, lower-cased.
 const askedValues: (value: unknown) => Array<string> | null = (
@@ -236,6 +245,10 @@ const stubTable: (
       where: Record<string, unknown>,
       set: Record<string, unknown>,
     ): Promise<{ affected: number }> => {
+      if (failing === "update") {
+        throw new Error("The database could not write the row");
+      }
+
       const written: Record<string, unknown> = {};
 
       for (const [column, value] of Object.entries(set)) {
@@ -260,6 +273,10 @@ const stubTable: (
     delete: async (
       where: Record<string, unknown>,
     ): Promise<{ affected: number }> => {
+      if (failing === "delete") {
+        throw new Error("The database could not delete the row");
+      }
+
       const gone: Array<Row> = table().rows.filter((row: Row): boolean => {
         return matches(row, where);
       });
@@ -276,6 +293,10 @@ const stubTable: (
       return { affected: gone.length };
     },
     save: async (data: BaseModel): Promise<BaseModel> => {
+      if (failing === "save") {
+        throw new Error("The database could not insert the row");
+      }
+
       const row: Row = { _id: data._id || ObjectID.generate().toString() };
 
       for (const [column, value] of Object.entries(data)) {
@@ -573,6 +594,9 @@ beforeEach(() => {
   busyLock = null;
   locksFail = false;
   announced = [];
+  kept = [];
+  lostLocks = [];
+  failing = null;
 
   for (const silenced of ["debug", "info", "warn", "error"]) {
     getJestSpyOn(logger, silenced).mockImplementation((): void => {
@@ -645,10 +669,14 @@ beforeEach(() => {
     const asked: Array<string> | null = askedValues(
       data.query["requireSsoForLogin"],
     );
+    const askedIds: Array<string> | null = askedValues(data.query["_id"]);
 
     return projects
       .filter((row: ProjectRow): boolean => {
-        return asked === null || asked.includes(String(row.requireSsoForLogin));
+        return (
+          (asked === null || asked.includes(String(row.requireSsoForLogin))) &&
+          (askedIds === null || askedIds.includes(row.id))
+        );
       })
       .slice(data.skip, data.skip + data.limit)
       .map(toProject);
@@ -690,6 +718,12 @@ beforeEach(() => {
     key: string;
   }): Promise<void> => {
     events.push(`release:${mutex.key}`);
+  }) as never);
+  getJestSpyOn(Semaphore, "keepLock").mockImplementation((async (mutex: {
+    key: string;
+  }): Promise<boolean> => {
+    kept.push(mutex.key);
+    return !lostLocks.includes(mutex.key);
   }) as never);
 
   getJestSpyOn(RealtimeAccessChanges, "announce").mockImplementation(((
@@ -850,7 +884,18 @@ describe.each([
       ownSaml = [{ id: ACME_SAML, projectId: ACME, isEnabled: true }];
 
       await expect(updateProvider(kind, { isEnabled: false })).resolves.toBe(
-        'The project "Acme" requires sign-in with this SSO provider. Turn off Require SSO for Login there first, so people can still sign in.',
+        'The project "Acme" requires sign-in with this SSO provider. Require another provider there, or turn off Require SSO for Login, first, so people can still sign in.',
+      );
+    });
+
+    test("projects stranded for each reason are named apart, each with what to do", async () => {
+      projects = [
+        project(ACME, "Acme", { requiredProviderId: PROVIDER }),
+        project(BETA, "Beta"),
+      ];
+
+      await expect(updateProvider(kind, { isEnabled: false })).resolves.toBe(
+        'The project "Acme" requires sign-in with this SSO provider. Require another provider there, or turn off Require SSO for Login, first, so people can still sign in. This change would leave the project "Beta" with no SSO provider people can sign in with, and it requires SSO. Turn on another SSO provider for it first, or turn off Require SSO for Login there.',
       );
     });
 
@@ -907,6 +952,61 @@ describe.each([
       ).resolves.toBe("done");
     });
 
+    test("the lock is kept while the check reads, and once more before the write", async () => {
+      ownSaml = [{ id: ACME_SAML, projectId: ACME, isEnabled: true }];
+
+      await expect(updateProvider(kind, { isEnabled: false })).resolves.toBe(
+        "done",
+      );
+
+      // Before the page of projects the check reads, and once it is done.
+      expect(kept).toEqual([SERVER_LOCK, SERVER_LOCK]);
+    });
+
+    test("a lock found lost while the check runs refuses the write, and nothing is written", async () => {
+      ownSaml = [{ id: ACME_SAML, projectId: ACME, isEnabled: true }];
+      lostLocks = [SERVER_LOCK];
+
+      await expect(updateProvider(kind, { isEnabled: false })).resolves.toBe(
+        SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
+      );
+      await expect(deleteProvider(kind)).resolves.toBe(
+        SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
+      );
+
+      expect(kind.providerTable().writes).toEqual([]);
+      expect(kind.providerTable().deleted).toEqual([]);
+      expect(events).toEqual([
+        `lock:${SERVER_LOCK}`,
+        `release:${SERVER_LOCK}`,
+        `lock:${SERVER_LOCK}`,
+        `release:${SERVER_LOCK}`,
+      ]);
+    });
+
+    test("a write the database fails gives the lock back at once", async () => {
+      ownSaml = [{ id: ACME_SAML, projectId: ACME, isEnabled: true }];
+
+      failing = "update";
+      await expect(updateProvider(kind, { isEnabled: false })).rejects.toThrow(
+        "The database could not write the row",
+      );
+
+      failing = "delete";
+      await expect(deleteProvider(kind)).rejects.toThrow(
+        "The database could not delete the row",
+      );
+
+      expect(providerRow(kind)!["isEnabled"]).toBe(true);
+      expect(announced).toEqual([]);
+      expect(events).toEqual([
+        `lock:${SERVER_LOCK}`,
+        `release:${SERVER_LOCK}`,
+        `lock:${SERVER_LOCK}`,
+        `release:${SERVER_LOCK}`,
+      ]);
+    });
+
     test("while another change to who can sign in holds the lock too long, the write is refused and nothing is written", async () => {
       busyLock = SERVER_LOCK;
       projects = [];
@@ -943,6 +1043,88 @@ describe.each([
 
       expect(kind.attachmentTable().created).toEqual([]);
       expect(events).toEqual([`lock:${SERVER_LOCK}`, `release:${SERVER_LOCK}`]);
+    });
+
+    test("an attachment refused before it is checked - it names no project - never takes the lock", async () => {
+      await expect(
+        call(async () => {
+          await kind.attachmentApi.createItem(
+            request({ body: { data: { [kind.providerColumn]: PROVIDER } } }),
+            response(),
+          );
+        }),
+      ).resolves.not.toBe("done");
+
+      expect(kind.attachmentTable().created).toEqual([]);
+      expect(events).toEqual([]);
+    });
+
+    test("an attachment the database fails to write gives the lock back", async () => {
+      projects = [project(BETA, "Beta")];
+      failing = "save";
+
+      await expect(attach(kind, BETA)).rejects.toThrow(
+        "The database could not insert the row",
+      );
+
+      expect(kind.attachmentTable().created).toEqual([]);
+      expect(events).toEqual([`lock:${SERVER_LOCK}`, `release:${SERVER_LOCK}`]);
+    });
+
+    test("turning an attachment off that the database fails to write gives the lock back", async () => {
+      projects = [project(BETA, "Beta")];
+      kind.attachmentTable().rows = [
+        attachmentRow(kind, ATTACHED_TO_ACME, ACME),
+        attachmentRow(kind, ATTACHED_TO_BETA, BETA),
+      ];
+
+      failing = "update";
+      await expect(
+        call(async () => {
+          await kind.attachmentApi.updateItem(
+            request({
+              id: ATTACHED_TO_ACME,
+              body: { data: { isEnabled: false } },
+            }),
+            response(),
+          );
+        }),
+      ).rejects.toThrow("The database could not write the row");
+
+      failing = "delete";
+      await expect(detach(kind, ATTACHED_TO_ACME)).rejects.toThrow(
+        "The database could not delete the row",
+      );
+
+      expect(events).toEqual([
+        `lock:${SERVER_LOCK}`,
+        `release:${SERVER_LOCK}`,
+        `lock:${SERVER_LOCK}`,
+        `release:${SERVER_LOCK}`,
+      ]);
+    });
+
+    test("the lock is given back before the written attachment is announced, whatever the announcing meets", async () => {
+      projects = [project(BETA, "Beta")];
+      getJestSpyOn(
+        kind === SAML ? GlobalSsoService : GlobalOidcService,
+        "getProviderTrust",
+      ).mockImplementation((async (): Promise<never> => {
+        events.push("read the provider");
+        throw new Error("The provider could not be read");
+      }) as never);
+
+      await expect(attach(kind, BETA)).resolves.toBe("done");
+
+      expect(kind.attachmentTable().created).toHaveLength(1);
+      expect(events).toEqual([
+        `lock:${SERVER_LOCK}`,
+        `create:${kind.attachmentTable().created[0]!._id}`,
+        `release:${SERVER_LOCK}`,
+        "read the provider",
+      ]);
+      // A provider that could not be read counts as one its attachments decide: every server is told.
+      expect(announced).not.toEqual([]);
     });
 
     test("it goes through when no project needs it, and the lock is given back once it is written", async () => {
@@ -1073,6 +1255,28 @@ describe("the server's Require SSO for Login", () => {
     projects[1] = project(BETA, "Beta", { requireSsoForLogin: true });
 
     await expect(updateServerRule(true)).resolves.toBe("done");
+  });
+
+  test("a project that requires a provider that cannot sign anyone in to it is named apart, with what to do", async () => {
+    projects[0] = project(ACME, "Acme", {
+      requireSsoForLogin: false,
+      requiredProviderId: OTHER_PROVIDER,
+    });
+
+    await expect(updateServerRule(true)).resolves.toBe(
+      'The project "Beta" has no SSO provider people can sign in with, so requiring SSO for everyone would lock its members out. Turn on a global SSO provider, or an SSO provider in that project, first. The project "Acme" requires sign-in with an SSO provider that cannot sign people in to it - it is off, it was deleted, or it does not sign people in there - so requiring SSO for everyone would lock its members out. Turn that provider on, or require another provider there, first.',
+    );
+    expect(configTable.writes).toEqual([]);
+  });
+
+  test("the lock is kept before each page of projects the check reads, and once more before the write", async () => {
+    globalSamlTable.rows = [
+      { _id: PROVIDER, isEnabled: true, restrictToAttachedProjects: false },
+    ];
+
+    await expect(updateServerRule(true)).resolves.toBe("done");
+
+    expect(kept).toEqual([SERVER_LOCK, SERVER_LOCK]);
   });
 
   test("turning it off, or saving it on again, is never refused", async () => {

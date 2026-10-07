@@ -1,6 +1,7 @@
 import DatabaseService from "./DatabaseService";
 import StatusPagePrivateUserService from "./StatusPagePrivateUserService";
 import Model from "../../Models/DatabaseModels/StatusPagePrivateUserSession";
+import StatusPage from "../../Models/DatabaseModels/StatusPage";
 import StatusPageOidc from "../../Models/DatabaseModels/StatusPageOidc";
 import StatusPageSso from "../../Models/DatabaseModels/StatusPageSso";
 import ObjectID from "../../Types/ObjectID";
@@ -87,6 +88,10 @@ export const STATUS_PAGE_LOGIN_CODE_TTL_MINUTES: number = 5;
 export const SIGN_IN_NO_LONGER_ACCEPTED_REASON: string =
   "Its sign-in is no longer accepted by the status page";
 
+// A session no SSO provider signed in: a password sign-in, or one from before sessions named their provider.
+const SESSION_NAMES_NO_PROVIDER_SQL: string =
+  "session.statusPageSsoId IS NULL AND session.statusPageOidcId IS NULL";
+
 export class Service extends DatabaseService<Model> {
   private static readonly DEFAULT_REFRESH_TOKEN_TTL_DAYS: number = 30;
   private static readonly LOGIN_CODE_PURPOSE_KEY: string =
@@ -172,9 +177,10 @@ export class Service extends DatabaseService<Model> {
    *     providers (statusPageSsoId, statusPageOidcId) counts only while that
    *     provider vouches for it: it is still there, still this status
    *     page's, turned on, and it was not turned off after the session began
-   *     (signInsEndedAt before the session's createdAt). So turning the
-   *     provider off, or deleting it, ends the sessions it signed in, and
-   *     turning it on again does not bring them back (Utils/SsoSignInsEnded).
+   *     (signInsEndedAt before the session's createdAt, both the database's
+   *     time). So turning the provider off, or deleting it, ends the
+   *     sessions it signed in, and turning it on again does not bring them
+   *     back (Utils/SsoSignInsEnded).
    *   - A session that names no provider - a password sign-in, or an SSO
    *     sign-in from before sessions named their provider - counts only
    *     while the status page does not require SSO (`requiresSso`, its
@@ -184,6 +190,21 @@ export class Service extends DatabaseService<Model> {
   public addSignInRule(
     query: SelectQueryBuilder<Model>,
     data: { requiresSso: boolean },
+  ): SelectQueryBuilder<Model> {
+    // A page that requires SSO counts nothing but an SSO sign-in.
+    return this.addSignInRuleCounting(
+      query,
+      data.requiresSso ? "1 = 0" : SESSION_NAMES_NO_PROVIDER_SQL,
+    );
+  }
+
+  /*
+   * The rule above, with what it counts of a session no provider signed in
+   * given as SQL over the query's aliases.
+   */
+  private addSignInRuleCounting(
+    query: SelectQueryBuilder<Model>,
+    sessionWithoutProviderSql: string,
   ): SelectQueryBuilder<Model> {
     const vouchedForBy: (alias: string, column: string) => string = (
       alias: string,
@@ -212,12 +233,7 @@ export class Service extends DatabaseService<Model> {
       )
       .andWhere(
         new Brackets((rule: WhereExpressionBuilder): void => {
-          // A page that requires SSO counts nothing but an SSO sign-in.
-          rule.where(
-            data.requiresSso
-              ? "1 = 0"
-              : "session.statusPageSsoId IS NULL AND session.statusPageOidcId IS NULL",
-          );
+          rule.where(sessionWithoutProviderSql);
 
           rule
             .orWhere(vouchedForBy("sessionStatusPageSso", "statusPageSsoId"))
@@ -228,20 +244,26 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * Whether this session still counts by the sign-in rule above
-   * (addSignInRule), read now: a refresh and a login code ask it before
-   * they hand the session a new access token.
+   * (addSignInRule), read now, with its status page's own Require SSO for
+   * Login, in one database read: a refresh and a login code ask it before
+   * they hand the session a new access token. A session whose status page
+   * is gone does not count.
    */
   public async doesSignInStillCount(data: {
     sessionId: ObjectID;
-    requiresSso: boolean;
   }): Promise<boolean> {
-    const session: Model | null = await this.addSignInRule(
+    const session: Model | null = await this.addSignInRuleCounting(
       this.getQueryBuilder("session")
         .select(["session._id"])
+        .innerJoin(
+          StatusPage,
+          "sessionStatusPage",
+          "sessionStatusPage._id = session.statusPageId AND sessionStatusPage.deletedAt IS NULL",
+        )
         .where("session._id = :sessionId", {
           sessionId: data.sessionId.toString(),
         }),
-      { requiresSso: data.requiresSso },
+      `sessionStatusPage.requireSsoForLogin IS NOT TRUE AND ${SESSION_NAMES_NO_PROVIDER_SQL}`,
     ).getOne();
 
     return Boolean(session);

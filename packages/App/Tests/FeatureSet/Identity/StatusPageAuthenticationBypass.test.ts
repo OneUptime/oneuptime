@@ -786,34 +786,15 @@ describe("Status page login-code exchange", () => {
     expect(sendErrorResponse).toHaveBeenCalledTimes(1);
   });
 
-  it.each([true, false])(
-    "asks whether the sign-in still counts with the page's Require SSO for Login (%p)",
-    async (requireSsoForLogin: boolean) => {
-      exchangeLoginCode.mockResolvedValue(successfulExchange());
-      privateUserFindOneById.mockResolvedValue(matchingUser());
-      statusPageFindOneById.mockResolvedValue({
-        id: statusPageId,
-        requireSsoForLogin,
-      });
-
-      await invoke(
-        "/exchange-login-code/:statuspageid",
-        { loginCode: validLoginCode },
-        { statuspageid: PUBLIC_STATUS_PAGE_ID },
-      );
-
-      expect(doesSignInStillCount).toHaveBeenCalledWith({
-        sessionId,
-        requiresSso: requireSsoForLogin,
-      });
-      expect(setStatusPagePrivateUserCookie).toHaveBeenCalledTimes(1);
-    },
-  );
-
-  it("treats a page it cannot find as one that requires SSO", async () => {
+  /*
+   * The page's Require SSO for Login is read in the same database read as
+   * the session (doesSignInStillCount joins the session's page), so the
+   * route reads no page of its own for it; a page that is gone counts no
+   * session there (StatusPageSsoSessionsPostgres.test).
+   */
+  it("asks whether the sign-in still counts in one read, with the session's own page", async () => {
     exchangeLoginCode.mockResolvedValue(successfulExchange());
     privateUserFindOneById.mockResolvedValue(matchingUser());
-    statusPageFindOneById.mockResolvedValue(null);
 
     await invoke(
       "/exchange-login-code/:statuspageid",
@@ -821,10 +802,9 @@ describe("Status page login-code exchange", () => {
       { statuspageid: PUBLIC_STATUS_PAGE_ID },
     );
 
-    expect(doesSignInStillCount).toHaveBeenCalledWith({
-      sessionId,
-      requiresSso: true,
-    });
+    expect(doesSignInStillCount).toHaveBeenCalledWith({ sessionId });
+    expect(statusPageFindOneById).not.toHaveBeenCalled();
+    expect(setStatusPagePrivateUserCookie).toHaveBeenCalledTimes(1);
   });
 
   describe("a refresh", () => {
@@ -857,10 +837,7 @@ describe("Status page login-code exchange", () => {
         { statuspageid: PUBLIC_STATUS_PAGE_ID },
       );
 
-      expect(doesSignInStillCount).toHaveBeenCalledWith({
-        sessionId,
-        requiresSso: false,
-      });
+      expect(doesSignInStillCount).toHaveBeenCalledWith({ sessionId });
       expect(renewSessionWithNewRefreshToken).toHaveBeenCalledTimes(1);
       expect(setStatusPagePrivateUserCookie).toHaveBeenCalledTimes(1);
     });

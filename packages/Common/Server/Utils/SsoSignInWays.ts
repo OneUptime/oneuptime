@@ -51,10 +51,14 @@ import QueryHelper from "../Types/Database/QueryHelper";
  * It answers with the projects the change would leave with no way in. It
  * reads the database, never a cache: the caller holds the locks that keep
  * what it reads true until the change is written (ProjectSsoProviderChanges.
- * lockSignInChange). A change that only takes something away refuses only
- * what it takes away: a project already left with no way in, or requiring a
- * provider that cannot sign anyone in, by something else is not this
- * change's doing.
+ * lockSignInChange), and keeps them while it reads (keepLocks). A change
+ * that only takes something away refuses only what it takes away: a project
+ * already left with no way in, or requiring a provider that cannot sign
+ * anyone in, by something else is not this change's doing.
+ *
+ * A change to projects alone asks first whether it can strand one of them
+ * whatever the server's sign-in rules are (dependsOnServerRules): only then
+ * does it need the lock on those, and this check.
  */
 
 // The projects a global provider signs people in to: every one, or these.
@@ -125,11 +129,40 @@ export interface StrandedProject {
   requiresSsoItself: boolean;
 }
 
-export interface StrandedProjects {
+export interface StrandedProjectList {
   // The first few, in the order they were found, for a message to name.
   firstProjects: Array<StrandedProject>;
   // How many there are in all.
   count: number;
+}
+
+export interface StrandedProjects extends StrandedProjectList {
+  // The same, for each reason: a refusal says what to do about each.
+  byReason: Record<StrandReason, StrandedProjectList>;
+}
+
+// No project stranded.
+export function noStrandedProjects(): StrandedProjects {
+  return {
+    firstProjects: [],
+    count: 0,
+    byReason: {
+      [StrandReason.RequiredProvider]: { firstProjects: [], count: 0 },
+      [StrandReason.NoProvider]: { firstProjects: [], count: 0 },
+    },
+  };
+}
+
+// Counts a stranded project in, naming it while there is room.
+function addStrandedProject(
+  list: StrandedProjectList,
+  project: StrandedProject,
+): void {
+  list.count++;
+
+  if (list.firstProjects.length < STRANDED_PROJECTS_NAMED) {
+    list.firstProjects.push(project);
+  }
 }
 
 // How many stranded projects a refusal names; the rest are counted.
@@ -300,7 +333,9 @@ export function decideStrandReason(data: {
  * \"Acme\" and \"Beta\"", or "12 projects (\"Acme\", \"Beta\", \"Gamma\" and 9
  * more)".
  */
-export function describeStrandedProjects(stranded: StrandedProjects): string {
+export function describeStrandedProjects(
+  stranded: StrandedProjectList,
+): string {
   const names: Array<string> = stranded.firstProjects.map(
     (project: StrandedProject): string => {
       return `"${project.name}"`;
@@ -328,6 +363,15 @@ function joinWithAnd(items: Array<string>): string {
   return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
 }
 
+export interface FindStrandedProjectsOptions {
+  /*
+   * Keeps the locks the caller holds (ProjectSsoProviderChanges.
+   * keepSignInChange), asked before each page of projects is read: a check
+   * that reads every project never outlives them.
+   */
+  keepLocks?: (() => Promise<void>) | undefined;
+}
+
 export default class SsoSignInWays {
   /*
    * The projects that require SSO and that the change would leave with no
@@ -335,35 +379,17 @@ export default class SsoSignInWays {
    */
   public static async findStrandedProjects(
     change: SignInChange,
+    options?: FindStrandedProjectsOptions | undefined,
   ): Promise<StrandedProjects> {
-    const takenAwayByProject: Map<string, Set<string>> = new Map<
+    const takenAwayByProject: Map<
       string,
       Set<string>
-    >();
-
-    for (const [projectId, providers] of change.projectProvidersTakenAway ||
-      new Map()) {
-      const keys: Set<string> = new Set<string>();
-
-      for (const provider of providers) {
-        keys.add(wayKey(provider.providerType, provider.id));
-      }
-
-      if (keys.size > 0) {
-        takenAwayByProject.set(projectId.toLowerCase(), keys);
-      }
-    }
+    > = SsoSignInWays.getTakenAwayByProject(change);
 
     const reachChanges: Array<GlobalProviderReachChange> =
       change.globalProviders || [];
-    const projectRules: Map<string, ProjectSignInRule> = new Map<
-      string,
-      ProjectSignInRule
-    >();
-
-    for (const [projectId, rule] of change.projectRules || new Map()) {
-      projectRules.set(projectId.toLowerCase(), rule);
-    }
+    const projectRules: Map<string, ProjectSignInRule> =
+      SsoSignInWays.getProjectRules(change);
 
     const turnsOnServerRule: boolean = Boolean(change.turnsOnServerRule);
 
@@ -390,7 +416,7 @@ export default class SsoSignInWays {
       }
     }
 
-    const result: StrandedProjects = { firstProjects: [], count: 0 };
+    const result: StrandedProjects = noStrandedProjects();
 
     if (
       explicitProjectIds.size === 0 &&
@@ -406,6 +432,13 @@ export default class SsoSignInWays {
     });
 
     const seen: Set<string> = new Set<string>();
+
+    // Before each page is read: the caller's locks last another while.
+    const keepLocks: () => Promise<void> = async (): Promise<void> => {
+      if (options?.keepLocks) {
+        await options.keepLocks();
+      }
+    };
 
     const evaluate: (
       projects: Array<CandidateProject>,
@@ -441,6 +474,7 @@ export default class SsoSignInWays {
       start < explicitIds.length;
       start += PROJECT_PAGE_SIZE
     ) {
+      await keepLocks();
       await evaluate(
         await SsoSignInWays.readProjectsById(
           explicitIds.slice(start, start + PROJECT_PAGE_SIZE),
@@ -454,15 +488,149 @@ export default class SsoSignInWays {
         ? {}
         : { requireSsoForLogin: true };
 
-      await SsoSignInWays.forEachPage(query, evaluate);
+      await SsoSignInWays.forEachPage(query, evaluate, keepLocks);
     }
 
     if (turnsOnServerRule) {
       // The projects the server's rule now reaches: those that do not require SSO themselves.
-      await SsoSignInWays.forEachPage({ requireSsoForLogin: false }, evaluate);
+      await SsoSignInWays.forEachPage(
+        { requireSsoForLogin: false },
+        evaluate,
+        keepLocks,
+      );
     }
 
     return result;
+  }
+
+  /*
+   * Whether a change to projects alone - their own providers taken away,
+   * or their rules asking for more - could leave one of them with no way in
+   * depending on the server's sign-in rules: the global providers and the
+   * server's Require SSO for Login, which only the lock on those keeps
+   * still (ProjectSsoProviderChanges.lockSignInChange).
+   *
+   * It cannot when every project it touches keeps one of its own providers
+   * on, and the change neither takes away the provider a project requires
+   * nor asks for one that is not among those: the project keeps a way in
+   * whatever the server's rules are or become, and whatever its own rule
+   * says - clearing the provider it requires, or turning Require SSO off,
+   * leaves that provider counting. Then the projects' own locks are enough,
+   * and no check is needed. A change that touches the global providers or
+   * the server's rule always depends on them. Read from the database, like
+   * the check.
+   */
+  public static async dependsOnServerRules(
+    change: SignInChange,
+  ): Promise<boolean> {
+    if ((change.globalProviders || []).length > 0 || change.turnsOnServerRule) {
+      return true;
+    }
+
+    const takenAwayByProject: Map<
+      string,
+      Set<string>
+    > = SsoSignInWays.getTakenAwayByProject(change);
+    const projectRules: Map<string, ProjectSignInRule> =
+      SsoSignInWays.getProjectRules(change);
+
+    const projectIds: Array<string> = Array.from(
+      new Set<string>([...takenAwayByProject.keys(), ...projectRules.keys()]),
+    );
+
+    for (
+      let start: number = 0;
+      start < projectIds.length;
+      start += PROJECT_PAGE_SIZE
+    ) {
+      const slice: Array<string> = projectIds.slice(
+        start,
+        start + PROJECT_PAGE_SIZE,
+      );
+
+      const [projects, ownWays]: [
+        Array<CandidateProject>,
+        Map<string, Set<string>>,
+      ] = await Promise.all([
+        SsoSignInWays.readProjectsById(slice),
+        SsoSignInWays.readOwnProvidersOn(slice),
+      ]);
+
+      for (const project of projects) {
+        const takenAway: Set<string> =
+          takenAwayByProject.get(project.id) || new Set<string>();
+        const isTightened: boolean = projectRules.has(project.id);
+        const rule: ProjectSignInRule = projectRules.get(project.id) || {
+          requireSsoForLogin: project.requireSsoForLogin,
+          requiredProviderId: project.requiredProviderId,
+        };
+
+        const ownWaysAfter: Set<string> = new Set<string>();
+
+        for (const way of ownWays.get(project.id) || []) {
+          if (!takenAway.has(way)) {
+            ownWaysAfter.add(way);
+          }
+        }
+
+        if (ownWaysAfter.size === 0) {
+          return true;
+        }
+
+        const requiredProviderId: string | null = rule.requiredProviderId;
+
+        if (
+          requiredProviderId &&
+          (hasProviderId(takenAway, requiredProviderId) ||
+            (isTightened && !hasProviderId(ownWaysAfter, requiredProviderId)))
+        ) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  // The providers a change takes away, as ways in (wayKey), by project.
+  private static getTakenAwayByProject(
+    change: SignInChange,
+  ): Map<string, Set<string>> {
+    const takenAwayByProject: Map<string, Set<string>> = new Map<
+      string,
+      Set<string>
+    >();
+
+    for (const [projectId, providers] of change.projectProvidersTakenAway ||
+      new Map()) {
+      const keys: Set<string> = new Set<string>();
+
+      for (const provider of providers) {
+        keys.add(wayKey(provider.providerType, provider.id));
+      }
+
+      if (keys.size > 0) {
+        takenAwayByProject.set(projectId.toLowerCase(), keys);
+      }
+    }
+
+    return takenAwayByProject;
+  }
+
+  // The rules a change asks of projects, by project.
+  private static getProjectRules(
+    change: SignInChange,
+  ): Map<string, ProjectSignInRule> {
+    const projectRules: Map<string, ProjectSignInRule> = new Map<
+      string,
+      ProjectSignInRule
+    >();
+
+    for (const [projectId, rule] of change.projectRules || new Map()) {
+      projectRules.set(projectId.toLowerCase(), rule);
+    }
+
+    return projectRules;
   }
 
   private static async evaluateProjects(data: {
@@ -583,25 +751,27 @@ export default class SsoSignInWays {
         continue;
       }
 
-      data.result.count++;
+      const stranded: StrandedProject = {
+        projectId: entry.project.id,
+        name: entry.project.name,
+        reason,
+        requiresSsoItself: entry.rule.requireSsoForLogin,
+      };
 
-      if (data.result.firstProjects.length < STRANDED_PROJECTS_NAMED) {
-        data.result.firstProjects.push({
-          projectId: entry.project.id,
-          name: entry.project.name,
-          reason,
-          requiresSsoItself: entry.rule.requireSsoForLogin,
-        });
-      }
+      addStrandedProject(data.result, stranded);
+      addStrandedProject(data.result.byReason[reason], stranded);
     }
   }
 
-  // Every project the query names, a page at a time.
+  // Every project the query names, a page at a time, the locks kept before each.
   private static async forEachPage(
     query: Query<Project>,
     evaluate: (projects: Array<CandidateProject>) => Promise<void>,
+    keepLocks: () => Promise<void>,
   ): Promise<void> {
     for (let skip: number = 0; ; skip += PROJECT_PAGE_SIZE) {
+      await keepLocks();
+
       const projects: Array<CandidateProject> =
         await SsoSignInWays.readProjects({
           query,
@@ -618,45 +788,31 @@ export default class SsoSignInWays {
   }
 
   /*
-   * The projects a change names, one read each, by id: a change names few,
-   * and a project that is gone is left out.
+   * The projects a change names, by id, in one read (the callers read at
+   * most a page of them at a time): a project that is gone is left out.
    */
   private static async readProjectsById(
     projectIds: Array<string>,
   ): Promise<Array<CandidateProject>> {
-    const candidates: Array<CandidateProject> = [];
-
-    for (const projectId of projectIds) {
-      const project: Project | null = await ProjectService.findOneById({
-        id: new ObjectID(projectId),
-        select: {
-          _id: true,
-          name: true,
-          requireSsoForLogin: true,
-          requireSsoWithSsoProviderId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      const candidate: CandidateProject | null = project
-        ? SsoSignInWays.toCandidate(project, projectId)
-        : null;
-
-      if (candidate) {
-        candidates.push(candidate);
-      }
+    if (projectIds.length === 0) {
+      return [];
     }
 
-    return candidates;
+    return await SsoSignInWays.readProjects({
+      query: {
+        _id: QueryHelper.any(
+          projectIds.map((id: string): ObjectID => {
+            return new ObjectID(id);
+          }),
+        ),
+      },
+      skip: 0,
+      limit: projectIds.length,
+    });
   }
 
-  private static toCandidate(
-    project: Project,
-    fallbackId?: string | undefined,
-  ): CandidateProject | null {
-    const id: string | null = toIdString(project.id) || fallbackId || null;
+  private static toCandidate(project: Project): CandidateProject | null {
+    const id: string | null = toIdString(project.id);
 
     if (!id) {
       return null;

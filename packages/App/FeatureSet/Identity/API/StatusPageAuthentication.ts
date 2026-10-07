@@ -98,30 +98,6 @@ const respondWithMasterPasswordAccess: (
   return true;
 };
 
-/*
- * Whether the status page requires SSO for Login: a session no SSO provider
- * signed in does not count there (StatusPagePrivateUserSessionService.
- * addSignInRule). A page that cannot be found requires it, so nothing but an
- * SSO sign-in is renewed for it.
- */
-const doesStatusPageRequireSso: (
-  statusPageId: ObjectID,
-) => Promise<boolean> = async (statusPageId: ObjectID): Promise<boolean> => {
-  const statusPage: StatusPage | null = await StatusPageService.findOneById({
-    id: statusPageId,
-    select: {
-      _id: true,
-      requireSsoForLogin: true,
-    },
-    props: {
-      isRoot: true,
-      ignoreHooks: true,
-    },
-  });
-
-  return statusPage ? Boolean(statusPage.requireSsoForLogin) : true;
-};
-
 type FinalizeStatusPageLoginInput = {
   req: ExpressRequest;
   res: ExpressResponse;
@@ -298,7 +274,6 @@ router.post(
       if (
         !(await StatusPagePrivateUserSessionService.doesSignInStillCount({
           sessionId: sessionMetadata.session.id,
-          requiresSso: await doesStatusPageRequireSso(statusPageId),
         }))
       ) {
         await StatusPagePrivateUserSessionService.revokeSessionById(
@@ -559,7 +534,6 @@ router.post(
       if (
         !(await StatusPagePrivateUserSessionService.doesSignInStillCount({
           sessionId: session.id,
-          requiresSso: await doesStatusPageRequireSso(statusPageId),
         }))
       ) {
         await StatusPagePrivateUserSessionService.revokeSessionById(

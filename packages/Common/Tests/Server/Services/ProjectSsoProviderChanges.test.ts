@@ -76,7 +76,10 @@ type SpyInstance = ReturnType<typeof getJestSpyOn>;
  *     does - keeps a way in: its last provider, or the one it requires,
  *     cannot be turned off or deleted;
  *   - the check and the write hold a lock on the project (Semaphore, held
- *     in memory here), given back once the write is done or refused;
+ *     in memory here), given back once the write is done, refused or fails;
+ *     one that leaves the project none of its own providers on, or takes
+ *     the one it requires, holds the lock on the server's sign-in rules
+ *     too, kept while the check runs;
  *   - and the API's check (UserMiddleware) agrees, run on the same rows.
  */
 
@@ -169,6 +172,14 @@ interface LockCall {
 let lockCalls: Array<LockCall> = [];
 let locksFail: boolean = false;
 let releasesFail: boolean = false;
+
+// The locks kept while a check ran (Semaphore.keepLock), in order, and those found lost.
+let kept: Array<string> = [];
+let lostLocks: Array<string> = [];
+
+// The database refuses every update, or every delete, it is asked for.
+let writesFail: boolean = false;
+let deletesFail: boolean = false;
 
 // A project whose lock another change holds for longer than a write waits.
 let busyProjectId: string | null = null;
@@ -281,6 +292,10 @@ const stubRepository: (
       where: Record<string, unknown>,
       set: Record<string, unknown>,
     ): Promise<{ affected: number }> => {
+      if (writesFail) {
+        throw new Error("The database could not write the row");
+      }
+
       const written: Record<string, unknown> = { ...set };
       delete written["version"];
 
@@ -300,6 +315,10 @@ const stubRepository: (
     delete: async (
       where: Record<string, unknown>,
     ): Promise<{ affected: number }> => {
+      if (deletesFail) {
+        throw new Error("The database could not delete the row");
+      }
+
       const gone: Array<Row> = rows().filter((row: Row): boolean => {
         return matches(row, where);
       });
@@ -549,6 +568,10 @@ beforeEach(() => {
   lockCalls = [];
   locksFail = false;
   releasesFail = false;
+  kept = [];
+  lostLocks = [];
+  writesFail = false;
+  deletesFail = false;
   busyProjectId = null;
   whileWaitingForLock = null;
 
@@ -601,6 +624,13 @@ beforeEach(() => {
 
     events.push(`release:${mutex.key}`);
   }) as never);
+  // A lock kept for another while, unless it was lost meanwhile.
+  getJestSpyOn(Semaphore, "keepLock").mockImplementation((async (mutex: {
+    key: string;
+  }): Promise<boolean> => {
+    kept.push(mutex.key);
+    return !lostLocks.includes(mutex.key);
+  }) as never);
   getJestSpyOn(logger, "debug").mockImplementation((): void => {
     return undefined;
   });
@@ -636,11 +666,10 @@ beforeEach(() => {
     },
   );
 
-  getJestSpyOn(ProjectService, "findOneById").mockImplementation((async (data: {
-    id: ObjectID;
-  }): Promise<Project> => {
+  // Every project the check reads has the rule above.
+  const projectRead: (id: ObjectID) => Project = (id: ObjectID): Project => {
     const found: Project = new Project();
-    found.id = data.id;
+    found.id = id;
     found.requireSsoForLogin = project.requireSsoForLogin;
 
     if (project.requireSsoWithSsoProviderId) {
@@ -648,6 +677,20 @@ beforeEach(() => {
     }
 
     return found;
+  };
+
+  getJestSpyOn(ProjectService, "findOneById").mockImplementation((async (data: {
+    id: ObjectID;
+  }): Promise<Project> => {
+    return projectRead(data.id);
+  }) as never);
+  // The projects a change names, read together by id.
+  getJestSpyOn(ProjectService, "findBy").mockImplementation((async (data: {
+    query: Record<string, unknown>;
+  }): Promise<Array<Project>> => {
+    return (askedValues(data.query["_id"]) || []).map((id: string): Project => {
+      return projectRead(new ObjectID(id));
+    });
   }) as never);
 
   // The instance's global providers that are on (the query asks for those).
@@ -1164,9 +1207,56 @@ describe("when neither the project nor the server requires SSO", () => {
 });
 
 describe("the check and the write hold the project's lock", () => {
+  // The provider this one is turned off next to: the project's only other own one that is on.
+  const leaveItLast: (kind: ProviderKind) => void = (
+    kind: ProviderKind,
+  ): void => {
+    rowOf(kind === SAML ? OIDC : SAML)!.isEnabled = false;
+  };
+
   test.each(KINDS)(
-    "%s: turning a provider off locks its project, then the server's sign-in rules, before the check, and gives both back once written, waiting longer than a lock is held",
+    "%s: turning off a provider while the project keeps another of its own locks only the project: the server's rules are neither locked nor read",
     async (_label: string, kind: ProviderKind) => {
+      await expect(turnOff(kind)).resolves.toBe(1);
+
+      expect(events).toEqual([
+        `lock:${PROJECT_ID.toString()}`,
+        `write:${kind.id.toString()}`,
+        `release:${PROJECT_ID.toString()}`,
+      ]);
+      expect(lockCalls).toEqual([
+        {
+          key: PROJECT_ID.toString(),
+          namespace: "ProjectSsoProviderChanges.keepAWayIn",
+          lockTimeout: 10_000,
+          acquireTimeout: 15_000,
+          refreshInterval: 0,
+        },
+      ]);
+      expect(serverRuleReads).toBe(0);
+      expect(wroteSignInsEndedAt(kind)).toBe(true);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: deleting one while another of the project's own is on locks only the project too",
+    async (_label: string, kind: ProviderKind) => {
+      await expect(remove(kind)).resolves.toBe(1);
+
+      expect(events).toEqual([
+        `lock:${PROJECT_ID.toString()}`,
+        `delete:${kind.id.toString()}`,
+        `release:${PROJECT_ID.toString()}`,
+      ]);
+      expect(serverRuleReads).toBe(0);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: turning off the project's last own provider locks the project, then the server's sign-in rules, and gives both back once written, waiting longer than a lock is held",
+    async (_label: string, kind: ProviderKind) => {
+      leaveItLast(kind);
+
       await expect(turnOff(kind)).resolves.toBe(1);
 
       expect(events).toEqual([
@@ -1196,8 +1286,10 @@ describe("the check and the write hold the project's lock", () => {
   );
 
   test.each(KINDS)(
-    "%s: deleting one that is on holds them the same way",
+    "%s: deleting the project's last own provider holds them the same way",
     async (_label: string, kind: ProviderKind) => {
+      leaveItLast(kind);
+
       await expect(remove(kind)).resolves.toBe(1);
 
       expect(events).toEqual([
@@ -1225,8 +1317,118 @@ describe("the check and the write hold the project's lock", () => {
   );
 
   test.each(KINDS)(
+    "%s: taking away the provider the project requires locks the server's sign-in rules too, even with others of its own on",
+    async (_label: string, kind: ProviderKind) => {
+      project.requireSsoWithSsoProviderId = kind.id;
+
+      // Required only while SSO is: neither the project nor the server requires it.
+      await expect(turnOff(kind)).resolves.toBe(1);
+
+      expect(events).toEqual([
+        `lock:${PROJECT_ID.toString()}`,
+        `lock:${SERVER_LOCK}`,
+        `write:${kind.id.toString()}`,
+        `release:${PROJECT_ID.toString()}`,
+        `release:${SERVER_LOCK}`,
+      ]);
+      expect(serverRuleReads).toBe(1);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: the locks are kept while the check runs, and once more before the write",
+    async (_label: string, kind: ProviderKind) => {
+      leaveItLast(kind);
+
+      await expect(turnOff(kind)).resolves.toBe(1);
+
+      // Before the page of projects the check reads, and once it is done.
+      expect(kept).toEqual([
+        PROJECT_ID.toString(),
+        SERVER_LOCK,
+        PROJECT_ID.toString(),
+        SERVER_LOCK,
+      ]);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: a lock that cannot be kept for want of Valkey lets the check go on, as one that could not be taken does",
+    async (_label: string, kind: ProviderKind) => {
+      leaveItLast(kind);
+      getJestSpyOn(Semaphore, "keepLock").mockRejectedValue(
+        new Error("Redis client is not connected") as never,
+      );
+
+      await expect(turnOff(kind)).resolves.toBe(1);
+      expect(logger.warn).toHaveBeenCalled();
+      expect(rowOf(kind)!.isEnabled).toBe(false);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: a lock found lost while the check runs refuses the write, writes nothing and gives the others back",
+    async (_label: string, kind: ProviderKind) => {
+      leaveItLast(kind);
+      lostLocks = [SERVER_LOCK];
+
+      await expect(refusalOf(turnOff(kind))).resolves.toBe(
+        SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
+      );
+      await expect(refusalOf(remove(kind))).resolves.toBe(
+        SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
+      );
+
+      expect(kind.writes()).toEqual([]);
+      expect(deleted).toEqual([]);
+      expect(rowOf(kind)!.isEnabled).toBe(true);
+      expect(projectAnnouncements()).toEqual([]);
+      expect(events).toEqual([
+        `lock:${PROJECT_ID.toString()}`,
+        `lock:${SERVER_LOCK}`,
+        `release:${PROJECT_ID.toString()}`,
+        `release:${SERVER_LOCK}`,
+        `lock:${PROJECT_ID.toString()}`,
+        `lock:${SERVER_LOCK}`,
+        `release:${PROJECT_ID.toString()}`,
+        `release:${SERVER_LOCK}`,
+      ]);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: a write the database fails once it holds its locks gives them back at once",
+    async (_label: string, kind: ProviderKind) => {
+      leaveItLast(kind);
+      writesFail = true;
+      deletesFail = true;
+
+      await expect(turnOff(kind)).rejects.toThrow(
+        "The database could not write the row",
+      );
+      await expect(remove(kind)).rejects.toThrow(
+        "The database could not delete the row",
+      );
+
+      expect(rowOf(kind)!.isEnabled).toBe(true);
+      expect(projectAnnouncements()).toEqual([]);
+      expect(events).toEqual([
+        `lock:${PROJECT_ID.toString()}`,
+        `lock:${SERVER_LOCK}`,
+        `release:${PROJECT_ID.toString()}`,
+        `release:${SERVER_LOCK}`,
+        `lock:${PROJECT_ID.toString()}`,
+        `lock:${SERVER_LOCK}`,
+        `release:${PROJECT_ID.toString()}`,
+        `release:${SERVER_LOCK}`,
+      ]);
+    },
+  );
+
+  test.each(KINDS)(
     "%s: while another change to who can sign in holds the server's rules too long, the write is refused and the project's lock given back",
     async (_label: string, kind: ProviderKind) => {
+      leaveItLast(kind);
       busyProjectId = SERVER_LOCK;
 
       await expect(refusalOf(turnOff(kind))).resolves.toBe(
@@ -1297,23 +1499,21 @@ describe("the check and the write hold the project's lock", () => {
       await turnOn(kind, kind.secondId);
       await expect(remove(other, other.secondId)).resolves.toBe(1);
 
-      // A write that may take a provider away locks the server's rules too, before it reads the rows.
+      // None takes a provider away that was on: the server's rules are not locked.
       expect(
         lockCalls.map((call: LockCall): string => {
           return call.key;
         }),
       ).toEqual([
         PROJECT_ID.toString(),
-        SERVER_LOCK,
         PROJECT_ID.toString(),
         PROJECT_ID.toString(),
-        SERVER_LOCK,
       ]);
       expect(
         events.filter((event: string): boolean => {
           return event.startsWith("release:");
         }),
-      ).toHaveLength(5);
+      ).toHaveLength(3);
       expect(wroteSignInsEndedAt(kind)).toBe(false);
     },
   );
@@ -1439,8 +1639,11 @@ describe("the check and the write hold the project's lock", () => {
 
       await expect(refusalOf(turnOff(kind))).resolves.toBe("done");
       expect(rowOf(kind)!.isEnabled).toBe(false);
-      // Each write asked for its project's lock and the server's.
-      expect(lockCalls).toHaveLength(4);
+      /*
+       * The first asked for its project's lock and the server's; the second
+       * left the project another of its own, and asked for the project's.
+       */
+      expect(lockCalls).toHaveLength(3);
       expect(logger.warn).toHaveBeenCalled();
     },
   );
@@ -1461,6 +1664,9 @@ describe("the rows a write names are read under the lock", () => {
   test.each(KINDS)(
     "%s: turning a provider off reads its rows to learn the project, locks it, and reads them again before the check",
     async (_label: string, kind: ProviderKind) => {
+      // Its last own provider: the check reads the server's rules, under their lock too.
+      rowOf(kind === SAML ? OIDC : SAML)!.isEnabled = false;
+
       const service: {
         findAllBy: (...args: Array<unknown>) => Promise<unknown>;
       } = kind.service as unknown as {
@@ -1487,8 +1693,8 @@ describe("the rows a write names are read under the lock", () => {
       expect(events).toEqual([
         "read",
         `lock:${PROJECT_ID.toString()}`,
-        `lock:${SERVER_LOCK}`,
         "read",
+        `lock:${SERVER_LOCK}`,
         `write:${kind.id.toString()}`,
         `release:${PROJECT_ID.toString()}`,
         `release:${SERVER_LOCK}`,
@@ -1585,10 +1791,12 @@ describe("the check reads the providers that are on once per kind", () => {
   );
 
   test.each(KINDS)(
-    "%s: none, when a global provider that signs people in to every project settles it",
+    "%s: no more, when a global provider that signs people in to every project settles it",
     async (_label: string, kind: ProviderKind) => {
       project.requireSsoForLogin = true;
       const other: ProviderKind = kind === SAML ? OIDC : SAML;
+      // Its last own provider: the check runs, and the global provider settles it.
+      rowOf(other)!.isEnabled = false;
       globalSsoProviders = [
         {
           id: GLOBAL_SSO_ID,
@@ -1602,8 +1810,9 @@ describe("the check reads the providers that are on once per kind", () => {
 
       await expect(refusalOf(turnOff(kind))).resolves.toBe("done");
 
-      expect(enabledReads(ownReads)).toHaveLength(0);
-      expect(enabledReads(otherReads)).toHaveLength(0);
+      // The one read that found the project left none of its own: the check adds none.
+      expect(enabledReads(ownReads)).toHaveLength(1);
+      expect(enabledReads(otherReads)).toHaveLength(1);
     },
   );
 });

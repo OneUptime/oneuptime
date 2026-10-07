@@ -1,5 +1,6 @@
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import OneUptimeDate from "../../Types/Date";
+import Dictionary from "../../Types/Dictionary";
 import DatabaseService from "../Services/DatabaseService";
 import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -23,7 +24,24 @@ import UpdateBy from "../Types/Database/UpdateBy";
  * Changing anything else about a provider - its certificate, client secret,
  * addresses, name or teams - writes nothing here: the sign-ins it gave were
  * checked when they were made, and the next sign-in uses the new settings.
+ *
+ * The time is written by the clock the sign-ins it is compared with were
+ * stamped by. A project's and a global provider's sign-ins are tokens the
+ * app servers issued (their iat), so those are written by the app's clock
+ * (stampWhenTurnedOff). A status page's sessions are compared in the
+ * database, by the time the database gave them (createdAt), so a status
+ * page provider's is written by the database, in the same write
+ * (stampWhenTurnedOffByDatabase): no difference between the two clocks
+ * moves the line.
  */
+
+/*
+ * What a status page provider's turning-off write stores in signInsEndedAt,
+ * worked out by the database in the row's own write
+ * (DatabaseService.getRowWriteSql): its own time, for a row that was on; a
+ * row that was off already keeps the time it has.
+ */
+export const SIGN_INS_ENDED_BY_DATABASE_SQL: string = `CASE WHEN "isEnabled" = true THEN now() ELSE "signInsEndedAt" END`;
 
 // What the database says about a provider, as far as its sign-ins go.
 export interface SsoProviderSignInStanding {
@@ -135,6 +153,40 @@ export default class SsoSignInsEnded {
     (data.updateBy.data as unknown as Record<string, unknown>)[
       "signInsEndedAt"
     ] = OneUptimeDate.getCurrentDate();
+  }
+
+  /*
+   * For a status page provider (its onUpdatePermitted): an update that
+   * turns Enabled off writes signInsEndedAt too, in the same write, worked
+   * out there by the database (getDatabaseStampSql, the service's
+   * getRowWriteSql). The value put here only names the column in the write.
+   */
+  public static stampWhenTurnedOffByDatabase<TModel extends BaseModel>(data: {
+    updateBy: UpdateBy<TModel>;
+  }): void {
+    if (SsoSignInsEnded.getWrittenIsEnabled(data.updateBy.data) !== false) {
+      return;
+    }
+
+    (data.updateBy.data as unknown as Record<string, unknown>)[
+      "signInsEndedAt"
+    ] = OneUptimeDate.getCurrentDate();
+  }
+
+  /*
+   * The SQL a status page provider's update stores signInsEndedAt with
+   * (the service's getRowWriteSql): only for the write that turns Enabled
+   * off, which names the column (stampWhenTurnedOffByDatabase).
+   */
+  public static getDatabaseStampSql(written: unknown): Dictionary<string> {
+    if (
+      SsoSignInsEnded.getWrittenIsEnabled(written) !== false ||
+      !Object.prototype.hasOwnProperty.call(written, "signInsEndedAt")
+    ) {
+      return {};
+    }
+
+    return { signInsEndedAt: SIGN_INS_ENDED_BY_DATABASE_SQL };
   }
 
   // Whether any provider the update names is on now.

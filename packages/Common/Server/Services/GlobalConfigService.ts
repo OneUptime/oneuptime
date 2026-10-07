@@ -16,6 +16,7 @@ import RealtimeAccessChanges, {
 } from "../Utils/Realtime/RealtimeAccessChanges";
 import { clearGlobalSsoAuthorizationCaches } from "../Utils/GlobalSsoAuthorization";
 import SsoRequirementChanges from "../Utils/SsoRequirementChanges";
+import Exception from "../../Types/Exception/Exception";
 
 /*
  * The columns that hold this installation's license state and identity. They
@@ -484,6 +485,19 @@ export class Service extends DatabaseService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
     await SsoRequirementChanges.beforeServerUpdate({ updateBy });
+  }
+
+  // An update that failed once it held the lock: it is given back.
+  @CaptureSpan()
+  protected override async onUpdateError(
+    error: Exception,
+    onUpdate?: OnUpdate<Model> | undefined,
+  ): Promise<Exception> {
+    if (onUpdate) {
+      await SsoRequirementChanges.afterUpdate(onUpdate.updateBy);
+    }
+
+    return error;
   }
 
   @CaptureSpan()

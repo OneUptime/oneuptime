@@ -28,9 +28,8 @@ import {
   loadAttachmentsOnce,
 } from "../Utils/GlobalSsoAuthorization";
 import DeleteBy from "../Types/Database/DeleteBy";
-import GlobalSsoProviderChanges, {
-  GlobalSsoProviderWrite,
-} from "../Utils/GlobalSsoProviderChanges";
+import GlobalSsoProviderChanges from "../Utils/GlobalSsoProviderChanges";
+import Exception from "../../Types/Exception/Exception";
 import SsoProviderType from "../../Types/SSO/SsoProviderType";
 
 export class Service extends DatabaseService<Model> {
@@ -135,6 +134,9 @@ export class Service extends DatabaseService<Model> {
     onDelete: OnDelete<Model>,
     itemIdsBeforeDelete: Array<ObjectID>,
   ): Promise<OnDelete<Model>> {
+    // Removed: the lock is given back before anything else.
+    await GlobalSsoProviderChanges.afterWrite(onDelete.deleteBy);
+
     clearGlobalSsoAuthorizationCaches();
 
     /*
@@ -150,9 +152,36 @@ export class Service extends DatabaseService<Model> {
       announceGlobalSignInChange();
     }
 
-    await GlobalSsoProviderChanges.afterWrite(onDelete.deleteBy);
-
     return onDelete;
+  }
+
+  // Failed, or refused, once its hooks ran: the lock it held is given back.
+  @CaptureSpan()
+  protected override async onDeleteError(
+    error: Exception,
+    onDelete?: OnDelete<Model> | undefined,
+  ): Promise<Exception> {
+    if (onDelete) {
+      await GlobalSsoProviderChanges.afterWrite(onDelete.deleteBy);
+    }
+
+    return error;
+  }
+
+  /*
+   * An attachment is checked, under the lock on the server's sign-in rules,
+   * once every permission and clash check has passed (onCreatePermitted).
+   * The lock is given back once it is written (onCreateSuccess), and here
+   * whatever happened after the check: a create that fails at the INSERT,
+   * or in a step just before it, runs no other hook.
+   */
+  @CaptureSpan()
+  public override async create(createBy: CreateBy<Model>): Promise<Model> {
+    try {
+      return await super.create(createBy);
+    } finally {
+      await GlobalSsoProviderChanges.afterWrite(createBy);
+    }
   }
 
   /*
@@ -166,6 +195,9 @@ export class Service extends DatabaseService<Model> {
     onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
+    // Written: the lock is given back before anything else.
+    await GlobalSsoProviderChanges.afterWrite(onCreate.createBy);
+
     clearGlobalSsoAuthorizationCaches();
 
     if (
@@ -173,10 +205,6 @@ export class Service extends DatabaseService<Model> {
     ) {
       announceGlobalSignInChange();
     }
-
-    await GlobalSsoProviderChanges.release(
-      onCreate.carryForward as GlobalSsoProviderWrite | null,
-    );
 
     return createdItem;
   }
@@ -186,6 +214,9 @@ export class Service extends DatabaseService<Model> {
     onUpdate: OnUpdate<Model>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
+    // Written: the lock is given back before anything else.
+    await GlobalSsoProviderChanges.afterWrite(onUpdate.updateBy);
+
     clearGlobalSsoAuthorizationCaches();
 
     // An attachment turned off: as removing it.
@@ -201,9 +232,20 @@ export class Service extends DatabaseService<Model> {
       announceGlobalSignInChange();
     }
 
-    await GlobalSsoProviderChanges.afterWrite(onUpdate.updateBy);
-
     return onUpdate;
+  }
+
+  // Failed, or refused, once its hooks ran: the lock it held is given back.
+  @CaptureSpan()
+  protected override async onUpdateError(
+    error: Exception,
+    onUpdate?: OnUpdate<Model> | undefined,
+  ): Promise<Exception> {
+    if (onUpdate) {
+      await GlobalSsoProviderChanges.afterWrite(onUpdate.updateBy);
+    }
+
+    return error;
   }
 
   /*
@@ -287,20 +329,25 @@ export class Service extends DatabaseService<Model> {
     // A new attachment narrows (or widens) which projects the provider governs.
     clearGlobalSsoAuthorizationCaches();
 
-    /*
-     * The first attachment of a provider restricted to its attached
-     * projects narrows it from every project to this one: refused when that
-     * would leave a project that requires SSO with no provider to sign in
-     * with (Utils/GlobalSsoProviderChanges). The lock it holds is given back
-     * by onCreateSuccess.
-     */
-    return {
-      createBy,
-      carryForward: await GlobalSsoProviderChanges.beforeAttachmentCreate({
-        providerType: SsoProviderType.GlobalOIDC,
-        createBy: createBy as unknown as CreateBy<BaseModel>,
-      }),
-    };
+    return { createBy, carryForward: null };
+  }
+
+  /*
+   * Once every permission and clash check has passed: the first attachment
+   * of a provider restricted to its attached projects narrows it from every
+   * project to this one, refused when that would leave a project that
+   * requires SSO with no provider to sign in with
+   * (Utils/GlobalSsoProviderChanges). The lock it holds is given back once
+   * the attachment is written, or the create fails (create).
+   */
+  @CaptureSpan()
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    await GlobalSsoProviderChanges.beforeAttachmentCreate({
+      providerType: SsoProviderType.GlobalOIDC,
+      createBy: onCreate.createBy as unknown as CreateBy<BaseModel>,
+    });
   }
 
   @CaptureSpan()
@@ -346,18 +393,25 @@ export class Service extends DatabaseService<Model> {
 
     clearGlobalSsoAuthorizationCaches();
 
-    /*
-     * Turning an attachment off, or moving it to another project or
-     * provider, is refused when it would leave a project that requires SSO
-     * with no provider to sign in with (Utils/GlobalSsoProviderChanges).
-     */
+    return { updateBy, carryForward: null };
+  }
+
+  /*
+   * Once every permission check has passed: turning an attachment off, or
+   * moving it to another project or provider, is refused when it would
+   * leave a project that requires SSO with no provider to sign in with, and
+   * holds the lock on the server's sign-in rules until it is written or
+   * fails (Utils/GlobalSsoProviderChanges).
+   */
+  @CaptureSpan()
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
     await GlobalSsoProviderChanges.beforeAttachmentUpdate<Model>({
       providerType: SsoProviderType.GlobalOIDC,
       service: this,
       updateBy: updateBy,
     });
-
-    return { updateBy, carryForward: null };
   }
 }
 

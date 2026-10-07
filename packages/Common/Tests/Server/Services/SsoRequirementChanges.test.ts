@@ -9,6 +9,7 @@ import ProjectSsoService from "../../../Server/Services/ProjectSsoService";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import logger from "../../../Server/Utils/Logger";
+import { SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE } from "../../../Server/Utils/ProjectSsoProviderChanges";
 import {
   NO_SSO_PROVIDER_TO_REQUIRE_MESSAGE,
   REQUIRED_PROVIDER_CANNOT_SIGN_IN_MESSAGE,
@@ -56,10 +57,12 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
  * stubbed. Turning Require SSO for Login on, or requiring another provider,
  * is refused while no provider would sign anyone in to the project, in
  * words that say what to set up first; the check and the write hold the
- * project's lock and the one on the server's sign-in rules. Asking for less
- * - turning it off, clearing the provider - is never refused and takes no
- * lock. The server's own rule is covered with the global providers
- * (Tests/Server/API/GlobalSsoProviderChanges.test.ts).
+ * project's lock, and - when the project would rely on more than its own
+ * providers that are on - the one on the server's sign-in rules, kept while
+ * the check reads, and given back once the write is done, refused or fails.
+ * Asking for less - turning it off, clearing the provider - is never
+ * refused and takes no lock. The server's own rule is covered with the
+ * global providers (Tests/Server/API/GlobalSsoProviderChanges.test.ts).
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -81,6 +84,10 @@ let projectWrites: Array<Record<string, unknown>>;
 let ownSamlOn: boolean;
 let globalSamlOn: boolean;
 let events: Array<string>;
+// The locks kept while a check ran, and those found lost meanwhile.
+let kept: Array<string>;
+let lostLocks: Array<string>;
+let writesFail: boolean;
 
 const ownerProps: () => DatabaseCommonInteractionProps =
   (): DatabaseCommonInteractionProps => {
@@ -133,6 +140,9 @@ beforeEach(() => {
   ownSamlOn = false;
   globalSamlOn = false;
   events = [];
+  kept = [];
+  lostLocks = [];
+  writesFail = false;
 
   for (const silenced of ["debug", "info", "warn", "error"]) {
     getJestSpyOn(logger, silenced).mockImplementation((): void => {
@@ -192,6 +202,10 @@ beforeEach(() => {
       _where: unknown,
       set: Record<string, unknown>,
     ): Promise<{ affected: number }> => {
+      if (writesFail) {
+        throw new Error("The database could not write the project");
+      }
+
       const written: Record<string, unknown> = { ...set };
       delete written["version"];
       projectWrites.push(written);
@@ -253,6 +267,12 @@ beforeEach(() => {
       events.push(`release:${mutex.key}`);
     },
   );
+  getJestSpyOn(Semaphore, "keepLock").mockImplementation(
+    async (mutex: { key: string }): Promise<boolean> => {
+      kept.push(mutex.key);
+      return !lostLocks.includes(mutex.key);
+    },
+  );
 });
 
 afterEach(() => {
@@ -277,8 +297,12 @@ describe("turning Require SSO for Login on for a project", () => {
     ]);
   });
 
-  test("goes through with one of its own providers on, holding both locks until it is written", async () => {
+  test("goes through with one of its own providers on, holding only the project's lock until it is written: the server's rules are neither locked nor read", async () => {
     ownSamlOn = true;
+    const serverRuleReads: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      GlobalConfigService,
+      "findOneBy",
+    );
 
     await expect(updateProject({ requireSsoForLogin: true })).resolves.toBe(
       "done",
@@ -287,19 +311,67 @@ describe("turning Require SSO for Login on for a project", () => {
     expect(storedProject["requireSsoForLogin"]).toBe(true);
     expect(events).toEqual([
       `lock:${PROJECT_ID.toString()}`,
-      `lock:${SERVER_LOCK}`,
       "write",
       `release:${PROJECT_ID.toString()}`,
-      `release:${SERVER_LOCK}`,
     ]);
+    expect(serverRuleReads).not.toHaveBeenCalled();
   });
 
-  test("a global provider that signs people in to every project counts", async () => {
+  test("a global provider that signs people in to every project counts, checked under the lock on the server's rules too", async () => {
     globalSamlOn = true;
 
     await expect(updateProject({ requireSsoForLogin: true })).resolves.toBe(
       "done",
     );
+
+    expect(events).toEqual([
+      `lock:${PROJECT_ID.toString()}`,
+      `lock:${SERVER_LOCK}`,
+      "write",
+      `release:${PROJECT_ID.toString()}`,
+      `release:${SERVER_LOCK}`,
+    ]);
+    // Before the page of projects the check reads, and once it is done.
+    expect(kept).toEqual([
+      PROJECT_ID.toString(),
+      SERVER_LOCK,
+      PROJECT_ID.toString(),
+      SERVER_LOCK,
+    ]);
+  });
+
+  test("a lock found lost while the check runs refuses the write, and gives the others back", async () => {
+    globalSamlOn = true;
+    lostLocks = [SERVER_LOCK];
+
+    await expect(updateProject({ requireSsoForLogin: true })).resolves.toBe(
+      SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
+    );
+
+    expect(projectWrites).toEqual([]);
+    expect(events).toEqual([
+      `lock:${PROJECT_ID.toString()}`,
+      `lock:${SERVER_LOCK}`,
+      `release:${PROJECT_ID.toString()}`,
+      `release:${SERVER_LOCK}`,
+    ]);
+  });
+
+  test("a write the database fails after the check gives the locks back at once", async () => {
+    globalSamlOn = true;
+    writesFail = true;
+
+    await expect(updateProject({ requireSsoForLogin: true })).rejects.toThrow(
+      "The database could not write the project",
+    );
+
+    expect(storedProject["requireSsoForLogin"]).toBe(false);
+    expect(events).toEqual([
+      `lock:${PROJECT_ID.toString()}`,
+      `lock:${SERVER_LOCK}`,
+      `release:${PROJECT_ID.toString()}`,
+      `release:${SERVER_LOCK}`,
+    ]);
   });
 
   test("the provider it would require must be one that signs people in to it", async () => {
@@ -351,6 +423,12 @@ describe("turning Require SSO for Login on for a project", () => {
     ).resolves.toBe("done");
 
     expect(storedProject["name"]).toBe("Renamed");
+    // The project's rule is read under its lock, which goes back at once: nothing to hold.
+    expect(events).toEqual([
+      `lock:${PROJECT_ID.toString()}`,
+      `release:${PROJECT_ID.toString()}`,
+      "write",
+    ]);
   });
 
   test("turning it off, or clearing the provider, is never refused and takes no lock", async () => {
@@ -375,7 +453,7 @@ describe("turning Require SSO for Login on for a project", () => {
   });
 
   test("a write refused after the check, before it is written, gives both locks back", async () => {
-    ownSamlOn = true;
+    globalSamlOn = true;
     getJestSpyOn(
       ProjectService,
       "chargeAutoRechargeTurnedOn",

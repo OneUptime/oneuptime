@@ -2,6 +2,7 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import SsoSignInsEnded, {
+  SIGN_INS_ENDED_BY_DATABASE_SQL,
   SsoProviderSignInStanding,
 } from "../../../Server/Utils/SsoSignInsEnded";
 import { describe, expect, jest, test } from "@jest/globals";
@@ -308,5 +309,66 @@ describe("a write that turns a provider off writes when, in the same write", () 
       expect(writtenEndOf(updateBy)).toBeUndefined();
       expect(findAllBy).not.toHaveBeenCalled();
     }
+  });
+});
+
+/*
+ * A status page provider's time is written by the database, in the row's
+ * own write (DatabaseService.getRowWriteSql): its sessions are compared
+ * with it by the time the database gave them, so no difference between the
+ * app's clock and the database's moves the line. Against Postgres in
+ * StatusPageSsoSessionsPostgres.test.
+ */
+describe("a status page provider's turning-off write is stamped by the database", () => {
+  test("the write that turns Enabled off names the column; the database works its value out", () => {
+    const updateBy: Record<string, unknown> = {
+      query: {},
+      data: { isEnabled: false },
+    };
+
+    SsoSignInsEnded.stampWhenTurnedOffByDatabase({
+      updateBy: updateBy as never,
+    });
+
+    const data: Record<string, unknown> = updateBy["data"] as Record<
+      string,
+      unknown
+    >;
+    expect(Object.keys(data)).toEqual(["isEnabled", "signInsEndedAt"]);
+    expect(SsoSignInsEnded.getDatabaseStampSql(data)).toEqual({
+      signInsEndedAt: SIGN_INS_ENDED_BY_DATABASE_SQL,
+    });
+  });
+
+  test("the time is the database's own, for a row that was on; a row off already keeps its time", () => {
+    expect(SIGN_INS_ENDED_BY_DATABASE_SQL).toBe(
+      'CASE WHEN "isEnabled" = true THEN now() ELSE "signInsEndedAt" END',
+    );
+  });
+
+  test("turning it on, or changing anything else, names no time and asks the database for none", () => {
+    for (const data of [
+      { isEnabled: true },
+      { name: "Renamed" },
+      { publicCertificate: "rotated" },
+    ]) {
+      const updateBy: Record<string, unknown> = {
+        query: {},
+        data: { ...data },
+      };
+
+      SsoSignInsEnded.stampWhenTurnedOffByDatabase({
+        updateBy: updateBy as never,
+      });
+
+      expect(updateBy["data"]).toEqual(data);
+      expect(SsoSignInsEnded.getDatabaseStampSql(updateBy["data"])).toEqual({});
+    }
+  });
+
+  test("a write that does not name the column gets no SQL for it", () => {
+    expect(SsoSignInsEnded.getDatabaseStampSql({ isEnabled: false })).toEqual(
+      {},
+    );
   });
 });

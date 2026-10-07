@@ -783,6 +783,19 @@ export class ProjectService extends ProjectReferencesService<Model> {
    * is written here. Best effort: a Redis outage only means the ordinary
    * cache expiry applies.
    */
+  // An update that failed once a stricter sign-in rule held its locks: they are given back.
+  @CaptureSpan()
+  protected override async onUpdateError(
+    error: Exception,
+    onUpdate?: OnUpdate<Model> | undefined,
+  ): Promise<Exception> {
+    if (onUpdate) {
+      await SsoRequirementChanges.afterUpdate(onUpdate.updateBy);
+    }
+
+    return error;
+  }
+
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
