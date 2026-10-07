@@ -72,7 +72,9 @@ jest.mock("twilio", () => {
     }
   }
 
-  const twilio: jest.Mock & { twiml?: unknown } = jest.fn();
+  const twilio: Mock<(...args: Array<unknown>) => unknown> & {
+    twiml?: unknown;
+  } = jest.fn<(...args: Array<unknown>) => unknown>();
   twilio.twiml = { VoiceResponse };
 
   return {
