@@ -154,6 +154,17 @@ export default abstract class Realtime {
        */
       void RealtimeAccessChanges.listen();
 
+      /*
+       * A project's sign-in rules changed (it now requires SSO, or another
+       * provider), here or on another server: the sockets listening to its
+       * live updates are asked again, as their joins were.
+       */
+      RealtimeAccessChanges.onSignInRulesChanged((projectId?: string): void => {
+        Realtime.recheckSignInRules(projectId).catch((err: unknown) => {
+          logger.error(err);
+        });
+      });
+
       this.socketServer!.on("connection", (socket: Socket) => {
         logger.debug("New socket connection established");
 
@@ -484,6 +495,135 @@ export default abstract class Realtime {
     logger.debug(`Leaving room with ID: ${roomId}`, stopLogAttributes);
     // leave this room.
     await socket.leave(roomId);
+  }
+
+  /*
+   * A project's sign-in rules changed (every project's, when projectId is
+   * absent: the instance-wide rule). Each socket this server holds in the
+   * project's rooms is asked again, as its join was (RealtimeJoinAccess),
+   * with the rules as they are now. One the project no longer lets in
+   * leaves the project's rooms and is told why, as a refused join is; the
+   * rest carry on untouched. Without this, a page that joined before the
+   * change would hear until its access token next expired.
+   */
+  @CaptureSpan()
+  public static async recheckSignInRules(projectId?: string): Promise<void> {
+    if (!this.socketServer) {
+      return;
+    }
+
+    const wantedProjectId: string | undefined = projectId
+      ? normalizeRealtimeId(projectId)
+      : undefined;
+
+    const sockets: Array<Socket> =
+      (await this.socketServer.fetchSockets()) as unknown as Array<Socket>;
+
+    for (const socket of sockets) {
+      // A socket with no session has joined nothing, or has already ended.
+      if (!RealtimeSessions.getSession(socket)) {
+        continue;
+      }
+
+      // The projects it listens to, as each of its rooms names them.
+      const tenantIds: Map<string, string> = new Map<string, string>();
+
+      for (const room of Array.from(socket.rooms || [])) {
+        const tenantId: string | null = this.getTenantIdOfRoom(room);
+
+        if (!tenantId) {
+          continue;
+        }
+
+        const normalizedTenantId: string = normalizeRealtimeId(tenantId);
+
+        if (wantedProjectId && normalizedTenantId !== wantedProjectId) {
+          continue;
+        }
+
+        tenantIds.set(normalizedTenantId, tenantId);
+      }
+
+      for (const tenantId of tenantIds.values()) {
+        await this.recheckSocketInProject(socket, tenantId);
+
+        // Ended while it was asked: it holds no rooms to ask about any more.
+        if (RealtimeSessions.hasEnded(socket)) {
+          break;
+        }
+      }
+    }
+  }
+
+  private static async recheckSocketInProject(
+    socket: Socket,
+    tenantId: string,
+  ): Promise<void> {
+    const recheckLogAttributes: LogAttributes = {
+      projectId: tenantId,
+    };
+
+    let decision: RealtimeJoinDecision;
+
+    try {
+      decision = await RealtimeJoinAccess.decide(socket, tenantId);
+    } catch (err) {
+      /*
+       * It could not be asked (a lookup failed). Its live updates end, and
+       * the page's renewal joins again, asked from the start.
+       */
+      logger.error(err, recheckLogAttributes);
+      RealtimeSessions.end(socket);
+      return;
+    }
+
+    if (decision.allowed) {
+      return;
+    }
+
+    if (decision.refusal === RealtimeJoinRefusal.AuthenticationRequired) {
+      RealtimeSessions.end(socket);
+      return;
+    }
+
+    logger.debug(
+      "A socket no longer meets the project's sign-in rules, leaving its rooms",
+      recheckLogAttributes,
+    );
+
+    for (const room of Array.from(socket.rooms || [])) {
+      const roomTenantId: string | null = this.getTenantIdOfRoom(room);
+
+      if (
+        roomTenantId &&
+        normalizeRealtimeId(roomTenantId) === normalizeRealtimeId(tenantId)
+      ) {
+        await socket.leave(room);
+      }
+    }
+
+    if (decision.refusal === RealtimeJoinRefusal.SsoRequired) {
+      socket.emit(EventName.SsoAuthorizationRequired, { tenantId: tenantId });
+    }
+  }
+
+  /*
+   * The project a room belongs to: every room is named after its project
+   * first (RealtimeUtil.getRoomId), and a socket's room of its own id is no
+   * project's.
+   */
+  private static getTenantIdOfRoom(room: string): string | null {
+    const tenantId: string = room.slice(0, 36);
+
+    if (
+      room.length <= 37 ||
+      room.charAt(36) !== "-" ||
+      !ObjectID.isValidUUID(tenantId)
+    ) {
+      return null;
+    }
+
+    return tenantId;
   }
 
   /*

@@ -10,9 +10,10 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 /*
  * The session a socket's live updates belong to: kept on the socket when a
  * join is allowed, read by every delivery, ended when its access token
- * expires (a timer per socket) or when the session ends (endWhere), and
- * remembered for a while once ended, so a join decided meanwhile, or made
- * later with a token issued before the end, is refused.
+ * expires (a timer per socket, which first asks the page to renew a minute
+ * before) or when the session ends (endWhere), and remembered for a while
+ * once ended, so a join decided meanwhile, or made later with a token
+ * issued before the end, is refused.
  */
 
 const USER: string = "11111111-1111-4111-8111-111111111111";
@@ -245,31 +246,106 @@ describe("RealtimeSessions", () => {
   });
 
   describe("the access token's expiry", () => {
-    test("ends the socket's live updates when it comes, not before", () => {
+    test("a minute before it, the page is asked to renew; the socket still hears until it comes, and then its live updates end", () => {
+      jest.useFakeTimers({ now: 1_000_000 });
+
+      const socket: FakeSocket = new FakeSocket(["room-a"]);
+      const expiresAtMs: number = 1_000_000 + 5 * 60_000;
+
+      RealtimeSessions.begin(socket, session({ expiresAtMs }));
+
+      jest.advanceTimersByTime(4 * 60_000 - 1);
+
+      expect(socket.emitted).toEqual([]);
+
+      jest.advanceTimersByTime(1);
+
+      expect(socket.emitted).toEqual([
+        { event: EventName.SessionExpiring, payload: {} },
+      ]);
+      // Being asked takes nothing away.
+      expect(socket.subscribedRooms()).toEqual(["room-a"]);
+      expect(RealtimeSessions.getSession(socket)?.expiresAtMs).toBe(
+        expiresAtMs,
+      );
+
+      jest.advanceTimersByTime(RealtimeSessions.RENEWAL_NOTICE_IN_MS - 1);
+
+      expect(socket.subscribedRooms()).toEqual(["room-a"]);
+      expect(socket.emitted).toHaveLength(1);
+
+      jest.advanceTimersByTime(1);
+
+      expect(socket.subscribedRooms()).toEqual([]);
+      expect(socket.emitted).toEqual([
+        { event: EventName.SessionExpiring, payload: {} },
+        { event: EventName.AuthenticationRequired, payload: {} },
+      ]);
+      expect(RealtimeSessions.size()).toBe(0);
+    });
+
+    test("a socket that joins with less than a minute left is asked to renew at once", () => {
       jest.useFakeTimers({ now: 1_000_000 });
 
       const socket: FakeSocket = new FakeSocket(["room-a"]);
 
       RealtimeSessions.begin(
         socket,
-        session({ expiresAtMs: 1_000_000 + 60_000 }),
+        session({ expiresAtMs: 1_000_000 + 30_000 }),
       );
 
-      jest.advanceTimersByTime(59_999);
+      jest.advanceTimersByTime(0);
 
+      expect(socket.emitted).toEqual([
+        { event: EventName.SessionExpiring, payload: {} },
+      ]);
       expect(socket.subscribedRooms()).toEqual(["room-a"]);
-      expect(socket.emitted).toEqual([]);
 
-      jest.advanceTimersByTime(1);
+      jest.advanceTimersByTime(30_000);
 
       expect(socket.subscribedRooms()).toEqual([]);
-      expect(socket.emitted).toEqual([
-        { event: EventName.AuthenticationRequired, payload: {} },
-      ]);
-      expect(RealtimeSessions.size()).toBe(0);
     });
 
-    test("an access token that has already expired ends at once", () => {
+    test("the page is asked to renew once, however often the socket joins", () => {
+      jest.useFakeTimers({ now: 0 });
+
+      const socket: FakeSocket = new FakeSocket(["room-a"]);
+
+      RealtimeSessions.begin(socket, session({ expiresAtMs: 5 * 60_000 }));
+      jest.advanceTimersByTime(4 * 60_000 + 1_000);
+      RealtimeSessions.begin(socket, session({ expiresAtMs: 5 * 60_000 }));
+      RealtimeSessions.begin(socket, session({ expiresAtMs: 5 * 60_000 }));
+      jest.advanceTimersByTime(30_000);
+
+      expect(
+        socket.emitted.filter((emitted: { event: string }): boolean => {
+          return emitted.event === EventName.SessionExpiring;
+        }),
+      ).toHaveLength(1);
+    });
+
+    test("a page that renews in time takes this socket away first, and it is never ended", () => {
+      jest.useFakeTimers({ now: 0 });
+
+      const socket: FakeSocket = new FakeSocket(["room-a"]);
+
+      RealtimeSessions.begin(socket, session({ expiresAtMs: 5 * 60_000 }));
+      jest.advanceTimersByTime(4 * 60_000);
+
+      expect(socket.emitted).toEqual([
+        { event: EventName.SessionExpiring, payload: {} },
+      ]);
+
+      // The page reconnects: this socket goes, its new one joins afresh.
+      socket.goAway();
+      jest.advanceTimersByTime(10 * 60_000);
+
+      expect(socket.emitted).toHaveLength(1);
+      expect(RealtimeSessions.hasEnded(socket)).toBe(false);
+      expect(jest.getTimerCount()).toBe(0);
+    });
+
+    test("an access token that has already expired ends at once, with nothing to renew", () => {
       jest.useFakeTimers({ now: 1_000_000 });
 
       const socket: FakeSocket = new FakeSocket(["room-a"]);
@@ -278,6 +354,9 @@ describe("RealtimeSessions", () => {
       jest.advanceTimersByTime(0);
 
       expect(socket.subscribedRooms()).toEqual([]);
+      expect(socket.emitted).toEqual([
+        { event: EventName.AuthenticationRequired, payload: {} },
+      ]);
     });
 
     test("an expiry further away than one timer can wait is waited for in steps", () => {

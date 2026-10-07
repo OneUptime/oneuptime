@@ -23,11 +23,7 @@ export const listenForRealtimeSsoSignIn: (data: {
     (tenantId: ObjectID): void => {
       const currentProjectId: ObjectID | null = data.getCurrentProjectId();
 
-      if (
-        !currentProjectId ||
-        currentProjectId.toString().toLowerCase() !==
-          tenantId.toString().toLowerCase()
-      ) {
+      if (!currentProjectId || !currentProjectId.equals(tenantId)) {
         return;
       }
 

@@ -20,6 +20,8 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 const mockForgetBlockedStatus: jest.Mock = jest.fn();
 const mockForgetTeamIdsForUser: jest.Mock = jest.fn();
+const mockForgetProjectSignInRules: jest.Mock = jest.fn();
+const mockForgetInstanceSignInRules: jest.Mock = jest.fn();
 
 jest.mock("../../../../Server/Services/UserService", () => {
   return {
@@ -42,6 +44,35 @@ jest.mock("../../../../Server/Services/TeamMemberService", () => {
     },
   };
 });
+
+jest.mock("../../../../Server/Services/ProjectService", () => {
+  return {
+    __esModule: true,
+    default: {
+      forgetSignInRules: (...args: Array<unknown>): unknown => {
+        return mockForgetProjectSignInRules(...args);
+      },
+    },
+  };
+});
+
+jest.mock("../../../../Server/Services/GlobalConfigService", () => {
+  return {
+    __esModule: true,
+    default: {
+      forgetSignInRules: (...args: Array<unknown>): unknown => {
+        return mockForgetInstanceSignInRules(...args);
+      },
+    },
+  };
+});
+
+// Lets a subscription that resolves at once run to its end.
+async function settle(): Promise<void> {
+  for (let index: number = 0; index < 10; index++) {
+    await Promise.resolve();
+  }
+}
 
 const USER: string = "11111111-1111-4111-8111-111111111111";
 const PROJECT: string = "22222222-2222-4222-8222-222222222222";
@@ -137,13 +168,18 @@ describe("RealtimeAccessChanges", () => {
     jest.spyOn(logger, "warn").mockImplementation((): void => {});
     forgetUser = jest.spyOn(RealtimeReaders, "forgetUser");
     endWhere = jest.spyOn(RealtimeSessions, "endWhere");
+    jest.spyOn(logger, "debug").mockImplementation((): void => {});
     mockForgetBlockedStatus.mockReset();
     mockForgetTeamIdsForUser.mockReset();
+    mockForgetProjectSignInRules.mockReset();
+    mockForgetInstanceSignInRules.mockReset();
     await RealtimeAccessChanges.stopListening();
   });
 
   afterEach(async () => {
     await RealtimeAccessChanges.stopListening();
+    RealtimeAccessChanges.onSignInRulesChanged(null);
+    jest.useRealTimers();
     jest.restoreAllMocks();
     RealtimeSessions.clear();
   });
@@ -275,6 +311,59 @@ describe("RealtimeAccessChanges", () => {
       expect(logger.error).toHaveBeenCalled();
     });
 
+    test("a project's sign-in rules changed: this server reads them again, then asks its sockets in the project again", () => {
+      const asked: Array<string | undefined> = [];
+
+      RealtimeAccessChanges.onSignInRulesChanged((projectId?: string): void => {
+        // Read again before any socket is asked.
+        expect(mockForgetProjectSignInRules).toHaveBeenCalledTimes(1);
+        asked.push(projectId);
+      });
+
+      RealtimeAccessChanges.announce({
+        kind: RealtimeAccessChangeKind.SignInRulesChanged,
+        projectId: PROJECT,
+      });
+
+      expect(asked).toEqual([PROJECT]);
+      expect(mockForgetInstanceSignInRules).not.toHaveBeenCalled();
+      expect(client.changesPublished()).toEqual([
+        {
+          kind: RealtimeAccessChangeKind.SignInRulesChanged,
+          projectId: PROJECT,
+        },
+      ]);
+    });
+
+    test("the instance-wide sign-in rule changed: it is read again, and every socket is asked again", () => {
+      const asked: Array<string | undefined> = [];
+
+      RealtimeAccessChanges.onSignInRulesChanged((projectId?: string): void => {
+        asked.push(projectId);
+      });
+
+      RealtimeAccessChanges.announce({
+        kind: RealtimeAccessChangeKind.SignInRulesChanged,
+      });
+
+      expect(mockForgetInstanceSignInRules).toHaveBeenCalledTimes(1);
+      expect(mockForgetProjectSignInRules).not.toHaveBeenCalled();
+      expect(asked).toEqual([undefined]);
+    });
+
+    test("a server that holds no sockets still reads the sign-in rules again", () => {
+      RealtimeAccessChanges.onSignInRulesChanged(null);
+
+      expect(() => {
+        RealtimeAccessChanges.announce({
+          kind: RealtimeAccessChangeKind.SignInRulesChanged,
+          projectId: PROJECT,
+        });
+      }).not.toThrow();
+
+      expect(mockForgetProjectSignInRules).toHaveBeenCalledTimes(1);
+    });
+
     test("a step that fails here is logged, not thrown", () => {
       mockForgetBlockedStatus.mockImplementation(() => {
         throw new Error("cache unavailable");
@@ -344,6 +433,39 @@ describe("RealtimeAccessChanges", () => {
       expect(client.originOfLastMessage()).not.toBe("another-server");
     });
 
+    test("a sign-in rule change another server announced is applied here", async () => {
+      const asked: Array<string | undefined> = [];
+
+      RealtimeAccessChanges.onSignInRulesChanged((projectId?: string): void => {
+        asked.push(projectId);
+      });
+
+      await RealtimeAccessChanges.listen();
+
+      client.subscriber.deliver(
+        RealtimeAccessChanges.CHANNEL,
+        JSON.stringify({
+          origin: "another-server",
+          change: {
+            kind: RealtimeAccessChangeKind.SignInRulesChanged,
+            projectId: PROJECT,
+          },
+        }),
+      );
+
+      client.subscriber.deliver(
+        RealtimeAccessChanges.CHANNEL,
+        JSON.stringify({
+          origin: "another-server",
+          change: { kind: RealtimeAccessChangeKind.SignInRulesChanged },
+        }),
+      );
+
+      expect(asked).toEqual([PROJECT, undefined]);
+      expect(mockForgetProjectSignInRules).toHaveBeenCalledTimes(1);
+      expect(mockForgetInstanceSignInRules).toHaveBeenCalledTimes(1);
+    });
+
     test("other channels, and messages that are not changes, are ignored", async () => {
       await RealtimeAccessChanges.listen();
 
@@ -389,6 +511,13 @@ describe("RealtimeAccessChanges", () => {
             sessionIds: SESSION,
           },
         }),
+        JSON.stringify({
+          origin: "x",
+          change: {
+            kind: RealtimeAccessChangeKind.SignInRulesChanged,
+            projectId: "not-an-id",
+          },
+        }),
       ];
 
       for (const message of ignored) {
@@ -409,6 +538,7 @@ describe("RealtimeAccessChanges", () => {
       expect(endWhere).not.toHaveBeenCalled();
       expect(forgetUser).not.toHaveBeenCalled();
       expect(mockForgetBlockedStatus).not.toHaveBeenCalled();
+      expect(mockForgetProjectSignInRules).not.toHaveBeenCalled();
     });
 
     test("without Valkey it does not listen, and does not throw", async () => {
@@ -417,6 +547,76 @@ describe("RealtimeAccessChanges", () => {
       await expect(RealtimeAccessChanges.listen()).resolves.toBeUndefined();
 
       expect(logger.warn).toHaveBeenCalled();
+    });
+
+    test("without Valkey yet, it tries again every LISTEN_RETRY_IN_MS and listens once Valkey is there", async () => {
+      jest.useFakeTimers({ now: 0 });
+      (Redis.getClient as unknown as jest.Mock).mockReturnValue(null);
+
+      await RealtimeAccessChanges.listen();
+
+      jest.advanceTimersByTime(RealtimeAccessChanges.LISTEN_RETRY_IN_MS);
+      await settle();
+
+      expect(client.subscriber.subscribed).toEqual([]);
+
+      (Redis.getClient as unknown as jest.Mock).mockReturnValue(client);
+
+      jest.advanceTimersByTime(RealtimeAccessChanges.LISTEN_RETRY_IN_MS);
+      await settle();
+
+      expect(client.subscriber.subscribed).toEqual([
+        RealtimeAccessChanges.CHANNEL,
+      ]);
+      // Said once, not on every attempt.
+      expect(logger.warn).toHaveBeenCalledTimes(1);
+      // Listening, it stops trying.
+      expect(jest.getTimerCount()).toBe(0);
+    });
+
+    test("a subscription that fails is tried again after LISTEN_RETRY_IN_MS", async () => {
+      jest.useFakeTimers({ now: 0 });
+      client.subscriber.failSubscribe = true;
+
+      await RealtimeAccessChanges.listen();
+
+      expect(client.subscriber.subscribed).toEqual([]);
+
+      client.subscriber.failSubscribe = false;
+
+      jest.advanceTimersByTime(RealtimeAccessChanges.LISTEN_RETRY_IN_MS);
+      await settle();
+
+      expect(client.subscriber.subscribed).toEqual([
+        RealtimeAccessChanges.CHANNEL,
+      ]);
+    });
+
+    test("stopping stops the attempts too", async () => {
+      jest.useFakeTimers({ now: 0 });
+      (Redis.getClient as unknown as jest.Mock).mockReturnValue(null);
+
+      await RealtimeAccessChanges.listen();
+      await RealtimeAccessChanges.stopListening();
+
+      (Redis.getClient as unknown as jest.Mock).mockReturnValue(client);
+
+      jest.advanceTimersByTime(RealtimeAccessChanges.LISTEN_RETRY_IN_MS * 3);
+      await settle();
+
+      expect(client.subscriber.subscribed).toEqual([]);
+      expect(jest.getTimerCount()).toBe(0);
+    });
+
+    test("two listens at once make one subscription", async () => {
+      await Promise.all([
+        RealtimeAccessChanges.listen(),
+        RealtimeAccessChanges.listen(),
+      ]);
+
+      expect(client.subscriber.subscribed).toEqual([
+        RealtimeAccessChanges.CHANNEL,
+      ]);
     });
 
     test("a subscription that fails is logged, its connection closed, and it does not throw", async () => {

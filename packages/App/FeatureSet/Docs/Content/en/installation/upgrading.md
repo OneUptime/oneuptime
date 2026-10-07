@@ -496,19 +496,21 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 - **Live updates end with the sign-in that opened them, and ask what every
   request asks.** An open page's live updates - the counters in the header,
   live logs, the AI chat - now stop when its sign-in does: signing out,
-  changing the password, being blocked, or the 15-minute access token the
-  page renews. The page renews its sign-in and picks them back up on its
-  own; a sign-in that cannot be renewed takes the person to the sign-in
-  page, as before. A project that requires SSO, or an instance that does,
-  gives live updates only to pages signed in with SSO, and sends a page
-  without one to sign in with SSO, as its requests already did. A change to
-  someone's permissions, a block, or no longer being a master admin reaches
-  their open pages at once, on every app server rather than only the one
-  that made the change: each app server keeps one more connection to
-  Valkey, subscribed to the `oneuptime:realtime:access-changes` channel.
-  When that channel cannot be reached, a server catches up within 30
-  seconds for permissions, a minute for a block, and the access token's 15
-  minutes for a session. See
+  changing the password, being blocked, or the 15-minute access token
+  running out. A minute before the token runs out the page renews its
+  sign-in and reconnects on its own, so its live updates carry on; a
+  sign-in that cannot be renewed takes the person to the sign-in page, as
+  before. A project that requires SSO, or an instance that does, gives live
+  updates only to pages signed in with SSO, and sends a page without one
+  to sign in with SSO, as its requests already did - including pages
+  already open when the requirement is turned on. A change to someone's
+  permissions, a block, or no longer being a master admin reaches their
+  open pages at once, on every app server rather than only the one that
+  made the change: each app server keeps one more connection to Valkey,
+  subscribed to the `oneuptime:realtime:access-changes` channel. When that
+  channel cannot be reached, a server catches up within 30 seconds for
+  permissions, a minute for a block, and the access token's 15 minutes for
+  a session or a newly required SSO sign-in. See
   [Users, Teams & Permissions](/docs/permissions/index).
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including

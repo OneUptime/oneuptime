@@ -169,6 +169,15 @@ const loadModules: LoadModulesFunction = async (): Promise<LoadedModules> => {
   return { Realtime, refreshSession };
 };
 
+// Lets the recovery's awaited refresh run to completion under fake timers.
+type FlushMicrotasksFunction = () => Promise<void>;
+
+const flushMicrotasks: FlushMicrotasksFunction = async (): Promise<void> => {
+  for (let i: number = 0; i < 10; i++) {
+    await Promise.resolve();
+  }
+};
+
 // Lets the recovery's awaited refresh (a resolved mock) run to completion.
 type FlushFunction = () => Promise<void>;
 
@@ -238,6 +247,7 @@ describe("Realtime (UI) subscriptions", () => {
   });
 
   afterEach(() => {
+    jest.useRealTimers();
     jest.restoreAllMocks();
   });
 
@@ -816,6 +826,195 @@ describe("Realtime (UI) subscriptions", () => {
 
       expect(refreshSession).toHaveBeenCalledTimes(1);
       expect(mockSocket.connectCalls).toBe(1);
+    });
+
+    test("an end inside the cool-down is not let go: the page renews when the cool-down runs out", async () => {
+      jest.useFakeTimers({ now: 1_700_000_000_000 });
+
+      Realtime.init();
+      mockSocket.acceptConnection();
+
+      // A recovery a moment ago (a refused subscription, say).
+      mockSocket.deliver(
+        EventName.AuthenticationRequired,
+        requestFor("Incident", ModelEventType.Create),
+      );
+      await flushMicrotasks();
+
+      expect(refreshSession).toHaveBeenCalledTimes(1);
+
+      mockSocket.acceptConnection();
+      jest.advanceTimersByTime(30_000);
+
+      // Signed out in another tab: the server ends this socket's session once.
+      mockSocket.deliver(EventName.AuthenticationRequired, {});
+      await flushMicrotasks();
+
+      expect(refreshSession).toHaveBeenCalledTimes(1);
+
+      jest.advanceTimersByTime(
+        Realtime.AUTHENTICATION_RECOVERY_COOLDOWN_IN_MS - 30_000,
+      );
+      await flushMicrotasks();
+
+      expect(refreshSession).toHaveBeenCalledTimes(2);
+      expect(mockSocket.connectCalls).toBe(2);
+    });
+
+    test("a refresh that did not happen (offline) is tried again, waiting longer each time, until it works", async () => {
+      jest.useFakeTimers({ now: 1_700_000_000_000 });
+
+      Realtime.init();
+      mockSocket.acceptConnection();
+
+      refreshSession.mockRejectedValue(new Error("Network Error"));
+
+      mockSocket.deliver(EventName.AuthenticationRequired, {});
+      await flushMicrotasks();
+
+      expect(refreshSession).toHaveBeenCalledTimes(1);
+      expect(mockSocket.connectCalls).toBe(0);
+
+      // First retry after the cool-down.
+      jest.advanceTimersByTime(Realtime.AUTHENTICATION_RECOVERY_COOLDOWN_IN_MS);
+      await flushMicrotasks();
+
+      expect(refreshSession).toHaveBeenCalledTimes(2);
+
+      // The next one waits twice as long.
+      jest.advanceTimersByTime(
+        Realtime.AUTHENTICATION_RECOVERY_COOLDOWN_IN_MS * 2 - 1,
+      );
+      await flushMicrotasks();
+
+      expect(refreshSession).toHaveBeenCalledTimes(2);
+
+      refreshSession.mockResolvedValue(true);
+
+      jest.advanceTimersByTime(1);
+      await flushMicrotasks();
+
+      expect(refreshSession).toHaveBeenCalledTimes(3);
+      expect(mockSocket.disconnectCalls).toBe(1);
+      expect(mockSocket.connectCalls).toBe(1);
+
+      // Renewed: nothing more is tried.
+      jest.advanceTimersByTime(Realtime.MAX_AUTHENTICATION_RETRY_DELAY_IN_MS);
+      await flushMicrotasks();
+
+      expect(refreshSession).toHaveBeenCalledTimes(3);
+    });
+
+    test("the wait between attempts that fail stops growing at MAX_AUTHENTICATION_RETRY_DELAY_IN_MS", async () => {
+      jest.useFakeTimers({ now: 1_700_000_000_000 });
+
+      Realtime.init();
+      mockSocket.acceptConnection();
+
+      refreshSession.mockResolvedValue(false);
+
+      mockSocket.deliver(EventName.AuthenticationRequired, {});
+      await flushMicrotasks();
+
+      for (let attempt: number = 0; attempt < 12; attempt++) {
+        jest.advanceTimersByTime(Realtime.MAX_AUTHENTICATION_RETRY_DELAY_IN_MS);
+        await flushMicrotasks();
+      }
+
+      // One attempt at the start and one per longest wait once it is reached.
+      expect(refreshSession.mock.calls.length).toBeGreaterThanOrEqual(10);
+
+      const callsBefore: number = refreshSession.mock.calls.length;
+
+      jest.advanceTimersByTime(Realtime.MAX_AUTHENTICATION_RETRY_DELAY_IN_MS);
+      await flushMicrotasks();
+
+      expect(refreshSession.mock.calls.length).toBe(callsBefore + 1);
+    });
+  });
+
+  /*
+   * A minute before the access token the socket joined with expires, the
+   * server asks the page to renew (SessionExpiring). The page refreshes and
+   * reconnects while the old socket still hears, so its live updates carry
+   * on without a break.
+   */
+  describe("the server says the socket's access token expires soon", () => {
+    test("the page refreshes, reconnects and asks for every subscription again", async () => {
+      Realtime.init();
+      mockSocket.acceptConnection();
+
+      Realtime.listenToModelEvent(
+        {
+          modelType: Incident,
+          eventType: ModelEventType.Create,
+          tenantId: TENANT_ID,
+        },
+        () => {},
+      );
+
+      mockSocket.deliver(EventName.SessionExpiring, {});
+      await flush();
+
+      expect(refreshSession).toHaveBeenCalledTimes(1);
+      expect(mockSocket.disconnectCalls).toBe(1);
+      expect(mockSocket.connectCalls).toBe(1);
+
+      mockSocket.clearEmitted();
+      mockSocket.acceptConnection();
+
+      expect(mockSocket.listenRequests()).toEqual([
+        requestFor("Incident", ModelEventType.Create),
+      ]);
+    });
+
+    test("a notice that arrives while a recovery is in flight starts nothing more", async () => {
+      Realtime.init();
+      mockSocket.acceptConnection();
+
+      let finishRefresh: (refreshed: boolean) => void = (): void => {};
+
+      refreshSession.mockImplementation((): Promise<boolean> => {
+        return new Promise<boolean>((resolve: (refreshed: boolean) => void) => {
+          finishRefresh = resolve;
+        });
+      });
+
+      mockSocket.deliver(EventName.AuthenticationRequired, {});
+      await flush();
+
+      mockSocket.deliver(EventName.SessionExpiring, {});
+      await flush();
+
+      finishRefresh(true);
+      await flush();
+
+      expect(refreshSession).toHaveBeenCalledTimes(1);
+      expect(mockSocket.connectCalls).toBe(1);
+    });
+
+    test("a notice inside the cool-down renews when the cool-down runs out", async () => {
+      jest.useFakeTimers({ now: 1_700_000_000_000 });
+
+      Realtime.init();
+      mockSocket.acceptConnection();
+
+      mockSocket.deliver(EventName.AuthenticationRequired, {});
+      await flushMicrotasks();
+      mockSocket.acceptConnection();
+
+      jest.advanceTimersByTime(10_000);
+
+      mockSocket.deliver(EventName.SessionExpiring, {});
+      await flushMicrotasks();
+
+      expect(refreshSession).toHaveBeenCalledTimes(1);
+
+      jest.advanceTimersByTime(Realtime.AUTHENTICATION_RECOVERY_COOLDOWN_IN_MS);
+      await flushMicrotasks();
+
+      expect(refreshSession).toHaveBeenCalledTimes(2);
+      expect(mockSocket.connectCalls).toBe(2);
     });
   });
 

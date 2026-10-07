@@ -339,6 +339,18 @@ const listen: ListenFunction = async (
   );
 };
 
+// The sockets the fake server holds, as a recheck reads them (fetchSockets).
+let heldSockets: Array<FakeServerSocket> = [];
+
+// Lets a recheck started by an announcement run to its end.
+const settle: () => Promise<void> = async (): Promise<void> => {
+  for (let index: number = 0; index < 20; index++) {
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 0);
+    });
+  }
+};
+
 describe("Realtime (server) ListenToModelEvent", () => {
   let connectionListener: (socket: Socket) => void = (): void => {};
 
@@ -349,13 +361,22 @@ describe("Realtime (server) ListenToModelEvent", () => {
           connectionListener = listener;
         }
       },
+      fetchSockets: async (): Promise<Array<Socket>> => {
+        return heldSockets.map((socket: FakeServerSocket): Socket => {
+          return socket.asSocket();
+        });
+      },
     });
 
     await Realtime.init();
+
+    // There is no Valkey here: the server stops trying to listen to it.
+    await RealtimeAccessChanges.stopListening();
   });
 
   beforeEach(() => {
     RealtimeSessions.clear();
+    heldSockets = [];
     tenantPermissionLookup.mockReset();
     globalPermissionLookup.mockReset();
     globalPermissionLookup.mockResolvedValue(null);
@@ -959,6 +980,192 @@ describe("Realtime (server) ListenToModelEvent", () => {
    * room, is no longer anyone, joins nothing more, and is told, so the
    * client refreshes and reconnects - or is sent to sign in.
    */
+  /*
+   * A project's sign-in rules change after a socket joined: the socket is
+   * asked again, as its join was, with the rules as they are now, on every
+   * server (RealtimeAccessChanges). One no longer let in leaves the
+   * project's rooms and is told why; the rest are left alone.
+   */
+  describe("a project's sign-in rules change after a socket joined", () => {
+    const OTHER_ROOM_ID: string = RealtimeUtil.getRoomId(
+      OTHER_TENANT_ID,
+      "Incident",
+      ModelEventType.Create,
+    );
+
+    type JoinBothFunction = (socket: FakeServerSocket) => Promise<void>;
+
+    // A socket listening to both projects, held by this server.
+    const joinBoth: JoinBothFunction = async (
+      socket: FakeServerSocket,
+    ): Promise<void> => {
+      heldSockets.push(socket);
+
+      await expect(listen(socket)).resolves.toBe(
+        ListenToModelEventOutcome.Joined,
+      );
+      await expect(
+        listen(socket, { ...REQUEST, tenantId: OTHER_TENANT_ID }),
+      ).resolves.toBe(ListenToModelEventOutcome.Joined);
+    };
+
+    type RequireSsoOfFunction = (projectIds: Array<string>) => void;
+
+    // From now on these projects require an SSO sign-in.
+    const requireSsoOf: RequireSsoOfFunction = (
+      projectIds: Array<string>,
+    ): void => {
+      projectRequiresSso.mockImplementation(
+        async (projectId: ObjectID): Promise<boolean> => {
+          return projectIds.includes(projectId.toString());
+        },
+      );
+    };
+
+    beforeEach(() => {
+      memberOf([TENANT_ID, OTHER_TENANT_ID]);
+    });
+
+    test("Require SSO turned on: a socket without the project's SSO sign-in leaves its rooms at once and is told; its other project's rooms stay", async () => {
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(validToken()),
+      );
+
+      await joinBoth(socket);
+
+      requireSsoOf([TENANT_ID]);
+
+      RealtimeAccessChanges.announce({
+        kind: RealtimeAccessChangeKind.SignInRulesChanged,
+        projectId: TENANT_ID,
+      });
+      await settle();
+
+      expect(socket.subscribedRooms()).toEqual([OTHER_ROOM_ID]);
+      expect(socket.ssoRequiredEvents()).toEqual([{ tenantId: TENANT_ID }]);
+      // Its session goes on, for the project that still lets it in.
+      expect(RealtimeSessions.getSession(socket)).not.toBeNull();
+      expect(socket.authenticationRequiredEvents()).toEqual([]);
+      // The rules were read again before it was asked.
+      expect(ProjectService.forgetSignInRules).toHaveBeenCalled();
+    });
+
+    test("Require SSO turned on: a socket with the project's SSO sign-in stays", async () => {
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(
+          validToken(),
+          ssoCookie(TENANT_ID, ssoToken({ projectId: TENANT_ID })),
+        ),
+      );
+
+      await joinBoth(socket);
+
+      requireSsoOf([TENANT_ID]);
+
+      RealtimeAccessChanges.announce({
+        kind: RealtimeAccessChangeKind.SignInRulesChanged,
+        projectId: TENANT_ID,
+      });
+      await settle();
+
+      expect(socket.subscribedRooms()).toEqual([ROOM_ID, OTHER_ROOM_ID]);
+      expect(socket.emitted).toEqual([]);
+    });
+
+    test("another project's rules changing leaves this project's sockets alone", async () => {
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(validToken()),
+      );
+
+      await joinBoth(socket);
+
+      // Only TENANT requires SSO, but the change named the other project.
+      requireSsoOf([TENANT_ID]);
+
+      RealtimeAccessChanges.announce({
+        kind: RealtimeAccessChangeKind.SignInRulesChanged,
+        projectId: OTHER_TENANT_ID,
+      });
+      await settle();
+
+      expect(socket.subscribedRooms()).toEqual([ROOM_ID, OTHER_ROOM_ID]);
+      expect(socket.emitted).toEqual([]);
+    });
+
+    test("the instance-wide rule turned on: a member without SSO leaves every project's rooms; a server admin stays", async () => {
+      const member: FakeServerSocket = new FakeServerSocket(
+        cookieWith(validToken()),
+      );
+      const admin: FakeServerSocket = new FakeServerSocket(
+        cookieWith(validToken({ isMasterAdmin: true })),
+      );
+
+      await joinBoth(member);
+      await joinBoth(admin);
+
+      instanceRequiresSso.mockResolvedValue(true);
+
+      RealtimeAccessChanges.announce({
+        kind: RealtimeAccessChangeKind.SignInRulesChanged,
+      });
+      await settle();
+
+      expect(member.subscribedRooms()).toEqual([]);
+      expect(member.ssoRequiredEvents()).toEqual([
+        { tenantId: TENANT_ID },
+        { tenantId: OTHER_TENANT_ID },
+      ]);
+      expect(admin.subscribedRooms()).toEqual([ROOM_ID, OTHER_ROOM_ID]);
+      expect(admin.emitted).toEqual([]);
+      expect(GlobalConfigService.forgetSignInRules).toHaveBeenCalled();
+    });
+
+    test("a socket that cannot be asked again (a lookup fails) ends its live updates, and the page renews", async () => {
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(validToken()),
+      );
+
+      await joinBoth(socket);
+
+      tenantPermissionLookup.mockRejectedValue(
+        new Error("the permission cache is down"),
+      );
+
+      RealtimeAccessChanges.announce({
+        kind: RealtimeAccessChangeKind.SignInRulesChanged,
+        projectId: TENANT_ID,
+      });
+      await settle();
+
+      expect(socket.subscribedRooms()).toEqual([]);
+      expect(socket.authenticationRequiredEvents()).toEqual([{}]);
+      expect(RealtimeSessions.hasEnded(socket)).toBe(true);
+    });
+
+    test("a socket whose session has ended is not asked again", async () => {
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(validToken()),
+      );
+
+      await joinBoth(socket);
+
+      RealtimeSessions.end(socket);
+      socket.emitted = [];
+      tenantPermissionLookup.mockClear();
+
+      requireSsoOf([TENANT_ID]);
+
+      RealtimeAccessChanges.announce({
+        kind: RealtimeAccessChangeKind.SignInRulesChanged,
+        projectId: TENANT_ID,
+      });
+      await settle();
+
+      expect(tenantPermissionLookup).not.toHaveBeenCalled();
+      expect(socket.emitted).toEqual([]);
+    });
+  });
+
   describe("live updates end with the session", () => {
     beforeEach(() => {
       memberOf([TENANT_ID]);
@@ -1116,7 +1323,7 @@ describe("Realtime (server) ListenToModelEvent", () => {
       jest.advanceTimersByTime(119_000);
 
       expect(socket.subscribedRooms()).toEqual([ROOM_ID]);
-      expect(socket.emitted).toEqual([]);
+      expect(socket.authenticationRequiredEvents()).toEqual([]);
 
       jest.advanceTimersByTime(1_500);
 
@@ -1124,6 +1331,57 @@ describe("Realtime (server) ListenToModelEvent", () => {
       expect(socket.authenticationRequiredEvents()).toEqual([{}]);
       expect(RealtimeSessions.getSession(socket)).toBeNull();
       expect(RealtimeSessions.size()).toBe(0);
+    });
+
+    test("a minute before the access token expires the page is asked to renew, and the socket still hears until it does", async () => {
+      jest.useFakeTimers({ now: Date.now(), doNotFake: ["nextTick"] });
+
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(validToken({}, 120)),
+      );
+
+      await listen(socket);
+
+      // The token says when it expires in whole seconds: up to a second early.
+      jest.advanceTimersByTime(59_000);
+
+      expect(socket.emitted).toEqual([]);
+
+      jest.advanceTimersByTime(1_500);
+
+      expect(socket.eventsNamed(EventName.SessionExpiring)).toEqual([{}]);
+      expect(socket.subscribedRooms()).toEqual([ROOM_ID]);
+      expect(RealtimeSessions.getSession(socket)).not.toBeNull();
+      expect(socket.authenticationRequiredEvents()).toEqual([]);
+    });
+
+    test("the page renewing in time (its socket goes, a new one joins) ends nothing", async () => {
+      jest.useFakeTimers({ now: Date.now(), doNotFake: ["nextTick"] });
+
+      const renewing: FakeServerSocket = new FakeServerSocket(
+        cookieWith(validToken({}, 120)),
+      );
+
+      await listen(renewing);
+      jest.advanceTimersByTime(61_000);
+
+      expect(renewing.eventsNamed(EventName.SessionExpiring)).toEqual([{}]);
+
+      renewing.disconnect();
+
+      const renewed: FakeServerSocket = new FakeServerSocket(
+        cookieWith(validToken()),
+      );
+
+      await expect(listen(renewed)).resolves.toBe(
+        ListenToModelEventOutcome.Joined,
+      );
+
+      jest.advanceTimersByTime(120_000);
+
+      expect(renewing.authenticationRequiredEvents()).toEqual([]);
+      expect(renewed.subscribedRooms()).toEqual([ROOM_ID]);
+      expect(renewed.emitted).toEqual([]);
     });
 
     test("a socket that goes away takes its timer and its session with it", async () => {
@@ -1145,6 +1403,30 @@ describe("Realtime (server) ListenToModelEvent", () => {
       jest.advanceTimersByTime(200_000);
 
       expect(socket.emitted).toEqual([]);
+    });
+
+    test("several joins on one handshake read the access token's times once", async () => {
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(validToken()),
+      );
+      const verify: jest.SpyInstance = jest.spyOn(
+        JSONWebToken,
+        "decodeJsonPayload",
+      );
+
+      await listen(socket);
+
+      const afterFirstJoin: number = verify.mock.calls.length;
+
+      await listen(socket, {
+        ...REQUEST,
+        modelName: "Alert",
+        eventType: ModelEventType.Update,
+      });
+
+      // The second join verifies the session, as every request does, and no more.
+      expect(verify.mock.calls.length - afterFirstJoin).toBe(1);
+      expect(socket.subscribedRooms()).toHaveLength(2);
     });
 
     test("several joins on one handshake keep one session, one timer and one disconnect listener", async () => {

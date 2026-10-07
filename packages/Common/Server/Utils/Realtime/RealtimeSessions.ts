@@ -14,7 +14,11 @@ import type { RealtimeReaderIdentity } from "./RealtimeReaders";
  *
  *   - until the access token expires: a timer per socket ends its live
  *     updates then, and no delivery reaches a socket past that time anyway
- *     (getSession);
+ *     (getSession). A minute before, the socket is asked to renew
+ *     (EventName.SessionExpiring): the page refreshes its sign-in and
+ *     reconnects while this socket still hears, so a page that renews in
+ *     time carries on without a break, and its new socket's joins are
+ *     asked again from the start;
  *   - until the session ends: signing out, a revoked session (a password
  *     change, a block) and a deleted account end it at once, on every
  *     server (RealtimeAccessChanges calls endWhere).
@@ -69,6 +73,8 @@ interface LiveSocket {
   socket: RealtimeSessionSocket;
   session: RealtimeSocketSession;
   timer: ReturnType<typeof setTimeout> | null;
+  // Whether the socket has been asked to renew before its access token expires.
+  renewalAsked: boolean;
 }
 
 // A session (or every session of a person) that ended, and when.
@@ -82,6 +88,14 @@ export default class RealtimeSessions {
    * that lives longer is waited for in steps of this.
    */
   public static readonly MAX_TIMER_DELAY_IN_MS: number = 2_147_483_647;
+
+  /*
+   * How long before its access token expires a socket is asked to renew:
+   * time for the page to refresh its sign-in and reconnect before this
+   * socket's live updates end. A socket that joins with less left than this
+   * is asked at once.
+   */
+  public static readonly RENEWAL_NOTICE_IN_MS: number = 60 * 1000;
 
   /*
    * How long an ended session is remembered: longer than an access token
@@ -228,7 +242,12 @@ export default class RealtimeSessions {
       return;
     }
 
-    const entry: LiveSocket = { socket: socket, session: kept, timer: null };
+    const entry: LiveSocket = {
+      socket: socket,
+      session: kept,
+      timer: null,
+      renewalAsked: false,
+    };
 
     RealtimeSessions.live.set(socket.id, entry);
     RealtimeSessions.arm(entry);
@@ -275,6 +294,19 @@ export default class RealtimeSessions {
 
     if (!wasEnded) {
       socket.emit(EventName.AuthenticationRequired, {});
+    }
+  }
+
+  /*
+   * Tells the page its socket's access token expires in a minute, so it
+   * renews its sign-in and reconnects first. The socket keeps hearing
+   * until then: being asked takes nothing away.
+   */
+  private static askToRenew(socket: RealtimeSessionSocket): void {
+    try {
+      socket.emit(EventName.SessionExpiring, {});
+    } catch (err) {
+      logger.error(err);
     }
   }
 
@@ -365,6 +397,14 @@ export default class RealtimeSessions {
       nowMs,
     );
 
+    /*
+     * Both sides lean towards refusing. An access token says when it was
+     * issued in whole seconds, rounded down, so one issued in the same
+     * second as the end, just after it, counts as from before it. And a
+     * server records an end when it hears of it, a moment after it
+     * happened. Either way the refused page renews and joins again with a
+     * new token; nothing issued before the end gets through.
+     */
     return Boolean(ofPerson && session.issuedAtMs <= ofPerson.endedAtMs);
   }
 
@@ -436,13 +476,25 @@ export default class RealtimeSessions {
     RealtimeSessions.live.delete(socket.id);
   }
 
+  /*
+   * The socket's one timer: first the renewal notice, a minute before its
+   * access token expires, then the end when it does.
+   */
   private static arm(entry: LiveSocket): void {
     if (entry.timer) {
       clearTimeout(entry.timer);
     }
 
+    // Asked once, and only while there is still time to renew.
+    const asksToRenew: boolean =
+      !entry.renewalAsked && Date.now() < entry.session.expiresAtMs;
+
+    const dueAtMs: number = asksToRenew
+      ? entry.session.expiresAtMs - RealtimeSessions.RENEWAL_NOTICE_IN_MS
+      : entry.session.expiresAtMs;
+
     const delayMs: number = Math.min(
-      Math.max(0, entry.session.expiresAtMs - Date.now()),
+      Math.max(0, dueAtMs - Date.now()),
       RealtimeSessions.MAX_TIMER_DELAY_IN_MS,
     );
 
@@ -455,7 +507,14 @@ export default class RealtimeSessions {
       }
 
       // One step of a longer wait.
-      if (Date.now() < entry.session.expiresAtMs) {
+      if (Date.now() < dueAtMs) {
+        RealtimeSessions.arm(entry);
+        return;
+      }
+
+      if (asksToRenew) {
+        entry.renewalAsked = true;
+        RealtimeSessions.askToRenew(entry.socket);
         RealtimeSessions.arm(entry);
         return;
       }

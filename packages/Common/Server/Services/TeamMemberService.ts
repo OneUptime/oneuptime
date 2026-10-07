@@ -610,8 +610,14 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
      */
     this.forgetTeamIdsForUser(userId, projectId);
 
-    /// Refresh tokens.
-    await AccessTokenService.refreshUserGlobalAccessPermission(userId);
+    /*
+     * Refresh tokens. Only the project's refresh, made last, tells the
+     * person's open live updates (on every server) to read them again: the
+     * membership changed in this project alone.
+     */
+    await AccessTokenService.refreshUserGlobalAccessPermission(userId, {
+      forgetLiveUpdateReaders: false,
+    });
 
     await AccessTokenService.refreshUserTenantAccessPermission(
       userId,

@@ -1,6 +1,8 @@
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
 import Redis from "../../../Server/Infrastructure/Redis";
 import AccessTokenService from "../../../Server/Services/AccessTokenService";
+import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
+import ProjectService from "../../../Server/Services/ProjectService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import TeamPermissionService from "../../../Server/Services/TeamPermissionService";
 import UserService from "../../../Server/Services/UserService";
@@ -37,7 +39,10 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *   - a block, an unblock and a server admin change make every server forget
  *     whether the person is blocked and who they are in each project;
  *   - a team membership or permission change makes every server read the
- *     person's permissions in that project again.
+ *     person's permissions in that project again, with one announcement
+ *     however many projects a refresh rebuilds;
+ *   - a change to a project's sign-in rules (Require SSO, the provider it
+ *     pins), or to the instance's, makes every server ask its sockets again.
  *
  * No database: the services' writes are reached through their hooks, with
  * the reads they make stubbed.
@@ -539,6 +544,127 @@ describe("live updates follow every change of access", () => {
           userId: USER.toString(),
           projectId: PROJECT.toString(),
         },
+      ]);
+    });
+
+    test("a sign-in rebuilds every project's permissions and announces once, after all of them", async () => {
+      const order: Array<string> = [];
+
+      jest.spyOn(TeamMemberService, "findAllBy").mockResolvedValue(
+        [PROJECT, OTHER_PROJECT].map((projectId: ObjectID): TeamMember => {
+          const row: TeamMember = new TeamMember();
+          row.projectId = projectId;
+          return row;
+        }),
+      );
+      (GlobalCache.setJSON as unknown as jest.Mock).mockImplementation(
+        async (): Promise<void> => {
+          order.push("rebuilt");
+        },
+      );
+      (GlobalCache.deleteKey as unknown as jest.Mock).mockImplementation(
+        async (): Promise<void> => {
+          order.push("rebuilt");
+        },
+      );
+      (
+        RealtimeAccessChanges.announce as unknown as jest.Mock
+      ).mockImplementation((change: RealtimeAccessChange): void => {
+        announced.push(change);
+        order.push("announced");
+      });
+
+      await AccessTokenService.refreshUserAllPermissions(USER);
+
+      expect(announced).toEqual([
+        {
+          kind: RealtimeAccessChangeKind.PermissionsChanged,
+          userId: USER.toString(),
+        },
+      ]);
+      // The global set and one per project, then the one announcement.
+      expect(
+        order.filter((step: string) => {
+          return step === "rebuilt";
+        }),
+      ).toHaveLength(3);
+      expect(order[order.length - 1]).toBe("announced");
+    });
+
+    test("a membership change in a project is announced once, for that project", async () => {
+      await TeamMemberService.refreshTokens(USER, PROJECT);
+
+      expect(announced).toEqual([
+        {
+          kind: RealtimeAccessChangeKind.PermissionsChanged,
+          userId: USER.toString(),
+          projectId: PROJECT.toString(),
+        },
+      ]);
+    });
+  });
+
+  describe("a change to the sign-in rules", () => {
+    type ProjectHooks = {
+      onUpdateSuccess: (
+        onUpdate: OnUpdate<User & UserSession>,
+        updatedItemIds: Array<ObjectID>,
+      ) => Promise<unknown>;
+    };
+
+    const projectHooks: ProjectHooks =
+      ProjectService as unknown as ProjectHooks;
+    const instanceHooks: ProjectHooks =
+      GlobalConfigService as unknown as ProjectHooks;
+
+    test("turning on Require SSO for projects announces it for each of them", async () => {
+      await projectHooks.onUpdateSuccess(
+        updateOf<User>({ requireSsoForLogin: true }),
+        [PROJECT, OTHER_PROJECT],
+      );
+
+      expect(announced).toEqual([
+        {
+          kind: RealtimeAccessChangeKind.SignInRulesChanged,
+          projectId: PROJECT.toString(),
+        },
+        {
+          kind: RealtimeAccessChangeKind.SignInRulesChanged,
+          projectId: OTHER_PROJECT.toString(),
+        },
+      ]);
+    });
+
+    test("pinning the provider a project's SSO sign-in must come from announces it too", async () => {
+      await projectHooks.onUpdateSuccess(
+        updateOf<User>({ requireSsoWithSsoProviderId: TEAM }),
+        [PROJECT],
+      );
+
+      expect(announced).toEqual([
+        {
+          kind: RealtimeAccessChangeKind.SignInRulesChanged,
+          projectId: PROJECT.toString(),
+        },
+      ]);
+    });
+
+    test("a project update that touches neither announces nothing", async () => {
+      await projectHooks.onUpdateSuccess(updateOf<User>({ name: "Renamed" }), [
+        PROJECT,
+      ]);
+
+      expect(announced).toEqual([]);
+    });
+
+    test("the instance-wide rule is announced for every project", async () => {
+      await instanceHooks.onUpdateSuccess(
+        updateOf<User>({ requireSsoForLogin: true }),
+        [TEAM],
+      );
+
+      expect(announced).toEqual([
+        { kind: RealtimeAccessChangeKind.SignInRulesChanged },
       ]);
     });
   });

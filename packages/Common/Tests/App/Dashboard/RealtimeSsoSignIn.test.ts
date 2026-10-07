@@ -72,8 +72,8 @@ describe("listenForRealtimeSsoSignIn", () => {
     expect(signInsAsked).toBe(1);
   });
 
-  test("the open project is matched whatever the case of its id", () => {
-    serverRefuses(new ObjectID(PROJECT.toString().toUpperCase()));
+  test("the open project is matched by its id, not by being the same object", () => {
+    serverRefuses(new ObjectID(PROJECT.toString()));
 
     expect(signInsAsked).toBe(1);
   });

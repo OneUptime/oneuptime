@@ -67,7 +67,24 @@ export interface RealtimeHandshakeSocket {
   handshake?: { headers?: unknown } | undefined;
 }
 
+// The access token a socket's handshake carries, and its times, once read.
+interface KnownAccessTokenTimes {
+  accessToken: string;
+  times: RealtimeAccessTokenTimes | null;
+}
+
 export default class RealtimeJoinAccess {
+  /*
+   * The times of each socket's handshake token, read on its first join: the
+   * handshake never changes for the life of the connection, so a page that
+   * asks for many rooms has its token read for its times once, not once per
+   * room. Held weakly, so a socket that goes takes its entry with it.
+   */
+  private static knownTokenTimes: WeakMap<
+    RealtimeHandshakeSocket,
+    KnownAccessTokenTimes
+  > = new WeakMap<RealtimeHandshakeSocket, KnownAccessTokenTimes>();
+
   /*
    * The socket's handshake as the API's checks read a request: its headers,
    * and its cookies parsed by the parser the API's server mounts. Nothing
@@ -126,7 +143,7 @@ export default class RealtimeJoinAccess {
     const tokenData: JSONWebTokenData = requestSession.session;
 
     const times: RealtimeAccessTokenTimes | null =
-      RealtimeJoinAccess.getAccessTokenTimes(request);
+      RealtimeJoinAccess.getAccessTokenTimesOfSocket(socket, request);
 
     // Live updates end with the access token; one without an end is not taken.
     if (!times || times.expiresAtMs <= Date.now()) {
@@ -188,6 +205,42 @@ export default class RealtimeJoinAccess {
   }
 
   /*
+   * getAccessTokenTimes for a socket's handshake request, from what its
+   * first join read when the token is the same one (it always is: the
+   * handshake does not change).
+   */
+  private static getAccessTokenTimesOfSocket(
+    socket: RealtimeHandshakeSocket,
+    request: OneUptimeRequest,
+  ): RealtimeAccessTokenTimes | null {
+    const accessToken: string | undefined =
+      RealtimeJoinAccess.getUserMiddleware().getAccessTokenFromExpressRequest(
+        request,
+      );
+
+    if (!accessToken) {
+      return null;
+    }
+
+    const known: KnownAccessTokenTimes | undefined =
+      RealtimeJoinAccess.knownTokenTimes.get(socket);
+
+    if (known && known.accessToken === accessToken) {
+      return known.times;
+    }
+
+    const times: RealtimeAccessTokenTimes | null =
+      RealtimeJoinAccess.readAccessTokenTimes(accessToken);
+
+    RealtimeJoinAccess.knownTokenTimes.set(socket, {
+      accessToken: accessToken,
+      times: times,
+    });
+
+    return times;
+  }
+
+  /*
    * When the access token the request carries was issued and when it stops
    * being accepted, as Date.now() counts, or null when it does not verify
    * or says neither. The token is the one readRequestSession read.
@@ -204,6 +257,13 @@ export default class RealtimeJoinAccess {
       return null;
     }
 
+    return RealtimeJoinAccess.readAccessTokenTimes(accessToken);
+  }
+
+  // The times an access token states, once it verifies; null otherwise.
+  private static readAccessTokenTimes(
+    accessToken: string,
+  ): RealtimeAccessTokenTimes | null {
     let payload: JSONObject;
 
     try {

@@ -29,12 +29,26 @@ export class AccessTokenService extends BaseService {
   @CaptureSpan()
   public async refreshUserAllPermissions(userId: ObjectID): Promise<void> {
     const userGlobalAccessPermission: UserGlobalAccessPermission =
-      await this.refreshUserGlobalAccessPermission(userId);
+      await this.refreshUserGlobalAccessPermission(userId, {
+        forgetLiveUpdateReaders: false,
+      });
 
     // every project the user belongs to.
     for (const projectId of userGlobalAccessPermission.projectIds) {
-      await this.refreshUserTenantAccessPermission(userId, projectId);
+      await this.refreshUserTenantAccessPermission(userId, projectId, {
+        forgetLiveUpdateReaders: false,
+      });
     }
+
+    /*
+     * Their open live updates read every project again, on every server:
+     * one announcement, made once every set above is rebuilt, however many
+     * projects they are in (this runs on every sign-in).
+     */
+    RealtimeAccessChanges.announce({
+      kind: RealtimeAccessChangeKind.PermissionsChanged,
+      userId: userId.toString(),
+    });
   }
 
   @CaptureSpan()

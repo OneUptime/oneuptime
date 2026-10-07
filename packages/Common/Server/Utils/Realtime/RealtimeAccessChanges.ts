@@ -3,6 +3,8 @@ import GracefulShutdown, { ShutdownPriority } from "../GracefulShutdown";
 import logger from "../Logger";
 import RealtimeReaders from "./RealtimeReaders";
 import RealtimeSessions from "./RealtimeSessions";
+import type { Service as GlobalConfigServiceType } from "../../Services/GlobalConfigService";
+import type { ProjectService as ProjectServiceType } from "../../Services/ProjectService";
 import type { TeamMemberService as TeamMemberServiceType } from "../../Services/TeamMemberService";
 import type { Service as UserServiceType } from "../../Services/UserService";
 import ObjectID from "../../../Types/ObjectID";
@@ -22,15 +24,18 @@ import ObjectID from "../../../Types/ObjectID";
  * itself at once and publishes it on a Valkey channel every server
  * listens to (listen, from Realtime.init). Each one then forgets what it
  * held for that person, and ends the live updates of sessions that have
- * ended. A change only ever takes something away or makes a server read
- * again: nothing in a message can give anyone more than their reads
- * already give them.
+ * ended. When a project's sign-in rules change (it now requires SSO, or
+ * another provider), each one reads them again and asks the sockets it
+ * holds in that project again, as their joins were asked. A change only
+ * ever takes something away or makes a server read again: nothing in a
+ * message can give anyone more than their reads already give them.
  *
  * When the channel cannot be reached, a change still applies on the server
  * that made it, and the others catch up as their entries run out: 30
- * seconds for permissions, a minute for a block, and the access token's
- * lifetime for a session, whose sockets end when it expires
- * (RealtimeSessions).
+ * seconds for permissions, a minute for a block or a sign-in rule, and the
+ * access token's lifetime for a session, whose sockets end when it expires
+ * (RealtimeSessions), and for a socket that joined under the old sign-in
+ * rules, whose renewal joins again.
  */
 
 export enum RealtimeAccessChangeKind {
@@ -40,6 +45,8 @@ export enum RealtimeAccessChangeKind {
   AccountChanged = "AccountChanged",
   // Sessions ended: signed out, revoked, or every session of a person.
   SessionsEnded = "SessionsEnded",
+  // A project's sign-in rules changed (Require SSO, the provider it pins), or the instance's.
+  SignInRulesChanged = "SignInRulesChanged",
 }
 
 export type RealtimeAccessChange =
@@ -59,7 +66,19 @@ export type RealtimeAccessChange =
       userId?: string | undefined;
       // These sessions (UserSession ids).
       sessionIds?: Array<string> | undefined;
+    }
+  | {
+      kind: RealtimeAccessChangeKind.SignInRulesChanged;
+      // Absent: the instance-wide rule, which every project follows.
+      projectId?: string | undefined;
     };
+
+/*
+ * What a server does with the sockets it holds in a project whose sign-in
+ * rules changed (every project, when projectId is absent). Realtime, which
+ * holds the sockets, registers it (onSignInRulesChanged).
+ */
+export type SignInRulesChangedListener = (projectId?: string) => void;
 
 interface RealtimeAccessChangeMessage {
   // The server that announced it, which has applied it already.
@@ -76,7 +95,40 @@ export default class RealtimeAccessChanges {
   // This server, so it does not apply its own announcements twice.
   private static readonly origin: string = ObjectID.generate().toString();
 
+  /*
+   * How long a server waits to try listening again when Valkey was not
+   * there yet, or would not take the subscription. Until it listens, the
+   * changes made on other servers reach it as its entries run out.
+   */
+  public static readonly LISTEN_RETRY_IN_MS: number = 30 * 1000;
+
   private static subscriber: ClientType | null = null;
+
+  // A subscription being made right now, so two never are at once.
+  private static subscribing: Promise<void> | null = null;
+
+  private static listenRetry: ReturnType<typeof setTimeout> | null = null;
+
+  // Whether this server wants to listen: false after stopListening.
+  private static wantsToListen: boolean = false;
+
+  private static shutdownHandlerRegistered: boolean = false;
+
+  // Attempts in a row that did not listen: only the first is logged loudly.
+  private static failedListens: number = 0;
+
+  private static signInRulesChangedListener: SignInRulesChangedListener | null =
+    null;
+
+  /*
+   * Who asks this server's sockets again when sign-in rules change. One
+   * listener: Realtime, which holds the sockets.
+   */
+  public static onSignInRulesChanged(
+    listener: SignInRulesChangedListener | null,
+  ): void {
+    RealtimeAccessChanges.signInRulesChangedListener = listener;
+  }
 
   /*
    * Applies the change on this server at once and tells every other one.
@@ -95,20 +147,64 @@ export default class RealtimeAccessChanges {
 
   /*
    * Listens for the changes other servers announce. Called once by every
-   * server that holds sockets (Realtime.init). Never throws: without the
-   * channel, the entries this server keeps still run out on their own.
+   * server that holds sockets (Realtime.init). Never throws. When Valkey is
+   * not there yet, or will not take the subscription, it tries again every
+   * LISTEN_RETRY_IN_MS until it listens; meanwhile the entries this server
+   * keeps still run out on their own. Once subscribed, the client renews
+   * the subscription itself after a reconnect.
    */
-  public static async listen(): Promise<void> {
+  public static listen(): Promise<void> {
+    RealtimeAccessChanges.wantsToListen = true;
+
     if (RealtimeAccessChanges.subscriber) {
+      return Promise.resolve();
+    }
+
+    if (!RealtimeAccessChanges.subscribing) {
+      RealtimeAccessChanges.subscribing =
+        RealtimeAccessChanges.subscribe().finally((): void => {
+          RealtimeAccessChanges.subscribing = null;
+        });
+    }
+
+    return RealtimeAccessChanges.subscribing;
+  }
+
+  // Stops listening, and trying to. For shutdown and tests.
+  public static async stopListening(): Promise<void> {
+    RealtimeAccessChanges.wantsToListen = false;
+    RealtimeAccessChanges.failedListens = 0;
+
+    if (RealtimeAccessChanges.listenRetry) {
+      clearTimeout(RealtimeAccessChanges.listenRetry);
+      RealtimeAccessChanges.listenRetry = null;
+    }
+
+    const subscriber: ClientType | null = RealtimeAccessChanges.subscriber;
+
+    RealtimeAccessChanges.subscriber = null;
+
+    if (!subscriber) {
       return;
     }
 
+    try {
+      subscriber.disconnect();
+    } catch (err) {
+      logger.error(err);
+    }
+  }
+
+  private static async subscribe(): Promise<void> {
     const client: ClientType | null = Redis.getClient();
 
     if (!client) {
-      logger.warn(
-        "Realtime: Valkey is not connected, so access changes made on other servers reach this one only as its cached entries run out.",
-      );
+      RealtimeAccessChanges.logListenFailure({
+        message:
+          "Realtime: Valkey is not connected yet, so access changes made on other servers reach this one only as its cached entries run out until it is.",
+        isError: false,
+      });
+      RealtimeAccessChanges.retryListening();
       return;
     }
 
@@ -133,44 +229,98 @@ export default class RealtimeAccessChanges {
 
       await subscriber.subscribe(RealtimeAccessChanges.CHANNEL);
 
-      RealtimeAccessChanges.subscriber = subscriber;
+      // Stopped while subscribing: this connection is not kept.
+      if (!RealtimeAccessChanges.wantsToListen) {
+        subscriber.disconnect();
+        return;
+      }
 
-      GracefulShutdown.registerHandler(
-        "RealtimeAccessChanges",
-        ShutdownPriority.DataStores,
-        async (): Promise<void> => {
-          await RealtimeAccessChanges.stopListening();
-        },
-      );
+      RealtimeAccessChanges.subscriber = subscriber;
+      RealtimeAccessChanges.failedListens = 0;
+
+      if (!RealtimeAccessChanges.shutdownHandlerRegistered) {
+        RealtimeAccessChanges.shutdownHandlerRegistered = true;
+
+        GracefulShutdown.registerHandler(
+          "RealtimeAccessChanges",
+          ShutdownPriority.DataStores,
+          async (): Promise<void> => {
+            await RealtimeAccessChanges.stopListening();
+          },
+        );
+      }
     } catch (err) {
-      logger.error(
-        "Realtime: could not listen for access changes made on other servers; they reach this one as its cached entries run out.",
-      );
-      logger.error(err);
+      RealtimeAccessChanges.logListenFailure({
+        message:
+          "Realtime: could not listen for access changes made on other servers yet; they reach this one as its cached entries run out until it does.",
+        isError: true,
+        err: err,
+      });
 
       try {
         subscriber?.disconnect();
       } catch {
         // Already gone.
       }
+
+      RealtimeAccessChanges.retryListening();
     }
   }
 
-  // Stops listening. For shutdown and tests.
-  public static async stopListening(): Promise<void> {
-    const subscriber: ClientType | null = RealtimeAccessChanges.subscriber;
+  /*
+   * The first attempt in a row that did not listen is logged as a warning
+   * or an error; the retries after it only at debug, so a long outage does
+   * not fill the log every LISTEN_RETRY_IN_MS.
+   */
+  private static logListenFailure(failure: {
+    message: string;
+    isError: boolean;
+    err?: unknown;
+  }): void {
+    RealtimeAccessChanges.failedListens++;
 
-    RealtimeAccessChanges.subscriber = null;
-
-    if (!subscriber) {
+    if (RealtimeAccessChanges.failedListens > 1) {
+      logger.debug(failure.message);
       return;
     }
 
-    try {
-      subscriber.disconnect();
-    } catch (err) {
-      logger.error(err);
+    if (!failure.isError) {
+      logger.warn(failure.message);
+      return;
     }
+
+    logger.error(failure.message);
+
+    if (failure.err) {
+      logger.error(failure.err);
+    }
+  }
+
+  // Tries to listen again after LISTEN_RETRY_IN_MS, unless stopped meanwhile.
+  private static retryListening(): void {
+    if (
+      !RealtimeAccessChanges.wantsToListen ||
+      RealtimeAccessChanges.listenRetry
+    ) {
+      return;
+    }
+
+    const retry: ReturnType<typeof setTimeout> = setTimeout((): void => {
+      RealtimeAccessChanges.listenRetry = null;
+
+      if (!RealtimeAccessChanges.wantsToListen) {
+        return;
+      }
+
+      void RealtimeAccessChanges.listen();
+    }, RealtimeAccessChanges.LISTEN_RETRY_IN_MS);
+
+    // Trying again never keeps the process up.
+    if (typeof retry === "object" && retry && "unref" in retry) {
+      retry.unref();
+    }
+
+    RealtimeAccessChanges.listenRetry = retry;
   }
 
   /*
@@ -248,6 +398,19 @@ export default class RealtimeAccessChanges {
           if (change.userId) {
             RealtimeReaders.forgetUser(change.userId);
           }
+
+          return;
+        }
+
+        case RealtimeAccessChangeKind.SignInRulesChanged: {
+          // The rules are read again here before any socket is asked again.
+          if (change.projectId) {
+            RealtimeAccessChanges.getProjectService().forgetSignInRules();
+          } else {
+            RealtimeAccessChanges.getGlobalConfigService().forgetSignInRules();
+          }
+
+          RealtimeAccessChanges.signInRulesChangedListener?.(change.projectId);
 
           return;
         }
@@ -379,6 +542,16 @@ export default class RealtimeAccessChanges {
         };
       }
 
+      case RealtimeAccessChangeKind.SignInRulesChanged:
+        if (projectId !== undefined && !isId(projectId)) {
+          return null;
+        }
+
+        return {
+          kind: RealtimeAccessChangeKind.SignInRulesChanged,
+          projectId: isId(projectId) ? projectId : undefined,
+        };
+
       default:
         return null;
     }
@@ -397,5 +570,15 @@ export default class RealtimeAccessChanges {
   private static getTeamMemberService(): TeamMemberServiceType {
     // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
     return require("../../Services/TeamMemberService").default;
+  }
+
+  private static getProjectService(): ProjectServiceType {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+    return require("../../Services/ProjectService").default;
+  }
+
+  private static getGlobalConfigService(): GlobalConfigServiceType {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+    return require("../../Services/GlobalConfigService").default;
   }
 }

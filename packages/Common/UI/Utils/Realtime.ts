@@ -43,6 +43,14 @@ export default abstract class Realtime {
   public static readonly AUTHENTICATION_RECOVERY_COOLDOWN_IN_MS: number =
     60 * 1000;
 
+  /*
+   * The longest wait before trying again after refreshes that did not
+   * happen (offline, the identity service restarting). The wait starts at
+   * the cool-down and doubles with each attempt that fails, up to this.
+   */
+  public static readonly MAX_AUTHENTICATION_RETRY_DELAY_IN_MS: number =
+    15 * 60 * 1000;
+
   private static socket: Socket;
 
   /*
@@ -56,6 +64,14 @@ export default abstract class Realtime {
   private static isRecoveringAuthentication: boolean = false;
 
   private static lastAuthenticationRecoveryAt: number | null = null;
+
+  // A recovery waiting for the cool-down, or a retry's wait, to run out.
+  private static pendingAuthenticationRecovery: ReturnType<
+    typeof setTimeout
+  > | null = null;
+
+  // Recoveries in a row whose refresh did not happen.
+  private static failedAuthenticationRecoveries: number = 0;
 
   // Who hears that a project's live updates need an SSO sign-in.
   private static ssoAuthorizationRequiredListeners: Set<
@@ -72,8 +88,19 @@ export default abstract class Realtime {
       this.resubscribeAll();
     });
 
-    socket.on(EventName.AuthenticationRequired, (): void => {
-      this.onAuthenticationRequired();
+    socket.on(
+      EventName.AuthenticationRequired,
+      (payload: JSONObject | undefined): void => {
+        this.onAuthenticationRequired(payload);
+      },
+    );
+
+    /*
+     * The socket's access token expires in a minute, and its live updates
+     * with it: renew first, so they carry on without a break.
+     */
+    socket.on(EventName.SessionExpiring, (): void => {
+      this.requestAuthenticationRecovery({ waitsOutCooldown: true });
     });
 
     socket.on(
@@ -287,17 +314,47 @@ export default abstract class Realtime {
    * A burst of refusals (a page subscribing to several rooms at once) is one
    * recovery: the first starts it, the rest arrive while it is in flight or
    * inside the cool-down.
+   *
+   * A refusal carries the refused request; an ended session carries {}. A
+   * refusal inside the cool-down is let go, so a server that keeps refusing
+   * a freshly refreshed session is not answered with a reconnect loop. An
+   * ended session is never let go: the server says it once, and a page
+   * that let it go would have no live updates left. Inside the cool-down it
+   * waits for the cool-down to run out instead.
    */
-  private static onAuthenticationRequired(): void {
-    if (this.isRecoveringAuthentication) {
+  private static onAuthenticationRequired(payload?: JSONObject): void {
+    const isRefusal: boolean = Boolean(
+      payload && typeof payload === "object" && payload["tenantId"],
+    );
+
+    this.requestAuthenticationRecovery({ waitsOutCooldown: !isRefusal });
+  }
+
+  /*
+   * Starts a refresh-and-reconnect, unless one is in flight or already
+   * waiting (that one covers this too). Inside the cool-down it waits for
+   * the cool-down to run out, or is let go when it may not wait.
+   */
+  private static requestAuthenticationRecovery(options: {
+    waitsOutCooldown: boolean;
+  }): void {
+    if (this.isRecoveringAuthentication || this.pendingAuthenticationRecovery) {
       return;
     }
 
-    if (
-      this.lastAuthenticationRecoveryAt !== null &&
-      Date.now() - this.lastAuthenticationRecoveryAt <
-        this.AUTHENTICATION_RECOVERY_COOLDOWN_IN_MS
-    ) {
+    const waitMs: number = this.getAuthenticationRecoveryWaitMs();
+
+    if (waitMs > 0) {
+      if (!options.waitsOutCooldown) {
+        return;
+      }
+
+      const pending: ReturnType<typeof setTimeout> = setTimeout((): void => {
+        this.pendingAuthenticationRecovery = null;
+        this.requestAuthenticationRecovery({ waitsOutCooldown: true });
+      }, waitMs);
+
+      this.pendingAuthenticationRecovery = pending;
       return;
     }
 
@@ -309,7 +366,31 @@ export default abstract class Realtime {
     });
   }
 
+  /*
+   * How long until the next recovery may start: the cool-down after the
+   * last one, and twice as long after each refresh in a row that did not
+   * happen, up to MAX_AUTHENTICATION_RETRY_DELAY_IN_MS.
+   */
+  private static getAuthenticationRecoveryWaitMs(): number {
+    if (this.lastAuthenticationRecoveryAt === null) {
+      return 0;
+    }
+
+    const delayMs: number = Math.min(
+      this.AUTHENTICATION_RECOVERY_COOLDOWN_IN_MS *
+        Math.pow(2, Math.max(0, this.failedAuthenticationRecoveries - 1)),
+      this.MAX_AUTHENTICATION_RETRY_DELAY_IN_MS,
+    );
+
+    return Math.max(
+      0,
+      this.lastAuthenticationRecoveryAt + delayMs - Date.now(),
+    );
+  }
+
   private static async recoverAuthentication(): Promise<void> {
+    let reconnected: boolean = false;
+
     try {
       /*
        * Without a new cookie a reconnect would only be refused again. When
@@ -318,12 +399,11 @@ export default abstract class Realtime {
        */
       const refreshed: boolean = await API.refreshSession();
 
-      if (!refreshed) {
-        return;
+      if (refreshed) {
+        this.socket.disconnect();
+        this.socket.connect();
+        reconnected = true;
       }
-
-      this.socket.disconnect();
-      this.socket.connect();
     } catch {
       // A refresh that could not complete (offline, say) did not happen.
     } finally {
@@ -331,5 +411,21 @@ export default abstract class Realtime {
       // The cool-down runs from the end of the attempt, however long it took.
       this.lastAuthenticationRecoveryAt = Date.now();
     }
+
+    if (reconnected) {
+      this.failedAuthenticationRecoveries = 0;
+      return;
+    }
+
+    /*
+     * The refresh did not happen (offline, the identity service restarting).
+     * Nothing else would bring the live updates back: the server does not
+     * repeat itself to a socket whose session has ended, and a page that
+     * subscribes to nothing new sends it nothing to refuse. So the page tries
+     * again once the wait runs out, waiting longer after each attempt that
+     * fails.
+     */
+    this.failedAuthenticationRecoveries++;
+    this.requestAuthenticationRecovery({ waitsOutCooldown: true });
   }
 }

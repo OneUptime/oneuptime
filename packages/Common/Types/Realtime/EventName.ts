@@ -22,12 +22,23 @@ enum EventName {
   AuthenticationRequired = "AuthenticationRequired",
 
   /*
-   * Server -> client. A ListenToModelEvent was refused because the project
-   * requires an SSO sign-in that the socket's handshake does not carry, as
-   * an API request of the same session would be refused. The payload is
-   * the refused ListenToModelEventJSON, so the client knows which project
-   * asks for it; signing in with SSO to that project and reconnecting lets
-   * the subscription through.
+   * Server -> client. The access token this socket joined with expires in
+   * about a minute (RealtimeSessions.RENEWAL_NOTICE_IN_MS), and its live
+   * updates end then. The socket still hears until that time: the client
+   * refreshes its session and reconnects first, so the new handshake carries
+   * the new cookie and its live updates carry on without a break. The
+   * payload is {}.
+   */
+  SessionExpiring = "SessionExpiring",
+
+  /*
+   * Server -> client. A project requires an SSO sign-in that the socket's
+   * handshake does not carry, as an API request of the same session would
+   * be refused: a ListenToModelEvent was refused, or the project's sign-in
+   * rules changed and the socket has left the project's rooms. The payload
+   * names the project in tenantId (a refused join sends the refused
+   * ListenToModelEventJSON); signing in with SSO to that project and
+   * reconnecting lets the subscriptions through.
    */
   SsoAuthorizationRequired = "SsoAuthorizationRequired",
 }
