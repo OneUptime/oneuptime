@@ -107,6 +107,10 @@ const CHAT_BUILDER_FILES: ReadonlyArray<string> = [
   "packages/Common/Server/Utils/Monitor/MonitorResource.ts",
   // A series' labels, as a description template's {{seriesResourceBlock}}.
   "packages/Common/Types/Monitor/SeriesContext/SeriesLabelDisplay.ts",
+  // An incident's or alert's video call, as posted to its feed and channels.
+  "packages/Common/Server/Utils/VideoCall/VideoCallMessages.ts",
+  // Why a workspace rule's video call could not start, in the notification log.
+  "packages/Common/Server/Utils/VideoCall/VideoCallRuleExecutor.ts",
 ];
 
 /*

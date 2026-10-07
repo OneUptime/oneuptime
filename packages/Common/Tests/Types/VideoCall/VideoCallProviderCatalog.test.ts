@@ -34,9 +34,13 @@ describe("VideoCallProviderCatalog", () => {
   });
 
   test.each(
-    VideoCallProviderCatalog.map((d: VideoCallProviderDefinition) => {
-      return [d.provider, d];
-    }),
+    VideoCallProviderCatalog.map(
+      (
+        d: VideoCallProviderDefinition,
+      ): [string, VideoCallProviderDefinition] => {
+        return [d.provider, d];
+      },
+    ),
   )(
     "%s is a complete definition",
     (_provider: string, definition: VideoCallProviderDefinition) => {
