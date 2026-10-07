@@ -170,6 +170,7 @@ const KubernetesRightSizingCard: FunctionComponent<ComponentProps> = (
   const [result, setResult] = useState<RightSizingResult | null>(null);
 
   const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(COST_ROWS_PER_PAGE);
   const [sortBy, setSortBy] = useState<keyof RightSizingRecommendation | null>(
     "estimatedMonthlySavings",
   );
@@ -236,8 +237,8 @@ const KubernetesRightSizingCard: FunctionComponent<ComponentProps> = (
   }, [recommendations, sortBy, sortOrder]);
 
   const pagedRows: Array<RightSizingRecommendation> = useMemo(() => {
-    return pageCostRows<RightSizingRecommendation>(sortedRows, page);
-  }, [sortedRows, page]);
+    return pageCostRows<RightSizingRecommendation>(sortedRows, page, pageSize);
+  }, [sortedRows, page, pageSize]);
 
   const columns: Array<Column<RightSizingRecommendation>> = useMemo(() => {
     return [
@@ -457,9 +458,12 @@ const KubernetesRightSizingCard: FunctionComponent<ComponentProps> = (
           error=""
           currentPageNumber={page}
           totalItemsCount={sortedRows.length}
-          itemsOnPage={COST_ROWS_PER_PAGE}
-          onNavigateToPage={(pageNumber: number) => {
+          itemsOnPage={pageSize}
+          onNavigateToPage={(pageNumber: number, itemsOnPage: number) => {
             setPage(pageNumber);
+            if (itemsOnPage > 0) {
+              setPageSize(itemsOnPage);
+            }
           }}
           sortBy={sortBy}
           sortOrder={sortOrder}

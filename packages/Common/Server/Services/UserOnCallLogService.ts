@@ -48,6 +48,14 @@ export const NO_NOTIFICATION_RULES_STATUS_MESSAGE: string =
   "No notification rules found for this user. User should add the rules in User Settings > On-Call Rules.";
 
 /*
+ * Why an on-call notification log stopped part way: the person left the
+ * project (UserOnCallLog:ExecutePendingExecutions asks before every tick), so
+ * the rules still due for them - "call me after 10 minutes" - are not run.
+ */
+export const NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE: string =
+  "Stopped because this user is no longer a member of the project. Their remaining notification rules were not run.";
+
+/*
  * FindWhereProperty is constrained to object types, so the parameter is `any`
  * here exactly as it is on every QueryHelper predicate - the value is a TypeORM
  * Raw operator, not a boolean, and the column it lands on is what gives it

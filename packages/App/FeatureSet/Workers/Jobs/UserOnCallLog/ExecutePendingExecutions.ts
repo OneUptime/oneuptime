@@ -7,9 +7,13 @@ import { IsDevelopment } from "Common/Server/EnvironmentConfig";
 import IncidentService from "Common/Server/Services/IncidentService";
 import UserNotificationRuleService from "Common/Server/Services/UserNotificationRuleService";
 import UserOnCallLogService, {
+  NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE,
   notOptOutRuleQuery,
 } from "Common/Server/Services/UserOnCallLogService";
 import logger from "Common/Server/Utils/Logger";
+import ProjectMembership, {
+  ProjectUserPair,
+} from "Common/Server/Utils/TeamMember/ProjectMembership";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
 import UserOnCallLog from "Common/Models/DatabaseModels/UserOnCallLog";
@@ -57,10 +61,58 @@ RunCron(
         },
       });
 
+    /*
+     * A log keeps running its later rules ("call me after 10 minutes") for as
+     * long as the incident is not acknowledged, so the person it pages may
+     * have left the project since it started. Whether each one is still a
+     * member is read once for the whole tick (ProjectMembership).
+     *
+     * If membership cannot be read, the tick runs every log as it did before
+     * this check rather than none of them: the leave cleanup has already
+     * removed the notification rules of people who left, and a page lost to
+     * a failed read is worse than one more read next minute.
+     */
+    let memberKeys: Set<string> | null = null;
+
+    try {
+      memberKeys = await ProjectMembership.getMemberKeys(
+        pendingNotificationLogs
+          .filter((log: UserOnCallLog): boolean => {
+            return Boolean(log.projectId && log.userId);
+          })
+          .map((log: UserOnCallLog): ProjectUserPair => {
+            return {
+              projectId: log.projectId!,
+              userId: log.userId!,
+            };
+          }),
+      );
+    } catch (err) {
+      logger.error(
+        "Could not read project membership for pending on-call logs; running them without the membership check.",
+      );
+      logger.error(err as Error);
+    }
+
     const promises: Array<Promise<void>> = [];
 
     for (const pendingNotificationLog of pendingNotificationLogs) {
-      promises.push(executePendingNotificationLog(pendingNotificationLog));
+      promises.push(
+        executePendingNotificationLog(pendingNotificationLog, {
+          isProjectMember:
+            memberKeys === null ||
+            Boolean(
+              pendingNotificationLog.projectId &&
+                pendingNotificationLog.userId &&
+                memberKeys.has(
+                  ProjectMembership.getKey(
+                    pendingNotificationLog.projectId,
+                    pendingNotificationLog.userId,
+                  ),
+                ),
+            ),
+        }),
+      );
     }
 
     await Promise.allSettled(promises);
@@ -69,11 +121,37 @@ RunCron(
 
 type ExecutePendingNotificationLogFunction = (
   pendingNotificationLog: UserOnCallLog,
+  membership: {
+    // Whether the person this log pages is a member of its project now.
+    isProjectMember: boolean;
+  },
 ) => Promise<void>;
 
 const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
-  async (pendingNotificationLog: UserOnCallLog): Promise<void> => {
+  async (
+    pendingNotificationLog: UserOnCallLog,
+    membership: { isProjectMember: boolean },
+  ): Promise<void> => {
     try {
+      if (!membership.isProjectMember) {
+        /*
+         * Somebody who has left is not paged again on the project's behalf:
+         * the log ends here and the rules still due for them are not run.
+         */
+        await UserOnCallLogService.updateOneById({
+          id: pendingNotificationLog.id!,
+          data: {
+            status: UserNotificationExecutionStatus.Completed,
+            statusMessage: NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        return;
+      }
+
       const ruleType: NotificationRuleType =
         UserOnCallLogService.getNotificationRuleType(
           pendingNotificationLog.userNotificationEventType!,

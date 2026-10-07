@@ -30,11 +30,67 @@ import {
 } from "react-beautiful-dnd";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import useProjectMembership from "../../../Utils/UseProjectMembership";
+import {
+  ProjectMembershipAnswer,
+  ProjectMembershipStatus,
+} from "../../../Utils/ProjectMembershipLoader";
+import ObjectID from "Common/Types/ObjectID";
 
 export interface ComponentProps {
   layer: OnCallDutyPolicyScheduleLayer;
   onUpdateUsers: (layerUsers: Array<OnCallDutyPolicyScheduleLayerUser>) => void;
 }
+
+/*
+ * The line under a layer user's name: their email - or, once they have left
+ * the project, "No longer a member", and before they have accepted their
+ * invitation, "Invitation not accepted yet". Nobody who is not a member is
+ * paged when the rotation reaches them, so the layer needs somebody else in
+ * their place, or them to accept.
+ */
+const LayerUserDetailLine: FunctionComponent<{
+  userId: ObjectID | null | undefined;
+  name: string;
+  email: string;
+}> = (props: {
+  userId: ObjectID | null | undefined;
+  name: string;
+  email: string;
+}): ReactElement | null => {
+  const translator: Translator = useTranslator();
+  const membership: ProjectMembershipAnswer = useProjectMembership(
+    props.userId,
+  );
+
+  if (membership === ProjectMembershipStatus.NotMember) {
+    return (
+      <div
+        data-testid="layer-user-not-project-member"
+        className="truncate text-xs font-medium text-amber-700"
+      >
+        {translator.translateText("No longer a member")}
+      </div>
+    );
+  }
+
+  if (membership === ProjectMembershipStatus.Invited) {
+    return (
+      <div
+        data-testid="layer-user-invitation-pending"
+        className="truncate text-xs font-medium text-amber-700"
+      >
+        {translator.translateText("Invitation not accepted yet")}
+      </div>
+    );
+  }
+
+  if (props.name && props.email) {
+    return <div className="truncate text-xs text-gray-500">{props.email}</div>;
+  }
+
+  return null;
+};
 
 const LayerUser: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -239,9 +295,7 @@ const LayerUser: FunctionComponent<ComponentProps> = (
           <div className="truncate text-sm font-medium text-gray-900">
             {name || email || translator.translateText("Unknown user")}
           </div>
-          {name && email ? (
-            <div className="truncate text-xs text-gray-500">{email}</div>
-          ) : null}
+          <LayerUserDetailLine userId={user?.id} name={name} email={email} />
         </div>
 
         <button

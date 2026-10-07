@@ -184,6 +184,7 @@ RunCron(
         select: {
           _id: true,
           title: true,
+          isPrivate: true,
           incidentNumber: true,
           incidentNumberWithPrefix: true,
           incidentSeverity: {
@@ -291,8 +292,7 @@ RunCron(
                     ? `#${incident.incidentNumber}`
                     : "");
 
-                return {
-                  incidentTitle: incident.title || "",
+                const incidentForTemplate: JSONObject = {
                   incidentNumber: incidentNumberStr,
                   incidentSeverity:
                     incident.incidentSeverity?.name || "Not Set",
@@ -309,6 +309,25 @@ RunCron(
                     }),
                   incidentViewLink: incidentLink,
                 };
+
+                /*
+                 * A private incident is seen only by its own owners and the
+                 * project's owners and admins, and the episode's owners are
+                 * often none of those - the grouping engine adds private
+                 * incidents to episodes by itself. So its title never goes
+                 * into this email, whoever receives it, as IncidentAlertService
+                 * keeps a private end's title out of the other side's feed
+                 * entry. Its number and link are kept (opening the link is
+                 * subject to the incident's own privacy), and the template
+                 * names it "Private incident" where the title would be.
+                 */
+                if (incident.isPrivate === true) {
+                  incidentForTemplate["isPrivate"] = "true";
+                } else {
+                  incidentForTemplate["incidentTitle"] = incident.title || "";
+                }
+
+                return incidentForTemplate;
               },
             ),
           );
