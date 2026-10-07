@@ -439,6 +439,8 @@ describe("McpOAuthGrantService", () => {
         activatedAt: true,
         expiresAt: true,
         lastUsedAt: true,
+        // When the SSO sign-in behind the grant was given (#4530): a provider turned off since ends it.
+        createdAt: true,
         ssoProviderType: true,
         ssoProviderId: true,
         ssoExpiresAt: true,

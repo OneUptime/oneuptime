@@ -49,10 +49,13 @@ import ProjectScopedReferenceValidator, {
   getWrittenRelationReferences,
   HeldRelationIds,
   ProjectScopedReference,
+  ProjectScopedReferenceException,
   ProjectScopedRelation,
   resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
+import ColumnWriteRefusedException from "../Types/Database/Permissions/ColumnWriteRefusedException";
 import ReferenceChange from "../Utils/Database/ReferenceChange";
 import EventFieldChange, {
   EventFieldSet,
@@ -323,10 +326,222 @@ type IncidentUpdatePayload = {
 };
 
 export class Service extends ProjectReferencesService<Model> {
+  /*
+   * The creates that declare an incident from a template through
+   * createFromTemplate, and the template each one names. Only that method
+   * adds to it: a create from anywhere else - an API request, a workflow's
+   * JSON - cannot name a template this way, and one that sends
+   * createdIncidentTemplateId is refused by the column check, as that
+   * column is OneUptime's to write.
+   */
+  private readonly templateDeclarations: WeakMap<CreateBy<Model>, ObjectID> =
+    new WeakMap<CreateBy<Model>, ObjectID>();
+
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
+    }
+  }
+
+  /*
+   * DECLARES AN INCIDENT FROM ONE OF THE PROJECT'S INCIDENT TEMPLATES, AS
+   * `props`: a workflow's Create One Incident step with an Incident Template
+   * picked (Types/Workflow/CreateFromTemplate).
+   *
+   * It is the declaration the dashboard makes from a template, made on the
+   * server, by the code that applies a template anywhere on the server (the
+   * template branch of onBeforeCreate):
+   *
+   *  - the template fills in every field `data` leaves out - the title,
+   *    description, severity, initial state, monitor status, monitors and
+   *    other resources, on-call policies, labels, status pages and custom
+   *    field values - and a field `data` sets wins over the template's;
+   *  - the template's owners become the incident's owners, added as the
+   *    dashboard adds them;
+   *  - the template is read as the caller: one in another project, one that
+   *    does not exist, or one outside what they may read is refused alike;
+   *    a caller who may not read templates at all, or whose plan does not
+   *    include them, is told so, as the dashboard tells them;
+   *  - everything the incident is written with, the template's values
+   *    included, meets the caller's own permission and plan checks;
+   *  - the incident records the template it was declared from
+   *    (createdIncidentTemplateId), a value no caller may send for itself,
+   *    written once every check on the caller has passed (onCreatePermitted).
+   */
+  @CaptureSpan()
+  public override async createFromTemplate(data: {
+    templateId: ObjectID;
+    data: Model;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Model> {
+    const projectId: ObjectID | undefined =
+      data.props.tenantId || data.data.projectId;
+
+    if (!projectId) {
+      throw new BadDataException(
+        "An incident is declared from a template in a project. Please name the project.",
+      );
+    }
+
+    // The template is applied by onBeforeCreate, which a hook-free create skips.
+    if (data.props.ignoreHooks) {
+      throw new BadDataException(
+        "An incident cannot be declared from a template without its hooks.",
+      );
+    }
+
+    /*
+     * The template is named once, here. A create that also names one in
+     * its data is refused, whoever makes it: there would be two templates.
+     */
+    if (
+      RelationIdUtil.isPresent(
+        data.data as unknown as Record<string, unknown>,
+        TEMPLATE_KEYS,
+      )
+    ) {
+      throw new ColumnWriteRefusedException({
+        requestType: DatabaseRequestType.Create,
+        columnName: "createdIncidentTemplateId",
+        modelName: this.getModel().singularName,
+      });
+    }
+
+    // A malformed id names no template: refused like a missing one.
+    if (!ObjectID.isValidUUID(data.templateId.toString())) {
+      throw this.getTemplateNotInProjectException(data.templateId);
+    }
+
+    /*
+     * Everything else - the template and its owners - is read by
+     * onBeforeCreate, once the caller has been checked: one who may not
+     * create incidents reads nothing of the template.
+     */
+    const createBy: CreateBy<Model> = {
+      data: data.data,
+      props: data.props,
+    };
+
+    this.templateDeclarations.set(createBy, data.templateId);
+
+    try {
+      return await this.create(createBy);
+    } finally {
+      this.templateDeclarations.delete(createBy);
+    }
+  }
+
+  // The template a create declares the incident from, through createFromTemplate.
+  private getTemplateDeclaredFor(createBy: CreateBy<Model>): ObjectID | null {
+    return this.templateDeclarations.get(createBy) || null;
+  }
+
+  /*
+   * The owners of the template an incident is declared from through
+   * createFromTemplate become the incident's owners, handed over as the
+   * dashboard hands over the owners its declare form fills in from a
+   * template: onCreateSuccess adds them once the incident's channels exist,
+   * quietly, as the caller (a user's create never asks for its owners to be
+   * notified). Read as the caller, once the template is known to be one
+   * they may declare from; owners the create already hands over are kept,
+   * and each one is handed over once.
+   */
+  private async handOverTemplateOwners(data: {
+    createBy: CreateBy<Model>;
+    incidentTemplateId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<void> {
+    const owners: { userIds: Array<ObjectID>; teamIds: Array<ObjectID> } =
+      await IncidentTemplateService.getOwnerIds({
+        incidentTemplateId: data.incidentTemplateId,
+        projectId: data.projectId,
+        props: data.createBy.props,
+      });
+
+    if (owners.userIds.length === 0 && owners.teamIds.length === 0) {
+      return;
+    }
+
+    const miscDataProps: JSONObject = data.createBy.miscDataProps || {};
+
+    const merge: (
+      handedOver: unknown,
+      fromTemplate: Array<ObjectID>,
+    ) => Array<ObjectID> = (
+      handedOver: unknown,
+      fromTemplate: Array<ObjectID>,
+    ): Array<ObjectID> => {
+      const merged: Array<ObjectID> = Array.isArray(handedOver)
+        ? [...(handedOver as Array<ObjectID>)]
+        : [];
+      const seen: Set<string> = new Set<string>(
+        merged.map((id: ObjectID): string => {
+          return id.toString();
+        }),
+      );
+
+      for (const id of fromTemplate) {
+        if (!seen.has(id.toString())) {
+          seen.add(id.toString());
+          merged.push(id);
+        }
+      }
+
+      return merged;
+    };
+
+    if (owners.userIds.length > 0) {
+      miscDataProps["ownerUsers"] = merge(
+        miscDataProps["ownerUsers"],
+        owners.userIds,
+      );
+    }
+
+    if (owners.teamIds.length > 0) {
+      miscDataProps["ownerTeams"] = merge(
+        miscDataProps["ownerTeams"],
+        owners.teamIds,
+      );
+    }
+
+    data.createBy.miscDataProps = miscDataProps;
+  }
+
+  /*
+   * A template that is not the project's - another project's, one that
+   * does not exist, one the caller may not read - in the words every
+   * reference check of the project answers with
+   * (ProjectScopedReferenceValidator): which of these it is, is not the
+   * caller's to learn.
+   */
+  private getTemplateNotInProjectException(
+    templateId: ObjectID,
+  ): ProjectScopedReferenceException {
+    return new ProjectScopedReferenceException(
+      ProjectScopedReferenceValidator.getRefusalMessage({
+        subject: "incident",
+        described: [`Incident Template "${templateId.toString()}"`],
+      }),
+    );
+  }
+
+  /*
+   * An incident declared from a template through createFromTemplate
+   * records the template: createdIncidentTemplateId. No caller may write
+   * that column, so it is written here, once every check on the caller has
+   * passed, rather than held against their column permissions.
+   */
+  @CaptureSpan()
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    const templateId: ObjectID | null = this.getTemplateDeclaredFor(
+      onCreate.createBy,
+    );
+
+    if (templateId) {
+      onCreate.createBy.data.createdIncidentTemplateId = templateId.toString();
     }
   }
 
@@ -2616,9 +2831,9 @@ export class Service extends ProjectReferencesService<Model> {
       createBy.data as unknown as Record<string, unknown>;
 
     /*
-     * A state the caller picked, and the template they declare from, each
-     * under either of its names (the two must agree), so a pick sent as the
-     * relation counts the same as one sent as the ID.
+     * A state the caller picked, under either of its names (the two must
+     * agree), so a pick sent as the relation counts the same as one sent as
+     * the ID. The template is read the same way below.
      */
     const pickedIncidentStateId: ObjectID | null =
       RelationIdUtil.readConsistent(
@@ -2627,44 +2842,46 @@ export class Service extends ProjectReferencesService<Model> {
         "Incident State",
       );
 
-    const incidentTemplateId: ObjectID | null = RelationIdUtil.readConsistent(
+    /*
+     * The template the incident is declared from. Either one named through
+     * createFromTemplate - a workflow's Create One Incident step - or
+     * createdIncidentTemplateId, which only OneUptime itself sends (an
+     * incident form), under either of its names.
+     */
+    const templateIdInData: ObjectID | null = RelationIdUtil.readConsistent(
       createData,
       TEMPLATE_KEYS,
       "Incident Template",
     );
 
-    // A state the caller picked (manual selection) is where the incident starts.
-    if (pickedIncidentStateId) {
-      initialIncidentStateId = pickedIncidentStateId;
+    /*
+     * createdIncidentTemplateId itself is OneUptime's to set: anyone else who
+     * sends it is refused by the column check after these hooks, as for
+     * every column no caller may write. A caller declares from a template
+     * through createFromTemplate instead.
+     */
+    const declaredTemplateId: ObjectID | null =
+      this.getTemplateDeclaredFor(createBy);
 
-      // It has to be one of the project's states.
-      const pickedStart: StartingState | null =
-        await IncidentStateService.getStartingState({
-          projectId: projectId,
-          incidentStateId: pickedIncidentStateId,
-        });
+    const incidentTemplateId: ObjectID | null =
+      declaredTemplateId || templateIdInData;
 
-      if (!pickedStart) {
-        throw new BadDataException(
-          "Invalid incident state provided. The state does not exist or does not belong to this project.",
-        );
-      }
-
-      startingStage = pickedStart.stage;
-      isStatePlacedByStartingRead = true;
-    } else if (incidentTemplateId) {
-      /*
-       * Created from a template — pull every field we may want to
-       * inherit and apply each one only if the caller didn't already
-       * provide it. The dashboard pre-fills these on the client, so in
-       * the UI flow this is a no-op; the gain is for API consumers
-       * that just send `createdIncidentTemplateId` and expect the
-       * server to materialize the rest. `undefined` means "not set by
-       * the caller" — an explicit empty array or empty string is
-       * treated as an intentional override and we leave it alone.
-       */
-      const incidentTemplate: IncidentTemplate | null =
-        await IncidentTemplateService.findOneBy({
+    /*
+     * Declared from a template: pull every field it may give, and apply each
+     * one only where the caller did not provide it. The dashboard pre-fills
+     * these on the client, so in its flow this is a no-op; the gain is for a
+     * workflow step or a form, which name the template and expect the server
+     * to materialize the rest. `undefined` means "not set by the caller" - an
+     * explicit empty array or empty string is treated as an intentional
+     * override and left alone.
+     *
+     * A template named through createFromTemplate is read as the caller: one
+     * they may not read, or whose plan does not include templates, is not
+     * theirs to declare from, and one that is not the project's is refused
+     * like a missing reference. One OneUptime names is read as OneUptime.
+     */
+    const incidentTemplate: IncidentTemplate | null = incidentTemplateId
+      ? await IncidentTemplateService.findOneBy({
           query: {
             _id: incidentTemplateId.toString(),
             projectId: projectId,
@@ -2687,203 +2904,241 @@ export class Service extends ProjectReferencesService<Model> {
             isScopedToStatusPages: true,
             customFields: true,
           },
-          props: {
-            isRoot: true,
-          },
+          props: declaredTemplateId
+            ? createBy.props
+            : {
+                isRoot: true,
+              },
+        })
+      : null;
+
+    if (declaredTemplateId && !incidentTemplate) {
+      throw this.getTemplateNotInProjectException(declaredTemplateId);
+    }
+
+    if (declaredTemplateId) {
+      await this.handOverTemplateOwners({
+        createBy: createBy,
+        incidentTemplateId: declaredTemplateId,
+        projectId: projectId,
+      });
+    }
+
+    /*
+     * A state the caller picked (manual selection) is where the incident
+     * starts, over the template's like any other field - the rest of the
+     * template still applies, as it does when a state is picked on the
+     * dashboard's declare form.
+     */
+    if (pickedIncidentStateId) {
+      initialIncidentStateId = pickedIncidentStateId;
+
+      // It has to be one of the project's states.
+      const pickedStart: StartingState | null =
+        await IncidentStateService.getStartingState({
+          projectId: projectId,
+          incidentStateId: pickedIncidentStateId,
         });
 
-      if (incidentTemplate?.initialIncidentStateId) {
-        /*
-         * The template's state, while it is one of the project's states.
-         * One deleted since, or never the project's, leaves the incident to
-         * start in the created state.
-         */
-        const templateStart: StartingState | null =
-          await IncidentStateService.getStartingState({
-            projectId: projectId,
-            incidentStateId: incidentTemplate.initialIncidentStateId,
-          });
+      if (!pickedStart) {
+        throw new BadDataException(
+          "Invalid incident state provided. The state does not exist or does not belong to this project.",
+        );
+      }
 
-        if (templateStart) {
-          initialIncidentStateId = incidentTemplate.initialIncidentStateId;
-          startingStage = templateStart.stage;
-          isStatePlacedByStartingRead = true;
+      startingStage = pickedStart.stage;
+      isStatePlacedByStartingRead = true;
+    } else if (incidentTemplate?.initialIncidentStateId) {
+      /*
+       * The template's state, while it is one of the project's states.
+       * One deleted since, or never the project's, leaves the incident to
+       * start in the created state.
+       */
+      const templateStart: StartingState | null =
+        await IncidentStateService.getStartingState({
+          projectId: projectId,
+          incidentStateId: incidentTemplate.initialIncidentStateId,
+        });
+
+      if (templateStart) {
+        initialIncidentStateId = incidentTemplate.initialIncidentStateId;
+        startingStage = templateStart.stage;
+        isStatePlacedByStartingRead = true;
+      }
+    }
+
+    if (incidentTemplate) {
+      /*
+       * A severity or a monitor status the caller sent, under either of
+       * its names, wins over the template's. The template's is written
+       * with stamp, so no other name is left beside it to be stored
+       * instead.
+       */
+      if (
+        !RelationIdUtil.readConsistent(
+          createData,
+          SEVERITY_KEYS,
+          "Incident Severity",
+        ) &&
+        incidentTemplate.incidentSeverityId
+      ) {
+        RelationIdUtil.stamp(
+          createData,
+          SEVERITY_KEYS,
+          incidentTemplate.incidentSeverityId,
+        );
+      }
+      if (
+        !RelationIdUtil.isPresent(createData, CHANGE_MONITOR_STATUS_KEYS) &&
+        incidentTemplate.changeMonitorStatusToId
+      ) {
+        RelationIdUtil.stamp(
+          createData,
+          CHANGE_MONITOR_STATUS_KEYS,
+          incidentTemplate.changeMonitorStatusToId,
+        );
+      }
+      if (
+        createBy.data.title === undefined &&
+        typeof incidentTemplate.title === "string"
+      ) {
+        createBy.data.title = incidentTemplate.title;
+      }
+      if (
+        createBy.data.description === undefined &&
+        typeof incidentTemplate.description === "string"
+      ) {
+        createBy.data.description = incidentTemplate.description;
+      }
+
+      const stubBy: <T extends { _id?: string | undefined }>(
+        ctor: new () => T,
+        rows: Array<{ _id?: string | undefined }> | undefined,
+      ) => Array<T> | undefined = <T extends { _id?: string | undefined }>(
+        ctor: new () => T,
+        rows: Array<{ _id?: string | undefined }> | undefined,
+      ): Array<T> | undefined => {
+        if (!rows) {
+          return undefined;
+        }
+        return rows
+          .filter((row: { _id?: string | undefined }): boolean => {
+            return Boolean(row._id);
+          })
+          .map((row: { _id?: string | undefined }): T => {
+            const stub: T = new ctor();
+            stub._id = String(row._id);
+            return stub;
+          });
+      };
+
+      if (createBy.data.monitors === undefined) {
+        const stubs: Array<Monitor> | undefined = stubBy(
+          Monitor,
+          incidentTemplate.monitors,
+        );
+        if (stubs && stubs.length > 0) {
+          createBy.data.monitors = stubs;
+        }
+      }
+      if (createBy.data.hosts === undefined) {
+        const stubs: Array<Host> | undefined = stubBy(
+          Host,
+          incidentTemplate.hosts,
+        );
+        if (stubs && stubs.length > 0) {
+          createBy.data.hosts = stubs;
+        }
+      }
+      if (createBy.data.kubernetesClusters === undefined) {
+        const stubs: Array<KubernetesCluster> | undefined = stubBy(
+          KubernetesCluster,
+          incidentTemplate.kubernetesClusters,
+        );
+        if (stubs && stubs.length > 0) {
+          createBy.data.kubernetesClusters = stubs;
+        }
+      }
+      if (createBy.data.dockerHosts === undefined) {
+        const stubs: Array<DockerHost> | undefined = stubBy(
+          DockerHost,
+          incidentTemplate.dockerHosts,
+        );
+        if (stubs && stubs.length > 0) {
+          createBy.data.dockerHosts = stubs;
+        }
+      }
+      if (createBy.data.podmanHosts === undefined) {
+        const stubs: Array<PodmanHost> | undefined = stubBy(
+          PodmanHost,
+          incidentTemplate.podmanHosts,
+        );
+        if (stubs && stubs.length > 0) {
+          createBy.data.podmanHosts = stubs;
+        }
+      }
+      if (createBy.data.services === undefined) {
+        const stubs: Array<ServiceModel> | undefined = stubBy(
+          ServiceModel,
+          incidentTemplate.services,
+        );
+        if (stubs && stubs.length > 0) {
+          createBy.data.services = stubs;
+        }
+      }
+      if (createBy.data.onCallDutyPolicies === undefined) {
+        const stubs: Array<OnCallDutyPolicy> | undefined = stubBy(
+          OnCallDutyPolicy,
+          incidentTemplate.onCallDutyPolicies,
+        );
+        if (stubs && stubs.length > 0) {
+          createBy.data.onCallDutyPolicies = stubs;
+        }
+      }
+      if (createBy.data.labels === undefined) {
+        const stubs: Array<Label> | undefined = stubBy(
+          Label,
+          incidentTemplate.labels,
+        );
+        if (stubs && stubs.length > 0) {
+          createBy.data.labels = stubs;
+        }
+      }
+      // Applying a template that has status pages scopes the incident.
+      if (createBy.data.statusPages === undefined) {
+        const stubs: Array<StatusPage> | undefined = stubBy(
+          StatusPage,
+          incidentTemplate.statusPages,
+        );
+        if (stubs && stubs.length > 0) {
+          createBy.data.statusPages = stubs;
+        } else if (incidentTemplate.isScopedToStatusPages) {
+          /*
+           * A template limited to status pages that have all been deleted
+           * since. Its incidents stay limited - to nothing - like an
+           * incident whose pages were deleted, rather than reaching every
+           * page that lists their monitors.
+           */
+          isScopedToNothingByTemplate = true;
         }
       }
 
-      if (incidentTemplate) {
-        /*
-         * A severity or a monitor status the caller sent, under either of
-         * its names, wins over the template's. The template's is written
-         * with stamp, so no other name is left beside it to be stored
-         * instead.
-         */
-        if (
-          !RelationIdUtil.readConsistent(
-            createData,
-            SEVERITY_KEYS,
-            "Incident Severity",
-          ) &&
-          incidentTemplate.incidentSeverityId
-        ) {
-          RelationIdUtil.stamp(
-            createData,
-            SEVERITY_KEYS,
-            incidentTemplate.incidentSeverityId,
-          );
-        }
-        if (
-          !RelationIdUtil.isPresent(createData, CHANGE_MONITOR_STATUS_KEYS) &&
-          incidentTemplate.changeMonitorStatusToId
-        ) {
-          RelationIdUtil.stamp(
-            createData,
-            CHANGE_MONITOR_STATUS_KEYS,
-            incidentTemplate.changeMonitorStatusToId,
-          );
-        }
-        if (
-          createBy.data.title === undefined &&
-          typeof incidentTemplate.title === "string"
-        ) {
-          createBy.data.title = incidentTemplate.title;
-        }
-        if (
-          createBy.data.description === undefined &&
-          typeof incidentTemplate.description === "string"
-        ) {
-          createBy.data.description = incidentTemplate.description;
-        }
+      /*
+       * The template's custom field values fill in the fields the caller
+       * left out; a value the caller sent always wins. Merged, not
+       * replaced, so the caller's own values are never dropped. They are
+       * the template's, so the value check above (the caller's values
+       * only) does not see them, and the mapping below still has the last
+       * word on a mapped field.
+       */
+      const customFieldsWithTemplate: JSONObject | undefined =
+        mergeTemplateCustomFields({
+          templateCustomFields: incidentTemplate.customFields,
+          customFields: createBy.data.customFields,
+        });
 
-        const stubBy: <T extends { _id?: string | undefined }>(
-          ctor: new () => T,
-          rows: Array<{ _id?: string | undefined }> | undefined,
-        ) => Array<T> | undefined = <T extends { _id?: string | undefined }>(
-          ctor: new () => T,
-          rows: Array<{ _id?: string | undefined }> | undefined,
-        ): Array<T> | undefined => {
-          if (!rows) {
-            return undefined;
-          }
-          return rows
-            .filter((row: { _id?: string | undefined }): boolean => {
-              return Boolean(row._id);
-            })
-            .map((row: { _id?: string | undefined }): T => {
-              const stub: T = new ctor();
-              stub._id = String(row._id);
-              return stub;
-            });
-        };
-
-        if (createBy.data.monitors === undefined) {
-          const stubs: Array<Monitor> | undefined = stubBy(
-            Monitor,
-            incidentTemplate.monitors,
-          );
-          if (stubs && stubs.length > 0) {
-            createBy.data.monitors = stubs;
-          }
-        }
-        if (createBy.data.hosts === undefined) {
-          const stubs: Array<Host> | undefined = stubBy(
-            Host,
-            incidentTemplate.hosts,
-          );
-          if (stubs && stubs.length > 0) {
-            createBy.data.hosts = stubs;
-          }
-        }
-        if (createBy.data.kubernetesClusters === undefined) {
-          const stubs: Array<KubernetesCluster> | undefined = stubBy(
-            KubernetesCluster,
-            incidentTemplate.kubernetesClusters,
-          );
-          if (stubs && stubs.length > 0) {
-            createBy.data.kubernetesClusters = stubs;
-          }
-        }
-        if (createBy.data.dockerHosts === undefined) {
-          const stubs: Array<DockerHost> | undefined = stubBy(
-            DockerHost,
-            incidentTemplate.dockerHosts,
-          );
-          if (stubs && stubs.length > 0) {
-            createBy.data.dockerHosts = stubs;
-          }
-        }
-        if (createBy.data.podmanHosts === undefined) {
-          const stubs: Array<PodmanHost> | undefined = stubBy(
-            PodmanHost,
-            incidentTemplate.podmanHosts,
-          );
-          if (stubs && stubs.length > 0) {
-            createBy.data.podmanHosts = stubs;
-          }
-        }
-        if (createBy.data.services === undefined) {
-          const stubs: Array<ServiceModel> | undefined = stubBy(
-            ServiceModel,
-            incidentTemplate.services,
-          );
-          if (stubs && stubs.length > 0) {
-            createBy.data.services = stubs;
-          }
-        }
-        if (createBy.data.onCallDutyPolicies === undefined) {
-          const stubs: Array<OnCallDutyPolicy> | undefined = stubBy(
-            OnCallDutyPolicy,
-            incidentTemplate.onCallDutyPolicies,
-          );
-          if (stubs && stubs.length > 0) {
-            createBy.data.onCallDutyPolicies = stubs;
-          }
-        }
-        if (createBy.data.labels === undefined) {
-          const stubs: Array<Label> | undefined = stubBy(
-            Label,
-            incidentTemplate.labels,
-          );
-          if (stubs && stubs.length > 0) {
-            createBy.data.labels = stubs;
-          }
-        }
-        // Applying a template that has status pages scopes the incident.
-        if (createBy.data.statusPages === undefined) {
-          const stubs: Array<StatusPage> | undefined = stubBy(
-            StatusPage,
-            incidentTemplate.statusPages,
-          );
-          if (stubs && stubs.length > 0) {
-            createBy.data.statusPages = stubs;
-          } else if (incidentTemplate.isScopedToStatusPages) {
-            /*
-             * A template limited to status pages that have all been deleted
-             * since. Its incidents stay limited - to nothing - like an
-             * incident whose pages were deleted, rather than reaching every
-             * page that lists their monitors.
-             */
-            isScopedToNothingByTemplate = true;
-          }
-        }
-
-        /*
-         * The template's custom field values fill in the fields the caller
-         * left out; a value the caller sent always wins. Merged, not
-         * replaced, so the caller's own values are never dropped. They are
-         * the template's, so the value check above (the caller's values
-         * only) does not see them, and the mapping below still has the last
-         * word on a mapped field.
-         */
-        const customFieldsWithTemplate: JSONObject | undefined =
-          mergeTemplateCustomFields({
-            templateCustomFields: incidentTemplate.customFields,
-            customFields: createBy.data.customFields,
-          });
-
-        if (customFieldsWithTemplate) {
-          createBy.data.customFields = customFieldsWithTemplate;
-        }
+      if (customFieldsWithTemplate) {
+        createBy.data.customFields = customFieldsWithTemplate;
       }
     }
 

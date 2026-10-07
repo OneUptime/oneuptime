@@ -90,6 +90,11 @@ describe("the Configuration & Safety page says what a step may do", () => {
     expect(text).toContain(
       "declaring an incident from a template by sending `createdIncidentTemplateId` to **Create One Incident**",
     );
+    // The step names its template under its own setting instead.
+    expect(text).toContain(
+      "pick the template under the step's **Incident Template** setting instead",
+    );
+    expect(text).not.toContain("**Find One Incident Template**");
     expect(text).toContain("**As no person.**");
     expect(text).toContain("the audit log names the workflow");
   });
@@ -160,6 +165,14 @@ describe("the upgrade notes say what changes", () => {
     expect(text).toContain(
       "A **Create One Incident** step that declared from a template by sending `createdIncidentTemplateId` is refused.",
     );
+    // The replacement is the step's own setting, not a hand-copied template.
+    expect(text).toContain(
+      "Pick the template under the step's **Incident Template** setting instead",
+    );
+    expect(text).toContain(
+      "(/docs/workflows/components#declaring-an-incident-from-a-template)",
+    );
+    expect(text).not.toContain("**Find One Incident Template**");
     expect(text).toContain(
       "a Create Many step stops at the record refused, keeping the ones it created before it",
     );
@@ -216,9 +229,17 @@ describe("every language's Configuration page has the section", () => {
       expect(text).toContain("CNAME");
       // A Create Many step keeps the records it made before the refused one.
       expect(text).toContain("Create Many");
-      // Declaring from a template is refused; the template is read instead.
+      /*
+       * Sending the template's id is refused, and the page names the way
+       * round it: the step's Incident Template setting, or - until the
+       * translation catches up with the English - a Find One Incident
+       * Template step.
+       */
       expect(text).toContain("`createdIncidentTemplateId`");
-      expect(text).toContain("**Find One Incident Template**");
+      expect(
+        text.includes("**Incident Template**") ||
+          text.includes("**Find One Incident Template**"),
+      ).toBe(true);
     },
   );
 });

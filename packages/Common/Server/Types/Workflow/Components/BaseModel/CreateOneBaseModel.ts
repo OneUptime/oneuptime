@@ -4,10 +4,16 @@ import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/Da
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../../Types/JSON";
 import JSONFunctions from "../../../../../Types/JSONFunctions";
+import ObjectID from "../../../../../Types/ObjectID";
 import Text from "../../../../../Types/Text";
 import ComponentMetadata, {
+  Argument,
   Port,
 } from "../../../../../Types/Workflow/Component";
+import {
+  getCreateFromTemplateArgument,
+  readTemplateId,
+} from "../../../../../Types/Workflow/CreateFromTemplate";
 import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 import { applyTenantColumn, logUnknownColumns } from "./ModelArguments";
@@ -76,8 +82,20 @@ export default class CreateOneBaseModel<
         );
       }
 
-      if (!args["json"]) {
+      /*
+       * The template the step declares the record from, when its record has
+       * templates and one is picked (Types/Workflow/CreateFromTemplate).
+       * With one, JSON Object holds only what should differ from it, and
+       * may be left empty.
+       */
+      const templateId: ObjectID | null = this.readTemplateArgument(args);
+
+      if (!args["json"] && !templateId) {
         throw options.onError(new BadDataException("JSON is undefined."));
+      }
+
+      if (!args["json"]) {
+        args["json"] = {};
       }
 
       if (typeof args["json"] === "string") {
@@ -107,14 +125,28 @@ export default class CreateOneBaseModel<
         options.projectId,
       );
 
-      const model: TBaseModel = (await this.modelService.create({
-        data: BaseModel.fromJSON<TBaseModel>(
-          (args["json"] as JSONObject) || {},
-          this.modelService.modelType,
-        ) as TBaseModel,
-        // A Project Admin of the project, never root. See getStepProps.
-        props: await this.getStepProps(options),
-      })) as TBaseModel;
+      const data: TBaseModel = BaseModel.fromJSON<TBaseModel>(
+        (args["json"] as JSONObject) || {},
+        this.modelService.modelType,
+      ) as TBaseModel;
+
+      /*
+       * Declared from the template by the record's own service, as the step
+       * - it applies the template the way the server applies one anywhere,
+       * and records which template it was (IncidentService).
+       */
+      const model: TBaseModel = templateId
+        ? await this.modelService.createFromTemplate({
+            templateId: templateId,
+            data: data,
+            // A Project Admin of the project, never root. See getStepProps.
+            props: await this.getStepProps(options),
+          })
+        : ((await this.modelService.create({
+            data: data,
+            // A Project Admin of the project, never root. See getStepProps.
+            props: await this.getStepProps(options),
+          })) as TBaseModel);
 
       return {
         returnValues: {
@@ -135,5 +167,35 @@ export default class CreateOneBaseModel<
         executePort: errorPort,
       };
     }
+  }
+
+  /*
+   * The step's template setting, read: the template's ID, or null when the
+   * step has no such setting or none is picked. A value that is not an ID -
+   * a reference that came out as something else - is refused in words that
+   * name the setting.
+   */
+  private readTemplateArgument(args: JSONObject): ObjectID | null {
+    const argument: Argument | null = getCreateFromTemplateArgument(
+      this.modelService?.getModel().tableName || undefined,
+    );
+
+    if (!argument) {
+      return null;
+    }
+
+    const value: string | null = readTemplateId(args[argument.id]);
+
+    if (!value) {
+      return null;
+    }
+
+    if (!ObjectID.isValidUUID(value)) {
+      throw new BadDataException(
+        `${argument.name} must be the ID of a template, and "${value}" is not one. Pick the template from the list.`,
+      );
+    }
+
+    return new ObjectID(value);
   }
 }

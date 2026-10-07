@@ -219,9 +219,14 @@ const TEMPLATE_ID_REFUSED: Record<string, string> = {
   fa: "درخواستی که `createdIncidentTemplateId` بفرستد رد می‌شود",
 };
 
-// How the declaring page's note on it starts: a paragraph after the field list.
+/*
+ * How the declaring page's note on it starts: a paragraph after the field
+ * list. A workflow step declares from a template again (its Incident
+ * Template setting), so the English note names the API key alone; the
+ * Persian one follows when the translations catch up.
+ */
 const TEMPLATE_ID_NOTE_START: Record<string, string> = {
-  en: "An API key or a workflow step cannot declare from a template",
+  en: "An API key cannot declare from a template",
   fa: "کلید API یا گام یک گردش کار نمی‌تواند از روی قالب اعلام کند",
 };
 
@@ -1153,7 +1158,7 @@ describe("Incident docs", () => {
   });
 
   describe("createdIncidentTemplateId", () => {
-    it("can only be set by OneUptime itself: no role may send it, a workflow step neither, and a state skips the template", () => {
+    it("can only be set by OneUptime itself: no role may send it; a workflow step names its template under Incident Template, and a state wins over the template's", () => {
       const access: ColumnAccessControl | null =
         new Incident().getColumnAccessControlFor("createdIncidentTemplateId");
 
@@ -1161,7 +1166,10 @@ describe("Incident docs", () => {
       expect(access?.create).toEqual([]);
       expect(access?.update).toEqual([]);
 
-      // A workflow's create acts as a Project Admin of its project, not as root.
+      /*
+       * A workflow's create acts as a Project Admin of its project, not as
+       * root - with a template picked as without one.
+       */
       const createComponent: string = readSource(
         WORKFLOW_CREATE_COMPONENT_FILE,
       );
@@ -1169,9 +1177,24 @@ describe("Incident docs", () => {
       expect(createComponent).toMatch(
         /this\.modelService\.create\(\{[\s\S]*?props:\s*await this\.getStepProps\(options\),/,
       );
+      expect(createComponent).toMatch(
+        /this\.modelService\.createFromTemplate\(\{[\s\S]*?props:\s*await this\.getStepProps\(options\),/,
+      );
       expect(createComponent).not.toMatch(/isRoot\s*:/);
-      expect(readSource(INCIDENT_SERVICE_FILE)).toMatch(
-        /if \(pickedIncidentStateId\) \{[\s\S]*?\} else if \(incidentTemplateId\) \{/,
+
+      const incidentService: string = readSource(INCIDENT_SERVICE_FILE);
+
+      // The step's template is read as the step; a form's as OneUptime.
+      expect(incidentService).toMatch(
+        /props:\s*declaredTemplateId\s*\?\s*createBy\.props/,
+      );
+      // A picked state wins over the template's, and the rest still applies.
+      expect(incidentService).toMatch(
+        /if \(pickedIncidentStateId\) \{[\s\S]*?\} else if \(incidentTemplate\?\.initialIncidentStateId\) \{/,
+      );
+      // The column is written once every check on the caller has passed.
+      expect(incidentService).toMatch(
+        /onCreatePermitted\([\s\S]*?createdIncidentTemplateId = templateId\.toString\(\)/,
       );
     });
 
@@ -1248,7 +1271,7 @@ describe("Incident docs", () => {
       }
     });
 
-    it("is not implied by the status page guide either: an incident form declares from a template, never a workflow step, in every language", () => {
+    it("is not implied by the status page guide either: an incident form declares from a template, and a workflow's Create One Incident step, never the API, in every language", () => {
       for (const language of LANGUAGES) {
         const markdown: string = readPage(STATUS_PAGE_SCOPE_PAGE, language);
         const paragraph: string =
@@ -1262,17 +1285,27 @@ describe("Incident docs", () => {
           stale: markdown.includes(
             STALE_TEMPLATE_API_DECLARATIONS[language] as string,
           ),
-          workflow: paragraph.includes("**Create One Incident**"),
           form: docsLinks(paragraph).some((link: DocsLink): boolean => {
             return link.page === FORMS_ON_SUBMIT_PAGE;
           }),
         }).toEqual({
           language: language,
           stale: false,
-          workflow: false,
           form: true,
         });
       }
+
+      /*
+       * A workflow step declares from a template again (Incident Template),
+       * and the English guide says so; the translations follow it.
+       */
+      const englishParagraph: string =
+        proseLinesWith(
+          readPage(STATUS_PAGE_SCOPE_PAGE, "en"),
+          TEMPLATES_WORK_THE_SAME_WAY["en"] as string,
+        )[0] || "";
+
+      expect(englishParagraph).toContain("**Create One Incident**");
     });
   });
 
