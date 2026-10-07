@@ -96,14 +96,24 @@ Innebygde grenser holder ubemannede kall endelige: System Instructions, Prompt o
 
 ## Tillatelser
 
-Arbeidsflyter respekterer prosjektets rollebaserte tilgangsstyring. De relevante tillatelsene:
+Arbeidsflyter respekterer prosjektets rollebaserte tilgangsstyring. De tre arbeidsflytrollene:
 
-- **Create / Read / Edit / Delete Workflow** — de grunnleggende tillatelsene på selve arbeidsflyten.
-- **Run Workflow** — nødvendig for å kjøre en arbeidsflyt for hånd eller utløse en via API.
+- **Workflow Admin** — bygger arbeidsflyter: oppretter, endrer, kjører og sletter dem, og forvalter variablene de bruker.
+- **Workflow Member** — bruker dem: åpner arbeidsflyter og kjøringene deres, og kjører en arbeidsflyt for hånd med **Kjør arbeidsflyt**. Et medlem kan ikke opprette, endre eller slette en arbeidsflyt, eller kjøre ett av trinnene for seg selv.
+- **Workflow Viewer** — leser arbeidsflyter og kjøringene deres.
+
+**Project Owner** og **Project Admin** kan alt en Workflow Admin kan. **Project Member** kan opprette og slette arbeidsflyter, men ikke endre eller kjøre dem.
+
+De enkelte tillatelsene, for et team eller en API-nøkkel som trenger nøyaktig én ting:
+
+- **Create / Read / Edit / Delete Workflow** — de grunnleggende tillatelsene på selve arbeidsflyten. Å endre en arbeidsflyt, også å slå den av eller på og arkivere den, krever **Edit Workflow**; **Delete Workflow** sletter bare.
+- **Edit Workflow** — er også det som skal til for å kjøre ett trinn for seg selv med **Run just this step**, og for å se eller tilbakestille en arbeidsflyts webhook-URL og innkommende e-postadresse. Å kjøre en hel arbeidsflyt for hånd krever **Edit Workflow**, **Workflow Admin** eller **Workflow Member**.
 - **Read Workflow Log** — nødvendig for å se kjøringer.
 - **Read / Create / Edit / Delete Workflow Variable** — kontroll over listen med globale variabler.
 
-De fleste utviklere bør ha opprett/rediger/les på arbeidsflyter, men ikke på variabler. Spar redigeringstilgang på variabler til dem som forvalter prosjektets hemmeligheter.
+En kjøring for hånd når bare arbeidsflyter du kan åpne: en rolle som er begrenset til enkelte etiketter, eller til arbeidsflytene teamet ditt eier, kjører bare dem. Den som ikke kan kjøre en arbeidsflyt, ser **Kjør arbeidsflyt** nedtonet, med årsaken i verktøytipset.
+
+Gi dem som bygger automatisering **Workflow Admin**, og dem som bare starter den **Workflow Member**. Spar redigeringstilgang på variabler til dem som forvalter prosjektets hemmeligheter.
 
 ## Hva arbeidsflyttrinn kan gjøre
 

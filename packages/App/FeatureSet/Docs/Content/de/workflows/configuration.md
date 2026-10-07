@@ -96,14 +96,24 @@ Eingebaute Grenzen halten unbeaufsichtigte Aufrufe endlich: System Instructions,
 
 ## Berechtigungen
 
-Workflows richten sich nach der rollenbasierten Zugriffssteuerung Ihres Projekts. Die relevanten Berechtigungen:
+Workflows richten sich nach der rollenbasierten Zugriffssteuerung Ihres Projekts. Die drei Workflow-Rollen:
 
-- **Create / Read / Edit / Delete Workflow** – die Grundberechtigungen auf den Workflow selbst.
-- **Run Workflow** – nötig, um einen Workflow von Hand auszuführen oder ihn über die API auszulösen.
+- **Workflow Admin** – baut Workflows: erstellt, ändert, führt aus und löscht sie und verwaltet die Variablen, die sie nutzen.
+- **Workflow Member** – nutzt sie: öffnet Workflows und ihre Ausführungen und führt einen Workflow mit **Arbeitsablauf ausführen** von Hand aus. Ein Mitglied kann keinen Workflow erstellen, ändern oder löschen und keinen seiner Schritte für sich ausführen.
+- **Workflow Viewer** – liest Workflows und ihre Ausführungen.
+
+**Project Owner** und **Project Admin** können alles, was ein Workflow Admin kann. **Project Member** kann Workflows erstellen und löschen, aber nicht ändern oder ausführen.
+
+Die einzelnen Berechtigungen, für ein Team oder einen API-Schlüssel, der genau eine Sache braucht:
+
+- **Create / Read / Edit / Delete Workflow** – die Grundberechtigungen auf den Workflow selbst. Einen Workflow zu ändern, auch ihn ein- oder auszuschalten und zu archivieren, erfordert **Edit Workflow**; **Delete Workflow** löscht nur.
+- **Edit Workflow** – ist auch nötig, um mit **Nur diesen Schritt ausführen** einen einzelnen Schritt für sich auszuführen und um die Webhook-URL und die Adresse für eingehende E-Mails eines Workflows zu sehen oder zurückzusetzen. Einen ganzen Workflow von Hand auszuführen erfordert **Edit Workflow**, **Workflow Admin** oder **Workflow Member**.
 - **Read Workflow Log** – nötig, um Ausführungen anzusehen.
 - **Read / Create / Edit / Delete Workflow Variable** – Kontrolle über die Liste der globalen Variablen.
 
-Die meisten Entwickler sollten auf Workflows Create/Edit/Read haben, auf Variablen aber nicht. Heben Sie den Schreibzugriff auf Variablen für die Leute auf, die die Geheimnisse Ihres Projekts verwalten.
+Eine Ausführung von Hand erreicht nur Workflows, die Sie öffnen können: Eine Rolle, die auf bestimmte Beschriftungen oder auf die Workflows Ihres Teams beschränkt ist, führt nur diese aus. Wer einen Workflow nicht ausführen darf, sieht **Arbeitsablauf ausführen** ausgegraut, mit dem Grund im Tooltip.
+
+Geben Sie den Leuten, die Automatisierung bauen, **Workflow Admin** und denen, die sie nur starten, **Workflow Member**. Heben Sie den Schreibzugriff auf Variablen für die Leute auf, die die Geheimnisse Ihres Projekts verwalten.
 
 ## Was Workflow-Schritte dürfen
 

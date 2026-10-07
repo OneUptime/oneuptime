@@ -6,6 +6,7 @@ import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../Types/ObjectID";
+import { WORKFLOW_RUN_PERMISSIONS } from "../../../Types/Workflow/WorkflowRunPermissions";
 import Permission, {
   PermissionHelper,
   UserPermission,
@@ -16,9 +17,10 @@ import { describe, expect, test } from "@jest/globals";
 /*
  * A workflow's webhook secret key is the last segment of its Webhook
  * trigger's URL, and whoever has the URL can start the workflow. Running a
- * workflow by hand needs the workflow's update permissions (the workflow
- * service's Manual and RunStep APIs), so a key every Viewer could read was a
- * way round that: "read-only" could start any webhook workflow in the project.
+ * workflow by hand is for its editors and Workflow Members
+ * (Types/Workflow/WorkflowRunPermissions, the workflow service's Manual
+ * API), so a key every Viewer could read was a way round that: "read-only"
+ * could start any webhook workflow in the project.
  *
  * The key is now readable by exactly the roles that can reset it, as
  * Monitor's secret keys are since issue #3360. These run the server's own
@@ -31,23 +33,25 @@ const userId: ObjectID = ObjectID.generate();
 
 const COLUMN: string = "webhookSecretKey";
 
+// The workflow's editors: its update list, Workflow Admin included.
 const CAN_SEE_AND_RESET: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
   Permission.EditWorkflow,
+  Permission.WorkflowAdmin,
 ];
 
 /*
- * Every role that can open a workflow but not edit it - and the two workflow
- * roles that are not in the workflow's update lists either, so cannot run one
- * by hand.
+ * Every role that can open a workflow but not edit it. A Workflow Member may
+ * run a workflow by hand - from its trigger, as its editors built it - but a
+ * webhook URL starts it with whatever body its caller sends, from anywhere,
+ * so the URL stays with the people who could change the workflow anyway.
  */
 const CANNOT_SEE: Array<Permission> = [
   Permission.Viewer,
   Permission.WorkflowViewer,
   Permission.ReadWorkflow,
   Permission.ProjectMember,
-  Permission.WorkflowAdmin,
   Permission.WorkflowMember,
   Permission.CreateWorkflow,
   Permission.DeleteWorkflow,
@@ -178,15 +182,21 @@ describe("Workflow.webhookSecretKey access control", () => {
 
   test("seeing the URL never lets anyone start a workflow they could not start by hand", () => {
     /*
-     * Manual and RunStep in the workflow service allow a run to whoever holds
-     * one of the workflow's update permissions.
+     * Manual in the workflow service allows a run to whoever holds one of
+     * WORKFLOW_RUN_PERMISSIONS; RunStep to whoever holds one of the
+     * workflow's update permissions. Whoever may see the key may do both.
      */
-    const canRunByHand: Array<Permission> =
-      new Workflow().getUpdatePermissions();
+    const canEdit: Array<Permission> = new Workflow().getUpdatePermissions();
 
     for (const permission of columnAccess().read) {
-      expect(canRunByHand).toContain(permission);
+      expect(WORKFLOW_RUN_PERMISSIONS).toContain(permission);
+      expect(canEdit).toContain(permission);
     }
+  });
+
+  test("a Workflow Member runs workflows by hand but never sees the URL", () => {
+    expect(WORKFLOW_RUN_PERMISSIONS).toContain(Permission.WorkflowMember);
+    expect(columnAccess().read).not.toContain(Permission.WorkflowMember);
   });
 
   test("a Viewer can still open the builder: the graph and the name stay readable", () => {

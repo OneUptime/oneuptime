@@ -96,14 +96,24 @@ Hay límites integrados que mantienen finitas las llamadas desatendidas: System 
 
 ## Permisos
 
-Los flujos de trabajo respetan el control de acceso basado en roles de tu proyecto. Los permisos relevantes:
+Los flujos de trabajo respetan el control de acceso basado en roles de tu proyecto. Los tres roles de flujo de trabajo:
 
-- **Crear / Leer / Editar / Eliminar flujo de trabajo** — los permisos básicos sobre el flujo de trabajo en sí.
-- **Ejecutar flujo de trabajo** — necesario para ejecutar un flujo a mano o dispararlo por API.
+- **Workflow Admin** — construye flujos de trabajo: los crea, cambia, ejecuta y elimina, y gestiona las variables que usan.
+- **Workflow Member** — los usa: abre los flujos de trabajo y sus ejecuciones, y ejecuta un flujo de trabajo a mano con **Ejecutar flujo de trabajo**. Un miembro no puede crear, cambiar ni eliminar un flujo de trabajo, ni ejecutar uno de sus pasos por separado.
+- **Workflow Viewer** — lee los flujos de trabajo y sus ejecuciones.
+
+**Project Owner** y **Project Admin** pueden hacer todo lo que hace un Workflow Admin. **Project Member** puede crear y eliminar flujos de trabajo, pero no cambiarlos ni ejecutarlos.
+
+Los permisos individuales, para un equipo o una clave de API que necesita exactamente una cosa:
+
+- **Crear / Leer / Editar / Eliminar flujo de trabajo** — los permisos básicos sobre el flujo de trabajo en sí. Cambiar un flujo de trabajo, incluido encenderlo o apagarlo y archivarlo, requiere **Edit Workflow**; **Delete Workflow** solo elimina.
+- **Edit Workflow** — también es lo que hace falta para ejecutar un solo paso por separado con **Ejecutar solo este paso**, y para ver o restablecer la URL del webhook y la dirección de correo entrante de un flujo de trabajo. Ejecutar un flujo de trabajo entero a mano requiere **Edit Workflow**, **Workflow Admin** o **Workflow Member**.
 - **Leer registro de flujo de trabajo** — necesario para ver las ejecuciones.
 - **Leer / Crear / Editar / Eliminar variable de flujo de trabajo** — control sobre la lista de variables globales.
 
-La mayoría de los ingenieros deberían tener crear/editar/leer sobre flujos de trabajo, pero no sobre variables. Reserva el acceso de edición de variables para quienes gestionan los secretos de tu proyecto.
+Una ejecución a mano solo llega a los flujos de trabajo que puedes abrir: un rol limitado a algunas etiquetas, o a los flujos de trabajo que posee tu equipo, solo ejecuta esos. Quien no puede ejecutar un flujo de trabajo ve **Ejecutar flujo de trabajo** atenuado, con el motivo en su descripción emergente.
+
+Da **Workflow Admin** a quienes construyen la automatización y **Workflow Member** a quienes solo la ponen en marcha. Reserva el acceso de edición de variables para quienes gestionan los secretos de tu proyecto.
 
 ## Qué pueden hacer los pasos de un workflow
 

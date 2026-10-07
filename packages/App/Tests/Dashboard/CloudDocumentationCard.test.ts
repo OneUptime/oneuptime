@@ -171,8 +171,20 @@ describe("Cloud environment Documentation page", () => {
     expect(code).toContain(
       'import CloudDocumentationCard from "../../../Components/Cloud/CloudDocumentationCard";',
     );
-    expect(code).toContain("select: { name: true, cloudPlatform: true, }");
+    expect(code).toContain(
+      "select: { name: true, cloudPlatform: true, cloudResourceKind: true, cloudProvider: true, }",
+    );
     expect(code).toContain("initialPlatform={cloudResource.cloudPlatform}");
+  });
+
+  test("a discovered resource gets the cloud monitoring guide, opened on its own provider", () => {
+    expect(code).toContain(
+      'import CloudMonitoringDocumentationCard from "../../../Components/Cloud/CloudMonitoringDocumentationCard";',
+    );
+    expect(code).toContain(
+      "if (isCloudResourceKindResource(cloudResource.cloudResourceKind)) {",
+    );
+    expect(code).toContain("initialOption={cloudResource.cloudProvider}");
   });
 
   test("no longer renders the platform-less guide directly", () => {

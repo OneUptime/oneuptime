@@ -9,11 +9,14 @@ import Permission from "../../Types/Permission";
  * and a self-hosted install sends them only through a Twilio account or a
  * Telegram bot that somebody has set up.
  *
- * Only a project owner, or someone with Manage Billing, may turn one on or
- * off - the columns' own update permissions
+ * Only a project owner, a Billing Admin or someone with Manage Billing may
+ * turn one on or off - the columns' own update permissions
  * (PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS, which a test holds to the
  * Project model). Not a project admin: Project Admin leaves out billing, and
- * a channel that costs money is billing.
+ * a channel that costs money is billing. Billing Admin was added on purpose:
+ * the role that administers billing switches what the project pays for.
+ * Adding to the balance is still for a project owner or Manage Billing
+ * (Utils/Project/ProjectBalance).
  *
  * So everything that says a channel is off says who can turn it on, in these
  * words, and where the switch is: the server's refusals (adding a method,
@@ -53,7 +56,11 @@ export const PROJECT_NOTIFICATION_CHANNEL_COLUMN_BY_CHANNEL: Readonly<
  * four columns, in the order the model lists them.
  */
 export const PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS: ReadonlyArray<Permission> =
-  [Permission.ProjectOwner, Permission.ManageProjectBilling];
+  [
+    Permission.ProjectOwner,
+    Permission.BillingAdmin,
+    Permission.ManageProjectBilling,
+  ];
 
 // The page that holds the switches (its Notification Channels card).
 export const PROJECT_NOTIFICATION_CHANNEL_SETTINGS_PAGE: string =
@@ -63,9 +70,13 @@ export const PROJECT_NOTIFICATION_CHANNEL_SETTINGS_PAGE: string =
 export const PROJECT_NOTIFICATION_CHANNEL_SETTINGS_PATH: string =
   "settings/notification-settings";
 
-// The people PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS let in.
-const WHO_MAY_TURN_THEM_ON: string =
-  "a project owner or someone with Manage Billing";
+/*
+ * The people PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS let in, by the
+ * names people see them under: the Project Owner role, the Billing Admin
+ * role and the Manage Billing permission.
+ */
+export const WHO_MAY_TURN_THEM_ON: string =
+  "a project owner, a Billing Admin or someone with Manage Billing";
 
 interface ChannelWords {
   // How a sentence starts with the channel: "SMS", "Phone calls".
@@ -92,9 +103,9 @@ export type ChannelPronoun = "it" | "them";
 
 /*
  * Who can turn it on, and where, as the end of a sentence about a channel
- * that is off ("it") or several ("them"): "a project owner or someone with
- * Manage Billing can turn it on in Project Settings > Notification
- * Settings".
+ * that is off ("it") or several ("them"): "a project owner, a Billing Admin
+ * or someone with Manage Billing can turn it on in Project Settings >
+ * Notification Settings".
  */
 export const getWhoCanTurnOnClause: (pronoun: ChannelPronoun) => string = (
   pronoun: ChannelPronoun,
@@ -104,8 +115,8 @@ export const getWhoCanTurnOnClause: (pronoun: ChannelPronoun) => string = (
 
 /*
  * The same, as the sentence after one that says a channel is off: "A
- * project owner or someone with Manage Billing can turn it on in Project
- * Settings > Notification Settings."
+ * project owner, a Billing Admin or someone with Manage Billing can turn it
+ * on in Project Settings > Notification Settings."
  */
 export const getWhoCanTurnOnSentence: (pronoun: ChannelPronoun) => string = (
   pronoun: ChannelPronoun,
@@ -123,10 +134,10 @@ const getPronoun: (channel: ProjectNotificationChannel) => ChannelPronoun = (
 
 /*
  * What the server says when something needs a channel the project has off:
- * "SMS is off in this project. A project owner or someone with Manage
- * Billing can turn it on in Project Settings > Notification Settings." Said
- * to whoever asked - someone who may turn it on, or not - so it names who
- * can rather than telling the reader to.
+ * "SMS is off in this project. A project owner, a Billing Admin or someone
+ * with Manage Billing can turn it on in Project Settings > Notification
+ * Settings." Said to whoever asked - someone who may turn it on, or not -
+ * so it names who can rather than telling the reader to.
  */
 export const getProjectNotificationChannelOffMessage: (
   channel: ProjectNotificationChannel,

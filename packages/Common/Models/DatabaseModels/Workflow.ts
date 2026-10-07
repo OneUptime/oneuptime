@@ -43,6 +43,19 @@ import {
 })
 @AccessControlColumn("labels")
 @TenantColumn("projectId")
+/*
+ * The three workflow roles, Admin, Member and Viewer:
+ *
+ *   - Workflow Admin builds workflows: creates, edits, runs and deletes them.
+ *   - Workflow Member uses them: opens them and their runs, and runs them by
+ *     hand (Types/Workflow/WorkflowRunPermissions). A run does exactly what
+ *     the workflow's editors built, so a member creates, changes and deletes
+ *     none - not even a new workflow, which can do anything an edited one
+ *     can.
+ *   - Workflow Viewer only reads.
+ *
+ * Project Member keeps creating and deleting workflows, as it always has.
+ */
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,
@@ -50,7 +63,6 @@ import {
     Permission.CreateWorkflow,
     Permission.ProjectMember,
     Permission.WorkflowAdmin,
-    Permission.WorkflowMember,
   ],
   read: [
     Permission.ProjectOwner,
@@ -68,17 +80,19 @@ import {
     Permission.DeleteWorkflow,
     Permission.ProjectMember,
     Permission.WorkflowAdmin,
-    Permission.WorkflowMember,
   ],
   /*
-   * Editing a workflow - and running one by hand, which the Workflow API
-   * gates on this list too - takes Edit Workflow. Delete Workflow is for
-   * deleting one.
+   * Editing a workflow takes Edit Workflow or the Workflow Admin role, and
+   * so does running one of its steps on its own. Running the whole workflow
+   * by hand is open to these and to Workflow Members
+   * (Types/Workflow/WorkflowRunPermissions, which a test holds to this
+   * list). Delete Workflow is for deleting one.
    */
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.EditWorkflow,
+    Permission.WorkflowAdmin,
   ],
 })
 @CrudApiEndpoint(new Route("/workflow"))
@@ -108,7 +122,6 @@ export default class Workflow extends BaseModel {
       Permission.CreateWorkflow,
       Permission.ProjectMember,
       Permission.WorkflowAdmin,
-      Permission.WorkflowMember,
     ],
     read: [
       Permission.ProjectOwner,
@@ -150,7 +163,6 @@ export default class Workflow extends BaseModel {
       Permission.CreateWorkflow,
       Permission.ProjectMember,
       Permission.WorkflowAdmin,
-      Permission.WorkflowMember,
     ],
     read: [
       Permission.ProjectOwner,
@@ -187,7 +199,6 @@ export default class Workflow extends BaseModel {
       Permission.CreateWorkflow,
       Permission.ProjectMember,
       Permission.WorkflowAdmin,
-      Permission.WorkflowMember,
     ],
     read: [
       Permission.ProjectOwner,
@@ -203,6 +214,7 @@ export default class Workflow extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.EditWorkflow,
+      Permission.WorkflowAdmin,
     ],
   })
   @TableColumn({
@@ -257,7 +269,6 @@ export default class Workflow extends BaseModel {
       Permission.CreateWorkflow,
       Permission.ProjectMember,
       Permission.WorkflowAdmin,
-      Permission.WorkflowMember,
     ],
     read: [
       Permission.ProjectOwner,
@@ -273,6 +284,7 @@ export default class Workflow extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.EditWorkflow,
+      Permission.WorkflowAdmin,
     ],
   })
   @TableColumn({
@@ -297,7 +309,6 @@ export default class Workflow extends BaseModel {
       Permission.CreateWorkflow,
       Permission.ProjectMember,
       Permission.WorkflowAdmin,
-      Permission.WorkflowMember,
     ],
     read: [
       Permission.ProjectOwner,
@@ -340,7 +351,6 @@ export default class Workflow extends BaseModel {
       Permission.CreateWorkflow,
       Permission.ProjectMember,
       Permission.WorkflowAdmin,
-      Permission.WorkflowMember,
     ],
     read: [
       Permission.ProjectOwner,
@@ -451,7 +461,6 @@ export default class Workflow extends BaseModel {
       Permission.CreateWorkflow,
       Permission.ProjectMember,
       Permission.WorkflowAdmin,
-      Permission.WorkflowMember,
     ],
     read: [
       Permission.ProjectOwner,
@@ -467,6 +476,7 @@ export default class Workflow extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.EditWorkflow,
+      Permission.WorkflowAdmin,
     ],
   })
   @TableColumn({
@@ -588,7 +598,6 @@ export default class Workflow extends BaseModel {
       Permission.CreateWorkflow,
       Permission.ProjectMember,
       Permission.WorkflowAdmin,
-      Permission.WorkflowMember,
     ],
     read: [
       Permission.ProjectOwner,
@@ -604,6 +613,7 @@ export default class Workflow extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.EditWorkflow,
+      Permission.WorkflowAdmin,
     ],
   })
   @TableColumn({
@@ -626,7 +636,6 @@ export default class Workflow extends BaseModel {
       Permission.CreateWorkflow,
       Permission.ProjectMember,
       Permission.WorkflowAdmin,
-      Permission.WorkflowMember,
     ],
     read: [
       Permission.ProjectOwner,
@@ -642,6 +651,7 @@ export default class Workflow extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.EditWorkflow,
+      Permission.WorkflowAdmin,
     ],
   })
   @TableColumn({
@@ -665,7 +675,6 @@ export default class Workflow extends BaseModel {
       Permission.CreateWorkflow,
       Permission.ProjectMember,
       Permission.WorkflowAdmin,
-      Permission.WorkflowMember,
     ],
     read: [
       Permission.ProjectOwner,
@@ -681,6 +690,7 @@ export default class Workflow extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.EditWorkflow,
+      Permission.WorkflowAdmin,
     ],
   })
   @TableColumn({
@@ -750,17 +760,18 @@ export default class Workflow extends BaseModel {
      * Gated on the ability to RESET the key, not on the ability to view the
      * workflow: this read list is deliberately identical to the update list
      * below. The key is the last segment of the Webhook trigger's URL, and
-     * anyone who has the URL can start the workflow - the same thing running
-     * it by hand does, which needs the workflow's update permissions (see
-     * assertCallerCanRunWorkflow in the workflow service's Manual and RunStep
-     * APIs).
+     * anyone who has the URL can start the workflow - from anywhere, without
+     * signing in, and for as long as the key stays the same. So it is a
+     * credential, held only by who may replace it: the workflow's editors,
+     * Workflow Admin among them. A Workflow Member runs the workflow by hand
+     * (WorkflowRunPermissions), which asks who they are on every run and
+     * stops the day they leave the project; a URL would not.
      *
-     * Viewer, WorkflowViewer, ReadWorkflow, ProjectMember, WorkflowAdmin and
-     * WorkflowMember used to be here. None of them can edit the workflow or
-     * run it by hand, and Viewer is the least privilege OneUptime grants, so
-     * "read-only" also meant "can start any webhook workflow in the project".
-     * Monitor's secret keys were closed the same way:
-     * https://github.com/OneUptime/oneuptime/issues/3360
+     * Viewer, WorkflowViewer, ReadWorkflow, ProjectMember and WorkflowMember
+     * used to be here. None of them can edit the workflow, and Viewer is the
+     * least privilege OneUptime grants, so "read-only" also meant "can start
+     * any webhook workflow in the project". Monitor's secret keys were closed
+     * the same way: https://github.com/OneUptime/oneuptime/issues/3360
      *
      * The dashboard asks for this column only when PermissionGate says it may
      * (Common/UI/Components/Workflow/WorkflowWebhookSecretKey.ts): an
@@ -770,11 +781,13 @@ export default class Workflow extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.EditWorkflow,
+      Permission.WorkflowAdmin,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.EditWorkflow,
+      Permission.WorkflowAdmin,
     ],
   })
   @TableColumn({
@@ -802,8 +815,8 @@ export default class Workflow extends BaseModel {
     /*
      * The same lists as webhookSecretKey, for the same reason: this key IS
      * the Incoming Email trigger's address (workflow-{key}@{inbound domain}),
-     * and anyone who has the address can start the workflow - which running
-     * it by hand needs the workflow's update permissions for. So only people
+     * and anyone who has the address can start the workflow, from outside
+     * the project and for as long as the key stays the same. So only people
      * who may reset the key may read it.
      * https://github.com/OneUptime/oneuptime/issues/3360
      *
@@ -814,11 +827,13 @@ export default class Workflow extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.EditWorkflow,
+      Permission.WorkflowAdmin,
     ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.EditWorkflow,
+      Permission.WorkflowAdmin,
     ],
   })
   @TableColumn({

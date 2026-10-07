@@ -628,6 +628,8 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
         select: {
           _id: true,
           projectId: true,
+          // As it is stored now: the status the event starts with (below).
+          changeMonitorStatusToId: true,
           monitors: {
             _id: true,
           },
@@ -675,6 +677,11 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
             },
           });
         }
+
+        await this.applyMonitorStatusWhenStarting({
+          scheduledMaintenanceEvent: scheduledMaintenanceEvent,
+          isCurrentState: !createdItem.endsAt,
+        });
       }
     }
 
@@ -943,6 +950,63 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
         "Error while recomputing network site rollups after a scheduled maintenance state change:",
       );
       logger.error(error);
+    }
+  }
+
+  /*
+   * WHEN AN EVENT STARTS, ITS MONITORS CHANGE TO ITS CHANGE MONITOR STATUS
+   * TO - THE ONE IT HOLDS AT THAT MOMENT.
+   *
+   * Every way an event starts comes through here, as the move into its
+   * ongoing state: the ChangeStateToOngoing job at its start time, Mark as
+   * Ongoing on its page, the Slack and Microsoft Teams actions, a state
+   * change through the API, Terraform or a workflow. The status is read
+   * from the event as it is stored now (the read above), so a status
+   * changed after the event was scheduled - it can be, until the event
+   * starts - is the one applied. The job used to apply the status it had
+   * read up to a minute before, and a start by hand applied none.
+   *
+   * Only when this row is the event's current state (isCurrentState): a row
+   * filled in between two others, back in its timeline, starts nothing.
+   *
+   * The state change has committed: a failure here is logged, never turned
+   * into an error. Each monitor already in the status is left as it is
+   * (MonitorService.changeMonitorStatus).
+   */
+  private async applyMonitorStatusWhenStarting(data: {
+    scheduledMaintenanceEvent: ScheduledMaintenance;
+    isCurrentState: boolean;
+  }): Promise<void> {
+    const scheduledMaintenanceEvent: ScheduledMaintenance =
+      data.scheduledMaintenanceEvent;
+
+    if (
+      !data.isCurrentState ||
+      !scheduledMaintenanceEvent.changeMonitorStatusToId ||
+      !scheduledMaintenanceEvent.projectId ||
+      !scheduledMaintenanceEvent.id
+    ) {
+      return;
+    }
+
+    try {
+      await ScheduledMaintenanceService.changeAttachedMonitorStates(
+        scheduledMaintenanceEvent,
+        {
+          isRoot: true,
+        },
+      );
+    } catch (err) {
+      const logAttributes: LogAttributes = {
+        projectId: scheduledMaintenanceEvent.projectId.toString(),
+        scheduledMaintenanceId: scheduledMaintenanceEvent.id.toString(),
+      } as LogAttributes;
+
+      logger.error(
+        `ScheduledMaintenanceStateTimelineService.applyMonitorStatusWhenStarting: could not change the monitors of scheduled maintenance ${scheduledMaintenanceEvent.id.toString()} to the status it starts with; the state change itself is saved.`,
+        logAttributes,
+      );
+      logger.error(err, logAttributes);
     }
   }
 

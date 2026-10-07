@@ -96,14 +96,24 @@ Alcuni limiti integrati mantengono finite le chiamate non presidiate: System Ins
 
 ## Autorizzazioni
 
-I workflow rispettano il controllo degli accessi basato sui ruoli del tuo progetto. Le autorizzazioni rilevanti:
+I workflow rispettano il controllo degli accessi basato sui ruoli del tuo progetto. I tre ruoli dei workflow:
 
-- **Create / Read / Edit / Delete Workflow** — le autorizzazioni di base sul workflow stesso.
-- **Run Workflow** — serve per eseguire un workflow a mano o per attivarne uno tramite API.
+- **Workflow Admin** — costruisce i workflow: li crea, li modifica, li esegue e li elimina, e gestisce le variabili che usano.
+- **Workflow Member** — li usa: apre i workflow e le loro esecuzioni, ed esegue un workflow a mano con **Esegui flusso di lavoro**. Un membro non può creare, modificare o eliminare un workflow, né eseguire da solo uno dei suoi passaggi.
+- **Workflow Viewer** — legge i workflow e le loro esecuzioni.
+
+**Project Owner** e **Project Admin** possono fare tutto ciò che fa un Workflow Admin. **Project Member** può creare ed eliminare workflow, ma non modificarli né eseguirli.
+
+Le singole autorizzazioni, per un team o una chiave API che ha bisogno esattamente di una cosa:
+
+- **Create / Read / Edit / Delete Workflow** — le autorizzazioni di base sul workflow stesso. Modificare un workflow, anche attivarlo, disattivarlo o archiviarlo, richiede **Edit Workflow**; **Delete Workflow** serve solo a eliminare.
+- **Edit Workflow** — è anche ciò che serve per eseguire da solo un passaggio con **Run just this step**, e per vedere o reimpostare l'URL del webhook e l'indirizzo email in entrata di un workflow. Eseguire a mano un intero workflow richiede **Edit Workflow**, **Workflow Admin** o **Workflow Member**.
 - **Read Workflow Log** — serve per vedere le esecuzioni.
 - **Read / Create / Edit / Delete Workflow Variable** — il controllo sull'elenco delle variabili globali.
 
-La maggior parte degli ingegneri dovrebbe avere creazione, modifica e lettura sui workflow, ma non sulle variabili. Riserva l'accesso in modifica alle variabili alle persone che gestiscono i segreti del progetto.
+Un'esecuzione a mano raggiunge solo i workflow che puoi aprire: un ruolo limitato ad alcune etichette, o ai workflow di cui il tuo team è proprietario, esegue solo quelli. Chi non può eseguire un workflow vede **Esegui flusso di lavoro** disattivato, con il motivo nel suggerimento.
+
+Dai **Workflow Admin** a chi costruisce l'automazione e **Workflow Member** a chi si limita ad avviarla. Riserva l'accesso in modifica alle variabili alle persone che gestiscono i segreti del progetto.
 
 ## Cosa possono fare i passaggi di un workflow
 

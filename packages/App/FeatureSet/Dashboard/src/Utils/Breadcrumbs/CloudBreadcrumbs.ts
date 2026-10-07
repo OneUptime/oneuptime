@@ -15,6 +15,11 @@ export function getCloudBreadcrumbs(path: string): Array<Link> | undefined {
       "Project",
       "Cloud",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_MONITORED_RESOURCES, [
+      "Project",
+      "Cloud",
+      "Resources",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_ARCHIVED, [
       "Project",
       "Cloud",

@@ -54,7 +54,7 @@ OneUptime의 모든 것은 **프로젝트** 안에 있습니다. 그 프로젝�
 
 `ProjectOwner`는 가장 높은 접근 수준으로, 결제와 프로젝트 삭제를 포함해 관리자가 할 수 있는 모든 것을 포함합니다. `ProjectAdmin`은 결제와 프로젝트 삭제를 제외한 전부를 다룹니다.
 
-프로젝트의 SMS, 음성 전화, WhatsApp, Telegram을 켜거나 끄는 일은 메시지마다 비용이 들기 때문에 결제에 해당합니다. 이 스위치는 `ProjectOwner`와 `ManageProjectBilling` 권한(**Manage Billing**)만 **프로젝트 설정 > 알림 > 알림 설정**에서 바꿀 수 있으며, `ProjectAdmin`은 바꿀 수 없습니다.
+프로젝트의 SMS, 음성 전화, WhatsApp, Telegram을 켜거나 끄는 일은 메시지마다 비용이 들기 때문에 결제에 해당합니다. 이 스위치는 `ProjectOwner`, `BillingAdmin` 역할(**Billing Admin**), `ManageProjectBilling` 권한(**Manage Billing**)만 **프로젝트 설정 > 알림 > 알림 설정**에서 바꿀 수 있으며, `ProjectAdmin`은 바꿀 수 없습니다.
 
 프로젝트의 선불 잔액을 충전하는 일도 결제에 해당합니다. OneUptime Cloud에서 SMS, 음성 전화, WhatsApp, Telegram은 **프로젝트 설정 > 알림 > 알림 설정**의 잔액으로, AI는 **프로젝트 설정 > AI > AI 크레딧**의 AI 크레딧으로 지불됩니다. 이를 충전하거나 **자동 충전**을 바꿀 수 있는 사람은 프로젝트 소유자 또는 **Manage Billing** 권한이 있는 사람뿐이며, 프로젝트 관리자는 할 수 없습니다. 잔액이 부족하다는 메시지는 누가 잔액을 추가할 수 있는지 알려 주며, 작동하는 **잔액 충전** 버튼이나 페이지 링크는 그 사람들에게만 표시됩니다.
 
@@ -75,6 +75,8 @@ OneUptime의 모든 것은 **프로젝트** 안에 있습니다. 그 프로젝�
 - **Viewer** — 읽기 전용.
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` 등이 있습니다. 거의 모든 경우에 역할이 정답입니다. OneUptime에 기능이 추가되어도 모니터 관련 새 테이블은 기존 모니터 역할에 편입되므로, 여러분이 새로 부여할 필요가 없습니다.
+
+워크플로는 예외입니다. 워크플로는 프로젝트 안에서 단계를 실행하므로 `WorkflowMember`는 워크플로와 실행 내역을 열고 직접 실행할 수 있지만, 생성, 변경, 삭제는 할 수 없습니다. 워크플로를 만드는 것은 `WorkflowAdmin`입니다. [워크플로 구성](/docs/workflows/configuration)을 참고하세요.
 
 {{PERMISSION_ROLE_COUNT}}개 역할 전체는 [권한 레퍼런스](/docs/permissions/reference)에 있습니다.
 

@@ -114,6 +114,18 @@ export interface ColumnPermissionCheckableModel {
 // The operations a column declares permissions for.
 export type ColumnOperation = "create" | "read" | "update";
 
+/*
+ * A form field, as far as what it writes goes (Forms/Types/Field and
+ * ModelForm's ModelField): the column it edits, and the ways a field can
+ * stand for something other than one column.
+ */
+export interface PermissionCheckableFormField {
+  field?: Record<string, unknown> | undefined;
+  overrideField?: unknown;
+  peoplePicker?: unknown;
+  showEvenIfPermissionDoesNotExist?: boolean | undefined;
+}
+
 export interface PermissionGateOptions extends HeldPermissionsOptions {
   /*
    * Overrides the permissions read from storage with a flat list of
@@ -417,6 +429,169 @@ export default class PermissionGate {
   }
 
   /*
+   * Whether an edit form over a record may be offered: the record's own
+   * update gate (check), and then at least one of the form's columns. The
+   * form leaves out every field its viewer may not update (ModelForm weighs
+   * each by holdsColumnPermission), so a form none of whose columns the
+   * viewer may change opens empty and saves nothing. Many records' columns
+   * are narrower than the record: a project's name is for its owners,
+   * Manage Billing and Edit Project, its retention settings for owners and
+   * admins, its notification channels for owners, Billing Admins and Manage
+   * Billing - while the Project's own list lets in all of them.
+   *
+   * Refused that way, the reason names every permission that would open at
+   * least one of the columns. A form with a field that is not a plain
+   * column (getFormUpdateColumns answers null) is left to the record gate,
+   * and the server checks what is written. Like check, it never accuses
+   * anyone before the permission snapshot has landed.
+   */
+  public static checkFormUpdate(
+    model: PermissionCheckableModel & ColumnPermissionCheckableModel,
+    fields: ReadonlyArray<PermissionCheckableFormField> | undefined,
+    options?: PermissionGateOptions | undefined,
+  ): PermissionGateResult {
+    const recordGate: PermissionGateResult = this.check(
+      model,
+      ModelAction.Update,
+      options,
+    );
+
+    if (!recordGate.isAllowed || User.isMasterAdmin()) {
+      return recordGate;
+    }
+
+    const columns: Array<string> | null = this.getFormUpdateColumns(fields);
+
+    if (!columns || columns.length === 0) {
+      return recordGate;
+    }
+
+    const held: HeldPermissions = this.getHeldPermissions(options);
+
+    if (!this.isLoaded(held)) {
+      return recordGate;
+    }
+
+    const mayChangeOne: boolean = columns.some((column: string): boolean => {
+      return this.holdsColumnPermission(model, column, "update", {
+        ...options,
+        held: held,
+      });
+    });
+
+    if (mayChangeOne) {
+      return recordGate;
+    }
+
+    const opening: Array<Permission> = [];
+
+    for (const column of columns) {
+      for (const permission of model.getColumnAccessControlForAllColumns()[
+        column
+      ]?.update || []) {
+        if (!opening.includes(permission)) {
+          opening.push(permission);
+        }
+      }
+    }
+
+    return {
+      isAllowed: false,
+      disabledReason: this.buildMissingPermissionMessage({
+        singularName: options?.singularName || model.singularName || "item",
+        verb: (options?.verb?.trim() || ModelAction.Update).toLowerCase(),
+        permissions: opening,
+        held: held,
+      }),
+    };
+  }
+
+  /*
+   * The model columns an edit form writes, as ModelForm weighs them: the
+   * key of each field's `field`. Null when a field is anything else - a
+   * people picker, an overridden key, a field without a column, or one
+   * shown whatever the permission - so the form cannot be judged by its
+   * columns alone.
+   */
+  public static getFormUpdateColumns(
+    fields: ReadonlyArray<PermissionCheckableFormField> | undefined,
+  ): Array<string> | null {
+    const columns: Array<string> = [];
+
+    for (const field of fields || []) {
+      if (
+        field.peoplePicker ||
+        field.overrideField ||
+        field.showEvenIfPermissionDoesNotExist ||
+        !field.field
+      ) {
+        return null;
+      }
+
+      const keys: Array<string> = Object.keys(field.field);
+
+      if (keys.length !== 1) {
+        return null;
+      }
+
+      if (!columns.includes(keys[0]!)) {
+        columns.push(keys[0]!);
+      }
+    }
+
+    return columns;
+  }
+
+  /*
+   * A gate over a list somebody chose by hand rather than a model's own - a
+   * custom route's permission list, such as who may run a workflow
+   * (Types/Workflow/WorkflowRunPermissions) - read by the rule check follows:
+   * an allow row for one of `permissions` (or for `options.wildcard`, when
+   * the list is an operational resource's own) and no block with no labels
+   * on any of them. A master admin is allowed; nobody is told they lack a
+   * permission before the snapshot has landed.
+   *
+   * Refused, the reason is `sentence` - a whole sentence saying what the
+   * user may not do, looked up as one translation key - followed by the
+   * permissions that would let them, or by the team block that stops them,
+   * as check words its own.
+   */
+  public static checkPermissions(
+    permissions: ReadonlyArray<Permission>,
+    options: PermissionGateOptions & { sentence: string },
+  ): PermissionGateResult {
+    if (User.isMasterAdmin()) {
+      return { isAllowed: true };
+    }
+
+    if (permissions.length === 0) {
+      return { isAllowed: false };
+    }
+
+    const held: HeldPermissions = this.getHeldPermissions(options);
+
+    if (!this.isLoaded(held)) {
+      return { isAllowed: false };
+    }
+
+    if (HeldPermissionsUtil.holdsAnyOf(held, permissions, options)) {
+      return { isAllowed: true };
+    }
+
+    const translator: Translator = getGlobalTranslator();
+
+    return {
+      isAllowed: false,
+      disabledReason: this.appendPermissionsToSentence({
+        sentence:
+          translator.translateText(options.sentence) || options.sentence,
+        permissions: [...permissions],
+        held: held,
+      }),
+    };
+  }
+
+  /*
    * The sentence shown in the tooltip. Deliberately the same phrasing the API
    * returns when it refuses the same operation (see TablePermission on the
    * server) so that the two do not read like different products.
@@ -462,6 +637,27 @@ export default class PermissionGate {
             itemName: translatableTerm(singularName),
           },
         );
+
+    return this.appendPermissionsToSentence({
+      sentence: sentence,
+      permissions: data.permissions,
+      held: data.held,
+    });
+  }
+
+  /*
+   * A refusal's first sentence, already in the reader's language, then -
+   * when a team's block is what refuses - "A team you are on blocks ...";
+   * otherwise, when there are permissions to name, "You need one of these
+   * permissions: ...".
+   */
+  private static appendPermissionsToSentence(data: {
+    sentence: string;
+    permissions: Array<Permission>;
+    held: HeldPermissions;
+  }): string {
+    const sentence: string = data.sentence;
+    const translator: Translator = getGlobalTranslator();
 
     const translateTitles: (permissions: Array<Permission>) => string = (
       permissions: Array<Permission>,

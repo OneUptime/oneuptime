@@ -247,7 +247,7 @@ Para que los usuarios puedan recibir llamadas entrantes, deben tener un número 
 
 Solo los usuarios con números de teléfono verificados pueden ser contactados a través de las reglas de escalada.
 
-Los números para llamadas entrantes se verifican por SMS, así que primero el proyecto debe tener **SMS** encendido. Un propietario del proyecto o alguien con **Manage Billing** lo enciende en la tarjeta **Canales de notificación** de **Ajustes del proyecto > Notificaciones > Ajustes de Notificación**.
+Los números para llamadas entrantes se verifican por SMS, así que primero el proyecto debe tener **SMS** encendido. Un propietario del proyecto o alguien con **Billing Admin** o **Manage Billing** lo enciende en la tarjeta **Canales de notificación** de **Ajustes del proyecto > Notificaciones > Ajustes de Notificación**.
 
 ## Liberar un número de teléfono
 

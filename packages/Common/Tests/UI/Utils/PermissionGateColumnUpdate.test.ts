@@ -221,7 +221,7 @@ describe("PermissionGate.getMissingPermissionMessage is unchanged", () => {
         ModelAction.Update,
       ),
     ).toBe(
-      "You do not have permission to update this Project. You need one of these permissions: Project Owner, Project Admin, Manage Billing, Edit Project.",
+      "You do not have permission to update this Project. You need one of these permissions: Project Owner, Project Admin, Billing Admin, Manage Billing, Edit Project.",
     );
   });
 });

@@ -18,7 +18,7 @@ Für ein Projekt:
 4. **Als Projektstandard festlegen** ist bei der ersten Konfiguration des Projekts eingeschaltet, sodass SMS und Anrufe an die Projektmitglieder, einschließlich Bereitschaftsbenachrichtigungen, nach dem Speichern sofort über sie laufen. Schalten Sie es aus, wenn dieses Konto nur für Statusseiten oder eingehende Anrufe gedacht ist. Bei jeder weiteren Konfiguration ist der Schalter aus: Schalten Sie ihn ein oder wählen Sie im Zeilenmenü der Konfiguration **Als Projektstandard festlegen**, um diese Nachrichten auf sie umzustellen. Eine API-Anfrage, die `isProjectDefault` weglässt, wird genauso behandelt.
 5. Speichern Sie. Nur eine Konfiguration kann Projektstandard sein. Statusseiten verwenden die ihnen jeweils ausdrücklich zugewiesene Konfiguration.
 
-**SMS** und **Telefonanrufe** sind in jedem Projekt zunächst ausgeschaltet, und solange sie aus sind, kann niemand im Projekt eine Telefonnummer dafür hinzufügen. Ein Projekteigentümer oder jemand mit **Manage Billing** schaltet sie in der Karte **Benachrichtigungskanäle** auf derselben Seite ein.
+**SMS** und **Telefonanrufe** sind in jedem Projekt zunächst ausgeschaltet, und solange sie aus sind, kann niemand im Projekt eine Telefonnummer dafür hinzufügen. Ein Projekteigentümer oder jemand mit **Billing Admin** oder **Manage Billing** schaltet sie in der Karte **Benachrichtigungskanäle** auf derselben Seite ein.
 
 Für einen installationsweiten Standard kann ein Administrator stattdessen **Admin-Dashboard > Einstellungen > Anrufe und SMS** öffnen, die Twilio-Zugangsdaten und Telefonnummern bearbeiten und speichern. Mitgliederbenachrichtigungen verwenden diese globale Konfiguration, wenn ihr Projekt keinen Standard hat. Halten Sie das Auth Token geheim.
 

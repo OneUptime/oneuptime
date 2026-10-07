@@ -62,7 +62,7 @@ Below that, from top to bottom:
 The footer holds:
 
 - **Delete** — remove this block. It asks first, and names the block by its kind and identifier, such as **Send Email (send-email-2)**, so you know which of several alike blocks goes.
-- **Run just this step** — run this one block on its own, without the rest of the workflow. Values it would have read from other steps come through empty, and anything it sends, writes or deletes really happens.
+- **Run just this step** — run this one block on its own, without the rest of the workflow. Values it would have read from other steps come through empty, and anything it sends, writes or deletes really happens. It skips every condition before the block, so only people who can edit the workflow can use it.
 
 ### Using values from earlier blocks
 

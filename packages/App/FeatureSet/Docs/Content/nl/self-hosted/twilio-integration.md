@@ -18,7 +18,7 @@ Voor een project:
 4. **Instellen als projectstandaard** staat aan bij de eerste configuratie van het project, zodat sms-berichten en oproepen aan projectleden, inclusief bereikbaarheidsmeldingen, er direct na het opslaan via gaan. Schakel het uit als dit account alleen voor statuspagina's of inkomende oproepen is. Bij elke volgende configuratie staat de schakelaar uit: schakel hem in, of kies **Instellen als projectstandaard** in het rijmenu van de configuratie, om die berichten erheen te verplaatsen. Een API-verzoek dat `isProjectDefault` weglaat, wordt op dezelfde manier behandeld.
 5. Sla op. Slechts één configuratie kan de projectstandaard zijn. Statuspagina's gebruiken de configuratie die expliciet aan elke statuspagina is toegewezen.
 
-**SMS** en **Telefoonoproepen** staan in elk project eerst uit, en zolang ze uit staan, kan niemand in het project er een telefoonnummer voor toevoegen. Een projecteigenaar of iemand met **Manage Billing** zet ze aan in de kaart **Meldingskanalen** op dezelfde pagina.
+**SMS** en **Telefoonoproepen** staan in elk project eerst uit, en zolang ze uit staan, kan niemand in het project er een telefoonnummer voor toevoegen. Een projecteigenaar of iemand met **Billing Admin** of **Manage Billing** zet ze aan in de kaart **Meldingskanalen** op dezelfde pagina.
 
 Voor een standaard voor de hele installatie kan een beheerder ook **Admin Dashboard > Settings > Call and SMS** openen, de Twilio-inloggegevens en telefoonnummers bewerken en opslaan. Meldingen aan leden gebruiken deze algemene configuratie als hun project geen standaard heeft. Houd het Auth Token geheim.
 

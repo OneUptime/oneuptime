@@ -47,6 +47,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
    * references resolved to nothing. Unresolved references are not an error at
    * run time (VMAPI leaves the literal text in place), so that workflow looked
    * healthy and posted braces to Slack.
+   *
+   * Every column a variable is created with names the same people. They
+   * used to name only owners, admins and Create Workflow Variable, so the
+   * column check refused the others this list let in. Workflow Member is on
+   * neither: a member runs workflows and does not build them.
    */
   create: [
     Permission.ProjectOwner,
@@ -54,7 +59,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.CreateWorkflowVariable,
     Permission.ProjectMember,
     Permission.WorkflowAdmin,
-    Permission.WorkflowMember,
   ],
   read: [
     Permission.ProjectOwner,
@@ -66,15 +70,18 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.WorkflowViewer,
     Permission.ReadWorkflowVariable,
   ],
+  // Workflow Admin manages the variables its workflows use, as it does them.
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.DeleteWorkflowVariable,
+    Permission.WorkflowAdmin,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.EditWorkflowVariable,
+    Permission.WorkflowAdmin,
   ],
 })
 @CrudApiEndpoint(new Route("/workflow-variable"))
@@ -96,6 +103,8 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.CreateWorkflowVariable,
+      Permission.ProjectMember,
+      Permission.WorkflowAdmin,
     ],
     read: [
       Permission.ProjectOwner,
@@ -135,6 +144,8 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.CreateWorkflowVariable,
+      Permission.ProjectMember,
+      Permission.WorkflowAdmin,
     ],
     read: [
       Permission.ProjectOwner,
@@ -168,6 +179,8 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.CreateWorkflowVariable,
+      Permission.ProjectMember,
+      Permission.WorkflowAdmin,
     ],
     read: [
       Permission.ProjectOwner,
@@ -208,6 +221,8 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.CreateWorkflowVariable,
+      Permission.ProjectMember,
+      Permission.WorkflowAdmin,
     ],
     read: [
       Permission.ProjectOwner,
@@ -242,6 +257,8 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.CreateWorkflowVariable,
+      Permission.ProjectMember,
+      Permission.WorkflowAdmin,
     ],
     read: [
       Permission.ProjectOwner,
@@ -257,6 +274,7 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.EditWorkflowVariable,
+      Permission.WorkflowAdmin,
     ],
   })
   @TableColumn({
@@ -279,6 +297,8 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.CreateWorkflowVariable,
+      Permission.ProjectMember,
+      Permission.WorkflowAdmin,
     ],
     read: [
       Permission.ProjectOwner,
@@ -294,6 +314,7 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.EditWorkflowVariable,
+      Permission.WorkflowAdmin,
     ],
   })
   @TableColumn({
@@ -314,12 +335,15 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.CreateWorkflowVariable,
+      Permission.ProjectMember,
+      Permission.WorkflowAdmin,
     ],
     read: [],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.EditWorkflowVariable,
+      Permission.WorkflowAdmin,
     ],
   })
   /*
@@ -347,6 +371,8 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.CreateWorkflowVariable,
+      Permission.ProjectMember,
+      Permission.WorkflowAdmin,
     ],
     read: [
       Permission.ProjectOwner,
@@ -379,6 +405,7 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.EditWorkflowVariable,
+      Permission.WorkflowAdmin,
     ],
   })
   @TableColumn({
@@ -409,6 +436,8 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.CreateWorkflowVariable,
+      Permission.ProjectMember,
+      Permission.WorkflowAdmin,
     ],
     read: [
       Permission.ProjectOwner,
@@ -451,6 +480,8 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.CreateWorkflowVariable,
+      Permission.ProjectMember,
+      Permission.WorkflowAdmin,
     ],
     read: [
       Permission.ProjectOwner,
@@ -484,6 +515,8 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.CreateWorkflowVariable,
+      Permission.ProjectMember,
+      Permission.WorkflowAdmin,
     ],
     read: [
       Permission.ProjectOwner,
@@ -499,6 +532,7 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.EditWorkflowVariable,
+      Permission.WorkflowAdmin,
     ],
   })
   @TableColumn({
@@ -521,6 +555,8 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.CreateWorkflowVariable,
+      Permission.ProjectMember,
+      Permission.WorkflowAdmin,
     ],
     read: [
       Permission.ProjectOwner,
@@ -536,6 +572,7 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.EditWorkflowVariable,
+      Permission.WorkflowAdmin,
     ],
   })
   @TableColumn({
@@ -562,12 +599,15 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.CreateWorkflowVariable,
+      Permission.ProjectMember,
+      Permission.WorkflowAdmin,
     ],
     read: [],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.EditWorkflowVariable,
+      Permission.WorkflowAdmin,
     ],
   })
   @TableColumn({
@@ -594,12 +634,15 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.CreateWorkflowVariable,
+      Permission.ProjectMember,
+      Permission.WorkflowAdmin,
     ],
     read: [],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.EditWorkflowVariable,
+      Permission.WorkflowAdmin,
     ],
   })
   @TableColumn({
@@ -622,6 +665,8 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.CreateWorkflowVariable,
+      Permission.ProjectMember,
+      Permission.WorkflowAdmin,
     ],
     read: [
       Permission.ProjectOwner,
@@ -637,6 +682,7 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.EditWorkflowVariable,
+      Permission.WorkflowAdmin,
     ],
   })
   @TableColumn({
@@ -658,6 +704,8 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.CreateWorkflowVariable,
+      Permission.ProjectMember,
+      Permission.WorkflowAdmin,
     ],
     read: [
       Permission.ProjectOwner,
@@ -673,6 +721,7 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.EditWorkflowVariable,
+      Permission.WorkflowAdmin,
     ],
   })
   @TableColumn({
@@ -694,6 +743,8 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.CreateWorkflowVariable,
+      Permission.ProjectMember,
+      Permission.WorkflowAdmin,
     ],
     read: [
       Permission.ProjectOwner,
@@ -709,6 +760,7 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.EditWorkflowVariable,
+      Permission.WorkflowAdmin,
     ],
   })
   @TableColumn({
@@ -864,6 +916,8 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.CreateWorkflowVariable,
+      Permission.ProjectMember,
+      Permission.WorkflowAdmin,
     ],
     read: [
       Permission.ProjectOwner,
@@ -904,6 +958,8 @@ export default class WorkflowVariable extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.CreateWorkflowVariable,
+      Permission.ProjectMember,
+      Permission.WorkflowAdmin,
     ],
     read: [
       Permission.ProjectOwner,

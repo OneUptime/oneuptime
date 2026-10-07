@@ -113,10 +113,11 @@ export const SEVERITIES_DELETED_WARNING: string =
  *
  * Push, Email, Slack, Microsoft Teams and webhooks have no such switch.
  *
- * Only a project owner or someone with Manage Billing may turn one on, and
- * the people reading these warnings - whoever sees the team's compliance -
- * are often neither, so every warning says who can, and where
- * (Utils/Project/NotificationChannels), rather than telling the reader to.
+ * Only a project owner, a Billing Admin or someone with Manage Billing may
+ * turn one on, and the people reading these warnings - whoever sees the
+ * team's compliance - are often neither, so every warning says who can, and
+ * where (Utils/Project/NotificationChannels), rather than telling the reader
+ * to.
  */
 export type ProjectChannelSwitch =
   | "enableCallNotifications"

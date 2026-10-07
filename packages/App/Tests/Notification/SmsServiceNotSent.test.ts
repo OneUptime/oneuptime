@@ -230,7 +230,7 @@ describe("an SMS the Notification service does not send", () => {
         `SMS not sent: ${getProjectNotificationChannelOffMessage(ProjectNotificationChannel.SMS)}`,
       );
       expect((error as BadDataException).message).toBe(
-        "SMS not sent: SMS is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings > Notification Settings.",
+        "SMS not sent: SMS is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notification Settings.",
       );
       // The tenant's setting, not a defect.
       expect(declaredErrorClass(error)).toEqual({
@@ -266,7 +266,7 @@ describe("an SMS the Notification service does not send", () => {
         getProjectNotificationChannelOffMessage(ProjectNotificationChannel.SMS),
       );
       expect(loggedRows()[0]!.statusMessage).toContain(
-        "A project owner or someone with Manage Billing",
+        "A project owner, a Billing Admin or someone with Manage Billing",
       );
     });
 

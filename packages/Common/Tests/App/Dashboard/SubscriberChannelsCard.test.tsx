@@ -584,7 +584,7 @@ describe("flipping a switch", () => {
       expect(
         within(rowFor("enableSmsSubscribers")).getByRole("alert"),
       ).toHaveTextContent(
-        "Visitors can't subscribe by SMS while SMS is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings > Notification Settings.",
+        "Visitors can't subscribe by SMS while SMS is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notification Settings.",
       );
     });
     expect(switchFor("enableSmsSubscribers")).toHaveAttribute(
