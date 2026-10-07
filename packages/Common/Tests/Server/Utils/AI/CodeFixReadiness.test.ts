@@ -7,6 +7,7 @@ import RunnerService from "../../../../Server/Services/RunnerService";
 import AIService from "../../../../Server/Services/AIService";
 import LlmProviderService from "../../../../Server/Services/LlmProviderService";
 import ProjectService from "../../../../Server/Services/ProjectService";
+import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import AIAgent from "../../../../Models/DatabaseModels/AIAgent";
 import LlmProvider from "../../../../Models/DatabaseModels/LlmProvider";
 import Project from "../../../../Models/DatabaseModels/Project";
@@ -180,6 +181,95 @@ describe("CodeFixReadiness.getLlmProviderCheck", () => {
       "A project owner or someone with Manage Billing can add AI credits",
     );
     expect(check.detail).not.toMatch(/\brecharge\b/i);
+  });
+
+  /*
+   * The first fix completion on used-up credits recharges them first when
+   * Auto Recharge is on, as every billed AI call does - so the AI Tasks page
+   * says ready, as the AI agent pages and the investigation gate do
+   * (AIService.getAiBalanceBlocker).
+   */
+  test("an empty balance with Auto Recharge on and set up is ready: the first completion refills it", async () => {
+    jest
+      .spyOn(LlmProviderService, "getLlmProviderForMeteredAgentPath")
+      .mockResolvedValue(
+        fakeProvider({
+          name: "OneUptime AI",
+          isGlobalLlm: true,
+          costPerMillionTokensInUSDCents: 500,
+        }),
+      );
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      aiCurrentBalanceInUSDCents: 0,
+      enableAutoRechargeAiBalance: true,
+      autoAiRechargeByBalanceInUSD: 20,
+      autoRechargeAiWhenCurrentBalanceFallsInUSD: 10,
+    } as unknown as Project);
+    jest.spyOn(GlobalCache, "getString").mockResolvedValue(null);
+
+    const check: AIFixReadinessCheck =
+      await CodeFixReadiness.getLlmProviderCheck({
+        projectId,
+        billingEnabled: true,
+      });
+
+    expect(check.ok).toBe(true);
+  });
+
+  test("an empty balance whose Auto Recharge last failed is NOT ready: it will not refill before the run", async () => {
+    jest
+      .spyOn(LlmProviderService, "getLlmProviderForMeteredAgentPath")
+      .mockResolvedValue(
+        fakeProvider({
+          name: "OneUptime AI",
+          isGlobalLlm: true,
+          costPerMillionTokensInUSDCents: 500,
+        }),
+      );
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      aiCurrentBalanceInUSDCents: 0,
+      enableAutoRechargeAiBalance: true,
+      autoAiRechargeByBalanceInUSD: 20,
+      autoRechargeAiWhenCurrentBalanceFallsInUSD: 10,
+    } as unknown as Project);
+    jest
+      .spyOn(GlobalCache, "getString")
+      .mockResolvedValue("2026-10-07T08:00:00.000Z");
+
+    const check: AIFixReadinessCheck =
+      await CodeFixReadiness.getLlmProviderCheck({
+        projectId,
+        billingEnabled: true,
+      });
+
+    expect(check.ok).toBe(false);
+    expect(check.detail).toBe(CODE_FIX_AI_CREDITS_USED_UP_DETAIL);
+  });
+
+  test("an empty balance with Auto Recharge on but nothing to add is NOT ready", async () => {
+    jest
+      .spyOn(LlmProviderService, "getLlmProviderForMeteredAgentPath")
+      .mockResolvedValue(
+        fakeProvider({
+          name: "OneUptime AI",
+          isGlobalLlm: true,
+          costPerMillionTokensInUSDCents: 500,
+        }),
+      );
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      aiCurrentBalanceInUSDCents: 0,
+      enableAutoRechargeAiBalance: true,
+      autoAiRechargeByBalanceInUSD: 0,
+      autoRechargeAiWhenCurrentBalanceFallsInUSD: 10,
+    } as unknown as Project);
+
+    const check: AIFixReadinessCheck =
+      await CodeFixReadiness.getLlmProviderCheck({
+        projectId,
+        billingEnabled: true,
+      });
+
+    expect(check.ok).toBe(false);
   });
 });
 

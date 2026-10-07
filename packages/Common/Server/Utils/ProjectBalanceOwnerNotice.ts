@@ -12,7 +12,8 @@ import {
  * What a project's owners are told when a message was not sent because the
  * project's balance could not pay for it (SmsService, CallService,
  * WhatsAppService and TelegramService email them once, until the balance is
- * topped up again).
+ * topped up again), and when OneUptime AI stopped because its AI credits ran
+ * out (AI/AiCreditsUsedUpOwnerNotice, once each time they run out).
  *
  * They may add balance (owners hold the recharge permission, see
  * Utils/Project/ProjectBalance), so this tells them to, and links straight
@@ -45,14 +46,18 @@ export default class ProjectBalanceOwnerNotice {
 
   /*
    * The notice, as the HTML the owners' email places it in (SimpleMessage's
-   * info block): the sentence, then the link on a line of its own.
+   * info block): the sentence, then the link on a line of its own. The
+   * sentence is what to do (getProjectBalanceOwnerSentence), unless the
+   * caller knows better - AI credits that Auto Recharge could not refill,
+   * where turning it on is no way out.
    */
   public static getHtml(data: {
     balance: ProjectBalanceType;
     projectId: ObjectID;
+    sentence?: string | undefined;
   }): string {
     const sentence: string = SafeHtml.escape(
-      getProjectBalanceOwnerSentence(data.balance),
+      data.sentence || getProjectBalanceOwnerSentence(data.balance),
     );
 
     const settingsLink: URL | null =
