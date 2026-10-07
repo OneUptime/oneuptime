@@ -36,6 +36,7 @@ import {
   RunbookStepActionDecision,
 } from "Common/Types/Runbook/RunbookStepAction";
 import RunRunbook from "../Services/RunRunbook";
+import RunbookRunAccess from "Common/Server/Utils/Runbook/RunbookRunAccess";
 
 export default class RunbookAPI {
   public router!: ExpressRouter;
@@ -112,6 +113,13 @@ export default class RunbookAPI {
       CommonAPI.assertResourceBelongsToProject({
         resourceProjectId: runbook.projectId,
         projectId,
+      });
+
+      // The runbooks the grant that lets them run reaches (labels, owned).
+      await RunbookRunAccess.assertMayStart({
+        databaseProps: props,
+        projectId,
+        runbookId: new ObjectID(runbook._id!),
       });
 
       if (runbook.isEnabled === false) {
@@ -264,6 +272,7 @@ export default class RunbookAPI {
         executionId,
         stepId,
         projectId,
+        databaseProps: props,
         notes: typeof req.body?.notes === "string" ? req.body.notes : undefined,
         userId: props.userId ? props.userId.toString() : undefined,
       });
@@ -304,6 +313,7 @@ export default class RunbookAPI {
         executionId,
         stepId,
         projectId,
+        databaseProps: props,
         notes:
           typeof req.body?.reason === "string" ? req.body.reason : undefined,
         userId: props.userId ? props.userId.toString() : undefined,
@@ -343,6 +353,7 @@ export default class RunbookAPI {
           select: {
             _id: true,
             projectId: true,
+            runbookId: true,
             status: true,
             stepExecutions: true,
           },
@@ -356,6 +367,12 @@ export default class RunbookAPI {
       CommonAPI.assertResourceBelongsToProject({
         resourceProjectId: execution.projectId,
         projectId,
+      });
+
+      await assertMayAdvanceRunOf({
+        databaseProps: props,
+        projectId,
+        runbookId: execution.runbookId,
       });
 
       if (
@@ -408,6 +425,28 @@ export default class RunbookAPI {
 }
 
 /*
+ * A run is moved along - a step completed or skipped, the run cancelled - by
+ * whoever may run its runbook (RunbookRunAccess). A run whose runbook is
+ * gone is left to the run permissions alone: there are no labels left to
+ * weigh.
+ */
+async function assertMayAdvanceRunOf(data: {
+  databaseProps: DatabaseCommonInteractionProps;
+  projectId: ObjectID;
+  runbookId: ObjectID | undefined;
+}): Promise<void> {
+  if (!data.runbookId) {
+    return;
+  }
+
+  await RunbookRunAccess.assertMayAdvance({
+    databaseProps: data.databaseProps,
+    projectId: data.projectId,
+    runbookId: data.runbookId,
+  });
+}
+
+/*
  * Throws unless the referenced event exists AND belongs to the caller's
  * project. Looks the row up with isRoot deliberately: a tenant-scoped read
  * would report "not found" for a cross-tenant ID, which is the same answer
@@ -457,6 +496,7 @@ async function advanceStep(args: {
   executionId: string;
   stepId: string;
   projectId: ObjectID;
+  databaseProps: DatabaseCommonInteractionProps;
   notes?: string | undefined;
   userId?: string | undefined;
 }): Promise<void> {
@@ -466,6 +506,7 @@ async function advanceStep(args: {
       select: {
         _id: true,
         projectId: true,
+        runbookId: true,
         status: true,
         stepExecutions: true,
         version: true,
@@ -480,6 +521,12 @@ async function advanceStep(args: {
   CommonAPI.assertResourceBelongsToProject({
     resourceProjectId: execution.projectId,
     projectId: args.projectId,
+  });
+
+  await assertMayAdvanceRunOf({
+    databaseProps: args.databaseProps,
+    projectId: args.projectId,
+    runbookId: execution.runbookId,
   });
 
   const stepExecutions: RunbookStepExecutionState[] =

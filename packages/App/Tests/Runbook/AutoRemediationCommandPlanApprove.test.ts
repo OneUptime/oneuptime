@@ -5,10 +5,12 @@ import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import KubernetesClusterAiAccessService from "Common/Server/Services/KubernetesClusterAiAccessService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import RunbookRuleEngineService from "Common/Server/Services/RunbookRuleEngineService";
+import RunbookService from "Common/Server/Services/RunbookService";
 import RunnerService from "Common/Server/Services/RunnerService";
 import CommandPlanExecutor from "Common/Server/Utils/AutoRemediation/CommandPlanExecutor";
 import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
 import Project from "Common/Models/DatabaseModels/Project";
+import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import AutoRemediationSuggestionStatus from "Common/Types/AutoRemediation/AutoRemediationSuggestionStatus";
@@ -646,6 +648,10 @@ describe("Auto-remediation CommandPlan approve/dismiss routes", () => {
           .mockResolvedValue({
             id: RUNBOOK_EXECUTION_ID,
           } as unknown as RunbookExecution);
+        // The approver's run grant reaches the runbook (RunbookRunAccess).
+        jest
+          .spyOn(RunbookService, "findOneById")
+          .mockResolvedValue(new Runbook(RUNBOOK_ID));
         jest
           .spyOn(AutoRemediationSuggestionService, "updateOneById")
           .mockResolvedValue(undefined as never);
@@ -661,6 +667,87 @@ describe("Auto-remediation CommandPlan approve/dismiss routes", () => {
         expect(executeApprovedPlanMock).not.toHaveBeenCalled();
       },
     );
+  });
+
+  /*
+   * Approving a runbook suggestion starts the runbook, so the approver's run
+   * grant must reach it: read with the approver's run-role rows alone
+   * (Common/Server/Utils/Runbook/RunbookRunAccess), as starting it from the
+   * runbook's page is. A Runbook Member limited to a label the runbook does
+   * not carry may not start it by approving a suggestion either.
+   */
+  describe("POST /auto-remediation/approve — a runbook suggestion starts only a runbook the approver may run", () => {
+    let runbookFindSpy: jest.SpyInstance;
+    let startRunbookSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      mockSuggestion({
+        suggestionType: AutoRemediationSuggestionType.Runbook,
+        commandPlan: undefined,
+        runbookId: RUNBOOK_ID,
+      });
+      startRunbookSpy = jest
+        .spyOn(RunbookRuleEngineService, "startRunbookFor")
+        .mockResolvedValue({
+          id: RUNBOOK_EXECUTION_ID,
+        } as unknown as RunbookExecution);
+      jest
+        .spyOn(AutoRemediationSuggestionService, "updateOneById")
+        .mockResolvedValue(undefined as never);
+      runbookFindSpy = jest
+        .spyOn(RunbookService, "findOneById")
+        .mockResolvedValue(new Runbook(RUNBOOK_ID));
+    });
+
+    test("the runbook is read with the approver's run-role rows, not as OneUptime, before anything is claimed", async () => {
+      const result: RouteCallResult = await callRoute({ uri: APPROVE_ROUTE });
+
+      expect(result.nextCallCount).toBe(0);
+      expect(runbookFindSpy).toHaveBeenCalledTimes(1);
+
+      const readProps: DatabaseCommonInteractionProps = runbookFindSpy.mock
+        .calls[0]![0].props as DatabaseCommonInteractionProps;
+      expect(readProps.isRoot).toBeFalsy();
+      expect(
+        readProps.userTenantAccessPermission?.[PROJECT_ID.toString()]
+          ?.permissions.map((row: UserPermission) => {
+            return row.permission;
+          }),
+      ).toEqual([Permission.ProjectMember]);
+      expect(runbookFindSpy.mock.invocationCallOrder[0]!).toBeLessThan(
+        casSpy.mock.invocationCallOrder[0]!,
+      );
+      expect(startRunbookSpy).toHaveBeenCalledTimes(1);
+    });
+
+    test("a Runbook Member whose grant does not reach the runbook is refused - nothing claimed, nothing started", async () => {
+      getPropsSpy.mockResolvedValue(
+        buildUserProps({ permissions: [Permission.RunbookMember] }),
+      );
+      runbookFindSpy.mockResolvedValue(null);
+
+      const result: RouteCallResult = await callRoute({ uri: APPROVE_ROUTE });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect((result.thrownToNext as Error).message).toBe(
+        "You do not have permission to start runbook executions in this project.",
+      );
+      expect(casSpy).not.toHaveBeenCalled();
+      expect(startRunbookSpy).not.toHaveBeenCalled();
+    });
+
+    test("Create Runbook Execution reaches every runbook of the project: the runbook is not read", async () => {
+      getPropsSpy.mockResolvedValue(
+        buildUserProps({ permissions: [Permission.CreateRunbookExecution] }),
+      );
+      runbookFindSpy.mockResolvedValue(null);
+
+      const result: RouteCallResult = await callRoute({ uri: APPROVE_ROUTE });
+
+      expect(result.nextCallCount).toBe(0);
+      expect(runbookFindSpy).not.toHaveBeenCalled();
+      expect(startRunbookSpy).toHaveBeenCalledTimes(1);
+    });
   });
 
   /*

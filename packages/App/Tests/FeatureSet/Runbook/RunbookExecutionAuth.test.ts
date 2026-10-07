@@ -1134,4 +1134,214 @@ describe("Runbook execution routes require an authorized member of the runbook's
       expect(updateData.status).toBe(RunbookExecutionStatus.Cancelled);
     });
   });
+
+  /*
+   * A Runbook Member runs the runbooks ITS grant reaches - its labels and
+   * owned scope - read with that grant alone
+   * (Common/Server/Utils/Runbook/RunbookRunAccess). Before, the runbook was
+   * read as OneUptime only, and a Runbook Member limited to some labels ran
+   * every runbook in the project. The fake read below finds the runbook as
+   * OneUptime always, and with the caller's rows only when one of the run
+   * roles is there with no labels.
+   */
+  describe("which runbooks a run role reaches", () => {
+    const LABEL_ID: ObjectID = ObjectID.generate();
+
+    function memberWithRows(rows: Array<UserPermission>): void {
+      mockProps({
+        tenantId: callerProjectId,
+        userId: callerUserId,
+        userType: UserType.User,
+        userTenantAccessPermission: {
+          [callerProjectId.toString()]: {
+            _type: "UserTenantAccessPermission",
+            projectId: callerProjectId,
+            permissions: rows,
+          },
+        },
+      });
+    }
+
+    function runbookReadReachesUnlabelledRoles(): void {
+      runbookFindSpy.mockImplementation((async (data: {
+        props: DatabaseCommonInteractionProps;
+      }): Promise<Runbook | null> => {
+        const runbook: Runbook = {
+          _id: runbookId.toString(),
+          projectId: callerProjectId,
+          name: "Restart web tier",
+          isEnabled: true,
+          steps: makeSteps(),
+        } as unknown as Runbook;
+
+        if (data.props.isRoot) {
+          return runbook;
+        }
+
+        const rows: Array<UserPermission> =
+          data.props.userTenantAccessPermission?.[callerProjectId.toString()]
+            ?.permissions || [];
+
+        return rows.some((candidate: UserPermission): boolean => {
+          return (
+            !candidate.isBlockPermission &&
+            candidate.labelIds.length === 0 &&
+            [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+              Permission.ProjectMember,
+              Permission.RunbookAdmin,
+              Permission.RunbookMember,
+            ].includes(candidate.permission)
+          );
+        })
+          ? runbook
+          : null;
+      }) as unknown as typeof RunbookService.findOneById);
+    }
+
+    // A run of the runbook, paused on its first (Manual) step.
+    function executionOfTheRunbook(status?: RunbookExecutionStatus): void {
+      executionFindSpy.mockImplementation((async (): Promise<
+        RunbookExecution
+      > => {
+        const stepExecutions: Array<RunbookStepExecutionState> =
+          makeSteps().map(
+            (step: RunbookStep, index: number): RunbookStepExecutionState => {
+              return {
+                step,
+                status:
+                  index === 0
+                    ? RunbookStepExecutionStatus.WaitingForUser
+                    : RunbookStepExecutionStatus.Pending,
+              };
+            },
+          );
+
+        return {
+          _id: executionId.toString(),
+          projectId: callerProjectId,
+          runbookId: runbookId,
+          status: status || RunbookExecutionStatus.WaitingForManualStep,
+          stepExecutions,
+          version: 3,
+        } as unknown as RunbookExecution;
+      }) as unknown as typeof RunbookExecutionService.findOneById);
+    }
+
+    function role(
+      permission: Permission,
+      labels: Array<ObjectID> = [],
+    ): UserPermission {
+      return {
+        _type: "UserPermission",
+        permission: permission,
+        labelIds: labels,
+        isBlockPermission: false,
+      };
+    }
+
+    test("a Runbook Member whose grant reaches the runbook starts it", async () => {
+      memberWithRows([role(Permission.RunbookMember)]);
+      runbookReadReachesUnlabelledRoles();
+
+      const result: RouteCallResult = await callRoute({
+        uri: RUN_ROUTE,
+        params: runParams(),
+      });
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(executionCreateSpy).toHaveBeenCalledTimes(1);
+      expect(startExecutionMock).toHaveBeenCalledTimes(1);
+    });
+
+    test("a Runbook Member limited to a label the runbook does not carry is refused, however widely a Viewer grant shows it - and nothing runs", async () => {
+      memberWithRows([
+        role(Permission.RunbookMember, [LABEL_ID]),
+        role(Permission.Viewer),
+        role(Permission.RunbookViewer),
+      ]);
+      runbookReadReachesUnlabelledRoles();
+
+      const result: RouteCallResult = await callRoute({
+        uri: RUN_ROUTE,
+        params: runParams(),
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect((result.thrownToNext as Error).message).toBe(
+        "You do not have permission to start runbook executions in this project.",
+      );
+      expectNothingExecutedOrMutated();
+    });
+
+    test.each([COMPLETE_ROUTE, SKIP_ROUTE, CANCEL_ROUTE])(
+      "the same Runbook Member may not move a run of that runbook along via %s",
+      async (uri: string) => {
+        memberWithRows([
+          role(Permission.RunbookMember, [LABEL_ID]),
+          role(Permission.Viewer),
+        ]);
+        runbookReadReachesUnlabelledRoles();
+        executionOfTheRunbook(
+          uri === CANCEL_ROUTE ? RunbookExecutionStatus.Running : undefined,
+        );
+
+        const result: RouteCallResult = await callRoute({
+          uri,
+          params: uri === CANCEL_ROUTE ? cancelParams() : stepParams(),
+        });
+
+        expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+        expect((result.thrownToNext as Error).message).toBe(
+          "You do not have permission to change runbook executions in this project.",
+        );
+        expectNothingExecutedOrMutated();
+      },
+    );
+
+    test.each([COMPLETE_ROUTE, SKIP_ROUTE, CANCEL_ROUTE])(
+      "a Runbook Member whose grant reaches the runbook moves its run along via %s",
+      async (uri: string) => {
+        memberWithRows([role(Permission.RunbookMember)]);
+        runbookReadReachesUnlabelledRoles();
+        executionOfTheRunbook(
+          uri === CANCEL_ROUTE ? RunbookExecutionStatus.Running : undefined,
+        );
+
+        const result: RouteCallResult = await callRoute({
+          uri,
+          params: uri === CANCEL_ROUTE ? cancelParams() : stepParams(),
+        });
+
+        expect(result.thrownToNext).toBeUndefined();
+      },
+    );
+
+    test("Edit Runbook Execution still moves any run of the project along: it is about runs", async () => {
+      memberWithRows([role(Permission.EditRunbookExecution)]);
+      runbookReadReachesUnlabelledRoles();
+      executionOfTheRunbook();
+
+      const result: RouteCallResult = await callRoute({
+        uri: COMPLETE_ROUTE,
+        params: stepParams(),
+      });
+
+      expect(result.thrownToNext).toBeUndefined();
+    });
+
+    test("a Runbook Viewer runs nothing", async () => {
+      memberWithRows([role(Permission.RunbookViewer)]);
+      runbookReadReachesUnlabelledRoles();
+
+      const result: RouteCallResult = await callRoute({
+        uri: RUN_ROUTE,
+        params: runParams(),
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expectNothingExecutedOrMutated();
+    });
+  });
 });
