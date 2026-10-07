@@ -1,12 +1,16 @@
 import {
   formatProjectBalanceAmount,
   getProjectBalanceMessageNotSentReason,
+  getProjectAiCreditsUsedUpOwnerSubject,
   getProjectBalanceOwnerSentence,
   getProjectBalanceShortfallSentence,
   getProjectBalanceTooLowMessage,
   getProjectBalanceWhoCanAddSentence,
   INCOMING_CALL_NUMBER_BALANCE_TOO_LOW_MESSAGE,
+  PROJECT_AI_AUTO_RECHARGE_COULD_NOT_ADD_OWNER_SENTENCE,
   PROJECT_AI_CREDITS_USED_UP_MESSAGE,
+  PROJECT_AI_CREDITS_USED_UP_OWNER_FREQUENCY_SENTENCE,
+  PROJECT_AI_CREDITS_USED_UP_OWNER_SENTENCE,
   PROJECT_BALANCE_AUTO_RECHARGE_COLUMNS,
   PROJECT_BALANCE_RECHARGE_PERMISSIONS,
   PROJECT_BALANCE_SETTINGS_PAGE,
@@ -340,10 +344,67 @@ describe("what the owners are told", () => {
     );
   });
 
-  test("to add AI credits first: AI is recharged only after a call it paid for", () => {
+  /*
+   * AI credits that are used up are recharged before the next AI call when
+   * Auto Recharge is on, and turning it on tops them up at once - so, as for
+   * SMS and calls, turning it on is a way out.
+   */
+  test("to add AI credits or turn on Auto Recharge, which refills them when they run out", () => {
     expect(getProjectBalanceOwnerSentence(ProjectBalanceType.AI)).toBe(
-      "Add AI credits in Project Settings → AI Credits, and turn on Auto Recharge there so they do not run out again.",
+      "Add AI credits in Project Settings → AI Credits, or turn on Auto Recharge there so they do not run out.",
     );
+  });
+});
+
+describe("the owners' email when the AI credits run out", () => {
+  test("its subject names the project", () => {
+    expect(getProjectAiCreditsUsedUpOwnerSubject("Acme Production")).toBe(
+      "AI credits used up for Acme Production",
+    );
+    expect(getProjectAiCreditsUsedUpOwnerSubject("  Acme  ")).toBe(
+      "AI credits used up for Acme",
+    );
+  });
+
+  test("a project without a name still has a subject", () => {
+    for (const name of [undefined, "", "   "]) {
+      expect(getProjectAiCreditsUsedUpOwnerSubject(name)).toBe(
+        "AI credits used up for your project",
+      );
+    }
+  });
+
+  test("says what happened first: the credits are used up and AI has stopped", () => {
+    expect(PROJECT_AI_CREDITS_USED_UP_OWNER_SENTENCE).toBe(
+      "This project's AI credits are used up, so OneUptime AI has stopped: Ask AI, investigations and the other AI features paid from them are refused until credits are added.",
+    );
+  });
+
+  test("when Auto Recharge is on and could not add more, it points at the payment method, not at Auto Recharge", () => {
+    expect(PROJECT_AI_AUTO_RECHARGE_COULD_NOT_ADD_OWNER_SENTENCE).toBe(
+      "Auto Recharge is on, but it could not add AI credits. Check the payment method in Project Settings > Billing, or add AI credits in Project Settings → AI Credits.",
+    );
+    expect(PROJECT_AI_AUTO_RECHARGE_COULD_NOT_ADD_OWNER_SENTENCE).not.toMatch(
+      /turn on Auto Recharge/i,
+    );
+  });
+
+  test("says how often it comes", () => {
+    expect(PROJECT_AI_CREDITS_USED_UP_OWNER_FREQUENCY_SENTENCE).toBe(
+      "Project owners get this email once each time the AI credits run out.",
+    );
+  });
+
+  test("tells the owners - who may - what to do, never 'please', never who else can", () => {
+    for (const sentence of [
+      PROJECT_AI_CREDITS_USED_UP_OWNER_SENTENCE,
+      PROJECT_AI_AUTO_RECHARGE_COULD_NOT_ADD_OWNER_SENTENCE,
+      getProjectBalanceOwnerSentence(ProjectBalanceType.AI),
+    ]) {
+      expect(sentence).not.toMatch(/please/i);
+      expect(sentence).not.toContain("Manage Billing can");
+      expect(sentence).toMatch(/\.$/);
+    }
   });
 });
 

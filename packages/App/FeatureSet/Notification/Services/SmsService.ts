@@ -83,6 +83,17 @@ export default class SmsService {
         options,
       );
 
+      /*
+       * Deliberately not sent: the person's on-call timeline says so, and
+       * why, instead of "Sending" for ever.
+       */
+      if (notSentReason !== null) {
+        await UserOnCallLogTimelineService.markNotSent({
+          userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+          reason: notSentReason,
+        });
+      }
+
       if (notSentReason !== null && options.failIfNotSent) {
         // The tenant's settings or balance, not a defect: a user error.
         throw new BadDataException(
@@ -132,7 +143,9 @@ export default class SmsService {
     /*
      * Returns why the SMS was deliberately not sent (the project was not
      * found, has SMS turned off, or has too little balance), after logging
-     * it; null when it was handed to Twilio. A failure to send throws.
+     * it; null when it was handed to Twilio. A failure to send throws. The
+     * on-call timeline row of an SMS not sent is updated by sendSms, from
+     * the reason this returns.
      */
     let smsError: Error | null = null;
     const smsLog: SmsLog = new SmsLog();
