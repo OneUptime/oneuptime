@@ -53,9 +53,19 @@ import {
   SCIMErrorType,
 } from "../Utils/SCIMUtils";
 import {
+  getScimMissingPlan,
+  isScimGroupPatchOnlyARemoval,
+  isScimGroupReplaceOnlyARemoval,
+  isScimUserUpdateOnlyARemoval,
+  planScimGroupPatch,
+  ScimGroupPatchAction,
+  sendScimBelowPlanRefusal,
+} from "../Utils/SCIMBelowPlan";
+import {
   AppApiClientUrl,
   DocsClientUrl,
 } from "Common/Server/EnvironmentConfig";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 
 type SCIMMember = {
   value: string;
@@ -515,6 +525,230 @@ const replaceGroupMembersOfTeam: (data: {
     kept: keptUserIds.length,
     removed: userIdsToRemove.length,
   };
+};
+
+/*
+ * The ids of the accounts in one of the project's teams, accepted or
+ * pending: what a group update below the plan is compared with
+ * (Utils/SCIMBelowPlan), read the way replaceGroupMembersOfTeam reads them.
+ */
+const getTeamMemberUserIds: (data: {
+  projectId: ObjectID;
+  teamId: ObjectID;
+}) => Promise<Array<string>> = async (data: {
+  projectId: ObjectID;
+  teamId: ObjectID;
+}): Promise<Array<string>> => {
+  const members: Array<TeamMember> = await TeamMemberService.findBy({
+    query: {
+      projectId: data.projectId,
+      teamId: data.teamId,
+    },
+    select: {
+      _id: true,
+      userId: true,
+    },
+    limit: LIMIT_MAX,
+    skip: 0,
+    props: { isRoot: true },
+  });
+
+  return members
+    .map((member: TeamMember): string => {
+      return member.userId?.toString() || "";
+    })
+    .filter(Boolean);
+};
+
+// What applying a group PATCH did, for the response and the SCIM log.
+interface GroupPatchResult {
+  added: number;
+  invited: number;
+  removed: number;
+  kept: number;
+  replaced: boolean;
+  nameUpdated: boolean;
+}
+
+/*
+ * Applies a group PATCH's operations, as planScimGroupPatch reads them, in
+ * order, to one of the project's teams: members removed (each through
+ * TeamMemberService, so a leaver's own settings go with their last
+ * membership), added, or replaced, and the team renamed. Operations it does
+ * not know are left alone, as they always were. The single PATCH route and
+ * Bulk share it, so both read the same operations the same way - and below
+ * the plan, what was checked is exactly what is done.
+ */
+const applyGroupPatchActions: (data: {
+  projectId: ObjectID;
+  team: Team;
+  actions: Array<ScimGroupPatchAction>;
+  executionSteps: Array<string>;
+  req: ExpressRequest;
+}) => Promise<GroupPatchResult> = async (data: {
+  projectId: ObjectID;
+  team: Team;
+  actions: Array<ScimGroupPatchAction>;
+  executionSteps: Array<string>;
+  req: ExpressRequest;
+}): Promise<GroupPatchResult> => {
+  const result: GroupPatchResult = {
+    added: 0,
+    invited: 0,
+    removed: 0,
+    kept: 0,
+    replaced: false,
+    nameUpdated: false,
+  };
+
+  for (const action of data.actions) {
+    if (action.kind === "replaceMembers") {
+      logger.debug(
+        `SCIM Patch group - replacing all members`,
+        getLogAttributesFromRequest(data.req as any),
+      );
+      result.replaced = true;
+      data.executionSteps.push(
+        `Replacing all members with ${action.members.length} members from request`,
+      );
+
+      const counts: {
+        added: number;
+        invited: number;
+        skipped: number;
+        kept: number;
+        removed: number;
+      } = await replaceGroupMembersOfTeam({
+        projectId: data.projectId,
+        teamId: data.team.id!,
+        members: action.members as Array<SCIMMember>,
+      });
+      result.added += counts.added + counts.invited;
+      result.invited += counts.invited;
+      result.removed += counts.removed;
+      result.kept += counts.kept;
+      data.executionSteps.push(
+        `Members kept: ${counts.kept}, removed: ${counts.removed}, added: ${counts.added + counts.invited} (${counts.invited} of them invited, pending acceptance)`,
+      );
+      continue;
+    }
+
+    if (action.kind === "addMembers") {
+      logger.debug(
+        `SCIM Patch group - adding members`,
+        getLogAttributesFromRequest(data.req as any),
+      );
+      data.executionSteps.push(`Adding ${action.members.length} members`);
+      const counts: { added: number; invited: number; skipped: number } =
+        await addGroupMembersToTeam({
+          projectId: data.projectId,
+          teamId: data.team.id!,
+          members: action.members as Array<SCIMMember>,
+        });
+      result.added += counts.added + counts.invited;
+      result.invited += counts.invited;
+      continue;
+    }
+
+    if (action.kind === "removeMembers") {
+      logger.debug(
+        `SCIM Patch group - removing members`,
+        getLogAttributesFromRequest(data.req as any),
+      );
+      data.executionSteps.push(`Removing ${action.userIds.length} members`);
+
+      for (const userId of action.userIds) {
+        await TeamMemberService.deleteBy({
+          query: {
+            projectId: data.projectId,
+            userId: new ObjectID(userId),
+            teamId: data.team.id!,
+          },
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: { isRoot: true },
+        });
+        result.removed++;
+        logger.debug(
+          `SCIM Patch group - removed user ${userId} from team`,
+          getLogAttributesFromRequest(data.req as any),
+        );
+      }
+      continue;
+    }
+
+    if (action.kind === "rename") {
+      logger.debug(
+        `SCIM Patch group - updating displayName to: ${action.displayName}`,
+        getLogAttributesFromRequest(data.req as any),
+      );
+      data.executionSteps.push(
+        `Updating displayName from "${data.team.name}" to "${action.displayName}"`,
+      );
+      await TeamService.updateOneById({
+        id: data.team.id!,
+        data: { name: action.displayName },
+        props: { isRoot: true },
+      });
+      result.nameUpdated = true;
+      continue;
+    }
+
+    data.executionSteps.push(
+      `Operation left alone: ${action.op || "(no op)"} on path: ${action.path || "root"}`,
+    );
+  }
+
+  return result;
+};
+
+/*
+ * Below the plan SCIM needs, the group update a request asks for does not
+ * go through unless it only takes access away (Utils/SCIMBelowPlan):
+ * answers the refusal and returns true when it does not. Read before
+ * anything is written, so a refused update changes nothing.
+ */
+const refuseGroupPatchBelowPlan: (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  projectId: ObjectID;
+  team: Team;
+  actions: Array<ScimGroupPatchAction>;
+  executionSteps: Array<string>;
+}) => Promise<boolean> = async (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  projectId: ObjectID;
+  team: Team;
+  actions: Array<ScimGroupPatchAction>;
+  executionSteps: Array<string>;
+}): Promise<boolean> => {
+  const missingPlan: PlanType | null = getScimMissingPlan(data.req);
+
+  if (!missingPlan) {
+    return false;
+  }
+
+  const onlyRemoves: boolean = await isScimGroupPatchOnlyARemoval({
+    actions: data.actions,
+    currentName: data.team.name?.toString(),
+    getCurrentMemberIds: (): Promise<Array<string>> => {
+      return getTeamMemberUserIds({
+        projectId: data.projectId,
+        teamId: data.team.id!,
+      });
+    },
+  });
+
+  if (onlyRemoves) {
+    data.executionSteps.push(
+      `Below the ${missingPlan} plan: this update only removes members, so it goes through`,
+    );
+    return false;
+  }
+
+  sendScimBelowPlanRefusal({ res: data.res, missingPlan: missingPlan });
+  return true;
 };
 
 // Helper function to format team as SCIM group
@@ -1194,65 +1428,14 @@ router.post(
                 );
               }
 
-              // Handle SCIM patch operations
-              const patchOperations: JSONObject[] =
-                (data!["Operations"] as JSONObject[]) || [];
-
-              for (const patchOp of patchOperations) {
-                const op: string = (patchOp["op"] as string)?.toLowerCase();
-                const patchPath: string = patchOp["path"] as string;
-                const value: SCIMMember[] | string = patchOp["value"] as
-                  | SCIMMember[]
-                  | string;
-
-                if (patchPath === "members") {
-                  if (op === "replace") {
-                    const members: Array<SCIMMember> =
-                      (value as SCIMMember[]) || [];
-
-                    await replaceGroupMembersOfTeam({
-                      projectId: projectId,
-                      teamId: team.id!,
-                      members: members,
-                    });
-                  } else if (op === "add") {
-                    const membersToAdd: Array<SCIMMember> =
-                      (value as SCIMMember[]) || [];
-                    await addGroupMembersToTeam({
-                      projectId: projectId,
-                      teamId: team.id!,
-                      members: membersToAdd,
-                    });
-                  } else if (op === "remove") {
-                    const membersToRemove: Array<SCIMMember> =
-                      (value as SCIMMember[]) || [];
-                    for (const member of membersToRemove) {
-                      const userId: string = member["value"] as string;
-                      if (userId) {
-                        await TeamMemberService.deleteBy({
-                          query: {
-                            projectId: projectId,
-                            userId: new ObjectID(userId),
-                            teamId: team.id!,
-                          },
-                          limit: LIMIT_MAX,
-                          skip: 0,
-                          props: { isRoot: true },
-                        });
-                      }
-                    }
-                  }
-                } else if (patchPath === "displayName" && op === "replace") {
-                  const newName: string = value as string;
-                  if (newName) {
-                    await TeamService.updateOneById({
-                      id: team.id!,
-                      data: { name: newName },
-                      props: { isRoot: true },
-                    });
-                  }
-                }
-              }
+              // Handle SCIM patch operations, as the PATCH route does.
+              await applyGroupPatchActions({
+                projectId: projectId,
+                team: team,
+                actions: planScimGroupPatch(data!["Operations"]),
+                executionSteps: executionSteps,
+                req: req,
+              });
 
               // Fetch updated team
               const updatedTeam: Team | null = await TeamService.findOneById({
@@ -1545,10 +1728,19 @@ router.get(
                 );
                 executionSteps.push(`User not found for email: ${email}`);
 
-                // Check if auto-provisioning is enabled
-                if (!scimConfig.autoProvisionUsers) {
+                /*
+                 * Check if auto-provisioning is enabled. Below the plan
+                 * SCIM needs, a lookup never creates anyone
+                 * (Utils/SCIMBelowPlan): the identity provider hears there
+                 * is no such user, and creating them is refused.
+                 */
+                const missingPlan: PlanType | null = getScimMissingPlan(req);
+
+                if (!scimConfig.autoProvisionUsers || missingPlan) {
                   executionSteps.push(
-                    "Auto-provisioning disabled, returning empty list",
+                    missingPlan
+                      ? `Below the ${missingPlan} plan a lookup creates no one, returning empty list`
+                      : "Auto-provisioning disabled, returning empty list",
                   );
                   const emptyResponse: JSONObject = generateUsersListResponse(
                     [],
@@ -1569,7 +1761,10 @@ router.get(
                     additionalContext: {
                       filterEmail: email,
                       userFound: false,
-                      autoProvisionEnabled: false,
+                      autoProvisionEnabled: Boolean(
+                        scimConfig.autoProvisionUsers,
+                      ),
+                      belowPlan: missingPlan,
                     },
                   });
                   return Response.sendJsonObjectResponse(
@@ -2041,6 +2236,33 @@ const handleUserUpdate: (
         newEmail: email,
       });
 
+    const isNameChanging: boolean =
+      Boolean(name) && name !== projectUser.user.name?.toString();
+
+    /*
+     * Below the plan SCIM needs, an update goes through only when it takes
+     * access away (Utils/SCIMBelowPlan): it may deactivate the person, but
+     * not reactivate them or change their email or name. Checked before
+     * anything is written, so a refused update changes nothing at all.
+     */
+    const missingPlan: PlanType | null = getScimMissingPlan(req);
+
+    if (
+      missingPlan &&
+      !isScimUserUpdateOnlyARemoval({
+        active: active,
+        isEmailChanging: isEmailChanging,
+        isNameChanging: isNameChanging,
+      })
+    ) {
+      logger.debug(
+        `SCIM Update user - refused below the ${missingPlan} plan: the update would reactivate the user or change their email or name`,
+        getLogAttributesFromRequest(req as any),
+      );
+      sendScimBelowPlanRefusal({ res: res, missingPlan: missingPlan });
+      return;
+    }
+
     if (isEmailChanging) {
       const emailChangeRefusal: string | null =
         await ProjectSCIMAccountPolicy.getEmailChangeRefusal({
@@ -2090,9 +2312,6 @@ const handleUserUpdate: (
         });
       }
     }
-
-    const isNameChanging: boolean =
-      Boolean(name) && name !== projectUser.user.name?.toString();
 
     const mayChangeName: boolean =
       isNameChanging &&
@@ -2937,6 +3156,35 @@ router.put(
       executionSteps.push(`Found existing team: ${team.name?.toString()}`);
       const previousName: string | undefined = team.name?.toString();
 
+      /*
+       * Below the plan SCIM needs, a replace goes through only when it takes
+       * access away (Utils/SCIMBelowPlan): the group keeps its name, and
+       * every member it lists is already in it - the members it leaves out
+       * are removed, as on every plan. Checked before anything is written,
+       * so a refused replace changes nothing.
+       */
+      const missingPlan: PlanType | null = getScimMissingPlan(req);
+
+      if (
+        missingPlan &&
+        !isScimGroupReplaceOnlyARemoval({
+          displayName: scimGroup["displayName"],
+          currentName: previousName,
+          listedMembers: scimGroup["members"],
+          currentMemberIds: await getTeamMemberUserIds({
+            projectId: projectId,
+            teamId: team.id!,
+          }),
+        })
+      ) {
+        logger.debug(
+          `SCIM Update group - refused below the ${missingPlan} plan: the replace would rename the group or add members`,
+          getLogAttributesFromRequest(req as any),
+        );
+        sendScimBelowPlanRefusal({ res: res, missingPlan: missingPlan });
+        return;
+      }
+
       // Update team name if provided
       const displayName: string = scimGroup["displayName"] as string;
       let nameUpdated: boolean = false;
@@ -3317,117 +3565,52 @@ router.patch(
       executionSteps.push(`Found existing team: ${team.name?.toString()}`);
       const previousName: string | undefined = team.name?.toString();
 
-      // Handle SCIM patch operations
-      const operations: JSONObject[] =
-        (scimPatch["Operations"] as JSONObject[]) || [];
+      /*
+       * Handle SCIM patch operations: read them all first
+       * (planScimGroupPatch) - Entra ID's member removals with a value list
+       * and Okta's members[value eq "..."] alike - then apply them in order.
+       */
+      const operations: Array<ScimGroupPatchAction> = planScimGroupPatch(
+        scimPatch["Operations"],
+      );
       executionSteps.push(`Processing ${operations.length} PATCH operations`);
 
-      for (const operation of operations) {
-        const op: string = (operation["op"] as string)?.toLowerCase();
-        const path: string = operation["path"] as string;
-        const value: any = operation["value"];
-
-        executionSteps.push(
-          `Processing operation: ${op} on path: ${path || "root"}`,
+      /*
+       * Below the plan SCIM needs, the update goes through only when it
+       * takes access away (Utils/SCIMBelowPlan). Checked before anything is
+       * written, so a refused update changes nothing.
+       */
+      if (
+        await refuseGroupPatchBelowPlan({
+          req: req,
+          res: res,
+          projectId: projectId,
+          team: team,
+          actions: operations,
+          executionSteps: executionSteps,
+        })
+      ) {
+        logger.debug(
+          `SCIM Patch group - refused below the plan: the update would add members or rename the group`,
+          getLogAttributesFromRequest(req as any),
         );
-
-        if (path === "members") {
-          if (op === "replace") {
-            // Replace all members
-            logger.debug(
-              `SCIM Patch group - replacing all members`,
-              getLogAttributesFromRequest(req as any),
-            );
-            membersReplaced = true;
-
-            const members: Array<SCIMMember> = value || [];
-            executionSteps.push(
-              `Replacing all members with ${members.length} members from request`,
-            );
-
-            const counts: {
-              added: number;
-              invited: number;
-              skipped: number;
-              kept: number;
-              removed: number;
-            } = await replaceGroupMembersOfTeam({
-              projectId: projectId,
-              teamId: team.id!,
-              members: members,
-            });
-            membersAdded += counts.added + counts.invited;
-            membersInvited += counts.invited;
-            membersRemoved += counts.removed;
-            membersKept += counts.kept;
-            executionSteps.push(
-              `Members kept: ${counts.kept}, removed: ${counts.removed}, added: ${counts.added + counts.invited} (${counts.invited} of them invited, pending acceptance)`,
-            );
-          } else if (op === "add") {
-            // Add members
-            logger.debug(
-              `SCIM Patch group - adding members`,
-              getLogAttributesFromRequest(req as any),
-            );
-            const members: Array<SCIMMember> = value || [];
-            executionSteps.push(`Adding ${members.length} members`);
-            const counts: { added: number; invited: number; skipped: number } =
-              await addGroupMembersToTeam({
-                projectId: projectId,
-                teamId: team.id!,
-                members: members,
-              });
-            membersAdded += counts.added + counts.invited;
-            membersInvited += counts.invited;
-          } else if (op === "remove") {
-            // Remove members
-            logger.debug(
-              `SCIM Patch group - removing members`,
-              getLogAttributesFromRequest(req as any),
-            );
-            const members: Array<SCIMMember> = value || [];
-            executionSteps.push(`Removing ${members.length} members`);
-            for (const member of members) {
-              const userId: string = member["value"] as string;
-              if (userId) {
-                await TeamMemberService.deleteBy({
-                  query: {
-                    projectId: projectId,
-                    userId: new ObjectID(userId),
-                    teamId: team.id!,
-                  },
-                  limit: LIMIT_MAX,
-                  skip: 0,
-                  props: { isRoot: true },
-                });
-                membersRemoved++;
-                logger.debug(
-                  `SCIM Patch group - removed user ${userId} from team`,
-                  getLogAttributesFromRequest(req as any),
-                );
-              }
-            }
-          }
-        } else if (path === "displayName" && op === "replace") {
-          // Update display name
-          const newName: string = value as string;
-          if (newName) {
-            logger.debug(
-              `SCIM Patch group - updating displayName to: ${newName}`,
-              getLogAttributesFromRequest(req as any),
-            );
-            executionSteps.push(
-              `Updating displayName from "${team.name}" to "${newName}"`,
-            );
-            await TeamService.updateOneById({
-              id: team.id!,
-              data: { name: newName },
-              props: { isRoot: true },
-            });
-            nameUpdated = true;
-          }
-        }
+        return;
       }
+
+      const applied: GroupPatchResult = await applyGroupPatchActions({
+        projectId: projectId,
+        team: team,
+        actions: operations,
+        executionSteps: executionSteps,
+        req: req,
+      });
+      membersAdded = applied.added;
+      membersInvited = applied.invited;
+      membersRemoved = applied.removed;
+      membersKept = applied.kept;
+      membersReplaced = applied.replaced;
+      nameUpdated = applied.nameUpdated;
+
       executionSteps.push(
         `Operations completed: ${membersAdded} added (${membersInvited} of them invited, pending acceptance), ${membersRemoved} removed, replaced=${membersReplaced}, nameUpdated=${nameUpdated}`,
       );

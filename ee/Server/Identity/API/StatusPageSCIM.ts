@@ -38,6 +38,12 @@ import {
   generateSCIMErrorResponse,
   SCIMErrorType,
 } from "../Utils/SCIMUtils";
+import {
+  getScimMissingPlan,
+  isScimUserUpdateOnlyARemoval,
+  sendScimBelowPlanRefusal,
+} from "../Utils/SCIMBelowPlan";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import Text from "Common/Types/Text";
 import HashedString from "Common/Types/HashedString";
 
@@ -1304,6 +1310,32 @@ const handleStatusPageUserUpdate: (
       `Status Page SCIM Update user - userId: ${userId}, active: ${typeof active === "boolean" ? active : "not provided"}`,
       getLogAttributesFromRequest(req as any),
     );
+
+    /*
+     * Below the plan SCIM needs, an update goes through only when it takes
+     * access away (Utils/SCIMBelowPlan): it may deactivate the private user
+     * - which removes them from the status page - but not reactivate them or
+     * change their email. Checked before anything is written, so a refused
+     * update changes nothing at all.
+     */
+    const missingPlan: PlanType | null = getScimMissingPlan(req);
+
+    if (
+      missingPlan &&
+      !isScimUserUpdateOnlyARemoval({
+        active: active,
+        isEmailChanging:
+          Boolean(email) && email !== statusPageUser.email?.toString(),
+        isNameChanging: false,
+      })
+    ) {
+      logger.debug(
+        `Status Page SCIM Update user - refused below the ${missingPlan} plan: the update would reactivate the user or change their email`,
+        getLogAttributesFromRequest(req as any),
+      );
+      sendScimBelowPlanRefusal({ res: res, missingPlan: missingPlan });
+      return;
+    }
 
     // Handle user deactivation by deleting from status page
     if (active === false) {
