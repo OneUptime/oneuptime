@@ -506,8 +506,8 @@ export default class HeldPermissionsUtil {
     data: {
       readPermissions: ReadonlyArray<Permission>;
       wildcard: Permission | null | undefined;
-      // The record's name, as the refusal names it.
-      recordName: string;
+      // The record's name, as the refusal names it (the model's singularName).
+      recordName: string | null | undefined;
       // The write: "update", "delete".
       operation: string;
     },

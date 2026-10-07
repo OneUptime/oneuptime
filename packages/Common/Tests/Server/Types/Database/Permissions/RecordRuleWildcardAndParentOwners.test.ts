@@ -820,9 +820,9 @@ describe("every grant and scope a read accepts narrows the records it reaches", 
           return null;
         }) as never);
 
-      const logged: SpyInstance<(...args: never) => never> = jest
+      const logged: SpyInstance<typeof logger.error> = jest
         .spyOn(logger, "error")
-        .mockImplementation((() => {}) as never);
+        .mockImplementation(() => {});
 
       const query: Query<StatusPageAnnouncement> = (await scopeOf(
         StatusPageAnnouncement,
