@@ -53,6 +53,11 @@ import { AddProjectAiDailyLimitReachedAt1799000000000 } from "./1799000000000-Ad
 import { MarkPostmortemsWaitingForHiddenIncidents1799100000000 } from "./1799100000000-MarkPostmortemsWaitingForHiddenIncidents";
 import { HidePrivateIncidentsFromStatusPages1799200000000 } from "./1799200000000-HidePrivateIncidentsFromStatusPages";
 import { AddCloudMonitoredResourceColumns1799300000000 } from "./1799300000000-AddCloudMonitoredResourceColumns";
+import { AddAutomaticRemediationSwitchesAndInvestigationRules1799400000000 } from "./1799400000000-AddAutomaticRemediationSwitchesAndInvestigationRules";
+import { AddFormTemplates1799500000000 } from "./1799500000000-AddFormTemplates";
+import { AddProjectPlanCutoffNoticeSentAt1799600000000 } from "./1799600000000-AddProjectPlanCutoffNoticeSentAt";
+import { AddLogRecordingRule1799650000000 } from "./1799650000000-AddLogRecordingRule";
+import { AddSnmpTablesToNetworkDevices1799660000000 } from "./1799660000000-AddSnmpTablesToNetworkDevices";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1306,4 +1311,9 @@ export default [
   MarkPostmortemsWaitingForHiddenIncidents1799100000000,
   HidePrivateIncidentsFromStatusPages1799200000000,
   AddCloudMonitoredResourceColumns1799300000000,
+  AddAutomaticRemediationSwitchesAndInvestigationRules1799400000000,
+  AddFormTemplates1799500000000,
+  AddProjectPlanCutoffNoticeSentAt1799600000000,
+  AddLogRecordingRule1799650000000,
+  AddSnmpTablesToNetworkDevices1799660000000,
 ];

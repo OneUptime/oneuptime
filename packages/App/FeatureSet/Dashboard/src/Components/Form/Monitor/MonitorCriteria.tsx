@@ -1,5 +1,8 @@
 import MonitorCriteriaInstanceElement from "./MonitorCriteriaInstance";
-import { NetworkDeviceOidCatalogueEntry } from "./CriteriaFilter";
+import {
+  NetworkDeviceOidCatalogueEntry,
+  NetworkDeviceTableCatalogueEntry,
+} from "./CriteriaFilter";
 import { IncidentRoleOption } from "./MonitorCriteriaIncidentForm";
 import IconProp from "Common/Types/Icon/IconProp";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
@@ -35,6 +38,7 @@ import {
 } from "react-beautiful-dnd";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { SnmpTableDefinition } from "Common/Types/Monitor/SnmpMonitor/SnmpTable";
 
 export interface ComponentProps {
   value: MonitorCriteria | undefined;
@@ -60,6 +64,13 @@ export interface ComponentProps {
    */
   networkDeviceOidCatalogue?: Array<NetworkDeviceOidCatalogueEntry> | undefined;
   networkDeviceInterfaceNames?: Array<string> | undefined;
+  /*
+   * The device's effective SNMP tables, for the table pickers and for the
+   * per-table health criteria "Add Recommended Alerts" appends.
+   */
+  networkDeviceTableCatalogue?:
+    | Array<NetworkDeviceTableCatalogueEntry>
+    | undefined;
   isNetworkDeviceCatalogueLoaded?: boolean | undefined;
   /*
    * The project's offline (worst, non-operational) monitor status.
@@ -387,6 +398,9 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                     networkDeviceInterfaceNames={
                                       props.networkDeviceInterfaceNames
                                     }
+                                    networkDeviceTableCatalogue={
+                                      props.networkDeviceTableCatalogue
+                                    }
                                     isNetworkDeviceCatalogueLoaded={
                                       props.isNetworkDeviceCatalogueLoaded
                                     }
@@ -563,6 +577,13 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                 ...(monitorCriteria.data?.monitorCriteriaInstanceArray || []),
                 ...NetworkDeviceAlertPackUtil.buildCriteriaInstances({
                   downMonitorStatusId: props.offlineMonitorStatusId,
+                  tables: (props.networkDeviceTableCatalogue || []).map(
+                    (
+                      entry: NetworkDeviceTableCatalogueEntry,
+                    ): SnmpTableDefinition => {
+                      return entry.definition;
+                    },
+                  ),
                 }),
               ];
               props.onChange?.(

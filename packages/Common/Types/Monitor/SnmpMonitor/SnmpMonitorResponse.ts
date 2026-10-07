@@ -7,6 +7,7 @@ import ArpEntry from "./ArpEntry";
 import FdbEntry from "./FdbEntry";
 import SnmpSystemInfo from "./SnmpSystemInfo";
 import SnmpEntityInfo from "./SnmpEntityInfo";
+import { SnmpTableResult, SnmpTableSnapshot } from "./SnmpTable";
 
 export interface SnmpOidResponse {
   oid: string;
@@ -61,4 +62,17 @@ export default interface SnmpMonitorResponse {
    * port. Undefined on older probes and non-bridge devices.
    */
   fdbEntries?: Array<FdbEntry> | undefined;
+  /*
+   * Raw SNMP table walks, one per table the check asked for: values per
+   * row index and column OID, exactly as walked. Undefined on older probes
+   * and on checks that asked for no tables.
+   */
+  tableResults?: Array<SnmpTableResult> | undefined;
+  /*
+   * The same tables joined back to their definitions - named columns,
+   * labelled rows, display and numeric values. Never sent by a probe: the
+   * server fills it in on ingest (SnmpTableListUtil.materialize), before
+   * inventory, metrics and criteria read the response.
+   */
+  tables?: Array<SnmpTableSnapshot> | undefined;
 }

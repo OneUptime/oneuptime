@@ -45,10 +45,12 @@ Behandeln Sie die URL wie ein Passwort. Wer sie hat, kann Ihren Workflow starten
 Fast alles in OneUptime – Monitore, Vorfälle, Warnungen, geplante Wartungen, Statusseiten, Bereitschaftsrichtlinien, Teams – kann einen Workflow auslösen. Jedes davon bietet drei Ereignisse:
 
 - **On Create** – feuert, wenn ein neuer Datensatz hinzukommt.
-- **On Update** – feuert, wenn einer geändert wird.
+- **On Update** – feuert, wenn einer geändert wird. Wird ein Datensatz mit den Werten gespeichert, die er schon hat – etwa ein Formular ohne Änderungen oder ein Schalter, der so gesendet wird, wie er bereits steht –, ist das keine Änderung und löst ihn nicht aus.
 - **On Delete** – feuert, wenn einer gelöscht wird.
 
 So bauen Sie „wenn X in OneUptime passiert, tu Y“, ohne in einer Schleife nachsehen zu müssen.
+
+**On Update** lässt sich mit **Listen on** auf bestimmte Felder eingrenzen: Dann feuert er nur, wenn eine Aktualisierung eines davon ändert, egal auf welchen Wert – auch das Ausschalten eines Schalters oder das Leeren eines Felds zählt.
 
 Der vollständige Datensatz wird an den nächsten Baustein weitergereicht. Der Trigger **Vorfall → On Create** reicht zum Beispiel den neuen Vorfall weiter, sodass der nächste Baustein dessen Titel, Beschreibung, Schweregrad und jedes andere Feld lesen kann.
 

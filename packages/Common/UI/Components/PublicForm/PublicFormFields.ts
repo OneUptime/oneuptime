@@ -12,6 +12,7 @@ import {
   PublicFormField,
   PublicFormFieldOption,
   PublicFormFieldType,
+  PublicFormTemplate,
 } from "../../../Types/Form/FormPublic";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 
@@ -29,6 +30,12 @@ import { JSONObject, JSONValue } from "../../../Types/JSON";
  * is not one whole address, a required checkbox left unticked - so the
  * submitter is told in their own language, before a captcha answer is spent.
  * The server checks everything again, and has the last word.
+ *
+ * A form starts from the option a question chooses to begin with (the
+ * form's own severity) and, when one is chosen, a template's answers
+ * (getPublicFormInitialValues): the same answers a submission sends, put
+ * where the inputs hold them (getPublicFormValuesFromAnswers), so a
+ * template's answers go back to the server exactly as they came.
  */
 
 const FORM_KEY_PREFIX: string = "answer_";
@@ -222,16 +229,101 @@ export const buildPublicFormFields: BuildPublicFormFieldsFunction = (
   );
 };
 
+export type GetPublicFormValuesFromAnswersFunction = (data: {
+  fields: Array<PublicFormField>;
+  // Keyed by question id, as a submission sends them (and a template holds).
+  answers: JSONObject | null | undefined;
+}) => JSONObject;
+
+/**
+ * Answers keyed by question id - a template's - as the form's inputs hold
+ * them, keyed by getPublicFormFieldKey: a yes/no as true or false, a choice
+ * as its value, a multi-select as a list of values, everything else as
+ * text (a number as the number). Only the questions listed are read, and
+ * an answer of a shape its input cannot hold is left out:
+ * packPublicFormAnswers sends each back as it came.
+ */
+export const getPublicFormValuesFromAnswers: GetPublicFormValuesFromAnswersFunction =
+  (data: {
+    fields: Array<PublicFormField>;
+    answers: JSONObject | null | undefined;
+  }): JSONObject => {
+    const values: JSONObject = {};
+    const answers: JSONObject = data.answers || {};
+
+    for (const question of data.fields || []) {
+      if (!Object.prototype.hasOwnProperty.call(answers, question.id)) {
+        continue;
+      }
+
+      const answer: JSONValue = answers[question.id] as JSONValue;
+      let value: JSONValue | undefined = undefined;
+
+      switch (question.type) {
+        case PublicFormFieldType.Boolean:
+          if (typeof answer === "boolean") {
+            value = answer;
+          }
+          break;
+
+        case PublicFormFieldType.MultiSelectDropdown: {
+          const entries: Array<JSONValue> = Array.isArray(answer)
+            ? answer
+            : [answer];
+          const choices: Array<string> = entries.filter(
+            (entry: JSONValue): entry is string => {
+              return typeof entry === "string" && entry.length > 0;
+            },
+          );
+
+          if (choices.length > 0) {
+            value = choices;
+          }
+          break;
+        }
+
+        case PublicFormFieldType.Number:
+          if (
+            (typeof answer === "number" && Number.isFinite(answer)) ||
+            (typeof answer === "string" && answer.trim())
+          ) {
+            value = answer;
+          }
+          break;
+
+        default:
+          if (typeof answer === "string" && answer.length > 0) {
+            value = answer;
+          }
+          break;
+      }
+
+      if (value !== undefined) {
+        Object.defineProperty(values, getPublicFormFieldKey(question.id), {
+          value: value,
+          enumerable: true,
+          writable: true,
+          configurable: true,
+        });
+      }
+    }
+
+    return values;
+  };
+
 export type GetPublicFormInitialValuesFunction = (
   form: PublicForm,
+  template?: PublicFormTemplate | null | undefined,
 ) => JSONObject;
 
 /*
  * What the form starts with: the option a question chooses to begin with
- * (the form's own severity), and nothing else.
+ * (the form's own severity), and - when the submitter starts from a
+ * template - that template's answers, which win over it.
  */
 export const getPublicFormInitialValues: GetPublicFormInitialValuesFunction = (
   form: PublicForm,
+  template?: PublicFormTemplate | null | undefined,
 ): JSONObject => {
   const values: JSONObject = {};
 
@@ -239,6 +331,16 @@ export const getPublicFormInitialValues: GetPublicFormInitialValuesFunction = (
     if (question.defaultValue) {
       values[getPublicFormFieldKey(question.id)] = question.defaultValue;
     }
+  }
+
+  if (template) {
+    Object.assign(
+      values,
+      getPublicFormValuesFromAnswers({
+        fields: form.fields || [],
+        answers: template.answers,
+      }),
+    );
   }
 
   return values;

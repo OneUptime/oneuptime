@@ -211,10 +211,6 @@ export function getAlertsBreadcrumbs(path: string): Array<Link> | undefined {
       "AI",
       "Settings",
     ]),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES,
-      ["Project", "Alerts", "AI", "Auto Remediation Rules"],
-    ),
 
     // Alert Rules
     ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_GROUPING_RULES, [

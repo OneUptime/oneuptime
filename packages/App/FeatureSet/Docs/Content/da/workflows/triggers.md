@@ -45,10 +45,12 @@ Behandl URL'en som en adgangskode. Alle, der har den, kan starte dit workflow.
 Næsten alt i OneUptime — monitorer, hændelser, advarsler, planlagt vedligeholdelse, statussider, vagtpolitikker, teams — kan udløse et workflow. Hver af dem tilbyder tre begivenheder:
 
 - **On Create** — udløses, når der tilføjes en ny.
-- **On Update** — udløses, når en ændres.
+- **On Update** — udløses, når en ændres. Hvis en post gemmes med de værdier, den allerede har – for eksempel en formular, der gemmes uden ændringer, eller en kontakt, der sendes, som den allerede står – er det ikke en ændring, og den udløses ikke.
 - **On Delete** — udløses, når en slettes.
 
 Sådan bygger du "når X sker i OneUptime, så gør Y" uden at skulle tjekke efter i en løkke.
+
+**On Update** kan begrænses til bestemte felter med **Listen on**: så udløses den kun, når en opdatering ændrer et af dem, til en hvilken som helst værdi – også når en kontakt slås fra, eller et felt tømmes.
 
 Hele posten sendes videre til den næste blok. Triggeren **Incident → On Create** sender for eksempel den nye hændelse videre, så den næste blok kan læse dens titel, beskrivelse, alvorsgrad og alle andre felter.
 

@@ -79,10 +79,12 @@ Self-hosted: OneUptime receives email through an inbound email provider that you
 Almost every thing in OneUptime — monitors, incidents, alerts, scheduled maintenance, status pages, on-call policies, teams — can trigger a workflow. Each one offers three events:
 
 - **On Create** — fires when a new one is added.
-- **On Update** — fires when one is changed.
+- **On Update** — fires when one is changed. Saving a record with the values it already has, such as a form saved without edits or a switch sent as it already stands, is not a change and does not fire it.
 - **On Delete** — fires when one is deleted.
 
 This is how you build "when X happens in OneUptime, do Y" without needing to check things in a loop.
+
+**On Update** can be narrowed to some fields with **Listen on**: it then fires only when an update changes one of them, to any value — turning a switch off or clearing a field counts.
 
 **On Create** and **On Update** pass the record to the next block, with the fields you pick in the trigger's **Select Fields**. For example, the **Incident → On Create** trigger passes the new incident, so the next block can read its title, description, severity, or any other field you selected. A field you didn't select comes through empty.
 

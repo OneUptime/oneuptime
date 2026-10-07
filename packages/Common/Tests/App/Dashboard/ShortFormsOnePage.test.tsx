@@ -21,11 +21,13 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 
 /*
  * "Forms of three rows or fewer fit on one page." The note templates of
- * incidents, alerts and scheduled maintenance, the incident postmortem
- * templates and the network OID collection templates walked a "Template
- * Info" step (name, description) and then a step for the one editor; SLO
- * create walked Basic Info, Objective and Period when only its target had
- * no default. Each is one page now.
+ * incidents, alerts and scheduled maintenance and the incident postmortem
+ * templates walked a "Template Info" step (name, description) and then a
+ * step for the one editor; SLO create walked Basic Info, Objective and
+ * Period when only its target had no default. Each is one page now. The
+ * network OID collection templates were one page too, until SNMP tables
+ * gave them a second editor: with four fields they walk steps again, as
+ * LongFormStepsGuard asks of a longer form, and are held to those below.
  *
  * The production pages build the forms; only the table around each is
  * replaced, by the create dialog the real table opens (ModelTable's own
@@ -400,14 +402,34 @@ describe("the note and postmortem template forms", () => {
   }
 });
 
+async function clickNext(): Promise<void> {
+  await act(async (): Promise<void> => {
+    fireEvent.click(within(dialog()).getByTestId("modal-footer-next-button"));
+  });
+  await settle();
+}
+
 describe("the OID collection template form", () => {
-  test("is one page: the name, the description and the OID list with its vendor profiles", async () => {
+  /*
+   * The name and description, then the OID list with its vendor profiles,
+   * then the SNMP tables: each editor gets a step of its own, and the
+   * template is created from the last one.
+   */
+  test("walks Template, OIDs and SNMP Tables, one editor per step", async () => {
     renderPage(OidCollectionTemplates);
 
     expect(
       await screen.findByText("Create New OID Collection Template"),
     ).toBeInTheDocument();
-    await expectOnePage("Create OID Collection Template");
+    await settle();
+
+    const progress: HTMLElement = within(dialog()).getByRole("navigation", {
+      name: "Progress",
+    });
+
+    for (const step of ["Template", "OIDs", "SNMP Tables"]) {
+      expect(within(progress).getByText(step)).toBeInTheDocument();
+    }
 
     expect(within(dialog()).getByPlaceholderText("Core Routers")).toBeVisible();
     expect(
@@ -415,14 +437,14 @@ describe("the OID collection template form", () => {
         "CPU, memory and temperature for the Cisco IOS-XE core routers.",
       ),
     ).toBeVisible();
+    expect(within(dialog()).queryByTestId("snmp-oid-add")).toBeNull();
+    expect(within(dialog()).queryByTestId("snmp-table-add")).toBeNull();
     expect(
-      within(dialog()).getByText("Start from a Vendor Profile"),
-    ).toBeInTheDocument();
-    expect(within(dialog()).getByTestId("snmp-oid-add")).toBeInTheDocument();
-    expect(within(dialog()).queryByText("Basic Info")).toBeNull();
+      within(dialog()).queryByTestId("modal-footer-submit-button"),
+    ).toBeNull();
   });
 
-  test("creates a template with no OIDs yet, from the one button", async () => {
+  test("creates a template with no OIDs and no tables yet", async () => {
     renderPage(OidCollectionTemplates);
 
     expect(
@@ -433,6 +455,25 @@ describe("the OID collection template form", () => {
     fireEvent.change(within(dialog()).getByPlaceholderText("Core Routers"), {
       target: { value: "Core Routers" },
     });
+
+    await clickNext();
+
+    expect(
+      within(dialog()).getByText("Start from a Vendor Profile"),
+    ).toBeInTheDocument();
+    expect(within(dialog()).getByTestId("snmp-oid-add")).toBeInTheDocument();
+    expect(within(dialog()).queryByPlaceholderText("Core Routers")).toBeNull();
+
+    await clickNext();
+
+    expect(within(dialog()).getByTestId("snmp-table-add")).toBeInTheDocument();
+    expect(
+      within(dialog()).queryByTestId("modal-footer-next-button"),
+    ).toBeNull();
+    expect(
+      within(dialog()).getByTestId("modal-footer-submit-button"),
+    ).toHaveTextContent("Create OID Collection Template");
+    expectNothingSent();
 
     const model: JSONObject = await submitDialog();
 

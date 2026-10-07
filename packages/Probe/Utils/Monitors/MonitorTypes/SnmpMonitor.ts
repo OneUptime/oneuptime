@@ -41,6 +41,18 @@ import SnmpSystemInfo from "Common/Types/Monitor/SnmpMonitor/SnmpSystemInfo";
 import SnmpEntityInfo from "Common/Types/Monitor/SnmpMonitor/SnmpEntityInfo";
 import SnmpOid from "Common/Types/Monitor/SnmpMonitor/SnmpOid";
 import SnmpV3Auth from "Common/Types/Monitor/SnmpMonitor/SnmpV3Auth";
+import {
+  SnmpTableResult,
+  SnmpTableResultRow,
+  SnmpTableWalkRequest,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpTable";
+import SnmpOidListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpOidListUtil";
+import {
+  DEFAULT_SNMP_TABLE_MAX_ROWS,
+  MAX_COLUMNS_PER_TABLE,
+  MAX_EFFECTIVE_TABLES_PER_DEVICE,
+  MAX_SNMP_TABLE_MAX_ROWS,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpTableListUtil";
 // Repairs net-snmp's DES privacy on OpenSSL 3 — must load with net-snmp.
 import "../../Snmp/SnmpDesPrivacyCompat";
 import {
@@ -226,6 +238,16 @@ const SNMP_TABLE_MAX_REPETITIONS: number = 20;
  */
 const ENDPOINT_WALK_BUDGET_MS: number = 30000;
 
+/*
+ * Wall-clock budget for every SNMP table of one check, together. Same
+ * reasoning as the endpoint budget: row caps bound how many PDUs a walk
+ * issues, not how slowly each one comes back, and a device that answers
+ * just inside the per-PDU timeout must not hold the poll open for minutes.
+ * A table that runs out of budget reports why instead of returning half its
+ * rows.
+ */
+const TABLE_WALK_BUDGET_MS: number = 30000;
+
 export interface SnmpWalkResult {
   interfaces: Array<SnmpInterface>;
   systemInfo?: SnmpSystemInfo | undefined;
@@ -331,6 +353,19 @@ export default class SnmpMonitor {
         }
       }
 
+      /*
+       * SNMP tables are best-effort in the same way as the interface walk's
+       * extras: each table reports its own failure, and nothing here can
+       * fail a check whose OIDs or interfaces already answered. They run on
+       * their own session after the interface walk, so a slow table never
+       * delays the data the check is judged on.
+       */
+      let tableResults: Array<SnmpTableResult> | undefined = undefined;
+
+      if (config.tables && config.tables.length > 0) {
+        tableResults = await SnmpMonitor.walkTables(config, options);
+      }
+
       const endTime: [number, number] = process.hrtime(startTime);
       const responseTimeInMs: number = Math.ceil(
         (endTime[0] * 1000000000 + endTime[1]) / 1000000,
@@ -364,6 +399,7 @@ export default class SnmpMonitor {
         cdpNeighbors: cdpNeighbors,
         arpEntries: arpEntries,
         fdbEntries: fdbEntries,
+        ...(tableResults ? { tableResults: tableResults } : {}),
       };
     } catch (err: unknown) {
       logger.debug(
@@ -893,6 +929,258 @@ export default class SnmpMonitor {
     } finally {
       session.close();
     }
+  }
+
+  /*
+   * Walks the SNMP tables the check asked for, one result per table, in
+   * the order they were asked for. Never throws: a table that cannot be
+   * walked comes back with a failureCause and no rows, so the server keeps
+   * that table's previous rows rather than blanking them, and the other
+   * tables are unaffected.
+   */
+  public static async walkTables(
+    config: MonitorStepSnmpMonitor,
+    options: SnmpQueryOptions,
+  ): Promise<Array<SnmpTableResult>> {
+    const tables: Array<SnmpTableWalkRequest> = (config.tables || [])
+      .filter((table: SnmpTableWalkRequest) => {
+        return Boolean(table && table.key);
+      })
+      .slice(0, MAX_EFFECTIVE_TABLES_PER_DEVICE);
+
+    if (tables.length === 0) {
+      return [];
+    }
+
+    let session: snmp.Session;
+
+    try {
+      session = SnmpMonitor.createSnmpSession(config, options);
+    } catch (err) {
+      const failureCause: string = (err as Error)?.message || String(err);
+
+      return tables.map((table: SnmpTableWalkRequest) => {
+        return { key: table.key, rows: [], failureCause: failureCause };
+      });
+    }
+
+    // One budget for every table of the check, not one per table.
+    const deadlineAt: number = Date.now() + TABLE_WALK_BUDGET_MS;
+    const results: Array<SnmpTableResult> = [];
+
+    try {
+      for (const table of tables) {
+        results.push(await SnmpMonitor.walkTable(session, table, deadlineAt));
+      }
+    } finally {
+      session.close();
+    }
+
+    return results;
+  }
+
+  /*
+   * One table: every column walked as its own subtree, joined on the row
+   * index (everything after the column OID). Columns of one table share an
+   * index by definition, and a row-name column borrowed from a sibling table
+   * with the same index - rcIsisAdjHostName naming isisISAdjTable's rows -
+   * joins the same way.
+   */
+  public static async walkTable(
+    session: snmp.Session,
+    table: SnmpTableWalkRequest,
+    deadlineAt: number,
+  ): Promise<SnmpTableResult> {
+    const maxRows: number = SnmpMonitor.clampTableMaxRows(table.maxRows);
+
+    const columnOids: Array<string> = [];
+
+    for (const oid of table.columnOids || []) {
+      const normalized: string = SnmpOidListUtil.normalizeOid(oid);
+
+      if (
+        SnmpOidListUtil.isValidOid(normalized) &&
+        !columnOids.includes(normalized)
+      ) {
+        columnOids.push(normalized);
+      }
+    }
+
+    const rowsByIndex: Map<
+      string,
+      Record<string, string | number | null>
+    > = new Map();
+    let isTruncated: boolean = false;
+
+    try {
+      for (const columnOid of columnOids.slice(0, MAX_COLUMNS_PER_TABLE)) {
+        const column: {
+          values: Array<[string, string | number | null]>;
+          isTruncated: boolean;
+        } = await SnmpMonitor.walkColumn(
+          session,
+          columnOid,
+          maxRows,
+          deadlineAt,
+        );
+
+        if (column.isTruncated) {
+          isTruncated = true;
+        }
+
+        for (const [index, value] of column.values) {
+          const row: Record<string, string | number | null> =
+            rowsByIndex.get(index) || {};
+          row[columnOid] = value;
+          rowsByIndex.set(index, row);
+        }
+      }
+    } catch (err) {
+      return {
+        key: table.key,
+        rows: [],
+        failureCause: (err as Error)?.message || String(err),
+      };
+    }
+
+    /*
+     * Each column stops at maxRows, but columns with different index sets
+     * (a sparse column, a borrowed row-name column) can still add up to
+     * more distinct rows than that.
+     */
+    if (rowsByIndex.size > maxRows) {
+      isTruncated = true;
+    }
+
+    const rows: Array<SnmpTableResultRow> = Array.from(rowsByIndex.entries())
+      .slice(0, maxRows)
+      .map(
+        ([index, values]: [
+          string,
+          Record<string, string | number | null>,
+        ]): SnmpTableResultRow => {
+          return { index: index, values: values };
+        },
+      );
+
+    return {
+      key: table.key,
+      rows: rows,
+      ...(isTruncated ? { isTruncated: true } : {}),
+    };
+  }
+
+  private static clampTableMaxRows(maxRows: number | undefined): number {
+    const parsed: number = Number(maxRows);
+
+    if (!Number.isInteger(parsed) || parsed < 1) {
+      return DEFAULT_SNMP_TABLE_MAX_ROWS;
+    }
+
+    return Math.min(parsed, MAX_SNMP_TABLE_MAX_ROWS);
+  }
+
+  /*
+   * Walks one column (a subtree) and returns [rowIndex, value] pairs,
+   * stopping at maxRows. Values are parsed exactly as health-OID values are
+   * (parseVarbindValue), so a table cell and a scalar of the same type read
+   * the same. A column the device does not implement simply has no rows.
+   */
+  private static walkColumn(
+    session: snmp.Session,
+    columnOid: string,
+    maxRows: number,
+    deadlineAt: number,
+  ): Promise<{
+    values: Array<[string, string | number | null]>;
+    isTruncated: boolean;
+  }> {
+    return new Promise(
+      (
+        resolve: (value: {
+          values: Array<[string, string | number | null]>;
+          isTruncated: boolean;
+        }) => void,
+        reject: (reason?: Error) => void,
+      ) => {
+        if (Date.now() > deadlineAt) {
+          reject(
+            new Error(
+              "SNMP table walk exceeded its time budget before this table was read",
+            ),
+          );
+          return;
+        }
+
+        const prefix: string = `${columnOid}.`;
+        const values: Array<[string, string | number | null]> = [];
+        let isTruncated: boolean = false;
+        let failure: Error | undefined = undefined;
+
+        const feedCb: (varbinds: Array<snmp.Varbind>) => boolean = (
+          varbinds: Array<snmp.Varbind>,
+        ): boolean => {
+          if (Date.now() > deadlineAt) {
+            failure = new Error(
+              "SNMP table walk exceeded its time budget before this table was read",
+            );
+            return true;
+          }
+
+          for (const varbind of varbinds) {
+            /*
+             * net-snmp already drops endOfMibView; any other error varbind
+             * inside a walk means the agent has nothing more to give for
+             * this column, which is the end of it rather than a failure.
+             */
+            if (snmp.isVarbindError(varbind)) {
+              return true;
+            }
+
+            if (!varbind.oid.startsWith(prefix)) {
+              continue;
+            }
+
+            const index: string = varbind.oid.substring(prefix.length);
+
+            if (!index) {
+              continue;
+            }
+
+            if (values.length >= maxRows) {
+              // Cap reached mid-walk: stop asking the device for more rows.
+              isTruncated = true;
+              return true;
+            }
+
+            values.push([index, SnmpMonitor.parseVarbindValue(varbind)]);
+          }
+
+          return false;
+        };
+
+        try {
+          (session as any).subtree(
+            columnOid,
+            SNMP_TABLE_MAX_REPETITIONS,
+            feedCb,
+            (error: Error | null) => {
+              if (error) {
+                reject(error);
+                return;
+              }
+              if (failure) {
+                reject(failure);
+                return;
+              }
+              resolve({ values: values, isTruncated: isTruncated });
+            },
+          );
+        } catch (dispatchError) {
+          reject(dispatchError as Error);
+        }
+      },
+    );
   }
 
   /*

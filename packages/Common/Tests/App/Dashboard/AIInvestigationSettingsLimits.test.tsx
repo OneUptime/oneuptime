@@ -378,7 +378,7 @@ describe.each(
         expect(
           screen.getByTestId("collapsible-section-summary"),
         ).toHaveTextContent(
-          `Every ${page.kind} is investigated, whatever its severity, and nothing limits how much OneUptime AI does.`,
+          `Every ${page.kind} is investigated, whatever its severity, and every one is fixed while fixing is on. Nothing limits how much OneUptime AI does.`,
         );
       },
       { timeout: WAIT_TIMEOUT },

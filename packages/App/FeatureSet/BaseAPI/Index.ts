@@ -605,6 +605,9 @@ import TraceScrubRuleService, {
 import TraceRecordingRuleService, {
   Service as TraceRecordingRuleServiceType,
 } from "Common/Server/Services/TraceRecordingRuleService";
+import LogRecordingRuleService, {
+  Service as LogRecordingRuleServiceType,
+} from "Common/Server/Services/LogRecordingRuleService";
 import IncidentOwnerTeamService, {
   Service as IncidentOwnerTeamServiceType,
 } from "Common/Server/Services/IncidentOwnerTeamService";
@@ -1145,6 +1148,9 @@ import AutoRemediationSuggestionService, {
 import AutoRemediationDecisionService, {
   Service as AutoRemediationDecisionServiceType,
 } from "Common/Server/Services/AutoRemediationDecisionService";
+import AIInvestigationRuleService, {
+  Service as AIInvestigationRuleServiceType,
+} from "Common/Server/Services/AIInvestigationRuleService";
 import RunnerService, {
   Service as RunnerServiceType,
 } from "Common/Server/Services/RunnerService";
@@ -1496,6 +1502,7 @@ import RunbookRule from "Common/Models/DatabaseModels/RunbookRule";
 import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRule";
 import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
 import AutoRemediationDecision from "Common/Models/DatabaseModels/AutoRemediationDecision";
+import AIInvestigationRule from "Common/Models/DatabaseModels/AIInvestigationRule";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import RunnerOwnerTeam from "Common/Models/DatabaseModels/RunnerOwnerTeam";
@@ -1544,6 +1551,7 @@ import TracePipelineProcessor from "Common/Models/DatabaseModels/TracePipelinePr
 import TraceDropFilter from "Common/Models/DatabaseModels/TraceDropFilter";
 import TraceScrubRule from "Common/Models/DatabaseModels/TraceScrubRule";
 import TraceRecordingRule from "Common/Models/DatabaseModels/TraceRecordingRule";
+import LogRecordingRule from "Common/Models/DatabaseModels/LogRecordingRule";
 
 import IncidentFeed from "Common/Models/DatabaseModels/IncidentFeed";
 import AlertFeed from "Common/Models/DatabaseModels/AlertFeed";
@@ -3879,6 +3887,14 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<LogRecordingRule, LogRecordingRuleServiceType>(
+        LogRecordingRule,
+        LogRecordingRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<IncidentState, IncidentStateServiceType>(
         IncidentState,
         IncidentStateService,
@@ -3997,6 +4013,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<AutoRemediationDecision, AutoRemediationDecisionServiceType>(
         AutoRemediationDecision,
         AutoRemediationDecisionService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AIInvestigationRule, AIInvestigationRuleServiceType>(
+        AIInvestigationRule,
+        AIInvestigationRuleService,
       ).getRouter(),
     );
 

@@ -421,7 +421,7 @@ export default class WorkflowVariable extends BaseModel {
     default: false,
     type: ColumnType.Boolean,
   })
-  public isSecret?: string = undefined;
+  public isSecret?: boolean = undefined;
 
   /*
    * Static or OAuth 2.0. Fixed at creation: the two kinds store different

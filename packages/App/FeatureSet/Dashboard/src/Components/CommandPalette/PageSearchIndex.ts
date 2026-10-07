@@ -202,12 +202,10 @@ const incidentAlertAiSection: (pages: {
   insights: PageMap;
   logs: PageMap;
   settings: PageMap;
-  autoRemediationRules: PageMap;
 }) => PageSearchSection = (pages: {
   insights: PageMap;
   logs: PageMap;
   settings: PageMap;
-  autoRemediationRules: PageMap;
 }): PageSearchSection => {
   return {
     title: "AI",
@@ -239,18 +237,22 @@ const incidentAlertAiSection: (pages: {
         page: pages.settings,
         title: "Settings",
         icon: IconProp.Settings,
+        /*
+         * The rules for which incidents (or alerts) are investigated and
+         * fixed are under this page's More settings: they had a page of
+         * their own, Auto Remediation Rules, which is still how people
+         * search for them.
+         */
         keywords: [
           "ai settings",
           "ai investigation",
           "root cause",
           "ai limits",
+          "auto remediation rules",
+          "investigation rules",
+          "self healing",
+          "auto fix",
         ],
-      },
-      {
-        page: pages.autoRemediationRules,
-        title: "Auto Remediation Rules",
-        icon: IconProp.Bolt,
-        keywords: ["self healing", "auto fix"],
       },
     ],
   };
@@ -810,7 +812,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         insights: PageMap.INCIDENTS_AI_INSIGHTS,
         logs: PageMap.INCIDENTS_AI_LOGS,
         settings: PageMap.INCIDENTS_SETTINGS_AI,
-        autoRemediationRules: PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES,
       }),
     ],
   },
@@ -934,7 +935,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         insights: PageMap.ALERTS_AI_INSIGHTS,
         logs: PageMap.ALERTS_AI_LOGS,
         settings: PageMap.ALERTS_SETTINGS_AI,
-        autoRemediationRules: PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES,
       }),
     ],
   },
@@ -1250,6 +1250,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Scrub Rules",
             icon: IconProp.ShieldCheck,
             keywords: ["pii", "redact", "mask sensitive data"],
+          },
+          {
+            page: PageMap.LOGS_SETTINGS_RECORDING_RULES,
+            title: "Recording Rules",
+            icon: IconProp.Calculator,
+            keywords: ["log metrics", "logs to metrics", "derived metrics"],
           },
         ],
       },

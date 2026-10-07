@@ -36,6 +36,12 @@ export class MailService extends BaseService {
       onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
       onCallScheduleId?: ObjectID | undefined;
       teamId?: ObjectID | undefined;
+      /*
+       * How long to wait for the mail service to take the email. None by
+       * default; a caller that must not hang - a run that waits for each
+       * email in turn - sets one.
+       */
+      timeoutInMs?: number | undefined;
     },
   ): Promise<HTTPResponse<EmptyResponseData>> {
     const body: JSONObject = {
@@ -152,6 +158,9 @@ export class MailService extends BaseService {
       headers: {
         ...ClusterKeyAuthorization.getClusterKeyHeaders(),
       },
+      ...(options?.timeoutInMs
+        ? { options: { timeout: options.timeoutInMs } }
+        : {}),
     });
   }
 }

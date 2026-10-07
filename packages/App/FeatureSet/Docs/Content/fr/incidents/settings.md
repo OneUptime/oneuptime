@@ -21,7 +21,7 @@ Ouvrez **Incidents** dans la navigation de gauche, puis dépliez **Paramètres**
 | **Rôles d'incident**         | Définir les rôles auxquels vous affectez les intervenants, comme Incident Commander.                                 |
 | **Préfixe de numéro**       | Les préfixes de numéro d'incident et d'épisode d'incident.                                                           |
 
-Ce que OneUptime AI fait de lui-même ne se règle pas ici : il a sa propre section, **Incidents → IA**, sur des routes commençant par `/dashboard/{projectId}/incidents/ai/`. Sa page **Paramètres** active ou désactive l'investigation automatique, les corrections de code automatiques et les brouillons de post-mortem, et regroupe les limites facultatives dans lesquelles l'IA travaille — aucune ne s'applique tant que vous ne l'avez pas fixée. Les **Règles de remédiation automatique** sont à côté, avec **Analyses** et **Journaux** : ce que l'IA a appris de vos incidents, et tout ce qu'elle a fait. Voir [AI SRE](/docs/ai/ai-sre).
+Ce que OneUptime AI fait de lui-même ne se règle pas ici : il a sa propre section, **Incidents → IA**, sur des routes commençant par `/dashboard/{projectId}/incidents/ai/`. Sa page **Paramètres** active ou désactive l'investigation des nouveaux incidents, leur correction automatique (désactivée tant que vous ne l'activez pas), les brouillons de post-mortem et l'ouverture de pull requests de correction et de télémétrie manquante, chaque bascule étant enregistrée dès que vous l'actionnez ; les règles d'investigation et les règles de remédiation automatique, qui restreignent les incidents investigués et corrigés, ainsi que les limites facultatives dans lesquelles l'IA travaille, sont repliées sous **Plus de paramètres**, et aucune ne s'applique tant que vous ne l'avez pas fixée. **Analyses** et **Journaux** sont à côté : ce que l'IA a appris de vos incidents, et tout ce qu'elle a fait. Voir [AI SRE](/docs/ai/ai-sre).
 
 **État de l'incident** et **Gravité de l'incident** sont traités en détail dans [États et sévérités des incidents](/docs/incidents/states-and-severities) — le reste de cette page reprend à partir des **Modèles d'incident**.
 
@@ -117,21 +117,22 @@ Un nouveau préfixe ne s'applique qu'aux incidents et épisodes créés ensuite.
 
 ## Les règles qui s'exécutent à la création d'un incident
 
-**Incidents → Règles** regroupe huit moteurs de règles, et **Incidents → IA** un neuvième, les **Règles de remédiation automatique**. Ils font tous le même travail — regarder un incident à l'instant où il est créé, et agir s'il correspond — mais ils diffèrent par ce qu'ils font et par la façon dont plusieurs règles correspondantes se résolvent.
+**Incidents → Règles** regroupe huit moteurs de règles, et **Incidents → IA → Paramètres** deux de plus, sous **Plus de paramètres** : les **Règles de remédiation automatique** et les **Règles d'investigation**. Ils font tous le même travail — regarder un incident à l'instant où il est créé, et agir s'il correspond — mais ils diffèrent par ce qu'ils font et par la façon dont plusieurs règles correspondantes se résolvent.
 
 - **Règles de regroupement** — regrouper des incidents liés en épisodes. Les règles sont évaluées par ordre de priorité ; les numéros de priorité les plus bas passent en premier.
 - **Règles d'astreinte** — exécuter des politiques d'astreinte pour les incidents correspondants. Détaillées plus bas.
 - **Règles de propriétaire** — attribuer des propriétaires automatiquement.
 - **Règles de runbook** — lancer un [runbook](/docs/runbooks/index) quand un incident correspond.
-- **Règles de remédiation automatique**, sous **IA** — proposer ou lancer des runbooks de remédiation quand un incident correspond. Si une investigation IA est en file d'attente pour l'incident, elles s'exécutent une fois celle-ci terminée, avec son analyse en main. Voir [AI SRE](/docs/ai/ai-sre).
+- **Règles de remédiation automatique**, sous **IA** → **Paramètres** — décider quels nouveaux incidents sont corrigés tant que **Corriger automatiquement les nouveaux incidents** est activé, et comment : par OneUptime AI ou avec les runbooks de la règle, en demandant avant de corriger ou non. Sans règle, chaque nouvel incident est corrigé. Si une investigation IA est en file d'attente pour l'incident, elles s'exécutent une fois celle-ci terminée, avec son analyse en main.
+- **Règles d'investigation**, sous **IA** → **Paramètres** — décider quels nouveaux incidents OneUptime AI investigue. Sans règle, tous le sont. Voir [AI SRE](/docs/ai/ai-sre).
 - **Règles de confidentialité** — décider si un incident correspondant est privé.
 - **Règles d'étiquettes** — appliquer des étiquettes automatiquement.
 - **Règles SLA** — suivre les délais de réponse et de résolution. Les règles sont évaluées dans l'ordre ; les numéros d'ordre les plus bas passent en premier.
 - **Reminder Rules** — relancer périodiquement les propriétaires d'un incident tant qu'il reste ouvert. Les règles sont évaluées dans l'ordre et la première qui correspond l'emporte.
 
-**La sémantique de l'ordre n'est pas uniforme.** Les **Règles de regroupement**, les **Règles SLA** et les **Reminder Rules** sont évaluées dans l'ordre. Les **Règles d'astreinte**, non — chaque règle correspondante se déclenche. Ne supposez pas qu'un seul modèle vaut pour les neuf.
+**La sémantique de l'ordre n'est pas uniforme.** Les **Règles de regroupement**, les **Règles SLA** et les **Reminder Rules** sont évaluées dans l'ordre. Les **Règles d'astreinte**, non — chaque règle correspondante se déclenche. Ne supposez pas qu'un seul modèle vaut pour les dix.
 
-Les écrans **Règles d'astreinte**, **Règles de propriétaire**, **Règles d'étiquettes** et **Règles de confidentialité** sont à onglets : un onglet **Règles d'incident** et un onglet **Règles d'épisode**, chacun avec sa propre table. Configurez l'onglet **Règles d'incident**, sauf si vous visez précisément les épisodes. **Règles de regroupement**, **Règles de runbook**, **Règles de remédiation automatique**, **Règles SLA** et **Reminder Rules** n'ont qu'une seule table.
+Les écrans **Règles d'astreinte**, **Règles de propriétaire**, **Règles d'étiquettes** et **Règles de confidentialité** sont à onglets : un onglet **Règles d'incident** et un onglet **Règles d'épisode**, chacun avec sa propre table. Configurez l'onglet **Règles d'incident**, sauf si vous visez précisément les épisodes. **Règles de regroupement**, **Règles de runbook**, **Règles de remédiation automatique**, **Règles d'investigation**, **Règles SLA** et **Reminder Rules** n'ont qu'une seule table.
 
 ## Règles d'astreinte des incidents
 
@@ -171,7 +172,7 @@ La même génération vous donne des déclencheurs pour la configuration elle-m�
 
 Quelques détails qui comptent au moment de câbler tout ça :
 
-- **On Update X** accepte un argument facultatif **Listen on** qui restreint le déclencheur aux mises à jour touchant certains champs. Laissez-le vide pour réagir à tout changement. Si une mise à jour arrive sans trace des champs modifiés, le filtre est ignoré et le workflow s'exécute quand même.
+- **On Update X** accepte un argument facultatif **Listen on** qui restreint le déclencheur aux mises à jour qui modifient certains champs, quelle que soit la nouvelle valeur : un interrupteur désactivé ou un champ vidé compte aussi. Un champ enregistré avec la valeur qu'il a déjà n'est pas une modification : un formulaire d'édition qui le renvoie à chaque enregistrement ne réveille donc pas le workflow. Laissez-le vide pour réagir à tout changement. Si une mise à jour arrive sans trace des champs modifiés, le filtre est ignoré et le workflow s'exécute quand même.
 - **On Create X** et **On Update X** exigent tous deux un argument **Select Fields** ; **On Delete X** ne prend aucun argument.
 - Les trois exposent un unique port de sortie **Success**, et chacun accepte un argument d'identifiant pour que vous puissiez lancer le workflow à la main sur un enregistrement précis.
 - Les noms viennent du nom au singulier du modèle, pas de son nom de table — c'est pourquoi vous voyez **On Create Incident Team Owner** et **On Create Incident User Owner** plutôt que des noms calqués sur les tables.

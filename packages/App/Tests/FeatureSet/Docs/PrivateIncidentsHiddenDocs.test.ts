@@ -1,5 +1,7 @@
 import { HidePrivateIncidentsFromStatusPages1799200000000 } from "Common/Server/Infrastructure/Postgres/SchemaMigrations/1799200000000-HidePrivateIncidentsFromStatusPages";
 import StatusPageVisibility from "Common/Types/StatusPage/StatusPageVisibility";
+import { coerceBooleanColumnsInJSON } from "Common/Types/Database/BooleanColumnValue";
+import Incident from "Common/Models/DatabaseModels/Incident";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -94,9 +96,23 @@ describe("the docs on private incidents and status pages", () => {
     StatusPageVisibility.normalizeWrite(madePrivate);
     expect(madePrivate["isVisibleOnStatusPage"]).toBe(false);
 
-    const asText: Record<string, unknown> = { isPrivate: "true" };
+    /*
+     * A switch sent as text is the boolean the database stores before any
+     * hook reads it: DatabaseService turns every Boolean column of a write
+     * into it first (Types/Database/BooleanColumnValue), then the incident's
+     * hook keeps the two switches in step.
+     */
+    const asText: Record<string, unknown> = coerceBooleanColumnsInJSON(
+      { isPrivate: "true" },
+      new Incident(),
+    );
     StatusPageVisibility.normalizeWrite(asText);
     expect(asText).toEqual({ isPrivate: true, isVisibleOnStatusPage: false });
+
+    // The rule itself reads the text as the database stores it, too.
+    const textOnly: Record<string, unknown> = { isPrivate: "yes" };
+    StatusPageVisibility.normalizeWrite(textOnly);
+    expect(textOnly["isVisibleOnStatusPage"]).toBe(false);
     expect(OFF_THE_STATUS_PAGE).toContain(
       'A value sent as text, such as `"true"`, counts the same as `true`.',
     );

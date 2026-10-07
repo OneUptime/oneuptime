@@ -94,7 +94,8 @@ import useAsyncEffect from "use-async-effect";
  *
  * On the left, the canvas: the form's name and description, then every
  * question in order - drag one by its handle to move it (or use Move Up and
- * Move Down), select one to edit it in place. On the right, the palette:
+ * Move Down), select one to edit it in place - Required and Hidden among its
+ * settings. On the right, the palette:
  * questions of the form's own, the fields of what the form creates, its
  * custom fields and the submitter's details. Preview shows the real public
  * form drawn from the questions being built.
@@ -223,6 +224,7 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
           targetType: true,
           fields: true,
           targetSettings: true,
+          templates: true,
           ...FORM_BRANDING_SELECT,
         },
       });
@@ -748,6 +750,7 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
           recordOptions={recordOptions}
           defaultOptionValues={defaultOptionValues}
           branding={branding}
+          templates={form.templates}
           onClose={() => {
             setIsPreviewOpen(false);
           }}

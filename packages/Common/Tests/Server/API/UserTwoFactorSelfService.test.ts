@@ -366,11 +366,36 @@ describe("User two-factor self-service API integration", () => {
     expect(rows.get(OTHER_ID)?.enableTwoFactorAuth).toBe(true);
   });
 
+  /*
+   * A hand-written "false" is the false the database stores: DatabaseService
+   * turns it into false before the service's hook reads it, so it goes
+   * through the same exact-false owner check as false - and turns off the
+   * caller's own setting like false does.
+   */
+  test.each(["false", "no", "0", 0])(
+    "a hand-written %p turns off the current user's own setting, as false does",
+    async (value: unknown): Promise<void> => {
+      const request: OneUptimeRequest = requestFor({
+        body: { data: { enableTwoFactorAuth: value } as JSONObject },
+      });
+
+      await api.updateItem(request, response);
+
+      expect(update).toHaveBeenCalledWith(
+        { _id: OWNER_ID },
+        expect.objectContaining({ enableTwoFactorAuth: false }),
+      );
+      expect(rows.get(OWNER_ID)?.enableTwoFactorAuth).toBe(false);
+      expect(rows.get(OTHER_ID)?.enableTwoFactorAuth).toBe(true);
+    },
+  );
+
   test.each([
-    { value: "false", id: OWNER_ID, userType: UserType.User },
     { value: null, id: OWNER_ID, userType: UserType.User },
+    { value: "maybe", id: OWNER_ID, userType: UserType.User },
     { value: "false", id: OTHER_ID, userType: UserType.MasterAdmin },
     { value: null, id: OTHER_ID, userType: UserType.MasterAdmin },
+    { value: "maybe", id: OTHER_ID, userType: UserType.MasterAdmin },
   ])(
     "rejects non-boolean $value for $userType targeting $id before persistence",
     async (data: {

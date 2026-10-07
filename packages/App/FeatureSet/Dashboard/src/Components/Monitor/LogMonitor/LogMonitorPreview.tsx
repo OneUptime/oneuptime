@@ -1,10 +1,16 @@
-import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useMemo,
+} from "react";
 import MonitorStepLogMonitor, {
   MonitorStepLogMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepLogMonitor";
 import DashboardLogsViewer from "../../Logs/LogsViewer";
 import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 export interface ComponentProps {
   monitorStepLogMonitor: MonitorStepLogMonitor | undefined;
@@ -13,11 +19,21 @@ export interface ComponentProps {
 const LogMonitorPreview: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  /*
+   * Group By does not change which logs match, so it is left out of the
+   * key: editing it must not reset and refetch the logs below.
+   */
   const logMonitorKey: string = props.monitorStepLogMonitor
     ? JSON.stringify(
-        MonitorStepLogMonitorUtil.toJSON(props.monitorStepLogMonitor),
+        MonitorStepLogMonitorUtil.toJSON({
+          ...props.monitorStepLogMonitor,
+          groupByAttributes: [],
+        }),
       )
     : "";
+
+  const groupByAttributes: Array<string> =
+    MonitorStepLogMonitorUtil.getGroupByAttributes(props.monitorStepLogMonitor);
 
   /*
    * The logs viewer resets its filters and page and refetches whenever it
@@ -53,12 +69,40 @@ const LogMonitorPreview: FunctionComponent<ComponentProps> = (
   }, [logMonitorKey]);
 
   return (
-    <DashboardLogsViewer
-      id="logs-preview"
-      logQuery={logQuery}
-      limit={10}
-      noLogsMessage="No logs found"
-    />
+    <div>
+      {groupByAttributes.length > 0 && (
+        <p
+          className="mb-3 rounded-md border border-indigo-100 bg-indigo-50/40 p-3 text-xs text-gray-600"
+          data-testid="log-monitor-group-by-summary"
+        >
+          <TranslatedSentence
+            template="Grouped by {{attributes}}: the criteria is checked separately for every distinct value, and each group that meets it raises its own alert or incident. Logs without the attribute count as one group with an empty value."
+            slots={{
+              attributes: (
+                <Fragment>
+                  {groupByAttributes.map((key: string, index: number) => {
+                    return (
+                      <Fragment key={key}>
+                        {index > 0 ? ", " : ""}
+                        <code className="rounded bg-indigo-100 px-1 py-0.5 text-[11px] text-indigo-700">
+                          {key}
+                        </code>
+                      </Fragment>
+                    );
+                  })}
+                </Fragment>
+              ),
+            }}
+          />
+        </p>
+      )}
+      <DashboardLogsViewer
+        id="logs-preview"
+        logQuery={logQuery}
+        limit={10}
+        noLogsMessage="No logs found"
+      />
+    </div>
   );
 };
 

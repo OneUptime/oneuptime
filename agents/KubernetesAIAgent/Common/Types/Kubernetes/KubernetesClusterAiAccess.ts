@@ -313,6 +313,16 @@ export interface KubernetesAiAutomaticInvestigationSettings {
 }
 
 /*
+ * The project's "fix new incidents / alerts automatically" switches, shown
+ * as a non-blocking line under the cluster's fixes: a cluster whose fixes
+ * are on still fixes nothing while both are off. Project-wide, never a gap.
+ */
+export interface KubernetesAiAutomaticRemediationSettings {
+  incidents: boolean;
+  alerts: boolean;
+}
+
+/*
  * The complete answer to "can OneUptime AI reach this cluster, and how?".
  * Computed from current configuration every time it is asked for — it is
  * a readiness check, not a recorded decision.
@@ -340,6 +350,11 @@ export interface KubernetesClusterAiAccessStatus {
    * is a project-wide choice, not something this cluster is missing.
    */
   automaticInvestigation: KubernetesAiAutomaticInvestigationSettings;
+  /*
+   * The project's automatic-remediation switches, like the investigation
+   * ones above. Absent (an older server) reads as both off.
+   */
+  automaticRemediation?: KubernetesAiAutomaticRemediationSettings | undefined;
   // Set with accessMethod "credential": the RunbookCredential the jobs name.
   credentialId?: string | undefined;
   credentialName?: string | undefined;

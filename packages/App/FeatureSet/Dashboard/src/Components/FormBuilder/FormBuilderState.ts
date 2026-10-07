@@ -266,6 +266,10 @@ export type UpdateFormFieldFunction = (data: {
  * has none, and one that stops being one drops its options; options the
  * change sets itself (even none, while somebody is editing them) are kept as
  * they are - the server refuses a dropdown with no option, and says so.
+ *
+ * A question that is hidden is not required - nobody is asked it - and one
+ * that is shown again does not carry Hidden as false: it is simply not
+ * hidden.
  */
 export const updateFormField: UpdateFormFieldFunction = (data: {
   fields: Array<FormField>;
@@ -306,6 +310,12 @@ export const updateFormField: UpdateFormFieldFunction = (data: {
       delete updated.helpText;
     }
 
+    if (updated.isHidden) {
+      updated.isRequired = false;
+    } else {
+      delete updated.isHidden;
+    }
+
     return updated;
   });
 };
@@ -317,7 +327,7 @@ export type IsFormFieldLockedFunction = (data: {
 
 /*
  * Whether the target cannot do without the question - a maintenance event's
- * start and end: it cannot be removed, and stays required.
+ * start and end: it cannot be removed or hidden, and stays required.
  */
 export const isFormFieldLocked: IsFormFieldLockedFunction = (data: {
   field: FormField;

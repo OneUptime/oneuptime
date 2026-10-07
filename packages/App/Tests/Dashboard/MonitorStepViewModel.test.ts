@@ -1605,3 +1605,47 @@ describe("MonitorStepViewModel metric helpers", () => {
     }
   });
 });
+
+describe("MonitorStepViewModel.getRows — a grouped Logs monitor", () => {
+  function groupedLogsRows(
+    groupByAttributes: Array<string> | undefined,
+  ): Array<MonitorStepViewRow> {
+    const step: MonitorStep = buildStepForMonitorType(MonitorType.Logs);
+    const data: MonitorStepType = step.data as MonitorStepType;
+
+    data.logMonitor = {
+      ...data.logMonitor!,
+      groupByAttributes: groupByAttributes,
+    };
+
+    return MonitorStepViewModel.getRows({
+      monitorStep: step,
+      monitorType: MonitorType.Logs,
+    });
+  }
+
+  it("lists the attributes the monitor raises one alert per group of", () => {
+    const row: MonitorStepViewRow | undefined = groupedLogsRows([
+      "con_name",
+      "gw_name",
+    ]).find((candidate: MonitorStepViewRow) => {
+      return candidate.key === "logGroupByAttributes";
+    });
+
+    expect(row?.title).toBe("Group by Attributes");
+    expect(row?.valueType).toBe(MonitorStepViewValueType.ArrayOfText);
+    expect(row?.value).toEqual(["con_name", "gw_name"]);
+  });
+
+  it("shows no group-by row for a monitor that is not grouped", () => {
+    for (const groupByAttributes of [undefined, [], ["  "]]) {
+      expect(
+        groupedLogsRows(groupByAttributes).find(
+          (candidate: MonitorStepViewRow) => {
+            return candidate.key === "logGroupByAttributes";
+          },
+        ),
+      ).toBeUndefined();
+    }
+  });
+});

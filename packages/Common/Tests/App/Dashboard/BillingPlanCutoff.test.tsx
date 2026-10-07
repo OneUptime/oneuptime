@@ -13,12 +13,13 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
 
 /*
- * The Billing page names how many API keys and SCIM connections a plan
- * stops - they stop working below the plans that sell them (Common/Types/
- * Billing/PlanCutoffCredentials) - before anyone picks a lower plan: each
- * plan in the picker says what moving to it stops. And it says how many
- * the project's own plan has stopped, above the plan, with the plan that
- * turns each back on.
+ * The Billing page names how many API keys a plan stops and how many SCIM
+ * connections it limits - API keys stop working below Growth, and SCIM
+ * connections only remove people below Scale (Common/Types/Billing/
+ * PlanCutoffCredentials) - before anyone picks a lower plan: each plan in
+ * the picker says what moving to it stops. And it says what the project's
+ * own plan has stopped, above the plan, with the plan that turns each fully
+ * back on.
  *
  * The real page and its counts; ModelAPI, the plan editor (CardModelDetail,
  * drawn here as its plan options), the payment methods table and Stripe are
@@ -277,12 +278,12 @@ describe("a project on Scale with 3 API keys and 2 SCIM connections", () => {
       "Your 3 API keys stop working on this plan.",
     );
     expect(descriptionOf("Free")).toContain(
-      "Your 2 SCIM connections stop working on this plan.",
+      "Your 2 SCIM connections only remove people on this plan.",
     );
 
     // Growth keeps the keys: only SCIM stops.
     expect(descriptionOf("Growth")).toContain(
-      "Your 2 SCIM connections stop working on this plan.",
+      "Your 2 SCIM connections only remove people on this plan.",
     );
     expect(descriptionOf("Growth")).not.toContain("API key");
   });
@@ -333,7 +334,7 @@ describe("a project on Scale with 3 API keys and 2 SCIM connections", () => {
  * number, and the other kind's count still shows.
  */
 describe("someone who may not read the project's API keys, on Scale", () => {
-  it("is told on Free that API keys stop, without a number, and how many SCIM connections stop", async () => {
+  it("is told on Free that API keys stop, without a number, and how many SCIM connections only remove people", async () => {
     counts.set(ApiKey, Error("not allowed") as never);
 
     await renderBillingOn("price_scale_month");
@@ -343,7 +344,7 @@ describe("someone who may not read the project's API keys, on Scale", () => {
     );
     expect(descriptionOf("Free")).not.toContain("Your 3 API keys");
     expect(descriptionOf("Free")).toContain(
-      "Your 2 SCIM connections stop working on this plan.",
+      "Your 2 SCIM connections only remove people on this plan.",
     );
 
     // Growth keeps the keys: nothing is said about them there.
@@ -352,7 +353,7 @@ describe("someone who may not read the project's API keys, on Scale", () => {
 });
 
 describe("a project on Growth", () => {
-  it("names only the API keys Free would stop: its SCIM connections stopped on Growth already", async () => {
+  it("names only the API keys Free would stop: its SCIM connections only remove people on Growth already", async () => {
     // Whether or not the SCIM count can be read, Free stops none of them.
     counts.set(ProjectSCIM, Error("not allowed") as never);
     counts.set(StatusPageSCIM, 0);
@@ -365,14 +366,14 @@ describe("a project on Growth", () => {
     expect(descriptionOf("Free")).not.toContain("SCIM");
   });
 
-  it("says above the plan that its SCIM connections stopped, and which plan turns them back on", async () => {
+  it("says above the plan that its SCIM connections only remove people, and which plan turns them fully back on", async () => {
     await renderBillingOn("price_growth_month");
 
     const note: HTMLElement = screen.getByTestId(PLAN_CUTOFF_NOTE_TEST_ID);
 
-    expect(note).toHaveTextContent("Not working on this plan");
+    expect(note).toHaveTextContent("Not included in this plan");
     expect(note).toHaveTextContent(
-      "Your 2 SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the Scale plan.",
+      "Your 2 SCIM connections only remove people on this plan: your identity provider can no longer add or change people. They work fully again on the Scale plan.",
     );
     expect(note).not.toHaveTextContent("API key");
   });
@@ -391,7 +392,7 @@ describe("a project on Free", () => {
       "Your 3 API keys stopped working on this plan. They work again on the Growth plan.",
     );
     expect(note).toHaveTextContent(
-      "Your SCIM connection stopped working on this plan, so your identity provider no longer adds or removes people. It works again on the Scale plan.",
+      "Your SCIM connection only removes people on this plan: your identity provider can no longer add or change people. It works fully again on the Scale plan.",
     );
   });
 

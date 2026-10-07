@@ -9,18 +9,21 @@ import {
   getAiLaneAdvancedSummary,
   isAiLaneAdvancedConfigured,
   recordAiLaneAdvancedCard,
+  recordAiLaneAdvancedRules,
 } from "./ProjectAiSettingsCopy";
 import { FoldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 
 /*
  * What the folded More settings section of Incidents (or Alerts) → Settings
  * → AI says about the cards in it, from what each card read: their titles,
- * the ones holding a value drawn as chips, and - once every card has read
- * and none holds one - what the defaults do, under them.
+ * the ones holding a value (or, for a rules table, any rule) drawn as chips,
+ * and - once every card has read and none holds one - what the defaults do,
+ * under them.
  *
- * Each card reports what it read through onCardLoaded, when it first loads
- * and again after each save. Recording a read also re-renders the page,
- * which reads the permission snapshot again: it arrives on an API response
+ * Each card reports what it read through onCardLoaded, and each rules table
+ * how many rules it holds through onRulesLoaded, when it first loads and
+ * again after each save. Recording a read also re-renders the page, which
+ * reads the permission snapshot again: it arrives on an API response
  * header, so the cards' Edit gates can be empty on the first paint.
  */
 
@@ -31,6 +34,7 @@ export interface AiLaneAdvanced {
   // What the defaults do, for the folded header; nothing until it is so.
   summary: string | undefined;
   onCardLoaded: (card: AiLaneAdvancedCard) => (item: Project) => void;
+  onRulesLoaded: (card: AiLaneAdvancedCard) => (count: number) => void;
 }
 
 const useAiLaneAdvancedState: (lane: AiLane) => AiLaneAdvanced = (
@@ -52,6 +56,17 @@ const useAiLaneAdvancedState: (lane: AiLane) => AiLaneAdvanced = (
             lane,
             card,
             item: item as unknown as Record<string, unknown>,
+          });
+        });
+      };
+    },
+    onRulesLoaded: (card: AiLaneAdvancedCard): ((count: number) => void) => {
+      return (count: number): void => {
+        setState((previous: AiLaneAdvancedState): AiLaneAdvancedState => {
+          return recordAiLaneAdvancedRules({
+            state: previous,
+            card,
+            count,
           });
         });
       };

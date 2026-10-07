@@ -182,7 +182,10 @@
     "reference": "Ihre Referenznummer lautet {{reference}}.",
     "submitAnother": "Weitere Antwort senden",
     "retryAfter": "Sie können es {{when}} erneut versuchen.",
-    "tryAgain": "Erneut versuchen"
+    "tryAgain": "Erneut versuchen",
+    "templateLabel": "Mit einer Vorlage beginnen",
+    "templateDescription": "Wählen Sie eine Vorlage, um das Formular auszufüllen. Sie können jede Antwort vor dem Absenden ändern.",
+    "templateNone": "Keine Vorlage"
   },
   "errors": {
     "forbidden": {

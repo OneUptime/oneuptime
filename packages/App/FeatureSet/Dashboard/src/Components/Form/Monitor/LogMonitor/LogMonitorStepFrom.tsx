@@ -6,11 +6,16 @@ import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import LogMonitorPreview from "../../../Monitor/LogMonitor/LogMonitorPreview";
+import LogGroupByAttributesInput from "./LogGroupByAttributesInput";
 
 /*
  * The filters that narrow a log monitor down further - telemetry service,
@@ -138,6 +143,39 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
             title: "Log Severity",
             description: "Select the severity of the logs you want to monitor.",
             hideOptionalLabel: true,
+          },
+          /*
+           * Not a filter, so not folded with them: it changes what the
+           * monitor alerts on - one alert per group (per IPsec tunnel, per
+           * user) instead of one for the whole monitor.
+           */
+          {
+            field: {
+              groupByAttributes: true,
+            },
+            fieldType: FormFieldSchemaType.CustomComponent,
+            title: "Group by Attributes",
+            description:
+              "Raise a separate alert or incident for each distinct combination of these attribute values - for example one per IPsec tunnel - instead of one for the whole monitor. Leave empty to count every matching log together.",
+            hideOptionalLabel: true,
+            getCustomElement: (
+              values: FormValues<MonitorStepLogMonitor>,
+              customElementProps: CustomElementProps,
+            ): ReactElement => {
+              return (
+                <LogGroupByAttributesInput
+                  initialValue={
+                    values.groupByAttributes as Array<string> | undefined
+                  }
+                  suggestions={props.attributeKeys}
+                  isLoadingSuggestions={props.isLoadingAttributeKeys}
+                  ariaLabelledby={customElementProps.ariaLabelledby}
+                  onChange={(groupByAttributes: Array<string>) => {
+                    customElementProps.onChange?.(groupByAttributes);
+                  }}
+                />
+              );
+            },
           },
           {
             field: {

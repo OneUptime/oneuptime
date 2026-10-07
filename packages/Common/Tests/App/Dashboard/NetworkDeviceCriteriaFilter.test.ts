@@ -52,6 +52,10 @@ describe("what a Network Device monitor can be built from", () => {
       CheckOn.SnmpTrapReceived,
       CheckOn.SnmpInterfaceUtilizationPercent,
       CheckOn.SnmpInterfaceErrorsPerSecond,
+      CheckOn.SnmpTableValue,
+      CheckOn.SnmpTableRowCount,
+      CheckOn.SnmpTableRowIsUnhealthy,
+      CheckOn.SnmpTrapVarbindValue,
     ]);
   });
 
@@ -157,5 +161,71 @@ describe("the catalog agrees with the server evaluator", () => {
 
     expect(isWalkDependent(CheckOn.SnmpIsOnline)).toBe(false);
     expect(isWalkDependent(CheckOn.SnmpWalkIsSucceeding)).toBe(true);
+  });
+});
+
+describe("the SNMP table and trap content checks", () => {
+  test("Table Row Is Unhealthy is a yes/no question", () => {
+    expect(
+      values(
+        CriteriaFilterUtil.getFilterTypeOptionsByCheckOn(
+          CheckOn.SnmpTableRowIsUnhealthy,
+        ),
+      ),
+    ).toEqual([FilterType.True, FilterType.False]);
+  });
+
+  /*
+   * A table cell or a varbind can be a number or text, and the evaluator
+   * (SnmpTableCriteria) compares both - so both kinds of comparison are
+   * offered, and nothing that only makes sense for a series (anomaly) is.
+   */
+  test.each([CheckOn.SnmpTableValue, CheckOn.SnmpTrapVarbindValue])(
+    "%s offers number and text comparisons",
+    (checkOn: CheckOn) => {
+      const offered: Array<string> = values(
+        CriteriaFilterUtil.getFilterTypeOptionsByCheckOn(checkOn),
+      );
+
+      for (const filterType of [
+        FilterType.EqualTo,
+        FilterType.NotEqualTo,
+        FilterType.GreaterThan,
+        FilterType.LessThanOrEqualTo,
+        FilterType.Contains,
+        FilterType.NotContains,
+        FilterType.IsEmpty,
+      ]) {
+        expect(offered).toContain(filterType);
+      }
+
+      expect(offered).not.toContain(FilterType.AnomalouslyHigh);
+      expect(offered).not.toContain(FilterType.True);
+    },
+  );
+
+  test("Table Row Count only compares numbers", () => {
+    const offered: Array<string> = values(
+      CriteriaFilterUtil.getFilterTypeOptionsByCheckOn(
+        CheckOn.SnmpTableRowCount,
+      ),
+    );
+
+    expect(offered).toContain(FilterType.LessThan);
+    expect(offered).toContain(FilterType.EqualTo);
+    expect(offered).not.toContain(FilterType.Contains);
+    expect(offered).not.toContain(FilterType.True);
+  });
+
+  test("a table criteria says which table and which rows it covers", () => {
+    const text: string = CriteriaFilterUtil.translateFilterToText({
+      checkOn: CheckOn.SnmpTableValue,
+      filterType: FilterType.NotEqualTo,
+      value: "1",
+      snmpMonitorOptions: { tableKey: "ipsec_tunnels", tableRow: "*" },
+    });
+
+    expect(text).toContain("in SNMP table ipsec_tunnels");
+    expect(text).toContain("for each row");
   });
 });
