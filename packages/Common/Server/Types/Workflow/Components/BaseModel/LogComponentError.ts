@@ -1,4 +1,9 @@
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import { Argument } from "../../../../../Types/Workflow/Component";
+import {
+  getCreateFromTemplateArgument,
+  getCreateFromTemplateColumn,
+} from "../../../../../Types/Workflow/CreateFromTemplate";
 import NotAuthenticatedException from "../../../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../../../../Types/Exception/PaymentRequiredException";
@@ -95,6 +100,41 @@ export const describeRefusal: DescribeRefusalFunction = (data: {
   return null;
 };
 
+type BuildTemplateColumnHintFunction = (data: {
+  error: unknown;
+  model: BaseModel | null;
+}) => string | null;
+
+/*
+ * A Create One step refused the column its record remembers its template
+ * in (createdIncidentTemplateId) - the way a workflow declared an incident
+ * from a template before steps acted as a Project Admin. The step has a
+ * setting for that now (Types/Workflow/CreateFromTemplate), and the run log
+ * says so. Told by the refusal's type and its column, never by its words.
+ */
+export const buildTemplateColumnHint: BuildTemplateColumnHintFunction = (data: {
+  error: unknown;
+  model: BaseModel | null;
+}): string | null => {
+  if (!(data.error instanceof ColumnWriteRefusedException) || !data.model) {
+    return null;
+  }
+
+  const tableName: string | undefined = data.model.tableName || undefined;
+  const templateColumn: string | null = getCreateFromTemplateColumn(tableName);
+  const argument: Argument | null = getCreateFromTemplateArgument(tableName);
+
+  if (
+    !templateColumn ||
+    !argument ||
+    data.error.columnName !== templateColumn
+  ) {
+    return null;
+  }
+
+  return `Tip: to declare the ${data.model.singularName || "record"} from a template, pick the template under ${argument.name} on this step, and take "${templateColumn}" out of JSON Object.`;
+};
+
 type LogComponentErrorFunction = (data: {
   error: unknown;
   model: BaseModel | null;
@@ -141,6 +181,15 @@ const logComponentError: LogComponentErrorFunction = (data: {
 
   if (hint) {
     log(hint);
+  }
+
+  const templateHint: string | null = buildTemplateColumnHint({
+    error: error,
+    model: model,
+  });
+
+  if (templateHint) {
+    log(templateHint);
   }
 };
 

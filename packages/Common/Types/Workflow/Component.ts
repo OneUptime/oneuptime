@@ -27,6 +27,11 @@ export enum ComponentInputType {
   Markdown = "Markdown",
   ValueType = "Value Type",
   WorkflowSelect = "Workflow Select",
+  /*
+   * One of the project's incident templates, picked from a list: Create One
+   * Incident's Incident Template (Types/Workflow/CreateFromTemplate).
+   */
+  IncidentTemplateSelect = "Incident Template Select",
 }
 
 /*
@@ -93,10 +98,14 @@ export interface Port {
  * Compare with is required, except for the comparisons that look at one value
  * only ("is empty"). `values` are matched as isArgumentRequired normalises
  * them: trimmed, lower case, one space between words.
+ *
+ * Without `values`, any value of the other setting does: Create One
+ * Incident's JSON Object is not needed once an Incident Template is picked,
+ * whichever template it is.
  */
 export interface ArgumentNotRequiredWhen {
   argumentId: string;
-  values: Array<string>;
+  values?: Array<string> | undefined;
 }
 
 export interface Argument {
@@ -151,6 +160,11 @@ export const isArgumentRequired: IsArgumentRequiredFunction = (
   }
 
   const normalized: string = other.trim().replace(/\s+/g, " ").toLowerCase();
+
+  // Any value of the other setting makes this one unnecessary.
+  if (!rule.values) {
+    return normalized === "";
+  }
 
   return !rule.values.includes(normalized);
 };

@@ -1,5 +1,9 @@
 import DatabaseService from "../../../Server/Services/DatabaseService";
-import { OnDelete, OnUpdate } from "../../../Server/Types/Database/Hooks";
+import {
+  OnCreate,
+  OnDelete,
+  OnUpdate,
+} from "../../../Server/Types/Database/Hooks";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -10,6 +14,8 @@ import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../Types/ObjectID";
+import PositiveNumber from "../../../Types/PositiveNumber";
+import Color from "../../../Types/Color";
 import Permission, {
   UserPermission,
   UserTenantAccessPermission,
@@ -1241,6 +1247,101 @@ describe("DatabaseService: onUpdatePermitted runs only once every permission che
       updateOwnLabel(harness.service, {
         ...ownerProps(),
         ignoreHooks: true,
+      }),
+    ).rejects.toThrow(SANITIZE_REACHED);
+
+    expect(permitted).not.toHaveBeenCalled();
+  });
+});
+
+describe("DatabaseService: onCreatePermitted runs only once every permission check has passed", () => {
+  const PERMITTED_REACHED: string = "onCreatePermitted was reached.";
+  const SANITIZE_REACHED: string = "The write was being prepared.";
+
+  // A label with every column a create must be given.
+  function completeLabel(): Label {
+    const label: Label = newLabel();
+    label.color = new Color("#4f46e5");
+    return label;
+  }
+
+  interface PermittedHarness {
+    harness: Harness;
+    permitted: jest.SpyInstance;
+  }
+
+  function harnessWithPassingBeforeHook(): PermittedHarness {
+    const harness: Harness = makeHarness();
+
+    harness.hooks.onBeforeCreate.mockImplementation(
+      async (createBy: unknown): Promise<unknown> => {
+        return { createBy, carryForward: null };
+      },
+    );
+
+    // The unique checks find no clash, without a database.
+    getJestSpyOn(harness.service, "countBy").mockResolvedValue(
+      new PositiveNumber(0),
+    );
+
+    const permitted: jest.SpyInstance = getJestSpyOn(
+      harness.service,
+      "onCreatePermitted",
+    ).mockRejectedValue(new Error(PERMITTED_REACHED));
+
+    return { harness, permitted };
+  }
+
+  test("a create the column check refuses never reaches it", async () => {
+    const { harness, permitted }: PermittedHarness =
+      harnessWithPassingBeforeHook();
+    getJestSpyOn(ModelPermission, "checkCreatePermissions").mockImplementation(
+      (): never => {
+        throw new NotAuthorizedException("Refused by the check.");
+      },
+    );
+
+    await expect(
+      harness.service.create({ data: completeLabel(), props: ownerProps() }),
+    ).rejects.toThrow("Refused by the check.");
+
+    expect(permitted).not.toHaveBeenCalled();
+  });
+
+  test("a create the caller may make reaches it with the record as it will be written, before anything is written", async () => {
+    const { harness, permitted }: PermittedHarness =
+      harnessWithPassingBeforeHook();
+
+    await expect(
+      harness.service.create({ data: completeLabel(), props: ownerProps() }),
+    ).rejects.toThrow(PERMITTED_REACHED);
+
+    expect(permitted).toHaveBeenCalledTimes(1);
+
+    const handed: OnCreate<BaseModel> = permitted.mock
+      .calls[0]![0] as OnCreate<BaseModel>;
+    const data: Record<string, unknown> = handed.createBy
+      .data as unknown as Record<string, unknown>;
+
+    expect(data["name"]).toBe("production");
+    expect(String(data["projectId"])).toBe(PROJECT_ID.toString());
+    expect(harness.repository.save).not.toHaveBeenCalled();
+  });
+
+  test("ignoreHooks skips it, as it skips every other hook", async () => {
+    const { harness, permitted }: PermittedHarness =
+      harnessWithPassingBeforeHook();
+    getJestSpyOn(
+      harness.service as unknown as {
+        sanitizeCreateOrUpdate: () => Promise<unknown>;
+      },
+      "sanitizeCreateOrUpdate",
+    ).mockRejectedValue(new Error(SANITIZE_REACHED));
+
+    await expect(
+      harness.service.create({
+        data: completeLabel(),
+        props: { ...ownerProps(), ignoreHooks: true },
       }),
     ).rejects.toThrow(SANITIZE_REACHED);
 
