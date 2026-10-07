@@ -128,7 +128,11 @@ describe("DatabaseService.hardDeleteBy under the record rule", () => {
 
   test("deletes the rows it found by id, with the query's own columns and no filter on a relation", async () => {
     const deleted: number = await service.hardDeleteBy({
-      query: { incidentId: INCIDENT_ID } as Query<IncidentInternalNote>,
+      query: {
+        incidentId: INCIDENT_ID,
+        // A filter through the relation, which a DELETE cannot join.
+        incident: { title: "Database down" },
+      } as unknown as Query<IncidentInternalNote>,
       limit: 10,
       skip: 0,
       props: member([
@@ -139,11 +143,14 @@ describe("DatabaseService.hardDeleteBy under the record rule", () => {
 
     expect(deleted).toBe(1);
 
-    // The lookup kept to the incidents the caller may read...
+    // The lookup kept to the incidents the caller may read, and to their filter...
     expect(lookups).toHaveLength(1);
     expect(
-      JSON.stringify((lookups[0] as Record<string, unknown>)["incident"]),
+      JSON.stringify((lookups[0] as Record<string, unknown>)["_id"]),
     ).toContain(LABEL_ID.toString());
+    expect((lookups[0] as Record<string, unknown>)["incident"]).toEqual({
+      title: "Database down",
+    });
 
     // ...and the DELETE names the note it found, in the caller's project.
     expect(deletes).toHaveLength(1);

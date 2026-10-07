@@ -17,6 +17,7 @@ import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/Da
 import PermissionScope from "../../../../../Types/Database/AccessControl/PermissionScope";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
+import Includes from "../../../../../Types/BaseDatabase/Includes";
 import ObjectID from "../../../../../Types/ObjectID";
 import Permission, {
   UserPermission,
@@ -407,23 +408,38 @@ describe("the record rule on every operation", () => {
         expect(sql).toContain(
           'OR "note"."incidentId" IN (SELECT "IncidentLabel"."incidentId" FROM "IncidentLabel"',
         );
-        expect(valuesOf(query._id).sort()).toEqual(
-          [productionLabelId.toString(), stagingLabelId.toString()].sort(),
-        );
         // The key itself is left as the caller named it: not at all.
         expect(query.incidentId).toBeUndefined();
 
-        // And the incident it is read through carries one of them.
-        expect(
-          (
-            (query as unknown as { incident: { labels: Array<ObjectID> } })
-              .incident.labels || []
-          )
-            .map(String)
-            .sort(),
-        ).toEqual(
-          [productionLabelId.toString(), stagingLabelId.toString()].sort(),
-        );
+        const labels: Array<string> = [
+          productionLabelId.toString(),
+          stagingLabelId.toString(),
+        ].sort();
+
+        if (operation === DatabaseRequestType.Read) {
+          expect(valuesOf(query._id).sort()).toEqual(labels);
+
+          // And the incident it is read through carries one of them.
+          expect(
+            (
+              (query as unknown as { incident: { labels: Array<ObjectID> } })
+                .incident.labels || []
+            )
+              .map(String)
+              .sort(),
+          ).toEqual(labels);
+        } else {
+          /*
+           * A write asks for the incident it is read through on the note's
+           * id as well, and leaves the relation as the caller sent it.
+           */
+          expect(valuesOf(query._id).sort()).toEqual(
+            [...labels, ...labels].sort(),
+          );
+          expect(
+            (query as unknown as { incident?: unknown }).incident,
+          ).toBeUndefined();
+        }
       },
     );
 
@@ -468,8 +484,10 @@ describe("the record rule on every operation", () => {
 
       expect((query._id as unknown as FindOperator<unknown>).type).toBe("and");
       expect(sqlOf(query._id, "note._id")).toContain(`note._id = '${noteId}'`);
+      // The note's own label rule, then the incident it is read through.
       expect(valuesOf(query._id)).toEqual([
         noteId,
+        productionLabelId.toString(),
         productionLabelId.toString(),
       ]);
     });
@@ -572,12 +590,14 @@ describe("the record rule on every operation", () => {
    * incidents the caller may read, on an update and a delete as on a read.
    * An update also keeps to the incidents the caller may edit, as it always
    * has; a delete weighs no delete grant on incidents - deleting a note is
-   * the note's own permission.
+   * the note's own permission. A write's conditions sit on the note's own
+   * id, beside whatever the caller filtered on.
    */
   describe("a record read through its parent, changed or deleted", () => {
     type Write = {
       noteQuery: (
         props: DatabaseCommonInteractionProps,
+        query?: Query<IncidentInternalNote>,
       ) => Promise<Query<IncidentInternalNote>>;
       notePermission: Permission;
     };
@@ -585,10 +605,11 @@ describe("the record rule on every operation", () => {
     const update: Write = {
       noteQuery: (
         props: DatabaseCommonInteractionProps,
+        query?: Query<IncidentInternalNote>,
       ): Promise<Query<IncidentInternalNote>> => {
         return UpdatePermission.getUpdatableQuery(
           IncidentInternalNote,
-          {},
+          query || {},
           props,
         );
       },
@@ -598,25 +619,26 @@ describe("the record rule on every operation", () => {
     const remove: Write = {
       noteQuery: (
         props: DatabaseCommonInteractionProps,
+        query?: Query<IncidentInternalNote>,
       ): Promise<Query<IncidentInternalNote>> => {
         return DeletePermission.checkDeletePermission(
           IncidentInternalNote,
-          {},
+          query || {},
           props,
         );
       },
       notePermission: Permission.DeleteIncidentInternalNote,
     };
 
-    // The condition on the note's incident, as the write sends it.
-    const incidentFilterOf: (
+    // The write's conditions on the note's id: the labels each binds.
+    const idConditionValuesOf: (
       query: Query<IncidentInternalNote>,
-    ) => { labels?: Array<ObjectID>; _id?: unknown } | undefined = (
+    ) => Array<string> = (
       query: Query<IncidentInternalNote>,
-    ): { labels?: Array<ObjectID>; _id?: unknown } | undefined => {
-      return (query as Record<string, unknown>)["incident"] as
-        | { labels?: Array<ObjectID>; _id?: unknown }
-        | undefined;
+    ): Array<string> => {
+      const idFilter: unknown = (query as Record<string, unknown>)["_id"];
+
+      return idFilter === undefined ? [] : valuesOf(idFilter);
     };
 
     test.each([
@@ -636,9 +658,16 @@ describe("the record rule on every operation", () => {
           ]),
         );
 
-        expect((incidentFilterOf(query)?.labels || []).map(String)).toEqual([
+        expect(idConditionValuesOf(query)).toEqual([
           productionLabelId.toString(),
         ]);
+        expect(
+          sqlOf((query as Record<string, unknown>)["_id"], "note._id"),
+        ).toContain(
+          '"note"."incidentId" IN (SELECT "IncidentLabel"."incidentId" FROM "IncidentLabel"',
+        );
+        // The relation itself is left as the caller sent it.
+        expect((query as Record<string, unknown>)["incident"]).toBeUndefined();
       },
     );
 
@@ -654,7 +683,7 @@ describe("the record rule on every operation", () => {
         ]),
       );
 
-      expect(incidentFilterOf(query)).toBeUndefined();
+      expect((query as Record<string, unknown>)["incident"]).toBeUndefined();
       expect((query as Record<string, unknown>)["_id"]).toBeUndefined();
       expect(String(query.projectId)).toBe(projectId.toString());
     });
@@ -672,13 +701,12 @@ describe("the record rule on every operation", () => {
         ]),
       );
 
-      expect((incidentFilterOf(query)?.labels || []).map(String)).toEqual([
+      expect(idConditionValuesOf(query)).toEqual([
         productionLabelId.toString(),
       ]);
-      expect(incidentFilterOf(query)?._id).toBeUndefined();
     });
 
-    test("an update of a note keeps to the incidents the caller may both read and edit", async () => {
+    test("an update of a note keeps to the incidents the caller may both read and edit, each on its own", async () => {
       const query: Query<IncidentInternalNote> = await update.noteQuery(
         member([
           row(Permission.ReadProjectIncident, {
@@ -694,46 +722,63 @@ describe("the record rule on every operation", () => {
         ]),
       );
 
-      // The incident carries a label the caller may edit...
-      expect((incidentFilterOf(query)?.labels || []).map(String)).toEqual([
+      // One condition for the labels the caller may edit, one for those they may read.
+      expect(idConditionValuesOf(query)).toEqual([
         stagingLabelId.toString(),
-      ]);
-      // ...and one the caller may read.
-      expect(valuesOf(incidentFilterOf(query)?._id)).toEqual([
         productionLabelId.toString(),
       ]);
-      expect(sqlOf(incidentFilterOf(query)?._id, "incident._id")).toContain(
-        'incident._id IN (SELECT "IncidentLabel"."incidentId" FROM "IncidentLabel"',
-      );
     });
 
-    test("an update of one note keeps the note's incident filter beside the rule", async () => {
-      const incidentId: ObjectID = ObjectID.generate();
+    test("an update limited to the same labels for reading and editing asks once", async () => {
+      const query: Query<IncidentInternalNote> = await update.noteQuery(
+        member([
+          row(Permission.IncidentMember, {
+            labelIds: [productionLabelId],
+            scope: PermissionScope.Labels,
+          }),
+        ]),
+      );
 
-      const query: Query<IncidentInternalNote> =
-        await UpdatePermission.getUpdatableQuery(
-          IncidentInternalNote,
-          { incident: incidentId } as Query<IncidentInternalNote>,
+      const values: Array<string> = idConditionValuesOf(query);
+
+      // The note grant's own label rule and the incident's: one each.
+      expect(
+        values.filter((value: string): boolean => {
+          return value === productionLabelId.toString();
+        }),
+      ).toHaveLength(2);
+    });
+
+    test.each([
+      ["an update", update],
+      ["a delete", remove],
+    ] as Array<[string, Write]>)(
+      "%s of the notes of one incident keeps the caller's own filter beside the rule",
+      async (_label: string, write: Write) => {
+        const incidentId: ObjectID = ObjectID.generate();
+
+        const query: Query<IncidentInternalNote> = await write.noteQuery(
           member([
             row(Permission.ReadProjectIncident, {
               labelIds: [productionLabelId],
               scope: PermissionScope.Labels,
             }),
-            row(Permission.EditProjectIncident, {
-              labelIds: [stagingLabelId],
-              scope: PermissionScope.Labels,
-            }),
             row(Permission.ReadIncidentInternalNote),
-            row(Permission.EditIncidentInternalNote),
+            row(write.notePermission),
           ]),
+          {
+            incident: new Includes([incidentId]),
+          } as unknown as Query<IncidentInternalNote>,
         );
 
-      // The incident asked for, and the one the caller may read, together.
-      expect(valuesOf(incidentFilterOf(query)?._id)).toEqual([
-        incidentId.toString(),
-        productionLabelId.toString(),
-      ]);
-    });
+        // The incident asked for, on the note's key...
+        expect(JSON.stringify(query)).toContain(incidentId.toString());
+        // ...and the incidents the caller may read, on the note's id.
+        expect(idConditionValuesOf(query)).toEqual([
+          productionLabelId.toString(),
+        ]);
+      },
+    );
   });
 
   describe("DeletePermission.checkDeletePermission, as root", () => {

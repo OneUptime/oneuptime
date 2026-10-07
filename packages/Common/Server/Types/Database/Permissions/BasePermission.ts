@@ -1,6 +1,5 @@
 import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import Query from "../Query";
-import QueryHelper from "../QueryHelper";
 import QueryUtil from "../QueryUtil";
 import Select from "../Select";
 import AccessControlPermission from "./AccessControlPermission";
@@ -19,10 +18,8 @@ import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/Datab
 import { JSONObject } from "../../../../Types/JSON";
 import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
-import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
-import { And, Equal, FindOperator } from "typeorm";
 
 export interface CheckPermissionBaseInterface<TBaseModel extends BaseModel> {
   query: Query<TBaseModel>;
@@ -222,8 +219,7 @@ export default class BasePermission {
    * through its incident) keeps to the records whose parent the caller may
    * read: when the caller's read grants on the parent's table are limited to
    * labels, only the records whose parent carries one of them - on a read,
-   * an update and a delete alike, so a note is never easier to change or
-   * delete than to read.
+   * an update and a delete alike.
    *
    * An update also keeps to the parents the caller may update, as it always
    * has: when their update grants on the parent's table are limited to
@@ -231,6 +227,12 @@ export default class BasePermission {
    * only on a status page or dashboard the caller may edit). A delete weighs
    * no delete grant of the parent: deleting a note is the note's own
    * permission.
+   *
+   * A read narrows the relation itself (`incident: { labels }`), as it
+   * always has. A write narrows by conditions on the record's own id
+   * (ReadPermission.addParentLabelsToQuery): the caller's own filters stay
+   * exactly as sent, and a record readable through one parent and editable
+   * through another (an announcement on two status pages) is reached.
    */
   private static addParentAccessToQuery<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
@@ -283,61 +285,50 @@ export default class BasePermission {
           )
         : [];
 
-    if (readLabelIds.length === 0 && updateLabelIds.length === 0) {
-      return query;
-    }
-
-    const parentAccessControlColumn: string =
-      new parentModelType().getAccessControlColumn() as string;
-
-    const accessControlQuery: JSONObject = {
-      [parentAccessControlColumn]:
-        updateLabelIds.length > 0 ? updateLabelIds : readLabelIds,
-    };
+    const parentAccessControlColumn: string | null =
+      new parentModelType().getAccessControlColumn();
 
     /*
-     * Both limited: the parent carries one of the update labels and one of
-     * the read labels - the read labels as a condition on the parent's id,
-     * unless every update label is a read label too (one role limited to
-     * the same labels for both), which says it already.
+     * A write, or a parent that carries no labels for the relation to name:
+     * conditions on the record's own id, one per list of labels. An update
+     * limited to labels that are all read labels as well needs no second
+     * condition.
      */
-    let parentIdCondition: FindOperator<unknown> | null = null;
+    if (type !== DatabaseRequestType.Read || !parentAccessControlColumn) {
+      const labelLists: Array<Array<ObjectID>> = [];
 
-    const readLabels: Set<string> = new Set<string>(
-      readLabelIds.map((labelId: ObjectID): string => {
-        return labelId.toString();
-      }),
-    );
+      if (updateLabelIds.length > 0) {
+        labelLists.push(updateLabelIds);
+      }
 
-    const updateLabelsAreReadLabels: boolean = updateLabelIds.every(
-      (labelId: ObjectID): boolean => {
-        return readLabels.has(labelId.toString());
-      },
-    );
+      if (
+        readLabelIds.length > 0 &&
+        !(
+          updateLabelIds.length > 0 &&
+          BasePermission.isWithin(updateLabelIds, readLabelIds)
+        )
+      ) {
+        labelLists.push(readLabelIds);
+      }
 
-    if (
-      updateLabelIds.length > 0 &&
-      readLabelIds.length > 0 &&
-      !updateLabelsAreReadLabels
-    ) {
-      const labelJoin: ReturnType<
-        typeof QueryUtil.getManyToManyRelationMetadata
-      > = QueryUtil.getManyToManyRelationMetadata(
-        parentModelType,
-        parentAccessControlColumn,
-      );
-
-      if (!labelJoin) {
-        throw new BadDataException(
-          "Cannot apply read label restrictions without access-control relation metadata.",
+      for (const labelIds of labelLists) {
+        query = ReadPermission.addParentLabelsToQuery(
+          modelType,
+          query,
+          labelIds,
         );
       }
 
-      parentIdCondition = QueryHelper.anyOfEntitiesInManyToMany({
-        values: readLabelIds,
-        ...labelJoin,
-      }) as FindOperator<unknown>;
+      return query;
     }
+
+    if (readLabelIds.length === 0) {
+      return query;
+    }
+
+    const accessControlQuery: JSONObject = {
+      [parentAccessControlColumn]: readLabelIds,
+    };
 
     /*
      * Preserve any caller-supplied filter on the relation key instead of
@@ -350,13 +341,11 @@ export default class BasePermission {
       model.canAccessIfCanReadOn as string
     ];
 
-    let relationFilter: JSONObject;
-
     if (
       typeof existingRelationFilter === "string" ||
       existingRelationFilter instanceof ObjectID
     ) {
-      relationFilter = {
+      (query as any)[model.canAccessIfCanReadOn as string] = {
         _id: existingRelationFilter.toString(),
         ...accessControlQuery,
       };
@@ -366,40 +355,30 @@ export default class BasePermission {
       !Array.isArray(existingRelationFilter) &&
       existingRelationFilter.constructor === Object
     ) {
-      relationFilter = {
+      (query as any)[model.canAccessIfCanReadOn as string] = {
         ...(existingRelationFilter as JSONObject),
         ...accessControlQuery,
       };
     } else {
-      relationFilter = accessControlQuery;
+      (query as any)[model.canAccessIfCanReadOn as string] = accessControlQuery;
     }
-
-    // The read labels on the parent's id, beside any id filter already there.
-    if (parentIdCondition) {
-      relationFilter["_id"] = BasePermission.withIdCondition(
-        relationFilter["_id"],
-        parentIdCondition,
-      ) as any;
-    }
-
-    (query as any)[model.canAccessIfCanReadOn as string] = relationFilter;
 
     return query;
   }
 
-  // An id filter, and `condition` on the same id, together.
-  private static withIdCondition(
-    existing: unknown,
-    condition: FindOperator<unknown>,
-  ): FindOperator<unknown> {
-    if (existing === undefined || existing === null) {
-      return condition;
-    }
+  // Whether every label of `labelIds` is one of `within`.
+  private static isWithin(
+    labelIds: Array<ObjectID>,
+    within: Array<ObjectID>,
+  ): boolean {
+    const withinIds: Set<string> = new Set<string>(
+      within.map((labelId: ObjectID): string => {
+        return labelId.toString();
+      }),
+    );
 
-    if (existing instanceof FindOperator) {
-      return And(existing as FindOperator<unknown>, condition);
-    }
-
-    return And(Equal(String(existing)) as FindOperator<unknown>, condition);
+    return labelIds.every((labelId: ObjectID): boolean => {
+      return withinIds.has(labelId.toString());
+    });
   }
 }

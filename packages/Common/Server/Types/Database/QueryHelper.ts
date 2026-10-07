@@ -16,6 +16,34 @@ import buildJSONColumnQuery, {
 
 export type { FindOperator };
 
+/*
+ * What the grant conditions on a record's id read: the related entity ids,
+ * the record's keys naming other records (each with the join tables that
+ * link those records to the ids), and the parents it belongs to through a
+ * join table.
+ */
+export interface LinkedToAnyData {
+  values: Array<string | ObjectID>;
+  keys: Array<{
+    columnName: string;
+    joinTables: Array<{
+      joinTableName: string;
+      ownerColumnName: string;
+      relationColumnName: string;
+    }>;
+  }>;
+  parents: Array<{
+    // The record -> parent join table.
+    parentJoinTableName: string;
+    parentOwnerColumnName: string;
+    parentRelationColumnName: string;
+    // The parent -> related entity join table.
+    joinTableName: string;
+    ownerColumnName: string;
+    relationColumnName: string;
+  }>;
+}
+
 export default class QueryHelper {
   /** Read a boolean whose criteria-backed `true` state is encoded as null. */
   @CaptureSpan()
@@ -561,27 +589,31 @@ export default class QueryHelper {
    * array matches only the records that name nothing (fail closed).
    */
   @CaptureSpan()
-  public static namesNothingOrOneLinkedToAny(data: {
-    values: Array<string | ObjectID>;
-    keys: Array<{
-      columnName: string;
-      joinTables: Array<{
-        joinTableName: string;
-        ownerColumnName: string;
-        relationColumnName: string;
-      }>;
-    }>;
-    parents: Array<{
-      // The record -> parent join table.
-      parentJoinTableName: string;
-      parentOwnerColumnName: string;
-      parentRelationColumnName: string;
-      // The parent -> related entity join table.
-      joinTableName: string;
-      ownerColumnName: string;
-      relationColumnName: string;
-    }>;
-  }): FindWhereProperty<any> {
+  public static namesNothingOrOneLinkedToAny(
+    data: LinkedToAnyData,
+  ): FindWhereProperty<any> {
+    return QueryHelper.linkedToAny(data, true);
+  }
+
+  /**
+   * namesNothingOrOneLinkedToAny without the records that name nothing:
+   * applied to a record's primary id, matches only the records of which one
+   * key names, or one parent is, a record linked to one of the provided
+   * related entity ids (a note whose incident carries one of the labels).
+   * A record with every key empty and no parent, a key or parent whose
+   * model has no join table, and an empty values array match nothing (fail
+   * closed).
+   */
+  @CaptureSpan()
+  public static oneLinkedToAny(data: LinkedToAnyData): FindWhereProperty<any> {
+    return QueryHelper.linkedToAny(data, false);
+  }
+
+  // The two operators above; `keepNamingNothing` adds the records that name nothing.
+  private static linkedToAny(
+    data: LinkedToAnyData,
+    keepNamingNothing: boolean,
+  ): FindWhereProperty<any> {
     const values: Array<string> = data.values.map(
       (value: string | ObjectID) => {
         return value.toString();
@@ -636,11 +668,19 @@ export default class QueryHelper {
         }
 
         const conditions: Array<string> = [
-          namesNothing.length > 0 ? `(${namesNothing.join(" AND ")})` : "TRUE",
+          ...(keepNamingNothing
+            ? [
+                namesNothing.length > 0
+                  ? `(${namesNothing.join(" AND ")})`
+                  : "TRUE",
+              ]
+            : []),
           ...linkedToValue,
         ];
 
-        return `(${conditions.join(" OR ")})`;
+        return conditions.length > 0
+          ? `(${conditions.join(" OR ")})`
+          : "(FALSE)";
       },
       values.length > 0 ? { [valuesRid]: values } : {},
     );

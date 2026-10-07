@@ -1949,6 +1949,62 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
    * note's own permission, whatever the caller may delete of alerts.
    */
   describe("a record read through its parent, changed or deleted", () => {
+    test("an announcement is changed when the caller may read one of its status pages and edit one", async () => {
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        {
+          permission: Permission.ReadProjectStatusPage,
+          labelIds: [productionLabelId],
+        },
+        {
+          permission: Permission.EditProjectStatusPage,
+          labelIds: [stagingLabelId],
+        },
+        { permission: Permission.ReadStatusPageAnnouncement },
+        { permission: Permission.EditStatusPageAnnouncement },
+      ]);
+
+      for (const [label, statusPageIds, isChangeable] of [
+        ["both pages", [productionStatusPageId, stagingStatusPageId], true],
+        ["the page it may read", [productionStatusPageId], false],
+        ["the page it may edit", [stagingStatusPageId], false],
+        ["no page", [], false],
+      ] as Array<[string, Array<ObjectID>, boolean]>) {
+        const announcementId: ObjectID = ObjectID.generate();
+
+        await insert("StatusPageAnnouncement", {
+          _id: announcementId,
+          projectId: homeProjectId,
+          title: "Disposable announcement",
+          description: "Disposable announcement",
+          showAnnouncementAt: new Date(),
+          version: 1,
+        });
+
+        for (const statusPageId of statusPageIds) {
+          await insert("AnnouncementStatusPage", {
+            announcementId: announcementId,
+            statusPageId: statusPageId,
+          });
+        }
+
+        const value: string = `Changed ${ObjectID.generate().toString()}`;
+
+        await update("/status-page-announcement", homeUser, announcementId, {
+          title: value,
+        });
+
+        expect([
+          label,
+          await readColumn("StatusPageAnnouncement", announcementId, "title"),
+        ]).toEqual([label, isChangeable ? value : "Disposable announcement"]);
+
+        await removeRows([
+          ["AnnouncementStatusPage", "announcementId", announcementId],
+          ["StatusPageAnnouncement", "_id", announcementId],
+        ]);
+      }
+    });
+
     test.each([
       [
         "the alert's edit grants limited to a label",

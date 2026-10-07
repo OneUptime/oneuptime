@@ -417,6 +417,69 @@ export default class ReadPermission {
   }
 
   /*
+   * Keeps the records of a model read through another record
+   * (canAccessIfCanReadOn) whose parent carries one of `labelIds`: one
+   * condition on the record's id, through the parent's key (an incident
+   * note's incident) or its join table (an announcement's status pages, any
+   * one of them). A record with no parent, or whose parent's model carries
+   * no labels, is not kept. Each call adds a condition of its own, so two
+   * lists keep the records whose parents carry one label of each - through
+   * the same parent or not. The caller's own filters stay as they are.
+   */
+  public static addParentLabelsToQuery<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    labelIds: Array<ObjectID>,
+  ): Query<TBaseModel> {
+    const parent: { relation: string; column: TableColumnMetadata } | null =
+      this.getDeclaredParent(modelType);
+
+    if (!parent) {
+      return query;
+    }
+
+    const keys: Array<{
+      columnName: string;
+      joinTables: Array<ManyToManyMetadata>;
+    }> = [];
+    const parents: Array<ParentLabelLinks> = [];
+
+    if (parent.column.type === TableColumnType.EntityArray) {
+      const links: ParentLabelLinks | null = this.getParentLabelLinks(
+        modelType,
+        parent.relation,
+        parent.column,
+      );
+
+      if (links) {
+        parents.push(links);
+      }
+    } else {
+      keys.push({
+        columnName: parent.column.manyToOneRelationColumn as string,
+        joinTables: this.getLabelsJoinTables([
+          parent.column.modelType as unknown as { new (): BaseModel },
+        ]),
+      });
+    }
+
+    const idQuery: Query<TBaseModel> = QueryUtil.serializeQuery(modelType, {
+      _id: query._id,
+    } as Query<TBaseModel>);
+
+    (query as any)._id = combineWithPrivacyClause(
+      this.getSupportedFilter(idQuery._id),
+      QueryHelper.oneLinkedToAny({
+        values: labelIds,
+        keys: keys,
+        parents: parents,
+      }),
+    );
+
+    return query;
+  }
+
+  /*
    * The parent a label-less model's rows belong to (canAccessIfCanReadOn):
    * one record named by a key column (an incident note's incident), or
    * several through a join table (an announcement's status pages). Null for
