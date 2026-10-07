@@ -52,6 +52,11 @@ export enum AutoRemediationDecisionReason {
    * Enable AI (Project Settings > AI > AI Features) is off: nothing ran.
    */
   EnableAiOff = "EnableAiOff",
+  /*
+   * "Fix new incidents automatically" (or alerts) is off - the default -
+   * so nothing ran.
+   */
+  RemediationOff = "RemediationOff",
   // The signal already holds the most suggestions one signal may get.
   SuggestionLimitReached = "SuggestionLimitReached",
   // The evaluation stopped on an error; the entries before it still hold.
@@ -137,6 +142,21 @@ export enum AutoRemediationDecisionReason {
   RuleHasNoRunbooks = "RuleHasNoRunbooks",
   // The rule matched after the signal ran out of suggestions.
   RuleSkippedLimit = "RuleSkippedLimit",
+  /*
+   * Auto Remediation Rules are set up, and none matched: with rules, only
+   * the signals that match one are fixed (rulesChecked says how many).
+   */
+  NotMatchedByAnyRule = "NotMatchedByAnyRule",
+  /*
+   * Rules matched, and none of them fixes with OneUptime AI (each runs its
+   * runbooks, or does what a rule saved before rules were simplified did):
+   * no cluster or resource round was tried.
+   */
+  NoAiFixRuleMatched = "NoAiFixRuleMatched",
+  // The rule matched: OneUptime AI fixes the signal on what it is linked to.
+  RuleMatchedAiFix = "RuleMatchedAiFix",
+  // The same, and the rule asks before fixing: every fix waits for approval.
+  RuleMatchedAiFixAsks = "RuleMatchedAiFixAsks",
 }
 
 /*

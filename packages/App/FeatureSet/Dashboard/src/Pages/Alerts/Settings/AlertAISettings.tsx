@@ -5,6 +5,8 @@ import {
   getProjectColumnsEditGate,
 } from "../../Settings/ProjectColumnEditGate";
 import ProjectAiNotice from "../../../Components/AISettings/ProjectAiNotice";
+import AIInvestigationRulesTable from "../../../Components/AISettings/AIInvestigationRulesTable";
+import AutoRemediationRulesTable from "../../../Components/AutoRemediation/AutoRemediationRulesTable";
 import ProjectAiSwitchesCard from "../../../Components/AISettings/ProjectAiSwitchesCard";
 import {
   AI_LANE_ADVANCED_SECTION_TEST_ID,
@@ -33,8 +35,9 @@ export type ComponentProps = PageComponentProps;
 /*
  * Alerts → AI → Settings: what OneUptime AI does on its own as alerts
  * happen, as switches that save the moment they are flipped, then - folded
- * under Advanced - which alerts it investigates and the limits on its work,
- * each card one question with its own Edit.
+ * under Advanced - which alerts it investigates or fixes and the limits on
+ * its work, each card one question with its own Edit, and the rules that
+ * narrow which alerts are investigated and which are fixed (and how).
  *
  * It used to be one card of nine read-only rows whose Update opened a
  * three-step wizard. See ProjectAiSettingsCopy for the words, and
@@ -93,6 +96,13 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
         summary={advanced.summary}
         dataTestId={AI_LANE_ADVANCED_SECTION_TEST_ID[AiLane.Alert]}
       >
+        <AIInvestigationRulesTable
+          lane={AiLane.Alert}
+          onRulesLoaded={advanced.onRulesLoaded(
+            AiLaneAdvancedCard.InvestigationRules,
+          )}
+        />
+
         <CardModelDetail<Project>
           name="Which alerts are investigated"
           cardProps={{
@@ -228,6 +238,13 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
             ],
             modelId: ProjectUtil.getCurrentProjectId()!,
           }}
+        />
+
+        <AutoRemediationRulesTable
+          lane={AiLane.Alert}
+          onRulesLoaded={advanced.onRulesLoaded(
+            AiLaneAdvancedCard.RemediationRules,
+          )}
         />
 
         <CardModelDetail<Project>

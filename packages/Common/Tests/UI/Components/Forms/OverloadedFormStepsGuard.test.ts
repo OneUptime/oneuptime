@@ -408,16 +408,14 @@ describe("the project's stepped forms", () => {
       "ModelTable: Security Events > Threat Intel Feeds",
       ["basic-info", "taxii-server", "authentication", "matching"],
     ],
+    /*
+     * Five steps of fourteen fields once; three questions now - which
+     * incidents, who fixes them, ask first or not.
+     */
     [
       `${DASHBOARD}/Components/AutoRemediation/AutoRemediationRulesTable.tsx`,
-      "ModelTable: Auto Remediation Rules",
-      [
-        "basic-info",
-        "match-criteria",
-        "remediation",
-        "ai-commands",
-        "verification",
-      ],
+      "ModelTable: Settings > AI > Auto Remediation Rules",
+      ["basic-info", "match-criteria", "remediation"],
     ],
     [
       `${DASHBOARD}/Pages/Rum/View/SessionReplaySettings.tsx`,

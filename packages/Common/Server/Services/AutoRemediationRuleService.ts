@@ -10,6 +10,9 @@ import ObjectID from "../../Types/ObjectID";
 import { JSONObject } from "../../Types/JSON";
 import Model from "../../Models/DatabaseModels/AutoRemediationRule";
 import Runner from "../../Models/DatabaseModels/Runner";
+import AutoRemediationAction, {
+  isAutoRemediationAction,
+} from "../../Types/AutoRemediation/AutoRemediationAction";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -32,6 +35,10 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnCreate<Model>> {
     // The project's own records only, before anything here reads one.
     await super.onBeforeCreate(createBy);
+
+    createBy.data.remediationAction = Service.getRemediationActionOnCreate(
+      createBy.data,
+    );
 
     const agentRunners: Array<Runner> =
       await RunnerService.findKubernetesAgentRunners(
@@ -67,6 +74,17 @@ export class Service extends ProjectReferencesService<Model> {
     await super.onBeforeUpdate(updateBy);
 
     const data: JSONObject = (updateBy.data || {}) as unknown as JSONObject;
+
+    if (
+      data["remediationAction"] === null ||
+      data["remediationAction"] === ""
+    ) {
+      throw new BadDataException(
+        `Fix With must be one of: ${Object.values(AutoRemediationAction).join(", ")}.`,
+      );
+    }
+
+    Service.assertRemediationAction(data["remediationAction"]);
 
     const agentRunners: Array<Runner> =
       await RunnerService.findKubernetesAgentRunners(data["commandRunners"]);
@@ -109,6 +127,49 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * What a new rule fixes with. The dashboard always says; an API or
+   * Terraform client written before rules had a Fix With does not, and a
+   * rule it creates with runbooks and no AI flag meant "run these
+   * runbooks" - as it did before - not the column's default, OneUptime AI.
+   * Anything else that names no Fix With is OneUptime AI.
+   */
+  public static getRemediationActionOnCreate(
+    data: Pick<
+      Model,
+      | "remediationAction"
+      | "runbooks"
+      | "aiComposesCommands"
+      | "aiSelectsRunbook"
+    >,
+  ): AutoRemediationAction {
+    if (isAutoRemediationAction(data.remediationAction)) {
+      return data.remediationAction;
+    }
+
+    Service.assertRemediationAction(data.remediationAction);
+
+    const hasRunbooks: boolean =
+      Array.isArray(data.runbooks) && data.runbooks.length > 0;
+
+    return hasRunbooks && !data.aiComposesCommands && !data.aiSelectsRunbook
+      ? AutoRemediationAction.Runbooks
+      : AutoRemediationAction.OneUptimeAI;
+  }
+
+  // A Fix With that is given must be one this build knows.
+  public static assertRemediationAction(value: unknown): void {
+    if (value === undefined || value === null || value === "") {
+      return;
+    }
+
+    if (!isAutoRemediationAction(value)) {
+      throw new BadDataException(
+        `Fix With must be one of: ${Object.values(AutoRemediationAction).join(", ")}.`,
+      );
+    }
   }
 
   private static holdsRunner(rule: Model, runner: Runner): boolean {

@@ -55,14 +55,16 @@ beforeEach(() => {
  *   rules (Suggest and Full Auto) stop along with the AI ones. No provider
  *   lookup, no AI run, no runbook, no suggestion, no feed entry. A project
  *   that cannot be read counts as off.
- * - On, or not selected (undefined: the column is NOT NULL DEFAULT true):
- *   every lane runs with no other project switch — the cluster lane, the
- *   resource lane, deterministic Suggest and Full Auto rules, rules where AI
- *   picks the runbook, and rules where AI composes commands (which used to
- *   need the separate command-execution opt-in).
- * - The project read selects exactly { enableAi: true }: the retired
- *   enableAutoRemediation / enableAiCommandExecution columns are never
- *   asked for (they no longer exist).
+ * - On, or not selected (undefined: the column is NOT NULL DEFAULT true),
+ *   with the signal kind's "Fix new incidents automatically" (or alerts) on
+ *   - the one other switch, which starts off and is the project's choice to
+ *   fix things at all: every lane runs - the cluster lane, the resource
+ *   lane, deterministic Suggest and Full Auto rules, rules where AI picks
+ *   the runbook, and rules where AI composes commands (which used to need
+ *   the separate command-execution opt-in).
+ * - The project read selects exactly Enable AI and the two fixing
+ *   switches: the retired enableAutoRemediation / enableAiCommandExecution
+ *   columns are never asked for (they no longer exist).
  * - With no LLM provider the AI rules skip quietly, and deterministic rules
  *   still run.
  * - The verifier's follow-up rounds, on a cluster and on a resource, obey
@@ -152,6 +154,11 @@ function fakeRule(kind: RuleKind): AutoRemediationRule {
     _id: (fields["id"] as ObjectID).toString(),
     aiSelectsRunbook: false,
     aiComposesCommands: false,
+    // A rule with no AI flag runs its runbooks, as it did before Fix With.
+    remediationAction:
+      fields["aiSelectsRunbook"] || fields["aiComposesCommands"]
+        ? "OneUptimeAI"
+        : "Runbooks",
     runbooks: [{ id: RUNBOOK_ID, name: "Restart pods" }],
     ...fields,
   } as unknown as AutoRemediationRule;
@@ -236,12 +243,26 @@ function fakeAlert(): Alert {
   } as unknown as Alert;
 }
 
-// The project row the engine reads, as findOneById would return it.
+/*
+ * The project row the engine reads, as findOneById would return it.
+ * Fixing new incidents and alerts is on: only Enable AI varies here.
+ */
 function projectRow(enableAi: boolean | undefined): Project {
+  const fixing: Record<string, boolean> = {
+    enableAutomaticIncidentRemediation: true,
+    enableAutomaticAlertRemediation: true,
+  };
+
   return (enableAi === undefined
-    ? { _id: PROJECT_ID.toString() }
-    : { enableAi }) as unknown as Project;
+    ? { _id: PROJECT_ID.toString(), ...fixing }
+    : { enableAi, ...fixing }) as unknown as Project;
 }
+
+const PROJECT_SWITCHES_READ: Record<string, boolean> = {
+  enableAi: true,
+  enableAutomaticIncidentRemediation: true,
+  enableAutomaticAlertRemediation: true,
+};
 
 interface EngineSpies {
   findProject: jest.SpyInstance;
@@ -407,7 +428,7 @@ describe("Enable AI is the auto-remediation engine's kill switch", () => {
         expect(spies.createSuggestion).not.toHaveBeenCalled();
       });
 
-      it("reads the project once, as root, selecting Enable AI and nothing else", async () => {
+      it("reads the project once, as root, selecting Enable AI and the two fixing switches", async () => {
         const spies: EngineSpies = mockEngine({ project: projectRow(false) });
 
         await raise(signal);
@@ -415,7 +436,7 @@ describe("Enable AI is the auto-remediation engine's kill switch", () => {
         expect(spies.findProject).toHaveBeenCalledTimes(1);
         expect(spies.findProject.mock.calls[0]![0]).toEqual({
           id: PROJECT_ID,
-          select: { enableAi: true },
+          select: PROJECT_SWITCHES_READ,
           props: { isRoot: true },
         });
       });
@@ -455,13 +476,32 @@ describe("Enable AI is the auto-remediation engine's kill switch", () => {
 
     await raise("incident");
 
-    expect(spies.clusterStatuses).toHaveBeenCalledTimes(1);
     expect(spies.findRules).toHaveBeenCalledTimes(1);
+    expect(spies.createSuggestion).toHaveBeenCalled();
+    /*
+     * None of these rules has OneUptime AI fix the signal on its clusters
+     * (they run runbooks, or do what a rule saved before Fix With did), so
+     * with rules set up the clusters are left alone.
+     */
+    expect(spies.clusterStatuses).not.toHaveBeenCalled();
+  });
+
+  it("negative control: with no rule set up, the clusters are fixed too", async () => {
+    const spies: EngineSpies = mockEngine({
+      project: projectRow(true),
+      clusters: [readyCluster()],
+      resources: [readyResource()],
+      rules: [],
+    });
+
+    await raise("incident");
+
+    expect(spies.clusterStatuses).toHaveBeenCalledTimes(1);
     expect(spies.createSuggestion).toHaveBeenCalled();
   });
 });
 
-describe("Enable AI on: every lane runs with no other project switch", () => {
+describe("Enable AI on, with fixing on: every lane runs", () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -605,7 +645,7 @@ describe("Enable AI on: every lane runs with no other project switch", () => {
     });
   });
 
-  it("still reads nothing from the project but Enable AI when every lane runs", async () => {
+  it("still reads nothing from the project but Enable AI and the two fixing switches when every lane runs", async () => {
     const spies: EngineSpies = mockEngine({
       project: projectRow(true),
       clusters: [readyCluster()],
@@ -620,7 +660,11 @@ describe("Enable AI on: every lane runs with no other project switch", () => {
         select: Record<string, unknown>;
       }
     ).select;
-    expect(Object.keys(select)).toEqual(["enableAi"]);
+    expect(Object.keys(select)).toEqual([
+      "enableAi",
+      "enableAutomaticIncidentRemediation",
+      "enableAutomaticAlertRemediation",
+    ]);
     expect(select).not.toHaveProperty("enableAutoRemediation");
     expect(select).not.toHaveProperty("enableAiCommandExecution");
   });

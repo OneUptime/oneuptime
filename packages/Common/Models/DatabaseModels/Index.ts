@@ -350,6 +350,7 @@ import RunbookRule from "./RunbookRule";
 import AutoRemediationRule from "./AutoRemediationRule";
 import AutoRemediationSuggestion from "./AutoRemediationSuggestion";
 import AutoRemediationDecision from "./AutoRemediationDecision";
+import AIInvestigationRule from "./AIInvestigationRule";
 
 import UserTotpAuth from "./UserTotpAuth";
 import UserTwoFactorBackupCode from "./UserTwoFactorBackupCode";
@@ -745,6 +746,7 @@ const AllModelTypes: Array<{
   AutoRemediationRule,
   AutoRemediationSuggestion,
   AutoRemediationDecision,
+  AIInvestigationRule,
   Runner,
   RunnerJob,
   RunnerOwnerTeam,

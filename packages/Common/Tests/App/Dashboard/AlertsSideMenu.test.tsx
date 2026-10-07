@@ -200,7 +200,12 @@ describe("Alerts side menu", () => {
   });
 
   describe("the AI section", () => {
-    test("holds what AI learned, what it did, its settings and the auto-remediation rules", async () => {
+    /*
+     * The auto-remediation rules had an entry of their own here; they are
+     * under the Settings page's More settings now, with the investigation
+     * rules, so the section is the three pages.
+     */
+    test("holds what AI learned, what it did and its settings", async () => {
       await renderAlertsMenu();
 
       expect(linksIn("AI")).toEqual([
@@ -216,10 +221,6 @@ describe("Alerts side menu", () => {
           title: "Settings",
           href: routeFor(PageMap.ALERTS_SETTINGS_AI),
         },
-        {
-          title: "Auto Remediation Rules",
-          href: routeFor(PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES),
-        },
       ]);
     });
 
@@ -234,8 +235,10 @@ describe("Alerts side menu", () => {
         `/dashboard/${PROJECT_ID}/alerts/ai/insights`,
         `/dashboard/${PROJECT_ID}/alerts/ai/logs`,
         `/dashboard/${PROJECT_ID}/alerts/ai/settings`,
-        `/dashboard/${PROJECT_ID}/alerts/ai/auto-remediation-rules`,
       ]);
+      expect(hrefsInMenu()).not.toContain(
+        `/dashboard/${PROJECT_ID}/alerts/ai/auto-remediation-rules`,
+      );
       expect(hrefsInMenu()).not.toContain(
         `/dashboard/${PROJECT_ID}/alerts/settings/ai`,
       );
@@ -248,7 +251,6 @@ describe("Alerts side menu", () => {
       PageMap.ALERTS_AI_INSIGHTS,
       PageMap.ALERTS_AI_LOGS,
       PageMap.ALERTS_SETTINGS_AI,
-      PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES,
     ])("%s is listed once, and only under AI", async (pageMapKey: string) => {
       await renderAlertsMenu();
 
@@ -291,9 +293,6 @@ describe("Alerts side menu", () => {
       const hrefs: Array<string> = hrefsInMenu();
 
       expect(hrefs).not.toContain(routeFor(PageMap.INCIDENTS_SETTINGS_AI));
-      expect(hrefs).not.toContain(
-        routeFor(PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES),
-      );
     });
 
     test("every entry carries an icon", async () => {
@@ -319,10 +318,6 @@ describe("Alerts side menu", () => {
       ["Insights", PageMap.ALERTS_AI_INSIGHTS],
       ["Logs", PageMap.ALERTS_AI_LOGS],
       ["Settings", PageMap.ALERTS_SETTINGS_AI],
-      [
-        "Auto Remediation Rules",
-        PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES,
-      ],
     ])(
       "opens itself on its %s page, marks it, and leaves Rules and Settings folded",
       async (title: string, pageMapKey: string) => {
@@ -420,7 +415,7 @@ describe("Alerts side menu", () => {
       expect(isExpanded("AI")).toBe(false);
     });
 
-    // They are AI's rules, so they moved to the AI section with its settings.
+    // They are AI's rules: they are under its settings page's More settings.
     test("no longer holds the auto-remediation rules", async () => {
       await renderAlertsMenu();
 
@@ -508,9 +503,6 @@ describe("Alerts side menu", () => {
       );
 
       expect(settingsHrefs).not.toContain(routeFor(PageMap.ALERTS_SETTINGS_AI));
-      expect(settingsHrefs).not.toContain(
-        routeFor(PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES),
-      );
       expect(
         linksIn("Settings").map((link: MenuLink): string => {
           return link.title;
@@ -544,7 +536,7 @@ describe("Alerts side menu", () => {
       PageMap.ALERTS_SETTINGS_ON_CALL_RULES,
       PageMap.ALERTS_SETTINGS_OWNER_RULES,
       PageMap.ALERTS_SETTINGS_RUNBOOK_RULES,
-      PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES,
+      // The auto-remediation rules are on the AI settings page now.
       PageMap.ALERTS_SETTINGS_PRIVACY_RULES,
       PageMap.ALERTS_SETTINGS_LABEL_RULES,
       PageMap.ALERTS_SETTINGS_REMINDER_RULES,
@@ -620,13 +612,6 @@ describe("Alerts side menu", () => {
       await renderAlertsMenu();
 
       expect(mobileSummaryText()).toContain("AI / Settings");
-    });
-
-    test("names the AI section on the auto-remediation rules page", async () => {
-      goTo(`/dashboard/${PROJECT_ID}/alerts/ai/auto-remediation-rules`);
-      await renderAlertsMenu();
-
-      expect(mobileSummaryText()).toContain("AI / Auto Remediation Rules");
     });
 
     test("names the Rules section on a rule page", async () => {

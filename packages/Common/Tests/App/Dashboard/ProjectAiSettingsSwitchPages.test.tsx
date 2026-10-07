@@ -111,6 +111,9 @@ let providersAnswer: JSONObject | Error = {};
 // A project read fails with this, when set.
 let projectReadError: Error | null = null;
 
+// How many enabled rules each rules table counts, by model name.
+let ruleCounts: Record<string, number> = {};
+
 let updateByIdSpy: ReturnType<typeof jest.spyOn>;
 let createOrUpdateSpy: ReturnType<typeof jest.spyOn>;
 let providersSpy: ReturnType<typeof jest.spyOn>;
@@ -139,10 +142,13 @@ function projectWith(values: Record<string, unknown>): Record<string, unknown> {
     _id: PROJECT_ID,
     enableAi: true,
     enableAutomaticIncidentInvestigation: true,
+    // Fixing starts off, even for a new project.
+    enableAutomaticIncidentRemediation: false,
     enableAutomaticPostmortemDraft: true,
     enableAutomaticIncidentCodeFixes: true,
     enableIncidentInstrumentationFixTasks: true,
     enableAutomaticAlertInvestigation: true,
+    enableAutomaticAlertRemediation: false,
     enableAutomaticAlertCodeFixes: true,
     enableAlertInstrumentationFixTasks: true,
     enableAiInsights: true,
@@ -208,10 +214,14 @@ beforeEach(() => {
     .mockImplementation(async (): Promise<ListResult<Project>> => {
       return { data: [], count: 0, skip: 0, limit: 10 };
     });
+  ruleCounts = {};
   jest
     .spyOn(ModelAPI, "count")
-    .mockImplementation(async (): Promise<number> => {
-      return 0;
+    .mockImplementation(async (data: unknown): Promise<number> => {
+      const modelName: string =
+        (data as { modelType?: { name?: string } }).modelType?.name || "";
+
+      return ruleCounts[modelName] || 0;
     });
   updateByIdSpy = jest
     .spyOn(ModelAPI, "updateById")
@@ -401,6 +411,7 @@ describe("Incidents → AI → Settings", () => {
     ).toEqual(titlesOf(AI_LANE_SWITCHES[AiLane.Incident]));
     expect(titlesOf(AI_LANE_SWITCHES[AiLane.Incident])).toEqual([
       "Investigate new incidents",
+      "Fix new incidents automatically",
       "Draft a postmortem when an incident resolves",
       "Open a fix pull request when an investigation finds a code change",
       "Open a pull request that adds missing telemetry",
@@ -409,7 +420,7 @@ describe("Incidents → AI → Settings", () => {
       switches.map((control: HTMLElement): string | null => {
         return control.getAttribute("aria-checked");
       }),
-    ).toEqual(["true", "false", "true", "false"]);
+    ).toEqual(["true", "false", "false", "true", "false"]);
 
     expect(
       screen.getByText(AI_LANE_PAGE_COPY[AiLane.Incident].switchesCardTitle),
@@ -509,12 +520,77 @@ describe("Incidents → AI → Settings", () => {
         expect(
           within(section).getByTestId("collapsible-section-summary"),
         ).toHaveTextContent(
-          "Every incident is investigated, whatever its severity, and nothing limits how much OneUptime AI does.",
+          "Every incident is investigated, whatever its severity, and every one is fixed while fixing is on. Nothing limits how much OneUptime AI does.",
         );
       },
       { timeout: WAIT_TIMEOUT },
     );
     expect(setChips(advancedHeader())).toEqual([]);
+  });
+
+  test("flipping Fix new incidents automatically saves that column alone", async () => {
+    openIncidentPage();
+
+    const fix: HTMLElement = await findSwitch(
+      getProjectAiSwitchTestId("enableAutomaticIncidentRemediation"),
+    );
+
+    expect(fix).toHaveAttribute("aria-checked", "false");
+
+    await press(fix);
+
+    expect(updates()).toEqual([{ enableAutomaticIncidentRemediation: true }]);
+  });
+
+  test.each([
+    ["AIInvestigationRule", "Investigation rules"],
+    ["AutoRemediationRule", "Auto remediation rules"],
+  ])(
+    "with an enabled %s, folded More settings shows its table as a chip with how many",
+    async (modelName: string, title: string) => {
+      ruleCounts = { [modelName]: 2 };
+
+      openIncidentPage();
+
+      await waitFor(
+        () => {
+          expect(setChips(advancedHeader())).toHaveLength(1);
+        },
+        { timeout: WAIT_TIMEOUT },
+      );
+      expect(setChips(advancedHeader())[0]).toContain(title);
+      expect(setChips(advancedHeader())[0]).toContain("2");
+      expect(advancedHeader()).not.toHaveTextContent(
+        "Nothing limits how much OneUptime AI does",
+      );
+    },
+  );
+
+  test("the rules are folded under More settings, and the page names nothing about them above it", async () => {
+    openIncidentPage();
+
+    const section: HTMLElement = screen.getByTestId(
+      AI_LANE_ADVANCED_SECTION_TEST_ID[AiLane.Incident],
+    );
+
+    expect(
+      (
+        await within(section).findAllByText(
+          "Investigation rules",
+          {},
+          { timeout: WAIT_TIMEOUT },
+        )
+      ).length,
+    ).toBeGreaterThan(0);
+    expect(
+      within(section).getAllByText("Auto remediation rules").length,
+    ).toBeGreaterThan(0);
+    // Only the switches are above the fold.
+    expect(
+      within(
+        screen.getByTestId(AI_LANE_SWITCHES_TEST_ID[AiLane.Incident]),
+      ).queryByText(/rules/i),
+    ).toBeNull();
   });
 
   test.each([
@@ -545,10 +621,12 @@ describe("Incidents → AI → Settings", () => {
         },
         { timeout: WAIT_TIMEOUT },
       );
-      // Its three cards, by name: one of them a chip.
+      // Its cards and rules tables, by name: one of them a chip.
       expect(listedNames(advancedHeader())).toEqual([
+        "Investigation rules",
         "Which incidents are investigated",
         "Investigation limits",
+        "Auto remediation rules",
         "Daily limits",
       ]);
       expect(setChips(advancedHeader())).toHaveLength(1);
@@ -827,6 +905,7 @@ describe("Alerts → AI → Settings", () => {
       }),
     ).toEqual([
       "Investigate new alerts",
+      "Fix new alerts automatically",
       "Open a fix pull request when an investigation finds a code change",
       "Open a pull request that adds missing telemetry",
     ]);
@@ -834,7 +913,7 @@ describe("Alerts → AI → Settings", () => {
       switches.map((control: HTMLElement): string | null => {
         return control.getAttribute("aria-checked");
       }),
-    ).toEqual(["true", "false", "true"]);
+    ).toEqual(["true", "false", "false", "true"]);
     expect(document.body).not.toHaveTextContent(/postmortem/i);
   });
 
@@ -860,11 +939,50 @@ describe("Alerts → AI → Settings", () => {
             screen.getByTestId(AI_LANE_ADVANCED_SECTION_TEST_ID[AiLane.Alert]),
           ).getByTestId("collapsible-section-summary"),
         ).toHaveTextContent(
-          "Every alert is investigated, whatever its severity, and nothing limits how much OneUptime AI does.",
+          "Every alert is investigated, whatever its severity, and every one is fixed while fixing is on. Nothing limits how much OneUptime AI does.",
         );
       },
       { timeout: WAIT_TIMEOUT },
     );
+  });
+
+  test("flipping Fix new alerts automatically saves the alert column alone", async () => {
+    openAlertPage();
+
+    await press(
+      await findSwitch(
+        getProjectAiSwitchTestId("enableAutomaticAlertRemediation"),
+      ),
+    );
+
+    expect(updates()).toEqual([{ enableAutomaticAlertRemediation: true }]);
+  });
+
+  test("an alert rule counts on the alert page, with the alert tables", async () => {
+    ruleCounts = { AutoRemediationRule: 1 };
+
+    openAlertPage();
+
+    await waitFor(
+      () => {
+        expect(setChips(advancedHeader())).toHaveLength(1);
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(setChips(advancedHeader())[0]).toContain("Auto remediation rules");
+
+    // Each table reads its own kind of rule only.
+    const queries: Array<Record<string, unknown>> = (
+      (ModelAPI.count as unknown as { mock: { calls: Array<Array<unknown>> } })
+        .mock.calls as Array<Array<{ query: Record<string, unknown> }>>
+    ).map((call: Array<{ query: Record<string, unknown> }>) => {
+      return call[0]!.query;
+    });
+
+    expect(queries.length).toBeGreaterThan(0);
+    for (const query of queries) {
+      expect(query).toEqual({ triggerEntityType: "Alert", isEnabled: true });
+    }
   });
 
   test("an alert limit makes it say Configured", async () => {

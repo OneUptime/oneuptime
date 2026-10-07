@@ -21,7 +21,7 @@ Den här sidan är referensen för den konfigurationen — vad varje sida inneh�
 | **Incidentroller**       | Definiera de roller du tilldelar svarspersoner, till exempel Incident Commander.                            |
 | **Nummerprefix**   | Nummerprefixen för incidenter och incidentepisoder.                                                         |
 
-Vad OneUptime AI gör på egen hand ställs inte in här: den har en egen sektion, **Incidenter → AI**, på rutter som börjar med `/dashboard/{projectId}/incidents/ai/`. Dess sida **Inställningar** slår på eller av automatisk utredning, automatiska kodfixar och postmortem-utkast och rymmer de valfria gränser som AI arbetar inom — ingen av dem gäller förrän du sätter den. Bredvid ligger **Regler för automatisk åtgärd**, med **Insikter** och **Loggar**: vad AI har lärt sig av dina incidenter, och allt den har gjort. Se [AI SRE](/docs/ai/ai-sre).
+Vad OneUptime AI gör på egen hand ställs inte in här: den har en egen sektion, **Incidenter → AI**, på rutter som börjar med `/dashboard/{projectId}/incidents/ai/`. Dess sida **Inställningar** slår på eller av utredning av nya incidenter, automatisk åtgärd av dem (avstängd tills du slår på den), postmortem-utkast och pull requests med fixar och för saknad telemetri, och varje växel sparas så fort du slår om den; utredningsreglerna och reglerna för automatisk åtgärd, som begränsar vilka incidenter som utreds och åtgärdas, och de valfria gränser som AI arbetar inom är ihopfällda under **Fler inställningar**, och ingen av dem gäller förrän du sätter den. **Insikter** och **Loggar** ligger bredvid: vad AI har lärt sig av dina incidenter, och allt den har gjort. Se [AI SRE](/docs/ai/ai-sre).
 
 **Incidentstatus** och **Incidentallvar** behandlas på djupet i [Incidentstatusar och allvarlighetsgrader](/docs/incidents/states-and-severities) — resten av den här sidan tar vid från **Incidentmallar**.
 
@@ -117,21 +117,22 @@ Ett nytt prefix gäller bara incidenter och episoder som skapas efteråt. Befint
 
 ## Regler som körs när en incident skapas
 
-**Incidenter → Regler** rymmer åtta regelmotorer, och **Incidenter → AI** en nionde, **Regler för automatisk åtgärd**. De gör alla samma sak — tittar på en incident i samma stund som den skapas och agerar om den matchar — men de skiljer sig i vad de gör och i hur flera matchande regler löses upp.
+**Incidenter → Regler** rymmer åtta regelmotorer, och **Incidenter → AI → Inställningar** två till, under **Fler inställningar**: **Regler för automatisk åtgärd** och **Utredningsregler**. De gör alla samma sak — tittar på en incident i samma stund som den skapas och agerar om den matchar — men de skiljer sig i vad de gör och i hur flera matchande regler löses upp.
 
 - **Grupperingsregler** — grupperar besläktade incidenter till episoder. Regler utvärderas i prioritetsordning; lägre prioritetsnummer går först.
 - **Jourregler** — kör jourpolicyer för matchande incidenter. Behandlas i detalj nedan.
 - **Ägarregler** — tilldelar ägare automatiskt.
 - **Runbook-regler** — startar ett [runbook](/docs/runbooks/index) när en incident matchar.
-- **Regler för automatisk åtgärd**, under **AI** — föreslår eller startar åtgärds-runbooks när en incident matchar. Står en AI-utredning i kö för incidenten körs de när den är klar, med dess analys i handen. Se [AI SRE](/docs/ai/ai-sre).
+- **Regler för automatisk åtgärd**, under **AI** → **Inställningar** — vilka nya incidenter som åtgärdas medan **Åtgärda nya incidenter automatiskt** är på, och hur: av OneUptime AI eller med regelns runbooks, med eller utan att fråga först. Utan någon regel åtgärdas varje ny incident. Står en AI-utredning i kö för incidenten körs de när den är klar, med dess analys i handen.
+- **Utredningsregler**, under **AI** → **Inställningar** — vilka nya incidenter OneUptime AI utreder. Utan någon regel utreds varje ny incident. Se [AI SRE](/docs/ai/ai-sre).
 - **Sekretessregler** — avgör om en matchande incident är privat.
 - **Etikettregler** — sätter etiketter automatiskt.
 - **SLA-regler** — följer upp svars- och lösningstider. Regler utvärderas i ordning; lägre ordningsnummer går först.
 - **Reminder Rules** — påminner incidentägare med jämna mellanrum så länge en incident är öppen. Regler utvärderas i ordning och första matchande regel vinner.
 
-**Ordningssemantiken är inte enhetlig.** Grupperingsregler, SLA-regler och Reminder Rules utvärderas i ordning. Jourregler gör det inte — varje matchande regel avfyras. Utgå inte från att en och samma modell gäller alla nio.
+**Ordningssemantiken är inte enhetlig.** Grupperingsregler, SLA-regler och Reminder Rules utvärderas i ordning. Jourregler gör det inte — varje matchande regel avfyras. Utgå inte från att en och samma modell gäller alla tio.
 
-Sidorna **Jourregler**, **Ägarregler**, **Etikettregler** och **Sekretessregler** har flikar — en flik **Incident Rules** och en flik **Episode Rules**, var och en med sin egen tabell. Konfigurera fliken **Incident Rules** om du inte uttryckligen menar episoder. **Grupperingsregler**, **Runbook-regler**, **Regler för automatisk åtgärd**, **SLA-regler** och **Reminder Rules** är enkla tabeller.
+Sidorna **Jourregler**, **Ägarregler**, **Etikettregler** och **Sekretessregler** har flikar — en flik **Incident Rules** och en flik **Episode Rules**, var och en med sin egen tabell. Konfigurera fliken **Incident Rules** om du inte uttryckligen menar episoder. **Grupperingsregler**, **Runbook-regler**, **Regler för automatisk åtgärd**, **Utredningsregler**, **SLA-regler** och **Reminder Rules** är enkla tabeller.
 
 ## Jourregler för incidenter
 
