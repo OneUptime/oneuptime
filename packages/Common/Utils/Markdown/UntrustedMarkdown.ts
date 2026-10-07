@@ -2,6 +2,7 @@ import {
   WORD_JOINER,
   escapeMarkdownInline,
   neutralizeChatControlSequences,
+  neutralizeChatLinkSequences,
 } from "./MarkdownEscape";
 import { Lexer, Token, Tokens } from "marked";
 
@@ -1508,7 +1509,7 @@ export const neutralizeUntrustedPlainText: NeutralizeUntrustedPlainTextFunction 
  *
  * Both reach the dashboard, email, and the Slack and Microsoft Teams channels
  * of the records they belong to. Besides chat mentions, images and diagrams
- * (above), two more things in such text act there:
+ * (above), more things in such text act there:
  *
  *   - LINKS WHOSE WORDS HIDE WHERE THEY GO. "[Open the runbook](https://x)"
  *     reads as one thing and leads somewhere else. Every "]" that a link, a
@@ -1518,31 +1519,108 @@ export const neutralizeUntrustedPlainText: NeutralizeUntrustedPlainTextFunction 
  *     renderers that link bare addresses - a link that shows exactly where it
  *     goes.
  *   - RAW HTML. A Microsoft Teams message card renders HTML, so an "<a>" or
- *     an "<img>" would be a live link or an image fetched on view there. Every
- *     "<" that starts a tag - "<" and a letter, or "</" and a letter - gets
- *     the same joiner: it reads as written and is a tag nowhere. (An address
- *     written as "<https://...>" then shows its brackets; the address inside
- *     is still a bare one.)
+ *     an "<img>" would be a live link or an image fetched on view there, and
+ *     a comment would hide what follows it. Every "<" that starts a tag, a
+ *     comment, a declaration or a processing instruction gets the same
+ *     joiner: it reads as written and is HTML nowhere. (An address written as
+ *     "<https://...>" then shows its brackets; the address inside is still a
+ *     bare one.)
+ *   - SLACK LINKS. Slack reads "<https://...|words>" as a link labelled with
+ *     the words, and its Markdown conversion passes code through as it is.
+ *     So in code too, a "<" that starts an address gets the joiner
+ *     (neutralizeChatLinkSequences), as a mention's does.
  *
  * The joiner cannot be seen, so the text still reads exactly as written; a
  * copy of it keeps the joiner, as everywhere above.
  */
 
 /*
- * Where a raw HTML tag starts: "<" and a letter, or "</" and a letter. Never a
- * capture group: the replacement callbacks below read the match's offset from
- * their second argument.
+ * In a reported value: every "<" with something after it - a tag, a
+ * comment, an autolink, a mention, a Slack link - and a "]" that ends the
+ * value. A template puts values next to each other and next to its own
+ * text, so one value can finish what another starts: "x <" and then
+ * "!channel>", or "[Reset your password]" and then "(https://...)". A "<"
+ * with a space after it ("x < y") starts nothing, and is left as it is.
  */
-const HTML_TAG_START_PATTERN: RegExp = /<(?=[A-Za-z]|\/[A-Za-z])/g;
+const VALUE_OPEN_ANGLE_BRACKET_PATTERN: RegExp = /<(?![\s\u2060])/g;
+const VALUE_TRAILING_CLOSE_BRACKET_PATTERN: RegExp = /\]$/;
 
 /*
- * Both of the places a link or a tag goes on from, in one pattern, so that
- * one reading of the text decides which of them are in trusted code.
+ * In OneUptime AI's Markdown, both of the places a link or HTML goes on
+ * from, in one pattern, so that one reading of the text decides which of
+ * them are in code: a "]" a link, a reference or a definition goes on from,
+ * and a "<" that starts a tag ("<" and a letter, "</" and a letter), a
+ * comment or a declaration ("<!") or a processing instruction ("<?"). Never
+ * a capture group: the replacement callback reads the match's offset from
+ * its second argument.
  */
-const LINK_TAIL_OR_HTML_TAG_START_PATTERN: RegExp =
-  /\](?=[([:])|<(?=[A-Za-z]|\/[A-Za-z])/g;
+const LINK_TAIL_OR_HTML_START_PATTERN: RegExp =
+  /\](?=[([:])|<(?=[A-Za-z!?]|\/[A-Za-z])/g;
 
 const ANY_LINE_ENDING_PATTERN: RegExp = /\r\n|\r/g;
+
+/*
+ * A line that opens or closes a fence as leniently as anything that shows
+ * the text reads one: three or more backticks or tildes after any
+ * indentation - a fence in a list item, or right under a line of text.
+ */
+const LENIENT_FENCE_PATTERN: RegExp = /^[ \t]*(`{3,}|~{3,})/;
+
+type FindFencedCodeFunction = (
+  source: string,
+  lines: Array<Line>,
+) => TrustedCode;
+
+/*
+ * The lines inside every fenced code block, found leniently (see
+ * LENIENT_FENCE_PATTERN), with an unclosed fence running to the end, as
+ * CommonMark has it. This is where a command or a snippet is: copied out,
+ * it should give the characters the model wrote - "<<EOF", "<file",
+ * "List<String>" - so no joiner goes after a "<" there. It decides nothing
+ * else: a "]" in it is broken unless every renderer reads it as code
+ * (findTrustedCode), a mention and a Slack link always are, and the
+ * Microsoft Teams message card reads fences the same lenient way.
+ */
+const findFencedCode: FindFencedCodeFunction = (
+  source: string,
+  lines: Array<Line>,
+): TrustedCode => {
+  const code: TrustedCode = {
+    ranges: [],
+    openingInfoStarts: new Set<number>(),
+  };
+
+  let openRun: string | null = null;
+
+  for (const line of lines) {
+    const text: string = source.slice(line.start, line.end);
+    const fence: RegExpExecArray | null = LENIENT_FENCE_PATTERN.exec(text);
+    const rest: string = fence ? text.slice(fence[0].length) : "";
+
+    if (openRun === null) {
+      // A backtick fence's info string has no backtick in it.
+      if (fence && !(fence[1]!.startsWith("`") && rest.includes("`"))) {
+        openRun = fence[1]!;
+      }
+
+      continue;
+    }
+
+    if (
+      fence &&
+      fence[1]![0] === openRun[0] &&
+      fence[1]!.length >= openRun.length &&
+      BLANK_LINE_TEXT_PATTERN.test(rest)
+    ) {
+      openRun = null;
+      continue;
+    }
+
+    code.ranges.push([line.start, line.end]);
+  }
+
+  return code;
+};
 
 export type NeutralizeUntrustedValueFunction = (
   value: string | undefined | null,
@@ -1553,17 +1631,18 @@ export type NeutralizeUntrustedValueFunction = (
  * an incident or alert description template's {{responseBody.message}} or
  * {{emailSubject}}. As neutralizeUntrustedPlainText: wherever the template
  * puts it - in a sentence, in a list, inside the author's code span or fenced
- * block - it reads exactly as reported, and no renderer finds a mention, an
- * image, a link, a diagram or a reference that completes one in it; and no
- * HTML tag either, for Microsoft Teams. Idempotent.
+ * block, next to another value - it reads exactly as reported, and no
+ * renderer finds a mention, an image, a link, a diagram or a reference that
+ * completes one in it; and no HTML either, for Microsoft Teams, and no Slack
+ * link inside the author's code (see VALUE_OPEN_ANGLE_BRACKET_PATTERN).
+ * Idempotent.
  */
 export const neutralizeUntrustedValue: NeutralizeUntrustedValueFunction = (
   value: string | undefined | null,
 ): string => {
-  return neutralizeUntrustedPlainText(value).replace(
-    HTML_TAG_START_PATTERN,
-    `<${WORD_JOINER}`,
-  );
+  return neutralizeUntrustedPlainText(value)
+    .replace(VALUE_OPEN_ANGLE_BRACKET_PATTERN, `<${WORD_JOINER}`)
+    .replace(VALUE_TRAILING_CLOSE_BRACKET_PATTERN, `]${WORD_JOINER}`);
 };
 
 export type NeutralizeAiWrittenMarkdownFunction = (
@@ -1576,14 +1655,17 @@ export type NeutralizeAiWrittenMarkdownFunction = (
  * and tables the model wrote on purpose render as before - but nothing in it
  * acts on its own: no image is fetched and no diagram drawn
  * (neutralizeMarkdownImagesAndDiagrams), no link hides where it goes and no
- * HTML tag is read (see above), and no chat mention notifies anybody
+ * HTML is read (see above), and no chat mention notifies anybody
  * (neutralizeChatControlSequences).
  *
- * Fenced code that every renderer reads as code (findTrustedCode) keeps its
- * links and tags byte for byte - none of them is a link or a tag anywhere,
- * and a command someone copies out of it keeps exactly the characters it had
- * - but not its mentions: Slack reads a mention even in code. Line endings
- * come back as "\n". Idempotent.
+ * Code keeps the characters it was written with as far as that is safe, so
+ * that a command someone copies out of it runs: a "]" stays as it is in
+ * fenced code every renderer reads as code (findTrustedCode), and a "<" in
+ * any fenced code (findFencedCode) - dashboards and email show raw HTML as
+ * text, Slack shows code as it is, and the Microsoft Teams card escapes what
+ * is fenced. A mention and a Slack link are broken everywhere, code
+ * included: Slack reads both in code. Line endings come back as "\n".
+ * Idempotent.
  */
 export const neutralizeAiWrittenMarkdown: NeutralizeAiWrittenMarkdownFunction =
   (markdown: string | undefined | null): string => {
@@ -1599,16 +1681,22 @@ export const neutralizeAiWrittenMarkdown: NeutralizeAiWrittenMarkdownFunction =
       String(markdown).replace(ANY_LINE_ENDING_PATTERN, "\n"),
     );
 
-    const code: TrustedCode = findTrustedCode(source, splitLines(source));
+    const lines: Array<Line> = splitLines(source);
+    const trustedCode: TrustedCode = findTrustedCode(source, lines);
+    const fencedCode: TrustedCode = findFencedCode(source, lines);
 
-    const withLinksAndTagsBroken: string = source.replace(
-      LINK_TAIL_OR_HTML_TAG_START_PATTERN,
+    const withLinksAndHtmlBroken: string = source.replace(
+      LINK_TAIL_OR_HTML_START_PATTERN,
       (character: string, offset: number): string => {
-        return isInTrustedCode(code, offset)
-          ? character
-          : `${character}${WORD_JOINER}`;
+        const isCode: boolean =
+          isInTrustedCode(trustedCode, offset) ||
+          (character === "<" && isInTrustedCode(fencedCode, offset));
+
+        return isCode ? character : `${character}${WORD_JOINER}`;
       },
     );
 
-    return neutralizeChatControlSequences(withLinksAndTagsBroken);
+    return neutralizeChatLinkSequences(
+      neutralizeChatControlSequences(withLinksAndHtmlBroken),
+    );
   };

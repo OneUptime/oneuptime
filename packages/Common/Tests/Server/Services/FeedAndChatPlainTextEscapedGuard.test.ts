@@ -132,8 +132,6 @@ const ESCAPERS: ReadonlySet<string> = new Set<string>([
   "getChatStatusLine",
   // A reported value shown as code (MarkdownEscape).
   "markdownCodeSpan",
-  // The same, as RootCauseList.code and AffectedResourceList.code.
-  "code",
   // A value a monitored system reported, in a template (UntrustedMarkdown).
   "neutralizeUntrustedValue",
   // Markdown OneUptime AI wrote (UntrustedMarkdown).
@@ -148,6 +146,16 @@ const ESCAPERS: ReadonlySet<string> = new Set<string>([
   "buildKubernetesRootCauseAnalysis",
   // Reads a metric's name only to pick the unit its value is shown in.
   "metricNameForUnitHeuristics",
+]);
+
+/*
+ * Escapers whose name alone says too little - "code" could be anything's -
+ * matched by the whole callee as written: markdownCodeSpan under the names
+ * the root cause builders give it.
+ */
+const QUALIFIED_ESCAPERS: ReadonlySet<string> = new Set<string>([
+  "RootCauseList.code",
+  "AffectedResourceList.code",
 ]);
 
 const PLAIN_TEXT_PROPERTIES: ReadonlySet<string> = new Set<string>([
@@ -234,6 +242,15 @@ function calleeName(call: ts.CallExpression): string | null {
   return null;
 }
 
+// Whether a call is to one of the escapers (ESCAPERS, QUALIFIED_ESCAPERS).
+function isEscaperCallee(call: ts.CallExpression): boolean {
+  if (QUALIFIED_ESCAPERS.has(call.expression.getText().replace(/\s+/g, ""))) {
+    return true;
+  }
+
+  return ESCAPERS.has(calleeName(call) || "");
+}
+
 function unwrap(expression: ts.Expression): ts.Expression {
   let current: ts.Expression = expression;
 
@@ -252,9 +269,7 @@ function unwrap(expression: ts.Expression): ts.Expression {
 function isEscaperCall(expression: ts.Expression): boolean {
   const unwrapped: ts.Expression = unwrap(expression);
 
-  return (
-    ts.isCallExpression(unwrapped) && ESCAPERS.has(calleeName(unwrapped) || "")
-  );
+  return ts.isCallExpression(unwrapped) && isEscaperCallee(unwrapped);
 }
 
 /*
@@ -278,7 +293,7 @@ function isSafePosition(node: ts.Node, root: ts.Node): boolean {
       parent.arguments.some((argument: ts.Expression): boolean => {
         return argument === child;
       }) &&
-      ESCAPERS.has(calleeName(parent) || "")
+      isEscaperCallee(parent)
     ) {
       return true;
     }
@@ -881,10 +896,23 @@ describe("findUnescapedPlainText", () => {
   });
 
   test.each([
+    ["a call named code that escapes nothing", "error.code(pod.name)"],
+    ["a local function named code", "code(pod.name)"],
+  ])("finds a name passed to %s", (_kind: string, call: string) => {
+    expect(
+      reads(`const markdown: string = \`- **Pod:** \${${call}}\`;`),
+    ).toEqual(["pod.name"]);
+  });
+
+  test.each([
     ["a name shown as code", "markdownCodeSpan(series.resourceName)"],
     [
       "a name shown as code through RootCauseList",
       "RootCauseList.code(pod.name)",
+    ],
+    [
+      "a name shown as code through AffectedResourceList",
+      "AffectedResourceList.code(pod.name)",
     ],
     [
       "a reported value placed into a template",

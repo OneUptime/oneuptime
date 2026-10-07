@@ -80,6 +80,38 @@ export const neutralizeChatControlSequences: NeutralizeChatControlSequencesFunct
   };
 
 /*
+ * Where Slack reads a link in text it is handed as it is - code, which
+ * Slack's Markdown conversion passes through untouched: "<" and an address
+ * ("<https://...|words>", "<mailto:...>"), shown as a link labelled with
+ * whatever follows the "|".
+ */
+const CHAT_LINK_SEQUENCE_START_PATTERN: RegExp =
+  /<(?=[A-Za-z][A-Za-z0-9+.-]*:)/g;
+
+export type NeutralizeChatLinkSequencesFunction = (
+  value: string | undefined | null,
+) => string;
+
+/**
+ * The text as written, with every "<" that starts an address Slack could
+ * read as a link ("<https://...|words>") broken by the word joiner, as
+ * neutralizeChatControlSequences breaks a mention. For code, which reaches
+ * Slack as it is: a heredoc ("<<EOF") or a redirect ("<file") is not an
+ * address and keeps its characters. Idempotent.
+ */
+export const neutralizeChatLinkSequences: NeutralizeChatLinkSequencesFunction =
+  (value: string | undefined | null): string => {
+    if (value === undefined || value === null) {
+      return "";
+    }
+
+    return String(value).replace(
+      CHAT_LINK_SEQUENCE_START_PATTERN,
+      `<${WORD_JOINER}`,
+    );
+  };
+
+/*
  * Backslash comes first in the class only for readability; `replace` visits
  * the ORIGINAL string once, so the backslashes this adds are never re-escaped
  * within a single call.
@@ -195,10 +227,12 @@ export const escapeMarkdownValue: EscapeMarkdownValueFunction = (
  * each side, so the padding never shows). Line breaks become spaces: a code
  * span cannot hold one, and a newline inside a list item would end the item.
  *
- * Chat control sequences are broken here too (neutralizeChatControlSequences):
- * Slack's Markdown conversion passes code through untouched, so "<!channel>"
- * inside a code span would otherwise reach Slack as a mention. The word joiner
- * cannot be seen inside the span either.
+ * Every "<" that something follows is broken here too, by the same word
+ * joiner: Slack's Markdown conversion passes code through untouched, so
+ * "<!channel>" or "<https://...|words>" inside a code span would otherwise
+ * reach Slack as a mention or a link, and a Microsoft Teams message card,
+ * which has no code spans, would read "<img ...>" in one as HTML. The word
+ * joiner cannot be seen inside the span either.
  *
  * A value without backticks is a plain single-backtick span, so an ISO
  * timestamp still reaches the dashboard as the bare inline code it re-renders
@@ -207,6 +241,9 @@ export const escapeMarkdownValue: EscapeMarkdownValueFunction = (
 
 const CODE_SPAN_LINE_BREAK_PATTERN: RegExp = /\s*[\r\n]+\s*/g;
 const BACKTICK_RUN_PATTERN: RegExp = /`+/g;
+
+// A "<" with something after it that is not already broken.
+const OPEN_ANGLE_BRACKET_PATTERN: RegExp = /<(?![\s\u2060])/g;
 
 export type MarkdownCodeSpanFunction = (
   value: string | undefined | null,
@@ -219,9 +256,10 @@ export const markdownCodeSpan: MarkdownCodeSpanFunction = (
     return "";
   }
 
-  const text: string = neutralizeChatControlSequences(
-    String(value).replace(CODE_SPAN_LINE_BREAK_PATTERN, " ").trim(),
-  );
+  const text: string = String(value)
+    .replace(CODE_SPAN_LINE_BREAK_PATTERN, " ")
+    .trim()
+    .replace(OPEN_ANGLE_BRACKET_PATTERN, `<${WORD_JOINER}`);
 
   if (text.length === 0) {
     return "";

@@ -1664,7 +1664,8 @@ ${contextBlock}
       unitHeuristicMetricName,
     );
     if (readableUnit) {
-      lines.push(`- Unit: ${readableUnit}`);
+      // An unknown unit is shown as the exporter wrote it: text.
+      lines.push(`- Unit: ${escapeMarkdownValue(readableUnit)}`);
     }
     if (ctx.aggregationType) {
       lines.push(`- Aggregation: ${ctx.aggregationType}`);
@@ -5369,8 +5370,9 @@ ${contextBlock}
           storageArrayMonitor?.resourceFilters?.[filterKey];
 
         if (typeof filterValue === "string" && filterValue.trim()) {
+          // A filter is text the monitor's author typed.
           arrayDetails.push(
-            `- ${filterLabels[filterKey]}: ${filterValue.trim()}`,
+            `- ${filterLabels[filterKey]}: ${escapeMarkdownValue(filterValue.trim())}`,
           );
         }
       }
@@ -5519,12 +5521,9 @@ ${contextBlock}
     /*
      * The pod, container, node and workload names come from the cluster's
      * own telemetry: each is shown as code (RootCauseList.code), and so is
-     * every command that names one, so nothing in a name is read as Markdown
-     * or as a chat mention.
+     * every command that names one, so nothing in a name is read as Markdown,
+     * as HTML or as a chat mention or link.
      */
-    const code: (value: string) => string = (value: string): string => {
-      return RootCauseList.code(value);
-    };
 
     /*
      * The top resource's value, in the unit the catalog says the metric
@@ -5556,14 +5555,14 @@ ${contextBlock}
       );
       if (topResource.containerName) {
         lines.push(
-          `The container ${code(topResource.containerName)} in pod ${code(topResource.podName || "unknown")} has restarted **${topResourceValue}** times.`,
+          `The container ${RootCauseList.code(topResource.containerName)} in pod ${RootCauseList.code(topResource.podName || "unknown")} has restarted **${topResourceValue}** times.`,
         );
       }
       lines.push(
         `Common causes: application crash on startup, misconfigured environment variables, missing dependencies, OOM (Out of Memory) kills, failed health checks, or missing config maps/secrets.`,
       );
       lines.push(
-        `Recommended actions: Check container logs with ${code(`kubectl logs ${topResource.podName || "<pod-name>"} -c ${topResource.containerName || "<container>"} --previous`)} and inspect events with ${code(`kubectl describe pod ${topResource.podName || "<pod-name>"}`)}.`,
+        `Recommended actions: Check container logs with ${RootCauseList.code(`kubectl logs ${topResource.podName || "<pod-name>"} -c ${topResource.containerName || "<container>"} --previous`)} and inspect events with ${RootCauseList.code(`kubectl describe pod ${topResource.podName || "<pod-name>"}`)}.`,
       );
     } else if (metricName === "k8s.pod.phase") {
       /*
@@ -5582,7 +5581,7 @@ ${contextBlock}
       );
       if (topResource.podName) {
         lines.push(
-          `Recommended actions: Check scheduling events with ${code(`kubectl describe pod ${topResource.podName}`)} and verify node resources with \`kubectl describe nodes\`.`,
+          `Recommended actions: Check scheduling events with ${RootCauseList.code(`kubectl describe pod ${topResource.podName}`)} and verify node resources with \`kubectl describe nodes\`.`,
         );
       }
     } else if (
@@ -5592,14 +5591,14 @@ ${contextBlock}
       lines.push(`One or more nodes have transitioned to a NotReady state.`);
       if (topResource.nodeName) {
         lines.push(
-          `Node ${code(topResource.nodeName)} is reporting NotReady (value: ${topResourceValue}).`,
+          `Node ${RootCauseList.code(topResource.nodeName)} is reporting NotReady (value: ${topResourceValue}).`,
         );
       }
       lines.push(
         `Common causes: kubelet process failure, node resource exhaustion (disk pressure, memory pressure, PID pressure), network connectivity issues, or underlying VM/hardware failure.`,
       );
       lines.push(
-        `Recommended actions: Check node conditions with ${code(`kubectl describe node ${topResource.nodeName || "<node-name>"}`)} and verify kubelet status on the node.`,
+        `Recommended actions: Check node conditions with ${RootCauseList.code(`kubectl describe node ${topResource.nodeName || "<node-name>"}`)} and verify kubelet status on the node.`,
       );
     } else if (
       metricName === "k8s.node.cpu.utilization" ||
@@ -5625,7 +5624,7 @@ ${contextBlock}
       lines.push(`Node CPU utilization has exceeded the configured threshold.`);
       if (topResource.nodeName) {
         lines.push(
-          `Node ${code(topResource.nodeName)} is at **${topResourceValue}** CPU utilization.`,
+          `Node ${RootCauseList.code(topResource.nodeName)} is at **${topResourceValue}** CPU utilization.`,
         );
       }
       lines.push(
@@ -5646,7 +5645,7 @@ ${contextBlock}
       );
       if (topResource.nodeName) {
         lines.push(
-          `Node ${code(topResource.nodeName)} memory usage is at **${topResourceValue}**.`,
+          `Node ${RootCauseList.code(topResource.nodeName)} memory usage is at **${topResourceValue}**.`,
         );
       }
       lines.push(
@@ -5671,14 +5670,14 @@ ${contextBlock}
       );
       if (topResource.workloadName) {
         lines.push(
-          `${escapeMarkdownValue(topResource.workloadType || "Deployment")} ${code(topResource.workloadName)} has **${topResourceValue}** unavailable replica(s).`,
+          `${escapeMarkdownValue(topResource.workloadType || "Deployment")} ${RootCauseList.code(topResource.workloadName)} has **${topResourceValue}** unavailable replica(s).`,
         );
       }
       lines.push(
         `Common causes: failed rolling update, image pull errors (wrong image tag or missing registry credentials), pod crash loops, insufficient cluster resources to schedule new pods, or PodDisruptionBudget blocking updates.`,
       );
       lines.push(
-        `Recommended actions: Check deployment rollout status with ${code(`kubectl rollout status deployment/${topResource.workloadName || "<deployment>"}`)} and inspect pod events.`,
+        `Recommended actions: Check deployment rollout status with ${RootCauseList.code(`kubectl rollout status deployment/${topResource.workloadName || "<deployment>"}`)} and inspect pod events.`,
       );
     } else if (
       metricName === "k8s.job.failed_pods" ||
@@ -5687,14 +5686,14 @@ ${contextBlock}
       lines.push(`Kubernetes Job has failed pods.`);
       if (topResource.workloadName) {
         lines.push(
-          `Job ${code(topResource.workloadName)} has **${topResourceValue}** failed pod(s).`,
+          `Job ${RootCauseList.code(topResource.workloadName)} has **${topResourceValue}** failed pod(s).`,
         );
       }
       lines.push(
         `Common causes: application error or non-zero exit code, resource limits exceeded (OOMKilled), misconfigured command or arguments, missing environment variables, or timeout exceeded.`,
       );
       lines.push(
-        `Recommended actions: Check job status with ${code(`kubectl describe job ${topResource.workloadName || "<job-name>"}`)} and review pod logs for the failed pod(s).`,
+        `Recommended actions: Check job status with ${RootCauseList.code(`kubectl describe job ${topResource.workloadName || "<job-name>"}`)} and review pod logs for the failed pod(s).`,
       );
     } else if (
       metricName === "k8s.node.filesystem.usage" ||
@@ -5706,7 +5705,7 @@ ${contextBlock}
       );
       if (topResource.nodeName) {
         lines.push(
-          `Node ${code(topResource.nodeName)} filesystem usage is at **${topResourceValue}**.`,
+          `Node ${RootCauseList.code(topResource.nodeName)} filesystem usage is at **${topResourceValue}**.`,
         );
       }
       lines.push(
@@ -5722,14 +5721,14 @@ ${contextBlock}
       lines.push(`DaemonSet has misscheduled or unavailable nodes.`);
       if (topResource.workloadName) {
         lines.push(
-          `DaemonSet ${code(topResource.workloadName)} has **${topResourceValue}** misscheduled node(s).`,
+          `DaemonSet ${RootCauseList.code(topResource.workloadName)} has **${topResourceValue}** misscheduled node(s).`,
         );
       }
       lines.push(
         `Common causes: node taints preventing scheduling, incorrect node selectors, or node affinity rules excluding certain nodes.`,
       );
       lines.push(
-        `Recommended actions: Check DaemonSet status with ${code(`kubectl describe daemonset ${topResource.workloadName || "<daemonset>"}`)} and verify node labels and taints.`,
+        `Recommended actions: Check DaemonSet status with ${RootCauseList.code(`kubectl describe daemonset ${topResource.workloadName || "<daemonset>"}`)} and verify node labels and taints.`,
       );
     } else {
       /*
@@ -5744,9 +5743,9 @@ ${contextBlock}
       if (target?.isFormula) {
         const formulaName: string = target.displayName
           ? escapeMarkdownValue(target.displayName)
-          : code(target.alias);
+          : RootCauseList.code(target.alias);
         const expression: string = target.formulaExpression
-          ? ` (${code(target.formulaExpression)})`
+          ? ` (${RootCauseList.code(target.formulaExpression)})`
           : "";
         lines.push(
           `${formulaName}${expression} has breached the configured threshold.`,
@@ -5758,23 +5757,23 @@ ${contextBlock}
             ? ` (${escapeMarkdownValue(breakdown.metricFriendlyName)})`
             : "";
         lines.push(
-          `Kubernetes metric ${code(metricName)}${friendlyName} has breached the configured threshold.`,
+          `Kubernetes metric ${RootCauseList.code(metricName)}${friendlyName} has breached the configured threshold.`,
         );
       }
       if (topResource.podName) {
         lines.push(
-          `Most affected pod: ${code(topResource.podName)} (**${topResourceValue}**)`,
+          `Most affected pod: ${RootCauseList.code(topResource.podName)} (**${topResourceValue}**)`,
         );
       } else if (topResource.workloadName) {
         lines.push(
-          `Most affected ${escapeMarkdownValue(topResource.workloadType || "workload")}: ${code(topResource.workloadName)} (**${topResourceValue}**)`,
+          `Most affected ${escapeMarkdownValue(topResource.workloadType || "workload")}: ${RootCauseList.code(topResource.workloadName)} (**${topResourceValue}**)`,
         );
       }
       if (topResource.nodeName) {
         lines.push(
           topResource.podName
-            ? `Most affected node: ${code(topResource.nodeName)}`
-            : `Most affected node: ${code(topResource.nodeName)} (**${topResourceValue}**)`,
+            ? `Most affected node: ${RootCauseList.code(topResource.nodeName)}`
+            : `Most affected node: ${RootCauseList.code(topResource.nodeName)} (**${topResourceValue}**)`,
         );
       }
       lines.push(

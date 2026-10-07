@@ -832,6 +832,53 @@ export default class MonitorTemplateUtil {
     return markdownStorageMap;
   }
 
+  /*
+   * The description map of each storage map, built once, and only when a
+   * template places a value (processMarkdownTemplateString). Weak, so a
+   * map goes with the storage map it was built from.
+   */
+  private static markdownStorageMaps: WeakMap<JSONObject, JSONObject> =
+    new WeakMap<JSONObject, JSONObject>();
+
+  /**
+   * Replace {{var}} placeholders in a description or remediation notes
+   * template - Markdown - with the values as buildMarkdownStorageMap places
+   * them. A template that places no value is returned as it is, without
+   * building the map; a storage map that several templates render against -
+   * a description and remediation notes - has it built once.
+   */
+  public static processMarkdownTemplateString(data: {
+    value: string | undefined;
+    storageMap: JSONObject;
+  }): string {
+    if (!data.value) {
+      return "";
+    }
+
+    // Nothing to place: VMUtil replaces only between "{{" and "}}".
+    if (!data.value.includes("{{")) {
+      return data.value;
+    }
+
+    let markdownStorageMap: JSONObject | undefined =
+      MonitorTemplateUtil.markdownStorageMaps.get(data.storageMap);
+
+    if (!markdownStorageMap) {
+      markdownStorageMap = MonitorTemplateUtil.buildMarkdownStorageMap({
+        storageMap: data.storageMap,
+      });
+      MonitorTemplateUtil.markdownStorageMaps.set(
+        data.storageMap,
+        markdownStorageMap,
+      );
+    }
+
+    return MonitorTemplateUtil.processTemplateString({
+      value: data.value,
+      storageMap: markdownStorageMap,
+    });
+  }
+
   // Every string in `value` neutralized, object keys included.
   private static neutralizeReportedValue(value: JSONValue): JSONValue {
     if (typeof value === "string") {
@@ -848,8 +895,24 @@ export default class MonitorTemplateUtil {
       const neutralized: JSONObject = {};
 
       for (const [key, item] of Object.entries(value as JSONObject)) {
-        neutralized[neutralizeUntrustedValue(key)] =
-          MonitorTemplateUtil.neutralizeReportedValue(item);
+        const neutralizedKey: string = neutralizeUntrustedValue(key);
+
+        // Two keys that read the same: the first one wins, as in JSON.
+        if (Object.prototype.hasOwnProperty.call(neutralized, neutralizedKey)) {
+          continue;
+        }
+
+        /*
+         * Defined, not assigned: a reported "__proto__" key is a property
+         * like any other, as JSON.parse made it - assigning it would swap
+         * the copy's prototype and drop the key.
+         */
+        Object.defineProperty(neutralized, neutralizedKey, {
+          value: MonitorTemplateUtil.neutralizeReportedValue(item),
+          enumerable: true,
+          writable: true,
+          configurable: true,
+        });
       }
 
       return neutralized;

@@ -5,6 +5,7 @@ import MonitorType from "../../../../Types/Monitor/MonitorType";
 import SeriesDebugHints, {
   SeriesDebugCommand,
 } from "../../../../Types/Monitor/SeriesContext/SeriesDebugHints";
+import { WORD_JOINER } from "../../../../Utils/Markdown/MarkdownEscape";
 
 /*
  * These commands are printed into an alert description and rendered on
@@ -937,6 +938,29 @@ describe("SeriesDebugHints", () => {
       ).toEqual([]);
       expect(SlackUtil.convertMarkdownToSlackRichText(block)).not.toMatch(
         /<[!@#][A-Za-z0-9]/,
+      );
+    });
+
+    /*
+     * Slack also reads "<https://...|words>" in code as a link labelled
+     * with the words. A value's link is broken by an invisible word joiner;
+     * a "<" that starts no address - a heredoc, a redirect - is untouched.
+     */
+    test("a Slack link in a value is no link in its command, and the command reads as before", () => {
+      const value: string = "<https://evil.example/login|Open the runbook>";
+
+      const block: string = SeriesDebugHints.buildMarkdownBlock({
+        monitorType: MonitorType.Kubernetes,
+        seriesLabels: {
+          ...KUBERNETES_POD_LABELS,
+          "resource.k8s.pod.name": value,
+        },
+      });
+
+      expect(block).toContain(`<${WORD_JOINER}https://evil.example/login|`);
+      expect(block.split(WORD_JOINER).join("")).toContain(value);
+      expect(SlackUtil.convertMarkdownToSlackRichText(block)).not.toMatch(
+        /<https?:\/\/[^>|]*\|/,
       );
     });
   });

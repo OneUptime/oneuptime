@@ -36,7 +36,10 @@ import ProbeApiIngestResponse from "../../../../Types/Probe/ProbeApiIngestRespon
 import RollingTime from "../../../../Types/RollingTime/RollingTime";
 import StorageSystem from "../../../../Types/StorageArray/StorageSystem";
 import MetricSeriesFingerprint from "../../../../Utils/Metrics/MetricSeriesFingerprint";
+import SlackUtil from "../../../../Server/Utils/Workspace/Slack/Slack";
+import { WORD_JOINER } from "../../../../Utils/Markdown/MarkdownEscape";
 import { describe, expect, test } from "@jest/globals";
+import { Lexer, Token, marked } from "marked";
 
 /*
  * The root cause a Storage Array monitor writes into its incident / alert:
@@ -206,6 +209,31 @@ function resource(
   };
 }
 
+// Text as read, with marked's HTML escapes undone.
+function withoutHtmlEscapes(text: string): string {
+  return text
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&#x27;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&");
+}
+
+// A link whose words are not the address it goes to.
+function hidesItsAddress(token: Token): boolean {
+  const { text, href } = token as unknown as { text: string; href: string };
+  const words: string = withoutHtmlEscapes(text);
+  let address: string = withoutHtmlEscapes(href);
+
+  try {
+    address = decodeURI(address);
+  } catch {
+    // Compared as it is.
+  }
+
+  return words !== address;
+}
+
 describe("Storage Array root cause: the details block", () => {
   test("names the array, its platform, the metric compared and the step's object filters", () => {
     const step: MonitorStep = stepFor({
@@ -231,6 +259,59 @@ describe("Storage Array root cause: the details block", () => {
         "- Volume Filter: vol-db-01",
         "- Host Filter: esx-01",
       ].join("\n"),
+    );
+  });
+
+  /*
+   * A filter is text the monitor's author typed, shown in a root cause that
+   * reaches the dashboard, email, Slack and Microsoft Teams: it reads as
+   * typed there, and is no link, tag or chat mention.
+   */
+  test("shows each object filter as text, as it was typed", () => {
+    const step: MonitorStep = stepFor({
+      alias: "vol_read_latency",
+      metricName: "purefa_volume_performance_latency_usec",
+      storageSystem: StorageSystem.PureStorageFlashArray,
+      resourceFilters: {
+        volumeName: "[Runbook](https://evil.example/login) <!channel>",
+        hostName: '<img src="https://tracker.example/p.png">',
+      },
+      value: 5000,
+    });
+
+    const text: string = render({
+      monitorStep: step,
+      dataToProcess: response({ monitorStep: step }),
+    });
+
+    expect(text).toContain(
+      [
+        `- Volume Filter: \\[Runbook\\](https://evil.example/login) \\<${WORD_JOINER}!channel>`,
+        '- Host Filter: \\<img src="https://tracker.example/p.png">',
+      ].join("\n"),
+    );
+
+    const tokens: Array<Token> = [];
+
+    marked.walkTokens(new Lexer({ gfm: true }).lex(text), (token: Token) => {
+      tokens.push(token);
+    });
+
+    // A bare address may be a link, showing itself; nothing else is.
+    expect(
+      tokens
+        .filter((token: Token): boolean => {
+          return (
+            token.type === "html" ||
+            (token.type === "link" && hidesItsAddress(token))
+          );
+        })
+        .map((token: Token): string => {
+          return token.raw;
+        }),
+    ).toEqual([]);
+    expect(SlackUtil.convertMarkdownToSlackRichText(text)).not.toMatch(
+      /<!channel>|<https:\/\/evil\.example[^>]*\|/,
     );
   });
 

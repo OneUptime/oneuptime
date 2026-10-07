@@ -1,7 +1,10 @@
 import { JSONObject } from "../../JSON";
 import MonitorType from "../MonitorType";
 import SeriesLabelDisplay from "./SeriesLabelDisplay";
-import { neutralizeChatControlSequences } from "../../../Utils/Markdown/MarkdownEscape";
+import {
+  neutralizeChatControlSequences,
+  neutralizeChatLinkSequences,
+} from "../../../Utils/Markdown/MarkdownEscape";
 
 // Any run of line breaks inside one command.
 const COMMAND_LINE_BREAK_PATTERN: RegExp = /[\r\n]+/g;
@@ -822,8 +825,15 @@ export default class SeriesDebugHints {
     const lines: Array<string> = commands
       .slice(0, Math.max(maxCommands, 1))
       .map((command: SeriesDebugCommand) => {
-        const commandLine: string = neutralizeChatControlSequences(
-          command.command.replace(COMMAND_LINE_BREAK_PATTERN, " "),
+        /*
+         * One line, so a label value cannot end the code block; and no
+         * mention or link for Slack, which reads code as it is (a quoted
+         * value is the only place a "<" can come from).
+         */
+        const commandLine: string = neutralizeChatLinkSequences(
+          neutralizeChatControlSequences(
+            command.command.replace(COMMAND_LINE_BREAK_PATTERN, " "),
+          ),
         );
 
         return `- ${command.purpose}:\n  \`\`\`\n  ${commandLine}\n  \`\`\``;

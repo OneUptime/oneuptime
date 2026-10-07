@@ -9,6 +9,7 @@ jest.mock("isolated-vm", () => {
 });
 
 import MonitorCriteriaEvaluator from "../../../../Server/Utils/Monitor/MonitorCriteriaEvaluator";
+import SlackUtil from "../../../../Server/Utils/Workspace/Slack/Slack";
 import CompareCriteria from "../../../../Server/Utils/Monitor/Criteria/CompareCriteria";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
@@ -442,6 +443,27 @@ describe("MonitorCriteriaEvaluator - the Unit line", () => {
       "- Unit:",
     );
     expect(rootCause(makeContext({ unit: null }))).not.toContain("- Unit:");
+  });
+
+  /*
+   * A unit OneUptime does not know is shown as the exporter wrote it - text
+   * a monitored system chose, in a root cause that reaches Slack and
+   * Microsoft Teams: it reads as written, and is no tag or chat mention.
+   */
+  test("shows a unit it does not know as text, as the exporter wrote it", () => {
+    for (const unit of ["<!here>", '<img src="x">']) {
+      const unitLine: string | undefined = rootCause(makeContext({ unit }))
+        .split("\n")
+        .find((line: string): boolean => {
+          return line.startsWith("- Unit:");
+        });
+
+      expect(unitLine).toBeDefined();
+      expect(unitLine).not.toMatch(/(^|[^\\])<[A-Za-z!@#/]/);
+      expect(SlackUtil.convertMarkdownToSlackRichText(unitLine!)).not.toMatch(
+        /<[!@#][A-Za-z]/,
+      );
+    }
   });
 });
 

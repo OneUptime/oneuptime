@@ -49,6 +49,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import { Lexer, Token, marked } from "marked";
 
 // Where an HTML tag starts.
@@ -593,6 +594,94 @@ describe("An API monitor's response body in a description", () => {
   });
 });
 
+describe("MonitorTemplateUtil.processMarkdownTemplateString", () => {
+  it("returns a template that places nothing as it is, without building the description map", () => {
+    const build: SpyInstance<
+      typeof MonitorTemplateUtil.buildMarkdownStorageMap
+    > = jest.spyOn(MonitorTemplateUtil, "buildMarkdownStorageMap");
+    const storageMap: JSONObject = { emailSubject: SUBJECT };
+
+    expect(
+      MonitorTemplateUtil.processMarkdownTemplateString({
+        value: "## Backup failed\n\n[Runbook](https://wiki.acme.example)",
+        storageMap,
+      }),
+    ).toBe("## Backup failed\n\n[Runbook](https://wiki.acme.example)");
+    expect(
+      MonitorTemplateUtil.processMarkdownTemplateString({
+        value: undefined,
+        storageMap,
+      }),
+    ).toBe("");
+    expect(build).not.toHaveBeenCalled();
+  });
+
+  it("builds the description map once for every template rendered against one storage map", () => {
+    const build: SpyInstance<
+      typeof MonitorTemplateUtil.buildMarkdownStorageMap
+    > = jest.spyOn(MonitorTemplateUtil, "buildMarkdownStorageMap");
+    const storageMap: JSONObject = { emailSubject: SUBJECT };
+
+    const description: string =
+      MonitorTemplateUtil.processMarkdownTemplateString({
+        value: "**Subject:** {{emailSubject}}",
+        storageMap,
+      });
+    const remediationNotes: string =
+      MonitorTemplateUtil.processMarkdownTemplateString({
+        value: "Reply to the sender of {{emailSubject}}",
+        storageMap,
+      });
+
+    expect(build).toHaveBeenCalledTimes(1);
+    expect(withoutJoiners(description)).toBe(`**Subject:** ${SUBJECT}`);
+    expect(withoutJoiners(remediationNotes)).toBe(
+      `Reply to the sender of ${SUBJECT}`,
+    );
+    expectInert([description, remediationNotes]);
+
+    // The next check's storage map gets its own.
+    expect(
+      MonitorTemplateUtil.processMarkdownTemplateString({
+        value: "{{emailSubject}}",
+        storageMap: { emailSubject: "Backup OK" },
+      }),
+    ).toBe("Backup OK");
+    expect(build).toHaveBeenCalledTimes(2);
+  });
+
+  it("an alert's description and remediation notes build it once; a description that places nothing never does", async () => {
+    const build: SpyInstance<
+      typeof MonitorTemplateUtil.buildMarkdownStorageMap
+    > = jest.spyOn(MonitorTemplateUtil, "buildMarkdownStorageMap");
+
+    await openAlert(
+      EMAIL_TEMPLATE,
+      receivedEmail({ subject: SUBJECT, body: BODY }),
+      MonitorType.IncomingEmail,
+    );
+
+    expect(build).toHaveBeenCalledTimes(1);
+
+    build.mockClear();
+    createdAlerts = [];
+
+    const alert: Alert = await openAlert(
+      {
+        title: "{{emailSubject}}",
+        description: "The nightly backup failed.",
+        remediationNotes: "Rerun the backup job.",
+      },
+      receivedEmail({ subject: SUBJECT, body: BODY }),
+      MonitorType.IncomingEmail,
+    );
+
+    expect(alert.description).toBe("The nightly backup failed.");
+    expect(alert.remediationNotes).toBe("Rerun the backup job.");
+    expect(build).not.toHaveBeenCalled();
+  });
+});
+
 describe("MonitorTemplateUtil.buildMarkdownStorageMap", () => {
   it("neutralizes every string a monitored system reported, nested ones and object keys included", () => {
     const map: JSONObject = MonitorTemplateUtil.buildMarkdownStorageMap({
@@ -650,6 +739,47 @@ describe("MonitorTemplateUtil.buildMarkdownStorageMap", () => {
       expect(map[key]).toBe(markdown);
     },
   );
+
+  /*
+   * JSON.parse makes a "__proto__" key a property like any other. The copy
+   * keeps it so: a description reads it as a title does, and the copy's
+   * prototype stays Object's.
+   */
+  it('keeps a reported "__proto__" key as a key, as JSON.parse made it', () => {
+    const responseBody: JSONObject = JSON.parse(
+      '{"__proto__": {"message": "<!channel>"}, "status": "down"}',
+    ) as JSONObject;
+
+    const map: JSONObject = MonitorTemplateUtil.buildMarkdownStorageMap({
+      storageMap: { responseBody },
+    });
+    const copy: JSONObject = map["responseBody"] as JSONObject;
+
+    expect(Object.getPrototypeOf(copy)).toBe(Object.prototype);
+    expect(Object.keys(copy)).toEqual(["__proto__", "status"]);
+    expect(Object.prototype.hasOwnProperty.call(copy, "message")).toBe(false);
+    expect(withoutJoiners(JSON.stringify(copy))).toBe(
+      JSON.stringify(responseBody),
+    );
+    expect(
+      withoutJoiners(
+        MonitorTemplateUtil.processMarkdownTemplateString({
+          value: "Said: {{responseBody.__proto__.message}}",
+          storageMap: { responseBody },
+        }),
+      ),
+    ).toBe("Said: <!channel>");
+  });
+
+  it("keeps the first of two keys that read the same", () => {
+    const map: JSONObject = MonitorTemplateUtil.buildMarkdownStorageMap({
+      storageMap: {
+        responseBody: { "a<b": "first", [`a<${WORD_JOINER}b`]: "second" },
+      },
+    });
+
+    expect(Object.values(map["responseBody"] as JSONObject)).toEqual(["first"]);
+  });
 
   it("leaves the map it was given as it was", () => {
     const storageMap: JSONObject = {

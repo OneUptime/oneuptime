@@ -353,6 +353,74 @@ describe("neutralizeAiWrittenMarkdown", () => {
     expectInert([result]);
   });
 
+  /*
+   * A responder copies a command out of the answer and runs it: in any
+   * fence - right under a line of text, nested in a list item, after a
+   * fence some renderer might pair differently - it keeps the characters
+   * the model wrote. A "<" there gets no joiner (dashboards and email show
+   * raw HTML as text, Slack shows code as it is, and the Teams card escapes
+   * fenced lines).
+   */
+  test.each([
+    [
+      "right under a line of text",
+      "Apply the fix:\n```bash\nkubectl apply -f - <<EOF\napiVersion: v1\nEOF\n```",
+      "kubectl apply -f - <<EOF",
+    ],
+    [
+      "nested in a list item",
+      "1. Restart the pods:\n   ```bash\n   sort <ids.txt | xargs kubectl delete pod\n   ```",
+      "sort <ids.txt | xargs kubectl delete pod",
+    ],
+    [
+      "after another fence under a line of text",
+      "Run this:\n```\necho hi\n```\nThen:\n```ts\nconst seen: Map<string, number> = new Map();\n```",
+      "const seen: Map<string, number> = new Map();",
+    ],
+  ])(
+    "a command in a fence %s copies out with the characters the model wrote",
+    (_layout: string, markdown: string, command: string) => {
+      const result: string = neutralizeAiWrittenMarkdown(markdown);
+
+      expect(result).toContain(command);
+      expectInert([result]);
+    },
+  );
+
+  test("a Slack link in code is broken, even in a fence every renderer reads as code", () => {
+    const answer: string =
+      "Details:\n\n```\n<https://evil.example/login|Open the runbook>\n```";
+    const result: string = neutralizeAiWrittenMarkdown(answer);
+
+    expect(withoutJoiners(result)).toBe(answer);
+    expect(result).toContain(`<${WORD_JOINER}https://evil.example/login|`);
+    expectInert([result]);
+  });
+
+  test("a link in a fence some renderer might read as text is still broken", () => {
+    const result: string = neutralizeAiWrittenMarkdown(
+      "See:\n```\n[Open the runbook](https://evil.example/login)\n```",
+    );
+
+    expect(result).toContain(
+      `[Open the runbook]${WORD_JOINER}(https://evil.example/login)`,
+    );
+  });
+
+  test("an HTML comment, declaration or processing instruction outside code reads as text", () => {
+    const answer: string =
+      "Before <!-- hidden --> after <?php echo 1; ?> and <!DOCTYPE html>";
+    const result: string = neutralizeAiWrittenMarkdown(answer);
+
+    expect(withoutJoiners(result)).toBe(answer);
+    expect(result).not.toMatch(/<[!?]/);
+    expect(
+      tokensOf(result).filter((token: Token): boolean => {
+        return token.type === "html";
+      }),
+    ).toEqual([]);
+  });
+
   test("is idempotent", () => {
     const once: string = neutralizeAiWrittenMarkdown(STEERED_ANSWER);
 
@@ -414,12 +482,54 @@ describe("neutralizeUntrustedValue", () => {
     }
   });
 
+  /*
+   * A template places values side by side, and next to its own text: what
+   * one value starts, the next must not be able to finish.
+   */
+  test.each([
+    ["a mention", "billing <", "!channel> queue is backing up"],
+    ["a user mention", "ask <", "@U0123ABC>"],
+    ["an HTML tag", "x <", 'img src="https://tracker.example/p.png">'],
+    ["an HTML comment", "x <", "!-- the rest is hidden -->"],
+    ["a Slack link", "see <", "https://evil.example/login|Open the runbook>"],
+  ])(
+    "two values side by side make no %s",
+    (_kind: string, first: string, second: string) => {
+      const markdown: string = `Alert from ${neutralizeUntrustedValue(first)}${neutralizeUntrustedValue(second)}`;
+
+      expect(withoutJoiners(markdown)).toBe(`Alert from ${first}${second}`);
+      expect(markdown).not.toMatch(/<[!@#A-Za-z/]/);
+      expectInert([markdown, `Body: \`${markdown}\``]);
+    },
+  );
+
+  test("a value cannot finish a link another value started", () => {
+    const markdown: string = `${neutralizeUntrustedValue("[Reset your password]")}(${neutralizeUntrustedValue("https://evil.example/login")})`;
+
+    expect(withoutJoiners(markdown)).toBe(
+      "[Reset your password](https://evil.example/login)",
+    );
+    expectInert([markdown]);
+  });
+
+  test("a Slack link in a value inside the author's code span or block is broken", () => {
+    const neutralized: string = neutralizeUntrustedValue(
+      "<https://evil.example/login|Open the runbook>",
+    );
+
+    expectInert([`Body: \`${neutralized}\``, `\`\`\`\n${neutralized}\n\`\`\``]);
+  });
+
   test("is idempotent", () => {
     for (const value of REPORTED_VALUES) {
       const once: string = neutralizeUntrustedValue(value);
 
       expect(neutralizeUntrustedValue(once)).toBe(once);
     }
+
+    const sideBySide: string = neutralizeUntrustedValue("[Reset] <");
+
+    expect(neutralizeUntrustedValue(sideBySide)).toBe(sideBySide);
   });
 
   test.each([[null], [undefined]])(
@@ -458,6 +568,20 @@ describe("markdownCodeSpan", () => {
     expect(markdownCodeSpan("first\n\n# heading\r\nlast")).toBe(
       "`first # heading last`",
     );
+  });
+
+  test("a Slack link or an HTML tag in the value is broken: Slack keeps code as it is, and a Teams card has no code spans", () => {
+    const value: string =
+      '<https://evil.example/login|Open the runbook> <img src="https://tracker.example/p.png">';
+    const span: string = markdownCodeSpan(value);
+
+    expect(withoutJoiners(span)).toBe(`\`${value}\``);
+    expect(span).not.toMatch(/<[A-Za-z!@#/]/);
+    expectInert([`Value: ${span}`]);
+  });
+
+  test("a '<' with a space after it starts nothing, and is left as it is", () => {
+    expect(markdownCodeSpan("a < b")).toBe("`a < b`");
   });
 
   test("a mention in the value notifies nobody in Slack, though Slack keeps code as it is", () => {
