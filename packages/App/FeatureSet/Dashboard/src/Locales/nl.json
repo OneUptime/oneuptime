@@ -26024,5 +26024,6 @@
   "WhatsApp is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "WhatsApp staat uit in dit project. Een projecteigenaar of iemand met de rol ‘Billing Admin’ of de machtiging ‘Manage Billing’ kan het aanzetten in Projectinstellingen → Meldingsinstellingen.",
   "You do not have permission to run this workflow.": "Je hebt geen toestemming om deze workflow uit te voeren.",
   "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here.": "Nog {{count}} stappen hebben een projecteigenaar of iemand met de rol ‘Billing Admin’ of de machtiging ‘Manage Billing’ nodig en worden hier daarom niet meegeteld.",
-  "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here._one": "Nog {{count}} stap heeft een projecteigenaar of iemand met de rol ‘Billing Admin’ of de machtiging ‘Manage Billing’ nodig en wordt hier daarom niet meegeteld."
+  "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here._one": "Nog {{count}} stap heeft een projecteigenaar of iemand met de rol ‘Billing Admin’ of de machtiging ‘Manage Billing’ nodig en wordt hier daarom niet meegeteld.",
+  "The event has started, so this can no longer be changed.": "De gebeurtenis is begonnen, dus dit kan niet meer worden gewijzigd."
 }

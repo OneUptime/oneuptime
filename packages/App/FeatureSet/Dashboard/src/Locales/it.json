@@ -26024,5 +26024,6 @@
   "WhatsApp is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "WhatsApp è disattivato in questo progetto. Un proprietario del progetto o qualcuno con il ruolo «Billing Admin» o l'autorizzazione «Manage Billing» può attivarlo in Impostazioni del progetto → Impostazioni notifiche.",
   "You do not have permission to run this workflow.": "Non hai l'autorizzazione per eseguire questo flusso di lavoro.",
   "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here.": "Altri {{count}} passaggi richiedono un proprietario del progetto o qualcuno con il ruolo «Billing Admin» o l'autorizzazione «Manage Billing», quindi non vengono conteggiati qui.",
-  "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here._one": "{{count}} altro passaggio richiede un proprietario del progetto o qualcuno con il ruolo «Billing Admin» o l'autorizzazione «Manage Billing», quindi non viene conteggiato qui."
+  "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here._one": "{{count}} altro passaggio richiede un proprietario del progetto o qualcuno con il ruolo «Billing Admin» o l'autorizzazione «Manage Billing», quindi non viene conteggiato qui.",
+  "The event has started, so this can no longer be changed.": "L'evento è iniziato, quindi non può più essere modificato."
 }
