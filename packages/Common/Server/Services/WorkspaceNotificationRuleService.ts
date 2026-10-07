@@ -892,8 +892,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     let sentence: string = "This is a test notification sent";
 
+    // The project's name is plain text in a Markdown message.
     if (projectName) {
-      sentence += ` from the OneUptime project **${projectName}**`;
+      sentence += ` from the OneUptime project **${escapeMarkdownValue(projectName)}**`;
     }
 
     if (userMarkdown) {

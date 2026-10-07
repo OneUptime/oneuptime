@@ -6,6 +6,17 @@ import {
 import { Lexer, Token, Tokens } from "marked";
 
 /*
+ * neutralizeChatControlSequences lives with the Markdown escapers
+ * (MarkdownEscape), which break chat control sequences too: a title or a name
+ * placed into a feed item or a chat message is posted to Slack as well. It is
+ * exported from here as before.
+ */
+export {
+  neutralizeChatControlSequences,
+  type NeutralizeChatControlSequencesFunction,
+} from "./MarkdownEscape";
+
+/*
  * MARKDOWN WRITTEN BY SOMEBODY OUTSIDE - an incident form's reporter, who
  * needs no account, only the form's link - made safe to store as an
  * incident's own text.
@@ -116,17 +127,6 @@ import { Lexer, Token, Tokens } from "marked";
  *
  * Pure, with no database or React imports.
  */
-
-/*
- * neutralizeChatControlSequences lives with the Markdown escapers
- * (MarkdownEscape), which break chat control sequences too: a title or a name
- * placed into a feed item or a chat message is posted to Slack as well. It is
- * exported from here as before.
- */
-export {
-  neutralizeChatControlSequences,
-  type NeutralizeChatControlSequencesFunction,
-} from "./MarkdownEscape";
 
 /*
  * Private use characters, which nobody types and Markdown treats as plain

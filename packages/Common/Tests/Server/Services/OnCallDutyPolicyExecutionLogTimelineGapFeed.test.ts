@@ -63,6 +63,12 @@ interface CapturedFeed {
 
 let captured: Array<CapturedFeed> = [];
 
+// The status sentence ending at the status, for a step without a message.
+const STEP_STATUS_SENTENCE_END_PATTERN: RegExp =
+  /The status of this step is \*\*Skipped\*\*\.$/;
+const ALERT_STATUS_SENTENCE_END_PATTERN: RegExp =
+  /The status of this alert is \*\*Error\*\*\. /;
+
 // Saved originals, restored in afterEach so suites stay independent.
 const originals: Record<string, any> = {};
 
@@ -457,6 +463,86 @@ describe("OnCallDutyPolicyExecutionLogTimelineService gap feed entries", () => {
         3,
       );
     });
+  });
+
+  /*
+   * The sentence that names the step's status ends once: with the message
+   * and a full stop, without a second one when the message brings its own,
+   * and at the status when the step has no message.
+   */
+  describe("the status sentence", () => {
+    const NO_RECIPIENT: Record<string, unknown> = {};
+    const RECIPIENT: Record<string, unknown> = {
+      alertSentToUserId: new ObjectID("user1"),
+      status: OnCallDutyExecutionLogTimelineStatus.Error,
+    };
+
+    test.each([
+      ["no recipient", NO_RECIPIENT, "The status of this step is **Skipped**"],
+      ["a recipient", RECIPIENT, "The status of this alert is **Error**"],
+    ])(
+      "with %s, a message without its own full stop is given one",
+      async (
+        _name: string,
+        overrides: Record<string, unknown>,
+        status: string,
+      ) => {
+        await runBuilder(
+          buildRow({ ...overrides, statusMessage: "SMS provider timed out" }),
+        );
+
+        expect(captured[0]!.markdown).toContain(
+          `${status} with the message: SMS provider timed out.`,
+        );
+      },
+    );
+
+    test.each([
+      ["no recipient", "a period", NO_RECIPIENT, "Notification skipped."],
+      ["a recipient", "a period", RECIPIENT, "Notification skipped."],
+      ["no recipient", "an exclamation mark", NO_RECIPIENT, "Call failed!"],
+      ["a recipient", "a question mark", RECIPIENT, "Delivered?"],
+    ])(
+      "with %s, a message ending in %s is not given a second full stop",
+      async (
+        _name: string,
+        _ending: string,
+        overrides: Record<string, unknown>,
+        message: string,
+      ) => {
+        await runBuilder(buildRow({ ...overrides, statusMessage: message }));
+
+        const markdown: string = captured[0]!.markdown;
+        expect(markdown).toContain(`with the message: ${message}`);
+        expect(markdown).not.toContain(`with the message: ${message}.`);
+      },
+    );
+
+    test.each([
+      ["no recipient", "no", NO_RECIPIENT, undefined],
+      ["no recipient", "an empty", NO_RECIPIENT, ""],
+      ["a recipient", "no", RECIPIENT, undefined],
+      ["a recipient", "a blank", RECIPIENT, "   "],
+    ])(
+      "with %s and %s message, the sentence ends at the status",
+      async (
+        _name: string,
+        _kind: string,
+        overrides: Record<string, unknown>,
+        message: string | undefined,
+      ) => {
+        await runBuilder(buildRow({ ...overrides, statusMessage: message }));
+
+        const markdown: string = captured[0]!.markdown;
+        expect(markdown).not.toContain("with the message");
+        expect(markdown).not.toContain("undefined");
+        expect(markdown).toMatch(
+          overrides === NO_RECIPIENT
+            ? STEP_STATUS_SENTENCE_END_PATTERN
+            : ALERT_STATUS_SENTENCE_END_PATTERN,
+        );
+      },
+    );
   });
 });
 

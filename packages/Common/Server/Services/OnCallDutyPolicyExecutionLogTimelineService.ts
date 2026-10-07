@@ -27,6 +27,9 @@ import IncidentService from "./IncidentService";
 import UserService from "./UserService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
+// A message that already ends its own sentence.
+const SENTENCE_END_PATTERN: RegExp = /[.!?]$/;
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -51,6 +54,26 @@ export class Service extends DatabaseService<Model> {
       default:
         return Blue500;
     }
+  }
+
+  /*
+   * " with the message: <message>." for the end of the sentence that names a
+   * step's status, or "." when the step has no message. The message is text:
+   * escaped rather than put in a code span, which a "`" in it would end
+   * early, and as prose (escapeMarkdownValue), so an address in an error
+   * message stays a whole address. It ends the sentence once, whether or not
+   * it ends with its own full stop.
+   */
+  private getStatusMessageClause(statusMessage: string | undefined): string {
+    const message: string = escapeMarkdownValue(statusMessage).trim();
+
+    if (!message) {
+      return ".";
+    }
+
+    return SENTENCE_END_PATTERN.test(message)
+      ? ` with the message: ${message}`
+      : ` with the message: ${message}.`;
   }
 
   public getEmojiBasedOnStatus(
@@ -237,9 +260,7 @@ export class Service extends DatabaseService<Model> {
          * text, placed into the incident's, alert's or episode's feed item
          * (posted to Slack and Teams too): the policy's inside its link's own
          * text, the rest inside bold. The step's status message is text as
-         * well: escaped rather than put in a code span, which a "`" in it
-         * would end early - as prose (escapeMarkdownValue), so an address in
-         * an error message stays a whole address.
+         * well (getStatusMessageClause).
          */
         const policyLink: string = `**[${escapeMarkdownInline(onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.name)}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.id!)).toString()})**`;
 
@@ -279,7 +300,7 @@ export class Service extends DatabaseService<Model> {
 
           feedInfoInMarkdown = `**${this.getEmojiBasedOnStatus(status)} ${incidentOrAlertLink} On-Call Alert ${status} — nobody was notified**
 
-The on-call policy ${policyLink} has been triggered. The escalation rule **${escapeMarkdownValue(onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyEscalationRule?.name || "Unnamed Rule")}**${scheduleClause} were applied, but ${noRecipientReason}, so **no one was notified at this step**. The status of this step is **${status}** with the message: ${escapeMarkdownValue(onCallDutyPolicyExecutionLogTimeline.statusMessage)}`;
+The on-call policy ${policyLink} has been triggered. The escalation rule **${escapeMarkdownValue(onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyEscalationRule?.name || "Unnamed Rule")}**${scheduleClause} were applied, but ${noRecipientReason}, so **no one was notified at this step**. The status of this step is **${status}**${this.getStatusMessageClause(onCallDutyPolicyExecutionLogTimeline.statusMessage)}`;
         } else {
           feedInfoInMarkdown = `**${this.getEmojiBasedOnStatus(status)} ${incidentOrAlertLink} On-Call Alert ${status} to ${await UserService.getUserMarkdownString(
             {
@@ -293,7 +314,7 @@ The on-call policy ${policyLink} has been triggered. The escalation rule **${esc
               userId: onCallDutyPolicyExecutionLogTimeline.alertSentToUserId!,
               projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
             },
-          )} was alerted. The status of this alert is **${status}** with the message: ${escapeMarkdownValue(onCallDutyPolicyExecutionLogTimeline.statusMessage)} ${onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name ? "The alert was sent because the user belogs to the team **" + escapeMarkdownValue(onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name) + "** " : ""} ${onCallDutyPolicyExecutionLogTimeline.isAcknowledged ? "The alert was acknowledged at **" + onCallDutyPolicyExecutionLogTimeline.acknowledgedAt + "** " : ""}`;
+          )} was alerted. The status of this alert is **${status}**${this.getStatusMessageClause(onCallDutyPolicyExecutionLogTimeline.statusMessage)} ${onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name ? "The alert was sent because the user belogs to the team **" + escapeMarkdownValue(onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name) + "** " : ""} ${onCallDutyPolicyExecutionLogTimeline.isAcknowledged ? "The alert was acknowledged at **" + onCallDutyPolicyExecutionLogTimeline.acknowledgedAt + "** " : ""}`;
         }
 
         if (
