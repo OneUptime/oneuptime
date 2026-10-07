@@ -383,6 +383,27 @@ describe("what an attribute points at", () => {
     );
   });
 
+  /*
+   * A scheduled maintenance event's Change Monitor Status to can be changed
+   * until the event starts (the server refuses a change after): in the
+   * update schema as in the create schema, so a plan changes it in place
+   * rather than replacing the event, and its description says when.
+   */
+  test("a scheduled maintenance event's change_monitor_status_to_id is set on create and changed in place", () => {
+    const status: TerraformAttributeDescriptor = attribute(
+      ScheduledMaintenance,
+      "change_monitor_status_to_id",
+    );
+
+    expect(status.inCreateSchema).toBe(true);
+    expect(status.inUpdateSchema).toBe(true);
+    expect(status.isServerManaged).toBe(false);
+    expect(status.isRequired).toBe(false);
+    expect(status.description).toBe(
+      "Relation to Monitor Status Object ID. The monitors attached to this event change to this status when the event starts, and back to operational when it ends. It can be changed until the event starts.",
+    );
+  });
+
   test("getTerraformAttribute finds one by column", () => {
     expect(
       getTerraformAttribute(Incident, "incidentSeverityId")?.attributeName,

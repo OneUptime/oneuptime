@@ -26024,5 +26024,6 @@
   "WhatsApp is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "इस प्रोजेक्ट में WhatsApp बंद है। प्रोजेक्ट का मालिक या 'Billing Admin' भूमिका या 'Manage Billing' अनुमति वाला कोई व्यक्ति इसे प्रोजेक्ट सेटिंग्स → सूचना सेटिंग्स में चालू कर सकता है।",
   "You do not have permission to run this workflow.": "आपको इस वर्कफ़्लो को चलाने की अनुमति नहीं है।",
   "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here.": "{{count}} और चरणों के लिए प्रोजेक्ट के मालिक या 'Billing Admin' भूमिका या 'Manage Billing' अनुमति वाले किसी व्यक्ति की ज़रूरत है, इसलिए उन्हें यहाँ नहीं गिना गया है।",
-  "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here._one": "{{count}} और चरण के लिए प्रोजेक्ट के मालिक या 'Billing Admin' भूमिका या 'Manage Billing' अनुमति वाले किसी व्यक्ति की ज़रूरत है, इसलिए उसे यहाँ नहीं गिना गया है।"
+  "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here._one": "{{count}} और चरण के लिए प्रोजेक्ट के मालिक या 'Billing Admin' भूमिका या 'Manage Billing' अनुमति वाले किसी व्यक्ति की ज़रूरत है, इसलिए उसे यहाँ नहीं गिना गया है।",
+  "The event has started, so this can no longer be changed.": "इवेंट शुरू हो चुका है, इसलिए इसे अब बदला नहीं जा सकता।"
 }

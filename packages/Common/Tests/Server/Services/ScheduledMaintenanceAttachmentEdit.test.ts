@@ -261,10 +261,21 @@ async function runUpdateSuccess(
   );
 }
 
+/*
+ * The attachments part of what onBeforeUpdate carries forward (the other
+ * part is the Change Monitor Status to each event held, read only when the
+ * update writes it). Null when the update writes no list.
+ */
 function carriedOf(
   onUpdate: OnUpdate<ScheduledMaintenance>,
 ): Dictionary<AttachmentsBeforeUpdate> | null {
-  return onUpdate.carryForward as Dictionary<AttachmentsBeforeUpdate> | null;
+  return (
+    (
+      onUpdate.carryForward as {
+        attachments?: Dictionary<AttachmentsBeforeUpdate> | null;
+      } | null
+    )?.attachments ?? null
+  );
 }
 
 // What the database holds before the write, and after it.

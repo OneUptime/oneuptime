@@ -217,8 +217,12 @@ test("the maintenance page reads whether the event has ended, and its state, wit
     indexOf(view, "if (requestNumber !== latestRequestRef.current)"),
   );
 
+  /*
+   * With its place and the other flags too: whether the event has started,
+   * for the Affected Resources card's Change Monitor Status to.
+   */
   expect(fetch).toContain(
-    "currentScheduledMaintenanceState: { _id: true, isEndedState: true, isResolvedState: true, },",
+    "currentScheduledMaintenanceState: { _id: true, order: true, isScheduledState: true, isOngoingState: true, isEndedState: true, isResolvedState: true, },",
   );
 });
 

@@ -26024,5 +26024,6 @@
   "WhatsApp is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "WhatsApp er slått av i dette prosjektet. En prosjekteier eller noen med rollen «Billing Admin» eller tillatelsen «Manage Billing» kan slå det på under Prosjektinnstillinger → Varselinnstillinger.",
   "You do not have permission to run this workflow.": "Du har ikke tillatelse til å kjøre denne arbeidsflyten.",
   "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here.": "{{count}} trinn til krever en prosjekteier eller noen med rollen «Billing Admin» eller tillatelsen «Manage Billing», så de telles ikke med her.",
-  "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here._one": "{{count}} trinn til krever en prosjekteier eller noen med rollen «Billing Admin» eller tillatelsen «Manage Billing», så det telles ikke med her."
+  "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here._one": "{{count}} trinn til krever en prosjekteier eller noen med rollen «Billing Admin» eller tillatelsen «Manage Billing», så det telles ikke med her.",
+  "The event has started, so this can no longer be changed.": "Hendelsen har startet, så dette kan ikke lenger endres."
 }

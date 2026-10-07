@@ -26024,5 +26024,6 @@
   "WhatsApp is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "WhatsApp در این پروژه خاموش است. مالک پروژه یا کسی که نقش «Billing Admin» یا مجوز «Manage Billing» دارد می‌تواند آن را در تنظیمات پروژه ← تنظیمات اعلان روشن کند.",
   "You do not have permission to run this workflow.": "شما اجازهٔ اجرای این گردش کاری را ندارید.",
   "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here.": "{{count}} مرحلهٔ دیگر به مالک پروژه یا کسی که نقش «Billing Admin» یا مجوز «Manage Billing» دارد نیاز دارد، به همین دلیل اینجا شمرده نمی‌شوند.",
-  "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here._one": "{{count}} مرحلهٔ دیگر به مالک پروژه یا کسی که نقش «Billing Admin» یا مجوز «Manage Billing» دارد نیاز دارد، به همین دلیل اینجا شمرده نمی‌شود."
+  "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here._one": "{{count}} مرحلهٔ دیگر به مالک پروژه یا کسی که نقش «Billing Admin» یا مجوز «Manage Billing» دارد نیاز دارد، به همین دلیل اینجا شمرده نمی‌شود.",
+  "The event has started, so this can no longer be changed.": "رویداد شروع شده است، بنابراین دیگر نمی‌توان آن را تغییر داد."
 }
