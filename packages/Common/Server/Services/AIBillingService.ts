@@ -95,19 +95,29 @@ export class AIBillingService extends BaseService {
       ? change.enableAutoRechargeAiBalance === true
       : project.enableAutoRechargeAiBalance === true;
 
-    const rechargeByInUSD: number =
-      Number(
-        change?.autoAiRechargeByBalanceInUSD ||
-          project.autoAiRechargeByBalanceInUSD ||
-          0,
-      ) || 0;
+    // What the change sets, even to nothing; otherwise what is stored.
+    const pick: (
+      changed: number | undefined | null,
+      stored: number | undefined | null,
+    ) => number = (
+      changed: number | undefined | null,
+      stored: number | undefined | null,
+    ): number => {
+      const value: number | undefined | null =
+        changed !== undefined && changed !== null ? changed : stored;
 
-    const whenBalanceFallsToInUSD: number =
-      Number(
-        change?.autoRechargeAiWhenCurrentBalanceFallsInUSD ||
-          project.autoRechargeAiWhenCurrentBalanceFallsInUSD ||
-          0,
-      ) || 0;
+      return Number(value || 0) || 0;
+    };
+
+    const rechargeByInUSD: number = pick(
+      change?.autoAiRechargeByBalanceInUSD,
+      project.autoAiRechargeByBalanceInUSD,
+    );
+
+    const whenBalanceFallsToInUSD: number = pick(
+      change?.autoRechargeAiWhenCurrentBalanceFallsInUSD,
+      project.autoRechargeAiWhenCurrentBalanceFallsInUSD,
+    );
 
     return {
       isSetUp: isEnabled && rechargeByInUSD > 0 && whenBalanceFallsToInUSD > 0,
@@ -517,7 +527,9 @@ export class AIBillingService extends BaseService {
       amountInUSD: amountInUSD,
       currentBalanceInUSD: updatedAmount / 100,
     }).catch((error: Exception) => {
-      logger.error("Error sending slack message for AI balance refill: " + error);
+      logger.error(
+        "Error sending slack message for AI balance refill: " + error,
+      );
     });
 
     return updatedAmount;

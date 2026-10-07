@@ -153,9 +153,11 @@ describe("an AI call that finds the AI credits used up, with Auto Recharge on", 
     expect(world.row.aiCurrentBalanceInUSDCents).toBe(
       2000 - CALL_COST_IN_CENTS,
     );
-    expect(writtenLogs().map((log: LlmLog) => log.status)).toEqual([
-      LlmLogStatus.Success,
-    ]);
+    expect(
+      writtenLogs().map((log: LlmLog) => {
+        return log.status;
+      }),
+    ).toEqual([LlmLogStatus.Success]);
   });
 
   test("a balance below zero is recharged the same way, by the set amount", async () => {
@@ -228,9 +230,11 @@ describe("a recharge that fails", () => {
     expect(completion).not.toHaveBeenCalled();
     expect(world.charges).toEqual([]);
     expect(world.row.aiCurrentBalanceInUSDCents).toBe(0);
-    expect(writtenLogs().map((log: LlmLog) => log.status)).toEqual([
-      LlmLogStatus.InsufficientBalance,
-    ]);
+    expect(
+      writtenLogs().map((log: LlmLog) => {
+        return log.status;
+      }),
+    ).toEqual([LlmLogStatus.InsufficientBalance]);
     expect(writtenLogs()[0]!.statusMessage).toBe(
       PROJECT_AI_CREDITS_USED_UP_MESSAGE,
     );

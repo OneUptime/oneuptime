@@ -38,10 +38,7 @@ function sourceOf(file: string): ts.SourceFile {
   );
 }
 
-function findMethod(
-  source: ts.SourceFile,
-  name: string,
-): ts.MethodDeclaration {
+function findMethod(source: ts.SourceFile, name: string): ts.MethodDeclaration {
   let found: ts.MethodDeclaration | undefined = undefined;
 
   const visit: (node: ts.Node) => void = (node: ts.Node): void => {
@@ -69,7 +66,9 @@ function isMarkNotSent(statement: ts.Statement | undefined): boolean {
   return Boolean(
     statement &&
       ts.isExpressionStatement(statement) &&
-      statement.getText().startsWith("await UserOnCallLogTimelineService.markNotSent("),
+      statement
+        .getText()
+        .startsWith("await UserOnCallLogTimelineService.markNotSent("),
   );
 }
 

@@ -82,7 +82,9 @@ describe("UserOnCallLogTimelineService.markNotSent", () => {
     ).resolves.toBeUndefined();
 
     expect(logger.error).toHaveBeenCalledWith(
-      expect.stringContaining("could not record that a notification was not sent"),
+      expect.stringContaining(
+        "could not record that a notification was not sent",
+      ),
     );
   });
 });

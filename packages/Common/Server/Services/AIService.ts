@@ -724,7 +724,7 @@ export class Service extends BaseService {
         projectId: data.projectId?.toString(),
         userId: data.userId?.toString(),
       } as LogAttributes);
-      logger.error(err as Error, {
+      logger.error(err, {
         projectId: data.projectId?.toString(),
         userId: data.userId?.toString(),
       } as LogAttributes);

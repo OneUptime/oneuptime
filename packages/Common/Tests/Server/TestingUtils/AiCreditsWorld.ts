@@ -180,6 +180,18 @@ export function useAiCreditsWorld(
       return true;
     }) as never);
 
+  // The run-out notice's one conditional UPDATE, on the row.
+  jest
+    .spyOn(ProjectService, "claimAiCreditsUsedUpNotice")
+    .mockImplementation((async () => {
+      if (row["deletedAt"] || row.lowAiBalanceNotificationSentToOwners) {
+        return false;
+      }
+
+      row.lowAiBalanceNotificationSentToOwners = true;
+      return true;
+    }) as never);
+
   jest
     .spyOn(ProjectService, "deductAiBalanceInUSDCents")
     .mockImplementation((async (data: { amountInUSDCents: number }) => {
@@ -240,22 +252,20 @@ export function useAiCreditsWorld(
     cache.delete(`${namespace}-${key}`);
   }) as never);
 
-  jest
-    .spyOn(GlobalCache, "setStringIfNotExists")
-    .mockImplementation((async (
-      namespace: string,
-      key: string,
-      value: string,
-    ) => {
-      const name: string = `${namespace}-${key}`;
+  jest.spyOn(GlobalCache, "setStringIfNotExists").mockImplementation((async (
+    namespace: string,
+    key: string,
+    value: string,
+  ) => {
+    const name: string = `${namespace}-${key}`;
 
-      if (cache.has(name)) {
-        return false;
-      }
+    if (cache.has(name)) {
+      return false;
+    }
 
-      cache.set(name, value);
-      return true;
-    }) as never);
+    cache.set(name, value);
+    return true;
+  }) as never);
 
   jest.spyOn(Semaphore, "lock").mockImplementation((async (data: {
     key: string;

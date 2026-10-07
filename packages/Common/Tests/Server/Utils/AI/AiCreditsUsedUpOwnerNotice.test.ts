@@ -193,7 +193,9 @@ describe("AiCreditsUsedUpOwnerNotice.notifyIfFirst", () => {
     expect(body).toContain(
       SafeHtml.escape(getProjectBalanceOwnerSentence(ProjectBalanceType.AI)),
     );
-    expect(body).toContain(`<a href="${AI_CREDITS_LINK}">${AI_CREDITS_LINK}</a>`);
+    expect(body).toContain(
+      `<a href="${AI_CREDITS_LINK}">${AI_CREDITS_LINK}</a>`,
+    );
     expect(body).toContain(
       SafeHtml.escape(PROJECT_AI_CREDITS_USED_UP_OWNER_FREQUENCY_SENTENCE),
     );
@@ -211,7 +213,9 @@ describe("AiCreditsUsedUpOwnerNotice.notifyIfFirst", () => {
       SafeHtml.escape(PROJECT_AI_AUTO_RECHARGE_COULD_NOT_ADD_OWNER_SENTENCE),
     );
     expect(body).not.toContain("turn on Auto Recharge");
-    expect(body).toContain(`<a href="${AI_CREDITS_LINK}">${AI_CREDITS_LINK}</a>`);
+    expect(body).toContain(
+      `<a href="${AI_CREDITS_LINK}">${AI_CREDITS_LINK}</a>`,
+    );
   });
 });
 
@@ -272,7 +276,9 @@ describe("AiCreditsUsedUpOwnerNotice.notifyIfUsedUp", () => {
     findProject.mockResolvedValue(project({ aiCurrentBalanceInUSDCents: 1 }));
 
     expect(
-      await AiCreditsUsedUpOwnerNotice.notifyIfUsedUp({ projectId: PROJECT_ID }),
+      await AiCreditsUsedUpOwnerNotice.notifyIfUsedUp({
+        projectId: PROJECT_ID,
+      }),
     ).toBe(AiCreditsUsedUpNoticeOutcome.NotUsedUp);
     expect(claim).not.toHaveBeenCalled();
   });
@@ -281,7 +287,9 @@ describe("AiCreditsUsedUpOwnerNotice.notifyIfUsedUp", () => {
     findProject.mockResolvedValue(project({ aiCurrentBalanceInUSDCents: -3 }));
 
     expect(
-      await AiCreditsUsedUpOwnerNotice.notifyIfUsedUp({ projectId: PROJECT_ID }),
+      await AiCreditsUsedUpOwnerNotice.notifyIfUsedUp({
+        projectId: PROJECT_ID,
+      }),
     ).toBe(AiCreditsUsedUpNoticeOutcome.Told);
     expect(sendEmail).toHaveBeenCalledTimes(1);
   });
@@ -303,7 +311,9 @@ describe("AiCreditsUsedUpOwnerNotice.notifyIfUsedUp", () => {
   });
 
   test("Auto Recharge on (it could not refill them): the payment method sentence", async () => {
-    findProject.mockResolvedValue(project({ enableAutoRechargeAiBalance: true }));
+    findProject.mockResolvedValue(
+      project({ enableAutoRechargeAiBalance: true }),
+    );
 
     await AiCreditsUsedUpOwnerNotice.notifyIfUsedUp({ projectId: PROJECT_ID });
 
@@ -318,7 +328,9 @@ describe("AiCreditsUsedUpOwnerNotice.notifyIfUsedUp", () => {
     );
 
     expect(
-      await AiCreditsUsedUpOwnerNotice.notifyIfUsedUp({ projectId: PROJECT_ID }),
+      await AiCreditsUsedUpOwnerNotice.notifyIfUsedUp({
+        projectId: PROJECT_ID,
+      }),
     ).toBe(AiCreditsUsedUpNoticeOutcome.AlreadyTold);
     expect(claim).not.toHaveBeenCalled();
   });
@@ -327,7 +339,9 @@ describe("AiCreditsUsedUpOwnerNotice.notifyIfUsedUp", () => {
     findProject.mockResolvedValue(null);
 
     expect(
-      await AiCreditsUsedUpOwnerNotice.notifyIfUsedUp({ projectId: PROJECT_ID }),
+      await AiCreditsUsedUpOwnerNotice.notifyIfUsedUp({
+        projectId: PROJECT_ID,
+      }),
     ).toBe(AiCreditsUsedUpNoticeOutcome.NotUsedUp);
   });
 
@@ -335,7 +349,9 @@ describe("AiCreditsUsedUpOwnerNotice.notifyIfUsedUp", () => {
     findProject.mockRejectedValue(new Error("database unavailable"));
 
     expect(
-      await AiCreditsUsedUpOwnerNotice.notifyIfUsedUp({ projectId: PROJECT_ID }),
+      await AiCreditsUsedUpOwnerNotice.notifyIfUsedUp({
+        projectId: PROJECT_ID,
+      }),
     ).toBe(AiCreditsUsedUpNoticeOutcome.Failed);
   });
 });

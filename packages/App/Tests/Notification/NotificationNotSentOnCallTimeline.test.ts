@@ -465,9 +465,10 @@ describe("everything else stays as it was", () => {
     ["Telegram", telegram],
   ])(
     "%s not sent without a timeline row (a status page subscriber, a test send): nothing to update",
-    async (_channel: string, send: (options: {
-      onTimeline?: boolean;
-    }) => Promise<void>) => {
+    async (
+      _channel: string,
+      send: (options: { onTimeline?: boolean }) => Promise<void>,
+    ) => {
       await send({ onTimeline: false });
 
       expect(timelineUpdates()).toEqual([]);

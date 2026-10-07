@@ -184,6 +184,23 @@ describe("AIBillingService.getAutoRechargeSettings", () => {
     });
   });
 
+  test("a change that sets an amount to nothing is taken at its word: not set up, nothing to charge", () => {
+    expect(
+      AIBillingService.getAutoRechargeSettings(
+        row({
+          enableAutoRechargeAiBalance: false,
+          autoAiRechargeByBalanceInUSD: 20,
+          autoRechargeAiWhenCurrentBalanceFallsInUSD: 10,
+        }),
+        { enableAutoRechargeAiBalance: true, autoAiRechargeByBalanceInUSD: 0 },
+      ),
+    ).toEqual({
+      isSetUp: false,
+      rechargeByInUSD: 0,
+      whenBalanceFallsToInUSD: 10,
+    });
+  });
+
   test("amounts sent as text count as numbers", () => {
     expect(
       AIBillingService.getAutoRechargeSettings(
@@ -417,6 +434,18 @@ describe("AIBillingService.rechargeIfBalanceIsLow", () => {
     expect(world.cache.has(FAILURE_KEY)).toBe(false);
   });
 
+  test("turning Auto Recharge on with no amount to add charges nothing, whatever amount was stored", async () => {
+    world.row.enableAutoRechargeAiBalance = false;
+
+    expect(
+      await AIBillingService.rechargeIfBalanceIsLow(PROJECT_ID, {
+        enableAutoRechargeAiBalance: true,
+        autoAiRechargeByBalanceInUSD: 0,
+      }),
+    ).toBe(0);
+    expect(world.charges).toEqual([]);
+  });
+
   test("turning Auto Recharge on uses the amounts being saved, before they are written", async () => {
     world.row.enableAutoRechargeAiBalance = false;
 
@@ -476,8 +505,11 @@ describe("AIBillingService.rechargeBalance (the Recharge button)", () => {
 
     expect(await AIBillingService.rechargeBalance(PROJECT_ID, 25)).toBe(3000);
     expect(world.charges).toEqual([25]);
-    expect(world.ownerEmails.map((email: { subject: string }) => email.subject))
-      .toEqual(["AI Balance Recharge Successful for project - Acme Production"]);
+    expect(
+      world.ownerEmails.map((email: { subject: string }) => {
+        return email.subject;
+      }),
+    ).toEqual(["AI Balance Recharge Successful for project - Acme Production"]);
   });
 
   test("takes the same lock as Auto Recharge, and gives it back when the charge fails", async () => {

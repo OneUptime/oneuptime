@@ -103,7 +103,9 @@ describe("AI SRE: when AI credits run out", () => {
     expect(credits).toContain(
       "**Auto Recharge could not charge the card** (there is no payment method, or the card was declined)",
     );
-    expect(credits).toContain("Auto Recharge tries the card again an hour later.");
+    expect(credits).toContain(
+      "Auto Recharge tries the card again an hour later.",
+    );
     expect(credits).toContain(
       "Adding credits by hand, or saving Auto Recharge again, tries at once.",
     );
