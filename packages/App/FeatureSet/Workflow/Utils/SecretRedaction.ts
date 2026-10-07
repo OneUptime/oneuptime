@@ -1,4 +1,5 @@
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
+import { toStoredBoolean } from "Common/Types/Database/BooleanColumnValue";
 import { isOAuth2WorkflowVariable } from "Common/Types/Workflow/WorkflowVariableOAuth";
 
 /**
@@ -50,7 +51,9 @@ type GetSecretWorkflowVariableValuesFunction = (
  * `redactSecretsFromString`.
  *
  * `isSecret` is declared as a string on the model but arrives as a real
- * boolean from the database, so both are accepted. A variable whose `isSecret`
+ * boolean from the database. It is read as the database stores it
+ * (toStoredBoolean), the same way WorkflowVariableService reads it, so a
+ * literal such as "true" counts as secret too. A variable whose `isSecret`
  * was not selected reads as undefined and is treated as not secret — every
  * caller must therefore select the column.
  *
@@ -74,9 +77,7 @@ export const getSecretWorkflowVariableValues: GetSecretWorkflowVariableValuesFun
         continue;
       }
 
-      const isSecret: unknown = variable.isSecret;
-
-      if (isSecret === true || isSecret === "true") {
+      if (toStoredBoolean(variable.isSecret) === true) {
         values.push(variable.content);
       }
     }

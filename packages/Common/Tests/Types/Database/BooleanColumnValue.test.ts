@@ -126,6 +126,59 @@ describe("toStoredBoolean: what Postgres stores for a value written to a boolean
   );
 });
 
+describe("toStoredBoolean: exactly the literals boolin reads, no more", () => {
+  /*
+   * boolin skips C's isspace around a literal - space, tab, newline,
+   * vertical tab, form feed, carriage return - and nothing else, so a
+   * literal wrapped in other whitespace is refused by the database and is
+   * no switch here either.
+   */
+  test.each([
+    ["a vertical tab and a form feed", "\vtrue\f", true],
+    ["a carriage return and a newline", "\rno\r\n", false],
+    ["spaces on both sides", "   off   ", false],
+  ] as Array<[string, string, boolean]>)(
+    "a literal with %s around it is read",
+    (_label: string, value: string, stored: boolean) => {
+      expect(toStoredBoolean(value)).toBe(stored);
+    },
+  );
+
+  test.each([
+    ["a non-breaking space", " true "],
+    ["an ideographic space", "　yes"],
+    ["a byte order mark", "﻿false"],
+    ["a zero-width space", "on​"],
+  ] as Array<[string, string]>)(
+    "a literal with %s around it is refused, as the database refuses it",
+    (_label: string, value: string) => {
+      expect(toStoredBoolean(value)).toBe(value);
+      expect(isWritableBooleanValue(value)).toBe(false);
+    },
+  );
+
+  test("-0 is sent as 0, so it is stored as false", () => {
+    expect(toStoredBoolean(-0)).toBe(false);
+  });
+
+  test("1.0 is the number 1, while the text \"1.0\" is refused", () => {
+    expect(toStoredBoolean(1.0)).toBe(true);
+    expect(toStoredBoolean("1.0")).toBe("1.0");
+    expect(toStoredBoolean(" 1 ")).toBe(true);
+  });
+
+  test("a fullwidth TRUE is not the letters boolin reads", () => {
+    expect(toStoredBoolean("ＴＲＵＥ")).toBe(
+      "ＴＲＵＥ",
+    );
+  });
+
+  test("Infinity and a bigint are refused", () => {
+    expect(toStoredBoolean(Infinity)).toBe(Infinity);
+    expect(isWritableBooleanValue(BigInt(1))).toBe(false);
+  });
+});
+
 describe("isWritableBooleanValue: what a Boolean column may be written with", () => {
   test.each([
     ["true", true],

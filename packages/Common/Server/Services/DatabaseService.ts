@@ -2863,6 +2863,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     items: Array<TBaseModel>,
     data: PartialEntity<TBaseModel>,
     props: DatabaseCommonInteractionProps,
+    switchStamps: Array<SwitchStamp>,
   ): Promise<Map<string, RealtimeReadAccess>> {
     const accessByProject: Map<string, RealtimeReadAccess> = new Map<
       string,
@@ -2883,12 +2884,26 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     const now: RealtimeReadAccess = this.getRealtimeReadAccess();
 
     try {
-      // A row the write leaves as it is sends no update event: nobody asked.
+      /*
+       * A row the write leaves as it is sends no update event: nobody asked.
+       * Judged on what the write puts in that row, as _updateBy judges it
+       * after the write: a switch the row already stands at keeps who
+       * turned it, and when, so those stamps are no change of its
+       * (keepSwitchAttributionOfUnturnedRow).
+       */
       const changing: Array<TBaseModel> = items.filter(
         (item: TBaseModel): boolean => {
+          const writtenToRow: PartialEntity<TBaseModel> = { ...data };
+
+          this.keepSwitchAttributionOfUnturnedRow(
+            writtenToRow,
+            item,
+            switchStamps,
+          );
+
           return !this.hasSameValues({
             item: item,
-            updatedItem: { ...data, _id: item._id },
+            updatedItem: { ...writtenToRow, _id: item._id },
           });
         },
       );
@@ -5586,7 +5601,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
        * about the update too. See getRealtimeAccessBeforeUpdate.
        */
       const realtimeUpdateAccess: Map<string, RealtimeReadAccess> =
-        await this.getRealtimeAccessBeforeUpdate(items, data, updateBy.props);
+        await this.getRealtimeAccessBeforeUpdate(
+          items,
+          data,
+          updateBy.props,
+          switchStamps,
+        );
 
       for (const item of items) {
         /*

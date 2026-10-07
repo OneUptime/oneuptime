@@ -2,6 +2,7 @@ import DatabaseService from "../../../Server/Services/DatabaseService";
 import AuditLogService from "../../../Server/Services/AuditLogService";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -359,6 +360,140 @@ describe("the other values that read as nothing", () => {
         { description: "" },
       ),
     );
+  });
+});
+
+describe("a switch that records who turned it", () => {
+  const ARCHIVED_AT: Date = new Date("2026-10-01T08:00:00.000Z");
+
+  test("written back as on, over a monitor archived already, fires nothing and keeps who archived it, and when", async () => {
+    const harness: UpdateHarness = await updateMonitor(
+      { isArchived: true, archivedAt: ARCHIVED_AT },
+      { isArchived: true },
+    );
+
+    expectNoChangeReported(harness);
+
+    // The write still goes through, without new stamps for this row.
+    const written: Record<string, unknown> = harness.repository.update.mock
+      .calls[0]![1] as Record<string, unknown>;
+    expect(written["isArchived"]).toBe(true);
+    expect(written["archivedAt"]).toBeUndefined();
+  });
+
+  test('written as "yes" over an archived monitor fires nothing either', async () => {
+    expectNoChangeReported(
+      await updateMonitor(
+        { isArchived: true, archivedAt: ARCHIVED_AT },
+        { isArchived: "yes" },
+      ),
+    );
+  });
+
+  test("archiving a monitor that was not archived is a change, and says when", async () => {
+    const harness: UpdateHarness = await updateMonitor(
+      { isArchived: false, archivedAt: null },
+      { isArchived: true },
+    );
+
+    expectChangeReported(harness);
+
+    const written: Record<string, unknown> = harness.repository.update.mock
+      .calls[0]![1] as Record<string, unknown>;
+    expect(written["archivedAt"]).toBeInstanceOf(Date);
+  });
+});
+
+describe("relations and ids, written back as they are", () => {
+  const LABEL_ID: string = "5a3e0000-0000-4000-8000-0000000000b1";
+  const STATUS_ID: string = "5a3e0000-0000-4000-8000-0000000000c1";
+
+  function labelWith(id: string): Label {
+    const label: Label = new Label();
+    label._id = id;
+    return label;
+  }
+
+  test("labels written as null, where the monitor has none, are not a change", async () => {
+    expectNoChangeReported(await updateMonitor({ labels: [] }, { labels: null }));
+  });
+
+  test("the same labels, sent as bare ids, are not a change", async () => {
+    expectNoChangeReported(
+      await updateMonitor(
+        { labels: [labelWith(LABEL_ID)] },
+        { labels: [LABEL_ID.toUpperCase()] },
+      ),
+    );
+  });
+
+  test("labels taken off, written as null, are a change", async () => {
+    expectChangeReported(
+      await updateMonitor({ labels: [labelWith(LABEL_ID)] }, { labels: null }),
+    );
+  });
+
+  test("an id written back in capitals is the same id: not a change", async () => {
+    expectNoChangeReported(
+      await updateMonitor(
+        { currentMonitorStatusId: new ObjectID(STATUS_ID) },
+        { currentMonitorStatusId: STATUS_ID.toUpperCase() },
+      ),
+    );
+  });
+});
+
+describe("one write over several rows", () => {
+  const OTHER_ID: ObjectID = new ObjectID(
+    "5a3e0000-0000-4000-8000-0000000000a2",
+  );
+
+  test("only the rows it changes fire their workflow, live update and audit entry", async () => {
+    const service: DatabaseService<Monitor> = new DatabaseService<Monitor>(
+      Monitor,
+    );
+
+    const alreadyOff: Monitor = monitorBefore({
+      disableActiveMonitoring: false,
+    });
+    const stillOn: Monitor = monitorBefore({ disableActiveMonitoring: true });
+    stillOn._id = OTHER_ID.toString();
+
+    const harness: UpdateHarness = setUpUpdate(service, alreadyOff);
+    jest
+      .spyOn(
+        service as unknown as { _findBy: () => Promise<Array<BaseModel>> },
+        "_findBy",
+      )
+      .mockResolvedValue([alreadyOff, stillOn] as never);
+
+    await service.updateBy({
+      query: { projectId: PROJECT_ID },
+      data: { disableActiveMonitoring: "false" } as never,
+      limit: 10,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    // Both rows are written...
+    expect(harness.repository.update).toHaveBeenCalledTimes(2);
+
+    // ...but only the one that changed is heard about.
+    expect(harness.workflow).toHaveBeenCalledTimes(1);
+    expect(String(harness.workflow.mock.calls[0]![0])).toBe(
+      OTHER_ID.toString(),
+    );
+    expect(harness.realtime).toHaveBeenCalledTimes(1);
+    expect(String(harness.realtime.mock.calls[0]![0])).toBe(
+      OTHER_ID.toString(),
+    );
+    expect(harness.recordUpdate).toHaveBeenCalledTimes(1);
+    expect(
+      String(
+        (harness.recordUpdate.mock.calls[0]![0] as { itemId: ObjectID })
+          .itemId,
+      ),
+    ).toBe(OTHER_ID.toString());
   });
 });
 

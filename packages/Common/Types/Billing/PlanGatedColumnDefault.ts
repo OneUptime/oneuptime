@@ -27,7 +27,11 @@ import TableColumnType from "../Database/TableColumnType";
  * The comparison is exact. A value of another type ("false" for false, "14"
  * for 14) or a blank line where nothing is expected is not the default, and
  * keeps needing the plan: an unclear value never gets a plan's feature for
- * free.
+ * free. On the server a switch reaches this as the boolean the database
+ * stores for it - DatabaseService turns a write's Boolean columns into those
+ * before any check reads them (Types/Database/BooleanColumnValue) - so a
+ * switch the API, Terraform or a workflow sends as "false" or "off" is false
+ * here and switches the feature off like false.
  *
  * The server's column check (ColumnPermission, for creates and updates) and
  * the dashboard's plan notes (ModelSwitchUtil.getPlanNeededToWriteColumn)

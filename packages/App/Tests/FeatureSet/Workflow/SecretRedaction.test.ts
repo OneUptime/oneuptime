@@ -67,11 +67,27 @@ describe("getSecretWorkflowVariableValues", () => {
     ).toEqual(["secret"]);
   });
 
+  /*
+   * Read as the database stores the flag (toStoredBoolean), the same rule
+   * WorkflowVariableService uses to refuse un-marking a secret: what the
+   * service calls secret, the run logs redact.
+   */
+  test.each(["yes", "on", "1", " TRUE "])(
+    'collects variables flagged with %p, which the database stores as true',
+    (flag: string) => {
+      expect(
+        getSecretWorkflowVariableValues([variable("secret", flag)]),
+      ).toEqual(["secret"]);
+    },
+  );
+
   test("ignores variables that are not secret", () => {
     expect(
       getSecretWorkflowVariableValues([
         variable("public", false),
         variable("also-public", "false"),
+        variable("not-secret-either", "no"),
+        variable("off-too", "0"),
         variable("unflagged"),
       ]),
     ).toEqual([]);

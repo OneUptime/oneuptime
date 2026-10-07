@@ -50,6 +50,14 @@ const TRUE_WORDS: ReadonlyArray<string> = ["true", "yes"];
 const FALSE_WORDS: ReadonlyArray<string> = ["false", "no"];
 
 /*
+ * The whitespace boolin skips around a literal - C's isspace: space, tab,
+ * newline, vertical tab, form feed and carriage return. Nothing else: a
+ * literal wrapped in a non-breaking space is refused by the database, so it
+ * is refused here too, never read as a switch.
+ */
+const SPACE_AROUND_LITERAL: RegExp = /^[ \t\n\v\f\r]+|[ \t\n\v\f\r]+$/g;
+
+/*
  * A value written to a boolean column as Postgres stores it: true and false
  * as they are, and a literal it reads as one of them - "true", "yes", "on",
  * "1" and their unique prefixes ("t", "y"), "false", "no", "off", "0" ("f",
@@ -78,7 +86,7 @@ export function toStoredBoolean(value: unknown): unknown {
     return value;
   }
 
-  const text: string = value.trim().toLowerCase();
+  const text: string = value.replace(SPACE_AROUND_LITERAL, "").toLowerCase();
 
   if (text.length === 0) {
     return value;

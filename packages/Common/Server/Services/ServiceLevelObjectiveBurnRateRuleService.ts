@@ -2126,12 +2126,12 @@ export class Service extends ProjectReferencesService<Model> {
   /*
    * A flag as the rule holds it: the boolean the database stores for what
    * was written (toStoredBoolean), or the default when nothing was - absent,
-   * blank, or null, which these NOT NULL columns cannot hold. DatabaseService
+   * or null, which these NOT NULL columns cannot hold. DatabaseService
    * already turns a write's Boolean columns into those booleans before any
-   * hook runs, and refuses a value the database would refuse, so `"false"`
-   * from the API arrives here as false; a row read back is read the same
-   * way. A rule that declares nothing is never mistaken for one that
-   * declares both.
+   * hook runs, and refuses a value the database would refuse - a blank, say
+   * - so `"false"` from the API arrives here as false; a row read back is
+   * read the same way. A rule that declares nothing is never mistaken for
+   * one that declares both.
    */
   private normalizeBooleanInput(
     value: unknown,

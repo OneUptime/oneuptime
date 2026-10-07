@@ -196,3 +196,81 @@ describe("ids, JSON and relations, as before", () => {
     expect(isChanged(TableColumnType.EntityArray, undefined, [ID])).toBe(true);
   });
 });
+
+describe("a many-to-many list written as null", () => {
+  const ID: string = "0193c0de-2222-4aaa-8bbb-000000000001";
+
+  function labelWith(id: string): Label {
+    const label: Label = new Label();
+    label._id = id;
+    return label;
+  }
+
+  test("empties it, as [] does: null over an empty list is not a change", () => {
+    expect(isChanged(TableColumnType.EntityArray, [], null)).toBe(false);
+    expect(isChanged(TableColumnType.EntityArray, [], [])).toBe(false);
+  });
+
+  test("null over a list that names rows takes them off: a change", () => {
+    expect(isChanged(TableColumnType.EntityArray, [labelWith(ID)], null)).toBe(
+      true,
+    );
+    expect(isChanged(TableColumnType.EntityArray, [labelWith(ID)], [])).toBe(
+      true,
+    );
+  });
+
+  test("a list the read did not load is not known, so writing one - even an empty one - is a change", () => {
+    expect(isChanged(TableColumnType.EntityArray, undefined, null)).toBe(true);
+    expect(isChanged(TableColumnType.EntityArray, undefined, [])).toBe(true);
+  });
+
+  test("a many-to-one reference cleared where there was none is not a change", () => {
+    expect(isChanged(TableColumnType.Entity, undefined, null)).toBe(false);
+    expect(isChanged(TableColumnType.Entity, null, null)).toBe(false);
+    expect(isChanged(TableColumnType.Entity, labelWith(ID), null)).toBe(true);
+  });
+});
+
+describe("ids in any case", () => {
+  const LOWER: string = "0193c0de-2222-4aaa-8bbb-00000000abcd";
+  const UPPER: string = "0193C0DE-2222-4AAA-8BBB-00000000ABCD";
+
+  test("the same uuid in capitals is the same id, as Postgres compares uuids", () => {
+    expect(isChanged(TableColumnType.ObjectID, new ObjectID(LOWER), UPPER)).toBe(
+      false,
+    );
+    expect(isChanged(TableColumnType.ObjectID, LOWER, new ObjectID(UPPER))).toBe(
+      false,
+    );
+  });
+
+  test("another uuid is still a change, and so is clearing one", () => {
+    expect(
+      isChanged(
+        TableColumnType.ObjectID,
+        new ObjectID(LOWER),
+        "0193c0de-2222-4aaa-8bbb-00000000abce",
+      ),
+    ).toBe(true);
+    expect(isChanged(TableColumnType.ObjectID, new ObjectID(LOWER), null)).toBe(
+      true,
+    );
+  });
+
+  test("text that is not an id keeps its case: a renamed title is a change", () => {
+    expect(isChanged(TableColumnType.ShortText, "checkout", "Checkout")).toBe(
+      true,
+    );
+  });
+});
+
+describe("a column of no known type", () => {
+  test("is compared by its text, with no value deliberately apart", () => {
+    expect(isChanged(undefined, 5, "5")).toBe(false);
+    expect(isChanged(undefined, 5, 6)).toBe(true);
+    expect(isChanged(undefined, null, undefined)).toBe(false);
+    expect(isChanged(undefined, false, false)).toBe(false);
+    expect(isChanged(null, "", null)).toBe(true);
+  });
+});

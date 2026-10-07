@@ -5,6 +5,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import logger from "../Utils/Logger";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import { toStoredBoolean } from "../../Types/Database/BooleanColumnValue";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -22,14 +23,16 @@ import {
 import Model from "../../Models/DatabaseModels/WorkflowVariable";
 
 /*
- * isSecret is declared `string` over a genuinely boolean column, so the value
- * that comes back is `true` from Postgres and can be the string "true" from a
- * request body. Read exactly the way RunWorkflow.getSecretWorkflowVariableValues
- * reads it, so what this service calls secret and what the run logs redact can
- * never disagree.
+ * isSecret is declared `string` over a genuinely boolean column. What comes
+ * back from Postgres is a boolean, and a write's value is one too by the time
+ * a hook reads it (DatabaseService turns every Boolean column of a write into
+ * the boolean the database stores, Types/Database/BooleanColumnValue), so a
+ * request's "true" or "yes" is true here. Read exactly the way the run logs'
+ * redaction reads it (getSecretWorkflowVariableValues), so what this service
+ * calls secret and what the run logs redact can never disagree.
  */
 function isSecretValue(value: unknown): boolean {
-  return value === true || value === "true";
+  return toStoredBoolean(value) === true;
 }
 
 /*

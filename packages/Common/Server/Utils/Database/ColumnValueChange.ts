@@ -21,7 +21,10 @@ import RelationValueUtil from "./RelationValueUtil";
  * - An SQL expression OneUptime writes itself (a function) is worked out by
  *   the database, so it is never known to leave the column as it is.
  * - A relation is the set of rows it names, whatever shape each is spelled
- *   in (RelationValueUtil); one that names none falls through to below.
+ *   in (RelationValueUtil); one that names none falls through to below. A
+ *   many-to-many list written as null is emptied, as [] empties it (TypeORM
+ *   writes either as no rows), so null over an empty list changes nothing;
+ *   a list the read did not load is not known, so writing one is a change.
  * - No value is no value: null, or a column the read did not load. Two of
  *   those are the same, and no value is not the same as any value - a switch
  *   set to null where it was off has changed what the database holds, and so
@@ -33,6 +36,7 @@ import RelationValueUtil from "./RelationValueUtil";
  *   by hand is false too.
  * - A time as the instant it names, to the millisecond: the same instant sent
  *   as a Date or as an ISO string in another time zone is the same time.
+ * - An id in any case, as Postgres compares uuids.
  * - Anything else by its text, so an id and its ObjectID are the same value.
  */
 export default class ColumnValueChange {
@@ -54,10 +58,26 @@ export default class ColumnValueChange {
       return true;
     }
 
-    if (
-      data.columnType === TableColumnType.Entity ||
-      data.columnType === TableColumnType.EntityArray
-    ) {
+    if (data.columnType === TableColumnType.EntityArray) {
+      /*
+       * A list the read did not load holds rows nobody here knows of, so
+       * writing one counts as a change: a real change is never missed.
+       */
+      if (stored === undefined) {
+        return true;
+      }
+
+      const sameRows: boolean | null = RelationValueUtil.haveSameRelationIds(
+        this.toRelationList(stored),
+        this.toRelationList(written),
+      );
+
+      if (sameRows !== null) {
+        return !sameRows;
+      }
+    }
+
+    if (data.columnType === TableColumnType.Entity) {
       const sameRelationIds: boolean | null =
         RelationValueUtil.haveSameRelationIds(stored, written);
 
@@ -98,11 +118,24 @@ export default class ColumnValueChange {
       }
     }
 
+    // A uuid in any case is the same uuid, as Postgres compares them.
+    if (data.columnType === TableColumnType.ObjectID) {
+      return String(stored).toLowerCase() !== String(written).toLowerCase();
+    }
+
     /*
      * `toString()` so a wrapped value (an ObjectID) and its raw form (a
      * string) compare as the value they are.
      */
     return String(stored) !== String(written);
+  }
+
+  /*
+   * A many-to-many value as the rows it writes or holds: null as no rows,
+   * which is how TypeORM writes a list set to null.
+   */
+  private static toRelationList(value: unknown): unknown {
+    return value === null ? [] : value;
   }
 
   /*
