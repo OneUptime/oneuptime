@@ -6,9 +6,10 @@ import { FindOperator } from "typeorm";
 /*
  * The conditions a grant limited to labels, and an Owned grant on a record
  * that may name no owner, add to a query (ReadPermission
- * .addLabelGrantToQuery, OwnedScopePermission). They are the mirrors of the
- * block's conditions: a block leaves out what is linked to a blocked label,
- * a grant keeps only what is linked to a granted one.
+ * .addLabelGrantToQuery, OwnedScopePermission). A record with no labels of
+ * its own carries those of every record it names: a grant keeps it when
+ * one of them is linked to a granted label, as a block leaves it out when
+ * one of them is linked to a blocked one.
  *
  * Identifiers are written into the SQL, quoted; the label and record ids
  * are bound, never written. An empty list fails closed: it keeps only the
@@ -38,30 +39,43 @@ const boundValues: (operator: RawOperator) => Array<string> = (
 const labelA: string = ObjectID.generate().toString();
 const labelB: string = ObjectID.generate().toString();
 
-describe("QueryHelper.linkedToAnyInAnyManyToMany", () => {
-  test("keeps a key that is empty or names a record linked to a granted label, over every join table", () => {
+describe("QueryHelper.namesNothingOrOneLinkedToAny", () => {
+  const serviceLabels: {
+    joinTableName: string;
+    ownerColumnName: string;
+    relationColumnName: string;
+  } = {
+    joinTableName: "ServiceLabel",
+    ownerColumnName: "serviceId",
+    relationColumnName: "labelId",
+  };
+
+  const hostLabels: {
+    joinTableName: string;
+    ownerColumnName: string;
+    relationColumnName: string;
+  } = {
+    joinTableName: "HostLabel",
+    ownerColumnName: "hostId",
+    relationColumnName: "labelId",
+  };
+
+  test("keeps a record whose key is empty, or names a record linked to a granted label, over every join table", () => {
     const operator: RawOperator = asRaw(
-      QueryHelper.linkedToAnyInAnyManyToMany({
+      QueryHelper.namesNothingOrOneLinkedToAny({
         values: [labelA, new ObjectID(labelB)],
-        joinTables: [
-          {
-            joinTableName: "ServiceLabel",
-            ownerColumnName: "serviceId",
-            relationColumnName: "labelId",
-          },
-          {
-            joinTableName: "HostLabel",
-            ownerColumnName: "hostId",
-            relationColumnName: "labelId",
-          },
+        keys: [
+          { columnName: "resourceId", joinTables: [serviceLabels, hostLabels] },
         ],
+        parents: [],
       }),
     );
 
-    const sql: string = operator.getSql('"Item"."resourceId"');
+    // TypeORM hands a condition the unescaped `Alias.property`.
+    const sql: string = operator.getSql("Item._id");
 
     expect(sql).toMatch(
-      /^\("Item"\."resourceId" IS NULL OR "Item"\."resourceId" IN \(/,
+      /^\(\("Item"\."resourceId" IS NULL\) OR "Item"\."resourceId" IN \(/,
     );
     expect(sql).toContain(
       'SELECT "ServiceLabel"."serviceId" FROM "ServiceLabel" WHERE "ServiceLabel"."labelId" IN (:...',
@@ -77,102 +91,138 @@ describe("QueryHelper.linkedToAnyInAnyManyToMany", () => {
     expect(sql).not.toContain(labelB);
   });
 
-  test.each([
-    ["no labels", [], ["ServiceLabel"]],
-    ["no join tables", [labelA], []],
-  ] as Array<[string, Array<string>, Array<string>]>)(
-    "with %s keeps only the rows whose key is empty",
-    (_label: string, values: Array<string>, tables: Array<string>) => {
-      const operator: RawOperator = asRaw(
-        QueryHelper.linkedToAnyInAnyManyToMany({
-          values: values,
-          joinTables: tables.map(
-            (
-              table: string,
-            ): {
-              joinTableName: string;
-              ownerColumnName: string;
-              relationColumnName: string;
-            } => {
-              return {
-                joinTableName: table,
-                ownerColumnName: "serviceId",
-                relationColumnName: "labelId",
-              };
-            },
-          ),
-        }),
-      );
-
-      expect(operator.getSql("key")).toBe("(key IS NULL)");
-    },
-  );
-
-  test("quotes the identifiers it writes", () => {
+  test("a record naming several records is kept through any one of them, and while it names none", () => {
     const operator: RawOperator = asRaw(
-      QueryHelper.linkedToAnyInAnyManyToMany({
+      QueryHelper.namesNothingOrOneLinkedToAny({
         values: [labelA],
-        joinTables: [
+        keys: [
           {
-            joinTableName: 'Odd"Table',
-            ownerColumnName: 'owner"Id',
-            relationColumnName: 'label"Id',
+            columnName: "incidentId",
+            joinTables: [
+              {
+                joinTableName: "IncidentLabel",
+                ownerColumnName: "incidentId",
+                relationColumnName: "labelId",
+              },
+            ],
+          },
+          {
+            columnName: "alertId",
+            joinTables: [
+              {
+                joinTableName: "AlertLabel",
+                ownerColumnName: "alertId",
+                relationColumnName: "labelId",
+              },
+            ],
+          },
+        ],
+        parents: [],
+      }),
+    );
+
+    const sql: string = operator.getSql("Decision._id");
+
+    expect(
+      sql.startsWith(
+        '(("Decision"."incidentId" IS NULL AND "Decision"."alertId" IS NULL) OR ',
+      ),
+    ).toBe(true);
+    expect(sql).toContain(
+      ' OR "Decision"."incidentId" IN (SELECT "IncidentLabel"."incidentId"',
+    );
+    expect(sql).toContain(
+      ' OR "Decision"."alertId" IN (SELECT "AlertLabel"."alertId"',
+    );
+    expect(boundValues(operator)).toEqual([labelA]);
+  });
+
+  test("a record on parents through a join table is kept while one of them carries a granted label, or while it is on none", () => {
+    const operator: RawOperator = asRaw(
+      QueryHelper.namesNothingOrOneLinkedToAny({
+        values: [labelA, labelB],
+        keys: [],
+        parents: [
+          {
+            parentJoinTableName: "AnnouncementStatusPage",
+            parentOwnerColumnName: "announcementId",
+            parentRelationColumnName: "statusPageId",
+            joinTableName: "StatusPageLabel",
+            ownerColumnName: "statusPageId",
+            relationColumnName: "labelId",
           },
         ],
       }),
     );
 
-    expect(operator.getSql("key")).toContain(
-      'SELECT "Odd""Table"."owner""Id" FROM "Odd""Table" WHERE "Odd""Table"."label""Id" IN',
-    );
-  });
-});
+    const rid: string = Object.keys(operator.objectLiteralParameters)[0]!;
 
-describe("QueryHelper.everyParentLinkedToAnyInManyToMany", () => {
-  const parents: {
-    parentJoinTableName: string;
-    parentOwnerColumnName: string;
-    parentRelationColumnName: string;
-    joinTableName: string;
-    ownerColumnName: string;
-    relationColumnName: string;
-  } = {
-    parentJoinTableName: "AnnouncementStatusPage",
-    parentOwnerColumnName: "announcementId",
-    parentRelationColumnName: "statusPageId",
-    joinTableName: "StatusPageLabel",
-    ownerColumnName: "statusPageId",
-    relationColumnName: "labelId",
-  };
-
-  test("leaves out a record that belongs to any parent without a granted label", () => {
-    const operator: RawOperator = asRaw(
-      QueryHelper.everyParentLinkedToAnyInManyToMany({
-        values: [labelA, labelB],
-        ...parents,
-      }),
-    );
-
-    expect(operator.getSql('"Announcement"."_id"')).toBe(
-      `("Announcement"."_id" NOT IN (SELECT "AnnouncementStatusPage"."announcementId" FROM "AnnouncementStatusPage" WHERE "AnnouncementStatusPage"."statusPageId" NOT IN (SELECT "StatusPageLabel"."statusPageId" FROM "StatusPageLabel" WHERE "StatusPageLabel"."labelId" IN (:...${
-        Object.keys(operator.objectLiteralParameters)[0]
-      }))))`,
+    expect(operator.getSql("Announcement._id")).toBe(
+      `((NOT EXISTS (SELECT 1 FROM "AnnouncementStatusPage" WHERE "AnnouncementStatusPage"."announcementId" = Announcement._id)) OR EXISTS (SELECT 1 FROM "AnnouncementStatusPage" WHERE "AnnouncementStatusPage"."announcementId" = Announcement._id AND "AnnouncementStatusPage"."statusPageId" IN (SELECT "StatusPageLabel"."statusPageId" FROM "StatusPageLabel" WHERE "StatusPageLabel"."labelId" IN (:...${rid}))))`,
     );
     expect(boundValues(operator).sort()).toEqual([labelA, labelB].sort());
   });
 
-  test("with no labels keeps only the records that belong to no parent", () => {
+  test("with no labels keeps only the records that name nothing", () => {
     const operator: RawOperator = asRaw(
-      QueryHelper.everyParentLinkedToAnyInManyToMany({
+      QueryHelper.namesNothingOrOneLinkedToAny({
         values: [],
-        ...parents,
+        keys: [{ columnName: "resourceId", joinTables: [serviceLabels] }],
+        parents: [],
       }),
     );
 
-    expect(operator.getSql("record._id")).toBe(
-      '(record._id NOT IN (SELECT "AnnouncementStatusPage"."announcementId" FROM "AnnouncementStatusPage" WHERE "AnnouncementStatusPage"."announcementId" IS NOT NULL))',
-    );
+    expect(operator.getSql("Item._id")).toBe('(("Item"."resourceId" IS NULL))');
     expect(boundValues(operator)).toEqual([]);
+  });
+
+  test.each([
+    ["an unescaped alias", "Item._id", '"Item"."resourceId"'],
+    ["an escaped alias", '"Item"."_id"', '"Item"."resourceId"'],
+    ["a bare column, as an update names it", "_id", '"resourceId"'],
+  ])(
+    "writes the key beside the id under %s",
+    (_label: string, alias: string, key: string) => {
+      const operator: RawOperator = asRaw(
+        QueryHelper.namesNothingOrOneLinkedToAny({
+          values: [labelA],
+          keys: [{ columnName: "resourceId", joinTables: [serviceLabels] }],
+          parents: [],
+        }),
+      );
+
+      expect(
+        operator.getSql(alias).startsWith(`((${key} IS NULL) OR ${key} IN (`),
+      ).toBe(true);
+    },
+  );
+
+  test("quotes the identifiers it writes", () => {
+    const operator: RawOperator = asRaw(
+      QueryHelper.namesNothingOrOneLinkedToAny({
+        values: [labelA],
+        keys: [
+          {
+            columnName: 'resource"Id',
+            joinTables: [
+              {
+                joinTableName: 'Odd"Table',
+                ownerColumnName: 'owner"Id',
+                relationColumnName: 'label"Id',
+              },
+            ],
+          },
+        ],
+        parents: [],
+      }),
+    );
+
+    const sql: string = operator.getSql("Item._id");
+
+    expect(sql).toContain('"Item"."resource""Id" IS NULL');
+    expect(sql).toContain(
+      'SELECT "Odd""Table"."owner""Id" FROM "Odd""Table" WHERE "Odd""Table"."label""Id" IN',
+    );
   });
 });
 

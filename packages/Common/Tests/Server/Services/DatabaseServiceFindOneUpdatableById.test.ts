@@ -99,6 +99,8 @@ function caller(data: {
 function monitorRow(labels: Array<ObjectID> = []): Monitor {
   const monitor: Monitor = new Monitor();
   monitor._id = MONITOR_ID.toString();
+  // Read with its project, as the label lookup selects it.
+  monitor.projectId = PROJECT_ID;
   monitor.name = "API";
   monitor.labels = labels.map((labelId: ObjectID): Label => {
     const label: Label = new Label();

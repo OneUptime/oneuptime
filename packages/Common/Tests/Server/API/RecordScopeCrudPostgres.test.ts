@@ -16,6 +16,7 @@ import Response from "../../../Server/Utils/Response";
 import AIInsight from "../../../Models/DatabaseModels/AIInsight";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertInternalNote from "../../../Models/DatabaseModels/AlertInternalNote";
+import AutoRemediationDecision from "../../../Models/DatabaseModels/AutoRemediationDecision";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Entities from "../../../Models/DatabaseModels/Index";
 import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
@@ -160,6 +161,8 @@ const TABLES: Array<string> = [
   "StatusPageAnnouncement",
   "AnnouncementStatusPage",
   "InventoryItem",
+  "IncidentLabel",
+  "AutoRemediationDecision",
 ];
 
 interface PermissionRow {
@@ -235,6 +238,10 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
     InventoryItem,
     new DatabaseService(InventoryItem) as DatabaseService<BaseModel>,
   );
+  new BaseAPI(
+    AutoRemediationDecision,
+    new DatabaseService(AutoRemediationDecision) as DatabaseService<BaseModel>,
+  );
 
   // The signed-in member: in the home project and the second project.
   const memberId: ObjectID = ObjectID.generate();
@@ -287,6 +294,20 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
   const productionItemId: ObjectID = ObjectID.generate();
   const stagingItemId: ObjectID = ObjectID.generate();
   const unnamedItemId: ObjectID = ObjectID.generate();
+
+  /*
+   * Incidents known only by their labels (the incident table is not read
+   * here), and remediation decisions naming an incident, an alert, both or
+   * neither.
+   */
+  const productionIncidentId: ObjectID = ObjectID.generate();
+  const stagingIncidentId: ObjectID = ObjectID.generate();
+  const unlabelledIncidentId: ObjectID = ObjectID.generate();
+  const productionIncidentStagingAlertDecisionId: ObjectID =
+    ObjectID.generate();
+  const stagingIncidentDecisionId: ObjectID = ObjectID.generate();
+  const unlabelledRecordsDecisionId: ObjectID = ObjectID.generate();
+  const unnamedDecisionId: ObjectID = ObjectID.generate();
 
   const productionInsightId: ObjectID = ObjectID.generate();
   const stagingInsightId: ObjectID = ObjectID.generate();
@@ -1131,6 +1152,36 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
         entityKey: itemId.toString(),
         resourceType: resourceId ? "Service" : null,
         resourceId: resourceId,
+        version: 1,
+      });
+    }
+
+    for (const [incidentId, labelId] of [
+      [productionIncidentId, productionLabelId],
+      [stagingIncidentId, stagingLabelId],
+    ] as Array<[ObjectID, ObjectID]>) {
+      await insert("IncidentLabel", {
+        incidentId: incidentId,
+        labelId: labelId,
+      });
+    }
+
+    for (const [decisionId, incidentId, alertId] of [
+      [
+        productionIncidentStagingAlertDecisionId,
+        productionIncidentId,
+        stagingAlertId,
+      ],
+      [stagingIncidentDecisionId, stagingIncidentId, null],
+      [unlabelledRecordsDecisionId, unlabelledIncidentId, unlabelledAlertId],
+      [unnamedDecisionId, null, null],
+    ] as Array<[ObjectID, ObjectID | null, ObjectID | null]>) {
+      await insert("AutoRemediationDecision", {
+        _id: decisionId,
+        projectId: homeProjectId,
+        incidentId: incidentId,
+        alertId: alertId,
+        stage: "Evaluated",
         version: 1,
       });
     }
@@ -2059,15 +2110,39 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
 
       expectRefused(await list("/alert", acrossProjects));
     });
+
+    test("a block in the project the request names leaves out that project's records only", async () => {
+      await setTeamPermissions(homeTeamId, homeProjectId, [
+        { permission: Permission.AlertMember },
+        { permission: Permission.ReadAlert, isBlock: true },
+      ]);
+      await setTeamPermissions(secondTeamId, secondProjectId, [
+        { permission: Permission.AlertMember },
+      ]);
+
+      // The home page asks across projects with the project in view named.
+      const listed: Outcome = await list("/alert", {
+        kind: "user",
+        tenantId: homeProjectId,
+        isMultiTenant: true,
+      });
+
+      expect(listed.error).toBeUndefined();
+      expect(listed.ids).toEqual(
+        sorted([secondProductionAlertId, secondUnlabelledAlertId]),
+      );
+      expect(listed.count).toBe(2);
+    });
   });
 
   /*
    * RECORDS THAT CARRY THE LABELS OF THE RECORDS THEY NAME, as the database
    * weighs them: an announcement those of every status page it is shown
    * on, an inventory item those of the resource its id names, whatever kind
-   * of resource that is. A block leaves out a record when one of them
-   * carries a blocked label; a grant limited to labels keeps it only when
-   * every one of them carries a granted label.
+   * of resource that is, a remediation decision those of its incident and
+   * its alert. A block leaves out a record when one of them carries a
+   * blocked label; a grant limited to labels reaches it when one of them
+   * carries a granted label, and a record that names none of them stays.
    */
   describe("records that carry the labels of the records they name", () => {
     test.each([
@@ -2101,7 +2176,8 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
             labelIds: [productionLabelId],
           },
         ],
-        [productionAnnouncementId],
+        // Shown on a production page, whatever else it is shown on.
+        [productionAnnouncementId, bothPagesAnnouncementId],
       ],
       [
         "a grant limited to labels and a block with labels",
@@ -2180,6 +2256,109 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
         expect(listed.error).toBeUndefined();
         expect(listed.ids).toEqual(sorted(expected));
         expect(listed.count).toBe(expected.length);
+      },
+    );
+    test.each([
+      [
+        "a grant over the project",
+        [{ permission: Permission.ProjectMember }],
+        [
+          productionIncidentStagingAlertDecisionId,
+          stagingIncidentDecisionId,
+          unlabelledRecordsDecisionId,
+          unnamedDecisionId,
+        ],
+      ],
+      [
+        "a grant limited to the incident's label",
+        [
+          {
+            permission: Permission.ProjectMember,
+            labelIds: [productionLabelId],
+          },
+        ],
+        [productionIncidentStagingAlertDecisionId, unnamedDecisionId],
+      ],
+      [
+        "a grant limited to the alert's label",
+        [
+          {
+            permission: Permission.ProjectMember,
+            labelIds: [stagingLabelId],
+          },
+        ],
+        [
+          productionIncidentStagingAlertDecisionId,
+          stagingIncidentDecisionId,
+          unnamedDecisionId,
+        ],
+      ],
+      [
+        "a block with the incident's label",
+        [
+          { permission: Permission.ProjectMember },
+          {
+            permission: Permission.ProjectMember,
+            labelIds: [productionLabelId],
+            isBlock: true,
+          },
+        ],
+        [
+          stagingIncidentDecisionId,
+          unlabelledRecordsDecisionId,
+          unnamedDecisionId,
+        ],
+      ],
+      [
+        "a block with the alert's label",
+        [
+          { permission: Permission.ProjectMember },
+          {
+            permission: Permission.ProjectMember,
+            labelIds: [stagingLabelId],
+            isBlock: true,
+          },
+        ],
+        [unlabelledRecordsDecisionId, unnamedDecisionId],
+      ],
+    ] as Array<[string, Array<PermissionRow>, Array<ObjectID>]>)(
+      "remediation decisions naming an incident and an alert, under %s",
+      async (
+        _label: string,
+        rows: Array<PermissionRow>,
+        expected: Array<ObjectID>,
+      ) => {
+        await setTeamPermissions(homeTeamId, homeProjectId, rows);
+
+        const listed: Outcome = await list(
+          "/auto-remediation-decision",
+          homeUser,
+        );
+
+        expect(listed.error).toBeUndefined();
+        expect(listed.ids).toEqual(sorted(expected));
+        expect(listed.count).toBe(expected.length);
+
+        // Read one by one, as listed.
+        for (const id of [
+          productionIncidentStagingAlertDecisionId,
+          stagingIncidentDecisionId,
+          unlabelledRecordsDecisionId,
+          unnamedDecisionId,
+        ]) {
+          const read: Outcome = await getItem(
+            "/auto-remediation-decision",
+            homeUser,
+            id,
+          );
+
+          expect([id.toString(), Boolean(read.item)]).toEqual([
+            id.toString(),
+            expected.some((expectedId: ObjectID): boolean => {
+              return expectedId.toString() === id.toString();
+            }),
+          ]);
+        }
       },
     );
   });

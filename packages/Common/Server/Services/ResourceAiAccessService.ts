@@ -1325,6 +1325,12 @@ export class ResourceAiAccessServiceClass {
     const accessControlColumn: string | null = service
       .getModel()
       .getAccessControlColumn();
+    const tenantColumn: string | null = service.getModel().getTenantColumn();
+
+    // Whose row it is, for the update check below to see too.
+    if (tenantColumn) {
+      (select as Record<string, unknown>)[tenantColumn] = true;
+    }
 
     if (accessControlColumn) {
       (select as Record<string, unknown>)[accessControlColumn] = {

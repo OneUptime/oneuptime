@@ -60,6 +60,8 @@ export default class AlertStateChangeAuthorization {
       query: alertQuery,
       select: {
         _id: true,
+        // Whose alert it is, for the checks below to see too.
+        projectId: true,
         labels: {
           _id: true,
           name: true,

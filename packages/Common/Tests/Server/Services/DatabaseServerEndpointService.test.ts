@@ -395,8 +395,83 @@ interface FakeDatabase {
   labelIds: Array<string>;
 }
 
+/*
+ * A condition the label rule puts on an endpoint's id
+ * (ReadPermission.addLabelGrantToQuery): a subquery over the label join
+ * tables of the records the endpoint names. The database evaluates it, so
+ * the fake does, from the endpoint's database (labelRuleKeeps); it names
+ * no ids of its own.
+ */
+function isLabelRuleCondition(value: unknown): boolean {
+  const operator: any = value;
+
+  return (
+    operator?._type === "raw" &&
+    typeof operator.getSql === "function" &&
+    String(operator.getSql("DatabaseServerEndpoint._id")).includes("SELECT")
+  );
+}
+
+// The label rule's conditions on an endpoint's id, wherever they are.
+function labelRuleConditionsOf(value: unknown): Array<any> {
+  const operator: any = value;
+
+  if (isLabelRuleCondition(operator)) {
+    return [operator];
+  }
+
+  if (operator?._type === "and" && Array.isArray(operator._value)) {
+    return operator._value.flatMap((child: unknown): Array<any> => {
+      return labelRuleConditionsOf(child);
+    });
+  }
+
+  return [];
+}
+
+/*
+ * Whether a grant's condition keeps `endpoint`: it names no database, or
+ * its database carries one of the labels the condition is bound to.
+ */
+function labelRuleKeeps(
+  endpoint: DatabaseServerEndpoint,
+  condition: any,
+  databases: Array<FakeDatabase>,
+): boolean {
+  if (!endpoint.databaseServerId) {
+    return true;
+  }
+
+  const labelIds: Array<string> = Object.values(
+    condition._objectLiteralParameters || condition.objectLiteralParameters,
+  )
+    .flat()
+    .map((labelId: unknown): string => {
+      return String(labelId).toLowerCase();
+    });
+
+  const database: FakeDatabase | undefined = databases.find(
+    (candidate: FakeDatabase): boolean => {
+      return (
+        candidate.row.id!.toString() === endpoint.databaseServerId!.toString()
+      );
+    },
+  );
+
+  return Boolean(
+    database &&
+      database.labelIds.some((labelId: string): boolean => {
+        return labelIds.includes(labelId.toLowerCase());
+      }),
+  );
+}
+
 function operatorValues(value: unknown): Array<string> | null {
   if (value === undefined || value === null) {
+    return null;
+  }
+
+  if (isLabelRuleCondition(value)) {
     return null;
   }
 
@@ -1446,7 +1521,12 @@ describe("DatabaseServerEndpointService - removing endpoints", () => {
         );
         return (
           (!ids || ids.includes(endpoint.id!.toString())) &&
-          (!projects || projects.includes(endpoint.projectId!.toString()))
+          (!projects || projects.includes(endpoint.projectId!.toString())) &&
+          labelRuleConditionsOf(input.query._id).every(
+            (condition: any): boolean => {
+              return labelRuleKeeps(endpoint, condition, databases);
+            },
+          )
         );
       });
     });
@@ -1546,28 +1626,25 @@ describe("DatabaseServerEndpointService - removing endpoints", () => {
       expect(repositoryDelete).toHaveBeenCalledTimes(1);
     });
 
-    test("an editor scoped to label A cannot remove an alias of a database labelled only B", async () => {
+    /*
+     * An endpoint carries the labels of its database: a grant limited to
+     * label A reaches the endpoints of databases labelled A only, so the
+     * others are not among the rows a delete finds.
+     */
+    test("an editor scoped to label A does not reach an alias of a database labelled only B", async () => {
       addDatabase({ id: OTHER_DATABASE_ID, labelIds: [LABEL_TEAM_B] });
       const alias: DatabaseServerEndpoint = addEndpoint({
         databaseServerId: OTHER_DATABASE_ID,
         endpoint: "payments-db.example.com:5432",
       });
 
-      const error: unknown = await removeEndpoint(
-        alias,
-        labelScopedEditorProps(LABEL_TEAM_A),
-      ).catch((e: unknown) => {
-        return e;
-      });
-
-      expect(error).toBeInstanceOf(NotAuthorizedException);
-      expect((error as Error).message).toBe(
-        "Database not found, or you do not have permission to edit it. Removing an endpoint from a database needs permission to edit that database.",
-      );
+      await expect(
+        removeEndpoint(alias, labelScopedEditorProps(LABEL_TEAM_A)),
+      ).resolves.toBe(0);
       expect(repositoryDelete).not.toHaveBeenCalled();
     });
 
-    test("another team's PRIMARY endpoint is refused as not editable - its endpoint is not echoed", async () => {
+    test("another team's PRIMARY endpoint is not reached - nothing is removed or echoed", async () => {
       addDatabase({ id: OTHER_DATABASE_ID, labelIds: [LABEL_TEAM_B] });
       const primary: DatabaseServerEndpoint = addEndpoint({
         databaseServerId: OTHER_DATABASE_ID,
@@ -1575,15 +1652,16 @@ describe("DatabaseServerEndpointService - removing endpoints", () => {
         isPrimary: true,
       });
 
-      const error: unknown = await removeEndpoint(
+      const outcome: unknown = await removeEndpoint(
         primary,
         labelScopedEditorProps(LABEL_TEAM_A),
       ).catch((e: unknown) => {
         return e;
       });
 
-      expect(error).toBeInstanceOf(NotAuthorizedException);
-      expect((error as Error).message).not.toContain("payments-db");
+      expect(outcome).toBe(0);
+      expect(String(outcome)).not.toContain("payments-db");
+      expect(repositoryDelete).not.toHaveBeenCalled();
     });
 
     test("an unlabelled database is outside a label-scoped editor's reach", async () => {
@@ -1595,7 +1673,7 @@ describe("DatabaseServerEndpointService - removing endpoints", () => {
 
       await expect(
         removeEndpoint(alias, labelScopedEditorProps(LABEL_TEAM_A)),
-      ).rejects.toThrow("Database not found, or you do not have permission");
+      ).resolves.toBe(0);
       expect(repositoryDelete).not.toHaveBeenCalled();
     });
 

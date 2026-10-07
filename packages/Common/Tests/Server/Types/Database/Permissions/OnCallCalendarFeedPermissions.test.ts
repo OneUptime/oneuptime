@@ -402,24 +402,24 @@ describe("shared calendar feeds: the real permission gate", () => {
         labels: [permittedLabelId],
       });
 
-      /*
-       * The schedule asked for, and - the label rule on a record with no
-       * labels of its own - only while that schedule carries one of the
-       * labels the grant is limited to.
-       */
+      // The schedule asked for, on its key.
       const scheduleKey: FindOperator<string> = result.query
         .onCallDutyPolicyScheduleId as unknown as FindOperator<string>;
-      expect(scheduleKey.type).toBe("and");
-
-      const [askedFor, labelGrant]: Array<FindOperator<string>> =
-        scheduleKey.value as unknown as Array<FindOperator<string>>;
-      expect(Object.values(askedFor!.objectLiteralParameters || {})).toEqual([
+      expect(Object.values(scheduleKey.objectLiteralParameters || {})).toEqual([
         scheduleId.toString(),
       ]);
-      expect(labelGrant!.getSql!("key")).toContain(
-        'key IN (SELECT "OnCallDutyPolicyScheduleLabel"',
+
+      /*
+       * The label rule on a record with no labels of its own, on its id:
+       * kept only while the schedule it names carries one of the labels the
+       * grant is limited to.
+       */
+      const labelGrant: FindOperator<string> = result.query
+        ._id as unknown as FindOperator<string>;
+      expect(labelGrant.getSql!("Feed._id")).toContain(
+        '"Feed"."onCallDutyPolicyScheduleId" IN (SELECT "OnCallDutyPolicyScheduleLabel"',
       );
-      expect(Object.values(labelGrant!.objectLiteralParameters || {})).toEqual([
+      expect(Object.values(labelGrant.objectLiteralParameters || {})).toEqual([
         [permittedLabelId.toString()],
       ]);
       expect(result.select).toEqual(scheduleStatusSelect);

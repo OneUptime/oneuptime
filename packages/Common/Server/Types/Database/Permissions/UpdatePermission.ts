@@ -27,6 +27,14 @@ export default class UpdatePermission {
     props: DatabaseCommonInteractionProps;
     updateData?: unknown;
   }): Promise<void> {
+    // Both checks weigh the same record: it is read once.
+    data = {
+      ...data,
+      fetchModelWithAccessControlIds: AccessControlUtil.fetchOnce(
+        data.fetchModelWithAccessControlIds,
+      ),
+    };
+
     await AccessControlUtil.checkAccessControlBlockPermissionByModel<TBaseModel>(
       { ...data, type: DatabaseRequestType.Update },
     );

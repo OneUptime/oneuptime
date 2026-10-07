@@ -139,10 +139,11 @@ function createLabel(name: string): Label {
   return label;
 }
 
-// A row as the helper's first (root) read returns it: _id plus labels.
+// A row as the helper's first (root) read returns it: _id, project, labels.
 function createAlertRow(alertId: ObjectID, labels: Array<Label> = []): Alert {
   const alert: Alert = new Alert();
   alert.id = alertId;
+  alert.projectId = projectId;
   alert.labels = labels;
   return alert;
 }
@@ -488,10 +489,14 @@ describe("AlertStateChangeAuthorization.assertCanChangeStateOfAlerts", (): void 
 
       expect(findBySpy).toHaveBeenCalledTimes(2);
 
-      // Read 1: the alerts and their labels, as root, bounded per project.
+      /*
+       * Read 1: the alerts, whose they are and their labels, as root,
+       * bounded per project.
+       */
       const firstRead: FindByArgument = getFindByArgument(findBySpy, 0);
       expect(firstRead.select).toEqual({
         _id: true,
+        projectId: true,
         labels: {
           _id: true,
           name: true,

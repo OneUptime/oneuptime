@@ -145,9 +145,7 @@ export default class OwnedScopePermission {
       (query as any)[fkColumn] = combineWithPrivacyClause(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (query as any)[fkColumn],
-        allowedIds.length === 0
-          ? QueryHelper.isNull()
-          : QueryHelper.inOrNull(allowedIds),
+        QueryHelper.inOrNull(allowedIds),
       );
     } else if (model.ownedThrough) {
       /*

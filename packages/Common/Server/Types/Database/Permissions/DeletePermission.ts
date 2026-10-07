@@ -19,6 +19,14 @@ export default class DeletePermission {
     modelType: { new (): TBaseModel };
     props: DatabaseCommonInteractionProps;
   }): Promise<void> {
+    // Both checks weigh the same record: it is read once.
+    data = {
+      ...data,
+      fetchModelWithAccessControlIds: AccessControlUtil.fetchOnce(
+        data.fetchModelWithAccessControlIds,
+      ),
+    };
+
     // check block permission first
     await AccessControlUtil.checkAccessControlBlockPermissionByModel<TBaseModel>(
       { ...data, type: DatabaseRequestType.Delete },

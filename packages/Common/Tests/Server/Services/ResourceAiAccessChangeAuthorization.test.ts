@@ -57,6 +57,8 @@ function label(id: ObjectID, name: string): Label {
 function server(labels: Array<Label>): DatabaseServer {
   const model: DatabaseServer = new DatabaseServer();
   model.id = SERVER_ID;
+  // Read with its project, as the service selects it.
+  model.projectId = PROJECT_ID;
   model.labels = labels;
   return model;
 }

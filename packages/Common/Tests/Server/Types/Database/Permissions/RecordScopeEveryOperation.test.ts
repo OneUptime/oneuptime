@@ -396,16 +396,21 @@ describe("the record rule on every operation", () => {
             operation,
           );
 
-        const sql: string = sqlOf(query.incidentId, "note.incidentId");
+        /*
+         * One condition on the note's id, over every record it names: it
+         * stays when it names none, or when its incident carries a label.
+         */
+        const sql: string = sqlOf(query._id, "note._id");
 
-        // A note names one incident: it stays when that one carries a label.
-        expect(sql).toContain("note.incidentId IS NULL OR note.incidentId IN");
+        expect(sql).toContain('("note"."incidentId" IS NULL)');
         expect(sql).toContain(
-          'SELECT "IncidentLabel"."incidentId" FROM "IncidentLabel"',
+          'OR "note"."incidentId" IN (SELECT "IncidentLabel"."incidentId" FROM "IncidentLabel"',
         );
-        expect(valuesOf(query.incidentId).sort()).toEqual(
+        expect(valuesOf(query._id).sort()).toEqual(
           [productionLabelId.toString(), stagingLabelId.toString()].sort(),
         );
+        // The key itself is left as the caller named it: not at all.
+        expect(query.incidentId).toBeUndefined();
 
         // And the incident it is read through carries one of them.
         expect(
@@ -439,7 +444,33 @@ describe("the record rule on every operation", () => {
           );
 
         expect(query.incidentId).toBeUndefined();
+        expect(query._id).toBeUndefined();
       }
+    });
+
+    test("a grant limited to labels keeps the caller's own filter on the id next to the rule", async () => {
+      const noteId: string = ObjectID.generate().toString();
+
+      const query: Query<IncidentInternalNote> =
+        await BasePermission.addRecordScopeToQuery(
+          IncidentInternalNote,
+          { _id: noteId } as Query<IncidentInternalNote>,
+          null,
+          member([
+            row(Permission.IncidentMember, {
+              labelIds: [productionLabelId],
+              scope: PermissionScope.Labels,
+            }),
+          ]),
+          DatabaseRequestType.Delete,
+        );
+
+      expect((query._id as unknown as FindOperator<unknown>).type).toBe("and");
+      expect(sqlOf(query._id, "note._id")).toContain(`note._id = '${noteId}'`);
+      expect(valuesOf(query._id)).toEqual([
+        noteId,
+        productionLabelId.toString(),
+      ]);
     });
 
     test("keeps the caller's own filter on the key next to the rule", async () => {
@@ -914,8 +945,8 @@ describe("the record rule on every operation", () => {
       );
       await expect(check(true)).resolves.toBeUndefined();
 
-      expect(sqlOf(asked[0]!.incidentId, "note.incidentId")).toContain(
-        "note.incidentId IS NULL OR note.incidentId IN",
+      expect(sqlOf(asked[0]!._id, "note._id")).toContain(
+        'OR "note"."incidentId" IN (SELECT "IncidentLabel"."incidentId"',
       );
     });
 

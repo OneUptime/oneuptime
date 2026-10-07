@@ -1546,7 +1546,7 @@ describe("ProxmoxResourceAPI remove-node", () => {
         ["only A", false],
         ["A and an unblocked label C", true],
       ] as Array<[string, boolean]>)(
-        "on a cluster carrying %s both checks ask for its labels, and it is loaded once",
+        "on a cluster carrying %s both checks weigh its labels, read once",
         async (_label: string, withUnblockedLabel: boolean) => {
           storeCluster(
             withUnblockedLabel ? [labelA, ObjectID.generate()] : [labelA],
@@ -1558,8 +1558,11 @@ describe("ProxmoxResourceAPI remove-node", () => {
           });
 
           expect(call.nextCallCount).toBe(0);
-          // The block check (B is not on it) and then the allow check (A is).
-          expect(asks.count).toBe(2);
+          /*
+           * The block check (B is not on it) and then the allow check (A
+           * is), on the one read both of them share.
+           */
+          expect(asks.count).toBe(1);
           expect(findOneById).toHaveBeenCalledTimes(1);
           expectLabelsLoadedUnfiltered();
           expect(sentBody()).toEqual({ removed: true });
@@ -1625,12 +1628,12 @@ describe("ProxmoxResourceAPI remove-node", () => {
           NOT_FOUND_MESSAGE,
         );
         /*
-         * The first request loaded the labels once, for both checks; the
-         * second never found the cluster (the block on B leaves it out of
-         * the lookup), so it loaded nothing and no check asked.
+         * The first request loaded the labels once, read once for both
+         * checks; the second never found the cluster (the block on B leaves
+         * it out of the lookup), so it loaded nothing and no check asked.
          */
         expect(findOneById).toHaveBeenCalledTimes(1);
-        expect(asks.count).toBe(2);
+        expect(asks.count).toBe(1);
         // Only the first request removed anything.
         expect(removeOfflineNode).toHaveBeenCalledTimes(1);
         expect(

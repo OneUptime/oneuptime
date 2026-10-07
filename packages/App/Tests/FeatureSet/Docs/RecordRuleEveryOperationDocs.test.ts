@@ -101,7 +101,7 @@ describe("Users, Teams & Permissions: one rule for reading, changing and deletin
     const paragraphs: Array<string> = paragraphsOf(english, LABELS_SECTION);
 
     expect(paragraphs[2]).toBe(
-      "A record with no labels of its own, such as an incident's note, a status page announcement or an AI insight about a service, carries the labels of the records it belongs to or is about. A permission restricted to labels reaches it when those records carry one of the permission's labels, and a block with labels takes it away when one of them carries a blocked label, for reading, changing and deleting alike. An AI insight about no service belongs to the project: a label restriction does not narrow it, and a block with labels does not take it away.",
+      "A record with no labels of its own, such as an incident's note, a status page announcement or an AI insight about a service, carries the labels of the records it belongs to or is about. A permission restricted to labels reaches it when one of those records carries one of the permission's labels, and a block with labels takes it away when one of them carries a blocked label, for reading, changing and deleting alike. A record that is about none of them, such as an AI insight about no service, belongs to the project: a label restriction does not narrow it, and a block with labels does not take it away.",
     );
     expect(paragraphs[3]).toMatch(
       /^Where to find it: \*\*Settings → Labels\*\*/,
@@ -121,7 +121,7 @@ describe("Users, Teams & Permissions: one rule for reading, changing and deletin
       "A request reaches the records of this project only: a record of another project, named by its id or in a filter, is answered as if it did not exist.",
     );
     expect(step(english, 5)).toContain(
-      "A record with no labels of its own, such as an incident note, matches a label-scoped grant when the records it belongs to carry one of the grant's labels.",
+      "A record with no labels of its own, such as an incident note, matches a label-scoped grant when one of the records it belongs to carries one of the grant's labels.",
     );
     expect(step(english, 6)).toContain(
       "A list of records from all of your projects at once, such as the incidents on your home page, narrows each project's records by your blocks and grants in that project.",
