@@ -294,6 +294,14 @@ export const widensAuditLogging: (
   return !Number.isFinite(requestedDays) || requestedDays > currentDays;
 };
 
+/*
+ * How long sendEmailToOwnersAndWait waits for the mail service to take one
+ * owner's email. It takes one in a few seconds; a mail service that hangs
+ * must not hold a run that waits for each email - the migrate Job - for
+ * longer than this.
+ */
+export const OWNER_EMAIL_TIMEOUT_IN_MS: number = 60 * 1000;
+
 export class ProjectService extends ProjectReferencesService<Model> {
   /*
    * Suppresses repeated `lastActive` UPDATEs from a single API node. 60s of
@@ -3443,8 +3451,10 @@ These are no longer recorded against the project and have to be cancelled by han
    * the mail service has taken each one, and says how many it took. For a
    * notice sent from a process that exits as soon as it is done - a one-time
    * notice run by the migrate Job - an email not handed over by then would
-   * never leave. Never throws: an email the mail service refused, or could
-   * not be reached for, is logged and not counted.
+   * never leave. Never throws: an email the mail service refused, could not
+   * be reached for, or did not take within OWNER_EMAIL_TIMEOUT_IN_MS, is
+   * logged and not counted - so a mail service that hangs never holds the
+   * run up for longer than that.
    */
   @CaptureSpan()
   public async sendEmailToOwnersAndWait(data: {
@@ -3463,6 +3473,7 @@ These are no longer recorded against the project and have to be cancelled by han
             owner: owner,
             subject: data.subject,
             message: data.message,
+            timeoutInMs: OWNER_EMAIL_TIMEOUT_IN_MS,
           });
 
         if (response instanceof HTTPErrorResponse) {
@@ -3492,6 +3503,7 @@ These are no longer recorded against the project and have to be cancelled by han
     owner: User;
     subject: string;
     message: string;
+    timeoutInMs?: number | undefined;
   }): Promise<HTTPResponse<EmptyResponseData> | HTTPErrorResponse> {
     return MailService.sendMail(
       {
@@ -3507,6 +3519,7 @@ These are no longer recorded against the project and have to be cancelled by han
       {
         projectId: data.projectId,
         userId: data.owner.id!,
+        ...(data.timeoutInMs ? { timeoutInMs: data.timeoutInMs } : {}),
       },
     );
   }

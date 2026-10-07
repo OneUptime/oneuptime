@@ -137,14 +137,14 @@ describe("the SCIM guide", () => {
 
   it("says exactly which requests still work, Okta's and Entra ID's forms included, and that a lookup creates no one", () => {
     expect(section).toContain(
-      "**Still works:** deactivating a user (`active` set to `false`), deleting a user, removing members from a group (Entra ID's `Remove` on `members` with the members as its value, Okta's `remove` on `members[value eq \"...\"]`, or replacing the members with some of the ones the group has), deleting a group, and a `Bulk` request made only of `DELETE`s.",
+      "**Still works:** deactivating a user (`active` set to `false`, on a connection set to remove the people it deactivates), deleting a user, removing members from a group (Entra ID's `Remove` on `members` with the members as its value, Okta's `remove` on `members[value eq \"...\"]`, or replacing the members with some of the ones the group has), deleting a group, and a `Bulk` request made only of `DELETE`s.",
     );
     expect(section).toContain("below the plan a lookup never creates anyone");
   });
 
   it("says what is refused, and that a request adding anyone is refused whole", () => {
     expect(section).toContain(
-      "**Refused:** creating a user or a group, reactivating a user (`active` set to `true` for someone the connection would add back to one of its teams), adding a member to a group, and changing only a user's email or name or a group's name.",
+      "**Refused:** creating a user or a group, reactivating a user (`active` set to `true` for someone the connection would add back to one of its teams), adding someone to a group they are not in, and changing only a user's email or name or a group's name.",
     );
     expect(section).toContain(
       "A request that adds anyone is refused whole, even one that also removes people, as a SCIM `PATCH` is all or nothing.",
@@ -159,7 +159,7 @@ describe("the SCIM guide", () => {
 
   it("says a request that changes nothing - Okta's PUT of an active user among them - is answered as usual", () => {
     expect(section).toContain(
-      "**A request that changes nothing is answered as usual** - Okta's `PUT` of a user as they are, with `active` set to `true`, for someone already in every one of the connection's teams; an email sent again in another case; attributes OneUptime does not keep, such as a title or a department.",
+      "**A request that changes nothing is answered as usual** - Okta's `PUT` of a user as they are, with `active` set to `true`, for someone already in every one of the connection's teams; adding someone to a group they are already in; an email sent again in another case; attributes OneUptime does not keep, such as a title or a department.",
     );
     expect(section).toContain(
       "A status page's private user is on the page or not at all, so `active` set to `true` never changes one.",
@@ -169,6 +169,12 @@ describe("the SCIM guide", () => {
   it("says a removal that also changes a profile goes through, and the profile stays", () => {
     expect(section).toContain(
       "**A removal that also changes a profile** - a deactivation that sends a new email or name, or a group update that removes members and renames the group - goes through, and leaves the email, name or group name as it is.",
+    );
+  });
+
+  it("says a deactivation that removes no one does not carry a profile change through", () => {
+    expect(section).toContain(
+      "A deactivation on a connection that does not remove the people it deactivates (auto-deprovisioning off, or groups pushed instead) removes no one, so a new email or name sent with it is refused as a change on its own.",
     );
   });
 

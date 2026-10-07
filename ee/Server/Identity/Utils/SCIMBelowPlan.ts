@@ -28,7 +28,8 @@ import { JSONObject } from "Common/Types/JSON";
  *     provisioning them.
  *   - requests that take access away go through:
  *       DELETE of a user, or of a group (team);
- *       PUT or PATCH of a user that deactivates them (active false);
+ *       PUT or PATCH of a user that deactivates them (active false) on a
+ *         connection that removes the people it deactivates;
  *       PATCH of a group whose operations remove members - Entra ID's
  *         {"op":"Remove","path":"members","value":[{"value":"<id>"}]} and
  *         Okta's {"op":"remove","path":"members[value eq \"<id>\"]"} alike
@@ -48,15 +49,18 @@ import { JSONObject } from "Common/Types/JSON";
  *     the SCIM error format, whole - nothing of it is applied, whatever
  *     else it asks: creating a user or a group, a user update that
  *     reactivates them (active true, for someone the connection would add
- *     back to one of its teams), a group update that adds a member - even
- *     alongside removals, as RFC 7644 makes a PATCH all or nothing - and
- *     any other Bulk request. An active true that would add the person to
+ *     back to one of its teams), a group update that adds someone the group
+ *     does not have - even alongside removals, as RFC 7644 makes a PATCH
+ *     all or nothing - and any other Bulk request. An active true that would add the person to
  *     no team reactivates no one - they are in every one of the
  *     connection's teams already, the connection pushes groups instead, or
  *     they are a status page's user, whom active true never changes - and
  *     Okta sends it with every PUT of a user.
  *   - so is a request that only changes a profile: a user's email or name,
- *     a group's name.
+ *     a group's name. A deactivation on a connection that does not remove
+ *     the people it deactivates (auto-deprovisioning off, or groups pushed
+ *     instead) removes no one, so the profile changes it carries are
+ *     changes on their own.
  *   - a request that changes nothing OneUptime keeps is answered as on
  *     every plan.
  *
@@ -368,8 +372,12 @@ export enum ScimUpdateBelowPlan {
  *                   not in - a project connection's teams, unless it pushes
  *                   groups. That gives access, whatever else it asks. An
  *                   active true that adds them to no team is not this.
- *   deactivates     active false. That takes access away, whatever else it
- *                   asks: their email and name are left as they are.
+ *   deactivates     active false, on a connection that removes the people
+ *                   it deactivates - a project's with auto-deprovisioning on
+ *                   that does not push groups, a status page's with
+ *                   auto-deprovisioning on. That takes access away, whatever
+ *                   else it asks: their email and name are left as they
+ *                   are. An active false that removes no one is not this.
  *   isEmailChanging, isNameChanging
  *                   what it would change of the profile - a name this
  *                   project may not change is no change. On its own, a
@@ -582,20 +590,22 @@ export interface ScimGroupPatchBelowPlan {
  * A group PATCH, played through in order against the group's members and
  * name:
  *
- *   - adding someone, or replacing the members with a list that names
- *     anyone the group does not have at that point, gives access: the
- *     whole PATCH is refused, removals included (RFC 7644: a PATCH is all
- *     or nothing);
- *   - removing members, or replacing them with a list that leaves out some
- *     of the ones it has, takes access away: the PATCH goes through, without
- *     its renames;
- *   - a rename to another name, with no removal, is a profile change on its
- *     own: refused;
- *   - anything else - a rename to the name it has, a removal that names no
- *     one, an operation the handlers leave alone - changes nothing.
+ *   - adding someone the group does not have at that point, or replacing
+ *     the members with a list that names anyone it does not have, gives
+ *     access: the whole PATCH is refused, removals included (RFC 7644: a
+ *     PATCH is all or nothing). Adding someone it already has adds no one;
+ *   - removing a member, or replacing the members with a list that leaves
+ *     out some of the ones it has, takes access away: the PATCH goes
+ *     through, without its renames;
+ *   - a rename to another name with nothing taken away - alongside a
+ *     removal that names only people not in the group, say - is a profile
+ *     change on its own: refused;
+ *   - anything else - a rename to the name it has, a removal or an addition
+ *     that changes no one, an operation the handlers leave alone - changes
+ *     nothing.
  *
- * `getCurrentMemberIds` reads the group's members (accepted or pending), and
- * is only called for a replace.
+ * `getCurrentMemberIds` reads the group's members (accepted or pending),
+ * at most once, and only when an operation names someone.
  */
 export const getScimGroupPatchBelowPlan: (data: {
   actions: Array<ScimGroupPatchAction>;
@@ -612,10 +622,45 @@ export const getScimGroupPatchBelowPlan: (data: {
     dropsRename: false,
   };
 
-  // The members as the operations so far leave them, once they are read.
-  let members: Set<string> | null = null;
-  // Who the operations so far removed, for a replace read after them.
+  // The group's members before the PATCH, once read.
+  let membersBefore: Set<string> | null = null;
+
+  const readMembersBefore: () => Promise<Set<string>> = async (): Promise<
+    Set<string>
+  > => {
+    if (!membersBefore) {
+      membersBefore = new Set<string>(
+        (await data.getCurrentMemberIds()).map(toComparableUserId),
+      );
+    }
+
+    return membersBefore;
+  };
+
+  // Whom the removals so far named.
   const removed: Set<string> = new Set<string>();
+
+  /*
+   * The members as the operations so far leave them, once read. Nothing
+   * that goes through adds anyone, so they are the members before, less
+   * the ones removed or replaced away so far.
+   */
+  let members: Set<string> | null = null;
+
+  const readMembers: () => Promise<Set<string>> = async (): Promise<
+    Set<string>
+  > => {
+    if (!members) {
+      members = new Set<string>(
+        Array.from(await readMembersBefore()).filter((id: string): boolean => {
+          return !removed.has(id);
+        }),
+      );
+    }
+
+    return members;
+  };
+
   let takesAccessAway: boolean = false;
   let renames: boolean = false;
 
@@ -625,42 +670,43 @@ export const getScimGroupPatchBelowPlan: (data: {
         const id: string = toComparableUserId(userId);
         removed.add(id);
         members?.delete(id);
-        takesAccessAway = true;
       }
 
       continue;
     }
 
     if (action.kind === "addMembers") {
-      if (action.members.some(getScimMemberUserId)) {
-        return refused;
+      const listed: Array<string> = getComparableMemberIds(action.members);
+
+      if (listed.length === 0) {
+        continue;
       }
 
+      const current: Set<string> = await readMembers();
+
+      for (const id of listed) {
+        if (!current.has(id)) {
+          return refused;
+        }
+      }
+
+      // Everyone it names is in the group already: it adds no one.
       continue;
     }
 
     if (action.kind === "replaceMembers") {
-      if (!members) {
-        members = new Set<string>(
-          (await data.getCurrentMemberIds())
-            .map(toComparableUserId)
-            .filter((id: string): boolean => {
-              return !removed.has(id);
-            }),
-        );
-      }
-
+      const current: Set<string> = await readMembers();
       const listed: Set<string> = new Set<string>(
         getComparableMemberIds(action.members),
       );
 
       for (const id of listed) {
-        if (!members.has(id)) {
+        if (!current.has(id)) {
           return refused;
         }
       }
 
-      for (const id of members) {
+      for (const id of current) {
         if (!listed.has(id)) {
           takesAccessAway = true;
         }
@@ -673,6 +719,20 @@ export const getScimGroupPatchBelowPlan: (data: {
     if (action.kind === "rename" && action.displayName !== data.currentName) {
       renames = true;
     }
+  }
+
+  /*
+   * A removal takes access away when it names someone in the group. Nothing
+   * that goes through adds anyone, so that is someone among the members
+   * before - and whichever operation took them out first, a removal or a
+   * replace, took access away.
+   */
+  if (!takesAccessAway && removed.size > 0) {
+    const before: Set<string> = await readMembersBefore();
+
+    takesAccessAway = Array.from(removed).some((id: string): boolean => {
+      return before.has(id);
+    });
   }
 
   if (!takesAccessAway && renames) {

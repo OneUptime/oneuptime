@@ -477,7 +477,7 @@ describe("a group PATCH below the plan", () => {
     };
   };
 
-  test("removals go through, and read no members", async () => {
+  test("removals of members go through, reading the members once", async () => {
     expect(
       await judge([
         { op: "remove", path: `members[value eq "${ALICE}"]` },
@@ -486,20 +486,58 @@ describe("a group PATCH below the plan", () => {
     ).toEqual({
       verdict: ScimUpdateBelowPlan.Removal,
       kinds: ["removeMembers", "removeMembers"],
-      reads: 0,
+      reads: 1,
     });
   });
 
-  test("an addition is refused, and nothing of it is applied", async () => {
+  test("a removal that names no one in the group takes nothing away: it changes nothing", async () => {
     expect(
-      await judge([{ op: "add", path: "members", value: [{ value: CAROL }] }]),
-    ).toEqual({ verdict: ScimUpdateBelowPlan.Refused, kinds: [], reads: 0 });
+      await judge([{ op: "remove", path: `members[value eq "${CAROL}"]` }]),
+    ).toEqual({
+      verdict: ScimUpdateBelowPlan.NoChange,
+      kinds: ["removeMembers"],
+      reads: 1,
+    });
   });
 
-  test("an addition of someone already in the group is refused too: adding is never checked against the members", async () => {
+  test("an addition of someone the group does not have is refused, and nothing of it is applied", async () => {
+    expect(
+      await judge([{ op: "add", path: "members", value: [{ value: CAROL }] }]),
+    ).toEqual({ verdict: ScimUpdateBelowPlan.Refused, kinds: [], reads: 1 });
+  });
+
+  test("an addition of someone already in the group adds no one: it changes nothing", async () => {
     expect(
       await judge([{ op: "add", path: "members", value: [{ value: ALICE }] }]),
-    ).toEqual({ verdict: ScimUpdateBelowPlan.Refused, kinds: [], reads: 0 });
+    ).toEqual({
+      verdict: ScimUpdateBelowPlan.NoChange,
+      kinds: ["addMembers"],
+      reads: 1,
+    });
+  });
+
+  test("Entra ID resending a member it has alongside the removal of a leaver: the removal goes through", async () => {
+    expect(
+      await judge([
+        { op: "Add", path: "members", value: [{ value: ALICE }] },
+        { op: "Remove", path: "members", value: [{ value: BOB }] },
+      ]),
+    ).toEqual({
+      verdict: ScimUpdateBelowPlan.Removal,
+      kinds: ["addMembers", "removeMembers"],
+      reads: 1,
+    });
+  });
+
+  test("a removal and then an addition of the same person back is refused", async () => {
+    expect(
+      (
+        await judge([
+          { op: "remove", path: `members[value eq "${ALICE}"]` },
+          { op: "add", path: "members", value: [{ value: ALICE }] },
+        ])
+      ).verdict,
+    ).toBe(ScimUpdateBelowPlan.Refused);
   });
 
   test("an addition that names no member adds no one: nothing changes", async () => {
@@ -606,7 +644,7 @@ describe("a group PATCH below the plan", () => {
         { op: "remove", path: `members[value eq "${ALICE}"]` },
         { op: "add", path: "members", value: [{ value: CAROL }] },
       ]),
-    ).toEqual({ verdict: ScimUpdateBelowPlan.Refused, kinds: [], reads: 0 });
+    ).toEqual({ verdict: ScimUpdateBelowPlan.Refused, kinds: [], reads: 1 });
   });
 
   test("the group's own name, sent as it is, changes nothing, and is not applied", async () => {
@@ -633,8 +671,17 @@ describe("a group PATCH below the plan", () => {
     ).toEqual({
       verdict: ScimUpdateBelowPlan.Removal,
       kinds: ["removeMembers"],
-      reads: 0,
+      reads: 1,
     });
+  });
+
+  test("another name alongside a removal of someone not in the group is a rename on its own: refused", async () => {
+    expect(
+      await judge([
+        { op: "remove", path: `members[value eq "${CAROL}"]` },
+        { op: "replace", path: "displayName", value: "Platform" },
+      ]),
+    ).toEqual({ verdict: ScimUpdateBelowPlan.Refused, kinds: [], reads: 1 });
   });
 
   test("another name alongside a replace that drops someone: the replace goes through, the name stays", async () => {

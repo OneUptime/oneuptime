@@ -1320,10 +1320,16 @@ const handleStatusPageUserUpdate: (
      * changes nothing else: the email is left as it is. Changing only their
      * email is refused. Active true reactivates no one here: a private user
      * is on the status page or not at all, and a deactivated one is gone.
-     * The email is compared as it would be stored (isScimEmailChanging), so
-     * the same address in another case is no change. Checked before
-     * anything is written, so a refused update changes nothing at all.
+     * Nor is active false a deactivation when the connection does not
+     * remove the people it deactivates (auto-deprovisioning off): a new
+     * email with it is a change on its own. The email is compared as it
+     * would be stored (isScimEmailChanging), so the same address in another
+     * case is no change. Checked before anything is written, so a refused
+     * update changes nothing at all.
      */
+    const statusPageScimConfig: StatusPageSCIM = bearerData[
+      "scimConfig"
+    ] as StatusPageSCIM;
     const missingPlan: PlanType | null = getScimMissingPlan(req);
     const isEmailChanging: boolean =
       Boolean(email) &&
@@ -1336,7 +1342,9 @@ const handleStatusPageUserUpdate: (
     if (missingPlan) {
       const belowPlan: ScimUpdateBelowPlan = getScimUserUpdateBelowPlan({
         reactivates: false,
-        deactivates: active === false,
+        deactivates:
+          active === false &&
+          Boolean(statusPageScimConfig.autoDeprovisionUsers),
         isEmailChanging: isEmailChanging,
         isNameChanging: false,
       });

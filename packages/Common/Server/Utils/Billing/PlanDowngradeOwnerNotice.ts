@@ -27,6 +27,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import SafeHtml from "../../../Types/SafeHtml";
+import Sleep from "../../../Types/Sleep";
 
 /*
  * The project's owners hear it when the project's plan stops its API keys
@@ -61,10 +62,13 @@ import SafeHtml from "../../../Types/SafeHtml";
  * billing and limits (ProjectService.sendEmailToProjectOwners - the current
  * members of its owner teams), so it reaches the same people the same way
  * and adds no channel or setting. The one-time notice waits for each email
- * to be handed to the mail service (sendEmailToOwnersAndWait): it runs from
- * the migrate Job, which exits as soon as it is done. It tells a few
- * projects at a time (ALREADY_BELOW_PLAN_NOTICE_CONCURRENCY), so the Job is
- * not held by one mail round trip after another.
+ * to be handed to the mail service (sendEmailToOwnersAndWait), a minute at
+ * most: it runs from the migrate Job, which exits as soon as it is done. It
+ * tells a few projects at a time (ALREADY_BELOW_PLAN_NOTICE_CONCURRENCY), so
+ * the Job is not held by one mail round trip after another, and tries again
+ * the ones it could not tell, after a pause or two
+ * (ALREADY_BELOW_PLAN_NOTICE_RETRY_DELAYS_IN_MS) - it runs once, so there is
+ * no later run to leave them to.
  *
  * It never throws: a plan change that was made stays made, and one project
  * that cannot be told never stops the others.
@@ -114,6 +118,17 @@ export const PROJECT_BILLING_SETTINGS_PATH: string = "settings/billing";
  * once tells no one twice.
  */
 export const ALREADY_BELOW_PLAN_NOTICE_CONCURRENCY: number = 8;
+
+/*
+ * The one-time notice runs once: the data migration that runs it is then
+ * recorded as done. So the projects it could not tell - the mail service
+ * was restarting, say, as it may be while a deploy rolls - are tried again
+ * in the same run, after these pauses, before it gives up on them. A
+ * project still not told after the last is logged, and left unclaimed:
+ * running the data migration again tells it.
+ */
+export const ALREADY_BELOW_PLAN_NOTICE_RETRY_DELAYS_IN_MS: ReadonlyArray<number> =
+  [30 * 1000, 2 * 60 * 1000];
 
 export default class PlanDowngradeOwnerNotice {
   /*
@@ -404,12 +419,16 @@ export default class PlanDowngradeOwnerNotice {
    * The one-time notice, for every project that may be below the plans its
    * credentials need: the projects with API keys that have not expired, or
    * with SCIM connections - their own or their status pages'. A few
-   * projects at a time (ALREADY_BELOW_PLAN_NOTICE_CONCURRENCY); safe to run
-   * again, and on several workers at once (notifyIfAlreadyBelowPlan).
-   * Billing off: no plans, nothing read or sent.
+   * projects at a time (ALREADY_BELOW_PLAN_NOTICE_CONCURRENCY), the ones it
+   * could not tell tried again after a pause or two
+   * (ALREADY_BELOW_PLAN_NOTICE_RETRY_DELAYS_IN_MS); safe to run again, and
+   * on several workers at once (notifyIfAlreadyBelowPlan). Billing off: no
+   * plans, nothing read or sent.
    */
   @CaptureSpan()
-  public static async notifyProjectsAlreadyBelowPlan(): Promise<AlreadyBelowPlanNoticeSummary> {
+  public static async notifyProjectsAlreadyBelowPlan(options?: {
+    retryDelaysInMs?: ReadonlyArray<number> | undefined;
+  }): Promise<AlreadyBelowPlanNoticeSummary> {
     const summary: AlreadyBelowPlanNoticeSummary = {
       projects: 0,
       told: 0,
@@ -454,36 +473,78 @@ export default class PlanDowngradeOwnerNotice {
     };
 
     /*
-     * Each worker takes the next project until none is left. Never throws
-     * (notifyIfAlreadyBelowPlan does not), so one project never stops the
-     * others.
+     * Tells the projects given, a few at a time, and returns the ones it
+     * could not tell - counted only on the last pass, when they are given
+     * up on. Each worker takes the next project until none is left. Never
+     * throws (notifyIfAlreadyBelowPlan does not), so one project never
+     * stops the others.
      */
-    let next: number = 0;
+    const tell: (
+      projects: Array<ObjectID>,
+      isLastPass: boolean,
+    ) => Promise<Array<ObjectID>> = async (
+      projects: Array<ObjectID>,
+      isLastPass: boolean,
+    ): Promise<Array<ObjectID>> => {
+      const notTold: Array<ObjectID> = [];
+      let next: number = 0;
 
-    const tellNextProjects: () => Promise<void> = async (): Promise<void> => {
-      while (next < projectIds.length) {
-        const projectId: ObjectID = projectIds[next]!;
-        next++;
+      const tellNextProjects: () => Promise<void> = async (): Promise<void> => {
+        while (next < projects.length) {
+          const projectId: ObjectID = projects[next]!;
+          next++;
 
-        count(
-          await PlanDowngradeOwnerNotice.notifyIfAlreadyBelowPlan({
-            projectId,
-          }),
-        );
-      }
+          const outcome: PlanDowngradeNoticeOutcome =
+            await PlanDowngradeOwnerNotice.notifyIfAlreadyBelowPlan({
+              projectId,
+            });
+
+          if (outcome === PlanDowngradeNoticeOutcome.Failed && !isLastPass) {
+            notTold.push(projectId);
+            continue;
+          }
+
+          count(outcome);
+        }
+      };
+
+      await Promise.all(
+        Array.from(
+          {
+            length: Math.min(
+              ALREADY_BELOW_PLAN_NOTICE_CONCURRENCY,
+              projects.length,
+            ),
+          },
+          tellNextProjects,
+        ),
+      );
+
+      return notTold;
     };
 
-    await Promise.all(
-      Array.from(
-        {
-          length: Math.min(
-            ALREADY_BELOW_PLAN_NOTICE_CONCURRENCY,
-            projectIds.length,
-          ),
-        },
-        tellNextProjects,
-      ),
-    );
+    const retryDelaysInMs: ReadonlyArray<number> =
+      options?.retryDelaysInMs ?? ALREADY_BELOW_PLAN_NOTICE_RETRY_DELAYS_IN_MS;
+
+    let toTell: Array<ObjectID> = projectIds;
+
+    for (let pass: number = 0; pass <= retryDelaysInMs.length; pass++) {
+      if (pass > 0) {
+        const delayInMs: number = retryDelaysInMs[pass - 1]!;
+
+        logger.info(
+          `Billing: could not tell the owners of ${toTell.length} project(s) that their plan stops their API keys or limits their SCIM connections; trying again in ${Math.round(delayInMs / 1000)}s.`,
+        );
+
+        await Sleep.sleep(delayInMs);
+      }
+
+      toTell = await tell(toTell, pass === retryDelaysInMs.length);
+
+      if (toTell.length === 0) {
+        break;
+      }
+    }
 
     return summary;
   }
@@ -611,7 +672,11 @@ export default class PlanDowngradeOwnerNotice {
       SafeHtml.escape(
         data.fromPlan
           ? `${project} moved from the ${data.fromPlan} plan to the ${data.toPlan} plan.`
-          : `API keys and SCIM provisioning now work only on the plans that include them, and ${project} is on the ${data.toPlan} plan.`,
+          : PlanDowngradeOwnerNotice.getPlanLacks({
+              project: project,
+              plan: data.toPlan,
+              stopped: data.stopped,
+            }),
       ),
     ];
 
@@ -663,11 +728,55 @@ export default class PlanDowngradeOwnerNotice {
       SafeHtml.escape(
         data.fromPlan
           ? "Project owners get this email when a plan change stops the project's API keys or SCIM provisioning."
-          : "Project owners get this email once, because the project was already below these plans when API keys and SCIM provisioning started to need them.",
+          : PlanDowngradeOwnerNotice.getWhyOnce({
+              stopped: data.stopped,
+              apiKeyPlan: apiKeyPlan,
+              scimPlan: scimPlan,
+            }),
       ),
     );
 
     return paragraphs.join(" <br/> <br/> ");
+  }
+
+  /*
+   * The one-time notice's opening: the plan the project is on, and what it
+   * does not include - only what this project's plan stops, so a project
+   * that keeps its API keys is not told about them.
+   */
+  private static getPlanLacks(data: {
+    project: string;
+    plan: PlanType;
+    stopped: StoppedByPlanChange;
+  }): string {
+    const onPlan: string = `${data.project} is on the ${data.plan} plan`;
+
+    if (data.stopped.apiKeys > 0 && data.stopped.scimConnections > 0) {
+      return `${onPlan}, which includes neither API keys nor SCIM provisioning.`;
+    }
+
+    if (data.stopped.apiKeys > 0) {
+      return `${onPlan}, which does not include API keys.`;
+    }
+
+    return `${onPlan}, which does not include SCIM provisioning.`;
+  }
+
+  // The one-time notice's last line: why it comes once - about what it named.
+  private static getWhyOnce(data: {
+    stopped: StoppedByPlanChange;
+    apiKeyPlan: PlanType | null;
+    scimPlan: PlanType | null;
+  }): string {
+    if (data.stopped.apiKeys > 0 && data.stopped.scimConnections > 0) {
+      return "Project owners get this email once, because the project was already below these plans when API keys and SCIM provisioning started to need them.";
+    }
+
+    if (data.stopped.apiKeys > 0) {
+      return `Project owners get this email once, because the project was already below the ${data.apiKeyPlan} plan when API keys started to need it.`;
+    }
+
+    return `Project owners get this email once, because the project was already below the ${data.scimPlan} plan when SCIM provisioning started to need it.`;
   }
 
   // What need not be done again once the project is back on the plan.

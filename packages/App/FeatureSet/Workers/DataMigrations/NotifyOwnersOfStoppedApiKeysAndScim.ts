@@ -24,10 +24,15 @@ import logger from "Common/Server/Utils/Logger";
  * and this one told its owners without writing it down: they hear this
  * too, with what their plan stops now.) Each email is handed to the mail
  * service before the run goes on - this runs in the migrate Job, which exits
- * when it is done - and a few projects are told at a time. A project that
- * cannot be told is logged and the others go on: one with no owners is not
- * claimed, and a claim whose emails all failed is given back, so running it
- * again tells them.
+ * when it is done - a minute at most for each, and a few projects are told
+ * at a time. A project that cannot be told - the mail service restarting as
+ * the deploy rolls, say - is tried again after a pause or two
+ * (ALREADY_BELOW_PLAN_NOTICE_RETRY_DELAYS_IN_MS); the others go on
+ * meanwhile. This runs once, and is then recorded as done: a project still
+ * not told after that is logged and left unclaimed - as is one with no
+ * owners - so running this migration again (it is safe to) tells them.
+ * Never throws for one project: a project's failure must not stop the
+ * migrations that come after it.
  */
 export default class NotifyOwnersOfStoppedApiKeysAndScim extends DataMigrationBase {
   public constructor() {
@@ -39,7 +44,7 @@ export default class NotifyOwnersOfStoppedApiKeysAndScim extends DataMigrationBa
       await PlanDowngradeOwnerNotice.notifyProjectsAlreadyBelowPlan();
 
     logger.info(
-      `NotifyOwnersOfStoppedApiKeysAndScim: ${summary.projects} project(s) with API keys or SCIM connections; owners told for ${summary.told}, already told for ${summary.alreadyTold}, nothing stopped for ${summary.nothingStopped}, no plan for ${summary.noPlan}, no owners for ${summary.noOwners}, could not be told for ${summary.failed} (logged).`,
+      `NotifyOwnersOfStoppedApiKeysAndScim: ${summary.projects} project(s) with API keys or SCIM connections; owners told for ${summary.told}, already told for ${summary.alreadyTold}, nothing stopped for ${summary.nothingStopped}, no plan for ${summary.noPlan}, no owners for ${summary.noOwners}, could not be told for ${summary.failed} (logged; running this migration again tells them).`,
     );
   }
 

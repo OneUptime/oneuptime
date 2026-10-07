@@ -1295,6 +1295,24 @@ describe.each([PlanType.Free, PlanType.Growth])(
      * comes back with every later request for that person or group - the
      * removal included. The removal goes through; the profile stays as it is.
      */
+    describe("Entra ID resends what it sees differs", () => {
+      test("an addition of a member the group has, alongside the removal of a leaver: the leaver goes", async () => {
+        const result: HttpResult = await send(
+          "PATCH",
+          project(`Groups/${ENGINEERING}`),
+          patch(
+            { op: "Add", path: "members", value: [{ value: people.carol }] },
+            { op: "Remove", path: "members", value: [{ value: people.bob }] },
+          ),
+        );
+
+        expect(result.status).toBe(200);
+        expect(membersOf(ENGINEERING)).toEqual([people.carol]);
+        expect(world.writes).toContain("membership deleted");
+        expect(world.writes).not.toContain("membership created");
+      });
+    });
+
     describe("what goes through only removes, whatever another request does meanwhile", () => {
       test("a group PUT that removes someone never puts back a member another request removed after the check", async () => {
         // Right after the check reads Engineering's members, another request removes Bob.
@@ -1612,49 +1630,6 @@ describe.each([PlanType.Free, PlanType.Growth])(
         expect(world.privateUsers).toEqual([]);
         expect(world.writes).not.toContain("private user updated");
       });
-
-      test("a status page's private user, with auto-deprovisioning off: a deactivation with a new email keeps the user and the email", async () => {
-        statusPageConfig.autoDeprovisionUsers = false;
-
-        const result: HttpResult = await send(
-          "PATCH",
-          statusPage(`Users/${people.viewer}`),
-          patch(
-            { op: "Replace", path: "active", value: false },
-            {
-              op: "Replace",
-              path: "userName",
-              value: "renamed@customer.example",
-            },
-          ),
-        );
-
-        expect(result.status).toBe(200);
-        expect(world.privateUsers).toHaveLength(1);
-        expect(world.privateUsers[0]!.email).toBe("viewer@customer.example");
-        expect(world.writes).toEqual([]);
-      });
-
-      test("with auto-deprovisioning off, a deactivation with a new name changes nothing at all", async () => {
-        projectConfig.autoDeprovisionUsers = false;
-
-        const result: HttpResult = await send(
-          "PUT",
-          project(`Users/${people.alice}`),
-          {
-            userName: "alice@acme.example",
-            name: { formatted: "Alice Renamed" },
-            active: false,
-          },
-        );
-
-        expect(result.status).toBe(200);
-        expect(teamsOf(people.alice)).toEqual(
-          [DEFAULT_TEAM_A, DEFAULT_TEAM_B].sort(),
-        );
-        expect(userOf(people.alice).name).toBe("Alice Leaving");
-        expect(world.writes).toEqual([]);
-      });
     });
 
     describe("what changes nothing OneUptime keeps is answered, as on every plan", () => {
@@ -1822,6 +1797,40 @@ describe.each([PlanType.Free, PlanType.Growth])(
           [people.bob, people.carol].sort(),
         );
         // Bob's row was never deleted, so his leave cleanups never ran.
+        expect(world.writes).toEqual([]);
+      });
+
+      test("with auto-deprovisioning off, a deactivation with nothing else is answered, as on every plan", async () => {
+        projectConfig.autoDeprovisionUsers = false;
+
+        const result: HttpResult = await send(
+          "PATCH",
+          project(`Users/${people.alice}`),
+          patch({ op: "replace", value: { active: false } }),
+        );
+
+        expect(result.status).toBe(200);
+        expect(teamsOf(people.alice)).toEqual(
+          [DEFAULT_TEAM_A, DEFAULT_TEAM_B].sort(),
+        );
+        expect(world.writes).toEqual([]);
+      });
+
+      test("an addition of someone the group already has adds no one: answered", async () => {
+        const result: HttpResult = await send(
+          "PATCH",
+          project(`Groups/${ENGINEERING}`),
+          patch({
+            op: "Add",
+            path: "members",
+            value: [{ value: people.bob }],
+          }),
+        );
+
+        expect(result.status).toBe(200);
+        expect(membersOf(ENGINEERING)).toEqual(
+          [people.bob, people.carol].sort(),
+        );
         expect(world.writes).toEqual([]);
       });
 
@@ -2167,6 +2176,77 @@ describe.each([PlanType.Free, PlanType.Growth])(
         );
         expect(teamsOf(people.alice)).toEqual(
           [DEFAULT_TEAM_A, DEFAULT_TEAM_B].sort(),
+        );
+        expect(world.writes).toEqual([]);
+      });
+
+      test("with auto-deprovisioning off, a deactivation removes no one: the new name it carries is a change on its own, refused", async () => {
+        projectConfig.autoDeprovisionUsers = false;
+
+        expectRefusedBelowPlan(
+          await send("PUT", project(`Users/${people.alice}`), {
+            userName: "alice@acme.example",
+            name: { formatted: "Alice Renamed" },
+            active: false,
+          }),
+        );
+        expect(teamsOf(people.alice)).toEqual(
+          [DEFAULT_TEAM_A, DEFAULT_TEAM_B].sort(),
+        );
+        expect(userOf(people.alice).name).toBe("Alice Leaving");
+        expect(world.writes).toEqual([]);
+      });
+
+      test("on a connection that pushes groups, a deactivation removes no one: the new name it carries is refused", async () => {
+        projectConfig.enablePushGroups = true;
+
+        expectRefusedBelowPlan(
+          await send("PUT", project(`Users/${people.alice}`), {
+            userName: "alice@acme.example",
+            name: { formatted: "Alice Renamed" },
+            active: false,
+          }),
+        );
+        expect(userOf(people.alice).name).toBe("Alice Leaving");
+        expect(world.writes).toEqual([]);
+      });
+
+      test("a status page's private user, with auto-deprovisioning off: a deactivation removes no one, so the new email it carries is refused", async () => {
+        statusPageConfig.autoDeprovisionUsers = false;
+
+        expectRefusedBelowPlan(
+          await send(
+            "PATCH",
+            statusPage(`Users/${people.viewer}`),
+            patch(
+              { op: "Replace", path: "active", value: false },
+              {
+                op: "Replace",
+                path: "userName",
+                value: "renamed@customer.example",
+              },
+            ),
+          ),
+        );
+        expect(world.privateUsers).toHaveLength(1);
+        expect(world.privateUsers[0]!.email).toBe("viewer@customer.example");
+        expect(world.writes).toEqual([]);
+      });
+
+      test("a removal of someone not in the group, alongside a new name: nothing is taken away, so the rename is refused", async () => {
+        expectRefusedBelowPlan(
+          await send(
+            "PATCH",
+            project(`Groups/${ENGINEERING}`),
+            patch(
+              { op: "remove", path: `members[value eq "${people.alice}"]` },
+              { op: "replace", path: "displayName", value: "Platform" },
+            ),
+          ),
+        );
+        expect(teamNameOf(ENGINEERING)).toBe("Engineering");
+        expect(membersOf(ENGINEERING)).toEqual(
+          [people.bob, people.carol].sort(),
         );
         expect(world.writes).toEqual([]);
       });

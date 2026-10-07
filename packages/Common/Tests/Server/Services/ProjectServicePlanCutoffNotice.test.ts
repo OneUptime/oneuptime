@@ -1,5 +1,7 @@
 import MailService from "../../../Server/Services/MailService";
-import ProjectService from "../../../Server/Services/ProjectService";
+import ProjectService, {
+  OWNER_EMAIL_TIMEOUT_IN_MS,
+} from "../../../Server/Services/ProjectService";
 import logger from "../../../Server/Utils/Logger";
 import User from "../../../Models/DatabaseModels/User";
 import EmptyResponseData from "../../../Types/API/EmptyResponse";
@@ -212,6 +214,9 @@ describe("ProjectService.sendEmailToOwnersAndWait", () => {
     });
     expect(String(options["projectId"])).toBe(projectId.toString());
     expect(String(options["userId"])).toBe(alice.id!.toString());
+    // A mail service that hangs holds the run a minute per email at most.
+    expect(options["timeoutInMs"]).toBe(OWNER_EMAIL_TIMEOUT_IN_MS);
+    expect(OWNER_EMAIL_TIMEOUT_IN_MS).toBe(60 * 1000);
     expect(
       String(
         (sendMail.mock.calls[1]![0] as unknown as { toEmail: unknown }).toEmail,
@@ -322,7 +327,8 @@ describe("ProjectService.sendEmailToOwnersAndWait", () => {
     );
 
     expect(sendMail).toHaveBeenCalledTimes(1);
-    const [mail] = sendMail.mock.calls[0] as unknown as [
+    const [mail, options] = sendMail.mock.calls[0] as unknown as [
+      Record<string, unknown>,
       Record<string, unknown>,
     ];
 
@@ -332,5 +338,7 @@ describe("ProjectService.sendEmailToOwnersAndWait", () => {
       subject: "API keys stopped working in Acme",
       message: "The project&#39;s API key stopped working.",
     });
+    // Nothing waits for it, so nothing bounds it either: as before.
+    expect(options["timeoutInMs"]).toBeUndefined();
   });
 });

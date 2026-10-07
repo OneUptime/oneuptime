@@ -665,8 +665,9 @@ interface GroupPatchResult {
  * the plan, what was checked is exactly what is done.
  *
  * `removeOnly`, below the plan SCIM needs: a replace writes its removals
- * only, and no member is added, whatever another request did since the
- * check (replaceGroupMembersOfTeam).
+ * only, no member is added, whatever another request did since the check
+ * (replaceGroupMembersOfTeam), and the group keeps its name - so a caller
+ * that skipped the check still takes access away only.
  */
 const applyGroupPatchActions: (data: {
   projectId: ObjectID;
@@ -777,6 +778,13 @@ const applyGroupPatchActions: (data: {
     }
 
     if (action.kind === "rename") {
+      if (data.removeOnly) {
+        data.executionSteps.push(
+          `Below the plan the group keeps its name: the rename to "${action.displayName}" is not applied`,
+        );
+        continue;
+      }
+
       logger.debug(
         `SCIM Patch group - updating displayName to: ${action.displayName}`,
         getLogAttributesFromRequest(data.req as any),
@@ -799,6 +807,77 @@ const applyGroupPatchActions: (data: {
   }
 
   return result;
+};
+
+/*
+ * Answers a request below the plan SCIM needs with the refusal
+ * (Utils/SCIMBelowPlan) and writes it to the connection's SCIM log, as the
+ * handlers log every request they answer. Nothing of the request was
+ * applied.
+ */
+const refuseBelowPlan: (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  missingPlan: PlanType;
+  projectId: ObjectID;
+  // As the SCIM log names the request: UpdateUser, UpdateGroup.
+  operationType: string;
+  // Why it gives or changes access, for the execution steps.
+  reason: string;
+  executionSteps: Array<string>;
+  requestBody: JSONObject | undefined;
+  affectedUserEmail?: string | undefined;
+  affectedGroupName?: string | undefined;
+  userInfo?: JSONObject | undefined;
+  groupInfo?: JSONObject | undefined;
+}) => void = (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  missingPlan: PlanType;
+  projectId: ObjectID;
+  operationType: string;
+  reason: string;
+  executionSteps: Array<string>;
+  requestBody: JSONObject | undefined;
+  affectedUserEmail?: string | undefined;
+  affectedGroupName?: string | undefined;
+  userInfo?: JSONObject | undefined;
+  groupInfo?: JSONObject | undefined;
+}): void => {
+  logger.debug(
+    `SCIM ${data.operationType} - refused below the ${data.missingPlan} plan: ${data.reason}`,
+    getLogAttributesFromRequest(data.req as any),
+  );
+  data.executionSteps.push(
+    `Refused below the ${data.missingPlan} plan: ${data.reason}`,
+  );
+
+  const refusal: ScimBelowPlanRefusal = sendScimBelowPlanRefusal({
+    res: data.res,
+    missingPlan: data.missingPlan,
+  });
+
+  void createProjectSCIMLog({
+    projectId: data.projectId,
+    projectScimId: new ObjectID(data.req.params["projectScimId"]!),
+    operationType: data.operationType,
+    status: SCIMLogStatus.Error,
+    statusMessage: refusal.message,
+    httpMethod: data.req.method,
+    requestPath: data.req.path,
+    httpStatusCode: refusal.statusCode,
+    affectedUserEmail: data.affectedUserEmail,
+    affectedGroupName: data.affectedGroupName,
+    requestBody: data.requestBody,
+    responseBody: refusal.body,
+    steps: data.executionSteps,
+    userInfo: data.userInfo,
+    groupInfo: data.groupInfo,
+    additionalContext: {
+      httpMethod: data.req.method,
+      refusedBelowPlan: data.missingPlan,
+    },
+  });
 };
 
 /*
@@ -842,34 +921,19 @@ const getGroupPatchActionsToApply: (data: {
   });
 
   if (belowPlan.verdict === ScimUpdateBelowPlan.Refused) {
-    data.executionSteps.push(
-      `Refused below the ${missingPlan} plan: the update would add members, or only rename the group`,
-    );
-
-    const refusal: ScimBelowPlanRefusal = sendScimBelowPlanRefusal({
+    refuseBelowPlan({
+      req: data.req,
       res: data.res,
       missingPlan: missingPlan,
-    });
-
-    void createProjectSCIMLog({
       projectId: data.projectId,
-      projectScimId: new ObjectID(data.req.params["projectScimId"]!),
       operationType: "UpdateGroup",
-      status: SCIMLogStatus.Error,
-      statusMessage: refusal.message,
-      httpMethod: data.req.method,
-      requestPath: data.req.path,
-      httpStatusCode: refusal.statusCode,
-      affectedGroupName: data.team.name?.toString(),
+      reason: "the update would add members, or only rename the group",
+      executionSteps: data.executionSteps,
       requestBody: data.req.body,
-      responseBody: refusal.body,
-      steps: data.executionSteps,
+      affectedGroupName: data.team.name?.toString(),
       groupInfo: {
         groupId: data.team.id?.toString(),
         displayName: data.team.name?.toString(),
-      },
-      additionalContext: {
-        refusedBelowPlan: missingPlan,
       },
     });
 
@@ -1492,9 +1556,20 @@ router.post(
                 );
               }
 
+              /*
+               * Below the plan the door lets no Bulk PUT through; were one
+               * to get here, it would take access away only, as the PUT
+               * route does: removals only, and no rename.
+               */
+              const bulkMissingPlan: PlanType | null = getScimMissingPlan(req);
+
               // Update team name if provided
               const displayName: string = data!["displayName"] as string;
-              if (displayName && displayName !== team.name) {
+              if (
+                !bulkMissingPlan &&
+                displayName &&
+                displayName !== team.name
+              ) {
                 await TeamService.updateOneById({
                   id: team.id!,
                   data: { name: displayName },
@@ -1510,6 +1585,7 @@ router.post(
                 projectId: projectId,
                 teamId: team.id!,
                 members: members,
+                removeOnly: Boolean(bulkMissingPlan),
               });
 
               // Fetch updated team
@@ -2380,12 +2456,27 @@ const handleUserUpdate: (
     const isNameChanging: boolean =
       Boolean(name) && name !== projectUser.user.name?.toString();
 
-    const mayChangeName: boolean =
-      isNameChanging &&
-      (await ProjectSCIMAccountPolicy.mayChangeName({
-        projectId: projectId,
-        userId: new ObjectID(userId),
-      }));
+    /*
+     * Whether the new name is this project's to give
+     * (ProjectSCIMAccountPolicy.mayChangeName) - read once, and only when it
+     * matters: below the plan for the verdict, on the plan once an email
+     * change has passed its own check.
+     */
+    let mayChangeNameRead: boolean | null = null;
+
+    const getMayChangeName: () => Promise<boolean> =
+      async (): Promise<boolean> => {
+        if (mayChangeNameRead === null) {
+          mayChangeNameRead =
+            isNameChanging &&
+            (await ProjectSCIMAccountPolicy.mayChangeName({
+              projectId: projectId,
+              userId: new ObjectID(userId),
+            }));
+        }
+
+        return mayChangeNameRead;
+      };
 
     /*
      * Below the plan SCIM needs (Utils/SCIMBelowPlan), a deactivation goes
@@ -2393,8 +2484,11 @@ const handleUserUpdate: (
      * name. Reactivating them - active true, when it would add them to one
      * of the connection's teams they are not in - or changing only their
      * email or name, is refused. An active true that would add them to no
-     * team is no reactivation: Okta sends it with every PUT. Checked before
-     * anything is written, so a refused update changes nothing at all.
+     * team is no reactivation: Okta sends it with every PUT. Nor is an
+     * active false a deactivation on a connection that removes no one when
+     * it is sent (auto-deprovisioning off, or groups pushed instead): what
+     * else it asks is a change on its own. Checked before anything is
+     * written, so a refused update changes nothing at all.
      */
     const missingPlan: PlanType | null = getScimMissingPlan(req);
     let profileLeftAsItIs: boolean = false;
@@ -2408,46 +2502,30 @@ const handleUserUpdate: (
             userId: new ObjectID(userId),
             scimConfig: scimConfig,
           })),
-        deactivates: active === false,
+        deactivates:
+          active === false &&
+          Boolean(scimConfig.autoDeprovisionUsers) &&
+          !scimConfig.enablePushGroups,
         isEmailChanging: isEmailChanging,
-        isNameChanging: mayChangeName,
+        isNameChanging: await getMayChangeName(),
       });
 
       if (belowPlan === ScimUpdateBelowPlan.Refused) {
-        logger.debug(
-          `SCIM Update user - refused below the ${missingPlan} plan: the update would reactivate the user, or only change their email or name`,
-          getLogAttributesFromRequest(req as any),
-        );
-        executionSteps.push(
-          `Refused below the ${missingPlan} plan: the update would reactivate the user, or only change their email or name`,
-        );
-
-        const refusal: ScimBelowPlanRefusal = sendScimBelowPlanRefusal({
+        refuseBelowPlan({
+          req: req,
           res: res,
           missingPlan: missingPlan,
-        });
-
-        void createProjectSCIMLog({
           projectId: projectId,
-          projectScimId: new ObjectID(req.params["projectScimId"]!),
           operationType: "UpdateUser",
-          status: SCIMLogStatus.Error,
-          statusMessage: refusal.message,
-          httpMethod: req.method,
-          requestPath: req.path,
-          httpStatusCode: refusal.statusCode,
-          affectedUserEmail: projectUser.user.email?.toString(),
+          reason:
+            "the update would reactivate the user, or only change their email or name",
+          executionSteps: executionSteps,
           requestBody: scimUser,
-          responseBody: refusal.body,
-          steps: executionSteps,
+          affectedUserEmail: projectUser.user.email?.toString(),
           userInfo: {
             userId: projectUser.user.id?.toString(),
             email: projectUser.user.email?.toString(),
             name: projectUser.user.name?.toString(),
-          },
-          additionalContext: {
-            httpMethod: req.method,
-            refusedBelowPlan: missingPlan,
           },
         });
 
@@ -2456,7 +2534,7 @@ const handleUserUpdate: (
 
       if (
         belowPlan === ScimUpdateBelowPlan.Removal &&
-        (isEmailChanging || mayChangeName)
+        (isEmailChanging || (await getMayChangeName()))
       ) {
         profileLeftAsItIs = true;
         executionSteps.push(
@@ -2465,9 +2543,8 @@ const handleUserUpdate: (
       }
     }
 
-    // What the update changes of the person's profile.
+    // What the update changes of the person's email.
     const changesEmail: boolean = isEmailChanging && !profileLeftAsItIs;
-    const changesName: boolean = mayChangeName && !profileLeftAsItIs;
 
     if (changesEmail) {
       const emailChangeRefusal: string | null =
@@ -2518,6 +2595,10 @@ const handleUserUpdate: (
         });
       }
     }
+
+    const mayChangeName: boolean = await getMayChangeName();
+    // What the update changes of the person's name.
+    const changesName: boolean = mayChangeName && !profileLeftAsItIs;
 
     if (isNameChanging && !mayChangeName) {
       executionSteps.push(
@@ -3387,38 +3468,19 @@ router.put(
         });
 
         if (belowPlan === ScimUpdateBelowPlan.Refused) {
-          logger.debug(
-            `SCIM Update group - refused below the ${missingPlan} plan: the replace would add members, or only rename the group`,
-            getLogAttributesFromRequest(req as any),
-          );
-          executionSteps.push(
-            `Refused below the ${missingPlan} plan: the replace would add members, or only rename the group`,
-          );
-
-          const refusal: ScimBelowPlanRefusal = sendScimBelowPlanRefusal({
+          refuseBelowPlan({
+            req: req,
             res: res,
             missingPlan: missingPlan,
-          });
-
-          void createProjectSCIMLog({
             projectId: projectId,
-            projectScimId: new ObjectID(req.params["projectScimId"]!),
             operationType: "UpdateGroup",
-            status: SCIMLogStatus.Error,
-            statusMessage: refusal.message,
-            httpMethod: "PUT",
-            requestPath: req.path,
-            httpStatusCode: refusal.statusCode,
-            affectedGroupName: previousName,
+            reason: "the replace would add members, or only rename the group",
+            executionSteps: executionSteps,
             requestBody: scimGroup,
-            responseBody: refusal.body,
-            steps: executionSteps,
+            affectedGroupName: previousName,
             groupInfo: {
               groupId: team.id?.toString(),
               displayName: previousName,
-            },
-            additionalContext: {
-              refusedBelowPlan: missingPlan,
             },
           });
 
@@ -3478,7 +3540,11 @@ router.put(
         projectId: projectId,
         teamId: team.id!,
         members: members,
-        // Below the plan, removals only: see replaceGroupMembersOfTeam.
+        /*
+         * Below the plan, removals only: see replaceGroupMembersOfTeam. It
+         * reads the members again rather than reusing the check's read, so
+         * what it writes is the difference against the team as it is now.
+         */
         removeOnly: Boolean(missingPlan),
       });
       const membersAdded: number = counts.added + counts.invited;
