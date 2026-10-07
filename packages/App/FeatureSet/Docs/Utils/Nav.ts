@@ -321,6 +321,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/network-sites",
       },
       {
+        title: "Network Vendor Guides (Sophos, Extreme, Cambium)",
+        url: "/docs/monitor/network-vendor-guides",
+      },
+      {
         title: "Kubernetes Monitor",
         url: "/docs/monitor/kubernetes-monitor",
       },
