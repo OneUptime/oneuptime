@@ -202,14 +202,28 @@ export default class ModelPermission {
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType.Update | DatabaseRequestType.Delete,
   ): Promise<Query<TBaseModel>> {
-    query = await this.addReadScopeToQuery(
-      modelType,
-      query,
-      props,
-      DatabaseRequestType.Read,
+    if (props.isRoot || props.isMasterAdmin) {
+      return query;
+    }
+
+    const ownedThrough: OwnedThroughMetadata | undefined =
+      ModelPermission.getOwnedThrough(new modelType());
+
+    if (!ownedThrough) {
+      return query;
+    }
+
+    // One condition: the resources both scopes reach.
+    const scope: TelemetryReadScope = TelemetryReadScopeUtil.getScopeOfBoth(
+      await this.getReadScope(modelType, props, DatabaseRequestType.Read),
+      await this.getReadScope(modelType, props, type),
     );
 
-    return await this.addReadScopeToQuery(modelType, query, props, type);
+    return TelemetryReadScopeUtil.applyToQuery(
+      query,
+      ownedThrough.fkColumn,
+      scope,
+    );
   }
 
   /*
@@ -323,17 +337,13 @@ export default class ModelPermission {
       DatabaseRequestType.Update,
     );
 
-    // The read's checks and scope, which an update keeps to.
+    // The read's checks, and the rows of resources the read and the update both reach.
     const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
-      await this.checkReadPermission(modelType, query, null, props);
+      await this.checkReadPermission(modelType, query, null, props, {
+        type: DatabaseRequestType.Update,
+      });
 
-    // And the update's own grants: the rows of resources both reach.
-    query = await this.addReadScopeToQuery(
-      modelType,
-      checkReadPermissionType.query,
-      props,
-      DatabaseRequestType.Update,
-    );
+    query = checkReadPermissionType.query;
 
     this.checkDataColumnPermissions(
       modelType,
@@ -473,12 +483,18 @@ export default class ModelPermission {
     }
   }
 
+  /*
+   * `write` is set for the read an update makes of the rows it changes
+   * (checkUpdatePermissions): its rows are those of the resources both the
+   * read's and the update's grants reach (addWriteScopeToQuery).
+   */
   @CaptureSpan()
   public static async checkReadPermission<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     query: Query<TBaseModel>,
     select: Select<TBaseModel> | null,
     props: DatabaseCommonInteractionProps,
+    write?: { type: DatabaseRequestType.Update } | undefined,
   ): Promise<CheckReadPermissionType<TBaseModel>> {
     // The project's plan, when the read is one a plan decides (CallerPlan).
     props = await CallerPlan.withAnalyticsPlanFor({
@@ -511,14 +527,17 @@ export default class ModelPermission {
         /*
          * Narrow telemetry reads (Log, Span, Metric, ...) to the resources
          * the caller may read: their label and Owned scope, less what a
-         * block with labels takes away (getReadScope).
+         * block with labels takes away (getReadScope) - and an update's
+         * rows to the resources its own grants reach as well.
          */
-        query = await this.addReadScopeToQuery(
-          modelType,
-          query,
-          props,
-          DatabaseRequestType.Read,
-        );
+        query = write
+          ? await this.addWriteScopeToQuery(modelType, query, props, write.type)
+          : await this.addReadScopeToQuery(
+              modelType,
+              query,
+              props,
+              DatabaseRequestType.Read,
+            );
 
         /*
          * We will check for this permission in recursive function.
