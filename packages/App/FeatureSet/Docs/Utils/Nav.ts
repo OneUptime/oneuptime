@@ -817,6 +817,10 @@ const DocsNav: NavGroup[] = [
       { title: "Fluentd", url: "/docs/telemetry/fluentd" },
       { title: "Syslog", url: "/docs/telemetry/syslog" },
       {
+        title: "Log Recording Rules",
+        url: "/docs/telemetry/log-recording-rules",
+      },
+      {
         title: "Security Events (SIEM)",
         url: "/docs/telemetry/security-events",
       },
