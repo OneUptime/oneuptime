@@ -131,7 +131,7 @@ describe("the SSO guide", () => {
 
   it("warns to let people back in first, on the SSO and OIDC pages alike", () => {
     expect(section).toContain(
-      "While the project still requires SSO, its **SSO** and **OIDC** pages also show **Require SSO for Login**: turn it off before you turn the last provider off, or nobody can sign in with SSO any more.",
+      "While the project still requires SSO, its **SSO** and **OIDC** pages also show **Require SSO for Login**: turn it off before you turn the last provider off. Until then the last provider people can sign in with cannot be turned off or deleted, so nobody is locked out of the project.",
     );
     expect(section).toContain(
       "While the status page still requires SSO, both pages also show **Require SSO for Login**: turn it off before you turn its providers off, or its private users cannot sign in at all.",

@@ -17,8 +17,9 @@ import path from "path";
  *     leave behind. Making room for a row - taking a project's default from
  *     its other rows, moving the rows of a numbered list, replacing a row -
  *     belongs in onCreateSuccess / onUpdateSuccess, once the write succeeded
- *     (ProjectDefaultRow, ContiguousOrder), or in onUpdatePermitted, once
- *     every permission check has passed, for what must come before it.
+ *     (ProjectDefaultRow, ContiguousOrder), or in onUpdatePermitted /
+ *     onCreatePermitted, once every permission check has passed, for what
+ *     must come before it.
  *     The second half reads every service's onBefore* hooks - and the
  *     helpers of the same class they call - for writes, and for calls that
  *     charge, mail or change something outside OneUptime, and holds each one
@@ -440,6 +441,17 @@ describe("DatabaseService checks the caller before any write hook", () => {
       "this.onBeforeUpdateUniqueCheck(",
       "this.onUpdatePermitted(",
       "this.getRepository().update(",
+    ]);
+  });
+
+  test("a create runs onCreatePermitted only once every permission check has passed, and before the write", () => {
+    expectInOrder("create", [
+      "this.checkCallerBeforeHooks(",
+      "this._onBeforeCreate(",
+      "ModelPermission.checkCreatePermissions(",
+      "this.onBeforeCreateUniqueCheck(",
+      "this.onCreatePermitted(",
+      "this.getRepository().save(",
     ]);
   });
 

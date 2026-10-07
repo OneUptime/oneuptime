@@ -684,6 +684,11 @@ describe("componentInputTypeToFormFieldType — the control for each type", () =
       FormFieldSchemaType.Dropdown,
       FormFieldSchemaType.Text,
     ],
+    [
+      ComponentInputType.IncidentTemplateSelect,
+      FormFieldSchemaType.Dropdown,
+      FormFieldSchemaType.Text,
+    ],
   ];
 
   test.each(CONTROLS)(

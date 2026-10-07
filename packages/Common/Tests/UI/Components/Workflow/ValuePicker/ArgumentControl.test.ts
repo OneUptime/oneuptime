@@ -37,6 +37,7 @@ const EXPECTED: Record<ComponentInputType, ArgumentControl> = {
   [ComponentInputType.Operator]: ArgumentControl.Plain,
   [ComponentInputType.ValueType]: ArgumentControl.Plain,
   [ComponentInputType.WorkflowSelect]: ArgumentControl.Plain,
+  [ComponentInputType.IncidentTemplateSelect]: ArgumentControl.Plain,
   [ComponentInputType.CronTab]: ArgumentControl.Plain,
 };
 

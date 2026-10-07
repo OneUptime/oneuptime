@@ -526,12 +526,14 @@ describe("IncidentService: where the custom field check sits", () => {
       "this.validateCustomFieldValuesOnCreate(",
     );
     // Where the template the incident is declared from starts being copied.
-    const template: number = body.indexOf("} else if (incidentTemplateId) {");
+    const template: number = body.indexOf("if (incidentTemplate) {");
     const mapping: number = body.indexOf(
       "CustomFieldMappingService.applyMappingsToCreate(",
     );
 
     expect(check).toBeGreaterThan(-1);
+    expect(template).toBeGreaterThan(-1);
+    expect(mapping).toBeGreaterThan(-1);
     expect(check).toBeLessThan(template);
     expect(check).toBeLessThan(mapping);
   });

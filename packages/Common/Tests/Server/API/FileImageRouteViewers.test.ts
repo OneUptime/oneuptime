@@ -27,6 +27,7 @@ import AccessTokenService from "../../../Server/Services/AccessTokenService";
 import FileService from "../../../Server/Services/FileService";
 import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import ProjectService from "../../../Server/Services/ProjectService";
+import ProjectSsoService from "../../../Server/Services/ProjectSsoService";
 import UserService from "../../../Server/Services/UserService";
 import CookieUtil from "../../../Server/Utils/Cookie";
 import PublishedImages from "../../../Server/Utils/File/PublishedImages";
@@ -42,6 +43,7 @@ import { JSONObject } from "../../../Types/JSON";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import { UserTenantAccessPermission } from "../../../Types/Permission";
+import SsoProviderType from "../../../Types/SSO/SsoProviderType";
 import {
   afterAll,
   beforeAll,
@@ -101,6 +103,12 @@ const OTHER_PROJECT_ID: ObjectID = new ObjectID(
 const SSO_PROJECT_ID: ObjectID = new ObjectID(
   "33333333-3333-4333-8333-333333333333",
 );
+// The SAML provider members of the SSO project sign in with.
+const SSO_PROVIDER_ID: ObjectID = new ObjectID(
+  "44444444-4444-4444-8444-444444444444",
+);
+// Whether that provider is on: turning it off ends the sign-ins it gave.
+let ssoProviderIsOn: boolean = true;
 
 // A member of PROJECT_ID (and of the SSO project).
 const MEMBER_ID: ObjectID = new ObjectID(
@@ -471,6 +479,20 @@ describe("the image routes serve a file only to the people who may see it", () =
     jest
       .spyOn(GlobalConfigService, "getRequireSsoForLogin")
       .mockResolvedValue(false as never);
+    jest
+      .spyOn(ProjectSsoService, "getSignInStanding")
+      .mockImplementation((async (data: {
+        providerId: ObjectID;
+        projectId: ObjectID;
+      }) => {
+        return {
+          isOn:
+            ssoProviderIsOn &&
+            data.providerId.toString() === SSO_PROVIDER_ID.toString() &&
+            data.projectId.toString() === SSO_PROJECT_ID.toString(),
+          signInsEndedAtMs: null,
+        };
+      }) as never);
 
     const app: express.Express = express();
     app.use(CookieParser());
@@ -488,6 +510,7 @@ describe("the image routes serve a file only to the people who may see it", () =
 
   beforeEach(() => {
     blocked = new Set<string>([BLOCKED_ID.toString()]);
+    ssoProviderIsOn = true;
     failMembershipLookups = false;
     (FileService.findOneBy as unknown as jest.Mock).mockClear();
     reads = [];
@@ -792,9 +815,34 @@ describe("the image routes serve a file only to the people who may see it", () =
       const ssoToken: string = CookieUtil.getSSOToken({
         user: user(MEMBER_ID),
         projectId: SSO_PROJECT_ID,
+        ssoProviderId: SSO_PROVIDER_ID,
+        ssoProviderType: SsoProviderType.ProjectSSO,
       });
 
       expectServed(
+        await get({
+          port,
+          path: tokenPath(SSO_PROJECT_IMAGE),
+          cookies: {
+            ...asSession(MEMBER_ID),
+            [CookieUtil.getUserSSOKey(SSO_PROJECT_ID)]: ssoToken,
+          },
+        }),
+        SSO_PROJECT_IMAGE,
+      );
+    });
+
+    it("is answered like a missing file once the provider that signed them in is turned off", async () => {
+      const ssoToken: string = CookieUtil.getSSOToken({
+        user: user(MEMBER_ID),
+        projectId: SSO_PROJECT_ID,
+        ssoProviderId: SSO_PROVIDER_ID,
+        ssoProviderType: SsoProviderType.ProjectSSO,
+      });
+
+      ssoProviderIsOn = false;
+
+      await expectRefusedLikeMissing(
         await get({
           port,
           path: tokenPath(SSO_PROJECT_IMAGE),
@@ -811,6 +859,8 @@ describe("the image routes serve a file only to the people who may see it", () =
       const otherSsoToken: string = CookieUtil.getSSOToken({
         user: user(MEMBER_ID),
         projectId: PROJECT_ID,
+        ssoProviderId: SSO_PROVIDER_ID,
+        ssoProviderType: SsoProviderType.ProjectSSO,
       });
 
       await expectRefusedLikeMissing(

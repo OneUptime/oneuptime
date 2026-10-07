@@ -39,9 +39,12 @@ const ROOT_READS: Record<string, { count: number; reason: string }> = {
   },
 };
 
-// The calls a step makes to its own service.
+/*
+ * The calls a step makes to its own service, a declaration from a template
+ * (Create One Incident's Incident Template) among them.
+ */
 const SERVICE_CALL: RegExp =
-  /this\.(?:modelService|service!?)\.(create|findBy|findOneBy|findOneById|updateBy|updateOneBy|updateOneById|deleteBy|deleteOneBy|deleteOneById|countBy)\(\s*\{/g;
+  /this\.(?:modelService|service!?)\.(create|createFromTemplate|findBy|findOneBy|findOneById|updateBy|updateOneBy|updateOneById|deleteBy|deleteOneBy|deleteOneById|countBy)\(\s*\{/g;
 
 // The props such a call may pass: the step's own, built for this run.
 const STEP_PROPS: RegExp =
@@ -140,6 +143,16 @@ describe("GUARD: workflow steps never act as OneUptime itself", () => {
       }
     },
   );
+
+  test("Create One's declaration from a template is one of those calls", () => {
+    const calls: Array<string> = Array.from(
+      read("CreateOneBaseModel.ts").matchAll(SERVICE_CALL),
+    ).map((call: RegExpExecArray): string => {
+      return call[1]!;
+    });
+
+    expect(calls.sort()).toEqual(["create", "createFromTemplate"]);
+  });
 
   test("getStepProps builds a step's props with WorkflowPrincipal, for the workflow that runs", () => {
     const source: string = fs.readFileSync(COMPONENT_CODE_FILE, "utf8");

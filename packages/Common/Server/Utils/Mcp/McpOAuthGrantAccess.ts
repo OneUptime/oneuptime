@@ -258,6 +258,7 @@ export default class McpOAuthGrantAccess {
       ssoProviderType: grant.ssoProviderType,
       ssoProviderId: grant.ssoProviderId || null,
       expiresAt: new Date(grant.ssoExpiresAt),
+      capturedAt: grant.createdAt ? new Date(grant.createdAt) : undefined,
     };
   }
 
