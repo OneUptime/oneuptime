@@ -331,7 +331,8 @@ export class Service extends ProjectReferencesService<Model> {
    * createFromTemplate, and the template each one names. Only that method
    * adds to it: a create from anywhere else - an API request, a workflow's
    * JSON - cannot name a template this way, and one that sends
-   * createdIncidentTemplateId is refused (onBeforeCreate).
+   * createdIncidentTemplateId is refused by the column check, as that
+   * column is OneUptime's to write.
    */
   private readonly templateDeclarations: WeakMap<CreateBy<Model>, ObjectID> =
     new WeakMap<CreateBy<Model>, ObjectID>();

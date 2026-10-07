@@ -307,7 +307,7 @@ describe("the list a setting picked from the project's records offers", () => {
       count: 2,
       skip: 0,
       limit: LIMIT_PER_PROJECT,
-    } as unknown as JSONObject);
+    } as never);
 
     const options: Array<DropdownOption> = await loadRecordChoices({
       type: ComponentInputType.IncidentTemplateSelect,
@@ -344,7 +344,7 @@ describe("the list a setting picked from the project's records offers", () => {
       count: 2,
       skip: 0,
       limit: LIMIT_PER_PROJECT,
-    } as unknown as JSONObject);
+    } as never);
 
     expect(
       await loadRecordChoices({
