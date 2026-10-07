@@ -216,6 +216,8 @@
             if (!previous || !previous.classList.contains('docs-diagram__note')) {
                 const note = document.createElement('p');
                 note.className = 'docs-diagram__note';
+                // The diagram's box is always left to right; the note reads the way its language does.
+                note.setAttribute('dir', 'auto');
                 note.textContent = notDrawnText;
                 node.before(note);
             }
@@ -234,11 +236,14 @@
         /*
          * mermaid draws in a working element of its own and measures every
          * label with the page's layout, so that element must be in the page
-         * while it draws. Given no container it appends one to the end of the
-         * body, and leaves it there - with its "Syntax error in text" graphic
-         * in it - for a diagram that does not parse. So each diagram is drawn
-         * in a container of its own, laid out but never seen, which goes when
-         * the drawing is done, whatever happened.
+         * while it draws. Given no container it appends it to the end of the
+         * body - where, without suppressErrorRendering below, it left its
+         * "Syntax error in text" graphic for a diagram that did not parse - and
+         * first removes the diagram on the page that has the same id, which on
+         * a theme switch is the one the reader is looking at. So each diagram
+         * is drawn in a container of its own, laid out but never seen: the
+         * diagram on the page stays until the new one replaces it, and the
+         * container goes when the drawing is done, whatever happened.
          */
         const renderInOwnContainer = async (id, definition) => {
             const container = document.createElement('div');
@@ -310,7 +315,10 @@
                     if (thisDraw !== latestDraw) {
                         return;
                     }
-                    showSource(index);
+                    // One already drawn keeps its last drawing; one never drawn shows its source.
+                    if (diagrams[index].getAttribute('data-diagram') !== 'drawn') {
+                        showSource(index);
+                    }
                     console.error('Mermaid could not render a diagram on this page', error);
                 }
             }

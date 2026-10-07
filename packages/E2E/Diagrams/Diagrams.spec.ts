@@ -28,6 +28,16 @@ const INSTALLED_KATEX_VERSION: string = (
   ) as { version: string }
 ).version;
 
+// What a Persian docs page says in place of a diagram it could not draw.
+const PERSIAN_NOT_DRAWN: string = (
+  JSON.parse(
+    fs.readFileSync(
+      path.resolve(__dirname, "../../App/FeatureSet/Docs/Locales/fa.json"),
+      "utf8",
+    ),
+  ) as { ui: { diagramNotDrawn: string } }
+).ui.diagramNotDrawn;
+
 // KaTeX's own error prefix: in every copy of katex, minified or not.
 const KATEX_MARKER: string = "KaTeX parse error";
 
@@ -530,6 +540,37 @@ test.describe("the docs", () => {
     expect(await mermaidLeftovers(page)).toEqual([]);
   });
 
+  test("says so in the page's language, right to left on a Persian page, the source still left to right", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto("/docs?diagrams=broken&lang=fa");
+    await expect(page.locator(".docs-diagram .mermaid svg")).toHaveCount(2);
+
+    const note: Locator = page.locator(".docs-diagram__note");
+
+    expect(PERSIAN_NOT_DRAWN).not.toBe("This diagram could not be drawn.");
+    await expect(note).toHaveCount(1);
+    await expect(note).toHaveText(PERSIAN_NOT_DRAWN);
+    expect(
+      await note.evaluate((element: Element) => {
+        return getComputedStyle(element).direction;
+      }),
+    ).toBe("rtl");
+
+    // The diagram's box is left to right on every page, its source too.
+    const source: Locator = page.locator(".docs-diagram .mermaid").first();
+
+    expect(await source.textContent()).toBe("graph LR\n  A -->");
+    expect(
+      await source.evaluate((element: Element) => {
+        return getComputedStyle(element).direction;
+      }),
+    ).toBe("ltr");
+    expect(await mermaidLeftovers(page)).toEqual([]);
+  });
+
   test("ends in the last theme, every label drawn, when the theme is switched twice in a row", async ({
     page,
   }: {
@@ -763,7 +804,7 @@ test.describe("the blog", () => {
     ).toEqual([]);
   });
 
-  test("draws the diagrams that parse when one in the post does not", async ({
+  test("puts a diagram that does not parse back as its code block, under a short note, and draws the others", async ({
     page,
   }: {
     page: Page;
@@ -772,13 +813,53 @@ test.describe("the blog", () => {
 
     await page.goto("/blog?diagrams=broken");
 
-    const blocks: Locator = page.locator(".blog-body .mermaid");
+    await expect(diagramsIn(page)).toHaveCount(2);
+    await expect(diagramsIn(page).first()).toContainText("Plain label");
+    await expect(diagramsIn(page).nth(1)).toContainText("Hello Bob");
 
-    await expect(blocks).toHaveCount(3);
-    await expect(blocks.nth(1).locator("svg")).toContainText("Plain label");
-    await expect(blocks.nth(2).locator("svg")).toContainText("Hello Bob");
-    // mermaid draws its syntax error in place of the one that does not parse.
-    await expect(blocks.first()).toContainText(MERMAID_SYNTAX_ERROR);
+    const note: Locator = page.locator(".blog-body .blog-diagram-note");
+
+    await expect(note).toHaveCount(1);
+    await expect(note).toHaveText("This diagram could not be drawn.");
+    await expect(note).toBeVisible();
+
+    /*
+     * The one that does not parse is the code block it was: labelled
+     * Mermaid, with its copy button, and its source as it was written.
+     */
+    const codeBlock: Locator = page.locator(".blog-body pre").first();
+
+    await expect(page.locator(".blog-body pre")).toHaveCount(2);
+    expect(await codeBlock.locator("code").textContent()).toBe(
+      "graph LR\n  A -->",
+    );
+    await expect(codeBlock.locator(".code-lang-label")).toHaveText("Mermaid");
+    await expect(
+      codeBlock.getByRole("button", { name: "Copy code" }),
+    ).toBeVisible();
+
+    // Where the diagram was: the note right above its code, then the two drawn.
+    expect(
+      await page.locator(".blog-body").evaluate((body: Element) => {
+        return Array.from(body.children)
+          .map((child: Element): string => {
+            if (child.classList.contains("blog-diagram-note")) {
+              return "note";
+            }
+            if (child.classList.contains("mermaid")) {
+              return child.querySelector("svg") ? "diagram" : "not drawn";
+            }
+            return child.tagName.toLowerCase();
+          })
+          .filter((kind: string): boolean => {
+            return ["note", "pre", "diagram", "not drawn"].includes(kind);
+          });
+      }),
+    ).toEqual(["note", "pre", "diagram", "diagram", "pre"]);
+
+    // mermaid's syntax error graphic is drawn nowhere.
+    expect(await mermaidLeftovers(page)).toEqual([]);
+    await expect(page.getByText(MERMAID_SYNTAX_ERROR)).toHaveCount(0);
 
     await expect
       .poll(() => {
@@ -789,6 +870,116 @@ test.describe("the blog", () => {
         }).length;
       })
       .toBe(1);
+  });
+
+  test("shows the source of a diagram the post writes as HTML, under the note, when it does not parse", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const errors: Array<string> = recordConsoleErrors(page);
+
+    await page.goto("/blog?html=broken");
+
+    // The fenced blocks are drawn as usual.
+    await expect(diagramsIn(page)).toHaveCount(2);
+    await expect(page.locator(".blog-body pre")).toHaveCount(1);
+
+    const source: Locator = page.locator(
+      '.blog-body .mermaid[data-diagram="source"]',
+    );
+
+    await expect(source).toHaveCount(1);
+    await expect(source.locator("svg")).toHaveCount(0);
+    expect(await source.textContent()).toBe("graph LR\n  A -->");
+    // Its line breaks and indentation kept.
+    expect(
+      await source.evaluate((element: Element) => {
+        return getComputedStyle(element).whiteSpace;
+      }),
+    ).toBe("pre-wrap");
+
+    const note: Locator = page.locator(".blog-body .blog-diagram-note");
+
+    await expect(note).toHaveCount(1);
+    await expect(note).toHaveText("This diagram could not be drawn.");
+    expect(
+      await note.evaluate((element: Element) => {
+        return element.nextElementSibling?.getAttribute("data-diagram") || "";
+      }),
+    ).toBe("source");
+
+    expect(await mermaidLeftovers(page)).toEqual([]);
+    await expect
+      .poll(() => {
+        return errors.filter((text: string): boolean => {
+          return text.includes(
+            "Mermaid could not render the diagrams in this post",
+          );
+        }).length;
+      })
+      .toBe(1);
+  });
+
+  test("keeps every diagram as code, under the note, when mermaid cannot be loaded, and says so once", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const errors: Array<string> = recordConsoleErrors(page);
+    const pageErrors: Array<string> = recordPageErrors(page);
+
+    // A server whose image did not build mermaid answers 404 here.
+    await page.route("**/oneuptime-assets/mermaid/**", (route: Route) => {
+      return route.fulfill({ status: 404, body: "" });
+    });
+
+    await page.goto("/blog?html=broken");
+
+    await expect
+      .poll(() => {
+        return errors.filter((text: string): boolean => {
+          return text.includes("Mermaid could not be loaded");
+        }).length;
+      })
+      .toBe(1);
+
+    await expect(diagramsIn(page)).toHaveCount(0);
+    await expect(page.locator(".blog-body .blog-diagram-note")).toHaveCount(3);
+
+    // Both fenced blocks are the code blocks they were, each under its note.
+    const mermaidCode: Locator = page.locator(".blog-body pre", {
+      has: page.locator(".code-lang-label", { hasText: "Mermaid" }),
+    });
+
+    await expect(mermaidCode).toHaveCount(2);
+    expect(
+      await mermaidCode.evaluateAll((blocks: Array<Element>) => {
+        return blocks.map((block: Element): boolean => {
+          return Boolean(
+            block.previousElementSibling?.classList.contains(
+              "blog-diagram-note",
+            ),
+          );
+        });
+      }),
+    ).toEqual([true, true]);
+    expect(await mermaidCode.first().locator("code").textContent()).toContain(
+      'A["$$x^2 + y^2 = z^2$$"] --> B[Plain label]',
+    );
+
+    // The one written as HTML shows its source.
+    await expect(
+      page.locator('.blog-body .mermaid[data-diagram="source"]'),
+    ).toHaveText("graph LR\n  A -->");
+
+    // No unhandled rejection, and nothing reported per diagram.
+    expect(pageErrors).toEqual([]);
+    expect(
+      errors.filter((text: string): boolean => {
+        return text.includes("Mermaid could not render");
+      }),
+    ).toEqual([]);
   });
 
   test("draws in mermaid's strict mode: no page function runs from a click, no javascript: link", async ({

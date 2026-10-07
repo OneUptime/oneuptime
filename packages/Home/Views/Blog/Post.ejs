@@ -532,6 +532,21 @@
                 color: #3b82f6;
             }
 
+            /* A diagram that could not be drawn: a short note above its code. */
+            .blog-body .blog-diagram-note {
+                margin-bottom: 0;
+                font-size: 0.875rem;
+                color: #6b7280;
+            }
+
+            .blog-body .mermaid[data-diagram="source"] {
+                white-space: pre-wrap;
+                font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
+                font-size: 14px;
+                line-height: 1.6;
+                text-align: left;
+            }
+
             /* Collapsible code blocks */
             .collapsible-code.collapsed {
                 max-height: 400px;
@@ -762,7 +777,8 @@
             <div class="pb-24">
                 <div class="mx-auto max-w-4xl px-6 lg:px-8">
                     <div class="relative" id="content-wrapper">
-                        <!-- Floating TOC -->
+                        <!-- Floating TOC: only for a post with an h2 heading to list (the page script also drops it when it finds none). -->
+                        <% if (/<h2[\s>]/i.test(blogPost.htmlBody || '')) { %>
                         <div class="floating-toc max-xl:hidden xl:block" id="floating-toc">
                             <div class="floating-toc-inner">
                                 <h2 class="text-xs font-semibold tracking-wider text-blue-600 uppercase mb-3 flex items-center gap-2">
@@ -772,6 +788,7 @@
                                 <nav id="toc" aria-label="Table of contents" class="overflow-y-auto max-h-[50vh] pr-1"></nav>
                             </div>
                         </div>
+                        <% } %>
 
                         <!-- Main content -->
                         <article>
@@ -1430,43 +1447,100 @@
                  * scripts run before DOMContentLoaded, and the highlight.js
                  * loader in the head strips the language-mermaid class off
                  * them then.
+                 *
+                 * A diagram that cannot be drawn is its code block again, under
+                 * a short note saying so, and the others are drawn as usual.
+                 * Without the build, every one is.
                  */
                 const mermaidCodeBlocks = Array.prototype.slice.call(document.querySelectorAll('.blog-body pre code.language-mermaid, .blog-body pre code.mermaid, .blog-body pre code[class*="language-mermaid"], .blog-body pre code[class*="mermaid"]'));
                 if (mermaidCodeBlocks.length > 0) {
+                    // Above a diagram that could not be drawn, whatever is shown in its place.
+                    const sayNotDrawn = (element) => {
+                        const note = document.createElement('p');
+                        note.className = 'blog-diagram-note';
+                        note.textContent = 'This diagram could not be drawn.';
+                        element.before(note);
+                    };
+                    // A diagram the post writes as HTML, not as a fenced block, shows its source as written.
+                    const showSource = (diagram, source) => {
+                        diagram.textContent = source;
+                        diagram.setAttribute('data-diagram', 'source');
+                        sayNotDrawn(diagram);
+                    };
+                    let mermaid = null;
                     try {
-                        const mermaid = (await import('/oneuptime-assets/mermaid/mermaid.mjs')).default;
-                        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-                        mermaid.initialize({
-                            startOnLoad: false,
-                            /*
-                             * Strict, like the docs and every frontend: a click
-                             * cannot call a page function, a link cannot be a
-                             * javascript: URL, and mermaid sanitizes the SVG it
-                             * returns. Labels keep their HTML (bold, line breaks,
-                             * links) either way, and no post's diagram uses a
-                             * click callback.
-                             */
-                            securityLevel: 'strict',
-                            theme: prefersDark ? 'dark' : 'default'
-                        });
-                        mermaidCodeBlocks.forEach((codeEl, i) => {
-                            // Avoid double-processing
-                            if (codeEl.dataset.mermaidProcessed) { return; }
-                            const pre = codeEl.closest('pre');
-                            if (!pre) { return; }
-                            const def = codeEl.textContent.trim(); // Use textContent to ignore highlight.js span wrappers
-                            const container = document.createElement('div');
-                            container.className = 'mermaid my-6';
-                            // Provide a deterministic ID (optional)
-                            container.id = 'mermaid-diagram-' + (i + 1);
-                            container.textContent = def;
-                            pre.replaceWith(container);
-                            codeEl.dataset.mermaidProcessed = 'true';
-                        });
-                        // Every .mermaid element: the blocks above, and any a post writes as HTML.
-                        await mermaid.run();
+                        mermaid = (await import('/oneuptime-assets/mermaid/mermaid.mjs')).default;
                     } catch (error) {
-                        console.error('Mermaid could not render the diagrams in this post', error);
+                        console.error('Mermaid could not be loaded, so the diagrams in this post are shown as code', error);
+                        mermaidCodeBlocks.forEach((codeEl) => {
+                            const pre = codeEl.closest('pre');
+                            if (pre) { sayNotDrawn(pre); }
+                        });
+                        Array.prototype.slice.call(document.querySelectorAll('.mermaid')).forEach((diagram) => {
+                            if (!diagram.closest('pre')) { showSource(diagram, diagram.textContent); }
+                        });
+                    }
+                    if (mermaid) {
+                        try {
+                            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                            mermaid.initialize({
+                                startOnLoad: false,
+                                /*
+                                 * Strict, like the docs and every frontend: a click
+                                 * cannot call a page function, a link cannot be a
+                                 * javascript: URL, and mermaid sanitizes the SVG it
+                                 * returns. Labels keep their HTML (bold, line breaks,
+                                 * links) either way, and no post's diagram uses a
+                                 * click callback.
+                                 */
+                                securityLevel: 'strict',
+                                // A diagram that does not parse is left empty, not given mermaid's error graphic.
+                                suppressErrorRendering: true,
+                                theme: prefersDark ? 'dark' : 'default'
+                            });
+                            // Each diagram's code block, to put back if it cannot be drawn.
+                            const codeBlockOf = new Map();
+                            mermaidCodeBlocks.forEach((codeEl, i) => {
+                                // Avoid double-processing
+                                if (codeEl.dataset.mermaidProcessed) { return; }
+                                const pre = codeEl.closest('pre');
+                                if (!pre) { return; }
+                                const def = codeEl.textContent.trim(); // Use textContent to ignore highlight.js span wrappers
+                                const container = document.createElement('div');
+                                container.className = 'mermaid my-6';
+                                // Provide a deterministic ID (optional)
+                                container.id = 'mermaid-diagram-' + (i + 1);
+                                container.textContent = def;
+                                pre.replaceWith(container);
+                                codeBlockOf.set(container, pre);
+                                codeEl.dataset.mermaidProcessed = 'true';
+                            });
+                            // Every .mermaid element: the blocks above, and any a post writes as HTML.
+                            const diagrams = Array.prototype.slice.call(document.querySelectorAll('.mermaid'));
+                            const sources = diagrams.map((diagram) => {
+                                return diagram.textContent;
+                            });
+                            try {
+                                await mermaid.run();
+                            } catch (error) {
+                                // run() draws every diagram it can before it throws.
+                                console.error('Mermaid could not render the diagrams in this post', error);
+                            }
+                            diagrams.forEach((diagram, index) => {
+                                if (diagram.querySelector('svg')) {
+                                    return;
+                                }
+                                const codeBlock = codeBlockOf.get(diagram);
+                                if (codeBlock) {
+                                    diagram.replaceWith(codeBlock);
+                                    sayNotDrawn(codeBlock);
+                                } else {
+                                    showSource(diagram, sources[index]);
+                                }
+                            });
+                        } catch (error) {
+                            console.error('Mermaid could not render the diagrams in this post', error);
+                        }
                     }
                 }
             </script>

@@ -25,6 +25,11 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import "@testing-library/jest-dom";
+import { cleanup, render, waitFor } from "@testing-library/react";
+import React from "react";
+// Loads mermaid lazily, so the jest.mock below is in place before it does.
+import { MermaidDiagram } from "../../../UI/Components/Markdown.tsx/MarkdownViewer";
 
 interface MockRenderCall {
   id: string;
@@ -93,11 +98,6 @@ jest.mock("mermaid", () => {
     },
   };
 });
-
-import "@testing-library/jest-dom";
-import { cleanup, render, waitFor } from "@testing-library/react";
-import React from "react";
-import { MermaidDiagram } from "../../../UI/Components/Markdown.tsx/MarkdownViewer";
 
 /*
  * What mermaid really returns for `A["$$x^2 + y^2 = z^2$$"] --> B[Plain

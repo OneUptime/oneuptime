@@ -16,6 +16,13 @@ import type { BlogPost } from "../Utils/BlogPost";
  * whole script when it found none, so every feature after it was missing
  * from such a post. Each one is checked here on a post with no h2, and the
  * table of contents on one with several.
+ *
+ * The diagram module (the page's <script type="module">) runs here too, as a
+ * classic script in its place and against a stand-in for the mermaid build:
+ * jsdom runs no modules and lays nothing out, so mermaid itself draws only
+ * in the offline Playwright suite (E2E/Diagrams). This pins what the page
+ * does around it - how it asks mermaid to draw, and what a reader sees when
+ * a diagram does not parse or mermaid cannot be loaded.
  */
 
 const VIEWS_ROOT: string = path.join(__dirname, "..", "Views");
@@ -53,6 +60,78 @@ const BODY_WITH_H2: string = [
   '<h2 id="already-named">What next</h2>',
   "<p>The end.</p>",
 ].join("\n");
+
+const FLOWCHART: string = "graph LR\n  A[Start] --> B[Plain label]";
+// Does not parse.
+const BROKEN_DIAGRAM: string = "graph LR\n  A -->";
+
+const escapeHtml: (text: string) => string = (text: string): string => {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+};
+
+// What the blog's Markdown renderer writes for a ```mermaid fence.
+const fencedDiagram: (definition: string) => string = (
+  definition: string,
+): string => {
+  return `<pre><code class="language-mermaid">${escapeHtml(definition)}</code></pre>`;
+};
+
+// One diagram that does not parse, one that does, and a code block that is not a diagram.
+const BODY_WITH_DIAGRAMS: string = [
+  "<p>A post with diagrams.</p>",
+  fencedDiagram(BROKEN_DIAGRAM),
+  fencedDiagram(FLOWCHART),
+  '<pre><code class="language-bash">echo "hello"</code></pre>',
+  "<p>That is all.</p>",
+].join("\n");
+
+// A diagram the post writes as HTML rather than as a fenced block, ahead of a fenced one.
+const BODY_WITH_HTML_DIAGRAM: string = [
+  "<p>A post with a diagram written as HTML.</p>",
+  `<div class="mermaid">${escapeHtml(BROKEN_DIAGRAM)}</div>`,
+  fencedDiagram(FLOWCHART),
+].join("\n");
+
+const MERMAID_IMPORT: string =
+  "await import('/oneuptime-assets/mermaid/mermaid.mjs')";
+
+/*
+ * The page with its diagram module as a classic script in the module's
+ * place - after the page script, before DOMContentLoaded, where a module's
+ * code up to its first await runs - importing the stand-in instead of the
+ * build. window.__diagramsDone settles when the module is done.
+ */
+const withDiagramModuleAsScript: (html: string) => string = (
+  html: string,
+): string => {
+  const modules: Array<string> = (
+    html.match(/<script type="module">[\s\S]*?<\/script>/g) || []
+  ).filter((script: string): boolean => {
+    return script.includes("/oneuptime-assets/mermaid/");
+  });
+
+  expect(modules).toHaveLength(1);
+
+  const moduleScript: string = modules[0] as string;
+  const code: string = moduleScript
+    .replace(/^<script type="module">/, "")
+    .replace(/<\/script>$/, "");
+
+  expect(code).toContain(MERMAID_IMPORT);
+
+  const classicScript: string = `<script>window.__diagramsDone = (async () => {\n${code.replace(
+    MERMAID_IMPORT,
+    "await window.__loadMermaid()",
+  )}\n})();</script>`;
+
+  return html.replace(moduleScript, (): string => {
+    return classicScript;
+  });
+};
 
 const blogPostWith: (htmlBody: string) => BlogPost = (
   htmlBody: string,
@@ -109,7 +188,65 @@ interface OpenedPost {
   copied: Array<string>;
   errors: Array<string>;
   setScrollY: (value: number) => void;
+  // How often the diagram module imported mermaid, and what it set it up with.
+  mermaidLoads: () => number;
+  mermaidConfigs: Array<Record<string, unknown>>;
 }
+
+interface MermaidStandIn {
+  initialize: (config: Record<string, unknown>) => void;
+  run: () => Promise<void>;
+}
+
+/*
+ * What the page asks of mermaid: initialize(), then run() over every
+ * .mermaid element - drawing each that parses and leaving one that does not
+ * as it was, as mermaid does with suppressErrorRendering - throwing the
+ * first error once it has been through them all.
+ */
+const mermaidStandIn: (
+  window: DOMWindow,
+  configs: Array<Record<string, unknown>>,
+) => MermaidStandIn = (
+  window: DOMWindow,
+  configs: Array<Record<string, unknown>>,
+): MermaidStandIn => {
+  return {
+    initialize: (config: Record<string, unknown>): void => {
+      configs.push(config);
+    },
+    run: async (): Promise<void> => {
+      const failures: Array<Error> = [];
+      const elements: Array<HTMLElement> = Array.from(
+        window.document.querySelectorAll<HTMLElement>(".mermaid"),
+      );
+
+      for (const element of elements) {
+        if (element.getAttribute("data-processed")) {
+          continue;
+        }
+        element.setAttribute("data-processed", "true");
+
+        const definition: string = (element.textContent || "").trim();
+
+        await Promise.resolve();
+
+        if (definition === BROKEN_DIAGRAM) {
+          failures.push(
+            new Error("Parse error on line 2: Expecting 'NODE_STRING'"),
+          );
+          continue;
+        }
+
+        element.innerHTML = `<svg data-drawn="true"><text>${escapeHtml(definition)}</text></svg>`;
+      }
+
+      if (failures.length > 0) {
+        throw failures[0];
+      }
+    },
+  };
+};
 
 let opened: OpenedPost | null = null;
 
@@ -129,6 +266,12 @@ const settle: () => Promise<void> = (): Promise<void> => {
 interface OpenOptions {
   // window.addEventListener throws for "resize", as a broken browser might.
   failResizeListeners?: boolean;
+  /*
+   * Runs the diagram module too, importing the stand-in for mermaid
+   * ("build"), or failing to import it, as on a server whose image has no
+   * mermaid build ("missing").
+   */
+  mermaid?: "build" | "missing";
 }
 
 /*
@@ -143,11 +286,16 @@ const openPost: (
   htmlBody: string,
   options: OpenOptions = {},
 ): Promise<OpenedPost> => {
-  const html: string = await renderPost(htmlBody);
+  const rendered: string = await renderPost(htmlBody);
+  const html: string = options.mermaid
+    ? withDiagramModuleAsScript(rendered)
+    : rendered;
   const scrolledTo: Array<unknown> = [];
   const fetched: Array<string> = [];
   const copied: Array<string> = [];
   const errors: Array<string> = [];
+  const mermaidConfigs: Array<Record<string, unknown>> = [];
+  let mermaidLoads: number = 0;
   let scrollY: number = 0;
 
   const virtualConsole: VirtualConsole = new VirtualConsole();
@@ -221,10 +369,30 @@ const openPost: (
           );
         }) as typeof window.addEventListener;
       }
+      if (options.mermaid) {
+        const missing: boolean = options.mermaid === "missing";
+        Object.defineProperty(window, "__loadMermaid", {
+          configurable: true,
+          value: (): Promise<{ default: MermaidStandIn }> => {
+            mermaidLoads++;
+            if (missing) {
+              return Promise.reject(
+                new TypeError(
+                  "Failed to fetch dynamically imported module: /oneuptime-assets/mermaid/mermaid.mjs",
+                ),
+              );
+            }
+            return Promise.resolve({
+              default: mermaidStandIn(window, mermaidConfigs),
+            });
+          },
+        });
+      }
     },
   });
 
   await settle();
+  await (dom.window["__diagramsDone"] as Promise<void> | undefined);
 
   opened = {
     window: dom.window,
@@ -237,6 +405,10 @@ const openPost: (
       scrollY = value;
       dom.window.dispatchEvent(new dom.window.Event("scroll"));
     },
+    mermaidLoads: (): number => {
+      return mermaidLoads;
+    },
+    mermaidConfigs,
   };
 
   return opened;
@@ -284,6 +456,18 @@ describe("a blog post without an h2 heading", () => {
 
     expect(page.document.getElementById("floating-toc")).toBeNull();
     expect(page.document.querySelectorAll("#toc a")).toHaveLength(0);
+  });
+
+  test("takes out the panel the server wrote when its h2 is not a heading on the page", async () => {
+    // An h2 left in a comment: the server's check sees it, the page has none.
+    const body: string = `<!-- <h2>An old section</h2> -->\n${BODY_WITHOUT_H2}`;
+
+    expect(await renderPost(body)).toContain('id="floating-toc"');
+
+    const page: OpenedPost = await openPost(body);
+
+    expect(page.errors).toEqual([]);
+    expect(page.document.getElementById("floating-toc")).toBeNull();
   });
 
   test("labels each code block and gives it a copy button", async () => {
@@ -550,5 +734,207 @@ describe("a blog post with h2 headings", () => {
     expect(byId(page, "lightbox-overlay").classList.contains("active")).toBe(
       true,
     );
+  });
+});
+
+describe("the 'On this page' panel, as the server writes the page", () => {
+  test.each([
+    ["left out", "no h2 heading", BODY_WITHOUT_H2],
+    ["written", "h2 headings", BODY_WITH_H2],
+    ["written", "one h2 with attributes", '<h2 class="lead">Only one</h2>'],
+    ["left out", "a header element", "<header>Not a heading</header>"],
+    [
+      "left out",
+      "an h2 shown as code",
+      "<pre><code>&lt;h2&gt;Not a heading&lt;/h2&gt;</code></pre>",
+    ],
+  ])(
+    "is %s for a post with %s",
+    async (outcome: string, _: string, htmlBody: string) => {
+      const html: string = await renderPost(htmlBody);
+      const written: boolean = outcome === "written";
+
+      expect(html.includes('id="floating-toc"')).toBe(written);
+      expect(html.includes('id="toc"')).toBe(written);
+    },
+  );
+});
+
+type BodyLayoutFunction = (page: OpenedPost) => Array<string>;
+
+// The post body's elements in order: notes, code blocks, diagrams and the rest by tag.
+const bodyLayout: BodyLayoutFunction = (page: OpenedPost): Array<string> => {
+  const body: Element | null = page.document.querySelector(".blog-body");
+
+  return Array.from(body ? body.children : []).map((child: Element): string => {
+    if (child.classList.contains("blog-diagram-note")) {
+      return "note";
+    }
+    if (child.classList.contains("mermaid")) {
+      if (child.querySelector("svg")) {
+        return "diagram";
+      }
+      return child.getAttribute("data-diagram") === "source"
+        ? "diagram source"
+        : "undrawn diagram";
+    }
+    return child.tagName.toLowerCase();
+  });
+};
+
+const NOT_DRAWN: string = "This diagram could not be drawn.";
+
+describe("a blog post's diagrams", () => {
+  test("are drawn by mermaid in strict mode, asked to draw no error graphic, each in its block's place", async () => {
+    const page: OpenedPost = await openPost(
+      BODY_WITH_H2 + fencedDiagram(FLOWCHART),
+      {
+        mermaid: "build",
+      },
+    );
+
+    expect(page.errors).toEqual([]);
+    expect(page.mermaidLoads()).toBe(1);
+    expect(page.mermaidConfigs).toEqual([
+      {
+        startOnLoad: false,
+        securityLevel: "strict",
+        suppressErrorRendering: true,
+        theme: "default",
+      },
+    ]);
+
+    const diagram: Element | null = page.document.querySelector(
+      ".blog-body .mermaid",
+    );
+
+    expect(diagram?.querySelector("svg")?.textContent).toBe(FLOWCHART);
+    expect(bodyLayout(page).slice(-1)).toEqual(["diagram"]);
+    // The code block that is not a diagram is still code.
+    expect(
+      Array.from(
+        page.document.querySelectorAll(".blog-body pre .code-lang-label"),
+      ).map((label: Element): string | null => {
+        return label.textContent;
+      }),
+    ).toEqual(["Bash"]);
+    expect(
+      page.document.querySelectorAll(".blog-body .blog-diagram-note"),
+    ).toHaveLength(0);
+  });
+
+  test("put one that does not parse back as its code block - label, copy button and all - under a short note", async () => {
+    const page: OpenedPost = await openPost(BODY_WITH_DIAGRAMS, {
+      mermaid: "build",
+    });
+
+    expect(bodyLayout(page)).toEqual([
+      "p",
+      "note",
+      "pre",
+      "diagram",
+      "pre",
+      "p",
+    ]);
+
+    const note: Element | null = page.document.querySelector(
+      ".blog-body .blog-diagram-note",
+    );
+
+    expect(note?.textContent).toBe(NOT_DRAWN);
+
+    const codeBlock: Element | null = note ? note.nextElementSibling : null;
+
+    expect(codeBlock?.querySelector("code")?.textContent).toBe(BROKEN_DIAGRAM);
+    expect(codeBlock?.querySelector(".code-lang-label")?.textContent).toBe(
+      "Mermaid",
+    );
+
+    // Its copy button still copies the diagram's source.
+    click(page, codeBlock?.querySelector(".code-copy-btn") as Element);
+    await settle();
+    expect(page.copied).toEqual([BROKEN_DIAGRAM]);
+
+    expect(page.errors).toEqual([
+      expect.stringContaining(
+        "Mermaid could not render the diagrams in this post",
+      ),
+    ]);
+  });
+
+  test("show the source of one the post writes as HTML when it does not parse, under the note", async () => {
+    const page: OpenedPost = await openPost(BODY_WITH_HTML_DIAGRAM, {
+      mermaid: "build",
+    });
+
+    expect(bodyLayout(page)).toEqual([
+      "p",
+      "note",
+      "diagram source",
+      "diagram",
+    ]);
+
+    const source: Element | null = page.document.querySelector(
+      '.blog-body .mermaid[data-diagram="source"]',
+    );
+
+    expect(source?.textContent).toBe(BROKEN_DIAGRAM);
+    expect(source?.previousElementSibling?.textContent).toBe(NOT_DRAWN);
+    expect(page.errors).toEqual([
+      expect.stringContaining(
+        "Mermaid could not render the diagrams in this post",
+      ),
+    ]);
+  });
+
+  test("stay code, each under the note, when mermaid cannot be loaded - said once", async () => {
+    const page: OpenedPost = await openPost(
+      BODY_WITH_DIAGRAMS + BODY_WITH_HTML_DIAGRAM,
+      { mermaid: "missing" },
+    );
+
+    expect(page.mermaidLoads()).toBe(1);
+    expect(page.mermaidConfigs).toEqual([]);
+    expect(bodyLayout(page)).toEqual([
+      "p",
+      "note",
+      "pre",
+      "note",
+      "pre",
+      "pre",
+      "p",
+      "p",
+      "note",
+      "diagram source",
+      "note",
+      "pre",
+    ]);
+
+    // Each fenced block is the code block it was, with its header.
+    const mermaidBlocks: Array<Element> = Array.from(
+      page.document.querySelectorAll(".blog-body pre"),
+    ).filter((pre: Element): boolean => {
+      return pre.querySelector(".code-lang-label")?.textContent === "Mermaid";
+    });
+
+    expect(
+      mermaidBlocks.map((pre: Element): string | null => {
+        return pre.querySelector("code")?.textContent || null;
+      }),
+    ).toEqual([BROKEN_DIAGRAM, FLOWCHART, FLOWCHART]);
+    expect(page.errors).toEqual([
+      expect.stringContaining(
+        "Mermaid could not be loaded, so the diagrams in this post are shown as code",
+      ),
+    ]);
+  });
+
+  test("do not load mermaid for a post with no fenced diagram", async () => {
+    const page: OpenedPost = await openPost(BODY_WITHOUT_H2, {
+      mermaid: "build",
+    });
+
+    expect(page.mermaidLoads()).toBe(0);
+    expect(page.errors).toEqual([]);
   });
 });
