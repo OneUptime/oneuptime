@@ -415,6 +415,8 @@ function findStoredAlerts(args: FindAlertsArgs): Array<Alert> {
 
     const alert: Alert = new Alert();
     alert._id = id;
+    // Every stored alert is the project's, read with it as the checks ask.
+    alert.projectId = PROJECT_ID;
     alert.labels = stored.labels;
 
     if (stored.stateOrder !== null) {
