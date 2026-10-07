@@ -427,15 +427,14 @@ describe("MicrosoftTeamsActionAuthorization", (): void => {
     ]);
     jest.spyOn(AlertService, "findOneBy").mockResolvedValue(alert);
 
-    const refusal: unknown = await MicrosoftTeamsActionAuthorization.assertCanUpdateAlert(
-      {
+    const refusal: unknown =
+      await MicrosoftTeamsActionAuthorization.assertCanUpdateAlert({
         alertId,
         projectId,
         props: databaseProps,
-      },
-    ).catch((error: unknown): unknown => {
-      return error;
-    });
+      }).catch((error: unknown): unknown => {
+        return error;
+      });
 
     expect(refusal).toBeInstanceOf(NotAuthorizedException);
     expect((refusal as Error).message).toBe(
