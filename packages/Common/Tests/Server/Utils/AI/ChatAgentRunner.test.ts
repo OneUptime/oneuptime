@@ -16,6 +16,12 @@ import AIConversationMessageService from "../../../../Server/Services/AIConversa
 import AIConversationService from "../../../../Server/Services/AIConversationService";
 import AIRunEventService from "../../../../Server/Services/AIRunEventService";
 import AIRunService from "../../../../Server/Services/AIRunService";
+import AIToolbox, {
+  ToolCallOutcome,
+} from "../../../../Server/Utils/AI/Toolbox/Index";
+import { ELIDED_TOOL_RESULT_PREFIX } from "../../../../Server/Utils/AI/Chat/AgentContextCompactor";
+import { LLMMessage } from "../../../../Server/Utils/LLM/LLMService";
+import BadDataException from "../../../../Types/Exception/BadDataException";
 import AIConversation from "../../../../Models/DatabaseModels/AIConversation";
 import AIConversationMessage from "../../../../Models/DatabaseModels/AIConversationMessage";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
@@ -858,5 +864,83 @@ describe("ChatAgentRunner.runTurn — conversation titles", () => {
     expect(
       findCallWithDataKey(spies.conversationUpdateOneById, "title"),
     ).toBeUndefined();
+  });
+});
+
+describe("ChatAgentRunner.runTurn — context overflow", () => {
+  test("a model with a smaller window rejects the transcript; the turn compacts, retries and answers", async () => {
+    const spies: RunnerSpies = installRunnerSpies({ titleCount: 5 });
+    const rows: string = "x".repeat(20_000);
+    jest.spyOn(AIToolbox, "executeTool").mockResolvedValue({
+      success: true,
+      textForLlm: rows,
+      result: {
+        dataForLlm: rows,
+        rowCount: 1,
+        citationLabel: "rows",
+        redactionCount: 0,
+        isTruncated: false,
+      },
+    } as ToolCallOutcome as never);
+
+    const script: Array<AILogResponse | Error> = [];
+    for (let index: number = 0; index < 4; index++) {
+      script.push({
+        content: "",
+        stopReason: "tool_use",
+        toolCalls: [{ id: `call-${index}`, name: "query_logs", arguments: {} }],
+        llmLog: { totalTokens: 10, costInUSDCents: 1 },
+      } as unknown as AILogResponse);
+    }
+    script.push(
+      new BadDataException(
+        "OpenAICompatible API error: the model's context length is only 65536 tokens, resulting in a maximum input length of 57344 tokens.",
+      ),
+      chatResponse("All good."),
+    );
+
+    // The loop compacts its transcript in place: snapshot what each call sent.
+    const sentToolResults: Array<Array<string>> = [];
+    spies.executeWithLogging.mockImplementation((async (
+      aiRequest: AILogRequest,
+    ): Promise<AILogResponse> => {
+      sentToolResults.push(
+        aiRequest.messages
+          .filter((message: LLMMessage) => {
+            return message.role === "tool";
+          })
+          .map((message: LLMMessage) => {
+            return message.content;
+          }),
+      );
+      const next: AILogResponse | Error = script[sentToolResults.length - 1]!;
+      if (next instanceof Error) {
+        throw next;
+      }
+      return next;
+    }) as never);
+
+    await ChatAgentRunner.runTurn(buildRequest());
+    await flushAsync();
+
+    expect(sentToolResults).toHaveLength(6);
+    // Nothing was elided until the model rejected the transcript.
+    expect(
+      sentToolResults[4]!.some((content: string) => {
+        return content.startsWith(ELIDED_TOOL_RESULT_PREFIX);
+      }),
+    ).toBe(false);
+    // The retry resends the same step with the oldest result elided.
+    expect(sentToolResults[5]).toHaveLength(4);
+    expect(sentToolResults[5]![0]!.startsWith(ELIDED_TOOL_RESULT_PREFIX)).toBe(
+      true,
+    );
+    expect(sentToolResults[5]![3]).toContain(rows);
+
+    const finalized: JSONObject | undefined = findCallWithDataKey(
+      spies.messageUpdateOneBy,
+      "contentInMarkdown",
+    );
+    expect(finalized?.["contentInMarkdown"]).toBe("All good.");
   });
 });
