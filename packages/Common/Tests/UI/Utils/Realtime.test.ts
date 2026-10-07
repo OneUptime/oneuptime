@@ -756,4 +756,160 @@ describe("Realtime (UI) subscriptions", () => {
       expect(refreshSession).toHaveBeenCalledTimes(1);
     });
   });
+
+  /*
+   * The server ends a socket's live updates when the session it joined with
+   * ends - its access token expired, or it was signed out or revoked - and
+   * says so with AuthenticationRequired and an empty payload. The client
+   * answers it like a refusal: refresh, reconnect, and ask for every
+   * subscription again; a session that cannot be refreshed sends the person
+   * to sign in (the refresh does), and nothing reconnects.
+   */
+  describe("the server ends the socket's session", () => {
+    test("the client refreshes, reconnects and asks for every subscription again", async () => {
+      Realtime.init();
+      mockSocket.acceptConnection();
+
+      Realtime.listenToModelEvent(
+        {
+          modelType: Incident,
+          eventType: ModelEventType.Create,
+          tenantId: TENANT_ID,
+        },
+        () => {},
+      );
+
+      mockSocket.deliver(EventName.AuthenticationRequired, {});
+      await flush();
+
+      expect(refreshSession).toHaveBeenCalledTimes(1);
+      expect(mockSocket.disconnectCalls).toBe(1);
+      expect(mockSocket.connectCalls).toBe(1);
+
+      mockSocket.clearEmitted();
+      mockSocket.acceptConnection();
+
+      expect(mockSocket.listenRequests()).toEqual([
+        requestFor("Incident", ModelEventType.Create),
+      ]);
+    });
+
+    test("a session that cannot be refreshed (signed out, revoked) is not reconnected", async () => {
+      Realtime.init();
+      mockSocket.acceptConnection();
+      refreshSession.mockResolvedValue(false);
+
+      mockSocket.deliver(EventName.AuthenticationRequired, {});
+      await flush();
+
+      expect(refreshSession).toHaveBeenCalledTimes(1);
+      expect(mockSocket.disconnectCalls).toBe(0);
+      expect(mockSocket.connectCalls).toBe(0);
+    });
+
+    test("an end with no payload at all is answered the same way", async () => {
+      Realtime.init();
+      mockSocket.acceptConnection();
+
+      mockSocket.deliver(EventName.AuthenticationRequired);
+      await flush();
+
+      expect(refreshSession).toHaveBeenCalledTimes(1);
+      expect(mockSocket.connectCalls).toBe(1);
+    });
+  });
+
+  /*
+   * A project that requires an SSO sign-in refuses the live updates of a
+   * session without one, as it refuses its API requests, and says which
+   * project. Whoever listens decides what the person sees; the socket
+   * itself is fine, so nothing is refreshed or reconnected.
+   */
+  describe("the server says a project requires an SSO sign-in", () => {
+    test("listeners hear which project, and the session is left alone", async () => {
+      Realtime.init();
+      mockSocket.acceptConnection();
+
+      const heard: Array<string> = [];
+
+      Realtime.listenForSsoAuthorizationRequired((tenantId: ObjectID): void => {
+        heard.push(tenantId.toString());
+      });
+
+      mockSocket.deliver(
+        EventName.SsoAuthorizationRequired,
+        requestFor("Incident", ModelEventType.Create),
+      );
+      await flush();
+
+      expect(heard).toEqual([TENANT_ID.toString()]);
+      expect(refreshSession).not.toHaveBeenCalled();
+      expect(mockSocket.disconnectCalls).toBe(0);
+    });
+
+    test("a listener that stopped hears nothing more, the others still do", () => {
+      Realtime.init();
+
+      const first: Array<string> = [];
+      const second: Array<string> = [];
+
+      const stopFirst: () => void = Realtime.listenForSsoAuthorizationRequired(
+        (tenantId: ObjectID): void => {
+          first.push(tenantId.toString());
+        },
+      );
+      Realtime.listenForSsoAuthorizationRequired((tenantId: ObjectID): void => {
+        second.push(tenantId.toString());
+      });
+
+      stopFirst();
+
+      mockSocket.deliver(
+        EventName.SsoAuthorizationRequired,
+        requestFor("Incident", ModelEventType.Create, OTHER_TENANT_ID),
+      );
+
+      expect(first).toEqual([]);
+      expect(second).toEqual([OTHER_TENANT_ID.toString()]);
+    });
+
+    test("a listener that throws does not keep the others from hearing it", () => {
+      Realtime.init();
+
+      const heard: Array<string> = [];
+
+      Realtime.listenForSsoAuthorizationRequired((): void => {
+        throw new Error("a listener failed");
+      });
+      Realtime.listenForSsoAuthorizationRequired((tenantId: ObjectID): void => {
+        heard.push(tenantId.toString());
+      });
+
+      expect(() => {
+        mockSocket.deliver(
+          EventName.SsoAuthorizationRequired,
+          requestFor("Incident", ModelEventType.Create),
+        );
+      }).not.toThrow();
+
+      expect(heard).toEqual([TENANT_ID.toString()]);
+    });
+
+    test("a refusal that names no project is ignored", () => {
+      Realtime.init();
+
+      const heard: Array<string> = [];
+
+      Realtime.listenForSsoAuthorizationRequired((tenantId: ObjectID): void => {
+        heard.push(tenantId.toString());
+      });
+
+      mockSocket.deliver(EventName.SsoAuthorizationRequired);
+      mockSocket.deliver(EventName.SsoAuthorizationRequired, {});
+      mockSocket.deliver(EventName.SsoAuthorizationRequired, { tenantId: 42 });
+      mockSocket.deliver(EventName.SsoAuthorizationRequired, { tenantId: "" });
+
+      expect(heard).toEqual([]);
+    });
+  });
 });

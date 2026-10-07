@@ -139,7 +139,13 @@ class FakeSocketServer {
     const socket: FakeSocket = {
       id: id,
       rooms: new Set<string>([id, room]),
-      data: { realtimeReader: { userId: userId, isMasterAdmin: false } },
+      data: {
+        realtimeReader: {
+          userId: userId,
+          isMasterAdmin: false,
+          expiresAtMs: Date.now() + 60 * 60 * 1000,
+        },
+      },
       received: [],
     };
 

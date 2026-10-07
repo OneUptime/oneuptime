@@ -1,4 +1,3 @@
-import type { Socket } from "../../Infrastructure/SocketIO";
 import logger from "../Logger";
 import Dictionary from "../../../Types/Dictionary";
 import EventName from "../../../Types/Realtime/EventName";
@@ -37,6 +36,19 @@ import type { RealtimeReaderIdentity } from "./RealtimeReaders";
  * The timers, and the sockets this server holds, are kept here.
  */
 
+/*
+ * What of a socket the sessions use. Only Realtime holds the socket server
+ * (RealtimeEmitGuard); this module is handed its sockets.
+ */
+export interface RealtimeSessionSocket {
+  id: string;
+  data: unknown;
+  rooms: Set<string>;
+  leave(room: string): Promise<void> | void;
+  emit(event: string, payload: unknown): boolean;
+  on(event: "disconnect", listener: () => void): unknown;
+}
+
 // A socket's session, as Realtime keeps it on the socket.
 export interface RealtimeSocketSession extends RealtimeReaderIdentity {
   // The sign-in (UserSession) the access token was issued for.
@@ -52,7 +64,7 @@ export const SESSION_OF_SOCKET_KEY: string = "realtimeReader";
 export const SESSION_ENDED_KEY: string = "realtimeSessionEnded";
 
 interface LiveSocket {
-  socket: Socket;
+  socket: RealtimeSessionSocket;
   session: RealtimeSocketSession;
   timer: ReturnType<typeof setTimeout> | null;
 }
@@ -161,7 +173,10 @@ export default class RealtimeSessions {
    * join only confirms it (and an earlier expiry, should one ever come,
    * wins).
    */
-  public static begin(socket: Socket, session: RealtimeSocketSession): void {
+  public static begin(
+    socket: RealtimeSessionSocket,
+    session: RealtimeSocketSession,
+  ): void {
     const data: Dictionary<unknown> =
       socket.data && typeof socket.data === "object"
         ? (socket.data as Dictionary<unknown>)
@@ -221,7 +236,7 @@ export default class RealtimeSessions {
    * longer anyone, joins nothing more, and is told why (see the top of
    * this file). Harmless on a socket whose session has already ended.
    */
-  public static end(socket: Socket): void {
+  public static end(socket: RealtimeSessionSocket): void {
     const wasEnded: boolean = RealtimeSessions.hasEnded(socket);
 
     RealtimeSessions.forget(socket);
@@ -288,7 +303,7 @@ export default class RealtimeSessions {
       RealtimeSessions.rememberEnded(`session:${sessionId}`, endedAtMs);
     }
 
-    const ending: Array<Socket> = [];
+    const ending: Array<RealtimeSessionSocket> = [];
 
     for (const entry of RealtimeSessions.live.values()) {
       const ofPerson: boolean = Boolean(
@@ -399,7 +414,7 @@ export default class RealtimeSessions {
     return entry;
   }
 
-  private static forget(socket: Socket): void {
+  private static forget(socket: RealtimeSessionSocket): void {
     const entry: LiveSocket | undefined = RealtimeSessions.live.get(socket.id);
 
     if (!entry || entry.socket !== socket) {

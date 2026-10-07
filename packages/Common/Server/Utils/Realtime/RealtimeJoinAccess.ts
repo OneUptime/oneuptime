@@ -1,4 +1,3 @@
-import type { Socket } from "../../Infrastructure/SocketIO";
 import type UserMiddlewareType from "../../Middleware/UserAuthorization";
 import type { RequestSession } from "../../Middleware/UserAuthorization";
 import {
@@ -63,16 +62,29 @@ export interface RealtimeAccessTokenTimes {
   expiresAtMs: number;
 }
 
+/*
+ * What of a socket the join reads: the handshake it connected with. Only
+ * Realtime holds the socket server (RealtimeEmitGuard); this module is
+ * handed its sockets.
+ */
+export interface RealtimeHandshakeSocket {
+  handshake?: { headers?: unknown } | undefined;
+}
+
 export default class RealtimeJoinAccess {
   /*
    * The socket's handshake as the API's checks read a request: its headers,
    * and its cookies parsed by the parser the API's server mounts. Nothing
    * else of a request is read by those checks.
    */
-  public static getHandshakeRequest(socket: Socket): OneUptimeRequest {
-    const headers: Dictionary<unknown> = {
-      ...((socket.handshake?.headers || {}) as Dictionary<unknown>),
-    };
+  public static getHandshakeRequest(
+    socket: RealtimeHandshakeSocket,
+  ): OneUptimeRequest {
+    const handshakeHeaders: unknown = socket.handshake?.headers;
+    const headers: Dictionary<unknown> =
+      handshakeHeaders && typeof handshakeHeaders === "object"
+        ? { ...(handshakeHeaders as Dictionary<unknown>) }
+        : {};
 
     const request: OneUptimeRequest = {
       headers: headers,
@@ -96,7 +108,7 @@ export default class RealtimeJoinAccess {
    * cache, the database): that is an error, not a refusal.
    */
   public static async decide(
-    socket: Socket,
+    socket: RealtimeHandshakeSocket,
     tenantId: string,
   ): Promise<RealtimeJoinDecision> {
     const userMiddleware: typeof UserMiddlewareType =
