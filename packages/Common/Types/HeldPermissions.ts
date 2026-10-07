@@ -449,6 +449,49 @@ export default class HeldPermissionsUtil {
     return [...granting, data.wildcard];
   }
 
+  /*
+   * The permissions whose blocks WITH LABELS narrow an operation's records,
+   * as the record rule weighs them (ReadPermission.getLabelledBlockRows, the
+   * analytics read scope): the model's own list - a block with labels on one
+   * of them takes the records carrying those labels away from the operation
+   * - and its wildcard, whose block with labels takes away what the wildcard
+   * grants. That is the operation's records too unless the model's own list
+   * reaches them anyway, so the wildcard's blocks count only while the
+   * wildcard grants (an allow row for it, not blocked outright) and none of
+   * the model's own permissions reaches the whole project. A caller who
+   * holds the wildcard and a model permission limited to labels as well
+   * loses the records carrying both a label of that permission and a label
+   * the wildcard's block takes away: the narrower answer, never a wider one.
+   */
+  public static getLabelBlockingPermissions(
+    held: HeldPermissions,
+    data: {
+      modelPermissions: ReadonlyArray<Permission>;
+      wildcard: Permission | null | undefined;
+    },
+  ): Array<Permission> {
+    const blocking: Array<Permission> = [...data.modelPermissions];
+    const wildcard: Permission | null | undefined = data.wildcard;
+
+    if (
+      !wildcard ||
+      blocking.length === 0 ||
+      blocking.includes(wildcard) ||
+      !held.allowed.includes(wildcard) ||
+      held.blocked.includes(wildcard)
+    ) {
+      return blocking;
+    }
+
+    const isOwnListProjectWide: boolean = data.modelPermissions.some(
+      (permission: Permission): boolean => {
+        return held.allowedProjectWide.includes(permission);
+      },
+    );
+
+    return isOwnListProjectWide ? blocking : [...blocking, wildcard];
+  }
+
   // The *AllOperationalResources wildcard for an operation.
   public static getOperationalWildcard(
     operation: PermissionOperation | string,

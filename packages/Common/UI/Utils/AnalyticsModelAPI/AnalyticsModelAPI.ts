@@ -457,12 +457,24 @@ export default class ModelAPI {
       throw new BadDataException("This model does not support get operations.");
     }
 
-    return this.post<TAnalyticsBaseModel>(
-      modelType,
-      apiUrl,
-      select,
-      requestOptions,
-    );
+    try {
+      return await this.post<TAnalyticsBaseModel>(
+        modelType,
+        apiUrl,
+        select,
+        requestOptions,
+      );
+    } catch (error) {
+      /*
+       * The API answers 404 for a row that does not exist or that the
+       * caller may not read: no row, which callers of getItem handle as null.
+       */
+      if (error instanceof HTTPErrorResponse && error.statusCode === 404) {
+        return null;
+      }
+
+      throw error;
+    }
   }
 
   public static async post<TAnalyticsBaseModel extends AnalyticsBaseModel>(

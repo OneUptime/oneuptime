@@ -73,6 +73,8 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Exception from "../../Types/Exception/Exception";
 import ExceptionCode from "../../Types/Exception/ExceptionCode";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import NotFoundException from "../../Types/Exception/NotFoundException";
 import ServerException from "../../Types/Exception/ServerException";
 import TimeoutException from "../../Types/Exception/TimeoutException";
 import { JSONObject } from "../../Types/JSON";
@@ -2077,6 +2079,156 @@ export default class AnalyticsDatabaseService<
   @CaptureSpan()
   public async updateBy(updateBy: UpdateBy<TBaseModel>): Promise<void> {
     await this._updateBy(updateBy);
+  }
+
+  /*
+   * Deletes the one row `id` names, when the delete reaches it, and answers
+   * how many rows it reached: 1, or 0 for a row that is missing or not one
+   * the caller may delete - the rows of resources their delete and read
+   * grants both reach (ModelPermission.checkDeletePermission). A ClickHouse
+   * delete does not say how many rows it removed, so the row is looked up
+   * under the delete's own scope first (isReachedByWrite).
+   */
+  @CaptureSpan()
+  public async deleteOneById(data: {
+    id: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<number> {
+    if (
+      !(await this.isReachedByWrite({
+        id: data.id,
+        props: data.props,
+        type: DatabaseRequestType.Delete,
+      }))
+    ) {
+      return 0;
+    }
+
+    await this.deleteBy({
+      query: { _id: data.id.toString() } as Query<TBaseModel>,
+      props: data.props,
+    });
+
+    return 1;
+  }
+
+  /*
+   * Updates the one row `id` names, when the update reaches it, and answers
+   * how many rows it reached: 1, or 0 for a row that is missing or not one
+   * the caller may change (ModelPermission.checkUpdatePermissions), as
+   * deleteOneById does.
+   */
+  @CaptureSpan()
+  public async updateOneById(data: {
+    id: ObjectID;
+    data: TBaseModel;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<number> {
+    if (
+      !(await this.isReachedByWrite({
+        id: data.id,
+        props: data.props,
+        type: DatabaseRequestType.Update,
+        data: data.data,
+      }))
+    ) {
+      return 0;
+    }
+
+    await this.updateBy({
+      query: { _id: data.id.toString() } as Query<TBaseModel>,
+      data: data.data,
+      props: data.props,
+    });
+
+    return 1;
+  }
+
+  /*
+   * Whether an update or a delete by `props` reaches the row `id` names:
+   * the row looked up under the scope the write itself runs with - the
+   * caller's project, and the resources both the write's grants and the
+   * read's reach. Refuses as the write would when the caller may not make
+   * it on this table at all.
+   */
+  private async isReachedByWrite(data: {
+    id: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    type: DatabaseRequestType.Update | DatabaseRequestType.Delete;
+    data?: TBaseModel | undefined;
+  }): Promise<boolean> {
+    const query: Query<TBaseModel> = {
+      _id: data.id.toString(),
+    } as Query<TBaseModel>;
+
+    const scopedQuery: Query<TBaseModel> =
+      data.type === DatabaseRequestType.Delete
+        ? await ModelPermission.checkDeletePermission(
+            this.modelType,
+            query,
+            data.props,
+          )
+        : await ModelPermission.checkUpdatePermissions(
+            this.modelType,
+            query,
+            data.data || new this.modelType(),
+            data.props,
+          );
+
+    return await this.existsBy({
+      query: scopedQuery,
+      props: { isRoot: true },
+    });
+  }
+
+  /*
+   * Why an update or a delete by id reached nothing (deleteOneById,
+   * updateOneById), for a caller that asked for one row: a row the caller
+   * may not read is answered as missing, with no word on whether it exists
+   * (NotFoundException, 404); one they may read but not change or delete is
+   * refused (NotAuthorizedException, 422) - as the database models answer
+   * (DatabaseService.getUnwrittenByIdError).
+   */
+  public async getUnwrittenByIdError(data: {
+    id: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    type: DatabaseRequestType.Update | DatabaseRequestType.Delete;
+  }): Promise<Exception> {
+    const name: string = this.model.singularName || "Record";
+
+    let isReadable: boolean = false;
+
+    try {
+      isReadable = Boolean(
+        await this.findOneById({
+          id: data.id,
+          select: { _id: true } as Select<TBaseModel>,
+          props: data.props,
+        }),
+      );
+    } catch (error) {
+      /*
+       * A read the caller may not make finds nothing for them either. Any
+       * other failure is not an answer about the row, and is raised as it
+       * is: a 404 would tell a client the row is gone.
+       */
+      if (
+        !(error instanceof NotAuthorizedException) &&
+        !(error instanceof NotFoundException)
+      ) {
+        throw error;
+      }
+
+      isReadable = false;
+    }
+
+    if (isReadable) {
+      return new NotAuthorizedException(
+        `You do not have permission to ${data.type} this ${name.toLowerCase()}.`,
+      );
+    }
+
+    return new NotFoundException(`${name} not found.`);
   }
 
   private async _updateBy(updateBy: UpdateBy<TBaseModel>): Promise<void> {

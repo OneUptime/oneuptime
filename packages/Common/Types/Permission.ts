@@ -2274,7 +2274,9 @@ export class PermissionHelper {
    * resources via OwnedScopePermission — but they also don't contribute
    * a label filter, so they are excluded here. AccessControlPermission's
    * early return treats "any unrestricted row" as a broader grant; Owned
-   * rows must not trigger that path.
+   * rows must not trigger that path. The one exception is a role that
+   * cannot be scoped at all (isScopeApplicable): its Owned row reaches the
+   * whole project, as every other check reads it.
    *
    * We intentionally do NOT consult `isAccessControlPermission` here.
    * The UI allows attaching labels to role permissions like
@@ -2290,8 +2292,15 @@ export class PermissionHelper {
         if (i.scope === PermissionScope.All) {
           return true;
         }
+        /*
+         * A role that cannot be scoped (Project Owner, Project Admin, the
+         * Settings and Billing roles) reaches the whole project whatever
+         * scope a stray row of it carries - as OwnedScopePermission and
+         * HeldPermissionsUtil.isProjectWideRow read it - so its Owned row
+         * is a grant without a label restriction too.
+         */
         if (i.scope === PermissionScope.Owned) {
-          return false;
+          return !this.isScopeApplicable(i.permission);
         }
         // scope === Labels OR scope === undefined (legacy default)
         return i.labelIds.length === 0;

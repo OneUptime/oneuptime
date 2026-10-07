@@ -138,6 +138,15 @@ interface ReadGrants {
 }
 
 export default class ModelPermission {
+  /*
+   * A DELETE REACHES ONLY WHAT ITS CALLER MAY READ, as on the database
+   * models (BasePermission.addRecordScopeToQuery): a caller who may read
+   * none of the table's rows deletes none of them
+   * (checkModelLevelReadForWrite), and the rows a delete reaches are those
+   * of the resources both its own grants and the read's reach - their
+   * labels and owners, less what a block with labels on either takes away.
+   * A delete is made in one project at a time.
+   */
   @CaptureSpan()
   public static async checkDeletePermission<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
@@ -158,14 +167,19 @@ export default class ModelPermission {
     }
 
     if (!props.isRoot && !props.isMasterAdmin) {
+      this.checkWriteIsInOneProject(modelType, props, DatabaseRequestType.Delete);
       this.checkModelLevelPermissions(
         modelType,
         props,
         DatabaseRequestType.Delete,
       );
+      this.checkModelLevelReadForWrite(
+        modelType,
+        props,
+        DatabaseRequestType.Delete,
+      );
       query = await this.addTenantScopeToQuery(modelType, query, null, props);
-      // Deletes reach only the telemetry of resources the caller may delete.
-      query = await this.addReadScopeToQuery(
+      query = await this.addWriteScopeToQuery(
         modelType,
         query,
         props,
@@ -174,6 +188,104 @@ export default class ModelPermission {
     }
 
     return query;
+  }
+
+  /*
+   * The rows an update or a delete reaches, of the resources the caller's
+   * grants for the operation and for reading both reach (getReadScope for
+   * each): a row of a resource the caller may not read is not one they may
+   * change or delete. Root and master admins are left alone.
+   */
+  private static async addWriteScopeToQuery<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+    type: DatabaseRequestType.Update | DatabaseRequestType.Delete,
+  ): Promise<Query<TBaseModel>> {
+    query = await this.addReadScopeToQuery(
+      modelType,
+      query,
+      props,
+      DatabaseRequestType.Read,
+    );
+
+    return await this.addReadScopeToQuery(modelType, query, props, type);
+  }
+
+  /*
+   * A WRITE NEEDS A READ, on the table as on its rows: a caller who holds
+   * none of the table's read permissions (nor its read wildcard), or whose
+   * block with no labels takes one of them away, changes and deletes none
+   * of its rows - the rule TablePermission.checkTableLevelReadForWrite holds
+   * the database models to.
+   */
+  private static checkModelLevelReadForWrite(
+    modelType: AnalyticsBaseModelType,
+    props: DatabaseCommonInteractionProps,
+    type: DatabaseRequestType.Update | DatabaseRequestType.Delete,
+  ): void {
+    const model: BaseModel = new modelType();
+    const readPermissions: Array<Permission> = this.getModelPermissions(
+      modelType,
+      DatabaseRequestType.Read,
+    );
+    const held: HeldPermissions = ModelPermission.getHeldPermissions(props);
+
+    const blockedReadPermission: Permission | undefined = readPermissions.find(
+      (permission: Permission): boolean => {
+        return held.blocked.includes(permission);
+      },
+    );
+
+    if (blockedReadPermission) {
+      throw new NotAuthorizedException(
+        `You are not authorized to ${type} ${model.singularName} because you may not read it: ${blockedReadPermission} is in your team's permission block list.`,
+      );
+    }
+
+    if (
+      HeldPermissionsUtil.isGrantedAny(held, readPermissions, {
+        wildcard: HeldPermissionsUtil.getModelWildcard({
+          isOperationalResource: model.isOperationalResource,
+          operation: DatabaseRequestType.Read,
+        }),
+      })
+    ) {
+      return;
+    }
+
+    const titles: Array<string> =
+      PermissionHelper.getPermissionTitles(readPermissions);
+
+    if (titles.length === 0) {
+      throw new NotAuthorizedException(
+        `${type} on ${model.singularName} is not allowed: nobody may read it.`,
+      );
+    }
+
+    throw new NotAuthorizedException(
+      `You do not have permissions to ${type} ${
+        model.singularName
+      }: changing or deleting a record needs permission to read it too. You need one of these permissions: ${titles.join(
+        ", ",
+      )}`,
+    );
+  }
+
+  /*
+   * An update or a delete is made in one project at a time: a request
+   * across the caller's projects reads, and never writes.
+   */
+  private static checkWriteIsInOneProject(
+    modelType: AnalyticsBaseModelType,
+    props: DatabaseCommonInteractionProps,
+    type: DatabaseRequestType.Update | DatabaseRequestType.Delete,
+  ): void {
+    if (props.isMultiTenantRequest) {
+      throw new BadDataException(
+        `${new modelType().singularName}: ${type} one project at a time. Send the project's id with the request, not a request across projects.`,
+      );
+    }
   }
 
   @CaptureSpan()
@@ -197,16 +309,31 @@ export default class ModelPermission {
       data: data,
     });
 
+    this.checkWriteIsInOneProject(modelType, props, DatabaseRequestType.Update);
+
     this.checkModelLevelPermissions(
       modelType,
       props,
       DatabaseRequestType.Update,
     );
 
+    this.checkModelLevelReadForWrite(
+      modelType,
+      props,
+      DatabaseRequestType.Update,
+    );
+
+    // The read's checks and scope, which an update keeps to.
     const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
       await this.checkReadPermission(modelType, query, null, props);
 
-    query = checkReadPermissionType.query;
+    // And the update's own grants: the rows of resources both reach.
+    query = await this.addReadScopeToQuery(
+      modelType,
+      checkReadPermissionType.query,
+      props,
+      DatabaseRequestType.Update,
+    );
 
     this.checkDataColumnPermissions(
       modelType,
@@ -888,8 +1015,12 @@ export default class ModelPermission {
    *   4. A block with labels on any of `permissions` takes away the
    *      resources carrying those labels, whatever else the caller holds -
    *      as a block with labels leaves out the records carrying them on the
-   *      CRUD path (ReadPermission.checkReadBlockPermission). A block on the
-   *      wildcard takes away the wildcard, not the read.
+   *      CRUD path (ReadPermission.checkReadBlockPermission). A block with
+   *      labels on the wildcard takes away what the wildcard grants: it
+   *      counts while the wildcard grants the read and none of
+   *      `permissions` reaches the whole project
+   *      (HeldPermissionsUtil.getLabelBlockingPermissions). A block with no
+   *      labels on the wildcard takes the wildcard away (step 2).
    */
   public static async getReadScopeForPermissions(
     data: ReadGrantRequest,
@@ -1118,12 +1249,18 @@ export default class ModelPermission {
       );
     }
 
+    const blockingPermissions: Array<Permission> =
+      HeldPermissionsUtil.getLabelBlockingPermissions(held, {
+        modelPermissions: [...data.permissions],
+        wildcard: data.wildcard,
+      });
+
     const blockedLabelIds: Array<ObjectID> = this.getLabelIdsOfRows(
       DatabaseCommonInteractionPropsUtil.getUserPermissions(
         props,
         PermissionType.Block,
       ).filter((row: UserPermission): boolean => {
-        return data.permissions.includes(row.permission);
+        return blockingPermissions.includes(row.permission);
       }),
     );
 
