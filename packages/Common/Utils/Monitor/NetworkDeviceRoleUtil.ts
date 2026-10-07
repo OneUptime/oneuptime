@@ -317,9 +317,14 @@ const SYS_OBJECT_ID_RULES: ReadonlyArray<{
   { prefix: "1.3.6.1.4.1.22610", role: "loadBalancer" }, // A10
   // Storage.
   { prefix: "1.3.6.1.4.1.789", role: "storage" }, // NetApp
+  // Wireless. Cambium's arc is product-specific, so only the AP arc is named.
+  { prefix: "1.3.6.1.4.1.17713.22", role: "wirelessAccessPoint" }, // Cambium Enterprise Wi-Fi
   // Switching / routing houses.
   { prefix: "1.3.6.1.4.1.30065", role: "switch" }, // Arista
   { prefix: "1.3.6.1.4.1.6027", role: "switch" }, // Force10 / Dell
+  { prefix: "1.3.6.1.4.1.17713.24", role: "switch" }, // Cambium cnMatrix
+  { prefix: "1.3.6.1.4.1.1916.2", role: "switch" }, // Extreme EXOS / Fabric Engine
+  { prefix: "1.3.6.1.4.1.2272", role: "switch" }, // Extreme VOSS (Avaya/Nortel arc)
   { prefix: "1.3.6.1.4.1.14988", role: "router" }, // MikroTik
 ];
 

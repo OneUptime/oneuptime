@@ -38,6 +38,11 @@ import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
 import DeviceHealthOidsFormField from "../../../Components/NetworkDevice/DeviceHealthOidsFormField";
+import SnmpTableEditor from "../../../Components/NetworkDevice/SnmpTableEditor";
+import { SnmpTableDefinition } from "Common/Types/Monitor/SnmpMonitor/SnmpTable";
+import SnmpTableListUtil, {
+  MAX_DEVICE_SPECIFIC_TABLES,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpTableListUtil";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -663,6 +668,10 @@ const NetworkDeviceSettings: FunctionComponent<
             title: "Health OIDs",
             id: "health-oids",
           },
+          {
+            title: "SNMP Tables",
+            id: "snmp-tables",
+          },
         ]}
         formFields={[
           {
@@ -778,6 +787,37 @@ const NetworkDeviceSettings: FunctionComponent<
             required: false,
             description:
               "When the device's vendor is fingerprinted from its SNMP sysObjectID and the Health OID list above is empty, seed it with the matching vendor health template automatically on the next poll. A non-empty list is never touched. A device linked to an OID Collection Template is never seeded either, whatever this is set to, because its list comes from the template. Auto-imported devices have this on by default.",
+          },
+          {
+            field: {
+              snmpTables: true,
+            },
+            title: "Device-Specific SNMP Tables",
+            stepId: "snmp-tables",
+            description: translator.translateTemplate(
+              "Lists this device keeps, walked whole on every poll - IPsec tunnels, Wi-Fi radios, routing neighbours, fans, power supplies - on top of its OID Collection Template's tables. A table with the same key as a template table replaces it on this device. Up to {{max}} tables.",
+              { max: MAX_DEVICE_SPECIFIC_TABLES },
+            ),
+            fieldType: FormFieldSchemaType.CustomComponent,
+            required: false,
+            getCustomElement: (
+              value: FormValues<NetworkDevice>,
+              customElementProps: CustomElementProps,
+            ): ReactElement => {
+              return (
+                <SnmpTableEditor
+                  showVendorPrefill={true}
+                  value={
+                    (value.snmpTables as
+                      | Array<SnmpTableDefinition>
+                      | undefined) || []
+                  }
+                  onChange={(tables: Array<SnmpTableDefinition>): void => {
+                    customElementProps.onChange?.(tables);
+                  }}
+                />
+              );
+            },
           },
         ]}
         modelDetailProps={{
@@ -950,6 +990,83 @@ const NetworkDeviceSettings: FunctionComponent<
                       })}
                     </ul>
                   </div>
+                );
+              },
+            },
+            {
+              field: {
+                snmpTables: true,
+                oidTemplateId: true,
+                oidTemplate: {
+                  name: true,
+                  tables: true,
+                },
+              },
+              title: "SNMP Tables",
+              fieldType: FieldType.Element,
+              getElement: (item: NetworkDevice): ReactElement => {
+                const templateTables: Array<SnmpTableDefinition> =
+                  item.oidTemplate?.tables || [];
+                const templateKeys: Set<string> = new Set(
+                  templateTables.map((table: SnmpTableDefinition): string => {
+                    return SnmpTableListUtil.normalizeKey(
+                      table.key || table.name,
+                    );
+                  }),
+                );
+
+                const effectiveTables: Array<SnmpTableDefinition> =
+                  SnmpTableListUtil.resolveEffectiveTables({
+                    templateTables: templateTables,
+                    deviceTables: item.snmpTables,
+                  }).tables;
+
+                if (effectiveTables.length === 0) {
+                  return (
+                    <span>
+                      {translator.translateText(
+                        "No SNMP tables collected. Add them here or on the device's OID Collection Template.",
+                      )}
+                    </span>
+                  );
+                }
+
+                return (
+                  <ul
+                    className="space-y-1 text-sm text-gray-700"
+                    data-testid="network-device-effective-snmp-tables"
+                  >
+                    {effectiveTables.map(
+                      (table: SnmpTableDefinition): ReactElement => {
+                        return (
+                          <li
+                            key={table.key}
+                            className="flex flex-wrap items-baseline gap-x-2"
+                          >
+                            <span className="font-medium text-gray-900">
+                              {table.name}
+                            </span>
+                            <span className="text-gray-500">
+                              {translator.translatePlural(
+                                {
+                                  one: "{{count}} column",
+                                  other: "{{count}} columns",
+                                },
+                                table.columns.length,
+                              )}
+                            </span>
+                            {templateKeys.has(table.key) ? (
+                              <span className="text-gray-500">
+                                {translator.translateText("from template")}
+                              </span>
+                            ) : (
+                              <></>
+                            )}
+                          </li>
+                        );
+                      },
+                    )}
+                  </ul>
                 );
               },
             },

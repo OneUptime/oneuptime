@@ -28,6 +28,11 @@ import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorStepMetricViewConfigUtil from "Common/Types/Monitor/MonitorStepMetricViewConfigUtil";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import SnmpOidListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpOidListUtil";
+import {
+  SnmpTableColumn,
+  SnmpTableDefinition,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpTable";
+import SnmpTableListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpTableListUtil";
 import SqlDatabaseType from "Common/Types/Monitor/SqlDatabaseType";
 import Button, {
   ButtonSize,
@@ -67,8 +72,18 @@ export interface NetworkDeviceOidCatalogueEntry {
   templateName?: string | undefined;
 }
 
+/*
+ * One of the device's effective SNMP tables (template plus device-specific),
+ * with the row names its last walk reported, for the table criteria pickers.
+ */
+export interface NetworkDeviceTableCatalogueEntry {
+  definition: SnmpTableDefinition;
+  rowNames: Array<string>;
+}
+
 export interface NetworkDeviceCriteriaCatalogue {
   oids: Array<NetworkDeviceOidCatalogueEntry>;
+  tables: Array<NetworkDeviceTableCatalogueEntry>;
   /*
    * Names AND aliases of the monitored interfaces the device's last walk
    * found. Both, because the server scopes a criteria by matching
@@ -89,6 +104,7 @@ export interface NetworkDeviceCriteriaCatalogue {
 export const EMPTY_NETWORK_DEVICE_CRITERIA_CATALOGUE: NetworkDeviceCriteriaCatalogue =
   {
     oids: [],
+    tables: [],
     interfaceNames: [],
     isLoaded: false,
   };
@@ -603,6 +619,222 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
               </div>
             );
           })()}
+
+        {criteriaFilter?.checkOn &&
+          (criteriaFilter.checkOn === CheckOn.SnmpTableValue ||
+            criteriaFilter.checkOn === CheckOn.SnmpTableRowCount ||
+            criteriaFilter.checkOn === CheckOn.SnmpTableRowIsUnhealthy) &&
+          (() => {
+            const savedTableKey: string = SnmpTableListUtil.normalizeKey(
+              criteriaFilter?.snmpMonitorOptions?.tableKey,
+            );
+
+            const tableOptions: Array<DropdownOption> =
+              networkDeviceCatalogue.tables.map(
+                (entry: NetworkDeviceTableCatalogueEntry): DropdownOption => {
+                  return {
+                    value: entry.definition.key,
+                    label: entry.definition.name,
+                  };
+                },
+              );
+
+            let selectedTableOption: DropdownOption | undefined =
+              tableOptions.find((option: DropdownOption) => {
+                return option.value.toString() === savedTableKey;
+              });
+
+            // Same rule as the OID picker: never hide a saved value.
+            if (savedTableKey && !selectedTableOption) {
+              selectedTableOption = {
+                value: savedTableKey,
+                label: networkDeviceCatalogue.isLoaded
+                  ? translator.translateTemplate(
+                      "{{table}} - no longer collected by this device",
+                      { table: savedTableKey },
+                    )
+                  : savedTableKey,
+              };
+              tableOptions.push(selectedTableOption);
+            }
+
+            const selectedTable: NetworkDeviceTableCatalogueEntry | undefined =
+              networkDeviceCatalogue.tables.find(
+                (entry: NetworkDeviceTableCatalogueEntry): boolean => {
+                  return entry.definition.key === savedTableKey;
+                },
+              );
+
+            const columnOptions: Array<DropdownOption> = (
+              selectedTable?.definition.columns || []
+            ).map((column: SnmpTableColumn): DropdownOption => {
+              return {
+                value: SnmpOidListUtil.normalizeOid(column.oid),
+                label: `${column.name} (${SnmpOidListUtil.normalizeOid(column.oid)})`,
+              };
+            });
+
+            const savedColumnOid: string = SnmpOidListUtil.normalizeOid(
+              criteriaFilter?.snmpMonitorOptions?.tableColumnOid,
+            );
+
+            const selectedColumnOption: DropdownOption | undefined =
+              columnOptions.find((option: DropdownOption) => {
+                return option.value.toString() === savedColumnOid;
+              }) ||
+              (savedColumnOid
+                ? { value: savedColumnOid, label: savedColumnOid }
+                : undefined);
+
+            const savedRow: string =
+              criteriaFilter?.snmpMonitorOptions?.tableRow || "";
+
+            const rowOptions: Array<DropdownOption> = [
+              {
+                value: "*",
+                label: "* - every row, alerting separately",
+              },
+              ...(selectedTable?.rowNames || []).map(
+                (rowName: string): DropdownOption => {
+                  return { value: rowName, label: rowName };
+                },
+              ),
+            ];
+
+            const selectedRowOption: DropdownOption | undefined =
+              rowOptions.find((option: DropdownOption) => {
+                return (
+                  option.value.toString().toLowerCase() ===
+                  savedRow.toLowerCase()
+                );
+              }) ||
+              (savedRow ? { value: savedRow, label: savedRow } : undefined);
+
+            const isDeviceSelected: boolean = Boolean(
+              props.monitorStep.data?.networkDeviceMonitor?.networkDeviceId,
+            );
+
+            const setOption: (
+              patch: Partial<NonNullable<CriteriaFilter["snmpMonitorOptions"]>>,
+            ) => void = (
+              patch: Partial<NonNullable<CriteriaFilter["snmpMonitorOptions"]>>,
+            ): void => {
+              props.onChange?.({
+                ...criteriaFilter,
+                snmpMonitorOptions: {
+                  ...criteriaFilter?.snmpMonitorOptions,
+                  ...patch,
+                },
+              });
+            };
+
+            return (
+              <div className="mt-1 space-y-3">
+                <div>
+                  <FieldLabelElement
+                    title="SNMP Table"
+                    description="Which of the tables this device walks should this criteria evaluate?"
+                  />
+                  {tableOptions.length === 0 ? (
+                    <p className="text-sm text-gray-500">
+                      {translator.translateText(
+                        isDeviceSelected
+                          ? "This device walks no SNMP tables yet. Add tables on the device's Settings page, or link an OID Collection Template that has them - the vendor templates for Sophos, Extreme and Cambium include IPsec tunnels, fabric neighbours, Wi-Fi radios and hardware tables."
+                          : "Choose the network device for this monitor in the configuration above, and the SNMP tables it walks are listed here.",
+                      )}
+                    </p>
+                  ) : (
+                    <Dropdown
+                      value={selectedTableOption}
+                      options={tableOptions}
+                      onChange={(
+                        value: DropdownValue | Array<DropdownValue> | null,
+                      ) => {
+                        setOption({
+                          tableKey: value?.toString() || undefined,
+                          tableColumnOid: undefined,
+                          tableRow: savedRow || undefined,
+                        });
+                      }}
+                    />
+                  )}
+                </div>
+
+                {criteriaFilter?.checkOn === CheckOn.SnmpTableValue ? (
+                  <div>
+                    <FieldLabelElement
+                      title="Column"
+                      description="The column to compare, row by row. Numbers compare as numbers; text compares against both the raw value and its label."
+                    />
+                    <Dropdown
+                      value={selectedColumnOption}
+                      options={columnOptions}
+                      placeholder="Choose a column"
+                      onChange={(
+                        value: DropdownValue | Array<DropdownValue> | null,
+                      ) => {
+                        setOption({
+                          tableColumnOid: value?.toString() || undefined,
+                        });
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <></>
+                )}
+
+                <div>
+                  <FieldLabelElement
+                    title="Row (Optional)"
+                    description="Leave empty to evaluate every row as one combined alert, pick * to raise a separate alert for each row, or name one row."
+                  />
+                  <Dropdown
+                    value={selectedRowOption}
+                    options={rowOptions}
+                    placeholder="Every row (combined)"
+                    onChange={(
+                      value: DropdownValue | Array<DropdownValue> | null,
+                    ) => {
+                      setOption({
+                        tableRow: value?.toString() || undefined,
+                      });
+                    }}
+                  />
+                  <Input
+                    value={savedRow}
+                    placeholder="* or a row name"
+                    onChange={(value: string) => {
+                      setOption({ tableRow: value || undefined });
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })()}
+
+        {criteriaFilter?.checkOn === CheckOn.SnmpTrapVarbindValue ? (
+          <div className="mt-1">
+            <FieldLabelElement
+              title="Varbind OID (Optional)"
+              description="Compare only this varbind (and its instances, such as .0). Leave empty to search every varbind the trap carries - useful for vendors like Sophos that send every event as one trap OID with the event in a text varbind."
+            />
+            <Input
+              value={criteriaFilter?.snmpMonitorOptions?.oid || ""}
+              placeholder="1.3.6.1.4.1.2604.5.1.8.1.2"
+              onChange={(value: string) => {
+                props.onChange?.({
+                  ...criteriaFilter,
+                  snmpMonitorOptions: {
+                    ...criteriaFilter?.snmpMonitorOptions,
+                    oid: value || undefined,
+                  },
+                });
+              }}
+            />
+          </div>
+        ) : (
+          <></>
+        )}
 
         {criteriaFilter?.checkOn === CheckOn.DatabaseMetric &&
           (() => {

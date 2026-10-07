@@ -1,5 +1,6 @@
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
+import SnmpTableCriteria from "./SnmpTableCriteria";
 import PerEntityCriteriaFanOut from "../PerEntityCriteriaFanOut";
 import {
   AnomalyDetectionSensitivity,
@@ -39,7 +40,10 @@ export default class SnmpMonitorCriteria {
       checkOn === CheckOn.SnmpOidValue ||
       checkOn === CheckOn.SnmpInterfaceIsDown ||
       checkOn === CheckOn.SnmpInterfaceUtilizationPercent ||
-      checkOn === CheckOn.SnmpInterfaceErrorsPerSecond
+      checkOn === CheckOn.SnmpInterfaceErrorsPerSecond ||
+      checkOn === CheckOn.SnmpTableValue ||
+      checkOn === CheckOn.SnmpTableRowCount ||
+      checkOn === CheckOn.SnmpTableRowIsUnhealthy
     );
   }
 
@@ -267,6 +271,21 @@ export default class SnmpMonitorCriteria {
       return null;
     }
 
+    /*
+     * The trap's contents rather than its OID. Only ever judged on a trap
+     * event, exactly like the trap OID above.
+     */
+    if (input.criteriaFilter.checkOn === CheckOn.SnmpTrapVarbindValue) {
+      if (!snmpTrap) {
+        return null;
+      }
+
+      return SnmpTableCriteria.evaluateTrapVarbind({
+        snmpTrap: snmpTrap,
+        criteriaFilter: input.criteriaFilter,
+      });
+    }
+
     if (snmpTrap) {
       // Trap events never evaluate check-based criteria.
       return null;
@@ -293,6 +312,32 @@ export default class SnmpMonitorCriteria {
       !snmpResponse
     ) {
       return null;
+    }
+
+    /*
+     * SNMP tables are judged on this walk's rows only - never over time,
+     * since a row has no history of its own until it has been walked a few
+     * times, and a row that disappears has none at all.
+     */
+    if (input.criteriaFilter.checkOn === CheckOn.SnmpTableValue) {
+      return SnmpTableCriteria.evaluateTableValue({
+        tables: snmpResponse?.tables,
+        criteriaFilter: input.criteriaFilter,
+      });
+    }
+
+    if (input.criteriaFilter.checkOn === CheckOn.SnmpTableRowCount) {
+      return SnmpTableCriteria.evaluateTableRowCount({
+        tables: snmpResponse?.tables,
+        criteriaFilter: input.criteriaFilter,
+      });
+    }
+
+    if (input.criteriaFilter.checkOn === CheckOn.SnmpTableRowIsUnhealthy) {
+      return SnmpTableCriteria.evaluateTableRowIsUnhealthy({
+        tables: snmpResponse?.tables,
+        criteriaFilter: input.criteriaFilter,
+      });
     }
 
     const overTime: OverTimeCriteriaValue =

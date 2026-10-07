@@ -158,6 +158,7 @@ import TracePipelineProcessor from "./TracePipelineProcessor";
 import TraceDropFilter from "./TraceDropFilter";
 import TraceScrubRule from "./TraceScrubRule";
 import TraceRecordingRule from "./TraceRecordingRule";
+import LogRecordingRule from "./LogRecordingRule";
 // Monitors
 import Monitor from "./Monitor";
 import MonitorCustomField from "./MonitorCustomField";
@@ -548,6 +549,7 @@ const AllModelTypes: Array<{
   TraceDropFilter,
   TraceScrubRule,
   TraceRecordingRule,
+  LogRecordingRule,
   ApiKeyPermission,
   ProjectSmtpConfig,
   StatusPage,

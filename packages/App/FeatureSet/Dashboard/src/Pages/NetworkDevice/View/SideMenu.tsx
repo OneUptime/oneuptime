@@ -43,6 +43,26 @@ const NetworkDeviceSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
+            title: "SNMP Tables",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_VIEW_TABLES] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.TableCells}
+        />
+        <SideMenuItem
+          link={{
+            title: "Wi-Fi",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_VIEW_WIFI] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Wifi}
+        />
+        <SideMenuItem
+          link={{
             title: "Metrics",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.NETWORK_DEVICE_VIEW_METRICS] as Route,

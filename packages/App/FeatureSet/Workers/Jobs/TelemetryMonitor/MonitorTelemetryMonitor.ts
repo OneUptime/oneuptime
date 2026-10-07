@@ -36,7 +36,12 @@ import MonitorStepLogMonitor, {
   MonitorStepLogMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepLogMonitor";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import LogService from "Common/Server/Services/LogService";
+import LogService, {
+  LogAttributeGroupCountResult,
+  LogAttributeGroupCount,
+} from "Common/Server/Services/LogService";
+import LogMonitorGroupResult from "Common/Types/Monitor/LogMonitor/LogMonitorGroupResult";
+import { MaxEntitiesPerCriteria } from "Common/Server/Utils/Monitor/PerEntityCriteriaFanOut";
 import Query from "Common/Server/Types/AnalyticsDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
 import PositiveNumber from "Common/Types/PositiveNumber";
@@ -4116,6 +4121,18 @@ export const monitorLogs: MonitorLogsFunction = async (data: {
   const query: Query<Log> = MonitorStepLogMonitorUtil.toQuery(logQuery);
   query.projectId = data.projectId;
 
+  const groupByAttributes: Array<string> =
+    MonitorStepLogMonitorUtil.getGroupByAttributes(logQuery);
+
+  if (groupByAttributes.length > 0) {
+    return monitorLogGroups({
+      query: query,
+      groupByAttributes: groupByAttributes,
+      monitorId: data.monitorId,
+      projectId: data.projectId,
+    });
+  }
+
   const countLogs: PositiveNumber = await LogService.countBy({
     query: query,
     limit: LIMIT_PER_PROJECT,
@@ -4130,6 +4147,77 @@ export const monitorLogs: MonitorLogsFunction = async (data: {
     logCount: countLogs.toNumber(),
     logQuery: JSONFunctions.anyObjectToJSONObject(query),
     monitorId: data.monitorId,
+  };
+};
+
+/*
+ * The grouped half of monitorLogs: one log count per combination of the
+ * step's group-by attributes' values, so the criteria can raise one alert
+ * per group (per IPsec tunnel, per user, ...) instead of one per monitor.
+ *
+ * The busiest MaxEntitiesPerCriteria groups are kept - the same ceiling
+ * the disk and interface fan-out applies, for the same reason: every
+ * group is a criteria evaluation and potentially an alert. A cut is
+ * logged rather than silent, because a monitor quietly covering part of
+ * its groups reads exactly like one covering all of them.
+ */
+const monitorLogGroups: (data: {
+  query: Query<Log>;
+  groupByAttributes: Array<string>;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}) => Promise<LogMonitorResponse> = async (data: {
+  query: Query<Log>;
+  groupByAttributes: Array<string>;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}): Promise<LogMonitorResponse> => {
+  const counted: LogAttributeGroupCountResult =
+    await LogService.countByAttributeGroups({
+      query: data.query,
+      groupByAttributes: data.groupByAttributes,
+      limit: MaxEntitiesPerCriteria,
+      props: {
+        isRoot: true,
+      },
+    });
+
+  if (counted.totalGroupCount > counted.groups.length) {
+    logger.warn(
+      `${data.monitorId.toString()} - Logs monitor grouped by ${data.groupByAttributes.join(
+        ", ",
+      )} matched ${counted.totalGroupCount} groups, which is above the ${MaxEntitiesPerCriteria} per-evaluation cap. Only the ${counted.groups.length} groups with the most logs are evaluated; narrow the monitor's filters to cover the rest.`,
+      {
+        service: "workers",
+        projectId: data.projectId.toString(),
+      },
+    );
+  }
+
+  const groupBreakdown: Array<LogMonitorGroupResult> = counted.groups.map(
+    (group: LogAttributeGroupCount): LogMonitorGroupResult => {
+      const labels: JSONObject = {};
+
+      data.groupByAttributes.forEach((key: string, index: number) => {
+        labels[key] = group.values[index] ?? "";
+      });
+
+      return {
+        fingerprint: MetricSeriesFingerprint.computeFingerprint(labels),
+        labels: labels,
+        logCount: group.count,
+      };
+    },
+  );
+
+  return {
+    projectId: data.projectId,
+    logCount: counted.totalCount,
+    logQuery: JSONFunctions.anyObjectToJSONObject(data.query),
+    monitorId: data.monitorId,
+    groupByAttributes: data.groupByAttributes,
+    groupBreakdown: groupBreakdown,
+    totalGroupCount: counted.totalGroupCount,
   };
 };
 

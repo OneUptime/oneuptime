@@ -51,6 +51,13 @@ enum MonitorMetricType {
   SnmpOidValue = "oneuptime.monitor.snmp.oid.value",
 
   /*
+   * One series per numeric cell of a walked SNMP table - a tunnel's status,
+   * a radio's transmit power - keyed by the tableKey / columnName / rowLabel
+   * attributes, so every row charts and alerts on its own.
+   */
+  SnmpTableValue = "oneuptime.monitor.snmp.table.value",
+
+  /*
    * Extended server/VM metrics. Emitted when the agent payload contains them;
    * absent for older agents, which keeps the pipeline backwards-compatible.
    */

@@ -1,5 +1,7 @@
+import LogRecordingRule from "../../../Models/DatabaseModels/LogRecordingRule";
 import MetricRecordingRule from "../../../Models/DatabaseModels/MetricRecordingRule";
 import TraceRecordingRule from "../../../Models/DatabaseModels/TraceRecordingRule";
+import LogRecordingRuleService from "../../../Server/Services/LogRecordingRuleService";
 import MetricRecordingRuleService, {
   Service as MetricRecordingRuleServiceClass,
 } from "../../../Server/Services/MetricRecordingRuleService";
@@ -8,6 +10,7 @@ import CreateBy from "../../../Server/Types/Database/CreateBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import { LogRecordingRuleDefinitionUtil } from "../../../Types/Log/LogRecordingRuleDefinition";
 import ObjectID from "../../../Types/ObjectID";
 import {
   afterEach,
@@ -23,14 +26,14 @@ import type { SpyInstance } from "jest-mock";
  * A recording rule's Output Metric Name - the metric it writes - is made
  * from the rule's name when a create leaves it out, as the dashboard does
  * unless someone typed one ("HTTP 5xx error rate" writes
- * http_5xx_error_rate). Metric and trace recording rules write into the
- * same metric store, so a made name is numbered past every output name of
- * the project's rules of both kinds: two rules writing one series would mix
- * their data. A name that is sent is kept as sent, and an update may rename
- * the output but never empty it.
+ * http_5xx_error_rate). Metric, trace and log recording rules write into
+ * the same metric store, so a made name is numbered past every output name
+ * of the project's rules of all three kinds: two rules writing one series
+ * would mix their data. A name that is sent is kept as sent, and an update
+ * may rename the output but never empty it.
  */
 
-type AnyRule = MetricRecordingRule | TraceRecordingRule;
+type AnyRule = MetricRecordingRule | TraceRecordingRule | LogRecordingRule;
 
 interface Hooks {
   onBeforeCreate: (createBy: CreateBy<AnyRule>) => Promise<OnCreate<AnyRule>>;
@@ -66,15 +69,27 @@ const KINDS: Array<RuleKind> = [
       return new TraceRecordingRule();
     },
   },
+  {
+    label: "log recording rules",
+    hooks: LogRecordingRuleService as unknown as Hooks,
+    // A log recording rule is created with a definition or not at all.
+    newRule: (): AnyRule => {
+      const rule: LogRecordingRule = new LogRecordingRule();
+      rule.definition = LogRecordingRuleDefinitionUtil.getEmptyDefinition();
+      return rule;
+    },
+  },
 ];
 
 let metricFindBy: SpyInstance;
 let traceFindBy: SpyInstance;
+let logFindBy: SpyInstance;
 
 // The output names the project's rules of each kind write.
 function answerNames(names: {
   metric?: Array<string | undefined>;
   trace?: Array<string | undefined>;
+  log?: Array<string | undefined>;
 }): void {
   const rows: (
     list: Array<string | undefined> | undefined,
@@ -104,6 +119,11 @@ function answerNames(names: {
       return new TraceRecordingRule();
     }) as never,
   );
+  logFindBy.mockResolvedValue(
+    rows(names.log, () => {
+      return new LogRecordingRule();
+    }) as never,
+  );
 }
 
 beforeEach(() => {
@@ -112,6 +132,9 @@ beforeEach(() => {
     .mockResolvedValue([] as never) as unknown as SpyInstance;
   traceFindBy = jest
     .spyOn(TraceRecordingRuleService, "findBy")
+    .mockResolvedValue([] as never) as unknown as SpyInstance;
+  logFindBy = jest
+    .spyOn(LogRecordingRuleService, "findBy")
     .mockResolvedValue([] as never) as unknown as SpyInstance;
 });
 
@@ -220,12 +243,29 @@ describe.each(KINDS)("$label", (kind: RuleKind) => {
       expect(create.data.outputMetricName).toBe("http_5xx_error_rate_3");
     });
 
-    test("reads both kinds of rule of the project, as root, names only", async () => {
+    test("numbers the name past a log recording rule that writes it", async () => {
+      answerNames({
+        metric: ["http_5xx_error_rate"],
+        trace: ["http_5xx_error_rate_2"],
+        log: ["http_5xx_error_rate_3", undefined],
+      });
+
+      const create: CreateBy<AnyRule> = createBy({
+        name: "HTTP 5xx error rate",
+        projectId: PROJECT_ID,
+      });
+
+      await kind.hooks.onBeforeCreate(create);
+
+      expect(create.data.outputMetricName).toBe("http_5xx_error_rate_4");
+    });
+
+    test("reads every kind of rule of the project, as root, names only", async () => {
       await kind.hooks.onBeforeCreate(
         createBy({ name: "HTTP 5xx error rate", projectId: PROJECT_ID }),
       );
 
-      for (const spy of [metricFindBy, traceFindBy]) {
+      for (const spy of [metricFindBy, traceFindBy, logFindBy]) {
         expect(spy).toHaveBeenCalledTimes(1);
 
         const query: Record<string, unknown> = spy.mock.calls[0]![0] as Record<
@@ -259,6 +299,7 @@ describe.each(KINDS)("$label", (kind: RuleKind) => {
 
       expect(metricFindBy).not.toHaveBeenCalled();
       expect(traceFindBy).not.toHaveBeenCalled();
+      expect(logFindBy).not.toHaveBeenCalled();
       expect(create.data.outputMetricName).toBe("http_5xx_error_rate");
     });
 

@@ -321,6 +321,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/network-sites",
       },
       {
+        title: "Network Vendor Guides (Sophos, Extreme, Cambium)",
+        url: "/docs/monitor/network-vendor-guides",
+      },
+      {
         title: "Kubernetes Monitor",
         url: "/docs/monitor/kubernetes-monitor",
       },
@@ -772,6 +776,7 @@ const DocsNav: NavGroup[] = [
         title: "Zooming Into a Time Range",
         url: "/docs/telemetry/charts-and-time-ranges",
       },
+      { title: "Log Pipelines", url: "/docs/telemetry/log-pipelines" },
       {
         title: "AI / LLM Observability",
         url: "/docs/telemetry/ai-llm-observability",
@@ -816,6 +821,10 @@ const DocsNav: NavGroup[] = [
       { title: "FluentBit", url: "/docs/telemetry/fluentbit" },
       { title: "Fluentd", url: "/docs/telemetry/fluentd" },
       { title: "Syslog", url: "/docs/telemetry/syslog" },
+      {
+        title: "Log Recording Rules",
+        url: "/docs/telemetry/log-recording-rules",
+      },
       {
         title: "Security Events (SIEM)",
         url: "/docs/telemetry/security-events",

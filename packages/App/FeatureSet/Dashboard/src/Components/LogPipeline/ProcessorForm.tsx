@@ -34,6 +34,13 @@ import {
   matchGrokPattern,
 } from "Common/Utils/Grok/Grok";
 import { getGrokPatternNames } from "Common/Utils/Grok/GrokPatterns";
+import {
+  DEFAULT_KEY_VALUE_DELIMITER,
+  KeyValueParserOptions,
+  ResolvedKeyValueParserOptions,
+  parseKeyValuePairs,
+  resolveKeyValueParserOptions,
+} from "Common/Utils/Log/KeyValueParser";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -46,6 +53,7 @@ export interface ComponentProps {
 
 type ProcessorType =
   | "GrokParser"
+  | "KeyValueParser"
   | "SeverityRemapper"
   | "AttributeRemapper"
   | "CategoryProcessor"
@@ -57,6 +65,12 @@ const processorTypeOptions: Array<DropdownOption> = [
     label: "Grok Parser",
     description:
       "Pulls structured fields out of an unstructured log line (e.g. an nginx access line) and stores them as log attributes",
+  },
+  {
+    value: "KeyValueParser",
+    label: "Key=Value Parser",
+    description:
+      "Splits key=value lines (e.g. Sophos XGS, Fortinet or logfmt) into log attributes, whatever order the fields arrive in",
   },
   {
     value: "SeverityRemapper",
@@ -91,9 +105,16 @@ interface GrokTestResult {
   fields?: Record<string, GrokValue>;
 }
 
+interface KeyValueTestResult {
+  // The delimiters do not validate.
+  error?: string;
+  // The pairs the sample line holds - empty when it holds none.
+  fields?: Record<string, string>;
+}
+
 /*
  * A prefix names a namespace, so the separator is implied unless the
- * user typed one. Mirrors LogPipelineService.normalizeGrokTargetPrefix -
+ * user typed one. Mirrors LogPipelineService.normalizeTargetPrefix -
  * this is only used to render the preview of the resulting keys.
  */
 function previewAttributeKey(targetPrefix: string, fieldName: string): string {
@@ -131,6 +152,22 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
   const [grokSample, setGrokSample] = useState<string>("");
   const [showGrokPatternList, setShowGrokPatternList] =
     useState<boolean>(false);
+
+  /*
+   * Key=Value Parser fields. A blank pair delimiter means "any
+   * whitespace", which is what Sophos, Fortinet and logfmt use, so it is
+   * left out of the saved configuration rather than saved as "".
+   */
+  const [keyValueSource, setKeyValueSource] = useState<string>("body");
+  const [keyValueTargetPrefix, setKeyValueTargetPrefix] = useState<string>("");
+  const [keyValuePairDelimiter, setKeyValuePairDelimiter] =
+    useState<string>("");
+  const [keyValueDelimiter, setKeyValueDelimiter] = useState<string>(
+    DEFAULT_KEY_VALUE_DELIMITER,
+  );
+  const [keyValueOverrideOnConflict, setKeyValueOverrideOnConflict] =
+    useState<boolean>(false);
+  const [keyValueSample, setKeyValueSample] = useState<string>("");
 
   // Severity Remapper fields
   const [severitySourceKey, setSeveritySourceKey] = useState<string>("level");
@@ -195,6 +232,46 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
     return { matched: true, fields: fields };
   }, [processorType, grokPattern, grokSample]);
 
+  /*
+   * The delimiters as the processor will read them: blank means the
+   * default (any whitespace between pairs, = between key and value).
+   * Delimiters are not trimmed - " | " is a different delimiter from "|".
+   */
+  const getKeyValueParserOptions: () => KeyValueParserOptions =
+    (): KeyValueParserOptions => {
+      return {
+        pairDelimiter: keyValuePairDelimiter || undefined,
+        keyValueDelimiter: keyValueDelimiter || undefined,
+      };
+    };
+
+  /*
+   * Live tester for the key=value parser. It runs the parser ingest runs
+   * (Common/Utils/Log/KeyValueParser), so what it shows is exactly what
+   * the processor will add.
+   */
+  const keyValueTestResult: KeyValueTestResult | null = useMemo(() => {
+    if (processorType !== "KeyValueParser") {
+      return null;
+    }
+
+    let options: ResolvedKeyValueParserOptions;
+
+    try {
+      options = resolveKeyValueParserOptions(getKeyValueParserOptions());
+    } catch (err) {
+      return {
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+
+    if (!keyValueSample.trim()) {
+      return null;
+    }
+
+    return { fields: parseKeyValuePairs(keyValueSample, options) };
+  }, [processorType, keyValuePairDelimiter, keyValueDelimiter, keyValueSample]);
+
   const buildConfiguration: () => JSONObject = (): JSONObject => {
     switch (processorType) {
       case "GrokParser":
@@ -202,6 +279,16 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
           source: grokSource.trim() || "body",
           pattern: grokPattern.trim(),
           targetPrefix: grokTargetPrefix.trim(),
+        };
+      case "KeyValueParser":
+        return {
+          source: keyValueSource.trim() || "body",
+          targetPrefix: keyValueTargetPrefix.trim(),
+          keyValueDelimiter: keyValueDelimiter || DEFAULT_KEY_VALUE_DELIMITER,
+          overrideOnConflict: keyValueOverrideOnConflict,
+          ...(keyValuePairDelimiter
+            ? { pairDelimiter: keyValuePairDelimiter }
+            : {}),
         };
       case "SeverityRemapper":
         return {
@@ -253,6 +340,22 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
          */
         try {
           compileGrokPattern(grokPattern.trim());
+        } catch (err) {
+          return err instanceof Error ? err.message : String(err);
+        }
+        break;
+      }
+      case "KeyValueParser": {
+        if (!keyValueSource.trim()) {
+          return "Source field is required.";
+        }
+
+        /*
+         * The same check the API makes, so a delimiter clash reads next
+         * to the delimiter fields instead of as a failed save.
+         */
+        try {
+          resolveKeyValueParserOptions(getKeyValueParserOptions());
         } catch (err) {
           return err instanceof Error ? err.message : String(err);
         }
@@ -656,6 +759,231 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
                   )}
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* === Key=Value Parser Configuration === */}
+        {processorType === "KeyValueParser" && (
+          <div className="border border-indigo-200 rounded-lg p-4 bg-indigo-50/30">
+            <h4 className="text-sm font-semibold text-gray-700 mb-1">
+              {translator.translateText("Key=Value Parser Configuration")}
+            </h4>
+            <p className="text-xs text-gray-500 mb-3">
+              <TranslatedSentence
+                template={
+                  "Splits a line of key=value pairs into the log's {{attributes}} object, whatever order the fields arrive in. Firewalls such as Sophos XGS and Fortinet log every event this way, so their fields become searchable and filterable - and usable as a log monitor's group-by - without writing a pattern."
+                }
+                slots={{
+                  attributes: (
+                    <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">
+                      attributes
+                    </code>
+                  ),
+                }}
+              />
+            </p>
+
+            {/* How it works */}
+            <div className="mb-4 p-3 bg-white rounded-md border border-indigo-100">
+              <p className="text-xs font-semibold text-gray-600 mb-1.5">
+                {translator.translateText("How it works")}
+              </p>
+              <div className="text-xs text-gray-500 space-y-1">
+                <p>
+                  <TranslatedSentence
+                    template="1. Reads the text from the Source Field (usually the log {{field}})."
+                    slots={{
+                      field: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          body
+                        </code>
+                      ),
+                    }}
+                  />
+                </p>
+                <p>
+                  <TranslatedSentence
+                    template={
+                      "2. Every {{pair}} becomes an attribute. Quoted values keep their spaces, and text that is not a pair - such as a syslog header - is skipped."
+                    }
+                    slots={{
+                      pair: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          key=value
+                        </code>
+                      ),
+                    }}
+                  />
+                </p>
+                <p>
+                  {translator.translateText(
+                    "3. Values are stored as text. If a key appears twice, the first value is kept.",
+                  )}
+                </p>
+                <p>
+                  {translator.translateText(
+                    "4. An attribute the log already has is left alone unless Override on Conflict is on. A line with no pairs passes through unchanged.",
+                  )}
+                </p>
+              </div>
+              <code className="mt-2 block p-2 bg-gray-900 rounded text-[11px] font-mono text-gray-300 leading-relaxed overflow-x-auto">
+                <span className="text-gray-500">// Log body (Sophos XGS)</span>
+                <br />
+                <span className="text-sky-400">
+                  log_component=&quot;IPSec&quot;
+                  con_name=&quot;HQ-Branch1&quot; status=&quot;Terminated&quot;
+                </span>
+                <br />
+                <span className="text-gray-500">
+                  // Attributes added (target prefix &quot;sophos&quot;)
+                </span>
+                <br />
+                <span className="text-amber-400">
+                  sophos.log_component
+                </span>: <span className="text-sky-400">&quot;IPSec&quot;</span>
+                , <span className="text-amber-400">sophos.con_name</span>:{" "}
+                <span className="text-sky-400">&quot;HQ-Branch1&quot;</span>,{" "}
+                <span className="text-amber-400">sophos.status</span>:{" "}
+                <span className="text-sky-400">&quot;Terminated&quot;</span>
+              </code>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <FieldLabelElement
+                  title="Source Field"
+                  description="The field to parse. Use 'body' for the log message, or an attribute key like 'attributes.raw_line'."
+                />
+                <div className="mt-1">
+                  <Input
+                    type={InputType.TEXT}
+                    placeholder="body"
+                    value={keyValueSource}
+                    onChange={setKeyValueSource}
+                  />
+                </div>
+              </div>
+              <div>
+                <FieldLabelElement
+                  title="Target Prefix (optional)"
+                  description="Namespace for the extracted attributes. 'sophos' stores con_name as sophos.con_name."
+                />
+                <div className="mt-1">
+                  <Input
+                    type={InputType.TEXT}
+                    placeholder="e.g. sophos"
+                    value={keyValueTargetPrefix}
+                    onChange={setKeyValueTargetPrefix}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <FieldLabelElement
+                  title="Pair Delimiter (optional)"
+                  description="What separates one pair from the next. Leave blank to split on any whitespace, which is what Sophos, Fortinet and logfmt use."
+                />
+                <div className="mt-1">
+                  <Input
+                    type={InputType.TEXT}
+                    placeholder="Any whitespace"
+                    value={keyValuePairDelimiter}
+                    onChange={setKeyValuePairDelimiter}
+                  />
+                </div>
+              </div>
+              <div>
+                <FieldLabelElement
+                  title="Key-Value Delimiter"
+                  description="What separates a key from its value. Must differ from the pair delimiter."
+                />
+                <div className="mt-1">
+                  <Input
+                    type={InputType.TEXT}
+                    placeholder="="
+                    value={keyValueDelimiter}
+                    onChange={setKeyValueDelimiter}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <Toggle
+                title="Override on Conflict"
+                description="Overwrite an attribute the log already has under the same key. Off by default, so a line cannot replace attributes set at ingest, such as the device it came from."
+                value={keyValueOverrideOnConflict}
+                onChange={setKeyValueOverrideOnConflict}
+              />
+            </div>
+
+            {/* Parser tester */}
+            <div>
+              <FieldLabelElement
+                title="Test With a Sample Line"
+                description="Paste a real log line here to see exactly which attributes this processor would add."
+              />
+              <div className="mt-1">
+                <TextArea
+                  placeholder='device_name="SFW" log_component="IPSec" con_name="HQ-Branch1" status="Terminated"'
+                  value={keyValueSample}
+                  onChange={setKeyValueSample}
+                  disableSpellCheck={true}
+                  className="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-xs font-mono placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-y min-h-16"
+                />
+              </div>
+
+              {keyValueTestResult?.error && (
+                <div className="mt-2 p-2 rounded-md border border-red-200 bg-red-50 text-xs text-red-700">
+                  {keyValueTestResult.error}
+                </div>
+              )}
+
+              {keyValueTestResult?.fields &&
+                Object.keys(keyValueTestResult.fields).length === 0 && (
+                  <div className="mt-2 p-2 rounded-md border border-amber-200 bg-amber-50 text-xs text-amber-700">
+                    {translator.translateText(
+                      "No key=value pairs found in the sample line. Logs like this are left unchanged.",
+                    )}
+                  </div>
+                )}
+
+              {keyValueTestResult?.fields &&
+                Object.keys(keyValueTestResult.fields).length > 0 && (
+                  <div className="mt-2 p-2 rounded-md border border-emerald-200 bg-emerald-50">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-emerald-700">
+                        {translator.translateText(
+                          "Attributes this processor would add",
+                        )}
+                      </p>
+                      {Object.entries(keyValueTestResult.fields).map(
+                        ([fieldName, fieldValue]: [string, string]) => {
+                          return (
+                            <div
+                              key={fieldName}
+                              className="text-[11px] font-mono text-gray-700"
+                            >
+                              <span className="text-indigo-700">
+                                {previewAttributeKey(
+                                  keyValueTargetPrefix,
+                                  fieldName,
+                                )}
+                              </span>
+                              {": "}
+                              <span className="text-gray-600">
+                                {`"${fieldValue}"`}
+                              </span>
+                            </div>
+                          );
+                        },
+                      )}
+                    </div>
+                  </div>
+                )}
             </div>
           </div>
         )}
