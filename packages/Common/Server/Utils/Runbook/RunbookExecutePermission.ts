@@ -2,22 +2,24 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import ObjectID from "../../../Types/ObjectID";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import Permission from "../../../Types/Permission";
+import {
+  RUNBOOK_ADVANCE_PERMISSIONS as ADVANCE_PERMISSIONS,
+  RUNBOOK_ADVANCE_REFUSED_MESSAGE,
+  RUNBOOK_RUN_PERMISSIONS,
+  RUNBOOK_RUN_REFUSED_MESSAGE,
+} from "../../../Types/Runbook/RunbookRunPermissions";
 import CallerPermission from "../Permission/CallerPermission";
 
 /*
  * Starting a runbook execution runs the project's own Bash/JavaScript on the
  * infrastructure its Runner is installed on, so it is gated on
- * RunbookExecution's create ACL rather than on being able to see the runbook.
- * Kept in step with that ACL by hand: widening one without the other is how a
- * route ends up checking something weaker than the CRUD path it stands in for.
+ * RunbookExecution's create ACL rather than on being able to see the runbook
+ * (Types/Runbook/RunbookRunPermissions holds the lists, and a test holds them
+ * to the model's). Which runbooks a role's grant reaches is the routes' next
+ * step (Server/Utils/Runbook/RunbookRunAccess).
  */
 export const RUNBOOK_EXECUTE_PERMISSIONS: Array<Permission> = [
-  Permission.ProjectOwner,
-  Permission.ProjectAdmin,
-  Permission.ProjectMember,
-  Permission.CreateRunbookExecution,
-  Permission.RunbookAdmin,
-  Permission.RunbookMember,
+  ...RUNBOOK_RUN_PERMISSIONS,
 ];
 
 /*
@@ -30,8 +32,7 @@ export const RUNBOOK_EXECUTE_PERMISSIONS: Array<Permission> = [
  * unable to advance it.
  */
 export const RUNBOOK_ADVANCE_PERMISSIONS: Array<Permission> = [
-  ...RUNBOOK_EXECUTE_PERMISSIONS,
-  Permission.EditRunbookExecution,
+  ...ADVANCE_PERMISSIONS,
 ];
 
 /*
@@ -62,8 +63,7 @@ export function assertCanExecuteRunbooks(
     props,
     projectId,
     allowed: RUNBOOK_EXECUTE_PERMISSIONS,
-    deniedMessage:
-      "You do not have permission to start runbook executions in this project.",
+    deniedMessage: RUNBOOK_RUN_REFUSED_MESSAGE,
   });
 }
 
@@ -75,8 +75,7 @@ export function assertCanAdvanceRunbookExecutions(
     props,
     projectId,
     allowed: RUNBOOK_ADVANCE_PERMISSIONS,
-    deniedMessage:
-      "You do not have permission to change runbook executions in this project.",
+    deniedMessage: RUNBOOK_ADVANCE_REFUSED_MESSAGE,
   });
 }
 

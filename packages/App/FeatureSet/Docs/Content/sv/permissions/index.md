@@ -71,13 +71,17 @@ En behörighet är en enskild förmåga. Det finns två sätt att dela ut dem, b
 
 En roll samlar ett helt produktområde på en av tre nivåer:
 
-- **Admin** — full kontroll över området, inklusive dess konfiguration (allvarlighetsgrader, tillstånd, mallar).
-- **Member** — det dagliga arbetet: skapa, redigera och ta bort resurserna, men inte konfigurera om området.
+- **Admin** — det som Member gör, plus områdets egen konfiguration, som allvarlighetsgrader och tillstånd för incidenter och larm, monitorstatusar och underhållstillstånd.
+- **Member** — det dagliga arbetet: skapa, ändra och ta bort områdets resurser med deras anteckningar, ägare och mallar. För statussidor och jour kan Member allt som Admin kan.
 - **Viewer** — endast läsning.
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` och så vidare. Roller är nästan alltid rätt val — de förblir korrekta när OneUptime får nya funktioner, eftersom en ny övervakarrelaterad tabell läggs till de befintliga övervakarrollerna i stället för att kräva en ny tilldelning av dig.
 
-Arbetsflöden är undantaget. Ett arbetsflöde kör sina steg inne i projektet, så `WorkflowMember` öppnar arbetsflöden och deras körningar och kör dem för hand, men skapar, ändrar eller tar inte bort dem. `WorkflowAdmin` bygger dem. Se [Konfiguration av arbetsflöden](/docs/workflows/configuration).
+Arbetsflöden och runbooks är undantaget. Båda kör kod i ditt projekt — ett arbetsflöde sina steg, en runbook sina skript på dina Runners —, så `WorkflowMember` öppnar arbetsflöden och deras körningar och kör dem manuellt, och `RunbookMember` öppnar runbooks och deras körningar och kör dem: den startar en körning, slutför eller hoppar över dess steg och avbryter den. Ingen av dem skapar, ändrar eller tar bort det den kör; `WorkflowAdmin` och `RunbookAdmin` bygger dem. En roll kör bara de runbooks som dess omfattning når: en `RunbookMember` som är begränsad till några etiketter kör de runbooks som har dem. Se [Konfiguration av arbetsflöden](/docs/workflows/configuration) och [Konfiguration av runbooks](/docs/runbooks/configuration).
+
+Ett områdes regler (etikett-, ägar-, jour-, grupperings- och påminnelseregler), anpassade fält, SLA:er och hemligheter är projektkonfiguration: de kräver `ProjectAdmin`, oavsett vilken områdesroll man har. Detsamma gäller API-nycklar, team och deras behörigheter, etiketter, SSO och domäner — Settings-rollerna sköter projektets tjänster, prober, infrastruktur och integrationer, inte vem som får göra vad.
+
+Fakturering har tre egna roller. `BillingViewer` läser projektets fakturering — planen och prenumerationen, fakturor, användning, saldon, AI-krediter, betalningsmetoder och faktureringskontaktuppgifterna — och ändrar ingenting. `BillingMember` laddar dessutom ned fakturor och ändrar faktureringskontaktuppgifterna. `BillingAdmin` gör det som `BillingMember` gör och slår på och av sms, telefonsamtal, WhatsApp och Telegram. Att ändra planen, betalningsmetoder eller saldon och att betala fakturor kräver `ProjectOwner` eller **Manage Billing**; på faktureringssidorna är de knapparna låsta för alla andra och säger vem som får använda dem.
 
 Alla {{PERMISSION_ROLE_COUNT}} roller finns i [Behörighetsreferensen](/docs/permissions/reference).
 
@@ -203,7 +207,7 @@ Upplösta behörigheter cachas per användare och projekt och uppdateras när te
 
 **En CI-pipeline som bara rapporterar driftsättningar.** Skapa en API-nyckel med precis de granulära behörigheter den behöver — inga roller.
 
-**Någon som inte ska se faktureringen.** Lägg inte till personen i Owners-teamet. `ProjectAdmin` utesluter redan fakturering.
+**Någon som inte ska ändra faktureringen eller se fakturor.** Ge personen `ProjectMember`, inte `ProjectAdmin`: en projektadministratör kan inte ändra planen, betalningsmetoder eller saldon, men läser och laddar ned fakturor. Ska någon läsa faktureringssidorna utan att ändra något, ge personen `BillingViewer`.
 
 ## Vidare
 

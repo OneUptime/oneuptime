@@ -550,6 +550,45 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   project. See
   [Changing or deleting a record you may not read](/docs/api-reference/api-reference#changing-or-deleting-a-record-you-may-not-read)
   and [Users, Teams & Permissions](/docs/permissions/index).
+- **Runbook Member runs runbooks and builds none.** `RunbookMember` could
+  create and delete runbooks, Runners and their owners, though not edit
+  them. It now opens runbooks and their runs and runs them - starts a run,
+  completes or skips its steps, cancels it - and creates, changes and
+  deletes none of them: give `RunbookAdmin` to the people who build
+  runbooks. A role also runs only the runbooks its labels and owned scope
+  reach, read with that role's own grant: before, a `RunbookMember` limited
+  to some labels could run every runbook in the project, from the
+  runbook's page, its API or by approving a remediation suggestion.
+  **Run Now** is locked, with the reason in its tooltip, for whoever cannot
+  run runbooks. `WorkflowMember` no longer adds or removes a workflow's
+  owners. See [Permissions](/docs/runbooks/configuration#permissions).
+- **The billing roles do what they say.** `BillingViewer` reads the
+  project's billing pages and records - the plan and subscription,
+  invoices, usage, balances, AI credits, payment methods and the billing
+  contact details - and changes nothing. `BillingMember` also downloads
+  invoices and changes the billing contact details, and `BillingAdmin`
+  does what `BillingMember` does and switches SMS, phone calls, WhatsApp
+  and Telegram. Before, a team or an API key with only `BillingViewer` or
+  `BillingMember` could read none of it, and the billing page failed for
+  everyone but owners. **Manage Billing** now reads and pays invoices too.
+  Changing the plan, payment methods or balances, and paying invoices,
+  still takes `ProjectOwner` or **Manage Billing**: those buttons are
+  locked for everyone else, saying who may.
+- **The owners' emails follow team blocks.** The emails a project's owners
+  get - plan changes, the plan cut-off, AI limits and credits, low
+  balances - go to the members who hold `ProjectOwner`, and no longer to
+  someone a team blocks from it. A pending invitation is not membership.
+- **Every role's description says what the role does.** The role picker's
+  descriptions were checked against each role's permissions. The ones
+  that promised more than the role does - `SettingsAdmin`'s API keys,
+  teams, labels, SSO and domains, `TelemetryAdmin`'s pipelines and
+  ingestion keys, `MonitorAdmin`'s probes and secrets, `StatusPageAdmin`'s
+  SSO - now say what it does, and the ones that said too little, such as
+  `ProjectMember`'s "can view most resources", say what it changes. No
+  other role lost anything it could do: only `RunbookMember` and
+  `WorkflowMember` above did. **Create Team** is no longer offered to
+  `ProjectMember`, `SettingsAdmin` and `SettingsMember`: a team's name
+  takes `ProjectAdmin` or **Create Team**, so they could never create one.
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

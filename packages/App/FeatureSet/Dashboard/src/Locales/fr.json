@@ -26403,5 +26403,9 @@
   "Microsoft Teams meeting": "Réunion Microsoft Teams",
   "Zoom meeting": "Réunion Zoom",
   "{{table}} - no longer collected by this device": "{{table}} - no longer collected by this device",
-  "“{{call}}” is removed from this {{eventNoun}}'s page. The meeting itself is not deleted, and anyone with the link can still join it.": "“{{call}}” is removed from this {{eventNoun}}'s page. The meeting itself is not deleted, and anyone with the link can still join it."
+  "“{{call}}” is removed from this {{eventNoun}}'s page. The meeting itself is not deleted, and anyone with the link can still join it.": "“{{call}}” is removed from this {{eventNoun}}'s page. The meeting itself is not deleted, and anyone with the link can still join it.",
+  "You do not have permission to add a payment method.": "Vous n'avez pas l'autorisation d'ajouter un moyen de paiement.",
+  "You do not have permission to change the default payment method.": "Vous n'avez pas l'autorisation de modifier le moyen de paiement par défaut.",
+  "You do not have permission to pay invoices.": "Vous n'avez pas l'autorisation de payer les factures.",
+  "You do not have permission to start runbook executions in this project.": "Vous n'avez pas l'autorisation de lancer des exécutions de runbook dans ce projet."
 }

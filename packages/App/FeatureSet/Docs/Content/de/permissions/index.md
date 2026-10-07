@@ -71,13 +71,17 @@ Eine Berechtigung ist eine einzelne Fähigkeit. Es gibt zwei Wege, sie zu vergeb
 
 Eine Rolle bündelt einen ganzen Produktbereich auf einer von drei Stufen:
 
-- **Admin** — volle Kontrolle über den Bereich einschließlich seiner Konfiguration (Schweregrade, Zustände, Vorlagen).
-- **Member** — die tägliche Arbeit: Ressourcen anlegen, bearbeiten und löschen, aber den Bereich nicht umkonfigurieren.
+- **Admin** — was der Member tut, dazu die eigene Konfiguration des Bereichs, etwa Schweregrade und Zustände von Vorfällen und Alarmen, Monitor-Status und Wartungszustände.
+- **Member** — die tägliche Arbeit: die Ressourcen des Bereichs samt Notizen, Eigentümern und Vorlagen anlegen, ändern und löschen. Bei Statusseiten und Bereitschaft kann der Member alles, was der Admin kann.
 - **Viewer** — nur lesend.
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` und so weiter. Rollen sind fast immer die richtige Wahl — sie bleiben korrekt, wenn OneUptime Funktionen ergänzt, weil eine neue monitorbezogene Tabelle den bestehenden Monitor-Rollen zugeordnet wird, statt eine neue Zuweisung von Ihnen zu verlangen.
 
-Workflows sind die Ausnahme. Ein Workflow führt seine Schritte im Projekt aus, deshalb öffnet `WorkflowMember` Workflows und ihre Ausführungen und führt sie von Hand aus, erstellt, ändert oder löscht sie aber nicht. `WorkflowAdmin` baut sie. Siehe [Workflow-Konfiguration](/docs/workflows/configuration).
+Workflows und Runbooks sind die Ausnahme. Beide führen Code in Ihrem Projekt aus — ein Workflow seine Schritte, ein Runbook seine Skripte auf Ihren Runnern —, deshalb öffnet `WorkflowMember` Workflows und ihre Ausführungen und führt sie von Hand aus, und `RunbookMember` öffnet Runbooks und ihre Ausführungen und führt sie aus: Es startet eine Ausführung, schließt ihre Schritte ab oder überspringt sie und bricht sie ab. Keine der beiden Rollen erstellt, ändert oder löscht, was sie ausführt; `WorkflowAdmin` und `RunbookAdmin` bauen es. Eine Rolle führt nur die Runbooks aus, die ihr Geltungsbereich erreicht: Ein auf einige Labels beschränkter `RunbookMember` führt die Runbooks aus, die sie tragen. Siehe [Workflow-Konfiguration](/docs/workflows/configuration) und [Runbook-Konfiguration](/docs/runbooks/configuration).
+
+Die Regeln eines Bereichs (Label-, Eigentümer-, Bereitschafts-, Gruppierungs- und Erinnerungsregeln), benutzerdefinierte Felder, SLAs und Geheimnisse sind Projektkonfiguration: Sie erfordern `ProjectAdmin`, gleich welche Bereichsrolle jemand hat. Das gilt auch für API-Schlüssel, Teams und ihre Berechtigungen, Labels, SSO und Domains — die Settings-Rollen betreuen die Dienste, Probes, Infrastruktur und Integrationen des Projekts, nicht, wer was darf.
+
+Die Abrechnung hat drei eigene Rollen. `BillingViewer` liest die Abrechnung des Projekts — Tarif und Abonnement, Rechnungen, Nutzung, Guthaben, KI-Guthaben, Zahlungsmethoden und Rechnungskontaktdaten — und ändert nichts. `BillingMember` lädt zusätzlich Rechnungen herunter und ändert die Rechnungskontaktdaten. `BillingAdmin` kann, was `BillingMember` kann, und schaltet SMS, Telefonanrufe, WhatsApp und Telegram ein und aus. Tarif, Zahlungsmethoden oder Guthaben zu ändern und Rechnungen zu bezahlen erfordert `ProjectOwner` oder **Manage Billing**; auf den Abrechnungsseiten sind diese Schaltflächen für alle anderen gesperrt und nennen, wer sie nutzen darf.
 
 Alle {{PERMISSION_ROLE_COUNT}} Rollen sind in der [Berechtigungsreferenz](/docs/permissions/reference) aufgeführt.
 
@@ -203,7 +207,7 @@ Aufgelöste Berechtigungen werden pro Benutzer und Projekt zwischengespeichert u
 
 **Eine CI-Pipeline, die nur Deployments meldet.** Legen Sie einen API-Schlüssel mit genau den granularen Berechtigungen an, die sie braucht — keine Rollen.
 
-**Jemand, der die Abrechnung nicht sehen soll.** Nehmen Sie ihn nicht ins Owners-Team auf. `ProjectAdmin` schließt die Abrechnung bereits aus.
+**Jemand, der die Abrechnung nicht ändern und keine Rechnungen sehen soll.** Geben Sie ihm `ProjectMember`, nicht `ProjectAdmin`: Ein Projekt-Admin kann Tarif, Zahlungsmethoden und Guthaben nicht ändern, liest Rechnungen aber und lädt sie herunter. Wer die Abrechnungsseiten nur lesen soll, bekommt `BillingViewer`.
 
 ## Weiter
 

@@ -201,8 +201,9 @@ describe("PermissionGate.checkFormUpdate", () => {
     );
 
     expect(result.isAllowed).toBe(false);
+    // The finance email is a billing contact detail: Billing Member's too.
     expect(result.disabledReason).toBe(
-      "You do not have permission to update this Project. You need one of these permissions: Project Owner, Billing Admin, Manage Billing.",
+      "You do not have permission to update this Project. You need one of these permissions: Project Owner, Billing Admin, Manage Billing, Billing Member.",
     );
   });
 

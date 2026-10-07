@@ -14,7 +14,7 @@ import Express, {
 import Response from "../Utils/Response";
 import CallerPermission from "../Utils/Permission/CallerPermission";
 import BadDataException from "../../Types/Exception/BadDataException";
-import Permission from "../../Types/Permission";
+import { PROJECT_CUSTOMER_BALANCE_READ_PERMISSIONS } from "../../Utils/Project/ProjectBilling";
 import Project from "../../Models/DatabaseModels/Project";
 import ObjectID from "../../Types/ObjectID";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
@@ -168,15 +168,16 @@ export default class BillingAPI {
             );
           }
 
+          // Reading it is billing: the billing roles read it too.
           if (
-            !CallerPermission.holdsAnyOf(req as OneUptimeRequest, [
-              Permission.ProjectOwner,
-              Permission.ManageProjectBilling,
-            ]) &&
+            !CallerPermission.holdsAnyOf(
+              req as OneUptimeRequest,
+              PROJECT_CUSTOMER_BALANCE_READ_PERMISSIONS,
+            ) &&
             !(req as OneUptimeRequest).userAuthorization?.isMasterAdmin
           ) {
             throw new BadDataException(
-              `You need ${Permission.ProjectOwner} or ${Permission.ManageProjectBilling} permission to view billing balance.`,
+              "You need Project Owner, Manage Billing or a billing role to view the billing balance.",
             );
           }
 

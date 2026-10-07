@@ -71,13 +71,17 @@ Een machtiging is één mogelijkheid. Er zijn twee manieren om ze uit te delen, 
 
 Een rol bundelt een heel productgebied op een van drie niveaus:
 
-- **Admin** — volledige controle over dat gebied, inclusief de configuratie ervan (ernstniveaus, statussen, sjablonen).
-- **Member** — het dagelijkse werk: resources aanmaken, bewerken en verwijderen, maar het gebied niet herconfigureren.
+- **Admin** — wat de Member doet, plus de eigen configuratie van het gebied, zoals ernstniveaus en statussen van incidenten en waarschuwingen, monitorstatussen en onderhoudsstatussen.
+- **Member** — het dagelijkse werk: de resources van het gebied aanmaken, wijzigen en verwijderen, met hun notities, eigenaars en sjablonen. Voor statuspagina's en piketdiensten doet de Member alles wat de Admin doet.
 - **Viewer** — alleen lezen.
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` enzovoort. Rollen zijn bijna altijd wat u wilt — ze blijven kloppen naarmate OneUptime functies toevoegt, omdat een nieuwe monitorgerelateerde tabel bij de bestaande monitorrollen wordt gevoegd in plaats van een nieuwe toekenning van u te vragen.
 
-Workflows zijn de uitzondering. Een workflow voert zijn stappen binnen het project uit, dus `WorkflowMember` opent workflows en hun runs en voert ze met de hand uit, maar maakt, wijzigt of verwijdert ze niet. `WorkflowAdmin` bouwt ze. Zie [Workflowconfiguratie](/docs/workflows/configuration).
+Workflows en runbooks zijn de uitzondering. Beide voeren code uit in je project — een workflow zijn stappen, een runbook zijn scripts op je Runners —, dus `WorkflowMember` opent workflows en hun uitvoeringen en voert ze met de hand uit, en `RunbookMember` opent runbooks en hun uitvoeringen en voert ze uit: het start een uitvoering, rondt de stappen af of slaat ze over en annuleert haar. Geen van beide maakt, wijzigt of verwijdert wat het uitvoert; `WorkflowAdmin` en `RunbookAdmin` bouwen het. Een rol voert alleen de runbooks uit die zijn bereik bereikt: een `RunbookMember` die beperkt is tot enkele labels voert de runbooks uit die ze dragen. Zie [Workflowconfiguratie](/docs/workflows/configuration) en [Runbookconfiguratie](/docs/runbooks/configuration).
+
+De regels van een gebied (label-, eigenaar-, piket-, groeperings- en herinneringsregels), aangepaste velden, SLA's en geheimen zijn projectconfiguratie: daarvoor is `ProjectAdmin` nodig, welke gebiedsrol iemand ook heeft. Dat geldt ook voor API-sleutels, teams en hun machtigingen, labels, SSO en domeinen — de Settings-rollen zorgen voor de services, probes, infrastructuur en integraties van het project, niet voor wie wat mag.
+
+Facturatie heeft drie eigen rollen. `BillingViewer` leest de facturatie van het project — het abonnement, facturen, gebruik, saldi, AI-tegoed, betaalmethoden en de factuurcontactgegevens — en wijzigt niets. `BillingMember` downloadt daarnaast facturen en wijzigt de factuurcontactgegevens. `BillingAdmin` doet wat `BillingMember` doet en zet sms, telefoongesprekken, WhatsApp en Telegram aan en uit. Het abonnement, betaalmethoden of saldi wijzigen en facturen betalen vraagt `ProjectOwner` of **Manage Billing**; op de facturatiepagina's zijn die knoppen voor alle anderen vergrendeld en staat erbij wie ze mag gebruiken.
 
 Alle {{PERMISSION_ROLE_COUNT}} rollen staan in de [Machtigingsreferentie](/docs/permissions/reference).
 
@@ -203,7 +207,7 @@ Opgeloste machtigingen worden per gebruiker en project gecachet en vernieuwd wan
 
 **Een CI-pijplijn die alleen deploys meldt.** Maak een API-sleutel met precies de granulaire machtigingen die nodig zijn — geen rollen.
 
-**Iemand die de facturatie niet mag zien.** Voeg hem niet toe aan het Owners-team. `ProjectAdmin` sluit facturatie al uit.
+**Iemand die de facturatie niet mag wijzigen en geen facturen mag zien.** Geef hem `ProjectMember`, niet `ProjectAdmin`: een projectbeheerder kan het abonnement, betaalmethoden en saldi niet wijzigen, maar leest en downloadt wel facturen. Wil je dat iemand de facturatiepagina's leest zonder iets te wijzigen, geef hem dan `BillingViewer`.
 
 ## Verder
 

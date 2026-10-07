@@ -2379,7 +2379,7 @@ export class PermissionHelper {
         permission: Permission.ProjectOwner,
         title: "Project Owner",
         description:
-          "Owner of this project. Manages billing, inviting other admins to this project, and can delete this project.",
+          "Owner of this project. Does everything Project Admin does, and also manages billing and payment methods, sets up SCIM, and can delete the project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2389,7 +2389,7 @@ export class PermissionHelper {
         permission: Permission.ProjectMember,
         title: "Project Member",
         description:
-          "Member of this project. Can view most resources unless restricted.",
+          "Member of this project. Creates, changes and deletes monitors, incidents, alerts, status pages, on-call policies, scheduled maintenance, services and infrastructure, and runs runbooks. Project settings take Project Admin: team members and permissions, API keys, labels, SSO, rules, custom fields, states, secrets, dashboards, SLOs, and changing workflows and runbooks. Does not see API keys, the audit log, invoices, secrets, session replays or security data.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2399,7 +2399,7 @@ export class PermissionHelper {
         permission: Permission.ProjectAdmin,
         title: "Project Admin",
         description:
-          "Admin of this project. Manages team members in this project, however cannot manage billing or delete this project.",
+          "Admin of this project. Creates, changes and deletes everything in it, including team members and their permissions, API keys, labels, SSO, rules and custom fields, and reads the audit log. Cannot manage billing, set up SCIM or delete the project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2409,7 +2409,7 @@ export class PermissionHelper {
         permission: Permission.IncidentAdmin,
         title: "Incident Admin",
         description:
-          "Full control over incidents and incident configuration. Can create, edit, and delete incidents, notes, state timelines, templates, severities, and states.",
+          "Does everything Incident Member does, and also creates, changes and deletes incident severities and states. Incident rules, custom fields, measurements and SLAs take Project Admin.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2419,7 +2419,7 @@ export class PermissionHelper {
         permission: Permission.IncidentMember,
         title: "Incident Member",
         description:
-          "Can create, edit, and delete incidents, incident notes, and incident state timelines. Cannot modify incident severities or states.",
+          "Creates, changes and deletes incidents and incident episodes, with their notes, state timelines, owners, roles and linked alerts, and incident, note and postmortem templates. Cannot change incident severities or states.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2438,7 +2438,7 @@ export class PermissionHelper {
         permission: Permission.AlertAdmin,
         title: "Alert Admin",
         description:
-          "Full control over alerts and alert configuration. Can create, edit, and delete alerts, notes, state timelines, severities, and states.",
+          "Does everything Alert Member does, and also creates, changes and deletes alert severities and states. Alert rules, custom fields and measurements take Project Admin.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2448,7 +2448,7 @@ export class PermissionHelper {
         permission: Permission.AlertMember,
         title: "Alert Member",
         description:
-          "Can create, edit, and delete alerts, alert notes, and alert state timelines. Cannot modify alert severities or states.",
+          "Creates, changes and deletes alerts and alert episodes, with their notes, state timelines and owners, links alerts to incidents, and manages alert note templates. Cannot change alert severities or states.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2467,7 +2467,7 @@ export class PermissionHelper {
         permission: Permission.MonitorAdmin,
         title: "Monitor Admin",
         description:
-          "Full control over monitors and monitor configuration. Can create, edit, and delete monitors, monitor groups, probes, secrets, and statuses.",
+          "Does everything Monitor Member does, and also creates, changes and deletes monitor statuses. Monitor secrets, rules and custom fields take Project Admin. Probes are not part of it.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2477,7 +2477,7 @@ export class PermissionHelper {
         permission: Permission.MonitorMember,
         title: "Monitor Member",
         description:
-          "Can create, edit, and delete monitors, monitor groups, and monitor secrets. Cannot modify monitor statuses.",
+          "Creates, changes and deletes monitors, monitor groups and monitor templates, with their owners, tests and status timelines. Cannot change monitor statuses or manage monitor secrets.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2496,7 +2496,7 @@ export class PermissionHelper {
         permission: Permission.StatusPageAdmin,
         title: "Status Page Admin",
         description:
-          "Full control over status pages, announcements, subscribers, resources, domains, groups, and SSO configurations.",
+          "Creates, changes and deletes status pages and what they show: announcements, subscribers, resources, groups, links, domains, private users and templates. Status page SSO, SCIM, rules and custom fields take Project Admin.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2506,7 +2506,7 @@ export class PermissionHelper {
         permission: Permission.StatusPageMember,
         title: "Status Page Member",
         description:
-          "Can create, edit, and delete status pages, announcements, and subscribers.",
+          "Same as Status Page Admin: creates, changes and deletes status pages and what they show, including announcements, subscribers, resources, groups, links, domains, private users and templates.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2526,7 +2526,7 @@ export class PermissionHelper {
         permission: Permission.OnCallAdmin,
         title: "On-Call Admin",
         description:
-          "Full control over on-call duty policies, schedules, escalation rules, and user overrides.",
+          "Creates, changes and deletes on-call duty policies with their escalation rules, on-call schedules with their layers, and user overrides. On-call rules and custom fields take Project Admin. Incoming call policies are not part of it.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2536,7 +2536,7 @@ export class PermissionHelper {
         permission: Permission.OnCallMember,
         title: "On-Call Member",
         description:
-          "Can create, edit, and delete on-call duty policies, schedules, and user overrides.",
+          "Same as On-Call Admin: creates, changes and deletes on-call duty policies with their escalation rules, on-call schedules with their layers, and user overrides.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2555,7 +2555,7 @@ export class PermissionHelper {
         permission: Permission.ScheduledMaintenanceAdmin,
         title: "Scheduled Maintenance Admin",
         description:
-          "Full control over scheduled maintenances, notes, state timelines, templates, and maintenance states.",
+          "Does everything Scheduled Maintenance Member does, and also creates, changes and deletes maintenance states. Scheduled maintenance rules, custom fields and measurements take Project Admin.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2565,7 +2565,7 @@ export class PermissionHelper {
         permission: Permission.ScheduledMaintenanceMember,
         title: "Scheduled Maintenance Member",
         description:
-          "Can create, edit, and delete scheduled maintenances, notes, and state timelines. Cannot modify maintenance states.",
+          "Creates, changes and deletes scheduled maintenance events with their notes, state timelines and owners, and scheduled maintenance and note templates. Cannot change maintenance states.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2585,7 +2585,7 @@ export class PermissionHelper {
         permission: Permission.TelemetryAdmin,
         title: "Telemetry Admin",
         description:
-          "Full control over telemetry services, logs, traces, metrics, profiles, exceptions, ingestion keys, and log pipelines.",
+          "Does everything Telemetry Member does, and also reads and deletes session replays, deletes change events and edits inventory items. Telemetry pipelines, ingestion keys, source maps, services and RUM applications are not part of it.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2595,7 +2595,7 @@ export class PermissionHelper {
         permission: Permission.TelemetryMember,
         title: "Telemetry Member",
         description:
-          "Can create, edit, and delete telemetry services and view all telemetry data.",
+          "Reads logs, traces, metrics, profiles and exceptions, sends and deletes them, manages saved views, and creates and changes metric types. Does not see session replays. Cannot resolve or archive exceptions, or manage telemetry pipelines, ingestion keys, source maps or services.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2605,7 +2605,7 @@ export class PermissionHelper {
         permission: Permission.TelemetryViewer,
         title: "Telemetry Viewer",
         description:
-          "Read-only access to telemetry services and telemetry data.",
+          "Reads logs, traces, metrics, profiles, exceptions and saved views, and changes nothing. Does not see session replays.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2615,7 +2615,7 @@ export class PermissionHelper {
         permission: Permission.SecurityAdmin,
         title: "Security Admin",
         description:
-          "Full control over the SIEM: security events, Sigma detection rules, threat intelligence feeds and indicators, and security event connections (Google SecOps, Microsoft Sentinel, CrowdStrike Falcon and other sources). Security data is not readable through any other role.",
+          "Full control over the SIEM: security events, Sigma detection rules, threat intelligence feeds and their indicators, and security event connections (Google SecOps, Microsoft Sentinel, CrowdStrike Falcon and other sources). Outside the Security roles, only Project Owner and Project Admin read security data.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2625,7 +2625,7 @@ export class PermissionHelper {
         permission: Permission.SecurityMember,
         title: "Security Member",
         description:
-          "Can read security events and threat intelligence, and create, edit, and delete detection rules and threat intel feeds. Cannot configure security event connections.",
+          "Reads security events and threat intelligence, sends security events, and creates, changes and deletes detection rules and threat intel feeds. Cannot configure security event connections or delete security data.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2635,7 +2635,7 @@ export class PermissionHelper {
         permission: Permission.SecurityViewer,
         title: "Security Viewer",
         description:
-          "Read-only access to security events, detection rules, threat intelligence feeds, and indicators.",
+          "Read-only access to security events, detection rules, threat intelligence feeds and indicators, and security event connections.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2645,7 +2645,7 @@ export class PermissionHelper {
         permission: Permission.SettingsAdmin,
         title: "Settings Admin",
         description:
-          "Full control over project settings: API keys, teams, team permissions, labels, SSO, SMTP, call/SMS config, domains, probes, and service catalog.",
+          "Does everything Settings Member does, and also connects video call providers and reads the audit log. API keys, teams and their permissions, labels, SSO, SMTP, call and SMS settings and domains take Project Admin.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2655,7 +2655,7 @@ export class PermissionHelper {
         permission: Permission.SettingsMember,
         title: "Settings Member",
         description:
-          "Can manage labels and service catalog. Cannot manage API keys, teams, SSO, or sensitive integrations.",
+          "Creates, changes and deletes the project's services, probes, hosts, clusters and other infrastructure, AI agents, LLM providers, incoming call policies, dashboard domains and Slack and Microsoft Teams notification rules, and connects code repositories. Cannot manage API keys, teams, labels, SSO or video call connections.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2664,7 +2664,8 @@ export class PermissionHelper {
       {
         permission: Permission.SettingsViewer,
         title: "Settings Viewer",
-        description: "Read-only access to project settings.",
+        description:
+          "Reads the project's settings, including teams and their permissions, labels, SSO, domains, probes, services and infrastructure, and changes nothing. Does not see API keys or the audit log.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2674,13 +2675,15 @@ export class PermissionHelper {
         permission: Permission.BillingAdmin,
         title: "Billing Admin",
         /*
-         * What the role grants, and no more: the four notification channel
-         * switches (Project's enableSmsNotifications and the three beside
-         * it). The plan, payment methods, invoices and balance are checked
-         * against Project Owner and Manage Billing.
+         * What the role grants, and no more (Utils/Project/ProjectBilling):
+         * Billing Member's reads and contact details, and the four
+         * notification channel switches (Project's enableSmsNotifications and
+         * the three beside it). The plan, payment methods, balances and
+         * paying invoices are checked against Project Owner and Manage
+         * Billing.
          */
         description:
-          "Turns the project's SMS, phone call, WhatsApp and Telegram notifications on and off. Changing the plan, payment methods or balance takes Project Owner or Manage Billing.",
+          "Does what Billing Member does, and turns the project's SMS, phone call, WhatsApp and Telegram notifications on and off. Changing the plan, payment methods or balances, and paying invoices, takes Project Owner or Manage Billing.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2689,8 +2692,9 @@ export class PermissionHelper {
       {
         permission: Permission.BillingMember,
         title: "Billing Member",
+        // Billing Viewer's reads, invoice downloads and the contact details.
         description:
-          "Can view and manage payment methods. Cannot change the project plan.",
+          "Reads the project's billing as Billing Viewer does, downloads invoices, and changes the billing contact details: the billing address, the finance email and whether invoices are emailed to it. Changing the plan, payment methods or balances, and paying invoices, takes Project Owner or Manage Billing.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2699,7 +2703,9 @@ export class PermissionHelper {
       {
         permission: Permission.BillingViewer,
         title: "Billing Viewer",
-        description: "Read-only access to billing information and invoices.",
+        // Every billing page and record, read only (Utils/Project/ProjectBilling).
+        description:
+          "Reads the project's billing: the plan and subscription, invoices, usage, balances, AI credits, payment methods and billing contact details. Changes nothing.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2709,7 +2715,7 @@ export class PermissionHelper {
         permission: Permission.Viewer,
         title: "Viewer",
         description:
-          "Read-only access across all project resources. Cannot create, edit, or delete any resources.",
+          "Reads the project's resources and changes nothing. Does not see API keys, the audit log, invoices, secrets, session replays, security data, or AI conversations, insights and remediation suggestions.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2748,7 +2754,7 @@ export class PermissionHelper {
         permission: Permission.RunbookAdmin,
         title: "Runbook Admin",
         description:
-          "Full control over runbooks. Can create, edit, delete, and execute runbooks.",
+          "Creates, changes, runs and deletes runbooks with their rules and owners, and the Runners they run on, and manages their runs. Runbook credentials, secrets, label rules and owner rules take Project Admin.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2758,7 +2764,7 @@ export class PermissionHelper {
         permission: Permission.RunbookMember,
         title: "Runbook Member",
         description:
-          "Can create, edit, delete, and execute runbooks in this project.",
+          "Opens runbooks and their runs, and runs runbooks by hand: starts a run, completes or skips its steps, and cancels it. Cannot create, change or delete runbooks or Runners.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2767,7 +2773,8 @@ export class PermissionHelper {
       {
         permission: Permission.RunbookViewer,
         title: "Runbook Viewer",
-        description: "Read-only access to runbooks.",
+        description:
+          "Read-only access to runbooks and their runs. Cannot run them.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,

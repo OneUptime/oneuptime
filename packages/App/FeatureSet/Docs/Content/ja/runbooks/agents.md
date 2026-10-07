@@ -149,9 +149,9 @@ Runbook 実行をキャンセル (実行ビューまたは API から) すると
 エージェント管理は既存の Runbooks 権限グループの下にあります:
 
 - `CreateRunner`、`EditRunner`、`DeleteRunner`、`ReadRunner` — エージェントレコードを管理。
-- `RunbookAdmin`、`RunbookMember`、`RunbookViewer` (ロール) — チームに割り当てて、それぞれフル制御・日常利用・読み取り専用を付与する。`RunbookAdmin` は上記の細粒度権限をすべて束ねたもの。
+- `RunbookAdmin`、`RunbookMember`、`RunbookViewer` (ロール) — `RunbookAdmin` は Runbook、そのルール、実行先の Runner を構築し、Runbook を実行します。`RunbookMember` は Runbook とその実行を開いて実行します（実行の開始、ステップの完了またはスキップ、キャンセル）が、Runbook や Runner の作成、変更、削除はできません。`RunbookViewer` は Runbook とその実行を読み取り、何も実行しません。`RunbookAdmin` は上記の細粒度権限をすべて束ねたもの。
 
-Runbook を*起動する* (したがって Bash と JavaScript ステップをディスパッチさせる) 権限は依然として `CreateRunbookExecution` / `EditRunbookExecution` です。
+Runbook を起動する（したがって Bash と JavaScript のステップをディスパッチさせる）には、Runbook を実行するロール（`ProjectOwner`、`ProjectAdmin`、`ProjectMember`、`RunbookAdmin`、`RunbookMember`）または `CreateRunbookExecution` が必要です。実行の完了、スキップ、キャンセルには `EditRunbookExecution` も使えます。ロールが実行できるのは、そのスコープが届く Runbook だけです。
 
 ## エージェント向け API
 

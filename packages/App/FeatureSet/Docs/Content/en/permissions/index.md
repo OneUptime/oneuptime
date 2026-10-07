@@ -83,13 +83,17 @@ A permission is one capability. There are two ways to hand them out, and both li
 
 A role bundles a whole product area at one of three levels:
 
-- **Admin** — full control over that area, including its configuration (severities, states, templates).
-- **Member** — day-to-day work: create, edit and delete the resources, but not reconfigure the area.
+- **Admin** — what the Member does, and the area's own configuration, such as incident and alert severities and states, monitor statuses and maintenance states.
+- **Member** — day-to-day work: create, change and delete the area's resources, with their notes, owners and templates. For status pages and on-call, the Member does everything the Admin does.
 - **Viewer** — read-only.
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` and so on. Roles are what you want almost all of the time — they stay correct as OneUptime adds features, because a new monitor-related table is added to the existing monitor roles rather than needing a new grant from you.
 
-Workflows are the exception. A workflow runs its steps inside the project, so `WorkflowMember` opens workflows and their runs and runs them by hand, but does not create, change or delete them. `WorkflowAdmin` builds them. See [Workflow permissions](/docs/workflows/configuration#permissions).
+Workflows and runbooks are the exception. Both run code in your project — a workflow its steps, a runbook its scripts on your Runners — so `WorkflowMember` opens workflows and their runs and runs them by hand, and `RunbookMember` opens runbooks and their runs and runs them: it starts a run, completes or skips its steps and cancels it. Neither creates, changes or deletes what it runs; `WorkflowAdmin` and `RunbookAdmin` build them. A role runs only the runbooks its scope reaches, so a `RunbookMember` limited to some labels runs the runbooks that carry them. See [Workflow permissions](/docs/workflows/configuration#permissions) and [Runbook permissions](/docs/runbooks/configuration#permissions).
+
+An area's rules (label, owner, on-call, grouping and reminder rules), custom fields, SLAs and secrets are project configuration: they take `ProjectAdmin`, whatever area role someone holds. So do API keys, teams and their permissions, labels, SSO and domains — the Settings roles look after the project's services, probes, infrastructure and integrations, not who may do what.
+
+Billing has three roles of its own. `BillingViewer` reads the project's billing — the plan and subscription, invoices, usage, balances, AI credits, payment methods and the billing contact details — and changes nothing. `BillingMember` also downloads invoices and changes the billing contact details. `BillingAdmin` does what `BillingMember` does and turns SMS, phone calls, WhatsApp and Telegram on and off. Changing the plan, payment methods or balances, and paying invoices, takes `ProjectOwner` or **Manage Billing**; on the billing pages those buttons are locked for everyone else, and say who may.
 
 All {{PERMISSION_ROLE_COUNT}} roles are listed in the [Permission Reference](/docs/permissions/reference).
 
@@ -230,7 +234,7 @@ Resolved permissions are cached per user and project, and refreshed when team me
 
 **A CI pipeline that only reports deployments.** Create an API key with **Choose permissions later**, then add just the granular permissions it needs on its page — no roles.
 
-**Someone who should not see billing.** Do not add them to the Owners team. `ProjectAdmin` already excludes billing.
+**Someone who should not change billing or see invoices.** Give them `ProjectMember`, not `ProjectAdmin`: a project admin cannot change the plan, payment methods or balances, but reads and downloads invoices. To let someone read the billing pages without changing anything, give them `BillingViewer`.
 
 ## Next
 

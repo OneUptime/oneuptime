@@ -28,7 +28,9 @@ Les permissions de runbook vivent dans le groupe de permissions `Runbook` :
 - `CreateRunbookExecution`, `EditRunbookExecution`, `ReadRunbookExecution` — démarrer, valider et lire les exécutions.
 - `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — gérer les règles d'auto-déclenchement.
 - `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — gérer les Agents de runbook qui exécutent les étapes Bash et JavaScript dans votre propre infrastructure.
-- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (rôles) — à attribuer à une équipe pour accorder respectivement le contrôle total, l'usage quotidien ou un accès en lecture seule. `RunbookAdmin` regroupe toutes les permissions granulaires ci-dessus.
+- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (rôles) — `RunbookAdmin` construit les runbooks, leurs règles et les Runners sur lesquels ils s'exécutent, et les exécute. `RunbookMember` ouvre les runbooks et leurs exécutions et les exécute — il lance une exécution, termine ou ignore ses étapes et l'annule —, mais ne crée, ne modifie ni ne supprime aucun runbook ni Runner. `RunbookViewer` lit les runbooks et leurs exécutions et n'exécute rien. `RunbookAdmin` regroupe toutes les permissions granulaires ci-dessus.
+
+Un rôle exécute les runbooks que sa portée atteint. Une attribution de `RunbookMember`, `RunbookAdmin` ou `ProjectMember` limitée à certaines étiquettes lance et fait avancer les exécutions des runbooks qui portent ces étiquettes, une attribution limitée aux ressources possédées celles des runbooks que son équipe possède, et le blocage d'une équipe sur une étiquette retire ces runbooks. `CreateRunbookExecution` et `EditRunbookExecution` portent sur les exécutions, qui n'ont pas d'étiquettes : elles atteignent donc tous les runbooks du projet. Approuver une suggestion de remédiation qui lance un runbook est vérifié de la même façon.
 
 ## File & worker
 
