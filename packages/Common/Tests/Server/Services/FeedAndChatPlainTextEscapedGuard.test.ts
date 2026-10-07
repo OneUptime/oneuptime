@@ -6,28 +6,33 @@ import { describe, expect, test } from "@jest/globals";
 /*
  * A TITLE OR A NAME GOES INTO A FEED ITEM OR A CHAT MESSAGE AS TEXT.
  *
- * The feed items of incidents, alerts and both kinds of episode are Markdown
- * that the dashboard renders without its safe mode and that is posted to the
- * record's Slack and Microsoft Teams channels; the Slack and Teams messages
- * OneUptime builds for them are Markdown too. A title is plain text that is
- * often not typed by a person at all - a monitor fills an alert's in from an
- * incoming email's subject or a field of an incoming request - and a name
- * (a state, a severity, a team, a person, a label, a rule, a policy) is plain
- * text as well. Placed into Markdown as it is, such text becomes a link
+ * The feed items of incidents, alerts, both kinds of episode, scheduled
+ * maintenance events and monitors are Markdown that the dashboard renders
+ * without its safe mode and that is posted to the record's Slack and
+ * Microsoft Teams channels; the Slack and Teams messages OneUptime builds for
+ * them, and for status page subscribers, are Markdown too. A title is plain
+ * text that is often not typed by a person at all - a monitor fills an
+ * alert's in from an incoming email's subject or a field of an incoming
+ * request - and a name (a state, a severity, a team, a person, a label, a
+ * rule, a policy, a status page, a cluster or a host an agent reported) is
+ * plain text as well. Placed into Markdown as it is, such text becomes a link
  * whose words hide where it goes, an image fetched when the text is shown,
  * raw HTML, or a Slack mention. So wherever it is placed it goes through
  * MarkdownEscape: escapeMarkdownValue in prose, escapeMarkdownInline inside a
- * link's own text.
+ * link's own text, markdownCodeSpan where it is shown as code.
  *
  * This reads every file that writes one of those feed items
- * (create{Incident,Alert,IncidentEpisode,AlertEpisode}FeedItem), every file
- * of the Slack and Teams integration (Server/Utils/Workspace), the incident
- * and alert worker jobs, and the shared chat builders listed below, and
- * requires, in every Markdown template literal and every concatenation with
- * Markdown in it:
+ * (create{Incident,Alert,IncidentEpisode,AlertEpisode,ScheduledMaintenance,
+ * Monitor}FeedItem), every file of the Slack and Teams integration
+ * (Server/Utils/Workspace), the worker jobs of those records, of
+ * announcements and of status pages, and the shared chat builders listed
+ * below, and requires, in every Markdown template literal and every
+ * concatenation with Markdown in it:
  *
- *   - each `.title` or `.name` it reads is an argument of an escaper (or only
- *     decides something, as a condition does), and
+ *   - each `.title` or `.name` it reads - or any property named for a name
+ *     or a title (`clusterName`, `resourceName`, `ruleNameSnapshot`, ...) -
+ *     is an argument of an escaper (or only decides something, as a
+ *     condition does), and
  *   - each variable it reads that was set from such a read was set by an
  *     escaper.
  *
@@ -47,28 +52,36 @@ const REPOSITORY_ROOT: string = path.resolve(COMMON_ROOT, "..", "..");
 
 const SCAN_ROOTS: Array<string> = [
   path.join(REPOSITORY_ROOT, "packages", "Common", "Server"),
+  // The series blocks a monitor's description template can place.
+  path.join(REPOSITORY_ROOT, "packages", "Common", "Types", "Monitor"),
   path.join(REPOSITORY_ROOT, "packages", "App", "FeatureSet", "Workers"),
   path.join(REPOSITORY_ROOT, "ee", "Server"),
 ];
 
-// The feed items of incidents, alerts and both kinds of episode.
+/*
+ * The feed items of incidents, alerts, both kinds of episode, scheduled
+ * maintenance events and monitors.
+ */
 const FEED_ITEM_WRITERS: ReadonlySet<string> = new Set<string>([
   "createIncidentFeedItem",
   "createAlertFeedItem",
   "createIncidentEpisodeFeedItem",
   "createAlertEpisodeFeedItem",
+  "createScheduledMaintenanceFeedItem",
+  "createMonitorFeedItem",
 ]);
 
 // The Slack and Microsoft Teams integration: every message it builds.
 const CHAT_DIRECTORY: string = "packages/Common/Server/Utils/Workspace/";
 
 /*
- * The incident and alert jobs (owners' notifications, status page
- * subscribers' Slack and Teams messages, reminders): every directory of
- * Workers/Jobs whose name starts with Incident or Alert.
+ * The jobs of those records, of announcements and of status pages (owners'
+ * notifications, status page subscribers' Slack and Teams messages,
+ * reminders): every directory of Workers/Jobs whose name starts with
+ * Incident, Alert, ScheduledMaintenance, Announcement, StatusPage or Monitor.
  */
-const INCIDENT_AND_ALERT_JOBS_PATTERN: RegExp =
-  /^packages\/App\/FeatureSet\/Workers\/Jobs\/(?:Incident|Alert)[A-Za-z]*\//;
+const FEED_AND_CHAT_JOBS_PATTERN: RegExp =
+  /^packages\/App\/FeatureSet\/Workers\/Jobs\/(?:Incident|Alert|ScheduledMaintenance|Announcement|StatusPage|Monitor)[A-Za-z]*\//;
 
 // Shared builders of the Markdown those feed items and messages carry.
 const CHAT_BUILDER_FILES: ReadonlyArray<string> = [
@@ -84,12 +97,23 @@ const CHAT_BUILDER_FILES: ReadonlyArray<string> = [
   "packages/Common/Server/Utils/StatusPage/IncidentTemplateVariableBuilder.ts",
   // The "Resources Affected" bullets of incident, alert and maintenance feeds.
   "packages/Common/Server/Utils/AffectedResources/LinkedAffectedResources.ts",
+  // A subscriber's welcome and test messages in Slack and Teams.
+  "packages/Common/Server/Services/StatusPageSubscriberService.ts",
+  // A monitor's root cause: criteria, findings, and what the probe reported.
+  "packages/Common/Server/Utils/Monitor/MonitorCriteriaEvaluator.ts",
+  // Why one series' incident or alert was resolved.
+  "packages/Common/Server/Utils/Monitor/PerSeriesResolutionRootCause.ts",
+  // The probes that agreed, added to a root cause.
+  "packages/Common/Server/Utils/Monitor/MonitorResource.ts",
+  // A series' labels, as a description template's {{seriesResourceBlock}}.
+  "packages/Common/Types/Monitor/SeriesContext/SeriesLabelDisplay.ts",
 ];
 
 /*
  * The functions a title or a name may be handed to on its way into
- * Markdown: the escapers themselves, and helpers that escape what they are
- * given (each one says so where it is defined).
+ * Markdown: the escapers themselves, helpers that escape what they are
+ * given (each one says so where it is defined), and helpers that only read
+ * it to decide something and never show it.
  */
 const ESCAPERS: ReadonlySet<string> = new Set<string>([
   "escapeMarkdownValue",
@@ -106,12 +130,52 @@ const ESCAPERS: ReadonlySet<string> = new Set<string>([
   "joinNames",
   // A state on a subscriber chat message (StateChangeNoteMessage).
   "getChatStatusLine",
+  // A reported value shown as code (MarkdownEscape).
+  "markdownCodeSpan",
+  // A value a monitored system reported, in a template (UntrustedMarkdown).
+  "neutralizeUntrustedValue",
+  // Markdown OneUptime AI wrote (UntrustedMarkdown).
+  "neutralizeAiWrittenMarkdown",
+  /*
+   * A platform metric's friendly name as text and its own name as code
+   * (MonitorCriteriaEvaluator, directly and through its describeMetric).
+   */
+  "describePlatformMetricName",
+  "describeMetric",
+  // A Kubernetes root cause analysis: every name in it as code or text.
+  "buildKubernetesRootCauseAnalysis",
+  // Reads a metric's name only to pick the unit its value is shown in.
+  "metricNameForUnitHeuristics",
+]);
+
+/*
+ * Escapers whose name alone says too little - "code" could be anything's -
+ * matched by the whole callee as written: markdownCodeSpan under the names
+ * the root cause builders give it.
+ */
+const QUALIFIED_ESCAPERS: ReadonlySet<string> = new Set<string>([
+  "RootCauseList.code",
+  "AffectedResourceList.code",
 ]);
 
 const PLAIN_TEXT_PROPERTIES: ReadonlySet<string> = new Set<string>([
   "title",
   "name",
 ]);
+
+/*
+ * A property named for a name or a title: `clusterName`, `resourceName`,
+ * `ruleNameSnapshot`, `pageTitle`. Plain text, like `.name` and `.title`.
+ */
+const PLAIN_TEXT_PROPERTY_PATTERN: RegExp =
+  /^[a-z][A-Za-z]*(?:Name|Title)(?:Snapshot)?$/;
+
+function isPlainTextProperty(propertyName: string): boolean {
+  return (
+    PLAIN_TEXT_PROPERTIES.has(propertyName) ||
+    PLAIN_TEXT_PROPERTY_PATTERN.test(propertyName)
+  );
+}
 
 /*
  * Markdown in a template's own text: bold, a link, or a heading, a list item
@@ -137,6 +201,25 @@ const ALLOWED_READS: Record<string, string> = {
   // The candidate runbooks listed in a prompt to the model, not a feed item.
   "packages/Common/Server/Utils/AI/Remediation/RemediationPlanRunner.ts: runbook.name":
     "a prompt to the model lists the runbooks; it is not shown in a feed",
+  // "Monitors Removed" / "Monitors Added": OneUptime's own section headings.
+  "packages/Common/Server/Services/ScheduledMaintenanceService.ts: section.title":
+    "the monitor change sections' headings are OneUptime's own wording",
+  // A breaching sample's value: the metric's name only picks its unit.
+  "packages/Common/Server/Utils/Monitor/MonitorCriteriaEvaluator.ts: input.unitHeuristicMetricName":
+    "picks the unit a sample's value is shown in; the name itself is not shown",
+  /*
+   * The agent a resource's commands go through ("OneUptime Docker agent"):
+   * OneUptime's own name for it (AI_RESOURCE_TYPE_INFO).
+   */
+  "packages/Common/Server/Services/AutoRemediationRuleEngineService.ts: agentName":
+    "a resource type's agent name is OneUptime's own wording",
+  "packages/Common/Server/Utils/AI/Remediation/RemediationExecutionRunner.ts: agentName":
+    "a resource type's agent name is OneUptime's own wording",
+  // The clusters a remediation run may not change, listed in a prompt to the model.
+  "packages/Common/Server/Utils/AI/Remediation/RemediationExecutionRunner.ts: tripped.cluster.clusterName":
+    "a prompt to the model names the cluster; it is not shown in a feed",
+  "packages/Common/Server/Utils/AI/Remediation/RemediationExecutionRunner.ts: held.cluster.clusterName":
+    "a prompt to the model names the cluster; it is not shown in a feed",
 };
 
 export interface UnescapedPlainText {
@@ -159,6 +242,15 @@ function calleeName(call: ts.CallExpression): string | null {
   return null;
 }
 
+// Whether a call is to one of the escapers (ESCAPERS, QUALIFIED_ESCAPERS).
+function isEscaperCallee(call: ts.CallExpression): boolean {
+  if (QUALIFIED_ESCAPERS.has(call.expression.getText().replace(/\s+/g, ""))) {
+    return true;
+  }
+
+  return ESCAPERS.has(calleeName(call) || "");
+}
+
 function unwrap(expression: ts.Expression): ts.Expression {
   let current: ts.Expression = expression;
 
@@ -177,9 +269,7 @@ function unwrap(expression: ts.Expression): ts.Expression {
 function isEscaperCall(expression: ts.Expression): boolean {
   const unwrapped: ts.Expression = unwrap(expression);
 
-  return (
-    ts.isCallExpression(unwrapped) && ESCAPERS.has(calleeName(unwrapped) || "")
-  );
+  return ts.isCallExpression(unwrapped) && isEscaperCallee(unwrapped);
 }
 
 /*
@@ -203,7 +293,7 @@ function isSafePosition(node: ts.Node, root: ts.Node): boolean {
       parent.arguments.some((argument: ts.Expression): boolean => {
         return argument === child;
       }) &&
-      ESCAPERS.has(calleeName(parent) || "")
+      isEscaperCallee(parent)
     ) {
       return true;
     }
@@ -293,7 +383,7 @@ function directPlainReads(expression: ts.Node): Array<ts.Node> {
   const visit: (node: ts.Node) => void = (node: ts.Node): void => {
     if (
       ts.isPropertyAccessExpression(node) &&
-      PLAIN_TEXT_PROPERTIES.has(node.name.text)
+      isPlainTextProperty(node.name.text)
     ) {
       const isCallee: boolean =
         ts.isCallExpression(node.parent) && node.parent.expression === node;
@@ -346,7 +436,7 @@ function plainReads(expression: ts.Expression): Array<ts.Node> {
 
     if (
       ts.isPropertyAccessExpression(node) &&
-      PLAIN_TEXT_PROPERTIES.has(node.name.text)
+      isPlainTextProperty(node.name.text)
     ) {
       return;
     }
@@ -604,7 +694,7 @@ function readSinkFiles(): Array<SinkFile> {
 
       if (
         file.startsWith(CHAT_DIRECTORY) ||
-        INCIDENT_AND_ALERT_JOBS_PATTERN.test(file) ||
+        FEED_AND_CHAT_JOBS_PATTERN.test(file) ||
         CHAT_BUILDER_FILES.includes(file) ||
         writesFeedItemOfTheFourKinds(sourceText)
       ) {
@@ -781,5 +871,65 @@ describe("findUnescapedPlainText", () => {
     expect(
       reads("const markdown: string = `**${user.name.toString()}**`;"),
     ).toEqual(["user.name"]);
+  });
+
+  test.each([
+    ["clusterName", "cluster.clusterName"],
+    ["resourceName", "data.resourceName"],
+    ["ruleNameSnapshot", "execution.ruleNameSnapshot"],
+    ["pageTitle", "statusPage.pageTitle"],
+  ])(
+    "finds a property named for a name or a title (%s) placed raw",
+    (_property: string, read: string) => {
+      expect(
+        reads(`const markdown: string = \`**Resource:** \${${read}}\`;`),
+      ).toEqual([read]);
+    },
+  );
+
+  test("leaves a property that only ends in a name-like word alone when it is not one", () => {
+    expect(
+      reads(
+        "const markdown: string = `**Count:** ${data.nameCount} and ${data.titleLength}`;",
+      ),
+    ).toEqual([]);
+  });
+
+  test.each([
+    ["a call named code that escapes nothing", "error.code(pod.name)"],
+    ["a local function named code", "code(pod.name)"],
+  ])("finds a name passed to %s", (_kind: string, call: string) => {
+    expect(
+      reads(`const markdown: string = \`- **Pod:** \${${call}}\`;`),
+    ).toEqual(["pod.name"]);
+  });
+
+  test.each([
+    ["a name shown as code", "markdownCodeSpan(series.resourceName)"],
+    [
+      "a name shown as code through RootCauseList",
+      "RootCauseList.code(pod.name)",
+    ],
+    [
+      "a name shown as code through AffectedResourceList",
+      "AffectedResourceList.code(pod.name)",
+    ],
+    [
+      "a reported value placed into a template",
+      "neutralizeUntrustedValue(body.title)",
+    ],
+    ["Markdown the AI wrote", "neutralizeAiWrittenMarkdown(result.title)"],
+  ])("passes %s", (_kind: string, call: string) => {
+    expect(
+      reads(`const markdown: string = \`- **Pod:** \${${call}}\`;`),
+    ).toEqual([]);
+  });
+
+  test("finds a name-like property set into a variable and placed raw", () => {
+    expect(
+      reads(
+        "function f() { const clusterName: string = cluster.clusterName; return `- Cluster: **${clusterName}**`; }",
+      ),
+    ).toEqual(["clusterName"]);
   });
 });

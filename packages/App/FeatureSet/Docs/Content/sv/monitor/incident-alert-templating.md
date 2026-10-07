@@ -181,6 +181,10 @@ First User: {{responseBody.users[0].name}}
 
 Om en sökväg inte finns lämnas platshållaren kvar i utdata exakt som den skrevs — `{{responseBody.error.id}}` visas ordagrant, klammerparenteser och allt, i incidentens titel. Endast `{{#each}}`-block över en saknad sökväg tas bort.
 
+### Värden i beskrivningar och åtgärdsanteckningar
+
+En beskrivning och åtgärdsanteckningar är Markdown: de visas på incidentens eller larmets sida, i e-post och i dess Slack- och Microsoft Teams-kanaler. Värdena som en mall placerar där är det som det övervakade systemet skickade - en svarstext eller en header, en inkommande begäran eller ett e-postmeddelande, etiketterna för en enhet eller en serie - så vart och ett placeras som text. Det läses exakt som det skickades, var mallen än placerar det, och en länk, en bild, en HTML-tagg eller ett Slack-omnämnande som `<!channel>` i det visas som text i stället för att verka. En naken webbadress i ett värde blir fortfarande en länk, en som visar vart den leder. Den Markdown du själv skriver i mallen visas som du skrev den.
+
 ## Avancerad användning
 
 ### Åtkomst till arrayelement

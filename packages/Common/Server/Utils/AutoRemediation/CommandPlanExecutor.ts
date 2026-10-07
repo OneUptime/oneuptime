@@ -75,6 +75,7 @@ import ResourceAiAccessService, {
   describeResourceNoun,
 } from "../../Services/ResourceAiAccessService";
 import logger from "../Logger";
+import { escapeMarkdownValue } from "../../../Utils/Markdown/MarkdownEscape";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
 /*
@@ -1394,11 +1395,18 @@ export default class CommandPlanExecutor {
     return jobs[0] || null;
   }
 
+  /*
+   * A command's error as the feed shows it: on one line, capped, and escaped
+   * for the feed item's Markdown - it is whatever the resource, the cluster
+   * or the command printed.
+   */
   private static capForFeed(text: string): string {
     const collapsed: string = text.trim().replace(/\s+/g, " ");
-    return collapsed.length > MAX_FEED_REASON_CHARS
-      ? `${collapsed.slice(0, MAX_FEED_REASON_CHARS)}…`
-      : collapsed;
+    return escapeMarkdownValue(
+      collapsed.length > MAX_FEED_REASON_CHARS
+        ? `${collapsed.slice(0, MAX_FEED_REASON_CHARS)}…`
+        : collapsed,
+    );
   }
 
   /*

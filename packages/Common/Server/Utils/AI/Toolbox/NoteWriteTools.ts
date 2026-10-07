@@ -6,6 +6,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import { neutralizeAiWrittenMarkdown } from "../../../../Utils/Markdown/UntrustedMarkdown";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
 import AlertService from "../../../Services/AlertService";
 import AlertInternalNoteService from "../../../Services/AlertInternalNoteService";
@@ -134,7 +135,12 @@ export const CreateIncidentNoteTool: ObservabilityTool = {
     const internalNote: IncidentInternalNote = new IncidentInternalNote();
     internalNote.incidentId = incidentId;
     internalNote.projectId = ctx.projectId;
-    internalNote.note = note;
+    /*
+     * The model wrote this from what it read, telemetry included: it stays
+     * Markdown, but nothing in it acts on its own where the note is shown -
+     * the feed, Slack and Teams (neutralizeAiWrittenMarkdown).
+     */
+    internalNote.note = neutralizeAiWrittenMarkdown(note);
     internalNote.createdByUserId = userId;
 
     const createdNote: IncidentInternalNote =
@@ -249,7 +255,12 @@ export const CreateAlertNoteTool: ObservabilityTool = {
     const internalNote: AlertInternalNote = new AlertInternalNote();
     internalNote.alertId = alertId;
     internalNote.projectId = ctx.projectId;
-    internalNote.note = note;
+    /*
+     * The model wrote this from what it read, telemetry included: it stays
+     * Markdown, but nothing in it acts on its own where the note is shown -
+     * the feed, Slack and Teams (neutralizeAiWrittenMarkdown).
+     */
+    internalNote.note = neutralizeAiWrittenMarkdown(note);
     internalNote.createdByUserId = userId;
 
     const createdNote: AlertInternalNote =

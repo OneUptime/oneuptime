@@ -226,6 +226,10 @@ First User: {{responseBody.users[0].name}}
 
 If a path does not exist, the placeholder is left in the output exactly as written — `{{responseBody.error.id}}` appears literally, braces and all, in the incident title. Only `{{#each}}` blocks over a missing path are removed.
 
+### Values in descriptions and remediation notes
+
+A description and remediation notes are Markdown: they are shown on the incident's or alert's page, in email, and in its Slack and Microsoft Teams channels. The values a template places there are what the monitored system sent - a response body or header, an incoming request or email, a device's or a series' labels - so each one is placed as text. It reads exactly as it was sent, wherever the template puts it, and a link, an image, an HTML tag or a Slack mention such as `<!channel>` in it shows as text instead of acting. A bare web address in a value is still made a link, one that shows where it goes. The Markdown you write in the template itself renders as you wrote it.
+
 ## Advanced Usage
 
 ### Accessing Array Elements

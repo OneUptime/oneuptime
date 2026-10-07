@@ -237,15 +237,25 @@ import {
 import {
   HOSTILE_PAGE_NAME,
   HOSTILE_PAGE_NAME_HTML,
+  HOSTILE_PAGE_NAME_MARKDOWN,
   HOSTILE_RESOURCES_HTML,
+  HOSTILE_RESOURCES_MARKDOWN,
   HOSTILE_RESOURCES_TEXT,
   HOSTILE_TITLE,
   HOSTILE_TITLE_HTML,
+  HOSTILE_TITLE_MARKDOWN,
+  MULTILINE_PAGE_NAME,
+  MULTILINE_RESOURCE_NAME,
+  MULTILINE_TITLE,
   RecordedCompile,
+  expectChatMessageShowsValuesAsText,
   expectNoHtmlEntities,
+  expectNoUnescapedAngleBracket,
   expectOnlyTheListedHtmlVariables,
   hostileResources,
+  onOneLine,
   recordedCompiles,
+  withoutMarkdownEscapes,
 } from "../Fixtures/SubscriberTemplateCompileFixtures";
 import {
   ResourceFan,
@@ -2136,8 +2146,9 @@ describe.each(TRIGGERS)(
  * the status page's name and the names of its resources and groups are
  * plain text a project member typed. In an email they must read as those
  * characters; the description is Markdown rendered to HTML and stays HTML.
- * Text channels (a subject, SMS, Slack, Teams, webhooks) show text as
- * written, so they must get no HTML entities at all.
+ * Text channels (a subject, SMS, webhooks) show text as written, and Slack
+ * and Teams - Markdown - get each plain value escaped for Markdown, so it
+ * reads as written once rendered: none of them gets an HTML entity.
  */
 describe.each(TRIGGERS)(
   "Announcement escapes plain values in email ($name job)",
@@ -2201,20 +2212,23 @@ describe.each(TRIGGERS)(
         );
       });
 
-      test("the subject, SMS, Slack, Teams and webhooks get every value as written", async () => {
+      test("the subject, SMS and webhooks get every value as written, and Slack and Teams get each escaped for Markdown", async () => {
         await runJob(trigger.job);
 
         const text: string = `${HOSTILE_TITLE} on ${HOSTILE_PAGE_NAME}: ${HOSTILE_RESOURCES_TEXT}`;
+        const markdown: string = `${HOSTILE_TITLE_MARKDOWN} on ${HOSTILE_PAGE_NAME_MARKDOWN}: ${HOSTILE_RESOURCES_MARKDOWN}`;
 
         expect(sentSms()).toEqual([
           `${StatusPageSubscriberNotificationMethod.SMS}: ${text}`,
         ]);
         expect(sentSlack()).toEqual([
-          `${StatusPageSubscriberNotificationMethod.Slack}: ${text}`,
+          `${StatusPageSubscriberNotificationMethod.Slack}: ${markdown}`,
         ]);
         expect(sentTeams()).toEqual([
-          `${StatusPageSubscriberNotificationMethod.MicrosoftTeams}: ${text}`,
+          `${StatusPageSubscriberNotificationMethod.MicrosoftTeams}: ${markdown}`,
         ]);
+        // Rendered, the chat message reads exactly what was written.
+        expect(withoutMarkdownEscapes(markdown)).toBe(text);
         for (const message of [
           sentCustomEmails()[0]!.subject,
           ...sentSms(),
@@ -2222,6 +2236,9 @@ describe.each(TRIGGERS)(
           ...sentTeams(),
         ]) {
           expectNoHtmlEntities(message);
+        }
+        for (const message of [...sentSlack(), ...sentTeams()]) {
+          expectNoUnescapedAngleBracket(message);
         }
 
         expect(sentWebhooks()[0]!["statusPageName"]).toBe(HOSTILE_PAGE_NAME);
@@ -2247,6 +2264,106 @@ describe.each(TRIGGERS)(
       for (const message of [...sentSms(), ...sentSlack(), ...sentTeams()]) {
         expectNoHtmlEntities(message);
       }
+    });
+
+    test("the default Slack and Teams messages escape the title for Markdown", async () => {
+      givenStatusPages([hostilePage(false)]);
+
+      await runJob(trigger.job);
+
+      expect(sentSlack()).toHaveLength(1);
+      expect(sentTeams()).toHaveLength(1);
+      for (const message of [...sentSlack(), ...sentTeams()]) {
+        expect(message).toContain(` - ${HOSTILE_TITLE_MARKDOWN}\n`);
+        // The description is Markdown its author wrote, and is sent as written.
+        expect(message).toContain(`**Description:** ${DESCRIPTION}`);
+        expectNoUnescapedAngleBracket(message);
+      }
+    });
+  },
+);
+
+/*
+ * A title, a status page's name or a resource's name can hold a line break,
+ * a link whose words hide where it goes and a Slack mention: the API, an
+ * import or a monitor can set one so. A Slack or Teams message is Markdown,
+ * so each is escaped there, in the default messages and in a custom template
+ * alike: it reads on one line, exactly as written, and notifies nobody. The
+ * description is Markdown a project member wrote, and keeps its formatting.
+ */
+describe.each(TRIGGERS)(
+  "Announcement chat messages show values as text ($name job)",
+  (trigger: TriggerCase) => {
+    beforeEach(() => {
+      const row: Row = scopedAnnouncement();
+      row.title = MULTILINE_TITLE;
+      trigger.queue([row]);
+
+      const page: StatusPage = statusPage();
+      page.pageTitle = MULTILINE_PAGE_NAME;
+      givenStatusPages([page]);
+      resourcesByStatusPage[STATUS_PAGE_ID.toString()] = [
+        resource({
+          statusPageId: STATUS_PAGE_ID,
+          displayName: MULTILINE_RESOURCE_NAME,
+        }),
+      ];
+    });
+
+    test("the default Slack and Teams messages", async () => {
+      await runJob(trigger.job);
+
+      expect(sentSlack()).toHaveLength(1);
+      expect(sentTeams()).toHaveLength(1);
+
+      for (const message of [...sentSlack(), ...sentTeams()]) {
+        expectChatMessageShowsValuesAsText(message, [MULTILINE_TITLE]);
+        // The title starts no block of its own under the heading.
+        expect(withoutMarkdownEscapes(message.split("\n")[0]!)).toContain(
+          ` - ${onOneLine(MULTILINE_TITLE)}`,
+        );
+        // The message's own links are links, and the description keeps its formatting.
+        expect(message).toContain(`[View Status Page](${STATUS_PAGE_URL})`);
+        expect(message).toContain(`**Description:** ${DESCRIPTION}`);
+      }
+    });
+
+    test("a custom Slack or Teams template", async () => {
+      mock(
+        StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+      ).mockImplementation(async (args: unknown) => {
+        const method: string = (args as JSONObject)[
+          "notificationMethod"
+        ] as string;
+        return method === StatusPageSubscriberNotificationMethod.Slack ||
+          method === StatusPageSubscriberNotificationMethod.MicrosoftTeams
+          ? customTemplate(
+              "**{{announcementTitle}}** on {{statusPageName}}: {{resourcesAffected}}\n\n{{announcementDescription}}\n\n[Details]({{detailsUrl}})",
+            )
+          : null;
+      });
+
+      await runJob(trigger.job);
+
+      expect(sentSlack()).toHaveLength(1);
+      expect(sentTeams()).toHaveLength(1);
+
+      for (const message of [...sentSlack(), ...sentTeams()]) {
+        expectChatMessageShowsValuesAsText(message, [
+          MULTILINE_TITLE,
+          MULTILINE_PAGE_NAME,
+          MULTILINE_RESOURCE_NAME,
+        ]);
+        expect(message).toContain(
+          `\n\n${DESCRIPTION}\n\n[Details](${DETAILS_URL})`,
+        );
+      }
+
+      // Webhooks are not Markdown: they get the values as written.
+      expect(sentWebhooks()[0]!["statusPageName"]).toBe(MULTILINE_PAGE_NAME);
+      expect(sentWebhooks()[0]!["data"]).toEqual(
+        expect.objectContaining({ announcementTitle: MULTILINE_TITLE }),
+      );
     });
   },
 );

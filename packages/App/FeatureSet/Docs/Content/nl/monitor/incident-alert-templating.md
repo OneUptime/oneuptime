@@ -181,6 +181,10 @@ First User: {{responseBody.users[0].name}}
 
 Als een pad niet bestaat, blijft de placeholder exact zoals geschreven in de uitvoer staan — `{{responseBody.error.id}}` verschijnt letterlijk, accolades en al, in de incidenttitel. Alleen `{{#each}}`-blokken over een ontbrekend pad worden verwijderd.
 
+### Waarden in beschrijvingen en herstelnotities
+
+Een beschrijving en herstelnotities zijn Markdown: ze worden getoond op de pagina van het incident of de alert, in e-mail en in de Slack- en Microsoft Teams-kanalen ervan. De waarden die een sjabloon daar plaatst, zijn wat het gemonitorde systeem heeft verzonden - een antwoordtekst of header, een binnenkomend verzoek of e-mailbericht, de labels van een apparaat of een reeks - dus elke waarde wordt als tekst geplaatst. Ze leest precies zoals ze is verzonden, waar het sjabloon haar ook plaatst, en een link, een afbeelding, een HTML-tag of een Slack-vermelding zoals `<!channel>` erin wordt als tekst getoond in plaats van te werken. Een los webadres in een waarde wordt nog steeds een link, een die laat zien waar hij heen gaat. De Markdown die u zelf in het sjabloon schrijft, wordt getoond zoals u die hebt geschreven.
+
 ## Geavanceerd gebruik
 
 ### Array-elementen openen
