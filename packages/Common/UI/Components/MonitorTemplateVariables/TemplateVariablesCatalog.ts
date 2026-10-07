@@ -599,6 +599,34 @@ export default class TemplateVariablesCatalog {
               description:
                 "Array of {oid, value} varbinds carried by the trap — only set on trap-triggered checks.",
             },
+            {
+              key: "tables.<key>.rowCount",
+              description:
+                "Rows walked in one of the device's SNMP tables, by the table's key.",
+              example: "{{tables.ipsec_tunnels.rowCount}}",
+            },
+            {
+              key: "tables.<key>.unhealthyRows",
+              description:
+                "Rows whose status is outside the table's healthy values, each with name, index and values.<column>. Use `{{tables.ipsec_tunnels.unhealthyRows.0.name}}`, or unhealthyRowCount for how many.",
+            },
+            {
+              key: "tables.<key>.rows",
+              description:
+                "Every walked row (up to 50), each with name, index and values.<column> - column names lower-cased with spaces as underscores.",
+            },
+            {
+              key: "snmpTable",
+              description:
+                "The SNMP table a per-row alert is about - only set when the criteria's Row is *.",
+              example: "IPsec Tunnels",
+            },
+            {
+              key: "snmpTableRow",
+              description:
+                "The row a per-row alert is about - a tunnel, a radio, a neighbour.",
+              example: "HQ-Branch1",
+            },
           ],
         };
 
