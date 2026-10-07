@@ -18,11 +18,14 @@ import {
   stripFabricatedCitationMarkers,
 } from "./ChatAgentRunner";
 import {
+  AgentContextBudget,
   AgentWrapUpReason,
   buildSkippedToolCallText,
   buildWrapUpInstruction,
+  callWithContextOverflowRecovery,
   compactAgentContext,
   CONTINUE_ANSWER_INSTRUCTION,
+  DEFAULT_MAX_CONTEXT_CHARS,
   joinAnswerContinuation,
   MAX_ANSWER_CONTINUATIONS,
 } from "./AgentContextCompactor";
@@ -262,6 +265,10 @@ export default class ObservabilityAssistant {
     let wrapUpReason: AgentWrapUpReason | null = null;
     // Follow-up calls that finish an answer the output limit cut off.
     let continuationCount: number = 0;
+    // Lowered for the rest of the run if the model rejects the transcript.
+    const contextBudget: AgentContextBudget = {
+      maxChars: DEFAULT_MAX_CONTEXT_CHARS,
+    };
 
     while (true) {
       const isContinuingAnswer: boolean = continuationCount > 0;
@@ -292,37 +299,43 @@ export default class ObservabilityAssistant {
        * tool results once the transcript outgrows the context window,
        * instead of failing on an oversized request.
        */
-      compactAgentContext(messages);
+      compactAgentContext(messages, { maxChars: contextBudget.maxChars });
 
       await emitStep({ type: "llm_started" });
 
-      const response: AILogResponse = await AIService.executeWithLogging({
-        projectId: request.projectId,
-        userId: request.userId,
-        incidentId: request.incidentId,
-        alertId: request.alertId,
-        aiRunId: request.aiRunId,
-        llmProviderId: request.llmProviderId,
-        feature: request.feature,
+      const response: AILogResponse = await callWithContextOverflowRecovery({
         messages: messages,
-        tools: budgetExhausted
-          ? undefined
-          : [
-              ...AIToolbox.getLlmToolDefinitions(
-                AIChatPermissionMode.ReadOnly,
-              ).filter((definition: LLMToolDefinition) => {
-                return !excludedToolNames.has(definition.name);
-              }),
-              ...Array.from(extraToolsByName.values()).map(
-                (extraTool: ObservabilityAssistantExtraTool) => {
-                  return extraTool.definition;
-                },
-              ),
-            ],
-        maxTokens: maxOutputTokens,
-        temperature: TEMPERATURE,
-        // Chat-ops content is per-user — do not persist previews to LlmLog.
-        storeContentPreviews: false,
+        budget: contextBudget,
+        call: (): Promise<AILogResponse> => {
+          return AIService.executeWithLogging({
+            projectId: request.projectId,
+            userId: request.userId,
+            incidentId: request.incidentId,
+            alertId: request.alertId,
+            aiRunId: request.aiRunId,
+            llmProviderId: request.llmProviderId,
+            feature: request.feature,
+            messages: messages,
+            tools: budgetExhausted
+              ? undefined
+              : [
+                  ...AIToolbox.getLlmToolDefinitions(
+                    AIChatPermissionMode.ReadOnly,
+                  ).filter((definition: LLMToolDefinition) => {
+                    return !excludedToolNames.has(definition.name);
+                  }),
+                  ...Array.from(extraToolsByName.values()).map(
+                    (extraTool: ObservabilityAssistantExtraTool) => {
+                      return extraTool.definition;
+                    },
+                  ),
+                ],
+            maxTokens: maxOutputTokens,
+            temperature: TEMPERATURE,
+            // Chat-ops content is per-user — do not persist previews to LlmLog.
+            storeContentPreviews: false,
+          });
+        },
       });
 
       llmCallCount++;

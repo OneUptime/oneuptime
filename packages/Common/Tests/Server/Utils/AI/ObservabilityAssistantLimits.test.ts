@@ -4,9 +4,11 @@ import ObservabilityAssistant, {
   ObservabilityAssistantStep,
 } from "../../../../Server/Utils/AI/Chat/ObservabilityAssistant";
 import {
+  CONTEXT_OVERFLOW_SHRINK_FACTOR,
   CONTINUE_ANSWER_INSTRUCTION,
   ELIDED_TOOL_RESULT_PREFIX,
   MAX_ANSWER_CONTINUATIONS,
+  measureContextChars,
 } from "../../../../Server/Utils/AI/Chat/AgentContextCompactor";
 import AIService, {
   AILogRequest,
@@ -16,6 +18,7 @@ import AIToolbox, {
   ToolCallOutcome,
 } from "../../../../Server/Utils/AI/Toolbox/Index";
 import { LLMMessage } from "../../../../Server/Utils/LLM/LLMService";
+import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import { AIChatCitation } from "../../../../Types/AI/AIChatTypes";
 import ObjectID from "../../../../Types/ObjectID";
@@ -458,5 +461,86 @@ describe("ObservabilityAssistant — context compaction", () => {
     expect(tools).toHaveLength(6);
     expect(tools[0]!.content.startsWith(ELIDED_TOOL_RESULT_PREFIX)).toBe(true);
     expect(tools[5]!.content).toContain(huge);
+  });
+
+  test("a model with a smaller window rejects the transcript; the run compacts, retries and keeps going", async () => {
+    const spies: ReturnType<typeof installSpies> = installSpies();
+    // Far below the default budget, so only the rejection can elide them.
+    const result: string = "x".repeat(20_000);
+    const overflow: Error = new BadDataException(
+      "OpenAICompatible API error: the model's context length is only 65536 tokens, resulting in a maximum input length of 57344 tokens.",
+    );
+    const script: Array<AILogResponse | Error> = [
+      toolCallResponse("call-0", "run_kubectl"),
+      toolCallResponse("call-1", "run_kubectl"),
+      toolCallResponse("call-2", "run_kubectl"),
+      toolCallResponse("call-3", "run_kubectl"),
+      overflow,
+      toolCallResponse("call-4", "run_kubectl"),
+      response({ content: "Done." }),
+    ];
+
+    // The loop compacts its transcript in place: snapshot what each call sent.
+    const sent: Array<{ messages: Array<LLMMessage>; offeredTools: boolean }> =
+      [];
+    spies.execute.mockImplementation((async (
+      aiRequest: AILogRequest,
+    ): Promise<AILogResponse> => {
+      sent.push({
+        messages: aiRequest.messages.map((message: LLMMessage) => {
+          return { ...message };
+        }),
+        offeredTools: Boolean(aiRequest.tools),
+      });
+      const next: AILogResponse | Error = script[sent.length - 1]!;
+      if (next instanceof Error) {
+        throw next;
+      }
+      return next;
+    }) as never);
+
+    const answer: ObservabilityAssistantResult = await ask({
+      maxWallClockMs: null,
+      maxLlmCalls: 100,
+      maxToolCalls: 300,
+      extraTools: [
+        extraTool("run_kubectl", () => {
+          return outcome(result);
+        }),
+      ],
+    });
+
+    expect(answer.contentInMarkdown).toBe("Done.");
+    expect(sent).toHaveLength(7);
+    // The rejected attempt is not a call the run made.
+    expect(answer.llmCallCount).toBe(6);
+
+    const toolResults: (index: number) => Array<LLMMessage> = (
+      index: number,
+    ): Array<LLMMessage> => {
+      return sent[index]!.messages.filter((message: LLMMessage) => {
+        return message.role === "tool";
+      });
+    };
+    const lowered: number = Math.floor(
+      measureContextChars(sent[4]!.messages) * CONTEXT_OVERFLOW_SHRINK_FACTOR,
+    );
+
+    // The retry is the same step, oldest evidence elided, tools still offered.
+    expect(toolResults(5)).toHaveLength(4);
+    expect(sent[5]!.offeredTools).toBe(true);
+    expect(
+      toolResults(5)[0]!.content.startsWith(ELIDED_TOOL_RESULT_PREFIX),
+    ).toBe(true);
+    expect(toolResults(5)[3]!.content).toContain(result);
+    expect(measureContextChars(sent[5]!.messages)).toBeLessThanOrEqual(lowered);
+
+    /*
+     * The lowered budget holds for the rest of the run: one more 20k result
+     * on top of the retry would exceed it without further elision.
+     */
+    expect(toolResults(6)).toHaveLength(5);
+    expect(toolResults(6)[4]!.content).toContain(result);
+    expect(measureContextChars(sent[6]!.messages)).toBeLessThanOrEqual(lowered);
   });
 });
