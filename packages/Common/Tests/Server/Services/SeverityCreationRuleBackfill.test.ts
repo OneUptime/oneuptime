@@ -31,6 +31,12 @@ import OnCallDutyExecutionLogTimelineStatus from "../../../Types/OnCallDutyPolic
 import PositiveNumber from "../../../Types/PositiveNumber";
 import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
 import UserNotificationExecutionStatus from "../../../Types/UserNotification/UserNotificationExecutionStatus";
+import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
+import {
+  UserIdWhileMember,
+  expectUserIdWhileMember,
+  readUserIdWhileMember,
+} from "../TestingUtils/MembershipCondition";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -144,8 +150,20 @@ function toIdString(value: unknown): string | undefined {
  */
 function ruleMatchesQuery(
   rule: StoredRule,
-  query: Record<string, unknown>,
+  rawQuery: Record<string, unknown>,
 ): boolean {
+  /*
+   * The on-call path reads a person's rules only while they are a member of
+   * the project (ProjectMembership.userIdWhileMember); the responder here is
+   * one, so the condition matches their rows.
+   */
+  const whileMember: UserIdWhileMember | null = readUserIdWhileMember(
+    rawQuery["userId"],
+  );
+  const query: Record<string, unknown> = whileMember
+    ? { ...rawQuery, userId: whileMember.userId }
+    : rawQuery;
+
   const idFields: Array<keyof StoredRule> = [
     "projectId",
     "userId",
@@ -275,6 +293,9 @@ function alertSeverityRows(ids: Array<ObjectID>): Array<AlertSeverity> {
 
 /* Wire the store into the service's own read/write helpers. */
 function stubUserNotificationRuleStore(): void {
+  // The responder is a member of the project.
+  jest.spyOn(ProjectMembership, "isMember").mockResolvedValue(true);
+
   jest
     .spyOn(UserNotificationRuleService, "findOneBy")
     .mockImplementation(((data: {
@@ -1262,7 +1283,10 @@ describe("GAP A CLOSED - a severity added after the fact still pages, via the fa
       countBySpy.mock.calls[0]![0] as { query: Record<string, unknown> }
     ).query;
 
-    expect(toIdString(query["userId"])).toBe(USER_ID.toString());
+    expectUserIdWhileMember(query["userId"], {
+      userId: USER_ID,
+      projectId: PROJECT_ID,
+    });
     expect(toIdString(query["projectId"])).toBe(PROJECT_ID.toString());
     expect(query["ruleType"]).toBe(
       NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,

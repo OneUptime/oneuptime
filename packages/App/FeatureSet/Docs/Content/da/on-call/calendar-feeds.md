@@ -161,7 +161,7 @@ Indstillinger på begge:
 
 Læg vagtplan-linket i en delt teamkalender — Google, Outlook eller Confluence — så betjener ét abonnement hele teamet. Rotér det, når nogen, der havde det, rejser, eller slå den automatiske rotation ovenfor til.
 
-Når en person forlader sit sidste team i et projekt, fjerner OneUptime også personen fra projektets vagtplan-lag og eskaleringsregler, sletter projektets aktive og fremtidige overrides, der nævner personen (enten som den, der bliver dækket, eller som afløser), deaktiverer personens personlige feed for projektet og sletter personens påmindelser der.
+Når en person forlader sit sidste team i et projekt, fjerner OneUptime også personen fra projektets vagtplan-lag og eskaleringsregler, sletter projektets aktive og fremtidige overrides, der nævner personen (enten som den, der bliver dækket, eller som afløser), deaktiverer personens personlige feed for projektet og sletter personens påmindelser der. Et personligt link viser kun vagter, så længe ejeren er medlem af projektet: det kontrolleres, hver gang linket hentes, så en, der er gået, får en tom kalender, og listen over kommende vagter i mobilappen dækker kun de projekter, personen stadig er medlem af.
 
 ## Begivenheder i detaljer
 
@@ -220,7 +220,7 @@ Også relevant:
 
 **Kalenderen er forældet.** Læs først opdateringstabellen: for Google er forsinkelsen normal. For at få Google til at kigge igen skal du fjerne kalenderen og tilføje den igen eller tilføje `?nocache=1` til linket (ukendte parametre ignoreres, så feedet er uændret, men Google behandler det som nyt). I klassisk Outlook trykker du F9 og tjekker indstillingen **Opdateringsgrænse**. I Apple Kalender bruger du **Oversigt** > **Opdater kalendere**. Hvis en ændring samme dag betyder noget, så stol på OneUptimes påmindelser og omfordelingsbeskeder frem for kalenderen.
 
-**Kalenderen er tom.** En tom kalender er tilsigtet. Det betyder, at linket er deaktiveret, er et gammelt link inden for sin 30-dages henstandsperiode efter ny generering, at projektet er under den plan, der omfatter vagtplaner, eller at du ikke længere er på nogen vagtplan i det projekt. Åbn linket i en browser: kalenderbeskrivelsen (`X-WR-CALDESC`) angiver årsagen.
+**Kalenderen er tom.** En tom kalender er tilsigtet. Det betyder, at linket er deaktiveret, er et gammelt link inden for sin 30-dages henstandsperiode efter ny generering, at projektet er under den plan, der omfatter vagtplaner, eller at du ikke længere er på nogen vagtplan i det projekt. Åbn linket i en browser: kalenderbeskrivelsen (`X-WR-CALDESC`) angiver årsagen. Hvis du har forladt projektet, forbliver linket tomt: det viser kun vagter, så længe du er medlem.
 
 **404.** Linket er ukendt, er slettet, eller dets henstandsperiode er udløbet. Generér et nyt, og abonnér igen.
 

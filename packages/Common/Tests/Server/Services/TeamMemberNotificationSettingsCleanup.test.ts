@@ -2,9 +2,8 @@ import OnCallDutyPolicyTimeLogService from "../../../Server/Services/OnCallDutyP
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import UserNotificationSettingService from "../../../Server/Services/UserNotificationSettingService";
 import logger from "../../../Server/Utils/Logger";
-import ProjectLeaveNotificationCleanup, {
-  ProjectLeaveNotificationCleanupResult,
-} from "../../../Server/Utils/TeamMember/ProjectLeaveNotificationCleanup";
+import ProjectLeaveNotificationCleanup from "../../../Server/Utils/TeamMember/ProjectLeaveNotificationCleanup";
+import { ProjectLeaveRemovalResult } from "../../../Server/Utils/TeamMember/ProjectLeaveRows";
 import ObjectID from "../../../Types/ObjectID";
 import {
   afterEach,
@@ -42,7 +41,7 @@ const OTHER_USER_ID: ObjectID = new ObjectID(
   "22222222-0000-4000-8000-000000000002",
 );
 
-const REMOVED: ProjectLeaveNotificationCleanupResult = {
+const REMOVED: ProjectLeaveRemovalResult = {
   removedRowCounts: { UserEmail: 1, UserNotificationRule: 2 },
   failedTables: [],
 };
@@ -179,6 +178,12 @@ describe("TeamMemberService removes a leaver's own notification settings", () =>
         .mockResolvedValue(undefined as never);
 
       jest
+        .spyOn(TeamMemberService, "removeProjectAccessIfUserLeftProject")
+        .mockImplementation((async (data: { userId: ObjectID }) => {
+          calls.push(`project-access:${data.userId.toString()}`);
+          return null;
+        }) as never);
+      jest
         .spyOn(TeamMemberService, "cleanupOnCallAssignmentsIfUserLeftProject")
         .mockImplementation((async (data: { userId: ObjectID }) => {
           calls.push(`on-call:${data.userId.toString()}`);
@@ -208,7 +213,7 @@ describe("TeamMemberService removes a leaver's own notification settings", () =>
           async (data: {
             projectId: ObjectID;
             userId: ObjectID;
-          }): Promise<ProjectLeaveNotificationCleanupResult | null> => {
+          }): Promise<ProjectLeaveRemovalResult | null> => {
             calls.push(`personal-settings:${data.userId.toString()}`);
             return null;
           },
@@ -266,7 +271,8 @@ describe("TeamMemberService removes a leaver's own notification settings", () =>
 
       const user: string = USER_ID.toString();
 
-      expect(calls.slice(0, 5)).toEqual([
+      expect(calls.slice(0, 6)).toEqual([
+        `project-access:${user}`,
         `on-call:${user}`,
         `resources:${user}`,
         `workspace-links:${user}`,

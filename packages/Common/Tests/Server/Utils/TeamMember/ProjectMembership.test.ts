@@ -1,9 +1,11 @@
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import ProjectMembership, {
+  ProjectMembershipStandings,
   ProjectUserPair,
 } from "../../../../Server/Utils/TeamMember/ProjectMembership";
 import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import ObjectID from "../../../../Types/ObjectID";
+import PositiveNumber from "../../../../Types/PositiveNumber";
 import { FindOperator } from "typeorm";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import type { Mock, SpyInstance } from "jest-mock";
@@ -18,7 +20,10 @@ import type { Mock, SpyInstance } from "jest-mock";
  *   - the rule in SQL (accepted, not deleted, this project, this person),
  *   - the per-person condition that rides on a read a sender already makes,
  *   - the batched reads: one read for a batch of people, exact pairs across
- *     projects, chunked, deduplicated, with ids that are not uuids dropped.
+ *     projects, chunked, deduplicated, with ids that are not uuids dropped,
+ *   - members and invitees told apart in one read (getStandings), one
+ *     person's membership read from the database (isMember), and the
+ *     projects a person is a member of (getMemberProjectIds).
  */
 
 const PROJECT_A: ObjectID = new ObjectID(
@@ -183,32 +188,63 @@ describe("ProjectMembership", () => {
     });
   });
 
-  describe("getInvitedUserIds", () => {
-    test("one read of the pending invitations of the people asked about, answered as lower-cased ids", async () => {
+  describe("getStandings", () => {
+    test("one read of every membership row of the people asked about, accepted and pending together", async () => {
       const read: SpyInstance<typeof TeamMemberService.findBy> = jest
         .spyOn(TeamMemberService, "findBy")
         .mockResolvedValue([
-          { userId: new ObjectID(USER_2.toString().toUpperCase()) },
+          // A member of two teams, one of them still pending.
+          { userId: USER_1, hasAcceptedInvitation: true },
+          { userId: USER_1, hasAcceptedInvitation: false },
+          // Only invited, the id read back upper-cased.
+          {
+            userId: new ObjectID(USER_2.toString().toUpperCase()),
+            hasAcceptedInvitation: false,
+          },
         ] as never);
 
-      const invited: Set<string> = await ProjectMembership.getInvitedUserIds({
-        projectId: PROJECT_A,
-        userIds: [USER_1, USER_2, "not-a-uuid"],
-      });
+      const standings: ProjectMembershipStandings =
+        await ProjectMembership.getStandings({
+          projectId: PROJECT_A,
+          userIds: [USER_1, USER_2, USER_3, "not-a-uuid"],
+        });
 
       expect(read).toHaveBeenCalledTimes(1);
 
-      const query: Record<string, unknown> = read.mock.calls[0]![0]
-        .query as Record<string, unknown>;
+      const call: Parameters<typeof TeamMemberService.findBy>[0] =
+        read.mock.calls[0]![0];
+      const query: Record<string, unknown> = call.query as Record<
+        string,
+        unknown
+      >;
 
       expect(query["projectId"]).toBe(PROJECT_A);
-      // Pending rows only: an accepted row makes somebody a member, not invited.
-      expect(query["hasAcceptedInvitation"]).toBe(false);
-      expect(read.mock.calls[0]![0].props).toEqual({ isRoot: true });
-      // Every pending row of the people asked about, not a default page of them.
-      expect(read.mock.calls[0]![0].limit).toBe(LIMIT_MAX);
-      expect(read.mock.calls[0]![0].skip).toBe(0);
-      expect(Array.from(invited)).toEqual([USER_2.toString()]);
+      // Accepted and pending alike: the flag is read, not filtered on.
+      expect(query["hasAcceptedInvitation"]).toBeUndefined();
+      expect(call.select).toEqual({
+        userId: true,
+        hasAcceptedInvitation: true,
+      });
+      expect(call.props).toEqual({ isRoot: true });
+      expect(call.limit).toBe(LIMIT_MAX);
+      expect(call.skip).toBe(0);
+
+      // A member with a pending row elsewhere is a member, not invited.
+      expect(Array.from(standings.memberUserIds)).toEqual([USER_1.toString()]);
+      expect(Array.from(standings.invitedUserIds)).toEqual([USER_2.toString()]);
+    });
+
+    test("somebody with no row at all is in neither set: they left, or were never in it", async () => {
+      jest.spyOn(TeamMemberService, "findBy").mockResolvedValue([] as never);
+
+      const standings: ProjectMembershipStandings =
+        await ProjectMembership.getStandings({
+          projectId: PROJECT_A,
+          userIds: [USER_3],
+        });
+
+      expect(standings.memberUserIds.size).toBe(0);
+      expect(standings.invitedUserIds.size).toBe(0);
     });
 
     test("nobody to ask about means nothing read", async () => {
@@ -217,13 +253,133 @@ describe("ProjectMembership", () => {
         "findBy",
       );
 
-      await expect(
-        ProjectMembership.getInvitedUserIds({
+      const standings: ProjectMembershipStandings =
+        await ProjectMembership.getStandings({
           projectId: PROJECT_A,
-          userIds: ["not-a-uuid"],
-        }),
-      ).resolves.toEqual(new Set<string>());
+          userIds: ["not-a-uuid", ""],
+        });
+
+      expect(standings.memberUserIds.size).toBe(0);
+      expect(standings.invitedUserIds.size).toBe(0);
       expect(read).not.toHaveBeenCalled();
+    });
+
+    test("a failed read is not swallowed", async () => {
+      jest
+        .spyOn(TeamMemberService, "findBy")
+        .mockRejectedValue(new Error("database unavailable"));
+
+      await expect(
+        ProjectMembership.getStandings({
+          projectId: PROJECT_A,
+          userIds: [USER_1],
+        }),
+      ).rejects.toThrow("database unavailable");
+    });
+  });
+
+  describe("isMember", () => {
+    test("one count of the person's accepted memberships of that project", async () => {
+      const count: SpyInstance<typeof TeamMemberService.countBy> = jest
+        .spyOn(TeamMemberService, "countBy")
+        .mockResolvedValue(new PositiveNumber(2));
+
+      await expect(
+        ProjectMembership.isMember({ projectId: PROJECT_A, userId: USER_1 }),
+      ).resolves.toBe(true);
+
+      expect(count).toHaveBeenCalledTimes(1);
+
+      const call: Parameters<typeof TeamMemberService.countBy>[0] =
+        count.mock.calls[0]![0];
+
+      // Accepted rows of this project and this person; an invitation is not one.
+      expect(call.query).toEqual({
+        projectId: PROJECT_A,
+        userId: USER_1,
+        hasAcceptedInvitation: true,
+      });
+      expect(call.props).toEqual({ isRoot: true });
+    });
+
+    test("the same rule as the leave cleanups", async () => {
+      const rule: SpyInstance<typeof TeamMemberService.isUserMemberOfProject> =
+        jest
+          .spyOn(TeamMemberService, "isUserMemberOfProject")
+          .mockResolvedValue(true);
+
+      await ProjectMembership.isMember({
+        projectId: PROJECT_A,
+        userId: USER_1,
+      });
+
+      expect(rule).toHaveBeenCalledTimes(1);
+      expect(rule.mock.calls[0]![0]).toEqual({
+        projectId: PROJECT_A,
+        userId: USER_1,
+      });
+    });
+
+    test("somebody who has left, or only been invited, is not a member", async () => {
+      jest
+        .spyOn(TeamMemberService, "countBy")
+        .mockResolvedValue(new PositiveNumber(0));
+
+      await expect(
+        ProjectMembership.isMember({ projectId: PROJECT_A, userId: USER_2 }),
+      ).resolves.toBe(false);
+    });
+
+    test("a failed read is an error, never an answer", async () => {
+      jest
+        .spyOn(TeamMemberService, "countBy")
+        .mockRejectedValue(new Error("database unavailable"));
+
+      await expect(
+        ProjectMembership.isMember({ projectId: PROJECT_A, userId: USER_1 }),
+      ).rejects.toThrow("database unavailable");
+    });
+  });
+
+  describe("getMemberProjectIds", () => {
+    test("every project of the person's accepted memberships, each once", async () => {
+      const read: SpyInstance<typeof TeamMemberService.findBy> = jest
+        .spyOn(TeamMemberService, "findBy")
+        .mockResolvedValue([
+          { projectId: PROJECT_A },
+          // Two teams of the same project.
+          { projectId: new ObjectID(PROJECT_A.toString().toUpperCase()) },
+          { projectId: PROJECT_B },
+          { projectId: undefined },
+        ] as never);
+
+      const projectIds: Array<ObjectID> =
+        await ProjectMembership.getMemberProjectIds({ userId: USER_1 });
+
+      expect(
+        projectIds.map((projectId: ObjectID): string => {
+          return projectId.toString().toLowerCase();
+        }),
+      ).toEqual([PROJECT_A.toString(), PROJECT_B.toString()]);
+
+      const call: Parameters<typeof TeamMemberService.findBy>[0] =
+        read.mock.calls[0]![0];
+
+      // Accepted rows only: an invitation is not a project of theirs yet.
+      expect(call.query).toEqual({
+        userId: USER_1,
+        hasAcceptedInvitation: true,
+      });
+      expect(call.props).toEqual({ isRoot: true });
+      expect(call.limit).toBe(LIMIT_MAX);
+    });
+
+    test("somebody in no project gets none", async () => {
+      jest.spyOn(TeamMemberService, "findBy").mockResolvedValue([] as never);
+
+      await expect(
+        ProjectMembership.getMemberProjectIds({ userId: USER_3 }),
+      ).resolves.toEqual([]);
     });
   });
 

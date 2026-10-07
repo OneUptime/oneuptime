@@ -119,7 +119,7 @@ jest.mock(
 jest.mock("Common/Server/Services/OnCallDutyPolicyScheduleService", () => {
   return {
     __esModule: true,
-    default: { getCurrentUserIdInSchedule: jest.fn() },
+    default: { getCurrentOnCallInSchedule: jest.fn() },
   };
 });
 
@@ -140,12 +140,13 @@ jest.mock("Common/Server/Services/UserService", () => {
 /*
  * The membership condition the number lookup carries. Faked as the plain
  * user id for a member, and as a marker the number lookup finds nothing for
- * otherwise - what the real condition does in SQL.
+ * otherwise - what the real condition does in SQL. isMember answers from the
+ * same world (membersExcept).
  */
 jest.mock("Common/Server/Utils/TeamMember/ProjectMembership", () => {
   return {
     __esModule: true,
-    default: { userIdWhileMember: jest.fn() },
+    default: { userIdWhileMember: jest.fn(), isMember: jest.fn() },
   };
 });
 
@@ -300,17 +301,20 @@ const missedCallNotifier: { notifyOwnersOfMissedCall: JestMock } =
   IncomingCallMissedCallNotificationService as unknown as {
     notifyOwnersOfMissedCall: JestMock;
   };
-const scheduleService: { getCurrentUserIdInSchedule: JestMock } =
+const scheduleService: { getCurrentOnCallInSchedule: JestMock } =
   OnCallDutyPolicyScheduleService as unknown as {
-    getCurrentUserIdInSchedule: JestMock;
+    getCurrentOnCallInSchedule: JestMock;
   };
 const incomingNumberService: { findOneBy: JestMock } =
   UserIncomingCallNumberService as unknown as { findOneBy: JestMock };
 const userService: { findOneById: JestMock } = UserService as unknown as {
   findOneById: JestMock;
 };
-const membership: { userIdWhileMember: JestMock } =
-  ProjectMembership as unknown as { userIdWhileMember: JestMock };
+const membership: { userIdWhileMember: JestMock; isMember: JestMock } =
+  ProjectMembership as unknown as {
+    userIdWhileMember: JestMock;
+    isMember: JestMock;
+  };
 
 // What the faked condition stands for when the person is not a member.
 interface NotAMember {
@@ -341,6 +345,15 @@ function membersExcept(...formerMembers: Array<ObjectID>): void {
       return former.has(data.userId.toString().toLowerCase())
         ? { notAMember: data.userId.toString() }
         : data.userId;
+    },
+  );
+
+  membership.isMember.mockImplementation(
+    async (data: {
+      userId: ObjectID;
+      projectId: ObjectID;
+    }): Promise<boolean> => {
+      return !former.has(data.userId.toString().toLowerCase());
     },
   );
 }
@@ -590,7 +603,10 @@ function configureUserAndRuleDefaults(): void {
     makeVerifiedNumber(USER_1, USER_1_NUMBER),
   );
   userService.findOneById.mockResolvedValue(makeUser(USER_1));
-  scheduleService.getCurrentUserIdInSchedule.mockResolvedValue(USER_1);
+  scheduleService.getCurrentOnCallInSchedule.mockResolvedValue({
+    userId: USER_1,
+    coveredUserId: null,
+  });
 }
 
 function configureLogDefaults(): void {
@@ -776,16 +792,21 @@ describe("incoming call voice routing", () => {
     ruleService.findOneBy.mockResolvedValue(
       makeRule({ order: 1, scheduleId: SCHEDULE_ID }),
     );
-    scheduleService.getCurrentUserIdInSchedule.mockResolvedValue(USER_2);
+    scheduleService.getCurrentOnCallInSchedule.mockResolvedValue({
+      userId: USER_2,
+      coveredUserId: null,
+    });
     incomingNumberService.findOneBy.mockResolvedValue(
       makeVerifiedNumber(USER_2, USER_2_NUMBER),
     );
 
     await invoke("/voice", { body: voiceBody() });
 
-    expect(scheduleService.getCurrentUserIdInSchedule).toHaveBeenCalledWith(
+    expect(scheduleService.getCurrentOnCallInSchedule).toHaveBeenCalledWith(
       SCHEDULE_ID,
     );
+    // Nobody covered: membership is left to the number lookup.
+    expect(membership.isMember).not.toHaveBeenCalled();
     expect(
       provider.generateEscalationResponse.mock.calls[0]?.[1],
     ).toMatchObject({ toPhoneNumber: USER_2_NUMBER });
@@ -841,12 +862,141 @@ describe("incoming call voice routing", () => {
     ).toBe(false);
   });
 
+  /*
+   * A schedule's override puts a substitute in a layer user's place. A
+   * substitute who is no longer a member hands the call back to the layer
+   * user they cover - as the on-call escalation pages them - instead of the
+   * rule being skipped.
+   */
+  test("a schedule's override whose substitute has left: the layer user it covers takes the call", async () => {
+    membersExcept(USER_2);
+    ruleService.findOneBy.mockResolvedValue(
+      makeRule({ order: 1, scheduleId: SCHEDULE_ID }),
+    );
+    scheduleService.getCurrentOnCallInSchedule.mockResolvedValue({
+      userId: USER_2,
+      coveredUserId: USER_1,
+    });
+    incomingNumberService.findOneBy.mockImplementation((args: any) => {
+      if (isNotAMember(args.query.userId)) {
+        return Promise.resolve(null);
+      }
+
+      return Promise.resolve(
+        args.query.userId.toString() === USER_1.toString()
+          ? makeVerifiedNumber(USER_1, USER_1_NUMBER)
+          : makeVerifiedNumber(USER_2, USER_2_NUMBER),
+      );
+    });
+
+    await invoke("/voice", { body: voiceBody() });
+
+    expect(membership.isMember).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      userId: USER_2,
+    });
+    // The covered layer user's number, read while they are a member.
+    expect(membership.userIdWhileMember).toHaveBeenCalledWith({
+      userId: USER_1,
+      projectId: PROJECT_ID,
+    });
+    expect(provider.generateEscalationResponse.mock.calls[0]?.[1]).toEqual(
+      expect.objectContaining({ toPhoneNumber: USER_1_NUMBER }),
+    );
+    expect(
+      provider.generateEscalationResponse.mock.calls.some(
+        (call: Array<any>) => {
+          return call[1]?.toPhoneNumber === USER_2_NUMBER;
+        },
+      ),
+    ).toBe(false);
+  });
+
+  test("a schedule's override whose substitute is a member: the substitute takes the call", async () => {
+    ruleService.findOneBy.mockResolvedValue(
+      makeRule({ order: 1, scheduleId: SCHEDULE_ID }),
+    );
+    scheduleService.getCurrentOnCallInSchedule.mockResolvedValue({
+      userId: USER_2,
+      coveredUserId: USER_1,
+    });
+    incomingNumberService.findOneBy.mockResolvedValue(
+      makeVerifiedNumber(USER_2, USER_2_NUMBER),
+    );
+
+    await invoke("/voice", { body: voiceBody() });
+
+    expect(provider.generateEscalationResponse.mock.calls[0]?.[1]).toEqual(
+      expect.objectContaining({ toPhoneNumber: USER_2_NUMBER }),
+    );
+  });
+
+  test("a schedule's override whose substitute and covered layer user have both left rings neither", async () => {
+    membersExcept(USER_1, USER_2);
+    ruleService.findOneBy
+      .mockResolvedValueOnce(makeRule({ order: 1, scheduleId: SCHEDULE_ID }))
+      .mockResolvedValueOnce(null);
+    scheduleService.getCurrentOnCallInSchedule.mockResolvedValue({
+      userId: USER_2,
+      coveredUserId: USER_1,
+    });
+    incomingNumberService.findOneBy.mockImplementation((args: any) => {
+      return Promise.resolve(
+        isNotAMember(args.query.userId)
+          ? null
+          : makeVerifiedNumber(USER_1, USER_1_NUMBER),
+      );
+    });
+
+    await invoke("/voice", { body: voiceBody() });
+
+    expect(
+      provider.generateEscalationResponse.mock.calls.some(
+        (call: Array<any>) => {
+          return (
+            call[1]?.toPhoneNumber === USER_1_NUMBER ||
+            call[1]?.toPhoneNumber === USER_2_NUMBER
+          );
+        },
+      ),
+    ).toBe(false);
+  });
+
+  test("a membership read that fails keeps the substitute, whose number lookup still carries the condition", async () => {
+    ruleService.findOneBy.mockResolvedValue(
+      makeRule({ order: 1, scheduleId: SCHEDULE_ID }),
+    );
+    scheduleService.getCurrentOnCallInSchedule.mockResolvedValue({
+      userId: USER_2,
+      coveredUserId: USER_1,
+    });
+    const failure: Error = new Error("database unavailable");
+    membership.isMember.mockRejectedValue(failure);
+    incomingNumberService.findOneBy.mockResolvedValue(
+      makeVerifiedNumber(USER_2, USER_2_NUMBER),
+    );
+
+    await invoke("/voice", { body: voiceBody() });
+
+    expect(logger.error).toHaveBeenCalledWith(failure);
+    expect(membership.userIdWhileMember).toHaveBeenCalledWith({
+      userId: USER_2,
+      projectId: PROJECT_ID,
+    });
+    expect(provider.generateEscalationResponse.mock.calls[0]?.[1]).toEqual(
+      expect.objectContaining({ toPhoneNumber: USER_2_NUMBER }),
+    );
+  });
+
   test("does not ring a schedule's on-call person who is no longer a member", async () => {
     membersExcept(USER_2);
     ruleService.findOneBy
       .mockResolvedValueOnce(makeRule({ order: 1, scheduleId: SCHEDULE_ID }))
       .mockResolvedValueOnce(null);
-    scheduleService.getCurrentUserIdInSchedule.mockResolvedValue(USER_2);
+    scheduleService.getCurrentOnCallInSchedule.mockResolvedValue({
+      userId: USER_2,
+      coveredUserId: null,
+    });
     incomingNumberService.findOneBy.mockImplementation((args: any) => {
       return Promise.resolve(
         isNotAMember(args.query.userId)

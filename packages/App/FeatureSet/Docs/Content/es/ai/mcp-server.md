@@ -54,7 +54,7 @@ A partir de ahí, el cliente actúa en tu nombre en ese proyecto. No hay ninguna
 
 Qué puede hacer un cliente conectado:
 
-- **Tiene tus permisos, y nunca más que esos.** Lo que tus equipos te permiten hacer en el proyecto es lo que puede hacer el cliente. Si tu rol cambia o dejas el proyecto, eso se aplica ya a la siguiente solicitud del cliente.
+- **Tiene tus permisos, y nunca más que esos.** Lo que tus equipos te permiten hacer en el proyecto es lo que puede hacer el cliente. Si tu rol cambia o dejas el proyecto, eso se aplica ya a la siguiente solicitud del cliente. Dejar el proyecto también desconecta el cliente: se elimina su autorización, y lo vuelves a conectar si regresas al proyecto.
 - **Solo lectura significa solo lectura.** Un cliente autorizado con acceso de solo lectura puede usar las herramientas `get_`, `list_` y `count_`. Las herramientas que crean, actualizan, eliminan, reconocen o resuelven son rechazadas, tanto por el servidor MCP como por la API de OneUptime que está detrás. Nunca puedes darle a un cliente más acceso del que pidió.
 - **Es para un solo proyecto.** Para usar un segundo proyecto, conecta el cliente de nuevo y elige ese proyecto.
 - **Funciona únicamente a través del servidor MCP.** El token de acceso del cliente se acepta en el punto de conexión MCP y en ningún otro lugar. No se puede usar para llamar directamente a la API REST de OneUptime.

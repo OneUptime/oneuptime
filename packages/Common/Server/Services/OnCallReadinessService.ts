@@ -27,7 +27,9 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
 import Sort from "../Types/Database/Sort";
 import logger from "../Utils/Logger";
-import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
+import ProjectMembership, {
+  ProjectMembershipStandings,
+} from "../Utils/TeamMember/ProjectMembership";
 import { getWhoCanTurnOnClause } from "../../Utils/Project/NotificationChannels";
 import Includes from "../../Types/BaseDatabase/Includes";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
@@ -1140,7 +1142,10 @@ export default class OnCallReadinessService {
    *     for. During an override the covered user is not paged at all, while the
    *     substitute is — and the substitute may not be attached to the policy by any
    *     other means, which makes them the single most likely responder to be silently
-   *     unreachable.
+   *     unreachable. A substitute who is no longer a member is listed as such, with
+   *     the fix (take them off the override): until then the runtime pages the
+   *     covered user instead, who is a responder through their own layer or rule
+   *     and is assessed there.
    */
   private static async resolveResponders(
     projectId: ObjectID,
@@ -1749,34 +1754,52 @@ export default class OnCallReadinessService {
     }
 
     /*
-     * Whether each responder is a member of the project now. A layer, a rule or an
-     * override can still name somebody who has left; the runtime never pages them
-     * (ProjectMembership), so readiness must not call them reachable either.
+     * Whether each responder is a member of the project now - and, among those
+     * who are not, the ones still invited: the fix for them is to accept, not
+     * to be replaced. A layer, a rule or an override can still name somebody
+     * who has left; the runtime never pages them (ProjectMembership), so
+     * readiness must not call them reachable either. One read answers both.
      */
-    const memberUserIds: Set<string> =
-      data.memberUserIds ||
-      (await ProjectMembership.getMemberUserIds({
-        projectId: data.projectId,
-        userIds: userIds,
-      }));
+    let memberUserIds: Set<string>;
+    let invitedUserIds: Set<string> = new Set<string>();
 
-    /*
-     * Among those who are not members, the ones still invited: the fix for
-     * them is to accept, not to be replaced. Read only when there are any.
-     */
-    const nonMemberUserIds: Array<ObjectID> = userIds.filter(
-      (userId: ObjectID): boolean => {
-        return !memberUserIds.has(userId.toString().toLowerCase());
-      },
-    );
+    if (data.memberUserIds) {
+      memberUserIds = new Set<string>(data.memberUserIds);
 
-    const invitedUserIds: Set<string> =
-      nonMemberUserIds.length > 0
-        ? await ProjectMembership.getInvitedUserIds({
+      /*
+       * Read only when the caller's set leaves somebody out - and then trust
+       * the read for them: somebody who joined after the caller looked is a
+       * member, not somebody who has left.
+       */
+      const nonMemberUserIds: Array<ObjectID> = userIds.filter(
+        (userId: ObjectID): boolean => {
+          return !memberUserIds.has(userId.toString().toLowerCase());
+        },
+      );
+
+      if (nonMemberUserIds.length > 0) {
+        const standings: ProjectMembershipStandings =
+          await ProjectMembership.getStandings({
             projectId: data.projectId,
             userIds: nonMemberUserIds,
-          })
-        : new Set<string>();
+          });
+
+        for (const userId of standings.memberUserIds) {
+          memberUserIds.add(userId);
+        }
+
+        invitedUserIds = standings.invitedUserIds;
+      }
+    } else {
+      const standings: ProjectMembershipStandings =
+        await ProjectMembership.getStandings({
+          projectId: data.projectId,
+          userIds: userIds,
+        });
+
+      memberUserIds = standings.memberUserIds;
+      invitedUserIds = standings.invitedUserIds;
+    }
 
     const inputs: ReadinessInputs = await this.loadInputs({
       projectId: data.projectId,

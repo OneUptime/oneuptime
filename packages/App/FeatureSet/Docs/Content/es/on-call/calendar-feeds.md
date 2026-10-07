@@ -161,7 +161,7 @@ Ajustes en ambos:
 
 Pon el enlace de horario en un calendario de equipo compartido — Google, Outlook o Confluence — y una sola suscripción sirve a todo el equipo. Rótalo cuando se vaya alguien que lo tenía, o activa la rotación automática de arriba.
 
-Cuando una persona deja su último equipo en un proyecto, OneUptime también la quita de las capas de horario y las reglas de escalado de ese proyecto, elimina las sustituciones activas y futuras del proyecto que la mencionan (como persona sustituida o como sustituta), desactiva su feed personal del proyecto y elimina sus recordatorios allí.
+Cuando una persona deja su último equipo en un proyecto, OneUptime también la quita de las capas de horario y las reglas de escalado de ese proyecto, elimina las sustituciones activas y futuras del proyecto que la mencionan (como persona sustituida o como sustituta), desactiva su feed personal del proyecto y elimina sus recordatorios allí. Un enlace personal muestra turnos solo mientras su dueño es miembro del proyecto: se comprueba cada vez que se consulta el enlace, así que quien se ha ido recibe un calendario vacío, y la lista de próximos turnos en la app móvil solo incluye los proyectos de los que sigue siendo miembro.
 
 ## Los eventos en detalle
 
@@ -220,7 +220,7 @@ También relevante:
 
 **El calendario está desactualizado.** Lee primero la tabla de actualización: en Google el retraso es normal. Para que Google vuelva a mirar, elimina y vuelve a añadir el calendario o añade `?nocache=1` al enlace (los parámetros desconocidos se ignoran, el feed es el mismo pero Google lo trata como nuevo). En el Outlook clásico pulsa F9 y revisa el ajuste **Límite de actualización**. En Calendario de Apple usa **Visualización** > **Actualizar calendarios**. Si importa un cambio del mismo día, confía en los recordatorios y avisos de reasignación de OneUptime antes que en el calendario.
 
-**El calendario está vacío.** Un calendario vacío es intencionado. Significa que el enlace está desactivado, es un enlace antiguo dentro de su periodo de gracia de 30 días tras regenerar, el proyecto está por debajo del plan que incluye horarios de guardia, o ya no estás en ningún horario de ese proyecto. Abre el enlace en un navegador: la descripción del calendario (`X-WR-CALDESC`) indica el motivo.
+**El calendario está vacío.** Un calendario vacío es intencionado. Significa que el enlace está desactivado, es un enlace antiguo dentro de su periodo de gracia de 30 días tras regenerar, el proyecto está por debajo del plan que incluye horarios de guardia, o ya no estás en ningún horario de ese proyecto. Abre el enlace en un navegador: la descripción del calendario (`X-WR-CALDESC`) indica el motivo. Si dejaste el proyecto, el enlace sigue vacío: solo muestra turnos mientras eres miembro.
 
 **404.** El enlace es desconocido, se ha eliminado o su periodo de gracia ha terminado. Genera uno nuevo y vuelve a suscribirte.
 

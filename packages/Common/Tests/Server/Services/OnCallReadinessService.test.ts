@@ -36,7 +36,9 @@ import UserTelegramService from "../../../Server/Services/UserTelegramService";
 import UserWebhookService from "../../../Server/Services/UserWebhookService";
 import UserWhatsAppService from "../../../Server/Services/UserWhatsAppService";
 import logger from "../../../Server/Utils/Logger";
-import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
+import ProjectMembership, {
+  ProjectMembershipStandings,
+} from "../../../Server/Utils/TeamMember/ProjectMembership";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
@@ -294,7 +296,7 @@ let incidentSeverityFindBy: jest.SpyInstance;
 let alertSeverityFindBy: jest.SpyInstance;
 let projectFindOneById: jest.SpyInstance;
 let projectMembershipRead: jest.SpyInstance;
-let projectInvitationRead: jest.SpyInstance;
+let projectStandingsRead: jest.SpyInstance;
 // People invited to the project who have not accepted yet.
 let invitedUserIds: Array<ObjectID> = [];
 
@@ -687,7 +689,7 @@ function everySpy(): Array<jest.SpyInstance> {
     alertSeverityFindBy,
     projectFindOneById,
     projectMembershipRead,
-    projectInvitationRead,
+    projectStandingsRead,
   ];
 }
 
@@ -706,7 +708,7 @@ function everyFindByCall(): Array<FindByCall> {
       spy === policyFindOneById ||
       spy === projectFindOneById ||
       spy === projectMembershipRead ||
-      spy === projectInvitationRead
+      spy === projectStandingsRead
     ) {
       // findOneById takes an id, not a limit; nothing to assert about paging.
       continue;
@@ -958,29 +960,6 @@ beforeEach(() => {
    */
   invitedUserIds = [];
 
-  projectInvitationRead = jest
-    .spyOn(ProjectMembership, "getInvitedUserIds")
-    .mockImplementation((async (data: {
-      projectId: ObjectID;
-      userIds: Array<ObjectID | string>;
-    }): Promise<Set<string>> => {
-      const asked: Set<string> = new Set<string>(
-        data.userIds.map((userId: ObjectID | string): string => {
-          return userId.toString().toLowerCase();
-        }),
-      );
-
-      return new Set<string>(
-        invitedUserIds
-          .map((userId: ObjectID): string => {
-            return userId.toString().toLowerCase();
-          })
-          .filter((userId: string): boolean => {
-            return asked.has(userId);
-          }),
-      );
-    }) as never);
-
   projectMembershipRead = jest
     .spyOn(ProjectMembership, "getMemberUserIds")
     .mockImplementation((async (data: {
@@ -1002,6 +981,43 @@ beforeEach(() => {
             return asked.has(userId);
           }),
       );
+    }) as never);
+
+  // Members and invitees in one read, from the same world as the two above.
+  projectStandingsRead = jest
+    .spyOn(ProjectMembership, "getStandings")
+    .mockImplementation((async (data: {
+      projectId: ObjectID;
+      userIds: Array<ObjectID | string>;
+    }): Promise<ProjectMembershipStandings> => {
+      const asked: Set<string> = new Set<string>(
+        data.userIds.map((userId: ObjectID | string): string => {
+          return userId.toString().toLowerCase();
+        }),
+      );
+
+      const memberUserIds: Set<string> = new Set<string>(
+        membershipRows
+          .map((row: TeamMember): string => {
+            return row.userId?.toString().toLowerCase() || "";
+          })
+          .filter((userId: string): boolean => {
+            return asked.has(userId);
+          }),
+      );
+
+      return {
+        memberUserIds,
+        invitedUserIds: new Set<string>(
+          invitedUserIds
+            .map((userId: ObjectID): string => {
+              return userId.toString().toLowerCase();
+            })
+            .filter((userId: string): boolean => {
+              return asked.has(userId) && !memberUserIds.has(userId);
+            }),
+        ),
+      };
     }) as never);
 });
 
@@ -4754,10 +4770,11 @@ describe("a responder who is no longer a member of the project", () => {
   test("membership is read once for the whole responder set", async () => {
     await policySummary();
 
-    expect(projectMembershipRead).toHaveBeenCalledTimes(1);
+    expect(projectStandingsRead).toHaveBeenCalledTimes(1);
+    expect(projectMembershipRead).not.toHaveBeenCalled();
 
     const asked: Array<string> = (
-      projectMembershipRead.mock.calls[0]![0] as {
+      projectStandingsRead.mock.calls[0]![0] as {
         userIds: Array<ObjectID | string>;
       }
     ).userIds
@@ -4781,20 +4798,11 @@ describe("a responder who is no longer a member of the project", () => {
       ...INVITATION_NOT_ACCEPTED_READINESS_REASONS,
     ]);
 
-    // Asked about the people who are not members only, once.
-    expect(projectInvitationRead).toHaveBeenCalledTimes(1);
-    expect(
-      (
-        projectInvitationRead.mock.calls[0]![0] as {
-          userIds: Array<ObjectID | string>;
-        }
-      ).userIds.map((userId: ObjectID | string): string => {
-        return userId.toString();
-      }),
-    ).toEqual([USER_B_ID.toString()]);
+    // Told apart in the same one read: no second read for invitations.
+    expect(projectStandingsRead).toHaveBeenCalledTimes(1);
   });
 
-  test("everybody a member: nobody is asked about invitations", async () => {
+  test("everybody a member: one read, and nobody is asked about invitations", async () => {
     membershipRows = [
       teamMemberRow(USER_A_ID, TEAM_ID),
       teamMemberRow(USER_B_ID, TEAM_ID),
@@ -4802,7 +4810,183 @@ describe("a responder who is no longer a member of the project", () => {
 
     await policySummary();
 
-    expect(projectInvitationRead).not.toHaveBeenCalled();
+    expect(projectStandingsRead).toHaveBeenCalledTimes(1);
+  });
+
+  test("per-user readiness asks nobody twice: the membership it began with answers", async () => {
+    await OnCallReadinessService.getReadinessForUser(USER_A_ID, PROJECT_ID);
+
+    expect(projectStandingsRead).not.toHaveBeenCalled();
+  });
+
+  /*
+   * A caller that has already read who the members are hands that set in
+   * (the per-user path does). A responder the set leaves out is read again,
+   * and the read decides: somebody who joined after the caller looked is a
+   * member, not somebody who has left.
+   */
+  describe("with the members the caller has already read", () => {
+    type BuildReadiness = (data: {
+      projectId: ObjectID;
+      responders: Map<
+        string,
+        { sources: Set<ResponderSource>; teamIds: Set<string> }
+      >;
+      projectSettings: {
+        isFallbackDisabled: boolean;
+        enableSmsNotifications: boolean;
+        enableCallNotifications: boolean;
+        enableWhatsAppNotifications: boolean;
+        enableTelegramNotifications: boolean;
+      };
+      completeness: { isTruncated: boolean };
+      memberUserIds?: Set<string> | undefined;
+    }) => Promise<Array<UserReadiness>>;
+
+    function buildReadinessFor(data: {
+      responderIds: Array<ObjectID>;
+      memberUserIds: Array<ObjectID>;
+    }): Promise<Array<UserReadiness>> {
+      const responders: Map<
+        string,
+        { sources: Set<ResponderSource>; teamIds: Set<string> }
+      > = new Map();
+
+      for (const responderId of data.responderIds) {
+        responders.set(responderId.toString(), {
+          sources: new Set<ResponderSource>([ResponderSource.Direct]),
+          teamIds: new Set<string>(),
+        });
+      }
+
+      const service: { buildReadiness: BuildReadiness } =
+        OnCallReadinessService as unknown as {
+          buildReadiness: BuildReadiness;
+        };
+
+      return service.buildReadiness({
+        projectId: PROJECT_ID,
+        responders: responders,
+        projectSettings: {
+          isFallbackDisabled: false,
+          enableSmsNotifications: true,
+          enableCallNotifications: true,
+          enableWhatsAppNotifications: true,
+          enableTelegramNotifications: true,
+        },
+        completeness: { isTruncated: false },
+        memberUserIds: new Set<string>(
+          data.memberUserIds.map((userId: ObjectID): string => {
+            return userId.toString().toLowerCase();
+          }),
+        ),
+      });
+    }
+
+    function readinessIn(
+      list: Array<UserReadiness>,
+      userId: ObjectID,
+    ): UserReadiness {
+      const readiness: UserReadiness | undefined = list.find(
+        (candidate: UserReadiness): boolean => {
+          return candidate.userId.toString() === userId.toString();
+        },
+      );
+
+      if (!readiness) {
+        throw new Error(`${userId.toString()} is not in the list`);
+      }
+
+      return readiness;
+    }
+
+    test("nobody left out: no second membership read", async () => {
+      membershipRows = [
+        teamMemberRow(USER_A_ID, TEAM_ID),
+        teamMemberRow(USER_B_ID, TEAM_ID),
+      ];
+
+      const readiness: Array<UserReadiness> = await buildReadinessFor({
+        responderIds: [USER_A_ID, USER_B_ID],
+        memberUserIds: [USER_A_ID, USER_B_ID],
+      });
+
+      expect(projectStandingsRead).not.toHaveBeenCalled();
+      expect(readinessIn(readiness, USER_B_ID).status).toBe(
+        ReadinessStatus.Ready,
+      );
+    });
+
+    test("a member the set left out is read, and counted as the member they are", async () => {
+      // B joined after the caller read who the members were.
+      membershipRows = [
+        teamMemberRow(USER_A_ID, TEAM_ID),
+        teamMemberRow(USER_B_ID, TEAM_ID),
+      ];
+
+      const readiness: Array<UserReadiness> = await buildReadinessFor({
+        responderIds: [USER_A_ID, USER_B_ID],
+        memberUserIds: [USER_A_ID],
+      });
+
+      // One read, about the one left out only.
+      expect(projectStandingsRead).toHaveBeenCalledTimes(1);
+      expect(
+        (
+          projectStandingsRead.mock.calls[0]![0] as {
+            userIds: Array<ObjectID | string>;
+          }
+        ).userIds.map((userId: ObjectID | string): string => {
+          return userId.toString();
+        }),
+      ).toEqual([USER_B_ID.toString()]);
+
+      const member: UserReadiness = readinessIn(readiness, USER_B_ID);
+
+      expect(member.status).toBe(ReadinessStatus.Ready);
+      expect(member.reasons).not.toEqual([
+        ...NOT_A_PROJECT_MEMBER_READINESS_REASONS,
+      ]);
+    });
+
+    test("somebody the set left out who has left is still not reachable", async () => {
+      const readiness: Array<UserReadiness> = await buildReadinessFor({
+        responderIds: [USER_A_ID, USER_B_ID],
+        memberUserIds: [USER_A_ID],
+      });
+
+      const former: UserReadiness = readinessIn(readiness, USER_B_ID);
+
+      expect(former.status).toBe(ReadinessStatus.NotReachable);
+      expect(former.reasons).toEqual([
+        ...NOT_A_PROJECT_MEMBER_READINESS_REASONS,
+      ]);
+      expect(readinessIn(readiness, USER_A_ID).status).toBe(
+        ReadinessStatus.Ready,
+      );
+    });
+
+    test("somebody the set left out who is only invited is told to accept", async () => {
+      invitedUserIds = [USER_B_ID];
+
+      const readiness: Array<UserReadiness> = await buildReadinessFor({
+        responderIds: [USER_A_ID, USER_B_ID],
+        memberUserIds: [USER_A_ID],
+      });
+
+      const invited: UserReadiness = readinessIn(readiness, USER_B_ID);
+
+      expect(invited.status).toBe(ReadinessStatus.NotReachable);
+      expect(invited.reasons).toEqual([
+        ...INVITATION_NOT_ACCEPTED_READINESS_REASONS,
+      ]);
+    });
+  });
+
+  test("a membership read that fails is not swallowed into a summary that calls people reachable", async () => {
+    projectStandingsRead.mockRejectedValue(new Error("database unavailable"));
+
+    await expect(policySummary()).rejects.toThrow("database unavailable");
   });
 
   test("the reasons say they cannot be paged, and what to do about it", () => {

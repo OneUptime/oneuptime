@@ -22,12 +22,15 @@ jest.mock("../../../Server/Infrastructure/Postgres/DataSourceOptions", () => {
  * leans on: the unique index turns a second, racing insert for the same
  * (user, project) into an error rather than a duplicate row, so two clicks on
  * one confirmation link -- or two links for one project -- end with exactly
- * one consent, and the second click still succeeds.
+ * one consent, and the second click still succeeds. And the membership
+ * condition on the read: a consent counts only while its person holds an
+ * accepted membership of the project.
  *
  * Opt in with RUN_POSTGRES_SSO_CONSENT_TESTS=true and config.env; point it at
  * a migrated database with SSO_CONSENT_TEST_DATABASE_HOST/PORT/NAME
- * (default localhost:5400; the Postgres Schema Drift job runs it). Only the table definition is copied from public, into an
- * isolated schema that is dropped afterwards; every row is synthetic.
+ * (default localhost:5400; the Postgres Schema Drift job runs it). Only the
+ * table definitions (the consent and TeamMember) are copied from public, into
+ * an isolated schema that is dropped afterwards; every row is synthetic.
  */
 const describePostgres: typeof describe =
   process.env["RUN_POSTGRES_SSO_CONSENT_TESTS"] === "true"
@@ -53,6 +56,34 @@ describePostgres("UserProjectSsoConsent against Postgres", () => {
     return Number(rows[0]!.count);
   };
 
+  // A membership of one of the project's teams; accepted unless told otherwise.
+  const insertMembership: (data: {
+    userId: ObjectID;
+    projectId: ObjectID;
+    accepted?: boolean | undefined;
+  }) => Promise<string> = async (data: {
+    userId: ObjectID;
+    projectId: ObjectID;
+    accepted?: boolean | undefined;
+  }): Promise<string> => {
+    const id: string = ObjectID.generate().toString();
+    const accepted: boolean = data.accepted ?? true;
+
+    await database.query(
+      `INSERT INTO "${schema}"."TeamMember" ("_id", "version", "userId", "teamId", "projectId", "hasAcceptedInvitation", "invitationAcceptedAt") VALUES ($1, 1, $2, $3, $4, $5, $6)`,
+      [
+        id,
+        data.userId.toString(),
+        ObjectID.generate().toString(),
+        data.projectId.toString(),
+        accepted,
+        accepted ? new Date() : null,
+      ],
+    );
+
+    return id;
+  };
+
   beforeAll(async () => {
     database = new DataSource({
       type: "postgres",
@@ -74,6 +105,9 @@ describePostgres("UserProjectSsoConsent against Postgres", () => {
     await database.query(
       `CREATE TABLE "${schema}"."UserProjectSsoConsent" (LIKE public."UserProjectSsoConsent" INCLUDING ALL)`,
     );
+    await database.query(
+      `CREATE TABLE "${schema}"."TeamMember" (LIKE public."TeamMember" INCLUDING ALL)`,
+    );
 
     jest.spyOn(PostgresAppInstance, "isConnected").mockReturnValue(true);
     jest.spyOn(PostgresAppInstance, "getDataSource").mockReturnValue(database);
@@ -92,6 +126,10 @@ describePostgres("UserProjectSsoConsent against Postgres", () => {
     const userId: ObjectID = ObjectID.generate();
     const projectId: ObjectID = ObjectID.generate();
     const otherProjectId: ObjectID = ObjectID.generate();
+
+    // Confirming joins the project; the consent is recorded once they have.
+    await insertMembership({ userId, projectId });
+    await insertMembership({ userId, projectId: otherProjectId });
 
     expect(
       await UserProjectSsoConsentService.hasConsent({ userId, projectId }),
@@ -114,6 +152,73 @@ describePostgres("UserProjectSsoConsent against Postgres", () => {
         projectId,
       }),
     ).toBe(false);
+  });
+
+  test("a consent counts only while its person is a member of the project", async () => {
+    const userId: ObjectID = ObjectID.generate();
+    const projectId: ObjectID = ObjectID.generate();
+    const membershipId: string = await insertMembership({ userId, projectId });
+
+    await UserProjectSsoConsentService.recordConsent({ userId, projectId });
+
+    await expect(
+      UserProjectSsoConsentService.hasConsent({ userId, projectId }),
+    ).resolves.toBe(true);
+
+    // They left: the row is still there, and does not count.
+    await database.query(
+      `UPDATE "${schema}"."TeamMember" SET "deletedAt" = now() WHERE "_id" = $1`,
+      [membershipId],
+    );
+
+    expect(await countRows(userId, projectId)).toBe(1);
+    await expect(
+      UserProjectSsoConsentService.hasConsent({ userId, projectId }),
+    ).resolves.toBe(false);
+
+    // Invited back, not accepted yet: still not.
+    const invitationId: string = await insertMembership({
+      userId,
+      projectId,
+      accepted: false,
+    });
+
+    await expect(
+      UserProjectSsoConsentService.hasConsent({ userId, projectId }),
+    ).resolves.toBe(false);
+
+    // Accepted.
+    await database.query(
+      `UPDATE "${schema}"."TeamMember" SET "hasAcceptedInvitation" = true WHERE "_id" = $1`,
+      [invitationId],
+    );
+
+    await expect(
+      UserProjectSsoConsentService.hasConsent({ userId, projectId }),
+    ).resolves.toBe(true);
+  });
+
+  test("a membership of another project does not make a consent count", async () => {
+    const userId: ObjectID = ObjectID.generate();
+    const projectId: ObjectID = ObjectID.generate();
+
+    await insertMembership({ userId, projectId: ObjectID.generate() });
+    await UserProjectSsoConsentService.recordConsent({ userId, projectId });
+
+    await expect(
+      UserProjectSsoConsentService.hasConsent({ userId, projectId }),
+    ).resolves.toBe(false);
+  });
+
+  test("confirming again while a row of somebody who left is still there neither fails nor adds a row", async () => {
+    const userId: ObjectID = ObjectID.generate();
+    const projectId: ObjectID = ObjectID.generate();
+
+    // No membership at all: the row is there, the read does not count it.
+    await UserProjectSsoConsentService.recordConsent({ userId, projectId });
+    await UserProjectSsoConsentService.recordConsent({ userId, projectId });
+
+    expect(await countRows(userId, projectId)).toBe(1);
   });
 
   test("a second confirmation neither fails nor duplicates the row", async () => {

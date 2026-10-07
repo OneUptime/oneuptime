@@ -36,6 +36,7 @@ import IncidentEpisodeService from "./IncidentEpisodeService";
 import OneUptimeDate from "../../Types/Date";
 import { JSONObject } from "../../Types/JSON";
 import logger from "../Utils/Logger";
+import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
 
 /*
  * The status message the zero-rule dead-end wrote before the fallback existed,
@@ -54,6 +55,17 @@ export const NO_NOTIFICATION_RULES_STATUS_MESSAGE: string =
  */
 export const NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE: string =
   "Stopped because this user is no longer a member of the project. Their remaining notification rules were not run.";
+
+/*
+ * Why an on-call notification log sent nothing at all: the person it pages
+ * is not a member of the project (they left, or never accepted their
+ * invitation). The rules that choose what a page goes through are read only
+ * while the person is a member, so this is what is left when somebody who is
+ * not one reaches this far - when the escalation could not read membership
+ * and paged as before.
+ */
+export const NOT_A_PROJECT_MEMBER_STATUS_MESSAGE: string =
+  "Not sent because this user is not a member of the project.";
 
 /*
  * FindWhereProperty is constrained to object types, so the parameter is `any`
@@ -342,7 +354,7 @@ export class Service extends DatabaseService<Model> {
       // Check if there are any rules .
       ruleCount = await UserNotificationRuleService.countBy({
         query: {
-          userId: createdItem.userId!,
+          userId: this.userIdWhileMember(createdItem),
           projectId: createdItem.projectId!,
           ruleType: notificationRuleType,
           incidentSeverityId: incident?.incidentSeverityId as ObjectID,
@@ -380,7 +392,7 @@ export class Service extends DatabaseService<Model> {
 
       ruleCount = await UserNotificationRuleService.countBy({
         query: {
-          userId: createdItem.userId!,
+          userId: this.userIdWhileMember(createdItem),
           projectId: createdItem.projectId!,
           ruleType: notificationRuleType,
           alertSeverityId: alert?.alertSeverityId as ObjectID,
@@ -412,7 +424,7 @@ export class Service extends DatabaseService<Model> {
 
       ruleCount = await UserNotificationRuleService.countBy({
         query: {
-          userId: createdItem.userId!,
+          userId: this.userIdWhileMember(createdItem),
           projectId: createdItem.projectId!,
           ruleType: notificationRuleType,
           alertSeverityId: alertEpisode?.alertSeverityId as ObjectID,
@@ -445,7 +457,7 @@ export class Service extends DatabaseService<Model> {
 
       ruleCount = await UserNotificationRuleService.countBy({
         query: {
-          userId: createdItem.userId!,
+          userId: this.userIdWhileMember(createdItem),
           projectId: createdItem.projectId!,
           ruleType: notificationRuleType,
           incidentSeverityId: incidentEpisode?.incidentSeverityId as ObjectID,
@@ -499,6 +511,22 @@ export class Service extends DatabaseService<Model> {
       "this severity";
 
     if (ruleCount.toNumber() === 0) {
+      /*
+       * The counts above find no rules for somebody who is not a member of
+       * the project. That is not "no rule configured": nothing is sent, and
+       * no fallback reaches for their methods.
+       */
+      if (await this.isNotAProjectMember(createdItem)) {
+        await this.writeNoRuleOutcome({
+          createdItem: createdItem,
+          status: UserNotificationExecutionStatus.Completed,
+          timelineStatus: OnCallDutyExecutionLogTimelineStatus.Skipped,
+          statusMessage: NOT_A_PROJECT_MEMBER_STATUS_MESSAGE,
+        });
+
+        return createdItem;
+      }
+
       await this.handleNoMatchingNotificationRule({
         createdItem: createdItem,
         notificationRuleType: notificationRuleType,
@@ -514,7 +542,7 @@ export class Service extends DatabaseService<Model> {
     const immediateNotificationRule: Array<UserNotificationRule> =
       await UserNotificationRuleService.findBy({
         query: {
-          userId: createdItem.userId!,
+          userId: this.userIdWhileMember(createdItem),
           projectId: createdItem.projectId!,
           notifyAfterMinutes: 0,
           ruleType: notificationRuleType,
@@ -750,6 +778,26 @@ export class Service extends DatabaseService<Model> {
       logger.error(err);
     }
 
+    /*
+     * The fallback found that the person is not a member of the project (they
+     * left between the rule count and the fallback): nothing was sent, and
+     * nothing about them needs fixing, so the log says so and no owner is
+     * told a page went undelivered.
+     */
+    if (
+      fallbackResult &&
+      fallbackResult.outcome === FallbackNotificationOutcome.NotAProjectMember
+    ) {
+      await this.writeNoRuleOutcome({
+        createdItem: createdItem,
+        status: UserNotificationExecutionStatus.Completed,
+        timelineStatus: OnCallDutyExecutionLogTimelineStatus.Skipped,
+        statusMessage: NOT_A_PROJECT_MEMBER_STATUS_MESSAGE,
+      });
+
+      return;
+    }
+
     if (fallbackResult && fallbackResult.notified) {
       const notifiedMessage: string = `No notification rule configured for ${
         data.severityName
@@ -870,6 +918,45 @@ export class Service extends DatabaseService<Model> {
     }).catch((err: Error) => {
       logger.error(err);
     });
+  }
+
+  /*
+   * The user column of a read that chooses what a page goes through: the
+   * person the log pages, and only while they are a member of its project
+   * (ProjectMembership). The escalation already checked membership, but it
+   * pages as before when it cannot read it; this check rides on the read
+   * that would deliver, costs no query of its own, and cannot fail open.
+   */
+  private userIdWhileMember(createdItem: Model): FindWhereProperty<any> {
+    return ProjectMembership.userIdWhileMember({
+      userId: createdItem.userId!,
+      projectId: createdItem.projectId!,
+    });
+  }
+
+  /*
+   * Whether the person a log pages is known not to be a member of its
+   * project. A failed read is "not known": the no-rule path runs, and its
+   * fallback asks again before it reaches any method
+   * (UserNotificationRuleService.chooseFallbackChannels).
+   */
+  private async isNotAProjectMember(createdItem: Model): Promise<boolean> {
+    if (!createdItem.projectId || !createdItem.userId) {
+      return false;
+    }
+
+    try {
+      return !(await ProjectMembership.isMember({
+        projectId: createdItem.projectId,
+        userId: createdItem.userId,
+      }));
+    } catch (err) {
+      logger.error(
+        `Could not read project membership for UserOnCallLog ${createdItem.id?.toString()}; taking the no-rule path, whose fallback checks it again.`,
+      );
+      logger.error(err);
+      return false;
+    }
   }
 
   /*

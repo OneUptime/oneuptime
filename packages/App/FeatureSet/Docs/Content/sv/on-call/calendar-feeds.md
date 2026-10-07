@@ -161,7 +161,7 @@ Inställningar på båda:
 
 Lägg schemalänken i en delad teamkalender — Google, Outlook eller Confluence — så tjänar en prenumeration hela teamet. Rotera den när någon som hade den slutar, eller slå på den automatiska rotationen ovan.
 
-När en person lämnar sitt sista team i ett projekt tar OneUptime också bort personen från projektets schemalager och eskaleringsregler, tar bort projektets pågående och framtida åsidosättningar som nämner personen (antingen som den som täcks eller som ersättare), inaktiverar personens personliga flöde för projektet och tar bort personens påminnelser där.
+När en person lämnar sitt sista team i ett projekt tar OneUptime också bort personen från projektets schemalager och eskaleringsregler, tar bort projektets pågående och framtida åsidosättningar som nämner personen (antingen som den som täcks eller som ersättare), inaktiverar personens personliga flöde för projektet och tar bort personens påminnelser där. En personlig länk visar pass bara så länge ägaren är medlem i projektet: det kontrolleras varje gång länken hämtas, så den som har lämnat får en tom kalender, och listan över kommande pass i mobilappen omfattar bara de projekt personen fortfarande är medlem i.
 
 ## Händelser i detalj
 
@@ -220,7 +220,7 @@ Också relevant:
 
 **Kalendern är inaktuell.** Läs först uppdateringstabellen: för Google är fördröjningen normal. För att få Google att titta igen, ta bort och lägg till kalendern igen eller lägg till `?nocache=1` till länken (okända parametrar ignoreras, så flödet är oförändrat men Google behandlar det som nytt). I klassiska Outlook, tryck F9 och kontrollera inställningen **Uppdateringsgräns**. I Apple Kalender, använd **Innehåll** > **Uppdatera kalendrar**. Om en ändring samma dag spelar roll, lita på OneUptimes påminnelser och omfördelningsnotiser snarare än på kalendern.
 
-**Kalendern är tom.** En tom kalender är avsiktlig. Det betyder att länken är inaktiverad, är en gammal länk inom sin 30 dagars respitperiod efter omgenerering, att projektet ligger under planen som omfattar jourscheman, eller att du inte längre finns på något schema i det projektet. Öppna länken i en webbläsare: kalenderbeskrivningen (`X-WR-CALDESC`) anger orsaken.
+**Kalendern är tom.** En tom kalender är avsiktlig. Det betyder att länken är inaktiverad, är en gammal länk inom sin 30 dagars respitperiod efter omgenerering, att projektet ligger under planen som omfattar jourscheman, eller att du inte längre finns på något schema i det projektet. Öppna länken i en webbläsare: kalenderbeskrivningen (`X-WR-CALDESC`) anger orsaken. Om du har lämnat projektet förblir länken tom: den visar pass bara så länge du är medlem.
 
 **404.** Länken är okänd, har tagits bort eller dess respitperiod har gått ut. Generera en ny och prenumerera på nytt.
 

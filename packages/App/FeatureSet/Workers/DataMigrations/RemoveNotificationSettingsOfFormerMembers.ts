@@ -1,7 +1,6 @@
 import DataMigrationBase from "./DataMigrationBase";
-import ProjectLeaveNotificationCleanup, {
-  FormerMemberCleanupResult,
-} from "Common/Server/Utils/TeamMember/ProjectLeaveNotificationCleanup";
+import ProjectLeaveNotificationCleanup from "Common/Server/Utils/TeamMember/ProjectLeaveNotificationCleanup";
+import { FormerMemberCleanupResult } from "Common/Server/Utils/TeamMember/ProjectLeaveRows";
 import logger from "Common/Server/Utils/Logger";
 
 /*

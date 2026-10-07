@@ -54,7 +54,7 @@ The client then acts as you in that project. There is no API key to create, copy
 
 What a connected client can do:
 
-- **It has your permissions, and never more.** Whatever your teams allow you to do in the project is what the client can do. If your role changes or you leave the project, that applies to the client's very next request.
+- **It has your permissions, and never more.** Whatever your teams allow you to do in the project is what the client can do. If your role changes or you leave the project, that applies to the client's very next request. Leaving the project also disconnects the client: its authorization is deleted, and you connect it again if you rejoin.
 - **Read only means read only.** A client authorized as read only can use the `get_`, `list_`, and `count_` tools. Tools that create, update, delete, acknowledge, or resolve are refused, by the MCP server and by the OneUptime API behind it. You can never give a client more access than it asked for.
 - **It is for one project.** To use a second project, connect the client again and choose that project.
 - **It works only through the MCP server.** The client's access token is accepted by the MCP endpoint and nowhere else. It cannot be used to call the OneUptime REST API directly.

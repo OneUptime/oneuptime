@@ -29,6 +29,12 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * teams), not an invitation. That is why this is its own table rather than an
  * inference from team membership.
  *
+ * The agreement is to be in the project, so it lasts while the person is: it
+ * goes when they leave (ProjectLeaveAccessCleanup), and one with no accepted
+ * membership beside it is not honoured (UserProjectSsoConsentService
+ * .hasConsent). Coming back through the project's SSO asks the mailbox
+ * again.
+ *
  * Internal and root-only: there is no CRUD API.
  */
 @TableAccessControl({

@@ -161,7 +161,7 @@ Impostazioni su entrambi:
 
 Metti il link di pianificazione in un calendario di team condiviso — Google, Outlook o Confluence — e un'unica iscrizione serve tutto il team. Ruotalo quando qualcuno che lo aveva se ne va, oppure attiva la rotazione automatica descritta sopra.
 
-Quando una persona lascia il suo ultimo team in un progetto, OneUptime la rimuove anche dai livelli di pianificazione e dalle regole di escalation di quel progetto, elimina le sostituzioni in corso e future del progetto che la nominano (come persona sostituita o come sostituta), disattiva il suo feed personale per il progetto ed elimina i suoi promemoria lì.
+Quando una persona lascia il suo ultimo team in un progetto, OneUptime la rimuove anche dai livelli di pianificazione e dalle regole di escalation di quel progetto, elimina le sostituzioni in corso e future del progetto che la nominano (come persona sostituita o come sostituta), disattiva il suo feed personale per il progetto ed elimina i suoi promemoria lì. Un link personale mostra i turni solo finché il suo proprietario è membro del progetto: viene verificato a ogni recupero del link, quindi chi ha lasciato il progetto riceve un calendario vuoto, e l'elenco dei prossimi turni nell'app mobile comprende solo i progetti di cui è ancora membro.
 
 ## Gli eventi nel dettaglio
 
@@ -220,7 +220,7 @@ Rilevante anche:
 
 **Il calendario non è aggiornato.** Leggi prima la tabella degli aggiornamenti: per Google il ritardo è normale. Per far ricontrollare Google, rimuovi e aggiungi di nuovo il calendario oppure aggiungi `?nocache=1` al link (i parametri sconosciuti vengono ignorati, il feed è identico ma Google lo tratta come nuovo). In Outlook classico premi F9 e controlla l'impostazione **Limite di aggiornamento**. In Calendario Apple usa **Vista** > **Aggiorna calendari**. Se conta una modifica dello stesso giorno, affidati ai promemoria e agli avvisi di riassegnazione di OneUptime anziché al calendario.
 
-**Il calendario è vuoto.** Un calendario vuoto è voluto. Significa che il link è disattivato, è un vecchio link nel suo periodo di tolleranza di 30 giorni dopo la rigenerazione, il progetto è al di sotto del piano che include le pianificazioni di reperibilità, oppure non sei più in alcuna pianificazione di quel progetto. Apri il link in un browser: la descrizione del calendario (`X-WR-CALDESC`) indica il motivo.
+**Il calendario è vuoto.** Un calendario vuoto è voluto. Significa che il link è disattivato, è un vecchio link nel suo periodo di tolleranza di 30 giorni dopo la rigenerazione, il progetto è al di sotto del piano che include le pianificazioni di reperibilità, oppure non sei più in alcuna pianificazione di quel progetto. Apri il link in un browser: la descrizione del calendario (`X-WR-CALDESC`) indica il motivo. Se hai lasciato il progetto, il link resta vuoto: mostra i turni solo finché sei membro.
 
 **404.** Il link è sconosciuto, è stato eliminato o il suo periodo di tolleranza è terminato. Generane uno nuovo e iscriviti di nuovo.
 

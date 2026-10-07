@@ -54,7 +54,7 @@ Der Client handelt danach in diesem Projekt in Ihrem Namen. Es muss kein API-Sch
 
 Was ein verbundener Client tun kann:
 
-- **Er hat Ihre Berechtigungen – und niemals mehr als diese.** Genau das, was Ihre Teams Ihnen im Projekt erlauben, kann auch der Client tun. Wenn sich Ihre Rolle ändert oder Sie das Projekt verlassen, gilt das schon für die nächste Anfrage des Clients.
+- **Er hat Ihre Berechtigungen – und niemals mehr als diese.** Genau das, was Ihre Teams Ihnen im Projekt erlauben, kann auch der Client tun. Wenn sich Ihre Rolle ändert oder Sie das Projekt verlassen, gilt das schon für die nächste Anfrage des Clients. Wenn Sie das Projekt verlassen, wird der Client außerdem getrennt: Seine Autorisierung wird gelöscht, und wenn Sie wieder beitreten, verbinden Sie ihn erneut.
 - **Nur lesen heißt nur lesen.** Ein Client, der nur zum Lesen autorisiert wurde, kann die `get_`-, `list_`- und `count_`-Tools verwenden. Tools, die etwas erstellen, aktualisieren, löschen, bestätigen oder lösen, werden abgelehnt – vom MCP-Server und von der OneUptime-API dahinter. Sie können einem Client niemals mehr Zugriff geben, als er angefordert hat.
 - **Er arbeitet in genau einem Projekt.** Um ein zweites Projekt zu nutzen, verbinden Sie den Client erneut und wählen Sie dieses Projekt.
 - **Er funktioniert nur über den MCP-Server.** Das Zugriffstoken des Clients wird vom MCP-Endpunkt akzeptiert und nirgendwo sonst. Es kann nicht verwendet werden, um die OneUptime-REST-API direkt aufzurufen.

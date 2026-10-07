@@ -115,6 +115,9 @@ describe("TeamMemberService removes Slack / Teams account links when a user leav
       )
       .mockResolvedValue(undefined);
     jest
+      .spyOn(TeamMemberService, "removeProjectAccessIfUserLeftProject")
+      .mockResolvedValue(null);
+    jest
       .spyOn(TeamMemberService, "cleanupOnCallAssignmentsIfUserLeftProject")
       .mockResolvedValue(null);
     jest

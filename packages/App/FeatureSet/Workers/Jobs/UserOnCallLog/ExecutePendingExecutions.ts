@@ -68,9 +68,10 @@ RunCron(
      * member is read once for the whole tick (ProjectMembership).
      *
      * If membership cannot be read, the tick runs every log as it did before
-     * this check rather than none of them: the leave cleanup has already
-     * removed the notification rules of people who left, and a page lost to
-     * a failed read is worse than one more read next minute.
+     * this check rather than none of them: a page lost to a failed read is
+     * worse than one more read next minute. That cannot reach somebody who
+     * is not a member: the read of the rules a log runs carries the
+     * membership condition itself.
      */
     let memberKeys: Set<string> | null = null;
 
@@ -314,7 +315,16 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
         await UserNotificationRuleService.findBy({
           query: {
             projectId: pendingNotificationLog.projectId!,
-            userId: pendingNotificationLog.userId!,
+            /*
+             * The person's rules, and only while they are a member of the
+             * project: the condition rides on this read, so a log run
+             * without the tick's membership check (it could not be read)
+             * still reaches nobody who is not a member (ProjectMembership).
+             */
+            userId: ProjectMembership.userIdWhileMember({
+              userId: pendingNotificationLog.userId!,
+              projectId: pendingNotificationLog.projectId!,
+            }),
             ruleType: ruleType,
             incidentSeverityId:
               incident?.incidentSeverityId ||

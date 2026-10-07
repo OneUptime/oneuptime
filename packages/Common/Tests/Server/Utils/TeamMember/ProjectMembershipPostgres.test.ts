@@ -7,13 +7,17 @@ import ProjectCallSMSConfigService from "../../../../Server/Services/ProjectCall
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import UserEmailService from "../../../../Server/Services/UserEmailService";
 import UserNotificationSettingService from "../../../../Server/Services/UserNotificationSettingService";
+import UserProjectSsoConsentService from "../../../../Server/Services/UserProjectSsoConsentService";
 import logger from "../../../../Server/Utils/Logger";
-import ProjectLeaveNotificationCleanup, {
+import ProjectLeaveAccessCleanup from "../../../../Server/Utils/TeamMember/ProjectLeaveAccessCleanup";
+import ProjectLeaveNotificationCleanup from "../../../../Server/Utils/TeamMember/ProjectLeaveNotificationCleanup";
+import {
   FormerMemberCleanupResult,
-  HistoryReference,
-  PersonalNotificationTable,
-} from "../../../../Server/Utils/TeamMember/ProjectLeaveNotificationCleanup";
-import ProjectMembership from "../../../../Server/Utils/TeamMember/ProjectMembership";
+  PersonalTable,
+} from "../../../../Server/Utils/TeamMember/ProjectLeaveRows";
+import ProjectMembership, {
+  ProjectMembershipStandings,
+} from "../../../../Server/Utils/TeamMember/ProjectMembership";
 import Dictionary from "../../../../Types/Dictionary";
 import NotificationSettingEventType from "../../../../Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "../../../../Types/ObjectID";
@@ -35,21 +39,27 @@ import { DataSource } from "typeorm";
  *     their own notification settings for that project - every table - and
  *     nothing of anybody else's, nor of their other projects; joining again
  *     starts clean,
- *   - the on-call history that points at the rules and methods removed stays
- *     (the foreign keys would delete it with them; the references are
- *     cleared first), and every foreign key into a personal table is either
- *     from another personal table or one of those history references,
- *   - the data migration's walk finds exactly the former members' leftovers
- *     (sent rollup mail is history and stays) and removes only those,
+ *   - the on-call history that points at the rules and methods removed stays:
+ *     those foreign keys set the reference to NULL when the row goes (ON
+ *     DELETE SET NULL), and every foreign key into a personal table is either
+ *     from another personal table or one of those,
+ *   - leaving also removes what let the person into the project on their
+ *     own - the MCP clients they connected (with every token issued to
+ *     them) and their consent to the project's single sign-on - and a
+ *     consent is not honoured for somebody who is not a member even while
+ *     its row is still there,
+ *   - the data migrations' walks find exactly the former members' leftovers
+ *     (sent rollup mail is history and stays) and remove only those,
  *   - deleting a user account or a project takes these rows with it
  *     (the foreign keys cascade).
  *
  * Opt in with RUN_POSTGRES_PROJECT_MEMBERSHIP_TESTS=true against a Postgres
  * migrated to the current head - the Postgres Schema Drift workflow's
  * database right after its drift check. The STRUCTURE of TeamMember, Team,
- * every personal notification table and the on-call history is cloned into a
- * unique schema (its search_path holds that schema first), with the foreign
- * keys between those tables rebuilt from the migrated definitions; the schema
+ * every personal notification and access table, the on-call history and the
+ * MCP client tokens is cloned into a unique schema (its search_path holds
+ * that schema first), with the foreign keys between those tables rebuilt from
+ * the migrated definitions; the schema
  * is dropped afterwards and every row is synthetic. Credentials from
  * DATABASE_USERNAME / DATABASE_PASSWORD, database from
  * PROJECT_MEMBERSHIP_TEST_DATABASE_NAME or DATABASE_NAME,
@@ -100,25 +110,57 @@ const ROLLUP_ITEM_TABLE: string = "UserNotificationEmailRollupItem";
 
 function personalTableNames(): Array<string> {
   return ProjectLeaveNotificationCleanup.getPersonalNotificationTables().map(
-    (table: PersonalNotificationTable): string => {
+    (table: PersonalTable): string => {
       return table.service.getModel().tableName!;
     },
   );
 }
 
-function historyTableNames(): Array<string> {
-  return Array.from(
-    new Set<string>(
-      ProjectLeaveNotificationCleanup.getHistoryReferences().map(
-        (reference: HistoryReference): string => {
-          return reference.history.getModel().tableName!;
-        },
-      ),
-    ),
+// What lets a person into the project on their own: removed when they leave.
+function accessTableNames(): Array<string> {
+  return ProjectLeaveAccessCleanup.getPersonalAccessTables().map(
+    (table: PersonalTable): string => {
+      return table.service.getModel().tableName!;
+    },
   );
 }
 
+// The on-call history: the rule and the method each page went through.
 const HISTORY_TABLE: string = "UserOnCallLogTimeline";
+
+// Codes and tokens issued to an MCP client under a person's grant.
+const CLIENT_TOKEN_TABLE: string = "McpOAuthToken";
+
+/*
+ * Joined by the service reads of the cloned tables (an MCP client's project
+ * and person, read before it is removed). Cloned empty: the reads must find
+ * them in the test schema, and nothing here reads what they hold.
+ */
+const JOINED_TABLES: Array<string> = ["Project", "User"];
+
+// Every table cloned into the test schema, besides TeamMember and Team.
+function clonedTableNames(): Array<string> {
+  return [
+    ...personalTableNames(),
+    HISTORY_TABLE,
+    ...accessTableNames(),
+    CLIENT_TOKEN_TABLE,
+  ];
+}
+
+// The page history kept, as the foreign keys from it are declared to keep it.
+const HISTORY_REFERENCES: Array<string> = [
+  "UserOnCallLogTimeline.userCallId -> UserCall",
+  "UserOnCallLogTimeline.userEmailId -> UserEmail",
+  "UserOnCallLogTimeline.userMicrosoftTeamsId -> UserMicrosoftTeams",
+  "UserOnCallLogTimeline.userNotificationRuleId -> UserNotificationRule",
+  "UserOnCallLogTimeline.userPushId -> UserPush",
+  "UserOnCallLogTimeline.userSlackId -> UserSlack",
+  "UserOnCallLogTimeline.userSmsId -> UserSMS",
+  "UserOnCallLogTimeline.userTelegramId -> UserTelegram",
+  "UserOnCallLogTimeline.userWebhookId -> UserWebhook",
+  "UserOnCallLogTimeline.userWhatsAppId -> UserWhatsApp",
+];
 
 describePostgres(
   "leaving a project removes its notification settings, against Postgres",
@@ -130,6 +172,8 @@ describePostgres(
     const membershipIds: Dictionary<string> = {};
     // The page history row of each seeded (project, person), by "project:person".
     const historyIds: Dictionary<string> = {};
+    // The token issued under each seeded (project, person)'s MCP client grant.
+    const clientTokenIds: Dictionary<string> = {};
 
     async function cloneTable(
       table: string,
@@ -233,6 +277,77 @@ describePostgres(
       }
 
       return ids;
+    }
+
+    /*
+     * What lets the person into the project on their own: an MCP client they
+     * connected, with a token issued to it, and their consent to the
+     * project's single sign-on.
+     */
+    async function insertAccessRows(data: {
+      projectId: ObjectID;
+      userId: ObjectID;
+    }): Promise<void> {
+      const grantId: string = ObjectID.generate().toString();
+      const tokenId: string = ObjectID.generate().toString();
+
+      await insertRow("McpOAuthGrant", {
+        _id: grantId,
+        projectId: data.projectId.toString(),
+        userId: data.userId.toString(),
+      });
+      await insertRow(CLIENT_TOKEN_TABLE, {
+        _id: tokenId,
+        mcpOAuthGrantId: grantId,
+      });
+      await insertRow("UserProjectSsoConsent", {
+        _id: ObjectID.generate().toString(),
+        projectId: data.projectId.toString(),
+        userId: data.userId.toString(),
+      });
+
+      clientTokenIds[`${data.projectId.toString()}:${data.userId.toString()}`] =
+        tokenId;
+    }
+
+    // Access rows of (project, person) per table, and the token of their client.
+    async function accessRowCounts(data: {
+      projectId: ObjectID;
+      userId: ObjectID;
+    }): Promise<Dictionary<number>> {
+      const counts: Dictionary<number> = {};
+
+      for (const table of accessTableNames()) {
+        const rows: Array<{ count: string }> = await database.query(
+          `SELECT COUNT(*)::text AS count FROM "${schema}"."${table}" WHERE "projectId" = $1 AND "userId" = $2`,
+          [data.projectId.toString(), data.userId.toString()],
+        );
+
+        counts[table] = Number(rows[0]!.count);
+      }
+
+      const tokens: Array<{ count: string }> = await database.query(
+        `SELECT COUNT(*)::text AS count FROM "${schema}"."${CLIENT_TOKEN_TABLE}" WHERE "_id" = $1`,
+        [
+          clientTokenIds[
+            `${data.projectId.toString()}:${data.userId.toString()}`
+          ] || null,
+        ],
+      );
+
+      counts[CLIENT_TOKEN_TABLE] = Number(tokens[0]!.count);
+
+      return counts;
+    }
+
+    function everyAccessTable(count: number): Dictionary<number> {
+      const counts: Dictionary<number> = {};
+
+      for (const table of [...accessTableNames(), CLIENT_TOKEN_TABLE]) {
+        counts[table] = count;
+      }
+
+      return counts;
     }
 
     /*
@@ -426,19 +541,17 @@ describePostgres(
       await cloneTable("TeamMember", { keepNotNull: true });
       await cloneTable("Team", { keepNotNull: false });
 
-      for (const table of [...personalTableNames(), ...historyTableNames()]) {
+      for (const table of [...clonedTableNames(), ...JOINED_TABLES]) {
         await cloneTable(table, { keepNotNull: false });
       }
 
       /*
-       * The foreign keys between the cloned tables, as migrated: the history's
-       * references to rules and methods, and rules' references to methods,
-       * with their ON DELETE CASCADE - the behaviour keepHistory exists for.
+       * The foreign keys between the cloned tables, as migrated, with their
+       * ON DELETE behaviour: the history's references to rules and methods
+       * (SET NULL), rules' references to methods and the tokens under an MCP
+       * client's grant (CASCADE).
        */
-      const cloned: Array<string> = [
-        ...personalTableNames(),
-        ...historyTableNames(),
-      ];
+      const cloned: Array<string> = clonedTableNames();
       const foreignKeys: Array<{
         owner: string;
         name: string;
@@ -453,7 +566,7 @@ describePostgres(
               AND namespace.nspname = 'public'
               AND owner.relname = ANY($1)
               AND target.relname = ANY($2)`,
-        [cloned, personalTableNames()],
+        [cloned, [...personalTableNames(), ...accessTableNames()]],
       );
 
       expect(foreignKeys.length).toBeGreaterThan(0);
@@ -528,12 +641,7 @@ describePostgres(
         .mockResolvedValue(null as never);
 
       await database.query(
-        `TRUNCATE ${[
-          "TeamMember",
-          "Team",
-          ...personalTableNames(),
-          ...historyTableNames(),
-        ]
+        `TRUNCATE ${["TeamMember", "Team", ...clonedTableNames()]
           .map((table: string): string => {
             return `"${schema}"."${table}"`;
           })
@@ -630,6 +738,8 @@ describePostgres(
 
         historyIds[`${projectId.toString()}:${userId.toString()}`] =
           await insertPageHistory({ projectId, userId, personalRowIds: ids });
+
+        await insertAccessRows({ projectId, userId });
       }
 
       await insertSentRollupItem({ projectId: PROJECT_A, userId: LEAVER });
@@ -683,20 +793,90 @@ describePostgres(
           deleted: true,
         });
 
-        const invited: Set<string> = await ProjectMembership.getInvitedUserIds({
-          projectId: PROJECT_A,
-          userIds: [MEMBER, LEAVER, PENDING, SOFT_DELETED, SENT_ONLY],
-        });
+        const standings: ProjectMembershipStandings =
+          await ProjectMembership.getStandings({
+            projectId: PROJECT_A,
+            userIds: [MEMBER, LEAVER, PENDING, SOFT_DELETED, SENT_ONLY],
+          });
 
-        expect(Array.from(invited)).toEqual([PENDING.toString().toLowerCase()]);
+        expect(Array.from(standings.invitedUserIds)).toEqual([
+          PENDING.toString().toLowerCase(),
+        ]);
+        expect(Array.from(standings.memberUserIds)).toEqual([
+          MEMBER.toString().toLowerCase(),
+        ]);
 
-        // Invited to PROJECT_A only.
-        await expect(
-          ProjectMembership.getInvitedUserIds({
+        // Invited to PROJECT_A only; LEAVER is a member of PROJECT_B.
+        const inProjectB: ProjectMembershipStandings =
+          await ProjectMembership.getStandings({
             projectId: PROJECT_B,
             userIds: [PENDING, LEAVER],
-          }),
-        ).resolves.toEqual(new Set<string>());
+          });
+
+        expect(inProjectB.invitedUserIds).toEqual(new Set<string>());
+        expect(Array.from(inProjectB.memberUserIds)).toEqual([
+          LEAVER.toString().toLowerCase(),
+        ]);
+      });
+
+      test("one person's membership, the projects they are in, and members told from invitees, read the same way", async () => {
+        const expectations: Array<[ObjectID, ObjectID, boolean]> = [
+          [PROJECT_A, MEMBER, true],
+          [PROJECT_A, TWO_TEAMS, true],
+          [PROJECT_A, LEAVER, false],
+          [PROJECT_B, LEAVER, true],
+          [PROJECT_A, PENDING, false],
+          [PROJECT_A, SOFT_DELETED, false],
+          [PROJECT_A, SENT_ONLY, false],
+        ];
+
+        for (const [projectId, userId, isMember] of expectations) {
+          expect({
+            pair: ProjectMembership.getKey(projectId, userId),
+            isMember: await ProjectMembership.isMember({ projectId, userId }),
+          }).toEqual({
+            pair: ProjectMembership.getKey(projectId, userId),
+            isMember,
+          });
+        }
+
+        const projectsOf: (userId: ObjectID) => Promise<Array<string>> = async (
+          userId: ObjectID,
+        ): Promise<Array<string>> => {
+          return (await ProjectMembership.getMemberProjectIds({ userId }))
+            .map((projectId: ObjectID): string => {
+              return projectId.toString().toLowerCase();
+            })
+            .sort();
+        };
+
+        await expect(projectsOf(LEAVING)).resolves.toEqual(
+          [PROJECT_A.toString(), PROJECT_B.toString()].sort(),
+        );
+        // One project, however many of its teams.
+        await expect(projectsOf(TWO_TEAMS)).resolves.toEqual([
+          PROJECT_A.toString(),
+        ]);
+        // Left PROJECT_A; still in PROJECT_B.
+        await expect(projectsOf(LEAVER)).resolves.toEqual([
+          PROJECT_B.toString(),
+        ]);
+        // An invitation, or a removed membership, is no project of theirs.
+        await expect(projectsOf(PENDING)).resolves.toEqual([]);
+        await expect(projectsOf(SOFT_DELETED)).resolves.toEqual([]);
+
+        const standings: ProjectMembershipStandings =
+          await ProjectMembership.getStandings({
+            projectId: PROJECT_A,
+            userIds: [MEMBER, TWO_TEAMS, LEAVER, PENDING, SOFT_DELETED],
+          });
+
+        expect(Array.from(standings.memberUserIds).sort()).toEqual(
+          [MEMBER.toString(), TWO_TEAMS.toString()].sort(),
+        );
+        expect(Array.from(standings.invitedUserIds)).toEqual([
+          PENDING.toString(),
+        ]);
       });
 
       test("the condition on the setting read agrees with the batched read, person by person", async () => {
@@ -811,42 +991,47 @@ describePostgres(
         await expectHistoryStillPointsAtTheirRows(PROJECT_A, TWO_TEAMS);
       });
 
-      test("if the on-call history cannot be kept, the rules and methods it points at stay and the rest still goes", async () => {
-        jest.spyOn(logger, "error").mockImplementation(() => {
-          return undefined as never;
-        });
-        jest
-          .spyOn(ProjectLeaveNotificationCleanup, "keepHistory")
-          .mockRejectedValue(new Error("history could not be updated"));
-
+      test("leaving removes the MCP clients they connected to the project, every token issued to them, and their SSO consent", async () => {
         await TeamMemberService.deleteOneById({
           id: new ObjectID(membershipIds["leaving-a1"]!),
           props: { isRoot: true },
         });
 
-        const pointedAt: Set<string> = new Set<string>(
-          ProjectLeaveNotificationCleanup.getHistoryReferences().map(
-            (reference: HistoryReference): string => {
-              return reference.references.getModel().tableName!;
-            },
-          ),
+        await expect(
+          accessRowCounts({ projectId: PROJECT_A, userId: LEAVING }),
+        ).resolves.toEqual(everyAccessTable(0));
+
+        // Their other project, and everybody else, untouched.
+        await expect(
+          accessRowCounts({ projectId: PROJECT_B, userId: LEAVING }),
+        ).resolves.toEqual(everyAccessTable(1));
+        await expect(
+          accessRowCounts({ projectId: PROJECT_A, userId: MEMBER }),
+        ).resolves.toEqual(everyAccessTable(1));
+        await expect(
+          accessRowCounts({ projectId: PROJECT_A, userId: TWO_TEAMS }),
+        ).resolves.toEqual(everyAccessTable(1));
+      });
+
+      test("the on-call history keeps every page when the rule or method it went through is removed, by anybody", async () => {
+        // A member removing their own rule and email address, in settings.
+        await database.query(
+          `DELETE FROM "${schema}"."UserNotificationRule" WHERE "projectId" = $1 AND "userId" = $2`,
+          [PROJECT_A.toString(), MEMBER.toString()],
+        );
+        await database.query(
+          `DELETE FROM "${schema}"."UserEmail" WHERE "projectId" = $1 AND "userId" = $2`,
+          [PROJECT_A.toString(), MEMBER.toString()],
         );
 
-        const expected: Dictionary<number> = {};
+        // The page is still on the history, pointing at nothing.
+        await expect(pageHistoryOf(PROJECT_A, MEMBER)).resolves.toEqual(
+          HISTORY_KEPT_WITHOUT_REFERENCES,
+        );
 
-        for (const table of personalTableNames()) {
-          expected[table] = pointedAt.has(table) ? 1 : 0;
-        }
-
-        await expect(
-          personalRowCounts({ projectId: PROJECT_A, userId: LEAVING }),
-        ).resolves.toEqual(expected);
+        // Nobody else's history moved.
+        await expectHistoryStillPointsAtTheirRows(PROJECT_A, TWO_TEAMS);
         await expectHistoryStillPointsAtTheirRows(PROJECT_A, LEAVING);
-
-        // And still nothing of PROJECT_A reaches them.
-        await expect(
-          emailLookupsWhenNotified({ projectId: PROJECT_A, userId: LEAVING }),
-        ).resolves.toBe(0);
       });
 
       test("leaving one team while still in another of the project's teams removes nothing", async () => {
@@ -885,6 +1070,12 @@ describePostgres(
         await expect(
           personalRowCounts({ projectId: PROJECT_B, userId: LEAVING }),
         ).resolves.toEqual(everyTable(1));
+        await expect(
+          accessRowCounts({ projectId: PROJECT_A, userId: LEAVING }),
+        ).resolves.toEqual(everyAccessTable(0));
+        await expect(
+          accessRowCounts({ projectId: PROJECT_B, userId: LEAVING }),
+        ).resolves.toEqual(everyAccessTable(1));
       });
 
       test("joining again starts clean: nothing from before comes back", async () => {
@@ -912,6 +1103,63 @@ describePostgres(
         await expect(pageHistoryOf(PROJECT_A, LEAVING)).resolves.toEqual(
           HISTORY_KEPT_WITHOUT_REFERENCES,
         );
+
+        // No client of theirs is connected; the project's SSO asks again.
+        await expect(
+          accessRowCounts({ projectId: PROJECT_A, userId: LEAVING }),
+        ).resolves.toEqual(everyAccessTable(0));
+        await expect(
+          UserProjectSsoConsentService.hasConsent({
+            projectId: PROJECT_A,
+            userId: LEAVING,
+          }),
+        ).resolves.toBe(false);
+      });
+    });
+
+    describe("single sign-on consent", () => {
+      test("a consent counts only while its person is a member of the project", async () => {
+        // Every pair below HAS a consent row.
+        const expectations: Array<[ObjectID, ObjectID, boolean]> = [
+          [PROJECT_A, MEMBER, true],
+          [PROJECT_A, TWO_TEAMS, true],
+          [PROJECT_B, LEAVER, true],
+          [PROJECT_A, LEAVER, false],
+          [PROJECT_A, PENDING, false],
+          [PROJECT_A, SOFT_DELETED, false],
+        ];
+
+        for (const [projectId, userId, hasConsent] of expectations) {
+          expect({
+            pair: ProjectMembership.getKey(projectId, userId),
+            hasConsent: await UserProjectSsoConsentService.hasConsent({
+              projectId,
+              userId,
+            }),
+          }).toEqual({
+            pair: ProjectMembership.getKey(projectId, userId),
+            hasConsent,
+          });
+        }
+      });
+
+      test("confirming again while an old row is still there neither fails nor adds a row", async () => {
+        await UserProjectSsoConsentService.recordConsent({
+          projectId: PROJECT_A,
+          userId: LEAVER,
+        });
+
+        await expect(
+          accessRowCounts({ projectId: PROJECT_A, userId: LEAVER }),
+        ).resolves.toEqual(everyAccessTable(1));
+
+        // Still not a member: still not honoured.
+        await expect(
+          UserProjectSsoConsentService.hasConsent({
+            projectId: PROJECT_A,
+            userId: LEAVER,
+          }),
+        ).resolves.toBe(false);
       });
     });
 
@@ -999,14 +1247,79 @@ describePostgres(
       });
     });
 
+    describe("former members' access (the data migration's walk)", () => {
+      test("lists exactly the pairs holding access without a membership, in key order, in one statement", async () => {
+        const statements: jest.SpyInstance = jest.spyOn(database, "query");
+
+        const all: Array<{ projectId: string; userId: string }> =
+          await ProjectLeaveAccessCleanup.getFormerMemberPairs();
+
+        expect(statements).toHaveBeenCalledTimes(1);
+
+        expect(
+          all.map((row: { projectId: string; userId: string }) => {
+            return { projectId: row.projectId, userId: row.userId };
+          }),
+        ).toEqual([
+          { projectId: PROJECT_A.toString(), userId: LEAVER.toString() },
+          { projectId: PROJECT_A.toString(), userId: PENDING.toString() },
+          { projectId: PROJECT_A.toString(), userId: SOFT_DELETED.toString() },
+        ]);
+      });
+
+      test("removes only former members' clients, tokens and consents, and a second run finds nothing", async () => {
+        const result: FormerMemberCleanupResult =
+          await ProjectLeaveAccessCleanup.removeProjectAccessOfFormerMembers();
+
+        expect(result).toEqual({
+          cleanedPairCount: 3,
+          removedRowCount: 3 * accessTableNames().length,
+          failedPairCount: 0,
+        });
+
+        for (const userId of [LEAVER, PENDING, SOFT_DELETED]) {
+          await expect(
+            accessRowCounts({ projectId: PROJECT_A, userId }),
+          ).resolves.toEqual(everyAccessTable(0));
+        }
+
+        // Members, and a former member's other project, untouched.
+        for (const [projectId, userId] of [
+          [PROJECT_A, MEMBER],
+          [PROJECT_A, TWO_TEAMS],
+          [PROJECT_B, LEAVER],
+          [PROJECT_A, LEAVING],
+          [PROJECT_B, LEAVING],
+        ] as Array<[ObjectID, ObjectID]>) {
+          await expect(accessRowCounts({ projectId, userId })).resolves.toEqual(
+            everyAccessTable(1),
+          );
+        }
+
+        // Notification settings are the other walk's to remove.
+        await expect(
+          personalRowCounts({ projectId: PROJECT_A, userId: LEAVER }),
+        ).resolves.toEqual({ ...everyTable(1), [ROLLUP_ITEM_TABLE]: 2 });
+
+        await expect(
+          ProjectLeaveAccessCleanup.removeProjectAccessOfFormerMembers(),
+        ).resolves.toEqual({
+          cleanedPairCount: 0,
+          removedRowCount: 0,
+          failedPairCount: 0,
+        });
+      });
+    });
+
     describe("history pointing at personal settings", () => {
-      test("every foreign key into a personal table is from another personal table or a history reference the cleanup clears", async () => {
+      test("every foreign key into a personal table is from another personal table, or the history's and sets NULL", async () => {
         const rows: Array<{
           owner: string;
           column_name: string;
           target: string;
+          on_delete: string;
         }> = await database.query(
-          `SELECT owner.relname AS owner, attribute.attname AS column_name, target.relname AS target
+          `SELECT owner.relname AS owner, attribute.attname AS column_name, target.relname AS target, constraint_row.confdeltype AS on_delete
              FROM pg_constraint constraint_row
              JOIN pg_class owner ON owner.oid = constraint_row.conrelid
              JOIN pg_class target ON target.oid = constraint_row.confrelid
@@ -1020,25 +1333,41 @@ describePostgres(
 
         const personal: Set<string> = new Set<string>(personalTableNames());
 
-        const fromOutside: Array<string> = rows
+        const fromOutside: Array<{ reference: string; onDelete: string }> = rows
           .filter((row: { owner: string }) => {
             return !personal.has(row.owner);
           })
           .map(
-            (row: { owner: string; column_name: string; target: string }) => {
-              return `${row.owner}.${row.column_name} -> ${row.target}`;
+            (row: {
+              owner: string;
+              column_name: string;
+              target: string;
+              on_delete: string;
+            }) => {
+              return {
+                reference: `${row.owner}.${row.column_name} -> ${row.target}`,
+                onDelete: row.on_delete,
+              };
             },
           )
-          .sort();
+          .sort(
+            (
+              left: { reference: string },
+              right: { reference: string },
+            ): number => {
+              return left.reference.localeCompare(right.reference);
+            },
+          );
 
+        // Each one clears itself when the row it points at goes ('n': SET NULL).
         expect(fromOutside).toEqual(
-          ProjectLeaveNotificationCleanup.getHistoryReferences()
-            .map((reference: HistoryReference): string => {
-              return `${reference.history.getModel().tableName}.${
-                reference.column
-              } -> ${reference.references.getModel().tableName}`;
+          [...HISTORY_REFERENCES]
+            .sort((left: string, right: string): number => {
+              return left.localeCompare(right);
             })
-            .sort(),
+            .map((reference: string) => {
+              return { reference, onDelete: "n" };
+            }),
         );
       });
     });

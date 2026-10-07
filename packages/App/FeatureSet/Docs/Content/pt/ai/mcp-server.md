@@ -54,7 +54,7 @@ A partir daí, o cliente age em seu nome nesse projeto. Não há chave de API pa
 
 O que um cliente conectado pode fazer:
 
-- **Ele tem as suas permissões, e nunca mais do que isso.** Tudo o que as suas equipes permitem que você faça no projeto é o que o cliente pode fazer. Se a sua função mudar ou você sair do projeto, isso já vale para a próxima requisição do cliente.
+- **Ele tem as suas permissões, e nunca mais do que isso.** Tudo o que as suas equipes permitem que você faça no projeto é o que o cliente pode fazer. Se a sua função mudar ou você sair do projeto, isso já vale para a próxima requisição do cliente. Sair do projeto também desconecta o cliente: a autorização dele é excluída, e você o conecta de novo se voltar ao projeto.
 - **Somente leitura significa somente leitura.** Um cliente autorizado como somente leitura pode usar as ferramentas `get_`, `list_` e `count_`. Ferramentas que criam, atualizam, excluem, reconhecem ou resolvem são recusadas, tanto pelo servidor MCP quanto pela API do OneUptime por trás dele. Você nunca pode dar a um cliente mais acesso do que ele solicitou.
 - **Ele vale para um único projeto.** Para usar um segundo projeto, conecte o cliente novamente e escolha esse projeto.
 - **Ele funciona apenas por meio do servidor MCP.** O token de acesso do cliente é aceito pelo endpoint MCP e em nenhum outro lugar. Ele não pode ser usado para chamar diretamente a API REST do OneUptime.

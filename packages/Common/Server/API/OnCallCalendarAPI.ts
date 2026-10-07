@@ -29,6 +29,7 @@ import OnCallCalendarFeedRenderer, {
   FeedRenderOutcome,
   FeedRenderRequest,
   FeedRenderStatus,
+  NOT_A_PROJECT_MEMBER_REASON,
   TOKEN_ROTATED_REASON,
   UserShiftsResult,
 } from "../Utils/OnCall/OnCallCalendarFeedRenderer";
@@ -36,6 +37,7 @@ import OnCallCalendarFeedUrls, {
   FeedUrls,
 } from "../Utils/OnCall/OnCallCalendarFeedUrls";
 import Response from "../Utils/Response";
+import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
 import CommonAPI from "./CommonAPI";
 import OnCallDutyPolicySchedule from "../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import OnCallDutyPolicyScheduleCalendarFeed from "../../Models/DatabaseModels/OnCallDutyPolicyScheduleCalendarFeed";
@@ -80,7 +82,8 @@ import { OnCallCalendarFeedKind } from "../../Types/OnCallDutyPolicy/OnCallCalen
  * ONE RESPONSE RULE, applied everywhere:
  *   unknown / malformed / expired token          -> 404, generic body
  *   disabled, rotated-out-in-grace, below plan,
- *   no eligible schedule                          -> 200, EMPTY VCALENDAR
+ *   no eligible schedule, a personal feed whose
+ *   owner is no longer a member of its project   -> 200, EMPTY VCALENDAR
  *   kill switch, or render cap with nothing cached -> 503 + Retry-After
  * The empty-calendar cases are 200 on purpose: a client that gets 404 keeps
  * showing the last copy it downloaded (or drops the subscription with an
@@ -1233,10 +1236,22 @@ async function serveFeed(data: {
         projectName?: string | undefined;
       }
     | undefined;
+  /*
+   * Why this feed may show nothing at all, decided by the route before
+   * anything is rendered or read from a cache: an empty calendar saying so,
+   * whatever the feed's own state. Not a fetch worth bookkeeping.
+   */
+  refusalReason?: string | undefined;
 }): Promise<void> {
   let outcome: FeedRenderOutcome;
 
-  if (data.lookup.viaPreviousToken) {
+  if (data.refusalReason) {
+    outcome = OnCallCalendarFeedRenderer.buildEmptyOutcome({
+      kind: data.kind,
+      reason: data.refusalReason,
+      now: data.now,
+    });
+  } else if (data.lookup.viaPreviousToken) {
     outcome = OnCallCalendarFeedRenderer.buildEmptyOutcome({
       kind: data.kind,
       reason: TOKEN_ROTATED_REASON,
@@ -1282,7 +1297,11 @@ async function serveFeed(data: {
    * Unavailable outcome is skipped, and that one already returned above
    * without sending a body.
    */
-  if (!data.lookup.viaPreviousToken && data.lookup.feed.isEnabled !== false) {
+  if (
+    !data.refusalReason &&
+    !data.lookup.viaPreviousToken &&
+    data.lookup.feed.isEnabled !== false
+  ) {
     recordFetch({
       kind: data.kind,
       feed: data.lookup.feed,
@@ -1331,12 +1350,27 @@ router.get(
         return sendNotFound(req, res);
       }
 
+      /*
+       * A personal feed shows its owner's shifts only while they are a
+       * member of the project, read from the database on every fetch. The
+       * leave cleanup turns a leaver's feed off as well, but this does not
+       * depend on it: somebody who has left gets an empty calendar - which
+       * makes a subscribed calendar clear its copy - before anything is
+       * rendered or read from a cache, so no body cached while they were a
+       * member can reach them. A failed read is an error, never a pass.
+       */
+      const isOwnerAMember: boolean = await ProjectMembership.isMember({
+        projectId: lookup.feed.projectId,
+        userId: lookup.feed.userId,
+      });
+
       return await serveFeed({
         kind: OnCallCalendarFeedKind.Personal,
         req,
         res,
         lookup,
         now,
+        refusalReason: isOwnerAMember ? undefined : NOT_A_PROJECT_MEMBER_REASON,
         request: {
           kind: OnCallCalendarFeedKind.Personal,
           feedId: lookup.feed.id,
@@ -2111,7 +2145,7 @@ router.post(
 /*
  * The caller's own upcoming shifts as JSON. Scoped to the tenant project
  * when a `tenantid` header is present (the dashboard), to every project the
- * caller is rostered in otherwise (the mobile app). Same resolver and
+ * caller is a member of otherwise (the mobile app). Same resolver and
  * schedule-level cache as the feeds; the per-process render cap applies, and
  * a capped request is a 503 the mobile app answers by falling back to its
  * roster-derived list.
@@ -2131,14 +2165,34 @@ router.get(
 
       const userId: ObjectID = requireUserId(props);
 
-      let projectIds: Array<ObjectID> | undefined = undefined;
+      let projectIds: Array<ObjectID> = [];
 
       if (props.tenantId) {
         projectIds = [CommonAPI.assertAuthenticatedProjectMember(props)];
+      } else {
+        /*
+         * Every project the caller is a member of now - never one they have
+         * left, even while a layer or an override of it still names them.
+         */
+        projectIds = await ProjectMembership.getMemberProjectIds({ userId });
       }
 
       const now: Date = OneUptimeDate.getCurrentDate();
       const window: { from: Date; to: Date } = readMyShiftsWindow(req, now);
+
+      if (projectIds.length === 0) {
+        const nothing: MyShiftsResponse = {
+          shifts: [],
+          truncated: false,
+          generatedAt: now.toISOString(),
+        };
+
+        return Response.sendJsonObjectResponse(
+          req,
+          res,
+          nothing as unknown as JSONObject,
+        );
+      }
 
       /*
        * Session renders leave slots free for the public feeds. /my-shifts is

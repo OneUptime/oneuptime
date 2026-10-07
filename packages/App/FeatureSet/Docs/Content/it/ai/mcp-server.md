@@ -54,7 +54,7 @@ Da quel momento il client agisce a tuo nome in quel progetto. Non c'è alcuna ch
 
 Cosa può fare un client collegato:
 
-- **Ha le tue autorizzazioni, e mai di più.** Ciò che i tuoi team ti consentono di fare nel progetto è ciò che può fare il client. Se il tuo ruolo cambia o lasci il progetto, questo vale già dalla richiesta successiva del client.
+- **Ha le tue autorizzazioni, e mai di più.** Ciò che i tuoi team ti consentono di fare nel progetto è ciò che può fare il client. Se il tuo ruolo cambia o lasci il progetto, questo vale già dalla richiesta successiva del client. Lasciare il progetto scollega anche il client: la sua autorizzazione viene eliminata, e lo ricolleghi se rientri nel progetto.
 - **Sola lettura significa sola lettura.** Un client autorizzato in sola lettura può usare gli strumenti `get_`, `list_` e `count_`. Gli strumenti che creano, aggiornano, eliminano, prendono in carico o risolvono vengono rifiutati, dal server MCP e dall'API di OneUptime che gli sta dietro. Non puoi mai dare a un client più accesso di quello che ha chiesto.
 - **Vale per un solo progetto.** Per usare un secondo progetto, collega di nuovo il client e scegli quel progetto.
 - **Funziona solo attraverso il server MCP.** L'access token del client è accettato dall'endpoint MCP e da nessun'altra parte. Non può essere usato per chiamare direttamente l'API REST di OneUptime.

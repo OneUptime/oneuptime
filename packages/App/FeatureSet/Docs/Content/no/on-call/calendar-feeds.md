@@ -161,7 +161,7 @@ Innstillinger på begge:
 
 Legg tidsplanlenken i en delt teamkalender — Google, Outlook eller Confluence — så tjener ett abonnement hele teamet. Roter den når noen som hadde den slutter, eller slå på den automatiske rotasjonen over.
 
-Når en person forlater sitt siste team i et prosjekt, fjerner OneUptime også personen fra prosjektets tidsplanlag og eskaleringsregler, sletter prosjektets pågående og framtidige overstyringer som nevner personen (enten som den som blir dekket, eller som avløser), deaktiverer personens personlige feed for prosjektet og sletter personens påminnelser der.
+Når en person forlater sitt siste team i et prosjekt, fjerner OneUptime også personen fra prosjektets tidsplanlag og eskaleringsregler, sletter prosjektets pågående og framtidige overstyringer som nevner personen (enten som den som blir dekket, eller som avløser), deaktiverer personens personlige feed for prosjektet og sletter personens påminnelser der. En personlig lenke viser vakter bare så lenge eieren er medlem av prosjektet: det kontrolleres hver gang lenken hentes, så den som har gått, får en tom kalender, og listen over kommende vakter i mobilappen omfatter bare prosjektene personen fortsatt er medlem av.
 
 ## Hendelser i detalj
 
@@ -220,7 +220,7 @@ Også relevant:
 
 **Kalenderen er utdatert.** Les først oppdateringstabellen: for Google er forsinkelsen normal. For å få Google til å se etter igjen, fjern og legg til kalenderen på nytt eller legg til `?nocache=1` på lenken (ukjente parametere ignoreres, så feeden er uendret, men Google behandler den som ny). I klassisk Outlook, trykk F9 og sjekk innstillingen **Oppdateringsgrense**. I Apple Kalender, bruk **Vis** > **Oppdater kalendere**. Hvis en endring samme dag betyr noe, stol på OneUptimes påminnelser og omfordelingsvarsler i stedet for på kalenderen.
 
-**Kalenderen er tom.** En tom kalender er tilsiktet. Det betyr at lenken er deaktivert, er en gammel lenke innenfor sin 30 dagers karensperiode etter ny generering, at prosjektet ligger under planen som omfatter vakttidsplaner, eller at du ikke lenger er på noen tidsplan i det prosjektet. Åpne lenken i en nettleser: kalenderbeskrivelsen (`X-WR-CALDESC`) oppgir årsaken.
+**Kalenderen er tom.** En tom kalender er tilsiktet. Det betyr at lenken er deaktivert, er en gammel lenke innenfor sin 30 dagers karensperiode etter ny generering, at prosjektet ligger under planen som omfatter vakttidsplaner, eller at du ikke lenger er på noen tidsplan i det prosjektet. Åpne lenken i en nettleser: kalenderbeskrivelsen (`X-WR-CALDESC`) oppgir årsaken. Hvis du har forlatt prosjektet, forblir lenken tom: den viser vakter bare så lenge du er medlem.
 
 **404.** Lenken er ukjent, er slettet, eller karensperioden er over. Generer en ny og abonner på nytt.
 

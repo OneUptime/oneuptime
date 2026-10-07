@@ -286,6 +286,7 @@ import OnCallCalendarFeedRenderer, {
   FEED_DISABLED_REASON,
   FeedRenderOutcome,
   FeedRenderStatus,
+  NOT_A_PROJECT_MEMBER_REASON,
   NO_SCHEDULES_REASON,
   PLAN_REASON,
   RENDER_CAP_RETRY_AFTER_SECONDS,
@@ -296,6 +297,7 @@ import OnCallCalendarFeedUrls, {
   PROTOCOL_WARNING,
 } from "../../../Server/Utils/OnCall/OnCallCalendarFeedUrls";
 import Response from "../../../Server/Utils/Response";
+import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import OnCallDutyPolicyScheduleCalendarFeed from "../../../Models/DatabaseModels/OnCallDutyPolicyScheduleCalendarFeed";
 import ProjectOnCallCalendarFeed from "../../../Models/DatabaseModels/ProjectOnCallCalendarFeed";
@@ -778,6 +780,9 @@ let scheduleModelFindOneBy: jest.SpyInstance;
 let semaphoreLock: jest.SpyInstance;
 let semaphoreRelease: jest.SpyInstance;
 
+let membershipSpy: jest.SpyInstance;
+let memberProjectsSpy: jest.SpyInstance;
+
 let projectId: ObjectID;
 let userId: ObjectID;
 
@@ -1017,6 +1022,20 @@ beforeEach(() => {
   semaphoreRelease = jest
     .spyOn(Semaphore, "release")
     .mockResolvedValue(undefined as never);
+
+  /*
+   * A personal feed's owner, and a session caller, are members of their
+   * project unless a test says otherwise; the caller's projects are the
+   * tenant project.
+   */
+  membershipSpy = jest
+    .spyOn(ProjectMembership, "isMember")
+    .mockResolvedValue(true as never);
+  memberProjectsSpy = jest
+    .spyOn(ProjectMembership, "getMemberProjectIds")
+    .mockImplementation((async (): Promise<Array<ObjectID>> => {
+      return [projectId];
+    }) as never);
 });
 
 afterEach(() => {
@@ -2128,6 +2147,111 @@ describe("GET /on-call-calendar/user/:token/shifts.ics", () => {
     );
     expect(renderSpy).not.toHaveBeenCalled();
     expect(personalUpdateOneById).not.toHaveBeenCalled();
+  });
+
+  describe("an owner who is no longer a member of the project", () => {
+    beforeEach(() => {
+      membershipSpy.mockResolvedValue(false as never);
+    });
+
+    test("gets an EMPTY calendar (200) that says why, and is not counted", async () => {
+      const result: HttpResult = await request(
+        feedPath(OnCallCalendarFeedKind.Personal, token),
+      );
+
+      expect(result.status).toBe(200);
+      expect(header(result, "content-type")).toBe(
+        "text/calendar; charset=utf-8",
+      );
+      expect(result.body).toContain("BEGIN:VCALENDAR");
+      expect(result.body).not.toContain("BEGIN:VEVENT");
+      expect(result.body.replace(/\r\n /g, "")).toContain(
+        NOT_A_PROJECT_MEMBER_REASON.slice(0, 40),
+      );
+      expect(personalUpdateOneById).not.toHaveBeenCalled();
+    });
+
+    test("nothing is rendered or read from a cache for them", async () => {
+      await request(feedPath(OnCallCalendarFeedKind.Personal, token));
+
+      // The renderer is what reads the cache.
+      expect(renderSpy).not.toHaveBeenCalled();
+      expect(tryAcquireRenderSlot).not.toHaveBeenCalled();
+    });
+
+    test("membership is read for the feed's own owner and project, on every fetch", async () => {
+      await request(feedPath(OnCallCalendarFeedKind.Personal, token));
+      await request(feedPath(OnCallCalendarFeedKind.Personal, token));
+
+      expect(membershipSpy).toHaveBeenCalledTimes(2);
+
+      for (const call of membershipSpy.mock.calls) {
+        expect(call[0]).toEqual({
+          projectId: row.projectId,
+          userId: row.userId,
+        });
+      }
+    });
+
+    test("the rotated-out token inside its grace says the same, not that it was rotated", async () => {
+      const previousToken: string = CalendarFeedToken.mint();
+      row.previousTokenHash = CalendarFeedToken.hash(previousToken);
+      row.previousTokenExpiresAt = at("2026-09-20T00:00:00Z");
+
+      const result: HttpResult = await request(
+        feedPath(OnCallCalendarFeedKind.Personal, previousToken),
+      );
+
+      expect(result.status).toBe(200);
+      expect(result.body.replace(/\r\n /g, "")).toContain(
+        NOT_A_PROJECT_MEMBER_REASON.slice(0, 40),
+      );
+      expect(renderSpy).not.toHaveBeenCalled();
+    });
+
+    test("a feed that is still switched on gets the same answer: the leave cleanup is not relied on", async () => {
+      row.isEnabled = true;
+
+      const result: HttpResult = await request(
+        feedPath(OnCallCalendarFeedKind.Personal, token),
+      );
+
+      expect(result.status).toBe(200);
+      expect(result.body).not.toContain("BEGIN:VEVENT");
+      expect(renderSpy).not.toHaveBeenCalled();
+    });
+
+    test("an unknown token is still 404: membership is read only for a feed that exists", async () => {
+      const result: HttpResult = await request(
+        feedPath(OnCallCalendarFeedKind.Personal, UNKNOWN_TOKEN),
+      );
+
+      expect(result.status).toBe(404);
+      expect(membershipSpy).not.toHaveBeenCalled();
+    });
+
+    test("a membership read that fails is an error, never a calendar", async () => {
+      membershipSpy.mockRejectedValue(new Error("database unavailable"));
+
+      const result: HttpResult = await request(
+        feedPath(OnCallCalendarFeedKind.Personal, token),
+      );
+
+      expect(result.status).toBe(500);
+      expect(result.body).not.toContain("BEGIN:VCALENDAR");
+      expect(renderSpy).not.toHaveBeenCalled();
+    });
+
+    test("once they are a member again, the same link shows their shifts", async () => {
+      membershipSpy.mockResolvedValue(true as never);
+
+      const result: HttpResult = await request(
+        feedPath(OnCallCalendarFeedKind.Personal, token),
+      );
+
+      expect(result.status).toBe(200);
+      expect(renderSpy).toHaveBeenCalledTimes(1);
+    });
   });
 
   test("the rotated-out token past its grace is 404", async () => {
@@ -4591,7 +4715,7 @@ describe("GET /on-call-calendar/my-shifts", () => {
     expect(args.now.toISOString()).toBe(NOW.toISOString());
   });
 
-  test("without a tenant header the scope is every project the caller is rostered in (mobile)", async () => {
+  test("without a tenant header the scope is every project the caller is a member of (mobile)", async () => {
     propsSpy.mockResolvedValue({ tenantId: undefined, userId });
 
     const result: HttpResult = await request(`${API_PREFIX}${MY_SHIFTS_ROUTE}`);
@@ -4601,7 +4725,52 @@ describe("GET /on-call-calendar/my-shifts", () => {
     const args: { projectIds?: Array<ObjectID> } = materializeSpy.mock
       .calls[0]?.[0] as { projectIds?: Array<ObjectID> };
 
-    expect(args.projectIds).toBeUndefined();
+    expect(args.projectIds?.map(String)).toEqual([projectId.toString()]);
+
+    // Read from the database for the caller themselves.
+    expect(memberProjectsSpy).toHaveBeenCalledTimes(1);
+    expect(memberProjectsSpy.mock.calls[0]?.[0]).toEqual({ userId });
+  });
+
+  test("without a tenant header a project the caller has left is not in the scope, whatever still names them", async () => {
+    const stillAMemberOf: ObjectID = ObjectID.generate();
+    propsSpy.mockResolvedValue({ tenantId: undefined, userId });
+    memberProjectsSpy.mockResolvedValue([stillAMemberOf]);
+
+    await request(`${API_PREFIX}${MY_SHIFTS_ROUTE}`);
+
+    const args: { projectIds?: Array<ObjectID> } = materializeSpy.mock
+      .calls[0]?.[0] as { projectIds?: Array<ObjectID> };
+
+    expect(args.projectIds?.map(String)).toEqual([stillAMemberOf.toString()]);
+  });
+
+  test("a member of no project gets no shifts, and nothing is worked out for them", async () => {
+    propsSpy.mockResolvedValue({ tenantId: undefined, userId });
+    memberProjectsSpy.mockResolvedValue([]);
+
+    const result: HttpResult = await request(`${API_PREFIX}${MY_SHIFTS_ROUTE}`);
+
+    expect(result.status).toBe(200);
+    expect(json(result)["shifts"]).toEqual([]);
+    expect(json(result)["truncated"]).toBe(false);
+    expect(materializeSpy).not.toHaveBeenCalled();
+  });
+
+  test("without a tenant header a membership read that fails is an error, never a list", async () => {
+    propsSpy.mockResolvedValue({ tenantId: undefined, userId });
+    memberProjectsSpy.mockRejectedValue(new Error("database unavailable"));
+
+    const result: HttpResult = await request(`${API_PREFIX}${MY_SHIFTS_ROUTE}`);
+
+    expect(result.status).toBe(500);
+    expect(materializeSpy).not.toHaveBeenCalled();
+  });
+
+  test("with a tenant header the projects are not read: the session's own membership decides", async () => {
+    await request(`${API_PREFIX}${MY_SHIFTS_ROUTE}`);
+
+    expect(memberProjectsSpy).not.toHaveBeenCalled();
   });
 
   test("with a tenant header the caller must be a member of that project", async () => {
