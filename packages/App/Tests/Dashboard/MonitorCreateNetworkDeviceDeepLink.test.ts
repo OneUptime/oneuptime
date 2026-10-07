@@ -134,10 +134,11 @@ describe("the deep link reads what it needs to branch", () => {
      * The method decides the branch; the address is what the Ping monitor
      * pings; the probe is the one that can reach the device. Selecting only
      * the name — as the SNMP-only version did — makes every device read as
-     * SNMP, because the method parses NULL as SNMP.
+     * SNMP, because the method parses NULL as SNMP. The device's own SNMP
+     * tables and its template's tables seed the per-row alerts.
      */
     expect(deepLinkPreSeed()).toContain(
-      "select: { name: true, hostname: true, monitoringMethod: true, probeId: true, }",
+      "select: { name: true, hostname: true, monitoringMethod: true, probeId: true, snmpTables: true, oidTemplate: { tables: true, }, }",
     );
   });
 

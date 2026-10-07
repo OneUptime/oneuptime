@@ -118,7 +118,7 @@ const NetworkDeviceWiFi: FunctionComponent<
             slots={{
               settings: (
                 <AppLink to={settingsRoute}>
-                  {translator.translateText("Settings") || "Settings"}
+                  {translator.translateTemplate("Settings")}
                 </AppLink>
               ),
             }}
