@@ -127,7 +127,7 @@ describe("the Global SSO guide: turning a provider off or deleting it", () => {
       "Turning a global provider off, deleting it, or restricting it to its attached projects ends the sign-ins it gave where it no longer signs people in.",
     );
     expect(section).toContain(
-      "the pages they have open stop receiving live updates at once.",
+      "the pages they have open stop receiving live updates at once,",
     );
   });
 

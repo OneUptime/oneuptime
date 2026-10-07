@@ -526,6 +526,23 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   project's last provider cannot be turned off or deleted until another one
   is on. See
   [SSO](/docs/identity/sso#turning-a-provider-off-or-deleting-it).
+- **Global and status page SSO providers end their sign-ins the same way,
+  and turning on Require SSO for Login needs a provider.** Turning a
+  global SAML or OIDC provider off, or deleting it, ends the sign-ins it
+  gave, as a project's provider does, and turning it on again does not
+  bring them back; a global provider already off when you upgrade counts as
+  turned off at the upgrade. A change to a global provider or to its
+  attached projects that would leave a project that requires SSO - itself
+  or because the whole server does - with no provider to sign in with is
+  refused, naming the projects. Turning on Require SSO for Login, for a
+  project or for the whole server, is refused while no provider would sign
+  people in there; the message says what to set up first. Turning a status
+  page's SSO or OIDC provider off, or deleting it, signs out the private
+  users it signed in, and a status page that requires SSO no longer keeps
+  sessions that signed in with a password. Private users whom only SSO
+  ever signed in sign in once more after the upgrade. See
+  [Global SSO](/docs/identity/global-sso#turning-a-provider-off-or-deleting-it)
+  and [Status Pages](/docs/status-pages/index#sso-and-oidc).
 - **A record you may not read can no longer be changed or deleted, and a
   change by ID that reaches nothing says so.** A change or a delete - from
   the dashboard, the API, Terraform, the MCP tools or a workflow - now
