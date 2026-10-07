@@ -139,24 +139,22 @@ gitHubApp:
 
 **Belangrijk:** Herstart uw OneUptime-server na het toevoegen van deze omgevingsvariabelen zodat ze van kracht worden.
 
-### Stap 9: De GitHub App installeren
+### Stap 9: Repositories verbinden in OneUptime
 
-1. Ga naar de openbare pagina van uw GitHub App: `https://github.com/apps/YOUR_APP_NAME`
-2. Klik op **"Installeren"** of **"Configureren"**
-3. Selecteer de organisatie of het account waar u de app wilt installeren
-4. Kies welke repositories de app mag benaderen:
-   - **Alle repositories** - Toegang tot alle huidige en toekomstige repositories
-   - **Alleen geselecteerde repositories** - Kies specifieke repositories
-5. Klik op **"Installeren"**
-
-### Stap 10: Repositories verbinden in OneUptime
+Start de verbinding vanuit OneUptime, niet vanaf de pagina van de app op GitHub: de link waarmee OneUptime u naar GitHub stuurt, koppelt de installatie aan uw project.
 
 1. Log in op uw OneUptime-dashboard
 2. Navigeer naar **Producten** > **Taken** > **Code-opslagplaatsen**
-3. Klik op **"Repository aanmaken"** of gebruik de GitHub App-installatiestroom
-4. Als u wordt doorgestuurd vanuit GitHub, wordt de installatie-ID automatisch vastgelegd
-5. Selecteer de repositories die u wilt verbinden uit de lijst
-6. Klik op **"Verbinden"** om de repository te koppelen aan uw OneUptime-project
+3. Klik op **Connect with GitHub App**. OneUptime brengt u naar GitHub
+4. Selecteer de organisatie of het account waar u de app wilt installeren en kies welke repositories de app mag benaderen:
+   - **All repositories** - Toegang tot alle huidige en toekomstige repositories
+   - **Only select repositories** - Kies specifieke repositories
+5. Klik op **Install** (of **Save** als de app daar al is geïnstalleerd)
+6. GitHub stuurt u terug naar **Code-opslagplaatsen** en alle repositories in de installatie worden geïmporteerd. Repositories die later aan de installatie worden toegevoegd of eruit worden verwijderd, blijven automatisch gesynchroniseerd.
+
+**Wie kan verbinden.** Verbinden importeert de repositories van de installatie in het project, dus is toestemming nodig om code-repositories toe te voegen: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** of een team met **Create Code Repository**. Een team dat de toestemming blokkeert, neemt die weg. Op OneUptime Cloud vereisen code-repositories het Growth-abonnement of hoger. Voor ieder ander is de kaart vergrendeld en staat erbij wat ervoor nodig is.
+
+**Rond het binnen 15 minuten af, in dezelfde browser.** De link werkt één keer, 15 minuten lang, in de browser waarin hij is gestart. Wanneer GitHub u terugstuurt, controleert OneUptime de toestemming opnieuw voordat er iets wordt geïmporteerd.
 
 ## Omgevingsvariabelen referentie
 
