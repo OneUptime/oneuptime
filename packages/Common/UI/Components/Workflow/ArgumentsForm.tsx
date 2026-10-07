@@ -48,13 +48,16 @@ import {
   Argument,
   ComponentInputType,
   NodeDataProp,
+  isArgumentRequired,
   isJSON5ToleratedInputType,
 } from "../../../Types/Workflow/Component";
 import ComponentID from "../../../Types/Workflow/ComponentID";
 import { DropdownOption } from "../Dropdown/Dropdown";
-import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
-import ModelAPI, { ListResult } from "../../Utils/ModelAPI/ModelAPI";
-import Workflow from "../../../Models/DatabaseModels/Workflow";
+import {
+  getRecordChoiceSource,
+  getRecordChoiceTypes,
+  loadRecordChoices,
+} from "./RecordChoices";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -108,6 +111,8 @@ const SINGLE_FIELD_KINDS: Partial<
 type DescribeArgumentFunction = (
   translator: Translator,
   arg: Argument,
+  // The step's settings as they are now, for one another can make optional.
+  values?: JSONObject | undefined,
 ) => string;
 
 // "Required. Where the email is sent." - the step's own words after the first.
@@ -120,14 +125,19 @@ export const OPTIONAL_ARGUMENT_HELP: string = translationKey(
 
 /*
  * A setting's help: whether it is required, then what it is for. Under the
- * label for most settings, and under a switch's name beside it.
+ * label for most settings, and under a switch's name beside it. Whether it
+ * is required is read as the step is set up now (isArgumentRequired):
+ * Create One Incident's JSON Object is optional once a template is picked.
  */
 const describeArgument: DescribeArgumentFunction = (
   translator: Translator,
   arg: Argument,
+  values?: JSONObject | undefined,
 ): string => {
   return translator.translateTemplate(
-    arg.required ? REQUIRED_ARGUMENT_HELP : OPTIONAL_ARGUMENT_HELP,
+    isArgumentRequired(arg, values)
+      ? REQUIRED_ARGUMENT_HELP
+      : OPTIONAL_ARGUMENT_HELP,
     { description: translatableTerm(arg.description) },
   );
 };
@@ -247,86 +257,63 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
   ];
 
   /*
-   * Workflows in the current project, used to populate dropdowns for any
-   * argument of type WorkflowSelect (e.g. the "Workflow" field on the
-   * Execute Workflow component). Empty until the fetch completes.
+   * The project's records that settings picked from a list offer: the
+   * workflows of Execute Workflow's Workflow (the one being edited left
+   * out), the incident templates of Create One Incident's Incident Template
+   * (RecordChoices). Keyed by the setting's type; empty until the fetch
+   * completes.
    */
-  const [workflowDropdownOptions, setWorkflowDropdownOptions] = useState<
-    Array<DropdownOption>
-  >([]);
-  const [isLoadingWorkflows, setIsLoadingWorkflows] = useState<boolean>(false);
-
-  const hasWorkflowSelectArg: boolean = Boolean(
-    component.metadata.arguments?.some((arg: Argument) => {
-      return arg.type === ComponentInputType.WorkflowSelect;
-    }),
+  const recordChoiceTypes: Array<ComponentInputType> = getRecordChoiceTypes(
+    component.metadata.arguments,
   );
+  const recordChoiceTypesKey: string = recordChoiceTypes.join("|");
+
+  const [recordChoices, setRecordChoices] = useState<
+    Partial<Record<ComponentInputType, Array<DropdownOption>>>
+  >({});
+  const [isLoadingRecordChoices, setIsLoadingRecordChoices] =
+    useState<boolean>(false);
 
   useEffect(() => {
-    if (!hasWorkflowSelectArg) {
+    if (recordChoiceTypes.length === 0) {
       return;
     }
 
     let cancelled: boolean = false;
-    setIsLoadingWorkflows(true);
+    setIsLoadingRecordChoices(true);
 
-    const loadWorkflows: () => Promise<void> = async (): Promise<void> => {
-      try {
-        const result: ListResult<Workflow> = await ModelAPI.getList<Workflow>({
-          modelType: Workflow,
-          query: {},
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            _id: true,
-            name: true,
-          },
-          sort: {
-            name: "Ascending" as any,
-          },
-        });
+    const loadChoices: () => Promise<void> = async (): Promise<void> => {
+      const loaded: Partial<Record<ComponentInputType, Array<DropdownOption>>> =
+        {};
 
-        if (cancelled) {
-          return;
-        }
-
-        const currentWorkflowIdStr: string = props.workflowId.toString();
-
-        const options: Array<DropdownOption> = result.data
-          .filter((wf: Workflow) => {
-            // Exclude the current workflow — can't pick yourself.
-            return wf._id?.toString() !== currentWorkflowIdStr;
-          })
-          .map((wf: Workflow) => {
-            return {
-              label: (wf.name as string) || (wf._id?.toString() ?? ""),
-              value: wf._id?.toString() ?? "",
-            };
+      for (const type of recordChoiceTypes) {
+        try {
+          loaded[type] = await loadRecordChoices({
+            type: type,
+            workflowId: props.workflowId,
           });
+        } catch {
+          /*
+           * Swallow: the dropdown will simply be empty and the user can try
+           * again by re-opening the settings panel.
+           */
+          loaded[type] = [];
+        }
+      }
 
-        setWorkflowDropdownOptions(options);
-      } catch {
-        /*
-         * Swallow: the dropdown will simply be empty and the user can try
-         * again by re-opening the settings panel.
-         */
-        if (!cancelled) {
-          setWorkflowDropdownOptions([]);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoadingWorkflows(false);
-        }
+      if (!cancelled) {
+        setRecordChoices(loaded);
+        setIsLoadingRecordChoices(false);
       }
     };
 
-    void loadWorkflows();
+    void loadChoices();
 
     return () => {
       cancelled = true;
     };
     // Only re-fetch when the component in the settings panel changes identity.
-  }, [component.id, hasWorkflowSelectArg]);
+  }, [component.id, recordChoiceTypesKey]);
 
   useEffect(() => {
     props.onHasFormValidationErrors(hasFormValidationErrors);
@@ -737,14 +724,14 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
             <ErrorMessage message={"This step does not need any settings."} />
           )}
         {/*
-          If any argument is a WorkflowSelect and we're still fetching the
-          list of workflows, show a loader instead of the form. Otherwise
-          the user briefly sees an empty dropdown which is confusing.
+          While a setting picked from a list is still fetching its records
+          (RecordChoices), show a loader instead of the form. Otherwise the
+          user briefly sees an empty dropdown, which is confusing.
         */}
-        {hasWorkflowSelectArg && isLoadingWorkflows && <ComponentLoader />}
+        {isLoadingRecordChoices && <ComponentLoader />}
         {component.metadata.arguments &&
           component.metadata.arguments.length > 0 &&
-          !(hasWorkflowSelectArg && isLoadingWorkflows) && (
+          !isLoadingRecordChoices && (
             <BasicForm
               hideSubmitButton={true}
               ref={formRef}
@@ -787,11 +774,11 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                   } = fieldForArgument(arg, argIndex);
 
                   /*
-                   * For WorkflowSelect, inject the dynamically fetched list
-                   * of workflows as dropdown options.
+                   * A setting picked from the project's records gets the
+                   * records fetched above as its options.
                    */
-                  if (arg.type === ComponentInputType.WorkflowSelect) {
-                    baseField.dropdownOptions = workflowDropdownOptions;
+                  if (getRecordChoiceSource(arg.type)) {
+                    baseField.dropdownOptions = recordChoices[arg.type] || [];
                   }
 
                   const isAdvanced: boolean = isCollapsibleAdvanced(arg);
@@ -801,11 +788,24 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                     collapsibleSection: isAdvanced
                       ? moreFieldsSection
                       : undefined,
-                    description: describeArgument(translator, arg),
+                    description: describeArgument(
+                      translator,
+                      arg,
+                      component.arguments,
+                    ),
                     field: {
                       [arg.id]: true,
                     },
-                    required: arg.required,
+                    /*
+                     * A setting another one can make unnecessary - Create One
+                     * Incident's JSON Object, once an Incident Template is
+                     * picked - is required only while that one does not.
+                     */
+                    required: arg.notRequiredWhen
+                      ? (values: FormValues<JSONObject>): boolean => {
+                          return isArgumentRequired(arg, values as JSONObject);
+                        }
+                      : arg.required,
                     placeholder: arg.placeholder,
                     /*
                      * Some argument types are read back with JSON5 rather than

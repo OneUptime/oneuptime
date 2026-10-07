@@ -3,8 +3,6 @@ import IncidentCustomFieldService from "../../Services/IncidentCustomFieldServic
 import IncidentInternalNoteService from "../../Services/IncidentInternalNoteService";
 import IncidentService from "../../Services/IncidentService";
 import IncidentSeverityService from "../../Services/IncidentSeverityService";
-import IncidentTemplateOwnerTeamService from "../../Services/IncidentTemplateOwnerTeamService";
-import IncidentTemplateOwnerUserService from "../../Services/IncidentTemplateOwnerUserService";
 import IncidentTemplateService from "../../Services/IncidentTemplateService";
 import LabelService from "../../Services/LabelService";
 import MonitorService from "../../Services/MonitorService";
@@ -41,8 +39,6 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentCustomField from "../../../Models/DatabaseModels/IncidentCustomField";
 import IncidentInternalNote from "../../../Models/DatabaseModels/IncidentInternalNote";
 import IncidentTemplate from "../../../Models/DatabaseModels/IncidentTemplate";
-import IncidentTemplateOwnerTeam from "../../../Models/DatabaseModels/IncidentTemplateOwnerTeam";
-import IncidentTemplateOwnerUser from "../../../Models/DatabaseModels/IncidentTemplateOwnerUser";
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
@@ -529,42 +525,12 @@ export default class IncidentFormTarget
     }
 
     try {
-      const query: { incidentTemplateId: ObjectID; projectId: ObjectID } = {
+      // The template's owners, read the one way the server reads them.
+      return await IncidentTemplateService.getOwnerIds({
         incidentTemplateId: data.incidentTemplateId,
         projectId: data.form.projectId!,
-      };
-
-      const [ownerUsers, ownerTeams]: [
-        Array<IncidentTemplateOwnerUser>,
-        Array<IncidentTemplateOwnerTeam>,
-      ] = await Promise.all([
-        IncidentTemplateOwnerUserService.findBy({
-          query: query,
-          select: { userId: true },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          props: { isRoot: true },
-        }),
-        IncidentTemplateOwnerTeamService.findBy({
-          query: query,
-          select: { teamId: true },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          props: { isRoot: true },
-        }),
-      ]);
-
-      for (const owner of ownerUsers) {
-        if (owner.userId) {
-          owners.userIds.push(owner.userId);
-        }
-      }
-
-      for (const owner of ownerTeams) {
-        if (owner.teamId) {
-          owners.teamIds.push(owner.teamId);
-        }
-      }
+        props: { isRoot: true },
+      });
     } catch (err) {
       logger.error(
         `Forms: could not read the owners of the incident template of form ${data.form.id?.toString()}; the incident is declared without them.`,
@@ -572,9 +538,7 @@ export default class IncidentFormTarget
       );
       logger.error(err, FormTargetHelpers.getLogAttributes(data.form));
 
-      return { userIds: [], teamIds: [] };
+      return owners;
     }
-
-    return owners;
   }
 }

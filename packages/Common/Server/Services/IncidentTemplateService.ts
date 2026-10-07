@@ -14,11 +14,13 @@ import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import StatusPageService from "./StatusPageService";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { validateCustomFieldCreateSettings } from "../../Types/CustomField/CustomFieldCreateSettings";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import Dictionary from "../../Types/Dictionary";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import Model from "../../Models/DatabaseModels/IncidentTemplate";
+import IncidentTemplateOwnerTeam from "../../Models/DatabaseModels/IncidentTemplateOwnerTeam";
+import IncidentTemplateOwnerUser from "../../Models/DatabaseModels/IncidentTemplateOwnerUser";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ProjectScopedReferenceValidator, {
   getWrittenRelationReferences,
@@ -409,6 +411,63 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return createdItem;
+  }
+
+  /*
+   * The owners of a template - its owner users and teams - read as `props`:
+   * the people and teams who own the incidents declared from it. An
+   * incident form reads them as OneUptime itself (IncidentFormTarget); a
+   * workflow's Create One Incident step as the step, so a step reads only
+   * what a Project Admin of its project may (IncidentService
+   * .createFromTemplate).
+   */
+  @CaptureSpan()
+  public async getOwnerIds(data: {
+    incidentTemplateId: ObjectID;
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<{ userIds: Array<ObjectID>; teamIds: Array<ObjectID> }> {
+    const query: { incidentTemplateId: ObjectID; projectId: ObjectID } = {
+      incidentTemplateId: data.incidentTemplateId,
+      projectId: data.projectId,
+    };
+
+    const [ownerUsers, ownerTeams]: [
+      Array<IncidentTemplateOwnerUser>,
+      Array<IncidentTemplateOwnerTeam>,
+    ] = await Promise.all([
+      IncidentTemplateOwnerUserService.findBy({
+        query: query,
+        select: { userId: true },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: data.props,
+      }),
+      IncidentTemplateOwnerTeamService.findBy({
+        query: query,
+        select: { teamId: true },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: data.props,
+      }),
+    ]);
+
+    return {
+      userIds: ownerUsers
+        .map((owner: IncidentTemplateOwnerUser): ObjectID | undefined => {
+          return owner.userId;
+        })
+        .filter((userId: ObjectID | undefined): userId is ObjectID => {
+          return Boolean(userId);
+        }),
+      teamIds: ownerTeams
+        .map((owner: IncidentTemplateOwnerTeam): ObjectID | undefined => {
+          return owner.teamId;
+        })
+        .filter((teamId: ObjectID | undefined): teamId is ObjectID => {
+          return Boolean(teamId);
+        }),
+    };
   }
 
   @CaptureSpan()

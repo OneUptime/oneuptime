@@ -1419,6 +1419,42 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
+   * The same for a create: the last hook before the record is written. The
+   * caller has passed every permission check - the table, every column the
+   * record is written with, the plan - and the clash checks have run. A
+   * value OneUptime records about the create itself, which no caller may
+   * write, is written here: written before, it would be held against the
+   * caller's column permissions and refused (the template an incident is
+   * declared from: IncidentService). It is handed what onBeforeCreate
+   * carried forward. A throw here refuses the create. Skipped with
+   * ignoreHooks.
+   */
+  protected async onCreatePermitted(
+    _onCreate: OnCreate<TBaseModel>,
+  ): Promise<void> {
+    // A place holder method used for overriding.
+    return Promise.resolve();
+  }
+
+  /*
+   * Creates a record from one of its project's templates, as `props`: what
+   * a workflow's Create One step does when a template is picked
+   * (Types/Workflow/CreateFromTemplate). A service whose records are
+   * declared from templates overrides it (IncidentService); every other
+   * service's records have none, and are refused.
+   */
+  @CaptureSpan()
+  public async createFromTemplate(_data: {
+    templateId: ObjectID;
+    data: TBaseModel;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<TBaseModel> {
+    throw new BadDataException(
+      `${this.model.singularName || "This record"} cannot be created from a template.`,
+    );
+  }
+
+  /*
    * Columns each row of an update is written with as an SQL expression, in
    * place of the update's own value, for a rule between columns that a read
    * made before the write cannot keep: the database works each value out in
@@ -3300,6 +3336,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     createBy = await this.checkUniqueColumnBy(createBy);
 
     await this.checkUniqueColumnsTogether(createBy.data);
+
+    // What OneUptime records about a create it has let through. See the hook.
+    if (!createBy.props.ignoreHooks) {
+      await this.onCreatePermitted({
+        createBy: createBy,
+        carryForward: carryForward,
+      });
+    }
 
     // serialize.
     createBy.data = (await this.sanitizeCreateOrUpdate(
