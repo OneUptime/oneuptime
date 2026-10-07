@@ -297,10 +297,9 @@ describe("the REST API - and Terraform, which writes through it - hands the serv
     tenantId: PROJECT_ID,
   };
 
-  function api(service: DatabaseService<Monitor>): BaseAPI<
-    Monitor,
-    DatabaseService<Monitor>
-  > {
+  function api(
+    service: DatabaseService<Monitor>,
+  ): BaseAPI<Monitor, DatabaseService<Monitor>> {
     jest
       .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
       .mockResolvedValue(ROOT_IN_PROJECT as never);
@@ -338,7 +337,10 @@ describe("the REST API - and Terraform, which writes through it - hands the serv
 
       await expect(
         api(service).createItem(
-          request({ name: "Checkout API", disableActiveMonitoring: value } as JSONObject),
+          request({
+            name: "Checkout API",
+            disableActiveMonitoring: value,
+          } as JSONObject),
           response(),
         ),
       ).rejects.toBeInstanceOf(AtTheHooks);
@@ -382,7 +384,10 @@ describe("the REST API - and Terraform, which writes through it - hands the serv
       const attempt: Promise<void> =
         method === "POST"
           ? theApi.createItem(
-              request({ name: "Checkout API", isArchived: value } as JSONObject),
+              request({
+                name: "Checkout API",
+                isArchived: value,
+              } as JSONObject),
               response(),
             )
           : theApi.updateItem(

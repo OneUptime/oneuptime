@@ -13,7 +13,14 @@ import {
 import Response from "../../../../../Server/Utils/Response";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
  * AN ON UPDATE TRIGGER'S LISTEN ON HEARS EVERY CHANGE TO THE FIELDS IT NAMES.
@@ -106,7 +113,11 @@ describe("Listen on hears a field that changed, whatever it changed to", () => {
     async (_label: string, value: unknown) => {
       await expect(
         runsFor(
-          [workflowListeningOn(LISTENS_ON_SWITCH, { disableActiveMonitoring: true })],
+          [
+            workflowListeningOn(LISTENS_ON_SWITCH, {
+              disableActiveMonitoring: true,
+            }),
+          ],
           { updatedFields: { disableActiveMonitoring: value } as JSONObject },
         ),
       ).resolves.toEqual([LISTENS_ON_SWITCH]);
@@ -147,10 +158,9 @@ describe("and only such a field", () => {
 
   test("a field the update did not change does not run a workflow listening on it", async () => {
     await expect(
-      runsFor(
-        [workflowListeningOn(LISTENS_ON_NAME, { name: true })],
-        { updatedFields: { description: "Checks the checkout API" } },
-      ),
+      runsFor([workflowListeningOn(LISTENS_ON_NAME, { name: true })], {
+        updatedFields: { description: "Checks the checkout API" },
+      }),
     ).resolves.toEqual([]);
   });
 
@@ -162,7 +172,10 @@ describe("and only such a field", () => {
     ).resolves.toEqual([LISTENS_ON_NAME]);
 
     await expect(
-      runsFor([workflowListeningOn(LISTENS_ON_NAME, { name: true })], undefined),
+      runsFor(
+        [workflowListeningOn(LISTENS_ON_NAME, { name: true })],
+        undefined,
+      ),
     ).resolves.toEqual([LISTENS_ON_NAME]);
   });
 });

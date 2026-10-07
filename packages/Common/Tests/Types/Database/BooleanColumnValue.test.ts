@@ -145,10 +145,10 @@ describe("toStoredBoolean: exactly the literals boolin reads, no more", () => {
   );
 
   test.each([
-    ["a non-breaking space", " true "],
-    ["an ideographic space", "　yes"],
-    ["a byte order mark", "﻿false"],
-    ["a zero-width space", "on​"],
+    ["a non-breaking space", "\u00a0true\u00a0"],
+    ["an ideographic space", "\u3000yes"],
+    ["a byte order mark", "\ufefffalse"],
+    ["a zero-width space", "on\u200b"],
   ] as Array<[string, string]>)(
     "a literal with %s around it is refused, as the database refuses it",
     (_label: string, value: string) => {
@@ -161,15 +161,15 @@ describe("toStoredBoolean: exactly the literals boolin reads, no more", () => {
     expect(toStoredBoolean(-0)).toBe(false);
   });
 
-  test("1.0 is the number 1, while the text \"1.0\" is refused", () => {
+  test('1.0 is the number 1, while the text "1.0" is refused', () => {
     expect(toStoredBoolean(1.0)).toBe(true);
     expect(toStoredBoolean("1.0")).toBe("1.0");
     expect(toStoredBoolean(" 1 ")).toBe(true);
   });
 
   test("a fullwidth TRUE is not the letters boolin reads", () => {
-    expect(toStoredBoolean("ＴＲＵＥ")).toBe(
-      "ＴＲＵＥ",
+    expect(toStoredBoolean("\uff34\uff32\uff35\uff25")).toBe(
+      "\uff34\uff32\uff35\uff25",
     );
   });
 

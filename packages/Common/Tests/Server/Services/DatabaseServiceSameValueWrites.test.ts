@@ -415,7 +415,9 @@ describe("relations and ids, written back as they are", () => {
   }
 
   test("labels written as null, where the monitor has none, are not a change", async () => {
-    expectNoChangeReported(await updateMonitor({ labels: [] }, { labels: null }));
+    expectNoChangeReported(
+      await updateMonitor({ labels: [] }, { labels: null }),
+    );
   });
 
   test("the same labels, sent as bare ids, are not a change", async () => {
@@ -563,8 +565,7 @@ describe("one write over several rows", () => {
     expect(harness.recordUpdate).toHaveBeenCalledTimes(1);
     expect(
       String(
-        (harness.recordUpdate.mock.calls[0]![0] as { itemId: ObjectID })
-          .itemId,
+        (harness.recordUpdate.mock.calls[0]![0] as { itemId: ObjectID }).itemId,
       ),
     ).toBe(OTHER_ID.toString());
   });

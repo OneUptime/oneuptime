@@ -237,12 +237,12 @@ describe("ids in any case", () => {
   const UPPER: string = "0193C0DE-2222-4AAA-8BBB-00000000ABCD";
 
   test("the same uuid in capitals is the same id, as Postgres compares uuids", () => {
-    expect(isChanged(TableColumnType.ObjectID, new ObjectID(LOWER), UPPER)).toBe(
-      false,
-    );
-    expect(isChanged(TableColumnType.ObjectID, LOWER, new ObjectID(UPPER))).toBe(
-      false,
-    );
+    expect(
+      isChanged(TableColumnType.ObjectID, new ObjectID(LOWER), UPPER),
+    ).toBe(false);
+    expect(
+      isChanged(TableColumnType.ObjectID, LOWER, new ObjectID(UPPER)),
+    ).toBe(false);
   });
 
   test("another uuid is still a change, and so is clearing one", () => {

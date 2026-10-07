@@ -1273,8 +1273,9 @@ describe("updating a switch that records who turned it, back as it stands", () =
 
     expect(snapshot).toHaveBeenCalledTimes(1);
 
-    const asked: { modelIds: Array<ObjectID> } = snapshot.mock
-      .calls[0]![0] as { modelIds: Array<ObjectID> };
+    const asked: { modelIds: Array<ObjectID> } = snapshot.mock.calls[0]![0] as {
+      modelIds: Array<ObjectID>;
+    };
 
     expect(
       asked.modelIds.map((id: ObjectID): string => {

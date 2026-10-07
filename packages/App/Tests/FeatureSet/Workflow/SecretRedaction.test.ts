@@ -73,7 +73,7 @@ describe("getSecretWorkflowVariableValues", () => {
    * service calls secret, the run logs redact.
    */
   test.each(["yes", "on", "1", " TRUE "])(
-    'collects variables flagged with %p, which the database stores as true',
+    "collects variables flagged with %p, which the database stores as true",
     (flag: string) => {
       expect(
         getSecretWorkflowVariableValues([variable("secret", flag)]),

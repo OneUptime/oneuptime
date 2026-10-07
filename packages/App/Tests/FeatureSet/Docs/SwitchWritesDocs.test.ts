@@ -85,7 +85,7 @@ describe("the API reference on switches", () => {
       "does not start the record's **On Update** workflows, send live updates or add an audit log entry",
     );
     expect(section).toContain("`false` written over `false`");
-    expect(section).toContain("`\"false\"` written over `false`");
+    expect(section).toContain('`"false"` written over `false`');
   });
 
   test("says an update that changes some values is heard for those only", () => {
@@ -118,7 +118,9 @@ describe("the workflow triggers page", () => {
       .filter((entry: string): boolean => {
         return (
           entry !== "en" &&
-          fs.existsSync(path.join(CONTENT_DIR, entry, "workflows", "triggers.md"))
+          fs.existsSync(
+            path.join(CONTENT_DIR, entry, "workflows", "triggers.md"),
+          )
         );
       });
 
