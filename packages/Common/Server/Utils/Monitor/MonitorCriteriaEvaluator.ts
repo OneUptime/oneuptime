@@ -592,8 +592,13 @@ ${contextBlock}
     if (monitorType === MonitorType.NetworkDevice) {
       return input.criteriaInstances.some(
         (criteriaInstance: MonitorCriteriaInstance) => {
-          return PerEntityCriteriaFanOut.isSnmpInterfaceFanOutConfigured(
-            criteriaInstance,
+          return (
+            PerEntityCriteriaFanOut.isSnmpInterfaceFanOutConfigured(
+              criteriaInstance,
+            ) ||
+            PerEntityCriteriaFanOut.isSnmpTableFanOutConfigured(
+              criteriaInstance,
+            )
           );
         },
       );
@@ -670,16 +675,28 @@ ${contextBlock}
       input.monitor.monitorType === MonitorType.Server ||
       input.monitor.monitorType === MonitorType.NetworkDevice
     ) {
+      /*
+       * A Network Device criteria can address ports and table rows; each
+       * entity narrows only the filters that address its own kind, so a
+       * criteria mixing a "*" port filter and a "*" table filter fans out
+       * over both.
+       */
       const entities: Array<FanOutEntity> =
         input.monitor.monitorType === MonitorType.Server
           ? PerEntityCriteriaFanOut.getServerDiskEntities({
               dataToProcess: input.dataToProcess,
               criteriaInstance: input.criteriaInstance,
             })
-          : PerEntityCriteriaFanOut.getSnmpInterfaceEntities({
-              dataToProcess: input.dataToProcess,
-              criteriaInstance: input.criteriaInstance,
-            });
+          : [
+              ...PerEntityCriteriaFanOut.getSnmpInterfaceEntities({
+                dataToProcess: input.dataToProcess,
+                criteriaInstance: input.criteriaInstance,
+              }),
+              ...PerEntityCriteriaFanOut.getSnmpTableRowEntities({
+                dataToProcess: input.dataToProcess,
+                criteriaInstance: input.criteriaInstance,
+              }),
+            ];
 
       return PerEntityCriteriaFanOut.collectMatches({
         criteriaInstance: input.criteriaInstance,

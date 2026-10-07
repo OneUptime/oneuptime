@@ -7,6 +7,7 @@ import NetworkInterfaceService, {
 } from "../../Services/NetworkInterfaceService";
 import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
 import SnmpMonitorResponse from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
+import { SnmpTableSnapshot } from "../../../Types/Monitor/SnmpMonitor/SnmpTable";
 import LldpNeighbor from "../../../Types/Monitor/SnmpMonitor/LldpNeighbor";
 import CdpNeighbor from "../../../Types/Monitor/SnmpMonitor/CdpNeighbor";
 import ArpEntry from "../../../Types/Monitor/SnmpMonitor/ArpEntry";
@@ -54,6 +55,12 @@ export default class NetworkInventoryUtil {
      * and read as "snmp" when absent.
      */
     pollMode?: NetworkDevicePollMode | undefined;
+    /*
+     * The SNMP table snapshot to store, already joined to its definitions
+     * and merged with the previous one (NetworkDeviceWalkUtil). Undefined
+     * leaves the stored snapshot alone; an empty array clears it.
+     */
+    snmpTableSnapshot?: Array<SnmpTableSnapshot> | undefined;
   }): Promise<void> {
     const deviceId: ObjectID = data.deviceId;
 
@@ -317,6 +324,15 @@ export default class NetworkInventoryUtil {
       }
       if (cdpNeighbors !== undefined) {
         deviceUpdate["cdpNeighbors"] = cdpNeighbors.slice(0, 256);
+      }
+
+      /*
+       * Inventory rather than health, like the neighbour snapshots: written
+       * for a monitor-backed device too. Already capped for storage by the
+       * walk processor.
+       */
+      if (data.snmpTableSnapshot !== undefined) {
+        deviceUpdate["snmpTableSnapshot"] = data.snmpTableSnapshot;
       }
 
       /*

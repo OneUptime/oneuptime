@@ -14,6 +14,10 @@ import NetworkDeviceMonitoringMethod from "../../Types/NetworkDevice/NetworkDevi
 import LldpNeighbor from "../../Types/Monitor/SnmpMonitor/LldpNeighbor";
 import CdpNeighbor from "../../Types/Monitor/SnmpMonitor/CdpNeighbor";
 import SnmpOid from "../../Types/Monitor/SnmpMonitor/SnmpOid";
+import {
+  SnmpTableDefinition,
+  SnmpTableSnapshot,
+} from "../../Types/Monitor/SnmpMonitor/SnmpTable";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import AccessControlColumn from "../../Types/Database/AccessControlColumn";
@@ -2046,6 +2050,47 @@ export default class NetworkDevice extends BaseModel {
     ],
   })
   @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Device-Specific SNMP Tables",
+    description:
+      "SNMP tables walked on each poll for this device alone, on top of its OID Collection Template's tables. A table with the same key as a template table replaces it on this device.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public snmpTables?: Array<SnmpTableDefinition> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDevice,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDevice,
+    ],
+  })
+  @TableColumn({
     type: TableColumnType.Boolean,
     required: true,
     title: "Auto-Apply Vendor Health Template",
@@ -2578,6 +2623,37 @@ export default class NetworkDevice extends BaseModel {
     type: ColumnType.JSON,
   })
   public lldpNeighbors?: Array<LldpNeighbor> = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditNetworkDevice,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "SNMP Table Snapshot",
+    description:
+      "The rows of every SNMP table collected on the last successful walk - tunnels, radios, neighbours and so on - with their values. Managed by the probe.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public snmpTableSnapshot?: Array<SnmpTableSnapshot> = undefined;
 
   @ColumnAccessControl({
     create: [],

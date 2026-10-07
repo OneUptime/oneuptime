@@ -36,6 +36,10 @@ import SnmpOidListUtil, {
   MAX_DEVICE_SPECIFIC_OIDS,
   MAX_EFFECTIVE_OIDS_PER_DEVICE,
 } from "../../Types/Monitor/SnmpMonitor/SnmpOidListUtil";
+import { SnmpTableDefinition } from "../../Types/Monitor/SnmpMonitor/SnmpTable";
+import SnmpTableListUtil, {
+  MAX_DEVICE_SPECIFIC_TABLES,
+} from "../../Types/Monitor/SnmpMonitor/SnmpTableListUtil";
 import { EntityManager } from "typeorm";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -1259,6 +1263,16 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
+    if (createBy.data.snmpTables !== undefined) {
+      createBy.data.snmpTables = SnmpTableListUtil.validateTableList(
+        createBy.data.snmpTables,
+        {
+          max: MAX_DEVICE_SPECIFIC_TABLES,
+          label: "Device-Specific SNMP Tables",
+        },
+      );
+    }
+
     /*
      * The monitor is NOT required. Discovery import is why: a subnet sweep
      * finds ping-only hosts in bulk and there is no monitor to bind them to
@@ -1771,6 +1785,21 @@ export class Service extends ProjectReferencesService<Model> {
             ? MAX_DEVICE_SPECIFIC_OIDS
             : MAX_EFFECTIVE_OIDS_PER_DEVICE,
           label: "Device-Specific Health OIDs",
+        },
+      );
+    }
+
+    /*
+     * Unlike the OID budget, the table budget does not change with linking:
+     * a template's tables and a device's own are capped separately and the
+     * two caps already compose to what one device walks.
+     */
+    if (updateBy.data.snmpTables !== undefined) {
+      updateBy.data.snmpTables = SnmpTableListUtil.validateTableList(
+        updateBy.data.snmpTables as Array<SnmpTableDefinition>,
+        {
+          max: MAX_DEVICE_SPECIFIC_TABLES,
+          label: "Device-Specific SNMP Tables",
         },
       );
     }

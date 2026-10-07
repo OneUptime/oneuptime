@@ -43,6 +43,7 @@ import MetricFormulaConfigData from "../../../Types/Metrics/MetricFormulaConfigD
 import MetricsViewConfig from "../../../Types/Metrics/MetricsViewConfig";
 import MetricUnitUtil from "../../../Utils/MetricUnitUtil";
 import MetricValueFormatter from "../../../Utils/Monitor/MetricValueFormatter";
+import SnmpTableCriteria from "./Criteria/SnmpTableCriteria";
 
 export default class MonitorCriteriaObservationBuilder {
   public static describeFilterObservation(input: {
@@ -210,6 +211,21 @@ export default class MonitorCriteriaObservationBuilder {
         return MonitorCriteriaObservationBuilder.describeSnmpOidValueObservation(
           input,
         );
+      case CheckOn.SnmpTableValue:
+      case CheckOn.SnmpTableRowCount:
+        return SnmpTableCriteria.describeTableObservation({
+          tables: MonitorCriteriaDataExtractor.getProbeMonitorResponse(
+            input.dataToProcess,
+          )?.snmpResponse?.tables,
+          criteriaFilter: input.criteriaFilter,
+        });
+      case CheckOn.SnmpTrapVarbindValue:
+        return SnmpTableCriteria.describeTrapVarbindObservation({
+          snmpTrap: MonitorCriteriaDataExtractor.getProbeMonitorResponse(
+            input.dataToProcess,
+          )?.snmpTrapResponse,
+          criteriaFilter: input.criteriaFilter,
+        });
       case CheckOn.DatabaseIsOnline:
         return MonitorCriteriaObservationBuilder.describeDatabaseIsOnlineObservation(
           input,

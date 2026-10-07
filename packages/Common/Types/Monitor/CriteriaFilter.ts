@@ -93,6 +93,22 @@ export enum CheckOn {
   SnmpTrapReceived = "SNMP Trap Received (Trap OID)",
   SnmpInterfaceUtilizationPercent = "SNMP Interface Utilization (in %)",
   SnmpInterfaceErrorsPerSecond = "SNMP Interface Errors (per second)",
+  /*
+   * A column of a walked SNMP table (snmpMonitorOptions.tableKey and
+   * tableColumnOid), compared row by row: met when any in-scope row
+   * matches. snmpMonitorOptions.tableRow narrows it to one row, or "*" to
+   * raise one alert per row.
+   */
+  SnmpTableValue = "SNMP Table Value",
+  // How many rows a walked SNMP table has (or how many match tableRow).
+  SnmpTableRowCount = "SNMP Table Row Count",
+  /*
+   * The values carried inside a trap, not its OID. Vendors that send every
+   * event under one trap OID - Sophos sends all of them as sfosNotification
+   * with the event text in a varbind - can only be told apart this way.
+   * snmpMonitorOptions.oid optionally narrows it to one varbind.
+   */
+  SnmpTrapVarbindValue = "SNMP Trap Varbind Value",
 
   // DNS monitors.
   DnsResponseTime = "DNS Response Time (in ms)",
@@ -160,6 +176,15 @@ export interface SnmpMonitorOptions {
    * every monitored interface, the historical behavior.
    */
   interfaceName?: string | undefined;
+  /*
+   * For the SNMP table CheckOns: which table (its key), which column (its
+   * OID), and which rows. An empty row scope means every row, combined into
+   * one alert; "*" means every row with one alert per row; anything else is
+   * a row name or index.
+   */
+  tableKey?: string | undefined;
+  tableColumnOid?: string | undefined;
+  tableRow?: string | undefined;
 }
 
 export interface DatabaseMonitorOptions {
@@ -555,6 +580,9 @@ export const CriteriaFilterSchema: ZodSchema = Zod.object({
   snmpMonitorOptions: Zod.object({
     oid: Zod.string().optional(),
     interfaceName: Zod.string().optional(),
+    tableKey: Zod.string().optional(),
+    tableColumnOid: Zod.string().optional(),
+    tableRow: Zod.string().optional(),
   }).optional(),
   databaseMonitorOptions: Zod.object({
     metricType: Zod.string().optional(),

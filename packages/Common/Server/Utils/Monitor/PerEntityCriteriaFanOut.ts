@@ -4,6 +4,12 @@ import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInsta
 import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import SnmpMonitorResponse from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
+import {
+  SnmpTableSnapshot,
+  SnmpTableSnapshotRow,
+} from "../../../Types/Monitor/SnmpMonitor/SnmpTable";
+import SnmpTableListUtil from "../../../Types/Monitor/SnmpMonitor/SnmpTableListUtil";
+import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import { BasicDiskMetrics } from "../../../Types/Infrastructure/BasicMetrics";
 import MetricSeriesFingerprint from "../../../Utils/Metrics/MetricSeriesFingerprint";
 import { PerSeriesCriteriaMatch } from "../../../Types/Probe/ProbeApiIngestResponse";
@@ -248,10 +254,9 @@ export default class PerEntityCriteriaFanOut {
       return [];
     }
 
-    const snmpResponse: SnmpMonitorResponse =
-      input.dataToProcess as unknown as SnmpMonitorResponse;
-
-    const interfaces: Array<SnmpInterface> = snmpResponse?.interfaces || [];
+    const interfaces: Array<SnmpInterface> =
+      PerEntityCriteriaFanOut.getSnmpResponse(input.dataToProcess)
+        ?.interfaces || [];
 
     const seenInterfaceNames: Set<string> = new Set<string>();
     const entities: Array<FanOutEntity> = [];
@@ -325,5 +330,165 @@ export default class PerEntityCriteriaFanOut {
       checkOn === CheckOn.SnmpInterfaceUtilizationPercent ||
       checkOn === CheckOn.SnmpInterfaceErrorsPerSecond
     );
+  }
+
+  /**
+   * The walk a Network Device monitor is judged on.
+   *
+   * The poll pipeline hands the evaluator a ProbeMonitorResponse whose walk
+   * sits under `snmpResponse` - interfaces and tables included. Reading the
+   * interfaces off the top level of that object (as this file once did)
+   * found nothing, so a "*" interface criteria never fanned out on a real
+   * poll and quietly fell back to one combined alert. A bare walk is still
+   * accepted for callers that pass one directly.
+   */
+  private static getSnmpResponse(
+    dataToProcess: DataToProcess,
+  ): SnmpMonitorResponse | undefined {
+    const probeResponse: ProbeMonitorResponse =
+      dataToProcess as ProbeMonitorResponse;
+
+    if (probeResponse?.snmpResponse) {
+      return probeResponse.snmpResponse;
+    }
+
+    const bareWalk: SnmpMonitorResponse =
+      dataToProcess as unknown as SnmpMonitorResponse;
+
+    if (bareWalk?.interfaces || bareWalk?.tables) {
+      return bareWalk;
+    }
+
+    return undefined;
+  }
+
+  /**
+   * The table rows a Network Device monitor's criteria should fan out
+   * over: every row of each table a "*" table filter names, so a second
+   * tunnel going down raises its own alert instead of being folded into
+   * the first one's.
+   *
+   * Like interfaces, an EMPTY row scope keeps its historical meaning - every
+   * row, one combined alert - and only "*" opts into one alert per row.
+   */
+  public static getSnmpTableRowEntities(input: {
+    dataToProcess: DataToProcess;
+    criteriaInstance: MonitorCriteriaInstance;
+  }): Array<FanOutEntity> {
+    const wildcardTableKeys: Array<string> =
+      PerEntityCriteriaFanOut.getWildcardTableKeys(input.criteriaInstance);
+
+    if (wildcardTableKeys.length === 0) {
+      return [];
+    }
+
+    const tables: Array<SnmpTableSnapshot> =
+      PerEntityCriteriaFanOut.getSnmpResponse(input.dataToProcess)?.tables ||
+      [];
+
+    const entities: Array<FanOutEntity> = [];
+
+    for (const tableKey of wildcardTableKeys) {
+      const snapshot: SnmpTableSnapshot | undefined =
+        SnmpTableListUtil.findSnapshot(tables, tableKey);
+
+      // A table this walk did not produce has no rows to fan out over.
+      if (!snapshot || snapshot.failureCause) {
+        continue;
+      }
+
+      for (const row of snapshot.rows) {
+        const rowScope: string = SnmpTableListUtil.getRowScope(snapshot, row);
+
+        entities.push({
+          labels: PerEntityCriteriaFanOut.getTableRowLabels(snapshot, row),
+          narrowFilter: (filter: CriteriaFilter): CriteriaFilter => {
+            if (
+              !PerEntityCriteriaFanOut.isTableScopedCheckOn(filter.checkOn) ||
+              !PerEntityCriteriaFanOut.isWildcard(
+                filter.snmpMonitorOptions?.tableRow,
+              ) ||
+              SnmpTableListUtil.normalizeKey(
+                filter.snmpMonitorOptions?.tableKey,
+              ) !== snapshot.key
+            ) {
+              return filter;
+            }
+
+            return {
+              ...filter,
+              snmpMonitorOptions: {
+                ...filter.snmpMonitorOptions,
+                tableRow: rowScope,
+              },
+            };
+          },
+        });
+      }
+    }
+
+    return entities;
+  }
+
+  public static isSnmpTableFanOutConfigured(
+    criteriaInstance: MonitorCriteriaInstance,
+  ): boolean {
+    return (
+      PerEntityCriteriaFanOut.getWildcardTableKeys(criteriaInstance).length > 0
+    );
+  }
+
+  /*
+   * What identifies one row on the alert it raises: the table and the row's
+   * name, plus the index when the name alone is not unique.
+   */
+  private static getTableRowLabels(
+    snapshot: SnmpTableSnapshot,
+    row: SnmpTableSnapshotRow,
+  ): JSONObject {
+    const labels: JSONObject = {
+      snmpTable: snapshot.name,
+      snmpTableRow: row.label,
+    };
+
+    if (row.label !== row.index) {
+      labels["snmpTableRowIndex"] = row.index;
+    }
+
+    return labels;
+  }
+
+  private static getWildcardTableKeys(
+    criteriaInstance: MonitorCriteriaInstance,
+  ): Array<string> {
+    const keys: Array<string> = [];
+
+    for (const filter of criteriaInstance.data?.filters || []) {
+      if (
+        !PerEntityCriteriaFanOut.isTableScopedCheckOn(filter.checkOn) ||
+        !PerEntityCriteriaFanOut.isWildcard(filter.snmpMonitorOptions?.tableRow)
+      ) {
+        continue;
+      }
+
+      const key: string = SnmpTableListUtil.normalizeKey(
+        filter.snmpMonitorOptions?.tableKey,
+      );
+
+      if (key && !keys.includes(key)) {
+        keys.push(key);
+      }
+    }
+
+    return keys;
+  }
+
+  /*
+   * Row count is deliberately not here: it is a property of the whole table,
+   * and narrowing it to one row would turn "fewer than 4 tunnels" into four
+   * separate "1 row" checks.
+   */
+  private static isTableScopedCheckOn(checkOn: CheckOn | undefined): boolean {
+    return checkOn === CheckOn.SnmpTableValue;
   }
 }

@@ -5,6 +5,8 @@ import MonitorPauseState, {
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import MonitorService from "../../Services/MonitorService";
 import NetworkDeviceService from "../../Services/NetworkDeviceService";
+import NetworkDeviceOidTemplateService from "../../Services/NetworkDeviceOidTemplateService";
+import NetworkDeviceOidTemplate from "../../../Models/DatabaseModels/NetworkDeviceOidTemplate";
 import Query from "../../Types/Database/Query";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import MonitorResourceUtil from "./MonitorResource";
@@ -18,6 +20,11 @@ import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import PingMonitorResponse from "../../../Types/Monitor/PingMonitor/PingMonitorResponse";
 import SnmpMonitorResponse from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
+import {
+  SnmpTableDefinition,
+  SnmpTableSnapshot,
+} from "../../../Types/Monitor/SnmpMonitor/SnmpTable";
+import SnmpTableListUtil from "../../../Types/Monitor/SnmpMonitor/SnmpTableListUtil";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -111,6 +118,10 @@ export default class NetworkDeviceWalkUtil {
         name: true,
         siteId: true,
         lastWalkLog: true,
+        // For joining walked SNMP tables back to their definitions.
+        snmpTables: true,
+        oidTemplateId: true,
+        snmpTableSnapshot: true,
       },
       props: {
         isRoot: true,
@@ -239,6 +250,28 @@ export default class NetworkDeviceWalkUtil {
     }
 
     /*
+     * SNMP tables arrive as raw values per row index and column OID. Join
+     * them back to their definitions BEFORE anything reads the response, so
+     * the inventory, the metrics and every criteria below see named columns
+     * and labelled rows. Never fatal: a table that cannot be read this cycle
+     * keeps its stored rows.
+     */
+    let snmpTableSnapshot: Array<SnmpTableSnapshot> | undefined = undefined;
+
+    try {
+      snmpTableSnapshot = await NetworkDeviceWalkUtil.applyTableDefinitions({
+        device: device,
+        snmpResponse: data.snmpResponse,
+        monitoredAt: data.monitoredAt,
+      });
+    } catch (err) {
+      logger.error(
+        `Failed to read SNMP tables for device ${device.id.toString()}:`,
+      );
+      logger.error(err);
+    }
+
+    /*
      * Inventory sync also prunes data.snmpResponse.interfaces down to
      * monitored ports, so the metrics and criteria below only see ports the
      * user cares about.
@@ -249,6 +282,7 @@ export default class NetworkDeviceWalkUtil {
       snmpResponse: data.snmpResponse,
       isOnline: isOnline,
       pollMode: pollMode,
+      snmpTableSnapshot: snmpTableSnapshot,
     });
 
     try {
@@ -347,6 +381,115 @@ export default class NetworkDeviceWalkUtil {
     logger.debug(
       `Device poll for ${device.id.toString()} (${pollMode}) processed: evaluated ${monitors.length} watching monitor(s).`,
     );
+  }
+
+  /*
+   * Materializes this walk's SNMP tables onto `snmpResponse.tables` and
+   * returns the snapshot the device should store - or undefined when the
+   * stored snapshot must not be touched.
+   *
+   * `snmpResponse.tables` holds only what THIS walk produced (a table that
+   * failed carries its failure cause and no rows), because criteria must
+   * judge the current walk, never a remembered one. The stored snapshot is
+   * merged instead: a table that failed keeps its last good rows so the
+   * device's Tables view does not blank on a timeout.
+   *
+   * Undefined (leave the column alone) covers: no walk, an older probe that
+   * sent no tables, and a lookup failure. An empty array clears it, which
+   * is what happens once every table is removed from the device and its
+   * template.
+   */
+  public static async applyTableDefinitions(data: {
+    device: NetworkDevice;
+    snmpResponse: SnmpMonitorResponse | undefined;
+    monitoredAt: Date;
+  }): Promise<Array<SnmpTableSnapshot> | undefined> {
+    const snmpResponse: SnmpMonitorResponse | undefined = data.snmpResponse;
+
+    if (!snmpResponse || snmpResponse.isOnline === false) {
+      return undefined;
+    }
+
+    const storedSnapshot: Array<SnmpTableSnapshot> =
+      data.device.snmpTableSnapshot || [];
+
+    /*
+     * The common case - a device with no tables at all - costs no query:
+     * nothing was walked and nothing is stored, so there is nothing to join
+     * and nothing to clear.
+     */
+    if (!snmpResponse.tableResults && storedSnapshot.length === 0) {
+      return undefined;
+    }
+
+    const definitions: Array<SnmpTableDefinition> =
+      await NetworkDeviceWalkUtil.resolveTableDefinitions(data.device);
+
+    if (definitions.length === 0) {
+      // Every table was removed: drop the rows nothing collects any more.
+      return storedSnapshot.length > 0 ? [] : undefined;
+    }
+
+    if (!snmpResponse.tableResults) {
+      // An older probe, or a check that predates tables: nothing to read.
+      return undefined;
+    }
+
+    const current: Array<SnmpTableSnapshot> = SnmpTableListUtil.materialize({
+      tables: definitions,
+      results: snmpResponse.tableResults,
+      collectedAt: data.monitoredAt,
+    });
+
+    snmpResponse.tables = current;
+
+    return SnmpTableListUtil.capSnapshotsForStorage(
+      SnmpTableListUtil.mergeWithPrevious({
+        current: current,
+        previous: storedSnapshot,
+        definedKeys: definitions.map((table: SnmpTableDefinition) => {
+          return table.key;
+        }),
+      }),
+    );
+  }
+
+  /*
+   * The device's effective tables, resolved the same way the poll hand-out
+   * resolved them (template first, device-specific merged over it by key).
+   * Resolved again here rather than echoed back by the probe: the probe
+   * only ever sees column OIDs, and names and value labels have no reason
+   * to cross the wire twice per poll.
+   */
+  public static async resolveTableDefinitions(
+    device: NetworkDevice,
+  ): Promise<Array<SnmpTableDefinition>> {
+    let templateTables: Array<SnmpTableDefinition> = [];
+
+    if (device.oidTemplateId && device.projectId) {
+      const template: NetworkDeviceOidTemplate | null =
+        await NetworkDeviceOidTemplateService.findOneBy({
+          query: {
+            _id: device.oidTemplateId,
+            // Never read another project's template, whatever the FK says.
+            projectId: device.projectId,
+          },
+          select: {
+            _id: true,
+            tables: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      templateTables = template?.tables || [];
+    }
+
+    return SnmpTableListUtil.resolveEffectiveTables({
+      templateTables: templateTables,
+      deviceTables: device.snmpTables,
+    }).tables;
   }
 
   /*
