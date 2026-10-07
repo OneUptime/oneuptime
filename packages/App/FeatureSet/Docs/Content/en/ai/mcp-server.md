@@ -72,7 +72,7 @@ A client stays connected for as long as it is used. One that has not been used f
 
 Every project member can connect an MCP client by default. To stop the members of a team from doing so, open the team's **Permissions** page, open **More settings** at the bottom, and add the **Authorize MCP Client** permission under **Block Permissions**. Clients those members already connected stop working at once.
 
-If the project requires single sign-on, sign in to the project with SSO in your browser before you authorize a client. The client's connection lasts as long as that SSO sign-in does; when it lapses, connect the client again.
+If the project requires single sign-on, sign in to the project with SSO in your browser before you authorize a client. The client's connection lasts as long as that SSO sign-in does; when it lapses, or the SSO provider you signed in with is turned off or deleted, connect the client again.
 
 On OneUptime Cloud, connecting an MCP client is available on the same plans as API keys (Growth and above).
 
@@ -528,7 +528,7 @@ The server builds every OAuth URL from the `HOST` and `HTTP_PROTOCOL` settings, 
 - **The client never asks me to sign in**: the client may not support MCP authorization, or it may be configured with an API key header, which takes precedence. Remove the header to sign in instead.
 - **My project is greyed out on the authorization page**: the page says why next to the project name - the project's plan does not include connecting MCP clients, the project requires SSO and this browser has not signed in to it with SSO, or your team is blocked from connecting clients.
 - **A tool is refused with "read-only"**: the client was authorized as read only. Connect it again and choose **Read and write**.
-- **The client stopped working**: it was disconnected, was not used for 30 days, you were removed from the project, or the project's SSO sign-in lapsed. Connect it again.
+- **The client stopped working**: it was disconnected, was not used for 30 days, you were removed from the project, or the project's SSO sign-in lapsed or its provider was turned off. Connect it again.
 - **Self-hosted - the client reports that it cannot find the authorization server**: check that `HOST` and `HTTP_PROTOCOL` match your public address, and that your proxy forwards the `/.well-known/oauth-*` paths.
 
 ### Permission Errors
