@@ -12,6 +12,7 @@ import ObjectID from "../../Types/ObjectID";
 import { STATE_LISTS, StateListType } from "../../Utils/StateOrder";
 import StartingStageUtil, { StartingState } from "../../Utils/StartingStage";
 import ResolvedStateUtil from "../../Utils/ResolvedState";
+import AcknowledgedStateUtil from "../../Utils/AcknowledgedState";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
@@ -221,22 +222,24 @@ export class Service extends DatabaseService<IncidentState> {
     return resolvedIncidentState;
   }
 
+  /*
+   * The project's acknowledged state: the first from the top flagged
+   * acknowledged (Common/Utils/AcknowledgedState), which acknowledging an
+   * incident or an episode moves it into.
+   */
   @CaptureSpan()
   public async getAcknowledgedIncidentState(data: {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
   }): Promise<IncidentState> {
-    const incidentStates: Array<IncidentState> =
-      await this.getAllIncidentStates({
-        projectId: data.projectId,
-        props: data.props,
+    const ackIncidentState: IncidentState | null =
+      AcknowledgedStateUtil.getAcknowledgedState({
+        list: StateListType.IncidentState,
+        states: await this.getAllIncidentStates({
+          projectId: data.projectId,
+          props: data.props,
+        }),
       });
-
-    const ackIncidentState: IncidentState | undefined = incidentStates.find(
-      (incidentState: IncidentState) => {
-        return incidentState?.isAcknowledgedState;
-      },
-    );
 
     if (!ackIncidentState) {
       throw new BadDataException(
@@ -245,6 +248,65 @@ export class Service extends DatabaseService<IncidentState> {
     }
 
     return ackIncidentState;
+  }
+
+  // The same, read as OneUptime: null when the project has none.
+  @CaptureSpan()
+  public async findAcknowledgedIncidentState(
+    projectId: ObjectID,
+  ): Promise<IncidentState | null> {
+    return AcknowledgedStateUtil.getAcknowledgedState({
+      list: StateListType.IncidentState,
+      states: await this.getAllIncidentStates({
+        projectId: projectId,
+        props: {
+          isRoot: true,
+        },
+      }),
+    });
+  }
+
+  /*
+   * Whether an incident (or an incident episode) in `incidentStateId` is
+   * acknowledged - or further along, resolved included
+   * (Common/Utils/AcknowledgedState): what stops its on-call escalation and
+   * takes Acknowledge away. False for a state that is not the project's.
+   */
+  @CaptureSpan()
+  public async isAcknowledgedIncidentState(data: {
+    projectId: ObjectID;
+    incidentStateId: ObjectID;
+  }): Promise<boolean> {
+    return AcknowledgedStateUtil.isAcknowledged({
+      list: StateListType.IncidentState,
+      states: await this.getAllIncidentStates({
+        projectId: data.projectId,
+        props: {
+          isRoot: true,
+        },
+      }),
+      stateId: data.incidentStateId,
+    });
+  }
+
+  /*
+   * The project's states an incident (or an incident episode) is
+   * acknowledged but not resolved in - the acknowledged state and every state
+   * after it, up to the resolved one: what an "Acknowledged" filter asks for.
+   */
+  @CaptureSpan()
+  public async getAcknowledgedUnresolvedIncidentStateIds(
+    projectId: ObjectID,
+  ): Promise<Array<ObjectID>> {
+    return AcknowledgedStateUtil.getAcknowledgedUnresolvedStateIds({
+      list: StateListType.IncidentState,
+      states: await this.getAllIncidentStates({
+        projectId: projectId,
+        props: {
+          isRoot: true,
+        },
+      }),
+    });
   }
 
   /*

@@ -116,6 +116,7 @@ import StartingStageUtil, {
   StartingState,
 } from "../../Utils/StartingStage";
 import ResolvedStateUtil from "../../Utils/ResolvedState";
+import AcknowledgedStateUtil from "../../Utils/AcknowledgedState";
 import {
   escapeMarkdownInline,
   escapeMarkdownValue,
@@ -210,9 +211,11 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * Whether the alert is acknowledged or further along - resolved included:
-   * what stops its on-call escalation. Read with the one rule
-   * (StartingStage): at or below the acknowledged state, or flagged
-   * acknowledged or resolved.
+   * what stops its on-call escalation and takes Acknowledge away. Its state
+   * is at or below its project's acknowledged state, or flagged acknowledged
+   * or resolved - the one rule (Common/Utils/AcknowledgedState) that Slack
+   * and Microsoft Teams, the on-call workers and every Acknowledge button
+   * read.
    */
   @CaptureSpan()
   public async isAlertAcknowledged(data: {
@@ -224,13 +227,10 @@ export class Service extends ProjectReferencesService<Model> {
       return false;
     }
 
-    const startingState: StartingState | null =
-      await AlertStateService.getStartingState({
-        projectId: alert.projectId!,
-        alertStateId: alert.currentAlertStateId,
-      });
-
-    return Boolean(startingState && startingState.stage !== StartingStage.Open);
+    return await AlertStateService.isAcknowledgedAlertState({
+      projectId: alert.projectId!,
+      alertStateId: alert.currentAlertStateId,
+    });
   }
 
   // The alert's project and current state, as OneUptime.
@@ -317,6 +317,14 @@ export class Service extends ProjectReferencesService<Model> {
     });
   }
 
+  /*
+   * Acknowledges the alert, as the user: moves it into its project's
+   * acknowledged state - the first from the top flagged acknowledged. One
+   * that is acknowledged already, or further along, is refused with a
+   * sentence that says which (Common/Utils/AcknowledgedState) rather than
+   * moved back up its list - whichever channel asked: Slack, Microsoft
+   * Teams, OneUptime AI.
+   */
   @CaptureSpan()
   public async acknowledgeAlert(
     alertId: ObjectID,
@@ -326,6 +334,7 @@ export class Service extends ProjectReferencesService<Model> {
       id: alertId,
       select: {
         projectId: true,
+        currentAlertStateId: true,
       },
       props: {
         isRoot: true,
@@ -336,18 +345,30 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException("Alert not found.");
     }
 
-    const alertState: AlertState | null = await AlertStateService.findOneBy({
-      query: {
+    const alertStates: Array<AlertState> =
+      await AlertStateService.getAllAlertStates({
         projectId: alert.projectId,
-        isAcknowledgedState: true,
-      },
-      select: {
-        _id: true,
-      },
-      props: {
-        isRoot: true,
-      },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const refusal: string | null = AcknowledgedStateUtil.getAcknowledgeRefusal({
+      list: StateListType.AlertState,
+      states: alertStates,
+      stateId: alert.currentAlertStateId,
+      subject: "Alert",
     });
+
+    if (refusal) {
+      throw new BadDataException(refusal);
+    }
+
+    const alertState: AlertState | null =
+      AcknowledgedStateUtil.getAcknowledgedState({
+        list: StateListType.AlertState,
+        states: alertStates,
+      });
 
     if (!alertState || !alertState.id) {
       throw new BadDataException(
@@ -2526,9 +2547,6 @@ ${escapeMarkdownValue(alertSeverity.name)}
         select: {
           projectId: true,
           alertStateId: true,
-          alertState: {
-            isAcknowledgedState: true,
-          },
           startsAt: true,
           endsAt: true,
         },
@@ -2542,7 +2560,10 @@ ${escapeMarkdownValue(alertSeverity.name)}
         },
       });
 
-    // Which of them count as resolved (Common/Utils/ResolvedState).
+    /*
+     * Which of them count as resolved (Common/Utils/ResolvedState) and as
+     * acknowledged (Common/Utils/AcknowledgedState).
+     */
     const alertStates: Array<AlertState> =
       await AlertStateService.getAllAlertStates({
         projectId: alert.projectId,
@@ -2666,55 +2687,61 @@ ${escapeMarkdownValue(alertSeverity.name)}
 
       itemsToSave.push(alertCountMetric);
 
-      // is the alert acknowledged?
-      const isAlertAcknowledged: boolean = alertStateTimelines.some(
-        (timeline: AlertStateTimeline) => {
-          return timeline.alertState?.isAcknowledgedState;
-        },
-      );
+      /*
+       * Time to acknowledge: until the alert first moved into a state that
+       * counts as acknowledged (Common/Utils/AcknowledgedState) - the
+       * project's acknowledged state, one placed after it, or a resolved
+       * one.
+       */
+      const ackAlertStateTimeline: AlertStateTimeline | undefined =
+        AcknowledgedStateUtil.getAcknowledgementRows({
+          list: StateListType.AlertState,
+          states: alertStates,
+          timeline: alertStateTimelines.map((timeline: AlertStateTimeline) => {
+            return {
+              stateId: timeline.alertStateId,
+              startsAt: timeline.startsAt,
+              timeline: timeline,
+            };
+          }),
+        })[0]?.timeline;
 
-      if (isAlertAcknowledged) {
-        const ackAlertStateTimeline: AlertStateTimeline | undefined =
-          alertStateTimelines.find((timeline: AlertStateTimeline) => {
-            return timeline.alertState?.isAcknowledgedState;
-          });
+      if (ackAlertStateTimeline) {
+        // register the metric type so the catalog stays complete across refreshes.
+        const metricType: MetricType = new MetricType();
+        metricType.name = AlertMetricType.TimeToAcknowledge;
+        metricType.description = "Time taken to acknowledge the alert";
+        metricType.unit = "seconds";
+        metricTypesMap[AlertMetricType.TimeToAcknowledge] = metricType;
 
-        if (ackAlertStateTimeline) {
-          // register the metric type so the catalog stays complete across refreshes.
-          const metricType: MetricType = new MetricType();
-          metricType.name = AlertMetricType.TimeToAcknowledge;
-          metricType.description = "Time taken to acknowledge the alert";
-          metricType.unit = "seconds";
-          metricTypesMap[AlertMetricType.TimeToAcknowledge] = metricType;
+        const timeToAcknowledgeMetric: MutableMetric = new MutableMetric();
 
-          const timeToAcknowledgeMetric: MutableMetric = new MutableMetric();
+        timeToAcknowledgeMetric.projectId = alert.projectId;
+        timeToAcknowledgeMetric.primaryEntityId = alert.id!;
+        timeToAcknowledgeMetric.primaryEntityType = ServiceType.Alert;
+        timeToAcknowledgeMetric.name = AlertMetricType.TimeToAcknowledge;
+        timeToAcknowledgeMetric.metricPointId =
+          AlertMetricType.TimeToAcknowledge;
+        timeToAcknowledgeMetric.value = OneUptimeDate.getDifferenceInSeconds(
+          ackAlertStateTimeline?.startsAt || OneUptimeDate.getCurrentDate(),
+          alertStartsAt,
+        );
+        timeToAcknowledgeMetric.attributes = { ...baseMetricAttributes };
+        timeToAcknowledgeMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+          timeToAcknowledgeMetric.attributes,
+        );
 
-          timeToAcknowledgeMetric.projectId = alert.projectId;
-          timeToAcknowledgeMetric.primaryEntityId = alert.id!;
-          timeToAcknowledgeMetric.primaryEntityType = ServiceType.Alert;
-          timeToAcknowledgeMetric.name = AlertMetricType.TimeToAcknowledge;
-          timeToAcknowledgeMetric.metricPointId =
-            AlertMetricType.TimeToAcknowledge;
-          timeToAcknowledgeMetric.value = OneUptimeDate.getDifferenceInSeconds(
-            ackAlertStateTimeline?.startsAt || OneUptimeDate.getCurrentDate(),
-            alertStartsAt,
-          );
-          timeToAcknowledgeMetric.attributes = { ...baseMetricAttributes };
-          timeToAcknowledgeMetric.attributeKeys =
-            TelemetryUtil.getAttributeKeys(timeToAcknowledgeMetric.attributes);
+        timeToAcknowledgeMetric.time =
+          ackAlertStateTimeline?.startsAt ||
+          alert.createdAt ||
+          OneUptimeDate.getCurrentDate();
+        timeToAcknowledgeMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+          timeToAcknowledgeMetric.time,
+        );
+        timeToAcknowledgeMetric.metricPointType = MetricPointType.Sum;
+        timeToAcknowledgeMetric.retentionDate = alertMetricRetentionDate;
 
-          timeToAcknowledgeMetric.time =
-            ackAlertStateTimeline?.startsAt ||
-            alert.createdAt ||
-            OneUptimeDate.getCurrentDate();
-          timeToAcknowledgeMetric.timeUnixNano = OneUptimeDate.toUnixNano(
-            timeToAcknowledgeMetric.time,
-          );
-          timeToAcknowledgeMetric.metricPointType = MetricPointType.Sum;
-          timeToAcknowledgeMetric.retentionDate = alertMetricRetentionDate;
-
-          itemsToSave.push(timeToAcknowledgeMetric);
-        }
+        itemsToSave.push(timeToAcknowledgeMetric);
       }
 
       /*

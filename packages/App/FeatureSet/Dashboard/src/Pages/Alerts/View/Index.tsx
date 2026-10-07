@@ -1,5 +1,6 @@
 import ChangeAlertState from "../../../Components/Alert/ChangeState";
 import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import AcknowledgedStateUtil from "Common/Utils/AcknowledgedState";
 import { StateListType } from "Common/Utils/StateOrder";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import LabelsElement from "Common/UI/Components/Label/Labels";
@@ -636,13 +637,29 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   type GetAlertStateFunction = () => AlertState | undefined;
 
+  /*
+   * The project's acknowledged state, by name, and every state that counts
+   * as acknowledged short of resolved: it and any state placed after it, up
+   * to the resolved one (Common/Utils/AcknowledgedState).
+   */
   const getAcknowledgeState: GetAlertStateFunction = ():
     | AlertState
     | undefined => {
-    return alertStates.find((state: AlertState) => {
-      return state.isAcknowledgedState;
-    });
+    return (
+      AcknowledgedStateUtil.getAcknowledgedState({
+        list: StateListType.AlertState,
+        states: alertStates,
+      }) || undefined
+    );
   };
+
+  const acknowledgedStateIds: Array<string> =
+    AcknowledgedStateUtil.getAcknowledgedUnresolvedStateIds({
+      list: StateListType.AlertState,
+      states: alertStates,
+    }).map((stateId: ObjectID) => {
+      return stateId.toString();
+    });
 
   /*
    * The project's resolved state, by name, and every state that counts as
@@ -689,7 +706,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const responseTimes: EventResponseTimes = getEventResponseTimes({
     timelines: timelineDates,
     startedAt: alertStartedAt,
-    acknowledgedStateId: acknowledgeState?._id?.toString(),
+    acknowledgedStateIds: acknowledgedStateIds,
     resolvedStateIds: resolvedStateIds,
   });
 

@@ -324,6 +324,30 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   longer reopens an episode or starts a new SLA for the incident. Projects
   whose custom states all sit above the resolved state see no change. See
   [The Active Incidents list](/docs/incidents/states-and-severities#the-active-incidents-list).
+- **A state after your acknowledged state counts as acknowledged
+  everywhere.** An incident, alert or episode in a state you placed
+  between your acknowledged and resolved states — an **Investigating**
+  state below **Acknowledged**, say — already stopped on-call paging, but
+  the mobile app and Microsoft Teams still offered **Acknowledge** for it,
+  and acknowledging an alert or an episode in it (from Teams, Slack or an
+  on-call page) moved it back to **Acknowledged**. Every one of them now
+  asks one rule: the project's acknowledged state, every state after it,
+  and a resolved state count as acknowledged. **Acknowledge** is no longer
+  offered for such a record anywhere, and acknowledging one is refused
+  ("... is already acknowledged.") instead of moving it back; a responder
+  acknowledging their page for it just completes the page. Moving a record
+  straight into such a state now marks the incident's SLA responded —
+  where it used to stay unresponded until the incident was resolved, which
+  could breach the response target — and counts as its acknowledgement in
+  the time to acknowledge on the overview, the **Time to Acknowledge**
+  metric, measurements and the MTTA in Slack and Microsoft Teams summaries.
+  A record resolved without being acknowledged now counts as acknowledged
+  when it was resolved, as the overview already showed it. **Acknowledged**
+  list filters show the records in such states too, and the **Time in
+  State** metric's `isAcknowledgedState` attribute is `true` for them.
+  Projects whose custom states all sit above the acknowledged state see no
+  change. See
+  [What acknowledging does](/docs/incidents/states-and-severities#what-acknowledging-does).
 - **Resolving an incident gives back only the monitors it holds.**
   OneUptime now records whether an incident holds its monitors' status. An
   incident resolved once already and then reopened no longer returns its

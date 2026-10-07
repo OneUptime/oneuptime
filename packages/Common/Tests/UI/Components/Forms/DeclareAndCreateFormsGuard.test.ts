@@ -487,8 +487,12 @@ describe("the state a record starts in", () => {
     const incident: string = dense(INCIDENT_CREATE.file);
 
     expect(incident.split("modelType: AlertState,").length - 1).toBe(1);
+    /*
+     * Each state's place and its acknowledged and resolved flags: what the
+     * one acknowledged rule reads (Common/Utils/AcknowledgedState).
+     */
     expect(incident).toContain(
-      "select: { _id: true, order: true, isAcknowledgedState: true }",
+      "select: { _id: true, order: true, isAcknowledgedState: true, isResolvedState: true, }",
     );
   });
 

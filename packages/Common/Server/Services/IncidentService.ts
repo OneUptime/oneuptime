@@ -174,6 +174,7 @@ import StartingStageUtil, {
   StartingState,
 } from "../../Utils/StartingStage";
 import ResolvedStateUtil from "../../Utils/ResolvedState";
+import AcknowledgedStateUtil from "../../Utils/AcknowledgedState";
 import { StateListType } from "../../Utils/StateOrder";
 
 /*
@@ -394,9 +395,11 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * Whether the incident is acknowledged or further along - resolved
-   * included: what stops its on-call escalation. Read with the same rule
-   * (StartingStage): at or below the acknowledged state, or flagged
-   * acknowledged or resolved.
+   * included: what stops its on-call escalation and takes Acknowledge away.
+   * Its state is at or below its project's acknowledged state, or flagged
+   * acknowledged or resolved - the one rule (Common/Utils/AcknowledgedState)
+   * that Slack and Microsoft Teams, the on-call workers and every
+   * Acknowledge button read.
    */
   @CaptureSpan()
   public async isIncidentAcknowledged(data: {
@@ -408,13 +411,10 @@ export class Service extends ProjectReferencesService<Model> {
       return false;
     }
 
-    const startingState: StartingState | null =
-      await IncidentStateService.getStartingState({
-        projectId: incident.projectId!,
-        incidentStateId: incident.currentIncidentStateId,
-      });
-
-    return Boolean(startingState && startingState.stage !== StartingStage.Open);
+    return await IncidentStateService.isAcknowledgedIncidentState({
+      projectId: incident.projectId!,
+      incidentStateId: incident.currentIncidentStateId,
+    });
   }
 
   // The incident's project and current state, as OneUptime.
@@ -441,6 +441,31 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return incident;
+  }
+
+  /*
+   * The row of an incident's state timeline it was first acknowledged with:
+   * the first move into a state that counts as acknowledged
+   * (AcknowledgedState) - the acknowledged state, a state after it, or a
+   * resolved one.
+   */
+  private getFirstAcknowledgementRow(data: {
+    incidentStates: Array<IncidentState>;
+    incidentStateTimelines: Array<IncidentStateTimeline>;
+  }): IncidentStateTimeline | undefined {
+    return AcknowledgedStateUtil.getAcknowledgementRows({
+      list: StateListType.IncidentState,
+      states: data.incidentStates,
+      timeline: data.incidentStateTimelines.map(
+        (timeline: IncidentStateTimeline) => {
+          return {
+            stateId: timeline.incidentStateId,
+            startsAt: timeline.startsAt,
+            timeline: timeline,
+          };
+        },
+      ),
+    })[0]?.timeline;
   }
 
   /*
@@ -587,25 +612,25 @@ export class Service extends ProjectReferencesService<Model> {
     return incident;
   }
 
+  /*
+   * Acknowledges the incident, as the user: moves it into its project's
+   * acknowledged state - the first from the top flagged acknowledged. One
+   * that is acknowledged already, or further along, is refused with a
+   * sentence that says which (Common/Utils/AcknowledgedState) rather than
+   * moved back up its list - whichever channel asked: Slack, Microsoft
+   * Teams, OneUptime AI.
+   */
   @CaptureSpan()
   public async acknowledgeIncident(
     incidentId: ObjectID,
     acknowledgedByUserId: ObjectID,
   ): Promise<Model> {
-    // check if the incident is already acknowledged.
-    const isIncidentAcknowledged: boolean = await this.isIncidentAcknowledged({
-      incidentId: incidentId,
-    });
-
-    if (isIncidentAcknowledged) {
-      throw new BadDataException("Incident is already acknowledged.");
-    }
-
     const incident: Model | null = await this.findOneById({
       id: incidentId,
       select: {
         projectId: true,
         incidentNumber: true,
+        currentIncidentStateId: true,
       },
       props: {
         isRoot: true,
@@ -616,18 +641,29 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException("Incident not found.");
     }
 
-    const incidentState: IncidentState | null =
-      await IncidentStateService.findOneBy({
-        query: {
-          projectId: incident.projectId,
-          isAcknowledgedState: true,
-        },
-        select: {
-          _id: true,
-        },
+    const incidentStates: Array<IncidentState> =
+      await IncidentStateService.getAllIncidentStates({
+        projectId: incident.projectId,
         props: {
           isRoot: true,
         },
+      });
+
+    const refusal: string | null = AcknowledgedStateUtil.getAcknowledgeRefusal({
+      list: StateListType.IncidentState,
+      states: incidentStates,
+      stateId: incident.currentIncidentStateId,
+      subject: "Incident",
+    });
+
+    if (refusal) {
+      throw new BadDataException(refusal);
+    }
+
+    const incidentState: IncidentState | null =
+      AcknowledgedStateUtil.getAcknowledgedState({
+        list: StateListType.IncidentState,
+        states: incidentStates,
       });
 
     if (!incidentState || !incidentState.id) {
@@ -6262,7 +6298,6 @@ ${escapeMarkdownValue(incidentSeverity.name)}
           incidentStateId: true,
           incidentState: {
             name: true,
-            isAcknowledgedState: true,
             isCreatedState: true,
           },
           startsAt: true,
@@ -6278,7 +6313,10 @@ ${escapeMarkdownValue(incidentSeverity.name)}
         },
       });
 
-    // Which of them count as resolved (Common/Utils/ResolvedState).
+    /*
+     * Which of them count as resolved (Common/Utils/ResolvedState) and as
+     * acknowledged (Common/Utils/AcknowledgedState).
+     */
     const incidentStates: Array<IncidentState> =
       await IncidentStateService.getAllIncidentStates({
         projectId: incident.projectId,
@@ -6363,61 +6401,60 @@ ${escapeMarkdownValue(incidentSeverity.name)}
 
       metricTypesMap[IncidentMetricType.IncidentCount] = metricType;
 
-      // is the incident acknowledged?
-      const isIncidentAcknowledged: boolean = incidentStateTimelines.some(
-        (timeline: IncidentStateTimeline) => {
-          return timeline.incidentState?.isAcknowledgedState;
-        },
-      );
+      /*
+       * Time to acknowledge: until the incident first moved into a state
+       * that counts as acknowledged (Common/Utils/AcknowledgedState) - the
+       * project's acknowledged state, one placed after it, or a resolved
+       * one - as the incident's overview and the workspace summaries count
+       * it.
+       */
+      const ackIncidentStateTimeline: IncidentStateTimeline | undefined =
+        this.getFirstAcknowledgementRow({
+          incidentStates: incidentStates,
+          incidentStateTimelines: incidentStateTimelines,
+        });
 
-      if (isIncidentAcknowledged) {
-        const ackIncidentStateTimeline: IncidentStateTimeline | undefined =
-          incidentStateTimelines.find((timeline: IncidentStateTimeline) => {
-            return timeline.incidentState?.isAcknowledgedState;
-          });
+      if (ackIncidentStateTimeline) {
+        // register the metric type so the catalog stays complete across refreshes.
+        const metricType: MetricType = new MetricType();
+        metricType.name = IncidentMetricType.TimeToAcknowledge;
+        metricType.description = "Time taken to acknowledge the incident";
+        metricType.unit = "seconds";
+        metricTypesMap[IncidentMetricType.TimeToAcknowledge] = metricType;
 
-        if (ackIncidentStateTimeline) {
-          // register the metric type so the catalog stays complete across refreshes.
-          const metricType: MetricType = new MetricType();
-          metricType.name = IncidentMetricType.TimeToAcknowledge;
-          metricType.description = "Time taken to acknowledge the incident";
-          metricType.unit = "seconds";
-          metricTypesMap[IncidentMetricType.TimeToAcknowledge] = metricType;
+        const timeToAcknowledgeMetric: MutableMetric = new MutableMetric();
 
-          const timeToAcknowledgeMetric: MutableMetric = new MutableMetric();
+        timeToAcknowledgeMetric.projectId = incident.projectId;
+        timeToAcknowledgeMetric.primaryEntityId = incident.id!;
+        timeToAcknowledgeMetric.primaryEntityType = ServiceType.Incident;
+        timeToAcknowledgeMetric.name = IncidentMetricType.TimeToAcknowledge;
+        timeToAcknowledgeMetric.metricPointId =
+          IncidentMetricType.TimeToAcknowledge;
+        timeToAcknowledgeMetric.value = OneUptimeDate.getDifferenceInSeconds(
+          ackIncidentStateTimeline?.startsAt || OneUptimeDate.getCurrentDate(),
+          incidentStartsAt,
+        );
+        // aiInvestigated: the MTTA with/without-AI dimension.
+        timeToAcknowledgeMetric.attributes = {
+          ...baseMetricAttributes,
+          aiInvestigated: aiInvestigated.toString(),
+        };
+        timeToAcknowledgeMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+          timeToAcknowledgeMetric.attributes,
+        );
 
-          timeToAcknowledgeMetric.projectId = incident.projectId;
-          timeToAcknowledgeMetric.primaryEntityId = incident.id!;
-          timeToAcknowledgeMetric.primaryEntityType = ServiceType.Incident;
-          timeToAcknowledgeMetric.name = IncidentMetricType.TimeToAcknowledge;
-          timeToAcknowledgeMetric.metricPointId =
-            IncidentMetricType.TimeToAcknowledge;
-          timeToAcknowledgeMetric.value = OneUptimeDate.getDifferenceInSeconds(
-            ackIncidentStateTimeline?.startsAt ||
-              OneUptimeDate.getCurrentDate(),
-            incidentStartsAt,
-          );
-          // aiInvestigated: the MTTA with/without-AI dimension.
-          timeToAcknowledgeMetric.attributes = {
-            ...baseMetricAttributes,
-            aiInvestigated: aiInvestigated.toString(),
-          };
-          timeToAcknowledgeMetric.attributeKeys =
-            TelemetryUtil.getAttributeKeys(timeToAcknowledgeMetric.attributes);
+        timeToAcknowledgeMetric.time =
+          ackIncidentStateTimeline?.startsAt ||
+          incident.declaredAt ||
+          incident.createdAt ||
+          OneUptimeDate.getCurrentDate();
+        timeToAcknowledgeMetric.timeUnixNano = OneUptimeDate.toUnixNano(
+          timeToAcknowledgeMetric.time,
+        );
+        timeToAcknowledgeMetric.metricPointType = MetricPointType.Sum;
+        timeToAcknowledgeMetric.retentionDate = incidentMetricRetentionDate;
 
-          timeToAcknowledgeMetric.time =
-            ackIncidentStateTimeline?.startsAt ||
-            incident.declaredAt ||
-            incident.createdAt ||
-            OneUptimeDate.getCurrentDate();
-          timeToAcknowledgeMetric.timeUnixNano = OneUptimeDate.toUnixNano(
-            timeToAcknowledgeMetric.time,
-          );
-          timeToAcknowledgeMetric.metricPointType = MetricPointType.Sum;
-          timeToAcknowledgeMetric.retentionDate = incidentMetricRetentionDate;
-
-          itemsToSave.push(timeToAcknowledgeMetric);
-        }
+        itemsToSave.push(timeToAcknowledgeMetric);
       }
 
       /*
@@ -6579,9 +6616,16 @@ ${escapeMarkdownValue(incidentSeverity.name)}
           incidentStateId: timeline.incidentStateId?.toString(),
           isCreatedState:
             timeline.incidentState?.isCreatedState?.toString() || "false",
-          isAcknowledgedState:
-            timeline.incidentState?.isAcknowledgedState?.toString() || "false",
-          // Whether the state counts as resolved, as everywhere else.
+          /*
+           * Whether the state is in the acknowledged stage - acknowledged
+           * (the acknowledged state or one placed after it) but not resolved
+           * - and whether it counts as resolved, as everywhere else.
+           */
+          isAcknowledgedState: AcknowledgedStateUtil.isAcknowledgedUnresolved({
+            list: StateListType.IncidentState,
+            states: incidentStates,
+            stateId: timeline.incidentStateId,
+          }).toString(),
           isResolvedState: ResolvedStateUtil.isResolved({
             list: StateListType.IncidentState,
             states: incidentStates,
