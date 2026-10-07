@@ -139,12 +139,10 @@ router.get(
   UserMiddleware.requireUserAuthentication,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
-      const state: AutoRechargeState = await AutoRechargeStateRequest.getState(
-        {
-          req: req as OneUptimeRequest,
-          balance: ProjectBalanceType.SmsOrCall,
-        },
-      );
+      const state: AutoRechargeState = await AutoRechargeStateRequest.getState({
+        req: req as OneUptimeRequest,
+        balance: ProjectBalanceType.SmsOrCall,
+      });
 
       return Response.sendJsonObjectResponse(req, res, {
         state: state,

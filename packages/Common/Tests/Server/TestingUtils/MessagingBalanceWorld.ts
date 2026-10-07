@@ -179,7 +179,10 @@ export function useMessagingBalanceWorld(
   jest
     .spyOn(ProjectService, "claimSmsOrCallLowBalanceNotice")
     .mockImplementation((async () => {
-      if (row["deletedAt"] || row.lowCallAndSMSBalanceNotificationSentToOwners) {
+      if (
+        row["deletedAt"] ||
+        row.lowCallAndSMSBalanceNotificationSentToOwners
+      ) {
         return false;
       }
 

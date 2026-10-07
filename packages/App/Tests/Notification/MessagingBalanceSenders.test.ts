@@ -9,7 +9,9 @@ import TelegramLog from "Common/Models/DatabaseModels/TelegramLog";
 import WhatsAppLog from "Common/Models/DatabaseModels/WhatsAppLog";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import Redis from "Common/Server/Infrastructure/Redis";
-import Semaphore, { SemaphoreMutex } from "Common/Server/Infrastructure/Semaphore";
+import Semaphore, {
+  SemaphoreMutex,
+} from "Common/Server/Infrastructure/Semaphore";
 import BillingService from "Common/Server/Services/BillingService";
 import CallLogService from "Common/Server/Services/CallLogService";
 import ProjectService from "Common/Server/Services/ProjectService";
@@ -470,12 +472,12 @@ describe.each(CHANNELS)("a $name message", (channel: Channel) => {
     await channel.send();
 
     expect(channel.sentTimes()).toBe(1);
-    expect(ProjectService.deductSmsOrCallBalanceInUSDCents).toHaveBeenCalledWith(
-      {
-        projectId: PROJECT_ID,
-        amountInUSDCents: channel.costInUSDCents,
-      },
-    );
+    expect(
+      ProjectService.deductSmsOrCallBalanceInUSDCents,
+    ).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      amountInUSDCents: channel.costInUSDCents,
+    });
     expect(row.smsOrCallCurrentBalanceInUSDCents).toBe(
       5000 - channel.costInUSDCents,
     );
@@ -484,9 +486,8 @@ describe.each(CHANNELS)("a $name message", (channel: Channel) => {
   test("never writes back a balance it worked out itself", async () => {
     await channel.send();
 
-    for (const update of (
-      ProjectService.updateOneById as unknown as jest.Mock
-    ).mock.calls) {
+    for (const update of (ProjectService.updateOneById as unknown as jest.Mock)
+      .mock.calls) {
       expect(
         Object.keys((update[0] as { data: Record<string, unknown> }).data),
       ).not.toContain("smsOrCallCurrentBalanceInUSDCents");
@@ -628,9 +629,9 @@ describe("the log of each message records what it cost, in whole cents", () => {
   test("an SMS in two parts pays for both", async () => {
     await SmsService.sendSms(TO, "x".repeat(200), { projectId: PROJECT_ID });
 
-    expect(ProjectService.deductSmsOrCallBalanceInUSDCents).toHaveBeenCalledWith(
-      { projectId: PROJECT_ID, amountInUSDCents: 14 },
-    );
+    expect(
+      ProjectService.deductSmsOrCallBalanceInUSDCents,
+    ).toHaveBeenCalledWith({ projectId: PROJECT_ID, amountInUSDCents: 14 });
   });
 });
 
@@ -716,9 +717,7 @@ describe("a paging storm that finds the balance low", () => {
 
     expect(createMessage).not.toHaveBeenCalled();
     expect(charges).toEqual([]);
-    expect(logged<SmsLog>(SmsLogService)[0]!.status).toBe(
-      SmsStatus.LowBalance,
-    );
+    expect(logged<SmsLog>(SmsLogService)[0]!.status).toBe(SmsStatus.LowBalance);
   });
 
   test("the card declined: the messages the balance still pays for go out, and the card is tried once", async () => {

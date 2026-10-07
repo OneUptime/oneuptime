@@ -66,9 +66,8 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
 });
 
 function setBillingEnabled(value: boolean): void {
-  (
-    globalThis as MockBillingGlobal
-  ).__messagingAutoRechargeTestBillingEnabled = value;
+  (globalThis as MockBillingGlobal).__messagingAutoRechargeTestBillingEnabled =
+    value;
 }
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -324,9 +323,9 @@ describe("NotificationService.rechargeIfBalanceIsLow", () => {
 
     await NotificationService.rechargeIfBalanceIsLow(PROJECT_ID);
 
-    expect(ProjectService.creditSmsOrCallBalanceInUSDCents).toHaveBeenCalledWith(
-      { projectId: PROJECT_ID, amountInUSDCents: 2000 },
-    );
+    expect(
+      ProjectService.creditSmsOrCallBalanceInUSDCents,
+    ).toHaveBeenCalledWith({ projectId: PROJECT_ID, amountInUSDCents: 2000 });
 
     // No write of a balance it worked out itself.
     for (const call of (
@@ -670,7 +669,9 @@ describe("NotificationService.rechargeBalance (the Recharge button)", () => {
       world.ownerEmails.map((email: { subject: string }) => {
         return email.subject;
       }),
-    ).toEqual(["SMS and Call Recharge Successful for project - Acme Production"]);
+    ).toEqual([
+      "SMS and Call Recharge Successful for project - Acme Production",
+    ]);
     expect(world.ownerEmails[0]!.body).toContain(
       "Your current balance is 30 USD.",
     );

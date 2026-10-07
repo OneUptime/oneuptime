@@ -517,7 +517,8 @@ export class NotificationService extends BaseService {
     if (data.sendOwnerConfirmationEmail) {
       await ProjectService.sendEmailToProjectOwners(
         project.id!,
-        "SMS and Call Recharge Successful for project - " + (project.name || ""),
+        "SMS and Call Recharge Successful for project - " +
+          (project.name || ""),
         `We have successfully recharged your SMS and Call balance for project - ${
           project.name || ""
         } by ${amountInUSD} USD. Your current balance is ${

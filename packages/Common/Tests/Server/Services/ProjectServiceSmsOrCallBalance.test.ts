@@ -233,9 +233,9 @@ describe("ProjectService.claimSmsOrCallLowBalanceNotice", () => {
       manager: { query },
     } as never);
 
-    expect(await ProjectService.claimSmsOrCallLowBalanceNotice(PROJECT_ID)).toBe(
-      true,
-    );
+    expect(
+      await ProjectService.claimSmsOrCallLowBalanceNotice(PROJECT_ID),
+    ).toBe(true);
 
     const [sql, params] = query.mock.calls[0] as QueryCall;
 
@@ -253,9 +253,9 @@ describe("ProjectService.claimSmsOrCallLowBalanceNotice", () => {
       manager: { query: jest.fn().mockResolvedValue([]) },
     } as never);
 
-    expect(await ProjectService.claimSmsOrCallLowBalanceNotice(PROJECT_ID)).toBe(
-      false,
-    );
+    expect(
+      await ProjectService.claimSmsOrCallLowBalanceNotice(PROJECT_ID),
+    ).toBe(false);
   });
 
   test("the AI credits' notice is claimed the same way, on its own flag", async () => {

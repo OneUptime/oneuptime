@@ -259,10 +259,7 @@ export default class TelegramService {
             costInUSDCents: messageCostInUSDCents,
           };
 
-          if (
-            !balanceInUSDCents ||
-            balanceInUSDCents < messageCostInUSDCents
-          ) {
+          if (!balanceInUSDCents || balanceInUSDCents < messageCostInUSDCents) {
             telegramLog.status = TelegramStatus.LowBalance;
             telegramLog.statusMessage =
               getProjectBalanceMessageNotSentReason(shortfall);

@@ -50,6 +50,9 @@ const SKIPPED_DIRECTORIES: Set<string> = new Set<string>([
   "SchemaMigrations",
 ]);
 
+const SOURCE_FILE: RegExp = /\.(ts|tsx)$/;
+const TEST_FILE: RegExp = /\.(test|spec)\.(ts|tsx)$/;
+
 function listSourceFiles(directory: string): Array<string> {
   if (!fs.existsSync(directory)) {
     return [];
@@ -67,8 +70,8 @@ function listSourceFiles(directory: string): Array<string> {
     if (entry.isDirectory()) {
       found.push(...listSourceFiles(full));
     } else if (
-      /\.(ts|tsx)$/.test(entry.name) &&
-      !/\.(test|spec)\.(ts|tsx)$/.test(entry.name) &&
+      SOURCE_FILE.test(entry.name) &&
+      !TEST_FILE.test(entry.name) &&
       !entry.name.endsWith(".d.ts")
     ) {
       found.push(full);

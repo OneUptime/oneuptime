@@ -70,7 +70,10 @@ describe("DatabaseService.atomicAddToColumnsByIdAndGetValuesWithoutHooks", () =>
             },
           },
         },
-        query: async (sql: string, params: Array<unknown>): Promise<unknown> => {
+        query: async (
+          sql: string,
+          params: Array<unknown>,
+        ): Promise<unknown> => {
           captured.push({ sql, params });
           return answer;
         },

@@ -153,7 +153,7 @@ async function ask(
   route: BalanceRoute,
   req: OneUptimeRequest,
 ): Promise<{ state: string | undefined; error: unknown }> {
-  const next: jest.Mock = jest.fn();
+  const next: ReturnType<typeof jest.fn> = jest.fn();
 
   await mockRouter
     .match("get", PROJECT_BALANCE_AUTO_RECHARGE_STATE_ROUTE[route.balance])

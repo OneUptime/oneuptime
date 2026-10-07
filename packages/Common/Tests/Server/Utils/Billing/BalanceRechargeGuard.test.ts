@@ -218,7 +218,11 @@ describe("getAutoRechargeSettings: what Auto Recharge is set to", () => {
         rechargeByInUSD: { stored: 20 },
         whenBalanceFallsToInUSD: { stored: 10 },
       }),
-    ).toEqual({ isSetUp: true, rechargeByInUSD: 20, whenBalanceFallsToInUSD: 10 });
+    ).toEqual({
+      isSetUp: true,
+      rechargeByInUSD: 20,
+      whenBalanceFallsToInUSD: 10,
+    });
   });
 
   test("off: not set up", () => {
@@ -238,7 +242,11 @@ describe("getAutoRechargeSettings: what Auto Recharge is set to", () => {
         rechargeByInUSD: { changed: 0, stored: 20 },
         whenBalanceFallsToInUSD: { changed: 50, stored: 10 },
       }),
-    ).toEqual({ isSetUp: false, rechargeByInUSD: 0, whenBalanceFallsToInUSD: 50 });
+    ).toEqual({
+      isSetUp: false,
+      rechargeByInUSD: 0,
+      whenBalanceFallsToInUSD: 50,
+    });
   });
 
   test("a change that names nothing (undefined or null) keeps what is stored", () => {
@@ -248,7 +256,11 @@ describe("getAutoRechargeSettings: what Auto Recharge is set to", () => {
         rechargeByInUSD: { changed: undefined, stored: 25 },
         whenBalanceFallsToInUSD: { changed: null, stored: 10 },
       }),
-    ).toEqual({ isSetUp: true, rechargeByInUSD: 25, whenBalanceFallsToInUSD: 10 });
+    ).toEqual({
+      isSetUp: true,
+      rechargeByInUSD: 25,
+      whenBalanceFallsToInUSD: 10,
+    });
   });
 
   test("anything that is not a number counts as nothing", () => {
@@ -258,6 +270,10 @@ describe("getAutoRechargeSettings: what Auto Recharge is set to", () => {
         rechargeByInUSD: { stored: "twenty" as unknown as number },
         whenBalanceFallsToInUSD: { stored: 10 },
       }),
-    ).toEqual({ isSetUp: false, rechargeByInUSD: 0, whenBalanceFallsToInUSD: 10 });
+    ).toEqual({
+      isSetUp: false,
+      rechargeByInUSD: 0,
+      whenBalanceFallsToInUSD: 10,
+    });
   });
 });

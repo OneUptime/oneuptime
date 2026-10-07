@@ -297,12 +297,12 @@ describe("TelegramService credential containment", () => {
     expect(
       ProjectService.deductSmsOrCallBalanceInUSDCents,
     ).toHaveBeenCalledTimes(1);
-    expect(ProjectService.deductSmsOrCallBalanceInUSDCents).toHaveBeenCalledWith(
-      {
-        projectId: PROJECT_ID,
-        amountInUSDCents: 1,
-      },
-    );
+    expect(
+      ProjectService.deductSmsOrCallBalanceInUSDCents,
+    ).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      amountInUSDCents: 1,
+    });
     expect(ProjectService.updateOneById).not.toHaveBeenCalled();
     expect(TelegramLogService.create).toHaveBeenCalledTimes(1);
     const persistedLog: TelegramLog = (

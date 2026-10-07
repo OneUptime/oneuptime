@@ -213,10 +213,7 @@ export default class WhatsAppService {
           const balanceInUSDCents: number =
             project.smsOrCallCurrentBalanceInUSDCents || 0;
 
-          if (
-            !balanceInUSDCents ||
-            balanceInUSDCents < messageCostInUSDCents
-          ) {
+          if (!balanceInUSDCents || balanceInUSDCents < messageCostInUSDCents) {
             const shortfall: {
               channel: ProjectNotificationChannel;
               balanceInUSDCents: number;
