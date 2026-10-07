@@ -18,6 +18,7 @@
     "copy": "복사",
     "copied": "복사됨",
     "copyCode": "코드 복사",
+    "diagramNotDrawn": "이 다이어그램을 그릴 수 없습니다.",
     "searchHintNavigate": "이동",
     "searchHintSelect": "선택",
     "pagination": "페이지 이동",

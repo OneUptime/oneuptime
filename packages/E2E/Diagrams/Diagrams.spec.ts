@@ -220,6 +220,29 @@ test.describe("the Dashboard's markdown viewer", () => {
     await expectSourceBuild(responses, { katex: true });
   });
 
+  test("keeps the $$...$$ label drawn when the theme changes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto("/dashboard");
+    await expect(diagramsIn(page)).toHaveCount(2);
+    await expect(diagramsIn(page).first().locator("math")).toHaveCount(1);
+
+    await page.getByRole("button", { name: "Toggle theme" }).click();
+
+    await expect
+      .poll(async () => {
+        return styleOf(diagramsIn(page).first());
+      })
+      .toMatch(DARK_THEME_FILL);
+    await expect(diagramsIn(page)).toHaveCount(2);
+    await expect(
+      diagramsIn(page).first().locator("foreignObject math msup"),
+    ).toHaveCount(3);
+    expect(await mermaidLeftovers(page)).toEqual([]);
+  });
+
   test("keeps only KaTeX's MathML in the label, and no HTML", async ({
     page,
   }: {
@@ -505,6 +528,44 @@ test.describe("the docs", () => {
 
     // Mermaid used to leave its error graphic at the end of the page body.
     expect(await mermaidLeftovers(page)).toEqual([]);
+  });
+
+  test("ends in the last theme, every label drawn, when the theme is switched twice in a row", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const errors: Array<string> = recordConsoleErrors(page);
+
+    await page.goto("/docs");
+    await expect(diagramsIn(page)).toHaveCount(2);
+
+    await page.evaluate(() => {
+      document.documentElement.classList.add("dark");
+      window.dispatchEvent(new Event("docs:themechange"));
+      document.documentElement.classList.remove("dark");
+      window.dispatchEvent(new Event("docs:themechange"));
+    });
+
+    // The third draw (the page's own, then two switches) is the one shown.
+    await expect(
+      page.locator('.docs-diagram .mermaid svg[id^="docs-diagram-3-"]'),
+    ).toHaveCount(2);
+    await page.waitForTimeout(300);
+    await expect(diagramsIn(page)).toHaveCount(2);
+
+    expect(await styleOf(diagramsIn(page).first())).toMatch(
+      DEFAULT_THEME_FILL,
+    );
+    await expect(diagramsIn(page).first().locator("math")).toHaveCount(1);
+    await expect(diagramsIn(page).first()).toContainText("Plain label");
+    await expect(diagramsIn(page).nth(1)).toContainText("Hello Bob");
+    expect(await mermaidLeftovers(page)).toEqual([]);
+    expect(
+      errors.filter((text: string): boolean => {
+        return text.includes("Mermaid");
+      }),
+    ).toEqual([]);
   });
 
   test("keeps a diagram it could not draw as it is when the theme changes", async ({

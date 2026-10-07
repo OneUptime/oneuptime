@@ -84,7 +84,7 @@ SyntaxHighlighter.registerLanguage("http", http);
 SyntaxHighlighter.registerLanguage("hcl", hcl);
 SyntaxHighlighter.registerLanguage("terraform", hcl);
 SyntaxHighlighter.registerLanguage("tf", hcl);
-import DOMPurify from "dompurify";
+import { sanitizeDiagramSvg } from "./DiagramSanitizer";
 import SessionAwareImage from "./SessionAwareImage";
 import OneUptimeDate from "../../../Types/Date";
 import { Theme, useTheme } from "../../Utils/Theme";
@@ -160,6 +160,11 @@ const initializeMermaid: (mermaid: MermaidApi, theme: Theme) => void = (
     startOnLoad: false,
     theme: isDark ? "dark" : "default",
     securityLevel: "strict",
+    /*
+     * A diagram that does not parse throws, and the viewer says so in its
+     * place; mermaid draws no "Syntax error" graphic of its own.
+     */
+    suppressErrorRendering: true,
     fontFamily: "inherit",
     themeVariables: isDark
       ? {
@@ -181,6 +186,43 @@ const initializeMermaid: (mermaid: MermaidApi, theme: Theme) => void = (
           tertiaryColor: "#ffffff",
         },
   });
+};
+
+/*
+ * mermaid draws in a working element of its own and measures every label
+ * with the page's layout, so that element must be in the page while it
+ * draws. Given no container it appends one to document.body, and it leaves
+ * it there - with its "Syntax error in text" graphic in it - for a diagram
+ * that does not parse: one more at the end of the page on every redraw. So
+ * each diagram is drawn in a container of its own, laid out but never seen,
+ * and the container goes when the drawing is done, whatever happened.
+ */
+const renderInOwnContainer: (
+  mermaid: MermaidApi,
+  id: string,
+  chart: string,
+) => Promise<string> = async (
+  mermaid: MermaidApi,
+  id: string,
+  chart: string,
+): Promise<string> => {
+  const container: HTMLDivElement = document.createElement("div");
+  container.setAttribute("aria-hidden", "true");
+  container.style.position = "absolute";
+  container.style.top = "0";
+  container.style.width = "100%";
+  container.style.height = "0";
+  container.style.overflow = "hidden";
+  container.style.visibility = "hidden";
+  container.style.pointerEvents = "none";
+  document.body.appendChild(container);
+
+  try {
+    const { svg } = await mermaid.render(id, chart, container);
+    return svg;
+  } finally {
+    container.remove();
+  }
 };
 
 // Mermaid diagram component (exported so tests can exercise the lazy load directly)
@@ -210,12 +252,10 @@ export const MermaidDiagram: FunctionComponent<{ chart: string }> = ({
         containerRef.current.innerHTML = "";
         initializeMermaid(mermaid, theme);
         const id: string = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
-        const { svg } = await mermaid.render(id, chart);
+        const svg: string = await renderInOwnContainer(mermaid, id, chart);
         if (containerRef.current && !isCancelled) {
-          containerRef.current.innerHTML = DOMPurify.sanitize(svg, {
-            USE_PROFILES: { svg: true, svgFilters: true },
-            ADD_TAGS: ["foreignObject"],
-          });
+          // SVG, plus the MathML KaTeX writes for a $$...$$ label.
+          containerRef.current.innerHTML = sanitizeDiagramSvg(svg);
         }
       } catch (error) {
         if (containerRef.current && !isCancelled) {

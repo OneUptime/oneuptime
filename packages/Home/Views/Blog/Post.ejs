@@ -947,6 +947,17 @@
             <% } %>
             <script>
                 (function(){
+                    /*
+                     * The page's features, one function each, run one by one at
+                     * the bottom. A feature with nothing to do returns from its
+                     * own function, and one that fails is logged, so neither
+                     * stops the others: a post without an h2 heading has no
+                     * table of contents, which used to return from this whole
+                     * script and leave the rest of the page without back to
+                     * top, image hints, heading links, the lightbox, long code
+                     * folding, copy link and the validation report.
+                     */
+
                     // Language name mapping for display
                     var langNames = {
                         'js': 'JavaScript', 'javascript': 'JavaScript', 'ts': 'TypeScript', 'typescript': 'TypeScript',
@@ -961,7 +972,7 @@
                     };
 
                     // Add copy button and language label to code blocks
-                    try {
+                    function codeBlockHeaders() {
                         var codeBlocks = document.querySelectorAll('.blog-body pre');
                         codeBlocks.forEach(function(pre) {
                             var codeEl = pre.querySelector('code');
@@ -1013,10 +1024,10 @@
                             pre.style.position = 'relative';
                             pre.insertBefore(header, pre.firstChild);
                         });
-                    } catch(e) {}
+                    }
 
                     // Reading time
-                    try {
+                    function readingTime() {
                         const container = document.querySelector('.blog-body');
                         if(container){
                             const text = container.textContent || '';
@@ -1028,10 +1039,10 @@
                             const el2 = document.getElementById('reading-time-inline');
                             if(el2){ el2.textContent = rt; }
                         }
-                    } catch (e) {}
+                    }
 
                     // Reading progress indicator
-                    try {
+                    function readingProgress() {
                         const progressBar = document.getElementById('reading-progress');
                         const target = document.querySelector('.blog-body');
                         if(progressBar && target){
@@ -1060,15 +1071,20 @@
                             });
                             update();
                         }
-                    } catch (e) {}
+                    }
 
                     // TOC with active state tracking and sticky positioning
-                    try {
+                    function tableOfContents() {
                         const container = document.querySelector('.blog-body');
                         const contentWrapper = document.getElementById('content-wrapper');
                         if(!container){ return; }
                         const headings = container.querySelectorAll('h2');
-                        if(!headings.length){ return; }
+                        if(!headings.length){
+                            // Nothing to list: leave out the empty "On this page" panel.
+                            var emptyToc = document.getElementById('floating-toc');
+                            if(emptyToc){ emptyToc.remove(); }
+                            return;
+                        }
                         const toc = document.getElementById('toc');
                         const floatingToc = document.getElementById('floating-toc');
                         if(!toc){ return; }
@@ -1131,10 +1147,10 @@
                         window.addEventListener('scroll', updateToc, { passive: true });
                         window.addEventListener('resize', updateToc, { passive: true });
                         updateToc();
-                    } catch (e) {}
+                    }
 
                     // Back to top button
-                    try {
+                    function backToTop() {
                         const backToTopBtn = document.getElementById('back-to-top');
                         if(backToTopBtn){
                             const toggleVisibility = () => {
@@ -1150,10 +1166,10 @@
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
                             });
                         }
-                    } catch (e) {}
+                    }
 
                     // Stabilize images inside blog body (add width/height if missing & lazy-load non-hero images)
-                    try {
+                    function imageHints() {
                         const imgs = document.querySelectorAll('.blog-body img');
                         imgs.forEach((img, index) => {
                             // If width/height already specified, skip dimension inference
@@ -1182,10 +1198,10 @@
                                 img.classList.add('block');
                             }
                         });
-                    } catch(e) {}
+                    }
 
                     // Anchor links on headings
-                    try {
+                    function headingLinks() {
                         var headingsForAnchors = document.querySelectorAll('.blog-body h1, .blog-body h2, .blog-body h3, .blog-body h4');
                         headingsForAnchors.forEach(function(h) {
                             if(!h.id){
@@ -1199,10 +1215,10 @@
                             anchor.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>';
                             h.appendChild(anchor);
                         });
-                    } catch(e) {}
+                    }
 
                     // Image lightbox
-                    try {
+                    function imageLightbox() {
                         var overlay = document.getElementById('lightbox-overlay');
                         var lightboxImg = document.getElementById('lightbox-img');
                         if(overlay && lightboxImg) {
@@ -1231,10 +1247,10 @@
                                 }
                             });
                         }
-                    } catch(e) {}
+                    }
 
                     // Collapsible long code blocks (>100 lines)
-                    try {
+                    function longCodeFolding() {
                         var allPres = document.querySelectorAll('.blog-body pre');
                         allPres.forEach(function(pre) {
                             var codeEl = pre.querySelector('code');
@@ -1259,10 +1275,10 @@
                                 pre.parentNode.insertBefore(expandBtn, pre.nextSibling);
                             }
                         });
-                    } catch(e) {}
+                    }
 
                     // Time remaining indicator
-                    try {
+                    function timeRemaining() {
                         var blogBody = document.querySelector('.blog-body');
                         var timeRemainingEl = document.getElementById('time-remaining');
                         var timeRemainingText = document.getElementById('time-remaining-text');
@@ -1292,10 +1308,10 @@
                             window.addEventListener('scroll', updateTimeRemaining, { passive: true });
                             updateTimeRemaining();
                         }
-                    } catch(e) {}
+                    }
 
                     // Copy link buttons
-                    try {
+                    function copyLinkButtons() {
                         var copyLinkBtns = document.querySelectorAll('.copy-link-btn');
                         copyLinkBtns.forEach(function(btn) {
                             btn.addEventListener('click', function() {
@@ -1312,10 +1328,10 @@
                                 });
                             });
                         });
-                    } catch(e) {}
+                    }
 
                     // Validation report modal: open from the footer badge, lazily load the report on first open.
-                    try {
+                    function validationReport() {
                         var validationModal = document.getElementById('validation-modal');
                         var validationOpenBtn = document.getElementById('validation-open');
                         if (validationModal && validationOpenBtn) {
@@ -1378,7 +1394,28 @@
                                 }
                             });
                         }
-                    } catch(e) {}
+                    }
+
+                    [
+                        codeBlockHeaders,
+                        readingTime,
+                        readingProgress,
+                        tableOfContents,
+                        backToTop,
+                        imageHints,
+                        headingLinks,
+                        imageLightbox,
+                        longCodeFolding,
+                        timeRemaining,
+                        copyLinkButtons,
+                        validationReport
+                    ].forEach(function(feature){
+                        try {
+                            feature();
+                        } catch (error) {
+                            console.error('Blog page: ' + feature.name + ' did not run', error);
+                        }
+                    });
                 })();
             </script>
             <script type="module">
@@ -1387,9 +1424,7 @@
                  * image builds mermaid from its source, with the dependencies
                  * npm installed (Common/Scripts/build-mermaid-browser.js).
                  *
-                 * A module of its own rather than a section of the script
-                 * above, which stops at its table of contents on a post with
-                 * no h2 headings: a diagram must not depend on one.
+                 * A module of its own, so it can import that build.
                  *
                  * The blocks are collected before the first await. Module
                  * scripts run before DOMContentLoaded, and the highlight.js
@@ -1403,7 +1438,15 @@
                         const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
                         mermaid.initialize({
                             startOnLoad: false,
-                            securityLevel: 'loose', // Content is trusted (owned blog); allows links & styling
+                            /*
+                             * Strict, like the docs and every frontend: a click
+                             * cannot call a page function, a link cannot be a
+                             * javascript: URL, and mermaid sanitizes the SVG it
+                             * returns. Labels keep their HTML (bold, line breaks,
+                             * links) either way, and no post's diagram uses a
+                             * click callback.
+                             */
+                            securityLevel: 'strict',
                             theme: prefersDark ? 'dark' : 'default'
                         });
                         mermaidCodeBlocks.forEach((codeEl, i) => {

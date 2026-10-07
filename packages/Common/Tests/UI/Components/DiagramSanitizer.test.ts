@@ -40,8 +40,12 @@ const NEVER_WRITTEN_FOR_A_LABEL: Array<string> = [
 
 // Attributes KaTeX sets only on its HTML, its SVG, or the nodes above.
 const NOT_ON_A_LABELS_MATHML: Array<string> = [
+  // Its HTML and its SVG.
   "aria-hidden",
   "d",
+  // annotation.
+  "encoding",
+  // mglyph.
   "src",
   "alt",
   "valign",
@@ -248,6 +252,32 @@ describe("the MathML a diagram may carry", () => {
         null,
       ]);
     }
+  });
+});
+
+describe("the sanitizer's own rules", () => {
+  test("leave the page's other DOMPurify as it was", () => {
+    // The diagram rules run first, as they would on a page with a diagram.
+    sanitizedInPage(mathInALabel("<mi>x</mi>"));
+
+    // DOMPurify's defaults keep MathML anywhere, and drop no SVG's style.
+    const plain: HTMLDivElement = parse(
+      DOMPurify.sanitize(
+        `<p>Text</p><math><mi>y</mi></math><svg><style>.a{}</style></svg>`,
+      ) as string,
+    );
+
+    expect(plain.querySelector("p")?.textContent).toBe("Text");
+    expect(plain.querySelector("math mi")?.textContent).toBe("y");
+    expect(plain.querySelector("svg style")).not.toBeNull();
+  });
+
+  test("give the same answer every time", () => {
+    const svg: string = mathInALabel(
+      "<mrow><msup><mi>x</mi><mn>2</mn></msup></mrow>",
+    );
+
+    expect(sanitizeDiagramSvg(svg)).toBe(sanitizeDiagramSvg(svg));
   });
 });
 

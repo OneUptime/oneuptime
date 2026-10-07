@@ -123,13 +123,22 @@ const settle: () => Promise<void> = (): Promise<void> => {
   });
 };
 
+interface OpenOptions {
+  // window.addEventListener throws for "resize", as a broken browser might.
+  failResizeListeners?: boolean;
+}
+
 /*
  * The rendered page in jsdom with its scripts running. jsdom loads no
  * external script, so highlight.js is a stub; it lays nothing out and has no
  * clipboard, scrolling or network, so those are recorded instead.
  */
-const openPost: (htmlBody: string) => Promise<OpenedPost> = async (
+const openPost: (
   htmlBody: string,
+  options?: OpenOptions,
+) => Promise<OpenedPost> = async (
+  htmlBody: string,
+  options: OpenOptions = {},
 ): Promise<OpenedPost> => {
   const html: string = await renderPost(htmlBody);
   const scrolledTo: Array<unknown> = [];
@@ -193,6 +202,22 @@ const openPost: (htmlBody: string) => Promise<OpenedPost> = async (
           },
         },
       });
+      if (options.failResizeListeners) {
+        const addEventListener: typeof window.addEventListener =
+          window.addEventListener.bind(window);
+        window.addEventListener = ((
+          type: string,
+          ...rest: Array<unknown>
+        ): void => {
+          if (type === "resize") {
+            throw new Error("resize listeners are broken here");
+          }
+          (addEventListener as (...args: Array<unknown>) => void)(
+            type,
+            ...rest,
+          );
+        }) as typeof window.addEventListener;
+      }
     },
   });
 
@@ -404,6 +429,49 @@ describe("a blog post without an h2 heading", () => {
     expect(byId(page, "validation-modal-content").textContent).toContain(
       "Every claim was checked.",
     );
+  });
+});
+
+describe("a feature that fails", () => {
+  test("is reported, and every feature after it still runs", async () => {
+    /*
+     * Reading progress and the table of contents listen for resize; with
+     * that broken, both fail. The features after them must not care.
+     */
+    const page: OpenedPost = await openPost(BODY_WITH_H2, {
+      failResizeListeners: true,
+    });
+
+    const reported: Array<string> = page.errors.filter(
+      (error: string): boolean => {
+        return error.includes("Blog page:");
+      },
+    );
+
+    expect(reported).toEqual([
+      expect.stringContaining("Blog page: readingProgress did not run"),
+      expect.stringContaining("Blog page: tableOfContents did not run"),
+    ]);
+
+    // After them: back to top, image hints, heading links, the lightbox...
+    page.setScrollY(900);
+    expect(byId(page, "back-to-top").classList.contains("visible")).toBe(true);
+    expect(blogImages(page)[0]?.getAttribute("decoding")).toBe("async");
+    expect(
+      page.document.querySelectorAll(".blog-body .heading-anchor"),
+    ).toHaveLength(4);
+
+    click(page, blogImages(page)[0] as HTMLImageElement);
+    expect(byId(page, "lightbox-overlay").classList.contains("active")).toBe(
+      true,
+    );
+
+    // ...and the validation report, the last of them.
+    click(page, byId(page, "validation-open"));
+    await settle();
+    expect(page.fetched).toEqual([
+      "/blog/post/2026-10-07-diagrams-everywhere/validation-summary",
+    ]);
   });
 });
 

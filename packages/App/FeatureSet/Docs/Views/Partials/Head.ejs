@@ -20,6 +20,8 @@
 </script>
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0a0d14" media="(prefers-color-scheme: dark)">
+<!-- Shown above a diagram the page could not draw; read by the diagram script below. -->
+<meta name="oneuptime-docs-diagram-not-drawn" content="<%= t('ui.diagramNotDrawn') %>">
 <link rel="preload" href="/docs/static/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/docs/static/fonts/JetBrainsMono-Regular.woff2" as="font" type="font/woff2" crossorigin>
 <style>
@@ -188,6 +190,10 @@
      * that actually draw a diagram. The image builds it from mermaid's source
      * with the dependencies npm installed - see Common/Scripts/
      * build-mermaid-browser.js.
+     *
+     * A diagram that cannot be drawn - it does not parse, or this server has
+     * no mermaid build - keeps its source, laid out as it was written, under
+     * a short note saying so, and the rest of the page is drawn as usual.
      */
     const diagrams = Array.prototype.slice.call(document.querySelectorAll('.mermaid'));
     if (diagrams.length > 0) {
@@ -198,14 +204,75 @@
         const definitions = diagrams.map((node) => {
             return node.textContent;
         });
-        const mermaid = (await import('/oneuptime-assets/mermaid/mermaid.mjs')).default;
+        const noteMeta = document.querySelector('meta[name="oneuptime-docs-diagram-not-drawn"]');
+        const notDrawnText = (noteMeta && noteMeta.getAttribute('content')) || 'This diagram could not be drawn.';
+
+        // Its source, and the note above it - once, however often it is redrawn.
+        const showSource = (index) => {
+            const node = diagrams[index];
+            node.textContent = definitions[index];
+            node.setAttribute('data-diagram', 'source');
+            const previous = node.previousElementSibling;
+            if (!previous || !previous.classList.contains('docs-diagram__note')) {
+                const note = document.createElement('p');
+                note.className = 'docs-diagram__note';
+                note.textContent = notDrawnText;
+                node.before(note);
+            }
+        };
+
+        let mermaid = null;
+        try {
+            mermaid = (await import('/oneuptime-assets/mermaid/mermaid.mjs')).default;
+        } catch (error) {
+            console.error('Mermaid could not be loaded, so the diagrams on this page are shown as text', error);
+            diagrams.forEach((node, index) => {
+                showSource(index);
+            });
+        }
+
+        /*
+         * mermaid draws in a working element of its own and measures every
+         * label with the page's layout, so that element must be in the page
+         * while it draws. Given no container it appends one to the end of the
+         * body, and leaves it there - with its "Syntax error in text" graphic
+         * in it - for a diagram that does not parse. So each diagram is drawn
+         * in a container of its own, laid out but never seen, which goes when
+         * the drawing is done, whatever happened.
+         */
+        const renderInOwnContainer = async (id, definition) => {
+            const container = document.createElement('div');
+            container.setAttribute('aria-hidden', 'true');
+            container.style.cssText = 'position:absolute;top:0;width:100%;height:0;overflow:hidden;visibility:hidden;pointer-events:none;';
+            document.body.appendChild(container);
+            try {
+                return await mermaid.render(id, definition, container);
+            } finally {
+                container.remove();
+            }
+        };
+
+        /*
+         * Each draw gives its diagrams ids of their own: mermaid finds the
+         * diagram it is drawing by id, and on a redraw the one on the page
+         * still has the last draw's. A draw that a newer one has overtaken (the
+         * theme switched twice in a row) stops where it is.
+         */
+        let latestDraw = 0;
 
         const draw = async () => {
+            const thisDraw = ++latestDraw;
             mermaid.initialize({
                 startOnLoad: false,
+                // The page says a diagram could not be drawn; mermaid draws no graphic for it.
+                suppressErrorRendering: true,
                 theme: document.documentElement.classList.contains('dark') ? 'dark' : 'default',
             });
             for (let index = 0; index < diagrams.length; index++) {
+                // One that did not parse will not on a redraw either; it stays as it is.
+                if (diagrams[index].getAttribute('data-diagram') === 'source') {
+                    continue;
+                }
                 try {
                     /*
                      * render() rather than run(): run() walks the DOM itself and
@@ -214,11 +281,15 @@
                      * ourselves is the same work with a visible failure mode —
                      * and one bad diagram cannot take the others with it.
                      */
-                    const result = await mermaid.render(
-                        'docs-diagram-' + index,
+                    const result = await renderInOwnContainer(
+                        'docs-diagram-' + thisDraw + '-' + index,
                         definitions[index],
                     );
+                    if (thisDraw !== latestDraw) {
+                        return;
+                    }
                     diagrams[index].innerHTML = result.svg;
+                    diagrams[index].setAttribute('data-diagram', 'drawn');
 
                     /*
                      * Fill the column, but never below the layout Mermaid
@@ -236,19 +307,26 @@
                         svg.style.minWidth = Math.ceil(naturalWidth) + 'px';
                     }
                 } catch (error) {
+                    if (thisDraw !== latestDraw) {
+                        return;
+                    }
+                    showSource(index);
                     console.error('Mermaid could not render a diagram on this page', error);
                 }
             }
         };
 
-        /*
-         * `startOnLoad` is no use here: the dynamic import above resolves after
-         * DOMContentLoaded has already fired, so rendering is triggered by hand.
-         */
-        await draw();
-        window.addEventListener('docs:themechange', () => {
-            draw();
-        });
+        if (mermaid) {
+            /*
+             * `startOnLoad` is no use here: the dynamic import above resolves
+             * after DOMContentLoaded has already fired, so rendering is
+             * triggered by hand.
+             */
+            await draw();
+            window.addEventListener('docs:themechange', () => {
+                draw();
+            });
+        }
     }
 </script>
 
