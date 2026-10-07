@@ -14,9 +14,16 @@ import { isKnownFormMessage } from "../Utils/FormMessage";
 import IconProp from "Common/Types/Icon/IconProp";
 import { PublicFormImage } from "Common/Types/Form/FormBranding";
 import {
+  findPublicFormTemplate,
+  getPublicFormStartTemplate,
   PublicForm,
   PublicFormSubmissionResult,
+  PublicFormTemplate,
 } from "Common/Types/Form/FormPublic";
+import {
+  FORM_TEMPLATE_QUERY_PARAMETER,
+  readFormTemplateIdFromSearch,
+} from "Common/Types/Form/FormTemplate";
 import { JSONObject } from "Common/Types/JSON";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -35,7 +42,9 @@ import {
   getPublicFormInitialValues,
 } from "Common/UI/Components/PublicForm/PublicFormFields";
 import PublicFormLogo from "Common/UI/Components/PublicForm/PublicFormLogo";
+import PublicFormTemplatePicker from "Common/UI/Components/PublicForm/PublicFormTemplatePicker";
 import { CAPTCHA_ENABLED, CAPTCHA_SITE_KEY } from "Common/UI/Config";
+import Navigation from "Common/UI/Utils/Navigation";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -69,6 +78,14 @@ import { Params, useParams } from "react-router-dom";
  * OneUptime logo at the top of every screen that has the form (the form
  * and the thank-you screen), and its favicon is the tab's icon while the
  * form is open. A link that leads to no form shows OneUptime's.
+ *
+ * A form with templates lists them over its questions. The page opens with
+ * the template its link names (?template=<id>), else the form's default,
+ * else none; choosing another starts the form over from that template's
+ * answers, and the address follows the choice, so the link in the address
+ * bar opens the form the way it is now. The submission names the template
+ * it started from, and the server answers the form's hidden questions from
+ * it.
  */
 
 const CAPTCHA_TOKEN_KEY: string = "captchaToken";
@@ -147,6 +164,9 @@ const FormPage: () => JSX.Element = () => {
   // Bumped by "Submit another response": a new key is a fresh, empty form.
   const [formInstance, setFormInstance] = useState<number>(0);
 
+  // The template the form was filled in from; null for none.
+  const [templateId, setTemplateId] = useState<string | null>(null);
+
   const [captchaResetSignal, setCaptchaResetSignal] = useState<number>(0);
 
   /*
@@ -212,6 +232,15 @@ const FormPage: () => JSX.Element = () => {
     loadPublicForm(shareKey)
       .then((loadedForm: PublicForm) => {
         if (isCurrent) {
+          const startTemplate: PublicFormTemplate | undefined =
+            getPublicFormStartTemplate({
+              form: loadedForm,
+              requestedTemplateId: readFormTemplateIdFromSearch(
+                Navigation.getQueryString(),
+              ),
+            });
+
+          setTemplateId(startTemplate ? startTemplate.id : null);
           setForm(loadedForm);
         }
       })
@@ -333,10 +362,35 @@ const FormPage: () => JSX.Element = () => {
     return formFields;
   }, [form, t, isCaptchaShown, captchaResetSignal]);
 
-  // The option a question chooses to begin with (the form's own severity).
+  /*
+   * The option a question chooses to begin with (the form's own severity),
+   * and the answers of the template the form is filled in from.
+   */
   const initialValues: JSONObject = useMemo((): JSONObject => {
-    return form ? getPublicFormInitialValues(form) : {};
-  }, [form]);
+    return form
+      ? getPublicFormInitialValues(
+          form,
+          findPublicFormTemplate(form, templateId),
+        )
+      : {};
+  }, [form, templateId]);
+
+  type ChooseTemplateFunction = (chosen: string | null) => void;
+
+  /*
+   * Another template: the form starts over from its answers - a fresh form,
+   * as "Submit another response" makes one - and the address names it.
+   */
+  const chooseTemplate: ChooseTemplateFunction = (
+    chosen: string | null,
+  ): void => {
+    setTemplateId(chosen);
+    setSubmitFailure(null);
+    setFormInstance((instance: number): number => {
+      return instance + 1;
+    });
+    Navigation.setQueryString({ [FORM_TEMPLATE_QUERY_PARAMETER]: chosen });
+  };
 
   type SubmitFunction = (values: JSONObject) => Promise<void>;
 
@@ -359,6 +413,7 @@ const FormPage: () => JSX.Element = () => {
             isCaptchaShown && typeof values[CAPTCHA_TOKEN_KEY] === "string"
               ? (values[CAPTCHA_TOKEN_KEY] as string)
               : undefined,
+          templateId: templateId,
         }),
       );
 
@@ -543,6 +598,19 @@ const FormPage: () => JSX.Element = () => {
         >
           <MarkdownViewer text={form.description} />
         </div>
+      ) : (
+        <></>
+      )}
+      {form.templates && form.templates.length > 0 ? (
+        <PublicFormTemplatePicker
+          templates={form.templates}
+          selectedTemplateId={templateId}
+          label={t("form.templateLabel")}
+          description={t("form.templateDescription")}
+          emptyLabel={t("form.templateNone")}
+          onChange={chooseTemplate}
+          dataTestId="form-template-picker"
+        />
       ) : (
         <></>
       )}

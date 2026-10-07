@@ -663,3 +663,169 @@ describe("formatFormRetryAfter", () => {
     expect(formatFormRetryAfter(900, "not a language tag!")).toBeNull();
   });
 });
+
+describe("readPublicForm: the form's templates", () => {
+  const FIELDS: Array<JSONObject> = [
+    { id: "title", label: "Title", type: "Text", isRequired: true },
+    {
+      id: "office",
+      label: "Office",
+      type: "Dropdown",
+      isRequired: false,
+      options: [{ value: "Berlin" }, { value: "London" }],
+    },
+  ];
+
+  function read(templates: unknown): PublicForm {
+    return readPublicForm({
+      name: "Department A",
+      fields: FIELDS,
+      isCaptchaRequired: false,
+      templates: templates,
+    });
+  }
+
+  test("reads the templates the server listed, in order", () => {
+    expect(
+      read([
+        {
+          id: "outage",
+          name: "Application Outage",
+          answers: { title: "Down", office: "Berlin" },
+        },
+        {
+          id: "restored",
+          name: "Service Restored",
+          isDefault: true,
+          answers: { title: "Restored" },
+        },
+      ]).templates,
+    ).toEqual([
+      {
+        id: "outage",
+        name: "Application Outage",
+        answers: { title: "Down", office: "Berlin" },
+      },
+      {
+        id: "restored",
+        name: "Service Restored",
+        isDefault: true,
+        answers: { title: "Restored" },
+      },
+    ]);
+  });
+
+  test.each([undefined, null, "outage", {}, []])(
+    "a form with no templates (%j) has none",
+    (templates: unknown) => {
+      expect(read(templates)).not.toHaveProperty("templates");
+    },
+  );
+
+  test("drops a template it cannot use: no id, an id that is not one, no name, a repeat", () => {
+    expect(
+      read([
+        null,
+        "outage",
+        { name: "No id" },
+        { id: "../../admin", name: "Bad id" },
+        { id: "noname" },
+        { id: "blank", name: "  " },
+        { id: "outage", name: "Outage" },
+        { id: "outage", name: "Outage again" },
+      ]).templates,
+    ).toEqual([{ id: "outage", name: "Outage", answers: {} }]);
+  });
+
+  test("keeps only the answers to the questions the page asks", () => {
+    expect(
+      read([
+        {
+          id: "outage",
+          name: "Outage",
+          answers: { title: "Down", hidden: "Never asked", __proto__: "x" },
+        },
+      ]).templates![0]!.answers,
+    ).toEqual({ title: "Down" });
+  });
+
+  test("answers that are not an object are none", () => {
+    expect(
+      read([{ id: "outage", name: "Outage", answers: ["Down"] }]).templates![0]!
+        .answers,
+    ).toEqual({});
+  });
+
+  test("only the first default is a default, and only true is one", () => {
+    const templates: Array<{ isDefault?: boolean | undefined }> = read([
+      { id: "a", name: "A", isDefault: "true" },
+      { id: "b", name: "B", isDefault: true },
+      { id: "c", name: "C", isDefault: true },
+    ]).templates!;
+
+    expect(
+      templates.map((template: { isDefault?: boolean | undefined }) => {
+        return template.isDefault;
+      }),
+    ).toEqual([undefined, true, undefined]);
+  });
+
+  test("trims a name, and cuts one too long for a template", () => {
+    const templates: Array<{ name: string }> = read([
+      { id: "a", name: "  Outage  " },
+      { id: "b", name: "x".repeat(150) },
+    ]).templates!;
+
+    expect(templates[0]!.name).toBe("Outage");
+    expect(templates[1]!.name).toHaveLength(100);
+  });
+});
+
+describe("buildFormSubmissionRequest: the template it started from", () => {
+  const FORM: PublicForm = {
+    name: "F",
+    fields: [
+      {
+        id: "title",
+        label: "Title",
+        type: PublicFormFieldType.Text,
+        isRequired: true,
+      },
+    ],
+    isCaptchaRequired: false,
+    templates: [{ id: "outage", name: "Outage", answers: { title: "Down" } }],
+  };
+
+  test("names the template the submitter started from", () => {
+    expect(
+      buildFormSubmissionRequest({
+        form: FORM,
+        values: { answer_title: "Down" },
+        templateId: "outage",
+      }),
+    ).toEqual({ data: { answers: { title: "Down" }, templateId: "outage" } });
+  });
+
+  test.each([null, undefined, "", "deleted"])(
+    "names none for %j, which is not one of the form's templates",
+    (templateId: string | null | undefined) => {
+      expect(
+        buildFormSubmissionRequest({
+          form: FORM,
+          values: { answer_title: "Down" },
+          templateId,
+        }).data,
+      ).not.toHaveProperty("templateId");
+    },
+  );
+
+  test("a form with no templates sends none, whatever the page held", () => {
+    expect(
+      buildFormSubmissionRequest({
+        form: { ...FORM, templates: undefined },
+        values: { answer_title: "Down" },
+        templateId: "outage",
+      }).data,
+    ).not.toHaveProperty("templateId");
+  });
+});

@@ -78,6 +78,7 @@ import {
   FormField,
   FormFieldSource,
   getDefaultFormFields,
+  validateFormFields,
 } from "Common/Types/Form/FormField";
 import {
   FORM_FAVICON_NOT_FOUND_MESSAGE,
@@ -101,6 +102,13 @@ import {
   getFormTargetFields,
 } from "Common/Types/Form/FormTargetCatalog";
 import FormTargetType from "Common/Types/Form/FormTargetType";
+import {
+  FORM_MAX_TEMPLATES,
+  FORM_TEMPLATE_NAME_MAX_LENGTH,
+  FORM_TEMPLATE_QUERY_PARAMETER,
+  FormTemplate,
+  validateFormTemplates,
+} from "Common/Types/Form/FormTemplate";
 import { convertLegacyIncidentForm } from "Common/Types/Form/LegacyIncidentFormConversion";
 import { JSONObject } from "Common/Types/JSON";
 import Permission, {
@@ -1140,6 +1148,8 @@ describe("Forms docs", () => {
         ...quoted,
         ...THANK_YOU_LINES(),
         "Submitted anonymously through the form **Report a Problem**.",
+        // The note's template line, checked against the note below.
+        "Started from the template **Application Outage**.",
         "incident created",
       ]) {
         rest = rest.split(`"${sentence}"`).join("");
@@ -1587,3 +1597,169 @@ function THANK_YOU_LINES(): Array<string> {
     (copy["reference"] as string).replace("{{reference}}", "INC-42"),
   ];
 }
+
+/*
+ * Templates, hidden questions and Duplicate Form, as the pages describe
+ * them against what the product does.
+ */
+describe("Forms docs: templates, hidden questions and Duplicate Form", () => {
+  it("name the Templates and Duplicate Form pages in the form's pages table", () => {
+    const pages: Array<string> = firstTable(
+      sectionOf(readPage(OVERVIEW_PAGE), 2, "A form's pages"),
+    ).map((row: Array<string>): string => {
+      return row[0] as string;
+    });
+
+    expect(pages).toEqual([
+      "**Build**",
+      "**Templates**",
+      "**On Submit**",
+      "**Share**",
+      "**Submissions**",
+      "**Duplicate Form**",
+      "**Delete Form**",
+    ]);
+  });
+
+  it("say a copy starts turned off, as Duplicate Form says it does", () => {
+    const row: Array<string> | undefined = firstTable(
+      sectionOf(readPage(OVERVIEW_PAGE), 2, "A form's pages"),
+    ).find((cells: Array<string>): boolean => {
+      return cells[0] === "**Duplicate Form**";
+    });
+
+    expect(row?.[1]).toContain("The copy starts turned off");
+    expect(FormsCopy.duplicateFormNote).toContain("It starts turned off");
+  });
+
+  it("hold templates to the limits the code holds them to", () => {
+    const templates: string = sectionOf(
+      readPage(BUILDING_PAGE),
+      2,
+      "Templates",
+    );
+
+    expect(templates).toContain(
+      `A template's name is up to ${FORM_TEMPLATE_NAME_MAX_LENGTH} characters and unique within the form, and a form has up to ${FORM_MAX_TEMPLATES} templates.`,
+    );
+
+    const api: string = sectionOf(
+      readPage(OVERVIEW_PAGE),
+      2,
+      "Forms through the API",
+    );
+
+    expect(api).toContain(
+      `a \`name\` of up to ${FORM_TEMPLATE_NAME_MAX_LENGTH} characters`,
+    );
+    expect(api).toContain(`and up to ${FORM_MAX_TEMPLATES} templates`);
+  });
+
+  it("show an API example of templates the server accepts", () => {
+    const blocks: Array<string> = splitMarkdown(
+      sectionOf(readPage(OVERVIEW_PAGE), 2, "Forms through the API"),
+    ).codeBlocks.filter((block: string): boolean => {
+      return block.includes('"templates"');
+    });
+
+    expect(blocks).toHaveLength(1);
+
+    const templates: Array<FormTemplate> = (
+      JSON.parse(blocks[0] as string) as {
+        data: { templates: Array<FormTemplate> };
+      }
+    ).data.templates;
+
+    expect(validateFormTemplates(templates)).toBeNull();
+  });
+
+  it("give a template's link the parameter the page reads", () => {
+    const section: string = sectionOf(
+      readPage(SHARING_PAGE),
+      3,
+      "A link for each template",
+    );
+
+    expect(section).toContain(`?${FORM_TEMPLATE_QUERY_PARAMETER}=`);
+    expect(section).toContain(
+      `https://oneuptime.com/accounts/form/<share-key>?${FORM_TEMPLATE_QUERY_PARAMETER}=<template-id>`,
+    );
+  });
+
+  it("word the picker as the public page words it", () => {
+    const locale: JSONObject = JSON.parse(
+      fs.readFileSync(ACCOUNTS_ENGLISH_LOCALE_FILE, "utf8"),
+    ) as JSONObject;
+    const label: string = (locale["form"] as JSONObject)[
+      "templateLabel"
+    ] as string;
+
+    expect(label).toBe("Start from a template");
+    expect(sectionOf(readPage(BUILDING_PAGE), 2, "Templates")).toContain(
+      `under **${label}**`,
+    );
+  });
+
+  it("quote the private note's template line as the note writes it", () => {
+    const note: string = getFormSubmissionNote({
+      formName: "Report a Problem",
+      templateName: "Application Outage",
+    });
+
+    expect(note.split("\n\n")[1]).toBe(
+      "Started from the template **Application Outage**.",
+    );
+    expect(
+      sectionOf(readPage(ON_SUBMIT_PAGE), 2, "The private note"),
+    ).toContain('"Started from the template **Application Outage**."');
+  });
+
+  it("say a field the target cannot be created without cannot be hidden, as the check says", () => {
+    expect(sectionOf(readPage(BUILDING_PAGE), 2, "Hidden questions")).toContain(
+      "a maintenance event's **Starts At** and **Ends At** — cannot be hidden",
+    );
+
+    const fields: Array<FormField> = getDefaultFormFields(
+      FormTargetType.ScheduledMaintenance,
+    ).map((field: FormField): FormField => {
+      return field.targetField === "startsAt"
+        ? { ...field, isHidden: true, isRequired: false }
+        : field;
+    });
+
+    expect(
+      validateFormFields({
+        value: fields,
+        targetType: FormTargetType.ScheduledMaintenance,
+      }),
+    ).toContain("Starts At cannot be hidden");
+  });
+
+  it("say a hidden question is never required, as the check says", () => {
+    expect(sectionOf(readPage(BUILDING_PAGE), 2, "Hidden questions")).toContain(
+      "so it is never required",
+    );
+    expect(FormsCopy.requiredHidden).toBe(
+      "A hidden question is never required: nobody is asked it.",
+    );
+  });
+
+  it("link the new sections from the pages that point readers to them", () => {
+    for (const [page, anchor] of [
+      [SHARING_PAGE, "forms/building#templates"],
+      [SHARING_PAGE, "forms/building#hidden-questions"],
+      [ON_SUBMIT_PAGE, "forms/building#hidden-questions"],
+      [ON_SUBMIT_PAGE, "forms/building#templates"],
+      [OVERVIEW_PAGE, "forms/building#templates"],
+      [BUILDING_PAGE, "forms/sharing-and-security#a-link-for-each-template"],
+    ] as Array<[string, string]>) {
+      expect({
+        page,
+        anchor,
+        linked: docsLinks(readPage(page)).some((link: DocsLink): boolean => {
+          return `${link.page}#${link.anchor}` === anchor;
+        }),
+      }).toEqual({ page, anchor, linked: true });
+    }
+  });
+});

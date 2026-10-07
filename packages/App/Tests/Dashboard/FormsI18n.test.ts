@@ -113,10 +113,12 @@ const NAVIGATION_STRINGS: Array<string> = [
   "Forms",
   "Form",
   "Build",
+  "Templates",
   "On Submit",
   "Share",
   "Submissions",
   "View Form",
+  "Duplicate Form",
   "Delete Form",
 ];
 
@@ -697,7 +699,14 @@ describe("the dashboard renders the strings", () => {
       expect(menus).toContain(`title: "${title}"`);
     }
 
-    for (const title of ["Build", "On Submit", "Share", "Delete Form"]) {
+    for (const title of [
+      "Build",
+      "Templates",
+      "On Submit",
+      "Share",
+      "Duplicate Form",
+      "Delete Form",
+    ]) {
       expect(menus).toContain(`title: "${title}"`);
       expect(breadcrumbs).toContain(
         `"${title === "Build" ? "View Form" : title}"`,

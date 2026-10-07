@@ -100,9 +100,15 @@ Every submission leaves a private note on what it created:
 > **Which office are you in?**\
 > Berlin
 
-It names the form and the submitter — "Submitted anonymously through the form **Report a Problem**." when the form did not ask who they are — and then lists the answers to the form's own questions, each under its question, in the form's order. The answers to linked questions are already on the record: its title, its severity, its custom fields. Being private, the note never reaches a status page, but it is posted to the record's Slack and Microsoft Teams channels like any other note.
+It names the form and the submitter — "Submitted anonymously through the form **Report a Problem**." when the form did not ask who they are — then, when the submission started from one of the form's templates, says which: "Started from the template **Application Outage**." — and then lists the answers to the form's own questions, each under its question, in the form's order. The answers to linked questions are already on the record: its title, its severity, its custom fields. Being private, the note never reaches a status page, but it is posted to the record's Slack and Microsoft Teams channels like any other note.
 
 The address is a link that writes to exactly that address — in the dashboard, in Slack and in the owners' email.
+
+## Hidden questions and templates
+
+A [hidden question](/docs/forms/building#hidden-questions) is answered from the [template](/docs/forms/building#templates) the submission started from — never from the request — and its answer goes exactly where a typed one would: a hidden **Description** becomes the incident's description, a hidden custom field its value, a hidden question of the form's own a line on the private note. A submission that started from no template leaves hidden questions unanswered, and their fields are filled in from the On Submit settings, as for any question left empty. A template deleted while someone had the form open does not stop their submission: it is created as they answered it, without the template's hidden answers.
+
+The answers a template filled in on the page are the submitter's once they submit: the server takes the answers the request sends for the questions the page asks, whatever the template said.
 
 ## Text a submitter writes
 
@@ -117,7 +123,7 @@ Everything else — links, the rest of the Markdown, dropdown choices, numbers, 
 
 ## Where to read next
 
-- [Building a Form](/docs/forms/building) — the questions that feed these fields.
+- [Building a Form](/docs/forms/building) — the questions that feed these fields, hidden questions and templates.
 - [Incident Settings & Automation](/docs/incidents/settings) — incident templates and custom fields.
 - [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) — private notes, public notes and owners.
 - [Sharing & Security](/docs/forms/sharing-and-security) — who can submit, and how often.

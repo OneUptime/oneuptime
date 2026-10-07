@@ -1529,6 +1529,242 @@ describe("finding a question", () => {
   });
 });
 
+describe("hidden questions", () => {
+  test("a hidden question is read as hidden", () => {
+    expect(readFormFields([question({ isHidden: true })])[0]!.isHidden).toBe(
+      true,
+    );
+  });
+
+  test.each([false, "true", 1, null])(
+    "Hidden %j is read as not hidden, and leaves no trace",
+    (isHidden: unknown) => {
+      expect(readFormFields([question({ isHidden })])[0]).not.toHaveProperty(
+        "isHidden",
+      );
+    },
+  );
+
+  test("any kind of question can be hidden", () => {
+    expect(
+      validate([
+        question({ id: "q", isHidden: true }),
+        {
+          id: "description",
+          source: FormFieldSource.TargetField,
+          targetField: "description",
+          label: "Description",
+          isRequired: false,
+          isHidden: true,
+        },
+        {
+          id: "cf",
+          source: FormFieldSource.TargetCustomField,
+          customFieldId: CUSTOM_FIELD_ID,
+          label: "Notification Type",
+          isRequired: false,
+          isHidden: true,
+        },
+        {
+          id: "name",
+          source: FormFieldSource.Submitter,
+          submitterField: FormSubmitterField.Name,
+          label: "Department",
+          isRequired: false,
+          isHidden: true,
+        },
+      ]),
+    ).toBeNull();
+  });
+
+  test.each([false, null, undefined])(
+    "Hidden %j is accepted as not hidden",
+    (isHidden: unknown) => {
+      expect(validate([question({ isHidden })])).toBeNull();
+    },
+  );
+
+  test.each(["true", 1, "yes", {}])(
+    "refuses Hidden %j, which is not true or false",
+    (isHidden: unknown) => {
+      expect(validate([question({ isHidden })])).toBe(
+        'Question 1 ("Which office are you in?"): Hidden must be true or false.',
+      );
+    },
+  );
+
+  test("refuses a hidden question that is required: nobody is asked it", () => {
+    expect(validate([question({ isHidden: true, isRequired: true })])).toBe(
+      'Question 1 ("Which office are you in?") is hidden, so it cannot be required: nobody is asked it.',
+    );
+  });
+
+  test("the incident's description can be hidden: an incident needs none", () => {
+    const fields: Array<FormField> = getDefaultFormFields(
+      FormTargetType.Incident,
+    ).map((field: FormField): FormField => {
+      return field.targetField === "description"
+        ? { ...field, isRequired: false, isHidden: true }
+        : field;
+    });
+
+    expect(validate(fields)).toBeNull();
+  });
+
+  test("a field the target cannot be created without cannot be hidden", () => {
+    const fields: Array<FormField> = getDefaultFormFields(
+      FormTargetType.ScheduledMaintenance,
+    ).map((field: FormField): FormField => {
+      return field.targetField === "startsAt"
+        ? { ...field, isHidden: true, isRequired: false }
+        : field;
+    });
+
+    expect(validate(fields, FormTargetType.ScheduledMaintenance)).toContain(
+      "Starts At cannot be hidden: a scheduled maintenance event cannot be created without it.",
+    );
+  });
+
+  test("a field the target cannot be created without, hidden and required, is refused for both", () => {
+    const fields: Array<FormField> = getDefaultFormFields(
+      FormTargetType.ScheduledMaintenance,
+    ).map((field: FormField): FormField => {
+      return field.targetField === "endsAt"
+        ? { ...field, isHidden: true }
+        : field;
+    });
+
+    const problem: string | null = validate(
+      fields,
+      FormTargetType.ScheduledMaintenance,
+    );
+
+    expect(problem).toContain("is hidden, so it cannot be required");
+    expect(problem).toContain(
+      "Ends At cannot be hidden: a scheduled maintenance event cannot be created without it.",
+    );
+  });
+
+  test("what validateFormFields accepts with a hidden question, readFormFields reads whole", () => {
+    const fields: Array<Record<string, unknown>> = [
+      question({ id: "a", isHidden: true }),
+      question({ id: "b" }),
+    ];
+
+    expect(validate(fields)).toBeNull();
+    expect(readFormFields(fields)).toEqual([
+      { ...fields[0], isHidden: true },
+      fields[1],
+    ]);
+  });
+
+  describe("when the form's target changes", () => {
+    const hiddenIncidentForm: Array<FormField> = [
+      {
+        id: "title",
+        source: FormFieldSource.TargetField,
+        targetField: "title",
+        label: "Title",
+        isRequired: true,
+      },
+      {
+        id: "description",
+        source: FormFieldSource.TargetField,
+        targetField: "description",
+        label: "Description",
+        isRequired: false,
+        isHidden: true,
+      },
+      {
+        id: "impact",
+        source: FormFieldSource.TargetField,
+        targetField: "impactStartedAt",
+        label: "When did it start?",
+        isRequired: false,
+        isHidden: true,
+      },
+      {
+        id: "cf",
+        source: FormFieldSource.TargetCustomField,
+        customFieldId: CUSTOM_FIELD_ID,
+        label: "Notification Type",
+        isRequired: false,
+        isHidden: true,
+      },
+      {
+        id: "q",
+        source: FormFieldSource.Question,
+        type: CustomFieldType.Text,
+        label: "Office",
+        isRequired: false,
+        isHidden: true,
+      },
+    ];
+
+    const converted: Array<FormField> = convertFormFieldsForTarget({
+      fields: deepFreeze(hiddenIncidentForm),
+      from: FormTargetType.Incident,
+      to: FormTargetType.ScheduledMaintenance,
+    });
+
+    const byId: (id: string) => FormField = (id: string): FormField => {
+      return converted.find((field: FormField): boolean => {
+        return field.id === id;
+      })!;
+    };
+
+    test("a hidden question stays hidden: nothing hidden appears", () => {
+      expect(byId("description").isHidden).toBe(true);
+      expect(byId("q").isHidden).toBe(true);
+    });
+
+    test("a linked field that becomes a question of the form's own keeps Hidden", () => {
+      expect(byId("impact")).toMatchObject({
+        source: FormFieldSource.Question,
+        isHidden: true,
+      });
+      expect(byId("cf")).toMatchObject({
+        source: FormFieldSource.Question,
+        isHidden: true,
+      });
+    });
+
+    test("what the new target cannot do without is added asked and required", () => {
+      const startsAt: FormField = converted.find(
+        (field: FormField): boolean => {
+          return field.targetField === "startsAt";
+        },
+      )!;
+
+      expect(startsAt.isHidden).toBeUndefined();
+      expect(startsAt.isRequired).toBe(true);
+      expect(
+        validate(converted, FormTargetType.ScheduledMaintenance),
+      ).toBeNull();
+    });
+  });
+
+  test("a hidden field both targets have stays hidden when the new one can do without it", () => {
+    const converted: Array<FormField> = convertFormFieldsForTarget({
+      fields: [
+        {
+          id: "title",
+          source: FormFieldSource.TargetField,
+          targetField: "title",
+          label: "Title",
+          isRequired: false,
+          isHidden: true,
+        },
+      ],
+      from: FormTargetType.Incident,
+      to: FormTargetType.ScheduledMaintenance,
+    });
+
+    // A title has a default on both targets: it may stay hidden.
+    expect(converted[0]!.isHidden).toBe(true);
+  });
+});
+
 describe("the module stays pure", () => {
   test("imports only other pure modules of Common", () => {
     const source: string = fs.readFileSync(

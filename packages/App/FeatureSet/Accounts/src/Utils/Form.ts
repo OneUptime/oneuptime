@@ -14,13 +14,20 @@ import {
 } from "Common/Types/Form/FormBranding";
 import { isFormFieldId } from "Common/Types/Form/FormField";
 import {
+  findPublicFormTemplate,
   PublicForm,
   PublicFormField,
   PublicFormFieldOption,
   PublicFormFieldType,
   PublicFormSubmissionRequest,
   PublicFormSubmissionResult,
+  PublicFormTemplate,
 } from "Common/Types/Form/FormPublic";
+import {
+  FORM_MAX_TEMPLATES,
+  FORM_TEMPLATE_NAME_MAX_LENGTH,
+  isFormTemplateId,
+} from "Common/Types/Form/FormTemplate";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { packPublicFormAnswers } from "Common/UI/Components/PublicForm/PublicFormFields";
@@ -202,6 +209,87 @@ const readField: ReadFieldFunction = (
   return field;
 };
 
+type ReadTemplatesFunction = (data: {
+  value: unknown;
+  fields: Array<PublicFormField>;
+}) => Array<PublicFormTemplate>;
+
+/*
+ * The templates the server listed, read with the server's rules: each needs
+ * an id and a name, an id is listed once, only the first default is one,
+ * and a template keeps only its answers to the questions this page asks -
+ * what each answer is, the page's inputs read (getPublicFormValuesFromAnswers)
+ * and the server checks again.
+ */
+const readTemplates: ReadTemplatesFunction = (data: {
+  value: unknown;
+  fields: Array<PublicFormField>;
+}): Array<PublicFormTemplate> => {
+  if (!Array.isArray(data.value)) {
+    return [];
+  }
+
+  const fieldIds: Set<string> = new Set<string>(
+    data.fields.map((field: PublicFormField): string => {
+      return field.id;
+    }),
+  );
+  const templates: Array<PublicFormTemplate> = [];
+  let hasDefault: boolean = false;
+
+  for (const entry of data.value.slice(0, FORM_MAX_TEMPLATES)) {
+    if (
+      !isPlainObject(entry) ||
+      !isFormTemplateId(entry["id"]) ||
+      typeof entry["name"] !== "string" ||
+      !entry["name"].trim()
+    ) {
+      continue;
+    }
+
+    const id: string = entry["id"];
+
+    if (
+      templates.some((template: PublicFormTemplate): boolean => {
+        return template.id === id;
+      })
+    ) {
+      continue;
+    }
+
+    const answers: JSONObject = {};
+    const rawAnswers: unknown = entry["answers"];
+
+    if (isPlainObject(rawAnswers)) {
+      for (const key of Object.keys(rawAnswers)) {
+        if (fieldIds.has(key)) {
+          Object.defineProperty(answers, key, {
+            value: rawAnswers[key],
+            enumerable: true,
+            writable: true,
+            configurable: true,
+          });
+        }
+      }
+    }
+
+    const template: PublicFormTemplate = {
+      id: id,
+      name: entry["name"].trim().slice(0, FORM_TEMPLATE_NAME_MAX_LENGTH),
+      answers: answers,
+    };
+
+    if (entry["isDefault"] === true && !hasDefault) {
+      template.isDefault = true;
+      hasDefault = true;
+    }
+
+    templates.push(template);
+  }
+
+  return templates;
+};
+
 export type ReadPublicFormFunction = (data: unknown) => PublicForm;
 
 /**
@@ -212,7 +300,8 @@ export type ReadPublicFormFunction = (data: unknown) => PublicForm;
  * Its branding is read as carefully: a logo or favicon is drawn only when it
  * is an allowed image type in real base64 of an allowed size
  * (readPublicFormImage) - anything else is left out, and the page shows
- * OneUptime's - and the logo's alt text only goes with a logo.
+ * OneUptime's - and the logo's alt text only goes with a logo. So are its
+ * templates (readTemplates).
  */
 export const readPublicForm: ReadPublicFormFunction = (
   data: unknown,
@@ -245,6 +334,15 @@ export const readPublicForm: ReadPublicFormFunction = (
 
   if (typeof data["description"] === "string" && data["description"].trim()) {
     form.description = data["description"];
+  }
+
+  const templates: Array<PublicFormTemplate> = readTemplates({
+    value: data["templates"],
+    fields: fields,
+  });
+
+  if (templates.length > 0) {
+    form.templates = templates;
   }
 
   const logo: PublicFormImage | undefined = readPublicFormImage(
@@ -358,18 +456,23 @@ export type BuildFormSubmissionRequestFunction = (data: {
   // Everything the page's form submitted, keyed as the page keyed its fields.
   values: JSONObject;
   captchaToken?: string | undefined;
+  // The template the submitter started from, if any.
+  templateId?: string | null | undefined;
 }) => PublicFormSubmissionRequest;
 
 /**
  * The body of the submit request: the answers to the questions the form
- * asks, keyed by question id (packPublicFormAnswers), and the captcha
- * answer when there is one. Nothing else is ever sent.
+ * asks, keyed by question id (packPublicFormAnswers), the template the
+ * submitter started from when it is one of the form's - the server answers
+ * the form's hidden questions from it - and the captcha answer when there
+ * is one. Nothing else is ever sent.
  */
 export const buildFormSubmissionRequest: BuildFormSubmissionRequestFunction =
   (data: {
     form: PublicForm;
     values: JSONObject;
     captchaToken?: string | undefined;
+    templateId?: string | null | undefined;
   }): PublicFormSubmissionRequest => {
     const request: PublicFormSubmissionRequest = {
       data: {
@@ -379,6 +482,10 @@ export const buildFormSubmissionRequest: BuildFormSubmissionRequestFunction =
         }),
       },
     };
+
+    if (findPublicFormTemplate(data.form, data.templateId)) {
+      request.data.templateId = data.templateId as string;
+    }
 
     const captchaToken: string = (data.captchaToken || "").trim();
 

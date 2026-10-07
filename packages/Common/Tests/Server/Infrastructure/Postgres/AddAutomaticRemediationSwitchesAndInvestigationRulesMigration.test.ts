@@ -66,7 +66,13 @@ describe("AddAutomaticRemediationSwitchesAndInvestigationRules migration", () =>
     });
 
     expect(names).toContain(MIGRATION_NAME);
-    expect(names[names.length - 1]).toBe(MIGRATION_NAME);
+    /*
+     * Directly after the migration it was numbered to follow - newer ones
+     * may be registered after it.
+     */
+    expect(names.indexOf("AddCloudMonitoredResourceColumns1799300000000")).toBe(
+      names.indexOf(MIGRATION_NAME) - 1,
+    );
     expect(
       new AddAutomaticRemediationSwitchesAndInvestigationRules1799400000000()
         .name,

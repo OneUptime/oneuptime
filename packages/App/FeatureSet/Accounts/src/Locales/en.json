@@ -182,7 +182,10 @@
     "reference": "Your reference number is {{reference}}.",
     "submitAnother": "Submit another response",
     "retryAfter": "You can try again {{when}}.",
-    "tryAgain": "Try again"
+    "tryAgain": "Try again",
+    "templateLabel": "Start from a template",
+    "templateDescription": "Choose a template to fill in the form. You can change any answer before you submit.",
+    "templateNone": "No template"
   },
   "errors": {
     "forbidden": {

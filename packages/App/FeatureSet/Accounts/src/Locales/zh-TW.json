@@ -182,7 +182,10 @@
     "reference": "您的參考編號是 {{reference}}。",
     "submitAnother": "提交另一份回覆",
     "retryAfter": "您可以在{{when}}重試。",
-    "tryAgain": "再試一次"
+    "tryAgain": "再試一次",
+    "templateLabel": "從範本開始",
+    "templateDescription": "選擇範本來填寫表單。提交前你可以修改任何回答。",
+    "templateNone": "無範本"
   },
   "errors": {
     "forbidden": {

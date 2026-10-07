@@ -182,7 +182,10 @@
     "reference": "Ваш номер обращения: {{reference}}.",
     "submitAnother": "Отправить ещё один ответ",
     "retryAfter": "Повторить попытку можно {{when}}.",
-    "tryAgain": "Повторить попытку"
+    "tryAgain": "Повторить попытку",
+    "templateLabel": "Начать с шаблона",
+    "templateDescription": "Выберите шаблон, чтобы заполнить форму. Любой ответ можно изменить перед отправкой.",
+    "templateNone": "Без шаблона"
   },
   "errors": {
     "forbidden": {
