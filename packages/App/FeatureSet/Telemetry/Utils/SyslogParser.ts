@@ -157,6 +157,12 @@ function parseRfc5424(payload: string): ParsedSyslogMessage | null {
   };
 }
 
+// A tag word (no spaces, colons, brackets, quotes or "="), an optional [pid], then ":".
+const RFC3164_TAG_WITH_COLON: RegExp = /^([^\s:=[\]"']+)(?:\[([^\]]*)\])?:\s*/;
+
+// A word that is a key=value pair rather than a tag.
+const KEY_VALUE_TOKEN: RegExp = /[=]/;
+
 function parseRfc3164(payload: string): ParsedSyslogMessage | null {
   const match: RegExpMatchArray | null = payload.match(
     /^(\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+(\S+)\s+(.*)$/,
@@ -177,24 +183,28 @@ function parseRfc3164(payload: string): ParsedSyslogMessage | null {
   let procId: string | undefined;
   let message: string = rest.trim();
 
-  const colonIndex: number = rest.indexOf(":");
+  /*
+   * The tag is one word at the start, optionally with a [pid], ended by a
+   * colon. Looking for the FIRST colon anywhere in the line instead read
+   * key=value logs as a tag: a Sophos line's first colon sits inside
+   * timestamp="2024-05-02T11:03:12", so everything before it became the app
+   * name and the message lost its first pairs.
+   */
+  const tagMatch: RegExpMatchArray | null = rest.match(RFC3164_TAG_WITH_COLON);
 
-  if (colonIndex !== -1) {
-    const tag: string = rest.slice(0, colonIndex);
-    message = rest.slice(colonIndex + 1).trim();
-
-    const procMatch: RegExpMatchArray | null = tag.match(/^([^[]+)\[(.+)\]$/);
-
-    if (procMatch) {
-      appName = procMatch[1]?.trim();
-      procId = procMatch[2]?.trim();
-    } else {
-      appName = tag.trim();
-    }
+  if (tagMatch) {
+    appName = tagMatch[1]?.trim();
+    procId = tagMatch[2]?.trim() || undefined;
+    message = rest.slice(tagMatch[0].length).trim();
   } else {
     const firstTokenMatch: RegExpMatchArray | null = rest.match(/^(\S+)/);
 
-    if (firstTokenMatch) {
+    /*
+     * A first word that is a key=value pair is the start of the message,
+     * not a tag - firewalls (Sophos, Fortinet) send their whole event as
+     * pairs with no tag at all.
+     */
+    if (firstTokenMatch && !KEY_VALUE_TOKEN.test(firstTokenMatch[1]!)) {
       const firstToken: string = firstTokenMatch[1]!;
       const procMatch: RegExpMatchArray | null =
         firstToken.match(/^([^[]+)\[(.+)\]$/);
