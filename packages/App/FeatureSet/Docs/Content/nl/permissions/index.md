@@ -35,6 +35,7 @@ Een gebruiker zit "in" een project zodra hij lid is van **minstens één team** 
 
 - Uitnodigingen maken een openstaand teamlid aan. De gebruiker telt pas als projectlid — en krijgt pas enige machtiging — **nadat hij de uitnodiging heeft geaccepteerd.**
 - Een gebruiker uit alle teams van een project verwijderen ontneemt hem de toegang tot dat project.
+- Wie een project verlaat, krijgt er geen meldingen meer van. Zijn eigen meldingsmethoden, -regels en -instellingen voor het project verdwijnen met zijn laatste team — e-mail, sms, oproep, WhatsApp, Telegram, push, webhook, Slack en Microsoft Teams, de e-mailsamenvatting en de nog niet verstuurde e-mail, het nummer voor inkomende oproepen en de dienstherinneringen —, zodat opnieuw lid worden met de standaardwaarden begint. Wat hem daarna nog noemt, zoals de gebruiker die een regel voor inkomende oproepen belt of een eigenaar die op een opgelost incident blijft staan, stuurt hem geen meldingen meer: namens een project wordt niets gestuurd naar iemand die er geen lid van is, en een openstaande uitnodiging is nog geen lidmaatschap. Op die plekken staat **Geen lid meer** naast de naam, zodat u er iemand anders kunt neerzetten.
 - Als uw project SSO afdwingt en een gebruiker zich nog niet via de identityprovider heeft geauthenticeerd, geldt hij als niet-geautoriseerde SSO-gebruiker en ziet hij niets tot hij dat doet. Zie [SSO](/docs/identity/sso).
 - Met SCIM ingesteld kan uw identityprovider gebruikers en hun teamlidmaatschappen automatisch aanmaken, bijwerken en verwijderen. Zie [SCIM](/docs/identity/scim).
 

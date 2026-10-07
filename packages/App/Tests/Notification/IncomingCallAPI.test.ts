@@ -14,6 +14,7 @@ import {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
+import ProjectMembership from "Common/Server/Utils/TeamMember/ProjectMembership";
 import IncomingCallLog from "Common/Models/DatabaseModels/IncomingCallLog";
 import IncomingCallLogItem from "Common/Models/DatabaseModels/IncomingCallLogItem";
 import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
@@ -133,6 +134,14 @@ jest.mock("Common/Server/Services/UserService", () => {
   return {
     __esModule: true,
     default: { findOneById: jest.fn() },
+  };
+});
+
+// Who is a member of the project; everybody unless a test says otherwise.
+jest.mock("Common/Server/Utils/TeamMember/ProjectMembership", () => {
+  return {
+    __esModule: true,
+    default: { getMemberUserIds: jest.fn() },
   };
 });
 
@@ -296,6 +305,34 @@ const incomingNumberService: { findOneBy: JestMock } =
 const userService: { findOneById: JestMock } = UserService as unknown as {
   findOneById: JestMock;
 };
+const membership: { getMemberUserIds: JestMock } =
+  ProjectMembership as unknown as { getMemberUserIds: JestMock };
+
+// Everybody asked about is a member, except the ids listed.
+function membersExcept(...formerMembers: Array<ObjectID>): void {
+  const former: Set<string> = new Set<string>(
+    formerMembers.map((userId: ObjectID): string => {
+      return userId.toString().toLowerCase();
+    }),
+  );
+
+  membership.getMemberUserIds.mockImplementation(
+    async (data: {
+      projectId: ObjectID;
+      userIds: Array<ObjectID | string>;
+    }): Promise<Set<string>> => {
+      return new Set<string>(
+        data.userIds
+          .map((userId: ObjectID | string): string => {
+            return userId.toString().toLowerCase();
+          })
+          .filter((userId: string): boolean => {
+            return !former.has(userId);
+          }),
+      );
+    },
+  );
+}
 const providerFactory: { getProviderWithConfig: JestMock } =
   CallProviderFactory as unknown as { getProviderWithConfig: JestMock };
 const twilioConfig: JestMock = getProjectTwilioConfig as unknown as JestMock;
@@ -534,6 +571,7 @@ function configureProviderDefaults(): void {
 }
 
 function configureUserAndRuleDefaults(): void {
+  membersExcept();
   ruleService.findOneBy.mockResolvedValue(
     makeRule({ order: 1, userId: USER_1 }),
   );
@@ -740,6 +778,78 @@ describe("incoming call voice routing", () => {
     expect(
       provider.generateEscalationResponse.mock.calls[0]?.[1],
     ).toMatchObject({ toPhoneNumber: USER_2_NUMBER });
+  });
+
+  /*
+   * A caller is only ever put through to a member of the project: a rule or
+   * a schedule that still names somebody who has left is skipped like a
+   * rule whose user has no verified number.
+   */
+  test("skips a rule naming somebody who is no longer a member, and rings the next one", async () => {
+    membersExcept(USER_1);
+    ruleService.findOneBy
+      .mockResolvedValueOnce(makeRule({ order: 1, userId: USER_1 }))
+      .mockResolvedValueOnce(
+        makeRule({ id: RULE_2_ID, order: 3, userId: USER_2, timeout: 45 }),
+      );
+    incomingNumberService.findOneBy.mockImplementation((args: any) => {
+      return Promise.resolve(
+        args.query.userId.toString() === USER_1.toString()
+          ? makeVerifiedNumber(USER_1, USER_1_NUMBER)
+          : makeVerifiedNumber(USER_2, USER_2_NUMBER),
+      );
+    });
+    userService.findOneById.mockResolvedValue(makeUser(USER_2));
+
+    await invoke("/voice", { body: voiceBody() });
+
+    // Their number is not even looked up.
+    expect(
+      incomingNumberService.findOneBy.mock.calls.map((call: Array<any>) => {
+        return call[0].query.userId.toString();
+      }),
+    ).toEqual([USER_2.toString()]);
+    expect(provider.generateEscalationResponse.mock.calls[0]?.[1]).toEqual(
+      expect.objectContaining({ toPhoneNumber: USER_2_NUMBER }),
+    );
+    expect(
+      provider.generateEscalationResponse.mock.calls.some(
+        (call: Array<any>) => {
+          return call[1]?.toPhoneNumber === USER_1_NUMBER;
+        },
+      ),
+    ).toBe(false);
+  });
+
+  test("does not ring a schedule's on-call person who is no longer a member", async () => {
+    membersExcept(USER_2);
+    ruleService.findOneBy
+      .mockResolvedValueOnce(makeRule({ order: 1, scheduleId: SCHEDULE_ID }))
+      .mockResolvedValueOnce(null);
+    scheduleService.getCurrentUserIdInSchedule.mockResolvedValue(USER_2);
+    incomingNumberService.findOneBy.mockResolvedValue(
+      makeVerifiedNumber(USER_2, USER_2_NUMBER),
+    );
+
+    await invoke("/voice", { body: voiceBody() });
+
+    expect(incomingNumberService.findOneBy).not.toHaveBeenCalled();
+    expect(
+      provider.generateEscalationResponse.mock.calls.some(
+        (call: Array<any>) => {
+          return call[1]?.toPhoneNumber === USER_2_NUMBER;
+        },
+      ),
+    ).toBe(false);
+  });
+
+  test("asks about the person about to be rung, in the policy's project", async () => {
+    await invoke("/voice", { body: voiceBody() });
+
+    expect(membership.getMemberUserIds).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      userIds: [USER_1],
+    });
   });
 
   test("records and hangs up a disabled policy without creating an attempt item", async () => {

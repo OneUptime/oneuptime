@@ -8,7 +8,8 @@ import logger from "Common/Server/Utils/Logger";
  * A person's own notification settings for a project - their notification
  * rules, methods (email, SMS, call, WhatsApp, Telegram, push, webhook, Slack,
  * Microsoft Teams), settings, email rollup preference and pending rollup
- * mail, and routed call number - are removed when they leave it now
+ * mail, routed call number and shift reminders - are removed when they
+ * leave it now
  * (TeamMemberService.removePersonalNotificationSettingsIfUserLeftProject).
  * Before, they stayed behind. This removes the ones people who already left
  * still have, exactly as leaving does today: only for (project, person) pairs

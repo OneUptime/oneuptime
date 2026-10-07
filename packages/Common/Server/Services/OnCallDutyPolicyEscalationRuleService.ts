@@ -636,17 +636,14 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         continue;
       }
 
-      if (
-        !memberUserIds.has(target.recipientUserId.toString().toLowerCase())
-      ) {
+      if (!memberUserIds.has(target.recipientUserId.toString().toLowerCase())) {
         const log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
         log.statusMessage = NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE;
         log.status = OnCallDutyExecutionLogTimelineStatus.Skipped;
         log.alertSentToUserId = target.recipientUserId;
 
         if (
-          target.recipientUserId.toString() !==
-          target.originalUserId.toString()
+          target.recipientUserId.toString() !== target.originalUserId.toString()
         ) {
           log.overridedByUserId = target.originalUserId;
         }

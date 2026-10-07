@@ -1341,8 +1341,8 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
    * them: once they hold no accepted membership in ANY team of the project,
    * their own notification methods (email, SMS, call, WhatsApp, Telegram,
    * push, webhook, Slack, Microsoft Teams), notification rules, notification
-   * settings, email rollup preference and pending rollup mail, and routed
-   * call number for the project are removed (see
+   * settings, email rollup preference and pending rollup mail, routed call
+   * number and shift reminders for the project are removed (see
    * ProjectLeaveNotificationCleanup). Joining again starts from the
    * defaults. A revoked invitation runs it too - a pending invitee has no
    * business holding any of these either.

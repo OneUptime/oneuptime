@@ -862,6 +862,25 @@ jobs:
           Tests/Server/Services/WorkflowVariableOAuthPostgres.test.ts
           --forceExit
 
+      # Clones the migrated TeamMember and Team tables and every personal
+      # notification table into an isolated schema: membership is an accepted
+      # membership of that very project, nothing is sent through the setting
+      # row of somebody who is not a member, removing somebody's last
+      # membership removes their own notification settings for that project
+      # and nothing else, and the data migration's walk removes former
+      # members' leftovers only.
+      - name: Test project membership and leaving a project on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PROJECT_MEMBERSHIP_TESTS: "true"
+          PROJECT_MEMBERSHIP_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROJECT_MEMBERSHIP_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROJECT_MEMBERSHIP_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/TeamMember/ProjectMembershipPostgres.test.ts
+          --forceExit
+
       # The Enterprise half: GET /team/compliance-status/:teamId end to end -
       # rules written through the real settings service, members' notification
       # rules and methods seeded as rows, and every query the ee status service

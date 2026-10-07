@@ -13,6 +13,7 @@ import UserNotificationEmailRollupItemService from "../../Services/UserNotificat
 import UserNotificationEmailRollupSettingService from "../../Services/UserNotificationEmailRollupSettingService";
 import UserNotificationRuleService from "../../Services/UserNotificationRuleService";
 import UserNotificationSettingService from "../../Services/UserNotificationSettingService";
+import UserOnCallShiftReminderService from "../../Services/UserOnCallShiftReminderService";
 import UserPushService from "../../Services/UserPushService";
 import UserSlackService from "../../Services/UserSlackService";
 import UserSmsService from "../../Services/UserSmsService";
@@ -90,7 +91,9 @@ function personalTable<TModel extends DatabaseBaseModel>(
  *   - their notification settings (which events they hear about, and how),
  *   - their email rollup preference and the rollup mail still pending for
  *     them,
- *   - their phone number for routed incoming calls.
+ *   - their phone number for routed incoming calls,
+ *   - their on-call shift reminders (the on-call leave cleanup removes them
+ *     too; listed here so former members' leftovers go as well).
  *
  * What stays: history (notification and on-call logs, sent rollups, feeds,
  * timelines), and everything other people set up - owners, on-call layers,
@@ -131,6 +134,7 @@ export default class ProjectLeaveNotificationCleanup {
         sqlCondition: `"sentAt" IS NULL`,
       }),
       personalTable(UserIncomingCallNumberService),
+      personalTable(UserOnCallShiftReminderService),
     ];
   }
 
@@ -198,10 +202,13 @@ export default class ProjectLeaveNotificationCleanup {
         } catch (err) {
           result.failedPairCount += 1;
 
-          logger.error(err as Error, {
-            projectId: pair.projectId,
-            userId: pair.userId,
-          } as LogAttributes);
+          logger.error(
+            err as Error,
+            {
+              projectId: pair.projectId,
+              userId: pair.userId,
+            } as LogAttributes,
+          );
         }
       }
 

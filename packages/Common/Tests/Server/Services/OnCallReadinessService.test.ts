@@ -9,6 +9,7 @@ import OnCallDutyPolicyUserOverrideService from "../../../Server/Services/OnCall
 import OnCallReadinessService, {
   IDENTIFIER_MASK,
   MaskedIdentifierKind,
+  NOT_A_PROJECT_MEMBER_READINESS_REASONS,
   ReadinessCoverageCell,
   ReadinessMethod,
   ReadinessMethodType,
@@ -34,6 +35,7 @@ import UserTelegramService from "../../../Server/Services/UserTelegramService";
 import UserWebhookService from "../../../Server/Services/UserWebhookService";
 import UserWhatsAppService from "../../../Server/Services/UserWhatsAppService";
 import logger from "../../../Server/Utils/Logger";
+import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
@@ -290,6 +292,7 @@ let notificationRuleFindBy: jest.SpyInstance;
 let incidentSeverityFindBy: jest.SpyInstance;
 let alertSeverityFindBy: jest.SpyInstance;
 let projectFindOneById: jest.SpyInstance;
+let projectMembershipRead: jest.SpyInstance;
 
 function makeUser(id: ObjectID, name: string, loginEmail: string): User {
   const user: User = new User();
@@ -679,6 +682,7 @@ function everySpy(): Array<jest.SpyInstance> {
     incidentSeverityFindBy,
     alertSeverityFindBy,
     projectFindOneById,
+    projectMembershipRead,
   ];
 }
 
@@ -693,7 +697,11 @@ function everyFindByCall(): Array<FindByCall> {
   const calls: Array<FindByCall> = [];
 
   for (const spy of everySpy()) {
-    if (spy === policyFindOneById || spy === projectFindOneById) {
+    if (
+      spy === policyFindOneById ||
+      spy === projectFindOneById ||
+      spy === projectMembershipRead
+    ) {
       // findOneById takes an id, not a limit; nothing to assert about paging.
       continue;
     }
@@ -936,6 +944,34 @@ beforeEach(() => {
   projectFindOneById = jest
     .spyOn(ProjectService, "findOneById")
     .mockResolvedValue(makeProject() as never);
+
+  /*
+   * Who is a member of the project now, for the summary's responders: the
+   * same world the per-user membership read answers from, filtered by the ids
+   * asked for, so a responder missing from membershipRows has left.
+   */
+  projectMembershipRead = jest
+    .spyOn(ProjectMembership, "getMemberUserIds")
+    .mockImplementation((async (data: {
+      projectId: ObjectID;
+      userIds: Array<ObjectID | string>;
+    }): Promise<Set<string>> => {
+      const asked: Set<string> = new Set<string>(
+        data.userIds.map((userId: ObjectID | string): string => {
+          return userId.toString().toLowerCase();
+        }),
+      );
+
+      return new Set<string>(
+        membershipRows
+          .map((row: TeamMember): string => {
+            return row.userId?.toString().toLowerCase() || "";
+          })
+          .filter((userId: string): boolean => {
+            return asked.has(userId);
+          }),
+      );
+    }) as never);
 });
 
 afterEach(() => {
@@ -1307,7 +1343,7 @@ describe("responder resolution", () => {
     ]);
   });
 
-  test("team members are NOT filtered on hasAcceptedInvitation, because the runtime pages them anyway", async () => {
+  test("team members are the accepted rows only, as paging expands a team", async () => {
     escalationTeamFindBy.mockResolvedValue([
       escalationTeamRow(TEAM_ID),
     ] as never);
@@ -1317,7 +1353,8 @@ describe("responder resolution", () => {
 
     const query: Record<string, unknown> = firstCall(teamMemberFindBy).query;
 
-    expect(query["hasAcceptedInvitation"]).toBeUndefined();
+    // A pending invitation puts nobody on the roster the runtime pages.
+    expect(query["hasAcceptedInvitation"]).toBe(true);
     expect(query["projectId"]?.toString()).toBe(PROJECT_ID.toString());
   });
 
@@ -4623,5 +4660,86 @@ describe("cache", () => {
     await OnCallReadinessService.getReadinessForUser(USER_B_ID, PROJECT_ID);
 
     expect(userFindBy).toHaveBeenCalledTimes(2);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A responder who is no longer a member of the project.
+ * ---------------------------------------------------------------------------
+ *
+ * A layer, a rule or an override can still name somebody who has left (the
+ * leave cleanup removes those references; one it missed, or one written
+ * while they were leaving, can remain). The runtime never pages them
+ * (ProjectMembership), so readiness must not call them reachable: they are
+ * listed, NotReachable, with the one fix that matters.
+ */
+describe("a responder who is no longer a member of the project", () => {
+  beforeEach(() => {
+    attachDirectly(USER_A_ID, USER_B_ID);
+
+    // Both have a working webhook; only A is still a member.
+    webhookFindBy.mockResolvedValue([
+      webhookMethod({ userId: USER_A_ID, name: RAW_WEBHOOK_NAME }),
+      webhookMethod({ userId: USER_B_ID, name: RAW_WEBHOOK_NAME }),
+    ] as never);
+
+    membershipRows = [teamMemberRow(USER_A_ID, TEAM_ID)];
+  });
+
+  function readinessOf(
+    summary: ReadinessSummary,
+    userId: ObjectID,
+  ): UserReadiness {
+    const readiness: UserReadiness | undefined = summary.users.find(
+      (candidate: UserReadiness): boolean => {
+        return candidate.userId.toString() === userId.toString();
+      },
+    );
+
+    if (!readiness) {
+      throw new Error(`${userId.toString()} is not in the summary`);
+    }
+
+    return readiness;
+  }
+
+  test("is listed as NotReachable, whatever methods they have, with the fix", async () => {
+    const summary: ReadinessSummary = await policySummary();
+
+    const former: UserReadiness = readinessOf(summary, USER_B_ID);
+
+    expect(former.status).toBe(ReadinessStatus.NotReachable);
+    expect(former.reasons).toEqual([...NOT_A_PROJECT_MEMBER_READINESS_REASONS]);
+
+    // The member with the same method is reachable.
+    expect(readinessOf(summary, USER_A_ID).status).toBe(ReadinessStatus.Ready);
+  });
+
+  test("membership is read once for the whole responder set", async () => {
+    await policySummary();
+
+    expect(projectMembershipRead).toHaveBeenCalledTimes(1);
+
+    const asked: Array<string> = (
+      projectMembershipRead.mock.calls[0]![0] as {
+        userIds: Array<ObjectID | string>;
+      }
+    ).userIds
+      .map((userId: ObjectID | string): string => {
+        return userId.toString();
+      })
+      .sort();
+
+    expect(asked).toEqual([USER_A_ID.toString(), USER_B_ID.toString()].sort());
+  });
+
+  test("the reasons say they cannot be paged, and what to do about it", () => {
+    expect(NOT_A_PROJECT_MEMBER_READINESS_REASONS[0]).toContain(
+      "cannot be paged",
+    );
+    expect(NOT_A_PROJECT_MEMBER_READINESS_REASONS[1]).toContain(
+      "invite them back",
+    );
   });
 });

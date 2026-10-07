@@ -38,7 +38,10 @@ export default class ProjectMembership {
    * The key getMemberKeys answers with. Lower-cased, because ids read back
    * from Postgres and ids from saved configuration differ in case.
    */
-  public static getKey(projectId: ObjectID | string, userId: ObjectID | string): string {
+  public static getKey(
+    projectId: ObjectID | string,
+    userId: ObjectID | string,
+  ): string {
     return `${projectId.toString().toLowerCase()}:${userId
       .toString()
       .toLowerCase()}`;
@@ -134,7 +137,10 @@ export default class ProjectMembership {
         continue;
       }
 
-      requested.set(ProjectMembership.getKey(pair.projectId, pair.userId), pair);
+      requested.set(
+        ProjectMembership.getKey(pair.projectId, pair.userId),
+        pair,
+      );
     }
 
     const memberKeys: Set<string> = new Set<string>();
