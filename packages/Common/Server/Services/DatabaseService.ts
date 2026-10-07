@@ -209,6 +209,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   private userAttributionColumns: Array<string> | null = null;
   private realtimeReadAccess: RealtimeReadAccess | null = null;
 
+  // The plain services that read a create's parents. See getParentReader.
+  private static parentReaders: Map<
+    { new (): BaseModel },
+    DatabaseService<BaseModel>
+  > = new Map();
+
   private _hardDeleteItemByColumnName: string = "";
   public get hardDeleteItemByColumnName(): string {
     return this._hardDeleteItemByColumnName;
@@ -2089,6 +2095,103 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
+   * A RECORD READ THROUGH ANOTHER ONE IS CREATED ONLY UNDER A PARENT ITS
+   * CREATOR MAY READ (@CanAccessIfCanReadOn - an incident's notes, a status
+   * page's announcements; the rule is CreatePermission.checkParentPermission).
+   * Asked of every create before its hooks run - right after the caller is
+   * known to be allowed to create in the table at all - so no hook reads,
+   * writes or answers anything about a parent the caller may not read. Asked
+   * again once the hooks have run and the create permissions are checked,
+   * which looks a parent up only when a hook named another one than was
+   * checked before (`checkedParentIds`). Root and master admin creates -
+   * OneUptime's own engines and workers - are not asked. Returns the parent
+   * ids the create names.
+   */
+  private async checkCreateParents(data: {
+    data: TBaseModel;
+    props: DatabaseCommonInteractionProps;
+    checkedParentIds?: Array<string> | undefined;
+  }): Promise<Array<string>> {
+    if (data.props.isRoot || data.props.isMasterAdmin) {
+      return [];
+    }
+
+    return await ModelPermission.checkCreateParentPermission({
+      modelType: this.modelType,
+      data: data.data,
+      props: data.props,
+      checkedParentIds: data.checkedParentIds,
+      findReadableParentIds: async (lookup: {
+        parentModelType: { new (): BaseModel };
+        ids: Array<string>;
+        props: DatabaseCommonInteractionProps;
+      }): Promise<Array<string>> => {
+        return await DatabaseService.findReadableParentIds(lookup);
+      },
+    });
+  }
+
+  /*
+   * Of `ids`, the parents the caller may read: one read of the parent's own
+   * table as the caller, so every rule a read of it follows decides - the
+   * project, the caller's read permissions, the labels their read is limited
+   * to, their team's blocks and the Owned scope - selecting nothing but the
+   * id. Pinned to the project of the request, as the create is: a request
+   * across projects reads the parents of the request's project only.
+   */
+  private static async findReadableParentIds(data: {
+    parentModelType: { new (): BaseModel };
+    ids: Array<string>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<string>> {
+    const rows: Array<BaseModel> = await DatabaseService.getParentReader(
+      data.parentModelType,
+    ).findBy({
+      query: {
+        _id: QueryHelper.any(data.ids),
+      } as Query<BaseModel>,
+      select: {
+        _id: true,
+      } as Select<BaseModel>,
+      skip: 0,
+      limit: data.ids.length,
+      props: {
+        ...data.props,
+        isMultiTenantRequest: false,
+      },
+    });
+
+    const readableIds: Array<string> = [];
+
+    for (const row of rows) {
+      if (row._id) {
+        readableIds.push(row._id.toString());
+      }
+    }
+
+    return readableIds;
+  }
+
+  /*
+   * A plain service over a parent model, for findReadableParentIds: the
+   * permission layer's read rule and no service's hooks. One per model,
+   * made on first use.
+   */
+  private static getParentReader(parentModelType: {
+    new (): BaseModel;
+  }): DatabaseService<BaseModel> {
+    let reader: DatabaseService<BaseModel> | undefined =
+      DatabaseService.parentReaders.get(parentModelType);
+
+    if (!reader) {
+      reader = new DatabaseService<BaseModel>(parentModelType);
+      DatabaseService.parentReaders.set(parentModelType, reader);
+    }
+
+    return reader;
+  }
+
+  /*
    * A write OneUptime makes itself: root, with no project on the request - a
    * job, an engine, a service acting for someone it names in code. Root with
    * a project on the request - an engine writing that project's records - is
@@ -3244,6 +3347,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     // A record named only by its relation, in its ID column too. See the helper.
     this.fillIdColumnsFromRelations(createBy.data);
 
+    // Under a parent the caller may read, before any hook acts. See the helper.
+    const checkedParentIds: Array<string> = await this.checkCreateParents({
+      data: createBy.data,
+      props: createBy.props,
+    });
+
     const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
       ? { createBy, carryForward: [] }
       : await this._onBeforeCreate(createBy);
@@ -3313,6 +3422,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       data,
       _createdBy.props,
     );
+
+    // And under the parent the hooks left it with, should they name another.
+    await this.checkCreateParents({
+      data: data,
+      props: _createdBy.props,
+      checkedParentIds: checkedParentIds,
+    });
 
     // Only the record's own files. See the helper.
     await this.assertFileReferencesOwnedOnCreate(data);

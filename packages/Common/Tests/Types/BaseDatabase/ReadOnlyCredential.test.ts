@@ -336,6 +336,26 @@ const POSTGRES_WRITE_ENTRY_POINTS: Array<WriteEntryPoint> = [
     },
   },
   {
+    /*
+     * Asked before a create's hooks run, and again after them: a record
+     * read through another one goes only under a parent its creator may read.
+     */
+    name: "checkCreateParentPermission",
+    spyOnUnderlying: (): jest.SpyInstance<any, any> => {
+      return getJestSpyOn(CreatePermission, "checkParentPermission");
+    },
+    call: async (props: DatabaseCommonInteractionProps): Promise<unknown> => {
+      return await ModelPermission.checkCreateParentPermission({
+        modelType: Label,
+        data: newLabel(),
+        props: props,
+        findReadableParentIds: async (): Promise<Array<string>> => {
+          return [];
+        },
+      });
+    },
+  },
+  {
     name: "checkUpdateQueryPermissions",
     spyOnUnderlying: (): jest.SpyInstance<any, any> => {
       return getJestSpyOn(UpdatePermission, "checkUpdatePermissions");
@@ -750,6 +770,7 @@ const PERMISSION_LAYERS: Array<PermissionLayer> = [
     target: ModelPermission as unknown as Record<string, unknown>,
     readOnlyMethods: ["checkReadQueryPermission"],
     expectedWriteMethods: [
+      "checkCreateParentPermission",
       "checkCreatePermissions",
       "checkDeletePermissionByModel",
       "checkDeleteQueryPermission",

@@ -717,9 +717,13 @@ describe("the creator of a record, end to end", () => {
   });
 
   test("a person who holds only the note's own create permission is not refused for the stamp", async () => {
+    // A note is created under an incident its creator may read.
     const row: Record<string, unknown> = await inserted(
       {},
-      personProps([Permission.CreateIncidentInternalNote]),
+      personProps([
+        Permission.CreateIncidentInternalNote,
+        Permission.ReadProjectIncident,
+      ]),
     );
 
     expect(String(row["createdByUserId"])).toBe(USER_ID.toString());
