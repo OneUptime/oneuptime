@@ -617,8 +617,8 @@ describe("POST /status-page/test-email-report authorization", () => {
     });
 
     /*
-     * A role limited to other labels may not read this page either, so the
-     * page is answered as missing.
+     * A role limited to other labels may not read this page either; the
+     * test send answers it with its one refusal, as every other.
      */
     it("rejects an edit grant restricted to labels this page does not carry", async () => {
       expectRejected(
@@ -626,7 +626,7 @@ describe("POST /status-page/test-email-report authorization", () => {
           userId: LABEL_SCOPED_ELSEWHERE_IN_A,
           tenantId: PROJECT_A,
         }),
-        404,
+        422,
       );
     });
 
