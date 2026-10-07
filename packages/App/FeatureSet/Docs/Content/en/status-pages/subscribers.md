@@ -380,6 +380,8 @@ Two consequences worth planning around:
 - **An announcement with no end date never expires.** Leave **End Showing Announcement At** empty and it stays pinned to the overview page indefinitely. Set an end date on anything time-bound.
 - **An old but still-active announcement can vanish from the list.** If it started more than `showAnnouncementHistoryInDays` ago it drops off `/announcements` while remaining on the overview. Raise the history window if you keep long-running notices.
 
+**Images follow the announcement.** An image in an announcement's description opens for everyone from **Start Showing Announcement At** on, not before. While an announcement is scheduled for later, its images open only for your project's members, just as the announcement itself shows only in the dashboard. Once it starts showing, its images open for everyone, on the status page and in the emails subscribers get. They stay that way after it ends, because its status pages still list it under **Past Announcements** and its link keeps working. Move an announcement to a later time and its images are private again until then.
+
 Whether announcements appear at all is set in the **What your status page shows** card on **Advanced Settings**: **Show Announcements** (`showAnnouncementsOnStatusPage`, default true) and, under it, **Show the last … days** (`showAnnouncementHistoryInDays`, default 14). With **Show Announcements** off, the announcements endpoint refuses the request outright.
 
 ## Announcement templates

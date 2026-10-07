@@ -18,6 +18,10 @@ const REPO_DIR: string = path.resolve(COMMON_DIR, "../..");
 
 const HELPER: string = "Server/Infrastructure/CacheGenerations.ts";
 
+// An import of the helper, from wherever the importing file sits.
+const IMPORTS_HELPER: RegExp =
+  /from "[./]*(Infrastructure\/)?CacheGenerations"/;
+
 // The caches that keep entries by generation, relative to packages/Common.
 const GENERATION_CACHES: ReadonlyArray<string> = [
   "Server/Utils/StatusPage/StatusPageOverviewCache.ts",
@@ -131,9 +135,7 @@ describe("GUARD: caches kept by generation use CacheGenerations", () => {
       .filter((file: string): boolean => {
         return (
           file !== path.join(COMMON_DIR, HELPER) &&
-          /from "[./]*(Infrastructure\/)?CacheGenerations"/.test(
-            fs.readFileSync(file, "utf8"),
-          )
+          IMPORTS_HELPER.test(fs.readFileSync(file, "utf8"))
         );
       })
       .map((file: string): string => {
