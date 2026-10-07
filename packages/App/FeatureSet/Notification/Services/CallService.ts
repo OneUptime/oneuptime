@@ -24,6 +24,7 @@ import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import ProjectNotificationChannelOwnerNotice from "Common/Server/Utils/ProjectNotificationChannelOwnerNotice";
 import ProjectBalanceOwnerNotice from "Common/Server/Utils/ProjectBalanceOwnerNotice";
+import MessagingBalance from "Common/Server/Utils/Billing/MessagingBalance";
 import SafeHtml from "Common/Types/SafeHtml";
 import {
   getProjectBalanceMessageNotSentReason,
@@ -145,20 +146,20 @@ export default class CallService {
     try {
       logger.debug("Call Request received.");
 
-      let callCost: number = 0;
-
       // is no custom twilio config is provided, use default twilio config and charge for call.
       const shouldChargeForCall: boolean =
         IsBillingEnabled && !options.customTwilioConfig;
 
-      if (shouldChargeForCall) {
-        callCost = CallDefaultCostInCentsPerMinute / 100;
-        if (isHighRiskPhoneNumber(callRequest.to)) {
-          callCost = CallHighRiskCostInCentsPerMinute / 100;
-        }
-      }
+      // What a minute costs, in whole cents.
+      const callCostInUSDCents: number = shouldChargeForCall
+        ? MessagingBalance.getCostInUSDCents({
+            costPerPartInUSDCents: isHighRiskPhoneNumber(callRequest.to)
+              ? CallHighRiskCostInCentsPerMinute
+              : CallDefaultCostInCentsPerMinute,
+          })
+        : 0;
 
-      logger.debug("Call Cost: " + callCost);
+      logger.debug("Call Cost (cents): " + callCostInUSDCents);
 
       const twilioConfig: TwilioConfig | null =
         options.customTwilioConfig || (await getTwilioConfig());
@@ -348,7 +349,7 @@ export default class CallService {
           const balanceInUSDCents: number =
             project.smsOrCallCurrentBalanceInUSDCents || 0;
 
-          if (!balanceInUSDCents || balanceInUSDCents < callCost * 100) {
+          if (!balanceInUSDCents || balanceInUSDCents < callCostInUSDCents) {
             const shortfall: {
               channel: ProjectNotificationChannel;
               balanceInUSDCents: number;
@@ -356,7 +357,7 @@ export default class CallService {
             } = {
               channel: ProjectNotificationChannel.Call,
               balanceInUSDCents: balanceInUSDCents,
-              costInUSDCents: Math.round(callCost * 100),
+              costInUSDCents: callCostInUSDCents,
             };
 
             callLog.status = CallStatus.LowBalance;
@@ -371,16 +372,14 @@ export default class CallService {
               },
             });
 
-            if (!project.lowCallAndSMSBalanceNotificationSentToOwners) {
-              await ProjectService.updateOneById({
-                data: {
-                  lowCallAndSMSBalanceNotificationSentToOwners: true,
-                },
-                id: project.id!,
-                props: {
-                  isRoot: true,
-                },
-              });
+            // Once each time it runs out, whatever else finds it out too.
+            if (
+              await MessagingBalance.shouldTellOwnersBalanceIsLow({
+                projectId: project.id!,
+                alreadyTold:
+                  project.lowCallAndSMSBalanceNotificationSentToOwners,
+              })
+            ) {
               await ProjectService.sendEmailToProjectOwners(
                 project.id!,
                 "Low SMS and Call Balance for " + (project.name || ""),
@@ -420,36 +419,26 @@ export default class CallService {
       if (shouldChargeForCall && project) {
         logger.debug("Updating Project Balance.");
 
-        callLog.callCostInUSDCents = callCost * 100;
+        callLog.callCostInUSDCents = callCostInUSDCents;
 
         if (twillioCall && parseInt(twillioCall.duration) > 60) {
           callLog.callCostInUSDCents = Math.ceil(
-            Math.ceil(parseInt(twillioCall.duration) / 60) * (callCost * 100),
+            Math.ceil(parseInt(twillioCall.duration) / 60) * callCostInUSDCents,
           );
         }
 
         logger.debug("Call Cost: " + callLog.callCostInUSDCents);
 
-        project.smsOrCallCurrentBalanceInUSDCents = Math.floor(
-          project.smsOrCallCurrentBalanceInUSDCents! - callCost * 100,
-        );
-
-        await ProjectService.updateOneById({
-          data: {
-            smsOrCallCurrentBalanceInUSDCents:
-              project.smsOrCallCurrentBalanceInUSDCents,
-            notEnabledSmsOrCallNotificationSentToOwners: false, // reset this flag
-          },
-          id: project.id!,
-          props: {
-            isRoot: true,
-          },
-        });
+        // Paid in one statement, from whatever the balance is now.
+        const balanceInUSDCents: number | null =
+          await MessagingBalance.payForSentMessage({
+            projectId: project.id!,
+            channel: ProjectNotificationChannel.Call,
+            costInUSDCents: callLog.callCostInUSDCents,
+          });
 
         logger.debug("Project's current balance updated.");
-        logger.debug(
-          "Current Balance: " + project.smsOrCallCurrentBalanceInUSDCents,
-        );
+        logger.debug("Current Balance: " + balanceInUSDCents);
       }
     } catch (e: any) {
       callLog.callCostInUSDCents = 0;
