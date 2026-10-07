@@ -26024,5 +26024,6 @@
   "WhatsApp is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "此项目已关闭 WhatsApp。项目所有者或拥有“Billing Admin”角色或“Manage Billing”权限的用户可以在“项目设置”→“通知设置”中开启。",
   "You do not have permission to run this workflow.": "您没有运行此工作流的权限。",
   "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here.": "还有 {{count}} 个步骤需要项目所有者或拥有“Billing Admin”角色或“Manage Billing”权限的用户处理，因此未计入此处。",
-  "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here._one": "还有 {{count}} 个步骤需要项目所有者或拥有“Billing Admin”角色或“Manage Billing”权限的用户处理，因此未计入此处。"
+  "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here._one": "还有 {{count}} 个步骤需要项目所有者或拥有“Billing Admin”角色或“Manage Billing”权限的用户处理，因此未计入此处。",
+  "The event has started, so this can no longer be changed.": "事件已开始，因此无法再更改。"
 }

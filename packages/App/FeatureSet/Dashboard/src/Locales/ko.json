@@ -26024,5 +26024,6 @@
   "WhatsApp is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "이 프로젝트에서는 WhatsApp이 꺼져 있습니다. 프로젝트 소유자 또는 'Billing Admin' 역할 또는 'Manage Billing' 권한이 있는 사용자가 프로젝트 설정 → 알림 설정에서 켤 수 있습니다.",
   "You do not have permission to run this workflow.": "이 워크플로를 실행할 권한이 없습니다.",
   "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here.": "단계 {{count}}개는 프로젝트 소유자 또는 'Billing Admin' 역할 또는 'Manage Billing' 권한이 있는 사용자가 처리해야 하므로 여기서 세지 않습니다.",
-  "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here._one": "단계 {{count}}개는 프로젝트 소유자 또는 'Billing Admin' 역할 또는 'Manage Billing' 권한이 있는 사용자가 처리해야 하므로 여기서 세지 않습니다."
+  "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here._one": "단계 {{count}}개는 프로젝트 소유자 또는 'Billing Admin' 역할 또는 'Manage Billing' 권한이 있는 사용자가 처리해야 하므로 여기서 세지 않습니다.",
+  "The event has started, so this can no longer be changed.": "이벤트가 시작되었으므로 더 이상 변경할 수 없습니다."
 }

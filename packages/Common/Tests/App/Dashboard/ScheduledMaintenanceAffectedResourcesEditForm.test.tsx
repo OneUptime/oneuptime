@@ -24,17 +24,25 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 /*
  * The Edit dialog of a scheduled maintenance event's Affected Resources
  * card, drawn through the real ModelForm and the real pickers with the very
- * fields the event's page hands its card (Components/ScheduledMaintenance/
- * ScheduledMaintenanceAffectedResourcesFormFields), as a project owner.
+ * fields and save step the event's page hands its card
+ * (Components/ScheduledMaintenance/ScheduledMaintenanceAffectedResourcesFormFields),
+ * as a person holding one role in the project - not a master admin.
  *
  * Split as Create Scheduled Maintenance Event is: the monitors in a picker
- * of their own, everything else below. Saving stores what the one picker
- * stored for the same picks - each resource in its own relation - and sends
- * no monitor status: an event's is chosen when it is created, and the API
- * takes no change to it.
+ * of their own, Change Monitor Status to right under them once one is
+ * picked, everything else below. Saving stores what the one picker stored
+ * for the same picks - each resource in its own relation.
+ *
+ * The maintainer's decision: an event's Change Monitor Status to can be
+ * changed until the event starts, by anyone who may edit the event; once
+ * it is ongoing or over the field is read-only, with a line saying why,
+ * and the save sends nothing for it (the server refuses a change then).
  */
 
 configure({ asyncUtilTimeout: 15000 });
+
+// The person viewing: their permissions in the project.
+let mockRole: Array<string> = [];
 
 const getItemMock: MockFunction = getJestMockFunction();
 const getListMock: MockFunction = getJestMockFunction();
@@ -64,9 +72,9 @@ jest.mock("../../../UI/Utils/Permission", () => {
   const PermissionEnum: Record<string, string> = actualPermission[
     "default"
   ] as Record<string, string>;
-  const granted: Array<string> = [
-    PermissionEnum["ProjectOwner"]!,
+  const everyone: Array<string> = [
     PermissionEnum["User"]!,
+    PermissionEnum["CurrentUser"]!,
     PermissionEnum["Public"]!,
   ];
 
@@ -74,19 +82,30 @@ jest.mock("../../../UI/Utils/Permission", () => {
     __esModule: true,
     default: {
       getAllPermissions: (): Array<string> => {
-        return granted;
+        return [...mockRole, ...everyone];
       },
-      getProjectPermissions: (): null => {
-        return null;
+      getProjectPermissions: (): {
+        permissions: Array<Record<string, unknown>>;
+      } => {
+        return {
+          permissions: mockRole.map((permission: string) => {
+            return {
+              permission: permission,
+              labelIds: [],
+              isBlockPermission: false,
+              _type: "UserPermission",
+            };
+          }),
+        };
       },
       getGlobalPermissions: (): { globalPermissions: Array<string> } => {
-        return { globalPermissions: granted };
+        return { globalPermissions: everyone };
       },
     },
   };
 });
 
-// A project owner, not a master admin: the Edit offers what a person may update.
+// Not a master admin: the Edit offers what the person may update.
 jest.mock("../../../UI/Utils/User", () => {
   return {
     __esModule: true,
@@ -101,7 +120,10 @@ jest.mock("../../../UI/Utils/User", () => {
   };
 });
 
-import { getScheduledMaintenanceAffectedResourcesFormFields } from "../../../../App/FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenanceAffectedResourcesFormFields";
+import {
+  getScheduledMaintenanceAffectedResourcesFormFields,
+  getScheduledMaintenanceAffectedResourcesOnBeforeUpdate,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenanceAffectedResourcesFormFields";
 import ModelForm, { FormType } from "../../../UI/Components/Forms/ModelForm";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Host from "../../../Models/DatabaseModels/Host";
@@ -111,8 +133,10 @@ import NetworkSite from "../../../Models/DatabaseModels/NetworkSite";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import Service from "../../../Models/DatabaseModels/Service";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import Color from "../../../Types/Color";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 
 const EVENT_ID: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
@@ -128,23 +152,72 @@ const SITE_ID: string = "34333333-3333-4333-8333-333333333333";
 const SITE_NAME: string = "Frankfurt DC";
 const SERVICE_ID: string = "44444444-4444-4444-8444-444444444444";
 const SERVICE_NAME: string = "checkout-api";
-const STATUS_ID: string = "55555555-5555-4555-8555-555555555555";
+
+const UNDER_MAINTENANCE_STATUS_ID: string =
+  "55555555-5555-4555-8555-555555555555";
+const DEGRADED_STATUS_ID: string = "55555555-5555-4555-8555-555555555556";
+const OPERATIONAL_STATUS_ID: string = "55555555-5555-4555-8555-555555555557";
+
+const BEFORE_START_DESCRIPTION: string =
+  "When the event starts, its monitors change to this status, and back to operational when it ends.";
+const STARTED_DESCRIPTION: string =
+  "The event has started, so this can no longer be changed.";
 
 type ModelClass = { new (): BaseModel };
 
-const NAMES: Map<ModelClass, Record<string, string>> = new Map<
+interface NamedRecord {
+  name: string;
+  color?: string;
+}
+
+const RECORDS: Map<ModelClass, Record<string, NamedRecord>> = new Map<
   ModelClass,
-  Record<string, string>
+  Record<string, NamedRecord>
 >([
   [
     Monitor,
-    { [MONITOR_ID]: MONITOR_NAME, [OTHER_MONITOR_ID]: OTHER_MONITOR_NAME },
+    {
+      [MONITOR_ID]: { name: MONITOR_NAME },
+      [OTHER_MONITOR_ID]: { name: OTHER_MONITOR_NAME },
+    },
   ],
-  [Host, { [HOST_ID]: HOST_NAME, [OTHER_HOST_ID]: OTHER_HOST_NAME }],
-  [NetworkSite, { [SITE_ID]: SITE_NAME }],
-  [Service, { [SERVICE_ID]: SERVICE_NAME }],
-  [MonitorStatus, { [STATUS_ID]: "Under Maintenance" }],
+  [
+    Host,
+    {
+      [HOST_ID]: { name: HOST_NAME },
+      [OTHER_HOST_ID]: { name: OTHER_HOST_NAME },
+    },
+  ],
+  [NetworkSite, { [SITE_ID]: { name: SITE_NAME } }],
+  [Service, { [SERVICE_ID]: { name: SERVICE_NAME } }],
+  [
+    MonitorStatus,
+    {
+      [OPERATIONAL_STATUS_ID]: { name: "Operational", color: "#10b981" },
+      [DEGRADED_STATUS_ID]: { name: "Degraded", color: "#f59e0b" },
+      [UNDER_MAINTENANCE_STATUS_ID]: {
+        name: "Under Maintenance",
+        color: "#6366f1",
+      },
+    },
+  ],
 ]);
+
+// Everyone who may edit the event, each holding that one role.
+const EDITORS: Array<[string, Array<Permission>]> = [
+  ["a Project Owner", [Permission.ProjectOwner]],
+  ["a Project Admin", [Permission.ProjectAdmin]],
+  ["a Project Member", [Permission.ProjectMember]],
+  ["a Scheduled Maintenance Admin", [Permission.ScheduledMaintenanceAdmin]],
+  ["a Scheduled Maintenance Member", [Permission.ScheduledMaintenanceMember]],
+  [
+    "a role that may read and edit scheduled maintenance events",
+    [
+      Permission.ReadProjectScheduledMaintenance,
+      Permission.EditProjectScheduledMaintenance,
+    ],
+  ],
+];
 
 let capturedGetItemSelect: Record<string, unknown> | null = null;
 
@@ -159,15 +232,25 @@ const ATTACHED: JSONObject = {
   services: [{ _id: SERVICE_ID }],
 };
 
-let eventOnServer: JSONObject = ATTACHED;
+const ATTACHED_WITH_STATUS: JSONObject = {
+  ...ATTACHED,
+  changeMonitorStatusTo: { _id: UNDER_MAINTENANCE_STATUS_ID },
+};
 
-function renderEditForm(): UserEvent {
+let eventOnServer: JSONObject = ATTACHED_WITH_STATUS;
+
+function renderEditForm(data: { hasEventStarted: boolean }): UserEvent {
   render(
     <ModelForm<ScheduledMaintenance>
       modelType={ScheduledMaintenance}
       id="edit-scheduled-maintenance-affected-resources"
       name="Edit Scheduled Maintenance"
-      fields={getScheduledMaintenanceAffectedResourcesFormFields()}
+      fields={getScheduledMaintenanceAffectedResourcesFormFields({
+        hasEventStarted: data.hasEventStarted,
+      })}
+      onBeforeUpdate={getScheduledMaintenanceAffectedResourcesOnBeforeUpdate({
+        hasEventStarted: data.hasEventStarted,
+      })}
       formType={FormType.Update}
       modelIdToEdit={EVENT_ID}
       submitButtonText="Save Changes"
@@ -195,6 +278,46 @@ function fieldOf(control: HTMLElement): HTMLElement {
   expect(labelId).toBeTruthy();
 
   return document.getElementById(labelId!)!.parentElement as HTMLElement;
+}
+
+/*
+ * Change Monitor Status to's control, named by its label: with a status
+ * picked, the button that shows it (a click opens the list); with none,
+ * the search box. Null when the form does not ask it.
+ */
+function queryStatusControl(): HTMLElement | null {
+  return (
+    screen.queryByRole("button", { name: /^Change Monitor Status to/ }) ||
+    screen.queryByRole("combobox", { name: /^Change Monitor Status to/ })
+  );
+}
+
+async function statusControl(): Promise<HTMLElement> {
+  return await waitFor(() => {
+    const control: HTMLElement | null = queryStatusControl();
+
+    expect(control).not.toBeNull();
+
+    return control!;
+  });
+}
+
+// The read-only status an event that has started shows in place of the picker.
+async function startedStatus(): Promise<HTMLElement> {
+  return await screen.findByTestId("started-event-monitor-status");
+}
+
+// A dropdown opens on a click; its options are listed under it.
+async function pickOption(
+  user: UserEvent,
+  combobox: HTMLElement,
+  optionText: string,
+): Promise<void> {
+  await user.click(combobox);
+  const options: Array<HTMLElement> = await screen.findAllByText(optionText, {
+    exact: true,
+  });
+  await user.click(options[options.length - 1]!);
 }
 
 async function pickResource(
@@ -266,9 +389,57 @@ const AS_ATTACHED: Record<string, Array<string>> = {
   services: [SERVICE_ID],
 };
 
+// The status an edit sends, by id, under either name; undefined for none.
+function sentStatusOf(event: ScheduledMaintenance): {
+  relation: string | undefined;
+  id: string | undefined;
+} {
+  const sent: JSONObject = BaseModel.toJSON(event, ScheduledMaintenance);
+  const relation: unknown = sent["changeMonitorStatusTo"];
+  const id: unknown = sent["changeMonitorStatusToId"];
+
+  return {
+    relation:
+      relation && typeof relation === "object"
+        ? String((relation as JSONObject)["_id"])
+        : relation === undefined || relation === null
+          ? undefined
+          : String(relation),
+    id: id === undefined || id === null ? undefined : String(id),
+  };
+}
+
+function expectNoStatusSent(event: ScheduledMaintenance): void {
+  expect(event.changeMonitorStatusTo).toBeUndefined();
+  expect(event.changeMonitorStatusToId).toBeUndefined();
+  expect(sentStatusOf(event)).toEqual({ relation: undefined, id: undefined });
+}
+
+function expectStatusSent(event: ScheduledMaintenance, statusId: string): void {
+  expect(String(event.changeMonitorStatusTo?._id)).toBe(statusId);
+  expect(sentStatusOf(event).relation).toBe(statusId);
+}
+
+// The MonitorStatus reads: the dropdown's list and the read-only line's.
+function monitorStatusReads(): Array<{
+  query: Record<string, unknown>;
+}> {
+  return getListMock.mock.calls
+    .map((call: Array<unknown>) => {
+      return call[0] as {
+        modelType: ModelClass;
+        query: Record<string, unknown>;
+      };
+    })
+    .filter((request: { modelType: ModelClass }) => {
+      return request.modelType === MonitorStatus;
+    });
+}
+
 beforeEach(() => {
+  mockRole = [Permission.ProjectOwner];
   capturedGetItemSelect = null;
-  eventOnServer = ATTACHED;
+  eventOnServer = ATTACHED_WITH_STATUS;
   PermissionGate.clearPermissionPropsCache();
   getItemMock.mockReset();
   getListMock.mockReset();
@@ -288,22 +459,27 @@ beforeEach(() => {
       modelType: ModelClass;
       query: Record<string, unknown>;
     };
-    const names: Record<string, string> = NAMES.get(modelType) || {};
+    const records: Record<string, NamedRecord> = RECORDS.get(modelType) || {};
     const idFilter: unknown = query?.["_id"];
     const ids: Array<string> =
       idFilter instanceof Includes
-        ? (idFilter.values as Array<string>).map((v: string) => {
+        ? (idFilter.values as Array<unknown>).map((v: unknown) => {
             return String(v);
           })
-        : Object.keys(names);
+        : Object.keys(records);
     const data: Array<BaseModel> = ids
       .filter((id: string) => {
-        return names[id] !== undefined;
+        return records[id] !== undefined;
       })
       .map((id: string) => {
         const model: BaseModel = new modelType();
         model._id = id;
-        (model as unknown as { name: string }).name = names[id]!;
+        model.setColumnValue("name", records[id]!.name);
+
+        if (records[id]!.color) {
+          model.setColumnValue("color", new Color(records[id]!.color!));
+        }
+
         return model;
       });
     return { data, count: data.length, skip: 0, limit: 10 };
@@ -320,39 +496,44 @@ afterEach(() => {
 });
 
 describe("the Edit dialog of a scheduled maintenance event's Affected Resources card", () => {
-  test("loads every relation the two pickers write, and no monitor status", async () => {
-    renderEditForm();
+  test.each([
+    ["before the event starts", false],
+    ["once the event has started", true],
+  ])(
+    "%s, loads Change Monitor Status to with every relation the two pickers write",
+    async (_when: string, hasEventStarted: boolean) => {
+      renderEditForm({ hasEventStarted });
 
-    await waitFor(() => {
-      expect(capturedGetItemSelect).not.toBeNull();
-    });
+      await waitFor(() => {
+        expect(capturedGetItemSelect).not.toBeNull();
+      });
 
-    for (const key of [
-      "monitors",
-      "hosts",
-      "kubernetesClusters",
-      "dockerHosts",
-      "podmanHosts",
-      "proxmoxClusters",
-      "vmwareVCenters",
-      "cephClusters",
-      "storageArrays",
-      "dockerSwarmClusters",
-      "iotFleets",
-      "databaseServers",
-      "networkSites",
-      "services",
-    ]) {
-      expect(`${key}: ${String(capturedGetItemSelect![key])}`).toBe(
-        `${key}: true`,
-      );
-    }
-
-    expect(capturedGetItemSelect!["changeMonitorStatusTo"]).toBeUndefined();
-  });
+      for (const key of [
+        "monitors",
+        "changeMonitorStatusTo",
+        "hosts",
+        "kubernetesClusters",
+        "dockerHosts",
+        "podmanHosts",
+        "proxmoxClusters",
+        "vmwareVCenters",
+        "cephClusters",
+        "storageArrays",
+        "dockerSwarmClusters",
+        "iotFleets",
+        "databaseServers",
+        "networkSites",
+        "services",
+      ]) {
+        expect(`${key}: ${String(capturedGetItemSelect![key])}`).toBe(
+          `${key}: true`,
+        );
+      }
+    },
+  );
 
   test("asks for the monitors apart from the other resources, each picker named by its label", async () => {
-    renderEditForm();
+    renderEditForm({ hasEventStarted: false });
 
     await screen.findByText(SERVICE_NAME);
 
@@ -388,101 +569,337 @@ describe("the Edit dialog of a scheduled maintenance event's Affected Resources 
     ).toBeInTheDocument();
   });
 
-  test("asks for no monitor status, monitors picked or not", async () => {
-    renderEditForm();
+  describe("before the event starts", () => {
+    test("asks Change Monitor Status to right under the monitors, above the other resources, holding the event's status", async () => {
+      renderEditForm({ hasEventStarted: false });
 
-    await screen.findByText(MONITOR_NAME);
+      await screen.findByText(SERVICE_NAME);
 
-    expect(screen.queryByText("Change Monitor Status to")).toBeNull();
-    expect(
-      screen.queryByRole("combobox", { name: /^Change Monitor Status to/ }),
-    ).toBeNull();
-  });
+      const status: HTMLElement = await statusControl();
 
-  test("saving without changes keeps every attached resource, and sends no status", async () => {
-    eventOnServer = {
-      ...ATTACHED,
-      changeMonitorStatusTo: { _id: STATUS_ID },
-    };
+      await waitFor(() => {
+        expect(status).toHaveTextContent("Under Maintenance");
+      });
 
-    renderEditForm();
+      const monitors: HTMLElement = fieldOf(monitorsPicker());
+      const others: HTMLElement = fieldOf(otherResourcesPicker());
 
-    await screen.findByText(SERVICE_NAME);
+      expect(
+        monitors.compareDocumentPosition(status) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(
+        status.compareDocumentPosition(others) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      // Its own field, not inside either picker's.
+      expect(monitors.contains(status)).toBe(false);
+      expect(others.contains(status)).toBe(false);
 
-    const saved: ScheduledMaintenance = await save();
-
-    expect(resourcesOf(saved)).toEqual(AS_ATTACHED);
-
-    // The request carries no status: the event keeps the one it was created with.
-    const sent: JSONObject = BaseModel.toJSON(saved, ScheduledMaintenance);
-
-    expect(saved.changeMonitorStatusTo).toBeUndefined();
-    expect(sent["changeMonitorStatusTo"]).toBeUndefined();
-    expect(sent["changeMonitorStatusToId"]).toBeUndefined();
-  });
-
-  test("a monitor added is saved with the one already there, and the other resources kept", async () => {
-    const user: UserEvent = renderEditForm();
-
-    await screen.findByText(SERVICE_NAME);
-    await pickResource(user, monitorsPicker(), OTHER_MONITOR_NAME);
-
-    const saved: ScheduledMaintenance = await save();
-
-    expect(resourcesOf(saved)).toEqual({
-      ...AS_ATTACHED,
-      monitors: [MONITOR_ID, OTHER_MONITOR_ID],
+      expect(screen.getByText(BEFORE_START_DESCRIPTION)).toBeInTheDocument();
+      expect(screen.queryByText(STARTED_DESCRIPTION)).toBeNull();
+      expect(screen.queryByTestId("started-event-monitor-status")).toBeNull();
     });
-  });
 
-  test("a host added is saved with the others, and the monitors kept", async () => {
-    const user: UserEvent = renderEditForm();
+    test("is not asked while no monitor is picked, and asked once one is", async () => {
+      eventOnServer = {
+        hosts: [{ _id: HOST_ID }],
+      };
 
-    await screen.findByText(SERVICE_NAME);
-    await pickResource(user, otherResourcesPicker(), OTHER_HOST_NAME);
+      const user: UserEvent = renderEditForm({ hasEventStarted: false });
 
-    const saved: ScheduledMaintenance = await save();
+      await screen.findByText(HOST_NAME);
 
-    expect(resourcesOf(saved)).toEqual({
-      ...AS_ATTACHED,
-      hosts: [HOST_ID, OTHER_HOST_ID],
+      expect(screen.queryByText("Change Monitor Status to")).toBeNull();
+      expect(queryStatusControl()).toBeNull();
+
+      await pickResource(user, monitorsPicker(), MONITOR_NAME);
+
+      const status: HTMLElement = await statusControl();
+
+      expect(status).toBeInTheDocument();
+      expect(screen.getByText(BEFORE_START_DESCRIPTION)).toBeInTheDocument();
     });
-  });
 
-  /*
-   * Also covers the in-between render: the form briefly holds the picker's
-   * payload under `monitors` before the split, and must not throw on it.
-   */
-  test("removing the monitor saves the event without it, and the rest as they were", async () => {
-    renderEditForm();
+    test.each(EDITORS)(
+      "%s picks another status, and it is saved with the resources as they were",
+      async (_role: string, permissions: Array<Permission>) => {
+        mockRole = permissions;
 
-    fireEvent.click(
-      await screen.findByRole("button", { name: `Remove ${MONITOR_NAME}` }),
+        const user: UserEvent = renderEditForm({ hasEventStarted: false });
+
+        /*
+         * Waits on the status, not on a resource chip: the pickers list
+         * only the resource types a role may read, and some editors here
+         * read none of them - their relations are still loaded and saved.
+         */
+        const status: HTMLElement = await statusControl();
+
+        await waitFor(() => {
+          expect(status).toHaveTextContent("Under Maintenance");
+        });
+
+        await pickOption(user, status, "Degraded");
+
+        await waitFor(() => {
+          expect(
+            screen.getByRole("button", { name: /^Change Monitor Status to/ }),
+          ).toHaveTextContent("Degraded");
+        });
+
+        const saved: ScheduledMaintenance = await save();
+
+        expectStatusSent(saved, DEGRADED_STATUS_ID);
+        expect(resourcesOf(saved)).toEqual(AS_ATTACHED);
+      },
     );
-    await waitFor(() => {
-      expect(screen.queryByText(MONITOR_NAME)).toBeNull();
+
+    test("an event created without a status gets one picked here", async () => {
+      eventOnServer = ATTACHED;
+
+      const user: UserEvent = renderEditForm({ hasEventStarted: false });
+
+      await screen.findByText(SERVICE_NAME);
+
+      const status: HTMLElement = await statusControl();
+
+      expect(status).toHaveAttribute("role", "combobox");
+
+      await pickOption(user, status, "Degraded");
+
+      const saved: ScheduledMaintenance = await save();
+
+      expectStatusSent(saved, DEGRADED_STATUS_ID);
     });
-    // The other chips keep their names through the form's rewrite to IDs.
-    expect(screen.getByText(HOST_NAME)).toBeInTheDocument();
-    expect(screen.getByText(SITE_NAME)).toBeInTheDocument();
 
-    const saved: ScheduledMaintenance = await save();
+    test("saving without changes keeps every attached resource, and sends back the status the event holds", async () => {
+      renderEditForm({ hasEventStarted: false });
 
-    expect(resourcesOf(saved)).toEqual({ ...AS_ATTACHED, monitors: [] });
+      await screen.findByText(SERVICE_NAME);
+      await statusControl();
+
+      const saved: ScheduledMaintenance = await save();
+
+      expect(resourcesOf(saved)).toEqual(AS_ATTACHED);
+      expectStatusSent(saved, UNDER_MAINTENANCE_STATUS_ID);
+    });
+
+    test("a monitor added is saved with the one already there, the status and the other resources kept", async () => {
+      const user: UserEvent = renderEditForm({ hasEventStarted: false });
+
+      await screen.findByText(SERVICE_NAME);
+      await pickResource(user, monitorsPicker(), OTHER_MONITOR_NAME);
+
+      const saved: ScheduledMaintenance = await save();
+
+      expect(resourcesOf(saved)).toEqual({
+        ...AS_ATTACHED,
+        monitors: [MONITOR_ID, OTHER_MONITOR_ID],
+      });
+      expectStatusSent(saved, UNDER_MAINTENANCE_STATUS_ID);
+    });
+
+    test("a host added is saved with the others, and the monitors kept", async () => {
+      const user: UserEvent = renderEditForm({ hasEventStarted: false });
+
+      await screen.findByText(SERVICE_NAME);
+      await pickResource(user, otherResourcesPicker(), OTHER_HOST_NAME);
+
+      const saved: ScheduledMaintenance = await save();
+
+      expect(resourcesOf(saved)).toEqual({
+        ...AS_ATTACHED,
+        hosts: [HOST_ID, OTHER_HOST_ID],
+      });
+    });
+
+    /*
+     * Also covers the in-between render: the form briefly holds the picker's
+     * payload under `monitors` before the split, and must not throw on it.
+     */
+    test("removing the last monitor hides the status and saves none, the rest as they were", async () => {
+      renderEditForm({ hasEventStarted: false });
+
+      await statusControl();
+
+      fireEvent.click(
+        await screen.findByRole("button", { name: `Remove ${MONITOR_NAME}` }),
+      );
+      await waitFor(() => {
+        expect(screen.queryByText(MONITOR_NAME)).toBeNull();
+      });
+      await waitFor(() => {
+        expect(queryStatusControl()).toBeNull();
+      });
+      // The other chips keep their names through the form's rewrite to IDs.
+      expect(screen.getByText(HOST_NAME)).toBeInTheDocument();
+      expect(screen.getByText(SITE_NAME)).toBeInTheDocument();
+
+      const saved: ScheduledMaintenance = await save();
+
+      expect(resourcesOf(saved)).toEqual({ ...AS_ATTACHED, monitors: [] });
+      // Left out of the request: the event keeps the status it had.
+      expectNoStatusSent(saved);
+    });
+
+    test("removing the network site saves the event without it, and the monitors as they were", async () => {
+      renderEditForm({ hasEventStarted: false });
+
+      fireEvent.click(
+        await screen.findByRole("button", { name: `Remove ${SITE_NAME}` }),
+      );
+      await waitFor(() => {
+        expect(screen.queryByText(SITE_NAME)).toBeNull();
+      });
+
+      const saved: ScheduledMaintenance = await save();
+
+      expect(resourcesOf(saved)).toEqual({ ...AS_ATTACHED, networkSites: [] });
+    });
   });
 
-  test("removing the network site saves the event without it, and the monitors as they were", async () => {
-    renderEditForm();
+  describe("once the event has started", () => {
+    test("shows the status the event holds, read-only, with why, right under the monitors", async () => {
+      renderEditForm({ hasEventStarted: true });
 
-    fireEvent.click(
-      await screen.findByRole("button", { name: `Remove ${SITE_NAME}` }),
-    );
-    await waitFor(() => {
-      expect(screen.queryByText(SITE_NAME)).toBeNull();
+      await screen.findByText(SERVICE_NAME);
+
+      const status: HTMLElement = await startedStatus();
+
+      await waitFor(() => {
+        expect(
+          within(status).getByText("Under Maintenance"),
+        ).toBeInTheDocument();
+      });
+
+      // Nothing to change it with.
+      expect(queryStatusControl()).toBeNull();
+      expect(within(status).queryByRole("button")).toBeNull();
+      expect(within(status).queryByRole("combobox")).toBeNull();
+      expect(within(status).queryByRole("textbox")).toBeNull();
+
+      // Why, in the field's description.
+      expect(screen.getByText("Change Monitor Status to")).toBeInTheDocument();
+      expect(screen.getByText(STARTED_DESCRIPTION)).toBeInTheDocument();
+      expect(screen.queryByText(BEFORE_START_DESCRIPTION)).toBeNull();
+
+      const monitors: HTMLElement = fieldOf(monitorsPicker());
+      const others: HTMLElement = fieldOf(otherResourcesPicker());
+
+      expect(
+        monitors.compareDocumentPosition(status) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(
+        status.compareDocumentPosition(others) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+
+      // The one status the event holds is read, by its id.
+      const reads: Array<{ query: Record<string, unknown> }> =
+        monitorStatusReads();
+
+      expect(reads.length).toBeGreaterThanOrEqual(1);
+      expect(
+        reads.some((read: { query: Record<string, unknown> }) => {
+          const filter: unknown = read.query["_id"];
+          return (
+            filter instanceof Includes &&
+            (filter.values as Array<unknown>).map(String).join(",") ===
+              UNDER_MAINTENANCE_STATUS_ID
+          );
+        }),
+      ).toBe(true);
     });
 
-    const saved: ScheduledMaintenance = await save();
+    test("with no status, says the monitors keep theirs", async () => {
+      eventOnServer = ATTACHED;
 
-    expect(resourcesOf(saved)).toEqual({ ...AS_ATTACHED, networkSites: [] });
+      renderEditForm({ hasEventStarted: true });
+
+      await screen.findByText(SERVICE_NAME);
+
+      const status: HTMLElement = await startedStatus();
+
+      expect(status).toHaveTextContent("Monitors keep their status.");
+      expect(screen.getByText(STARTED_DESCRIPTION)).toBeInTheDocument();
+      expect(queryStatusControl()).toBeNull();
+      // Nothing to look up.
+      expect(monitorStatusReads()).toEqual([]);
+    });
+
+    test("is not shown while no monitor is picked", async () => {
+      eventOnServer = {
+        hosts: [{ _id: HOST_ID }],
+        changeMonitorStatusTo: { _id: UNDER_MAINTENANCE_STATUS_ID },
+      };
+
+      renderEditForm({ hasEventStarted: true });
+
+      await screen.findByText(HOST_NAME);
+
+      expect(screen.queryByText("Change Monitor Status to")).toBeNull();
+      expect(screen.queryByTestId("started-event-monitor-status")).toBeNull();
+      expect(screen.queryByText(STARTED_DESCRIPTION)).toBeNull();
+    });
+
+    test.each(EDITORS)(
+      "%s saves the resources and sends no status",
+      async (_role: string, permissions: Array<Permission>) => {
+        mockRole = permissions;
+
+        renderEditForm({ hasEventStarted: true });
+
+        // As above: the status, not a resource chip some editors cannot read.
+        const status: HTMLElement = await startedStatus();
+
+        await waitFor(() => {
+          expect(
+            within(status).getByText("Under Maintenance"),
+          ).toBeInTheDocument();
+        });
+        expect(screen.getByText(STARTED_DESCRIPTION)).toBeInTheDocument();
+        expect(queryStatusControl()).toBeNull();
+
+        const saved: ScheduledMaintenance = await save();
+
+        expect(resourcesOf(saved)).toEqual(AS_ATTACHED);
+        expectNoStatusSent(saved);
+      },
+    );
+
+    test("a monitor added is saved, and no status is sent with it", async () => {
+      const user: UserEvent = renderEditForm({ hasEventStarted: true });
+
+      await screen.findByText(SERVICE_NAME);
+      await startedStatus();
+      await pickResource(user, monitorsPicker(), OTHER_MONITOR_NAME);
+
+      const saved: ScheduledMaintenance = await save();
+
+      expect(resourcesOf(saved)).toEqual({
+        ...AS_ATTACHED,
+        monitors: [MONITOR_ID, OTHER_MONITOR_ID],
+      });
+      expectNoStatusSent(saved);
+    });
+
+    test("removing a resource still saves, and no status is sent", async () => {
+      renderEditForm({ hasEventStarted: true });
+
+      await startedStatus();
+
+      fireEvent.click(
+        await screen.findByRole("button", { name: `Remove ${SITE_NAME}` }),
+      );
+      await waitFor(() => {
+        expect(screen.queryByText(SITE_NAME)).toBeNull();
+      });
+
+      const saved: ScheduledMaintenance = await save();
+
+      expect(resourcesOf(saved)).toEqual({ ...AS_ATTACHED, networkSites: [] });
+      expectNoStatusSent(saved);
+    });
   });
 });

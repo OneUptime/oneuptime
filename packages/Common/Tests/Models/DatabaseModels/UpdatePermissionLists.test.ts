@@ -469,12 +469,6 @@ const RELATIONS_LEFT_APART: Array<RelationsLeftApart> = [
     reason:
       "The template a monitor was created from, which its sync follows. No form changes it through the relation; whether it may change after the monitor is created is a question about monitor templates.",
   },
-  {
-    tableName: "ScheduledMaintenance",
-    relations: ["changeMonitorStatusTo"],
-    reason:
-      "An event's monitor status is picked when the event is created: its Affected Resources Edit does not ask it, and the docs say so, while the ID stays writable over the API as it always was. Whether it may change afterwards is a question about events, not templates.",
-  },
 ];
 
 /*
@@ -568,6 +562,33 @@ describe("a relation and its ID column", () => {
       expect(found.relationList).toContain(editPermission as Permission);
     },
   );
+
+  /*
+   * And the event's own, since an event's status can be changed until the
+   * event starts: by whoever may edit the event, under either name. When
+   * it may change is the service's to say (ScheduledMaintenanceService
+   * refuses a change once the event has started), not the lists'.
+   */
+  test("ScheduledMaintenance.changeMonitorStatusTo takes the event's own update list, by either name", () => {
+    const found: RelationAndIdColumn = findRelation(
+      "ScheduledMaintenance",
+      "changeMonitorStatusTo",
+    );
+    const recordList: Array<Permission> = sortedCopy(
+      recordUpdateList(findModel("ScheduledMaintenance")).permissions,
+    );
+
+    expect(found.idColumn).toBe("changeMonitorStatusToId");
+    expect(found.relationList).toEqual(recordList);
+    expect(found.idColumnList).toEqual(recordList);
+    expect(found.relationList).toContain(
+      Permission.EditProjectScheduledMaintenance,
+    );
+    expect(found.relationList).not.toContain(Permission.Viewer);
+    expect(found.relationList).not.toContain(
+      Permission.ScheduledMaintenanceViewer,
+    );
+  });
 
   /*
    * Create the same way: a record made with the relation named
