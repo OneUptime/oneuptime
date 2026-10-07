@@ -20,6 +20,8 @@ The examples are written for the resource. On the **Incidents** list, for exampl
 
 On OneUptime Cloud, some resources are sold on a plan: single sign-on providers and SCIM connections on **Scale**; API keys, on-call schedules, and Slack and Microsoft Teams notification rules and summaries on **Growth**, among others. Creating one, changing one or switching one on needs that plan. Below it, the request is refused with `402 Payment Required`, and the message names the plan.
 
+Some settings of a resource are sold on a plan in the same way. For example: a status page that is private, that hides one of its lists, or that has custom HTML, CSS or JavaScript, email reports, SMS, Slack, Microsoft Teams or webhook subscribers, or an IP allowlist; a dashboard that is shared publicly, or its IP allowlist; a form's IP allowlist; a project's audit logs. Each one's guide, and the dashboard beside the setting, names the plan it needs. Such a setting needs its plan whenever it is written - when the resource is created with it as when it is changed later - so a create that switches one on below the plan is refused with `402` too. A setting left at its default, or put back to it, works on every plan: a create that leaves these settings alone goes through, and so does a Terraform configuration that does not set them.
+
 What a project already has stays manageable whatever its plan, for example after a trial ends or the plan goes down:
 
 - you can delete those records;

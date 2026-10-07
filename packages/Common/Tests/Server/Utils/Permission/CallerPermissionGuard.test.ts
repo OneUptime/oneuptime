@@ -101,15 +101,13 @@ const USER_PERMISSIONS_CALLERS: Record<string, string> = {
   "packages/Common/Server/Types/Database/Permissions/TenantPermission.ts":
     "Whether only Current User lets the caller in, to scope the query to their own rows; a blocked permission is refused by the table check first.",
   "packages/Common/Server/Types/AnalyticsDatabase/ModelPermission.ts":
-    "The analytics twin of the CRUD path: hands the rows to HeldPermissionsUtil, and scopes them like the database models.",
+    "The analytics twin of the CRUD path: hands the rows to HeldPermissionsUtil, and works out whose telemetry a caller may read (getReadScope) for the model reads, the /telemetry routes and the AI tools alike.",
   "packages/Common/Server/Services/TeamPermissionService.ts":
     "The grant ceiling: what a caller may hand on to a team, which is stricter than holding it.",
   "packages/Common/Server/Services/ApiKeyPermissionService.ts":
     "The grant ceiling for an API key's permissions.",
   "packages/Common/Server/Services/OnCallDutyPolicyChildService.ts":
     "Builds the props a create runs with from the caller's rows for the table's create permissions, blocks kept; the CRUD path decides.",
-  "packages/Common/Server/API/TelemetryAPI.ts":
-    "Session replay's label scope, read after the route guard (the rule) let the caller in.",
 };
 
 // A type that is, or holds, a caller's rows.

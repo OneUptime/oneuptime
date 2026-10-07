@@ -56,7 +56,7 @@ To limit a form to your own networks, fill in **IP Allowlist** on the **Access**
 
 The list is checked whenever it is saved — from the dashboard, the API, Terraform or a workflow — and a line that could never match is refused with a message that names it. Leave the list empty to allow every network. Once it has an entry, a request whose address cannot be established is refused.
 
-On OneUptime Cloud, editing the IP allowlist needs the **Scale** plan, like the IP allowlist of a [public dashboard](/docs/dashboards/sharing).
+On OneUptime Cloud, setting the IP allowlist needs the **Scale** plan - when a form is created with one through the API as when it is edited - like the IP allowlist of a [public dashboard](/docs/dashboards/sharing). Emptying it works on every plan.
 
 ### Requests from other websites
 

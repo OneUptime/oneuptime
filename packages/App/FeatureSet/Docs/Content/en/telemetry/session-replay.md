@@ -954,7 +954,7 @@ Watching a recording is a separate permission from listing sessions, and neither
 | `DeleteRumSessionReplay` | Deleting recordings. |
 | `CreateRumSessionErasureRequest` / `ReadRumSessionErasureRequest` | Filing and reviewing erasure requests. |
 
-Label-based access applies: a member restricted to a set of labels can only reach applications carrying one of them, and the identity gate honours the same scope.
+Label-based access applies: a member restricted to a set of labels can only reach applications carrying one of them, and the identity gate honours the same scope. A member whose grant is scoped to **Owned** reaches the applications they or one of their teams own, and a block with labels on one of these permissions takes the applications carrying those labels away, whatever else the member holds. See [Telemetry](/docs/permissions/index) in Users, Teams & Permissions.
 
 Every playback is recorded in an audit trail under _Real User Monitoring → your application → **Replay Access Log**_: who watched which session, when, from what IP address and user agent, for how long (reported in 15-second buckets while the player is actually playing, so "< 15s" means it was opened and closed), and the reason — the incident or exception the viewer arrived from, when there was one. Refreshing a live session does not add entries; each open of the player adds one.
 

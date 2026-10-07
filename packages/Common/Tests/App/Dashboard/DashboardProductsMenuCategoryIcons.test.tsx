@@ -116,6 +116,11 @@ const PATH_ARGUMENTS: Record<string, number> = {
   z: 0,
 };
 
+// What separates a path's numbers, starts a command, and is one number.
+const PATH_SEPARATOR: RegExp = /[\s,]/;
+const PATH_COMMAND: RegExp = /[a-zA-Z]/;
+const PATH_NUMBER: RegExp = /^[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?/;
+
 /*
  * A path's drawing, whatever notation it is written in: "M1 2 3 4" is
  * "M1 2L3 4", "-.5" is "-0.5", and the arc flags of "a4 4 0 00-3 3" are
@@ -128,7 +133,7 @@ function canonicalPath(d: string): string {
   let index: number = 0;
 
   const skipSeparators: () => void = (): void => {
-    while (at < d.length && /[\s,]/.test(d[at]!)) {
+    while (at < d.length && PATH_SEPARATOR.test(d[at]!)) {
       at++;
     }
   };
@@ -141,7 +146,7 @@ function canonicalPath(d: string): string {
 
     const char: string = d[at]!;
 
-    if (/[a-zA-Z]/.test(char)) {
+    if (PATH_COMMAND.test(char)) {
       command = char;
       index = 0;
       // "z" and "Z" both close the path.
@@ -168,8 +173,7 @@ function canonicalPath(d: string): string {
       parts.push(char);
       at++;
     } else {
-      const match: RegExpExecArray | null =
-        /^[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?/.exec(d.slice(at));
+      const match: RegExpExecArray | null = PATH_NUMBER.exec(d.slice(at));
       expect(match).not.toBeNull();
       parts.push(String(Number(match![0])));
       at += match![0].length;
