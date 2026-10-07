@@ -1,5 +1,7 @@
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import AcknowledgedStateUtil from "../AcknowledgedState";
+import { StateListType } from "../StateOrder";
 import { MAX_ALERTS_PER_INCIDENT_LINK_ACTION } from "../../Types/Incident/IncidentAlertLink";
 
 /*
@@ -83,6 +85,7 @@ export interface AlertStateForAcknowledgement {
   id: string;
   order?: number | undefined;
   isAcknowledgedState?: boolean | undefined;
+  isResolvedState?: boolean | undefined;
 }
 
 export interface AlertsToAcknowledge {
@@ -315,28 +318,28 @@ export default class IncidentFromAlerts {
   }
 
   /*
-   * Which of the alerts acknowledging would change. States are compared by
-   * order, like the server does: an alert in a custom state after
-   * Acknowledged, or resolved, has been acknowledged already. An alert whose
-   * state is not among the given states is counted as not acknowledged - the
-   * server skips it if it turns out to be. Null when the project has no
-   * Acknowledged state with an order (nothing could be acknowledged), so the
-   * page does not offer it at all.
+   * Which of the alerts acknowledging would change, by the one rule
+   * (Common/Utils/AcknowledgedState) the server reads: an alert in the
+   * project's acknowledged state, a custom state placed after it, or a
+   * resolved one has been acknowledged already. An alert whose state is not
+   * among the given states is counted as not acknowledged - the server skips
+   * it if it turns out to be. Null when the project has no Acknowledged state
+   * with an order (nothing could be acknowledged), so the page does not offer
+   * it at all.
    */
   public static getAlertsToAcknowledge(data: {
     alerts: Array<AlertForAcknowledgement>;
     alertStates: Array<AlertStateForAcknowledgement>;
   }): AlertsToAcknowledge | null {
-    const acknowledgedState: AlertStateForAcknowledgement | undefined =
-      data.alertStates.find((state: AlertStateForAcknowledgement) => {
-        return state.isAcknowledgedState === true;
+    const acknowledgedState: AlertStateForAcknowledgement | null =
+      AcknowledgedStateUtil.getAcknowledgedState({
+        list: StateListType.AlertState,
+        states: data.alertStates,
       });
 
     if (!acknowledgedState || typeof acknowledgedState.order !== "number") {
       return null;
     }
-
-    const acknowledgedOrder: number = acknowledgedState.order;
 
     const result: AlertsToAcknowledge = {
       alertIds: [],
@@ -344,20 +347,12 @@ export default class IncidentFromAlerts {
     };
 
     for (const alert of data.alerts) {
-      const currentState: AlertStateForAcknowledgement | undefined =
-        alert.currentAlertStateId
-          ? data.alertStates.find((state: AlertStateForAcknowledgement) => {
-              return (
-                state.id.trim().toLowerCase() ===
-                alert.currentAlertStateId!.trim().toLowerCase()
-              );
-            })
-          : undefined;
-
       if (
-        currentState &&
-        typeof currentState.order === "number" &&
-        currentState.order >= acknowledgedOrder
+        AcknowledgedStateUtil.isAcknowledged({
+          list: StateListType.AlertState,
+          states: data.alertStates,
+          stateId: alert.currentAlertStateId,
+        })
       ) {
         result.alreadyAcknowledgedCount++;
         continue;

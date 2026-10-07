@@ -204,6 +204,7 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
   const showStatus: boolean = props.showStatus !== false;
   const showResourceMetrics: boolean = props.showResourceMetrics !== false;
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(PAGE_SIZE);
   const [sortBy, setSortBy] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Ascending);
   const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
@@ -331,11 +332,22 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
     return data;
   }, [props.resources, filterData, sortBy, sortOrder]);
 
+  /*
+   * The page above can refetch a shorter list, so clamp instead of trusting
+   * currentPage — otherwise the reader is stranded on a page past the end,
+   * staring at an empty table.
+   */
+  const totalPages: number = Math.max(
+    1,
+    Math.ceil(processedData.length / pageSize),
+  );
+  const effectivePage: number = Math.min(currentPage, totalPages);
+
   // Paginate
   const paginatedData: Array<InfrastructureResource> = useMemo(() => {
-    const start: number = (currentPage - 1) * PAGE_SIZE;
-    return processedData.slice(start, start + PAGE_SIZE);
-  }, [processedData, currentPage]);
+    const start: number = (effectivePage - 1) * pageSize;
+    return processedData.slice(start, start + pageSize);
+  }, [processedData, effectivePage, pageSize]);
 
   const tableColumns: Array<Column<InfrastructureResource>> = [
     {
@@ -618,11 +630,14 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
         pluralLabel={props.title}
         isLoading={props.isLoading || false}
         error=""
-        currentPageNumber={currentPage}
+        currentPageNumber={effectivePage}
         totalItemsCount={processedData.length}
-        itemsOnPage={paginatedData.length}
-        onNavigateToPage={(page: number) => {
+        itemsOnPage={pageSize}
+        onNavigateToPage={(page: number, itemsOnPage: number) => {
           setCurrentPage(page);
+          if (itemsOnPage > 0) {
+            setPageSize(itemsOnPage);
+          }
         }}
         sortBy={sortBy as keyof InfrastructureResource | null}
         sortOrder={sortOrder}

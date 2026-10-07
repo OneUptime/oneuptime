@@ -35,6 +35,7 @@ En användare är "i" ett projekt när hen är medlem i **minst ett team** där.
 
 - Inbjudningar skapar en väntande teammedlem. Användaren räknas som projektmedlem — och får någon behörighet alls — **först efter att ha accepterat inbjudan.**
 - Tar du bort en användare från alla team i ett projekt förlorar hen åtkomsten till projektet.
+- Den som lämnar ett projekt får inte längre dess aviseringar. Personens egna aviseringsmetoder, -regler och -inställningar för projektet tas bort tillsammans med det sista teamet — e-post, SMS, samtal, WhatsApp, Telegram, push, webhook, Slack och Microsoft Teams, e-postsammanfattningen och det ännu inte skickade e-postmeddelandet, numret för inkommande samtal och jourpåminnelserna —, så den som går med igen börjar från standardinställningarna. Det som fortfarande nämner personen, till exempel användaren som en regel för inkommande samtal ringer eller en ägare som behålls på en löst incident, aviserar inte längre personen: ingenting skickas för ett projekts räkning till någon som inte är medlem, och en väntande inbjudan är ännu inget medlemskap. De ställena visar **Inte längre medlem** bredvid namnet, så att du kan sätta in någon annan. Den som är inbjuden och inte har accepterat än visar i stället **Inbjudan inte accepterad än**.
 - Om projektet kräver SSO och en användare ännu inte autentiserat sig via identitetsleverantören behandlas hen som obehörig SSO-användare och ser ingenting förrän det skett. Se [SSO](/docs/identity/sso).
 - Med SCIM konfigurerat kan din identitetsleverantör skapa, uppdatera och ta bort användare och deras teammedlemskap automatiskt. Se [SCIM](/docs/identity/scim).
 
@@ -176,6 +177,8 @@ Varje fält i en post läses med postens egen läsbehörighet: en behörighet f�
 Fält följer samma regel. En blockering utan etiketter på ett fälts behörighet tar bort fältet, och för en driftresurs öppnar motsvarande **All Operational Resources**-behörighet varje fält som alla som får läsa eller ändra posten får öppna — men inte ett fält som är avsiktligt snävare, som en hemlig nyckel.
 
 Samma regel avgör allt annat som frågar om du har en behörighet: åtgärder som inte är en enkel läsning eller skrivning — att lägga till SMS-, samtals- eller AI-kredit, betala en faktura eller testa en aviseringsregel — och knapparna som OneUptime visar. En knapp du inte får använda visas låst och säger varför; är en blockering i ett av dina team orsaken, namnger den den blockerade behörigheten.
+
+Liveuppdateringar följer samma regel. När en post skapas, ändras eller tas bort meddelar OneUptime de öppna sidorna hos de personer som får läsa posten, och ingen annan. Det som begränsar vad du får läsa begränsar också dina liveuppdateringar: etiketter, ägare, en blockering med etiketter, en privat incident eller någon annans AI-konversation. När en ändring tar ifrån dig åtkomsten till en post, till exempel när den görs privat, meddelas även dina öppna sidor, så att de slutar visa den. En ändring av dina behörigheter når dina öppna sidor inom 30 sekunder.
 
 Varje inloggad användare har dessutom en liten uppsättning automatiska behörigheter som täcker sådant som att läsa sin egen profil och sina egna aviseringsregler. Det är inga administratörsbehörigheter och de ger inte åtkomst till någon annans data.
 

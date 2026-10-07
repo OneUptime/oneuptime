@@ -533,6 +533,122 @@ describe("IncidentMeasurementValueService.recomputeForIncident", () => {
     expect(resolve.valueInSeconds).toBe(30 * 60);
   });
 
+  /*
+   * "The incident is acknowledged" is each move into a state that counts as
+   * acknowledged (Common/Utils/AcknowledgedState) - the acknowledged state,
+   * one placed after it (Mitigated), or a resolved one - from one that does
+   * not. Reading the acknowledged flag alone left an incident moved straight
+   * into Mitigated never acknowledged.
+   */
+  describe("the acknowledged moment, by the one acknowledged rule", () => {
+    const mitigatedTimelineId: ObjectID = new ObjectID(
+      "0193c0de-5a7e-4fab-8bcd-3000000000c9",
+    );
+
+    function entry(
+      id: ObjectID,
+      stateId: ObjectID,
+      name: string,
+      order: number,
+      minutes: number,
+      flags: {
+        isCreatedState?: boolean;
+        isAcknowledgedState?: boolean;
+        isResolvedState?: boolean;
+      } = {},
+    ): IncidentStateTimeline {
+      return buildTimelineEntry({
+        id: id,
+        stateId: stateId,
+        stateName: name,
+        order: order,
+        startsAt: at(minutes),
+        ...flags,
+      });
+    }
+
+    test("an incident moved straight into a state placed after Acknowledged was acknowledged then", async () => {
+      mockDefinitions([timeToAcknowledge()]);
+      mockTimeline([
+        entry(IDENTIFIED_TIMELINE_ID, IDENTIFIED_STATE_ID, "Identified", 1, 0, {
+          isCreatedState: true,
+        }),
+        entry(mitigatedTimelineId, MITIGATED_STATE_ID, "Mitigated", 3, 7),
+        entry(RESOLVED_TIMELINE_ID, RESOLVED_STATE_ID, "Resolved", 4, 30, {
+          isResolvedState: true,
+        }),
+      ]);
+
+      await IncidentMeasurementValueService.recomputeForIncident({
+        incidentId: INCIDENT_ID,
+      });
+
+      const acknowledge: IncidentMeasurementValue = createdRowFor(
+        TIME_TO_ACKNOWLEDGE_ID,
+      );
+
+      expect(acknowledge.status).toBe(MeasurementStatus.Recorded);
+      expect(acknowledge.valueInSeconds).toBe(7 * 60);
+      expect(acknowledge.endIncidentStateTimelineId?.toString()).toBe(
+        mitigatedTimelineId.toString(),
+      );
+    });
+
+    test("an incident resolved straight from the start was acknowledged by that resolve", async () => {
+      mockDefinitions([timeToAcknowledge()]);
+      mockTimeline([
+        entry(IDENTIFIED_TIMELINE_ID, IDENTIFIED_STATE_ID, "Identified", 1, 0, {
+          isCreatedState: true,
+        }),
+        entry(RESOLVED_TIMELINE_ID, RESOLVED_STATE_ID, "Resolved", 4, 20, {
+          isResolvedState: true,
+        }),
+      ]);
+
+      await IncidentMeasurementValueService.recomputeForIncident({
+        incidentId: INCIDENT_ID,
+      });
+
+      const acknowledge: IncidentMeasurementValue = createdRowFor(
+        TIME_TO_ACKNOWLEDGE_ID,
+      );
+
+      expect(acknowledge.status).toBe(MeasurementStatus.Recorded);
+      expect(acknowledge.valueInSeconds).toBe(20 * 60);
+    });
+
+    test("moving on from Acknowledged into a state after it is no second acknowledgement", async () => {
+      mockDefinitions([timeToAcknowledge()]);
+      mockTimeline([
+        entry(IDENTIFIED_TIMELINE_ID, IDENTIFIED_STATE_ID, "Identified", 1, 0, {
+          isCreatedState: true,
+        }),
+        entry(
+          ACKNOWLEDGED_TIMELINE_ID,
+          ACKNOWLEDGED_STATE_ID,
+          "Acknowledged",
+          2,
+          5,
+          { isAcknowledgedState: true },
+        ),
+        entry(mitigatedTimelineId, MITIGATED_STATE_ID, "Mitigated", 3, 12),
+      ]);
+
+      await IncidentMeasurementValueService.recomputeForIncident({
+        incidentId: INCIDENT_ID,
+      });
+
+      const acknowledge: IncidentMeasurementValue = createdRowFor(
+        TIME_TO_ACKNOWLEDGE_ID,
+      );
+
+      expect(acknowledge.valueInSeconds).toBe(5 * 60);
+      expect(acknowledge.endIncidentStateTimelineId?.toString()).toBe(
+        ACKNOWLEDGED_TIMELINE_ID.toString(),
+      );
+    });
+  });
+
   test("stamps each row with the timeline entries it was derived from, so a number can be traced back", async () => {
     await IncidentMeasurementValueService.recomputeForIncident({
       incidentId: INCIDENT_ID,

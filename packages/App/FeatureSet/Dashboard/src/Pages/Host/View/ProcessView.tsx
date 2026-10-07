@@ -20,6 +20,7 @@ import Metric from "Common/Models/AnalyticsModels/Metric";
 import ProjectUtil from "Common/UI/Utils/Project";
 import OneUptimeDate from "Common/Types/Date";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
@@ -72,13 +73,19 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
  * The OTel hostmetrics `process` scraper attaches per-process identity
  * (pid, executable name, command, owner) to the *resource*, which ingest
  * stores as `resource.process.*`. The keys are shared with the Processes
- * list, so a row's View link always finds the process it came from.
+ * list, so a row's View link always finds the process it came from - and so
+ * is the rule for which CPU readings add up to a process's CPU.
  */
 import {
   PROCESS_COMMAND_ATTR,
+  PROCESS_CPU_MODE_ATTRIBUTE_KEYS,
+  PROCESS_CPU_UTILIZATION_METRIC_NAME,
   PROCESS_NAME_ATTR,
   PROCESS_OWNER_ATTR,
   PROCESS_PID_ATTR,
+  ProcessCpuPoint,
+  buildProcessCpuSeries,
+  processCpuWaitExclusion,
 } from "../Utils/Processes";
 
 interface ProcessIdentity {
@@ -272,7 +279,7 @@ const HostProcessView: FunctionComponent<
         modelType: Metric,
         query: {
           projectId: projectId,
-          name: "process.cpu.utilization",
+          name: PROCESS_CPU_UTILIZATION_METRIC_NAME,
           time: new InBetween<Date>(identityLookbackStart, endDate),
           attributes: {
             "resource.host.name": item.hostIdentifier,
@@ -347,11 +354,11 @@ const HostProcessView: FunctionComponent<
       const buildAggregateBy: (
         metricName: string,
         aggType: AggregationType,
-        extraAttributes?: Record<string, string>,
+        extraAttributes?: Record<string, string | NotEqual<string>>,
       ) => AggregateBy<Metric> = (
         metricName: string,
         aggType: AggregationType,
-        extraAttributes?: Record<string, string>,
+        extraAttributes?: Record<string, string | NotEqual<string>>,
       ): AggregateBy<Metric> => {
         return {
           query: {
@@ -375,6 +382,22 @@ const HostProcessView: FunctionComponent<
           },
         };
       };
+
+      /*
+       * `process.cpu.utilization` is one reading per CPU mode per scrape -
+       * user, system and (Linux only) wait - each a share of every core
+       * together (0-1), on every OS. Grouped by the mode attributes, every
+       * bucket keeps the modes apart, so buildProcessCpuSeries can add user
+       * and system the way the Processes list does; one Avg over them all
+       * would read about a third of the real use. Wait - time blocked on
+       * disk, not CPU - is filtered out here, and never added either.
+       */
+      const cpuAggregate: AggregateBy<Metric> = buildAggregateBy(
+        PROCESS_CPU_UTILIZATION_METRIC_NAME,
+        AggregationType.Avg,
+        processCpuWaitExclusion(),
+      );
+      cpuAggregate.groupByAttributeKeys = [...PROCESS_CPU_MODE_ATTRIBUTE_KEYS];
 
       /*
        * `process.disk.io` is a cumulative byte counter per direction
@@ -406,10 +429,7 @@ const HostProcessView: FunctionComponent<
       ] = await Promise.all([
         AnalyticsModelAPI.aggregate<Metric>({
           modelType: Metric,
-          aggregateBy: buildAggregateBy(
-            "process.cpu.utilization",
-            AggregationType.Avg,
-          ),
+          aggregateBy: cpuAggregate,
         }),
         AnalyticsModelAPI.aggregate<Metric>({
           modelType: Metric,
@@ -527,12 +547,18 @@ const HostProcessView: FunctionComponent<
       };
 
       /*
-       * `process.cpu.utilization` is a fraction (0..1) on Linux/macOS
-       * and percent (0..100) on Windows. The Processes list uses the
-       * x100 Linux convention; mirror that here. Windows hosts will
-       * show inflated CPU numbers — same caveat the list page has.
+       * One row per bucket - user plus system, already a percent - in the
+       * shape of the other metrics' buckets, so the tile averages the end
+       * of the same line the chart draws.
        */
-      const cpuPercent: number | null = meanFromBuckets(cpuResult, 100);
+      const cpuBuckets: AggregatedResult = {
+        data: buildProcessCpuSeries(cpuResult.data || []).map(
+          (point: ProcessCpuPoint): AggregatedModel => {
+            return { timestamp: point.time, value: point.cpuPercent };
+          },
+        ),
+      };
+      const cpuPercent: number | null = meanFromBuckets(cpuBuckets, 1);
 
       const memoryBytes: number | null = meanFromBuckets(memUsageResult, 1);
       const virtualMemoryBytes: number | null = meanFromBuckets(
@@ -560,10 +586,7 @@ const HostProcessView: FunctionComponent<
         openFds: meanFromBuckets(openFdResult, 1),
       });
 
-      const cpuPoints: Array<TimeValuePoint> = seriesFromBuckets(
-        cpuResult,
-        100,
-      );
+      const cpuPoints: Array<TimeValuePoint> = seriesFromBuckets(cpuBuckets, 1);
       const memoryPoints: Array<TimeValuePoint> = seriesFromBuckets(
         memUsageResult,
         1,

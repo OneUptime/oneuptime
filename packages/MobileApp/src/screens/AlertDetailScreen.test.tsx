@@ -1186,3 +1186,127 @@ describe("Guidance and actions for each alert stage", () => {
     expect(screen.getAllByTestId("response-section-card")).toHaveLength(4);
   });
 });
+
+describe("Acknowledged by the order of the project's states (utils/acknowledgedState)", () => {
+  /*
+   * A state the project placed between Acknowledged and Resolved, without
+   * the acknowledged flag. An alert in it has been acknowledged - on-call
+   * stopped paging when it got there - so Acknowledge, a move back up the
+   * list the server refuses, is not offered.
+   */
+  const INVESTIGATING_STATE: AlertState = makeAlertState({
+    _id: "alert-state-investigating",
+    name: "Investigating",
+    isCreatedState: false,
+    order: 3,
+  });
+  const LATER_RESOLVED_STATE: AlertState = makeAlertState({
+    _id: "alert-state-resolved",
+    name: "Resolved",
+    isCreatedState: false,
+    isResolvedState: true,
+    order: 4,
+  });
+  const SECOND_ACKNOWLEDGED_STATE: AlertState = makeAlertState({
+    _id: "alert-state-second-acknowledged",
+    name: "Escalated",
+    isCreatedState: false,
+    isAcknowledgedState: true,
+    order: 3,
+  });
+
+  beforeEach(() => {
+    mockAlertStates.current = queryState<AlertState[]>({
+      data: [
+        TRIAGE_STATE,
+        ACKNOWLEDGED_STATE,
+        INVESTIGATING_STATE,
+        LATER_RESOLVED_STATE,
+      ],
+    });
+    mockAlertTimeline.current = queryState<StateTimelineItem[]>();
+    mockAlertFeed.current = queryState<FeedItem[]>({ data: [] });
+    mockAlertNotes.current = queryState<NoteItem[]>({ data: [] });
+    changeAlertStateMock.mockResolvedValue(undefined);
+  });
+
+  function loadInState(state: AlertState): void {
+    mockAlertDetail.current = queryState<AlertItem | null>({
+      data: makeLoadedAlert({
+        currentAlertState: makeNamedEntityWithColor({
+          _id: state._id,
+          name: state.name,
+        }),
+      }),
+    });
+  }
+
+  test("an alert in a state after Acknowledged is not offered Acknowledge, only Resolve", async () => {
+    loadInState(INVESTIGATING_STATE);
+    await renderScreen(createTestQueryClient());
+
+    const guidance: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("response-guidance");
+    expect(
+      within(guidance).queryByRole("button", { name: "Acknowledge alert" }),
+    ).toBeNull();
+    expect(
+      within(guidance).getByRole("button", { name: "Resolve alert" }),
+    ).toHaveStyle({ backgroundColor: lightColors.actionPrimary });
+    expect(within(guidance).getByText("Response in progress")).toBeTruthy();
+    expect(
+      within(guidance).getByText(
+        "A responder has acknowledged this alert. Resolve it once recovery is confirmed.",
+      ),
+    ).toBeTruthy();
+  });
+
+  test("a second state flagged acknowledged further down counts as acknowledged too", async () => {
+    mockAlertStates.current = queryState<AlertState[]>({
+      data: [
+        TRIAGE_STATE,
+        ACKNOWLEDGED_STATE,
+        SECOND_ACKNOWLEDGED_STATE,
+        LATER_RESOLVED_STATE,
+      ],
+    });
+    loadInState(SECOND_ACKNOWLEDGED_STATE);
+    await renderScreen(createTestQueryClient());
+
+    expect(
+      screen.queryByRole("button", { name: "Acknowledge alert" }),
+    ).toBeNull();
+    expect(screen.getByRole("button", { name: "Resolve alert" })).toBeTruthy();
+  });
+
+  test("Acknowledge sends the project's acknowledged state - the first flagged from the top - whatever order the states arrive in", async () => {
+    mockAlertStates.current = queryState<AlertState[]>({
+      data: [
+        SECOND_ACKNOWLEDGED_STATE,
+        LATER_RESOLVED_STATE,
+        TRIAGE_STATE,
+        ACKNOWLEDGED_STATE,
+      ],
+    });
+    loadInState(TRIAGE_STATE);
+    const client: QueryClient = createSeedableClient();
+    client.setQueryData(
+      ALERT_QUERY_KEY,
+      mockAlertDetail.current.data as AlertItem,
+    );
+
+    await renderScreen(client);
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Acknowledge alert" }),
+    );
+
+    await waitFor(() => {
+      expect(changeAlertStateMock).toHaveBeenCalledWith(
+        PROJECT_ID,
+        ALERT_ID,
+        ACKNOWLEDGED_STATE._id,
+      );
+    });
+  });
+});

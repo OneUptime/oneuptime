@@ -26,6 +26,7 @@ import {
 import Query from "Common/Types/BaseDatabase/Query";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import AcknowledgedStateUtil from "Common/Utils/AcknowledgedState";
 import { StateListType } from "Common/Utils/StateOrder";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertStateUtil from "../../../Utils/AlertState";
@@ -94,38 +95,48 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
       } as Query<Alert>;
 
       /*
-       * Unresolved and Resolved are the project's to say: its resolved
-       * state and any state placed after it are resolved
-       * (Common/Utils/ResolvedState). On a public dashboard the server
+       * Unresolved, Resolved and Acknowledged are the project's to say: its
+       * resolved state and any state placed after it are resolved
+       * (Common/Utils/ResolvedState); its acknowledged state and any state
+       * placed after it, short of resolved, are acknowledged
+       * (Common/Utils/AcknowledgedState). On a public dashboard the server
        * applies the stored filter itself.
        */
       let resolvedFilterStateIds: Array<string> | null = null;
 
       if (
-        (stateFilter === "unresolved" || stateFilter === "resolved") &&
+        (stateFilter === "unresolved" ||
+          stateFilter === "resolved" ||
+          stateFilter === "acknowledged") &&
         !DashboardResourceList.isPublic() &&
         projectId
       ) {
         const states: Array<AlertState> =
           await AlertStateUtil.getAlertStates(projectId);
 
-        resolvedFilterStateIds = (
-          stateFilter === "unresolved"
-            ? ResolvedStateUtil.getUnresolvedStateIds({
-                list: StateListType.AlertState,
-                states: states,
-              })
-            : ResolvedStateUtil.getResolvedStateIds({
-                list: StateListType.AlertState,
-                states: states,
-              })
-        ).map((stateId: ObjectID) => {
+        let filterStateIds: Array<ObjectID> = [];
+
+        if (stateFilter === "acknowledged") {
+          filterStateIds =
+            AcknowledgedStateUtil.getAcknowledgedUnresolvedStateIds({
+              list: StateListType.AlertState,
+              states: states,
+            });
+        } else if (stateFilter === "unresolved") {
+          filterStateIds = ResolvedStateUtil.getUnresolvedStateIds({
+            list: StateListType.AlertState,
+            states: states,
+          });
+        } else {
+          filterStateIds = ResolvedStateUtil.getResolvedStateIds({
+            list: StateListType.AlertState,
+            states: states,
+          });
+        }
+
+        resolvedFilterStateIds = filterStateIds.map((stateId: ObjectID) => {
           return stateId.toString();
         });
-      } else if (stateFilter === "acknowledged") {
-        (query as Record<string, unknown>)["currentAlertState"] = {
-          isAcknowledgedState: true,
-        };
       }
 
       if (severityIds && severityIds.length > 0) {

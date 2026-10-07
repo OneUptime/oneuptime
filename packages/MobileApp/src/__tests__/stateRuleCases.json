@@ -1,0 +1,212 @@
+{
+  "about": "The cases the acknowledged and resolved rules are checked against, by both copies of them: Common/Utils/AcknowledgedState and Common/Utils/ResolvedState (Common/Tests/Utils/AcknowledgedState.test.ts and AcknowledgedStateMobileParity.test.ts), and the mobile app's utils/acknowledgedState and utils/resolvedState (src/utils/acknowledgedState.test.ts). Ids lists are in the order the states are given. A state is acknowledged at or below the project's acknowledged state, or flagged acknowledged, or resolved; resolved at or below the resolved state, or flagged resolved.",
+  "cases": [
+    {
+      "name": "the seeded states",
+      "states": [
+        { "_id": "created", "order": 1, "isCreatedState": true },
+        { "_id": "acknowledged", "order": 2, "isAcknowledgedState": true },
+        { "_id": "resolved", "order": 3, "isResolvedState": true }
+      ],
+      "acknowledgedStateId": "acknowledged",
+      "resolvedStateId": "resolved",
+      "acknowledged": ["acknowledged", "resolved"],
+      "unacknowledged": ["created"],
+      "resolved": ["resolved"],
+      "unresolved": ["created", "acknowledged"]
+    },
+    {
+      "name": "a state between Acknowledged and Resolved is acknowledged, and one after Resolved is resolved",
+      "states": [
+        { "_id": "created", "order": 1, "isCreatedState": true },
+        { "_id": "acknowledged", "order": 2, "isAcknowledgedState": true },
+        { "_id": "investigating", "order": 3 },
+        { "_id": "resolved", "order": 4, "isResolvedState": true },
+        { "_id": "closed", "order": 5 }
+      ],
+      "acknowledgedStateId": "acknowledged",
+      "resolvedStateId": "resolved",
+      "acknowledged": ["acknowledged", "investigating", "resolved", "closed"],
+      "unacknowledged": ["created"],
+      "resolved": ["resolved", "closed"],
+      "unresolved": ["created", "acknowledged", "investigating"]
+    },
+    {
+      "name": "a state before Acknowledged still waits for one",
+      "states": [
+        { "_id": "created", "order": 1, "isCreatedState": true },
+        { "_id": "triage", "order": 2 },
+        { "_id": "acknowledged", "order": 3, "isAcknowledgedState": true },
+        { "_id": "resolved", "order": 4, "isResolvedState": true }
+      ],
+      "acknowledgedStateId": "acknowledged",
+      "resolvedStateId": "resolved",
+      "acknowledged": ["acknowledged", "resolved"],
+      "unacknowledged": ["created", "triage"],
+      "resolved": ["resolved"],
+      "unresolved": ["created", "triage", "acknowledged"]
+    },
+    {
+      "name": "the order decides, not where a state arrives in the list",
+      "states": [
+        { "_id": "closed", "order": 5 },
+        { "_id": "investigating", "order": 3 },
+        { "_id": "resolved", "order": 4, "isResolvedState": true },
+        { "_id": "created", "order": 1, "isCreatedState": true },
+        { "_id": "acknowledged", "order": 2, "isAcknowledgedState": true }
+      ],
+      "acknowledgedStateId": "acknowledged",
+      "resolvedStateId": "resolved",
+      "acknowledged": ["closed", "investigating", "resolved", "acknowledged"],
+      "unacknowledged": ["created"],
+      "resolved": ["closed", "resolved"],
+      "unresolved": ["investigating", "created", "acknowledged"]
+    },
+    {
+      "name": "of two states flagged acknowledged, the first from the top is the acknowledged state, whatever order they arrive in",
+      "states": [
+        { "_id": "escalated", "order": 3, "isAcknowledgedState": true },
+        { "_id": "resolved", "order": 4, "isResolvedState": true },
+        { "_id": "created", "order": 1, "isCreatedState": true },
+        { "_id": "acknowledged", "order": 2, "isAcknowledgedState": true }
+      ],
+      "acknowledgedStateId": "acknowledged",
+      "resolvedStateId": "resolved",
+      "acknowledged": ["escalated", "resolved", "acknowledged"],
+      "unacknowledged": ["created"],
+      "resolved": ["resolved"],
+      "unresolved": ["escalated", "created", "acknowledged"]
+    },
+    {
+      "name": "a flagged state with a place is preferred over one without",
+      "states": [
+        { "_id": "created", "order": 1, "isCreatedState": true },
+        { "_id": "unplaced", "order": null, "isAcknowledgedState": true },
+        { "_id": "acknowledged", "order": 2, "isAcknowledgedState": true },
+        { "_id": "resolved", "order": 3, "isResolvedState": true }
+      ],
+      "acknowledgedStateId": "acknowledged",
+      "resolvedStateId": "resolved",
+      "acknowledged": ["unplaced", "acknowledged", "resolved"],
+      "unacknowledged": ["created"],
+      "resolved": ["resolved"],
+      "unresolved": ["created", "unplaced", "acknowledged"]
+    },
+    {
+      "name": "without an acknowledged state, only resolving or the flag acknowledges",
+      "states": [
+        { "_id": "created", "order": 1, "isCreatedState": true },
+        { "_id": "working", "order": 2 },
+        { "_id": "resolved", "order": 3, "isResolvedState": true },
+        { "_id": "closed", "order": 4 }
+      ],
+      "acknowledgedStateId": null,
+      "resolvedStateId": "resolved",
+      "acknowledged": ["resolved", "closed"],
+      "unacknowledged": ["created", "working"],
+      "resolved": ["resolved", "closed"],
+      "unresolved": ["created", "working"]
+    },
+    {
+      "name": "a project whose states never arrived has none of either",
+      "states": [],
+      "acknowledgedStateId": null,
+      "resolvedStateId": null,
+      "acknowledged": [],
+      "unacknowledged": [],
+      "resolved": [],
+      "unresolved": []
+    },
+    {
+      "name": "a state without a place counts only by its own flags",
+      "states": [
+        { "_id": "created", "order": 1, "isCreatedState": true },
+        { "_id": "acknowledged", "order": 2, "isAcknowledgedState": true },
+        { "_id": "resolved", "order": 3, "isResolvedState": true },
+        { "_id": "unplaced", "order": null },
+        { "_id": "unplaced-resolved", "isResolvedState": true }
+      ],
+      "acknowledgedStateId": "acknowledged",
+      "resolvedStateId": "resolved",
+      "acknowledged": ["acknowledged", "resolved", "unplaced-resolved"],
+      "unacknowledged": ["created", "unplaced"],
+      "resolved": ["resolved", "unplaced-resolved"],
+      "unresolved": ["created", "acknowledged", "unplaced"]
+    },
+    {
+      "name": "a list saved out of order: a flagged resolved state above Acknowledged is resolved, and so acknowledged",
+      "states": [
+        { "_id": "created", "order": 1, "isCreatedState": true },
+        { "_id": "resolved", "order": 2, "isResolvedState": true },
+        { "_id": "acknowledged", "order": 3, "isAcknowledgedState": true },
+        { "_id": "later", "order": 4 }
+      ],
+      "acknowledgedStateId": "acknowledged",
+      "resolvedStateId": "resolved",
+      "acknowledged": ["resolved", "acknowledged", "later"],
+      "unacknowledged": ["created"],
+      "resolved": ["resolved", "acknowledged", "later"],
+      "unresolved": ["created"]
+    },
+    {
+      "name": "of two flagged states at the same place, the first by id is the one",
+      "states": [
+        { "_id": "b-acknowledged", "order": 2, "isAcknowledgedState": true },
+        { "_id": "a-acknowledged", "order": 2, "isAcknowledgedState": true },
+        { "_id": "created", "order": 1, "isCreatedState": true },
+        { "_id": "resolved", "order": 3, "isResolvedState": true }
+      ],
+      "acknowledgedStateId": "a-acknowledged",
+      "resolvedStateId": "resolved",
+      "acknowledged": ["b-acknowledged", "a-acknowledged", "resolved"],
+      "unacknowledged": ["created"],
+      "resolved": ["resolved"],
+      "unresolved": ["b-acknowledged", "a-acknowledged", "created"]
+    },
+    {
+      "name": "a place written as text counts, as it does on the server",
+      "states": [
+        { "_id": "created", "order": "1", "isCreatedState": true },
+        { "_id": "acknowledged", "order": "2", "isAcknowledgedState": true },
+        { "_id": "investigating", "order": "3" },
+        { "_id": "resolved", "order": "4", "isResolvedState": true },
+        { "_id": "blank", "order": " " }
+      ],
+      "acknowledgedStateId": "acknowledged",
+      "resolvedStateId": "resolved",
+      "acknowledged": ["acknowledged", "investigating", "resolved"],
+      "unacknowledged": ["created", "blank"],
+      "resolved": ["resolved"],
+      "unresolved": ["created", "acknowledged", "investigating", "blank"]
+    },
+    {
+      "name": "zero and negative places are places",
+      "states": [
+        { "_id": "before", "order": -1 },
+        { "_id": "acknowledged", "order": 0, "isAcknowledgedState": true },
+        { "_id": "resolved", "order": 1, "isResolvedState": true }
+      ],
+      "acknowledgedStateId": "acknowledged",
+      "resolvedStateId": "resolved",
+      "acknowledged": ["acknowledged", "resolved"],
+      "unacknowledged": ["before"],
+      "resolved": ["resolved"],
+      "unresolved": ["before", "acknowledged"]
+    }
+  ],
+  "lookups": {
+    "about": "Looking a record's state up by id, in the states of the case named: matched whatever its case and surrounding spaces; an id that is none of the project's, or none at all, is neither acknowledged nor resolved.",
+    "case": "a state between Acknowledged and Resolved is acknowledged, and one after Resolved is resolved",
+    "rows": [
+      { "stateId": "created", "acknowledged": false, "resolved": false },
+      { "stateId": "acknowledged", "acknowledged": true, "resolved": false },
+      { "stateId": "investigating", "acknowledged": true, "resolved": false },
+      { "stateId": " INVESTIGATING ", "acknowledged": true, "resolved": false },
+      { "stateId": "resolved", "acknowledged": true, "resolved": true },
+      { "stateId": "Closed", "acknowledged": true, "resolved": true },
+      { "stateId": "somewhere-else", "acknowledged": false, "resolved": false },
+      { "stateId": "", "acknowledged": false, "resolved": false },
+      { "stateId": null, "acknowledged": false, "resolved": false }
+    ]
+  }
+}

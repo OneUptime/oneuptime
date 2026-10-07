@@ -52,11 +52,14 @@ import {
 import { FindOperator } from "typeorm";
 
 import {
+  ALERT_STATE_IDS,
   INCIDENT_STATE_IDS,
   idsOfAnyFilter,
+  makeIncidentStates,
   mockProjectStates,
   openStateIds,
 } from "../TestingUtils/Services/ProjectStatesHelper";
+import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {
@@ -927,6 +930,84 @@ describe("DashboardAPI public resource-list", () => {
       });
       expect(findByArgs["limit"]).toBe(9);
       expect(findByArgs["skip"]).toBe(0);
+    });
+
+    /*
+     * An Acknowledged list is the project's acknowledged state and every
+     * state placed after it short of resolved
+     * (Common/Utils/AcknowledgedState) - a query on the acknowledged flag
+     * left out an incident in "Investigating", placed between Acknowledged
+     * and Resolved.
+     */
+    it("keeps an Acknowledged incident list to the acknowledged state and the states after it, short of resolved", async () => {
+      const investigatingId: ObjectID = new ObjectID(
+        "7c0a3f10-0000-4000-8000-0000000000a9",
+      );
+      const states: Array<IncidentState> = makeIncidentStates();
+      const investigating: IncidentState = new IncidentState();
+      investigating._id = investigatingId.toString();
+      investigating.name = "Investigating";
+      investigating.order = 2.5;
+      investigating.isCreatedState = false;
+      investigating.isAcknowledgedState = false;
+      investigating.isResolvedState = false;
+      mockProjectStates({ incidentStates: [...states, investigating] });
+
+      const incident: BuiltWidget = buildWidget({
+        componentType: DashboardComponentType.IncidentList,
+        argumentsObject: { stateFilter: "acknowledged" },
+      });
+      setDashboardWidgets([incident.widget]);
+
+      await callRoute({
+        resourceType: "incident",
+        body: {
+          componentId: incident.componentId.toString(),
+          query: { currentIncidentState: { isAcknowledgedState: false } },
+        },
+      });
+
+      const query: JSONObject = getFindByArgs(IncidentService)[
+        "query"
+      ] as JSONObject;
+
+      expect(query["currentIncidentState"]).toBeUndefined();
+      expect(idsOfAnyFilter(query["currentIncidentStateId"]).sort()).toEqual(
+        [
+          INCIDENT_STATE_IDS.acknowledged.toString(),
+          investigatingId.toString(),
+        ].sort(),
+      );
+      expect(query["projectId"]).toBe(projectId);
+    });
+
+    it("keeps an Acknowledged alert list within the states the list names", async () => {
+      const alert: BuiltWidget = buildWidget({
+        componentType: DashboardComponentType.AlertList,
+        argumentsObject: {
+          stateFilter: "acknowledged",
+          stateIds: [
+            ALERT_STATE_IDS.created.toString(),
+            ALERT_STATE_IDS.acknowledged.toString(),
+            ALERT_STATE_IDS.resolved.toString(),
+          ],
+        },
+      });
+      setDashboardWidgets([alert.widget]);
+
+      await callRoute({
+        resourceType: "alert",
+        body: { componentId: alert.componentId.toString() },
+      });
+
+      const query: JSONObject = getFindByArgs(AlertService)[
+        "query"
+      ] as JSONObject;
+
+      expect(query["currentAlertState"]).toBeUndefined();
+      expect(idsOfAnyFilter(query["currentAlertStateId"])).toEqual([
+        ALERT_STATE_IDS.acknowledged.toString(),
+      ]);
     });
 
     it("takes kind from the selected widget policy, not from the caller", async () => {

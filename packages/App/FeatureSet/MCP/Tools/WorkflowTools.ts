@@ -18,6 +18,8 @@ import McpCredentialUtil, {
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject, JSONArray } from "Common/Types/JSON";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import AcknowledgedStateUtil from "Common/Utils/AcknowledgedState";
+import { StateListType } from "Common/Utils/StateOrder";
 
 type StateFlag = "isAcknowledgedState" | "isResolvedState";
 
@@ -34,7 +36,7 @@ const WORKFLOW_TOOL_DEFINITIONS: WorkflowToolDefinition[] = [
     name: "acknowledge_incident",
     title: "Acknowledge Incident",
     description:
-      "Acknowledge an incident: marks it as being worked on by moving it to the project's 'Acknowledged' state. Equivalent to pressing 'Acknowledge' in the OneUptime dashboard.",
+      "Acknowledge an incident: marks it as being worked on by moving it to the project's 'Acknowledged' state. Equivalent to pressing 'Acknowledge' in the OneUptime dashboard. An incident that is already acknowledged - in the Acknowledged state, a state placed after it, or resolved - is left as it is.",
     inputSchema: {
       type: "object",
       properties: {
@@ -72,7 +74,7 @@ const WORKFLOW_TOOL_DEFINITIONS: WorkflowToolDefinition[] = [
     name: "acknowledge_alert",
     title: "Acknowledge Alert",
     description:
-      "Acknowledge an alert: marks it as being worked on by moving it to the project's 'Acknowledged' state.",
+      "Acknowledge an alert: marks it as being worked on by moving it to the project's 'Acknowledged' state. An alert that is already acknowledged - in the Acknowledged state, a state placed after it, or resolved - is left as it is.",
     inputSchema: {
       type: "object",
       properties: {
@@ -324,7 +326,11 @@ async function findStateId(data: {
   kind: "incident" | "alert";
   flag: StateFlag;
   credential: McpCredentialInput;
-}): Promise<{ stateId: string; stateName: string }> {
+}): Promise<{
+  stateId: string;
+  stateName: string;
+  stateOrder: number | undefined;
+}> {
   const statePath: string =
     data.kind === "incident" ? "/incident-state" : "/alert-state";
 
@@ -338,7 +344,7 @@ async function findStateId(data: {
     path: `/api${statePath}/get-list`,
     body: {
       query: { [data.flag]: true },
-      select: { _id: true, name: true },
+      select: { _id: true, name: true, order: true },
       sort: { order: SortOrder.Ascending },
       skip: 0,
       limit: 1,
@@ -360,7 +366,55 @@ async function findStateId(data: {
   return {
     stateId: firstRow["_id"] as string,
     stateName: (firstRow["name"] as string) || "",
+    stateOrder:
+      typeof firstRow["order"] === "number"
+        ? (firstRow["order"] as number)
+        : undefined,
   };
+}
+
+/**
+ * The state an incident or alert is in now - its id, name, place and flags -
+ * or null when the record could not be read (the write that follows then
+ * gets the API's own answer).
+ */
+async function findCurrentState(data: {
+  kind: "incident" | "alert";
+  id: string;
+  credential: McpCredentialInput;
+}): Promise<JSONObject | null> {
+  const stateRelation: string =
+    data.kind === "incident" ? "currentIncidentState" : "currentAlertState";
+
+  const response: unknown = await OneUptimeApiService.makeAuthenticatedApiCall({
+    method: "POST",
+    path: `/api/${data.kind}/get-list`,
+    body: {
+      query: { _id: data.id },
+      select: {
+        _id: true,
+        [stateRelation]: {
+          _id: true,
+          name: true,
+          order: true,
+          isAcknowledgedState: true,
+          isResolvedState: true,
+        },
+      },
+      skip: 0,
+      limit: 1,
+    } as JSONObject,
+    credential: data.credential,
+  });
+
+  const record: JSONObject | undefined = listRows(response)[0] as
+    | JSONObject
+    | undefined;
+  const state: unknown = record?.[stateRelation];
+
+  return state && typeof state === "object" && !Array.isArray(state)
+    ? (state as JSONObject)
+    : null;
 }
 
 /**
@@ -373,11 +427,51 @@ async function changeState(data: {
   flag: StateFlag;
   credential: McpCredentialInput;
 }): Promise<JSONObject> {
-  const { stateId, stateName } = await findStateId({
+  const { stateId, stateName, stateOrder } = await findStateId({
     kind: data.kind,
     flag: data.flag,
     credential: data.credential,
   });
+
+  /*
+   * Acknowledge is for a record not acknowledged yet - by the one rule
+   * (Common/Utils/AcknowledgedState): one in the Acknowledged state, a state
+   * placed after it ("Investigating") or a resolved one already is, and
+   * moving it to Acknowledged would move it back up its list. Such a record
+   * is left as it is, as the dashboard, Slack and Microsoft Teams leave it.
+   */
+  if (data.flag === "isAcknowledgedState") {
+    const currentState: JSONObject | null = await findCurrentState({
+      kind: data.kind,
+      id: data.id,
+      credential: data.credential,
+    });
+
+    if (
+      currentState &&
+      AcknowledgedStateUtil.isStateAcknowledged({
+        list:
+          data.kind === "incident"
+            ? StateListType.IncidentState
+            : StateListType.AlertState,
+        states: [
+          {
+            _id: stateId,
+            order: stateOrder,
+            isAcknowledgedState: true,
+          },
+        ],
+        state: currentState,
+      })
+    ) {
+      const currentName: string =
+        (currentState["name"] as string) || "its current state";
+
+      throw new Error(
+        `${data.kind === "incident" ? "Incident" : "Alert"} ${data.id} is already acknowledged: it is in '${currentName}', which is '${stateName}' or a state after it. It was left as it is.`,
+      );
+    }
+  }
 
   const timelinePath: string =
     data.kind === "incident"
