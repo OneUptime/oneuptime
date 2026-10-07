@@ -19,6 +19,8 @@ import ProjectSsoProviderChanges, {
   PROVIDER_CHANGE_IN_PROGRESS_MESSAGE,
   REQUIRED_SSO_PROVIDER_MESSAGE,
   SERVER_LAST_SSO_PROVIDER_MESSAGE,
+  SERVER_SIGN_IN_LOCK_KEY,
+  SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
 } from "../../../Server/Utils/ProjectSsoProviderChanges";
 import ProjectSsoProviderStanding from "../../../Server/Utils/ProjectSsoProviderStanding";
 import RealtimeAccessChanges, {
@@ -28,7 +30,9 @@ import RealtimeAccessChanges, {
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import GlobalOidc from "../../../Models/DatabaseModels/GlobalOidc";
+import GlobalOidcProject from "../../../Models/DatabaseModels/GlobalOidcProject";
 import GlobalSso from "../../../Models/DatabaseModels/GlobalSso";
+import GlobalSsoProject from "../../../Models/DatabaseModels/GlobalSsoProject";
 import Project from "../../../Models/DatabaseModels/Project";
 import ProjectOidc from "../../../Models/DatabaseModels/ProjectOidc";
 import ProjectSso from "../../../Models/DatabaseModels/ProjectSso";
@@ -145,11 +149,14 @@ let serverRequiresSso: boolean = false;
 let serverRuleReads: number = 0;
 
 /*
- * The project locks taken and given back, and the rows written, in order:
- * "lock:<project>", "write:<provider>", "delete:<provider>",
- * "release:<project>".
+ * The locks taken and given back - a project's, or the one on the server's
+ * sign-in rules ("server") - and the rows written, in order:
+ * "lock:<project>", "lock:server", "write:<provider>", "delete:<provider>",
+ * "release:<project>", "release:server".
  */
 let events: Array<string> = [];
+
+const SERVER_LOCK: string = SERVER_SIGN_IN_LOCK_KEY;
 
 interface LockCall {
   key: string;
@@ -663,6 +670,48 @@ beforeEach(() => {
     });
   }) as never);
 
+  /*
+   * Their attachments, as the check reads them (SsoSignInWays): one row per
+   * project a provider is attached to, each on.
+   */
+  const attachmentRows: (
+    providers: Array<GlobalProvider>,
+    providerColumn: "globalSsoId" | "globalOidcId",
+    createModel: () => BaseModel,
+  ) => Array<BaseModel> = (
+    providers: Array<GlobalProvider>,
+    providerColumn: "globalSsoId" | "globalOidcId",
+    createModel: () => BaseModel,
+  ): Array<BaseModel> => {
+    return providers.flatMap((provider: GlobalProvider): Array<BaseModel> => {
+      return provider.attachedTo.map((projectId: ObjectID): BaseModel => {
+        const model: BaseModel = createModel();
+        Object.assign(model, {
+          _id: ObjectID.generate().toString(),
+          [providerColumn]: provider.id,
+          projectId: projectId,
+          isEnabled: true,
+        });
+        return model;
+      });
+    });
+  };
+
+  getJestSpyOn(GlobalSsoProjectService, "findAllBy").mockImplementation(
+    (async () => {
+      return attachmentRows(globalSsoProviders, "globalSsoId", () => {
+        return new GlobalSsoProject();
+      });
+    }) as never,
+  );
+  getJestSpyOn(GlobalOidcProjectService, "findAllBy").mockImplementation(
+    (async () => {
+      return attachmentRows(globalOidcProviders, "globalOidcId", () => {
+        return new GlobalOidcProject();
+      });
+    }) as never,
+  );
+
   const isAttached: (
     providers: Array<GlobalProvider>,
     providerId: ObjectID,
@@ -1116,18 +1165,27 @@ describe("when neither the project nor the server requires SSO", () => {
 
 describe("the check and the write hold the project's lock", () => {
   test.each(KINDS)(
-    "%s: turning a provider off locks its project before the check and gives it back once written, waiting longer than a lock is held",
+    "%s: turning a provider off locks its project, then the server's sign-in rules, before the check, and gives both back once written, waiting longer than a lock is held",
     async (_label: string, kind: ProviderKind) => {
       await expect(turnOff(kind)).resolves.toBe(1);
 
       expect(events).toEqual([
         `lock:${PROJECT_ID.toString()}`,
+        `lock:${SERVER_LOCK}`,
         `write:${kind.id.toString()}`,
         `release:${PROJECT_ID.toString()}`,
+        `release:${SERVER_LOCK}`,
       ]);
       expect(lockCalls).toEqual([
         {
           key: PROJECT_ID.toString(),
+          namespace: "ProjectSsoProviderChanges.keepAWayIn",
+          lockTimeout: 10_000,
+          acquireTimeout: 15_000,
+          refreshInterval: 0,
+        },
+        {
+          key: SERVER_LOCK,
           namespace: "ProjectSsoProviderChanges.keepAWayIn",
           lockTimeout: 10_000,
           acquireTimeout: 15_000,
@@ -1138,15 +1196,55 @@ describe("the check and the write hold the project's lock", () => {
   );
 
   test.each(KINDS)(
-    "%s: deleting one that is on holds it the same way",
+    "%s: deleting one that is on holds them the same way",
     async (_label: string, kind: ProviderKind) => {
       await expect(remove(kind)).resolves.toBe(1);
 
       expect(events).toEqual([
         `lock:${PROJECT_ID.toString()}`,
+        `lock:${SERVER_LOCK}`,
         `delete:${kind.id.toString()}`,
         `release:${PROJECT_ID.toString()}`,
+        `release:${SERVER_LOCK}`,
       ]);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: turning a provider on locks only its project: it takes nothing away, so the server's rules are not read",
+    async (_label: string, kind: ProviderKind) => {
+      await expect(turnOn(kind, kind.secondId)).resolves.toBe(1);
+
+      expect(events).toEqual([
+        `lock:${PROJECT_ID.toString()}`,
+        `write:${kind.secondId.toString()}`,
+        `release:${PROJECT_ID.toString()}`,
+      ]);
+      expect(serverRuleReads).toBe(0);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: while another change to who can sign in holds the server's rules too long, the write is refused and the project's lock given back",
+    async (_label: string, kind: ProviderKind) => {
+      busyProjectId = SERVER_LOCK;
+
+      await expect(refusalOf(turnOff(kind))).resolves.toBe(
+        SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
+      );
+      await expect(refusalOf(remove(kind))).resolves.toBe(
+        SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
+      );
+
+      expect(events).toEqual([
+        `lock:${PROJECT_ID.toString()}`,
+        `release:${PROJECT_ID.toString()}`,
+        `lock:${PROJECT_ID.toString()}`,
+        `release:${PROJECT_ID.toString()}`,
+      ]);
+      expect(kind.writes()).toEqual([]);
+      expect(deleted).toEqual([]);
+      expect(rowOf(kind)!.isEnabled).toBe(true);
     },
   );
 
@@ -1166,9 +1264,13 @@ describe("the check and the write hold the project's lock", () => {
 
       expect(events).toEqual([
         `lock:${PROJECT_ID.toString()}`,
+        `lock:${SERVER_LOCK}`,
         `release:${PROJECT_ID.toString()}`,
+        `release:${SERVER_LOCK}`,
         `lock:${PROJECT_ID.toString()}`,
+        `lock:${SERVER_LOCK}`,
         `release:${PROJECT_ID.toString()}`,
+        `release:${SERVER_LOCK}`,
       ]);
     },
   );
@@ -1195,20 +1297,23 @@ describe("the check and the write hold the project's lock", () => {
       await turnOn(kind, kind.secondId);
       await expect(remove(other, other.secondId)).resolves.toBe(1);
 
+      // A write that may take a provider away locks the server's rules too, before it reads the rows.
       expect(
         lockCalls.map((call: LockCall): string => {
           return call.key;
         }),
       ).toEqual([
         PROJECT_ID.toString(),
+        SERVER_LOCK,
         PROJECT_ID.toString(),
         PROJECT_ID.toString(),
+        SERVER_LOCK,
       ]);
       expect(
         events.filter((event: string): boolean => {
           return event.startsWith("release:");
         }),
-      ).toHaveLength(3);
+      ).toHaveLength(5);
       expect(wroteSignInsEndedAt(kind)).toBe(false);
     },
   );
@@ -1310,8 +1415,12 @@ describe("the check and the write hold the project's lock", () => {
       lockCalls.map((call: LockCall): string => {
         return call.key;
       }),
-    ).toEqual([first, second]);
-    expect(events.slice(-2)).toEqual([`release:${first}`, `release:${second}`]);
+    ).toEqual([first, second, SERVER_LOCK]);
+    expect(events.slice(-3)).toEqual([
+      `release:${first}`,
+      `release:${second}`,
+      `release:${SERVER_LOCK}`,
+    ]);
   });
 
   test.each(KINDS)(
@@ -1330,7 +1439,8 @@ describe("the check and the write hold the project's lock", () => {
 
       await expect(refusalOf(turnOff(kind))).resolves.toBe("done");
       expect(rowOf(kind)!.isEnabled).toBe(false);
-      expect(lockCalls).toHaveLength(2);
+      // Each write asked for its project's lock and the server's.
+      expect(lockCalls).toHaveLength(4);
       expect(logger.warn).toHaveBeenCalled();
     },
   );
@@ -1377,9 +1487,11 @@ describe("the rows a write names are read under the lock", () => {
       expect(events).toEqual([
         "read",
         `lock:${PROJECT_ID.toString()}`,
+        `lock:${SERVER_LOCK}`,
         "read",
         `write:${kind.id.toString()}`,
         `release:${PROJECT_ID.toString()}`,
+        `release:${SERVER_LOCK}`,
       ]);
       expect(wroteSignInsEndedAt(kind)).toBe(true);
     },
@@ -1440,9 +1552,23 @@ describe("the rows a write names are read under the lock", () => {
   );
 });
 
-describe("the check reads only as many providers as its answer needs", () => {
+describe("the check reads the providers that are on once per kind", () => {
+  const enabledReads: (spy: SpyInstance) => Array<Record<string, unknown>> = (
+    spy: SpyInstance,
+  ): Array<Record<string, unknown>> => {
+    return spy.mock.calls
+      .map((call: Array<unknown>): Record<string, unknown> => {
+        return call[0] as Record<string, unknown>;
+      })
+      .filter((args: Record<string, unknown>): boolean => {
+        const query: Record<string, unknown> =
+          (args["query"] as Record<string, unknown>) || {};
+        return query["isEnabled"] === true;
+      });
+  };
+
   test.each(KINDS)(
-    "%s: one more of the write's own kind than it takes away, and one of the other kind",
+    "%s: one read of each kind for the project, whatever it finds",
     async (_label: string, kind: ProviderKind) => {
       project.requireSsoForLogin = true;
       const other: ProviderKind = kind === SAML ? OIDC : SAML;
@@ -1453,25 +1579,31 @@ describe("the check reads only as many providers as its answer needs", () => {
 
       await expect(refusalOf(turnOff(kind))).resolves.toBe("done");
 
-      const limitsOfEnabledReads: (spy: SpyInstance) => Array<unknown> = (
-        spy: SpyInstance,
-      ): Array<unknown> => {
-        return spy.mock.calls
-          .map((call: Array<unknown>): Record<string, unknown> => {
-            return call[0] as Record<string, unknown>;
-          })
-          .filter((args: Record<string, unknown>): boolean => {
-            const query: Record<string, unknown> =
-              (args["query"] as Record<string, unknown>) || {};
-            return query["isEnabled"] === true;
-          })
-          .map((args: Record<string, unknown>): unknown => {
-            return args["limit"];
-          });
-      };
+      expect(enabledReads(ownReads)).toHaveLength(1);
+      expect(enabledReads(otherReads)).toHaveLength(1);
+    },
+  );
 
-      expect(limitsOfEnabledReads(ownReads)).toEqual([2]);
-      expect(limitsOfEnabledReads(otherReads)).toEqual([1]);
+  test.each(KINDS)(
+    "%s: none, when a global provider that signs people in to every project settles it",
+    async (_label: string, kind: ProviderKind) => {
+      project.requireSsoForLogin = true;
+      const other: ProviderKind = kind === SAML ? OIDC : SAML;
+      globalSsoProviders = [
+        {
+          id: GLOBAL_SSO_ID,
+          restrictToAttachedProjects: false,
+          attachedTo: [],
+        },
+      ];
+
+      const ownReads: SpyInstance = getJestSpyOn(kind.service, "findBy");
+      const otherReads: SpyInstance = getJestSpyOn(other.service, "findBy");
+
+      await expect(refusalOf(turnOff(kind))).resolves.toBe("done");
+
+      expect(enabledReads(ownReads)).toHaveLength(0);
+      expect(enabledReads(otherReads)).toHaveLength(0);
     },
   );
 });

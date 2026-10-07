@@ -57,6 +57,7 @@ describe("private status page access requires a live session", () => {
     query = {
       select: jest.fn().mockReturnThis(),
       innerJoin: jest.fn().mockReturnThis(),
+      leftJoin: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
       andWhere: jest.fn().mockReturnThis(),
       getOne,
@@ -91,6 +92,36 @@ describe("private status page access requires a live session", () => {
   test("rejects a signed token without a live session", async () => {
     getOne.mockResolvedValue(null);
     expect(await hasAccess()).toBe(false);
+  });
+
+  test("reads the session under its sign-in rule, with the page's Require SSO for Login", async () => {
+    /*
+     * The rule (StatusPagePrivateUserSessionService.addSignInRule) counts a
+     * session only while the provider that signed it in vouches for it,
+     * and one no provider signed in only on a page that does not require
+     * SSO. Its SQL is pinned against Postgres in
+     * StatusPageSsoSessionsPostgres.test.ts.
+     */
+    const addSignInRule: jest.SpyInstance = jest.spyOn(
+      StatusPagePrivateUserSessionService,
+      "addSignInRule",
+    );
+
+    statusPage.requireSsoForLogin = true;
+    expect(await hasAccess()).toBe(true);
+    expect(addSignInRule).toHaveBeenLastCalledWith(query, {
+      requiresSso: true,
+    });
+
+    statusPage.requireSsoForLogin = false;
+    expect(await hasAccess()).toBe(true);
+    expect(addSignInRule).toHaveBeenLastCalledWith(query, {
+      requiresSso: false,
+    });
+
+    // The provider tables are joined into the one session read.
+    expect(query.leftJoin).toHaveBeenCalled();
+    expect(getOne).toHaveBeenCalledTimes(2);
   });
 
   test("does not cache successful authorization after revocation or deletion", async () => {

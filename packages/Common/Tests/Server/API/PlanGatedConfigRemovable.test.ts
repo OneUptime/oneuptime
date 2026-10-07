@@ -518,17 +518,14 @@ describe("single sign-on a Scale trial left behind, on Free and on Growth", () =
   });
 
   /*
-   * What switching a provider off writes: the switch alone - and, for a
-   * project's own provider, which ends the sign-ins it gave, when it was
-   * turned off, which OneUptime writes itself
-   * (Utils/ProjectSsoProviderChanges).
+   * What switching a provider off writes: the switch alone - and, since
+   * turning any SSO provider off ends the sign-ins it gave, when it was
+   * turned off, which OneUptime writes itself (Utils/SsoSignInsEnded).
    */
   const switchedOff: (provider: Subject) => Record<string, unknown> = (
-    provider: Subject,
+    _provider: Subject,
   ): Record<string, unknown> => {
-    return provider === SAML_PROVIDER || provider === OIDC_PROVIDER
-      ? { isEnabled: false, signInsEndedAt: expect.any(Date) }
-      : { isEnabled: false };
+    return { isEnabled: false, signInsEndedAt: expect.any(Date) };
   };
 
   test("every provider can be read", async () => {

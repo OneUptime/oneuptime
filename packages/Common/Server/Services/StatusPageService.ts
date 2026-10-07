@@ -782,6 +782,7 @@ export class Service extends ProjectReferencesService<StatusPage> {
           enableMasterPassword: true,
           masterPassword: true,
           isArchived: true,
+          requireSsoForLogin: true,
         },
       });
 
@@ -897,6 +898,7 @@ export class Service extends ProjectReferencesService<StatusPage> {
                   .andWhere("session.refreshTokenExpiresAt > :now", {
                     now: OneUptimeDate.getCurrentDate(),
                   }),
+                { requiresSso: Boolean(statusPage.requireSsoForLogin) },
               ).getOne();
 
             if (

@@ -102,11 +102,13 @@ function attachments(data: {
 const USABLE_UNRESTRICTED: GlobalProviderTrust = {
   isUsable: true,
   restrictToAttachedProjects: false,
+  signInsEndedAtMs: null,
 };
 
 const DISABLED_PROVIDER: GlobalProviderTrust = {
   isUsable: false,
   restrictToAttachedProjects: false,
+  signInsEndedAtMs: null,
 };
 
 /*
@@ -613,6 +615,7 @@ describe("the caches - round trip", () => {
     const trust: GlobalProviderTrust = {
       isUsable: true,
       restrictToAttachedProjects: true,
+      signInsEndedAtMs: null,
     };
 
     expect(globalSsoProviderTrustCache.get(key)).toBeUndefined();
@@ -1276,27 +1279,124 @@ describe("loadTrustOnce / loadAttachmentsOnce - in-flight de-duplication", () =>
     expect((await joinedAttachments).hasAnyAttachmentRows).toBe(false);
   });
 
-  test("de-duplication does not populate the cache by itself", () => {
-    /*
-     * loadOnce only shares the promise; writing the answer into the 60s cache
-     * is the loader's job. If sharing implied caching, a loader that threw
-     * would still leave something behind.
-     */
+  test("a lookup caches its answer once it settles, not before", async () => {
     const key: string = globalProviderCacheKey("sso", ObjectID.generate());
+    const gate: Deferred<GlobalProviderTrust> =
+      createDeferred<GlobalProviderTrust>();
 
     const pending: Promise<GlobalProviderTrust> = loadTrustOnce(
       key,
-      async (): Promise<GlobalProviderTrust> => {
-        return USABLE_UNRESTRICTED;
+      (): Promise<GlobalProviderTrust> => {
+        return gate.promise;
       },
     );
 
+    // Nothing is cached while the read is on the wire.
     expect(globalSsoProviderTrustCache.get(key)).toBeUndefined();
-    expect(globalSsoProviderTrustCache.size()).toBe(0);
 
-    return pending.then((): void => {
-      expect(globalSsoProviderTrustCache.get(key)).toBeUndefined();
+    gate.resolve(USABLE_UNRESTRICTED);
+    await pending;
+
+    expect(globalSsoProviderTrustCache.get(key)).toEqual(USABLE_UNRESTRICTED);
+  });
+
+  test("an attachment lookup caches its answer the same way", async () => {
+    const key: string = globalProviderCacheKey("oidc", ObjectID.generate());
+    const loaded: GlobalProviderAttachments = attachments({
+      hasAnyAttachmentRows: true,
+      enabledProjectIds: ["project"],
     });
+
+    await loadAttachmentsOnce(
+      key,
+      async (): Promise<GlobalProviderAttachments> => {
+        return loaded;
+      },
+    );
+
+    expect(globalSsoAttachmentsCache.get(key)).toEqual(loaded);
+  });
+
+  test("a lookup that fails caches nothing", async () => {
+    const key: string = globalProviderCacheKey("sso", ObjectID.generate());
+
+    await expect(
+      loadTrustOnce(key, async (): Promise<GlobalProviderTrust> => {
+        throw new Error("database unavailable");
+      }),
+    ).rejects.toThrow("database unavailable");
+
+    expect(globalSsoProviderTrustCache.get(key)).toBeUndefined();
+  });
+
+  test("a lookup under way when the answers are dropped is handed to its callers but never cached", async () => {
+    /*
+     * The write that dropped the answers - a provider turned off, say - may
+     * have landed after this read: its answer is from before the change, so
+     * caching it would hand the old answer out for another minute.
+     */
+    const trustKey: string = globalProviderCacheKey("sso", ObjectID.generate());
+    const attachmentKey: string = globalProviderCacheKey(
+      "oidc",
+      ObjectID.generate(),
+    );
+
+    const trustGate: Deferred<GlobalProviderTrust> =
+      createDeferred<GlobalProviderTrust>();
+    const attachmentGate: Deferred<GlobalProviderAttachments> =
+      createDeferred<GlobalProviderAttachments>();
+
+    const staleTrust: Promise<GlobalProviderTrust> = loadTrustOnce(
+      trustKey,
+      (): Promise<GlobalProviderTrust> => {
+        return trustGate.promise;
+      },
+    );
+    const staleAttachments: Promise<GlobalProviderAttachments> =
+      loadAttachmentsOnce(
+        attachmentKey,
+        (): Promise<GlobalProviderAttachments> => {
+          return attachmentGate.promise;
+        },
+      );
+
+    clearGlobalSsoAuthorizationCaches();
+
+    trustGate.resolve(USABLE_UNRESTRICTED);
+    attachmentGate.resolve(
+      attachments({ hasAnyAttachmentRows: false, enabledProjectIds: [] }),
+    );
+
+    expect(await staleTrust).toEqual(USABLE_UNRESTRICTED);
+    expect((await staleAttachments).hasAnyAttachmentRows).toBe(false);
+
+    expect(globalSsoProviderTrustCache.get(trustKey)).toBeUndefined();
+    expect(globalSsoAttachmentsCache.get(attachmentKey)).toBeUndefined();
+
+    // The next lookup reads again, and its answer is cached.
+    let reads: number = 0;
+
+    await loadTrustOnce(trustKey, async (): Promise<GlobalProviderTrust> => {
+      reads++;
+      return DISABLED_PROVIDER;
+    });
+
+    expect(reads).toBe(1);
+    expect(globalSsoProviderTrustCache.get(trustKey)).toEqual(
+      DISABLED_PROVIDER,
+    );
+  });
+
+  test("a lookup that started after the answers were dropped is cached", async () => {
+    const key: string = globalProviderCacheKey("sso", ObjectID.generate());
+
+    clearGlobalSsoAuthorizationCaches();
+
+    await loadTrustOnce(key, async (): Promise<GlobalProviderTrust> => {
+      return USABLE_UNRESTRICTED;
+    });
+
+    expect(globalSsoProviderTrustCache.get(key)).toEqual(USABLE_UNRESTRICTED);
   });
 });
 
@@ -1347,7 +1447,11 @@ describe("loadTrustOnce - a settling lookup does not evict a newer one", () => {
     expect(loadCount).toBe(2);
 
     // Lookup #1 now settles. It must NOT take lookup #2's slot with it.
-    releases[0]!({ isUsable: true, restrictToAttachedProjects: false });
+    releases[0]!({
+ isUsable: true,
+ restrictToAttachedProjects: false,
+ signInsEndedAtMs: null,
+ });
     await first;
 
     // A third caller arrives while lookup #2 is STILL in flight.
@@ -1358,15 +1462,21 @@ describe("loadTrustOnce - a settling lookup does not evict a newer one", () => {
 
     expect(loadCount).toBe(2);
 
-    releases[1]!({ isUsable: false, restrictToAttachedProjects: true });
+    releases[1]!({
+ isUsable: false,
+ restrictToAttachedProjects: true,
+ signInsEndedAtMs: null,
+ });
 
     await expect(second).resolves.toEqual({
       isUsable: false,
       restrictToAttachedProjects: true,
+      signInsEndedAtMs: null,
     });
     await expect(third).resolves.toEqual({
       isUsable: false,
       restrictToAttachedProjects: true,
+      signInsEndedAtMs: null,
     });
   });
 
@@ -1378,7 +1488,11 @@ describe("loadTrustOnce - a settling lookup does not evict a newer one", () => {
     const loader: () => Promise<GlobalProviderTrust> =
       async (): Promise<GlobalProviderTrust> => {
         loadCount += 1;
-        return { isUsable: true, restrictToAttachedProjects: false };
+        return {
+ isUsable: true,
+ restrictToAttachedProjects: false,
+ signInsEndedAtMs: null,
+ };
       };
 
     await loadTrustOnce(key, loader);
@@ -1419,10 +1533,22 @@ describe("isAnyAttachedProviderRestricted", () => {
   const answers: Map<string, GlobalProviderTrust> = new Map([
     [
       RESTRICTED_ID.toString(),
-      { isUsable: true, restrictToAttachedProjects: true },
+      {
+ isUsable: true,
+ restrictToAttachedProjects: true,
+ signInsEndedAtMs: null,
+ },
     ],
-    [OPEN_ID.toString(), { isUsable: true, restrictToAttachedProjects: false }],
-    [OFF_ID.toString(), { isUsable: false, restrictToAttachedProjects: true }],
+    [OPEN_ID.toString(), {
+ isUsable: true,
+ restrictToAttachedProjects: false,
+ signInsEndedAtMs: null,
+ }],
+    [OFF_ID.toString(), {
+ isUsable: false,
+ restrictToAttachedProjects: true,
+ signInsEndedAtMs: null,
+ }],
   ]);
 
   function trustReader(): Mock<

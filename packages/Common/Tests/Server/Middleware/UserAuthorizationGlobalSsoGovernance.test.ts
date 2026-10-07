@@ -70,16 +70,19 @@ const THIRTY_DAYS_IN_SECONDS: number = 30 * 24 * 60 * 60;
 const TRUSTED_AND_UNRESTRICTED: GlobalProviderTrust = {
   isUsable: true,
   restrictToAttachedProjects: false,
+  signInsEndedAtMs: null,
 };
 
 const TRUSTED_AND_RESTRICTED: GlobalProviderTrust = {
   isUsable: true,
   restrictToAttachedProjects: true,
+  signInsEndedAtMs: null,
 };
 
 const REVOKED: GlobalProviderTrust = {
   isUsable: false,
   restrictToAttachedProjects: false,
+  signInsEndedAtMs: null,
 };
 
 type TrustSpy = SpyInstance<
@@ -328,6 +331,7 @@ describe("isGlobalSsoTokenAuthorizedForProject - provider trust is unconditional
     ssoTrustSpy.mockResolvedValue({
       isUsable: false,
       restrictToAttachedProjects: true,
+      signInsEndedAtMs: null,
     });
     ssoGovernsSpy.mockResolvedValue(true);
 

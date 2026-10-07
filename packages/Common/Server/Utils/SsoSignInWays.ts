@@ -436,23 +436,10 @@ export default class SsoSignInWays {
       start < explicitIds.length;
       start += PROJECT_PAGE_SIZE
     ) {
-      const page: Array<string> = explicitIds.slice(
-        start,
-        start + PROJECT_PAGE_SIZE,
-      );
-
       await evaluate(
-        await SsoSignInWays.readProjects({
-          query: {
-            _id: QueryHelper.any(
-              page.map((id: string): ObjectID => {
-                return new ObjectID(id);
-              }),
-            ),
-          } as Query<Project>,
-          skip: 0,
-          limit: PROJECT_PAGE_SIZE,
-        }),
+        await SsoSignInWays.readProjectsById(
+          explicitIds.slice(start, start + PROJECT_PAGE_SIZE),
+        ),
       );
     }
 
@@ -621,6 +608,59 @@ export default class SsoSignInWays {
     }
   }
 
+  /*
+   * The projects a change names, one read each, by id: a change names few,
+   * and a project that is gone is left out.
+   */
+  private static async readProjectsById(
+    projectIds: Array<string>,
+  ): Promise<Array<CandidateProject>> {
+    const candidates: Array<CandidateProject> = [];
+
+    for (const projectId of projectIds) {
+      const project: Project | null = await ProjectService.findOneById({
+        id: new ObjectID(projectId),
+        select: {
+          _id: true,
+          name: true,
+          requireSsoForLogin: true,
+          requireSsoWithSsoProviderId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const candidate: CandidateProject | null = project
+        ? SsoSignInWays.toCandidate(project, projectId)
+        : null;
+
+      if (candidate) {
+        candidates.push(candidate);
+      }
+    }
+
+    return candidates;
+  }
+
+  private static toCandidate(
+    project: Project,
+    fallbackId?: string | undefined,
+  ): CandidateProject | null {
+    const id: string | null = toIdString(project.id) || fallbackId || null;
+
+    if (!id) {
+      return null;
+    }
+
+    return {
+      id: id.toLowerCase(),
+      name: project.name || id,
+      requireSsoForLogin: project.requireSsoForLogin === true,
+      requiredProviderId: toIdString(project.requireSsoWithSsoProviderId),
+    };
+  }
+
   private static async readProjects(data: {
     query: Query<Project>;
     skip: number;
@@ -647,18 +687,12 @@ export default class SsoSignInWays {
     const candidates: Array<CandidateProject> = [];
 
     for (const project of projects) {
-      const id: string | null = toIdString(project.id);
+      const candidate: CandidateProject | null =
+        SsoSignInWays.toCandidate(project);
 
-      if (!id) {
-        continue;
+      if (candidate) {
+        candidates.push(candidate);
       }
-
-      candidates.push({
-        id,
-        name: project.name || id,
-        requireSsoForLogin: project.requireSsoForLogin === true,
-        requiredProviderId: toIdString(project.requireSsoWithSsoProviderId),
-      });
     }
 
     return candidates;

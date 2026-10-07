@@ -177,11 +177,13 @@ export class Service extends DatabaseService<Model> {
    *     turning it on again does not bring them back (Utils/SsoSignInsEnded).
    *   - A session that names no provider - a password sign-in, or an SSO
    *     sign-in from before sessions named their provider - counts only
-   *     while the status page does not require SSO: Require SSO for Login
-   *     lets in only people an SSO provider signs in.
+   *     while the status page does not require SSO (`requiresSso`, its
+   *     Require SSO for Login, read by the caller with the page): Require
+   *     SSO for Login lets in only people an SSO provider signs in.
    */
   public addSignInRule(
     query: SelectQueryBuilder<Model>,
+    data: { requiresSso: boolean },
   ): SelectQueryBuilder<Model> {
     const vouchedForBy: (alias: string, column: string) => string = (
       alias: string,
@@ -198,7 +200,6 @@ export class Service extends DatabaseService<Model> {
     };
 
     return query
-      .innerJoin("session.statusPage", "sessionStatusPage")
       .leftJoin(
         StatusPageSso,
         "sessionStatusPageSso",
@@ -211,10 +212,14 @@ export class Service extends DatabaseService<Model> {
       )
       .andWhere(
         new Brackets((rule: WhereExpressionBuilder): void => {
+          // A page that requires SSO counts nothing but an SSO sign-in.
+          rule.where(
+            data.requiresSso
+              ? "1 = 0"
+              : "session.statusPageSsoId IS NULL AND session.statusPageOidcId IS NULL",
+          );
+
           rule
-            .where(
-              "session.statusPageSsoId IS NULL AND session.statusPageOidcId IS NULL AND sessionStatusPage.requireSsoForLogin = false",
-            )
             .orWhere(vouchedForBy("sessionStatusPageSso", "statusPageSsoId"))
             .orWhere(
               vouchedForBy("sessionStatusPageOidc", "statusPageOidcId"),
@@ -228,13 +233,17 @@ export class Service extends DatabaseService<Model> {
    * (addSignInRule), read now: a refresh and a login code ask it before
    * they hand the session a new access token.
    */
-  public async doesSignInStillCount(sessionId: ObjectID): Promise<boolean> {
+  public async doesSignInStillCount(data: {
+    sessionId: ObjectID;
+    requiresSso: boolean;
+  }): Promise<boolean> {
     const session: Model | null = await this.addSignInRule(
       this.getQueryBuilder("session")
         .select(["session._id"])
         .where("session._id = :sessionId", {
-          sessionId: sessionId.toString(),
+          sessionId: data.sessionId.toString(),
         }),
+      { requiresSso: data.requiresSso },
     ).getOne();
 
     return Boolean(session);

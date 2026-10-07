@@ -1470,6 +1470,7 @@ describe("McpOAuthSso", () => {
         ).mockResolvedValue({
           isUsable: true,
           restrictToAttachedProjects: false,
+          signInsEndedAtMs: null,
         });
         oidcTrust = getJestSpyOn(
           GlobalOidcService,
@@ -1477,6 +1478,7 @@ describe("McpOAuthSso", () => {
         ).mockResolvedValue({
           isUsable: true,
           restrictToAttachedProjects: false,
+          signInsEndedAtMs: null,
         });
         ssoGoverns = getJestSpyOn(
           GlobalSsoProjectService,
@@ -1518,6 +1520,7 @@ describe("McpOAuthSso", () => {
         ssoTrust.mockResolvedValue({
           isUsable: false,
           restrictToAttachedProjects: false,
+          signInsEndedAtMs: null,
         });
 
         await expect(
@@ -1531,6 +1534,7 @@ describe("McpOAuthSso", () => {
         oidcTrust.mockResolvedValue({
           isUsable: true,
           restrictToAttachedProjects: true,
+          signInsEndedAtMs: null,
         });
         oidcGoverns.mockResolvedValue(false);
 
