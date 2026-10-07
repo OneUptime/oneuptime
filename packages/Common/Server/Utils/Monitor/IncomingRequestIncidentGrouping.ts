@@ -1,4 +1,5 @@
 import logger from "../Logger";
+import RootCauseList from "./RootCauseList";
 import VMUtil from "../VM/VMAPI";
 import MetricSeriesFingerprint from "../../../Utils/Metrics/MetricSeriesFingerprint";
 import DataToProcess from "./DataToProcess";
@@ -123,9 +124,15 @@ export default class IncomingRequestIncidentGrouping {
         criteriaMetId: criteriaId,
         fingerprint: item.fingerprint,
         labels: item.labels,
+        /*
+         * The key is whatever the request carried at the grouping path:
+         * shown as code (RootCauseList.code), so a backtick in it cannot
+         * close the span and nothing in it is read as Markdown or as a
+         * chat mention.
+         */
         rootCause:
           input.rootCause ||
-          `Incoming request matched grouping key \`${item.keyValue}\`.`,
+          `Incoming request matched grouping key ${RootCauseList.code(item.keyValue)}.`,
         metricContext: undefined,
       });
     }

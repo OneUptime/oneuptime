@@ -1,6 +1,10 @@
 import { JSONObject } from "../../JSON";
 import MonitorType from "../MonitorType";
 import SeriesLabelDisplay from "./SeriesLabelDisplay";
+import { neutralizeChatControlSequences } from "../../../Utils/Markdown/MarkdownEscape";
+
+// Any run of line breaks inside one command.
+const COMMAND_LINE_BREAK_PATTERN: RegExp = /[\r\n]+/g;
 
 /*
  * The first three commands an on-call engineer would type.
@@ -791,6 +795,12 @@ export default class SeriesDebugHints {
    * The commands rendered as a markdown block for an alert/incident
    * description, or "" when there is nothing to suggest - so callers
    * can concatenate unconditionally.
+   *
+   * Each command names values from the telemetry (quoteForShell), and sits
+   * on one line of its fenced block: a line break in a value would let the
+   * value close the fence and go on as Markdown, so it becomes a space. A
+   * chat mention in a value is broken (neutralizeChatControlSequences):
+   * Slack reads one even inside code.
    */
   public static buildMarkdownBlock(input: {
     monitorType: MonitorType | undefined;
@@ -812,7 +822,11 @@ export default class SeriesDebugHints {
     const lines: Array<string> = commands
       .slice(0, Math.max(maxCommands, 1))
       .map((command: SeriesDebugCommand) => {
-        return `- ${command.purpose}:\n  \`\`\`\n  ${command.command}\n  \`\`\``;
+        const commandLine: string = neutralizeChatControlSequences(
+          command.command.replace(COMMAND_LINE_BREAK_PATTERN, " "),
+        );
+
+        return `- ${command.purpose}:\n  \`\`\`\n  ${commandLine}\n  \`\`\``;
       });
 
     return `**Start here**\n${lines.join("\n")}`;

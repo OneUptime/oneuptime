@@ -182,4 +182,67 @@ export const escapeMarkdownValue: EscapeMarkdownValueFunction = (
   return text;
 };
 
+/*
+ * A value as an inline code span: text a monitored system or its telemetry
+ * reported - a resource or attribute name, a label's value, a grouping key -
+ * shown exactly as written, with nothing in it read as Markdown.
+ *
+ * Wrapping a value that contains a backtick in single backticks would close
+ * the span early and spill the rest of the value - and whatever Markdown it
+ * holds - into the text around it. So the fence is one backtick longer than
+ * the longest run inside the value, and padded with a space on each side
+ * when the value has any backticks at all (CommonMark strips exactly one from
+ * each side, so the padding never shows). Line breaks become spaces: a code
+ * span cannot hold one, and a newline inside a list item would end the item.
+ *
+ * Chat control sequences are broken here too (neutralizeChatControlSequences):
+ * Slack's Markdown conversion passes code through untouched, so "<!channel>"
+ * inside a code span would otherwise reach Slack as a mention. The word joiner
+ * cannot be seen inside the span either.
+ *
+ * A value without backticks is a plain single-backtick span, so an ISO
+ * timestamp still reaches the dashboard as the bare inline code it re-renders
+ * in the viewer's timezone. "" (no span at all) for an empty value.
+ */
+
+const CODE_SPAN_LINE_BREAK_PATTERN: RegExp = /\s*[\r\n]+\s*/g;
+const BACKTICK_RUN_PATTERN: RegExp = /`+/g;
+
+export type MarkdownCodeSpanFunction = (
+  value: string | undefined | null,
+) => string;
+
+export const markdownCodeSpan: MarkdownCodeSpanFunction = (
+  value: string | undefined | null,
+): string => {
+  if (value === undefined || value === null) {
+    return "";
+  }
+
+  const text: string = neutralizeChatControlSequences(
+    String(value).replace(CODE_SPAN_LINE_BREAK_PATTERN, " ").trim(),
+  );
+
+  if (text.length === 0) {
+    return "";
+  }
+
+  const backtickRuns: Array<string> = text.match(BACKTICK_RUN_PATTERN) || [];
+
+  const longestRun: number = backtickRuns.reduce(
+    (longest: number, run: string): number => {
+      return Math.max(longest, run.length);
+    },
+    0,
+  );
+
+  if (longestRun === 0) {
+    return `\`${text}\``;
+  }
+
+  const fence: string = "`".repeat(longestRun + 1);
+
+  return `${fence} ${text} ${fence}`;
+};
+
 export default escapeMarkdownInline;

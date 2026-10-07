@@ -1,6 +1,6 @@
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
-import { JSONObject } from "../../../Types/JSON";
+import { JSONObject, JSONValue } from "../../../Types/JSON";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import IncomingEmailMonitorRequest from "../../../Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
@@ -40,6 +40,7 @@ import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabel
 import VMUtil from "../VM/VMAPI";
 import DataToProcess from "./DataToProcess";
 import logger from "../Logger";
+import { neutralizeUntrustedValue } from "../../../Utils/Markdown/UntrustedMarkdown";
 
 /*
  * Path segments that resolve to the object prototype when a dotted series
@@ -67,6 +68,20 @@ const PrototypeWalkingKeySegments: ReadonlySet<string> = new Set<string>([
 export const MaxEmailValueLengthInTitle: number = 150;
 
 const TitleEllipsis: string = "...";
+
+/*
+ * The variables a description or remediation notes template places as they
+ * are: Markdown OneUptime builds itself (each escapes what it names), and the
+ * monitor's own description, which the project's people write as they write
+ * the template. Every other value is what the monitored system reported (see
+ * buildMarkdownStorageMap).
+ */
+export const MarkdownTemplateStorageMapKeys: ReadonlySet<string> =
+  new Set<string>([
+    "seriesResourceBlock",
+    "seriesDebugCommands",
+    "monitorDescription",
+  ]);
 
 // The Incoming Email variables whose text the email's sender wrote.
 const SenderWrittenEmailKeys: ReadonlyArray<string> = [
@@ -777,6 +792,70 @@ export default class MonitorTemplateUtil {
     }
 
     return titleStorageMap;
+  }
+
+  /**
+   * The storage map a description or remediation notes template renders
+   * against.
+   *
+   * Those are Markdown, shown on the dashboard, in email and in the
+   * record's Slack and Microsoft Teams channels, and almost every value in
+   * the map is what the monitored system sent: a response body or header,
+   * an incoming request or email, a certificate's fields, a device's SNMP
+   * values, a series' labels. Each such text - every string anywhere in the
+   * map, and every key, since {{responseBody}} places a whole object as
+   * JSON - is neutralized (neutralizeUntrustedValue): wherever the template
+   * places it, in a sentence or inside the author's own code span or block,
+   * it reads exactly as sent, and no renderer finds a mention, a link, an
+   * image, a diagram or an HTML tag in it. Numbers and booleans stay what
+   * they are, and a date is its ISO text, as VMUtil.deepFind reads the map.
+   *
+   * A title renders against buildTitleStorageMap instead: a title is plain
+   * text, which every place that shows it escapes as such.
+   */
+  public static buildMarkdownStorageMap(data: {
+    storageMap: JSONObject;
+  }): JSONObject {
+    // As VMUtil.deepFind reads it: plain JSON, a Date as its ISO text.
+    const plainStorageMap: JSONObject = JSON.parse(
+      JSON.stringify(data.storageMap),
+    ) as JSONObject;
+
+    const markdownStorageMap: JSONObject = {};
+
+    for (const [key, value] of Object.entries(plainStorageMap)) {
+      markdownStorageMap[key] = MarkdownTemplateStorageMapKeys.has(key)
+        ? value
+        : MonitorTemplateUtil.neutralizeReportedValue(value);
+    }
+
+    return markdownStorageMap;
+  }
+
+  // Every string in `value` neutralized, object keys included.
+  private static neutralizeReportedValue(value: JSONValue): JSONValue {
+    if (typeof value === "string") {
+      return neutralizeUntrustedValue(value);
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((item: JSONValue): JSONValue => {
+        return MonitorTemplateUtil.neutralizeReportedValue(item);
+      });
+    }
+
+    if (value !== null && typeof value === "object") {
+      const neutralized: JSONObject = {};
+
+      for (const [key, item] of Object.entries(value as JSONObject)) {
+        neutralized[neutralizeUntrustedValue(key)] =
+          MonitorTemplateUtil.neutralizeReportedValue(item);
+      }
+
+      return neutralized;
+    }
+
+    return value;
   }
 
   /*

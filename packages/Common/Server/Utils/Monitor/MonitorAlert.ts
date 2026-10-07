@@ -609,6 +609,14 @@ export default class MonitorAlert {
             });
 
           /*
+           * The description and remediation notes are Markdown: what the
+           * monitored system sent goes into them as text
+           * (buildMarkdownStorageMap).
+           */
+          const markdownStorageMap: JSONObject =
+            MonitorTemplateUtil.buildMarkdownStorageMap({ storageMap });
+
+          /*
            * Render the criteria's template, then make it say WHICH
            * series it is about.
            *
@@ -633,7 +641,7 @@ export default class MonitorAlert {
           alert.description = SeriesContextEnricher.enrichDescription({
             description: MonitorTemplateUtil.processTemplateString({
               value: criteriaAlert.description,
-              storageMap,
+              storageMap: markdownStorageMap,
             }),
             seriesLabels,
             monitorType: input.monitor.monitorType,
@@ -850,7 +858,7 @@ export default class MonitorAlert {
           if (criteriaAlert.remediationNotes) {
             alert.remediationNotes = MonitorTemplateUtil.processTemplateString({
               value: criteriaAlert.remediationNotes,
-              storageMap,
+              storageMap: markdownStorageMap,
             });
           }
 

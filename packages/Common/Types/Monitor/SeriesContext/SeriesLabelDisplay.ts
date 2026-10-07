@@ -1,4 +1,8 @@
 import { JSONObject, JSONValue } from "../../JSON";
+import {
+  escapeMarkdownValue,
+  markdownCodeSpan,
+} from "../../../Utils/Markdown/MarkdownEscape";
 
 /*
  * Turning a metric series' raw label map into something an on-call
@@ -620,6 +624,11 @@ export default class SeriesLabelDisplay {
    * A markdown block naming every identifier the series carries, for
    * alert/incident descriptions (which is what Slack, email and the
    * mobile push actually show).
+   *
+   * A label's name and value come from the telemetry itself: the name is
+   * escaped as text and the value shown as code (markdownCodeSpan), so a
+   * backtick cannot close the span early and nothing in either is read as
+   * Markdown or as a chat mention.
    */
   public static buildMarkdownBlock(
     seriesLabels: JSONObject | undefined,
@@ -632,10 +641,12 @@ export default class SeriesLabelDisplay {
       return "";
     }
 
-    const heading: string = options?.heading || "Affected resource";
+    const heading: string = escapeMarkdownValue(
+      options?.heading || "Affected resource",
+    );
 
     const lines: Array<string> = labels.map((label: DisplaySeriesLabel) => {
-      return `- **${label.name}:** \`${label.value}\``;
+      return `- **${escapeMarkdownValue(label.name)}:** ${markdownCodeSpan(label.value)}`;
     });
 
     return `**${heading}**\n${lines.join("\n")}`;

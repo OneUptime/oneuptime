@@ -676,6 +676,14 @@ export default class MonitorIncident {
             });
 
           /*
+           * The description and remediation notes are Markdown: what the
+           * monitored system sent goes into them as text
+           * (buildMarkdownStorageMap).
+           */
+          const markdownStorageMap: JSONObject =
+            MonitorTemplateUtil.buildMarkdownStorageMap({ storageMap });
+
+          /*
            * Render the criteria's template, then make it say WHICH
            * series it is about. Mirrors MonitorAlert exactly - the two
            * must agree, or the same breach reads differently depending
@@ -693,7 +701,7 @@ export default class MonitorIncident {
           incident.description = SeriesContextEnricher.enrichDescription({
             description: MonitorTemplateUtil.processTemplateString({
               value: criteriaIncident.description,
-              storageMap,
+              storageMap: markdownStorageMap,
             }),
             seriesLabels,
             monitorType: input.monitor.monitorType,
@@ -929,7 +937,7 @@ export default class MonitorIncident {
             incident.remediationNotes =
               MonitorTemplateUtil.processTemplateString({
                 value: criteriaIncident.remediationNotes,
-                storageMap,
+                storageMap: markdownStorageMap,
               });
           }
 

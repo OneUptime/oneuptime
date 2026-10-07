@@ -41,6 +41,7 @@ import RootCauseList, {
   RootCauseListItem,
 } from "./RootCauseList";
 import DataToProcess from "./DataToProcess";
+import { escapeMarkdownValue } from "../../../Utils/Markdown/MarkdownEscape";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorCriteria from "../../../Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
@@ -456,10 +457,19 @@ export default class MonitorCriteriaEvaluator {
       const isMetricMonitor: boolean =
         input.monitor.monitorType === MonitorType.Metrics;
 
+      /*
+       * A root cause is Markdown, shown on the dashboard, in email and in
+       * the record's Slack and Teams channels. The criteria's name, what
+       * each filter found (rootCause: text the monitored system can write,
+       * escaped where the findings are joined in
+       * isMonitorInstanceCriteriaFiltersMet) and the probe's own account of
+       * a failure are text: escaped, so they read as written and cannot
+       * become a link, an image, raw HTML or a chat mention.
+       */
       let renderedRootCause: string = `
 **Created because the following criteria was met**:
 
-**Criteria Name**: ${criteriaInstance.data?.name}
+**Criteria Name**: ${escapeMarkdownValue(criteriaInstance.data?.name)}
 `;
 
       if (contextBlock && isMetricMonitor) {
@@ -480,7 +490,7 @@ ${contextBlock}
 
       if ((input.dataToProcess as ProbeMonitorResponse).failureCause) {
         renderedRootCause += `
-**Cause**: ${(input.dataToProcess as ProbeMonitorResponse).failureCause || ""}
+**Cause**: ${escapeMarkdownValue((input.dataToProcess as ProbeMonitorResponse).failureCause || "")}
 `;
       }
 
@@ -826,7 +836,7 @@ ${contextBlock}
        */
       const rootCauseLines: Array<string> = matched.map(
         (r: MetricSeriesEvaluationResult) => {
-          return `- ${r.rootCause}`;
+          return `- ${escapeMarkdownValue(r.rootCause)}`;
         },
       );
 
@@ -919,9 +929,17 @@ ${contextBlock}
       }
     }
 
+    /*
+     * What this returns becomes a root cause, which is Markdown; what it
+     * records in the evaluation summary is shown as plain text. A filter's
+     * finding can quote what the monitored system sent - a response body, a
+     * header, a log line, an email - so the root cause gets each finding
+     * escaped (escapeMarkdownValue) and the summary keeps it as written.
+     */
     if (filterCondition === FilterCondition.All) {
       if (allFiltersMet && input.criteriaResult.filters.length > 0) {
         let message: string = "All filters met.";
+        let rootCause: string = "All filters met.";
 
         if (matchedFilterMessages.length > 0) {
           message += matchedFilterMessages
@@ -929,12 +947,17 @@ ${contextBlock}
               return `\n- ${item}`;
             })
             .join("");
+          rootCause += matchedFilterMessages
+            .map((item: string) => {
+              return `\n- ${escapeMarkdownValue(item)}`;
+            })
+            .join("");
         }
 
         input.criteriaResult.met = true;
         input.criteriaResult.message = message;
 
-        return message;
+        return rootCause;
       }
 
       input.criteriaResult.met = false;
@@ -953,7 +976,7 @@ ${contextBlock}
         input.criteriaResult.met = true;
         input.criteriaResult.message = firstMatch;
 
-        return firstMatch;
+        return escapeMarkdownValue(firstMatch);
       }
 
       input.criteriaResult.met = false;
@@ -1482,7 +1505,7 @@ ${contextBlock}
       });
 
     if (destination) {
-      requestDetails.push(`- Destination: ${destination}`);
+      requestDetails.push(`- Destination: ${escapeMarkdownValue(destination)}`);
     }
 
     const port: string | null = MonitorCriteriaEvaluator.getMonitorPortString({
@@ -1501,7 +1524,9 @@ ${contextBlock}
       });
 
     if (requestMethod) {
-      requestDetails.push(`- Request Method: ${requestMethod}`);
+      requestDetails.push(
+        `- Request Method: ${escapeMarkdownValue(requestMethod)}`,
+      );
     }
 
     if (probeResponse?.responseCode !== undefined) {
@@ -1541,23 +1566,25 @@ ${contextBlock}
 
       if (requestFailedDetails.failedPhase) {
         failureDetails.push(
-          `- Failed Phase: ${requestFailedDetails.failedPhase}`,
+          `- Failed Phase: ${escapeMarkdownValue(requestFailedDetails.failedPhase)}`,
         );
       }
 
       if (requestFailedDetails.errorCode) {
-        failureDetails.push(`- Error Code: ${requestFailedDetails.errorCode}`);
+        failureDetails.push(
+          `- Error Code: ${escapeMarkdownValue(requestFailedDetails.errorCode)}`,
+        );
       }
 
       if (requestFailedDetails.errorDescription) {
         failureDetails.push(
-          `- Error Description: ${requestFailedDetails.errorDescription}`,
+          `- Error Description: ${escapeMarkdownValue(requestFailedDetails.errorDescription)}`,
         );
       }
 
       if (requestFailedDetails.rawErrorMessage) {
         failureDetails.push(
-          `- Raw Error Message: ${requestFailedDetails.rawErrorMessage}`,
+          `- Raw Error Message: ${escapeMarkdownValue(requestFailedDetails.rawErrorMessage)}`,
         );
       }
     }
@@ -1623,9 +1650,9 @@ ${contextBlock}
       });
 
     const lines: Array<string> = [];
-    lines.push(`- Metric: \`${ctx.metricName}\``);
+    lines.push(`- Metric: ${RootCauseList.code(ctx.metricName)}`);
     if (ctx.alias) {
-      lines.push(`- Alias: \`${ctx.alias}\``);
+      lines.push(`- Alias: ${RootCauseList.code(ctx.alias)}`);
     }
     /*
      * Spell the unit out — "Bytes", not the UCUM "By" the exporter wrote —
@@ -1643,7 +1670,7 @@ ${contextBlock}
       lines.push(`- Aggregation: ${ctx.aggregationType}`);
     }
     if (ctx.isFormula && ctx.formulaExpression) {
-      lines.push(`- Formula: \`${ctx.formulaExpression}\``);
+      lines.push(`- Formula: ${RootCauseList.code(ctx.formulaExpression)}`);
     }
     if (ctx.timeWindowMinutes) {
       lines.push(`- Time Window: last ${ctx.timeWindowMinutes} minutes`);
@@ -1669,7 +1696,7 @@ ${contextBlock}
             ? ` — unit: ${componentUnit}`
             : "";
           const typeSuffix: string = component.isFormula ? " (formula)" : "";
-          return `  - \`${component.alias}\` = \`${component.name}\`${typeSuffix}${unitSuffix}`;
+          return `  - ${RootCauseList.code(component.alias)} = ${RootCauseList.code(component.name)}${typeSuffix}${unitSuffix}`;
         },
       );
       lines.push(`- Components:\n${componentLines.join("\n")}`);
@@ -1679,7 +1706,7 @@ ${contextBlock}
     if (filterKeys.length > 0) {
       const filterLines: Array<string> = filterKeys.map((k: string) => {
         const v: unknown = (ctx.filterAttributes as Record<string, unknown>)[k];
-        return `  - \`${k}\` = \`${String(v)}\``;
+        return `  - ${RootCauseList.code(k)} = ${RootCauseList.code(String(v))}`;
       });
       lines.push(`- Filters:\n${filterLines.join("\n")}`);
     }
@@ -1688,7 +1715,7 @@ ${contextBlock}
       lines.push(
         `- Grouped By: ${ctx.groupBy
           .map((g: string) => {
-            return `\`${g}\``;
+            return RootCauseList.code(g);
           })
           .join(", ")}`,
       );
@@ -2369,10 +2396,10 @@ ${contextBlock}
     const friendlyName: string = (input.friendlyName || "").trim();
 
     if (!friendlyName || friendlyName === input.metricName) {
-      return `\`${input.metricName}\``;
+      return RootCauseList.code(input.metricName);
     }
 
-    return `${friendlyName} (\`${input.metricName}\`)`;
+    return `${escapeMarkdownValue(friendlyName)} (${RootCauseList.code(input.metricName)})`;
   }
 
   /**
@@ -2618,17 +2645,17 @@ ${contextBlock}
 
     if (target?.isFormula) {
       const lines: Array<string> = [
-        `- Metric: ${target.displayName || `\`${target.alias}\``}`,
+        `- Metric: ${target.displayName ? escapeMarkdownValue(target.displayName) : RootCauseList.code(target.alias)}`,
       ];
 
       if (target.formulaExpression) {
-        lines.push(`- Formula: \`${target.formulaExpression}\``);
+        lines.push(`- Formula: ${RootCauseList.code(target.formulaExpression)}`);
       }
 
       for (const component of target.components) {
         if (component.metricName) {
           lines.push(
-            `  - \`${component.alias}\` = ${describeMetric(
+            `  - ${RootCauseList.code(component.alias)} = ${describeMetric(
               component.metricName,
               component.metricAttributes,
             )}`,
@@ -2655,7 +2682,7 @@ ${contextBlock}
     }
 
     if (input.fallbackMetricName) {
-      return [`- Metric: \`${input.fallbackMetricName}\``];
+      return [`- Metric: ${RootCauseList.code(input.fallbackMetricName)}`];
     }
 
     return [];
@@ -3383,7 +3410,7 @@ ${contextBlock}
 
     // Cluster context
     const clusterDetails: Array<string> = [];
-    clusterDetails.push(`- Cluster: ${clusterName}`);
+    clusterDetails.push(`- Cluster: ${escapeMarkdownValue(clusterName)}`);
     clusterDetails.push(
       ...MonitorCriteriaEvaluator.describeCriteriaMetric({
         platform: "kubernetes",
@@ -3403,7 +3430,7 @@ ${contextBlock}
       input.monitorStep.data?.kubernetesMonitor?.resourceFilters?.namespace;
 
     if (namespaceFilter) {
-      clusterDetails.push(`- Namespace: ${namespaceFilter}`);
+      clusterDetails.push(`- Namespace: ${escapeMarkdownValue(namespaceFilter)}`);
     }
 
     sections.push(
@@ -3571,11 +3598,15 @@ ${contextBlock}
               ? String(log["severityText"])
               : "INFO";
             const body: string = log["body"] ? String(log["body"]) : "";
-            return `\`${timestamp}\` **${severity}** ${body}`;
+            /*
+             * A log line is whatever the container printed: shown as code,
+             * so nothing in it is read as Markdown or as a chat mention.
+             */
+            return `${RootCauseList.code(timestamp)} **${escapeMarkdownValue(severity)}** ${RootCauseList.code(body)}`;
           });
 
           sections.push(
-            `\n\n**Recent Container Logs** (${topResource.podName || "unknown pod"} / ${topResource.containerName || "unknown container"}, last 15 minutes)\n\n${logLines.join("\n\n")}`,
+            `\n\n**Recent Container Logs** (${escapeMarkdownValue(topResource.podName || "unknown pod")} / ${escapeMarkdownValue(topResource.containerName || "unknown container")}, last 15 minutes)\n\n${logLines.join("\n\n")}`,
           );
         }
       } catch (err) {
@@ -3631,14 +3662,14 @@ ${contextBlock}
       ).trim();
 
       if (legend && legend !== ctx.alias) {
-        return `- Metric: ${legend}`;
+        return `- Metric: ${escapeMarkdownValue(legend)}`;
       }
 
-      return `- Metric: \`${ctx.alias}\` (formula)`;
+      return `- Metric: ${RootCauseList.code(ctx.alias)} (formula)`;
     }
 
     if (ctx?.metricName) {
-      return `- Metric: \`${ctx.metricName}\``;
+      return `- Metric: ${RootCauseList.code(ctx.metricName)}`;
     }
 
     const firstQueryMetricName: string | undefined = input.metricViewConfig
@@ -3647,7 +3678,7 @@ ${contextBlock}
       | undefined;
 
     return firstQueryMetricName
-      ? `- Metric: \`${firstQueryMetricName}\``
+      ? `- Metric: ${RootCauseList.code(firstQueryMetricName)}`
       : null;
   }
 
@@ -3721,17 +3752,19 @@ ${contextBlock}
     let hostDetails: Array<string> | null = null;
 
     if (dockerMonitor) {
-      hostDetails = [`- Host: ${dockerMonitor.hostIdentifier || "Unknown"}`];
+      hostDetails = [
+        `- Host: ${escapeMarkdownValue(dockerMonitor.hostIdentifier || "Unknown")}`,
+      ];
 
       if (dockerMonitor.containerFilters?.containerName) {
         hostDetails.push(
-          `- Container Name Filter: ${dockerMonitor.containerFilters.containerName}`,
+          `- Container Name Filter: ${escapeMarkdownValue(dockerMonitor.containerFilters.containerName)}`,
         );
       }
 
       if (dockerMonitor.containerFilters?.containerImage) {
         hostDetails.push(
-          `- Container Image Filter: ${dockerMonitor.containerFilters.containerImage}`,
+          `- Container Image Filter: ${escapeMarkdownValue(dockerMonitor.containerFilters.containerImage)}`,
         );
       }
     }
@@ -3757,7 +3790,7 @@ ${contextBlock}
     return MonitorCriteriaEvaluator.buildTelemetryResourceRootCauseContext({
       heading: "Host Details",
       identityLines: hostMonitor
-        ? [`- Host: ${hostMonitor.hostIdentifier || "Unknown"}`]
+        ? [`- Host: ${escapeMarkdownValue(hostMonitor.hostIdentifier || "Unknown")}`]
         : null,
       monitor: input.monitor,
       monitorStep: input.monitorStep,
@@ -3777,17 +3810,19 @@ ${contextBlock}
     let hostDetails: Array<string> | null = null;
 
     if (podmanMonitor) {
-      hostDetails = [`- Host: ${podmanMonitor.hostIdentifier || "Unknown"}`];
+      hostDetails = [
+        `- Host: ${escapeMarkdownValue(podmanMonitor.hostIdentifier || "Unknown")}`,
+      ];
 
       if (podmanMonitor.containerFilters?.containerName) {
         hostDetails.push(
-          `- Container Name Filter: ${podmanMonitor.containerFilters.containerName}`,
+          `- Container Name Filter: ${escapeMarkdownValue(podmanMonitor.containerFilters.containerName)}`,
         );
       }
 
       if (podmanMonitor.containerFilters?.containerImage) {
         hostDetails.push(
-          `- Container Image Filter: ${podmanMonitor.containerFilters.containerImage}`,
+          `- Container Image Filter: ${escapeMarkdownValue(podmanMonitor.containerFilters.containerImage)}`,
         );
       }
     }
@@ -3813,7 +3848,9 @@ ${contextBlock}
     let deviceDetails: Array<string> | null = null;
 
     if (iotMonitor) {
-      deviceDetails = [`- Fleet: ${iotMonitor.fleetIdentifier || "Unknown"}`];
+      deviceDetails = [
+        `- Fleet: ${escapeMarkdownValue(iotMonitor.fleetIdentifier || "Unknown")}`,
+      ];
 
       /*
        * The device that breached. Every IoT template groups by the
@@ -3838,19 +3875,19 @@ ${contextBlock}
 
       if (iotMonitor.resourceFilters?.deviceId) {
         deviceDetails.push(
-          `- Device ID Filter: ${iotMonitor.resourceFilters.deviceId}`,
+          `- Device ID Filter: ${escapeMarkdownValue(iotMonitor.resourceFilters.deviceId)}`,
         );
       }
 
       if (iotMonitor.resourceFilters?.deviceType) {
         deviceDetails.push(
-          `- Device Type Filter: ${iotMonitor.resourceFilters.deviceType}`,
+          `- Device Type Filter: ${escapeMarkdownValue(iotMonitor.resourceFilters.deviceType)}`,
         );
       }
 
       if (iotMonitor.resourceFilters?.scope) {
         deviceDetails.push(
-          `- Scope Filter: ${iotMonitor.resourceFilters.scope}`,
+          `- Scope Filter: ${escapeMarkdownValue(iotMonitor.resourceFilters.scope)}`,
         );
       }
     }
@@ -3985,7 +4022,7 @@ ${contextBlock}
 
     if (proxmoxMonitor || breakdown) {
       const clusterDetails: Array<string> = [];
-      clusterDetails.push(`- Cluster: ${clusterName}`);
+      clusterDetails.push(`- Cluster: ${escapeMarkdownValue(clusterName)}`);
       clusterDetails.push(
         ...MonitorCriteriaEvaluator.describeCriteriaMetric({
           platform: "proxmox",
@@ -4000,25 +4037,25 @@ ${contextBlock}
 
       if (proxmoxMonitor?.resourceFilters?.scope) {
         clusterDetails.push(
-          `- Scope Filter: ${proxmoxMonitor.resourceFilters.scope}`,
+          `- Scope Filter: ${escapeMarkdownValue(proxmoxMonitor.resourceFilters.scope)}`,
         );
       }
 
       if (proxmoxMonitor?.resourceFilters?.pveId) {
         clusterDetails.push(
-          `- Resource ID Filter: ${proxmoxMonitor.resourceFilters.pveId}`,
+          `- Resource ID Filter: ${escapeMarkdownValue(proxmoxMonitor.resourceFilters.pveId)}`,
         );
       }
 
       if (proxmoxMonitor?.resourceFilters?.nodeName) {
         clusterDetails.push(
-          `- Node Filter: ${proxmoxMonitor.resourceFilters.nodeName}`,
+          `- Node Filter: ${escapeMarkdownValue(proxmoxMonitor.resourceFilters.nodeName)}`,
         );
       }
 
       if (proxmoxMonitor?.resourceFilters?.guestId) {
         clusterDetails.push(
-          `- Guest ID Filter: ${proxmoxMonitor.resourceFilters.guestId}`,
+          `- Guest ID Filter: ${escapeMarkdownValue(proxmoxMonitor.resourceFilters.guestId)}`,
         );
       }
 
@@ -4295,7 +4332,7 @@ ${contextBlock}
 
     if (vmwareMonitor || breakdown) {
       const vcenterDetails: Array<string> = [];
-      vcenterDetails.push(`- vCenter: ${vcenterName}`);
+      vcenterDetails.push(`- vCenter: ${escapeMarkdownValue(vcenterName)}`);
       vcenterDetails.push(
         ...MonitorCriteriaEvaluator.describeCriteriaMetric({
           platform: "vmware",
@@ -4313,37 +4350,37 @@ ${contextBlock}
        */
       if (vmwareMonitor?.resourceFilters?.datacenterName) {
         vcenterDetails.push(
-          `- Datacenter Filter: ${vmwareMonitor.resourceFilters.datacenterName}`,
+          `- Datacenter Filter: ${escapeMarkdownValue(vmwareMonitor.resourceFilters.datacenterName)}`,
         );
       }
 
       if (vmwareMonitor?.resourceFilters?.clusterName) {
         vcenterDetails.push(
-          `- Cluster Filter: ${vmwareMonitor.resourceFilters.clusterName}`,
+          `- Cluster Filter: ${escapeMarkdownValue(vmwareMonitor.resourceFilters.clusterName)}`,
         );
       }
 
       if (vmwareMonitor?.resourceFilters?.hostName) {
         vcenterDetails.push(
-          `- Host Filter: ${vmwareMonitor.resourceFilters.hostName}`,
+          `- Host Filter: ${escapeMarkdownValue(vmwareMonitor.resourceFilters.hostName)}`,
         );
       }
 
       if (vmwareMonitor?.resourceFilters?.vmName) {
         vcenterDetails.push(
-          `- Virtual Machine Filter: ${vmwareMonitor.resourceFilters.vmName}`,
+          `- Virtual Machine Filter: ${escapeMarkdownValue(vmwareMonitor.resourceFilters.vmName)}`,
         );
       }
 
       if (vmwareMonitor?.resourceFilters?.datastoreName) {
         vcenterDetails.push(
-          `- Datastore Filter: ${vmwareMonitor.resourceFilters.datastoreName}`,
+          `- Datastore Filter: ${escapeMarkdownValue(vmwareMonitor.resourceFilters.datastoreName)}`,
         );
       }
 
       if (vmwareMonitor?.resourceFilters?.resourcePoolPath) {
         vcenterDetails.push(
-          `- Resource Pool Filter: ${vmwareMonitor.resourceFilters.resourcePoolPath}`,
+          `- Resource Pool Filter: ${escapeMarkdownValue(vmwareMonitor.resourceFilters.resourcePoolPath)}`,
         );
       }
 
@@ -4540,7 +4577,7 @@ ${contextBlock}
 
     if (dockerSwarmMonitor || breakdown) {
       const clusterDetails: Array<string> = [];
-      clusterDetails.push(`- Cluster: ${clusterName}`);
+      clusterDetails.push(`- Cluster: ${escapeMarkdownValue(clusterName)}`);
       clusterDetails.push(
         ...MonitorCriteriaEvaluator.describeCriteriaMetric({
           platform: "dockerSwarm",
@@ -4555,25 +4592,25 @@ ${contextBlock}
 
       if (dockerSwarmMonitor?.resourceFilters?.serviceName) {
         clusterDetails.push(
-          `- Service Filter: ${dockerSwarmMonitor.resourceFilters.serviceName}`,
+          `- Service Filter: ${escapeMarkdownValue(dockerSwarmMonitor.resourceFilters.serviceName)}`,
         );
       }
 
       if (dockerSwarmMonitor?.resourceFilters?.nodeName) {
         clusterDetails.push(
-          `- Node Filter: ${dockerSwarmMonitor.resourceFilters.nodeName}`,
+          `- Node Filter: ${escapeMarkdownValue(dockerSwarmMonitor.resourceFilters.nodeName)}`,
         );
       }
 
       if (dockerSwarmMonitor?.resourceFilters?.containerName) {
         clusterDetails.push(
-          `- Container Name Filter: ${dockerSwarmMonitor.resourceFilters.containerName}`,
+          `- Container Name Filter: ${escapeMarkdownValue(dockerSwarmMonitor.resourceFilters.containerName)}`,
         );
       }
 
       if (dockerSwarmMonitor?.resourceFilters?.containerImage) {
         clusterDetails.push(
-          `- Container Image Filter: ${dockerSwarmMonitor.resourceFilters.containerImage}`,
+          `- Container Image Filter: ${escapeMarkdownValue(dockerSwarmMonitor.resourceFilters.containerImage)}`,
         );
       }
 
@@ -4990,7 +5027,7 @@ ${contextBlock}
 
     if (cephMonitor || breakdown) {
       const clusterDetails: Array<string> = [];
-      clusterDetails.push(`- Cluster: ${clusterName}`);
+      clusterDetails.push(`- Cluster: ${escapeMarkdownValue(clusterName)}`);
       clusterDetails.push(
         ...MonitorCriteriaEvaluator.describeCriteriaMetric({
           platform: "ceph",
@@ -5003,13 +5040,13 @@ ${contextBlock}
 
       if (cephMonitor?.resourceFilters?.osdId) {
         clusterDetails.push(
-          `- OSD Filter: ${cephMonitor.resourceFilters.osdId}`,
+          `- OSD Filter: ${escapeMarkdownValue(cephMonitor.resourceFilters.osdId)}`,
         );
       }
 
       if (cephMonitor?.resourceFilters?.poolId) {
         clusterDetails.push(
-          `- Pool ID Filter: ${cephMonitor.resourceFilters.poolId}`,
+          `- Pool ID Filter: ${escapeMarkdownValue(cephMonitor.resourceFilters.poolId)}`,
         );
       }
 
@@ -5288,7 +5325,7 @@ ${contextBlock}
 
     if (storageArrayMonitor || breakdown) {
       const arrayDetails: Array<string> = [];
-      arrayDetails.push(`- Storage Array: ${arrayName}`);
+      arrayDetails.push(`- Storage Array: ${escapeMarkdownValue(arrayName)}`);
 
       if (storageArrayMonitor?.storageSystem) {
         arrayDetails.push(
@@ -5474,6 +5511,16 @@ ${contextBlock}
     const lines: Array<string> = [];
 
     /*
+     * The pod, container, node and workload names come from the cluster's
+     * own telemetry: each is shown as code (RootCauseList.code), and so is
+     * every command that names one, so nothing in a name is read as Markdown
+     * or as a chat mention.
+     */
+    const code: (value: string) => string = (value: string): string => {
+      return RootCauseList.code(value);
+    };
+
+    /*
      * The top resource's value, in the unit the catalog says the metric
      * is actually reported in.
      *
@@ -5503,14 +5550,14 @@ ${contextBlock}
       );
       if (topResource.containerName) {
         lines.push(
-          `The container \`${topResource.containerName}\` in pod \`${topResource.podName || "unknown"}\` has restarted **${topResourceValue}** times.`,
+          `The container ${code(topResource.containerName)} in pod ${code(topResource.podName || "unknown")} has restarted **${topResourceValue}** times.`,
         );
       }
       lines.push(
         `Common causes: application crash on startup, misconfigured environment variables, missing dependencies, OOM (Out of Memory) kills, failed health checks, or missing config maps/secrets.`,
       );
       lines.push(
-        `Recommended actions: Check container logs with \`kubectl logs ${topResource.podName || "<pod-name>"} -c ${topResource.containerName || "<container>"} --previous\` and inspect events with \`kubectl describe pod ${topResource.podName || "<pod-name>"}\`.`,
+        `Recommended actions: Check container logs with ${code(`kubectl logs ${topResource.podName || "<pod-name>"} -c ${topResource.containerName || "<container>"} --previous`)} and inspect events with ${code(`kubectl describe pod ${topResource.podName || "<pod-name>"}`)}.`,
       );
     } else if (metricName === "k8s.pod.phase") {
       /*
@@ -5529,7 +5576,7 @@ ${contextBlock}
       );
       if (topResource.podName) {
         lines.push(
-          `Recommended actions: Check scheduling events with \`kubectl describe pod ${topResource.podName}\` and verify node resources with \`kubectl describe nodes\`.`,
+          `Recommended actions: Check scheduling events with ${code(`kubectl describe pod ${topResource.podName}`)} and verify node resources with \`kubectl describe nodes\`.`,
         );
       }
     } else if (
@@ -5539,14 +5586,14 @@ ${contextBlock}
       lines.push(`One or more nodes have transitioned to a NotReady state.`);
       if (topResource.nodeName) {
         lines.push(
-          `Node \`${topResource.nodeName}\` is reporting NotReady (value: ${topResourceValue}).`,
+          `Node ${code(topResource.nodeName)} is reporting NotReady (value: ${topResourceValue}).`,
         );
       }
       lines.push(
         `Common causes: kubelet process failure, node resource exhaustion (disk pressure, memory pressure, PID pressure), network connectivity issues, or underlying VM/hardware failure.`,
       );
       lines.push(
-        `Recommended actions: Check node conditions with \`kubectl describe node ${topResource.nodeName || "<node-name>"}\` and verify kubelet status on the node.`,
+        `Recommended actions: Check node conditions with ${code(`kubectl describe node ${topResource.nodeName || "<node-name>"}`)} and verify kubelet status on the node.`,
       );
     } else if (
       metricName === "k8s.node.cpu.utilization" ||
@@ -5572,7 +5619,7 @@ ${contextBlock}
       lines.push(`Node CPU utilization has exceeded the configured threshold.`);
       if (topResource.nodeName) {
         lines.push(
-          `Node \`${topResource.nodeName}\` is at **${topResourceValue}** CPU utilization.`,
+          `Node ${code(topResource.nodeName)} is at **${topResourceValue}** CPU utilization.`,
         );
       }
       lines.push(
@@ -5593,7 +5640,7 @@ ${contextBlock}
       );
       if (topResource.nodeName) {
         lines.push(
-          `Node \`${topResource.nodeName}\` memory usage is at **${topResourceValue}**.`,
+          `Node ${code(topResource.nodeName)} memory usage is at **${topResourceValue}**.`,
         );
       }
       lines.push(
@@ -5618,14 +5665,14 @@ ${contextBlock}
       );
       if (topResource.workloadName) {
         lines.push(
-          `${topResource.workloadType || "Deployment"} \`${topResource.workloadName}\` has **${topResourceValue}** unavailable replica(s).`,
+          `${escapeMarkdownValue(topResource.workloadType || "Deployment")} ${code(topResource.workloadName)} has **${topResourceValue}** unavailable replica(s).`,
         );
       }
       lines.push(
         `Common causes: failed rolling update, image pull errors (wrong image tag or missing registry credentials), pod crash loops, insufficient cluster resources to schedule new pods, or PodDisruptionBudget blocking updates.`,
       );
       lines.push(
-        `Recommended actions: Check deployment rollout status with \`kubectl rollout status deployment/${topResource.workloadName || "<deployment>"}\` and inspect pod events.`,
+        `Recommended actions: Check deployment rollout status with ${code(`kubectl rollout status deployment/${topResource.workloadName || "<deployment>"}`)} and inspect pod events.`,
       );
     } else if (
       metricName === "k8s.job.failed_pods" ||
@@ -5634,14 +5681,14 @@ ${contextBlock}
       lines.push(`Kubernetes Job has failed pods.`);
       if (topResource.workloadName) {
         lines.push(
-          `Job \`${topResource.workloadName}\` has **${topResourceValue}** failed pod(s).`,
+          `Job ${code(topResource.workloadName)} has **${topResourceValue}** failed pod(s).`,
         );
       }
       lines.push(
         `Common causes: application error or non-zero exit code, resource limits exceeded (OOMKilled), misconfigured command or arguments, missing environment variables, or timeout exceeded.`,
       );
       lines.push(
-        `Recommended actions: Check job status with \`kubectl describe job ${topResource.workloadName || "<job-name>"}\` and review pod logs for the failed pod(s).`,
+        `Recommended actions: Check job status with ${code(`kubectl describe job ${topResource.workloadName || "<job-name>"}`)} and review pod logs for the failed pod(s).`,
       );
     } else if (
       metricName === "k8s.node.filesystem.usage" ||
@@ -5653,7 +5700,7 @@ ${contextBlock}
       );
       if (topResource.nodeName) {
         lines.push(
-          `Node \`${topResource.nodeName}\` filesystem usage is at **${topResourceValue}**.`,
+          `Node ${code(topResource.nodeName)} filesystem usage is at **${topResourceValue}**.`,
         );
       }
       lines.push(
@@ -5669,14 +5716,14 @@ ${contextBlock}
       lines.push(`DaemonSet has misscheduled or unavailable nodes.`);
       if (topResource.workloadName) {
         lines.push(
-          `DaemonSet \`${topResource.workloadName}\` has **${topResourceValue}** misscheduled node(s).`,
+          `DaemonSet ${code(topResource.workloadName)} has **${topResourceValue}** misscheduled node(s).`,
         );
       }
       lines.push(
         `Common causes: node taints preventing scheduling, incorrect node selectors, or node affinity rules excluding certain nodes.`,
       );
       lines.push(
-        `Recommended actions: Check DaemonSet status with \`kubectl describe daemonset ${topResource.workloadName || "<daemonset>"}\` and verify node labels and taints.`,
+        `Recommended actions: Check DaemonSet status with ${code(`kubectl describe daemonset ${topResource.workloadName || "<daemonset>"}`)} and verify node labels and taints.`,
       );
     } else {
       /*
@@ -5689,9 +5736,11 @@ ${contextBlock}
       const target: CriteriaMetricTarget | null | undefined = input.target;
 
       if (target?.isFormula) {
-        const formulaName: string = target.displayName || `\`${target.alias}\``;
+        const formulaName: string = target.displayName
+          ? escapeMarkdownValue(target.displayName)
+          : code(target.alias);
         const expression: string = target.formulaExpression
-          ? ` (\`${target.formulaExpression}\`)`
+          ? ` (${code(target.formulaExpression)})`
           : "";
         lines.push(
           `${formulaName}${expression} has breached the configured threshold.`,
@@ -5700,26 +5749,26 @@ ${contextBlock}
         const friendlyName: string =
           breakdown.metricFriendlyName &&
           breakdown.metricFriendlyName !== metricName
-            ? ` (${breakdown.metricFriendlyName})`
+            ? ` (${escapeMarkdownValue(breakdown.metricFriendlyName)})`
             : "";
         lines.push(
-          `Kubernetes metric \`${metricName}\`${friendlyName} has breached the configured threshold.`,
+          `Kubernetes metric ${code(metricName)}${friendlyName} has breached the configured threshold.`,
         );
       }
       if (topResource.podName) {
         lines.push(
-          `Most affected pod: \`${topResource.podName}\` (**${topResourceValue}**)`,
+          `Most affected pod: ${code(topResource.podName)} (**${topResourceValue}**)`,
         );
       } else if (topResource.workloadName) {
         lines.push(
-          `Most affected ${topResource.workloadType || "workload"}: \`${topResource.workloadName}\` (**${topResourceValue}**)`,
+          `Most affected ${escapeMarkdownValue(topResource.workloadType || "workload")}: ${code(topResource.workloadName)} (**${topResourceValue}**)`,
         );
       }
       if (topResource.nodeName) {
         lines.push(
           topResource.podName
-            ? `Most affected node: \`${topResource.nodeName}\``
-            : `Most affected node: \`${topResource.nodeName}\` (**${topResourceValue}**)`,
+            ? `Most affected node: ${code(topResource.nodeName)}`
+            : `Most affected node: ${code(topResource.nodeName)} (**${topResourceValue}**)`,
         );
       }
       lines.push(

@@ -6,6 +6,7 @@ import MonitorStatusTimelineService, {
 } from "../../Services/MonitorStatusTimelineService";
 import ServerException from "../../../Types/Exception/ServerException";
 import logger from "../Logger";
+import { escapeMarkdownValue } from "../../../Utils/Markdown/MarkdownEscape";
 import MonitorCriteriaEvaluator from "./MonitorCriteriaEvaluator";
 import MonitorLogUtil from "./MonitorLogUtil";
 import MonitorMetricUtil from "./MonitorMetricUtil";
@@ -831,8 +832,13 @@ export default class MonitorResourceUtil {
           response.rootCause &&
           probeAgreementResult.agreedProbeNames.length > 0
         ) {
+          // Each probe's name is text, placed into the root cause's Markdown.
           response.rootCause += `
-**Probes in Agreement**: ${probeAgreementResult.agreedProbeNames.join(", ")}
+**Probes in Agreement**: ${probeAgreementResult.agreedProbeNames
+            .map((probeName: string): string => {
+              return escapeMarkdownValue(probeName);
+            })
+            .join(", ")}
 `;
         }
       }

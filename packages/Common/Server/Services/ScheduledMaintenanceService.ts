@@ -87,6 +87,7 @@ import RunbookRuleEngineService from "./RunbookRuleEngineService";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import StatusPageSubscriberWebhookUtil from "../Utils/StatusPageSubscriberWebhook";
+import SubscriberMarkdownTemplateValues from "../Utils/StatusPage/SubscriberMarkdownTemplateValues";
 import { Gray500, Red500 } from "../../Types/BrandColors";
 import Label from "../../Models/DatabaseModels/Label";
 import LabelService from "./LabelService";
@@ -433,7 +434,7 @@ export class Service extends ProjectReferencesService<Model> {
               subscriber,
             ).toString();
 
-          // Template variables for custom templates, as Markdown (Slack)
+          // The values every channel's custom template gets, as written.
           const templateVariables: Record<string, string> = {
             statusPageName: statusPageName,
             statusPageUrl: statusPageURL,
@@ -449,6 +450,22 @@ export class Service extends ProjectReferencesService<Model> {
               : "",
             resourcesAffected: resourcesAffected,
             unsubscribeUrl: unsubscribeUrl,
+          };
+
+          /*
+           * A custom Slack message is Markdown: every plain value - the
+           * title, the status page's name, the resource list - is escaped,
+           * so it reads as typed and cannot become a link, an image, raw HTML
+           * or a chat mention wherever the template places it
+           * (SubscriberMarkdownTemplateValues). The addresses are
+           * OneUptime's own; the description stays the Markdown it was
+           * written as.
+           */
+          const markdownTemplateVariables: Record<string, string> = {
+            ...SubscriberMarkdownTemplateValues.fromPlainValues(
+              templateVariables,
+            ),
+            scheduledMaintenanceDescription: event.description || "",
           };
 
           // Template variables for SMS and email subjects, as plain text
@@ -520,15 +537,15 @@ export class Service extends ProjectReferencesService<Model> {
               slackMessage =
                 StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                   slackTemplate.templateBody,
-                  templateVariables,
+                  markdownTemplateVariables,
                 );
             } else {
-              // Use default template
-              slackMessage = `## 🔧 Scheduled Maintenance - ${event.title || ""}
+              // Use default template: the same plain values, escaped.
+              slackMessage = `## 🔧 Scheduled Maintenance - ${escapeMarkdownValue(event.title || "")}
 
 **Scheduled Date:** ${OneUptimeDate.getDateAsUserFriendlyFormattedString(event.startsAt!)}
 
-${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
+${resourcesAffected ? `**Resources Affected:** ${escapeMarkdownValue(resourcesAffected)}` : ""}
 
 **Description:** ${event.description || ""}
 

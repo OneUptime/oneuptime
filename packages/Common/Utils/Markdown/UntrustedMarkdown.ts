@@ -1492,3 +1492,123 @@ export const neutralizeUntrustedPlainText: NeutralizeUntrustedPlainTextFunction 
       ),
     );
   };
+
+/*
+ * TEXT A MONITORED SYSTEM OR OneUptime AI WROTE, IN FEEDS AND CHAT MESSAGES.
+ *
+ * Two more writers whose text nobody reads over before it is shown:
+ *
+ *   - a monitored system: an API's response body or headers, an incoming
+ *     request or email, a certificate's fields, a device's SNMP values -
+ *     filled into an incident's or an alert's description by the monitor's
+ *     template (MonitorTemplateUtil);
+ *   - OneUptime AI: an investigation's analysis, a drafted postmortem, an
+ *     answer in Slack or Microsoft Teams - written from telemetry, which can
+ *     carry text that steers what the model writes.
+ *
+ * Both reach the dashboard, email, and the Slack and Microsoft Teams channels
+ * of the records they belong to. Besides chat mentions, images and diagrams
+ * (above), two more things in such text act there:
+ *
+ *   - LINKS WHOSE WORDS HIDE WHERE THEY GO. "[Open the runbook](https://x)"
+ *     reads as one thing and leads somewhere else. Every "]" that a link, a
+ *     reference or a link definition goes on from gets an invisible word
+ *     joiner, so no renderer reads a link there: the words and the address
+ *     both show, exactly as written. A bare address is still linked by the
+ *     renderers that link bare addresses - a link that shows exactly where it
+ *     goes.
+ *   - RAW HTML. A Microsoft Teams message card renders HTML, so an "<a>" or
+ *     an "<img>" would be a live link or an image fetched on view there. Every
+ *     "<" that starts a tag - "<" and a letter, or "</" and a letter - gets
+ *     the same joiner: it reads as written and is a tag nowhere. (An address
+ *     written as "<https://...>" then shows its brackets; the address inside
+ *     is still a bare one.)
+ *
+ * The joiner cannot be seen, so the text still reads exactly as written; a
+ * copy of it keeps the joiner, as everywhere above.
+ */
+
+/*
+ * Where a raw HTML tag starts: "<" and a letter, or "</" and a letter. Never a
+ * capture group: the replacement callbacks below read the match's offset from
+ * their second argument.
+ */
+const HTML_TAG_START_PATTERN: RegExp = /<(?=[A-Za-z]|\/[A-Za-z])/g;
+
+/*
+ * Both of the places a link or a tag goes on from, in one pattern, so that
+ * one reading of the text decides which of them are in trusted code.
+ */
+const LINK_TAIL_OR_HTML_TAG_START_PATTERN: RegExp =
+  /\](?=[([:])|<(?=[A-Za-z]|\/[A-Za-z])/g;
+
+const ANY_LINE_ENDING_PATTERN: RegExp = /\r\n|\r/g;
+
+export type NeutralizeUntrustedValueFunction = (
+  value: string | undefined | null,
+) => string;
+
+/**
+ * A value a monitored system reported, placed into Markdown somebody wrote -
+ * an incident or alert description template's {{responseBody.message}} or
+ * {{emailSubject}}. As neutralizeUntrustedPlainText: wherever the template
+ * puts it - in a sentence, in a list, inside the author's code span or fenced
+ * block - it reads exactly as reported, and no renderer finds a mention, an
+ * image, a link, a diagram or a reference that completes one in it; and no
+ * HTML tag either, for Microsoft Teams. Idempotent.
+ */
+export const neutralizeUntrustedValue: NeutralizeUntrustedValueFunction = (
+  value: string | undefined | null,
+): string => {
+  return neutralizeUntrustedPlainText(value).replace(
+    HTML_TAG_START_PATTERN,
+    `<${WORD_JOINER}`,
+  );
+};
+
+export type NeutralizeAiWrittenMarkdownFunction = (
+  markdown: string | undefined | null,
+) => string;
+
+/**
+ * Markdown OneUptime AI wrote, before it is placed into a feed item, a note
+ * or a chat message. It stays Markdown - the headings, lists, emphasis, code
+ * and tables the model wrote on purpose render as before - but nothing in it
+ * acts on its own: no image is fetched and no diagram drawn
+ * (neutralizeMarkdownImagesAndDiagrams), no link hides where it goes and no
+ * HTML tag is read (see above), and no chat mention notifies anybody
+ * (neutralizeChatControlSequences).
+ *
+ * Fenced code that every renderer reads as code (findTrustedCode) keeps its
+ * links and tags byte for byte - none of them is a link or a tag anywhere,
+ * and a command someone copies out of it keeps exactly the characters it had
+ * - but not its mentions: Slack reads a mention even in code. Line endings
+ * come back as "\n". Idempotent.
+ */
+export const neutralizeAiWrittenMarkdown: NeutralizeAiWrittenMarkdownFunction =
+  (markdown: string | undefined | null): string => {
+    if (markdown === undefined || markdown === null) {
+      return "";
+    }
+
+    /*
+     * Fences are found line by line, and a "\r" left at the end of a line
+     * would keep a closing fence from closing - trusting everything after it.
+     */
+    const source: string = neutralizeMarkdownImagesAndDiagrams(
+      String(markdown).replace(ANY_LINE_ENDING_PATTERN, "\n"),
+    );
+
+    const code: TrustedCode = findTrustedCode(source, splitLines(source));
+
+    const withLinksAndTagsBroken: string = source.replace(
+      LINK_TAIL_OR_HTML_TAG_START_PATTERN,
+      (character: string, offset: number): string => {
+        return isInTrustedCode(code, offset)
+          ? character
+          : `${character}${WORD_JOINER}`;
+      },
+    );
+
+    return neutralizeChatControlSequences(withLinksAndTagsBroken);
+  };

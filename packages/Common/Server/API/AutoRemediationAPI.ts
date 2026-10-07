@@ -70,6 +70,7 @@ import {
 import ResourceCommandPolicy from "../../Utils/AiRemediation/Resource/ResourceCommandPolicy";
 import { ResourceCommandPolicyResult } from "../../Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
 import logger from "../Utils/Logger";
+import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -1156,7 +1157,7 @@ router.post(
 
       await postFeedItem({
         suggestion,
-        markdown: `⚡ **Auto-remediation suggestion approved** — runbook "${suggestion.runbookNameSnapshot || "Runbook"}" was started.`,
+        markdown: `⚡ **Auto-remediation suggestion approved** — runbook "${escapeMarkdownValue(suggestion.runbookNameSnapshot || "Runbook")}" was started.`,
         userId: props.userId!,
         pingWorkspace: true,
       });
@@ -1252,7 +1253,7 @@ router.post(
       ) {
         dismissMarkdown = `⚡ **Auto-remediation suggestion dismissed** — the AI-composed command plan will not be run.`;
       } else {
-        dismissMarkdown = `⚡ **Auto-remediation suggestion dismissed** — runbook "${suggestion.runbookNameSnapshot || "(not yet picked)"}" will not be run.`;
+        dismissMarkdown = `⚡ **Auto-remediation suggestion dismissed** — runbook "${escapeMarkdownValue(suggestion.runbookNameSnapshot || "(not yet picked)")}" will not be run.`;
       }
 
       await postFeedItem({
