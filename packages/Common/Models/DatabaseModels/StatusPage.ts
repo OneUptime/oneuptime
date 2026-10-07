@@ -3682,11 +3682,6 @@ export default class StatusPage extends BaseModel {
     default: 90,
     nullable: false,
   })
-  @ColumnBillingAccessControl({
-    read: PlanType.Free,
-    update: PlanType.Free,
-    create: PlanType.Free,
-  })
   public showUptimeHistoryInDays?: number = undefined;
 
   @ColumnAccessControl({

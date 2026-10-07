@@ -25,7 +25,7 @@ import React, { FunctionComponent, ReactElement } from "react";
  * drawn under each page's upsell (PlanGatedPage's and EnterprisePluginPage's
  * belowPlan): its SAML and OIDC providers, which keep signing people in
  * until they are turned off or deleted, and its SCIM connections, which
- * stopped provisioning them until the project is back on the plan
+ * only remove people until the project is back on the plan
  * (Common/Types/Billing/PlanCutoffCredentials) and can be deleted
  * (PlanLeftoverTable). Configuration a lower plan cannot use can still be
  * seen, switched off and removed (Common/Types/Billing/PlanGatedTable).
