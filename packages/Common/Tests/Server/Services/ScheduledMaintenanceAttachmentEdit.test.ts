@@ -537,7 +537,7 @@ afterEach(() => {
 });
 
 describe("ScheduledMaintenanceService.onBeforeUpdate: what each event holds before the write", () => {
-  test("an update that writes neither list reads nothing and carries nothing", async () => {
+  test("an update that writes neither list reads neither and carries nothing for them", async () => {
     eventsBeforeWrite = [
       maintenanceEvent({ state: "ongoing", monitors: [MONITOR_A, MONITOR_B] }),
     ];
@@ -546,7 +546,14 @@ describe("ScheduledMaintenanceService.onBeforeUpdate: what each event holds befo
       updateByFor({ title: "Database upgrade" }),
     );
 
-    expect(eventFindBy).not.toHaveBeenCalled();
+    // The title is read (the updated feed item compares it); no list is.
+    for (const call of eventFindBy.mock.calls) {
+      const select: JSONObject = (call[0] as { select: JSONObject }).select;
+
+      expect(select["monitors"]).toBeUndefined();
+      expect(select["networkSites"]).toBeUndefined();
+    }
+
     expect(timelineFindBy).not.toHaveBeenCalled();
     expect(carriedOf(onUpdate)).toBeNull();
   });

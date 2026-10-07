@@ -48,6 +48,12 @@ import MonitorType, {
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 import MonitorStep from "../../Types/Monitor/MonitorStep";
 import ObjectID from "../../Types/ObjectID";
+import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
+import EventFieldChange, {
+  EventFieldSet,
+  EventValuesBeforeUpdate,
+  MONITOR_FIELDS,
+} from "../Utils/EventFieldChange";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Model from "../../Models/DatabaseModels/Monitor";
 import MonitorTemplate from "../../Models/DatabaseModels/MonitorTemplate";
@@ -92,7 +98,6 @@ import MonitorWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Monit
 import MonitorFeedService from "./MonitorFeedService";
 import { MonitorFeedEventType } from "../../Models/DatabaseModels/MonitorFeed";
 import { Gray500, Green500 } from "../../Types/BrandColors";
-import LabelService from "./LabelService";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProductAnalytics from "../Utils/ProductAnalytics";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
@@ -159,6 +164,16 @@ export interface MonitorProbeFlagChanges {
   isNoProbeEnabledOnThisMonitor?: boolean | undefined;
   isAllProbesDisconnectedFromThisMonitor?: boolean | undefined;
 }
+
+/*
+ * What onBeforeUpdate hands to onUpdateSuccess: the name, the description
+ * and the labels each monitor the update matches held before the write,
+ * of those the update writes, keyed by monitor id
+ * (recordStoredValuesBeforeUpdate).
+ */
+type MonitorUpdateCarryForward = {
+  valuesBeforeUpdate: Dictionary<EventValuesBeforeUpdate>;
+};
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -945,7 +960,80 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
-    return { updateBy, carryForward: null };
+    // What onUpdateSuccess compares the update with, read before the write.
+    const valuesBeforeUpdate: Dictionary<EventValuesBeforeUpdate> | null =
+      await this.recordStoredValuesBeforeUpdate(updateBy);
+
+    return {
+      updateBy,
+      carryForward: valuesBeforeUpdate
+        ? ({
+            valuesBeforeUpdate: valuesBeforeUpdate,
+          } as MonitorUpdateCarryForward)
+        : null,
+    };
+  }
+
+  /*
+   * What onUpdateSuccess compares an update with: the name, the description
+   * and the labels of each monitor it matches, as they are stored, read
+   * here, before the write - one read, of the ones the update writes and no
+   * others, and only when it writes any. The monitor's "updated" feed item,
+   * posted to the project's Slack and Microsoft Teams channels as well,
+   * records each one that really changed (EventFieldChange): its Details
+   * card sends all three with every save, and an API client, Terraform or a
+   * workflow may write the whole monitor back, so their being there is no
+   * news.
+   *
+   * Read as root - the answer only decides what the feed says - but held to
+   * the caller's project, like the other reads here: the update's own
+   * permission check narrows it only after this hook runs. Keyed by monitor
+   * id; null, with nothing read, when the update writes none of the three.
+   */
+  private async recordStoredValuesBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<Dictionary<EventValuesBeforeUpdate> | null> {
+    const fieldsWritten: EventFieldSet = EventFieldChange.getFieldsWritten(
+      updateBy.data as unknown as Record<string, unknown>,
+      MONITOR_FIELDS,
+    );
+
+    if (!EventFieldChange.isAnySet(fieldsWritten)) {
+      return null;
+    }
+
+    const monitors: Array<Model> = await this.findBy({
+      query:
+        !updateBy.props.isRoot && updateBy.props.tenantId
+          ? { ...updateBy.query, projectId: updateBy.props.tenantId }
+          : updateBy.query,
+      select: {
+        _id: true,
+        ...(EventFieldChange.getSelect(fieldsWritten) as Select<Model>),
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    const valuesBeforeUpdate: Dictionary<EventValuesBeforeUpdate> = {};
+
+    for (const monitor of monitors) {
+      if (!monitor.id) {
+        continue;
+      }
+
+      valuesBeforeUpdate[monitor.id.toString()] =
+        EventFieldChange.getValuesBeforeUpdate({
+          record: monitor,
+          fields: fieldsWritten,
+        });
+    }
+
+    return valuesBeforeUpdate;
   }
 
   /*
@@ -1433,7 +1521,8 @@ export class Service extends ProjectReferencesService<Model> {
         });
 
         const projectId: ObjectID = monitor!.projectId!;
-        const monitorName: string = monitor!.name!;
+        // The monitor's name, inside its link's own text.
+        const monitorName: string = escapeMarkdownInline(monitor!.name!);
 
         let shouldAddMonitorFeed: boolean = false;
         let feedInfoInMarkdown: string = `Monitor **[${monitorName}](${(await this.getMonitorLinkInDashboard(projectId!, monitorId!)).toString()}) was updated.**`;
@@ -1488,69 +1577,32 @@ export class Service extends ProjectReferencesService<Model> {
           });
         }
 
-        if (onUpdate.updateBy.data.name) {
-          // add monitor feed.
+        /*
+         * A line for each of the name, the description and the labels the
+         * update really changed, against what the monitor held before the
+         * write (recordStoredValuesBeforeUpdate): writing back what it holds
+         * - every save of its Details card sends all three - adds none. One
+         * the read did not see counts as changed.
+         */
+        const fieldChanges: EventFieldSet = EventFieldChange.getChanges({
+          written: onUpdate.updateBy.data as unknown as Record<string, unknown>,
+          valuesBeforeUpdate: (
+            onUpdate.carryForward as MonitorUpdateCarryForward | null | undefined
+          )?.valuesBeforeUpdate?.[monitorId.toString()],
+          kind: MONITOR_FIELDS,
+        });
 
-          feedInfoInMarkdown += `\n\n**Name**: 
-    ${onUpdate.updateBy.data.name || "No name provided."}
-    `;
+        const fieldsMarkdown: string = await EventFieldChange.getFeedMarkdown({
+          written: onUpdate.updateBy.data as unknown as Record<string, unknown>,
+          changes: fieldChanges,
+          projectId: projectId,
+          recordName: "Monitor",
+          kind: MONITOR_FIELDS,
+        });
+
+        if (fieldsMarkdown) {
+          feedInfoInMarkdown += fieldsMarkdown;
           shouldAddMonitorFeed = true;
-        }
-
-        if (onUpdate.updateBy.data.description) {
-          // add monitor feed.
-
-          feedInfoInMarkdown += `\n\n**Monitor Description**: 
-              ${onUpdate.updateBy.data.description || "No description provided."}
-              `;
-          shouldAddMonitorFeed = true;
-        }
-
-        if (
-          onUpdate.updateBy.data.labels &&
-          onUpdate.updateBy.data.labels.length > 0 &&
-          Array.isArray(onUpdate.updateBy.data.labels)
-        ) {
-          const labelIds: Array<ObjectID> = (
-            onUpdate.updateBy.data.labels as any
-          )
-            .map((label: Label) => {
-              if (label._id) {
-                return new ObjectID(label._id?.toString());
-              }
-
-              return null;
-            })
-            .filter((labelId: ObjectID | null) => {
-              return labelId !== null;
-            });
-
-          const labels: Array<Label> = await LabelService.findBy({
-            query: {
-              _id: QueryHelper.any(labelIds),
-            },
-            select: {
-              name: true,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            props: {
-              isRoot: true,
-            },
-          });
-
-          if (labels.length > 0) {
-            feedInfoInMarkdown += `\n\n**🏷️ Labels**:
-    
-    ${labels
-      .map((label: Label) => {
-        return `- ${label.name}`;
-      })
-      .join("\n")}
-    `;
-
-            shouldAddMonitorFeed = true;
-          }
         }
 
         if (shouldAddMonitorFeed) {

@@ -2194,7 +2194,11 @@ describe("cross-project relation guard on write", () => {
         props: { tenantId: PROJECT_ID },
       });
 
-      expect(ScheduledMaintenanceService.findBy).not.toHaveBeenCalled();
+      /*
+       * The title is read, to tell whether the update changes it (the
+       * event's updated feed item); no list is.
+       */
+      expect(listReadsOf(ScheduledMaintenanceService)).toHaveLength(0);
       expectNoResourceLookedUp();
     });
   });

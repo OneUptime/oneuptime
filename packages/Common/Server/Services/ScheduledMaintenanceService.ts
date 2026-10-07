@@ -3232,7 +3232,9 @@ ${scheduledMaintenance.description || "No description provided."}
          * Resources card sends every list back with each save, so a list
          * sent back as it is changes nothing. The event is read back rather
          * than the ids in the payload being looked up: the read is held to
-         * this project, and it names the whole list the card now shows.
+         * this project, and it names the whole list the card now shows. An
+         * edit that leaves it affecting nothing has no list to show, as
+         * before; the monitors taken off are named below.
          */
         const affectedResourcesChanged: boolean =
           this.getAffectedResourceListColumns().some(
@@ -3254,19 +3256,18 @@ ${scheduledMaintenance.description || "No description provided."}
                 scheduledMaintenanceId: scheduledMaintenanceId,
               });
 
-            feedInfoInMarkdown +=
-              resources.length > 0
-                ? `\n\n**Resources Affected**:
+            if (resources.length > 0) {
+              feedInfoInMarkdown += `\n\n**Resources Affected**:
 
 ${LinkedAffectedResources.getMarkdownLines({
   dashboardUrl: await DatabaseConfig.getDashboardUrl(),
   projectId: projectId,
   resources: resources,
 }).join("\n")}
-`
-                : ScheduledMaintenanceFieldChange.getNoResourcesMarkdown();
+`;
 
-            shouldAddScheduledMaintenanceFeed = true;
+              shouldAddScheduledMaintenanceFeed = true;
+            }
           } catch (err) {
             const logAttributes: LogAttributes = {
               projectId: projectId.toString(),

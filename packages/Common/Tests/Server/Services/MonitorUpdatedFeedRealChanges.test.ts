@@ -278,11 +278,13 @@ async function runUpdate(
     query?: Dictionary<unknown>;
     props?: DatabaseCommonInteractionProps;
     updatedIds?: Array<string>;
+    // Monitors the write reaches that the read before it did not see.
+    alsoWritten?: Array<StoredMonitor>;
   } = {},
 ): Promise<void> {
   const onUpdate: OnUpdate<Monitor> = await runBeforeUpdate(data, options);
 
-  monitorsAfterWrite = storedMonitors.map(
+  monitorsAfterWrite = [...storedMonitors, ...(options.alsoWritten || [])].map(
     (record: StoredMonitor): StoredMonitor => {
       return {
         ...record,
@@ -545,7 +547,7 @@ describe("the read before the write", () => {
       props: DatabaseCommonInteractionProps;
     } = storedReads()[0]!;
 
-    expect(read.props).toEqual({ isRoot: true });
+    expect(read.props).toEqual({ isRoot: true, ignoreHooks: true });
     expect(read.query["_id"]).toBe(MONITOR_ID);
     expect(read.query["projectId"]).toBe(PROJECT_ID);
   });
@@ -562,7 +564,10 @@ describe("the read before the write", () => {
   test("a monitor the read did not see counts as changed, so a real change is never missed", async () => {
     await runUpdate(
       { name: STORED_NAME },
-      { updatedIds: [MONITOR_ID, SECOND_MONITOR_ID] },
+      {
+        updatedIds: [MONITOR_ID, SECOND_MONITOR_ID],
+        alsoWritten: [storedMonitor({ id: SECOND_MONITOR_ID })],
+      },
     );
 
     expect(feed).toHaveBeenCalledTimes(1);

@@ -104,9 +104,6 @@ export default class ScheduledMaintenanceFieldChange {
   public static readonly noStatusPagesLine: string =
     "Not shown on any status page.";
 
-  // What it says when the event no longer affects anything.
-  public static readonly noResourcesLine: string = "No resources affected.";
-
   /*
    * The compared columns an update writes. A column left out - or sent as
    * undefined, which writes nothing - is not written; one sent as null is.
@@ -403,11 +400,6 @@ export default class ScheduledMaintenanceFieldChange {
         return `- ${escapeMarkdownValue(name)}`;
       })
       .join("\n")}\n`;
-  }
-
-  // "Resources Affected" for an event the update left affecting nothing.
-  public static getNoResourcesMarkdown(): string {
-    return `\n\n**Resources Affected**: \n${this.noResourcesLine}\n`;
   }
 
   private static getTimeMarkdown(data: {

@@ -1005,14 +1005,14 @@ describe("each real change adds its own line, once", () => {
     expect(markdown).not.toContain(MONITOR_STATUS_HEADING);
   });
 
-  test("the last resource taken off says the event affects none", async () => {
+  test("the last resource taken off leaves no list to show, as before", async () => {
     storedEvents = [storedEvent({ monitorIds: [] })];
 
     await runUpdate({ hosts: [] });
 
-    expect(onlyFeedItem()).toContain(
-      `${RESOURCES_HEADING}: \nNo resources affected.\n`,
-    );
+    // What the event now affects is read back - and is nothing.
+    expect(resourceReads).toHaveBeenCalled();
+    expect(feed).not.toHaveBeenCalled();
   });
 
   test.each([
