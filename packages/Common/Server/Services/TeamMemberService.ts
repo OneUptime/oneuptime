@@ -587,6 +587,18 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
     return { updateBy, carryForward: null };
   }
 
+  /*
+   * Drops this server's cached list of the person's teams in the project
+   * (getTeamIdsForUser), so the next read asks the database. Called when
+   * their membership changes, here or on another server
+   * (RealtimeAccessChanges).
+   */
+  public forgetTeamIdsForUser(userId: ObjectID, projectId: ObjectID): void {
+    this.teamIdsForUserCache.delete(
+      `${userId.toString()}:${projectId.toString()}`,
+    );
+  }
+
   @CaptureSpan()
   public async refreshTokens(
     userId: ObjectID,
@@ -596,9 +608,7 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
      * Invalidate the in-process cache of this user's team memberships in
      * this project — membership just changed.
      */
-    this.teamIdsForUserCache.delete(
-      `${userId.toString()}:${projectId.toString()}`,
-    );
+    this.forgetTeamIdsForUser(userId, projectId);
 
     /// Refresh tokens.
     await AccessTokenService.refreshUserGlobalAccessPermission(userId);

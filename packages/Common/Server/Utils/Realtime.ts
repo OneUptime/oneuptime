@@ -7,10 +7,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import RealtimeUtil from "../../Utils/Realtime";
-import JSONWebTokenData from "../../Types/JsonWebTokenData";
-import JSONWebToken from "./JsonWebToken";
 import Permission, {
-  UserGlobalAccessPermission,
   UserTenantAccessPermission,
   instanceOfUserTenantAccessPermission,
 } from "../../Types/Permission";
@@ -22,9 +19,6 @@ import HeldPermissionsUtil, {
 import ModelEventType from "../../Types/Realtime/ModelEventType";
 import ListenToModelEventJSON from "../../Types/Realtime/ListenToModelEventJSON";
 import EventName from "../../Types/Realtime/EventName";
-import CookieUtil from "./Cookie";
-import Dictionary from "../../Types/Dictionary";
-import UserPermissionUtil from "./UserPermission/UserPermission";
 import CaptureSpan from "./Telemetry/CaptureSpan";
 import {
   NO_READER_ACCESS,
@@ -36,12 +30,25 @@ import RealtimeReaders, {
   RealtimeReaderIdentity,
 } from "./Realtime/RealtimeReaders";
 import RealtimeAudience from "./Realtime/RealtimeAudience";
+import RealtimeJoinAccess, {
+  RealtimeJoinDecision,
+  RealtimeJoinRefusal,
+} from "./Realtime/RealtimeJoinAccess";
+import RealtimeSessions, {
+  RealtimeSocketSession,
+} from "./Realtime/RealtimeSessions";
+import RealtimeAccessChanges from "./Realtime/RealtimeAccessChanges";
 
 // What became of one ListenToModelEvent request.
 export enum ListenToModelEventOutcome {
   Joined = "Joined",
-  // No access token, or one that no longer decodes. The client was told.
+  /*
+   * No access token, one that no longer decodes, a blocked user's, or a
+   * session that has ended. The client was told.
+   */
   AuthenticationRequired = "AuthenticationRequired",
+  // The project requires an SSO sign-in the handshake does not carry. The client was told.
+  SsoRequired = "SsoRequired",
   // A valid session without access to this tenant or model.
   NotAuthorized = "NotAuthorized",
   // The request itself was malformed.
@@ -49,13 +56,6 @@ export enum ListenToModelEventOutcome {
   // Something failed while authorizing (for example the permission cache).
   Failed = "Failed",
 }
-
-/*
- * What Realtime keeps on a socket that joined a room (socket.data): the
- * person its access token names. Plain JSON, so it survives an adapter that
- * hands sockets of other servers over the wire.
- */
-const READER_OF_SOCKET_KEY: string = "realtimeReader";
 
 // One event waiting for delivery: its record, and the resource it belongs to.
 interface PendingModelEvent {
@@ -147,6 +147,13 @@ export default abstract class Realtime {
       this.socketServer = IO.getSocketServer();
       logger.debug("Realtime socket server initialized");
 
+      /*
+       * Access changes made on other servers - a sign-out, a block, a
+       * permission taken away - reach the sockets of this one at once.
+       * Never throws; without the channel they arrive as entries run out.
+       */
+      void RealtimeAccessChanges.listen();
+
       this.socketServer!.on("connection", (socket: Socket) => {
         logger.debug("New socket connection established");
 
@@ -234,6 +241,10 @@ export default abstract class Realtime {
       logger.error("tenantId is not a string", socketLogAttributes);
       throw new BadDataException("tenantId is not a string");
     }
+    if (!ObjectID.isValidUUID(data["tenantId"])) {
+      logger.error("tenantId is not an id", socketLogAttributes);
+      throw new BadDataException("tenantId is not an id");
+    }
 
     return {
       eventType: data["eventType"] as ModelEventType,
@@ -267,6 +278,34 @@ export default abstract class Realtime {
     return ListenToModelEventOutcome.AuthenticationRequired;
   }
 
+  /*
+   * The project requires an SSO sign-in the socket's handshake does not
+   * carry: tell the client which project, so it can send the person to
+   * sign in with SSO there, as a refused API request does.
+   */
+  private static rejectForMissingSsoSignIn(
+    socket: Socket,
+    data: ListenToModelEventJSON,
+    listenLogAttributes: LogAttributes,
+  ): ListenToModelEventOutcome {
+    logger.debug(
+      "The project requires an SSO sign-in this socket does not carry, aborting joining room",
+      listenLogAttributes,
+    );
+
+    socket.emit(EventName.SsoAuthorizationRequired, data);
+
+    return ListenToModelEventOutcome.SsoRequired;
+  }
+
+  /*
+   * One subscription, asked as an API request of the same session is asked
+   * (RealtimeJoinAccess): the access token (verified, not a blocked
+   * user's), the project's own access check with its Require SSO rule, and
+   * then the model's read. An allowed join keeps the session on the socket
+   * (RealtimeSessions), and the socket hears live updates while that
+   * session lasts.
+   */
   @CaptureSpan()
   public static async listenToModelEvent(
     socket: Socket,
@@ -287,142 +326,50 @@ export default abstract class Realtime {
       await this.init();
     }
 
-    /*
-     * before joining room check the user token and check if the user has access to this tenant
-     * and to this model and to this event type
-     */
+    // Its session has ended: the handshake is spent, so the client must reconnect.
+    if (RealtimeSessions.hasEnded(socket)) {
+      return this.rejectForMissingAuthentication(
+        socket,
+        data,
+        "The session this socket joined with has ended",
+        listenLogAttributes,
+      );
+    }
 
-    logger.debug(
-      "Extracting user access token from socket",
-      listenLogAttributes,
+    const decision: RealtimeJoinDecision = await RealtimeJoinAccess.decide(
+      socket,
+      data.tenantId,
     );
-    const userAccessToken: string | undefined =
-      this.getAccessTokenFromSocket(socket);
 
-    if (!userAccessToken) {
-      return this.rejectForMissingAuthentication(
-        socket,
-        data,
-        "User access token not found in socket",
-        listenLogAttributes,
-      );
-    }
-
-    logger.debug("Decoding user access token", listenLogAttributes);
-
-    /*
-     * The token is the one the browser sent with the handshake, and it is not
-     * re-read for the life of the connection. Once it expires every decode
-     * throws, which is the normal state of a dashboard tab left open past the
-     * access token's lifetime, not an error in the request.
-     */
-    let userAuthorizationData: JSONWebTokenData;
-
-    try {
-      userAuthorizationData = JSONWebToken.decode(userAccessToken);
-    } catch {
-      return this.rejectForMissingAuthentication(
-        socket,
-        data,
-        "User access token in socket is invalid or expired",
-        listenLogAttributes,
-      );
-    }
-
-    if (!userAuthorizationData) {
-      return this.rejectForMissingAuthentication(
-        socket,
-        data,
-        "User authorization data not found in socket",
-        listenLogAttributes,
-      );
-    }
-
-    if (!userAuthorizationData.userId) {
-      return this.rejectForMissingAuthentication(
-        socket,
-        data,
-        "User ID not found in socket",
-        listenLogAttributes,
-      );
-    }
-
-    logger.debug("Checking user access permissions", listenLogAttributes);
-    let hasAccess: boolean = false;
-
-    if (userAuthorizationData.isMasterAdmin) {
-      logger.debug(
-        "User is a master admin, granting access",
-        listenLogAttributes,
-      );
-      hasAccess = true;
-    }
-
-    logger.debug(
-      "Fetching user global access permissions",
-      listenLogAttributes,
-    );
-    const userGlobalAccessPermission: UserGlobalAccessPermission | null =
-      await UserPermissionUtil.getUserGlobalAccessPermissionFromCache(
-        userAuthorizationData.userId,
-      );
-
-    // check if the user has access to this tenant
-    if (userGlobalAccessPermission && !hasAccess) {
-      logger.debug(
-        "Checking if user has access to the tenant",
-        listenLogAttributes,
-      );
-      const hasAccessToProjectId: boolean =
-        userGlobalAccessPermission.projectIds.some((projectId: ObjectID) => {
-          return projectId.toString() === data.tenantId.toString();
-        });
-
-      if (!hasAccessToProjectId) {
-        logger.debug(
-          "User does not have access to this tenant, aborting joining room",
+    if (!decision.allowed) {
+      if (decision.refusal === RealtimeJoinRefusal.AuthenticationRequired) {
+        /*
+         * The token is the one the browser sent with the handshake, and it
+         * is not re-read for the life of the connection. Once it expires
+         * every check refuses it, which is the normal state of a dashboard
+         * tab left open past the access token's lifetime.
+         */
+        return this.rejectForMissingAuthentication(
+          socket,
+          data,
+          "The socket has no usable session",
           listenLogAttributes,
         );
-        return ListenToModelEventOutcome.NotAuthorized;
       }
 
-      logger.debug(
-        "User has access to the tenant, checking model access",
-        listenLogAttributes,
-      );
-      const userId: ObjectID = new ObjectID(
-        userAuthorizationData.userId.toString(),
-      );
-      const projectId: ObjectID = new ObjectID(data.tenantId.toString());
-
-      // if it has the access to the tenant, check if it has access to the model
-      const userTenantAccessPermission: UserTenantAccessPermission | null =
-        await UserPermissionUtil.getUserTenantAccessPermissionFromCache(
-          userId,
-          projectId,
-        );
-
-      // check if the user has access to this model
-      if (
-        userTenantAccessPermission &&
-        this.hasPermissionsByModelName(
-          userTenantAccessPermission,
-          data.modelName,
-        )
-      ) {
-        logger.debug(
-          "User has access to the model, granting access",
+      if (decision.refusal === RealtimeJoinRefusal.SsoRequired) {
+        return this.rejectForMissingSsoSignIn(
+          socket,
+          data,
           listenLogAttributes,
         );
-        hasAccess = true;
       }
-    }
 
-    /*
-     * Authenticated but not allowed. The room is not joined and, as before,
-     * nothing is sent back: a fresh session would not change the answer.
-     */
-    if (!hasAccess) {
+      /*
+       * Authenticated but not allowed. The room is not joined and, as
+       * before, nothing is sent back: a fresh session would not change the
+       * answer.
+       */
       logger.debug(
         "User does not have access to this tenant, aborting joining room",
         listenLogAttributes,
@@ -430,37 +377,75 @@ export default abstract class Realtime {
       return ListenToModelEventOutcome.NotAuthorized;
     }
 
+    const session: RealtimeSocketSession = decision.session;
+
+    /*
+     * The model's own read: a server admin's reads pass it; anyone else
+     * needs read access to that kind of record in the project.
+     */
+    if (
+      !session.isMasterAdmin &&
+      !(
+        decision.tenantPermission &&
+        this.hasPermissionsByModelName(
+          decision.tenantPermission,
+          data.modelName,
+        )
+      )
+    ) {
+      logger.debug(
+        "User does not have access to this model, aborting joining room",
+        listenLogAttributes,
+      );
+      return ListenToModelEventOutcome.NotAuthorized;
+    }
+
+    /*
+     * The session may have ended while the join was decided (signed out,
+     * revoked, the person blocked), or before this token was issued.
+     * Checked right before the session is kept, with nothing awaited in
+     * between, so an end that arrives meanwhile is never missed.
+     */
+    if (
+      RealtimeSessions.hasEnded(socket) ||
+      RealtimeSessions.wasEnded({
+        userId: session.userId,
+        sessionId: session.sessionId,
+        issuedAtMs: decision.issuedAtMs,
+      })
+    ) {
+      return this.rejectForMissingAuthentication(
+        socket,
+        data,
+        "The session this socket joined with has ended",
+        listenLogAttributes,
+      );
+    }
+
     /*
      * Joining the room is not hearing about every record in it: each event
      * goes only to the listeners who may read its record, asked as this
-     * person when it happens (deliver). The socket keeps who it is.
+     * person when it happens (deliver), and only while their session lasts.
      */
-    this.rememberReaderOfSocket(socket, {
-      userId: userAuthorizationData.userId.toString(),
-      isMasterAdmin: Boolean(userAuthorizationData.isMasterAdmin),
-    });
+    RealtimeSessions.begin(socket, session);
 
-    if (data.modelId) {
-      const modelRoomId: string = RealtimeUtil.getRoomId(
-        data.tenantId,
-        data.modelName,
-        ModelEventType.Create,
-        data.modelId,
-      );
+    const roomId: string = data.modelId
+      ? RealtimeUtil.getRoomId(
+          data.tenantId,
+          data.modelName,
+          ModelEventType.Create,
+          data.modelId,
+        )
+      : RealtimeUtil.getRoomId(data.tenantId, data.modelName, data.eventType);
 
-      logger.debug(`Joining room with ID: ${modelRoomId}`, listenLogAttributes);
-      // join the room.
-      await socket.join(modelRoomId);
-    } else {
-      const roomId: string = RealtimeUtil.getRoomId(
-        data.tenantId,
-        data.modelName,
-        data.eventType,
-      );
+    logger.debug(`Joining room with ID: ${roomId}`, listenLogAttributes);
 
-      logger.debug(`Joining room with ID: ${roomId}`, listenLogAttributes);
-      // join the room.
-      await socket.join(roomId);
+    await socket.join(roomId);
+
+    // Ended while it joined: it leaves again, as every room of an ended session does.
+    if (RealtimeSessions.hasEnded(socket)) {
+      await socket.leave(roomId);
+      return ListenToModelEventOutcome.AuthenticationRequired;
     }
 
     return ListenToModelEventOutcome.Joined;
@@ -1023,49 +1008,23 @@ export default abstract class Realtime {
 
   /*
    * Who a listening socket is: the person whose access token it joined its
-   * rooms with. A socket that never said hears nothing.
+   * rooms with, while that session lasts (RealtimeSessions.getSession). A
+   * socket that never said, whose access token has expired or whose
+   * session has ended, hears nothing.
    */
   private static getReaderOfSocket(socket: {
     data: unknown;
   }): RealtimeReaderIdentity | null {
-    const data: unknown = socket.data;
+    const session: RealtimeSocketSession | null =
+      RealtimeSessions.getSession(socket);
 
-    if (!data || typeof data !== "object") {
-      return null;
-    }
-
-    const reader: unknown = (data as Dictionary<unknown>)[READER_OF_SOCKET_KEY];
-
-    if (
-      !reader ||
-      typeof reader !== "object" ||
-      typeof (reader as Dictionary<unknown>)["userId"] !== "string" ||
-      !(reader as Dictionary<unknown>)["userId"]
-    ) {
+    if (!session) {
       return null;
     }
 
     return {
-      userId: (reader as Dictionary<unknown>)["userId"] as string,
-      isMasterAdmin: (reader as Dictionary<unknown>)["isMasterAdmin"] === true,
-    };
-  }
-
-  private static rememberReaderOfSocket(
-    socket: Socket,
-    identity: RealtimeReaderIdentity,
-  ): void {
-    const data: Dictionary<unknown> =
-      socket.data && typeof socket.data === "object"
-        ? (socket.data as Dictionary<unknown>)
-        : {};
-
-    socket.data = {
-      ...data,
-      [READER_OF_SOCKET_KEY]: {
-        userId: identity.userId,
-        isMasterAdmin: identity.isMasterAdmin,
-      },
+      userId: session.userId,
+      isMasterAdmin: session.isMasterAdmin,
     };
   }
 
@@ -1113,22 +1072,5 @@ export default abstract class Realtime {
       operation: "read",
       modelPermissions: model.getReadPermissions(),
     });
-  }
-
-  @CaptureSpan()
-  public static getAccessTokenFromSocket(socket: Socket): string | undefined {
-    let accessToken: string | undefined = undefined;
-
-    if (socket.handshake.headers.cookie) {
-      const cookies: Dictionary<string> = CookieUtil.getCookiesFromCookieString(
-        socket.handshake.headers.cookie,
-      );
-
-      if (cookies[CookieUtil.getUserTokenKey()]) {
-        accessToken = cookies[CookieUtil.getUserTokenKey()];
-      }
-    }
-
-    return accessToken;
   }
 }

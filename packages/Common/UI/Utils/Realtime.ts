@@ -57,6 +57,11 @@ export default abstract class Realtime {
 
   private static lastAuthenticationRecoveryAt: number | null = null;
 
+  // Who hears that a project's live updates need an SSO sign-in.
+  private static ssoAuthorizationRequiredListeners: Set<
+    (tenantId: ObjectID) => void
+  > = new Set();
+
   public static init(): void {
     const socket: Socket = SocketIO(new URL(HTTP_PROTOCOL, HOST).toString(), {
       path: RealtimeRoute.toString(),
@@ -71,7 +76,32 @@ export default abstract class Realtime {
       this.onAuthenticationRequired();
     });
 
+    socket.on(
+      EventName.SsoAuthorizationRequired,
+      (refused: JSONObject | undefined): void => {
+        this.onSsoAuthorizationRequired(refused);
+      },
+    );
+
     this.socket = socket;
+  }
+
+  /*
+   * Hears that the server refused a subscription because its project
+   * requires an SSO sign-in this session does not have - the answer an API
+   * request of the same session gets. The listener is given the project,
+   * and decides what the person sees (the Dashboard sends them to sign in
+   * with SSO, as it does when an API request is refused that way). Returns
+   * the function that stops listening.
+   */
+  public static listenForSsoAuthorizationRequired(
+    listener: (tenantId: ObjectID) => void,
+  ): () => void {
+    this.ssoAuthorizationRequiredListeners.add(listener);
+
+    return (): void => {
+      this.ssoAuthorizationRequiredListeners.delete(listener);
+    };
   }
 
   public static listenToModelEvent<Model extends BaseModel>(
@@ -223,14 +253,36 @@ export default abstract class Realtime {
     }
   }
 
+  private static onSsoAuthorizationRequired(
+    refused: JSONObject | undefined,
+  ): void {
+    const tenantId: unknown =
+      refused && typeof refused === "object" ? refused["tenantId"] : undefined;
+
+    if (typeof tenantId !== "string" || !tenantId) {
+      return;
+    }
+
+    for (const listener of Array.from(this.ssoAuthorizationRequiredListeners)) {
+      try {
+        listener(new ObjectID(tenantId));
+      } catch {
+        // One listener failing does not keep the others from hearing it.
+      }
+    }
+  }
+
   /*
    * The server refused a subscription because this socket's handshake carries
-   * no access token, or an expired one. The cookie is read once, when the
-   * socket connects, so an HTTP request refreshing the session does nothing
-   * for the socket: refresh (or reuse a refresh another request or tab just
-   * did), then reconnect so the new handshake carries the new cookie. The
-   * reconnect's 'connect' re-sends every subscription, including the refused
-   * one.
+   * no access token, or an expired one - or the session the socket joined
+   * with has ended (its access token expired, or it was signed out or
+   * revoked), and the socket has left every room. The cookie is read once,
+   * when the socket connects, so an HTTP request refreshing the session does
+   * nothing for the socket: refresh (or reuse a refresh another request or
+   * tab just did), then reconnect so the new handshake carries the new
+   * cookie. The reconnect's 'connect' re-sends every subscription, including
+   * the refused one. A session that cannot be refreshed (signed out,
+   * revoked, blocked) sends the person to sign in instead.
    *
    * A burst of refusals (a page subscribing to several rooms at once) is one
    * recovery: the first starts it, the rest arrive while it is in flight or

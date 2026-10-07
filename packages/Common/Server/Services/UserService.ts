@@ -19,6 +19,9 @@ import TeamMemberService from "./TeamMemberService";
 import UserNotificationRuleService from "./UserNotificationRuleService";
 import UserNotificationSettingService from "./UserNotificationSettingService";
 import UserSessionService from "./UserSessionService";
+import RealtimeAccessChanges, {
+  RealtimeAccessChangeKind,
+} from "../Utils/Realtime/RealtimeAccessChanges";
 import { AccountsRoute } from "../../ServiceRoute";
 import Hostname from "../../Types/API/Hostname";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
@@ -578,6 +581,22 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  // A deleted account's live updates end at once, on every server.
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    for (const userId of itemIdsBeforeDelete) {
+      RealtimeAccessChanges.announce({
+        kind: RealtimeAccessChangeKind.SessionsEnded,
+        userId: userId.toString(),
+      });
+    }
+
+    return onDelete;
+  }
+
   @CaptureSpan()
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
@@ -644,7 +663,35 @@ export class Service extends DatabaseService<Model> {
           await UserSessionService.revokeAllSessionsByUserId(userId, {
             reason: "User blocked",
           });
+
+          /*
+           * Every live update of theirs ends at once, on every server, and
+           * a token issued before the block opens none again.
+           */
+          RealtimeAccessChanges.announce({
+            kind: RealtimeAccessChangeKind.SessionsEnded,
+            userId: userId.toString(),
+          });
         }
+      }
+    }
+
+    /*
+     * Blocked or unblocked, made or no longer a server admin: every server
+     * forgets what it held for them - whether they are blocked, and who
+     * they are in each project for live updates - so the next request and
+     * the next live update read them as they are now.
+     */
+    if (
+      onUpdate &&
+      (onUpdate.updateBy.data.isBlocked !== undefined ||
+        onUpdate.updateBy.data.isMasterAdmin !== undefined)
+    ) {
+      for (const userId of updatedItemIds) {
+        RealtimeAccessChanges.announce({
+          kind: RealtimeAccessChangeKind.AccountChanged,
+          userId: userId.toString(),
+        });
       }
     }
 
