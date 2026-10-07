@@ -110,12 +110,23 @@ export function doAttachmentsGovernProject(
  * restricts the provider to its attached projects.
  */
 export function isGlobalProviderNarrowing(data: unknown): boolean {
-  const written: Record<string, unknown> =
-    data && typeof data === "object" ? (data as Record<string, unknown>) : {};
+  if (!data || typeof data !== "object") {
+    return false;
+  }
+
+  // Only the write's own fields count, never ones it inherits.
+  const writes: (column: string, value: boolean) => boolean = (
+    column: string,
+    value: boolean,
+  ): boolean => {
+    return (
+      Object.prototype.hasOwnProperty.call(data, column) &&
+      (data as Record<string, unknown>)[column] === value
+    );
+  };
 
   return (
-    written["isEnabled"] === false ||
-    written["restrictToAttachedProjects"] === true
+    writes("isEnabled", false) || writes("restrictToAttachedProjects", true)
   );
 }
 

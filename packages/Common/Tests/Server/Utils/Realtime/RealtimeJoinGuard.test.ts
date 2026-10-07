@@ -1,7 +1,9 @@
 import UserMiddleware from "../../../../Server/Middleware/UserAuthorization";
 import AccessTokenService from "../../../../Server/Services/AccessTokenService";
 import GlobalConfigService from "../../../../Server/Services/GlobalConfigService";
+import ProjectOidcService from "../../../../Server/Services/ProjectOidcService";
 import ProjectService from "../../../../Server/Services/ProjectService";
+import ProjectSsoService from "../../../../Server/Services/ProjectSsoService";
 import UserService from "../../../../Server/Services/UserService";
 import CookieUtil from "../../../../Server/Utils/Cookie";
 import { ExpressRequest } from "../../../../Server/Utils/Express";
@@ -14,6 +16,7 @@ import SsoAuthorizationException from "../../../../Types/Exception/SsoAuthorizat
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { UserTenantAccessPermission } from "../../../../Types/Permission";
+import SsoProviderType from "../../../../Types/SSO/SsoProviderType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import CookieParser from "cookie-parser";
 import fs from "fs";
@@ -44,6 +47,8 @@ jest.mock("../../../../Server/Utils/Logger");
 jest.mock("../../../../Server/Services/AccessTokenService");
 jest.mock("../../../../Server/Services/GlobalConfigService");
 jest.mock("../../../../Server/Services/ProjectService");
+jest.mock("../../../../Server/Services/ProjectSsoService");
+jest.mock("../../../../Server/Services/ProjectOidcService");
 jest.mock("../../../../Server/Services/TeamMemberService");
 jest.mock("../../../../Server/Services/UserService");
 // See Realtime.test.ts: nothing password-related is under test.
@@ -215,6 +220,20 @@ const PROJECT: string = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const OTHER_PROJECT: string = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 const USER: string = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
 const PROVIDER: string = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+// The project's other SAML provider, which is on.
+const OTHER_PROVIDER: string = "12121212-1212-4121-8121-121212121212";
+// A project SAML provider that has been turned off.
+const TURNED_OFF_PROVIDER: string = "34343434-3434-4343-8343-343434343434";
+
+// Whether a project's own provider vouches for its sign-ins: on unless turned off.
+async function providerStanding(data: {
+  providerId: ObjectID;
+}): Promise<{ isOn: boolean; signInsEndedAtMs: number | null }> {
+  return {
+    isOn: data.providerId.toString() !== TURNED_OFF_PROVIDER,
+    signInsEndedAtMs: null,
+  };
+}
 
 function accessToken(isMasterAdmin: boolean): string {
   return JSONWebToken.signJsonPayload(
@@ -229,7 +248,11 @@ function accessToken(isMasterAdmin: boolean): string {
   );
 }
 
-function projectSsoToken(projectId: string, providerId?: string): string {
+// A project SAML sign-in by `providerId`; null leaves the provider out.
+function projectSsoToken(
+  projectId: string,
+  providerId: string | null = OTHER_PROVIDER,
+): string {
   return JSONWebToken.signJsonPayload(
     {
       userId: USER,
@@ -237,7 +260,12 @@ function projectSsoToken(projectId: string, providerId?: string): string {
       email: "realtime-guard@oneuptime.com",
       name: "Realtime Guard",
       isMasterAdmin: false,
-      ...(providerId ? { ssoProviderId: providerId } : {}),
+      ...(providerId
+        ? {
+            ssoProviderId: providerId,
+            ssoProviderType: SsoProviderType.ProjectSSO,
+          }
+        : {}),
     },
     30 * 60,
   );
@@ -278,6 +306,20 @@ const HANDSHAKES: Array<HandshakeCase> = [
     isMasterAdmin: false,
     cookies: [
       `${CookieUtil.getUserSSOKey(new ObjectID(OTHER_PROJECT))}=${projectSsoToken(OTHER_PROJECT)}`,
+    ],
+  },
+  {
+    name: "the SSO sign-in of a provider that has been turned off",
+    isMasterAdmin: false,
+    cookies: [
+      `${CookieUtil.getUserSSOKey(new ObjectID(PROJECT))}=${projectSsoToken(PROJECT, TURNED_OFF_PROVIDER)}`,
+    ],
+  },
+  {
+    name: "an SSO sign-in that names no provider",
+    isMasterAdmin: false,
+    cookies: [
+      `${CookieUtil.getUserSSOKey(new ObjectID(PROJECT))}=${projectSsoToken(PROJECT, null)}`,
     ],
   },
   {
@@ -411,6 +453,12 @@ describe("for the same handshake, the join answers as the API does", () => {
     (
       AccessTokenService.getUserGlobalAccessPermission as unknown as jest.Mock
     ).mockResolvedValue(null);
+    (
+      ProjectSsoService.getSignInStanding as unknown as jest.Mock
+    ).mockImplementation(providerStanding);
+    (
+      ProjectOidcService.getSignInStanding as unknown as jest.Mock
+    ).mockImplementation(providerStanding);
   });
 
   afterEach(() => {
@@ -465,6 +513,20 @@ describe("for the same handshake, the join answers as the API does", () => {
     );
     await expect(joinAnswer(headersOf(HANDSHAKES[1]!))).resolves.toBe(
       "allowed",
+    );
+
+    // A provider turned off no longer lets its sign-ins in, on either side.
+    const turnedOff: HandshakeCase = HANDSHAKES.find(
+      (handshake: HandshakeCase): boolean => {
+        return handshake.name.includes("turned off");
+      },
+    )!;
+
+    await expect(joinAnswer(headersOf(turnedOff))).resolves.toBe(
+      "sso-required",
+    );
+    await expect(apiAnswer(headersOf(turnedOff))).resolves.toBe(
+      "sso-required",
     );
   });
 });

@@ -2,7 +2,9 @@ import IO, { Socket } from "../../../Server/Infrastructure/SocketIO";
 import { EncryptionSecret } from "../../../Server/EnvironmentConfig";
 import AccessTokenService from "../../../Server/Services/AccessTokenService";
 import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
+import ProjectOidcService from "../../../Server/Services/ProjectOidcService";
 import ProjectService from "../../../Server/Services/ProjectService";
+import ProjectSsoService from "../../../Server/Services/ProjectSsoService";
 import UserService from "../../../Server/Services/UserService";
 import CookieUtil from "../../../Server/Utils/Cookie";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
@@ -20,6 +22,7 @@ import ObjectID from "../../../Types/ObjectID";
 import { UserTenantAccessPermission } from "../../../Types/Permission";
 import EventName from "../../../Types/Realtime/EventName";
 import ListenToModelEventJSON from "../../../Types/Realtime/ListenToModelEventJSON";
+import SsoProviderType from "../../../Types/SSO/SsoProviderType";
 import ModelEventType from "../../../Types/Realtime/ModelEventType";
 import RealtimeUtil from "../../../Utils/Realtime";
 import {
@@ -66,6 +69,8 @@ jest.mock("../../../Server/Utils/Logger");
 jest.mock("../../../Server/Services/AccessTokenService");
 jest.mock("../../../Server/Services/GlobalConfigService");
 jest.mock("../../../Server/Services/ProjectService");
+jest.mock("../../../Server/Services/ProjectSsoService");
+jest.mock("../../../Server/Services/ProjectOidcService");
 jest.mock("../../../Server/Services/TeamMemberService");
 jest.mock("../../../Server/Services/UserService");
 /*
@@ -247,15 +252,21 @@ const expiredToken: () => string = (): string => {
   );
 };
 
+// The project SAML provider the SSO sign-ins below were given by.
+const SSO_PROVIDER_ID: string = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+const OTHER_SSO_PROVIDER_ID: string = "12121212-1212-4121-8121-121212121212";
+
 // A project SSO sign-in, as the SSO routes set it (CookieUtil.setSSOCookie).
 const ssoToken: (data: {
   projectId: string;
   userId?: string | undefined;
   expiresInSeconds?: number | undefined;
+  providerId?: string | undefined;
 }) => string = (data: {
   projectId: string;
   userId?: string | undefined;
   expiresInSeconds?: number | undefined;
+  providerId?: string | undefined;
 }): string => {
   return JSONWebToken.signJsonPayload(
     {
@@ -264,6 +275,8 @@ const ssoToken: (data: {
       email: "realtime-test@oneuptime.com",
       name: "Realtime Test",
       isMasterAdmin: false,
+      ssoProviderId: data.providerId || SSO_PROVIDER_ID,
+      ssoProviderType: SsoProviderType.ProjectSSO,
     },
     data.expiresInSeconds !== undefined ? data.expiresInSeconds : 30 * 60,
   );
@@ -301,6 +314,27 @@ const instanceRequiresSso: jest.Mock =
   GlobalConfigService.getRequireSsoForLogin as unknown as jest.Mock;
 const userBlocked: jest.Mock =
   UserService.isUserBlocked as unknown as jest.Mock;
+const samlProviderStanding: jest.Mock =
+  ProjectSsoService.getSignInStanding as unknown as jest.Mock;
+const oidcProviderStanding: jest.Mock =
+  ProjectOidcService.getSignInStanding as unknown as jest.Mock;
+
+/*
+ * These project SAML providers are on, and were never turned off: the
+ * sign-ins they gave count. Every other provider is not there.
+ */
+let providersOn: Array<string> = [];
+
+const providerStanding: (data: {
+  providerId: ObjectID;
+}) => Promise<{ isOn: boolean; signInsEndedAtMs: number | null }> = async (data: {
+  providerId: ObjectID;
+}): Promise<{ isOn: boolean; signInsEndedAtMs: number | null }> => {
+  return {
+    isOn: providersOn.includes(data.providerId.toString()),
+    signInsEndedAtMs: null,
+  };
+};
 
 type MemberOfFunction = (projectIds: Array<string>) => void;
 
@@ -389,6 +423,11 @@ describe("Realtime (server) ListenToModelEvent", () => {
     instanceRequiresSso.mockResolvedValue(false);
     userBlocked.mockReset();
     userBlocked.mockResolvedValue(false);
+    providersOn = [SSO_PROVIDER_ID, OTHER_SSO_PROVIDER_ID];
+    samlProviderStanding.mockReset();
+    samlProviderStanding.mockImplementation(providerStanding);
+    oidcProviderStanding.mockReset();
+    oidcProviderStanding.mockImplementation(providerStanding);
     jest.spyOn(Realtime, "hasPermissionsByModelName").mockReturnValue(true);
   });
 
@@ -883,17 +922,12 @@ describe("Realtime (server) ListenToModelEvent", () => {
         ListenToModelEventOutcome.SsoRequired,
       );
 
-      const pinnedToken: string = JSONWebToken.signJsonPayload(
-        {
-          userId: USER_ID,
-          projectId: TENANT_ID,
-          email: "realtime-test@oneuptime.com",
-          name: "Realtime Test",
-          isMasterAdmin: false,
-          ssoProviderId: pinned.toString(),
-        },
-        30 * 60,
-      );
+      providersOn.push(pinned.toString());
+
+      const pinnedToken: string = ssoToken({
+        projectId: TENANT_ID,
+        providerId: pinned.toString(),
+      });
 
       const pinnedProvider: FakeServerSocket = new FakeServerSocket(
         cookieWith(validToken(), ssoCookie(TENANT_ID, pinnedToken)),
@@ -914,6 +948,49 @@ describe("Realtime (server) ListenToModelEvent", () => {
       );
 
       expect(socket.joinedRooms).toEqual([]);
+    });
+
+    test("an SSO sign-in whose provider has been turned off or deleted does not count", async () => {
+      providersOn = [];
+
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(
+          validToken(),
+          ssoCookie(TENANT_ID, ssoToken({ projectId: TENANT_ID })),
+        ),
+      );
+
+      await expect(listen(socket)).resolves.toBe(
+        ListenToModelEventOutcome.SsoRequired,
+      );
+
+      expect(socket.joinedRooms).toEqual([]);
+      expect(socket.ssoRequiredEvents()).toEqual([REQUEST]);
+      // The provider the sign-in names was asked, for this project.
+      expect(samlProviderStanding).toHaveBeenCalled();
+      expect(
+        (
+          samlProviderStanding.mock.calls[0]![0] as { projectId: ObjectID }
+        ).projectId.toString(),
+      ).toBe(TENANT_ID);
+    });
+
+    test("a lookup of the provider that fails is a failed join, not a refusal and not a pass", async () => {
+      samlProviderStanding.mockRejectedValue(new Error("database unavailable"));
+
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(
+          validToken(),
+          ssoCookie(TENANT_ID, ssoToken({ projectId: TENANT_ID })),
+        ),
+      );
+
+      await expect(listen(socket)).resolves.toBe(
+        ListenToModelEventOutcome.Failed,
+      );
+
+      expect(socket.joinedRooms).toEqual([]);
+      expect(socket.emitted).toEqual([]);
     });
 
     test("the SSO sign-in of the mobile app's header counts too", async () => {
@@ -1069,6 +1146,83 @@ describe("Realtime (server) ListenToModelEvent", () => {
       await settle();
 
       expect(socket.subscribedRooms()).toEqual([ROOM_ID, OTHER_ROOM_ID]);
+      expect(socket.emitted).toEqual([]);
+    });
+
+    test("the provider a socket signed in with is turned off: it leaves the project's rooms at once and is told; a socket signed in by another provider stays", async () => {
+      requireSsoOf([TENANT_ID]);
+
+      const signedInWithIt: FakeServerSocket = new FakeServerSocket(
+        cookieWith(
+          validToken(),
+          ssoCookie(TENANT_ID, ssoToken({ projectId: TENANT_ID })),
+        ),
+      );
+      const signedInWithAnother: FakeServerSocket = new FakeServerSocket(
+        cookieWith(
+          validToken(),
+          ssoCookie(
+            TENANT_ID,
+            ssoToken({
+              projectId: TENANT_ID,
+              providerId: OTHER_SSO_PROVIDER_ID,
+            }),
+          ),
+        ),
+      );
+
+      for (const socket of [signedInWithIt, signedInWithAnother]) {
+        heldSockets.push(socket);
+
+        await expect(listen(socket)).resolves.toBe(
+          ListenToModelEventOutcome.Joined,
+        );
+      }
+
+      // Turned off (ProjectSsoProviderChanges announces it for the project).
+      providersOn = [OTHER_SSO_PROVIDER_ID];
+
+      RealtimeAccessChanges.announce({
+        kind: RealtimeAccessChangeKind.SignInRulesChanged,
+        projectId: TENANT_ID,
+      });
+      await settle();
+
+      expect(signedInWithIt.subscribedRooms()).toEqual([]);
+      expect(signedInWithIt.ssoRequiredEvents()).toEqual([
+        { tenantId: TENANT_ID },
+      ]);
+      // Signed out of nothing else: the session goes on.
+      expect(RealtimeSessions.getSession(signedInWithIt)).not.toBeNull();
+      expect(signedInWithIt.authenticationRequiredEvents()).toEqual([]);
+
+      expect(signedInWithAnother.subscribedRooms()).toEqual([ROOM_ID]);
+      expect(signedInWithAnother.emitted).toEqual([]);
+    });
+
+    test("a socket asked again while its provider is still on stays: nothing about the sign-in changed", async () => {
+      requireSsoOf([TENANT_ID]);
+
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(
+          validToken(),
+          ssoCookie(TENANT_ID, ssoToken({ projectId: TENANT_ID })),
+        ),
+      );
+
+      heldSockets.push(socket);
+
+      await expect(listen(socket)).resolves.toBe(
+        ListenToModelEventOutcome.Joined,
+      );
+
+      RealtimeAccessChanges.announce({
+        kind: RealtimeAccessChangeKind.SignInRulesChanged,
+        projectId: TENANT_ID,
+      });
+      await settle();
+
+      expect(socket.subscribedRooms()).toEqual([ROOM_ID]);
       expect(socket.emitted).toEqual([]);
     });
 

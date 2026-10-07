@@ -506,12 +506,18 @@ export default class ProjectSsoProviderChanges {
   /*
    * The Enabled switch an update writes - true or false, as DatabaseService
    * stores it by the time the hooks run - or undefined when it leaves it
-   * alone.
+   * alone. Only the write's own field counts, never one it inherits.
    */
   private static getWrittenIsEnabled(data: unknown): boolean | undefined {
-    const isEnabled: unknown = (data as Record<string, unknown> | undefined)?.[
-      "isEnabled"
-    ];
+    if (
+      !data ||
+      typeof data !== "object" ||
+      !Object.prototype.hasOwnProperty.call(data, "isEnabled")
+    ) {
+      return undefined;
+    }
+
+    const isEnabled: unknown = (data as Record<string, unknown>)["isEnabled"];
 
     return typeof isEnabled === "boolean" ? isEnabled : undefined;
   }

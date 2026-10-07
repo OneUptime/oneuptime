@@ -357,8 +357,6 @@ export default class UserMiddleware {
 
     try {
       const decodedData: JSONWebTokenData = JSONWebToken.decode(rawToken);
-      const issuedAtInSeconds: unknown =
-        JSONWebToken.decodeJsonPayload(rawToken)["iat"];
 
       /*
        * A Global-typed credential is NEVER accepted here, whichever slot it
@@ -388,11 +386,7 @@ export default class UserMiddleware {
 
       return {
         tokenData: decodedData,
-        issuedAtMs:
-          typeof issuedAtInSeconds === "number" &&
-          Number.isFinite(issuedAtInSeconds)
-            ? issuedAtInSeconds * 1000
-            : null,
+        issuedAtMs: UserMiddleware.readIssuedAtMs(rawToken),
       };
     } catch {
       /*
@@ -401,6 +395,25 @@ export default class UserMiddleware {
        * through to the Global SSO token instead of 500-ing, which is what a
        * user with both kinds would expect.
        */
+      return null;
+    }
+  }
+
+  /*
+   * When a token was issued (its `iat`), in milliseconds, or null when it
+   * does not say or cannot be read: a sign-in that cannot say when it was
+   * given only counts for a provider that was never turned off.
+   */
+  private static readIssuedAtMs(rawToken: string): number | null {
+    try {
+      const issuedAtInSeconds: unknown =
+        JSONWebToken.decodeJsonPayload(rawToken)["iat"];
+
+      return typeof issuedAtInSeconds === "number" &&
+        Number.isFinite(issuedAtInSeconds)
+        ? issuedAtInSeconds * 1000
+        : null;
+    } catch {
       return null;
     }
   }

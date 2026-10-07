@@ -43,6 +43,7 @@ jest.mock("../../../Server/Utils/PasswordHash", () => {
 });
 
 import Label from "../../../Models/DatabaseModels/Label";
+import Project from "../../../Models/DatabaseModels/Project";
 import ProjectOIDC from "../../../Models/DatabaseModels/ProjectOidc";
 import ProjectSCIM from "../../../Models/DatabaseModels/ProjectSCIM";
 import ProjectSSO from "../../../Models/DatabaseModels/ProjectSso";
@@ -51,6 +52,7 @@ import TeamPermission from "../../../Models/DatabaseModels/TeamPermission";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ProjectOidcService from "../../../Server/Services/ProjectOidcService";
 import ProjectSCIMService from "../../../Server/Services/ProjectSCIMService";
+import ProjectService from "../../../Server/Services/ProjectService";
 import ProjectSsoService from "../../../Server/Services/ProjectSsoService";
 import TeamPermissionService from "../../../Server/Services/TeamPermissionService";
 import TeamService from "../../../Server/Services/TeamService";
@@ -555,6 +557,21 @@ beforeEach(() => {
         ...(query as Record<string, unknown>),
         projectId: (props as DatabaseCommonInteractionProps).tenantId,
       };
+    },
+  );
+
+  /*
+   * Switching a provider off also asks whether its project keeps a way in
+   * (Utils/ProjectSsoProviderChanges): here the project does not require
+   * SSO, so any provider may be switched off. ProjectSsoProviderChanges.test
+   * covers a project that does.
+   */
+  getJestSpyOn(ProjectService, "findOneById").mockImplementation(
+    async (): Promise<Project> => {
+      const project: Project = new Project();
+      project.id = PROJECT_ID;
+      project.requireSsoForLogin = false;
+      return project;
     },
   );
 
