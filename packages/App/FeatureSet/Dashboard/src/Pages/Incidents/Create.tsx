@@ -860,7 +860,12 @@ const IncidentCreate: FunctionComponent<
             query: {},
             limit: LIMIT_PER_PROJECT,
             skip: 0,
-            select: { _id: true, order: true, isAcknowledgedState: true },
+            select: {
+              _id: true,
+              order: true,
+              isAcknowledgedState: true,
+              isResolvedState: true,
+            },
             sort: { order: SortOrder.Ascending },
           });
 
@@ -870,6 +875,7 @@ const IncidentCreate: FunctionComponent<
               id: state._id?.toString() || "",
               order: state.order,
               isAcknowledgedState: state.isAcknowledgedState,
+              isResolvedState: state.isResolvedState,
             };
           },
         );

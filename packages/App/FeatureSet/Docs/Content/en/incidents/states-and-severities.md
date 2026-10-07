@@ -35,7 +35,7 @@ Note the name: the first state is **Identified**, even though several descriptio
 | Flag                  | Purpose                                                                                                                                                                                              |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `isCreatedState`      | The state an incident gets when nobody picked one. If no state in the project carries this flag, creating an incident fails with an error telling you to add a created incident state from settings. |
-| `isAcknowledgedState` | Powers the **Acknowledge** button and the "<state name> in" stat tile on the incident **Overview**. On a state change into this state, the incident's SLA is marked as responded.                    |
+| `isAcknowledgedState` | Marks the project's acknowledged state: the one **Acknowledge** moves an incident to and the acknowledged stat tile is named after. An incident in it, in any state after it, or resolved, is acknowledged — **Acknowledge** is no longer offered for it, on-call stops paging for it, and its SLA is marked responded. |
 | `isResolvedState`     | Marks the project's resolved state: the one **Resolve** moves an incident to and the resolved stat tile shows. An incident in it, or in any state after it, is resolved — it leaves **Active Incidents** and a status page's active section, and its SLA is marked resolved. |
 
 Only one state per project is expected to hold each flag — the lookups fetch the first one in the order. The three flagged states carry a **Built-in** tag on the settings page; hover it (or tab to it) to read what OneUptime does with the state. They can be renamed, recolored and dragged, but:
@@ -117,6 +117,18 @@ There are four ways an incident changes state:
 - **Automatically.** A monitor criterion with **Auto Resolve Incident** enabled resolves its incident when the criterion is no longer met, and the API can update the state through `/api/incident-state-timeline`.
 
 Every one of these writes a timeline row. A state change also does a few things you do not have to ask for: it posts an entry to the incident feed, assigns an Incident Commander if the incident does not have one yet, and updates the SLA clock. Reopening a resolved incident starts a fresh SLA record from the reopen time.
+
+## What acknowledging does
+
+An incident is acknowledged from the moment it moves into your acknowledged state, into any state after it — a **Mitigated** or **Investigating** state you placed below **Acknowledged** — or into a resolved state, whichever of the four ways above moves it. The **Counts as** column on the state settings page shows which states those are. Once it is acknowledged:
+
+- **Acknowledge is no longer offered.** Not in the incident header, not in the mobile app (its button and its swipe), not in Slack or Microsoft Teams, and not through the OneUptime MCP server's `acknowledge_incident`. Acknowledging it anyway — from an on-call page, Slack or Teams — is refused with "Incident is already acknowledged." (or "Incident is already resolved."), rather than moving it back up its list.
+- **On-call stops paging for it.** A responder who acknowledges their page after a colleague acknowledged the incident, or moved it on, has their page acknowledged and the incident is left where it is.
+- **The SLA is marked responded**, at the first such move; moving on through later states keeps that time.
+- **Time to acknowledge runs to that first move** — the incident **Overview**'s stat tile, the **Time to Acknowledge** metric, a measurement that ends when **The incident is acknowledged**, and the MTTA in Slack and Microsoft Teams summaries. An incident moved straight from **Identified** into **Investigating** was acknowledged then; one resolved straight away was acknowledged when it resolved.
+- **An Acknowledged filter** — on a dashboard's incident list widget, say — shows the incidents in your acknowledged state and in any state after it, short of resolved.
+
+Alerts and episodes follow the same rule, with your alert states.
 
 ## What resolving does
 

@@ -537,8 +537,9 @@ interface ResolvedTargetAccess {
  * add credits, and where. Read by anyone who sees the gap - the cluster's
  * and resources' AI pages, the investigation panel, a refused fix - most of
  * whom cannot add credits (Utils/Project/ProjectBalance). Not "turn on
- * auto-recharge": AI credits are recharged after a call they paid for, so
- * an empty balance stays empty until someone adds credits.
+ * auto-recharge": most readers cannot, and the gap is only reported when
+ * Auto Recharge cannot refill the credits - it is off, or its last charge
+ * failed (AIService.getAiBalanceBlocker).
  */
 export const AI_BALANCE_INSUFFICIENT_NEXT_STEP: string =
   getProjectBalanceWhoCanAddSentence(ProjectBalanceType.AI);

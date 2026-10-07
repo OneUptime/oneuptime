@@ -305,6 +305,16 @@ Once a limit is reached, new AI work stops until midnight UTC. A call that is al
 
 **Skipped incidents and alerts are investigated after the reset.** An incident or alert that was not investigated because a limit was reached is investigated once the limit no longer stops AI: after midnight UTC, or as soon as an owner raises or removes the limit. Only while it is still open and less than a day old, and once. The settings of the moment apply, as for a new incident or alert: while Enable AI or automatic investigation is off, there is no LLM provider or AI credit, or the incident or alert daily token limit is reached, it keeps waiting; the severity floor and the cooldown can still skip it, and its card then says why. A record that was resolved meanwhile, or that someone asked OneUptime AI to investigate in the meantime, is not investigated again. A few are taken up every five minutes, the most recent first, and only while the project's investigation queue has nothing else waiting, so new incidents and alerts go first; if the limit is reached again, the rest wait for the next reset.
 
+### When AI credits run out
+
+On OneUptime Cloud, OneUptime AI on the global provider is paid from the project's AI credits, on **Project Settings > AI > AI Credits**. What happens when they run out depends on **Auto Recharge**, on the same page:
+
+- **Auto Recharge on**: the AI call that finds the credits used up first adds the amount Auto Recharge is set to, charging the project's card, and then runs. Calls that arrive at the same moment charge the card once. Turning Auto Recharge on while the credits are below its threshold adds them straight away, the way the SMS and call balance's Auto Recharge does.
+- **Auto Recharge off**: OneUptime AI stops. Every AI call is refused with who can add credits, and where: "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI Credits." Each refused call is listed in the AI Logs (Project Settings > AI > AI Logs) with the status **Insufficient Balance**. Automatic investigations and postmortem drafts are not started, and the AI agent pages and the AI Tasks page say the project is out of AI credits.
+- **Auto Recharge could not charge the card** (there is no payment method, or the card was declined): OneUptime AI stops in the same way, and the owners get the email that says the recharge failed. Auto Recharge tries the card again an hour later. Adding credits by hand, or saving Auto Recharge again, tries at once.
+
+**The project's owners are emailed** the first time OneUptime AI stops for want of credits: when the call that spends the last of them finishes, or when an AI call is refused or an investigation is skipped. The email says what to do and links to **AI Credits**. It comes once each time the credits run out; after credits are added, the next time they run out sends another.
+
 ## Trust and safety
 
 - **Read-only, always.** Autonomous investigations run with a curated set of read-only tools (metric, log, trace, exception, and change queries — including `baseline_anomaly`, which judges a metric against its learned hour-of-week normal range). The AI cannot acknowledge, resolve, page, or modify anything from an investigation.
@@ -312,6 +322,7 @@ Once a limit is reached, new AI work stops until midnight UTC. A call that is al
 - **Full audit trail.** Every investigation is recorded as an AI run with an ordered event trail (every LLM call and tool call), and every LLM call is metered in the AI Logs page (Project Settings > AI > AI Logs) with token counts and cost.
 - **Secrets are redacted** from tool results before anything is sent to the LLM (tokens, credentials, key patterns).
 - **Self-host = zero third-party egress.** With your own LLM provider (including local Ollama), telemetry never leaves your infrastructure.
+- **What it writes acts on nothing.** OneUptime AI writes from your telemetry, and telemetry can carry text meant to steer it. Wherever its Markdown goes - the report in the feed and the internal note, a drafted postmortem, the notes, status updates and incident descriptions it writes, and its answers in Slack and Microsoft Teams - it keeps its headings, lists, tables and code, but a Slack mention such as `<!channel>` in it notifies nobody, an image shows as a link, a link shows its words and its address as written (a bare address stays a link that shows where it goes), and an HTML tag shows as text.
 
 ## Auto-postmortem
 

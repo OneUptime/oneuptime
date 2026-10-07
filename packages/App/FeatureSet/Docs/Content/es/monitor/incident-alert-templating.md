@@ -181,6 +181,10 @@ Primer usuario: {{responseBody.users[0].name}}
 
 Si una ruta no existe, el marcador se deja en la salida exactamente como está escrito — `{{responseBody.error.id}}` aparece literalmente, con llaves incluidas, en el título del incidente. Solo se eliminan los bloques `{{#each}}` sobre una ruta inexistente.
 
+### Valores en descripciones y notas de remediación
+
+Una descripción y las notas de remediación son Markdown: se muestran en la página del incidente o de la alerta, en el correo electrónico y en sus canales de Slack y Microsoft Teams. Los valores que una plantilla coloca allí son lo que envió el sistema monitorizado - un cuerpo o una cabecera de respuesta, una solicitud o un correo entrante, las etiquetas de un dispositivo o de una serie - así que cada uno se coloca como texto. Se lee exactamente como se envió, donde sea que la plantilla lo ponga, y un enlace, una imagen, una etiqueta HTML o una mención de Slack como `<!channel>` en él se muestra como texto en lugar de actuar. Una dirección web suelta en un valor sigue convirtiéndose en un enlace, uno que muestra adónde lleva. El Markdown que escribe en la propia plantilla se muestra tal como lo escribió.
+
 ## Uso avanzado
 
 ### Acceso a elementos de arreglos

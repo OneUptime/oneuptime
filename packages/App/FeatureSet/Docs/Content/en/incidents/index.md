@@ -50,7 +50,7 @@ The names are just labels — what actually drives behavior are three booleans o
 That distinction matters more than it sounds:
 
 - `isCreatedState` decides where a new incident starts. If no state is explicitly selected on create, OneUptime looks for the project's created state and uses it.
-- `isAcknowledgedState` and `isResolvedState` drive the **Acknowledge** and **Resolve** buttons in the incident header, the two stat tiles on the incident **Overview**, and the **Active Incidents** count badge in the side menu.
+- `isAcknowledgedState` and `isResolvedState` mark the acknowledged and resolved states. Where an incident's state sits against them drives the **Acknowledge** and **Resolve** buttons in the incident header, the two stat tiles on the incident **Overview**, and the **Active Incidents** count badge in the side menu: an incident in the acknowledged state or any state after it is acknowledged, and one in the resolved state or any state after it is resolved.
 - **Active Incidents** is defined purely as "the current state sits above the resolved state". A custom state you add above the resolved state is therefore active; one you place after it counts as resolved, as the resolved state does.
 
 **Note the naming.** The first seeded state is named **Identified**, even though several descriptions inside the product still call it the created state. If you are looking for "Created" in your project's state list, it is the row named **Identified**.

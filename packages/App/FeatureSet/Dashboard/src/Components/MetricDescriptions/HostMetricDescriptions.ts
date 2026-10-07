@@ -19,9 +19,11 @@
  *    writes through ResourceHeartbeat at most about once a minute.
  *  - The Filesystem tile, the Disk space chart and the Filesystems table
  *    average the WHOLE range, and count reserved space in the total.
- *  - process.cpu.utilization arrives as three readings per scrape (user,
- *    system, wait). The process page averages them and the Processes list
- *    keeps whichever sorts first, so both under-read; the texts say so.
+ *  - process.cpu.utilization arrives as one reading per CPU mode per scrape
+ *    (user, system and, on Linux, wait) - twice with the collector's v1
+ *    gate on. The process page (per interval) and the Processes list (at
+ *    the newest scrape) both add user and system, each mode once, and leave
+ *    wait out: Pages/Host/Utils/Processes.ts holds the rule for both.
  *  - Service and unit availability are sample counts over at most the
  *    newest 2,000 samples, not time-weighted.
  *  - The Hosts list's Resources column reads the cached Host columns, not
@@ -124,7 +126,7 @@ export const HOST_METRIC_DESCRIPTIONS: Record<HostMetric, string> = {
     "How many processes the host had in any state (running, sleeping, idle and so on), as last saved on the host record. It is refreshed from incoming metrics at most about once a minute.",
   ),
   processCpu: translationKey(
-    "This process's share of all host CPU cores, averaged over the last 5 minutes of the range (usually the whole range if over 12 hours or no recent data). Its user, system and wait readings are averaged, not added, so it reads about a third of the real use.",
+    "CPU this process used (user plus system time) as a share of all host CPU cores, averaged over the last 5 minutes of the range (usually the whole range if over 12 hours or no recent data). Time it spent waiting on disk is left out.",
   ),
   processMemoryRss: translationKey(
     "Physical memory (RAM) this process holds, called resident set size or RSS, averaged over the last 5 minutes of the range (usually the whole range on ranges over 12 hours or with no recent data). The percentage below compares it with the host's total RAM.",
@@ -136,7 +138,7 @@ export const HOST_METRIC_DESCRIPTIONS: Record<HostMetric, string> = {
     "This process's threads, averaged over the last 5 minutes of the range (usually the whole range on ranges over 12 hours or with no recent data); open file handles are below. Both need the collector's process.threads and process.open_file_descriptors turned on.",
   ),
   processCpuChart: translationKey(
-    "This process's share of the host's total CPU capacity in each interval. Like the CPU tile, it averages the separate user, system and wait readings instead of adding them, so it reads about a third of the real use.",
+    "CPU this process used in each interval of the selected range (user plus system time), as a share of the host's total CPU capacity. As on the CPU tile, time it spent waiting on disk is left out.",
   ),
   processMemoryRssChart: translationKey(
     "Physical memory (RSS) held by this process in each interval of the selected range.",

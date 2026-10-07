@@ -2,7 +2,7 @@ import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 
 /*
- * Shared helpers for the Host Processes list.
+ * Shared helpers for the Host Processes list and the page for one process.
  *
  * The OTel hostmetrics `process` scraper reports one OTLP *resource* per
  * process and puts the process's identity on it - pid, executable name,
@@ -10,8 +10,8 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
  * with `resource.`, so they are stored as `resource.process.*`, while the
  * CPU mode rides each datapoint and is stored unprefixed.
  *
- * Everything here is pure so the page stays thin, and the rules that
- * silently produce a wrong list - which readings make up a process's CPU,
+ * Everything here is pure so the pages stay thin, and the rules that
+ * silently produce a wrong number - which readings make up a process's CPU,
  * what a search matches, which way a column sorts, whether the fetch saw
  * every process - are unit tested directly.
  */
@@ -64,6 +64,18 @@ export const processCpuWaitExclusion: () => Record<
 };
 
 /*
+ * The process page groups its CPU aggregate by both mode attributes, so each
+ * bucket comes back as one average per mode and spelling. Ungrouped, an Avg
+ * pools the modes into their mean rather than their sum - about a third of
+ * the real use on Linux, half on Windows - and no client can take that apart
+ * again.
+ */
+export const PROCESS_CPU_MODE_ATTRIBUTE_KEYS: Array<string> = [
+  PROCESS_CPU_STATE_ATTR,
+  PROCESS_CPU_MODE_ATTR,
+];
+
+/*
  * The subset of an analytics `Metric` row these helpers read. Kept
  * structural (rather than importing the model) so the rules can be
  * exercised from a plain Node test without dragging in the analytics stack.
@@ -72,6 +84,25 @@ export interface ProcessMetricDatapoint {
   time?: Date | string | null | undefined;
   value?: number | string | null | undefined;
   attributes?: Record<string, unknown> | null | undefined;
+}
+
+/*
+ * One row of the process page's CPU aggregate: the average of one mode's
+ * readings, under one spelling, over one interval. Structural for the same
+ * reason - an `AggregatedModel` fits it - and loose where the wire is: the
+ * bucket's start arrives as an ISO string, whatever the model's types say.
+ */
+export interface ProcessCpuBucket {
+  timestamp?: Date | string | number | null | undefined;
+  value?: number | string | null | undefined;
+  attributes?: unknown;
+}
+
+export interface ProcessCpuPoint {
+  // When the bucket starts.
+  time: Date;
+  // User plus system time, as a share of every core together (0-100).
+  cpuPercent: number;
 }
 
 export interface ProcessRow {
@@ -141,8 +172,10 @@ const readAttribute: (
 };
 
 const parseSampleTime: (
-  time: Date | string | null | undefined,
-) => Date | null = (time: Date | string | null | undefined): Date | null => {
+  time: Date | string | number | null | undefined,
+) => Date | null = (
+  time: Date | string | number | null | undefined,
+): Date | null => {
   if (time === null || time === undefined) {
     return null;
   }
@@ -203,8 +236,11 @@ const cpuModeOf: (
   return lowered === PROCESS_CPU_MODE_IOWAIT ? PROCESS_CPU_STATE_WAIT : lowered;
 };
 
-// A process's CPU readings from its newest scrape.
-interface CpuScrape {
+/*
+ * A process's CPU readings at one moment, one value per mode: its newest
+ * scrape (the list) or one bucket of the aggregate (the process page).
+ */
+interface CpuReadings {
   at: number;
   byMode: Map<string, number>;
   // A reading that names no mode is already the process's whole CPU.
@@ -217,9 +253,9 @@ interface LatestValue {
 }
 
 /*
- * A process's CPU is its user plus its system time at its newest scrape -
- * the same two the host's own CPU tile adds up, and what `top` and Task
- * Manager show.
+ * A process's CPU is its user plus its system time - the same two the host's
+ * own CPU tile adds up, and what `top` and Task Manager show. The list reads
+ * it at the newest scrape, the process page in every bucket.
  *
  * Taking the first reading per process instead (which is what the list did)
  * shows whichever single mode ClickHouse happened to return first, so a
@@ -227,15 +263,15 @@ interface LatestValue {
  * order processes by a coin toss. Each mode counts once: with the v1 gate on,
  * the scraper sends every reading twice.
  */
-const cpuPercentOf: (scrape: CpuScrape) => number | null = (
-  scrape: CpuScrape,
+const cpuPercentOf: (readings: CpuReadings) => number | null = (
+  readings: CpuReadings,
 ): number | null => {
-  const user: number | undefined = scrape.byMode.get(CPU_MODE_USER);
-  const system: number | undefined = scrape.byMode.get(CPU_MODE_SYSTEM);
+  const user: number | undefined = readings.byMode.get(CPU_MODE_USER);
+  const system: number | undefined = readings.byMode.get(CPU_MODE_SYSTEM);
   if (user === undefined && system === undefined) {
-    return scrape.total === null ? null : scrape.total * 100;
+    return readings.total === null ? null : readings.total * 100;
   }
-  // The scraper reports a share of every core together (0-1).
+  // The scraper reports a share of every core together (0-1), on every OS.
   return ((user ?? 0) + (system ?? 0)) * 100;
 };
 
@@ -256,7 +292,7 @@ export const buildProcessRows: (input: {
   totalMemoryBytes: number | null | undefined;
 }): ProcessRollup => {
   const rows: Map<string, ProcessRow> = new Map();
-  const cpu: Map<string, CpuScrape> = new Map();
+  const cpu: Map<string, CpuReadings> = new Map();
   const memory: Map<string, LatestValue> = new Map();
   let latestSampleAt: Date | null = null;
 
@@ -316,7 +352,7 @@ export const buildProcessRows: (input: {
       continue;
     }
 
-    let scrape: CpuScrape | undefined = cpu.get(read.row.key);
+    let scrape: CpuReadings | undefined = cpu.get(read.row.key);
     if (!scrape || read.at > scrape.at) {
       scrape = { at: read.at, byMode: new Map(), total: null };
       cpu.set(read.row.key, scrape);
@@ -354,7 +390,7 @@ export const buildProcessRows: (input: {
       : null;
 
   for (const row of rows.values()) {
-    const scrape: CpuScrape | undefined = cpu.get(row.key);
+    const scrape: CpuReadings | undefined = cpu.get(row.key);
     row.cpuPercent = scrape ? cpuPercentOf(scrape) : null;
     row.memoryBytes = memory.get(row.key)?.value ?? null;
     row.memoryPercent =
@@ -364,6 +400,102 @@ export const buildProcessRows: (input: {
   }
 
   return { rows: Array.from(rows.values()), latestSampleAt: latestSampleAt };
+};
+
+const attributesOf: (raw: unknown) => Record<string, unknown> | null = (
+  raw: unknown,
+): Record<string, unknown> | null => {
+  return typeof raw === "object" && raw !== null
+    ? (raw as Record<string, unknown>)
+    : null;
+};
+
+const averageOf: (values: Array<number>) => number | null = (
+  values: Array<number>,
+): number | null => {
+  if (values.length === 0) {
+    return null;
+  }
+  let sum: number = 0;
+  for (const value of values) {
+    sum += value;
+  }
+  return sum / values.length;
+};
+
+// One bucket's averages, before each mode's copies are folded into one.
+interface CpuBucketReadings {
+  byMode: Map<string, Array<number>>;
+  modeless: Array<number>;
+}
+
+/*
+ * The process's CPU in each bucket of the process page's aggregate (grouped
+ * by PROCESS_CPU_MODE_ATTRIBUTE_KEYS), oldest first: user plus system time,
+ * by the rule the list uses, so the chart, the tile and the process's row in
+ * the list all add up the same readings.
+ *
+ * With the v1 gate on, a mode arrives as two groups - the old reading under
+ * `state`, its copy under `cpu.mode` - that average the same readings. Adding
+ * both would double the process's CPU, so a mode's groups are averaged into
+ * one value, which also keeps a bucket's value independent of the order its
+ * groups come back in. Wait never counts, under either spelling, and a bucket
+ * with nothing else in it has no CPU: it is left out, not drawn at 0%.
+ */
+export const buildProcessCpuSeries: (
+  buckets: Array<ProcessCpuBucket>,
+) => Array<ProcessCpuPoint> = (
+  buckets: Array<ProcessCpuBucket>,
+): Array<ProcessCpuPoint> => {
+  const byBucket: Map<number, CpuBucketReadings> = new Map();
+
+  for (const bucket of buckets) {
+    const time: Date | null = parseSampleTime(bucket.timestamp);
+    const value: number | null = readValue(bucket.value);
+    const mode: string | null = cpuModeOf(attributesOf(bucket.attributes));
+    if (!time || value === null || mode === PROCESS_CPU_STATE_WAIT) {
+      continue;
+    }
+
+    let readings: CpuBucketReadings | undefined = byBucket.get(time.getTime());
+    if (!readings) {
+      readings = { byMode: new Map(), modeless: [] };
+      byBucket.set(time.getTime(), readings);
+    }
+
+    if (mode === null) {
+      readings.modeless.push(value);
+      continue;
+    }
+    const copies: Array<number> | undefined = readings.byMode.get(mode);
+    if (copies) {
+      copies.push(value);
+    } else {
+      readings.byMode.set(mode, [value]);
+    }
+  }
+
+  const points: Array<ProcessCpuPoint> = [];
+  for (const [at, readings] of byBucket.entries()) {
+    const byMode: Map<string, number> = new Map();
+    for (const [mode, copies] of readings.byMode.entries()) {
+      // Never empty: a mode is only listed once a reading for it arrives.
+      byMode.set(mode, averageOf(copies)!);
+    }
+
+    const cpuPercent: number | null = cpuPercentOf({
+      at: at,
+      byMode: byMode,
+      total: averageOf(readings.modeless),
+    });
+    if (cpuPercent !== null) {
+      points.push({ time: new Date(at), cpuPercent: cpuPercent });
+    }
+  }
+
+  return points.sort((a: ProcessCpuPoint, b: ProcessCpuPoint): number => {
+    return a.time.getTime() - b.time.getTime();
+  });
 };
 
 /*

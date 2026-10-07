@@ -11,24 +11,94 @@
  * other part of OneUptime does. Reading the resolved flag alone is what used
  * to leave such a record on the Active list with a Resolve button that could
  * only move it backwards.
+ *
+ * Common's test suite runs this file next to Common/Utils/ResolvedState over
+ * the same cases (AcknowledgedStateMobileParity), so the two cannot drift:
+ * "the first from the top" breaks ties the way the server does (by id), and
+ * state ids match whatever their case.
  */
 
 export interface ResolvedRuleState {
   _id: string;
-  order?: number | null | undefined;
+  order?: number | string | null | undefined;
   isResolvedState?: boolean | null | undefined;
 }
 
-type StateList<T extends ResolvedRuleState> =
+export type StateList<T extends ResolvedRuleState> =
   | ReadonlyArray<T>
   | null
   | undefined;
 
-// A state's place in the list: 1 is the top. Null when it has none.
-function getOrder(state: ResolvedRuleState): number | null {
-  return typeof state.order === "number" && Number.isFinite(state.order)
-    ? state.order
-    : null;
+/*
+ * A state's place in the list: 1 is the top. Null when it has none. A
+ * number written as text counts, as it does on the server.
+ */
+export function getStateOrder(state: ResolvedRuleState): number | null {
+  if (typeof state.order === "number") {
+    return Number.isFinite(state.order) ? state.order : null;
+  }
+
+  if (typeof state.order === "string" && state.order.trim().length > 0) {
+    const parsed: number = Number(state.order);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
+}
+
+// A state id as the rule compares it: trimmed, whatever its case.
+export function toStateIdKey(stateId: string | null | undefined): string {
+  return typeof stateId === "string" ? stateId.trim().toLowerCase() : "";
+}
+
+/*
+ * Which of two states sits nearer the top, as the server sorts them: by
+ * place, a state without one after every state with one, and then by id.
+ */
+function compareStates(a: ResolvedRuleState, b: ResolvedRuleState): number {
+  const aOrder: number | null = getStateOrder(a);
+  const bOrder: number | null = getStateOrder(b);
+
+  if (aOrder !== null && bOrder === null) {
+    return -1;
+  }
+
+  if (aOrder === null && bOrder !== null) {
+    return 1;
+  }
+
+  if (aOrder !== null && bOrder !== null && aOrder !== bOrder) {
+    return aOrder - bOrder;
+  }
+
+  if (a._id === b._id) {
+    return 0;
+  }
+
+  return a._id < b._id ? -1 : 1;
+}
+
+/**
+ * The first state from the top that `isFlagged` picks - "the" resolved or
+ * acknowledged state of a project. Undefined when none is picked.
+ */
+export function getFirstFlaggedState<T extends ResolvedRuleState>(
+  states: StateList<T>,
+  isFlagged: (state: T) => boolean,
+): T | undefined {
+  let first: T | undefined = undefined;
+
+  for (const state of states || []) {
+    if (!isFlagged(state)) {
+      continue;
+    }
+
+    if (!first || compareStates(state, first) < 0) {
+      first = state;
+    }
+  }
+
+  return first;
 }
 
 /**
@@ -38,27 +108,9 @@ function getOrder(state: ResolvedRuleState): number | null {
 export function getResolvedState<T extends ResolvedRuleState>(
   states: StateList<T>,
 ): T | undefined {
-  let resolvedState: T | undefined = undefined;
-
-  for (const state of states || []) {
-    if (!state.isResolvedState) {
-      continue;
-    }
-
-    if (!resolvedState) {
-      resolvedState = state;
-      continue;
-    }
-
-    const order: number | null = getOrder(state);
-    const resolvedOrder: number | null = getOrder(resolvedState);
-
-    if (order !== null && (resolvedOrder === null || order < resolvedOrder)) {
-      resolvedState = state;
-    }
-  }
-
-  return resolvedState;
+  return getFirstFlaggedState(states, (state: T) => {
+    return state.isResolvedState === true;
+  });
 }
 
 /**
@@ -74,17 +126,36 @@ export function isResolvedState<T extends ResolvedRuleState>(
     return false;
   }
 
-  if (state.isResolvedState) {
+  if (state.isResolvedState === true) {
     return true;
   }
 
   const resolvedState: T | undefined = getResolvedState(states);
-  const order: number | null = getOrder(state);
+  const order: number | null = getStateOrder(state);
   const resolvedOrder: number | null = resolvedState
-    ? getOrder(resolvedState)
+    ? getStateOrder(resolvedState)
     : null;
 
   return order !== null && resolvedOrder !== null && order >= resolvedOrder;
+}
+
+/**
+ * The project's state `stateId` names, matched whatever its case. Undefined
+ * for a state that is none of the project's.
+ */
+export function findState<T extends ResolvedRuleState>(
+  states: StateList<T>,
+  stateId: string | null | undefined,
+): T | undefined {
+  const key: string = toStateIdKey(stateId);
+
+  if (!key) {
+    return undefined;
+  }
+
+  return (states || []).find((candidate: T) => {
+    return toStateIdKey(candidate._id) === key;
+  });
 }
 
 /**
@@ -95,15 +166,7 @@ export function isResolvedStateId<T extends ResolvedRuleState>(
   states: StateList<T>,
   stateId: string | null | undefined,
 ): boolean {
-  if (!stateId) {
-    return false;
-  }
-
-  const state: T | undefined = (states || []).find((candidate: T) => {
-    return candidate._id === stateId;
-  });
-
-  return isResolvedState(states, state);
+  return isResolvedState(states, findState(states, stateId));
 }
 
 // The ids of the project's states a record counts as resolved in.

@@ -21,6 +21,7 @@ import { Yellow500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
+import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
 
 RunCron(
   "ScheduledMaintenanceOwner:SendCreatedResourceEmail",
@@ -187,7 +188,7 @@ RunCron(
           eventType,
         });
 
-        moreScheduledMaintenanceFeedInformationInMarkdown += `**Notified**: ${user.name} (${user.email})\n`;
+        moreScheduledMaintenanceFeedInformationInMarkdown += `**Notified**: ${escapeMarkdownValue(user.name?.toString())} (${escapeMarkdownValue(user.email?.toString())})\n`;
       }
 
       const projectId: ObjectID = scheduledMaintenance.projectId!;

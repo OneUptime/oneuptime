@@ -181,6 +181,10 @@ Premier utilisateur : {{responseBody.users[0].name}}
 
 Si un chemin n'existe pas, l'espace réservé est laissé dans la sortie exactement tel qu'il a été écrit — `{{responseBody.error.id}}` apparaît littéralement, accolades comprises, dans le titre de l'incident. Seuls les blocs `{{#each}}` portant sur un chemin absent sont supprimés.
 
+### Valeurs dans les descriptions et les notes de remédiation
+
+Une description et des notes de remédiation sont du Markdown : elles s'affichent sur la page de l'incident ou de l'alerte, dans les e-mails et dans ses canaux Slack et Microsoft Teams. Les valeurs qu'un modèle y place sont ce que le système surveillé a envoyé - un corps ou un en-tête de réponse, une requête ou un e-mail entrant, les étiquettes d'un appareil ou d'une série - chacune est donc placée comme du texte. Elle se lit exactement comme elle a été envoyée, où que le modèle la place, et un lien, une image, une balise HTML ou une mention Slack comme `<!channel>` qu'elle contient s'affiche comme du texte au lieu d'agir. Une adresse web nue dans une valeur devient toujours un lien, un lien qui montre où il mène. Le Markdown que vous écrivez vous-même dans le modèle s'affiche tel que vous l'avez écrit.
+
 ## Utilisation avancée
 
 ### Accès aux éléments de tableau

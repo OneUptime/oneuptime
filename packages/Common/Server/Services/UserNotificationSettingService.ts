@@ -51,6 +51,7 @@ import {
   WorkspacePayloadMarkdown,
 } from "../../Types/Workspace/WorkspaceMessagePayload";
 import EmailRollupWriter from "../Utils/EmailRollup/EmailRollupWriter";
+import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { appendRecipientToWhatsAppMessage } from "../Utils/WhatsAppTemplateUtil";
 import DatabaseConfig from "../DatabaseConfig";
@@ -109,10 +110,21 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       );
     }
 
+    /*
+     * Every channel below is sent only through this setting row, and the row
+     * is read only while the person is a member of the project: somebody who
+     * has left (or never accepted their invitation) reads as having nothing
+     * set up, so a leftover row - an owner on a closed incident, a reference
+     * a failed cleanup left behind - never reaches them. The membership check
+     * rides on this read, so it costs no extra query (ProjectMembership).
+     */
     const notificationSettings: UserNotificationSetting | null =
       await this.findOneBy({
         query: {
-          userId: data.userId,
+          userId: ProjectMembership.userIdWhileMember({
+            userId: data.userId,
+            projectId: data.projectId,
+          }),
           projectId: data.projectId,
           eventType: data.eventType,
         },

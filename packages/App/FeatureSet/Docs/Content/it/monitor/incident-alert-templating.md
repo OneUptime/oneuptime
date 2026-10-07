@@ -181,6 +181,10 @@ Primo Utente: {{responseBody.users[0].name}}
 
 Se un percorso non esiste, il segnaposto resta nell'output esattamente come è stato scritto — `{{responseBody.error.id}}` compare alla lettera, parentesi graffe comprese, nel titolo dell'incidente. Vengono rimossi solo i blocchi `{{#each}}` su un percorso mancante.
 
+### Valori nelle descrizioni e nelle note di rimedio
+
+Una descrizione e le note di rimedio sono Markdown: vengono mostrate nella pagina dell'incidente o dell'alert, nelle email e nei suoi canali Slack e Microsoft Teams. I valori che un template vi inserisce sono ciò che il sistema monitorato ha inviato - un corpo o un header di risposta, una richiesta o un'email in arrivo, le etichette di un dispositivo o di una serie - quindi ciascuno viene inserito come testo. Si legge esattamente come è stato inviato, ovunque il template lo collochi, e un link, un'immagine, un tag HTML o una menzione Slack come `<!channel>` al suo interno appare come testo invece di agire. Un indirizzo web semplice in un valore diventa comunque un link, uno che mostra dove porta. Il Markdown che scrivi tu stesso nel template viene mostrato così come l'hai scritto.
+
 ## Utilizzo Avanzato
 
 ### Accesso agli Elementi dell'Array

@@ -132,7 +132,6 @@ export default class MicrosoftTeamsAlertActions {
           currentAlertState: {
             _id: true,
             name: true,
-            isAcknowledgedState: true,
           },
         },
         props: {
@@ -148,7 +147,12 @@ export default class MicrosoftTeamsAlertActions {
         return;
       }
 
-      if (alert.currentAlertState?.isAcknowledgedState) {
+      /*
+       * Already acknowledged, or further along, by the one rule
+       * (Common/Utils/AcknowledgedState): a state placed after Acknowledged
+       * counts too, so it is not moved back up its list.
+       */
+      if (await AlertService.isAlertAcknowledged({ alertId: alert.id! })) {
         logger.debug("Alert is already acknowledged", {
           projectId: data.teamsRequest.projectId.toString(),
           alertId: alertId,

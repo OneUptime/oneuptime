@@ -168,6 +168,37 @@ describe("the notice", () => {
     }
   });
 
+  /*
+   * AI credits that Auto Recharge could not refill: turning it on is no way
+   * out there, so the run-out email says what is (AiCreditsUsedUpOwnerNotice).
+   */
+  test("a caller that knows better gives its own sentence, escaped, with the same link", () => {
+    const html: string = ProjectBalanceOwnerNotice.getHtml({
+      balance: ProjectBalanceType.AI,
+      projectId: PROJECT_ID,
+      sentence: "Check the payment method in Project Settings > Billing.",
+    });
+
+    expect(html).toBe(
+      `Check the payment method in Project Settings &gt; Billing. <br/> <br/> <a href="${AI_CREDITS_LINK}">${AI_CREDITS_LINK}</a>`,
+    );
+  });
+
+  test("an empty sentence falls back to the balance's own", () => {
+    expect(
+      ProjectBalanceOwnerNotice.getHtml({
+        balance: ProjectBalanceType.AI,
+        projectId: PROJECT_ID,
+        sentence: "",
+      }),
+    ).toBe(
+      ProjectBalanceOwnerNotice.getHtml({
+        balance: ProjectBalanceType.AI,
+        projectId: PROJECT_ID,
+      }),
+    );
+  });
+
   test("without a link to give, the sentence alone - it still says where the page is", () => {
     address.url = undefined;
 

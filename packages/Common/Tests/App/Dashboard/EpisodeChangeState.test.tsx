@@ -307,31 +307,42 @@ interface StateSpec {
   id: string;
   name: string;
   color: string;
+  // Where it sits in the project's list: what the acknowledged and resolved rules read.
+  order: number;
   flag?: "isCreatedState" | "isAcknowledgedState" | "isResolvedState";
 }
 
+/*
+ * The project's states, in their places. Investigating sits between
+ * Acknowledged and Resolved without a flag: an episode in it is acknowledged
+ * (Common/Utils/AcknowledgedState), so it is offered Resolve, not Acknowledge.
+ */
 const STATE_SPECS: Array<StateSpec> = [
   {
     id: CREATED_STATE_ID,
     name: "Created",
     color: "#ef4444",
+    order: 1,
     flag: "isCreatedState",
   },
   {
     id: ACKNOWLEDGED_STATE_ID,
     name: "Acknowledged",
     color: "#f59e0b",
+    order: 2,
     flag: "isAcknowledgedState",
   },
   {
     id: INVESTIGATING_STATE_ID,
     name: "Investigating",
     color: "#6366f1",
+    order: 3,
   },
   {
     id: RESOLVED_STATE_ID,
     name: "Resolved",
     color: "#10b981",
+    order: 4,
     flag: "isResolvedState",
   },
 ];
@@ -346,6 +357,7 @@ const buildStates: BuildStatesFunction = (
     state.id = new ObjectID(spec.id);
     state.name = spec.name;
     state.color = new Color(spec.color);
+    state.order = spec.order;
 
     if (spec.flag) {
       state[spec.flag] = true;

@@ -907,10 +907,10 @@ export function getAiAgentAttentionStepText(
         "Add an AI provider for this project, or use OneUptime AI credits.",
       );
     /*
-     * Not "or turn on auto-recharge": AI credits are recharged after a call
-     * they paid for, so a balance that is used up stays used up until
-     * someone adds credits. Who can is the step's action
-     * (ProjectBalance/ProjectBalanceAccess).
+     * Adding credits, whatever Auto Recharge is doing: the server reports
+     * this gap only when Auto Recharge cannot refill them (it is off, or its
+     * last charge failed, which the gap's description says). Who can is the
+     * step's action (ProjectBalance/ProjectBalanceAccess).
      */
     case "ai_balance_insufficient":
       return translateTemplate(ADD_AI_CREDITS_STEP);

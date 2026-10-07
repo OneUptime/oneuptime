@@ -64,10 +64,10 @@ describe("IncidentGroupingEngineService's template substitution", () => {
     .replace(/\s+/g, "");
 
   test.each([
-    ["incidentTitle", "incident.title"],
-    ["incidentDescription", "incident.description"],
-    ["monitorName", "incident.monitors[0].name"],
-    ["incidentSeverity", "incident.incidentSeverity.name"],
+    ["incidentTitle", "values.incidentTitle"],
+    ["incidentDescription", "values.incidentDescription"],
+    ["monitorName", "values.monitorName"],
+    ["incidentSeverity", "values.incidentSeverity"],
   ])(
     "puts {{%s}} in literally, in both the render and the preprocess step",
     (placeholder: string, value: string) => {

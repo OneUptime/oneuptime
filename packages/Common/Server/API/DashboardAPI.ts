@@ -97,6 +97,7 @@ import DashboardVariable, {
   DashboardVariableType,
 } from "../../Types/Dashboard/DashboardVariable";
 import PublicDashboardResourceListPolicy, {
+  PublicDashboardResolvedStateFilter,
   PublicDashboardResourceListPolicyResult,
 } from "../Utils/Dashboard/PublicDashboardResourceListPolicy";
 import PublicDashboardSloHistoryPolicy, {
@@ -2319,10 +2320,11 @@ export default class DashboardAPI extends BaseAPI<
     }
 
     /*
-     * An incident or alert list kept to Unresolved or Resolved: the
-     * project's own states say which those are (Common/Utils/ResolvedState)
-     * - a state placed after Resolved is resolved too. Within any states
-     * the list already names.
+     * An incident or alert list kept to Unresolved, Resolved or
+     * Acknowledged: the project's own states say which those are
+     * (Common/Utils/ResolvedState, Common/Utils/AcknowledgedState) - a state
+     * placed after Resolved is resolved too, one placed between Acknowledged
+     * and Resolved acknowledged. Within any states the list already names.
      */
     if (
       policy.resolvedStateFilter &&
@@ -2368,14 +2370,14 @@ export default class DashboardAPI extends BaseAPI<
   }
 
   /*
-   * Keeps an incident or alert list to the project's unresolved or resolved
-   * states: its current state id among them - and among the states the list
-   * names already, when it names some.
+   * Keeps an incident or alert list to the project's unresolved, resolved or
+   * acknowledged (but not resolved) states: its current state id among them
+   * - and among the states the list names already, when it names some.
    */
   private static async applyResolvedStateFilter(data: {
     query: JSONObject;
     resourceType: "incident" | "alert";
-    filter: "unresolved" | "resolved";
+    filter: PublicDashboardResolvedStateFilter;
     projectId: ObjectID;
   }): Promise<JSONObject> {
     const stateColumn: string =
@@ -2386,14 +2388,25 @@ export default class DashboardAPI extends BaseAPI<
     let stateIds: Array<ObjectID> = [];
 
     if (data.resourceType === "incident") {
-      stateIds =
-        data.filter === "unresolved"
-          ? await IncidentStateService.getUnresolvedIncidentStateIds(
-              data.projectId,
-            )
-          : await IncidentStateService.getResolvedIncidentStateIds(
-              data.projectId,
-            );
+      if (data.filter === "acknowledged") {
+        stateIds =
+          await IncidentStateService.getAcknowledgedUnresolvedIncidentStateIds(
+            data.projectId,
+          );
+      } else {
+        stateIds =
+          data.filter === "unresolved"
+            ? await IncidentStateService.getUnresolvedIncidentStateIds(
+                data.projectId,
+              )
+            : await IncidentStateService.getResolvedIncidentStateIds(
+                data.projectId,
+              );
+      }
+    } else if (data.filter === "acknowledged") {
+      stateIds = await AlertStateService.getAcknowledgedUnresolvedAlertStateIds(
+        data.projectId,
+      );
     } else {
       stateIds =
         data.filter === "unresolved"

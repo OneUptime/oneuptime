@@ -77,7 +77,10 @@ const OAUTH_READ_ONLY: McpCredential = oauthCredential([McpOAuthScope.Read]);
 
 /*
  * The four tools that move an incident or alert to a state, with what each
- * one looks up and what it then writes.
+ * one looks up and what it then writes. The two acknowledge tools also read
+ * the record's current state in between (recordPath): one already
+ * acknowledged - in the Acknowledged state, a state after it, or resolved -
+ * is left as it is (Common/Utils/AcknowledgedState).
  */
 const STATE_TOOLS: Array<{
   tool: string;
@@ -87,6 +90,8 @@ const STATE_TOOLS: Array<{
   flag: string;
   stateName: string;
   kind: string;
+  recordPath?: string | undefined;
+  stateRelation?: string | undefined;
 }> = [
   {
     tool: "acknowledge_incident",
@@ -96,6 +101,8 @@ const STATE_TOOLS: Array<{
     flag: "isAcknowledgedState",
     stateName: "Acknowledged",
     kind: "incident",
+    recordPath: "/api/incident/get-list",
+    stateRelation: "currentIncidentState",
   },
   {
     tool: "resolve_incident",
@@ -114,6 +121,8 @@ const STATE_TOOLS: Array<{
     flag: "isAcknowledgedState",
     stateName: "Acknowledged",
     kind: "alert",
+    recordPath: "/api/alert/get-list",
+    stateRelation: "currentAlertState",
   },
   {
     tool: "resolve_alert",
@@ -205,11 +214,23 @@ describe("WorkflowTools", () => {
   });
 
   describe("acknowledge_incident", () => {
-    it("looks up the Acknowledged state, then creates a timeline entry", async () => {
+    it("looks up the Acknowledged state, reads the incident's state, then creates a timeline entry", async () => {
       apiCallSpy
         .mockResolvedValueOnce({
-          data: [{ _id: "state-1", name: "Acknowledged" }],
+          data: [{ _id: "state-1", name: "Acknowledged", order: 2 }],
         } as never)
+        .mockResolvedValueOnce([
+          {
+            _id: VALID_UUID,
+            currentIncidentState: {
+              _id: "state-created",
+              name: "Created",
+              order: 1,
+              isAcknowledgedState: false,
+              isResolvedState: false,
+            },
+          },
+        ] as never)
         .mockResolvedValueOnce({} as never);
 
       const result: JSONObject = await handleWorkflowTool(
@@ -218,7 +239,7 @@ describe("WorkflowTools", () => {
         API_KEY,
       );
 
-      expect(apiCallSpy).toHaveBeenCalledTimes(2);
+      expect(apiCallSpy).toHaveBeenCalledTimes(3);
       expect(apiCallSpy).toHaveBeenNthCalledWith(
         1,
         expect.objectContaining({
@@ -227,11 +248,35 @@ describe("WorkflowTools", () => {
           credential: API_KEY,
           body: expect.objectContaining({
             query: { isAcknowledgedState: true },
+            select: { _id: true, name: true, order: true },
           }),
         }),
       );
       expect(apiCallSpy).toHaveBeenNthCalledWith(
         2,
+        expect.objectContaining({
+          method: "POST",
+          path: "/api/incident/get-list",
+          credential: API_KEY,
+          body: {
+            query: { _id: VALID_UUID },
+            select: {
+              _id: true,
+              currentIncidentState: {
+                _id: true,
+                name: true,
+                order: true,
+                isAcknowledgedState: true,
+                isResolvedState: true,
+              },
+            },
+            skip: 0,
+            limit: 1,
+          },
+        }),
+      );
+      expect(apiCallSpy).toHaveBeenNthCalledWith(
+        3,
         expect.objectContaining({
           method: "POST",
           path: "/api/incident-state-timeline",
@@ -249,6 +294,144 @@ describe("WorkflowTools", () => {
       expect(result["operation"]).toBe("acknowledge_incident");
       expect(result["incidentId"]).toBe(VALID_UUID);
       expect(result["newState"]).toBe("Acknowledged");
+    });
+
+    /*
+     * The bug of #4453, on this surface: an incident in a state of the
+     * project's own placed between Acknowledged and Resolved
+     * ("Investigating") is acknowledged already. Writing the Acknowledged
+     * state would move it back up its list.
+     */
+    it("leaves an incident in a state placed after Acknowledged as it is, and writes nothing", async () => {
+      apiCallSpy
+        .mockResolvedValueOnce([
+          { _id: "state-1", name: "Acknowledged", order: 2 },
+        ] as never)
+        .mockResolvedValueOnce([
+          {
+            _id: VALID_UUID,
+            currentIncidentState: {
+              _id: "state-investigating",
+              name: "Investigating",
+              order: 3,
+              isAcknowledgedState: false,
+              isResolvedState: false,
+            },
+          },
+        ] as never);
+
+      await expect(
+        handleWorkflowTool(
+          "acknowledge_incident",
+          { incidentId: VALID_UUID },
+          API_KEY,
+        ),
+      ).rejects.toThrow(
+        `Incident ${VALID_UUID} is already acknowledged: it is in 'Investigating', which is 'Acknowledged' or a state after it. It was left as it is.`,
+      );
+
+      expect(apiCallSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it.each<[string, JSONObject]>([
+      [
+        "in the Acknowledged state",
+        {
+          _id: "state-1",
+          name: "Acknowledged",
+          order: 2,
+          isAcknowledgedState: true,
+        },
+      ],
+      [
+        "resolved",
+        {
+          _id: "state-resolved",
+          name: "Resolved",
+          order: 4,
+          isResolvedState: true,
+        },
+      ],
+      [
+        "in a state after Resolved",
+        { _id: "state-closed", name: "Closed", order: 5 },
+      ],
+      [
+        "in a state flagged resolved that has no place",
+        { _id: "state-done", name: "Done", isResolvedState: true },
+      ],
+    ])(
+      "leaves an incident %s as it is",
+      async (_label: string, currentState: JSONObject) => {
+        apiCallSpy
+          .mockResolvedValueOnce([
+            { _id: "state-1", name: "Acknowledged", order: 2 },
+          ] as never)
+          .mockResolvedValueOnce([
+            { _id: VALID_UUID, currentIncidentState: currentState },
+          ] as never);
+
+        await expect(
+          handleWorkflowTool(
+            "acknowledge_incident",
+            { incidentId: VALID_UUID },
+            API_KEY,
+          ),
+        ).rejects.toThrow(/is already acknowledged/);
+
+        expect(apiCallSpy).toHaveBeenCalledTimes(2);
+      },
+    );
+
+    it.each<[string, JSONObject]>([
+      ["in a state placed before Acknowledged", { name: "Triage", order: 1.5 }],
+      ["in a state with no place", { name: "Imported" }],
+    ])(
+      "acknowledges an incident %s",
+      async (_label: string, currentState: JSONObject) => {
+        apiCallSpy
+          .mockResolvedValueOnce([
+            { _id: "state-1", name: "Acknowledged", order: 2 },
+          ] as never)
+          .mockResolvedValueOnce([
+            {
+              _id: VALID_UUID,
+              currentIncidentState: { _id: "state-other", ...currentState },
+            },
+          ] as never)
+          .mockResolvedValueOnce({} as never);
+
+        const result: JSONObject = await handleWorkflowTool(
+          "acknowledge_incident",
+          { incidentId: VALID_UUID },
+          API_KEY,
+        );
+
+        expect(result["success"]).toBe(true);
+        expect(apiCallSpy).toHaveBeenCalledTimes(3);
+        expect(apiCallSpy).toHaveBeenNthCalledWith(
+          3,
+          expect.objectContaining({ path: "/api/incident-state-timeline" }),
+        );
+      },
+    );
+
+    it("writes the timeline entry when the incident cannot be read, and lets the API answer", async () => {
+      apiCallSpy
+        .mockResolvedValueOnce([
+          { _id: "state-1", name: "Acknowledged", order: 2 },
+        ] as never)
+        .mockResolvedValueOnce([] as never)
+        .mockResolvedValueOnce({} as never);
+
+      const result: JSONObject = await handleWorkflowTool(
+        "acknowledge_incident",
+        { incidentId: VALID_UUID },
+        API_KEY,
+      );
+
+      expect(result["success"]).toBe(true);
+      expect(apiCallSpy).toHaveBeenCalledTimes(3);
     });
 
     it("rejects a non-UUID incidentId without calling the API", async () => {
@@ -284,6 +467,49 @@ describe("WorkflowTools", () => {
 
       // No timeline entry may be created when the lookup fails.
       expect(apiCallSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("acknowledge_alert", () => {
+    it("leaves an alert in a state placed after Acknowledged as it is", async () => {
+      apiCallSpy
+        .mockResolvedValueOnce([
+          { _id: "state-2", name: "Acknowledged", order: 2 },
+        ] as never)
+        .mockResolvedValueOnce([
+          {
+            _id: VALID_UUID,
+            currentAlertState: {
+              _id: "state-investigating",
+              name: "Investigating",
+              order: 3,
+            },
+          },
+        ] as never);
+
+      await expect(
+        handleWorkflowTool(
+          "acknowledge_alert",
+          { alertId: VALID_UUID },
+          API_KEY,
+        ),
+      ).rejects.toThrow(
+        `Alert ${VALID_UUID} is already acknowledged: it is in 'Investigating', which is 'Acknowledged' or a state after it. It was left as it is.`,
+      );
+
+      expect(apiCallSpy).toHaveBeenCalledTimes(2);
+      expect(apiCallSpy).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          path: "/api/alert/get-list",
+          body: expect.objectContaining({
+            query: { _id: VALID_UUID },
+            select: expect.objectContaining({
+              currentAlertState: expect.objectContaining({ order: true }),
+            }),
+          }),
+        }),
+      );
     });
   });
 
@@ -440,11 +666,25 @@ describe("WorkflowTools", () => {
     it.each(STATE_TOOLS)(
       "$tool finds the state in a bare array and writes the timeline entry",
       async (definition: (typeof STATE_TOOLS)[number]) => {
-        apiCallSpy
-          .mockResolvedValueOnce([
-            { _id: "state-7", name: definition.stateName },
-          ] as never)
-          .mockResolvedValueOnce({ _id: "timeline-1" } as never);
+        apiCallSpy.mockResolvedValueOnce([
+          { _id: "state-7", name: definition.stateName, order: 2 },
+        ] as never);
+
+        if (definition.recordPath) {
+          // The record, in a bare array too: still in its first state.
+          apiCallSpy.mockResolvedValueOnce([
+            {
+              _id: VALID_UUID,
+              [definition.stateRelation!]: {
+                _id: "state-1",
+                name: "Created",
+                order: 1,
+              },
+            },
+          ] as never);
+        }
+
+        apiCallSpy.mockResolvedValueOnce({ _id: "timeline-1" } as never);
 
         const result: JSONObject = await handleWorkflowTool(
           definition.tool,
@@ -452,7 +692,9 @@ describe("WorkflowTools", () => {
           API_KEY,
         );
 
-        expect(apiCallSpy).toHaveBeenCalledTimes(2);
+        const calls: number = definition.recordPath ? 3 : 2;
+
+        expect(apiCallSpy).toHaveBeenCalledTimes(calls);
         expect(apiCallSpy).toHaveBeenNthCalledWith(
           1,
           expect.objectContaining({
@@ -463,8 +705,22 @@ describe("WorkflowTools", () => {
             }),
           }),
         );
+
+        if (definition.recordPath) {
+          expect(apiCallSpy).toHaveBeenNthCalledWith(
+            2,
+            expect.objectContaining({
+              method: "POST",
+              path: definition.recordPath,
+              body: expect.objectContaining({
+                query: { _id: VALID_UUID },
+              }),
+            }),
+          );
+        }
+
         expect(apiCallSpy).toHaveBeenNthCalledWith(
-          2,
+          calls,
           expect.objectContaining({
             method: "POST",
             path: definition.timelinePath,
@@ -486,14 +742,32 @@ describe("WorkflowTools", () => {
     it.each(STATE_TOOLS)(
       "$tool still accepts the envelope, for a caller that passes one through",
       async (definition: (typeof STATE_TOOLS)[number]) => {
-        apiCallSpy
-          .mockResolvedValueOnce({
-            data: [{ _id: "state-8", name: definition.stateName }],
+        apiCallSpy.mockResolvedValueOnce({
+          data: [{ _id: "state-8", name: definition.stateName, order: 2 }],
+          count: 1,
+          skip: 0,
+          limit: 1,
+        } as never);
+
+        if (definition.recordPath) {
+          apiCallSpy.mockResolvedValueOnce({
+            data: [
+              {
+                _id: VALID_UUID,
+                [definition.stateRelation!]: {
+                  _id: "state-1",
+                  name: "Created",
+                  order: 1,
+                },
+              },
+            ],
             count: 1,
             skip: 0,
             limit: 1,
-          } as never)
-          .mockResolvedValueOnce({} as never);
+          } as never);
+        }
+
+        apiCallSpy.mockResolvedValueOnce({} as never);
 
         const result: JSONObject = await handleWorkflowTool(
           definition.tool,
@@ -502,7 +776,7 @@ describe("WorkflowTools", () => {
         );
 
         expect(result["success"]).toBe(true);
-        expect(apiCallSpy).toHaveBeenCalledTimes(2);
+        expect(apiCallSpy).toHaveBeenCalledTimes(definition.recordPath ? 3 : 2);
       },
     );
 
@@ -909,8 +1183,17 @@ describe("WorkflowTools against an API that answers over HTTP", () => {
     received = [];
     rowsByPath = {
       "/api/project/get-list": [{ _id: PROJECT_ID, name: "Acme Production" }],
-      "/api/incident-state/get-list": [{ _id: STATE_ID, name: "Acknowledged" }],
+      "/api/incident-state/get-list": [
+        { _id: STATE_ID, name: "Acknowledged", order: 2 },
+      ],
       "/api/alert-state/get-list": [{ _id: STATE_ID, name: "Resolved" }],
+      // The incident, still in its first state.
+      "/api/incident/get-list": [
+        {
+          _id: VALID_UUID,
+          currentIncidentState: { _id: "created", name: "Created", order: 1 },
+        },
+      ],
     };
   });
 
@@ -976,7 +1259,7 @@ describe("WorkflowTools against an API that answers over HTTP", () => {
     );
   });
 
-  it("acknowledge_incident finds the state the API returned, then creates the timeline entry", async () => {
+  it("acknowledge_incident finds the state the API returned, reads the incident, then creates the timeline entry", async () => {
     const result: JSONObject = await handleWorkflowTool(
       "acknowledge_incident",
       { incidentId: VALID_UUID },
@@ -992,12 +1275,44 @@ describe("WorkflowTools against an API that answers over HTTP", () => {
       }),
     ).toEqual([
       "POST /api/incident-state/get-list",
+      "POST /api/incident/get-list",
       "POST /api/incident-state-timeline",
     ]);
     expect(received[0]!.body.query).toEqual({ isAcknowledgedState: true });
-    expect(received[1]!.body).toEqual({
+    expect(received[1]!.body.query).toEqual({ _id: VALID_UUID });
+    expect(received[2]!.body).toEqual({
       data: { incidentId: VALID_UUID, incidentStateId: STATE_ID },
     });
+  });
+
+  it("acknowledge_incident writes nothing for an incident the API returns in a state after Acknowledged", async () => {
+    rowsByPath["/api/incident/get-list"] = [
+      {
+        _id: VALID_UUID,
+        currentIncidentState: {
+          _id: "investigating",
+          name: "Investigating",
+          order: 3,
+        },
+      },
+    ];
+
+    await expect(
+      handleWorkflowTool(
+        "acknowledge_incident",
+        { incidentId: VALID_UUID },
+        API_KEY,
+      ),
+    ).rejects.toThrow(/is already acknowledged: it is in 'Investigating'/);
+
+    expect(
+      received.map((request: ReceivedRequest): string => {
+        return `${request.method} ${request.path}`;
+      }),
+    ).toEqual([
+      "POST /api/incident-state/get-list",
+      "POST /api/incident/get-list",
+    ]);
   });
 
   it("resolve_alert finds the state the API returned, then creates the timeline entry", async () => {

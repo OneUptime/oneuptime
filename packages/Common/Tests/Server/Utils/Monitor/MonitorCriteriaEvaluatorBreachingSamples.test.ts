@@ -753,8 +753,12 @@ describe("Breaching Samples - attributes", () => {
     expect(html).not.toContain('href="https://evil.example"');
     expect(html).not.toContain("<img");
     expect(html).toMatch(/<code[^>]*>\*\*key\*\*<\/code>/);
+    /*
+     * The "<" carries an invisible word joiner (markdownCodeSpan): a Teams
+     * card, which has no code spans, does not read a tag there either.
+     */
     expect(html).toMatch(
-      /<code[^>]*>\*\*bold\*\* \[x\]\(https:\/\/evil\.example\) &lt;img src=x onerror=&quot;alert\(1\)&quot;&gt;<\/code>/,
+      /<code[^>]*>\*\*bold\*\* \[x\]\(https:\/\/evil\.example\) &lt;⁠img src=x onerror=&quot;alert\(1\)&quot;&gt;<\/code>/,
     );
   });
 });

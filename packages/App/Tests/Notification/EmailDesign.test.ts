@@ -476,6 +476,66 @@ describe("episode item cards", () => {
       );
     },
   );
+
+  /*
+   * The sender leaves a private item's title out (its owners may not be the
+   * episode's). The title is the item's link text, so the card names the
+   * item "Private ..." in its place rather than leave an empty link, and
+   * keeps its number, severity and link.
+   */
+  test.each([
+    [EmailTemplateType.AlertEpisodeOwnerAlertAdded, "alerts", "alert", "Alert"],
+    [
+      EmailTemplateType.IncidentEpisodeOwnerIncidentAdded,
+      "incidents",
+      "incident",
+      "Incident",
+    ],
+  ])(
+    "%s names a private item without its title",
+    (name: string, collection: string, item: string, label: string) => {
+      const privateLink: string = `${HOME_URL}/private-item`;
+      const publicLink: string = `${HOME_URL}/public-item`;
+      const html: string = render(name, {
+        [collection]: [
+          {
+            isPrivate: "true",
+            [`${item}Number`]: "SEC-7",
+            [`${item}Severity`]: "Critical",
+            [`${item}ViewLink`]: privateLink,
+            addedAt: "12:30 UTC",
+          },
+          {
+            [`${item}Number`]: "OPS-3",
+            [`${item}Title`]: "Checkout latency",
+            [`${item}Severity`]: "Warning",
+            [`${item}ViewLink`]: publicLink,
+            addedAt: "12:45 UTC",
+          },
+        ],
+        episodeViewLink: `${HOME_URL}/episode`,
+      });
+
+      // The text of the link that opens `href`.
+      const linkText: (href: string) => string = (href: string): string => {
+        const opening: number = html.indexOf(`<a href="${href}"`);
+
+        expect(opening).toBeGreaterThan(-1);
+
+        const textStart: number = html.indexOf(">", opening) + 1;
+
+        return html.slice(textStart, html.indexOf("</a>", textStart));
+      };
+
+      expect(linkText(privateLink)).toBe(`Private ${item}`);
+      expect(linkText(publicLink)).toBe("Checkout latency");
+      expect(html).toContain(`${label} SEC-7`);
+      expect(html).toContain(
+        '<strong style="font-weight: 600;">Severity:</strong> Critical</p>',
+      );
+      expect(html.split(`Private ${item}`)).toHaveLength(2);
+    },
+  );
 });
 
 describe("customer branding and subscription navigation", () => {

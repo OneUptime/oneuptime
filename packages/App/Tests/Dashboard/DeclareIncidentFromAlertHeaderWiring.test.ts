@@ -703,7 +703,7 @@ describe("the create-incident page asking to acknowledge the alerts", () => {
     expect(states.startsWith("try{")).toBe(true);
     expect(states.endsWith("}catch{returnnull;}")).toBe(true);
     expect(states).toContain(
-      "awaitModelAPI.getList<AlertState>({modelType:AlertState,query:{},limit:LIMIT_PER_PROJECT,skip:0,select:{_id:true,order:true,isAcknowledgedState:true},sort:{order:SortOrder.Ascending},});",
+      "awaitModelAPI.getList<AlertState>({modelType:AlertState,query:{},limit:LIMIT_PER_PROJECT,skip:0,select:{_id:true,order:true,isAcknowledgedState:true,isResolvedState:true,},sort:{order:SortOrder.Ascending},});",
     );
     expect(countOf(states, "await")).toBe(1);
   });
@@ -1004,9 +1004,13 @@ describe("the server acknowledging the alerts an incident is declared from", () 
     const noProjectAt: number = validate.indexOf(
       "if(!data.projectId){thrownewBadDataException(",
     );
-    // The state's order is what "acknowledged yet" is measured against.
+    /*
+     * The state's order is what "acknowledged yet" is measured against: the
+     * project's acknowledged state, the first from the top flagged so
+     * (Common/Utils/AcknowledgedState).
+     */
     const stateAt: number = validate.indexOf(
-      "constacknowledgedState:AlertState|null=awaitAlertStateService.findOneBy({query:{projectId:projectId,isAcknowledgedState:true,},select:{_id:true,order:true,},props:{isRoot:true,},});",
+      "constacknowledgedState:AlertState|null=awaitAlertStateService.findAcknowledgedAlertState(projectId);",
     );
     const noStateAt: number = validate.indexOf(
       "if(!acknowledgedState||!acknowledgedState._id||acknowledgedState.order===undefined||acknowledgedState.order===null){thrownewBadDataException(",

@@ -69,6 +69,41 @@ export const replaceAllLiterally: ReplaceAllLiterallyFunction = (
   });
 };
 
+/*
+ * What an episode's {{incidentTitle}} and {{incidentDescription}} read when
+ * the incident that opens it is private (see getEpisodeTemplateValues).
+ */
+const PRIVATE_INCIDENT_TEMPLATE_VALUE: string = "Private incident";
+
+// A private incident's title, where the new episode's feed shows its key.
+const PRIVATE_INCIDENT_TITLE_GROUPING_KEY_PART: string =
+  "title:(private incident)";
+
+type GetTitleGroupingKeyPartFunction = (title: string) => string;
+
+/*
+ * What a rule that groups by title adds to the grouping key: the title,
+ * lowercased, with every number an X - so "Disk 91% full" and "Disk 95%
+ * full" go into the same episode.
+ */
+const getTitleGroupingKeyPart: GetTitleGroupingKeyPartFunction = (
+  title: string,
+): string => {
+  return `title:${title.toLowerCase().replace(/\d+/g, "X")}`;
+};
+
+/*
+ * The {{variables}} of an episode's title and description templates
+ * (Common/Utils/Episode/EpisodeTemplateVariables), read from the incident
+ * that opens the episode.
+ */
+interface EpisodeTemplateValues {
+  incidentTitle: string | undefined;
+  incidentDescription: string | undefined;
+  monitorName: string | undefined;
+  incidentSeverity: string | undefined;
+}
+
 class IncidentGroupingEngineServiceClass {
   @CaptureSpan()
   public async processIncident(
@@ -711,11 +746,7 @@ class IncidentGroupingEngineServiceClass {
 
     // Group by incident title - only if explicitly enabled
     if (rule.groupByIncidentTitle && incident.title) {
-      // Normalize title for grouping (remove numbers, etc.)
-      const normalizedTitle: string = incident.title
-        .toLowerCase()
-        .replace(/\d+/g, "X");
-      parts.push(`title:${normalizedTitle}`);
+      parts.push(getTitleGroupingKeyPart(incident.title));
     }
 
     // Group by incident labels (exact set match) - only if explicitly enabled
@@ -901,16 +932,20 @@ class IncidentGroupingEngineServiceClass {
     rule: IncidentGroupingRule,
     groupingKey: string,
   ): Promise<IncidentEpisode | null> {
+    const templateValues: EpisodeTemplateValues =
+      this.getEpisodeTemplateValues(incident);
+
     // Generate episode title from template (with initial incidentCount of 1)
     const title: string = this.generateEpisodeTitle(
       incident,
-      rule.episodeTitleTemplate,
+      rule,
+      templateValues,
       1, // Initial incident count
     );
 
     // Generate episode description from template (with initial incidentCount of 1)
     const description: string | undefined = this.generateEpisodeDescription(
-      incident,
+      templateValues,
       rule.episodeDescriptionTemplate,
       1, // Initial incident count
     );
@@ -927,13 +962,13 @@ class IncidentGroupingEngineServiceClass {
      */
     if (rule.episodeTitleTemplate) {
       newEpisode.titleTemplate = this.preprocessTemplate(
-        incident,
+        templateValues,
         rule.episodeTitleTemplate,
       );
     }
     if (rule.episodeDescriptionTemplate) {
       newEpisode.descriptionTemplate = this.preprocessTemplate(
-        incident,
+        templateValues,
         rule.episodeDescriptionTemplate,
       );
     }
@@ -1120,7 +1155,7 @@ class IncidentGroupingEngineServiceClass {
          * address would become part of the link renderers make of it.
          */
         let moreInfo: string = `**Rule:** ${escapeMarkdownValue(rule.name || "Unnamed Rule")}\n\n`;
-        moreInfo += `**Grouping Key:** ${escapeMarkdownValue(groupingKey)}\n\n`;
+        moreInfo += `**Grouping Key:** ${escapeMarkdownValue(this.getGroupingKeyToShow(incident, rule, groupingKey))}\n\n`;
         moreInfo += `**${groupByDescription}**`;
 
         if (rule.enableTimeWindow && rule.timeWindowMinutes) {
@@ -1154,19 +1189,84 @@ class IncidentGroupingEngineServiceClass {
     }
   }
 
+  /*
+   * What the episode's title and description templates are filled with, from
+   * the incident that opens it.
+   *
+   * A private incident is seen only by its owners and the project's owners
+   * and admins (IncidentPrivacyFilter), and the episode it opens is not
+   * private: whoever can see the episode reads its title and description - in
+   * the dashboard, in its Slack / Microsoft Teams channels and in every
+   * notification about it. So a private incident's title and description
+   * never go into the episode: both read "Private incident", in the title and
+   * description written now and in the templates stored to write them again
+   * as incidents join - as IncidentAlertService and
+   * IncidentEpisodeMemberService leave a private incident's title out of
+   * entries others read. Its monitor's name and its severity are the
+   * project's, not the incident's, and are used as for any incident.
+   *
+   * The episode is not made private instead: it gathers every incident the
+   * rule matches, and the first one to arrive should not decide who sees the
+   * rest - nor would it keep the title from the rule's owners and on-call,
+   * who need not be able to see the incident.
+   */
+  private getEpisodeTemplateValues(incident: Incident): EpisodeTemplateValues {
+    const isPrivate: boolean = incident.isPrivate === true;
+
+    return {
+      incidentTitle: isPrivate
+        ? PRIVATE_INCIDENT_TEMPLATE_VALUE
+        : incident.title,
+      incidentDescription: isPrivate
+        ? PRIVATE_INCIDENT_TEMPLATE_VALUE
+        : incident.description,
+      monitorName: incident.monitors?.[0]?.name,
+      incidentSeverity: incident.incidentSeverity?.name,
+    };
+  }
+
+  /*
+   * The grouping key as the new episode's feed shows it. A rule that groups
+   * by title puts the incident's title in the key (getTitleGroupingKeyPart);
+   * a private incident's is shown as private, as everywhere else in the
+   * episode (getEpisodeTemplateValues). The key is stored as built: the
+   * incidents that join later find the episode by it.
+   */
+  private getGroupingKeyToShow(
+    incident: Incident,
+    rule: IncidentGroupingRule,
+    groupingKey: string,
+  ): string {
+    if (
+      incident.isPrivate !== true ||
+      !rule.groupByIncidentTitle ||
+      !incident.title
+    ) {
+      return groupingKey;
+    }
+
+    return groupingKey
+      .split(getTitleGroupingKeyPart(incident.title))
+      .join(PRIVATE_INCIDENT_TITLE_GROUPING_KEY_PART);
+  }
+
   private generateEpisodeTitle(
     incident: Incident,
-    template: string | undefined,
+    rule: IncidentGroupingRule,
+    values: EpisodeTemplateValues,
     incidentCount: number = 1,
   ): string {
-    if (!template) {
+    if (!rule.episodeTitleTemplate) {
       // Default title based on incident
-      if (
-        incident.monitors &&
-        incident.monitors.length > 0 &&
-        incident.monitors[0]?.name
-      ) {
-        return incident.monitors[0].name;
+      if (values.monitorName) {
+        return values.monitorName;
+      }
+      /*
+       * A private incident's title is not the episode's to show
+       * (getEpisodeTemplateValues): the episode is named after its rule.
+       */
+      if (incident.isPrivate === true) {
+        return rule.name || "Untitled Episode";
       }
       if (incident.title) {
         return incident.title.substring(0, 50);
@@ -1175,13 +1275,16 @@ class IncidentGroupingEngineServiceClass {
     }
 
     return (
-      this.replaceTemplatePlaceholders(incident, template, incidentCount) ||
-      "Untitled Episode"
+      this.replaceTemplatePlaceholders(
+        values,
+        rule.episodeTitleTemplate,
+        incidentCount,
+      ) || "Untitled Episode"
     );
   }
 
   private generateEpisodeDescription(
-    incident: Incident,
+    values: EpisodeTemplateValues,
     template: string | undefined,
     incidentCount: number = 1,
   ): string | undefined {
@@ -1190,13 +1293,13 @@ class IncidentGroupingEngineServiceClass {
     }
 
     return (
-      this.replaceTemplatePlaceholders(incident, template, incidentCount) ||
+      this.replaceTemplatePlaceholders(values, template, incidentCount) ||
       undefined
     );
   }
 
   private replaceTemplatePlaceholders(
-    incident: Incident,
+    values: EpisodeTemplateValues,
     template: string,
     incidentCount: number = 1,
   ): string {
@@ -1206,42 +1309,38 @@ class IncidentGroupingEngineServiceClass {
      * Static variables (from first incident)
      * {{incidentTitle}}
      */
-    if (incident.title) {
+    if (values.incidentTitle) {
       result = replaceAllLiterally(
         result,
         /\{\{incidentTitle\}\}/g,
-        incident.title,
+        values.incidentTitle,
       );
     }
 
     // {{incidentDescription}}
-    if (incident.description) {
+    if (values.incidentDescription) {
       result = replaceAllLiterally(
         result,
         /\{\{incidentDescription\}\}/g,
-        incident.description,
+        values.incidentDescription,
       );
     }
 
     // {{monitorName}} - use first monitor's name
-    if (
-      incident.monitors &&
-      incident.monitors.length > 0 &&
-      incident.monitors[0]?.name
-    ) {
+    if (values.monitorName) {
       result = replaceAllLiterally(
         result,
         /\{\{monitorName\}\}/g,
-        incident.monitors[0].name,
+        values.monitorName,
       );
     }
 
     // {{incidentSeverity}}
-    if (incident.incidentSeverity?.name) {
+    if (values.incidentSeverity) {
       result = replaceAllLiterally(
         result,
         /\{\{incidentSeverity\}\}/g,
-        incident.incidentSeverity.name,
+        values.incidentSeverity,
       );
     }
 
@@ -1261,49 +1360,48 @@ class IncidentGroupingEngineServiceClass {
    * Preprocess template: replace static variables but keep dynamic ones as placeholders
    * This is stored on the episode so we can re-render with updated dynamic values later
    */
-  private preprocessTemplate(incident: Incident, template: string): string {
+  private preprocessTemplate(
+    values: EpisodeTemplateValues,
+    template: string,
+  ): string {
     let result: string = template;
 
     /*
      * Replace static variables (from first incident)
      * {{incidentTitle}}
      */
-    if (incident.title) {
+    if (values.incidentTitle) {
       result = replaceAllLiterally(
         result,
         /\{\{incidentTitle\}\}/g,
-        incident.title,
+        values.incidentTitle,
       );
     }
 
     // {{incidentDescription}}
-    if (incident.description) {
+    if (values.incidentDescription) {
       result = replaceAllLiterally(
         result,
         /\{\{incidentDescription\}\}/g,
-        incident.description,
+        values.incidentDescription,
       );
     }
 
     // {{monitorName}} - use first monitor's name
-    if (
-      incident.monitors &&
-      incident.monitors.length > 0 &&
-      incident.monitors[0]?.name
-    ) {
+    if (values.monitorName) {
       result = replaceAllLiterally(
         result,
         /\{\{monitorName\}\}/g,
-        incident.monitors[0].name,
+        values.monitorName,
       );
     }
 
     // {{incidentSeverity}}
-    if (incident.incidentSeverity?.name) {
+    if (values.incidentSeverity) {
       result = replaceAllLiterally(
         result,
         /\{\{incidentSeverity\}\}/g,
-        incident.incidentSeverity.name,
+        values.incidentSeverity,
       );
     }
 

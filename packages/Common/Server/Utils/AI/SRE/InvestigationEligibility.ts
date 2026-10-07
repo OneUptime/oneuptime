@@ -89,8 +89,8 @@ export default class InvestigationEligibility {
          * dashboard offers the AI Credits link to those who may add them
          * and names who can to everyone else (InvestigationNotStarted), so
          * nobody is told to add credits they cannot. Not "turn on
-         * auto-recharge": AI credits are recharged after a call they paid
-         * for, so an empty balance stays empty until someone adds credits.
+         * auto-recharge": the reason is only recorded when Auto Recharge
+         * cannot refill the credits (it is off, or its last charge failed).
          */
         nextStep: recorded
           ? `Review AI credits under Project Settings → AI Credits. Adding credits later does not retry this ${kind}.`

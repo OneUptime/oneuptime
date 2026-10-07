@@ -68,9 +68,10 @@ export const WHO_CAN_ADD_AI_CREDITS: string = translationKey(
 );
 
 /*
- * The AI agent pages' step for a project out of AI credits. Not "or turn on
- * auto-recharge": AI credits are recharged after a call they paid for, so a
- * balance that is used up stays used up until someone adds credits.
+ * The AI agent pages' step for a project out of AI credits. Adding credits
+ * is the way out whatever Auto Recharge is doing: the step only shows when
+ * Auto Recharge cannot refill them - it is off, or its last charge failed
+ * (the gap's description says which).
  */
 export const ADD_AI_CREDITS_STEP: string = translationKey(
   "Add AI credits to this project.",

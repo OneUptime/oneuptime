@@ -35,7 +35,7 @@ Bemærk navnet: den første tilstand hedder **Identified**, selv om flere beskri
 | Flag                  | Formål                                                                                                                                                                                               |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `isCreatedState`      | Den tilstand en hændelse får, når ingen har valgt en. Bærer ingen tilstand i projektet dette flag, fejler oprettelsen af en hændelse med en fejl, der beder dig tilføje en oprettet hændelsestilstand fra indstillingerne. |
-| `isAcknowledgedState` | Driver knappen **Acknowledge** og nøgletalsfeltet "<tilstandsnavn> i" på hændelsens **Oversigt**. Ved et skift til denne tilstand markeres hændelsens SLA som besvaret.                               |
+| `isAcknowledgedState` | Markerer projektets bekræftede tilstand: den **Acknowledge** flytter en hændelse til, og som bekræftet-nøgletalsfeltet er opkaldt efter. En hændelse i den, i en tilstand efter den eller løst er bekræftet — **Acknowledge** tilbydes ikke længere for den, on-call holder op med at sende kald for den, og dens SLA markeres som besvaret. |
 | `isResolvedState`     | Markerer projektets løste tilstand: den, **Løs** flytter en hændelse til, og som det løste nøgletalsfelt viser. En hændelse i den, eller i en tilstand efter den, er løst — den forsvinder fra **Aktive hændelser** og fra en statussides aktive sektion, og dens SLA markeres som løst. |
 
 Kun én tilstand per projekt forventes at bære hvert flag — opslagene henter en enkelt række. De tre flagbærende tilstande kan omdøbes, få nye farver og flyttes rundt, men indstillingssiden nægter at slette dem og viser en fejl, der nævner den oprettede, den bekræftede og den løste tilstand.
@@ -103,6 +103,18 @@ Der er fire måder, en hændelse skifter tilstand på:
 - **Automatisk.** Et monitorkriterium med **Løs hændelse automatisk** slået til løser sin hændelse, når kriteriet ikke længere er opfyldt, og API'et kan opdatere tilstanden gennem `/api/incident-state-timeline`.
 
 Hver eneste af dem skriver en tidslinjerække. Et tilstandsskift gør også et par ting, du ikke behøver at bede om: det skriver et punkt i hændelsesfeedet, tildeler en Hændelsesleder, hvis hændelsen ikke har en endnu, og opdaterer SLA-uret. At genåbne en løst hændelse starter en frisk SLA-optegnelse fra genåbningstidspunktet.
+
+## Hvad det gør at bekræfte en hændelse
+
+En hændelse er bekræftet fra det øjeblik, den flyttes til din bekræftede tilstand, til en tilstand efter den — en **Undersøges**-tilstand, du har placeret under **Bekræftet**, for eksempel — eller til en løst tilstand, uanset hvilken af de fire måder ovenfor der flytter den. Siden med tilstandsindstillinger viser, hvilke tilstande det er. Når den er bekræftet:
+
+- **Acknowledge tilbydes ikke længere.** Hverken i hændelsens overskrift, i mobilappen (knappen og swipe), i Slack eller Microsoft Teams eller gennem OneUptime MCP-serverens `acknowledge_incident`. At bekræfte den alligevel — fra et on-call-kald, Slack eller Teams — afvises med "Incident is already acknowledged." (eller "Incident is already resolved.") i stedet for at flytte den tilbage op ad listen.
+- **On-call holder op med at sende kald for den.** En vagthavende, der bekræfter sit kald, efter at en kollega har bekræftet hændelsen eller flyttet den videre, får sit kald bekræftet, og hændelsen bliver, hvor den er.
+- **SLA'en markeres som besvaret** ved det første sådanne skift; skift videre gennem senere tilstande beholder det tidspunkt.
+- **Tid til bekræftelse løber til det første skift** — nøgletalsfeltet på hændelsens **Oversigt**, metrikken **Time to Acknowledge**, en måling, der slutter, når hændelsen bekræftes, og MTTA i opsummeringer i Slack og Microsoft Teams. En hændelse, der flyttes direkte fra **Identified** til **Undersøges**, blev bekræftet dér; en, der løses med det samme, blev bekræftet, da den blev løst.
+- **Et Bekræftet-filter** — på et dashboards widget med hændelseslister, for eksempel — viser hændelserne i din bekræftede tilstand og i alle tilstande efter den, før de er løst.
+
+Advarsler og episoder følger samme regel med dine advarselstilstande.
 
 ## Hvad det gør at løse en hændelse
 

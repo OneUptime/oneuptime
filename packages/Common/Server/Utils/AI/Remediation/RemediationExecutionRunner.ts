@@ -108,6 +108,7 @@ import RemediationCommandToolkit, {
 import { escapeUntrustedContext, redactAndCap } from "./RemediationPlanRunner";
 import ToolResultSerializer from "../Toolbox/Serializer";
 import logger from "../../Logger";
+import { escapeMarkdownValue } from "../../../../Utils/Markdown/MarkdownEscape";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 /*
@@ -810,7 +811,7 @@ export default class RemediationExecutionRunner {
       if (deletedClusterRound) {
         await this.settleNoneApplicable({
           suggestion,
-          rationaleMarkdown: `The Kubernetes cluster "${deletedClusterRound.clusterName}" was deleted before OneUptime AI could remediate it. Nothing was run or proposed.`,
+          rationaleMarkdown: `The Kubernetes cluster "${escapeMarkdownValue(deletedClusterRound.clusterName)}" was deleted before OneUptime AI could remediate it. Nothing was run or proposed.`,
         });
         await this.completeRunQuietly(aiRunId);
         return;
@@ -851,9 +852,9 @@ export default class RemediationExecutionRunner {
 
           await this.settleNoneApplicable({
             suggestion,
-            rationaleMarkdown: `OneUptime AI can no longer remediate cluster "${
-              clusterTarget?.clusterName || "(deleted)"
-            }"${firstGap ? `: ${firstGap}` : ""}. Nothing was run or proposed. Review the cluster's AI agent page (AI → Agent).`,
+            rationaleMarkdown: `OneUptime AI can no longer remediate cluster "${escapeMarkdownValue(
+              clusterTarget?.clusterName || "(deleted)",
+            )}"${firstGap ? `: ${firstGap}` : ""}. Nothing was run or proposed. Review the cluster's AI agent page (AI → Agent).`,
           });
           await this.completeRunQuietly(aiRunId);
           return;
@@ -958,9 +959,9 @@ export default class RemediationExecutionRunner {
 
           await this.settleNoneApplicable({
             suggestion,
-            rationaleMarkdown: `OneUptime AI can no longer remediate ${noun} "${
-              resourceTarget?.resourceName || "(deleted)"
-            }"${firstGap ? `: ${firstGap}` : ""}. Nothing was run or proposed. Review the ${noun}'s AI agent page (AI → AI agent).`,
+            rationaleMarkdown: `OneUptime AI can no longer remediate ${noun} "${escapeMarkdownValue(
+              resourceTarget?.resourceName || "(deleted)",
+            )}"${firstGap ? `: ${firstGap}` : ""}. Nothing was run or proposed. Review the ${noun}'s AI agent page (AI → AI agent).`,
           });
           await this.completeRunQuietly(aiRunId);
           return;
@@ -2363,7 +2364,12 @@ export default class RemediationExecutionRunner {
   }): Promise<string> {
     const { suggestion, resource, resolution } = data;
     const noun: string = describeResourceNoun(resource.resourceType);
-    const label: string = `${noun} "${resource.resourceName}"`;
+    /*
+     * The note (prefixed to the rationale the card shows) and the feed item
+     * are Markdown: the resource's name, as its agent reported it, and the
+     * name of another round are text there.
+     */
+    const label: string = `${noun} "${escapeMarkdownValue(resource.resourceName)}"`;
 
     let note: string;
     let feedMarkdown: string;
@@ -2388,7 +2394,7 @@ export default class RemediationExecutionRunner {
       const holder: string = resolution.inFlightRound
         ? `another OneUptime AI round on ${label}${
             resolution.inFlightRound.ruleNameSnapshot
-              ? ` (${resolution.inFlightRound.ruleNameSnapshot})`
+              ? ` (${escapeMarkdownValue(resolution.inFlightRound.ruleNameSnapshot)})`
               : ""
           } ${resolution.inFlightRound.description}`
         : `OneUptime AI could not confirm that no other AI round is changing ${label}`;
@@ -2592,6 +2598,13 @@ export default class RemediationExecutionRunner {
   }): Promise<string> {
     const { suggestion, cluster, resolution } = data;
 
+    /*
+     * The note (prefixed to the rationale the card shows) and the feed item
+     * are Markdown: the cluster's name, as its agent reported it, and the
+     * name of another round are text there.
+     */
+    const clusterName: string = escapeMarkdownValue(cluster.clusterName);
+
     let note: string;
     let feedMarkdown: string;
 
@@ -2599,26 +2612,26 @@ export default class RemediationExecutionRunner {
       const modeLabel: string = this.describeRemediationMode(
         cluster.remediationMode,
       );
-      note = `The AI remediation mode of cluster "${cluster.clusterName}" changed to "${modeLabel}" after this round was started as unattended remediation, so this round was downgraded to a plan for approval.`;
-      feedMarkdown = `⚡ **${this.describeSource(suggestion)}: this fix now needs your approval.** The AI remediation mode of cluster "${cluster.clusterName}" was changed to "${modeLabel}" after this round was announced as unattended, so OneUptime AI proposes this round instead of running it. Nothing runs until you approve the plan — it will appear here shortly.`;
+      note = `The AI remediation mode of cluster "${clusterName}" changed to "${modeLabel}" after this round was started as unattended remediation, so this round was downgraded to a plan for approval.`;
+      feedMarkdown = `⚡ **${this.describeSource(suggestion)}: this fix now needs your approval.** The AI remediation mode of cluster "${clusterName}" was changed to "${modeLabel}" after this round was announced as unattended, so OneUptime AI proposes this round instead of running it. Nothing runs until you approve the plan — it will appear here shortly.`;
     } else if (resolution.downgradedByInFlightRound) {
       const holder: string = resolution.inFlightRound
-        ? `another OneUptime AI round on cluster "${cluster.clusterName}"${
+        ? `another OneUptime AI round on cluster "${clusterName}"${
             resolution.inFlightRound.ruleNameSnapshot
-              ? ` (${resolution.inFlightRound.ruleNameSnapshot})`
+              ? ` (${escapeMarkdownValue(resolution.inFlightRound.ruleNameSnapshot)})`
               : ""
           } ${resolution.inFlightRound.description}`
-        : `OneUptime AI could not confirm that no other AI round is changing cluster "${cluster.clusterName}"`;
+        : `OneUptime AI could not confirm that no other AI round is changing cluster "${clusterName}"`;
       note = `This round was started as unattended remediation, but ${holder}; two unattended fixes on one cluster would verify and roll back on top of each other, so this round was downgraded to a plan for approval.`;
       feedMarkdown = `⚡ **${this.describeSource(suggestion)}: this fix now needs your approval.** ${
         holder.charAt(0).toUpperCase() + holder.slice(1)
       }, so OneUptime AI proposes this round instead of running a second unattended fix on the same cluster. Nothing runs until you approve the plan — it will appear here shortly.`;
     } else if (resolution.breakerCheckFailed) {
-      note = `The hourly circuit breaker for cluster "${cluster.clusterName}" could not be checked, so this round was downgraded from unattended remediation to a plan for approval.`;
-      feedMarkdown = `⚡ **${this.describeSource(suggestion)}: this fix needs your approval.** The hourly circuit breaker for cluster "${cluster.clusterName}" could not be checked, so OneUptime AI will not run anything unattended this round. Nothing runs until you approve the plan — it will appear here shortly.`;
+      note = `The hourly circuit breaker for cluster "${clusterName}" could not be checked, so this round was downgraded from unattended remediation to a plan for approval.`;
+      feedMarkdown = `⚡ **${this.describeSource(suggestion)}: this fix needs your approval.** The hourly circuit breaker for cluster "${clusterName}" could not be checked, so OneUptime AI will not run anything unattended this round. Nothing runs until you approve the plan — it will appear here shortly.`;
     } else {
-      note = `The hourly circuit breaker for cluster "${cluster.clusterName}" tripped: it already had ${resolution.autoExecutedInWindow} unattended AI fix(es) in the last hour (the limit is ${MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR}), so this round was downgraded from unattended remediation to a plan for approval.`;
-      feedMarkdown = `⚡ **${this.describeSource(suggestion)}: the hourly circuit breaker tripped, so this fix needs your approval.** Cluster "${cluster.clusterName}" already had ${resolution.autoExecutedInWindow} unattended AI fix(es) in the last hour (the limit is ${MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR}), so OneUptime AI proposes this round instead of running it. Nothing runs until you approve the plan — it will appear here shortly.`;
+      note = `The hourly circuit breaker for cluster "${clusterName}" tripped: it already had ${resolution.autoExecutedInWindow} unattended AI fix(es) in the last hour (the limit is ${MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR}), so this round was downgraded from unattended remediation to a plan for approval.`;
+      feedMarkdown = `⚡ **${this.describeSource(suggestion)}: the hourly circuit breaker tripped, so this fix needs your approval.** Cluster "${clusterName}" already had ${resolution.autoExecutedInWindow} unattended AI fix(es) in the last hour (the limit is ${MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR}), so OneUptime AI proposes this round instead of running it. Nothing runs until you approve the plan — it will appear here shortly.`;
     }
 
     suggestion.executionMode = AutoRemediationExecutionMode.Suggest;
@@ -3239,6 +3252,10 @@ export default class RemediationExecutionRunner {
    * "AI remediation for cluster X" reads as itself; rules keep their prefix.
    * A cluster round whose cluster was deleted (the link is nulled) is still
    * a cluster round, never "Auto Remediation Rule ...".
+   *
+   * Only ever placed into a feed item's Markdown: the round's name - a rule's
+   * name, or one naming a cluster or a resource as its agent reported it - is
+   * escaped, so it reads as written.
    */
   private static describeSource(suggestion: AutoRemediationSuggestion): string {
     if (
@@ -3246,13 +3263,17 @@ export default class RemediationExecutionRunner {
       (!suggestion.autoRemediationRuleId &&
         parseClusterRoundNameSnapshot(suggestion.ruleNameSnapshot))
     ) {
-      return suggestion.ruleNameSnapshot || "AI remediation for cluster";
+      return escapeMarkdownValue(
+        suggestion.ruleNameSnapshot || "AI remediation for cluster",
+      );
     }
     // A resource round names its resource, never a rule.
     if (isResourceRemediationRound(suggestion)) {
-      return suggestion.ruleNameSnapshot || "AI remediation";
+      return escapeMarkdownValue(
+        suggestion.ruleNameSnapshot || "AI remediation",
+      );
     }
-    return `Auto Remediation Rule "${suggestion.ruleNameSnapshot || "Auto Remediation Rule"}"`;
+    return `Auto Remediation Rule "${escapeMarkdownValue(suggestion.ruleNameSnapshot || "Auto Remediation Rule")}"`;
   }
 
   private static async completeRunQuietly(aiRunId: ObjectID): Promise<void> {

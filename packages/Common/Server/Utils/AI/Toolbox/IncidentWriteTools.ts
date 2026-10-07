@@ -4,6 +4,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import { neutralizeAiWrittenMarkdown } from "../../../../Utils/Markdown/UntrustedMarkdown";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
 import IncidentService from "../../../Services/IncidentService";
@@ -138,7 +139,12 @@ export const CreateIncidentTool: ObservabilityTool = {
     const incident: Incident = new Incident();
     incident.projectId = ctx.projectId;
     incident.title = title;
-    incident.description = description;
+    /*
+     * The model wrote the description from what it read, telemetry included:
+     * it stays Markdown, but nothing in it acts on its own in the incident's
+     * feed, Slack and Teams (neutralizeAiWrittenMarkdown).
+     */
+    incident.description = neutralizeAiWrittenMarkdown(description);
     incident.incidentSeverityId = severity.id!;
     incident.createdByUserId = userId;
     incident.rootCause = "Incident created via the OneUptime AI copilot.";

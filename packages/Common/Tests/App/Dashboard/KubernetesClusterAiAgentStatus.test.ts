@@ -1567,7 +1567,7 @@ describe("Needs attention's steps", () => {
       "llm_provider_missing",
       "Add an AI provider for this project, or use OneUptime AI credits.",
     ],
-    // Not "or turn on auto-recharge": that does not refill used-up credits.
+    // Not "or turn on auto-recharge": the gap shows when it cannot refill.
     ["ai_balance_insufficient", "Add AI credits to this project."],
     [
       "runner_missing",

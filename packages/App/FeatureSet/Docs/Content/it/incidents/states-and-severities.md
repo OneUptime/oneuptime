@@ -35,7 +35,7 @@ Attenzione al nome: il primo stato è **Identified**, anche se diverse descrizio
 | Flag                  | A cosa serve                                                                                                                                                                                          |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `isCreatedState`      | Lo stato che un incidente riceve quando nessuno ne ha scelto uno. Se nel progetto nessuno stato porta questo flag, la creazione di un incidente fallisce con un errore che vi chiede di aggiungere uno stato di creazione dalle impostazioni. |
-| `isAcknowledgedState` | Alimenta il pulsante **Acknowledge** e il riquadro statistico "<nome stato> in" nella **Panoramica** dell'incidente. Al passaggio a questo stato, lo SLA dell'incidente viene marcato come "risposto". |
+| `isAcknowledgedState` | Contrassegna lo stato di presa in carico del progetto: quello in cui **Acknowledge** porta un incidente e da cui prende il nome il riquadro corrispondente. Un incidente in quello stato, in uno stato successivo o risolto è preso in carico: **Acknowledge** non gli viene più offerto, la reperibilità smette di avvisare per lui e il suo SLA viene marcato come "risposto". |
 | `isResolvedState`     | Indica lo stato risolto del progetto: quello in cui **Risolvi** porta l'incidente e che mostra il riquadro statistico del risolto. Un incidente in questo stato, o in qualsiasi stato successivo, è risolto: esce da **Incidenti attivi** e dalla sezione attiva di una pagina di stato, e il suo SLA viene marcato come risolto. |
 
 Per progetto ci si aspetta che ciascun flag sia portato da un solo stato — le ricerche recuperano una riga sola. I tre stati con i flag si possono rinominare, ricolorare e riordinare, ma la pagina delle impostazioni rifiuta di eliminarli e mostra un errore che nomina lo stato di creazione, quello di riconoscimento e quello di risoluzione.
@@ -103,6 +103,18 @@ Ci sono quattro modi in cui un incidente cambia stato:
 - **In automatico.** Un criterio di monitor con **Risoluzione automatica dell'incidente** attiva risolve il suo incidente quando il criterio non è più soddisfatto, e l'API può aggiornare lo stato tramite `/api/incident-state-timeline`.
 
 Ognuno di questi scrive una riga di cronologia. Un cambio di stato fa anche qualche cosa che non dovete chiedere: pubblica una voce nel feed dell'incidente, assegna un Comandante dell'incidente se l'incidente non ne ha ancora uno e aggiorna il cronometro dello SLA. Riaprire un incidente risolto avvia un nuovo record SLA a partire dal momento della riapertura.
+
+## Cosa fa la presa in carico
+
+Un incidente è preso in carico dal momento in cui passa al vostro stato di presa in carico, a uno stato successivo — uno stato **Investigating** che avete messo sotto **Acknowledged**, per esempio — o a uno stato risolto, con qualunque delle quattro vie qui sopra. La pagina delle impostazioni degli stati mostra quali sono. Una volta preso in carico:
+
+- **Acknowledge non viene più offerto.** Né nell'intestazione dell'incidente, né nell'app mobile (il pulsante e lo swipe), né in Slack o Microsoft Teams, né con `acknowledge_incident` del server MCP di OneUptime. Prenderlo in carico comunque — da un avviso di reperibilità, da Slack o da Teams — viene rifiutato con "Incident is already acknowledged." (o "Incident is already resolved."), invece di riportarlo indietro nella sua lista.
+- **La reperibilità smette di avvisare per lui.** Chi conferma il proprio avviso dopo che un collega ha preso in carico l'incidente, o l'ha fatto avanzare, vede il proprio avviso confermato, e l'incidente resta dov'è.
+- **Lo SLA viene marcato come risposto** al primo passaggio di questo tipo; proseguire negli stati successivi conserva quell'ora.
+- **Il tempo di presa in carico arriva fino a quel primo passaggio** — il riquadro nella **Panoramica** dell'incidente, la metrica **Time to Acknowledge**, una misurazione che termina quando l'incidente viene preso in carico e l'MTTA nei riepiloghi di Slack e Microsoft Teams. Un incidente passato direttamente da **Identified** a **Investigating** è stato preso in carico in quel momento; uno risolto subito lo è stato alla risoluzione.
+- **Un filtro Acknowledged** — nel widget elenco incidenti di una dashboard, per esempio — mostra gli incidenti nel vostro stato di presa in carico e in qualsiasi stato successivo, finché non sono risolti.
+
+Avvisi ed episodi seguono la stessa regola con i vostri stati degli avvisi.
 
 ## Cosa fa la risoluzione
 
