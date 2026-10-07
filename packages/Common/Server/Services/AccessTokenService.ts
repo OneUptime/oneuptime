@@ -38,6 +38,15 @@ export class AccessTokenService extends BaseService {
   @CaptureSpan()
   public async refreshUserGlobalAccessPermission(
     userId: ObjectID,
+    options?: {
+      /*
+       * Whether the person's open live updates read their permissions again
+       * (RealtimeReaders.forgetUser). Default true. False when the refresh
+       * only fills a cache that had nothing - nothing changed, and the
+       * lookup may be the one building their live-update entry.
+       */
+      forgetLiveUpdateReaders?: boolean | undefined;
+    },
   ): Promise<UserGlobalAccessPermission> {
     /*
      * Every project the user belongs to - all of them, not a first page.
@@ -91,7 +100,9 @@ export class AccessTokenService extends BaseService {
      * The person's open live updates read their projects again
      * (RealtimeReaders), so one they have left stops at once.
      */
-    RealtimeReaders.forgetUser(userId);
+    if (options?.forgetLiveUpdateReaders !== false) {
+      RealtimeReaders.forgetUser(userId);
+    }
 
     return permissionToStore;
   }
@@ -104,7 +115,10 @@ export class AccessTokenService extends BaseService {
       await UserPermissionUtil.getUserGlobalAccessPermissionFromCache(userId);
 
     if (!json) {
-      return await this.refreshUserGlobalAccessPermission(userId);
+      // Filling an empty cache changes nothing about what they may read.
+      return await this.refreshUserGlobalAccessPermission(userId, {
+        forgetLiveUpdateReaders: false,
+      });
     }
 
     return json;
@@ -121,6 +135,14 @@ export class AccessTokenService extends BaseService {
        * is no entry, so a non-member probing a project costs no cache write.
        */
       clearCacheIfNotMember?: boolean | undefined;
+      /*
+       * Whether the person's open live updates of the project read their
+       * permissions again (RealtimeReaders.forgetUser). Default true. False
+       * when the refresh only fills or corrects the cache as it is read -
+       * nothing changed, and the lookup may be the one building their
+       * live-update entry, which would otherwise be dropped as it is made.
+       */
+      forgetLiveUpdateReaders?: boolean | undefined;
     },
   ): Promise<UserTenantAccessPermission | null> {
     // query for all projects user belongs to.
@@ -162,7 +184,9 @@ export class AccessTokenService extends BaseService {
       }
 
       // Their open live updates of the project stop at once.
-      RealtimeReaders.forgetUser(userId, projectId);
+      if (options?.forgetLiveUpdateReaders !== false) {
+        RealtimeReaders.forgetUser(userId, projectId);
+      }
 
       return null;
     }
@@ -235,7 +259,9 @@ export class AccessTokenService extends BaseService {
      * Their open live updates of the project follow the new permissions at
      * once (RealtimeReaders).
      */
-    RealtimeReaders.forgetUser(userId, projectId);
+    if (options?.forgetLiveUpdateReaders !== false) {
+      RealtimeReaders.forgetUser(userId, projectId);
+    }
 
     return permission;
   }
@@ -303,9 +329,15 @@ export class AccessTokenService extends BaseService {
         : this.getUserGlobalAccessPermission(userId),
     ]);
 
+    /*
+     * The refreshes below only fill or correct the cache as it is read:
+     * nothing about what the person may do changed here, so their open live
+     * updates keep their entries (see forgetLiveUpdateReaders).
+     */
     if (!json) {
       return await this.refreshUserTenantAccessPermission(userId, projectId, {
         clearCacheIfNotMember: false,
+        forgetLiveUpdateReaders: false,
       });
     }
 
@@ -319,11 +351,15 @@ export class AccessTokenService extends BaseService {
     }
 
     const permission: UserTenantAccessPermission | null =
-      await this.refreshUserTenantAccessPermission(userId, projectId);
+      await this.refreshUserTenantAccessPermission(userId, projectId, {
+        forgetLiveUpdateReaders: false,
+      });
 
     if (permission) {
       // Still a member: it was the global list that was out of date.
-      await this.refreshUserGlobalAccessPermission(userId);
+      await this.refreshUserGlobalAccessPermission(userId, {
+        forgetLiveUpdateReaders: false,
+      });
     }
 
     return permission;

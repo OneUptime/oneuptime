@@ -1,12 +1,16 @@
 import Entities from "../../../../Models/DatabaseModels/Index";
 import Incident from "../../../../Models/DatabaseModels/Incident";
+import Label from "../../../../Models/DatabaseModels/Label";
 import IO from "../../../../Server/Infrastructure/SocketIO";
 import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
 import AIConversationMessageService from "../../../../Server/Services/AIConversationMessageService";
 import AIInsightService from "../../../../Server/Services/AIInsightService";
+import AuditLogService from "../../../../Server/Services/AuditLogService";
 import DatabaseService from "../../../../Server/Services/DatabaseService";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
+import PublishedImages from "../../../../Server/Utils/File/PublishedImages";
+import StatusPageOverviewCache from "../../../../Server/Utils/StatusPage/StatusPageOverviewCache";
 import Realtime from "../../../../Server/Utils/Realtime";
 import RealtimeReaders, {
   RealtimeReaderIdentity,
@@ -45,7 +49,10 @@ import { DataSource } from "typeorm";
  *     owners and admins only;
  *   - an AI conversation's messages by the person who had it only;
  *   - a delete is heard about by those who could read the record before it
- *     went.
+ *     went;
+ *   - an update that takes a record away from someone (made private, given
+ *     a label they block) is heard about by those who could read it before
+ *     the write as well as those who can read it after.
  *
  * Opt in with RUN_POSTGRES_REALTIME_AUDIENCE_TESTS=true against a database the
  * registered migrations have been applied to, e.g.
@@ -173,6 +180,8 @@ describePostgres("live updates against a migrated Postgres", () => {
   const I_OWNED: string = id();
   const I_TEAM: string = id();
   const I_PRIVATE: string = id();
+  const I_GOES_PRIVATE: string = id();
+  const I_GETS_BLUE: string = id();
   const INCIDENTS: Array<string> = [
     I_RED,
     I_BLUE,
@@ -413,6 +422,8 @@ describePostgres("live updates against a migrated Postgres", () => {
     await insertIncident(I_OWNED, false, []);
     await insertIncident(I_TEAM, false, [BLUE]);
     await insertIncident(I_PRIVATE, true, [RED]);
+    await insertIncident(I_GOES_PRIVATE, false, []);
+    await insertIncident(I_GETS_BLUE, false, []);
 
     await database.query(
       `INSERT INTO "IncidentOwnerUser" ("_id","projectId","userId","incidentId","version") VALUES ($1,$2,$3,$4,1)`,
@@ -710,6 +721,128 @@ describePostgres("live updates against a migrated Postgres", () => {
       expect(heard(sockets.get(PRIVATE_OWNER)!)).toEqual(sorted(deleted));
       expect(heard(sockets.get(MEMBER)!)).toEqual(sorted([I_BLUE]));
     });
+  });
+
+  describe("an update that takes an incident away from someone", () => {
+    function blue(): Label {
+      const label: Label = new Label();
+      label._id = BLUE;
+      return label;
+    }
+
+    // What each person's read finds of these incidents.
+    async function readsOfEveryone(
+      ids: Array<string>,
+    ): Promise<Map<string, Array<string>>> {
+      const reads: Map<string, Array<string>> = new Map<
+        string,
+        Array<string>
+      >();
+
+      for (const userId of PERMISSIONS.keys()) {
+        reads.set(
+          userId,
+          await readBy(
+            IncidentService as unknown as DatabaseService<BaseModel>,
+            userId,
+            ids,
+          ),
+        );
+      }
+
+      return reads;
+    }
+
+    test.each([
+      [
+        "made private: the members who could read it hear about it",
+        I_GOES_PRIVATE,
+        { isPrivate: true },
+        MEMBER,
+      ],
+      [
+        "given the Blue label: the member who blocks Blue hears about it",
+        I_GETS_BLUE,
+        { labels: [blue()] },
+        BLOCKED_READER,
+      ],
+    ] as Array<[string, string, Record<string, unknown>, string]>)(
+      "%s",
+      async (
+        _how: string,
+        incidentId: string,
+        data: Record<string, unknown>,
+        takenFrom: string,
+      ) => {
+        // What the write sets off besides its live update is not looked at here.
+        const sideEffects: Array<jest.SpyInstance> = [
+          jest
+            .spyOn(IncidentService, "onTriggerWorkflow")
+            .mockResolvedValue(undefined),
+          jest
+            .spyOn(PublishedImages, "afterUpdate")
+            .mockResolvedValue(undefined),
+          jest
+            .spyOn(StatusPageOverviewCache, "afterUpdate")
+            .mockResolvedValue(undefined),
+          jest
+            .spyOn(AuditLogService, "recordUpdate")
+            .mockResolvedValue(undefined),
+        ];
+
+        try {
+          const sockets: Map<string, FakeSocket> = everyoneListensTo(
+            RealtimeUtil.getRoomId(
+              projectId,
+              new Incident().tableName!,
+              ModelEventType.Update,
+            ),
+          );
+
+          const before: Map<string, Array<string>> = await readsOfEveryone([
+            incidentId,
+          ]);
+
+          await IncidentService.updateOneById({
+            id: new ObjectID(incidentId),
+            data: data as never,
+            props: { isRoot: true, ignoreHooks: true },
+          });
+          await Realtime.waitForPendingDeliveries();
+
+          const after: Map<string, Array<string>> = await readsOfEveryone([
+            incidentId,
+          ]);
+
+          // The write took it away from them...
+          expect(before.get(takenFrom)).toEqual(sorted([incidentId]));
+          expect(after.get(takenFrom)).toEqual([]);
+
+          // ...and everyone heard about it exactly when they could read it then or now.
+          for (const [userId, socket] of sockets) {
+            expect([userId, heard(socket)]).toEqual([
+              userId,
+              sorted(
+                Array.from(
+                  new Set<string>([
+                    ...before.get(userId)!,
+                    ...after.get(userId)!,
+                  ]),
+                ),
+              ),
+            ]);
+          }
+
+          expect(heard(sockets.get(takenFrom)!)).toEqual(sorted([incidentId]));
+          expect(heard(sockets.get(LABELS_READER)!)).toEqual([]);
+          expect(heard(sockets.get(OWNER)!)).toEqual(sorted([incidentId]));
+        } finally {
+          for (const spy of sideEffects) {
+            spy.mockRestore();
+          }
+        }
+      },
+    );
   });
 
   describe("a record with no labels of its own", () => {

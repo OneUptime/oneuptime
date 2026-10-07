@@ -1,6 +1,8 @@
 import { RealtimeReader } from "./RealtimeReadAccess";
 import type { AccessTokenService as AccessTokenServiceType } from "../../Services/AccessTokenService";
 import type { TeamMemberService as TeamMemberServiceType } from "../../Services/TeamMemberService";
+import type { Service as UserServiceType } from "../../Services/UserService";
+import type User from "../../../Models/DatabaseModels/User";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -27,10 +29,13 @@ import UserType from "../../../Types/UserType";
  *     joined or left, a permission added, changed or removed:
  *     AccessTokenService calls forgetUser), which applies the change at once.
  *
- * A person who is no longer a member of the project reads nothing there.
- * The values worked out from the props - whether they read every record of
- * a model, the telemetry they may read - live and go with the entry
- * (RealtimeReader.remember).
+ * An entry is built from the person as they are when it is built, not as
+ * the token the socket joined with said: a blocked person reads nothing,
+ * as their requests are refused, and server-admin rights are read from
+ * their account. A person who is no longer a member of the project reads
+ * nothing there. The values worked out from the props - whether they read
+ * every record of a model, the telemetry they may read - live and go with
+ * the entry (RealtimeReader.remember).
  */
 
 // Who a socket is, as Realtime stored it when the socket joined a room.
@@ -50,8 +55,9 @@ export default class RealtimeReaders {
   public static readonly ENTRY_TTL_IN_MS: number = 30 * 1000;
 
   /*
-   * People held at once; past this the oldest entry goes first (an expired
-   * one, as a rule), so memory stays bounded however many come and go.
+   * People held at once; past this the entry used longest ago goes first
+   * (an expired one, as a rule), so memory stays bounded however many come
+   * and go, and the people listening now keep theirs.
    */
   public static readonly MAX_ENTRIES: number = 10_000;
 
@@ -87,6 +93,9 @@ export default class RealtimeReaders {
     const cached: ReaderEntry | undefined = RealtimeReaders.entries.get(key);
 
     if (cached && cached.expiresAtMs > now) {
+      // Used now: last in line to go when the cap is reached.
+      RealtimeReaders.entries.delete(key);
+      RealtimeReaders.entries.set(key, cached);
       return await cached.reader;
     }
 
@@ -174,8 +183,10 @@ export default class RealtimeReaders {
 
   /*
    * The props a request of the person's would carry in the project, or
-   * null when they are not a member of it. A server admin reads every
-   * project, as their requests do.
+   * null when they read nothing there: blocked, or not a member of it. A
+   * server admin reads every project, as their requests do - while their
+   * account still says they are one; otherwise they read as the member
+   * they are, if they are one.
    */
   public static async buildProps(
     identity: RealtimeReaderIdentity,
@@ -183,14 +194,32 @@ export default class RealtimeReaders {
   ): Promise<DatabaseCommonInteractionProps | null> {
     const userId: ObjectID = new ObjectID(identity.userId.toString());
     const tenantId: ObjectID = new ObjectID(projectId);
+    const userService: UserServiceType = RealtimeReaders.getUserService();
+
+    // Refused on every request, so nothing to hear about either.
+    if (await userService.isUserBlocked(userId)) {
+      return null;
+    }
 
     if (identity.isMasterAdmin) {
-      return {
-        userId: userId,
-        userType: UserType.MasterAdmin,
-        isMasterAdmin: true,
-        tenantId: tenantId,
-      };
+      const user: User | null = await userService.findOneById({
+        id: userId,
+        select: {
+          isMasterAdmin: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (user?.isMasterAdmin) {
+        return {
+          userId: userId,
+          userType: UserType.MasterAdmin,
+          isMasterAdmin: true,
+          tenantId: tenantId,
+        };
+      }
     }
 
     const accessTokenService: AccessTokenServiceType =
@@ -268,8 +297,11 @@ export default class RealtimeReaders {
   }
 
   /*
-   * Read when first needed rather than imported: the services extend
-   * DatabaseService, which reaches Realtime, which reaches this module.
+   * Read when first needed rather than imported at the top: the services
+   * extend DatabaseService, which imports Realtime, which imports this
+   * module. Imported here, a process that loads DatabaseService first would
+   * define TeamMemberService (and UserService) while DatabaseService is
+   * still undefined, and fail to start ("Class extends value undefined").
    * Only their types are imported above.
    */
   private static getAccessTokenService(): AccessTokenServiceType {
@@ -280,5 +312,10 @@ export default class RealtimeReaders {
   private static getTeamMemberService(): TeamMemberServiceType {
     // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
     return require("../../Services/TeamMemberService").default;
+  }
+
+  private static getUserService(): UserServiceType {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+    return require("../../Services/UserService").default;
   }
 }

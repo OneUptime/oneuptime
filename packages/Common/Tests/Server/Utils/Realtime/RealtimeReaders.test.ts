@@ -4,6 +4,12 @@ import RealtimeReaders, {
 import { RealtimeReader } from "../../../../Server/Utils/Realtime/RealtimeReadAccess";
 import AccessTokenService from "../../../../Server/Services/AccessTokenService";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
+import TeamPermissionService from "../../../../Server/Services/TeamPermissionService";
+import UserService from "../../../../Server/Services/UserService";
+import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
+import UserPermissionUtil from "../../../../Server/Utils/UserPermission/UserPermission";
+import TeamMember from "../../../../Models/DatabaseModels/TeamMember";
+import User from "../../../../Models/DatabaseModels/User";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission, {
@@ -188,6 +194,41 @@ describe("RealtimeReaders", () => {
       );
       expect(built).toEqual([`${oldestUserId}@${PROJECT}`]);
     });
+
+    test("past MAX_ENTRIES an entry in use is kept: the one used longest ago goes", async () => {
+      // The person listening now came first...
+      await RealtimeReaders.getReader(person, PROJECT);
+
+      const others: Array<RealtimeReaderIdentity> = [];
+
+      for (let i: number = 1; i < RealtimeReaders.MAX_ENTRIES; i++) {
+        const other: RealtimeReaderIdentity = {
+          userId: ObjectID.generate().toString(),
+          isMasterAdmin: false,
+        };
+        others.push(other);
+        await RealtimeReaders.getReader(other, PROJECT);
+      }
+
+      // ...and is still hearing about things.
+      await RealtimeReaders.getReader(person, PROJECT);
+
+      // Someone new comes along.
+      await RealtimeReaders.getReader(
+        { userId: OTHER_USER, isMasterAdmin: false },
+        PROJECT,
+      );
+
+      expect(RealtimeReaders.size()).toBe(RealtimeReaders.MAX_ENTRIES);
+
+      built = [];
+      await RealtimeReaders.getReader(person, PROJECT);
+      expect(built).toEqual([]);
+
+      // The one whose entry was used longest ago was let go.
+      await RealtimeReaders.getReader(others[0]!, PROJECT);
+      expect(built).toEqual([`${others[0]!.userId}@${PROJECT}`]);
+    });
   });
 
   describe("forgetting a person when their permissions change", () => {
@@ -296,7 +337,20 @@ describe("RealtimeReaders", () => {
   });
 });
 
+function account(isMasterAdmin: boolean): User {
+  const user: User = new User();
+  user._id = USER;
+  user.isMasterAdmin = isMasterAdmin;
+  return user;
+}
+
 describe("RealtimeReaders.buildProps", () => {
+  let blocked: jest.SpyInstance;
+
+  beforeEach(() => {
+    blocked = jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(false);
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -344,11 +398,14 @@ describe("RealtimeReaders.buildProps", () => {
     ).resolves.toBeNull();
   });
 
-  test("a server admin reads as a server admin, with no lookups", async () => {
+  test("a server admin reads as a server admin while their account says they are one, with no permission lookups", async () => {
     const global: jest.SpyInstance = jest.spyOn(
       AccessTokenService,
       "getUserGlobalAccessPermission",
     );
+    const user: jest.SpyInstance = jest
+      .spyOn(UserService, "findOneById")
+      .mockResolvedValue(account(true));
 
     await expect(
       RealtimeReaders.buildProps(
@@ -362,6 +419,97 @@ describe("RealtimeReaders.buildProps", () => {
       tenantId: new ObjectID(PROJECT),
     });
     expect(global).not.toHaveBeenCalled();
+
+    // Read from the account, as OneUptime.
+    const asked: {
+      id: ObjectID;
+      select: Record<string, boolean>;
+      props: DatabaseCommonInteractionProps;
+    } = user.mock.calls[0]![0] as {
+      id: ObjectID;
+      select: Record<string, boolean>;
+      props: DatabaseCommonInteractionProps;
+    };
+    expect(asked.id.toString()).toBe(USER);
+    expect(asked.select).toEqual({ isMasterAdmin: true });
+    expect(asked.props.isRoot).toBe(true);
+  });
+
+  test("someone who is no longer a server admin reads as the member they are", async () => {
+    jest.spyOn(UserService, "findOneById").mockResolvedValue(account(false));
+    jest
+      .spyOn(AccessTokenService, "getUserGlobalAccessPermission")
+      .mockResolvedValue(globalPermission);
+    jest
+      .spyOn(AccessTokenService, "getUserTenantAccessPermission")
+      .mockResolvedValue(tenantPermission(PROJECT));
+    jest
+      .spyOn(TeamMemberService, "getTeamIdsForUser")
+      .mockResolvedValue([new ObjectID(TEAM)]);
+
+    const props: DatabaseCommonInteractionProps | null =
+      await RealtimeReaders.buildProps(
+        { userId: USER, isMasterAdmin: true },
+        PROJECT,
+      );
+
+    expect(props?.userType).toBe(UserType.User);
+    expect(props?.isMasterAdmin).toBeUndefined();
+    expect(props?.userTenantAccessPermission).toEqual({
+      [PROJECT]: tenantPermission(PROJECT),
+    });
+  });
+
+  test("someone who is no longer a server admin, nor a member of the project, reads nothing there", async () => {
+    jest.spyOn(UserService, "findOneById").mockResolvedValue(null);
+    jest
+      .spyOn(AccessTokenService, "getUserGlobalAccessPermission")
+      .mockResolvedValue(globalPermission);
+    jest
+      .spyOn(AccessTokenService, "getUserTenantAccessPermission")
+      .mockResolvedValue(null);
+    jest.spyOn(TeamMemberService, "getTeamIdsForUser").mockResolvedValue([]);
+
+    await expect(
+      RealtimeReaders.buildProps(
+        { userId: USER, isMasterAdmin: true },
+        PROJECT,
+      ),
+    ).resolves.toBeNull();
+  });
+
+  test.each([
+    ["a member", false],
+    ["a server admin", true],
+  ])(
+    "%s who is blocked reads nothing, with no other lookup",
+    async (_who: string, isMasterAdmin: boolean) => {
+      blocked.mockResolvedValue(true);
+      const user: jest.SpyInstance = jest.spyOn(UserService, "findOneById");
+      const tenant: jest.SpyInstance = jest.spyOn(
+        AccessTokenService,
+        "getUserTenantAccessPermission",
+      );
+
+      await expect(
+        RealtimeReaders.buildProps(
+          { userId: USER, isMasterAdmin: isMasterAdmin },
+          PROJECT,
+        ),
+      ).resolves.toBeNull();
+
+      expect(blocked.mock.calls[0]![0]!.toString()).toBe(USER);
+      expect(user).not.toHaveBeenCalled();
+      expect(tenant).not.toHaveBeenCalled();
+    },
+  );
+
+  test("whether someone is blocked cannot be told: the lookup fails rather than reads as not blocked", async () => {
+    blocked.mockRejectedValue(new Error("The database is not answering"));
+
+    await expect(RealtimeReaders.buildProps(person, PROJECT)).rejects.toThrow(
+      "The database is not answering",
+    );
   });
 
   test("permissions that cannot be read make the lookup fail rather than read as nothing held", async () => {
@@ -376,5 +524,87 @@ describe("RealtimeReaders.buildProps", () => {
     await expect(RealtimeReaders.buildProps(person, PROJECT)).rejects.toThrow(
       "Redis is down",
     );
+  });
+});
+
+/*
+ * Building an entry reads the person's permissions through the permission
+ * cache. When the cache has nothing, AccessTokenService fills it as it
+ * reads - which is not a change of permissions, so the entry being built
+ * is kept, and the next event is answered from it rather than from the
+ * database again. A real change still forgets it.
+ */
+describe("an entry built while the permission cache is empty", () => {
+  let teamRows: jest.SpyInstance;
+
+  function member(teamId: string): TeamMember {
+    const row: TeamMember = new TeamMember();
+    row.teamId = new ObjectID(teamId);
+    return row;
+  }
+
+  beforeEach(() => {
+    RealtimeReaders.clear();
+    jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(false);
+    jest
+      .spyOn(UserPermissionUtil, "getUserGlobalAccessPermissionFromCache")
+      .mockResolvedValue(null);
+    jest
+      .spyOn(UserPermissionUtil, "getUserTenantAccessPermissionFromCache")
+      .mockResolvedValue(null);
+    jest.spyOn(GlobalCache, "setJSON").mockResolvedValue(undefined);
+    jest.spyOn(GlobalCache, "deleteKey").mockResolvedValue(undefined);
+    jest.spyOn(TeamMemberService, "findAllBy").mockResolvedValue([]);
+    jest.spyOn(TeamMemberService, "getTeamIdsForUser").mockResolvedValue([]);
+    jest.spyOn(TeamPermissionService, "findBy").mockResolvedValue([]);
+    teamRows = jest.spyOn(TeamMemberService, "findBy").mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    RealtimeReaders.clear();
+  });
+
+  test("someone who is not a member: read once, then answered from the entry", async () => {
+    await expect(
+      RealtimeReaders.getReader(person, PROJECT),
+    ).resolves.toBeNull();
+    await expect(
+      RealtimeReaders.getReader(person, PROJECT),
+    ).resolves.toBeNull();
+
+    expect(teamRows).toHaveBeenCalledTimes(1);
+    expect(RealtimeReaders.size()).toBe(1);
+  });
+
+  test("a member: read once, then answered from the entry", async () => {
+    teamRows.mockResolvedValue([member(TEAM)]);
+
+    const first: RealtimeReader | null = await RealtimeReaders.getReader(
+      person,
+      PROJECT,
+    );
+    const second: RealtimeReader | null = await RealtimeReaders.getReader(
+      person,
+      PROJECT,
+    );
+
+    expect(first).not.toBeNull();
+    expect(second).toBe(first);
+    expect(teamRows).toHaveBeenCalledTimes(1);
+  });
+
+  test("a change of their permissions still forgets the entry at once", async () => {
+    teamRows.mockResolvedValue([member(TEAM)]);
+    await RealtimeReaders.getReader(person, PROJECT);
+    expect(RealtimeReaders.size()).toBe(1);
+
+    // A team joined, left or changed: the refresh that follows.
+    await AccessTokenService.refreshUserTenantAccessPermission(
+      new ObjectID(USER),
+      new ObjectID(PROJECT),
+    );
+
+    expect(RealtimeReaders.size()).toBe(0);
   });
 });

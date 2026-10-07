@@ -5,6 +5,7 @@ import {
   NO_READER_ACCESS,
   RealtimeReadAccess,
   RealtimeReader,
+  readableByEither,
 } from "../../../../Server/Utils/Realtime/RealtimeReadAccess";
 import logger from "../../../../Server/Utils/Logger";
 import Alert from "../../../../Models/DatabaseModels/Alert";
@@ -766,6 +767,142 @@ describe("Realtime: a record's live update reaches only people who may read it",
     expect(owner.received).toEqual([]);
   });
 
+  describe("update events: who could read a record before the write hears about it too", () => {
+    test("someone the update takes the record away from hears about it; someone who could read it neither before nor after does not", async () => {
+      const access: FakeReadAccess = new FakeReadAccess();
+      // Before the write: the Labels reader may read the record...
+      access.readableByUser.set(LABELS_READER, new Set([RECORD_A]));
+      access.readableByUser.set(OWNED_READER, new Set());
+
+      const room: string = roomOf("Incident", ModelEventType.Update);
+      const labels: FakeSocket = server.addSocket({
+        rooms: [room],
+        userId: LABELS_READER,
+      });
+      const owned: FakeSocket = server.addSocket({
+        rooms: [room],
+        userId: OWNED_READER,
+      });
+
+      const beforeUpdate: RealtimeReadAccess =
+        await Realtime.snapshotReadAccess({
+          tenantId: TENANT_ID,
+          modelType: Incident,
+          modelIds: [new ObjectID(RECORD_A)],
+          access: access,
+          eventType: ModelEventType.Update,
+        });
+
+      // ...the write takes its label off: now nobody of them may.
+      access.readableByUser.set(LABELS_READER, new Set());
+
+      await emit(readableByEither(access, beforeUpdate), RECORD_A);
+      await Realtime.waitForPendingDeliveries();
+
+      expect(modelIdsReceived(labels, room)).toEqual([RECORD_A]);
+      expect(owned.received).toEqual([]);
+    });
+
+    test("someone the update gives the record to hears about it from the read after the write", async () => {
+      const access: FakeReadAccess = new FakeReadAccess();
+      access.readableByUser.set(LABELS_READER, new Set());
+
+      const room: string = roomOf("Incident", ModelEventType.Update);
+      const labels: FakeSocket = server.addSocket({
+        rooms: [room],
+        userId: LABELS_READER,
+      });
+
+      const beforeUpdate: RealtimeReadAccess =
+        await Realtime.snapshotReadAccess({
+          tenantId: TENANT_ID,
+          modelType: Incident,
+          modelIds: [new ObjectID(RECORD_A)],
+          access: access,
+          eventType: ModelEventType.Update,
+        });
+
+      // Nobody could read it before: nothing is kept from then.
+      expect(beforeUpdate).toBe(NO_READER_ACCESS);
+
+      access.readableByUser.set(LABELS_READER, new Set([RECORD_A]));
+
+      await emit(readableByEither(access, beforeUpdate), RECORD_A);
+      await Realtime.waitForPendingDeliveries();
+
+      expect(modelIdsReceived(labels, room)).toEqual([RECORD_A]);
+    });
+
+    test("only the listeners the write may change the read of are asked before it", async () => {
+      const access: FakeReadAccess = new FakeReadAccess();
+      access.readableByUser.set(LABELS_READER, new Set([RECORD_A]));
+      access.readableByUser.set(OWNED_READER, new Set([RECORD_A]));
+
+      const room: string = roomOf("Incident", ModelEventType.Update);
+      server.addSocket({ rooms: [room], userId: LABELS_READER });
+      server.addSocket({ rooms: [room], userId: OWNED_READER });
+
+      const asked: Array<string> = [];
+
+      await Realtime.snapshotReadAccess({
+        tenantId: TENANT_ID,
+        modelType: Incident,
+        modelIds: [new ObjectID(RECORD_A)],
+        access: access,
+        eventType: ModelEventType.Update,
+        onlyFor: async (reader: RealtimeReader): Promise<boolean> => {
+          const userId: string = reader.props.userId!.toString();
+          asked.push(userId);
+          return userId === LABELS_READER;
+        },
+      });
+
+      expect(asked.sort()).toEqual([LABELS_READER, OWNED_READER].sort());
+      expect(
+        access.reads.map((read: { userId: string }): string => {
+          return read.userId;
+        }),
+      ).toEqual([LABELS_READER]);
+      expect(access.everyRecordQuestions).toEqual([LABELS_READER]);
+    });
+
+    test("the listeners for updates, and in the record's own room, are asked - not those of other kinds", async () => {
+      const access: FakeReadAccess = new FakeReadAccess();
+      access.readableByUser.set(LABELS_READER, new Set([RECORD_A]));
+      access.readableByUser.set(OWNED_READER, new Set([RECORD_A]));
+      access.readableByUser.set(BLOCKED_READER, new Set([RECORD_A]));
+
+      server.addSocket({
+        rooms: [roomOf("Incident", ModelEventType.Update)],
+        userId: LABELS_READER,
+      });
+      server.addSocket({
+        rooms: [recordRoomOf("Incident", RECORD_A)],
+        userId: OWNED_READER,
+      });
+      server.addSocket({
+        rooms: [roomOf("Incident", ModelEventType.Delete)],
+        userId: BLOCKED_READER,
+      });
+
+      await Realtime.snapshotReadAccess({
+        tenantId: TENANT_ID,
+        modelType: Incident,
+        modelIds: [new ObjectID(RECORD_A)],
+        access: access,
+        eventType: ModelEventType.Update,
+      });
+
+      expect(
+        access.reads
+          .map((read: { userId: string }): string => {
+            return read.userId;
+          })
+          .sort(),
+      ).toEqual([LABELS_READER, OWNED_READER].sort());
+    });
+  });
+
   describe("delete events: decided while the records can still be read", () => {
     test("the people listening now hear about the records they could read, from what was decided then", async () => {
       const access: FakeReadAccess = new FakeReadAccess();
@@ -879,10 +1016,10 @@ describe("Realtime: a record's live update reaches only people who may read it",
         .spyOn(logger, "warn")
         .mockImplementation((): void => {});
 
-      const timeouts: { DELETE_DECISION_TIMEOUT_IN_MS: number } =
-        Realtime as unknown as { DELETE_DECISION_TIMEOUT_IN_MS: number };
-      const timeout: number = timeouts.DELETE_DECISION_TIMEOUT_IN_MS;
-      timeouts.DELETE_DECISION_TIMEOUT_IN_MS = 20;
+      const timeouts: { BEFORE_WRITE_DECISION_TIMEOUT_IN_MS: number } =
+        Realtime as unknown as { BEFORE_WRITE_DECISION_TIMEOUT_IN_MS: number };
+      const timeout: number = timeouts.BEFORE_WRITE_DECISION_TIMEOUT_IN_MS;
+      timeouts.BEFORE_WRITE_DECISION_TIMEOUT_IN_MS = 20;
 
       try {
         const owner: FakeSocket = server.addSocket({
@@ -920,7 +1057,7 @@ describe("Realtime: a record's live update reaches only people who may read it",
 
         expect(owner.received).toEqual([]);
       } finally {
-        timeouts.DELETE_DECISION_TIMEOUT_IN_MS = timeout;
+        timeouts.BEFORE_WRITE_DECISION_TIMEOUT_IN_MS = timeout;
         answer(false);
       }
     });
@@ -966,6 +1103,93 @@ describe("Realtime: a record's live update reaches only people who may read it",
       expect(beforeDelete).toBe(NO_READER_ACCESS);
       expect(access.everyRecordQuestions).toEqual([]);
       expect(access.reads).toEqual([]);
+    });
+
+    test("finding the listeners counts against the time too", async () => {
+      const access: FakeReadAccess = new FakeReadAccess();
+      access.everyRecordReaders.add(OWNER);
+      jest.spyOn(logger, "warn").mockImplementation((): void => {});
+
+      const timeouts: { BEFORE_WRITE_DECISION_TIMEOUT_IN_MS: number } =
+        Realtime as unknown as { BEFORE_WRITE_DECISION_TIMEOUT_IN_MS: number };
+      const timeout: number = timeouts.BEFORE_WRITE_DECISION_TIMEOUT_IN_MS;
+      timeouts.BEFORE_WRITE_DECISION_TIMEOUT_IN_MS = 20;
+
+      // The sockets of the room never come back.
+      let answer: (sockets: Array<FakeSocket>) => void = (): void => {};
+      const fetchOf: jest.SpyInstance = jest
+        .spyOn(server, "in")
+        .mockImplementation(() => {
+          return {
+            fetchSockets: (): Promise<Array<FakeSocket>> => {
+              return new Promise<Array<FakeSocket>>(
+                (resolve: (sockets: Array<FakeSocket>) => void): void => {
+                  answer = resolve;
+                },
+              );
+            },
+          };
+        });
+
+      try {
+        const startedAt: number = Date.now();
+
+        const beforeDelete: RealtimeReadAccess =
+          await Realtime.snapshotReadAccess({
+            tenantId: TENANT_ID,
+            modelType: Incident,
+            modelIds: [new ObjectID(RECORD_A)],
+            access: access,
+          });
+
+        expect(Date.now() - startedAt).toBeLessThan(2000);
+        expect(beforeDelete).toBe(NO_READER_ACCESS);
+        expect(fetchOf).toHaveBeenCalled();
+      } finally {
+        timeouts.BEFORE_WRITE_DECISION_TIMEOUT_IN_MS = timeout;
+        answer([]);
+      }
+    });
+
+    test("listeners who could read none of the rows: nothing is kept for them", async () => {
+      const access: FakeReadAccess = new FakeReadAccess();
+      access.readableByUser.set(LABELS_READER, new Set());
+
+      server.addSocket({
+        rooms: [roomOf("Incident", ModelEventType.Delete)],
+        userId: LABELS_READER,
+      });
+
+      const beforeDelete: RealtimeReadAccess =
+        await Realtime.snapshotReadAccess({
+          tenantId: TENANT_ID,
+          modelType: Incident,
+          modelIds: [new ObjectID(RECORD_A)],
+          access: access,
+        });
+
+      expect(access.reads).toHaveLength(1);
+      expect(beforeDelete).toBe(NO_READER_ACCESS);
+    });
+
+    test("what was decided is answered from memory: delivering it takes no read slot", async () => {
+      const access: FakeReadAccess = new FakeReadAccess();
+      access.everyRecordReaders.add(OWNER);
+
+      server.addSocket({
+        rooms: [roomOf("Incident", ModelEventType.Delete)],
+        userId: OWNER,
+      });
+
+      const beforeDelete: RealtimeReadAccess =
+        await Realtime.snapshotReadAccess({
+          tenantId: TENANT_ID,
+          modelType: Incident,
+          modelIds: [new ObjectID(RECORD_A)],
+          access: access,
+        });
+
+      expect(beforeDelete.answersWithoutReading).toBe(true);
     });
 
     test("an access that reads nothing sends nothing", async () => {

@@ -92,11 +92,14 @@ export default abstract class Realtime {
   public static readonly MAX_WAITING_EVENTS: number = 5000;
 
   /*
-   * The longest a delete waits for the decision of who may hear about it
-   * (snapshotReadAccess). Past it the delete goes ahead and nobody hears
-   * about those rows: a delete never waits long on live updates.
+   * The longest a write waits for the decision of who could read its rows
+   * before it (snapshotReadAccess): a delete, or an update that may change
+   * who reads them. Past it the write goes ahead without that decision -
+   * nobody hears about the deleted rows, and an update is heard by those
+   * who can read the rows after it - so a write never waits long on live
+   * updates.
    */
-  public static readonly DELETE_DECISION_TIMEOUT_IN_MS: number = 5000;
+  public static readonly BEFORE_WRITE_DECISION_TIMEOUT_IN_MS: number = 5000;
 
   private static pendingEvents: Map<string, PendingModelEvents> = new Map<
     string,
@@ -540,12 +543,18 @@ export default abstract class Realtime {
   }
 
   /*
-   * Who may hear that these records are gone, decided while they are still
-   * there: a delete event is sent once the rows are deleted, when no read
-   * can find them any more. Returns an access that answers from what was
-   * decided now - for the people listening now; anyone who starts listening
-   * later never knew the records and hears nothing about them. Never throws:
-   * when the answer cannot be worked out, nobody hears about them.
+   * Who could read these records before a write, decided while the write
+   * has not happened yet: a delete event is sent once the rows are gone,
+   * when no read can find them any more, and an update can take a record
+   * away from someone who could read it a moment ago. Returns an access
+   * that answers from what was decided now - for the people listening now
+   * for `eventType` (a delete by default) or in the records' own rooms;
+   * anyone who starts listening later hears nothing on its account.
+   *
+   * `onlyFor` picks the listeners worth asking (see RealtimeAudience). The
+   * whole decision - finding the listeners too - takes at most
+   * BEFORE_WRITE_DECISION_TIMEOUT_IN_MS. Never throws: an answer that
+   * cannot be worked out, or not in time, adds nobody (NO_READER_ACCESS).
    */
   @CaptureSpan()
   public static async snapshotReadAccess(data: {
@@ -553,6 +562,8 @@ export default abstract class Realtime {
     modelType: { new (): BaseModel | AnalyticsBaseModel };
     modelIds: Array<ObjectID>;
     access: RealtimeReadAccess;
+    eventType?: ModelEventType | undefined;
+    onlyFor?: ((reader: RealtimeReader) => Promise<boolean>) | undefined;
   }): Promise<RealtimeReadAccess> {
     const tenantId: string = data.tenantId.toString();
     const tableName: string | null = new data.modelType().tableName;
@@ -561,57 +572,50 @@ export default abstract class Realtime {
       return NO_READER_ACCESS;
     }
 
+    const deadlineMs: number =
+      Date.now() + this.BEFORE_WRITE_DECISION_TIMEOUT_IN_MS;
+    let timer: ReturnType<typeof setTimeout> | undefined = undefined;
+
     try {
-      const modelIds: Array<string> = data.modelIds.map((id: ObjectID) => {
-        return id.toString();
-      });
-
-      const listening: Array<ListeningSocket> =
-        await this.fetchListeningSockets([
-          RealtimeUtil.getRoomId(tenantId, tableName, ModelEventType.Delete),
-          ...modelIds.map((modelId: string): string => {
-            return RealtimeUtil.getRoomId(
-              tenantId,
-              tableName,
-              ModelEventType.Create,
-              modelId,
-            );
-          }),
-        ]);
-
-      if (listening.length === 0) {
-        return NO_READER_ACCESS;
-      }
-
-      let timer: ReturnType<typeof setTimeout> | undefined = undefined;
-
       const readable: Map<string, Set<string>> | null = await Promise.race([
-        RealtimeAudience.getReadableIds({
+        this.decideReadableBeforeWrite({
           tenantId: tenantId,
+          tableName: tableName,
+          eventType: data.eventType || ModelEventType.Delete,
+          modelIds: data.modelIds.map((id: ObjectID): string => {
+            return id.toString();
+          }),
           access: data.access,
-          readers: this.getReadersOfSockets(listening),
-          modelIds: modelIds,
+          onlyFor: data.onlyFor,
+          deadlineMs: deadlineMs,
         }),
         new Promise<null>((resolve: (value: null) => void): void => {
           timer = setTimeout((): void => {
             resolve(null);
-          }, this.DELETE_DECISION_TIMEOUT_IN_MS);
+          }, this.BEFORE_WRITE_DECISION_TIMEOUT_IN_MS);
         }),
-      ]).finally((): void => {
-        if (timer) {
-          clearTimeout(timer);
-        }
-      });
+      ]);
 
       if (!readable) {
         logger.warn(
-          `Realtime: who may hear about deleted ${tableName} records could not be decided in time; nobody is told.`,
+          `Realtime: who could read these ${tableName} records before the write could not be decided in time; the write goes ahead without it.`,
           { projectId: tenantId } as LogAttributes,
         );
         return NO_READER_ACCESS;
       }
 
+      const anyoneReads: boolean = Array.from(readable.values()).some(
+        (ids: Set<string>): boolean => {
+          return ids.size > 0;
+        },
+      );
+
+      if (!anyoneReads) {
+        return NO_READER_ACCESS;
+      }
+
       return {
+        answersWithoutReading: true,
         readsEveryRecord: async (): Promise<boolean> => {
           return false;
         },
@@ -619,9 +623,11 @@ export default abstract class Realtime {
           reader: RealtimeReader,
           ids: Array<ObjectID>,
         ): Promise<Array<string>> => {
-          const readableNow: Set<string> | undefined = readable.get(reader.key);
+          const readableThen: Set<string> | undefined = readable.get(
+            reader.key,
+          );
 
-          if (!readableNow) {
+          if (!readableThen) {
             return [];
           }
 
@@ -630,14 +636,54 @@ export default abstract class Realtime {
               return normalizeRealtimeId(id);
             })
             .filter((id: string): boolean => {
-              return readableNow.has(id);
+              return readableThen.has(id);
             });
         },
       };
     } catch (err) {
       logger.error(err, { projectId: tenantId });
       return NO_READER_ACCESS;
+    } finally {
+      if (timer) {
+        clearTimeout(timer);
+      }
     }
+  }
+
+  // The listeners for these records now, and which of them each may read.
+  private static async decideReadableBeforeWrite(data: {
+    tenantId: string;
+    tableName: string;
+    eventType: ModelEventType;
+    modelIds: Array<string>;
+    access: RealtimeReadAccess;
+    onlyFor?: ((reader: RealtimeReader) => Promise<boolean>) | undefined;
+    deadlineMs: number;
+  }): Promise<Map<string, Set<string>>> {
+    const listening: Array<ListeningSocket> = await this.fetchListeningSockets([
+      RealtimeUtil.getRoomId(data.tenantId, data.tableName, data.eventType),
+      ...data.modelIds.map((modelId: string): string => {
+        return RealtimeUtil.getRoomId(
+          data.tenantId,
+          data.tableName,
+          ModelEventType.Create,
+          modelId,
+        );
+      }),
+    ]);
+
+    if (listening.length === 0) {
+      return new Map<string, Set<string>>();
+    }
+
+    return await RealtimeAudience.getReadableIds({
+      tenantId: data.tenantId,
+      access: data.access,
+      readers: this.getReadersOfSockets(listening),
+      modelIds: data.modelIds,
+      onlyFor: data.onlyFor,
+      deadlineMs: data.deadlineMs,
+    });
   }
 
   /*

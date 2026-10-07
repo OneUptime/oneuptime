@@ -245,9 +245,73 @@ describe("every live update goes through the one check", () => {
       path.join(COMMON_SERVER, "Services/AnalyticsDatabaseService.ts"),
       "utf8",
     );
-    expect(analytics).toMatch(
-      /const access: RealtimeReadAccess = this\.getRealtimeReadAccess\(items\);/,
+    const remembered: number = analytics.indexOf(
+      "this.rememberRealtimeRows(items);",
     );
+    const emitted: number = analytics.indexOf("Realtime.emitModelEvent({");
+
+    // The rows' resources are noted before their events are queued...
+    expect(remembered).toBeGreaterThan(0);
+    expect(emitted).toBeGreaterThan(remembered);
+    // ...with the one access of the service, so every insert merges.
+    expect(analytics).toMatch(/access: this\.getRealtimeReadAccess\(\),/);
+  });
+
+  test("an update event carries who could read the rows before the write, when it may change that", () => {
+    const database: string = fs.readFileSync(
+      path.join(COMMON_SERVER, "Services/DatabaseService.ts"),
+      "utf8",
+    );
+
+    const updates: Array<string> =
+      database.match(
+        /onTriggerRealtime\(([^;]*?ModelEventType\.Update[^;]*?)\);/g,
+      ) || [];
+
+    expect(updates).toHaveLength(1);
+    expect(updates[0]).toMatch(/access:\s*\n?\s*realtimeUpdateAccess\.get\(/);
+
+    // Decided before the first row is written.
+    const decided: number = database.indexOf(
+      "await this.getRealtimeAccessBeforeUpdate(",
+    );
+    const updateBy: number = database.indexOf(
+      "private async _updateBy(updateBy: UpdateBy<TBaseModel>)",
+    );
+    const firstWrite: number = database.indexOf(
+      "await this.getRepository().save(savedItem);",
+      updateBy,
+    );
+
+    expect(updateBy).toBeGreaterThan(0);
+    expect(decided).toBeGreaterThan(updateBy);
+    expect(firstWrite).toBeGreaterThan(decided);
+  });
+
+  test("anywhere else, an event is decided by the service's own read: no access of its own is handed over", () => {
+    const callers: Array<string> = [];
+
+    for (const file of files) {
+      if (file.endsWith(path.join("Services", "DatabaseService.ts"))) {
+        continue;
+      }
+
+      const source: string = fs.readFileSync(file, "utf8");
+      const pattern: RegExp = /\.onTriggerRealtime\(([^;]*?)\);/g;
+      let match: RegExpExecArray | null = pattern.exec(source);
+
+      while (match) {
+        callers.push(relative(file));
+        // The record, its project and the kind of event - nothing more.
+        expect([relative(file), match[1]!]).toEqual([
+          relative(file),
+          expect.not.stringMatching(/access/),
+        ]);
+        match = pattern.exec(source);
+      }
+    }
+
+    expect(callers.length).toBeGreaterThan(0);
   });
 
   test("a delete event carries who could read the rows before they went", () => {
@@ -379,7 +443,7 @@ describe("every model that sends live updates is read the way its service reads 
     ) => {
       await expect(
         service
-          .getRealtimeReadAccess([])
+          .getRealtimeReadAccess()
           .readsEveryRecord(readerOf(SERVER_ADMIN)),
       ).resolves.toBe(true);
     },

@@ -1,5 +1,7 @@
 import DatabaseService from "../../../Server/Services/DatabaseService";
-import IncidentService from "../../../Server/Services/IncidentService";
+import IncidentService, {
+  Service as IncidentServiceClass,
+} from "../../../Server/Services/IncidentService";
 import AlertService from "../../../Server/Services/AlertService";
 import ServiceLevelObjectiveService from "../../../Server/Services/ServiceLevelObjectiveService";
 import AIRunEventService from "../../../Server/Services/AIRunEventService";
@@ -16,6 +18,7 @@ import {
 import PublishedImages from "../../../Server/Utils/File/PublishedImages";
 import StatusPageOverviewCache from "../../../Server/Utils/StatusPage/StatusPageOverviewCache";
 import FindBy from "../../../Server/Types/Database/FindBy";
+import QueryUtil from "../../../Server/Types/Database/QueryUtil";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Label from "../../../Models/DatabaseModels/Label";
@@ -124,6 +127,35 @@ function readerWith(props: DatabaseCommonInteractionProps): RealtimeReader {
 }
 
 type AnyService = DatabaseService<BaseModel>;
+
+/*
+ * The table linking rows to their labels, as Postgres's metadata names it.
+ * A block with labels is a condition on that table; without a database the
+ * metadata is not there, and the read is refused rather than let through.
+ */
+function withLabelLinks(): void {
+  const original: typeof QueryUtil.getManyToManyRelationMetadata =
+    QueryUtil.getManyToManyRelationMetadata.bind(QueryUtil);
+
+  jest
+    .spyOn(QueryUtil, "getManyToManyRelationMetadata")
+    .mockImplementation(
+      (
+        modelType: { new (): BaseModel },
+        propertyPath: string,
+      ): ReturnType<typeof QueryUtil.getManyToManyRelationMetadata> => {
+        if (propertyPath !== "labels") {
+          return original(modelType, propertyPath);
+        }
+
+        return {
+          joinTableName: `${new modelType().tableName}Label`,
+          ownerColumnName: "ownerId",
+          relationColumnName: "labelId",
+        };
+      },
+    );
+}
 
 describe("DatabaseService.readsEveryRecordInProject", () => {
   afterEach(() => {
@@ -647,5 +679,402 @@ describe("deleting records: who may hear about it is decided before the rows go"
 
     expect(snapshot).not.toHaveBeenCalled();
     expect(order).toEqual(["delete"]);
+  });
+});
+
+describe("DatabaseService.getColumnsNarrowingReadOf", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("someone who reads every record: nothing narrows their read", async () => {
+    await expect(
+      IncidentService.getColumnsNarrowingReadOf(
+        propsWith([{ permission: Permission.ProjectOwner }]),
+      ),
+    ).resolves.toEqual([]);
+  });
+
+  test("a member: private incidents narrow their read by the private switch", async () => {
+    await expect(
+      IncidentService.getColumnsNarrowingReadOf(
+        propsWith([
+          { permission: Permission.ProjectMember, scope: PermissionScope.All },
+        ]),
+      ),
+    ).resolves.toEqual(["isPrivate"]);
+  });
+
+  test("a grant for some labels narrows the read by the labels", async () => {
+    await expect(
+      ServiceLevelObjectiveService.getColumnsNarrowingReadOf(
+        propsWith([
+          {
+            permission: Permission.ProjectMember,
+            labelIds: [LABEL_ID],
+            scope: PermissionScope.Labels,
+          },
+        ]),
+      ),
+    ).resolves.toContain("labels");
+  });
+
+  test("a block with labels narrows the read by a condition on the row itself", async () => {
+    withLabelLinks();
+
+    await expect(
+      ServiceLevelObjectiveService.getColumnsNarrowingReadOf(
+        propsWith([
+          { permission: Permission.ProjectMember, scope: PermissionScope.All },
+          {
+            permission: Permission.ProjectMember,
+            labelIds: [LABEL_ID],
+            isBlockPermission: true,
+          },
+        ]),
+      ),
+    ).resolves.toContain("_id");
+  });
+
+  test("a refused read, or props across projects, cannot be told apart", async () => {
+    await expect(
+      IncidentService.getColumnsNarrowingReadOf(
+        propsWith([{ permission: Permission.ManageProjectBilling }]),
+      ),
+    ).resolves.toBeNull();
+    await expect(
+      IncidentService.getColumnsNarrowingReadOf({
+        ...propsWith([{ permission: Permission.ProjectOwner }]),
+        isMultiTenantRequest: true,
+      }),
+    ).resolves.toBeNull();
+  });
+});
+
+describe("updating records: who could read them before the write hears about it too", () => {
+  const RECORD_A: string = "a0000000-0000-4000-8000-00000000000a";
+
+  const MEMBER: DatabaseCommonInteractionProps = propsWith([
+    { permission: Permission.ProjectMember, scope: PermissionScope.All },
+  ]);
+  const OWNER: DatabaseCommonInteractionProps = propsWith([
+    { permission: Permission.ProjectOwner },
+  ]);
+  const BLOCKED: DatabaseCommonInteractionProps = propsWith([
+    { permission: Permission.ProjectOwner },
+    {
+      permission: Permission.ProjectOwner,
+      labelIds: [LABEL_ID],
+      isBlockPermission: true,
+    },
+  ]);
+
+  type SnapshotAsked = {
+    tenantId: string;
+    modelType: unknown;
+    modelIds: Array<ObjectID>;
+    access: RealtimeReadAccess;
+    eventType: ModelEventType;
+    onlyFor: (reader: RealtimeReader) => Promise<boolean>;
+  };
+
+  let service: DatabaseService<Incident>;
+  let order: Array<string>;
+  let decided: RealtimeReadAccess;
+  let snapshot: jest.SpyInstance;
+
+  beforeEach(() => {
+    order = [];
+    RealtimeReaders.clear();
+
+    withLabelLinks();
+
+    // The real service: its read hook keeps private incidents to their owners.
+    service = new IncidentServiceClass();
+    const table: ReturnType<typeof useInMemoryTable> = useInMemoryTable(
+      service as unknown as DatabaseService<BaseModel>,
+      [{ _id: RECORD_A, projectId: PROJECT_ID.toString(), isPrivate: false }],
+    );
+
+    const write: jest.SpyInstance = table.repository
+      .update as unknown as jest.SpyInstance;
+    const writeRows: (where: unknown, set: unknown) => Promise<unknown> =
+      write.getMockImplementation() as (
+        where: unknown,
+        set: unknown,
+      ) => Promise<unknown>;
+    write.mockImplementation(
+      async (where: unknown, set: unknown): Promise<unknown> => {
+        order.push("write");
+        return await writeRows(where, set);
+      },
+    );
+
+    jest.spyOn(PublishedImages, "afterUpdate").mockResolvedValue(undefined);
+    jest
+      .spyOn(StatusPageOverviewCache, "afterUpdate")
+      .mockResolvedValue(undefined);
+    jest.spyOn(AuditLogService, "recordUpdate").mockResolvedValue(undefined);
+
+    decided = {
+      answersWithoutReading: true,
+      readsEveryRecord: async (): Promise<boolean> => {
+        return false;
+      },
+      getReadableIds: async (
+        reader: RealtimeReader,
+        modelIds: Array<ObjectID>,
+      ): Promise<Array<string>> => {
+        return reader.key === "could-read-before"
+          ? modelIds.map((id: ObjectID): string => {
+              return id.toString();
+            })
+          : [];
+      },
+    };
+
+    snapshot = jest
+      .spyOn(Realtime, "snapshotReadAccess")
+      .mockImplementation(async (): Promise<RealtimeReadAccess> => {
+        order.push("decide");
+        return decided;
+      });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  async function update(data: Record<string, unknown>): Promise<void> {
+    await service.updateBy({
+      query: { projectId: PROJECT_ID },
+      data: data as never,
+      limit: 10,
+      skip: 0,
+      props: { isRoot: true, ignoreHooks: true },
+    });
+  }
+
+  function askedOf(call: number = 0): SnapshotAsked {
+    return snapshot.mock.calls[call]![0] as SnapshotAsked;
+  }
+
+  function accessOfEvents(): Array<RealtimeReadAccess | undefined> {
+    return (
+      service.onTriggerRealtime as unknown as jest.SpyInstance
+    ).mock.calls.map((call: Array<unknown>): RealtimeReadAccess | undefined => {
+      expect(call[2]).toBe(ModelEventType.Update);
+      return (call[3] as { access?: RealtimeReadAccess } | undefined)?.access;
+    });
+  }
+
+  test("it is decided before the write, for the update's listeners and the rows written", async () => {
+    jest.spyOn(Realtime, "isInitialized").mockReturnValue(true);
+
+    await update({ isPrivate: true });
+
+    expect(order).toEqual(["decide", "write"]);
+    expect(snapshot).toHaveBeenCalledTimes(1);
+
+    const asked: SnapshotAsked = askedOf();
+    expect(asked.tenantId).toBe(PROJECT_ID.toString());
+    expect(asked.modelType).toBe(Incident);
+    expect(asked.eventType).toBe(ModelEventType.Update);
+    expect(asked.access).toBe(service.getRealtimeReadAccess());
+    expect(
+      asked.modelIds.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    ).toEqual([RECORD_A]);
+  });
+
+  test("the update events carry both: who can read the row now, and who could before", async () => {
+    jest.spyOn(Realtime, "isInitialized").mockReturnValue(true);
+    const now: jest.SpyInstance = jest
+      .spyOn(service.getRealtimeReadAccess(), "getReadableIds")
+      .mockResolvedValue([]);
+
+    await update({ isPrivate: true });
+
+    const accesses: Array<RealtimeReadAccess | undefined> = accessOfEvents();
+    expect(accesses).toHaveLength(1);
+
+    const access: RealtimeReadAccess = accesses[0]!;
+    expect(access).not.toBe(service.getRealtimeReadAccess());
+
+    const before: RealtimeReader = readerWith(MEMBER);
+    before.key = "could-read-before";
+
+    await expect(
+      access.getReadableIds(before, [new ObjectID(RECORD_A)]),
+    ).resolves.toEqual([RECORD_A]);
+    await expect(
+      access.getReadableIds(readerWith(MEMBER), [new ObjectID(RECORD_A)]),
+    ).resolves.toEqual([]);
+    expect(now).toHaveBeenCalled();
+  });
+
+  test("nobody could read the rows before, among those asked: the events carry the service's own access", async () => {
+    jest.spyOn(Realtime, "isInitialized").mockReturnValue(true);
+    decided = NO_READER_ACCESS;
+
+    await update({ isPrivate: true });
+
+    expect(accessOfEvents()).toEqual([undefined]);
+  });
+
+  test.each([
+    [
+      "a member, when the private switch is written",
+      MEMBER,
+      { isPrivate: true },
+      true,
+    ],
+    [
+      "a member, when only the title is written",
+      MEMBER,
+      { title: "Renamed" },
+      false,
+    ],
+    [
+      "someone who reads every record, whatever is written",
+      OWNER,
+      { isPrivate: true },
+      false,
+    ],
+    [
+      "someone with a block with labels, when the labels are written",
+      BLOCKED,
+      { labels: [] },
+      true,
+    ],
+    [
+      "someone with a block with labels, when only the title is written",
+      BLOCKED,
+      { title: "Renamed" },
+      false,
+    ],
+  ] as Array<
+    [string, DatabaseCommonInteractionProps, Record<string, unknown>, boolean]
+  >)(
+    "only those whose read the write may change are asked: %s",
+    async (
+      _who: string,
+      props: DatabaseCommonInteractionProps,
+      data: Record<string, unknown>,
+      asked: boolean,
+    ) => {
+      jest.spyOn(Realtime, "isInitialized").mockReturnValue(true);
+
+      await update(data);
+
+      await expect(askedOf().onlyFor(readerWith(props))).resolves.toBe(asked);
+    },
+  );
+
+  test("Realtime not running here, or a model that sends no update events: nothing is decided", async () => {
+    jest.spyOn(Realtime, "isInitialized").mockReturnValue(false);
+
+    await update({ isPrivate: true });
+
+    expect(snapshot).not.toHaveBeenCalled();
+
+    jest.spyOn(Realtime, "isInitialized").mockReturnValue(true);
+    (
+      service.getModel() as unknown as { enableWorkflowOn: unknown }
+    ).enableWorkflowOn = { create: true, delete: true };
+
+    await update({ isPrivate: false });
+
+    expect(snapshot).not.toHaveBeenCalled();
+    expect(order).toEqual(["write", "write"]);
+  });
+});
+
+describe("deleting records sends delete events only with the delete workflow trigger", () => {
+  function deletableIncidents(
+    rows: Array<Record<string, unknown>>,
+  ): DatabaseService<Incident> {
+    const service: DatabaseService<Incident> = new DatabaseService<Incident>(
+      Incident,
+    );
+    useInMemoryTable(service as unknown as DatabaseService<BaseModel>, rows);
+    jest.spyOn(PublishedImages, "readCascadedRows").mockResolvedValue([]);
+    jest.spyOn(PublishedImages, "afterDelete").mockResolvedValue(undefined);
+    jest
+      .spyOn(StatusPageOverviewCache, "afterDelete")
+      .mockResolvedValue(undefined);
+    jest.spyOn(AuditLogService, "recordDelete").mockResolvedValue(undefined);
+    jest.spyOn(Realtime, "isInitialized").mockReturnValue(true);
+    return service;
+  }
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("so nothing is decided before a delete whose rows send no events", async () => {
+    const service: DatabaseService<Incident> = deletableIncidents([
+      {
+        _id: "a0000000-0000-4000-8000-00000000000a",
+        projectId: PROJECT_ID.toString(),
+      },
+    ]);
+    const snapshot: jest.SpyInstance = jest
+      .spyOn(Realtime, "snapshotReadAccess")
+      .mockResolvedValue(NO_READER_ACCESS);
+
+    (
+      service.getModel() as unknown as { enableWorkflowOn: unknown }
+    ).enableWorkflowOn = { create: true, update: true };
+
+    await service.deleteBy({
+      query: { projectId: PROJECT_ID },
+      limit: 10,
+      skip: 0,
+      props: { isRoot: true, ignoreHooks: true },
+    });
+
+    expect(snapshot).not.toHaveBeenCalled();
+    expect(
+      (service.onTriggerRealtime as unknown as jest.SpyInstance).mock.calls,
+    ).toEqual([]);
+  });
+
+  test("rows of several projects are decided at once, not one project after another", async () => {
+    const service: DatabaseService<Incident> = deletableIncidents([
+      {
+        _id: "a0000000-0000-4000-8000-00000000000a",
+        projectId: PROJECT_ID.toString(),
+      },
+      {
+        _id: "b0000000-0000-4000-8000-00000000000b",
+        projectId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      },
+    ]);
+
+    let inFlight: number = 0;
+    let mostAtOnce: number = 0;
+
+    jest
+      .spyOn(Realtime, "snapshotReadAccess")
+      .mockImplementation(async (): Promise<RealtimeReadAccess> => {
+        inFlight++;
+        mostAtOnce = Math.max(mostAtOnce, inFlight);
+        await new Promise<void>((resolve: () => void): void => {
+          setTimeout(resolve, 10);
+        });
+        inFlight--;
+        return NO_READER_ACCESS;
+      });
+
+    await service.deleteBy({
+      query: {},
+      limit: 10,
+      skip: 0,
+      props: { isRoot: true, ignoreHooks: true },
+    });
+
+    expect(mostAtOnce).toBe(2);
   });
 });

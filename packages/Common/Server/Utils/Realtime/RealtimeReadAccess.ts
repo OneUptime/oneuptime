@@ -32,6 +32,13 @@ export interface RealtimeReader {
 
 export interface RealtimeReadAccess {
   /*
+   * True when getReadableIds answers from what is already known - a
+   * decision taken earlier, rows held in memory - without reading the
+   * database. Such an answer takes no slot of the read limits
+   * (RealtimeAudience.READ_LIMITS), so it is never refused for want of one.
+   */
+  answersWithoutReading?: boolean | undefined;
+  /*
    * Whether the reader reads every record of the model in their project:
    * their read adds no condition beyond the project. Such a reader hears
    * about every record, as before, with no read per record.
@@ -49,6 +56,7 @@ export interface RealtimeReadAccess {
 
 // Reads nothing: for an event whose audience could not be worked out.
 export const NO_READER_ACCESS: RealtimeReadAccess = {
+  answersWithoutReading: true,
   readsEveryRecord: async (): Promise<boolean> => {
     return false;
   },
@@ -56,6 +64,44 @@ export const NO_READER_ACCESS: RealtimeReadAccess = {
     return [];
   },
 };
+
+/*
+ * A record either access lets the reader read. For an update that may take
+ * a record away from someone: they hear about it if they could read it
+ * before the write (`before`, decided then) or can read it now (`now`).
+ */
+export function readableByEither(
+  now: RealtimeReadAccess,
+  before: RealtimeReadAccess,
+): RealtimeReadAccess {
+  return {
+    answersWithoutReading: Boolean(
+      now.answersWithoutReading && before.answersWithoutReading,
+    ),
+    readsEveryRecord: async (reader: RealtimeReader): Promise<boolean> => {
+      return (
+        (await now.readsEveryRecord(reader)) ||
+        (await before.readsEveryRecord(reader))
+      );
+    },
+    getReadableIds: async (
+      reader: RealtimeReader,
+      modelIds: Array<ObjectID>,
+    ): Promise<Array<string>> => {
+      const [readableNow, readableBefore]: [Array<string>, Array<string>] =
+        await Promise.all([
+          now.getReadableIds(reader, modelIds),
+          before.getReadableIds(reader, modelIds),
+        ]);
+
+      return Array.from(
+        new Set<string>(
+          [...readableNow, ...readableBefore].map(normalizeRealtimeId),
+        ),
+      );
+    },
+  };
+}
 
 // A record id as every comparison here reads it.
 export function normalizeRealtimeId(id: ObjectID | string): string {

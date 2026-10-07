@@ -2496,8 +2496,11 @@ export default class AnalyticsDatabaseService<
         if (Realtime.isInitialized()) {
           const promises: Array<Promise<void>> = [];
 
-          // Who may hear about these rows: see getRealtimeReadAccess.
-          const access: RealtimeReadAccess = this.getRealtimeReadAccess(items);
+          /*
+           * Who may hear about these rows: see getRealtimeReadAccess, which
+           * answers for them from the resource each belongs to.
+           */
+          this.rememberRealtimeRows(items);
 
           for (const item of items) {
             const tenantId: ObjectID | null = item.getTenantColumnValue();
@@ -2512,7 +2515,7 @@ export default class AnalyticsDatabaseService<
                 tenantId: tenantId,
                 eventType: ModelEventType.Create,
                 modelType: this.modelType,
-                access: access,
+                access: this.getRealtimeReadAccess(),
               }),
             );
           }
@@ -2662,43 +2665,100 @@ export default class AnalyticsDatabaseService<
   }
 
   /*
-   * Who may hear about these rows (Realtime): whoever their read lets read
-   * them. A telemetry row cannot be looked up by id cheaply, so the read is
-   * asked the way a telemetry read applies it: the read check itself
-   * (ModelPermission.checkReadPermission - the table, a block with no
-   * labels, the plan), then the caller's read scope (getReadScope - their
-   * label and Owned grants, less what a block with labels takes away),
-   * against the resource each row belongs to (@OwnedThrough). Both are
-   * worked out once per reader and kept with them (RealtimeReader.remember).
+   * How many rows waiting for their live update this service keeps the
+   * resource of (rememberRealtimeRows), and for how long: past either a row
+   * is let go (when the next rows are noted), and one no longer kept is
+   * read as one with no resource - only people whose scope reaches every
+   * resource hear about it.
+   */
+  public static readonly REALTIME_ROWS_KEPT: number = 20_000;
+  public static readonly REALTIME_ROW_TTL_IN_MS: number = 2 * 60 * 1000;
+
+  // The resource of each row whose live update may still be on its way.
+  private realtimeRowResources: Map<
+    string,
+    { resourceId: string; expiresAtMs: number }
+  > = new Map<string, { resourceId: string; expiresAtMs: number }>();
+
+  private realtimeReadAccess: RealtimeReadAccess | null = null;
+
+  /*
+   * Notes the resource each of these rows belongs to (@OwnedThrough), for
+   * getRealtimeReadAccess to answer for them once their events are
+   * delivered. Bounded: see REALTIME_ROWS_KEPT and REALTIME_ROW_TTL_IN_MS.
+   */
+  public rememberRealtimeRows(items: Array<TBaseModel>): void {
+    const ownedThrough: OwnedThroughMetadata | undefined =
+      this.getOwnedThrough();
+
+    // A model with no owning resource is read with the table: nothing to note.
+    if (!ownedThrough) {
+      return;
+    }
+
+    const now: number = Date.now();
+
+    // Oldest first: the rows past their time go.
+    for (const [rowId, row] of this.realtimeRowResources) {
+      if (row.expiresAtMs > now) {
+        break;
+      }
+
+      this.realtimeRowResources.delete(rowId);
+    }
+
+    for (const item of items) {
+      if (!item.id) {
+        continue;
+      }
+
+      const rowId: string = normalizeRealtimeId(item.id);
+      const resourceId: unknown = item.getColumnValue(ownedThrough.fkColumn);
+
+      this.realtimeRowResources.delete(rowId);
+      this.realtimeRowResources.set(rowId, {
+        resourceId: resourceId ? String(resourceId) : "",
+        expiresAtMs: now + AnalyticsDatabaseService.REALTIME_ROW_TTL_IN_MS,
+      });
+
+      if (
+        this.realtimeRowResources.size >
+        AnalyticsDatabaseService.REALTIME_ROWS_KEPT
+      ) {
+        const oldest: string | undefined = this.realtimeRowResources
+          .keys()
+          .next().value;
+
+        if (oldest !== undefined) {
+          this.realtimeRowResources.delete(oldest);
+        }
+      }
+    }
+  }
+
+  /*
+   * Who may hear about rows of this table (Realtime): whoever their read
+   * lets read them. A telemetry row cannot be looked up by id cheaply, so
+   * the read is asked the way a telemetry read applies it: the read check
+   * itself (ModelPermission.checkReadPermission - the table, a block with
+   * no labels, the plan), then the caller's read scope (getReadScope -
+   * their label and Owned grants, less what a block with labels takes
+   * away), against the resource each row belongs to (@OwnedThrough, noted
+   * by rememberRealtimeRows when the rows were written). Both are worked
+   * out once per reader and kept with them (RealtimeReader.remember), so
+   * the answer needs no read of its own. One access per service, so the
+   * events of every insert into the table merge into one delivery.
    *
    * A service that narrows its reads further on its own (onBeforeFind, or a
    * findBy of its own) is not modelled here, so nobody hears about its rows
    * rather than everybody.
    */
-  public getRealtimeReadAccess(items: Array<TBaseModel>): RealtimeReadAccess {
-    const model: TBaseModel = this.getModel();
-    const ownedThrough: OwnedThroughMetadata | undefined = (
-      model as unknown as { ownedThrough?: OwnedThroughMetadata }
-    ).ownedThrough;
-
-    // The resource each row belongs to, by row id.
-    const resourceOfRow: Map<string, string> = new Map<string, string>();
-
-    if (ownedThrough) {
-      for (const item of items) {
-        if (!item.id) {
-          continue;
-        }
-
-        const resourceId: unknown = item.getColumnValue(ownedThrough.fkColumn);
-
-        resourceOfRow.set(
-          normalizeRealtimeId(item.id),
-          resourceId ? String(resourceId) : "",
-        );
-      }
+  public getRealtimeReadAccess(): RealtimeReadAccess {
+    if (this.realtimeReadAccess) {
+      return this.realtimeReadAccess;
     }
 
+    const model: TBaseModel = this.getModel();
     const narrowsReadsOnItsOwn: boolean = !this.readsThroughThePermissionCheck();
 
     const getScope: (
@@ -2714,7 +2774,8 @@ export default class AnalyticsDatabaseService<
       );
     };
 
-    return {
+    this.realtimeReadAccess = {
+      answersWithoutReading: true,
       readsEveryRecord: async (reader: RealtimeReader): Promise<boolean> => {
         if (narrowsReadsOnItsOwn) {
           return false;
@@ -2745,17 +2806,25 @@ export default class AnalyticsDatabaseService<
           .filter((modelId: string): boolean => {
             /*
              * A row of a model with no owning resource is read with the
-             * table, and one whose resource is empty matches only a scope
-             * that reaches every resource - as the read's own condition
-             * on the resource column does.
+             * table, and one whose resource is empty (or no longer noted)
+             * matches only a scope that reaches every resource - as the
+             * read's own condition on the resource column does.
              */
             return TelemetryReadScopeUtil.isReadable(
               scope,
-              resourceOfRow.get(modelId) || "",
+              this.realtimeRowResources.get(modelId)?.resourceId || "",
             );
           });
       },
     };
+
+    return this.realtimeReadAccess;
+  }
+
+  private getOwnedThrough(): OwnedThroughMetadata | undefined {
+    return (
+      this.getModel() as unknown as { ownedThrough?: OwnedThroughMetadata }
+    ).ownedThrough;
   }
 
   /*

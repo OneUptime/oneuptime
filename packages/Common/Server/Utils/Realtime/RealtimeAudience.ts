@@ -30,7 +30,8 @@ import ArrayUtil from "../../../Utils/Array";
  *     and the reads themselves take a slot of READ_LIMITS: a few per server
  *     and per project, with a bounded queue. A read that finds the queue
  *     full or waits too long is not made, and that person does not hear
- *     about the batch: nobody hears about a record nobody checked.
+ *     about the batch: nobody hears about a record nobody checked. An
+ *     access that answers from what it already knows takes no slot.
  */
 export default class RealtimeAudience {
   // People of one batch worked out at the same time.
@@ -58,12 +59,19 @@ export default class RealtimeAudience {
    * For each listener (by RealtimeReaders.getKey), the ids of `modelIds`
    * they may read, lower case. Never throws: a listener whose answer cannot
    * be worked out reads none of them.
+   *
+   * `onlyFor`, when given, picks the readers worth asking; the others read
+   * none of the records here. `deadlineMs` (a time, as Date.now() counts)
+   * is when the answer stops being wanted: a person not worked out by then
+   * reads none of them, and no read starts after it.
    */
   public static async getReadableIds(data: {
     tenantId: string;
     access: RealtimeReadAccess;
     readers: Array<RealtimeReaderIdentity>;
     modelIds: Array<string>;
+    onlyFor?: ((reader: RealtimeReader) => Promise<boolean>) | undefined;
+    deadlineMs?: number | undefined;
   }): Promise<Map<string, Set<string>>> {
     const readable: Map<string, Set<string>> = new Map<string, Set<string>>();
     const distinctIds: Array<string> = Array.from(
@@ -87,6 +95,10 @@ export default class RealtimeAudience {
         string,
         RealtimeReaderIdentity,
       ]): Promise<void> => {
+        if (RealtimeAudience.isPast(data.deadlineMs)) {
+          return;
+        }
+
         readable.set(
           key,
           await RealtimeAudience.getReadableIdsOf({
@@ -94,6 +106,8 @@ export default class RealtimeAudience {
             tenantId: data.tenantId,
             access: data.access,
             modelIds: distinctIds,
+            onlyFor: data.onlyFor,
+            deadlineMs: data.deadlineMs,
           }),
         );
       },
@@ -102,11 +116,17 @@ export default class RealtimeAudience {
     return readable;
   }
 
+  private static isPast(deadlineMs: number | undefined): boolean {
+    return deadlineMs !== undefined && Date.now() >= deadlineMs;
+  }
+
   private static async getReadableIdsOf(data: {
     identity: RealtimeReaderIdentity;
     tenantId: string;
     access: RealtimeReadAccess;
     modelIds: Array<string>;
+    onlyFor?: ((reader: RealtimeReader) => Promise<boolean>) | undefined;
+    deadlineMs?: number | undefined;
   }): Promise<Set<string>> {
     const logAttributes: LogAttributes = {
       projectId: data.tenantId,
@@ -135,6 +155,21 @@ export default class RealtimeAudience {
       return new Set<string>();
     }
 
+    if (data.onlyFor) {
+      let asked: boolean = false;
+
+      try {
+        asked = await data.onlyFor(reader);
+      } catch (err) {
+        logger.debug(err, logAttributes);
+        asked = false;
+      }
+
+      if (!asked) {
+        return new Set<string>();
+      }
+    }
+
     let readsEveryRecord: boolean = false;
 
     try {
@@ -151,18 +186,25 @@ export default class RealtimeAudience {
 
     const readerOfBatch: RealtimeReader = reader;
 
-    try {
-      const ids: Array<string> = await RealtimeAudience.limiter.run(
-        data.tenantId,
-        (): Promise<Array<string>> => {
-          return data.access.getReadableIds(
-            readerOfBatch,
-            data.modelIds.map((id: string): ObjectID => {
-              return new ObjectID(id);
-            }),
-          );
-        },
+    const read: () => Promise<Array<string>> = (): Promise<Array<string>> => {
+      // Not wanted any more: no read starts past the deadline.
+      if (RealtimeAudience.isPast(data.deadlineMs)) {
+        return Promise.resolve([]);
+      }
+
+      return data.access.getReadableIds(
+        readerOfBatch,
+        data.modelIds.map((id: string): ObjectID => {
+          return new ObjectID(id);
+        }),
       );
+    };
+
+    try {
+      // An answer from what the access already knows needs no read slot.
+      const ids: Array<string> = data.access.answersWithoutReading
+        ? await read()
+        : await RealtimeAudience.limiter.run(data.tenantId, read);
 
       const asked: Set<string> = new Set<string>(data.modelIds);
 
