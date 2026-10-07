@@ -110,6 +110,12 @@ import Select from "../Types/Database/Select";
 import StatusPageEmailLogo from "../Utils/StatusPage/StatusPageEmailLogo";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import ScheduledMaintenanceStartUtil from "../../Utils/ScheduledMaintenanceStart";
+import EventFieldChange from "../Utils/EventFieldChange";
+import ReferenceChange from "../Utils/Database/ReferenceChange";
+import ScheduledMaintenanceFieldChange, {
+  ScheduledMaintenanceFieldSet,
+  ScheduledMaintenanceValuesBeforeUpdate,
+} from "../Utils/ScheduledMaintenance/ScheduledMaintenanceFieldChange";
 
 /*
  * The attachments whose membership an ongoing event acts on. Monitors are
@@ -190,11 +196,40 @@ type MonitorStatusBeforeUpdate = {
 /*
  * What onBeforeUpdate hands to onUpdateSuccess, each part keyed by event id
  * and null unless the update writes what it is read for. The whole of it is
- * null when neither is.
+ * null when none is.
  */
 type UpdateCarryForward = {
   attachments: AttachmentsCarryForward | null;
   monitorStatus: Dictionary<MonitorStatusBeforeUpdate> | null;
+  /*
+   * The event's own compared columns the update writes - its title,
+   * window, description, reminders before the event, labels and Send
+   * reminders switch - as it held them (recordStoredValuesBeforeUpdate).
+   */
+  valuesBeforeUpdate: Dictionary<ScheduledMaintenanceValuesBeforeUpdate> | null;
+  /*
+   * The ids each event held in each list the update writes - its status
+   * pages and what it affects - by the list's column, normalized
+   * (ReferenceChange.normalizeList).
+   */
+  listIdsBeforeUpdate: Dictionary<Dictionary<Array<string>>> | null;
+};
+
+/*
+ * What the one stored read before the write found: the Change Monitor
+ * Status to each event held, when the update writes it, and the compared
+ * columns the update writes. Each part is keyed by event id, and null
+ * unless the update writes what it is read for.
+ */
+type StoredValuesBeforeUpdate = {
+  monitorStatus: Dictionary<MonitorStatusBeforeUpdate> | null;
+  valuesBeforeUpdate: Dictionary<ScheduledMaintenanceValuesBeforeUpdate> | null;
+};
+
+// What the reads of the lists the update writes found, one read per list.
+type ListsBeforeUpdate = {
+  attachments: AttachmentsCarryForward | null;
+  listIdsBeforeUpdate: Dictionary<Dictionary<Array<string>>> | null;
 };
 
 /*
@@ -839,16 +874,20 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
 
     await this.validateProjectScopedReferences(updateBy);
 
-    // Refused once the event has started; read before the write either way.
-    const monitorStatusBeforeUpdate: Dictionary<MonitorStatusBeforeUpdate> | null =
-      await this.getMonitorStatusBeforeUpdate(updateBy);
+    /*
+     * The one stored read of the event's own columns the update writes. A
+     * change of Change Monitor Status to is refused here once the event has
+     * started.
+     */
+    const storedValues: StoredValuesBeforeUpdate =
+      await this.recordStoredValuesBeforeUpdate(updateBy);
 
     /*
      * Read before the write, because afterwards the detached monitors are no
      * longer on the event and nothing else remembers them.
      */
-    const attachmentsBeforeUpdate: AttachmentsCarryForward | null =
-      await this.getAttachmentsBeforeUpdate(updateBy);
+    const listsBeforeUpdate: ListsBeforeUpdate =
+      await this.getListsBeforeUpdate(updateBy);
 
     /*
      * Re-apply mapped custom field values. Covers the Custom Fields modal
@@ -862,10 +901,15 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
     });
 
     const carryForward: UpdateCarryForward | null =
-      attachmentsBeforeUpdate || monitorStatusBeforeUpdate
+      listsBeforeUpdate.attachments ||
+      listsBeforeUpdate.listIdsBeforeUpdate ||
+      storedValues.monitorStatus ||
+      storedValues.valuesBeforeUpdate
         ? {
-            attachments: attachmentsBeforeUpdate,
-            monitorStatus: monitorStatusBeforeUpdate,
+            attachments: listsBeforeUpdate.attachments,
+            monitorStatus: storedValues.monitorStatus,
+            valuesBeforeUpdate: storedValues.valuesBeforeUpdate,
+            listIdsBeforeUpdate: listsBeforeUpdate.listIdsBeforeUpdate,
           }
         : null;
 
@@ -892,31 +936,103 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
    * through whatever the event's state: a form or an API client that sends a
    * whole record back is not refused for a field it did not touch.
    *
-   * Returns the status each event the update matches held just before the
-   * write, for onUpdateSuccess, or null, with nothing read, when the update
-   * does not write it. Read as root but held to the tenant's project, like
-   * the other update reads here.
+   * The status each event the update matches held just before the write is
+   * read in the one stored read below (recordStoredValuesBeforeUpdate), only
+   * when the update writes it, and checked here, event by event. Returns
+   * what that event held, for onUpdateSuccess.
    */
-  private async getMonitorStatusBeforeUpdate(
+  private async assertMonitorStatusMayChange(data: {
+    // Read with its Change Monitor Status to and its state's place and flags.
+    scheduledMaintenanceEvent: Model;
+    // What the update writes (toMonitorStatusKey).
+    newMonitorStatusId: string | null;
+    statesByProjectId: Map<string, Array<ScheduledMaintenanceState>>;
+  }): Promise<MonitorStatusBeforeUpdate> {
+    const scheduledMaintenanceEvent: Model = data.scheduledMaintenanceEvent;
+
+    const storedMonitorStatusId: string | null = this.toMonitorStatusKey(
+      scheduledMaintenanceEvent.changeMonitorStatusToId,
+    );
+
+    if (
+      storedMonitorStatusId !== data.newMonitorStatusId &&
+      (await this.hasScheduledMaintenanceStarted({
+        scheduledMaintenanceEvent: scheduledMaintenanceEvent,
+        statesByProjectId: data.statesByProjectId,
+      }))
+    ) {
+      throw new BadDataException(MONITOR_STATUS_LOCKED_AFTER_START_MESSAGE);
+    }
+
+    return {
+      projectId: scheduledMaintenanceEvent.projectId,
+      monitorStatusId: storedMonitorStatusId,
+    };
+  }
+
+  /*
+   * What onUpdateSuccess compares an update with: each event it matches as
+   * it is stored, read here, before the write, so a feed line and a
+   * reminder refresh follow a real change only. Updates often write back
+   * what an event holds - the Maintenance Details card sends the title, the
+   * window, the labels, the status pages and the reminders before the event
+   * with every save, and an API client, Terraform or a workflow may write
+   * the whole event. One read, of the event's own columns the update needs
+   * compared and no others, and only when it needs any:
+   *
+   * - Change Monitor Status to, with the state the event is in, when the
+   *   update writes it under either name: a change is refused once the
+   *   event has started (assertMonitorStatusMayChange), and a real change
+   *   is named in the feed;
+   * - the title, the window, the description, the reminders before the
+   *   event, the labels and the Send reminders switch the update writes
+   *   (ScheduledMaintenanceFieldChange). The "updated" feed item records
+   *   each one that really changed, and a labels change or the switch
+   *   flipped matches the reminder rule again, which starts the reminder
+   *   interval over.
+   *
+   * The event's other lists - the status pages and what it affects - are
+   * read one list at a time (getListsBeforeUpdate). Read as root but held to
+   * the tenant's project, like the other update reads here; the permission
+   * checks that narrow the write run after this hook, and onUpdateSuccess
+   * only visits the rows actually written.
+   */
+  private async recordStoredValuesBeforeUpdate(
     updateBy: UpdateBy<Model>,
-  ): Promise<Dictionary<MonitorStatusBeforeUpdate> | null> {
+  ): Promise<StoredValuesBeforeUpdate> {
     const data: Record<string, unknown> = updateBy.data as unknown as Record<
       string,
       unknown
     >;
 
-    if (!RelationIdUtil.isPresent(data, MONITOR_STATUS_KEYS)) {
-      return null;
+    const isMonitorStatusWritten: boolean = RelationIdUtil.isPresent(
+      data,
+      MONITOR_STATUS_KEYS,
+    );
+
+    const fieldsWritten: ScheduledMaintenanceFieldSet =
+      ScheduledMaintenanceFieldChange.getFieldsWritten(data);
+
+    const isFieldWritten: boolean =
+      ScheduledMaintenanceFieldChange.isAnySet(fieldsWritten);
+
+    if (!isMonitorStatusWritten && !isFieldWritten) {
+      return {
+        monitorStatus: null,
+        valuesBeforeUpdate: null,
+      };
     }
 
-    // Two names that disagree are refused (validateProjectScopedReferences did already).
-    const newMonitorStatusId: string | null = this.toMonitorStatusKey(
-      RelationIdUtil.readConsistent(
-        data,
-        MONITOR_STATUS_KEYS,
-        "Monitor Status",
-      ),
-    );
+    // Two names that disagree are refused before anything is read.
+    const newMonitorStatusId: string | null = isMonitorStatusWritten
+      ? this.toMonitorStatusKey(
+          RelationIdUtil.readConsistent(
+            data,
+            MONITOR_STATUS_KEYS,
+            "Monitor Status",
+          ),
+        )
+      : null;
 
     const scheduledMaintenanceEvents: Array<Model> = await this.findBy({
       query: updateBy.props.tenantId
@@ -925,8 +1041,15 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
       select: {
         _id: true,
         projectId: true,
-        changeMonitorStatusToId: true,
-        currentScheduledMaintenanceState: STATE_PLACE_SELECT,
+        ...(isMonitorStatusWritten
+          ? {
+              changeMonitorStatusToId: true,
+              currentScheduledMaintenanceState: STATE_PLACE_SELECT,
+            }
+          : {}),
+        ...(ScheduledMaintenanceFieldChange.getSelect(
+          fieldsWritten,
+        ) as Select<Model>),
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -935,7 +1058,11 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
       },
     });
 
-    const monitorStatusBeforeUpdate: Dictionary<MonitorStatusBeforeUpdate> = {};
+    const monitorStatus: Dictionary<MonitorStatusBeforeUpdate> | null =
+      isMonitorStatusWritten ? {} : null;
+
+    const valuesBeforeUpdate: Dictionary<ScheduledMaintenanceValuesBeforeUpdate> | null =
+      isFieldWritten ? {} : null;
 
     // Each project's states, read at most once, and only when a state needs them.
     const statesByProjectId: Map<
@@ -948,30 +1075,29 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
         continue;
       }
 
-      const storedMonitorStatusId: string | null = this.toMonitorStatusKey(
-        scheduledMaintenanceEvent.changeMonitorStatusToId,
-      );
+      const eventKey: string = scheduledMaintenanceEvent.id.toString();
 
-      monitorStatusBeforeUpdate[scheduledMaintenanceEvent.id.toString()] = {
-        projectId: scheduledMaintenanceEvent.projectId,
-        monitorStatusId: storedMonitorStatusId,
-      };
-
-      if (storedMonitorStatusId === newMonitorStatusId) {
-        continue;
+      if (valuesBeforeUpdate) {
+        valuesBeforeUpdate[eventKey] =
+          ScheduledMaintenanceFieldChange.getValuesBeforeUpdate({
+            record: scheduledMaintenanceEvent,
+            fields: fieldsWritten,
+          });
       }
 
-      if (
-        await this.hasScheduledMaintenanceStarted({
+      if (monitorStatus) {
+        monitorStatus[eventKey] = await this.assertMonitorStatusMayChange({
           scheduledMaintenanceEvent: scheduledMaintenanceEvent,
+          newMonitorStatusId: newMonitorStatusId,
           statesByProjectId: statesByProjectId,
-        })
-      ) {
-        throw new BadDataException(MONITOR_STATUS_LOCKED_AFTER_START_MESSAGE);
+        });
       }
     }
 
-    return monitorStatusBeforeUpdate;
+    return {
+      monitorStatus: monitorStatus,
+      valuesBeforeUpdate: valuesBeforeUpdate,
+    };
   }
 
   /*
@@ -1040,57 +1166,70 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
   }
 
   /*
-   * The monitors and network sites each event the update matches holds just
-   * before the write, for onUpdateSuccess to compare with what it holds
-   * after. Null, with nothing read, unless the payload writes one of those
-   * lists.
+   * The lists each event the update matches holds just before the write,
+   * for each list the update writes - one read per list, as a find that
+   * selects two many-to-many relations returns a row for every combination
+   * of their ids (see ProjectScopedReferenceValidator.getHeldRelationIds):
+   *
+   * - the status pages and every affected-resource list, as the ids they
+   *   name (listIdsBeforeUpdate): onUpdateSuccess names what the event is
+   *   shown on and what it affects only when the update really changed it;
+   * - for the monitors and the network sites, what the event's state meant
+   *   for them as well (attachments): onUpdateSuccess compares those with
+   *   what the event holds after the write, and acts on the difference.
+   *
+   * Each part is null, with nothing read, unless the payload writes one of
+   * its lists. Only a list that is left out is left alone: null or an empty
+   * list can clear one.
    *
    * Read as root but held to the tenant's project, like the other update
    * reads here; the permission checks that narrow the write run after this
    * hook, so an event read here that the write then skips is simply never
    * looked up again (onUpdateSuccess only visits the rows actually written).
    */
-  private async getAttachmentsBeforeUpdate(
+  private async getListsBeforeUpdate(
     updateBy: UpdateBy<Model>,
-  ): Promise<AttachmentsCarryForward | null> {
-    const columns: Array<AttachmentColumn> = ATTACHMENT_COLUMNS.filter(
-      (column: AttachmentColumn): boolean => {
-        /*
-         * Only a list that is left out is left alone. Null or an empty list
-         * can clear it, and whatever the write makes of any payload is read
-         * back afterwards, so every written list is remembered here.
-         */
-        return (updateBy.data as Dictionary<unknown>)[column] !== undefined;
+  ): Promise<ListsBeforeUpdate> {
+    const data: Dictionary<unknown> = updateBy.data as Dictionary<unknown>;
+
+    const columns: Array<string> = this.getComparedListColumns().filter(
+      (column: string): boolean => {
+        return data[column] !== undefined;
       },
     );
 
     if (columns.length === 0) {
-      return null;
+      return {
+        attachments: null,
+        listIdsBeforeUpdate: null,
+      };
     }
 
-    const carryForward: AttachmentsCarryForward = {};
+    const attachments: AttachmentsCarryForward | null = columns.some(
+      (column: string): boolean => {
+        return ATTACHMENT_COLUMNS.includes(column as AttachmentColumn);
+      },
+    )
+      ? {}
+      : null;
 
-    /*
-     * One read per list. A find that selects two many-to-many relations
-     * returns a row for every combination of their ids. See
-     * ProjectScopedReferenceValidator.getHeldRelationIds.
-     */
+    const listIdsBeforeUpdate: Dictionary<Dictionary<Array<string>>> = {};
+
     for (const column of columns) {
+      const isAttachment: boolean = ATTACHMENT_COLUMNS.includes(
+        column as AttachmentColumn,
+      );
+
       const select: Select<Model> = {
         _id: true,
         projectId: true,
-        currentScheduledMaintenanceState: STATE_KIND_SELECT,
-      };
-
-      if (column === "monitors") {
-        select.monitors = {
+        ...(isAttachment
+          ? { currentScheduledMaintenanceState: STATE_KIND_SELECT }
+          : {}),
+        [column]: {
           _id: true,
-        };
-      } else {
-        select.networkSites = {
-          _id: true,
-        };
-      }
+        },
+      } as Select<Model>;
 
       const scheduledMaintenanceEvents: Array<Model> = await this.findBy({
         query: updateBy.props.tenantId
@@ -1111,7 +1250,20 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
 
         const eventKey: string = scheduledMaintenanceEvent.id.toString();
 
-        const attachmentsBeforeUpdate: AttachmentsBeforeUpdate = carryForward[
+        listIdsBeforeUpdate[eventKey] = {
+          ...listIdsBeforeUpdate[eventKey],
+          [column]: ReferenceChange.normalizeList(
+            (scheduledMaintenanceEvent as unknown as Dictionary<unknown>)[
+              column
+            ],
+          ),
+        };
+
+        if (!attachments || !isAttachment) {
+          continue;
+        }
+
+        const attachmentsBeforeUpdate: AttachmentsBeforeUpdate = attachments[
           eventKey
         ] || {
           projectId: undefined,
@@ -1152,11 +1304,56 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
           );
         }
 
-        carryForward[eventKey] = attachmentsBeforeUpdate;
+        attachments[eventKey] = attachmentsBeforeUpdate;
       }
     }
 
-    return carryForward;
+    return {
+      attachments: attachments,
+      listIdsBeforeUpdate: listIdsBeforeUpdate,
+    };
+  }
+
+  /*
+   * The lists of an event that its "updated" feed item names when an update
+   * changes them: the status pages it is shown on, and everything it
+   * affects (LinkedAffectedResources: its monitors, hosts, clusters, network
+   * sites, services, SLOs and so on).
+   */
+  private getComparedListColumns(): Array<string> {
+    return [
+      "statusPages",
+      ...this.getAffectedResourceListColumns(),
+    ];
+  }
+
+  // The lists of what an event affects, in the order its feed lists them.
+  private getAffectedResourceListColumns(): Array<string> {
+    return LinkedAffectedResources.getRelations(this.getModel()).map(
+      (relation: LinkedAffectedResourceRelation): string => {
+        return relation.column;
+      },
+    );
+  }
+
+  /*
+   * The lists in `columns` the update really changed on one event: it
+   * writes them, and they name other records than the event held before the
+   * write - their order, a repeat and the spelling of an id mean nothing
+   * (ReferenceChange.isListChanged). An event the reads before the write did
+   * not see counts as changed.
+   */
+  private getChangedListColumns(data: {
+    written: Dictionary<unknown>;
+    columns: Array<string>;
+    listIdsBeforeUpdate: Dictionary<Array<string>> | undefined;
+  }): Array<string> {
+    return data.columns.filter((column: string): boolean => {
+      return ReferenceChange.isListChanged({
+        writtenList: data.written[column],
+        idsBeforeUpdate: data.listIdsBeforeUpdate?.[column],
+      });
+    });
   }
 
   /*
@@ -2929,6 +3126,35 @@ ${scheduledMaintenance.description || "No description provided."}
         const monitorStatusBeforeUpdate: MonitorStatusBeforeUpdate | undefined =
           carryForward?.monitorStatus?.[scheduledMaintenanceId.toString()];
 
+        const written: Dictionary<unknown> = onUpdate.updateBy
+          .data as unknown as Dictionary<unknown>;
+
+        /*
+         * What the update changed of the event's title, window, description,
+         * reminders before the event, labels and Send reminders switch,
+         * against what it held before the write
+         * (recordStoredValuesBeforeUpdate). One the read did not see counts
+         * as changed.
+         */
+        const fieldChanges: ScheduledMaintenanceFieldSet =
+          ScheduledMaintenanceFieldChange.getChanges({
+            written: written,
+            valuesBeforeUpdate:
+              carryForward?.valuesBeforeUpdate?.[
+                scheduledMaintenanceId.toString()
+              ],
+          });
+
+        // The lists it really changed: the status pages, what it affects.
+        const changedListColumns: Array<string> = this.getChangedListColumns({
+          written: written,
+          columns: this.getComparedListColumns(),
+          listIdsBeforeUpdate:
+            carryForward?.listIdsBeforeUpdate?.[
+              scheduledMaintenanceId.toString()
+            ],
+        });
+
         /*
          * The Change Monitor Status to the write stored, when it is another
          * than the event held: onBeforeUpdate let it through because the
@@ -2983,77 +3209,35 @@ ${scheduledMaintenance.description || "No description provided."}
           }
         }
 
-        if (onUpdate.updateBy.data.title) {
-          // add scheduledMaintenance feed.
+        /*
+         * A line for each of the title, the window, the description and the
+         * reminders before the event the update really changed: writing back
+         * what the event holds - every save of its Maintenance Details card
+         * sends them all - adds none.
+         */
+        const fieldsMarkdown: string =
+          ScheduledMaintenanceFieldChange.getFeedMarkdown({
+            written: written,
+            changes: fieldChanges,
+          });
 
-          feedInfoInMarkdown += `\n\n**Title**: 
-${escapeMarkdownValue((onUpdate.updateBy.data.title as string) || "No title provided.")}
-`;
-          shouldAddScheduledMaintenanceFeed = true;
-        }
-
-        if (onUpdate.updateBy.data.startsAt) {
-          // add scheduledMaintenance feed.
-
-          feedInfoInMarkdown += `\n\n**Starts At**: 
-${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(onUpdate.updateBy.data.startsAt as Date) || "No title provided."}
-`;
-          shouldAddScheduledMaintenanceFeed = true;
-        }
-
-        if (onUpdate.updateBy.data.endsAt) {
-          // add scheduledMaintenance feed.
-
-          feedInfoInMarkdown += `\n\n**Ends At**:
-${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(onUpdate.updateBy.data.endsAt as Date) || "No title provided."}
-`;
-          shouldAddScheduledMaintenanceFeed = true;
-        }
-
-        if (onUpdate.updateBy.data.description) {
-          // add scheduledMaintenance feed.
-
-          feedInfoInMarkdown += `\n\n**Scheduled Maintenance Description**: 
-${onUpdate.updateBy.data.description || "No description provided."}
-          `;
-          shouldAddScheduledMaintenanceFeed = true;
-        }
-
-        if (
-          onUpdate.updateBy.data.sendSubscriberNotificationsOnBeforeTheEvent &&
-          Array.isArray(
-            onUpdate.updateBy.data.sendSubscriberNotificationsOnBeforeTheEvent,
-          ) &&
-          onUpdate.updateBy.data.sendSubscriberNotificationsOnBeforeTheEvent
-            .length > 0
-        ) {
-          feedInfoInMarkdown += `\n\n**Notify Subscribers Before Event Starts**: 
-${(
-  onUpdate.updateBy.data
-    .sendSubscriberNotificationsOnBeforeTheEvent as Array<Recurring>
-)
-  .map((recurring: Recurring) => {
-    return `- ${(recurring as Recurring).toString()}`;
-  })
-  .join("\n")}
-          `;
+        if (fieldsMarkdown) {
+          feedInfoInMarkdown += fieldsMarkdown;
           shouldAddScheduledMaintenanceFeed = true;
         }
 
         /*
-         * Any affected-resource list in the payload - not only monitors - is
-         * a change to what the event affects. The event is read back rather
+         * What the event affects now, when the update really changed any
+         * affected-resource list - not only the monitors; the Affected
+         * Resources card sends every list back with each save, so a list
+         * sent back as it is changes nothing. The event is read back rather
          * than the ids in the payload being looked up: the read is held to
          * this project, and it names the whole list the card now shows.
          */
         const affectedResourcesChanged: boolean =
-          LinkedAffectedResources.getRelations(this.getModel()).some(
-            (relation: LinkedAffectedResourceRelation): boolean => {
-              const value: unknown = (
-                onUpdate.updateBy.data as Record<string, unknown>
-              )[relation.column];
-
-              return Array.isArray(value) && value.length > 0;
+          this.getAffectedResourceListColumns().some(
+            (column: string): boolean => {
+              return changedListColumns.includes(column);
             },
           );
 
@@ -3061,24 +3245,39 @@ ${(
           const projectId: ObjectID = onUpdate.updateBy.props
             .tenantId as ObjectID;
 
-          const resources: Array<LinkedAffectedResource> =
-            await LinkedAffectedResources.readForScheduledMaintenance({
-              service: this,
-              projectId: projectId,
-              scheduledMaintenanceId: scheduledMaintenanceId,
-            });
+          // A line the names could not be read for is left out, not the item.
+          try {
+            const resources: Array<LinkedAffectedResource> =
+              await LinkedAffectedResources.readForScheduledMaintenance({
+                service: this,
+                projectId: projectId,
+                scheduledMaintenanceId: scheduledMaintenanceId,
+              });
 
-          if (resources.length > 0) {
-            feedInfoInMarkdown += `\n\n**Resources Affected**:
+            feedInfoInMarkdown +=
+              resources.length > 0
+                ? `\n\n**Resources Affected**:
 
 ${LinkedAffectedResources.getMarkdownLines({
   dashboardUrl: await DatabaseConfig.getDashboardUrl(),
   projectId: projectId,
   resources: resources,
 }).join("\n")}
-`;
+`
+                : ScheduledMaintenanceFieldChange.getNoResourcesMarkdown();
 
             shouldAddScheduledMaintenanceFeed = true;
+          } catch (err) {
+            const logAttributes: LogAttributes = {
+              projectId: projectId.toString(),
+              scheduledMaintenanceId: scheduledMaintenanceId.toString(),
+            } as LogAttributes;
+
+            logger.error(
+              `ScheduledMaintenanceService.onUpdateSuccess: could not name what scheduled maintenance ${scheduledMaintenanceId.toString()} now affects in its feed.`,
+              logAttributes,
+            );
+            logger.error(err, logAttributes);
           }
         }
 
@@ -3142,96 +3341,36 @@ ${LinkedAffectedResources.getMarkdownLines({
           }
         }
 
+        /*
+         * The status pages the event is shown on now, when the update really
+         * changed them, and its labels, when it really changed those - by
+         * name, read within the event's project.
+         */
         if (
-          onUpdate.updateBy.data.statusPages &&
-          onUpdate.updateBy.data.statusPages.length > 0 &&
-          Array.isArray(onUpdate.updateBy.data.statusPages)
+          changedListColumns.includes("statusPages") &&
+          onUpdate.updateBy.props.tenantId
         ) {
-          const statusPageIds: Array<ObjectID> = (
-            onUpdate.updateBy.data.statusPages as any
-          )
-            .map((statusPage: Label) => {
-              if (statusPage._id) {
-                return new ObjectID(statusPage._id?.toString());
-              }
-
-              return null;
-            })
-            .filter((statusPageId: ObjectID | null) => {
-              return statusPageId !== null;
+          const statusPagesMarkdown: string =
+            await ScheduledMaintenanceFieldChange.getStatusPagesMarkdown({
+              writtenStatusPages: written["statusPages"],
+              projectId: onUpdate.updateBy.props.tenantId,
             });
 
-          const statusPages: Array<Label> = await StatusPageService.findBy({
-            query: {
-              _id: QueryHelper.any(statusPageIds),
-            },
-            select: {
-              name: true,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            props: {
-              isRoot: true,
-            },
-          });
-
-          if (statusPages.length > 0) {
-            feedInfoInMarkdown += `\n\n**Show on these status pages:**:
-
-${statusPages
-  .map((statusPage: StatusPage) => {
-    return `- ${escapeMarkdownValue(statusPage.name)}`;
-  })
-  .join("\n")}
-`;
-
+          if (statusPagesMarkdown) {
+            feedInfoInMarkdown += statusPagesMarkdown;
             shouldAddScheduledMaintenanceFeed = true;
           }
         }
 
-        if (
-          onUpdate.updateBy.data.labels &&
-          onUpdate.updateBy.data.labels.length > 0 &&
-          Array.isArray(onUpdate.updateBy.data.labels)
-        ) {
-          const labelIds: Array<ObjectID> = (
-            onUpdate.updateBy.data.labels as any
-          )
-            .map((label: Label) => {
-              if (label._id) {
-                return new ObjectID(label._id?.toString());
-              }
-
-              return null;
-            })
-            .filter((labelId: ObjectID | null) => {
-              return labelId !== null;
+        if (fieldChanges.labels && onUpdate.updateBy.props.tenantId) {
+          const labelsMarkdown: string =
+            await EventFieldChange.getLabelsMarkdown({
+              writtenLabels: written["labels"],
+              projectId: onUpdate.updateBy.props.tenantId,
             });
 
-          const labels: Array<Label> = await LabelService.findBy({
-            query: {
-              _id: QueryHelper.any(labelIds),
-            },
-            select: {
-              name: true,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            props: {
-              isRoot: true,
-            },
-          });
-
-          if (labels.length > 0) {
-            feedInfoInMarkdown += `\n\n**Labels**:
-
-${labels
-  .map((label: Label) => {
-    return `- ${escapeMarkdownValue(label.name)}`;
-  })
-  .join("\n")}
-`;
-
+          if (labelsMarkdown) {
+            feedInfoInMarkdown += labelsMarkdown;
             shouldAddScheduledMaintenanceFeed = true;
           }
         }
@@ -3251,19 +3390,16 @@ ${labels
         }
 
         /*
-         * Re-evaluate reminder schedule when reminders are enabled or disabled,
-         * or when labels change (which may change the matching reminder rule).
+         * The reminder rule is matched on the labels, and reminders can be
+         * switched on or off. One refresh covers whichever of those the
+         * update really changed - clearing the labels included - and none
+         * runs when it changed neither: each refresh starts the interval
+         * over, so writing back the labels the event has, as every save of
+         * its Maintenance Details card does, must not.
          */
         if (
           onUpdate.updateBy.props.tenantId &&
-          (Object.prototype.hasOwnProperty.call(
-            onUpdate.updateBy.data,
-            "enableReminders",
-          ) ||
-            Object.prototype.hasOwnProperty.call(
-              onUpdate.updateBy.data,
-              "labels",
-            ))
+          (fieldChanges.labels || fieldChanges.enableReminders)
         ) {
           try {
             await this.refreshReminderSchedule({
