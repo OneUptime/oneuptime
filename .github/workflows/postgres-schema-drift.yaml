@@ -103,6 +103,22 @@ jobs:
           Tests/Server/Services/AIDailyLimitNoticeAndCatchUpPostgres.test.ts
           --forceExit
 
+      # The one-time notice to owners of projects already below the plans
+      # their API keys and SCIM connections need: one conditional UPDATE
+      # claims it (workers racing included), and the whole run, on real
+      # rows, tells each project's owners once.
+      - name: Test the plan cut-off notice on Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PLAN_CUTOFF_NOTICE_TESTS: "true"
+          PLAN_CUTOFF_NOTICE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PLAN_CUTOFF_NOTICE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PLAN_CUTOFF_NOTICE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/PlanCutoffNoticePostgres.test.ts
+          --forceExit
+
       # When a project's AI credits run out: the one conditional UPDATE that
       # tells the owners once each time (even when servers race) and that a
       # recharge re-arms, the recharge's atomic credit, and Auto Recharge

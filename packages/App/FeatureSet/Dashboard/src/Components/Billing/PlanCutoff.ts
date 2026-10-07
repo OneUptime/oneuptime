@@ -20,12 +20,13 @@ import {
  * Billing page shows it (Common/Types/Billing/PlanCutoffCredentials).
  *
  * On OneUptime Cloud, a project's API keys work only on the plan that sells
- * them (Growth, ApiKey's @TableBillingAccessControl) and its SCIM
- * connections - the project's and its status pages' - only on the plan that
- * sells SCIM (Scale). Below it they stop: every request with one is refused
- * until the project is back on the plan, and nothing is deleted. So the
- * Billing page names how many stop when it offers a lower plan, and how
- * many have stopped on the plan the project is on.
+ * them (Growth, ApiKey's @TableBillingAccessControl): below it every request
+ * with one is refused. Its SCIM connections - the project's and its status
+ * pages' - work fully only on the plan that sells SCIM (Scale): below it
+ * they only remove people, and adding or changing people is refused. Both
+ * work fully again once the project is back on the plan, and nothing is
+ * deleted. So the Billing page names how many a lower plan stops or limits
+ * when it offers one, and what the plan the project is on has stopped.
  *
  * Kept free of React so the page and the tests read these exact rules and
  * sentences. The plural sentences are { one, other } literals, which
@@ -154,15 +155,15 @@ export const PlanCutoffCopy: {
     other: "Your {{count}} API keys stop working on this plan.",
   },
   scimStopOnPlan: {
-    one: "Your SCIM connection stops working on this plan.",
-    other: "Your {{count}} SCIM connections stop working on this plan.",
+    one: "Your SCIM connection only removes people on this plan.",
+    other: "Your {{count}} SCIM connections only remove people on this plan.",
   },
   // The same, for someone who may not see how many the project has.
   apiKeysStopOnPlanUncounted: translationKey(
     "API keys stop working on this plan.",
   ),
   scimStopOnPlanUncounted: translationKey(
-    "SCIM connections stop working on this plan.",
+    "SCIM connections only remove people on this plan.",
   ),
   // The plan the project is on.
   apiKeysStoppedOnPlan: {
@@ -171,11 +172,11 @@ export const PlanCutoffCopy: {
       "Your {{count}} API keys stopped working on this plan. They work again on the {{planName}} plan.",
   },
   scimStoppedOnPlan: {
-    one: "Your SCIM connection stopped working on this plan, so your identity provider no longer adds or removes people. It works again on the {{planName}} plan.",
+    one: "Your SCIM connection only removes people on this plan: your identity provider can no longer add or change people. It works fully again on the {{planName}} plan.",
     other:
-      "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan.",
+      "Your {{count}} SCIM connections only remove people on this plan: your identity provider can no longer add or change people. They work fully again on the {{planName}} plan.",
   },
-  stoppedNoteTitle: translationKey("Not working on this plan"),
+  stoppedNoteTitle: translationKey("Not included in this plan"),
 };
 
 /*
