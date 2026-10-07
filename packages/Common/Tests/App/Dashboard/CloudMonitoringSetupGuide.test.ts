@@ -458,12 +458,12 @@ describe("the collector configuration", () => {
     (option: CloudMonitoringGuideOption) => {
       const config: YamlConfig = collectorConfig(option);
 
-      expect(Object.keys(config.service.pipelines)).toEqual(["metrics"]);
-      expect(config.service.pipelines.metrics.receivers).toEqual(
+      expect(Object.keys(config["service"].pipelines)).toEqual(["metrics"]);
+      expect(config["service"].pipelines.metrics.receivers).toEqual(
         PIPELINE_RECEIVERS[option],
       );
-      expect(config.service.pipelines.metrics.processors).toEqual(["batch"]);
-      expect(config.service.pipelines.metrics.exporters).toEqual([EXPORTER]);
+      expect(config["service"].pipelines.metrics.processors).toEqual(["batch"]);
+      expect(config["service"].pipelines.metrics.exporters).toEqual([EXPORTER]);
     },
   );
 
@@ -471,19 +471,19 @@ describe("the collector configuration", () => {
     "%s: defines every component it uses, and uses every one it defines",
     (option: CloudMonitoringGuideOption) => {
       const config: YamlConfig = collectorConfig(option);
-      const pipeline: YamlConfig = config.service.pipelines.metrics;
+      const pipeline: YamlConfig = config["service"].pipelines.metrics;
 
-      expect(Object.keys(config.receivers).sort()).toEqual(
-        [...pipeline.receivers].sort(),
+      expect(Object.keys(config["receivers"]).sort()).toEqual(
+        [...pipeline["receivers"]].sort(),
       );
-      expect(Object.keys(config.processors).sort()).toEqual(
-        [...pipeline.processors].sort(),
+      expect(Object.keys(config["processors"]).sort()).toEqual(
+        [...pipeline["processors"]].sort(),
       );
-      expect(Object.keys(config.exporters).sort()).toEqual(
-        [...pipeline.exporters].sort(),
+      expect(Object.keys(config["exporters"]).sort()).toEqual(
+        [...pipeline["exporters"]].sort(),
       );
-      expect(Object.keys(config.extensions || {}).sort()).toEqual(
-        [...(config.service.extensions || [])].sort(),
+      expect(Object.keys(config["extensions"] || {}).sort()).toEqual(
+        [...(config["service"].extensions || [])].sort(),
       );
     },
   );
@@ -493,7 +493,7 @@ describe("the collector configuration", () => {
     (option: CloudMonitoringGuideOption) => {
       const config: YamlConfig = collectorConfig(option);
 
-      expect(config.exporters[EXPORTER]).toEqual({
+      expect(config["exporters"][EXPORTER]).toEqual({
         endpoint: `${ONEUPTIME_URL}/otlp`,
         headers: { "x-oneuptime-token": "${env:ONEUPTIME_TOKEN}" },
       });
@@ -507,7 +507,7 @@ describe("the collector configuration", () => {
       const text: string = collectorYaml(markdownOf(option));
 
       expect(text).not.toMatch(/resourcedetection/);
-      expect(Object.keys(collectorConfig(option).processors)).toEqual([
+      expect(Object.keys(collectorConfig(option)["processors"])).toEqual([
         "batch",
       ]);
     },
@@ -517,14 +517,16 @@ describe("the collector configuration", () => {
     const config: YamlConfig = collectorConfig(
       CloudMonitoringGuideOption.AzureMonitor,
     );
-    const receiver: YamlConfig = config.receivers.azure_monitor;
+    const receiver: YamlConfig = config["receivers"].azure_monitor;
 
-    expect(receiver.subscription_ids).toEqual(["${env:AZURE_SUBSCRIPTION_ID}"]);
-    expect(receiver.services).toBeUndefined();
-    expect(receiver.resource_groups).toBeUndefined();
-    expect(receiver.auth).toEqual({ authenticator: "azure_auth" });
-    expect(receiver.maximum_number_of_records_per_resource).toBe(50);
-    expect(config.extensions.azure_auth).toEqual({
+    expect(receiver["subscription_ids"]).toEqual([
+      "${env:AZURE_SUBSCRIPTION_ID}",
+    ]);
+    expect(receiver["services"]).toBeUndefined();
+    expect(receiver["resource_groups"]).toBeUndefined();
+    expect(receiver["auth"]).toEqual({ authenticator: "azure_auth" });
+    expect(receiver["maximum_number_of_records_per_resource"]).toBe(50);
+    expect(config["extensions"].azure_auth).toEqual({
       service_principal: {
         tenant_id: "${env:AZURE_TENANT_ID}",
         client_id: "${env:AZURE_CLIENT_ID}",
@@ -541,18 +543,18 @@ describe("the collector configuration", () => {
     AWS_POLLING_EXAMPLE_NAMESPACES.forEach(
       (namespace: string, index: number): void => {
         const receiver: YamlConfig =
-          config.receivers[
+          config["receivers"][
             PIPELINE_RECEIVERS[CloudMonitoringGuideOption.AwsCloudWatch][index]!
           ];
 
-        expect(receiver.region).toBe("${env:AWS_REGION}");
-        expect(receiver.metrics.discovery.filters).toEqual({
+        expect(receiver["region"]).toBe("${env:AWS_REGION}");
+        expect(receiver["metrics"].discovery.filters).toEqual({
           namespace: namespace,
         });
-        expect(receiver.metrics.discovery.limit).toBe(1000);
+        expect(receiver["metrics"].discovery.limit).toBe(1000);
         // CloudWatch publishes late: the delay must cover a whole period.
-        expect(receiver.metrics.delay).toBe("10m");
-        expect(receiver.metrics.period).toBe("5m");
+        expect(receiver["metrics"].delay).toBe("10m");
+        expect(receiver["metrics"].period).toBe("5m");
       },
     );
   });
@@ -562,10 +564,10 @@ describe("the collector configuration", () => {
       CloudMonitoringGuideOption.AwsMetricStreams,
     );
 
-    expect(config.extensions.awscloudwatchmetricstreams_encoding).toEqual({
+    expect(config["extensions"].awscloudwatchmetricstreams_encoding).toEqual({
       format: "opentelemetry1.0",
     });
-    expect(config.receivers.awsfirehose).toEqual({
+    expect(config["receivers"].awsfirehose).toEqual({
       endpoint: "0.0.0.0:4433",
       encoding: "awscloudwatchmetricstreams_encoding",
       access_key: "${env:FIREHOSE_ACCESS_KEY}",
@@ -580,10 +582,10 @@ describe("the collector configuration", () => {
     const config: YamlConfig = collectorConfig(
       CloudMonitoringGuideOption.GoogleCloudMonitoring,
     );
-    const receiver: YamlConfig = config.receivers.googlecloudmonitoring;
+    const receiver: YamlConfig = config["receivers"].googlecloudmonitoring;
 
-    expect(receiver.project_id).toBe("${env:GCP_PROJECT_ID}");
-    expect(receiver.metrics_list).toEqual(
+    expect(receiver["project_id"]).toBe("${env:GCP_PROJECT_ID}");
+    expect(receiver["metrics_list"]).toEqual(
       GCP_EXAMPLE_METRIC_PREFIXES.map(
         (prefix: string): Record<string, string> => {
           return {
@@ -674,13 +676,13 @@ describe("running the collector", () => {
     const config: YamlConfig = collectorConfig(
       CloudMonitoringGuideOption.AwsMetricStreams,
     );
-    const port: string = String(config.receivers.awsfirehose.endpoint).split(
+    const port: string = String(config["receivers"].awsfirehose.endpoint).split(
       ":",
     )[1]!;
 
     expect(command).toContain(`-p ${port}:${port}`);
     expect(command).toContain('-v "$(pwd)/tls:/etc/otelcol-contrib/tls:ro"');
-    expect(config.receivers.awsfirehose.tls.cert_file).toMatch(
+    expect(config["receivers"].awsfirehose.tls.cert_file).toMatch(
       /^\/etc\/otelcol-contrib\/tls\//,
     );
   });
@@ -744,7 +746,7 @@ describe("before a key is picked", () => {
         collectorYaml(getSetupGuideMarkdown(guide)),
       ) as YamlConfig;
 
-      expect(config.exporters[EXPORTER].endpoint).toBe(
+      expect(config["exporters"][EXPORTER].endpoint).toBe(
         `${SETUP_GUIDE_URL_PLACEHOLDER}/otlp`,
       );
       expect(guide.keyStep?.endpointValue).toBe(
@@ -922,7 +924,7 @@ describe("against the docs page", () => {
     expect(blocks.length).toBe(4);
     for (const block of blocks) {
       const config: YamlConfig = yaml.load(block.body) as YamlConfig;
-      expect(Object.keys(config.service.pipelines)).toEqual(["metrics"]);
+      expect(Object.keys(config["service"].pipelines)).toEqual(["metrics"]);
       expect(block.body).not.toContain("resourcedetection");
     }
   });
