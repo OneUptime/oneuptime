@@ -96,14 +96,24 @@ AI 元件有一條明確的資料外送邊界：
 
 ## 權限
 
-工作流程遵循你專案的角色型存取控制。相關的權限有：
+工作流程遵循你專案的角色型存取控制。工作流程有三個角色：
 
-- **Create / Read / Edit / Delete Workflow**——對工作流程本身的基本權限。
-- **執行工作流程**——手動執行工作流程或透過 API 觸發時需要。
+- **Workflow Admin**——建置工作流程：建立、變更、執行和刪除工作流程，並管理它們使用的變數。
+- **Workflow Member**——使用工作流程：開啟工作流程及其執行紀錄，並透過 **執行工作流程** 手動執行工作流程。成員不能建立、變更或刪除工作流程，也不能單獨執行其中的某個步驟。
+- **Workflow Viewer**——檢視工作流程及其執行紀錄。
+
+**Project Owner** 和 **Project Admin** 可以做 Workflow Admin 能做的一切。**Project Member** 可以建立和刪除工作流程，但不能變更或執行它們。
+
+個別權限，適用於只需要一項能力的團隊或 API 金鑰：
+
+- **Create / Read / Edit / Delete Workflow**——對工作流程本身的基本權限。變更工作流程（包括開啟、關閉和封存）需要 **Edit Workflow**；**Delete Workflow** 只能刪除。
+- **Edit Workflow**——用 **Run just this step** 單獨執行一個步驟，以及檢視或重設工作流程的 Webhook URL 和傳入電子郵件地址，也需要這個權限。手動執行整個工作流程需要 **Edit Workflow**、**Workflow Admin** 或 **Workflow Member**。
 - **Read Workflow Log**——檢視執行紀錄時需要。
 - **Read / Create / Edit / Delete Workflow Variable**——對全域變數清單的控制權。
 
-大多數工程師應該對工作流程有建立／編輯／讀取權限，但對變數沒有。把變數的編輯權留給管理專案密鑰的那些人。
+手動執行只能用於你能開啟的工作流程：僅限部分標籤，或僅限你的團隊擁有的工作流程的角色，只能執行這些工作流程。不能執行工作流程的人會看到 **執行工作流程** 呈灰色，提示中會說明原因。
+
+把 **Workflow Admin** 給建置自動化的人，把 **Workflow Member** 給只需要啟動它的人。把變數的編輯權留給管理專案密鑰的那些人。
 
 ## 方案限制
 

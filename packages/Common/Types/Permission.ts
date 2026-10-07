@@ -2654,8 +2654,14 @@ export class PermissionHelper {
       {
         permission: Permission.BillingAdmin,
         title: "Billing Admin",
+        /*
+         * What the role grants, and no more: the four notification channel
+         * switches (Project's enableSmsNotifications and the three beside
+         * it). The plan, payment methods, invoices and balance are checked
+         * against Project Owner and Manage Billing.
+         */
         description:
-          "Full control over project billing, invoices, and payment methods.",
+          "Turns the project's SMS, phone call, WhatsApp and Telegram notifications on and off. Changing the plan, payment methods or balance takes Project Owner or Manage Billing.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2694,7 +2700,7 @@ export class PermissionHelper {
         permission: Permission.WorkflowAdmin,
         title: "Workflow Admin",
         description:
-          "Full control over workflows, workflow logs, and workflow variables.",
+          "Builds workflows: creates, edits, runs and deletes them, manages workflow variables, and reads every run.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2704,7 +2710,7 @@ export class PermissionHelper {
         permission: Permission.WorkflowMember,
         title: "Workflow Member",
         description:
-          "Can create, edit, and delete workflows and workflow variables.",
+          "Opens workflows and their runs, and runs workflows by hand. Cannot create, change or delete them.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,

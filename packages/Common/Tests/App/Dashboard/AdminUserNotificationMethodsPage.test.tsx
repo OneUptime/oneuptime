@@ -2503,7 +2503,7 @@ describe("a project with channels switched off", () => {
    * a channel on.
    */
   const WHY_MISSING: string =
-    "Channels that are off in this project are not offered. A project owner or someone with Manage Billing can turn them on in Project Settings → Notification Settings.";
+    "Channels that are off in this project are not offered. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notification Settings.";
 
   // Said to someone who may turn them on, with the page as a link.
   const WHY_MISSING_WITH_LINK: string =
@@ -2585,7 +2585,7 @@ describe("a project with channels switched off", () => {
 
     expect(note.textContent).toBe(WHY_MISSING);
     expect(within(note).queryByRole("link")).not.toBeInTheDocument();
-    expect(note.textContent?.toLowerCase()).not.toContain("admin");
+    expect(note.textContent?.toLowerCase()).not.toContain("project admin");
   });
 
   test.each([

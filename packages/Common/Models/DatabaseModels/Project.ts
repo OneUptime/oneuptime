@@ -50,9 +50,17 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectUser,
   ],
   delete: [Permission.ProjectOwner, Permission.DeleteProject],
+  /*
+   * Billing Admin is here for the four notification channel switches
+   * (enableSmsNotifications, enableCallNotifications,
+   * enableWhatsAppNotifications, enableTelegramNotifications) and nothing
+   * else: every other column's own update list leaves it out, and the
+   * server checks both lists on every update.
+   */
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
+    Permission.BillingAdmin,
     Permission.ManageProjectBilling,
     Permission.EditProject,
   ],
@@ -1117,6 +1125,14 @@ export default class Project extends TenantModel {
   })
   public autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD?: number = undefined;
 
+  /*
+   * The four notification channel switches - SMS, WhatsApp, Telegram and
+   * phone calls - are turned on and off by a project owner, a Billing Admin
+   * or someone with Manage Billing: every message they send costs money, so
+   * switching them is billing. Not a project admin, whose role leaves billing
+   * out. Common/Utils/Project/NotificationChannels words who can, and a test
+   * holds its list to these four update lists.
+   */
   @ColumnAccessControl({
     create: [],
     read: [
@@ -1128,7 +1144,11 @@ export default class Project extends TenantModel {
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
     ],
-    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+    update: [
+      Permission.ProjectOwner,
+      Permission.BillingAdmin,
+      Permission.ManageProjectBilling,
+    ],
   })
   @TableColumn({
     required: true,
@@ -1157,7 +1177,11 @@ export default class Project extends TenantModel {
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
     ],
-    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+    update: [
+      Permission.ProjectOwner,
+      Permission.BillingAdmin,
+      Permission.ManageProjectBilling,
+    ],
   })
   @TableColumn({
     required: true,
@@ -1186,7 +1210,11 @@ export default class Project extends TenantModel {
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
     ],
-    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+    update: [
+      Permission.ProjectOwner,
+      Permission.BillingAdmin,
+      Permission.ManageProjectBilling,
+    ],
   })
   @TableColumn({
     required: true,
@@ -1215,7 +1243,11 @@ export default class Project extends TenantModel {
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
     ],
-    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+    update: [
+      Permission.ProjectOwner,
+      Permission.BillingAdmin,
+      Permission.ManageProjectBilling,
+    ],
   })
   @TableColumn({
     required: true,

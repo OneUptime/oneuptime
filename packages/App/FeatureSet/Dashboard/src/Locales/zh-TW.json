@@ -26011,5 +26011,18 @@
   "Which metric types are read": "會讀取哪些指標類型",
   "Who is responsible for this resource": "此資源的負責人",
   "Works too; OpenTelemetry 1.0 is preferred": "同樣可用；建議使用 OpenTelemetry 1.0",
-  "cloud resource": "雲端資源"
+  "cloud resource": "雲端資源",
+  "A project owner, a Billing Admin or someone with Manage Billing can change these.": "專案擁有者或擁有「Billing Admin」角色或「Manage Billing」權限的使用者可以變更這些設定。",
+  "Ask a project owner, a Billing Admin or someone with Manage Billing to turn it on": "請專案擁有者或擁有「Billing Admin」角色或「Manage Billing」權限的使用者開啟",
+  "Channels that are off in this project are not offered. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notification Settings.": "此專案中已關閉的管道不會提供。專案擁有者或擁有「Billing Admin」角色或「Manage Billing」權限的使用者可以在「專案設定」→「通知設定」中開啟。",
+  "Every method you have verified is on a channel this project has switched off. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings, or you can add an email or push device instead.": "您驗證過的所有方式都使用此專案已關閉的管道。專案擁有者或擁有「Billing Admin」角色或「Manage Billing」權限的使用者可以在「專案設定」→「通知設定」中開啟，您也可以改為新增電子郵件地址或推播裝置。",
+  "Numbers for incoming calls are verified by SMS, which is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "來電號碼透過簡訊驗證，但此專案已關閉簡訊。專案擁有者或擁有「Billing Admin」角色或「Manage Billing」權限的使用者可以在「專案設定」→「通知設定」中開啟。",
+  "Phone calls are off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notification Settings.": "此專案已關閉語音電話。專案擁有者或擁有「Billing Admin」角色或「Manage Billing」權限的使用者可以在「專案設定」→「通知設定」中開啟。",
+  "Running one step on its own takes permission to edit this workflow.": "單獨執行一個步驟需要編輯此工作流程的權限。",
+  "SMS is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "此專案已關閉簡訊。專案擁有者或擁有「Billing Admin」角色或「Manage Billing」權限的使用者可以在「專案設定」→「通知設定」中開啟。",
+  "Telegram is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "此專案已關閉 Telegram。專案擁有者或擁有「Billing Admin」角色或「Manage Billing」權限的使用者可以在「專案設定」→「通知設定」中開啟。",
+  "WhatsApp is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "此專案已關閉 WhatsApp。專案擁有者或擁有「Billing Admin」角色或「Manage Billing」權限的使用者可以在「專案設定」→「通知設定」中開啟。",
+  "You do not have permission to run this workflow.": "您沒有執行此工作流程的權限。",
+  "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here.": "還有 {{count}} 個步驟需要專案擁有者或擁有「Billing Admin」角色或「Manage Billing」權限的使用者處理，因此未計入此處。",
+  "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here._one": "還有 {{count}} 個步驟需要專案擁有者或擁有「Billing Admin」角色或「Manage Billing」權限的使用者處理，因此未計入此處。"
 }

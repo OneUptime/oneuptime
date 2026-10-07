@@ -40,9 +40,9 @@ import path from "path";
  *   - the admin's "Add a notification method" form offers only the channels
  *     that are on;
  *   - wherever a channel is off, the reader who may not turn it on is told
- *     exactly who can - a project owner or someone with Manage Billing, the
- *     columns' own update permissions - and never "a project admin", who
- *     may not.
+ *     exactly who can - a project owner, a Billing Admin or someone with
+ *     Manage Billing, the columns' own update permissions - and never "a
+ *     project admin", who may not.
  *
  * This reads the sources so a list written later, or a second home for a
  * switch, cannot quietly bring the refusal back. The behaviour is tested in
@@ -252,13 +252,15 @@ describe("the four channels", () => {
       );
       expect(definition.switchOnDescription).toMatch(/^On for this project: /);
       expect(definition.offSentence).toContain(
-        "A project owner or someone with Manage Billing can turn",
+        "A project owner, a Billing Admin or someone with Manage Billing can turn",
       );
       expect(definition.offSentence).toContain(
         "in Project Settings → Notification Settings.",
       );
       expect(definition.offSentence).toContain("off in this project");
-      expect(definition.offSentence.toLowerCase()).not.toContain("admin");
+      expect(definition.offSentence.toLowerCase()).not.toContain(
+        "project admin",
+      );
       // The empty list's heading while off does not ask for one.
       expect(definition.noItemsWhileOff).not.toContain("add");
     }
@@ -288,8 +290,12 @@ describe("the four channels", () => {
       );
     }
 
-    // "a project owner or someone with Manage Billing"
-    expect(titles).toEqual(["Project Owner", "Manage Billing"]);
+    // "a project owner, a Billing Admin or someone with Manage Billing"
+    expect(titles).toEqual([
+      "Project Owner",
+      "Billing Admin",
+      "Manage Billing",
+    ]);
 
     for (const sentence of [
       getWhoCanTurnOnSentence("it"),
@@ -302,8 +308,9 @@ describe("the four channels", () => {
       ),
     ]) {
       expect(sentence).toContain("project owner");
+      expect(sentence).toContain("a Billing Admin");
       expect(sentence).toContain("Manage Billing");
-      expect(sentence.toLowerCase()).not.toContain("admin");
+      expect(sentence.toLowerCase()).not.toContain("project admin");
     }
   });
 
@@ -496,9 +503,9 @@ describe("one place for each switch", () => {
 
 describe("nothing tells a reader to ask a project admin, or to turn a channel on themselves", () => {
   /*
-   * Only a project owner or someone with Manage Billing may switch SMS,
-   * calls, WhatsApp or Telegram on. Sources are read without their comments,
-   * which may still quote what the copy used to say.
+   * Only a project owner, a Billing Admin or someone with Manage Billing
+   * may switch SMS, calls, WhatsApp or Telegram on. Sources are read without
+   * their comments, which may still quote what the copy used to say.
    */
   const REPO_PACKAGES: string = path.join(__dirname, "..", "..", "..");
 
@@ -599,7 +606,7 @@ describe("translations", () => {
     ),
     ProjectNotificationChannelsCopy.whoCanChange,
     ProjectNotificationChannelsCopy.settingsLinkText,
-    "Channels that are off in this project are not offered. A project owner or someone with Manage Billing can turn them on in Project Settings → Notification Settings.",
+    "Channels that are off in this project are not offered. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notification Settings.",
     "Channels that are off in this project are not offered. Turn them on in {{settingsLink}}.",
     "You can add an email address, phone number or WhatsApp number for {{name}}, and remove any method they no longer use. Identifiers are always shown masked.",
     "You can add an email address or phone number for {{name}}, and remove any method they no longer use. Identifiers are always shown masked.",

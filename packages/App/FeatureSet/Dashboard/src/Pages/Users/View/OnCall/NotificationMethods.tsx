@@ -790,7 +790,7 @@ const UserViewNotificationMethods: FunctionComponent<
           />
         ) : (
           translator.translateText(
-            "Channels that are off in this project are not offered. A project owner or someone with Manage Billing can turn them on in Project Settings → Notification Settings.",
+            "Channels that are off in this project are not offered. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notification Settings.",
           )
         )}
       </span>

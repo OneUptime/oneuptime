@@ -54,7 +54,7 @@ Die Teams **Owners** und **Admin** sind bewusst gesperrt: Ihre Berechtigungen la
 
 `ProjectOwner` ist die höchste Zugriffsstufe: Abrechnung, Löschen des Projekts und alles, was ein Admin kann. `ProjectAdmin` umfasst alles außer Abrechnung und Löschen des Projekts.
 
-SMS, Telefonanrufe, WhatsApp oder Telegram für das Projekt ein- oder auszuschalten gilt als Abrechnung, weil jede Nachricht Geld kostet. Nur `ProjectOwner` und die Berechtigung `ManageProjectBilling` (**Manage Billing**) können diese Schalter unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen** ändern — nicht `ProjectAdmin`.
+SMS, Telefonanrufe, WhatsApp oder Telegram für das Projekt ein- oder auszuschalten gilt als Abrechnung, weil jede Nachricht Geld kostet. Nur `ProjectOwner`, die Rolle `BillingAdmin` (**Billing Admin**) und die Berechtigung `ManageProjectBilling` (**Manage Billing**) können diese Schalter unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen** ändern — nicht `ProjectAdmin`.
 
 Das Aufladen der vorausbezahlten Guthaben des Projekts gilt ebenfalls als Abrechnung. In OneUptime Cloud werden SMS, Telefonanrufe, WhatsApp und Telegram vom Guthaben unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen** bezahlt und KI vom KI-Guthaben unter **Projekteinstellungen > KI > KI-Guthaben**. Nur ein Projekteigentümer oder jemand mit **Manage Billing** kann sie aufladen oder ihr **Automatisches Aufladen** ändern — ein Projektadministrator kann es nicht. Eine Meldung über ein knappes Guthaben nennt, wer es aufladen kann, und nur diese Personen bekommen eine funktionierende Schaltfläche **Guthaben aufladen** oder einen Link zur Seite.
 
@@ -75,6 +75,8 @@ Eine Rolle bündelt einen ganzen Produktbereich auf einer von drei Stufen:
 - **Viewer** — nur lesend.
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` und so weiter. Rollen sind fast immer die richtige Wahl — sie bleiben korrekt, wenn OneUptime Funktionen ergänzt, weil eine neue monitorbezogene Tabelle den bestehenden Monitor-Rollen zugeordnet wird, statt eine neue Zuweisung von Ihnen zu verlangen.
+
+Workflows sind die Ausnahme. Ein Workflow führt seine Schritte im Projekt aus, deshalb öffnet `WorkflowMember` Workflows und ihre Ausführungen und führt sie von Hand aus, erstellt, ändert oder löscht sie aber nicht. `WorkflowAdmin` baut sie. Siehe [Workflow-Konfiguration](/docs/workflows/configuration).
 
 Alle {{PERMISSION_ROLE_COUNT}} Rollen sind in der [Berechtigungsreferenz](/docs/permissions/reference) aufgeführt.
 

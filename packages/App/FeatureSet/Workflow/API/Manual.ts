@@ -1,13 +1,10 @@
 import QueueWorkflow from "../Services/QueueWorkflow";
+import WorkflowRunAccess from "../Utils/WorkflowRunAccess";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import ObjectID from "Common/Types/ObjectID";
 import CommonAPI from "Common/Server/API/CommonAPI";
-import CallerPermission from "Common/Server/Utils/Permission/CallerPermission";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
-import WorkflowService from "Common/Server/Services/WorkflowService";
-import Workflow from "Common/Models/DatabaseModels/Workflow";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -74,31 +71,23 @@ export default class ManualAPI {
         CommonAPI.assertAuthenticatedProjectMember(databaseProps);
 
       /*
+       * Membership alone is not enough. A run executes the workflow's steps
+       * inside the project - arbitrary JavaScript, notification sends,
+       * resource create/delete - so it takes a run permission: the
+       * workflow's editors, or a Workflow Member, whose role is to run
+       * workflows without changing them (WorkflowRunPermissions).
+       *
        * The tenant above is only the project the caller *claimed* in the
-       * `tenantid` header. Take the owning project off the workflow row
-       * itself and require the two to match, otherwise a member of project A
-       * reaches project B's workflow id just by sending their own header.
-       * A workflow that does not exist is rejected the same way, so the route
-       * cannot be used to confirm which workflow ids exist in other projects.
+       * `tenantid` header, so the workflow's own project must match it - a
+       * workflow of project B and one that does not exist are refused
+       * alike, so the route cannot be used to confirm which workflow ids
+       * exist - and the grant that lets the caller run it must reach it:
+       * its labels and owned scope count (WorkflowRunAccess).
        */
-      const workflow: Workflow | null = await WorkflowService.findOneById({
-        id: workflowId,
-        select: {
-          projectId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      CommonAPI.assertResourceBelongsToProject({
-        resourceProjectId: workflow?.projectId,
-        projectId: projectId,
-      });
-
-      ManualAPI.assertCallerCanRunWorkflow({
+      await WorkflowRunAccess.assertMayRunWorkflow({
         databaseProps: databaseProps,
         projectId: projectId,
+        workflowId: workflowId,
       });
 
       await QueueWorkflow.addWorkflowToQueue({
@@ -111,45 +100,6 @@ export default class ManualAPI {
       });
     } catch (err) {
       next(err);
-    }
-  }
-
-  /*
-   * Membership alone is not enough. Running a workflow executes its
-   * components inside the project — arbitrary JavaScript, notification sends,
-   * resource create/delete — so it is a write-level action, not a read. Gate
-   * it on the same permissions that govern updating the Workflow model
-   * itself: the dashboard's Run button lives on the builder page, which
-   * already needs those permissions to save the graph, so no caller who can
-   * legitimately reach the button loses access. Reading the list off the
-   * model keeps this in step with the CRUD route if the model's access
-   * control changes.
-   */
-  private static assertCallerCanRunWorkflow(data: {
-    databaseProps: DatabaseCommonInteractionProps;
-    projectId: ObjectID;
-  }): void {
-    // Master admins bypass permission checks, as they do in requirePermission.
-    if (data.databaseProps.isMasterAdmin) {
-      return;
-    }
-
-    /*
-     * Held the way every permission check reads it (CallerPermission): a
-     * team's block row is no grant, a block with no labels on the update
-     * list takes it away, and Edit All Operational Resources counts, as it
-     * does for saving the workflow.
-     */
-    if (
-      !CallerPermission.holdsModelPermission(
-        data.databaseProps,
-        { model: new Workflow(), operation: "update" },
-        { projectId: data.projectId },
-      )
-    ) {
-      throw new NotAuthorizedException(
-        "You do not have permission to run this workflow.",
-      );
     }
   }
 }

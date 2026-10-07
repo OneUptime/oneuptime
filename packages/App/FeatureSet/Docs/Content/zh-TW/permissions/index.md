@@ -54,7 +54,7 @@ OneUptime 中的一切都存在於**專案**之內。誰能在專案裡做什麼
 
 `ProjectOwner` 是最高存取層級：帳務、刪除專案，以及管理員能做的一切。`ProjectAdmin` 涵蓋除帳務與刪除專案以外的全部內容。
 
-為專案開啟或關閉簡訊、語音電話、WhatsApp 或 Telegram 屬於帳務事項，因為每則訊息都要花錢。只有 `ProjectOwner` 和 `ManageProjectBilling` 權限（**Manage Billing**）可以在 **專案設定 > 通知 > 通知設定** 中變更這些開關，`ProjectAdmin` 不行。
+為專案開啟或關閉簡訊、語音電話、WhatsApp 或 Telegram 屬於帳務事項，因為每則訊息都要花錢。只有 `ProjectOwner`、`BillingAdmin` 角色（**Billing Admin**）和 `ManageProjectBilling` 權限（**Manage Billing**）可以在 **專案設定 > 通知 > 通知設定** 中變更這些開關，`ProjectAdmin` 不行。
 
 為專案的預付餘額儲值同樣屬於帳務事項。在 OneUptime Cloud 上，簡訊、語音電話、WhatsApp 和 Telegram 從 **專案設定 > 通知 > 通知設定** 中的餘額支付，AI 從 **專案設定 > 人工智慧 > AI 點數** 中的 AI 點數支付。只有專案擁有者或擁有 **Manage Billing** 權限的使用者才能為它們儲值或變更它們的 **自動儲值**，專案管理員不行。關於餘額不足的訊息會說明誰可以儲值，只有這些人才會看到可用的 **儲值餘額** 按鈕或頁面連結。
 
@@ -75,6 +75,8 @@ OneUptime 中的一切都存在於**專案**之內。誰能在專案裡做什麼
 - **Viewer** — 唯讀。
 
 例如 `MonitorAdmin`、`IncidentMember`、`StatusPageViewer` 等。絕大多數情況下你想要的都是角色——隨著 OneUptime 新增功能，角色依然正確，因為與監視器相關的新資料表會併入既有的監視器角色，而不需要你重新授予。
+
+工作流程是例外。工作流程會在專案中執行它的步驟，因此 `WorkflowMember` 可以開啟工作流程及其執行紀錄並手動執行，但不能建立、變更或刪除工作流程。建置工作流程的是 `WorkflowAdmin`。請參閱 [工作流程設定](/docs/workflows/configuration)。
 
 全部 {{PERMISSION_ROLE_COUNT}} 個角色列於[權限參考](/docs/permissions/reference)。
 

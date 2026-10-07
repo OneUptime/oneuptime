@@ -26,7 +26,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * Notification Methods) and their incoming call numbers each need a project
  * switch on, and all four switches start off. The server refuses a method on
  * a channel that is off ("SMS is off in this project. A project owner or
- * someone with Manage Billing can turn it on in Project Settings >
+ * a Billing Admin or someone with Manage Billing can turn it on in Project
+ * Settings >
  * Notification Settings.") - so an Add button there was an invitation to
  * that refusal, on every new project.
  *
@@ -484,11 +485,11 @@ describe.each(METHOD_LISTS)("$name", (list: MethodList) => {
     expect(
       screen.getByTestId(NOTIFICATION_CHANNEL_OFF_SENTENCE_TEST_ID),
     ).toHaveTextContent(definition().offSentence);
-    // Who can: a project owner or someone with Manage Billing - not "a project admin".
+    // Who can: a project owner, a Billing Admin or someone with Manage Billing - not "a project admin".
     expect(
       screen.getByTestId(NOTIFICATION_CHANNEL_OFF_SENTENCE_TEST_ID),
     ).toHaveTextContent(
-      "A project owner or someone with Manage Billing can turn",
+      "A project owner, a Billing Admin or someone with Manage Billing can turn",
     );
     expect(document.body.textContent?.toLowerCase()).not.toContain(
       "project admin",
