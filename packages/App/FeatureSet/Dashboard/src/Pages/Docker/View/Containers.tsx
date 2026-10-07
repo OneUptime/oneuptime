@@ -52,6 +52,8 @@ interface DockerContainerRow {
 const CONTAINER_NAME_ATTR: string = "resource.container.name";
 const CONTAINER_IMAGE_ATTR: string = "resource.container.image.name";
 
+const PAGE_SIZE: number = 25;
+
 const formatBytes: (bytes: number) => string = (bytes: number): string => {
   if (!isFinite(bytes) || bytes <= 0) {
     return "0 B";
@@ -74,6 +76,8 @@ const DockerHostContainers: FunctionComponent<
   const [containers, setContainers] = useState<Array<DockerContainerRow>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(PAGE_SIZE);
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -243,6 +247,22 @@ const DockerHostContainers: FunctionComponent<
     });
   }, []);
 
+  /*
+   * A refresh can shrink the list (a stopped container ages out of the
+   * 5-minute window), so clamp instead of trusting currentPage — otherwise
+   * the user is stranded on a page past the end, staring at an empty table.
+   */
+  const totalPages: number = Math.max(
+    1,
+    Math.ceil(containers.length / pageSize),
+  );
+  const effectivePage: number = Math.min(currentPage, totalPages);
+
+  const paginatedData: Array<DockerContainerRow> = useMemo(() => {
+    const start: number = (effectivePage - 1) * pageSize;
+    return containers.slice(start, start + pageSize);
+  }, [containers, effectivePage, pageSize]);
+
   const getContainerDetailRoute: (row: DockerContainerRow) => Route = (
     row: DockerContainerRow,
   ): Route => {
@@ -367,15 +387,20 @@ const DockerHostContainers: FunctionComponent<
         id="docker-containers-table"
         columns={tableColumns}
         actionButtons={actionButtons}
-        data={containers}
+        data={paginatedData}
         singularLabel="Container"
         pluralLabel="Containers"
         isLoading={false}
         error=""
-        currentPageNumber={1}
+        currentPageNumber={effectivePage}
         totalItemsCount={containers.length}
-        itemsOnPage={containers.length}
-        onNavigateToPage={() => {}}
+        itemsOnPage={pageSize}
+        onNavigateToPage={(page: number, itemsOnPage: number) => {
+          setCurrentPage(page);
+          if (itemsOnPage > 0) {
+            setPageSize(itemsOnPage);
+          }
+        }}
         sortOrder={SortOrder.Ascending}
         sortBy={null}
         onSortChanged={() => {}}
