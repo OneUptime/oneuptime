@@ -42,6 +42,40 @@ export interface GroupingResult {
   wasReopened?: boolean;
 }
 
+/*
+ * What an episode's {{alertTitle}} and {{alertDescription}} read when the
+ * alert that opens it is private (see getEpisodeTemplateValues).
+ */
+const PRIVATE_ALERT_TEMPLATE_VALUE: string = "Private alert";
+
+// A private alert's title, where the new episode's feed shows its key.
+const PRIVATE_ALERT_TITLE_GROUPING_KEY_PART: string = "title:(private alert)";
+
+type GetTitleGroupingKeyPartFunction = (title: string) => string;
+
+/*
+ * What a rule that groups by title adds to the grouping key: the title,
+ * lowercased, with every number an X - so "Disk 91% full" and "Disk 95%
+ * full" go into the same episode.
+ */
+const getTitleGroupingKeyPart: GetTitleGroupingKeyPartFunction = (
+  title: string,
+): string => {
+  return `title:${title.toLowerCase().replace(/\d+/g, "X")}`;
+};
+
+/*
+ * The {{variables}} of an episode's title and description templates
+ * (Common/Utils/Episode/EpisodeTemplateVariables), read from the alert that
+ * opens the episode.
+ */
+interface EpisodeTemplateValues {
+  alertTitle: string | undefined;
+  alertDescription: string | undefined;
+  monitorName: string | undefined;
+  alertSeverity: string | undefined;
+}
+
 class AlertGroupingEngineServiceClass {
   @CaptureSpan()
   public async processAlert(
@@ -605,11 +639,7 @@ class AlertGroupingEngineServiceClass {
 
     // Group by alert title - only if explicitly enabled
     if (rule.groupByAlertTitle && alert.title) {
-      // Normalize title for grouping (remove numbers, etc.)
-      const normalizedTitle: string = alert.title
-        .toLowerCase()
-        .replace(/\d+/g, "X");
-      parts.push(`title:${normalizedTitle}`);
+      parts.push(getTitleGroupingKeyPart(alert.title));
     }
 
     // Group by alert labels (exact set match) - only if explicitly enabled
@@ -776,16 +806,20 @@ class AlertGroupingEngineServiceClass {
     rule: AlertGroupingRule,
     groupingKey: string,
   ): Promise<AlertEpisode | null> {
+    const templateValues: EpisodeTemplateValues =
+      this.getEpisodeTemplateValues(alert);
+
     // Generate episode title from template (with initial alertCount of 1)
     const title: string = this.generateEpisodeTitle(
       alert,
-      rule.episodeTitleTemplate,
+      rule,
+      templateValues,
       1, // Initial alert count
     );
 
     // Generate episode description from template (with initial alertCount of 1)
     const description: string | undefined = this.generateEpisodeDescription(
-      alert,
+      templateValues,
       rule.episodeDescriptionTemplate,
       1, // Initial alert count
     );
@@ -802,13 +836,13 @@ class AlertGroupingEngineServiceClass {
      */
     if (rule.episodeTitleTemplate) {
       newEpisode.titleTemplate = this.preprocessTemplate(
-        alert,
+        templateValues,
         rule.episodeTitleTemplate,
       );
     }
     if (rule.episodeDescriptionTemplate) {
       newEpisode.descriptionTemplate = this.preprocessTemplate(
-        alert,
+        templateValues,
         rule.episodeDescriptionTemplate,
       );
     }
@@ -952,7 +986,7 @@ class AlertGroupingEngineServiceClass {
          * address would become part of the link renderers make of it.
          */
         let moreInfo: string = `**Rule:** ${escapeMarkdownValue(rule.name || "Unnamed Rule")}\n\n`;
-        moreInfo += `**Grouping Key:** ${escapeMarkdownValue(groupingKey)}\n\n`;
+        moreInfo += `**Grouping Key:** ${escapeMarkdownValue(this.getGroupingKeyToShow(alert, rule, groupingKey))}\n\n`;
         moreInfo += `**${groupByDescription}**`;
 
         if (rule.enableTimeWindow && rule.timeWindowMinutes) {
@@ -985,15 +1019,78 @@ class AlertGroupingEngineServiceClass {
     }
   }
 
+  /*
+   * What the episode's title and description templates are filled with, from
+   * the alert that opens it.
+   *
+   * A private alert is seen only by its owners and the project's owners and
+   * admins (AlertPrivacyFilter), and the episode it opens is not private:
+   * whoever can see the episode reads its title and description - in the
+   * dashboard, in its Slack / Microsoft Teams channels and in every
+   * notification about it. So a private alert's title and description never
+   * go into the episode: both read "Private alert", in the title and
+   * description written now and in the templates stored to write them again
+   * as alerts join - as IncidentAlertService and AlertEpisodeMemberService
+   * leave a private alert's title out of entries others read. Its monitor's
+   * name and its severity are the project's, not the alert's, and are used
+   * as for any alert.
+   *
+   * The episode is not made private instead: it gathers every alert the rule
+   * matches, and the first one to arrive should not decide who sees the rest
+   * - nor would it keep the title from the rule's owners and on-call, who
+   * need not be able to see the alert.
+   */
+  private getEpisodeTemplateValues(alert: Alert): EpisodeTemplateValues {
+    const isPrivate: boolean = alert.isPrivate === true;
+
+    return {
+      alertTitle: isPrivate ? PRIVATE_ALERT_TEMPLATE_VALUE : alert.title,
+      alertDescription: isPrivate
+        ? PRIVATE_ALERT_TEMPLATE_VALUE
+        : alert.description,
+      monitorName: alert.monitor?.name,
+      alertSeverity: alert.alertSeverity?.name,
+    };
+  }
+
+  /*
+   * The grouping key as the new episode's feed shows it. A rule that groups
+   * by title puts the alert's title in the key (getTitleGroupingKeyPart); a
+   * private alert's is shown as private, as everywhere else in the episode
+   * (getEpisodeTemplateValues). The key is stored as built: the alerts that
+   * join later find the episode by it.
+   */
+  private getGroupingKeyToShow(
+    alert: Alert,
+    rule: AlertGroupingRule,
+    groupingKey: string,
+  ): string {
+    if (alert.isPrivate !== true || !rule.groupByAlertTitle || !alert.title) {
+      return groupingKey;
+    }
+
+    return groupingKey
+      .split(getTitleGroupingKeyPart(alert.title))
+      .join(PRIVATE_ALERT_TITLE_GROUPING_KEY_PART);
+  }
+
   private generateEpisodeTitle(
     alert: Alert,
-    template: string | undefined,
+    rule: AlertGroupingRule,
+    values: EpisodeTemplateValues,
     alertCount: number = 1,
   ): string {
-    if (!template) {
+    if (!rule.episodeTitleTemplate) {
       // Default title based on alert
-      if (alert.monitor?.name) {
-        return alert.monitor.name;
+      if (values.monitorName) {
+        return values.monitorName;
+      }
+      /*
+       * A private alert's title is not the episode's to show
+       * (getEpisodeTemplateValues): the episode is named after its rule.
+       */
+      if (alert.isPrivate === true) {
+        return rule.name || "Untitled Episode";
       }
       if (alert.title) {
         return alert.title.substring(0, 50);
@@ -1002,13 +1099,16 @@ class AlertGroupingEngineServiceClass {
     }
 
     return (
-      this.replaceTemplatePlaceholders(alert, template, alertCount) ||
-      "Untitled Episode"
+      this.replaceTemplatePlaceholders(
+        values,
+        rule.episodeTitleTemplate,
+        alertCount,
+      ) || "Untitled Episode"
     );
   }
 
   private generateEpisodeDescription(
-    alert: Alert,
+    values: EpisodeTemplateValues,
     template: string | undefined,
     alertCount: number = 1,
   ): string | undefined {
@@ -1017,12 +1117,13 @@ class AlertGroupingEngineServiceClass {
     }
 
     return (
-      this.replaceTemplatePlaceholders(alert, template, alertCount) || undefined
+      this.replaceTemplatePlaceholders(values, template, alertCount) ||
+      undefined
     );
   }
 
   private replaceTemplatePlaceholders(
-    alert: Alert,
+    values: EpisodeTemplateValues,
     template: string,
     alertCount: number = 1,
   ): string {
@@ -1032,26 +1133,26 @@ class AlertGroupingEngineServiceClass {
      * Static variables (from first alert)
      * {{alertTitle}}
      */
-    if (alert.title) {
-      result = result.replace(/\{\{alertTitle\}\}/g, alert.title);
+    if (values.alertTitle) {
+      result = result.replace(/\{\{alertTitle\}\}/g, values.alertTitle);
     }
 
     // {{alertDescription}}
-    if (alert.description) {
-      result = result.replace(/\{\{alertDescription\}\}/g, alert.description);
+    if (values.alertDescription) {
+      result = result.replace(
+        /\{\{alertDescription\}\}/g,
+        values.alertDescription,
+      );
     }
 
     // {{monitorName}}
-    if (alert.monitor?.name) {
-      result = result.replace(/\{\{monitorName\}\}/g, alert.monitor.name);
+    if (values.monitorName) {
+      result = result.replace(/\{\{monitorName\}\}/g, values.monitorName);
     }
 
     // {{alertSeverity}}
-    if (alert.alertSeverity?.name) {
-      result = result.replace(
-        /\{\{alertSeverity\}\}/g,
-        alert.alertSeverity.name,
-      );
+    if (values.alertSeverity) {
+      result = result.replace(/\{\{alertSeverity\}\}/g, values.alertSeverity);
     }
 
     /*
@@ -1070,33 +1171,36 @@ class AlertGroupingEngineServiceClass {
    * Preprocess template: replace static variables but keep dynamic ones as placeholders
    * This is stored on the episode so we can re-render with updated dynamic values later
    */
-  private preprocessTemplate(alert: Alert, template: string): string {
+  private preprocessTemplate(
+    values: EpisodeTemplateValues,
+    template: string,
+  ): string {
     let result: string = template;
 
     /*
      * Replace static variables (from first alert)
      * {{alertTitle}}
      */
-    if (alert.title) {
-      result = result.replace(/\{\{alertTitle\}\}/g, alert.title);
+    if (values.alertTitle) {
+      result = result.replace(/\{\{alertTitle\}\}/g, values.alertTitle);
     }
 
     // {{alertDescription}}
-    if (alert.description) {
-      result = result.replace(/\{\{alertDescription\}\}/g, alert.description);
+    if (values.alertDescription) {
+      result = result.replace(
+        /\{\{alertDescription\}\}/g,
+        values.alertDescription,
+      );
     }
 
     // {{monitorName}}
-    if (alert.monitor?.name) {
-      result = result.replace(/\{\{monitorName\}\}/g, alert.monitor.name);
+    if (values.monitorName) {
+      result = result.replace(/\{\{monitorName\}\}/g, values.monitorName);
     }
 
     // {{alertSeverity}}
-    if (alert.alertSeverity?.name) {
-      result = result.replace(
-        /\{\{alertSeverity\}\}/g,
-        alert.alertSeverity.name,
-      );
+    if (values.alertSeverity) {
+      result = result.replace(/\{\{alertSeverity\}\}/g, values.alertSeverity);
     }
 
     /*
