@@ -149,9 +149,9 @@ Se uma chave vazar, abra o agente no OneUptime e regenere a chave dele. A antiga
 A gestão de agentes vive sob o grupo de permissões já existente de Runbooks:
 
 - `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — gerenciar registros de agentes.
-- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (papéis) — atribua a um time para conceder controle total, uso do dia a dia ou acesso somente leitura, respectivamente. `RunbookAdmin` agrupa todas as permissões granulares acima.
+- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (funções) — `RunbookAdmin` constrói runbooks, suas regras e os Runners em que eles rodam, e os executa. `RunbookMember` abre runbooks e suas execuções e os executa — inicia uma execução, conclui ou pula suas etapas e a cancela —, mas não cria, altera nem exclui nenhum runbook ou Runner. `RunbookViewer` lê runbooks e suas execuções e não executa nada. `RunbookAdmin` agrupa todas as permissões granulares acima.
 
-Permissões para _disparar_ um runbook (e portanto fazer com que passos Bash e JavaScript sejam despachados) continuam sendo `CreateRunbookExecution` / `EditRunbookExecution`.
+Disparar um runbook (e, portanto, despachar suas etapas Bash e JavaScript) exige uma função que execute runbooks — `ProjectOwner`, `ProjectAdmin`, `ProjectMember`, `RunbookAdmin` ou `RunbookMember` — ou `CreateRunbookExecution`; concluir, pular ou cancelar uma execução também aceita `EditRunbookExecution`. Uma função executa apenas os runbooks que o seu escopo alcança.
 
 ## API exposta ao agente
 

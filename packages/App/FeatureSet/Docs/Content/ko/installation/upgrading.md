@@ -171,6 +171,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 - **프로브의 프록시를 통해 IP 주소에 도달하는 HTTPS 모니터가 다시 동작합니다.** 프로브가 IP를 TLS 서버 이름으로 보냈는데, IP는 올바른 서버 이름이 아니어서 Node가 곧바로 거부했습니다. 그래서 `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS`를 설정한 글로벌 프로브에서 `https://<사설 IP>`를 감시하면 핸드셰이크에 실패했습니다. 이제 대상이 IP이면 프로브가 서버 이름을 보내지 않고 인증서를 IP 자체로 검증합니다. 호스트 이름 대상은 달라지지 않습니다.
 - **`oneuptime` CLI가 `--version`에서 실제 버전을 보고합니다**(이전에는 자리 표시자였습니다).
 - **Runner가 프로젝트 설정에서 런북으로 이동했습니다.** Runner는 이제 **런북 → Runbook 에이전트**(`…/runbooks/runners`)에, Runner Credentials는 **런북 → Runbook 에이전트 → 자격 증명**(`…/runbooks/runner-credentials`)에 있어, Runner가 단계를 실행하는 런북 바로 옆에 놓입니다. 이전 `…/settings/runners`와 `…/settings/runner-credentials` URL은 리디렉션되므로 북마크는 계속 동작합니다. 그 밖에는 달라지는 것이 없습니다. Runner의 ID, 키, 기능, 권한은 그대로이며, AI 코드 수정과 AI 복구 명령도 계속 실행합니다. 이 릴리스보다 오래된 Runner 이미지는 로그 메시지에 여전히 "Project Settings > Runners"라고 출력합니다. 이는 런북 → Runbook 에이전트로 읽으면 됩니다.
+- **`RunbookMember`는 Runbook을 실행하고 만들지는 않습니다.** 이 역할은 더 이상 Runbook, Runner, 그 소유자를 만들거나 삭제하지 않으며, 라벨과 범위가 닿는 Runbook만 실행합니다. Runbook을 만드는 사람에게는 `RunbookAdmin`이 필요합니다. 결제 역할은 이제 결제 페이지를 읽습니다. `BillingViewer`는 읽기만 하고, `BillingMember`는 여기에 청구서를 다운로드하고 결제 연락처 정보를 변경합니다.
 - 이동되었거나 접근이 제한된 엔드포인트는 위의 [API and endpoint changes](#api-and-endpoint-changes)에 정리되어 있습니다. `GET /api/global-config/license`와, 자체 호스팅 설치가 더 이상 제공하지 않는 라이선스 서버 엔드포인트가 포함됩니다.
 
 ### IPv6 모니터: Ping, Port, SSL

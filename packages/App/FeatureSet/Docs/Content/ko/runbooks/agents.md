@@ -149,9 +149,9 @@ Runbook 실행을 (실행 뷰나 API에서) 취소하면 `Pending`/`Claimed`/`Ru
 에이전트 관리는 기존 Runbooks 권한 그룹 아래에 있습니다:
 
 - `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — 에이전트 레코드를 관리.
-- `RunbookAdmin`, `RunbookMember`, `RunbookViewer`(역할) — 팀에 할당하여 각각 전체 제어, 일상 사용, 읽기 전용 접근을 부여. `RunbookAdmin`은 위의 세분 권한을 모두 묶은 것.
+- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (역할) — `RunbookAdmin`은 Runbook, 그 규칙, Runbook이 실행되는 Runner를 만들고 Runbook을 실행합니다. `RunbookMember`는 Runbook과 그 실행을 열고 실행하지만(실행 시작, 단계 완료 또는 건너뛰기, 취소), Runbook이나 Runner를 만들거나 변경하거나 삭제하지는 않습니다. `RunbookViewer`는 Runbook과 그 실행을 읽고 아무것도 실행하지 않습니다. `RunbookAdmin`은 위의 모든 세분화된 권한을 묶은 것입니다.
 
-Runbook을 *트리거*하는 (따라서 Bash와 JavaScript 단계가 디스패치되도록 하는) 권한은 여전히 `CreateRunbookExecution` / `EditRunbookExecution`입니다.
+Runbook을 트리거하려면(따라서 Bash와 JavaScript 단계를 디스패치하려면) Runbook을 실행하는 역할(`ProjectOwner`, `ProjectAdmin`, `ProjectMember`, `RunbookAdmin`, `RunbookMember`) 또는 `CreateRunbookExecution`이 필요합니다. 실행을 완료, 건너뛰기, 취소하는 데에는 `EditRunbookExecution`도 사용할 수 있습니다. 역할은 범위가 닿는 Runbook만 실행합니다.
 
 ## 에이전트 대상 API
 

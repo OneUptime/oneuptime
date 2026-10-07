@@ -28,7 +28,9 @@ Runbook-behörigheter lever i `Runbook`-behörighetsgruppen:
 - `CreateRunbookExecution`, `EditRunbookExecution`, `ReadRunbookExecution` — starta, bocka av och läsa körningar.
 - `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — hantera auto-triggerregler.
 - `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — hantera Runbook-agenter som kör Bash- och JavaScript-steg i din egen infrastruktur.
-- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (roller) — tilldela ett team för att ge full kontroll, daglig användning eller skrivskyddad åtkomst. `RunbookAdmin` paketerar alla granulära behörigheter ovan.
+- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (roller) — `RunbookAdmin` bygger runbooks, deras regler och de Runners de körs på, och kör dem. `RunbookMember` öppnar runbooks och deras körningar och kör dem — startar en körning, slutför eller hoppar över dess steg och avbryter den —, men skapar, ändrar och tar inte bort någon runbook eller Runner. `RunbookViewer` läser runbooks och deras körningar och kör ingenting. `RunbookAdmin` samlar alla detaljerade behörigheter ovan.
+
+En roll kör de runbooks som dess omfattning når. En tilldelning av `RunbookMember`, `RunbookAdmin` eller `ProjectMember` som är begränsad till några etiketter startar och för vidare körningar av de runbooks som har dessa etiketter, en tilldelning begränsad till ägda resurser körningar av de runbooks teamet äger, och ett teams spärr på en etikett tar bort dessa runbooks. `CreateRunbookExecution` och `EditRunbookExecution` gäller körningar, som inte har etiketter, så de når alla runbooks i projektet. Att godkänna ett åtgärdsförslag som startar en runbook kontrolleras på samma sätt.
 
 ## Kö & worker
 

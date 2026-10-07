@@ -4,7 +4,9 @@ import RunCron from "../../Utils/Cron";
 import logger from "Common/Server/Utils/Logger";
 import MetricRecordingRuleService from "Common/Server/Services/MetricRecordingRuleService";
 import MetricService from "Common/Server/Services/MetricService";
+import TelemetryUtil from "Common/Server/Utils/Telemetry/Telemetry";
 import MetricRecordingRule from "Common/Models/DatabaseModels/MetricRecordingRule";
+import MetricType from "Common/Models/DatabaseModels/MetricType";
 import RecordingRuleDefinition, {
   RecordingRuleSource,
 } from "Common/Types/Metrics/RecordingRuleDefinition";
@@ -59,6 +61,8 @@ RunCron(
           select: {
             _id: true,
             projectId: true,
+            name: true,
+            description: true,
             outputMetricName: true,
             definition: true,
           },
@@ -213,6 +217,27 @@ async function evaluateRuleForBucket(args: {
 
   await MetricService.insertJsonRows(outRows);
 
+  /*
+   * Registering the name is what lists the output metric in the Metric
+   * Explorer's and the Metrics monitor's metric pickers (they read MetricType
+   * rows). Fire-and-forget, like the other derived-metric writers: the
+   * catalogue is fenced by a cache and reconciles on the next run, so a slow
+   * or failed index write must not hold up the rules after this one, nor
+   * fail a bucket already written.
+   */
+  TelemetryUtil.indexMetricNameServiceNameMap({
+    projectId: rule.projectId,
+    metricNameServiceNameMap: {
+      [rule.outputMetricName]: buildOutputMetricType({
+        outputMetricName: rule.outputMetricName,
+        ruleName: rule.name,
+        ruleDescription: rule.description,
+      }),
+    },
+  }).catch((err: Error) => {
+    logger.error(err);
+  });
+
   logger.debug(
     `Recording rule ${rule._id?.toString() ?? "?"} wrote ${outRows.length} derived row(s) for bucket ${startTime.toISOString()}`,
   );
@@ -363,6 +388,29 @@ function buildDerivedMetricRow(args: {
     attributeKeys: Object.keys(attributes).sort(),
     retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
   };
+}
+
+/*
+ * The catalogue entry for the output metric. As for log recording rules, the
+ * rule's own description, when it has one, describes the metric; otherwise
+ * the entry says which rule writes it.
+ */
+function buildOutputMetricType(args: {
+  outputMetricName: string;
+  ruleName: string | undefined;
+  ruleDescription: string | undefined;
+}): MetricType {
+  const metricType: MetricType = new MetricType();
+  metricType.name = args.outputMetricName;
+
+  const ruleName: string =
+    (args.ruleName || "").trim() || args.outputMetricName;
+
+  metricType.description =
+    (args.ruleDescription || "").trim() ||
+    `Written every minute by the metric recording rule "${ruleName}".`;
+
+  return metricType;
 }
 
 function startOfMinute(d: Date): Date {

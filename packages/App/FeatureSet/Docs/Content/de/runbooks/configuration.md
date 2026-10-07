@@ -28,7 +28,9 @@ Runbook-Berechtigungen liegen in der `Runbook`-Berechtigungsgruppe:
 - `CreateRunbookExecution`, `EditRunbookExecution`, `ReadRunbookExecution` — Ausführungen starten, abhaken und lesen.
 - `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — Auto-Trigger-Regeln verwalten.
 - `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — Runbook-Agents verwalten, die Bash- und JavaScript-Schritte in Ihrer eigenen Infrastruktur ausführen.
-- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (Rollen) — einem Team zuweisen, um vollständige Kontrolle, alltägliche Nutzung oder nur Lesezugriff zu gewähren. `RunbookAdmin` bündelt alle obigen Einzel-Berechtigungen.
+- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (Rollen) — `RunbookAdmin` baut Runbooks, ihre Regeln und die Runner, auf denen sie laufen, und führt sie aus. `RunbookMember` öffnet Runbooks und ihre Ausführungen und führt sie aus — startet eine Ausführung, schließt ihre Schritte ab oder überspringt sie und bricht sie ab —, erstellt, ändert und löscht aber weder Runbooks noch Runner. `RunbookViewer` liest Runbooks und ihre Ausführungen und führt nichts aus. `RunbookAdmin` bündelt alle obigen Einzel-Berechtigungen.
+
+Eine Rolle führt die Runbooks aus, die ihr Geltungsbereich erreicht. Eine auf einige Labels beschränkte Zuweisung von `RunbookMember`, `RunbookAdmin` oder `ProjectMember` startet und steuert Ausführungen der Runbooks, die diese Labels tragen, eine auf **Eigene** beschränkte die der Runbooks, die ihrem Team gehören, und die Sperre eines Teams auf ein Label nimmt diese Runbooks weg. `CreateRunbookExecution` und `EditRunbookExecution` betreffen Ausführungen, die keine Labels tragen, und erreichen daher jedes Runbook im Projekt. Das Freigeben eines Behebungsvorschlags, der ein Runbook startet, wird genauso geprüft.
 
 ## Queue & Worker
 

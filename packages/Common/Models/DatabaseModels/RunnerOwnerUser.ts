@@ -27,7 +27,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.RunbookAdmin,
-    Permission.RunbookMember,
     Permission.CreateRunnerOwnerUser,
   ],
   read: [
@@ -45,7 +44,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.RunbookAdmin,
-    Permission.RunbookMember,
     Permission.DeleteRunnerOwnerUser,
   ],
   update: [
@@ -53,7 +51,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.RunbookAdmin,
-    Permission.RunbookMember,
     Permission.EditRunnerOwnerUser,
   ],
 })
@@ -86,7 +83,6 @@ export default class RunnerOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunnerOwnerUser,
     ],
     read: [
@@ -128,7 +124,6 @@ export default class RunnerOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunnerOwnerUser,
     ],
     read: [
@@ -163,7 +158,6 @@ export default class RunnerOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunnerOwnerUser,
     ],
     read: [
@@ -205,7 +199,6 @@ export default class RunnerOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunnerOwnerUser,
     ],
     read: [
@@ -240,7 +233,6 @@ export default class RunnerOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunnerOwnerUser,
     ],
     read: [
@@ -283,7 +275,6 @@ export default class RunnerOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunnerOwnerUser,
     ],
     read: [
@@ -318,7 +309,6 @@ export default class RunnerOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunnerOwnerUser,
     ],
     read: [
@@ -361,7 +351,6 @@ export default class RunnerOwnerUser extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunnerOwnerUser,
     ],
     read: [

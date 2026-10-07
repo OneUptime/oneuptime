@@ -28,7 +28,9 @@ Runbook permissions live in the `Runbook` permission group:
 - `CreateRunbookExecution`, `EditRunbookExecution`, `ReadRunbookExecution` — start, tick off, and read executions.
 - `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — manage auto-trigger rules.
 - `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — manage Runners that execute steps in your own infrastructure. (These were named `*RunbookAgent` before the Runner rename; existing grants were migrated, so nothing needs reassigning.)
-- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (roles) — assign to a team to grant full control, day-to-day usage, or read-only access respectively. `RunbookAdmin` bundles all of the granular permissions above.
+- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (roles) — `RunbookAdmin` builds runbooks, their rules and the Runners they run on, and runs them. `RunbookMember` opens runbooks and their runs and runs them — it starts a run, completes or skips its steps and cancels it — but creates, changes and deletes no runbook or Runner. `RunbookViewer` reads runbooks and their runs and runs nothing. `RunbookAdmin` bundles all of the granular permissions above.
+
+A role runs the runbooks its scope reaches. A `RunbookMember`, `RunbookAdmin` or `ProjectMember` grant limited to some labels starts and moves along runs of the runbooks that carry those labels, one scoped to **Owned** those of the runbooks its team owns, and a team's block on a label takes those runbooks away. `CreateRunbookExecution` and `EditRunbookExecution` are about runs, which carry no labels, so they reach every runbook in the project. Approving a remediation suggestion that starts a runbook is checked the same way.
 
 ## Queue & worker
 

@@ -28,7 +28,9 @@ Runbook の権限は `Runbook` 権限グループにあります:
 - `CreateRunbookExecution`、`EditRunbookExecution`、`ReadRunbookExecution` — 実行の開始、チェック、閲覧。
 - `CreateRunbookRule`、`EditRunbookRule`、`DeleteRunbookRule`、`ReadRunbookRule` — 自動トリガールールの管理。
 - `CreateRunner`、`EditRunner`、`DeleteRunner`、`ReadRunner` — Bash と JavaScript ステップをお客様自身のインフラで実行する Runbook エージェントの管理。
-- `RunbookAdmin`、`RunbookMember`、`RunbookViewer` (ロール) — チームに割り当ててそれぞれフル制御・日常利用・読み取り専用を付与。`RunbookAdmin` は上記の細粒度権限をすべて束ねたもの。
+- `RunbookAdmin`、`RunbookMember`、`RunbookViewer` (ロール) — `RunbookAdmin` は Runbook、そのルール、実行先の Runner を構築し、Runbook を実行します。`RunbookMember` は Runbook とその実行を開いて実行します（実行の開始、ステップの完了またはスキップ、キャンセル）が、Runbook や Runner の作成、変更、削除はできません。`RunbookViewer` は Runbook とその実行を読み取り、何も実行しません。`RunbookAdmin` は上記の細粒度権限をすべて束ねたもの。
+
+ロールは、そのスコープが届く Runbook を実行します。一部のラベルに限定された `RunbookMember`、`RunbookAdmin`、`ProjectMember` の付与は、そのラベルが付いた Runbook の実行を開始して進め、所有に限定された付与はチームが所有する Runbook の実行を扱います。チームがラベルをブロックすると、その Runbook は対象外になります。`CreateRunbookExecution` と `EditRunbookExecution` はラベルを持たない実行に関する権限なので、プロジェクト内のすべての Runbook に届きます。Runbook を開始する修復提案の承認も同じようにチェックされます。
 
 ## キュー & ワーカー
 

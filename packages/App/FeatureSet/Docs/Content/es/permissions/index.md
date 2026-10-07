@@ -71,13 +71,17 @@ Un permiso es una capacidad concreta. Hay dos formas de repartirlos, y ambas est
 
 Un rol agrupa toda un área del producto en uno de tres niveles:
 
-- **Admin** — control total sobre esa área, incluida su configuración (gravedades, estados, plantillas).
-- **Member** — el trabajo del día a día: crear, editar y eliminar los recursos, pero no reconfigurar el área.
+- **Admin** — lo que hace el Member, más la configuración propia del área, como las gravedades y estados de incidentes y alertas, los estados de los monitores y los estados de mantenimiento.
+- **Member** — el trabajo del día a día: crear, cambiar y eliminar los recursos del área, con sus notas, propietarios y plantillas. En las páginas de estado y las guardias, el Member hace todo lo que hace el Admin.
 - **Viewer** — solo lectura.
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer`, etc. Los roles son lo que quiere casi siempre: siguen siendo correctos a medida que OneUptime añade funciones, porque una nueva tabla relacionada con monitores se añade a los roles de monitor existentes en lugar de exigirle una nueva concesión.
 
-Los flujos de trabajo son la excepción. Un flujo de trabajo ejecuta sus pasos dentro del proyecto, así que `WorkflowMember` abre los flujos de trabajo y sus ejecuciones y los ejecuta a mano, pero no los crea, cambia ni elimina. `WorkflowAdmin` los construye. Consulta [Configuración de flujos de trabajo](/docs/workflows/configuration).
+Los flujos de trabajo y los runbooks son la excepción. Ambos ejecutan código en tu proyecto — un flujo de trabajo sus pasos, un runbook sus scripts en tus Runners —, así que `WorkflowMember` abre los flujos de trabajo y sus ejecuciones y los ejecuta a mano, y `RunbookMember` abre los runbooks y sus ejecuciones y los ejecuta: inicia una ejecución, completa u omite sus pasos y la cancela. Ninguno crea, cambia ni elimina lo que ejecuta; `WorkflowAdmin` y `RunbookAdmin` los construyen. Un rol solo ejecuta los runbooks que alcanza su ámbito: un `RunbookMember` limitado a algunas etiquetas ejecuta los runbooks que las llevan. Consulta [Configuración de flujos de trabajo](/docs/workflows/configuration) y [Configuración de runbooks](/docs/runbooks/configuration).
+
+Las reglas de un área (de etiquetas, de propietarios, de guardias, de agrupación y de recordatorio), los campos personalizados, los SLA y los secretos son configuración del proyecto: requieren `ProjectAdmin`, sea cual sea el rol de área de cada persona. Lo mismo ocurre con las claves de API, los equipos y sus permisos, las etiquetas, el SSO y los dominios — los roles Settings se ocupan de los servicios, sondas, infraestructura e integraciones del proyecto, no de quién puede hacer qué.
+
+La facturación tiene tres roles propios. `BillingViewer` lee la facturación del proyecto — el plan y la suscripción, las facturas, el uso, los saldos, los créditos de IA, los métodos de pago y los datos de contacto de facturación — y no cambia nada. `BillingMember` además descarga facturas y cambia los datos de contacto de facturación. `BillingAdmin` hace lo que hace `BillingMember` y activa y desactiva SMS, llamadas telefónicas, WhatsApp y Telegram. Cambiar el plan, los métodos de pago o los saldos, y pagar facturas, requiere `ProjectOwner` o **Manage Billing**; en las páginas de facturación esos botones aparecen bloqueados para los demás e indican quién puede usarlos.
 
 Los {{PERMISSION_ROLE_COUNT}} roles están en la [Referencia de permisos](/docs/permissions/reference).
 
@@ -200,7 +204,7 @@ Los permisos resueltos se almacenan en caché por usuario y proyecto, y se refre
 
 **Un pipeline de CI que solo informa de despliegues.** Cree una clave de API con únicamente los permisos granulares que necesite, sin roles.
 
-**Alguien que no debe ver la facturación.** No lo añada al equipo Owners. `ProjectAdmin` ya excluye la facturación.
+**Alguien que no debe cambiar la facturación ni ver las facturas.** Dale `ProjectMember`, no `ProjectAdmin`: un administrador del proyecto no puede cambiar el plan, los métodos de pago ni los saldos, pero lee y descarga las facturas. Para que alguien lea las páginas de facturación sin cambiar nada, dale `BillingViewer`.
 
 ## Siguiente
 

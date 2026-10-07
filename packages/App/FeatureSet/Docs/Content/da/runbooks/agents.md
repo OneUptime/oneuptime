@@ -149,9 +149,9 @@ Hvis en nøgle lækker, åbn agenten i OneUptime og nulstil nøglen. Den gamle s
 Håndtering af agenter ligger under den eksisterende Runbooks-rettighedsgruppe:
 
 - `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — håndter agent-records.
-- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (roller) — tildel et team for at give henholdsvis fuld kontrol, daglig brug eller læseadgang. `RunbookAdmin` samler alle de granulære rettigheder ovenfor.
+- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (roller) — `RunbookAdmin` bygger runbooks, deres regler og de Runners, de kører på, og kører dem. `RunbookMember` åbner runbooks og deres kørsler og kører dem — starter en kørsel, fuldfører eller springer dens trin over og annullerer den —, men opretter, ændrer og sletter ingen runbook eller Runner. `RunbookViewer` læser runbooks og deres kørsler og kører intet. `RunbookAdmin` samler alle de detaljerede tilladelser ovenfor.
 
-Rettigheder til at _udløse_ et runbook (og dermed afsende Bash- og JavaScript-trin) er stadig `CreateRunbookExecution` / `EditRunbookExecution`.
+At udløse en runbook (og dermed sende dens Bash- og JavaScript-trin af sted) kræver en rolle, der kører runbooks — `ProjectOwner`, `ProjectAdmin`, `ProjectMember`, `RunbookAdmin` eller `RunbookMember` — eller `CreateRunbookExecution`; at fuldføre, springe over eller annullere en kørsel accepterer også `EditRunbookExecution`. En rolle kører kun de runbooks, dens omfang når.
 
 ## Agent-API
 

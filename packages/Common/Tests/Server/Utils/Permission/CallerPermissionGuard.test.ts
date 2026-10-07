@@ -110,8 +110,8 @@ const USER_PERMISSIONS_CALLERS: Record<string, string> = {
     "The grant ceiling for an API key's permissions.",
   "packages/Common/Server/Services/OnCallDutyPolicyChildService.ts":
     "Builds the props a create runs with from the caller's rows for the table's create permissions, blocks kept; the CRUD path decides.",
-  "packages/App/FeatureSet/Workflow/Utils/WorkflowRunAccess.ts":
-    "Builds the props a manual run reads the workflow with from the caller's Workflow Member rows alone, blocks kept, after the rule let them in; the CRUD path decides what the rows reach.",
+  "packages/Common/Server/Utils/Permission/PropsHoldingOnly.ts":
+    "Builds the props a run reads the workflow or runbook with from the caller's rows for the grant that lets them run alone, blocks kept, after the rule let them in (WorkflowRunAccess, RunbookRunAccess); the CRUD path decides what the rows reach.",
 };
 
 // A type that is, or holds, a caller's rows.

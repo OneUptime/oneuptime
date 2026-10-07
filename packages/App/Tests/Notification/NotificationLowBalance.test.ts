@@ -27,6 +27,12 @@ import WhatsAppStatus from "Common/Types/WhatsAppStatus";
 import { ProjectNotificationChannel } from "Common/Utils/Project/NotificationChannels";
 import { getProjectBalanceMessageNotSentReason } from "Common/Utils/Project/ProjectBalance";
 import {
+  ProjectOwnerRoster,
+  ROSTER_NOT_OWNER_EMAILS,
+  ROSTER_OWNER_EMAILS,
+  useProjectOwnerRoster,
+} from "Common/Tests/Server/TestingUtils/ProjectOwnerRoster";
+import {
   afterEach,
   beforeEach,
   describe,
@@ -527,5 +533,78 @@ describe("a Telegram message the balance cannot pay for", () => {
       "A Telegram notification was not sent. This project&#39;s balance is used up.",
     );
     expectOwnerEmailAboutBalance(body);
+  });
+});
+
+/*
+ * WHO THE LOW-BALANCE EMAIL GOES TO: the project's owners, as
+ * ProjectService.getOwners names them - the members who hold Project Owner
+ * by the rule every permission check follows. A member a team blocks from
+ * being an owner is not told as one, whatever an owner team they are also
+ * on allows (TestingUtils/ProjectOwnerRoster has every case).
+ */
+describe("the owners' low-balance email reaches the owners, and nobody blocked from being one", () => {
+  function useRoster(): ProjectOwnerRoster {
+    (
+      ProjectService.sendEmailToProjectOwners as unknown as jest.Mock
+    ).mockRestore();
+
+    return useProjectOwnerRoster(PROJECT_ID);
+  }
+
+  function expectOnlyTheOwnersTold(roster: ProjectOwnerRoster): void {
+    const sentTo: Array<string> = roster.sentTo();
+
+    expect([...sentTo].sort()).toEqual([...ROSTER_OWNER_EMAILS].sort());
+
+    for (const address of ROSTER_NOT_OWNER_EMAILS) {
+      expect([address, sentTo.includes(address)]).toEqual([address, false]);
+    }
+  }
+
+  test("an SMS", async () => {
+    const roster: ProjectOwnerRoster = useRoster();
+
+    await SmsService.sendSms(TO, "Incident Checkout down.", {
+      projectId: PROJECT_ID,
+    });
+
+    expectOnlyTheOwnersTold(roster);
+  });
+
+  test("a call", async () => {
+    const roster: ProjectOwnerRoster = useRoster();
+
+    await CallService.makeCall(
+      {
+        to: TO,
+        data: [{ sayMessage: "Incident Checkout down on Site 03." }],
+      } as unknown as CallRequest,
+      { projectId: PROJECT_ID },
+    );
+
+    expectOnlyTheOwnersTold(roster);
+  });
+
+  test("a WhatsApp message", async () => {
+    const roster: ProjectOwnerRoster = useRoster();
+
+    await WhatsAppService.sendWhatsApp(
+      { to: TO, body: "Incident Checkout down." } as unknown as WhatsAppMessage,
+      { projectId: PROJECT_ID },
+    );
+
+    expectOnlyTheOwnersTold(roster);
+  });
+
+  test("a Telegram message", async () => {
+    const roster: ProjectOwnerRoster = useRoster();
+
+    await TelegramService.sendTelegram(
+      { to: "123456789", body: "Incident Checkout down." },
+      { projectId: PROJECT_ID, isSensitive: false },
+    );
+
+    expectOnlyTheOwnersTold(roster);
   });
 });

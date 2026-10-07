@@ -28,7 +28,9 @@ Runbook 權限位於 `Runbook` 權限群組中：
 - `CreateRunbookExecution`、`EditRunbookExecution`、`ReadRunbookExecution`——啟動、勾選與讀取執行。
 - `CreateRunbookRule`、`EditRunbookRule`、`DeleteRunbookRule`、`ReadRunbookRule`——管理自動觸發規則。
 - `CreateRunner`、`EditRunner`、`DeleteRunner`、`ReadRunner`——管理在你自有基礎架構中執行 Bash 與 JavaScript 步驟的 Runbook Agent。
-- `RunbookAdmin`、`RunbookMember`、`RunbookViewer`（角色）——指派給團隊，分別授予完整控制權、日常使用權或唯讀存取權。`RunbookAdmin` 涵蓋上述所有細部權限。
+- `RunbookAdmin`、`RunbookMember`、`RunbookViewer`（角色） — `RunbookAdmin` 建置 Runbook、它們的規則以及執行它們的 Runner，並執行 Runbook。`RunbookMember` 開啟 Runbook 及其執行並執行它們——開始一次執行、完成或略過其步驟、取消執行——但不能建立、變更或刪除任何 Runbook 或 Runner。`RunbookViewer` 讀取 Runbook 及其執行，不執行任何東西。`RunbookAdmin` 把上面所有細粒度權限打包在一起。
+
+角色執行其範圍所及的 Runbook。限於部分標籤的 `RunbookMember`、`RunbookAdmin` 或 `ProjectMember` 授權會開始並推進帶有這些標籤的 Runbook 的執行，限於「擁有」的授權只處理其團隊擁有的 Runbook，而團隊對某個標籤的封鎖會把這些 Runbook 排除在外。`CreateRunbookExecution` 與 `EditRunbookExecution` 針對的是執行，而執行沒有標籤，因此它們涵蓋專案中的每個 Runbook。核准一則會開始 Runbook 的修復建議時，也以同樣方式檢查。
 
 ## 佇列與 worker
 

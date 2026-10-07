@@ -171,6 +171,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 - **プローブのプロキシ経由で IP アドレスに到達する HTTPS モニターが再び動作します。** プローブは IP を TLS のサーバー名として送っていましたが、IP は有効なサーバー名ではなく Node はこれを拒否するため、`PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` を設定したグローバルプローブから `https://<プライベート IP>` を監視するとハンドシェイクに失敗していました。プローブは IP を対象とする場合にサーバー名を送らず、証明書を IP 自体に対して検証します。ホスト名を対象とする場合は変わりません。
 - **`oneuptime` CLI が `--version` で実際のバージョンを報告します**（従来はプレースホルダーでした）。
 - **Runner がプロジェクト設定から Runbook に移動しました。** Runner は **Runbook → Runbook エージェント**（`…/runbooks/runners`）、Runner Credentials は **Runbook → Runbook エージェント → 認証情報**（`…/runbooks/runner-credentials`）にあり、Runner がステップを実行する Runbook のすぐ隣に並びます。以前の `…/settings/runners` と `…/settings/runner-credentials` の URL はリダイレクトされるため、ブックマークはそのまま使えます。それ以外の変更はありません。Runner の ID、キー、機能、権限はそのままで、AI コード修正と AI 修復コマンドも引き続き実行します。このリリースより古い Runner イメージは、ログメッセージに引き続き「Project Settings > Runners」と出力します。これは Runbook → Runbook エージェント と読み替えてください。
+- **`RunbookMember` は Runbook を実行し、構築はしません。** このロールは Runbook、Runner、それらのオーナーを作成・削除しなくなり、ラベルとスコープが届く Runbook だけを実行します。Runbook を構築する人には `RunbookAdmin` が必要です。請求ロールは請求ページを読めるようになりました。`BillingViewer` は閲覧のみ、`BillingMember` はさらに請求書をダウンロードし、請求先の連絡先情報を変更します。
 - 移動または制限されたエンドポイント（`GET /api/global-config/license` と、セルフホストのインストールが提供しなくなったライセンスサーバーのエンドポイントを含む）は、上の [API and endpoint changes](#api-and-endpoint-changes) に記載しています。
 
 ### IPv6 モニター: Ping、Port、SSL

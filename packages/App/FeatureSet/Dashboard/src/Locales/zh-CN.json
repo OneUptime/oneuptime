@@ -26403,5 +26403,9 @@
   "Microsoft Teams meeting": "Microsoft Teams meeting",
   "Zoom meeting": "Zoom meeting",
   "{{table}} - no longer collected by this device": "{{table}} - no longer collected by this device",
-  "“{{call}}” is removed from this {{eventNoun}}'s page. The meeting itself is not deleted, and anyone with the link can still join it.": "“{{call}}” is removed from this {{eventNoun}}'s page. The meeting itself is not deleted, and anyone with the link can still join it."
+  "“{{call}}” is removed from this {{eventNoun}}'s page. The meeting itself is not deleted, and anyone with the link can still join it.": "“{{call}}” is removed from this {{eventNoun}}'s page. The meeting itself is not deleted, and anyone with the link can still join it.",
+  "You do not have permission to add a payment method.": "您没有添加付款方式的权限。",
+  "You do not have permission to change the default payment method.": "您没有更改默认付款方式的权限。",
+  "You do not have permission to pay invoices.": "您没有支付发票的权限。",
+  "You do not have permission to start runbook executions in this project.": "您没有在此项目中启动 Runbook 执行的权限。"
 }

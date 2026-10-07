@@ -6,10 +6,12 @@ import KubernetesClusterAiAccessService from "../../../Server/Services/Kubernete
 import ProjectService from "../../../Server/Services/ProjectService";
 import ResourceAiAccessService from "../../../Server/Services/ResourceAiAccessService";
 import RunbookRuleEngineService from "../../../Server/Services/RunbookRuleEngineService";
+import RunbookService from "../../../Server/Services/RunbookService";
 import RunnerService from "../../../Server/Services/RunnerService";
 import CommandPlanExecutor from "../../../Server/Utils/AutoRemediation/CommandPlanExecutor";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import Project from "../../../Models/DatabaseModels/Project";
+import Runbook from "../../../Models/DatabaseModels/Runbook";
 import RunbookExecution from "../../../Models/DatabaseModels/RunbookExecution";
 import Runner from "../../../Models/DatabaseModels/Runner";
 import AutoRemediationSuggestionStatus from "../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
@@ -775,6 +777,10 @@ describe("POST /auto-remediation/approve — Enable AI is the one project gate",
           .mockResolvedValue({
             id: RUNBOOK_EXECUTION_ID,
           } as unknown as RunbookExecution);
+        // The approver's run grant reaches the runbook (RunbookRunAccess).
+        jest
+          .spyOn(RunbookService, "findOneById")
+          .mockResolvedValue(new Runbook(RUNBOOK_ID));
         jest
           .spyOn(AutoRemediationSuggestionService, "updateOneById")
           .mockResolvedValue(undefined as never);
