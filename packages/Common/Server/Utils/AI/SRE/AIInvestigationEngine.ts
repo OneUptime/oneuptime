@@ -355,8 +355,9 @@ export default class AIInvestigationEngine {
    *
    * The balance check is the same predicate as the Kubernetes cluster's
    * ai_balance_insufficient gap (AIService.getAiBalanceBlocker): on
-   * OneUptime's own billed provider, with no credits left and auto-recharge
-   * off, every model call would be refused as out of AI credits —
+   * OneUptime's own billed provider, with no credits left and nothing to
+   * refill them first (Auto Recharge off, or its last charge failed), every
+   * model call would be refused as out of AI credits —
    * so a run started now would only fail, be retried, and fail again, and
    * nobody would see why. It fails OPEN: a balance that cannot be read
    * never blocks, because the model call itself still enforces the balance.

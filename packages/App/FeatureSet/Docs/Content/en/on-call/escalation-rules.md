@@ -37,6 +37,8 @@ Each person a level pages is reached the way their own on-call rules say: **User
 
 SMS, phone calls, WhatsApp and Telegram start off in a new project: on OneUptime Cloud every message is paid from the project's balance, and a self-hosted installation needs a Twilio account or a Telegram bot set up first. Until a channel is on, nobody in the project can add a method on it. Only a project owner, a **Billing Admin** or someone with the **Manage Billing** permission can turn one on, in the **Notification Channels** card on **Project Settings > Notifications > Notification Settings** — a project admin cannot. Everyone else is told exactly who can, wherever a channel is off: above their own list of methods on it, on their setup checklist, and in the message they get when something needs it.
 
+A page that is not sent says why in the person's **On-Call Logs** (User Settings): its row shows **Error**, and its status message gives the reason — the project's balance could not pay for it, and who can add balance; or the channel is off in the project, and who can turn it on. It no longer stays at **Sending**. The project's owners are emailed about it once, until the balance is topped up or the channel is on again.
+
 ## Editing, reordering and deleting rules
 
 - **Edit rule** opens the same one-page dialog, filled in with the rule as it is: its responders, its wait, and its name and description under **More fields**. Add or remove responders and save. Clearing the name gives the rule its level's name again.

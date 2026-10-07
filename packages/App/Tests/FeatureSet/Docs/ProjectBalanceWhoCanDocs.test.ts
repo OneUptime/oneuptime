@@ -25,8 +25,8 @@ import path from "path";
  * the way its dashboard does, and keeps the permission's English name.
  *
  * The English AI SRE page no longer offers auto-recharge as a way to start
- * on the global provider: Auto Recharge only tops up credits that have not
- * run out.
+ * on the global provider; what Auto Recharge does when the credits run out
+ * is its own section (AiCreditsRunOutDocs).
  */
 
 const DOCS_ROOT: string = path.join(
