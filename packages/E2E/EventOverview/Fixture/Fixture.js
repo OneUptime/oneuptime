@@ -126,6 +126,8 @@ import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
 import AutoRemediationDecision from "Common/Models/DatabaseModels/AutoRemediationDecision";
 import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
+import AlertVideoCall from "Common/Models/DatabaseModels/AlertVideoCall";
+import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
@@ -804,6 +806,9 @@ const roles = {
  * (what auto-remediation did, or why it did nothing) beside the suggestions.
  * With neither, the API answers two empty lists and the card stays hidden,
  * as for an incident or alert from before the rule engine recorded them.
+ *
+ * The incident and alert pages also list the record's video calls; no call
+ * has been started for any of them here.
  */
 for (const modelType of [
   IncidentCustomField,
@@ -815,6 +820,8 @@ for (const modelType of [
   RunbookExecution,
   AutoRemediationSuggestion,
   AutoRemediationDecision,
+  IncidentVideoCall,
+  AlertVideoCall,
 ]) {
   table(modelType);
 }
