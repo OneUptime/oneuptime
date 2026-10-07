@@ -729,6 +729,7 @@ export const LogsRoutePath: Dictionary<string> = {
   [PageMap.LOGS_SETTINGS_DROP_FILTERS]: "settings/drop-filters",
   [PageMap.LOGS_SETTINGS_DROP_FILTER_VIEW]: `settings/drop-filters/${RouteParams.ModelID}`,
   [PageMap.LOGS_SETTINGS_SCRUB_RULES]: "settings/scrub-rules",
+  [PageMap.LOGS_SETTINGS_RECORDING_RULES]: "settings/recording-rules",
 };
 
 // Security Events product routes
@@ -6479,6 +6480,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.LOGS_SETTINGS_SCRUB_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/logs/${
       LogsRoutePath[PageMap.LOGS_SETTINGS_SCRUB_RULES]
+    }`,
+  ),
+
+  [PageMap.LOGS_SETTINGS_RECORDING_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/logs/${
+      LogsRoutePath[PageMap.LOGS_SETTINGS_RECORDING_RULES]
     }`,
   ),
 
