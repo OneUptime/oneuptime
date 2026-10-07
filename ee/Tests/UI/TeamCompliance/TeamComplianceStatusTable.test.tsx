@@ -1185,6 +1185,47 @@ describe("the way to the fix", () => {
   });
 });
 
+describe("people invited to the team", () => {
+  test("members are listed, and one line says how many invitees are not checked yet", () => {
+    const status: TeamComplianceStatusJSON = standardStatus();
+    status.invitedMemberCount = 2;
+
+    render(<Harness status={status} />);
+
+    expect(screen.getByTestId("compliance-members-invited")).toHaveTextContent(
+      "2 people invited to this team are not checked until they accept their invitation.",
+    );
+    // Only members are listed.
+    expect(listedNames()).toHaveLength(status.userComplianceStatuses.length);
+  });
+
+  test("nobody waiting: no line about invitations", () => {
+    render(<Harness status={standardStatus()} />);
+
+    expect(
+      screen.queryByTestId("compliance-members-invited"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a team of invitees only says they are checked once they accept", () => {
+    render(
+      <Harness
+        status={buildStatus({
+          complianceSettings: [emailRule()],
+          invitedMemberCount: 1,
+        })}
+      />,
+    );
+
+    expect(screen.getByText("No members on this team yet")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "1 person invited to this team is not checked until they accept their invitation.",
+      ),
+    ).toBeInTheDocument();
+  });
+});
+
 describe("nothing to list", () => {
   test("a team with no members", () => {
     render(
@@ -1192,6 +1233,11 @@ describe("nothing to list", () => {
     );
 
     expect(screen.getByText("No members on this team yet")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Add people on the team's Members page and how they measure up against these rules shows up here.",
+      ),
+    ).toBeInTheDocument();
     expect(
       screen.queryByTestId("compliance-members-list"),
     ).not.toBeInTheDocument();

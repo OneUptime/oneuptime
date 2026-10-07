@@ -637,7 +637,10 @@ interface Cast {
   managedMember: string;
   // Exists, belongs to no project, and was never invited here.
   stranger: string;
-  // Belongs to no project, but confirmed this project's SSO from her mailbox.
+  /*
+   * Belongs to no project, but a consent to this project's SSO from her
+   * mailbox is still on record: she confirmed it, joined, and has left.
+   */
   ssoConsented: string;
 }
 
@@ -1425,16 +1428,45 @@ describe("on the hosted service, an existing account is invited, not added", () 
     expect(invitationEmailsFor(cast.managedMember)).toEqual([]);
   });
 
-  test("an account whose owner confirmed this project's SSO is added as a member", async () => {
+  /*
+   * Confirming a project's SSO joins the person to it, so a consent on
+   * record beside no membership is somebody who has left. Their agreement
+   * was to be in the project; SCIM adding them back asks again.
+   */
+  test("an account that confirmed this project's SSO but has since left is invited again, not added as a member", async () => {
     await send("POST", scimPath("Users"), { userName: "erin@example.com" });
 
     const rows: Array<FakeMembership> = membershipsOf(cast.ssoConsented);
     expect(rows).toHaveLength(2);
     expect(
-      rows.every((row: FakeMembership) => {
+      rows.some((row: FakeMembership) => {
         return row.hasAcceptedInvitation;
       }),
-    ).toBe(true);
+    ).toBe(false);
+    expect(invitationEmailsFor(cast.ssoConsented)).toEqual([
+      "erin@example.com",
+    ]);
+  });
+
+  test("a consent on record is not what makes somebody a member: being one is", async () => {
+    world.consents.push({ userId: cast.managedMember, projectId: PROJECT_ID });
+    world.consents.push({ userId: cast.stranger, projectId: PROJECT_ID });
+
+    await send("POST", scimPath("Users"), { userName: "carol@acme.example" });
+    await send("POST", scimPath("Users"), { userName: "dave@example.com" });
+
+    // Already joined: added as a member, consent or not.
+    const carolRow: FakeMembership | undefined = membershipIn(
+      cast.managedMember,
+      DEFAULT_TEAM_B,
+    );
+    expect(carolRow?.hasAcceptedInvitation).toBe(true);
+    // Not a member: invited, whatever consent is on record.
+    expect(
+      membershipsOf(cast.stranger).some((row: FakeMembership) => {
+        return row.hasAcceptedInvitation;
+      }),
+    ).toBe(false);
   });
 
   test("SSO consent for ANOTHER project counts for nothing here", async () => {

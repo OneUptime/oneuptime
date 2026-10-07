@@ -901,14 +901,6 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * Both writes the no-rule path makes, in the order the pre-fallback code made
-   * them: the log first, then the on-call timeline. The log update's own
-   * onUpdateSuccess hook already maps the execution status onto the timeline, so
-   * the explicit second write is what lets this path say something the mapping
-   * cannot - Skipped for an opt-out, Notification Sent for a fallback that went
-   * out under an Executing log.
-   */
-  /*
    * The user column of a read that chooses what a page goes through: the
    * person the log pages, and only while they are a member of its project
    * (ProjectMembership). The escalation already checked membership, but it
@@ -947,6 +939,14 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  /*
+   * Both writes the no-rule path makes, in the order the pre-fallback code made
+   * them: the log first, then the on-call timeline. The log update's own
+   * onUpdateSuccess hook already maps the execution status onto the timeline, so
+   * the explicit second write is what lets this path say something the mapping
+   * cannot - Skipped for an opt-out, Notification Sent for a fallback that went
+   * out under an Executing log.
+   */
   private async writeNoRuleOutcome(data: {
     createdItem: Model;
     status: UserNotificationExecutionStatus;

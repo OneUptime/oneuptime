@@ -36,7 +36,9 @@ import UserTelegramService from "../../../Server/Services/UserTelegramService";
 import UserWebhookService from "../../../Server/Services/UserWebhookService";
 import UserWhatsAppService from "../../../Server/Services/UserWhatsAppService";
 import logger from "../../../Server/Utils/Logger";
-import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
+import ProjectMembership, {
+  ProjectMembershipStandings,
+} from "../../../Server/Utils/TeamMember/ProjectMembership";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
@@ -295,6 +297,7 @@ let alertSeverityFindBy: jest.SpyInstance;
 let projectFindOneById: jest.SpyInstance;
 let projectMembershipRead: jest.SpyInstance;
 let projectInvitationRead: jest.SpyInstance;
+let projectStandingsRead: jest.SpyInstance;
 // People invited to the project who have not accepted yet.
 let invitedUserIds: Array<ObjectID> = [];
 
@@ -688,6 +691,7 @@ function everySpy(): Array<jest.SpyInstance> {
     projectFindOneById,
     projectMembershipRead,
     projectInvitationRead,
+    projectStandingsRead,
   ];
 }
 
@@ -706,7 +710,8 @@ function everyFindByCall(): Array<FindByCall> {
       spy === policyFindOneById ||
       spy === projectFindOneById ||
       spy === projectMembershipRead ||
-      spy === projectInvitationRead
+      spy === projectInvitationRead ||
+      spy === projectStandingsRead
     ) {
       // findOneById takes an id, not a limit; nothing to assert about paging.
       continue;
@@ -1002,6 +1007,43 @@ beforeEach(() => {
             return asked.has(userId);
           }),
       );
+    }) as never);
+
+  // Members and invitees in one read, from the same world as the two above.
+  projectStandingsRead = jest
+    .spyOn(ProjectMembership, "getStandings")
+    .mockImplementation((async (data: {
+      projectId: ObjectID;
+      userIds: Array<ObjectID | string>;
+    }): Promise<ProjectMembershipStandings> => {
+      const asked: Set<string> = new Set<string>(
+        data.userIds.map((userId: ObjectID | string): string => {
+          return userId.toString().toLowerCase();
+        }),
+      );
+
+      const memberUserIds: Set<string> = new Set<string>(
+        membershipRows
+          .map((row: TeamMember): string => {
+            return row.userId?.toString().toLowerCase() || "";
+          })
+          .filter((userId: string): boolean => {
+            return asked.has(userId);
+          }),
+      );
+
+      return {
+        memberUserIds,
+        invitedUserIds: new Set<string>(
+          invitedUserIds
+            .map((userId: ObjectID): string => {
+              return userId.toString().toLowerCase();
+            })
+            .filter((userId: string): boolean => {
+              return asked.has(userId) && !memberUserIds.has(userId);
+            }),
+        ),
+      };
     }) as never);
 });
 
@@ -4754,10 +4796,11 @@ describe("a responder who is no longer a member of the project", () => {
   test("membership is read once for the whole responder set", async () => {
     await policySummary();
 
-    expect(projectMembershipRead).toHaveBeenCalledTimes(1);
+    expect(projectStandingsRead).toHaveBeenCalledTimes(1);
+    expect(projectMembershipRead).not.toHaveBeenCalled();
 
     const asked: Array<string> = (
-      projectMembershipRead.mock.calls[0]![0] as {
+      projectStandingsRead.mock.calls[0]![0] as {
         userIds: Array<ObjectID | string>;
       }
     ).userIds
@@ -4781,20 +4824,12 @@ describe("a responder who is no longer a member of the project", () => {
       ...INVITATION_NOT_ACCEPTED_READINESS_REASONS,
     ]);
 
-    // Asked about the people who are not members only, once.
-    expect(projectInvitationRead).toHaveBeenCalledTimes(1);
-    expect(
-      (
-        projectInvitationRead.mock.calls[0]![0] as {
-          userIds: Array<ObjectID | string>;
-        }
-      ).userIds.map((userId: ObjectID | string): string => {
-        return userId.toString();
-      }),
-    ).toEqual([USER_B_ID.toString()]);
+    // Told apart in the same one read: no second read for invitations.
+    expect(projectStandingsRead).toHaveBeenCalledTimes(1);
+    expect(projectInvitationRead).not.toHaveBeenCalled();
   });
 
-  test("everybody a member: nobody is asked about invitations", async () => {
+  test("everybody a member: one read, and nobody is asked about invitations", async () => {
     membershipRows = [
       teamMemberRow(USER_A_ID, TEAM_ID),
       teamMemberRow(USER_B_ID, TEAM_ID),
@@ -4802,7 +4837,14 @@ describe("a responder who is no longer a member of the project", () => {
 
     await policySummary();
 
+    expect(projectStandingsRead).toHaveBeenCalledTimes(1);
     expect(projectInvitationRead).not.toHaveBeenCalled();
+  });
+
+  test("a membership read that fails is not swallowed into a summary that calls people reachable", async () => {
+    projectStandingsRead.mockRejectedValue(new Error("database unavailable"));
+
+    await expect(policySummary()).rejects.toThrow("database unavailable");
   });
 
   test("the reasons say they cannot be paged, and what to do about it", () => {

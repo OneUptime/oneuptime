@@ -74,13 +74,6 @@ import {
 } from "../../Types/OnCallDutyPolicy/ScheduleLayerDefaults";
 
 /*
- * ---------------------------------------------------------------------------
- * Resolver contracts (on-call calendar feeds / reminders / my-shifts)
- * ---------------------------------------------------------------------------
- */
-
-// The schedule columns a resolved window carries along for its consumers.
-/*
  * Who is on call in a schedule right now (getCurrentOnCallInSchedule).
  */
 export interface CurrentOnCallInSchedule {
@@ -93,6 +86,13 @@ export interface CurrentOnCallInSchedule {
   coveredUserId: ObjectID | null;
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * Resolver contracts (on-call calendar feeds / reminders / my-shifts)
+ * ---------------------------------------------------------------------------
+ */
+
+// The schedule columns a resolved window carries along for its consumers.
 export interface ResolvedScheduleInfo {
   id: string;
   name: string;

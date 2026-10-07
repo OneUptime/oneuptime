@@ -31,6 +31,7 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
 import ObjectID from "Common/Types/ObjectID";
+import PositiveNumber from "Common/Types/PositiveNumber";
 import ComplianceNotificationChannel from "Common/Types/Team/ComplianceNotificationChannel";
 import { ComplianceSeverityKind } from "Common/Types/Team/ComplianceRule";
 import ComplianceRuleType from "Common/Types/Team/ComplianceRuleType";
@@ -359,6 +360,7 @@ let notificationRuleFindBy: jest.SpyInstance;
 let teamFindOneBy: jest.SpyInstance;
 let complianceSettingFindBy: jest.SpyInstance;
 let teamMemberFindBy: jest.SpyInstance;
+let teamMemberCountBy: jest.SpyInstance;
 let userFindBy: jest.SpyInstance;
 let projectFindOneById: jest.SpyInstance;
 let readinessForUser: jest.SpyInstance;
@@ -540,6 +542,10 @@ beforeEach(() => {
   teamMemberFindBy = jest
     .spyOn(TeamMemberService, "findBy")
     .mockResolvedValue([] as never);
+  // Nobody waiting on an invitation unless a test says so.
+  teamMemberCountBy = jest
+    .spyOn(TeamMemberService, "countBy")
+    .mockResolvedValue(new PositiveNumber(0) as never);
   userFindBy = jest.spyOn(UserService, "findBy").mockResolvedValue([] as never);
   projectFindOneById = jest
     .spyOn(ProjectService, "findOneById")
@@ -701,8 +707,63 @@ describe("the rule, member and user reads", () => {
     expect(call.limit).toBe(LIMIT_PER_PROJECT);
     expect(call.limit).not.toBe(100);
     expect(call.skip).toBe(0);
-    expect(call.query).toEqual({ teamId: TEAM_ID, projectId: PROJECT_ID });
+    // The members are the people who accepted: the team's roster.
+    expect(call.query).toEqual({
+      teamId: TEAM_ID,
+      projectId: PROJECT_ID,
+      hasAcceptedInvitation: true,
+    });
     expect(call.props?.isRoot).toBe(true);
+  });
+
+  test("people still invited are counted apart, in one count scoped to the team and the project", async () => {
+    teamMemberCountBy.mockResolvedValue(new PositiveNumber(2) as never);
+
+    const status: TeamComplianceStatusJSON = await read();
+
+    expect(teamMemberCountBy).toHaveBeenCalledTimes(1);
+
+    const call: {
+      query: Record<string, unknown>;
+      props?: { isRoot?: boolean };
+    } = teamMemberCountBy.mock.calls[0]![0] as {
+      query: Record<string, unknown>;
+      props?: { isRoot?: boolean };
+    };
+
+    expect(call.query).toEqual({
+      teamId: TEAM_ID,
+      projectId: PROJECT_ID,
+      hasAcceptedInvitation: false,
+    });
+    expect(call.props?.isRoot).toBe(true);
+    expect(status.invitedMemberCount).toBe(2);
+  });
+
+  test("a team of invitees only checks nobody, and says how many are waiting", async () => {
+    stage({
+      settings: [
+        setting({ ruleType: ComplianceRuleType.HasNotificationEmailMethod }),
+      ],
+      members: [],
+    });
+    teamMemberCountBy.mockResolvedValue(new PositiveNumber(3) as never);
+
+    const status: TeamComplianceStatusJSON = await read();
+
+    expect(status.userComplianceStatuses).toEqual([]);
+    expect(status.invitedMemberCount).toBe(3);
+    expect(userFindBy).not.toHaveBeenCalled();
+    expect(userEmailFindBy).not.toHaveBeenCalled();
+  });
+
+  test("nobody waiting: the count is zero, and every member is still checked", async () => {
+    stage({ members: [ADA, GRACE] });
+
+    const status: TeamComplianceStatusJSON = await read();
+
+    expect(status.invitedMemberCount).toBe(0);
+    expect(status.userComplianceStatuses).toHaveLength(2);
   });
 
   test("users are read once, for exactly the team's members, with LIMIT_PER_PROJECT", async () => {

@@ -20,6 +20,7 @@ import {
   getChannelLabel,
   getComplianceVerdict,
   getEvaluatedAt,
+  getInvitedNote,
   getMemberDisplayName,
   getMemberFirstName,
   getMemberIssueForRule,
@@ -106,6 +107,7 @@ const summary: (overrides: Partial<ComplianceSummary>) => ComplianceSummary = (
 ): ComplianceSummary => {
   return {
     memberCount: 3,
+    invitedCount: 0,
     compliantCount: 3,
     attentionCount: 0,
     ruleCount: 2,
@@ -801,6 +803,40 @@ describe("a rule whose every severity was deleted", () => {
   });
 });
 
+describe("people invited to the team", () => {
+  test("the summary carries how many are still invited, from the payload", () => {
+    const status: TeamComplianceStatusJSON = standardStatus();
+    status.invitedMemberCount = 4;
+
+    expect(summarizeCompliance(status).invitedCount).toBe(4);
+    // Not members: they are not among the people checked.
+    expect(summarizeCompliance(status).memberCount).toBe(3);
+  });
+
+  test("a reply without the count (an older server), or a nonsense one, means nobody", () => {
+    const status: TeamComplianceStatusJSON = standardStatus();
+
+    delete status.invitedMemberCount;
+    expect(summarizeCompliance(status).invitedCount).toBe(0);
+
+    status.invitedMemberCount = -3;
+    expect(summarizeCompliance(status).invitedCount).toBe(0);
+
+    status.invitedMemberCount = 2.7;
+    expect(summarizeCompliance(status).invitedCount).toBe(2);
+  });
+
+  test("one sentence says why they are not checked, in the singular and the plural", () => {
+    expect(getInvitedNote(0)).toBe("");
+    expect(getInvitedNote(1)).toBe(
+      "1 person invited to this team is not checked until they accept their invitation.",
+    );
+    expect(getInvitedNote(3)).toBe(
+      "3 people invited to this team are not checked until they accept their invitation.",
+    );
+  });
+});
+
 describe("the verdict", () => {
   test("summarises the payload", () => {
     const status: TeamComplianceStatusJSON = standardStatus();
@@ -820,6 +856,8 @@ describe("the verdict", () => {
 
     expect(summarizeCompliance(status)).toEqual({
       memberCount: 3,
+      // Nobody waiting on an invitation in this payload.
+      invitedCount: 0,
       compliantCount: 1,
       attentionCount: 2,
       ruleCount: 6,
@@ -1100,6 +1138,29 @@ describe("the verdict", () => {
 
     expect(verdict.kind).toBe(ComplianceVerdictKind.NoMembers);
     expect(verdict.badgeText).toBe("No members");
+    expect(verdict.detail).toBe(
+      "Add people on the team's Members page and their compliance shows up here.",
+    );
+  });
+
+  test("nobody on the team yet, but people invited: says they are checked once they accept", () => {
+    const verdict: ComplianceVerdict = getComplianceVerdict(
+      summary({ memberCount: 0, compliantCount: 0, invitedCount: 2 }),
+    );
+
+    expect(verdict.kind).toBe(ComplianceVerdictKind.NoMembers);
+    expect(verdict.headline).toBe("This team has no members to check");
+    expect(verdict.detail).toBe(
+      "2 people invited to this team are not checked until they accept their invitation.",
+    );
+  });
+
+  test("people still invited never count as members, compliant or not", () => {
+    const verdict: ComplianceVerdict = getComplianceVerdict(
+      summary({ invitedCount: 5 }),
+    );
+
+    expect(verdict.headline).toBe("All 3 members meet every rule");
   });
 
   test("everyone compliant", () => {

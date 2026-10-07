@@ -804,14 +804,26 @@ async function getUserToCall(
      * cover takes the call instead - as the on-call escalation pages them -
      * rather than the rule being skipped.
      */
-    if (
-      onCall?.coveredUserId &&
-      !(await ProjectMembership.isMember({
-        projectId: projectId,
-        userId: onCall.userId,
-      }))
-    ) {
-      userId = onCall.coveredUserId;
+    if (onCall?.coveredUserId) {
+      let isSubstituteAMember: boolean = true;
+
+      try {
+        isSubstituteAMember = await ProjectMembership.isMember({
+          projectId: projectId,
+          userId: onCall.userId,
+        });
+      } catch (err) {
+        /*
+         * Not known: the substitute stays the one to call. Their number is
+         * read only while they are a member (below), so the call still
+         * never reaches somebody who has left.
+         */
+        logger.error(err);
+      }
+
+      if (!isSubstituteAMember) {
+        userId = onCall.coveredUserId;
+      }
     }
   }
 

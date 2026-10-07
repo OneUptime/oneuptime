@@ -9,7 +9,9 @@ import OnCallDutyPolicyEscalationRuleTeamService from "../../../Server/Services/
 import OnCallDutyPolicyEscalationRuleUserService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleUserService";
 import OnCallDutyPolicyExecutionLogService from "../../../Server/Services/OnCallDutyPolicyExecutionLogService";
 import OnCallDutyPolicyExecutionLogTimelineService from "../../../Server/Services/OnCallDutyPolicyExecutionLogTimelineService";
-import OnCallDutyPolicyScheduleService from "../../../Server/Services/OnCallDutyPolicyScheduleService";
+import OnCallDutyPolicyScheduleService, {
+  CurrentOnCallInSchedule,
+} from "../../../Server/Services/OnCallDutyPolicyScheduleService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
 import logger from "../../../Server/Utils/Logger";
@@ -39,7 +41,8 @@ import type { SpyInstance } from "jest-mock";
  *   - a direct user or a schedule's on-call user who is not a member gets a
  *     Skipped line on the timeline instead of a page,
  *   - an override's substitute who is not a member gets the Skipped line,
- *     and the member the override covers is paged instead of nobody,
+ *     and the member the override covers is paged instead of nobody - for
+ *     a user named on the rule and for a schedule's layer user alike,
  *   - membership is read once for the whole rule, never once per person,
  *   - if membership cannot be read, the rule pages as it did before the
  *     check rather than paging nobody.
@@ -88,6 +91,14 @@ const ON_CALL_LEAVER: ObjectID = new ObjectID(
 const ON_CALL_MEMBER: ObjectID = new ObjectID(
   "70000000-0000-4000-8000-000000000007",
 );
+// A schedule's layer user whom an override has somebody else cover.
+const LAYER_USER_COVERED: ObjectID = new ObjectID(
+  "80000000-0000-4000-8000-000000000008",
+);
+// Who covers them in the schedule.
+const SCHEDULE_SUBSTITUTE: ObjectID = new ObjectID(
+  "90000000-0000-4000-8000-000000000009",
+);
 
 function user(id: ObjectID): User {
   const row: User = new User();
@@ -101,6 +112,9 @@ describe("an escalation rule pages project members only", () => {
   let membershipReads: Array<Array<string>>;
   let members: Set<string>;
   let usersInTeams: SpyInstance<typeof TeamMemberService.getUsersInTeams>;
+  // Who each schedule has on call, by schedule id.
+  let onCallBySchedule: Map<string, CurrentOnCallInSchedule>;
+  let pagedOnBehalfOf: Array<{ userId: string; overridedByUserId?: string }>;
 
   async function runRule(): Promise<void> {
     await OnCallDutyPolicyEscalationRuleService.startRuleExecution(RULE_ID, {
@@ -118,10 +132,33 @@ describe("an escalation rule pages project members only", () => {
     });
   }
 
+  // While an override is in force in the schedule: who covers, and for whom.
+  function overrideInSchedule(data: {
+    scheduleId: ObjectID;
+    substitute: ObjectID;
+    covered: ObjectID;
+  }): void {
+    onCallBySchedule.set(data.scheduleId.toString(), {
+      userId: data.substitute,
+      coveredUserId: data.covered,
+    });
+  }
+
   beforeEach(() => {
     timeline = [];
     paged = [];
+    pagedOnBehalfOf = [];
     membershipReads = [];
+    onCallBySchedule = new Map<string, CurrentOnCallInSchedule>([
+      [
+        SCHEDULE_WITH_LEAVER.toString(),
+        { userId: ON_CALL_LEAVER, coveredUserId: null },
+      ],
+      [
+        SCHEDULE_WITH_MEMBER.toString(),
+        { userId: ON_CALL_MEMBER, coveredUserId: null },
+      ],
+    ]);
     members = new Set<string>([
       TEAM_MEMBER.toString(),
       DIRECT_MEMBER.toString(),
@@ -170,11 +207,9 @@ describe("an escalation rule pages project members only", () => {
         { onCallDutyPolicyScheduleId: SCHEDULE_WITH_MEMBER },
       ] as never);
     jest
-      .spyOn(OnCallDutyPolicyScheduleService, "getCurrentUserIdInSchedule")
+      .spyOn(OnCallDutyPolicyScheduleService, "getCurrentOnCallInSchedule")
       .mockImplementation(async (scheduleId: ObjectID) => {
-        return scheduleId.toString() === SCHEDULE_WITH_LEAVER.toString()
-          ? ON_CALL_LEAVER
-          : ON_CALL_MEMBER;
+        return onCallBySchedule.get(scheduleId.toString()) || null;
       });
     jest
       .spyOn(OnCallDutyPolicyEscalationRuleService, "getRouteAlertToUserId")
@@ -218,8 +253,17 @@ describe("an escalation rule pages project members only", () => {
       }) as never);
     jest
       .spyOn(UserNotificationRuleService, "startUserNotificationRulesExecution")
-      .mockImplementation((async (userId: ObjectID) => {
+      .mockImplementation((async (
+        userId: ObjectID,
+        options: { overridedByUserId?: ObjectID | undefined },
+      ) => {
         paged.push(userId.toString());
+        pagedOnBehalfOf.push({
+          userId: userId.toString(),
+          ...(options.overridedByUserId
+            ? { overridedByUserId: options.overridedByUserId.toString() }
+            : {}),
+        });
       }) as never);
   });
 
@@ -379,5 +423,182 @@ describe("an escalation rule pages project members only", () => {
         return row.statusMessage === "Skipped because no users in this rule.";
       }),
     ).toBe(true);
+  });
+
+  describe("an override in force in a schedule", () => {
+    test("a substitute who left is skipped, and the layer user they cover is paged themselves", async () => {
+      members.add(LAYER_USER_COVERED.toString());
+      overrideInSchedule({
+        scheduleId: SCHEDULE_WITH_LEAVER,
+        substitute: SCHEDULE_SUBSTITUTE,
+        covered: LAYER_USER_COVERED,
+      });
+
+      await runRule();
+
+      expect(paged).toContain(LAYER_USER_COVERED.toString());
+      expect(paged).not.toContain(SCHEDULE_SUBSTITUTE.toString());
+
+      // The skipped substitute, recorded as the override's, on that schedule.
+      const skipped: OnCallDutyPolicyExecutionLogTimeline | undefined =
+        skippedAsNonMembers().find(
+          (row: OnCallDutyPolicyExecutionLogTimeline) => {
+            return (
+              row.alertSentToUserId?.toString() ===
+              SCHEDULE_SUBSTITUTE.toString()
+            );
+          },
+        );
+
+      expect({
+        status: skipped?.status,
+        overridedByUserId: skipped?.overridedByUserId?.toString(),
+        onCallDutyScheduleId: skipped?.onCallDutyScheduleId?.toString(),
+      }).toEqual({
+        status: OnCallDutyExecutionLogTimelineStatus.Skipped,
+        overridedByUserId: LAYER_USER_COVERED.toString(),
+        onCallDutyScheduleId: SCHEDULE_WITH_LEAVER.toString(),
+      });
+
+      // Paged as themselves, through the same schedule.
+      const coveredRow: OnCallDutyPolicyExecutionLogTimeline | undefined =
+        timeline.find((row: OnCallDutyPolicyExecutionLogTimeline) => {
+          return (
+            row.status === OnCallDutyExecutionLogTimelineStatus.Executing &&
+            row.alertSentToUserId?.toString() === LAYER_USER_COVERED.toString()
+          );
+        });
+
+      expect(coveredRow?.overridedByUserId).toBeUndefined();
+      expect(coveredRow?.onCallDutyScheduleId?.toString()).toBe(
+        SCHEDULE_WITH_LEAVER.toString(),
+      );
+      expect(pagedOnBehalfOf).toContainEqual({
+        userId: LAYER_USER_COVERED.toString(),
+      });
+    });
+
+    test("a substitute who is a member is paged, recorded as covering the layer user", async () => {
+      members.add(SCHEDULE_SUBSTITUTE.toString());
+      members.add(LAYER_USER_COVERED.toString());
+      overrideInSchedule({
+        scheduleId: SCHEDULE_WITH_MEMBER,
+        substitute: SCHEDULE_SUBSTITUTE,
+        covered: LAYER_USER_COVERED,
+      });
+
+      await runRule();
+
+      expect(paged).toContain(SCHEDULE_SUBSTITUTE.toString());
+      expect(paged).not.toContain(LAYER_USER_COVERED.toString());
+
+      const row: OnCallDutyPolicyExecutionLogTimeline | undefined =
+        timeline.find((candidate: OnCallDutyPolicyExecutionLogTimeline) => {
+          return (
+            candidate.status ===
+              OnCallDutyExecutionLogTimelineStatus.Executing &&
+            candidate.alertSentToUserId?.toString() ===
+              SCHEDULE_SUBSTITUTE.toString()
+          );
+        });
+
+      expect(row?.overridedByUserId?.toString()).toBe(
+        LAYER_USER_COVERED.toString(),
+      );
+      expect(row?.onCallDutyScheduleId?.toString()).toBe(
+        SCHEDULE_WITH_MEMBER.toString(),
+      );
+      expect(pagedOnBehalfOf).toContainEqual({
+        userId: SCHEDULE_SUBSTITUTE.toString(),
+        overridedByUserId: LAYER_USER_COVERED.toString(),
+      });
+    });
+
+    test("a substitute and a layer user who have both left page nobody for that schedule", async () => {
+      overrideInSchedule({
+        scheduleId: SCHEDULE_WITH_LEAVER,
+        substitute: SCHEDULE_SUBSTITUTE,
+        covered: LAYER_USER_COVERED,
+      });
+
+      await runRule();
+
+      expect(paged).not.toContain(SCHEDULE_SUBSTITUTE.toString());
+      expect(paged).not.toContain(LAYER_USER_COVERED.toString());
+      expect(
+        skippedAsNonMembers().map(
+          (row: OnCallDutyPolicyExecutionLogTimeline): string | undefined => {
+            return row.alertSentToUserId?.toString();
+          },
+        ),
+      ).toContain(SCHEDULE_SUBSTITUTE.toString());
+    });
+
+    test("the layer user covered is read in the same one membership read", async () => {
+      overrideInSchedule({
+        scheduleId: SCHEDULE_WITH_LEAVER,
+        substitute: SCHEDULE_SUBSTITUTE,
+        covered: LAYER_USER_COVERED,
+      });
+
+      await runRule();
+
+      expect(membershipReads).toHaveLength(1);
+      expect(membershipReads[0]).toEqual(
+        expect.arrayContaining([
+          SCHEDULE_SUBSTITUTE.toString(),
+          LAYER_USER_COVERED.toString(),
+        ]),
+      );
+    });
+
+    test("membership that cannot be read pages the substitute as before", async () => {
+      overrideInSchedule({
+        scheduleId: SCHEDULE_WITH_LEAVER,
+        substitute: SCHEDULE_SUBSTITUTE,
+        covered: LAYER_USER_COVERED,
+      });
+      (
+        ProjectMembership.getMemberUserIds as unknown as {
+          mockRejectedValue: (error: Error) => void;
+        }
+      ).mockRejectedValue(new Error("database unavailable"));
+
+      await runRule();
+
+      expect(paged).toContain(SCHEDULE_SUBSTITUTE.toString());
+      expect(paged).not.toContain(LAYER_USER_COVERED.toString());
+    });
+
+    test("no second override hop: the schedule's answer is paged as it stands", async () => {
+      members.add(SCHEDULE_SUBSTITUTE.toString());
+      overrideInSchedule({
+        scheduleId: SCHEDULE_WITH_MEMBER,
+        substitute: SCHEDULE_SUBSTITUTE,
+        covered: LAYER_USER_COVERED,
+      });
+
+      await runRule();
+
+      // Asked for the rule's own users only, never for the schedule's.
+      const routeLookup: SpyInstance<
+        typeof OnCallDutyPolicyEscalationRuleService.getRouteAlertToUserId
+      > = OnCallDutyPolicyEscalationRuleService.getRouteAlertToUserId as unknown as SpyInstance<
+        typeof OnCallDutyPolicyEscalationRuleService.getRouteAlertToUserId
+      >;
+
+      const askedFor: Array<string> = routeLookup.mock.calls.map(
+        (
+          call: Parameters<
+            typeof OnCallDutyPolicyEscalationRuleService.getRouteAlertToUserId
+          >,
+        ): string => {
+          return call[0].userId.toString();
+        },
+      );
+
+      expect(askedFor).not.toContain(SCHEDULE_SUBSTITUTE.toString());
+      expect(askedFor).not.toContain(LAYER_USER_COVERED.toString());
+    });
   });
 });

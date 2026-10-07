@@ -37,7 +37,7 @@ const OTHER_USER_ID: ObjectID = new ObjectID(
 );
 
 const REMOVED: ProjectLeaveNotificationCleanupResult = {
-  removedRowCount: 3,
+  removedRowCounts: { McpOAuthGrant: 2, UserProjectSsoConsent: 1 },
   failedTables: [],
 };
 

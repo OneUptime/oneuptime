@@ -3,8 +3,9 @@ import UserProjectSsoConsentService from "../../../Server/Services/UserProjectSs
 import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
+import { expectUserIdWhileMember } from "../TestingUtils/MembershipCondition";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
-import { FindOperator, getMetadataArgsStorage } from "typeorm";
+import { getMetadataArgsStorage } from "typeorm";
 import { IndexMetadataArgs } from "typeorm/metadata-args/IndexMetadataArgs";
 
 /*
@@ -46,27 +47,6 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-// The membership condition (ProjectMembership.userIdWhileMember) for this person and project.
-const expectWhileMember: (condition: unknown) => void = (
-  condition: unknown,
-): void => {
-  const userCondition: FindOperator<unknown> =
-    condition as FindOperator<unknown>;
-
-  expect(userCondition).toBeInstanceOf(FindOperator);
-  expect(userCondition.type).toBe("raw");
-  expect(
-    Object.values(userCondition.objectLiteralParameters || {}).sort(),
-  ).toEqual([PROJECT_ID.toString(), USER_ID.toString()].sort());
-
-  const sql: string = (userCondition.getSql as (alias: string) => string)(
-    "consent.userId",
-  );
-
-  expect(sql).toContain(`"projectMembership"."hasAcceptedInvitation" = true`);
-  expect(sql).toContain(`"projectMembership"."userId" = consent.userId`);
-};
-
 describe("UserProjectSsoConsentService.hasConsent", () => {
   test("asks about this user in this project, as root", async () => {
     const countBy: SpyCalls = jest
@@ -85,7 +65,10 @@ describe("UserProjectSsoConsentService.hasConsent", () => {
       any
     >;
 
-    expectWhileMember(call["query"]["userId"]);
+    expectUserIdWhileMember(call["query"]["userId"], {
+      userId: USER_ID,
+      projectId: PROJECT_ID,
+    });
     expect(call["query"]["projectId"].toString()).toBe(PROJECT_ID.toString());
     expect(call["props"]["isRoot"]).toBe(true);
   });

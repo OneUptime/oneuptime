@@ -8,6 +8,7 @@ import {
   TeamComplianceStatusJSON,
   TeamMemberComplianceJSON,
 } from "../../../Types/Team/TeamComplianceStatus";
+import { JSONObject } from "../../../Types/JSON";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -26,6 +27,10 @@ import { describe, expect, test } from "@jest/globals";
  * channel a member needs a rule on, empty for "any channel". The single
  * `notificationChannel` an older API sent is gone from the contract (the
  * Dashboard still reads it from an older replica during a rolling deploy).
+ *
+ * The members are the people who accepted their invitation to the team;
+ * those still invited travel as a count (`invitedMemberCount`), optional so
+ * a reply from an older server still reads.
  */
 
 type Equals<A, B> =
@@ -40,6 +45,7 @@ const STATUS_KEYS: Equals<
   | "evaluatedAt"
   | "complianceSettings"
   | "userComplianceStatuses"
+  | "invitedMemberCount"
 > = true;
 
 const RULE_KEYS: Equals<
@@ -170,6 +176,7 @@ const EXAMPLE: TeamComplianceStatusJSON = {
       nonCompliantRules: [],
     },
   ],
+  invitedMemberCount: 1,
 };
 
 describe("TeamComplianceStatusJSON - the wire contract", () => {
@@ -182,6 +189,22 @@ describe("TeamComplianceStatusJSON - the wire contract", () => {
       ISSUE_KEYS,
       CHANNELS_AND_KIND,
     ]).toEqual([true, true, true, true, true, true]);
+  });
+
+  test("people still invited travel as a count, never as members", () => {
+    const sent: JSONObject = JSON.parse(JSON.stringify(EXAMPLE));
+
+    expect(sent["invitedMemberCount"]).toBe(1);
+    expect(
+      (sent["userComplianceStatuses"] as Array<JSONObject>).length,
+    ).toBe(2);
+  });
+
+  test("a reply without the count, from an older server, is still a status", () => {
+    const older: TeamComplianceStatusJSON = { ...EXAMPLE };
+    delete older.invitedMemberCount;
+
+    expect(JSON.parse(JSON.stringify(older))).toEqual(older);
   });
 
   test("a status is plain JSON: it survives a trip over the wire unchanged", () => {
