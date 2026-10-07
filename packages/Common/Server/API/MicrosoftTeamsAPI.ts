@@ -50,6 +50,7 @@ import WorkspaceOAuthState, {
   WorkspaceOAuthFlow,
   WorkspaceOAuthStateRecord,
 } from "../Utils/Workspace/WorkspaceOAuthState";
+import WorkspaceOAuthCallbackAccess from "../Utils/Workspace/WorkspaceOAuthCallbackAccess";
 
 // Delegated scopes for "sign in with Microsoft Teams" — authorize and token requests must agree.
 const MICROSOFT_TEAMS_USER_SIGN_IN_SCOPES: string =
@@ -63,6 +64,13 @@ const ENTRA_TENANT_ID_PATTERN: RegExp =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default class MicrosoftTeamsAPI {
+  /*
+   * What someone who may not connect the project to Microsoft Teams is told,
+   * when admin consent starts and again when Microsoft sends the browser back.
+   */
+  public static readonly CONNECT_PERMISSION_MESSAGE: string =
+    "You do not have permission to connect this project to Microsoft Teams.";
+
   private static getTeamsAppManifest(): JSONObject {
     if (!MicrosoftTeamsAppClientId) {
       throw new BadDataException("Microsoft Teams App Client ID is not set");
@@ -909,6 +917,15 @@ export default class MicrosoftTeamsAPI {
           );
         }
 
+        // Whoever started the sign-in is still a member of the project.
+        try {
+          await WorkspaceOAuthCallbackAccess.assertStartedByIsMember({
+            record: stateRecord,
+          });
+        } catch (refusal) {
+          return Response.sendErrorResponse(req, res, refusal as Exception);
+        }
+
         const projectId: ObjectID = stateRecord.projectId;
         const userId: ObjectID = stateRecord.userId;
 
@@ -1102,8 +1119,7 @@ export default class MicrosoftTeamsAPI {
             databaseProps: databaseProps,
             allowedPermissions:
               WorkspaceOAuthState.MANAGE_CONNECTION_PERMISSIONS,
-            errorMessage:
-              "You do not have permission to connect this project to Microsoft Teams.",
+            errorMessage: MicrosoftTeamsAPI.CONNECT_PERMISSION_MESSAGE,
           });
 
           if (!MicrosoftTeamsAppClientId) {
@@ -1198,6 +1214,18 @@ export default class MicrosoftTeamsAPI {
                 WorkspaceOAuthState.INVALID_STATE_MESSAGE,
               ),
             );
+          }
+
+          // Whoever started admin consent may still connect the project.
+          try {
+            await WorkspaceOAuthCallbackAccess.assertStartedByMayManageConnection(
+              {
+                record: stateRecord,
+                errorMessage: MicrosoftTeamsAPI.CONNECT_PERMISSION_MESSAGE,
+              },
+            );
+          } catch (refusal) {
+            return Response.sendErrorResponse(req, res, refusal as Exception);
           }
 
           teamsIntegrationPageUrl = MicrosoftTeamsAPI.getIntegrationPageUrl(
