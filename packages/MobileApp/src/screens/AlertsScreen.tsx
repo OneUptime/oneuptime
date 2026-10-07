@@ -26,6 +26,10 @@ import ScreenIntro from "../components/ScreenIntro";
 import SearchField from "../components/SearchField";
 import { matchesSearch } from "../utils/search";
 import { getResolvedStateIds } from "../utils/resolvedState";
+import {
+  getAcknowledgedState,
+  isAcknowledgedById,
+} from "../utils/acknowledgedState";
 import { useAllProjectAlerts } from "../hooks/useAllProjectAlerts";
 import { useAllProjectAlertEpisodes } from "../hooks/useAllProjectAlertEpisodes";
 import { useAllProjectAlertStates } from "../hooks/useAllProjectAlertStates";
@@ -325,11 +329,9 @@ export default function AlertsScreen({
         const projectStates: AlertState[] | undefined = statesMap.get(
           wrapped.projectId,
         );
-        const acknowledgeState: AlertState | undefined = projectStates?.find(
-          (s: AlertState) => {
-            return s.isAcknowledgedState;
-          },
-        );
+        // Where Acknowledge moves it: the project's acknowledged state.
+        const acknowledgeState: AlertState | undefined =
+          getAcknowledgedState(projectStates);
         if (!acknowledgeState) {
           return;
         }
@@ -610,17 +612,24 @@ export default function AlertsScreen({
             const projectStates: AlertState[] | undefined = statesMap.get(
               wrapped.projectId,
             );
-            const acknowledgeState: AlertState | undefined =
-              projectStates?.find((s: AlertState) => {
-                return s.isAcknowledgedState;
-              });
+            /*
+             * Swiping acknowledges an alert nobody has acknowledged yet: not
+             * one in the acknowledged state or in a state placed after it
+             * (utils/acknowledgedState), where it would be a move back up
+             * the list.
+             */
+            const canAcknowledge: boolean =
+              !isResolved &&
+              Boolean(getAcknowledgedState(projectStates)) &&
+              !isAcknowledgedById(
+                projectStates,
+                wrapped.item.currentAlertState?._id,
+              );
             return (
               <SwipeableCard
                 actionInsetBottom={spacing.md}
                 rightAction={
-                  !isResolved &&
-                  acknowledgeState &&
-                  wrapped.item.currentAlertState?._id !== acknowledgeState._id
+                  canAcknowledge
                     ? {
                         label: "Acknowledge",
                         icon: "checkmark-circle",

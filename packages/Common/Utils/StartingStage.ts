@@ -1,11 +1,7 @@
 import ObjectID from "../Types/ObjectID";
+import AcknowledgedStateUtil from "./AcknowledgedState";
 import ResolvedStateUtil, { ResolvedStateList } from "./ResolvedState";
-import {
-  StateListDefinition,
-  StateListRow,
-  getStateListReachedBuiltIn,
-  toStateListRow,
-} from "./StateOrder";
+import { StateListDefinition, StateListRow, toStateListRow } from "./StateOrder";
 
 /*
  * HOW FAR ALONG A NEW INCIDENT, ALERT OR EPISODE STARTS - AND SO WHAT ITS
@@ -48,7 +44,9 @@ import {
  *     neither, and an episode that starts there is resolved from the moment
  *     it exists.
  *   - Acknowledged: at or below the acknowledged state, or flagged
- *     acknowledged - as on-call escalation reads it to stop paging.
+ *     acknowledged - the one rule (Common/Utils/AcknowledgedState) that
+ *     on-call escalation reads to stop paging and every Acknowledge button
+ *     reads to stay away.
  *   - Open: the created state, and any state of the project's own above the
  *     acknowledged one: its record pages.
  */
@@ -86,8 +84,6 @@ export interface GroupingOptions {
   // Unset, a rule may open or reopen an episode for the record, as always.
   mayOpenEpisode?: boolean | undefined;
 }
-
-const ACKNOWLEDGED_STATE_FLAG: string = "isAcknowledgedState";
 
 const STARTING_STAGES: Array<string> = Object.values(StartingStage);
 
@@ -137,15 +133,13 @@ export default class StartingStageUtil {
       return { stage: StartingStage.Resolved };
     }
 
-    const reached: string | null = getStateListReachedBuiltIn(
-      data.definition,
-      rows,
-      row,
-    );
-
+    // Acknowledged by the one rule every reader shares (AcknowledgedState).
     if (
-      reached === ACKNOWLEDGED_STATE_FLAG ||
-      row.flags.includes(ACKNOWLEDGED_STATE_FLAG)
+      AcknowledgedStateUtil.isAcknowledged({
+        list: data.definition.type as ResolvedStateList,
+        states: data.states,
+        stateId: row.id,
+      })
     ) {
       return { stage: StartingStage.Acknowledged };
     }
