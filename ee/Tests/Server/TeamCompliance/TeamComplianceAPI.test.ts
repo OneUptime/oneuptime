@@ -47,6 +47,7 @@ import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedEx
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
 import ObjectID from "Common/Types/ObjectID";
+import PositiveNumber from "Common/Types/PositiveNumber";
 import Permission, {
   UserPermission,
   UserTenantAccessPermission,
@@ -410,7 +411,13 @@ beforeEach(() => {
    */
   teamMemberFindBy = jest
     .spyOn(TeamMemberService, "findBy")
-    .mockResolvedValue([{ _id: "tm-1", userId: subjectUserId }] as never);
+    .mockResolvedValue([
+      { _id: "tm-1", userId: subjectUserId, hasAcceptedInvitation: true },
+    ] as never);
+  // Nobody on the team is still waiting on an invitation.
+  jest
+    .spyOn(TeamMemberService, "countBy")
+    .mockResolvedValue(new PositiveNumber(0) as never);
 
   userFindBy = jest.spyOn(UserService, "findBy").mockResolvedValue([] as never);
   userPushFindBy = jest
@@ -816,10 +823,13 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
     expect(Object.keys(payload).sort()).toEqual([
       "complianceSettings",
       "evaluatedAt",
+      "invitedMemberCount",
       "teamId",
       "teamName",
       "userComplianceStatuses",
     ]);
+    // People still invited travel as a count, never as members.
+    expect(payload["invitedMemberCount"]).toBe(0);
     expect(payload["teamId"]).toBe(teamId.toString());
     expect(payload["teamName"]).toBe("Platform On-Call");
     expect(typeof payload["evaluatedAt"]).toBe("string");

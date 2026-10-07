@@ -35,7 +35,7 @@ En bruger er "i" et projekt, når vedkommende er medlem af **mindst ét team** i
 
 - Invitationer opretter et afventende teammedlem. Brugeren tæller først som projektmedlem — og får først nogen tilladelse — **efter at have accepteret invitationen.**
 - Fjernes en bruger fra alle teams i et projekt, mistes adgangen til projektet.
-- Den, der forlader et projekt, får ikke længere dets notifikationer. Personens egne notifikationsmetoder, -regler og -indstillinger for projektet fjernes sammen med det sidste team — e-mail, SMS, opkald, WhatsApp, Telegram, push, webhook, Slack og Microsoft Teams, e-mailopsamlingen og den endnu ikke sendte e-mail, nummeret til indgående opkald og vagtpåmindelserne —, så en ny tilmelding starter fra standardindstillingerne. Det, der stadig nævner personen, som brugeren en regel for indgående opkald ringer til eller en ejer, der bevares på en løst hændelse, sender ikke længere noget til personen: intet sendes på et projekts vegne til nogen, der ikke er medlem, og en afventende invitation er endnu ikke et medlemskab. Disse steder viser **Ikke længere medlem** ved siden af navnet, så du kan sætte en anden ind. Den, der er inviteret og endnu ikke har accepteret, viser i stedet **Invitation endnu ikke accepteret**.
+- Den, der forlader et projekt, får ikke længere dets notifikationer. Personens egne notifikationsmetoder, -regler og -indstillinger for projektet fjernes sammen med det sidste team — e-mail, SMS, opkald, WhatsApp, Telegram, push, webhook, Slack og Microsoft Teams, e-mailopsamlingen og den endnu ikke sendte e-mail, nummeret til indgående opkald og vagtpåmindelserne —, så en ny tilmelding starter fra standardindstillingerne. Det, der stadig nævner personen, som brugeren en regel for indgående opkald ringer til eller en ejer, der bevares på en løst hændelse, sender ikke længere noget til personen: intet sendes på et projekts vegne til nogen, der ikke er medlem, og en afventende invitation er endnu ikke et medlemskab. Disse steder viser **Ikke længere medlem** ved siden af navnet, så du kan sætte en anden ind. Den, der er inviteret og endnu ikke har accepteret, viser i stedet **Invitation endnu ikke accepteret**. Hvis en override sender nogens kald videre til en person, der har forladt projektet, bliver den person, overriden dækker, kaldt i stedet. At forlade projektet afbryder også de MCP-klienter, personen har forbundet til projektet, og personens personlige link til vagtkalenderen viser derefter en tom kalender. På OneUptime Cloud bekræfter en, der vender tilbage via projektets single sign-on, det igen fra sin mailboks.
 - Hvis projektet kræver SSO, og en bruger endnu ikke har godkendt sig via identitetsudbyderen, behandles vedkommende som uautoriseret SSO-bruger og ser intet, før det sker. Se [SSO](/docs/identity/sso).
 - Med SCIM opsat kan din identitetsudbyder automatisk oprette, opdatere og fjerne brugere og deres teammedlemskaber. Se [SCIM](/docs/identity/scim).
 
@@ -71,19 +71,25 @@ En tilladelse er én funktion. Der er to måder at uddele dem på, og begge find
 
 En rolle samler et helt produktområde på ét af tre niveauer:
 
-- **Admin** — fuld kontrol over området, inklusive dets konfiguration (alvorsgrader, tilstande, skabeloner).
-- **Member** — det daglige arbejde: oprette, redigere og slette ressourcerne, men ikke omkonfigurere området.
+- **Admin** — det, som Member gør, plus områdets egen konfiguration, som alvorsgrader og tilstande for hændelser og alarmer, monitorstatusser og vedligeholdelsestilstande.
+- **Member** — det daglige arbejde: oprette, ændre og slette områdets ressourcer med deres noter, ejere og skabeloner. For statussider og vagter kan Member alt, hvad Admin kan.
 - **Viewer** — kun læsning.
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` og så videre. Roller er næsten altid det rigtige valg — de forbliver korrekte, efterhånden som OneUptime får nye funktioner, fordi en ny monitorrelateret tabel lægges ind under de eksisterende monitorroller i stedet for at kræve en ny tildeling fra dig.
 
-Workflows er undtagelsen. Et workflow kører sine trin inde i projektet, så `WorkflowMember` åbner workflows og deres kørsler og kører dem manuelt, men opretter, ændrer eller sletter dem ikke. `WorkflowAdmin` bygger dem. Se [Workflow-konfiguration](/docs/workflows/configuration).
+Workflows og runbooks er undtagelsen. Begge kører kode i dit projekt — et workflow sine trin, en runbook sine scripts på dine Runners —, så `WorkflowMember` åbner workflows og deres kørsler og kører dem manuelt, og `RunbookMember` åbner runbooks og deres kørsler og kører dem: den starter en kørsel, fuldfører eller springer dens trin over og annullerer den. Ingen af dem opretter, ændrer eller sletter det, de kører; `WorkflowAdmin` og `RunbookAdmin` bygger dem. En rolle kører kun de runbooks, dens omfang når: en `RunbookMember`, der er begrænset til nogle labels, kører de runbooks, der har dem. Se [Workflow-konfiguration](/docs/workflows/configuration) og [Runbook-konfiguration](/docs/runbooks/configuration).
+
+Et områdes regler (label-, ejer-, vagt-, grupperings- og påmindelsesregler), brugerdefinerede felter, SLA'er og hemmeligheder er projektkonfiguration: de kræver `ProjectAdmin`, uanset hvilken områderolle man har. Det samme gælder API-nøgler, teams og deres tilladelser, labels, SSO og domæner — Settings-rollerne passer projektets tjenester, probes, infrastruktur og integrationer, ikke hvem der må hvad.
+
+Fakturering har tre egne roller. `BillingViewer` læser projektets fakturering — planen og abonnementet, fakturaer, forbrug, saldi, AI-kreditter, betalingsmetoder og faktureringskontaktoplysningerne — og ændrer intet. `BillingMember` downloader desuden fakturaer og ændrer faktureringskontaktoplysningerne. `BillingAdmin` gør det, som `BillingMember` gør, og slår SMS, telefonopkald, WhatsApp og Telegram til og fra. At ændre planen, betalingsmetoder eller saldi og at betale fakturaer kræver `ProjectOwner` eller **Manage Billing**; på faktureringssiderne er de knapper låst for alle andre og fortæller, hvem der må bruge dem.
 
 Alle {{PERMISSION_ROLE_COUNT}} roller står i [Tilladelsesreferencen](/docs/permissions/reference).
 
 ### Granulære tilladelser
 
 Hver enkelt funktion kan også tildeles alene — `CreateProjectMonitor`, `ReadProjectIncident`, `DeleteProjectStatusPage` og {{PERMISSION_TOTAL_COUNT}} andre. Brug dem, når en rolle er for bred, og du skal give præcis én ting.
+
+En tilladelse til at ændre eller slette noget når kun det, du også må læse, så giv den tilsvarende læsetilladelse med: `EditProjectIncident` ændrer ingen hændelse uden `ReadProjectIncident`. En post, der læses gennem en anden, f.eks. en note på en hændelse, kræver også en tilladelse til at læse den anden post: `ReadIncidentInternalNote` når ingen note uden en tilladelse til at læse hændelser. Rollerne har allerede begge.
 
 Det er også de nøgler, du bruger, når du opretter API-nøgler, og dem API'et og Terraform-provideren forventer.
 
@@ -137,6 +143,8 @@ Labels er projektdækkende markeringer, du sætter på ressourcer. De tjener to 
 
 En labelbegrænsning er opfyldt, hvis ressourcen bærer **mindst ét** af tilladelsens labels. En ressource helt uden labels opfylder ingen labelbegrænset tilladelse.
 
+En post uden egne labels, f.eks. en note på en hændelse, en meddelelse på en statusside eller en AI-indsigt om en tjeneste, bærer labels fra de poster, den hører til eller handler om. En tilladelse begrænset til labels når den, når en af de poster bærer et af tilladelsens labels, og en blokering med labels fjerner den, når en af dem bærer et blokeret label, ved læsning, ændring og sletning ens. En post, der ikke handler om nogen af dem, f.eks. en AI-indsigt, der ikke handler om nogen tjeneste, hører til projektet: en labelbegrænsning afgrænser den ikke, og en blokering med labels fjerner den ikke.
+
 Hvor du finder det: **Indstillinger → Labels**.
 
 ## Telemetri
@@ -148,6 +156,8 @@ Logs, traces, metrics, undtagelser, profiler og sessionsafspilninger hører til 
 - **Labels** læser telemetrien fra de ressourcer, der bærer et af tilladelsens labels.
 
 En blokering med labels på en telemetritilladelse udelader telemetrien fra de ressourcer, der bærer de labels, uanset hvad du ellers har. Det gælder overalt, hvor telemetri læses: stifinderne og deres diagrammer, filtre og attributlister, eksporter, sessionsafspilninger og det, AI-assistenten læser for dig. Listen over metriknavne viser de metrics, som en tjeneste, du må læse, rapporterer, og de metrics, som ingen tjeneste rapporterer, f.eks. værts- og klyngemetrics. Må du også læse telemetri fra andre slags ressourcer, f.eks. værter eller klynger, viser den alle metriknavne.
+
+Monitorlogs, SLO-historik, netværksflows og omkostningsfordelinger for Kubernetes læses på samme måde, gennem den monitor, det SLO, den netværksenhed eller den klynge, de hører til: Ejede og Labels når rækkerne for de poster, du må læse, og en blokering med labels udelader rækkerne for de poster, der bærer de labels. Revisionsloggen og trusselsefterretningsindikatorerne læses i hele projektet af den, der må læse dem.
 
 ## API-nøgler
 
@@ -165,12 +175,13 @@ Hvor du finder det: **Indstillinger → API-nøgler**. Se også [API-referencen]
 
 For en logget ind bruger, i rækkefølge:
 
-1. Find de teams, brugeren tilhører i dette projekt — kun accepterede invitationer tæller.
+1. Find de teams, brugeren tilhører i dette projekt — kun accepterede invitationer tæller. En forespørgsel når kun posterne i dette projekt: en post i et andet projekt, angivet med sit id eller i et filter, behandles, som om den ikke fandtes.
 2. Saml alle tilladelsesrækker fra de teams — tilladte og blokerede, hver med labels og omfang.
 3. Tjek blokeringslisten først. En blokering uden labels på en hvilken som helst tilladelse, som måltabellen accepterer for denne handling, afviser forespørgslen med det samme, uanset hvilket team den er sat på.
 4. Tjek tilladelseslisten. Forespørgslen kræver mindst én tilladelse, som måltabellen accepterer for denne handling. For en driftsressource — en monitor, en hændelse, et dashboard og lignende — tæller den tilsvarende **All Operational Resources**-tilladelse (Create, Read, Edit eller Delete) også, medmindre den selv er blokeret.
-5. Anvend omfanget. Tildelinger med omfanget Ejede indsnævrer forespørgslen til ejede ressourcer; labelbaserede indsnævrer til matchende labels. Er en anden tildeling for samme handling bredere, vinder den bredere.
-6. Anvend labelblokeringer. En blokering med labels afviser forespørgslen, hvis målressourcen bærer et af dem. Når en post ikke har egne labels, f.eks. en note på en hændelse eller en meddelelse på en statusside, udelader en blokering med labels på at læse den posten, hvis en post, den hører til, bærer et af de labels.
+5. Anvend omfanget. Tildelinger med omfanget Ejede indsnævrer forespørgslen til ejede ressourcer; labelbaserede indsnævrer til matchende labels. Er en anden tildeling for samme handling bredere, vinder den bredere. En post uden egne labels, f.eks. en note på en hændelse, matcher en labelbaseret tildeling, når en af de poster, den hører til, bærer et af tildelingens labels.
+6. Anvend labelblokeringer. En blokering med labels afviser forespørgslen, hvis målressourcen bærer et af dem. Når en post ikke har egne labels, f.eks. en note på en hændelse eller en meddelelse på en statusside, udelader en blokering med labels posten ved læsning, ændring og sletning, hvis en post, den hører til, bærer et af de labels. En liste med poster fra alle dine projekter på én gang, f.eks. hændelserne på din startside, afgrænser hvert projekts poster med dine blokeringer og tildelinger i det projekt.
+7. Hold ændringer og sletninger til det, du må læse. En ændring eller sletning afgrænses af dine læsetilladelser såvel som af tilladelsen til ændringen: en post, du ikke må læse — uden for dine labels eller ejere, eller med et label, som en blokering af læsning fjerner — er ikke en, du må ændre eller slette, og en blokering uden labels af læsning af en slags post fjerner også ændring og sletning af den. En post, der læses gennem en anden, f.eks. en note på en hændelse eller en meddelelse på en statusside, nås kun gennem en post, du må læse: uden tilladelse til at læse hændelser når en tilladelse til noter ingen note, og en blokering med labels af læsning af hændelser udelader noterne på de hændelser, der bærer dem. En ændring eller sletning af én post, angivet med dens ID, som ikke når noget, besvares, som om posten ikke fandtes (`404`), når du ikke må læse den, og afvises, når du må læse den, men ikke ændre den.
 
 Hvert felt i en post læses med postens egen læsetilladelse: en tilladelse til en anden slags post åbner det aldrig. Nogle felter er bevidst snævrere. Hemmeligheder læses kun af personer, der må redigere eller administrere den post, de hører til, f.eks. en monitors nøgler til indgående anmodninger og indgående e-mail og dens serveragentnøgle eller et workflows webhook- og e-mailnøgler. At se optagelsen af en sessionsafspilning kræver **Watch Session Replays**, ikke kun **List Session Replays**. Telemetri læses signal for signal: **Read Telemetry Service Log** læser logs, **Read Telemetry Service Traces** læser traces, og **Read Telemetry Service Metrics** læser metrics, metrikdiagrammer inklusive.
 
@@ -178,7 +189,9 @@ Felter følger samme regel. En blokering uden labels på et felts tilladelse fje
 
 Samme regel afgør alt andet, der spørger, om du har en tilladelse: handlinger, der ikke er en simpel læsning eller skrivning — at tilføje SMS-, opkalds- eller AI-kredit, betale en faktura eller teste en notifikationsregel — og de knapper, OneUptime viser. En knap, du ikke må bruge, vises låst og siger hvorfor; er en blokering i et af dine teams grunden, nævner den den blokerede tilladelse.
 
-Liveopdateringer følger samme regel. Når en post oprettes, ændres eller slettes, giver OneUptime besked til de åbne sider hos de personer, der må læse posten, og ingen andre. Det, der begrænser, hvad du må læse, begrænser også dine liveopdateringer: labels, ejere, en blokering med labels, en privat hændelse eller en andens AI-samtale. Når en ændring tager en post fra dig, for eksempel når den gøres privat, får dine åbne sider også besked, så de holder op med at vise den. En ændring af dine tilladelser når dine åbne sider inden for 30 sekunder.
+Liveopdateringer følger samme regel. Når en post oprettes, ændres eller slettes, giver OneUptime besked til de åbne sider hos de personer, der må læse posten, og ingen andre. Det, der begrænser, hvad du må læse, begrænser også dine liveopdateringer: labels, ejere, en blokering med labels, en privat hændelse eller en andens AI-samtale. Når en ændring tager en post fra dig, for eksempel når den gøres privat, får dine åbne sider også besked, så de holder op med at vise den. En ændring af dine tilladelser, en blokering eller at du ikke længere er master admin, når dine åbne sider med det samme.
+
+Liveopdateringer slutter også med det login, der startede dem. Når du logger ud, skifter adgangskode eller bliver blokeret, stopper liveopdateringerne på dine åbne sider med det samme. En åben side fornyer sit login hvert 15. minut og fortsætter derefter med liveopdateringerne; kan login ikke fornyes, sender siden dig til login-siden. Et projekt, der kræver SSO, giver kun liveopdateringer til sider, der er logget ind med SSO, ligesom med alt andet.
 
 Enhver logget ind bruger har derudover et lille sæt automatiske tilladelser, der dækker ting som at læse sin egen profil og sine egne notifikationsregler. Det er ikke administratorrettigheder, og de giver ikke adgang til andres data.
 
@@ -194,7 +207,7 @@ Opløste tilladelser caches pr. bruger og projekt og opdateres, når teammedlems
 
 **En CI-pipeline, der kun rapporterer deployments.** Opret en API-nøgle med netop de granulære tilladelser, den har brug for — ingen roller.
 
-**En, der ikke skal se fakturering.** Tilføj vedkommende ikke til Owners-teamet. `ProjectAdmin` udelukker allerede fakturering.
+**En, der ikke skal ændre fakturering eller se fakturaer.** Giv vedkommende `ProjectMember`, ikke `ProjectAdmin`: en projektadministrator kan ikke ændre planen, betalingsmetoder eller saldi, men læser og downloader fakturaer. Skal nogen læse faktureringssiderne uden at ændre noget, så giv vedkommende `BillingViewer`.
 
 ## Videre
 

@@ -71,6 +71,7 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
           [WorkspaceNotificationActionType.CreateChannel]: Purple,
           [WorkspaceNotificationActionType.InviteUser]: Orange,
           [WorkspaceNotificationActionType.ButtonPressed]: Yellow,
+          [WorkspaceNotificationActionType.StartVideoCall]: Green,
         };
 
         const textMap: Record<WorkspaceNotificationActionType, string> = {
@@ -82,6 +83,8 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
             translationKey("Invite User"),
           [WorkspaceNotificationActionType.ButtonPressed]:
             translationKey("Button Pressed"),
+          [WorkspaceNotificationActionType.StartVideoCall]:
+            translationKey("Start Video Call"),
         };
 
         return (

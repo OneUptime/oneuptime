@@ -1,4 +1,5 @@
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
+import Redis from "../../../Server/Infrastructure/Redis";
 import Semaphore, {
   SemaphoreMutex,
 } from "../../../Server/Infrastructure/Semaphore";
@@ -60,6 +61,8 @@ export interface AiCreditsWorld {
   setHasPaymentMethods: (value: boolean) => void;
   // The lock cannot be taken (the shared cache is down, say).
   failLocksWith: (error: Error | null) => void;
+  // The shared cache is connected (true unless a test says otherwise).
+  setCacheConnected: (value: boolean) => void;
   // How long a charge takes, in ms.
   setChargeDelayInMs: (ms: number) => void;
 }
@@ -125,6 +128,7 @@ export function useAiCreditsWorld(
 
   let chargeError: Error | null = null;
   let lockError: Error | null = null;
+  let isCacheConnected: boolean = true;
   let hasPaymentMethods: boolean = true;
   let chargeDelayInMs: number = 20;
 
@@ -267,6 +271,10 @@ export function useAiCreditsWorld(
     return true;
   }) as never);
 
+  jest.spyOn(Redis, "isConnected").mockImplementation((): boolean => {
+    return isCacheConnected;
+  });
+
   jest.spyOn(Semaphore, "lock").mockImplementation((async (data: {
     key: string;
     namespace: string;
@@ -327,6 +335,9 @@ export function useAiCreditsWorld(
     },
     failLocksWith: (error: Error | null): void => {
       lockError = error;
+    },
+    setCacheConnected: (value: boolean): void => {
+      isCacheConnected = value;
     },
     setChargeDelayInMs: (ms: number): void => {
       chargeDelayInMs = ms;

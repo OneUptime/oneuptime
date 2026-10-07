@@ -9,6 +9,7 @@ import { IncidentFeedEventType } from "../../../Models/DatabaseModels/IncidentFe
 import Project from "../../../Models/DatabaseModels/Project";
 import User from "../../../Models/DatabaseModels/User";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
+import ReadPermission from "../../../Server/Types/Database/Permissions/ReadPermission";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { OwnedThroughMetadata } from "../../../Types/Database/AccessControl/OwnedThrough";
@@ -476,8 +477,24 @@ describe("IncidentAlert uniqueness and scope", () => {
     );
   });
 
-  test("reads follow the incident's labels", () => {
+  /*
+   * A link is read through its incident - a caller who may read incidents
+   * reads the links of the incidents they may read - but reading the
+   * incident is optional: an alert responder who may read no incident still
+   * sees which incidents their alerts are linked to. A grant or a block
+   * limited to labels also follows the labels of both records it names.
+   */
+  test("reads follow the incident's labels, and alert responders read without incidents", () => {
     expect(model().canAccessIfCanReadOn).toBe("incident");
+    expect(model().isParentReadOptional).toBe(true);
+
+    const keys: Array<string> = ReadPermission.getLabelledReferences(
+      IncidentAlert,
+    ).keys.map((key: { column: string }): string => {
+      return key.column;
+    });
+
+    expect(keys).toEqual(expect.arrayContaining(["incidentId", "alertId"]));
   });
 
   test("owners see the links of the incidents they own", () => {

@@ -33,6 +33,18 @@ export interface ProjectUserPair {
   userId: ObjectID;
 }
 
+/*
+ * Where each of a batch of people stands in one project, as lower-cased ids
+ * (getStandings). Somebody in neither set holds no membership of the project
+ * at all: they left it, or were never in it.
+ */
+export interface ProjectMembershipStandings {
+  // Hold an accepted membership of at least one team of the project.
+  memberUserIds: Set<string>;
+  // Hold only invitations to the project they have not accepted yet.
+  invitedUserIds: Set<string>;
+}
+
 // Pairs per statement; two bound parameters each, far below Postgres' limit.
 const MEMBERSHIP_PAIRS_PER_QUERY: number = 500;
 
@@ -114,39 +126,38 @@ export default class ProjectMembership {
   }
 
   /*
-   * The ids among `userIds` that hold an invitation to the project they have
-   * not accepted, lower-cased - for telling somebody invited apart from
-   * somebody who has left, among people who are not members. Nothing is sent
-   * to either; the fix differs (accept the invitation, or be replaced). One
-   * read for the whole batch.
+   * Whether one person is a member of the project now - read from the
+   * database, never from a cached permission set. For a check that stands
+   * between a stored credential (a connected MCP client, a calendar link)
+   * and the project, on every use. One count, the same rule the leave
+   * cleanups apply (TeamMemberService.isUserMemberOfProject).
    */
-  public static async getInvitedUserIds(data: {
+  public static async isMember(data: {
     projectId: ObjectID;
-    userIds: Array<ObjectID | string>;
-  }): Promise<Set<string>> {
-    const userIds: Array<ObjectID> = data.userIds
-      .map((userId: ObjectID | string): string => {
-        return userId?.toString() || "";
-      })
-      .filter((userId: string): boolean => {
-        return ObjectID.isValidUUID(userId);
-      })
-      .map((userId: string): ObjectID => {
-        return new ObjectID(userId);
-      });
+    userId: ObjectID;
+  }): Promise<boolean> {
+    return await TeamMemberService.isUserMemberOfProject({
+      projectId: data.projectId,
+      userId: data.userId,
+    });
+  }
 
-    if (userIds.length === 0) {
-      return new Set<string>();
-    }
-
-    const invitations: Array<TeamMember> = await TeamMemberService.findBy({
+  /*
+   * Every project the person is a member of now, each once - read from the
+   * database. For reads that span a person's projects (their own upcoming
+   * shifts), so a project they have left is never among them, even while a
+   * row of it still names them.
+   */
+  public static async getMemberProjectIds(data: {
+    userId: ObjectID;
+  }): Promise<Array<ObjectID>> {
+    const memberships: Array<TeamMember> = await TeamMemberService.findBy({
       query: {
-        projectId: data.projectId,
-        userId: QueryHelper.any(userIds),
-        hasAcceptedInvitation: false,
+        userId: data.userId,
+        hasAcceptedInvitation: true,
       },
       select: {
-        userId: true,
+        projectId: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -155,13 +166,89 @@ export default class ProjectMembership {
       },
     });
 
-    return new Set<string>(
-      invitations
-        .map((invitation: TeamMember): string => {
-          return invitation.userId?.toString().toLowerCase() || "";
-        })
-        .filter(Boolean),
-    );
+    const projectIds: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+    for (const membership of memberships) {
+      if (membership.projectId) {
+        projectIds.set(
+          membership.projectId.toString().toLowerCase(),
+          membership.projectId,
+        );
+      }
+    }
+
+    return Array.from(projectIds.values());
+  }
+
+  /*
+   * Where each of `userIds` stands in the project: a member, only invited,
+   * or neither. One read of the people's membership rows for the whole
+   * batch, accepted and pending together, so telling an invitation not
+   * accepted yet apart from having left costs nothing extra. An id that is
+   * not a uuid is in neither set.
+   */
+  public static async getStandings(data: {
+    projectId: ObjectID;
+    userIds: Array<ObjectID | string>;
+  }): Promise<ProjectMembershipStandings> {
+    const standings: ProjectMembershipStandings = {
+      memberUserIds: new Set<string>(),
+      invitedUserIds: new Set<string>(),
+    };
+
+    const requested: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+    for (const userId of data.userIds) {
+      const value: string = userId?.toString() || "";
+
+      if (ObjectID.isValidUUID(value)) {
+        requested.set(value.toLowerCase(), new ObjectID(value));
+      }
+    }
+
+    if (requested.size === 0) {
+      return standings;
+    }
+
+    const rows: Array<TeamMember> = await TeamMemberService.findBy({
+      query: {
+        projectId: data.projectId,
+        userId: QueryHelper.any(Array.from(requested.values())),
+      },
+      select: {
+        userId: true,
+        hasAcceptedInvitation: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const pending: Set<string> = new Set<string>();
+
+    for (const row of rows) {
+      const userId: string = row.userId?.toString().toLowerCase() || "";
+
+      if (!userId) {
+        continue;
+      }
+
+      if (row.hasAcceptedInvitation) {
+        standings.memberUserIds.add(userId);
+      } else {
+        pending.add(userId);
+      }
+    }
+
+    for (const userId of pending) {
+      if (!standings.memberUserIds.has(userId)) {
+        standings.invitedUserIds.add(userId);
+      }
+    }
+
+    return standings;
   }
 
   /*

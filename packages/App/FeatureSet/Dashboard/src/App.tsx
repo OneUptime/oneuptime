@@ -5,6 +5,7 @@ import MasterPage from "./Components/MasterPage/MasterPage";
 import UseTimezoneInitElement from "./Components/UserTimezone/UserTimezoneInit";
 import EventName from "./Utils/EventName";
 import { resumePendingMcpAuthorization } from "./Utils/McpAuthorizationResume";
+import { listenForRealtimeSsoSignIn } from "./Utils/RealtimeSsoSignIn";
 import PageMap from "./Utils/PageMap";
 import {
   ProjectSelectionNavigationDecision,
@@ -400,6 +401,22 @@ const App: () => JSX.Element = () => {
       ProjectUtil.setCurrentProject(updated);
     },
   });
+
+  /*
+   * Live updates of a project that requires an SSO sign-in are refused to a
+   * session without one, as its API requests are: the open project then
+   * sends the person to sign in with SSO, the same way (MasterPage).
+   */
+  useEffect(() => {
+    return listenForRealtimeSsoSignIn({
+      getCurrentProjectId: () => {
+        return ProjectUtil.getCurrentProjectId();
+      },
+      onSsoSignInRequired: () => {
+        setError(new SSOAuthorizationException().message);
+      },
+    });
+  }, []);
 
   useEffect(() => {
     GlobalEvents.addEventListener(

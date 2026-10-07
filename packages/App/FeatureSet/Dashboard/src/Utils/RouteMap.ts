@@ -145,6 +145,8 @@ export const NetworkDeviceRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_OVERVIEW]: `overview`,
   [PageMap.NETWORK_DEVICE_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.NETWORK_DEVICE_VIEW_INTERFACES]: `${RouteParams.ModelID}/interfaces`,
+  [PageMap.NETWORK_DEVICE_VIEW_TABLES]: `${RouteParams.ModelID}/tables`,
+  [PageMap.NETWORK_DEVICE_VIEW_WIFI]: `${RouteParams.ModelID}/wifi`,
   [PageMap.NETWORK_DEVICE_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.NETWORK_DEVICE_VIEW_TRAFFIC]: `${RouteParams.ModelID}/traffic`,
   [PageMap.NETWORK_DEVICE_VIEW_MONITORS]: `${RouteParams.ModelID}/monitors`,
@@ -731,6 +733,7 @@ export const LogsRoutePath: Dictionary<string> = {
   [PageMap.LOGS_SETTINGS_DROP_FILTERS]: "settings/drop-filters",
   [PageMap.LOGS_SETTINGS_DROP_FILTER_VIEW]: `settings/drop-filters/${RouteParams.ModelID}`,
   [PageMap.LOGS_SETTINGS_SCRUB_RULES]: "settings/scrub-rules",
+  [PageMap.LOGS_SETTINGS_RECORDING_RULES]: "settings/recording-rules",
 };
 
 // Security Events product routes
@@ -1137,6 +1140,7 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_TELEMETRY_SETTINGS]: `telemetry-settings`,
   [PageMap.SETTINGS_SLACK_INTEGRATION]: "slack-integration",
   [PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION]: "microsoft-teams-integration",
+  [PageMap.SETTINGS_VIDEO_CALLS]: "video-calls",
 
   [PageMap.SETTINGS_DOMAINS]: "domains",
   [PageMap.SETTINGS_FEATURE_FLAGS]: "feature-flags",
@@ -3166,6 +3170,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.NETWORK_DEVICE_VIEW_INTERFACES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-devices/${
       NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW_INTERFACES]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_VIEW_TABLES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW_TABLES]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_VIEW_WIFI]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW_WIFI]
     }`,
   ),
 
@@ -6469,6 +6485,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.LOGS_SETTINGS_RECORDING_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/logs/${
+      LogsRoutePath[PageMap.LOGS_SETTINGS_RECORDING_RULES]
+    }`,
+  ),
+
   // Security Events Product Routes
   [PageMap.SECURITY_EVENTS_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/*`,
@@ -6961,6 +6983,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_VIDEO_CALLS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_VIDEO_CALLS]
     }`,
   ),
 

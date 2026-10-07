@@ -13,6 +13,9 @@ import {
   CriteriaFilterUtil,
 } from "../../../../Types/Monitor/CriteriaFilter";
 import LogMonitorResponse from "../../../../Types/Monitor/LogMonitor/LogMonitorResponse";
+import LogMonitorGroupResult, {
+  LogMonitorGroupResultUtil,
+} from "../../../../Types/Monitor/LogMonitor/LogMonitorGroupResult";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
 import MonitorStepLogMonitor from "../../../../Types/Monitor/MonitorStepLogMonitor";
 import OneUptimeDate from "../../../../Types/Date";
@@ -40,6 +43,13 @@ export default class LogMonitorCriteria {
       input.criteriaFilter.value;
 
     if (input.criteriaFilter.checkOn === CheckOn.LogCount) {
+      const logResponse: LogMonitorResponse =
+        input.dataToProcess as LogMonitorResponse;
+
+      const isGrouped: boolean =
+        Array.isArray(logResponse.groupBreakdown) ||
+        Boolean(logResponse.evaluatedGroup);
+
       /*
        * Anomaly filters skip the static threshold entirely: the
        * observed log rate is compared to this monitor's scope in the
@@ -49,8 +59,18 @@ export default class LogMonitorCriteria {
       if (
         CriteriaFilterUtil.isAnomalyFilterType(input.criteriaFilter.filterType)
       ) {
+        /*
+         * The baseline is the volume of the monitor's whole scope; there
+         * is none per group. Judging one tunnel's count against every
+         * tunnel's combined baseline would call each of them anomalously
+         * low, so a grouped monitor's anomaly filters do not match.
+         */
+        if (isGrouped) {
+          return null;
+        }
+
         return await LogMonitorCriteria.evaluateLogCountAnomaly({
-          logResponse: input.dataToProcess as LogMonitorResponse,
+          logResponse: logResponse,
           criteriaFilter: input.criteriaFilter,
           monitorStep: input.monitorStep,
         });
@@ -58,17 +78,56 @@ export default class LogMonitorCriteria {
 
       threshold = CompareCriteria.convertToNumber(threshold);
 
-      const currentLogCount: number =
-        (input.dataToProcess as LogMonitorResponse).logCount || 0;
+      /*
+       * A grouped monitor's verdict for the monitor as a whole: the filter
+       * holds when at least one group's count satisfies it, the way a
+       * grouped metric filter holds when one series does. Comparing the
+       * total instead would let "fewer than 5 terminations" fail on the
+       * sum while one tunnel sits at 2. The per-group pass in
+       * MonitorCriteriaEvaluator then decides which groups alert.
+       */
+      if (logResponse.groupBreakdown) {
+        for (const group of logResponse.groupBreakdown) {
+          const groupMessage: string | null =
+            CompareCriteria.compareCriteriaNumbers({
+              value: group.logCount || 0,
+              threshold: threshold as number,
+              criteriaFilter: input.criteriaFilter,
+            });
 
-      return CompareCriteria.compareCriteriaNumbers({
+          if (groupMessage) {
+            return LogMonitorCriteria.forGroup(group, groupMessage);
+          }
+        }
+
+        return null;
+      }
+
+      const currentLogCount: number = logResponse.logCount || 0;
+
+      const message: string | null = CompareCriteria.compareCriteriaNumbers({
         value: currentLogCount,
         threshold: threshold as number,
         criteriaFilter: input.criteriaFilter,
       });
+
+      // One group, judged alone by the per-group pass: say which one.
+      if (message && logResponse.evaluatedGroup) {
+        return LogMonitorCriteria.forGroup(logResponse.evaluatedGroup, message);
+      }
+
+      return message;
     }
 
     return null;
+  }
+
+  // "For con_name = HQ-Branch1: Log Count is 3 which is greater than 0."
+  private static forGroup(
+    group: LogMonitorGroupResult,
+    message: string,
+  ): string {
+    return `For ${LogMonitorGroupResultUtil.describeGroup(group.labels)}: ${message}`;
   }
 
   /*

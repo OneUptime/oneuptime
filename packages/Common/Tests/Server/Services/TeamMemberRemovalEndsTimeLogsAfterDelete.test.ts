@@ -124,6 +124,7 @@ describe("onDeleteSuccess", () => {
     for (const method of [
       "refreshTokens",
       "syncSubscriptionSeatsAfterMembershipChange",
+      "removeProjectAccessIfUserLeftProject",
       "cleanupOnCallAssignmentsIfUserLeftProject",
       "cleanupResourceAssignmentsIfUserLeftProject",
       "removeWorkspaceAccountLinksIfUserLeftProject",

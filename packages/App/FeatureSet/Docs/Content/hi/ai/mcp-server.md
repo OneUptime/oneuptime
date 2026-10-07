@@ -54,7 +54,7 @@ Connect करने का सबसे आसान तरीका यह ह
 
 एक connected client क्या कर सकता है:
 
-- **इसके पास आपकी permissions होती हैं, उनसे अधिक कभी नहीं।** Project में आपकी teams आपको जो कुछ करने की अनुमति देती हैं, client भी वही कर सकता है। यदि आपका role बदलता है या आप project छोड़ देते हैं, तो यह client की अगली ही request से लागू हो जाता है।
+- **इसके पास आपकी permissions होती हैं, उनसे अधिक कभी नहीं।** Project में आपकी teams आपको जो कुछ करने की अनुमति देती हैं, client भी वही कर सकता है। यदि आपका role बदलता है या आप project छोड़ देते हैं, तो यह client की अगली ही request से लागू हो जाता है। Project छोड़ने पर client भी disconnect हो जाता है: उसका authorization हटा दिया जाता है, और project में लौटने पर आप उसे फिर से connect करते हैं।
 - **केवल पढ़ना यानी केवल पढ़ना।** केवल पढ़ने के लिए authorize किया गया client `get_`, `list_` और `count_` tools का उपयोग कर सकता है। जो tools create, update, delete, acknowledge या resolve करते हैं, उन्हें MCP server और उसके पीछे का OneUptime API, दोनों अस्वीकार कर देते हैं। आप किसी client को उससे अधिक access कभी नहीं दे सकते जितना उसने मांगा था।
 - **यह एक ही project के लिए है।** दूसरा project उपयोग करने के लिए, client को फिर से connect करें और वह project चुनें।
 - **यह केवल MCP server के माध्यम से काम करता है।** Client का access token MCP endpoint पर स्वीकार किया जाता है, और कहीं नहीं। इसका उपयोग OneUptime REST API को सीधे call करने के लिए नहीं किया जा सकता।

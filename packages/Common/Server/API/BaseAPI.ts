@@ -15,6 +15,7 @@ import Express, {
 import Response from "../Utils/Response";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import CommonAPI from "./CommonAPI";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import {
@@ -27,7 +28,6 @@ import { coerceDateColumnsInJSON } from "../../Types/Database/DateColumnValue";
 import { coerceBooleanColumnsInJSON } from "../../Types/Database/BooleanColumnValue";
 import BadDataException from "../../Types/Exception/BadDataException";
 import BadRequestException from "../../Types/Exception/BadRequestException";
-import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
 import ObjectID from "../../Types/ObjectID";
@@ -400,10 +400,26 @@ export default class BaseAPI<
     ObjectID.validateUUID(idParam);
     const objectId: ObjectID = new ObjectID(idParam);
 
-    await this.service.deleteOneById({
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+    const numberOfDocsDeleted: number = await this.service.deleteOneById({
       id: objectId,
-      props: await CommonAPI.getDatabaseCommonInteractionProps(req),
+      props: props,
     });
+
+    /*
+     * A delete that removed nothing says so, as an update does: a record
+     * the caller may not read is answered as missing (404), one they may
+     * read but not delete is refused. See getUnwrittenByIdError.
+     */
+    if (numberOfDocsDeleted === 0) {
+      throw await this.service.getUnwrittenByIdError({
+        id: objectId,
+        props: props,
+        type: DatabaseRequestType.Delete,
+      });
+    }
 
     return Response.sendEmptySuccessResponse(req, res);
   }
@@ -501,26 +517,32 @@ export default class BaseAPI<
         ? JSONFunctions.deserialize(miscDataInBody as JSONObject)
         : {};
 
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+
     const numberOfDocsAffected: number = await this.service.updateOneById({
       id: new ObjectID(objectIdString),
       data: item,
       miscDataProps: miscDataProps,
-      props: await CommonAPI.getDatabaseCommonInteractionProps(req),
+      props: props,
     });
 
     /*
      * The permission layer narrows the update query after we build it (tenant
-     * scope, access-control labels, owned scope), so it is possible to match
-     * no rows at all. Reporting 200 for that told the client the edit was
-     * saved when nothing was written - the change then "disappeared" on the
-     * next page load with no error anywhere.
+     * scope, access-control labels, owned scope, and what the caller may
+     * read), so it is possible to match no rows at all. Reporting 200 for
+     * that told the client the edit was saved when nothing was written - the
+     * change then "disappeared" on the next page load with no error
+     * anywhere. A record the caller may not read is answered as missing
+     * (404), one they may read but not change is refused. See
+     * getUnwrittenByIdError.
      */
     if (numberOfDocsAffected === 0) {
-      throw new NotAuthorizedException(
-        `Unable to update this ${(
-          new this.entityType().singularName || "item"
-        ).toLowerCase()}. It either does not exist, has been deleted, or you do not have permission to update it.`,
-      );
+      throw await this.service.getUnwrittenByIdError({
+        id: objectId,
+        props: props,
+        type: DatabaseRequestType.Update,
+      });
     }
 
     return Response.sendEmptySuccessResponse(req, res);

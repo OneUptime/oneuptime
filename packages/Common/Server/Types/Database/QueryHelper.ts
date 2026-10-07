@@ -16,6 +16,34 @@ import buildJSONColumnQuery, {
 
 export type { FindOperator };
 
+/*
+ * What the grant conditions on a record's id read: the related entity ids,
+ * the record's keys naming other records (each with the join tables that
+ * link those records to the ids), and the parents it belongs to through a
+ * join table.
+ */
+export interface LinkedToAnyData {
+  values: Array<string | ObjectID>;
+  keys: Array<{
+    columnName: string;
+    joinTables: Array<{
+      joinTableName: string;
+      ownerColumnName: string;
+      relationColumnName: string;
+    }>;
+  }>;
+  parents: Array<{
+    // The record -> parent join table.
+    parentJoinTableName: string;
+    parentOwnerColumnName: string;
+    parentRelationColumnName: string;
+    // The parent -> related entity join table.
+    joinTableName: string;
+    ownerColumnName: string;
+    relationColumnName: string;
+  }>;
+}
+
 export default class QueryHelper {
   /** Read a boolean whose criteria-backed `true` state is encoded as null. */
   @CaptureSpan()
@@ -530,27 +558,10 @@ export default class QueryHelper {
 
     const valuesRid: string = Text.generateRandomText(10);
 
-    const quote: (identifier: string) => string = (
-      identifier: string,
-    ): string => {
-      return identifier.replace(/"/g, '""');
-    };
-
-    const linkedRecords: string = data.joinTables
-      .map(
-        (joinTableData: {
-          joinTableName: string;
-          ownerColumnName: string;
-          relationColumnName: string;
-        }): string => {
-          const joinTable: string = quote(joinTableData.joinTableName);
-          const ownerCol: string = quote(joinTableData.ownerColumnName);
-          const relationCol: string = quote(joinTableData.relationColumnName);
-
-          return `SELECT "${joinTable}"."${ownerCol}" FROM "${joinTable}" WHERE "${joinTable}"."${relationCol}" IN (:...${valuesRid})`;
-        },
-      )
-      .join(" UNION ALL ");
+    const linkedRecords: string = QueryHelper.getRecordsLinkedToAnySql(
+      data.joinTables,
+      valuesRid,
+    );
 
     return Raw(
       (alias: string) => {
@@ -560,6 +571,176 @@ export default class QueryHelper {
         [valuesRid]: values,
       },
     );
+  }
+
+  /**
+   * A grant's condition on a record that carries no labels of its own, but
+   * those of the records it names: applied to the record's primary id,
+   * matches the records that name none of them at all - every one of `keys`
+   * empty and no parent - and the records of which one key names, or one
+   * parent is, a record linked to one of the provided related entity ids
+   * (labels).
+   *
+   * `keys` are other columns of the same row, each naming a record of one
+   * of several models (a note's incidentId, an inventory item's resource
+   * id); `parents` are the records the row belongs to through a join table
+   * (an announcement's status pages). They are written beside the id the
+   * condition is applied to, as the id itself is written. An empty values
+   * array matches only the records that name nothing (fail closed).
+   */
+  @CaptureSpan()
+  public static namesNothingOrOneLinkedToAny(
+    data: LinkedToAnyData,
+  ): FindWhereProperty<any> {
+    return QueryHelper.linkedToAny(data, true);
+  }
+
+  /**
+   * namesNothingOrOneLinkedToAny without the records that name nothing:
+   * applied to a record's primary id, matches only the records of which one
+   * key names, or one parent is, a record linked to one of the provided
+   * related entity ids (a note whose incident carries one of the labels).
+   * A record with every key empty and no parent, a key or parent whose
+   * model has no join table, and an empty values array match nothing (fail
+   * closed).
+   */
+  @CaptureSpan()
+  public static oneLinkedToAny(data: LinkedToAnyData): FindWhereProperty<any> {
+    return QueryHelper.linkedToAny(data, false);
+  }
+
+  // The two operators above; `keepNamingNothing` adds the records that name nothing.
+  private static linkedToAny(
+    data: LinkedToAnyData,
+    keepNamingNothing: boolean,
+  ): FindWhereProperty<any> {
+    const values: Array<string> = data.values.map(
+      (value: string | ObjectID) => {
+        return value.toString();
+      },
+    );
+
+    const valuesRid: string = Text.generateRandomText(10);
+    const quote: (identifier: string) => string = QueryHelper.escapeIdentifier;
+
+    return Raw(
+      (alias: string) => {
+        const namesNothing: Array<string> = [];
+        const linkedToValue: Array<string> = [];
+
+        for (const key of data.keys) {
+          const column: string = QueryHelper.getColumnBeside(
+            alias,
+            key.columnName,
+          );
+
+          namesNothing.push(`${column} IS NULL`);
+
+          if (values.length > 0 && key.joinTables.length > 0) {
+            linkedToValue.push(
+              `${column} IN (${QueryHelper.getRecordsLinkedToAnySql(
+                key.joinTables,
+                valuesRid,
+              )})`,
+            );
+          }
+        }
+
+        for (const parent of data.parents) {
+          const parentJoinTable: string = quote(parent.parentJoinTableName);
+          const parentOwnerCol: string = quote(parent.parentOwnerColumnName);
+          const parentRelationCol: string = quote(
+            parent.parentRelationColumnName,
+          );
+          const belongsToParent: string = `SELECT 1 FROM "${parentJoinTable}" WHERE "${parentJoinTable}"."${parentOwnerCol}" = ${alias}`;
+
+          namesNothing.push(`NOT EXISTS (${belongsToParent})`);
+
+          if (values.length > 0) {
+            const joinTable: string = quote(parent.joinTableName);
+            const ownerCol: string = quote(parent.ownerColumnName);
+            const relationCol: string = quote(parent.relationColumnName);
+
+            linkedToValue.push(
+              `EXISTS (${belongsToParent} AND "${parentJoinTable}"."${parentRelationCol}" IN (SELECT "${joinTable}"."${ownerCol}" FROM "${joinTable}" WHERE "${joinTable}"."${relationCol}" IN (:...${valuesRid})))`,
+            );
+          }
+        }
+
+        const conditions: Array<string> = [
+          ...(keepNamingNothing
+            ? [
+                namesNothing.length > 0
+                  ? `(${namesNothing.join(" AND ")})`
+                  : "TRUE",
+              ]
+            : []),
+          ...linkedToValue,
+        ];
+
+        return conditions.length > 0
+          ? `(${conditions.join(" OR ")})`
+          : "(FALSE)";
+      },
+      values.length > 0 ? { [valuesRid]: values } : {},
+    );
+  }
+
+  // An identifier's characters as they are written between double quotes.
+  private static escapeIdentifier(identifier: string): string {
+    return identifier.replace(/"/g, '""');
+  }
+
+  /*
+   * The ids of the records linked, in any of `joinTables`, to one of the
+   * values bound as `valuesRid`: one subquery over every join table.
+   */
+  private static getRecordsLinkedToAnySql(
+    joinTables: Array<{
+      joinTableName: string;
+      ownerColumnName: string;
+      relationColumnName: string;
+    }>,
+    valuesRid: string,
+  ): string {
+    return joinTables
+      .map(
+        (joinTableData: {
+          joinTableName: string;
+          ownerColumnName: string;
+          relationColumnName: string;
+        }): string => {
+          const joinTable: string = QueryHelper.escapeIdentifier(
+            joinTableData.joinTableName,
+          );
+          const ownerCol: string = QueryHelper.escapeIdentifier(
+            joinTableData.ownerColumnName,
+          );
+          const relationCol: string = QueryHelper.escapeIdentifier(
+            joinTableData.relationColumnName,
+          );
+
+          return `SELECT "${joinTable}"."${ownerCol}" FROM "${joinTable}" WHERE "${joinTable}"."${relationCol}" IN (:...${valuesRid})`;
+        },
+      )
+      .join(" UNION ALL ");
+  }
+
+  /*
+   * Another column of the row whose column `alias` is, quoted. SELECT
+   * builders hand Raw `Alias.property`, and quote it afterwards only where
+   * the whole token is `Alias.<known property>`, so the qualifier is quoted
+   * here (as booleanForCriteriaBackedRule does); UPDATE and DELETE builders
+   * hand the bare property name, and the column stays bare and quoted.
+   */
+  private static getColumnBeside(alias: string, columnName: string): string {
+    const separatorIndex: number = alias.lastIndexOf(".");
+    const qualifier: string =
+      separatorIndex >= 0
+        ? `${QueryHelper.quoteIdentifier(alias.slice(0, separatorIndex))}.`
+        : "";
+
+    return `${qualifier}"${QueryHelper.escapeIdentifier(columnName)}"`;
   }
 
   /**
@@ -783,6 +964,38 @@ export default class QueryHelper {
       },
       {
         [rid]: values,
+      },
+    );
+  }
+
+  /*
+   * Matches rows whose column holds one of `values`, or nothing at all. An
+   * empty `values` matches only the rows whose column is empty.
+   */
+  @CaptureSpan()
+  public static inOrNull(
+    values: Array<string | ObjectID>,
+  ): FindWhereProperty<any> {
+    const stringValues: Array<string> = values.map(
+      (value: string | ObjectID) => {
+        return value.toString();
+      },
+    );
+
+    if (stringValues.length === 0) {
+      return Raw((alias: string) => {
+        return `(${alias} IS NULL)`;
+      }, {});
+    }
+
+    const rid: string = Text.generateRandomText(10);
+
+    return Raw(
+      (alias: string) => {
+        return `(${alias} IN (:...${rid}) OR ${alias} IS NULL)`;
+      },
+      {
+        [rid]: stringValues,
       },
     );
   }

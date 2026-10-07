@@ -11,6 +11,7 @@ import FileViewerAccess, {
   SERVED_FILE_SELECT,
   ViewableFile,
 } from "../../../../Server/Utils/File/FileViewerAccess";
+import PublishedImages from "../../../../Server/Utils/File/PublishedImages";
 import File from "../../../../Models/DatabaseModels/File";
 import MimeType from "../../../../Types/File/MimeType";
 import JSONWebToken from "../../../../Server/Utils/JsonWebToken";
@@ -465,6 +466,8 @@ describe("FileViewerAccess's reads: a public file whole at once, a private one o
       isPublic: true,
       projectId: true,
       createdByUserId: true,
+      // To ask whether a record has started showing it since.
+      imageAccessToken: true,
     });
     expect(SERVED_FILE_SELECT).toMatchObject({
       file: true,
@@ -615,6 +618,195 @@ describe("FileViewerAccess's reads: a public file whole at once, a private one o
         return read.gotBytes;
       }),
     ).toEqual([false]);
+  });
+});
+
+/*
+ * An image a record starts showing with no write at that moment - an
+ * announcement whose Start Showing Announcement At has come since it was
+ * written - is private until the first request for it that the rules above
+ * would refuse: that request asks PublishedImages.publishWhenShown, which
+ * makes it public only while a record of its own project shows it, and then
+ * it is served as any public image.
+ */
+describe("FileViewerAccess.findReadableFile: an image a record has started showing since", () => {
+  const TOKEN: string = "ab".repeat(32);
+  const FILE_ID: string = "f0000000-0000-4000-8000-000000000001";
+
+  // The stored file: private until made public.
+  let stored: { isPublic: boolean };
+  let reads: Array<{ query: Record<string, unknown>; gotBytes: boolean }>;
+  let publishWhenShown: ReturnType<typeof jest.spyOn>;
+
+  beforeEach(() => {
+    stored = { isPublic: false };
+    reads = [];
+
+    jest.spyOn(FileService, "findOneBy").mockImplementation((async (find: {
+      query: Record<string, unknown>;
+      select: Record<string, unknown>;
+    }) => {
+      const matches: boolean =
+        (find.query["imageAccessToken"] === undefined ||
+          find.query["imageAccessToken"] === TOKEN) &&
+        (find.query["_id"] === undefined ||
+          String(find.query["_id"]) === FILE_ID) &&
+        (find.query["isPublic"] === undefined ||
+          find.query["isPublic"] === stored.isPublic);
+
+      reads.push({
+        query: find.query,
+        gotBytes: matches && Boolean(find.select["file"]),
+      });
+
+      if (!matches) {
+        return null;
+      }
+
+      const row: File = new File();
+      row._id = FILE_ID;
+      row.projectId = PROJECT_ID;
+      row.isPublic = stored.isPublic;
+      row.imageAccessToken = TOKEN;
+      row.fileType = MimeType.png;
+
+      if (find.select["file"]) {
+        row.file = Buffer.from("image-bytes");
+      }
+
+      return row;
+    }) as never);
+
+    // Shown now, unless a test says otherwise: made public, as the statement does.
+    publishWhenShown = jest
+      .spyOn(PublishedImages, "publishWhenShown")
+      .mockImplementation(async (): Promise<boolean> => {
+        stored.isPublic = true;
+        return true;
+      });
+  });
+
+  test("shown now: made public by the first request that would be refused, then served whole as a public file", async () => {
+    signedInAs(null);
+
+    const served: File | undefined = await FileViewerAccess.findReadableFile({
+      req: REQUEST,
+      query: { imageAccessToken: TOKEN },
+    });
+
+    expect(served?.file?.toString()).toBe("image-bytes");
+    expect(stored.isPublic).toBe(true);
+    expect(reads).toEqual([
+      { query: { imageAccessToken: TOKEN, isPublic: true }, gotBytes: false },
+      { query: { imageAccessToken: TOKEN }, gotBytes: false },
+      { query: { _id: FILE_ID, isPublic: true }, gotBytes: true },
+    ]);
+    // Public from then on: the next request is answered by the first read.
+    expect(FileViewerAccess.isPublic(served)).toBe(true);
+  });
+
+  test("asks about the file as it was read: its id, its project and its token", async () => {
+    signedInAs(null);
+
+    await FileViewerAccess.findReadableFile({
+      req: REQUEST,
+      query: { imageAccessToken: TOKEN },
+    });
+
+    expect(publishWhenShown).toHaveBeenCalledTimes(1);
+
+    const asked: File = publishWhenShown.mock.calls[0]![0] as File;
+
+    expect(String(asked._id)).toBe(FILE_ID);
+    expect(String(asked.projectId)).toBe(PROJECT_ID.toString());
+    expect(asked.imageAccessToken).toBe(TOKEN);
+    expect(asked.isPublic).toBe(false);
+  });
+
+  test("not shown yet: answered as a missing file is, its bytes never read", async () => {
+    signedInAs(null);
+    publishWhenShown.mockResolvedValue(false);
+
+    expect(
+      await FileViewerAccess.findReadableFile({
+        req: REQUEST,
+        query: { imageAccessToken: TOKEN },
+      }),
+    ).toBeUndefined();
+    expect(stored.isPublic).toBe(false);
+    expect(
+      reads.some((read: { gotBytes: boolean }): boolean => {
+        return read.gotBytes;
+      }),
+    ).toBe(false);
+  });
+
+  test("a status page visitor, or someone signed in to another project, is asked about the same way", async () => {
+    for (const session of [
+      { userId: USER_ID, statusPageId: new ObjectID(FILE_ID) },
+      { userId: OTHER_USER_ID },
+    ]) {
+      stored.isPublic = false;
+      publishWhenShown.mockClear();
+      signedInAs(session);
+      canOpenProject(false);
+
+      const served: File | undefined = await FileViewerAccess.findReadableFile({
+        req: REQUEST,
+        query: { imageAccessToken: TOKEN },
+      });
+
+      expect(served?.file?.toString()).toBe("image-bytes");
+      expect(publishWhenShown).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  test("a member who may see the private image is served it as it is: nothing is made public for them", async () => {
+    signedInAs({ userId: USER_ID });
+    canOpenProject(true);
+
+    const served: File | undefined = await FileViewerAccess.findReadableFile({
+      req: REQUEST,
+      query: { imageAccessToken: TOKEN },
+    });
+
+    expect(served?.file?.toString()).toBe("image-bytes");
+    expect(publishWhenShown).not.toHaveBeenCalled();
+    expect(stored.isPublic).toBe(false);
+  });
+
+  test("a public image, or no image, asks nothing", async () => {
+    signedInAs(null);
+    stored.isPublic = true;
+
+    await FileViewerAccess.findReadableFile({
+      req: REQUEST,
+      query: { imageAccessToken: TOKEN },
+    });
+    await FileViewerAccess.findReadableFile({
+      req: REQUEST,
+      query: { imageAccessToken: "cd".repeat(32) },
+    });
+
+    expect(publishWhenShown).not.toHaveBeenCalled();
+  });
+
+  test("made public, but private again by the whole read: nothing is served", async () => {
+    signedInAs(null);
+    publishWhenShown.mockResolvedValue(true);
+
+    expect(
+      await FileViewerAccess.findReadableFile({
+        req: REQUEST,
+        query: { imageAccessToken: TOKEN },
+      }),
+    ).toBeUndefined();
+  });
+
+  test("by id: never asked - only a public file is served by its id", async () => {
+    await FileViewerAccess.findPublicFile(new ObjectID(FILE_ID));
+
+    expect(publishWhenShown).not.toHaveBeenCalled();
   });
 });
 

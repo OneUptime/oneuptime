@@ -33,13 +33,15 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @EnableDocumentation()
 @EnableMCP()
 @TenantColumn("projectId")
+/*
+ * Creating a team names it, and only Project Owner, Project Admin and Create
+ * Team may write a team's name: a Project Member or a Settings role on this
+ * list could not create one, and saw a Create Team button that failed.
+ */
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.SettingsAdmin,
-    Permission.SettingsMember,
     Permission.CreateProjectTeam,
   ],
   read: [

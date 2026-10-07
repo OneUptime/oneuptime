@@ -142,6 +142,7 @@ Feed items खुद incident service लिखती है, दोनों no
 - **लोग** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`।
 - **सूचनाएँ** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`।
 - **स्वचालन** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`।
+- **वीडियो कॉल** — `VideoCallStarted` और `VideoCallFailed`: घटना के लिए शुरू की गई कॉल, उसके जुड़ने के लिंक के साथ, या वह कारण जिससे कोई प्रदाता कॉल शुरू नहीं कर सका। देखें [वीडियो कॉल](/docs/workspace-connections/video-calls)।
 
 हर प्रकार को अपना icon मिलता है, इसलिए आप लंबी फ़ीड पर नज़र दौड़ाकर बकबक के बीच से स्थिति बदलाव छाँट सकते हैं। AI से बना मूल कारण विश्लेषण अलग से चिह्नित होता है और सीमित Markdown mode में दिखाया जाता है।
 

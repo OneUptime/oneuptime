@@ -19,10 +19,29 @@ export interface OwnedThroughMetadata {
    * owner, so every in-project user with the table permission may see it.
    */
   includeProjectScope: boolean;
+  /*
+   * When true, the fkColumn names a record of the parent models and of no
+   * other kind (a monitor log's monitor, an SLO history row's SLO), so an
+   * analytics read is scoped by those parents alone. Without it, an
+   * analytics row's key is a telemetry resource id of any telemetry-owning
+   * kind (a log's primaryEntityId names a service, a host, a cluster ...),
+   * and the scope is resolved across every such kind.
+   */
+  onlyParentModels: boolean;
+  /*
+   * When true, rows whose fkColumn is empty are about no owning resource:
+   * they belong to the project, not to any one owner, and stay visible
+   * under Owned scope beside the rows of the resources the user owns (an
+   * AI insight that names no service). Without it such a row is visible to
+   * no Owned-scoped user.
+   */
+  includeUnattributed: boolean;
 }
 
 export interface OwnedThroughOptions {
   includeProjectScope?: boolean;
+  onlyParentModels?: boolean;
+  includeUnattributed?: boolean;
 }
 
 export default (
@@ -35,6 +54,8 @@ export default (
       fkColumn,
       parentModels: Array.isArray(parentModel) ? parentModel : [parentModel],
       includeProjectScope: options?.includeProjectScope ?? false,
+      onlyParentModels: options?.onlyParentModels ?? false,
+      includeUnattributed: options?.includeUnattributed ?? false,
     };
   };
 };

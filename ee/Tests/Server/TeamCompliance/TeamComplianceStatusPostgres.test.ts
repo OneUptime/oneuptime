@@ -206,6 +206,8 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
   const dave: ObjectID = ObjectID.generate();
   const erin: ObjectID = ObjectID.generate();
   const frank: ObjectID = ObjectID.generate();
+  // Invited to the team, and has not accepted yet: counted, never checked.
+  const grace: ObjectID = ObjectID.generate();
   // On another team of the project, and on a team of another project.
   const outsider: ObjectID = ObjectID.generate();
   const stranger: ObjectID = ObjectID.generate();
@@ -223,6 +225,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
     [dave, "Dave"],
     [erin, "Erin"],
     [frank, "Frank"],
+    [grace, "Grace"],
     [outsider, "Outsider"],
     [stranger, "Stranger"],
   ];
@@ -374,6 +377,15 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
         version: 1,
       });
     }
+
+    await insert("TeamMember", {
+      _id: ObjectID.generate().toString(),
+      userId: grace.toString(),
+      teamId: teamId.toString(),
+      projectId: projectId.toString(),
+      hasAcceptedInvitation: false,
+      version: 1,
+    });
 
     for (const [id, name, order] of [
       [critical, "Critical Incident", 1],
@@ -1648,5 +1660,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
       }),
     ).toEqual(["Alice", "Bob", "Carol", "Dave", "Erin", "Frank"]);
     expect(status.complianceSettings).toEqual([]);
+    // Grace is invited, not a member: counted apart, never listed.
+    expect(status.invitedMemberCount).toBe(1);
   });
 });

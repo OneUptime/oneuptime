@@ -64,6 +64,7 @@ const stubs = {
   "Common/Types/Log/LogPipelineProcessorType": {},
   "Common/Types/Log/LogSeverity": {},
   "Common/Utils/Grok/Grok": {},
+  "Common/Utils/Log/KeyValueParser": {},
   "Common/Server/Utils/Logger": { error: () => {} },
   "../Utils/PipelineProcessorConfig": () => ({}),
 };

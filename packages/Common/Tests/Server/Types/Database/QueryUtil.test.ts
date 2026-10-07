@@ -295,6 +295,61 @@ describe("QueryUtil.serializeQuery — a relation filtered by an id", () => {
     expect(parametersOf(result["teamId"])).toEqual([teamId]);
   });
 
+  it("writes ids in Includes to the relation's key when the key holds nothing", () => {
+    const teamA: string = ObjectID.generate().toString();
+    const teamB: string = ObjectID.generate().toString();
+
+    const result: Record<string, any> = QueryUtil.serializeQuery(TeamMember, {
+      team: new Includes([teamA, teamB]),
+    } as any) as unknown as Record<string, any>;
+
+    expect(result["team"]).toBeUndefined();
+    expect(result["teamId"]).toBeInstanceOf(FindOperator);
+    expect(
+      (result["teamId"] as FindOperator<unknown>).getSql!("TeamMember.teamId"),
+    ).toContain("TeamMember.teamId IN (");
+    expect(parametersOf(result["teamId"]).sort()).toEqual(
+      [teamA, teamB].sort(),
+    );
+  });
+
+  it("joins ids in Includes to the project the request is scoped to", () => {
+    const scopedProjectId: ObjectID = ObjectID.generate();
+    const otherProjectId: string = ObjectID.generate().toString();
+    const query: Record<string, unknown> = {
+      project: new Includes([otherProjectId]),
+    };
+    // Added after the relation, as a permission check adds it.
+    query["projectId"] = scopedProjectId;
+
+    const result: Record<string, any> = QueryUtil.serializeQuery(
+      TeamMember,
+      query as any,
+    ) as unknown as Record<string, any>;
+
+    expect(result["project"]).toBeUndefined();
+    expect(result["projectId"].type).toBe("and");
+    expect(parametersOf(result["projectId"]).sort()).toEqual(
+      [scopedProjectId.toString(), otherProjectId].sort(),
+    );
+  });
+
+  it("joins ids in Includes to a key named first in the query too", () => {
+    const scopedProjectId: string = ObjectID.generate().toString();
+    const otherProjectId: string = ObjectID.generate().toString();
+
+    const result: Record<string, any> = QueryUtil.serializeQuery(TeamMember, {
+      projectId: scopedProjectId,
+      project: new Includes([otherProjectId]),
+    } as any) as unknown as Record<string, any>;
+
+    expect(result["project"]).toBeUndefined();
+    expect(result["projectId"].type).toBe("and");
+    expect(parametersOf(result["projectId"]).sort()).toEqual(
+      [scopedProjectId, otherProjectId].sort(),
+    );
+  });
+
   it("refuses a key filter it cannot keep next to the relation's id", () => {
     expect(() => {
       QueryUtil.serializeQuery(TeamMember, {

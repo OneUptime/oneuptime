@@ -140,7 +140,7 @@ jest.mock("Common/Server/Services/IncomingCallLogItemService", () => {
 jest.mock("Common/Server/Services/OnCallDutyPolicyScheduleService", () => {
   return {
     __esModule: true,
-    default: { getCurrentUserIdInSchedule: jest.fn() },
+    default: { getCurrentOnCallInSchedule: jest.fn() },
   };
 });
 
@@ -159,6 +159,9 @@ jest.mock("Common/Server/Utils/TeamMember/ProjectMembership", () => {
     default: {
       userIdWhileMember: jest.fn((data: { userId: unknown }): unknown => {
         return data.userId;
+      }),
+      isMember: jest.fn(async (): Promise<boolean> => {
+        return true;
       }),
     },
   };

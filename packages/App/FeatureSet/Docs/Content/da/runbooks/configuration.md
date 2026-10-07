@@ -28,7 +28,9 @@ Runbook-rettigheder ligger i rettighedsgruppen `Runbook`:
 - `CreateRunbookExecution`, `EditRunbookExecution`, `ReadRunbookExecution` — start, tik af og læs kørsler.
 - `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — håndter automatiske udløsningsregler.
 - `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — håndter Runbook-agenter, der eksekverer Bash- og JavaScript-trin i din egen infrastruktur.
-- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (roller) — tildel et team for at give henholdsvis fuld kontrol, daglig brug eller læseadgang. `RunbookAdmin` samler alle de granulære rettigheder ovenfor.
+- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (roller) — `RunbookAdmin` bygger runbooks, deres regler og de Runners, de kører på, og kører dem. `RunbookMember` åbner runbooks og deres kørsler og kører dem — starter en kørsel, fuldfører eller springer dens trin over og annullerer den —, men opretter, ændrer og sletter ingen runbook eller Runner. `RunbookViewer` læser runbooks og deres kørsler og kører intet. `RunbookAdmin` samler alle de detaljerede tilladelser ovenfor.
+
+En rolle kører de runbooks, dens omfang når. En tildeling af `RunbookMember`, `RunbookAdmin` eller `ProjectMember`, der er begrænset til nogle labels, starter og fører kørsler af de runbooks, der har de labels, videre, en tildeling begrænset til ejede ressourcer kørsler af de runbooks, teamet ejer, og et teams blokering af et label fjerner de runbooks. `CreateRunbookExecution` og `EditRunbookExecution` handler om kørsler, som ikke har labels, så de når alle runbooks i projektet. At godkende et afhjælpningsforslag, der starter en runbook, kontrolleres på samme måde.
 
 ## Kø & worker
 

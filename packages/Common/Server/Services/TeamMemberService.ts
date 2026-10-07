@@ -62,9 +62,9 @@ import OnCallDutyPolicyScheduleLayerUser from "../../Models/DatabaseModels/OnCal
 import ProjectLeaveResourceCleanup, {
   ProjectLeaveResourceCleanupResult,
 } from "../Utils/TeamMember/ProjectLeaveResourceCleanup";
-import ProjectLeaveNotificationCleanup, {
-  ProjectLeaveNotificationCleanupResult,
-} from "../Utils/TeamMember/ProjectLeaveNotificationCleanup";
+import ProjectLeaveNotificationCleanup from "../Utils/TeamMember/ProjectLeaveNotificationCleanup";
+import { ProjectLeaveRemovalResult } from "../Utils/TeamMember/ProjectLeaveRows";
+import ProjectLeaveAccessCleanup from "../Utils/TeamMember/ProjectLeaveAccessCleanup";
 import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
 
 /*
@@ -587,6 +587,23 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
     return { updateBy, carryForward: null };
   }
 
+  /*
+   * Drops this server's cached list of the person's teams in the project
+   * (getTeamIdsForUser), or in every project when none is named, so the
+   * next read asks the database. Called when their membership changes,
+   * here or on another server (RealtimeAccessChanges).
+   */
+  public forgetTeamIdsForUser(userId: ObjectID, projectId?: ObjectID): void {
+    if (!projectId) {
+      this.teamIdsForUserCache.deleteByPrefix(`${userId.toString()}:`);
+      return;
+    }
+
+    this.teamIdsForUserCache.delete(
+      `${userId.toString()}:${projectId.toString()}`,
+    );
+  }
+
   @CaptureSpan()
   public async refreshTokens(
     userId: ObjectID,
@@ -596,12 +613,16 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
      * Invalidate the in-process cache of this user's team memberships in
      * this project — membership just changed.
      */
-    this.teamIdsForUserCache.delete(
-      `${userId.toString()}:${projectId.toString()}`,
-    );
+    this.forgetTeamIdsForUser(userId, projectId);
 
-    /// Refresh tokens.
-    await AccessTokenService.refreshUserGlobalAccessPermission(userId);
+    /*
+     * Refresh tokens. Only the project's refresh, made last, tells the
+     * person's open live updates (on every server) to read them again: the
+     * membership changed in this project alone.
+     */
+    await AccessTokenService.refreshUserGlobalAccessPermission(userId, {
+      forgetLiveUpdateReaders: false,
+    });
 
     await AccessTokenService.refreshUserTenantAccessPermission(
       userId,
@@ -1092,6 +1113,15 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       const cleanupKey: string = `${item.userId?.toString()}:${item.projectId?.toString()}`;
       if (!leaveCleanupDone.has(cleanupKey) && item.userId && item.projectId) {
         leaveCleanupDone.add(cleanupKey);
+        /*
+         * First: what lets them, or a client acting for them, into the
+         * project on their own - the MCP clients they connected and their
+         * consent to its single sign-on.
+         */
+        await this.removeProjectAccessIfUserLeftProject({
+          projectId: item.projectId,
+          userId: item.userId,
+        });
         await this.cleanupOnCallAssignmentsIfUserLeftProject({
           projectId: item.projectId,
           userId: item.userId,
@@ -1337,6 +1367,49 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
   }
 
   /**
+   * A user who has left the project keeps no way into it: once they hold no
+   * accepted membership in ANY team of the project, the MCP clients they
+   * connected to it are disconnected and their consent to its single
+   * sign-on goes (see ProjectLeaveAccessCleanup). Joining again starts from
+   * nothing: a client has to be connected again, and on the hosted service
+   * the project's SSO asks the account's owner to confirm again. A revoked
+   * invitation runs it too.
+   *
+   * Best-effort: never throws into the delete path. Returns what was
+   * removed, or null when the user is still a member (or the check failed).
+   */
+  @CaptureSpan()
+  public async removeProjectAccessIfUserLeftProject(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+  }): Promise<ProjectLeaveRemovalResult | null> {
+    try {
+      if (
+        await this.isUserMemberOfProject({
+          projectId: data.projectId,
+          userId: data.userId,
+        })
+      ) {
+        return null;
+      }
+
+      return await ProjectLeaveAccessCleanup.removeProjectAccess({
+        projectId: data.projectId,
+        userId: data.userId,
+      });
+    } catch (err) {
+      logger.error(
+        err as Error,
+        {
+          projectId: data.projectId.toString(),
+          userId: data.userId.toString(),
+        } as LogAttributes,
+      );
+      return null;
+    }
+  }
+
+  /**
    * A user who has left the project keeps nothing of it that could notify
    * them: once they hold no accepted membership in ANY team of the project,
    * their own notification methods (email, SMS, call, WhatsApp, Telegram,
@@ -1354,7 +1427,7 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
   public async removePersonalNotificationSettingsIfUserLeftProject(data: {
     projectId: ObjectID;
     userId: ObjectID;
-  }): Promise<ProjectLeaveNotificationCleanupResult | null> {
+  }): Promise<ProjectLeaveRemovalResult | null> {
     try {
       if (
         await this.isUserMemberOfProject({

@@ -35,7 +35,7 @@ Um usuário está "em" um projeto quando é membro de **pelo menos uma equipe** 
 
 - Convites criam um membro de equipe pendente. O usuário só conta como membro do projeto — e só ganha qualquer permissão — **depois de aceitar o convite.**
 - Remover um usuário de todas as equipes de um projeto retira seu acesso a esse projeto.
-- Quem sai de um projeto deixa de receber as notificações dele. Os próprios métodos, regras e configurações de notificação da pessoa para o projeto são removidos com a última equipe — e-mail, SMS, chamada, WhatsApp, Telegram, push, webhook, Slack e Microsoft Teams, o resumo por e-mail e o e-mail ainda não enviado, o número para chamadas recebidas e os lembretes de plantão —, então quem volta começa com os padrões. O que ainda a menciona, como o usuário para quem uma regra de chamadas recebidas liga ou um responsável mantido em um incidente resolvido, não a notifica mais: nada é enviado em nome de um projeto a quem não é membro dele, e um convite pendente ainda não é participação. Esses lugares mostram **Não é mais membro** ao lado do nome, para que você coloque outra pessoa. Quem foi convidado e ainda não aceitou mostra **Convite ainda não aceito** no lugar.
+- Quem sai de um projeto deixa de receber as notificações dele. Os próprios métodos, regras e configurações de notificação da pessoa para o projeto são removidos com a última equipe — e-mail, SMS, chamada, WhatsApp, Telegram, push, webhook, Slack e Microsoft Teams, o resumo por e-mail e o e-mail ainda não enviado, o número para chamadas recebidas e os lembretes de plantão —, então quem volta começa com os padrões. O que ainda a menciona, como o usuário para quem uma regra de chamadas recebidas liga ou um responsável mantido em um incidente resolvido, não a notifica mais: nada é enviado em nome de um projeto a quem não é membro dele, e um convite pendente ainda não é participação. Esses lugares mostram **Não é mais membro** ao lado do nome, para que você coloque outra pessoa. Quem foi convidado e ainda não aceitou mostra **Convite ainda não aceito** no lugar. Se uma substituição encaminha os chamados de alguém para uma pessoa que saiu, quem é chamado é a pessoa que ela cobre. Sair também desconecta os clientes MCP que a pessoa conectou ao projeto, e o link pessoal do calendário de plantão dela passa a mostrar um calendário vazio. No OneUptime Cloud, quem volta pelo login único (SSO) do projeto confirma-o novamente pelo e-mail.
 - Se o seu projeto exige SSO e um usuário ainda não se autenticou pelo provedor de identidade, ele é tratado como usuário SSO não autorizado e não vê nada até fazê-lo. Veja [SSO](/docs/identity/sso).
 - Com o SCIM configurado, o provedor de identidade pode criar, atualizar e remover usuários e suas participações em equipes automaticamente. Veja [SCIM](/docs/identity/scim).
 
@@ -71,19 +71,25 @@ Uma permissão é uma capacidade única. Há duas formas de distribuí-las, amba
 
 Uma função agrupa uma área inteira do produto em um de três níveis:
 
-- **Admin** — controle total sobre a área, incluindo sua configuração (severidades, estados, modelos).
-- **Member** — o trabalho do dia a dia: criar, editar e excluir os recursos, mas não reconfigurar a área.
+- **Admin** — o que o Member faz, mais a configuração própria da área, como severidades e estados de incidentes e alertas, status dos monitores e estados de manutenção.
+- **Member** — o trabalho do dia a dia: criar, alterar e excluir os recursos da área, com suas notas, proprietários e modelos. Nas páginas de status e no plantão, o Member faz tudo o que o Admin faz.
 - **Viewer** — somente leitura.
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` e assim por diante. Funções são o que você quer quase sempre — elas continuam corretas conforme o OneUptime ganha recursos, porque uma nova tabela relacionada a monitores entra nas funções de monitor existentes em vez de exigir uma nova concessão sua.
 
-Workflows são a exceção. Um workflow executa suas etapas dentro do projeto, então `WorkflowMember` abre os workflows e suas execuções e os executa à mão, mas não os cria, altera nem exclui. `WorkflowAdmin` os constrói. Veja [Configuração de workflows](/docs/workflows/configuration).
+Workflows e runbooks são a exceção. Ambos executam código no seu projeto — um workflow as suas etapas, um runbook os seus scripts nos seus Runners —, então `WorkflowMember` abre workflows e suas execuções e os executa manualmente, e `RunbookMember` abre runbooks e suas execuções e os executa: inicia uma execução, conclui ou pula suas etapas e a cancela. Nenhum dos dois cria, altera ou exclui o que executa; `WorkflowAdmin` e `RunbookAdmin` os constroem. Uma função executa apenas os runbooks que o seu escopo alcança: um `RunbookMember` limitado a alguns rótulos executa os runbooks que os têm. Veja [Configuração de workflows](/docs/workflows/configuration) e [Configuração de runbooks](/docs/runbooks/configuration).
+
+As regras de uma área (regras de rótulos, de proprietários, de plantão, de agrupamento e de lembrete), os campos personalizados, os SLAs e os segredos são configuração do projeto: exigem `ProjectAdmin`, qualquer que seja a função de área da pessoa. O mesmo vale para chaves de API, equipes e suas permissões, rótulos, SSO e domínios — as funções Settings cuidam dos serviços, sondas, infraestrutura e integrações do projeto, não de quem pode fazer o quê.
+
+O faturamento tem três funções próprias. `BillingViewer` lê o faturamento do projeto — o plano e a assinatura, as faturas, o uso, os saldos, os créditos de IA, os métodos de pagamento e os dados de contato de cobrança — e não altera nada. `BillingMember` também baixa faturas e altera os dados de contato de cobrança. `BillingAdmin` faz o que `BillingMember` faz e liga e desliga SMS, chamadas telefônicas, WhatsApp e Telegram. Alterar o plano, os métodos de pagamento ou os saldos, e pagar faturas, exige `ProjectOwner` ou **Manage Billing**; nas páginas de faturamento esses botões ficam bloqueados para os demais e dizem quem pode usá-los.
 
 Todas as {{PERMISSION_ROLE_COUNT}} funções estão na [Referência de permissões](/docs/permissions/reference).
 
 ### Permissões granulares
 
 Cada capacidade individual também pode ser atribuída sozinha — `CreateProjectMonitor`, `ReadProjectIncident`, `DeleteProjectStatusPage` e outras {{PERMISSION_TOTAL_COUNT}}. Use-as quando uma função for ampla demais e você precisar conceder exatamente uma coisa.
+
+Uma permissão para alterar ou excluir algo só alcança o que você também pode ler, então conceda junto a permissão de leitura correspondente: `EditProjectIncident` não altera nenhum incidente sem `ReadProjectIncident`. Um registro lido por meio de outro, como uma nota de um incidente, também precisa de uma permissão para ler esse outro registro: `ReadIncidentInternalNote` não alcança nenhuma nota sem uma permissão para ler incidentes. Os papéis já incluem as duas.
 
 São também as chaves usadas ao criar chaves de API, e as que a API e o provedor Terraform esperam.
 
@@ -137,6 +143,8 @@ Rótulos são marcações válidas em todo o projeto que você anexa aos recurso
 
 Uma restrição por rótulos é satisfeita se o recurso carrega **pelo menos um** dos rótulos da permissão. Um recurso sem nenhum rótulo não satisfaz nenhuma permissão restrita por rótulos.
 
+Um registro sem rótulos próprios, como a nota de um incidente, um anúncio de uma página de status ou um insight de IA sobre um serviço, carrega os rótulos dos registros aos quais pertence ou dos quais trata. Uma permissão restrita por rótulos o alcança quando um desses registros carrega um dos seus rótulos, e um bloqueio com rótulos o deixa de fora quando um deles carrega um rótulo bloqueado, na leitura, na alteração e na exclusão. Um registro que não trata de nenhum deles, como um insight de IA que não trata de nenhum serviço, pertence ao projeto: uma restrição por rótulos não o restringe, e um bloqueio com rótulos não o deixa de fora.
+
 Onde encontrar: **Configurações → Rótulos**.
 
 ## Telemetria
@@ -148,6 +156,8 @@ Logs, traces, métricas, exceções, perfis e reproduções de sessão pertencem
 - **Rótulos** lê a telemetria dos recursos que carregam um dos rótulos da permissão.
 
 Um bloqueio com rótulos em uma permissão de telemetria deixa de fora a telemetria dos recursos que carregam esses rótulos, seja o que for que você tenha além disso. Isso vale onde quer que a telemetria seja lida: os exploradores e seus gráficos, filtros e listas de atributos, as exportações, as reproduções de sessão e o que o assistente de IA lê por você. A lista de nomes de métricas mostra as métricas que um serviço que você pode ler reporta, e as métricas que nenhum serviço reporta, como as de hosts e clusters. Se você também pode ler a telemetria de outros tipos de recursos, como hosts ou clusters, ela mostra todos os nomes de métricas.
+
+Os logs de monitores, o histórico de SLOs, os fluxos de rede e as alocações de custo do Kubernetes são lidos da mesma forma, através do monitor, do SLO, do dispositivo de rede ou do cluster a que pertencem: Próprios e Rótulos alcançam as linhas dos registros que você pode ler, e um bloqueio com rótulos deixa de fora as linhas dos registros que carregam esses rótulos. O log de auditoria e os indicadores de inteligência de ameaças são lidos em todo o projeto por quem pode lê-los.
 
 ## Chaves de API
 
@@ -165,12 +175,13 @@ Onde encontrar: **Configurações → Chaves de API**. Veja também a [Referênc
 
 Para um usuário autenticado, na ordem:
 
-1. Encontrar as equipes a que o usuário pertence neste projeto, contando apenas convites aceitos.
+1. Encontrar as equipes a que o usuário pertence neste projeto, contando apenas convites aceitos. Uma requisição alcança apenas os registros deste projeto: um registro de outro projeto, indicado pelo seu id ou em um filtro, é tratado como se não existisse.
 2. Reunir todas as linhas de permissão dessas equipes — permitidas e bloqueadas — cada uma com seus rótulos e seu escopo.
 3. Verificar primeiro a lista de bloqueios. Um bloqueio sem rótulos em qualquer permissão que a tabela de destino aceite para essa operação rejeita a requisição de imediato, seja qual for a equipe em que estiver.
 4. Verificar a lista de permitidas. A requisição precisa de pelo menos uma permissão que a tabela de destino aceite para essa operação. Em um recurso operacional — um monitor, um incidente, um painel e afins — a permissão **All Operational Resources** correspondente (Create, Read, Edit ou Delete) também conta, a menos que ela própria esteja bloqueada.
-5. Aplicar o escopo. Concessões com escopo Próprios restringem a consulta aos recursos próprios; as de rótulos restringem aos rótulos correspondentes. Se qualquer outra concessão para a mesma operação for mais ampla, a mais ampla vence.
-6. Aplicar os bloqueios por rótulos. Um bloqueio com rótulos rejeita a requisição se o recurso de destino carregar um deles. Quando um registro não tem rótulos próprios, como uma nota de um incidente ou um anúncio de uma página de status, um bloqueio com rótulos sobre a sua leitura o deixa de fora se um registro ao qual ele pertence carregar um desses rótulos.
+5. Aplicar o escopo. Concessões com escopo Próprios restringem a consulta aos recursos próprios; as de rótulos restringem aos rótulos correspondentes. Se qualquer outra concessão para a mesma operação for mais ampla, a mais ampla vence. Um registro sem rótulos próprios, como uma nota de um incidente, satisfaz uma concessão por rótulos quando um dos registros aos quais pertence carrega um dos seus rótulos.
+6. Aplicar os bloqueios por rótulos. Um bloqueio com rótulos rejeita a requisição se o recurso de destino carregar um deles. Quando um registro não tem rótulos próprios, como uma nota de um incidente ou um anúncio de uma página de status, um bloqueio com rótulos o deixa de fora de leituras, alterações e exclusões se um registro ao qual ele pertence carregar um desses rótulos. Uma lista de registros de todos os seus projetos de uma vez, como os incidentes da sua página inicial, restringe os registros de cada projeto pelos seus bloqueios e concessões naquele projeto.
+7. Limitar alterações e exclusões ao que você pode ler. Uma alteração ou exclusão é restringida pelas suas permissões de leitura além da permissão para a alteração: um registro que você não pode ler — fora dos seus rótulos ou proprietários, ou com um rótulo que um bloqueio de leitura retira — não é um que você possa alterar ou excluir, e um bloqueio sem rótulos sobre a leitura de um tipo de registro retira também alterá-lo e excluí-lo. Um registro lido por meio de outro, como uma nota de um incidente ou um anúncio de uma página de status, só é alcançado por meio de um registro que você pode ler: sem permissão para ler incidentes, uma permissão sobre notas não alcança nenhuma nota, e um bloqueio com rótulos sobre a leitura de incidentes deixa de fora as notas dos incidentes que os carregam. Uma alteração ou exclusão de um registro, indicado pelo seu ID, que não alcança nada é respondida como se o registro não existisse (`404`) quando você não pode lê-lo, e recusada quando você pode lê-lo, mas não alterá-lo.
 
 Cada campo de um registro é lido com a permissão de leitura do próprio registro: uma permissão de outro tipo de registro nunca o abre. Alguns campos são mais restritos de propósito. Os segredos só são lidos por quem pode editar ou administrar o registro a que pertencem, como as chaves de requisições recebidas e de e-mails recebidos de um monitor e a chave do seu agente de servidor, ou as chaves de webhook e de e-mail de entrada de um fluxo de trabalho. Assistir à gravação de uma reprodução de sessão exige **Watch Session Replays**, não apenas **List Session Replays**. A telemetria é lida sinal a sinal: **Read Telemetry Service Log** lê os logs, **Read Telemetry Service Traces** lê os traces e **Read Telemetry Service Metrics** lê as métricas, incluindo os gráficos de métricas.
 
@@ -178,7 +189,9 @@ Os campos seguem a mesma regra. Um bloqueio sem rótulos na permissão de um cam
 
 A mesma regra decide tudo o mais que pergunta se você tem uma permissão: as ações que não são uma simples leitura ou escrita — adicionar crédito de SMS, chamadas ou IA, pagar uma fatura ou testar uma regra de notificação — e os botões que o OneUptime mostra. Um botão que você não pode usar aparece travado e diz por quê; quando o motivo é um bloqueio em uma de suas equipes, ele nomeia a permissão bloqueada.
 
-As atualizações ao vivo seguem a mesma regra. Quando um registro é criado, alterado ou excluído, o OneUptime avisa as páginas abertas das pessoas que podem ler esse registro, e de mais ninguém. O que limita o que você pode ler limita também as suas atualizações ao vivo: rótulos, proprietários, um bloqueio com rótulos, um incidente privado ou a conversa de IA de outra pessoa. Quando uma mudança tira o seu acesso a um registro, por exemplo ao torná-lo privado, as suas páginas abertas também são avisadas, para que deixem de mostrá-lo. Uma mudança nas suas permissões chega às suas páginas abertas em até 30 segundos.
+As atualizações ao vivo seguem a mesma regra. Quando um registro é criado, alterado ou excluído, o OneUptime avisa as páginas abertas das pessoas que podem ler esse registro, e de mais ninguém. O que limita o que você pode ler limita também as suas atualizações ao vivo: rótulos, proprietários, um bloqueio com rótulos, um incidente privado ou a conversa de IA de outra pessoa. Quando uma mudança tira o seu acesso a um registro, por exemplo ao torná-lo privado, as suas páginas abertas também são avisadas, para que deixem de mostrá-lo. Uma mudança nas suas permissões, um bloqueio ou deixar de ser administrador master chega às suas páginas abertas na hora.
+
+As atualizações ao vivo também terminam com o login que as abriu. Sair, trocar a senha ou ser bloqueado interrompe na hora as atualizações ao vivo das suas páginas abertas. Uma página aberta renova o seu login a cada 15 minutos e retoma as atualizações ao vivo; quando o login não pode ser renovado, ela leva você à página de login. Um projeto que exige SSO só envia atualizações ao vivo para páginas conectadas com SSO, como acontece com todo o resto.
 
 Todo usuário autenticado detém ainda um pequeno conjunto de permissões automáticas que cobrem coisas como ler o próprio perfil e as próprias regras de notificação. Não são permissões administrativas e não dão acesso aos dados de mais ninguém.
 
@@ -194,7 +207,7 @@ As permissões resolvidas ficam em cache por usuário e projeto, e são atualiza
 
 **Um pipeline de CI que só reporta implantações.** Crie uma chave de API apenas com as permissões granulares de que ela precisa — sem funções.
 
-**Alguém que não deve ver o faturamento.** Não o adicione à equipe Owners. `ProjectAdmin` já exclui o faturamento.
+**Alguém que não deve alterar o faturamento nem ver as faturas.** Dê a ele `ProjectMember`, não `ProjectAdmin`: um administrador do projeto não pode alterar o plano, os métodos de pagamento nem os saldos, mas lê e baixa as faturas. Para que alguém leia as páginas de faturamento sem alterar nada, dê a ele `BillingViewer`.
 
 ## A seguir
 

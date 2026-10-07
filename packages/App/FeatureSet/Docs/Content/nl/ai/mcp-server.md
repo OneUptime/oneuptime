@@ -54,7 +54,7 @@ De client handelt daarna namens u in dat project. Er is geen API-sleutel om aan 
 
 Wat een gekoppelde client kan doen:
 
-- **Hij heeft uw machtigingen, en nooit meer.** Wat uw teams u in het project toestaan, is wat de client kan doen. Als uw rol verandert of u het project verlaat, geldt dat al voor het eerstvolgende verzoek van de client.
+- **Hij heeft uw machtigingen, en nooit meer.** Wat uw teams u in het project toestaan, is wat de client kan doen. Als uw rol verandert of u het project verlaat, geldt dat al voor het eerstvolgende verzoek van de client. Als u het project verlaat, wordt de client ook losgekoppeld: de autorisatie ervan wordt verwijderd, en als u terugkomt, verbindt u hem opnieuw.
 - **Alleen lezen betekent alleen lezen.** Een client die voor alleen lezen is geautoriseerd, kan de `get_`-, `list_`- en `count_`-tools gebruiken. Tools die aanmaken, bijwerken, verwijderen, bevestigen of oplossen worden geweigerd, zowel door de MCP-server als door de OneUptime API erachter. U kunt een client nooit meer toegang geven dan waar hij om heeft gevraagd.
 - **Hij geldt voor één project.** Om een tweede project te gebruiken, koppelt u de client opnieuw en kiest u dat project.
 - **Hij werkt alleen via de MCP-server.** Het toegangstoken van de client wordt geaccepteerd door het MCP-eindpunt en nergens anders. Het kan niet worden gebruikt om de OneUptime REST API rechtstreeks aan te roepen.

@@ -142,6 +142,7 @@ Flödesposter skrivs av incidenttjänsten själv, av båda anteckningstjänstern
 - **Människor** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`.
 - **Aviseringar** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
 - **Automatisering** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
+- **Videosamtal** — `VideoCallStarted` och `VideoCallFailed`: ett samtal som startats för incidenten, med länken för att ansluta, eller anledningen till att en leverantör inte kunde starta ett. Se [Videosamtal](/docs/workspace-connections/video-calls).
 
 Varje typ får sin egen ikon, så du kan skanna ett långt flöde och plocka ut tillståndsändringarna ur bruset. AI-genererad rotorsaksanalys markeras tydligt och renderas i ett begränsat Markdown-läge.
 

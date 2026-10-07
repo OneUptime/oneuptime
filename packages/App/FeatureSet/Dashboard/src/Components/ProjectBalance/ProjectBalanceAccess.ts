@@ -15,6 +15,7 @@ import {
   ProjectBalanceType,
 } from "Common/Utils/Project/ProjectBalance";
 import {
+  AUTO_RECHARGE_FAILED_DESCRIPTIONS,
   PROJECT_BALANCE_CARD_DESCRIPTIONS,
   RECHARGE_BALANCE_LOCKED_TEMPLATE,
 } from "./ProjectBalanceCopy";
@@ -115,6 +116,24 @@ export const getProjectBalanceCardDescription: (
   return access === ProjectBalanceAccess.Yes
     ? PROJECT_BALANCE_CARD_DESCRIPTIONS[balance].forPeopleWhoMayAdd
     : PROJECT_BALANCE_CARD_DESCRIPTIONS[balance].forEveryoneElse;
+};
+
+/*
+ * What the notice that Auto Recharge's last charge failed says after its
+ * title: what to do, for someone who may add balance; who can, for everyone
+ * else - and while that is not known yet, so an owner is never told to ask
+ * someone else, and nobody is told to do what they may not.
+ */
+export const getAutoRechargeFailedDescription: (
+  balance: ProjectBalanceType,
+  access: ProjectBalanceAccess,
+) => string = (
+  balance: ProjectBalanceType,
+  access: ProjectBalanceAccess,
+): string => {
+  return access === ProjectBalanceAccess.Yes
+    ? AUTO_RECHARGE_FAILED_DESCRIPTIONS[balance].forPeopleWhoMayAdd
+    : AUTO_RECHARGE_FAILED_DESCRIPTIONS[balance].forEveryoneElse;
 };
 
 // Why the Recharge Balance button is locked, in the reader's language.

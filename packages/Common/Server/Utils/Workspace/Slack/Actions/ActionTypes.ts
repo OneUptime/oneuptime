@@ -69,6 +69,13 @@ enum SlackActionType {
 
   // View on call policy.
   ViewOnCallPolicy = "ViewOnCallPolicy",
+
+  /*
+   * The Join call button of an incident or alert video call. It is a link
+   * button - Slack opens the meeting itself - but Slack still reports the
+   * click, which only has to be acknowledged.
+   */
+  JoinVideoCall = "JoinVideoCall",
 }
 
 // Emoji names that trigger saving a message as a Private Note (Internal Note)

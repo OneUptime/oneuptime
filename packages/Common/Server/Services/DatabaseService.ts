@@ -25,7 +25,9 @@ import ModelPermission from "../Types/Database/Permissions/Index";
 import PublicPermission from "../Types/Database/Permissions/PublicPermission";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import OwnerOnlyColumnPermission from "../Types/Database/Permissions/OwnerOnlyColumnPermission";
-import { CheckReadPermissionType } from "../Types/Database/Permissions/ReadPermission";
+import ReadPermission, {
+  CheckReadPermissionType,
+} from "../Types/Database/Permissions/ReadPermission";
 import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import RelationSelect from "../Types/Database/RelationSelect";
@@ -70,6 +72,8 @@ import Dictionary from "../../Types/Dictionary";
 import BadDataException from "../../Types/Exception/BadDataException";
 import DatabaseNotConnectedException from "../../Types/Exception/DatabaseNotConnectedException";
 import Exception from "../../Types/Exception/Exception";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import NotFoundException from "../../Types/Exception/NotFoundException";
 import HashedString from "../../Types/HashedString";
 import { JSONObject, JSONValue, ObjectType } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
@@ -161,6 +165,20 @@ interface ColumnsByIdUpdateStatement {
   setSql: string;
   whereSql: string;
   params: Array<unknown>;
+}
+
+/*
+ * An atomic add to one row by id (atomicAddToColumnsByIdWithoutHooks and
+ * atomicAddToColumnsByIdAndGetValuesWithoutHooks): its SET clause, its
+ * parameters (the id last), and the columns it adds to, which the second
+ * one answers the new values of.
+ */
+interface AtomicAddStatement {
+  tableName: string;
+  primaryColumnName: string;
+  setSql: string;
+  params: Array<unknown>;
+  addedColumns: Array<{ propertyName: string; databaseName: string }>;
 }
 
 /*
@@ -2675,9 +2693,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * (getColumnsNarrowingReadOf) - a row made private, the record a row
    * names - or, when one of those conditions is on the row's id, which is
    * how the label and owner rules reach a row's links (a block with labels,
-   * the labelled records a row is linked to), one of the row's links (a
-   * many-to-many column, its labels among them). False for someone who
-   * reads every record, or whose read cannot be told apart.
+   * the labelled records a row is linked to) and, on a row with no labels
+   * of its own, every record it names at once (a grant limited to labels),
+   * one of the row's links (a many-to-many column, its labels among them)
+   * or one of the keys naming those records
+   * (ReadPermission.getLabelledKeyColumns). False for someone who reads
+   * every record, or whose read cannot be told apart.
    */
   private async writeMayChangeWhetherTheyRead(
     reader: RealtimeReader,
@@ -2706,10 +2727,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       return false;
     }
 
+    const labelledKeys: Array<string> = ReadPermission.getLabelledKeyColumns(
+      this.modelType,
+    );
+
     return columns.some((column: string): boolean => {
       return (
         this.getModel().getTableColumnMetadata(column)?.type ===
-        TableColumnType.EntityArray
+          TableColumnType.EntityArray || labelledKeys.includes(column)
       );
     });
   }
@@ -4438,25 +4463,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     await ModelPermission.checkDeletePermissionByModel({
       modelType: this.modelType,
       fetchModelWithAccessControlIds: async () => {
-        const selectModel: Select<TBaseModel> = {};
-        const accessControlColumn: string | null =
-          this.getModel().getAccessControlColumn();
-
-        if (accessControlColumn) {
-          (selectModel as any)[accessControlColumn] = {
-            _id: true,
-            name: true,
-          };
-        }
-
-        return await this.findOneById({
-          id: deleteById.id,
-          select: selectModel,
-          props: {
-            isRoot: true,
-          },
-        });
+        return await this.findWithAccessControlIds(
+          deleteById.id,
+          deleteById.props,
+        );
       },
+      isRecordFound: this.getRecordFinder(),
       props: deleteById.props,
     });
 
@@ -4553,8 +4565,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       let numberOfDocsAffected: number = 0;
 
       if (items.length > 0) {
-        beforeDeleteBy.query = {
-          ...beforeDeleteBy.query,
+        /*
+         * The rows found, by their ids and the query's filters on the
+         * table's own columns. Its filters on relations (the record a model
+         * is read through, a record's labels) are left to the lookup above,
+         * which the ids pin: a DELETE cannot join them.
+         */
+        const query: Query<TBaseModel> = {
+          ...this.getColumnFiltersOf(beforeDeleteBy.query),
           _id: QueryHelper.any(
             items.map((i: TBaseModel) => {
               return i.id!;
@@ -4569,8 +4587,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           await this.readRowsDeletedWith(items);
 
         numberOfDocsAffected =
-          (await this.getRepository().delete(beforeDeleteBy.query as any))
-            .affected || 0;
+          (await this.getRepository().delete(query as any)).affected || 0;
 
         /*
          * Their images are private again, unless another record still shows
@@ -4594,6 +4611,37 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       await this.onDeleteError(error as Exception);
       throw this.getException(error as Exception);
     }
+  }
+
+  /*
+   * `query` without its filters on relations - a record named through a
+   * relation, or the records a row is linked to - for a statement that
+   * cannot join them (hardDeleteBy's DELETE). Its filters on the table's
+   * own columns stay. A query per project (DeletePermission's answer to a
+   * request across projects) keeps none: the rows it found are named by id.
+   */
+  private getColumnFiltersOf(query: Query<TBaseModel>): Query<TBaseModel> {
+    if (Array.isArray(query)) {
+      return {} as Query<TBaseModel>;
+    }
+
+    const filters: Dictionary<unknown> = {};
+
+    for (const [key, value] of Object.entries(query as Dictionary<unknown>)) {
+      const type: TableColumnType | undefined =
+        this.getModel().getTableColumnMetadata(key)?.type;
+
+      if (
+        type === TableColumnType.Entity ||
+        type === TableColumnType.EntityArray
+      ) {
+        continue;
+      }
+
+      filters[key] = value;
+    }
+
+    return filters as Query<TBaseModel>;
   }
 
   private async _deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
@@ -6186,8 +6234,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     await ModelPermission.checkUpdatePermissionByModel({
       modelType: this.modelType,
       fetchModelWithAccessControlIds: async () => {
-        return await this.findWithAccessControlIds(updateById.id);
+        return await this.findWithAccessControlIds(
+          updateById.id,
+          updateById.props,
+        );
       },
+      isRecordFound: this.getRecordFinder(),
       props: updateById.props,
       /*
        * Below the table's update plan, a switch-off still passes: judged on
@@ -6207,16 +6259,30 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
-   * A row with every one of its access-control labels, read as root: the
+   * A row with every one of its access-control labels, read as root - the
    * team block list is checked against all of them, not only the ones the
-   * caller may see.
+   * caller may see - but only in the project the caller acts in
+   * (getCallerProjectRowQuery): a row of another project is answered as a
+   * missing one, so a check made with it never reads, nor names, another
+   * project's labels.
    */
   private async findWithAccessControlIds(
     id: ObjectID,
+    props: DatabaseCommonInteractionProps,
   ): Promise<TBaseModel | null> {
+    const query: Query<TBaseModel> | null = this.getCallerProjectRowQuery(
+      id,
+      props,
+    );
+
+    if (!query) {
+      return null;
+    }
+
     const selectModel: Select<TBaseModel> = {};
     const accessControlColumn: string | null =
       this.getModel().getAccessControlColumn();
+    const tenantColumn: string | null = this.getModel().getTenantColumn();
 
     if (accessControlColumn) {
       (selectModel as any)[accessControlColumn] = {
@@ -6225,13 +6291,86 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       };
     }
 
-    return await this.findOneById({
-      id: id,
+    // Whose row it is, for the checks to see too (AccessControlPermission).
+    if (tenantColumn) {
+      (selectModel as any)[tenantColumn] = true;
+    }
+
+    return await this.findOneBy({
+      query: query,
       select: selectModel,
       props: {
         isRoot: true,
       },
     });
+  }
+
+  /*
+   * The query that names row `id` in the project, or projects, `props` act
+   * in - for a lookup made as root on the caller's behalf, which must not
+   * reach another project's rows. Null when the caller acts in no project
+   * the row could be in: such a caller holds no team permission rows, so the
+   * checks that ask for the row (a block or a grant with labels) have none
+   * to weigh, and never ask. Root and master admin callers, and a table with
+   * no project column, look the row up wherever it is.
+   */
+  private getCallerProjectRowQuery(
+    id: ObjectID,
+    props: DatabaseCommonInteractionProps,
+  ): Query<TBaseModel> | null {
+    const query: Query<TBaseModel> = {
+      _id: id.toString(),
+    } as Query<TBaseModel>;
+    const tenantColumn: string | null = this.getModel().getTenantColumn();
+
+    if (props.isRoot || props.isMasterAdmin || !tenantColumn) {
+      return query;
+    }
+
+    const projectIds: Array<string> = (
+      props.tenantId && !props.isMultiTenantRequest
+        ? [props.tenantId]
+        : props.userGlobalAccessPermission?.projectIds || []
+    ).map((projectId: ObjectID): string => {
+      return projectId.toString();
+    });
+
+    if (projectIds.length === 0) {
+      return null;
+    }
+
+    // A project is its own tenant: the row is one of the caller's projects.
+    if (tenantColumn === "_id") {
+      return projectIds.some((projectId: string): boolean => {
+        return projectId.toLowerCase() === id.toString().toLowerCase();
+      })
+        ? query
+        : null;
+    }
+
+    (query as Dictionary<unknown>)[tenantColumn] =
+      projectIds.length === 1 ? projectIds[0] : QueryHelper.any(projectIds);
+
+    return query;
+  }
+
+  /*
+   * Whether a query, run as root, finds a record of this table: for the
+   * checks on one record (AccessControlPermission) to weigh the label rule
+   * on a record whose labels are those of the records it names.
+   */
+  private getRecordFinder(): (query: Query<TBaseModel>) => Promise<boolean> {
+    return async (query: Query<TBaseModel>): Promise<boolean> => {
+      const rows: Array<TBaseModel> = await this._findBy({
+        query: query,
+        select: { _id: true } as Select<TBaseModel>,
+        skip: 0,
+        limit: 1,
+        props: { isRoot: true, ignoreHooks: true },
+      });
+
+      return rows.length > 0;
+    };
   }
 
   /*
@@ -6246,7 +6385,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * (ModelPermission.getUpdatableQuery: the caller's project, labels and
    * Owned scope, and the labels of the record a table is read through). A
    * credential that may only read is refused. Throws what the update would
-   * throw when the caller may not update this table at all.
+   * throw when the caller may not update this table at all, or this row by
+   * one of its own labels. A row with no labels of its own carries those of
+   * the records it names, and is weighed by that query alone: outside the
+   * caller's labels, or carrying a blocked one, it answers nothing, like a
+   * row of another project.
    */
   @CaptureSpan()
   public async findOneUpdatableById(data: {
@@ -6254,26 +6397,21 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     select: Select<TBaseModel>;
     props: DatabaseCommonInteractionProps;
   }): Promise<TBaseModel | null> {
-    // Set when the block list asked for the row and it was not there.
-    const lookup: { isMissing: boolean } = { isMissing: false };
-
     try {
       await ModelPermission.checkUpdatePermissionByModel({
         modelType: this.modelType,
         fetchModelWithAccessControlIds:
           async (): Promise<TBaseModel | null> => {
-            const row: TBaseModel | null = await this.findWithAccessControlIds(
-              data.id,
-            );
-
-            lookup.isMissing = !row;
-
-            return row;
+            return await this.findWithAccessControlIds(data.id, data.props);
           },
         props: data.props,
       });
     } catch (error) {
-      if (lookup.isMissing && error instanceof BadDataException) {
+      /*
+       * A row that is not there, or one the caller may not read, is
+       * answered as nothing (AccessControlPermission.checkRecordByModel).
+       */
+      if (error instanceof NotFoundException) {
         return null;
       }
 
@@ -6296,6 +6434,63 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         isRoot: true,
       },
     });
+  }
+
+  /*
+   * WHY A WRITE BY ID CHANGED NOTHING, for a caller who named one record by
+   * its id and is to be told (BaseAPI's update and delete, and the routes
+   * that write a record named in their path): the record is answered as
+   * missing (NotFoundException, 404) when the caller may not read it -
+   * missing, gone meanwhile, of another project, or outside what they may
+   * read - exactly as a record that does not exist; and refused
+   * (NotAuthorizedException) when they may read it but it is outside what
+   * they may change or delete (their owners, the labels or the parent of
+   * the write). Asked only after the write found nothing, so it costs one
+   * read on that path alone. An update or delete by query keeps answering
+   * with how many rows it changed.
+   */
+  @CaptureSpan()
+  public async getUnwrittenByIdError(data: {
+    id: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    type: DatabaseRequestType.Update | DatabaseRequestType.Delete;
+  }): Promise<Exception> {
+    const name: string = this.getModel().singularName || "Record";
+
+    let isReadable: boolean = false;
+
+    try {
+      isReadable = Boolean(
+        await this.findOneById({
+          id: data.id,
+          select: { _id: true } as Select<TBaseModel>,
+          props: data.props,
+        }),
+      );
+    } catch (error) {
+      /*
+       * A read the caller may not make finds nothing for them either. Any
+       * other failure (the database, a misconfigured model) is not an
+       * answer about the record, and is raised as it is: a 404 would tell
+       * a client - Terraform among them - that the record is gone.
+       */
+      if (
+        !(error instanceof NotAuthorizedException) &&
+        !(error instanceof NotFoundException)
+      ) {
+        throw error;
+      }
+
+      isReadable = false;
+    }
+
+    if (isReadable) {
+      return new NotAuthorizedException(
+        `You do not have permission to ${data.type} this ${name.toLowerCase()}.`,
+      );
+    }
+
+    return new NotFoundException(`${name} not found.`);
   }
 
   @CaptureSpan()
@@ -6694,6 +6889,107 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     add: Partial<Record<keyof TBaseModel, number>>;
     set?: PartialEntity<TBaseModel> | undefined;
   }): Promise<void> {
+    const statement: AtomicAddStatement | null = this.buildAtomicAddStatement(
+      input,
+      "atomicAddToColumnsByIdWithoutHooks",
+    );
+
+    if (!statement) {
+      return;
+    }
+
+    const sql: string = `UPDATE "${statement.tableName}" SET ${statement.setSql} WHERE "${statement.primaryColumnName}" = $${statement.params.length}`;
+
+    await this.getRepository().manager.query(sql, statement.params);
+  }
+
+  /*
+   * The same single-statement, hook-free, no-version-bump add as
+   * `atomicAddToColumnsByIdWithoutHooks`, which also answers what the added
+   * columns became - for a balance that a caller must see as its own write
+   * left it, not as a second read (taken a moment later, after other
+   * writers) says it is. Null when the row does not exist.
+   *
+   * The UPDATE sits in a CTE so the statement is a SELECT of the row it
+   * wrote: TypeORM's postgres `query()` answers a top-level UPDATE with
+   * `[rows, rowCount]` (see updateColumnsByIdIfUnlockedWithoutHooks).
+   *
+   * `add` must name at least one column: there is nothing to answer
+   * otherwise.
+   */
+  @CaptureSpan()
+  public async atomicAddToColumnsByIdAndGetValuesWithoutHooks(input: {
+    id: ObjectID;
+    add: Partial<Record<keyof TBaseModel, number>>;
+    set?: PartialEntity<TBaseModel> | undefined;
+  }): Promise<Partial<Record<keyof TBaseModel, number>> | null> {
+    const methodName: string = "atomicAddToColumnsByIdAndGetValuesWithoutHooks";
+
+    const statement: AtomicAddStatement | null = this.buildAtomicAddStatement(
+      input,
+      methodName,
+    );
+
+    if (!statement || statement.addedColumns.length === 0) {
+      throw new BadDataException(
+        `${methodName}: "add" must name at least one column`,
+      );
+    }
+
+    const returned: string = statement.addedColumns
+      .map((column: { databaseName: string }) => {
+        return `"${column.databaseName}"`;
+      })
+      .join(", ");
+
+    const sql: string = `WITH "updated" AS (UPDATE "${statement.tableName}" SET ${statement.setSql} WHERE "${statement.primaryColumnName}" = $${statement.params.length} RETURNING ${returned}) SELECT ${returned} FROM "updated"`;
+
+    const result: unknown = await this.getRepository().manager.query(
+      sql,
+      statement.params,
+    );
+
+    const row: unknown = Array.isArray(result) ? result[0] : undefined;
+
+    if (!row || typeof row !== "object" || Array.isArray(row)) {
+      return null;
+    }
+
+    const values: Partial<Record<keyof TBaseModel, number>> = {};
+
+    for (const column of statement.addedColumns) {
+      const value: unknown = (row as Record<string, unknown>)[
+        column.databaseName
+      ];
+
+      // A bigint or numeric column comes back from the driver as text.
+      const parsed: number = typeof value === "number" ? value : Number(value);
+
+      if (value === null || value === undefined || !Number.isFinite(parsed)) {
+        throw new BadDataException(
+          `${methodName}: "${column.propertyName}" did not return a number`,
+        );
+      }
+
+      values[column.propertyName as keyof TBaseModel] = parsed;
+    }
+
+    return values;
+  }
+
+  /*
+   * The SET clause and parameters of an atomic add to one row by id, the id
+   * bound last. Null when there is nothing to add or set. `methodName` is
+   * the public method the errors are reported under.
+   */
+  private buildAtomicAddStatement(
+    input: {
+      id: ObjectID;
+      add: Partial<Record<keyof TBaseModel, number>>;
+      set?: PartialEntity<TBaseModel> | undefined;
+    },
+    methodName: string,
+  ): AtomicAddStatement | null {
     if (!input.id) {
       throw new BadDataException("id is required");
     }
@@ -6704,6 +7000,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     const setClauses: Array<string> = [];
     const params: Array<unknown> = [];
+    const addedColumns: Array<{ propertyName: string; databaseName: string }> =
+      [];
 
     const columnFor: (propertyName: string) => ColumnMetadata = (
       propertyName: string,
@@ -6712,7 +7010,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         metadata.findColumnWithPropertyName(propertyName);
       if (!column) {
         throw new BadDataException(
-          `atomicAddToColumnsByIdWithoutHooks: unknown column "${propertyName}" on "${metadata.tableName}"`,
+          `${methodName}: unknown column "${propertyName}" on "${metadata.tableName}"`,
         );
       }
       return column;
@@ -6723,7 +7021,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     )) {
       if (typeof delta !== "number" || !Number.isFinite(delta)) {
         throw new BadDataException(
-          `atomicAddToColumnsByIdWithoutHooks: "${propertyName}" delta must be a finite number`,
+          `${methodName}: "${propertyName}" delta must be a finite number`,
         );
       }
 
@@ -6731,6 +7029,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       params.push(delta);
       const quoted: string = `"${column.databaseName}"`;
       setClauses.push(`${quoted} = COALESCE(${quoted}, 0) + $${params.length}`);
+      addedColumns.push({
+        propertyName: propertyName,
+        databaseName: column.databaseName,
+      });
     }
 
     // Shallow copy — never mutate the caller's object. See the clamp note above.
@@ -6741,7 +7043,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     for (const [propertyName, value] of Object.entries(set)) {
       if (typeof value === "function") {
         throw new BadDataException(
-          `atomicAddToColumnsByIdWithoutHooks: SQL-expression values are not supported (column "${propertyName}"); pass a literal value.`,
+          `${methodName}: SQL-expression values are not supported (column "${propertyName}"); pass a literal value.`,
         );
       }
 
@@ -6751,7 +7053,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     if (setClauses.length === 0) {
-      return;
+      return null;
     }
 
     if (metadata.updateDateColumn) {
@@ -6764,11 +7066,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       metadata.primaryColumns[0]?.databaseName || "_id";
     params.push(input.id.toString());
 
-    const sql: string = `UPDATE "${metadata.tableName}" SET ${setClauses.join(
-      ", ",
-    )} WHERE "${primaryColumnName}" = $${params.length}`;
-
-    await repository.manager.query(sql, params);
+    return {
+      tableName: metadata.tableName,
+      primaryColumnName: primaryColumnName,
+      setSql: setClauses.join(", "),
+      params: params,
+      addedColumns: addedColumns,
+    };
   }
 
   /*

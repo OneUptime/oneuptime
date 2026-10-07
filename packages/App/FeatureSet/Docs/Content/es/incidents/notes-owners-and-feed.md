@@ -142,6 +142,7 @@ Los elementos del feed los escriben el propio servicio de incidentes, ambos serv
 - **Personas** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`.
 - **Notificaciones** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
 - **Automatización** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
+- **Videollamadas** — `VideoCallStarted` y `VideoCallFailed`: una llamada iniciada para el incidente, con su enlace para unirse, o el motivo por el que un proveedor no pudo iniciarla. Consulta [Videollamadas](/docs/workspace-connections/video-calls).
 
 Cada tipo tiene su propio icono, así que puedes recorrer un feed largo y distinguir los cambios de estado del ruido. El análisis de causa raíz generado por IA se marca de forma distintiva y se muestra en un modo Markdown restringido.
 

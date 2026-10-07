@@ -12,6 +12,7 @@ import UserNotificationRuleService, {
   FallbackNotificationResult,
 } from "../../../Server/Services/UserNotificationRuleService";
 import UserOnCallLogService, {
+  NOT_A_PROJECT_MEMBER_STATUS_MESSAGE,
   NO_NOTIFICATION_RULES_STATUS_MESSAGE,
 } from "../../../Server/Services/UserOnCallLogService";
 import UserPushService from "../../../Server/Services/UserPushService";
@@ -22,6 +23,7 @@ import UserTelegramService from "../../../Server/Services/UserTelegramService";
 import UserWebhookService from "../../../Server/Services/UserWebhookService";
 import UserWhatsAppService from "../../../Server/Services/UserWhatsAppService";
 import logger from "../../../Server/Utils/Logger";
+import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
 import Project from "../../../Models/DatabaseModels/Project";
 import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificationRule";
 import UserOnCallLog from "../../../Models/DatabaseModels/UserOnCallLog";
@@ -351,6 +353,7 @@ describe("UserNotificationRuleService.executeFallbackNotification", () => {
   let telegramFindSpy: jest.SpyInstance;
   let webhookFindSpy: jest.SpyInstance;
   let projectFindSpy: jest.SpyInstance;
+  let membershipSpy: jest.SpyInstance;
 
   beforeEach(() => {
     jest.spyOn(logger, "error").mockImplementation((): void => {
@@ -359,6 +362,11 @@ describe("UserNotificationRuleService.executeFallbackNotification", () => {
     jest.spyOn(logger, "warn").mockImplementation((): void => {
       return undefined;
     });
+
+    // The responder is a member of the project unless a test says otherwise.
+    membershipSpy = jest
+      .spyOn(ProjectMembership, "isMember")
+      .mockResolvedValue(true as never);
 
     claimSpy = jest
       .spyOn(UserOnCallLogService, "claimNotificationExecution")
@@ -468,6 +476,69 @@ describe("UserNotificationRuleService.executeFallbackNotification", () => {
    * (A) Channel selection - zero-cost channels.
    * -----------------------------------------------------------------------
    */
+
+  describe("somebody who is not a member of the project", () => {
+    beforeEach(() => {
+      membershipSpy.mockResolvedValue(false as never);
+
+      // They still hold every method they had.
+      pushFindSpy.mockResolvedValue(makeVerifiedPush() as never);
+      emailFindSpy.mockResolvedValue(makeVerifiedEmail() as never);
+      giveResponderEveryPaidMethod();
+    });
+
+    test("is paged on nothing, and none of their methods is even looked up", async () => {
+      const result: FallbackNotificationResult = await runFallback();
+
+      // Its own outcome: not "no usable method", which asks for one to be added.
+      expect(result.outcome).toBe(
+        FallbackNotificationOutcome.NotAProjectMember,
+      );
+      expect(result.notified).toBe(false);
+      expect(result.channelsUsed).toEqual([]);
+      expect(deliverSpy).not.toHaveBeenCalled();
+
+      for (const spy of [
+        pushFindSpy,
+        emailFindSpy,
+        slackFindSpy,
+        microsoftTeamsFindSpy,
+        webhookFindSpy,
+        projectFindSpy,
+        ...everyPaidChannelFindSpy(),
+      ]) {
+        expect(spy).not.toHaveBeenCalled();
+      }
+    });
+
+    test("membership is read for the page's own person and project", async () => {
+      await runFallback();
+
+      expect(membershipSpy).toHaveBeenCalledTimes(1);
+      expect(membershipSpy.mock.calls[0]![0]).toEqual({
+        projectId: PROJECT_ID,
+        userId: USER_ID,
+      });
+    });
+
+    test("a membership read that fails is never a page: the fallback fails and sends nothing", async () => {
+      membershipSpy.mockRejectedValue(
+        new Error("database unavailable") as never,
+      );
+
+      await expect(runFallback()).rejects.toThrow("database unavailable");
+      expect(deliverSpy).not.toHaveBeenCalled();
+    });
+
+    test("a member is paged on what they have, as before", async () => {
+      membershipSpy.mockResolvedValue(true as never);
+
+      const result: FallbackNotificationResult = await runFallback();
+
+      expect(result.outcome).toBe(FallbackNotificationOutcome.Delivered);
+      expect(deliverSpy).toHaveBeenCalled();
+    });
+  });
 
   describe("channel selection: the zero-cost tier", () => {
     test("a responder with a verified push device AND a verified email gets BOTH", async () => {
@@ -1480,6 +1551,49 @@ describe("UserOnCallLogService.handleNoMatchingNotificationRule", () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  describe("the fallback finds the responder is not a member of the project", () => {
+    beforeEach(() => {
+      fallbackSpy.mockResolvedValue({
+        outcome: FallbackNotificationOutcome.NotAProjectMember,
+        notified: false,
+        channelsUsed: [],
+      } as never);
+    });
+
+    test("the log is Completed and says why; the timeline says Skipped", async () => {
+      await callHandleNoMatchingNotificationRule();
+
+      expect(lastStatusUpdate().data.status).toBe(
+        UserNotificationExecutionStatus.Completed,
+      );
+      expect(lastStatusUpdate().data.statusMessage).toBe(
+        NOT_A_PROJECT_MEMBER_STATUS_MESSAGE,
+      );
+
+      const timeline: Array<TimelineUpdateCall> = timelineUpdates();
+
+      expect(timeline[timeline.length - 1]!.data.status).toBe(
+        OnCallDutyExecutionLogTimelineStatus.Skipped,
+      );
+    });
+
+    test("nobody is told a page went undelivered: there is nothing to fix", async () => {
+      await callHandleNoMatchingNotificationRule();
+
+      expect(alertOwnersSpy).not.toHaveBeenCalled();
+    });
+
+    test("it is not reported as a responder without a notification method", async () => {
+      await callHandleNoMatchingNotificationRule();
+
+      for (const update of statusUpdates()) {
+        expect(update.data.status).not.toBe(
+          UserNotificationExecutionStatus.Error,
+        );
+      }
+    });
   });
 
   describe("an opt-out row means deliberate silence", () => {

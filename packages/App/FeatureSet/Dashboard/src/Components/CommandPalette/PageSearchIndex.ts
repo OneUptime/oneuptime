@@ -346,6 +346,20 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "chat",
             ],
           },
+          {
+            page: PageMap.SETTINGS_VIDEO_CALLS,
+            title: "Video Calls",
+            icon: IconProp.VideoCamera,
+            keywords: [
+              "zoom",
+              "google meet",
+              "teams meeting",
+              "slack huddle",
+              "meeting link",
+              "conference bridge",
+              "war room",
+            ],
+          },
         ],
       },
       {
@@ -1250,6 +1264,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Scrub Rules",
             icon: IconProp.ShieldCheck,
             keywords: ["pii", "redact", "mask sensitive data"],
+          },
+          {
+            page: PageMap.LOGS_SETTINGS_RECORDING_RULES,
+            title: "Recording Rules",
+            icon: IconProp.Calculator,
+            keywords: ["log metrics", "logs to metrics", "derived metrics"],
           },
         ],
       },

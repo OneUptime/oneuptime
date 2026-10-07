@@ -36,7 +36,9 @@ import NotificationRuleForm, {
   NotificationRuleFormPart,
 } from "./NotificationRuleForm/NotificationRuleForm";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import Field, {
+  CustomElementProps,
+} from "Common/UI/Components/Forms/Types/Field";
 import IncidentNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
 import NotificawtionRuleViewElement from "./NotificationRuleViewElement/NotificationRuleViewElement";
 import { ShowAs } from "Common/UI/Components/ModelTable/BaseModelTable";
@@ -64,6 +66,28 @@ import {
   MicrosoftTeamsChat,
   MicrosoftTeamsTeam,
 } from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
+import VideoCallConnection from "Common/Models/DatabaseModels/VideoCallConnection";
+import { getVideoCallValidationError } from "Common/Types/Workspace/NotificationRules/VideoCallNotificationRule";
+import NotificationRuleVideoCallForm from "./NotificationRuleForm/NotificationRuleVideoCallForm";
+
+/*
+ * The form key the Video Call step is registered under. Like the
+ * Destination step, it edits the rule's notificationRule column, so it needs
+ * a key of its own; it is form-only and never sent.
+ */
+export const NOTIFICATION_RULE_VIDEO_CALL_FIELD_KEY: string =
+  "notificationRuleVideoCall";
+
+// Only incident and alert rules can start a video call.
+export function canRuleStartVideoCall(
+  eventType: NotificationRuleEventType,
+): boolean {
+  return (
+    eventType === NotificationRuleEventType.Incident ||
+    eventType === NotificationRuleEventType.Alert
+  );
+}
+
 export interface ComponentProps {
   workspaceType: WorkspaceType;
   eventType: NotificationRuleEventType;
@@ -100,6 +124,9 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
     Array<MicrosoftTeamsChat>
   >([]);
   const [users, setUsers] = React.useState<Array<User>>([]);
+  const [videoCallConnections, setVideoCallConnections] = React.useState<
+    Array<VideoCallConnection>
+  >([]);
 
   const [showTestModal, setShowTestModal] = React.useState<boolean>(false);
   const [isTestLoading, setIsTestLoading] = React.useState<boolean>(false);
@@ -382,6 +409,38 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
       });
 
       setUsers(uniqueUsers);
+
+      /*
+       * The connections a rule's video call can be held with. A member who
+       * may not read them still edits the rule's other steps, so a refusal
+       * here leaves the list empty rather than failing the page.
+       */
+      if (canRuleStartVideoCall(props.eventType)) {
+        try {
+          const connections: ListResult<VideoCallConnection> =
+            await ModelAPI.getList({
+              modelType: VideoCallConnection,
+              query: {
+                projectId: ProjectUtil.getCurrentProjectId()!,
+              },
+              select: {
+                _id: true,
+                name: true,
+                provider: true,
+                config: true,
+              },
+              skip: 0,
+              limit: LIMIT_PER_PROJECT,
+              sort: {
+                name: SortOrder.Ascending,
+              },
+            });
+
+          setVideoCallConnections(connections.data);
+        } catch {
+          setVideoCallConnections([]);
+        }
+      }
 
       // Load Microsoft Teams if workspace type is Microsoft Teams
       if (props.workspaceType === WorkspaceType.MicrosoftTeams) {
@@ -704,6 +763,70 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
               );
             },
           },
+          /*
+           * The rule's video call, on a step of its own for the rules that
+           * can start one: the same notificationRule column, registered
+           * under a key of its own as the Destination step is.
+           */
+          ...(canRuleStartVideoCall(props.eventType)
+            ? [
+                {
+                  overrideField: {
+                    notificationRule: true,
+                  },
+                  overrideFieldKey: NOTIFICATION_RULE_VIDEO_CALL_FIELD_KEY,
+                  formOnly: true,
+                  title: "Video call",
+                  description: `Start a dedicated call for the ${props.eventType.toLowerCase()} when this rule fires.`,
+                  fieldType: FormFieldSchemaType.CustomComponent,
+                  required: false,
+                  hideOptionalLabel: true,
+                  stepId: "videoCall",
+                  getDefaultValue: (): boolean => {
+                    return true;
+                  },
+                  customValidation: (
+                    values: FormValues<WorkspaceNotificationRule>,
+                  ): string | null => {
+                    return getVideoCallValidationError({
+                      rule: values.notificationRule as IncidentNotificationRule,
+                      workspaceType: props.workspaceType,
+                    });
+                  },
+                  onChange: (
+                    value: IncidentNotificationRule,
+                    currentValues: FormValues<WorkspaceNotificationRule>,
+                    setNewFormValues: (
+                      values: FormValues<WorkspaceNotificationRule>,
+                    ) => void,
+                  ): void => {
+                    setNewFormValues({
+                      ...currentValues,
+                      notificationRule: value,
+                    } as FormValues<WorkspaceNotificationRule>);
+                  },
+                  getCustomElement: (
+                    values: FormValues<WorkspaceNotificationRule>,
+                    elementProps: CustomElementProps,
+                  ): ReactElement => {
+                    return (
+                      <NotificationRuleVideoCallForm
+                        value={
+                          values.notificationRule as IncidentNotificationRule
+                        }
+                        onChange={(value: IncidentNotificationRule) => {
+                          elementProps.onChange?.(value);
+                        }}
+                        workspaceType={props.workspaceType}
+                        eventType={props.eventType}
+                        connections={videoCallConnections}
+                        error={elementProps.error}
+                      />
+                    );
+                  },
+                } as Field<WorkspaceNotificationRule>,
+              ]
+            : []),
         ]}
         /*
          * When the rule fires, then where it posts. The two were one Rules
@@ -722,6 +845,14 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             title: "Destination",
             id: "destination",
           },
+          ...(canRuleStartVideoCall(props.eventType)
+            ? [
+                {
+                  title: "Video Call",
+                  id: "videoCall",
+                },
+              ]
+            : []),
         ]}
         showRefreshButton={true}
         filters={[
@@ -781,6 +912,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
                     microsoftTeamsTeams={microsoftTeamsTeams}
                     microsoftTeamsChats={microsoftTeamsChats}
                     users={users}
+                    videoCallConnections={videoCallConnections}
                   />
                 </Fragment>
               );

@@ -6,7 +6,9 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import OnCallDutyPolicyUserOverride from "../../../Models/DatabaseModels/OnCallDutyPolicyUserOverride";
 import OnCallDutyPolicyEscalationRuleService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleService";
 import OnCallDutyPolicyFeedService from "../../../Server/Services/OnCallDutyPolicyFeedService";
-import OnCallDutyPolicyScheduleService from "../../../Server/Services/OnCallDutyPolicyScheduleService";
+import OnCallDutyPolicyScheduleService, {
+  CurrentOnCallInSchedule,
+} from "../../../Server/Services/OnCallDutyPolicyScheduleService";
 import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicyService";
 import OnCallDutyPolicyUserOverrideService from "../../../Server/Services/OnCallDutyPolicyUserOverrideService";
 import UserService from "../../../Server/Services/UserService";
@@ -76,7 +78,10 @@ beforeEach(() => {
  *     covers (OnCallDutyPolicyEscalationRuleService.getRouteAlertToUserId),
  *     and one that names the person covering still pages them;
  *   - a schedule with the person who is away on call pages whoever covers
- *     (OnCallDutyPolicyScheduleService.getCurrentUserIdInSchedule);
+ *     (OnCallDutyPolicyScheduleService.getCurrentUserIdInSchedule), and
+ *     names the person away as the one covered - whom paging falls back to
+ *     when whoever covers is no longer a member of the project
+ *     (getCurrentOnCallInSchedule);
  *   - a policy's own override covers that policy only, a global one every
  *     policy;
  *   - before it starts and after it ends, the person who is away is paged.
@@ -283,6 +288,27 @@ async function pagedFor(
   return (routed || new ObjectID(userId)).toString();
 }
 
+// Who the schedule pages right now, and whom an override has them cover.
+async function onCallInSchedule(policyId: string = POLICY): Promise<{
+  userId: string;
+  coveredUserId: string | null;
+} | null> {
+  const onCall: CurrentOnCallInSchedule | null =
+    await OnCallDutyPolicyScheduleService.getCurrentOnCallInSchedule(
+      oid(SCHEDULE),
+      { onCallDutyPolicyId: oid(policyId) },
+    );
+
+  return onCall
+    ? {
+        userId: onCall.userId.toString(),
+        coveredUserId: onCall.coveredUserId
+          ? onCall.coveredUserId.toString()
+          : null,
+      }
+    : null;
+}
+
 // Who the schedule pages right now, through the policy.
 async function pagedBySchedule(policyId: string = POLICY): Promise<string> {
   const onCall: ObjectID | null =
@@ -416,6 +442,36 @@ describe("an override booked from the Add User Override form", () => {
     await addOverride({ signedInAs: ALEX, whoCovers: SAM, ends: NEXT_WEEK });
 
     expect(await pagedBySchedule()).toBe(SAM);
+  });
+
+  test("while it is in force, the schedule names the person away as the one covered", async () => {
+    await expect(onCallInSchedule()).resolves.toEqual({
+      userId: ALEX,
+      coveredUserId: null,
+    });
+
+    await addOverride(
+      { signedInAs: ALEX, whoCovers: SAM, ends: NEXT_WEEK },
+      { onCallDutyPolicyId: POLICY },
+    );
+
+    await expect(onCallInSchedule(POLICY)).resolves.toEqual({
+      userId: SAM,
+      coveredUserId: ALEX,
+    });
+
+    // Another policy's pages: no override, nobody covered.
+    await expect(onCallInSchedule(OTHER_POLICY)).resolves.toEqual({
+      userId: ALEX,
+      coveredUserId: null,
+    });
+
+    // Once it has ended, nobody is covered.
+    setNow(at("2026-12-31T18:00:00Z"));
+    await expect(onCallInSchedule(POLICY)).resolves.toEqual({
+      userId: ALEX,
+      coveredUserId: null,
+    });
   });
 
   test("booked by someone else for a colleague, it still covers the colleague", async () => {

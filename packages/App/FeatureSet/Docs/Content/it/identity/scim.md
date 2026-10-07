@@ -412,7 +412,7 @@ Quando SCIM tenta di creare un utente che già esiste (corrispondenza per email)
 - **Self-hosted**: L'utente esistente viene aggiunto subito ai team predefiniti configurati (o al team del gruppo, con i Gruppi push).
 - **OneUptime Cloud**: Un account OneUptime appartiene alla persona, non a un singolo progetto, quindi SCIM non può rendere qualcuno membro del tuo progetto di propria iniziativa. L'utente esistente viene invece **invitato** nei team e riceve la consueta email di invito. Entra nel progetto quando accetta gli inviti da **Inviti al progetto** in OneUptime, oppure quando conferma il single sign-on (SSO) del tuo progetto dall'email che OneUptime invia al suo primo accesso tramite SSO. Fino ad allora risulta in attesa. Lo stesso vale quando un gruppo aggiunge un utente esistente che non è ancora membro del tuo progetto.
 
-Gli utenti che SCIM crea direttamente, gli utenti che sono già entrati nel tuo progetto e gli utenti che hanno confermato l'SSO del tuo progetto vengono aggiunti subito in entrambi i casi.
+Gli utenti che SCIM crea direttamente e gli utenti che sono membri del tuo progetto vengono aggiunti subito in entrambi i casi. Confermare l'SSO del tuo progetto rende una persona membro, quindi anche lei viene aggiunta subito; chi nel frattempo ha lasciato il tuo progetto viene invitato di nuovo.
 
 ### SCIM può modificare l'indirizzo email o il nome di un utente?
 

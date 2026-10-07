@@ -171,6 +171,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 - **透過探針代理連到 IP 位址的 HTTPS 監視器又能正常運作了。** 探針原本把 IP 當作 TLS 伺服器名稱送出，但 IP 不是合法的伺服器名稱，Node 會直接拒絕，因此從設定了 `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` 的全域探針監控 `https://<私有 IP>` 會在交握階段失敗。現在目標是 IP 時，探針不再送出伺服器名稱，並直接以該 IP 驗證憑證。目標為主機名稱時行為不變。
 - **`oneuptime` CLI 在 `--version` 會報告真實版本號**，不再是預留字串。
 - **Runner 已從專案設定移到運行手冊。** Runner 現在位於 **運行手冊 → Runbook 代理程式**（`…/runbooks/runners`），Runner Credentials 位於 **運行手冊 → Runbook 代理程式 → 憑證**（`…/runbooks/runner-credentials`），就在由它們執行步驟的 Runbook 旁邊。舊的 `…/settings/runners` 與 `…/settings/runner-credentials` URL 會重新導向，書籤仍可使用。其他都沒有改變：Runner 的 ID、金鑰、能力與權限維持不變，仍會執行 AI 程式碼修復與 AI 修復指令。早於此版本的 Runner 映像檔仍會在日誌訊息中輸出「Project Settings > Runners」；請將其讀作 運行手冊 → Runbook 代理程式。
+- **`RunbookMember` 執行 Runbook，但不建置 Runbook。** 這個角色不再建立或刪除 Runbook、Runner 及其擁有者，並且只執行其標籤與範圍所及的 Runbook；建置 Runbook 的人需要 `RunbookAdmin`。帳務角色現在可以讀取帳務頁面：`BillingViewer` 只讀，`BillingMember` 還能下載發票並變更帳務聯絡資訊。
 - 哪些端點移動或收緊了，包含 `GET /api/global-config/license` 以及自架部署不再提供的授權伺服器端點，請見上方的 [API and endpoint changes](#api-and-endpoint-changes)。
 
 ### IPv6 監視器：Ping、Port 與 SSL

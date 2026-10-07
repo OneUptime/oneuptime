@@ -149,9 +149,9 @@ Si una clave se filtra, abre el agente en OneUptime y regenera su clave. La clav
 La gestión de agentes vive bajo el grupo de permisos existente de Runbooks:
 
 - `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — gestionar registros de agentes.
-- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (roles) — asignables a un equipo para conceder control total, uso diario o acceso de solo lectura, respectivamente. `RunbookAdmin` agrupa todos los permisos granulares anteriores.
+- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (roles) — `RunbookAdmin` construye los runbooks, sus reglas y los Runners en los que se ejecutan, y los ejecuta. `RunbookMember` abre los runbooks y sus ejecuciones y los ejecuta — inicia una ejecución, completa u omite sus pasos y la cancela —, pero no crea, cambia ni elimina ningún runbook ni Runner. `RunbookViewer` lee los runbooks y sus ejecuciones y no ejecuta nada. `RunbookAdmin` agrupa todos los permisos granulares anteriores.
 
-Los permisos para _disparar_ un runbook (y por tanto provocar el dispatch de pasos Bash y JavaScript) siguen siendo `CreateRunbookExecution` / `EditRunbookExecution`.
+Disparar un runbook (y por tanto provocar el dispatch de sus pasos Bash y JavaScript) requiere un rol que ejecute runbooks — `ProjectOwner`, `ProjectAdmin`, `ProjectMember`, `RunbookAdmin` o `RunbookMember` — o `CreateRunbookExecution`; completar, omitir o cancelar una ejecución también acepta `EditRunbookExecution`. Un rol solo ejecuta los runbooks que alcanza su ámbito.
 
 ## API hacia el agente
 

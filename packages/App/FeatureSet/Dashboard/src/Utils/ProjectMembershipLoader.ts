@@ -17,7 +17,8 @@ import PermissionGate from "Common/UI/Utils/PermissionGate";
  * A member holds an accepted invitation to at least one team of the project,
  * the server's rule. Asks made while a page renders are collected for one
  * tick and answered with ONE read of those people's memberships, and answers
- * are kept for a minute, so a table of fifty rows asks once.
+ * are kept for ten seconds: a table of fifty rows asks once, and a page
+ * opened after somebody joins, accepts or leaves shows them as they are now.
  *
  * The answer is null - "don't know, say nothing" - whenever the read could
  * not prove somebody's membership: before the permission snapshot has
@@ -65,7 +66,7 @@ export const PROJECT_MEMBERSHIP_READ_PERMISSIONS: ReadonlyArray<Permission> = [
   Permission.ReadProjectTeam,
 ];
 
-const ANSWER_TTL_IN_MS: number = 60 * 1000;
+export const ANSWER_TTL_IN_MS: number = 10 * 1000;
 
 export const readProjectMembers: ProjectMemberReader = async (data: {
   projectId: ObjectID;

@@ -56,6 +56,10 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  getRunbookRunGate,
+  getRunbookRunLockedReason,
+} from "../../../Components/Runbook/RunbookRunGate";
 
 function statusPill(status: RunbookExecutionStatus | undefined): ReactElement {
   switch (status) {
@@ -284,6 +288,14 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
     }
   };
 
+  /*
+   * Run Now is locked, saying why, for whoever holds none of the run
+   * permissions - a Runbook Viewer or a Viewer reads the runbook and runs
+   * nothing (Components/Runbook/RunbookRunGate).
+   */
+  const runLockedReason: string | undefined =
+    getRunbookRunLockedReason(getRunbookRunGate());
+
   const lastExec: RunbookExecution | null = stats.lastExecution;
   const lastStartedAt: Date | undefined =
     lastExec?.startedAt || lastExec?.createdAt;
@@ -322,7 +334,8 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
               onClick: () => {
                 void runNow();
               },
-              disabled: isRunning,
+              disabled: isRunning || Boolean(runLockedReason),
+              tooltip: runLockedReason,
             },
           ],
         }}

@@ -28,7 +28,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.WorkflowAdmin,
-    Permission.WorkflowMember,
     Permission.CreateWorkflowOwnerTeam,
   ],
   read: [
@@ -46,7 +45,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.WorkflowAdmin,
-    Permission.WorkflowMember,
     Permission.DeleteWorkflowOwnerTeam,
   ],
   update: [
@@ -54,7 +52,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.WorkflowAdmin,
-    Permission.WorkflowMember,
     Permission.EditWorkflowOwnerTeam,
   ],
 })
@@ -87,7 +84,6 @@ export default class WorkflowOwnerTeam extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.WorkflowAdmin,
-      Permission.WorkflowMember,
       Permission.CreateWorkflowOwnerTeam,
     ],
     read: [
@@ -129,7 +125,6 @@ export default class WorkflowOwnerTeam extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.WorkflowAdmin,
-      Permission.WorkflowMember,
       Permission.CreateWorkflowOwnerTeam,
     ],
     read: [
@@ -165,7 +160,6 @@ export default class WorkflowOwnerTeam extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.WorkflowAdmin,
-      Permission.WorkflowMember,
       Permission.CreateWorkflowOwnerTeam,
     ],
     read: [
@@ -208,7 +202,6 @@ export default class WorkflowOwnerTeam extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.WorkflowAdmin,
-      Permission.WorkflowMember,
       Permission.CreateWorkflowOwnerTeam,
     ],
     read: [
@@ -244,7 +237,6 @@ export default class WorkflowOwnerTeam extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.WorkflowAdmin,
-      Permission.WorkflowMember,
       Permission.CreateWorkflowOwnerTeam,
     ],
     read: [
@@ -286,7 +278,6 @@ export default class WorkflowOwnerTeam extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.WorkflowAdmin,
-      Permission.WorkflowMember,
       Permission.CreateWorkflowOwnerTeam,
     ],
     read: [
@@ -322,7 +313,6 @@ export default class WorkflowOwnerTeam extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.WorkflowAdmin,
-      Permission.WorkflowMember,
       Permission.CreateWorkflowOwnerTeam,
     ],
     read: [
@@ -365,7 +355,6 @@ export default class WorkflowOwnerTeam extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.WorkflowAdmin,
-      Permission.WorkflowMember,
       Permission.CreateWorkflowOwnerTeam,
     ],
     read: [

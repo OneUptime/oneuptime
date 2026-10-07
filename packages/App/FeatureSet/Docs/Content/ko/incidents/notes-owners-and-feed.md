@@ -142,6 +142,7 @@ OneUptime은 이 두 독자를 갈라 둡니다. **공개 노트**는 상태 페
 - **사람** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`.
 - **알림** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
 - **자동화** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
+- **화상 통화** — `VideoCallStarted`, `VideoCallFailed`: 인시던트를 위해 시작된 통화와 참여 링크, 또는 제공자가 통화를 시작하지 못한 이유입니다. [화상 통화](/docs/workspace-connections/video-calls)를 참조하세요.
 
 유형마다 아이콘이 달라서 긴 피드를 훑으면서도 잡담 사이에서 상태 변경을 골라낼 수 있습니다. AI가 만든 근본 원인 분석은 따로 표시되고 제한된 마크다운 모드로 렌더링됩니다.
 

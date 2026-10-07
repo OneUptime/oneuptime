@@ -256,6 +256,7 @@ import {
   PingMonitorOrigin,
   buildPingMonitorDescription,
 } from "../../../Utils/NetworkDiscovery/PingMonitorBuilder";
+import SnmpVendorTemplateUtil from "../../../Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
 
 /*
  * Below the imports on purpose: the jest.mock factories above are hoisted,
@@ -476,6 +477,11 @@ describe("the monitor create page opened from a network device", () => {
         hostname: true,
         monitoringMethod: true,
         probeId: true,
+        // The recommended pack adds a health criteria per SNMP table.
+        snmpTables: true,
+        oidTemplate: {
+          tables: true,
+        },
       });
     });
 
@@ -615,6 +621,26 @@ describe("the monitor create page opened from a network device", () => {
        * The Network Device shape keeps the project's default probes.
        */
       expect(form.initialValues["probes"]).toEqual([GLOBAL_PROBE_ID]);
+    });
+
+    test("seeds a per-row health criteria for each of the device's SNMP tables", async () => {
+      deviceRow!.snmpTables =
+        SnmpVendorTemplateUtil.getById("sophos-sfos")!.tables!;
+
+      const form: CapturedFormProps = await openForm();
+
+      const step: MonitorStep = MonitorSteps.fromJSON(
+        form.initialValues["monitorSteps"] as JSONObject,
+      ).data!.monitorStepsInstanceArray[0]!;
+
+      const names: Array<string | undefined> = (
+        step.data?.monitorCriteria?.data?.monitorCriteriaInstanceArray || []
+      ).map((instance: MonitorCriteriaInstance): string | undefined => {
+        return instance.data?.name;
+      });
+
+      expect(names).toContain("Device unreachable");
+      expect(names).toContain("IPsec Tunnels: row unhealthy");
     });
 
     test("lands on the monitor, and binds nothing", async () => {

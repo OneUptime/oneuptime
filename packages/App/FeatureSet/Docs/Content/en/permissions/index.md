@@ -36,7 +36,7 @@ A user is "in" a project when they are a member of **at least one team** in it. 
 - Invitations create a pending team member. The user only counts as a project member — and only gains any permission — **after they accept the invitation.**
 - **Invite User** starts on the project's members team: the team that holds `ProjectMember` for the whole project, which is **Members** unless you renamed it. Pick another team to give the person more or less access. Nothing is picked when you could not invite to that team yourself — inviting someone hands them the team's permissions, and you can only hand on permissions you hold — or when the project has no such team. The Admin Dashboard starts on the same team wherever an instance administrator adds someone to a project: **Invite User** on a project, **Add to Project** on a user and on several users at once, and the projects attached to a [global SSO provider](/docs/identity/global-sso).
 - Removing a user from every team in a project removes their access to it, from their next request on — including while they are signed in. Their account and their other projects are not affected. They are taken off the project's on-call schedules, escalation rules and overrides, off the roles of its open incidents and episodes, and off the owners of its resources; resolved incidents keep the record of who owned and ran them.
-- Someone who leaves a project stops getting its notifications. Their own notification methods, rules and settings for the project go with their last team — email, SMS, phone, WhatsApp, Telegram, push, webhook, Slack and Microsoft Teams, their email rollup and the rollup email not sent yet, their number for incoming calls and their shift reminders — so joining again starts from the defaults. Anything that still names them, such as the user an incoming call rule rings or an owner kept on a resolved incident, no longer notifies them: nothing is sent on a project's behalf to anyone who is not a member of it, and a pending invitation is not membership yet. Those places show **No longer a member** next to their name, so you can put someone else there. Someone invited who has not accepted yet shows **Invitation not accepted yet** instead.
+- Someone who leaves a project stops getting its notifications. Their own notification methods, rules and settings for the project go with their last team — email, SMS, phone, WhatsApp, Telegram, push, webhook, Slack and Microsoft Teams, their email rollup and the rollup email not sent yet, their number for incoming calls and their shift reminders — so joining again starts from the defaults. Anything that still names them, such as the user an incoming call rule rings or an owner kept on a resolved incident, no longer notifies them: nothing is sent on a project's behalf to anyone who is not a member of it, and a pending invitation is not membership yet. Those places show **No longer a member** next to their name, so you can put someone else there. Someone invited who has not accepted yet shows **Invitation not accepted yet** instead. If an override routes someone's pages to a person who has left, the person it covers is paged instead. Leaving also disconnects the MCP clients they connected to the project, and their personal on-call calendar link shows an empty calendar from then on. On OneUptime Cloud, someone who comes back through the project's single sign-on confirms it from their mailbox again.
 - If your project enforces SSO and a user has not authenticated through the identity provider yet, they are treated as an unauthorised SSO user and see nothing until they do. See [SSO](/docs/identity/sso).
 - With SCIM configured, your identity provider can create, update and remove users and their team memberships automatically. See [SCIM](/docs/identity/scim).
 
@@ -83,19 +83,25 @@ A permission is one capability. There are two ways to hand them out, and both li
 
 A role bundles a whole product area at one of three levels:
 
-- **Admin** — full control over that area, including its configuration (severities, states, templates).
-- **Member** — day-to-day work: create, edit and delete the resources, but not reconfigure the area.
+- **Admin** — what the Member does, and the area's own configuration, such as incident and alert severities and states, monitor statuses and maintenance states.
+- **Member** — day-to-day work: create, change and delete the area's resources, with their notes, owners and templates. For status pages and on-call, the Member does everything the Admin does.
 - **Viewer** — read-only.
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` and so on. Roles are what you want almost all of the time — they stay correct as OneUptime adds features, because a new monitor-related table is added to the existing monitor roles rather than needing a new grant from you.
 
-Workflows are the exception. A workflow runs its steps inside the project, so `WorkflowMember` opens workflows and their runs and runs them by hand, but does not create, change or delete them. `WorkflowAdmin` builds them. See [Workflow permissions](/docs/workflows/configuration#permissions).
+Workflows and runbooks are the exception. Both run code in your project — a workflow its steps, a runbook its scripts on your Runners — so `WorkflowMember` opens workflows and their runs and runs them by hand, and `RunbookMember` opens runbooks and their runs and runs them: it starts a run, completes or skips its steps and cancels it. Neither creates, changes or deletes what it runs; `WorkflowAdmin` and `RunbookAdmin` build them. A role runs only the runbooks its scope reaches, so a `RunbookMember` limited to some labels runs the runbooks that carry them. See [Workflow permissions](/docs/workflows/configuration#permissions) and [Runbook permissions](/docs/runbooks/configuration#permissions).
+
+An area's rules (label, owner, on-call, grouping and reminder rules), custom fields, SLAs and secrets are project configuration: they take `ProjectAdmin`, whatever area role someone holds. So do API keys, teams and their permissions, labels, SSO and domains — the Settings roles look after the project's services, probes, infrastructure and integrations, not who may do what.
+
+Billing has three roles of its own. `BillingViewer` reads the project's billing — the plan and subscription, invoices, usage, balances, AI credits, payment methods and the billing contact details — and changes nothing. `BillingMember` also downloads invoices and changes the billing contact details. `BillingAdmin` does what `BillingMember` does and turns SMS, phone calls, WhatsApp and Telegram on and off. Changing the plan, payment methods or balances, and paying invoices, takes `ProjectOwner` or **Manage Billing**; on the billing pages those buttons are locked for everyone else, and say who may.
 
 All {{PERMISSION_ROLE_COUNT}} roles are listed in the [Permission Reference](/docs/permissions/reference).
 
 ### Granular permissions
 
 Every individual capability is also assignable on its own — `CreateProjectMonitor`, `ReadProjectIncident`, `DeleteProjectStatusPage`, and {{PERMISSION_TOTAL_COUNT}} others. Use these when a role is too broad and you need to hand out exactly one thing.
+
+A permission to change or delete something reaches only what you may also read, so give the matching read permission with it: `EditProjectIncident` changes no incident without `ReadProjectIncident`. A record read through another one, such as an incident's note, also needs a permission to read that other record: `ReadIncidentInternalNote` reaches no note without one to read incidents. The roles hold both already.
 
 These are also the keys you use when creating API keys, and the ones the API and the Terraform provider expect.
 
@@ -151,6 +157,8 @@ Labels are project-wide tags you attach to resources. They serve two purposes: f
 
 A label restriction is satisfied if the resource carries **at least one** of the labels on the permission. A resource with no labels at all matches no label-restricted permission.
 
+A record with no labels of its own, such as an incident's note, a status page announcement or an AI insight about a service, carries the labels of the records it belongs to or is about. A permission restricted to labels reaches it when one of those records carries one of the permission's labels, and a block with labels takes it away when one of them carries a blocked label, for reading, changing and deleting alike. A record that is about none of them, such as an AI insight about no service, belongs to the project: a label restriction does not narrow it, and a block with labels does not take it away.
+
 Where to find it: **Settings → Labels**. A new label's color is already picked when its form opens, one the labels listed on the page don't use yet; pick another if you like.
 
 ## Telemetry
@@ -162,6 +170,8 @@ Logs, traces, metrics, exceptions, profiles and session replays belong to the re
 - **Labels** reads the telemetry of the resources carrying one of the permission's labels.
 
 A block with labels on a telemetry permission leaves out the telemetry of the resources carrying those labels, whatever else you hold. This holds wherever telemetry is read: the explorers and their charts, filters and attribute lists, exports, session replays, and what the AI assistant reads for you. The list of metric names shows the metrics a service you may read reports, and the metrics no service reports, such as host and cluster metrics. If you may also read the telemetry of other kinds of resources, such as hosts or clusters, it shows every metric name.
+
+Monitor logs, SLO history, network flows and Kubernetes cost allocations are read the same way, through the monitor, SLO, network device or cluster they belong to: Owned and Labels reach the rows of the records you may read, and a block with labels leaves out the rows of the records carrying those labels. The audit log and threat intelligence indicators are read across the project by whoever may read them.
 
 ## API keys
 
@@ -192,12 +202,13 @@ Where to find it: **Settings → API Keys**. See also the [API Reference](/docs/
 
 For a signed-in user, in order:
 
-1. Find the teams the user belongs to in this project, counting only accepted invitations.
+1. Find the teams the user belongs to in this project, counting only accepted invitations. A request reaches the records of this project only: a record of another project, named by its id or in a filter, is answered as if it did not exist.
 2. Collect every permission row on those teams — allow and block, each with its labels and scope.
 3. Check the block list first. A block with no labels on any permission the target table accepts for this operation rejects the request outright, whichever team it is on.
 4. Check the allow list. The request needs at least one permission that the target table accepts for this operation. On an operational resource — a monitor, an incident, a dashboard and the like — the matching **All Operational Resources** permission (Create, Read, Edit or Delete) counts too, unless it is blocked itself.
-5. Apply scope. Owned-scoped grants narrow the query to owned resources; label-scoped grants narrow it to matching labels. If any other grant for the same operation is broader, the broader one wins.
-6. Apply label blocks. A block with labels rejects the request if the target resource carries one of them. When a record has no labels of its own, such as an incident note or a status page announcement, a block with labels on reading it leaves it out if a record it belongs to carries one of those labels.
+5. Apply scope. Owned-scoped grants narrow the query to owned resources; label-scoped grants narrow it to matching labels. If any other grant for the same operation is broader, the broader one wins. A record with no labels of its own, such as an incident note, matches a label-scoped grant when one of the records it belongs to carries one of the grant's labels.
+6. Apply label blocks. A block with labels rejects the request if the target resource carries one of them. When a record has no labels of its own, such as an incident note or a status page announcement, a block with labels leaves it out of reads, changes and deletes if a record it belongs to carries one of those labels. A list of records from all of your projects at once, such as the incidents on your home page, narrows each project's records by your blocks and grants in that project.
+7. Keep changes and deletes to what you may read. A change or a delete is narrowed by your read permissions as well as by the permission for the change: a record you may not read — outside your labels or owners, or carrying a label a block on reading takes away — is not one you may change or delete, and a block with no labels on reading a kind of record takes changing and deleting it away too. A record read through another one, such as an incident's note or a status page announcement, is reached only through a record you may read: with no permission to read incidents, a permission on notes reaches no note, and a block with labels on reading incidents leaves out the notes of the incidents carrying them. A change or a delete of one record, named by its ID, that reaches nothing is answered as if the record did not exist (`404`) when you may not read it, and refused when you may read it but not change it.
 
 Every field of a record is read with the record's own read permission: a permission for another kind of record never opens it. Some fields are narrower on purpose. Secrets are read only by people who may edit or administer the record they belong to, such as a monitor's incoming request and incoming email keys and its server agent key, or a workflow's webhook and incoming email keys. Watching a session replay's recording takes **Watch Session Replays**, not just **List Session Replays**. Telemetry is read signal by signal: **Read Telemetry Service Log** reads logs, **Read Telemetry Service Traces** reads traces, and **Read Telemetry Service Metrics** reads metrics, metric charts included.
 
@@ -205,7 +216,9 @@ Fields follow the same rule. A block with no labels on a field's permission take
 
 The same rule decides everything else that asks whether you hold a permission: actions that are not a plain read or write, such as adding SMS, call or AI credit, paying an invoice or testing a notification rule, and the buttons OneUptime shows you. A button you may not use is shown locked and says why; when a block on one of your teams is the reason, it names the blocked permission.
 
-Live updates follow the same rule. When a record is created, changed or deleted, OneUptime tells the open pages of the people who may read that record, and nobody else. Whatever limits what you read limits your live updates too: labels, owners, a block with labels, a private incident or someone else's AI conversation. When a change takes a record away from you, such as making it private, your open pages are told too, so they stop showing it. A change to your permissions reaches your open pages within 30 seconds.
+Live updates follow the same rule. When a record is created, changed or deleted, OneUptime tells the open pages of the people who may read that record, and nobody else. Whatever limits what you read limits your live updates too: labels, owners, a block with labels, a private incident or someone else's AI conversation. When a change takes a record away from you, such as making it private, your open pages are told too, so they stop showing it. A change to your permissions, a block, or no longer being a master admin reaches your open pages at once.
+
+Live updates also end with the sign-in that opened them. Signing out, changing your password or being blocked stops the live updates of your open pages at once. An open page renews its sign-in every 15 minutes and picks its live updates back up; when the sign-in cannot be renewed, it takes you to the sign-in page. A project that requires SSO gives live updates only to pages signed in with SSO, as it does with everything else.
 
 Every logged-in user additionally holds a small set of automatic permissions that cover things like reading their own profile and their own notification rules. These are not admin permissions and do not unlock anyone else's data.
 
@@ -221,7 +234,7 @@ Resolved permissions are cached per user and project, and refreshed when team me
 
 **A CI pipeline that only reports deployments.** Create an API key with **Choose permissions later**, then add just the granular permissions it needs on its page — no roles.
 
-**Someone who should not see billing.** Do not add them to the Owners team. `ProjectAdmin` already excludes billing.
+**Someone who should not change billing or see invoices.** Give them `ProjectMember`, not `ProjectAdmin`: a project admin cannot change the plan, payment methods or balances, but reads and downloads invoices. To let someone read the billing pages without changing anything, give them `BillingViewer`.
 
 ## Next
 

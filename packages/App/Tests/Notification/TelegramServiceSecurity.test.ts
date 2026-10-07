@@ -63,6 +63,8 @@ jest.mock("Common/Server/Services/ProjectService", () => {
       findOneById: jest.fn(),
       sendEmailToProjectOwners: jest.fn(),
       updateOneById: jest.fn(),
+      claimSmsOrCallLowBalanceNotice: jest.fn(),
+      deductSmsOrCallBalanceInUSDCents: jest.fn(),
     },
   };
 });
@@ -287,15 +289,21 @@ describe("TelegramService credential containment", () => {
         }),
       }),
     );
-    expect(ProjectService.updateOneById).toHaveBeenCalledTimes(1);
-    expect(ProjectService.updateOneById).toHaveBeenCalledWith({
-      id: PROJECT_ID,
-      data: {
-        smsOrCallCurrentBalanceInUSDCents: 9_999,
-        notEnabledSmsOrCallNotificationSentToOwners: false,
-      },
-      props: { isRoot: true },
+    /*
+     * Paid once, in one statement that takes the cost from whatever the
+     * balance is now (it used to write back the balance it read, less the
+     * cost, which lost whatever else wrote it meanwhile).
+     */
+    expect(
+      ProjectService.deductSmsOrCallBalanceInUSDCents,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      ProjectService.deductSmsOrCallBalanceInUSDCents,
+    ).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      amountInUSDCents: 1,
     });
+    expect(ProjectService.updateOneById).not.toHaveBeenCalled();
     expect(TelegramLogService.create).toHaveBeenCalledTimes(1);
     const persistedLog: TelegramLog = (
       TelegramLogService.create as unknown as jest.Mock
@@ -310,6 +318,9 @@ describe("TelegramService credential containment", () => {
     expect(ProjectService.findOneById).not.toHaveBeenCalled();
     expect(NotificationService.rechargeIfBalanceIsLow).not.toHaveBeenCalled();
     expect(ProjectService.updateOneById).not.toHaveBeenCalled();
+    expect(
+      ProjectService.deductSmsOrCallBalanceInUSDCents,
+    ).not.toHaveBeenCalled();
     expect(ProjectService.sendEmailToProjectOwners).not.toHaveBeenCalled();
     expect(API.post).toHaveBeenCalledTimes(1);
     expect(TelegramLogService.create).not.toHaveBeenCalled();

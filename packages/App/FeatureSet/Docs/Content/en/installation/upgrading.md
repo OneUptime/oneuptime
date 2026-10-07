@@ -493,6 +493,101 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   permissions, and they still run AI code fixes and AI remediation commands.
   A Runner image older than this release still prints "Project Settings >
   Runners" in its log messages; read that as Runbooks → Runners.
+- **Live updates end with the sign-in that opened them, and ask what every
+  request asks.** An open page's live updates - the counters in the header,
+  live logs, the AI chat - now stop when its sign-in does: signing out,
+  changing the password, being blocked, or the 15-minute access token
+  running out. A minute before the token runs out the page renews its
+  sign-in and reconnects on its own, so its live updates carry on; a
+  sign-in that cannot be renewed takes the person to the sign-in page, as
+  before. A project that requires SSO, or an instance that does, gives live
+  updates only to pages signed in with SSO, and sends a page without one
+  to sign in with SSO, as its requests already did - including pages
+  already open when the requirement is turned on. A change to someone's
+  permissions, a block, or no longer being a master admin reaches their
+  open pages at once, on every app server rather than only the one that
+  made the change: each app server keeps one more connection to Valkey,
+  subscribed to the `oneuptime:realtime:access-changes` channel. When that
+  channel cannot be reached, a server catches up within 30 seconds for
+  permissions, a minute for a block, and the access token's 15 minutes for
+  a session or a newly required SSO sign-in. See
+  [Users, Teams & Permissions](/docs/permissions/index).
+- **A record you may not read can no longer be changed or deleted, and a
+  change by ID that reaches nothing says so.** A change or a delete - from
+  the dashboard, the API, Terraform, the MCP tools or a workflow - now
+  reaches only the records its caller may read, and a record read through
+  another one only through a record its caller may read. The roles
+  OneUptime ships work as before: each one that may change or delete a kind
+  of record may read it, alert roles still see which incidents their alerts
+  are linked to, the Telemetry roles still read metric pipeline rules and
+  source maps, and everyone still reads the log of the notifications sent
+  to them. What changes is for custom roles and API keys built from single
+  permissions:
+  - A permission to change or delete a kind of record needs one to read it:
+    `EditProjectIncident` without a permission to read incidents changes no
+    incident. A role whose reads are limited to some labels or owners
+    changes and deletes only those records, however wide its edit or delete
+    permissions are, and a block on reading takes changing and deleting
+    away too.
+  - A record read through another one - an incident's or alert's notes, a
+    status page's announcements and domains, an on-call policy's escalation
+    rules and the like - needs a permission to read that other record:
+    `ReadIncidentInternalNote` without one to read incidents now reaches no
+    note, where it reached the notes of every incident. A block with labels
+    on reading incidents leaves out the notes of the incidents carrying
+    them.
+  - Changing or deleting one record by its ID (`PUT` or
+    `DELETE /api/<resource>/<id>`, and the `update-item` and `delete-item`
+    routes) answers `404` when the record does not exist or the caller may
+    not read it, and `422` when the caller may read it but not change it.
+    A delete used to answer `200` with nothing deleted, and an update `422`
+    in both cases. Terraform reads a `404` on destroy as already gone.
+
+  Give a custom role or an API key the read permission beside each edit or
+  delete permission, and the parent's read permission beside a note's or an
+  announcement's. A Project Admin API key now also reads the project's SSO
+  and OIDC providers it could already change. See
+  [Changing or deleting a record you may not read](/docs/api-reference/api-reference#changing-or-deleting-a-record-you-may-not-read)
+  and [Users, Teams & Permissions](/docs/permissions/index).
+- **Runbook Member runs runbooks and builds none.** `RunbookMember` could
+  create and delete runbooks, Runners and their owners, though not edit
+  them. It now opens runbooks and their runs and runs them - starts a run,
+  completes or skips its steps, cancels it - and creates, changes and
+  deletes none of them: give `RunbookAdmin` to the people who build
+  runbooks. A role also runs only the runbooks its labels and owned scope
+  reach, read with that role's own grant: before, a `RunbookMember` limited
+  to some labels could run every runbook in the project, from the
+  runbook's page, its API or by approving a remediation suggestion.
+  **Run Now** is locked, with the reason in its tooltip, for whoever cannot
+  run runbooks. `WorkflowMember` no longer adds or removes a workflow's
+  owners. See [Permissions](/docs/runbooks/configuration#permissions).
+- **The billing roles do what they say.** `BillingViewer` reads the
+  project's billing pages and records - the plan and subscription,
+  invoices, usage, balances, AI credits, payment methods and the billing
+  contact details - and changes nothing. `BillingMember` also downloads
+  invoices and changes the billing contact details, and `BillingAdmin`
+  does what `BillingMember` does and switches SMS, phone calls, WhatsApp
+  and Telegram. Before, a team or an API key with only `BillingViewer` or
+  `BillingMember` could read none of it, and the billing page failed for
+  everyone but owners. **Manage Billing** now reads and pays invoices too.
+  Changing the plan, payment methods or balances, and paying invoices,
+  still takes `ProjectOwner` or **Manage Billing**: those buttons are
+  locked for everyone else, saying who may.
+- **The owners' emails follow team blocks.** The emails a project's owners
+  get - plan changes, the plan cut-off, AI limits and credits, low
+  balances - go to the members who hold `ProjectOwner`, and no longer to
+  someone a team blocks from it. A pending invitation is not membership.
+- **Every role's description says what the role does.** The role picker's
+  descriptions were checked against each role's permissions. The ones
+  that promised more than the role does - `SettingsAdmin`'s API keys,
+  teams, labels, SSO and domains, `TelemetryAdmin`'s pipelines and
+  ingestion keys, `MonitorAdmin`'s probes and secrets, `StatusPageAdmin`'s
+  SSO - now say what it does, and the ones that said too little, such as
+  `ProjectMember`'s "can view most resources", say what it changes. No
+  other role lost anything it could do: only `RunbookMember` and
+  `WorkflowMember` above did. **Create Team** is no longer offered to
+  `ProjectMember`, `SettingsAdmin` and `SettingsMember`: a team's name
+  takes `ProjectAdmin` or **Create Team**, so they could never create one.
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

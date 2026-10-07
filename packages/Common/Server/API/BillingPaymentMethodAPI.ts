@@ -18,22 +18,21 @@ import BaseAPI from "./BaseAPI";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
-import Permission from "../../Types/Permission";
+import {
+  PAYMENT_METHOD_ADD_PERMISSIONS,
+  PAYMENT_METHOD_SET_DEFAULT_PERMISSIONS,
+} from "../../Utils/Project/ProjectBilling";
 import BillingPaymentMethod from "../../Models/DatabaseModels/BillingPaymentMethod";
 import Project from "../../Models/DatabaseModels/Project";
 
 /*
- * Who may add a card, and so who may make one the default: the dashboard makes
- * a newly added card the default straight after adding it, so anyone allowed
- * to add one has to be allowed to finish that flow. Editing a payment method
- * is what choosing the default is, so that permission is accepted too.
+ * Who may add a card (PAYMENT_METHOD_ADD_PERMISSIONS), and who may make one
+ * the default (PAYMENT_METHOD_SET_DEFAULT_PERMISSIONS): the dashboard makes a
+ * newly added card the default straight after adding it, so anyone allowed
+ * to add one has to be allowed to finish that flow, and editing a payment
+ * method is what choosing the default is. Both decide which card is
+ * charged, so neither is a billing role's (Utils/Project/ProjectBilling).
  */
-const MANAGE_PAYMENT_METHOD_PERMISSIONS: Array<Permission> = [
-  Permission.ProjectOwner,
-  Permission.ManageProjectBilling,
-  Permission.CreateBillingPaymentMethod,
-  Permission.EditBillingPaymentMethod,
-];
 
 export default class UserAPI extends BaseAPI<
   BillingPaymentMethod,
@@ -61,11 +60,10 @@ export default class UserAPI extends BaseAPI<
           }
 
           if (
-            !CallerPermission.holdsAnyOf(req as OneUptimeRequest, [
-              Permission.ProjectOwner,
-              Permission.ManageProjectBilling,
-              Permission.CreateBillingPaymentMethod,
-            ])
+            !CallerPermission.holdsAnyOf(
+              req as OneUptimeRequest,
+              PAYMENT_METHOD_ADD_PERMISSIONS,
+            )
           ) {
             throw new BadDataException(
               "Only project owners or members with Manage Billing access can add payment methods.",
@@ -137,7 +135,7 @@ export default class UserAPI extends BaseAPI<
           if (
             !CallerPermission.holdsAnyOf(
               req as OneUptimeRequest,
-              MANAGE_PAYMENT_METHOD_PERMISSIONS,
+              PAYMENT_METHOD_SET_DEFAULT_PERMISSIONS,
             ) &&
             !(req as OneUptimeRequest).userAuthorization?.isMasterAdmin
           ) {

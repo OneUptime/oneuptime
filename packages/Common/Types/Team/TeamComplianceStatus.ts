@@ -81,5 +81,12 @@ export interface TeamComplianceStatusJSON {
    * Every rule on the team, enabled or not, in the order they were created.
    */
   complianceSettings: Array<TeamComplianceRuleJSON>;
+  /*
+   * The team's members: the people who have accepted their invitation to
+   * it. Somebody invited who has not accepted yet is not on the team's
+   * roster and is never paged through it, so they are not checked.
+   */
   userComplianceStatuses: Array<TeamMemberComplianceJSON>;
+  // How many people invited to the team have not accepted yet.
+  invitedMemberCount?: number | undefined;
 }

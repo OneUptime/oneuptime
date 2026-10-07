@@ -149,9 +149,9 @@ Runbook execution को रद्द करना (execution view या API �
 एजेंट का प्रबंधन मौजूदा Runbooks permission group के अंतर्गत आता है:
 
 - `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — एजेंट records का प्रबंधन।
-- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (भूमिकाएँ) — किसी टीम को असाइन करें ताकि क्रमशः पूर्ण नियंत्रण, रोज़मर्रा उपयोग या केवल-पठन पहुँच मिले। `RunbookAdmin` ऊपर की सभी सूक्ष्म अनुमतियों को bundle करता है।
+- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (भूमिकाएँ) — `RunbookAdmin` Runbook, उनके नियम और वे Runner बनाता है जिन पर वे चलते हैं, और उन्हें चलाता है। `RunbookMember` Runbook और उनके रन खोलता है और उन्हें चलाता है — रन शुरू करता है, उसके चरण पूरे करता है या छोड़ता है और उसे रद्द करता है — पर कोई Runbook या Runner बनाता, बदलता या हटाता नहीं है। `RunbookViewer` Runbook और उनके रन पढ़ता है और कुछ नहीं चलाता। `RunbookAdmin` ऊपर की सभी विस्तृत अनुमतियों को एक साथ रखता है।
 
-Runbook को _trigger_ करने (और इस तरह Bash व JavaScript steps dispatch करने) की अनुमतियाँ अभी भी `CreateRunbookExecution` / `EditRunbookExecution` हैं।
+Runbook ट्रिगर करने (और इस तरह उसके Bash और JavaScript चरण भेजने) के लिए ऐसी भूमिका चाहिए जो Runbook चलाती हो — `ProjectOwner`, `ProjectAdmin`, `ProjectMember`, `RunbookAdmin` या `RunbookMember` — या `CreateRunbookExecution`; किसी रन को पूरा करने, छोड़ने या रद्द करने के लिए `EditRunbookExecution` भी स्वीकार है। कोई भूमिका केवल वही Runbook चलाती है जिन तक उसका दायरा पहुँचता है।
 
 ## एजेंट-facing API
 

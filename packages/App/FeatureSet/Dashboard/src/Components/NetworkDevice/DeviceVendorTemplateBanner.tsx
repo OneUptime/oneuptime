@@ -30,6 +30,7 @@ const DeviceVendorTemplateBanner: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [sysObjectId, setSysObjectId] = useState<string | undefined>(undefined);
+  const [sysDescr, setSysDescr] = useState<string | undefined>(undefined);
   const [isDismissed, setIsDismissed] = useState<boolean>(false);
 
   useEffect(() => {
@@ -39,10 +40,13 @@ const DeviceVendorTemplateBanner: FunctionComponent<ComponentProps> = (
         id: props.modelId,
         select: {
           sysObjectId: true,
+          // Tells platforms that share an enterprise arc apart.
+          sysDescr: true,
         },
       });
 
       setSysObjectId(item?.sysObjectId || undefined);
+      setSysDescr(item?.sysDescr || undefined);
     };
 
     fetchDevice().catch(() => {
@@ -54,7 +58,10 @@ const DeviceVendorTemplateBanner: FunctionComponent<ComponentProps> = (
   }, [props.modelId]);
 
   const template: SnmpVendorTemplate | undefined =
-    SnmpVendorTemplateUtil.matchBySysObjectId(sysObjectId);
+    SnmpVendorTemplateUtil.matchDevice({
+      sysObjectId: sysObjectId,
+      sysDescr: sysDescr,
+    });
 
   if (!template || isDismissed) {
     return <></>;

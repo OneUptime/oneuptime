@@ -8,11 +8,15 @@ import path from "path";
  * read follows: a record's update reaches only the open pages of people who
  * may read that record (Common/Server/Utils/Realtime), an update that takes
  * the record away from someone reaches theirs too (DatabaseService
- * .getRealtimeAccessBeforeUpdate), and a change to someone's permissions
- * reaches their open pages within 30 seconds
- * (RealtimeReaders.ENTRY_TTL_IN_MS). This pins the English paragraph, its
- * place in "How OneUptime decides whether a request is allowed", and that
- * every language has it in the same place.
+ * .getRealtimeAccessBeforeUpdate), and a change to someone's permissions, a
+ * block or losing master admin reaches their open pages at once
+ * (RealtimeAccessChanges, on every server). The next paragraph says live
+ * updates end with the sign-in that opened them - signing out, a password
+ * change, a block, and the 15-minute access token the page renews
+ * (RealtimeSessions) - and that a project requiring SSO gives them only to
+ * pages signed in with SSO (RealtimeJoinAccess). This pins both English
+ * paragraphs, their place in "How OneUptime decides whether a request is
+ * allowed", and that every language has them in the same place.
  */
 
 const CONTENT_DIR: string = path.resolve(
@@ -23,7 +27,10 @@ const CONTENT_DIR: string = path.resolve(
 const LANGUAGES: Array<string> = [...SUPPORTED_DOCS_LANGUAGE_CODES];
 
 const ENGLISH_PARAGRAPH: string =
-  "Live updates follow the same rule. When a record is created, changed or deleted, OneUptime tells the open pages of the people who may read that record, and nobody else. Whatever limits what you read limits your live updates too: labels, owners, a block with labels, a private incident or someone else's AI conversation. When a change takes a record away from you, such as making it private, your open pages are told too, so they stop showing it. A change to your permissions reaches your open pages within 30 seconds.";
+  "Live updates follow the same rule. When a record is created, changed or deleted, OneUptime tells the open pages of the people who may read that record, and nobody else. Whatever limits what you read limits your live updates too: labels, owners, a block with labels, a private incident or someone else's AI conversation. When a change takes a record away from you, such as making it private, your open pages are told too, so they stop showing it. A change to your permissions, a block, or no longer being a master admin reaches your open pages at once.";
+
+const ENGLISH_SESSION_PARAGRAPH: string =
+  "Live updates also end with the sign-in that opened them. Signing out, changing your password or being blocked stops the live updates of your open pages at once. An open page renews its sign-in every 15 minutes and picks its live updates back up; when the sign-in cannot be renewed, it takes you to the sign-in page. A project that requires SSO gives live updates only to pages signed in with SSO, as it does with everything else.";
 
 function readPage(language: string): string {
   return fs.readFileSync(
@@ -90,14 +97,22 @@ describe("Users, Teams & Permissions: live updates follow the read rule", () => 
     expect(englishParagraphs[index - 1]).toMatch(
       /^The same rule decides everything else/,
     );
+    // ...then how live updates end with the sign-in...
+    expect(englishParagraphs[index + 1]).toBe(ENGLISH_SESSION_PARAGRAPH);
     // ...and before the automatic permissions and the cache.
-    expect(englishParagraphs[index + 1]).toMatch(
+    expect(englishParagraphs[index + 2]).toMatch(
       /^Every logged-in user additionally holds/,
     );
   });
 
+  test("no paragraph still promises the old 30-second wait for a permission change", () => {
+    expect(english).not.toContain(
+      "A change to your permissions reaches your open pages within 30 seconds.",
+    );
+  });
+
   test.each(LANGUAGES)(
-    "%s has the paragraph in the same place, translated",
+    "%s has both paragraphs in the same place, translated",
     (language: string) => {
       const paragraphs: Array<string> = decisionParagraphs(readPage(language));
       const index: number = englishParagraphs.indexOf(ENGLISH_PARAGRAPH);
@@ -107,15 +122,22 @@ describe("Users, Teams & Permissions: live updates follow the read rule", () => 
         englishParagraphs.length,
       ]);
 
-      // It names the 30 seconds a permission change takes to arrive.
+      // A permission change no longer waits 30 seconds anywhere.
       expect([language, paragraphs[index]]).toEqual([
         language,
-        expect.stringContaining("30"),
+        expect.not.stringContaining("30"),
+      ]);
+
+      // The sign-in paragraph names the 15 minutes and SSO.
+      expect([language, paragraphs[index + 1]]).toEqual([
+        language,
+        expect.stringMatching(/15[\s\S]*SSO|SSO[\s\S]*15/),
       ]);
 
       if (language !== "en") {
         expect(paragraphs[index]).not.toBe(ENGLISH_PARAGRAPH);
         expect(paragraphs[index]).toContain("OneUptime");
+        expect(paragraphs[index + 1]).not.toBe(ENGLISH_SESSION_PARAGRAPH);
       }
     },
   );

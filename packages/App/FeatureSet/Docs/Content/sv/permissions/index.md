@@ -35,7 +35,7 @@ En användare är "i" ett projekt när hen är medlem i **minst ett team** där.
 
 - Inbjudningar skapar en väntande teammedlem. Användaren räknas som projektmedlem — och får någon behörighet alls — **först efter att ha accepterat inbjudan.**
 - Tar du bort en användare från alla team i ett projekt förlorar hen åtkomsten till projektet.
-- Den som lämnar ett projekt får inte längre dess aviseringar. Personens egna aviseringsmetoder, -regler och -inställningar för projektet tas bort tillsammans med det sista teamet — e-post, SMS, samtal, WhatsApp, Telegram, push, webhook, Slack och Microsoft Teams, e-postsammanfattningen och det ännu inte skickade e-postmeddelandet, numret för inkommande samtal och jourpåminnelserna —, så den som går med igen börjar från standardinställningarna. Det som fortfarande nämner personen, till exempel användaren som en regel för inkommande samtal ringer eller en ägare som behålls på en löst incident, aviserar inte längre personen: ingenting skickas för ett projekts räkning till någon som inte är medlem, och en väntande inbjudan är ännu inget medlemskap. De ställena visar **Inte längre medlem** bredvid namnet, så att du kan sätta in någon annan. Den som är inbjuden och inte har accepterat än visar i stället **Inbjudan inte accepterad än**.
+- Den som lämnar ett projekt får inte längre dess aviseringar. Personens egna aviseringsmetoder, -regler och -inställningar för projektet tas bort tillsammans med det sista teamet — e-post, SMS, samtal, WhatsApp, Telegram, push, webhook, Slack och Microsoft Teams, e-postsammanfattningen och det ännu inte skickade e-postmeddelandet, numret för inkommande samtal och jourpåminnelserna —, så den som går med igen börjar från standardinställningarna. Det som fortfarande nämner personen, till exempel användaren som en regel för inkommande samtal ringer eller en ägare som behålls på en löst incident, aviserar inte längre personen: ingenting skickas för ett projekts räkning till någon som inte är medlem, och en väntande inbjudan är ännu inget medlemskap. De ställena visar **Inte längre medlem** bredvid namnet, så att du kan sätta in någon annan. Den som är inbjuden och inte har accepterat än visar i stället **Inbjudan inte accepterad än**. Om en åsidosättning skickar någons larm vidare till en person som har lämnat projektet larmas i stället den som åsidosättningen täcker. Att lämna projektet kopplar också bort de MCP-klienter som personen har anslutit till projektet, och personens personliga länk till jourkalendern visar därefter en tom kalender. På OneUptime Cloud bekräftar den som kommer tillbaka via projektets enkel inloggning (SSO) den på nytt från sin e-postkorg.
 - Om projektet kräver SSO och en användare ännu inte autentiserat sig via identitetsleverantören behandlas hen som obehörig SSO-användare och ser ingenting förrän det skett. Se [SSO](/docs/identity/sso).
 - Med SCIM konfigurerat kan din identitetsleverantör skapa, uppdatera och ta bort användare och deras teammedlemskap automatiskt. Se [SCIM](/docs/identity/scim).
 
@@ -71,19 +71,25 @@ En behörighet är en enskild förmåga. Det finns två sätt att dela ut dem, b
 
 En roll samlar ett helt produktområde på en av tre nivåer:
 
-- **Admin** — full kontroll över området, inklusive dess konfiguration (allvarlighetsgrader, tillstånd, mallar).
-- **Member** — det dagliga arbetet: skapa, redigera och ta bort resurserna, men inte konfigurera om området.
+- **Admin** — det som Member gör, plus områdets egen konfiguration, som allvarlighetsgrader och tillstånd för incidenter och larm, monitorstatusar och underhållstillstånd.
+- **Member** — det dagliga arbetet: skapa, ändra och ta bort områdets resurser med deras anteckningar, ägare och mallar. För statussidor och jour kan Member allt som Admin kan.
 - **Viewer** — endast läsning.
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` och så vidare. Roller är nästan alltid rätt val — de förblir korrekta när OneUptime får nya funktioner, eftersom en ny övervakarrelaterad tabell läggs till de befintliga övervakarrollerna i stället för att kräva en ny tilldelning av dig.
 
-Arbetsflöden är undantaget. Ett arbetsflöde kör sina steg inne i projektet, så `WorkflowMember` öppnar arbetsflöden och deras körningar och kör dem för hand, men skapar, ändrar eller tar inte bort dem. `WorkflowAdmin` bygger dem. Se [Konfiguration av arbetsflöden](/docs/workflows/configuration).
+Arbetsflöden och runbooks är undantaget. Båda kör kod i ditt projekt — ett arbetsflöde sina steg, en runbook sina skript på dina Runners —, så `WorkflowMember` öppnar arbetsflöden och deras körningar och kör dem manuellt, och `RunbookMember` öppnar runbooks och deras körningar och kör dem: den startar en körning, slutför eller hoppar över dess steg och avbryter den. Ingen av dem skapar, ändrar eller tar bort det den kör; `WorkflowAdmin` och `RunbookAdmin` bygger dem. En roll kör bara de runbooks som dess omfattning når: en `RunbookMember` som är begränsad till några etiketter kör de runbooks som har dem. Se [Konfiguration av arbetsflöden](/docs/workflows/configuration) och [Konfiguration av runbooks](/docs/runbooks/configuration).
+
+Ett områdes regler (etikett-, ägar-, jour-, grupperings- och påminnelseregler), anpassade fält, SLA:er och hemligheter är projektkonfiguration: de kräver `ProjectAdmin`, oavsett vilken områdesroll man har. Detsamma gäller API-nycklar, team och deras behörigheter, etiketter, SSO och domäner — Settings-rollerna sköter projektets tjänster, prober, infrastruktur och integrationer, inte vem som får göra vad.
+
+Fakturering har tre egna roller. `BillingViewer` läser projektets fakturering — planen och prenumerationen, fakturor, användning, saldon, AI-krediter, betalningsmetoder och faktureringskontaktuppgifterna — och ändrar ingenting. `BillingMember` laddar dessutom ned fakturor och ändrar faktureringskontaktuppgifterna. `BillingAdmin` gör det som `BillingMember` gör och slår på och av sms, telefonsamtal, WhatsApp och Telegram. Att ändra planen, betalningsmetoder eller saldon och att betala fakturor kräver `ProjectOwner` eller **Manage Billing**; på faktureringssidorna är de knapparna låsta för alla andra och säger vem som får använda dem.
 
 Alla {{PERMISSION_ROLE_COUNT}} roller finns i [Behörighetsreferensen](/docs/permissions/reference).
 
 ### Granulära behörigheter
 
 Varje enskild förmåga går också att tilldela för sig — `CreateProjectMonitor`, `ReadProjectIncident`, `DeleteProjectStatusPage` och {{PERMISSION_TOTAL_COUNT}} till. Använd dem när en roll är för bred och du behöver ge exakt en sak.
+
+En behörighet att ändra eller ta bort något når bara det du också får läsa, så ge motsvarande läsbehörighet tillsammans med den: `EditProjectIncident` ändrar ingen incident utan `ReadProjectIncident`. En post som läses genom en annan, till exempel en anteckning på en incident, behöver också en behörighet att läsa den andra posten: `ReadIncidentInternalNote` når ingen anteckning utan en behörighet att läsa incidenter. Rollerna har redan båda.
 
 Det är också nycklarna du använder när du skapar API-nycklar, och dem API:et och Terraform-providern förväntar sig.
 
@@ -137,6 +143,8 @@ Etiketter är projektövergripande märkningar du fäster på resurser. De fylle
 
 En etikettbegränsning är uppfylld om resursen bär **minst en** av behörighetens etiketter. En resurs helt utan etiketter uppfyller ingen etikettbegränsad behörighet.
 
+En post utan egna etiketter, till exempel en anteckning på en incident, ett meddelande på en statussida eller en AI-insikt om en tjänst, bär etiketterna från de poster den hör till eller handlar om. En behörighet som är begränsad till etiketter når den när någon av de posterna bär någon av behörighetens etiketter, och en blockering med etiketter tar bort den när någon av dem bär en blockerad etikett, vid läsning, ändring och borttagning lika. En post som inte handlar om någon av dem, till exempel en AI-insikt som inte handlar om någon tjänst, hör till projektet: en etikettbegränsning avgränsar den inte, och en blockering med etiketter tar inte bort den.
+
 Var du hittar det: **Inställningar → Etiketter**.
 
 ## Telemetri
@@ -148,6 +156,8 @@ Loggar, spår, mätvärden, undantag, profiler och sessionsuppspelningar hör ti
 - **Etiketter** läser telemetrin från de resurser som bär någon av behörighetens etiketter.
 
 En blockering med etiketter på en telemetribehörighet utelämnar telemetrin från de resurser som bär de etiketterna, oavsett vad du annars har. Det gäller överallt där telemetri läses: utforskarna med sina diagram, filter och attributlistor, exporter, sessionsuppspelningar och det som AI-assistenten läser åt dig. Listan över mätvärdesnamn visar de mätvärden som en tjänst du får läsa rapporterar, och de mätvärden som ingen tjänst rapporterar, till exempel värd- och klustermätvärden. Får du också läsa telemetri från andra slags resurser, till exempel värdar eller kluster, visar den alla mätvärdesnamn.
+
+Monitorloggar, SLO-historik, nätverksflöden och kostnadsfördelningar för Kubernetes läses på samma sätt, genom den monitor, det SLO, den nätverksenhet eller det kluster de hör till: Ägda och Etiketter når raderna för de poster du får läsa, och en blockering med etiketter utelämnar raderna för de poster som bär de etiketterna. Granskningsloggen och hotunderrättelseindikatorerna läses i hela projektet av den som får läsa dem.
 
 ## API-nycklar
 
@@ -165,12 +175,13 @@ Var du hittar det: **Inställningar → API-nycklar**. Se även [API-referensen]
 
 För en inloggad användare, i ordning:
 
-1. Hitta de team användaren tillhör i det här projektet — bara accepterade inbjudningar räknas.
+1. Hitta de team användaren tillhör i det här projektet — bara accepterade inbjudningar räknas. En begäran når bara posterna i det här projektet: en post i ett annat projekt, angiven med sitt id eller i ett filter, behandlas som om den inte fanns.
 2. Samla alla behörighetsrader från dessa team — tillåtna och blockerade, var och en med etiketter och omfattning.
 3. Kontrollera blockeringslistan först. En blockering utan etiketter på någon behörighet som måltabellen accepterar för den här operationen avvisar begäran direkt, oavsett vilket team den är satt på.
 4. Kontrollera tillåtelselistan. Begäran behöver minst en behörighet som måltabellen accepterar för den här operationen. För en driftresurs — en övervakare, en incident, en instrumentpanel och liknande — räknas även motsvarande **All Operational Resources**-behörighet (Create, Read, Edit eller Delete), om den inte själv är blockerad.
-5. Tillämpa omfattningen. Tilldelningar med omfattningen Ägda smalnar av frågan till ägda resurser; etikettbaserade smalnar av till matchande etiketter. Är någon annan tilldelning för samma operation bredare vinner den bredare.
-6. Tillämpa etikettblockeringar. En blockering med etiketter avvisar begäran om målresursen bär någon av dem. När en post inte har egna etiketter, till exempel en anteckning på en incident eller ett meddelande på en statussida, utelämnar en blockering med etiketter på att läsa den posten om en post som den hör till bär någon av de etiketterna.
+5. Tillämpa omfattningen. Tilldelningar med omfattningen Ägda smalnar av frågan till ägda resurser; etikettbaserade smalnar av till matchande etiketter. Är någon annan tilldelning för samma operation bredare vinner den bredare. En post utan egna etiketter, till exempel en anteckning på en incident, matchar en etikettbaserad tilldelning när någon av posterna den hör till bär någon av tilldelningens etiketter.
+6. Tillämpa etikettblockeringar. En blockering med etiketter avvisar begäran om målresursen bär någon av dem. När en post inte har egna etiketter, till exempel en anteckning på en incident eller ett meddelande på en statussida, utelämnar en blockering med etiketter posten vid läsning, ändring och borttagning om en post som den hör till bär någon av de etiketterna. En lista med poster från alla dina projekt på en gång, till exempel incidenterna på din startsida, avgränsar varje projekts poster med dina blockeringar och tilldelningar i det projektet.
+7. Håll ändringar och borttagningar till det du får läsa. En ändring eller borttagning avgränsas av dina läsbehörigheter såväl som av behörigheten för ändringen: en post du inte får läsa — utanför dina etiketter eller ägare, eller med en etikett som en blockering av läsning tar bort — är inte en som du får ändra eller ta bort, och en blockering utan etiketter av läsning av en sorts post tar också bort ändring och borttagning av den. En post som läses genom en annan, till exempel en anteckning på en incident eller ett meddelande på en statussida, nås bara genom en post du får läsa: utan behörighet att läsa incidenter når en behörighet för anteckningar ingen anteckning, och en blockering med etiketter av läsning av incidenter utelämnar anteckningarna på de incidenter som bär dem. En ändring eller borttagning av en post, angiven med sitt ID, som inte når något besvaras som om posten inte fanns (`404`) när du inte får läsa den, och avvisas när du får läsa den men inte ändra den.
 
 Varje fält i en post läses med postens egen läsbehörighet: en behörighet för en annan sorts post öppnar det aldrig. Vissa fält är avsiktligt snävare. Hemligheter läses bara av personer som får redigera eller administrera posten de hör till, till exempel en monitors nycklar för inkommande förfrågningar och inkommande e-post och dess serveragentnyckel, eller ett arbetsflödes webhook- och e-postnycklar. Att titta på inspelningen av en sessionsuppspelning kräver **Watch Session Replays**, inte bara **List Session Replays**. Telemetri läses signal för signal: **Read Telemetry Service Log** läser loggar, **Read Telemetry Service Traces** läser spår och **Read Telemetry Service Metrics** läser mätvärden, mätvärdesdiagram inräknade.
 
@@ -178,7 +189,9 @@ Fält följer samma regel. En blockering utan etiketter på ett fälts behörigh
 
 Samma regel avgör allt annat som frågar om du har en behörighet: åtgärder som inte är en enkel läsning eller skrivning — att lägga till SMS-, samtals- eller AI-kredit, betala en faktura eller testa en aviseringsregel — och knapparna som OneUptime visar. En knapp du inte får använda visas låst och säger varför; är en blockering i ett av dina team orsaken, namnger den den blockerade behörigheten.
 
-Liveuppdateringar följer samma regel. När en post skapas, ändras eller tas bort meddelar OneUptime de öppna sidorna hos de personer som får läsa posten, och ingen annan. Det som begränsar vad du får läsa begränsar också dina liveuppdateringar: etiketter, ägare, en blockering med etiketter, en privat incident eller någon annans AI-konversation. När en ändring tar ifrån dig åtkomsten till en post, till exempel när den görs privat, meddelas även dina öppna sidor, så att de slutar visa den. En ändring av dina behörigheter når dina öppna sidor inom 30 sekunder.
+Liveuppdateringar följer samma regel. När en post skapas, ändras eller tas bort meddelar OneUptime de öppna sidorna hos de personer som får läsa posten, och ingen annan. Det som begränsar vad du får läsa begränsar också dina liveuppdateringar: etiketter, ägare, en blockering med etiketter, en privat incident eller någon annans AI-konversation. När en ändring tar ifrån dig åtkomsten till en post, till exempel när den görs privat, meddelas även dina öppna sidor, så att de slutar visa den. En ändring av dina behörigheter, en blockering eller att du inte längre är master admin når dina öppna sidor direkt.
+
+Liveuppdateringar upphör också med inloggningen som startade dem. När du loggar ut, byter lösenord eller blir blockerad stoppas liveuppdateringarna på dina öppna sidor direkt. En öppen sida förnyar sin inloggning var 15:e minut och fortsätter sedan med sina liveuppdateringar; om inloggningen inte kan förnyas skickar den dig till inloggningssidan. Ett projekt som kräver SSO skickar liveuppdateringar bara till sidor som är inloggade med SSO, precis som med allt annat.
 
 Varje inloggad användare har dessutom en liten uppsättning automatiska behörigheter som täcker sådant som att läsa sin egen profil och sina egna aviseringsregler. Det är inga administratörsbehörigheter och de ger inte åtkomst till någon annans data.
 
@@ -194,7 +207,7 @@ Upplösta behörigheter cachas per användare och projekt och uppdateras när te
 
 **En CI-pipeline som bara rapporterar driftsättningar.** Skapa en API-nyckel med precis de granulära behörigheter den behöver — inga roller.
 
-**Någon som inte ska se faktureringen.** Lägg inte till personen i Owners-teamet. `ProjectAdmin` utesluter redan fakturering.
+**Någon som inte ska ändra faktureringen eller se fakturor.** Ge personen `ProjectMember`, inte `ProjectAdmin`: en projektadministratör kan inte ändra planen, betalningsmetoder eller saldon, men läser och laddar ned fakturor. Ska någon läsa faktureringssidorna utan att ändra något, ge personen `BillingViewer`.
 
 ## Vidare
 

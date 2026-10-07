@@ -161,7 +161,7 @@ Einstellungen bei beiden:
 
 Legen Sie den Zeitplan-Link in einen geteilten Teamkalender — Google, Outlook oder Confluence —, dann bedient ein Abonnement das ganze Team. Rotieren Sie ihn, wenn jemand geht, der ihn hatte, oder schalten Sie die automatische Rotation oben ein.
 
-Wenn eine Person ihr letztes Team in einem Projekt verlässt, entfernt OneUptime sie außerdem aus den Zeitplanebenen und Eskalationsregeln dieses Projekts, löscht die laufenden und künftigen Vertretungen des Projekts, in denen sie genannt wird (als vertretene Person oder als Vertretung), deaktiviert ihren persönlichen Feed für das Projekt und löscht dort ihre Erinnerungen.
+Wenn eine Person ihr letztes Team in einem Projekt verlässt, entfernt OneUptime sie außerdem aus den Zeitplanebenen und Eskalationsregeln dieses Projekts, löscht die laufenden und künftigen Vertretungen des Projekts, in denen sie genannt wird (als vertretene Person oder als Vertretung), deaktiviert ihren persönlichen Feed für das Projekt und löscht dort ihre Erinnerungen. Ein persönlicher Link zeigt Schichten nur, solange die Person, der er gehört, Mitglied des Projekts ist: Das wird bei jedem Abruf des Links geprüft, sodass jemand, der das Projekt verlassen hat, einen leeren Kalender erhält, und die Liste der kommenden Schichten in der mobilen App umfasst nur die Projekte, in denen die Person noch Mitglied ist.
 
 ## Termine im Detail
 
@@ -220,7 +220,7 @@ Ebenfalls relevant:
 
 **Der Kalender ist veraltet.** Lesen Sie zuerst die Aktualisierungstabelle: Bei Google ist die Verzögerung normal. Damit Google erneut nachsieht, entfernen Sie den Kalender und fügen ihn erneut hinzu oder hängen `?nocache=1` an den Link (unbekannte Parameter werden ignoriert, der Feed bleibt gleich, aber Google behandelt ihn als neu). Im klassischen Outlook drücken Sie F9 und prüfen die Einstellung **Aktualisierungslimit**. In Apple Kalender verwenden Sie **Darstellung** > **Kalender aktualisieren**. Ist eine Änderung am selben Tag wichtig, verlassen Sie sich auf die Erinnerungen und Neuzuweisungs-Hinweise von OneUptime statt auf den Kalender.
 
-**Der Kalender ist leer.** Ein leerer Kalender ist Absicht. Er bedeutet, dass der Link deaktiviert ist, ein alter Link innerhalb seiner 30-tägigen Schonfrist nach dem Neuerzeugen ist, das Projekt unterhalb des Tarifs liegt, der Bereitschaftszeitpläne enthält, oder Sie auf keinem Zeitplan dieses Projekts mehr stehen. Öffnen Sie den Link im Browser: Die Kalenderbeschreibung (`X-WR-CALDESC`) nennt den Grund.
+**Der Kalender ist leer.** Ein leerer Kalender ist Absicht. Er bedeutet, dass der Link deaktiviert ist, ein alter Link innerhalb seiner 30-tägigen Schonfrist nach dem Neuerzeugen ist, das Projekt unterhalb des Tarifs liegt, der Bereitschaftszeitpläne enthält, oder Sie auf keinem Zeitplan dieses Projekts mehr stehen. Öffnen Sie den Link im Browser: Die Kalenderbeschreibung (`X-WR-CALDESC`) nennt den Grund. Wenn Sie das Projekt verlassen haben, bleibt der Link leer: Er zeigt Schichten nur, solange Sie Mitglied sind.
 
 **404.** Der Link ist unbekannt, wurde gelöscht oder seine Schonfrist ist abgelaufen. Erzeugen Sie einen neuen und abonnieren Sie erneut.
 

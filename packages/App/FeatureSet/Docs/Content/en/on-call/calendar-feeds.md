@@ -161,7 +161,7 @@ Settings on both:
 
 Put the schedule link into a shared team calendar — Google, Outlook or Confluence — and one subscription serves the whole team. Rotate it when someone who had it leaves, or turn on the automatic rotation above.
 
-When a person leaves their last team in a project, OneUptime also removes them from that project's schedule layers and escalation rules, deletes the project's active and future overrides that name them (as the overridden person or as the substitute), disables their personal feed for the project and deletes their reminders there.
+When a person leaves their last team in a project, OneUptime also removes them from that project's schedule layers and escalation rules, deletes the project's active and future overrides that name them (as the overridden person or as the substitute), disables their personal feed for the project and deletes their reminders there. A personal link shows shifts only while its owner is a member of the project: this is checked every time the link is fetched, so someone who has left gets an empty calendar, and the list of upcoming shifts in the mobile app covers only the projects they are still a member of.
 
 ## Events in detail
 
@@ -220,7 +220,7 @@ Also relevant:
 
 **The calendar is stale.** First read the refresh table: for Google the delay is normal. To make Google look again, remove and re-add the calendar or append `?nocache=1` to the link (unknown parameters are ignored, so the feed is unchanged but Google treats it as new). In classic Outlook press F9 and check the **Update Limit** setting. In Apple Calendar use **View** > **Refresh Calendars**. If a same-day change matters, rely on OneUptime's reminders and reassignment notices rather than on the calendar.
 
-**The calendar is empty.** An empty calendar is deliberate. It means the link is disabled, is an old link inside its 30-day grace period after a regenerate, the project is below the plan that includes on-call schedules, or you are no longer on any schedule in that project. Open the link in a browser: the calendar description (`X-WR-CALDESC`) states the reason.
+**The calendar is empty.** An empty calendar is deliberate. It means the link is disabled, is an old link inside its 30-day grace period after a regenerate, the project is below the plan that includes on-call schedules, or you are no longer on any schedule in that project. Open the link in a browser: the calendar description (`X-WR-CALDESC`) states the reason. If you have left the project, the link stays empty: it shows shifts only while you are a member.
 
 **404.** The link is unknown, has been deleted, or its grace period has ended. Generate a new one and re-subscribe.
 

@@ -35,7 +35,7 @@ Un utente è «dentro» un progetto quando è membro di **almeno un team** al su
 
 - Gli inviti creano un membro del team in attesa. L'utente conta come membro del progetto — e ottiene una qualsiasi autorizzazione — **solo dopo aver accettato l'invito.**
 - Rimuovere un utente da tutti i team di un progetto gli toglie l'accesso a quel progetto.
-- Chi lascia un progetto smette di riceverne le notifiche. I suoi metodi, regole e impostazioni di notifica per il progetto vengono rimossi insieme all'ultimo team — email, SMS, chiamata, WhatsApp, Telegram, push, webhook, Slack e Microsoft Teams, il riepilogo email e l'email non ancora inviata, il numero per le chiamate in arrivo e i promemoria dei turni —, quindi chi rientra riparte dalle impostazioni predefinite. Ciò che lo nomina ancora, come l'utente chiamato da una regola delle chiamate in arrivo o un proprietario mantenuto su un incidente risolto, non lo notifica più: nulla viene inviato per conto di un progetto a chi non ne è membro, e un invito in sospeso non è ancora un'appartenenza. Questi punti mostrano **Non è più membro** accanto al nome, così puoi mettere qualcun altro. Chi è stato invitato e non ha ancora accettato mostra invece **Invito non ancora accettato**.
+- Chi lascia un progetto smette di riceverne le notifiche. I suoi metodi, regole e impostazioni di notifica per il progetto vengono rimossi insieme all'ultimo team — email, SMS, chiamata, WhatsApp, Telegram, push, webhook, Slack e Microsoft Teams, il riepilogo email e l'email non ancora inviata, il numero per le chiamate in arrivo e i promemoria dei turni —, quindi chi rientra riparte dalle impostazioni predefinite. Ciò che lo nomina ancora, come l'utente chiamato da una regola delle chiamate in arrivo o un proprietario mantenuto su un incidente risolto, non lo notifica più: nulla viene inviato per conto di un progetto a chi non ne è membro, e un invito in sospeso non è ancora un'appartenenza. Questi punti mostrano **Non è più membro** accanto al nome, così puoi mettere qualcun altro. Chi è stato invitato e non ha ancora accettato mostra invece **Invito non ancora accettato**. Se una sostituzione inoltra le chiamate di qualcuno a una persona che ha lasciato il progetto, viene chiamata invece la persona che la sostituzione copre. Lasciare il progetto scollega anche i client MCP che la persona aveva collegato al progetto, e il suo link personale al calendario di reperibilità mostra da quel momento un calendario vuoto. Su OneUptime Cloud, chi ritorna tramite il single sign-on del progetto lo conferma di nuovo dalla propria casella di posta.
 - Se il progetto impone l'SSO e un utente non si è ancora autenticato tramite l'identity provider, viene trattato come utente SSO non autorizzato e non vede nulla finché non lo fa. Vedi [SSO](/docs/identity/sso).
 - Con SCIM configurato, l'identity provider può creare, aggiornare e rimuovere automaticamente utenti e loro appartenenze ai team. Vedi [SCIM](/docs/identity/scim).
 
@@ -71,19 +71,25 @@ Un'autorizzazione è una singola capacità. Ci sono due modi per distribuirle, e
 
 Un ruolo raggruppa un'intera area del prodotto a uno di tre livelli:
 
-- **Admin** — controllo completo su quell'area, inclusa la sua configurazione (gravità, stati, modelli).
-- **Member** — il lavoro quotidiano: creare, modificare ed eliminare le risorse, ma non riconfigurare l'area.
+- **Admin** — ciò che fa il Member, più la configurazione propria dell'area, come gravità e stati di incidenti e avvisi, stati dei monitor e stati di manutenzione.
+- **Member** — il lavoro quotidiano: creare, modificare ed eliminare le risorse dell'area, con le loro note, i proprietari e i modelli. Per le pagine di stato e la reperibilità, il Member fa tutto ciò che fa l'Admin.
 - **Viewer** — sola lettura.
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` e così via. I ruoli sono la scelta giusta quasi sempre: restano corretti mentre OneUptime aggiunge funzionalità, perché una nuova tabella legata ai monitor viene aggiunta ai ruoli monitor esistenti invece di richiedervi una nuova concessione.
 
-I workflow sono l'eccezione. Un workflow esegue i suoi passaggi all'interno del progetto, quindi `WorkflowMember` apre i workflow e le loro esecuzioni e li esegue a mano, ma non li crea, non li modifica e non li elimina. `WorkflowAdmin` li costruisce. Vedi [Configurazione dei workflow](/docs/workflows/configuration).
+I workflow e i runbook sono l'eccezione. Entrambi eseguono codice nel tuo progetto — un workflow i suoi passaggi, un runbook i suoi script sui tuoi Runner —, quindi `WorkflowMember` apre i workflow e le loro esecuzioni e li esegue a mano, e `RunbookMember` apre i runbook e le loro esecuzioni e li esegue: avvia un'esecuzione, ne completa o salta i passaggi e la annulla. Nessuno dei due crea, modifica o elimina ciò che esegue; `WorkflowAdmin` e `RunbookAdmin` li costruiscono. Un ruolo esegue solo i runbook che il suo ambito raggiunge: un `RunbookMember` limitato ad alcune etichette esegue i runbook che le portano. Vedi [Configurazione dei workflow](/docs/workflows/configuration) e [Configurazione dei runbook](/docs/runbooks/configuration).
+
+Le regole di un'area (regole di etichette, di proprietari, di reperibilità, di raggruppamento e di promemoria), i campi personalizzati, gli SLA e i segreti sono configurazione del progetto: richiedono `ProjectAdmin`, qualunque sia il ruolo d'area della persona. Lo stesso vale per le chiavi API, i team e i loro permessi, le etichette, l'SSO e i domini — i ruoli Settings si occupano dei servizi, delle sonde, dell'infrastruttura e delle integrazioni del progetto, non di chi può fare cosa.
+
+La fatturazione ha tre ruoli propri. `BillingViewer` legge la fatturazione del progetto — il piano e l'abbonamento, le fatture, l'utilizzo, i saldi, i crediti IA, i metodi di pagamento e i dati di contatto per la fatturazione — e non modifica nulla. `BillingMember` inoltre scarica le fatture e modifica i dati di contatto per la fatturazione. `BillingAdmin` fa ciò che fa `BillingMember` e attiva e disattiva SMS, chiamate, WhatsApp e Telegram. Cambiare il piano, i metodi di pagamento o i saldi, e pagare le fatture, richiede `ProjectOwner` o **Manage Billing**; nelle pagine di fatturazione quei pulsanti sono bloccati per tutti gli altri e dicono chi può usarli.
 
 Tutti i {{PERMISSION_ROLE_COUNT}} ruoli sono elencati nel [Riferimento autorizzazioni](/docs/permissions/reference).
 
 ### Autorizzazioni granulari
 
 Ogni singola capacità è assegnabile anche da sola: `CreateProjectMonitor`, `ReadProjectIncident`, `DeleteProjectStatusPage` e altre {{PERMISSION_TOTAL_COUNT}}. Usatele quando un ruolo è troppo ampio e dovete concedere esattamente una cosa.
+
+Un'autorizzazione a modificare o eliminare raggiunge solo ciò che potete anche leggere, quindi concedete insieme l'autorizzazione di lettura corrispondente: `EditProjectIncident` non modifica alcun incidente senza `ReadProjectIncident`. Un record letto attraverso un altro, come una nota di un incidente, richiede anche un'autorizzazione a leggere quell'altro record: `ReadIncidentInternalNote` non raggiunge alcuna nota senza un'autorizzazione a leggere gli incidenti. I ruoli comprendono già entrambe.
 
 Sono anche le chiavi che usate quando create chiavi API, e quelle che l'API e il provider Terraform si aspettano.
 
@@ -137,6 +143,8 @@ Le etichette sono contrassegni validi in tutto il progetto che applicate alle ri
 
 Una restrizione per etichette è soddisfatta se la risorsa porta **almeno una** delle etichette dell'autorizzazione. Una risorsa senza alcuna etichetta non soddisfa nessuna autorizzazione limitata per etichette.
 
+Un record senza etichette proprie, come la nota di un incidente, un annuncio di una pagina di stato o un insight dell'IA su un servizio, porta le etichette dei record a cui appartiene o di cui parla. Un'autorizzazione limitata per etichette lo raggiunge quando uno di quei record porta una delle sue etichette, e un blocco con etichette lo esclude quando uno di essi porta un'etichetta bloccata, in lettura, modifica ed eliminazione allo stesso modo. Un record che non riguarda nessuno di essi, come un insight dell'IA che non riguarda alcun servizio, appartiene al progetto: una restrizione per etichette non lo restringe e un blocco con etichette non lo esclude.
+
 Dove trovarlo: **Impostazioni → Etichette**.
 
 ## Telemetria
@@ -148,6 +156,8 @@ Log, tracce, metriche, eccezioni, profili e riproduzioni di sessione appartengon
 - **Etichette** legge la telemetria delle risorse che portano una delle etichette dell'autorizzazione.
 
 Un blocco con etichette su un'autorizzazione di telemetria esclude la telemetria delle risorse che portano quelle etichette, qualunque altra cosa abbiate. Vale ovunque si legga la telemetria: gli explorer con i loro grafici, filtri ed elenchi di attributi, le esportazioni, le riproduzioni di sessione e ciò che l'assistente IA legge per voi. L'elenco dei nomi delle metriche mostra le metriche riportate da un servizio che potete leggere e quelle che nessun servizio riporta, come le metriche di host e cluster. Se potete leggere anche la telemetria di altri tipi di risorse, come host o cluster, mostra tutti i nomi delle metriche.
+
+I log dei monitor, lo storico degli SLO, i flussi di rete e le ripartizioni dei costi Kubernetes si leggono allo stesso modo, attraverso il monitor, lo SLO, il dispositivo di rete o il cluster a cui appartengono: Possedute ed Etichette raggiungono le righe dei record che potete leggere, e un blocco con etichette esclude le righe dei record che portano quelle etichette. Il registro di audit e gli indicatori di threat intelligence li legge su tutto il progetto chiunque possa leggerli.
 
 ## Chiavi API
 
@@ -165,12 +175,13 @@ Dove trovarlo: **Impostazioni → Chiavi API**. Vedi anche il [Riferimento API](
 
 Per un utente autenticato, nell'ordine:
 
-1. Trovare i team a cui l'utente appartiene in questo progetto, contando solo gli inviti accettati.
+1. Trovare i team a cui l'utente appartiene in questo progetto, contando solo gli inviti accettati. Una richiesta raggiunge solo i record di questo progetto: un record di un altro progetto, indicato con il suo id o in un filtro, viene trattato come se non esistesse.
 2. Raccogliere tutte le righe di autorizzazione di quei team — concesse e bloccate — ciascuna con le sue etichette e il suo ambito.
 3. Controllare prima l'elenco dei blocchi. Un blocco senza etichette su una qualsiasi autorizzazione che la tabella di destinazione accetta per quell'operazione rifiuta subito la richiesta, qualunque sia il team su cui è impostato.
 4. Controllare l'elenco delle concessioni. La richiesta ha bisogno di almeno un'autorizzazione che la tabella di destinazione accetta per quell'operazione. Su una risorsa operativa — un monitor, un incidente, una dashboard e simili — conta anche l'autorizzazione **All Operational Resources** corrispondente (Create, Read, Edit o Delete), a meno che non sia bloccata a sua volta.
-5. Applicare l'ambito. Le concessioni con ambito Possedute restringono la query alle risorse possedute; quelle per etichette la restringono alle etichette corrispondenti. Se un'altra concessione per la stessa operazione è più ampia, vince quella più ampia.
-6. Applicare i blocchi per etichette. Un blocco con etichette rifiuta la richiesta se la risorsa di destinazione ne porta una. Quando un record non ha etichette proprie, come una nota di un incidente o un annuncio di una pagina di stato, un blocco con etichette sulla sua lettura lo esclude se un record a cui appartiene porta una di quelle etichette.
+5. Applicare l'ambito. Le concessioni con ambito Possedute restringono la query alle risorse possedute; quelle per etichette la restringono alle etichette corrispondenti. Se un'altra concessione per la stessa operazione è più ampia, vince quella più ampia. Un record senza etichette proprie, come una nota di un incidente, soddisfa una concessione per etichette quando uno dei record a cui appartiene porta una delle sue etichette.
+6. Applicare i blocchi per etichette. Un blocco con etichette rifiuta la richiesta se la risorsa di destinazione ne porta una. Quando un record non ha etichette proprie, come una nota di un incidente o un annuncio di una pagina di stato, un blocco con etichette lo esclude dalle letture, dalle modifiche e dalle eliminazioni se un record a cui appartiene porta una di quelle etichette. Un elenco di record di tutti i vostri progetti insieme, come gli incidenti della vostra pagina iniziale, restringe i record di ciascun progetto secondo i vostri blocchi e le vostre concessioni in quel progetto.
+7. Limitare modifiche ed eliminazioni a ciò che potete leggere. Una modifica o un'eliminazione è ristretta dalle vostre autorizzazioni di lettura oltre che dall'autorizzazione alla modifica: un record che non potete leggere — fuori dalle vostre etichette o dai vostri proprietari, o con un'etichetta che un blocco sulla lettura esclude — non è un record che potete modificare o eliminare, e un blocco senza etichette sulla lettura di un tipo di record toglie anche la sua modifica e la sua eliminazione. Un record letto attraverso un altro, come una nota di un incidente o un annuncio di una pagina di stato, si raggiunge solo attraverso un record che potete leggere: senza autorizzazione a leggere gli incidenti, un'autorizzazione sulle note non raggiunge alcuna nota, e un blocco con etichette sulla lettura degli incidenti esclude le note degli incidenti che le portano. Una modifica o un'eliminazione di un singolo record, indicato con il suo ID, che non raggiunge nulla riceve la stessa risposta di un record inesistente (`404`) quando non potete leggerlo, e viene rifiutata quando potete leggerlo ma non modificarlo.
 
 Ogni campo di un record si legge con l'autorizzazione di lettura del record stesso: un'autorizzazione per un altro tipo di record non lo apre mai. Alcuni campi sono volutamente più ristretti. I segreti li leggono solo le persone che possono modificare o amministrare il record a cui appartengono, come le chiavi delle richieste in arrivo e delle email in arrivo di un monitor e la chiave del suo agente server, o le chiavi del webhook e delle email in arrivo di un workflow. Guardare la registrazione di una riproduzione di sessione richiede **Watch Session Replays**, non solo **List Session Replays**. La telemetria si legge segnale per segnale: **Read Telemetry Service Log** legge i log, **Read Telemetry Service Traces** legge le tracce e **Read Telemetry Service Metrics** legge le metriche, grafici delle metriche compresi.
 
@@ -178,7 +189,9 @@ I campi seguono la stessa regola. Un blocco senza etichette sull'autorizzazione 
 
 La stessa regola decide tutto il resto che chiede se detenete un'autorizzazione: le azioni che non sono una semplice lettura o scrittura — aggiungere credito SMS, chiamate o IA, pagare una fattura, provare una regola di notifica — e i pulsanti che OneUptime mostra. Un pulsante che non potete usare appare bloccato e dice perché; quando la ragione è un blocco su uno dei vostri team, nomina l'autorizzazione bloccata.
 
-Gli aggiornamenti in tempo reale seguono la stessa regola. Quando un record viene creato, modificato o eliminato, OneUptime avvisa le pagine aperte delle persone che possono leggere quel record, e di nessun altro. Ciò che limita quello che potete leggere limita anche i vostri aggiornamenti in tempo reale: etichette, proprietari, un blocco con etichette, un incidente privato o la conversazione IA di un'altra persona. Quando una modifica vi toglie l'accesso a un record, per esempio rendendolo privato, anche le vostre pagine aperte vengono avvisate, così smettono di mostrarlo. Una modifica alle vostre autorizzazioni raggiunge le vostre pagine aperte entro 30 secondi.
+Gli aggiornamenti in tempo reale seguono la stessa regola. Quando un record viene creato, modificato o eliminato, OneUptime avvisa le pagine aperte delle persone che possono leggere quel record, e di nessun altro. Ciò che limita quello che potete leggere limita anche i vostri aggiornamenti in tempo reale: etichette, proprietari, un blocco con etichette, un incidente privato o la conversazione IA di un'altra persona. Quando una modifica vi toglie l'accesso a un record, per esempio rendendolo privato, anche le vostre pagine aperte vengono avvisate, così smettono di mostrarlo. Una modifica alle vostre autorizzazioni, un blocco o la perdita dei diritti di amministratore principale raggiunge subito le vostre pagine aperte.
+
+Gli aggiornamenti in tempo reale terminano anche con l'accesso che li ha avviati. Uscire, cambiare la password o essere bloccati interrompe subito gli aggiornamenti in tempo reale delle vostre pagine aperte. Una pagina aperta rinnova il proprio accesso ogni 15 minuti e riprende i suoi aggiornamenti in tempo reale; quando l'accesso non può essere rinnovato, vi porta alla pagina di accesso. Un progetto che richiede l'SSO invia aggiornamenti in tempo reale solo alle pagine che hanno effettuato l'accesso con l'SSO, come per tutto il resto.
 
 Ogni utente autenticato detiene inoltre un piccolo insieme di autorizzazioni automatiche che coprono cose come leggere il proprio profilo e le proprie regole di notifica. Non sono autorizzazioni amministrative e non danno accesso ai dati di nessun altro.
 
@@ -194,7 +207,7 @@ Le autorizzazioni risolte sono memorizzate in cache per utente e progetto e aggi
 
 **Una pipeline CI che segnala solo i deploy.** Create una chiave API con le sole autorizzazioni granulari che le servono, senza ruoli.
 
-**Qualcuno che non deve vedere la fatturazione.** Non aggiungetelo al team Owners. `ProjectAdmin` esclude già la fatturazione.
+**Qualcuno che non deve modificare la fatturazione né vedere le fatture.** Dategli `ProjectMember`, non `ProjectAdmin`: un amministratore di progetto non può cambiare il piano, i metodi di pagamento né i saldi, ma legge e scarica le fatture. Per far leggere le pagine di fatturazione senza modificare nulla, dategli `BillingViewer`.
 
 ## Prossimi passi
 

@@ -28,7 +28,9 @@ Runbook अनुमतियाँ `Runbook` अनुमति समूह �
 - `CreateRunbookExecution`, `EditRunbookExecution`, `ReadRunbookExecution` — execution शुरू करना, टिक करना और पढ़ना।
 - `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — ऑटो-ट्रिगर नियम प्रबंधन।
 - `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — आपकी अपनी इन्फ्रास्ट्रक्चर में Bash और JavaScript चरण चलाने वाले Runbook एजेंट प्रबंधन।
-- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (भूमिकाएँ) — किसी टीम को असाइन करें ताकि क्रमशः पूर्ण नियंत्रण, रोज़मर्रा उपयोग या केवल-पठन पहुँच मिले। `RunbookAdmin` ऊपर की सभी सूक्ष्म अनुमतियों को bundle करता है।
+- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (भूमिकाएँ) — `RunbookAdmin` Runbook, उनके नियम और वे Runner बनाता है जिन पर वे चलते हैं, और उन्हें चलाता है। `RunbookMember` Runbook और उनके रन खोलता है और उन्हें चलाता है — रन शुरू करता है, उसके चरण पूरे करता है या छोड़ता है और उसे रद्द करता है — पर कोई Runbook या Runner बनाता, बदलता या हटाता नहीं है। `RunbookViewer` Runbook और उनके रन पढ़ता है और कुछ नहीं चलाता। `RunbookAdmin` ऊपर की सभी विस्तृत अनुमतियों को एक साथ रखता है।
+
+कोई भूमिका वे Runbook चलाती है जिन तक उसका दायरा पहुँचता है। कुछ लेबल तक सीमित `RunbookMember`, `RunbookAdmin` या `ProjectMember` अनुदान उन लेबल वाले Runbook के रन शुरू करता और आगे बढ़ाता है, स्वामित्व तक सीमित अनुदान उन Runbook के जिनकी मालिक उसकी टीम है, और किसी लेबल पर टीम का ब्लॉक उन Runbook को हटा देता है। `CreateRunbookExecution` और `EditRunbookExecution` रन के बारे में हैं, जिन पर कोई लेबल नहीं होता, इसलिए वे प्रोजेक्ट के हर Runbook तक पहुँचते हैं। Runbook शुरू करने वाले सुधार सुझाव को स्वीकृत करना भी इसी तरह जाँचा जाता है।
 
 ## क्यू और वर्कर
 

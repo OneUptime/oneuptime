@@ -79,6 +79,9 @@ import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException
 import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import RealtimeAccessChanges, {
+  RealtimeAccessChangeKind,
+} from "../Utils/Realtime/RealtimeAccessChanges";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import { CREATED_BY_USER_KEYS } from "../Utils/Database/CreatedByUser";
 import Permission from "../../Types/Permission";
@@ -116,10 +119,15 @@ import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBas
 import PromoCode from "../../Models/DatabaseModels/PromoCode";
 import ScheduledMaintenanceState from "../../Models/DatabaseModels/ScheduledMaintenanceState";
 import Team from "../../Models/DatabaseModels/Team";
+import Label from "../../Models/DatabaseModels/Label";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import TeamPermission from "../../Models/DatabaseModels/TeamPermission";
 import User from "../../Models/DatabaseModels/User";
 import Select from "../Types/Database/Select";
+import TeamPermissionHolders, {
+  TeamMembershipRow,
+  TeamPermissionRow,
+} from "../Utils/Permission/TeamPermissionHolders";
 import Query from "../Types/Database/Query";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import AlertSeverityService from "./AlertSeverityService";
@@ -785,6 +793,8 @@ export class ProjectService extends ProjectReferencesService<Model> {
 
     await this.syncInvoiceDetailsToPaymentProvider(updateData, updatedItemIds);
 
+    this.announceSignInRulesChanged(updateData, updatedItemIds);
+
     if (!("isSessionReplayAllowed" in updateData)) {
       return onUpdate;
     }
@@ -864,6 +874,51 @@ export class ProjectService extends ProjectReferencesService<Model> {
         "ProjectService: could not invalidate the audit log settings cache",
       );
       logger.warn(err);
+    }
+  }
+
+  /*
+   * Drops this server's cached sign-in rules (Require SSO, the provider a
+   * project pins) of the project, or of every project when none is named,
+   * so the next request reads them again. Called when they change, here or
+   * on another server (RealtimeAccessChanges).
+   */
+  public forgetSignInRules(projectId?: ObjectID): void {
+    if (!projectId) {
+      this.requireSsoForLoginCache.clear();
+      this.requireSsoWithSsoProviderIdCache.clear();
+      return;
+    }
+
+    this.requireSsoForLoginCache.delete(projectId.toString());
+    this.requireSsoWithSsoProviderIdCache.delete(projectId.toString());
+  }
+
+  /*
+   * A project's sign-in rules now ask for more: Require SSO turned on, or a
+   * provider pinned. Every server reads them again, and the live updates
+   * already open in the project are asked again as their joins were
+   * (RealtimeAccessChanges), so a page that no longer meets them stops
+   * hearing at once, as its API requests are refused at once. Rules that
+   * now ask for less refuse nobody, so they ask nobody again.
+   */
+  private announceSignInRulesChanged(
+    updateData: Record<string, unknown>,
+    updatedItemIds: Array<ObjectID>,
+  ): void {
+    const asksForMore: boolean =
+      updateData["requireSsoForLogin"] === true ||
+      Boolean(updateData["requireSsoWithSsoProviderId"]);
+
+    if (!asksForMore) {
+      return;
+    }
+
+    for (const projectId of updatedItemIds) {
+      RealtimeAccessChanges.announce({
+        kind: RealtimeAccessChangeKind.SignInRulesChanged,
+        projectId: projectId.toString(),
+      });
     }
   }
 
@@ -962,14 +1017,21 @@ export class ProjectService extends ProjectReferencesService<Model> {
         continue;
       }
 
+      /*
+       * Saving Auto Recharge is somebody trying the card on purpose, so it
+       * is tried at once, whatever failed before (ignoreRecentFailure), for
+       * both balances alike.
+       */
       if (updateBy.data.enableAutoRechargeSmsOrCallBalance) {
         await NotificationService.rechargeIfBalanceIsLow(project.id, {
+          enableAutoRechargeSmsOrCallBalance: true,
           autoRechargeSmsOrCallByBalanceInUSD: updateBy.data
-            .autoRechargeSmsOrCallByBalanceInUSD as number,
+            .autoRechargeSmsOrCallByBalanceInUSD as number | undefined,
           autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: updateBy.data
-            .autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD as number,
-          enableAutoRechargeSmsOrCallBalance: updateBy.data
-            .enableAutoRechargeSmsOrCallBalance as boolean,
+            .autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD as
+            | number
+            | undefined,
+          ignoreRecentFailure: true,
         });
       }
 
@@ -3009,13 +3071,22 @@ These are no longer recorded against the project and have to be cancelled by han
     return populated ? new ObjectID(populated) : null;
   }
 
+  /*
+   * The project's owners: the members who hold Project Owner, by the rule
+   * every permission check follows (TeamPermissionHolders, the people-side
+   * twin of CallerPermission). Owner emails - plan changes, the plan
+   * cut-off notice, AI limits and credits, low balances - and the owner jobs
+   * that fall back to the project's owners all read this list, so a member
+   * whose team blocks Project Owner is not told as an owner, whatever an
+   * owner team they also belong to allows.
+   */
   @CaptureSpan()
   public async getOwners(projectId: ObjectID): Promise<Array<User>> {
     if (!projectId) {
       throw new BadDataException("Project ID is required");
     }
 
-    // get teams with project owner permissions.
+    // Every team row of the project for Project Owner: allows and blocks.
     const teamPermissions: Array<TeamPermission> =
       await TeamPermissionService.findBy({
         query: {
@@ -3029,29 +3100,123 @@ These are no longer recorded against the project and have to be cancelled by han
         skip: 0,
         select: {
           teamId: true,
+          permission: true,
+          isBlockPermission: true,
+          scope: true,
+          labels: {
+            _id: true,
+          },
         },
       });
 
-    if (teamPermissions.length === 0) {
-      return [];
-    }
-
-    const teamIds: Array<ObjectID> = teamPermissions.map(
-      (item: TeamPermission) => {
-        return item.teamId!;
+    // Nobody holds it without a team that allows it.
+    const isAnyTeamAllowed: boolean = teamPermissions.some(
+      (row: TeamPermission): boolean => {
+        return row.isBlockPermission !== true;
       },
     );
 
+    if (!isAnyTeamAllowed) {
+      return [];
+    }
+
+    const teamIds: Array<ObjectID> = [];
+
+    for (const row of teamPermissions) {
+      if (
+        row.teamId &&
+        !teamIds.some((teamId: ObjectID): boolean => {
+          return teamId.toString() === row.teamId!.toString();
+        })
+      ) {
+        teamIds.push(row.teamId);
+      }
+    }
+
     /*
-     * Accepted rows only. A pending invitation to an owner team grants no
-     * ProjectOwner permission and comes with no notification settings, so the
-     * owner jobs that fall back to this list recorded such invitees as
-     * notified while nothing reached them, and the owner emails sent from here
-     * reached someone who never joined. Acceptance is per team row, so this
-     * also leaves out a member of another team whose invitation to the owner
-     * team is still pending.
+     * Accepted rows only, of every team with a row: the allowing teams name
+     * who may be an owner, the blocking ones who may not. A pending
+     * invitation grants nothing and takes nothing away - a member's
+     * permissions are built from the teams they accepted - and it comes with
+     * no notification settings, so the owner jobs that fall back to this
+     * list recorded such invitees as notified while nothing reached them, and
+     * the owner emails sent from here reached someone who never joined.
      */
-    return TeamMemberService.getUsersInTeams(teamIds, { acceptedOnly: true });
+    const memberships: Array<TeamMember> = await TeamMemberService.findBy({
+      query: {
+        projectId: projectId,
+        teamId: QueryHelper.any(teamIds),
+        hasAcceptedInvitation: true,
+      },
+      props: {
+        isRoot: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      select: {
+        _id: true,
+        teamId: true,
+        userId: true,
+        user: {
+          _id: true,
+          email: true,
+          name: true,
+          timezone: true,
+        } as Select<User>,
+      },
+    });
+
+    const holderIds: Array<string> = TeamPermissionHolders.getHolderIds({
+      permission: Permission.ProjectOwner,
+      rows: teamPermissions
+        .filter((row: TeamPermission): boolean => {
+          return Boolean(row.teamId);
+        })
+        .map((row: TeamPermission): TeamPermissionRow => {
+          return {
+            teamId: row.teamId!,
+            permission: row.permission || Permission.ProjectOwner,
+            isBlockPermission: row.isBlockPermission,
+            labelIds: (row.labels || []).map((label: Label): ObjectID => {
+              return label.id!;
+            }),
+            scope: row.scope,
+          };
+        }),
+      memberships: memberships
+        .map((membership: TeamMember): TeamMembershipRow | null => {
+          const userId: ObjectID | undefined =
+            membership.userId || membership.user?.id || undefined;
+
+          if (!membership.teamId || !userId) {
+            return null;
+          }
+
+          return { teamId: membership.teamId, userId: userId };
+        })
+        .filter((row: TeamMembershipRow | null): row is TeamMembershipRow => {
+          return row !== null;
+        }),
+    });
+
+    // Each owner once, as their first membership names them.
+    const owners: Array<User> = [];
+
+    for (const holderId of holderIds) {
+      const membership: TeamMember | undefined = memberships.find(
+        (candidate: TeamMember): boolean => {
+          return (
+            (candidate.userId || candidate.user?.id)?.toString() === holderId
+          );
+        },
+      );
+
+      if (membership?.user) {
+        owners.push(membership.user);
+      }
+    }
+
+    return owners;
   }
 
   @CaptureSpan()
@@ -3353,13 +3518,158 @@ These are no longer recorded against the project and have to be cancelled by han
   public async claimAiCreditsUsedUpNotice(
     projectId: ObjectID,
   ): Promise<boolean> {
-    const sql: string = `WITH "updated" AS (UPDATE "Project" SET "lowAiBalanceNotificationSentToOwners" = true WHERE "_id" = $1 AND "deletedAt" IS NULL AND "lowAiBalanceNotificationSentToOwners" = false RETURNING "_id") SELECT "_id" FROM "updated"`;
+    return await this.claimOwnerNotice({
+      projectId,
+      column: "lowAiBalanceNotificationSentToOwners",
+    });
+  }
+
+  /*
+   * Record that the project's owners are told its balance for SMS, calls,
+   * WhatsApp and Telegram could not pay for a message, unless they were since
+   * the balance was last added to. True only for the one caller that writes
+   * it - the first message not sent for want of balance - which is the one
+   * that emails them (SmsService, CallService, WhatsAppService,
+   * TelegramService); every other caller, on any server, gets false. Every
+   * recharge clears the flag in the statement that adds the balance
+   * (creditSmsOrCallBalanceInUSDCents), as does a master admin adding
+   * balance (adjustBalance), so the next time it runs out the owners are
+   * told again.
+   *
+   * It used to be read with the project and written back afterwards, so the
+   * messages of a paging storm that found the balance used up together each
+   * read "not told yet", and each emailed every owner.
+   */
+  @CaptureSpan()
+  public async claimSmsOrCallLowBalanceNotice(
+    projectId: ObjectID,
+  ): Promise<boolean> {
+    return await this.claimOwnerNotice({
+      projectId,
+      column: "lowCallAndSMSBalanceNotificationSentToOwners",
+    });
+  }
+
+  /*
+   * One owners' notice flag, claimed in one statement: the condition and the
+   * write are a single UPDATE, so two servers cannot both win. A passive
+   * bookkeeping write - no hooks, no version or updatedAt bump - on a column
+   * the API never reads; a deleted project is never told.
+   */
+  private async claimOwnerNotice(data: {
+    projectId: ObjectID;
+    column:
+      | "lowAiBalanceNotificationSentToOwners"
+      | "lowCallAndSMSBalanceNotificationSentToOwners";
+  }): Promise<boolean> {
+    const sql: string = `WITH "updated" AS (UPDATE "Project" SET "${data.column}" = true WHERE "_id" = $1 AND "deletedAt" IS NULL AND "${data.column}" = false RETURNING "_id") SELECT "_id" FROM "updated"`;
 
     const result: unknown = await this.getRepository().manager.query(sql, [
-      projectId.toString(),
+      data.projectId.toString(),
     ]);
 
     return Array.isArray(result) && result.length > 0;
+  }
+
+  /*
+   * A recharge of the project's balance for SMS, calls, WhatsApp and
+   * Telegram, once the card is charged: the amount is added to whatever the
+   * balance is now, in one statement that answers what it became. The
+   * owners' notices about it are re-armed in the same statement: the next
+   * time it runs low, or a charge fails, or a channel is off, they are told
+   * again.
+   *
+   * It used to be "the balance read before the charge, plus the amount",
+   * written back after the payment provider answered - which lost the cost
+   * of every message sent meanwhile, and let a second recharge running at
+   * the same moment overwrite the first one's credit, so a card charged
+   * twice was credited once.
+   */
+  @CaptureSpan()
+  public async creditSmsOrCallBalanceInUSDCents(data: {
+    projectId: ObjectID;
+    amountInUSDCents: number;
+  }): Promise<number> {
+    ProjectService.assertWholeCents(data.amountInUSDCents);
+
+    const balance: number | null = await this.addToSmsOrCallBalance({
+      projectId: data.projectId,
+      deltaInUSDCents: data.amountInUSDCents,
+      set: ProjectService.getBalanceNotificationFlagResets(
+        ProjectBalanceType.SmsOrCall,
+      ),
+    });
+
+    if (balance === null) {
+      throw new BadDataException("Project not found");
+    }
+
+    return balance;
+  }
+
+  /*
+   * What one SMS, call, WhatsApp or Telegram message cost, taken from the
+   * project's balance once it was handed to the provider: in one statement,
+   * from whatever the balance is now, answering what it became (null when
+   * the project is gone). It used to be "the balance read before sending,
+   * less the cost", written back afterwards - so of the messages a paging
+   * storm sent together, all but one went unpaid, and a recharge landing in
+   * between was written over.
+   *
+   * Messages that find just enough left at the same moment can take the
+   * balance below zero: the cost is owed rather than forgiven, and the next
+   * message waits for balance. A message that went out also re-arms the
+   * owners' "channel is off" notice, as it always has.
+   */
+  @CaptureSpan()
+  public async deductSmsOrCallBalanceInUSDCents(data: {
+    projectId: ObjectID;
+    amountInUSDCents: number;
+  }): Promise<number | null> {
+    ProjectService.assertWholeCents(data.amountInUSDCents);
+
+    return await this.addToSmsOrCallBalance({
+      projectId: data.projectId,
+      // Never -0: nothing taken is nothing taken.
+      deltaInUSDCents: -data.amountInUSDCents || 0,
+      set: {
+        notEnabledSmsOrCallNotificationSentToOwners: false,
+      },
+    });
+  }
+
+  private async addToSmsOrCallBalance(data: {
+    projectId: ObjectID;
+    deltaInUSDCents: number;
+    set: QueryDeepPartialEntity<Model>;
+  }): Promise<number | null> {
+    const values: Partial<Record<keyof Model, number>> | null =
+      await this.atomicAddToColumnsByIdAndGetValuesWithoutHooks({
+        id: data.projectId,
+        add: {
+          smsOrCallCurrentBalanceInUSDCents: data.deltaInUSDCents,
+        },
+        set: data.set,
+      });
+
+    if (!values) {
+      return null;
+    }
+
+    return values.smsOrCallCurrentBalanceInUSDCents ?? null;
+  }
+
+  // An amount of a balance: whole, non-negative cents.
+  private static assertWholeCents(amountInUSDCents: number): void {
+    if (
+      typeof amountInUSDCents !== "number" ||
+      !Number.isInteger(amountInUSDCents) ||
+      amountInUSDCents < 0
+    ) {
+      throw new BadDataException(
+        `A balance amount must be a whole, non-negative number of cents: ${amountInUSDCents}`,
+      );
+    }
   }
 
   /*

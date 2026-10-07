@@ -6,6 +6,8 @@ import Label from "../../../Models/DatabaseModels/Label";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Dictionary from "../../../Types/Dictionary";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import NotFoundException from "../../../Types/Exception/NotFoundException";
+import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
   UserPermission,
@@ -13,7 +15,8 @@ import Permission, {
 } from "../../../Types/Permission";
 import AiResourceType from "../../../Types/ResourceAiAgent/AiResourceType";
 import UserType from "../../../Types/UserType";
-import { afterEach, describe, expect, it } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { withLabelJoinTables } from "../TestingUtils/LabelJoinTables";
 
 /*
  * Contract under test — ResourceAiAccessService.assertCallerMayChangeResource,
@@ -56,6 +59,8 @@ function label(id: ObjectID, name: string): Label {
 function server(labels: Array<Label>): DatabaseServer {
   const model: DatabaseServer = new DatabaseServer();
   model.id = SERVER_ID;
+  // Read with its project, as the service selects it.
+  model.projectId = PROJECT_ID;
   model.labels = labels;
   return model;
 }
@@ -124,6 +129,14 @@ function assertMayChange(
 }
 
 describe("ResourceAiAccessService.assertCallerMayChangeResource", () => {
+  /*
+   * A team's block with labels narrows the editable lookup itself, against
+   * the resource's label join table.
+   */
+  beforeEach(() => {
+    withLabelJoinTables();
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -211,6 +224,21 @@ describe("ResourceAiAccessService.assertCallerMayChangeResource", () => {
       row: server([label(PROD_LABEL_ID, "prod")]),
       readableByCaller: false,
     });
+
+    await expect(
+      assertMayChange(userProps([{ permission: Permission.ProjectMember }])),
+    ).rejects.toThrow(NotAuthorizedException);
+  });
+
+  /*
+   * The check of one record answers a record the caller may not read as
+   * missing: here that is the same single refusal as every other.
+   */
+  it("refuses a resource the record check answers as missing", async () => {
+    mockDatabaseServer({ row: server([label(PROD_LABEL_ID, "prod")]) });
+    jest
+      .spyOn(ModelPermission, "checkUpdatePermissionByModel")
+      .mockRejectedValue(new NotFoundException("Database not found."));
 
     await expect(
       assertMayChange(userProps([{ permission: Permission.ProjectMember }])),

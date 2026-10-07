@@ -28,7 +28,9 @@ Bash- и JavaScript-шаги **никогда не выполняются на O
 - `CreateRunbookExecution`, `EditRunbookExecution`, `ReadRunbookExecution` — запускать, отмечать и читать исполнения.
 - `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — управлять правилами автозапуска.
 - `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — управлять Runbook-агентами, которые выполняют Bash- и JavaScript-шаги в вашей инфраструктуре.
-- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (роли) — назначайте команде для полного контроля, повседневного использования или доступа только на чтение соответственно. `RunbookAdmin` объединяет все детализированные права выше.
+- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (роли) — `RunbookAdmin` создаёт runbook-и, их правила и Runner'ы, на которых они выполняются, и запускает их. `RunbookMember` открывает runbook-и и их запуски и запускает их — начинает запуск, завершает или пропускает его шаги и отменяет его, — но не создаёт, не изменяет и не удаляет ни runbook-ов, ни Runner'ов. `RunbookViewer` читает runbook-и и их запуски и ничего не запускает. `RunbookAdmin` объединяет все детализированные права выше.
+
+Роль запускает те runbook-и, до которых дотягивается её область действия. Назначение `RunbookMember`, `RunbookAdmin` или `ProjectMember`, ограниченное некоторыми метками, начинает и продвигает запуски runbook-ов с этими метками, ограниченное собственными ресурсами — запуски runbook-ов, которыми владеет его команда, а блокировка метки командой убирает такие runbook-и. `CreateRunbookExecution` и `EditRunbookExecution` касаются запусков, у которых нет меток, поэтому они действуют на все runbook-и проекта. Одобрение предложения по исправлению, которое запускает runbook, проверяется так же.
 
 ## Очередь и воркер
 

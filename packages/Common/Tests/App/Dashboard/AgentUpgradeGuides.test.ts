@@ -104,6 +104,7 @@ import {
   VMwareInstallMethod,
   getVMwareAgentDownloadCommand,
   getVMwareAgentUpgradeCommand,
+  getVMwareNativeUpgradeCommand,
   getVMwareSetupGuide,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
 import {
@@ -926,7 +927,9 @@ describe("Resource AI agent: its compose service pulled and recreated", () => {
  * recreate the containers, so running one again is the upgrade. A Docker
  * Compose install takes both files again itself (the pin and the version
  * stamp live in them), then the images pulled and the containers recreated,
- * because the collector reads its config only when it starts.
+ * because the collector reads its config only when it starts. The VMware
+ * agent also installs without Docker, as a systemd service: its tab is
+ * covered below.
  */
 describe.each([
   {
@@ -981,6 +984,7 @@ describe.each([
     upgrade: getVMwareAgentUpgradeCommand(),
     download: getVMwareAgentDownloadCommand(),
     recreate: VMWARE_AGENT_RECREATE_COMMAND,
+    withoutDocker: getVMwareNativeUpgradeCommand(),
     setupGuide: (method: string): SetupGuideContent => {
       return getVMwareSetupGuide({
         oneuptimeUrl: URL,
@@ -1002,6 +1006,7 @@ describe.each([
     upgrade: string;
     download: string;
     recreate: string;
+    withoutDocker?: string;
     setupGuide: (method: string) => SetupGuideContent;
   }) => {
     const guide: AgentUpgradeGuide = guideFor(agent.kind);
@@ -1012,7 +1017,11 @@ describe.each([
           return option.label;
         }),
       );
-      expect(labelsOf(guide)).toEqual(["Install script", "Docker Compose"]);
+      expect(labelsOf(guide)).toEqual([
+        "Install script",
+        "Docker Compose",
+        ...(agent.withoutDocker ? ["Without Docker"] : []),
+      ]);
     });
 
     test.each(
@@ -1107,6 +1116,10 @@ describe.each([
 
     test("no command enters the install directory: the script finds it, a Compose install runs where it is", () => {
       for (const method of guide.methods) {
+        // Without Docker the files are installed there by name.
+        if (method.label === "Without Docker") {
+          continue;
+        }
         for (const code of codesOf(method)) {
           expect(code).not.toContain("cd ");
           expect(code).not.toContain(agent.installDir);
@@ -1115,6 +1128,56 @@ describe.each([
     });
   },
 );
+
+/*
+ * The VMware agent without Docker is the collector release the agent pins,
+ * run by systemd: the install's own commands again — the release, the
+ * latest config and unit; .env stays — then a restart are the upgrade. The
+ * tab shows the guide's own block, which needs no key and no folder.
+ */
+describe("VMware agent without Docker: the release and files again, then a restart", () => {
+  const guide: AgentUpgradeGuide = guideFor(AgentKind.VMwareAgent);
+  const method: AgentUpgradeMethod = methodLabelled(guide, "Without Docker");
+
+  test("one step: the guide's own upgrade, run on the agent's machine", () => {
+    expect(
+      method.steps.map((step: AgentUpgradeStep): string => {
+        return step.title;
+      }),
+    ).toEqual(["Install the new release"]);
+    expect(method.steps[0]!.description).toBe(
+      "Run this on the machine the agent runs on. It installs the collector release and the files this OneUptime pins over the old ones, then restarts the agent. Your .env stays; re-apply any change you made to otel-collector-config.yaml.",
+    );
+    expect(codesOf(method)).toEqual([getVMwareNativeUpgradeCommand()]);
+    expect(method.steps[0]!.needsSetupGuide).toBeFalsy();
+    expect(method.steps[0]!.language).toBeUndefined();
+    expect(method.note).toBeUndefined();
+  });
+
+  test("the command is the setup guide's upgrade block, and needs nothing filled in", () => {
+    const setupGuide: SetupGuideContent = getVMwareSetupGuide({
+      oneuptimeUrl: URL,
+      apiKey: KEY,
+      hasApiKey: true,
+      method: "linux-service",
+    });
+    expectCommandsFromGuide(method, setupGuide);
+    expect(topicCodeBlocks(upgradeTopicOf(setupGuide))).toContain(
+      getVMwareNativeUpgradeCommand(),
+    );
+    const command: string = getVMwareNativeUpgradeCommand();
+    expect(command).not.toContain("ONEUPTIME_");
+    expect(command).not.toContain(KEY);
+    expect(command).not.toMatch(/docker/i);
+    expect(command).toMatch(/\nsudo systemctl restart oneuptime-vmware-agent$/);
+  });
+
+  test("only the VMware agent has the tab: Proxmox and Ceph install with Docker alone", () => {
+    for (const kind of [AgentKind.ProxmoxAgent, AgentKind.CephAgent]) {
+      expect(labelsOf(guideFor(kind))).not.toContain("Without Docker");
+    }
+  });
+});
 
 test("a Proxmox cluster on the native push runs no agent, so its guide has nothing to upgrade", () => {
   const markdown: string = getSetupGuideMarkdown(

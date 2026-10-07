@@ -184,6 +184,8 @@ OneUptime automatically adds the following attributes to each log entry:
 
 These attributes become searchable inside the **Products → Logs** explorer.
 
+The message itself stays in the log body. Firewalls such as Sophos XGS and Fortinet FortiGate write it as `key=value` pairs (`log_component="IPSec" con_name="HQ-Branch1" status="Terminated"`); add a **Key=Value Parser** processor in a [log pipeline](/docs/telemetry/log-pipelines#keyvalue-parser) to turn those pairs into attributes too.
+
 ## Troubleshooting
 
 - **HTTP 401 or empty results** – verify the `x-oneuptime-token` header belongs to the project receiving the logs.

@@ -161,7 +161,7 @@ Instellingen op beide:
 
 Zet de roosterlink in een gedeelde teamagenda — Google, Outlook of Confluence — en één abonnement bedient het hele team. Roteer hem als iemand die hem had vertrekt, of schakel de automatische rotatie hierboven in.
 
-Wanneer iemand zijn laatste team in een project verlaat, verwijdert OneUptime die persoon ook uit de roosterlagen en escalatieregels van dat project, verwijdert de lopende en toekomstige overrides van dat project waarin die persoon staat (als vervangen persoon of als vervanger), schakelt zijn persoonlijke feed voor het project uit en verwijdert zijn herinneringen daar.
+Wanneer iemand zijn laatste team in een project verlaat, verwijdert OneUptime die persoon ook uit de roosterlagen en escalatieregels van dat project, verwijdert de lopende en toekomstige overrides van dat project waarin die persoon staat (als vervangen persoon of als vervanger), schakelt zijn persoonlijke feed voor het project uit en verwijdert zijn herinneringen daar. Een persoonlijke link toont alleen diensten zolang de eigenaar lid van het project is: dat wordt bij elke keer ophalen van de link gecontroleerd, dus wie is vertrokken krijgt een lege agenda, en de lijst met komende diensten in de mobiele app bevat alleen de projecten waarvan die persoon nog lid is.
 
 ## Afspraken in detail
 
@@ -220,7 +220,7 @@ Ook relevant:
 
 **De agenda is verouderd.** Lees eerst de vernieuwtabel: bij Google is de vertraging normaal. Om Google opnieuw te laten kijken, verwijder je de agenda en voeg je hem opnieuw toe, of voeg je `?nocache=1` aan de link toe (onbekende parameters worden genegeerd, de feed is hetzelfde maar Google behandelt hem als nieuw). Druk in klassiek Outlook op F9 en controleer de instelling **Bijwerklimiet**. Gebruik in Apple Agenda **Weergave** > **Vernieuw agenda's**. Als een wijziging van dezelfde dag belangrijk is, vertrouw dan op de herinneringen en hertoewijzingsberichten van OneUptime in plaats van op de agenda.
 
-**De agenda is leeg.** Een lege agenda is opzettelijk. Het betekent dat de link is uitgeschakeld, een oude link is binnen zijn respijtperiode van 30 dagen na opnieuw genereren, het project onder het abonnement zit dat piketroosters bevat, of dat je op geen enkel rooster in dat project meer staat. Open de link in een browser: de agendabeschrijving (`X-WR-CALDESC`) noemt de reden.
+**De agenda is leeg.** Een lege agenda is opzettelijk. Het betekent dat de link is uitgeschakeld, een oude link is binnen zijn respijtperiode van 30 dagen na opnieuw genereren, het project onder het abonnement zit dat piketroosters bevat, of dat je op geen enkel rooster in dat project meer staat. Open de link in een browser: de agendabeschrijving (`X-WR-CALDESC`) noemt de reden. Als je het project hebt verlaten, blijft de link leeg: hij toont alleen diensten zolang je lid bent.
 
 **404.** De link is onbekend, verwijderd, of zijn respijtperiode is voorbij. Genereer een nieuwe en abonneer je opnieuw.
 

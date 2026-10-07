@@ -19,8 +19,14 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
+/*
+ * Telemetry configuration, read by the Telemetry tiers, which do not read
+ * the service catalogue: reading the service a source map names is optional
+ * (isParentReadOptional). A caller who may read services reaches the source
+ * maps of the services they may read.
+ */
 @EnableDocumentation()
-@CanAccessIfCanReadOn("service")
+@CanAccessIfCanReadOn("service", { isParentReadOptional: true })
 @TenantColumn("projectId")
 @CrudApiEndpoint(new Route("/telemetry-source-map"))
 @Entity({

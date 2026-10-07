@@ -161,7 +161,7 @@ Paramètres sur les deux :
 
 Placez le lien de planning dans un calendrier d'équipe partagé — Google, Outlook ou Confluence — et un seul abonnement sert toute l'équipe. Renouvelez-le quand quelqu'un qui l'avait s'en va, ou activez le renouvellement automatique ci-dessus.
 
-Quand une personne quitte sa dernière équipe d'un projet, OneUptime la retire aussi des couches de planning et des règles d'escalade de ce projet, supprime les remplacements en cours et à venir du projet qui la mentionnent (comme personne remplacée ou comme remplaçante), désactive son flux personnel pour le projet et supprime ses rappels.
+Quand une personne quitte sa dernière équipe d'un projet, OneUptime la retire aussi des couches de planning et des règles d'escalade de ce projet, supprime les remplacements en cours et à venir du projet qui la mentionnent (comme personne remplacée ou comme remplaçante), désactive son flux personnel pour le projet et supprime ses rappels. Un lien personnel n'affiche des gardes que tant que son propriétaire est membre du projet : c'est vérifié à chaque récupération du lien, si bien qu'une personne partie reçoit un calendrier vide, et la liste des prochaines gardes dans l'application mobile ne couvre que les projets dont elle est encore membre.
 
 ## Les événements en détail
 
@@ -220,7 +220,7 @@ Rien n'est à activer : les flux fonctionnent sur toute installation. Quatre var
 
 **Le calendrier est périmé.** Lisez d'abord le tableau d'actualisation : pour Google, le délai est normal. Pour forcer Google à relire, supprimez et rajoutez l'agenda ou ajoutez `?nocache=1` au lien (les paramètres inconnus sont ignorés, le flux est identique mais Google le traite comme nouveau). Dans Outlook classique, appuyez sur F9 et vérifiez le réglage **Limite de mise à jour**. Dans Calendrier Apple, utilisez **Présentation** > **Actualiser les calendriers**. Si un changement du jour même compte, fiez-vous aux rappels et avis de réaffectation de OneUptime plutôt qu'au calendrier.
 
-**Le calendrier est vide.** Un calendrier vide est voulu. Cela signifie que le lien est désactivé, qu'il s'agit d'un ancien lien dans sa période de grâce de 30 jours après régénération, que le projet est en dessous du forfait incluant les plannings d'astreinte, ou que vous n'êtes plus sur aucun planning de ce projet. Ouvrez le lien dans un navigateur : la description du calendrier (`X-WR-CALDESC`) indique la raison.
+**Le calendrier est vide.** Un calendrier vide est voulu. Cela signifie que le lien est désactivé, qu'il s'agit d'un ancien lien dans sa période de grâce de 30 jours après régénération, que le projet est en dessous du forfait incluant les plannings d'astreinte, ou que vous n'êtes plus sur aucun planning de ce projet. Ouvrez le lien dans un navigateur : la description du calendrier (`X-WR-CALDESC`) indique la raison. Si vous avez quitté le projet, le lien reste vide : il n'affiche des gardes que tant que vous en êtes membre.
 
 **404.** Le lien est inconnu, a été supprimé, ou sa période de grâce est terminée. Générez-en un nouveau et réabonnez-vous.
 

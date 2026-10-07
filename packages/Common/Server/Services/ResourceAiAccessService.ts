@@ -8,6 +8,7 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import NotFoundException from "../../Types/Exception/NotFoundException";
 import ObjectID from "../../Types/ObjectID";
 import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
@@ -1325,6 +1326,12 @@ export class ResourceAiAccessServiceClass {
     const accessControlColumn: string | null = service
       .getModel()
       .getAccessControlColumn();
+    const tenantColumn: string | null = service.getModel().getTenantColumn();
+
+    // Whose row it is, for the update check below to see too.
+    if (tenantColumn) {
+      (select as Record<string, unknown>)[tenantColumn] = true;
+    }
 
     if (accessControlColumn) {
       (select as Record<string, unknown>)[accessControlColumn] = {
@@ -1385,9 +1392,11 @@ export class ResourceAiAccessServiceClass {
         throw new NotAuthorizedException(refusal);
       }
     } catch (error) {
+      // A row the caller may not read is answered as missing: one refusal.
       if (
         error instanceof NotAuthorizedException ||
-        error instanceof NotAuthenticatedException
+        error instanceof NotAuthenticatedException ||
+        error instanceof NotFoundException
       ) {
         throw new NotAuthorizedException(refusal);
       }

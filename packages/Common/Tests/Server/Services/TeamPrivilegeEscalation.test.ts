@@ -798,7 +798,10 @@ describe("project-scoped permission resolution and access refresh", () => {
         },
       }),
     );
-    expect(refreshGlobal).toHaveBeenCalledWith(USER_ID);
+    // Only the project's refresh tells their open live updates.
+    expect(refreshGlobal).toHaveBeenCalledWith(USER_ID, {
+      forgetLiveUpdateReaders: false,
+    });
     expect(refreshTenant).toHaveBeenCalledWith(USER_ID, PROJECT_ID);
   });
 

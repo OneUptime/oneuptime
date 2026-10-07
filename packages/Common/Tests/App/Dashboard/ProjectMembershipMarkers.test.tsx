@@ -18,6 +18,7 @@ jest.mock("../../../UI/Images/users/blank-profile.svg", () => {
 import UserElement from "../../../../App/FeatureSet/Dashboard/src/Components/User/User";
 import ProjectUserElement from "../../../../App/FeatureSet/Dashboard/src/Components/User/ProjectUserElement";
 import ProjectMembershipLoaderInstance, {
+  ANSWER_TTL_IN_MS,
   PROJECT_MEMBERSHIP_READ_PERMISSIONS,
   ProjectMemberReader,
   ProjectMemberships,
@@ -39,7 +40,7 @@ import Permission from "../../../Types/Permission";
  *
  * Pinned here:
  *   - the loader answers every row of a page with ONE read, keeps answers for
- *     a minute, and answers null ("say nothing") whenever it cannot know,
+ *     ten seconds, and answers null ("say nothing") whenever it cannot know,
  *   - the user row shows the right line in place of the email,
  *   - the wrapper asks about the person in the current project, again when
  *     the project changes, and marks them only on a definite answer.
@@ -134,7 +135,7 @@ describe("ProjectMembershipLoader", () => {
     ]);
   });
 
-  test("an answer is kept for a minute, then asked again", async () => {
+  test("an answer is kept for ten seconds, then asked again", async () => {
     const { reader, calls } = fakeReader({ members: [MEMBER] });
     let now: number = 1_000_000;
     const loader: ProjectMembershipLoader = new ProjectMembershipLoader(
@@ -149,13 +150,16 @@ describe("ProjectMembershipLoader", () => {
       loader.getMembership({ projectId: PROJECT_A, userId: LEAVER }),
     ).resolves.toBe(ProjectMembershipStatus.NotMember);
 
-    now += 30 * 1000;
+    now += ANSWER_TTL_IN_MS / 2;
     await expect(
       loader.getMembership({ projectId: PROJECT_A, userId: LEAVER }),
     ).resolves.toBe(ProjectMembershipStatus.NotMember);
     expect(calls).toHaveLength(1);
 
-    now += 31 * 1000;
+    // Ten seconds, not a minute: a page opened later asks again.
+    expect(ANSWER_TTL_IN_MS).toBe(10 * 1000);
+
+    now += ANSWER_TTL_IN_MS / 2 + 1;
     await expect(
       loader.getMembership({ projectId: PROJECT_A, userId: LEAVER }),
     ).resolves.toBe(ProjectMembershipStatus.NotMember);

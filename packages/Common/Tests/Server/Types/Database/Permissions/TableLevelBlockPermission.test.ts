@@ -73,6 +73,8 @@ describe("TablePermission.checkTableLevelBlockPermissions", () => {
 
   function incidentWithLabels(labelIds: Array<ObjectID>): Incident {
     const incident: Incident = new Incident();
+    // Read with its project, as a check by model reads it.
+    incident.projectId = projectId;
     incident.labels = labelIds.map((id: ObjectID) => {
       const label: Label = new Label();
       label.id = id;

@@ -35,7 +35,7 @@ En bruker er «i» et prosjekt når vedkommende er medlem av **minst ett team** 
 
 - Invitasjoner oppretter et ventende teammedlem. Brukeren teller først som prosjektmedlem — og får først noen tillatelse — **etter å ha godtatt invitasjonen.**
 - Fjerner du en bruker fra alle team i et prosjekt, mister vedkommende tilgangen til prosjektet.
-- Den som forlater et prosjekt, får ikke lenger varslene fra det. Personens egne varslingsmetoder, -regler og -innstillinger for prosjektet fjernes sammen med det siste teamet — e-post, SMS, anrop, WhatsApp, Telegram, push, webhook, Slack og Microsoft Teams, e-postsammendraget og e-posten som ennå ikke er sendt, nummeret for innkommende anrop og vaktpåminnelsene —, så den som blir med igjen, starter fra standardinnstillingene. Det som fortsatt nevner personen, som brukeren en regel for innkommende anrop ringer til eller en eier som beholdes på en løst hendelse, varsler ikke lenger personen: ingenting sendes på vegne av et prosjekt til noen som ikke er medlem, og en ventende invitasjon er ennå ikke et medlemskap. Disse stedene viser **Ikke lenger medlem** ved siden av navnet, slik at du kan sette inn en annen. Den som er invitert og ikke har akseptert ennå, viser i stedet **Invitasjon ikke akseptert ennå**.
+- Den som forlater et prosjekt, får ikke lenger varslene fra det. Personens egne varslingsmetoder, -regler og -innstillinger for prosjektet fjernes sammen med det siste teamet — e-post, SMS, anrop, WhatsApp, Telegram, push, webhook, Slack og Microsoft Teams, e-postsammendraget og e-posten som ennå ikke er sendt, nummeret for innkommende anrop og vaktpåminnelsene —, så den som blir med igjen, starter fra standardinnstillingene. Det som fortsatt nevner personen, som brukeren en regel for innkommende anrop ringer til eller en eier som beholdes på en løst hendelse, varsler ikke lenger personen: ingenting sendes på vegne av et prosjekt til noen som ikke er medlem, og en ventende invitasjon er ennå ikke et medlemskap. Disse stedene viser **Ikke lenger medlem** ved siden av navnet, slik at du kan sette inn en annen. Den som er invitert og ikke har akseptert ennå, viser i stedet **Invitasjon ikke akseptert ennå**. Hvis en overstyring sender noens varsler videre til en person som har forlatt prosjektet, varsles i stedet den som overstyringen dekker. Å forlate prosjektet kobler også fra MCP-klientene personen har koblet til prosjektet, og personens personlige lenke til vaktkalenderen viser deretter en tom kalender. På OneUptime Cloud bekrefter den som kommer tilbake via prosjektets enkel pålogging (SSO), den på nytt fra e-postkassen sin.
 - Krever prosjektet SSO og brukeren ennå ikke har autentisert seg via identitetsleverandøren, behandles vedkommende som uautorisert SSO-bruker og ser ingenting før det er gjort. Se [SSO](/docs/identity/sso).
 - Med SCIM satt opp kan identitetsleverandøren opprette, oppdatere og fjerne brukere og teammedlemskap automatisk. Se [SCIM](/docs/identity/scim).
 
@@ -71,19 +71,25 @@ En tillatelse er én funksjon. Det finnes to måter å dele dem ut på, begge p�
 
 En rolle samler et helt produktområde på ett av tre nivåer:
 
-- **Admin** — full kontroll over området, inkludert konfigurasjonen (alvorlighetsgrader, tilstander, maler).
-- **Member** — det daglige arbeidet: opprette, redigere og slette ressursene, men ikke konfigurere om området.
+- **Admin** — det Member gjør, pluss områdets egen konfigurasjon, som alvorlighetsgrader og tilstander for hendelser og varsler, monitorstatuser og vedlikeholdstilstander.
+- **Member** — det daglige arbeidet: opprette, endre og slette områdets ressurser med notater, eiere og maler. For statussider og vakt kan Member alt Admin kan.
 - **Viewer** — kun lesing.
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` og så videre. Roller er nesten alltid riktig valg — de forblir korrekte etter hvert som OneUptime får nye funksjoner, fordi en ny overvåkerrelatert tabell legges inn under de eksisterende overvåkerrollene i stedet for å kreve en ny tildeling fra deg.
 
-Arbeidsflyter er unntaket. En arbeidsflyt kjører trinnene sine inne i prosjektet, så `WorkflowMember` åpner arbeidsflyter og kjøringene deres og kjører dem for hånd, men oppretter, endrer eller sletter dem ikke. `WorkflowAdmin` bygger dem. Se [Konfigurasjon av arbeidsflyter](/docs/workflows/configuration).
+Arbeidsflyter og runbooks er unntaket. Begge kjører kode i prosjektet ditt — en arbeidsflyt trinnene sine, en runbook skriptene sine på Runnerne dine —, så `WorkflowMember` åpner arbeidsflyter og kjøringene deres og kjører dem manuelt, og `RunbookMember` åpner runbooks og kjøringene deres og kjører dem: den starter en kjøring, fullfører eller hopper over trinnene og avbryter den. Ingen av dem oppretter, endrer eller sletter det de kjører; `WorkflowAdmin` og `RunbookAdmin` bygger dem. En rolle kjører bare runbookene omfanget dens når: en `RunbookMember` som er begrenset til noen etiketter, kjører runbookene som har dem. Se [Arbeidsflytkonfigurasjon](/docs/workflows/configuration) og [Runbook-konfigurasjon](/docs/runbooks/configuration).
+
+Et områdes regler (etikett-, eier-, vakt-, grupperings- og påminnelsesregler), egendefinerte felt, SLA-er og hemmeligheter er prosjektkonfigurasjon: de krever `ProjectAdmin`, uansett hvilken områderolle man har. Det samme gjelder API-nøkler, team og tillatelsene deres, etiketter, SSO og domener — Settings-rollene tar seg av prosjektets tjenester, prober, infrastruktur og integrasjoner, ikke hvem som får gjøre hva.
+
+Fakturering har tre egne roller. `BillingViewer` leser prosjektets fakturering — planen og abonnementet, fakturaer, bruk, saldoer, AI-kreditter, betalingsmetoder og kontaktopplysningene for fakturering — og endrer ingenting. `BillingMember` laster i tillegg ned fakturaer og endrer kontaktopplysningene for fakturering. `BillingAdmin` gjør det `BillingMember` gjør, og slår SMS, telefonsamtaler, WhatsApp og Telegram av og på. Å endre planen, betalingsmetoder eller saldoer og å betale fakturaer krever `ProjectOwner` eller **Manage Billing**; på faktureringssidene er disse knappene låst for alle andre og forteller hvem som kan bruke dem.
 
 Alle {{PERMISSION_ROLE_COUNT}} rollene står i [Tillatelsesreferansen](/docs/permissions/reference).
 
 ### Granulære tillatelser
 
 Hver enkelt funksjon kan også tildeles alene — `CreateProjectMonitor`, `ReadProjectIncident`, `DeleteProjectStatusPage` og {{PERMISSION_TOTAL_COUNT}} andre. Bruk disse når en rolle er for bred og du må gi nøyaktig én ting.
+
+En tillatelse til å endre eller slette noe når bare det du også har lov til å lese, så gi den tilsvarende lesetillatelsen sammen med den: `EditProjectIncident` endrer ingen hendelse uten `ReadProjectIncident`. En post som leses gjennom en annen, for eksempel et notat på en hendelse, trenger også en tillatelse til å lese den andre posten: `ReadIncidentInternalNote` når ingen notater uten en tillatelse til å lese hendelser. Rollene har begge allerede.
 
 Det er også nøklene du bruker når du oppretter API-nøkler, og dem API-et og Terraform-provideren forventer.
 
@@ -137,6 +143,8 @@ Etiketter er prosjektomfattende merkelapper du setter på ressurser. De har to f
 
 En etikettbegrensning er oppfylt hvis ressursen bærer **minst én** av tillatelsens etiketter. En ressurs helt uten etiketter oppfyller ingen etikettbegrenset tillatelse.
 
+En post uten egne etiketter, for eksempel et notat på en hendelse, en kunngjøring på en statusside eller en AI-innsikt om en tjeneste, bærer etikettene til postene den hører til eller handler om. En tillatelse begrenset til etiketter når den når en av de postene bærer en av tillatelsens etiketter, og en blokkering med etiketter fjerner den når en av dem bærer en blokkert etikett, ved lesing, endring og sletting likt. En post som ikke handler om noen av dem, for eksempel en AI-innsikt som ikke handler om noen tjeneste, hører til prosjektet: en etikettbegrensning avgrenser den ikke, og en blokkering med etiketter fjerner den ikke.
+
 Hvor du finner det: **Innstillinger → Etiketter**.
 
 ## Telemetri
@@ -148,6 +156,8 @@ Logger, sporinger, metrikker, unntak, profiler og øktavspillinger hører til re
 - **Etiketter** leser telemetrien til ressursene som bærer en av tillatelsens etiketter.
 
 En blokkering med etiketter på en telemetritillatelse utelater telemetrien til ressursene som bærer de etikettene, uansett hva annet du har. Det gjelder overalt der telemetri leses: utforskerne med sine diagrammer, filtre og attributtlister, eksporter, øktavspillinger og det AI-assistenten leser for deg. Listen over metrikknavn viser metrikkene som en tjeneste du kan lese rapporterer, og metrikkene ingen tjeneste rapporterer, for eksempel verts- og klyngemetrikker. Kan du også lese telemetrien til andre typer ressurser, for eksempel verter eller klynger, viser den alle metrikknavn.
+
+Monitorlogger, SLO-historikk, nettverksflyter og kostnadsfordelinger for Kubernetes leses på samme måte, gjennom monitoren, SLO-en, nettverksenheten eller klyngen de hører til: Eide og Etiketter når radene til postene du kan lese, og en blokkering med etiketter utelater radene til postene som bærer de etikettene. Revisjonsloggen og trusseletterretningsindikatorene leses i hele prosjektet av den som kan lese dem.
 
 ## API-nøkler
 
@@ -165,12 +175,13 @@ Hvor du finner det: **Innstillinger → API-nøkler**. Se også [API-referansen]
 
 For en innlogget bruker, i rekkefølge:
 
-1. Finn teamene brukeren tilhører i dette prosjektet — bare godtatte invitasjoner teller.
+1. Finn teamene brukeren tilhører i dette prosjektet — bare godtatte invitasjoner teller. En forespørsel når bare postene i dette prosjektet: en post i et annet prosjekt, angitt med sin id eller i et filter, behandles som om den ikke fantes.
 2. Samle alle tillatelsesrader fra disse teamene — tillatte og blokkerte, hver med etiketter og omfang.
 3. Sjekk blokkeringslisten først. En blokkering uten etiketter på en hvilken som helst tillatelse måltabellen godtar for denne operasjonen, avviser forespørselen umiddelbart, uansett hvilket team den er satt på.
 4. Sjekk tillatelseslisten. Forespørselen trenger minst én tillatelse som måltabellen godtar for denne operasjonen. For en driftsressurs — en overvåker, en hendelse, et dashbord og lignende — teller også den tilsvarende **All Operational Resources**-tillatelsen (Create, Read, Edit eller Delete), med mindre den selv er blokkert.
-5. Bruk omfanget. Tildelinger med omfanget Eide snevrer spørringen inn til eide ressurser; etikettbaserte snevrer inn til treffende etiketter. Er en annen tildeling for samme operasjon bredere, vinner den bredere.
-6. Bruk etikettblokkeringer. En blokkering med etiketter avviser forespørselen hvis målressursen bærer én av dem. Når en post ikke har egne etiketter, for eksempel et notat på en hendelse eller en kunngjøring på en statusside, utelater en blokkering med etiketter på å lese den posten hvis en post den hører til, bærer en av de etikettene.
+5. Bruk omfanget. Tildelinger med omfanget Eide snevrer spørringen inn til eide ressurser; etikettbaserte snevrer inn til treffende etiketter. Er en annen tildeling for samme operasjon bredere, vinner den bredere. En post uten egne etiketter, for eksempel et notat på en hendelse, oppfyller en etikettbasert tildeling når en av postene den hører til, bærer en av tildelingens etiketter.
+6. Bruk etikettblokkeringer. En blokkering med etiketter avviser forespørselen hvis målressursen bærer én av dem. Når en post ikke har egne etiketter, for eksempel et notat på en hendelse eller en kunngjøring på en statusside, utelater en blokkering med etiketter posten ved lesing, endring og sletting hvis en post den hører til, bærer en av de etikettene. En liste med poster fra alle prosjektene dine på én gang, for eksempel hendelsene på startsiden din, avgrenser hvert prosjekts poster med blokkeringene og tildelingene dine i det prosjektet.
+7. Hold endringer og slettinger til det du har lov til å lese. En endring eller sletting avgrenses av lesetillatelsene dine i tillegg til tillatelsen for endringen: en post du ikke har lov til å lese — utenfor etikettene eller eierne dine, eller med en etikett som en blokkering av lesing tar bort — er ikke en du kan endre eller slette, og en blokkering uten etiketter av lesing av en type post tar også bort endring og sletting av den. En post som leses gjennom en annen, for eksempel et notat på en hendelse eller en kunngjøring på en statusside, nås bare gjennom en post du har lov til å lese: uten tillatelse til å lese hendelser når en tillatelse for notater ingen notater, og en blokkering med etiketter av lesing av hendelser utelater notatene på hendelsene som bærer dem. En endring eller sletting av én post, angitt med ID-en, som ikke når noe, besvares som om posten ikke fantes (`404`) når du ikke har lov til å lese den, og avvises når du har lov til å lese den, men ikke endre den.
 
 Hvert felt i en post leses med postens egen lesetillatelse: en tillatelse for en annen type post åpner det aldri. Noen felt er bevisst snevrere. Hemmeligheter leses bare av personer som kan redigere eller administrere posten de hører til, for eksempel en monitors nøkler for innkommende forespørsler og innkommende e-post og dens serveragentnøkkel, eller et arbeidsflyts webhook- og e-postnøkler. Å se opptaket av en øktavspilling krever **Watch Session Replays**, ikke bare **List Session Replays**. Telemetri leses signal for signal: **Read Telemetry Service Log** leser logger, **Read Telemetry Service Traces** leser sporinger, og **Read Telemetry Service Metrics** leser metrikker, metrikkdiagrammer inkludert.
 
@@ -178,7 +189,9 @@ Felt følger samme regel. En blokkering uten etiketter på tillatelsen til et fe
 
 Den samme regelen avgjør alt annet som spør om du har en tillatelse: handlinger som ikke er en enkel lesing eller skriving — å legge til SMS-, samtale- eller AI-kreditt, betale en faktura eller teste en varslingsregel — og knappene OneUptime viser. En knapp du ikke får bruke, vises låst og sier hvorfor; er en blokkering i et av teamene dine årsaken, navngir den den blokkerte tillatelsen.
 
-Liveoppdateringer følger den samme regelen. Når en post opprettes, endres eller slettes, gir OneUptime beskjed til de åpne sidene til personene som får lese posten, og ingen andre. Det som begrenser hva du får lese, begrenser også liveoppdateringene dine: etiketter, eiere, en blokkering med etiketter, en privat hendelse eller en annens AI-samtale. Når en endring tar fra deg tilgangen til en post, for eksempel når den gjøres privat, får de åpne sidene dine også beskjed, slik at de slutter å vise den. En endring i tillatelsene dine når de åpne sidene dine innen 30 sekunder.
+Liveoppdateringer følger den samme regelen. Når en post opprettes, endres eller slettes, gir OneUptime beskjed til de åpne sidene til personene som får lese posten, og ingen andre. Det som begrenser hva du får lese, begrenser også liveoppdateringene dine: etiketter, eiere, en blokkering med etiketter, en privat hendelse eller en annens AI-samtale. Når en endring tar fra deg tilgangen til en post, for eksempel når den gjøres privat, får de åpne sidene dine også beskjed, slik at de slutter å vise den. En endring i tillatelsene dine, en blokkering eller at du ikke lenger er master admin, når de åpne sidene dine med en gang.
+
+Liveoppdateringer slutter også med påloggingen som startet dem. Når du logger ut, endrer passordet ditt eller blir blokkert, stopper liveoppdateringene på de åpne sidene dine med en gang. En åpen side fornyer påloggingen sin hvert 15. minutt og fortsetter deretter med liveoppdateringene; kan påloggingen ikke fornyes, sender siden deg til påloggingssiden. Et prosjekt som krever SSO, gir bare liveoppdateringer til sider som er pålogget med SSO, akkurat som med alt annet.
 
 Enhver innlogget bruker har i tillegg et lite sett automatiske tillatelser som dekker ting som å lese sin egen profil og sine egne varslingsregler. Dette er ikke administratorrettigheter, og de gir ikke tilgang til andres data.
 
@@ -194,7 +207,7 @@ Løste tillatelser bufres per bruker og prosjekt, og oppdateres når teammedlems
 
 **En CI-pipeline som bare rapporterer utrullinger.** Opprett en API-nøkkel med nøyaktig de granulære tillatelsene den trenger — ingen roller.
 
-**Noen som ikke skal se fakturering.** Ikke legg vedkommende i Owners-teamet. `ProjectAdmin` utelukker allerede fakturering.
+**Noen som ikke skal endre fakturering eller se fakturaer.** Gi vedkommende `ProjectMember`, ikke `ProjectAdmin`: en prosjektadministrator kan ikke endre planen, betalingsmetoder eller saldoer, men leser og laster ned fakturaer. Skal noen lese faktureringssidene uten å endre noe, gi vedkommende `BillingViewer`.
 
 ## Videre
 

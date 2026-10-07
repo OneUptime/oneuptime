@@ -57,8 +57,11 @@ const ADMIN_DELETE_PERMISSIONS: Array<Permission> = [
  *
  * It is not a permission set. A client acts as the member, with whatever the
  * member's teams allow at the moment of each request; the grant only narrows
- * that to read-only or read-and-write (`scope`). Removing the member from the
- * project, or blocking them, stops the client with no change to this row.
+ * that to read-only or read-and-write (`scope`). Blocking the member stops the
+ * client with no change to this row. Removing them from the project stops it
+ * at its next request too - a grant is refused to somebody who is not a
+ * member (McpOAuthGrantAccess) - and removes the row with everything issued
+ * under it (ProjectLeaveAccessCleanup).
  *
  * PENDING, THEN ACTIVE
  *

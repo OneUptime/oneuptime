@@ -42,7 +42,6 @@ import {
     Permission.CreateRunbook,
     Permission.ProjectMember,
     Permission.RunbookAdmin,
-    Permission.RunbookMember,
   ],
   read: [
     Permission.ProjectOwner,
@@ -60,7 +59,6 @@ import {
     Permission.DeleteRunbook,
     Permission.ProjectMember,
     Permission.RunbookAdmin,
-    Permission.RunbookMember,
   ],
   update: [
     Permission.ProjectOwner,
@@ -90,7 +88,6 @@ export default class Runbook extends BaseModel {
       Permission.CreateRunbook,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
     ],
     read: [
       Permission.ProjectOwner,
@@ -132,7 +129,6 @@ export default class Runbook extends BaseModel {
       Permission.CreateRunbook,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
     ],
     read: [
       Permission.ProjectOwner,
@@ -168,7 +164,6 @@ export default class Runbook extends BaseModel {
       Permission.CreateRunbook,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
     ],
     read: [
       Permission.ProjectOwner,
@@ -239,7 +234,6 @@ export default class Runbook extends BaseModel {
       Permission.CreateRunbook,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
     ],
     read: [
       Permission.ProjectOwner,
@@ -280,7 +274,6 @@ export default class Runbook extends BaseModel {
       Permission.CreateRunbook,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
     ],
     read: [
       Permission.ProjectOwner,
@@ -323,7 +316,6 @@ export default class Runbook extends BaseModel {
       Permission.CreateRunbook,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
     ],
     read: [
       Permission.ProjectOwner,
@@ -421,7 +413,6 @@ export default class Runbook extends BaseModel {
       Permission.CreateRunbook,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
     ],
     read: [
       Permission.ProjectOwner,
@@ -460,7 +451,6 @@ export default class Runbook extends BaseModel {
       Permission.CreateRunbook,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
     ],
     read: [
       Permission.ProjectOwner,
@@ -500,7 +490,6 @@ export default class Runbook extends BaseModel {
       Permission.CreateRunbook,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
     ],
     read: [
       Permission.ProjectOwner,

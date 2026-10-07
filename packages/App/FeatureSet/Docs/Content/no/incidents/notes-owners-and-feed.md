@@ -142,6 +142,7 @@ Feed-elementer skrives av hendelsestjenesten selv, av begge notattjenestene, av 
 - **Mennesker** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`.
 - **Varsler** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
 - **Automatisering** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
+- **Videosamtaler** — `VideoCallStarted` og `VideoCallFailed`: en samtale som er startet for hendelsen, med lenken for å bli med, eller årsaken til at en leverandør ikke kunne starte en. Se [Videosamtaler](/docs/workspace-connections/video-calls).
 
 Hver type får sitt eget ikon, så du kan skumme en lang feed og plukke ut tilstandsendringene fra skravlingen. AI-generert rotårsaksanalyse merkes tydelig og vises i en begrenset Markdown-modus.
 

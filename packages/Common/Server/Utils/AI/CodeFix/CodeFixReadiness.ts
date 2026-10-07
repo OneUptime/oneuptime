@@ -15,7 +15,7 @@ import {
   AIFixReadinessCheck,
 } from "../../../../Types/AI/AIFixReadiness";
 import { IsBillingEnabled } from "../../../EnvironmentConfig";
-import AiAutoRechargeState from "../../../../Types/Billing/AiAutoRechargeState";
+import AutoRechargeState from "../../../../Types/Billing/AutoRechargeState";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import {
   getProjectBalanceWhoCanAddSentence,
@@ -112,7 +112,7 @@ export default class CodeFixReadiness {
           (await AIBillingService.getAutoRechargeState({
             projectId: params.projectId,
             project,
-          })) !== AiAutoRechargeState.Ready);
+          })) !== AutoRechargeState.Ready);
 
       if (isUsedUp) {
         return {

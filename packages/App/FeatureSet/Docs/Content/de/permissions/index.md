@@ -35,7 +35,7 @@ Ein Benutzer ist „in" einem Projekt, sobald er Mitglied **mindestens eines Tea
 
 - Einladungen erzeugen ein ausstehendes Teammitglied. Der Benutzer zählt erst als Projektmitglied — und erhält erst dann irgendeine Berechtigung —, **nachdem er die Einladung angenommen hat.**
 - Wird ein Benutzer aus allen Teams eines Projekts entfernt, verliert er den Zugriff darauf.
-- Wer ein Projekt verlässt, erhält keine Benachrichtigungen mehr daraus. Seine eigenen Benachrichtigungsmethoden, -regeln und -einstellungen für das Projekt werden mit dem letzten Team entfernt — E-Mail, SMS, Anruf, WhatsApp, Telegram, Push, Webhook, Slack und Microsoft Teams, die E-Mail-Zusammenfassung samt noch nicht versendeter E-Mail, die Nummer für eingehende Anrufe und die Schicht-Erinnerungen —, sodass ein erneuter Beitritt mit den Standardwerten beginnt. Wo die Person danach noch genannt wird, etwa als Benutzer, den eine Regel für eingehende Anrufe anruft, oder als Besitzer eines gelösten Vorfalls, wird sie nicht mehr benachrichtigt: Im Namen eines Projekts wird nichts an jemanden gesendet, der kein Mitglied ist, und eine ausstehende Einladung ist noch keine Mitgliedschaft. Diese Stellen zeigen **Kein Mitglied mehr** neben dem Namen, damit Sie jemand anderen eintragen können. Wer eingeladen ist und noch nicht angenommen hat, erscheint stattdessen mit **Einladung noch nicht angenommen**.
+- Wer ein Projekt verlässt, erhält keine Benachrichtigungen mehr daraus. Seine eigenen Benachrichtigungsmethoden, -regeln und -einstellungen für das Projekt werden mit dem letzten Team entfernt — E-Mail, SMS, Anruf, WhatsApp, Telegram, Push, Webhook, Slack und Microsoft Teams, die E-Mail-Zusammenfassung samt noch nicht versendeter E-Mail, die Nummer für eingehende Anrufe und die Schicht-Erinnerungen —, sodass ein erneuter Beitritt mit den Standardwerten beginnt. Wo die Person danach noch genannt wird, etwa als Benutzer, den eine Regel für eingehende Anrufe anruft, oder als Besitzer eines gelösten Vorfalls, wird sie nicht mehr benachrichtigt: Im Namen eines Projekts wird nichts an jemanden gesendet, der kein Mitglied ist, und eine ausstehende Einladung ist noch keine Mitgliedschaft. Diese Stellen zeigen **Kein Mitglied mehr** neben dem Namen, damit Sie jemand anderen eintragen können. Wer eingeladen ist und noch nicht angenommen hat, erscheint stattdessen mit **Einladung noch nicht angenommen**. Leitet eine Vertretung die Benachrichtigungen einer Person an jemanden weiter, der das Projekt verlassen hat, wird stattdessen die vertretene Person benachrichtigt. Mit dem Verlassen werden auch die MCP-Clients getrennt, die die Person mit dem Projekt verbunden hat, und ihr persönlicher Link zum Bereitschaftskalender zeigt ab dann einen leeren Kalender. Auf OneUptime Cloud bestätigt jemand, der über das Single Sign-On des Projekts zurückkommt, es erneut aus seinem Postfach.
 - Wenn Ihr Projekt SSO erzwingt und ein Benutzer sich noch nicht über den Identity Provider authentifiziert hat, gilt er als nicht autorisierter SSO-Benutzer und sieht nichts, bis er es tut. Siehe [SSO](/docs/identity/sso).
 - Mit eingerichtetem SCIM kann Ihr Identity Provider Benutzer und deren Teamzugehörigkeiten automatisch anlegen, aktualisieren und entfernen. Siehe [SCIM](/docs/identity/scim).
 
@@ -71,19 +71,25 @@ Eine Berechtigung ist eine einzelne Fähigkeit. Es gibt zwei Wege, sie zu vergeb
 
 Eine Rolle bündelt einen ganzen Produktbereich auf einer von drei Stufen:
 
-- **Admin** — volle Kontrolle über den Bereich einschließlich seiner Konfiguration (Schweregrade, Zustände, Vorlagen).
-- **Member** — die tägliche Arbeit: Ressourcen anlegen, bearbeiten und löschen, aber den Bereich nicht umkonfigurieren.
+- **Admin** — was der Member tut, dazu die eigene Konfiguration des Bereichs, etwa Schweregrade und Zustände von Vorfällen und Alarmen, Monitor-Status und Wartungszustände.
+- **Member** — die tägliche Arbeit: die Ressourcen des Bereichs samt Notizen, Eigentümern und Vorlagen anlegen, ändern und löschen. Bei Statusseiten und Bereitschaft kann der Member alles, was der Admin kann.
 - **Viewer** — nur lesend.
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` und so weiter. Rollen sind fast immer die richtige Wahl — sie bleiben korrekt, wenn OneUptime Funktionen ergänzt, weil eine neue monitorbezogene Tabelle den bestehenden Monitor-Rollen zugeordnet wird, statt eine neue Zuweisung von Ihnen zu verlangen.
 
-Workflows sind die Ausnahme. Ein Workflow führt seine Schritte im Projekt aus, deshalb öffnet `WorkflowMember` Workflows und ihre Ausführungen und führt sie von Hand aus, erstellt, ändert oder löscht sie aber nicht. `WorkflowAdmin` baut sie. Siehe [Workflow-Konfiguration](/docs/workflows/configuration).
+Workflows und Runbooks sind die Ausnahme. Beide führen Code in Ihrem Projekt aus — ein Workflow seine Schritte, ein Runbook seine Skripte auf Ihren Runnern —, deshalb öffnet `WorkflowMember` Workflows und ihre Ausführungen und führt sie von Hand aus, und `RunbookMember` öffnet Runbooks und ihre Ausführungen und führt sie aus: Es startet eine Ausführung, schließt ihre Schritte ab oder überspringt sie und bricht sie ab. Keine der beiden Rollen erstellt, ändert oder löscht, was sie ausführt; `WorkflowAdmin` und `RunbookAdmin` bauen es. Eine Rolle führt nur die Runbooks aus, die ihr Geltungsbereich erreicht: Ein auf einige Labels beschränkter `RunbookMember` führt die Runbooks aus, die sie tragen. Siehe [Workflow-Konfiguration](/docs/workflows/configuration) und [Runbook-Konfiguration](/docs/runbooks/configuration).
+
+Die Regeln eines Bereichs (Label-, Eigentümer-, Bereitschafts-, Gruppierungs- und Erinnerungsregeln), benutzerdefinierte Felder, SLAs und Geheimnisse sind Projektkonfiguration: Sie erfordern `ProjectAdmin`, gleich welche Bereichsrolle jemand hat. Das gilt auch für API-Schlüssel, Teams und ihre Berechtigungen, Labels, SSO und Domains — die Settings-Rollen betreuen die Dienste, Probes, Infrastruktur und Integrationen des Projekts, nicht, wer was darf.
+
+Die Abrechnung hat drei eigene Rollen. `BillingViewer` liest die Abrechnung des Projekts — Tarif und Abonnement, Rechnungen, Nutzung, Guthaben, KI-Guthaben, Zahlungsmethoden und Rechnungskontaktdaten — und ändert nichts. `BillingMember` lädt zusätzlich Rechnungen herunter und ändert die Rechnungskontaktdaten. `BillingAdmin` kann, was `BillingMember` kann, und schaltet SMS, Telefonanrufe, WhatsApp und Telegram ein und aus. Tarif, Zahlungsmethoden oder Guthaben zu ändern und Rechnungen zu bezahlen erfordert `ProjectOwner` oder **Manage Billing**; auf den Abrechnungsseiten sind diese Schaltflächen für alle anderen gesperrt und nennen, wer sie nutzen darf.
 
 Alle {{PERMISSION_ROLE_COUNT}} Rollen sind in der [Berechtigungsreferenz](/docs/permissions/reference) aufgeführt.
 
 ### Granulare Berechtigungen
 
 Jede einzelne Fähigkeit ist auch für sich vergebbar — `CreateProjectMonitor`, `ReadProjectIncident`, `DeleteProjectStatusPage` und {{PERMISSION_TOTAL_COUNT}} weitere. Nutzen Sie diese, wenn eine Rolle zu breit ist und Sie genau eine Sache vergeben möchten.
+
+Eine Berechtigung zum Ändern oder Löschen reicht nur so weit, wie Sie auch lesen dürfen; vergeben Sie deshalb die passende Leseberechtigung mit: `EditProjectIncident` ändert ohne `ReadProjectIncident` keinen Vorfall. Ein Datensatz, der über einen anderen gelesen wird, etwa eine Notiz zu einem Vorfall, braucht außerdem eine Berechtigung, diesen anderen Datensatz zu lesen: `ReadIncidentInternalNote` erreicht ohne eine Berechtigung zum Lesen von Vorfällen keine Notiz. Die Rollen enthalten beides bereits.
 
 Es sind zugleich die Schlüssel, die Sie beim Anlegen von API-Schlüsseln verwenden, und die die API und der Terraform-Provider erwarten.
 
@@ -137,6 +143,8 @@ Labels sind projektweite Markierungen, die Sie an Ressourcen anbringen. Sie dien
 
 Eine Label-Einschränkung ist erfüllt, wenn die Ressource **mindestens eines** der Labels der Berechtigung trägt. Eine Ressource ganz ohne Labels erfüllt keine label-eingeschränkte Berechtigung.
 
+Ein Datensatz ohne eigene Labels, etwa eine Notiz zu einem Vorfall, eine Ankündigung einer Statusseite oder eine KI-Erkenntnis zu einem Service, trägt die Labels der Datensätze, zu denen er gehört oder von denen er handelt. Eine auf Labels beschränkte Berechtigung erreicht ihn, wenn einer dieser Datensätze eines ihrer Labels trägt, und eine Sperre mit Labels nimmt ihn weg, wenn einer von ihnen ein gesperrtes Label trägt – beim Lesen, Ändern und Löschen gleichermaßen. Ein Datensatz, der von keinem von ihnen handelt, etwa eine KI-Erkenntnis zu keinem Service, gehört dem Projekt: Eine Beschränkung auf Labels grenzt ihn nicht ein, und eine Sperre mit Labels nimmt ihn nicht weg.
+
 Wo Sie es finden: **Einstellungen → Labels**.
 
 ## Telemetrie
@@ -148,6 +156,8 @@ Logs, Traces, Metriken, Ausnahmen, Profile und Session-Wiedergaben gehören zu d
 - **Labels** liest die Telemetrie der Ressourcen, die eines der Labels der Berechtigung tragen.
 
 Eine Sperre mit Labels auf einer Telemetrie-Berechtigung lässt die Telemetrie der Ressourcen weg, die diese Labels tragen – egal, was Sie sonst haben. Das gilt überall, wo Telemetrie gelesen wird: in den Explorern mit ihren Diagrammen, Filtern und Attributlisten, in Exporten, in Session-Wiedergaben und in dem, was der KI-Assistent für Sie liest. Die Liste der Metriknamen zeigt die Metriken, die ein Dienst meldet, den Sie lesen dürfen, und die Metriken, die kein Dienst meldet, etwa Host- und Cluster-Metriken. Dürfen Sie auch die Telemetrie anderer Arten von Ressourcen lesen, etwa von Hosts oder Clustern, zeigt sie alle Metriknamen.
+
+Monitor-Logs, SLO-Verlauf, Netzwerkflüsse und Kubernetes-Kostenzuordnungen werden ebenso über den Monitor, das SLO, das Netzwerkgerät oder den Cluster gelesen, zu dem sie gehören: „Eigene" und „Labels" erreichen die Zeilen der Datensätze, die Sie lesen dürfen, und eine Sperre mit Labels lässt die Zeilen der Datensätze weg, die diese Labels tragen. Das Audit-Log und die Threat-Intelligence-Indikatoren liest projektweit, wer sie lesen darf.
 
 ## API-Schlüssel
 
@@ -165,12 +175,13 @@ Wo Sie es finden: **Einstellungen → API-Schlüssel**. Siehe auch die [API-Refe
 
 Für einen angemeldeten Benutzer, der Reihe nach:
 
-1. Die Teams ermitteln, denen der Benutzer in diesem Projekt angehört — nur angenommene Einladungen zählen.
+1. Die Teams ermitteln, denen der Benutzer in diesem Projekt angehört — nur angenommene Einladungen zählen. Eine Anfrage erreicht nur die Datensätze dieses Projekts: Ein Datensatz eines anderen Projekts, ob über seine ID oder in einem Filter genannt, wird behandelt, als gäbe es ihn nicht.
 2. Alle Berechtigungszeilen dieser Teams sammeln — erlauben und sperren, jeweils mit Labels und Geltungsbereich.
 3. Zuerst die Sperrliste prüfen. Eine Sperre ohne Labels auf irgendeiner Berechtigung, die die Zieltabelle für diese Operation akzeptiert, weist die Anfrage sofort ab – gleich, in welchem Team sie gesetzt ist.
 4. Die Erlaubt-Liste prüfen. Die Anfrage braucht mindestens eine Berechtigung, die die Zieltabelle für diese Operation akzeptiert. Bei einer operativen Ressource – einem Monitor, einem Vorfall, einem Dashboard und Ähnlichem – zählt auch die passende **All Operational Resources**-Berechtigung (Create, Read, Edit oder Delete), sofern sie nicht selbst gesperrt ist.
-5. Geltungsbereich anwenden. „Eigene" grenzt die Abfrage auf eigene Ressourcen ein, „Labels" auf passende Labels. Gibt es für dieselbe Operation eine breitere Zuweisung, gewinnt die breitere.
-6. Label-Sperren anwenden. Eine Sperre mit Labels weist die Anfrage ab, wenn die Zielressource eines davon trägt. Hat ein Datensatz keine eigenen Labels, etwa eine Notiz zu einem Vorfall oder eine Ankündigung einer Statusseite, lässt eine Sperre mit Labels auf seinem Lesen ihn weg, wenn ein Datensatz, zu dem er gehört, eines dieser Labels trägt.
+5. Geltungsbereich anwenden. „Eigene" grenzt die Abfrage auf eigene Ressourcen ein, „Labels" auf passende Labels. Gibt es für dieselbe Operation eine breitere Zuweisung, gewinnt die breitere. Ein Datensatz ohne eigene Labels, etwa eine Notiz zu einem Vorfall, passt zu einer Zuweisung mit „Labels", wenn einer der Datensätze, zu denen er gehört, eines ihrer Labels trägt.
+6. Label-Sperren anwenden. Eine Sperre mit Labels weist die Anfrage ab, wenn die Zielressource eines davon trägt. Hat ein Datensatz keine eigenen Labels, etwa eine Notiz zu einem Vorfall oder eine Ankündigung einer Statusseite, lässt eine Sperre mit Labels ihn beim Lesen, Ändern und Löschen weg, wenn ein Datensatz, zu dem er gehört, eines dieser Labels trägt. Eine Liste mit Datensätzen aus all Ihren Projekten zugleich, etwa die Vorfälle auf Ihrer Startseite, grenzt die Datensätze jedes Projekts mit Ihren Sperren und Zuweisungen in diesem Projekt ein.
+7. Änderungen und Löschungen auf das beschränken, was Sie lesen dürfen. Eine Änderung oder Löschung wird durch Ihre Leseberechtigungen ebenso eingegrenzt wie durch die Berechtigung für die Änderung: Einen Datensatz, den Sie nicht lesen dürfen — außerhalb Ihrer Labels oder Eigentümer, oder mit einem Label, das eine Sperre auf das Lesen wegnimmt —, dürfen Sie auch nicht ändern oder löschen, und eine Sperre ohne Labels auf das Lesen einer Art von Datensätzen nimmt auch das Ändern und Löschen weg. Ein Datensatz, der über einen anderen gelesen wird, etwa eine Notiz zu einem Vorfall oder eine Ankündigung einer Statusseite, wird nur über einen Datensatz erreicht, den Sie lesen dürfen: Ohne Berechtigung zum Lesen von Vorfällen erreicht eine Berechtigung für Notizen keine Notiz, und eine Sperre mit Labels auf das Lesen von Vorfällen lässt die Notizen der Vorfälle weg, die diese Labels tragen. Eine Änderung oder Löschung eines einzelnen, über seine ID genannten Datensatzes, die nichts erreicht, wird beantwortet, als gäbe es den Datensatz nicht (`404`), wenn Sie ihn nicht lesen dürfen, und abgelehnt, wenn Sie ihn lesen, aber nicht ändern dürfen.
 
 Jedes Feld eines Datensatzes wird mit der eigenen Leseberechtigung des Datensatzes gelesen: Eine Berechtigung für eine andere Art von Datensatz öffnet es nie. Manche Felder sind bewusst enger. Geheimnisse lesen nur Personen, die den Datensatz bearbeiten oder verwalten dürfen, zu dem sie gehören – etwa die Schlüssel eines Monitors für eingehende Anfragen und eingehende E-Mails und sein Server-Agent-Schlüssel oder die Webhook- und E-Mail-Schlüssel eines Workflows. Die Aufzeichnung einer Session-Wiedergabe anzusehen braucht **Watch Session Replays**, nicht nur **List Session Replays**. Telemetrie wird Signal für Signal gelesen: **Read Telemetry Service Log** liest Logs, **Read Telemetry Service Traces** liest Traces und **Read Telemetry Service Metrics** liest Metriken, Metrikdiagramme eingeschlossen.
 
@@ -178,7 +189,9 @@ Felder folgen derselben Regel. Eine Sperre ohne Labels auf der Berechtigung eine
 
 Dieselbe Regel entscheidet über alles andere, was fragt, ob Sie eine Berechtigung halten: Aktionen, die kein einfaches Lesen oder Schreiben sind – etwa SMS-, Anruf- oder KI-Guthaben aufladen, eine Rechnung bezahlen oder eine Benachrichtigungsregel testen – und die Schaltflächen, die OneUptime anzeigt. Eine Schaltfläche, die Sie nicht verwenden dürfen, wird gesperrt angezeigt und sagt, warum; ist eine Sperre in einem Ihrer Teams der Grund, nennt sie die gesperrte Berechtigung.
 
-Live-Aktualisierungen folgen derselben Regel. Wird ein Datensatz angelegt, geändert oder gelöscht, benachrichtigt OneUptime die geöffneten Seiten der Personen, die diesen Datensatz lesen dürfen, und sonst niemanden. Was einschränkt, was Sie lesen dürfen, schränkt auch Ihre Live-Aktualisierungen ein: Labels, Eigentümer, eine Sperre mit Labels, ein privater Vorfall oder die KI-Unterhaltung einer anderen Person. Wenn eine Änderung Ihnen einen Datensatz entzieht, etwa weil er privat gemacht wird, werden Ihre geöffneten Seiten ebenfalls benachrichtigt, damit sie ihn nicht mehr anzeigen. Eine Änderung Ihrer Berechtigungen erreicht Ihre geöffneten Seiten innerhalb von 30 Sekunden.
+Live-Aktualisierungen folgen derselben Regel. Wird ein Datensatz angelegt, geändert oder gelöscht, benachrichtigt OneUptime die geöffneten Seiten der Personen, die diesen Datensatz lesen dürfen, und sonst niemanden. Was einschränkt, was Sie lesen dürfen, schränkt auch Ihre Live-Aktualisierungen ein: Labels, Eigentümer, eine Sperre mit Labels, ein privater Vorfall oder die KI-Unterhaltung einer anderen Person. Wenn eine Änderung Ihnen einen Datensatz entzieht, etwa weil er privat gemacht wird, werden Ihre geöffneten Seiten ebenfalls benachrichtigt, damit sie ihn nicht mehr anzeigen. Eine Änderung Ihrer Berechtigungen, eine Sperre oder der Verlust der Master-Admin-Rechte erreicht Ihre geöffneten Seiten sofort.
+
+Live-Aktualisierungen enden auch mit der Anmeldung, die sie gestartet hat. Wenn Sie sich abmelden, Ihr Passwort ändern oder gesperrt werden, enden die Live-Aktualisierungen Ihrer geöffneten Seiten sofort. Eine geöffnete Seite erneuert ihre Anmeldung alle 15 Minuten und setzt ihre Live-Aktualisierungen danach fort; lässt sich die Anmeldung nicht erneuern, führt sie Sie zur Anmeldeseite. Ein Projekt, das SSO verlangt, schickt Live-Aktualisierungen nur an Seiten, die mit SSO angemeldet sind, wie bei allem anderen auch.
 
 Jeder angemeldete Benutzer hält zusätzlich einen kleinen Satz automatischer Berechtigungen, die etwa das Lesen des eigenen Profils und der eigenen Benachrichtigungsregeln abdecken. Das sind keine Admin-Berechtigungen und sie geben keinen Zugriff auf fremde Daten.
 
@@ -194,7 +207,7 @@ Aufgelöste Berechtigungen werden pro Benutzer und Projekt zwischengespeichert u
 
 **Eine CI-Pipeline, die nur Deployments meldet.** Legen Sie einen API-Schlüssel mit genau den granularen Berechtigungen an, die sie braucht — keine Rollen.
 
-**Jemand, der die Abrechnung nicht sehen soll.** Nehmen Sie ihn nicht ins Owners-Team auf. `ProjectAdmin` schließt die Abrechnung bereits aus.
+**Jemand, der die Abrechnung nicht ändern und keine Rechnungen sehen soll.** Geben Sie ihm `ProjectMember`, nicht `ProjectAdmin`: Ein Projekt-Admin kann Tarif, Zahlungsmethoden und Guthaben nicht ändern, liest Rechnungen aber und lädt sie herunter. Wer die Abrechnungsseiten nur lesen soll, bekommt `BillingViewer`.
 
 ## Weiter
 

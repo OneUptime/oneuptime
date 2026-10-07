@@ -18,6 +18,7 @@ import SyntheticMonitorResponse from "../../../Types/Monitor/SyntheticMonitors/S
 import SnmpMonitorResponse, {
   SnmpOidResponse,
 } from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
+import SnmpTableTemplateUtil from "./SnmpTableTemplateUtil";
 import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
 import SnmpTrap, {
   SnmpTrapVarbind,
@@ -421,6 +422,18 @@ export default class MonitorTemplateUtil {
         if (snmpResponse?.interfaceWalkFailure) {
           storageMap["interfaceWalkFailure"] =
             snmpResponse.interfaceWalkFailure;
+        }
+
+        /*
+         * Walked SNMP tables, by key, so a template can say
+         * "{{tables.ipsec_tunnels.unhealthyRowCount}} tunnel(s) down:
+         * {{tables.ipsec_tunnels.unhealthyRows.0.name}}". A per-row alert
+         * also gets {{snmpTable}} and {{snmpTableRow}} from its series labels.
+         */
+        if (snmpResponse?.tables && snmpResponse.tables.length > 0) {
+          storageMap["tables"] = SnmpTableTemplateUtil.toTemplateVariables(
+            snmpResponse.tables,
+          );
         }
 
         /*

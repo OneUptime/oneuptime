@@ -1,7 +1,9 @@
 import CreateChannelNotificationRule from "../CreateChannelNotificationRule";
+import VideoCallNotificationRule from "../VideoCallNotificationRule";
 
 export default interface AlertNotificationRule
-  extends CreateChannelNotificationRule {
+  extends CreateChannelNotificationRule,
+    VideoCallNotificationRule {
   _type: "AlertNotificationRule";
 
   shouldAutomaticallyInviteOnCallUsersToNewChannel: boolean;

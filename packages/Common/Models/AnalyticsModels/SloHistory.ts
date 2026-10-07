@@ -1,4 +1,6 @@
 import AnalyticsBaseModel from "./AnalyticsBaseModel/AnalyticsBaseModel";
+import ServiceLevelObjective from "../DatabaseModels/ServiceLevelObjective";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import Route from "../../Types/API/Route";
 import AnalyticsTableEngine from "../../Types/AnalyticsDatabase/AnalyticsTableEngine";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
@@ -50,6 +52,13 @@ import Permission from "../../Types/Permission";
  * reserved for event-based (Metric) SLIs, which the worker does not
  * evaluate yet; nothing writes or reads them.
  */
+/*
+ * An SLO's history is read through its SLO: a caller whose grants are
+ * limited to labels or to owned SLOs reads the history of the SLOs those
+ * reach, and a block with labels takes away the history of the SLOs
+ * carrying them (ModelPermission.getReadScope).
+ */
+@OwnedThrough("sloId", ServiceLevelObjective, { onlyParentModels: true })
 export default class SloHistory extends AnalyticsBaseModel {
   public constructor() {
     const readPermissions: Array<Permission> = [

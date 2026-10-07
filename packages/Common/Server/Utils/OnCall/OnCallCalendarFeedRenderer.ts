@@ -222,6 +222,9 @@ export const PLAN_REASON: string =
 export const USER_MISSING_REASON: string =
   "The user this calendar link belongs to no longer exists.";
 
+export const NOT_A_PROJECT_MEMBER_REASON: string =
+  "You are no longer a member of the project this calendar link belongs to, so it shows no shifts.";
+
 export const NO_SCHEDULES_REASON: string =
   "You are not on any on-call schedule in this project right now. Shifts appear here once you are added to a schedule.";
 

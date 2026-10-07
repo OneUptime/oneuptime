@@ -54,7 +54,7 @@ Klienten handler derefter på dine vegne i det projekt. Der er ingen API-nøgle,
 
 Hvad en forbundet klient kan gøre:
 
-- **Den har dine tilladelser og aldrig flere.** Det, dine teams tillader dig at gøre i projektet, er det, klienten kan gøre. Hvis din rolle ændres, eller du forlader projektet, gælder det allerede for klientens næste anmodning.
+- **Den har dine tilladelser og aldrig flere.** Det, dine teams tillader dig at gøre i projektet, er det, klienten kan gøre. Hvis din rolle ændres, eller du forlader projektet, gælder det allerede for klientens næste anmodning. At forlade projektet afbryder også klienten: dens autorisation slettes, og du forbinder den igen, hvis du vender tilbage til projektet.
 - **Kun læseadgang betyder kun læseadgang.** En klient, der er godkendt med kun læseadgang, kan bruge `get_`-, `list_`- og `count_`-værktøjerne. Værktøjer, der opretter, opdaterer, sletter, kvitterer for eller løser noget, afvises – af MCP-serveren og af OneUptime API'et bag den. Du kan aldrig give en klient mere adgang, end den har bedt om.
 - **Den gælder for ét projekt.** Hvis du vil bruge et andet projekt, skal du forbinde klienten igen og vælge det projekt.
 - **Den virker kun gennem MCP-serveren.** Klientens adgangstoken accepteres af MCP-endpointet og ingen andre steder. Det kan ikke bruges til at kalde OneUptime REST API'et direkte.

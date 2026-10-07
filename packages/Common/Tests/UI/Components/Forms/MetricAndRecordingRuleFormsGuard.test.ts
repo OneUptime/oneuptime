@@ -69,6 +69,11 @@ const RECORDING_RULE_PAGES: Array<RulePage> = [
     file: `${DASHBOARD}/Pages/Traces/Settings/RecordingRules.tsx`,
     form: "ModelTable: Traces > Settings > Recording Rules",
   },
+  // Log recording rules (logs in, metrics out) were made to the same shape.
+  {
+    file: `${DASHBOARD}/Pages/Logs/Settings/RecordingRules.tsx`,
+    form: "ModelTable: Logs > Settings > Recording Rules",
+  },
 ];
 
 // Every settings page of the three telemetry products.
@@ -375,7 +380,7 @@ describe.each(RECORDING_RULE_PAGES)("$form", (page: RulePage) => {
   });
 });
 
-describe("the metric and the trace recording rule pages", () => {
+describe("the metric, trace and log recording rule pages", () => {
   test("ask the same questions, in the same places", () => {
     const shapes: Array<Array<string>> = RECORDING_RULE_PAGES.map(
       (page: RulePage): Array<string> => {
@@ -387,7 +392,9 @@ describe("the metric and the trace recording rule pages", () => {
       },
     );
 
+    expect(shapes).toHaveLength(3);
     expect(shapes[1]).toEqual(shapes[0]);
+    expect(shapes[2]).toEqual(shapes[0]);
   });
 
   test("say what their folded defaults do with the one shared sentence", () => {

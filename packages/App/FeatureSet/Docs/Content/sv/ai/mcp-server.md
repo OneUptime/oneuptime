@@ -54,7 +54,7 @@ Klienten agerar sedan i ditt namn i det projektet. Det finns ingen API-nyckel at
 
 Vad en ansluten klient kan göra:
 
-- **Den har dina behörigheter, och aldrig fler.** Det dina team låter dig göra i projektet är det klienten kan göra. Om din roll ändras eller du lämnar projektet gäller det redan vid klientens nästa förfrågan.
+- **Den har dina behörigheter, och aldrig fler.** Det dina team låter dig göra i projektet är det klienten kan göra. Om din roll ändras eller du lämnar projektet gäller det redan vid klientens nästa förfrågan. Att lämna projektet kopplar också bort klienten: dess auktorisering tas bort, och du ansluter den igen om du går med i projektet på nytt.
 - **Endast läsåtkomst betyder endast läsåtkomst.** En klient som har godkänts med endast läsåtkomst kan använda `get_`-, `list_`- och `count_`-verktygen. Verktyg som skapar, uppdaterar, tar bort, kvitterar eller löser nekas, både av MCP-servern och av OneUptimes API bakom den. Du kan aldrig ge en klient mer åtkomst än den bad om.
 - **Den gäller för ett projekt.** För att använda ett annat projekt ansluter du klienten igen och väljer det projektet.
 - **Den fungerar bara via MCP-servern.** Klientens åtkomsttoken accepteras av MCP-slutpunkten och ingen annanstans. Den kan inte användas för att anropa OneUptimes REST API direkt.

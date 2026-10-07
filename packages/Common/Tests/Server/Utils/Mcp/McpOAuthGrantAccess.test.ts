@@ -36,6 +36,7 @@ import { McpOAuthGrantSsoEvidence } from "../../../../Server/Services/McpOAuthGr
 import ProjectService from "../../../../Server/Services/ProjectService";
 import UserService from "../../../../Server/Services/UserService";
 import McpOAuthConfig from "../../../../Server/Utils/Mcp/McpOAuthConfig";
+import ProjectMembership from "../../../../Server/Utils/TeamMember/ProjectMembership";
 import McpOAuthGrantAccess, {
   McpOAuthGrantAccessResult,
   McpOAuthGrantRefusal,
@@ -276,6 +277,7 @@ describe("McpOAuthGrantAccess", () => {
   let isEnabled: SpyInstance;
   let findUser: SpyInstance;
   let isUserBlocked: SpyInstance;
+  let membershipLookup: SpyInstance;
   let tenantPermissionLookup: SpyInstance;
   let projectRequireSso: SpyInstance;
   let projectRequiredProvider: SpyInstance;
@@ -293,6 +295,10 @@ describe("McpOAuthGrantAccess", () => {
       UserService,
       "isUserBlocked",
     ).mockResolvedValue(false);
+    membershipLookup = getJestSpyOn(
+      ProjectMembership,
+      "isMember",
+    ).mockResolvedValue(true);
     tenantPermissionLookup = getJestSpyOn(
       AccessTokenService,
       "getUserTenantAccessPermission",
@@ -340,6 +346,7 @@ describe("McpOAuthGrantAccess", () => {
   const expectNothingLookedUp: () => void = (): void => {
     expect(findUser).not.toHaveBeenCalled();
     expect(isUserBlocked).not.toHaveBeenCalled();
+    expect(membershipLookup).not.toHaveBeenCalled();
     expect(tenantPermissionLookup).not.toHaveBeenCalled();
     expect(projectRequireSso).not.toHaveBeenCalled();
   };
@@ -813,6 +820,88 @@ describe("McpOAuthGrantAccess", () => {
         expect(refusalOf(await evaluate(grantWith()))).toBe(
           McpOAuthGrantRefusal.NotAProjectMember,
         );
+      });
+
+      test("somebody who has left is refused even while a cached permission set still lists the project", async () => {
+        // The database says they have left; a cached set says otherwise.
+        membershipLookup.mockResolvedValue(false);
+        tenantPermissionLookup.mockResolvedValue(
+          tenantPermission([permissionRow(Permission.ProjectOwner)]),
+        );
+
+        expect(refusalOf(await evaluate(grantWith()))).toBe(
+          McpOAuthGrantRefusal.NotAProjectMember,
+        );
+
+        // Refused before the permission set is consulted, or SSO.
+        expect(tenantPermissionLookup).not.toHaveBeenCalled();
+        expect(projectRequireSso).not.toHaveBeenCalled();
+      });
+
+      test("membership is read from the database on every use, for the grant's own person and project", async () => {
+        const grant: McpOAuthGrant = grantWith();
+
+        await evaluate(grant);
+        await evaluate(grant);
+        await evaluate(grant);
+
+        expect(membershipLookup).toHaveBeenCalledTimes(3);
+
+        for (const call of membershipLookup.mock.calls) {
+          expect(call[0]).toEqual({ projectId: PROJECT_ID, userId: USER_ID });
+        }
+      });
+
+      test("a grant of one project is refused for somebody who left it, whatever their other projects", async () => {
+        membershipLookup.mockImplementation(
+          async (data: { projectId: ObjectID }): Promise<boolean> => {
+            // A member of another project only.
+            return data.projectId.toString() !== PROJECT_ID.toString();
+          },
+        );
+
+        expect(refusalOf(await evaluate(grantWith()))).toBe(
+          McpOAuthGrantRefusal.NotAProjectMember,
+        );
+      });
+
+      test("a database membership read that fails is an error, never a pass", async () => {
+        membershipLookup.mockRejectedValue(new Error("database unavailable"));
+
+        await expect(evaluate(grantWith())).rejects.toThrow(
+          "database unavailable",
+        );
+      });
+
+      test("the same grant works again once they are a member again", async () => {
+        const grant: McpOAuthGrant = grantWith();
+
+        membershipLookup.mockResolvedValue(false);
+        expect((await evaluate(grant)).isAllowed).toBe(false);
+
+        membershipLookup.mockResolvedValue(true);
+        expect((await evaluate(grant)).isAllowed).toBe(true);
+      });
+
+      test("the consent screen asks the same: a project they have left cannot be chosen", async () => {
+        membershipLookup.mockResolvedValue(false);
+        tenantPermissionLookup.mockResolvedValue(tenantPermission());
+
+        await expect(
+          McpOAuthGrantAccess.getProjectRefusal({
+            userId: USER_ID,
+            projectId: PROJECT_ID,
+          }),
+        ).resolves.toBe(McpOAuthGrantRefusal.NotAProjectMember);
+
+        membershipLookup.mockResolvedValue(true);
+
+        await expect(
+          McpOAuthGrantAccess.getProjectRefusal({
+            userId: USER_ID,
+            projectId: PROJECT_ID,
+          }),
+        ).resolves.toBeNull();
       });
 
       test("for a non-member the SSO rules are not consulted", async () => {

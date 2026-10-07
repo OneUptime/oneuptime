@@ -158,6 +158,7 @@ import TracePipelineProcessor from "./TracePipelineProcessor";
 import TraceDropFilter from "./TraceDropFilter";
 import TraceScrubRule from "./TraceScrubRule";
 import TraceRecordingRule from "./TraceRecordingRule";
+import LogRecordingRule from "./LogRecordingRule";
 // Monitors
 import Monitor from "./Monitor";
 import MonitorCustomField from "./MonitorCustomField";
@@ -484,6 +485,9 @@ import WorkspaceUserAuthToken from "./WorkspaceUserAuthToken";
 import WorkspaceProjectAuthToken from "./WorkspaceProjectAuthToken";
 import WorkspaceSetting from "./WorkspaceSetting";
 import WorkspaceNotificationRule from "./WorkspaceNotificationRule";
+import VideoCallConnection from "./VideoCallConnection";
+import IncidentVideoCall from "./IncidentVideoCall";
+import AlertVideoCall from "./AlertVideoCall";
 import WorkspaceNotificationSummary from "./WorkspaceNotificationSummary";
 
 import OnCallDutyPolicyUserOverride from "./OnCallDutyPolicyUserOverride";
@@ -548,6 +552,7 @@ const AllModelTypes: Array<{
   TraceDropFilter,
   TraceScrubRule,
   TraceRecordingRule,
+  LogRecordingRule,
   ApiKeyPermission,
   ProjectSmtpConfig,
   StatusPage,
@@ -912,6 +917,9 @@ const AllModelTypes: Array<{
 
   WorkspaceSetting,
   WorkspaceNotificationRule,
+  VideoCallConnection,
+  IncidentVideoCall,
+  AlertVideoCall,
   WorkspaceNotificationSummary,
 
   MonitorFeed,

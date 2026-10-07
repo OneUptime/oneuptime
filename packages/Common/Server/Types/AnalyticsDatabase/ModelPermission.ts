@@ -851,6 +851,18 @@ export default class ModelPermission {
         operation: type,
       }),
       includeProjectScope: ownedThrough.includeProjectScope,
+      /*
+       * A row that names a record of its parent models alone (a monitor
+       * log's monitor) is scoped by those parents only; a telemetry row's
+       * resource id can name any telemetry-owning kind.
+       */
+      resourceTypes: ownedThrough.onlyParentModels
+        ? ownedThrough.parentModels.map(
+            (parentModel: { name: string }): string => {
+              return parentModel.name;
+            },
+          )
+        : undefined,
       recordName: model.singularName,
       operation: type,
     });
@@ -1163,7 +1175,7 @@ export default class ModelPermission {
    * RumApplication, ...
    */
   public static getTelemetryResourceTypes(): Array<string> {
-    return this.getTelemetryOwnerTypes(undefined).map(
+    return this.getOwnerTypesOfRead(undefined).map(
       ([resourceType]: [string, OwnerTablePair]): string => {
         return resourceType;
       },
@@ -1171,19 +1183,21 @@ export default class ModelPermission {
   }
 
   /*
-   * The telemetry-owning entries of the owner table registry the read
-   * covers, with their model names: every one flagged canOwnTelemetry, or
-   * only those named.
+   * The entries of the owner table registry a read covers, with their model
+   * names. A read that names its kinds covers exactly those, telemetry-owning
+   * or not: its rows name records of those kinds alone (a monitor log's
+   * monitor, an SLO history row's SLO, a RUM application's session
+   * replays). A read that names none covers every kind flagged
+   * canOwnTelemetry, as a telemetry row's resource id can name any of them.
    */
-  private static getTelemetryOwnerTypes(
+  private static getOwnerTypesOfRead(
     resourceTypes: ReadonlyArray<string> | undefined,
   ): Array<[string, OwnerTablePair]> {
     return Array.from(this.getOwnerTableRegistry().entries()).filter(
       ([resourceType, entry]: [string, OwnerTablePair]): boolean => {
-        return (
-          Boolean(entry.canOwnTelemetry) &&
-          (!resourceTypes || resourceTypes.includes(resourceType))
-        );
+        return resourceTypes
+          ? resourceTypes.includes(resourceType)
+          : Boolean(entry.canOwnTelemetry);
       },
     );
   }
@@ -1280,7 +1294,7 @@ export default class ModelPermission {
 
     // The kinds of resource are looked up a few at a time.
     const idsByType: Array<Array<string>> = await ArrayUtil.mapWithConcurrency(
-      this.getTelemetryOwnerTypes(resourceTypes),
+      this.getOwnerTypesOfRead(resourceTypes),
       SCOPE_LOOKUP_CONCURRENCY,
       ([resourceType, entry]: [string, OwnerTablePair]): Promise<
         Array<string>
@@ -1332,17 +1346,17 @@ export default class ModelPermission {
   }
 
   /*
-   * The users and teams that own one telemetry-owning resource (a RUM
-   * application ...), through the owner table registry - the same owner
-   * tables, project filter and paging as resolveOwnedParentIds - for a
-   * decision about that one resource (isResourceReadableForPermissions).
+   * The users and teams that own one resource of a kind in the owner table
+   * registry (a RUM application ...) - the same owner tables, project filter
+   * and paging as resolveOwnedParentIds - for a decision about that one
+   * resource (isResourceReadableForPermissions).
    */
   public static async findOwnersOfResource(data: {
     resourceType: string;
     resourceId: ObjectID;
     tenantId?: ObjectID | undefined;
   }): Promise<{ userIds: Array<string>; teamIds: Array<string> }> {
-    const entry: OwnerTablePair | undefined = this.getTelemetryOwnerTypes([
+    const entry: OwnerTablePair | undefined = this.getOwnerTypesOfRead([
       data.resourceType,
     ]).map(([, pair]: [string, OwnerTablePair]): OwnerTablePair => {
       return pair;
@@ -1411,7 +1425,7 @@ export default class ModelPermission {
 
     // The kinds of resource are looked up a few at a time.
     const idsByType: Array<Array<string>> = await ArrayUtil.mapWithConcurrency(
-      this.getTelemetryOwnerTypes(resourceTypes).filter(
+      this.getOwnerTypesOfRead(resourceTypes).filter(
         ([, entry]: [string, OwnerTablePair]): boolean => {
           return Boolean(entry.modelService);
         },

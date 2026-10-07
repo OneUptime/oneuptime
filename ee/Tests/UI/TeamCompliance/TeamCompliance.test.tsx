@@ -1122,6 +1122,33 @@ describe("the verdict", () => {
     expect(screen.getByText("No members on this team yet")).toBeInTheDocument();
   });
 
+  test("a team of invitees only: how many are waiting is said once, in the hero", async () => {
+    await renderPage(
+      buildStatus({ complianceSettings: [emailRule()], invitedMemberCount: 2 }),
+    );
+
+    const waiting: string =
+      "2 people invited to this team are not checked until they accept their invitation.";
+
+    // Said in the hero, and nowhere else on the page.
+    expect(screen.getByTestId("compliance-hero-subline")).toHaveTextContent(
+      waiting,
+    );
+    expect(
+      (screen.getByTestId("team-compliance-page").textContent || "").split(
+        waiting,
+      ),
+    ).toHaveLength(2);
+    expect(screen.getByTestId("compliance-hero-headline")).toHaveTextContent(
+      "This team has no members to check",
+    );
+    expect(
+      screen.getByText(
+        "People invited to this team show up here once they accept their invitation.",
+      ),
+    ).toBeInTheDocument();
+  });
+
   test("pressing a count filters the members section, pressing it again clears it", async () => {
     await renderPage();
 

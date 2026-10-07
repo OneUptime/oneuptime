@@ -767,7 +767,10 @@ describe.each(serviceCases)(
         expect(refreshTenant).not.toHaveBeenCalled();
         await hooks.onDeleteSuccess(result, [rows[0]!.id!]);
 
-        expect(refreshGlobal).toHaveBeenCalledWith(userId);
+        // Only the project's refresh tells their open live updates.
+        expect(refreshGlobal).toHaveBeenCalledWith(userId, {
+          forgetLiveUpdateReaders: false,
+        });
         expect(refreshTenant).toHaveBeenCalledWith(userId, projectId);
         expect(findMembers).toHaveBeenCalledWith(
           expect.objectContaining({

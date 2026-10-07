@@ -22,7 +22,7 @@ import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBas
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
-import Permission from "../../Types/Permission";
+import { PROJECT_INVOICE_PAY_PERMISSIONS } from "../../Utils/Project/ProjectBilling";
 import BillingInvoice, {
   InvoiceStatus,
 } from "../../Models/DatabaseModels/BillingInvoice";
@@ -153,15 +153,20 @@ export default class UserAPI extends BaseAPI<
             );
           }
 
+          /*
+           * Paying charges the card, so it stays with a project owner and
+           * Manage Billing (and Edit Invoices): the billing roles read the
+           * invoices and do not pay them (Utils/Project/ProjectBilling).
+           */
           if (
-            !CallerPermission.holdsAnyOf(req as OneUptimeRequest, [
-              Permission.ProjectOwner,
-              Permission.EditInvoices,
-            ]) &&
+            !CallerPermission.holdsAnyOf(
+              req as OneUptimeRequest,
+              PROJECT_INVOICE_PAY_PERMISSIONS,
+            ) &&
             !(req as OneUptimeRequest).userAuthorization?.isMasterAdmin
           ) {
             throw new BadDataException(
-              `You need ${Permission.ProjectOwner} or ${Permission.EditInvoices} permission to pay invoices.`,
+              "You need Project Owner, Manage Billing or Edit Invoices permission to pay invoices.",
             );
           }
 

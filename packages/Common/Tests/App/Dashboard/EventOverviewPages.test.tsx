@@ -188,6 +188,12 @@ jest.mock(
   },
 );
 jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/VideoCall/EventVideoCallsCard",
+  () => {
+    return stubModule("VideoCall");
+  },
+);
+jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationSuggestionCard",
   () => {
     return stubModule("Remediation");
@@ -322,10 +328,12 @@ import AlertEpisode from "../../../Models/DatabaseModels/AlertEpisode";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import AlertState from "../../../Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "../../../Models/DatabaseModels/AlertStateTimeline";
+import AlertVideoCall from "../../../Models/DatabaseModels/AlertVideoCall";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
+import IncidentVideoCall from "../../../Models/DatabaseModels/IncidentVideoCall";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import Probe from "../../../Models/DatabaseModels/Probe";
 import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
@@ -480,6 +488,7 @@ interface PageCase {
   eventModel: typeof Incident | typeof Alert;
   stateModel: typeof IncidentState | typeof AlertState;
   timelineModel: typeof IncidentStateTimeline | typeof AlertStateTimeline;
+  videoCallModel: typeof IncidentVideoCall | typeof AlertVideoCall;
   changeStateKey: string;
   buildEvent: (title: string) => Incident | Alert;
   buildStates: () => Array<IncidentState | AlertState>;
@@ -523,6 +532,7 @@ const INCIDENT_CASE: PageCase = {
   eventModel: Incident,
   stateModel: IncidentState,
   timelineModel: IncidentStateTimeline,
+  videoCallModel: IncidentVideoCall,
   changeStateKey: "ChangeIncidentState",
   buildEvent: (title: string): Incident => {
     const incident: Incident = new Incident();
@@ -585,6 +595,7 @@ const INCIDENT_CASE: PageCase = {
     "stub-Feed",
   ],
   rightColumnOrder: [
+    "stub-VideoCall",
     "stub-card-Incident Details",
     "stub-Measurements",
     "stub-Roles",
@@ -605,6 +616,7 @@ const ALERT_CASE: PageCase = {
   eventModel: Alert,
   stateModel: AlertState,
   timelineModel: AlertStateTimeline,
+  videoCallModel: AlertVideoCall,
   changeStateKey: "ChangeAlertState",
   buildEvent: (title: string): Alert => {
     const alert: Alert = new Alert();
@@ -666,6 +678,7 @@ const ALERT_CASE: PageCase = {
     "stub-Feed",
   ],
   rightColumnOrder: [
+    "stub-VideoCall",
     "stub-card-Alert Details",
     "stub-Measurements",
     "stub-card-Affected Resources",
@@ -702,6 +715,10 @@ const serve: ServeFunction = (pageCase: PageCase, server: FakeServer): void => {
       return Promise.resolve(
         listResult(pageCase.buildTimeline(server.timeline)),
       );
+    }
+
+    if (request.modelType === pageCase.videoCallModel) {
+      return Promise.resolve(listResult([]));
     }
 
     return Promise.reject(new Error("Unexpected list request"));
@@ -873,7 +890,7 @@ describe.each([
       expect(mountCounts["Feed"]).toBe(1);
     });
 
-    test("reads the timeline, the states and the row in parallel", async () => {
+    test("reads the timeline, the states, the video calls and the row in parallel", async () => {
       serve(pageCase, { timeline: REOPENED_TIMELINE, title: "Checkout slow" });
 
       const item: Deferred<Incident | Alert> = createDeferred<
@@ -893,9 +910,20 @@ describe.each([
       pageCase.renderPage();
 
       await waitFor(() => {
-        expect(getListMock).toHaveBeenCalledTimes(2);
+        expect(getListMock).toHaveBeenCalledTimes(3);
       });
       expect(getItemMock).toHaveBeenCalledTimes(1);
+      expect(
+        getListMock.mock.calls.map((call: Array<unknown>): unknown => {
+          return (call[0] as { modelType: unknown }).modelType;
+        }),
+      ).toEqual(
+        expect.arrayContaining([
+          pageCase.stateModel,
+          pageCase.timelineModel,
+          pageCase.videoCallModel,
+        ]),
+      );
     });
 
     test("a failed first load shows the error with a retry that recovers", async () => {

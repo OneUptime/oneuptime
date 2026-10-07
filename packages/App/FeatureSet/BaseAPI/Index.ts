@@ -81,6 +81,15 @@ import MonitorTemplateAPI from "Common/Server/API/MonitorTemplateAPI";
 import ShortLinkAPI from "Common/Server/API/ShortLinkAPI";
 import StatusPageAPI from "Common/Server/API/StatusPageAPI";
 import WorkspaceNotificationRuleAPI from "Common/Server/API/WorkspaceNotificationRuleAPI";
+import VideoCallConnectionAPI from "Common/Server/API/VideoCallConnectionAPI";
+import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
+import IncidentVideoCallService, {
+  Service as IncidentVideoCallServiceType,
+} from "Common/Server/Services/IncidentVideoCallService";
+import AlertVideoCall from "Common/Models/DatabaseModels/AlertVideoCall";
+import AlertVideoCallService, {
+  Service as AlertVideoCallServiceType,
+} from "Common/Server/Services/AlertVideoCallService";
 import WorkspaceNotificationSummaryAPI from "Common/Server/API/WorkspaceNotificationSummaryAPI";
 import DashboardAPI from "Common/Server/API/DashboardAPI";
 import DashboardDomainAPI from "Common/Server/API/DashboardDomainAPI";
@@ -605,6 +614,9 @@ import TraceScrubRuleService, {
 import TraceRecordingRuleService, {
   Service as TraceRecordingRuleServiceType,
 } from "Common/Server/Services/TraceRecordingRuleService";
+import LogRecordingRuleService, {
+  Service as LogRecordingRuleServiceType,
+} from "Common/Server/Services/LogRecordingRuleService";
 import IncidentOwnerTeamService, {
   Service as IncidentOwnerTeamServiceType,
 } from "Common/Server/Services/IncidentOwnerTeamService";
@@ -1548,6 +1560,7 @@ import TracePipelineProcessor from "Common/Models/DatabaseModels/TracePipelinePr
 import TraceDropFilter from "Common/Models/DatabaseModels/TraceDropFilter";
 import TraceScrubRule from "Common/Models/DatabaseModels/TraceScrubRule";
 import TraceRecordingRule from "Common/Models/DatabaseModels/TraceRecordingRule";
+import LogRecordingRule from "Common/Models/DatabaseModels/LogRecordingRule";
 
 import IncidentFeed from "Common/Models/DatabaseModels/IncidentFeed";
 import AlertFeed from "Common/Models/DatabaseModels/AlertFeed";
@@ -3883,6 +3896,14 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<LogRecordingRule, LogRecordingRuleServiceType>(
+        LogRecordingRule,
+        LogRecordingRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<IncidentState, IncidentStateServiceType>(
         IncidentState,
         IncidentStateService,
@@ -5249,6 +5270,24 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new WorkspaceNotificationRuleAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new VideoCallConnectionAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncidentVideoCall, IncidentVideoCallServiceType>(
+        IncidentVideoCall,
+        IncidentVideoCallService,
+      ).getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertVideoCall, AlertVideoCallServiceType>(
+        AlertVideoCall,
+        AlertVideoCallService,
+      ).getRouter(),
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

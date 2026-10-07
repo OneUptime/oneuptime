@@ -78,7 +78,16 @@ import IncidentMemberRoleAssignment from "../../../Components/Incident/IncidentM
 import EventStatTile from "../../../Components/EventView/EventStatTile";
 import EventStatBar from "../../../Components/EventView/EventStatBar";
 import EventOverviewSkeleton from "../../../Components/EventView/EventOverviewSkeleton";
-import { EventStatusFact } from "../../../Components/EventView/EventStatusPanel";
+import {
+  EventPanelAction,
+  EventStatusFact,
+} from "../../../Components/EventView/EventStatusPanel";
+import EventVideoCallsCard from "../../../Components/VideoCall/EventVideoCallsCard";
+import useEventVideoCalls, {
+  EventVideoCallsState,
+  VideoCallEventKind,
+} from "../../../Components/VideoCall/useEventVideoCalls";
+import { getJoinVideoCallAction } from "../../../Components/VideoCall/JoinVideoCallAction";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import {
   getIncidentAffectedResourcesFormFields,
@@ -164,6 +173,17 @@ interface FetchDataOptions {
 
 // How many monitor names the header lists before "+N more".
 const MAX_HEADER_MONITORS: number = 2;
+
+// Join call for the newest call, when the incident has one.
+function getJoinVideoCallActions(
+  videoCalls: EventVideoCallsState,
+): Array<EventPanelAction> {
+  const action: EventPanelAction | null = getJoinVideoCallAction(
+    videoCalls.calls,
+  );
+
+  return action ? [action] : [];
+}
 
 const IncidentView: FunctionComponent<
   PageComponentProps
@@ -396,6 +416,17 @@ const IncidentView: FunctionComponent<
   }, []);
 
   const refreshFeedAfterAnalysisAvailable: () => void = refreshFeed;
+
+  /*
+   * The incident's video calls: the card in the right column, and the Join
+   * call button in the header for the newest one.
+   */
+  const videoCalls: EventVideoCallsState = useEventVideoCalls({
+    kind: VideoCallEventKind.Incident,
+    eventId: modelId,
+    // A rule's call arrives a moment after a new incident is created.
+    eventStartedAt: incidentStartedAt,
+  });
 
   const fetchData: (options: FetchDataOptions) => Promise<void> = async (
     options: FetchDataOptions,
@@ -945,6 +976,7 @@ const IncidentView: FunctionComponent<
             notifyStatusPageSubscribersByDefault
           }
           facts={headerFacts}
+          secondaryActions={getJoinVideoCallActions(videoCalls)}
           aiInvestigationStatus={currentAIInvestigationStatus}
           aiInvestigationSummary={currentAIInvestigationSummary}
           aiInvestigationVerdict={currentAIInvestigationVerdict}
@@ -1207,6 +1239,20 @@ const IncidentView: FunctionComponent<
         </div>
 
         <div className="min-w-0 xl:col-span-1">
+          <EventVideoCallsCard
+            kind={VideoCallEventKind.Incident}
+            eventId={modelId}
+            calls={videoCalls.calls}
+            hasLoaded={videoCalls.hasLoaded}
+            error={videoCalls.error}
+            onRetry={videoCalls.refresh}
+            onChanged={() => {
+              videoCalls.refresh();
+              // A started call is a new feed entry.
+              refreshFeed();
+            }}
+          />
+
           {/* Incident View  */}
           <CardModelDetail<Incident>
             name="Incident Details"
