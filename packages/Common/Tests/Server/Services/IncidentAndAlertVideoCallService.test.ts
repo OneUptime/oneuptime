@@ -1,5 +1,6 @@
 import AlertVideoCall from "../../../Models/DatabaseModels/AlertVideoCall";
 import IncidentVideoCall from "../../../Models/DatabaseModels/IncidentVideoCall";
+import VideoCallConnection from "../../../Models/DatabaseModels/VideoCallConnection";
 import WorkspaceNotificationRule from "../../../Models/DatabaseModels/WorkspaceNotificationRule";
 import { Service as AlertVideoCallServiceType } from "../../../Server/Services/AlertVideoCallService";
 import { Service as IncidentVideoCallServiceType } from "../../../Server/Services/IncidentVideoCallService";
@@ -256,6 +257,61 @@ describe("IncidentVideoCallService create", () => {
     expect(onCreate.createBy.data.workspaceNotificationRule).toBe(undefined);
     expect(onCreate.createBy.data.workspaceNotificationRuleId).toBe(undefined);
     expect(onCreate.createBy.data.videoCallConnection).toBe(undefined);
+  });
+
+  test("reads a connection named by its relation as the connection", async () => {
+    jest
+      .spyOn(ModelPermission, "checkCreatePermissions")
+      .mockImplementation(() => {});
+    jest.spyOn(EventVideoCall, "assertCallerCanSeeEvent").mockResolvedValue();
+    jest
+      .spyOn(EventVideoCall, "getEvent")
+      .mockResolvedValue(event(VideoCallEventType.Incident));
+    const prepare: SpyInstance<typeof EventVideoCall.prepare> = jest
+      .spyOn(EventVideoCall, "prepare")
+      .mockResolvedValue({
+        fields: {
+          provider: VideoCallProvider.Zoom,
+          videoCallConnectionId: CONNECTION_ID,
+          joinUrl: "https://zoom.us/j/1",
+        },
+        carryForward: {},
+      });
+
+    const data: IncidentVideoCall = call();
+    delete (data as unknown as Record<string, unknown>)[
+      "videoCallConnectionId"
+    ];
+    data.videoCallConnection = new VideoCallConnection(CONNECTION_ID);
+
+    await build().onBeforeCreate({ data, props: USER_PROPS });
+
+    expect(
+      prepare.mock.calls[0]![0].fields.videoCallConnectionId?.toString(),
+    ).toBe(CONNECTION_ID.toString());
+  });
+
+  test("refuses a connection named two ways that disagree, before any meeting starts", async () => {
+    jest
+      .spyOn(ModelPermission, "checkCreatePermissions")
+      .mockImplementation(() => {});
+    jest.spyOn(EventVideoCall, "assertCallerCanSeeEvent").mockResolvedValue();
+    jest
+      .spyOn(EventVideoCall, "getEvent")
+      .mockResolvedValue(event(VideoCallEventType.Incident));
+    const prepare: SpyInstance<typeof EventVideoCall.prepare> = jest.spyOn(
+      EventVideoCall,
+      "prepare",
+    );
+
+    const data: IncidentVideoCall = call();
+    data.videoCallConnection = new VideoCallConnection(ObjectID.generate());
+
+    await expect(
+      build().onBeforeCreate({ data, props: USER_PROPS }),
+    ).rejects.toThrow("Conflicting Video Call Connection references");
+
+    expect(prepare).not.toHaveBeenCalled();
   });
 
   test("needs an incident", async () => {

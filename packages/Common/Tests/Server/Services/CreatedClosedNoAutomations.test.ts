@@ -48,6 +48,7 @@ import AlertEpisodeWorkspaceMessages from "../../../Server/Utils/Workspace/Works
 import AlertWorkspaceMessages from "../../../Server/Utils/Workspace/WorkspaceMessages/Alert";
 import IncidentEpisodeWorkspaceMessages from "../../../Server/Utils/Workspace/WorkspaceMessages/IncidentEpisode";
 import IncidentWorkspaceMessages from "../../../Server/Utils/Workspace/WorkspaceMessages/Incident";
+import VideoCallRuleExecutor from "../../../Server/Utils/VideoCall/VideoCallRuleExecutor";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertEpisode from "../../../Models/DatabaseModels/AlertEpisode";
 import { AlertEpisodeFeedEventType } from "../../../Models/DatabaseModels/AlertEpisodeFeed";
@@ -106,7 +107,8 @@ jest.mock("../../../Server/Utils/Logger");
  *     resolved: also not grouped into an episode, no runbook or
  *     auto-remediation rule acts on it, no AI investigation is queued (its
  *     AI card says why, unless something stops OneUptime AI for the whole
- *     project, which it names instead), no war-room channel is opened, and
+ *     project, which it names instead), no war-room channel is opened or
+ *     video call started for it, and
  *     an incident leaves its monitors and their monitoring alone - its first
  *     state gives them nothing back either - and starts no SLA. A state of
  *     the project's own placed after the resolved state counts as resolved
@@ -192,6 +194,8 @@ interface Probes {
   // OnCallDutyPolicyService.executePolicy: the policy and its options.
   paged: Array<{ policyId: string; options: Record<string, unknown> }>;
   warRoom: Array<unknown>;
+  // VideoCallRuleExecutor: the calls the workspace rules ask for.
+  videoCalls: Array<unknown>;
   grouped: Array<unknown>;
   // The options each grouping was asked with (GroupingOptions).
   groupingOptions: Array<unknown>;
@@ -222,6 +226,7 @@ function newProbes(): Probes {
   return {
     paged: [],
     warRoom: [],
+    videoCalls: [],
     grouped: [],
     groupingOptions: [],
     runbooks: [],
@@ -316,6 +321,7 @@ interface Kind {
     sla: boolean;
     monitorStatus: boolean;
     reminders: boolean;
+    videoCalls: boolean;
   };
   // A create payload, as the create form or the API sends it.
   newRecord: (policyIds: Array<string>) => DatabaseBaseModel;
@@ -351,6 +357,7 @@ const INCIDENT: Kind = {
     sla: true,
     monitorStatus: true,
     reminders: true,
+    videoCalls: true,
   },
   newRecord: (policyIds: Array<string>): DatabaseBaseModel => {
     const incident: Incident = new Incident();
@@ -390,6 +397,13 @@ const INCIDENT: Kind = {
       },
       () => {
         return null;
+      },
+    );
+    stub(
+      VideoCallRuleExecutor,
+      "startCallsForIncident",
+      (args: Array<unknown>) => {
+        probes.videoCalls.push(args[0]);
       },
     );
     stub(IncidentService, "createIncidentFeedAsync", (args: Array<unknown>) => {
@@ -514,6 +528,7 @@ const ALERT: Kind = {
     sla: false,
     monitorStatus: false,
     reminders: true,
+    videoCalls: true,
   },
   newRecord: (policyIds: Array<string>): DatabaseBaseModel => {
     const alert: Alert = new Alert();
@@ -540,6 +555,13 @@ const ALERT: Kind = {
       },
       () => {
         return null;
+      },
+    );
+    stub(
+      VideoCallRuleExecutor,
+      "startCallsForAlert",
+      (args: Array<unknown>) => {
+        probes.videoCalls.push(args[0]);
       },
     );
     stub(AlertService, "createAlertFeedAsync", (args: Array<unknown>) => {
@@ -653,6 +675,7 @@ const ALERT_EPISODE: Kind = {
     sla: false,
     monitorStatus: false,
     reminders: false,
+    videoCalls: false,
   },
   newRecord: (): DatabaseBaseModel => {
     const episode: AlertEpisode = new AlertEpisode();
@@ -755,6 +778,7 @@ const INCIDENT_EPISODE: Kind = {
     sla: false,
     monitorStatus: false,
     reminders: false,
+    videoCalls: false,
   },
   newRecord: (): DatabaseBaseModel => {
     const episode: IncidentEpisode = new IncidentEpisode();
@@ -1065,6 +1089,7 @@ describe.each(KINDS)(
         expect(probes.paged).toHaveLength(1);
         expect(probes.paged[0]!.policyId).toBe(PRIMARY_POLICY_ID);
         expect(probes.warRoom).toHaveLength(1);
+        expect(probes.videoCalls).toHaveLength(kind.has.videoCalls ? 1 : 0);
         expect(onCallNotRunLines(kind, probes)).toHaveLength(0);
 
         expect(probes.grouped).toHaveLength(kind.has.grouping ? 1 : 0);
@@ -1184,11 +1209,12 @@ describe.each(KINDS)(
       ["the acknowledged state", ACKNOWLEDGED],
       ["a state of the project's own after acknowledged", MONITORING],
     ] as Array<[string, string]>)(
-      "%s: its war-room channel, grouping, runbooks, remediation and AI still run",
+      "%s: its war-room channel, video calls, grouping, runbooks, remediation and AI still run",
       async (_name: string, state: string) => {
         const { probes } = await create(kind, state);
 
         expect(probes.warRoom).toHaveLength(1);
+        expect(probes.videoCalls).toHaveLength(kind.has.videoCalls ? 1 : 0);
         expect(probes.grouped).toHaveLength(kind.has.grouping ? 1 : 0);
         expect(probes.runbooks).toHaveLength(kind.has.runbooks ? 1 : 0);
         expect(probes.remediated).toHaveLength(kind.has.remediation ? 1 : 0);
@@ -1225,10 +1251,11 @@ describe.each(KINDS)(
 describe.each(KINDS)(
   "an $name created resolved is over: nothing responds to it",
   (kind: Kind) => {
-    test("no war-room channel is opened for it", async () => {
+    test("no war-room channel is opened and no video call is started for it", async () => {
       const { probes } = await create(kind, RESOLVED);
 
       expect(probes.warRoom).toEqual([]);
+      expect(probes.videoCalls).toEqual([]);
       expect(chainErrors()).toEqual([]);
     });
 

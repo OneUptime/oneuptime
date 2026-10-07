@@ -14,7 +14,9 @@ import Label from "../../Models/DatabaseModels/Label";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import TeamPermission from "../../Models/DatabaseModels/TeamPermission";
 import UserPermissionUtil from "../Utils/UserPermission/UserPermission";
-import RealtimeReaders from "../Utils/Realtime/RealtimeReaders";
+import RealtimeAccessChanges, {
+  RealtimeAccessChangeKind,
+} from "../Utils/Realtime/RealtimeAccessChanges";
 import PermissionNamespace from "../Types/Permission/PermissionNamespace";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -27,12 +29,26 @@ export class AccessTokenService extends BaseService {
   @CaptureSpan()
   public async refreshUserAllPermissions(userId: ObjectID): Promise<void> {
     const userGlobalAccessPermission: UserGlobalAccessPermission =
-      await this.refreshUserGlobalAccessPermission(userId);
+      await this.refreshUserGlobalAccessPermission(userId, {
+        forgetLiveUpdateReaders: false,
+      });
 
     // every project the user belongs to.
     for (const projectId of userGlobalAccessPermission.projectIds) {
-      await this.refreshUserTenantAccessPermission(userId, projectId);
+      await this.refreshUserTenantAccessPermission(userId, projectId, {
+        forgetLiveUpdateReaders: false,
+      });
     }
+
+    /*
+     * Their open live updates read every project again, on every server:
+     * one announcement, made once every set above is rebuilt, however many
+     * projects they are in (this runs on every sign-in).
+     */
+    RealtimeAccessChanges.announce({
+      kind: RealtimeAccessChangeKind.PermissionsChanged,
+      userId: userId.toString(),
+    });
   }
 
   @CaptureSpan()
@@ -40,10 +56,10 @@ export class AccessTokenService extends BaseService {
     userId: ObjectID,
     options?: {
       /*
-       * Whether the person's open live updates read their permissions again
-       * (RealtimeReaders.forgetUser). Default true. False when the refresh
-       * only fills a cache that had nothing - nothing changed, and the
-       * lookup may be the one building their live-update entry.
+       * Whether the person's open live updates read their permissions again,
+       * on every server (RealtimeAccessChanges). Default true. False when the
+       * refresh only fills a cache that had nothing - nothing changed, and
+       * the lookup may be the one building their live-update entry.
        */
       forgetLiveUpdateReaders?: boolean | undefined;
     },
@@ -97,11 +113,14 @@ export class AccessTokenService extends BaseService {
     await GlobalCache.setJSON("user", userId.toString(), permissionToStore);
 
     /*
-     * The person's open live updates read their projects again
-     * (RealtimeReaders), so one they have left stops at once.
+     * The person's open live updates read their projects again, on every
+     * server (RealtimeAccessChanges), so one they have left stops at once.
      */
     if (options?.forgetLiveUpdateReaders !== false) {
-      RealtimeReaders.forgetUser(userId);
+      RealtimeAccessChanges.announce({
+        kind: RealtimeAccessChangeKind.PermissionsChanged,
+        userId: userId.toString(),
+      });
     }
 
     return permissionToStore;
@@ -137,10 +156,11 @@ export class AccessTokenService extends BaseService {
       clearCacheIfNotMember?: boolean | undefined;
       /*
        * Whether the person's open live updates of the project read their
-       * permissions again (RealtimeReaders.forgetUser). Default true. False
-       * when the refresh only fills or corrects the cache as it is read -
-       * nothing changed, and the lookup may be the one building their
-       * live-update entry, which would otherwise be dropped as it is made.
+       * permissions again, on every server (RealtimeAccessChanges). Default
+       * true. False when the refresh only fills or corrects the cache as it
+       * is read - nothing changed, and the lookup may be the one building
+       * their live-update entry, which would otherwise be dropped as it is
+       * made.
        */
       forgetLiveUpdateReaders?: boolean | undefined;
     },
@@ -183,9 +203,13 @@ export class AccessTokenService extends BaseService {
         );
       }
 
-      // Their open live updates of the project stop at once.
+      // Their open live updates of the project stop at once, on every server.
       if (options?.forgetLiveUpdateReaders !== false) {
-        RealtimeReaders.forgetUser(userId, projectId);
+        RealtimeAccessChanges.announce({
+          kind: RealtimeAccessChangeKind.PermissionsChanged,
+          userId: userId.toString(),
+          projectId: projectId.toString(),
+        });
       }
 
       return null;
@@ -257,10 +281,14 @@ export class AccessTokenService extends BaseService {
 
     /*
      * Their open live updates of the project follow the new permissions at
-     * once (RealtimeReaders).
+     * once, on every server (RealtimeAccessChanges).
      */
     if (options?.forgetLiveUpdateReaders !== false) {
-      RealtimeReaders.forgetUser(userId, projectId);
+      RealtimeAccessChanges.announce({
+        kind: RealtimeAccessChangeKind.PermissionsChanged,
+        userId: userId.toString(),
+        projectId: projectId.toString(),
+      });
     }
 
     return permission;
@@ -383,8 +411,12 @@ export class AccessTokenService extends BaseService {
       ),
     ]);
 
-    // Their open live updates read the permissions again too.
-    RealtimeReaders.forgetUser(userId, projectId);
+    // Their open live updates read the permissions again too, on every server.
+    RealtimeAccessChanges.announce({
+      kind: RealtimeAccessChangeKind.PermissionsChanged,
+      userId: userId.toString(),
+      projectId: projectId.toString(),
+    });
   }
 }
 
