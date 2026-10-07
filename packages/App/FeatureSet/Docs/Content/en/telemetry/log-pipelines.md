@@ -23,7 +23,7 @@ Pipelines live under **Logs > Settings > Pipelines**.
 
 ## Key=Value Parser
 
-Firewalls and other network appliances log every event as one line of `key=value` pairs. Which fields a line has, and in what order, depends on the event, so a single grok pattern cannot describe them. The Key=Value Parser does not need one: it walks the line and turns every pair it finds into a log attribute, whatever the order. Once they are attributes you can search and filter on them and use them in a [log monitor](/docs/monitor/logs-monitor).
+Firewalls and other network appliances log every event as one line of `key=value` pairs. Which fields a line has, and in what order, depends on the event, so a single grok pattern cannot describe them. The Key=Value Parser does not need one: it walks the line and turns every pair it finds into a log attribute, whatever the order. Once they are attributes you can search and filter on them, use them in a [log monitor](/docs/monitor/logs-monitor), and alert once per tunnel, interface or user with [Group By](/docs/monitor/logs-monitor#per-group-alerting-group-by).
 
 ### Configuration
 
@@ -89,6 +89,10 @@ date=2024-01-01 time=10:00:00 devname="FG100" logid="0100032001" type="event" su
 ```
 
 With the default settings and a `fortigate` prefix this gives `fortigate.devname = FG100`, `fortigate.subtype = vpn`, `fortigate.action = tunnel-down`, `fortigate.vpntunnel = HQ-to-Branch2` and `fortigate.time = 10:00:00` - the colons in a time value are part of the value, not a delimiter.
+
+### Alert Once per Tunnel
+
+With the fields parsed, a [Logs monitor](/docs/monitor/logs-monitor) can count the failures and raise a separate alert for each tunnel: filter on `sophos.log_component` = `IPSec` with the body containing `terminated`, and group by `sophos.con_name`. See [Per-group alerting](/docs/monitor/logs-monitor#per-group-alerting-group-by).
 
 ## Grok Parser
 

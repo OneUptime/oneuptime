@@ -3,7 +3,11 @@ import OneUptimeDate from "../../../Types/Date";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import DataToProcess from "./DataToProcess";
-import { CheckOn, CriteriaFilter } from "../../../Types/Monitor/CriteriaFilter";
+import {
+  CheckOn,
+  CriteriaFilter,
+  CriteriaFilterUtil,
+} from "../../../Types/Monitor/CriteriaFilter";
 import { JSONObject } from "../../../Types/JSON";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import ServerMonitorResponse, {
@@ -18,6 +22,9 @@ import SslMonitorResponse from "../../../Types/Monitor/SSLMonitor/SslMonitorResp
 import SyntheticMonitorResponse from "../../../Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
 import CustomCodeMonitorResponse from "../../../Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
 import LogMonitorResponse from "../../../Types/Monitor/LogMonitor/LogMonitorResponse";
+import LogMonitorGroupResult, {
+  LogMonitorGroupResultUtil,
+} from "../../../Types/Monitor/LogMonitor/LogMonitorGroupResult";
 import SecurityEventsMonitorResponse from "../../../Types/Monitor/SecurityEventsMonitor/SecurityEventsMonitorResponse";
 import TraceMonitorResponse from "../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
 import ExceptionMonitorResponse from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
@@ -1120,6 +1127,7 @@ export default class MonitorCriteriaObservationBuilder {
 
   private static describeLogCountObservation(input: {
     dataToProcess: DataToProcess;
+    criteriaFilter: CriteriaFilter;
   }): string | null {
     const logResponse: LogMonitorResponse | null =
       MonitorCriteriaDataExtractor.getLogMonitorResponse(input.dataToProcess);
@@ -1128,7 +1136,50 @@ export default class MonitorCriteriaObservationBuilder {
       return null;
     }
 
-    return `Log count was ${logResponse.logCount}.`;
+    // One group, judged alone by the per-group pass.
+    if (logResponse.evaluatedGroup) {
+      return `Log count for ${LogMonitorGroupResultUtil.describeGroup(
+        logResponse.evaluatedGroup.labels,
+      )} was ${logResponse.logCount}.`;
+    }
+
+    const groups: Array<LogMonitorGroupResult> | undefined =
+      logResponse.groupBreakdown;
+
+    if (!groups) {
+      return `Log count was ${logResponse.logCount}.`;
+    }
+
+    if (
+      CriteriaFilterUtil.isAnomalyFilterType(input.criteriaFilter.filterType)
+    ) {
+      return "Anomaly detection is not evaluated per group - the baseline covers the whole monitor, not each group.";
+    }
+
+    if (groups.length === 0) {
+      return "No logs matched, so there was no group to evaluate.";
+    }
+
+    const busiest: LogMonitorGroupResult = groups[0]!;
+    const groupCount: number = Math.max(
+      logResponse.totalGroupCount || 0,
+      groups.length,
+    );
+
+    let observation: string = `Log count was ${logResponse.logCount} across ${groupCount} ${
+      groupCount === 1 ? "group" : "groups"
+    }; the most was ${busiest.logCount}, for ${LogMonitorGroupResultUtil.describeGroup(
+      busiest.labels,
+    )}`;
+
+    if (groupCount > groups.length) {
+      observation +=
+        groups.length === 1
+          ? ". Only the group with the most logs was evaluated"
+          : `. Only the ${groups.length} groups with the most logs were evaluated`;
+    }
+
+    return `${observation}.`;
   }
 
   private static describeSecurityEventCountObservation(input: {

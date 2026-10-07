@@ -54,6 +54,14 @@ export interface FanOutEntity {
    * what it says for each disk.
    */
   narrowFilter: (filter: CriteriaFilter) => CriteriaFilter;
+  /**
+   * The observation this entity is judged on, when it is not the
+   * monitor's own payload. A disk or an interface is narrowed through its
+   * filters and leaves this unset; a grouped Logs monitor's group is a
+   * slice of the data instead - its own log count - so it carries the
+   * response narrowed to that group (see LogGroupCriteriaFanOut).
+   */
+  dataToProcess?: DataToProcess | undefined;
 }
 
 export default class PerEntityCriteriaFanOut {
@@ -76,6 +84,7 @@ export default class PerEntityCriteriaFanOut {
     entities: Array<FanOutEntity>;
     evaluateNarrowedCriteria: (
       narrowedCriteriaInstance: MonitorCriteriaInstance,
+      entity: FanOutEntity,
     ) => Promise<string | null>;
     monitorId: string | undefined;
   }): Promise<Array<PerSeriesCriteriaMatch>> {
@@ -103,8 +112,10 @@ export default class PerEntityCriteriaFanOut {
           entity,
         });
 
-      const rootCause: string | null =
-        await input.evaluateNarrowedCriteria(narrowed);
+      const rootCause: string | null = await input.evaluateNarrowedCriteria(
+        narrowed,
+        entity,
+      );
 
       if (!rootCause) {
         continue;
