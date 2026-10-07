@@ -134,6 +134,7 @@ import SetWorkspaceSummaryTimezones from "./SetWorkspaceSummaryTimezones";
 import AddTelemetryServiceMetricsPermissions from "./AddTelemetryServiceMetricsPermissions";
 import HideImagesOfPrivateIncidents from "./HideImagesOfPrivateIncidents";
 import HideImagesOfHiddenRecordNotes from "./HideImagesOfHiddenRecordNotes";
+import HideImagesOfScheduledAnnouncements from "./HideImagesOfScheduledAnnouncements";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -677,6 +678,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * so it sits before the last slot.
    */
   new NotifyOwnersOfStoppedApiKeysAndScim(),
+  /*
+   * An announcement shows its images from the time it is shown on
+   * (PublishedImages), so the images an announcement scheduled for later
+   * made public when it was created become private until it is shown -
+   * unless a published record shows them now, or they are icons. The first
+   * request for one once the announcement is shown makes it public again.
+   * Postgres-only, idempotent, never makes a file public. No ordering
+   * requirement, so it sits before the last slot.
+   */
+  new HideImagesOfScheduledAnnouncements(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

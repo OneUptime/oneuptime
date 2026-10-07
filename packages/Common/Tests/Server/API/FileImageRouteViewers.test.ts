@@ -29,6 +29,7 @@ import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import UserService from "../../../Server/Services/UserService";
 import CookieUtil from "../../../Server/Utils/Cookie";
+import PublishedImages from "../../../Server/Utils/File/PublishedImages";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import { expressErrorHandler } from "../../../Server/Utils/StartServer";
 import File from "../../../Models/DatabaseModels/File";
@@ -191,6 +192,21 @@ const LOOSE_IMAGE: FileFixture = {
   createdByUserId: MEMBER_ID,
 };
 
+/*
+ * An image in the description of an announcement of PROJECT_ID: private
+ * until the announcement is shown (PublishedImages), which no write marks -
+ * the first request for it once the announcement's time has come makes it
+ * public.
+ */
+const ANNOUNCEMENT_IMAGE: FileFixture = {
+  id: "f0000000-0000-4000-8000-000000000007",
+  token: "a7".repeat(32),
+  bytes: "announcement-image",
+  isPublic: false,
+  projectId: PROJECT_ID,
+  createdByUserId: MEMBER_ID,
+};
+
 const FIXTURES: Array<FileFixture> = [
   PUBLIC_IMAGE,
   PRIVATE_IMAGE,
@@ -198,6 +214,7 @@ const FIXTURES: Array<FileFixture> = [
   UNOWNED_IMAGE,
   LEGACY_IMAGE,
   LOOSE_IMAGE,
+  ANNOUNCEMENT_IMAGE,
 ];
 
 /*
@@ -348,6 +365,10 @@ describe("the image routes serve a file only to the people who may see it", () =
   let port: number;
   let blocked: Set<string> = new Set<string>();
   let failMembershipLookups: boolean = false;
+  // When the announcement ANNOUNCEMENT_IMAGE is in is shown from.
+  let announcementShownFrom: Date = new Date(Date.now() + 60 * 60 * 1000);
+  // Each question the route asked of whether a record shows a file now.
+  let shownAsks: Array<string> = [];
   // Every read of a file: how it asked, and whether it came back with bytes.
   let reads: Array<{ query: Dictionary<unknown>; gotBytes: boolean }> = [];
 
@@ -394,6 +415,30 @@ describe("the image routes serve a file only to the people who may see it", () =
       userId: ObjectID,
     ) => {
       return blocked.has(userId.toString());
+    }) as never);
+
+    /*
+     * The database's answer to whether a record shows a file now, as one
+     * statement makes it public (PublishedImages.publishWhenShown, held to
+     * Postgres by PublishedImagesPostgres): only the announcement's image,
+     * once its time has come.
+     */
+    jest.spyOn(PublishedImages, "publishWhenShown").mockImplementation((async (
+      file: { _id?: unknown } | null | undefined,
+      now?: Date,
+    ): Promise<boolean> => {
+      shownAsks.push(String(file?._id));
+
+      // Shown now: public, made so now or by a request at the same moment.
+      if (
+        String(file?._id) !== ANNOUNCEMENT_IMAGE.id ||
+        (now || new Date()).getTime() < announcementShownFrom.getTime()
+      ) {
+        return false;
+      }
+
+      ANNOUNCEMENT_IMAGE.isPublic = true;
+      return true;
     }) as never);
 
     // An accepted membership is a permission set; anyone else gets none.
@@ -446,6 +491,9 @@ describe("the image routes serve a file only to the people who may see it", () =
     failMembershipLookups = false;
     (FileService.findOneBy as unknown as jest.Mock).mockClear();
     reads = [];
+    ANNOUNCEMENT_IMAGE.isPublic = false;
+    announcementShownFrom = new Date(Date.now() + 60 * 60 * 1000);
+    shownAsks = [];
   });
 
   afterAll(async () => {
@@ -898,6 +946,89 @@ describe("the image routes serve a file only to the people who may see it", () =
         await (FileService.findOneBy as unknown as jest.Mock).mock.results[0]!
           .value,
       ).toBeNull();
+    });
+  });
+
+  describe("an image in an announcement scheduled for later", () => {
+    it("is answered like a missing file before the announcement is shown, to everyone outside the project", async () => {
+      for (const cookies of [
+        {},
+        asSession(OUTSIDER_ID),
+        {
+          [CookieUtil.getUserTokenKey()]: statusPageVisitorToken(MEMBER_ID),
+        },
+      ]) {
+        await expectRefusedLikeMissing(
+          await get({ port, path: tokenPath(ANNOUNCEMENT_IMAGE), cookies }),
+          ANNOUNCEMENT_IMAGE,
+        );
+      }
+
+      expect(ANNOUNCEMENT_IMAGE.isPublic).toBe(false);
+    });
+
+    it("is served to the project's members before then, and stays private", async () => {
+      const result: HttpResult = await get({
+        port,
+        path: tokenPath(ANNOUNCEMENT_IMAGE),
+        cookies: asSession(MEMBER_ID),
+      });
+
+      expectServed(result, ANNOUNCEMENT_IMAGE);
+      expect(result.headers["cache-control"]).toBe("private, no-cache");
+      expect(ANNOUNCEMENT_IMAGE.isPublic).toBe(false);
+      expect(shownAsks).toEqual([]);
+    });
+
+    it("is served to everyone once the announcement is shown, and is public from then on", async () => {
+      announcementShownFrom = new Date(Date.now() - 1000);
+
+      const first: HttpResult = await get({
+        port,
+        path: tokenPath(ANNOUNCEMENT_IMAGE),
+      });
+
+      expectServed(first, ANNOUNCEMENT_IMAGE);
+      // Served as the public image it now is: cached as public images are.
+      expect(first.headers["cache-control"]).toBeUndefined();
+      expect(ANNOUNCEMENT_IMAGE.isPublic).toBe(true);
+      expect(shownAsks).toEqual([ANNOUNCEMENT_IMAGE.id]);
+
+      // The next request is answered by the public read alone.
+      reads = [];
+      expectServed(
+        await get({
+          port,
+          path: tokenPath(ANNOUNCEMENT_IMAGE),
+          cookies: asSession(OUTSIDER_ID),
+        }),
+        ANNOUNCEMENT_IMAGE,
+      );
+      expect(reads).toHaveLength(1);
+      expect(shownAsks).toEqual([ANNOUNCEMENT_IMAGE.id]);
+    });
+
+    it("by its id, is never served before then: only a public file is served by its id", async () => {
+      announcementShownFrom = new Date(Date.now() + 60 * 60 * 1000);
+
+      const result: HttpResult = await get({
+        port,
+        path: idPath(ANNOUNCEMENT_IMAGE),
+      });
+
+      expect(result.status).toBe(404);
+      expect(shownAsks).toEqual([]);
+    });
+
+    it("no other private image is made public by the question", async () => {
+      announcementShownFrom = new Date(Date.now() - 1000);
+
+      await expectRefusedLikeMissing(
+        await get({ port, path: tokenPath(PRIVATE_IMAGE) }),
+        PRIVATE_IMAGE,
+      );
+      expect(shownAsks).toEqual([PRIVATE_IMAGE.id]);
+      expect(PRIVATE_IMAGE.isPublic).toBe(false);
     });
   });
 
