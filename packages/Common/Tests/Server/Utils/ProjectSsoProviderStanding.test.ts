@@ -15,6 +15,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 
 /*
  * Whether a project's own SAML or OIDC provider still vouches for the
@@ -47,7 +48,7 @@ const OFF: ProjectSsoProviderStandingValue = {
   signInsEndedAtMs: 1_700_000_000_000,
 };
 
-type Load = jest.Mock<() => Promise<ProjectSsoProviderStandingValue>>;
+type Load = Mock<() => Promise<ProjectSsoProviderStandingValue>>;
 
 const loadAnswering: (value: ProjectSsoProviderStandingValue) => Load = (
   value: ProjectSsoProviderStandingValue,
@@ -201,7 +202,7 @@ describe("ProjectSsoProviderStanding", () => {
 
     test("an answer older than a minute is read again", async () => {
       const startedAt: number = Date.now();
-      const now: jest.SpiedFunction<() => number> = jest
+      const now: SpyInstance<() => number> = jest
         .spyOn(Date, "now")
         .mockReturnValue(startedAt);
 

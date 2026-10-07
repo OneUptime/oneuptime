@@ -995,9 +995,9 @@ describe("the API's check agrees with the provider, on the same rows", () => {
 
       // Signing in again, after it was turned on, counts.
       const realNow: number = Date.now();
-      const now: jest.SpiedFunction<() => number> = jest
-        .spyOn(Date, "now")
-        .mockReturnValue(realNow + 2000);
+      const now: SpyInstance = getJestSpyOn(Date, "now").mockReturnValue(
+        realNow + 2000,
+      );
       const again: string = signIn(kind);
       now.mockRestore();
 

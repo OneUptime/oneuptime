@@ -137,7 +137,11 @@ const readFrom: <TModel extends ProjectSso | ProjectOidc>(
     const model: TModel = createModel();
     model.id = row.id;
     model.isEnabled = row.isEnabled;
-    model.signInsEndedAt = row.signInsEndedAt || undefined;
+
+    if (row.signInsEndedAt) {
+      model.signInsEndedAt = row.signInsEndedAt;
+    }
+
     return model;
   };
 };
