@@ -63,7 +63,6 @@ import AlertSettingsOnCallRules from "../Pages/Alerts/Settings/AlertOnCallRules"
 
 import AlertSettingsOwnerRules from "../Pages/Alerts/Settings/AlertOwnerRules";
 import AlertSettingsRunbookRules from "../Pages/Alerts/Settings/AlertRunbookRules";
-import AlertSettingsAutoRemediationRules from "../Pages/Alerts/Settings/AlertAutoRemediationRules";
 
 import AlertSettingsReminderRules from "../Pages/Alerts/Settings/AlertReminderRules";
 
@@ -151,9 +150,10 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
 
       {/*
        * The AI settings and the Auto Remediation Rules moved into the AI
-       * section (…/ai/settings and …/ai/auto-remediation-rules). Their old
-       * URLs, in bookmarks, emails and older docs, forward there - outside
-       * the layout, so the side menu never flashes on the way.
+       * section (…/ai/settings and …/ai/auto-remediation-rules), and then
+       * the rules into the AI settings page's More settings. Their old URLs,
+       * in bookmarks, emails and older docs, forward there - outside the
+       * layout, so the side menu never flashes on the way.
        */}
       <PageRoute
         path={MOVED_AI_SECTION_PATHS.aiSettings}
@@ -161,11 +161,11 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
       />
       <PageRoute
         path={MOVED_AI_SECTION_PATHS.autoRemediationRules}
-        element={
-          <MovedPageRedirect
-            pageMap={PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES}
-          />
-        }
+        element={<MovedPageRedirect pageMap={PageMap.ALERTS_SETTINGS_AI} />}
+      />
+      <PageRoute
+        path={MOVED_AI_SECTION_PATHS.aiAutoRemediationRules}
+        element={<MovedPageRedirect pageMap={PageMap.ALERTS_SETTINGS_AI} />}
       />
 
       <PageRoute
@@ -374,23 +374,6 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.ALERTS_SETTINGS_RUNBOOK_RULES] as Route
-              }
-            />
-          }
-        />
-
-        <PageRoute
-          path={
-            AlertsRoutePath[PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES] ||
-            ""
-          }
-          element={
-            <AlertSettingsAutoRemediationRules
-              {...props}
-              pageRoute={
-                RouteMap[
-                  PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES
-                ] as Route
               }
             />
           }

@@ -34,7 +34,9 @@ import {
   ProjectAiProviderState,
   ProjectAiState,
   ProjectAiSwitchDefinition,
+  isAiLaneRulesCard,
   recordAiLaneAdvancedCard,
+  recordAiLaneAdvancedRules,
 } from "../../FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import Project from "Common/Models/DatabaseModels/Project";
 import { TableColumnMetadata } from "Common/Types/Database/TableColumn";
@@ -163,6 +165,22 @@ const PULL_REQUEST: RegExp = /pull request/;
 
 const CODE_FIXES_COLUMN: RegExp = /CodeFixes$/;
 
+/*
+ * The switches a new project starts without: fixing new incidents and
+ * alerts changes infrastructure, so a project turns it on itself.
+ */
+const OFF_FOR_NEW_PROJECTS: Array<string> = [
+  "enableAutomaticIncidentRemediation",
+  "enableAutomaticAlertRemediation",
+];
+
+// The cards under More settings that hold Project columns, not rules.
+const COLUMN_CARDS: Array<AiLaneAdvancedCard> = AI_LANE_ADVANCED_CARDS.filter(
+  (card: AiLaneAdvancedCard): boolean => {
+    return !isAiLaneRulesCard(card);
+  },
+);
+
 const ALL_SWITCHES: Array<ProjectAiSwitchDefinition<string>> = [
   ...AI_LANE_SWITCHES[AiLane.Incident],
   ...AI_LANE_SWITCHES[AiLane.Alert],
@@ -207,7 +225,51 @@ describe("every AI behaviour is a switch", () => {
 
     // A walk that found nothing would pass vacuously.
     expect(fromServer.length).toBeGreaterThanOrEqual(10);
-    expect([...onPages].sort()).toEqual([...fromServer].sort());
+    expect(
+      onPages
+        .filter((column: string): boolean => {
+          return !OFF_FOR_NEW_PROJECTS.includes(column);
+        })
+        .sort(),
+    ).toEqual([...fromServer].sort());
+  });
+
+  test("fixing new incidents and alerts has a switch on each page, and starts off even for a new project", () => {
+    expect(columnsOf(AI_LANE_SWITCHES[AiLane.Incident])).toContain(
+      "enableAutomaticIncidentRemediation",
+    );
+    expect(columnsOf(AI_LANE_SWITCHES[AiLane.Alert])).toContain(
+      "enableAutomaticAlertRemediation",
+    );
+    expect(columnsOf(AI_LANE_SWITCHES[AiLane.Incident])).not.toContain(
+      "enableAutomaticAlertRemediation",
+    );
+    expect(columnsOf(AI_LANE_SWITCHES[AiLane.Alert])).not.toContain(
+      "enableAutomaticIncidentRemediation",
+    );
+
+    for (const column of OFF_FOR_NEW_PROJECTS) {
+      expect(newProjectAiDefaultColumns()).not.toContain(column);
+    }
+
+    // Right under the investigation switch: investigate, then fix.
+    expect(columnsOf(AI_LANE_SWITCHES[AiLane.Incident]).slice(0, 2)).toEqual([
+      "enableAutomaticIncidentInvestigation",
+      "enableAutomaticIncidentRemediation",
+    ]);
+    expect(columnsOf(AI_LANE_SWITCHES[AiLane.Alert]).slice(0, 2)).toEqual([
+      "enableAutomaticAlertInvestigation",
+      "enableAutomaticAlertRemediation",
+    ]);
+
+    for (const lane of [AiLane.Incident, AiLane.Alert]) {
+      const fix: ProjectAiSwitchDefinition<string> = AI_LANE_SWITCHES[lane][1]!;
+
+      // What it needs: an AI agent that may fix things where it happens.
+      expect(fix.note).toContain("AI agent");
+      // Who decides whether a fix waits: that agent's settings.
+      expect(fix.description).toContain("approve");
+    }
   });
 
   test("Enable AI is no per-feature switch: it is the project's only master switch, on its own page", () => {
@@ -279,6 +341,7 @@ describe("every AI behaviour is a switch", () => {
       ),
     ).toEqual([
       "Investigate new incidents",
+      "Fix new incidents automatically",
       "Draft a postmortem when an incident resolves",
       "Open a fix pull request when an investigation finds a code change",
       "Open a pull request that adds missing telemetry",
@@ -291,6 +354,7 @@ describe("every AI behaviour is a switch", () => {
       ),
     ).toEqual([
       "Investigate new alerts",
+      "Fix new alerts automatically",
       "Open a fix pull request when an investigation finds a code change",
       "Open a pull request that adds missing telemetry",
     ]);
@@ -417,14 +481,40 @@ describe("the pages draw switches first, and fold the limits", () => {
       expect(page).not.toContain('editButtonText={"Update"}');
       expect(page).not.toContain("FormFieldSchemaType.Toggle");
       expect(page.split("<CardModelDetail<Project>").length - 1).toBe(
-        AI_LANE_ADVANCED_CARDS.length,
+        COLUMN_CARDS.length,
       );
+      expect(COLUMN_CARDS).toHaveLength(3);
       expect(page.split('editButtonText="Edit"').length - 1).toBe(3);
       // Every card names its dialog for what it edits, not "Edit Project".
       expect(page.split("editModalTitle=").length - 1).toBe(3);
       // Each card's Edit is gated on its own two columns.
       expect(page).toContain(
         "getProjectColumnsEditGate({ fields: getAiLaneAdvancedCardColumns(",
+      );
+    },
+  );
+
+  test.each([
+    [INCIDENT_PAGE, "AiLane.Incident"],
+    [ALERT_PAGE, "AiLane.Alert"],
+  ])(
+    "%s folds the investigation rules and the auto remediation rules under More settings, each reporting what it holds",
+    (file: string, lane: string) => {
+      const page: string = readDashboard(file);
+      const advanced: string = page.slice(page.indexOf("<AdvancedPageSection"));
+
+      expect(advanced).toContain(
+        `<AIInvestigationRulesTable lane={${lane}} onRulesLoaded={advanced.onRulesLoaded( AiLaneAdvancedCard.InvestigationRules, )} />`,
+      );
+      expect(advanced).toContain(
+        `<AutoRemediationRulesTable lane={${lane}} onRulesLoaded={advanced.onRulesLoaded( AiLaneAdvancedCard.RemediationRules, )} />`,
+      );
+      // Nothing about rules shows above the fold.
+      expect(page.indexOf("<AIInvestigationRulesTable")).toBeGreaterThan(
+        page.indexOf("<AdvancedPageSection"),
+      );
+      expect(page.indexOf("<AutoRemediationRulesTable")).toBeGreaterThan(
+        page.indexOf("<AdvancedPageSection"),
       );
     },
   );
@@ -692,10 +782,11 @@ describe("what the notices say, and when", () => {
 });
 
 describe("what folded Advanced says", () => {
+  // What the three cards that hold Project columns read; the rules tables report through readRules.
   function read(
     lane: AiLane,
     values: Record<string, unknown>,
-    cards: Array<AiLaneAdvancedCard> = AI_LANE_ADVANCED_CARDS,
+    cards: Array<AiLaneAdvancedCard> = COLUMN_CARDS,
   ): AiLaneAdvancedState {
     let state: AiLaneAdvancedState = EMPTY_AI_LANE_ADVANCED_STATE;
 
@@ -706,8 +797,32 @@ describe("what folded Advanced says", () => {
     return state;
   }
 
-  test("the three cards hold the lane's six limits, two each, once", () => {
+  function readRules(
+    state: AiLaneAdvancedState,
+    counts: { investigation: number; remediation: number },
+  ): AiLaneAdvancedState {
+    return recordAiLaneAdvancedRules({
+      state: recordAiLaneAdvancedRules({
+        state,
+        card: AiLaneAdvancedCard.InvestigationRules,
+        count: counts.investigation,
+      }),
+      card: AiLaneAdvancedCard.RemediationRules,
+      count: counts.remediation,
+    });
+  }
+
+  test("the three cards hold the lane's six limits, two each, once, and the two rules tables none", () => {
     for (const lane of [AiLane.Incident, AiLane.Alert]) {
+      for (const card of AI_LANE_ADVANCED_CARDS) {
+        if (isAiLaneRulesCard(card)) {
+          expect([card, getAiLaneAdvancedCardColumns(lane, card)]).toEqual([
+            card,
+            [],
+          ]);
+        }
+      }
+
       const columns: Array<string> = AI_LANE_ADVANCED_CARDS.flatMap(
         (card: AiLaneAdvancedCard): Array<string> => {
           return getAiLaneAdvancedCardColumns(lane, card);
@@ -722,14 +837,58 @@ describe("what folded Advanced says", () => {
   });
 
   test("once every card has read and nothing is set, it says what the defaults do", () => {
+    const none: { investigation: number; remediation: number } = {
+      investigation: 0,
+      remediation: 0,
+    };
+
+    expect(
+      getAiLaneAdvancedSummary(
+        AiLane.Incident,
+        readRules(read(AiLane.Incident, {}), none),
+      ),
+    ).toBe(
+      "Every incident is investigated, whatever its severity, and every one is fixed while fixing is on. Nothing limits how much OneUptime AI does.",
+    );
+    expect(
+      getAiLaneAdvancedSummary(
+        AiLane.Alert,
+        readRules(read(AiLane.Alert, {}), none),
+      ),
+    ).toBe(
+      "Every alert is investigated, whatever its severity, and every one is fixed while fixing is on. Nothing limits how much OneUptime AI does.",
+    );
+  });
+
+  test("until both rules tables have read, it claims nothing about the defaults", () => {
     expect(
       getAiLaneAdvancedSummary(AiLane.Incident, read(AiLane.Incident, {})),
-    ).toBe(
-      "Every incident is investigated, whatever its severity, and nothing limits how much OneUptime AI does.",
-    );
-    expect(getAiLaneAdvancedSummary(AiLane.Alert, read(AiLane.Alert, {}))).toBe(
-      "Every alert is investigated, whatever its severity, and nothing limits how much OneUptime AI does.",
-    );
+    ).toBeUndefined();
+    expect(
+      getAiLaneAdvancedSummary(
+        AiLane.Incident,
+        recordAiLaneAdvancedRules({
+          state: read(AiLane.Incident, {}),
+          card: AiLaneAdvancedCard.InvestigationRules,
+          count: 0,
+        }),
+      ),
+    ).toBeUndefined();
+  });
+
+  test("an enabled rule in either table makes it Configured, with no defaults claim", () => {
+    for (const counts of [
+      { investigation: 1, remediation: 0 },
+      { investigation: 0, remediation: 2 },
+    ]) {
+      const state: AiLaneAdvancedState = readRules(
+        read(AiLane.Incident, {}),
+        counts,
+      );
+
+      expect(isAiLaneAdvancedConfigured(AiLane.Incident, state)).toBe(true);
+      expect(getAiLaneAdvancedSummary(AiLane.Incident, state)).toBeUndefined();
+    }
   });
 
   test("before every card has read, it claims nothing", () => {
@@ -794,6 +953,24 @@ describe("what folded Advanced says", () => {
 
     expect(isAiLaneAdvancedConfigured(AiLane.Incident, state)).toBe(false);
     expect(state.loadedCards).toHaveLength(3);
+  });
+
+  test("a rules table reading again replaces its count", () => {
+    let state: AiLaneAdvancedState = readRules(read(AiLane.Alert, {}), {
+      investigation: 3,
+      remediation: 0,
+    });
+
+    expect(isAiLaneAdvancedConfigured(AiLane.Alert, state)).toBe(true);
+
+    state = recordAiLaneAdvancedRules({
+      state,
+      card: AiLaneAdvancedCard.InvestigationRules,
+      count: 0,
+    });
+
+    expect(isAiLaneAdvancedConfigured(AiLane.Alert, state)).toBe(false);
+    expect(state.loadedCards).toHaveLength(5);
   });
 });
 

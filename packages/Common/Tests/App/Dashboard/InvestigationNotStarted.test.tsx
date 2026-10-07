@@ -132,6 +132,14 @@ const REASONS: Array<ReasonExample> = [
       "Review the project's daily AI limits under Project Settings → AI Features → More settings.",
   },
   {
+    code: "no_investigation_rule_matched",
+    title: "This incident was outside the investigation rules at creation",
+    description:
+      "When this incident was created, investigation rules were set up for incidents, and it matched none of the 2 rules. Only the incidents that match one are investigated automatically.",
+    nextStep:
+      "Review the investigation rules under Incidents → AI → Settings → More settings. Changing them does not retry this incident; to look into it anyway, ask OneUptime AI below.",
+  },
+  {
     code: "severity_below_threshold",
     title: "Severity is below the investigation threshold",
     description: "Low severity does not meet the configured High minimum.",
@@ -1010,6 +1018,7 @@ describe("which settings page each reason points at", () => {
     ["project_daily_limit_reached"],
     ["provider_missing"],
     ["automatic_investigation_disabled"],
+    ["no_investigation_rule_matched"],
     ["severity_below_threshold"],
     ["monitor_cooldown"],
     ["daily_budget_exhausted"],
@@ -1044,6 +1053,8 @@ describe("which settings page each reason points at", () => {
 
   test.each<[InvestigationNotStartedCode]>([
     ["automatic_investigation_disabled"],
+    // The investigation rules are under that page's More settings.
+    ["no_investigation_rule_matched"],
     ["severity_below_threshold"],
     ["monitor_cooldown"],
     ["daily_budget_exhausted"],

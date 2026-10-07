@@ -149,6 +149,10 @@ const LINK_INCIDENT_RULES: string = translationKey(
 );
 const LINK_ALERT_RULES: string = translationKey("Alert Auto Remediation Rules");
 const LINK_AI_FEATURES: string = translationKey("AI settings");
+const LINK_INCIDENT_AI_SETTINGS: string = translationKey(
+  "Incident AI settings",
+);
+const LINK_ALERT_AI_SETTINGS: string = translationKey("Alert AI settings");
 const LINK_LLM_PROVIDERS: string = translationKey("LLM providers");
 const LINK_MONITOR: string = translationKey("Link {{monitorName}}");
 const UNNAMED_MONITOR: string = translationKey("the monitor");
@@ -228,21 +232,37 @@ function resourceLink(
   );
 }
 
+/*
+ * The Auto Remediation Rules are under the AI settings page's More
+ * settings (they had a page of their own), with the switch that turns
+ * fixing on.
+ */
+function getAiSettingsPage(signal: RemediationDecisionSignal): PageMap {
+  return signal === "incident"
+    ? PageMap.INCIDENTS_SETTINGS_AI
+    : PageMap.ALERTS_SETTINGS_AI;
+}
+
 function rulesLink(
   translator: Translator,
   signal: RemediationDecisionSignal,
 ): Array<RemediationDecisionLink> {
-  return signal === "incident"
-    ? link(
-        translator,
-        LINK_INCIDENT_RULES,
-        routeTo(PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES),
-      )
-    : link(
-        translator,
-        LINK_ALERT_RULES,
-        routeTo(PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES),
-      );
+  return link(
+    translator,
+    signal === "incident" ? LINK_INCIDENT_RULES : LINK_ALERT_RULES,
+    routeTo(getAiSettingsPage(signal)),
+  );
+}
+
+function aiSettingsLink(
+  translator: Translator,
+  signal: RemediationDecisionSignal,
+): Array<RemediationDecisionLink> {
+  return link(
+    translator,
+    signal === "incident" ? LINK_INCIDENT_AI_SETTINGS : LINK_ALERT_AI_SETTINGS,
+    routeTo(getAiSettingsPage(signal)),
+  );
 }
 
 function monitorLinks(
@@ -301,8 +321,21 @@ function getGapText(entry: AutoRemediationDecisionEntry): {
   };
 }
 
-// The started round's sentence, by the fix mode it runs in.
-function getClusterRoundStartedTemplate(mode: string | undefined): string {
+/*
+ * The started round's sentence, by the fix mode it runs in. A round that
+ * would have run on its own asks first when a matching Auto Remediation Rule
+ * asks before fixing, and says which rule.
+ */
+function getClusterRoundStartedTemplate(
+  mode: string | undefined,
+  ruleName: string,
+): string {
+  if (ruleName) {
+    return translationKey(
+      'OneUptime AI is composing a fix for cluster "{{clusterName}}". Nothing runs until you approve it, because Auto Remediation Rule "{{ruleName}}" asks before fixing.',
+    );
+  }
+
   if (mode === KubernetesAiRemediationMode.BypassApproval) {
     return translationKey(
       'OneUptime AI is fixing cluster "{{clusterName}}". Approvals are bypassed on this cluster, so its fixes run on their own.',
@@ -320,7 +353,16 @@ function getClusterRoundStartedTemplate(mode: string | undefined): string {
   );
 }
 
-function getResourceRoundStartedTemplate(mode: string | undefined): string {
+function getResourceRoundStartedTemplate(
+  mode: string | undefined,
+  ruleName: string,
+): string {
+  if (ruleName) {
+    return translationKey(
+      'OneUptime AI is composing a fix for {{resourceKind}} "{{resourceName}}". Nothing runs until you approve it, because Auto Remediation Rule "{{ruleName}}" asks before fixing.',
+    );
+  }
+
   if (mode === KubernetesAiRemediationMode.BypassApproval) {
     return translationKey(
       'OneUptime AI is fixing {{resourceKind}} "{{resourceName}}". Approvals are bypassed on it, so its fixes run on their own.',
@@ -425,6 +467,22 @@ export function getRemediationDecisionLines(input: {
             LINK_AI_FEATURES,
             routeTo(PageMap.SETTINGS_AI_FEATURES),
           ),
+        });
+        return;
+      case AutoRemediationDecisionReason.RemediationOff:
+        // A choice, not a fault: fixing starts off until a project turns it on.
+        lines.push({
+          key,
+          tone: "info",
+          text:
+            signal === "incident"
+              ? translator.translateTemplate(
+                  '"Fix new incidents automatically" is off for this project, so OneUptime AI did not try to fix this incident.',
+                )
+              : translator.translateTemplate(
+                  '"Fix new alerts automatically" is off for this project, so OneUptime AI did not try to fix this alert.',
+                ),
+          links: aiSettingsLink(translator, signal),
         });
         return;
       case AutoRemediationDecisionReason.SuggestionLimitReached:
@@ -562,8 +620,8 @@ export function getRemediationDecisionLines(input: {
           key,
           tone: "acted",
           text: translator.translateTemplate(
-            getClusterRoundStartedTemplate(entry.remediationMode),
-            { clusterName },
+            getClusterRoundStartedTemplate(entry.remediationMode, ruleName),
+            { clusterName, ruleName },
           ),
           links: clusterLink(translator, entry),
         });
@@ -653,8 +711,12 @@ export function getRemediationDecisionLines(input: {
           key,
           tone: "acted",
           text: translator.translateTemplate(
-            getResourceRoundStartedTemplate(entry.remediationMode),
-            { resourceKind: getResourceKindTerm(entry), resourceName },
+            getResourceRoundStartedTemplate(entry.remediationMode, ruleName),
+            {
+              resourceKind: getResourceKindTerm(entry),
+              resourceName,
+              ruleName,
+            },
           ),
           links: resourceLink(translator, entry),
         });
@@ -727,6 +789,55 @@ export function getRemediationDecisionLines(input: {
             { signal: signalTerm },
           ),
           links: rulesLink(translator, signal),
+        });
+        return;
+      case AutoRemediationDecisionReason.NotMatchedByAnyRule:
+        lines.push({
+          key,
+          tone: "info",
+          text: translator.translatePlural(
+            {
+              one: "The {{count}} Auto Remediation Rule set up does not match this {{signal}}, so it was not fixed. With rules set up, only what matches one is fixed.",
+              other:
+                "None of the {{count}} Auto Remediation Rules set up match this {{signal}}, so it was not fixed. With rules set up, only what matches one is fixed.",
+            },
+            entry.rulesChecked || 0,
+            { signal: signalTerm },
+          ),
+          links: rulesLink(translator, signal),
+        });
+        return;
+      case AutoRemediationDecisionReason.NoAiFixRuleMatched:
+        lines.push({
+          key,
+          tone: "info",
+          text: translator.translateTemplate(
+            "No Auto Remediation Rule that matches this {{signal}} fixes with OneUptime AI, so OneUptime AI did not fix it on the clusters or hosts it is linked to.",
+            { signal: signalTerm },
+          ),
+          links: rulesLink(translator, signal),
+        });
+        return;
+      case AutoRemediationDecisionReason.RuleMatchedAiFix:
+        lines.push({
+          key,
+          tone: "info",
+          text: translator.translateTemplate(
+            'Rule "{{ruleName}}" matched, so OneUptime AI fixes this {{signal}} on what it is linked to.',
+            { ruleName, signal: signalTerm },
+          ),
+          links: [],
+        });
+        return;
+      case AutoRemediationDecisionReason.RuleMatchedAiFixAsks:
+        lines.push({
+          key,
+          tone: "info",
+          text: translator.translateTemplate(
+            'Rule "{{ruleName}}" matched, so OneUptime AI fixes this {{signal}} on what it is linked to, and every fix waits for your approval.',
+            { ruleName, signal: signalTerm },
+          ),
+          links: [],
         });
         return;
       case AutoRemediationDecisionReason.RuleAlreadyProposed:

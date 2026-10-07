@@ -322,7 +322,18 @@ export function findStepperForThreeRows(
 ): Array<LabelsProblem> {
   return findShortFormsWithSteps(forms)
     .filter((found: ShortFormWithSteps): boolean => {
-      return found.form.fields.some(isLabelsField);
+      /*
+       * Labels a record is given. A rule's Labels condition, on its Match
+       * Criteria step, is one of the conditions the builder draws there -
+       * not a Labels field - and whether that short form may walk steps is
+       * LongFormStepsGuard's call (SHORT_FORMS_WITH_STEPS).
+       */
+      return found.form.fields.some((field: FormFieldFacts): boolean => {
+        return (
+          isLabelsField(field) &&
+          !(found.form.isRuleModel && field.stepId === RULE_CRITERIA_STEP_ID)
+        );
+      });
     })
     .map((found: ShortFormWithSteps): LabelsProblem => {
       return { form: found.form, message: found.message };
@@ -576,6 +587,36 @@ describe("the labels detector", () => {
     ).toEqual([
       "CardModelDetail: Short: 3 rows walk steps (info, more). Three rows fit on one page: drop the steps.",
     ]);
+  });
+
+  /*
+   * A rule's Labels condition is one of the conditions its Match Criteria
+   * builder draws, not Labels it gives a record: whether that short rule
+   * form may walk steps is LongFormStepsGuard's call.
+   */
+  test("leaves a short rule form alone when its only Labels is a condition", () => {
+    const { forms } = scanPage(
+      `${PAGE_IMPORTS}
+      const Page = () => <>
+        <ModelTable name="Rules" modelType={Rule} isRuleTable={true} formSteps={[{ title: "Rule", id: "rule-info" }, { title: "Match", id: "match-criteria" }]} formFields={[${field("name", 'stepId: "rule-info",')}, ${handWrittenLabels('stepId: "match-criteria",')}]} />
+        <CardModelDetail name="Not a rule" modelDetailProps={{ modelType: Thing }} formSteps={[{ title: "Info", id: "info" }, { title: "Match", id: "match-criteria" }]} formFields={[${field("name", 'stepId: "info",')}, getLabelsFormField({ stepId: "match-criteria" })]} />
+      </>;`,
+      {
+        "Rule.ts": "export default class Rule extends RuleBaseModel {}",
+      },
+    );
+
+    expect(
+      forms.map((form: FormFacts): boolean => {
+        return form.isRuleModel;
+      }),
+    ).toEqual([true, false]);
+    // Only a rule's Match Criteria step holds conditions.
+    expect(
+      findStepperForThreeRows(forms).map((problem: LabelsProblem): string => {
+        return problem.form.label;
+      }),
+    ).toEqual(["CardModelDetail: Not a rule"]);
   });
 });
 

@@ -5,6 +5,8 @@ import {
   getProjectColumnsEditGate,
 } from "../../Settings/ProjectColumnEditGate";
 import ProjectAiNotice from "../../../Components/AISettings/ProjectAiNotice";
+import AIInvestigationRulesTable from "../../../Components/AISettings/AIInvestigationRulesTable";
+import AutoRemediationRulesTable from "../../../Components/AutoRemediation/AutoRemediationRulesTable";
 import ProjectAiSwitchesCard from "../../../Components/AISettings/ProjectAiSwitchesCard";
 import {
   AI_LANE_ADVANCED_SECTION_TEST_ID,
@@ -33,8 +35,9 @@ export type ComponentProps = PageComponentProps;
 /*
  * Incidents → AI → Settings: what OneUptime AI does on its own as incidents
  * happen, as switches that save the moment they are flipped, then - folded
- * under Advanced - which incidents it investigates and the limits on its
- * work, each card one question with its own Edit.
+ * under Advanced - which incidents it investigates or fixes and the limits
+ * on its work, each card one question with its own Edit, and the rules that
+ * narrow which incidents are investigated and which are fixed (and how).
  *
  * It used to be one card of nine read-only rows whose Update opened a
  * three-step wizard (Investigation / Limits / Fix Tasks), and a second card
@@ -93,6 +96,13 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
         summary={advanced.summary}
         dataTestId={AI_LANE_ADVANCED_SECTION_TEST_ID[AiLane.Incident]}
       >
+        <AIInvestigationRulesTable
+          lane={AiLane.Incident}
+          onRulesLoaded={advanced.onRulesLoaded(
+            AiLaneAdvancedCard.InvestigationRules,
+          )}
+        />
+
         <CardModelDetail<Project>
           name="Which incidents are investigated"
           cardProps={{
@@ -228,6 +238,13 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
             ],
             modelId: ProjectUtil.getCurrentProjectId()!,
           }}
+        />
+
+        <AutoRemediationRulesTable
+          lane={AiLane.Incident}
+          onRulesLoaded={advanced.onRulesLoaded(
+            AiLaneAdvancedCard.RemediationRules,
+          )}
         />
 
         <CardModelDetail<Project>

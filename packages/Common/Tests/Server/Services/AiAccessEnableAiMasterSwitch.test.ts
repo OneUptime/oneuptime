@@ -722,6 +722,8 @@ describe("a resource's AI access status: Enable AI is the only project switch", 
       hasLlmProvider: true,
       aiBalanceBlocker: null,
       automaticInvestigation: { incidents: false, alerts: false },
+      // The project's fixing switches, read for the AI agent pages only.
+      automaticRemediation: { incidents: false, alerts: false },
     });
 
     for (const resourceType of ALL_AI_RESOURCE_TYPES) {
