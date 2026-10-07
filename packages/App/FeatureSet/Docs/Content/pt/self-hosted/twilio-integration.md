@@ -18,7 +18,7 @@ Para um projeto:
 4. **Definir como padrão do projeto** vem ativado na primeira configuração do projeto, então os SMS e as chamadas para os membros do projeto, incluindo notificações de plantão, passam por ela assim que você salvar. Desative-o se esta conta for apenas para páginas de status ou chamadas recebidas. Em qualquer configuração posterior, a opção começa desativada: ative-a, ou escolha **Definir como padrão do projeto** no menu da linha da configuração, para mover essas mensagens para ela. Uma solicitação à API que omite `isProjectDefault` é tratada da mesma forma.
 5. Salve. Apenas uma configuração pode ser o padrão do projeto. As páginas de status usam a configuração explicitamente atribuída a cada página.
 
-**SMS** e **Chamadas telefônicas** começam desligados em todo projeto e, até serem ligados, ninguém no projeto pode adicionar um número de telefone para eles. Um proprietário do projeto ou alguém com **Manage Billing** os liga no cartão **Canais de notificação** da mesma página.
+**SMS** e **Chamadas telefônicas** começam desligados em todo projeto e, até serem ligados, ninguém no projeto pode adicionar um número de telefone para eles. Um proprietário do projeto ou alguém com **Billing Admin** ou **Manage Billing** os liga no cartão **Canais de notificação** da mesma página.
 
 Para um padrão de toda a instalação, um administrador pode abrir **Painel de administração > Configurações > Chamadas e SMS**, editar as credenciais e os números do Twilio e salvar. As notificações dos membros usam essa configuração global quando o projeto não tem um padrão. Mantenha o Auth Token confidencial.
 

@@ -5,15 +5,15 @@
  * Telegram starts off in every project (each project switches its own SMS,
  * phone calls, WhatsApp and Telegram on), and until a project has it on
  * nobody there can link a Telegram account - UserTelegramService refuses
- * the row. Only a project owner or someone with Manage Billing may switch it
- * on (the Project column's own update permissions,
+ * the row. Only a project owner, a Billing Admin or someone with Manage
+ * Billing may switch it on (the Project column's own update permissions,
  * Common/Utils/Project/NotificationChannels), and the server admin reading
  * this is often neither, so the guide says who turns it on, and where,
  * before it sends anyone to link an account.
  */
 
 export const TELEGRAM_PROJECT_SWITCH_STEP: string =
-  "In each project that should use Telegram, a project owner or someone with **Manage Billing** turns **Telegram** on in **Project Settings → Notification Settings**, in the **Notification Channels** card. It starts off in every project, and until it is on nobody in the project can link a Telegram account.";
+  "In each project that should use Telegram, a project owner, a **Billing Admin** or someone with **Manage Billing** turns **Telegram** on in **Project Settings → Notification Settings**, in the **Notification Channels** card. It starts off in every project, and until it is on nobody in the project can link a Telegram account.";
 
 export const buildTelegramSetupMarkdown: (webhookUrl: string) => string = (
   webhookUrl: string,

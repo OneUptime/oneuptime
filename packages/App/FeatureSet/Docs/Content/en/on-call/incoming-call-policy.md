@@ -283,7 +283,7 @@ For users to receive incoming calls, they must have a verified phone number:
 
 Only users with verified phone numbers can be called through escalation rules.
 
-Incoming call numbers are verified by SMS, so **SMS** has to be on for the project first. A project owner or someone with **Manage Billing** turns it on in the **Notification Channels** card on **Project Settings > Notifications > Notification Settings**.
+Incoming call numbers are verified by SMS, so **SMS** has to be on for the project first. A project owner, a **Billing Admin** or someone with **Manage Billing** turns it on in the **Notification Channels** card on **Project Settings > Notifications > Notification Settings**.
 
 ## Releasing a Phone Number
 

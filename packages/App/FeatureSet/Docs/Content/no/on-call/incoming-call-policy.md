@@ -247,7 +247,7 @@ For at brukere skal motta innkommende samtaler, må de ha et verifisert telefonn
 
 Bare brukere med verifiserte telefonnumre kan ringes opp gjennom eskaleringsregler.
 
-Numre for innkommende samtaler verifiseres via SMS, så **SMS** må først være på for prosjektet. En prosjekteier eller noen med **Manage Billing** slår det på i kortet **Varslingskanaler** under **Prosjektinnstillinger > Varsler > Varselinnstillinger**.
+Numre for innkommende samtaler verifiseres via SMS, så **SMS** må først være på for prosjektet. En prosjekteier eller noen med **Billing Admin** eller **Manage Billing** slår det på i kortet **Varslingskanaler** under **Prosjektinnstillinger > Varsler > Varselinnstillinger**.
 
 ## Frigjøre et telefonnummer
 

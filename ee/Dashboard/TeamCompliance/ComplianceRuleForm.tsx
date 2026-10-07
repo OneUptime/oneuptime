@@ -228,7 +228,8 @@ const countSelected: (value: unknown) => number = (value: unknown): number => {
  * off, but no member can add a number - the only way to meet a WhatsApp rule.
  *
  * Each note ends by saying who can switch the channel on, and where: only a
- * project owner or someone with Manage Billing may (the switches' own update
+ * project owner, a Billing Admin or someone with Manage Billing may (the
+ * switches' own update
  * permissions), and whoever writes a team's rules is often neither. The same
  * sentence as the server's compliance warnings (TeamComplianceEvaluator), from
  * Common/Utils/Project/NotificationChannels.

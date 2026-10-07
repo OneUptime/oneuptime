@@ -116,7 +116,8 @@ export const isCodeResendOffered: (
 /*
  * Whether the signed-in person may turn the project's channels on or off,
  * as the server would decide: the Project's update permissions, then each
- * column's own (a project owner, or someone with Manage Billing) -
+ * column's own (a project owner, a Billing Admin or someone with Manage
+ * Billing) -
  * PermissionGate.checkColumnUpdate.
  *
  *   Yes     - they may, for every channel asked about.
@@ -223,8 +224,8 @@ export type ProjectNotificationChannelsFetcher = (
 
 /*
  * Every project member may read these columns (the Project's read
- * permissions); only a project owner or someone with Manage Billing may
- * change them.
+ * permissions); only a project owner, a Billing Admin or someone with
+ * Manage Billing may change them.
  */
 export const fetchProjectNotificationChannels: ProjectNotificationChannelsFetcher =
   async (projectId: ObjectID): Promise<EnabledProjectChannels> => {

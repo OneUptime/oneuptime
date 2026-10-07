@@ -54,7 +54,7 @@ OneUptime のすべては**プロジェクト**の中にあります。そのプ
 
 `ProjectOwner` は最上位のアクセス権で、請求、プロジェクトの削除、そして管理者にできることすべてを含みます。`ProjectAdmin` は請求とプロジェクト削除を除くすべてをカバーします。
 
-プロジェクトの SMS、音声通話、WhatsApp、Telegram のオン・オフは、メッセージごとに費用がかかるため請求の扱いになります。これらのスイッチを **プロジェクト設定 > 通知 > 通知設定** で変更できるのは `ProjectOwner` と `ManageProjectBilling` 権限（**Manage Billing**）だけで、`ProjectAdmin` は変更できません。
+プロジェクトの SMS、音声通話、WhatsApp、Telegram のオン・オフは、メッセージごとに費用がかかるため請求の扱いになります。これらのスイッチを **プロジェクト設定 > 通知 > 通知設定** で変更できるのは `ProjectOwner`、`BillingAdmin` ロール（**Billing Admin**）、`ManageProjectBilling` 権限（**Manage Billing**）だけで、`ProjectAdmin` は変更できません。
 
 プロジェクトの前払い残高のチャージも請求の扱いになります。OneUptime Cloud では、SMS、音声通話、WhatsApp、Telegram は **プロジェクト設定 > 通知 > 通知設定** の残高から、AI は **プロジェクト設定 > AI > AI クレジット** の AI クレジットから支払われます。これらをチャージしたり **自動チャージ** を変更したりできるのは、プロジェクトのオーナーまたは **Manage Billing** を持つユーザーだけで、プロジェクト管理者はできません。残高不足を知らせるメッセージには誰が残高を追加できるかが書かれ、使える **残高をチャージ** ボタンやページへのリンクが表示されるのはその人たちだけです。
 
@@ -75,6 +75,8 @@ OneUptime のすべては**プロジェクト**の中にあります。そのプ
 - **Viewer** — 読み取り専用。
 
 `MonitorAdmin`、`IncidentMember`、`StatusPageViewer` などです。ほとんどの場合はロールが適切です。OneUptime に機能が追加されても、モニター関連の新しいテーブルは既存のモニターロールに追加されるため、こちらで新たに付与し直す必要がありません。
+
+ワークフローは例外です。ワークフローはプロジェクト内でステップを実行するため、`WorkflowMember` はワークフローとその実行を開いて手動で実行できますが、作成、変更、削除はできません。ワークフローを作るのは `WorkflowAdmin` です。[ワークフローの設定](/docs/workflows/configuration) を参照してください。
 
 {{PERMISSION_ROLE_COUNT}} 個すべてのロールは[権限リファレンス](/docs/permissions/reference)に掲載されています。
 

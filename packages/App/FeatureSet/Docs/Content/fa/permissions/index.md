@@ -54,7 +54,7 @@ Project
 
 نقش `ProjectOwner` بالاترین سطح دسترسی است: صورت‌حساب، حذف پروژه، و هر چیزی که یک مدیر می‌تواند بکند. نقش `ProjectAdmin` همه‌چیز جز صورت‌حساب و حذف پروژه را پوشش می‌دهد.
 
-روشن یا خاموش کردن پیامک، تماس تلفنی، WhatsApp یا Telegram برای پروژه جزو صورت‌حساب به شمار می‌آید، چون هر پیام هزینه دارد. فقط `ProjectOwner` و مجوز `ManageProjectBilling` (**Manage Billing**) می‌توانند این کلیدها را در **Project Settings > Notifications > Notification Settings** تغییر دهند — نه `ProjectAdmin`.
+روشن یا خاموش کردن پیامک، تماس تلفنی، WhatsApp یا Telegram برای پروژه جزو صورت‌حساب به شمار می‌آید، چون هر پیام هزینه دارد. فقط `ProjectOwner`، نقش `BillingAdmin` (**Billing Admin**) و مجوز `ManageProjectBilling` (**Manage Billing**) می‌توانند این کلیدها را در **Project Settings > Notifications > Notification Settings** تغییر دهند — نه `ProjectAdmin`.
 
 شارژ کردن موجودی‌های پیش‌پرداخت پروژه هم جزو صورت‌حساب به شمار می‌آید. در OneUptime Cloud هزینه پیامک، تماس تلفنی، WhatsApp و Telegram از موجودی **Project Settings > Notifications > Notification Settings** پرداخت می‌شود، و هزینه هوش مصنوعی از اعتبار هوش مصنوعی در **Project Settings > AI > AI Credits**. فقط مالک پروژه یا کسی که مجوز **Manage Billing** دارد می‌تواند آن‌ها را شارژ کند یا **شارژ خودکار** آن‌ها را تغییر دهد — مدیر پروژه نمی‌تواند. پیامی که درباره موجودیِ رو به پایان است می‌گوید چه کسی می‌تواند آن را شارژ کند، و فقط همین افراد دکمه **شارژ موجودی** فعال یا پیوندی به آن صفحه می‌بینند.
 
@@ -75,6 +75,8 @@ Project
 - **Viewer** — فقط‌خواندنی.
 
 نقش‌هایی مانند `MonitorAdmin`، `IncidentMember`، `StatusPageViewer` و مانند آن. تقریباً همیشه نقش‌ها همان چیزی هستند که می‌خواهید — با افزوده شدن قابلیت‌ها به OneUptime درست می‌مانند، چون جدولی تازه مربوط به مانیتور به نقش‌های موجود مانیتور افزوده می‌شود به‌جای اینکه به اعطای تازه‌ای از سوی شما نیاز داشته باشد.
+
+گردش‌های کاری استثنا هستند. یک گردش کاری مرحله‌هایش را درون پروژه اجرا می‌کند، پس `WorkflowMember` گردش‌های کاری و اجراهایشان را باز می‌کند و آن‌ها را به‌صورت دستی اجرا می‌کند، اما آن‌ها را ایجاد، تغییر یا حذف نمی‌کند. `WorkflowAdmin` آن‌ها را می‌سازد. [پیکربندی گردش کاری](/docs/workflows/configuration) را ببینید.
 
 هر {{PERMISSION_ROLE_COUNT}} نقش در [مرجع دسترسی‌ها](/docs/permissions/reference) فهرست شده‌اند.
 

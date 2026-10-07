@@ -58,14 +58,14 @@ export interface ComponentProps {
 /*
  * Under the progress bar while a step is Blocked. The one step that can be -
  * a verified method on a channel the project has off - needs a project
- * owner or someone with Manage Billing (the channel switches' own update
- * permissions), so that is who this names. It once said "a project admin",
- * who may not turn a channel on.
+ * owner, a Billing Admin or someone with Manage Billing (the channel
+ * switches' own update permissions), so that is who this names. It once
+ * said "a project admin", who may not turn a channel on.
  */
 export const BLOCKED_STEPS_NOTE: PluralTemplate = {
-  one: "{{count}} more step needs a project owner or someone with Manage Billing, so it is not counted here.",
+  one: "{{count}} more step needs a project owner, a Billing Admin or someone with Manage Billing, so it is not counted here.",
   other:
-    "{{count}} more steps need a project owner or someone with Manage Billing, so they are not counted here.",
+    "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here.",
 };
 
 interface HeadlinePresentation {

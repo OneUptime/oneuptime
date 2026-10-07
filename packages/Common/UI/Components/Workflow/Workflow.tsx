@@ -192,6 +192,11 @@ export interface ComponentProps {
   onRun: (trigger: NodeDataProp) => void;
   /** Run one component on its own. */
   onRunStep?: ((component: NodeDataProp) => void) | undefined;
+  /*
+   * Why "Run just this step" is locked for this user - it takes permission
+   * to edit the workflow (WorkflowRunGate) - or undefined when it is not.
+   */
+  runStepDisabledReason?: string | undefined;
   webhookSecretKey?: string | undefined;
   /**
    * Whether the user may read the webhook secret key; the builder only loads
@@ -1055,6 +1060,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
               ? props.onRunStep
               : undefined
           }
+          runStepDisabledReason={props.runStepDisabledReason}
           description={
             selectedNodeData && selectedNodeData.metadata.description
               ? selectedNodeData.metadata.description

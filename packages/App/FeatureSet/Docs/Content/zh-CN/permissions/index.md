@@ -54,7 +54,7 @@ OneUptime 中的一切都存在于**项目**之内。谁能在项目里做什么
 
 `ProjectOwner` 是最高访问级别：账单、删除项目，以及管理员能做的一切。`ProjectAdmin` 涵盖除账单和删除项目之外的全部内容。
 
-为项目开启或关闭短信、语音电话、WhatsApp 或 Telegram 属于账单事务，因为每条消息都要花钱。只有 `ProjectOwner` 和 `ManageProjectBilling` 权限（**Manage Billing**）可以在 **项目设置 > 通知 > 通知设置** 中更改这些开关，`ProjectAdmin` 不行。
+为项目开启或关闭短信、语音电话、WhatsApp 或 Telegram 属于账单事务，因为每条消息都要花钱。只有 `ProjectOwner`、`BillingAdmin` 角色（**Billing Admin**）和 `ManageProjectBilling` 权限（**Manage Billing**）可以在 **项目设置 > 通知 > 通知设置** 中更改这些开关，`ProjectAdmin` 不行。
 
 为项目的预付余额充值同样属于账单事务。在 OneUptime Cloud 上，短信、语音电话、WhatsApp 和 Telegram 从 **项目设置 > 通知 > 通知设置** 中的余额支付，AI 从 **项目设置 > 人工智能 > AI 积分** 中的 AI 积分支付。只有项目所有者或拥有 **Manage Billing** 权限的用户才能为它们充值或更改它们的 **自动充值**，项目管理员不行。关于余额不足的消息会说明谁可以充值，只有这些人才会看到可用的 **充值余额** 按钮或页面链接。
 
@@ -75,6 +75,8 @@ OneUptime 中的一切都存在于**项目**之内。谁能在项目里做什么
 - **Viewer** — 只读。
 
 例如 `MonitorAdmin`、`IncidentMember`、`StatusPageViewer` 等。绝大多数情况下你想要的都是角色——随着 OneUptime 新增功能，角色依然正确，因为与监视器相关的新表会并入已有的监视器角色，而不需要你重新授予。
+
+工作流是例外。工作流会在项目中运行它的步骤，因此 `WorkflowMember` 可以打开工作流及其运行记录并手动运行，但不能创建、修改或删除工作流。构建工作流的是 `WorkflowAdmin`。参见 [工作流配置](/docs/workflows/configuration)。
 
 全部 {{PERMISSION_ROLE_COUNT}} 个角色列在[权限参考](/docs/permissions/reference)中。
 

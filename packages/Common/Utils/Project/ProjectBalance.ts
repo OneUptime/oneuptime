@@ -54,8 +54,10 @@ export const PROJECT_BALANCE_RECHARGE_PERMISSIONS: ReadonlyArray<Permission> = [
 
 /*
  * The people PROJECT_BALANCE_RECHARGE_PERMISSIONS let in, in words - the
- * same words the notification channel switches and the daily AI limits use
- * for the same two permissions.
+ * same words the daily AI limits use for the same two permissions. The
+ * notification channel switches let in a Billing Admin as well, so their
+ * words name one more (Utils/Project/NotificationChannels): a Billing Admin
+ * may switch a paid channel on, and not add to the balance it spends.
  */
 export const WHO_CAN_ADD_PROJECT_BALANCE: string =
   "a project owner or someone with Manage Billing";

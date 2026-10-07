@@ -247,7 +247,7 @@ For at brugere kan modtage indgående opkald, skal de have et bekræftet telefon
 
 Kun brugere med bekræftede telefonnumre kan ringes op via eskaleringsregler.
 
-Numre til indgående opkald verificeres via SMS, så **SMS** skal først være slået til for projektet. En projektejer eller nogen med **Manage Billing** slår det til i kortet **Notifikationskanaler** under **Projektindstillinger > Notifikationer > Notifikationsindstillinger**.
+Numre til indgående opkald verificeres via SMS, så **SMS** skal først være slået til for projektet. En projektejer eller nogen med **Billing Admin** eller **Manage Billing** slår det til i kortet **Notifikationskanaler** under **Projektindstillinger > Notifikationer > Notifikationsindstillinger**.
 
 ## Frigørelse af et telefonnummer
 

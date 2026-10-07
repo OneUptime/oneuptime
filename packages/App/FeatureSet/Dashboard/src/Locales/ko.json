@@ -25929,5 +25929,18 @@
   "Sending a test needs permission to create Twilio configs.": "테스트를 보내려면 Twilio 구성을 만들 권한이 필요합니다.",
   "Sending a test needs permission to create summaries.": "테스트를 보내려면 요약을 만들 권한이 필요합니다.",
   "Sending a test needs the {{planName}} plan.": "테스트를 보내려면 {{planName}} 요금제가 필요합니다.",
-  "Sending a test report needs permission to edit this status page.": "테스트 보고서를 보내려면 이 상태 페이지를 편집할 권한이 필요합니다."
+  "Sending a test report needs permission to edit this status page.": "테스트 보고서를 보내려면 이 상태 페이지를 편집할 권한이 필요합니다.",
+  "A project owner, a Billing Admin or someone with Manage Billing can change these.": "프로젝트 소유자 또는 'Billing Admin' 역할 또는 'Manage Billing' 권한이 있는 사용자가 변경할 수 있습니다.",
+  "Ask a project owner, a Billing Admin or someone with Manage Billing to turn it on": "프로젝트 소유자 또는 'Billing Admin' 역할 또는 'Manage Billing' 권한이 있는 사용자에게 켜 달라고 요청하세요",
+  "Channels that are off in this project are not offered. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notification Settings.": "이 프로젝트에서 꺼져 있는 채널은 표시되지 않습니다. 프로젝트 소유자 또는 'Billing Admin' 역할 또는 'Manage Billing' 권한이 있는 사용자가 프로젝트 설정 → 알림 설정에서 켤 수 있습니다.",
+  "Every method you have verified is on a channel this project has switched off. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings, or you can add an email or push device instead.": "인증한 모든 방법이 이 프로젝트에서 꺼져 있는 채널을 사용합니다. 프로젝트 소유자 또는 'Billing Admin' 역할 또는 'Manage Billing' 권한이 있는 사용자가 프로젝트 설정 → 알림 설정에서 켤 수 있으며, 대신 이메일 주소나 푸시 기기를 추가할 수도 있습니다.",
+  "Numbers for incoming calls are verified by SMS, which is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "수신 전화용 번호는 SMS로 인증되는데, 이 프로젝트에서는 SMS가 꺼져 있습니다. 프로젝트 소유자 또는 'Billing Admin' 역할 또는 'Manage Billing' 권한이 있는 사용자가 프로젝트 설정 → 알림 설정에서 켤 수 있습니다.",
+  "Phone calls are off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notification Settings.": "이 프로젝트에서는 음성 전화가 꺼져 있습니다. 프로젝트 소유자 또는 'Billing Admin' 역할 또는 'Manage Billing' 권한이 있는 사용자가 프로젝트 설정 → 알림 설정에서 켤 수 있습니다.",
+  "Running one step on its own takes permission to edit this workflow.": "한 단계만 따로 실행하려면 이 워크플로를 편집할 권한이 필요합니다.",
+  "SMS is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "이 프로젝트에서는 SMS가 꺼져 있습니다. 프로젝트 소유자 또는 'Billing Admin' 역할 또는 'Manage Billing' 권한이 있는 사용자가 프로젝트 설정 → 알림 설정에서 켤 수 있습니다.",
+  "Telegram is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "이 프로젝트에서는 Telegram이 꺼져 있습니다. 프로젝트 소유자 또는 'Billing Admin' 역할 또는 'Manage Billing' 권한이 있는 사용자가 프로젝트 설정 → 알림 설정에서 켤 수 있습니다.",
+  "WhatsApp is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "이 프로젝트에서는 WhatsApp이 꺼져 있습니다. 프로젝트 소유자 또는 'Billing Admin' 역할 또는 'Manage Billing' 권한이 있는 사용자가 프로젝트 설정 → 알림 설정에서 켤 수 있습니다.",
+  "You do not have permission to run this workflow.": "이 워크플로를 실행할 권한이 없습니다.",
+  "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here.": "단계 {{count}}개는 프로젝트 소유자 또는 'Billing Admin' 역할 또는 'Manage Billing' 권한이 있는 사용자가 처리해야 하므로 여기서 세지 않습니다.",
+  "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here._one": "단계 {{count}}개는 프로젝트 소유자 또는 'Billing Admin' 역할 또는 'Manage Billing' 권한이 있는 사용자가 처리해야 하므로 여기서 세지 않습니다."
 }

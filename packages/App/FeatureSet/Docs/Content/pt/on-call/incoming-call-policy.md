@@ -190,7 +190,7 @@ Para que os usuários recebam chamadas de entrada, eles devem ter um número de 
 
 Apenas usuários com números de telefone verificados podem ser chamados através de regras de escalonamento.
 
-Os números para chamadas recebidas são verificados por SMS, então **SMS** precisa estar ligado no projeto primeiro. Um proprietário do projeto ou alguém com **Manage Billing** o liga no cartão **Canais de notificação** em **Configurações do projeto > Notificações > Configurações de notificação**.
+Os números para chamadas recebidas são verificados por SMS, então **SMS** precisa estar ligado no projeto primeiro. Um proprietário do projeto ou alguém com **Billing Admin** ou **Manage Billing** o liga no cartão **Canais de notificação** em **Configurações do projeto > Notificações > Configurações de notificação**.
 
 ## Liberando um Número de Telefone
 

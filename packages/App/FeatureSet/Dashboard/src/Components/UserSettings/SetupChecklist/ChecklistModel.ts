@@ -256,8 +256,9 @@ export interface SetupChecklistInput {
   calendarFeed?: CalendarFeedProbe | undefined;
   /**
    * Whether the reader may turn the project's SMS, call, WhatsApp and
-   * Telegram channels on themselves: only a project owner or someone with
-   * Manage Billing may (the columns' own update permissions). Decides
+   * Telegram channels on themselves: only a project owner, a Billing Admin
+   * or someone with Manage Billing may (the columns' own update
+   * permissions). Decides
    * whether a verified method on a channel that is off is the reader's own
    * step, linking to the switches, or somebody else's, naming who.
    *
@@ -270,8 +271,8 @@ export interface SetupChecklistInput {
 /*
  * The "is one of your channels usable" step's words for each reader.
  *
- * Only a project owner or someone with Manage Billing may switch a channel
- * on - not a project admin. The step once said "Ask a project admin", who
+ * Only a project owner, a Billing Admin or someone with Manage Billing may
+ * switch a channel on - not a project admin. The step once said "Ask a project admin", who
  * could not do it either. Now someone who may flip the switch is sent
  * straight to it, and everyone else is told exactly who can.
  */
@@ -290,10 +291,10 @@ export const ChannelStepCopy: {
     "Go to Project Settings → Notification Settings",
   ),
   whoCanTurnOnDetail: translationKey(
-    "Every method you have verified is on a channel this project has switched off. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings, or you can add an email or push device instead.",
+    "Every method you have verified is on a channel this project has switched off. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings, or you can add an email or push device instead.",
   ),
   whoCanTurnOnAction: translationKey(
-    "Ask a project owner or someone with Manage Billing to turn it on",
+    "Ask a project owner, a Billing Admin or someone with Manage Billing to turn it on",
   ),
 };
 

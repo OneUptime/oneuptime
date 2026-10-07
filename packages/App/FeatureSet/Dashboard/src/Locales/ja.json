@@ -25929,5 +25929,18 @@
   "Sending a test needs permission to create Twilio configs.": "テストを送信するには、Twilio 設定を作成する権限が必要です。",
   "Sending a test needs permission to create summaries.": "テストを送信するには、サマリーを作成する権限が必要です。",
   "Sending a test needs the {{planName}} plan.": "テストを送信するには、{{planName}} プランが必要です。",
-  "Sending a test report needs permission to edit this status page.": "テストレポートを送信するには、このステータスページを編集する権限が必要です。"
+  "Sending a test report needs permission to edit this status page.": "テストレポートを送信するには、このステータスページを編集する権限が必要です。",
+  "A project owner, a Billing Admin or someone with Manage Billing can change these.": "これらを変更できるのは、プロジェクトのオーナーまたは「Billing Admin」ロールまたは「請求の管理」権限を持つユーザーです。",
+  "Ask a project owner, a Billing Admin or someone with Manage Billing to turn it on": "プロジェクトのオーナーまたは「Billing Admin」ロールまたは「請求の管理」権限を持つユーザーにオンにするよう依頼する",
+  "Channels that are off in this project are not offered. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notification Settings.": "このプロジェクトでオフになっているチャネルは表示されません。プロジェクトのオーナーまたは「Billing Admin」ロールまたは「請求の管理」権限を持つユーザーが「プロジェクト設定 → 通知設定」でオンにできます。",
+  "Every method you have verified is on a channel this project has switched off. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings, or you can add an email or push device instead.": "確認済みの方法はすべて、このプロジェクトでオフになっているチャネルを使っています。プロジェクトのオーナーまたは「Billing Admin」ロールまたは「請求の管理」権限を持つユーザーが「プロジェクト設定 → 通知設定」でオンにできます。代わりにメールアドレスやプッシュ通知用のデバイスを追加することもできます。",
+  "Numbers for incoming calls are verified by SMS, which is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "着信用の番号は SMS で確認されますが、このプロジェクトでは SMS がオフです。プロジェクトのオーナーまたは「Billing Admin」ロールまたは「請求の管理」権限を持つユーザーが「プロジェクト設定 → 通知設定」でオンにできます。",
+  "Phone calls are off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notification Settings.": "このプロジェクトでは音声通話がオフです。プロジェクトのオーナーまたは「Billing Admin」ロールまたは「請求の管理」権限を持つユーザーが「プロジェクト設定 → 通知設定」でオンにできます。",
+  "Running one step on its own takes permission to edit this workflow.": "1 つのステップだけを単独で実行するには、このワークフローを編集する権限が必要です。",
+  "SMS is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "このプロジェクトでは SMS がオフです。プロジェクトのオーナーまたは「Billing Admin」ロールまたは「請求の管理」権限を持つユーザーが「プロジェクト設定 → 通知設定」でオンにできます。",
+  "Telegram is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "このプロジェクトでは Telegram がオフです。プロジェクトのオーナーまたは「Billing Admin」ロールまたは「請求の管理」権限を持つユーザーが「プロジェクト設定 → 通知設定」でオンにできます。",
+  "WhatsApp is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "このプロジェクトでは WhatsApp がオフです。プロジェクトのオーナーまたは「Billing Admin」ロールまたは「請求の管理」権限を持つユーザーが「プロジェクト設定 → 通知設定」でオンにできます。",
+  "You do not have permission to run this workflow.": "このワークフローを実行する権限がありません。",
+  "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here.": "あと {{count}} 個のステップはプロジェクトのオーナーまたは「Billing Admin」ロールまたは「請求の管理」権限を持つユーザーによる操作が必要なため、ここでは数えていません。",
+  "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here._one": "あと {{count}} 個のステップはプロジェクトのオーナーまたは「Billing Admin」ロールまたは「請求の管理」権限を持つユーザーによる操作が必要なため、ここでは数えていません。"
 }

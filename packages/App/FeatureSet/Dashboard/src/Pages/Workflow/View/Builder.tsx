@@ -37,6 +37,11 @@ import useWorkflowEnabled, {
 import WorkflowEnabledSwitch from "Common/UI/Components/Workflow/WorkflowEnabledSwitch";
 import WorkflowTurnedOffNotice from "Common/UI/Components/Workflow/WorkflowTurnedOffNotice";
 import WorkflowTurnOnModal from "Common/UI/Components/Workflow/WorkflowTurnOnModal";
+import {
+  getLockedReason,
+  getWorkflowRunGate,
+  getWorkflowStepRunGate,
+} from "Common/UI/Components/Workflow/WorkflowRunGate";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -259,6 +264,21 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   const canTurnWorkflowOnOrOff: boolean =
     enabledSwitchGate.isAllowed || !enabledSwitchGate.disabledReason;
+
+  /*
+   * Run Workflow is for the workflow's editors and for Workflow Members, who
+   * run workflows without changing them; "Run just this step" is for its
+   * editors alone. Someone who may not sees the button locked, saying why.
+   * Read on every render: the permission snapshot arrives on a response
+   * header and may land after the first paint, and until it has the buttons
+   * work and the server decides (WorkflowRunGate).
+   */
+  const runLockedReason: string | undefined = getLockedReason(
+    getWorkflowRunGate(),
+  );
+  const stepRunLockedReason: string | undefined = getLockedReason(
+    getWorkflowStepRunGate(),
+  );
 
   type StartWatchingRunFunction = () => void;
 
@@ -693,7 +713,14 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 icon={IconProp.Play}
                 buttonStyle={ButtonStyleType.SUCCESS_OUTLINE}
                 className="whitespace-nowrap"
+                disabled={Boolean(runLockedReason)}
+                tooltip={runLockedReason}
+                dataTestId="run-workflow-button"
                 onClick={() => {
+                  if (runLockedReason) {
+                    return;
+                  }
+
                   setShowRunModal(true);
                 }}
               />
@@ -792,6 +819,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               setEdges(edges);
               await saveGraph(nodes, edges);
             }}
+            runStepDisabledReason={stepRunLockedReason}
             onRunStep={async (component: NodeDataProp) => {
               if (refuseRunWhileArchived()) {
                 return;

@@ -54,7 +54,7 @@ De teams **Owners** en **Admin** zijn bewust vergrendeld: hun machtigingen zijn 
 
 `ProjectOwner` is het hoogste toegangsniveau: facturatie, het project verwijderen en alles wat een beheerder kan. `ProjectAdmin` dekt alles behalve facturatie en het verwijderen van het project.
 
-SMS, telefoonoproepen, WhatsApp of Telegram voor het project aan- of uitzetten valt onder facturatie, omdat elk bericht geld kost. Alleen `ProjectOwner` en de machtiging `ManageProjectBilling` (**Manage Billing**) kunnen die schakelaars wijzigen, onder **Projectinstellingen > Meldingen > Meldingsinstellingen** — niet `ProjectAdmin`.
+SMS, telefoonoproepen, WhatsApp of Telegram voor het project aan- of uitzetten valt onder facturatie, omdat elk bericht geld kost. Alleen `ProjectOwner`, de rol `BillingAdmin` (**Billing Admin**) en de machtiging `ManageProjectBilling` (**Manage Billing**) kunnen die schakelaars wijzigen, onder **Projectinstellingen > Meldingen > Meldingsinstellingen** — niet `ProjectAdmin`.
 
 Het bijvullen van de vooruitbetaalde saldi van het project valt ook onder facturatie. Op OneUptime Cloud worden SMS, telefoonoproepen, WhatsApp en Telegram betaald uit het saldo onder **Projectinstellingen > Meldingen > Meldingsinstellingen**, en AI uit de AI-tegoeden onder **Projectinstellingen > AI > AI-tegoeden**. Alleen een projecteigenaar of iemand met **Manage Billing** kan ze bijvullen of hun **Automatisch bijvullen** wijzigen — een projectbeheerder niet. Een melding over een saldo dat opraakt, noemt wie het kan bijvullen, en alleen die mensen krijgen een werkende knop **Saldo bijvullen** of een link naar de pagina.
 
@@ -75,6 +75,8 @@ Een rol bundelt een heel productgebied op een van drie niveaus:
 - **Viewer** — alleen lezen.
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` enzovoort. Rollen zijn bijna altijd wat u wilt — ze blijven kloppen naarmate OneUptime functies toevoegt, omdat een nieuwe monitorgerelateerde tabel bij de bestaande monitorrollen wordt gevoegd in plaats van een nieuwe toekenning van u te vragen.
+
+Workflows zijn de uitzondering. Een workflow voert zijn stappen binnen het project uit, dus `WorkflowMember` opent workflows en hun runs en voert ze met de hand uit, maar maakt, wijzigt of verwijdert ze niet. `WorkflowAdmin` bouwt ze. Zie [Workflowconfiguratie](/docs/workflows/configuration).
 
 Alle {{PERMISSION_ROLE_COUNT}} rollen staan in de [Machtigingsreferentie](/docs/permissions/reference).
 

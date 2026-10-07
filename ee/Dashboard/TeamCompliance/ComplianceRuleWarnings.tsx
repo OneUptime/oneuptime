@@ -23,7 +23,8 @@ import React, { FunctionComponent, ReactElement } from "react";
  * the top, with the rule it is about, so nobody spends an afternoon chasing
  * members over a project switch.
  *
- * Only a project owner or someone with Manage Billing may switch a channel on
+ * Only a project owner, a Billing Admin or someone with Manage Billing may
+ * switch a channel on
  * (the Project columns' own update permissions), so only they get the link
  * to the switches; everyone else reads in the warning itself who can, and
  * where. A link to a page whose switches are all locked would only send them
