@@ -26,30 +26,42 @@ import { JSONObject } from "Common/Types/JSON";
  *     never creates anyone below the plan: a userName filter for someone
  *     OneUptime does not know answers "no such user" instead of
  *     provisioning them.
- *   - requests that only take access away are answered:
+ *   - requests that take access away go through:
  *       DELETE of a user, or of a group (team);
- *       PUT or PATCH of a user that deactivates them (active false) and
- *         changes nothing else OneUptime keeps;
+ *       PUT or PATCH of a user that deactivates them (active false);
  *       PATCH of a group whose operations remove members - Entra ID's
  *         {"op":"Remove","path":"members","value":[{"value":"<id>"}]} and
  *         Okta's {"op":"remove","path":"members[value eq \"<id>\"]"} alike
  *         - or replace its members with some of the ones it has;
- *       PUT of a group that lists some of the members it has, under the
- *         name it has;
+ *       PUT of a group that lists some of the members it has (a PUT with
+ *         no members removes them all, as on every plan);
  *       a Bulk request whose every operation is a DELETE.
- *   - everything that gives or changes access is refused, with 402 and the
- *     reason in the SCIM error format: creating a user or a group, a user
- *     update that reactivates them (active true) or changes their email or
- *     name, a group update that adds a member or renames the group, and any
- *     other Bulk request. A request that would do any of that is refused
- *     whole - nothing of it is applied - whatever else it asks.
+ *     Profile changes sent along with a removal - a new email or name for
+ *     the person deactivated, a new name for the group members leave - are
+ *     not made: the removal goes through, and the person keeps their email
+ *     and name, the group its name. Identity providers resend what they see
+ *     differs (Entra ID compares each attribute before its PATCH; a PUT
+ *     sends the whole record), so a profile change refused once comes back
+ *     with every later request, the removal included - and a removal must
+ *     never wait for the plan.
+ *   - everything that gives access is refused, with 402 and the reason in
+ *     the SCIM error format, whole - nothing of it is applied, whatever
+ *     else it asks: creating a user or a group, a user update that
+ *     reactivates them (active true), a group update that adds a member -
+ *     even alongside removals, as RFC 7644 makes a PATCH all or nothing -
+ *     and any other Bulk request.
+ *   - so is a request that only changes a profile: a user's email or name,
+ *     a group's name.
+ *   - a request that changes nothing OneUptime keeps is answered as on
+ *     every plan.
  *
  * A request is judged by what its handler would do with it: the same parsed
  * user update (extractUserUpdateFromSCIM), the same planned group
  * operations (planScimGroupPatch), compared with what is stored. So an
  * attribute OneUptime does not keep - a title, a department, a manager -
  * changes nothing and does not count, and a value sent as it already is
- * (the same email, the same group name) is no change.
+ * (the same email, the same group name), or one OneUptime would not change
+ * on any plan (a name this project may not change), is no change.
  *
  * The SCIM middleware (SCIMAuthorization) decides what it can from the
  * route alone, before any handler runs: it refuses creates and every other
@@ -248,8 +260,8 @@ export const getScimRequestBelowPlan: (data: {
 
   /*
    * One user or group: reading it, deleting it, and the updates whose
-   * handlers check what they would change (isScimUserUpdateOnlyARemoval,
-   * isScimGroupPatchOnlyARemoval, isScimGroupReplaceOnlyARemoval).
+   * handlers check what they would change (getScimUserUpdateBelowPlan,
+   * getScimGroupPatchBelowPlan, getScimGroupReplaceBelowPlan).
    */
   if (
     segments.length === 2 &&
@@ -268,24 +280,52 @@ export const getScimRequestBelowPlan: (data: {
  */
 
 /*
- * Whether a user update (PUT or PATCH, for a project's or a status page's
- * connection) only takes access away: it does not reactivate the person
- * (active true), and does not change their email or their name. A
- * deactivation (active false) removes them; an update with no active value
- * that changes nothing OneUptime keeps changes nothing at all.
+ * What an update below the plan does, once its handler has read it:
+ *
+ *   Refused   it would give access, or it only changes a profile: answered
+ *             with the refusal, and nothing of it is applied.
+ *   Removal   it takes access away: applied without the profile changes it
+ *             also asks for (the person keeps their email and name, the
+ *             group its name).
+ *   NoChange  it changes nothing OneUptime keeps: answered as on every plan.
  */
-export const isScimUserUpdateOnlyARemoval: (data: {
+export enum ScimUpdateBelowPlan {
+  Refused = "Refused",
+  Removal = "Removal",
+  NoChange = "NoChange",
+}
+
+/*
+ * A user update (PUT or PATCH, for a project's or a status page's
+ * connection). Reactivating the person (active true) gives access, whatever
+ * else it asks. Deactivating them (active false) takes it away, whatever
+ * else it asks: their email and name are left as they are. Without an
+ * active value, a new email or a new name is a profile change on its own.
+ * `isEmailChanging` and `isNameChanging` say what the handler would change
+ * on the plan - a name this project may not change is no change.
+ */
+export const getScimUserUpdateBelowPlan: (data: {
   active: boolean | undefined;
   isEmailChanging: boolean;
   isNameChanging: boolean;
-}) => boolean = (data: {
+}) => ScimUpdateBelowPlan = (data: {
   active: boolean | undefined;
   isEmailChanging: boolean;
   isNameChanging: boolean;
-}): boolean => {
-  return (
-    data.active !== true && !data.isEmailChanging && !data.isNameChanging
-  );
+}): ScimUpdateBelowPlan => {
+  if (data.active === true) {
+    return ScimUpdateBelowPlan.Refused;
+  }
+
+  if (data.active === false) {
+    return ScimUpdateBelowPlan.Removal;
+  }
+
+  if (data.isEmailChanging || data.isNameChanging) {
+    return ScimUpdateBelowPlan.Refused;
+  }
+
+  return ScimUpdateBelowPlan.NoChange;
 };
 
 // A group member, as SCIM names one: { value: <user id>, display, $ref }.
@@ -439,27 +479,67 @@ export const toComparableUserId: (userId: string) => string = (
   return userId.trim().toLowerCase();
 };
 
+// The ids a member list names, compared as the group handlers compare them.
+const getComparableMemberIds: (members: unknown) => Array<string> = (
+  members: unknown,
+): Array<string> => {
+  return toMemberList(members)
+    .map(getScimMemberUserId)
+    .filter((id: string | null): id is string => {
+      return Boolean(id);
+    })
+    .map(toComparableUserId);
+};
+
+// A group update below the plan, and the operations to apply when it goes through.
+export interface ScimGroupPatchBelowPlan {
+  verdict: ScimUpdateBelowPlan;
+  /*
+   * The operations to apply, in order: all of them but the renames - below
+   * the plan the group keeps its name. Empty when the update is refused.
+   */
+  actions: Array<ScimGroupPatchAction>;
+}
+
 /*
- * Whether a group PATCH only takes access away, played through in order
- * against the group's members and name: removals are; adding someone,
- * replacing the members with a list that names anyone the group does not
- * have at that point, and renaming the group to another name are not.
- * Operations the handlers ignore change nothing. `getCurrentMemberIds`
- * reads the group's members, and is only called for a replace.
+ * A group PATCH, played through in order against the group's members and
+ * name:
+ *
+ *   - adding someone, or replacing the members with a list that names
+ *     anyone the group does not have at that point, gives access: the
+ *     whole PATCH is refused, removals included (RFC 7644: a PATCH is all
+ *     or nothing);
+ *   - removing members, or replacing them with a list that leaves out some
+ *     of the ones it has, takes access away: the PATCH goes through, without
+ *     its renames;
+ *   - a rename to another name, with no removal, is a profile change on its
+ *     own: refused;
+ *   - anything else - a rename to the name it has, a removal that names no
+ *     one, an operation the handlers leave alone - changes nothing.
+ *
+ * `getCurrentMemberIds` reads the group's members (accepted or pending), and
+ * is only called for a replace.
  */
-export const isScimGroupPatchOnlyARemoval: (data: {
+export const getScimGroupPatchBelowPlan: (data: {
   actions: Array<ScimGroupPatchAction>;
   currentName: string | undefined;
   getCurrentMemberIds: () => Promise<Array<string>>;
-}) => Promise<boolean> = async (data: {
+}) => Promise<ScimGroupPatchBelowPlan> = async (data: {
   actions: Array<ScimGroupPatchAction>;
   currentName: string | undefined;
   getCurrentMemberIds: () => Promise<Array<string>>;
-}): Promise<boolean> => {
+}): Promise<ScimGroupPatchBelowPlan> => {
+  const refused: ScimGroupPatchBelowPlan = {
+    verdict: ScimUpdateBelowPlan.Refused,
+    actions: [],
+  };
+
   // The members as the operations so far leave them, once they are read.
   let members: Set<string> | null = null;
   // Who the operations so far removed, for a replace read after them.
   const removed: Set<string> = new Set<string>();
+  let takesAccessAway: boolean = false;
+  let renames: boolean = false;
 
   for (const action of data.actions) {
     if (action.kind === "removeMembers") {
@@ -467,6 +547,7 @@ export const isScimGroupPatchOnlyARemoval: (data: {
         const id: string = toComparableUserId(userId);
         removed.add(id);
         members?.delete(id);
+        takesAccessAway = true;
       }
 
       continue;
@@ -474,7 +555,7 @@ export const isScimGroupPatchOnlyARemoval: (data: {
 
     if (action.kind === "addMembers") {
       if (action.members.some(getScimMemberUserId)) {
-        return false;
+        return refused;
       }
 
       continue;
@@ -491,73 +572,90 @@ export const isScimGroupPatchOnlyARemoval: (data: {
         );
       }
 
-      const listed: Array<string> = action.members
-        .map(getScimMemberUserId)
-        .filter((id: string | null): id is string => {
-          return Boolean(id);
-        })
-        .map(toComparableUserId);
+      const listed: Set<string> = new Set<string>(
+        getComparableMemberIds(action.members),
+      );
 
-      const current: Set<string> = members;
-
-      if (
-        listed.some((id: string): boolean => {
-          return !current.has(id);
-        })
-      ) {
-        return false;
+      for (const id of listed) {
+        if (!members.has(id)) {
+          return refused;
+        }
       }
 
-      members = new Set<string>(listed);
+      for (const id of members) {
+        if (!listed.has(id)) {
+          takesAccessAway = true;
+        }
+      }
+
+      members = listed;
       continue;
     }
 
-    if (action.kind === "rename") {
-      if (action.displayName !== data.currentName) {
-        return false;
-      }
-
-      continue;
+    if (action.kind === "rename" && action.displayName !== data.currentName) {
+      renames = true;
     }
   }
 
-  return true;
+  if (!takesAccessAway && renames) {
+    return refused;
+  }
+
+  return {
+    verdict: takesAccessAway
+      ? ScimUpdateBelowPlan.Removal
+      : ScimUpdateBelowPlan.NoChange,
+    actions: data.actions.filter((action: ScimGroupPatchAction): boolean => {
+      return action.kind !== "rename";
+    }),
+  };
 };
 
 /*
- * Whether a group PUT - a full replace of its name and members - only takes
- * access away: the name it sends, if any, is the group's own, and every
- * member it lists is already in the group.
+ * A group PUT - a full replace of its name and members. Listing anyone the
+ * group does not have gives access: refused. Leaving out some of the ones
+ * it has takes access away: it goes through, and the group keeps its name
+ * (the handler skips the rename). A new name with every member kept is a
+ * profile change on its own: refused. The same name and the same members
+ * change nothing.
  */
-export const isScimGroupReplaceOnlyARemoval: (data: {
+export const getScimGroupReplaceBelowPlan: (data: {
   displayName: unknown;
   currentName: string | undefined;
   listedMembers: unknown;
   currentMemberIds: Array<string>;
-}) => boolean = (data: {
+}) => ScimUpdateBelowPlan = (data: {
   displayName: unknown;
   currentName: string | undefined;
   listedMembers: unknown;
   currentMemberIds: Array<string>;
-}): boolean => {
+}): ScimUpdateBelowPlan => {
+  const current: Set<string> = new Set<string>(
+    data.currentMemberIds.map(toComparableUserId),
+  );
+  const listed: Set<string> = new Set<string>(
+    getComparableMemberIds(data.listedMembers),
+  );
+
+  for (const id of listed) {
+    if (!current.has(id)) {
+      return ScimUpdateBelowPlan.Refused;
+    }
+  }
+
+  for (const id of current) {
+    if (!listed.has(id)) {
+      return ScimUpdateBelowPlan.Removal;
+    }
+  }
+
   if (
     typeof data.displayName === "string" &&
     data.displayName &&
     data.displayName !== data.currentName
   ) {
-    return false;
+    return ScimUpdateBelowPlan.Refused;
   }
 
-  const current: Set<string> = new Set<string>(
-    data.currentMemberIds.map(toComparableUserId),
-  );
-
-  return toMemberList(data.listedMembers)
-    .map(getScimMemberUserId)
-    .filter((id: string | null): id is string => {
-      return Boolean(id);
-    })
-    .every((id: string): boolean => {
-      return current.has(toComparableUserId(id));
-    });
+  return ScimUpdateBelowPlan.NoChange;
 };

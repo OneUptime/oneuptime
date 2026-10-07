@@ -53,12 +53,14 @@ import {
   SCIMErrorType,
 } from "../Utils/SCIMUtils";
 import {
+  getScimGroupPatchBelowPlan,
+  getScimGroupReplaceBelowPlan,
   getScimMissingPlan,
-  isScimGroupPatchOnlyARemoval,
-  isScimGroupReplaceOnlyARemoval,
-  isScimUserUpdateOnlyARemoval,
+  getScimUserUpdateBelowPlan,
   planScimGroupPatch,
   ScimGroupPatchAction,
+  ScimGroupPatchBelowPlan,
+  ScimUpdateBelowPlan,
   sendScimBelowPlanRefusal,
 } from "../Utils/SCIMBelowPlan";
 import {
@@ -703,33 +705,35 @@ const applyGroupPatchActions: (data: {
 };
 
 /*
- * Below the plan SCIM needs, the group update a request asks for does not
- * go through unless it only takes access away (Utils/SCIMBelowPlan):
- * answers the refusal and returns true when it does not. Read before
- * anything is written, so a refused update changes nothing.
+ * The group PATCH operations to apply. On the plan, all of them. Below the
+ * plan SCIM needs (Utils/SCIMBelowPlan), only an update that takes access
+ * away, or changes nothing, goes through - without its renames, as the
+ * group keeps its name; one that adds anyone, or only renames the group,
+ * is answered with the refusal, and null is returned. Read before anything
+ * is written, so a refused update changes nothing.
  */
-const refuseGroupPatchBelowPlan: (data: {
+const getGroupPatchActionsToApply: (data: {
   req: ExpressRequest;
   res: ExpressResponse;
   projectId: ObjectID;
   team: Team;
   actions: Array<ScimGroupPatchAction>;
   executionSteps: Array<string>;
-}) => Promise<boolean> = async (data: {
+}) => Promise<Array<ScimGroupPatchAction> | null> = async (data: {
   req: ExpressRequest;
   res: ExpressResponse;
   projectId: ObjectID;
   team: Team;
   actions: Array<ScimGroupPatchAction>;
   executionSteps: Array<string>;
-}): Promise<boolean> => {
+}): Promise<Array<ScimGroupPatchAction> | null> => {
   const missingPlan: PlanType | null = getScimMissingPlan(data.req);
 
   if (!missingPlan) {
-    return false;
+    return data.actions;
   }
 
-  const onlyRemoves: boolean = await isScimGroupPatchOnlyARemoval({
+  const belowPlan: ScimGroupPatchBelowPlan = await getScimGroupPatchBelowPlan({
     actions: data.actions,
     currentName: data.team.name?.toString(),
     getCurrentMemberIds: (): Promise<Array<string>> => {
@@ -740,15 +744,33 @@ const refuseGroupPatchBelowPlan: (data: {
     },
   });
 
-  if (onlyRemoves) {
-    data.executionSteps.push(
-      `Below the ${missingPlan} plan: this update only removes members, so it goes through`,
-    );
-    return false;
+  if (belowPlan.verdict === ScimUpdateBelowPlan.Refused) {
+    sendScimBelowPlanRefusal({ res: data.res, missingPlan: missingPlan });
+    return null;
   }
 
-  sendScimBelowPlanRefusal({ res: data.res, missingPlan: missingPlan });
-  return true;
+  const asksForAnotherName: boolean = data.actions.some(
+    (action: ScimGroupPatchAction): boolean => {
+      return (
+        action.kind === "rename" &&
+        action.displayName !== data.team.name?.toString()
+      );
+    },
+  );
+
+  if (asksForAnotherName) {
+    data.executionSteps.push(
+      `Below the ${missingPlan} plan the group keeps its name: the rename is not applied`,
+    );
+  }
+
+  if (belowPlan.verdict === ScimUpdateBelowPlan.Removal) {
+    data.executionSteps.push(
+      `Below the ${missingPlan} plan: this update removes members, so it goes through`,
+    );
+  }
+
+  return belowPlan.actions;
 };
 
 // Helper function to format team as SCIM group
@@ -2239,31 +2261,55 @@ const handleUserUpdate: (
     const isNameChanging: boolean =
       Boolean(name) && name !== projectUser.user.name?.toString();
 
+    const mayChangeName: boolean =
+      isNameChanging &&
+      (await ProjectSCIMAccountPolicy.mayChangeName({
+        projectId: projectId,
+        userId: new ObjectID(userId),
+      }));
+
     /*
-     * Below the plan SCIM needs, an update goes through only when it takes
-     * access away (Utils/SCIMBelowPlan): it may deactivate the person, but
-     * not reactivate them or change their email or name. Checked before
-     * anything is written, so a refused update changes nothing at all.
+     * Below the plan SCIM needs (Utils/SCIMBelowPlan), a deactivation goes
+     * through and changes nothing else: the person keeps their email and
+     * name. Reactivating them, or changing only their email or name, is
+     * refused. Checked before anything is written, so a refused update
+     * changes nothing at all.
      */
     const missingPlan: PlanType | null = getScimMissingPlan(req);
+    let profileLeftAsItIs: boolean = false;
 
-    if (
-      missingPlan &&
-      !isScimUserUpdateOnlyARemoval({
+    if (missingPlan) {
+      const belowPlan: ScimUpdateBelowPlan = getScimUserUpdateBelowPlan({
         active: active,
         isEmailChanging: isEmailChanging,
-        isNameChanging: isNameChanging,
-      })
-    ) {
-      logger.debug(
-        `SCIM Update user - refused below the ${missingPlan} plan: the update would reactivate the user or change their email or name`,
-        getLogAttributesFromRequest(req as any),
-      );
-      sendScimBelowPlanRefusal({ res: res, missingPlan: missingPlan });
-      return;
+        isNameChanging: mayChangeName,
+      });
+
+      if (belowPlan === ScimUpdateBelowPlan.Refused) {
+        logger.debug(
+          `SCIM Update user - refused below the ${missingPlan} plan: the update would reactivate the user, or only change their email or name`,
+          getLogAttributesFromRequest(req as any),
+        );
+        sendScimBelowPlanRefusal({ res: res, missingPlan: missingPlan });
+        return;
+      }
+
+      if (
+        belowPlan === ScimUpdateBelowPlan.Removal &&
+        (isEmailChanging || mayChangeName)
+      ) {
+        profileLeftAsItIs = true;
+        executionSteps.push(
+          `Below the ${missingPlan} plan the deactivation goes through, and the user's email and name are left as they are`,
+        );
+      }
     }
 
-    if (isEmailChanging) {
+    // What the update changes of the person's profile.
+    const changesEmail: boolean = isEmailChanging && !profileLeftAsItIs;
+    const changesName: boolean = mayChangeName && !profileLeftAsItIs;
+
+    if (changesEmail) {
       const emailChangeRefusal: string | null =
         await ProjectSCIMAccountPolicy.getEmailChangeRefusal({
           projectId: projectId,
@@ -2312,13 +2358,6 @@ const handleUserUpdate: (
         });
       }
     }
-
-    const mayChangeName: boolean =
-      isNameChanging &&
-      (await ProjectSCIMAccountPolicy.mayChangeName({
-        projectId: projectId,
-        userId: new ObjectID(userId),
-      }));
 
     if (isNameChanging && !mayChangeName) {
       executionSteps.push(
@@ -2387,12 +2426,12 @@ const handleUserUpdate: (
       );
     }
 
-    if (isEmailChanging || mayChangeName) {
+    if (changesEmail || changesName) {
       const updateData: any = {};
-      if (isEmailChanging) {
+      if (changesEmail) {
         updateData.email = new Email(email);
       }
-      if (mayChangeName) {
+      if (changesName) {
         updateData.name = new Name(name);
       }
 
@@ -3157,17 +3196,17 @@ router.put(
       const previousName: string | undefined = team.name?.toString();
 
       /*
-       * Below the plan SCIM needs, a replace goes through only when it takes
-       * access away (Utils/SCIMBelowPlan): the group keeps its name, and
-       * every member it lists is already in it - the members it leaves out
-       * are removed, as on every plan. Checked before anything is written,
-       * so a refused replace changes nothing.
+       * Below the plan SCIM needs, a replace goes through only when every
+       * member it lists is already in the group (Utils/SCIMBelowPlan): the
+       * members it leaves out are removed, as on every plan, and the group
+       * keeps its name. One that lists anyone new, or only renames the
+       * group, is refused. Checked before anything is written, so a refused
+       * replace changes nothing.
        */
       const missingPlan: PlanType | null = getScimMissingPlan(req);
 
-      if (
-        missingPlan &&
-        !isScimGroupReplaceOnlyARemoval({
+      if (missingPlan) {
+        const belowPlan: ScimUpdateBelowPlan = getScimGroupReplaceBelowPlan({
           displayName: scimGroup["displayName"],
           currentName: previousName,
           listedMembers: scimGroup["members"],
@@ -3175,20 +3214,30 @@ router.put(
             projectId: projectId,
             teamId: team.id!,
           }),
-        })
-      ) {
-        logger.debug(
-          `SCIM Update group - refused below the ${missingPlan} plan: the replace would rename the group or add members`,
-          getLogAttributesFromRequest(req as any),
+        });
+
+        if (belowPlan === ScimUpdateBelowPlan.Refused) {
+          logger.debug(
+            `SCIM Update group - refused below the ${missingPlan} plan: the replace would add members, or only rename the group`,
+            getLogAttributesFromRequest(req as any),
+          );
+          sendScimBelowPlanRefusal({ res: res, missingPlan: missingPlan });
+          return;
+        }
+
+        executionSteps.push(
+          `Below the ${missingPlan} plan: this replace adds no one, so it goes through, and the group keeps its name`,
         );
-        sendScimBelowPlanRefusal({ res: res, missingPlan: missingPlan });
-        return;
       }
 
-      // Update team name if provided
+      // Update team name if provided - not below the plan.
       const displayName: string = scimGroup["displayName"] as string;
       let nameUpdated: boolean = false;
-      if (displayName && displayName !== team.name) {
+      if (missingPlan && displayName && displayName !== team.name) {
+        executionSteps.push(
+          `Below the ${missingPlan} plan the group keeps its name: the rename to "${displayName}" is not applied`,
+        );
+      } else if (displayName && displayName !== team.name) {
         logger.debug(
           `SCIM Update group - updating name to: ${displayName}`,
           getLogAttributesFromRequest(req as any),
@@ -3577,21 +3626,23 @@ router.patch(
 
       /*
        * Below the plan SCIM needs, the update goes through only when it
-       * takes access away (Utils/SCIMBelowPlan). Checked before anything is
-       * written, so a refused update changes nothing.
+       * takes access away, without its renames (Utils/SCIMBelowPlan).
+       * Checked before anything is written, so a refused update changes
+       * nothing.
        */
-      if (
-        await refuseGroupPatchBelowPlan({
+      const operationsToApply: Array<ScimGroupPatchAction> | null =
+        await getGroupPatchActionsToApply({
           req: req,
           res: res,
           projectId: projectId,
           team: team,
           actions: operations,
           executionSteps: executionSteps,
-        })
-      ) {
+        });
+
+      if (!operationsToApply) {
         logger.debug(
-          `SCIM Patch group - refused below the plan: the update would add members or rename the group`,
+          `SCIM Patch group - refused below the plan: the update would add members, or only rename the group`,
           getLogAttributesFromRequest(req as any),
         );
         return;
@@ -3600,7 +3651,7 @@ router.patch(
       const applied: GroupPatchResult = await applyGroupPatchActions({
         projectId: projectId,
         team: team,
-        actions: operations,
+        actions: operationsToApply,
         executionSteps: executionSteps,
         req: req,
       });

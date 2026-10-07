@@ -13,9 +13,9 @@ import { PlanType } from "./SubscriptionPlan";
  * CRUD routes, Terraform, the CLI, the MCP server's API-key mode. A SCIM
  * connection keeps taking access away below its plan - an identity provider
  * still deactivates and removes the people who leave - and refuses with 402
- * every request that would give or change access: creating people or
- * groups, reactivating someone, adding a member, renaming a group, changing
- * an email or a name (ee/Server/Identity/Utils/SCIMBelowPlan).
+ * every request that would add or change people or groups: creating people
+ * or groups, reactivating someone, adding a member, and a change to an
+ * email or a name made on its own (ee/Server/Identity/Utils/SCIMBelowPlan).
  *
  * Nothing is deleted or switched off. The keys and connections stay as they
  * were - readable, deletable (Types/Billing/PlanGatedTable) - and work fully
@@ -107,7 +107,7 @@ export const getApiKeysStoppedMessage: (planName: string) => string = (
 export const getScimStoppedMessage: (planName: string) => string = (
   planName: string,
 ): string => {
-  return `SCIM provisioning needs the ${planName} plan. This project's plan does not include it, so its SCIM connections can only remove people: requests that add or change people are refused. The connections are kept: upgrade the project to ${planName} in Project Settings > Billing and they work fully again.`;
+  return `SCIM provisioning needs the ${planName} plan. This project's plan does not include it, so its SCIM connections can only remove people: requests that add or change people or groups are refused. The connections are kept: upgrade the project to ${planName} in Project Settings > Billing and they work fully again.`;
 };
 
 // The message for one of the tables, by name.

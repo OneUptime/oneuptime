@@ -15,6 +15,7 @@ import ApiKey from "../../../Models/DatabaseModels/ApiKey";
 import Project from "../../../Models/DatabaseModels/Project";
 import ProjectSCIM from "../../../Models/DatabaseModels/ProjectSCIM";
 import StatusPageSCIM from "../../../Models/DatabaseModels/StatusPageSCIM";
+import User from "../../../Models/DatabaseModels/User";
 import URL from "../../../Types/API/URL";
 import {
   getCredentialsStoppedByMove,
@@ -58,7 +59,9 @@ import SafeHtml from "../../../Types/SafeHtml";
  * It reuses the email the product already sends a project's owners about
  * billing and limits (ProjectService.sendEmailToProjectOwners - the current
  * members of its owner teams), so it reaches the same people the same way
- * and adds no channel or setting.
+ * and adds no channel or setting. The one-time notice waits for each email
+ * to be handed to the mail service (sendEmailToOwnersAndWait): it runs from
+ * the migrate Job, which exits as soon as it is done.
  *
  * It never throws: a plan change that was made stays made, and one project
  * that cannot be told never stops the others.
@@ -79,6 +82,8 @@ export enum PlanDowngradeNoticeOutcome {
   AlreadyTold = "AlreadyTold",
   // The project has no plan to read - it is gone, or never got one.
   NoPlan = "NoPlan",
+  // The project has no owners to tell: it was not claimed, so a later run can.
+  NoOwners = "NoOwners",
   // Counting or emailing failed; logged.
   Failed = "Failed",
 }
@@ -91,6 +96,7 @@ export interface AlreadyBelowPlanNoticeSummary {
   alreadyTold: number;
   nothingStopped: number;
   noPlan: number;
+  noOwners: number;
   failed: number;
 }
 
@@ -228,12 +234,19 @@ export default class PlanDowngradeOwnerNotice {
         return PlanDowngradeNoticeOutcome.NothingStopped;
       }
 
-      await PlanDowngradeOwnerNotice.sendNotice({
-        projectId: data.projectId,
-        fromPlan: fromPlan,
-        toPlan: toPlan,
-        stopped: stopped,
-      });
+      const notice: { subject: string; html: string } =
+        await PlanDowngradeOwnerNotice.getNotice({
+          projectId: data.projectId,
+          fromPlan: fromPlan,
+          toPlan: toPlan,
+          stopped: stopped,
+        });
+
+      await ProjectService.sendEmailToProjectOwners(
+        data.projectId,
+        notice.subject,
+        notice.html,
+      );
 
       await PlanDowngradeOwnerNotice.recordToldNow(data.projectId);
 
@@ -300,6 +313,19 @@ export default class PlanDowngradeOwnerNotice {
         return PlanDowngradeNoticeOutcome.NothingStopped;
       }
 
+      /*
+       * Who it is for: the project's owners now - the accepted members of
+       * its owner teams. A project with none has no one to tell, and is not
+       * claimed: running the notice again tells the owners it has by then.
+       */
+      const owners: Array<User> = await ProjectService.getOwners(
+        data.projectId,
+      );
+
+      if (owners.length === 0) {
+        return PlanDowngradeNoticeOutcome.NoOwners;
+      }
+
       const now: Date = OneUptimeDate.getCurrentDate();
 
       if (
@@ -313,12 +339,28 @@ export default class PlanDowngradeOwnerNotice {
 
       claimedAt = now;
 
-      await PlanDowngradeOwnerNotice.sendNotice({
+      const notice: { subject: string; html: string } =
+        await PlanDowngradeOwnerNotice.getNotice({
+          projectId: data.projectId,
+          fromPlan: null,
+          toPlan: plan,
+          stopped: stopped,
+        });
+
+      /*
+       * Waits for each email to be handed to the mail service: this runs
+       * from the migrate Job, which exits as soon as it is done.
+       */
+      const delivered: number = await ProjectService.sendEmailToOwnersAndWait({
         projectId: data.projectId,
-        fromPlan: null,
-        toPlan: plan,
-        stopped: stopped,
+        owners: owners,
+        subject: notice.subject,
+        message: notice.html,
       });
+
+      if (delivered === 0) {
+        throw new Error("the mail service took none of the owners' emails");
+      }
 
       return PlanDowngradeNoticeOutcome.Told;
     } catch (error) {
@@ -327,8 +369,9 @@ export default class PlanDowngradeOwnerNotice {
       );
 
       /*
-       * Not sent: give the claim back, so a later run tells them after all.
-       * A failure to give it back is logged and leaves them untold.
+       * Not sent: give the claim back, so running the notice again tells
+       * them after all. A failure to give it back is logged and leaves them
+       * untold.
        */
       if (claimedAt) {
         await ProjectService.releasePlanCutoffNotice({
@@ -360,6 +403,7 @@ export default class PlanDowngradeOwnerNotice {
       alreadyTold: 0,
       nothingStopped: 0,
       noPlan: 0,
+      noOwners: 0,
       failed: 0,
     };
 
@@ -390,6 +434,9 @@ export default class PlanDowngradeOwnerNotice {
           break;
         case PlanDowngradeNoticeOutcome.NoPlan:
           summary.noPlan++;
+          break;
+        case PlanDowngradeNoticeOutcome.NoOwners:
+          summary.noOwners++;
           break;
         default:
           summary.failed++;
@@ -439,33 +486,32 @@ export default class PlanDowngradeOwnerNotice {
     return Array.from(projectIds.values());
   }
 
-  // The email itself: to the project's owners, about what `toPlan` stopped.
-  private static async sendNotice(data: {
+  // The email itself, about what `toPlan` stopped, with the project's name.
+  private static async getNotice(data: {
     projectId: ObjectID;
     fromPlan: PlanType | null;
     toPlan: PlanType;
     stopped: StoppedByPlanChange;
-  }): Promise<void> {
+  }): Promise<{ subject: string; html: string }> {
     const project: Project | null = await ProjectService.findOneById({
       id: data.projectId,
       select: { name: true },
       props: { isRoot: true },
     });
 
-    await ProjectService.sendEmailToProjectOwners(
-      data.projectId,
-      PlanDowngradeOwnerNotice.getSubject({
+    return {
+      subject: PlanDowngradeOwnerNotice.getSubject({
         stopped: data.stopped,
         projectName: project?.name,
       }),
-      PlanDowngradeOwnerNotice.getHtml({
+      html: PlanDowngradeOwnerNotice.getHtml({
         projectId: data.projectId,
         projectName: project?.name,
         fromPlan: data.fromPlan,
         toPlan: data.toPlan,
         stopped: data.stopped,
       }),
-    );
+    };
   }
 
   /*

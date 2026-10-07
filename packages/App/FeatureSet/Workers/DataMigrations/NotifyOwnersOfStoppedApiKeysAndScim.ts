@@ -20,8 +20,11 @@ import logger from "Common/Server/Utils/Logger";
  * Safe to run twice, at once or later: each project's owners are told only
  * by the run that claims its planCutoffNoticeSentAt while it is still empty
  * (one conditional UPDATE), and owners a plan change already told are not
- * told again. A project that cannot be told is logged and the others go on;
- * a claim whose email could not be sent is given back.
+ * told again. Each email is handed to the mail service before the run goes
+ * on - this runs in the migrate Job, which exits when it is done. A project
+ * that cannot be told is logged and the others go on: one with no owners is
+ * not claimed, and a claim whose emails all failed is given back, so running
+ * it again tells them.
  */
 export default class NotifyOwnersOfStoppedApiKeysAndScim extends DataMigrationBase {
   public constructor() {
@@ -33,7 +36,7 @@ export default class NotifyOwnersOfStoppedApiKeysAndScim extends DataMigrationBa
       await PlanDowngradeOwnerNotice.notifyProjectsAlreadyBelowPlan();
 
     logger.info(
-      `NotifyOwnersOfStoppedApiKeysAndScim: ${summary.projects} project(s) with API keys or SCIM connections; owners told for ${summary.told}, already told for ${summary.alreadyTold}, nothing stopped for ${summary.nothingStopped}, no plan for ${summary.noPlan}, could not be told for ${summary.failed} (logged).`,
+      `NotifyOwnersOfStoppedApiKeysAndScim: ${summary.projects} project(s) with API keys or SCIM connections; owners told for ${summary.told}, already told for ${summary.alreadyTold}, nothing stopped for ${summary.nothingStopped}, no plan for ${summary.noPlan}, no owners for ${summary.noOwners}, could not be told for ${summary.failed} (logged).`,
     );
   }
 

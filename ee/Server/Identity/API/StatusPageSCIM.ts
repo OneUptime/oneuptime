@@ -40,7 +40,8 @@ import {
 } from "../Utils/SCIMUtils";
 import {
   getScimMissingPlan,
-  isScimUserUpdateOnlyARemoval,
+  getScimUserUpdateBelowPlan,
+  ScimUpdateBelowPlan,
   sendScimBelowPlanRefusal,
 } from "../Utils/SCIMBelowPlan";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
@@ -1312,29 +1313,39 @@ const handleStatusPageUserUpdate: (
     );
 
     /*
-     * Below the plan SCIM needs, an update goes through only when it takes
-     * access away (Utils/SCIMBelowPlan): it may deactivate the private user
-     * - which removes them from the status page - but not reactivate them or
-     * change their email. Checked before anything is written, so a refused
-     * update changes nothing at all.
+     * Below the plan SCIM needs (Utils/SCIMBelowPlan), a deactivation goes
+     * through - it removes the private user from the status page - and
+     * changes nothing else: the email is left as it is. Reactivating them,
+     * or changing only their email, is refused. Checked before anything is
+     * written, so a refused update changes nothing at all.
      */
     const missingPlan: PlanType | null = getScimMissingPlan(req);
+    const isEmailChanging: boolean =
+      Boolean(email) && email !== statusPageUser.email?.toString();
+    let emailLeftAsItIs: boolean = false;
 
-    if (
-      missingPlan &&
-      !isScimUserUpdateOnlyARemoval({
+    if (missingPlan) {
+      const belowPlan: ScimUpdateBelowPlan = getScimUserUpdateBelowPlan({
         active: active,
-        isEmailChanging:
-          Boolean(email) && email !== statusPageUser.email?.toString(),
+        isEmailChanging: isEmailChanging,
         isNameChanging: false,
-      })
-    ) {
-      logger.debug(
-        `Status Page SCIM Update user - refused below the ${missingPlan} plan: the update would reactivate the user or change their email`,
-        getLogAttributesFromRequest(req as any),
-      );
-      sendScimBelowPlanRefusal({ res: res, missingPlan: missingPlan });
-      return;
+      });
+
+      if (belowPlan === ScimUpdateBelowPlan.Refused) {
+        logger.debug(
+          `Status Page SCIM Update user - refused below the ${missingPlan} plan: the update would reactivate the user, or only change their email`,
+          getLogAttributesFromRequest(req as any),
+        );
+        sendScimBelowPlanRefusal({ res: res, missingPlan: missingPlan });
+        return;
+      }
+
+      if (belowPlan === ScimUpdateBelowPlan.Removal && isEmailChanging) {
+        emailLeftAsItIs = true;
+        executionSteps.push(
+          `Below the ${missingPlan} plan the deactivation goes through, and the user's email is left as it is`,
+        );
+      }
     }
 
     // Handle user deactivation by deleting from status page
@@ -1402,7 +1413,9 @@ const handleStatusPageUserUpdate: (
     } = {};
 
     let emailUpdated: boolean = false;
-    if (email && email !== statusPageUser.email?.toString()) {
+    if (emailLeftAsItIs) {
+      executionSteps.push("Email left as it is below the plan");
+    } else if (isEmailChanging) {
       if (!Email.isValid(email)) {
         throw new BadRequestException("Email is not in valid format");
       }

@@ -127,6 +127,9 @@ import AlertState from "../../Models/DatabaseModels/AlertState";
 import AlertStateService from "./AlertStateService";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import URL from "../../Types/API/URL";
+import EmptyResponseData from "../../Types/API/EmptyResponse";
+import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../Types/API/HTTPResponse";
 import Exception from "../../Types/Exception/Exception";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import DatabaseConfig from "../DatabaseConfig";
@@ -3419,27 +3422,91 @@ These are no longer recorded against the project and have to be cancelled by han
     }
 
     for (const owner of owners) {
-      MailService.sendMail(
-        {
-          toEmail: owner.email!,
-          templateType: EmailTemplateType.SimpleMessage,
-          vars: {
-            subject: subject,
-            message: message,
-          },
-          subject: subject,
-          isSubjectLiteral: true,
-        },
-        {
-          projectId,
-          userId: owner.id!,
-        },
-      ).catch((err: Error) => {
+      this.sendOwnerEmail({
+        projectId: projectId,
+        owner: owner,
+        subject: subject,
+        message: message,
+      }).catch((err: Error) => {
         logger.error(err, {
           projectId: projectId?.toString(),
         } as LogAttributes);
       });
     }
+  }
+
+  /*
+   * sendEmailToProjectOwners, for a notice that must know it went out: sends
+   * the email to each of the owners given (read with getOwners), waits until
+   * the mail service has taken each one, and says how many it took. For a
+   * notice sent from a process that exits as soon as it is done - a one-time
+   * notice run by the migrate Job - an email not handed over by then would
+   * never leave. Never throws: an email the mail service refused, or could
+   * not be reached for, is logged and not counted.
+   */
+  @CaptureSpan()
+  public async sendEmailToOwnersAndWait(data: {
+    projectId: ObjectID;
+    owners: Array<User>;
+    subject: string;
+    message: string;
+  }): Promise<number> {
+    let delivered: number = 0;
+
+    for (const owner of data.owners) {
+      try {
+        const response: HTTPResponse<EmptyResponseData> | HTTPErrorResponse =
+          await this.sendOwnerEmail({
+            projectId: data.projectId,
+            owner: owner,
+            subject: data.subject,
+            message: data.message,
+          });
+
+        if (response instanceof HTTPErrorResponse) {
+          logger.error(
+            `The mail service refused an owner email of project ${data.projectId.toString()}: ${response.message}`,
+            {
+              projectId: data.projectId.toString(),
+            } as LogAttributes,
+          );
+          continue;
+        }
+
+        delivered++;
+      } catch (err) {
+        logger.error(err, {
+          projectId: data.projectId.toString(),
+        } as LogAttributes);
+      }
+    }
+
+    return delivered;
+  }
+
+  // One owner's email, as the owner emails above send it.
+  private sendOwnerEmail(data: {
+    projectId: ObjectID;
+    owner: User;
+    subject: string;
+    message: string;
+  }): Promise<HTTPResponse<EmptyResponseData> | HTTPErrorResponse> {
+    return MailService.sendMail(
+      {
+        toEmail: data.owner.email!,
+        templateType: EmailTemplateType.SimpleMessage,
+        vars: {
+          subject: data.subject,
+          message: data.message,
+        },
+        subject: data.subject,
+        isSubjectLiteral: true,
+      },
+      {
+        projectId: data.projectId,
+        userId: data.owner.id!,
+      },
+    );
   }
 
   /**

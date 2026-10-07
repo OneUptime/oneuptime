@@ -176,16 +176,16 @@ export const isAnalyticsPlanGatedColumnDefault: (
         ? TableColumnType.ShortText
         : TableColumnType.JSON;
 
-  return isPlanGatedColumnDefault(
-    {
-      type,
-      defaultValue:
-        column.defaultValue === undefined || column.defaultValue === null
-          ? undefined
-          : (column.defaultValue as TableColumnMetadata["defaultValue"]),
-    },
-    value,
-  );
+  const metadata: TableColumnMetadata = { type };
+
+  // No declared default (undefined or null): nothing is the default.
+  if (column.defaultValue !== undefined && column.defaultValue !== null) {
+    metadata.defaultValue = column.defaultValue as NonNullable<
+      TableColumnMetadata["defaultValue"]
+    >;
+  }
+
+  return isPlanGatedColumnDefault(metadata, value);
 };
 
 /*
