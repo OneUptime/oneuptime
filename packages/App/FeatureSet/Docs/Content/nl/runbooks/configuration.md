@@ -28,7 +28,9 @@ Runbook-rechten leven in de `Runbook`-rechtengroep:
 - `CreateRunbookExecution`, `EditRunbookExecution`, `ReadRunbookExecution` — uitvoeringen starten, afvinken en lezen.
 - `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — auto-trigger-regels beheren.
 - `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — Runbook-agents beheren die Bash- en JavaScript-stappen in je eigen infrastructuur uitvoeren.
-- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (rollen) — toewijzen aan een team om volledige controle, dagelijks gebruik of alleen-lezen toegang te verlenen. `RunbookAdmin` bundelt alle bovenstaande granulaire rechten.
+- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (rollen) — `RunbookAdmin` bouwt runbooks, hun regels en de Runners waarop ze draaien, en voert ze uit. `RunbookMember` opent runbooks en hun uitvoeringen en voert ze uit — start een uitvoering, rondt de stappen af of slaat ze over en annuleert haar —, maar maakt, wijzigt en verwijdert geen runbook of Runner. `RunbookViewer` leest runbooks en hun uitvoeringen en voert niets uit. `RunbookAdmin` bundelt alle bovenstaande fijnmazige machtigingen.
+
+Een rol voert de runbooks uit die zijn bereik bereikt. Een toekenning van `RunbookMember`, `RunbookAdmin` of `ProjectMember` die beperkt is tot enkele labels start uitvoeringen van de runbooks met die labels en zet ze voort, een toekenning beperkt tot eigendom die van de runbooks die het team bezit, en de blokkade van een team op een label neemt die runbooks weg. `CreateRunbookExecution` en `EditRunbookExecution` gaan over uitvoeringen, die geen labels dragen, en bereiken dus elk runbook in het project. Het goedkeuren van een herstelsuggestie die een runbook start, wordt op dezelfde manier gecontroleerd.
 
 ## Queue & worker
 

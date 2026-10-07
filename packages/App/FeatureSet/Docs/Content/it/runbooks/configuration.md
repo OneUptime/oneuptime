@@ -28,7 +28,9 @@ I permessi runbook vivono nel gruppo di permessi `Runbook`:
 - `CreateRunbookExecution`, `EditRunbookExecution`, `ReadRunbookExecution` — avviare, spuntare e leggere le esecuzioni.
 - `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — gestire le regole di auto-trigger.
 - `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — gestire gli Agenti Runbook che eseguono i passi Bash e JavaScript nella tua infrastruttura.
-- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (ruoli) — assegnabili a un team per concedere controllo totale, uso quotidiano o accesso in sola lettura. `RunbookAdmin` raggruppa tutti i permessi granulari sopra.
+- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (ruoli) — `RunbookAdmin` costruisce i runbook, le loro regole e i Runner su cui girano, e li esegue. `RunbookMember` apre i runbook e le loro esecuzioni e li esegue — avvia un'esecuzione, ne completa o salta i passaggi e la annulla —, ma non crea, modifica né elimina alcun runbook o Runner. `RunbookViewer` legge i runbook e le loro esecuzioni e non esegue nulla. `RunbookAdmin` raggruppa tutti i permessi granulari sopra.
+
+Un ruolo esegue i runbook che il suo ambito raggiunge. Un'assegnazione di `RunbookMember`, `RunbookAdmin` o `ProjectMember` limitata ad alcune etichette avvia e porta avanti le esecuzioni dei runbook che portano quelle etichette, una limitata alle risorse possedute quelle dei runbook che il suo team possiede, e il blocco di un team su un'etichetta toglie quei runbook. `CreateRunbookExecution` ed `EditRunbookExecution` riguardano le esecuzioni, che non hanno etichette, e quindi raggiungono ogni runbook del progetto. L'approvazione di un suggerimento di rimedio che avvia un runbook è verificata allo stesso modo.
 
 ## Coda e worker
 

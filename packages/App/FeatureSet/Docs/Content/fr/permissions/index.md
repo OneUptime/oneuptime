@@ -71,13 +71,17 @@ Une autorisation est une capacité unique. Il y a deux façons de les distribuer
 
 Un rôle regroupe tout un domaine du produit à l'un de trois niveaux :
 
-- **Admin** — contrôle total sur ce domaine, y compris sa configuration (gravités, états, modèles).
-- **Member** — le travail quotidien : créer, modifier et supprimer les ressources, mais pas reconfigurer le domaine.
+- **Admin** — ce que fait le Member, plus la configuration propre au domaine, comme les gravités et états des incidents et des alertes, les statuts des moniteurs et les états de maintenance.
+- **Member** — le travail quotidien : créer, modifier et supprimer les ressources du domaine, avec leurs notes, propriétaires et modèles. Pour les pages de statut et l'astreinte, le Member fait tout ce que fait l'Admin.
 - **Viewer** — lecture seule.
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer`, etc. Les rôles conviennent dans la quasi-totalité des cas — ils restent corrects à mesure que OneUptime ajoute des fonctionnalités, car une nouvelle table liée aux moniteurs est rattachée aux rôles moniteurs existants au lieu d'exiger une nouvelle attribution de votre part.
 
-Les workflows font exception. Un workflow exécute ses étapes dans le projet, donc `WorkflowMember` ouvre les workflows et leurs exécutions et les exécute à la main, mais ne les crée, ne les modifie ni ne les supprime. `WorkflowAdmin` les construit. Voir [Configuration des workflows](/docs/workflows/configuration).
+Les workflows et les runbooks font exception. Tous deux exécutent du code dans votre projet — un workflow ses étapes, un runbook ses scripts sur vos Runners —, donc `WorkflowMember` ouvre les workflows et leurs exécutions et les lance à la main, et `RunbookMember` ouvre les runbooks et leurs exécutions et les exécute : il lance une exécution, termine ou ignore ses étapes et l'annule. Aucun des deux ne crée, ne modifie ni ne supprime ce qu'il exécute ; `WorkflowAdmin` et `RunbookAdmin` les construisent. Un rôle n'exécute que les runbooks que sa portée atteint : un `RunbookMember` limité à certaines étiquettes exécute les runbooks qui les portent. Voir [Configuration des workflows](/docs/workflows/configuration) et [Configuration des runbooks](/docs/runbooks/configuration).
+
+Les règles d'un domaine (règles d'étiquettes, de propriétaires, d'astreinte, de regroupement et de rappel), les champs personnalisés, les SLA et les secrets relèvent de la configuration du projet : ils demandent `ProjectAdmin`, quel que soit le rôle de domaine de la personne. Il en va de même des clés API, des équipes et de leurs permissions, des étiquettes, du SSO et des domaines — les rôles Settings s'occupent des services, sondes, infrastructures et intégrations du projet, pas de qui peut faire quoi.
+
+La facturation a trois rôles à elle. `BillingViewer` lit la facturation du projet — l'offre et l'abonnement, les factures, l'utilisation, les soldes, les crédits IA, les moyens de paiement et les coordonnées de facturation — et ne modifie rien. `BillingMember` télécharge en plus les factures et modifie les coordonnées de facturation. `BillingAdmin` fait ce que fait `BillingMember` et active ou désactive les SMS, les appels téléphoniques, WhatsApp et Telegram. Changer l'offre, les moyens de paiement ou les soldes, et payer les factures, demande `ProjectOwner` ou **Manage Billing** ; sur les pages de facturation, ces boutons sont verrouillés pour tous les autres et indiquent qui peut les utiliser.
 
 Les {{PERMISSION_ROLE_COUNT}} rôles sont listés dans la [Référence des autorisations](/docs/permissions/reference).
 
@@ -200,7 +204,7 @@ Les autorisations résolues sont mises en cache par utilisateur et par projet, e
 
 **Un pipeline CI qui ne fait que signaler des déploiements.** Créez une clé d'API avec uniquement les autorisations granulaires nécessaires — aucun rôle.
 
-**Quelqu'un qui ne doit pas voir la facturation.** Ne l'ajoutez pas à l'équipe Owners. `ProjectAdmin` exclut déjà la facturation.
+**Quelqu'un qui ne doit ni modifier la facturation ni voir les factures.** Donnez-lui `ProjectMember`, pas `ProjectAdmin` : un administrateur de projet ne peut pas changer l'offre, les moyens de paiement ni les soldes, mais il lit et télécharge les factures. Pour qu'une personne lise les pages de facturation sans rien modifier, donnez-lui `BillingViewer`.
 
 ## Pour aller plus loin
 

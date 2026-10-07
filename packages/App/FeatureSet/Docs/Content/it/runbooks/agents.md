@@ -149,9 +149,9 @@ Se una chiave trapela, apri l'agente in OneUptime e rigenera la sua chiave. La v
 La gestione degli agenti vive sotto il gruppo di permessi Runbook esistente:
 
 - `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — gestire i record degli agenti.
-- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (ruoli) — assegnabili a un team per concedere controllo totale, uso quotidiano o accesso in sola lettura. `RunbookAdmin` raggruppa tutti i permessi granulari sopra.
+- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (ruoli) — `RunbookAdmin` costruisce i runbook, le loro regole e i Runner su cui girano, e li esegue. `RunbookMember` apre i runbook e le loro esecuzioni e li esegue — avvia un'esecuzione, ne completa o salta i passaggi e la annulla —, ma non crea, modifica né elimina alcun runbook o Runner. `RunbookViewer` legge i runbook e le loro esecuzioni e non esegue nulla. `RunbookAdmin` raggruppa tutti i permessi granulari sopra.
 
-I permessi per _scatenare_ un runbook (e quindi far partire il dispatch dei passi Bash e JavaScript) restano `CreateRunbookExecution` / `EditRunbookExecution`.
+Avviare un runbook (e quindi inviare i suoi passaggi Bash e JavaScript) richiede un ruolo che esegue runbook — `ProjectOwner`, `ProjectAdmin`, `ProjectMember`, `RunbookAdmin` o `RunbookMember` — oppure `CreateRunbookExecution`; completare, saltare o annullare un'esecuzione accetta anche `EditRunbookExecution`. Un ruolo esegue solo i runbook che il suo ambito raggiunge.
 
 ## API rivolta all'agente
 
