@@ -17,6 +17,7 @@ import ModelPermission from "../../Types/Database/Permissions/Index";
 import Query from "../../Types/Database/Query";
 import Select from "../../Types/Database/Select";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import CallerPlan from "../Billing/CallerPlan";
 
 /*
  * A resource a chat action is performed against: the incident being
@@ -110,7 +111,12 @@ export default class WorkspaceActionAuthorization {
       );
     }
 
-    return {
+    /*
+     * With the project's plan, as a dashboard request carries it: what a
+     * plan sells is checked against it, and never against "no plan"
+     * (CallerPlan).
+     */
+    return await CallerPlan.withPlan({
       userId: userId,
       tenantId: projectId,
       userGlobalAccessPermission: userGlobalAccessPermission || undefined,
@@ -118,7 +124,7 @@ export default class WorkspaceActionAuthorization {
         [projectId.toString()]: userTenantAccessPermission,
       },
       userTeamIds: userTeamIds,
-    };
+    });
   }
 
   /*

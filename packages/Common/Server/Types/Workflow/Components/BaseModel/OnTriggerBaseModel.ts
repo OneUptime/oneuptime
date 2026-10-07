@@ -25,7 +25,7 @@ import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseMo
 import Workflow from "../../../../../Models/DatabaseModels/Workflow";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 import { normalizeModelKeys } from "./ModelArguments";
-import RelatedFileAccess from "../../../../Utils/File/RelatedFileAccess";
+import { describeRefusal } from "./LogComponentError";
 
 export default class OnTriggerBaseModel<
   TBaseModel extends BaseModel,
@@ -170,16 +170,38 @@ export default class OnTriggerBaseModel<
       ) as Select<TBaseModel>;
     }
 
-    const model: TBaseModel | null = await this.service!.findOneById({
-      id: new ObjectID(data["_id"].toString()),
-      props: {
-        isRoot: true,
-      },
-      select: {
-        _id: true,
-        ...select,
-      },
-    });
+    /*
+     * Read as the workflow's own project, by a Project Admin of it (see
+     * getStepProps): the record must be one of that project's, and the
+     * columns the trigger reads ones a Project Admin may read. Its files come
+     * back only when they are the project's to see (RelatedFileAccess, which
+     * DatabaseService applies to every read made for someone).
+     */
+    let model: TBaseModel | null = null;
+
+    try {
+      model = await this.service!.findOneById({
+        id: new ObjectID(data["_id"].toString()),
+        props: await this.getStepProps(options),
+        select: {
+          _id: true,
+          ...select,
+        },
+      });
+    } catch (err) {
+      const refusal: string | null = describeRefusal({
+        error: err,
+        message: (err as Error)?.message || String(err),
+        stepTitle: this.getMetadata().title,
+      });
+
+      if (refusal) {
+        options.log(refusal);
+        throw new BadDataException(refusal);
+      }
+
+      throw err;
+    }
 
     if (!model) {
       options.log("Model not found with id " + data["_id"].toString());
@@ -188,14 +210,6 @@ export default class OnTriggerBaseModel<
         ("Model not found with id " + data["_id"].toString()) as string,
       );
     }
-
-    // The record's files only when they are the project's to see.
-    await RelatedFileAccess.keepReadableFiles({
-      model: this.service!.getModel(),
-      rows: [model],
-      select: select,
-      reader: RelatedFileAccess.getProjectReader(options.projectId),
-    });
 
     return {
       returnValues: {

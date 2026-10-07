@@ -117,6 +117,7 @@ import RepairHashedStringEnvelopeSecrets from "./RepairHashedStringEnvelopeSecre
 import MoveGoogleSecOpsConnectionsToSecurityEventConnections from "./MoveGoogleSecOpsConnectionsToSecurityEventConnections";
 import BackfillAuditLogRootResource from "./BackfillAuditLogRootResource";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
+import AddAuditLogWorkflowColumns from "./AddAuditLogWorkflowColumns";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
 import ScheduleRemindersMissedByReminderRuleLookup from "./ScheduleRemindersMissedByReminderRuleLookup";
 import RepairKubernetesDashboardClusterCpuTile from "./RepairKubernetesDashboardClusterCpuTile";
@@ -645,6 +646,15 @@ const DataMigrations: Array<DataMigrationBase> = [
    * requirement, so it sits before the last slot.
    */
   new HideImagesOfHiddenRecordNotes(),
+  /*
+   * Workflow steps act as a Project Admin of their project, not as
+   * OneUptime itself (WorkflowPrincipal): adds the two audit-log columns
+   * that name the workflow whose step made a change (AuditLogV2.workflowId,
+   * workflowName). Metadata-only and idempotent; rows written before it read
+   * as "not made by a workflow". No ordering requirement, so it sits before
+   * the last slot.
+   */
+  new AddAuditLogWorkflowColumns(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

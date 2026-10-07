@@ -17,6 +17,7 @@ import UserPermissionUtil from "../Utils/UserPermission/UserPermission";
 import PermissionNamespace from "../Types/Permission/PermissionNamespace";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import CallerPlan from "../Utils/Billing/CallerPlan";
 
 export class AccessTokenService extends BaseService {
   public constructor() {
@@ -234,7 +235,8 @@ export class AccessTokenService extends BaseService {
     const userGlobalAccessPermission: UserGlobalAccessPermission | null =
       await this.getUserGlobalAccessPermission(userId);
 
-    return {
+    // With the project's plan, as a dashboard request carries it (CallerPlan).
+    return await CallerPlan.withPlan({
       userId: userId,
       userGlobalAccessPermission: userGlobalAccessPermission || undefined,
       userTenantAccessPermission: {
@@ -245,7 +247,7 @@ export class AccessTokenService extends BaseService {
         ))!,
       },
       tenantId: projectId,
-    };
+    });
   }
 
   /*

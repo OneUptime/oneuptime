@@ -124,6 +124,7 @@ import RelatedFileAccess, {
 } from "../Utils/File/RelatedFileAccess";
 import PublishedImages, { CascadedRow } from "../Utils/File/PublishedImages";
 import StatusPageOverviewCache from "../Utils/StatusPage/StatusPageOverviewCache";
+import CallerPlan from "../Utils/Billing/CallerPlan";
 
 const RULE_CRITERIA_RELATION_OPERATORS: ReadonlySet<RuleCriteriaOperator> =
   new Set<RuleCriteriaOperator>([
@@ -2573,6 +2574,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   @CaptureSpan()
   public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
+    // The project's plan, read when the props act in it without one.
+    createBy.props = await CallerPlan.withPlan(createBy.props);
+
     this.checkCallerBeforeHooks(createBy.props, DatabaseRequestType.Create);
 
     /*
@@ -3893,6 +3897,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   @CaptureSpan()
   public async hardDeleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
     try {
+      deleteBy.props = await CallerPlan.withPlan(deleteBy.props);
+
       this.checkCallerBeforeHooks(deleteBy.props, DatabaseRequestType.Delete);
 
       /*
@@ -4004,6 +4010,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   private async _deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
     try {
       this.setTelemetryContextFromProps(deleteBy.props);
+
+      deleteBy.props = await CallerPlan.withPlan(deleteBy.props);
 
       this.checkCallerBeforeHooks(deleteBy.props, DatabaseRequestType.Delete);
 
@@ -4276,6 +4284,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   ): Promise<Array<TBaseModel>> {
     try {
       this.setTelemetryContextFromProps(findBy.props);
+
+      findBy.props = await CallerPlan.withPlan(findBy.props);
 
       this.checkCallerBeforeHooks(findBy.props, DatabaseRequestType.Read);
 
@@ -4677,6 +4687,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       // A model becomes the columns it writes before anything judges it.
       updateBy.data = this.sanitizeUpdateData(updateBy.data);
+
+      updateBy.props = await CallerPlan.withPlan(updateBy.props);
 
       this.checkCallerBeforeHooks(
         updateBy.props,

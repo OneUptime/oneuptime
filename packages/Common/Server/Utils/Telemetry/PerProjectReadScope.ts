@@ -4,6 +4,7 @@ import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedExcept
 import ObjectID from "../../../Types/ObjectID";
 import Text from "../../../Types/Text";
 import ArrayUtil from "../../../Utils/Array";
+import CallerPlan from "../Billing/CallerPlan";
 import { FindOperator, Raw } from "typeorm";
 
 /*
@@ -28,14 +29,16 @@ import { FindOperator, Raw } from "typeorm";
 /*
  * The caller's props in each of their projects, one object per request and
  * project: the scope of a project is worked out once a request
- * (ModelPermission caches it by props), however many reads ask.
+ * (ModelPermission caches it by props), however many reads ask. Each
+ * carries its own project's plan (CallerPlan.inProject), read once, so the
+ * object every read of that project gets is the same one.
  */
 const projectPropsCache: WeakMap<
   DatabaseCommonInteractionProps,
-  Map<string, DatabaseCommonInteractionProps>
+  Map<string, Promise<DatabaseCommonInteractionProps>>
 > = new WeakMap<
   DatabaseCommonInteractionProps,
-  Map<string, DatabaseCommonInteractionProps>
+  Map<string, Promise<DatabaseCommonInteractionProps>>
 >();
 
 export default class PerProjectReadScope {
@@ -48,32 +51,43 @@ export default class PerProjectReadScope {
   public static readonly PROJECT_CONCURRENCY: number = 2;
 
   // The caller's props in one of their projects (see projectPropsCache).
-  public static getProjectProps(
+  public static async getProjectProps(
     props: DatabaseCommonInteractionProps,
     projectId: ObjectID,
-  ): DatabaseCommonInteractionProps {
-    let byProject: Map<string, DatabaseCommonInteractionProps> | undefined =
-      projectPropsCache.get(props);
+  ): Promise<DatabaseCommonInteractionProps> {
+    let byProject:
+      | Map<string, Promise<DatabaseCommonInteractionProps>>
+      | undefined = projectPropsCache.get(props);
 
     if (!byProject) {
-      byProject = new Map<string, DatabaseCommonInteractionProps>();
+      byProject = new Map<string, Promise<DatabaseCommonInteractionProps>>();
       projectPropsCache.set(props, byProject);
     }
 
     const key: string = projectId.toString();
-    let projectProps: DatabaseCommonInteractionProps | undefined =
+    let projectProps: Promise<DatabaseCommonInteractionProps> | undefined =
       byProject.get(key);
 
     if (!projectProps) {
-      projectProps = {
-        ...props,
-        tenantId: projectId,
-        isMultiTenantRequest: false,
-      };
+      /*
+       * A project whose plan cannot be read is left out of the read, like
+       * one whose grants refuse it, and asked again by the next read.
+       */
+      projectProps = CallerPlan.inProject(props, projectId).catch(
+        (err: unknown): never => {
+          byProject?.delete(key);
+
+          if (err instanceof NotAuthorizedException) {
+            throw err;
+          }
+
+          throw new NotAuthorizedException(CallerPlan.PLAN_UNKNOWN_MESSAGE);
+        },
+      );
       byProject.set(key, projectProps);
     }
 
-    return projectProps;
+    return await projectProps;
   }
 
   // A read that names no single project.
@@ -129,7 +143,10 @@ export default class PerProjectReadScope {
               projectId: projectId.toString(),
               isRefused: false,
               clause: await data.getClauseInProject(
-                PerProjectReadScope.getProjectProps(data.props, projectId),
+                await PerProjectReadScope.getProjectProps(
+                  data.props,
+                  projectId,
+                ),
               ),
             };
           } catch (err) {

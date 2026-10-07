@@ -14,6 +14,7 @@ import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedExc
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
+import CallerPlan from "../../../Utils/Billing/CallerPlan";
 
 /*
  * Permissions auto-granted to every logged-in tenant user. Holding only these
@@ -171,17 +172,16 @@ export default class TenantPermission {
         }
 
         try {
+          /*
+           * Each project is checked on its own plan (CallerPlan.inProject),
+           * never on the plan of the project the request named.
+           */
           const checkBasePermissions: CheckPermissionBaseInterface<TBaseModel> =
             await BasePermission.checkPermissions(
               modelType,
               { ...queryForEachProject },
               select,
-              {
-                ...props,
-                isMultiTenantRequest: false,
-                tenantId: projectId,
-                userTenantAccessPermission: props.userTenantAccessPermission,
-              },
+              await CallerPlan.inProject(props, projectId),
               type,
               updateData,
             );

@@ -16,7 +16,9 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
 } from "../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
-import SubscriptionPlan from "../../../Types/Billing/SubscriptionPlan";
+import SubscriptionPlan, {
+  PlanType,
+} from "../../../Types/Billing/SubscriptionPlan";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import Columns from "../../../Types/Database/Columns";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
@@ -30,8 +32,9 @@ import Permission, {
   PermissionHelper,
   UserPermission,
 } from "../../../Types/Permission";
-import UserType from "../../../Types/UserType";
 import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
+import CallerPlan from "../../Utils/Billing/CallerPlan";
+import ColumnPermissions from "../Database/Permissions/ColumnPermission";
 import HeldPermissionsUtil, {
   HeldPermissions,
 } from "../../../Types/HeldPermissions";
@@ -141,6 +144,9 @@ export default class ModelPermission {
   ): Promise<Query<TBaseModel>> {
     DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
 
+    // The project's plan, when the props act in a project without one.
+    props = await CallerPlan.withPlan(props);
+
     if (props.isRoot || props.isMasterAdmin) {
       query = await this.addTenantScopeToQueryAsRoot(modelType, query, props);
     }
@@ -176,6 +182,9 @@ export default class ModelPermission {
     if (props.isRoot || props.isMasterAdmin) {
       return query;
     }
+
+    // The project's plan, when the props act in a project without one.
+    props = await CallerPlan.withPlan(props);
 
     this.checkModelLevelPermissions(
       modelType,
@@ -269,62 +278,36 @@ export default class ModelPermission {
       const billingAccessControl: ColumnBillingAccessControl | null =
         model.getColumnBillingAccessControl(key);
 
-      if (IsBillingEnabled && props.currentPlan && billingAccessControl) {
-        if (
-          requestType === DatabaseRequestType.Create &&
-          billingAccessControl.create
-        ) {
-          if (
-            !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
-              billingAccessControl.create,
-              props.currentPlan,
-              getAllEnvVars(),
-            )
-          ) {
-            throw new PaymentRequiredException(
-              "Please upgrade your plan to " +
-                billingAccessControl.create +
-                " to access this feature",
-            );
-          }
+      if (IsBillingEnabled && billingAccessControl) {
+        const requiredPlan: PlanType | undefined =
+          ColumnPermissions.getColumnPlan(billingAccessControl, requestType);
+
+        if (!requiredPlan) {
+          continue;
+        }
+
+        /*
+         * No plan on props that act in a project is never "any plan": the
+         * request is refused (CallerPlan). OneUptime itself and server
+         * admins need no plan.
+         */
+        if (!props.currentPlan) {
+          CallerPlan.assertPlanKnown(props);
+          continue;
         }
 
         if (
-          requestType === DatabaseRequestType.Read &&
-          billingAccessControl.read
+          !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
+            requiredPlan,
+            props.currentPlan,
+            getAllEnvVars(),
+          )
         ) {
-          if (
-            !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
-              billingAccessControl.read,
-              props.currentPlan,
-              getAllEnvVars(),
-            )
-          ) {
-            throw new PaymentRequiredException(
-              "Please upgrade your plan to " +
-                billingAccessControl.read +
-                " to access this feature",
-            );
-          }
-        }
-
-        if (
-          requestType === DatabaseRequestType.Update &&
-          billingAccessControl.update
-        ) {
-          if (
-            !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
-              billingAccessControl.update,
-              props.currentPlan,
-              getAllEnvVars(),
-            )
-          ) {
-            throw new PaymentRequiredException(
-              "Please upgrade your plan to " +
-                billingAccessControl.update +
-                " to access this feature",
-            );
-          }
+          throw new PaymentRequiredException(
+            "Please upgrade your plan to " +
+              requiredPlan +
+              " to access this feature",
+          );
         }
       }
     }
@@ -337,6 +320,9 @@ export default class ModelPermission {
     select: Select<TBaseModel> | null,
     props: DatabaseCommonInteractionProps,
   ): Promise<CheckReadPermissionType<TBaseModel>> {
+    // The project's plan, when the props act in a project without one.
+    props = await CallerPlan.withPlan(props);
+
     if (props.isRoot || props.isMasterAdmin) {
       query = await this.addTenantScopeToQueryAsRoot(modelType, query, props);
     }
@@ -556,13 +542,17 @@ export default class ModelPermission {
         }
 
         try {
+          /*
+           * Each project is read on its own plan (CallerPlan.inProject),
+           * which checkReadPermission reads for it.
+           */
           const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
-            await this.checkReadPermission(modelType, query, select, {
-              ...props,
-              isMultiTenantRequest: false,
-              tenantId: projectId,
-              userTenantAccessPermission: props.userTenantAccessPermission,
-            });
+            await this.checkReadPermission(
+              modelType,
+              query,
+              select,
+              CallerPlan.inProjectWithoutPlan(props, projectId),
+            );
           queries.push({
             ...(checkReadPermissionType.query as Query<TBaseModel>),
           });
@@ -1476,8 +1466,15 @@ export default class ModelPermission {
     // 1 CHECK: PUBLIC check -- Check if this is a public request and if public is allowed.
 
     if (!this.isPublicPermissionAllowed(modelType, type) && !props.userId) {
-      if (props.userType === UserType.API) {
-        // if its an API request then continue.
+      /*
+       * An API key or a workflow step: signed in, though not as a person.
+       * Its permission rows decide the rest.
+       */
+      if (
+        DatabaseCommonInteractionPropsUtil.isProjectPrincipalWithoutPerson(
+          props,
+        )
+      ) {
         return;
       }
 
@@ -1572,93 +1569,69 @@ export default class ModelPermission {
 
     /// Check billing permissions.
 
-    if (IsBillingEnabled && props.currentPlan) {
-      const model: BaseModel = new modelType();
-
-      if (
-        props.isSubscriptionUnpaid &&
-        !model.allowAccessIfSubscriptionIsUnpaid
-      ) {
-        throw new PaymentRequiredException(
-          "Your current subscription is in an unpaid state. Looks like your payment method failed. Please add a new payment method in Project Settings > Invoices to pay unpaid invoices.",
-        );
-      }
-
-      if (
-        type === DatabaseRequestType.Create &&
-        model.tableBillingAccessControl?.create
-      ) {
-        if (
-          !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
-            model.tableBillingAccessControl.create,
-            props.currentPlan,
-            getAllEnvVars(),
-          )
-        ) {
-          throw new PaymentRequiredException(
-            "Please upgrade your plan to " +
-              model.tableBillingAccessControl.create +
-              " to access this feature",
-          );
-        }
-      }
-
-      if (
-        type === DatabaseRequestType.Update &&
-        model.tableBillingAccessControl?.update
-      ) {
-        if (
-          !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
-            model.tableBillingAccessControl.update,
-            props.currentPlan,
-            getAllEnvVars(),
-          )
-        ) {
-          throw new PaymentRequiredException(
-            "Please upgrade your plan to " +
-              model.tableBillingAccessControl.create +
-              " to access this feature",
-          );
-        }
-      }
-
-      if (
-        type === DatabaseRequestType.Delete &&
-        model.tableBillingAccessControl?.delete
-      ) {
-        if (
-          !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
-            model.tableBillingAccessControl.delete,
-            props.currentPlan,
-            getAllEnvVars(),
-          )
-        ) {
-          throw new PaymentRequiredException(
-            "Please upgrade your plan to " +
-              model.tableBillingAccessControl.create +
-              " to access this feature",
-          );
-        }
-      }
-
-      if (
-        type === DatabaseRequestType.Read &&
-        model.tableBillingAccessControl?.read
-      ) {
-        if (
-          !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
-            model.tableBillingAccessControl?.read,
-            props.currentPlan,
-            getAllEnvVars(),
-          )
-        ) {
-          throw new PaymentRequiredException(
-            "Please upgrade your plan to " +
-              model.tableBillingAccessControl?.read +
-              " to access this feature",
-          );
-        }
-      }
+    if (!IsBillingEnabled) {
+      return;
     }
+
+    const model: BaseModel = new modelType();
+
+    const requiredPlan: PlanType | undefined =
+      ModelPermission.getTablePlan(model, type);
+
+    /*
+     * Props that act in a project but carry no plan are never read as "any
+     * plan" (CallerPlan): a table that names a plan for this operation is
+     * refused to them. OneUptime itself and server admins need no plan.
+     */
+    if (!props.currentPlan) {
+      if (requiredPlan) {
+        CallerPlan.assertPlanKnown(props);
+      }
+
+      return;
+    }
+
+    if (props.isSubscriptionUnpaid && !model.allowAccessIfSubscriptionIsUnpaid) {
+      throw new PaymentRequiredException(
+        "Your current subscription is in an unpaid state. Looks like your payment method failed. Please add a new payment method in Project Settings > Invoices to pay unpaid invoices.",
+      );
+    }
+
+    if (
+      requiredPlan &&
+      !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
+        requiredPlan,
+        props.currentPlan,
+        getAllEnvVars(),
+      )
+    ) {
+      throw new PaymentRequiredException(
+        "Please upgrade your plan to " + requiredPlan + " to access this feature",
+      );
+    }
+  }
+
+  // The plan the table names for this operation, if it names one.
+  private static getTablePlan(
+    model: BaseModel,
+    type: DatabaseRequestType,
+  ): PlanType | undefined {
+    if (type === DatabaseRequestType.Create) {
+      return model.tableBillingAccessControl?.create;
+    }
+
+    if (type === DatabaseRequestType.Update) {
+      return model.tableBillingAccessControl?.update;
+    }
+
+    if (type === DatabaseRequestType.Delete) {
+      return model.tableBillingAccessControl?.delete;
+    }
+
+    if (type === DatabaseRequestType.Read) {
+      return model.tableBillingAccessControl?.read;
+    }
+
+    return undefined;
   }
 }
