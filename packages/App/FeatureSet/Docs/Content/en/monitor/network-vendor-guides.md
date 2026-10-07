@@ -54,7 +54,9 @@ A tunnel that Sophos reports as active only has its security associations up. To
 | Gateway down            | attribute `sophos.log_component` = `Gateway`, body contains `is Down`  | `sophos.gatewayname` |
 | SD-WAN SLA not met      | attribute `sophos.log_type` = `SD-WAN`, body contains `SLA not met`    | `sophos.gw_name`     |
 
-Set each monitor's criteria to **Log Count greater than 0** over a few minutes. The syslog events are complementary to the SNMP table: they arrive the moment a tunnel drops, while the table also catches a tunnel that never came up. 5. **Chart SD-WAN quality.** With SD-WAN logging on, the firewall writes an SLA summary per profile and gateway (`latency`, `jitter`, `packet_loss`). Under **Logs → Settings → Recording Rules**, create one rule per number — for example the **average** of `sophos.latency`, grouped by `sophos.gw_name` and `sophos.profile_name` — and chart the results, or alert on them with a [Metrics monitor](/docs/monitor/metrics-monitor) that groups by gateway. [Log Recording Rules](/docs/telemetry/log-recording-rules) walks through this example.
+Set each monitor's criteria to **Log Count greater than 0** over a few minutes. The syslog events are complementary to the SNMP table: they arrive the moment a tunnel drops, while the table also catches a tunnel that never came up.
+
+5. **Chart SD-WAN quality.** With SD-WAN logging on, the firewall writes an SLA summary per profile and gateway (`latency`, `jitter`, `packet_loss`). Under **Logs → Settings → Recording Rules**, create one rule per number — for example the **average** of `sophos.latency`, grouped by `sophos.gw_name` and `sophos.profile_name` — and chart the results, or alert on them with a [Metrics monitor](/docs/monitor/metrics-monitor) that groups by gateway. [Log Recording Rules](/docs/telemetry/log-recording-rules) walks through this example.
 
 ### 5. Traps
 
