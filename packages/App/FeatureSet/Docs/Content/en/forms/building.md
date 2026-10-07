@@ -127,6 +127,8 @@ A form's **Templates** page holds named sets of answers people can start the for
 
 On the public page, a form with templates lists them over its questions, under **Start from a template**. Choosing one fills the form in; the submitter can still change any answer before submitting, and choosing another starts the form over from that one. The page opens with the template its link names, otherwise with the default, otherwise with none. **Preview** lists the templates and opens on the default too.
 
+Everyone who opens the link sees every template's name and its answers to the questions the form shows — that is how the page fills itself in. A template's answers to hidden questions never leave the server, so keep anything internal in a hidden question.
+
 Every answer of every template is checked against its question when the templates are saved — an option the question offers, a record the form offers, text that fits — and saving is refused with a message that names the template and the problem, whether it comes from the dashboard, the API or Terraform. A template's name is up to 100 characters and unique within the form, and a form has up to 50 templates. When you later change the questions, a template's answer to a question you removed, or that no longer fits it, is simply not used, and the next save of that template drops it.
 
 ## When the builder flags a question
