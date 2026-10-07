@@ -34,6 +34,10 @@ import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLim
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import { GroupingOptions } from "../../Utils/StartingStage";
+import {
+  clearPlaceholdersExcept,
+  replaceAllLiterally,
+} from "../Utils/Rules/GroupingRuleEpisodeTemplate";
 
 export interface GroupingResult {
   grouped: boolean;
@@ -1127,33 +1131,13 @@ class AlertGroupingEngineServiceClass {
     template: string,
     alertCount: number = 1,
   ): string {
-    let result: string = template;
-
     /*
-     * Static variables (from first alert)
-     * {{alertTitle}}
+     * The template as the episode stores it, with the count filled in - just
+     * as AlertEpisodeService.updateAlertCount writes the title and
+     * description again as alerts join or leave. So they only ever change by
+     * their count.
      */
-    if (values.alertTitle) {
-      result = result.replace(/\{\{alertTitle\}\}/g, values.alertTitle);
-    }
-
-    // {{alertDescription}}
-    if (values.alertDescription) {
-      result = result.replace(
-        /\{\{alertDescription\}\}/g,
-        values.alertDescription,
-      );
-    }
-
-    // {{monitorName}}
-    if (values.monitorName) {
-      result = result.replace(/\{\{monitorName\}\}/g, values.monitorName);
-    }
-
-    // {{alertSeverity}}
-    if (values.alertSeverity) {
-      result = result.replace(/\{\{alertSeverity\}\}/g, values.alertSeverity);
-    }
+    let result: string = this.preprocessTemplate(values, template);
 
     /*
      * Dynamic variables (updated when alerts are added/removed)
@@ -1168,7 +1152,7 @@ class AlertGroupingEngineServiceClass {
   }
 
   /*
-   * Preprocess template: replace static variables but keep dynamic ones as placeholders
+   * Preprocess template: replace static variables, clear unknown ones and keep dynamic ones as placeholders
    * This is stored on the episode so we can re-render with updated dynamic values later
    */
   private preprocessTemplate(
@@ -1182,12 +1166,17 @@ class AlertGroupingEngineServiceClass {
      * {{alertTitle}}
      */
     if (values.alertTitle) {
-      result = result.replace(/\{\{alertTitle\}\}/g, values.alertTitle);
+      result = replaceAllLiterally(
+        result,
+        /\{\{alertTitle\}\}/g,
+        values.alertTitle,
+      );
     }
 
     // {{alertDescription}}
     if (values.alertDescription) {
-      result = result.replace(
+      result = replaceAllLiterally(
+        result,
         /\{\{alertDescription\}\}/g,
         values.alertDescription,
       );
@@ -1195,20 +1184,30 @@ class AlertGroupingEngineServiceClass {
 
     // {{monitorName}}
     if (values.monitorName) {
-      result = result.replace(/\{\{monitorName\}\}/g, values.monitorName);
+      result = replaceAllLiterally(
+        result,
+        /\{\{monitorName\}\}/g,
+        values.monitorName,
+      );
     }
 
     // {{alertSeverity}}
     if (values.alertSeverity) {
-      result = result.replace(/\{\{alertSeverity\}\}/g, values.alertSeverity);
+      result = replaceAllLiterally(
+        result,
+        /\{\{alertSeverity\}\}/g,
+        values.alertSeverity,
+      );
     }
 
     /*
      * Keep dynamic variables as placeholders (e.g., {{alertCount}})
-     * They will be replaced when title/description is re-rendered
+     * They will be replaced when title/description is re-rendered - and
+     * nothing else is: a variable this alert has no value for (no monitor,
+     * say), or one no alert has, is cleared now, as the title and
+     * description written from this template clear it.
      */
-
-    return result;
+    return clearPlaceholdersExcept(result, "{{alertCount}}");
   }
 
   @CaptureSpan()
