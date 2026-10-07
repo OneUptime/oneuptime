@@ -52,6 +52,9 @@ import ResourceAccessContext from "../ResourceAccess/ResourceAccessContext";
 import InfrastructureInvestigationToolkit from "../ResourceAccess/InfrastructureInvestigationToolkit";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import InvestigationRules, {
+  InvestigationRuleScope,
+} from "./InvestigationRules";
 
 /*
  * AI SRE — incident investigation.
@@ -194,6 +197,13 @@ export default class AIIncidentInvestigationRunner {
     const incident: Incident | null = await IncidentService.findOneById({
       id: incidentId,
       select: {
+        // What an investigation rule matches on, and the severity floor.
+        title: true,
+        description: true,
+        incidentSeverityId: true,
+        labels: {
+          _id: true,
+        },
         monitors: {
           _id: true,
         },
@@ -223,6 +233,24 @@ export default class AIIncidentInvestigationRunner {
 
     // The first affected monitor is the run's dedupe key for the next incident.
     const primaryMonitorId: ObjectID | undefined = monitorIds[0];
+
+    /*
+     * Investigation rules, when the project has any: only the incidents that
+     * match one are investigated. Checked first - an incident outside every
+     * rule is out whatever its severity.
+     */
+    const scope: InvestigationRuleScope =
+      await InvestigationRules.getIncidentScope({ projectId, incident });
+
+    if (!scope.isInScope) {
+      return {
+        investigate: false,
+        notStartedCode: "no_investigation_rule_matched",
+        notStartedDetails: { rulesChecked: scope.rulesChecked },
+        reason: `none of the ${scope.rulesChecked} investigation rules matched`,
+        monitorId: primaryMonitorId,
+      };
+    }
 
     // One project read serves both the severity floor and the dedupe window.
     const project: Project | null = await ProjectService.findOneById({

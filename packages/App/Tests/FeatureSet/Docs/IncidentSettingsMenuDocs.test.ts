@@ -171,13 +171,12 @@ describe("Incident docs list the Settings menu's pages", () => {
     expect(new Set(titles).size).toBe(titles.length);
   });
 
-  it("reads the menu's AI pages: Insights, Logs, Settings and Auto Remediation Rules", () => {
-    expect(aiMenuTitles()).toEqual([
-      "Insights",
-      "Logs",
-      "Settings",
-      "Auto Remediation Rules",
-    ]);
+  /*
+   * The auto remediation rules had a page of their own here; they are under
+   * the Settings page's More settings now, with the investigation rules.
+   */
+  it("reads the menu's AI pages: Insights, Logs and Settings", () => {
+    expect(aiMenuTitles()).toEqual(["Insights", "Logs", "Settings"]);
   });
 
   it.each(LANGUAGES)(

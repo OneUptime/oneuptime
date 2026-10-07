@@ -80,7 +80,6 @@ import IncidentSettingsOnCallRules from "../Pages/Incidents/Settings/IncidentOnC
 
 import IncidentSettingsOwnerRules from "../Pages/Incidents/Settings/IncidentOwnerRules";
 import IncidentSettingsRunbookRules from "../Pages/Incidents/Settings/IncidentRunbookRules";
-import IncidentSettingsAutoRemediationRules from "../Pages/Incidents/Settings/IncidentAutoRemediationRules";
 
 import IncidentSettingsPrivacyRules from "../Pages/Incidents/Settings/IncidentPrivacyRules";
 
@@ -203,9 +202,10 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
 
       {/*
        * The AI settings and the Auto Remediation Rules moved into the AI
-       * section (…/ai/settings and …/ai/auto-remediation-rules). Their old
-       * URLs, in bookmarks, emails and older docs, forward there - outside
-       * the layout, so the side menu never flashes on the way.
+       * section (…/ai/settings and …/ai/auto-remediation-rules), and then
+       * the rules into the AI settings page's More settings. Their old URLs,
+       * in bookmarks, emails and older docs, forward there - outside the
+       * layout, so the side menu never flashes on the way.
        */}
       <PageRoute
         path={MOVED_AI_SECTION_PATHS.aiSettings}
@@ -213,11 +213,11 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
       />
       <PageRoute
         path={MOVED_AI_SECTION_PATHS.autoRemediationRules}
-        element={
-          <MovedPageRedirect
-            pageMap={PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES}
-          />
-        }
+        element={<MovedPageRedirect pageMap={PageMap.INCIDENTS_SETTINGS_AI} />}
+      />
+      <PageRoute
+        path={MOVED_AI_SECTION_PATHS.aiAutoRemediationRules}
+        element={<MovedPageRedirect pageMap={PageMap.INCIDENTS_SETTINGS_AI} />}
       />
 
       <PageRoute
@@ -515,24 +515,6 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.INCIDENTS_SETTINGS_RUNBOOK_RULES] as Route
-              }
-            />
-          }
-        />
-
-        <PageRoute
-          path={
-            IncidentsRoutePath[
-              PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES
-            ] || ""
-          }
-          element={
-            <IncidentSettingsAutoRemediationRules
-              {...props}
-              pageRoute={
-                RouteMap[
-                  PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES
-                ] as Route
               }
             />
           }

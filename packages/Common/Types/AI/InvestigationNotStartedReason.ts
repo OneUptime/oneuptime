@@ -18,6 +18,12 @@ export type InvestigationNotStartedCode =
   | "severity_below_threshold"
   | "monitor_cooldown"
   /*
+   * Investigation rules are set up for this kind of signal, and the record
+   * matched none of them: with rules, only the records that match one are
+   * investigated automatically.
+   */
+  | "no_investigation_rule_matched"
+  /*
    * The incident or alert was created already resolved (its Initial State,
    * a template's, the API...): it was over before it was recorded, so there
    * was nothing to investigate (Common/Utils/StartingStage). Only ever
@@ -47,4 +53,6 @@ export interface InvestigationGateDetails {
   severityName?: string | undefined;
   minimumSeverityName?: string | undefined;
   cooldownWindowMinutes?: number | undefined;
+  // no_investigation_rule_matched: how many enabled rules were checked.
+  rulesChecked?: number | undefined;
 }

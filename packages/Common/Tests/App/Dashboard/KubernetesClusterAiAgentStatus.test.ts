@@ -43,10 +43,14 @@ import {
   getAiAgentStatusPill,
   getAiAgentSummary,
   getAttentionGaps,
+  AUTOMATIC_REMEDIATION_LINE,
+  AUTOMATIC_REMEDIATION_SETTINGS_LINKS,
   getAutomaticInvestigation,
   getAutomaticInvestigationConfirmation,
   getAutomaticInvestigationLine,
   getAutomaticInvestigationTurnOnChanges,
+  getAutomaticRemediation,
+  getAutomaticRemediationLine,
   getKubernetesAiSettingsSource,
   getRefusedRegistrationWarning,
   isAdvancedRunnerTarget,
@@ -1957,6 +1961,64 @@ describe("the write-access commands", () => {
         }),
       ),
     ).toBe(false);
+  });
+});
+
+/*
+ * A cluster set to fix things fixes nothing new while the project's "Fix
+ * new incidents automatically" (or alerts) is off, which it is until a
+ * project turns it on - so the fixes row says the project's two switches,
+ * with a link to the settings page of each one that is off. The switches
+ * are turned on there, with their rules, not from a cluster.
+ */
+describe("the automatic-fix line", () => {
+  test("reads the project's two switches, On or Off, in one sentence", () => {
+    expect(AUTOMATIC_REMEDIATION_LINE).toBe(
+      "Automatic fixes for new incidents in this project: {{incidents}} · alerts: {{alerts}}",
+    );
+    expect(
+      getAutomaticRemediationLine({ incidents: true, alerts: false }),
+    ).toBe(
+      "Automatic fixes for new incidents in this project: On · alerts: Off",
+    );
+    expect(
+      getAutomaticRemediationLine({ incidents: false, alerts: true }),
+    ).toBe(
+      "Automatic fixes for new incidents in this project: Off · alerts: On",
+    );
+  });
+
+  test("links each switch's own settings page", () => {
+    expect(AUTOMATIC_REMEDIATION_SETTINGS_LINKS).toEqual({
+      incidents: "Incident AI settings",
+      alerts: "Alert AI settings",
+    });
+  });
+
+  test("is not drawn for a server that does not send the switches, or sends them malformed", () => {
+    const older: Partial<KubernetesClusterAiAccessStatus> = agentStatus();
+    delete older.automaticRemediation;
+
+    expect(
+      getAutomaticRemediation(older as KubernetesClusterAiAccessStatus),
+    ).toBeNull();
+    expect(
+      getAutomaticRemediation(
+        agentStatus({
+          automaticRemediation: {
+            incidents: "on",
+            alerts: true,
+          } as unknown as KubernetesClusterAiAccessStatus["automaticRemediation"],
+        }),
+      ),
+    ).toBeNull();
+    expect(
+      getAutomaticRemediation(
+        agentStatus({
+          automaticRemediation: { incidents: true, alerts: false },
+        }),
+      ),
+    ).toEqual({ incidents: true, alerts: false });
   });
 });
 

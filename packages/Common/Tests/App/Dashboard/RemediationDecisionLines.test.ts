@@ -31,8 +31,9 @@ import { goTo, PROJECT_ID } from "./SideMenuHarness";
  * - each cluster, resource and rule outcome reads as its own sentence,
  *   with the tone of what happened (acted, needs attention, or just so),
  *   the blocking gap's "why" and "what to do", and a link to the page that
- *   changes it - the cluster's or resource's AI agent page, the rules page
- *   of the right kind of signal, the AI settings, the LLM providers;
+ *   changes it - the cluster's or resource's AI agent page, the AI
+ *   settings page of the right kind of signal (where its switch and its
+ *   rules are), Enable AI, the LLM providers;
  * - a lane that only says another lane took the signal is not drawn.
  */
 
@@ -287,6 +288,25 @@ describe("getRemediationDecisionLines", () => {
       },
     );
 
+    test("says which rule made a round ask first that would have run on its own", () => {
+      const line: RemediationDecisionLine = onlyLine({
+        lane: AutoRemediationDecisionLane.KubernetesCluster,
+        reason: AutoRemediationDecisionReason.ClusterRoundStarted,
+        kubernetesClusterId: CLUSTER_ID,
+        kubernetesClusterName: "prod-east",
+        remediationMode: KubernetesAiRemediationMode.RequireApproval,
+        ruleName: "Payments ask first",
+      });
+
+      expect(line.tone).toBe("acted");
+      expect(line.text).toBe(
+        'OneUptime AI is composing a fix for cluster "prod-east". Nothing runs until you approve it, because Auto Remediation Rule "Payments ask first" asks before fixing.',
+      );
+      expect(hrefsOf(line)).toEqual([
+        `/dashboard/${PROJECT_ID}/kubernetes/${CLUSTER_ID}/ai/agent`,
+      ]);
+    });
+
     test("says why fixes cannot run yet, and what to do", () => {
       const line: RemediationDecisionLine = onlyLine({
         lane: AutoRemediationDecisionLane.KubernetesCluster,
@@ -381,6 +401,29 @@ describe("getRemediationDecisionLines", () => {
   });
 
   describe("infrastructure resources", () => {
+    test("says which rule made a resource round ask first", () => {
+      const line: RemediationDecisionLine = onlyLine(
+        {
+          lane: AutoRemediationDecisionLane.Resource,
+          reason: AutoRemediationDecisionReason.ResourceRoundStarted,
+          resourceType: "DockerHost",
+          resourceId: RESOURCE_ID,
+          resourceName: "web-1",
+          remediationMode: KubernetesAiRemediationMode.RequireApproval,
+          ruleName: "Staging asks",
+        },
+        "alert",
+      );
+
+      expect(line.tone).toBe("acted");
+      expect(line.text).toBe(
+        'OneUptime AI is composing a fix for Docker host "web-1". Nothing runs until you approve it, because Auto Remediation Rule "Staging asks" asks before fixing.',
+      );
+      expect(hrefsOf(line)).toEqual([
+        `/dashboard/${PROJECT_ID}/docker/${RESOURCE_ID}/ai/agent`,
+      ]);
+    });
+
     test("names the kind of resource, and links to its own AI agent page", () => {
       const docker: RemediationDecisionLine = onlyLine({
         lane: AutoRemediationDecisionLane.Resource,
@@ -465,7 +508,7 @@ describe("getRemediationDecisionLines", () => {
   });
 
   describe("Auto Remediation Rules", () => {
-    test("links to the rules of the right kind of signal", () => {
+    test("links to the rules of the right kind of signal, on its AI settings page", () => {
       const incidentLine: RemediationDecisionLine = onlyLine({
         lane: AutoRemediationDecisionLane.Rule,
         reason: AutoRemediationDecisionReason.NoRulesConfigured,
@@ -474,7 +517,7 @@ describe("getRemediationDecisionLines", () => {
         "No Auto Remediation Rule is set up for this kind of incident. A rule can propose or start a runbook when a matching one is created.",
       );
       expect(hrefsOf(incidentLine)).toEqual([
-        `/dashboard/${PROJECT_ID}/incidents/ai/auto-remediation-rules`,
+        `/dashboard/${PROJECT_ID}/incidents/ai/settings`,
       ]);
       expect(incidentLine.links[0]!.text).toBe(
         "Incident Auto Remediation Rules",
@@ -488,7 +531,83 @@ describe("getRemediationDecisionLines", () => {
         "alert",
       );
       expect(hrefsOf(alertLine)).toEqual([
-        `/dashboard/${PROJECT_ID}/alerts/ai/auto-remediation-rules`,
+        `/dashboard/${PROJECT_ID}/alerts/ai/settings`,
+      ]);
+      expect(alertLine.links[0]!.text).toBe("Alert Auto Remediation Rules");
+    });
+
+    test("with rules set up and none matching, says nothing was fixed, and why", () => {
+      const one: RemediationDecisionLine = onlyLine({
+        lane: AutoRemediationDecisionLane.Rule,
+        reason: AutoRemediationDecisionReason.NotMatchedByAnyRule,
+        rulesChecked: 1,
+      });
+
+      expect(one.tone).toBe("info");
+      expect(one.text).toBe(
+        "The 1 Auto Remediation Rule set up does not match this incident, so it was not fixed. With rules set up, only what matches one is fixed.",
+      );
+      expect(hrefsOf(one)).toEqual([
+        `/dashboard/${PROJECT_ID}/incidents/ai/settings`,
+      ]);
+
+      const many: RemediationDecisionLine = onlyLine(
+        {
+          lane: AutoRemediationDecisionLane.Rule,
+          reason: AutoRemediationDecisionReason.NotMatchedByAnyRule,
+          rulesChecked: 3,
+        },
+        "alert",
+      );
+
+      expect(many.text).toBe(
+        "None of the 3 Auto Remediation Rules set up match this alert, so it was not fixed. With rules set up, only what matches one is fixed.",
+      );
+      expect(hrefsOf(many)).toEqual([
+        `/dashboard/${PROJECT_ID}/alerts/ai/settings`,
+      ]);
+    });
+
+    test("says a matching rule has OneUptime AI fix the signal, and whether it asks first", () => {
+      const fixes: RemediationDecisionLine = onlyLine({
+        lane: AutoRemediationDecisionLane.Rule,
+        reason: AutoRemediationDecisionReason.RuleMatchedAiFix,
+        ruleName: "Production",
+      });
+
+      expect(fixes.tone).toBe("info");
+      expect(fixes.text).toBe(
+        'Rule "Production" matched, so OneUptime AI fixes this incident on what it is linked to.',
+      );
+      expect(fixes.links).toEqual([]);
+
+      const asks: RemediationDecisionLine = onlyLine(
+        {
+          lane: AutoRemediationDecisionLane.Rule,
+          reason: AutoRemediationDecisionReason.RuleMatchedAiFixAsks,
+          ruleName: "Payments",
+        },
+        "alert",
+      );
+
+      expect(asks.tone).toBe("info");
+      expect(asks.text).toBe(
+        'Rule "Payments" matched, so OneUptime AI fixes this alert on what it is linked to, and every fix waits for your approval.',
+      );
+    });
+
+    test("says when the matching rules run runbooks only, so no cluster or host was fixed", () => {
+      const line: RemediationDecisionLine = onlyLine({
+        lane: AutoRemediationDecisionLane.Rule,
+        reason: AutoRemediationDecisionReason.NoAiFixRuleMatched,
+      });
+
+      expect(line.tone).toBe("info");
+      expect(line.text).toBe(
+        "No Auto Remediation Rule that matches this incident fixes with OneUptime AI, so OneUptime AI did not fix it on the clusters or hosts it is linked to.",
+      );
+      expect(hrefsOf(line)).toEqual([
+        `/dashboard/${PROJECT_ID}/incidents/ai/settings`,
       ]);
     });
 
@@ -594,6 +713,42 @@ describe("getRemediationDecisionLines", () => {
   });
 
   describe("project", () => {
+    test.each([
+      [
+        "incident" as RemediationDecisionSignal,
+        '"Fix new incidents automatically" is off for this project, so OneUptime AI did not try to fix this incident.',
+        `/dashboard/${PROJECT_ID}/incidents/ai/settings`,
+        "Incident AI settings",
+      ],
+      [
+        "alert" as RemediationDecisionSignal,
+        '"Fix new alerts automatically" is off for this project, so OneUptime AI did not try to fix this alert.',
+        `/dashboard/${PROJECT_ID}/alerts/ai/settings`,
+        "Alert AI settings",
+      ],
+    ])(
+      "says fixing new %ss is off - a choice, not a fault - and links to its switch",
+      (
+        signal: RemediationDecisionSignal,
+        text: string,
+        href: string,
+        linkText: string,
+      ) => {
+        const line: RemediationDecisionLine = onlyLine(
+          {
+            lane: AutoRemediationDecisionLane.Project,
+            reason: AutoRemediationDecisionReason.RemediationOff,
+          },
+          signal,
+        );
+
+        expect(line.tone).toBe("info");
+        expect(line.text).toBe(text);
+        expect(hrefsOf(line)).toEqual([href]);
+        expect(line.links[0]!.text).toBe(linkText);
+      },
+    );
+
     test("says Enable AI is off, and links to the AI settings", () => {
       const line: RemediationDecisionLine = onlyLine({
         lane: AutoRemediationDecisionLane.Project,

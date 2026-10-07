@@ -374,10 +374,6 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       "AI",
       "Settings",
     ]),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES,
-      ["Project", "Incidents", "AI", "Auto Remediation Rules"],
-    ),
 
     // Incident Rules
     ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_GROUPING_RULES, [

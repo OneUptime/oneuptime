@@ -11,8 +11,9 @@ import { cleanup, render } from "@testing-library/react";
 import * as React from "react";
 
 /*
- * Runbook rules and auto-remediation rules are one table each, shown on the
- * incident, alert (and, for runbooks, scheduled maintenance) settings. Their
+ * Runbook rules, auto-remediation rules and investigation rules are one
+ * table each, shown on the incident, alert (and, for runbooks, scheduled
+ * maintenance) settings. Their
  * criteria names are built from the kind of record the table matches, so the
  * same condition reads "Incident Title" on an incident rule and "Alert Title"
  * on an alert rule - the words the other rules of each product use - and never
@@ -31,10 +32,11 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 });
 
 import AutoRemediationRulesTable from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/AutoRemediationRulesTable";
+import AIInvestigationRulesTable from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/AIInvestigationRulesTable";
+import { AiLane } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import RunbookRulesTable, {
   getRunbookRuleCriteriaSubject,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Runbook/RunbookRulesTable";
-import AutoRemediationTriggerEntity from "../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import RunbookRuleTriggerEntity from "../../../Types/Runbook/RunbookRuleTriggerEntity";
 
 interface CapturedField {
@@ -111,23 +113,33 @@ describe("runbook rule criteria", () => {
   );
 });
 
-describe("auto-remediation rule criteria", () => {
+describe("auto-remediation and investigation rule criteria", () => {
   test.each([
-    [AutoRemediationTriggerEntity.Incident, "incident", "Incident"],
-    [AutoRemediationTriggerEntity.Alert, "alert", "Alert"],
+    [AiLane.Incident, "Incident"],
+    [AiLane.Alert, "Alert"],
   ])(
-    "%s rules name their criteria like the other %s rules",
-    (
-      triggerEntityType: AutoRemediationTriggerEntity,
-      entityLabel: string,
-      subject: string,
-    ) => {
-      render(
-        <AutoRemediationRulesTable
-          triggerEntityType={triggerEntityType}
-          entityLabel={entityLabel}
-        />,
-      );
+    "%s auto-remediation rules name their criteria like the other rules of the kind",
+    (lane: AiLane, subject: string) => {
+      render(<AutoRemediationRulesTable lane={lane} />);
+
+      expect(criteriaTitles()).toEqual([
+        "Monitors",
+        `${subject} Severities`,
+        `${subject} Labels`,
+        "Monitor Labels",
+        `${subject} Title`,
+        `${subject} Description`,
+      ]);
+    },
+  );
+
+  test.each([
+    [AiLane.Incident, "Incident"],
+    [AiLane.Alert, "Alert"],
+  ])(
+    "%s investigation rules offer exactly the auto-remediation rules' conditions",
+    (lane: AiLane, subject: string) => {
+      render(<AIInvestigationRulesTable lane={lane} />);
 
       expect(criteriaTitles()).toEqual([
         "Monitors",
