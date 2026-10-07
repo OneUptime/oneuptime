@@ -20,10 +20,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * on delete) is not dropped again, and OnlineDdl validates one an earlier run
  * left unvalidated.
  */
-export class KeepOnCallTimelineHistory1799700000000
+export class KeepOnCallTimelineHistory1799750000000
   implements MigrationInterface
 {
-  public name: string = "KeepOnCallTimelineHistory1799700000000";
+  public name: string = "KeepOnCallTimelineHistory1799750000000";
 
   // OnlineDdl.addForeignKey validates outside a transaction.
   public transaction: boolean = false;

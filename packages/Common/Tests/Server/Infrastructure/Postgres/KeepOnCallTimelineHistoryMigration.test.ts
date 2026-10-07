@@ -1,6 +1,6 @@
 import UserOnCallLogTimeline from "../../../../Models/DatabaseModels/UserOnCallLogTimeline";
 import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
-import { KeepOnCallTimelineHistory1799700000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1799700000000-KeepOnCallTimelineHistory";
+import { KeepOnCallTimelineHistory1799750000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1799750000000-KeepOnCallTimelineHistory";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
@@ -151,7 +151,7 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("KeepOnCallTimelineHistory1799700000000", () => {
+describe("KeepOnCallTimelineHistory1799750000000", () => {
   test("is registered under its own name", () => {
     const names: Array<string> = SchemaMigrations.map(
       (migration: { name: string }): string => {
@@ -159,15 +159,15 @@ describe("KeepOnCallTimelineHistory1799700000000", () => {
       },
     );
 
-    expect(names).toContain("KeepOnCallTimelineHistory1799700000000");
-    expect(new KeepOnCallTimelineHistory1799700000000().name).toBe(
-      "KeepOnCallTimelineHistory1799700000000",
+    expect(names).toContain("KeepOnCallTimelineHistory1799750000000");
+    expect(new KeepOnCallTimelineHistory1799750000000().name).toBe(
+      "KeepOnCallTimelineHistory1799750000000",
     );
   });
 
   test("runs without a transaction, as OnlineDdl requires", () => {
     const migration: MigrationInterface & { transaction?: boolean } =
-      new KeepOnCallTimelineHistory1799700000000();
+      new KeepOnCallTimelineHistory1799750000000();
 
     expect(migration.transaction).toBe(false);
   });
@@ -175,7 +175,7 @@ describe("KeepOnCallTimelineHistory1799700000000", () => {
   test("each reference is dropped as generated, then added back SET NULL through OnlineDdl", async () => {
     const run: FakeRun = fakeRun(everyConstraint("c"));
 
-    await new KeepOnCallTimelineHistory1799700000000().up(run.runner);
+    await new KeepOnCallTimelineHistory1799750000000().up(run.runner);
 
     const expected: Array<string> = [];
 
@@ -198,7 +198,7 @@ describe("KeepOnCallTimelineHistory1799700000000", () => {
   test("nothing in it deletes or rewrites a history row: it only looks up, drops and adds constraints", async () => {
     const run: FakeRun = fakeRun(everyConstraint("c"));
 
-    await new KeepOnCallTimelineHistory1799700000000().up(run.runner);
+    await new KeepOnCallTimelineHistory1799750000000().up(run.runner);
 
     for (const statement of run.statements) {
       const isConstraintWork: boolean =
@@ -225,7 +225,7 @@ describe("KeepOnCallTimelineHistory1799700000000", () => {
 
     const run: FakeRun = fakeRun(states);
 
-    await new KeepOnCallTimelineHistory1799700000000().up(run.runner);
+    await new KeepOnCallTimelineHistory1799750000000().up(run.runner);
 
     const drops: Array<string> = run.statements.filter(
       (statement: string): boolean => {
@@ -248,7 +248,7 @@ describe("KeepOnCallTimelineHistory1799700000000", () => {
   test("a reference that is not there at all is added", async () => {
     const run: FakeRun = fakeRun({});
 
-    await new KeepOnCallTimelineHistory1799700000000().up(run.runner);
+    await new KeepOnCallTimelineHistory1799750000000().up(run.runner);
 
     // DROP IF EXISTS: nothing to drop is not an error.
     expect(run.onlineAdds).toHaveLength(10);
@@ -296,7 +296,7 @@ describe("KeepOnCallTimelineHistory1799700000000", () => {
       },
     } as unknown as QueryRunner;
 
-    await new KeepOnCallTimelineHistory1799700000000().down(runner);
+    await new KeepOnCallTimelineHistory1799750000000().down(runner);
 
     for (const name of Object.keys(CONSTRAINTS)) {
       const constraint: { column: string; references: string } =

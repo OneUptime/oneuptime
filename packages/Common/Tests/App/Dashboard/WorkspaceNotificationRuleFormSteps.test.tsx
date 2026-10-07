@@ -38,6 +38,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * and each step checks its own half. Both halves still edit the one
  * notificationRule the rule is saved with.
  *
+ * A rule for incidents or alerts has one more step, Video Call: whether the
+ * rule starts a call for the event, and where. It edits the same
+ * notificationRule, and it is the last step, so the rule is created from it.
+ *
  * The production table builds the form; only the table around it is
  * replaced, by the create modal the real table opens (the same
  * ModelFormModal, ModelForm and BasicForm). Transport, permissions and the
@@ -277,6 +281,16 @@ async function toDestination(user: UserEvent): Promise<void> {
   await settle();
 }
 
+// On from the Destination step, which checks the destination on the way.
+async function toVideoCall(user: UserEvent): Promise<void> {
+  await next(user);
+  await waitForStep("Video Call");
+  await within(dialog()).findByRole("switch", {
+    name: /^Start a video call for the/,
+  });
+  await settle();
+}
+
 type CreateCall = {
   model: WorkspaceNotificationRule;
   miscDataProps?: JSONObject | undefined;
@@ -295,10 +309,15 @@ describe("Create a Slack notification rule for incidents", () => {
     cleanup();
   });
 
-  test("walks Basic, Conditions, then Destination", async () => {
+  test("walks Basic, Conditions, Destination, then Video Call", async () => {
     await renderForm(NotificationRuleEventType.Incident);
 
-    expect(stepTitles()).toEqual(["Basic", "Conditions", "Destination"]);
+    expect(stepTitles()).toEqual([
+      "Basic",
+      "Conditions",
+      "Destination",
+      "Video Call",
+    ]);
     expect(activeStep()).toBe("Basic");
   });
 
@@ -374,10 +393,13 @@ describe("Create a Slack notification rule for incidents", () => {
       within(dialog()).queryByRole("radio", { name: "Any" }),
     ).not.toBeInTheDocument();
 
-    // The last step: its button creates the rule.
+    // Not the last step: the rule is created from the Video Call step.
     expect(
-      await within(dialog()).findByRole("button", { name: SUBMIT_LABEL }),
+      await within(dialog()).findByRole("button", { name: "Next" }),
     ).toBeVisible();
+    expect(
+      within(dialog()).queryByRole("button", { name: SUBMIT_LABEL }),
+    ).not.toBeInTheDocument();
   });
 
   // Not on arrival - only once the person tries to create the rule.
@@ -390,13 +412,14 @@ describe("Create a Slack notification rule for incidents", () => {
 
     expect(within(dialog()).queryAllByRole("alert")).toHaveLength(0);
 
-    await submit(user);
+    await next(user);
 
     expect(
       await within(dialog()).findByText(
         "Please select a destination: create a Slack channel or post to an existing Slack channel",
       ),
     ).toBeVisible();
+    expect(activeStep()).toBe("Destination");
     expect(createOrUpdateMock).not.toHaveBeenCalled();
   });
 
@@ -407,13 +430,14 @@ describe("Create a Slack notification rule for incidents", () => {
 
     await toDestination(user);
     await user.click(switchNamed(/^Post to Existing Slack Channel/));
-    await submit(user);
+    await next(user);
 
     expect(
       await within(dialog()).findByText(
         "Existing Slack channel name is required",
       ),
     ).toBeVisible();
+    expect(activeStep()).toBe("Destination");
     expect(createOrUpdateMock).not.toHaveBeenCalled();
   });
 
@@ -430,6 +454,8 @@ describe("Create a Slack notification rule for incidents", () => {
       ),
       { target: { value: "#incidents" } },
     );
+    await settle();
+    await toVideoCall(user);
     await submit(user);
 
     await waitFor(() => {
@@ -451,7 +477,9 @@ describe("Create a Slack notification rule for incidents", () => {
      */
     expect(rule["filterCondition"]).toBe(FilterCondition.All);
     expect(rule["filters"]).toEqual([]);
-    // The Destination step's own key is form-only: never sent.
+    // A call is only started by a rule that asks for one.
+    expect(rule["shouldStartVideoCall"]).toBeUndefined();
+    // The Destination and Video Call steps' own keys are form-only: never sent.
     expect(call.miscDataProps).toEqual({});
   });
 
@@ -502,6 +530,8 @@ describe("Create a Slack notification rule for incidents", () => {
       await within(dialog()).findByPlaceholderText("oneuptime-incident-"),
       { target: { value: "oneuptime-incident-" } },
     );
+    await settle();
+    await toVideoCall(user);
     await submit(user);
 
     await waitFor(() => {
@@ -547,6 +577,8 @@ describe("Create a Slack notification rule for incidents", () => {
       await within(dialog()).findByPlaceholderText("oneuptime-incident-"),
       { target: { value: "oneuptime-incident-" } },
     );
+    await settle();
+    await toVideoCall(user);
     await submit(user);
 
     await waitFor(() => {
@@ -560,6 +592,77 @@ describe("Create a Slack notification rule for incidents", () => {
     expect(rule["filters"]).toEqual([
       expect.objectContaining({ value: "database" }),
     ]);
+  });
+
+  test("asks on the Video Call step whether the rule starts a call, off to begin with", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
+
+    await toDestination(user);
+    await user.click(switchNamed(/^Create Slack Channel/));
+    fireEvent.change(
+      await within(dialog()).findByPlaceholderText("oneuptime-incident-"),
+      { target: { value: "oneuptime-incident-" } },
+    );
+    await settle();
+    await toVideoCall(user);
+
+    expect(switchNamed(/^Start a video call for the incident/)).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+    // Nothing to pick until the call is on.
+    expect(within(dialog()).queryAllByRole("radio")).toHaveLength(0);
+    // The last step: its button creates the rule.
+    expect(
+      within(dialog()).getByRole("button", { name: SUBMIT_LABEL }),
+    ).toBeVisible();
+  });
+
+  test("creates a rule that starts the huddle of the channel it creates", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
+
+    await toDestination(user);
+    await user.click(switchNamed(/^Create Slack Channel/));
+    fireEvent.change(
+      await within(dialog()).findByPlaceholderText("oneuptime-incident-"),
+      { target: { value: "oneuptime-incident-" } },
+    );
+    await settle();
+    await toVideoCall(user);
+
+    await user.click(switchNamed(/^Start a video call for the incident/));
+    await settle();
+
+    // With no connections yet, the channel's huddle is the one place, and is picked.
+    const huddle: HTMLElement = await within(dialog()).findByRole("radio", {
+      name: /Slack huddle/,
+    });
+
+    expect(huddle).toHaveAttribute("aria-checked", "true");
+    expect(
+      within(dialog()).getByRole("link", { name: /Connect a provider/ }),
+    ).toBeVisible();
+
+    await submit(user);
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    const call: CreateCall = createCall();
+    const rule: JSONObject = call.model
+      .notificationRule as unknown as JSONObject;
+
+    expect(rule["shouldStartVideoCall"]).toBe(true);
+    expect(rule["videoCallSource"]).toBe("SlackHuddle");
+    // The rest of the rule is what the other steps chose.
+    expect(rule["shouldCreateNewChannel"]).toBe(true);
+    expect(rule["newChannelTemplateName"]).toBe("oneuptime-incident-");
+    expect(call.miscDataProps).toEqual({});
   });
 
   test("keeps what the Destination step chose when going back to Conditions and on again", async () => {
@@ -602,7 +705,8 @@ describe("Create a Slack notification rule for monitors", () => {
     cleanup();
   });
 
-  test("walks the same three steps", async () => {
+  // A monitor has no call of its own: no Video Call step.
+  test("walks the same three steps, without a Video Call step", async () => {
     await renderForm(NotificationRuleEventType.Monitor);
 
     expect(stepTitles()).toEqual(["Basic", "Conditions", "Destination"]);

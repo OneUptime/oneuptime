@@ -346,6 +346,20 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "chat",
             ],
           },
+          {
+            page: PageMap.SETTINGS_VIDEO_CALLS,
+            title: "Video Calls",
+            icon: IconProp.VideoCamera,
+            keywords: [
+              "zoom",
+              "google meet",
+              "teams meeting",
+              "slack huddle",
+              "meeting link",
+              "conference bridge",
+              "war room",
+            ],
+          },
         ],
       },
       {

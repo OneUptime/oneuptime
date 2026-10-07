@@ -654,6 +654,10 @@ const DocsNav: NavGroup[] = [
         title: "Microsoft Teams",
         url: "/docs/workspace-connections/microsoft-teams",
       },
+      {
+        title: "Video Calls",
+        url: "/docs/workspace-connections/video-calls",
+      },
     ],
   },
   {

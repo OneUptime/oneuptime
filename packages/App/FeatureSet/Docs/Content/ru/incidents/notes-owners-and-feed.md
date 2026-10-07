@@ -142,6 +142,7 @@ OneUptime держит эти две аудитории порознь. **Пуб
 - **Людей** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`.
 - **Уведомления** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
 - **Автоматизацию** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
+- **Видеозвонки** — `VideoCallStarted` и `VideoCallFailed`: звонок, начатый для инцидента, со ссылкой для подключения, или причина, по которой провайдер не смог его начать. См. [Видеозвонки](/docs/workspace-connections/video-calls).
 
 У каждого типа своя иконка, поэтому в длинной ленте легко выцепить смены состояний из общего шума. Сгенерированный ИИ анализ корневой причины помечается отдельно и отрисовывается в ограниченном режиме Markdown.
 

@@ -63,6 +63,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.MicrosoftTeams,
         },
+        {
+          link: {
+            title: "Video Calls",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_VIDEO_CALLS] as Route,
+            ),
+          },
+          icon: IconProp.VideoCamera,
+        },
       ],
     },
     {

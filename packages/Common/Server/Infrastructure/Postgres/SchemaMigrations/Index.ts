@@ -58,7 +58,8 @@ import { AddFormTemplates1799500000000 } from "./1799500000000-AddFormTemplates"
 import { AddProjectPlanCutoffNoticeSentAt1799600000000 } from "./1799600000000-AddProjectPlanCutoffNoticeSentAt";
 import { AddLogRecordingRule1799650000000 } from "./1799650000000-AddLogRecordingRule";
 import { AddSnmpTablesToNetworkDevices1799660000000 } from "./1799660000000-AddSnmpTablesToNetworkDevices";
-import { KeepOnCallTimelineHistory1799700000000 } from "./1799700000000-KeepOnCallTimelineHistory";
+import { AddVideoCallTables1799700000000 } from "./1799700000000-AddVideoCallTables";
+import { KeepOnCallTimelineHistory1799750000000 } from "./1799750000000-KeepOnCallTimelineHistory";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1317,5 +1318,6 @@ export default [
   AddProjectPlanCutoffNoticeSentAt1799600000000,
   AddLogRecordingRule1799650000000,
   AddSnmpTablesToNetworkDevices1799660000000,
-  KeepOnCallTimelineHistory1799700000000,
+  AddVideoCallTables1799700000000,
+  KeepOnCallTimelineHistory1799750000000,
 ];

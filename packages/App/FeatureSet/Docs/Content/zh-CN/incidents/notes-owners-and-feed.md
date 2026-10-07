@@ -142,6 +142,7 @@ OneUptime 把这两类读者分开。**公开备注** 会发布到状态页，�
 - **人员** —— `OwnerUserAdded`、`OwnerTeamAdded`、`OwnerUserRemoved`、`OwnerTeamRemoved`、`IncidentMemberAdded`、`IncidentMemberRemoved`。
 - **通知** —— `OwnerNotificationSent`、`SubscriberNotificationSent`、`OnCallPolicy`、`OnCallNotification`。
 - **自动化** —— `LabelRuleExecuted`、`OwnerRuleExecuted`、`PrivacyRuleExecuted`、`OnCallRuleExecuted`、`AutoRemediation`。
+- **视频通话** —— `VideoCallStarted`、`VideoCallFailed`：为事件发起的通话及其加入链接，或提供商无法发起通话的原因。请参阅[视频通话](/docs/workspace-connections/video-calls)。
 
 每种类型都有自己的图标，所以你可以扫一遍很长的信息流，把状态变更从闲聊里挑出来。AI 生成的根本原因分析会被明确标记，并以受限的 Markdown 模式渲染。
 

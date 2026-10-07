@@ -175,6 +175,7 @@ Feed items are written by the incident service itself, by both note services, by
 - **Linked alerts** — `AlertLinked` and `AlertUnlinked`, shown as **Alert Linked** and **Alert Unlinked**.
 - **Notifications** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
 - **Automation** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
+- **Video calls** — `VideoCallStarted` and `VideoCallFailed`: a call started for the incident, with its join link, or the reason a provider could not start one. See [Video Calls](/docs/workspace-connections/video-calls).
 
 Each type gets its own icon, so you can scan a long feed and pick out the state changes from the chatter. AI-generated root cause analysis is marked distinctly and rendered in a restricted Markdown mode. The **Incident Created** item, the item that records a new title and the items for joining or leaving an episode escape `\`, `[`, `]` and \< in the titles they show, so a title cannot become an image, raw HTML, a Slack mention such as \<!here\> or a link whose text hides where it goes. A title is not always shown exactly as typed, though: an address in it still shows as a link to that same address, and `*`, `_`, `~` and backticks can still format it.
 
