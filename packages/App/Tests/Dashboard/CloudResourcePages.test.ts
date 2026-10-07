@@ -450,7 +450,15 @@ describe("Cloud Environment owners page wiring", () => {
       "<OwnersCard<CloudResourceOwnerUser, CloudResourceOwnerTeam>",
     );
     expect(page).toContain('resourceIdField="cloudResourceId"');
-    expect(page).toContain('resourceDisplayName="cloud environment"');
+  });
+
+  test("the page names the row by its kind: a discovered resource is not an environment", () => {
+    const page: string = readCode("Pages/Cloud/View/Owners.tsx");
+
+    expect(page).toContain("useCloudResourceViewContext()");
+    expect(page).toMatch(
+      /resourceDisplayName=\{\s*isCloudResourceKindResource\(cloudResourceKind\)\s*\?\s*"cloud resource"\s*:\s*"cloud environment"\s*\}/,
+    );
   });
 });
 
@@ -517,8 +525,13 @@ describe("Cloud breadcrumbs", () => {
 
 describe("Cloud Environment copy", () => {
   test("the view layout, list and inventory catalogue say environment, not resource", () => {
+    /*
+     * The table also holds the resources discovered from cloud monitoring;
+     * the page is titled by the row's kind, and an environment's still says
+     * environment.
+     */
     expect(readCode("Pages/Cloud/View/Layout.tsx")).toContain(
-      'title="Cloud Environment"',
+      'title={isResource ? "Cloud Resource" : "Cloud Environment"}',
     );
     /*
      * The Logs tab renders its viewer bare, like the Traces and Metrics tabs,
@@ -542,5 +555,26 @@ describe("Cloud Environment copy", () => {
 
     expect(cloudEntry).not.toContain("connected cloud account");
     expect(cloudEntry).toContain("cloud.* resource attributes");
+  });
+});
+
+describe("Cloud Resource settings", () => {
+  test("a discovered resource gets no retention card: its metrics are not filed under its row", () => {
+    const settings: string = readCode("Pages/Cloud/View/Settings.tsx");
+
+    expect(settings).toMatch(
+      /\{isResource \? null : \(\s*<TelemetryResourceRetentionSettings<CloudResource>/,
+    );
+  });
+
+  test("archiving names the row by its kind and returns to its own list", () => {
+    const settings: string = readCode("Pages/Cloud/View/Settings.tsx");
+
+    expect(settings).toContain(
+      'singularName={isResource ? "cloud resource" : "cloud environment"}',
+    );
+    expect(settings).toMatch(
+      /isResource\s*\?\s*PageMap\.CLOUD_MONITORED_RESOURCES\s*:\s*PageMap\.CLOUD_RESOURCES/,
+    );
   });
 });

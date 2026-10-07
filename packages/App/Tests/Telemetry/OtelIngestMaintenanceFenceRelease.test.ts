@@ -528,9 +528,17 @@ describe("maintenance fence release coverage", () => {
      * in FENCE_CASES — an autoDiscover* that only logs in its catch block
      * is exactly the bug this suite exists to catch.
      */
-    const covered: Array<string> = FENCE_CASES.map((c: FenceCase) => {
-      return c.method;
-    });
+    const covered: Array<string> = [
+      ...FENCE_CASES.map((c: FenceCase) => {
+        return c.method;
+      }),
+      /*
+       * Takes the request's distinct cloud resources rather than one
+       * resource's attributes, so it has a suite of its own that holds it to
+       * the same rule: CloudMonitoredResourceDiscovery.test.ts.
+       */
+      "autoDiscoverCloudMonitoredResources",
+    ];
 
     const declared: Array<string> = Object.getOwnPropertyNames(
       OtelIngestBaseService,

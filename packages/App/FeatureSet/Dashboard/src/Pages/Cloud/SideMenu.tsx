@@ -24,6 +24,20 @@ const CloudSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.List,
         },
+        /*
+         * The IaaS and PaaS resources discovered from the provider's own
+         * monitoring (Azure Monitor, CloudWatch, Cloud Monitoring) - virtual
+         * machines, load balancers, buckets, managed databases, queues.
+         */
+        {
+          link: {
+            title: "All Resources",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_MONITORED_RESOURCES] as Route,
+            ),
+          },
+          icon: IconProp.SquareStack,
+        },
       ],
     },
     {

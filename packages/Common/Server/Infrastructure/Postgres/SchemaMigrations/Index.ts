@@ -52,6 +52,7 @@ import { AddIncidentHoldsMonitors1798950000000 } from "./1798950000000-AddIncide
 import { AddProjectAiDailyLimitReachedAt1799000000000 } from "./1799000000000-AddProjectAiDailyLimitReachedAt";
 import { MarkPostmortemsWaitingForHiddenIncidents1799100000000 } from "./1799100000000-MarkPostmortemsWaitingForHiddenIncidents";
 import { HidePrivateIncidentsFromStatusPages1799200000000 } from "./1799200000000-HidePrivateIncidentsFromStatusPages";
+import { AddCloudMonitoredResourceColumns1799300000000 } from "./1799300000000-AddCloudMonitoredResourceColumns";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1304,4 +1305,5 @@ export default [
   AddProjectAiDailyLimitReachedAt1799000000000,
   MarkPostmortemsWaitingForHiddenIncidents1799100000000,
   HidePrivateIncidentsFromStatusPages1799200000000,
+  AddCloudMonitoredResourceColumns1799300000000,
 ];
