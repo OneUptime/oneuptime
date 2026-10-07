@@ -62,6 +62,9 @@ import OnCallDutyPolicyScheduleLayerUser from "../../Models/DatabaseModels/OnCal
 import ProjectLeaveResourceCleanup, {
   ProjectLeaveResourceCleanupResult,
 } from "../Utils/TeamMember/ProjectLeaveResourceCleanup";
+import ProjectLeaveNotificationCleanup, {
+  ProjectLeaveNotificationCleanupResult,
+} from "../Utils/TeamMember/ProjectLeaveNotificationCleanup";
 import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
 
 /*
@@ -1080,11 +1083,11 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       await this.syncSubscriptionSeatsAfterMembershipChange(item.projectId!);
 
       /*
-       * Before the notification settings go: the "removed from on-call
-       * policy" notices the cleanup triggers should still reach the person,
-       * exactly as they would for a manual removal. Then their roles on open
-       * incidents and their owner rows (see
-       * cleanupResourceAssignmentsIfUserLeftProject).
+       * Their on-call assignments, then their roles on open incidents and
+       * their owner rows (see cleanupResourceAssignmentsIfUserLeftProject).
+       * The "removed from on-call policy" notices those deletes trigger do
+       * not reach somebody who has left: they are no longer a member, and
+       * nothing of the project is sent to non-members (ProjectMembership).
        */
       const cleanupKey: string = `${item.userId?.toString()}:${item.projectId?.toString()}`;
       if (!leaveCleanupDone.has(cleanupKey) && item.userId && item.projectId) {
@@ -1103,6 +1106,14 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
          * posts can still mention the person through their chat account link.
          */
         await this.removeWorkspaceAccountLinksIfUserLeftProject({
+          projectId: item.projectId,
+          userId: item.userId,
+        });
+        /*
+         * Last: their own notification methods, rules and settings for the
+         * project, so joining again starts from the defaults.
+         */
+        await this.removePersonalNotificationSettingsIfUserLeftProject({
           projectId: item.projectId,
           userId: item.userId,
         });
@@ -1322,6 +1333,53 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
         } as LogAttributes,
       );
       return 0;
+    }
+  }
+
+  /**
+   * A user who has left the project keeps nothing of it that could notify
+   * them: once they hold no accepted membership in ANY team of the project,
+   * their own notification methods (email, SMS, call, WhatsApp, Telegram,
+   * push, webhook, Slack, Microsoft Teams), notification rules, notification
+   * settings, email rollup preference and pending rollup mail, and routed
+   * call number for the project are removed (see
+   * ProjectLeaveNotificationCleanup). Joining again starts from the
+   * defaults. A revoked invitation runs it too - a pending invitee has no
+   * business holding any of these either.
+   *
+   * Best-effort: never throws into the delete path. Returns null when the
+   * user is still a member (or the check failed).
+   */
+  @CaptureSpan()
+  public async removePersonalNotificationSettingsIfUserLeftProject(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+  }): Promise<ProjectLeaveNotificationCleanupResult | null> {
+    try {
+      if (
+        await this.isUserMemberOfProject({
+          projectId: data.projectId,
+          userId: data.userId,
+        })
+      ) {
+        return null;
+      }
+
+      return await ProjectLeaveNotificationCleanup.removePersonalNotificationSettings(
+        {
+          projectId: data.projectId,
+          userId: data.userId,
+        },
+      );
+    } catch (err) {
+      logger.error(
+        err as Error,
+        {
+          projectId: data.projectId.toString(),
+          userId: data.userId.toString(),
+        } as LogAttributes,
+      );
+      return null;
     }
   }
 

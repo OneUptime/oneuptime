@@ -23,6 +23,7 @@ import OnCallDutyPolicyScheduleService from "Common/Server/Services/OnCallDutyPo
 import UserService from "Common/Server/Services/UserService";
 import UserIncomingCallNumberService from "Common/Server/Services/UserIncomingCallNumberService";
 import UserIncomingCallNumber from "Common/Models/DatabaseModels/UserIncomingCallNumber";
+import ProjectMembership from "Common/Server/Utils/TeamMember/ProjectMembership";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -794,6 +795,22 @@ async function getUserToCall(
   }
 
   if (!userId) {
+    return null;
+  }
+
+  /*
+   * A caller is never put through to somebody who is not a member of the
+   * project now - who has left, or never accepted their invitation - even
+   * if a rule or a schedule still names them: the rule is skipped like one
+   * whose user has no verified number (ProjectMembership). One read per
+   * person the call is about to ring.
+   */
+  const memberUserIds: Set<string> = await ProjectMembership.getMemberUserIds({
+    projectId: projectId,
+    userIds: [userId],
+  });
+
+  if (!memberUserIds.has(userId.toString().toLowerCase())) {
     return null;
   }
 
