@@ -312,9 +312,10 @@ describe("every /oneuptime-assets URL a view uses resolves to a real file", () =
   });
 
   /*
-   * mermaid is built in memory (MermaidBrowserBuild.ts), not read from disk.
-   * A view may name its entry and nothing else: the entry names its own
-   * content-hashed chunks, and VendorAssets.test.ts fetches every one.
+   * mermaid is a build the images make (Common/Scripts/
+   * build-mermaid-browser.js), not a file in the repository. A view may name
+   * its entry and nothing else: the entry names its own content-hashed
+   * chunks, and VendorAssets.test.ts fetches every one.
    */
   function isServed(urlPath: string): boolean {
     if (urlPath.startsWith(`${VendorAssetsRoute}/${MermaidRouteSegment}/`)) {

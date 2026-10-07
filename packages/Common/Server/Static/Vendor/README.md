@@ -37,13 +37,16 @@ directory's README.
 
 Mermaid is not vendored here, and its own prebuilt bundles in
 `node_modules/mermaid/dist` are not served either: each of them embeds its own
-copies of mermaid's dependencies (katex among them), which neither npm's
-overrides nor `npm audit` reach. Instead `VendorAssets.ts` serves
-`/oneuptime-assets/mermaid/mermaid.mjs` and its content-hashed chunks from a
-build of mermaid's ES module source, made with the frontends' esbuild setup the
-first time a page asks for it (`packages/Common/Server/Utils/MermaidBrowserBuild.ts`,
-`packages/Common/UI/esbuild-mermaid.js`). Upgrading mermaid or katex in
-`packages/Common/package.json` is all it takes to keep it current.
+copies of mermaid's dependencies (katex among them), which npm's overrides do
+not reach. Instead `VendorAssets.ts` serves
+`/oneuptime-assets/mermaid/mermaid.mjs` and its content-hashed chunks from
+`packages/Common/build/mermaid-browser`: a build of mermaid's ES module source,
+made with the frontends' esbuild settings by
+`packages/Common/Scripts/build-mermaid-browser.js`, which the App and Home
+images run right after Common is copied in (`packages/Common/UI/esbuild-mermaid.js`
+has the details). Upgrading mermaid or katex in `packages/Common/package.json`
+is all it takes to keep it current. To draw diagrams from a server run outside
+Docker, run that script once.
 
 ## Refreshing highlight.js
 

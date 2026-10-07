@@ -1384,8 +1384,8 @@
             <script type="module">
                 /*
                  * Mermaid diagrams, fetched only for a post that has one. The
-                 * server builds mermaid from its source, with the dependencies
-                 * npm installed (Common/Server/Utils/MermaidBrowserBuild.ts).
+                 * image builds mermaid from its source, with the dependencies
+                 * npm installed (Common/Scripts/build-mermaid-browser.js).
                  *
                  * A module of its own rather than a section of the script
                  * above, which stops at its table of contents on a post with
@@ -1406,7 +1406,6 @@
                             securityLevel: 'loose', // Content is trusted (owned blog); allows links & styling
                             theme: prefersDark ? 'dark' : 'default'
                         });
-                        const containers = [];
                         mermaidCodeBlocks.forEach((codeEl, i) => {
                             // Avoid double-processing
                             if (codeEl.dataset.mermaidProcessed) { return; }
@@ -1420,9 +1419,9 @@
                             container.textContent = def;
                             pre.replaceWith(container);
                             codeEl.dataset.mermaidProcessed = 'true';
-                            containers.push(container);
                         });
-                        await mermaid.run({ nodes: containers });
+                        // Every .mermaid element: the blocks above, and any a post writes as HTML.
+                        await mermaid.run();
                     } catch (error) {
                         console.error('Mermaid could not render the diagrams in this post', error);
                     }

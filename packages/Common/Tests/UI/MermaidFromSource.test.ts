@@ -16,7 +16,8 @@ import {
  * may be bundled or served.
  *
  * The builds run in a node subprocess, the way the frontends' build scripts
- * and MermaidBrowserBuild.ts load esbuild: esbuild refuses to load under the
+ * and Common/Scripts/build-mermaid-browser.js load esbuild: esbuild refuses
+ * to load under the
  * jsdom environment Common's jest uses (see EsbuildConfig.test.ts).
  */
 
@@ -418,8 +419,9 @@ describe("the docs and the blog get the same source build", () => {
           "-e",
           String.raw`
             const path = require("path");
+            const esbuild = require("esbuild");
             const { buildMermaidBrowserBundle } = require("./UI/esbuild-mermaid");
-            buildMermaidBrowserBundle().then((bundle) => {
+            buildMermaidBrowserBundle(esbuild).then((bundle) => {
               console.log(JSON.stringify({
                 entry: bundle.entry,
                 files: bundle.files.map((file) => file.path),

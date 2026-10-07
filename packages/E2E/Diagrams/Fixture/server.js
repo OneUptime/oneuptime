@@ -11,9 +11,11 @@
  *   /blog       a post body under the blog's real scripts, taken out of
  *               Home/Views/Blog/Post.ejs.
  *
- * /oneuptime-assets/mermaid/ serves buildMermaidBrowserBundle(), the build
- * VendorAssets serves, and the rest of /oneuptime-assets the vendored files.
+ * /oneuptime-assets/mermaid/ serves what Common/Scripts/
+ * build-mermaid-browser.js writes - run here exactly as the App and Home
+ * images run it - and the rest of /oneuptime-assets the vendored files.
  */
+const childProcess = require("child_process");
 const fs = require("fs");
 const http = require("http");
 const path = require("path");
@@ -22,14 +24,19 @@ const path = require("path");
 process.env.NODE_ENV = "production";
 
 const { createConfig } = require("../../../Common/UI/esbuild-config.js");
-const {
-  buildMermaidBrowserBundle,
-} = require("../../../Common/UI/esbuild-mermaid.js");
 const esbuild = require("../../../Common/node_modules/esbuild");
 const ejs = require("../../../Common/node_modules/ejs");
 
 const repository = path.resolve(__dirname, "../../../..");
 const output = path.join(repository, "output/playwright/diagrams-ui/fixture");
+const mermaidDirectory = path.join(
+  repository,
+  "output/playwright/diagrams-ui/mermaid-browser",
+);
+const mermaidBuildScript = path.join(
+  repository,
+  "packages/Common/Scripts/build-mermaid-browser.js",
+);
 const port = Number(process.env["DIAGRAMS_FIXTURE_PORT"] || 4271);
 
 const vendorDirectory = path.join(
@@ -223,11 +230,10 @@ async function main() {
   fs.mkdirSync(output, { recursive: true });
   await esbuild.build(config);
 
-  const bundle = await buildMermaidBrowserBundle({ esbuild });
-  const mermaidFiles = new Map(
-    bundle.files.map((file) => {
-      return [file.path, file.text];
-    }),
+  childProcess.execFileSync(
+    process.execPath,
+    [mermaidBuildScript, mermaidDirectory],
+    { stdio: "inherit" },
   );
 
   const server = http.createServer((request, response) => {
@@ -235,17 +241,11 @@ async function main() {
     response.setHeader("Cache-Control", "no-store");
 
     if (url.pathname.startsWith("/oneuptime-assets/mermaid/")) {
-      const text = mermaidFiles.get(
+      serveFile(
+        response,
+        mermaidDirectory,
         url.pathname.slice("/oneuptime-assets/mermaid/".length),
       );
-
-      if (text === undefined) {
-        response.writeHead(404).end();
-        return;
-      }
-
-      response.setHeader("Content-Type", "text/javascript; charset=utf-8");
-      response.end(text);
       return;
     }
 

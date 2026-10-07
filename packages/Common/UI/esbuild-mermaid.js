@@ -7,12 +7,11 @@
  *   imports each dependency by package name, so the bundler that builds it
  *   resolves katex, DOMPurify, d3 and the rest out of node_modules: the
  *   versions npm installed, with the overrides in Common's package.json
- *   applied, and the versions npm audit reports on.
+ *   applied.
  *
  *   dist/mermaid.min.js, mermaid.js, mermaid.esm.mjs, mermaid.esm.min.mjs
  *   and their chunks - bundled when mermaid was released, each carrying its
- *   own copy of those dependencies. An override does not reach a copy, and
- *   npm audit cannot see one.
+ *   own copy of those dependencies, which an override does not reach.
  *
  * Every diagram OneUptime draws comes from the first kind:
  *
@@ -21,16 +20,18 @@
  *     below. esbuild splits it into chunks: mermaid's core, one per diagram
  *     type, and katex, which loads only for a label written as $$...$$.
  *   - The docs and the blog import /oneuptime-assets/mermaid/mermaid.mjs.
- *     Common/Server/Utils/MermaidBrowserBuild.ts produces it by running this
- *     file as a script, which prints buildMermaidBrowserBundle()'s output.
+ *     Common/Scripts/build-mermaid-browser.js writes it, with
+ *     buildMermaidBrowserBundle() below, to MERMAID_BROWSER_BUILD_DIRECTORY
+ *     when the App and Home images are built, and
+ *     Common/Server/Utils/VendorAssets.ts serves that directory.
  *
  * The plugin makes loading any prebuilt bundle a build error, so no import
  * path - a deep import, a future exports map, a shim like the one this
  * replaced - can bring an embedded copy back without failing the build.
  *
- * CommonJS, like esbuild-config.js. esbuild is required only when a build
- * runs, so tests can load this module under jsdom. Types for TypeScript
- * callers are in esbuild-mermaid.d.ts.
+ * CommonJS, like esbuild-config.js. It does not load esbuild itself: callers
+ * pass theirs to buildMermaidBrowserBundle(), so tests can load this module
+ * under jsdom. Types for TypeScript callers are in esbuild-mermaid.d.ts.
  */
 
 const path = require("path");
@@ -50,6 +51,17 @@ const MERMAID_BROWSER_ENTRY = "mermaid.mjs";
 const MERMAID_BROWSER_CHUNK_DIRECTORY = "chunks";
 
 const COMMON_ROOT = path.resolve(__dirname, "..");
+
+/*
+ * Where the docs' and the blog's build is written, and served from: inside
+ * Common, so every image that copies Common in can build it, and outside the
+ * source directories the development containers mount over the image's.
+ */
+const MERMAID_BROWSER_BUILD_DIRECTORY = path.join(
+  COMMON_ROOT,
+  "build",
+  "mermaid-browser",
+);
 
 /**
  * Whether a file is one of mermaid's prebuilt bundles.
@@ -88,20 +100,18 @@ function createMermaidSourcePlugin() {
 
 /**
  * Builds mermaid for a page that imports it as an ES module: the docs and
- * the blog. Same source and the same guard as the frontends' bundles;
- * written to memory, not to disk.
+ * the blog. Same source, the same guard and the same target, minification
+ * and kept names as the frontends' production bundles. Built in memory;
+ * Common/Scripts/build-mermaid-browser.js writes it out.
  *
- * @param {{ esbuild?: object }} [options] - an esbuild module to use instead
- *   of requiring one (tests).
+ * @param {object} esbuild - the esbuild module.
  * @returns {Promise<{ entry: string, files: Array<{ path: string, text: string }>, inputs: Array<string> }>}
- *   Paths relative to the directory the entry is served from, with forward
- *   slashes; inputs relative to Common.
+ *   File paths relative to the directory the entry is served from, with
+ *   forward slashes; inputs relative to Common.
  */
-async function buildMermaidBrowserBundle(options) {
-  const esbuild = (options && options.esbuild) || require("esbuild");
-
-  // Never written (write: false), but esbuild names outputs relative to it.
-  const outdir = path.join(COMMON_ROOT, "build", "mermaid-browser");
+async function buildMermaidBrowserBundle(esbuild) {
+  // Never written to (write: false); esbuild names the outputs against it.
+  const outdir = MERMAID_BROWSER_BUILD_DIRECTORY;
 
   const result = await esbuild.build({
     absWorkingDir: COMMON_ROOT,
@@ -112,9 +122,10 @@ async function buildMermaidBrowserBundle(options) {
     splitting: true,
     format: "esm",
     platform: "browser",
-    // The frontends' target (esbuild-config.js).
+    // The frontends' production settings (esbuild-config.js).
     target: "es2017",
     minify: true,
+    keepNames: true,
     define: {
       "process.env.NODE_ENV": JSON.stringify("production"),
     },
@@ -145,28 +156,8 @@ module.exports = {
   MERMAID_SOURCE_PLUGIN_NAME,
   MERMAID_BROWSER_ENTRY,
   MERMAID_BROWSER_CHUNK_DIRECTORY,
+  MERMAID_BROWSER_BUILD_DIRECTORY,
   isPrebuiltMermaidBundle,
   createMermaidSourcePlugin,
   buildMermaidBrowserBundle,
 };
-
-/*
- * `node esbuild-mermaid.js` prints the browser bundle as JSON on stdout:
- * { "entry": "mermaid.mjs", "files": [{ "path", "text" }] }. That is how
- * MermaidBrowserBuild.ts runs it - in a child process, so esbuild never
- * loads into a server process.
- */
-if (require.main === module) {
-  buildMermaidBrowserBundle()
-    .then((bundle) => {
-      process.stdout.write(
-        JSON.stringify({ entry: bundle.entry, files: bundle.files }),
-      );
-    })
-    .catch((error) => {
-      process.stderr.write(
-        `${error && error.message ? error.message : String(error)}\n`,
-      );
-      process.exitCode = 1;
-    });
-}

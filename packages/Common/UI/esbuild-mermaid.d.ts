@@ -1,7 +1,7 @@
 /*
  * Types for esbuild-mermaid.js, which stays CommonJS so the frontends'
- * esbuild.config.js files and MermaidBrowserBuild.ts's child process can
- * load it as a plain node script.
+ * esbuild.config.js files and Common/Scripts/build-mermaid-browser.js can
+ * load it as a plain node module.
  */
 
 export interface MermaidBrowserBundleFile {
@@ -29,10 +29,13 @@ export const MERMAID_BROWSER_ENTRY: string;
 
 export const MERMAID_BROWSER_CHUNK_DIRECTORY: string;
 
+// Absolute: Common/build/mermaid-browser.
+export const MERMAID_BROWSER_BUILD_DIRECTORY: string;
+
 export function isPrebuiltMermaidBundle(filePath: string): boolean;
 
 export function createMermaidSourcePlugin(): MermaidSourcePlugin;
 
-export function buildMermaidBrowserBundle(options?: {
-  esbuild?: unknown;
-}): Promise<MermaidBrowserBundle>;
+export function buildMermaidBrowserBundle(
+  esbuild: unknown,
+): Promise<MermaidBrowserBundle>;

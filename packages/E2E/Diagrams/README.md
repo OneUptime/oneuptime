@@ -14,8 +14,8 @@ sequence diagram by default, `none` for none; the Dashboard page also takes
 `plain` (no KaTeX needed) and `broken` (one that does not parse), and
 `?theme=dark`.
 
-`Fixture/server.js` serves `buildMermaidBrowserBundle()` - the build
-`Common/Server/Utils/VendorAssets.ts` serves - at `/oneuptime-assets/mermaid/`,
+`Fixture/server.js` runs `Common/Scripts/build-mermaid-browser.js` the way the
+App and Home images do, and serves what it writes at `/oneuptime-assets/mermaid/`,
 the vendored files under the rest of `/oneuptime-assets/`, and the docs' static
 files under `/docs/static/`, on `127.0.0.1:4271` (`DIAGRAMS_FIXTURE_PORT`). No
 Docker, no database, no API.

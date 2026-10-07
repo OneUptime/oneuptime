@@ -1,12 +1,12 @@
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
+import childProcess from "child_process";
 import fs from "fs";
+import os from "os";
 import path from "path";
-import { VendorAssetsPath } from "../../../Server/Utils/VendorAssets";
 import {
-  MermaidBrowserBuild,
-  MermaidBrowserEntry,
-  runMermaidBrowserBuild,
-} from "../../../Server/Utils/MermaidBrowserBuild";
+  MermaidEntryFilename,
+  VendorAssetsPath,
+} from "../../../Server/Utils/VendorAssets";
 
 /*
  * The vendored files are third-party build output that a human refreshes by
@@ -196,14 +196,55 @@ describe("vendored highlight.js", () => {
 
 describe("the mermaid build the docs and the blog import", () => {
   /*
-   * The same build VendorAssets serves (MermaidBrowserBuild.ts runs
-   * Common/UI/esbuild-mermaid.js in a child process), read straight from its
-   * output rather than over HTTP: VendorAssets.test.ts covers the mount.
+   * The build the App and Home images make (Common/Scripts/
+   * build-mermaid-browser.js), made the same way into a scratch directory and
+   * read from disk: VendorAssets.test.ts covers the mount that serves it.
    */
-  let build: MermaidBrowserBuild;
+  const build: { files: Map<string, Buffer> } = {
+    files: new Map<string, Buffer>(),
+  };
+  let scratch: string;
 
-  beforeAll(async () => {
-    build = await runMermaidBrowserBuild();
+  beforeAll(() => {
+    scratch = fs.mkdtempSync(path.join(os.tmpdir(), "oneuptime-diagrams-"));
+    const directory: string = path.join(scratch, "mermaid-browser");
+
+    childProcess.execFileSync(
+      process.execPath,
+      [
+        path.resolve(
+          __dirname,
+          "..",
+          "..",
+          "..",
+          "Scripts",
+          "build-mermaid-browser.js",
+        ),
+        directory,
+      ],
+      { encoding: "utf8", stdio: "pipe" },
+    );
+
+    const walk: (current: string) => void = (current: string): void => {
+      for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+        const absolute: string = path.join(current, entry.name);
+
+        if (entry.isDirectory()) {
+          walk(absolute);
+        } else {
+          build.files.set(
+            path.relative(directory, absolute).split(path.sep).join("/"),
+            fs.readFileSync(absolute),
+          );
+        }
+      }
+    };
+
+    walk(directory);
+  });
+
+  afterAll(() => {
+    fs.rmSync(scratch, { recursive: true, force: true });
   });
 
   /*
@@ -237,24 +278,16 @@ describe("the mermaid build the docs and the blog import", () => {
     return (build.files.get(file) as Buffer).toString("utf8");
   }
 
-  // "0.18.10" against a range's floor such as "^0.18.2".
+  /*
+   * "0.18.10" against a range's floor such as "^0.18.2": numeric collation
+   * compares each run of digits as a number, so 10 is past 2.
+   */
   function isAtLeast(version: string, range: string): boolean {
-    const actual: Array<number> = version.split(".").map(Number);
-    const minimum: Array<number> = range
-      .replace(/^[^0-9]*/, "")
-      .split(".")
-      .map(Number);
-
-    for (let index: number = 0; index < 3; index++) {
-      const have: number = actual[index] || 0;
-      const need: number = minimum[index] || 0;
-
-      if (have !== need) {
-        return have > need;
-      }
-    }
-
-    return true;
+    return (
+      version.localeCompare(range.replace(/^[^0-9]*/, ""), "en", {
+        numeric: true,
+      }) >= 0
+    );
   }
 
   test("compares versions the way the katex check needs", () => {
@@ -266,9 +299,8 @@ describe("the mermaid build the docs and the blog import", () => {
   });
 
   test("has the entry the views import, with imports to check", () => {
-    expect(build.entry).toBe(MermaidBrowserEntry);
-    expect(build.files.has(MermaidBrowserEntry)).toBe(true);
-    expect(importsOf(MermaidBrowserEntry).length).toBeGreaterThan(5);
+    expect(build.files.has(MermaidEntryFilename)).toBe(true);
+    expect(importsOf(MermaidEntryFilename).length).toBeGreaterThan(5);
   });
 
   test("every module the entry reaches is in the build", () => {
@@ -277,8 +309,8 @@ describe("the mermaid build the docs and the blog import", () => {
      * chunks import each other, and a missing file two levels down fails just
      * as completely as one at the top.
      */
-    const visited: Set<string> = new Set<string>([MermaidBrowserEntry]);
-    const queue: Array<string> = [MermaidBrowserEntry];
+    const visited: Set<string> = new Set<string>([MermaidEntryFilename]);
+    const queue: Array<string> = [MermaidEntryFilename];
     const problems: Array<string> = [];
 
     while (queue.length > 0) {
@@ -322,7 +354,7 @@ describe("the mermaid build the docs and the blog import", () => {
 
   test("names every chunk by its content, under chunks/", () => {
     for (const file of build.files.keys()) {
-      if (file === MermaidBrowserEntry) {
+      if (file === MermaidEntryFilename) {
         continue;
       }
 

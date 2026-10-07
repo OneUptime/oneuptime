@@ -92,6 +92,11 @@ WORKDIR /usr/src/Common
 COPY ./packages/Common/package*.json /usr/src/Common/
 RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 COPY ./packages/Common /usr/src/Common
+# mermaid for the docs, built from mermaid's ES module source with the
+# packages npm just installed (Common/Scripts/build-mermaid-browser.js) and
+# served at /oneuptime-assets/mermaid. A build that fails stops the image here
+# rather than leaving a page without its diagrams.
+RUN node /usr/src/Common/Scripts/build-mermaid-browser.js
 
 ENV PRODUCTION=true
 

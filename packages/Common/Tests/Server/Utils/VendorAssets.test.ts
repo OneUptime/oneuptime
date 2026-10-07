@@ -14,6 +14,8 @@ import { AddressInfo } from "net";
 import { createExpressApp } from "../../../Server/Utils/Express";
 import mountVendorAssets, {
   BrandAssetsPath,
+  MermaidBuildPath,
+  MermaidEntryFilename,
   MermaidEntryUrl,
   MountVendorAssetsFunction,
   OneUptimeFaviconUrl,
@@ -21,6 +23,10 @@ import mountVendorAssets, {
   VendorAssetsPath,
   VendorAssetsRoute,
 } from "../../../Server/Utils/VendorAssets";
+import {
+  MERMAID_BROWSER_BUILD_DIRECTORY,
+  MERMAID_BROWSER_ENTRY,
+} from "../../../UI/esbuild-mermaid";
 
 type GenericSendBody = (body: string) => void;
 
@@ -84,11 +90,35 @@ const REPOSITORY_ROOT: string = path.resolve(
   "..",
 );
 
+/*
+ * The mermaid build the App and Home images make (their Dockerfiles run
+ * Common/Scripts/build-mermaid-browser.js), made here the same way, into the
+ * directory the mount serves. No other test writes that directory.
+ */
+const buildMermaidForTheMount: () => void = (): void => {
+  childProcess.execFileSync(
+    process.execPath,
+    [
+      path.resolve(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "Scripts",
+        "build-mermaid-browser.js",
+      ),
+    ],
+    { encoding: "utf8", stdio: "pipe" },
+  );
+};
+
 describe("vendored browser assets", () => {
   let server: Server;
   let port: number;
 
   beforeAll(async () => {
+    buildMermaidForTheMount();
+
     const app: ReturnType<typeof createExpressApp> = createExpressApp();
 
     mountVendorAssets(app);
@@ -580,6 +610,14 @@ describe("vendored browser assets", () => {
        * the entry without editing both is every diagram gone at once.
        */
       expect(MermaidEntryUrl).toBe("/oneuptime-assets/mermaid/mermaid.mjs");
+    });
+
+    test("is served from where the build script writes it", () => {
+      expect(MermaidBuildPath).toBe(MERMAID_BROWSER_BUILD_DIRECTORY);
+      expect(MermaidEntryFilename).toBe(MERMAID_BROWSER_ENTRY);
+      expect(
+        fs.existsSync(path.join(MermaidBuildPath, MermaidEntryFilename)),
+      ).toBe(true);
     });
 
     test("is neither a committed copy nor one of mermaid's prebuilt bundles", () => {
