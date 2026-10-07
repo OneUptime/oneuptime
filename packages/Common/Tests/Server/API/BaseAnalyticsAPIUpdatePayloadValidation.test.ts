@@ -10,6 +10,7 @@ import Response from "../../../Server/Utils/Response";
 import { mockRouter } from "./Helpers";
 import { getJestSpyOn } from "../../Spy";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import ObjectID from "../../../Types/ObjectID";
 import { JSONObject } from "../../../Types/JSON";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
@@ -88,6 +89,9 @@ describe("BaseAnalyticsAPI.updateItem payload validation", () => {
      */
     getJestSpyOn(service, "updateBy").mockResolvedValue(undefined);
 
+    // The one row the update names is one the caller may change.
+    getJestSpyOn(service, "updateOneById").mockResolvedValue(1);
+
     response = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn().mockReturnThis(),
@@ -105,7 +109,7 @@ describe("BaseAnalyticsAPI.updateItem payload validation", () => {
       BadDataException,
     );
 
-    expect(service.updateBy).not.toHaveBeenCalled();
+    expect(service.updateOneById).not.toHaveBeenCalled();
   });
 
   it("tells the caller the payload has to look like { data: { ... } }", async () => {
@@ -123,7 +127,7 @@ describe("BaseAnalyticsAPI.updateItem payload validation", () => {
       BadDataException,
     );
 
-    expect(service.updateBy).not.toHaveBeenCalled();
+    expect(service.updateOneById).not.toHaveBeenCalled();
   });
 
   it("rejects data: {} and says there are no fields to update", async () => {
@@ -136,7 +140,7 @@ describe("BaseAnalyticsAPI.updateItem payload validation", () => {
       /no fields to update/i,
     );
 
-    expect(service.updateBy).not.toHaveBeenCalled();
+    expect(service.updateOneById).not.toHaveBeenCalled();
   });
 
   it("rejects data: null", async () => {
@@ -146,7 +150,7 @@ describe("BaseAnalyticsAPI.updateItem payload validation", () => {
       BadDataException,
     );
 
-    expect(service.updateBy).not.toHaveBeenCalled();
+    expect(service.updateOneById).not.toHaveBeenCalled();
   });
 
   /*
@@ -162,7 +166,7 @@ describe("BaseAnalyticsAPI.updateItem payload validation", () => {
       BadDataException,
     );
 
-    expect(service.updateBy).not.toHaveBeenCalled();
+    expect(service.updateOneById).not.toHaveBeenCalled();
     expect(Response.sendEmptySuccessResponse).not.toHaveBeenCalled();
   });
 
@@ -173,7 +177,7 @@ describe("BaseAnalyticsAPI.updateItem payload validation", () => {
       BadDataException,
     );
 
-    expect(service.updateBy).not.toHaveBeenCalled();
+    expect(service.updateOneById).not.toHaveBeenCalled();
   });
 
   it("rejects an array of objects data payload", async () => {
@@ -185,7 +189,7 @@ describe("BaseAnalyticsAPI.updateItem payload validation", () => {
       BadDataException,
     );
 
-    expect(service.updateBy).not.toHaveBeenCalled();
+    expect(service.updateOneById).not.toHaveBeenCalled();
   });
 
   it("rejects a numeric data payload", async () => {
@@ -195,7 +199,7 @@ describe("BaseAnalyticsAPI.updateItem payload validation", () => {
       BadDataException,
     );
 
-    expect(service.updateBy).not.toHaveBeenCalled();
+    expect(service.updateOneById).not.toHaveBeenCalled();
   });
 
   it("rejects a boolean data payload", async () => {
@@ -205,7 +209,7 @@ describe("BaseAnalyticsAPI.updateItem payload validation", () => {
       BadDataException,
     );
 
-    expect(service.updateBy).not.toHaveBeenCalled();
+    expect(service.updateOneById).not.toHaveBeenCalled();
   });
 
   /*
@@ -229,7 +233,7 @@ describe("BaseAnalyticsAPI.updateItem payload validation", () => {
       /no fields to update/i,
     );
 
-    expect(service.updateBy).not.toHaveBeenCalled();
+    expect(service.updateOneById).not.toHaveBeenCalled();
   });
 
   /*
@@ -244,28 +248,28 @@ describe("BaseAnalyticsAPI.updateItem payload validation", () => {
 
     await api.updateItem(request, response);
 
-    expect(service.updateBy).toHaveBeenCalledTimes(1);
+    expect(service.updateOneById).toHaveBeenCalledTimes(1);
     expect(Response.sendEmptySuccessResponse).toHaveBeenCalledWith(
       request,
       response,
     );
   });
 
-  it("keeps the _id in the update query and out of the written columns", async () => {
+  it("names the row it updates by its id", async () => {
     const request: OneUptimeRequest = makeRequest({
       data: { _id: TEST_ID, logBody: { message: "wrapped-payload" } },
     });
 
     await api.updateItem(request, response);
 
-    expect(service.updateBy).toHaveBeenCalledTimes(1);
+    expect(service.updateOneById).toHaveBeenCalledTimes(1);
 
-    const updateBy: { query: JSONObject; data: MonitorLog } = (
-      service.updateBy as unknown as jest.Mock
-    ).mock.calls[0]![0] as { query: JSONObject; data: MonitorLog };
+    const updateOneById: { id: ObjectID; data: MonitorLog } = (
+      service.updateOneById as unknown as jest.Mock
+    ).mock.calls[0]![0] as { id: ObjectID; data: MonitorLog };
 
-    expect(updateBy.query["_id"]).toBe(TEST_ID);
-    expect(updateBy.data.getColumnValue("logBody")).toEqual({
+    expect(updateOneById.id.toString()).toBe(TEST_ID);
+    expect(updateOneById.data.getColumnValue("logBody")).toEqual({
       message: "wrapped-payload",
     });
   });
@@ -288,6 +292,6 @@ describe("BaseAnalyticsAPI.updateItem payload validation", () => {
     );
 
     expect(Response.sendEmptySuccessResponse).not.toHaveBeenCalled();
-    expect(service.updateBy).not.toHaveBeenCalled();
+    expect(service.updateOneById).not.toHaveBeenCalled();
   });
 });

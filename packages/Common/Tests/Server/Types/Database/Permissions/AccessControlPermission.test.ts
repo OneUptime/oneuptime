@@ -370,12 +370,27 @@ describe("AccessControlPermission.getAccessControlIdsForQuery", () => {
     /*
      * Perf regression guard: the old code rebuilt the full user-permission
      * set once per access-controlled column plus once for the model-level
-     * check. The context must be built exactly once per query.
+     * check. The context must be built exactly once per query: the allow
+     * rows the labels are read from, then what the table check holds the
+     * caller to (TablePermission.getHeldPermissions: the allow rows and the
+     * block rows) - a block with no labels on the wildcard takes the
+     * wildcard's grant away.
      */
-    expect(getUserPermissionsSpy).toHaveBeenCalledTimes(1);
-    expect(getUserPermissionsSpy).toHaveBeenCalledWith(
+    expect(getUserPermissionsSpy).toHaveBeenCalledTimes(3);
+    expect(getUserPermissionsSpy).toHaveBeenNthCalledWith(
+      1,
       props,
       PermissionType.Allow,
+    );
+    expect(getUserPermissionsSpy).toHaveBeenNthCalledWith(
+      2,
+      props,
+      PermissionType.Allow,
+    );
+    expect(getUserPermissionsSpy).toHaveBeenNthCalledWith(
+      3,
+      props,
+      PermissionType.Block,
     );
   });
 

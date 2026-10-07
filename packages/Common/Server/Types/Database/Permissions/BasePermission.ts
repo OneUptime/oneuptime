@@ -158,7 +158,8 @@ export default class BasePermission {
    *   - a grant limited to owned records: the records the caller or their
    *     teams own, or whose parent they own (OwnedScopePermission);
    *   - the record a model is read through (@CanAccessIfCanReadOn): one the
-   *     caller may read, and on an update one they may update
+   *     caller may read, and on an update one they may update - by the
+   *     labels and the owners the caller's grants on it are limited to
    *     (addParentAccessToQuery);
    *   - the label rule on the records a label-less model's rows name, and a
    *     block with labels on any model (ReadPermission.addLabelRulesToQuery);
@@ -270,15 +271,17 @@ export default class BasePermission {
      * every operation, so a write narrowed to them for itself or for its
      * read is narrowed once.
      */
-    if (
-      operations.some((operation: RecordOperation): boolean => {
+    const isLimitedToOwnedRecords: boolean = operations.some(
+      (operation: RecordOperation): boolean => {
         return OwnedScopePermission.isLimitedToOwnedRecords(
           modelType,
           props,
           operation,
         );
-      })
-    ) {
+      },
+    );
+
+    if (isLimitedToOwnedRecords) {
       query = await OwnedScopePermission.addOwnedRecordsToQuery(
         modelType,
         query,
@@ -286,12 +289,13 @@ export default class BasePermission {
       );
     }
 
-    return BasePermission.addParentAccessToQuery(
+    return await BasePermission.addParentAccessToQuery(
       modelType,
       query,
       props,
       type,
       blockedLabelIds,
+      isLimitedToOwnedRecords,
     );
   }
 
@@ -345,14 +349,18 @@ export default class BasePermission {
    *     still refuses;
    *   - when the caller's read grants on the parent's table are limited to
    *     labels, only the records whose parent carries one of them;
+   *   - when they are limited to owned records, only the records whose
+   *     parent the caller or one of their teams owns
+   *     (addParentOwnedScopeToQuery);
    *   - when a block with labels takes some of the parents away, only the
    *     records whose parent carries none of them.
    *
    * An update also keeps to the parents the caller may update, as it always
    * has: when their update grants on the parent's table are limited to
    * labels, the parent carries one of those too (a custom domain is changed
-   * only on a status page or dashboard the caller may edit). A delete weighs
-   * no delete grant of the parent: deleting a note is the note's own
+   * only on a status page or dashboard the caller may edit), and when they
+   * are limited to owned records, the parent is one they own. A delete
+   * weighs no delete grant of the parent: deleting a note is the note's own
    * permission.
    *
    * A read narrows the relation itself (`incident: { labels }`), as it
@@ -361,14 +369,16 @@ export default class BasePermission {
    * exactly as sent, and a record readable through one parent and editable
    * through another (an announcement on two status pages) is reached.
    */
-  private static addParentAccessToQuery<TBaseModel extends BaseModel>(
+  private static async addParentAccessToQuery<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     query: Query<TBaseModel>,
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
     // The labels the rows' own blocks take away already.
     blockedLabelIds: Array<ObjectID>,
-  ): Query<TBaseModel> {
+    // Whether the rows are narrowed to the caller's owned records already.
+    isLimitedToOwnedRecords: boolean,
+  ): Promise<Query<TBaseModel>> {
     const model: BaseModel = new modelType();
 
     if (!model.canAccessIfCanReadOn) {
@@ -396,6 +406,17 @@ export default class BasePermission {
       props,
       type,
     );
+
+    query = await BasePermission.addParentOwnedScopeToQuery({
+      modelType: modelType,
+      parentModelType: parentModelType,
+      relation: model.canAccessIfCanReadOn,
+      relationColumn: tableColumnMetadata,
+      query: query,
+      props: props,
+      type: type,
+      isLimitedToOwnedRecords: isLimitedToOwnedRecords,
+    });
 
     /*
      * The parents a block with labels takes away, and what is read through
@@ -526,6 +547,95 @@ export default class BasePermission {
     }
 
     return query;
+  }
+
+  /*
+   * The owners half of a parent's read rule: when every grant the caller
+   * holds to read the parent - or, on an update, to update it - is limited
+   * to the records they or their teams own (OwnedScopePermission
+   * .isLimitedToOwnedRecords), the rows keep to the parents they own: an
+   * incident's notes to the notes of their incidents, whatever their
+   * permission on notes reaches. A caller who holds no grant on the parent
+   * at all (a model whose parent read is optional) is not narrowed by it.
+   *
+   * Rows the caller's own grants already keep to the same owned parents -
+   * their model takes its owners from exactly this parent (@OwnedThrough on
+   * the same key) and they are narrowed to owned records - are not looked
+   * up twice.
+   */
+  private static async addParentOwnedScopeToQuery<
+    TBaseModel extends BaseModel,
+  >(data: {
+    modelType: { new (): TBaseModel };
+    parentModelType: { new (): BaseModel };
+    relation: string;
+    relationColumn: TableColumnMetadata;
+    query: Query<TBaseModel>;
+    props: DatabaseCommonInteractionProps;
+    type: DatabaseRequestType;
+    isLimitedToOwnedRecords: boolean;
+  }): Promise<Query<TBaseModel>> {
+    const isParentLimitedToOwnedRecords: boolean =
+      OwnedScopePermission.isLimitedToOwnedRecords(
+        data.parentModelType,
+        data.props,
+        DatabaseRequestType.Read,
+      ) ||
+      (data.type === DatabaseRequestType.Update &&
+        OwnedScopePermission.isLimitedToOwnedRecords(
+          data.parentModelType,
+          data.props,
+          DatabaseRequestType.Update,
+        ));
+
+    if (!isParentLimitedToOwnedRecords) {
+      return data.query;
+    }
+
+    if (
+      data.isLimitedToOwnedRecords &&
+      BasePermission.isOwnedThroughParent(
+        data.modelType,
+        data.parentModelType,
+        data.relationColumn,
+      )
+    ) {
+      return data.query;
+    }
+
+    return await OwnedScopePermission.addOwnedParentsToQuery({
+      modelType: data.modelType,
+      query: data.query,
+      props: data.props,
+      parentModelType: data.parentModelType,
+      relation: data.relation,
+      relationColumn: data.relationColumn,
+    });
+  }
+
+  /*
+   * Whether a model's rows take their owners from exactly the record they
+   * are read through (@OwnedThrough on the same key, that parent alone, no
+   * rows kept for the project as a whole): its own Owned scope then keeps
+   * them to the parents the caller owns.
+   */
+  private static isOwnedThroughParent(
+    modelType: { new (): BaseModel },
+    parentModelType: { new (): BaseModel },
+    relationColumn: TableColumnMetadata,
+  ): boolean {
+    const ownedThrough: BaseModel["ownedThrough"] = new modelType()
+      .ownedThrough;
+
+    return Boolean(
+      ownedThrough &&
+        relationColumn.type === TableColumnType.Entity &&
+        ownedThrough.fkColumn === relationColumn.manyToOneRelationColumn &&
+        ownedThrough.parentModels.length === 1 &&
+        ownedThrough.parentModels[0] === parentModelType &&
+        !ownedThrough.includeProjectScope &&
+        !ownedThrough.includeUnattributed,
+    );
   }
 
   /*

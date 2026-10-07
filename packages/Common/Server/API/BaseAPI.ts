@@ -28,6 +28,7 @@ import { coerceDateColumnsInJSON } from "../../Types/Database/DateColumnValue";
 import { coerceBooleanColumnsInJSON } from "../../Types/Database/BooleanColumnValue";
 import BadDataException from "../../Types/Exception/BadDataException";
 import BadRequestException from "../../Types/Exception/BadRequestException";
+import NotFoundException from "../../Types/Exception/NotFoundException";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
 import ObjectID from "../../Types/ObjectID";
@@ -386,6 +387,19 @@ export default class BaseAPI<
       select,
       props: await CommonAPI.getDatabaseCommonInteractionProps(req),
     });
+
+    /*
+     * A record that does not exist, is in another project or is one the
+     * caller may not read is answered as missing (404) - the same answer
+     * for each, and the same as a change or a delete of it gets
+     * (getUnwrittenByIdError). It used to answer 200 with an empty body,
+     * which a client could not tell from a record with nothing in it.
+     */
+    if (!item) {
+      throw new NotFoundException(
+        `${new this.entityType().singularName || "Record"} not found.`,
+      );
+    }
 
     return Response.sendEntityResponse(req, res, item, this.entityType);
   }

@@ -449,6 +449,101 @@ export default class HeldPermissionsUtil {
     return [...granting, data.wildcard];
   }
 
+  /*
+   * The permissions whose blocks WITH LABELS narrow an operation's records,
+   * as the record rule weighs them (ReadPermission.getLabelledBlockRows, the
+   * analytics read scope): the model's own list - a block with labels on one
+   * of them takes the records carrying those labels away from the operation
+   * - and its wildcard, whose block with labels takes away what the wildcard
+   * grants. That is the operation's records too unless the model's own list
+   * reaches them anyway, so the wildcard's blocks count only while the
+   * wildcard grants (an allow row for it, not blocked outright) and none of
+   * the model's own permissions reaches the whole project. A caller who
+   * holds the wildcard and a model permission limited to labels as well
+   * loses the records carrying both a label of that permission and a label
+   * the wildcard's block takes away: the narrower answer, never a wider one.
+   */
+  public static getLabelBlockingPermissions(
+    held: HeldPermissions,
+    data: {
+      modelPermissions: ReadonlyArray<Permission>;
+      wildcard: Permission | null | undefined;
+    },
+  ): Array<Permission> {
+    const blocking: Array<Permission> = [...data.modelPermissions];
+    const wildcard: Permission | null | undefined = data.wildcard;
+
+    if (
+      !wildcard ||
+      blocking.length === 0 ||
+      blocking.includes(wildcard) ||
+      !held.allowed.includes(wildcard) ||
+      held.blocked.includes(wildcard)
+    ) {
+      return blocking;
+    }
+
+    const isOwnListProjectWide: boolean = data.modelPermissions.some(
+      (permission: Permission): boolean => {
+        return held.allowedProjectWide.includes(permission);
+      },
+    );
+
+    return isOwnListProjectWide ? blocking : [...blocking, wildcard];
+  }
+
+  /*
+   * A WRITE NEEDS A READ, on the table: why a caller may change or delete
+   * none of a table's records because they may read none of them - one of
+   * its read permissions taken away by a block with no labels, or none of
+   * them (nor the read wildcard) held - or null when they may read it. The
+   * one rule, and the one wording, the database models
+   * (TablePermission.checkTableLevelReadForWrite) and the analytics models
+   * (AnalyticsDatabase/ModelPermission) refuse a write with.
+   */
+  public static getReadForWriteRefusal(
+    held: HeldPermissions,
+    data: {
+      readPermissions: ReadonlyArray<Permission>;
+      wildcard: Permission | null | undefined;
+      // The record's name, as the refusal names it (the model's singularName).
+      recordName: string | null | undefined;
+      // The write: "update", "delete".
+      operation: string;
+    },
+  ): string | null {
+    const blockedReadPermission: Permission | undefined =
+      data.readPermissions.find((permission: Permission): boolean => {
+        return held.blocked.includes(permission);
+      });
+
+    if (blockedReadPermission) {
+      return `You are not authorized to ${data.operation} ${data.recordName} because you may not read it: ${blockedReadPermission} is in your team's permission block list.`;
+    }
+
+    if (
+      HeldPermissionsUtil.isGrantedAny(held, data.readPermissions, {
+        wildcard: data.wildcard,
+      })
+    ) {
+      return null;
+    }
+
+    const titles: Array<string> = PermissionHelper.getPermissionTitles([
+      ...data.readPermissions,
+    ]);
+
+    if (titles.length === 0) {
+      return `${data.operation} on ${data.recordName} is not allowed: nobody may read it.`;
+    }
+
+    return `You do not have permissions to ${data.operation} ${
+      data.recordName
+    }: changing or deleting a record needs permission to read it too. You need one of these permissions: ${titles.join(
+      ", ",
+    )}`;
+  }
+
   // The *AllOperationalResources wildcard for an operation.
   public static getOperationalWildcard(
     operation: PermissionOperation | string,

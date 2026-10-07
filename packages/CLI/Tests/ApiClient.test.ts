@@ -346,6 +346,27 @@ describe("ApiClient", () => {
         executeApiRequest({ ...baseOptions, operation: "list" }),
       ).rejects.toThrow("API error");
     });
+
+    /*
+     * A read by id of a record that does not exist, is in another project or
+     * is one the key may not read answers 404: the command fails with the
+     * status in its message, which the error handler exits on with the
+     * not-found code (3) - it never prints an empty record.
+     */
+    it("should fail a read by id that answers 404, naming the status", async () => {
+      (mockPost as jest.Mock).mockResolvedValue(
+        createErrorResponse(404, "Incident not found."),
+      );
+
+      await expect(
+        executeApiRequest({
+          ...baseOptions,
+          operation: "read",
+          id: "abc-123",
+          select: { _id: true },
+        }),
+      ).rejects.toThrow("API error (404): Incident not found.");
+    });
   });
 
   describe("headers", () => {
