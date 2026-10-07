@@ -105,6 +105,18 @@ Les workflows respectent le contrôle d'accès par rôle de votre projet. Les au
 
 La plupart de vos ingénieurs devraient avoir la création, la modification et la lecture sur les workflows, mais pas sur les variables. Réservez le droit de modifier les variables aux personnes qui gèrent les secrets de votre projet.
 
+## Ce que les étapes d'un workflow peuvent faire
+
+Les étapes qui lisent et modifient des enregistrements OneUptime (les composants Find, Create, Update et Delete et les déclencheurs On Create, On Update et On Delete) agissent en tant que **Project Admin** du projet du workflow. Elles passent les mêmes contrôles qu'un Project Admin dans le tableau de bord et l'API :
+
+- **Seulement le projet du workflow.** Une étape ne lit ni ne modifie jamais les enregistrements d'un autre projet, et un Update ne déplace jamais un enregistrement vers un autre projet.
+- **Seulement ce qu'un Project Admin peut faire.** Une étape ne peut pas accorder d'autorisations qu'un Project Admin ne détient pas (comme **Project Owner** ou la facturation), ni ajouter quelqu'un à une équipe disposant de plus d'autorisations, comme l'équipe des propriétaires.
+- **Seulement ce que votre forfait inclut.** Sur OneUptime Cloud, ce que votre forfait n'inclut pas est refusé avec le nom du forfait nécessaire.
+- **Rien de ce que OneUptime gère lui-même.** Les entrées de fil ne peuvent être ni modifiées ni supprimées, les journaux de notifications ne peuvent pas être écrits, et les valeurs que OneUptime fixe lui-même (comme un CNAME vérifié, les interrupteurs de protection d'une équipe ou la personne d'astreinte en ce moment) ne peuvent pas être changées.
+- **Sans personne.** Un enregistrement créé par un workflow n'a pas de créateur, et le journal d'audit désigne le workflow comme auteur de la modification.
+
+Une étape refusée prend sa sortie **Error**, n'écrit rien, et le journal d'exécution indique quelle étape a été refusée et pourquoi. Les étapes qui dialoguent avec d'autres systèmes (API, e-mail, messagerie, Custom Code, IA) ne sont pas concernées.
+
 ## Limites du forfait
 
 OneUptime Cloud plafonne le nombre d'exécutions par mois sur les petits forfaits. Votre limite actuelle s'affiche sous **Paramètres du projet → Facturation**. Une fois atteinte, les nouveaux déclenchements sont refusés jusqu'au cycle de facturation suivant. Les installations auto-hébergées n'ont pas cette limite.

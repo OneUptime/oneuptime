@@ -194,6 +194,8 @@ A type only offers the components its model allows. A read-only type has the two
 
 This is how a workflow can read and change OneUptime data. For example: a webhook from your CI tool can use **Create One Incident** to open an incident with the failure details.
 
+These components act as a Project Admin of the workflow's project: what a Project Admin may not do, or your plan doesn't include, is refused, and the run log says why. See [What workflow steps can do](/docs/workflows/configuration#what-workflow-steps-can-do).
+
 ## Working with records
 
 Every field on a data component is keyed on the record's own **column** names — the same names the API uses, not the labels on the dashboard form. The ID column is `_id`. The `id` spelling is accepted as an alias anywhere you can type a column name, but `_id` is what a record gives back, so that's what to read on the way out:

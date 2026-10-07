@@ -105,6 +105,18 @@ I workflow rispettano il controllo degli accessi basato sui ruoli del tuo proget
 
 La maggior parte degli ingegneri dovrebbe avere creazione, modifica e lettura sui workflow, ma non sulle variabili. Riserva l'accesso in modifica alle variabili alle persone che gestiscono i segreti del progetto.
 
+## Cosa possono fare i passaggi di un workflow
+
+I passaggi che leggono e modificano record di OneUptime (i componenti Find, Create, Update e Delete e i trigger On Create, On Update e On Delete) agiscono come **Project Admin** del progetto del workflow. Superano gli stessi controlli di un Project Admin nella dashboard e nell'API:
+
+- **Solo il progetto del workflow.** Un passaggio non legge né modifica mai i record di un altro progetto, e un Update non sposta mai un record in un altro progetto.
+- **Solo ciò che può fare un Project Admin.** Un passaggio non può concedere autorizzazioni che un Project Admin non ha (come **Project Owner** o la fatturazione), né aggiungere qualcuno a un team con più autorizzazioni, come il team dei proprietari.
+- **Solo ciò che il vostro piano include.** Su OneUptime Cloud, ciò che il vostro piano non include viene rifiutato indicando il piano necessario.
+- **Niente di ciò che OneUptime gestisce da sé.** Le voci del feed non si possono modificare né eliminare, i registri delle notifiche non si possono scrivere, e i valori che OneUptime imposta da sé (come un CNAME verificato, gli interruttori di protezione di un team o chi è di turno adesso) non si possono cambiare.
+- **Come nessuna persona.** Un record creato da un workflow non ha autore, e il registro di audit indica il workflow come autore della modifica.
+
+Un passaggio rifiutato prende la sua uscita **Error**, non scrive nulla, e il registro dell'esecuzione dice quale passaggio è stato rifiutato e perché. I passaggi che comunicano con altri sistemi (API, e-mail, chat, Custom Code, IA) non sono interessati.
+
 ## Limiti di piano
 
 OneUptime Cloud limita il numero di esecuzioni al mese sui piani più piccoli. Il tuo limite attuale è indicato in **Impostazioni del progetto → Fatturazione**. Quando lo raggiungi, i nuovi trigger vengono rifiutati fino al ciclo di fatturazione successivo. Le installazioni self-hosted non hanno questo limite.

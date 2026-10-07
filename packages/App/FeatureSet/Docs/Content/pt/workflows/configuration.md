@@ -105,6 +105,18 @@ Workflows respeitam o controle de acesso baseado em papéis do seu projeto. As p
 
 A maioria das pessoas de engenharia deveria ter criar/editar/ler em workflows, mas não em variáveis. Reserve o acesso de edição de variáveis para quem cuida dos segredos do projeto.
 
+## O que os passos de um workflow podem fazer
+
+Os passos que leem e alteram registros do OneUptime (os componentes Find, Create, Update e Delete e os gatilhos On Create, On Update e On Delete) agem como um **Project Admin** do projeto do workflow. Passam pelas mesmas verificações que um Project Admin no painel e na API:
+
+- **Somente o projeto do próprio workflow.** Um passo nunca lê nem altera registros de outro projeto, e um Update nunca move um registro para outro projeto.
+- **Somente o que um Project Admin pode fazer.** Um passo não pode conceder permissões que um Project Admin não tem (como **Project Owner** ou faturamento), nem adicionar alguém a uma equipe com mais permissões, como a equipe de proprietários.
+- **Somente o que o seu plano inclui.** No OneUptime Cloud, o que o seu plano não inclui é recusado com o nome do plano necessário.
+- **Nada do que o OneUptime mantém por conta própria.** Entradas de feed não podem ser editadas nem excluídas, registros de notificações não podem ser escritos, e valores que o OneUptime define por conta própria (como um CNAME verificado, os interruptores de proteção de uma equipe ou quem está de plantão agora) não podem ser alterados.
+- **Como nenhuma pessoa.** Um registro que um workflow cria não tem criador, e o log de auditoria nomeia o workflow como autor da alteração.
+
+Um passo recusado segue pela sua saída **Error**, não escreve nada, e o log da execução diz qual passo foi recusado e por quê. Passos que falam com outros sistemas (API, e-mail, chat, Custom Code, IA) não são afetados.
+
 ## Limites do plano
 
 O OneUptime Cloud limita o número de execuções por mês nos planos menores. Seu limite atual aparece em **Configurações do projeto → Cobrança**. Ao atingi-lo, novos disparos são recusados até o próximo ciclo de cobrança. Instalações self-hosted não têm esse limite.

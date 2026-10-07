@@ -105,6 +105,18 @@ Arbeidsflyter respekterer prosjektets rollebaserte tilgangsstyring. De relevante
 
 De fleste utviklere bør ha opprett/rediger/les på arbeidsflyter, men ikke på variabler. Spar redigeringstilgang på variabler til dem som forvalter prosjektets hemmeligheter.
 
+## Hva arbeidsflyttrinn kan gjøre
+
+Trinnene som leser og endrer OneUptime-poster (komponentene Find, Create, Update og Delete og utløserne On Create, On Update og On Delete) handler som en **Project Admin** i arbeidsflytens prosjekt. De møter de samme kontrollene som en Project Admin i dashbordet og API-et:
+
+- **Bare arbeidsflytens eget prosjekt.** Et trinn leser eller endrer aldri et annet prosjekts poster, og en Update flytter aldri en post til et annet prosjekt.
+- **Bare det en Project Admin kan gjøre.** Et trinn kan ikke gi tillatelser som en Project Admin ikke selv har (som **Project Owner** eller fakturering), og kan ikke legge noen til i et team med flere tillatelser, som eiernes team.
+- **Bare det planen deres inkluderer.** På OneUptime Cloud avvises det planen deres ikke inkluderer, med navnet på planen som trengs.
+- **Ingenting OneUptime holder styr på selv.** Feedoppføringer kan ikke redigeres eller slettes, varslingslogger kan ikke skrives, og verdier OneUptime setter selv (som en bekreftet CNAME, et teams beskyttelsesbrytere eller hvem som har vakt nå) kan ikke endres.
+- **Som ingen person.** En post en arbeidsflyt oppretter har ingen oppretter, og revisjonsloggen oppgir arbeidsflyten som den som gjorde endringen.
+
+Et avvist trinn tar **Error**-utgangen sin, skriver ingenting, og kjøreloggen sier hvilket trinn som ble avvist og hvorfor. Trinn som snakker med andre systemer (API, e-post, chat, Custom Code, AI) påvirkes ikke.
+
 ## Plangrenser
 
 OneUptime Cloud setter tak på antall kjøringer per måned på de mindre planene. Din nåværende grense står under **Prosjektinnstillinger → Fakturering**. Når du treffer den, avvises nye triggere fram til neste faktureringssyklus. Selvhostede installasjoner har ikke denne grensen.

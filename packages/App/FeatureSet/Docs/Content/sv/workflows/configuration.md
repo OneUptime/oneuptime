@@ -105,6 +105,18 @@ Arbetsflöden respekterar ditt projekts rollbaserade åtkomstkontroll. De behör
 
 De flesta ingenjörer bör ha skapa/redigera/läsa på arbetsflöden men inte på variabler. Spara redigeringsåtkomsten till variabler åt dem som hanterar projektets hemligheter.
 
+## Vad arbetsflödessteg får göra
+
+Stegen som läser och ändrar OneUptime-poster (komponenterna Find, Create, Update och Delete och utlösarna On Create, On Update och On Delete) agerar som en **Project Admin** i arbetsflödets projekt. De möter samma kontroller som en Project Admin i instrumentpanelen och API:et:
+
+- **Bara arbetsflödets eget projekt.** Ett steg läser eller ändrar aldrig ett annat projekts poster, och en Update flyttar aldrig en post till ett annat projekt.
+- **Bara det en Project Admin får göra.** Ett steg kan inte ge behörigheter som en Project Admin inte själv har (som **Project Owner** eller fakturering), och kan inte lägga till någon i ett team med fler behörigheter, som ägarnas team.
+- **Bara det er plan innehåller.** På OneUptime Cloud avvisas det er plan inte innehåller, med namnet på den plan som krävs.
+- **Inget som OneUptime själv håller reda på.** Flödesposter kan inte redigeras eller tas bort, aviseringsloggar kan inte skrivas, och värden som OneUptime själv sätter (som en verifierad CNAME, ett teams skyddsbrytare eller vem som har jour nu) kan inte ändras.
+- **Som ingen person.** En post som ett arbetsflöde skapar har ingen skapare, och granskningsloggen anger arbetsflödet som den som gjorde ändringen.
+
+Ett avvisat steg tar sin **Error**-utgång, skriver ingenting, och körningsloggen säger vilket steg som avvisades och varför. Steg som pratar med andra system (API, e-post, chatt, Custom Code, AI) påverkas inte.
+
 ## Plangränser
 
 OneUptime Cloud begränsar antalet körningar per månad på mindre planer. Din aktuella gräns visas under **Projektinställningar → Fakturering**. När du når den avvisas nya utlösningar fram till nästa faktureringscykel. Självhostade installationer har ingen sådan gräns.
