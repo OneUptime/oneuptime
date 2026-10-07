@@ -1526,6 +1526,7 @@ describe("KubernetesClusterAiAccessService.getProjectGates", () => {
   const PROJECT_GATE_KEYS: Array<string> = [
     "aiBalanceBlocker",
     "automaticInvestigation",
+    "automaticRemediation",
     "hasLlmProvider",
     "isAiEnabled",
   ];
@@ -1550,17 +1551,18 @@ describe("KubernetesClusterAiAccessService.getProjectGates", () => {
       isAiEnabled: true,
       hasLlmProvider: true,
       aiBalanceBlocker: null,
-      // Absent reads as off: the investigation opt-ins count only when true.
+      // Absent reads as off: the opt-ins count only when true.
       automaticInvestigation: { incidents: false, alerts: false },
+      automaticRemediation: { incidents: false, alerts: false },
     });
   });
 
   /*
-   * The project row is read for Enable AI and the two investigation
-   * opt-ins, and for nothing else: Enable AI is the project's only AI
-   * switch, so the columns it replaced are never selected.
+   * The project row is read for Enable AI, the two investigation opt-ins
+   * and the two fixing switches, and for nothing else: the columns Enable
+   * AI replaced are never selected.
    */
-  it("selects Enable AI and the investigation opt-ins, and never a retired switch", async () => {
+  it("selects Enable AI, the investigation opt-ins and the fixing switches, and never a retired switch", async () => {
     const findOneById: jest.SpyInstance = jest
       .spyOn(ProjectService, "findOneById")
       .mockResolvedValue({ enableAi: true } as unknown as Project);
@@ -1575,6 +1577,8 @@ describe("KubernetesClusterAiAccessService.getProjectGates", () => {
         enableAi: true,
         enableAutomaticIncidentInvestigation: true,
         enableAutomaticAlertInvestigation: true,
+        enableAutomaticIncidentRemediation: true,
+        enableAutomaticAlertRemediation: true,
       },
       props: { isRoot: true },
     });
@@ -1630,6 +1634,7 @@ describe("KubernetesClusterAiAccessService.getProjectGates", () => {
       hasLlmProvider: true,
       aiBalanceBlocker: null,
       automaticInvestigation: { incidents: false, alerts: false },
+      automaticRemediation: { incidents: false, alerts: false },
     });
   });
 
@@ -1673,6 +1678,25 @@ describe("KubernetesClusterAiAccessService.getProjectGates", () => {
     expect(gates.automaticInvestigation).toEqual({
       incidents: true,
       alerts: false,
+    });
+  });
+
+  it("reads the project's fixing switches (exactly true) for the AI agent page", async () => {
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      enableAutomaticIncidentRemediation: false,
+      enableAutomaticAlertRemediation: true,
+    } as unknown as Project);
+    jest
+      .spyOn(LlmProviderService, "getLLMProviderForProject")
+      .mockResolvedValue(null);
+    jest.spyOn(AIService, "getAiBalanceBlocker").mockResolvedValue(null);
+
+    const gates: KubernetesClusterAiAccessProjectGates =
+      await KubernetesClusterAiAccessService.getProjectGates(PROJECT_ID);
+
+    expect(gates.automaticRemediation).toEqual({
+      incidents: false,
+      alerts: true,
     });
   });
 

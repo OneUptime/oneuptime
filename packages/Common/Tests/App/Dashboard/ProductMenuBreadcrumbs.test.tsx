@@ -95,10 +95,6 @@ const PRODUCTS: Array<Product> = [
       [PageMap.ALERTS_AI_INSIGHTS, "Insights"],
       [PageMap.ALERTS_AI_LOGS, "Logs"],
       [PageMap.ALERTS_SETTINGS_AI, "Settings"],
-      [
-        PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES,
-        "Auto Remediation Rules",
-      ],
     ],
     rulePages: [
       [PageMap.ALERTS_SETTINGS_GROUPING_RULES, "Grouping Rules"],
@@ -120,10 +116,6 @@ const PRODUCTS: Array<Product> = [
       [PageMap.INCIDENTS_AI_INSIGHTS, "Insights"],
       [PageMap.INCIDENTS_AI_LOGS, "Logs"],
       [PageMap.INCIDENTS_SETTINGS_AI, "Settings"],
-      [
-        PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES,
-        "Auto Remediation Rules",
-      ],
     ],
     rulePages: [
       [PageMap.INCIDENTS_SETTINGS_GROUPING_RULES, "Grouping Rules"],
@@ -418,13 +410,11 @@ describe("breadcrumb sections across products", () => {
         PageMap.ALERTS_AI_INSIGHTS,
         PageMap.ALERTS_AI_LOGS,
         PageMap.ALERTS_SETTINGS_AI,
-        PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES,
       ],
       [
         PageMap.INCIDENTS_AI_INSIGHTS,
         PageMap.INCIDENTS_AI_LOGS,
         PageMap.INCIDENTS_SETTINGS_AI,
-        PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES,
       ],
       [],
     ]);

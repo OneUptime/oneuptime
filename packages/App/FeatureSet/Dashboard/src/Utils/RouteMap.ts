@@ -971,8 +971,6 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_AI_INSIGHTS]: "ai/insights",
   [PageMap.INCIDENTS_AI_LOGS]: "ai/logs",
   [PageMap.INCIDENTS_SETTINGS_AI]: "ai/settings",
-  [PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES]:
-    "ai/auto-remediation-rules",
 
   [PageMap.INCIDENT_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.INCIDENT_VIEW_STATE_TIMELINE]: `${RouteParams.ModelID}/state-timeline`,
@@ -1049,7 +1047,6 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERTS_AI_INSIGHTS]: "ai/insights",
   [PageMap.ALERTS_AI_LOGS]: "ai/logs",
   [PageMap.ALERTS_SETTINGS_AI]: "ai/settings",
-  [PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES]: "ai/auto-remediation-rules",
 
   [PageMap.ALERT_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.ALERT_VIEW_STATE_TIMELINE]: `${RouteParams.ModelID}/state-timeline`,
@@ -1734,12 +1731,6 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/alerts/${
-      AlertsRoutePath[PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES]
-    }`,
-  ),
-
   [PageMap.ALERTS_SETTINGS_REMINDER_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERTS_SETTINGS_REMINDER_RULES]
@@ -2293,12 +2284,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENTS_AI_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_AI_LOGS]
-    }`,
-  ),
-
-  [PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/incidents/${
-      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES]
     }`,
   ),
 

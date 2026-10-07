@@ -19,6 +19,7 @@ import LlmProvider from "../../../Models/DatabaseModels/LlmProvider";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import Project from "../../../Models/DatabaseModels/Project";
 import RunbookExecution from "../../../Models/DatabaseModels/RunbookExecution";
+import AutoRemediationAction from "../../../Types/AutoRemediation/AutoRemediationAction";
 import AutoRemediationExecutionMode from "../../../Types/AutoRemediation/AutoRemediationExecutionMode";
 import AutoRemediationSuggestionStatus from "../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationTriggerEntity from "../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
@@ -94,11 +95,19 @@ function ref(id: ObjectID): FakeRef {
 function fakeRule(
   overrides: Partial<Record<string, unknown>> = {},
 ): AutoRemediationRule {
+  // A rule with no AI flag runs its runbooks, as it did before Fix With.
+  const usesAi: boolean = Boolean(
+    overrides["aiSelectsRunbook"] || overrides["aiComposesCommands"],
+  );
+
   return {
     id: RULE_ID,
     _id: RULE_ID.toString(),
     name: "Restart API pods",
     executionMode: AutoRemediationExecutionMode.Suggest,
+    remediationAction: usesAi
+      ? AutoRemediationAction.OneUptimeAI
+      : AutoRemediationAction.Runbooks,
     aiSelectsRunbook: false,
     runbooks: [{ id: RUNBOOK_ID, name: "Restart pods" }],
     ...overrides,
@@ -139,6 +148,8 @@ function mockProject(overrides: Partial<Record<string, unknown>> = {}): void {
   jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
     id: PROJECT_ID,
     enableAi: true,
+    enableAutomaticIncidentRemediation: true,
+    enableAutomaticAlertRemediation: true,
     ...overrides,
   } as unknown as Project);
 }
@@ -519,7 +530,7 @@ describe("AutoRemediationRuleEngineService", () => {
       expect(create).not.toHaveBeenCalled();
     });
 
-    it("reads the project switch as Enable AI alone", async () => {
+    it("reads Enable AI and the two fixing switches from the project", async () => {
       mockRules([]);
 
       await AutoRemediationRuleEngineService.applyRulesToIncident(
@@ -528,7 +539,11 @@ describe("AutoRemediationRuleEngineService", () => {
 
       expect(ProjectService.findOneById).toHaveBeenCalledWith({
         id: PROJECT_ID,
-        select: { enableAi: true },
+        select: {
+          enableAi: true,
+          enableAutomaticIncidentRemediation: true,
+          enableAutomaticAlertRemediation: true,
+        },
         props: { isRoot: true },
       });
     });

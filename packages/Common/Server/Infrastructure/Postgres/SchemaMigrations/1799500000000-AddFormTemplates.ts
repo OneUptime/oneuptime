@@ -10,8 +10,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * column: every existing form starts with no templates, and its public page
  * is exactly what it was.
  */
-export class AddFormTemplates1799400000000 implements MigrationInterface {
-  public name: string = "AddFormTemplates1799400000000";
+export class AddFormTemplates1799500000000 implements MigrationInterface {
+  public name: string = "AddFormTemplates1799500000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`ALTER TABLE "Form" ADD "templates" jsonb`);

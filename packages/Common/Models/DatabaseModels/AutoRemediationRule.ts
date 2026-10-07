@@ -9,6 +9,7 @@ import User from "./User";
 import RuleBaseModel from "./DatabaseBaseModel/RuleBaseModel";
 import Route from "../../Types/API/Route";
 import AutoRemediationExecutionMode from "../../Types/AutoRemediation/AutoRemediationExecutionMode";
+import AutoRemediationAction from "../../Types/AutoRemediation/AutoRemediationAction";
 import AutoRemediationTriggerEntity from "../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
@@ -69,7 +70,7 @@ import {
   pluralName: "Auto Remediation Rules",
   icon: IconProp.Bolt,
   tableDescription:
-    "Automatically propose or start remediation runbooks when matching incidents or alerts are created.",
+    "Which new incidents or alerts are fixed automatically, and how: by OneUptime AI or with runbooks, asking first or not. With no rule, OneUptime AI fixes every one while automatic fixing is on.",
 })
 export default class AutoRemediationRule extends RuleBaseModel {
   @ColumnAccessControl({
@@ -294,7 +295,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
     type: TableColumnType.ShortText,
     title: "Execution Mode",
     description:
-      "Suggest proposes the runbook and waits for one-click human approval. FullAuto starts it immediately (deterministic rules only).",
+      "Suggest asks before fixing: every fix the rule starts waits for one-click human approval. FullAuto fixes without asking: its runbooks start immediately, and OneUptime AI fixes run on their own where the cluster's or resource's AI agent page allows.",
     defaultValue: AutoRemediationExecutionMode.Suggest,
     isDefaultValueColumn: true,
   })
@@ -305,6 +306,48 @@ export default class AutoRemediationRule extends RuleBaseModel {
     default: AutoRemediationExecutionMode.Suggest,
   })
   public executionMode?: AutoRemediationExecutionMode = undefined;
+
+  /*
+   * How a matched rule fixes the signal: let OneUptime AI fix it on the
+   * infrastructure the signal is linked to, or run the rule's runbooks. A
+   * rule that let AI pick a runbook or compose commands (before rules were
+   * simplified) reads as OneUptimeAI and keeps doing so.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.ShortText,
+    title: "Fix With",
+    description:
+      "OneUptimeAI: OneUptime AI fixes the matched incident or alert on the Kubernetes clusters and infrastructure it is linked to, the way each one's AI agent page allows. Runbooks: the rule's runbooks run. Whether a person approves first is the rule's Execution Mode.",
+    defaultValue: AutoRemediationAction.OneUptimeAI,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    default: AutoRemediationAction.OneUptimeAI,
+  })
+  public remediationAction?: AutoRemediationAction = undefined;
 
   @ColumnAccessControl({
     create: [

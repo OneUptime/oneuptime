@@ -153,7 +153,7 @@ const FORM_COLUMNS: Array<string> = [
   "shareKey",
   "targetType",
   "fields",
-  // Its templates (AddFormTemplates1799400000000).
+  // Its templates (AddFormTemplates1799500000000).
   "templates",
   "targetSettings",
   "successMessage",

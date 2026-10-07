@@ -51,6 +51,15 @@ const USER_ID: ObjectID = new ObjectID("55555555-5555-4555-8555-555555555555");
 
 type AiFlags = NewProjectAiDefaults;
 
+/*
+ * The switches a new project starts without: fixing new incidents and
+ * alerts changes infrastructure, so a project turns it on itself.
+ */
+const OFF_FOR_NEW_PROJECTS: Array<string> = [
+  "enableAutomaticIncidentRemediation",
+  "enableAutomaticAlertRemediation",
+];
+
 // The ten switches, written out so a column dropped from the list fails here.
 const AI_SWITCHES: Array<NewProjectAiDefaultColumn> = [
   "enableAutomaticIncidentInvestigation",
@@ -116,7 +125,8 @@ describe("NEW_PROJECT_AI_DEFAULT_COLUMNS", () => {
    * Found from the model rather than from the list: every Boolean column
    * whose name, title or description mentions AI is a feature switch,
    * except the ones named below. The balance and notification-sent columns
-   * are bookkeeping, and Enable AI defaults to true in the column.
+   * are bookkeeping, Enable AI defaults to true in the column, and the
+   * automatic-fix switches start off on purpose.
    */
   it("covers every boolean AI feature switch on the Project model", () => {
     const project: Project = new Project();
@@ -127,6 +137,7 @@ describe("NEW_PROJECT_AI_DEFAULT_COLUMNS", () => {
       "lowAiBalanceNotificationSentToOwners",
       "failedAiBalanceChargeNotificationSentToOwners",
       "notEnabledAiNotificationSentToOwners",
+      ...OFF_FOR_NEW_PROJECTS,
     ];
 
     const aiBooleanColumns: Array<string> = Object.keys(project)
@@ -144,6 +155,62 @@ describe("NEW_PROJECT_AI_DEFAULT_COLUMNS", () => {
       });
 
     expect(aiBooleanColumns.sort()).toEqual([...AI_SWITCHES].sort());
+  });
+});
+
+describe("the automatic-fix switches", () => {
+  it.each(OFF_FOR_NEW_PROJECTS)(
+    "%s is a Boolean AI switch that defaults to off in the column",
+    (column: string) => {
+      const project: Project = new Project();
+      const metadata: ReturnType<Project["getTableColumnMetadata"]> =
+        project.getTableColumnMetadata(column);
+
+      expect(metadata?.type).toBe(TableColumnType.Boolean);
+      expect(metadata?.defaultValue).toBe(false);
+      expect(metadata?.required).toBe(true);
+      expect(`${metadata?.title} ${metadata?.description}`).toMatch(/\bAI\b/);
+    },
+  );
+
+  it("is never a new project's default", () => {
+    for (const column of OFF_FOR_NEW_PROJECTS) {
+      expect(
+        NEW_PROJECT_AI_DEFAULT_COLUMNS as ReadonlyArray<string>,
+      ).not.toContain(column);
+    }
+  });
+
+  it("stays unset when a new project gets its AI defaults, so the column's off applies", () => {
+    const project: Project = new Project();
+
+    ProjectService.applyNewProjectAiDefaults(project);
+
+    for (const column of OFF_FOR_NEW_PROJECTS) {
+      expect({
+        [column]: (project as unknown as Record<string, unknown>)[column],
+      }).toEqual({ [column]: undefined });
+    }
+  });
+
+  it("keeps an explicit on in a create request", async () => {
+    const user: User = new User();
+    getJestSpyOn(UserService, "findOneById").mockResolvedValue(user as never);
+    getJestSpyOn(
+      DatabaseConfig,
+      "shouldDisableUserProjectCreation",
+    ).mockResolvedValue(false as never);
+
+    const project: Project = new Project();
+    project.name = "Acme";
+    project.enableAutomaticIncidentRemediation = true;
+
+    const created: Project = await runOnBeforeCreate(project);
+
+    expect(created.enableAutomaticIncidentRemediation).toBe(true);
+    expect(created.enableAutomaticAlertRemediation).toBeUndefined();
+
+    jest.restoreAllMocks();
   });
 });
 
