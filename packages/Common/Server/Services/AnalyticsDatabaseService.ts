@@ -40,6 +40,17 @@ import {
 } from "../Utils/AnalyticsDatabase/ClusterConfig";
 import logger, { LogAttributes } from "../Utils/Logger";
 import Realtime from "../Utils/Realtime";
+import {
+  RealtimeReadAccess,
+  RealtimeReader,
+  normalizeRealtimeId,
+} from "../Utils/Realtime/RealtimeReadAccess";
+import TelemetryReadScopeUtil, {
+  TelemetryReadScope,
+} from "../Utils/Telemetry/TelemetryReadScope";
+import Query from "../Types/AnalyticsDatabase/Query";
+import { OwnedThroughMetadata } from "../../Types/Database/AccessControl/OwnedThrough";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import StreamUtil from "../Utils/Stream";
 import BaseService from "./BaseService";
 import {
@@ -2492,12 +2503,18 @@ export default class AnalyticsDatabaseService<
               continue;
             }
 
+            /*
+             * Who may hear about the row: see getRealtimeReadAccess, which
+             * answers from the resource the row belongs to, sent with it.
+             */
             promises.push(
               Realtime.emitModelEvent({
                 modelId: item.id!,
                 tenantId: tenantId,
                 eventType: ModelEventType.Create,
                 modelType: this.modelType,
+                access: this.getRealtimeReadAccess(),
+                ownerId: this.getRealtimeOwnerId(item),
               }),
             );
           }
@@ -2644,5 +2661,164 @@ export default class AnalyticsDatabaseService<
 
   public getModel(): TBaseModel {
     return this.model;
+  }
+
+  private realtimeReadAccess: RealtimeReadAccess | null = null;
+
+  /*
+   * The resource a row belongs to (@OwnedThrough), sent with its live
+   * update for getRealtimeReadAccess to answer by. Undefined for a row that
+   * names none, or a model with no owning resource.
+   */
+  public getRealtimeOwnerId(item: TBaseModel): string | undefined {
+    const ownedThrough: OwnedThroughMetadata | undefined =
+      this.getOwnedThrough();
+
+    if (!ownedThrough) {
+      return undefined;
+    }
+
+    const resourceId: unknown = item.getColumnValue(ownedThrough.fkColumn);
+
+    return resourceId ? String(resourceId) : undefined;
+  }
+
+  /*
+   * Who may hear about rows of this table (Realtime): whoever their read
+   * lets read them. A telemetry row cannot be looked up by id cheaply, so
+   * the read is asked the way a telemetry read applies it: the read check
+   * itself (ModelPermission.checkReadPermission - the table, a block with
+   * no labels, the plan), then the caller's read scope (getReadScope -
+   * their label and Owned grants, less what a block with labels takes
+   * away), against the resource each row belongs to (@OwnedThrough, sent
+   * with the row's event: getRealtimeOwnerId). Both are worked out once
+   * per reader and kept with them (RealtimeReader.remember), so the answer
+   * needs no read of its own. One access per service, so the events of
+   * every insert into the table merge into one delivery.
+   *
+   * A service that narrows its reads further on its own (onBeforeFind, or a
+   * findBy of its own) is not modelled here, so nobody hears about its rows
+   * rather than everybody.
+   */
+  public getRealtimeReadAccess(): RealtimeReadAccess {
+    if (this.realtimeReadAccess) {
+      return this.realtimeReadAccess;
+    }
+
+    const model: TBaseModel = this.getModel();
+    const narrowsReadsOnItsOwn: boolean = !this.readsThroughThePermissionCheck();
+
+    const getScope: (
+      reader: RealtimeReader,
+    ) => Promise<TelemetryReadScope | null> = (
+      reader: RealtimeReader,
+    ): Promise<TelemetryReadScope | null> => {
+      return reader.remember(
+        `analytics-read-scope:${model.tableName}`,
+        (): Promise<TelemetryReadScope | null> => {
+          return this.getRealtimeReadScope(reader.props);
+        },
+      );
+    };
+
+    this.realtimeReadAccess = {
+      answersWithoutReading: true,
+      readsEveryRecord: async (reader: RealtimeReader): Promise<boolean> => {
+        if (narrowsReadsOnItsOwn) {
+          return false;
+        }
+
+        const scope: TelemetryReadScope | null = await getScope(reader);
+
+        return Boolean(scope && TelemetryReadScopeUtil.isProjectWide(scope));
+      },
+      getReadableIds: async (
+        reader: RealtimeReader,
+        modelIds: Array<ObjectID>,
+        ownerIds?: ReadonlyMap<string, string> | undefined,
+      ): Promise<Array<string>> => {
+        if (narrowsReadsOnItsOwn) {
+          return [];
+        }
+
+        const scope: TelemetryReadScope | null = await getScope(reader);
+
+        if (!scope) {
+          return [];
+        }
+
+        return modelIds
+          .map((modelId: ObjectID): string => {
+            return normalizeRealtimeId(modelId);
+          })
+          .filter((modelId: string): boolean => {
+            /*
+             * A row of a model with no owning resource is read with the
+             * table, and one whose resource is empty (or not sent) matches
+             * only a scope that reaches every resource - as the read's own
+             * condition on the resource column does.
+             */
+            return TelemetryReadScopeUtil.isReadable(
+              scope,
+              ownerIds?.get(modelId) || "",
+            );
+          });
+      },
+    };
+
+    return this.realtimeReadAccess;
+  }
+
+  private getOwnedThrough(): OwnedThroughMetadata | undefined {
+    return (
+      this.getModel() as unknown as { ownedThrough?: OwnedThroughMetadata }
+    ).ownedThrough;
+  }
+
+  /*
+   * The reader's telemetry read scope for this model, or null when their
+   * read of it is refused.
+   */
+  private async getRealtimeReadScope(
+    props: DatabaseCommonInteractionProps,
+  ): Promise<TelemetryReadScope | null> {
+    try {
+      await ModelPermission.checkReadPermission(
+        this.modelType,
+        {} as Query<TBaseModel>,
+        null,
+        props,
+      );
+
+      return await ModelPermission.getReadScope(this.modelType, props);
+    } catch (err) {
+      logger.debug(err, {
+        projectId: props.tenantId?.toString(),
+      } as LogAttributes);
+      return null;
+    }
+  }
+
+  /*
+   * Whether this service's reads are narrowed by the permission check
+   * alone: it adds nothing in onBeforeFind and replaces no read.
+   */
+  private readsThroughThePermissionCheck(): boolean {
+    const service: Record<string, unknown> = this as unknown as Record<
+      string,
+      unknown
+    >;
+    const base: Record<string, unknown> =
+      AnalyticsDatabaseService.prototype as unknown as Record<string, unknown>;
+
+    return [
+      "findBy",
+      "findOneBy",
+      "findOneById",
+      "onBeforeFind",
+      "onFindSuccess",
+    ].every((method: string): boolean => {
+      return service[method] === base[method];
+    });
   }
 }
