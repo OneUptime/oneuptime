@@ -15,6 +15,7 @@ Fast lookup for the errors people actually hit with the OneUptime Terraform prov
 | Provider errors at `terraform plan` startup about a missing API key | No `api_key` attribute and no `ONEUPTIME_API_KEY` env var | Set one of them |
 | `no matching version found for oneuptime/oneuptime` | Exact-version pin on a version that was never published | Use a pessimistic constraint like `~> 11.0` |
 | Data source error: no match / more than one match | Name lookup found zero or multiple resources | Fix the name, or look up by `id` |
+| A resource disappears from the state at `terraform plan`, and the next apply creates it again | The API key can no longer read it: a read of a record the key may not read answers `404`, as a deleted one does, and Terraform drops a resource it gets `404` for | Give the key read access to every resource it manages, then `terraform import` the dropped one instead of applying - see below |
 | `references records that are not in this project` | An ID copied from another project's configuration, or one of a resource that has been deleted | Use the ID of your project's own record — see below |
 | `Invalid Configuration for Read-Only Attribute` on `created_by_user_id`, another `..._by_user_id` or `archived_at` | OneUptime records who created or archived a record, and when, so the provider offers these for reading only | Remove the attribute from the configuration — see below |
 | `x509: certificate signed by unknown authority` (self-hosted) | Instance serves a TLS certificate Terraform's host does not trust | Install the CA on the machine running Terraform |
@@ -57,6 +58,19 @@ This network device references records that are not in this project: Network Sit
 ```
 
 It usually means an ID was copied from another project's configuration or state, or the record was deleted outside Terraform. Refer to the record through its resource or a data source in the same configuration (`oneuptime_label.critical.id`) instead of a literal ID, and apply again. Someone named as a user must be a member of the project.
+
+## A resource leaves the state, and the next apply creates it again
+
+A read by ID answers `404` both for a record that does not exist and for one the API key may not read: the API says nothing about a record it does not show you. Terraform takes a `404` at refresh for a resource deleted outside Terraform. It drops the resource from the state, and the next `terraform apply` creates it again, beside the one that is still there.
+
+That happens when the key that manages a resource can no longer read it: its read permission was limited to labels the resource does not carry, or to the resources its teams own, or a block takes the resource away - or the resource's labels or owners changed.
+
+**Before you plan:**
+
+- Give the key a read permission for every resource type it manages that reaches every resource it manages: at **All** scope, or limited to labels those resources carry. A key's update and delete permissions reach only what it may read.
+- Read the plan before you apply it: a resource planned for creation that you did not add is one the key can no longer read.
+
+**When the state has lost a resource already:** give the key its read access back, then [import](/docs/terraform/importing-resources) the resource instead of applying, so Terraform adopts the one that exists rather than creating a second one. If a copy was created already, delete the one you do not want.
 
 ## "Invalid Configuration for Read-Only Attribute" on `created_by_user_id`
 

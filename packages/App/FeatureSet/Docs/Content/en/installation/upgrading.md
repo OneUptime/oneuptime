@@ -575,7 +575,8 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
     and the CLI exits with code `3`. The Terraform provider removes a
     resource it can no longer read from its state when it refreshes, and
     the next plan creates it again: give the API key Terraform uses the
-    permissions, and the labels, to read every resource it manages.
+    permissions, and the labels, to read every resource it manages (see
+    [Troubleshooting](/docs/terraform/troubleshooting#a-resource-leaves-the-state-and-the-next-apply-creates-it-again)).
   - An **All Operational Resources** permission restricted to labels
     (`ReadAllOperationalResources`, `EditAllOperationalResources`,
     `DeleteAllOperationalResources`) reached every monitor, incident,

@@ -31,6 +31,8 @@ const LANGUAGES: Array<string> = [...SUPPORTED_DOCS_LANGUAGE_CODES];
 
 const WILDCARD: string = "**All Operational Resources**";
 const GET_ITEM: string = "`POST /api/<resource>/<id>/get-item`";
+const TERRAFORM_SECTION: string =
+  "/docs/terraform/troubleshooting#a-resource-leaves-the-state-and-the-next-apply-creates-it-again";
 
 function read(language: string, page: string): string {
   return fs.readFileSync(path.join(CONTENT_DIR, language, page), "utf8");
@@ -168,9 +170,50 @@ describe("Docs: every grant and scope narrows what it reaches", () => {
       "  - Deleting telemetry - logs, traces, metrics, exceptions, profiles and",
       "  - A status page's SAML and OIDC sign-in providers are read by",
       "(/docs/api-reference/api-reference#reading-one-record-by-its-id)",
+      `(${TERRAFORM_SECTION})`,
     ]) {
       expect([sentence, page.includes(sentence)]).toEqual([sentence, true]);
     }
+  });
+
+  /*
+   * Terraform takes a 404 at refresh for a resource deleted outside it, so
+   * a key that can no longer read what it manages drops it from the state.
+   * The troubleshooting guide says how to keep that from creating a second
+   * copy, in English and Persian, the languages it is written in.
+   */
+  test.each(["en", "fa"])(
+    "the %s Terraform troubleshooting guide says what a 404 at refresh does",
+    (language: string) => {
+      const page: string = read(language, "terraform/troubleshooting.md");
+      const rows: Array<string> = page.split("\n").filter((line: string) => {
+        return line.startsWith("| ") && line.includes("`404`");
+      });
+
+      expect([language, rows.length]).toEqual([language, 1]);
+      expect([language, rows[0]!.includes("`terraform import`")]).toEqual([
+        language,
+        true,
+      ]);
+      expect([
+        language,
+        page.includes("(/docs/terraform/importing-resources)"),
+      ]).toEqual([language, true]);
+    },
+  );
+
+  test("the English Terraform troubleshooting section is the one the upgrade notes link to", () => {
+    const page: string = read("en", "terraform/troubleshooting.md");
+
+    expect(page).toContain(
+      "## A resource leaves the state, and the next apply creates it again",
+    );
+    expect(page).toContain(
+      "A read by ID answers `404` both for a record that does not exist and for one the API key may not read: the API says nothing about a record it does not show you.",
+    );
+    expect(page).toContain(
+      "**When the state has lost a resource already:** give the key its read access back, then [import](/docs/terraform/importing-resources) the resource instead of applying, so Terraform adopts the one that exists rather than creating a second one.",
+    );
   });
 
   test.each(
