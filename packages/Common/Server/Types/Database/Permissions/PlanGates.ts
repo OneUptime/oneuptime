@@ -22,6 +22,15 @@ import { PlanType } from "../../../../Types/Billing/SubscriptionPlan";
  * disagree about which operations a plan decides.
  */
 export default class PlanGates {
+  /*
+   * Whether every project meets a plan requirement: none at all, or the Free
+   * plan - the lowest, which every plan includes. Such a requirement decides
+   * nothing, so it needs no plan read and refuses no one.
+   */
+  public static isMetByEveryPlan(plan: PlanType | null | undefined): boolean {
+    return !plan || plan === PlanType.Free;
+  }
+
   // The plan a column names for this operation, if it names one.
   public static getColumnPlan(
     billingAccessControl: ColumnBillingAccessControl | null | undefined,
@@ -105,7 +114,7 @@ export default class PlanGates {
     type: DatabaseRequestType,
     data?: unknown,
   ): boolean {
-    if (PlanGates.getTablePlan(model, type)) {
+    if (!PlanGates.isMetByEveryPlan(PlanGates.getTablePlan(model, type))) {
       return true;
     }
 
@@ -123,7 +132,9 @@ export default class PlanGates {
     return Object.keys(values).some((key: string): boolean => {
       return (
         values[key] !== undefined &&
-        Boolean(PlanGates.getColumnPlan(model.getColumnBillingAccessControl(key), type))
+        !PlanGates.isMetByEveryPlan(
+          PlanGates.getColumnPlan(model.getColumnBillingAccessControl(key), type),
+        )
       );
     });
   }
@@ -134,7 +145,9 @@ export default class PlanGates {
     type: DatabaseRequestType,
     data?: unknown,
   ): boolean {
-    if (PlanGates.getAnalyticsTablePlan(model, type)) {
+    if (
+      !PlanGates.isMetByEveryPlan(PlanGates.getAnalyticsTablePlan(model, type))
+    ) {
       return true;
     }
 
@@ -154,7 +167,9 @@ export default class PlanGates {
       .some((column: AnalyticsTableColumn): boolean => {
         return (
           values[column.key] !== undefined &&
-          Boolean(PlanGates.getColumnPlan(column.billingAccessControl, type))
+          !PlanGates.isMetByEveryPlan(
+            PlanGates.getColumnPlan(column.billingAccessControl, type),
+          )
         );
       });
   }

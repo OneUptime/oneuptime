@@ -218,11 +218,14 @@ export default class ColumnPermissions {
 
         /*
          * No plan on props that act in a project is never "any plan": the
-         * write is refused (CallerPlan). OneUptime itself and server admins
-         * need no plan.
+         * write is refused (CallerPlan), unless every plan includes the
+         * column. OneUptime itself and server admins need no plan.
          */
         if (!props.currentPlan) {
-          CallerPlan.assertPlanKnown(props);
+          if (!PlanGates.isMetByEveryPlan(requiredPlan)) {
+            CallerPlan.assertPlanKnown(props);
+          }
+
           continue;
         }
 

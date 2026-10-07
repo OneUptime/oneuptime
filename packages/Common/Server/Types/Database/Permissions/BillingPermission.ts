@@ -100,7 +100,9 @@ export default class BillingPermissions {
     if (!props.currentPlan) {
       if (
         CallerPlan.isPlanMissing(props) &&
-        BillingPermissions.getRequiredPlan(model, type) &&
+        !PlanGates.isMetByEveryPlan(
+          BillingPermissions.getRequiredPlan(model, type),
+        ) &&
         !(
           options.allowLeftovers &&
           BillingPermissions.isAllowedBelowPlan(model, type, options.updateData)

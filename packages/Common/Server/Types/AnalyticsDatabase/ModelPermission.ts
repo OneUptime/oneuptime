@@ -297,11 +297,14 @@ export default class ModelPermission {
 
         /*
          * No plan on props that act in a project is never "any plan": the
-         * request is refused (CallerPlan). OneUptime itself and server
-         * admins need no plan.
+         * request is refused (CallerPlan), unless every plan includes the
+         * column. OneUptime itself and server admins need no plan.
          */
         if (!props.currentPlan) {
-          CallerPlan.assertPlanKnown(props);
+          if (!PlanGates.isMetByEveryPlan(requiredPlan)) {
+            CallerPlan.assertPlanKnown(props);
+          }
+
           continue;
         }
 
@@ -1593,11 +1596,12 @@ export default class ModelPermission {
 
     /*
      * Props that act in a project but carry no plan are never read as "any
-     * plan" (CallerPlan): a table that names a plan for this operation is
-     * refused to them. OneUptime itself and server admins need no plan.
+     * plan" (CallerPlan): a table that names a plan for this operation -
+     * one not every plan includes - is refused to them. OneUptime itself
+     * and server admins need no plan.
      */
     if (!props.currentPlan) {
-      if (requiredPlan) {
+      if (!PlanGates.isMetByEveryPlan(requiredPlan)) {
         CallerPlan.assertPlanKnown(props);
       }
 
