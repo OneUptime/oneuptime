@@ -72,9 +72,9 @@ function hooksOf<TModel>(service: unknown): HookedService<TModel> {
   return service as HookedService<TModel>;
 }
 
-function updateOf<TModel>(patch: Record<string, unknown>): OnUpdate<
-  TModel & User & UserSession
-> {
+function updateOf<TModel>(
+  patch: Record<string, unknown>,
+): OnUpdate<TModel & User & UserSession> {
   const updateBy: UpdateBy<TModel & User & UserSession> = {
     query: {} as unknown as UpdateBy<TModel & User & UserSession>["query"],
     data: patch as unknown as UpdateBy<TModel & User & UserSession>["data"],

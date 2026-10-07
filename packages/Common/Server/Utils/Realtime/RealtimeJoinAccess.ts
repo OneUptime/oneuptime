@@ -1,10 +1,6 @@
 import type UserMiddlewareType from "../../Middleware/UserAuthorization";
 import type { RequestSession } from "../../Middleware/UserAuthorization";
-import {
-  ExpressRequest,
-  ExpressResponse,
-  OneUptimeRequest,
-} from "../Express";
+import { ExpressRequest, ExpressResponse, OneUptimeRequest } from "../Express";
 import JSONWebToken from "../JsonWebToken";
 import type { RealtimeSocketSession } from "./RealtimeSessions";
 import Dictionary from "../../../Types/Dictionary";

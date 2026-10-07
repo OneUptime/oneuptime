@@ -804,10 +804,7 @@ describe("Realtime (server) ListenToModelEvent", () => {
       const socket: FakeServerSocket = new FakeServerSocket(
         cookieWith(
           validToken(),
-          ssoCookie(
-            OTHER_TENANT_ID,
-            ssoToken({ projectId: OTHER_TENANT_ID }),
-          ),
+          ssoCookie(OTHER_TENANT_ID, ssoToken({ projectId: OTHER_TENANT_ID })),
         ),
       );
 

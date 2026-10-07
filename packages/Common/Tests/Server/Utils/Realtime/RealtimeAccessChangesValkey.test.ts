@@ -1,9 +1,10 @@
-import type RealtimeAccessChangesType from "../../../../Server/Utils/Realtime/RealtimeAccessChanges";
+import RealtimeAccessChangesType, {
+  RealtimeAccessChangeKind,
+} from "../../../../Server/Utils/Realtime/RealtimeAccessChanges";
 import type RealtimeReadersType from "../../../../Server/Utils/Realtime/RealtimeReaders";
 import type RealtimeSessionsType from "../../../../Server/Utils/Realtime/RealtimeSessions";
 import type { RealtimeSessionSocket } from "../../../../Server/Utils/Realtime/RealtimeSessions";
 import type RedisType from "../../../../Server/Infrastructure/Redis";
-import { RealtimeAccessChangeKind } from "../../../../Server/Utils/Realtime/RealtimeAccessChanges";
 import ObjectID from "../../../../Types/ObjectID";
 import getTestRedisConnectionOptions from "../../TestingUtils/Redis/TestRedisOptions";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";

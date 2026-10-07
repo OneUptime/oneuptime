@@ -974,12 +974,16 @@ describePostgres("live updates against a migrated Postgres", () => {
         jest
           .spyOn(UserSessionService, "onTriggerWorkflow")
           .mockResolvedValue(undefined),
-        jest.spyOn(UserService, "onTriggerWorkflow").mockResolvedValue(undefined),
+        jest
+          .spyOn(UserService, "onTriggerWorkflow")
+          .mockResolvedValue(undefined),
         jest.spyOn(PublishedImages, "afterUpdate").mockResolvedValue(undefined),
         jest
           .spyOn(StatusPageOverviewCache, "afterUpdate")
           .mockResolvedValue(undefined),
-        jest.spyOn(AuditLogService, "recordUpdate").mockResolvedValue(undefined),
+        jest
+          .spyOn(AuditLogService, "recordUpdate")
+          .mockResolvedValue(undefined),
       ];
     });
 

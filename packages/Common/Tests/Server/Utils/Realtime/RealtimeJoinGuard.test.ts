@@ -350,14 +350,14 @@ async function apiAnswer(
 
   CookieParser()(request, {} as never, (): void => {});
 
-  const session: JSONObject | null = await (async (): Promise<
-    JSONObject | null
-  > => {
-    const read: Awaited<ReturnType<typeof UserMiddleware.readRequestSession>> =
-      await UserMiddleware.readRequestSession(request);
+  const session: JSONObject | null =
+    await (async (): Promise<JSONObject | null> => {
+      const read: Awaited<
+        ReturnType<typeof UserMiddleware.readRequestSession>
+      > = await UserMiddleware.readRequestSession(request);
 
-    return read.kind === "user" ? (read.session as JSONObject) : null;
-  })();
+      return read.kind === "user" ? (read.session as JSONObject) : null;
+    })();
 
   if (!session) {
     return "not-allowed";

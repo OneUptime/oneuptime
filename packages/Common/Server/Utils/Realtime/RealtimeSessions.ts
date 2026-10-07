@@ -43,6 +43,8 @@ import type { RealtimeReaderIdentity } from "./RealtimeReaders";
 export interface RealtimeSessionSocket {
   id: string;
   data: unknown;
+  // False once the socket has gone; socket.io keeps it up to date.
+  connected?: boolean | undefined;
   rooms: Set<string>;
   leave(room: string): Promise<void> | void;
   emit(event: string, payload: unknown): boolean;
@@ -95,10 +97,7 @@ export default class RealtimeSessions {
   private static live: Map<string, LiveSocket> = new Map<string, LiveSocket>();
 
   // Sessions ("session:<id>") and people ("user:<id>") whose sessions ended.
-  private static ended: Map<string, EndedEntry> = new Map<
-    string,
-    EndedEntry
-  >();
+  private static ended: Map<string, EndedEntry> = new Map<string, EndedEntry>();
 
   /*
    * The session a socket's live updates belong to, while it lasts: null
@@ -217,6 +216,15 @@ export default class RealtimeSessions {
         RealtimeSessions.arm(existing);
       }
 
+      return;
+    }
+
+    /*
+     * A socket that went away while its join was being decided has nothing
+     * left to end, and no disconnect to come that would take it off the
+     * list again: it is not kept.
+     */
+    if (socket.connected === false) {
       return;
     }
 

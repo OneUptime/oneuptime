@@ -399,7 +399,10 @@ describe("RealtimeAccessChanges", () => {
         "some-other-channel",
         JSON.stringify({
           origin: "x",
-          change: { kind: RealtimeAccessChangeKind.SessionsEnded, userId: USER },
+          change: {
+            kind: RealtimeAccessChangeKind.SessionsEnded,
+            userId: USER,
+          },
         }),
       );
 

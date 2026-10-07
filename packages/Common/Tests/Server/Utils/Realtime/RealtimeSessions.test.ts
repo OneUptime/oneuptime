@@ -117,7 +117,9 @@ describe("RealtimeSessions", () => {
 
       RealtimeSessions.begin(socket, session());
 
-      expect(socket.data).toEqual(expect.objectContaining({ somethingElse: 1 }));
+      expect(socket.data).toEqual(
+        expect.objectContaining({ somethingElse: 1 }),
+      );
     });
 
     test("past its access token's expiry it has none, even before the timer", () => {
@@ -126,7 +128,9 @@ describe("RealtimeSessions", () => {
 
       RealtimeSessions.begin(socket, session({ expiresAtMs }));
 
-      expect(RealtimeSessions.getSession(socket, expiresAtMs - 1)).not.toBeNull();
+      expect(
+        RealtimeSessions.getSession(socket, expiresAtMs - 1),
+      ).not.toBeNull();
       expect(RealtimeSessions.getSession(socket, expiresAtMs)).toBeNull();
       expect(RealtimeSessions.getSession(socket, expiresAtMs + 1)).toBeNull();
     });
@@ -246,7 +250,10 @@ describe("RealtimeSessions", () => {
 
       const socket: FakeSocket = new FakeSocket(["room-a"]);
 
-      RealtimeSessions.begin(socket, session({ expiresAtMs: 1_000_000 + 60_000 }));
+      RealtimeSessions.begin(
+        socket,
+        session({ expiresAtMs: 1_000_000 + 60_000 }),
+      );
 
       jest.advanceTimersByTime(59_999);
 
@@ -310,6 +317,19 @@ describe("RealtimeSessions", () => {
       jest.advanceTimersByTime(30_000);
 
       expect(socket.subscribedRooms()).toEqual([]);
+    });
+
+    test("a socket that went away before its join was kept is not tracked: no timer, no entry", () => {
+      jest.useFakeTimers({ now: 0 });
+
+      const gone: FakeSocket = new FakeSocket(["room-a"]);
+      (gone as unknown as { connected: boolean }).connected = false;
+
+      RealtimeSessions.begin(gone, session({ expiresAtMs: 60_000 }));
+
+      expect(RealtimeSessions.size()).toBe(0);
+      expect(jest.getTimerCount()).toBe(0);
+      expect(gone.disconnectListeners).toHaveLength(0);
     });
 
     test("a socket that goes away stops its timer, and nothing is sent to it later", () => {
@@ -465,7 +485,9 @@ describe("RealtimeSessions", () => {
 
       for (let index: number = 0; index <= max; index++) {
         RealtimeSessions.endWhere({
-          sessionIds: [`00000000-0000-4000-8000-${String(index).padStart(12, "0")}`],
+          sessionIds: [
+            `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+          ],
         });
       }
 

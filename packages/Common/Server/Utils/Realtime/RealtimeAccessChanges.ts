@@ -330,9 +330,7 @@ export default class RealtimeAccessChanges {
     const projectId: unknown = change["projectId"];
     const sessionIds: unknown = change["sessionIds"];
 
-    const isId: (id: unknown) => id is string = (
-      id: unknown,
-    ): id is string => {
+    const isId: (id: unknown) => id is string = (id: unknown): id is string => {
       return typeof id === "string" && ObjectID.isValidUUID(id);
     };
 
