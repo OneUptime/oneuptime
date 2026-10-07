@@ -114,7 +114,12 @@ const ORDER_ROUTE: string = "/dashboard-domain/order-ssl/:id";
 
 // Somebody who may read and edit the project's dashboard domains.
 const callerProps: DatabaseCommonInteractionProps = customDomainCaller({
-  permissions: [Permission.ReadDashboardDomain, Permission.EditDashboardDomain],
+  // The domains are read through their dashboard: reading it is asked too.
+  permissions: [
+    Permission.ReadDashboard,
+    Permission.ReadDashboardDomain,
+    Permission.EditDashboardDomain,
+  ],
 });
 
 let domainId: ObjectID;

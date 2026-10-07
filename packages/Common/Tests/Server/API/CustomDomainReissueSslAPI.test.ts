@@ -140,7 +140,9 @@ const surfaces: Array<[string, Surface]> = [
       route: "/status-page-domain/reissue-ssl/:id",
       service: StatusPageDomainService,
       apiModulePath: "../../../Server/API/StatusPageDomainAPI",
+      // The domains are read through their status page: reading it is asked too.
       editorPermissions: [
+        Permission.ReadProjectStatusPage,
         Permission.ReadStatusPageDomain,
         Permission.EditStatusPageDomain,
       ],
@@ -156,7 +158,9 @@ const surfaces: Array<[string, Surface]> = [
       route: "/dashboard-domain/reissue-ssl/:id",
       service: DashboardDomainService,
       apiModulePath: "../../../Server/API/DashboardDomainAPI",
+      // The domains are read through their dashboard: reading it is asked too.
       editorPermissions: [
+        Permission.ReadDashboard,
         Permission.ReadDashboardDomain,
         Permission.EditDashboardDomain,
       ],

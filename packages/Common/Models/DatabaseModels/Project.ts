@@ -647,6 +647,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.BillingAdmin,
     ],
     update: [],
   })
