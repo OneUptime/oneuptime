@@ -26030,5 +26030,13 @@
   "CPU this process used (user plus system time) as a share of all host CPU cores, averaged over the last 5 minutes of the range (usually the whole range if over 12 hours or no recent data). Time it spent waiting on disk is left out.": "CPU this process used (user plus system time) as a share of all host CPU cores, averaged over the last 5 minutes of the range (usually the whole range if over 12 hours or no recent data). Time it spent waiting on disk is left out.",
   "CPU this process used in each interval of the selected range (user plus system time), as a share of the host's total CPU capacity. As on the CPU tile, time it spent waiting on disk is left out.": "CPU this process used in each interval of the selected range (user plus system time), as a share of the host's total CPU capacity. As on the CPU tile, time it spent waiting on disk is left out.",
   "No longer a member": "Não é mais membro",
-  "Invitation not accepted yet": "Convite ainda não aceito"
+  "Invitation not accepted yet": "Convite ainda não aceito",
+  "Check the service and its log": "Check the service and its log",
+  "Download the collector and its files, write the agent's settings and start it as a systemd service.": "Download the collector and its files, write the agent's settings and start it as a systemd service.",
+  "Download the latest release and files and restart the agent, or stop and remove it.": "Download the latest release and files and restart the agent, or stop and remove it.",
+  "Not part of an install without Docker: it ships only as a container image.": "Not part of an install without Docker: it ships only as a container image.",
+  "Run the collector as a systemd service on Linux: no Docker, no containers.": "Run the collector as a systemd service on Linux: no Docker, no containers.",
+  "Run this on the machine the agent runs on. It installs the collector release and the files this OneUptime pins over the old ones, then restarts the agent. Your .env stays; re-apply any change you made to otel-collector-config.yaml.": "Run this on the machine the agent runs on. It installs the collector release and the files this OneUptime pins over the old ones, then restarts the agent. Your .env stays; re-apply any change you made to otel-collector-config.yaml.",
+  "The exact systemd unit and otel-collector-config.yaml the agent runs.": "The exact systemd unit and otel-collector-config.yaml the agent runs.",
+  "Without Docker": "Without Docker"
 }
