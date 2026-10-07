@@ -666,6 +666,9 @@ describe("TeamMemberService resource cleanup when a user leaves the project", ()
           "removeDefaultNotificationSettingsForUser",
         )
         .mockResolvedValue(undefined);
+      jest
+        .spyOn(TeamMemberService, "removeProjectAccessIfUserLeftProject")
+        .mockResolvedValue(null);
       const onCallCleanup: any = jest
         .spyOn(TeamMemberService, "cleanupOnCallAssignmentsIfUserLeftProject")
         .mockResolvedValue(null);

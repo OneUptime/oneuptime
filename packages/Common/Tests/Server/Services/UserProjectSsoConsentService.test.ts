@@ -1,9 +1,10 @@
 import UserProjectSsoConsent from "../../../Models/DatabaseModels/UserProjectSsoConsent";
 import UserProjectSsoConsentService from "../../../Server/Services/UserProjectSsoConsentService";
+import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
-import { getMetadataArgsStorage } from "typeorm";
+import { FindOperator, getMetadataArgsStorage } from "typeorm";
 import { IndexMetadataArgs } from "typeorm/metadata-args/IndexMetadataArgs";
 
 /*
@@ -15,6 +16,9 @@ import { IndexMetadataArgs } from "typeorm/metadata-args/IndexMetadataArgs";
  *
  *  - consent is per (user, project): the query is scoped to both, so one
  *    project's consent can never let another project's IdP in;
+ *  - consent counts only while the person is a member of the project: the
+ *    read carries the shared membership condition, so a row left behind by
+ *    somebody who has left is never honoured;
  *  - recording is idempotent, because the same person can press the button
  *    twice, or confirm two emails for the same project, and the second must
  *    neither fail nor duplicate the row;
@@ -42,6 +46,27 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+// The membership condition (ProjectMembership.userIdWhileMember) for this person and project.
+const expectWhileMember: (condition: unknown) => void = (
+  condition: unknown,
+): void => {
+  const userCondition: FindOperator<unknown> =
+    condition as FindOperator<unknown>;
+
+  expect(userCondition).toBeInstanceOf(FindOperator);
+  expect(userCondition.type).toBe("raw");
+  expect(
+    Object.values(userCondition.objectLiteralParameters || {}).sort(),
+  ).toEqual([PROJECT_ID.toString(), USER_ID.toString()].sort());
+
+  const sql: string = (userCondition.getSql as (alias: string) => string)(
+    "consent.userId",
+  );
+
+  expect(sql).toContain(`"projectMembership"."hasAcceptedInvitation" = true`);
+  expect(sql).toContain(`"projectMembership"."userId" = consent.userId`);
+};
+
 describe("UserProjectSsoConsentService.hasConsent", () => {
   test("asks about this user in this project, as root", async () => {
     const countBy: SpyCalls = jest
@@ -60,9 +85,57 @@ describe("UserProjectSsoConsentService.hasConsent", () => {
       any
     >;
 
-    expect(call["query"]["userId"].toString()).toBe(USER_ID.toString());
+    expectWhileMember(call["query"]["userId"]);
     expect(call["query"]["projectId"].toString()).toBe(PROJECT_ID.toString());
     expect(call["props"]["isRoot"]).toBe(true);
+  });
+
+  test("the condition is the shared membership one, for this person and this project", async () => {
+    jest
+      .spyOn(UserProjectSsoConsentService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1));
+    const userIdWhileMember: SpyCalls = jest.spyOn(
+      ProjectMembership,
+      "userIdWhileMember",
+    ) as unknown as SpyCalls;
+
+    await UserProjectSsoConsentService.hasConsent({
+      userId: USER_ID,
+      projectId: PROJECT_ID,
+    });
+
+    expect(userIdWhileMember.mock.calls).toHaveLength(1);
+    expect(userIdWhileMember.mock.calls[0]![0]).toEqual({
+      userId: USER_ID,
+      projectId: PROJECT_ID,
+    });
+  });
+
+  test("a consent row of somebody who has left reads back as no row: no consent", async () => {
+    // The membership condition filtered the row out of the count.
+    jest
+      .spyOn(UserProjectSsoConsentService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+
+    await expect(
+      UserProjectSsoConsentService.hasConsent({
+        userId: USER_ID,
+        projectId: PROJECT_ID,
+      }),
+    ).resolves.toBe(false);
+  });
+
+  test("a failed read is an error, never consent", async () => {
+    jest
+      .spyOn(UserProjectSsoConsentService, "countBy")
+      .mockRejectedValue(new Error("database unavailable"));
+
+    await expect(
+      UserProjectSsoConsentService.hasConsent({
+        userId: USER_ID,
+        projectId: PROJECT_ID,
+      }),
+    ).rejects.toThrow("database unavailable");
   });
 
   test("is false when there is no row", async () => {
@@ -103,6 +176,31 @@ describe("UserProjectSsoConsentService.recordConsent", () => {
     expect(call["data"]).toBeInstanceOf(UserProjectSsoConsent);
     expect(call["data"]["userId"].toString()).toBe(USER_ID.toString());
     expect(call["data"]["projectId"].toString()).toBe(PROJECT_ID.toString());
+    expect(call["props"]["isRoot"]).toBe(true);
+  });
+
+  test("checks for the row itself, membership aside: the unique index allows one row per person and project", async () => {
+    const countBy: SpyCalls = jest
+      .spyOn(UserProjectSsoConsentService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0)) as unknown as SpyCalls;
+    jest
+      .spyOn(UserProjectSsoConsentService, "create")
+      .mockResolvedValue(new UserProjectSsoConsent());
+
+    await UserProjectSsoConsentService.recordConsent({
+      userId: USER_ID,
+      projectId: PROJECT_ID,
+    });
+
+    const call: Record<string, any> = countBy.mock.calls[0]![0] as Record<
+      string,
+      any
+    >;
+
+    // A plain id: a row the membership condition hides still blocks a second insert.
+    expect(call["query"]["userId"]).toBeInstanceOf(ObjectID);
+    expect(call["query"]["userId"].toString()).toBe(USER_ID.toString());
+    expect(call["query"]["projectId"].toString()).toBe(PROJECT_ID.toString());
     expect(call["props"]["isRoot"]).toBe(true);
   });
 

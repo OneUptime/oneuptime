@@ -2,10 +2,11 @@ import DatabaseBaseModel from "../../../../Models/DatabaseModels/DatabaseBaseMod
 import AllModelTypes from "../../../../Models/DatabaseModels/Index";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import logger from "../../../../Server/Utils/Logger";
+import ProjectLeaveAccessCleanup from "../../../../Server/Utils/TeamMember/ProjectLeaveAccessCleanup";
 import ProjectLeaveNotificationCleanup, {
   FormerMemberCleanupResult,
-  HistoryReference,
   PersonalNotificationTable,
+  PersonalTable,
   ProjectLeaveNotificationCleanupResult,
 } from "../../../../Server/Utils/TeamMember/ProjectLeaveNotificationCleanup";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
@@ -13,7 +14,8 @@ import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
-import { FindOperator } from "typeorm";
+import { FindOperator, getMetadataArgsStorage } from "typeorm";
+import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
 import {
   afterEach,
   beforeEach,
@@ -36,10 +38,10 @@ import type { Mock, SpyInstance } from "jest-mock";
  *     purpose (with the reason written down),
  *   - every delete is scoped to (project, person), as root, and one failing
  *     table does not stop the others,
- *   - the on-call history that points at a rule or method is kept: those
- *     references are cleared before anything goes, and if that fails the
- *     rules and methods stay (a guard holds every relation into a personal
- *     table to that list),
+ *   - the on-call history that points at a rule or method is kept: every
+ *     relation into a personal table from a table that is not one clears
+ *     itself when the row it points at goes (ON DELETE SET NULL), so no
+ *     removal - this cleanup's, or the person's own - takes history with it,
  *   - the data migration's walk removes former members' leftovers only,
  *     re-checking each person just before, and keeps going past failures.
  */
@@ -64,9 +66,20 @@ const KEPT_WHEN_A_PERSON_LEAVES: Record<string, string> = {
   UserOnCallLog: "History of the pages sent to them.",
   UserOnCallLogTimeline: "History of the pages sent to them.",
   UserOnCallShiftReminderLog: "History of the shift reminders sent to them.",
-  UserProjectSsoConsent:
-    "Their consent to the project's single sign-on, not a notification setting.",
 };
+
+/*
+ * Per-project tables of a person's own that are removed on leave, but not as
+ * notification settings: what lets them into the project
+ * (ProjectLeaveAccessCleanup).
+ */
+function accessTableNames(): Array<string> {
+  return ProjectLeaveAccessCleanup.getPersonalAccessTables().map(
+    (table: PersonalTable): string => {
+      return table.service.getModel().tableName!;
+    },
+  );
+}
 
 function tableNames(): Array<string> {
   return ProjectLeaveNotificationCleanup.getPersonalNotificationTables().map(
@@ -105,25 +118,11 @@ interface TableSpies {
  * Fakes countBy/deleteBy on every personal table's service. `rows` is what
  * each table holds for the person (default 1); `failing` tables throw.
  */
-// The history step, faked by fakeTables; failing when told to.
-let keepHistory: SpyInstance<
-  typeof ProjectLeaveNotificationCleanup.keepHistory
->;
-
 function fakeTables(options?: {
   rows?: Record<string, number>;
   failing?: Array<string>;
-  historyFails?: boolean | undefined;
 }): Record<string, TableSpies> {
   const spies: Record<string, TableSpies> = {};
-
-  keepHistory = jest
-    .spyOn(ProjectLeaveNotificationCleanup, "keepHistory")
-    .mockImplementation(async (): Promise<void> => {
-      if (options?.historyFails) {
-        throw new Error("history unavailable");
-      }
-    });
 
   for (const table of ProjectLeaveNotificationCleanup.getPersonalNotificationTables()) {
     const name: string = table.service.getModel().tableName!;
@@ -208,9 +207,15 @@ describe("ProjectLeaveNotificationCleanup", () => {
         })
         .sort();
 
+      const access: Set<string> = new Set<string>(accessTableNames());
+
       const unclassified: Array<string> = perProjectPersonTables.filter(
         (table: string): boolean => {
-          return !listed.has(table) && !KEPT_WHEN_A_PERSON_LEAVES[table];
+          return (
+            !listed.has(table) &&
+            !access.has(table) &&
+            !KEPT_WHEN_A_PERSON_LEAVES[table]
+          );
         },
       );
 
@@ -343,76 +348,26 @@ describe("ProjectLeaveNotificationCleanup", () => {
       expect(spies["UserEmail"]!.deleteBy).toHaveBeenCalledTimes(1);
     });
 
-    test("the history is kept first, for that person in that project", async () => {
-      const spies: Record<string, TableSpies> = fakeTables();
+    test("nothing touches the history: only the person's own tables are written to", async () => {
+      const query: Mock<(sql: string) => Promise<unknown>> = jest.fn(
+        async (): Promise<unknown> => {
+          return [];
+        },
+      );
+
+      jest
+        .spyOn(TeamMemberService, "getRepository")
+        .mockReturnValue({ manager: { query } } as never);
+
+      fakeTables();
 
       await ProjectLeaveNotificationCleanup.removePersonalNotificationSettings({
         projectId: PROJECT_ID,
         userId: USER_ID,
       });
 
-      expect(keepHistory).toHaveBeenCalledTimes(1);
-      expect(keepHistory.mock.calls[0]![0]).toEqual({
-        projectId: PROJECT_ID,
-        userId: USER_ID,
-      });
-
-      for (const spy of Object.values(spies)) {
-        expect(keepHistory.mock.invocationCallOrder[0]!).toBeLessThan(
-          spy.countBy.mock.invocationCallOrder[0]!,
-        );
-      }
-    });
-
-    test("history that cannot be kept keeps the rules and methods it points at; the rest still go", async () => {
-      const spies: Record<string, TableSpies> = fakeTables({
-        historyFails: true,
-      });
-
-      const result: ProjectLeaveNotificationCleanupResult =
-        await ProjectLeaveNotificationCleanup.removePersonalNotificationSettings(
-          { projectId: PROJECT_ID, userId: USER_ID },
-        );
-
-      const pointedAt: Set<string> = new Set<string>(
-        ProjectLeaveNotificationCleanup.getHistoryReferences().map(
-          (reference: HistoryReference): string => {
-            return reference.references.getModel().tableName!;
-          },
-        ),
-      );
-
-      expect(Array.from(pointedAt).sort()).toEqual(
-        [
-          "UserCall",
-          "UserEmail",
-          "UserMicrosoftTeams",
-          "UserNotificationRule",
-          "UserPush",
-          "UserSMS",
-          "UserSlack",
-          "UserTelegram",
-          "UserWebhook",
-          "UserWhatsApp",
-        ].sort(),
-      );
-
-      for (const name of tableNames()) {
-        if (pointedAt.has(name)) {
-          expect({
-            name,
-            deleted: spies[name]!.deleteBy.mock.calls.length,
-          }).toEqual({ name, deleted: 0 });
-        } else {
-          expect({
-            name,
-            deleted: spies[name]!.deleteBy.mock.calls.length,
-          }).toEqual({ name, deleted: 1 });
-        }
-      }
-
-      expect(result.failedTables.sort()).toEqual(Array.from(pointedAt).sort());
-      expect(logger.error).toHaveBeenCalled();
+      // The database keeps the history (ON DELETE SET NULL): no SQL of ours.
+      expect(query).not.toHaveBeenCalled();
     });
 
     test("a failing table is logged and named; the others still go", async () => {
@@ -439,57 +394,28 @@ describe("ProjectLeaveNotificationCleanup", () => {
   });
 
   describe("keeping the on-call history", () => {
-    test("each reference is cleared only where it points at this person's rows in this project", async () => {
-      const query: Mock<
-        (sql: string, parameters: Array<unknown>) => Promise<unknown>
-      > = jest.fn(async (): Promise<unknown> => {
-        return [];
-      });
-
-      jest
-        .spyOn(TeamMemberService, "getRepository")
-        .mockReturnValue({ manager: { query } } as never);
-
-      await ProjectLeaveNotificationCleanup.keepHistory({
-        projectId: PROJECT_ID,
-        userId: USER_ID,
-      });
-
-      // One statement for the one history table.
-      expect(query).toHaveBeenCalledTimes(1);
-
-      const [sql, parameters] = query.mock.calls[0]!;
-
-      expect(
-        sql.startsWith(`UPDATE "UserOnCallLogTimeline" history SET `),
-      ).toBe(true);
-      expect(parameters).toEqual([PROJECT_ID.toString(), USER_ID.toString()]);
-
-      for (const reference of ProjectLeaveNotificationCleanup.getHistoryReferences()) {
-        const ownRows: string = `SELECT personal."_id" FROM "${reference.references.getModel().tableName}" personal WHERE personal."projectId" = $1 AND personal."userId" = $2`;
-
-        expect(sql).toContain(
-          `"${reference.column}" = CASE WHEN history."${reference.column}" IN (${ownRows}) THEN NULL ELSE history."${reference.column}" END`,
-        );
-        expect(sql).toContain(`history."${reference.column}" IN (${ownRows})`);
-      }
-
-      // Nothing is deleted from the history itself.
-      expect(sql).not.toContain("DELETE");
-    });
-
-    test("every relation into a personal table is either another personal table or a history reference that is cleared", () => {
-      const personal: Set<string> = new Set<string>(tableNames());
-      const cleared: Set<string> = new Set<string>(
-        ProjectLeaveNotificationCleanup.getHistoryReferences().map(
-          (reference: HistoryReference): string => {
-            return `${reference.history.getModel().tableName}.${reference.column}`;
-          },
-        ),
+    /*
+     * The relation of a model's property, as TypeORM's decorators declared
+     * it: where the ON DELETE behaviour of its foreign key comes from.
+     */
+    function relationOf(
+      model: DatabaseBaseModel,
+      propertyName: string,
+    ): RelationMetadataArgs | undefined {
+      return getMetadataArgsStorage().relations.find(
+        (relation: RelationMetadataArgs): boolean => {
+          return (
+            relation.target === model.constructor &&
+            relation.propertyName === propertyName
+          );
+        },
       );
+    }
 
-      const unhandled: Array<string> = [];
-      const found: Set<string> = new Set<string>();
+    test("every relation into a personal table from a table that is not one clears itself when the row goes", () => {
+      const personal: Set<string> = new Set<string>(tableNames());
+      const found: Array<string> = [];
+      const cascading: Array<string> = [];
 
       for (const modelType of AllModelTypes) {
         const model: DatabaseBaseModel = new modelType();
@@ -517,21 +443,43 @@ describe("ProjectLeaveNotificationCleanup", () => {
             continue;
           }
 
-          const reference: string = `${model.tableName}.${metadata.manyToOneRelationColumn}`;
+          const reference: string =
+            model.tableName +
+            "." +
+            metadata.manyToOneRelationColumn +
+            " -> " +
+            target;
 
-          found.add(reference);
+          found.push(reference);
 
-          if (!cleared.has(reference)) {
-            unhandled.push(`${reference} -> ${target}`);
+          if (relationOf(model, column)?.options?.onDelete !== "SET NULL") {
+            cascading.push(reference);
           }
         }
       }
 
-      // A new relation into a personal table: clear it first, or remove it with them.
-      expect(unhandled).toEqual([]);
+      /*
+       * A new relation into a personal table must not take the row that
+       * holds it along when a person removes a method or leaves the project:
+       * make it ON DELETE SET NULL, or make its table personal too.
+       */
+      expect(cascading).toEqual([]);
 
-      // Every listed reference is a real relation into the table it names.
-      expect(Array.from(cleared).sort()).toEqual(Array.from(found).sort());
+      // The on-call history: the rule and the method each page went through.
+      expect(found.sort()).toEqual(
+        [
+          "UserOnCallLogTimeline.userCallId -> UserCall",
+          "UserOnCallLogTimeline.userEmailId -> UserEmail",
+          "UserOnCallLogTimeline.userMicrosoftTeamsId -> UserMicrosoftTeams",
+          "UserOnCallLogTimeline.userNotificationRuleId -> UserNotificationRule",
+          "UserOnCallLogTimeline.userPushId -> UserPush",
+          "UserOnCallLogTimeline.userSlackId -> UserSlack",
+          "UserOnCallLogTimeline.userSmsId -> UserSMS",
+          "UserOnCallLogTimeline.userTelegramId -> UserTelegram",
+          "UserOnCallLogTimeline.userWebhookId -> UserWebhook",
+          "UserOnCallLogTimeline.userWhatsAppId -> UserWhatsApp",
+        ].sort(),
+      );
     });
   });
 

@@ -179,6 +179,12 @@ describe("TeamMemberService removes a leaver's own notification settings", () =>
         .mockResolvedValue(undefined as never);
 
       jest
+        .spyOn(TeamMemberService, "removeProjectAccessIfUserLeftProject")
+        .mockImplementation((async (data: { userId: ObjectID }) => {
+          calls.push(`project-access:${data.userId.toString()}`);
+          return null;
+        }) as never);
+      jest
         .spyOn(TeamMemberService, "cleanupOnCallAssignmentsIfUserLeftProject")
         .mockImplementation((async (data: { userId: ObjectID }) => {
           calls.push(`on-call:${data.userId.toString()}`);
@@ -266,7 +272,8 @@ describe("TeamMemberService removes a leaver's own notification settings", () =>
 
       const user: string = USER_ID.toString();
 
-      expect(calls.slice(0, 5)).toEqual([
+      expect(calls.slice(0, 6)).toEqual([
+        `project-access:${user}`,
         `on-call:${user}`,
         `resources:${user}`,
         `workspace-links:${user}`,
