@@ -16,6 +16,12 @@ export function getFormsBreadcrumbs(path: string): Array<Link> | undefined {
       "Forms",
       "View Form",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.FORM_VIEW_TEMPLATES, [
+      "Project",
+      "Forms",
+      "View Form",
+      "Templates",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.FORM_VIEW_ON_SUBMIT, [
       "Project",
       "Forms",
@@ -33,6 +39,12 @@ export function getFormsBreadcrumbs(path: string): Array<Link> | undefined {
       "Forms",
       "View Form",
       "Submissions",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.FORM_VIEW_DUPLICATE, [
+      "Project",
+      "Forms",
+      "View Form",
+      "Duplicate Form",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.FORM_VIEW_DELETE, [
       "Project",

@@ -33,7 +33,9 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * builder. Each submission creates something in the form's project - an
  * incident or a scheduled maintenance event (targetType) - from the answers
  * (fields) and the form's own settings (targetSettings), and leaves a
- * FormSubmission behind.
+ * FormSubmission behind. A submission can start from one of the form's
+ * templates (templates): named sets of answers that fill the form in, and
+ * answer its hidden questions.
  *
  * Forms replaced incident forms (Incidents > Settings > Forms); the
  * migration that moved them kept each form's id and link key, so the old
@@ -297,7 +299,7 @@ export default class Form extends BaseModel {
     type: TableColumnType.JSON,
     title: "Questions",
     description:
-      "The questions the form asks, in order. Each has an id, a source (Question: one of the form's own, answered by type; TargetField: a built-in field of what the form creates, by targetField; TargetCustomField: one of its custom fields, by customFieldId; Submitter: the submitter's Name or Email), a label, optional help text and isRequired. A new form starts with a title, a description and the submitter's name and email.",
+      "The questions the form asks, in order. Each has an id, a source (Question: one of the form's own, answered by type; TargetField: a built-in field of what the form creates, by targetField; TargetCustomField: one of its custom fields, by customFieldId; Submitter: the submitter's Name or Email), a label, optional help text, isRequired and isHidden (not shown on the public form, and answered only from the template a submission started from; never required, and never a field the target cannot be created without). A new form starts with a title, a description and the submitter's name and email.",
     example: [
       {
         id: "0f6c2b8e-6a8d-4f1c-9d3e-2b7a1c5e9f40",
@@ -321,6 +323,43 @@ export default class Form extends BaseModel {
     nullable: true,
   })
   public fields?: JSONArray = undefined;
+
+  /*
+   * Named sets of answers a submission can start from - the Templates page:
+   * a list of Types/Form/FormTemplate, checked on every write by FormService,
+   * each answer against the question it answers. The public page offers them
+   * above the questions; the server answers the form's hidden questions from
+   * the one a submission started from.
+   */
+  @ColumnAccessControl({
+    create: [...CREATE_PERMISSIONS],
+    read: [...READ_PERMISSIONS],
+    update: [...UPDATE_PERMISSIONS],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Templates",
+    description:
+      "Named sets of answers a submission can start from, in the order the form lists them. Each has an id, a name (unique within the form), isDefault (the form opens with it; at most one template) and answers: an object keyed by question id, each answer as a submission sends it - text, a number, true or false, an option's value, or a list of values for a multi-select. The public form lists the templates above its questions and fills in a template's answers when one is chosen, or when its link names one (?template=<id>). Hidden questions are answered only from the template a submission started from.",
+    example: [
+      {
+        id: "3f2c1b0a-9d8e-4c7b-a6f5-e4d3c2b1a0f9",
+        name: "Application Outage",
+        isDefault: false,
+        answers: {
+          "0f6c2b8e-6a8d-4f1c-9d3e-2b7a1c5e9f40":
+            "The application is unavailable",
+          "5b1d7e2a-3c9f-4e6b-8a0d-1f2e3d4c5b6a": "London",
+        },
+      },
+    ],
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public templates?: JSONArray = undefined;
 
   /*
    * What every submission starts with, beyond the answers - the On Submit

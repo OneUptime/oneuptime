@@ -114,6 +114,10 @@ import DashboardSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Da
 import MonitorSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Settings";
 import OnCallDutyScheduleSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/OnCallDuty/OnCallDutySchedule/Settings";
 import WorkflowSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Workflow/View/Settings";
+import FormDuplicate, {
+  prepareFormCopy,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Forms/View/Duplicate";
+import FormsCopy from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/FormsCopy";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
@@ -123,6 +127,7 @@ import { getDuplicateNameColumn } from "../../../UI/Components/DuplicateModel/Du
 import { ModelField } from "../../../UI/Components/Forms/ModelForm";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Dashboard from "../../../Models/DatabaseModels/Dashboard";
+import Form from "../../../Models/DatabaseModels/Form";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicySchedule from "../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
@@ -203,6 +208,19 @@ const PAGES: Array<DuplicatePage> = [
     viewPage: PageMap.WORKFLOW_VIEW,
     // A copy lands disabled, so its trigger does not fire beside the original's.
     neverCopied: ["isEnabled"],
+  },
+  {
+    label: "form",
+    file: `${DASHBOARD}/Pages/Forms/View/Duplicate.tsx`,
+    Page: FormDuplicate,
+    modelType: Form,
+    viewPage: PageMap.FORM_VIEW,
+    /*
+     * A copy gets a link of its own, which the server mints; it starts
+     * turned off (prepareFormCopy) - and its submissions are the
+     * original's.
+     */
+    neverCopied: ["shareKey", "isEnabled"],
   },
 ];
 
@@ -325,6 +343,66 @@ describe("the monitor's Duplicate", () => {
     expect(disable).toBeDefined();
     expect(disable?.defaultValue).toBe(true);
   });
+});
+
+describe("the form's Duplicate", () => {
+  const formPage: DuplicatePage = PAGES.find((page: DuplicatePage): boolean => {
+    return page.modelType === Form;
+  })!;
+
+  test("copies everything a form is built from", async () => {
+    const props: Record<string, unknown> = await renderPage(formPage);
+
+    expect(
+      Object.keys(props["fieldsToDuplicate"] as Record<string, unknown>).sort(),
+    ).toEqual(
+      [
+        "description",
+        "targetType",
+        "fields",
+        "templates",
+        "targetSettings",
+        "successMessage",
+        "ipWhitelist",
+        "logoFileId",
+        "logoAltText",
+        "faviconFileId",
+      ].sort(),
+    );
+  });
+
+  test("says what the copy has, and that it starts turned off", async () => {
+    const props: Record<string, unknown> = await renderPage(formPage);
+
+    expect(props["description"]).toBe(FormsCopy.duplicateFormNote);
+    expect(FormsCopy.duplicateFormNote).toContain("starts turned off");
+    expect(props["prepareCopy"]).toBe(prepareFormCopy);
+  });
+
+  test("the copy is saved turned off, whatever the original was", () => {
+    const copy: Form = new Form();
+    copy.isEnabled = true;
+    copy.ipWhitelist = "10.0.0.0/8";
+
+    prepareFormCopy(copy);
+
+    expect(copy.isEnabled).toBe(false);
+    // An allowlist the original has is kept: never dropped silently.
+    expect(copy.ipWhitelist).toBe("10.0.0.0/8");
+  });
+
+  test.each([null, undefined, "", "  \n "])(
+    "an allowlist the original does not have (%j) is not sent, so the copy needs no Scale plan",
+    (ipWhitelist: string | null | undefined) => {
+      const copy: Form = new Form();
+      copy.ipWhitelist = ipWhitelist as string;
+
+      prepareFormCopy(copy);
+
+      expect(copy.ipWhitelist).toBeUndefined();
+      expect(copy.isEnabled).toBe(false);
+    },
+  );
 });
 
 /*

@@ -28,6 +28,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { FindOperator } from "typeorm";
 
 jest.mock("../../../Server/Utils/Logger");
 
@@ -51,7 +52,13 @@ jest.mock("../../../Server/Utils/Logger");
  *     as records join - so no later re-render brings the title back;
  *   - its monitor's name and its severity, which are the project's, are
  *     filled in as for any record;
- *   - the new episode's feed shows the grouping key with the title left out.
+ *   - the new episode's feed shows the grouping key with the title left out;
+ *   - the episode is stored with the title in its grouping key hashed - the
+ *     key is read with the episode too - and grouping is as it was: every
+ *     record with the same title, private or not, still joins it, as they
+ *     join an episode opened before titles were hashed, and a private and a
+ *     public one arriving together take the same lock, so they never open
+ *     two episodes between them.
  *
  * A record that is not private writes the episode exactly as before.
  *
@@ -74,6 +81,15 @@ const MONITOR_ID: ObjectID = new ObjectID(
 const SEVERITY_ID: ObjectID = new ObjectID(
   "0195d1e2-0000-4000-8000-0000000000c1",
 );
+// An episode opened before titles were hashed.
+const EARLIER_EPISODE_ID: ObjectID = new ObjectID(
+  "0195d1e2-0000-4000-8000-0000000000e0",
+);
+// The records that come after the first.
+const LATER_RECORD_IDS: Array<ObjectID> = [
+  new ObjectID("0195d1e2-0000-4000-8000-0000000000d2"),
+  new ObjectID("0195d1e2-0000-4000-8000-0000000000d3"),
+];
 
 const RULE_NAME: string = "Customer data alarms";
 const MONITOR_NAME: string = "API Server";
@@ -86,6 +102,13 @@ const RECORD_DESCRIPTION: string =
 // The title as a rule that groups by title keys episodes by it.
 const RECORD_TITLE_IN_KEY: string =
   "title:northwind payroll export X copied to a public bucket";
+// The same title as the key reads it: only the number differs.
+const SAME_TITLE_ANOTHER_NUMBER: string =
+  "Northwind payroll export 2025 copied to a public bucket";
+const ANOTHER_TITLE: string = "Checkout is slow";
+
+// The title in a key, hashed: the name, and an HMAC in hex.
+const HASHED_TITLE_IN_KEY: string = "titleHmac:[0-9a-f]{64}";
 
 // Anything that gives the record's title or description away.
 const RECORD_TEXT: RegExp = /northwind|payroll/i;
@@ -103,6 +126,7 @@ interface GroupingResult {
   grouped: boolean;
   episodeId?: ObjectID;
   isNewEpisode?: boolean;
+  wasReopened?: boolean;
 }
 
 interface RuleOptions {
@@ -110,6 +134,15 @@ interface RuleOptions {
   descriptionTemplate?: string | undefined;
   groupByTitle?: boolean | undefined;
   groupBySeverity?: boolean | undefined;
+  reopenWindowMinutes?: number | undefined;
+}
+
+interface RecordData {
+  isPrivate: boolean | undefined;
+  withMonitor: boolean;
+  // RECORD_ID and RECORD_TITLE unless given.
+  id?: ObjectID | undefined;
+  title?: string | undefined;
 }
 
 interface EngineCase {
@@ -132,11 +165,9 @@ interface EngineCase {
   matchMethod: string;
   addMethod: string;
   recountMethod: string;
-  newRecord: (data: {
-    isPrivate: boolean | undefined;
-    withMonitor: boolean;
-  }) => Incident | Alert;
+  newRecord: (data: RecordData) => Incident | Alert;
   newRule: (options: RuleOptions) => IncidentGroupingRule | AlertGroupingRule;
+  newEpisode: () => Episode;
   process: (record: Incident | Alert) => Promise<GroupingResult>;
 }
 
@@ -162,14 +193,11 @@ const ENGINES: Array<EngineCase> = [
     matchMethod: "doesIncidentMatchRule",
     addMethod: "addIncidentToEpisode",
     recountMethod: "updateIncidentCount",
-    newRecord: (data: {
-      isPrivate: boolean | undefined;
-      withMonitor: boolean;
-    }): Incident => {
+    newRecord: (data: RecordData): Incident => {
       const incident: Incident = new Incident();
-      incident.id = RECORD_ID;
+      incident.id = data.id || RECORD_ID;
       incident.projectId = PROJECT_ID;
-      incident.title = RECORD_TITLE;
+      incident.title = data.title || RECORD_TITLE;
       incident.description = RECORD_DESCRIPTION;
       incident.incidentSeverityId = SEVERITY_ID;
 
@@ -207,7 +235,19 @@ const ENGINES: Array<EngineCase> = [
 
       rule.groupByIncidentTitle = options.groupByTitle === true;
       rule.groupBySeverity = options.groupBySeverity === true;
+
+      if (options.reopenWindowMinutes) {
+        rule.enableReopenWindow = true;
+        rule.reopenWindowMinutes = options.reopenWindowMinutes;
+      }
+
       return rule;
+    },
+    newEpisode: (): IncidentEpisode => {
+      const episode: IncidentEpisode = new IncidentEpisode();
+      episode.projectId = PROJECT_ID;
+      episode.incidentGroupingRuleId = RULE_ID;
+      return episode;
     },
     process: (record: Incident | Alert): Promise<GroupingResult> => {
       return IncidentGroupingEngineService.processIncident(record as Incident);
@@ -233,14 +273,11 @@ const ENGINES: Array<EngineCase> = [
     matchMethod: "doesAlertMatchRule",
     addMethod: "addAlertToEpisode",
     recountMethod: "updateAlertCount",
-    newRecord: (data: {
-      isPrivate: boolean | undefined;
-      withMonitor: boolean;
-    }): Alert => {
+    newRecord: (data: RecordData): Alert => {
       const alert: Alert = new Alert();
-      alert.id = RECORD_ID;
+      alert.id = data.id || RECORD_ID;
       alert.projectId = PROJECT_ID;
-      alert.title = RECORD_TITLE;
+      alert.title = data.title || RECORD_TITLE;
       alert.description = RECORD_DESCRIPTION;
       alert.alertSeverityId = SEVERITY_ID;
 
@@ -279,7 +316,19 @@ const ENGINES: Array<EngineCase> = [
 
       rule.groupByAlertTitle = options.groupByTitle === true;
       rule.groupBySeverity = options.groupBySeverity === true;
+
+      if (options.reopenWindowMinutes) {
+        rule.enableReopenWindow = true;
+        rule.reopenWindowMinutes = options.reopenWindowMinutes;
+      }
+
       return rule;
+    },
+    newEpisode: (): AlertEpisode => {
+      const episode: AlertEpisode = new AlertEpisode();
+      episode.projectId = PROJECT_ID;
+      episode.alertGroupingRuleId = RULE_ID;
+      return episode;
     },
     process: (record: Incident | Alert): Promise<GroupingResult> => {
       return AlertGroupingEngineService.processAlert(record as Alert);
@@ -298,13 +347,16 @@ describe.each(ENGINES)("the $noun grouping engine", (engine: EngineCase) => {
   beforeEach(() => {
     episodes = [];
     feed = [];
+    let created: number = 0;
 
     jest
       .spyOn(engine.episodeService as Record<string, AnyFunction>, "create")
       .mockImplementation((async (data: {
         data: Episode;
       }): Promise<Episode> => {
-        data.data.id = EPISODE_ID;
+        // The first episode the engine opens is EPISODE_ID.
+        data.data.id = created === 0 ? EPISODE_ID : ObjectID.generate();
+        created++;
         episodes.push(data.data);
         return data.data;
       }) as never);
@@ -364,6 +416,7 @@ describe.each(ENGINES)("the $noun grouping engine", (engine: EngineCase) => {
       episode.description,
       episode.titleTemplate,
       episode.descriptionTemplate,
+      episode.groupingKey,
     ];
 
     for (const item of feed) {
@@ -497,6 +550,21 @@ describe.each(ENGINES)("the $noun grouping engine", (engine: EngineCase) => {
       expectNoRecordText(readableText(episode));
     });
 
+    test("is stored with the title in its grouping key hashed, and the rest of the key as built", async () => {
+      const episode: Episode = await openEpisode({
+        isPrivate: true,
+        rule: { groupByTitle: true, groupBySeverity: true },
+      });
+
+      expect(episode.groupingKey).toMatch(
+        new RegExp(
+          `^severity:${SEVERITY_ID.toString()}\\|${HASHED_TITLE_IN_KEY}$`,
+        ),
+      );
+      expect(episode.groupingKey).not.toContain(RECORD_TITLE_IN_KEY);
+      expect(episode.groupingKey).not.toMatch(RECORD_TEXT);
+    });
+
     test(`from the engine's entry point: the private ${engine.noun} it is handed opens an episode without its title`, async () => {
       const record: Incident | Alert = engine.newRecord({
         isPrivate: true,
@@ -597,6 +665,302 @@ describe.each(ENGINES)("the $noun grouping engine", (engine: EngineCase) => {
           `**Grouping Key:** severity:${SEVERITY_ID.toString()}|${RECORD_TITLE_IN_KEY}\n\n`,
         );
       });
+
+      test("is stored with its grouping key as built, as before", async () => {
+        const episode: Episode = await openEpisode({
+          isPrivate: isPrivate,
+          rule: { groupByTitle: true, groupBySeverity: true },
+        });
+
+        expect(episode.groupingKey).toBe(
+          `severity:${SEVERITY_ID.toString()}|${RECORD_TITLE_IN_KEY}`,
+        );
+      });
     },
   );
+
+  /*
+   * Records that come after the first: grouped from the engine's entry point,
+   * against the episodes stored so far. The engine's lookup is answered from
+   * `episodes` by the grouping keys it asks for; the lock is held as Valkey
+   * holds it, by one caller per key at a time.
+   */
+  describe(`${engine.noun}s with the same title, later`, () => {
+    let rule: IncidentGroupingRule | AlertGroupingRule;
+    let locks: Array<string> = [];
+    let joined: Array<{ record: string; episode: string }> = [];
+    let reopened: Array<string> = [];
+
+    // The grouping keys a lookup asks for: one, or QueryHelper.any's list.
+    function keysAskedFor(condition: unknown): Array<string> {
+      if (typeof condition === "string") {
+        return [condition];
+      }
+
+      const operator: FindOperator<unknown> =
+        condition as FindOperator<unknown>;
+      expect(operator.getSql?.("key")).toMatch(/^\(key IN \(:\.\.\.\w+\)\)$/);
+      return Object.values(
+        operator.objectLiteralParameters || {},
+      )[0] as Array<string>;
+    }
+
+    beforeEach(() => {
+      rule = engine.newRule({ groupByTitle: true });
+      locks = [];
+      joined = [];
+      reopened = [];
+
+      jest
+        .spyOn(engine.ruleService as Record<string, AnyFunction>, "findBy")
+        .mockImplementation((async (): Promise<unknown> => {
+          return [rule];
+        }) as never);
+      jest
+        .spyOn(engine.engine, engine.matchMethod)
+        .mockResolvedValue(true as never);
+
+      const held: Map<string, Promise<void>> = new Map();
+      jest.spyOn(Semaphore, "lock").mockImplementation((async (data: {
+        key: string;
+        namespace: string;
+      }): Promise<unknown> => {
+        locks.push(data.key);
+
+        const name: string = `${data.namespace}-${data.key}`;
+        const previous: Promise<void> = held.get(name) || Promise.resolve();
+        let release: () => void = (): void => {};
+        const holding: Promise<void> = new Promise<void>(
+          (resolve: () => void): void => {
+            release = resolve;
+          },
+        );
+        held.set(
+          name,
+          previous.then((): Promise<void> => {
+            return holding;
+          }),
+        );
+
+        await previous;
+        return { release: release };
+      }) as never);
+      jest.spyOn(Semaphore, "release").mockImplementation((async (mutex: {
+        release: () => void;
+      }): Promise<void> => {
+        mutex.release();
+      }) as never);
+
+      jest
+        .spyOn(
+          engine.episodeService as Record<string, AnyFunction>,
+          "findOneBy",
+        )
+        .mockImplementation((async (data: {
+          query: Record<string, unknown>;
+        }): Promise<Episode | null> => {
+          const keys: Array<string> = keysAskedFor(data.query["groupingKey"]);
+          const resolved: boolean = data.query["resolvedAt"] !== null;
+
+          const found: Array<Episode> = episodes.filter(
+            (episode: Episode): boolean => {
+              return (
+                keys.includes(episode.groupingKey || "") &&
+                Boolean(episode.resolvedAt) === resolved
+              );
+            },
+          );
+
+          return found[found.length - 1] || null;
+        }) as never);
+
+      jest.spyOn(engine.engine, engine.addMethod).mockImplementation((async (
+        record: Incident | Alert,
+        episodeId: ObjectID,
+      ): Promise<void> => {
+        joined.push({
+          record: record.id!.toString(),
+          episode: episodeId.toString(),
+        });
+      }) as never);
+      jest
+        .spyOn(
+          engine.episodeService as Record<string, AnyFunction>,
+          "updateEpisodeSeverity",
+        )
+        .mockResolvedValue(undefined as never);
+      jest
+        .spyOn(
+          engine.episodeService as Record<string, AnyFunction>,
+          "reopenEpisode",
+        )
+        .mockImplementation((async (episodeId: ObjectID): Promise<void> => {
+          reopened.push(episodeId.toString());
+          for (const episode of episodes) {
+            if (episode.id?.toString() === episodeId.toString()) {
+              (episode as { resolvedAt?: Date | undefined }).resolvedAt =
+                undefined;
+            }
+          }
+        }) as never);
+    });
+
+    function group(data: {
+      isPrivate: boolean;
+      id?: ObjectID | undefined;
+      title?: string | undefined;
+    }): Promise<GroupingResult> {
+      return engine.process(
+        engine.newRecord({
+          isPrivate: data.isPrivate,
+          withMonitor: false,
+          id: data.id,
+          title: data.title,
+        }),
+      );
+    }
+
+    // An episode stored before titles were hashed: its key as built.
+    function storeEarlierEpisode(data: { resolvedAt?: Date }): void {
+      const episode: Episode = engine.newEpisode();
+      episode.id = EARLIER_EPISODE_ID;
+      episode.groupingKey = RECORD_TITLE_IN_KEY;
+      if (data.resolvedAt) {
+        episode.resolvedAt = data.resolvedAt;
+      }
+      episodes.push(episode);
+    }
+
+    function expectJoined(
+      result: GroupingResult,
+      episodeId: ObjectID,
+      recordId: ObjectID,
+    ): void {
+      expect(result.grouped).toBe(true);
+      expect(result.isNewEpisode).toBe(false);
+      expect(result.episodeId?.toString()).toBe(episodeId.toString());
+      expect(joined).toContainEqual({
+        record: recordId.toString(),
+        episode: episodeId.toString(),
+      });
+    }
+
+    test(`one that is not private, and another private one, join the episode a private ${engine.noun} opened`, async () => {
+      const opened: GroupingResult = await group({ isPrivate: true });
+
+      expect(opened.isNewEpisode).toBe(true);
+      expect(episodes[0]!.groupingKey).not.toMatch(RECORD_TEXT);
+
+      expectJoined(
+        await group({
+          isPrivate: false,
+          id: LATER_RECORD_IDS[0],
+          title: SAME_TITLE_ANOTHER_NUMBER,
+        }),
+        EPISODE_ID,
+        LATER_RECORD_IDS[0]!,
+      );
+      expectJoined(
+        await group({ isPrivate: true, id: LATER_RECORD_IDS[1] }),
+        EPISODE_ID,
+        LATER_RECORD_IDS[1]!,
+      );
+      expect(episodes).toHaveLength(1);
+    });
+
+    test(`a private one joins the episode an ${engine.noun} that is not private opened`, async () => {
+      await group({ isPrivate: false });
+
+      expect(episodes[0]!.groupingKey).toBe(RECORD_TITLE_IN_KEY);
+
+      expectJoined(
+        await group({ isPrivate: true, id: LATER_RECORD_IDS[0] }),
+        EPISODE_ID,
+        LATER_RECORD_IDS[0]!,
+      );
+      expect(episodes).toHaveLength(1);
+    });
+
+    test("an episode opened before titles were hashed - stored with the title as it reads - is still joined, by private ones and others alike", async () => {
+      storeEarlierEpisode({});
+
+      expectJoined(
+        await group({ isPrivate: true }),
+        EARLIER_EPISODE_ID,
+        RECORD_ID,
+      );
+      expectJoined(
+        await group({
+          isPrivate: false,
+          id: LATER_RECORD_IDS[0],
+          title: SAME_TITLE_ANOTHER_NUMBER,
+        }),
+        EARLIER_EPISODE_ID,
+        LATER_RECORD_IDS[0]!,
+      );
+      expect(episodes).toHaveLength(1);
+    });
+
+    test("one resolved recently, opened before titles were hashed, is reopened for a private one", async () => {
+      rule = engine.newRule({ groupByTitle: true, reopenWindowMinutes: 30 });
+      storeEarlierEpisode({ resolvedAt: new Date() });
+
+      const result: GroupingResult = await group({ isPrivate: true });
+
+      expect(result.wasReopened).toBe(true);
+      expect(result.episodeId?.toString()).toBe(EARLIER_EPISODE_ID.toString());
+      expect(reopened).toEqual([EARLIER_EPISODE_ID.toString()]);
+      expect(joined).toEqual([
+        {
+          record: RECORD_ID.toString(),
+          episode: EARLIER_EPISODE_ID.toString(),
+        },
+      ]);
+      expect(episodes).toHaveLength(1);
+    });
+
+    test("one with another title opens an episode of its own", async () => {
+      await group({ isPrivate: true });
+      const other: GroupingResult = await group({
+        isPrivate: false,
+        id: LATER_RECORD_IDS[0],
+        title: ANOTHER_TITLE,
+      });
+
+      expect(other.isNewEpisode).toBe(true);
+      expect(other.episodeId?.toString()).not.toBe(EPISODE_ID.toString());
+      expect(episodes).toHaveLength(2);
+    });
+
+    test("a private one and one that is not take the same lock: the one taken before titles were hashed", async () => {
+      await group({ isPrivate: true });
+      await group({ isPrivate: false, id: LATER_RECORD_IDS[0] });
+
+      const lockKey: string = `${PROJECT_ID.toString()}-${RULE_ID.toString()}-${RECORD_TITLE_IN_KEY}`;
+      expect(locks).toEqual([lockKey, lockKey]);
+    });
+
+    test("a private one and one that is not, arriving together, open one episode between them", async () => {
+      const results: Array<GroupingResult> = await Promise.all([
+        group({ isPrivate: true }),
+        group({
+          isPrivate: false,
+          id: LATER_RECORD_IDS[0],
+          title: SAME_TITLE_ANOTHER_NUMBER,
+        }),
+      ]);
+
+      expect(episodes).toHaveLength(1);
+      expect(
+        results.map((result: GroupingResult): string | undefined => {
+          return result.episodeId?.toString();
+        }),
+      ).toEqual([EPISODE_ID.toString(), EPISODE_ID.toString()]);
+      expect(
+        results.filter((result: GroupingResult): boolean => {
+          return result.isNewEpisode === true;
+        }),
+      ).toHaveLength(1);
+    });
+  });
 });

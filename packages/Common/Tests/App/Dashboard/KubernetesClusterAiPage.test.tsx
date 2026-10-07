@@ -2390,6 +2390,73 @@ describe("What AI may do", () => {
   });
 
   /*
+   * A cluster set to fix things fixes nothing new while the project's own
+   * "Fix new incidents automatically" (or alerts) is off - off until the
+   * project turns it on - so the Fixes row says both, with a link to the
+   * settings page of each switch that is off.
+   */
+  test("the project's automatic-fix line sits in the Fixes row, linking each switch that is off", async () => {
+    serve(
+      makeStatus({
+        remediationMode: KubernetesAiRemediationMode.Automatic,
+        isRemediationReady: true,
+        gaps: [],
+        automaticRemediation: { incidents: false, alerts: true },
+      }),
+    );
+    openAgentPage();
+
+    const line: HTMLElement = within(
+      await findTestId("ai-access-fixes"),
+    ).getByTestId("ai-access-automatic-remediation");
+
+    expect(line).toHaveTextContent(
+      "Automatic fixes for new incidents in this project: Off · alerts: On",
+    );
+    expect(
+      within(line).getByRole("link", { name: /Incident AI settings/ }),
+    ).toHaveAttribute(
+      "href",
+      expect.stringContaining("/incidents/ai/settings"),
+    );
+    expect(
+      within(line).queryByRole("link", { name: /Alert AI settings/ }),
+    ).toBeNull();
+    expect(
+      within(screen.getByTestId("ai-access-investigation")).queryByTestId(
+        "ai-access-automatic-remediation",
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  test("with both switches on, the automatic-fix line links nothing", async () => {
+    serve(
+      makeStatus({
+        automaticRemediation: { incidents: true, alerts: true },
+      }),
+    );
+    openAgentPage();
+
+    const line: HTMLElement = within(
+      await findTestId("ai-access-fixes"),
+    ).getByTestId("ai-access-automatic-remediation");
+
+    expect(line).toHaveTextContent(
+      "Automatic fixes for new incidents in this project: On · alerts: On",
+    );
+    expect(within(line).queryAllByRole("link")).toHaveLength(0);
+  });
+
+  test("an older server that sends no automatic-fix switches draws no line", async () => {
+    openAgentPage();
+
+    await findTestId("ai-access-fixes");
+    expect(
+      screen.queryByTestId("ai-access-automatic-remediation"),
+    ).not.toBeInTheDocument();
+  });
+
+  /*
    * The write-access command appears only once fixes are on and the agent
    * is read-only — never on a default install.
    */

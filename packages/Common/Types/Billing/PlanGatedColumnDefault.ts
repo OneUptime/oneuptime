@@ -1,5 +1,7 @@
+import AnalyticsTableColumnType from "../AnalyticsDatabase/TableColumnType";
 import { TableColumnMetadata } from "../Database/TableColumn";
 import TableColumnType from "../Database/TableColumnType";
+import { JSONValue } from "../JSON";
 
 /*
  * A paid feature can always be switched off, on any plan.
@@ -27,12 +29,17 @@ import TableColumnType from "../Database/TableColumnType";
  * The comparison is exact. A value of another type ("false" for false, "14"
  * for 14) or a blank line where nothing is expected is not the default, and
  * keeps needing the plan: an unclear value never gets a plan's feature for
- * free.
+ * free. On the server a switch reaches this as the boolean the database
+ * stores for it - DatabaseService turns a write's Boolean columns into those
+ * before any check reads them (Types/Database/BooleanColumnValue) - so a
+ * switch the API, Terraform or a workflow sends as "false" or "off" is false
+ * here and switches the feature off like false.
  *
- * The server's column check (ColumnPermission, for creates and updates) and
- * the dashboard's plan notes (ModelSwitchUtil.getPlanNeededToWriteColumn)
- * both ask this, so the dashboard offers exactly the moves the server
- * allows.
+ * The server's column checks (ColumnPermission for database models, and
+ * AnalyticsDatabase/ModelPermission for analytics models, through
+ * isAnalyticsPlanGatedColumnDefault - for creates and updates) and the
+ * dashboard's plan notes (ModelSwitchUtil.getPlanNeededToWriteColumn) all
+ * ask this, so the dashboard offers exactly the moves the server allows.
  */
 
 /*
@@ -135,6 +142,54 @@ export const isPlanGatedColumnDefault: (
   }
 
   return isSameJsonValue(defaultValue, value);
+};
+
+/*
+ * The same rule for a column of an analytics (ClickHouse) model, which the
+ * analytics column check (AnalyticsDatabase/ModelPermission) asks as
+ * ColumnPermission asks isPlanGatedColumnDefault: its declared default is
+ * its default; without one, nothing (null) is, and so is false for a
+ * switch and the empty string for text. No analytics column is plan-gated
+ * today; the first one switches off the way a database column does.
+ */
+export const isAnalyticsPlanGatedColumnDefault: (
+  column:
+    | { type: AnalyticsTableColumnType; defaultValue: JSONValue | undefined }
+    | null
+    | undefined,
+  value: unknown,
+) => boolean = (
+  column:
+    | { type: AnalyticsTableColumnType; defaultValue: JSONValue | undefined }
+    | null
+    | undefined,
+  value: unknown,
+): boolean => {
+  if (!column) {
+    return false;
+  }
+
+  /*
+   * Only what the rule above reads of a database column: whether it is a
+   * switch, text, or neither.
+   */
+  const type: TableColumnType =
+    column.type === AnalyticsTableColumnType.Boolean
+      ? TableColumnType.Boolean
+      : column.type === AnalyticsTableColumnType.Text
+        ? TableColumnType.ShortText
+        : TableColumnType.JSON;
+
+  const metadata: TableColumnMetadata = { type };
+
+  // No declared default (undefined or null): nothing is the default.
+  if (column.defaultValue !== undefined && column.defaultValue !== null) {
+    metadata.defaultValue = column.defaultValue as NonNullable<
+      TableColumnMetadata["defaultValue"]
+    >;
+  }
+
+  return isPlanGatedColumnDefault(metadata, value);
 };
 
 /*

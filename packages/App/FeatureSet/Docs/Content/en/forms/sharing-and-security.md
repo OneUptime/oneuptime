@@ -25,6 +25,12 @@ The link carries a random key of its own, not the form's ID. On a self-hosted in
 
 Links to the old incident forms, `/accounts/incident-form/<share-key>`, open the same form at its new address.
 
+### A link for each template
+
+Each of the form's [templates](/docs/forms/building#templates) has a link of its own: the form's link with `?template=` and the template's id, such as `https://oneuptime.com/accounts/form/<share-key>?template=<template-id>`. **Copy Link** on the form's **Templates** page copies it. It opens the form with that template filled in, so a team can bookmark one link per case while you keep a single form. When the submitter picks another template, the address in their browser follows, so the link they copy is the form as they see it.
+
+A template's link is the form's link: it works while the form is **Accepting Submissions**, and **Reset Link** retires it with the rest. A link naming a template you deleted opens the form as if it named none — with the default template, if there is one.
+
 ### Turning a form off
 
 To stop taking submissions without deleting the form, turn **Accepting Submissions** off. The link then shows "This form is not available. It may have been turned off, or the link may be out of date.", and the **Share Link** card reminds you that the form is turned off. Turn it back on and the same link works again.
@@ -127,7 +133,11 @@ The message says what is wrong: a required answer is missing or only spaces, an 
 
 ### A question is not on the form
 
-The builder flags questions it leaves off the public form — a custom field that was deleted, for example — and **Preview** says when it leaves one out. See [When the builder flags a question](/docs/forms/building#when-the-builder-flags-a-question).
+The builder flags questions it leaves off the public form — a custom field that was deleted, for example — and **Preview** says when it leaves one out. See [When the builder flags a question](/docs/forms/building#when-the-builder-flags-a-question). A question with a **Hidden** badge is left off on purpose: only templates answer it. See [Hidden questions](/docs/forms/building#hidden-questions).
+
+### A template does not fill in a question
+
+A template's answer is used only while it still fits its question: an option the question still offers, a record the form still offers, text that is not too long. Edit the template, answer the question again, and save it. See [Templates](/docs/forms/building#templates).
 
 ### The incident or event is not on the status page
 

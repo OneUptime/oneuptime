@@ -38,6 +38,11 @@ import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import { GroupingOptions } from "../../Utils/StartingStage";
 import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
+import EpisodeGroupingKey from "../Utils/Rules/EpisodeGroupingKey";
+import {
+  clearPlaceholdersExcept,
+  replaceAllLiterally,
+} from "../Utils/Rules/GroupingRuleEpisodeTemplate";
 
 export interface GroupingResult {
   grouped: boolean;
@@ -45,29 +50,6 @@ export interface GroupingResult {
   isNewEpisode?: boolean;
   wasReopened?: boolean;
 }
-
-type ReplaceAllLiterallyFunction = (
-  text: string,
-  placeholder: RegExp,
-  value: string,
-) => string;
-
-/*
- * Puts `value` in for every match of `placeholder`, exactly as written. A
- * string replacement reads "$&", "$`", "$'" and "$1" in it as patterns, so an
- * incident titled "Price $& up" - or a title typed on an incident form - came
- * out of an episode template mangled, or with other parts of the template
- * copied into it.
- */
-export const replaceAllLiterally: ReplaceAllLiterallyFunction = (
-  text: string,
-  placeholder: RegExp,
-  value: string,
-): string => {
-  return text.replace(placeholder, (): string => {
-    return value;
-  });
-};
 
 /*
  * What an episode's {{incidentTitle}} and {{incidentDescription}} read when
@@ -78,19 +60,6 @@ const PRIVATE_INCIDENT_TEMPLATE_VALUE: string = "Private incident";
 // A private incident's title, where the new episode's feed shows its key.
 const PRIVATE_INCIDENT_TITLE_GROUPING_KEY_PART: string =
   "title:(private incident)";
-
-type GetTitleGroupingKeyPartFunction = (title: string) => string;
-
-/*
- * What a rule that groups by title adds to the grouping key: the title,
- * lowercased, with every number an X - so "Disk 91% full" and "Disk 95%
- * full" go into the same episode.
- */
-const getTitleGroupingKeyPart: GetTitleGroupingKeyPartFunction = (
-  title: string,
-): string => {
-  return `title:${title.toLowerCase().replace(/\d+/g, "X")}`;
-};
 
 /*
  * The {{variables}} of an episode's title and description templates
@@ -554,7 +523,25 @@ class IncidentGroupingEngineServiceClass {
     // Build the grouping key based on groupBy fields
     const groupingKey: string = await this.buildGroupingKey(incident, rule);
 
-    // Create mutex key to prevent race conditions when creating episodes
+    /*
+     * The keys an episode of the incident's group can be stored with: as
+     * built, or with the title hashed when a private incident opened it
+     * (getGroupingKeysToMatch). The incident finds the episode by either.
+     */
+    const groupingKeysToMatch: Array<string> = this.getGroupingKeysToMatch(
+      incident,
+      rule,
+      groupingKey,
+    );
+
+    /*
+     * Create mutex key to prevent race conditions when creating episodes.
+     * It is the key as built, whether the incident is private or not: the
+     * same for every incident of the group, so a private and a public one
+     * arriving together never both open an episode - and the one pods still
+     * on the previous version lock on during a rolling deploy. It names a
+     * lock and is never stored.
+     */
     const mutexKey: string = `${incident.projectId?.toString()}-${rule.id?.toString()}-${groupingKey}`;
 
     let mutex: SemaphoreMutex | null = null;
@@ -591,7 +578,7 @@ class IncidentGroupingEngineServiceClass {
         await this.findMatchingActiveEpisode(
           incident.projectId!,
           rule.id!,
-          groupingKey,
+          groupingKeysToMatch,
           timeWindowCutoff,
         );
 
@@ -639,7 +626,7 @@ class IncidentGroupingEngineServiceClass {
             await this.findRecentlyResolvedEpisode(
               incident.projectId!,
               rule.id!,
-              groupingKey,
+              groupingKeysToMatch,
               reopenCutoff,
             );
 
@@ -746,7 +733,7 @@ class IncidentGroupingEngineServiceClass {
 
     // Group by incident title - only if explicitly enabled
     if (rule.groupByIncidentTitle && incident.title) {
-      parts.push(getTitleGroupingKeyPart(incident.title));
+      parts.push(EpisodeGroupingKey.getTitlePart(incident.title));
     }
 
     // Group by incident labels (exact set match) - only if explicitly enabled
@@ -847,11 +834,12 @@ class IncidentGroupingEngineServiceClass {
   private async findMatchingActiveEpisode(
     projectId: ObjectID,
     ruleId: ObjectID,
-    groupingKey: string,
+    groupingKeys: Array<string>,
     timeWindowCutoff: Date | null,
   ): Promise<IncidentEpisode | null> {
     /*
-     * Find active episode with matching rule and grouping key
+     * Find active episode with matching rule and any of the grouping keys
+     * the group's episodes are stored with (getGroupingKeysToMatch)
      * Active episodes have resolvedAt = null (not yet resolved)
      * If time window is enabled, also filter by lastIncidentAddedAt
      * If time window is disabled (timeWindowCutoff is null), find any matching active episode
@@ -859,7 +847,7 @@ class IncidentGroupingEngineServiceClass {
     interface EpisodeQueryType {
       projectId: ObjectID;
       incidentGroupingRuleId: ObjectID;
-      groupingKey: string;
+      groupingKey: ReturnType<typeof QueryHelper.any>;
       resolvedAt: null;
       lastIncidentAddedAt?: ReturnType<typeof QueryHelper.greaterThanEqualTo>;
     }
@@ -867,7 +855,7 @@ class IncidentGroupingEngineServiceClass {
     const query: EpisodeQueryType = {
       projectId: projectId,
       incidentGroupingRuleId: ruleId,
-      groupingKey: groupingKey,
+      groupingKey: QueryHelper.any(groupingKeys),
       resolvedAt: null, // Only find active (non-resolved) episodes
     };
 
@@ -899,16 +887,20 @@ class IncidentGroupingEngineServiceClass {
   private async findRecentlyResolvedEpisode(
     projectId: ObjectID,
     ruleId: ObjectID,
-    groupingKey: string,
+    groupingKeys: Array<string>,
     reopenCutoff: Date,
   ): Promise<IncidentEpisode | null> {
-    // Find recently resolved episode with matching rule and grouping key
+    /*
+     * Find recently resolved episode with matching rule and any of the
+     * grouping keys the group's episodes are stored with
+     * (getGroupingKeysToMatch)
+     */
     const episode: IncidentEpisode | null =
       await IncidentEpisodeService.findOneBy({
         query: {
           projectId: projectId,
           incidentGroupingRuleId: ruleId,
-          groupingKey: groupingKey,
+          groupingKey: QueryHelper.any(groupingKeys),
           resolvedAt: QueryHelper.greaterThanEqualTo(reopenCutoff),
         },
         sort: {
@@ -973,7 +965,11 @@ class IncidentGroupingEngineServiceClass {
       );
     }
     newEpisode.incidentGroupingRuleId = rule.id!;
-    newEpisode.groupingKey = groupingKey;
+    newEpisode.groupingKey = this.getGroupingKeyToStore(
+      incident,
+      rule,
+      groupingKey,
+    );
     newEpisode.isManuallyCreated = false;
     newEpisode.lastIncidentAddedAt = OneUptimeDate.getCurrentDate();
 
@@ -1227,10 +1223,10 @@ class IncidentGroupingEngineServiceClass {
 
   /*
    * The grouping key as the new episode's feed shows it. A rule that groups
-   * by title puts the incident's title in the key (getTitleGroupingKeyPart);
-   * a private incident's is shown as private, as everywhere else in the
-   * episode (getEpisodeTemplateValues). The key is stored as built: the
-   * incidents that join later find the episode by it.
+   * by title puts the incident's title in the key
+   * (EpisodeGroupingKey.getTitlePart); a private incident's is shown as
+   * private, as everywhere else in the episode (getEpisodeTemplateValues),
+   * and stored hashed (getGroupingKeyToStore).
    */
   private getGroupingKeyToShow(
     incident: Incident,
@@ -1246,8 +1242,71 @@ class IncidentGroupingEngineServiceClass {
     }
 
     return groupingKey
-      .split(getTitleGroupingKeyPart(incident.title))
+      .split(EpisodeGroupingKey.getTitlePart(incident.title))
       .join(PRIVATE_INCIDENT_TITLE_GROUPING_KEY_PART);
+  }
+
+  /*
+   * The grouping key the new episode is stored with. It is read with the
+   * episode - through the API, by everyone who can see it - so a private
+   * incident's title is in it only hashed (EpisodeGroupingKey), as it is not
+   * the episode's to show (getEpisodeTemplateValues); the incidents that
+   * come later find the episode by that form too (getGroupingKeysToMatch).
+   * Any other incident's key is stored as built, as before.
+   */
+  private getGroupingKeyToStore(
+    incident: Incident,
+    rule: IncidentGroupingRule,
+    groupingKey: string,
+  ): string {
+    if (incident.isPrivate !== true) {
+      return groupingKey;
+    }
+
+    return this.getGroupingKeyWithTitleHashed(incident, rule, groupingKey);
+  }
+
+  /*
+   * Every key an episode of the incident's group can be stored with
+   * (getGroupingKeyToStore): as built - opened by an incident that is not
+   * private, or by any incident before titles were hashed - and with the
+   * title hashed - opened by a private one. The incident is matched against
+   * both, so it joins its group's episode whether it is private or not and
+   * whoever opened it.
+   */
+  private getGroupingKeysToMatch(
+    incident: Incident,
+    rule: IncidentGroupingRule,
+    groupingKey: string,
+  ): Array<string> {
+    const keyWithTitleHashed: string = this.getGroupingKeyWithTitleHashed(
+      incident,
+      rule,
+      groupingKey,
+    );
+
+    if (keyWithTitleHashed === groupingKey) {
+      return [groupingKey];
+    }
+
+    return [groupingKey, keyWithTitleHashed];
+  }
+
+  // The key as built, with the incident's title in it hashed.
+  private getGroupingKeyWithTitleHashed(
+    incident: Incident,
+    rule: IncidentGroupingRule,
+    groupingKey: string,
+  ): string {
+    if (!rule.groupByIncidentTitle || !incident.title || !incident.projectId) {
+      return groupingKey;
+    }
+
+    return EpisodeGroupingKey.hashTitle({
+      groupingKey: groupingKey,
+      projectId: incident.projectId,
+      title: incident.title,
+    });
   }
 
   private generateEpisodeTitle(
@@ -1303,46 +1362,13 @@ class IncidentGroupingEngineServiceClass {
     template: string,
     incidentCount: number = 1,
   ): string {
-    let result: string = template;
-
     /*
-     * Static variables (from first incident)
-     * {{incidentTitle}}
+     * The template as the episode stores it, with the count filled in - just
+     * as IncidentEpisodeService.updateIncidentCount writes the title and
+     * description again as incidents join or leave. So they only ever change
+     * by their count.
      */
-    if (values.incidentTitle) {
-      result = replaceAllLiterally(
-        result,
-        /\{\{incidentTitle\}\}/g,
-        values.incidentTitle,
-      );
-    }
-
-    // {{incidentDescription}}
-    if (values.incidentDescription) {
-      result = replaceAllLiterally(
-        result,
-        /\{\{incidentDescription\}\}/g,
-        values.incidentDescription,
-      );
-    }
-
-    // {{monitorName}} - use first monitor's name
-    if (values.monitorName) {
-      result = replaceAllLiterally(
-        result,
-        /\{\{monitorName\}\}/g,
-        values.monitorName,
-      );
-    }
-
-    // {{incidentSeverity}}
-    if (values.incidentSeverity) {
-      result = replaceAllLiterally(
-        result,
-        /\{\{incidentSeverity\}\}/g,
-        values.incidentSeverity,
-      );
-    }
+    let result: string = this.preprocessTemplate(values, template);
 
     /*
      * Dynamic variables (updated when incidents are added/removed)
@@ -1357,7 +1383,7 @@ class IncidentGroupingEngineServiceClass {
   }
 
   /*
-   * Preprocess template: replace static variables but keep dynamic ones as placeholders
+   * Preprocess template: replace static variables, clear unknown ones and keep dynamic ones as placeholders
    * This is stored on the episode so we can re-render with updated dynamic values later
    */
   private preprocessTemplate(
@@ -1407,10 +1433,12 @@ class IncidentGroupingEngineServiceClass {
 
     /*
      * Keep dynamic variables as placeholders (e.g., {{incidentCount}})
-     * They will be replaced when title/description is re-rendered
+     * They will be replaced when title/description is re-rendered - and
+     * nothing else is: a variable this incident has no value for (no
+     * monitor, say), or one no incident has, is cleared now, as the title
+     * and description written from this template clear it.
      */
-
-    return result;
+    return clearPlaceholdersExcept(result, "{{incidentCount}}");
   }
 
   @CaptureSpan()

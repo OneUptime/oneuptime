@@ -1466,3 +1466,245 @@ describe("submitPublicForm - the scheduled maintenance event a form schedules", 
     nothingCreated();
   });
 });
+
+/*
+ * Templates and hidden questions: a hidden question is never asked, and the
+ * request is never read for it. The server answers it from the template the
+ * submission names - and only from that one - checked as an answer to the
+ * question, made safe to show like every other answer.
+ */
+describe("submitPublicForm - hidden questions, answered from a template", () => {
+  // The description and the Notes custom field are hidden: templates write them.
+  const HIDDEN_FIELDS: Array<FormField> = INCIDENT_FIELDS.map(
+    (field: FormField): FormField => {
+      if (field.id === "description" || field.id === "notes") {
+        return { ...field, isRequired: false, isHidden: true };
+      }
+
+      if (field.id === "region") {
+        // Hidden, so not required; its template answer must be an option.
+        return { ...field, isRequired: false, isHidden: true };
+      }
+
+      return field;
+    },
+  );
+
+  const OUTAGE_TEMPLATE: JSONObject = {
+    id: "outage",
+    name: "Application Outage",
+    answers: {
+      title: "The application is down",
+      office: "London",
+      description: "We are aware of an outage <!channel> and are on it.",
+      notes: "Notification type: **Outage**",
+      region: "EU",
+    },
+  };
+
+  const DEFAULT_TEMPLATE: JSONObject = {
+    id: "restored",
+    name: "Service Restored",
+    isDefault: true,
+    answers: { description: "Service has been restored." },
+  };
+
+  function submitFrom(
+    answers: JSONObject,
+    templateId?: unknown,
+  ): Promise<PublicFormSubmissionResult> {
+    const data: JSONObject = { answers };
+
+    if (templateId !== undefined) {
+      data["templateId"] = templateId as string;
+    }
+
+    return FormService.submitPublicForm({
+      shareKey: SHARE_KEY,
+      request: { data: data as never },
+      clientIp: CLIENT_IP,
+      captchaRemoteIp: CLIENT_IP,
+    });
+  }
+
+  beforeEach(() => {
+    storedForm = buildIncidentForm({
+      fields: HIDDEN_FIELDS as unknown as JSONArray,
+      templates: [OUTAGE_TEMPLATE, DEFAULT_TEMPLATE] as unknown as JSONArray,
+    });
+  });
+
+  test("the template the submission names answers the hidden questions", async () => {
+    await submitFrom({ title: "Checkout is down" }, "outage");
+
+    const incident: Incident = createdIncident();
+
+    expect(incident.description).toBe(
+      neutralizeUntrustedMarkdown(
+        "We are aware of an outage <!channel> and are on it.",
+      ),
+    );
+    expect(incident.description).not.toContain("<!channel>");
+    expect(incident.customFields).toEqual({
+      Region: "EU",
+      Notes: neutralizeUntrustedMarkdown("Notification type: **Outage**"),
+    });
+  });
+
+  test("a question the page asks is answered by the submission only: the template only filled the page in", async () => {
+    await submitFrom({ title: "Checkout is down", office: "Berlin" }, "outage");
+
+    expect(createdIncident().title).toBe("Checkout is down");
+
+    const answers: Array<FormSubmissionAnswer> = recordedSubmission()
+      .answers as unknown as Array<FormSubmissionAnswer>;
+    const office: FormSubmissionAnswer | undefined = answers.find(
+      (answer: FormSubmissionAnswer): boolean => {
+        return answer.fieldId === "office";
+      },
+    );
+
+    expect(office?.value).toBe("Berlin");
+  });
+
+  test("the request is never read for a hidden question", async () => {
+    await submitFrom({
+      title: "Checkout is down",
+      description: "Injected description",
+      notes: "Injected notes",
+      region: "US",
+    });
+
+    const incident: Incident = createdIncident();
+
+    expect(incident.description).toBeUndefined();
+    expect(incident.customFields).toEqual({});
+  });
+
+  test("nor when it names a template: the template's answer is the one stored", async () => {
+    await submitFrom(
+      { title: "Checkout is down", description: "Injected description" },
+      "outage",
+    );
+
+    expect(createdIncident().description).not.toContain("Injected");
+  });
+
+  test("a submission that names no template is answered from none - not even the default", async () => {
+    await submitFrom({ title: "Checkout is down" });
+
+    expect(createdIncident().description).toBeUndefined();
+  });
+
+  test("the default answers a submission that names it, as the page does when it opens on it", async () => {
+    await submitFrom({ title: "Checkout is down" }, "restored");
+
+    expect(createdIncident().description).toBe("Service has been restored.");
+  });
+
+  test.each([
+    ["a template deleted since the page was opened", "deleted"],
+    ["something that is not a template's id", "../../outage"],
+    ["a template id that is not text", 7],
+  ])(
+    "a submission that names %s is created all the same, without hidden answers",
+    async (_label: string, templateId: unknown) => {
+      const result: PublicFormSubmissionResult = await submitFrom(
+        { title: "Checkout is down" },
+        templateId,
+      );
+
+      expect(result.reference).toBe("INC-42");
+      expect(createdIncident().description).toBeUndefined();
+    },
+  );
+
+  test("a hidden answer its question would now refuse is left out, and the rest stands", async () => {
+    storedForm = buildIncidentForm({
+      fields: HIDDEN_FIELDS as unknown as JSONArray,
+      templates: [
+        {
+          id: "stale",
+          name: "Stale",
+          answers: { region: "APAC", description: "Still good." },
+        },
+      ] as unknown as JSONArray,
+    });
+
+    await submitFrom({ title: "Checkout is down" }, "stale");
+
+    expect(createdIncident().description).toBe("Still good.");
+    expect(createdIncident().customFields).toEqual({});
+  });
+
+  test("the hidden answers are kept with the submission, in the form's order", async () => {
+    await submitFrom({ title: "Checkout is down" }, "outage");
+
+    const answers: Array<FormSubmissionAnswer> = recordedSubmission()
+      .answers as unknown as Array<FormSubmissionAnswer>;
+
+    expect(
+      answers.map((answer: FormSubmissionAnswer): string => {
+        return answer.fieldId;
+      }),
+    ).toEqual(["title", "description", "region", "notes"]);
+  });
+
+  test("the private note names the template the submission started from", async () => {
+    await submitFrom({ title: "Checkout is down", name: "Jane" }, "outage");
+
+    const note: string = (
+      incidentNoteCreate.mock.calls[0]![0] as { data: IncidentInternalNote }
+    ).data.note!;
+
+    expect(note).toContain("Started from the template **Application Outage**.");
+  });
+
+  test("the note names no template when the submission started from none", async () => {
+    await submitFrom({ title: "Checkout is down" });
+
+    const note: string = (
+      incidentNoteCreate.mock.calls[0]![0] as { data: IncidentInternalNote }
+    ).data.note!;
+
+    expect(note).not.toContain("Started from the template");
+  });
+
+  test("a hidden title answered by the template becomes the incident's title", async () => {
+    storedForm = buildIncidentForm({
+      fields: HIDDEN_FIELDS.map((field: FormField): FormField => {
+        return field.id === "title"
+          ? { ...field, isRequired: false, isHidden: true }
+          : field;
+      }) as unknown as JSONArray,
+      templates: [OUTAGE_TEMPLATE] as unknown as JSONArray,
+    });
+
+    await submitFrom({}, "outage");
+
+    expect(createdIncident().title).toBe("The application is down");
+  });
+
+  test("a hidden title that would not fit once made safe is refused, as a typed one is", async () => {
+    storedForm = buildIncidentForm({
+      fields: HIDDEN_FIELDS.map((field: FormField): FormField => {
+        return field.id === "title"
+          ? { ...field, isRequired: false, isHidden: true }
+          : field;
+      }) as unknown as JSONArray,
+      templates: [
+        {
+          id: "long",
+          name: "Long",
+          // Each "<!" grows by an invisible character once made safe.
+          answers: { title: "<!".repeat(250) },
+        },
+      ] as unknown as JSONArray,
+    });
+
+    const error: Exception | undefined = await refusal(submitFrom({}, "long"));
+
+    expect(error).toBeInstanceOf(BadDataException);
+    nothingCreated();
+  });
+});

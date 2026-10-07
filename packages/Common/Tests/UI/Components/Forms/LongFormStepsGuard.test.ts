@@ -275,6 +275,12 @@ export const UNCOUNTABLE_FORMS: Array<ListedForm> = [
       "The form builder's preview of the public form above: the same questions drawn the way the public page draws them, in one page, so what the builder shows is what a submitter will see.",
   },
   {
+    file: `${DASHBOARD}/Components/FormBuilder/Templates/FormTemplates.tsx`,
+    form: "BasicFormModal: form-template",
+    reason:
+      "A form template's editor: its name and the Default switch, then the form's own questions, hidden ones too, drawn the way the public page draws them (buildPublicFormFields): as many as the form's author made, none of them required. One page like the public form and the builder's preview, so a template reads as the form it fills in; a Next between its name and its answers would split the two.",
+  },
+  {
     file: `${DASHBOARD}/Components/Dashboard/Canvas/ArgumentsForm.tsx`,
     form: "BasicForm #1",
     reason:
@@ -340,6 +346,12 @@ export const SHORT_FORMS_WITH_STEPS: Array<ListedForm> = [
     form: "ModelTable: Network Site Assignment Rules",
     reason:
       "The site, then the conditions a device must match. The second step is the conditions builder every rule form in the product draws on its Match Criteria step - a list of conditions added one at a time, with its own match-all or match-any choice - and it keeps that page of its own here too, so this rule reads and is built like every other rule.",
+  },
+  {
+    file: `${DASHBOARD}/Components/AISettings/AIInvestigationRulesTable.tsx`,
+    form: "ModelTable: Settings > AI > Investigation Rules",
+    reason:
+      "A name, then the conditions an incident or alert must match to be investigated. The second step is the same conditions builder the auto remediation rules draw on their Match Criteria step, read by the same matcher, so the two kinds of rule are built the same way, one page for the name and one for the conditions.",
   },
 ];
 

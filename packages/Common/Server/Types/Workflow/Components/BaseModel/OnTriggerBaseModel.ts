@@ -291,8 +291,16 @@ export default class OnTriggerBaseModel<
           if (updatedFields && Object.keys(updatedFields).length > 0) {
             let isUpdated: boolean = false;
 
+            /*
+             * updatedFields holds the fields the update changed
+             * (DatabaseService.getChangedColumns), with their new values.
+             * A field is listened on when it is among them, whatever it
+             * changed to: a switch turned off (false), a count set to 0 or
+             * a text cleared is a change too. Reading the value instead of
+             * the key skipped every one of those.
+             */
             for (const key in listenOn) {
-              if (updatedFields[key]) {
+              if (Object.prototype.hasOwnProperty.call(updatedFields, key)) {
                 isUpdated = true;
                 break;
               }

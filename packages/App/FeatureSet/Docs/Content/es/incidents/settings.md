@@ -21,7 +21,7 @@ Abre **Incidentes** en la navegación izquierda y despliega **Ajustes** al final
 | **Roles de Incidente**       | Definir los roles a los que asignas a quienes responden, como Incident Commander.                                   |
 | **Prefijo de número**              | Los prefijos de número de incidente y de episodio de incidente.                                                     |
 
-Lo que OneUptime AI hace por su cuenta no se configura aquí: tiene una sección propia, **Incidentes → IA**, en rutas que empiezan por `/dashboard/{projectId}/incidents/ai/`. Su página **Ajustes** activa o desactiva la investigación automática, las correcciones de código automáticas y los borradores de post-mortem, y guarda los límites opcionales con los que trabaja la IA: ninguno se aplica hasta que lo fijas. Al lado están las **Reglas de autorremediación**, con **Análisis** y **Registros**: lo que la IA aprendió de tus incidentes y todo lo que hizo. Consulta [AI SRE](/docs/ai/ai-sre).
+Lo que OneUptime AI hace por su cuenta no se configura aquí: tiene una sección propia, **Incidentes → IA**, en rutas que empiezan por `/dashboard/{projectId}/incidents/ai/`. Su página **Ajustes** activa o desactiva la investigación de los incidentes nuevos, su corrección automática (desactivada hasta que la activas), los borradores de post-mortem y la apertura de pull requests de corrección y de telemetría que falta, y cada interruptor se guarda en cuanto lo cambias; las reglas de investigación y las de autorremediación, que acotan qué incidentes se investigan y se corrigen, y los límites opcionales con los que trabaja la IA están plegados en **Más ajustes**, y ninguno se aplica hasta que lo fijas. Al lado están **Análisis** y **Registros**: lo que la IA aprendió de tus incidentes y todo lo que hizo. Consulta [AI SRE](/docs/ai/ai-sre).
 
 **Estado del Incidente** y **Gravedad del Incidente** se tratan a fondo en [Estados y severidades de incidentes](/docs/incidents/states-and-severities); el resto de esta página arranca a partir de **Plantillas de Incidentes**.
 
@@ -117,21 +117,22 @@ Un prefijo nuevo solo se aplica a los incidentes y episodios creados después. L
 
 ## Reglas que se ejecutan al crear un incidente
 
-**Incidentes → Reglas** reúne ocho motores de reglas, e **Incidentes → IA**, un noveno: las **Reglas de autorremediación**. Todos hacen el mismo trabajo —mirar un incidente en cuanto se crea y actuar si coincide—, pero se diferencian en lo que hacen y en cómo se resuelven varias reglas coincidentes.
+**Incidentes → Reglas** reúne ocho motores de reglas, e **Incidentes → IA → Ajustes**, dos más, en **Más ajustes**: las **Reglas de autorremediación** y las **Reglas de investigación**. Todos hacen el mismo trabajo —mirar un incidente en cuanto se crea y actuar si coincide—, pero se diferencian en lo que hacen y en cómo se resuelven varias reglas coincidentes.
 
 - **Reglas de Agrupación** — agrupan incidentes relacionados en episodios. Las reglas se evalúan por orden de prioridad; los números de prioridad más bajos van primero.
 - **Reglas de guardia** — ejecutan políticas de guardia para los incidentes coincidentes. Las vemos en detalle más abajo.
 - **Reglas del propietario** — asignan propietarios automáticamente.
 - **Reglas de runbook** — arrancan un [runbook](/docs/runbooks/index) cuando un incidente coincide.
-- **Reglas de autorremediación**, en **IA** — proponen o arrancan runbooks de remediación cuando un incidente coincide. Si hay una investigación de IA en cola para el incidente, se ejecutan cuando termina, con su análisis a mano. Consulta [AI SRE](/docs/ai/ai-sre).
+- **Reglas de autorremediación**, en **IA** → **Ajustes** — deciden qué incidentes nuevos se corrigen mientras **Corregir automáticamente los incidentes nuevos** está activado, y cómo: por OneUptime AI o con los runbooks de la regla, preguntando antes de corregir o no. Sin reglas, se corrige cada incidente nuevo. Si hay una investigación de IA en cola para el incidente, se ejecutan cuando termina, con su análisis a mano.
+- **Reglas de investigación**, en **IA** → **Ajustes** — deciden qué incidentes nuevos investiga OneUptime AI. Sin reglas, se investigan todos. Consulta [AI SRE](/docs/ai/ai-sre).
 - **Reglas de privacidad** — deciden si un incidente coincidente es privado.
 - **Reglas de etiquetas** — aplican etiquetas automáticamente.
 - **Reglas de SLA** — hacen seguimiento de los tiempos de respuesta y resolución. Las reglas se evalúan en orden; los números de orden más bajos van primero.
 - **Reminder Rules** — recuerdan periódicamente a los propietarios del incidente mientras siga abierto. Las reglas se evalúan en orden y gana la primera que coincide.
 
-**La semántica del orden no es uniforme.** Las **Reglas de Agrupación**, las **Reglas de SLA** y las **Reminder Rules** se evalúan por orden. Las **Reglas de guardia** no: se dispara toda regla coincidente. No des por hecho que un mismo modelo vale para las nueve.
+**La semántica del orden no es uniforme.** Las **Reglas de Agrupación**, las **Reglas de SLA** y las **Reminder Rules** se evalúan por orden. Las **Reglas de guardia** no: se dispara toda regla coincidente. No des por hecho que un mismo modelo vale para las diez.
 
-Las páginas **Reglas de guardia**, **Reglas del propietario**, **Reglas de etiquetas** y **Reglas de privacidad** tienen pestañas: una **Incident Rules** y otra **Episode Rules**, cada una con su propia tabla. Configura la pestaña **Incident Rules** salvo que te refieras específicamente a episodios. **Reglas de Agrupación**, **Reglas de runbook**, **Reglas de autorremediación**, **Reglas de SLA** y **Reminder Rules** son tablas únicas.
+Las páginas **Reglas de guardia**, **Reglas del propietario**, **Reglas de etiquetas** y **Reglas de privacidad** tienen pestañas: una **Incident Rules** y otra **Episode Rules**, cada una con su propia tabla. Configura la pestaña **Incident Rules** salvo que te refieras específicamente a episodios. **Reglas de Agrupación**, **Reglas de runbook**, **Reglas de autorremediación**, **Reglas de investigación**, **Reglas de SLA** y **Reminder Rules** son tablas únicas.
 
 ## Reglas de guardia de incidentes
 
@@ -171,7 +172,7 @@ Esa misma generación te da disparadores para la propia configuración: **On Cre
 
 Algunos detalles que importan al conectarlos:
 
-- **On Update X** admite un argumento opcional **Listen on** que acota el disparador a las actualizaciones que tocan campos concretos. Déjalo en blanco para que se dispare ante cualquier cambio. Si llega una actualización sin registro de qué campos se movieron, el filtro se omite y el flujo de trabajo se ejecuta igualmente.
+- **On Update X** admite un argumento opcional **Listen on** que acota el disparador a las actualizaciones que cambian campos concretos, sea cual sea el nuevo valor: un interruptor que se apaga o un campo que se vacía también cuentan. Un campo guardado con el valor que ya tiene no es un cambio, así que un formulario de edición que lo reenvía en cada guardado no despierta el flujo de trabajo. Déjalo en blanco para que se dispare ante cualquier cambio. Si llega una actualización sin registro de qué campos cambiaron, el filtro se omite y el flujo de trabajo se ejecuta igualmente.
 - **On Create X** y **On Update X** admiten ambos un argumento obligatorio **Select Fields**; **On Delete X** no admite ninguno.
 - Los tres exponen un único puerto de salida **Éxito**, y cada uno acepta un argumento de ID para que puedas ejecutar el flujo de trabajo a mano contra un registro concreto.
 - Los nombres salen del nombre en singular del modelo, no del de su tabla, y por eso ves **On Create Incident Team Owner** y **On Create Incident User Owner** en vez de nombres con forma de tabla.

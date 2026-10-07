@@ -2,7 +2,6 @@ import Alert from "../../Models/DatabaseModels/Alert";
 import AutoRemediationRule from "../../Models/DatabaseModels/AutoRemediationRule";
 import AutoRemediationSuggestion from "../../Models/DatabaseModels/AutoRemediationSuggestion";
 import Incident from "../../Models/DatabaseModels/Incident";
-import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import Project from "../../Models/DatabaseModels/Project";
 import Runbook from "../../Models/DatabaseModels/Runbook";
@@ -11,14 +10,13 @@ import RunbookExecution from "../../Models/DatabaseModels/RunbookExecution";
 import RunnerJob from "../../Models/DatabaseModels/RunnerJob";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
-import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
-import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import AIRunType from "../../Types/AI/AIRunType";
 import AutoRemediationExecutionMode from "../../Types/AutoRemediation/AutoRemediationExecutionMode";
 import AutoRemediationSuggestionStatus from "../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationSuggestionType from "../../Types/AutoRemediation/AutoRemediationSuggestionType";
 import AutoRemediationVerificationStatus from "../../Types/AutoRemediation/AutoRemediationVerificationStatus";
 import AutoRemediationTriggerEntity from "../../Types/AutoRemediation/AutoRemediationTriggerEntity";
+import AutoRemediationAction from "../../Types/AutoRemediation/AutoRemediationAction";
 import {
   AutoRemediationDecisionLane,
   AutoRemediationDecisionReason,
@@ -32,6 +30,7 @@ import {
   RESOURCE_SAFE_CHANGES_SUMMARY,
 } from "../../Types/AutoRemediation/AiRemediationCommandPlan";
 import {
+  isUnattendedRemediationMode,
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
 } from "../../Types/Kubernetes/KubernetesClusterAiAccess";
@@ -67,11 +66,10 @@ import AIInvestigationQueue from "../Utils/AI/SRE/InvestigationQueue";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import IncidentAlertRuleMatcher from "../Utils/Rules/IncidentAlertRuleMatcher";
 import AutoRemediationDecisionRecorder from "../Utils/AutoRemediation/AutoRemediationDecisionRecorder";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
-import RuleCriteriaMatcher from "../../Utils/Rules/RuleCriteriaMatcher";
-import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
 import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 
 /*
@@ -112,6 +110,48 @@ export const MAX_CLUSTER_REMEDIATION_ROUNDS_PER_SUBJECT: number = 2;
  *   first plan, then one follow-up when verification fails.
  */
 export const MAX_RESOURCE_REMEDIATION_ROUNDS_PER_SUBJECT: number = 2;
+
+/*
+ * How a matched rule fixes the signal. A rule saved without the column (an
+ * older API client) reads as OneUptime AI, the column's default.
+ */
+export function getAutoRemediationAction(
+  rule: Pick<AutoRemediationRule, "remediationAction">,
+): AutoRemediationAction {
+  return rule.remediationAction === AutoRemediationAction.Runbooks
+    ? AutoRemediationAction.Runbooks
+    : AutoRemediationAction.OneUptimeAI;
+}
+
+/*
+ * Whether a rule has OneUptime AI fix the signal on the clusters and
+ * resources it is linked to - the cluster and resource rounds. A rule saved
+ * before rules were simplified, that has AI compose commands on Runners or
+ * pick one of the project's runbooks, is marked OneUptime AI too, but keeps
+ * doing only that: it neither turns those rounds on nor makes them ask.
+ */
+export function isAiFixRule(
+  rule: Pick<
+    AutoRemediationRule,
+    "remediationAction" | "aiComposesCommands" | "aiSelectsRunbook"
+  >,
+): boolean {
+  return (
+    getAutoRemediationAction(rule) === AutoRemediationAction.OneUptimeAI &&
+    !rule.aiComposesCommands &&
+    !rule.aiSelectsRunbook
+  );
+}
+
+/*
+ * A matching rule that asks before fixing: the cluster and resource rounds
+ * it scopes ask first too, and say which rule made them.
+ */
+export interface RuleAskFirst {
+  // Completes "this round asks first because ..." on the feed.
+  reason: string;
+  ruleName: string;
+}
 
 /*
  * Upper bound on the rows the per-cluster circuit breaker and the in-flight
@@ -1222,7 +1262,14 @@ class AutoRemediationRuleEngineServiceClass {
       return;
     }
 
-    if (data.incident.projectId && data.incident.id) {
+    if (
+      data.incident.projectId &&
+      data.incident.id &&
+      (await this.mayFixNewSignals({
+        projectId: data.incident.projectId,
+        triggerEntityType: AutoRemediationTriggerEntity.Incident,
+      }))
+    ) {
       await this.recordWaitingForInvestigation({
         projectId: data.incident.projectId,
         incidentId: data.incident.id,
@@ -1241,11 +1288,60 @@ class AutoRemediationRuleEngineServiceClass {
       return;
     }
 
-    if (data.alert.projectId && data.alert.id) {
+    if (
+      data.alert.projectId &&
+      data.alert.id &&
+      (await this.mayFixNewSignals({
+        projectId: data.alert.projectId,
+        triggerEntityType: AutoRemediationTriggerEntity.Alert,
+      }))
+    ) {
       await this.recordWaitingForInvestigation({
         projectId: data.alert.projectId,
         alertId: data.alert.id,
       });
+    }
+  }
+
+  /*
+   * Whether "remediation waits for the investigation" is true of a new
+   * signal: not while Enable AI or the signal kind's fixing switch is off,
+   * when the evaluation that follows the investigation can only say so -
+   * and does. A project that cannot be read says nothing different from
+   * before: the card says it waits.
+   */
+  private async mayFixNewSignals(data: {
+    projectId: ObjectID;
+    triggerEntityType: AutoRemediationTriggerEntity;
+  }): Promise<boolean> {
+    try {
+      const project: Project | null = await ProjectService.findOneById({
+        id: data.projectId,
+        select: {
+          enableAi: true,
+          enableAutomaticIncidentRemediation: true,
+          enableAutomaticAlertRemediation: true,
+        },
+        props: { isRoot: true },
+      });
+
+      if (!project) {
+        return false;
+      }
+
+      if (project.enableAi === false) {
+        return false;
+      }
+
+      return data.triggerEntityType === AutoRemediationTriggerEntity.Alert
+        ? project.enableAutomaticAlertRemediation === true
+        : project.enableAutomaticIncidentRemediation === true;
+    } catch (error) {
+      logger.error(
+        `AutoRemediationRuleEngine: could not read the project's fixing switches: ${error}`,
+        { projectId: data.projectId.toString() } as LogAttributes,
+      );
+      return true;
     }
   }
 
@@ -1279,7 +1375,7 @@ class AutoRemediationRuleEngineServiceClass {
     const recorder: AutoRemediationDecisionRecorder = data.recorder;
 
     /*
-     * Project-level kill switch: Enable AI, the project's only AI switch,
+     * Project-level kill switch: Enable AI, the project's AI master switch,
      * stops every lane below — cluster and resource rounds, AI rules and
      * deterministic runbook rules alike. === false because the column is
      * NOT NULL DEFAULT true: undefined means "not selected", never "off".
@@ -1288,6 +1384,8 @@ class AutoRemediationRuleEngineServiceClass {
       id: data.projectId,
       select: {
         enableAi: true,
+        enableAutomaticIncidentRemediation: true,
+        enableAutomaticAlertRemediation: true,
       },
       props: { isRoot: true },
     });
@@ -1302,6 +1400,25 @@ class AutoRemediationRuleEngineServiceClass {
       recorder.add({
         lane: AutoRemediationDecisionLane.Project,
         reason: AutoRemediationDecisionReason.EnableAiOff,
+      });
+      return;
+    }
+
+    /*
+     * The signal kind's own master switch: "Fix new incidents automatically"
+     * (or alerts), off by default. With it off nothing is fixed - no cluster
+     * or resource round, no rule. !== true: the column is NOT NULL DEFAULT
+     * false, so a value that was not read is never taken for "on".
+     */
+    const isRemediationOn: boolean =
+      data.triggerEntityType === AutoRemediationTriggerEntity.Alert
+        ? project.enableAutomaticAlertRemediation === true
+        : project.enableAutomaticIncidentRemediation === true;
+
+    if (!isRemediationOn) {
+      recorder.add({
+        lane: AutoRemediationDecisionLane.Project,
+        reason: AutoRemediationDecisionReason.RemediationOff,
       });
       return;
     }
@@ -1353,58 +1470,11 @@ class AutoRemediationRuleEngineServiceClass {
     }
 
     /*
-     * Cluster-level remediation first: an operator who set a mode on the
-     * cluster's AI page expressed a more specific intent than any project
-     * rule, and it needs no rule to fire. It starts nothing on a signal an
-     * earlier pass already gave a resource round (one lane per signal).
+     * The rules decide which signals are fixed, and how. With none, every
+     * signal is: OneUptime AI fixes it on the infrastructure it is linked
+     * to. With some, only the signals that match at least one are, each the
+     * way its matching rules say - OneUptime AI, or their runbooks.
      */
-    const clusterRoundsStarted: number =
-      await this.applyClusterLevelRemediation({
-        projectId: data.projectId,
-        linkage,
-        existingSuggestions,
-        budget: remainingBudget,
-        recorder,
-      });
-
-    remainingBudget -= clusterRoundsStarted;
-
-    if (remainingBudget <= 0) {
-      recorder.add({
-        lane: AutoRemediationDecisionLane.Resource,
-        reason: AutoRemediationDecisionReason.ResourceSkippedLimit,
-      });
-      recorder.add({
-        lane: AutoRemediationDecisionLane.Rule,
-        reason: AutoRemediationDecisionReason.RulesSkippedLimit,
-      });
-      return;
-    }
-
-    /*
-     * Resource-level remediation next, and only when the signal has no
-     * cluster round: a resource's AI page expresses the same specific
-     * intent a cluster's does, but one signal gets one AI fix lane — two
-     * agents changing a cluster and a host for the same signal would each
-     * verify and roll back on top of the other's change.
-     */
-    remainingBudget -= await this.applyResourceLevelRemediation({
-      projectId: data.projectId,
-      linkage,
-      existingSuggestions,
-      budget: remainingBudget,
-      clusterRoundStarted: clusterRoundsStarted > 0,
-      recorder,
-    });
-
-    if (remainingBudget <= 0) {
-      recorder.add({
-        lane: AutoRemediationDecisionLane.Rule,
-        reason: AutoRemediationDecisionReason.RulesSkippedLimit,
-      });
-      return;
-    }
-
     const rules: Array<AutoRemediationRule> =
       await AutoRemediationRuleService.findBy({
         query: {
@@ -1417,6 +1487,7 @@ class AutoRemediationRuleEngineServiceClass {
           _id: true,
           name: true,
           executionMode: true,
+          remediationAction: true,
           aiSelectsRunbook: true,
           aiComposesCommands: true,
           verificationWindowMinutes: true,
@@ -1441,14 +1512,6 @@ class AutoRemediationRuleEngineServiceClass {
       rulesRead: rules.length,
     });
 
-    if (rules.length === 0) {
-      recorder.add({
-        lane: AutoRemediationDecisionLane.Rule,
-        reason: AutoRemediationDecisionReason.NoRulesConfigured,
-      });
-      return;
-    }
-
     const matchedRules: Array<AutoRemediationRule> = [];
 
     for (const rule of rules) {
@@ -1463,12 +1526,106 @@ class AutoRemediationRuleEngineServiceClass {
       }
     }
 
-    if (matchedRules.length === 0) {
+    if (rules.length > 0 && matchedRules.length === 0) {
       recorder.add({
         lane: AutoRemediationDecisionLane.Rule,
-        reason: AutoRemediationDecisionReason.NoRuleMatched,
+        reason: AutoRemediationDecisionReason.NotMatchedByAnyRule,
         rulesChecked: rules.length,
       });
+      return;
+    }
+
+    /*
+     * OneUptime AI fixes the signal on its linked clusters and resources when
+     * no rule is set up, or when a matching rule says so. A matching rule
+     * that asks before fixing makes those fixes ask too, whatever the
+     * cluster's or resource's own mode would let run on its own: of several
+     * matching rules, the one that asks wins.
+     */
+    const aiFixRules: Array<AutoRemediationRule> =
+      matchedRules.filter(isAiFixRule);
+    const isAiFixOn: boolean = rules.length === 0 || aiFixRules.length > 0;
+    const askingRule: AutoRemediationRule | undefined = aiFixRules.find(
+      (rule: AutoRemediationRule): boolean => {
+        return rule.executionMode !== AutoRemediationExecutionMode.FullAuto;
+      },
+    );
+    const askFirst: RuleAskFirst | undefined = askingRule
+      ? {
+          reason: `Auto Remediation Rule "${askingRule.name || ""}" asks before fixing`,
+          ruleName: askingRule.name || "",
+        }
+      : undefined;
+
+    if (!isAiFixOn) {
+      recorder.add({
+        lane: AutoRemediationDecisionLane.Rule,
+        reason: AutoRemediationDecisionReason.NoAiFixRuleMatched,
+      });
+    }
+
+    if (isAiFixOn) {
+      /*
+       * Cluster-level remediation first: an operator who set a mode on the
+       * cluster's AI page said how fixes run there. It starts nothing on a
+       * signal an earlier pass already gave a resource round (one lane per
+       * signal).
+       */
+      const clusterRoundsStarted: number =
+        await this.applyClusterLevelRemediation({
+          projectId: data.projectId,
+          linkage,
+          existingSuggestions,
+          budget: remainingBudget,
+          recorder,
+          askFirst,
+        });
+
+      remainingBudget -= clusterRoundsStarted;
+
+      if (remainingBudget <= 0) {
+        recorder.add({
+          lane: AutoRemediationDecisionLane.Resource,
+          reason: AutoRemediationDecisionReason.ResourceSkippedLimit,
+        });
+        if (matchedRules.length > 0) {
+          recorder.add({
+            lane: AutoRemediationDecisionLane.Rule,
+            reason: AutoRemediationDecisionReason.RulesSkippedLimit,
+          });
+        }
+        return;
+      }
+
+      /*
+       * Resource-level remediation next, and only when the signal has no
+       * cluster round: a resource's AI page expresses the same specific
+       * intent a cluster's does, but one signal gets one AI fix lane — two
+       * agents changing a cluster and a host for the same signal would each
+       * verify and roll back on top of the other's change.
+       */
+      remainingBudget -= await this.applyResourceLevelRemediation({
+        projectId: data.projectId,
+        linkage,
+        existingSuggestions,
+        budget: remainingBudget,
+        clusterRoundStarted: clusterRoundsStarted > 0,
+        recorder,
+        askFirst,
+      });
+
+      if (remainingBudget <= 0) {
+        if (matchedRules.length > 0) {
+          recorder.add({
+            lane: AutoRemediationDecisionLane.Rule,
+            reason: AutoRemediationDecisionReason.RulesSkippedLimit,
+          });
+        }
+        return;
+      }
+    }
+
+    if (matchedRules.length === 0) {
       return;
     }
 
@@ -1512,11 +1669,34 @@ class AutoRemediationRuleEngineServiceClass {
         continue;
       }
 
+      const action: AutoRemediationAction = getAutoRemediationAction(rule);
+
+      /*
+       * A rule that lets OneUptime AI fix the signal: the cluster and
+       * resource rounds above are that fix. A rule saved before rules were
+       * simplified, that let AI compose commands on Runners or pick one of
+       * the project's runbooks, keeps doing that instead (below).
+       */
+      if (isAiFixRule(rule)) {
+        recorder.add({
+          lane: AutoRemediationDecisionLane.Rule,
+          reason:
+            rule.executionMode === AutoRemediationExecutionMode.FullAuto
+              ? AutoRemediationDecisionReason.RuleMatchedAiFix
+              : AutoRemediationDecisionReason.RuleMatchedAiFixAsks,
+          ...ruleNames,
+        });
+        continue;
+      }
+
       /*
        * Command composition wins over runbook selection when a rule has
        * both flags — one run per rule, never two.
        */
-      if (rule.aiComposesCommands) {
+      if (
+        action === AutoRemediationAction.OneUptimeAI &&
+        rule.aiComposesCommands
+      ) {
         if (aiAvailable === null) {
           aiAvailable =
             (await LlmProviderService.getLLMProviderForProject(
@@ -1553,7 +1733,10 @@ class AutoRemediationRuleEngineServiceClass {
         continue;
       }
 
-      if (rule.aiSelectsRunbook) {
+      if (
+        action === AutoRemediationAction.OneUptimeAI &&
+        rule.aiSelectsRunbook
+      ) {
         if (aiAvailable === null) {
           aiAvailable =
             (await LlmProviderService.getLLMProviderForProject(
@@ -1836,6 +2019,8 @@ class AutoRemediationRuleEngineServiceClass {
     existingSuggestions: Array<AutoRemediationSuggestion>;
     budget: number;
     recorder?: AutoRemediationDecisionRecorder | undefined;
+    // A matching rule that asks before fixing: every round asks first.
+    askFirst?: RuleAskFirst | undefined;
   }): Promise<number> {
     let consumed: number = 0;
     const recorder: AutoRemediationDecisionRecorder | undefined = data.recorder;
@@ -1939,7 +2124,16 @@ class AutoRemediationRuleEngineServiceClass {
         cluster: status,
         linkage: data.linkage,
         round: 1,
+        askFirstReason: data.askFirst?.reason,
       });
+
+      /*
+       * A round a rule made ask is recorded in the mode it really runs in,
+       * with the rule that made it ask.
+       */
+      const isAskedByRule: boolean = Boolean(
+        data.askFirst && isUnattendedRemediationMode(status.remediationMode),
+      );
 
       recorder?.add({
         lane: AutoRemediationDecisionLane.KubernetesCluster,
@@ -1947,6 +2141,12 @@ class AutoRemediationRuleEngineServiceClass {
           ? AutoRemediationDecisionReason.ClusterRoundStarted
           : AutoRemediationDecisionReason.ClusterRoundNotStarted,
         ...clusterNames,
+        ...(isAskedByRule
+          ? {
+              remediationMode: KubernetesAiRemediationMode.RequireApproval,
+              ruleName: data.askFirst?.ruleName,
+            }
+          : {}),
       });
 
       if (started) {
@@ -2279,6 +2479,8 @@ class AutoRemediationRuleEngineServiceClass {
     budget: number;
     clusterRoundStarted: boolean;
     recorder?: AutoRemediationDecisionRecorder | undefined;
+    // A matching rule that asks before fixing: the round asks first.
+    askFirst?: RuleAskFirst | undefined;
   }): Promise<number> {
     const recorder: AutoRemediationDecisionRecorder | undefined = data.recorder;
 
@@ -2425,7 +2627,13 @@ class AutoRemediationRuleEngineServiceClass {
         resource: eligible,
         linkage: data.linkage,
         round: 1,
+        askFirstReason: data.askFirst?.reason,
       });
+
+      const isAskedByRule: boolean = Boolean(
+        data.askFirst &&
+          doesResourceModeRunRoundUnattended(eligible.aiRemediationMode, 1),
+      );
 
       recorder?.add({
         lane: AutoRemediationDecisionLane.Resource,
@@ -2433,6 +2641,12 @@ class AutoRemediationRuleEngineServiceClass {
           ? AutoRemediationDecisionReason.ResourceRoundStarted
           : AutoRemediationDecisionReason.ResourceRoundNotStarted,
         ...eligibleNames,
+        ...(isAskedByRule
+          ? {
+              remediationMode: ResourceAiRemediationMode.RequireApproval,
+              ruleName: data.askFirst?.ruleName,
+            }
+          : {}),
       });
 
       return started ? 1 : 0;
@@ -3041,329 +3255,29 @@ class AutoRemediationRuleEngineServiceClass {
   }
 
   /*
-   * Matching. Every criterion is skip-if-empty with AND semantics across
-   * criteria — the same shape as IncidentOnCallRuleEngineService.
+   * Matching: the shared incident and alert rule matcher, which investigation
+   * rules read conditions with too (IncidentAlertRuleMatcher).
    */
   public async doesIncidentMatchRule(
     incident: Incident,
     rule: AutoRemediationRule,
   ): Promise<boolean> {
-    const monitorCache: MonitorRuleCriteriaCache =
-      new MonitorRuleCriteriaCache();
-
-    return await RuleCriteriaMatcher.matchesWithLegacy({
-      rule: rule,
-      legacyFields: [
-        "monitors",
-        "incidentSeverities",
-        "labels",
-        "monitorLabels",
-        "titlePattern",
-        "descriptionPattern",
-      ],
-      emptyResult: true,
-      matchesLegacyRule: async (
-        legacyRule: AutoRemediationRule,
-      ): Promise<boolean> => {
-        return await this.doesIncidentMatchLegacyRule(
-          incident,
-          legacyRule,
-          monitorCache,
-        );
-      },
-      correlation: {
-        fields: ["monitorLabels"],
-        getCandidates: (): Array<Monitor> => {
-          return incident.monitors || [];
-        },
-        matchesLegacyRuleForCandidate: async (
-          legacyRule: AutoRemediationRule,
-          incidentMonitor: Monitor,
-        ): Promise<boolean> => {
-          const correlatedIncident: Incident = Object.assign(
-            new Incident(),
-            incident,
-          );
-          correlatedIncident.monitors = [incidentMonitor];
-          return await this.doesIncidentMatchLegacyRule(
-            correlatedIncident,
-            legacyRule,
-            monitorCache,
-          );
-        },
-      },
-    });
-  }
-
-  private async doesIncidentMatchLegacyRule(
-    incident: Incident,
-    rule: AutoRemediationRule,
-    monitorCache: MonitorRuleCriteriaCache,
-  ): Promise<boolean> {
-    // Monitors: incident must come from at least one of the rule's monitors.
-    if (rule.monitors && rule.monitors.length > 0) {
-      if (!incident.monitors || incident.monitors.length === 0) {
-        return false;
-      }
-      const ruleMonitorIds: Array<string> = rule.monitors.map((m: Monitor) => {
-        return m.id?.toString() || "";
-      });
-      const incidentMonitorIds: Array<string> = incident.monitors.map(
-        (m: Monitor) => {
-          return m.id?.toString() || "";
-        },
-      );
-      const hasMatch: boolean = ruleMonitorIds.some((id: string) => {
-        return incidentMonitorIds.includes(id);
-      });
-      if (!hasMatch) {
-        return false;
-      }
-    }
-
-    // Severity
-    if (rule.incidentSeverities && rule.incidentSeverities.length > 0) {
-      if (!incident.incidentSeverityId) {
-        return false;
-      }
-      const severityIds: Array<string> = rule.incidentSeverities.map(
-        (s: IncidentSeverity) => {
-          return s.id?.toString() || "";
-        },
-      );
-      if (!severityIds.includes(incident.incidentSeverityId.toString())) {
-        return false;
-      }
-    }
-
-    // Entity labels
-    if (rule.labels && rule.labels.length > 0) {
-      if (!incident.labels || incident.labels.length === 0) {
-        return false;
-      }
-      const ruleLabelIds: Array<string> = rule.labels.map((l: Label) => {
-        return l.id?.toString() || "";
-      });
-      const incidentLabelIds: Array<string> = incident.labels.map(
-        (l: Label) => {
-          return l.id?.toString() || "";
-        },
-      );
-      const hasMatch: boolean = ruleLabelIds.some((id: string) => {
-        return incidentLabelIds.includes(id);
-      });
-      if (!hasMatch) {
-        return false;
-      }
-    }
-
-    // Monitor labels: any of the incident's monitors carrying one is enough.
-    if (rule.monitorLabels && rule.monitorLabels.length > 0) {
-      if (!incident.monitors || incident.monitors.length === 0) {
-        return false;
-      }
-
-      let anyMonitorMatches: boolean = false;
-
-      for (const incidentMonitor of incident.monitors) {
-        if (!incidentMonitor.id) {
-          continue;
-        }
-
-        if (
-          await this.doesMonitorCarryAnyLabel(
-            incidentMonitor.id,
-            rule.monitorLabels,
-            monitorCache,
-          )
-        ) {
-          anyMonitorMatches = true;
-          break;
-        }
-      }
-
-      if (!anyMonitorMatches) {
-        return false;
-      }
-    }
-
-    if (rule.titlePattern) {
-      if (
-        !incident.title ||
-        !this.testRegex(rule.titlePattern, incident.title, rule)
-      ) {
-        return false;
-      }
-    }
-
-    if (rule.descriptionPattern) {
-      if (
-        !incident.description ||
-        !this.testRegex(rule.descriptionPattern, incident.description, rule)
-      ) {
-        return false;
-      }
-    }
-
-    return true;
+    return await IncidentAlertRuleMatcher.doesIncidentMatch(
+      incident,
+      rule,
+      "auto-remediation rule",
+    );
   }
 
   public async doesAlertMatchRule(
     alert: Alert,
     rule: AutoRemediationRule,
   ): Promise<boolean> {
-    const monitorCache: MonitorRuleCriteriaCache =
-      new MonitorRuleCriteriaCache();
-
-    return await RuleCriteriaMatcher.matchesWithLegacy({
-      rule: rule,
-      legacyFields: [
-        "monitors",
-        "alertSeverities",
-        "labels",
-        "monitorLabels",
-        "titlePattern",
-        "descriptionPattern",
-      ],
-      emptyResult: true,
-      matchesLegacyRule: async (
-        legacyRule: AutoRemediationRule,
-      ): Promise<boolean> => {
-        return await this.doesAlertMatchLegacyRule(
-          alert,
-          legacyRule,
-          monitorCache,
-        );
-      },
-    });
-  }
-
-  private async doesAlertMatchLegacyRule(
-    alert: Alert,
-    rule: AutoRemediationRule,
-    monitorCache: MonitorRuleCriteriaCache,
-  ): Promise<boolean> {
-    // Monitors: alerts carry a single scalar monitorId.
-    if (rule.monitors && rule.monitors.length > 0) {
-      if (!alert.monitorId) {
-        return false;
-      }
-      const monitorIds: Array<string> = rule.monitors.map((m: Monitor) => {
-        return m.id?.toString() || "";
-      });
-      if (!monitorIds.includes(alert.monitorId.toString())) {
-        return false;
-      }
-    }
-
-    // Severity
-    if (rule.alertSeverities && rule.alertSeverities.length > 0) {
-      if (!alert.alertSeverityId) {
-        return false;
-      }
-      const severityIds: Array<string> = rule.alertSeverities.map(
-        (s: AlertSeverity) => {
-          return s.id?.toString() || "";
-        },
-      );
-      if (!severityIds.includes(alert.alertSeverityId.toString())) {
-        return false;
-      }
-    }
-
-    // Entity labels
-    if (rule.labels && rule.labels.length > 0) {
-      if (!alert.labels || alert.labels.length === 0) {
-        return false;
-      }
-      const ruleLabelIds: Array<string> = rule.labels.map((l: Label) => {
-        return l.id?.toString() || "";
-      });
-      const alertLabelIds: Array<string> = alert.labels.map((l: Label) => {
-        return l.id?.toString() || "";
-      });
-      const hasMatch: boolean = ruleLabelIds.some((id: string) => {
-        return alertLabelIds.includes(id);
-      });
-      if (!hasMatch) {
-        return false;
-      }
-    }
-
-    // Monitor labels
-    if (rule.monitorLabels && rule.monitorLabels.length > 0) {
-      if (!alert.monitorId) {
-        return false;
-      }
-      if (
-        !(await this.doesMonitorCarryAnyLabel(
-          alert.monitorId,
-          rule.monitorLabels,
-          monitorCache,
-        ))
-      ) {
-        return false;
-      }
-    }
-
-    if (rule.titlePattern) {
-      if (
-        !alert.title ||
-        !this.testRegex(rule.titlePattern, alert.title, rule)
-      ) {
-        return false;
-      }
-    }
-
-    if (rule.descriptionPattern) {
-      if (
-        !alert.description ||
-        !this.testRegex(rule.descriptionPattern, alert.description, rule)
-      ) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  private async doesMonitorCarryAnyLabel(
-    monitorId: ObjectID,
-    ruleMonitorLabels: Array<Label>,
-    monitorCache: MonitorRuleCriteriaCache,
-  ): Promise<boolean> {
-    const monitor: Monitor | null = await monitorCache.getMonitor(monitorId);
-
-    if (!monitor || !monitor.labels || monitor.labels.length === 0) {
-      return false;
-    }
-
-    const ruleLabelIds: Array<string> = ruleMonitorLabels.map((l: Label) => {
-      return l.id?.toString() || "";
-    });
-    const monitorLabelIds: Array<string> = monitor.labels.map((l: Label) => {
-      return l.id?.toString() || "";
-    });
-
-    return ruleLabelIds.some((id: string) => {
-      return monitorLabelIds.includes(id);
-    });
-  }
-
-  private testRegex(
-    pattern: string,
-    value: string,
-    rule: AutoRemediationRule,
-  ): boolean {
-    try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
-    } catch {
-      logger.warn(
-        `Invalid regex pattern in auto-remediation rule ${rule.id}: ${pattern}`,
-      );
-      return false;
-    }
+    return await IncidentAlertRuleMatcher.doesAlertMatch(
+      alert,
+      rule,
+      "auto-remediation rule",
+    );
   }
 }
 

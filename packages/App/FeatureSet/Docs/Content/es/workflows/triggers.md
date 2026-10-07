@@ -45,10 +45,12 @@ Trata la URL como una contraseña. Cualquiera que la tenga puede arrancar tu flu
 Casi todo en OneUptime — monitores, incidentes, alertas, mantenimientos programados, páginas de estado, políticas de guardia, equipos — puede disparar un flujo de trabajo. Cada cosa ofrece tres eventos:
 
 - **On Create** — se dispara cuando se añade una nueva.
-- **On Update** — se dispara cuando se modifica una.
+- **On Update** — se dispara cuando se modifica una. Guardar un registro con los valores que ya tiene, como un formulario guardado sin cambios o un interruptor enviado tal como ya está, no es un cambio y no lo dispara.
 - **On Delete** — se dispara cuando se elimina una.
 
 Así es como construyes «cuando pase X en OneUptime, haz Y» sin tener que comprobar nada en un bucle.
+
+**On Update** se puede limitar a algunos campos con **Listen on**: entonces solo se dispara cuando una actualización cambia uno de ellos, a cualquier valor; apagar un interruptor o vaciar un campo también cuenta.
 
 El registro completo se pasa al siguiente bloque. Por ejemplo, el disparador **Incidente → On Create** pasa el incidente nuevo, así que el bloque siguiente puede leer su título, su descripción, su severidad y cualquier otro campo.
 

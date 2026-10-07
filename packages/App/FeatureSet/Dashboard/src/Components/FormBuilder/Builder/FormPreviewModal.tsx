@@ -4,8 +4,11 @@ import { FormField } from "Common/Types/Form/FormField";
 import {
   BuiltPublicForm,
   buildPublicForm,
+  findPublicFormTemplate,
   FormCustomFieldDefinition,
   FormRecordOption,
+  getPublicFormStartTemplate,
+  PublicFormTemplate,
 } from "Common/Types/Form/FormPublic";
 import { FormTargetOptionsSource } from "Common/Types/Form/FormTargetCatalog";
 import FormTargetType from "Common/Types/Form/FormTargetType";
@@ -22,6 +25,7 @@ import {
   getPublicFormInitialValues,
 } from "Common/UI/Components/PublicForm/PublicFormFields";
 import PublicFormLogo from "Common/UI/Components/PublicForm/PublicFormLogo";
+import PublicFormTemplatePicker from "Common/UI/Components/PublicForm/PublicFormTemplatePicker";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import React, {
   FunctionComponent,
@@ -37,7 +41,9 @@ import React, {
  * (a required answer, an email that is one address) run here too. Nothing is
  * ever sent: submitting says so, and offers to fill the form in again. Its
  * logo is the form's own, or the OneUptime logo, drawn by the component the
- * page draws it with.
+ * page draws it with. A form with templates opens with its default, and
+ * lists them over its questions as the page does; hidden questions are not
+ * shown, as the page does not show them.
  */
 
 export interface ComponentProps {
@@ -52,6 +58,8 @@ export interface ComponentProps {
   defaultOptionValues?: Partial<Record<string, string>> | undefined;
   // The form's logo, its alt text and its favicon, as saved.
   branding?: FormBrandingValues | undefined;
+  // The form's templates, as saved (Form.templates).
+  templates?: unknown;
   onClose: () => void;
 }
 
@@ -78,6 +86,7 @@ const FormPreviewModal: FunctionComponent<ComponentProps> = (
         logoFile: props.branding?.logoFile,
         logoAltText: props.branding?.logoAltText,
         faviconFile: props.branding?.faviconFile,
+        templates: props.templates,
       },
       customFields: props.customFields,
       recordOptions: props.recordOptions,
@@ -93,7 +102,20 @@ const FormPreviewModal: FunctionComponent<ComponentProps> = (
     props.recordOptions,
     props.defaultOptionValues,
     props.branding,
+    props.templates,
   ]);
+
+  // The template the preview is filled in from, as the page opens with it.
+  const [templateId, setTemplateId] = useState<string | null>(
+    (): string | null => {
+      return getPublicFormStartTemplate({ form: built.form })?.id || null;
+    },
+  );
+
+  const template: PublicFormTemplate | undefined = findPublicFormTemplate(
+    built.form,
+    templateId,
+  );
 
   return (
     <Modal
@@ -167,13 +189,34 @@ const FormPreviewModal: FunctionComponent<ComponentProps> = (
                 ) : (
                   <></>
                 )}
+                {built.form.templates && built.form.templates.length > 0 ? (
+                  <PublicFormTemplatePicker
+                    templates={built.form.templates}
+                    selectedTemplateId={template ? template.id : null}
+                    label={tx(FormsCopy.templatePickerLabel)}
+                    description={tx(FormsCopy.templatePickerDescription)}
+                    emptyLabel={tx(FormsCopy.noTemplate)}
+                    dataTestId="form-preview-template-picker"
+                    onChange={(chosen: string | null) => {
+                      setTemplateId(chosen);
+                      setInstance((value: number): number => {
+                        return value + 1;
+                      });
+                    }}
+                  />
+                ) : (
+                  <></>
+                )}
                 <BasicForm
                   key={instance}
                   id="form-preview-form"
                   fields={buildPublicFormFields(built.form, {
                     dataTestIdPrefix: "form-preview-field",
                   })}
-                  initialValues={getPublicFormInitialValues(built.form)}
+                  initialValues={getPublicFormInitialValues(
+                    built.form,
+                    template,
+                  )}
                   showAsColumns={1}
                   maxPrimaryButtonWidth={true}
                   disableAutofocus={true}

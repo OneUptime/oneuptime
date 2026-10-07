@@ -21,7 +21,7 @@ Denne side er referencen for den konfiguration — hvad hver side rummer, og hva
 | **Hændelsesroller**      | Definér de roller, du sætter folk på, for eksempel Incident Commander.                                      |
 | **Nummerpræfiks**  | Nummerpræfikserne for hændelser og hændelsesepisoder.                                                       |
 
-Hvad OneUptime AI gør på egen hånd, indstilles ikke her: det har sin egen sektion, **Hændelser → AI**, på ruter, der begynder med `/dashboard/{projectId}/incidents/ai/`. Dens side **Indstillinger** slår automatisk undersøgelse, automatiske koderettelser og postmortem-udkast til eller fra og rummer de valgfrie grænser, AI arbejder under — ingen af dem gælder, før du sætter dem. **Regler for automatisk afhjælpning** ligger ved siden af, sammen med **Indsigter** og **Protokoller**: hvad AI har lært af dine hændelser, og alt, hvad den har gjort. Se [AI SRE](/docs/ai/ai-sre).
+Hvad OneUptime AI gør på egen hånd, indstilles ikke her: det har sin egen sektion, **Hændelser → AI**, på ruter, der begynder med `/dashboard/{projectId}/incidents/ai/`. Dens side **Indstillinger** slår undersøgelse af nye hændelser, automatisk rettelse af dem (slået fra, indtil du slår den til), postmortem-udkast og åbning af pull requests med rettelser og med manglende telemetri til eller fra, og hver kontakt gemmes, så snart du slår den om; undersøgelsesreglerne og reglerne for automatisk afhjælpning, der afgrænser, hvilke hændelser der undersøges og rettes, og de valgfrie grænser, AI arbejder under, er foldet sammen under **Yderligere indstillinger**, og ingen af dem gælder, før du sætter dem. **Indsigter** og **Protokoller** ligger ved siden af: hvad AI har lært af dine hændelser, og alt, hvad den har gjort. Se [AI SRE](/docs/ai/ai-sre).
 
 **Hændelsesstatus** og **Hændelsesalvor** er gennemgået i dybden på [Hændelsestilstande og alvorsgrader](/docs/incidents/states-and-severities) — resten af denne side tager over fra **Hændelsesskabeloner**.
 
@@ -117,21 +117,22 @@ Et nyt præfiks gælder kun hændelser og episoder, der oprettes bagefter. Eksis
 
 ## Regler, der kører når en hændelse oprettes
 
-**Hændelser → Regler** rummer otte regelmotorer, og **Hændelser → AI** en niende, **Regler for automatisk afhjælpning**. De laver alle det samme stykke arbejde — kigger på en hændelse i det øjeblik den oprettes, og handler hvis den matcher — men de er forskellige i, hvad de gør, og i hvordan flere matchende regler afgøres.
+**Hændelser → Regler** rummer otte regelmotorer, og **Hændelser → AI → Indstillinger** to til, under **Yderligere indstillinger**: **Regler for automatisk afhjælpning** og **Undersøgelsesregler**. De laver alle det samme stykke arbejde — kigger på en hændelse i det øjeblik den oprettes, og handler hvis den matcher — men de er forskellige i, hvad de gør, og i hvordan flere matchende regler afgøres.
 
 - **Grupperingsregler** — grupperer beslægtede hændelser i episoder. Regler evalueres i prioritetsrækkefølge; lave prioritetsnumre kommer først.
 - **Vagtregler** — udfører vagtpolitikker for matchende hændelser. Gennemgået i detaljer nedenfor.
 - **Ejerregler** — tildeler ejere automatisk.
 - **Runbook-regler** — starter et [runbook](/docs/runbooks/index), når en hændelse matcher.
-- **Regler for automatisk afhjælpning**, under **AI** — foreslår eller starter afhjælpnings-runbooks, når en hændelse matcher. Står en AI-undersøgelse i kø for hændelsen, kører de, når den er færdig, med dens analyse i hånden. Se [AI SRE](/docs/ai/ai-sre).
+- **Regler for automatisk afhjælpning**, under **AI** → **Indstillinger** — hvilke nye hændelser der rettes, så længe kontakten **Ret nye hændelser automatisk** er slået til, og hvordan: af OneUptime AI eller med reglens runbooks, og om der spørges, før der rettes. Uden regler rettes hver ny hændelse. Står en AI-undersøgelse i kø for hændelsen, kører de, når den er færdig, med dens analyse i hånden.
+- **Undersøgelsesregler**, under **AI** → **Indstillinger** — hvilke nye hændelser OneUptime AI undersøger. Uden regler undersøges hver eneste. Se [AI SRE](/docs/ai/ai-sre).
 - **Privatlivsregler** — afgør, om en matchende hændelse er privat.
 - **Etiketregler** — sætter etiketter på automatisk.
 - **SLA-regler** — sporer svar- og løsningstider. Regler evalueres i rækkefølge; lave rækkefølgenumre kommer først.
 - **Reminder Rules** — minder med jævne mellemrum hændelsens ejere om den, så længe den stadig er åben. Regler evalueres i rækkefølge, og den første regel, der matcher, vinder.
 
-**Rækkefølgesemantikken er ikke ens overalt.** Grupperingsregler, SLA-regler og Reminder Rules evalueres i rækkefølge. Vagtregler gør ikke — hver regel, der matcher, udløses. Gå ikke ud fra, at én model gælder for alle ni.
+**Rækkefølgesemantikken er ikke ens overalt.** Grupperingsregler, SLA-regler og Reminder Rules evalueres i rækkefølge. Vagtregler gør ikke — hver regel, der matcher, udløses. Gå ikke ud fra, at én model gælder for alle ti.
 
-Siderne **Vagtregler**, **Ejerregler**, **Etiketregler** og **Privatlivsregler** har faner — en **Incident Rules**-fane og en **Episode Rules**-fane, hver med sin egen tabel. Konfigurér **Incident Rules**-fanen, medmindre du udtrykkeligt mener episoder. **Grupperingsregler**, **Runbook-regler**, **Regler for automatisk afhjælpning**, **SLA-regler** og **Reminder Rules** er enkeltstående tabeller.
+Siderne **Vagtregler**, **Ejerregler**, **Etiketregler** og **Privatlivsregler** har faner — en **Incident Rules**-fane og en **Episode Rules**-fane, hver med sin egen tabel. Konfigurér **Incident Rules**-fanen, medmindre du udtrykkeligt mener episoder. **Grupperingsregler**, **Runbook-regler**, **Regler for automatisk afhjælpning**, **Undersøgelsesregler**, **SLA-regler** og **Reminder Rules** er enkeltstående tabeller.
 
 ## Vagtregler for hændelser
 
@@ -171,7 +172,7 @@ Den samme generering giver dig triggere til selve konfigurationen: **On Create I
 
 Et par detaljer, der betyder noget, når du kobler det hele sammen:
 
-- **On Update X** tager et valgfrit **Listen on**-argument, der indsnævrer triggeren til opdateringer, som rører bestemte felter. Lad det stå tomt for at udløse ved enhver ændring. Kommer en opdatering ind uden en registrering af, hvilke felter der flyttede sig, springes filteret over, og workflowet kører alligevel.
+- **On Update X** tager et valgfrit **Listen on**-argument, der indsnævrer triggeren til opdateringer, som ændrer bestemte felter, uanset hvad de ændres til: en kontakt, der slås fra, eller et felt, der ryddes, tæller også. Et felt, der gemmes med den værdi, det allerede har, er ikke en ændring, så en redigeringsformular, der sender det tilbage ved hver gemning, vækker ikke workflowet. Lad det stå tomt for at udløse ved enhver ændring. Kommer en opdatering ind uden en registrering af, hvilke felter der ændrede sig, springes filteret over, og workflowet kører alligevel.
 - **On Create X** og **On Update X** tager begge et påkrævet **Select Fields**-argument; **On Delete X** tager ingen argumenter.
 - Alle tre har én enkelt **Succes**-udgang, og hver af dem tager et ID-argument, så du kan køre workflowet i hånden mod én enkelt post.
 - Navnene kommer fra modellens navn i ental, ikke fra dens tabelnavn — derfor ser du **On Create Incident Team Owner** og **On Create Incident User Owner** frem for tabelformede navne.

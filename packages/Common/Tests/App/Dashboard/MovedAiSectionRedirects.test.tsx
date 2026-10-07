@@ -31,10 +31,12 @@ import { PROJECT_ID, goTo } from "./SideMenuHarness";
  * The AI settings page and the Auto Remediation Rules moved out of the
  * Settings and Rules sections of the Incidents and Alerts menus into an AI
  * section of their own, and their URLs moved with them: …/settings/ai is
- * …/ai/settings now, and …/settings/auto-remediation-rules is
- * …/ai/auto-remediation-rules. The old URLs are in bookmarks, in emails, in
- * older docs and in messages the server wrote before the move, so they must
- * keep arriving at the same page.
+ * …/ai/settings now, and …/settings/auto-remediation-rules was
+ * …/ai/auto-remediation-rules. Then the rules folded into the AI settings
+ * page itself, under More settings, next to the investigation rules - so
+ * both of the rules' addresses arrive at …/ai/settings. The old URLs are in
+ * bookmarks, in emails, in older docs and in messages the server wrote
+ * before the move, so they must keep arriving at the page that has them.
  *
  * This mounts the REAL Incidents and Alerts route groups, every page of them
  * replaced by a marker that names it, and visits the old URLs.
@@ -61,10 +63,10 @@ interface Product {
   segment: string;
   root: PageMap;
   aiSettings: PageMap;
-  autoRemediationRules: PageMap;
-  // The page modules the two moved pages render, as the route group imports them.
+  // The page module the AI settings page renders, as the route group imports it.
   aiSettingsModule: string;
-  autoRemediationRulesModule: string;
+  // The rules page module that is gone: no route group may import it.
+  retiredRulesModule: string;
 }
 
 const PRODUCTS: Array<Product> = [
@@ -75,10 +77,8 @@ const PRODUCTS: Array<Product> = [
     segment: "incidents",
     root: PageMap.INCIDENTS_ROOT,
     aiSettings: PageMap.INCIDENTS_SETTINGS_AI,
-    autoRemediationRules: PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES,
     aiSettingsModule: "Incidents/Settings/IncidentAISettings",
-    autoRemediationRulesModule:
-      "Incidents/Settings/IncidentAutoRemediationRules",
+    retiredRulesModule: "Incidents/Settings/IncidentAutoRemediationRules",
   },
   {
     name: "Alerts",
@@ -87,9 +87,8 @@ const PRODUCTS: Array<Product> = [
     segment: "alerts",
     root: PageMap.ALERTS_ROOT,
     aiSettings: PageMap.ALERTS_SETTINGS_AI,
-    autoRemediationRules: PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES,
     aiSettingsModule: "Alerts/Settings/AlertAISettings",
-    autoRemediationRulesModule: "Alerts/Settings/AlertAutoRemediationRules",
+    retiredRulesModule: "Alerts/Settings/AlertAutoRemediationRules",
   },
 ];
 
@@ -237,21 +236,19 @@ afterEach(() => {
 });
 
 describe("the forwarding table", () => {
-  test("names the two addresses the moved pages had, relative to the product", () => {
+  test("names the three addresses the moved pages had, relative to the product", () => {
     expect(MOVED_AI_SECTION_PATHS).toEqual({
       aiSettings: "settings/ai",
       autoRemediationRules: "settings/auto-remediation-rules",
+      aiAutoRemediationRules: "ai/auto-remediation-rules",
     });
   });
 
   test.each(PRODUCTS)(
-    "no $name page is at an old address any more: they are under ai/",
+    "no $name page is at an old address any more: the AI settings are under ai/",
     (product: Product) => {
       expect(RouteMap[product.aiSettings]!.toString()).toBe(
         `/dashboard/:projectId/${product.segment}/ai/settings`,
-      );
-      expect(RouteMap[product.autoRemediationRules]!.toString()).toBe(
-        `/dashboard/:projectId/${product.segment}/ai/auto-remediation-rules`,
       );
 
       const oldAddresses: Array<string> = Object.values(
@@ -267,7 +264,7 @@ describe("the forwarding table", () => {
   );
 
   test.each(PRODUCTS)(
-    "the $name route group mounts both forwards, outside its layout",
+    "the $name route group mounts every forward, outside its layout",
     (product: Product) => {
       const source: string = fs.readFileSync(
         path.join(DASHBOARD_SRC, `${product.routesModule}.tsx`),
@@ -275,7 +272,11 @@ describe("the forwarding table", () => {
       );
       const layoutAt: number = source.indexOf('path="/"');
 
-      for (const key of ["aiSettings", "autoRemediationRules"]) {
+      for (const key of [
+        "aiSettings",
+        "autoRemediationRules",
+        "aiAutoRemediationRules",
+      ]) {
         const at: number = source.indexOf(`MOVED_AI_SECTION_PATHS.${key}`);
 
         expect({ key, mounted: at > -1 }).toEqual({ key, mounted: true });
@@ -289,46 +290,48 @@ describe("the forwarding table", () => {
 });
 
 describe.each(PRODUCTS)("the old $name URLs", (product: Product) => {
-  test("the scaffolding found the route group's pages, the two moved ones among them", () => {
+  test("the scaffolding found the route group's pages: the AI settings, and no rules page", () => {
     expect(pageModulesOf(product)).toEqual(
       expect.arrayContaining([
         `${product.pagesDirectory}/Layout`,
         product.aiSettingsModule,
-        product.autoRemediationRulesModule,
       ]),
     );
+    expect(pageModulesOf(product)).not.toContain(product.retiredRulesModule);
+    expect(
+      fs.existsSync(
+        path.join(DASHBOARD_SRC, "Pages", `${product.retiredRulesModule}.tsx`),
+      ),
+    ).toBe(false);
   });
 
   test.each([
-    ["settings/ai", "ai/settings", "aiSettingsModule"],
-    [
-      "settings/auto-remediation-rules",
-      "ai/auto-remediation-rules",
-      "autoRemediationRulesModule",
-    ],
+    ["settings/ai", "ai/settings"],
+    ["settings/auto-remediation-rules", "ai/settings"],
+    ["ai/auto-remediation-rules", "ai/settings"],
   ])(
-    "…/%s arrives at …/%s, on the same page",
-    (oldPath: string, newPath: string, moduleKey: string) => {
+    "…/%s arrives at …/%s, the page that has its settings",
+    (oldPath: string, newPath: string) => {
       visit(product, `${base(product)}/${oldPath}`);
 
       expect(landedOn()).toBe(`${base(product)}/${newPath}`);
       expect(screen.getByTestId("page")).toHaveTextContent(
-        product[moduleKey as "aiSettingsModule"],
+        product.aiSettingsModule,
       );
     },
   );
 
-  test("the new addresses open the moved pages directly", () => {
+  test("the new address opens the AI settings directly", () => {
     visit(product, `${base(product)}/ai/settings`);
     expect(screen.getByTestId("page")).toHaveTextContent(
       product.aiSettingsModule,
     );
-    cleanup();
+  });
 
+  test("the rules' forwards replace the history entry too", () => {
     visit(product, `${base(product)}/ai/auto-remediation-rules`);
-    expect(screen.getByTestId("page")).toHaveTextContent(
-      product.autoRemediationRulesModule,
-    );
+
+    expect(screen.getByTestId("navigation-type")).toHaveTextContent("REPLACE");
   });
 
   test("the forward replaces the history entry, so Back does not bounce", () => {
@@ -353,7 +356,11 @@ describe.each(PRODUCTS)("the old $name URLs", (product: Product) => {
     ["settings/ai?tab=advanced#limits", "ai/settings?tab=advanced#limits"],
     [
       "settings/auto-remediation-rules?sortBy=name&sortOrder=ASC",
-      "ai/auto-remediation-rules?sortBy=name&sortOrder=ASC",
+      "ai/settings?sortBy=name&sortOrder=ASC",
+    ],
+    [
+      "ai/auto-remediation-rules?sortBy=name#rules",
+      "ai/settings?sortBy=name#rules",
     ],
   ])(
     "…/%s keeps its query string and hash",

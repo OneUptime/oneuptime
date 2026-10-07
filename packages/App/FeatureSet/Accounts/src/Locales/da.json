@@ -182,7 +182,10 @@
     "reference": "Dit referencenummer er {{reference}}.",
     "submitAnother": "Send et nyt svar",
     "retryAfter": "Du kan prøve igen {{when}}.",
-    "tryAgain": "Prøv igen"
+    "tryAgain": "Prøv igen",
+    "templateLabel": "Start fra en skabelon",
+    "templateDescription": "Vælg en skabelon for at udfylde formularen. Du kan ændre ethvert svar, før du indsender.",
+    "templateNone": "Ingen skabelon"
   },
   "errors": {
     "forbidden": {

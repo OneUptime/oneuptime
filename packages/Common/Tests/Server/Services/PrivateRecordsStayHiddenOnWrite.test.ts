@@ -18,6 +18,8 @@ import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import ProjectScopedReferenceValidator from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../Types/ObjectID";
+import { coerceBooleanColumnsInJSON } from "../../../Types/Database/BooleanColumnValue";
+import { JSONObject } from "../../../Types/JSON";
 import IncidentCreatedRenotify from "../../../Types/StatusPage/IncidentCreatedRenotify";
 import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -165,7 +167,11 @@ describe("IncidentService keeps a private incident hidden on update", () => {
       IncidentService as unknown as { onBeforeUpdate: OnBeforeUpdate<Incident> }
     ).onBeforeUpdate({
       query: (options.query || { _id: PRIVATE_ID }) as never,
-      data: data as never,
+      /*
+       * As DatabaseService hands it to the hook: a switch written as text
+       * already holds the boolean the database stores (sanitizeUpdateData).
+       */
+      data: IncidentService.sanitizeUpdateData(data as never) as never,
       props: { isRoot: true },
       miscDataProps: options.miscDataProps as never,
       limit: 1,
@@ -459,6 +465,9 @@ describe("IncidentService.onBeforeCreate creates a private incident hidden", () 
       (incident as unknown as Record<string, unknown>)[key] = value;
     }
 
+    // As DatabaseService.create hands it to the hook: its switches as stored.
+    coerceBooleanColumnsInJSON(incident as unknown as JSONObject, incident);
+
     const onCreate: OnCreate<Incident> = await (
       IncidentService as unknown as { onBeforeCreate: OnBeforeCreate<Incident> }
     ).onBeforeCreate({ data: incident, props: MEMBER });
@@ -570,7 +579,8 @@ describe("IncidentEpisodeService keeps a private episode hidden on update", () =
       }
     ).onBeforeUpdate({
       query: query as never,
-      data: data as never,
+      // As DatabaseService hands it to the hook: its switches as stored.
+      data: IncidentEpisodeService.sanitizeUpdateData(data as never) as never,
       props: props,
       limit: 1,
       skip: 0,
@@ -765,6 +775,9 @@ describe("IncidentEpisodeService.onBeforeCreate creates a private episode hidden
     for (const [key, value] of Object.entries(values)) {
       (episode as unknown as Record<string, unknown>)[key] = value;
     }
+
+    // As DatabaseService.create hands it to the hook: its switches as stored.
+    coerceBooleanColumnsInJSON(episode as unknown as JSONObject, episode);
 
     const onCreate: OnCreate<IncidentEpisode> = await (
       IncidentEpisodeService as unknown as {

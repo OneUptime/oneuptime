@@ -841,6 +841,41 @@ describe("update: a column the service writes in SQL", () => {
       props: rootProps(),
     });
 
+    // The audit entry is handed what the write stored...
+    for (const fields of auditedFields()) {
+      expect(fields).toEqual(
+        expect.objectContaining({
+          isVisibleOnStatusPage: false,
+          title: "Checkout is down",
+        }),
+      );
+    }
+
+    /*
+     * ...and the workflow what it changed: the title. The switch was off and
+     * stays off, so it is no change - and never told as the update's true.
+     */
+    expect(workflowFields(service)).toEqual([{ title: "Checkout is down" }]);
+  });
+
+  test("when the stored value does change, the workflow is told it as stored", async () => {
+    const service: GuardedIncidentWrites = new GuardedIncidentWrites();
+    const repository: FakeRepository = useRepository(service as never, [
+      storedIncident({ isVisibleOnStatusPage: true }),
+    ]);
+
+    // Made private by the time the write reached it: stored off.
+    repository.update.mockResolvedValue({
+      affected: 1,
+      raw: [{ isVisibleOnStatusPage: false, isPrivate: true }],
+    });
+
+    await service.updateOneById({
+      id: new ObjectID(RECORD_ID),
+      data: { isVisibleOnStatusPage: true, title: "Checkout is down" },
+      props: rootProps(),
+    });
+
     for (const fields of [...workflowFields(service), ...auditedFields()]) {
       expect(fields).toEqual(
         expect.objectContaining({
@@ -953,9 +988,16 @@ describe("update: a column the service writes in SQL", () => {
         .returning,
     ).toContain("isVisibleOnStatusPage");
 
-    for (const fields of workflowFields(service)) {
+    // Recorded as stored, and never as the update's true.
+    for (const fields of auditedFields()) {
       expect(fields).toEqual(
         expect.objectContaining({ isVisibleOnStatusPage: false }),
+      );
+    }
+
+    for (const fields of workflowFields(service)) {
+      expect(fields).not.toEqual(
+        expect.objectContaining({ isVisibleOnStatusPage: true }),
       );
     }
   });

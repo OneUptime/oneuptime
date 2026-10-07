@@ -36,8 +36,17 @@ import {
   generateBulkResponse,
   SCIMBulkOperationResponse,
   generateSCIMErrorResponse,
+  isScimEmailChanging,
   SCIMErrorType,
 } from "../Utils/SCIMUtils";
+import {
+  getScimMissingPlan,
+  getScimUserUpdateBelowPlan,
+  ScimBelowPlanRefusal,
+  ScimUpdateBelowPlan,
+  sendScimBelowPlanRefusal,
+} from "../Utils/SCIMBelowPlan";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import Text from "Common/Types/Text";
 import HashedString from "Common/Types/HashedString";
 
@@ -1305,6 +1314,89 @@ const handleStatusPageUserUpdate: (
       getLogAttributesFromRequest(req as any),
     );
 
+    /*
+     * Below the plan SCIM needs (Utils/SCIMBelowPlan), a deactivation goes
+     * through - it removes the private user from the status page - and
+     * changes nothing else: the email is left as it is. Changing only their
+     * email is refused. Active true reactivates no one here: a private user
+     * is on the status page or not at all, and a deactivated one is gone.
+     * Nor is active false a deactivation when the connection does not
+     * remove the people it deactivates (auto-deprovisioning off): a new
+     * email with it is a change on its own. The email is compared as it
+     * would be stored (isScimEmailChanging), so the same address in another
+     * case is no change. Checked before anything is written, so a refused
+     * update changes nothing at all.
+     */
+    const statusPageScimConfig: StatusPageSCIM = bearerData[
+      "scimConfig"
+    ] as StatusPageSCIM;
+    const missingPlan: PlanType | null = getScimMissingPlan(req);
+    const isEmailChanging: boolean =
+      Boolean(email) &&
+      isScimEmailChanging({
+        currentEmail: statusPageUser.email?.toString(),
+        newEmail: email,
+      });
+    let emailLeftAsItIs: boolean = false;
+
+    if (missingPlan) {
+      const belowPlan: ScimUpdateBelowPlan = getScimUserUpdateBelowPlan({
+        reactivates: false,
+        deactivates:
+          active === false &&
+          Boolean(statusPageScimConfig.autoDeprovisionUsers),
+        isEmailChanging: isEmailChanging,
+        isNameChanging: false,
+      });
+
+      if (belowPlan === ScimUpdateBelowPlan.Refused) {
+        logger.debug(
+          `Status Page SCIM Update user - refused below the ${missingPlan} plan: the update would only change their email`,
+          getLogAttributesFromRequest(req as any),
+        );
+        executionSteps.push(
+          `Refused below the ${missingPlan} plan: the update would only change the user's email`,
+        );
+
+        const refusal: ScimBelowPlanRefusal = sendScimBelowPlanRefusal({
+          res: res,
+          missingPlan: missingPlan,
+        });
+
+        void createStatusPageSCIMLog({
+          projectId: bearerData["projectId"] as ObjectID,
+          statusPageId: statusPageId,
+          statusPageScimId: new ObjectID(req.params["statusPageScimId"]!),
+          operationType: "UpdateUser",
+          status: SCIMLogStatus.Error,
+          statusMessage: refusal.message,
+          httpMethod: req.method,
+          requestPath: req.path,
+          httpStatusCode: refusal.statusCode,
+          affectedUserEmail: previousEmail,
+          requestBody: scimUser,
+          responseBody: refusal.body,
+          steps: executionSteps,
+          userInfo: {
+            userId: userId,
+            email: previousEmail || null,
+          },
+          additionalContext: {
+            refusedBelowPlan: missingPlan,
+          },
+        });
+
+        return;
+      }
+
+      if (belowPlan === ScimUpdateBelowPlan.Removal && isEmailChanging) {
+        emailLeftAsItIs = true;
+        executionSteps.push(
+          `Below the ${missingPlan} plan the deactivation goes through, and the user's email is left as it is`,
+        );
+      }
+    }
+
     // Handle user deactivation by deleting from status page
     if (active === false) {
       executionSteps.push("User marked as inactive (active=false)");
@@ -1370,7 +1462,9 @@ const handleStatusPageUserUpdate: (
     } = {};
 
     let emailUpdated: boolean = false;
-    if (email && email !== statusPageUser.email?.toString()) {
+    if (emailLeftAsItIs) {
+      executionSteps.push("Email left as it is below the plan");
+    } else if (isEmailChanging) {
       if (!Email.isValid(email)) {
         throw new BadRequestException("Email is not in valid format");
       }

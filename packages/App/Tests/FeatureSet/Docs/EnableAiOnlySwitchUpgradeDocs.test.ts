@@ -207,7 +207,7 @@ describe("the Enable AI upgrade note", () => {
     const note: string = flatNote();
 
     expect(note).toContain(
-      "To keep auto-remediation out of a project, turn off **Enable AI**, or disable its rules (Incidents or Alerts → AI → Auto Remediation Rules) and set **Fixes** to **Off** on each cluster's and resource's AI agent page.",
+      "To keep auto-remediation out of a project, turn off **Enable AI**, or turn off **Fix new incidents automatically** and **Fix new alerts automatically** (Incidents or Alerts → AI → Settings; see [Fixing new incidents and alerts has a switch of its own](#fixing-new-incidents-and-alerts-has-a-switch-of-its-own)).",
     );
   });
 });

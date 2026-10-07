@@ -24,6 +24,8 @@ const recordedDetailCards: Array<Record<string, unknown>> = [];
 const recordedDeletes: Array<Record<string, unknown>> = [];
 const recorded: Record<string, Array<Record<string, unknown>>> = {
   builder: [],
+  templates: [],
+  duplicate: [],
   submissions: [],
   status: [],
   shareLink: [],
@@ -101,6 +103,17 @@ jest.mock(
     return { __esModule: true, default: mockRecorder("builder") };
   },
 );
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/Templates/FormTemplates",
+  () => {
+    return { __esModule: true, default: mockRecorder("templates") };
+  },
+);
+
+jest.mock("../../../UI/Components/DuplicateModel/DuplicateModel", () => {
+  return { __esModule: true, default: mockRecorder("duplicate") };
+});
 
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/Submissions/FormSubmissionsTable",
@@ -201,6 +214,18 @@ import FormDelete from "../../../../App/FeatureSet/Dashboard/src/Pages/Forms/Vie
 import FormOnSubmit from "../../../../App/FeatureSet/Dashboard/src/Pages/Forms/View/OnSubmit";
 import FormShare from "../../../../App/FeatureSet/Dashboard/src/Pages/Forms/View/Share";
 import FormViewSubmissions from "../../../../App/FeatureSet/Dashboard/src/Pages/Forms/View/Submissions";
+import FormTemplatesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Forms/View/Templates";
+import FormDuplicate, {
+  prepareFormCopy,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Forms/View/Duplicate";
+import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import RouteMap, {
+  FormsRoutePath,
+  RouteUtil,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import { getFormsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/FormsBreadcrumbs";
+import Link from "../../../Types/Link";
+import ObjectID from "../../../Types/ObjectID";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 
 const FORM_ID: string = "a1b2c3d4-0000-4000-8000-0000000000f1";
@@ -570,5 +595,80 @@ describe("a form's pages", () => {
     (deletion["onDeleteSuccess"] as () => void)();
 
     expect(String(navigate.mock.calls[0]![0])).toMatch(/\/forms$/);
+  });
+});
+
+describe("Templates and Duplicate Form", () => {
+  test("Templates is the template list, for this form", async () => {
+    await renderAt(<FormTemplatesPage {...PAGE_PROPS} />);
+
+    expect(String(lastRecorded("templates")["formId"])).toBe(FORM_ID);
+  });
+
+  test("Duplicate Form duplicates this form, says what the copy has, and opens the copy", async () => {
+    jest
+      .spyOn(Navigation, "getLastParamAsObjectID")
+      .mockReturnValue(new ObjectID(FORM_ID));
+
+    await renderAt(<FormDuplicate {...PAGE_PROPS} />);
+
+    const duplicate: Record<string, unknown> = lastRecorded("duplicate");
+
+    expect(duplicate["modelType"]).toBe(Form);
+    expect(String(duplicate["modelId"])).toBe(FORM_ID);
+    expect(duplicate["description"]).toBe(FormsCopy.duplicateFormNote);
+    expect(duplicate["prepareCopy"]).toBe(prepareFormCopy);
+    expect(String(duplicate["navigateToOnSuccess"])).toMatch(/\/forms$/);
+  });
+
+  test("each has a route under the form", () => {
+    expect(FormsRoutePath[PageMap.FORM_VIEW_TEMPLATES]).toBe(":id/templates");
+    expect(FormsRoutePath[PageMap.FORM_VIEW_DUPLICATE]).toBe(":id/duplicate");
+
+    const modelId: ObjectID = new ObjectID(FORM_ID);
+
+    expect(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.FORM_VIEW_TEMPLATES] as Route_,
+        { modelId },
+      ).toString(),
+    ).toMatch(new RegExp(`/forms/${FORM_ID}/templates$`));
+    expect(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.FORM_VIEW_DUPLICATE] as Route_,
+        { modelId },
+      ).toString(),
+    ).toMatch(new RegExp(`/forms/${FORM_ID}/duplicate$`));
+  });
+
+  test("each has its breadcrumbs", () => {
+    // The trail's links are built from where the page is.
+    Navigation.setLocation({
+      pathname: `/dashboard/p/forms/${FORM_ID}/templates`,
+    } as never);
+
+    const titles: (page: PageMap) => Array<string> = (
+      page: PageMap,
+    ): Array<string> => {
+      // The trails are keyed by the page's route.
+      return (getFormsBreadcrumbs(RouteUtil.getRouteString(page)) || []).map(
+        (link: Link): string => {
+          return link.title;
+        },
+      );
+    };
+
+    expect(titles(PageMap.FORM_VIEW_TEMPLATES)).toEqual([
+      "Project",
+      "Forms",
+      "View Form",
+      "Templates",
+    ]);
+    expect(titles(PageMap.FORM_VIEW_DUPLICATE)).toEqual([
+      "Project",
+      "Forms",
+      "View Form",
+      "Duplicate Form",
+    ]);
   });
 });

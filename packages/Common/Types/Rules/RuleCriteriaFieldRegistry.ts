@@ -8,6 +8,15 @@
 export const RULE_CRITERIA_FIELDS_BY_MODEL: Readonly<
   Record<string, ReadonlyArray<string>>
 > = {
+  AIInvestigationRule: [
+    "monitors",
+    "incidentSeverities",
+    "alertSeverities",
+    "labels",
+    "monitorLabels",
+    "titlePattern",
+    "descriptionPattern",
+  ],
   AlertEpisodeLabelRule: [
     "alertSeverities",
     "episodeLabels",

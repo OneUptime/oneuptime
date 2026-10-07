@@ -27,6 +27,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
+import { isAnalyticsPlanGatedColumnDefault } from "../../../Types/Billing/PlanGatedColumnDefault";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
   PermissionHelper,
@@ -291,6 +292,21 @@ export default class ModelPermission {
         model.getColumnBillingAccessControl(key);
 
       if (IsBillingEnabled && billingAccessControl) {
+        /*
+         * A paid feature can always be switched off: a create or update that
+         * puts a plan-gated column back to its default needs no plan - the
+         * rule the database models' column check (ColumnPermission) applies,
+         * so the first plan-gated analytics column behaves the same
+         * (PlanGatedColumnDefault). Anything else written to it still does.
+         */
+        if (
+          (requestType === DatabaseRequestType.Create ||
+            requestType === DatabaseRequestType.Update) &&
+          isAnalyticsPlanGatedColumnDefault(column, (data as any)[key])
+        ) {
+          continue;
+        }
+
         const requiredPlan: PlanType | undefined = PlanGates.getColumnPlan(
           billingAccessControl,
           requestType,
