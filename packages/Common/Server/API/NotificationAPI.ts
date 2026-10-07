@@ -9,6 +9,10 @@ import Express, {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import CallerPermission from "../Utils/Permission/CallerPermission";
+import AutoRechargeStateRequest from "../Utils/Billing/AutoRechargeStateRequest";
+import AutoRechargeState from "../../Types/Billing/AutoRechargeState";
+import ProjectBalanceType from "../../Types/Billing/ProjectBalanceType";
+import { PROJECT_BALANCE_AUTO_RECHARGE_STATE_ROUTE } from "../../Utils/Project/ProjectBalance";
 import BadDataException from "../../Types/Exception/BadDataException";
 import JSONFunctions from "../../Types/JSONFunctions";
 import ObjectID from "../../Types/ObjectID";
@@ -118,6 +122,34 @@ router.post(
     }
 
     return Response.sendEmptySuccessResponse(req, res);
+  },
+);
+
+/*
+ * What Auto Recharge of the project's SMS and call balance would do now:
+ * Off, Ready, or Failed (its last automatic charge did not go through, and
+ * it waits before trying the card again). Project Settings > Notification
+ * Settings shows Failed at the top, so nobody has to wait for the owners'
+ * email. Any member of the project may ask
+ * (Utils/Billing/AutoRechargeStateRequest).
+ */
+router.get(
+  PROJECT_BALANCE_AUTO_RECHARGE_STATE_ROUTE[ProjectBalanceType.SmsOrCall],
+  UserMiddleware.getUserMiddleware,
+  UserMiddleware.requireUserAuthentication,
+  async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+    try {
+      const state: AutoRechargeState = await AutoRechargeStateRequest.getState({
+        req: req as OneUptimeRequest,
+        balance: ProjectBalanceType.SmsOrCall,
+      });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        state: state,
+      });
+    } catch (err) {
+      return next(err);
+    }
   },
 );
 

@@ -2,6 +2,7 @@ import {
   IsBillingEnabled,
   NotificationSlackWebhookOnSubscriptionUpdate,
 } from "../EnvironmentConfig";
+import { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import logger, { LogAttributes } from "../Utils/Logger";
 import BaseService from "./BaseService";
 import BillingService from "./BillingService";
@@ -10,20 +11,153 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import Email from "../../Types/Email";
 import ObjectID from "../../Types/ObjectID";
 import Project from "../../Models/DatabaseModels/Project";
+import AutoRechargeState from "../../Types/Billing/AutoRechargeState";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import {
   BillingFailureNoticeKind,
   shouldSendBillingFailureNotice,
 } from "../Utils/Billing/BillingFailureNoticeThrottle";
+import BalanceRechargeGuard, {
+  AUTO_RECHARGE_RETRY_AFTER_IN_SECONDS,
+  AutoRechargeSettings,
+  getAutoRechargeSettings,
+} from "../Utils/Billing/BalanceRechargeGuard";
 import URL from "../../Types/API/URL";
 import Exception from "../../Types/Exception/Exception";
+
+/*
+ * The balance SMS, calls, WhatsApp and Telegram are paid from where
+ * OneUptime bills (OneUptime Cloud), and its recharges.
+ *
+ * Every change to the balance is one statement on the project row that
+ * answers what the balance became (ProjectService.creditSmsOrCallBalance
+ * InUSDCents / deductSmsOrCallBalanceInUSDCents) - never "read it, then
+ * write back what it should be", which lost whatever another message or
+ * recharge wrote in between.
+ *
+ * Every recharge - by hand, or by Auto Recharge when a message finds the
+ * balance low - takes this lock first, one project at a time, and reads the
+ * balance again once it holds it. So the messages of a paging storm that
+ * find the balance low at the same moment charge the card once: the first
+ * recharges, and the others, waiting their turn, find the balance it added
+ * and charge nothing. They used to each charge the card.
+ *
+ * Messages never stop for the lock. Without the shared cache there is no
+ * lock, and Auto Recharge charges nothing - two servers could each charge
+ * the card - but the message still goes out on the balance that is there,
+ * and the recharge is tried again with the next message (with a log line).
+ */
+export const SMS_OR_CALL_RECHARGE_LOCK_NAMESPACE: string =
+  "NotificationService.recharge";
+
+/*
+ * After an automatic recharge fails - no payment method, a declined card -
+ * Auto Recharge waits this long before it charges the card again: an hour,
+ * as for AI credits (Utils/Billing/BalanceRechargeGuard). It used to try
+ * the card again for every message sent while the balance was low - during
+ * a paging storm, a voided invoice per page. A recharge by hand, or saving
+ * Auto Recharge again, tries at once and, when it works, ends the wait.
+ */
+export const SMS_OR_CALL_AUTO_RECHARGE_RETRY_AFTER_IN_SECONDS: number =
+  AUTO_RECHARGE_RETRY_AFTER_IN_SECONDS;
+
+const SMS_OR_CALL_AUTO_RECHARGE_FAILED_NAMESPACE: string =
+  "sms-or-call-auto-recharge-failed";
+
+// The recharge lock and the wait after a failed charge, in the shared cache.
+const smsOrCallRechargeGuard: BalanceRechargeGuard = new BalanceRechargeGuard({
+  balanceName: "SMS and call balance",
+  lockNamespace: SMS_OR_CALL_RECHARGE_LOCK_NAMESPACE,
+  failureNamespace: SMS_OR_CALL_AUTO_RECHARGE_FAILED_NAMESPACE,
+});
+
+// A change to Auto Recharge that is not written yet (ProjectService).
+export interface SmsOrCallAutoRechargeChange {
+  enableAutoRechargeSmsOrCallBalance: boolean;
+  autoRechargeSmsOrCallByBalanceInUSD?: number | undefined;
+  autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD?: number | undefined;
+  /*
+   * Somebody saving Auto Recharge: try the card now, whatever failed
+   * before - it is a deliberate try, and its answer is shown to them.
+   */
+  ignoreRecentFailure?: boolean | undefined;
+}
+
+type AutoRechargeColumns = Pick<
+  Project,
+  | "enableAutoRechargeSmsOrCallBalance"
+  | "autoRechargeSmsOrCallByBalanceInUSD"
+  | "autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD"
+>;
 
 export class NotificationService extends BaseService {
   public constructor() {
     super();
   }
 
+  /*
+   * What Auto Recharge of the balance is set to: on, with an amount to add
+   * and a balance to add it at - or, with any of them missing, off
+   * (Utils/Billing/BalanceRechargeGuard). A change not written yet decides
+   * over the row.
+   */
+  public getAutoRechargeSettings(
+    project: AutoRechargeColumns,
+    change?: SmsOrCallAutoRechargeChange | undefined,
+  ): AutoRechargeSettings {
+    return getAutoRechargeSettings({
+      isEnabled: change
+        ? change.enableAutoRechargeSmsOrCallBalance === true
+        : project.enableAutoRechargeSmsOrCallBalance === true,
+      rechargeByInUSD: {
+        changed: change?.autoRechargeSmsOrCallByBalanceInUSD,
+        stored: project.autoRechargeSmsOrCallByBalanceInUSD,
+      },
+      whenBalanceFallsToInUSD: {
+        changed: change?.autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD,
+        stored: project.autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD,
+      },
+    });
+  }
+
+  /*
+   * What Auto Recharge would do for this project now, when a message finds
+   * the balance low: nothing (Off), recharge it first (Ready), or nothing
+   * for now because its last charge failed (Failed) - which Project
+   * Settings > Notification Settings shows, so nobody has to wait for the
+   * owners' email to find out.
+   *
+   * A failure that cannot be read (the shared cache is down) reads as none.
+   */
+  @CaptureSpan()
+  public async getAutoRechargeState(data: {
+    projectId: ObjectID;
+    project: AutoRechargeColumns;
+  }): Promise<AutoRechargeState> {
+    if (!this.getAutoRechargeSettings(data.project).isSetUp) {
+      return AutoRechargeState.Off;
+    }
+
+    if (await smsOrCallRechargeGuard.hasRecentFailure(data.projectId)) {
+      return AutoRechargeState.Failed;
+    }
+
+    return AutoRechargeState.Ready;
+  }
+
+  /*
+   * A recharge somebody asked for: the Recharge button on Project Settings
+   * > Notification Settings (POST /notification/recharge, which checks who
+   * may first).
+   *
+   * It takes the same lock as Auto Recharge, so an automatic recharge
+   * waiting behind it finds the balance this one adds and does not charge
+   * the card again. If the lock cannot be taken (the shared cache is down),
+   * the recharge goes ahead anyway: the person who asked for it is told
+   * whether it worked, and the balance is added in one statement whatever
+   * else is writing it.
+   */
   @CaptureSpan()
   public async rechargeBalance(
     projectId: ObjectID,
@@ -38,28 +172,185 @@ export class NotificationService extends BaseService {
        * invoice is filed rather than sent, and the Slack notification is an
        * operator webhook that most installs never configure.
        *
-       * False for rechargeIfBalanceIsLow, which runs inline on every SMS,
-       * call, WhatsApp and Telegram attempt - there, "we topped your balance
-       * up" is not news, and during a paging storm it is one email to every
-       * owner per recharge.
+       * False where nobody pressed anything (rechargeIfBalanceIsLow runs
+       * inline on SMS, call, WhatsApp and Telegram attempts) - there, "we
+       * topped your balance up" is not news, and during a paging storm it
+       * would be one email to every owner per recharge.
        */
       sendOwnerConfirmationEmail?: boolean | undefined;
     },
   ): Promise<number> {
-    const sendOwnerConfirmationEmail: boolean =
-      options?.sendOwnerConfirmationEmail !== false;
+    if (!IsBillingEnabled) {
+      throw new BadDataException("Billing is not enabled");
+    }
 
-    const project: Project | null = await ProjectService.findOneById({
+    const lock: SemaphoreMutex | null =
+      await smsOrCallRechargeGuard.takeLock(projectId);
+
+    try {
+      return await this.chargeAndCredit({
+        projectId,
+        amountInUSD,
+        isAutomatic: false,
+        sendOwnerConfirmationEmail:
+          options?.sendOwnerConfirmationEmail !== false,
+      });
+    } finally {
+      await smsOrCallRechargeGuard.releaseLock(lock, projectId);
+    }
+  }
+
+  /*
+   * Auto Recharge: if the balance is below the one Auto Recharge is set to
+   * recharge at, add its amount. Answers the balance afterwards - the one
+   * the message that asked is then paid from.
+   *
+   * Asked inline by every SMS, call, WhatsApp and Telegram message paid from
+   * the balance (SmsService, CallService, WhatsAppService,
+   * TelegramService), and when somebody turns Auto Recharge on (`change`,
+   * not written yet: then the card is tried at once).
+   *
+   * Once per low balance, however many messages ask at once: the check is
+   * made again holding the recharge lock, so the messages that waited find
+   * the balance the first one added. Never without the lock - two servers
+   * could each charge the card - so when it cannot be taken nothing is
+   * charged, and the balance is answered as it is: the message still goes
+   * out if that pays for it, and the next message tries the recharge again.
+   * After a failed charge it waits SMS_OR_CALL_AUTO_RECHARGE_RETRY_AFTER_IN
+   * _SECONDS before trying the card again.
+   *
+   * A charge that fails throws, after telling the owners (once a day); the
+   * senders log it and go on with the balance that is there.
+   */
+  @CaptureSpan()
+  public async rechargeIfBalanceIsLow(
+    projectId: ObjectID,
+    change?: SmsOrCallAutoRechargeChange | undefined,
+  ): Promise<number> {
+    if (!projectId || !IsBillingEnabled) {
+      return 0;
+    }
+
+    // A first look without the lock: most messages end here, with no charge.
+    const firstLook: Project | null = await this.readAutoRechargeRow(projectId);
+
+    if (!firstLook) {
+      return 0;
+    }
+
+    if (!this.needsRecharge(firstLook, change)) {
+      return firstLook.smsOrCallCurrentBalanceInUSDCents || 0;
+    }
+
+    if (
+      !change?.ignoreRecentFailure &&
+      (await smsOrCallRechargeGuard.hasRecentFailure(projectId))
+    ) {
+      return firstLook.smsOrCallCurrentBalanceInUSDCents || 0;
+    }
+
+    const lock: SemaphoreMutex | null =
+      await smsOrCallRechargeGuard.takeLock(projectId);
+
+    if (!lock) {
+      logger.error(
+        `SMS and call balance: Auto Recharge of project ${projectId.toString()} did not run: the recharge lock could not be taken, and without it two servers could each charge the card. Messages the balance still pays for go out; the next message tries the recharge again.`,
+        { projectId: projectId.toString() } as LogAttributes,
+      );
+      return firstLook.smsOrCallCurrentBalanceInUSDCents || 0;
+    }
+
+    try {
+      /*
+       * Again, holding the lock: a recharge that finished while this one
+       * waited has added its balance, and a failure meanwhile starts the
+       * wait.
+       */
+      const project: Project | null = await this.readAutoRechargeRow(projectId);
+
+      if (!project) {
+        return 0;
+      }
+
+      if (!this.needsRecharge(project, change)) {
+        return project.smsOrCallCurrentBalanceInUSDCents || 0;
+      }
+
+      if (
+        !change?.ignoreRecentFailure &&
+        (await smsOrCallRechargeGuard.hasRecentFailure(projectId))
+      ) {
+        return project.smsOrCallCurrentBalanceInUSDCents || 0;
+      }
+
+      return await this.chargeAndCredit({
+        projectId,
+        amountInUSD: this.getAutoRechargeSettings(project, change)
+          .rechargeByInUSD,
+        isAutomatic: true,
+        /*
+         * This runs inline on SMS, call, WhatsApp and Telegram attempts, so
+         * a success email here is one message to every owner per recharge,
+         * in the middle of the storm that caused it.
+         */
+        sendOwnerConfirmationEmail: false,
+      });
+    } finally {
+      await smsOrCallRechargeGuard.releaseLock(lock, projectId);
+    }
+  }
+
+  // Set up, and below the balance it recharges at.
+  private needsRecharge(
+    project: Project,
+    change?: SmsOrCallAutoRechargeChange | undefined,
+  ): boolean {
+    const settings: AutoRechargeSettings = this.getAutoRechargeSettings(
+      project,
+      change,
+    );
+
+    return (
+      settings.isSetUp &&
+      (project.smsOrCallCurrentBalanceInUSDCents || 0) / 100 <
+        settings.whenBalanceFallsToInUSD
+    );
+  }
+
+  private async readAutoRechargeRow(
+    projectId: ObjectID,
+  ): Promise<Project | null> {
+    return await ProjectService.findOneById({
       id: projectId,
       select: {
         smsOrCallCurrentBalanceInUSDCents: true,
         enableAutoRechargeSmsOrCallBalance: true,
-        enableSmsNotifications: true,
         autoRechargeSmsOrCallByBalanceInUSD: true,
         autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  /*
+   * Charge the project's card and add the balance. The caller holds the
+   * recharge lock (or, for a recharge by hand, tried to).
+   */
+  private async chargeAndCredit(data: {
+    projectId: ObjectID;
+    amountInUSD: number;
+    isAutomatic: boolean;
+    sendOwnerConfirmationEmail: boolean;
+  }): Promise<number> {
+    const { amountInUSD } = data;
+
+    const project: Project | null = await ProjectService.findOneById({
+      id: data.projectId,
+      select: {
         paymentProviderCustomerId: true,
         name: true,
-        failedCallAndSMSBalanceChargeNotificationSentToOwners: true,
         sendInvoicesByEmail: true,
         financeAccountingEmail: true,
       },
@@ -125,12 +416,6 @@ export class NotificationService extends BaseService {
         );
       }
 
-      // recharge balance
-      const updatedAmount: number = Math.floor(
-        (project.smsOrCallCurrentBalanceInUSDCents || 0) + amountInUSD * 100,
-      );
-
-      // If the recharge is successful, then update the project balance.
       await BillingService.generateInvoiceAndChargeCustomer(
         project.paymentProviderCustomerId!,
         "SMS or Call Balance Recharge",
@@ -143,58 +428,15 @@ export class NotificationService extends BaseService {
           projectId: project.id || undefined,
         },
       );
-
-      await ProjectService.updateOneById({
-        data: {
-          smsOrCallCurrentBalanceInUSDCents: updatedAmount,
-          failedCallAndSMSBalanceChargeNotificationSentToOwners: false, // reset this flag
-          lowCallAndSMSBalanceNotificationSentToOwners: false, // reset this flag
-          notEnabledSmsOrCallNotificationSentToOwners: false,
-        },
-        id: project.id!,
-        props: {
-          isRoot: true,
-        },
-      });
-
+    } catch (err) {
       /*
-       * The confirmation is suppressed for AUTO-recharge only. This used to
-       * fire unconditionally, and because rechargeIfBalanceIsLow runs inline
-       * on every SMS, call, WhatsApp and Telegram attempt, a project that
-       * auto-recharges during a paging storm mailed every owner once per
-       * recharge. Somebody who deliberately clicked "Recharge" still gets
-       * told: nothing else reliably tells them, because
-       * Project.sendInvoicesByEmail defaults to false.
+       * Auto Recharge waits before it tries the card again, so the messages
+       * sent while the balance is low do not each try it once more.
        */
-      if (sendOwnerConfirmationEmail) {
-        await ProjectService.sendEmailToProjectOwners(
-          project.id!,
-          "SMS and Call Recharge Successful for project - " +
-            (project.name || ""),
-          `We have successfully recharged your SMS and Call balance for project - ${
-            project.name || ""
-          } by ${amountInUSD} USD. Your current balance is ${
-            updatedAmount / 100
-          } USD.`,
-        );
+      if (data.isAutomatic) {
+        await smsOrCallRechargeGuard.rememberFailure(project.id!);
       }
 
-      // Send Slack notification for balance refill
-      this.sendBalanceRefillSlackNotification({
-        project: project,
-        amountInUSD: amountInUSD,
-        currentBalanceInUSD: updatedAmount / 100,
-      }).catch((error: Exception) => {
-        logger.error(
-          "Error sending slack message for balance refill: " + error,
-          { projectId: projectId?.toString() } as LogAttributes,
-        );
-      });
-
-      project.smsOrCallCurrentBalanceInUSDCents = updatedAmount;
-
-      return updatedAmount;
-    } catch (err) {
       /*
        * This block used to write failedCallAndSMSBalanceChargeNotificationSent
        * ToOwners and then send WITHOUT ever reading it, so a project with a
@@ -235,82 +477,68 @@ export class NotificationService extends BaseService {
           );
         }
       }
-      logger.error(err, { projectId: projectId?.toString() } as LogAttributes);
+      logger.error(err, {
+        projectId: data.projectId.toString(),
+      } as LogAttributes);
       throw err;
     }
-  }
 
-  @CaptureSpan()
-  public async rechargeIfBalanceIsLow(
-    projectId: ObjectID,
-    options?: {
-      autoRechargeSmsOrCallByBalanceInUSD: number;
-      autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: number;
-      enableAutoRechargeSmsOrCallBalance: boolean;
-    },
-  ): Promise<number> {
-    let project: Project | null = null;
-    if (projectId && IsBillingEnabled) {
-      // check payment methods.
+    /*
+     * The card is charged: add the balance in one statement, to whatever it
+     * is now, and re-arm the owners' notices with it.
+     */
+    let updatedAmount: number;
 
-      project = await ProjectService.findOneById({
-        id: projectId,
-        select: {
-          smsOrCallCurrentBalanceInUSDCents: true,
-          enableAutoRechargeSmsOrCallBalance: true,
-          autoRechargeSmsOrCallByBalanceInUSD: true,
-          autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: true,
-        },
-        props: {
-          isRoot: true,
-        },
+    try {
+      updatedAmount = await ProjectService.creditSmsOrCallBalanceInUSDCents({
+        projectId: project.id!,
+        amountInUSDCents: Math.round(amountInUSD * 100),
       });
-
-      const autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: number =
-        options?.autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD ||
-        project?.autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD ||
-        0;
-      const autoRechargeSmsOrCallByBalanceInUSD: number =
-        options?.autoRechargeSmsOrCallByBalanceInUSD ||
-        project?.autoRechargeSmsOrCallByBalanceInUSD ||
-        0;
-
-      const enableAutoRechargeSmsOrCallBalance: boolean = options
-        ? options.enableAutoRechargeSmsOrCallBalance
-        : project?.enableAutoRechargeSmsOrCallBalance || false;
-
-      if (!project) {
-        return 0;
-      }
-
-      if (
-        enableAutoRechargeSmsOrCallBalance &&
-        autoRechargeSmsOrCallByBalanceInUSD &&
-        autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD
-      ) {
-        if (
-          (project.smsOrCallCurrentBalanceInUSDCents || 0) / 100 <
-          autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD
-        ) {
-          const updatedAmount: number = await this.rechargeBalance(
-            projectId,
-            autoRechargeSmsOrCallByBalanceInUSD,
-            {
-              /*
-               * This method is called inline from SmsService, CallService,
-               * WhatsAppService and TelegramService on EVERY notification
-               * attempt, so a success email here is one message to every owner
-               * per recharge, in the middle of the storm that caused it.
-               */
-              sendOwnerConfirmationEmail: false,
-            },
-          );
-          project.smsOrCallCurrentBalanceInUSDCents = updatedAmount;
-        }
-      }
+    } catch (err) {
+      logger.error(
+        `SMS and call balance: project ${project.id!.toString()} was charged ${amountInUSD} USD for SMS and call balance, and the balance could not be added: ${err}`,
+        { projectId: data.projectId.toString() } as LogAttributes,
+      );
+      throw err;
     }
 
-    return project?.smsOrCallCurrentBalanceInUSDCents || 0;
+    // The card works: Auto Recharge need not wait any more.
+    await smsOrCallRechargeGuard.forgetFailure(project.id!);
+
+    /*
+     * The confirmation is suppressed for AUTO-recharge only. This used to
+     * fire unconditionally, and because rechargeIfBalanceIsLow runs inline
+     * on SMS, call, WhatsApp and Telegram attempts, a project that
+     * auto-recharges during a paging storm mailed every owner once per
+     * recharge. Somebody who deliberately clicked "Recharge" still gets
+     * told: nothing else reliably tells them, because
+     * Project.sendInvoicesByEmail defaults to false.
+     */
+    if (data.sendOwnerConfirmationEmail) {
+      await ProjectService.sendEmailToProjectOwners(
+        project.id!,
+        "SMS and Call Recharge Successful for project - " +
+          (project.name || ""),
+        `We have successfully recharged your SMS and Call balance for project - ${
+          project.name || ""
+        } by ${amountInUSD} USD. Your current balance is ${
+          updatedAmount / 100
+        } USD.`,
+      );
+    }
+
+    // Send Slack notification for balance refill
+    this.sendBalanceRefillSlackNotification({
+      project: project,
+      amountInUSD: amountInUSD,
+      currentBalanceInUSD: updatedAmount / 100,
+    }).catch((error: Exception) => {
+      logger.error("Error sending slack message for balance refill: " + error, {
+        projectId: data.projectId.toString(),
+      } as LogAttributes);
+    });
+
+    return updatedAmount;
   }
 
   @CaptureSpan()

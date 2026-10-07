@@ -19,12 +19,18 @@ import React from "react";
 import { MemoryRouter } from "react-router-dom";
 import NotificationSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/NotificationSettings";
 import AICredits from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/AICredits";
-import { PROJECT_BALANCE_CARD_DESCRIPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Components/ProjectBalance/ProjectBalanceCopy";
+import {
+  AUTO_RECHARGE_FAILED_DESCRIPTIONS,
+  AUTO_RECHARGE_FAILED_TITLE,
+  PROJECT_BALANCE_CARD_DESCRIPTIONS,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ProjectBalance/ProjectBalanceCopy";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Project from "../../../Models/DatabaseModels/Project";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
+import URL from "../../../Types/API/URL";
+import AutoRechargeState from "../../../Types/Billing/AutoRechargeState";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -34,7 +40,10 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import User from "../../../UI/Utils/User";
-import { ProjectBalanceType } from "../../../Utils/Project/ProjectBalance";
+import {
+  PROJECT_BALANCE_AUTO_RECHARGE_STATE_ROUTE,
+  ProjectBalanceType,
+} from "../../../Utils/Project/ProjectBalance";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
 
 jest.mock("react-i18next", () => {
@@ -68,6 +77,12 @@ jest.mock("react-i18next", () => {
  * The pages are rendered for real, with the model API and the permission
  * snapshot stubbed. Billing is on: Notification Settings shows its balance
  * cards only where OneUptime bills, and AI Credits is listed only there.
+ *
+ * Each page also asks the server what its balance's Auto Recharge would do
+ * now (GET /notification/auto-recharge-state, GET /ai/auto-recharge-state).
+ * While its last automatic charge has failed, the page says so first, in
+ * red, with what to do for someone who may add balance and who can for
+ * everyone else - it used to reach only the owners, by email.
  */
 
 jest.mock("../../../UI/Config", () => {
@@ -171,6 +186,16 @@ function buttonIn(card: HTMLElement, name: string): HTMLElement | null {
   return within(card).queryByRole("button", { name: name });
 }
 
+// What the server answers about Auto Recharge, for the page being opened.
+let autoRechargeState: string = AutoRechargeState.Ready;
+
+const NOTICE_TEST_ID: string = "auto-recharge-failed-notice";
+
+async function autoRechargeAsked(): Promise<void> {
+  await flush();
+  await flush();
+}
+
 beforeEach(() => {
   window.localStorage.clear();
   window.sessionStorage.clear();
@@ -210,6 +235,14 @@ beforeEach(() => {
   jest.spyOn(API, "post").mockImplementation(async (): Promise<never> => {
     return new HTTPResponse<JSONObject>(200, {}, {}) as unknown as never;
   });
+  autoRechargeState = AutoRechargeState.Ready;
+  jest.spyOn(API, "get").mockImplementation((async (): Promise<unknown> => {
+    return new HTTPResponse<JSONObject>(
+      200,
+      { state: autoRechargeState },
+      {},
+    ) as unknown;
+  }) as never);
 });
 
 afterEach(() => {
@@ -333,6 +366,139 @@ describe.each(PAGES)("$name", (page: BalancePage) => {
     const autoRecharge: HTMLElement = await cardOf("Auto Recharge");
 
     expect(buttonIn(autoRecharge, "Edit Auto Recharge")).toBeNull();
+  });
+
+  test.each([
+    ["a project owner", Permission.ProjectOwner],
+    ["someone with Manage Billing", Permission.ManageProjectBilling],
+  ])(
+    "Auto Recharge's last charge failed: %s is told first, in red, to check the payment method or recharge now",
+    async (_who: string, permission: Permission) => {
+      autoRechargeState = AutoRechargeState.Failed;
+      grant([...BASE_PERMISSIONS, permission]);
+      page.open();
+
+      const notice: HTMLElement = await screen.findByTestId(
+        NOTICE_TEST_ID,
+        {},
+        { timeout: WAIT_TIMEOUT },
+      );
+
+      expect(notice).toHaveTextContent(AUTO_RECHARGE_FAILED_TITLE);
+      expect(notice).toHaveTextContent(
+        AUTO_RECHARGE_FAILED_DESCRIPTIONS[page.balance].forPeopleWhoMayAdd,
+      );
+      expect(notice).toHaveTextContent("Check the payment method");
+      expect(notice).toHaveAttribute("role", "alert");
+      // Red: a charge that failed.
+      expect(notice.className).toContain("bg-red-50");
+
+      // First on the page: above the Current Balance card.
+      const balanceCard: HTMLElement = await cardOf("Current Balance");
+      expect(
+        notice.compareDocumentPosition(balanceCard) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    },
+  );
+
+  test.each([
+    ["a project admin", Permission.ProjectAdmin],
+    ["a member", Permission.ProjectMember],
+    ["the Billing Admin role", Permission.BillingAdmin],
+  ])(
+    "Auto Recharge's last charge failed: %s is told who can add balance, not to do it",
+    async (_who: string, permission: Permission) => {
+      autoRechargeState = AutoRechargeState.Failed;
+      grant([...BASE_PERMISSIONS, permission]);
+      page.open();
+
+      const notice: HTMLElement = await screen.findByTestId(
+        NOTICE_TEST_ID,
+        {},
+        { timeout: WAIT_TIMEOUT },
+      );
+
+      expect(notice).toHaveTextContent(
+        AUTO_RECHARGE_FAILED_DESCRIPTIONS[page.balance].forEveryoneElse,
+      );
+      expect(notice).toHaveTextContent(
+        "A project owner or someone with Manage Billing can",
+      );
+      expect(notice).not.toHaveTextContent("Check the payment method");
+    },
+  );
+
+  test("Auto Recharge's last charge failed, before the permissions arrive: told who can", async () => {
+    autoRechargeState = AutoRechargeState.Failed;
+    grant([]);
+    page.open();
+
+    const notice: HTMLElement = await screen.findByTestId(
+      NOTICE_TEST_ID,
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    expect(notice).toHaveTextContent(
+      AUTO_RECHARGE_FAILED_DESCRIPTIONS[page.balance].forEveryoneElse,
+    );
+  });
+
+  test("the page asks its own balance's route, for the project it shows", async () => {
+    grant([...BASE_PERMISSIONS, Permission.ProjectOwner]);
+    page.open();
+    await cardOf("Current Balance");
+    await autoRechargeAsked();
+
+    const urls: Array<string> = (
+      API.get as unknown as jest.Mock
+    ).mock.calls.map((call: Array<unknown>) => {
+      return ((call[0] as { url: URL }).url as URL).toString();
+    });
+
+    expect(
+      urls.some((url: string) => {
+        return url.endsWith(
+          PROJECT_BALANCE_AUTO_RECHARGE_STATE_ROUTE[page.balance],
+        );
+      }),
+    ).toBe(true);
+
+    const call: { headers: Record<string, unknown> } = (
+      API.get as unknown as jest.Mock
+    ).mock.calls[0]![0] as { headers: Record<string, unknown> };
+    expect(String(call.headers["tenantid"])).toBe(PROJECT_ID);
+  });
+
+  test.each([
+    ["Ready", AutoRechargeState.Ready],
+    ["Off", AutoRechargeState.Off],
+  ])(
+    "Auto Recharge %s: nothing is said",
+    async (_name: string, state: AutoRechargeState) => {
+      autoRechargeState = state;
+      grant([...BASE_PERMISSIONS, Permission.ProjectOwner]);
+      page.open();
+      await cardOf("Current Balance");
+      await autoRechargeAsked();
+
+      expect(screen.queryByTestId(NOTICE_TEST_ID)).not.toBeInTheDocument();
+    },
+  );
+
+  test("the state cannot be read: nothing is said, and the page works", async () => {
+    (API.get as unknown as jest.Mock).mockImplementation((async () => {
+      throw new Error("network error");
+    }) as never);
+    grant([...BASE_PERMISSIONS, Permission.ProjectOwner]);
+    page.open();
+
+    const balanceCard: HTMLElement = await cardOf("Current Balance");
+    await autoRechargeAsked();
+
+    expect(screen.queryByTestId(NOTICE_TEST_ID)).not.toBeInTheDocument();
+    expect(buttonIn(balanceCard, "Recharge Balance")).not.toBeDisabled();
   });
 
   test("a master admin may recharge it", async () => {
