@@ -10,9 +10,11 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 import Forms from "../Pages/Forms/Forms";
 import FormsSubmissions from "../Pages/Forms/Submissions";
 import FormBuild from "../Pages/Forms/View/Build";
+import FormTemplates from "../Pages/Forms/View/Templates";
 import FormOnSubmit from "../Pages/Forms/View/OnSubmit";
 import FormShare from "../Pages/Forms/View/Share";
 import FormViewSubmissions from "../Pages/Forms/View/Submissions";
+import FormDuplicate from "../Pages/Forms/View/Duplicate";
 import FormDelete from "../Pages/Forms/View/Delete";
 import FormModel from "Common/Models/DatabaseModels/Form";
 import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
@@ -67,6 +69,15 @@ const FormsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.FORM_VIEW_TEMPLATES)}
+          element={
+            <FormTemplates
+              {...props}
+              pageRoute={RouteMap[PageMap.FORM_VIEW_TEMPLATES] as Route}
+            />
+          }
+        />
+        <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.FORM_VIEW_ON_SUBMIT)}
           element={
             <FormOnSubmit
@@ -90,6 +101,15 @@ const FormsRoutes: FunctionComponent<ComponentProps> = (
             <FormViewSubmissions
               {...props}
               pageRoute={RouteMap[PageMap.FORM_VIEW_SUBMISSIONS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.FORM_VIEW_DUPLICATE)}
+          element={
+            <FormDuplicate
+              {...props}
+              pageRoute={RouteMap[PageMap.FORM_VIEW_DUPLICATE] as Route}
             />
           }
         />

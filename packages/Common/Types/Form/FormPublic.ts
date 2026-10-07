@@ -30,6 +30,13 @@ import {
   getFormTargetField,
 } from "./FormTargetCatalog";
 import FormTargetType from "./FormTargetType";
+import {
+  describeFormTemplate,
+  findFormTemplate,
+  FormTemplate,
+  isFormTemplateId,
+  readFormTemplates,
+} from "./FormTemplate";
 
 /*
  * The public half of forms: what the page anyone with a form's link opens is
@@ -47,7 +54,14 @@ import FormTargetType from "./FormTargetType";
  * write of that custom field type would be.
  *
  * buildPublicForm turns a stored form into what the page is told, and is
- * also what the dashboard's preview draws, so the preview is the page.
+ * also what the dashboard's preview draws, so the preview is the page. A
+ * hidden question is built with the rest - the server answers it - but
+ * never told to the page; nor is any template's answer to one.
+ *
+ * A form's templates (FormTemplate) reach the page as their answers to the
+ * questions it asks, each checked as a submission's answer to that question
+ * would be (getFormTemplateAnswers), so a template never fills in what the
+ * submit would refuse.
  *
  * Pure, with no database or React imports: the server enforces these rules,
  * and the public page can show the same limits before anything is sent.
@@ -141,6 +155,19 @@ export interface PublicFormField {
   defaultValue?: string | undefined;
 }
 
+/*
+ * A template as the public page is told about it: its name, whether the
+ * form opens with it, and its answers to the questions the page asks -
+ * never to a hidden question, never one the question would refuse. Keyed by
+ * question id, in the shape a submission sends them.
+ */
+export interface PublicFormTemplate {
+  id: string;
+  name: string;
+  isDefault?: boolean | undefined;
+  answers: JSONObject;
+}
+
 // Everything the public page is told about a form.
 export interface PublicForm {
   name: string;
@@ -157,11 +184,21 @@ export interface PublicForm {
   logo?: PublicFormImage | undefined;
   logoAltText?: string | undefined;
   favicon?: PublicFormImage | undefined;
+  /*
+   * The templates a submission can start from, in the form's order; left
+   * out for a form with none.
+   */
+  templates?: Array<PublicFormTemplate> | undefined;
 }
 
-// The answers, as the public page sends them: keyed by question id.
+/*
+ * The answers, as the public page sends them: keyed by question id. And the
+ * template the submitter started from, if any: the server answers the
+ * form's hidden questions from it.
+ */
 export interface PublicFormSubmissionData {
   answers?: JSONObject | undefined;
+  templateId?: string | undefined;
 }
 
 // The body of the submit request.
@@ -253,6 +290,13 @@ export type FormFieldBinding =
 
 export interface BuiltPublicForm {
   form: PublicForm;
+  /*
+   * The hidden questions the form can answer, in the form's order: built as
+   * the page's are, never told to it. Never required.
+   */
+  hiddenFields: Array<PublicFormField>;
+  // Every question the form can answer - asked or hidden - in its order.
+  allFields: Array<PublicFormField>;
   // Where each question's answer goes, by question id.
   bindings: Record<string, FormFieldBinding>;
   /*
@@ -288,6 +332,8 @@ export interface PublicFormSource {
   logoFile?: unknown;
   logoAltText?: string | null | undefined;
   faviconFile?: unknown;
+  // The stored templates (Form.templates), read here with readFormTemplates.
+  templates?: unknown;
 }
 
 export type BuildPublicFormFunction = (data: {
@@ -462,6 +508,10 @@ const readHelpText: ReadHelpTextFunction = (
  * field that was deleted or a field the target does not have, or a choice
  * with no option left. Its answers would have nowhere to go, or nothing to
  * be, and a page must not ask what it cannot take.
+ *
+ * A hidden question is built like any other, into hiddenFields, and never
+ * into the page's questions. The form's templates are told to the page with
+ * their answers to the page's questions only (getFormTemplateAnswers).
  */
 export const buildPublicForm: BuildPublicFormFunction = (data: {
   form: PublicFormSource;
@@ -497,6 +547,8 @@ export const buildPublicForm: BuildPublicFormFunction = (data: {
   const bindings: Record<string, FormFieldBinding> = {};
   const skipped: Array<{ fieldId: string; reason: FormSkippedFieldReason }> =
     [];
+  const hiddenFields: Array<PublicFormField> = [];
+  const allFields: Array<PublicFormField> = [];
 
   const customFieldsById: Map<string, FormCustomFieldDefinition> = new Map<
     string,
@@ -712,10 +764,47 @@ export const buildPublicForm: BuildPublicFormFunction = (data: {
         continue;
     }
 
-    publicForm.fields.push(base);
+    allFields.push(base);
+
+    if (field.isHidden) {
+      // Nobody is asked it, so nothing can require it.
+      base.isRequired = false;
+      hiddenFields.push(base);
+    } else {
+      publicForm.fields.push(base);
+    }
   }
 
-  return { form: publicForm, bindings: bindings, skipped: skipped };
+  const templates: Array<FormTemplate> = readFormTemplates(data.form.templates);
+
+  if (templates.length > 0) {
+    publicForm.templates = templates.map(
+      (template: FormTemplate): PublicFormTemplate => {
+        const publicTemplate: PublicFormTemplate = {
+          id: template.id,
+          name: template.name,
+          answers: getFormTemplateAnswers({
+            template: template,
+            fields: publicForm.fields,
+          }),
+        };
+
+        if (template.isDefault) {
+          publicTemplate.isDefault = true;
+        }
+
+        return publicTemplate;
+      },
+    );
+  }
+
+  return {
+    form: publicForm,
+    hiddenFields: hiddenFields,
+    allFields: allFields,
+    bindings: bindings,
+    skipped: skipped,
+  };
 };
 
 /*
@@ -1296,6 +1385,272 @@ export const validateFormSubmission: ValidateFormSubmissionFunction = (data: {
 
   return { isValid: true, answers: accepted };
 };
+
+export type FormAnswerValidationResult =
+  | {
+      isValid: false;
+      errors: Array<string>;
+    }
+  | {
+      isValid: true;
+      // Undefined for an answer left empty.
+      value: JSONValue | undefined;
+    };
+
+export type ValidateFormAnswerFunction = (data: {
+  field: PublicFormField;
+  answer: unknown;
+}) => FormAnswerValidationResult;
+
+/**
+ * One answer to one question, checked and cleaned exactly as a submission's
+ * answer to it is (validateFormSubmission): the value to store, nothing for
+ * an answer left empty, or why it is refused.
+ */
+export const validateFormAnswer: ValidateFormAnswerFunction = (data: {
+  field: PublicFormField;
+  answer: unknown;
+}): FormAnswerValidationResult => {
+  const errors: Array<string> = [];
+
+  const value: JSONValue | undefined = validateOneAnswer({
+    field: data.field,
+    answer: data.answer,
+    errors: errors,
+  });
+
+  if (errors.length > 0) {
+    return { isValid: false, errors: errors };
+  }
+
+  return { isValid: true, value: value };
+};
+
+type AsOptionalFunction = (field: PublicFormField) => PublicFormField;
+
+/*
+ * A template need not answer every question: what it holds is checked as
+ * an answer to the question, never against Required.
+ */
+const asOptional: AsOptionalFunction = (
+  field: PublicFormField,
+): PublicFormField => {
+  return { ...field, isRequired: false };
+};
+
+export type GetFormTemplateAnswersFunction = (data: {
+  template:
+    | { answers?: JSONObject | null | undefined }
+    | null
+    | undefined;
+  // The questions to read the template's answers to.
+  fields: Array<PublicFormField>;
+}) => ValidatedFormAnswers;
+
+/**
+ * A template's answers to these questions, each checked and cleaned as a
+ * submission's answer to it would be - but none required. An answer the
+ * question would refuse (an option it no longer offers, a record since
+ * deleted, text since made too long for it) is left out, as is an answer to
+ * a question not listed. Never throws.
+ */
+export const getFormTemplateAnswers: GetFormTemplateAnswersFunction = (data: {
+  template:
+    | { answers?: JSONObject | null | undefined }
+    | null
+    | undefined;
+  fields: Array<PublicFormField>;
+}): ValidatedFormAnswers => {
+  const answers: ValidatedFormAnswers = {};
+  const stored: unknown = data.template ? data.template.answers : undefined;
+
+  if (!isPlainObject(stored)) {
+    return answers;
+  }
+
+  for (const field of data.fields || []) {
+    if (!hasOwn(stored, field.id)) {
+      continue;
+    }
+
+    const result: FormAnswerValidationResult = validateFormAnswer({
+      field: asOptional(field),
+      answer: stored[field.id],
+    });
+
+    if (result.isValid && result.value !== undefined) {
+      defineAnswer(answers, field.id, result.value);
+    }
+  }
+
+  return answers;
+};
+
+// The most problems one refusal of a form's templates lists.
+const MAX_LISTED_TEMPLATE_PROBLEMS: number = 8;
+
+export type ValidateFormTemplateAnswersFunction = (data: {
+  // The templates as they would be stored (Form.templates).
+  templates: unknown;
+  // Every question the form can answer, hidden ones too: allFields.
+  fields: Array<PublicFormField>;
+}) => string | null;
+
+/**
+ * Null when every answer every template holds suits its question, checked
+ * as getFormTemplateAnswers reads it; otherwise one message naming every
+ * problem (the first eight). An answer to a question the form cannot answer
+ * - one it does not have, or one it cannot ask now (its custom field was
+ * deleted) - is refused, and so is an answer its question would refuse.
+ * The server runs this on every write of a form's templates, so a template
+ * never quietly fills in less than it was saved with.
+ */
+export const validateFormTemplateAnswers: ValidateFormTemplateAnswersFunction =
+  (data: { templates: unknown; fields: Array<PublicFormField> }):
+    | string
+    | null => {
+    const problems: Array<string> = [];
+    const fieldsById: Map<string, PublicFormField> = new Map<
+      string,
+      PublicFormField
+    >();
+
+    for (const field of data.fields || []) {
+      fieldsById.set(field.id, field);
+    }
+
+    readFormTemplates(data.templates).forEach(
+      (template: FormTemplate, index: number): void => {
+        const name: string = describeFormTemplate({
+          index,
+          name: template.name,
+        });
+
+        for (const key of Object.keys(template.answers)) {
+          const field: PublicFormField | undefined = fieldsById.get(key);
+
+          if (!field) {
+            problems.push(
+              `${name} answers a question the form does not ask (${key}).`,
+            );
+            continue;
+          }
+
+          const result: FormAnswerValidationResult = validateFormAnswer({
+            field: asOptional(field),
+            answer: template.answers[key],
+          });
+
+          if (!result.isValid) {
+            problems.push(`${name}: ${result.errors.join(" ")}`);
+          }
+        }
+      },
+    );
+
+    if (problems.length === 0) {
+      return null;
+    }
+
+    const more: number = problems.length - MAX_LISTED_TEMPLATE_PROBLEMS;
+
+    return `${problems.slice(0, MAX_LISTED_TEMPLATE_PROBLEMS).join(" ")}${
+      more > 0 ? ` And ${more} more ${more === 1 ? "problem" : "problems"}.` : ""
+    }`;
+  };
+
+export type ReadFormSubmissionTemplateIdFunction = (
+  data: unknown,
+) => string | undefined;
+
+/**
+ * The template a submission says it started from (data.templateId), when it
+ * names one in a template id's shape; anything else is no template.
+ */
+export const readFormSubmissionTemplateId: ReadFormSubmissionTemplateIdFunction =
+  (data: unknown): string | undefined => {
+    if (!isPlainObject(data)) {
+      return undefined;
+    }
+
+    const templateId: unknown = data["templateId"];
+
+    return isFormTemplateId(templateId) ? templateId : undefined;
+  };
+
+export type GetFormSubmissionTemplateFunction = (data: {
+  // The form's stored templates (Form.templates).
+  templates: unknown;
+  // What the submission named: readFormSubmissionTemplateId.
+  templateId: string | undefined;
+}) => FormTemplate | undefined;
+
+/**
+ * The template a submission's hidden questions are answered from: the one
+ * it names, while the form has it. A submission that names none started
+ * from none - even on a form with a default, which only decides what the
+ * page opens with - and one that names a template deleted since its page
+ * was opened is taken as it was answered, without one.
+ */
+export const getFormSubmissionTemplate: GetFormSubmissionTemplateFunction =
+  (data: {
+    templates: unknown;
+    templateId: string | undefined;
+  }): FormTemplate | undefined => {
+    if (!data.templateId) {
+      return undefined;
+    }
+
+    return findFormTemplate(readFormTemplates(data.templates), data.templateId);
+  };
+
+export type FindPublicFormTemplateFunction = (
+  form: PublicForm,
+  templateId: string | null | undefined,
+) => PublicFormTemplate | undefined;
+
+// One of the templates the page was told about, by id.
+export const findPublicFormTemplate: FindPublicFormTemplateFunction = (
+  form: PublicForm,
+  templateId: string | null | undefined,
+): PublicFormTemplate | undefined => {
+  if (!templateId) {
+    return undefined;
+  }
+
+  return (form.templates || []).find(
+    (template: PublicFormTemplate): boolean => {
+      return template.id === templateId;
+    },
+  );
+};
+
+export type GetPublicFormStartTemplateFunction = (data: {
+  form: PublicForm;
+  // The template the page's link names (?template=<id>), if any.
+  requestedTemplateId?: string | null | undefined;
+}) => PublicFormTemplate | undefined;
+
+/**
+ * The template the public page opens with: the one its link names, while
+ * the form has it; otherwise the form's default template; otherwise none -
+ * a link naming a template since deleted opens the form as if it named
+ * none.
+ */
+export const getPublicFormStartTemplate: GetPublicFormStartTemplateFunction =
+  (data: {
+    form: PublicForm;
+    requestedTemplateId?: string | null | undefined;
+  }): PublicFormTemplate | undefined => {
+    return (
+      findPublicFormTemplate(data.form, data.requestedTemplateId) ||
+      (data.form.templates || []).find(
+        (template: PublicFormTemplate): boolean => {
+          return template.isDefault === true;
+        },
+      )
+    );
+  };
 
 export type FormatFormSubmissionErrorsFunction = (
   errors: Array<string>,

@@ -696,9 +696,11 @@ export const RunbookRoutePath: Dictionary<string> = {
 export const FormsRoutePath: Dictionary<string> = {
   [PageMap.FORMS_SUBMISSIONS]: "submissions",
   [PageMap.FORM_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.FORM_VIEW_TEMPLATES]: `${RouteParams.ModelID}/templates`,
   [PageMap.FORM_VIEW_ON_SUBMIT]: `${RouteParams.ModelID}/on-submit`,
   [PageMap.FORM_VIEW_SHARE]: `${RouteParams.ModelID}/share`,
   [PageMap.FORM_VIEW_SUBMISSIONS]: `${RouteParams.ModelID}/submissions`,
+  [PageMap.FORM_VIEW_DUPLICATE]: `${RouteParams.ModelID}/duplicate`,
   [PageMap.FORM_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
 };
 
@@ -7157,6 +7159,11 @@ const RouteMap: Dictionary<Route> = {
       FormsRoutePath[PageMap.FORM_VIEW]
     }`,
   ),
+  [PageMap.FORM_VIEW_TEMPLATES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/forms/${
+      FormsRoutePath[PageMap.FORM_VIEW_TEMPLATES]
+    }`,
+  ),
   [PageMap.FORM_VIEW_ON_SUBMIT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/forms/${
       FormsRoutePath[PageMap.FORM_VIEW_ON_SUBMIT]
@@ -7170,6 +7177,11 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.FORM_VIEW_SUBMISSIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/forms/${
       FormsRoutePath[PageMap.FORM_VIEW_SUBMISSIONS]
+    }`,
+  ),
+  [PageMap.FORM_VIEW_DUPLICATE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/forms/${
+      FormsRoutePath[PageMap.FORM_VIEW_DUPLICATE]
     }`,
   ),
   [PageMap.FORM_VIEW_DELETE]: new Route(

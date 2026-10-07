@@ -42,6 +42,19 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
    * route, so the copy's own page.
    */
   navigateToOnSuccess?: Route | undefined;
+  /*
+   * Adjusts the copy once it holds the original's values and what the
+   * dialog asked, just before it is saved - a form's copy starts turned
+   * off, say. Whatever it sets is what is saved.
+   */
+  prepareCopy?: ((copy: TBaseModel) => void) | undefined;
+  /*
+   * What the card says about the copy, in place of the generic "Duplicating
+   * this <model> will create another <model> exactly like this one." - for
+   * a copy that is not exactly like its original. In English: the card
+   * looks it up.
+   */
+  description?: string | undefined;
 }
 
 /*
@@ -183,6 +196,8 @@ const DuplicateModel: <TBaseModel extends BaseModel>(
       item.setValue(key, value);
     }
 
+    props.prepareCopy?.(item);
+
     // A new record: the original's id stays with the original.
     item.removeValue("_id");
 
@@ -267,14 +282,17 @@ const DuplicateModel: <TBaseModel extends BaseModel>(
     <>
       <Card
         title={duplicateTitle}
-        description={translator.translateTemplate(
-          "Duplicating this {{itemName}} will create another {{itemName}} exactly like this one.",
-          {
-            itemName: translatableTerm(model.singularName || "", {
-              inSentence: true,
-            }),
-          },
-        )}
+        description={
+          props.description ||
+          translator.translateTemplate(
+            "Duplicating this {{itemName}} will create another {{itemName}} exactly like this one.",
+            {
+              itemName: translatableTerm(model.singularName || "", {
+                inSentence: true,
+              }),
+            },
+          )
+        }
         buttons={[
           {
             title: duplicateTitle,

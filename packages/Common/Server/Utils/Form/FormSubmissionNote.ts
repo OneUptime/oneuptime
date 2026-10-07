@@ -134,6 +134,8 @@ export type GetFormSubmissionNoteFunction = (data: {
   formName?: string | null | undefined;
   submitterName?: string | null | undefined;
   submitterEmail?: string | null | undefined;
+  // The form's template the submission started from, if any.
+  templateName?: string | null | undefined;
   answers?: Array<FormNoteAnswer> | undefined;
 }) => string;
 
@@ -161,13 +163,16 @@ const formatAnswerValue: FormatAnswerFunction = (
 };
 
 /**
- * The note: one sentence naming the form and the submitter, then each answer
- * to the form's own questions under its question, in the form's order.
+ * The note: one sentence naming the form and the submitter, one naming the
+ * template the submission started from when it started from one, then each
+ * answer to the form's own questions under its question, in the form's
+ * order.
  */
 export const getFormSubmissionNote: GetFormSubmissionNoteFunction = (data: {
   formName?: string | null | undefined;
   submitterName?: string | null | undefined;
   submitterEmail?: string | null | undefined;
+  templateName?: string | null | undefined;
   answers?: Array<FormNoteAnswer> | undefined;
 }): string => {
   const formName: string = escapeLine(data.formName);
@@ -187,6 +192,13 @@ export const getFormSubmissionNote: GetFormSubmissionNoteFunction = (data: {
   }
 
   const parts: Array<string> = [sentence];
+
+  // A template's name is the team's own words, escaped all the same.
+  const templateName: string = escapeLine(data.templateName);
+
+  if (templateName) {
+    parts.push(`Started from the template **${templateName}**.`);
+  }
 
   for (const answer of data.answers || []) {
     const label: string = escapeLine(answer.label) || "Question";
