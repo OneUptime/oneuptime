@@ -49,8 +49,11 @@ interface ReaderEntry {
 export default class RealtimeReaders {
   public static readonly ENTRY_TTL_IN_MS: number = 30 * 1000;
 
-  // People held at once; the oldest goes first past this.
-  public static readonly MAX_ENTRIES: number = 20_000;
+  /*
+   * People held at once; past this the oldest entry goes first (an expired
+   * one, as a rule), so memory stays bounded however many come and go.
+   */
+  public static readonly MAX_ENTRIES: number = 10_000;
 
   private static entries: Map<string, ReaderEntry> = new Map<
     string,

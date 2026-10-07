@@ -177,6 +177,8 @@ Fält följer samma regel. En blockering utan etiketter på ett fälts behörigh
 
 Samma regel avgör allt annat som frågar om du har en behörighet: åtgärder som inte är en enkel läsning eller skrivning — att lägga till SMS-, samtals- eller AI-kredit, betala en faktura eller testa en aviseringsregel — och knapparna som OneUptime visar. En knapp du inte får använda visas låst och säger varför; är en blockering i ett av dina team orsaken, namnger den den blockerade behörigheten.
 
+Liveuppdateringar följer samma regel. När en post skapas, ändras eller tas bort meddelar OneUptime de öppna sidorna hos de personer som får läsa posten, och ingen annan. Det som begränsar vad du får läsa begränsar också dina liveuppdateringar: etiketter, ägare, en blockering med etiketter, en privat incident eller någon annans AI-konversation. En ändring av dina behörigheter når dina öppna sidor inom 30 sekunder.
+
 Varje inloggad användare har dessutom en liten uppsättning automatiska behörigheter som täcker sådant som att läsa sin egen profil och sina egna aviseringsregler. Det är inga administratörsbehörigheter och de ger inte åtkomst till någon annans data.
 
 Upplösta behörigheter cachas per användare och projekt och uppdateras när teammedlemskap eller teambehörigheter ändras. Om du ändrar behörigheter och en användare inte ser ändringen direkt, be hen ladda om.

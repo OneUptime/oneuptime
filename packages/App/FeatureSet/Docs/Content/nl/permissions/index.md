@@ -177,6 +177,8 @@ Velden volgen dezelfde regel. Een blokkade zonder labels op de machtiging van ee
 
 Dezelfde regel beslist over al het andere dat vraagt of u een machtiging heeft: acties die geen gewone lees- of schrijfactie zijn — sms-, bel- of AI-tegoed toevoegen, een factuur betalen of een meldingsregel testen — en de knoppen die OneUptime toont. Een knop die u niet mag gebruiken wordt vergrendeld getoond en zegt waarom; is een blokkade in een van uw teams de reden, dan noemt hij de geblokkeerde machtiging.
 
+Live-updates volgen dezelfde regel. Wordt een record aangemaakt, gewijzigd of verwijderd, dan meldt OneUptime dat aan de geopende pagina's van de mensen die dat record mogen lezen, en aan niemand anders. Wat beperkt wat u mag lezen, beperkt ook uw live-updates: labels, eigenaren, een blokkade met labels, een privé-incident of het AI-gesprek van iemand anders. Een wijziging van uw machtigingen bereikt uw geopende pagina's binnen 30 seconden.
+
 Elke ingelogde gebruiker heeft daarnaast een kleine set automatische machtigingen voor zaken als het lezen van zijn eigen profiel en zijn eigen meldingsregels. Dat zijn geen beheerdersrechten en ze ontsluiten niemand anders' gegevens.
 
 Opgeloste machtigingen worden per gebruiker en project gecachet en vernieuwd wanneer teamlidmaatschap of teammachtigingen wijzigen. Ziet een gebruiker een wijziging niet meteen, laat hem dan herladen.

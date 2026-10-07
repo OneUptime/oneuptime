@@ -177,6 +177,8 @@ Os campos seguem a mesma regra. Um bloqueio sem rótulos na permissão de um cam
 
 A mesma regra decide tudo o mais que pergunta se você tem uma permissão: as ações que não são uma simples leitura ou escrita — adicionar crédito de SMS, chamadas ou IA, pagar uma fatura ou testar uma regra de notificação — e os botões que o OneUptime mostra. Um botão que você não pode usar aparece travado e diz por quê; quando o motivo é um bloqueio em uma de suas equipes, ele nomeia a permissão bloqueada.
 
+As atualizações ao vivo seguem a mesma regra. Quando um registro é criado, alterado ou excluído, o OneUptime avisa as páginas abertas das pessoas que podem ler esse registro, e de mais ninguém. O que limita o que você pode ler limita também as suas atualizações ao vivo: rótulos, proprietários, um bloqueio com rótulos, um incidente privado ou a conversa de IA de outra pessoa. Uma mudança nas suas permissões chega às suas páginas abertas em até 30 segundos.
+
 Todo usuário autenticado detém ainda um pequeno conjunto de permissões automáticas que cobrem coisas como ler o próprio perfil e as próprias regras de notificação. Não são permissões administrativas e não dão acesso aos dados de mais ninguém.
 
 As permissões resolvidas ficam em cache por usuário e projeto, e são atualizadas quando a participação em equipes ou as permissões da equipe mudam. Se você alterar permissões e um usuário não vir a mudança na hora, peça que ele recarregue.
