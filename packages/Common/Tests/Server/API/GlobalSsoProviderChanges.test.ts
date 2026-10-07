@@ -128,8 +128,7 @@ interface ProjectRow {
 }
 
 let projects: Array<ProjectRow> = [];
-let ownSaml: Array<{ id: string; projectId: string; isEnabled: boolean }> =
-  [];
+let ownSaml: Array<{ id: string; projectId: string; isEnabled: boolean }> = [];
 
 let events: Array<string> = [];
 let busyLock: string | null = null;
@@ -345,7 +344,10 @@ interface ProviderKind {
 
 const SAML: ProviderKind = {
   label: "SAML",
-  providerApi: new BaseAPI<any, any>(GlobalSso as never, GlobalSsoService as never),
+  providerApi: new BaseAPI<any, any>(
+    GlobalSso as never,
+    GlobalSsoService as never,
+  ),
   attachmentApi: new BaseAPI<any, any>(
     GlobalSsoProject as never,
     GlobalSsoProjectService as never,
@@ -390,17 +392,22 @@ const CONFIG_API: BaseAPI<any, any> = new BaseAPI<any, any>(
 );
 
 // A master admin, as the API's auth middleware leaves the request.
-const request: (data: { id?: string; body?: JSONObject }) => OneUptimeRequest =
-  (data: { id?: string; body?: JSONObject }): OneUptimeRequest => {
-    return {
-      params: { id: data.id || PROVIDER },
-      body: data.body || {},
-      headers: {},
-      query: {},
-      userType: UserType.MasterAdmin,
-      userAuthorization: { userId: new ObjectID(ADMIN_ID) },
-    } as unknown as OneUptimeRequest;
-  };
+const request: (data: {
+  id?: string;
+  body?: JSONObject;
+}) => OneUptimeRequest = (data: {
+  id?: string;
+  body?: JSONObject;
+}): OneUptimeRequest => {
+  return {
+    params: { id: data.id || PROVIDER },
+    body: data.body || {},
+    headers: {},
+    query: {},
+    userType: UserType.MasterAdmin,
+    userAuthorization: { userId: new ObjectID(ADMIN_ID) },
+  } as unknown as OneUptimeRequest;
+};
 
 const response: () => ExpressResponse = (): ExpressResponse => {
   return {
@@ -662,9 +669,7 @@ beforeEach(() => {
         );
     }) as never,
   );
-  getJestSpyOn(ProjectOidcService, "findAllBy").mockResolvedValue(
-    [] as never,
-  );
+  getJestSpyOn(ProjectOidcService, "findAllBy").mockResolvedValue([] as never);
 
   // The lock on the server's sign-in rules, held in memory.
   getJestSpyOn(Semaphore, "lock").mockImplementation((async (data: {
@@ -740,9 +745,9 @@ describe.each([
         kind.providerTable().writes[0]!.set;
       expect(written["isEnabled"]).toBe(false);
       expect(written["signInsEndedAt"]).toBeInstanceOf(Date);
-      expect((written["signInsEndedAt"] as Date).getTime()).toBeGreaterThanOrEqual(
-        before,
-      );
+      expect(
+        (written["signInsEndedAt"] as Date).getTime(),
+      ).toBeGreaterThanOrEqual(before);
 
       expect(events).toEqual([
         `lock:${SERVER_LOCK}`,
@@ -887,9 +892,9 @@ describe.each([
         updateProvider(kind, { restrictToAttachedProjects: true }),
       ).resolves.toBe(NO_PROVIDER_FOR_ACME);
 
-      kind.attachmentTable().rows.push(
-        attachmentRow(kind, ATTACHED_TO_ACME, ACME),
-      );
+      kind
+        .attachmentTable()
+        .rows.push(attachmentRow(kind, ATTACHED_TO_ACME, ACME));
 
       await expect(
         updateProvider(kind, { restrictToAttachedProjects: true }),
@@ -1026,9 +1031,7 @@ describe.each([
 
   test("the attachments of a provider that signs people in to every project decide nothing", async () => {
     projects = [project(ACME, "Acme"), project(BETA, "Beta")];
-    kind.attachmentTable().rows = [
-      attachmentRow(kind, ATTACHED_TO_ACME, ACME),
-    ];
+    kind.attachmentTable().rows = [attachmentRow(kind, ATTACHED_TO_ACME, ACME)];
 
     await expect(
       updateAttachment(kind, ATTACHED_TO_ACME, { isEnabled: false }),

@@ -94,23 +94,26 @@ const ownerProps: () => DatabaseCommonInteractionProps =
     };
   };
 
-const updateProject: (data: Record<string, unknown>) => Promise<string> =
-  async (data: Record<string, unknown>): Promise<string> => {
-    try {
-      await ProjectService.updateOneById({
-        id: PROJECT_ID,
-        data: data as UpdateBy<Project>["data"],
-        props: ownerProps(),
-      });
-      return "done";
-    } catch (err) {
-      if (err instanceof BadDataException) {
-        return err.message;
-      }
-
-      throw err;
+const updateProject: (
+  data: Record<string, unknown>,
+) => Promise<string> = async (
+  data: Record<string, unknown>,
+): Promise<string> => {
+  try {
+    await ProjectService.updateOneById({
+      id: PROJECT_ID,
+      data: data as UpdateBy<Project>["data"],
+      props: ownerProps(),
+    });
+    return "done";
+  } catch (err) {
+    if (err instanceof BadDataException) {
+      return err.message;
     }
-  };
+
+    throw err;
+  }
+};
 
 const locksTaken: () => Array<string> = (): Array<string> => {
   return events.filter((event: string): boolean => {
@@ -147,9 +150,10 @@ beforeEach(() => {
       return { query, select, relationSelect: null };
     },
   );
-  getJestSpyOn(ModelPermission, "checkUpdatePermissionByModel").mockResolvedValue(
-    undefined,
-  );
+  getJestSpyOn(
+    ModelPermission,
+    "checkUpdatePermissionByModel",
+  ).mockResolvedValue(undefined);
   getJestSpyOn(
     ModelPermission,
     "checkUpdateQueryPermissions",
@@ -372,9 +376,10 @@ describe("turning Require SSO for Login on for a project", () => {
 
   test("a write refused after the check, before it is written, gives both locks back", async () => {
     ownSamlOn = true;
-    getJestSpyOn(ProjectService, "chargeAutoRechargeTurnedOn").mockRejectedValue(
-      new BadDataException("No card on file"),
-    );
+    getJestSpyOn(
+      ProjectService,
+      "chargeAutoRechargeTurnedOn",
+    ).mockRejectedValue(new BadDataException("No card on file"));
 
     await expect(updateProject({ requireSsoForLogin: true })).resolves.toBe(
       "No card on file",

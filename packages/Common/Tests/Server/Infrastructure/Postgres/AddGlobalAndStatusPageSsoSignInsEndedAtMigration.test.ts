@@ -137,9 +137,9 @@ describe("AddGlobalAndStatusPageSsoSignInsEndedAt migration", () => {
   });
 
   test("is registered exactly once, after every migration with an earlier stamp", () => {
-    expect(new AddGlobalAndStatusPageSsoSignInsEndedAt1799900000000().name).toBe(
-      ADD_COLUMNS_CLASS_NAME,
-    );
+    expect(
+      new AddGlobalAndStatusPageSsoSignInsEndedAt1799900000000().name,
+    ).toBe(ADD_COLUMNS_CLASS_NAME);
 
     expectRegisteredInOrder(ADD_COLUMNS_CLASS_NAME);
   });
@@ -228,9 +228,9 @@ describe("EndStatusPageSsoSessionsWithoutProvider data fix", () => {
   });
 
   test("is registered exactly once, after the columns it reads", () => {
-    expect(new EndStatusPageSsoSessionsWithoutProvider1799920000000().name).toBe(
-      END_SESSIONS_CLASS_NAME,
-    );
+    expect(
+      new EndStatusPageSsoSessionsWithoutProvider1799920000000().name,
+    ).toBe(END_SESSIONS_CLASS_NAME);
 
     expectRegisteredInOrder(END_SESSIONS_CLASS_NAME);
 

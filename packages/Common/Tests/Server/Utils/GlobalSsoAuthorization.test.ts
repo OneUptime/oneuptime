@@ -1448,10 +1448,10 @@ describe("loadTrustOnce - a settling lookup does not evict a newer one", () => {
 
     // Lookup #1 now settles. It must NOT take lookup #2's slot with it.
     releases[0]!({
- isUsable: true,
- restrictToAttachedProjects: false,
- signInsEndedAtMs: null,
- });
+      isUsable: true,
+      restrictToAttachedProjects: false,
+      signInsEndedAtMs: null,
+    });
     await first;
 
     // A third caller arrives while lookup #2 is STILL in flight.
@@ -1463,10 +1463,10 @@ describe("loadTrustOnce - a settling lookup does not evict a newer one", () => {
     expect(loadCount).toBe(2);
 
     releases[1]!({
- isUsable: false,
- restrictToAttachedProjects: true,
- signInsEndedAtMs: null,
- });
+      isUsable: false,
+      restrictToAttachedProjects: true,
+      signInsEndedAtMs: null,
+    });
 
     await expect(second).resolves.toEqual({
       isUsable: false,
@@ -1489,10 +1489,10 @@ describe("loadTrustOnce - a settling lookup does not evict a newer one", () => {
       async (): Promise<GlobalProviderTrust> => {
         loadCount += 1;
         return {
- isUsable: true,
- restrictToAttachedProjects: false,
- signInsEndedAtMs: null,
- };
+          isUsable: true,
+          restrictToAttachedProjects: false,
+          signInsEndedAtMs: null,
+        };
       };
 
     await loadTrustOnce(key, loader);
@@ -1534,21 +1534,27 @@ describe("isAnyAttachedProviderRestricted", () => {
     [
       RESTRICTED_ID.toString(),
       {
- isUsable: true,
- restrictToAttachedProjects: true,
- signInsEndedAtMs: null,
- },
+        isUsable: true,
+        restrictToAttachedProjects: true,
+        signInsEndedAtMs: null,
+      },
     ],
-    [OPEN_ID.toString(), {
- isUsable: true,
- restrictToAttachedProjects: false,
- signInsEndedAtMs: null,
- }],
-    [OFF_ID.toString(), {
- isUsable: false,
- restrictToAttachedProjects: true,
- signInsEndedAtMs: null,
- }],
+    [
+      OPEN_ID.toString(),
+      {
+        isUsable: true,
+        restrictToAttachedProjects: false,
+        signInsEndedAtMs: null,
+      },
+    ],
+    [
+      OFF_ID.toString(),
+      {
+        isUsable: false,
+        restrictToAttachedProjects: true,
+        signInsEndedAtMs: null,
+      },
+    ],
   ]);
 
   function trustReader(): Mock<

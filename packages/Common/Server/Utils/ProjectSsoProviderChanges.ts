@@ -357,7 +357,9 @@ export default class ProjectSsoProviderChanges {
       takenAwayByProject.set(
         projectId,
         Array.from(ids).map(
-          (id: string): { providerType: ProjectSsoProviderType; id: string } => {
+          (
+            id: string,
+          ): { providerType: ProjectSsoProviderType; id: string } => {
             return { providerType: data.providerType, id };
           },
         ),

@@ -1,3 +1,4 @@
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
 import Project from "../../Models/DatabaseModels/Project";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -77,10 +78,8 @@ export default class SsoRequirementChanges {
    * the locks back: keyed by the UpdateBy the services hand back from
    * onBeforeUpdate, which DatabaseService passes on to onUpdateSuccess.
    */
-  private static writes: WeakMap<object, SsoRequirementWrite> = new WeakMap<
-    object,
-    SsoRequirementWrite
-  >();
+  private static writes: WeakMap<UpdateBy<BaseModel>, SsoRequirementWrite> =
+    new WeakMap<UpdateBy<BaseModel>, SsoRequirementWrite>();
 
   /*
    * Before an update to projects (ProjectService.onBeforeUpdate, with the
@@ -168,8 +167,7 @@ export default class SsoRequirementChanges {
         const turnsOn: boolean =
           rule.requireSsoForLogin && project.requireSsoForLogin !== true;
         const requiresAnother: boolean = Boolean(
-          rule.requiredProviderId &&
-            rule.requiredProviderId !== storedRequired,
+          rule.requiredProviderId && rule.requiredProviderId !== storedRequired,
         );
 
         if (turnsOn || requiresAnother) {
@@ -195,7 +193,10 @@ export default class SsoRequirementChanges {
       }
 
       const write: SsoRequirementWrite = { locks };
-      SsoRequirementChanges.writes.set(data.updateBy, write);
+      SsoRequirementChanges.writes.set(
+        data.updateBy as unknown as UpdateBy<BaseModel>,
+        write,
+      );
       return write;
     } catch (err) {
       await ProjectSsoProviderChanges.releaseSignInChange(locks);
@@ -252,7 +253,10 @@ export default class SsoRequirementChanges {
       }
 
       const write: SsoRequirementWrite = { locks };
-      SsoRequirementChanges.writes.set(data.updateBy, write);
+      SsoRequirementChanges.writes.set(
+        data.updateBy as unknown as UpdateBy<BaseModel>,
+        write,
+      );
       return write;
     } catch (err) {
       await ProjectSsoProviderChanges.releaseSignInChange(locks);
@@ -261,15 +265,18 @@ export default class SsoRequirementChanges {
   }
 
   // Once the write is done (the success hooks): its locks are given back, once.
-  public static async afterUpdate(updateBy: object): Promise<void> {
+  public static async afterUpdate<TModel extends BaseModel>(
+    updateBy: UpdateBy<TModel>,
+  ): Promise<void> {
+    const key: UpdateBy<BaseModel> = updateBy as unknown as UpdateBy<BaseModel>;
     const write: SsoRequirementWrite | undefined =
-      SsoRequirementChanges.writes.get(updateBy);
+      SsoRequirementChanges.writes.get(key);
 
     if (!write) {
       return;
     }
 
-    SsoRequirementChanges.writes.delete(updateBy);
+    SsoRequirementChanges.writes.delete(key);
 
     await ProjectSsoProviderChanges.releaseSignInChange(write.locks);
   }

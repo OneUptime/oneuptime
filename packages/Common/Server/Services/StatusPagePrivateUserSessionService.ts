@@ -221,9 +221,7 @@ export class Service extends DatabaseService<Model> {
 
           rule
             .orWhere(vouchedForBy("sessionStatusPageSso", "statusPageSsoId"))
-            .orWhere(
-              vouchedForBy("sessionStatusPageOidc", "statusPageOidcId"),
-            );
+            .orWhere(vouchedForBy("sessionStatusPageOidc", "statusPageOidcId"));
         }),
       );
   }

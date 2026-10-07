@@ -93,6 +93,19 @@ interface AttachmentRow {
   isEnabled: boolean;
 }
 
+/*
+ * What a write is known by between its hooks: the UpdateBy, DeleteBy or
+ * CreateBy the service hands back from its before-hook, which
+ * DatabaseService passes on to the later ones.
+ */
+type WriteKey = UpdateBy<BaseModel> | DeleteBy<BaseModel> | CreateBy<BaseModel>;
+
+function keyOf<TModel extends BaseModel>(
+  write: UpdateBy<TModel> | DeleteBy<TModel> | CreateBy<TModel>,
+): WriteKey {
+  return write as unknown as WriteKey;
+}
+
 function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
@@ -140,10 +153,8 @@ export default class GlobalSsoProviderChanges {
    * by the UpdateBy, DeleteBy or CreateBy the services hand back from their
    * before-hooks, which DatabaseService passes on to the later ones.
    */
-  private static writes: WeakMap<object, GlobalSsoProviderWrite> = new WeakMap<
-    object,
-    GlobalSsoProviderWrite
-  >();
+  private static writes: WeakMap<WriteKey, GlobalSsoProviderWrite> =
+    new WeakMap<WriteKey, GlobalSsoProviderWrite>();
 
   /*
    * Before an update to a global provider (onBeforeUpdate): one that turns
@@ -170,7 +181,7 @@ export default class GlobalSsoProviderChanges {
     }
 
     return await GlobalSsoProviderChanges.lockAndCheck({
-      key: data.updateBy,
+      key: keyOf(data.updateBy),
       work: async (): Promise<Omit<GlobalSsoProviderWrite, "locks">> => {
         const providers: Array<GlobalProviderRow> =
           await GlobalSsoProviderChanges.readProviders({
@@ -180,13 +191,15 @@ export default class GlobalSsoProviderChanges {
             skip: data.updateBy.skip,
           });
 
-        const attachments: Map<string, Array<AttachmentRow>> =
-          await GlobalSsoProviderChanges.readAttachments({
-            providerType: data.providerType,
-            providerIds: providers.map((provider: GlobalProviderRow) => {
-              return provider.id;
-            }),
-          });
+        const attachments: Map<
+          string,
+          Array<AttachmentRow>
+        > = await GlobalSsoProviderChanges.readAttachments({
+          providerType: data.providerType,
+          providerIds: providers.map((provider: GlobalProviderRow) => {
+            return provider.id;
+          }),
+        });
 
         return {
           reachChanges: providers.map(
@@ -234,7 +247,7 @@ export default class GlobalSsoProviderChanges {
     updateBy: UpdateBy<TModel>;
   }): Promise<void> {
     const write: GlobalSsoProviderWrite | undefined =
-      GlobalSsoProviderChanges.writes.get(data.updateBy);
+      GlobalSsoProviderChanges.writes.get(keyOf(data.updateBy));
 
     await SsoSignInsEnded.stampWhenTurnedOff({
       service: data.service,
@@ -254,7 +267,7 @@ export default class GlobalSsoProviderChanges {
     deleteBy: DeleteBy<TModel>;
   }): Promise<GlobalSsoProviderWrite | null> {
     return await GlobalSsoProviderChanges.lockAndCheck({
-      key: data.deleteBy,
+      key: keyOf(data.deleteBy),
       work: async (): Promise<Omit<GlobalSsoProviderWrite, "locks">> => {
         const providers: Array<GlobalProviderRow> =
           await GlobalSsoProviderChanges.readProviders({
@@ -264,13 +277,15 @@ export default class GlobalSsoProviderChanges {
             skip: data.deleteBy.skip,
           });
 
-        const attachments: Map<string, Array<AttachmentRow>> =
-          await GlobalSsoProviderChanges.readAttachments({
-            providerType: data.providerType,
-            providerIds: providers.map((provider: GlobalProviderRow) => {
-              return provider.id;
-            }),
-          });
+        const attachments: Map<
+          string,
+          Array<AttachmentRow>
+        > = await GlobalSsoProviderChanges.readAttachments({
+          providerType: data.providerType,
+          providerIds: providers.map((provider: GlobalProviderRow) => {
+            return provider.id;
+          }),
+        });
 
         return {
           reachChanges: providers.map(
@@ -329,22 +344,22 @@ export default class GlobalSsoProviderChanges {
       id: "new",
       providerId: providerId,
       projectId: toIdString(record["projectId"]),
-      isEnabled: record["isEnabled"] === undefined || record["isEnabled"] === null
-        ? true
-        : record["isEnabled"] === true,
+      isEnabled:
+        record["isEnabled"] === undefined || record["isEnabled"] === null
+          ? true
+          : record["isEnabled"] === true,
     };
 
     return await GlobalSsoProviderChanges.lockAndCheck({
-      key: data.createBy,
+      key: keyOf(data.createBy),
       work: async (): Promise<Omit<GlobalSsoProviderWrite, "locks">> => {
         return {
-          reachChanges: await GlobalSsoProviderChanges.getAttachmentReachChanges(
-            {
+          reachChanges:
+            await GlobalSsoProviderChanges.getAttachmentReachChanges({
               providerType: data.providerType,
               before: [],
               after: [added],
-            },
-          ),
+            }),
           turnsOneOff: false,
         };
       },
@@ -385,11 +400,7 @@ export default class GlobalSsoProviderChanges {
 
     const newProviderId: string | null = writesProvider
       ? toIdString(
-          RelationIdUtil.readConsistent(
-            written,
-            providerColumns,
-            "Global SSO",
-          ),
+          RelationIdUtil.readConsistent(written, providerColumns, "Global SSO"),
         )
       : null;
     const newProjectId: string | null = writesProject
@@ -403,7 +414,7 @@ export default class GlobalSsoProviderChanges {
       : null;
 
     return await GlobalSsoProviderChanges.lockAndCheck({
-      key: data.updateBy,
+      key: keyOf(data.updateBy),
       work: async (): Promise<Omit<GlobalSsoProviderWrite, "locks">> => {
         const matched: Array<AttachmentRow> =
           await GlobalSsoProviderChanges.readAttachmentRows({
@@ -415,8 +426,8 @@ export default class GlobalSsoProviderChanges {
           });
 
         return {
-          reachChanges: await GlobalSsoProviderChanges.getAttachmentReachChanges(
-            {
+          reachChanges:
+            await GlobalSsoProviderChanges.getAttachmentReachChanges({
               providerType: data.providerType,
               before: matched,
               after: matched.map((row: AttachmentRow): AttachmentRow => {
@@ -424,11 +435,11 @@ export default class GlobalSsoProviderChanges {
                   id: row.id,
                   providerId: writesProvider ? newProviderId : row.providerId,
                   projectId: writesProject ? newProjectId : row.projectId,
-                  isEnabled: isEnabled !== undefined ? isEnabled : row.isEnabled,
+                  isEnabled:
+                    isEnabled !== undefined ? isEnabled : row.isEnabled,
                 };
               }),
-            },
-          ),
+            }),
           turnsOneOff: false,
         };
       },
@@ -447,7 +458,7 @@ export default class GlobalSsoProviderChanges {
     deleteBy: DeleteBy<TModel>;
   }): Promise<GlobalSsoProviderWrite | null> {
     return await GlobalSsoProviderChanges.lockAndCheck({
-      key: data.deleteBy,
+      key: keyOf(data.deleteBy),
       work: async (): Promise<Omit<GlobalSsoProviderWrite, "locks">> => {
         const matched: Array<AttachmentRow> =
           await GlobalSsoProviderChanges.readAttachmentRows({
@@ -459,13 +470,12 @@ export default class GlobalSsoProviderChanges {
           });
 
         return {
-          reachChanges: await GlobalSsoProviderChanges.getAttachmentReachChanges(
-            {
+          reachChanges:
+            await GlobalSsoProviderChanges.getAttachmentReachChanges({
               providerType: data.providerType,
               before: matched,
               after: [],
-            },
-          ),
+            }),
           turnsOneOff: false,
         };
       },
@@ -476,7 +486,10 @@ export default class GlobalSsoProviderChanges {
    * Once the write is done, or refused after its before-hook (the success
    * hooks): its lock is given back, once.
    */
-  public static async afterWrite(key: object): Promise<void> {
+  public static async afterWrite<TModel extends BaseModel>(
+    written: UpdateBy<TModel> | DeleteBy<TModel>,
+  ): Promise<void> {
+    const key: WriteKey = keyOf(written);
     const write: GlobalSsoProviderWrite | undefined =
       GlobalSsoProviderChanges.writes.get(key);
 
@@ -504,8 +517,10 @@ export default class GlobalSsoProviderChanges {
   }
 
   // The write a before-hook worked out, for tests and the success hooks.
-  public static getWrite(key: object): GlobalSsoProviderWrite | undefined {
-    return GlobalSsoProviderChanges.writes.get(key);
+  public static getWrite<TModel extends BaseModel>(
+    written: UpdateBy<TModel> | DeleteBy<TModel> | CreateBy<TModel>,
+  ): GlobalSsoProviderWrite | undefined {
+    return GlobalSsoProviderChanges.writes.get(keyOf(written));
   }
 
   /*
@@ -515,7 +530,7 @@ export default class GlobalSsoProviderChanges {
    * the write is refused.
    */
   private static async lockAndCheck(data: {
-    key: object;
+    key: WriteKey;
     work: () => Promise<Omit<GlobalSsoProviderWrite, "locks">>;
   }): Promise<GlobalSsoProviderWrite> {
     const locks: Array<SemaphoreMutex> =
@@ -530,11 +545,10 @@ export default class GlobalSsoProviderChanges {
         locks,
       };
 
-      const stranded: StrandedProjects = await SsoSignInWays.findStrandedProjects(
-        {
+      const stranded: StrandedProjects =
+        await SsoSignInWays.findStrandedProjects({
           globalProviders: write.reachChanges,
-        },
-      );
+        });
 
       if (stranded.count > 0) {
         throw new BadDataException(getGlobalChangeRefusalMessage(stranded));
@@ -578,11 +592,13 @@ export default class GlobalSsoProviderChanges {
         ids: Array.from(providerIds),
       });
 
-    const attachments: Map<string, Array<AttachmentRow>> =
-      await GlobalSsoProviderChanges.readAttachments({
-        providerType: data.providerType,
-        providerIds: Array.from(providerIds),
-      });
+    const attachments: Map<
+      string,
+      Array<AttachmentRow>
+    > = await GlobalSsoProviderChanges.readAttachments({
+      providerType: data.providerType,
+      providerIds: Array.from(providerIds),
+    });
 
     const leaving: Set<string> = new Set<string>(
       data.before.map((row: AttachmentRow): string => {
@@ -753,7 +769,8 @@ export default class GlobalSsoProviderChanges {
       providers.push({
         id,
         isEnabled: record["isEnabled"] === true,
-        restrictToAttachedProjects: record["restrictToAttachedProjects"] === true,
+        restrictToAttachedProjects:
+          record["restrictToAttachedProjects"] === true,
       });
     }
 

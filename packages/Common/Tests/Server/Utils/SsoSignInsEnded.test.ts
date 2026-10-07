@@ -31,9 +31,9 @@ const standing: (
 
 describe("whether a provider vouches for a sign-in it gave", () => {
   test("a provider that is on and was never turned off vouches for every sign-in it gave, dated or not", () => {
-    expect(
-      SsoSignInsEnded.doesProviderVouchFor(standing(true, null), 0),
-    ).toBe(true);
+    expect(SsoSignInsEnded.doesProviderVouchFor(standing(true, null), 0)).toBe(
+      true,
+    );
     expect(
       SsoSignInsEnded.doesProviderVouchFor(
         standing(true, null),
@@ -63,10 +63,7 @@ describe("whether a provider vouches for a sign-in it gave", () => {
   });
 
   test("turned off and on again, it vouches only for the sign-ins it gave since", () => {
-    const onAgain: SsoProviderSignInStanding = standing(
-      true,
-      TURNED_OFF_AT_MS,
-    );
+    const onAgain: SsoProviderSignInStanding = standing(true, TURNED_OFF_AT_MS);
 
     expect(
       SsoSignInsEnded.doesProviderVouchFor(onAgain, TURNED_OFF_AT_MS - 1),
@@ -113,9 +110,9 @@ describe("reading when a provider's sign-ins ended", () => {
   });
 
   test("a stored time reads as milliseconds, as a Date or as text", () => {
-    expect(
-      SsoSignInsEnded.toSignInsEndedAtMs(new Date(TURNED_OFF_AT_MS)),
-    ).toBe(TURNED_OFF_AT_MS);
+    expect(SsoSignInsEnded.toSignInsEndedAtMs(new Date(TURNED_OFF_AT_MS))).toBe(
+      TURNED_OFF_AT_MS,
+    );
     expect(
       SsoSignInsEnded.toSignInsEndedAtMs(
         new Date(TURNED_OFF_AT_MS).toISOString(),
@@ -133,9 +130,7 @@ describe("the switch a write sets", () => {
     expect(SsoSignInsEnded.getWrittenIsEnabled({ isEnabled: false })).toBe(
       false,
     );
-    expect(SsoSignInsEnded.getWrittenIsEnabled({ isEnabled: true })).toBe(
-      true,
-    );
+    expect(SsoSignInsEnded.getWrittenIsEnabled({ isEnabled: true })).toBe(true);
     expect(
       SsoSignInsEnded.getWrittenIsEnabled({ name: "Renamed" }),
     ).toBeUndefined();
@@ -147,7 +142,9 @@ describe("the switch a write sets", () => {
     expect(
       SsoSignInsEnded.getWrittenIsEnabled({ isEnabled: "false" }),
     ).toBeUndefined();
-    expect(SsoSignInsEnded.getWrittenIsEnabled({ isEnabled: 0 })).toBeUndefined();
+    expect(
+      SsoSignInsEnded.getWrittenIsEnabled({ isEnabled: 0 }),
+    ).toBeUndefined();
   });
 
   test("only the write's own field counts, never one it inherits", () => {
@@ -270,8 +267,10 @@ describe("a write that turns a provider off writes when, in the same write", () 
     expect(writtenEndOf(updateBy)).toBeInstanceOf(Date);
     expect(findAllBy).toHaveBeenCalledTimes(1);
 
-    const read: Record<string, unknown> = findAllBy.mock
-      .calls[0]![0] as Record<string, unknown>;
+    const read: Record<string, unknown> = findAllBy.mock.calls[0]![0] as Record<
+      string,
+      unknown
+    >;
     expect(read["query"]).toEqual({ _id: "provider" });
     expect(read["limit"]).toBe(1);
     expect(read["skip"]).toBe(0);
@@ -280,9 +279,7 @@ describe("a write that turns a provider off writes when, in the same write", () 
   });
 
   test("and every one of them off already keeps its time", async () => {
-    const { service } = serviceOver([
-      { _id: "provider", isEnabled: false },
-    ]);
+    const { service } = serviceOver([{ _id: "provider", isEnabled: false }]);
     const updateBy: UpdateBy<BaseModel> = updateOf({ isEnabled: false });
 
     await SsoSignInsEnded.stampWhenTurnedOff({ service, updateBy });

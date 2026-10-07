@@ -308,9 +308,10 @@ describe("SSO requirement writes go through unchanged in every edition", () => {
      * in SsoRequirementChanges.test.ts). Here one does: only the edition and
      * the plan are under test.
      */
-    getJestSpyOn(ProjectSsoProviderChanges, "lockSignInChange").mockResolvedValue(
-      [],
-    );
+    getJestSpyOn(
+      ProjectSsoProviderChanges,
+      "lockSignInChange",
+    ).mockResolvedValue([]);
     getJestSpyOn(SsoSignInWays, "findStrandedProjects").mockResolvedValue({
       firstProjects: [],
       count: 0,

@@ -391,9 +391,7 @@ describe("isGlobalSsoTokenAuthorizedForProject - a provider turned off and on ag
   const tokenDataOf: (providerType: SsoProviderType) => JSONWebTokenData = (
     providerType: SsoProviderType,
   ): JSONWebTokenData => {
-    return decodeToken(
-      mintGlobalToken({ userId, providerId, providerType }),
-    );
+    return decodeToken(mintGlobalToken({ userId, providerId, providerType }));
   };
 
   const onAgainSince: (signInsEndedAtMs: number) => GlobalProviderTrust = (

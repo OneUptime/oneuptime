@@ -191,6 +191,8 @@ describe("the upgrade notes", () => {
     expect(page).toContain(
       "[Global SSO](/docs/identity/global-sso#turning-a-provider-off-or-deleting-it)",
     );
-    expect(page).toContain("[Status Pages](/docs/status-pages/index#sso-and-oidc)");
+    expect(page).toContain(
+      "[Status Pages](/docs/status-pages/index#sso-and-oidc)",
+    );
   });
 });

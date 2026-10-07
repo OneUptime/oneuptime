@@ -189,9 +189,7 @@ export function stopsReaching(
   change: GlobalProviderReachChange,
   projectId: string,
 ): boolean {
-  return (
-    reaches(change.before, projectId) && !reaches(change.after, projectId)
-  );
+  return reaches(change.before, projectId) && !reaches(change.after, projectId);
 }
 
 /*
@@ -394,7 +392,11 @@ export default class SsoSignInWays {
 
     const result: StrandedProjects = { firstProjects: [], count: 0 };
 
-    if (explicitProjectIds.size === 0 && !losesEverywhere && !turnsOnServerRule) {
+    if (
+      explicitProjectIds.size === 0 &&
+      !losesEverywhere &&
+      !turnsOnServerRule
+    ) {
       return result;
     }
 
@@ -405,29 +407,32 @@ export default class SsoSignInWays {
 
     const seen: Set<string> = new Set<string>();
 
-    const evaluate: (projects: Array<CandidateProject>) => Promise<void> =
-      async (projects: Array<CandidateProject>): Promise<void> => {
-        const fresh: Array<CandidateProject> = projects.filter(
-          (project: CandidateProject): boolean => {
-            if (seen.has(project.id)) {
-              return false;
-            }
+    const evaluate: (
+      projects: Array<CandidateProject>,
+    ) => Promise<void> = async (
+      projects: Array<CandidateProject>,
+    ): Promise<void> => {
+      const fresh: Array<CandidateProject> = projects.filter(
+        (project: CandidateProject): boolean => {
+          if (seen.has(project.id)) {
+            return false;
+          }
 
-            seen.add(project.id);
-            return true;
-          },
-        );
+          seen.add(project.id);
+          return true;
+        },
+      );
 
-        await SsoSignInWays.evaluateProjects({
-          projects: fresh,
-          facts,
-          takenAwayByProject,
-          reachChanges,
-          projectRules,
-          turnsOnServerRule,
-          result,
-        });
-      };
+      await SsoSignInWays.evaluateProjects({
+        projects: fresh,
+        facts,
+        takenAwayByProject,
+        reachChanges,
+        projectRules,
+        turnsOnServerRule,
+        result,
+      });
+    };
 
     const explicitIds: Array<string> = Array.from(explicitProjectIds);
 
@@ -491,7 +496,9 @@ export default class SsoSignInWays {
 
       for (const reachChange of data.reachChanges) {
         if (stopsReaching(reachChange, project.id)) {
-          takenAway.add(wayKey(reachChange.providerType, reachChange.providerId));
+          takenAway.add(
+            wayKey(reachChange.providerType, reachChange.providerId),
+          );
         }
       }
 
@@ -544,8 +551,10 @@ export default class SsoSignInWays {
         return entry.project.id;
       });
 
-    const ownWays: Map<string, Set<string>> =
-      await SsoSignInWays.readOwnProvidersOn(needOwnWays);
+    const ownWays: Map<
+      string,
+      Set<string>
+    > = await SsoSignInWays.readOwnProvidersOn(needOwnWays);
 
     for (const entry of pending) {
       const reason: StrandReason | null = decideStrandReason({
@@ -853,23 +862,25 @@ class SignInFacts {
    * providers it changes, the attachments as they are for the rest.
    */
   private async readGlobalProviders(): Promise<Array<LoadedGlobalProvider>> {
-    const [samlProviders, oidcProviders]: [Array<GlobalSso>, Array<GlobalOidc>] =
-      await Promise.all([
-        GlobalSsoService.findBy({
-          query: { isEnabled: true },
-          select: { _id: true, restrictToAttachedProjects: true },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          props: { isRoot: true },
-        }),
-        GlobalOidcService.findBy({
-          query: { isEnabled: true },
-          select: { _id: true, restrictToAttachedProjects: true },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          props: { isRoot: true },
-        }),
-      ]);
+    const [samlProviders, oidcProviders]: [
+      Array<GlobalSso>,
+      Array<GlobalOidc>,
+    ] = await Promise.all([
+      GlobalSsoService.findBy({
+        query: { isEnabled: true },
+        select: { _id: true, restrictToAttachedProjects: true },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: { isRoot: true },
+      }),
+      GlobalOidcService.findBy({
+        query: { isEnabled: true },
+        select: { _id: true, restrictToAttachedProjects: true },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: { isRoot: true },
+      }),
+    ]);
 
     const providers: Array<LoadedGlobalProvider> = [];
 
@@ -965,7 +976,10 @@ export class GlobalProviderAttachmentRows {
     providerType: GlobalSsoProviderType;
     ids: Array<string>;
   }): Promise<
-    Map<string, Array<{ id: string; projectId: string | null; isEnabled: boolean }>>
+    Map<
+      string,
+      Array<{ id: string; projectId: string | null; isEnabled: boolean }>
+    >
   > {
     const byProvider: Map<
       string,

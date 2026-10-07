@@ -232,34 +232,36 @@ beforeEach(() => {
   const ownReads: (
     rows: () => Array<OwnProviderRow>,
     createModel: () => ProjectSso | ProjectOidc,
-  ) => (data: { query: Record<string, unknown> }) => Promise<Array<unknown>> =
-    (
-      rows: () => Array<OwnProviderRow>,
-      createModel: () => ProjectSso | ProjectOidc,
-    ): ((data: {
+  ) => (data: { query: Record<string, unknown> }) => Promise<Array<unknown>> = (
+    rows: () => Array<OwnProviderRow>,
+    createModel: () => ProjectSso | ProjectOidc,
+  ): ((data: {
+    query: Record<string, unknown>;
+  }) => Promise<Array<unknown>>) => {
+    return async (data: {
       query: Record<string, unknown>;
-    }) => Promise<Array<unknown>>) => {
-      return async (data: {
-        query: Record<string, unknown>;
-      }): Promise<Array<unknown>> => {
-        return rows()
-          .filter((row: OwnProviderRow): boolean => {
-            return (
-              asks(data.query, "projectId", row.projectId) &&
-              asks(data.query, "isEnabled", row.isEnabled)
-            );
-          })
-          .map((row: OwnProviderRow): unknown => {
-            const model: ProjectSso | ProjectOidc = createModel();
-            model.id = new ObjectID(row.id);
-            model.projectId = new ObjectID(row.projectId);
-            model.isEnabled = row.isEnabled;
-            return model;
-          });
-      };
+    }): Promise<Array<unknown>> => {
+      return rows()
+        .filter((row: OwnProviderRow): boolean => {
+          return (
+            asks(data.query, "projectId", row.projectId) &&
+            asks(data.query, "isEnabled", row.isEnabled)
+          );
+        })
+        .map((row: OwnProviderRow): unknown => {
+          const model: ProjectSso | ProjectOidc = createModel();
+          model.id = new ObjectID(row.id);
+          model.projectId = new ObjectID(row.projectId);
+          model.isEnabled = row.isEnabled;
+          return model;
+        });
     };
+  };
 
-  ownSamlReads = getJestSpyOn(ProjectSsoService, "findAllBy").mockImplementation(
+  ownSamlReads = getJestSpyOn(
+    ProjectSsoService,
+    "findAllBy",
+  ).mockImplementation(
     ownReads(
       (): Array<OwnProviderRow> => {
         return ownSaml;
@@ -283,29 +285,28 @@ beforeEach(() => {
   const globalReads: (
     rows: () => Array<GlobalProviderRow>,
     createModel: () => GlobalSso | GlobalOidc,
-  ) => (data: { query: Record<string, unknown> }) => Promise<Array<unknown>> =
-    (
-      rows: () => Array<GlobalProviderRow>,
-      createModel: () => GlobalSso | GlobalOidc,
-    ): ((data: {
+  ) => (data: { query: Record<string, unknown> }) => Promise<Array<unknown>> = (
+    rows: () => Array<GlobalProviderRow>,
+    createModel: () => GlobalSso | GlobalOidc,
+  ): ((data: {
+    query: Record<string, unknown>;
+  }) => Promise<Array<unknown>>) => {
+    return async (data: {
       query: Record<string, unknown>;
-    }) => Promise<Array<unknown>>) => {
-      return async (data: {
-        query: Record<string, unknown>;
-      }): Promise<Array<unknown>> => {
-        return rows()
-          .filter((row: GlobalProviderRow): boolean => {
-            return asks(data.query, "isEnabled", row.isEnabled);
-          })
-          .map((row: GlobalProviderRow): unknown => {
-            const model: GlobalSso | GlobalOidc = createModel();
-            model.id = new ObjectID(row.id);
-            model.isEnabled = row.isEnabled;
-            model.restrictToAttachedProjects = row.restrictToAttachedProjects;
-            return model;
-          });
-      };
+    }): Promise<Array<unknown>> => {
+      return rows()
+        .filter((row: GlobalProviderRow): boolean => {
+          return asks(data.query, "isEnabled", row.isEnabled);
+        })
+        .map((row: GlobalProviderRow): unknown => {
+          const model: GlobalSso | GlobalOidc = createModel();
+          model.id = new ObjectID(row.id);
+          model.isEnabled = row.isEnabled;
+          model.restrictToAttachedProjects = row.restrictToAttachedProjects;
+          return model;
+        });
     };
+  };
 
   getJestSpyOn(GlobalSsoService, "findBy").mockImplementation(
     globalReads(
@@ -332,33 +333,32 @@ beforeEach(() => {
     rows: () => Array<AttachmentRow>,
     providerColumn: "globalSsoId" | "globalOidcId",
     createModel: () => GlobalSsoProject | GlobalOidcProject,
-  ) => (data: { query: Record<string, unknown> }) => Promise<Array<unknown>> =
-    (
-      rows: () => Array<AttachmentRow>,
-      providerColumn: "globalSsoId" | "globalOidcId",
-      createModel: () => GlobalSsoProject | GlobalOidcProject,
-    ): ((data: {
+  ) => (data: { query: Record<string, unknown> }) => Promise<Array<unknown>> = (
+    rows: () => Array<AttachmentRow>,
+    providerColumn: "globalSsoId" | "globalOidcId",
+    createModel: () => GlobalSsoProject | GlobalOidcProject,
+  ): ((data: {
+    query: Record<string, unknown>;
+  }) => Promise<Array<unknown>>) => {
+    return async (data: {
       query: Record<string, unknown>;
-    }) => Promise<Array<unknown>>) => {
-      return async (data: {
-        query: Record<string, unknown>;
-      }): Promise<Array<unknown>> => {
-        return rows()
-          .filter((row: AttachmentRow): boolean => {
-            return asks(data.query, providerColumn, row.providerId);
-          })
-          .map((row: AttachmentRow): unknown => {
-            const model: GlobalSsoProject | GlobalOidcProject = createModel();
-            Object.assign(model, {
-              _id: row.id,
-              [providerColumn]: new ObjectID(row.providerId),
-              projectId: row.projectId ? new ObjectID(row.projectId) : null,
-              isEnabled: row.isEnabled,
-            });
-            return model;
+    }): Promise<Array<unknown>> => {
+      return rows()
+        .filter((row: AttachmentRow): boolean => {
+          return asks(data.query, providerColumn, row.providerId);
+        })
+        .map((row: AttachmentRow): unknown => {
+          const model: GlobalSsoProject | GlobalOidcProject = createModel();
+          Object.assign(model, {
+            _id: row.id,
+            [providerColumn]: new ObjectID(row.providerId),
+            projectId: row.projectId ? new ObjectID(row.projectId) : null,
+            isEnabled: row.isEnabled,
           });
-      };
+          return model;
+        });
     };
+  };
 
   getJestSpyOn(GlobalSsoProjectService, "findAllBy").mockImplementation(
     attachmentReads(
@@ -495,9 +495,9 @@ describe("where a global provider signs people in", () => {
 
 describe("the projects a provider stops reaching", () => {
   test("none when it still reaches every project, or reaches no fewer", () => {
-    expect(
-      getLostReach(REACHES_EVERY_PROJECT, REACHES_EVERY_PROJECT),
-    ).toEqual({ kind: "none" });
+    expect(getLostReach(REACHES_EVERY_PROJECT, REACHES_EVERY_PROJECT)).toEqual({
+      kind: "none",
+    });
     expect(getLostReach(reachOf(ACME), REACHES_EVERY_PROJECT)).toEqual({
       kind: "none",
     });
@@ -636,7 +636,10 @@ describe("what a project's own rule decides", () => {
 });
 
 describe("how a refusal names the projects", () => {
-  const strandedOf: (count: number, names: Array<string>) => StrandedProjects = (
+  const strandedOf: (
+    count: number,
+    names: Array<string>,
+  ) => StrandedProjects = (
     count: number,
     names: Array<string>,
   ): StrandedProjects => {
@@ -792,7 +795,12 @@ describe("the projects a change would leave with no way in", () => {
         },
       ];
       oidcAttachments = [
-        { id: id(301), providerId: GLOBAL_OIDC, projectId: BETA, isEnabled: true },
+        {
+          id: id(301),
+          providerId: GLOBAL_OIDC,
+          projectId: BETA,
+          isEnabled: true,
+        },
       ];
 
       await expect(
@@ -899,7 +907,9 @@ describe("the projects a change would leave with no way in", () => {
         providerType: SsoProviderType.ProjectSSO | SsoProviderType.ProjectOIDC;
         id: string;
       }>
-    > = new Map([[ACME, [{ providerType: SsoProviderType.ProjectSSO, id: ACME_SAML }]]]);
+    > = new Map([
+      [ACME, [{ providerType: SsoProviderType.ProjectSSO, id: ACME_SAML }]],
+    ]);
 
     const stranded: StrandedProjects = await SsoSignInWays.findStrandedProjects(
       { projectProvidersTakenAway: takeAway },
@@ -917,12 +927,16 @@ describe("the projects a change would leave with no way in", () => {
     // Another project's provider does not count; one of the project's own does.
     ownOidc = [{ id: BETA_OIDC, projectId: BETA, isEnabled: true }];
     await expect(
-      SsoSignInWays.findStrandedProjects({ projectProvidersTakenAway: takeAway }),
+      SsoSignInWays.findStrandedProjects({
+        projectProvidersTakenAway: takeAway,
+      }),
     ).resolves.toMatchObject({ count: 1 });
 
     ownOidc = [{ id: BETA_OIDC, projectId: ACME, isEnabled: true }];
     await expect(
-      SsoSignInWays.findStrandedProjects({ projectProvidersTakenAway: takeAway }),
+      SsoSignInWays.findStrandedProjects({
+        projectProvidersTakenAway: takeAway,
+      }),
     ).resolves.toEqual({ firstProjects: [], count: 0 });
   });
 
@@ -973,7 +987,12 @@ describe("the projects a change would leave with no way in", () => {
         },
       ];
       samlAttachments = [
-        { id: id(301), providerId: GLOBAL_SAML, projectId: BETA, isEnabled: true },
+        {
+          id: id(301),
+          providerId: GLOBAL_SAML,
+          projectId: BETA,
+          isEnabled: true,
+        },
       ];
 
       await expect(turnOn(ACME)).resolves.toMatchObject({ count: 1 });

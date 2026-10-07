@@ -153,13 +153,21 @@ describePostgres("status page SSO sessions against Postgres", () => {
       `INSERT INTO "${schema}"."StatusPageSSO"
        ("_id", "projectId", "statusPageId", "name", "description", "signatureMethod", "digestMethod", "signOnURL", "issuerURL", "publicCertificate", "isEnabled", "version")
        VALUES ($1, $2, $3, 'Okta', 'Synthetic', 'RSA-SHA256', 'SHA256', 'https://idp.example.com/sso', 'https://idp.example.com', 'synthetic-certificate', true, 1)`,
-      [samlProviderId.toString(), projectId.toString(), statusPageId.toString()],
+      [
+        samlProviderId.toString(),
+        projectId.toString(),
+        statusPageId.toString(),
+      ],
     );
     await query(
       `INSERT INTO "${schema}"."StatusPageOIDC"
        ("_id", "projectId", "statusPageId", "name", "description", "discoveryURL", "issuerURL", "clientId", "clientSecret", "scopes", "emailClaimName", "isEnabled", "version")
        VALUES ($1, $2, $3, 'Google', 'Synthetic', 'https://idp.example.com/.well-known/openid-configuration', 'https://idp.example.com', 'client', 'synthetic-secret', 'openid email', 'email', true, 1)`,
-      [oidcProviderId.toString(), projectId.toString(), statusPageId.toString()],
+      [
+        oidcProviderId.toString(),
+        projectId.toString(),
+        statusPageId.toString(),
+      ],
     );
   });
 
@@ -273,10 +281,9 @@ describePostgres("status page SSO sessions against Postgres", () => {
           table === "StatusPageSSO" ? "StatusPageOIDC" : "StatusPageSSO";
 
         await query(`DELETE FROM "${schema}"."${table}"`);
-        await query(
-          `UPDATE "${schema}"."${otherTable}" SET "_id" = $1`,
-          [providerId().toString()],
-        );
+        await query(`UPDATE "${schema}"."${otherTable}" SET "_id" = $1`, [
+          providerId().toString(),
+        ]);
 
         expect(await stillCounts()).toBe(false);
       });
@@ -323,7 +330,9 @@ describePostgres("status page SSO sessions against Postgres", () => {
         `UPDATE "${schema}"."StatusPageSSO" SET "isEnabled" = false, "signInsEndedAt" = $1`,
         [stampedAt],
       );
-      await query(`UPDATE "${schema}"."StatusPageOIDC" SET "isEnabled" = false`);
+      await query(
+        `UPDATE "${schema}"."StatusPageOIDC" SET "isEnabled" = false`,
+      );
 
       for (const statement of [
         END_SIGN_INS_OF_GLOBAL_SAML_PROVIDERS_OFF,
@@ -334,23 +343,28 @@ describePostgres("status page SSO sessions against Postgres", () => {
         await query(statement);
       }
 
-      const stamp: (table: string, id: ObjectID) => Promise<Date | null> =
-        async (table: string, id: ObjectID): Promise<Date | null> => {
-          const rows: Array<{ signInsEndedAt: Date | null }> = await query(
-            `SELECT "signInsEndedAt" FROM "${schema}"."${table}" WHERE "_id" = $1`,
-            [id.toString()],
-          );
-          return rows[0]!.signInsEndedAt;
-        };
+      const stamp: (
+        table: string,
+        id: ObjectID,
+      ) => Promise<Date | null> = async (
+        table: string,
+        id: ObjectID,
+      ): Promise<Date | null> => {
+        const rows: Array<{ signInsEndedAt: Date | null }> = await query(
+          `SELECT "signInsEndedAt" FROM "${schema}"."${table}" WHERE "_id" = $1`,
+          [id.toString()],
+        );
+        return rows[0]!.signInsEndedAt;
+      };
 
       for (const table of ["GlobalSSO", "GlobalOIDC"]) {
         expect(await stamp(table, globalOff)).toBeInstanceOf(Date);
         expect(await stamp(table, globalOn)).toBeNull();
       }
 
-      expect((await stamp("StatusPageSSO", samlProviderId))!.toISOString()).toBe(
-        stampedAt,
-      );
+      expect(
+        (await stamp("StatusPageSSO", samlProviderId))!.toISOString(),
+      ).toBe(stampedAt);
       expect(await stamp("StatusPageOIDC", oidcProviderId)).toBeInstanceOf(
         Date,
       );
