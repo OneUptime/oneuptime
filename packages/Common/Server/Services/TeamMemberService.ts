@@ -589,11 +589,16 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
 
   /*
    * Drops this server's cached list of the person's teams in the project
-   * (getTeamIdsForUser), so the next read asks the database. Called when
-   * their membership changes, here or on another server
-   * (RealtimeAccessChanges).
+   * (getTeamIdsForUser), or in every project when none is named, so the
+   * next read asks the database. Called when their membership changes,
+   * here or on another server (RealtimeAccessChanges).
    */
-  public forgetTeamIdsForUser(userId: ObjectID, projectId: ObjectID): void {
+  public forgetTeamIdsForUser(userId: ObjectID, projectId?: ObjectID): void {
+    if (!projectId) {
+      this.teamIdsForUserCache.deleteByPrefix(`${userId.toString()}:`);
+      return;
+    }
+
     this.teamIdsForUserCache.delete(
       `${userId.toString()}:${projectId.toString()}`,
     );

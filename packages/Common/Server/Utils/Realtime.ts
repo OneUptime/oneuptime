@@ -132,6 +132,9 @@ export default abstract class Realtime {
 
   private static nextAccessId: number = 1;
 
+  // How many sockets a change of sign-in rules asks again at once.
+  public static readonly RECHECK_CONCURRENCY: number = 20;
+
   @CaptureSpan()
   public static isInitialized(): boolean {
     logger.debug("Checking if socket server is initialized");
@@ -498,13 +501,14 @@ export default abstract class Realtime {
   }
 
   /*
-   * A project's sign-in rules changed (every project's, when projectId is
-   * absent: the instance-wide rule). Each socket this server holds in the
-   * project's rooms is asked again, as its join was (RealtimeJoinAccess),
-   * with the rules as they are now. One the project no longer lets in
-   * leaves the project's rooms and is told why, as a refused join is; the
-   * rest carry on untouched. Without this, a page that joined before the
-   * change would hear until its access token next expired.
+   * A project's sign-in rules now ask for more (every project's, when
+   * projectId is absent: the instance-wide rule). Each socket this server
+   * holds in the project's rooms is asked again, as its join was
+   * (RealtimeJoinAccess), with the rules as they are now. One the project
+   * no longer lets in leaves the project's rooms and is told why, as a
+   * refused join is; the rest carry on untouched. Without this, a page that
+   * joined before the change would hear until its access token next
+   * expired. Sockets are asked RECHECK_CONCURRENCY at a time.
    */
   @CaptureSpan()
   public static async recheckSignInRules(projectId?: string): Promise<void> {
@@ -516,41 +520,61 @@ export default abstract class Realtime {
       ? normalizeRealtimeId(projectId)
       : undefined;
 
-    const sockets: Array<Socket> =
-      (await this.socketServer.fetchSockets()) as unknown as Array<Socket>;
-
-    for (const socket of sockets) {
+    const sockets: Array<Socket> = (
+      (await this.socketServer.fetchSockets()) as unknown as Array<Socket>
+    ).filter((socket: Socket): boolean => {
       // A socket with no session has joined nothing, or has already ended.
-      if (!RealtimeSessions.getSession(socket)) {
+      return RealtimeSessions.getSession(socket) !== null;
+    });
+
+    let next: number = 0;
+
+    const askNext: () => Promise<void> = async (): Promise<void> => {
+      while (next < sockets.length) {
+        const socket: Socket = sockets[next++]!;
+
+        await this.recheckSocket(socket, wantedProjectId);
+      }
+    };
+
+    await Promise.all(
+      Array.from(
+        { length: Math.min(this.RECHECK_CONCURRENCY, sockets.length) },
+        askNext,
+      ),
+    );
+  }
+
+  // One socket, in each project of `wantedProjectId` (or every one) it listens to.
+  private static async recheckSocket(
+    socket: Socket,
+    wantedProjectId: string | undefined,
+  ): Promise<void> {
+    // The projects it listens to, as each of its rooms names them.
+    const tenantIds: Map<string, string> = new Map<string, string>();
+
+    for (const room of Array.from(socket.rooms || [])) {
+      const tenantId: string | null = this.getTenantIdOfRoom(room);
+
+      if (!tenantId) {
         continue;
       }
 
-      // The projects it listens to, as each of its rooms names them.
-      const tenantIds: Map<string, string> = new Map<string, string>();
+      const normalizedTenantId: string = normalizeRealtimeId(tenantId);
 
-      for (const room of Array.from(socket.rooms || [])) {
-        const tenantId: string | null = this.getTenantIdOfRoom(room);
-
-        if (!tenantId) {
-          continue;
-        }
-
-        const normalizedTenantId: string = normalizeRealtimeId(tenantId);
-
-        if (wantedProjectId && normalizedTenantId !== wantedProjectId) {
-          continue;
-        }
-
-        tenantIds.set(normalizedTenantId, tenantId);
+      if (wantedProjectId && normalizedTenantId !== wantedProjectId) {
+        continue;
       }
 
-      for (const tenantId of tenantIds.values()) {
-        await this.recheckSocketInProject(socket, tenantId);
+      tenantIds.set(normalizedTenantId, tenantId);
+    }
 
-        // Ended while it was asked: it holds no rooms to ask about any more.
-        if (RealtimeSessions.hasEnded(socket)) {
-          break;
-        }
+    for (const tenantId of tenantIds.values()) {
+      await this.recheckSocketInProject(socket, tenantId);
+
+      // Ended while it was asked: it holds no rooms to ask about any more.
+      if (RealtimeSessions.hasEnded(socket)) {
+        return;
       }
     }
   }
@@ -569,11 +593,13 @@ export default abstract class Realtime {
       decision = await RealtimeJoinAccess.decide(socket, tenantId);
     } catch (err) {
       /*
-       * It could not be asked (a lookup failed). Its live updates end, and
-       * the page's renewal joins again, asked from the start.
+       * It could not be asked (a lookup failed, the cache or the database
+       * briefly gone). It is left as it is: ending every session on a
+       * passing failure would send every page to sign in again at once.
+       * Its renewal, before its access token expires, joins again and is
+       * asked from the start.
        */
       logger.error(err, recheckLogAttributes);
-      RealtimeSessions.end(socket);
       return;
     }
 

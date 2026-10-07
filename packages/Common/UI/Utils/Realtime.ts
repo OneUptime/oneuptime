@@ -70,6 +70,9 @@ export default abstract class Realtime {
     typeof setTimeout
   > | null = null;
 
+  // When the waiting recovery starts, as Date.now() counts.
+  private static pendingAuthenticationRecoveryAt: number | null = null;
+
   // Recoveries in a row whose refresh did not happen.
   private static failedAuthenticationRecoveries: number = 0;
 
@@ -100,7 +103,7 @@ export default abstract class Realtime {
      * with it: renew first, so they carry on without a break.
      */
     socket.on(EventName.SessionExpiring, (): void => {
-      this.requestAuthenticationRecovery({ waitsOutCooldown: true });
+      this.requestAuthenticationRecovery({ mayLetGo: false, isUrgent: true });
     });
 
     socket.on(
@@ -327,43 +330,98 @@ export default abstract class Realtime {
       payload && typeof payload === "object" && payload["tenantId"],
     );
 
-    this.requestAuthenticationRecovery({ waitsOutCooldown: !isRefusal });
+    this.requestAuthenticationRecovery(
+      isRefusal
+        ? { mayLetGo: true, isUrgent: false }
+        : { mayLetGo: false, isUrgent: true },
+    );
   }
 
   /*
-   * Starts a refresh-and-reconnect, unless one is in flight or already
-   * waiting (that one covers this too). Inside the cool-down it waits for
-   * the cool-down to run out, or is let go when it may not wait.
+   * Starts a refresh-and-reconnect, unless one is in flight (it covers this
+   * too). Otherwise it waits: for the cool-down after the last attempt, or,
+   * after refreshes that did not happen, for the longer wait between
+   * retries. A refused subscription that may be let go is let go instead of
+   * waiting. An urgent request - the session ended, or ends in a minute -
+   * waits no longer than the cool-down, however many refreshes failed: it
+   * brings a retry that waits longer forward, and never pushes one back.
    */
   private static requestAuthenticationRecovery(options: {
-    waitsOutCooldown: boolean;
+    mayLetGo: boolean;
+    isUrgent: boolean;
   }): void {
-    if (this.isRecoveringAuthentication || this.pendingAuthenticationRecovery) {
+    if (this.isRecoveringAuthentication) {
       return;
     }
 
-    const waitMs: number = this.getAuthenticationRecoveryWaitMs();
+    const waitMs: number = options.isUrgent
+      ? this.getCooldownWaitMs()
+      : this.getAuthenticationRecoveryWaitMs();
+
+    if (this.pendingAuthenticationRecovery) {
+      const startsAt: number = Date.now() + waitMs;
+
+      if (
+        this.pendingAuthenticationRecoveryAt !== null &&
+        startsAt < this.pendingAuthenticationRecoveryAt
+      ) {
+        this.scheduleAuthenticationRecovery(waitMs);
+      }
+
+      return;
+    }
 
     if (waitMs > 0) {
-      if (!options.waitsOutCooldown) {
+      if (options.mayLetGo) {
         return;
       }
 
-      const pending: ReturnType<typeof setTimeout> = setTimeout((): void => {
-        this.pendingAuthenticationRecovery = null;
-        this.requestAuthenticationRecovery({ waitsOutCooldown: true });
-      }, waitMs);
-
-      this.pendingAuthenticationRecovery = pending;
+      this.scheduleAuthenticationRecovery(waitMs);
       return;
     }
 
+    this.startAuthenticationRecovery();
+  }
+
+  // The one waiting recovery: starts after `waitMs`, replacing any other.
+  private static scheduleAuthenticationRecovery(waitMs: number): void {
+    if (this.pendingAuthenticationRecovery) {
+      clearTimeout(this.pendingAuthenticationRecovery);
+    }
+
+    this.pendingAuthenticationRecoveryAt = Date.now() + waitMs;
+
+    this.pendingAuthenticationRecovery = setTimeout((): void => {
+      this.pendingAuthenticationRecovery = null;
+      this.pendingAuthenticationRecoveryAt = null;
+
+      if (!this.isRecoveringAuthentication) {
+        this.startAuthenticationRecovery();
+      }
+    }, waitMs);
+  }
+
+  private static startAuthenticationRecovery(): void {
     this.isRecoveringAuthentication = true;
     this.lastAuthenticationRecoveryAt = Date.now();
 
     this.recoverAuthentication().catch(() => {
       // recoverAuthentication settles every outcome itself.
     });
+  }
+
+  // How long until the cool-down after the last attempt runs out.
+  private static getCooldownWaitMs(): number {
+    if (this.lastAuthenticationRecoveryAt === null) {
+      return 0;
+    }
+
+    return Math.max(
+      0,
+      this.lastAuthenticationRecoveryAt +
+        this.AUTHENTICATION_RECOVERY_COOLDOWN_IN_MS -
+        Date.now(),
+    );
   }
 
   /*
@@ -426,6 +484,6 @@ export default abstract class Realtime {
      * fails.
      */
     this.failedAuthenticationRecoveries++;
-    this.requestAuthenticationRecovery({ waitsOutCooldown: true });
+    this.requestAuthenticationRecovery({ mayLetGo: false, isUrgent: false });
   }
 }

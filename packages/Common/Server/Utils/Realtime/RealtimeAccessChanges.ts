@@ -370,13 +370,11 @@ export default class RealtimeAccessChanges {
         case RealtimeAccessChangeKind.PermissionsChanged: {
           RealtimeReaders.forgetUser(change.userId, change.projectId);
 
-          // Their teams, for the Owned scope.
-          if (change.projectId) {
-            RealtimeAccessChanges.getTeamMemberService().forgetTeamIdsForUser(
-              new ObjectID(change.userId),
-              new ObjectID(change.projectId),
-            );
-          }
+          // Their teams, for the Owned scope: in the project, or in every one.
+          RealtimeAccessChanges.getTeamMemberService().forgetTeamIdsForUser(
+            new ObjectID(change.userId),
+            change.projectId ? new ObjectID(change.projectId) : undefined,
+          );
 
           return;
         }
@@ -405,7 +403,9 @@ export default class RealtimeAccessChanges {
         case RealtimeAccessChangeKind.SignInRulesChanged: {
           // The rules are read again here before any socket is asked again.
           if (change.projectId) {
-            RealtimeAccessChanges.getProjectService().forgetSignInRules();
+            RealtimeAccessChanges.getProjectService().forgetSignInRules(
+              new ObjectID(change.projectId),
+            );
           } else {
             RealtimeAccessChanges.getGlobalConfigService().forgetSignInRules();
           }

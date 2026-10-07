@@ -477,12 +477,18 @@ export class Service extends DatabaseService<Model> {
         .requireSsoForLogin !== undefined
     ) {
       this.requireSsoForLoginCache.clear();
+    }
 
-      /*
-       * Every server reads the rule again, and the live updates already
-       * open are asked again as their joins were, so a page that no longer
-       * meets it stops hearing at once, as its API requests are refused.
-       */
+    /*
+     * Turned on: every server reads the rule again, and the live updates
+     * already open are asked again as their joins were, so a page that no
+     * longer meets it stops hearing at once, as its API requests are
+     * refused. Turned off, it refuses nobody, so nobody is asked again.
+     */
+    if (
+      (onUpdate.updateBy.data as { requireSsoForLogin?: unknown })
+        .requireSsoForLogin === true
+    ) {
       RealtimeAccessChanges.announce({
         kind: RealtimeAccessChangeKind.SignInRulesChanged,
       });

@@ -213,7 +213,11 @@ describe("RealtimeAccessChanges", () => {
       });
 
       expect(forgetUser).toHaveBeenCalledWith(USER, undefined);
-      expect(mockForgetTeamIdsForUser).not.toHaveBeenCalled();
+      // Their teams in every project, for the Owned scope.
+      expect(mockForgetTeamIdsForUser).toHaveBeenCalledWith(
+        new ObjectID(USER),
+        undefined,
+      );
     });
 
     test("an account change (blocked, server admin) forgets whether they are blocked and every entry of theirs", () => {
@@ -326,6 +330,10 @@ describe("RealtimeAccessChanges", () => {
       });
 
       expect(asked).toEqual([PROJECT]);
+      // That project's rules only.
+      expect(mockForgetProjectSignInRules).toHaveBeenCalledWith(
+        new ObjectID(PROJECT),
+      );
       expect(mockForgetInstanceSignInRules).not.toHaveBeenCalled();
       expect(client.changesPublished()).toEqual([
         {

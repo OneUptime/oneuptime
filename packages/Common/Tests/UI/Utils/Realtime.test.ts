@@ -993,6 +993,67 @@ describe("Realtime (UI) subscriptions", () => {
       expect(mockSocket.connectCalls).toBe(1);
     });
 
+    test("a notice while a long retry wait is pending brings the attempt forward to the cool-down", async () => {
+      jest.useFakeTimers({ now: 1_700_000_000_000 });
+
+      Realtime.init();
+      mockSocket.acceptConnection();
+
+      refreshSession.mockResolvedValue(false);
+
+      // Three refreshes in a row that do not happen: the next waits 4 minutes.
+      mockSocket.deliver(EventName.AuthenticationRequired, {});
+      await flushMicrotasks();
+      jest.advanceTimersByTime(Realtime.AUTHENTICATION_RECOVERY_COOLDOWN_IN_MS);
+      await flushMicrotasks();
+      jest.advanceTimersByTime(
+        Realtime.AUTHENTICATION_RECOVERY_COOLDOWN_IN_MS * 2,
+      );
+      await flushMicrotasks();
+
+      expect(refreshSession).toHaveBeenCalledTimes(3);
+
+      refreshSession.mockResolvedValue(true);
+
+      // The token expires in a minute: waiting 4 minutes would be too late.
+      mockSocket.deliver(EventName.SessionExpiring, {});
+      await flushMicrotasks();
+
+      jest.advanceTimersByTime(Realtime.AUTHENTICATION_RECOVERY_COOLDOWN_IN_MS);
+      await flushMicrotasks();
+
+      expect(refreshSession).toHaveBeenCalledTimes(4);
+      expect(mockSocket.connectCalls).toBe(1);
+    });
+
+    test("a refusal never pushes a waiting attempt back, or brings it forward", async () => {
+      jest.useFakeTimers({ now: 1_700_000_000_000 });
+
+      Realtime.init();
+      mockSocket.acceptConnection();
+
+      refreshSession.mockResolvedValue(false);
+
+      mockSocket.deliver(EventName.AuthenticationRequired, {});
+      await flushMicrotasks();
+
+      // A retry now waits for the cool-down.
+      jest.advanceTimersByTime(10_000);
+
+      mockSocket.deliver(
+        EventName.AuthenticationRequired,
+        requestFor("Incident", ModelEventType.Create),
+      );
+      await flushMicrotasks();
+
+      jest.advanceTimersByTime(
+        Realtime.AUTHENTICATION_RECOVERY_COOLDOWN_IN_MS - 10_000,
+      );
+      await flushMicrotasks();
+
+      expect(refreshSession).toHaveBeenCalledTimes(2);
+    });
+
     test("a notice inside the cool-down renews when the cool-down runs out", async () => {
       jest.useFakeTimers({ now: 1_700_000_000_000 });
 

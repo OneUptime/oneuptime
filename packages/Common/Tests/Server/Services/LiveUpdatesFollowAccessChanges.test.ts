@@ -591,6 +591,33 @@ describe("live updates follow every change of access", () => {
       expect(order[order.length - 1]).toBe("announced");
     });
 
+    test("a change in every project forgets the person's team lists in every project, and nobody else's", async () => {
+      teamRows.mockResolvedValue([member(TEAM)]);
+
+      // Nothing left over from another test: each list is read once first.
+      TeamMemberService.forgetTeamIdsForUser(USER, PROJECT);
+      TeamMemberService.forgetTeamIdsForUser(USER, OTHER_PROJECT);
+      TeamMemberService.forgetTeamIdsForUser(OTHER_USER, PROJECT);
+
+      await TeamMemberService.getTeamIdsForUser(USER, PROJECT);
+      await TeamMemberService.getTeamIdsForUser(USER, OTHER_PROJECT);
+      await TeamMemberService.getTeamIdsForUser(OTHER_USER, PROJECT);
+
+      expect(teamRows).toHaveBeenCalledTimes(3);
+
+      RealtimeAccessChanges.announce({
+        kind: RealtimeAccessChangeKind.PermissionsChanged,
+        userId: USER.toString(),
+      });
+
+      await TeamMemberService.getTeamIdsForUser(USER, PROJECT);
+      await TeamMemberService.getTeamIdsForUser(USER, OTHER_PROJECT);
+      await TeamMemberService.getTeamIdsForUser(OTHER_USER, PROJECT);
+
+      // Theirs are read again; the other person's still come from the cache.
+      expect(teamRows).toHaveBeenCalledTimes(5);
+    });
+
     test("a membership change in a project is announced once, for that project", async () => {
       await TeamMemberService.refreshTokens(USER, PROJECT);
 
@@ -647,6 +674,28 @@ describe("live updates follow every change of access", () => {
           projectId: PROJECT.toString(),
         },
       ]);
+    });
+
+    test("turning Require SSO off, or clearing the pinned provider, asks nobody again: it refuses nobody", async () => {
+      await projectHooks.onUpdateSuccess(
+        updateOf<User>({ requireSsoForLogin: false }),
+        [PROJECT],
+      );
+      await projectHooks.onUpdateSuccess(
+        updateOf<User>({ requireSsoWithSsoProviderId: null }),
+        [PROJECT],
+      );
+
+      expect(announced).toEqual([]);
+    });
+
+    test("turning the instance-wide rule off asks nobody again", async () => {
+      await instanceHooks.onUpdateSuccess(
+        updateOf<User>({ requireSsoForLogin: false }),
+        [TEAM],
+      );
+
+      expect(announced).toEqual([]);
     });
 
     test("a project update that touches neither announces nothing", async () => {

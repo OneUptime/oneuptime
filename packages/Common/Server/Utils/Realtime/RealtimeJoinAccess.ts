@@ -205,9 +205,9 @@ export default class RealtimeJoinAccess {
   }
 
   /*
-   * getAccessTokenTimes for a socket's handshake request, from what its
-   * first join read when the token is the same one (it always is: the
-   * handshake does not change).
+   * When the access token of a socket's handshake was issued and when it
+   * expires (readAccessTokenTimes), from what its first join read when the
+   * token is the same one (it always is: the handshake does not change).
    */
   private static getAccessTokenTimesOfSocket(
     socket: RealtimeHandshakeSocket,
@@ -241,26 +241,10 @@ export default class RealtimeJoinAccess {
   }
 
   /*
-   * When the access token the request carries was issued and when it stops
-   * being accepted, as Date.now() counts, or null when it does not verify
-   * or says neither. The token is the one readRequestSession read.
+   * When an access token was issued and when it stops being accepted, as
+   * Date.now() counts, or null when it does not verify or says neither. The
+   * token is the one readRequestSession read.
    */
-  public static getAccessTokenTimes(
-    request: OneUptimeRequest,
-  ): RealtimeAccessTokenTimes | null {
-    const accessToken: string | undefined =
-      RealtimeJoinAccess.getUserMiddleware().getAccessTokenFromExpressRequest(
-        request,
-      );
-
-    if (!accessToken) {
-      return null;
-    }
-
-    return RealtimeJoinAccess.readAccessTokenTimes(accessToken);
-  }
-
-  // The times an access token states, once it verifies; null otherwise.
   private static readAccessTokenTimes(
     accessToken: string,
   ): RealtimeAccessTokenTimes | null {

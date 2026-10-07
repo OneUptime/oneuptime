@@ -1120,7 +1120,7 @@ describe("Realtime (server) ListenToModelEvent", () => {
       expect(GlobalConfigService.forgetSignInRules).toHaveBeenCalled();
     });
 
-    test("a socket that cannot be asked again (a lookup fails) ends its live updates, and the page renews", async () => {
+    test("a socket that cannot be asked again (a lookup fails) is left as it is: its renewal asks again", async () => {
       const socket: FakeServerSocket = new FakeServerSocket(
         cookieWith(validToken()),
       );
@@ -1137,9 +1137,61 @@ describe("Realtime (server) ListenToModelEvent", () => {
       });
       await settle();
 
-      expect(socket.subscribedRooms()).toEqual([]);
-      expect(socket.authenticationRequiredEvents()).toEqual([{}]);
-      expect(RealtimeSessions.hasEnded(socket)).toBe(true);
+      // A passing failure does not end every session on the server at once.
+      expect(socket.subscribedRooms()).toEqual([ROOM_ID, OTHER_ROOM_ID]);
+      expect(socket.emitted).toEqual([]);
+      expect(RealtimeSessions.hasEnded(socket)).toBe(false);
+    });
+
+    test("sockets are asked RECHECK_CONCURRENCY at a time, and every one is asked", async () => {
+      const sockets: Array<FakeServerSocket> = [];
+
+      for (
+        let index: number = 0;
+        index < Realtime.RECHECK_CONCURRENCY + 5;
+        index++
+      ) {
+        const socket: FakeServerSocket = new FakeServerSocket(
+          cookieWith(validToken()),
+        );
+
+        heldSockets.push(socket);
+        await listen(socket);
+        sockets.push(socket);
+      }
+
+      let inFlight: number = 0;
+      let mostInFlight: number = 0;
+      let asked: number = 0;
+
+      tenantPermissionLookup.mockImplementation(
+        async (
+          _userId: ObjectID,
+          projectId: ObjectID,
+        ): Promise<UserTenantAccessPermission> => {
+          inFlight++;
+          asked++;
+          mostInFlight = Math.max(mostInFlight, inFlight);
+
+          await new Promise<void>((resolve: () => void) => {
+            setTimeout(resolve, 5);
+          });
+
+          inFlight--;
+
+          return {
+            projectId: projectId,
+            permissions: [],
+            _type: "UserTenantAccessPermission",
+          } as unknown as UserTenantAccessPermission;
+        },
+      );
+
+      await Realtime.recheckSignInRules(TENANT_ID);
+
+      expect(asked).toBe(sockets.length);
+      expect(mostInFlight).toBeLessThanOrEqual(Realtime.RECHECK_CONCURRENCY);
+      expect(mostInFlight).toBeGreaterThan(1);
     });
 
     test("a socket whose session has ended is not asked again", async () => {
