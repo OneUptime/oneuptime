@@ -217,10 +217,20 @@ export default class ModelPermission {
       return query;
     }
 
+    /*
+     * The two scopes do not depend on each other: they are worked out
+     * together, sharing the per-request lookups (scopeResolveCache).
+     */
+    const [readScope, writeScope]: [TelemetryReadScope, TelemetryReadScope] =
+      await Promise.all([
+        this.getReadScope(modelType, props, DatabaseRequestType.Read),
+        this.getReadScope(modelType, props, type),
+      ]);
+
     // One condition: the resources both scopes reach.
     const scope: TelemetryReadScope = TelemetryReadScopeUtil.getScopeOfBoth(
-      await this.getReadScope(modelType, props, DatabaseRequestType.Read),
-      await this.getReadScope(modelType, props, type),
+      readScope,
+      writeScope,
     );
 
     return TelemetryReadScopeUtil.applyToQuery(
@@ -234,8 +244,11 @@ export default class ModelPermission {
    * A WRITE NEEDS A READ, on the table as on its rows: a caller who holds
    * none of the table's read permissions (nor its read wildcard), or whose
    * block with no labels takes one of them away, changes and deletes none
-   * of its rows - the rule TablePermission.checkTableLevelReadForWrite holds
-   * the database models to.
+   * of its rows - the rule, and the words,
+   * TablePermission.checkTableLevelReadForWrite holds the database models to
+   * (HeldPermissionsUtil.getReadForWriteRefusal). An update runs the read's
+   * table check as well (checkReadPermission); this one comes first, so an
+   * update and a delete are refused alike.
    */
   private static checkModelLevelReadForWrite(
     modelType: AnalyticsBaseModelType,
@@ -243,51 +256,26 @@ export default class ModelPermission {
     type: DatabaseRequestType.Update | DatabaseRequestType.Delete,
   ): void {
     const model: BaseModel = new modelType();
-    const readPermissions: Array<Permission> = this.getModelPermissions(
-      modelType,
-      DatabaseRequestType.Read,
-    );
-    const held: HeldPermissions = ModelPermission.getHeldPermissions(props);
 
-    const blockedReadPermission: Permission | undefined = readPermissions.find(
-      (permission: Permission): boolean => {
-        return held.blocked.includes(permission);
-      },
-    );
-
-    if (blockedReadPermission) {
-      throw new NotAuthorizedException(
-        `You are not authorized to ${type} ${model.singularName} because you may not read it: ${blockedReadPermission} is in your team's permission block list.`,
-      );
-    }
-
-    if (
-      HeldPermissionsUtil.isGrantedAny(held, readPermissions, {
+    const refusal: string | null = HeldPermissionsUtil.getReadForWriteRefusal(
+      ModelPermission.getHeldPermissions(props),
+      {
+        readPermissions: this.getModelPermissions(
+          modelType,
+          DatabaseRequestType.Read,
+        ),
         wildcard: HeldPermissionsUtil.getModelWildcard({
           isOperationalResource: model.isOperationalResource,
           operation: DatabaseRequestType.Read,
         }),
-      })
-    ) {
-      return;
-    }
-
-    const titles: Array<string> =
-      PermissionHelper.getPermissionTitles(readPermissions);
-
-    if (titles.length === 0) {
-      throw new NotAuthorizedException(
-        `${type} on ${model.singularName} is not allowed: nobody may read it.`,
-      );
-    }
-
-    throw new NotAuthorizedException(
-      `You do not have permissions to ${type} ${
-        model.singularName
-      }: changing or deleting a record needs permission to read it too. You need one of these permissions: ${titles.join(
-        ", ",
-      )}`,
+        recordName: model.singularName,
+        operation: type,
+      },
     );
+
+    if (refusal) {
+      throw new NotAuthorizedException(refusal);
+    }
   }
 
   /*

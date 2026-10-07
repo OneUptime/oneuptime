@@ -492,6 +492,58 @@ export default class HeldPermissionsUtil {
     return isOwnListProjectWide ? blocking : [...blocking, wildcard];
   }
 
+  /*
+   * A WRITE NEEDS A READ, on the table: why a caller may change or delete
+   * none of a table's records because they may read none of them - one of
+   * its read permissions taken away by a block with no labels, or none of
+   * them (nor the read wildcard) held - or null when they may read it. The
+   * one rule, and the one wording, the database models
+   * (TablePermission.checkTableLevelReadForWrite) and the analytics models
+   * (AnalyticsDatabase/ModelPermission) refuse a write with.
+   */
+  public static getReadForWriteRefusal(
+    held: HeldPermissions,
+    data: {
+      readPermissions: ReadonlyArray<Permission>;
+      wildcard: Permission | null | undefined;
+      // The record's name, as the refusal names it.
+      recordName: string;
+      // The write: "update", "delete".
+      operation: string;
+    },
+  ): string | null {
+    const blockedReadPermission: Permission | undefined =
+      data.readPermissions.find((permission: Permission): boolean => {
+        return held.blocked.includes(permission);
+      });
+
+    if (blockedReadPermission) {
+      return `You are not authorized to ${data.operation} ${data.recordName} because you may not read it: ${blockedReadPermission} is in your team's permission block list.`;
+    }
+
+    if (
+      HeldPermissionsUtil.isGrantedAny(held, data.readPermissions, {
+        wildcard: data.wildcard,
+      })
+    ) {
+      return null;
+    }
+
+    const titles: Array<string> = PermissionHelper.getPermissionTitles([
+      ...data.readPermissions,
+    ]);
+
+    if (titles.length === 0) {
+      return `${data.operation} on ${data.recordName} is not allowed: nobody may read it.`;
+    }
+
+    return `You do not have permissions to ${data.operation} ${
+      data.recordName
+    }: changing or deleting a record needs permission to read it too. You need one of these permissions: ${titles.join(
+      ", ",
+    )}`;
+  }
+
   // The *AllOperationalResources wildcard for an operation.
   public static getOperationalWildcard(
     operation: PermissionOperation | string,

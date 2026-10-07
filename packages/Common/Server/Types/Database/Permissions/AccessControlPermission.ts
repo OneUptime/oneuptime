@@ -853,10 +853,12 @@ export default class AccessControlPermission {
 
     return ArrayUtil.removeDuplicatesFromObjectIDArray(
       this.getAccessControlIdsByPermissions(
-        HeldPermissionsUtil.getGrantingPermissions(context.held, {
-          modelPermissions: TablePermission.getTablePermission(modelType, type),
-          wildcard: TablePermission.getModelWildcard(modelType, type),
-        }),
+        TablePermission.getGrantingPermissions(
+          modelType,
+          type,
+          props,
+          context.held,
+        ),
         context,
       ),
     );
@@ -975,16 +977,8 @@ export default class AccessControlPermission {
         PermissionHelper.getNonAccessControlPermissions(userPermissions),
       accessControlPermissions:
         PermissionHelper.getAccessControlPermissions(userPermissions),
-      // The rows the table check reads (TablePermission.getHeldPermissions).
-      held: HeldPermissionsUtil.fromRows({
-        rows: [
-          ...userPermissions,
-          ...DatabaseCommonInteractionPropsUtil.getUserPermissions(
-            props,
-            PermissionType.Block,
-          ),
-        ],
-      }),
+      // What the table check holds the caller to, read the same way.
+      held: TablePermission.getHeldPermissions(props),
     };
   }
 
