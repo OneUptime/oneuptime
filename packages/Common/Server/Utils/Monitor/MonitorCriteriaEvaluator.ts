@@ -1693,8 +1693,9 @@ ${contextBlock}
                 isFormula: component.isFormula,
               }),
             );
+          // A unit no catalog knows is shown as the exporter wrote it: text.
           const unitSuffix: string = componentUnit
-            ? ` — unit: ${componentUnit}`
+            ? ` — unit: ${escapeMarkdownValue(componentUnit)}`
             : "";
           const typeSuffix: string = component.isFormula ? " (formula)" : "";
           return `  - ${RootCauseList.code(component.alias)} = ${RootCauseList.code(component.name)}${typeSuffix}${unitSuffix}`;
@@ -1956,14 +1957,18 @@ ${contextBlock}
            */
           details.push({
             label: RootCauseList.code(component.alias),
-            value: MetricValueFormatter.format({
-              value: match.value,
-              unit: component.unit,
-              metricName: MonitorCriteriaEvaluator.metricNameForUnitHeuristics({
-                metricName: component.name,
-                isFormula: component.isFormula,
+            // A unit no catalog knows is labelled as the exporter wrote it: text.
+            value: escapeMarkdownValue(
+              MetricValueFormatter.format({
+                value: match.value,
+                unit: component.unit,
+                metricName:
+                  MonitorCriteriaEvaluator.metricNameForUnitHeuristics({
+                    metricName: component.name,
+                    isFormula: component.isFormula,
+                  }),
               }),
-            }),
+            ),
           });
         }
 
@@ -1987,11 +1992,13 @@ ${contextBlock}
 
         return {
           title: RootCauseList.code(new Date(s.timestamp).toISOString()),
-          value: `**${MetricValueFormatter.format({
-            value: s.value,
-            unit: input.unit,
-            metricName: input.unitHeuristicMetricName,
-          })}**`,
+          value: `**${escapeMarkdownValue(
+            MetricValueFormatter.format({
+              value: s.value,
+              unit: input.unit,
+              metricName: input.unitHeuristicMetricName,
+            }),
+          )}**`,
           details: details,
         };
       },
@@ -2334,7 +2341,8 @@ ${contextBlock}
    * Render the value of one resource from the worker's raw scan, in the
    * unit getPlatformMetricUnit resolves. Unemphasised: the list bolds it
    * (it is the one number on the line a reader scans for), a sentence
-   * may not.
+   * may not. Escaped for the Markdown it goes into: a unit the catalog does
+   * not know is labelled as the exporter wrote it.
    */
   private static formatPlatformMetricValue(input: {
     platform: PlatformName;
@@ -2343,16 +2351,18 @@ ${contextBlock}
     metricUnit?: string | undefined;
     attributes?: Record<string, unknown> | undefined;
   }): string {
-    return MetricValueFormatter.format({
-      value: input.value,
-      unit: MonitorCriteriaEvaluator.getPlatformMetricUnit({
-        platform: input.platform,
+    return escapeMarkdownValue(
+      MetricValueFormatter.format({
+        value: input.value,
+        unit: MonitorCriteriaEvaluator.getPlatformMetricUnit({
+          platform: input.platform,
+          metricName: input.metricName,
+          metricUnit: input.metricUnit,
+          attributes: input.attributes,
+        }),
         metricName: input.metricName,
-        metricUnit: input.metricUnit,
-        attributes: input.attributes,
       }),
-      metricName: input.metricName,
-    });
+    );
   }
 
   /**
@@ -2855,18 +2865,21 @@ ${contextBlock}
           value: value,
           ...(valueNote ? { valueNote: valueNote } : {}),
           ...(seriesLabels ? { seriesLabels: seriesLabels } : {}),
+          // Escaped: a unit no catalog knows is the exporter's own text.
           formattedValue:
             value === null
               ? "no data"
-              : MetricValueFormatter.format({
-                  value: value,
-                  unit: context?.unit,
-                  metricName:
-                    MonitorCriteriaEvaluator.metricNameForUnitHeuristics({
-                      metricName: context?.metricName,
-                      isFormula: context?.isFormula,
-                    }),
-                }),
+              : escapeMarkdownValue(
+                  MetricValueFormatter.format({
+                    value: value,
+                    unit: context?.unit,
+                    metricName:
+                      MonitorCriteriaEvaluator.metricNameForUnitHeuristics({
+                        metricName: context?.metricName,
+                        isFormula: context?.isFormula,
+                      }),
+                  }),
+                ),
         };
       },
     );

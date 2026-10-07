@@ -590,6 +590,41 @@ describe("Storage Array root cause: the affected resources list", () => {
     expect(text).not.toContain("CH1.FB3");
   });
 
+  /*
+   * A unit no catalog knows labels the value as the exporter wrote it: text
+   * a monitored system chose, so it is no tag or chat mention in the list.
+   */
+  test("a value labelled with a unit no catalog knows reads as text", () => {
+    const step: MonitorStep = stepFor({
+      alias: "vendor_metric",
+      metricName: "purefa_vendor_specific_gauge",
+      value: 0,
+    });
+
+    const text: string = render({
+      monitorStep: step,
+      dataToProcess: response({
+        monitorStep: step,
+        breakdowns: [
+          breakdown({
+            alias: "vendor_metric",
+            metricName: "purefa_vendor_specific_gauge",
+            friendlyName: "Vendor Gauge",
+            metricUnit: "<!here>",
+            resources: [resource({ objectName: "vol-enc-01" }, 7)],
+          }),
+        ],
+      }),
+    });
+
+    expect(text).toContain("`vol-enc-01`");
+    expect(text.split(WORD_JOINER).join("")).toContain("7 \\<!here>");
+    expect(text).not.toMatch(/(^|[^\\])<[A-Za-z!@#/]/m);
+    expect(SlackUtil.convertMarkdownToSlackRichText(text)).not.toMatch(
+      /<[!@#][A-Za-z]/,
+    );
+  });
+
   test("a data reduction ratio reads as a ratio, never as a percentage", () => {
     const step: MonitorStep = stepFor({
       alias: "volume_drr",
