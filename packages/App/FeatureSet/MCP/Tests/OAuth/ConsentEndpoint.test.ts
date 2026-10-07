@@ -914,19 +914,57 @@ describe("/mcp/oauth/consent", () => {
         expect(lapsesInMs).toBeLessThanOrEqual(THIRTY_DAYS_IN_MS);
       });
 
-      it("records an SSO sign-in that names no provider as the project's own, with no provider id", async () => {
+      it("does not count an SSO sign-in that names no provider: the provider that gave it cannot be asked", async () => {
         harness.setProjectSso(project, { required: true });
         harness.signIn(member, {
-          cookies: harness.projectSsoCookie(member, project),
+          cookies: harness.projectSsoCookie(member, project, {
+            ssoProviderId: null,
+            ssoProviderType: null,
+          }),
         });
 
-        expect((await approve(project)).status).toBe(200);
+        expect((await eligibilityOf(project)).refusal).toBe("sso");
+        expect((await approve(project)).status).toBe(422);
+        expectNothingWritten();
+      });
 
-        const grant: StoreRow = harness.store.onlyGrant();
+      it("does not count an SSO sign-in whose provider has been turned off, nor once it is turned on again", async () => {
+        harness.setProjectSso(project, { required: true });
+        harness.signIn(member, {
+          cookies: harness.projectSsoCookie(member, project, {
+            ssoProviderId: PROVIDER_A,
+            ssoProviderType: SsoProviderType.ProjectSSO,
+          }),
+        });
 
-        expect(grant["ssoProviderType"]).toBe(SsoProviderType.ProjectSSO);
-        expect(grant["ssoProviderId"]).toBeUndefined();
-        expect(grant["ssoExpiresAt"]).toBeInstanceOf(Date);
+        harness.turnSsoProviderOff(PROVIDER_A);
+
+        expect((await eligibilityOf(project)).refusal).toBe("sso");
+        expect((await approve(project)).status).toBe(422);
+        expectNothingWritten();
+
+        // The sign-in was given before it was turned off.
+        harness.turnSsoProviderOn(PROVIDER_A);
+
+        expect((await eligibilityOf(project)).refusal).toBe("sso");
+      });
+
+      it("does not count an SSO sign-in whose provider has been deleted", async () => {
+        harness.setProjectSso(project, { required: true });
+        harness.signIn(member, {
+          cookies: harness.projectSsoCookie(member, project, {
+            ssoProviderId: PROVIDER_B,
+            ssoProviderType: SsoProviderType.ProjectOIDC,
+          }),
+        });
+
+        expect((await eligibilityOf(project)).isEligible).toBe(true);
+
+        harness.deleteSsoProvider(PROVIDER_B);
+
+        expect((await eligibilityOf(project)).refusal).toBe("sso");
+        expect((await approve(project)).status).toBe(422);
+        expectNothingWritten();
       });
 
       it("is not satisfied by another member's SSO sign-in", async () => {
