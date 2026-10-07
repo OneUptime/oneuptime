@@ -30,6 +30,10 @@ import {
   validateFormFields,
 } from "../../../Types/Form/FormField";
 import { validateFormTargetSettings } from "../../../Types/Form/FormTargetSettings";
+import {
+  readFormTemplates,
+  validateFormTemplates,
+} from "../../../Types/Form/FormTemplate";
 import FormTargetType, {
   DEFAULT_FORM_TARGET_TYPE,
 } from "../../../Types/Form/FormTargetType";
@@ -149,6 +153,8 @@ const FORM_COLUMNS: Array<string> = [
   "shareKey",
   "targetType",
   "fields",
+  // Its templates (AddFormTemplates1799400000000).
+  "templates",
   "targetSettings",
   "successMessage",
   "ipWhitelist",
@@ -171,6 +177,7 @@ const FORM_SETTINGS_COLUMNS: Array<string> = [
   "isEnabled",
   "targetType",
   "fields",
+  "templates",
   "targetSettings",
   "successMessage",
   "ipWhitelist",
@@ -827,6 +834,46 @@ describe("Form columns", () => {
     }
   });
 
+  test("the questions' description says a question can be hidden, and how", () => {
+    const description: string =
+      model.getTableColumnMetadata("fields").description || "";
+
+    expect(description).toContain("isHidden");
+    expect(description).toContain(
+      "answered only from the template a submission started from",
+    );
+  });
+
+  test("the templates are a nullable JSON list, optional to send, titled as the dashboard titles them", () => {
+    const metadata: TableColumnMetadata =
+      model.getTableColumnMetadata("templates");
+
+    expect(metadata.type).toBe(TableColumnType.JSON);
+    expect(metadata.required).toBeFalsy();
+    expect(metadata.title).toBe("Templates");
+    expect(columnArgs(Form, "templates").options).toMatchObject({
+      type: ColumnType.JSON,
+      nullable: true,
+    });
+    expect(columnArgs(Form, "templates").options.default).toBeUndefined();
+
+    for (const property of ["id", "name", "isDefault", "answers"]) {
+      expect(metadata.description).toContain(property);
+    }
+
+    expect(metadata.description).toContain("?template=<id>");
+  });
+
+  test("the example templates in the API reference are templates the server accepts", () => {
+    const example: unknown = model.getTableColumnMetadata("templates").example;
+
+    expect(Array.isArray(example)).toBe(true);
+    expect(validateFormTemplates(example)).toBeNull();
+    expect(readFormTemplates(example)).toHaveLength(
+      (example as Array<unknown>).length,
+    );
+  });
+
   test("the example questions in the API reference are questions the server accepts", () => {
     const example: unknown = model.getTableColumnMetadata("fields").example;
 
@@ -990,6 +1037,7 @@ describe("Form in the published API", () => {
       "isEnabled",
       "targetType",
       "fields",
+      "templates",
       "targetSettings",
     ]) {
       expect(requiredOf(create)).not.toContain(column);

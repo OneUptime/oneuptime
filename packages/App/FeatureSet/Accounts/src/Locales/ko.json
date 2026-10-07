@@ -182,7 +182,10 @@
     "reference": "참조 번호는 {{reference}}입니다.",
     "submitAnother": "다른 응답 제출",
     "retryAfter": "{{when}}에 다시 시도할 수 있습니다.",
-    "tryAgain": "다시 시도"
+    "tryAgain": "다시 시도",
+    "templateLabel": "템플릿에서 시작",
+    "templateDescription": "템플릿을 고르면 양식이 채워집니다. 제출하기 전에 어떤 답변이든 바꿀 수 있습니다.",
+    "templateNone": "템플릿 없음"
   },
   "errors": {
     "forbidden": {

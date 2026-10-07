@@ -137,7 +137,11 @@ const isAnswerValue: IsAnswerValueFunction = (value: unknown): boolean => {
   return isAnswerScalar(value);
 };
 
-type DefineFunction = (target: JSONObject, key: string, value: JSONValue) => void;
+type DefineFunction = (
+  target: JSONObject,
+  key: string,
+  value: JSONValue,
+) => void;
 
 /*
  * Defined, not assigned: a key such as "__proto__" would set the object's
@@ -366,7 +370,9 @@ export const validateFormTemplates: ValidateFormTemplatesFunction = (
     }
 
     if (!isPlainObject(answers)) {
-      problems.push(`${label}: its answers must be an object keyed by question.`);
+      problems.push(
+        `${label}: its answers must be an object keyed by question.`,
+      );
       return;
     }
 
@@ -463,49 +469,51 @@ export type GetFormTemplateCopyNameFunction = (data: {
  * without case. Shortened from the end of its base, never its number, to
  * fit FORM_TEMPLATE_NAME_MAX_LENGTH.
  */
-export const getFormTemplateCopyName: GetFormTemplateCopyNameFunction =
-  (data: { name: string; existingNames: Array<string> }): string => {
-    const taken: Set<string> = new Set<string>(
-      data.existingNames.map((name: string): string => {
-        return name.trim().toLowerCase();
-      }),
-    );
+export const getFormTemplateCopyName: GetFormTemplateCopyNameFunction = (data: {
+  name: string;
+  existingNames: Array<string>;
+}): string => {
+  const taken: Set<string> = new Set<string>(
+    data.existingNames.map((name: string): string => {
+      return name.trim().toLowerCase();
+    }),
+  );
 
-    let base: string = data.name.trim();
-    let start: number = 2;
+  let base: string = data.name.trim();
+  let start: number = 2;
 
-    const match: RegExpExecArray | null = NAME_ENDING_IN_A_NUMBER.exec(base);
+  const match: RegExpExecArray | null = NAME_ENDING_IN_A_NUMBER.exec(base);
 
-    if (
-      match &&
-      taken.has((match[1] as string).toLowerCase()) &&
-      Number.isSafeInteger(Number(match[2]) + 1)
-    ) {
-      base = match[1] as string;
-      start = Number(match[2]) + 1;
-    }
+  if (
+    match &&
+    taken.has((match[1] as string).toLowerCase()) &&
+    Number.isSafeInteger(Number(match[2]) + 1)
+  ) {
+    base = match[1] as string;
+    start = Number(match[2]) + 1;
+  }
 
-    const nameWith: (number: number) => string = (number: number): string => {
-      const suffix: string = ` ${number}`;
+  const nameWith: (number: number) => string = (number: number): string => {
+    const suffix: string = ` ${number}`;
 
-      return `${base.slice(0, FORM_TEMPLATE_NAME_MAX_LENGTH - suffix.length)}${suffix}`;
-    };
-
-    /*
-     * One more number than there are names is always enough: at most every
-     * name takes one of them.
-     */
-    for (let attempt: number = 0; attempt <= taken.size; attempt++) {
-      const candidate: string = nameWith(start + attempt);
-
-      if (!taken.has(candidate.toLowerCase())) {
-        return candidate;
-      }
-    }
-
-    // Unreachable (see the loop bound); kept so the function always returns.
-    return nameWith(start + taken.size + 1);
+    return `${base.slice(0, FORM_TEMPLATE_NAME_MAX_LENGTH - suffix.length)}${suffix}`;
   };
+
+  /*
+   * One more number than there are names is always enough: at most every
+   * name takes one of them.
+   */
+  for (let attempt: number = 0; attempt <= taken.size; attempt++) {
+    const candidate: string = nameWith(start + attempt);
+
+    if (!taken.has(candidate.toLowerCase())) {
+      return candidate;
+    }
+  }
+
+  // Unreachable (see the loop bound); kept so the function always returns.
+  return nameWith(start + taken.size + 1);
+};
 
 export interface FormTemplatesChange {
   templates: Array<FormTemplate>;

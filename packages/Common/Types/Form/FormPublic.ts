@@ -1439,10 +1439,7 @@ const asOptional: AsOptionalFunction = (
 };
 
 export type GetFormTemplateAnswersFunction = (data: {
-  template:
-    | { answers?: JSONObject | null | undefined }
-    | null
-    | undefined;
+  template: { answers?: JSONObject | null | undefined } | null | undefined;
   // The questions to read the template's answers to.
   fields: Array<PublicFormField>;
 }) => ValidatedFormAnswers;
@@ -1455,10 +1452,7 @@ export type GetFormTemplateAnswersFunction = (data: {
  * a question not listed. Never throws.
  */
 export const getFormTemplateAnswers: GetFormTemplateAnswersFunction = (data: {
-  template:
-    | { answers?: JSONObject | null | undefined }
-    | null
-    | undefined;
+  template: { answers?: JSONObject | null | undefined } | null | undefined;
   fields: Array<PublicFormField>;
 }): ValidatedFormAnswers => {
   const answers: ValidatedFormAnswers = {};
@@ -1506,9 +1500,10 @@ export type ValidateFormTemplateAnswersFunction = (data: {
  * never quietly fills in less than it was saved with.
  */
 export const validateFormTemplateAnswers: ValidateFormTemplateAnswersFunction =
-  (data: { templates: unknown; fields: Array<PublicFormField> }):
-    | string
-    | null => {
+  (data: {
+    templates: unknown;
+    fields: Array<PublicFormField>;
+  }): string | null => {
     const problems: Array<string> = [];
     const fieldsById: Map<string, PublicFormField> = new Map<
       string,
@@ -1555,7 +1550,9 @@ export const validateFormTemplateAnswers: ValidateFormTemplateAnswersFunction =
     const more: number = problems.length - MAX_LISTED_TEMPLATE_PROBLEMS;
 
     return `${problems.slice(0, MAX_LISTED_TEMPLATE_PROBLEMS).join(" ")}${
-      more > 0 ? ` And ${more} more ${more === 1 ? "problem" : "problems"}.` : ""
+      more > 0
+        ? ` And ${more} more ${more === 1 ? "problem" : "problems"}.`
+        : ""
     }`;
   };
 

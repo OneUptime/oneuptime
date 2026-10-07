@@ -553,7 +553,7 @@ describe("a question card", () => {
     });
 
     fireEvent.click(
-      within(screen.getByTestId("form-question-editor-q")).getByRole("switch"),
+      screen.getByTestId("form-question-required-q"),
     );
     expect(handlers.onChange).toHaveBeenLastCalledWith({ isRequired: true });
 

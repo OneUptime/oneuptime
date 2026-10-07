@@ -193,9 +193,9 @@ const FormPreviewModal: FunctionComponent<ComponentProps> = (
                   <PublicFormTemplatePicker
                     templates={built.form.templates}
                     selectedTemplateId={template ? template.id : null}
-                    label={tx("Template")}
+                    label={tx(FormsCopy.templatePickerLabel)}
                     description={tx(FormsCopy.templatePickerDescription)}
-                    placeholder={tx(FormsCopy.noTemplate)}
+                    emptyLabel={tx(FormsCopy.noTemplate)}
                     dataTestId="form-preview-template-picker"
                     onChange={(chosen: string | null) => {
                       setTemplateId(chosen);

@@ -389,6 +389,8 @@ describe("FormService.getPublicForm - what a visitor is told", () => {
         "targetType",
         "fields",
         "targetSettings",
+        // Its templates: the page is told them, the submit answers from them.
+        "templates",
         "successMessage",
         "ipWhitelist",
         // Its branding, the images through its own relations (FormBranding).

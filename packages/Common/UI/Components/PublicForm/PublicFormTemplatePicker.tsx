@@ -1,7 +1,4 @@
-import Dropdown, {
-  DropdownOption,
-  DropdownValue,
-} from "../Dropdown/Dropdown";
+import Dropdown, { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
 import { PublicFormTemplate } from "../../../Types/Form/FormPublic";
 import React, { FunctionComponent, ReactElement, useId } from "react";
 
@@ -24,7 +21,7 @@ export interface ComponentProps {
   label: string;
   description: string;
   // What the picker says while no template is chosen.
-  placeholder: string;
+  emptyLabel: string;
   onChange: (templateId: string | null) => void;
   dataTestId?: string | undefined;
 }
@@ -64,7 +61,7 @@ const PublicFormTemplatePicker: FunctionComponent<ComponentProps> = (
         <Dropdown
           options={options}
           value={selected}
-          placeholder={props.placeholder}
+          placeholder={props.emptyLabel}
           ariaLabelledby={`${id}-label`}
           dataTestId={`${props.dataTestId || "form-template-picker"}-input`}
           onChange={(

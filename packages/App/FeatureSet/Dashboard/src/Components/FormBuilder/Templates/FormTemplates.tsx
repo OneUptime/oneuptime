@@ -1,4 +1,7 @@
-import { loadFormCustomFields, loadFormRecordOptions } from "../FormBuilderData";
+import {
+  loadFormCustomFields,
+  loadFormRecordOptions,
+} from "../FormBuilderData";
 import FormsCopy from "../FormsCopy";
 import {
   FormTemplateEditorQuestion,
@@ -194,7 +197,9 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
         },
       );
 
-      setCustomFields(asksCustomField ? await loadFormCustomFields(target) : []);
+      setCustomFields(
+        asksCustomField ? await loadFormCustomFields(target) : [],
+      );
       setRecordOptions(options);
       setTemplates(readFormTemplates(loaded.templates));
       setForm(loaded);
@@ -346,7 +351,7 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
       },
       {
         field: { [TEMPLATE_DEFAULT_KEY]: true },
-        title: "Default Template",
+        title: "Default",
         description: FormsCopy.defaultTemplateDescription,
         fieldType: FormFieldSchemaType.Toggle,
         required: false,
@@ -395,8 +400,9 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
               className="mt-2 flex flex-wrap gap-1"
               data-testid={`form-template-answers-${template.id}`}
             >
-              {labels.slice(0, LISTED_LABELS).map(
-                (label: string, labelIndex: number): ReactElement => {
+              {labels
+                .slice(0, LISTED_LABELS)
+                .map((label: string, labelIndex: number): ReactElement => {
                   return (
                     <li
                       key={`${labelIndex}-${label}`}
@@ -405,8 +411,7 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
                       {label}
                     </li>
                   );
-                },
-              )}
+                })}
               {labels.length > LISTED_LABELS ? (
                 <li className="px-1 py-0.5 text-xs text-gray-500">
                   +{labels.length - LISTED_LABELS}
@@ -449,7 +454,11 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
                 data-testid={`form-template-move-up-${template.id}`}
                 onClick={() => {
                   listChange(
-                    moveFormTemplate({ templates, id: template.id, offset: -1 }),
+                    moveFormTemplate({
+                      templates,
+                      id: template.id,
+                      offset: -1,
+                    }),
                   );
                 }}
               >
@@ -588,7 +597,9 @@ const FormTemplates: FunctionComponent<ComponentProps> = (
 
       {editor ? (
         <BasicFormModal<JSONObject>
-          title={editor.template ? FormsCopy.editTemplate : FormsCopy.addTemplate}
+          title={
+            editor.template ? FormsCopy.editTemplate : FormsCopy.addTemplate
+          }
           description={FormsCopy.templateAnswersDescription}
           name="form-template"
           modalWidth={ModalWidth.Large}

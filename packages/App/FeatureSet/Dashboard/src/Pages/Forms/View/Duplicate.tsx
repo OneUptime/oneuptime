@@ -7,8 +7,8 @@ import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import DuplicateModel from "Common/UI/Components/DuplicateModel/DuplicateModel";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import Navigation from "Common/UI/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import { useParams } from "react-router-dom";
 
 /*
  * Duplicate Form: another form built like this one, to change for another
@@ -40,13 +40,14 @@ export const prepareFormCopy: (copy: Form) => void = (copy: Form): void => {
 const FormDuplicate: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const { id } = useParams();
+  // .../forms/<id>/duplicate: the form is the next-to-last segment.
+  const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (
     <Fragment>
       <DuplicateModel<Form>
         modelType={Form}
-        modelId={new ObjectID(id || "")}
+        modelId={modelId}
         description={FormsCopy.duplicateFormNote}
         fieldsToDuplicate={{
           description: true,

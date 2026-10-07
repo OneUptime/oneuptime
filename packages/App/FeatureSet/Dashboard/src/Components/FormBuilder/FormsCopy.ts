@@ -134,6 +134,7 @@ export const FormsCopy: {
   defaultTemplateDescription: string;
   templateAnswersDescription: string;
   hiddenQuestionHelp: string;
+  templatePickerLabel: string;
   templatePickerDescription: string;
   deleteTemplateTitle: string;
   deleteTemplateDescription: string;
@@ -393,6 +394,7 @@ export const FormsCopy: {
     "What the template fills in. Leave a question empty to leave it to the person submitting.",
   hiddenQuestionHelp:
     "Hidden: not shown on the form. Only templates answer it.",
+  templatePickerLabel: "Start From a Template",
   templatePickerDescription:
     "Choose a template to fill in the form. You can change any answer before you submit.",
   deleteTemplateTitle: "Delete Template",

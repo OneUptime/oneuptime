@@ -368,7 +368,10 @@ const FormPage: () => JSX.Element = () => {
    */
   const initialValues: JSONObject = useMemo((): JSONObject => {
     return form
-      ? getPublicFormInitialValues(form, findPublicFormTemplate(form, templateId))
+      ? getPublicFormInitialValues(
+          form,
+          findPublicFormTemplate(form, templateId),
+        )
       : {};
   }, [form, templateId]);
 
@@ -604,7 +607,7 @@ const FormPage: () => JSX.Element = () => {
           selectedTemplateId={templateId}
           label={t("form.templateLabel")}
           description={t("form.templateDescription")}
-          placeholder={t("form.templatePlaceholder")}
+          emptyLabel={t("form.templateNone")}
           onChange={chooseTemplate}
           dataTestId="form-template-picker"
         />
