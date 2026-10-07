@@ -22,15 +22,13 @@ export default class UpdatePermission {
     TBaseModel extends BaseModel,
   >(data: {
     fetchModelWithAccessControlIds: () => Promise<TBaseModel | null>;
+    isRecordFound?: (query: Query<TBaseModel>) => Promise<boolean>;
     modelType: { new (): TBaseModel };
     props: DatabaseCommonInteractionProps;
     updateData?: unknown;
   }): Promise<void> {
-    await AccessControlUtil.checkAccessControlBlockPermissionByModel<TBaseModel>(
-      { ...data, type: DatabaseRequestType.Update },
-    );
-
-    await AccessControlUtil.checkAccessControlPermissionByModel<TBaseModel>({
+    // The team's blocks, then the grants limited to labels, on one read.
+    await AccessControlUtil.checkRecordByModel<TBaseModel>({
       ...data,
       type: DatabaseRequestType.Update,
     });

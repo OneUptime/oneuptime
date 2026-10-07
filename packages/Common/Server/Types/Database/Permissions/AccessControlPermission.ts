@@ -2,6 +2,7 @@ import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import Query from "../Query";
 import Select from "../Select";
 import TablePermission from "./TablePermission";
+import ReadPermission, { RecordOperation } from "./ReadPermission";
 import AccessControlModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/AccessControlModel";
 import BaseModel, {
   DatabaseBaseModelType,
@@ -41,6 +42,7 @@ export default class AccessControlPermission {
     TBaseModel extends BaseModel,
   >(data: {
     fetchModelWithAccessControlIds: () => Promise<TBaseModel | null>;
+    isRecordFound?: (query: Query<TBaseModel>) => Promise<boolean>;
     modelType: { new (): TBaseModel };
     type: DatabaseRequestType;
     props: DatabaseCommonInteractionProps;
@@ -86,12 +88,72 @@ export default class AccessControlPermission {
       return;
     }
 
+    /*
+     * A record with no labels of its own is weighed here only where the
+     * caller can look it up under the rule (isRecordFound); otherwise the
+     * query the operation runs with applies the rule
+     * (BasePermission.addRecordScopeToQuery), and nothing need be read.
+     */
+    if (!new modelType().getAccessControlColumn() && !data.isRecordFound) {
+      return;
+    }
+
     // now check if the user has any of these labels in the block list, for this we need to fetch the model first.
     const fetchedModel: TBaseModel | null =
-      await data.fetchModelWithAccessControlIds();
+      await this.fetchRecordInCallerProject(data);
 
     if (!fetchedModel) {
       throw new BadDataException(`${modelType.name} not found.`);
+    }
+
+    /*
+     * A record with no labels of its own carries the labels of the records
+     * it names: it is refused when the label rule leaves it out - a note of
+     * an incident carrying a blocked label (ReadPermission
+     * .addLabelBlockToQuery) - as a labelled record carrying one is below.
+     */
+    if (!fetchedModel.getAccessControlColumn()) {
+      if (
+        !(await this.isRecordKeptByLabelRule({
+          record: fetchedModel,
+          isRecordFound: data.isRecordFound,
+          narrow: (query: Query<TBaseModel>): Query<TBaseModel> => {
+            return ReadPermission.addLabelBlockToQuery(
+              modelType,
+              query,
+              props,
+              type as RecordOperation,
+            );
+          },
+        }))
+      ) {
+        /*
+         * The rule weighs every one of these block rows at once, so the
+         * refusal names their permissions and says one of them holds for
+         * this record, not which.
+         */
+        const blockedPermissions: Array<string> = Array.from(
+          new Set<string>(
+            blockPermissionsBelongToThisModel.map(
+              (blockPermission: UserPermission): string => {
+                return blockPermission.permission.toString();
+              },
+            ),
+          ),
+        );
+
+        throw new NotAuthorizedException(
+          `You are not authorized to ${type.toLowerCase()} this ${
+            fetchedModel.singularName
+          } because ${
+            blockedPermissions.length === 1
+              ? blockedPermissions[0]
+              : `one of ${blockedPermissions.join(", ")}`
+          } is in your team's permission block list.`,
+        );
+      }
+
+      return;
     }
 
     for (const blockPermissionBelongToThisModel of blockPermissionsBelongToThisModel) {
@@ -149,6 +211,7 @@ export default class AccessControlPermission {
     TBaseModel extends BaseModel,
   >(data: {
     fetchModelWithAccessControlIds: () => Promise<TBaseModel | null>;
+    isRecordFound?: (query: Query<TBaseModel>) => Promise<boolean>;
     modelType: { new (): TBaseModel };
     props: DatabaseCommonInteractionProps;
     type: DatabaseRequestType;
@@ -182,7 +245,7 @@ export default class AccessControlPermission {
       }
 
       const fetchedModel: TBaseModel | null =
-        await data.fetchModelWithAccessControlIds();
+        await this.fetchRecordInCallerProject(data);
 
       if (!fetchedModel) {
         throw new BadDataException(`${model.singularName} not found.`);
@@ -239,6 +302,176 @@ export default class AccessControlPermission {
 
       throw new NotAuthorizedException(errorString);
     }
+
+    /*
+     * A record with no labels of its own, under grants limited to labels:
+     * only one whose named records carry them may be written (ReadPermission
+     * .addLabelGrantToQuery), as only a labelled record carrying one may.
+     */
+    if (
+      !data.isRecordFound ||
+      ReadPermission.getGrantedLabelIds(
+        modelType,
+        props,
+        type as RecordOperation,
+      ).length === 0
+    ) {
+      return;
+    }
+
+    const fetchedRecord: TBaseModel | null =
+      await this.fetchRecordInCallerProject(data);
+
+    if (!fetchedRecord) {
+      throw new BadDataException(`${model.singularName} not found.`);
+    }
+
+    if (
+      !(await this.isRecordKeptByLabelRule({
+        record: fetchedRecord,
+        isRecordFound: data.isRecordFound,
+        narrow: (query: Query<TBaseModel>): Query<TBaseModel> => {
+          return ReadPermission.addLabelGrantToQuery(
+            modelType,
+            query,
+            props,
+            type as RecordOperation,
+          );
+        },
+      }))
+    ) {
+      throw new NotAuthorizedException(
+        `You do not have permission to ${type.toLowerCase()} this ${
+          model.singularName
+        }.`,
+      );
+    }
+  }
+
+  /*
+   * Both checks of one record by model - the team's blocks, then the grants
+   * limited to labels - on one read of the record, for an update or a
+   * delete by id (UpdatePermission, DeletePermission).
+   *
+   * `fetchModelWithAccessControlIds` reads the record as root with its
+   * labels and its project (the tenant column): a record read without its
+   * project is answered as missing to a caller the checks weigh it for
+   * (fetchRecordInCallerProject), since whose record it is cannot be told.
+   * DatabaseService.findWithAccessControlIds reads it so.
+   */
+  @CaptureSpan()
+  public static async checkRecordByModel<TBaseModel extends BaseModel>(data: {
+    fetchModelWithAccessControlIds: () => Promise<TBaseModel | null>;
+    isRecordFound?: (query: Query<TBaseModel>) => Promise<boolean>;
+    modelType: { new (): TBaseModel };
+    props: DatabaseCommonInteractionProps;
+    type: DatabaseRequestType;
+    updateData?: unknown;
+  }): Promise<void> {
+    const checked: typeof data = {
+      ...data,
+      fetchModelWithAccessControlIds: this.fetchOnce(
+        data.fetchModelWithAccessControlIds,
+      ),
+    };
+
+    await this.checkAccessControlBlockPermissionByModel<TBaseModel>(checked);
+    await this.checkAccessControlPermissionByModel<TBaseModel>(checked);
+  }
+
+  // `fetch`, read once however often it is asked.
+  private static fetchOnce<TBaseModel extends BaseModel>(
+    fetch: () => Promise<TBaseModel | null>,
+  ): () => Promise<TBaseModel | null> {
+    let fetched: Promise<TBaseModel | null> | null = null;
+
+    return (): Promise<TBaseModel | null> => {
+      if (!fetched) {
+        fetched = fetch();
+      }
+
+      return fetched;
+    };
+  }
+
+  /*
+   * The record a check by model is about, as `fetchModelWithAccessControlIds`
+   * reads it - or null when it is not a record of the project the caller
+   * acts in: such a record is answered as a missing one, and its labels are
+   * never weighed or named in a refusal. The record is read with its
+   * project (DatabaseService.findWithAccessControlIds reads it in the
+   * caller's project already); one read without it is answered as missing
+   * too, for its project cannot be told.
+   */
+  private static async fetchRecordInCallerProject<
+    TBaseModel extends BaseModel,
+  >(data: {
+    fetchModelWithAccessControlIds: () => Promise<TBaseModel | null>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<TBaseModel | null> {
+    const record: TBaseModel | null =
+      await data.fetchModelWithAccessControlIds();
+
+    if (!record || !data.props.tenantId || data.props.isMultiTenantRequest) {
+      return record;
+    }
+
+    const tenantColumn: string | null = record.getTenantColumn();
+
+    if (!tenantColumn) {
+      return record;
+    }
+
+    const recordProjectId: unknown = (record as unknown as Dictionary<unknown>)[
+      tenantColumn
+    ];
+
+    if (recordProjectId === undefined || recordProjectId === null) {
+      return null;
+    }
+
+    return String(recordProjectId).toLowerCase() ===
+      data.props.tenantId.toString().toLowerCase()
+      ? record
+      : null;
+  }
+
+  /*
+   * Whether the label rule `narrow` adds to a query keeps `record`, a record
+   * with no labels of its own that carries those of the records it names
+   * (ReadPermission.addLabelBlockToQuery, addLabelGrantToQuery). When the
+   * rule adds nothing to a query by the record's id - its model names no
+   * labelled record - the record is kept without a lookup. A caller with no
+   * `isRecordFound` leaves the rule to the query it runs the operation
+   * with, which applies it (BasePermission.addRecordScopeToQuery).
+   */
+  private static async isRecordKeptByLabelRule<
+    TBaseModel extends BaseModel,
+  >(data: {
+    record: TBaseModel;
+    isRecordFound?:
+      | ((query: Query<TBaseModel>) => Promise<boolean>)
+      | undefined;
+    narrow: (query: Query<TBaseModel>) => Query<TBaseModel>;
+  }): Promise<boolean> {
+    if (!data.isRecordFound || !data.record.id) {
+      return true;
+    }
+
+    const recordId: string = data.record.id.toString();
+
+    const narrowed: Query<TBaseModel> = data.narrow({
+      _id: recordId,
+    } as Query<TBaseModel>);
+
+    if (
+      Object.keys(narrowed).length === 1 &&
+      (narrowed as Dictionary<unknown>)["_id"] === recordId
+    ) {
+      return true;
+    }
+
+    return await data.isRecordFound(narrowed);
   }
 
   @CaptureSpan()

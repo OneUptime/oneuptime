@@ -5,8 +5,10 @@ import QueryUtil from "../QueryUtil";
 import RelationSelect from "../RelationSelect";
 import Select from "../Select";
 import SelectUtil from "../SelectUtil";
+import AccessControlPermission from "./AccessControlPermission";
 import BasePermission, { CheckPermissionBaseInterface } from "./BasePermission";
 import TablePermission from "./TablePermission";
+import ArrayUtil from "../../../../Utils/Array";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil, {
@@ -110,11 +112,30 @@ type ManyToManyMetadata = NonNullable<
   ReturnType<typeof QueryUtil.getManyToManyRelationMetadata>
 >;
 
+/*
+ * How a record reaches the labels of the parents it belongs to through a
+ * join table: the record -> parent join table, then the parent's labels.
+ */
+interface ParentLabelLinks {
+  parentJoinTableName: string;
+  parentOwnerColumnName: string;
+  parentRelationColumnName: string;
+  joinTableName: string;
+  ownerColumnName: string;
+  relationColumnName: string;
+}
+
 export interface CheckReadPermissionType<TBaseModel extends BaseModel>
   extends CheckPermissionBaseInterface<TBaseModel> {
   select: Select<TBaseModel> | null;
   relationSelect: RelationSelect<TBaseModel> | null;
 }
+
+// The operations a query narrows: a create names no record yet.
+export type RecordOperation =
+  | DatabaseRequestType.Read
+  | DatabaseRequestType.Update
+  | DatabaseRequestType.Delete;
 
 export default class ReadPermission {
   @CaptureSpan()
@@ -124,12 +145,16 @@ export default class ReadPermission {
     select: Select<TBaseModel> | null,
     props: DatabaseCommonInteractionProps,
   ): Promise<CheckReadPermissionType<TBaseModel>> {
-    // Block and base permission checks both add predicates to the query.
+    // The base permission check adds predicates to the query.
     query = { ...query };
 
-    // check block permission first.
-    await this.checkReadBlockPermission(modelType, query, props);
-
+    /*
+     * A team's blocks are weighed where every read, update and delete is
+     * narrowed (BasePermission.addRecordScopeToQuery): a block with no labels
+     * refuses the read, a block with labels narrows its rows - in a read
+     * across projects, each project by its own blocks, so that one
+     * project's block never refuses the others' records.
+     */
     const baseFunctionReturn: CheckPermissionBaseInterface<TBaseModel> =
       await BasePermission.checkPermissions(
         modelType,
@@ -156,6 +181,15 @@ export default class ReadPermission {
     return { query, select, relationSelect };
   }
 
+  /*
+   * A team's block, on a read the CRUD path does not make itself (a pin's
+   * own lookup): a block with no labels on one of the table's read
+   * permissions refuses the read; a block with labels leaves out the records
+   * carrying them, and the records of a label-less model that name such a
+   * record (addLabelBlockToQuery). Every read, update and delete of the CRUD
+   * path applies the same rule where it narrows its rows
+   * (BasePermission.addRecordScopeToQuery).
+   */
   @CaptureSpan()
   public static async checkReadBlockPermission<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
@@ -173,65 +207,141 @@ export default class ReadPermission {
       DatabaseRequestType.Read,
     );
 
-    const blockPermissionWithLabels: Array<UserPermission> =
-      DatabaseCommonInteractionPropsUtil.getUserPermissions(
+    return {
+      query: this.addLabelBlockToQuery(
+        modelType,
+        query,
         props,
-        PermissionType.Block,
-      ).filter((permission: UserPermission) => {
-        return permission.labelIds && permission.labelIds.length > 0;
-      });
+        DatabaseRequestType.Read,
+      ),
+    };
+  }
 
-    if (blockPermissionWithLabels.length === 0) {
-      return { query };
+  /*
+   * THE LABEL RULE, on a read, an update or a delete: both of its halves,
+   * for the rows `props` reach in one project.
+   *
+   *   - A block with labels on one of the operation's permissions takes away
+   *     the records carrying those labels (addLabelBlockToQuery).
+   *   - A grant limited to labels gives a label-less model's rows only where
+   *     the labelled records they belong to or name carry one of those
+   *     labels (addLabelGrantToQuery). A labelled model's own labels are
+   *     weighed by AccessControlPermission.addAccessControlIdsToQuery.
+   *
+   * Both halves follow the same records (getLabelledReferences). A block
+   * with no labels refuses the table before this (TablePermission).
+   */
+  public static addLabelRulesToQuery<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+    type: RecordOperation,
+  ): Query<TBaseModel> {
+    query = this.addLabelGrantToQuery(modelType, query, props, type);
+
+    return this.addLabelBlockToQuery(modelType, query, props, type);
+  }
+
+  /*
+   * The caller's block rows with labels on one of the permissions the
+   * operation accepts on this model.
+   */
+  public static getLabelledBlockRows(
+    modelType: { new (): BaseModel },
+    props: DatabaseCommonInteractionProps,
+    type: RecordOperation,
+  ): Array<UserPermission> {
+    if (props.isRoot || props.isMasterAdmin) {
+      return [];
     }
 
-    const modelPermissions: Array<Permission> =
-      TablePermission.getTablePermission(modelType, DatabaseRequestType.Read);
+    const modelPermissions: Array<string> = TablePermission.getTablePermission(
+      modelType,
+      type,
+    ).map((permission: Permission): string => {
+      return permission.toString();
+    });
 
-    const blockPermissionsBelongToThisModel: Array<UserPermission> =
-      blockPermissionWithLabels.filter((blockPermission: UserPermission) => {
-        let isModelPermission: boolean = false;
+    return DatabaseCommonInteractionPropsUtil.getUserPermissions(
+      props,
+      PermissionType.Block,
+    ).filter((row: UserPermission): boolean => {
+      return (
+        Boolean(row.labelIds && row.labelIds.length > 0) &&
+        modelPermissions.includes(row.permission.toString())
+      );
+    });
+  }
 
-        for (const permission of modelPermissions) {
-          if (permission.toString() === blockPermission.permission.toString()) {
-            isModelPermission = true;
-            break;
-          }
-        }
+  // The labels the caller's blocks take away for the operation on this model.
+  public static getBlockedLabelIds(
+    modelType: { new (): BaseModel },
+    props: DatabaseCommonInteractionProps,
+    type: RecordOperation,
+  ): Array<ObjectID> {
+    const labelIds: Array<ObjectID> = [];
 
-        return isModelPermission;
-      });
-
-    if (blockPermissionsBelongToThisModel.length === 0) {
-      return { query };
+    for (const row of this.getLabelledBlockRows(modelType, props, type)) {
+      labelIds.push(...(row.labelIds || []));
     }
 
-    let labelIds: Array<ObjectID> = [];
+    return ArrayUtil.removeDuplicatesFromObjectIDArray(labelIds);
+  }
 
-    for (const blockPermissionBelongToThisModel of blockPermissionsBelongToThisModel) {
-      if (blockPermissionBelongToThisModel.labelIds) {
-        labelIds = [...labelIds, ...blockPermissionBelongToThisModel.labelIds];
-      }
+  /*
+   * The labels the caller's grants for the operation on this model are
+   * limited to: none when one of those grants reaches the whole project, or
+   * when none of them is limited to labels
+   * (AccessControlPermission.getAccessControlIdsForModel).
+   */
+  public static getGrantedLabelIds(
+    modelType: { new (): BaseModel },
+    props: DatabaseCommonInteractionProps,
+    type: RecordOperation,
+  ): Array<ObjectID> {
+    if (props.isRoot || props.isMasterAdmin) {
+      return [];
+    }
+
+    return AccessControlPermission.getAccessControlIdsForModel(
+      modelType,
+      props,
+      type,
+    );
+  }
+
+  /*
+   * A block with labels, on a read, an update or a delete: the records
+   * carrying one of its labels are left out - a labelled model's by its own
+   * labels, a label-less model's through the labelled records it belongs to
+   * or names: a note is left out with its incident, an announcement with its
+   * status pages, an exception group with the service it was seen on, an AI
+   * run with its monitor (addParentLabelBlockToQuery). A record that names
+   * no labelled record carries no label at all, so a block with labels takes
+   * nothing of it away; a block with no labels is what takes a whole table
+   * away (TablePermission).
+   */
+  public static addLabelBlockToQuery<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+    type: RecordOperation,
+  ): Query<TBaseModel> {
+    const labelIds: Array<ObjectID> = this.getBlockedLabelIds(
+      modelType,
+      props,
+      type,
+    );
+
+    if (labelIds.length === 0) {
+      return query;
     }
 
     const model: TBaseModel = new modelType();
     const accessControlColumn: string | null = model.getAccessControlColumn();
 
     if (!accessControlColumn) {
-      /*
-       * This model's records carry no labels of their own. A block with
-       * labels takes away the records carrying those labels, so it reaches
-       * such a record through the labelled records it belongs to or names -
-       * a note is left out with its incident, an announcement with its
-       * status pages, an exception group with the service it was seen on,
-       * an AI run with its monitor (see addParentLabelBlockToQuery). A
-       * record that names no labelled record carries no label at all, so a
-       * block with labels takes nothing of it away; a block with no labels
-       * is what takes a whole table away (refused above).
-       */
-      return {
-        query: this.addParentLabelBlockToQuery(modelType, query, labelIds),
-      };
+      return this.addParentLabelBlockToQuery(modelType, query, labelIds);
     }
 
     const manyToManyMeta: ReturnType<
@@ -270,7 +380,144 @@ export default class ReadPermission {
       }),
     );
 
-    return { query };
+    return query;
+  }
+
+  /*
+   * A grant limited to labels, on a label-less model: when every grant the
+   * caller holds for the operation is limited to labels, a row is kept when
+   * one of the labelled records it belongs to or names carries one of those
+   * labels, as a labelled record is kept when it carries one of them itself
+   * (addParentLabelGrantToQuery). A row that names no labelled record is
+   * about none of them and stays. A grant over the whole project narrows
+   * nothing; a labelled model's own labels are weighed by
+   * AccessControlPermission.addAccessControlIdsToQuery.
+   */
+  public static addLabelGrantToQuery<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+    type: RecordOperation,
+  ): Query<TBaseModel> {
+    if (new modelType().getAccessControlColumn()) {
+      return query;
+    }
+
+    const labelIds: Array<ObjectID> = this.getGrantedLabelIds(
+      modelType,
+      props,
+      type,
+    );
+
+    if (labelIds.length === 0) {
+      return query;
+    }
+
+    return this.addParentLabelGrantToQuery(modelType, query, labelIds);
+  }
+
+  /*
+   * Keeps the records of a model read through another record
+   * (canAccessIfCanReadOn) whose parent carries one of `labelIds`: one
+   * condition on the record's id, through the parent's key (an incident
+   * note's incident) or its join table (an announcement's status pages, any
+   * one of them). A record with no parent, or whose parent's model carries
+   * no labels, is not kept. Each call adds a condition of its own, so two
+   * lists keep the records whose parents carry one label of each - through
+   * the same parent or not. The caller's own filters stay as they are.
+   */
+  public static addParentLabelsToQuery<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    labelIds: Array<ObjectID>,
+  ): Query<TBaseModel> {
+    const parent: { relation: string; column: TableColumnMetadata } | null =
+      this.getDeclaredParent(modelType);
+
+    if (!parent) {
+      return query;
+    }
+
+    const keys: Array<{
+      columnName: string;
+      joinTables: Array<ManyToManyMetadata>;
+    }> = [];
+    const parents: Array<ParentLabelLinks> = [];
+
+    if (parent.column.type === TableColumnType.EntityArray) {
+      const links: ParentLabelLinks | null = this.getParentLabelLinks(
+        modelType,
+        parent.relation,
+        parent.column,
+      );
+
+      if (links) {
+        parents.push(links);
+      }
+    } else {
+      keys.push({
+        columnName: parent.column.manyToOneRelationColumn as string,
+        joinTables: this.getLabelsJoinTables([
+          parent.column.modelType as unknown as { new (): BaseModel },
+        ]),
+      });
+    }
+
+    const idQuery: Query<TBaseModel> = QueryUtil.serializeQuery(modelType, {
+      _id: query._id,
+    } as Query<TBaseModel>);
+
+    (query as any)._id = combineWithPrivacyClause(
+      this.getSupportedFilter(idQuery._id),
+      QueryHelper.oneLinkedToAny({
+        values: labelIds,
+        keys: keys,
+        parents: parents,
+      }),
+    );
+
+    return query;
+  }
+
+  /*
+   * The parent a label-less model's rows belong to (canAccessIfCanReadOn):
+   * one record named by a key column (an incident note's incident), or
+   * several through a join table (an announcement's status pages). Null for
+   * a model that names none. A model that names a parent it does not have
+   * is misconfigured and refused.
+   */
+  private static getDeclaredParent(modelType: { new (): BaseModel }): {
+    relation: string;
+    column: TableColumnMetadata;
+  } | null {
+    const model: BaseModel = new modelType();
+    const declaredParent: string | null = model.canAccessIfCanReadOn;
+
+    if (!declaredParent) {
+      return null;
+    }
+
+    const declaredColumn: TableColumnMetadata | undefined =
+      model.getTableColumnMetadata(declaredParent);
+
+    /*
+     * A parent is one record named by a key column, or several through a
+     * join table. Anything else names nothing the rule could follow.
+     */
+    if (
+      !declaredColumn ||
+      !declaredColumn.modelType ||
+      (declaredColumn.type !== TableColumnType.Entity &&
+        declaredColumn.type !== TableColumnType.EntityArray) ||
+      (declaredColumn.type === TableColumnType.Entity &&
+        !declaredColumn.manyToOneRelationColumn)
+    ) {
+      throw new BadDataException(
+        "Cannot apply read label restrictions without access-control relation metadata.",
+      );
+    }
+
+    return { relation: declaredParent, column: declaredColumn };
   }
 
   /*
@@ -285,54 +532,27 @@ export default class ReadPermission {
    *     schedule), and the record a resource id of any kind names (an
    *     inventory item's resource).
    *
-   * A row whose key is empty names nothing there and stays. A model that
-   * names a parent it does not have is misconfigured and refused.
+   * A row whose key is empty names nothing there and stays.
    */
   private static addParentLabelBlockToQuery<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     query: Query<TBaseModel>,
     labelIds: Array<ObjectID>,
   ): Query<TBaseModel> {
-    const model: TBaseModel = new modelType();
-    const declaredParent: string | null = model.canAccessIfCanReadOn;
-    let declaredColumn: TableColumnMetadata | undefined = undefined;
-
-    if (declaredParent) {
-      declaredColumn = model.getTableColumnMetadata(declaredParent);
-
-      /*
-       * A parent is one record named by a key column, or several through a
-       * join table. Anything else names nothing the block could follow.
-       */
-      if (
-        !declaredColumn ||
-        !declaredColumn.modelType ||
-        (declaredColumn.type !== TableColumnType.Entity &&
-          declaredColumn.type !== TableColumnType.EntityArray) ||
-        (declaredColumn.type === TableColumnType.Entity &&
-          !declaredColumn.manyToOneRelationColumn)
-      ) {
-        throw new BadDataException(
-          "Cannot apply read label restrictions without access-control relation metadata.",
-        );
-      }
-    }
+    const parent: { relation: string; column: TableColumnMetadata } | null =
+      this.getDeclaredParent(modelType);
 
     const references: LabelledReferences =
       ReadPermission.getLabelledReferences(modelType);
 
     // A parent through a join table (an announcement's status pages).
-    if (
-      declaredParent &&
-      declaredColumn &&
-      declaredColumn.type === TableColumnType.EntityArray
-    ) {
+    if (parent && parent.column.type === TableColumnType.EntityArray) {
       query = this.addRelationLabelBlockToQuery(
         modelType,
         query,
         labelIds,
-        declaredParent,
-        declaredColumn,
+        parent.relation,
+        parent.column,
       );
     }
 
@@ -363,6 +583,94 @@ export default class ReadPermission {
   }
 
   /*
+   * Keeps the records of a label-less model that name no labelled record at
+   * all, and those of which one record they belong to or name carries one
+   * of `labelIds` - the records addParentLabelBlockToQuery follows. A record
+   * carries the labels of every record it names, so a grant limited to
+   * labels reaches it through any one of them, as it reaches a labelled
+   * record through any one of its own labels (a block with labels takes it
+   * away through any one of them too).
+   *
+   * A key that can name records of several kinds counts as naming a
+   * labelled record whenever it is set: which record it names cannot be
+   * told, so the row is kept through it only when that record carries one
+   * of `labelIds`. One condition on the record's id: the records it names
+   * are in several of its columns.
+   */
+  private static addParentLabelGrantToQuery<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    labelIds: Array<ObjectID>,
+  ): Query<TBaseModel> {
+    const parent: { relation: string; column: TableColumnMetadata } | null =
+      this.getDeclaredParent(modelType);
+
+    const references: LabelledReferences =
+      ReadPermission.getLabelledReferences(modelType);
+
+    const keys: Array<{
+      columnName: string;
+      joinTables: Array<ManyToManyMetadata>;
+    }> = [
+      ...references.keys.map(
+        (reference: {
+          column: string;
+          modelTypes: Array<{ new (): BaseModel }>;
+        }): { columnName: string; joinTables: Array<ManyToManyMetadata> } => {
+          return {
+            columnName: reference.column,
+            joinTables: this.getLabelsJoinTables(reference.modelTypes),
+          };
+        },
+      ),
+      ...references.anyKindColumns.map(
+        (
+          column: string,
+        ): { columnName: string; joinTables: Array<ManyToManyMetadata> } => {
+          return {
+            columnName: column,
+            joinTables: this.getLabelsJoinTables(getLabelledModelTypes()),
+          };
+        },
+      ),
+    ];
+
+    const parents: Array<ParentLabelLinks> = [];
+
+    // A parent through a join table (an announcement's status pages).
+    if (parent && parent.column.type === TableColumnType.EntityArray) {
+      const links: ParentLabelLinks | null = this.getParentLabelLinks(
+        modelType,
+        parent.relation,
+        parent.column,
+      );
+
+      if (links) {
+        parents.push(links);
+      }
+    }
+
+    if (keys.length === 0 && parents.length === 0) {
+      return query;
+    }
+
+    const idQuery: Query<TBaseModel> = QueryUtil.serializeQuery(modelType, {
+      _id: query._id,
+    } as Query<TBaseModel>);
+
+    (query as any)._id = combineWithPrivacyClause(
+      this.getSupportedFilter(idQuery._id),
+      QueryHelper.namesNothingOrOneLinkedToAny({
+        values: labelIds,
+        keys: keys,
+        parents: parents,
+      }),
+    );
+
+    return query;
+  }
+
+  /*
    * Leaves out the records whose `foreignKey` - a record id that can name a
    * record of any kind - names a record carrying one of `labelIds`, in one
    * condition over the label join tables of every model that carries
@@ -375,17 +683,6 @@ export default class ReadPermission {
     labelIds: Array<ObjectID>,
     foreignKey: string,
   ): Query<TBaseModel> {
-    const joinTables: Array<ManyToManyMetadata> = [];
-
-    for (const labelledModelType of getLabelledModelTypes()) {
-      const labelsMeta: ManyToManyMetadata | null =
-        this.getLabelsMetadata(labelledModelType);
-
-      if (labelsMeta) {
-        joinTables.push(labelsMeta);
-      }
-    }
-
     const keyQuery: Query<TBaseModel> = QueryUtil.serializeQuery(modelType, {
       [foreignKey]: (query as any)[foreignKey],
     } as Query<TBaseModel>);
@@ -394,11 +691,53 @@ export default class ReadPermission {
       this.getSupportedFilter((keyQuery as any)[foreignKey]),
       QueryHelper.linkedToNoneInAnyManyToMany({
         values: labelIds,
-        joinTables: joinTables,
+        joinTables: this.getLabelsJoinTables(getLabelledModelTypes()),
       }),
     );
 
     return query;
+  }
+
+  // The join tables holding the labels of each of `modelTypes` that has any.
+  private static getLabelsJoinTables(
+    modelTypes: Array<{ new (): BaseModel }>,
+  ): Array<ManyToManyMetadata> {
+    const joinTables: Array<ManyToManyMetadata> = [];
+
+    for (const modelType of modelTypes) {
+      const labelsMeta: ManyToManyMetadata | null =
+        this.getLabelsMetadata(modelType);
+
+      if (labelsMeta) {
+        joinTables.push(labelsMeta);
+      }
+    }
+
+    return joinTables;
+  }
+
+  /*
+   * The columns of a label-less model's rows that name the labelled records
+   * the label rule weighs a row by (getLabelledReferences): a write to one
+   * of them may take a row into, or out of, what a caller's grants and
+   * blocks reach. None for a model that carries labels of its own.
+   */
+  public static getLabelledKeyColumns(modelType: {
+    new (): BaseModel;
+  }): Array<string> {
+    if (new modelType().getAccessControlColumn()) {
+      return [];
+    }
+
+    const references: LabelledReferences =
+      ReadPermission.getLabelledReferences(modelType);
+
+    return [
+      ...references.keys.map((reference: { column: string }): string => {
+        return reference.column;
+      }),
+      ...references.anyKindColumns,
+    ];
   }
 
   /*
@@ -566,9 +905,6 @@ export default class ReadPermission {
     relation: string,
     relationColumn: TableColumnMetadata,
   ): Query<TBaseModel> {
-    const parentModelType: { new (): BaseModel } =
-      relationColumn.modelType as unknown as { new (): BaseModel };
-
     if (
       relationColumn.type === TableColumnType.Entity &&
       relationColumn.manyToOneRelationColumn
@@ -578,7 +914,7 @@ export default class ReadPermission {
         query,
         labelIds,
         relationColumn.manyToOneRelationColumn,
-        parentModelType,
+        relationColumn.modelType as unknown as { new (): BaseModel },
       );
     }
 
@@ -586,11 +922,49 @@ export default class ReadPermission {
       return query;
     }
 
-    const parentLabelsMeta: ManyToManyMetadata | null =
-      this.getLabelsMetadata(parentModelType);
+    const links: ParentLabelLinks | null = this.getParentLabelLinks(
+      modelType,
+      relation,
+      relationColumn,
+    );
+
+    if (!links) {
+      return query;
+    }
+
+    const idQuery: Query<TBaseModel> = QueryUtil.serializeQuery(modelType, {
+      _id: query._id,
+    } as Query<TBaseModel>);
+
+    (query as any)._id = combineWithPrivacyClause(
+      this.getSupportedFilter(idQuery._id),
+      QueryHelper.noParentLinkedToAnyInManyToMany({
+        values: labelIds,
+        ...links,
+      }),
+    );
+
+    return query;
+  }
+
+  /*
+   * The join tables that lead from a record to the labels of the parents it
+   * belongs to through `relation` (an announcement's status pages): the
+   * record -> parent join table and the parent's labels. Null when the
+   * parent's model carries no labels. A relation without its join table is
+   * misconfigured and refused.
+   */
+  private static getParentLabelLinks(
+    modelType: { new (): BaseModel },
+    relation: string,
+    relationColumn: TableColumnMetadata,
+  ): ParentLabelLinks | null {
+    const parentLabelsMeta: ManyToManyMetadata | null = this.getLabelsMetadata(
+      relationColumn.modelType as unknown as { new (): BaseModel },
+    );
 
     if (!parentLabelsMeta) {
-      return query;
+      return null;
     }
 
     const parentLinkMeta: ManyToManyMetadata | null =
@@ -602,22 +976,14 @@ export default class ReadPermission {
       );
     }
 
-    const idQuery: Query<TBaseModel> = QueryUtil.serializeQuery(modelType, {
-      _id: query._id,
-    } as Query<TBaseModel>);
-
-    (query as any)._id = combineWithPrivacyClause(
-      this.getSupportedFilter(idQuery._id),
-      QueryHelper.noParentLinkedToAnyInManyToMany({
-        values: labelIds,
-        parentJoinTableName: parentLinkMeta.joinTableName,
-        parentOwnerColumnName: parentLinkMeta.ownerColumnName,
-        parentRelationColumnName: parentLinkMeta.relationColumnName,
-        ...parentLabelsMeta,
-      }),
-    );
-
-    return query;
+    return {
+      parentJoinTableName: parentLinkMeta.joinTableName,
+      parentOwnerColumnName: parentLinkMeta.ownerColumnName,
+      parentRelationColumnName: parentLinkMeta.relationColumnName,
+      joinTableName: parentLabelsMeta.joinTableName,
+      ownerColumnName: parentLabelsMeta.ownerColumnName,
+      relationColumnName: parentLabelsMeta.relationColumnName,
+    };
   }
 
   /*

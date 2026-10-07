@@ -33,7 +33,33 @@ describe("OwnedThrough", () => {
       fkColumn: "monitorId",
       parentModels: [FakeMonitor],
       includeProjectScope: false,
+      onlyParentModels: false,
+      includeUnattributed: false,
     });
+  });
+
+  /*
+   * Both widen or narrow nothing unless asked: an analytics row's key
+   * names a telemetry resource of any kind by default (onlyParentModels),
+   * and a row naming no parent is visible to no Owned-scoped user
+   * (includeUnattributed).
+   */
+  test("names its parents alone, and keeps unattributed rows, only when asked", () => {
+    @OwnedThrough("monitorId", FakeMonitor, { onlyParentModels: true })
+    class MonitorLogRow {}
+
+    @OwnedThrough("serviceId", FakeService, { includeUnattributed: true })
+    class InsightRow {}
+
+    @OwnedThrough("serviceId", FakeService, {})
+    class DefaultRow {}
+
+    expect(metadataOf(MonitorLogRow).onlyParentModels).toBe(true);
+    expect(metadataOf(MonitorLogRow).includeUnattributed).toBe(false);
+    expect(metadataOf(InsightRow).includeUnattributed).toBe(true);
+    expect(metadataOf(InsightRow).onlyParentModels).toBe(false);
+    expect(metadataOf(DefaultRow).onlyParentModels).toBe(false);
+    expect(metadataOf(DefaultRow).includeUnattributed).toBe(false);
   });
 
   /*

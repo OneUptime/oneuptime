@@ -82,6 +82,13 @@ jobs:
       - name: Run Common's membership-removal guard with ee/ present
         working-directory: packages/Common
         run: node node_modules/.bin/jest Tests/Server/Services/TeamMemberNotificationSettingsCleanup.test.ts --forceExit
+      # Common's guard that a relation filtered by ids is written to its key
+      # beside the key's own condition, never over it, also walks ee/Server
+      # for code that would copy a relation's filter over its key. The Common
+      # Test job deletes ee/ first, so only this run reads ee/Server.
+      - name: Run Common's relation filter guard with ee/ present
+        working-directory: packages/Common
+        run: node node_modules/.bin/jest Tests/Server/Types/Database/RelationFilterKeepsKeyGuard.test.ts --forceExit
       - name: Install ee
         uses: ./.github/actions/npm-install
         with:

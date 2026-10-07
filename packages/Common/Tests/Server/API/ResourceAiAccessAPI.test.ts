@@ -93,6 +93,7 @@ import {
   expect,
   test,
 } from "@jest/globals";
+import { withLabelJoinTables } from "../TestingUtils/LabelJoinTables";
 
 /*
  * ---------------------------------------------------------------------------
@@ -580,6 +581,12 @@ describe("ResourceAiAccessAPI", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    /*
+     * A team's block with labels narrows the editable lookup itself, against
+     * the resource's label join table.
+     */
+    withLabelJoinTables();
 
     inFlightTests = 0;
     recentTestsForResource = 0;

@@ -137,6 +137,8 @@ Labels er projektdækkende markeringer, du sætter på ressourcer. De tjener to 
 
 En labelbegrænsning er opfyldt, hvis ressourcen bærer **mindst ét** af tilladelsens labels. En ressource helt uden labels opfylder ingen labelbegrænset tilladelse.
 
+En post uden egne labels, f.eks. en note på en hændelse, en meddelelse på en statusside eller en AI-indsigt om en tjeneste, bærer labels fra de poster, den hører til eller handler om. En tilladelse begrænset til labels når den, når en af de poster bærer et af tilladelsens labels, og en blokering med labels fjerner den, når en af dem bærer et blokeret label, ved læsning, ændring og sletning ens. En post, der ikke handler om nogen af dem, f.eks. en AI-indsigt, der ikke handler om nogen tjeneste, hører til projektet: en labelbegrænsning afgrænser den ikke, og en blokering med labels fjerner den ikke.
+
 Hvor du finder det: **Indstillinger → Labels**.
 
 ## Telemetri
@@ -148,6 +150,8 @@ Logs, traces, metrics, undtagelser, profiler og sessionsafspilninger hører til 
 - **Labels** læser telemetrien fra de ressourcer, der bærer et af tilladelsens labels.
 
 En blokering med labels på en telemetritilladelse udelader telemetrien fra de ressourcer, der bærer de labels, uanset hvad du ellers har. Det gælder overalt, hvor telemetri læses: stifinderne og deres diagrammer, filtre og attributlister, eksporter, sessionsafspilninger og det, AI-assistenten læser for dig. Listen over metriknavne viser de metrics, som en tjeneste, du må læse, rapporterer, og de metrics, som ingen tjeneste rapporterer, f.eks. værts- og klyngemetrics. Må du også læse telemetri fra andre slags ressourcer, f.eks. værter eller klynger, viser den alle metriknavne.
+
+Monitorlogs, SLO-historik, netværksflows og omkostningsfordelinger for Kubernetes læses på samme måde, gennem den monitor, det SLO, den netværksenhed eller den klynge, de hører til: Ejede og Labels når rækkerne for de poster, du må læse, og en blokering med labels udelader rækkerne for de poster, der bærer de labels. Revisionsloggen og trusselsefterretningsindikatorerne læses i hele projektet af den, der må læse dem.
 
 ## API-nøgler
 
@@ -165,12 +169,12 @@ Hvor du finder det: **Indstillinger → API-nøgler**. Se også [API-referencen]
 
 For en logget ind bruger, i rækkefølge:
 
-1. Find de teams, brugeren tilhører i dette projekt — kun accepterede invitationer tæller.
+1. Find de teams, brugeren tilhører i dette projekt — kun accepterede invitationer tæller. En forespørgsel når kun posterne i dette projekt: en post i et andet projekt, angivet med sit id eller i et filter, behandles, som om den ikke fandtes.
 2. Saml alle tilladelsesrækker fra de teams — tilladte og blokerede, hver med labels og omfang.
 3. Tjek blokeringslisten først. En blokering uden labels på en hvilken som helst tilladelse, som måltabellen accepterer for denne handling, afviser forespørgslen med det samme, uanset hvilket team den er sat på.
 4. Tjek tilladelseslisten. Forespørgslen kræver mindst én tilladelse, som måltabellen accepterer for denne handling. For en driftsressource — en monitor, en hændelse, et dashboard og lignende — tæller den tilsvarende **All Operational Resources**-tilladelse (Create, Read, Edit eller Delete) også, medmindre den selv er blokeret.
-5. Anvend omfanget. Tildelinger med omfanget Ejede indsnævrer forespørgslen til ejede ressourcer; labelbaserede indsnævrer til matchende labels. Er en anden tildeling for samme handling bredere, vinder den bredere.
-6. Anvend labelblokeringer. En blokering med labels afviser forespørgslen, hvis målressourcen bærer et af dem. Når en post ikke har egne labels, f.eks. en note på en hændelse eller en meddelelse på en statusside, udelader en blokering med labels på at læse den posten, hvis en post, den hører til, bærer et af de labels.
+5. Anvend omfanget. Tildelinger med omfanget Ejede indsnævrer forespørgslen til ejede ressourcer; labelbaserede indsnævrer til matchende labels. Er en anden tildeling for samme handling bredere, vinder den bredere. En post uden egne labels, f.eks. en note på en hændelse, matcher en labelbaseret tildeling, når en af de poster, den hører til, bærer et af tildelingens labels.
+6. Anvend labelblokeringer. En blokering med labels afviser forespørgslen, hvis målressourcen bærer et af dem. Når en post ikke har egne labels, f.eks. en note på en hændelse eller en meddelelse på en statusside, udelader en blokering med labels posten ved læsning, ændring og sletning, hvis en post, den hører til, bærer et af de labels. En liste med poster fra alle dine projekter på én gang, f.eks. hændelserne på din startside, afgrænser hvert projekts poster med dine blokeringer og tildelinger i det projekt.
 
 Hvert felt i en post læses med postens egen læsetilladelse: en tilladelse til en anden slags post åbner det aldrig. Nogle felter er bevidst snævrere. Hemmeligheder læses kun af personer, der må redigere eller administrere den post, de hører til, f.eks. en monitors nøgler til indgående anmodninger og indgående e-mail og dens serveragentnøgle eller et workflows webhook- og e-mailnøgler. At se optagelsen af en sessionsafspilning kræver **Watch Session Replays**, ikke kun **List Session Replays**. Telemetri læses signal for signal: **Read Telemetry Service Log** læser logs, **Read Telemetry Service Traces** læser traces, og **Read Telemetry Service Metrics** læser metrics, metrikdiagrammer inklusive.
 

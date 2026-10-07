@@ -40,26 +40,27 @@ import { EntityMetadata } from "typeorm/metadata/EntityMetadata";
 
 export default class QueryUtil {
   /*
-   * A relation filtered by a plain id (`incident: "<id>"`) is a filter on
-   * the relation's key (`incidentId`), and is written there. It is added to
+   * A relation filtered by ids - a plain id (`incident: "<id>"`) or several
+   * in Includes (`incident: new Includes([...])`) - is a filter on the
+   * relation's key (`incidentId`), and is written there. It is added to
    * whatever the key already holds - the condition a permission check put
    * on it, the caller's own filter on the key - and never takes its place:
    * both hold.
    */
-  private static moveRelationIdToKey<TBaseModel extends BaseModel>(
+  private static moveRelationFilterToKey<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     query: Query<TBaseModel>,
     relation: string,
     keyColumn: string,
+    relationIds: string | FindOperator<any>,
   ): void {
     const record: Record<string, unknown> = query as Record<string, unknown>;
-    const relationId: string = record[relation] as string;
     delete record[relation];
 
     const existing: unknown = record[keyColumn];
 
     if (existing === undefined) {
-      record[keyColumn] = relationId;
+      record[keyColumn] = relationIds;
       return;
     }
 
@@ -70,9 +71,10 @@ export default class QueryUtil {
       } as Query<TBaseModel>) as Record<string, unknown>
     )[keyColumn];
 
-    const relationFilter: FindOperator<any> = QueryHelper.equalTo(
-      relationId,
-    ) as FindOperator<any>;
+    const relationFilter: FindOperator<any> =
+      relationIds instanceof FindOperator
+        ? relationIds
+        : (QueryHelper.equalTo(relationIds) as FindOperator<any>);
 
     if (typeof keyFilter === Typeof.String) {
       record[keyColumn] = And(
@@ -569,6 +571,21 @@ export default class QueryUtil {
         tableColumnMetadata
       ) {
         if (
+          tableColumnMetadata.type === TableColumnType.Entity &&
+          tableColumnMetadata.manyToOneRelationColumn
+        ) {
+          // A filter on the relation's key, beside what the key holds.
+          QueryUtil.moveRelationFilterToKey(
+            modelType,
+            query,
+            key,
+            tableColumnMetadata.manyToOneRelationColumn,
+            QueryHelper.any(
+              (query[key] as Includes).values,
+            ) as FindOperator<any>,
+          );
+          continue;
+        } else if (
           tableColumnMetadata.type === TableColumnType.EntityArray ||
           tableColumnMetadata.type === TableColumnType.Entity
         ) {
@@ -624,11 +641,12 @@ export default class QueryUtil {
         tableColumnMetadata.manyToOneRelationColumn &&
         typeof query[key] === Typeof.String
       ) {
-        QueryUtil.moveRelationIdToKey(
+        QueryUtil.moveRelationFilterToKey(
           modelType,
           query,
           key,
           tableColumnMetadata.manyToOneRelationColumn,
+          query[key] as unknown as string,
         );
       }
 

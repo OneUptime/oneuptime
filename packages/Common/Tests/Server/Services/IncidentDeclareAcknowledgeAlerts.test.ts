@@ -415,6 +415,13 @@ function findStoredAlerts(args: FindAlertsArgs): Array<Alert> {
 
     const alert: Alert = new Alert();
     alert._id = id;
+    /*
+     * Every stored alert is the project's: read with it when the read asks
+     * for it, as the permission check's read of the alert does.
+     */
+    if (args.select && args.select["projectId"]) {
+      alert.projectId = PROJECT_ID;
+    }
     alert.labels = stored.labels;
 
     if (stored.stateOrder !== null) {

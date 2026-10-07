@@ -1,4 +1,6 @@
 import AnalyticsBaseModel from "./AnalyticsBaseModel/AnalyticsBaseModel";
+import NetworkDevice from "../DatabaseModels/NetworkDevice";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import Route from "../../Types/API/Route";
 import AnalyticsTableEngine from "../../Types/AnalyticsDatabase/AnalyticsTableEngine";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
@@ -37,6 +39,13 @@ const createPermissions: Array<Permission> = [
   Permission.CreateNetworkDevice,
 ];
 
+/*
+ * A flow is read through the device that exported it: a caller whose
+ * grants are limited to labels or to owned devices reads the flows of the
+ * devices those reach, and a block with labels takes away the flows of the
+ * devices carrying them (ModelPermission.getReadScope).
+ */
+@OwnedThrough("networkDeviceId", NetworkDevice, { onlyParentModels: true })
 export default class NetworkFlow extends AnalyticsBaseModel {
   public constructor() {
     const projectIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({

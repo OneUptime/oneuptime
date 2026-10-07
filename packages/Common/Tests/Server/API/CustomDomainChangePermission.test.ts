@@ -113,6 +113,7 @@ import Permission, {
 } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
 import { customDomainCaller } from "./CustomDomainCallers";
+import { withLabelJoinTables } from "../TestingUtils/LabelJoinTables";
 
 type MockedFn = ReturnType<typeof jest.fn>;
 
@@ -617,6 +618,9 @@ describe.each(KINDS)("%s", (_label: string, kind: Kind) => {
         const spies: Spies = stubDomainTable(kind);
         const labelId: ObjectID = ObjectID.generate();
 
+        // The label join tables, as a migrated database names them.
+        withLabelJoinTables();
+
         const props: DatabaseCommonInteractionProps = customDomainCaller({
           permissions: [kind.readPermission, kind.editPermission],
         });
@@ -635,9 +639,15 @@ describe.each(KINDS)("%s", (_label: string, kind: Kind) => {
         const lookup: { query: Record<string, unknown> } = spies.findOneBy.mock
           .calls[0]![0] as { query: Record<string, unknown> };
 
-        expect(JSON.stringify(lookup.query[kind.parentRelation])).toContain(
+        /*
+         * An update narrows by the parents the caller may edit with a
+         * condition on the domain's own id, leaving the caller's filter on
+         * the relation as it was sent.
+         */
+        expect(JSON.stringify(lookup.query["_id"])).toContain(
           labelId.toString(),
         );
+        expect(lookup.query[kind.parentRelation]).toBeUndefined();
       });
 
       test("a master admin gets to the change", async () => {

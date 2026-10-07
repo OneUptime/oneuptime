@@ -137,6 +137,8 @@ Etiketter är projektövergripande märkningar du fäster på resurser. De fylle
 
 En etikettbegränsning är uppfylld om resursen bär **minst en** av behörighetens etiketter. En resurs helt utan etiketter uppfyller ingen etikettbegränsad behörighet.
 
+En post utan egna etiketter, till exempel en anteckning på en incident, ett meddelande på en statussida eller en AI-insikt om en tjänst, bär etiketterna från de poster den hör till eller handlar om. En behörighet som är begränsad till etiketter når den när någon av de posterna bär någon av behörighetens etiketter, och en blockering med etiketter tar bort den när någon av dem bär en blockerad etikett, vid läsning, ändring och borttagning lika. En post som inte handlar om någon av dem, till exempel en AI-insikt som inte handlar om någon tjänst, hör till projektet: en etikettbegränsning avgränsar den inte, och en blockering med etiketter tar inte bort den.
+
 Var du hittar det: **Inställningar → Etiketter**.
 
 ## Telemetri
@@ -148,6 +150,8 @@ Loggar, spår, mätvärden, undantag, profiler och sessionsuppspelningar hör ti
 - **Etiketter** läser telemetrin från de resurser som bär någon av behörighetens etiketter.
 
 En blockering med etiketter på en telemetribehörighet utelämnar telemetrin från de resurser som bär de etiketterna, oavsett vad du annars har. Det gäller överallt där telemetri läses: utforskarna med sina diagram, filter och attributlistor, exporter, sessionsuppspelningar och det som AI-assistenten läser åt dig. Listan över mätvärdesnamn visar de mätvärden som en tjänst du får läsa rapporterar, och de mätvärden som ingen tjänst rapporterar, till exempel värd- och klustermätvärden. Får du också läsa telemetri från andra slags resurser, till exempel värdar eller kluster, visar den alla mätvärdesnamn.
+
+Monitorloggar, SLO-historik, nätverksflöden och kostnadsfördelningar för Kubernetes läses på samma sätt, genom den monitor, det SLO, den nätverksenhet eller det kluster de hör till: Ägda och Etiketter når raderna för de poster du får läsa, och en blockering med etiketter utelämnar raderna för de poster som bär de etiketterna. Granskningsloggen och hotunderrättelseindikatorerna läses i hela projektet av den som får läsa dem.
 
 ## API-nycklar
 
@@ -165,12 +169,12 @@ Var du hittar det: **Inställningar → API-nycklar**. Se även [API-referensen]
 
 För en inloggad användare, i ordning:
 
-1. Hitta de team användaren tillhör i det här projektet — bara accepterade inbjudningar räknas.
+1. Hitta de team användaren tillhör i det här projektet — bara accepterade inbjudningar räknas. En begäran når bara posterna i det här projektet: en post i ett annat projekt, angiven med sitt id eller i ett filter, behandlas som om den inte fanns.
 2. Samla alla behörighetsrader från dessa team — tillåtna och blockerade, var och en med etiketter och omfattning.
 3. Kontrollera blockeringslistan först. En blockering utan etiketter på någon behörighet som måltabellen accepterar för den här operationen avvisar begäran direkt, oavsett vilket team den är satt på.
 4. Kontrollera tillåtelselistan. Begäran behöver minst en behörighet som måltabellen accepterar för den här operationen. För en driftresurs — en övervakare, en incident, en instrumentpanel och liknande — räknas även motsvarande **All Operational Resources**-behörighet (Create, Read, Edit eller Delete), om den inte själv är blockerad.
-5. Tillämpa omfattningen. Tilldelningar med omfattningen Ägda smalnar av frågan till ägda resurser; etikettbaserade smalnar av till matchande etiketter. Är någon annan tilldelning för samma operation bredare vinner den bredare.
-6. Tillämpa etikettblockeringar. En blockering med etiketter avvisar begäran om målresursen bär någon av dem. När en post inte har egna etiketter, till exempel en anteckning på en incident eller ett meddelande på en statussida, utelämnar en blockering med etiketter på att läsa den posten om en post som den hör till bär någon av de etiketterna.
+5. Tillämpa omfattningen. Tilldelningar med omfattningen Ägda smalnar av frågan till ägda resurser; etikettbaserade smalnar av till matchande etiketter. Är någon annan tilldelning för samma operation bredare vinner den bredare. En post utan egna etiketter, till exempel en anteckning på en incident, matchar en etikettbaserad tilldelning när någon av posterna den hör till bär någon av tilldelningens etiketter.
+6. Tillämpa etikettblockeringar. En blockering med etiketter avvisar begäran om målresursen bär någon av dem. När en post inte har egna etiketter, till exempel en anteckning på en incident eller ett meddelande på en statussida, utelämnar en blockering med etiketter posten vid läsning, ändring och borttagning om en post som den hör till bär någon av de etiketterna. En lista med poster från alla dina projekt på en gång, till exempel incidenterna på din startsida, avgränsar varje projekts poster med dina blockeringar och tilldelningar i det projektet.
 
 Varje fält i en post läses med postens egen läsbehörighet: en behörighet för en annan sorts post öppnar det aldrig. Vissa fält är avsiktligt snävare. Hemligheter läses bara av personer som får redigera eller administrera posten de hör till, till exempel en monitors nycklar för inkommande förfrågningar och inkommande e-post och dess serveragentnyckel, eller ett arbetsflödes webhook- och e-postnycklar. Att titta på inspelningen av en sessionsuppspelning kräver **Watch Session Replays**, inte bara **List Session Replays**. Telemetri läses signal för signal: **Read Telemetry Service Log** läser loggar, **Read Telemetry Service Traces** läser spår och **Read Telemetry Service Metrics** läser mätvärden, mätvärdesdiagram inräknade.
 

@@ -298,15 +298,77 @@ describe("DatabaseService.readsEveryRecordInProject", () => {
     ).resolves.toBe(true);
   });
 
-  test("a record with no labels of its own: a grant for some labels reads every one, as its read does", async () => {
+  /*
+   * A grant limited to labels reaches a record with no labels of its own
+   * through the labelled records it names (an insight through its service),
+   * as a block with labels does: its read is narrowed, so live updates are
+   * decided record by record.
+   */
+  test("a record with no labels of its own: a grant for some labels does not read every one, as its read does not", async () => {
+    withLabelLinks();
+
+    const labelsReader: DatabaseCommonInteractionProps = propsWith([
+      {
+        permission: Permission.ProjectMember,
+        labelIds: [LABEL_ID],
+        scope: PermissionScope.Labels,
+      },
+    ]);
+
     await expect(
-      AIInsightService.readsEveryRecordInProject(
+      AIInsightService.readsEveryRecordInProject(labelsReader),
+    ).resolves.toBe(false);
+    // One condition on the row's id, over every record the row names.
+    await expect(
+      AIInsightService.getColumnsNarrowingReadOf(labelsReader),
+    ).resolves.toEqual(["_id"]);
+  });
+
+  /*
+   * A write that names another service may take an insight out of what
+   * that reader reaches, so they are asked whether they could read it
+   * before; a write that changes nothing they are narrowed by is not.
+   */
+  test.each([
+    ["the service it is about", { telemetryServiceId: true }, true],
+    ["only its title", { title: true }, false],
+  ] as Array<[string, Record<string, boolean>, boolean]>)(
+    "a record with no labels of its own: a grant for some labels may lose it when %s is written",
+    async (
+      _written: string,
+      written: Record<string, boolean>,
+      mayChange: boolean,
+    ) => {
+      withLabelLinks();
+
+      const reader: RealtimeReader = readerWith(
         propsWith([
           {
             permission: Permission.ProjectMember,
             labelIds: [LABEL_ID],
             scope: PermissionScope.Labels,
           },
+        ]),
+      );
+
+      await expect(
+        (
+          AIInsightService as unknown as {
+            writeMayChangeWhetherTheyRead: (
+              reader: RealtimeReader,
+              columns: Array<string>,
+            ) => Promise<boolean>;
+          }
+        ).writeMayChangeWhetherTheyRead(reader, Object.keys(written)),
+      ).resolves.toBe(mayChange);
+    },
+  );
+
+  test("a record with no labels of its own: a grant over the whole project reads every one", async () => {
+    await expect(
+      AIInsightService.readsEveryRecordInProject(
+        propsWith([
+          { permission: Permission.ProjectMember, scope: PermissionScope.All },
         ]),
       ),
     ).resolves.toBe(true);

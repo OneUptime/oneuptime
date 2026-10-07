@@ -942,6 +942,24 @@ jobs:
           Tests/Server/Services/TeamMemberMultiTenantReadPostgres.test.ts
           --forceExit
 
+      # Clones the migrated alert, note, service, AI insight, team, API key
+      # and label tables into an isolated schema and sends lists, counts,
+      # reads, updates and deletes through the CRUD routes, the real user
+      # middleware and the permission pipeline: every request keeps to the
+      # caller's project, and grants and blocks with or without labels hold
+      # on every path, for teams and API keys, across projects too.
+      - name: Test the records the CRUD API reaches on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_RECORD_SCOPE_TESTS: "true"
+          RECORD_SCOPE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          RECORD_SCOPE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          RECORD_SCOPE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/API/RecordScopeCrudPostgres.test.ts
+          --forceExit
+
       - name: Test workflow OAuth variables on migrated Postgres
         working-directory: packages/Common
         env:

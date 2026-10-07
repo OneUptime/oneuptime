@@ -25,6 +25,8 @@ export default class MicrosoftTeamsActionAuthorization {
       },
       select: {
         _id: true,
+        // Whose record it is, for the checks below to see too.
+        projectId: true,
         labels: {
           _id: true,
           name: true,
@@ -97,6 +99,8 @@ export default class MicrosoftTeamsActionAuthorization {
       },
       select: {
         _id: true,
+        // Whose record it is, for the checks below to see too.
+        projectId: true,
         labels: {
           _id: true,
           name: true,

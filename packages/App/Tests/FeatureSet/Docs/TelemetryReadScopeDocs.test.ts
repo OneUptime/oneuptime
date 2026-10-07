@@ -94,7 +94,7 @@ describe("Users, Teams & Permissions: whose telemetry a permission reads", () =>
       });
 
     expect(stepSix).toContain(
-      "When a record has no labels of its own, such as an incident note or a status page announcement, a block with labels on reading it leaves it out if a record it belongs to carries one of those labels.",
+      "When a record has no labels of its own, such as an incident note or a status page announcement, a block with labels leaves it out of reads, changes and deletes if a record it belongs to carries one of those labels.",
     );
     // Such a block never refuses the read outright: that is a block with no labels.
     expect(stepSix).not.toContain("refuses");

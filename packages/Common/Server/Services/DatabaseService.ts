@@ -25,7 +25,9 @@ import ModelPermission from "../Types/Database/Permissions/Index";
 import PublicPermission from "../Types/Database/Permissions/PublicPermission";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import OwnerOnlyColumnPermission from "../Types/Database/Permissions/OwnerOnlyColumnPermission";
-import { CheckReadPermissionType } from "../Types/Database/Permissions/ReadPermission";
+import ReadPermission, {
+  CheckReadPermissionType,
+} from "../Types/Database/Permissions/ReadPermission";
 import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import RelationSelect from "../Types/Database/RelationSelect";
@@ -2689,9 +2691,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * (getColumnsNarrowingReadOf) - a row made private, the record a row
    * names - or, when one of those conditions is on the row's id, which is
    * how the label and owner rules reach a row's links (a block with labels,
-   * the labelled records a row is linked to), one of the row's links (a
-   * many-to-many column, its labels among them). False for someone who
-   * reads every record, or whose read cannot be told apart.
+   * the labelled records a row is linked to) and, on a row with no labels
+   * of its own, every record it names at once (a grant limited to labels),
+   * one of the row's links (a many-to-many column, its labels among them)
+   * or one of the keys naming those records
+   * (ReadPermission.getLabelledKeyColumns). False for someone who reads
+   * every record, or whose read cannot be told apart.
    */
   private async writeMayChangeWhetherTheyRead(
     reader: RealtimeReader,
@@ -2720,10 +2725,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       return false;
     }
 
+    const labelledKeys: Array<string> = ReadPermission.getLabelledKeyColumns(
+      this.modelType,
+    );
+
     return columns.some((column: string): boolean => {
       return (
         this.getModel().getTableColumnMetadata(column)?.type ===
-        TableColumnType.EntityArray
+          TableColumnType.EntityArray || labelledKeys.includes(column)
       );
     });
   }
@@ -4452,25 +4461,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     await ModelPermission.checkDeletePermissionByModel({
       modelType: this.modelType,
       fetchModelWithAccessControlIds: async () => {
-        const selectModel: Select<TBaseModel> = {};
-        const accessControlColumn: string | null =
-          this.getModel().getAccessControlColumn();
-
-        if (accessControlColumn) {
-          (selectModel as any)[accessControlColumn] = {
-            _id: true,
-            name: true,
-          };
-        }
-
-        return await this.findOneById({
-          id: deleteById.id,
-          select: selectModel,
-          props: {
-            isRoot: true,
-          },
-        });
+        return await this.findWithAccessControlIds(
+          deleteById.id,
+          deleteById.props,
+        );
       },
+      isRecordFound: this.getRecordFinder(),
       props: deleteById.props,
     });
 
@@ -4567,8 +4563,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       let numberOfDocsAffected: number = 0;
 
       if (items.length > 0) {
-        beforeDeleteBy.query = {
-          ...beforeDeleteBy.query,
+        /*
+         * The rows found, by their ids and the query's filters on the
+         * table's own columns. Its filters on relations (the record a model
+         * is read through, a record's labels) are left to the lookup above,
+         * which the ids pin: a DELETE cannot join them.
+         */
+        const query: Query<TBaseModel> = {
+          ...this.getColumnFiltersOf(beforeDeleteBy.query),
           _id: QueryHelper.any(
             items.map((i: TBaseModel) => {
               return i.id!;
@@ -4583,8 +4585,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           await this.readRowsDeletedWith(items);
 
         numberOfDocsAffected =
-          (await this.getRepository().delete(beforeDeleteBy.query as any))
-            .affected || 0;
+          (await this.getRepository().delete(query as any)).affected || 0;
 
         /*
          * Their images are private again, unless another record still shows
@@ -4608,6 +4609,37 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       await this.onDeleteError(error as Exception);
       throw this.getException(error as Exception);
     }
+  }
+
+  /*
+   * `query` without its filters on relations - a record named through a
+   * relation, or the records a row is linked to - for a statement that
+   * cannot join them (hardDeleteBy's DELETE). Its filters on the table's
+   * own columns stay. A query per project (DeletePermission's answer to a
+   * request across projects) keeps none: the rows it found are named by id.
+   */
+  private getColumnFiltersOf(query: Query<TBaseModel>): Query<TBaseModel> {
+    if (Array.isArray(query)) {
+      return {} as Query<TBaseModel>;
+    }
+
+    const filters: Dictionary<unknown> = {};
+
+    for (const [key, value] of Object.entries(query as Dictionary<unknown>)) {
+      const type: TableColumnType | undefined =
+        this.getModel().getTableColumnMetadata(key)?.type;
+
+      if (
+        type === TableColumnType.Entity ||
+        type === TableColumnType.EntityArray
+      ) {
+        continue;
+      }
+
+      filters[key] = value;
+    }
+
+    return filters as Query<TBaseModel>;
   }
 
   private async _deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
@@ -6200,8 +6232,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     await ModelPermission.checkUpdatePermissionByModel({
       modelType: this.modelType,
       fetchModelWithAccessControlIds: async () => {
-        return await this.findWithAccessControlIds(updateById.id);
+        return await this.findWithAccessControlIds(
+          updateById.id,
+          updateById.props,
+        );
       },
+      isRecordFound: this.getRecordFinder(),
       props: updateById.props,
       /*
        * Below the table's update plan, a switch-off still passes: judged on
@@ -6221,16 +6257,30 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
-   * A row with every one of its access-control labels, read as root: the
+   * A row with every one of its access-control labels, read as root - the
    * team block list is checked against all of them, not only the ones the
-   * caller may see.
+   * caller may see - but only in the project the caller acts in
+   * (getCallerProjectRowQuery): a row of another project is answered as a
+   * missing one, so a check made with it never reads, nor names, another
+   * project's labels.
    */
   private async findWithAccessControlIds(
     id: ObjectID,
+    props: DatabaseCommonInteractionProps,
   ): Promise<TBaseModel | null> {
+    const query: Query<TBaseModel> | null = this.getCallerProjectRowQuery(
+      id,
+      props,
+    );
+
+    if (!query) {
+      return null;
+    }
+
     const selectModel: Select<TBaseModel> = {};
     const accessControlColumn: string | null =
       this.getModel().getAccessControlColumn();
+    const tenantColumn: string | null = this.getModel().getTenantColumn();
 
     if (accessControlColumn) {
       (selectModel as any)[accessControlColumn] = {
@@ -6239,13 +6289,86 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       };
     }
 
-    return await this.findOneById({
-      id: id,
+    // Whose row it is, for the checks to see too (AccessControlPermission).
+    if (tenantColumn) {
+      (selectModel as any)[tenantColumn] = true;
+    }
+
+    return await this.findOneBy({
+      query: query,
       select: selectModel,
       props: {
         isRoot: true,
       },
     });
+  }
+
+  /*
+   * The query that names row `id` in the project, or projects, `props` act
+   * in - for a lookup made as root on the caller's behalf, which must not
+   * reach another project's rows. Null when the caller acts in no project
+   * the row could be in: such a caller holds no team permission rows, so the
+   * checks that ask for the row (a block or a grant with labels) have none
+   * to weigh, and never ask. Root and master admin callers, and a table with
+   * no project column, look the row up wherever it is.
+   */
+  private getCallerProjectRowQuery(
+    id: ObjectID,
+    props: DatabaseCommonInteractionProps,
+  ): Query<TBaseModel> | null {
+    const query: Query<TBaseModel> = {
+      _id: id.toString(),
+    } as Query<TBaseModel>;
+    const tenantColumn: string | null = this.getModel().getTenantColumn();
+
+    if (props.isRoot || props.isMasterAdmin || !tenantColumn) {
+      return query;
+    }
+
+    const projectIds: Array<string> = (
+      props.tenantId && !props.isMultiTenantRequest
+        ? [props.tenantId]
+        : props.userGlobalAccessPermission?.projectIds || []
+    ).map((projectId: ObjectID): string => {
+      return projectId.toString();
+    });
+
+    if (projectIds.length === 0) {
+      return null;
+    }
+
+    // A project is its own tenant: the row is one of the caller's projects.
+    if (tenantColumn === "_id") {
+      return projectIds.some((projectId: string): boolean => {
+        return projectId.toLowerCase() === id.toString().toLowerCase();
+      })
+        ? query
+        : null;
+    }
+
+    (query as Dictionary<unknown>)[tenantColumn] =
+      projectIds.length === 1 ? projectIds[0] : QueryHelper.any(projectIds);
+
+    return query;
+  }
+
+  /*
+   * Whether a query, run as root, finds a record of this table: for the
+   * checks on one record (AccessControlPermission) to weigh the label rule
+   * on a record whose labels are those of the records it names.
+   */
+  private getRecordFinder(): (query: Query<TBaseModel>) => Promise<boolean> {
+    return async (query: Query<TBaseModel>): Promise<boolean> => {
+      const rows: Array<TBaseModel> = await this._findBy({
+        query: query,
+        select: { _id: true } as Select<TBaseModel>,
+        skip: 0,
+        limit: 1,
+        props: { isRoot: true, ignoreHooks: true },
+      });
+
+      return rows.length > 0;
+    };
   }
 
   /*
@@ -6260,7 +6383,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * (ModelPermission.getUpdatableQuery: the caller's project, labels and
    * Owned scope, and the labels of the record a table is read through). A
    * credential that may only read is refused. Throws what the update would
-   * throw when the caller may not update this table at all.
+   * throw when the caller may not update this table at all, or this row by
+   * one of its own labels. A row with no labels of its own carries those of
+   * the records it names, and is weighed by that query alone: outside the
+   * caller's labels, or carrying a blocked one, it answers nothing, like a
+   * row of another project.
    */
   @CaptureSpan()
   public async findOneUpdatableById(data: {
@@ -6278,6 +6405,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           async (): Promise<TBaseModel | null> => {
             const row: TBaseModel | null = await this.findWithAccessControlIds(
               data.id,
+              data.props,
             );
 
             lookup.isMissing = !row;
