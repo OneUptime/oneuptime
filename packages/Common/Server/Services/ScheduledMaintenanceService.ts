@@ -907,7 +907,11 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
 
     // Two names that disagree are refused (validateProjectScopedReferences did already).
     const newMonitorStatusId: string | null = this.toMonitorStatusKey(
-      RelationIdUtil.readConsistent(data, MONITOR_STATUS_KEYS, "Monitor Status"),
+      RelationIdUtil.readConsistent(
+        data,
+        MONITOR_STATUS_KEYS,
+        "Monitor Status",
+      ),
     );
 
     const scheduledMaintenanceEvents: Array<Model> = await this.findBy({
@@ -927,12 +931,13 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
       },
     });
 
-    const monitorStatusBeforeUpdate: Dictionary<MonitorStatusBeforeUpdate> =
-      {};
+    const monitorStatusBeforeUpdate: Dictionary<MonitorStatusBeforeUpdate> = {};
 
     // Each project's states, read at most once, and only when a state needs them.
-    const statesByProjectId: Map<string, Array<ScheduledMaintenanceState>> =
-      new Map<string, Array<ScheduledMaintenanceState>>();
+    const statesByProjectId: Map<
+      string,
+      Array<ScheduledMaintenanceState>
+    > = new Map<string, Array<ScheduledMaintenanceState>>();
 
     for (const scheduledMaintenanceEvent of scheduledMaintenanceEvents) {
       if (!scheduledMaintenanceEvent.id) {
