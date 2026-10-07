@@ -530,6 +530,13 @@ describe("cross-project reference guard on write", () => {
 
     test("update checks the state and the monitor status", async () => {
       spyOnValidator();
+      /*
+       * The events the update matches, read for the status they hold
+       * (it can be changed until an event starts): none here.
+       */
+      jest
+        .spyOn(ScheduledMaintenanceService, "findBy")
+        .mockResolvedValue([] as never);
 
       await callHook(ScheduledMaintenanceService, "onBeforeUpdate", {
         data: {
