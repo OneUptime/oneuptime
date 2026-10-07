@@ -412,7 +412,7 @@ Wanneer SCIM probeert een gebruiker aan te maken die al bestaat (overeenkomend o
 - **Zelfgehost**: De bestaande gebruiker wordt direct toegevoegd aan de geconfigureerde standaardteams (of, met Push-groepen, aan het team van de groep).
 - **OneUptime Cloud**: Een OneUptime-account hoort bij de persoon, niet bij één project, dus SCIM kan iemand niet op eigen gezag lid van uw project maken. De bestaande gebruiker wordt in plaats daarvan voor de teams **uitgenodigd** en ontvangt de gebruikelijke uitnodigingsmail. De gebruiker wordt lid zodra de uitnodigingen zijn geaccepteerd via **Projectuitnodigingen** in OneUptime, of zodra de single sign-on (SSO) van uw project is bevestigd via de e-mail die OneUptime bij de eerste SSO-aanmelding stuurt. Tot die tijd staat de gebruiker als openstaand vermeld. Hetzelfde geldt wanneer een groep een bestaande gebruiker toevoegt die nog geen lid van uw project is.
 
-Gebruikers die SCIM zelf aanmaakt, gebruikers die al lid van uw project zijn geworden en gebruikers die de SSO van uw project hebben bevestigd, worden in beide gevallen direct toegevoegd.
+Gebruikers die SCIM zelf aanmaakt en gebruikers die lid zijn van uw project worden in beide gevallen direct toegevoegd. Wie de SSO van uw project bevestigt, wordt daarmee lid en dus ook direct toegevoegd; wie uw project sindsdien heeft verlaten, wordt opnieuw uitgenodigd.
 
 ### Kan SCIM het e-mailadres of de naam van een gebruiker wijzigen?
 

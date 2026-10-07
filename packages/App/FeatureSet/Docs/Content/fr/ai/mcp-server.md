@@ -54,7 +54,7 @@ Le client agit alors sous votre identité dans ce projet. Il n'y a aucune clé A
 
 Ce que peut faire un client connecté :
 
-- **Il a vos permissions, et jamais davantage.** Ce que vos équipes vous autorisent à faire dans le projet, c'est ce que le client peut faire. Si votre rôle change ou si vous quittez le projet, cela s'applique dès la requête suivante du client.
+- **Il a vos permissions, et jamais davantage.** Ce que vos équipes vous autorisent à faire dans le projet, c'est ce que le client peut faire. Si votre rôle change ou si vous quittez le projet, cela s'applique dès la requête suivante du client. Quitter le projet déconnecte aussi le client : son autorisation est supprimée, et vous le reconnectez si vous rejoignez de nouveau le projet.
 - **Lecture seule signifie lecture seule.** Un client autorisé en lecture seule peut utiliser les outils `get_`, `list_` et `count_`. Les outils qui créent, mettent à jour ou suppriment des ressources, ou qui prennent en charge ou résolvent des incidents ou des alertes, sont refusés, par le serveur MCP comme par l'API OneUptime qui se trouve derrière lui. Vous ne pouvez jamais donner à un client plus d'accès qu'il n'en a demandé.
 - **Il est limité à un seul projet.** Pour utiliser un deuxième projet, connectez de nouveau le client et choisissez ce projet.
 - **Il ne fonctionne qu'à travers le serveur MCP.** Le jeton d'accès du client est accepté par le point de terminaison MCP et nulle part ailleurs. Il ne peut pas servir à appeler directement l'API REST de OneUptime.

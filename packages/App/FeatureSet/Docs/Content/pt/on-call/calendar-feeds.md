@@ -161,7 +161,7 @@ Configurações em ambos:
 
 Coloque o link de escala em um calendário de equipe compartilhado — Google, Outlook ou Confluence — e uma única assinatura atende toda a equipe. Rotacione-o quando alguém que o tinha sair, ou ative a rotação automática acima.
 
-Quando uma pessoa sai da última equipe em um projeto, o OneUptime também a remove das camadas de escala e das regras de escalonamento daquele projeto, exclui as substituições em andamento e futuras do projeto que a mencionam (como pessoa substituída ou como substituta), desativa seu feed pessoal do projeto e exclui seus lembretes ali.
+Quando uma pessoa sai da última equipe em um projeto, o OneUptime também a remove das camadas de escala e das regras de escalonamento daquele projeto, exclui as substituições em andamento e futuras do projeto que a mencionam (como pessoa substituída ou como substituta), desativa seu feed pessoal do projeto e exclui seus lembretes ali. Um link pessoal mostra turnos apenas enquanto o dono for membro do projeto: isso é verificado cada vez que o link é buscado, então quem saiu recebe um calendário vazio, e a lista de próximos turnos no aplicativo móvel cobre apenas os projetos dos quais a pessoa ainda é membro.
 
 ## Os eventos em detalhe
 
@@ -220,7 +220,7 @@ Também relevante:
 
 **O calendário está desatualizado.** Leia primeiro a tabela de atualização: no Google o atraso é normal. Para fazer o Google olhar de novo, remova e adicione a agenda novamente ou acrescente `?nocache=1` ao link (parâmetros desconhecidos são ignorados, o feed é o mesmo, mas o Google o trata como novo). No Outlook clássico pressione F9 e confira a configuração **Limite de atualização**. No Calendário da Apple use **Visualizar** > **Atualizar Calendários**. Se uma mudança do mesmo dia importa, confie nos lembretes e avisos de reatribuição do OneUptime em vez do calendário.
 
-**O calendário está vazio.** Um calendário vazio é proposital. Significa que o link está desativado, é um link antigo dentro do período de carência de 30 dias após regenerar, o projeto está abaixo do plano que inclui escalas de plantão, ou você não está mais em nenhuma escala daquele projeto. Abra o link em um navegador: a descrição do calendário (`X-WR-CALDESC`) informa o motivo.
+**O calendário está vazio.** Um calendário vazio é proposital. Significa que o link está desativado, é um link antigo dentro do período de carência de 30 dias após regenerar, o projeto está abaixo do plano que inclui escalas de plantão, ou você não está mais em nenhuma escala daquele projeto. Abra o link em um navegador: a descrição do calendário (`X-WR-CALDESC`) informa o motivo. Se você saiu do projeto, o link continua vazio: ele mostra turnos apenas enquanto você é membro.
 
 **404.** O link é desconhecido, foi excluído ou seu período de carência terminou. Gere um novo e assine de novo.
 

@@ -412,7 +412,7 @@ OneUptime का SCIM implementation, SCIM v2.0 specification का पाल�
 - **सेल्फ़-होस्टेड**: मौजूदा user को तुरंत configured default teams में (या Push समूह के साथ, group की team में) जोड़ दिया जाता है।
 - **OneUptime Cloud**: OneUptime account व्यक्ति का होता है, किसी एक project का नहीं, इसलिए SCIM अपनी मर्ज़ी से किसी को आपके project का सदस्य नहीं बना सकता। इसके बजाय मौजूदा user को teams में **आमंत्रित** किया जाता है, और उसे सामान्य निमंत्रण email मिलता है। वह तब जुड़ता है जब वह OneUptime में **प्रोजेक्ट आमंत्रण** से निमंत्रण स्वीकार करता है, या जब वह पहली बार SSO से sign in करने पर OneUptime द्वारा भेजे गए email से आपके project का single sign-on (SSO) confirm करता है। तब तक वह लंबित (pending) के रूप में दिखता है। यही बात तब भी लागू होती है जब कोई group किसी ऐसे मौजूदा user को जोड़ता है जो अभी आपके project का सदस्य नहीं है।
 
-जिन users को SCIM खुद बनाता है, जो users पहले से आपके project से जुड़ चुके हैं, और जिन users ने आपके project का SSO confirm कर दिया है, उन्हें दोनों ही स्थितियों में तुरंत जोड़ दिया जाता है।
+जिन users को SCIM खुद बनाता है और जो users आपके project के members हैं, उन्हें दोनों ही स्थितियों में तुरंत जोड़ दिया जाता है। आपके project का SSO confirm करने से कोई member बन जाता है, इसलिए उसे भी तुरंत जोड़ा जाता है; जिसने तब से आपका project छोड़ दिया है, उसे फिर से invite किया जाता है।
 
 ### क्या SCIM किसी user का email address या नाम बदल सकता है?
 
