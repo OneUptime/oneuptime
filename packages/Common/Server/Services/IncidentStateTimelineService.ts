@@ -19,6 +19,7 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import PositiveNumber from "../../Types/PositiveNumber";
 import StateChangeSubscriberNotification from "../../Types/StatusPage/StateChangeSubscriberNotification";
 import Incident from "../../Models/DatabaseModels/Incident";
@@ -581,7 +582,11 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
     const resolvesIncident: boolean =
       !createdItem.endsAt && isResolved && !previousStateWasResolved;
 
-    const stateName: string = incidentState?.name || "";
+    /*
+     * The state's name is plain text, placed into the feed item's Markdown
+     * (posted to Slack and Teams too): escaped, so it reads as typed.
+     */
+    const stateName: string = escapeMarkdownValue(incidentState?.name || "");
     let stateEmoji: string = "➡️";
 
     // if resolved state then change emoji to ✅.

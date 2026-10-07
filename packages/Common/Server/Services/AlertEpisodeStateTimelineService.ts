@@ -10,6 +10,7 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import PositiveNumber from "../../Types/PositiveNumber";
 import AlertState from "../../Models/DatabaseModels/AlertState";
@@ -425,7 +426,11 @@ export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline>
       },
     });
 
-    const stateName: string = alertState?.name || "";
+    /*
+     * The state's name is plain text, placed into the feed item's Markdown
+     * (posted to Slack and Teams too): escaped, so it reads as typed.
+     */
+    const stateName: string = escapeMarkdownValue(alertState?.name || "");
     let stateEmoji: string = "➡️";
 
     if (isResolvedState) {

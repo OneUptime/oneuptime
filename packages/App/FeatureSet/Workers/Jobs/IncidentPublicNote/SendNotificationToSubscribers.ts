@@ -70,6 +70,7 @@ import Email from "Common/Types/Email";
 import SubscriberNotificationTrigger from "Common/Types/StatusPage/SubscriberNotificationTrigger";
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
+import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
 
 /*
  * Two jobs share this send path: one tells subscribers about a new public
@@ -854,12 +855,12 @@ const notifySubscribersOfIncidentPublicNote: (data: {
                 ]);
               } else {
                 // Use default hard-coded template
-                markdownMessage = `## Incident - ${incident.title || ""}
+                markdownMessage = `## Incident - ${escapeMarkdownValue(incident.title || "")}
 
 **${copy.chatNoteSentence}**
 
-**Resources Affected:** ${resourcesAffectedPlainText}
-**Severity:** ${incident.incidentSeverity?.name || " - "}
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText, { keepLineBreaks: true })}
+**Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || " - ")}
 ${chatStatusLine}${chatCustomFields}
 **Note:**
 ${incidentPublicNote.note || ""}
@@ -906,12 +907,12 @@ ${incidentPublicNote.note || ""}
                 ]);
               } else {
                 // Use default hard-coded template
-                markdownMessage = `## Incident - ${incident.title || ""}
+                markdownMessage = `## Incident - ${escapeMarkdownValue(incident.title || "")}
 
 **${copy.chatNoteSentence}**
 
-**Resources Affected:** ${resourcesAffectedPlainText}
-**Severity:** ${incident.incidentSeverity?.name || " - "}
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText, { keepLineBreaks: true })}
+**Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || " - ")}
 ${chatStatusLine}${chatCustomFields}
 **Note:**
 ${incidentPublicNote.note || ""}

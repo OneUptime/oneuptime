@@ -1,4 +1,8 @@
-import { escapeMarkdownInline } from "./MarkdownEscape";
+import {
+  WORD_JOINER,
+  escapeMarkdownInline,
+  neutralizeChatControlSequences,
+} from "./MarkdownEscape";
 import { Lexer, Token, Tokens } from "marked";
 
 /*
@@ -113,39 +117,16 @@ import { Lexer, Token, Tokens } from "marked";
  * Pure, with no database or React imports.
  */
 
-const WORD_JOINER: string = "\u2060";
-
 /*
- * Where a chat control sequence starts, as Slack reads one: "<!" and a word
- * (<!here>, <!channel>, <!everyone>, <!subteam^ID>, <!date^...>), "<@" and
- * a user id, "<#" and a channel id. Not an HTML comment (<!--), CDATA
- * (<![CDATA[), or a document type or other SGML declaration (<!DOCTYPE
- * html>, <!ENTITY ...>): none of them is a Slack sequence, and a reporter
- * pastes them in HTML. Nor a PowerShell block comment, "<#" and a space.
+ * neutralizeChatControlSequences lives with the Markdown escapers
+ * (MarkdownEscape), which break chat control sequences too: a title or a name
+ * placed into a feed item or a chat message is posted to Slack as well. It is
+ * exported from here as before.
  */
-const CHAT_CONTROL_SEQUENCE_START_PATTERN: RegExp =
-  /<(?=[@#][a-z0-9]|!(?![-[]|(?:doctype|entity|element|attlist|notation)(?![a-z0-9])))/gi;
-
-export type NeutralizeChatControlSequencesFunction = (
-  value: string | undefined | null,
-) => string;
-
-/**
- * The text as typed, with every "<!", "<@" and "<#" that Slack could read
- * as a mention broken by an invisible word joiner, so no chat tool reads a
- * mention in it. Idempotent: a joiner already there is not doubled.
- */
-export const neutralizeChatControlSequences: NeutralizeChatControlSequencesFunction =
-  (value: string | undefined | null): string => {
-    if (value === undefined || value === null) {
-      return "";
-    }
-
-    return String(value).replace(
-      CHAT_CONTROL_SEQUENCE_START_PATTERN,
-      `<${WORD_JOINER}`,
-    );
-  };
+export {
+  neutralizeChatControlSequences,
+  type NeutralizeChatControlSequencesFunction,
+} from "./MarkdownEscape";
 
 /*
  * Private use characters, which nobody types and Markdown treats as plain

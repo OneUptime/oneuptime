@@ -793,8 +793,9 @@ export class Service extends ProjectReferencesService<Model> {
       let feedInfoInMarkdown: string = `#### On-Call Policy Executed\n\n`;
       feedInfoInMarkdown += `The following on-call ${policyNames.length === 1 ? "policy has" : "policies have"} been executed for this episode:\n\n`;
 
+      // Each policy name is plain text.
       for (const policyName of policyNames) {
-        feedInfoInMarkdown += `- ${policyName}\n`;
+        feedInfoInMarkdown += `- ${escapeMarkdownValue(policyName)}\n`;
       }
 
       await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
@@ -1229,7 +1230,7 @@ export class Service extends ProjectReferencesService<Model> {
         incidentEpisodeFeedEventType:
           IncidentEpisodeFeedEventType.SeverityChanged,
         displayColor: newSeverity.color || Yellow500,
-        feedInfoInMarkdown: `Episode severity changed to **${newSeverity.name || "Unknown"}**`,
+        feedInfoInMarkdown: `Episode severity changed to **${escapeMarkdownValue(newSeverity.name || "Unknown")}**`,
       });
     }
   }

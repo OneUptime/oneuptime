@@ -1,4 +1,5 @@
 import ObjectID from "../../Types/ObjectID";
+import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import IncidentGroupingRule from "../../Models/DatabaseModels/IncidentGroupingRule";
 import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
@@ -1108,8 +1109,15 @@ class IncidentGroupingEngineServiceClass {
             ? `Grouping by: ${groupByParts.join(", ")}`
             : "Grouping all matching incidents together";
 
-        let moreInfo: string = `**Rule:** ${rule.name || "Unnamed Rule"}\n\n`;
-        moreInfo += `**Grouping Key:** \`${groupingKey}\`\n\n`;
+        /*
+         * The rule's name is plain text, and so is the grouping key: it can
+         * hold the title the rule groups by. Both are escaped. The key is not
+         * put in a code span: a "`" in the title would end the span early, a
+         * backslash cannot escape one there, and chat tools pass a code
+         * span's text on as it is.
+         */
+        let moreInfo: string = `**Rule:** ${escapeMarkdownValue(rule.name || "Unnamed Rule")}\n\n`;
+        moreInfo += `**Grouping Key:** ${escapeMarkdownValue(groupingKey)}\n\n`;
         moreInfo += `**${groupByDescription}**`;
 
         if (rule.enableTimeWindow && rule.timeWindowMinutes) {
@@ -1123,7 +1131,7 @@ class IncidentGroupingEngineServiceClass {
             incidentEpisodeFeedEventType:
               IncidentEpisodeFeedEventType.EpisodeCreated,
             displayColor: Green500,
-            feedInfoInMarkdown: `**Episode Created** by grouping rule **${rule.name || "Unnamed Rule"}**`,
+            feedInfoInMarkdown: `**Episode Created** by grouping rule **${escapeMarkdownValue(rule.name || "Unnamed Rule")}**`,
             moreInformationInMarkdown: moreInfo,
           });
         } catch (feedError) {

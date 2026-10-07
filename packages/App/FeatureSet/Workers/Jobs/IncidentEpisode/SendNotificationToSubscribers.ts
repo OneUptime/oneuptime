@@ -63,6 +63,7 @@ import SubscriberNotificationRunLimit, {
 import SubscriberNotificationFanOut from "Common/Server/Utils/StatusPage/SubscriberNotificationFanOut";
 import Email from "Common/Types/Email";
 import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
+import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
 
 RunCron(
   "IncidentEpisode:SendNotificationToSubscribers",
@@ -545,9 +546,24 @@ RunCron(
                 episodeDescription: episodeDescriptionPlainText,
               };
 
+              /*
+               * A custom Slack or Teams message is Markdown: the plain values -
+               * the title, the names, the resource list - are escaped, so they
+               * read as typed and cannot become a link, an image, raw HTML or a
+               * chat mention wherever the template places them. The addresses
+               * are OneUptime's own; the description stays Markdown.
+               */
               const markdownTemplateVariables: Record<string, string> = {
                 ...templateVariables,
-                resourcesAffected: resourcesAffectedPlainText,
+                statusPageName: escapeMarkdownValue(statusPageName),
+                episodeSeverity: escapeMarkdownValue(
+                  episode.incidentSeverity?.name || " - ",
+                ),
+                episodeTitle: escapeMarkdownValue(episode.title || ""),
+                resourcesAffected: escapeMarkdownValue(
+                  resourcesAffectedPlainText,
+                  { keepLineBreaks: true },
+                ),
                 episodeDescription: episode.description || "",
               };
 
@@ -864,11 +880,11 @@ RunCron(
                         );
                     } else {
                       // Use default hard-coded template
-                      markdownMessage = `## 🚨 Incident - ${episode.title || ""}
+                      markdownMessage = `## 🚨 Incident - ${escapeMarkdownValue(episode.title || "")}
 
-**Severity:** ${episode.incidentSeverity?.name || " - "}
+**Severity:** ${escapeMarkdownValue(episode.incidentSeverity?.name || " - ")}
 
-**Resources Affected:** ${resourcesAffectedPlainText}
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText, { keepLineBreaks: true })}
 
 **Description:** ${episode.description || ""}
 
@@ -921,9 +937,9 @@ RunCron(
                         );
                     } else {
                       // Use default hard-coded template
-                      markdownMessage = `## 🚨 Incident - ${episode.title || ""}
-**Severity:** ${episode.incidentSeverity?.name || " - "}
-**Resources Affected:** ${resourcesAffectedPlainText}
+                      markdownMessage = `## 🚨 Incident - ${escapeMarkdownValue(episode.title || "")}
+**Severity:** ${escapeMarkdownValue(episode.incidentSeverity?.name || " - ")}
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText, { keepLineBreaks: true })}
 **Description:** ${episode.description || ""}
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
                     }

@@ -29,6 +29,10 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import {
+  escapeMarkdownInline,
+  escapeMarkdownValue,
+} from "../../Utils/Markdown/MarkdownEscape";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import Model from "../../Models/DatabaseModels/ScheduledMaintenance";
@@ -1959,7 +1963,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
 
       let feedInfoInMarkdown: string = `#### 🕒 Scheduled Maintenance ${scheduledMaintenance.scheduledMaintenanceNumberWithPrefix || "#" + scheduledMaintenance.scheduledMaintenanceNumber?.toString()} Created:
             
-**${scheduledMaintenance.title || "No title provided."}**:
+**${escapeMarkdownValue(scheduledMaintenance.title || "No title provided.")}**:
       
 ${scheduledMaintenance.description || "No description provided."}
       
@@ -2664,8 +2668,9 @@ ${scheduledMaintenance.description || "No description provided."}
 
       markdown += `\n\n**${section.title}**:\n`;
 
+      // Each name is plain text inside its link's own text.
       for (const monitor of monitors) {
-        markdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(data.projectId, monitor.id!)).toString()})\n`;
+        markdown += `- [${escapeMarkdownInline(monitor.name)}](${(await MonitorService.getMonitorLinkInDashboard(data.projectId, monitor.id!)).toString()})\n`;
       }
     }
 
@@ -2838,7 +2843,8 @@ ${scheduledMaintenance.description || "No description provided."}
       return "";
     }
 
-    return `\n\n**Change Monitor Status to**: ${monitorStatus.name}`;
+    // The status's name is plain text.
+    return `\n\n**Change Monitor Status to**: ${escapeMarkdownValue(monitorStatus.name)}`;
   }
 
   @CaptureSpan()
@@ -2981,7 +2987,7 @@ ${scheduledMaintenance.description || "No description provided."}
           // add scheduledMaintenance feed.
 
           feedInfoInMarkdown += `\n\n**Title**: 
-${onUpdate.updateBy.data.title || "No title provided."}
+${escapeMarkdownValue((onUpdate.updateBy.data.title as string) || "No title provided.")}
 `;
           shouldAddScheduledMaintenanceFeed = true;
         }
@@ -3174,7 +3180,7 @@ ${LinkedAffectedResources.getMarkdownLines({
 
 ${statusPages
   .map((statusPage: StatusPage) => {
-    return `- ${statusPage.name}`;
+    return `- ${escapeMarkdownValue(statusPage.name)}`;
   })
   .join("\n")}
 `;
@@ -3221,7 +3227,7 @@ ${statusPages
 
 ${labels
   .map((label: Label) => {
-    return `- ${label.name}`;
+    return `- ${escapeMarkdownValue(label.name)}`;
   })
   .join("\n")}
 `;

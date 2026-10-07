@@ -64,6 +64,7 @@ import SubscriberNotificationFanOut from "Common/Server/Utils/StatusPage/Subscri
 import Email from "Common/Types/Email";
 import ObjectID from "Common/Types/ObjectID";
 import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
+import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
 
 /*
  * A run decides from the incident as it read it, which was before it
@@ -952,11 +953,11 @@ RunCron(
                         slackTemplate.templateBody,
                       ]);
                     } else {
-                      markdownMessage = `## 🚨 Incident Postmortem - ${incident.title || ""}
+                      markdownMessage = `## 🚨 Incident Postmortem - ${escapeMarkdownValue(incident.title || "")}
 
-**Severity:** ${incident.incidentSeverity?.name || " - "}
+**Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || " - ")}
 
-**Resources Affected:** ${resourcesAffectedPlainText}
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText, { keepLineBreaks: true })}
 
 **Postmortem:** ${incident.postmortemNote || ""}
 
@@ -1019,9 +1020,9 @@ ${slackCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsub
                         teamsTemplate.templateBody,
                       ]);
                     } else {
-                      teamsMarkdownMessage = `## 🚨 Incident Postmortem - ${incident.title || ""}
-**Severity:** ${incident.incidentSeverity?.name || " - "}
-**Resources Affected:** ${resourcesAffectedPlainText}
+                      teamsMarkdownMessage = `## 🚨 Incident Postmortem - ${escapeMarkdownValue(incident.title || "")}
+**Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || " - ")}
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText, { keepLineBreaks: true })}
 **Postmortem:** ${incident.postmortemNote || ""}
 ${teamsCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
                       await incidentTemplateVariables.recordIncludedFieldsSent();

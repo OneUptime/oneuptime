@@ -69,6 +69,7 @@ import SubscriberNotificationTrigger from "Common/Types/StatusPage/SubscriberNot
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
 import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
+import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
 
 /*
  * Two jobs share this send path: one tells subscribers about a new public
@@ -624,9 +625,23 @@ const notifySubscribersOfEpisodePublicNote: (data: {
           note: notePlainText,
         };
 
+        /*
+         * A custom Slack or Teams message is Markdown: the plain values - the
+         * title, the names, the resource list - are escaped, so they read as
+         * typed and cannot become a link, an image, raw HTML or a chat
+         * mention wherever the template places them. The addresses are
+         * OneUptime's own; the note stays Markdown.
+         */
         const markdownTemplateVariables: Record<string, string> = {
           ...templateVariables,
-          resourcesAffected: resourcesAffectedPlainText,
+          statusPageName: escapeMarkdownValue(statusPageName),
+          episodeSeverity: escapeMarkdownValue(
+            episode.incidentSeverity?.name || " - ",
+          ),
+          episodeTitle: escapeMarkdownValue(episode.title || ""),
+          resourcesAffected: escapeMarkdownValue(resourcesAffectedPlainText, {
+            keepLineBreaks: true,
+          }),
           note: episodePublicNote.note || "",
         };
 
@@ -930,12 +945,12 @@ const notifySubscribersOfEpisodePublicNote: (data: {
                   );
               } else {
                 // Use default hard-coded template
-                markdownMessage = `## Incident - ${episode.title || ""}
+                markdownMessage = `## Incident - ${escapeMarkdownValue(episode.title || "")}
 
 **${copy.chatNoteSentence}**
 
-**Resources Affected:** ${resourcesAffectedPlainText}
-**Severity:** ${episode.incidentSeverity?.name || " - "}
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText, { keepLineBreaks: true })}
+**Severity:** ${escapeMarkdownValue(episode.incidentSeverity?.name || " - ")}
 
 **Note:**
 ${episodePublicNote.note || ""}
@@ -987,12 +1002,12 @@ ${episodePublicNote.note || ""}
                   );
               } else {
                 // Use default hard-coded template
-                markdownMessage = `## Incident - ${episode.title || ""}
+                markdownMessage = `## Incident - ${escapeMarkdownValue(episode.title || "")}
 
 **${copy.chatNoteSentence}**
 
-**Resources Affected:** ${resourcesAffectedPlainText}
-**Severity:** ${episode.incidentSeverity?.name || " - "}
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText, { keepLineBreaks: true })}
+**Severity:** ${escapeMarkdownValue(episode.incidentSeverity?.name || " - ")}
 
 **Note:**
 ${episodePublicNote.note || ""}

@@ -14,6 +14,7 @@ import Model from "../../Models/DatabaseModels/AlertEpisode";
 import AlertState from "../../Models/DatabaseModels/AlertState";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import NumberPrefixUtil from "../../Utils/Project/NumberPrefix";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -548,9 +549,18 @@ export class Service extends ProjectReferencesService<Model> {
       return;
     }
 
+    /*
+     * The title is plain text, often copied from the episode's first alert -
+     * whose title a monitor may have filled in from an incoming email or
+     * request - placed into Markdown the dashboard renders without its safe
+     * mode and posts to Slack and Teams. Escaped as MarkdownEscape says a
+     * title must be (as an incident episode's is), so it cannot become an
+     * image, raw HTML, a chat mention or a link that hides where it goes.
+     * The description stays Markdown.
+     */
     let feedInfoInMarkdown: string = `#### Episode ${episode.episodeNumberWithPrefix || "#" + episode.episodeNumber?.toString()} Created
 
-**${episode.title || "No title provided."}**
+**${escapeMarkdownValue(episode.title || "No title provided.")}**
 
 `;
 
@@ -669,8 +679,9 @@ export class Service extends ProjectReferencesService<Model> {
       let feedInfoInMarkdown: string = `#### On-Call Policy Executed\n\n`;
       feedInfoInMarkdown += `The following on-call ${policyNames.length === 1 ? "policy has" : "policies have"} been executed for this episode:\n\n`;
 
+      // Each policy name is plain text.
       for (const policyName of policyNames) {
-        feedInfoInMarkdown += `- ${policyName}\n`;
+        feedInfoInMarkdown += `- ${escapeMarkdownValue(policyName)}\n`;
       }
 
       await AlertEpisodeFeedService.createAlertEpisodeFeedItem({

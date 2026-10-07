@@ -7,6 +7,10 @@ import OnCallDutyExecutionLogTimelineStatus from "../../Types/OnCallDutyPolicy/O
 import { Blue500, Green500, Red500, Yellow500 } from "../../Types/BrandColors";
 import Color from "../../Types/Color";
 import ObjectID from "../../Types/ObjectID";
+import {
+  escapeMarkdownInline,
+  escapeMarkdownValue,
+} from "../../Utils/Markdown/MarkdownEscape";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import AlertFeedService from "./AlertFeedService";
@@ -228,13 +232,21 @@ export class Service extends DatabaseService<Model> {
           incidentOrAlertLink = `[Incident Episode ${incidentEpisodeNumberResult.numberWithPrefix || "#" + incidentEpisodeNumberResult.number}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.triggeredByIncidentEpisodeId)).toString()})`;
         }
 
-        const policyLink: string = `**[${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.id!)).toString()})**`;
+        /*
+         * The policy, schedule, escalation rule and team names are plain
+         * text, placed into the incident's, alert's or episode's feed item
+         * (posted to Slack and Teams too): the policy's inside its link's own
+         * text, the rest inside bold.
+         */
+        const policyLink: string = `**[${escapeMarkdownInline(onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.name)}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.id!)).toString()})**`;
 
         const scheduleClause: string = onCallDutyPolicyExecutionLogTimeline
           .onCallDutySchedule?.name
           ? String(
               " and schedule **" +
-                onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name +
+                escapeMarkdownValue(
+                  onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name,
+                ) +
                 "**",
             )
           : "";
@@ -259,12 +271,12 @@ export class Service extends DatabaseService<Model> {
         if (!hasRecipient) {
           const noRecipientReason: string = onCallDutyPolicyExecutionLogTimeline
             .onCallDutySchedule?.name
-            ? `no one was on call in schedule **${onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule.name}**`
+            ? `no one was on call in schedule **${escapeMarkdownValue(onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule.name)}**`
             : "this escalation rule had no responders";
 
           feedInfoInMarkdown = `**${this.getEmojiBasedOnStatus(status)} ${incidentOrAlertLink} On-Call Alert ${status} — nobody was notified**
 
-The on-call policy ${policyLink} has been triggered. The escalation rule **${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyEscalationRule?.name}**${scheduleClause} were applied, but ${noRecipientReason}, so **no one was notified at this step**. The status of this step is **${status}** with the message: \`${onCallDutyPolicyExecutionLogTimeline.statusMessage}\`.`;
+The on-call policy ${policyLink} has been triggered. The escalation rule **${escapeMarkdownValue(onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyEscalationRule?.name)}**${scheduleClause} were applied, but ${noRecipientReason}, so **no one was notified at this step**. The status of this step is **${status}** with the message: \`${onCallDutyPolicyExecutionLogTimeline.statusMessage}\`.`;
         } else {
           feedInfoInMarkdown = `**${this.getEmojiBasedOnStatus(status)} ${incidentOrAlertLink} On-Call Alert ${status} to ${await UserService.getUserMarkdownString(
             {
@@ -273,12 +285,12 @@ The on-call policy ${policyLink} has been triggered. The escalation rule **${onC
             },
           )}**
 
-The on-call policy ${policyLink} has been triggered. The escalation rule **${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyEscalationRule?.name}** ${scheduleClause} were applied. ${await UserService.getUserMarkdownString(
+The on-call policy ${policyLink} has been triggered. The escalation rule **${escapeMarkdownValue(onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyEscalationRule?.name)}** ${scheduleClause} were applied. ${await UserService.getUserMarkdownString(
             {
               userId: onCallDutyPolicyExecutionLogTimeline.alertSentToUserId!,
               projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
             },
-          )} was alerted. The status of this alert is **${status}** with the message: \`${onCallDutyPolicyExecutionLogTimeline.statusMessage}\`. ${onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name ? "The alert was sent because the user belogs to the team **" + onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name + "** " : ""} ${onCallDutyPolicyExecutionLogTimeline.isAcknowledged ? "The alert was acknowledged at **" + onCallDutyPolicyExecutionLogTimeline.acknowledgedAt + "** " : ""}`;
+          )} was alerted. The status of this alert is **${status}** with the message: \`${onCallDutyPolicyExecutionLogTimeline.statusMessage}\`. ${onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name ? "The alert was sent because the user belogs to the team **" + escapeMarkdownValue(onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name) + "** " : ""} ${onCallDutyPolicyExecutionLogTimeline.isAcknowledged ? "The alert was acknowledged at **" + onCallDutyPolicyExecutionLogTimeline.acknowledgedAt + "** " : ""}`;
         }
 
         if (
