@@ -25929,5 +25929,6 @@
   "Sending a test needs permission to create Twilio configs.": "发送测试需要创建 Twilio 配置的权限。",
   "Sending a test needs permission to create summaries.": "发送测试需要创建摘要的权限。",
   "Sending a test needs the {{planName}} plan.": "发送测试需要 {{planName}} 套餐。",
-  "Sending a test report needs permission to edit this status page.": "发送测试报告需要编辑此状态页的权限。"
+  "Sending a test report needs permission to edit this status page.": "发送测试报告需要编辑此状态页的权限。",
+  "The event has started, so this can no longer be changed.": "事件已开始，因此无法再更改。"
 }

@@ -25929,5 +25929,6 @@
   "Sending a test needs permission to create Twilio configs.": "테스트를 보내려면 Twilio 구성을 만들 권한이 필요합니다.",
   "Sending a test needs permission to create summaries.": "테스트를 보내려면 요약을 만들 권한이 필요합니다.",
   "Sending a test needs the {{planName}} plan.": "테스트를 보내려면 {{planName}} 요금제가 필요합니다.",
-  "Sending a test report needs permission to edit this status page.": "테스트 보고서를 보내려면 이 상태 페이지를 편집할 권한이 필요합니다."
+  "Sending a test report needs permission to edit this status page.": "테스트 보고서를 보내려면 이 상태 페이지를 편집할 권한이 필요합니다.",
+  "The event has started, so this can no longer be changed.": "이벤트가 시작되었으므로 더 이상 변경할 수 없습니다."
 }

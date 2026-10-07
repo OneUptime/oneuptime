@@ -25929,5 +25929,6 @@
   "Sending a test needs permission to create Twilio configs.": "Чтобы отправить тест, нужно право создавать конфигурации Twilio.",
   "Sending a test needs permission to create summaries.": "Чтобы отправить тест, нужно право создавать сводки.",
   "Sending a test needs the {{planName}} plan.": "Чтобы отправить тест, нужен тариф {{planName}}.",
-  "Sending a test report needs permission to edit this status page.": "Чтобы отправить тестовый отчёт, нужно право редактировать эту страницу статуса."
+  "Sending a test report needs permission to edit this status page.": "Чтобы отправить тестовый отчёт, нужно право редактировать эту страницу статуса.",
+  "The event has started, so this can no longer be changed.": "Событие уже началось, поэтому это больше нельзя изменить."
 }

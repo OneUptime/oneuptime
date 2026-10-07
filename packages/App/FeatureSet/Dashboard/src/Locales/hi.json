@@ -25929,5 +25929,6 @@
   "Sending a test needs permission to create Twilio configs.": "परीक्षण भेजने के लिए Twilio कॉन्फ़िगरेशन बनाने की अनुमति चाहिए।",
   "Sending a test needs permission to create summaries.": "परीक्षण भेजने के लिए सारांश बनाने की अनुमति चाहिए।",
   "Sending a test needs the {{planName}} plan.": "परीक्षण भेजने के लिए {{planName}} प्लान चाहिए।",
-  "Sending a test report needs permission to edit this status page.": "टेस्ट रिपोर्ट भेजने के लिए इस स्थिति पृष्ठ को संपादित करने की अनुमति चाहिए।"
+  "Sending a test report needs permission to edit this status page.": "टेस्ट रिपोर्ट भेजने के लिए इस स्थिति पृष्ठ को संपादित करने की अनुमति चाहिए।",
+  "The event has started, so this can no longer be changed.": "इवेंट शुरू हो चुका है, इसलिए इसे अब बदला नहीं जा सकता।"
 }
