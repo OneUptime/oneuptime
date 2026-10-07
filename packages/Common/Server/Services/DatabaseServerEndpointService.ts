@@ -266,13 +266,14 @@ export class Service extends ProjectReferencesService<Model> {
    * A person removing endpoints. Removing one is an EDIT of the database it
    * belongs to, exactly like adding one (onBeforeCreate): it decides which
    * traffic that database's pages show, and frees the endpoint for another
-   * database to claim. DatabaseService scopes a delete to the project only -
-   * the endpoint has no labels of its own, and the parent's label and Owned
-   * scopes never reach a delete - so the caller must be allowed to edit
-   * every database the delete would touch, checked here: the delete
-   * permission FIRST (so a caller without it learns nothing), then the
-   * parents, and only then the primary guard, whose refusal names the
-   * endpoint.
+   * database to claim. DatabaseService's record rule reaches an endpoint
+   * through its database (CanAccessIfCanReadOn, OwnedThrough), so a label-
+   * or Owned-scoped caller never deletes another database's endpoint - but
+   * that rule asks about DELETING endpoints, not editing the database, so
+   * the caller must also be allowed to edit every database the delete would
+   * touch, checked here: the delete permission FIRST (so a caller without
+   * it learns nothing), then the parents, and only then the primary guard,
+   * whose refusal names the endpoint.
    *
    * The primary endpoint is what the database was created from; discovery
    * would claim it straight back, and a manually added database would lose
