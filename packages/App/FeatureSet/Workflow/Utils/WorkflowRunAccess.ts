@@ -5,14 +5,24 @@ import Workflow from "Common/Models/DatabaseModels/Workflow";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import ObjectID from "Common/Types/ObjectID";
-import Permission from "Common/Types/Permission";
+import Permission, {
+  UserPermission,
+  UserTenantAccessPermission,
+} from "Common/Types/Permission";
 import {
   WORKFLOW_EDIT_PERMISSIONS,
+  WORKFLOW_RUN_ONLY_PERMISSIONS,
   WORKFLOW_RUN_PERMISSIONS,
   WORKFLOW_RUN_WILDCARD,
   WORKFLOW_RUN_REFUSED_MESSAGE,
   WORKFLOW_STEP_RUN_REFUSED_MESSAGE,
 } from "Common/Types/Workflow/WorkflowRunPermissions";
+
+export interface WorkflowRunRequest {
+  databaseProps: DatabaseCommonInteractionProps;
+  projectId: ObjectID;
+  workflowId: ObjectID;
+}
 
 /*
  * Who may start a run of a workflow from the dashboard - the whole workflow
@@ -27,62 +37,86 @@ import {
  *      editors) - each read by the rule every check follows
  *      (CallerPermission), so a team's block is no grant and a block with no
  *      labels refuses;
- *   2. the workflow itself, in the caller's project. A run reads it with
- *      the caller's own permissions: a workflow they cannot see - their
- *      labels or owned scope leave it out, or it is another project's, or
- *      it does not exist - is refused alike, so the route tells nobody
- *      which ids exist. A step reads it the way an update would
- *      (DatabaseService.findOneUpdatableById): one they may not change is
- *      refused.
+ *   2. the workflow's project, read as OneUptime and matched to the one the
+ *      caller named: a workflow of another project and one that does not
+ *      exist are refused alike, so the route tells nobody which ids exist,
+ *      and nothing below ever reads another project's row;
+ *   3. the workflow itself, against the grant that lets the caller run it -
+ *      its labels and owned scope, and the blocks on it:
+ *        - an editor runs the workflows they may change (the update scope,
+ *          DatabaseService.findOneUpdatableById);
+ *        - a Workflow Member runs the workflows their Workflow Member grant
+ *          reaches, read with that grant alone, so a grant that only shows
+ *          workflows (Viewer, say) widens nothing.
+ *      Running one step on its own takes the first.
  *
- * A master admin skips the permission, as every route lets them, but not
- * the project: the workflow must belong to the project they are acting in.
+ * A master admin skips the permission and the grant, as every route lets
+ * them, but not the project: the workflow must belong to the project they
+ * are acting in.
  */
 export default class WorkflowRunAccess {
-  public static async assertMayRunWorkflow(data: {
-    databaseProps: DatabaseCommonInteractionProps;
-    projectId: ObjectID;
-    workflowId: ObjectID;
-  }): Promise<void> {
-    WorkflowRunAccess.assertHoldsAnyOf({
-      databaseProps: data.databaseProps,
-      projectId: data.projectId,
-      permissions: WORKFLOW_RUN_PERMISSIONS,
-      refusedMessage: WORKFLOW_RUN_REFUSED_MESSAGE,
-    });
+  public static async assertMayRunWorkflow(
+    data: WorkflowRunRequest,
+  ): Promise<void> {
+    WorkflowRunAccess.assertHoldsAnyOf(
+      data,
+      WORKFLOW_RUN_PERMISSIONS,
+      WORKFLOW_RUN_REFUSED_MESSAGE,
+    );
 
-    const workflow: Workflow | null = await WorkflowService.findOneById({
-      id: data.workflowId,
-      select: {
-        _id: true,
-        projectId: true,
-      },
-      props: data.databaseProps,
-    });
+    await WorkflowRunAccess.assertInProject(data);
 
-    CommonAPI.assertResourceBelongsToProject({
-      resourceProjectId: workflow?.projectId,
-      projectId: data.projectId,
-    });
+    if (data.databaseProps.isMasterAdmin) {
+      return;
+    }
+
+    if (
+      WorkflowRunAccess.holdsAnyOf(data, WORKFLOW_EDIT_PERMISSIONS) &&
+      (await WorkflowRunAccess.mayChange(data))
+    ) {
+      return;
+    }
+
+    if (
+      WorkflowRunAccess.holdsAnyOf(data, WORKFLOW_RUN_ONLY_PERMISSIONS) &&
+      (await WorkflowRunAccess.reachesWithOnly(
+        data,
+        WORKFLOW_RUN_ONLY_PERMISSIONS,
+      ))
+    ) {
+      return;
+    }
+
+    throw new NotAuthorizedException(WORKFLOW_RUN_REFUSED_MESSAGE);
   }
 
-  public static async assertMayRunStep(data: {
-    databaseProps: DatabaseCommonInteractionProps;
-    projectId: ObjectID;
-    workflowId: ObjectID;
-  }): Promise<void> {
-    WorkflowRunAccess.assertHoldsAnyOf({
-      databaseProps: data.databaseProps,
-      projectId: data.projectId,
-      permissions: WORKFLOW_EDIT_PERMISSIONS,
-      refusedMessage: WORKFLOW_STEP_RUN_REFUSED_MESSAGE,
-    });
+  public static async assertMayRunStep(data: WorkflowRunRequest): Promise<void> {
+    WorkflowRunAccess.assertHoldsAnyOf(
+      data,
+      WORKFLOW_EDIT_PERMISSIONS,
+      WORKFLOW_STEP_RUN_REFUSED_MESSAGE,
+    );
 
-    /*
-     * The project first, read as OneUptime and matched to the caller's: the
-     * update check below reads a row's labels before it narrows to a
-     * project, and its refusal names them.
-     */
+    await WorkflowRunAccess.assertInProject(data);
+
+    if (data.databaseProps.isMasterAdmin) {
+      return;
+    }
+
+    if (!(await WorkflowRunAccess.mayChange(data))) {
+      throw new NotAuthorizedException(WORKFLOW_STEP_RUN_REFUSED_MESSAGE);
+    }
+  }
+
+  /*
+   * The workflow's own project must be the one the caller named. Read as
+   * OneUptime, and only its project: the reads below are the caller's, and
+   * the update check names a row's labels when it refuses, so they only
+   * ever see a row of the caller's own project.
+   */
+  private static async assertInProject(
+    data: WorkflowRunRequest,
+  ): Promise<void> {
     const owner: Workflow | null = await WorkflowService.findOneById({
       id: data.workflowId,
       select: {
@@ -97,39 +131,113 @@ export default class WorkflowRunAccess {
       resourceProjectId: owner?.projectId,
       projectId: data.projectId,
     });
+  }
 
-    const updatable: Workflow | null =
-      await WorkflowService.findOneUpdatableById({
+  /*
+   * Whether the caller may change the workflow: the update scope of their
+   * edit grants - labels, owned scope, and a block on a label the workflow
+   * carries, which the update check refuses outright.
+   */
+  private static async mayChange(data: WorkflowRunRequest): Promise<boolean> {
+    try {
+      const updatable: Workflow | null =
+        await WorkflowService.findOneUpdatableById({
+          id: data.workflowId,
+          select: {
+            _id: true,
+          },
+          props: data.databaseProps,
+        });
+
+      return Boolean(updatable);
+    } catch (error) {
+      if (error instanceof NotAuthorizedException) {
+        return false;
+      }
+
+      throw error;
+    }
+  }
+
+  /*
+   * Whether the caller's grants of `permissions` alone reach the workflow:
+   * a read with only those rows of theirs, allows and blocks alike, so
+   * their labels, owned scope and blocks decide and no other grant widens
+   * it.
+   */
+  private static async reachesWithOnly(
+    data: WorkflowRunRequest,
+    permissions: ReadonlyArray<Permission>,
+  ): Promise<boolean> {
+    try {
+      const reached: Workflow | null = await WorkflowService.findOneById({
         id: data.workflowId,
         select: {
           _id: true,
         },
-        props: data.databaseProps,
+        props: WorkflowRunAccess.propsHoldingOnly(data, permissions),
       });
 
-    if (!updatable) {
-      throw new NotAuthorizedException(WORKFLOW_STEP_RUN_REFUSED_MESSAGE);
+      return Boolean(reached);
+    } catch (error) {
+      if (error instanceof NotAuthorizedException) {
+        return false;
+      }
+
+      throw error;
     }
   }
 
-  private static assertHoldsAnyOf(data: {
-    databaseProps: DatabaseCommonInteractionProps;
-    projectId: ObjectID;
-    permissions: ReadonlyArray<Permission>;
-    refusedMessage: string;
-  }): void {
+  // The caller's props, with only their rows of `permissions` in the project.
+  public static propsHoldingOnly(
+    data: WorkflowRunRequest,
+    permissions: ReadonlyArray<Permission>,
+  ): DatabaseCommonInteractionProps {
+    const key: string = data.projectId.toString();
+    const tenant: UserTenantAccessPermission | undefined =
+      data.databaseProps.userTenantAccessPermission?.[key];
+
+    const rows: Array<UserPermission> = (tenant?.permissions || []).filter(
+      (row: UserPermission): boolean => {
+        return permissions.includes(row.permission);
+      },
+    );
+
+    return {
+      ...data.databaseProps,
+      userTenantAccessPermission: {
+        [key]: {
+          _type: "UserTenantAccessPermission",
+          projectId: data.projectId,
+          ...tenant,
+          permissions: rows,
+        },
+      },
+    };
+  }
+
+  private static holdsAnyOf(
+    data: WorkflowRunRequest,
+    permissions: ReadonlyArray<Permission>,
+  ): boolean {
+    return CallerPermission.holdsAnyOf(data.databaseProps, permissions, {
+      projectId: data.projectId,
+      wildcard: WORKFLOW_RUN_WILDCARD,
+    });
+  }
+
+  private static assertHoldsAnyOf(
+    data: WorkflowRunRequest,
+    permissions: ReadonlyArray<Permission>,
+    refusedMessage: string,
+  ): void {
     // Master admins bypass permission checks, as they do in requirePermission.
     if (data.databaseProps.isMasterAdmin) {
       return;
     }
 
-    if (
-      !CallerPermission.holdsAnyOf(data.databaseProps, data.permissions, {
-        projectId: data.projectId,
-        wildcard: WORKFLOW_RUN_WILDCARD,
-      })
-    ) {
-      throw new NotAuthorizedException(data.refusedMessage);
+    if (!WorkflowRunAccess.holdsAnyOf(data, permissions)) {
+      throw new NotAuthorizedException(refusedMessage);
     }
   }
 }

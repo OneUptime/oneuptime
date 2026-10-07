@@ -78,11 +78,11 @@ export default class ManualAPI {
        * workflows without changing them (WorkflowRunPermissions).
        *
        * The tenant above is only the project the caller *claimed* in the
-       * `tenantid` header, so the workflow is then read with the caller's
-       * own permissions, in that project: one of project B, one their labels
-       * or owned scope leave out, and one that does not exist are refused
+       * `tenantid` header, so the workflow's own project must match it - a
+       * workflow of project B and one that does not exist are refused
        * alike, so the route cannot be used to confirm which workflow ids
-       * exist (WorkflowRunAccess).
+       * exist - and the grant that lets the caller run it must reach it:
+       * its labels and owned scope count (WorkflowRunAccess).
        */
       await WorkflowRunAccess.assertMayRunWorkflow({
         databaseProps: databaseProps,
@@ -102,5 +102,4 @@ export default class ManualAPI {
       next(err);
     }
   }
-
 }

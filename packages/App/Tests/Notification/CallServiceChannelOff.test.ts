@@ -170,7 +170,7 @@ describe("a call while phone calls are off in the project", () => {
       getProjectNotificationChannelOffMessage(ProjectNotificationChannel.Call),
     );
     expect(loggedCalls()[0]!.statusMessage).toBe(
-      "Phone calls are off in this project. A project owner or someone with Manage Billing can turn them on in Project Settings > Notification Settings.",
+      "Phone calls are off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notification Settings.",
     );
   });
 

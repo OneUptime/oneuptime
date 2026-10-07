@@ -125,13 +125,13 @@ const METHOD_RULE_TYPES: Array<ComplianceRuleType> = ALL_RULE_TYPES.filter(
  * someone with Manage Billing - not "a project admin", who may not.
  */
 const CALL_NOTE: string =
-  "Call notifications also have to be switched on for the project, or nobody will be reached this way. A project owner or someone with Manage Billing can turn them on in Project Settings > Notification Settings.";
+  "Call notifications also have to be switched on for the project, or nobody will be reached this way. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notification Settings.";
 const WHATSAPP_NOTE: string =
-  "Members cannot add a WhatsApp number until WhatsApp is switched on for the project. A project owner or someone with Manage Billing can turn it on in Project Settings > Notification Settings.";
+  "Members cannot add a WhatsApp number until WhatsApp is switched on for the project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notification Settings.";
 const CALL_AND_SMS_NOTE: string =
-  "Call and SMS notifications also have to be switched on for the project, or nobody will be reached those ways. A project owner or someone with Manage Billing can turn them on in Project Settings > Notification Settings.";
+  "Call and SMS notifications also have to be switched on for the project, or nobody will be reached those ways. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notification Settings.";
 const CALL_SMS_AND_TELEGRAM_NOTE: string =
-  "Call, SMS and Telegram notifications also have to be switched on for the project, or nobody will be reached those ways. A project owner or someone with Manage Billing can turn them on in Project Settings > Notification Settings.";
+  "Call, SMS and Telegram notifications also have to be switched on for the project, or nobody will be reached those ways. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notification Settings.";
 const PAUSED_NOTE: string =
   "This rule is saved paused: it is listed but nobody is checked against it until you turn it on.";
 
@@ -964,7 +964,7 @@ describe("the live preview", () => {
   ])(
     "switched off, %s reaches nobody - and the note says so",
     (channel: ComplianceNotificationChannel, label: string) => {
-      const note: string = `${label} notifications also have to be switched on for the project, or nobody will be reached this way. A project owner or someone with Manage Billing can turn them on in Project Settings > Notification Settings.`;
+      const note: string = `${label} notifications also have to be switched on for the project, or nobody will be reached this way. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notification Settings.`;
 
       expect(getProjectSwitchNote(channel)).toBe(note);
       expect(getProjectSwitchNotes([channel])).toEqual([note]);
@@ -1035,10 +1035,10 @@ describe("the live preview", () => {
 
         expect(note.endsWith(getWhoCanTurnOnSentence(pronoun))).toBe(true);
         expect(note).toContain(
-          "A project owner or someone with Manage Billing can turn",
+          "A project owner, a Billing Admin or someone with Manage Billing can turn",
         );
         expect(note).toContain("in Project Settings > Notification Settings.");
-        expect(note.toLowerCase()).not.toContain("admin");
+        expect(note.toLowerCase()).not.toContain("project admin");
         expect(note).not.toMatch(/\bPlease enable\b/);
         // The location is said once, at the end - not again in brackets.
         expect(note.split("Notification Settings").length - 1).toBe(1);

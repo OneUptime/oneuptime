@@ -219,7 +219,7 @@ describe("TelegramService credential containment", () => {
       ),
     );
     expect(persistedLog.statusMessage).toBe(
-      "Telegram is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings > Notification Settings.",
+      "Telegram is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notification Settings.",
     );
   });
 

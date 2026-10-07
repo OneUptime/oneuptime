@@ -15,8 +15,9 @@ import path from "path";
 
 /*
  * The docs say who may turn on a project's SMS, phone calls, WhatsApp and
- * Telegram the way the product does: a project owner or someone with Manage
- * Billing (the four columns' own update permissions) - not a project admin.
+ * Telegram the way the product does: a project owner, a Billing Admin or
+ * someone with Manage Billing (the four columns' own update permissions) -
+ * not a project admin.
  * Held to the model here, so the docs cannot keep naming the people after the
  * permissions change, or the reverse.
  *
@@ -93,31 +94,56 @@ const PAGE: string =
   "**Project Settings > Notifications > Notification Settings**";
 
 /*
- * How each language names the people who may turn a channel on: "a project
- * owner or someone with" Manage Billing. The permission keeps its English
- * name, as the dashboard shows it.
+ * How each language names a project owner, the first of the people who may
+ * turn a channel on: a project owner, a Billing Admin or someone with Manage
+ * Billing. The role and the permission keep their English names, as the
+ * dashboard's permission picker shows them.
  */
-const WHO_MAY_TURN_IT_ON: Record<string, string> = {
-  en: "project owner or someone with",
-  da: "projektejer eller nogen med",
-  de: "Projekteigentümer oder jemand mit",
-  es: "propietario del proyecto o alguien con",
-  fa: "مالک پروژه یا کسی که",
-  fr: "propriétaire du projet ou une personne disposant de",
-  hi: "प्रोजेक्ट का मालिक या",
-  it: "proprietario del progetto o qualcuno con",
-  ja: "プロジェクトのオーナーまたは",
-  ko: "프로젝트 소유자 또는",
-  nl: "projecteigenaar of iemand met",
-  no: "prosjekteier eller noen med",
-  pt: "proprietário do projeto ou alguém com",
-  ru: "владелец проекта или пользователь с разрешением",
-  sv: "projektägare eller någon med",
-  "zh-CN": "项目所有者或拥有",
-  "zh-TW": "專案擁有者或擁有",
+const PROJECT_OWNER: Record<string, string> = {
+  en: "project owner",
+  da: "projektejer",
+  de: "Projekteigentümer",
+  es: "propietario del proyecto",
+  fa: "مالک پروژه",
+  fr: "propriétaire du projet",
+  hi: "प्रोजेक्ट का मालिक",
+  it: "proprietario del progetto",
+  ja: "プロジェクトのオーナー",
+  ko: "프로젝트 소유자",
+  nl: "projecteigenaar",
+  no: "prosjekteier",
+  pt: "proprietário do projeto",
+  ru: "владелец проекта",
+  sv: "projektägare",
+  "zh-CN": "项目所有者",
+  "zh-TW": "專案擁有者",
 };
 
+const BILLING_ADMIN: string = "**Billing Admin**";
 const MANAGE_BILLING: string = "**Manage Billing**";
+
+/*
+ * The three people who may turn a channel on, named in `text` in the
+ * language's words and in the product's order: a project owner, a Billing
+ * Admin, someone with Manage Billing.
+ */
+function expectNamesWhoMay(lang: string, text: string): void {
+  const owner: number = text.indexOf(PROJECT_OWNER[lang] || "-");
+  const billingAdmin: number = text.indexOf(BILLING_ADMIN, owner + 1);
+  const manageBilling: number = text.indexOf(MANAGE_BILLING, billingAdmin + 1);
+
+  expect({
+    lang,
+    namesTheOwner: owner >= 0,
+    thenTheBillingAdmin: owner >= 0 && billingAdmin > owner,
+    thenManageBilling: billingAdmin >= 0 && manageBilling > billingAdmin,
+  }).toEqual({
+    lang,
+    namesTheOwner: true,
+    thenTheBillingAdmin: true,
+    thenManageBilling: true,
+  });
+}
 
 /*
  * The users' phone number section's last step: the number is verified by a
@@ -187,33 +213,36 @@ describe("the people the docs name", () => {
         project.getColumnAccessControlFor(column)?.update,
       ]).toEqual([
         column,
-        [Permission.ProjectOwner, Permission.ManageProjectBilling],
+        [
+          Permission.ProjectOwner,
+          Permission.BillingAdmin,
+          Permission.ManageProjectBilling,
+        ],
       ]);
     }
 
     expect([...PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS]).toEqual([
       Permission.ProjectOwner,
+      Permission.BillingAdmin,
       Permission.ManageProjectBilling,
     ]);
   });
 
   test("every docs language has its words for them", () => {
     expect(LANGUAGES).toHaveLength(17);
-    expect(Object.keys(WHO_MAY_TURN_IT_ON).sort()).toEqual(
-      [...LANGUAGES].sort(),
-    );
+    expect(Object.keys(PROJECT_OWNER).sort()).toEqual([...LANGUAGES].sort());
   });
 });
 
 describe("Users, Teams & Permissions", () => {
   const page: string = readPage("permissions/index.md");
 
-  test("says turning a channel on counts as billing: ProjectOwner and ManageProjectBilling, not ProjectAdmin", () => {
+  test("says turning a channel on counts as billing: ProjectOwner, BillingAdmin and ManageProjectBilling, not ProjectAdmin", () => {
     expect(page).toContain(
       "Turning SMS, phone calls, WhatsApp or Telegram on or off for the project counts as billing, because every message costs money.",
     );
     expect(page).toContain(
-      "Only `ProjectOwner` and the `ManageProjectBilling` permission (**Manage Billing**) can change those switches, on **Project Settings > Notifications > Notification Settings** — not `ProjectAdmin`.",
+      "Only `ProjectOwner`, the `BillingAdmin` role (**Billing Admin**) and the `ManageProjectBilling` permission (**Manage Billing**) can change those switches, on **Project Settings > Notifications > Notification Settings** — not `ProjectAdmin`.",
     );
   });
 });
@@ -229,7 +258,7 @@ describe("Escalation Rules", () => {
       "Until a channel is on, nobody in the project can add a method on it.",
     );
     expect(page).toContain(
-      `Only a project owner or someone with the **Manage Billing** permission can turn one on, in the ${CARD} card on ${PAGE} — a project admin cannot.`,
+      `Only a project owner, a **Billing Admin** or someone with the **Manage Billing** permission can turn one on, in the ${CARD} card on ${PAGE} — a project admin cannot.`,
     );
     expect(page).toContain(
       "Everyone else is told exactly who can, wherever a channel is off",
@@ -242,7 +271,7 @@ describe("Status page subscribers", () => {
 
   test("the SMS line names the project switch and who can turn it on", () => {
     expect(page).toContain(
-      `Turning it on also needs **SMS** switched on for the project, in the ${CARD} card on ${PAGE}, which a project owner or someone with **Manage Billing** can do.`,
+      `Turning it on also needs **SMS** switched on for the project, in the ${CARD} card on ${PAGE}, which a project owner, a **Billing Admin** or someone with **Manage Billing** can do.`,
     );
   });
 });
@@ -252,7 +281,7 @@ describe("Incoming Call Policy", () => {
 
   test("says incoming call numbers need SMS on, and who can turn it on", () => {
     expect(page).toContain(
-      `Incoming call numbers are verified by SMS, so **SMS** has to be on for the project first. A project owner or someone with **Manage Billing** turns it on in the ${CARD} card on ${PAGE}.`,
+      `Incoming call numbers are verified by SMS, so **SMS** has to be on for the project first. A project owner, a **Billing Admin** or someone with **Manage Billing** turns it on in the ${CARD} card on ${PAGE}.`,
     );
   });
 });
@@ -262,7 +291,7 @@ describe("Twilio SMS and Voice Integration", () => {
 
   test("says SMS and phone calls start off, and who turns them on, next to the Twilio config", () => {
     expect(page).toContain(
-      `**SMS** and **Phone Calls** start off in every project, and until they are on nobody in the project can add a phone number for them. A project owner or someone with **Manage Billing** turns them on in the ${CARD} card on the same page.`,
+      `**SMS** and **Phone Calls** start off in every project, and until they are on nobody in the project can add a phone number for them. A project owner, a **Billing Admin** or someone with **Manage Billing** turns them on in the ${CARD} card on the same page.`,
     );
   });
 
@@ -294,11 +323,10 @@ describe("no docs page sends a reader to a project admin for a channel", () => {
 
 describe.each(LANGUAGES)("the %s docs", (lang: string) => {
   const locale: Record<string, string> = readDashboardLocale(lang);
-  const who: string = WHO_MAY_TURN_IT_ON[lang] || "";
   const settingsPath: string = readSettingsPath(lang);
   const card: string = `**${locale[ProjectNotificationChannelsCopy.cardTitle]}**`;
 
-  test("Users, Teams & Permissions: changing the switches is billing - ProjectOwner and ManageProjectBilling, not ProjectAdmin", () => {
+  test("Users, Teams & Permissions: changing the switches is billing - ProjectOwner, BillingAdmin and ManageProjectBilling, not ProjectAdmin", () => {
     const paragraphs: Array<string> = readParagraphs(
       lang,
       "permissions/index.md",
@@ -309,9 +337,18 @@ describe.each(LANGUAGES)("the %s docs", (lang: string) => {
     );
 
     expect(found.paragraph).toContain("`ProjectOwner`");
+    expect(found.paragraph).toContain("`BillingAdmin`");
+    expect(found.paragraph).toContain(BILLING_ADMIN);
     expect(found.paragraph).toContain(MANAGE_BILLING);
     expect(found.paragraph).toContain("`ProjectAdmin`");
     expect(found.paragraph).toContain(settingsPath);
+    // The three who may, in the product's order, before the one who may not.
+    expect(found.paragraph.indexOf("`ProjectOwner`")).toBeLessThan(
+      found.paragraph.indexOf("`BillingAdmin`"),
+    );
+    expect(found.paragraph.indexOf("`BillingAdmin`")).toBeLessThan(
+      found.paragraph.indexOf("`ManageProjectBilling`"),
+    );
 
     // Right after the paragraph on what ProjectOwner and ProjectAdmin cover.
     const before: string = paragraphs[found.index - 1] || "";
@@ -330,7 +367,7 @@ describe.each(LANGUAGES)("the %s docs", (lang: string) => {
       MANAGE_BILLING,
     );
 
-    expect(found.paragraph).toContain(who);
+    expectNamesWhoMay(lang, found.paragraph);
     expect(found.paragraph).toContain(card);
     expect(found.paragraph).toContain(settingsPath);
     expect(found.paragraph).toContain("WhatsApp");
@@ -344,8 +381,7 @@ describe.each(LANGUAGES)("the %s docs", (lang: string) => {
 
     expect(line).toContain(card);
     expect(line).toContain(settingsPath);
-    expect(line).toContain(who);
-    expect(line).toContain(MANAGE_BILLING);
+    expectNamesWhoMay(lang, line);
     // Who can comes after where the switch is.
     expect(line.indexOf(MANAGE_BILLING)).toBeGreaterThan(
       line.indexOf(settingsPath),
@@ -372,7 +408,7 @@ describe.each(LANGUAGES)("the %s docs", (lang: string) => {
     const sentence: string = lines[0]!;
 
     expect(sentence).toContain("**SMS**");
-    expect(sentence).toContain(who);
+    expectNamesWhoMay(lang, sentence);
     expect(sentence).toContain(card);
     expect(sentence).toContain(settingsPath);
 
@@ -421,7 +457,7 @@ describe.each(LANGUAGES)("the %s docs", (lang: string) => {
     expect(found.paragraph).toContain(
       `**${locale[getProjectNotificationChannel(ProjectNotificationChannel.Call).title]}**`,
     );
-    expect(found.paragraph).toContain(who);
+    expectNamesWhoMay(lang, found.paragraph);
     expect(found.paragraph).toContain(card);
 
     // Straight after the steps that save a project's Twilio config.

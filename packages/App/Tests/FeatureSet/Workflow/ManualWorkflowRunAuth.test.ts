@@ -23,6 +23,11 @@ import Permission, {
 } from "Common/Types/Permission";
 import UserType from "Common/Types/UserType";
 import {
+  WORKFLOW_RUN_ONLY_PERMISSIONS,
+  WORKFLOW_RUN_PERMISSIONS,
+  WORKFLOW_RUN_REFUSED_MESSAGE,
+} from "Common/Types/Workflow/WorkflowRunPermissions";
+import {
   afterEach,
   beforeAll,
   beforeEach,
@@ -211,19 +216,35 @@ async function callRunRoute(data: {
 function buildTenantPermission(data: {
   projectId: ObjectID;
   permissions: Array<Permission>;
+  // Rows a team holds as blocks, with the labels they are limited to.
+  blocks?: Array<{ permission: Permission; labelIds: Array<ObjectID> }>;
 }): UserTenantAccessPermission {
   return {
     _type: "UserTenantAccessPermission",
     projectId: data.projectId,
-    permissions: data.permissions.map((permission: Permission) => {
-      const userPermission: UserPermission = {
-        _type: "UserPermission",
-        permission: permission,
-        labelIds: [],
-      };
+    permissions: [
+      ...data.permissions.map((permission: Permission) => {
+        const userPermission: UserPermission = {
+          _type: "UserPermission",
+          permission: permission,
+          labelIds: [],
+        };
 
-      return userPermission;
-    }),
+        return userPermission;
+      }),
+      ...(data.blocks || []).map(
+        (block: { permission: Permission; labelIds: Array<ObjectID> }) => {
+          const userPermission: UserPermission = {
+            _type: "UserPermission",
+            permission: block.permission,
+            labelIds: block.labelIds,
+            isBlockPermission: true,
+          };
+
+          return userPermission;
+        },
+      ),
+    ],
   };
 }
 
@@ -235,6 +256,7 @@ function buildUserProps(data: {
   projectId: ObjectID;
   userId: ObjectID;
   permissions: Array<Permission>;
+  blocks?: Array<{ permission: Permission; labelIds: Array<ObjectID> }>;
   isMasterAdmin?: boolean | undefined;
 }): DatabaseCommonInteractionProps {
   const permissionMap: Dictionary<UserTenantAccessPermission> = {};
@@ -242,6 +264,7 @@ function buildUserProps(data: {
   permissionMap[data.projectId.toString()] = buildTenantPermission({
     projectId: data.projectId,
     permissions: data.permissions,
+    ...(data.blocks ? { blocks: data.blocks } : {}),
   });
 
   return {
@@ -280,7 +303,15 @@ describe("GET/POST /workflow/manual/run/:workflowId requires an authorized membe
 
   let getPropsSpy: jest.SpyInstance;
   let findOneByIdSpy: jest.SpyInstance;
+  let findOneUpdatableByIdSpy: jest.SpyInstance;
   let addWorkflowToQueueSpy: jest.SpyInstance;
+
+  /*
+   * What the caller's own reads of the workflow find, once its project has
+   * matched: whether their edit grants reach it (the update scope), and
+   * whether their Workflow Member grant does (a read with that grant alone).
+   */
+  let reach: { mayChange: boolean; memberReaches: boolean };
 
   beforeAll(() => {
     mockRoutes.length = 0;
@@ -295,8 +326,15 @@ describe("GET/POST /workflow/manual/run/:workflowId requires an authorized membe
     callerUserId = ObjectID.generate();
     workflowId = ObjectID.generate();
 
+    reach = { mayChange: true, memberReaches: true };
+
     getPropsSpy = jest.spyOn(CommonAPI, "getDatabaseCommonInteractionProps");
     findOneByIdSpy = jest.spyOn(WorkflowService, "findOneById");
+    findOneUpdatableByIdSpy = jest
+      .spyOn(WorkflowService, "findOneUpdatableById")
+      .mockImplementation(async () => {
+        return reach.mayChange ? workflowRow(callerProjectId) : null;
+      });
     addWorkflowToQueueSpy = jest
       .spyOn(QueueWorkflow, "addWorkflowToQueue")
       .mockResolvedValue(undefined);
@@ -310,16 +348,47 @@ describe("GET/POST /workflow/manual/run/:workflowId requires an authorized membe
     getPropsSpy.mockResolvedValue(props);
   }
 
-  function mockWorkflowInProject(projectId: ObjectID | null): void {
-    if (!projectId) {
-      findOneByIdSpy.mockResolvedValue(null);
-      return;
-    }
-
+  function workflowRow(projectId: ObjectID): WorkflowModel {
     const workflow: WorkflowModel = new WorkflowModel();
     workflow.id = workflowId;
     workflow.projectId = projectId;
-    findOneByIdSpy.mockResolvedValue(workflow);
+
+    return workflow;
+  }
+
+  /*
+   * The workflow, in `projectId` (or nowhere). Read as OneUptime it is
+   * always there; the caller's own read finds it when their Workflow Member
+   * grant reaches it.
+   */
+  function mockWorkflowInProject(projectId: ObjectID | null): void {
+    findOneByIdSpy.mockImplementation(
+      async (args: { props: DatabaseCommonInteractionProps }) => {
+        if (!projectId) {
+          return null;
+        }
+
+        if (args.props.isRoot) {
+          return workflowRow(projectId);
+        }
+
+        return reach.memberReaches ? workflowRow(projectId) : null;
+      },
+    );
+  }
+
+  // The props of the caller's own read of the workflow, if there was one.
+  function scopedReadProps(): DatabaseCommonInteractionProps | undefined {
+    const call: Array<unknown> | undefined = findOneByIdSpy.mock.calls.find(
+      (candidate: Array<unknown>) => {
+        return !(candidate[0] as { props: DatabaseCommonInteractionProps })
+          .props.isRoot;
+      },
+    );
+
+    return call
+      ? (call[0] as { props: DatabaseCommonInteractionProps }).props
+      : undefined;
   }
 
   function editorProps(): DatabaseCommonInteractionProps {
@@ -651,20 +720,62 @@ describe("GET/POST /workflow/manual/run/:workflowId requires an authorized membe
       };
 
       expect(readArgs.id.toString()).toBe(workflowId.toString());
-      expect(readArgs.select["projectId"]).toBe(true);
+      expect(readArgs.select).toEqual({ projectId: true });
       expect(readArgs.props["isRoot"]).toBe(true);
+    });
+
+    /*
+     * The caller's own reads - the update check, which names a row's labels
+     * when it refuses, and the Workflow Member read - only ever see a row of
+     * their own project.
+     */
+    test("reads nothing as the caller for another project's workflow", async () => {
+      mockProps(
+        buildUserProps({
+          projectId: callerProjectId,
+          userId: callerUserId,
+          permissions: [Permission.EditWorkflow, Permission.WorkflowMember],
+        }),
+      );
+      mockWorkflowInProject(otherProjectId);
+
+      const result: RouteCallResult = await callRunRoute({
+        method: "POST",
+        workflowId: workflowId.toString(),
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(findOneUpdatableByIdSpy).not.toHaveBeenCalled();
+      expect(scopedReadProps()).toBeUndefined();
+      expect(addWorkflowToQueueSpy).not.toHaveBeenCalled();
     });
   });
 
   describe("permission level within the caller's own project", () => {
     /*
-     * Running a workflow executes its components, so it is gated on the same
-     * permissions as updating the Workflow model. Anyone who can reach the
-     * dashboard's Run button already holds these, because the builder page
-     * needs them to save the graph.
+     * Running a workflow executes its components, so it takes a run
+     * permission: one of the workflow's editors (the Workflow model's update
+     * list), or a Workflow Member, whose role is to run workflows without
+     * changing them. A run starts at the trigger and goes through every
+     * condition, as the editors built it.
      */
-    const allowedPermissions: Array<Permission> =
-      new WorkflowModel().getUpdatePermissions();
+    const allowedPermissions: Array<Permission> = [
+      ...WORKFLOW_RUN_PERMISSIONS,
+    ];
+
+    test("the run list is the workflow's editors and the Workflow Member", () => {
+      expect([...WORKFLOW_RUN_PERMISSIONS].sort()).toEqual(
+        [
+          ...new WorkflowModel().getUpdatePermissions(),
+          ...WORKFLOW_RUN_ONLY_PERMISSIONS,
+        ].sort(),
+      );
+      expect([...WORKFLOW_RUN_ONLY_PERMISSIONS]).toEqual([
+        Permission.WorkflowMember,
+      ]);
+      expect(allowedPermissions).toContain(Permission.WorkflowAdmin);
+      expect(allowedPermissions).toContain(Permission.WorkflowMember);
+    });
 
     test.each(allowedPermissions)(
       "allows a caller holding %s",
@@ -689,8 +800,8 @@ describe("GET/POST /workflow/manual/run/:workflowId requires an authorized membe
     );
 
     /*
-     * Creating or deleting workflows is not editing one: neither runs one
-     * by hand.
+     * Creating or deleting workflows is not running one, and reading one is
+     * not either.
      */
     const deniedPermissions: Array<Permission> = [
       Permission.ProjectMember,
@@ -724,9 +835,332 @@ describe("GET/POST /workflow/manual/run/:workflowId requires an authorized membe
         });
 
         expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+        expect((result.thrownToNext as NotAuthorizedException).message).toBe(
+          WORKFLOW_RUN_REFUSED_MESSAGE,
+        );
         expect(addWorkflowToQueueSpy).not.toHaveBeenCalled();
       },
     );
+
+    /*
+     * Asked before anything is read, so a caller who may not run workflows
+     * learns nothing about which workflow ids exist.
+     */
+    test.each(deniedPermissions)(
+      "never reads the workflow for a caller holding only %s",
+      async (permission: Permission) => {
+        mockProps(
+          buildUserProps({
+            projectId: callerProjectId,
+            userId: callerUserId,
+            permissions: [permission],
+          }),
+        );
+        mockWorkflowInProject(callerProjectId);
+
+        await callRunRoute({
+          method: "POST",
+          workflowId: workflowId.toString(),
+        });
+
+        expect(findOneByIdSpy).not.toHaveBeenCalled();
+      },
+    );
+
+    test("a Workflow Member runs a workflow they can open", async () => {
+      mockProps(
+        buildUserProps({
+          projectId: callerProjectId,
+          userId: callerUserId,
+          permissions: [Permission.WorkflowMember],
+        }),
+      );
+      mockWorkflowInProject(callerProjectId);
+
+      const result: RouteCallResult = await callRunRoute({
+        method: "POST",
+        workflowId: workflowId.toString(),
+        body: { data: { ticket: "INC-1" } },
+      });
+
+      expect(result.nextCallCount).toBe(0);
+      expect(addWorkflowToQueueSpy).toHaveBeenCalledTimes(1);
+      expect(
+        (addWorkflowToQueueSpy.mock.calls[0]![0] as { returnValues: JSONObject })
+          .returnValues,
+      ).toEqual({ ticket: "INC-1" });
+    });
+
+    /*
+     * A Workflow Member's reach is read with their Workflow Member grant
+     * alone: limited to some labels, or to the workflows their team owns, it
+     * runs only those - even when another grant (Viewer, here) lets them see
+     * every workflow.
+     */
+    test("a Workflow Member's reach is read with that grant alone, not with what else they hold", async () => {
+      mockProps(
+        buildUserProps({
+          projectId: callerProjectId,
+          userId: callerUserId,
+          permissions: [Permission.Viewer, Permission.WorkflowMember],
+          blocks: [
+            {
+              permission: Permission.WorkflowMember,
+              labelIds: [ObjectID.generate()],
+            },
+          ],
+        }),
+      );
+      mockWorkflowInProject(callerProjectId);
+
+      await callRunRoute({
+        method: "POST",
+        workflowId: workflowId.toString(),
+      });
+
+      const props: DatabaseCommonInteractionProps | undefined =
+        scopedReadProps();
+      const rows: Array<UserPermission> =
+        props?.userTenantAccessPermission?.[callerProjectId.toString()]
+          ?.permissions || [];
+
+      // The Workflow Member allow, and its block: never the Viewer row.
+      expect(
+        rows.map((row: UserPermission) => {
+          return [row.permission, Boolean(row.isBlockPermission)];
+        }),
+      ).toEqual([
+        [Permission.WorkflowMember, false],
+        [Permission.WorkflowMember, true],
+      ]);
+      expect(props?.isRoot).toBeFalsy();
+      expect(props?.tenantId?.toString()).toBe(callerProjectId.toString());
+      expect(props?.userId?.toString()).toBe(callerUserId.toString());
+      // Nothing the member holds lets them change it, so the update check is skipped.
+      expect(findOneUpdatableByIdSpy).not.toHaveBeenCalled();
+    });
+
+    test("a Workflow Member whose grant does not reach the workflow is refused, though they can see it", async () => {
+      mockProps(
+        buildUserProps({
+          projectId: callerProjectId,
+          userId: callerUserId,
+          permissions: [Permission.Viewer, Permission.WorkflowMember],
+        }),
+      );
+      mockWorkflowInProject(callerProjectId);
+      reach.memberReaches = false;
+
+      const result: RouteCallResult = await callRunRoute({
+        method: "POST",
+        workflowId: workflowId.toString(),
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect((result.thrownToNext as NotAuthorizedException).message).toBe(
+        WORKFLOW_RUN_REFUSED_MESSAGE,
+      );
+      expect(addWorkflowToQueueSpy).not.toHaveBeenCalled();
+    });
+
+    /*
+     * An editor runs the workflows they may change: the update scope of
+     * their edit grants, read with their own props.
+     */
+    test("an editor's reach is the update scope, read with their own props", async () => {
+      const props: DatabaseCommonInteractionProps = editorProps();
+
+      mockProps(props);
+      mockWorkflowInProject(callerProjectId);
+
+      await callRunRoute({
+        method: "POST",
+        workflowId: workflowId.toString(),
+      });
+
+      expect(findOneUpdatableByIdSpy).toHaveBeenCalledTimes(1);
+
+      const updateArgs: {
+        id: ObjectID;
+        props: DatabaseCommonInteractionProps;
+      } = findOneUpdatableByIdSpy.mock.calls[0]![0] as {
+        id: ObjectID;
+        props: DatabaseCommonInteractionProps;
+      };
+
+      expect(updateArgs.id.toString()).toBe(workflowId.toString());
+      expect(updateArgs.props).toBe(props);
+      expect(addWorkflowToQueueSpy).toHaveBeenCalledTimes(1);
+    });
+
+    test("an editor whose edit grant does not reach the workflow is refused", async () => {
+      mockProps(editorProps());
+      mockWorkflowInProject(callerProjectId);
+      reach.mayChange = false;
+
+      const result: RouteCallResult = await callRunRoute({
+        method: "POST",
+        workflowId: workflowId.toString(),
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect((result.thrownToNext as NotAuthorizedException).message).toBe(
+        WORKFLOW_RUN_REFUSED_MESSAGE,
+      );
+      // No Workflow Member grant to fall back on, so no second read.
+      expect(scopedReadProps()).toBeUndefined();
+      expect(addWorkflowToQueueSpy).not.toHaveBeenCalled();
+    });
+
+    // The update check refuses outright when a block names one of the workflow's labels.
+    test("an editor blocked on one of the workflow's labels is refused", async () => {
+      mockProps(editorProps());
+      mockWorkflowInProject(callerProjectId);
+      findOneUpdatableByIdSpy.mockRejectedValue(
+        new NotAuthorizedException("blocked on the label Payments"),
+      );
+
+      const result: RouteCallResult = await callRunRoute({
+        method: "POST",
+        workflowId: workflowId.toString(),
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect((result.thrownToNext as NotAuthorizedException).message).toBe(
+        WORKFLOW_RUN_REFUSED_MESSAGE,
+      );
+      expect(addWorkflowToQueueSpy).not.toHaveBeenCalled();
+    });
+
+    test("an editor whose edit grant misses still runs it as a Workflow Member when that grant reaches", async () => {
+      mockProps(
+        buildUserProps({
+          projectId: callerProjectId,
+          userId: callerUserId,
+          permissions: [Permission.EditWorkflow, Permission.WorkflowMember],
+        }),
+      );
+      mockWorkflowInProject(callerProjectId);
+      reach.mayChange = false;
+
+      const result: RouteCallResult = await callRunRoute({
+        method: "POST",
+        workflowId: workflowId.toString(),
+      });
+
+      expect(result.nextCallCount).toBe(0);
+      expect(findOneUpdatableByIdSpy).toHaveBeenCalledTimes(1);
+      expect(scopedReadProps()).toBeDefined();
+      expect(addWorkflowToQueueSpy).toHaveBeenCalledTimes(1);
+    });
+
+    // Anything but a refusal is not swallowed into one.
+    test("a failing update check is not mistaken for a refusal", async () => {
+      mockProps(editorProps());
+      mockWorkflowInProject(callerProjectId);
+      findOneUpdatableByIdSpy.mockRejectedValue(new Error("database down"));
+
+      const result: RouteCallResult = await callRunRoute({
+        method: "POST",
+        workflowId: workflowId.toString(),
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(Error);
+      expect(result.thrownToNext).not.toBeInstanceOf(NotAuthorizedException);
+      expect((result.thrownToNext as Error).message).toBe("database down");
+      expect(addWorkflowToQueueSpy).not.toHaveBeenCalled();
+    });
+
+    test("Edit All Operational Resources runs workflows, as it edits them", async () => {
+      mockProps(
+        buildUserProps({
+          projectId: callerProjectId,
+          userId: callerUserId,
+          permissions: [Permission.EditAllOperationalResources],
+        }),
+      );
+      mockWorkflowInProject(callerProjectId);
+
+      const result: RouteCallResult = await callRunRoute({
+        method: "POST",
+        workflowId: workflowId.toString(),
+      });
+
+      expect(result.nextCallCount).toBe(0);
+      expect(addWorkflowToQueueSpy).toHaveBeenCalledTimes(1);
+    });
+
+    // Only an allow row grants: a team's block names a permission to take it away.
+    test("a block row of Workflow Member is no grant", async () => {
+      mockProps(
+        buildUserProps({
+          projectId: callerProjectId,
+          userId: callerUserId,
+          permissions: [],
+          blocks: [{ permission: Permission.WorkflowMember, labelIds: [] }],
+        }),
+      );
+      mockWorkflowInProject(callerProjectId);
+
+      const result: RouteCallResult = await callRunRoute({
+        method: "POST",
+        workflowId: workflowId.toString(),
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(addWorkflowToQueueSpy).not.toHaveBeenCalled();
+    });
+
+    test("a block with no labels on one team wins over the allow on another", async () => {
+      mockProps(
+        buildUserProps({
+          projectId: callerProjectId,
+          userId: callerUserId,
+          permissions: [Permission.WorkflowMember],
+          blocks: [{ permission: Permission.WorkflowMember, labelIds: [] }],
+        }),
+      );
+      mockWorkflowInProject(callerProjectId);
+
+      const result: RouteCallResult = await callRunRoute({
+        method: "POST",
+        workflowId: workflowId.toString(),
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(findOneByIdSpy).not.toHaveBeenCalled();
+      expect(addWorkflowToQueueSpy).not.toHaveBeenCalled();
+    });
+
+    /*
+     * A block limited to labels is about records: the route asks for no
+     * record at that step, so it is the caller's scoped read of the workflow
+     * that leaves a labelled one out.
+     */
+    test("a block limited to labels does not refuse the run itself", async () => {
+      mockProps(
+        buildUserProps({
+          projectId: callerProjectId,
+          userId: callerUserId,
+          permissions: [Permission.WorkflowMember],
+          blocks: [
+            {
+              permission: Permission.WorkflowMember,
+              labelIds: [ObjectID.generate()],
+            },
+          ],
+        }),
+      );
+      mockWorkflowInProject(callerProjectId);
+
+      const result: RouteCallResult = await callRunRoute({
+        method: "POST",
+        workflowId: workflowId.toString(),
+      });
+
+      expect(result.nextCallCount).toBe(0);
+      expect(addWorkflowToQueueSpy).toHaveBeenCalledTimes(1);
+    });
 
     test("rejects a member of the right project holding no permissions at all", async () => {
       mockProps(
@@ -757,6 +1191,9 @@ describe("GET/POST /workflow/manual/run/:workflowId requires an authorized membe
         }),
       );
       mockWorkflowInProject(callerProjectId);
+      // No grant of theirs reaches it; a master admin needs none.
+      reach.mayChange = false;
+      reach.memberReaches = false;
 
       const result: RouteCallResult = await callRunRoute({
         method: "POST",
@@ -764,6 +1201,8 @@ describe("GET/POST /workflow/manual/run/:workflowId requires an authorized membe
       });
 
       expect(result.nextCallCount).toBe(0);
+      expect(findOneUpdatableByIdSpy).not.toHaveBeenCalled();
+      expect(scopedReadProps()).toBeUndefined();
       expect(addWorkflowToQueueSpy).toHaveBeenCalledTimes(1);
     });
 

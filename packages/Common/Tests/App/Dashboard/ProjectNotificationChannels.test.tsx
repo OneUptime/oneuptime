@@ -317,7 +317,7 @@ describe("the four channels", () => {
     }
   });
 
-  test("only project owners and billing managers may change them, which is why most responders cannot", () => {
+  test("only project owners, Billing Admins and billing managers may change them, which is why most responders cannot", () => {
     const project: Project = new Project();
 
     for (const definition of PROJECT_NOTIFICATION_CHANNELS) {
@@ -333,7 +333,11 @@ describe("the four channels", () => {
           .sort(),
       ]).toEqual([
         definition.column,
-        [Permission.ProjectOwner, Permission.ManageProjectBilling].sort(),
+        [
+          Permission.ProjectOwner,
+          Permission.BillingAdmin,
+          Permission.ManageProjectBilling,
+        ].sort(),
       ]);
     }
   });
@@ -908,6 +912,8 @@ describe("the panel at the top of a list while its channel is off", () => {
     ["a project admin", [Permission.ProjectAdmin]],
     ["someone who may edit the project", [Permission.EditProject]],
     ["a project member", [Permission.ProjectMember]],
+    ["a billing member", [Permission.BillingMember]],
+    ["a billing viewer", [Permission.BillingViewer]],
   ] as Array<[string, Array<Permission>]>)(
     "%s, whom the server would refuse, gets one sentence and no switch",
     (_who: string, permissions: Array<Permission>) => {
@@ -936,6 +942,24 @@ describe("the panel at the top of a list while its channel is off", () => {
     ).not.toHaveAttribute("aria-disabled", "true");
   });
 
+  test("a Billing Admin may change it too, so gets the switch and no sentence", () => {
+    signIn({ permissions: [Permission.BillingAdmin] });
+
+    for (const definition of CHANNEL_GATED_METHOD_LISTS) {
+      renderPanel(definition.list, ProjectChannelState.Off);
+
+      expect(screen.getByRole("switch")).not.toHaveAttribute(
+        "aria-disabled",
+        "true",
+      );
+      expect(
+        screen.queryByTestId(NOTIFICATION_CHANNEL_OFF_SENTENCE_TEST_ID),
+      ).not.toBeInTheDocument();
+
+      cleanup();
+    }
+  });
+
   test("a master admin, with no project permission at all, gets the switch", () => {
     signIn({ permissions: [], isMasterAdmin: true });
 
@@ -951,12 +975,18 @@ describe("the panel at the top of a list while its channel is off", () => {
       expect([definition.list, definition.offSentence]).toEqual([
         definition.list,
         expect.stringMatching(
-          /off in this project\. A project owner or someone with Manage Billing can turn (it|them) on in Project Settings → Notification Settings\.$/,
+          /off in this project\. A project owner, a Billing Admin or someone with Manage Billing can turn (it|them) on in Project Settings → Notification Settings\.$/,
         ),
       ]);
 
-      // Never the role that cannot: a project admin may not change it.
-      expect(definition.offSentence.toLowerCase()).not.toContain("admin");
+      /*
+       * Never the role that cannot: a project admin may not change it. The
+       * Billing Admin role may, by the name the permission picker shows.
+       */
+      expect(definition.offSentence.toLowerCase()).not.toContain(
+        "project admin",
+      );
+      expect(definition.offSentence).toContain("a Billing Admin");
     }
   });
 
@@ -989,7 +1019,7 @@ describe("the panel at the top of a list while its channel is off", () => {
     ["a project member", [Permission.ProjectMember]],
     ["a viewer", [Permission.Viewer]],
   ] as Array<[string, Array<Permission>]>)(
-    "%s is told who can - a project owner or someone with Manage Billing - in the panel's one sentence",
+    "%s is told who can - a project owner, a Billing Admin or someone with Manage Billing - in the panel's one sentence",
     (_who: string, permissions: Array<Permission>) => {
       signIn({ permissions: permissions });
 
@@ -1002,12 +1032,14 @@ describe("the panel at the top of a list while its channel is off", () => {
 
         expect(sentence.textContent).toBe(definition.offSentence);
         expect(sentence).toHaveTextContent(
-          "A project owner or someone with Manage Billing",
+          "A project owner, a Billing Admin or someone with Manage Billing",
         );
         expect(sentence).toHaveTextContent(
           "Project Settings → Notification Settings",
         );
-        expect(sentence.textContent?.toLowerCase()).not.toContain("admin");
+        expect(sentence.textContent?.toLowerCase()).not.toContain(
+          "project admin",
+        );
 
         cleanup();
       }
@@ -1071,7 +1103,7 @@ describe("the panel at the top of a list while its channel is off", () => {
 });
 
 describe("who may turn the channels on", () => {
-  test("exactly the people each column's update permissions let in: a project owner, or someone with Manage Billing", () => {
+  test("exactly the people each column's update permissions let in: a project owner, a Billing Admin, or someone with Manage Billing", () => {
     const project: Project = new Project();
 
     for (const definition of PROJECT_NOTIFICATION_CHANNELS) {
@@ -1094,7 +1126,9 @@ describe("who may turn the channels on", () => {
     ["a project admin", [Permission.ProjectAdmin], false],
     ["someone who may edit the project", [Permission.EditProject], false],
     ["a project member", [Permission.ProjectMember], false],
-    ["a billing admin", [Permission.BillingAdmin], false],
+    ["a billing admin", [Permission.BillingAdmin], true],
+    ["a billing member", [Permission.BillingMember], false],
+    ["a billing viewer", [Permission.BillingViewer], false],
   ] as Array<[string, Array<Permission>, boolean]>)(
     "%s: %s",
     (_who: string, permissions: Array<Permission>, expected: boolean) => {
@@ -1139,6 +1173,11 @@ describe("who may turn the channels on", () => {
     [
       "someone with Manage Billing",
       { permissions: [Permission.ManageProjectBilling] },
+      ProjectNotificationChannelsAccess.Yes,
+    ],
+    [
+      "a Billing Admin",
+      { permissions: [Permission.BillingAdmin] },
       ProjectNotificationChannelsAccess.Yes,
     ],
     [
@@ -1199,7 +1238,7 @@ describe("who may turn the channels on", () => {
     expect(isKnownNotToChangeProjectNotificationChannels()).toBe(false);
   });
 
-  test("no single project permission but those two lets anyone in", () => {
+  test("no single project permission but those three lets anyone in", () => {
     const allowed: Array<Permission> = [];
 
     for (const props of PermissionHelper.getTenantPermissionProps()) {
@@ -1246,7 +1285,7 @@ describe("the Notification Channels card on Project Settings", () => {
         ProjectNotificationChannelsCopy.whoCanChange,
       );
       expect(ProjectNotificationChannelsCopy.whoCanChange).toBe(
-        "A project owner or someone with Manage Billing can change these.",
+        "A project owner, a Billing Admin or someone with Manage Billing can change these.",
       );
       // Above the rows, inside the card.
       expect(
@@ -1261,6 +1300,7 @@ describe("the Notification Channels card on Project Settings", () => {
       "someone with Manage Billing",
       { permissions: [Permission.ManageProjectBilling] },
     ],
+    ["a Billing Admin", { permissions: [Permission.BillingAdmin] }],
     ["a master admin", { permissions: [], isMasterAdmin: true }],
   ] as Array<[string, Session]>)(
     "%s, who may flip the switches, is not told to ask anyone",

@@ -204,7 +204,7 @@ describe("docs for the webhook URL, now in the Webhook trigger", () => {
     );
 
     expect(titles.sort()).toEqual(
-      ["Edit Workflow", "Project Admin", "Project Owner"].sort(),
+      ["Edit Workflow", "Project Admin", "Project Owner", "Workflow Admin"].sort(),
     );
 
     const configuration: string = readDoc("en", "workflows/configuration.md");
@@ -221,12 +221,23 @@ describe("docs for the webhook URL, now in the Webhook trigger", () => {
     }
 
     expect(accessControl?.read).not.toContain(Permission.Viewer);
+
+    /*
+     * A Workflow Member runs workflows by hand but does not see the URL, and
+     * the section says so, so nobody hands them a key the server refuses.
+     */
+    expect(accessControl?.read).not.toContain(Permission.WorkflowMember);
+    expect(security).toContain(
+      "That includes a **Workflow Member**, who runs the workflow by hand from the **Builder**.",
+    );
   });
 
   test("the English permissions list names no permission that does not exist", () => {
     /*
      * It used to list a "Run Workflow" permission. Running a workflow by hand
-     * needs the workflow's update permissions; there is no Run Workflow.
+     * takes one of the permissions in Types/Workflow/WorkflowRunPermissions
+     * (the workflow's editors and Workflow Members); there is no Run
+     * Workflow permission - only the Builder's button of that name.
      */
     const configuration: string = readDoc("en", "workflows/configuration.md");
 
