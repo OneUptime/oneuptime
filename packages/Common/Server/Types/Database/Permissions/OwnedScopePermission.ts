@@ -22,13 +22,13 @@ import DatabaseCommonInteractionPropsUtil, {
 import PermissionScope from "../../../../Types/Database/AccessControl/PermissionScope";
 import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
-import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission, {
   PermissionHelper,
   UserPermission,
 } from "../../../../Types/Permission";
 import { combineWithPrivacyClause } from "../../../Utils/PrivacyFilterUtil";
+import logger from "../../../Utils/Logger";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 /*
@@ -312,13 +312,22 @@ export default class OwnedScopePermission {
 
     /*
      * A parent the rule cannot follow - neither a key column nor a join
-     * table - is a misconfigured model: refused, never read without the
-     * scope.
+     * table - is a misconfigured model (Tests/Models/DatabaseModels
+     * /ParentOwnedScopeCoverage holds every model to one the rule follows):
+     * it reaches none of its rows, as a caller who owns no parent does,
+     * never every one of them - and says so in the log.
      */
     if (!parentLinks) {
-      throw new BadDataException(
-        "Cannot apply the owned scope without the relation to the record this is read through.",
+      logger.error(
+        `${new data.modelType().singularName} is read through ${data.relation}, which the owned scope of ${new data.parentModelType().singularName} cannot follow: no key column or join table. The read reaches no records.`,
       );
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (data.query as any)._id = QueryHelper.equalTo(
+        ObjectID.getZeroObjectID().toString(),
+      );
+
+      return data.query;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

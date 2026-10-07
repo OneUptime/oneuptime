@@ -5,6 +5,7 @@ import OwnedScopePermission from "../../../../../Server/Types/Database/Permissio
 import ReadPermission from "../../../../../Server/Types/Database/Permissions/ReadPermission";
 import Query from "../../../../../Server/Types/Database/Query";
 import QueryUtil from "../../../../../Server/Types/Database/QueryUtil";
+import logger from "../../../../../Server/Utils/Logger";
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import IncidentAlert from "../../../../../Models/DatabaseModels/IncidentAlert";
@@ -802,6 +803,40 @@ describe("every grant and scope a read accepts narrows the records it reaches", 
       expect(valuesOf(query._id).sort()).toEqual(
         idsOf(ownedIncidentId, otherOwnedIncidentId),
       );
+    });
+
+    test("a parent the rule cannot follow reaches no record, and says so in the log", async () => {
+      // No join table for the status pages an announcement is read through.
+      jest
+        .spyOn(QueryUtil, "getManyToManyRelationMetadata")
+        .mockImplementation(((
+          modelType: { new (): BaseModel },
+          column: string,
+        ): ReturnType<typeof QueryUtil.getManyToManyRelationMetadata> => {
+          if (column === new modelType().getAccessControlColumn()) {
+            return getLabelJoinTable(modelType);
+          }
+
+          return null;
+        }) as never);
+
+      const logged: SpyInstance<(...args: never) => never> = jest
+        .spyOn(logger, "error")
+        .mockImplementation((() => {}) as never);
+
+      const query: Query<StatusPageAnnouncement> = (await scopeOf(
+        StatusPageAnnouncement,
+        member([
+          owned(Permission.ReadProjectStatusPage),
+          everywhere(Permission.ReadStatusPageAnnouncement),
+        ]),
+        DatabaseRequestType.Read,
+      )) as Query<StatusPageAnnouncement>;
+
+      expect(valuesOf(query._id)).toEqual([
+        ObjectID.getZeroObjectID().toString(),
+      ]);
+      expect(logged).toHaveBeenCalledTimes(1);
     });
 
     test("a model whose parent read is optional is narrowed only for a caller who holds one", async () => {
