@@ -115,6 +115,18 @@ Una ejecución a mano solo llega a los flujos de trabajo que puedes abrir: un ro
 
 Da **Workflow Admin** a quienes construyen la automatización y **Workflow Member** a quienes solo la ponen en marcha. Reserva el acceso de edición de variables para quienes gestionan los secretos de tu proyecto.
 
+## Qué pueden hacer los pasos de un workflow
+
+Los pasos que leen y cambian registros de OneUptime (los componentes Find, Create, Update y Delete y los disparadores On Create, On Update y On Delete) actúan como un **Project Admin** del proyecto del workflow. Pasan las mismas comprobaciones que un Project Admin en el panel y en la API:
+
+- **Solo el proyecto del propio workflow.** Un paso nunca lee ni cambia registros de otro proyecto, y un Update nunca mueve un registro a otro proyecto.
+- **Solo lo que puede hacer un Project Admin.** Un paso no puede conceder permisos que un Project Admin no tiene (como **Project Owner** o facturación), ni añadir a alguien a un equipo con más permisos, como el equipo de propietarios.
+- **Solo lo que incluye su plan.** En OneUptime Cloud, lo que su plan no incluye se rechaza indicando el plan que hace falta.
+- **Nada de lo que OneUptime gestiona por sí mismo.** No se pueden editar ni eliminar entradas del feed, no se pueden escribir registros de notificaciones y no se pueden cambiar los valores que fija OneUptime (como un CNAME verificado, los interruptores de protección de un equipo o quién está de guardia ahora). Un paso **Create One Incident** tampoco puede declarar un incidente a partir de una plantilla (`createdIncidentTemplateId`): lee la plantilla con **Find One Incident Template** y pasa sus valores.
+- **Como ninguna persona.** Un registro que crea un workflow no tiene creador, y el registro de auditoría nombra al workflow como autor del cambio.
+
+Un paso rechazado sale por su salida **Error** sin hacer el cambio rechazado, y el registro de la ejecución dice qué paso se rechazó y por qué. Un paso Create Many crea sus registros de uno en uno y se detiene en el rechazado; los creados antes se conservan. Los pasos que hablan con otros sistemas (API, correo, chat, Custom Code, IA) no se ven afectados.
+
 ## Límites del plan
 
 OneUptime Cloud limita el número de ejecuciones al mes en los planes más pequeños. Tu límite actual se muestra en **Ajustes del proyecto → Facturación**. Cuando lo alcanzas, los disparos nuevos se rechazan hasta el siguiente ciclo de facturación. Las instalaciones autoalojadas no tienen este límite.

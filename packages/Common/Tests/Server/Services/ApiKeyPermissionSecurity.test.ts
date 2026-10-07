@@ -21,6 +21,7 @@ import {
   test,
 } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -97,6 +98,7 @@ function props(
   return {
     userId,
     tenantId,
+    ...ON_HIGHEST_PLAN,
     userGlobalAccessPermission: {
       projectIds: [tenantId],
       globalPermissions: [Permission.Public, Permission.User],

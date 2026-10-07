@@ -128,7 +128,7 @@ Templates are built with their own four-step wizard — **Template Info**, **Inc
 A few quick rules:
 
 - Templates are not editable from the templates list — you create one, then open it to change it.
-- A template only fills a field you left empty. On the create page the template is applied as a pre-fill you can overwrite; on the server — for a workflow or a form that declares from a template — a field is filled from the template only when the request left that field `undefined`. Whatever the caller supplied always wins.
+- A template only fills a field you left empty. On the create page the template is applied as a pre-fill you can overwrite; on the server — for a form that declares from a template — a field is filled from the template only when the request left that field `undefined`. Whatever the caller supplied always wins.
 - The **Details** step follows the template's **Custom Fields on Create**, as [described above](#details-your-incident-custom-fields).
 - Custom field values merge one field at a time. A template's values fill in the custom fields the incident is declared without; a value set on the **Details** step, or sent in the request's `customFields`, always wins — `0`, `false` and `null` included. A field copied from a monitor custom field still takes the monitor's value.
 - An existing template's custom field values are on its **Custom Fields** card, next to its other cards.
@@ -179,7 +179,7 @@ Useful fields on the request body:
 - `statusPages` — the ids of the status pages to limit the incident to, all from the same project. Leave it out to reach every status page that lists the incident's monitors. `isScopedToStatusPages` is worked out from it, and a value you send for that is ignored. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 - `customFields` — the incident's custom field values, keyed by each field's name. Each value you send must fit its field — a number for a **Number** field, one of the options for a **Dropdown (single select)** — or the request is refused with a `400` error naming the field. **Required on Create** is not checked here. See [Custom field values through the API](/docs/incidents/settings#custom-field-values-through-the-api).
 
-An API key cannot declare from a template: a request that sends `createdIncidentTemplateId` is refused. OneUptime sets that column itself, for a workflow's **Create One Incident** step and for incidents reported through a [form](/docs/forms/on-submit). To declare from a template over the API, read the template from `/api/incident-templates` and send its values in the request.
+An API key or a workflow step cannot declare from a template: a request that sends `createdIncidentTemplateId` is refused. OneUptime sets that column itself, for incidents reported through a [form](/docs/forms/on-submit). To declare from a template over the API, read the template from `/api/incident-templates` and send its values in the request; in a workflow, read it with a **Find One Incident Template** step and pass its values to **Create One Incident**.
 
 Related endpoints are `/api/incident-state`, `/api/incident-severity` and `/api/incident-state-timeline`. The generated [API reference](/reference) has the exact request and response shapes for each, including how relation fields such as monitors are expressed.
 
@@ -202,7 +202,7 @@ The number appears as the first column of the incidents list, links to the incid
 The create call does more than write a row. In order:
 
 1. **The server fills the gaps.** `declaredAt` defaults to now, the current state defaults to the project's `isCreatedState` state, and the incident number and prefixed number are assigned from the project counter.
-2. **A template is applied**, when a workflow or a form declares the incident from one (`createdIncidentTemplateId`) without naming a state — filling only fields the caller left undefined. The dashboard applies a template in the form instead, before the request is sent.
+2. **A template is applied**, when a form declares the incident from one (`createdIncidentTemplateId`) without naming a state — filling only fields the caller left undefined. The dashboard applies a template in the form instead, before the request is sent.
 3. **Privacy rules run**, marking the incident private when a matching rule says so. This is the first rule engine to run, so everything after it sees the right privacy setting.
 4. **Owner rules run**, adding the owner users and teams that matching rules name.
 5. **Label rules run**, adding labels that match the incident.

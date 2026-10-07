@@ -21,7 +21,9 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
+import WorkflowPrincipal from "../../../Server/Utils/Workflow/WorkflowPrincipal";
 import { getJestSpyOn } from "../../Spy";
+import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -88,6 +90,7 @@ function personProps(
     tenantId: PROJECT_ID,
     userId: USER_ID,
     userType: UserType.User,
+    ...ON_HIGHEST_PLAN,
     userGlobalAccessPermission: {
       projectIds: [PROJECT_ID],
       globalPermissions: [Permission.Public, Permission.User],
@@ -105,17 +108,24 @@ function apiKeyProps(
   return {
     tenantId: PROJECT_ID,
     userType: UserType.API,
+    ...ON_HIGHEST_PLAN,
     userTenantAccessPermission: {
       [PROJECT_ID.toString()]: grant(permissions),
     },
   };
 }
 
-// A workflow writes as root, in its project.
-const WORKFLOW_PROPS: DatabaseCommonInteractionProps = {
-  isRoot: true,
-  tenantId: PROJECT_ID,
-};
+// A workflow step: a Project Admin of its project, on the project's plan.
+function workflowProps(): DatabaseCommonInteractionProps {
+  return {
+    ...WorkflowPrincipal.getPropsWithoutPlan({
+      projectId: PROJECT_ID,
+      workflowId: new ObjectID("0193c0de-aaaa-4aaa-8bbb-0000000000c1"),
+      workflowName: "Close stale incidents",
+    }),
+    ...ON_HIGHEST_PLAN,
+  };
+}
 
 // The admin dashboard: a server admin, signed in.
 const ADMIN_DASHBOARD_PROPS: DatabaseCommonInteractionProps = {
@@ -370,10 +380,7 @@ test("the sweep sees every model that records who did something", () => {
 });
 
 describe.each(WRITES)("%s, every model", (name: string, write: Write) => {
-  test.each([
-    ["a workflow", WORKFLOW_PROPS],
-    ["the admin dashboard", ADMIN_DASHBOARD_PROPS],
-  ])(
+  test.each([["the admin dashboard", ADMIN_DASHBOARD_PROPS]])(
     "%s names nobody: a create reaches the hooks without any of them, an update of nothing else is told they are OneUptime's",
     async (_who: string, props: DatabaseCommonInteractionProps) => {
       const wrong: Array<string> = [];
@@ -411,6 +418,13 @@ describe.each(WRITES)("%s, every model", (name: string, write: Write) => {
       "an API key",
       (attributionCase: AttributionCase): DatabaseCommonInteractionProps => {
         return apiKeyProps(permissionsToWrite(attributionCase));
+      },
+    ],
+    [
+      // A Project Admin of its project: what that role may not write is refused.
+      "a workflow",
+      (): DatabaseCommonInteractionProps => {
+        return workflowProps();
       },
     ],
   ])(
@@ -725,7 +739,7 @@ describe("the creator of a record, end to end", () => {
   test("a workflow's note is by nobody", async () => {
     const row: Record<string, unknown> = await inserted(
       NAMING_SOMEBODY_ELSE,
-      WORKFLOW_PROPS,
+      workflowProps(),
     );
 
     expect(row["createdByUserId"]).toBeUndefined();
@@ -843,7 +857,7 @@ describe("who changed a record, end to end", () => {
 
     test.each([
       ["an API key", apiKeyProps()],
-      ["a workflow", WORKFLOW_PROPS],
+      ["a workflow", workflowProps()],
     ])(
       "%s resolving it is nobody",
       async (_who: string, props: DatabaseCommonInteractionProps) => {
@@ -1083,7 +1097,7 @@ describe("the person a hook reads as the creator (CreatedByUser.getId)", () => {
 
   test("with no person and nobody named, is nobody", () => {
     expect(CreatedByUser.getId({}, apiKeyProps())).toBeNull();
-    expect(CreatedByUser.getId(undefined, WORKFLOW_PROPS)).toBeNull();
+    expect(CreatedByUser.getId(undefined, workflowProps())).toBeNull();
   });
 
   test("two different people under the two names are refused", () => {

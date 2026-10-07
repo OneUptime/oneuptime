@@ -1184,7 +1184,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     /*
      * A dashboard, API-key or Terraform create carries an acting user; a
-     * workflow or other automation creating as root does not, and the item
+     * workflow step or OneUptime's own automation does not, and the item
      * then says so instead of naming somebody.
      */
     const createdByUserId: ObjectID | undefined =
@@ -1630,8 +1630,8 @@ export class Service extends ProjectReferencesService<Model> {
    * The column stays in the API so upgrades do not break, and it is still
    * written: a dashboard tab opened before the upgrade sends it with every
    * save of the SLO form, and so can an API client or a workflow written
-   * against the previous release. Workflows write as root, which is why every
-   * caller is handled here, not only users - nothing on this release writes
+   * against the previous release. A workflow step is no person, which is why
+   * every caller is handled here, not only users - nothing on this release writes
    * the column for its own reasons. Nothing else on this release reads it
    * either, so storing it and moving on left the SLO measuring something other
    * than what the caller had just saved. It is applied instead, the way this

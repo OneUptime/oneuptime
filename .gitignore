@@ -18,6 +18,9 @@ node_modules
 # Tailwind, copied from Common/Server/Static/Vendor at build time
 **/public/assets/js/tailwind-3.4.5.js
 
+# mermaid for the docs and the blog, built by Common/Scripts/build-mermaid-browser.js
+packages/Common/build/mermaid-browser*/
+
 .idea
 # testing
 **/coverage

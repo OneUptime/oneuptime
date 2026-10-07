@@ -595,18 +595,22 @@ describe("GUARD: every read of a record's files goes through the check", () => {
     expect(source).toContain("await RelatedFileAccess.keepReadableFiles({");
   });
 
+  /*
+   * The workflow steps that read records read them as a Project Admin of the
+   * workflow's project (WorkflowPrincipal), never as OneUptime itself, so
+   * the check above holds what they read to that project - as it does every
+   * read made for someone - with nothing of their own to keep in step.
+   */
   test.each(["FindOneBaseModel", "FindManyBaseModel", "OnTriggerBaseModel"])(
-    "the workflow step %s holds what it reads to the workflow's project",
+    "the workflow step %s reads as the workflow's project, through the check",
     (component: string) => {
       const source: string = fs.readFileSync(
         path.join(WORKFLOW_DIR, `${component}.ts`),
         "utf8",
       );
 
-      expect(source).toContain("await RelatedFileAccess.keepReadableFiles({");
-      expect(source).toContain(
-        "reader: RelatedFileAccess.getProjectReader(options.projectId),",
-      );
+      expect(source).toContain("props: await this.getStepProps(options),");
+      expect(source).not.toContain("keepReadableFiles");
     },
   );
 });

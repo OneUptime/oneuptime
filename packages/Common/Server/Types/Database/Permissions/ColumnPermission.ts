@@ -7,11 +7,12 @@ import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { ColumnAccessControl } from "../../../../Types/BaseDatabase/AccessControl";
-import ColumnBillingAccessControl from "../../../../Types/BaseDatabase/ColumnBillingAccessControl";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import { isPlanGatedColumnDefault } from "../../../../Types/Billing/PlanGatedColumnDefault";
-import SubscriptionPlan from "../../../../Types/Billing/SubscriptionPlan";
+import SubscriptionPlan, {
+  PlanType,
+} from "../../../../Types/Billing/SubscriptionPlan";
 import Columns from "../../../../Types/Database/Columns";
 import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
@@ -27,6 +28,9 @@ import TablePermission from "./TablePermission";
 
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 import logger from "../../../Utils/Logger";
+import CallerPlan from "../../../Utils/Billing/CallerPlan";
+import PlanGates from "./PlanGates";
+import ColumnWriteRefusedException from "./ColumnWriteRefusedException";
 
 export default class ColumnPermissions {
   @CaptureSpan()
@@ -184,16 +188,14 @@ export default class ColumnPermissions {
           continue; // computed columns are not allowed to be updated.
         }
 
-        throw new BadDataException(
-          `User is not allowed to ${requestType} on ${key} column of ${model.singularName}`,
-        );
+        throw new ColumnWriteRefusedException({
+          requestType: requestType,
+          columnName: key,
+          modelName: model.singularName,
+        });
       }
 
-      if (
-        IsBillingEnabled &&
-        props.currentPlan &&
-        model.getColumnBillingAccessControl(key)
-      ) {
+      if (IsBillingEnabled && model.getColumnBillingAccessControl(key)) {
         /*
          * A paid feature can always be switched off: a create or update that
          * puts a plan-gated column back to its default - the feature off,
@@ -208,68 +210,44 @@ export default class ColumnPermissions {
           continue;
         }
 
-        const billingAccessControl: ColumnBillingAccessControl =
-          model.getColumnBillingAccessControl(key);
+        const requiredPlan: PlanType | undefined = PlanGates.getColumnPlan(
+          model.getColumnBillingAccessControl(key),
+          requestType,
+        );
 
-        if (
-          requestType === DatabaseRequestType.Create &&
-          billingAccessControl.create
-        ) {
-          if (
-            !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
-              billingAccessControl.create,
-              props.currentPlan,
-              getAllEnvVars(),
-            )
-          ) {
-            throw new PaymentRequiredException(
-              "Please upgrade your plan to " +
-                billingAccessControl.create +
-                " to access this feature",
-            );
+        if (!requiredPlan) {
+          continue;
+        }
+
+        /*
+         * No plan on props that act in a project is never "any plan": the
+         * write is refused (CallerPlan), unless every plan includes the
+         * column. OneUptime itself and server admins need no plan.
+         */
+        if (!props.currentPlan) {
+          if (!PlanGates.isMetByEveryPlan(requiredPlan)) {
+            CallerPlan.assertPlanKnown(props);
           }
+
+          continue;
         }
 
         if (
-          requestType === DatabaseRequestType.Read &&
-          billingAccessControl.read
+          !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
+            requiredPlan,
+            props.currentPlan,
+            getAllEnvVars(),
+          )
         ) {
-          if (
-            !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
-              billingAccessControl.read,
-              props.currentPlan,
-              getAllEnvVars(),
-            )
-          ) {
-            throw new PaymentRequiredException(
-              "Please upgrade your plan to " +
-                billingAccessControl.read +
-                " to access this feature",
-            );
-          }
-        }
+          logger.debug(
+            `${requestType} on ${key} column of ${model.singularName} needs the ${requiredPlan} plan.`,
+          );
 
-        if (
-          requestType === DatabaseRequestType.Update &&
-          billingAccessControl.update
-        ) {
-          if (
-            !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
-              billingAccessControl.update,
-              props.currentPlan,
-              getAllEnvVars(),
-            )
-          ) {
-            logger.debug(
-              `User does not have access to update ${key} column of ${model.singularName}`,
-            );
-
-            throw new PaymentRequiredException(
-              "Please upgrade your plan to " +
-                billingAccessControl.update +
-                " to access this feature",
-            );
-          }
+          throw new PaymentRequiredException(
+            "Please upgrade your plan to " +
+              requiredPlan +
+              " to access this feature",
+          );
         }
       }
     }

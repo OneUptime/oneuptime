@@ -21,8 +21,8 @@ import RelationIdUtil from "../Database/RelationIdUtil";
  * So no project role may write it: the columns' create and update lists are
  * empty, which also keeps them out of the API's write schemas, the Terraform
  * provider, the MCP tools and the workflow builder. That leaves the writes
- * that skip column permissions - a workflow step, which writes as root in
- * its project, and a master admin - and this refuses those as well. Only a
+ * that skip column permissions - a root write made in a project, and a
+ * master admin - and this refuses those as well. Only a
  * write OneUptime makes itself (root, with no project on the request -
  * ProjectReferenceCheck.isServerWrite) may set it. A record joins or leaves
  * an episode through the episode's members, which are checked like any

@@ -99,11 +99,6 @@ export default class RelatedFileAccess {
     };
   }
 
-  // A project reading its own records: a workflow's steps.
-  public static getProjectReader(projectId: ObjectID): RelatedFileReader {
-    return { projectIds: [projectId], userId: null };
-  }
-
   /**
    * The File columns of a model a select reads more of than the id: the
    * bytes, the name, the type. A file selected by its id alone, or as

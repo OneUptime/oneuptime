@@ -10,6 +10,8 @@ import {
 import UpdateManyBaseModel from "../../../../../Server/Types/Workflow/Components/BaseModel/UpdateManyBaseModel";
 import UpdateOneBaseModel from "../../../../../Server/Types/Workflow/Components/BaseModel/UpdateOneBaseModel";
 import DatabaseService from "../../../../../Server/Services/DatabaseService";
+import ProjectService from "../../../../../Server/Services/ProjectService";
+import { PlanType } from "../../../../../Types/Billing/SubscriptionPlan";
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import Label from "../../../../../Models/DatabaseModels/Label";
@@ -18,7 +20,7 @@ import Team from "../../../../../Models/DatabaseModels/Team";
 import Exception from "../../../../../Types/Exception/Exception";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * https://github.com/OneUptime/oneuptime/issues/4469 - Update One Incident
@@ -215,6 +217,14 @@ function loggedLines(log: jest.Mock): string {
     })
     .join("\n");
 }
+
+beforeEach(() => {
+  // The project's plan, which a step's props carry on a server with billing.
+  jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+    plan: PlanType.Enterprise,
+    isSubscriptionUnpaid: false,
+  });
+});
 
 afterEach(() => {
   jest.restoreAllMocks();

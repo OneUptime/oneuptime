@@ -1,6 +1,10 @@
 import Entities from "../../../../../Models/DatabaseModels/Index";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import PostgresAppInstance from "../../../../../Server/Infrastructure/PostgresDatabase";
+import {
+  IsBillingEnabled,
+  getAllEnvVars,
+} from "../../../../../Server/EnvironmentConfig";
 import AuditLogService from "../../../../../Server/Services/AuditLogService";
 import IncidentFeedService from "../../../../../Server/Services/IncidentFeedService";
 import IncidentService from "../../../../../Server/Services/IncidentService";
@@ -15,6 +19,7 @@ import URL from "../../../../../Types/API/URL";
 import Exception from "../../../../../Types/Exception/Exception";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
+import SubscriptionPlan from "../../../../../Types/Billing/SubscriptionPlan";
 import { DataSource, Repository } from "typeorm";
 
 /*
@@ -80,6 +85,19 @@ describePostgres(
       .replace(/-/g, "")}`;
 
     const projectId: ObjectID = ObjectID.generate();
+
+    /*
+     * The steps act as a Project Admin of the project, on its plan
+     * (WorkflowPrincipal). On a server with billing that plan is read from
+     * the project row, so the project is on the highest plan configured.
+     */
+    const projectPlanId: string | null = IsBillingEnabled
+      ? SubscriptionPlan.getSubscriptionPlans(getAllEnvVars())
+          .sort((left: SubscriptionPlan, right: SubscriptionPlan): number => {
+            return right.getPlanOrder() - left.getPlanOrder();
+          })[0]!
+          .getMonthlyPlanId()
+      : null;
 
     let database: DataSource;
     let onTriggerWorkflow: jest.SpiedFunction<
@@ -151,9 +169,9 @@ describePostgres(
           .join("; "),
       );
       await database.query(
-        `INSERT INTO "${schema}"."Project" ("_id", "name", "slug", "version")
-       VALUES ($1, 'Custom field merge test', $2, 1)`,
-        [projectId.toString(), `merge-${projectId.toString()}`],
+        `INSERT INTO "${schema}"."Project" ("_id", "name", "slug", "version", "paymentProviderPlanId")
+       VALUES ($1, 'Custom field merge test', $2, 1, $3)`,
+        [projectId.toString(), `merge-${projectId.toString()}`, projectPlanId],
       );
     });
 

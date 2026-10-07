@@ -124,6 +124,7 @@ import RelatedFileAccess, {
 } from "../Utils/File/RelatedFileAccess";
 import PublishedImages, { CascadedRow } from "../Utils/File/PublishedImages";
 import StatusPageOverviewCache from "../Utils/StatusPage/StatusPageOverviewCache";
+import CallerPlan from "../Utils/Billing/CallerPlan";
 
 const RULE_CRITERIA_RELATION_OPERATORS: ReadonlySet<RuleCriteriaOperator> =
   new Set<RuleCriteriaOperator>([
@@ -379,24 +380,40 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * hook never acts - unsetting the project's default, making room in an
    * order, deleting child rows - for someone the write is refused to.
    *
-   * For an update, `updateData` is what the caller asked to write: below a
-   * table's update plan the one update allowed is the one that only
-   * switches records off (BillingPermission), and the data is what says so.
+   * For a create or an update, `writeData` is what the caller asked to
+   * write: below a table's update plan the one update allowed is the one
+   * that only switches records off (BillingPermission), and the data is
+   * what says so; a create or update writing a column a plan sells needs
+   * the project's plan.
+   *
+   * Returns the props the rest of the operation goes on with: the caller's
+   * own, with their project's plan when they act in it without one and the
+   * operation is one a plan decides (CallerPlan.withPlanFor). The plan is
+   * read after the refusals that need no lookup, so a read-only credential
+   * or an anonymous caller is refused without one.
    */
-  private checkCallerBeforeHooks(
+  private async checkCallerBeforeHooks(
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
-    updateData?: unknown,
-  ): void {
+    writeData?: unknown,
+  ): Promise<DatabaseCommonInteractionProps> {
     if (type !== DatabaseRequestType.Read) {
       DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
     }
 
     if (props.isRoot || props.isMasterAdmin) {
-      return;
+      return props;
     }
 
     PublicPermission.checkIfUserIsLoggedIn(this.modelType, props, type);
+
+    const propsWithPlan: DatabaseCommonInteractionProps =
+      await CallerPlan.withPlanFor({
+        props: props,
+        modelType: this.modelType,
+        type: type,
+        data: writeData,
+      });
 
     if (
       type === DatabaseRequestType.Create ||
@@ -405,11 +422,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     ) {
       ModelPermission.checkTableWritePermission(
         this.modelType,
-        props,
+        propsWithPlan,
         type,
-        type === DatabaseRequestType.Update ? updateData : undefined,
+        type === DatabaseRequestType.Update ? writeData : undefined,
       );
     }
+
+    return propsWithPlan;
   }
 
   /*
@@ -1765,9 +1784,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    *  - no create, root included, of a model whose tenant column is its own
    *    primary key may carry the request tenant's id. Root callers may
    *    assign ids, but this one can only come from a generic tenant stamp -
-   *    workflow components create as root WITH a tenant, after
-   *    applyTenantColumn has written the tenant column - and it would make
-   *    the create an update of the caller's own project.
+   *    OneUptime's own engines create a project's records as root WITH a
+   *    tenant, after applyTenantColumn has written the tenant column - and
+   *    it would make the create an update of the caller's own project.
    *
    * The ids are compared as text, case-insensitively: the id may be an
    * ObjectID or a plain string, and Postgres reads a uuid in either case.
@@ -1949,9 +1968,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   /*
    * A write OneUptime makes itself: root, with no project on the request - a
-   * job, an engine, a service acting for someone it names in code. A
-   * workflow writes as root too, but in its project: that is a write made in
-   * a project, like a request through the API or the admin dashboard.
+   * job, an engine, a service acting for someone it names in code. Root with
+   * a project on the request - an engine writing that project's records - is
+   * a write made in a project, like a request through the API, the admin
+   * dashboard or a workflow step.
    */
   private isWriteOneUptimeMakesItself(
     props: DatabaseCommonInteractionProps,
@@ -2573,7 +2593,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   @CaptureSpan()
   public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
-    this.checkCallerBeforeHooks(createBy.props, DatabaseRequestType.Create);
+    // With the project's plan where the create needs it. See the helper.
+    createBy.props = await this.checkCallerBeforeHooks(
+      createBy.props,
+      DatabaseRequestType.Create,
+      createBy.data,
+    );
 
     /*
      * A non-root create must not pin the row's own primary key. save() treats
@@ -2654,6 +2679,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     // hash data
     data = await this.hash(data);
+
+    /*
+     * What the hooks and the defaults wrote is checked too: a column a plan
+     * sells that they set is held to the project's plan, read now if what
+     * the caller sent did not need it (CallerPlan) - never refused as a plan
+     * nobody could confirm.
+     */
+    _createdBy.props = await CallerPlan.withPlanFor({
+      props: _createdBy.props,
+      modelType: this.modelType,
+      type: DatabaseRequestType.Create,
+      data: data,
+    });
 
     ModelPermission.checkCreatePermissions(
       this.modelType,
@@ -3893,7 +3931,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   @CaptureSpan()
   public async hardDeleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
     try {
-      this.checkCallerBeforeHooks(deleteBy.props, DatabaseRequestType.Delete);
+      deleteBy.props = await this.checkCallerBeforeHooks(
+        deleteBy.props,
+        DatabaseRequestType.Delete,
+      );
 
       /*
        * Only the rows the caller may delete reach the hook. See the helper.
@@ -4005,7 +4046,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     try {
       this.setTelemetryContextFromProps(deleteBy.props);
 
-      this.checkCallerBeforeHooks(deleteBy.props, DatabaseRequestType.Delete);
+      deleteBy.props = await this.checkCallerBeforeHooks(
+        deleteBy.props,
+        DatabaseRequestType.Delete,
+      );
 
       if (this.doNotAllowDelete && !deleteBy.props.isRoot) {
         throw new BadDataException("Delete not allowed");
@@ -4277,7 +4321,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     try {
       this.setTelemetryContextFromProps(findBy.props);
 
-      this.checkCallerBeforeHooks(findBy.props, DatabaseRequestType.Read);
+      findBy.props = await this.checkCallerBeforeHooks(
+        findBy.props,
+        DatabaseRequestType.Read,
+      );
 
       // Who is asking, as they asked: whose files they may see.
       const fileReader: RelatedFileReader | null = RelatedFileAccess.getReader(
@@ -4678,7 +4725,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       // A model becomes the columns it writes before anything judges it.
       updateBy.data = this.sanitizeUpdateData(updateBy.data);
 
-      this.checkCallerBeforeHooks(
+      updateBy.props = await this.checkCallerBeforeHooks(
         updateBy.props,
         DatabaseRequestType.Update,
         updateBy.data,

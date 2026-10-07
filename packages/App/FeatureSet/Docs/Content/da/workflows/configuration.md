@@ -115,6 +115,18 @@ En manuel kørsel når kun de workflows, du kan åbne: en rolle, der er begræns
 
 Giv dem, der bygger automatisering, **Workflow Admin**, og dem, der kun starter den, **Workflow Member**. Gem redigeringsadgangen til variabler til de folk, der administrerer projektets hemmeligheder.
 
+## Hvad workflow-trin må gøre
+
+De trin, der læser og ændrer OneUptime-poster – komponenterne Find, Create, Update og Delete og udløserne On Create, On Update og On Delete – handler som en **Project Admin** i workflowets projekt. De møder de samme kontroller som en Project Admin i dashboardet og API'et:
+
+- **Kun workflowets eget projekt.** Et trin læser og ændrer aldrig et andet projekts poster, og en Update flytter aldrig en post til et andet projekt.
+- **Kun det, en Project Admin må.** Et trin kan ikke give tilladelser, som en Project Admin ikke selv har (som **Project Owner** eller fakturering), og kan ikke tilføje nogen til et team med flere tilladelser, som ejernes team.
+- **Kun det, jeres plan indeholder.** På OneUptime Cloud afvises det, jeres plan ikke indeholder, med navnet på den plan, der kræves.
+- **Intet af det, OneUptime selv holder styr på.** Feed-poster kan ikke redigeres eller slettes, notifikationslogge kan ikke skrives, og værdier, OneUptime selv sætter (som en bekræftet CNAME, et teams beskyttelseskontakter eller hvem der har vagt nu), kan ikke ændres. Et **Create One Incident**-trin kan heller ikke oprette en hændelse ud fra en skabelon (`createdIncidentTemplateId`): læs skabelonen med **Find One Incident Template**, og send dens værdier videre.
+- **Som ingen person.** En post, et workflow opretter, har ingen opretter, og revisionsloggen angiver workflowet som den, der foretog ændringen.
+
+Et afvist trin tager sit **Error**-output uden at foretage den afviste ændring, og kørselsloggen fortæller, hvilket trin der blev afvist og hvorfor. Et Create Many-trin opretter sine poster én ad gangen og stopper ved den afviste; de poster, der blev oprettet før den, bevares. Trin, der taler med andre systemer (API, e-mail, chat, Custom Code, AI), berøres ikke.
+
 ## Plangrænser
 
 OneUptime Cloud sætter et loft over antallet af kørsler per måned på de mindre planer. Din nuværende grænse står under **Projektindstillinger → Fakturering**. Når du når den, afvises nye triggere indtil næste faktureringsperiode. Selv-hostede installationer har ikke den grænse.

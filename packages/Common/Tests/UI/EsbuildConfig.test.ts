@@ -372,12 +372,14 @@ describe("the frontend build config's production output settings", () => {
 
     test("keeps all four plugins wired, in order", () => {
       /*
-       * Minified output still has to go through the mermaid and refractor
-       * shims and the CSS/asset loaders - dropping one produces a build error
-       * for mermaid but a silently unstyled page for CSS.
+       * Minified output still has to go through the mermaid guard, the
+       * refractor shim and the CSS/asset loaders. None of them fails loudly
+       * when dropped: without the guard a prebuilt mermaid bundle, with its
+       * own copies of mermaid's dependencies, can come back unnoticed, and
+       * without the CSS loader the page is silently unstyled.
        */
       expect(readConfig("production").pluginNames).toEqual([
-        "mermaid-prebundled",
+        "mermaid-from-source",
         "refractor-compatibility",
         "css",
         "file-loader",
@@ -411,7 +413,7 @@ describe("the frontend build config's production output settings", () => {
         };
 
       expect(withExtras.pluginNames).toEqual([
-        "mermaid-prebundled",
+        "mermaid-from-source",
         "refractor-compatibility",
         "css",
         "file-loader",

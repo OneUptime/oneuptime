@@ -115,6 +115,18 @@ AI 元件有一條明確的資料外送邊界：
 
 把 **Workflow Admin** 給建置自動化的人，把 **Workflow Member** 給只需要啟動它的人。把變數的編輯權留給管理專案密鑰的那些人。
 
+## 工作流程步驟可以做什麼
+
+讀取和變更 OneUptime 記錄的步驟（Find、Create、Update、Delete 元件，以及 On Create、On Update、On Delete 觸發器）會以工作流程所屬專案的 **Project Admin** 身分執行。它們與 Project Admin 在儀表板和 API 中一樣，接受相同的檢查：
+
+- **只限工作流程自己的專案。** 步驟絕不會讀取或變更其他專案的記錄，Update 也絕不會把記錄移到其他專案。
+- **只做 Project Admin 能做的事。** 步驟不能授予 Project Admin 自己沒有的權限（例如 **Project Owner** 或帳務），也不能把任何人加入權限更多的團隊，例如擁有者團隊。
+- **只限你的方案包含的功能。** 在 OneUptime Cloud 上，你的方案不包含的功能會被拒絕，並說明需要哪個方案。
+- **不碰 OneUptime 自己維護的內容。** 動態項目不能編輯或刪除，通知紀錄不能寫入，OneUptime 自己設定的值（例如已驗證的 CNAME、團隊的保護開關或目前誰在值班）不能變更。**Create One Incident** 步驟也不能依據範本宣告事件（`createdIncidentTemplateId`）：請用 **Find One Incident Template** 讀取範本，再傳入它的值。
+- **不以任何人的身分。** 工作流程建立的記錄沒有建立者，稽核紀錄會把工作流程記為做出變更的一方。
+
+被拒絕的步驟會走它的 **Error** 輸出，不會做出被拒絕的變更，執行紀錄會說明哪個步驟被拒絕以及原因。Create Many 步驟逐筆建立紀錄，遇到被拒絕的那一筆就停下；在它之前建立的紀錄會保留。與其他系統通訊的步驟（API、電子郵件、聊天、Custom Code、AI）不受影響。
+
 ## 方案限制
 
 OneUptime Cloud 對較小的方案設有每月執行次數上限。你目前的上限顯示在 **專案設定 → 帳單** 底下。用完之後，新的觸發會被拒絕，直到下一個計費週期。自架安裝沒有這個限制。

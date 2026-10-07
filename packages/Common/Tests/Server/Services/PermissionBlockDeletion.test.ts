@@ -21,6 +21,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { getJestSpyOn } from "../../Spy";
+import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import {
   afterEach,
   beforeEach,
@@ -124,6 +125,7 @@ function props(
   return {
     userId,
     tenantId: projectId,
+    ...ON_HIGHEST_PLAN,
     userGlobalAccessPermission: {
       projectIds: [projectId],
       globalPermissions: [Permission.Public, Permission.User],

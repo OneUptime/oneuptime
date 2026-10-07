@@ -138,27 +138,25 @@ export const normalizeModelKeys: NormalizeModelKeysFunction = (
   return normalized;
 };
 
-type ApplyTenantColumnFunction = (
+type WithoutTenantColumnFunction = (
   json: JSONObject,
   model: BaseModel,
-  tenantId: ObjectID,
 ) => JSONObject;
 
 /*
- * Stamps the record being written with the project the workflow runs in.
+ * The record's values without its project: neither the scalar tenant column
+ * nor the many-to-one relation that writes the same physical column -
+ * Monitor.project is @JoinColumn({name: "projectId"}), and TypeORM reads the
+ * relation property first, so a payload carrying {"project": "<some other
+ * project>"} would otherwise beat any value of the scalar.
  *
- * Setting the scalar tenant column is not enough on its own. Every tenant
- * model also exposes that same physical column through its many-to-one
- * relation - Monitor.project is @JoinColumn({name: "projectId"}) - and TypeORM
- * reads the relation property first, writing the column once. So a payload
- * carrying {"project": "<some other project>"} silently beat the stamp and
- * moved the record into that project. The relation keys pointing at the tenant
- * column are therefore dropped before the scalar is written.
+ * What an update step writes: a record stays in the project it is in. No
+ * caller may change a record's project (its column's update list is empty),
+ * so a step that wrote it - even its own project's id - would be refused.
  */
-export const applyTenantColumn: ApplyTenantColumnFunction = (
+export const withoutTenantColumn: WithoutTenantColumnFunction = (
   json: JSONObject,
   model: BaseModel,
-  tenantId: ObjectID,
 ): JSONObject => {
   const tenantColumn: string | null = model.getTenantColumn();
 
@@ -166,7 +164,7 @@ export const applyTenantColumn: ApplyTenantColumnFunction = (
     return json;
   }
 
-  const stamped: JSONObject = {};
+  const kept: JSONObject = {};
 
   for (const key of Object.keys(json)) {
     if (key === tenantColumn) {
@@ -180,8 +178,35 @@ export const applyTenantColumn: ApplyTenantColumnFunction = (
       continue;
     }
 
-    stamped[key] = json[key];
+    kept[key] = json[key];
   }
+
+  return kept;
+};
+
+type ApplyTenantColumnFunction = (
+  json: JSONObject,
+  model: BaseModel,
+  tenantId: ObjectID,
+) => JSONObject;
+
+/*
+ * Stamps a record a step creates with the project the workflow runs in,
+ * whatever project the payload names under either name of the column (see
+ * withoutTenantColumn).
+ */
+export const applyTenantColumn: ApplyTenantColumnFunction = (
+  json: JSONObject,
+  model: BaseModel,
+  tenantId: ObjectID,
+): JSONObject => {
+  const tenantColumn: string | null = model.getTenantColumn();
+
+  if (!tenantColumn) {
+    return json;
+  }
+
+  const stamped: JSONObject = withoutTenantColumn(json, model);
 
   stamped[tenantColumn] = tenantId;
 
