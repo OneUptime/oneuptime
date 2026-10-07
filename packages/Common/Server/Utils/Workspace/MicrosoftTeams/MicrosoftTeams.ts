@@ -132,12 +132,13 @@ import {
  * A Markdown link, [text](url), as an incoming webhook's MessageCard turns it
  * into a button. Only a link Markdown itself would read: a "[" written as
  * "\[" - a title or a name escaped where it was placed (MarkdownEscape) - opens
- * no link, and a "]" written as "\]" does not end the link's text. So text
- * that only looks like a link stays text, as it does in every other place the
- * message is shown.
+ * no link, and a "]" written as "\]" does not end the link's text. A "["
+ * after an even run of backslashes ("\\[") is not escaped: the backslashes
+ * are a literal one, and a link follows. So text that only looks like a link
+ * stays text, as it does in every other place the message is shown.
  */
 const MESSAGE_CARD_LINK_PATTERN: RegExp =
-  /(?<!\\)\[((?:[^\]\\]|\\.)+)\]\(([^)]+)\)/g;
+  /(?<!(?:^|[^\\])(?:\\\\)*\\)\[((?:[^\]\\]|\\.)+)\]\(([^)]+)\)/g;
 
 // A CommonMark backslash escape: a backslash before ASCII punctuation.
 const MARKDOWN_BACKSLASH_ESCAPE_PATTERN: RegExp = /\\([!-/:-@[-`{-~])/g;
@@ -821,7 +822,12 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       ["@type"]: "MessageCard",
       ["@context"]: "https://schema.org/extensions",
       title: title,
-      summary: title,
+      /*
+       * The summary is plain text (Teams shows it in notifications and the
+       * activity feed), so the Markdown escapes the title was written with
+       * are undone there: it reads as the title was typed.
+       */
+      summary: title.replace(MARKDOWN_BACKSLASH_ESCAPE_PATTERN, "$1"),
     };
 
     // Build a single section so we can enable markdown explicitly

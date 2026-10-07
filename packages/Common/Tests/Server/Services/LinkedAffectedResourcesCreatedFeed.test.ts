@@ -342,6 +342,37 @@ describe("scheduled maintenance feed items", () => {
     ]);
   });
 
+  test("the created item names the event's title and its state as text", async () => {
+    type CreateFeedFunction = (
+      scheduledMaintenance: ScheduledMaintenance,
+    ) => Promise<void>;
+
+    answerRelationReads(ScheduledMaintenanceService, {});
+
+    const hostile: string = "[Open](https://evil.example/x) <!channel>";
+    const event: ScheduledMaintenance = new ScheduledMaintenance();
+    event._id = RECORD_ID.toString();
+    event.projectId = PROJECT_ID;
+    event.scheduledMaintenanceNumber = 5;
+    event.title = hostile;
+    event.currentScheduledMaintenanceState = { name: hostile } as never;
+
+    await (
+      ScheduledMaintenanceService as unknown as {
+        createScheduledMaintenanceFeedAsync: CreateFeedFunction;
+      }
+    ).createScheduledMaintenanceFeedAsync(event);
+
+    const markdown: string = postedMarkdown(feedItem);
+    const escaped: string =
+      "\\[Open\\](https://evil.example/x) \\<\u2060!channel>";
+
+    expect(markdown).toContain(`**${escaped}**:`);
+    expect(markdown).toContain(`**Scheduled Maintenance State**: ${escaped}`);
+    expect(markdown).not.toMatch(/(?<!\\)\[Open\]/);
+    expect(markdown).not.toMatch(/(?<!\\)<!channel>/);
+  });
+
   describe("the updated item", () => {
     type OnUpdateSuccessFunction = (
       onUpdate: JSONObject,

@@ -36,6 +36,7 @@ import IncidentCustomFieldService from "../../Services/IncidentCustomFieldServic
 import Markdown, { MarkdownContentType } from "../../Types/Markdown";
 import { syncIsPublicForMarkdownImages } from "../InlineImageAccessTokenSync";
 import StatusPageResourceUtil from "../StatusPageResource";
+import SubscriberMarkdownTemplateValues from "./SubscriberMarkdownTemplateValues";
 
 /*
  * The values an incident's status page subscriber messages are filled with -
@@ -158,15 +159,6 @@ interface FormattedCustomFieldValue {
 
 const LINE_BREAK_PATTERN: RegExp = /\r\n|\r|\n/g;
 
-/*
- * The values a custom Slack or Teams message gets as they are: addresses
- * OneUptime builds itself. Every other plain value is escaped for Markdown.
- */
-const MARKDOWN_ADDRESS_VARIABLES: ReadonlySet<string> = new Set<string>([
-  "statusPageUrl",
-  "detailsUrl",
-]);
-
 export class IncidentTemplateVariables {
   private readonly incident: Incident;
   private readonly customFields: Array<PreparedCustomField>;
@@ -267,18 +259,12 @@ export class IncidentTemplateVariables {
       ...shared,
       resourcesAffected: resourcesAffectedPlainText || noResourcesText,
     };
-    const markdown: Record<string, string> = {};
-
-    for (const [name, value] of Object.entries(shared)) {
-      markdown[name] = MARKDOWN_ADDRESS_VARIABLES.has(name)
-        ? value
-        : escapeMarkdownValue(value);
-    }
-
-    markdown["resourcesAffected"] = escapeMarkdownValue(
-      resourcesAffectedPlainText || noResourcesText,
-      { keepLineBreaks: true },
-    );
+    // Every plain value escaped for Markdown, the addresses as they are.
+    const markdown: Record<string, string> =
+      SubscriberMarkdownTemplateValues.fromPlainValues({
+        ...shared,
+        resourcesAffected: resourcesAffectedPlainText || noResourcesText,
+      });
 
     for (const [name, value] of Object.entries(this.markdownVariables)) {
       emailBody[name] = SafeHtml.fromTrustedHtml(value.html);

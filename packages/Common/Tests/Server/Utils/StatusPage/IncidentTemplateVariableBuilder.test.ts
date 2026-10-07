@@ -1777,6 +1777,18 @@ describe("IncidentTemplateVariableBuilder custom Slack and Teams values", () => 
     ]);
   });
 
+  test("a resource or group name holding a line break stays on one line", async () => {
+    const site: IncidentStatusPageTemplateVariables = forSite03(
+      await build({ definitions: [] }),
+      [resource("API\n# OUTAGE - call now", "EU\n> West")],
+    );
+
+    const resources: string = site.markdown["resourcesAffected"] as string;
+
+    expect(resources).not.toMatch(/[\r\n]/);
+    expect(resources).toBe("EU > West: API # OUTAGE - call now");
+  });
+
   test("a Rich text value stays the Markdown it was written as", async () => {
     const markdown: string = "- EU [status](https://status.acme.com)\n- US";
     const site: IncidentStatusPageTemplateVariables = forSite03(

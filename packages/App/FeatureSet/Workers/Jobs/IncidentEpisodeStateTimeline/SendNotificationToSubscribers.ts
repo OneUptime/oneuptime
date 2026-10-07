@@ -67,6 +67,7 @@ import SubscriberNotificationFanOut from "Common/Server/Utils/StatusPage/Subscri
 import Email from "Common/Types/Email";
 import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
 import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
+import SubscriberMarkdownTemplateValues from "Common/Server/Utils/StatusPage/SubscriberMarkdownTemplateValues";
 
 RunCron(
   "IncidentEpisodeStateTimeline:SendNotificationToSubscribers",
@@ -574,8 +575,8 @@ RunCron(
 
               /*
                * SMS, the email subject, Slack and Teams do not render HTML, so they
-               * get the resource list on one line. This event has no Markdown text,
-               * so Slack and Teams need nothing else of their own.
+               * get the resource list on one line. Slack and Teams render Markdown,
+               * so they get these values escaped for it (below).
                */
               const plainTextTemplateVariables: Record<string, string> = {
                 ...templateVariables,
@@ -583,25 +584,17 @@ RunCron(
               };
 
               /*
-               * Slack and Teams render Markdown, though: there the plain values
-               * - the title, the names, the resource list - are escaped, so
-               * they read as typed and cannot become a link, an image, raw
-               * HTML or a chat mention wherever a custom template places them.
-               * The addresses are OneUptime's own.
+               * Slack and Teams render Markdown, though: there every plain
+               * value - the title, the names, the resource list - is escaped,
+               * so it reads as typed and cannot become a link, an image, raw
+               * HTML or a chat mention wherever a custom template places it
+               * (SubscriberMarkdownTemplateValues). The addresses are
+               * OneUptime's own.
                */
-              const markdownTemplateVariables: Record<string, string> = {
-                ...templateVariables,
-                statusPageName: escapeMarkdownValue(statusPageName),
-                episodeSeverity: escapeMarkdownValue(
-                  episode.incidentSeverity?.name || " - ",
-                ),
-                episodeTitle: escapeMarkdownValue(episode.title || ""),
-                episodeState: escapeMarkdownValue(episodeStateName),
-                resourcesAffected: escapeMarkdownValue(
-                  resourcesAffectedPlainText || "None",
-                  { keepLineBreaks: true },
-                ),
-              };
+              const markdownTemplateVariables: Record<string, string> =
+                SubscriberMarkdownTemplateValues.fromPlainValues(
+                  plainTextTemplateVariables,
+                );
 
               // Send email to Email subscribers.
 
@@ -914,7 +907,7 @@ RunCron(
 
                       if (resourcesAffectedPlainText) {
                         slackTitle += `
-**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText, { keepLineBreaks: true })}`;
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}`;
                       }
 
                       slackTitle += `
@@ -967,7 +960,7 @@ RunCron(
 
                       if (resourcesAffectedPlainText) {
                         teamsTitle += `
-**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText, { keepLineBreaks: true })}`;
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}`;
                       }
 
                       teamsTitle += `

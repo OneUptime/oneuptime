@@ -280,6 +280,49 @@ describe("a Teams incoming webhook's MessageCard", () => {
     );
   });
 
+  /*
+   * The summary is plain text - Teams shows it in notifications and the
+   * activity feed - so the escapes the title was written with are undone
+   * there, and it reads as the title was typed.
+   */
+  test("the card's summary reads as the title was typed", async () => {
+    const card: JSONObject = await cardFor(
+      [
+        "## 🚨 Incident - Disk \\[prod\\] full \\<b>now\\</b>",
+        "**Severity:** High",
+      ].join("\n\n"),
+    );
+
+    expect(card["title"]).toBe(
+      "🚨 Incident - Disk \\[prod\\] full \\<b>now\\</b>",
+    );
+    expect(card["summary"]).toBe("🚨 Incident - Disk [prod] full <b>now</b>");
+  });
+
+  test("a link right after an escaped backslash is still a link", async () => {
+    /*
+     * "C:\\" is a value ending in a backslash, escaped: a literal backslash,
+     * and then a real link.
+     */
+    const card: JSONObject = await cardFor(
+      ["🚨 Alert update", `Path C:\\\\[View](${ALERT_URL}) now`].join("\n\n"),
+    );
+
+    expect(buttonsOf(card)).toEqual([{ name: "View", uri: ALERT_URL }]);
+  });
+
+  test("an escaped bracket after an escaped backslash opens no link", async () => {
+    // A literal backslash, then a literal "[": three backslashes before it.
+    const card: JSONObject = await cardFor(
+      [
+        "🚨 Alert update",
+        "Path C:\\\\\\[View\\](https://evil.example/login) now",
+      ].join("\n\n"),
+    );
+
+    expect(buttonsOf(card)).toEqual([]);
+  });
+
   test("an ordinary link still becomes a button, and its text stays in the sentence", async () => {
     const card: JSONObject = await cardFor(
       [

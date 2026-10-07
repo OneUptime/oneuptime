@@ -957,7 +957,7 @@ RunCron(
 
 **Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || " - ")}
 
-**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText, { keepLineBreaks: true })}
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}
 
 **Postmortem:** ${incident.postmortemNote || ""}
 
@@ -1022,7 +1022,7 @@ ${slackCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsub
                     } else {
                       teamsMarkdownMessage = `## 🚨 Incident Postmortem - ${escapeMarkdownValue(incident.title || "")}
 **Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || " - ")}
-**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText, { keepLineBreaks: true })}
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}
 **Postmortem:** ${incident.postmortemNote || ""}
 ${teamsCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
                       await incidentTemplateVariables.recordIncludedFieldsSent();

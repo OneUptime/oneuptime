@@ -946,7 +946,10 @@ class AlertGroupingEngineServiceClass {
          * hold the title the rule groups by. Both are escaped. The key is not
          * put in a code span: a "`" in the title would end the span early, a
          * backslash cannot escape one there, and chat tools pass a code
-         * span's text on as it is.
+         * span's text on as it is. It is escaped as prose
+         * (escapeMarkdownValue) rather than character by character: a
+         * title often holds an address, and a backslash put inside a bare
+         * address would become part of the link renderers make of it.
          */
         let moreInfo: string = `**Rule:** ${escapeMarkdownValue(rule.name || "Unnamed Rule")}\n\n`;
         moreInfo += `**Grouping Key:** ${escapeMarkdownValue(groupingKey)}\n\n`;

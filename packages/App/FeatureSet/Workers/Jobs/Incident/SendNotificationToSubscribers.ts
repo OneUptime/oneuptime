@@ -771,7 +771,7 @@ RunCron(
 
 **Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || " - ")}
 
-**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText, { keepLineBreaks: true })}
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}
 
 **Description:** ${incident.description || ""}
 
@@ -820,7 +820,7 @@ ${slackCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsub
                       // Use default hard-coded template
                       markdownMessage = `## 🚨 Incident - ${escapeMarkdownValue(incident.title || "")}
 **Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || " - ")}
-**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText, { keepLineBreaks: true })}
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}
 **Description:** ${incident.description || ""}
 ${teamsCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
                       await incidentTemplateVariables.recordIncludedFieldsSent();

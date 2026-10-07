@@ -859,7 +859,7 @@ const notifySubscribersOfIncidentPublicNote: (data: {
 
 **${copy.chatNoteSentence}**
 
-**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText, { keepLineBreaks: true })}
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}
 **Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || " - ")}
 ${chatStatusLine}${chatCustomFields}
 **Note:**
@@ -911,7 +911,7 @@ ${incidentPublicNote.note || ""}
 
 **${copy.chatNoteSentence}**
 
-**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText, { keepLineBreaks: true })}
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}
 **Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || " - ")}
 ${chatStatusLine}${chatCustomFields}
 **Note:**

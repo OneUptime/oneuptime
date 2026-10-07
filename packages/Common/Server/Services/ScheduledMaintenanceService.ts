@@ -1979,7 +1979,7 @@ ${scheduledMaintenance.description || "No description provided."}
       }
 
       if (scheduledMaintenance.currentScheduledMaintenanceState?.name) {
-        feedInfoInMarkdown += `⏳ **Scheduled Maintenance State**: ${scheduledMaintenance.currentScheduledMaintenanceState.name} \n\n`;
+        feedInfoInMarkdown += `⏳ **Scheduled Maintenance State**: ${escapeMarkdownValue(scheduledMaintenance.currentScheduledMaintenanceState.name)} \n\n`;
       }
 
       // Everything the event's Affected Resources card lists, monitors first.

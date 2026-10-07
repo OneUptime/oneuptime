@@ -852,7 +852,7 @@ RunCron(
 
                       if (resourcesAffectedPlainText) {
                         slackTitle += `
-**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText, { keepLineBreaks: true })}`;
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}`;
                       }
 
                       slackTitle += `
@@ -907,7 +907,7 @@ RunCron(
 
                       if (resourcesAffectedPlainText) {
                         teamsTitle += `
-**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText, { keepLineBreaks: true })}`;
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}`;
                       }
 
                       teamsTitle += `
