@@ -11,14 +11,14 @@ import {
 /*
  * Every diagram OneUptime draws runs mermaid built from its ES module source
  * (UI/esbuild-mermaid.js), so katex and mermaid's other dependencies are the
- * copies npm installed - the ones Common's overrides and npm audit apply to.
- * mermaid's prebuilt bundles each embed their own copies, and none of them
- * may be bundled or served.
+ * copies npm installed - the ones Common's overrides apply to. mermaid's
+ * prebuilt bundles each embed their own copies, and none of them may be
+ * bundled or served.
  *
  * The builds run in a node subprocess, the way the frontends' build scripts
  * and Common/Scripts/build-mermaid-browser.js load esbuild: esbuild refuses
- * to load under the
- * jsdom environment Common's jest uses (see EsbuildConfig.test.ts).
+ * to load under the jsdom environment Common's jest uses (see
+ * EsbuildConfig.test.ts).
  */
 
 const COMMON_ROOT: string = path.resolve(__dirname, "..", "..");
