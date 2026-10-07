@@ -246,29 +246,24 @@ describe("every grant and scope a read accepts narrows the records it reaches", 
   beforeEach(() => {
     ownedIds = [ownedIncidentId, otherOwnedIncidentId];
 
-    jest
-      .spyOn(QueryUtil, "getManyToManyRelationMetadata")
-      .mockImplementation(((
-        modelType: { new (): BaseModel },
-        column: string,
-      ): ReturnType<typeof QueryUtil.getManyToManyRelationMetadata> => {
-        if (
-          modelType === StatusPageAnnouncement &&
-          column === "statusPages"
-        ) {
-          return {
-            joinTableName: "AnnouncementStatusPage",
-            ownerColumnName: "announcementId",
-            relationColumnName: "statusPageId",
-          };
-        }
+    jest.spyOn(QueryUtil, "getManyToManyRelationMetadata").mockImplementation(((
+      modelType: { new (): BaseModel },
+      column: string,
+    ): ReturnType<typeof QueryUtil.getManyToManyRelationMetadata> => {
+      if (modelType === StatusPageAnnouncement && column === "statusPages") {
+        return {
+          joinTableName: "AnnouncementStatusPage",
+          ownerColumnName: "announcementId",
+          relationColumnName: "statusPageId",
+        };
+      }
 
-        if (column === new modelType().getAccessControlColumn()) {
-          return getLabelJoinTable(modelType);
-        }
+      if (column === new modelType().getAccessControlColumn()) {
+        return getLabelJoinTable(modelType);
+      }
 
-        return null;
-      }) as never);
+      return null;
+    }) as never);
 
     jest
       .spyOn(OwnedScopePermission as never, "getAllowedResourceIds")
@@ -285,9 +280,7 @@ describe("every grant and scope a read accepts narrows the records it reaches", 
     test("limited to labels, it keeps the records to those labels", async () => {
       for (const operation of OPERATIONS) {
         const rows: Array<UserPermission> = [
-          labelled(Permission.ReadAllOperationalResources, [
-            productionLabelId,
-          ]),
+          labelled(Permission.ReadAllOperationalResources, [productionLabelId]),
         ];
 
         if (operation !== DatabaseRequestType.Read) {
@@ -344,17 +337,13 @@ describe("every grant and scope a read accepts narrows the records it reaches", 
       const query: Query<Incident> = (await scopeOf(
         Incident,
         member([
-          labelled(Permission.ReadAllOperationalResources, [
-            productionLabelId,
-          ]),
+          labelled(Permission.ReadAllOperationalResources, [productionLabelId]),
           labelled(Permission.IncidentViewer, [stagingLabelId]),
         ]),
         DatabaseRequestType.Read,
       )) as Query<Incident>;
 
-      expect(labelsOf(query)).toEqual(
-        idsOf(productionLabelId, stagingLabelId),
-      );
+      expect(labelsOf(query)).toEqual(idsOf(productionLabelId, stagingLabelId));
     });
 
     test("over the whole project, it is broader than a role limited to labels", async () => {
@@ -374,9 +363,7 @@ describe("every grant and scope a read accepts narrows the records it reaches", 
       const query: Query<Incident> = (await scopeOf(
         Incident,
         member([
-          labelled(Permission.ReadAllOperationalResources, [
-            productionLabelId,
-          ]),
+          labelled(Permission.ReadAllOperationalResources, [productionLabelId]),
           row(Permission.ReadAllOperationalResources, { isBlock: true }),
           labelled(Permission.IncidentViewer, [stagingLabelId]),
         ]),
@@ -477,9 +464,7 @@ describe("every grant and scope a read accepts narrows the records it reaches", 
       const read: Query<IncidentInternalNote> = (await scopeOf(
         IncidentInternalNote,
         member([
-          labelled(Permission.ReadAllOperationalResources, [
-            productionLabelId,
-          ]),
+          labelled(Permission.ReadAllOperationalResources, [productionLabelId]),
           everywhere(Permission.ReadIncidentInternalNote),
         ]),
         DatabaseRequestType.Read,

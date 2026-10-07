@@ -62,15 +62,14 @@ afterEach(() => {
 });
 
 describe("ModelAPI.getItem", () => {
-  const getItem: () => Promise<IncidentState | null> = async (): Promise<
-    IncidentState | null
-  > => {
-    return await ModelAPI.getItem<IncidentState>({
-      modelType: IncidentState,
-      id: RECORD_ID,
-      select: { _id: true, name: true },
-    });
-  };
+  const getItem: () => Promise<IncidentState | null> =
+    async (): Promise<IncidentState | null> => {
+      return await ModelAPI.getItem<IncidentState>({
+        modelType: IncidentState,
+        id: RECORD_ID,
+        select: { _id: true, name: true },
+      });
+    };
 
   test("a record the caller may read comes back as the model", async () => {
     respondWith(

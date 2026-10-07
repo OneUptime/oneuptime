@@ -2377,9 +2377,9 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
 
         expect(changed.error).toBeUndefined();
         expect(changed.isEmptySuccess).toBe(true);
-        expect(await readColumn("AlertInternalNote", stagingNoteId, "note")).toBe(
-          value,
-        );
+        expect(
+          await readColumn("AlertInternalNote", stagingNoteId, "note"),
+        ).toBe(value);
       },
     );
 

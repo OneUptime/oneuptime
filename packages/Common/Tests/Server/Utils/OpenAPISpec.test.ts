@@ -340,14 +340,17 @@ describe("OpenAPI specification", () => {
      * read the answer from the spec, so every such operation documents it.
      */
     it("documents the 404 of every operation that names one record by its id", () => {
-      const byId: Array<{ path: string; method: string; operation: Operation }> =
-        operations.filter((entry: { path: string; method: string }) => {
-          return (
-            (entry.method === "post" && entry.path.endsWith("/{id}/get-item")) ||
-            ((entry.method === "put" || entry.method === "delete") &&
-              entry.path.endsWith("/{id}"))
-          );
-        });
+      const byId: Array<{
+        path: string;
+        method: string;
+        operation: Operation;
+      }> = operations.filter((entry: { path: string; method: string }) => {
+        return (
+          (entry.method === "post" && entry.path.endsWith("/{id}/get-item")) ||
+          ((entry.method === "put" || entry.method === "delete") &&
+            entry.path.endsWith("/{id}"))
+        );
+      });
 
       // Every model's get, update and delete by id, not a handful.
       expect(byId.length).toBeGreaterThan(300);

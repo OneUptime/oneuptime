@@ -260,9 +260,9 @@ describe("BaseAnalyticsAPI by id", () => {
       getJestSpyOn(service, "deleteOneById").mockResolvedValue(0);
       getJestSpyOn(service, "findOneById").mockRejectedValue(failure);
 
-      await expect(
-        api.deleteItem(requestFor({}), responseStub()),
-      ).rejects.toBe(failure);
+      await expect(api.deleteItem(requestFor({}), responseStub())).rejects.toBe(
+        failure,
+      );
     });
   });
 

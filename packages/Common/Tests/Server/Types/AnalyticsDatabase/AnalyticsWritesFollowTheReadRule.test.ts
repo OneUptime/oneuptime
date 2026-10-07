@@ -153,27 +153,27 @@ beforeEach(() => {
     jest.spyOn(entry.ownerTeamService, "findBy").mockResolvedValue([]);
 
     // Only services carry labels here.
-    jest
-      .spyOn(entry.modelService, "findBy")
-      .mockImplementation((async (request: LookupRequest) => {
-        if (name !== "Service") {
-          return [];
+    jest.spyOn(entry.modelService, "findBy").mockImplementation((async (
+      request: LookupRequest,
+    ) => {
+      if (name !== "Service") {
+        return [];
+      }
+
+      const labelIds: Array<ObjectID> =
+        (request.query["labels"] as Array<ObjectID>) || [];
+      const found: Set<string> = new Set<string>();
+
+      for (const labelId of labelIds) {
+        for (const id of SERVICES_BY_LABEL.get(labelId.toString()) || []) {
+          found.add(id.toString());
         }
+      }
 
-        const labelIds: Array<ObjectID> =
-          (request.query["labels"] as Array<ObjectID>) || [];
-        const found: Set<string> = new Set<string>();
-
-        for (const labelId of labelIds) {
-          for (const id of SERVICES_BY_LABEL.get(labelId.toString()) || []) {
-            found.add(id.toString());
-          }
-        }
-
-        return Array.from(found).map((id: string) => {
-          return { _id: id };
-        });
-      }) as never);
+      return Array.from(found).map((id: string) => {
+        return { _id: id };
+      });
+    }) as never);
   }
 });
 

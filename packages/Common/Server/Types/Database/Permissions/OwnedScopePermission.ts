@@ -251,7 +251,9 @@ export default class OwnedScopePermission {
    * is when the parent's read is limited to labels. The caller's own
    * filters stay as sent.
    */
-  public static async addOwnedParentsToQuery<TBaseModel extends BaseModel>(data: {
+  public static async addOwnedParentsToQuery<
+    TBaseModel extends BaseModel,
+  >(data: {
     modelType: { new (): TBaseModel };
     query: Query<TBaseModel>;
     props: DatabaseCommonInteractionProps;
@@ -305,10 +307,7 @@ export default class OwnedScopePermission {
       typeof QueryUtil.getManyToManyRelationMetadata
     > =
       data.relationColumn.type === TableColumnType.EntityArray
-        ? QueryUtil.getManyToManyRelationMetadata(
-            data.modelType,
-            data.relation,
-          )
+        ? QueryUtil.getManyToManyRelationMetadata(data.modelType, data.relation)
         : null;
 
     /*

@@ -129,10 +129,10 @@ describe("Docs: every grant and scope narrows what it reaches", () => {
         language,
         2,
       ]);
-      expect([
+      expect([language, paragraphsOf(page, TELEMETRY_SECTION).length]).toEqual([
         language,
-        paragraphsOf(page, TELEMETRY_SECTION).length,
-      ]).toEqual([language, paragraphsOf(english, TELEMETRY_SECTION).length]);
+        paragraphsOf(english, TELEMETRY_SECTION).length,
+      ]);
 
       if (language !== "en") {
         expect([language, stepOf(page, 5) === stepOf(english, 5)]).toEqual([
@@ -173,25 +173,31 @@ describe("Docs: every grant and scope narrows what it reaches", () => {
     }
   });
 
-  test.each(LANGUAGES.filter((language: string) => {
-    return language !== "en";
-  }))("the %s upgrade guide has the line, before the endpoint changes", (language: string) => {
-    const lines: Array<string> = read(language, "installation/upgrading.md").split(
-      "\n",
-    );
-    const anchor: number = lines.findIndex((line: string): boolean => {
-      return (
-        line.startsWith("- ") && line.includes("(#api-and-endpoint-changes)")
-      );
-    });
+  test.each(
+    LANGUAGES.filter((language: string) => {
+      return language !== "en";
+    }),
+  )(
+    "the %s upgrade guide has the line, before the endpoint changes",
+    (language: string) => {
+      const lines: Array<string> = read(
+        language,
+        "installation/upgrading.md",
+      ).split("\n");
+      const anchor: number = lines.findIndex((line: string): boolean => {
+        return (
+          line.startsWith("- ") && line.includes("(#api-and-endpoint-changes)")
+        );
+      });
 
-    expect([language, anchor > 0]).toEqual([language, true]);
+      expect([language, anchor > 0]).toEqual([language, true]);
 
-    const line: string = lines[anchor - 1] || "";
+      const line: string = lines[anchor - 1] || "";
 
-    expect([language, line.startsWith("- **")]).toEqual([language, true]);
-    expect([language, line.includes(GET_ITEM)]).toEqual([language, true]);
-    expect([language, line.includes(WILDCARD)]).toEqual([language, true]);
-    expect([language, line.includes("`404`")]).toEqual([language, true]);
-  });
+      expect([language, line.startsWith("- **")]).toEqual([language, true]);
+      expect([language, line.includes(GET_ITEM)]).toEqual([language, true]);
+      expect([language, line.includes(WILDCARD)]).toEqual([language, true]);
+      expect([language, line.includes("`404`")]).toEqual([language, true]);
+    },
+  );
 });

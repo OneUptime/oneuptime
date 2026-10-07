@@ -74,7 +74,8 @@ function hasJoinTable(modelType: ModelType, propertyName: string): boolean {
   return getMetadataArgsStorage().joinTables.some(
     (joinTable: JoinTableMetadataArgs): boolean => {
       return (
-        joinTable.target === modelType && joinTable.propertyName === propertyName
+        joinTable.target === modelType &&
+        joinTable.propertyName === propertyName
       );
     },
   );

@@ -167,7 +167,11 @@ export default class ModelPermission {
     }
 
     if (!props.isRoot && !props.isMasterAdmin) {
-      this.checkWriteIsInOneProject(modelType, props, DatabaseRequestType.Delete);
+      this.checkWriteIsInOneProject(
+        modelType,
+        props,
+        DatabaseRequestType.Delete,
+      );
       this.checkModelLevelPermissions(
         modelType,
         props,
