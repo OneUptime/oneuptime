@@ -3331,23 +3331,22 @@ These are no longer recorded against the project and have to be cancelled by han
    * credits run out the owners are told again.
    *
    * One statement, like markAiDailyLimitReached: the condition and the write
-   * are a single UPDATE, a passive bookkeeping write - no hooks, no version
-   * or updatedAt bump - on a column the API never reads.
+   * are a single UPDATE, so two servers refusing AI calls at the same moment
+   * cannot both win. A passive bookkeeping write - no hooks, no version or
+   * updatedAt bump - on a column the API never reads; a deleted project is
+   * never told.
    */
   @CaptureSpan()
   public async claimAiCreditsUsedUpNotice(
     projectId: ObjectID,
   ): Promise<boolean> {
-    return await this.compareAndSetColumnsByIdWithoutHooks({
-      id: projectId,
-      data: {
-        lowAiBalanceNotificationSentToOwners: true,
-      },
-      expectedData: {
-        lowAiBalanceNotificationSentToOwners: false,
-      },
-      skipUpdateDateColumn: true,
-    });
+    const sql: string = `WITH "updated" AS (UPDATE "Project" SET "lowAiBalanceNotificationSentToOwners" = true WHERE "_id" = $1 AND "deletedAt" IS NULL AND "lowAiBalanceNotificationSentToOwners" = false RETURNING "_id") SELECT "_id" FROM "updated"`;
+
+    const result: unknown = await this.getRepository().manager.query(sql, [
+      projectId.toString(),
+    ]);
+
+    return Array.isArray(result) && result.length > 0;
   }
 
   @CaptureSpan()

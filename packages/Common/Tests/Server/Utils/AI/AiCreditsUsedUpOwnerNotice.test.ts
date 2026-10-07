@@ -340,29 +340,51 @@ describe("AiCreditsUsedUpOwnerNotice.notifyIfUsedUp", () => {
   });
 });
 
+/*
+ * The claim's shape without a database - one statement, the condition and
+ * the write together, the id bound, no hooks, no version or updatedAt bump,
+ * never for a deleted project; what it does on a real Postgres, servers
+ * racing included, is in AICreditsRunOutPostgres.
+ */
 describe("ProjectService.claimAiCreditsUsedUpNotice", () => {
-  test("is one compare-and-set of the flag, from not told to told, that leaves updatedAt alone", async () => {
+  function mockRepository(result: unknown): jest.Mock {
     claim.mockRestore();
-    const compareAndSet: jest.SpyInstance = jest
-      .spyOn(ProjectService, "compareAndSetColumnsByIdWithoutHooks")
-      .mockResolvedValue(true);
+    const query: jest.Mock = jest.fn().mockResolvedValue(result);
+
+    jest.spyOn(ProjectService, "getRepository").mockReturnValue({
+      manager: { query },
+    } as never);
+
+    return query;
+  }
+
+  test("one statement sets the flag only where it is not set yet, on a project that is not deleted", async () => {
+    const query: jest.Mock = mockRepository([{ _id: PROJECT_ID.toString() }]);
 
     expect(await ProjectService.claimAiCreditsUsedUpNotice(PROJECT_ID)).toBe(
       true,
     );
-    expect(compareAndSet).toHaveBeenCalledWith({
-      id: PROJECT_ID,
-      data: { lowAiBalanceNotificationSentToOwners: true },
-      expectedData: { lowAiBalanceNotificationSentToOwners: false },
-      skipUpdateDateColumn: true,
-    });
+
+    expect(query).toHaveBeenCalledTimes(1);
+    expect(query.mock.calls[0]![0]).toBe(
+      `WITH "updated" AS (UPDATE "Project" SET "lowAiBalanceNotificationSentToOwners" = true WHERE "_id" = $1 AND "deletedAt" IS NULL AND "lowAiBalanceNotificationSentToOwners" = false RETURNING "_id") SELECT "_id" FROM "updated"`,
+    );
+    expect(query.mock.calls[0]![1]).toEqual([PROJECT_ID.toString()]);
+    // A passive write: nothing else is touched.
+    expect(query.mock.calls[0]![0]).not.toContain("version");
+    expect(query.mock.calls[0]![0]).not.toContain("updatedAt");
   });
 
-  test("answers false when somebody already set it", async () => {
-    claim.mockRestore();
-    jest
-      .spyOn(ProjectService, "compareAndSetColumnsByIdWithoutHooks")
-      .mockResolvedValue(false);
+  test("no row written - somebody was first, or the project is gone - is false", async () => {
+    mockRepository([]);
+
+    expect(await ProjectService.claimAiCreditsUsedUpNotice(PROJECT_ID)).toBe(
+      false,
+    );
+  });
+
+  test("an answer that is not a list of rows is false, never a claim", async () => {
+    mockRepository(undefined);
 
     expect(await ProjectService.claimAiCreditsUsedUpNotice(PROJECT_ID)).toBe(
       false,
