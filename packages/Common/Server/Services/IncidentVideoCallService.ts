@@ -18,6 +18,7 @@ import EventVideoCall, {
   VideoCallFields,
 } from "../Utils/VideoCall/EventVideoCall";
 import ProjectReferenceCheck from "../Utils/Database/ProjectReferenceCheck";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
@@ -119,6 +120,25 @@ export class Service extends ProjectReferencesService<Model> {
       id: data.incidentId,
     });
 
+    /*
+     * The connection and the rule are each one column with two names, the
+     * relation and its ID column: a write that names one by its relation
+     * is read like one that names its ID column, and a write that names
+     * two different records under the two names is refused.
+     */
+    const videoCallConnectionId: ObjectID | null =
+      RelationIdUtil.readIntoIdColumn(
+        data as unknown as Record<string, unknown>,
+        ["videoCallConnectionId", "videoCallConnection"],
+        "Video Call Connection",
+      );
+    const workspaceNotificationRuleId: ObjectID | null =
+      RelationIdUtil.readConsistent(
+        data as unknown as Record<string, unknown>,
+        ["workspaceNotificationRuleId", "workspaceNotificationRule"],
+        "Workspace Notification Rule",
+      );
+
     const prepared: {
       fields: VideoCallFields;
       carryForward: VideoCallCarryForward;
@@ -127,11 +147,11 @@ export class Service extends ProjectReferencesService<Model> {
       isServerWrite,
       fields: {
         provider: data.provider,
-        videoCallConnectionId: data.videoCallConnectionId,
+        videoCallConnectionId: videoCallConnectionId || undefined,
         title: data.title,
         joinUrl: data.joinUrl,
         externalMeetingId: data.externalMeetingId,
-        workspaceNotificationRuleId: data.workspaceNotificationRuleId,
+        workspaceNotificationRuleId: workspaceNotificationRuleId || undefined,
       },
     });
 
