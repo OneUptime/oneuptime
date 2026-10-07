@@ -483,6 +483,9 @@ import WorkspaceUserAuthToken from "./WorkspaceUserAuthToken";
 import WorkspaceProjectAuthToken from "./WorkspaceProjectAuthToken";
 import WorkspaceSetting from "./WorkspaceSetting";
 import WorkspaceNotificationRule from "./WorkspaceNotificationRule";
+import VideoCallConnection from "./VideoCallConnection";
+import IncidentVideoCall from "./IncidentVideoCall";
+import AlertVideoCall from "./AlertVideoCall";
 import WorkspaceNotificationSummary from "./WorkspaceNotificationSummary";
 
 import OnCallDutyPolicyUserOverride from "./OnCallDutyPolicyUserOverride";
@@ -910,6 +913,9 @@ const AllModelTypes: Array<{
 
   WorkspaceSetting,
   WorkspaceNotificationRule,
+  VideoCallConnection,
+  IncidentVideoCall,
+  AlertVideoCall,
   WorkspaceNotificationSummary,
 
   MonitorFeed,

@@ -30,6 +30,7 @@ import SlackAuthAction, {
   SlackRequest,
 } from "../Utils/Workspace/Slack/Actions/Auth";
 import SlackIncidentActions from "../Utils/Workspace/Slack/Actions/Incident";
+import SlackActionType from "../Utils/Workspace/Slack/Actions/ActionTypes";
 import SlackAlertActions from "../Utils/Workspace/Slack/Actions/Alert";
 import SlackAlertEpisodeActions from "../Utils/Workspace/Slack/Actions/AlertEpisode";
 import SlackIncidentEpisodeActions from "../Utils/Workspace/Slack/Actions/IncidentEpisode";
@@ -946,6 +947,14 @@ export default class SlackAPI {
               res,
               new BadRequestException("Invalid request"),
             );
+          }
+
+          /*
+           * Join call is a link button: Slack opens the meeting, and the
+           * click it reports needs nothing but an acknowledgement.
+           */
+          if (action.actionType === SlackActionType.JoinVideoCall) {
+            return Response.sendTextResponse(req, res, "");
           }
 
           if (

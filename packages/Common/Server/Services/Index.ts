@@ -424,6 +424,9 @@ import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService
 import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
 import WorkspaceSettingService from "./WorkspaceSettingService";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
+import VideoCallConnectionService from "./VideoCallConnectionService";
+import IncidentVideoCallService from "./IncidentVideoCallService";
+import AlertVideoCallService from "./AlertVideoCallService";
 import WorkspaceNotificationLogService from "./WorkspaceNotificationLogService";
 import WorkspaceNotificationSummaryService from "./WorkspaceNotificationSummaryService";
 import WorkspaceUserNotificationService from "./WorkspaceUserNotificationService";
@@ -883,6 +886,9 @@ const services: Array<BaseService> = [
   WorkspaceUserAuthTokenService,
   WorkspaceSettingService,
   WorkspaceNotificationRuleService,
+  VideoCallConnectionService,
+  IncidentVideoCallService,
+  AlertVideoCallService,
   WorkspaceNotificationLogService,
   WorkspaceNotificationSummaryService,
   WorkspaceUserNotificationService,

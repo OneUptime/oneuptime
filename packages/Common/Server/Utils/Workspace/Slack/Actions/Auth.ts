@@ -56,6 +56,12 @@ const slackActionTypesThatDoNotRequireUserSlackAccountToBeConnectedToOneUptime: 
 
     // scheduled maintenance
     SlackActionType.ViewScheduledMaintenance,
+
+    /*
+     * Anyone in the channel joins the incident's call: it is a link, and
+     * the meeting decides who gets in.
+     */
+    SlackActionType.JoinVideoCall,
   ];
 
 export default class SlackAuthAction {

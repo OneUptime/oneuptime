@@ -48,6 +48,8 @@ export enum IncidentFeedEventType {
   PrivacyRuleExecuted = "PrivacyRuleExecuted",
   OnCallRuleExecuted = "OnCallRuleExecuted",
   AutoRemediation = "AutoRemediation",
+  VideoCallStarted = "VideoCallStarted",
+  VideoCallFailed = "VideoCallFailed",
 }
 
 @EnableDocumentation()

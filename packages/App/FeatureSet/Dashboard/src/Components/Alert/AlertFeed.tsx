@@ -77,6 +77,8 @@ export const ALERT_FEED_ICONS: Record<AlertFeedEventType, IconProp> = {
   [AlertFeedEventType.PrivacyRuleExecuted]: IconProp.Circle,
   [AlertFeedEventType.OnCallRuleExecuted]: IconProp.Call,
   [AlertFeedEventType.AutoRemediation]: IconProp.Circle,
+  [AlertFeedEventType.VideoCallStarted]: IconProp.VideoCamera,
+  [AlertFeedEventType.VideoCallFailed]: IconProp.VideoCameraSlash,
 };
 
 export const getAlertFeedEventIcon: (eventType: string) => IconProp = (

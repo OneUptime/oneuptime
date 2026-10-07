@@ -140,6 +140,7 @@ import LabelService from "./LabelService";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import IncidentSeverityService from "./IncidentSeverityService";
 import IncidentWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Incident";
+import VideoCallRuleExecutor from "../Utils/VideoCall/VideoCallRuleExecutor";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
@@ -3233,6 +3234,29 @@ export class Service extends ProjectReferencesService<Model> {
             } as LogAttributes,
           );
           return Promise.resolve();
+        }
+      })
+      .then(() => {
+        /*
+         * The video calls the workspace rules ask for, posted after
+         * "Incident Created" in the channels the rules just created. Not
+         * waited on: a meeting provider that is slow to answer must never
+         * hold up paging the on-call below. No call for an incident declared
+         * resolved.
+         */
+        if (createdItem.projectId && createdItem.id && isOngoing) {
+          VideoCallRuleExecutor.startCallsForIncident({
+            projectId: createdItem.projectId,
+            incidentId: createdItem.id,
+          }).catch((error: unknown) => {
+            logger.error(
+              `Starting video calls failed in IncidentService.onCreateSuccess: ${error}`,
+              {
+                projectId: createdItem.projectId?.toString(),
+                incidentId: createdItem.id?.toString(),
+              } as LogAttributes,
+            );
+          });
         }
       })
       .then(async () => {
