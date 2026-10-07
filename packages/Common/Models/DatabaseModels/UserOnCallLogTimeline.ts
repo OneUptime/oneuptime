@@ -50,8 +50,15 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   update: PlanType.Growth,
   delete: PlanType.Growth,
 })
+/*
+ * A person's own timeline of the notifications sent to them: read by that
+ * person (CurrentUser) whether or not they may read the on-call policy that
+ * paged them, so reading the policy is optional (isParentReadOptional). A
+ * caller who may read policies reaches the timelines of the policies they
+ * may read.
+ */
 @EnableDocumentation()
-@CanAccessIfCanReadOn("onCallDutyPolicy")
+@CanAccessIfCanReadOn("onCallDutyPolicy", { isParentReadOptional: true })
 @CurrentUserCanAccessRecordBy("userId")
 @TenantColumn("projectId")
 @TableAccessControl({

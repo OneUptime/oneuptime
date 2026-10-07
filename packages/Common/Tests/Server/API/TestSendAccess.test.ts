@@ -21,6 +21,7 @@ import PermissionScope from "../../../Types/Database/AccessControl/PermissionSco
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import NotFoundException from "../../../Types/Exception/NotFoundException";
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
@@ -966,6 +967,12 @@ describe("a test of a setting: what switching it on asks of that record", () => 
       new BadDataException(
         "User is not allowed to update on isReportEnabled column of Status Page",
       ),
+    ],
+    // A page the caller may not read is answered as missing by the check.
+    [
+      "the page's read",
+      "checkUpdatePermissionByModel",
+      new NotFoundException("Status Page not found."),
     ],
   ])(
     "refused by %s: one sentence, the report's own",

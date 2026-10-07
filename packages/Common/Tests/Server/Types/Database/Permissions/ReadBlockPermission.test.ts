@@ -952,6 +952,34 @@ describe("ReadPermission.checkReadBlockPermission on models without labels", () 
     ).rejects.toThrow("access-control relation metadata");
   });
 
+  /*
+   * The parent's read blocks are asked of every read, update and delete of
+   * a model read through another one (BasePermission.addParentAccessToQuery):
+   * with no labels to leave out, the declaration is not even looked at, so
+   * a query with nothing to narrow never fails on it.
+   */
+  it("leaves the query alone when no parent label is blocked, whatever the declaration", () => {
+    class NoteNamingAMissingParent extends IncidentInternalNote {}
+    NoteNamingAMissingParent.prototype.canAccessIfCanReadOn =
+      "incidentThatIsNotARelation";
+
+    expect(
+      ReadPermission.addParentBlockedLabelsToQuery(
+        NoteNamingAMissingParent,
+        { projectId } as any,
+        [],
+      ),
+    ).toEqual({ projectId });
+
+    expect(() => {
+      return ReadPermission.addParentBlockedLabelsToQuery(
+        NoteNamingAMissingParent,
+        { projectId } as any,
+        [ObjectID.generate()],
+      );
+    }).toThrow("access-control relation metadata");
+  });
+
   it("refuses when the labelled record's labels cannot be resolved", async () => {
     jest
       .spyOn(QueryUtil, "getManyToManyRelationMetadata")

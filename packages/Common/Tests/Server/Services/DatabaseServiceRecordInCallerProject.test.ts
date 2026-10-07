@@ -5,7 +5,7 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import Project from "../../../Models/DatabaseModels/Project";
 import User from "../../../Models/DatabaseModels/User";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import BadDataException from "../../../Types/Exception/BadDataException";
+import NotFoundException from "../../../Types/Exception/NotFoundException";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
@@ -234,7 +234,7 @@ describe("an update and a delete by id read the record in the caller's project",
         return caught;
       });
 
-      expect(error).toBeInstanceOf(BadDataException);
+      expect(error).toBeInstanceOf(NotFoundException);
       expect((error as Error).message).toBe("Monitor not found.");
 
       const labelsRead: { query: Record<string, unknown> } | undefined =

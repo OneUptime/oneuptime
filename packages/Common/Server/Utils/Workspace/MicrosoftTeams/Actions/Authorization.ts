@@ -2,6 +2,7 @@ import Alert from "../../../../../Models/DatabaseModels/Alert";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
+import NotFoundException from "../../../../../Types/Exception/NotFoundException";
 import ObjectID from "../../../../../Types/ObjectID";
 import AlertService from "../../../../Services/AlertService";
 import IncidentService from "../../../../Services/IncidentService";
@@ -12,6 +13,26 @@ import { applyIncidentSelfPrivacyFilter } from "../../../Incident/IncidentPrivac
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 
 export default class MicrosoftTeamsActionAuthorization {
+  /*
+   * A record the caller may not read is answered as missing by the update
+   * check (NotFoundException); in a chat, missing and refused read the same
+   * sentence, as a record that is not there at all does above.
+   */
+  private static async refuseAsUnchangeable(
+    check: () => Promise<void>,
+    refusal: string,
+  ): Promise<void> {
+    try {
+      await check();
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw new NotAuthorizedException(refusal);
+      }
+
+      throw error;
+    }
+  }
+
   @CaptureSpan()
   public static async assertCanUpdateIncident(data: {
     incidentId: ObjectID;
@@ -43,13 +64,18 @@ export default class MicrosoftTeamsActionAuthorization {
       );
     }
 
-    await ModelPermission.checkUpdatePermissionByModel({
-      modelType: Incident,
-      fetchModelWithAccessControlIds: async (): Promise<Incident> => {
-        return incident;
+    await MicrosoftTeamsActionAuthorization.refuseAsUnchangeable(
+      async (): Promise<void> => {
+        await ModelPermission.checkUpdatePermissionByModel({
+          modelType: Incident,
+          fetchModelWithAccessControlIds: async (): Promise<Incident> => {
+            return incident;
+          },
+          props: data.props,
+        });
       },
-      props: data.props,
-    });
+      "You do not have permission to update this incident.",
+    );
 
     const permittedQuery: Query<Incident> =
       await ModelPermission.checkUpdateQueryPermissions(
@@ -117,13 +143,18 @@ export default class MicrosoftTeamsActionAuthorization {
       );
     }
 
-    await ModelPermission.checkUpdatePermissionByModel({
-      modelType: Alert,
-      fetchModelWithAccessControlIds: async (): Promise<Alert> => {
-        return alert;
+    await MicrosoftTeamsActionAuthorization.refuseAsUnchangeable(
+      async (): Promise<void> => {
+        await ModelPermission.checkUpdatePermissionByModel({
+          modelType: Alert,
+          fetchModelWithAccessControlIds: async (): Promise<Alert> => {
+            return alert;
+          },
+          props: data.props,
+        });
       },
-      props: data.props,
-    });
+      "You do not have permission to update this alert.",
+    );
 
     const permittedQuery: Query<Alert> =
       await ModelPermission.checkUpdateQueryPermissions(

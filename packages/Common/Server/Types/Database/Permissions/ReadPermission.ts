@@ -230,6 +230,11 @@ export default class ReadPermission {
    *
    * Both halves follow the same records (getLabelledReferences). A block
    * with no labels refuses the table before this (TablePermission).
+   *
+   * This is the rule for one operation's own grants and blocks. The record
+   * rule narrows a write by its read's as well, and so asks the halves
+   * itself (BasePermission.addRecordScopeToQuery: addGrantedLabelsToQuery
+   * and addBlockedLabelsToQuery over getNarrowingOperations).
    */
   public static addLabelRulesToQuery<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
@@ -240,6 +245,21 @@ export default class ReadPermission {
     query = this.addLabelGrantToQuery(modelType, query, props, type);
 
     return this.addLabelBlockToQuery(modelType, query, props, type);
+  }
+
+  /*
+   * The operations whose grants and blocks narrow `type`'s records: a
+   * read's own; an update's or a delete's own and the read's - a record the
+   * caller may not read is not one they may change or delete. The record
+   * rule (BasePermission.addRecordScopeToQuery) and the check of one record
+   * by id (AccessControlPermission.checkRecordByModel) both ask this.
+   */
+  public static getNarrowingOperations(
+    type: RecordOperation,
+  ): Array<RecordOperation> {
+    return type === DatabaseRequestType.Read
+      ? [DatabaseRequestType.Read]
+      : [type, DatabaseRequestType.Read];
   }
 
   /*
@@ -327,12 +347,25 @@ export default class ReadPermission {
     props: DatabaseCommonInteractionProps,
     type: RecordOperation,
   ): Query<TBaseModel> {
-    const labelIds: Array<ObjectID> = this.getBlockedLabelIds(
+    return this.addBlockedLabelsToQuery(
       modelType,
-      props,
-      type,
+      query,
+      this.getBlockedLabelIds(modelType, props, type),
     );
+  }
 
+  /*
+   * Leaves out the records carrying one of `labelIds`, the labels blocks
+   * take away (addLabelBlockToQuery): a labelled model's by its own labels,
+   * a label-less model's through the labelled records it belongs to or
+   * names. Nothing for no labels. The labels of several operations' blocks
+   * (a write's own and its read's) are left out in one condition.
+   */
+  public static addBlockedLabelsToQuery<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    labelIds: Array<ObjectID>,
+  ): Query<TBaseModel> {
     if (labelIds.length === 0) {
       return query;
     }
@@ -403,17 +436,62 @@ export default class ReadPermission {
       return query;
     }
 
-    const labelIds: Array<ObjectID> = this.getGrantedLabelIds(
+    return this.addGrantedLabelsToQuery(
       modelType,
-      props,
-      type,
+      query,
+      this.getGrantedLabelIds(modelType, props, type),
     );
+  }
 
-    if (labelIds.length === 0) {
+  /*
+   * Keeps, of a label-less model's rows, those a grant limited to
+   * `labelIds` reaches (addLabelGrantToQuery). Nothing for a labelled model,
+   * whose own labels AccessControlPermission weighs, or for no labels: a
+   * grant over the whole project.
+   */
+  public static addGrantedLabelsToQuery<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    labelIds: Array<ObjectID>,
+  ): Query<TBaseModel> {
+    if (new modelType().getAccessControlColumn() || labelIds.length === 0) {
       return query;
     }
 
     return this.addParentLabelGrantToQuery(modelType, query, labelIds);
+  }
+
+  /*
+   * Leaves out the records of a model read through another record
+   * (canAccessIfCanReadOn) whose parent carries one of `labelIds` - the
+   * labels a block on reading the parent takes away: an incident's notes
+   * with the incident, an announcement with any status page it is on. A
+   * record with no parent stays.
+   */
+  public static addParentBlockedLabelsToQuery<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    labelIds: Array<ObjectID>,
+  ): Query<TBaseModel> {
+    // Nothing to leave out: the declaration is not even looked at.
+    if (labelIds.length === 0) {
+      return query;
+    }
+
+    const parent: { relation: string; column: TableColumnMetadata } | null =
+      this.getDeclaredParent(modelType);
+
+    if (!parent) {
+      return query;
+    }
+
+    return this.addRelationLabelBlockToQuery(
+      modelType,
+      query,
+      labelIds,
+      parent.relation,
+      parent.column,
+    );
   }
 
   /*

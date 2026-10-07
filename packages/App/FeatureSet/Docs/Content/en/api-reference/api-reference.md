@@ -89,6 +89,26 @@ An incident, an alert, an incident episode and an alert episode can be created i
 
 An incident's `incidentEpisodeId` and an alert's `alertEpisodeId` — and their relations `incidentEpisode` and `alertEpisode` — name the latest episode it was added to and is still a member of, or nothing. They are read-only: OneUptime sets them from the episode's members. To put an incident in an episode, create an Incident Episode Member (`POST /api/incident-episode-member` with `incidentEpisodeId` and `incidentId`); to take it out, delete that member, and the incident then names the latest episode it is still in, or none. Alerts work the same way through Alert Episode Members (`/api/alert-episode-member`, with `alertEpisodeId` and `alertId`). Grouping rules add incidents and alerts to episodes the same way. A create or update of an incident or alert that sends its episode is refused, whoever sends it — the API, Terraform, the MCP tools or a workflow. In Terraform, `incident_episode_id` and `alert_episode_id` can be read but not set; the `oneuptime_incident_episode_member` and `oneuptime_alert_episode_member` resources manage membership.
 
+### Changing or deleting a record you may not read
+
+A change or a delete reaches only the records the API key - or the person signed in - may read. A record outside its labels or owners, behind a block on reading, or read through another record it may not read (an incident's note, a status page's announcement) cannot be changed or deleted either. A permission to change or delete a kind of record works together with the permission to read it, and one to change an incident's notes with one to read incidents.
+
+A request that changes or deletes one record by its ID - `PUT /api/<resource>/<id>` or `POST /api/<resource>/<id>/update-item`, `DELETE /api/<resource>/<id>` or `POST /api/<resource>/<id>/delete-item` - and reaches nothing answers:
+
+- `404` when the record does not exist, is in another project, or is one you may not read - the same answer for each:
+
+```text
+Incident not found.
+```
+
+- `422` when you may read the record but not change or delete it, with the reason:
+
+```text
+You do not have permission to update this incident.
+```
+
+A delete that reached nothing used to answer `200`. Updates and deletes by query, such as a workflow's update and delete steps, answer with how many records they changed, `0` when they reached none. Terraform reads a `404` on `terraform destroy` as a resource that is already gone.
+
 ### API Reference
 
 Please click here to check out OneUptime's API reference ➡️ [OneUptime API Reference](/reference). The API reference is available in multiple languages — your preferred language is auto-detected from your browser, and you can switch languages at any time using the selector in the top navigation.

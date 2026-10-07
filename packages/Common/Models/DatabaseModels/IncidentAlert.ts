@@ -36,7 +36,10 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * listed next to incident roles so a responder who works alerts can see which
  * incidents their alerts are linked to, and link them too when they can also
  * read incidents: the service only creates a link when the caller can read
- * both the alert and the incident.
+ * both the alert and the incident. So reading the incident is optional
+ * (isParentReadOptional): an alert responder who may read no incident reads
+ * the links by the link's own read rule, and a caller who may read incidents
+ * reads the links of the incidents they may read.
  *
  * Rows are immutable - a link is created or removed, never edited - so every
  * column has an empty update list. The table keeps its update permissions
@@ -45,7 +48,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  */
 @EnableDocumentation()
 @EnableMCP()
-@CanAccessIfCanReadOn("incident")
+@CanAccessIfCanReadOn("incident", { isParentReadOptional: true })
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [
