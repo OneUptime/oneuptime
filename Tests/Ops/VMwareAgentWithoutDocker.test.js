@@ -125,6 +125,11 @@ const UNINSTALL = bashBlocks(section(DOCS, "## Uninstalling the Agent")).find(
   },
 );
 
+// The docs' rule for the user and password: double quotes, \ and " escaped.
+function doubleQuoted(value) {
+  return `"${value.replace(/[\\"]/g, "\\$&")}"`;
+}
+
 // The docs' settings, filled in as a reader would in the editor.
 const ENV = ENV_CONTENT.replace(
   "ONEUPTIME_URL=YOUR_ONEUPTIME_URL",
@@ -135,12 +140,12 @@ const ENV = ENV_CONTENT.replace(
     `ONEUPTIME_TELEMETRY_INGESTION_KEY=${KEY}`,
   )
   .replace(
-    "VCENTER_USERNAME='oneuptime@vsphere.local'",
-    `VCENTER_USERNAME='${USERNAME}'`,
+    'VCENTER_USERNAME="oneuptime@vsphere.local"',
+    `VCENTER_USERNAME=${doubleQuoted(USERNAME)}`,
   )
   .replace(
-    "VCENTER_PASSWORD='a-strong-password'",
-    `VCENTER_PASSWORD='${PASSWORD}'`,
+    'VCENTER_PASSWORD="a-strong-password"',
+    `VCENTER_PASSWORD=${doubleQuoted(PASSWORD)}`,
   );
 
 /*
@@ -299,6 +304,11 @@ function install(env, prefix = "") {
 describe("the docs' install without Docker", () => {
   test("is four blocks: the files, a private .env, its settings, the service", () => {
     expect(WITHOUT_DOCKER).toHaveLength(4);
+    // The reader's user and password went in, the way the docs say.
+    expect(ENV).toContain('VCENTER_USERNAME="VSPHERE\\\\oneuptime"');
+    expect(ENV).toContain(
+      'VCENTER_PASSWORD="Sp3c$ial #pass \\"q\\" \\\\ end"',
+    );
     expect(INSTALL.split("\n")[0]).toBe('cd "$(mktemp -d)"');
     expect(ENV_CONTENT.split("\n")[0]).toBe("ONEUPTIME_URL=YOUR_ONEUPTIME_URL");
     expect(START).toBe(

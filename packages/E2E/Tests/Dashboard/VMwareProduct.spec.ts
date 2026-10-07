@@ -100,7 +100,7 @@ test.describe.skip("VMware Product Onboarding", () => {
 
     /*
      * Without Docker the same settings go in the systemd service's .env,
-     * the user and password single-quoted for systemd, and the service is
+     * the user and password double-quoted for systemd, and the service is
      * started instead of a container.
      */
     await page.getByRole("radio", { name: /^Without Docker/ }).click();
@@ -109,7 +109,7 @@ test.describe.skip("VMware Product Onboarding", () => {
     expect(withoutDockerText).toMatch(ingestionKeyEnvLineRegex);
     expect(withoutDockerText).toContain("VMWARE_VCENTER_NAME=my-vcenter");
     expect(withoutDockerText).toContain(
-      "VCENTER_USERNAME='oneuptime@vsphere.local'",
+      'VCENTER_USERNAME="oneuptime@vsphere.local"',
     );
     expect(withoutDockerText).toContain(
       "sudo systemctl enable oneuptime-vmware-agent",

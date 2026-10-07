@@ -4,12 +4,16 @@
  * for that file reaches the service as, without systemd.
  *
  * A line-for-line port of parse_env_file_internal() in systemd's
- * src/basic/env-file.c (v255). systemd's rules are not a shell's, nor
- * Docker Compose's:
+ * src/basic/env-file.c (v255), with the backslash rules systemd 239 (RHEL
+ * 8's; src/basic/fileio.c) still had behind `legacy`. systemd's rules are
+ * not a shell's, nor Docker Compose's:
  *
- *   - a single-quoted value is taken exactly as written;
- *   - in a double-quoted value a backslash escapes only " \ ` and $, and
- *     is kept before any other character; $ is never expanded;
+ *   - in a single-quoted value, v255 takes everything as written; v239
+ *     drops a backslash and keeps the character after it, so
+ *     `'DOMAIN\user'` reads `DOMAINuser` there;
+ *   - in a double-quoted value a backslash escapes only " \ ` and $, and is
+ *     kept before any other character (v239 drops it before any
+ *     character); $ is never expanded;
  *   - outside quotes a backslash escapes the next character (so
  *     `DOMAIN\user` reads `DOMAINuser`), surrounding whitespace is trimmed,
  *     and nothing starts a comment after the `=`;
@@ -17,8 +21,9 @@
  *     where a quote is an ordinary character: a shell's `'it'\''s'` reads
  *     `it''s'`.
  *
- * SystemdEnvironmentFile.test.ts pins the port to what systemd 255 itself
- * produced for the same lines.
+ * Double quotes with only \ and " escaped therefore read the same in both.
+ * SystemdEnvironmentFile.test.ts pins the port to what systemd 255 and
+ * systemd 239 themselves produced for the same lines.
  */
 
 const COMMENTS: string = "#;";
@@ -33,16 +38,24 @@ enum State {
   Value,
   ValueEscape,
   SingleQuoteValue,
+  SingleQuoteValueEscape,
   DoubleQuoteValue,
   DoubleQuoteValueEscape,
   Comment,
   CommentEscape,
 }
 
+export interface SystemdEnvironmentFileOptions {
+  // systemd 239's backslash rules (RHEL 8) instead of v255's.
+  legacy?: boolean | undefined;
+}
+
 // The variables an EnvironmentFile= sets, the last assignment winning.
 export function parseSystemdEnvironmentFile(
   contents: string,
+  options: SystemdEnvironmentFileOptions = {},
 ): Map<string, string> {
+  const legacy: boolean = Boolean(options.legacy);
   const variables: Map<string, string> = new Map();
 
   let state: State = State.PreKey;
@@ -137,7 +150,16 @@ export function parseSystemdEnvironmentFile(
       case State.SingleQuoteValue:
         if (c === "'") {
           state = State.PreValue;
+        } else if (legacy && c === "\\") {
+          state = State.SingleQuoteValueEscape;
         } else {
+          value += c;
+        }
+        break;
+
+      case State.SingleQuoteValueEscape:
+        state = State.SingleQuoteValue;
+        if (!NEWLINE.includes(c)) {
           value += c;
         }
         break;
@@ -154,7 +176,11 @@ export function parseSystemdEnvironmentFile(
 
       case State.DoubleQuoteValueEscape:
         state = State.DoubleQuoteValue;
-        if (SHELL_NEED_ESCAPE.includes(c)) {
+        if (legacy) {
+          if (!NEWLINE.includes(c)) {
+            value += c;
+          }
+        } else if (SHELL_NEED_ESCAPE.includes(c)) {
           value += c;
         } else if (c !== "\n") {
           value += `\\${c}`;
@@ -170,7 +196,8 @@ export function parseSystemdEnvironmentFile(
         break;
 
       case State.CommentEscape:
-        state = NEWLINE.includes(c) ? State.PreKey : State.Comment;
+        // v239 carried a comment on over an escaped newline; v254 stopped.
+        state = !legacy && NEWLINE.includes(c) ? State.PreKey : State.Comment;
         break;
     }
   }
@@ -182,6 +209,7 @@ export function parseSystemdEnvironmentFile(
       State.Value,
       State.ValueEscape,
       State.SingleQuoteValue,
+      State.SingleQuoteValueEscape,
       State.DoubleQuoteValue,
       State.DoubleQuoteValueEscape,
     ].includes(state)

@@ -398,9 +398,12 @@ with the ingestion key, the vCenter name and the agent version and without
 `service.name`; that another collector holding `localhost:8888` does not stop
 it (its own counters are on `127.0.0.1:8890`); that ESXi syslog, uncommented
 as the docs say, arrives as logs with nothing to publish; and that the upgrade
-and the uninstall do what the docs say. `--image` runs it on another
-distribution (apt or dnf; `debian:11` has systemd 247, `rockylinux:8` systemd
-239). The "Ops Config Test" workflow runs it on every PR.
+and the uninstall do what the docs say. `--image` picks the distribution
+(apt or dnf). The "Ops Config Test" workflow runs it on every PR twice: on
+Ubuntu 24.04 (systemd 255) and on Rocky Linux 8 (systemd 239, as RHEL 8 ships
+it), the oldest systemd the docs support. That second run is what showed that
+systemd 239 drops a backslash inside single quotes — `'DOMAIN\user'` logged in
+as `DOMAINuser` — which is why the docs double-quote the user and password.
 
 ```sh
 cd Tests/Ops && npm run vmware-agent-native-install

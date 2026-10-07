@@ -115,13 +115,13 @@ ONEUPTIME_URL=https://oneuptime.com
 ONEUPTIME_TELEMETRY_INGESTION_KEY=your-telemetry-ingestion-key
 VMWARE_VCENTER_NAME=prod-vcenter
 VCENTER_ENDPOINT=https://vcsa.example.com
-VCENTER_USERNAME='oneuptime@vsphere.local'
-VCENTER_PASSWORD='a-strong-password'
+VCENTER_USERNAME="oneuptime@vsphere.local"
+VCENTER_PASSWORD="a-strong-password"
 VCENTER_INSECURE_SKIP_VERIFY=true
 VCENTER_COLLECTION_INTERVAL=2m
 ```
 
-systemd reads this file, not a shell: a value in single quotes is taken exactly as written, while outside quotes a backslash is dropped (`DOMAIN\user` would log in as `DOMAINuser`). Keep the user name and the password single-quoted. Then start the agent, and have it start on every boot:
+systemd reads this file, not a shell: keep the user name and the password in double quotes, with each `\` written `\\` and each `"` written `\"` — `DOMAIN\user` is `"DOMAIN\\user"` — while `$`, `#`, `'` and spaces go in as they are. That is the form every systemd version reads the same; older ones (RHEL 8's, for one) drop a backslash even inside single quotes. Then start the agent, and have it start on every boot:
 
 ```bash
 sudo systemctl daemon-reload
@@ -144,7 +144,7 @@ Docker Compose reads these from the `.env` next to `docker-compose.yml`; the ins
 | `VMWARE_VCENTER_NAME` | Yes | The name this vCenter registers under in OneUptime. Stamped on every metric as the `vmware.vcenter.name` resource attribute. Keep it stable — changing it registers a new vCenter (default: `vmware-vcenter`) |
 | `VCENTER_ENDPOINT` | Yes | Scheme + host of vCenter Server or a standalone ESXi host, **without** `/sdk`, e.g. `https://vcsa.example.com` |
 | `VCENTER_USERNAME` | Yes | vSphere user with the Read-Only role, e.g. `oneuptime@vsphere.local` (or `DOMAIN\user` for an AD identity source) |
-| `VCENTER_PASSWORD` | Yes | That user's password. If it contains `$`, `#`, spaces or quotes, single-quote it in `.env` (`install.sh` does this for you) — see Troubleshooting |
+| `VCENTER_PASSWORD` | Yes | That user's password. If it contains `$`, `#`, spaces or quotes, single-quote it in `.env` (`install.sh` does this for you) — see Troubleshooting; without Docker, double-quote it instead (see [Quick Start — Without Docker](#quick-start--without-docker)) |
 | `VCENTER_INSECURE_SKIP_VERIFY` | No | `true` to accept vCenter's default self-signed (VMCA) certificate; `false` keeps TLS verification on (default: `false`) |
 | `VCENTER_COLLECTION_INTERVAL` | No | How often the whole inventory is polled. Raise to `5m` or `10m` for very large vCenters (default: `2m`) |
 
@@ -217,7 +217,7 @@ The `oneuptime-vmware-ai-agent` service (image `oneuptime/resource-ai-agent`) ru
 
 It runs as UID 1000 with a read-only root filesystem and no capabilities, and only talks HTTPS to vCenter and to OneUptime. If you do not use OneUptime AI, delete the `oneuptime-vmware-ai-agent` service from `docker-compose.yml`.
 
-The install without Docker has no AI agent: it ships only as a container image. To add one to such an install, run it with Docker on any machine that can reach vCenter — download `docker-compose.yml` into a folder, copy `/opt/oneuptime-vmware-agent/.env` next to it, and start the AI agent alone with `docker compose up -d oneuptime-vmware-ai-agent` (not the collector, which already runs; two collectors report every metric twice).
+The install without Docker has no AI agent: it ships only as a container image. To add one to such an install, run it with Docker on any machine that can reach vCenter — download `docker-compose.yml` into a folder, write a `.env` next to it with the settings of `/opt/oneuptime-vmware-agent/.env`, single-quoted as Docker Compose wants them, and start the AI agent alone with `docker compose up -d oneuptime-vmware-ai-agent` (not the collector, which already runs; two collectors report every metric twice).
 
 ### What it may run
 
@@ -396,7 +396,7 @@ curl -s -H "x-oneuptime-token: <key>" https://<oneuptime-host>/otlp/v1/validate
 curl -s http://127.0.0.1:8890/metrics | grep -E 'otelcol_(receiver_accepted|exporter_sent|exporter_send_failed)_metric_points'
 ```
 
-The log reads like the container's (below). A service that keeps restarting logs why: `Failed with result 'resources'` means systemd cannot read `/opt/oneuptime-vmware-agent/.env`, and `cannot unmarshal the configuration` or `requires positive value` means a value in it is not one the collector takes. systemd reads `.env` with rules of its own: a single-quoted value is taken exactly as written, while outside quotes a backslash is dropped and nothing starts a comment — keep the user name and password single-quoted; a password that itself contains a `'` goes in double quotes with `"` and `\` escaped. And since the collector trusts the machine's CA store, you can keep TLS verification on: add vCenter's root certificate — the `.0` files under `certs/lin/` in `https://<vcenter>/certs/download.zip` — to `/usr/local/share/ca-certificates/` (with a `.crt` name) and run `update-ca-certificates` on Debian and Ubuntu, or to `/etc/pki/ca-trust/source/anchors/` and run `update-ca-trust` on RHEL, then restart the service.
+The log reads like the container's (below). A service that keeps restarting logs why: `Failed with result 'resources'` means systemd cannot read `/opt/oneuptime-vmware-agent/.env`, and `cannot unmarshal the configuration` or `requires positive value` means a value in it is not one the collector takes. systemd reads `.env` with rules of its own, and older versions (RHEL 8's, for one) drop a backslash even inside single quotes: keep the user name and password in double quotes, with each `\` written `\\` and each `"` written `\"`, the one form every version reads as typed. And since the collector trusts the machine's CA store, you can keep TLS verification on: add vCenter's root certificate — the `.0` files under `certs/lin/` in `https://<vcenter>/certs/download.zip` — to `/usr/local/share/ca-certificates/` (with a `.crt` name) and run `update-ca-certificates` on Debian and Ubuntu, or to `/etc/pki/ca-trust/source/anchors/` and run `update-ca-trust` on RHEL, then restart the service.
 
 ### No vCenter appears in OneUptime
 

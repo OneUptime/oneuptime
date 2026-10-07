@@ -474,8 +474,9 @@ sudoedit ${VMWARE_AGENT_NATIVE_ENV_FILE}`;
 
 /**
  * The `.env` file of an install without Docker: the variables of the Docker
- * install's, for systemd. systemd drops a backslash outside quotes, so the
- * user name is single-quoted as well as the password.
+ * install's, for systemd. The user name and the password are double-quoted:
+ * that is the one form every systemd version reads the same, a backslash
+ * (`DOMAIN\\user`) included — see systemdEnvQuote.
  */
 export function getVMwareNativeEnvFile(data: {
   oneuptimeUrl: string;
@@ -486,8 +487,8 @@ export function getVMwareNativeEnvFile(data: {
 ONEUPTIME_TELEMETRY_INGESTION_KEY=${data.apiKey}
 VMWARE_VCENTER_NAME=${systemdEnvQuote(data.vcenterName)}
 VCENTER_ENDPOINT=https://vcsa.example.com
-VCENTER_USERNAME='oneuptime@vsphere.local'
-VCENTER_PASSWORD='a-strong-password'
+VCENTER_USERNAME="oneuptime@vsphere.local"
+VCENTER_PASSWORD="a-strong-password"
 VCENTER_INSECURE_SKIP_VERIFY=true
 VCENTER_COLLECTION_INTERVAL=2m`;
 }
@@ -818,7 +819,7 @@ function getLinuxServiceStep(context: GuideContext): SetupGuideStep {
   const notes: Array<string> = [
     nameNote,
     "Set `VCENTER_ENDPOINT` to the scheme and host of your vCenter, or of a standalone ESXi host, **without** `/sdk`.",
-    "Keep the user name and the password in single quotes: systemd reads this file, not a shell, and takes a single-quoted value exactly as written — outside quotes it drops a backslash, so `DOMAIN\\user` would log in as `DOMAINuser`.",
+    'Keep the user name and the password in double quotes, with each `\\` written `\\\\` and each `"` written `\\"` — `DOMAIN\\user` is `"DOMAIN\\\\user"` — while `$`, `#`, `\'` and spaces go in as they are. systemd reads this file, not a shell, and this is the form every systemd version reads the same: older ones (RHEL 8\'s, for one) drop a backslash even inside single quotes.',
     "`VCENTER_INSECURE_SKIP_VERIFY=true` accepts vCenter's default self-signed (VMCA) certificate.",
   ];
 
@@ -929,10 +930,12 @@ function getEnvironmentVariablesTopic(context: GuideContext): SetupGuideTopic {
       "That user's password. If it contains `$`, `#`, spaces or quotes, single-quote it in `.env` (the install script does this for you)";
   } else if (linuxService) {
     password =
-      "That user's password. Always single-quote it in `.env`: systemd takes a single-quoted value exactly as written — see **vCenter rejects the login** under Troubleshooting";
+      'That user\'s password, double-quoted in `.env` with each `\\` written `\\\\` and each `"` written `\\"`, the form every systemd version reads as typed — see **vCenter rejects the login** under Troubleshooting';
   }
 
-  const userQuoting: string = linuxService ? ", single-quoted in `.env`" : "";
+  const userQuoting: string = linuxService
+    ? ", double-quoted in `.env` with each `\\` written `\\\\`"
+    : "";
 
   return {
     title: "Environment variables",
@@ -1107,13 +1110,13 @@ function getLinuxServiceAiAgentTopic(): SetupGuideTopic {
       "Not part of an install without Docker: it ships only as a container image.",
     markdown: `The OneUptime AI agent runs the read-only \`govc\` commands OneUptime AI asks for while it investigates an incident or alert on this vCenter — a VM's power state, the host it runs on, recent events and tasks, performance counters. It ships only as a container image (\`oneuptime/resource-ai-agent\`), so an install without Docker runs the collector alone. Inventory, metrics, monitors, alerts and syslog work the same without it.
 
-To add it, run it with Docker on any machine that can reach vCenter. Download the agent's \`docker-compose.yml\`, copy this machine's \`.env\` next to it, and start the AI agent alone — not the collector beside it in that file, or every metric would arrive twice:
+To add it, run it with Docker on any machine that can reach vCenter. Download the agent's \`docker-compose.yml\`, write a \`.env\` next to it with the settings of \`${VMWARE_AGENT_NATIVE_ENV_FILE}\` — quoted the Docker Compose way, in single quotes, since Docker Compose expands \`$\` in double quotes — and start the AI agent alone, not the collector beside it in that file, or every metric would arrive twice:
 
 ${codeBlock(
   "bash",
   `mkdir oneuptime-vmware-ai-agent && cd oneuptime-vmware-ai-agent
 curl -fsSLO ${VMWARE_AGENT_RAW_URL}/docker-compose.yml
-# copy ${VMWARE_AGENT_NATIVE_ENV_FILE} from the agent's machine here as .env, then:
+# write .env here: the settings of ${VMWARE_AGENT_NATIVE_ENV_FILE}, single-quoted, then:
 docker compose up -d ${VMWARE_AI_AGENT_CONTAINER}`,
 )}
 
@@ -1290,7 +1293,7 @@ ${codeBlock(
     },
     {
       title: "No vCenter appears, or no metrics",
-      markdown: `1. Check the log (\`sudo journalctl -u ${VMWARE_AGENT_SERVICE} -n 100 --no-pager\`): a login error (\`incorrect user name or password\`, \`InvalidLogin\`) means bad credentials — or a user name or password that is not single-quoted in \`.env\`; \`x509: certificate signed by unknown authority\` means TLS verification is on against a certificate this machine does not trust (see **x509 or other TLS errors**); \`connection refused\` / \`no such host\` means a wrong \`VCENTER_ENDPOINT\`; \`Exporting failed\` with a \`401\` or \`422\` means OneUptime refuses the ingestion key.
+      markdown: `1. Check the log (\`sudo journalctl -u ${VMWARE_AGENT_SERVICE} -n 100 --no-pager\`): a login error (\`incorrect user name or password\`, \`InvalidLogin\`) means bad credentials — or a user name or password that is not double-quoted, backslashes doubled, in \`.env\`; \`x509: certificate signed by unknown authority\` means TLS verification is on against a certificate this machine does not trust (see **x509 or other TLS errors**); \`connection refused\` / \`no such host\` means a wrong \`VCENTER_ENDPOINT\`; \`Exporting failed\` with a \`401\` or \`422\` means OneUptime refuses the ingestion key.
 2. Verify the endpoint is reachable. The collector runs on this machine, not in a container, so a plain \`curl\` takes its path — you should see an XML document advertising \`urn:vim25\`:
 
 ${codeBlock(
@@ -1310,7 +1313,7 @@ ${codeBlock(
     },
     {
       title: "vCenter rejects the login",
-      markdown: `Use the full principal — \`oneuptime@vsphere.local\`, or \`DOMAIN\\user\` / \`user@domain.example\` for an Active Directory identity source — and check how it and the password are written in \`${VMWARE_AGENT_NATIVE_ENV_FILE}\`. systemd reads that file with rules of its own: a value in single quotes is taken exactly as written — \`$\`, \`#\`, spaces, \`"\` and \`\\\` included — while outside quotes a backslash is dropped (\`DOMAIN\\user\` becomes \`DOMAINuser\`) and nothing starts a comment. So keep both single-quoted — \`VCENTER_PASSWORD='p@ss$word'\`. A password that itself contains a single quote goes in double quotes, with \`"\` and \`\\\` escaped with a backslash. Restart the agent after changing either. A locked account (too many failed attempts) rejects a correct password too; check *Administration → Single Sign On → Users and Groups*.`,
+      markdown: `Use the full principal — \`oneuptime@vsphere.local\`, or \`DOMAIN\\user\` / \`user@domain.example\` for an Active Directory identity source — and check how it and the password are written in \`${VMWARE_AGENT_NATIVE_ENV_FILE}\`. systemd reads that file with rules of its own, and not the same ones in every version: outside quotes it drops a backslash (\`DOMAIN\\user\` becomes \`DOMAINuser\`) and nothing starts a comment, and older versions (RHEL 8's, for one) drop a backslash inside single quotes too. The form every version reads as typed is double quotes, with each \`\\\` written \`\\\\\` and each \`"\` written \`\\"\` — \`VCENTER_USERNAME="DOMAIN\\\\user"\`, \`VCENTER_PASSWORD="p@ss$word"\`; \`$\`, \`#\`, \`'\` and spaces go in as they are. Restart the agent after changing either. A locked account (too many failed attempts) rejects a correct password too; check *Administration → Single Sign On → Users and Groups*.`,
     },
     {
       title: "x509 or other TLS errors",

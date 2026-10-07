@@ -115,13 +115,13 @@ ONEUPTIME_URL=YOUR_ONEUPTIME_URL
 ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_TOKEN
 VMWARE_VCENTER_NAME=my-vcenter
 VCENTER_ENDPOINT=https://vcsa.example.com
-VCENTER_USERNAME='oneuptime@vsphere.local'
-VCENTER_PASSWORD='a-strong-password'
+VCENTER_USERNAME="oneuptime@vsphere.local"
+VCENTER_PASSWORD="a-strong-password"
 VCENTER_INSECURE_SKIP_VERIFY=true
 VCENTER_COLLECTION_INTERVAL=2m
 ```
 
-systemd reads this file, not a shell: a value in single quotes is taken exactly as written, while outside quotes a backslash is dropped (`DOMAIN\user` would log in as `DOMAINuser`). Keep the user name and the password single-quoted. Then start the agent, and have it start on every boot:
+systemd reads this file, not a shell: keep the user name and the password in double quotes, with each `\` written `\\` and each `"` written `\"` — `DOMAIN\user` is `"DOMAIN\\user"` — while `$`, `#`, `'` and spaces go in as they are. That is the form every systemd version reads the same; older ones (RHEL 8's, for one) drop a backslash even inside single quotes. Then start the agent, and have it start on every boot:
 
 ```bash
 sudo systemctl daemon-reload
@@ -142,7 +142,7 @@ Docker Compose reads these from the `.env` next to `docker-compose.yml`; the ins
 | `VMWARE_VCENTER_NAME`               | Yes      | The name this vCenter registers under in OneUptime, stamped on every metric as the `vmware.vcenter.name` resource attribute. Keep it stable — changing it later registers a second vCenter. Defaults to `vmware-vcenter` |
 | `VCENTER_ENDPOINT`                  | Yes      | Scheme + host of vCenter Server or a standalone ESXi host, **without** `/sdk`, e.g. `https://vcsa.example.com`                                                                                                    |
 | `VCENTER_USERNAME`                  | Yes      | vSphere user with the Read-Only role, e.g. `oneuptime@vsphere.local` (or `DOMAIN\user` for an Active Directory identity source)                                                                                   |
-| `VCENTER_PASSWORD`                  | Yes      | That user's password. If it contains `$`, `#`, spaces or quotes, single-quote it in `.env` (`install.sh` does this for you) — see Troubleshooting                                                                                                                                                                                              |
+| `VCENTER_PASSWORD`                  | Yes      | That user's password. If it contains `$`, `#`, spaces or quotes, single-quote it in `.env` (`install.sh` does this for you) — see Troubleshooting; without Docker, double-quote it instead (see [Alternative — Without Docker](#alternative-without-docker))                                                                                                                                                                                              |
 | `VCENTER_INSECURE_SKIP_VERIFY`      | No       | `true` to accept vCenter's default self-signed (VMCA) certificate; `false` keeps TLS verification on. Defaults to `false`                                                                                          |
 | `VCENTER_COLLECTION_INTERVAL`       | No       | How often the whole inventory is polled. Raise to `5m` or `10m` for very large vCenters. Defaults to `2m`                                                                                                         |
 
@@ -368,7 +368,7 @@ curl -s -H "x-oneuptime-token: <key>" https://<oneuptime-host>/otlp/v1/validate
 curl -s http://127.0.0.1:8890/metrics | grep -E 'otelcol_(receiver_accepted|exporter_sent|exporter_send_failed)_metric_points'
 ```
 
-The log reads like the container's, so the sections below apply. A service that keeps restarting logs why: `Failed with result 'resources'` means systemd cannot read `/opt/oneuptime-vmware-agent/.env`, and `cannot unmarshal the configuration` or `requires positive value` means a value in it is not one the collector takes. systemd reads `.env` with rules of its own: a single-quoted value is taken exactly as written, while outside quotes a backslash is dropped and nothing starts a comment — keep the user name and password single-quoted, and put a password that itself contains a `'` in double quotes with `"` and `\` escaped. And since the collector trusts the machine's CA store, you can keep TLS verification on: add vCenter's root certificate — the `.0` files under `certs/lin/` in `https://<vcenter>/certs/download.zip` — to `/usr/local/share/ca-certificates/` (with a `.crt` name) and run `update-ca-certificates` on Debian and Ubuntu, or to `/etc/pki/ca-trust/source/anchors/` and run `update-ca-trust` on RHEL, then restart the service.
+The log reads like the container's, so the sections below apply. A service that keeps restarting logs why: `Failed with result 'resources'` means systemd cannot read `/opt/oneuptime-vmware-agent/.env`, and `cannot unmarshal the configuration` or `requires positive value` means a value in it is not one the collector takes. systemd reads `.env` with rules of its own, and older versions (RHEL 8's, for one) drop a backslash even inside single quotes: keep the user name and password in double quotes, with each `\` written `\\` and each `"` written `\"`, the one form every version reads as typed. And since the collector trusts the machine's CA store, you can keep TLS verification on: add vCenter's root certificate — the `.0` files under `certs/lin/` in `https://<vcenter>/certs/download.zip` — to `/usr/local/share/ca-certificates/` (with a `.crt` name) and run `update-ca-certificates` on Debian and Ubuntu, or to `/etc/pki/ca-trust/source/anchors/` and run `update-ca-trust` on RHEL, then restart the service.
 
 ### No vCenter appears in OneUptime
 
@@ -422,7 +422,7 @@ The agent's `docker-compose.yml` also runs the **VMware AI agent**, `oneuptime-v
 - It is **read-only** unless you set `ONEUPTIME_AI_ALLOW_WRITES=true`; `ONEUPTIME_AI_WRITE_TARGETS` (VM and host names or inventory paths) limits what a fix may touch. It never changes the VM named after the host in `VCENTER_ENDPOINT` — normally the vCenter appliance — and knows the appliance by that name only: when `VCENTER_ENDPOINT` is an IP address, or the appliance's VM has another name, put that VM in `ONEUPTIME_AI_PROTECTED_TARGETS`, with the VM the agent runs on. `ONEUPTIME_AI_FIXES` in the same `.env` says how fixes run — `ask-for-approval` (a person approves each one), `automatic` or `bypass-approval` — and the AI agent page shows it read-only ([What AI may do, set by the agent](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)).
 - To verify vCenter's certificate instead of skipping verification, mount its CA into the container and set `VCENTER_CA_FILE`; on a vCenter with several datacenters, set `GOVC_DATACENTER`.
 - It runs as UID 1000 with no capabilities, and never runs guest operations, snapshots, `esxcli` or anything that creates or destroys a VM. Delete the `oneuptime-vmware-ai-agent` service from `docker-compose.yml` if you do not use OneUptime AI.
-- The [install without Docker](#alternative-without-docker) has no AI agent: it ships only as a container image. To add one, run it with Docker on any machine that can reach vCenter — download `docker-compose.yml`, copy `/opt/oneuptime-vmware-agent/.env` next to it, and start the AI agent alone with `docker compose up -d oneuptime-vmware-ai-agent` (not the collector, which already runs).
+- The [install without Docker](#alternative-without-docker) has no AI agent: it ships only as a container image. To add one, run it with Docker on any machine that can reach vCenter — download `docker-compose.yml`, write a `.env` next to it with the settings of `/opt/oneuptime-vmware-agent/.env`, single-quoted as Docker Compose wants them, and start the AI agent alone with `docker compose up -d oneuptime-vmware-ai-agent` (not the collector, which already runs).
 
 What it may run, how fixes work and how to troubleshoot it: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#vmware-vcenter). The agent's README has the exact commands for the fixes role.
 

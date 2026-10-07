@@ -568,10 +568,10 @@ describe.each(METHOD_KEYS)("the %s guide", (method: VMwareInstallMethod) => {
       guide.troubleshooting,
       "vCenter rejects the login",
     ).markdown;
-    expect(login).toContain("`VCENTER_PASSWORD='p@ss$word'`");
     expect(login).toContain("`DOMAIN\\user`");
-    expect(markdown).not.toContain("DOMAIN\\\\user");
     if (isDockerMethod(method)) {
+      expect(markdown).not.toContain("DOMAIN\\\\user");
+      expect(login).toContain("`VCENTER_PASSWORD='p@ss$word'`");
       expect(login).toContain(
         "a password containing `$`, `#`, spaces or quotes must be **single-quoted**",
       );
@@ -580,11 +580,20 @@ describe.each(METHOD_KEYS)("the %s guide", (method: VMwareInstallMethod) => {
       expect(login).toContain('`"` / `\\` escaped with a backslash');
       return;
     }
-    // systemd: no $$, and an unquoted backslash is dropped.
+    /*
+     * systemd: no $$; an unquoted backslash is dropped, and systemd 239 drops
+     * one inside single quotes too, so double quotes with \ and " escaped.
+     */
     expect(login).toContain(`\`${VMWARE_AGENT_NATIVE_ENV_FILE}\``);
     expect(login).toContain("(`DOMAIN\\user` becomes `DOMAINuser`)");
-    expect(login).toContain("keep both single-quoted");
-    expect(login).toContain('with `"` and `\\` escaped with a backslash');
+    expect(login).toContain(
+      "older versions (RHEL 8's, for one) drop a backslash inside single quotes too",
+    );
+    expect(login).toContain(
+      'with each `\\` written `\\\\` and each `"` written `\\"`',
+    );
+    expect(login).toContain('`VCENTER_USERNAME="DOMAIN\\\\user"`');
+    expect(login).toContain('`VCENTER_PASSWORD="p@ss$word"`');
     expect(login).not.toContain("$$");
     expect(login).not.toContain("Docker Compose");
   });
@@ -595,7 +604,13 @@ describe.each(METHOD_KEYS)("the %s guide", (method: VMwareInstallMethod) => {
       "Environment variables",
     ).markdown;
     expect(table).toContain(`(e.g. \`${URL}\`)`);
-    expect(table).toContain("single-quote it in `.env`");
+    if (isDockerMethod(method)) {
+      expect(table).toContain("single-quote it in `.env`");
+    } else {
+      expect(table).toContain(
+        'double-quoted in `.env` with each `\\` written `\\\\` and each `"` written `\\"`',
+      );
+    }
     if (!isDockerMethod(method)) {
       expect(table).toContain(
         `The service reads these from \`${VMWARE_AGENT_NATIVE_ENV_FILE}\``,
@@ -677,7 +692,10 @@ describe.each(METHOD_KEYS)("the %s guide", (method: VMwareInstallMethod) => {
     // Run elsewhere, it is the AI agent alone: this machine runs the collector.
     expect(ai).toContain(`docker compose up -d ${VMWARE_AI_AGENT_CONTAINER}`);
     expect(ai).not.toMatch(/docker compose up -d\s*$/m);
-    expect(ai).toContain(`copy ${VMWARE_AGENT_NATIVE_ENV_FILE}`);
+    // Its .env is read by Docker Compose, which expands $ in double quotes.
+    expect(ai).toContain(
+      `# write .env here: the settings of ${VMWARE_AGENT_NATIVE_ENV_FILE}, single-quoted, then:`,
+    );
   });
 
   /*
@@ -1216,46 +1234,67 @@ describe("the install without Docker", () => {
         vcenterName: VMWARE_EXAMPLE_VCENTER_NAME,
       }),
     );
-    const variables: Map<string, string> = parseSystemdEnvironmentFile(env);
-    expect(Array.from(variables.keys()).sort()).toEqual(
-      Array.from(composeVariables(VMWARE_AGENT_CONTAINER).keys()).sort(),
-    );
-    expect(Object.fromEntries(variables)).toEqual({
-      ONEUPTIME_URL: URL,
-      ONEUPTIME_TELEMETRY_INGESTION_KEY: KEY,
-      VMWARE_VCENTER_NAME: VMWARE_EXAMPLE_VCENTER_NAME,
-      VCENTER_ENDPOINT: "https://vcsa.example.com",
-      VCENTER_USERNAME: "oneuptime@vsphere.local",
-      VCENTER_PASSWORD: "a-strong-password",
-      VCENTER_INSECURE_SKIP_VERIFY: "true",
-      VCENTER_COLLECTION_INTERVAL: "2m",
-    });
-    // Quoted in the sample, so an edited value keeps its $, # and \.
-    expect(env).toContain("VCENTER_USERNAME='oneuptime@vsphere.local'");
-    expect(env).toContain("VCENTER_PASSWORD='a-strong-password'");
+    for (const legacy of [false, true]) {
+      const variables: Map<string, string> = parseSystemdEnvironmentFile(env, {
+        legacy,
+      });
+      expect(Array.from(variables.keys()).sort()).toEqual(
+        Array.from(composeVariables(VMWARE_AGENT_CONTAINER).keys()).sort(),
+      );
+      expect(Object.fromEntries(variables)).toEqual({
+        ONEUPTIME_URL: URL,
+        ONEUPTIME_TELEMETRY_INGESTION_KEY: KEY,
+        VMWARE_VCENTER_NAME: VMWARE_EXAMPLE_VCENTER_NAME,
+        VCENTER_ENDPOINT: "https://vcsa.example.com",
+        VCENTER_USERNAME: "oneuptime@vsphere.local",
+        VCENTER_PASSWORD: "a-strong-password",
+        VCENTER_INSECURE_SKIP_VERIFY: "true",
+        VCENTER_COLLECTION_INTERVAL: "2m",
+      });
+    }
+    // Quoted in the sample, so an edited value keeps its $, # and spaces.
+    expect(env).toContain('VCENTER_USERNAME="oneuptime@vsphere.local"');
+    expect(env).toContain('VCENTER_PASSWORD="a-strong-password"');
   });
 
-  test("a password or AD user written the way the guide says reaches the collector as typed", () => {
+  test("a password or AD user written the way the guide says reaches the collector as typed, on any systemd", () => {
+    // The guide's rule: double quotes, each backslash doubled, each quote escaped.
     const edited: string = envFileOf(guide)
       .replace(
-        "VCENTER_USERNAME='oneuptime@vsphere.local'",
-        "VCENTER_USERNAME='VSPHERE\\oneuptime'",
+        'VCENTER_USERNAME="oneuptime@vsphere.local"',
+        'VCENTER_USERNAME="VSPHERE\\\\oneuptime"',
       )
       .replace(
-        "VCENTER_PASSWORD='a-strong-password'",
-        "VCENTER_PASSWORD='Sp3c$ial #pass \"q\" \\ end'",
+        'VCENTER_PASSWORD="a-strong-password"',
+        'VCENTER_PASSWORD="Sp3c$ial #pass \\"q\\" \\\\ end \'s"',
       );
-    const variables: Map<string, string> = parseSystemdEnvironmentFile(edited);
-    expect(variables.get("VCENTER_USERNAME")).toBe("VSPHERE\\oneuptime");
-    expect(variables.get("VCENTER_PASSWORD")).toBe('Sp3c$ial #pass "q" \\ end');
-    // What the guide warns about: unquoted, the backslash is gone.
+    for (const legacy of [false, true]) {
+      const variables: Map<string, string> = parseSystemdEnvironmentFile(
+        edited,
+        { legacy },
+      );
+      expect(variables.get("VCENTER_USERNAME")).toBe("VSPHERE\\oneuptime");
+      expect(variables.get("VCENTER_PASSWORD")).toBe(
+        'Sp3c$ial #pass "q" \\ end \'s',
+      );
+    }
+    /*
+     * What the guide warns about: unquoted the backslash is gone, and
+     * systemd 239 (RHEL 8) drops it inside single quotes as well.
+     */
     expect(
       parseSystemdEnvironmentFile("VCENTER_USERNAME=DOMAIN\\user").get(
         "VCENTER_USERNAME",
       ),
     ).toBe("DOMAINuser");
+    expect(
+      parseSystemdEnvironmentFile("VCENTER_USERNAME='DOMAIN\\user'", {
+        legacy: true,
+      }).get("VCENTER_USERNAME"),
+    ).toBe("DOMAINuser");
+    expect(install).toContain('`DOMAIN\\user` is `"DOMAIN\\\\user"`');
     expect(install).toContain(
-      "outside quotes it drops a backslash, so `DOMAIN\\user` would log in as `DOMAINuser`",
+      "older ones (RHEL 8's, for one) drop a backslash even inside single quotes",
     );
   });
 
@@ -1270,10 +1309,15 @@ describe("the install without Docker", () => {
       const env: string = envFileOf(
         guideFor("linux-service", { vcenterName: name }),
       );
-      expect({
-        name,
-        read: parseSystemdEnvironmentFile(env).get("VMWARE_VCENTER_NAME"),
-      }).toEqual({ name, read: name });
+      for (const legacy of [false, true]) {
+        expect({
+          name,
+          legacy,
+          read: parseSystemdEnvironmentFile(env, { legacy }).get(
+            "VMWARE_VCENTER_NAME",
+          ),
+        }).toEqual({ name, legacy, read: name });
+      }
     }
   });
 

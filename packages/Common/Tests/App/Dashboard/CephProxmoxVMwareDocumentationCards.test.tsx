@@ -347,7 +347,7 @@ describe("the Ceph, Proxmox and VMware setup guide cards", () => {
         `ONEUPTIME_TELEMETRY_INGESTION_KEY=${SECRET}\nVMWARE_VCENTER_NAME=my-vcenter`,
       );
       expect(container.textContent).toContain(
-        "VCENTER_USERNAME='oneuptime@vsphere.local'",
+        'VCENTER_USERNAME="oneuptime@vsphere.local"',
       );
       expect(container.textContent).toContain(
         "sudo systemctl enable oneuptime-vmware-agent",

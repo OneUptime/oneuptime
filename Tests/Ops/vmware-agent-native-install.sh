@@ -33,9 +33,10 @@
 # Test" workflow runs it on every PR.
 #
 # Usage: bash Tests/Ops/vmware-agent-native-install.sh [--image IMAGE]
-#   IMAGE defaults to public.ecr.aws/docker/library/ubuntu:24.04; Debian,
-#   Ubuntu and RHEL-family images (apt or dnf) work, e.g. debian:11
-#   (systemd 247) or rockylinux:8 (systemd 239).
+#   IMAGE defaults to public.ecr.aws/docker/library/ubuntu:24.04 (systemd
+#   255); Debian, Ubuntu and RHEL-family images (apt or dnf) work. CI also
+#   runs public.ecr.aws/docker/library/rockylinux:8: systemd 239, the oldest
+#   the docs support, reads a backslash inside single quotes as an escape.
 
 set -euo pipefail
 
@@ -167,13 +168,20 @@ import pathlib, sys
 work, name, user, password, key = sys.argv[1:]
 work = pathlib.Path(work)
 env = (work / "env-content.template").read_text()
+
+
+def double_quoted(value):
+    # The docs' rule for systemd: double quotes, \ and " escaped.
+    return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
 for old, new in {
     "ONEUPTIME_URL=YOUR_ONEUPTIME_URL": "ONEUPTIME_URL=http://127.0.0.1:4318",
     "ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_TOKEN": f"ONEUPTIME_TELEMETRY_INGESTION_KEY={key}",
     "VMWARE_VCENTER_NAME=my-vcenter": f"VMWARE_VCENTER_NAME={name}",
     "VCENTER_ENDPOINT=https://vcsa.example.com": "VCENTER_ENDPOINT=https://127.0.0.1:8989",
-    "VCENTER_USERNAME='oneuptime@vsphere.local'": f"VCENTER_USERNAME='{user}'",
-    "VCENTER_PASSWORD='a-strong-password'": f"VCENTER_PASSWORD='{password}'",
+    'VCENTER_USERNAME="oneuptime@vsphere.local"': "VCENTER_USERNAME=" + double_quoted(user),
+    'VCENTER_PASSWORD="a-strong-password"': "VCENTER_PASSWORD=" + double_quoted(password),
     "VCENTER_COLLECTION_INTERVAL=2m": "VCENTER_COLLECTION_INTERVAL=20s",
 }.items():
     assert env.count(old) == 1, old

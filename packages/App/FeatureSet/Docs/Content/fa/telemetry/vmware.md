@@ -115,13 +115,13 @@ ONEUPTIME_URL=YOUR_ONEUPTIME_URL
 ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_TOKEN
 VMWARE_VCENTER_NAME=my-vcenter
 VCENTER_ENDPOINT=https://vcsa.example.com
-VCENTER_USERNAME='oneuptime@vsphere.local'
-VCENTER_PASSWORD='a-strong-password'
+VCENTER_USERNAME="oneuptime@vsphere.local"
+VCENTER_PASSWORD="a-strong-password"
 VCENTER_INSECURE_SKIP_VERIFY=true
 VCENTER_COLLECTION_INTERVAL=2m
 ```
 
-این فایل را systemd می‌خواند، نه پوسته: مقداری که در تک‌نقل‌قول باشد دقیقاً همان‌طور که نوشته شده گرفته می‌شود، در حالی که بیرون از نقل‌قول بک‌اسلش حذف می‌شود (`DOMAIN\user` با نام `DOMAINuser` وارد می‌شد). نام کاربری و گذرواژه را تک‌نقل‌قول نگه دارید. سپس عامل را آغاز کنید و کاری کنید که در هر راه‌اندازی آغاز شود:
+این فایل را systemd می‌خواند، نه پوسته: نام کاربری و گذرواژه را در نقل‌قول دوتایی نگه دارید و هر `\` را به‌صورت `\\` و هر `"` را به‌صورت `\"` بنویسید — `DOMAIN\user` می‌شود `"DOMAIN\\user"` — در حالی که `$`، `#`، `'` و فاصله همان‌طور که هستند می‌روند. این همان شکلی است که همه نسخه‌های systemd یکسان می‌خوانند؛ نسخه‌های قدیمی‌تر (برای نمونه نسخه RHEL 8) بک‌اسلش را حتی درون تک‌نقل‌قول هم حذف می‌کنند. سپس عامل را آغاز کنید و کاری کنید که در هر راه‌اندازی آغاز شود:
 
 ```bash
 sudo systemctl daemon-reload
@@ -142,7 +142,7 @@ sudo systemctl restart oneuptime-vmware-agent
 | `VMWARE_VCENTER_NAME` | بله | نامی که این vCenter زیر آن در OneUptime ثبت می‌شود، روی هر سنجه‌ای به‌عنوان ویژگی منبع `vmware.vcenter.name` مهر می‌خورد. پایدار نگهش دارید — تغییرش بعداً vCenter دومی ثبت می‌کند. پیش‌فرض `vmware-vcenter` |
 | `VCENTER_ENDPOINT` | بله | طرح + میزبان vCenter Server یا میزبان ESXi مستقل، **بدون** `/sdk`، برای نمونه `https://vcsa.example.com` |
 | `VCENTER_USERNAME` | بله | کاربر vSphere با نقش Read-Only، برای نمونه `oneuptime@vsphere.local` (یا `DOMAIN\user` برای منبع هویت Active Directory) |
-| `VCENTER_PASSWORD` | بله | گذرواژه آن کاربر. اگر `$`، `#`، فاصله یا نقل‌قول دارد، در `.env` تک‌نقل‌قولش کنید (`install.sh` این کار را برایتان می‌کند) — عیب‌یابی را ببینید |
+| `VCENTER_PASSWORD` | بله | گذرواژه آن کاربر. اگر `$`، `#`، فاصله یا نقل‌قول دارد، در `.env` تک‌نقل‌قولش کنید (`install.sh` این کار را برایتان می‌کند) — عیب‌یابی را ببینید؛ بدون Docker به‌جای آن در نقل‌قول دوتایی بگذاریدش ([جایگزین — بدون Docker](#جایگزین-بدون-docker) را ببینید) |
 | `VCENTER_INSECURE_SKIP_VERIFY` | خیر | `true` برای پذیرفتن گواهی پیش‌فرض خودامضای (VMCA) ‏vCenter؛ `false` تأیید TLS را روشن نگه می‌دارد. پیش‌فرض `false` |
 | `VCENTER_COLLECTION_INTERVAL` | خیر | اینکه کل فهرست موجودی هر چند وقت نظرسنجی شود. برای vCenterهای بسیار بزرگ به `5m` یا `10m` بالا ببرید. پیش‌فرض `2m` |
 
@@ -368,7 +368,7 @@ curl -s -H "x-oneuptime-token: <key>" https://<oneuptime-host>/otlp/v1/validate
 curl -s http://127.0.0.1:8890/metrics | grep -E 'otelcol_(receiver_accepted|exporter_sent|exporter_send_failed)_metric_points'
 ```
 
-گزارش همانند گزارش کانتینر خوانده می‌شود، پس بخش‌های زیر به کار می‌آیند. سرویسی که پیوسته از نو آغاز می‌شود دلیلش را ثبت می‌کند: `Failed with result 'resources'` یعنی systemd نمی‌تواند `/opt/oneuptime-vmware-agent/.env` را بخواند، و `cannot unmarshal the configuration` یا `requires positive value` یعنی مقداری در آن از مقدارهایی نیست که جمع‌کننده می‌پذیرد. ‏systemd فایل `.env` را با قواعد خودش می‌خواند: مقدار تک‌نقل‌قول‌شده دقیقاً همان‌طور که نوشته شده گرفته می‌شود، در حالی که بیرون از نقل‌قول بک‌اسلش حذف می‌شود و هیچ چیز آغاز توضیح نیست — نام کاربری و گذرواژه را تک‌نقل‌قول نگه دارید، و گذرواژه‌ای را که خودش `'` دارد در نقل‌قول دوتایی بگذارید و `"` و `\` را گریز دهید. و چون جمع‌کننده به مخزن CA ماشین اعتماد دارد، می‌توانید تأیید TLS را روشن نگه دارید: گواهی ریشه vCenter — فایل‌های `.0` زیر `certs/lin/` در `https://<vcenter>/certs/download.zip` — را به `/usr/local/share/ca-certificates/` (با نامی به پسوند `.crt`) بیفزایید و روی Debian و Ubuntu `update-ca-certificates` را اجرا کنید، یا به `/etc/pki/ca-trust/source/anchors/` بیفزایید و روی RHEL `update-ca-trust` را اجرا کنید، سپس سرویس را از نو آغاز کنید.
+گزارش همانند گزارش کانتینر خوانده می‌شود، پس بخش‌های زیر به کار می‌آیند. سرویسی که پیوسته از نو آغاز می‌شود دلیلش را ثبت می‌کند: `Failed with result 'resources'` یعنی systemd نمی‌تواند `/opt/oneuptime-vmware-agent/.env` را بخواند، و `cannot unmarshal the configuration` یا `requires positive value` یعنی مقداری در آن از مقدارهایی نیست که جمع‌کننده می‌پذیرد. ‏systemd فایل `.env` را با قواعد خودش می‌خواند، و نسخه‌های قدیمی‌تر (برای نمونه نسخه RHEL 8) بک‌اسلش را حتی درون تک‌نقل‌قول هم حذف می‌کنند: نام کاربری و گذرواژه را در نقل‌قول دوتایی نگه دارید و هر `\` را به‌صورت `\\` و هر `"` را به‌صورت `\"` بنویسید؛ این تنها شکلی است که همه نسخه‌ها دقیقاً همان‌طور که تایپ شده می‌خوانند. و چون جمع‌کننده به مخزن CA ماشین اعتماد دارد، می‌توانید تأیید TLS را روشن نگه دارید: گواهی ریشه vCenter — فایل‌های `.0` زیر `certs/lin/` در `https://<vcenter>/certs/download.zip` — را به `/usr/local/share/ca-certificates/` (با نامی به پسوند `.crt`) بیفزایید و روی Debian و Ubuntu `update-ca-certificates` را اجرا کنید، یا به `/etc/pki/ca-trust/source/anchors/` بیفزایید و روی RHEL `update-ca-trust` را اجرا کنید، سپس سرویس را از نو آغاز کنید.
 
 ### هیچ vCenterای در OneUptime پدیدار نمی‌شود
 
@@ -422,7 +422,7 @@ curl -s http://127.0.0.1:8890/metrics | grep -E 'otelcol_(receiver_accepted|expo
 - **فقط‌خواندنی** است مگر آنکه `ONEUPTIME_AI_ALLOW_WRITES=true` را تنظیم کنید؛ `ONEUPTIME_AI_WRITE_TARGETS` (نام‌ها یا مسیرهای موجودی ماشین‌های مجازی و میزبان‌ها) محدود می‌کند که یک اصلاح به چه چیزی دست بزند. هرگز ماشین مجازی‌ای را که هم‌نام میزبانِ `VCENTER_ENDPOINT` است — که معمولاً خودِ دستگاه vCenter است — تغییر نمی‌دهد و دستگاه را فقط با همین نام می‌شناسد: وقتی `VCENTER_ENDPOINT` یک نشانی IP است، یا ماشین مجازی دستگاه نام دیگری دارد، آن ماشین مجازی را همراه با ماشین مجازی‌ای که عامل روی آن اجرا می‌شود در `ONEUPTIME_AI_PROTECTED_TARGETS` بگذارید. `ONEUPTIME_AI_FIXES` در همان `.env` تعیین می‌کند اصلاح‌ها چگونه اجرا شوند — `ask-for-approval` (هر اصلاح را یک نفر تأیید می‌کند)، `automatic` یا `bypass-approval` — و صفحه عامل هوش مصنوعی آن را فقط‌خواندنی نشان می‌دهد ([آنچه هوش مصنوعی مجاز است انجام دهد، به تنظیم عامل](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)).
 - برای تأیید گواهی vCenter به‌جای نادیده گرفتن آن، CA آن را در کانتینر سوار کنید و `VCENTER_CA_FILE` را تنظیم کنید؛ روی vCenter با چند دیتاسنتر، `GOVC_DATACENTER` را تنظیم کنید.
 - با UID 1000 و بدون هیچ قابلیتی اجرا می‌شود، و هرگز عملیات مهمان، اسنپ‌شات، `esxcli` یا هر چیزی که ماشین مجازی بسازد یا نابود کند اجرا نمی‌کند. اگر از هوش مصنوعی OneUptime استفاده نمی‌کنید، سرویس `oneuptime-vmware-ai-agent` را از `docker-compose.yml` حذف کنید.
-- [نصب بدون Docker](#جایگزین-بدون-docker) عامل هوش مصنوعی ندارد: این عامل فقط به‌صورت ایمیج کانتینر عرضه می‌شود. برای افزودنش، آن را با Docker روی هر ماشینی که به vCenter می‌رسد اجرا کنید — `docker-compose.yml` را دانلود کنید، `/opt/oneuptime-vmware-agent/.env` را کنارش کپی کنید، و فقط عامل هوش مصنوعی را با `docker compose up -d oneuptime-vmware-ai-agent` آغاز کنید (نه جمع‌کننده را، که از پیش اجرا می‌شود).
+- [نصب بدون Docker](#جایگزین-بدون-docker) عامل هوش مصنوعی ندارد: این عامل فقط به‌صورت ایمیج کانتینر عرضه می‌شود. برای افزودنش، آن را با Docker روی هر ماشینی که به vCenter می‌رسد اجرا کنید — `docker-compose.yml` را دانلود کنید، کنارش فایلی `.env` با تنظیمات `/opt/oneuptime-vmware-agent/.env` بنویسید، تک‌نقل‌قول‌شده آن‌گونه که Docker Compose می‌خواهد، و فقط عامل هوش مصنوعی را با `docker compose up -d oneuptime-vmware-ai-agent` آغاز کنید (نه جمع‌کننده را، که از پیش اجرا می‌شود).
 
 اینکه چه چیزی می‌تواند اجرا کند، اصلاح‌ها چگونه کار می‌کنند و چگونه اشکالش را رفع کنید: [عامل‌های هوش مصنوعی زیرساخت](/docs/ai/infrastructure-ai-agents#vmware-vcenter). README عامل فرمان‌های دقیق نقش اصلاح را دارد.
 

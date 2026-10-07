@@ -817,15 +817,26 @@ describe("VMware docs", (): void => {
       const env: string = codeBlocks(part).find((block: string): boolean => {
         return block.startsWith("ONEUPTIME_URL=");
       }) as string;
-      const variables: Map<string, string> = parseSystemdEnvironmentFile(env);
+      // As systemd 255 and systemd 239 (RHEL 8) read it.
+      for (const legacy of [false, true]) {
+        const variables: Map<string, string> = parseSystemdEnvironmentFile(
+          env,
+          { legacy },
+        );
 
-      expect(Array.from(variables.keys()).sort()).toEqual(
-        composeEnvironmentVariables().sort(),
+        expect(Array.from(variables.keys()).sort()).toEqual(
+          composeEnvironmentVariables().sort(),
+        );
+        expect(variables.get("VCENTER_USERNAME")).toBe(
+          "oneuptime@vsphere.local",
+        );
+        expect(variables.get("VCENTER_PASSWORD")).toBe("a-strong-password");
+      }
+      expect(env).toContain('VCENTER_PASSWORD="a-strong-password"');
+      expect(part).toContain('`DOMAIN\\user` is `"DOMAIN\\\\user"`');
+      expect(part).toContain(
+        "older ones (RHEL 8's, for one) drop a backslash even inside single quotes",
       );
-      expect(variables.get("VCENTER_USERNAME")).toBe("oneuptime@vsphere.local");
-      expect(variables.get("VCENTER_PASSWORD")).toBe("a-strong-password");
-      expect(env).toContain("VCENTER_PASSWORD='a-strong-password'");
-      expect(part).toContain("(`DOMAIN\\user` would log in as `DOMAINuser`)");
     });
 
     it("links the systemd unit the agent ships, and upgrades and uninstalls without Docker as the guide does", (): void => {

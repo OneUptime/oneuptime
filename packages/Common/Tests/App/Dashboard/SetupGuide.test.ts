@@ -155,17 +155,19 @@ describe("shellQuote", () => {
 
 /*
  * A value for a systemd EnvironmentFile= line (the VMware agent's .env
- * without Docker). systemd's quoting is not a shell's, so every value is
- * checked by reading it back with the port of systemd's own parser
- * (SystemdEnvironmentFile.ts, pinned to systemd 255).
+ * without Docker). systemd's quoting is not a shell's, and not the same in
+ * every systemd version, so every value is checked by reading it back with
+ * the port of systemd's own parser (SystemdEnvironmentFile.ts), as systemd
+ * 255 and as systemd 239 (RHEL 8) read it.
  */
 describe("systemdEnvQuote", () => {
-  const readBack: (value: string) => string | undefined = (
+  const readBack: (value: string, legacy: boolean) => string | undefined = (
     value: string,
+    legacy: boolean,
   ): string | undefined => {
-    return parseSystemdEnvironmentFile(`NAME=${systemdEnvQuote(value)}\n`).get(
-      "NAME",
-    );
+    return parseSystemdEnvironmentFile(`NAME=${systemdEnvQuote(value)}\n`, {
+      legacy,
+    }).get("NAME");
   };
 
   test("leaves a value systemd reads literally unquoted", () => {
@@ -177,25 +179,23 @@ describe("systemdEnvQuote", () => {
       "host:443",
     ]) {
       expect(systemdEnvQuote(value)).toBe(value);
-      expect(readBack(value)).toBe(value);
+      expect(readBack(value, false)).toBe(value);
+      expect(readBack(value, true)).toBe(value);
     }
   });
 
-  test("single-quotes anything else, which systemd takes as written", () => {
-    expect(systemdEnvQuote("prod $vc")).toBe("'prod $vc'");
-    expect(systemdEnvQuote("DOMAIN\\user")).toBe("'DOMAIN\\user'");
-    expect(systemdEnvQuote('lab "a" #1')).toBe("'lab \"a\" #1'");
-    expect(systemdEnvQuote("")).toBe("''");
-  });
-
-  test('double-quotes a value with a single quote, escaping only \\ and "', () => {
+  test('double-quotes anything else, escaping only \\ and "', () => {
+    expect(systemdEnvQuote("prod $vc")).toBe('"prod $vc"');
+    expect(systemdEnvQuote("DOMAIN\\user")).toBe('"DOMAIN\\\\user"');
+    expect(systemdEnvQuote('lab "a" #1')).toBe('"lab \\"a\\" #1"');
     expect(systemdEnvQuote("O'Brien")).toBe('"O\'Brien"');
     expect(systemdEnvQuote('it\'s "lab" \\ $x')).toBe(
       '"it\'s \\"lab\\" \\\\ $x"',
     );
+    expect(systemdEnvQuote("")).toBe('""');
   });
 
-  test("every value reads back from the file exactly as it was", () => {
+  test("every value reads back from the file exactly as it was, in systemd 255 and 239 alike", () => {
     for (const value of [
       "plain",
       "two words",
@@ -220,16 +220,28 @@ describe("systemdEnvQuote", () => {
       "ünïcødé vCenter",
       "",
     ]) {
-      expect({ value, read: readBack(value) }).toEqual({ value, read: value });
+      for (const legacy of [false, true]) {
+        expect({ value, legacy, read: readBack(value, legacy) }).toEqual({
+          value,
+          legacy,
+          read: value,
+        });
+      }
     }
   });
 
-  test("where shellQuote's form would not survive systemd", () => {
+  test("where single quotes, and shellQuote's form, would not survive systemd", () => {
+    // systemd 239 drops a backslash inside single quotes.
+    expect(
+      parseSystemdEnvironmentFile("NAME='DOMAIN\\user'", { legacy: true }).get(
+        "NAME",
+      ),
+    ).toBe("DOMAINuser");
     // The shell reads 'it'\''s' as it's; systemd reads it as it''s'.
     expect(
       parseSystemdEnvironmentFile(`NAME=${shellQuote("it's")}`).get("NAME"),
     ).toBe("it''s'");
-    expect(readBack("it's")).toBe("it's");
+    expect(readBack("it's", false)).toBe("it's");
   });
 });
 
