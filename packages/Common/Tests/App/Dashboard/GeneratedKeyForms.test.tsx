@@ -184,11 +184,13 @@ import AlertMeasurementsPage from "../../../../App/FeatureSet/Dashboard/src/Page
 import ScheduledMaintenanceMeasurementsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceMeasurements";
 import MetricRecordingRulesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Metrics/Settings/RecordingRules";
 import TraceRecordingRulesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Traces/Settings/RecordingRules";
+import LogRecordingRulesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Logs/Settings/RecordingRules";
 import IncidentMeasurement from "../../../Models/DatabaseModels/IncidentMeasurement";
 import AlertMeasurement from "../../../Models/DatabaseModels/AlertMeasurement";
 import ScheduledMaintenanceMeasurement from "../../../Models/DatabaseModels/ScheduledMaintenanceMeasurement";
 import MetricRecordingRule from "../../../Models/DatabaseModels/MetricRecordingRule";
 import TraceRecordingRule from "../../../Models/DatabaseModels/TraceRecordingRule";
+import LogRecordingRule from "../../../Models/DatabaseModels/LogRecordingRule";
 import Route from "../../../Types/API/Route";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 
@@ -451,6 +453,15 @@ const RECORDING_RULE_PAGES: Array<RecordingRulePage> = [
       return new TraceRecordingRule();
     },
     // An empty trace definition counts every span: complete as it is.
+    completeDefinition: async (): Promise<void> => {},
+  },
+  {
+    label: "Log recording rules",
+    page: LogRecordingRulesPage,
+    existing: (): BaseModel => {
+      return new LogRecordingRule();
+    },
+    // An empty log definition counts every log: complete as it is.
     completeDefinition: async (): Promise<void> => {},
   },
 ];
