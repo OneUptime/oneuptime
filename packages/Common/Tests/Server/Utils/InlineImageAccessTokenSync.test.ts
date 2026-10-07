@@ -215,6 +215,8 @@ describe("setIsPublicForMarkdownImages: the markdown's images, through Published
       PROJECT_ID.toString(),
       ["%/file/image/access-token/aaa111%"],
       ["aaa111"],
+      // As of now: an announcement shows its images only once it is shown.
+      expect.any(Date),
     ]);
     expect(written()).toEqual([{ isPublic: false }]);
   });

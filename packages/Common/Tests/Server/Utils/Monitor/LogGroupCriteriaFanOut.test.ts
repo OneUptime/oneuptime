@@ -33,6 +33,7 @@ import ProbeApiIngestResponse, {
 } from "../../../../Types/Probe/ProbeApiIngestResponse";
 import MetricSeriesFingerprint from "../../../../Utils/Metrics/MetricSeriesFingerprint";
 import { describe, expect, it, jest } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * Contract under test - a grouped Logs monitor raises one alert per group.
@@ -453,7 +454,7 @@ describe("a grouped Logs monitor - several group-by attributes", () => {
 
 describe("a grouped Logs monitor - the per-evaluation group cap", () => {
   it(`fans out to at most ${MaxEntitiesPerCriteria} groups and says so`, async () => {
-    const warnSpy: jest.SpiedFunction<typeof logger.warn> = jest
+    const warnSpy: SpyInstance<typeof logger.warn> = jest
       .spyOn(logger, "warn")
       .mockImplementation(() => {});
 

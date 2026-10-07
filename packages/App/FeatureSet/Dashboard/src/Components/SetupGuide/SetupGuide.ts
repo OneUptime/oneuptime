@@ -131,6 +131,24 @@ export function shellQuote(value: string): string {
 }
 
 /**
+ * A value for a line of a systemd EnvironmentFile=, which systemd reads
+ * with rules of its own rather than a shell's — and not the same rules in
+ * every version. Outside quotes it drops a backslash (`DOMAIN\user` reads
+ * as `DOMAINuser`); inside single quotes, systemd 239 (RHEL 8) drops it too
+ * while later versions keep it; and a quote after a closing quote is an
+ * ordinary character, so shellQuote's `'\''` does not work there. Double
+ * quotes with `\` and `"` escaped read the same in every version (and `$`,
+ * `#`, `'` and spaces stand as they are there), so a value that is not
+ * bare is written that way.
+ */
+export function systemdEnvQuote(value: string): string {
+  if (SHELL_SAFE_WORD.test(value)) {
+    return value;
+  }
+  return `"${value.replace(/[\\"]/g, "\\$&")}"`;
+}
+
+/**
  * The OneUptime origin for the snippets: `https://host` (or `http://`), or
  * the placeholder when the dashboard does not know its own host.
  */

@@ -53,7 +53,8 @@ receivers:
   # because it needs a listening port published on this machine. To
   # enable it:
   #   1. Uncomment the `syslog` receiver below, the `logs` pipeline at the
-  #      bottom of this file, and the port mapping in docker-compose.yml.
+  #      bottom of this file and, in a Docker install, the port mapping in
+  #      docker-compose.yml (without Docker the collector listens directly).
   #   2. On every ESXi host set Syslog.global.logHost (Host → Configure →
   #      System → Advanced System Settings) to udp://<agent-host>:5514 or
   #      tcp://<agent-host>:5514, and open the outbound syslog firewall

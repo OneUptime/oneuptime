@@ -2,7 +2,7 @@
 
 ## نمای کلی
 
-عامل VMware در OneUptime جمع‌کننده‌ای از پیش پیکربندی‌شده از OpenTelemetry است که VMware vSphere را زیر نظر می‌گیرد — vCenter Server، میزبان‌های ESXi، ماشین‌های مجازی، دیتااستورها، خوشه‌ها، استخرهای منبع و vSAN. فقط پیکربندی است: کانتینر خام `otel/opentelemetry-collector-contrib` که [گیرنده بومی `vcenter`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/vcenterreceiver) آن با کاربری فقط‌خواندنی از SDK ‏vSphere نظرسنجی می‌کند، هر سنجه‌ای را با هویت vCenter شما مهر می‌زند، و همه‌چیز را روی OTLP به OneUptime می‌فرستد. بدون صادرکننده کناری، بدون افزونه روی vCenter، بدون عامل درون ماشین‌های مجازی. یک فایل `.env`، یک `docker compose up`. همان فایل Compose، عامل هوش مصنوعی VMware را هم برای هوش مصنوعی OneUptime کنار جمع‌کننده اجرا می‌کند — بخش «عامل هوش مصنوعی» را در پایین ببینید.
+عامل VMware در OneUptime جمع‌کننده‌ای از پیش پیکربندی‌شده از OpenTelemetry است که VMware vSphere را زیر نظر می‌گیرد — vCenter Server، میزبان‌های ESXi، ماشین‌های مجازی، دیتااستورها، خوشه‌ها، استخرهای منبع و vSAN. فقط پیکربندی است: کانتینر خام `otel/opentelemetry-collector-contrib` که [گیرنده بومی `vcenter`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/vcenterreceiver) آن با کاربری فقط‌خواندنی از SDK ‏vSphere نظرسنجی می‌کند، هر سنجه‌ای را با هویت vCenter شما مهر می‌زند، و همه‌چیز را روی OTLP به OneUptime می‌فرستد. بدون صادرکننده کناری، بدون افزونه روی vCenter، بدون عامل درون ماشین‌های مجازی. یک فایل `.env`، یک `docker compose up`. همان فایل Compose، عامل هوش مصنوعی VMware را هم برای هوش مصنوعی OneUptime کنار جمع‌کننده اجرا می‌کند — بخش «عامل هوش مصنوعی» را در پایین ببینید. ترجیح می‌دهید Docker اجرا نکنید؟ همین جمع‌کننده، با همین پیکربندی، روی هر ماشین Linux به‌عنوان سرویس systemd هم اجرا می‌شود — [جایگزین — بدون Docker](#جایگزین-بدون-docker) را ببینید.
 
 هر عامل یک نقطه پایانی vSphere را زیر نظر می‌گیرد — یک **vCenter Server** (حالت معمول، که هر دیتاسنتر، خوشه و میزبانی را که مدیریت می‌کند پوشش می‌دهد) یا یک **میزبان ESXi مستقل** که vCenter مدیریتش نمی‌کند. به ازای هر vCenter یک عامل اجرا کنید.
 
@@ -10,7 +10,7 @@
 
 ## پیش‌نیازها
 
-- ‏Docker Engine ‏20.10 به بالا با افزونه Docker Compose v2، روی هر ماشینی که بتواند روی HTTPS (‏TCP ‏443) به vCenter برسد
+- ‏Docker Engine ‏20.10 به بالا با افزونه Docker Compose v2 — یا، برای [نصب بدون Docker](#جایگزین-بدون-docker)، ماشینی Linux (‏x86_64 یا arm64) با systemd ‏235 به بالا — روی هر ماشینی که بتواند روی HTTPS (‏TCP ‏443) به vCenter برسد
 - ‏vCenter Server / ESXi نسخه **۷٫۰ به بالا** (گیرنده از vSphere ‏۷ و ۸ پشتیبانی می‌کند)
 - کاربری در vSphere با نقش توکار **Read-Only**، منتشرشده از شیء بالادستی vCenter (پایین را ببینید)
 - یک **توکن دریافت تله‌متری OneUptime** — از _Project Settings → Telemetry & APM → Ingestion Keys_ یکی بسازید و مقدارش را کپی کنید
@@ -44,7 +44,7 @@ New-VIPermission -Entity (Get-Folder -NoRecursion) -Principal 'VSPHERE.LOCAL\one
 
 ### عامل را کجا اجرا کنیم
 
-عامل روی HTTPS با vCenter حرف می‌زند، پس لازم نیست نزدیک آن باشد — و در حالت ایده‌آل نباید **روی** vCenter Server Appliance یا درون ماشین مجازی‌ای روی همان خوشه‌ای که می‌پاید اجرا شود: اگر آن خوشه بیفتد، مانیتورینگ شما هم با آن می‌افتد. ماشین مجازی مدیریتی کوچکی روی سخت‌افزار جدا، میزبانی برای مانیتورینگ، یا هر ماشین Docker‌داری با مسیری به vCenter روی TCP ‏443 خانه درستی است. (شنونده اختیاری syslog افزون بر آن نیاز دارد میزبان‌های ESXi روی درگاه syslog به عامل برسند — [فرستادن syslog ‏ESXi](#اختیاری-فرستادن-syslog-esxi) را ببینید.)
+عامل روی HTTPS با vCenter حرف می‌زند، پس لازم نیست نزدیک آن باشد — و در حالت ایده‌آل نباید **روی** vCenter Server Appliance یا درون ماشین مجازی‌ای روی همان خوشه‌ای که می‌پاید اجرا شود: اگر آن خوشه بیفتد، مانیتورینگ شما هم با آن می‌افتد. ماشین مجازی مدیریتی کوچکی روی سخت‌افزار جدا، میزبانی برای مانیتورینگ، یا هر ماشین Docker‌داری — یا، بدون Docker، هر ماشین Linux با systemd — با مسیری به vCenter روی TCP ‏443 خانه درستی است. (شنونده اختیاری syslog افزون بر آن نیاز دارد میزبان‌های ESXi روی درگاه syslog به عامل برسند — [فرستادن syslog ‏ESXi](#اختیاری-فرستادن-syslog-esxi) را ببینید.)
 
 ## شروع سریع (اسکریپت نصب)
 
@@ -78,7 +78,62 @@ docker compose up -d
 
 همین. پس از نخستین جمع‌آوری (حدود یک `VCENTER_COLLECTION_INTERVAL`) ‏vCenter خودکار در بخش **VMware** داشبورد OneUptime پدیدار می‌شود، با دیتاسنترها، خوشه‌ها، میزبان‌های ESXi، ماشین‌های مجازی، دیتااستورها و استخرهای منبعش فهرست‌شده.
 
+## جایگزین — بدون Docker
+
+عامل به Docker نیازی ندارد: یک فایل اجرایی جمع‌کننده OpenTelemetry است و یک فایل پیکربندی. روی ماشینی Linux (‏x86_64 یا arm64) با systemd ‏235 به بالا — Ubuntu 18.04، Debian 10، RHEL 8 یا تازه‌تر — نسخه بالادستی `otelcol-contrib` را که عامل سنجاق کرده، با همان `otel-collector-config.yaml`، به‌عنوان سرویس systemd اجرا کنید. واحدی که عامل برای این کار عرضه می‌کند، [`oneuptime-vmware-agent-native.service`](https://github.com/OneUptime/oneuptime/blob/master/agents/VMwareAgent/systemd/oneuptime-vmware-agent-native.service)، جمع‌کننده را با کاربری یک‌بارمصرف و بی‌امتیاز اجرا می‌کند، بدون هیچ قابلیتی و بدون جایی که بتواند در آن بنویسد.
+
+جمع‌کننده، پیکربندی و واحد را دانلود کنید و در `/opt/oneuptime-vmware-agent` نصبشان کنید:
+
+```bash
+cd "$(mktemp -d)"
+VERSION=0.161.0   # the collector release the agent pins
+ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+curl -fL -o otelcol-contrib.tar.gz \
+  https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.tar.gz
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/otel-collector-config.yaml
+curl -fsSL -o oneuptime-vmware-agent.service \
+  https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/systemd/oneuptime-vmware-agent-native.service
+
+sudo install -d -m 0755 /opt/oneuptime-vmware-agent
+sudo tar --no-same-owner --preserve-permissions -xzf otelcol-contrib.tar.gz -C /opt/oneuptime-vmware-agent otelcol-contrib
+sudo install -m 0644 otel-collector-config.yaml /opt/oneuptime-vmware-agent/otel-collector-config.yaml
+sudo install -m 0644 oneuptime-vmware-agent.service /etc/systemd/system/oneuptime-vmware-agent.service
+```
+
+تنظیمات در `/opt/oneuptime-vmware-agent/.env` می‌روند — همان متغیرهای `.env` نصب Docker. گذرواژه‌ای در آن است، پس پیش از باز کردنش آن را فقط برای root خواندنی کنید:
+
+```bash
+sudo touch /opt/oneuptime-vmware-agent/.env
+sudo chmod 600 /opt/oneuptime-vmware-agent/.env
+sudoedit /opt/oneuptime-vmware-agent/.env
+```
+
+این را در آن بگذارید:
+
+```bash
+ONEUPTIME_URL=YOUR_ONEUPTIME_URL
+ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_TOKEN
+VMWARE_VCENTER_NAME=my-vcenter
+VCENTER_ENDPOINT=https://vcsa.example.com
+VCENTER_USERNAME="oneuptime@vsphere.local"
+VCENTER_PASSWORD="a-strong-password"
+VCENTER_INSECURE_SKIP_VERIFY=true
+VCENTER_COLLECTION_INTERVAL=2m
+```
+
+این فایل را systemd می‌خواند، نه پوسته: نام کاربری و گذرواژه را در نقل‌قول دوتایی نگه دارید و هر `\` را به‌صورت `\\` و هر `"` را به‌صورت `\"` بنویسید — `DOMAIN\user` می‌شود `"DOMAIN\\user"` — در حالی که `$`، `#`، `'` و فاصله همان‌طور که هستند می‌روند. این همان شکلی است که همه نسخه‌های systemd یکسان می‌خوانند؛ نسخه‌های قدیمی‌تر (برای نمونه نسخه RHEL 8) بک‌اسلش را حتی درون تک‌نقل‌قول هم حذف می‌کنند. سپس عامل را آغاز کنید و کاری کنید که در هر راه‌اندازی آغاز شود:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable oneuptime-vmware-agent
+sudo systemctl restart oneuptime-vmware-agent
+```
+
+‏vCenter مانند نصب با Docker پس از نخستین جمع‌آوری پدیدار می‌شود. این نصب فقط جمع‌کننده را اجرا می‌کند: [عامل هوش مصنوعی](#عامل-هوش-مصنوعی) فقط به‌صورت ایمیج کانتینر عرضه می‌شود. به ازای هر vCenter یک عامل اجرا کنید — اگر از نصب Docker کوچ می‌کنید، نخست آن را با `docker compose down` متوقف کنید، وگرنه هر سنجه دو بار می‌رسد.
+
 ## متغیرهای محیطی
+
+‏Docker Compose این‌ها را از `.env` کنار `docker-compose.yml` می‌خواند؛ نصب بدون Docker آن‌ها را از `/opt/oneuptime-vmware-agent/.env` می‌خواند، و واحد systemd آن همان پیش‌فرض‌ها را فراهم می‌کند.
 
 | متغیر | الزامی | توضیح |
 | ----------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -87,7 +142,7 @@ docker compose up -d
 | `VMWARE_VCENTER_NAME` | بله | نامی که این vCenter زیر آن در OneUptime ثبت می‌شود، روی هر سنجه‌ای به‌عنوان ویژگی منبع `vmware.vcenter.name` مهر می‌خورد. پایدار نگهش دارید — تغییرش بعداً vCenter دومی ثبت می‌کند. پیش‌فرض `vmware-vcenter` |
 | `VCENTER_ENDPOINT` | بله | طرح + میزبان vCenter Server یا میزبان ESXi مستقل، **بدون** `/sdk`، برای نمونه `https://vcsa.example.com` |
 | `VCENTER_USERNAME` | بله | کاربر vSphere با نقش Read-Only، برای نمونه `oneuptime@vsphere.local` (یا `DOMAIN\user` برای منبع هویت Active Directory) |
-| `VCENTER_PASSWORD` | بله | گذرواژه آن کاربر. اگر `$`، `#`، فاصله یا نقل‌قول دارد، در `.env` تک‌نقل‌قولش کنید (`install.sh` این کار را برایتان می‌کند) — عیب‌یابی را ببینید |
+| `VCENTER_PASSWORD` | بله | گذرواژه آن کاربر. اگر `$`، `#`، فاصله یا نقل‌قول دارد، در `.env` تک‌نقل‌قولش کنید (`install.sh` این کار را برایتان می‌کند) — عیب‌یابی را ببینید؛ بدون Docker به‌جای آن در نقل‌قول دوتایی بگذاریدش ([جایگزین — بدون Docker](#جایگزین-بدون-docker) را ببینید) |
 | `VCENTER_INSECURE_SKIP_VERIFY` | خیر | `true` برای پذیرفتن گواهی پیش‌فرض خودامضای (VMCA) ‏vCenter؛ `false` تأیید TLS را روشن نگه می‌دارد. پیش‌فرض `false` |
 | `VCENTER_COLLECTION_INTERVAL` | خیر | اینکه کل فهرست موجودی هر چند وقت نظرسنجی شود. برای vCenterهای بسیار بزرگ به `5m` یا `10m` بالا ببرید. پیش‌فرض `2m` |
 
@@ -106,6 +161,13 @@ docker logs -f oneuptime-vmware-agent
 ```
 
 دنبال این بگردید: `"Everything is ready. Begin running and processing data."`
+
+بدون Docker نصبش کرده‌اید؟ به‌جای آن، سرویس و گزارشش را بررسی کنید:
+
+```bash
+systemctl status oneuptime-vmware-agent --no-pager
+sudo journalctl -u oneuptime-vmware-agent -f
+```
 
 تا پایان نخستین پیمایش کامل فهرست موجودی چیزی صادر نمی‌شود، پس یک بازه جمع‌آوری (به‌طور پیش‌فرض ۲ دقیقه) به آن فرصت بدهید؛ سپس vCenter در داشبورد OneUptime با سنجه‌های جاری پدیدار می‌شود.
 
@@ -169,7 +231,7 @@ docker logs -f oneuptime-vmware-agent
 برای فعال کردنش:
 
 1. **دو گیرنده `syslog/*` و خط لوله `logs` را** در `otel-collector-config.yaml` از حالت توضیح درآورید.
-2. **بلوک `ports:` را** در `docker-compose.yml` از حالت توضیح درآورید تا میزبان `5514/tcp` و `5514/udp` را منتشر کند، سپس `docker compose up -d`. درگاه را روی دیوار آتش ماشین برای شبکه مدیریت ESXi باز کنید.
+2. **بلوک `ports:` را** در `docker-compose.yml` از حالت توضیح درآورید تا میزبان `5514/tcp` و `5514/udp` را منتشر کند، سپس `docker compose up -d`. بدون Docker درگاهی برای منتشر کردن نیست — جمع‌کننده روی خود ماشین گوش می‌دهد — پس به‌جای آن `sudo systemctl restart oneuptime-vmware-agent` را اجرا کنید. درگاه را روی دیوار آتش ماشین برای شبکه مدیریت ESXi باز کنید.
 3. **هر میزبان ESXi را به عامل نشانه بگیرید.** در vSphere Client میزبان را برگزینید، _Configure → System → Advanced System Settings_ را باز کنید، `Syslog.global.logHost` را ویرایش کنید و روی `udp://<agent-host>:5514` بگذارید (یا `tcp://<agent-host>:5514`؛ چند هدف را می‌توان با ویرگول جدا کرد). سپس ترافیک خروجی را زیر _Configure → System → Firewall → Edit → syslog_ مجاز کنید. یا با `esxcli` در یک خط به ازای هر میزبان:
 
    ```bash
@@ -201,7 +263,7 @@ processors:
         action: upsert
 ```
 
-‏vCenter با برچسب‌های `team:platform` و `env:production` پدیدار می‌شود. برچسب‌ها بدون حساسیت به بزرگی حروف تطبیق می‌شوند، پس برچسب `Production` که پیش‌تر دستی ساخته شده به‌جای تکرار دوباره به کار می‌رود؛ برچسب‌هایی که دستی در رابط OneUptime افزوده شده‌اند هرگز توسط عامل حذف نمی‌شوند.
+جمع‌کننده پیکربندی‌اش را فقط هنگام آغاز می‌خواند: `docker compose restart oneuptime-vmware-agent` را اجرا کنید، یا بدون Docker `sudo systemctl restart oneuptime-vmware-agent` را. ‏vCenter با برچسب‌های `team:platform` و `env:production` پدیدار می‌شود. برچسب‌ها بدون حساسیت به بزرگی حروف تطبیق می‌شوند، پس برچسب `Production` که پیش‌تر دستی ساخته شده به‌جای تکرار دوباره به کار می‌رود؛ برچسب‌هایی که دستی در رابط OneUptime افزوده شده‌اند هرگز توسط عامل حذف نمی‌شوند.
 
 ## اجرا به‌عنوان سرویس systemd
 
@@ -211,7 +273,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-vmware-agent
 ```
 
-واحد فرض می‌گیرد عامل در `/opt/oneuptime-vmware-agent` زندگی می‌کند (پیش‌فرض اسکریپت نصب).
+واحد فرض می‌گیرد عامل در `/opt/oneuptime-vmware-agent` زندگی می‌کند (پیش‌فرض اسکریپت نصب). این واحد Docker Compose را در بر می‌گیرد؛ [نصب بدون Docker](#جایگزین-بدون-docker) خودش از پیش سرویس systemd است، با واحدی از آنِ خود.
 
 ## ارتقای عامل
 
@@ -233,11 +295,40 @@ docker compose pull
 docker compose up -d --force-recreate
 ```
 
+بدون Docker نصبش کرده‌اید؟ فرمان‌های نصب را دوباره اجرا کنید — نسخه‌ای را که این OneUptime سنجاق کرده همراه با تازه‌ترین `otel-collector-config.yaml` و واحد دانلود می‌کنند و `.env` شما را نگه می‌دارند (هر تغییری را که در پیکربندی داده بودید دوباره اعمال کنید) — سپس سرویس را از نو آغاز کنید:
+
+```bash
+cd "$(mktemp -d)"
+VERSION=0.161.0   # the collector release the agent pins
+ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+curl -fL -o otelcol-contrib.tar.gz \
+  https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.tar.gz
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/otel-collector-config.yaml
+curl -fsSL -o oneuptime-vmware-agent.service \
+  https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/systemd/oneuptime-vmware-agent-native.service
+
+sudo install -d -m 0755 /opt/oneuptime-vmware-agent
+sudo tar --no-same-owner --preserve-permissions -xzf otelcol-contrib.tar.gz -C /opt/oneuptime-vmware-agent otelcol-contrib
+sudo install -m 0644 otel-collector-config.yaml /opt/oneuptime-vmware-agent/otel-collector-config.yaml
+sudo install -m 0644 oneuptime-vmware-agent.service /etc/systemd/system/oneuptime-vmware-agent.service
+sudo systemctl daemon-reload
+sudo systemctl restart oneuptime-vmware-agent
+```
+
 ## حذف نصب عامل
 
 ```bash
 cd /opt/oneuptime-vmware-agent
 docker compose down
+```
+
+بدون Docker:
+
+```bash
+sudo systemctl disable --now oneuptime-vmware-agent
+sudo rm /etc/systemd/system/oneuptime-vmware-agent.service
+sudo systemctl daemon-reload
+sudo rm -r /opt/oneuptime-vmware-agent
 ```
 
 سپس اگر دیگر لازمش ندارید، دسترسی کاربر `oneuptime` را در vCenter حذف کنید، و اگر برای عامل هوش مصنوعی کاربری جداگانه ساخته‌اید، آن را هم.
@@ -264,6 +355,20 @@ bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-v
 ```
 
 با بخشی به نام VERDICT پایان می‌یابد که محتمل‌ترین ریشه علت را نام می‌برد. بخش‌های زیر همان زمین را دستی پوشش می‌دهند.
+
+### نصب بدون Docker
+
+اسکریپت تشخیص به Docker نیاز دارد. بدون آن جمع‌کننده روی خود ماشین اجرا می‌شود، پس همان زنجیره را مستقیم بررسی کنید — سرویس و گزارشش، SDK ‏vCenter روی مسیر شبکه خود جمع‌کننده، اینکه OneUptime توکن دریافت را می‌پذیرد یا نه (`"valid":true` با `"keyType":"Server"`)، و شمارنده‌های خود جمع‌کننده، که آن‌ها را روی `127.0.0.1:8890` سرو می‌کند، نه `8888`، تا بتواند کنار جمع‌کننده‌ای دیگر اجرا شود:
+
+```bash
+systemctl status oneuptime-vmware-agent --no-pager
+sudo journalctl -u oneuptime-vmware-agent -n 100 --no-pager
+curl -sk https://<vcenter-host>/sdk/vimServiceVersions.xml
+curl -s -H "x-oneuptime-token: <key>" https://<oneuptime-host>/otlp/v1/validate
+curl -s http://127.0.0.1:8890/metrics | grep -E 'otelcol_(receiver_accepted|exporter_sent|exporter_send_failed)_metric_points'
+```
+
+گزارش همانند گزارش کانتینر خوانده می‌شود، پس بخش‌های زیر به کار می‌آیند. سرویسی که پیوسته از نو آغاز می‌شود دلیلش را ثبت می‌کند: `Failed with result 'resources'` یعنی systemd نمی‌تواند `/opt/oneuptime-vmware-agent/.env` را بخواند، و `cannot unmarshal the configuration` یا `requires positive value` یعنی مقداری در آن از مقدارهایی نیست که جمع‌کننده می‌پذیرد. ‏systemd فایل `.env` را با قواعد خودش می‌خواند، و نسخه‌های قدیمی‌تر (برای نمونه نسخه RHEL 8) بک‌اسلش را حتی درون تک‌نقل‌قول هم حذف می‌کنند: نام کاربری و گذرواژه را در نقل‌قول دوتایی نگه دارید و هر `\` را به‌صورت `\\` و هر `"` را به‌صورت `\"` بنویسید؛ این تنها شکلی است که همه نسخه‌ها دقیقاً همان‌طور که تایپ شده می‌خوانند. و چون جمع‌کننده به مخزن CA ماشین اعتماد دارد، می‌توانید تأیید TLS را روشن نگه دارید: گواهی ریشه vCenter — فایل‌های `.0` زیر `certs/lin/` در `https://<vcenter>/certs/download.zip` — را به `/usr/local/share/ca-certificates/` (با نامی به پسوند `.crt`) بیفزایید و روی Debian و Ubuntu `update-ca-certificates` را اجرا کنید، یا به `/etc/pki/ca-trust/source/anchors/` بیفزایید و روی RHEL `update-ca-trust` را اجرا کنید، سپس سرویس را از نو آغاز کنید.
 
 ### هیچ vCenterای در OneUptime پدیدار نمی‌شود
 
@@ -317,6 +422,7 @@ bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-v
 - **فقط‌خواندنی** است مگر آنکه `ONEUPTIME_AI_ALLOW_WRITES=true` را تنظیم کنید؛ `ONEUPTIME_AI_WRITE_TARGETS` (نام‌ها یا مسیرهای موجودی ماشین‌های مجازی و میزبان‌ها) محدود می‌کند که یک اصلاح به چه چیزی دست بزند. هرگز ماشین مجازی‌ای را که هم‌نام میزبانِ `VCENTER_ENDPOINT` است — که معمولاً خودِ دستگاه vCenter است — تغییر نمی‌دهد و دستگاه را فقط با همین نام می‌شناسد: وقتی `VCENTER_ENDPOINT` یک نشانی IP است، یا ماشین مجازی دستگاه نام دیگری دارد، آن ماشین مجازی را همراه با ماشین مجازی‌ای که عامل روی آن اجرا می‌شود در `ONEUPTIME_AI_PROTECTED_TARGETS` بگذارید. `ONEUPTIME_AI_FIXES` در همان `.env` تعیین می‌کند اصلاح‌ها چگونه اجرا شوند — `ask-for-approval` (هر اصلاح را یک نفر تأیید می‌کند)، `automatic` یا `bypass-approval` — و صفحه عامل هوش مصنوعی آن را فقط‌خواندنی نشان می‌دهد ([آنچه هوش مصنوعی مجاز است انجام دهد، به تنظیم عامل](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)).
 - برای تأیید گواهی vCenter به‌جای نادیده گرفتن آن، CA آن را در کانتینر سوار کنید و `VCENTER_CA_FILE` را تنظیم کنید؛ روی vCenter با چند دیتاسنتر، `GOVC_DATACENTER` را تنظیم کنید.
 - با UID 1000 و بدون هیچ قابلیتی اجرا می‌شود، و هرگز عملیات مهمان، اسنپ‌شات، `esxcli` یا هر چیزی که ماشین مجازی بسازد یا نابود کند اجرا نمی‌کند. اگر از هوش مصنوعی OneUptime استفاده نمی‌کنید، سرویس `oneuptime-vmware-ai-agent` را از `docker-compose.yml` حذف کنید.
+- [نصب بدون Docker](#جایگزین-بدون-docker) عامل هوش مصنوعی ندارد: این عامل فقط به‌صورت ایمیج کانتینر عرضه می‌شود. برای افزودنش، آن را با Docker روی هر ماشینی که به vCenter می‌رسد اجرا کنید — `docker-compose.yml` را دانلود کنید، کنارش فایلی `.env` با تنظیمات `/opt/oneuptime-vmware-agent/.env` بنویسید، تک‌نقل‌قول‌شده آن‌گونه که Docker Compose می‌خواهد، و فقط عامل هوش مصنوعی را با `docker compose up -d oneuptime-vmware-ai-agent` آغاز کنید (نه جمع‌کننده را، که از پیش اجرا می‌شود).
 
 اینکه چه چیزی می‌تواند اجرا کند، اصلاح‌ها چگونه کار می‌کنند و چگونه اشکالش را رفع کنید: [عامل‌های هوش مصنوعی زیرساخت](/docs/ai/infrastructure-ai-agents#vmware-vcenter). README عامل فرمان‌های دقیق نقش اصلاح را دارد.
 

@@ -5,6 +5,7 @@ import Select from "../../Types/Database/Select";
 import { ExpressRequest, ExpressResponse } from "../Express";
 import logger from "../Logger";
 import FileOwnership, { OwnedFile } from "./FileOwnership";
+import PublishedImages from "./PublishedImages";
 import File from "../../../Models/DatabaseModels/File";
 import SsoAuthorizationException from "../../../Types/Exception/SsoAuthorizationException";
 import TenantNotFoundException from "../../../Types/Exception/TenantNotFoundException";
@@ -20,12 +21,15 @@ import { UserTenantAccessPermission } from "../../../Types/Permission";
  * a record hands back its files by the rule below: RelatedFileAccess).
  *
  *   - A public file: anyone. A file is public only while a record shows it
- *     to everyone - an image in a public note, an announcement, a published
- *     postmortem, an incident's, an episode's or a maintenance event's
- *     description on a status page, a status page's own text (PublishedImages)
- *     - or while it is a probe's or an AI agent's icon
- *     (FileService.makeRecordFilesPublic). Every upload starts private
- *     (FileService).
+ *     to everyone - an image in a public note, an announcement once it is
+ *     shown, a published postmortem, an incident's, an episode's or a
+ *     maintenance event's description on a status page, a status page's own
+ *     text (PublishedImages) - or while it is a probe's or an AI agent's
+ *     icon (FileService.makeRecordFilesPublic). Every upload starts private
+ *     (FileService). An image a record starts showing with no write at that
+ *     moment - an announcement whose time to be shown has come - is made
+ *     public by the first request for it the rules below would refuse
+ *     (PublishedImages.publishWhenShown), and served as a public image.
  *   - A private file of a project: the people who can open that project,
  *     decided the way every request to the project is decided - a membership
  *     they have accepted, and the project's sign-in rules met (SSO, where
@@ -58,6 +62,7 @@ export const FILE_VIEWERS_SELECT: Select<File> = {
   isPublic: true,
   projectId: true,
   createdByUserId: true,
+  imageAccessToken: true,
 };
 
 // What serving a file reads of it, once it may be served.
@@ -91,7 +96,10 @@ export default class FileViewerAccess {
    * pages ask for public images more than for anything else. Otherwise who
    * may see the file is decided from a read of its owners alone
    * (keepReadableFile), and its bytes are read only for someone who may -
-   * still public, if being public is what let them see it.
+   * still public, if being public is what let them see it. A private image
+   * nobody else may see is served only once it is made public because a
+   * record shows it now (PublishedImages.publishWhenShown): an announcement
+   * whose time to be shown has come since it was written.
    */
   public static async findReadableFile(data: {
     req: ExpressRequest;
@@ -120,14 +128,25 @@ export default class FileViewerAccess {
       file: owners,
     });
 
-    if (!readable || !readable._id) {
-      return undefined;
+    if (readable && readable._id) {
+      return await this.readFile({
+        _id: readable._id.toString(),
+        ...(this.isPublic(readable) ? { isPublic: true } : {}),
+      });
     }
 
-    return await this.readFile({
-      _id: readable._id.toString(),
-      ...(this.isPublic(readable) ? { isPublic: true } : {}),
-    });
+    if (
+      owners &&
+      owners._id &&
+      (await PublishedImages.publishWhenShown(owners))
+    ) {
+      return await this.readFile({
+        _id: owners._id.toString(),
+        isPublic: true,
+      });
+    }
+
+    return undefined;
   }
 
   /**

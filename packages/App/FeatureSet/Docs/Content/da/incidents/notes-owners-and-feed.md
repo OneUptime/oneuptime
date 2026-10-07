@@ -142,6 +142,7 @@ Feed-punkter skrives af hændelsestjenesten selv, af begge notetjenester, af til
 - **Mennesker** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`.
 - **Notifikationer** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
 - **Automatisering** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
+- **Videoopkald** — `VideoCallStarted` og `VideoCallFailed`: et opkald, der er startet for hændelsen, med dets link til at deltage, eller årsagen til, at en udbyder ikke kunne starte et. Se [Videoopkald](/docs/workspace-connections/video-calls).
 
 Hver type får sit eget ikon, så du kan skimme et langt feed og plukke tilstandsskiftene ud af støjen. AI-genereret grundårsagsanalyse markeres tydeligt og gengives i en begrænset Markdown-tilstand.
 

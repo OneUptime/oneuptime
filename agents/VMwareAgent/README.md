@@ -4,13 +4,15 @@ Monitor VMware vSphere — vCenter, ESXi hosts, virtual machines, datastores, cl
 
 The agent is config-only: a stock `otel/opentelemetry-collector-contrib` container whose native [`vcenter` receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/vcenterreceiver) polls the vSphere SDK with a read-only user, stamps the data with your vCenter identity, and ships it to OneUptime over OTLP. No exporter sidecar, no plugin on vCenter, no agent inside the VMs: a full install is one `.env` file and one `docker compose up`.
 
+Prefer not to run Docker? The same collector — the upstream `otelcol-contrib` release this agent pins, with the same config — runs as a systemd service on any Linux machine: see [Quick Start — Without Docker](#quick-start--without-docker).
+
 One agent monitors one vSphere endpoint — a **vCenter Server** (the normal case, covering every datacenter, cluster and host it manages) or a **standalone ESXi host** that is not managed by a vCenter. Run one agent per vCenter.
 
 Next to the collector, `docker-compose.yml` also runs the **OneUptime AI agent** (`oneuptime-vmware-ai-agent`), which lets OneUptime AI look at this vCenter with `govc` while it investigates an incident or alert. It is read-only unless you allow fixes; see [OneUptime AI agent](#oneuptime-ai-agent).
 
 ## Prerequisites
 
-- Docker Engine 20.10+ with the Docker Compose v2 plugin, on any machine that can reach vCenter over HTTPS (TCP 443)
+- Docker Engine 20.10+ with the Docker Compose v2 plugin — or, for the [install without Docker](#quick-start--without-docker), a Linux machine (x86_64 or arm64) with systemd 235 or later — on any machine that can reach vCenter over HTTPS (TCP 443)
 - vCenter Server / ESXi **7.0 or later** (the receiver supports vSphere 7 and 8)
 - A vSphere user holding the built-in **Read-Only** role, propagated from the top-level vCenter object (see below)
 - A **OneUptime Telemetry Ingestion Key** — create one from *Project Settings → Telemetry Ingestion Keys*
@@ -44,7 +46,7 @@ For a **standalone ESXi host** (no vCenter), create the user under *Host → Man
 
 ### Where to run the agent
 
-The agent talks to vCenter over HTTPS, so it does not have to live anywhere near it — and ideally it should not run **on** the vCenter Server Appliance or inside a VM on the very cluster it watches: if that cluster goes down, your monitoring goes down with it. A small management VM on separate hardware, a monitoring host, or any Docker-capable machine with a route to vCenter on TCP 443 is the right home. (The optional syslog listener needs the ESXi hosts to reach the agent on the syslog port too — see [Shipping ESXi syslog](#shipping-esxi-syslog-optional).)
+The agent talks to vCenter over HTTPS, so it does not have to live anywhere near it — and ideally it should not run **on** the vCenter Server Appliance or inside a VM on the very cluster it watches: if that cluster goes down, your monitoring goes down with it. A small management VM on separate hardware, a monitoring host, or any Docker-capable machine — or, without Docker, any Linux machine with systemd — with a route to vCenter on TCP 443 is the right home. (The optional syslog listener needs the ESXi hosts to reach the agent on the syslog port too — see [Shipping ESXi syslog](#shipping-esxi-syslog-optional).)
 
 ## Quick Start — Install Script
 
@@ -78,7 +80,64 @@ docker compose up -d
 
 After the first collection (about one `VCENTER_COLLECTION_INTERVAL`) the vCenter appears automatically in the **VMware** section of OneUptime, with its datacenters, clusters, ESXi hosts, virtual machines, datastores and resource pools inventoried.
 
+## Quick Start — Without Docker
+
+The agent does not need Docker: it is one OpenTelemetry Collector binary and one config file. On a Linux machine (x86_64 or arm64) with systemd 235 or later — Ubuntu 18.04, Debian 10, RHEL 8 or newer — run the upstream `otelcol-contrib` release this agent pins, with the same `otel-collector-config.yaml`, as a systemd service. The unit, [`systemd/oneuptime-vmware-agent-native.service`](systemd/oneuptime-vmware-agent-native.service), runs the collector as a throwaway unprivileged user (`DynamicUser=yes`) with no capabilities and nothing it can write to.
+
+Download the collector, the config and the unit, and install them to `/opt/oneuptime-vmware-agent`:
+
+```bash
+cd "$(mktemp -d)"
+VERSION=0.161.0   # the collector release the agent pins
+ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+curl -fL -o otelcol-contrib.tar.gz \
+  https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.tar.gz
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/otel-collector-config.yaml
+curl -fsSL -o oneuptime-vmware-agent.service \
+  https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/systemd/oneuptime-vmware-agent-native.service
+
+sudo install -d -m 0755 /opt/oneuptime-vmware-agent
+sudo tar --no-same-owner --preserve-permissions -xzf otelcol-contrib.tar.gz -C /opt/oneuptime-vmware-agent otelcol-contrib
+sudo install -m 0644 otel-collector-config.yaml /opt/oneuptime-vmware-agent/otel-collector-config.yaml
+sudo install -m 0644 oneuptime-vmware-agent.service /etc/systemd/system/oneuptime-vmware-agent.service
+```
+
+The settings go in `/opt/oneuptime-vmware-agent/.env` — the variables of the Docker install's `.env`. It holds a password, so make it readable by root alone before you open it:
+
+```bash
+sudo touch /opt/oneuptime-vmware-agent/.env
+sudo chmod 600 /opt/oneuptime-vmware-agent/.env
+sudoedit /opt/oneuptime-vmware-agent/.env
+```
+
+Put this in it:
+
+```bash
+ONEUPTIME_URL=https://oneuptime.com
+ONEUPTIME_TELEMETRY_INGESTION_KEY=your-telemetry-ingestion-key
+VMWARE_VCENTER_NAME=prod-vcenter
+VCENTER_ENDPOINT=https://vcsa.example.com
+VCENTER_USERNAME="oneuptime@vsphere.local"
+VCENTER_PASSWORD="a-strong-password"
+VCENTER_INSECURE_SKIP_VERIFY=true
+VCENTER_COLLECTION_INTERVAL=2m
+```
+
+systemd reads this file, not a shell: keep the user name and the password in double quotes, with each `\` written `\\` and each `"` written `\"` — `DOMAIN\user` is `"DOMAIN\\user"` — while `$`, `#`, `'` and spaces go in as they are. That is the form every systemd version reads the same; older ones (RHEL 8's, for one) drop a backslash even inside single quotes. Then start the agent, and have it start on every boot:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable oneuptime-vmware-agent
+sudo systemctl restart oneuptime-vmware-agent
+```
+
+Check it with `systemctl status oneuptime-vmware-agent` and `sudo journalctl -u oneuptime-vmware-agent -f` — look for `Everything is ready. Begin running and processing data.` — and give it one collection interval.
+
+This install runs the collector alone: the [OneUptime AI agent](#oneuptime-ai-agent) ships only as a container image. Run one agent per vCenter — if you are moving off the Docker install, `docker compose down` it first, or every metric arrives twice.
+
 ## Environment Variables
+
+Docker Compose reads these from the `.env` next to `docker-compose.yml`; the install without Docker from `/opt/oneuptime-vmware-agent/.env`, whose systemd unit supplies the same defaults.
 
 | Variable | Required | Description |
 |----------|----------|-------------|
@@ -87,7 +146,7 @@ After the first collection (about one `VCENTER_COLLECTION_INTERVAL`) the vCenter
 | `VMWARE_VCENTER_NAME` | Yes | The name this vCenter registers under in OneUptime. Stamped on every metric as the `vmware.vcenter.name` resource attribute. Keep it stable — changing it registers a new vCenter (default: `vmware-vcenter`) |
 | `VCENTER_ENDPOINT` | Yes | Scheme + host of vCenter Server or a standalone ESXi host, **without** `/sdk`, e.g. `https://vcsa.example.com` |
 | `VCENTER_USERNAME` | Yes | vSphere user with the Read-Only role, e.g. `oneuptime@vsphere.local` (or `DOMAIN\user` for an AD identity source) |
-| `VCENTER_PASSWORD` | Yes | That user's password. If it contains `$`, `#`, spaces or quotes, single-quote it in `.env` (`install.sh` does this for you) — see Troubleshooting |
+| `VCENTER_PASSWORD` | Yes | That user's password. If it contains `$`, `#`, spaces or quotes, single-quote it in `.env` (`install.sh` does this for you) — see Troubleshooting; without Docker, double-quote it instead (see [Quick Start — Without Docker](#quick-start--without-docker)) |
 | `VCENTER_INSECURE_SKIP_VERIFY` | No | `true` to accept vCenter's default self-signed (VMCA) certificate; `false` keeps TLS verification on (default: `false`) |
 | `VCENTER_COLLECTION_INTERVAL` | No | How often the whole inventory is polled. Raise to `5m` or `10m` for very large vCenters (default: `2m`) |
 
@@ -120,7 +179,7 @@ By default the agent ships **metrics only** — the Logs tab of the vCenter dash
 To enable it:
 
 1. **Uncomment the two `syslog/*` receivers and the `logs` pipeline** in `otel-collector-config.yaml`.
-2. **Uncomment the `ports:` block** in `docker-compose.yml` so the host publishes `5514/tcp` and `5514/udp`, then `docker compose up -d`. Open the port on the machine's firewall for the ESXi management network.
+2. **Uncomment the `ports:` block** in `docker-compose.yml` so the host publishes `5514/tcp` and `5514/udp`, then `docker compose up -d`. Without Docker there is no port to publish — the collector listens on the machine itself — so run `sudo systemctl restart oneuptime-vmware-agent` instead. Open the port on the machine's firewall for the ESXi management network.
 3. **Point every ESXi host at the agent.** In the vSphere Client select the host, open *Configure → System → Advanced System Settings*, edit `Syslog.global.logHost` and set it to `udp://<agent-host>:5514` (or `tcp://<agent-host>:5514`; several targets can be comma-separated). Then allow the outbound traffic under *Configure → System → Firewall → Edit → syslog*. Or in one line per host with `esxcli`:
 
    ```bash
@@ -152,13 +211,15 @@ processors:
         action: upsert
 ```
 
-The vCenter shows up tagged `team:platform` and `env:production`. Labels are matched case-insensitively, so an existing manually-created `Production` label is reused rather than duplicated; labels added manually in the OneUptime UI are never removed by the agent.
+The collector reads its config only when it starts: run `docker compose restart oneuptime-vmware-agent`, or `sudo systemctl restart oneuptime-vmware-agent` without Docker. The vCenter shows up tagged `team:platform` and `env:production`. Labels are matched case-insensitively, so an existing manually-created `Production` label is reused rather than duplicated; labels added manually in the OneUptime UI are never removed by the agent.
 
 ## OneUptime AI agent
 
 The `oneuptime-vmware-ai-agent` service (image `oneuptime/resource-ai-agent`) runs the `govc` commands OneUptime AI asks for, so an investigation can check a VM's power state, the host it runs on, recent events and tasks, and performance counters on this vCenter — and, only if you allow it, apply a fix such as powering a VM back on. It shares the collector's `.env`: it logs in with **its own** vCenter credentials from there (OneUptime never sends it any) and registers as the vCenter named `VMWARE_VCENTER_NAME`, the same one the collector reports into. It appears on that vCenter's **AI → AI agent** page in OneUptime, where you also choose whether OneUptime AI proposes fixes and whether a person approves each one.
 
 It runs as UID 1000 with a read-only root filesystem and no capabilities, and only talks HTTPS to vCenter and to OneUptime. If you do not use OneUptime AI, delete the `oneuptime-vmware-ai-agent` service from `docker-compose.yml`.
+
+The install without Docker has no AI agent: it ships only as a container image. To add one to such an install, run it with Docker on any machine that can reach vCenter — download `docker-compose.yml` into a folder, write a `.env` next to it with the settings of `/opt/oneuptime-vmware-agent/.env`, single-quoted as Docker Compose wants them, and start the AI agent alone with `docker compose up -d oneuptime-vmware-ai-agent` (not the collector, which already runs; two collectors report every metric twice).
 
 ### What it may run
 
@@ -245,7 +306,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-vmware-agent
 ```
 
-The unit assumes the agent lives in `/opt/oneuptime-vmware-agent` (the install script default).
+The unit assumes the agent lives in `/opt/oneuptime-vmware-agent` (the install script default). It wraps Docker Compose; the [install without Docker](#quick-start--without-docker) is a systemd service already, with its own unit, `systemd/oneuptime-vmware-agent-native.service`.
 
 ## Upgrading
 
@@ -267,6 +328,26 @@ docker compose pull
 docker compose up -d --force-recreate
 ```
 
+Installed it without Docker? Run the install commands again — they download the release this agent pins with the latest `otel-collector-config.yaml` and unit, and keep your `.env` (re-apply any change you made to the config) — then restart the service:
+
+```bash
+cd "$(mktemp -d)"
+VERSION=0.161.0   # the collector release the agent pins
+ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+curl -fL -o otelcol-contrib.tar.gz \
+  https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.tar.gz
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/otel-collector-config.yaml
+curl -fsSL -o oneuptime-vmware-agent.service \
+  https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/systemd/oneuptime-vmware-agent-native.service
+
+sudo install -d -m 0755 /opt/oneuptime-vmware-agent
+sudo tar --no-same-owner --preserve-permissions -xzf otelcol-contrib.tar.gz -C /opt/oneuptime-vmware-agent otelcol-contrib
+sudo install -m 0644 otel-collector-config.yaml /opt/oneuptime-vmware-agent/otel-collector-config.yaml
+sudo install -m 0644 oneuptime-vmware-agent.service /etc/systemd/system/oneuptime-vmware-agent.service
+sudo systemctl daemon-reload
+sudo systemctl restart oneuptime-vmware-agent
+```
+
 An agent installed before its config reported a version shows none until it is upgraded this way.
 
 ## Uninstalling
@@ -274,6 +355,15 @@ An agent installed before its config reported a version shows none until it is u
 ```bash
 cd /opt/oneuptime-vmware-agent
 docker compose down
+```
+
+Without Docker:
+
+```bash
+sudo systemctl disable --now oneuptime-vmware-agent
+sudo rm /etc/systemd/system/oneuptime-vmware-agent.service
+sudo systemctl daemon-reload
+sudo rm -r /opt/oneuptime-vmware-agent
 ```
 
 Then remove the `oneuptime` user's permission in vCenter (and the OneUptime AI fixes user's, if you created one) if you no longer need it.
@@ -288,6 +378,27 @@ Then remove the `oneuptime` user's permission in vCenter (and the OneUptime AI f
 curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh                 # add -d <dir> if you installed outside /opt/oneuptime-vmware-agent
 ```
+
+### Installed without Docker
+
+`troubleshoot.sh` needs Docker. Without it the collector runs on the machine itself, so check the same chain directly:
+
+```bash
+# The service, and the collector's log
+systemctl status oneuptime-vmware-agent --no-pager
+sudo journalctl -u oneuptime-vmware-agent -n 100 --no-pager
+
+# vCenter's SDK, on the collector's own network path (-k mirrors VCENTER_INSECURE_SKIP_VERIFY=true)
+curl -sk https://<vcenter-host>/sdk/vimServiceVersions.xml
+
+# Whether OneUptime accepts the ingestion key: "valid":true with "keyType":"Server"
+curl -s -H "x-oneuptime-token: <key>" https://<oneuptime-host>/otlp/v1/validate
+
+# The collector's own counters, on 127.0.0.1:8890 rather than 8888 (the unit says why)
+curl -s http://127.0.0.1:8890/metrics | grep -E 'otelcol_(receiver_accepted|exporter_sent|exporter_send_failed)_metric_points'
+```
+
+The log reads like the container's (below). A service that keeps restarting logs why: `Failed with result 'resources'` means systemd cannot read `/opt/oneuptime-vmware-agent/.env`, and `cannot unmarshal the configuration` or `requires positive value` means a value in it is not one the collector takes. systemd reads `.env` with rules of its own, and older versions (RHEL 8's, for one) drop a backslash even inside single quotes: keep the user name and password in double quotes, with each `\` written `\\` and each `"` written `\"`, the one form every version reads as typed. And since the collector trusts the machine's CA store, you can keep TLS verification on: add vCenter's root certificate — the `.0` files under `certs/lin/` in `https://<vcenter>/certs/download.zip` — to `/usr/local/share/ca-certificates/` (with a `.crt` name) and run `update-ca-certificates` on Debian and Ubuntu, or to `/etc/pki/ca-trust/source/anchors/` and run `update-ca-trust` on RHEL, then restart the service.
 
 ### No vCenter appears in OneUptime
 

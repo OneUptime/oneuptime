@@ -12,6 +12,7 @@ import MimeType from "../../Types/File/MimeType";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
+import getUpdatedRowCount from "../Utils/Database/UpdatedRowCount";
 import FileOwnership, {
   FileOwners,
   normalizeFileId,
@@ -19,6 +20,7 @@ import FileOwnership, {
 import { FileAccessFacts } from "../Utils/File/RelatedFileAccess";
 import {
   HIDE_HIDDEN_RECORD_IMAGES_SQL,
+  HIDE_NOT_YET_SHOWN_IMAGES_SQL,
   HIDE_PRIVATE_RECORD_IMAGES_SQL,
   HIDE_UNSHOWN_FILES_SQL,
   PUBLISH_SHOWN_IMAGES_SQL,
@@ -306,12 +308,7 @@ export class Service extends DatabaseService<File> {
 
   // Runs one UPDATE statement and returns how many rows it moved.
   private async countUpdatedBy(sql: string): Promise<number> {
-    const result: unknown = await this.getRepository().manager.query(sql);
-
-    // An UPDATE answers [rows, affected count].
-    return Array.isArray(result) && typeof result[1] === "number"
-      ? result[1]
-      : 0;
+    return getUpdatedRowCount(await this.getRepository().manager.query(sql));
   }
 
   /**
@@ -339,6 +336,21 @@ export class Service extends DatabaseService<File> {
   @CaptureSpan()
   public async hideImagesOfHiddenRecords(): Promise<number> {
     return await this.countUpdatedBy(HIDE_HIDDEN_RECORD_IMAGES_SQL);
+  }
+
+  /**
+   * Once, for images an announcement made public when it was created,
+   * scheduled for later or not: each public image an announcement holds
+   * whose time to be shown has not come becomes private until then - unless
+   * a published record shows it now, or it is an icon
+   * (HIDE_NOT_YET_SHOWN_IMAGES_SQL). The first request for it once the
+   * announcement is shown makes it public again (PublishedImages.
+   * publishWhenShown). Never makes a file public. Safe to run more than
+   * once, and at once. Returns how many files were made private.
+   */
+  @CaptureSpan()
+  public async hideImagesNotShownYet(): Promise<number> {
+    return await this.countUpdatedBy(HIDE_NOT_YET_SHOWN_IMAGES_SQL);
   }
 
   /**

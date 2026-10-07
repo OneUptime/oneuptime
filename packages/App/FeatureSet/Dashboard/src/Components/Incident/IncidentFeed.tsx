@@ -86,6 +86,8 @@ export const INCIDENT_FEED_ICONS: Record<IncidentFeedEventType, IconProp> = {
   [IncidentFeedEventType.PrivacyRuleExecuted]: IconProp.Circle,
   [IncidentFeedEventType.OnCallRuleExecuted]: IconProp.Call,
   [IncidentFeedEventType.AutoRemediation]: IconProp.Circle,
+  [IncidentFeedEventType.VideoCallStarted]: IconProp.VideoCamera,
+  [IncidentFeedEventType.VideoCallFailed]: IconProp.VideoCameraSlash,
 };
 
 export const getIncidentFeedEventIcon: (eventType: string) => IconProp = (

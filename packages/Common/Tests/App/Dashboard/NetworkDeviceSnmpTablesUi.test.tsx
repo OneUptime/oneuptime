@@ -211,7 +211,13 @@ describe("SNMP Tables tab", () => {
     device.oidTemplate = template;
     deviceRow = device;
 
-    renderInRouter(<NetworkDeviceTables pageRoute={pageRoute} />);
+    renderInRouter(
+      <NetworkDeviceTables
+        pageRoute={pageRoute}
+        currentProject={null}
+        hasPaymentMethod={true}
+      />,
+    );
 
     await waitFor(() => {
       expect(screen.getByText("HQ-Branch2")).toBeInTheDocument();
@@ -231,7 +237,13 @@ describe("SNMP Tables tab", () => {
   test("explains how to get tables when the device has none", async () => {
     deviceRow = new NetworkDevice();
 
-    renderInRouter(<NetworkDeviceTables pageRoute={pageRoute} />);
+    renderInRouter(
+      <NetworkDeviceTables
+        pageRoute={pageRoute}
+        currentProject={null}
+        hasPaymentMethod={true}
+      />,
+    );
 
     await waitFor(() => {
       expect(
@@ -247,7 +259,13 @@ describe("Wi-Fi tab", () => {
     device.snmpTableSnapshot = cambiumRadios();
     deviceRow = device;
 
-    renderInRouter(<NetworkDeviceWiFi pageRoute={pageRoute} />);
+    renderInRouter(
+      <NetworkDeviceWiFi
+        pageRoute={pageRoute}
+        currentProject={null}
+        hasPaymentMethod={true}
+      />,
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("wifi-radios")).toBeInTheDocument();
@@ -269,7 +287,13 @@ describe("Wi-Fi tab", () => {
   test("explains how to enable Wi-Fi data when no radio table is walked", async () => {
     deviceRow = new NetworkDevice();
 
-    renderInRouter(<NetworkDeviceWiFi pageRoute={pageRoute} />);
+    renderInRouter(
+      <NetworkDeviceWiFi
+        pageRoute={pageRoute}
+        currentProject={null}
+        hasPaymentMethod={true}
+      />,
+    );
 
     await waitFor(() => {
       expect(screen.getByText("No Wi-Fi radios reported")).toBeInTheDocument();

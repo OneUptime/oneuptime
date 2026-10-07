@@ -13,7 +13,9 @@ import Search from "../../../Types/BaseDatabase/Search";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import Dictionary from "../../../Types/Dictionary";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * Contract under test - the grouped count behind a Logs monitor's Group By.
@@ -27,20 +29,39 @@ import { afterEach, describe, expect, it, jest } from "@jest/globals";
  * returning a partial set of groups.
  */
 
+// ModelPermission.checkReadPermission spied on, as jest-mock's spyOn types it.
+type CheckReadPermissionSpy = SpyInstance<
+  (
+    ...args: Parameters<typeof ModelPermission.checkReadPermission>
+  ) => ReturnType<typeof ModelPermission.checkReadPermission>
+>;
+
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
 );
 
 function monitorQuery(): Query<Log> {
-  return {
+  const query: Query<Log> = {
     projectId: PROJECT_ID,
     body: new Search<string>("terminated"),
-    attributes: { log_component: "IPSec" },
     time: new InBetween<Date>(
       new Date("2026-10-07T10:00:00.000Z"),
       new Date("2026-10-07T10:05:00.000Z"),
     ),
-  } as Query<Log>;
+  };
+
+  /*
+   * Held the way a Logs monitor's step holds them
+   * (MonitorStepLogMonitor.attributes); an object literal checked
+   * against the attributes filter's recursive JSON type is too deep for
+   * the compiler.
+   */
+  const attributes: Dictionary<string | number | boolean> = {
+    log_component: "IPSec",
+  };
+  query.attributes = attributes;
+
+  return query;
 }
 
 function statementFor(
@@ -260,9 +281,10 @@ describe("LogService.countByAttributeGroups", () => {
   it("checks read permission, runs the grouped statement and parses it", async () => {
     const service: LogService = new LogService();
 
-    const permissionSpy: jest.SpiedFunction<
-      typeof ModelPermission.checkReadPermission
-    > = jest.spyOn(ModelPermission, "checkReadPermission");
+    const permissionSpy: CheckReadPermissionSpy = jest.spyOn(
+      ModelPermission,
+      "checkReadPermission",
+    );
 
     const executedStatements: Array<Statement> = [];
 

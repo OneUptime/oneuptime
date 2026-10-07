@@ -142,6 +142,7 @@ OneUptime はこの 2 つの読み手を分けて扱います。**公開ノー�
 - **人** — `OwnerUserAdded`、`OwnerTeamAdded`、`OwnerUserRemoved`、`OwnerTeamRemoved`、`IncidentMemberAdded`、`IncidentMemberRemoved`。
 - **通知** — `OwnerNotificationSent`、`SubscriberNotificationSent`、`OnCallPolicy`、`OnCallNotification`。
 - **自動化** — `LabelRuleExecuted`、`OwnerRuleExecuted`、`PrivacyRuleExecuted`、`OnCallRuleExecuted`、`AutoRemediation`。
+- **ビデオ通話** — `VideoCallStarted`、`VideoCallFailed`。インシデントのために開始された通話とその参加リンク、またはプロバイダーが通話を開始できなかった理由です。[ビデオ通話](/docs/workspace-connections/video-calls)を参照してください。
 
 種類ごとに専用のアイコンが付くので、長いフィードでも雑多な記録の中から状態変更を拾い出せます。AI が生成した根本原因分析は区別できるように印が付き、制限付きの Markdown モードで表示されます。
 

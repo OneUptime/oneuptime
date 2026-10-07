@@ -41,6 +41,7 @@ import SettingsMicrosoftTeamsIntegration from "../Pages/Settings/MicrosoftTeamsI
 import SettingsUsageHistory from "../Pages/Settings/UsageHistory";
 
 import SettingsSlackIntegration from "../Pages/Settings/SlackIntegration";
+import SettingsVideoCalls from "../Pages/Settings/VideoCalls";
 
 import SettingsMobileApps from "../Pages/Settings/MobileApps";
 
@@ -283,6 +284,16 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION] as Route
               }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_VIDEO_CALLS)}
+          element={
+            <SettingsVideoCalls
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_VIDEO_CALLS] as Route}
             />
           }
         />
