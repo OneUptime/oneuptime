@@ -1,3 +1,4 @@
+import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import GlobalOidcProjectService from "../../../Server/Services/GlobalOidcProjectService";
 import GlobalOidcService from "../../../Server/Services/GlobalOidcService";
 import GlobalSsoProjectService from "../../../Server/Services/GlobalSsoProjectService";
@@ -10,7 +11,12 @@ import {
   GLOBAL_SSO_AUTHORIZATION_CACHE_TTL_MS,
   GlobalProviderTrust,
   clearGlobalSsoAuthorizationCaches,
+  isGlobalProviderNarrowing,
 } from "../../../Server/Utils/GlobalSsoAuthorization";
+import RealtimeAccessChanges, {
+  RealtimeAccessChange,
+  RealtimeAccessChangeKind,
+} from "../../../Server/Utils/Realtime/RealtimeAccessChanges";
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
@@ -1240,3 +1246,282 @@ describe.each(HOOK_SUITES)(
     });
   },
 );
+
+/*
+ * -------------------------------------------------------------------------
+ * Telling every server
+ * ----------------------------------------------------------------------
+ *
+ * A write that lets a global provider sign fewer people in - turning it off,
+ * deleting it, restricting it to its attached projects, or adding, turning
+ * off or removing one of its attachments - is announced to every server
+ * (RealtimeAccessChanges, SignInRulesChanged for the whole instance): each
+ * forgets what it knew of the global providers and asks the live updates it
+ * holds again, as their joins were. A write that changes nothing about who
+ * it signs in - a new certificate, a new name, turning it on - is not.
+ */
+
+interface AnnouncementCase {
+  label: string;
+  service: any;
+  hookName: string;
+  args: () => Array<unknown>;
+  announces: boolean;
+}
+
+function updateSuccess(
+  data: Record<string, unknown>,
+  updatedIds?: Array<ObjectID>,
+): () => Array<unknown> {
+  return (): Array<unknown> => {
+    return [
+      {
+        updateBy: {
+          query: { _id: PROVIDER_ID.toString() },
+          data: data,
+          props: { isRoot: true },
+        },
+        carryForward: null,
+      },
+      updatedIds || [PROVIDER_ID],
+    ];
+  };
+}
+
+function deleteSuccess(deletedIds: Array<ObjectID>): () => Array<unknown> {
+  return (): Array<unknown> => {
+    return [
+      {
+        deleteBy: { query: { _id: PROVIDER_ID.toString() }, props: {} },
+        carryForward: null,
+      },
+      deletedIds,
+    ];
+  };
+}
+
+function createSuccess(buildRow: () => unknown): () => Array<unknown> {
+  return (): Array<unknown> => {
+    return [
+      { createBy: { data: buildRow(), props: {} }, carryForward: null },
+      buildRow(),
+    ];
+  };
+}
+
+function providerAnnouncementCases(
+  name: string,
+  service: any,
+  buildRow: () => unknown,
+  credential: Record<string, unknown>,
+): Array<AnnouncementCase> {
+  return [
+    {
+      label: `${name}: turned off`,
+      service,
+      hookName: "onUpdateSuccess",
+      args: updateSuccess({ isEnabled: false }),
+      announces: true,
+    },
+    {
+      label: `${name}: restricted to its attached projects`,
+      service,
+      hookName: "onUpdateSuccess",
+      args: updateSuccess({ restrictToAttachedProjects: true }),
+      announces: true,
+    },
+    {
+      label: `${name}: deleted`,
+      service,
+      hookName: "onDeleteSuccess",
+      args: deleteSuccess([PROVIDER_ID]),
+      announces: true,
+    },
+    {
+      label: `${name}: a new certificate or secret and a new name`,
+      service,
+      hookName: "onUpdateSuccess",
+      args: updateSuccess({ ...credential, name: "Renamed" }),
+      announces: false,
+    },
+    {
+      label: `${name}: turned on, or opened to every project`,
+      service,
+      hookName: "onUpdateSuccess",
+      args: updateSuccess({
+        isEnabled: true,
+        restrictToAttachedProjects: false,
+      }),
+      announces: false,
+    },
+    {
+      label: `${name}: an update that wrote no row`,
+      service,
+      hookName: "onUpdateSuccess",
+      args: updateSuccess({ isEnabled: false }, []),
+      announces: false,
+    },
+    {
+      label: `${name}: a delete that deleted no row`,
+      service,
+      hookName: "onDeleteSuccess",
+      args: deleteSuccess([]),
+      announces: false,
+    },
+    {
+      label: `${name}: created`,
+      service,
+      hookName: "onCreateSuccess",
+      args: createSuccess(buildRow),
+      announces: false,
+    },
+  ];
+}
+
+function attachmentAnnouncementCases(
+  name: string,
+  service: any,
+  buildRow: () => unknown,
+): Array<AnnouncementCase> {
+  return [
+    {
+      label: `${name}: an attachment added`,
+      service,
+      hookName: "onCreateSuccess",
+      args: createSuccess(buildRow),
+      announces: true,
+    },
+    {
+      label: `${name}: an attachment turned off`,
+      service,
+      hookName: "onUpdateSuccess",
+      args: updateSuccess({ isEnabled: false }),
+      announces: true,
+    },
+    {
+      label: `${name}: an attachment removed`,
+      service,
+      hookName: "onDeleteSuccess",
+      args: deleteSuccess([PROVIDER_ID]),
+      announces: true,
+    },
+    {
+      label: `${name}: an attachment turned on`,
+      service,
+      hookName: "onUpdateSuccess",
+      args: updateSuccess({ isEnabled: true }),
+      announces: false,
+    },
+  ];
+}
+
+const ANNOUNCEMENT_CASES: Array<AnnouncementCase> = [
+  ...providerAnnouncementCases(
+    "GlobalSsoService",
+    GlobalSsoService,
+    (): unknown => {
+      const row: GlobalSso = new GlobalSso();
+      row.id = PROVIDER_ID;
+      return row;
+    },
+    { publicCertificate: "a rotated certificate" },
+  ),
+  ...providerAnnouncementCases(
+    "GlobalOidcService",
+    GlobalOidcService,
+    (): unknown => {
+      const row: GlobalOidc = new GlobalOidc();
+      row.id = PROVIDER_ID;
+      return row;
+    },
+    { clientSecret: "a rotated client secret" },
+  ),
+  ...attachmentAnnouncementCases(
+    "GlobalSsoProjectService",
+    GlobalSsoProjectService,
+    (): unknown => {
+      const row: GlobalSsoProject = new GlobalSsoProject();
+      row.globalSsoId = PROVIDER_ID;
+      row.projectId = PROJECT_A;
+      return row;
+    },
+  ),
+  ...attachmentAnnouncementCases(
+    "GlobalOidcProjectService",
+    GlobalOidcProjectService,
+    (): unknown => {
+      const row: GlobalOidcProject = new GlobalOidcProject();
+      row.globalOidcId = PROVIDER_ID;
+      row.projectId = PROJECT_A;
+      return row;
+    },
+  ),
+];
+
+describe("write hooks that let a global provider sign fewer people in tell every server", () => {
+  let announced: Array<RealtimeAccessChange>;
+
+  beforeEach(() => {
+    announced = [];
+    jest
+      .spyOn(RealtimeAccessChanges, "announce")
+      .mockImplementation((change: RealtimeAccessChange): void => {
+        announced.push(change);
+      });
+  });
+
+  test.each(ANNOUNCEMENT_CASES)(
+    "$label",
+    async (announcementCase: AnnouncementCase) => {
+      await callHook(
+        announcementCase.service,
+        announcementCase.hookName,
+        announcementCase.args(),
+      );
+
+      expect(announced).toEqual(
+        announcementCase.announces
+          ? [{ kind: RealtimeAccessChangeKind.SignInRulesChanged }]
+          : [],
+      );
+    },
+  );
+
+  test("only the write's own fields count, never ones it inherits", () => {
+    const inherited: Record<string, unknown> = Object.create({
+      isEnabled: false,
+      restrictToAttachedProjects: true,
+    }) as Record<string, unknown>;
+
+    expect(isGlobalProviderNarrowing(inherited)).toBe(false);
+    expect(isGlobalProviderNarrowing({ isEnabled: false })).toBe(true);
+    expect(
+      isGlobalProviderNarrowing({ restrictToAttachedProjects: true }),
+    ).toBe(true);
+    expect(isGlobalProviderNarrowing({ isEnabled: "false" })).toBe(false);
+    expect(isGlobalProviderNarrowing(null)).toBe(false);
+    expect(isGlobalProviderNarrowing(undefined)).toBe(false);
+  });
+
+  test("a server that hears it forgets what it knew of the global providers", async () => {
+    const trust: jest.SpyInstance = spyOnQuery(GlobalSsoService, "findOneBy");
+    const row: GlobalSso = new GlobalSso();
+    row.id = PROVIDER_ID;
+    trust.mockResolvedValue(
+      setRawColumns(row, {
+        isEnabled: true,
+        restrictToAttachedProjects: false,
+      }),
+    );
+
+    await GlobalSsoService.getProviderTrust(PROVIDER_ID);
+    await GlobalSsoService.getProviderTrust(PROVIDER_ID);
+    expect(trust).toHaveBeenCalledTimes(1);
+
+    // What RealtimeAccessChanges runs on each server for an instance-wide change.
+    GlobalConfigService.forgetSignInRules();
+
+    await GlobalSsoService.getProviderTrust(PROVIDER_ID);
+    expect(trust).toHaveBeenCalledTimes(2);
+  });
+});

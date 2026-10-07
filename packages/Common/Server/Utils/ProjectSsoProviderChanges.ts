@@ -133,8 +133,11 @@ export default class ProjectSsoProviderChanges {
    * The last step before an update is written (the service's
    * onUpdatePermitted, once every permission check has passed): an update
    * that turns a provider off writes when, in the same write, so a provider
-   * is never off without the time its sign-ins ended. A provider that is off
-   * already keeps the time it has.
+   * is never off without the time its sign-ins ended. An update that turns
+   * none off - every provider it names is off already - keeps the times
+   * they have. One that turns several off gives each the same time, one
+   * that was off already included: a provider that is off gives no
+   * sign-ins, so a later time ends none that an earlier one did not.
    */
   public static async beforeWrite<TModel extends BaseModel>(data: {
     service: DatabaseService<TModel>;
