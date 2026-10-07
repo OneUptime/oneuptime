@@ -23,6 +23,7 @@ import {
   PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS,
   ProjectNotificationChannelColumn,
 } from "../../../../../Utils/Project/NotificationChannels";
+import { PROJECT_BILLING_CONTACT_COLUMNS } from "../../../../../Utils/Project/ProjectBilling";
 import {
   afterEach,
   beforeEach,
@@ -39,7 +40,9 @@ import {
  * (ColumnPermission) - never of the lists read back.
  *
  *   - A Billing Admin may turn a project's SMS, phone calls, WhatsApp and
- *     Telegram on and off - and change nothing else about the project.
+ *     Telegram on and off, and change its billing contact details (as a
+ *     Billing Member may) - and change nothing else about the project
+ *     (BillingRolesPermissionMatrix holds the three billing roles).
  *   - A Workflow Admin may create, change, run and delete workflows, and the
  *     variables they use.
  *   - A Workflow Member may open workflows and run them, and change none:
@@ -238,20 +241,20 @@ describe("a Billing Admin turns a project's paid channels on and off", () => {
     );
   }
 
-  test("a Billing Admin may change those four columns and nothing else about a project", () => {
+  test("a Billing Admin may change those four columns and the billing contact details, and nothing else about a project", () => {
     expect(
       columnsFor(
         Project,
         [Permission.BillingAdmin],
         DatabaseRequestType.Update,
       ),
-    ).toEqual([...CHANNEL_COLUMNS].sort());
+    ).toEqual([...CHANNEL_COLUMNS, ...PROJECT_BILLING_CONTACT_COLUMNS].sort());
   });
 
-  test("so a Billing Admin may not rename a project, or change its billing details", () => {
+  test("so a Billing Admin may not rename a project, change its plan or balances' Auto Recharge, or turn AI on", () => {
     for (const data of [
       { name: "Renamed" },
-      { financeAccountingEmail: "finance@example.com" },
+      { paymentProviderPlanId: "price_scale_year" },
       { enableAutoRechargeSmsOrCallBalance: true },
       { enableAi: true },
     ]) {
@@ -309,15 +312,13 @@ describe("a Billing Admin turns a project's paid channels on and off", () => {
     ).toBe(false);
   });
 
-  test("Billing Member and Billing Viewer gain nothing on a project", () => {
-    for (const permission of [
-      Permission.BillingMember,
-      Permission.BillingViewer,
-    ]) {
-      expect(
-        columnsFor(Project, [permission], DatabaseRequestType.Update),
-      ).toEqual([]);
-    }
+  test("Billing Member changes only the billing contact details on a project, and Billing Viewer nothing", () => {
+    expect(
+      columnsFor(Project, [Permission.BillingMember], DatabaseRequestType.Update),
+    ).toEqual([...PROJECT_BILLING_CONTACT_COLUMNS].sort());
+    expect(
+      columnsFor(Project, [Permission.BillingViewer], DatabaseRequestType.Update),
+    ).toEqual([]);
   });
 });
 

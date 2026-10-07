@@ -2674,13 +2674,15 @@ export class PermissionHelper {
         permission: Permission.BillingAdmin,
         title: "Billing Admin",
         /*
-         * What the role grants, and no more: the four notification channel
-         * switches (Project's enableSmsNotifications and the three beside
-         * it). The plan, payment methods, invoices and balance are checked
-         * against Project Owner and Manage Billing.
+         * What the role grants, and no more (Utils/Project/ProjectBilling):
+         * Billing Member's reads and contact details, and the four
+         * notification channel switches (Project's enableSmsNotifications and
+         * the three beside it). The plan, payment methods, balances and
+         * paying invoices are checked against Project Owner and Manage
+         * Billing.
          */
         description:
-          "Turns the project's SMS, phone call, WhatsApp and Telegram notifications on and off. Changing the plan, payment methods or balance takes Project Owner or Manage Billing.",
+          "Does what Billing Member does, and turns the project's SMS, phone call, WhatsApp and Telegram notifications on and off. Changing the plan, payment methods or balances, and paying invoices, takes Project Owner or Manage Billing.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2689,8 +2691,9 @@ export class PermissionHelper {
       {
         permission: Permission.BillingMember,
         title: "Billing Member",
+        // Billing Viewer's reads, invoice downloads and the contact details.
         description:
-          "Can view and manage payment methods. Cannot change the project plan.",
+          "Reads the project's billing as Billing Viewer does, downloads invoices, and changes the billing contact details: the billing address, the finance email and whether invoices are emailed to it. Changing the plan, payment methods or balances, and paying invoices, takes Project Owner or Manage Billing.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -2699,7 +2702,9 @@ export class PermissionHelper {
       {
         permission: Permission.BillingViewer,
         title: "Billing Viewer",
-        description: "Read-only access to billing information and invoices.",
+        // Every billing page and record, read only (Utils/Project/ProjectBilling).
+        description:
+          "Reads the project's billing: the plan and subscription, invoices, usage, balances, AI credits, payment methods and billing contact details. Changes nothing.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,

@@ -11,6 +11,7 @@ import Permission, {
 } from "../../Types/Permission";
 import { WORKFLOW_RUN_PERMISSIONS } from "../../Types/Workflow/WorkflowRunPermissions";
 import { PROJECT_NOTIFICATION_CHANNEL_COLUMN_BY_CHANNEL } from "../../Utils/Project/NotificationChannels";
+import { PROJECT_BILLING_CONTACT_COLUMNS } from "../../Utils/Project/ProjectBilling";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -38,9 +39,15 @@ function describeRole(permission: Permission): string {
 describe("Billing Admin", () => {
   const description: string = describeRole(Permission.BillingAdmin);
 
-  test("says it turns the four paid channels on and off, and what it does not do", () => {
+  /*
+   * Since Billing Member and Billing Viewer were given what their
+   * descriptions promise (Utils/Project/ProjectBilling), the three billing
+   * roles nest like every other role family: Billing Admin does what Billing
+   * Member does, and turns the paid channels on and off as well.
+   */
+  test("says it does what Billing Member does and turns the four paid channels on and off, and what it does not do", () => {
     expect(description).toBe(
-      "Turns the project's SMS, phone call, WhatsApp and Telegram notifications on and off. Changing the plan, payment methods or balance takes Project Owner or Manage Billing.",
+      "Does what Billing Member does, and turns the project's SMS, phone call, WhatsApp and Telegram notifications on and off. Changing the plan, payment methods or balances, and paying invoices, takes Project Owner or Manage Billing.",
     );
   });
 
@@ -63,19 +70,23 @@ describe("Billing Admin", () => {
       .sort();
 
     expect(named).toEqual(
-      Object.values(PROJECT_NOTIFICATION_CHANNEL_COLUMN_BY_CHANNEL).sort(),
+      [
+        ...Object.values(PROJECT_NOTIFICATION_CHANNEL_COLUMN_BY_CHANNEL),
+        ...PROJECT_BILLING_CONTACT_COLUMNS,
+      ].sort(),
     );
   });
 
-  test("and the plan, payment details and balance name Project Owner and Manage Billing, not it", () => {
+  test("and the plan and the balances name Project Owner and Manage Billing, not it", () => {
     const columns: Dictionary<ColumnAccessControl> =
       new Project().getColumnAccessControlForAllColumns();
 
     for (const column of [
       "paymentProviderPlanId",
-      "businessDetails",
       "enableAutoRechargeSmsOrCallBalance",
       "autoRechargeSmsOrCallByBalanceInUSD",
+      "enableAutoRechargeAiBalance",
+      "autoAiRechargeByBalanceInUSD",
     ]) {
       const update: Array<Permission> = columns[column]?.update || [];
 

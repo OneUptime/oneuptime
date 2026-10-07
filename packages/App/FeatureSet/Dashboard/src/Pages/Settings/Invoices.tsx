@@ -30,6 +30,10 @@ import React, {
 } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Project from "Common/Models/DatabaseModels/Project";
+import {
+  getBillingActionLockedReason,
+  getPayInvoiceGate,
+} from "../../Components/Billing/BillingActionGates";
 import SubscriptionStatus from "Common/Types/Billing/SubscriptionStatus";
 import { PaymentIntentResult, Stripe, StripeError } from "@stripe/stripe-js";
 /*
@@ -78,6 +82,17 @@ const Settings: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isPaymentProcessing, setIsPaymentProcessing] =
     useState<boolean>(false);
+
+  /*
+   * Paying an invoice charges the card, so it stays with a project owner
+   * and Manage Billing: the billing roles read the invoices and see Pay
+   * Invoice locked, saying why (Components/Billing/BillingActionGates).
+   * Downloading one needs its download link, which the table only asks
+   * for from people who may read it - Billing Viewer reads the list
+   * without it.
+   */
+  const payInvoiceLockedReason: string | undefined =
+    getBillingActionLockedReason(getPayInvoiceGate());
 
   type PayInvoiceFunction = (
     customerId: string,
@@ -229,6 +244,8 @@ const Settings: FunctionComponent<ComponentProps> = (
               title: "Pay Invoice",
               icon: IconProp.Billing,
               buttonStyleType: ButtonStyleType.NORMAL,
+              disabled: Boolean(payInvoiceLockedReason),
+              tooltip: payInvoiceLockedReason,
               /*
                * An invoice that still owes money is the one thing on this
                * page that needs doing, so paying it is the row's button and

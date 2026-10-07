@@ -69,6 +69,11 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import BillingPaymentMethod from "Common/Models/DatabaseModels/BillingPaymentMethod";
 import Project from "Common/Models/DatabaseModels/Project";
+import {
+  getAddPaymentMethodGate,
+  getBillingActionLockedReason,
+  getSetDefaultPaymentMethodGate,
+} from "../../Components/Billing/BillingActionGates";
 import Reseller from "Common/Models/DatabaseModels/Reseller";
 import ResellerPlan from "Common/Models/DatabaseModels/ResellerPlan";
 import React, {
@@ -597,6 +602,18 @@ const Settings: FunctionComponent<ComponentProps> = (
     }
   };
 
+  /*
+   * Adding a payment method, and choosing which one is charged, stay with a
+   * project owner and Manage Billing: the billing roles read this page and
+   * see those locked, saying why (Components/Billing/BillingActionGates).
+   * Read on every render: the permission snapshot rides on a response
+   * header and may land after the first paint.
+   */
+  const addPaymentMethodLockedReason: string | undefined =
+    getBillingActionLockedReason(getAddPaymentMethodGate());
+  const setDefaultLockedReason: string | undefined =
+    getBillingActionLockedReason(getSetDefaultPaymentMethodGate());
+
   const getFooter: GetReactElementFunction = (): ReactElement => {
     if (!BILLING_ENABLED) {
       return <></>;
@@ -992,6 +1009,8 @@ const Settings: FunctionComponent<ComponentProps> = (
                 title: "Set as Default",
                 buttonStyleType: ButtonStyleType.NORMAL,
                 icon: IconProp.Check,
+                disabled: Boolean(setDefaultLockedReason),
+                tooltip: setDefaultLockedReason,
                 isVisible: (item: BillingPaymentMethod): boolean => {
                   return (
                     !item.isDefault &&
@@ -1018,6 +1037,8 @@ const Settings: FunctionComponent<ComponentProps> = (
                 title: "Re-sync Autopay",
                 buttonStyleType: ButtonStyleType.NORMAL,
                 icon: IconProp.Refresh,
+                disabled: Boolean(setDefaultLockedReason),
+                tooltip: setDefaultLockedReason,
                 isVisible: (item: BillingPaymentMethod): boolean => {
                   return (
                     Boolean(item.isDefault) &&
@@ -1029,15 +1050,26 @@ const Settings: FunctionComponent<ComponentProps> = (
             ]}
             cardProps={{
               buttons: [
-                {
-                  title: "Add Payment Method",
-                  icon: IconProp.Add,
-                  onClick: async () => {
-                    setShowPaymentMethodModal(true);
-                    await fetchSetupIntent();
-                  },
-                  buttonStyle: ButtonStyleType.NORMAL,
-                },
+                addPaymentMethodLockedReason
+                  ? {
+                      title: "Add Payment Method",
+                      icon: IconProp.Add,
+                      buttonStyle: ButtonStyleType.NORMAL,
+                      disabled: true,
+                      tooltip: addPaymentMethodLockedReason,
+                      onClick: () => {
+                        // Locked. The tooltip says who may add one.
+                      },
+                    }
+                  : {
+                      title: "Add Payment Method",
+                      icon: IconProp.Add,
+                      onClick: async () => {
+                        setShowPaymentMethodModal(true);
+                        await fetchSetupIntent();
+                      },
+                      buttonStyle: ButtonStyleType.NORMAL,
+                    },
               ],
               title: "Payment Methods",
               description:
