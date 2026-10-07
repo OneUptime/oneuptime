@@ -23234,8 +23234,6 @@
   "This policy has {{total}} responders, more than this card reads at once. The counts and the list below cover the {{shown}} most-affected of them; anyone missing sorts behind everyone already shown.": "このポリシーには {{total}} 人の対応者がいて、このカードで一度に読み込める数を超えています。件数と下の一覧は、そのうち最も影響を受けている {{shown}} 人を対象にしています。表示されていない人は、すでに表示されている全員より後に並びます。",
   "This probe has not reported a result yet. Results usually appear within a few minutes of its next check.": "このプローブはまだ結果を報告していません。結果は通常、次のチェックから数分以内に表示されます。",
   "This probe is disabled for this monitor, so it is not collecting any data. Enable it under Probes.": "このプローブはこのモニターで無効になっているため、データを収集していません。「プローブ」で有効にしてください。",
-  "This process's share of all host CPU cores, averaged over the last 5 minutes of the range (usually the whole range if over 12 hours or no recent data). Its user, system and wait readings are averaged, not added, so it reads about a third of the real use.": "ホストの全 CPU コアに対するこのプロセスの割合を、範囲の直近 5 分間で平均したものです（12 時間を超える範囲や最近のデータがない場合は、通常は範囲全体）。user、system、wait の測定値を合計せずに平均するため、実際の使用量の約 3 分の 1 の値になります。",
-  "This process's share of the host's total CPU capacity in each interval. Like the CPU tile, it averages the separate user, system and wait readings instead of adding them, so it reads about a third of the real use.": "各区間における、ホストの総 CPU 容量に対するこのプロセスの割合です。CPU タイルと同様に、user、system、wait の個別の測定値を合計せずに平均するため、実際の使用量の約 3 分の 1 の値になります。",
   "This process's threads, averaged over the last 5 minutes of the range (usually the whole range on ranges over 12 hours or with no recent data); open file handles are below. Both need the collector's process.threads and process.open_file_descriptors turned on.": "このプロセスのスレッド数を範囲の直近 5 分間で平均したもので（12 時間を超える範囲や最近のデータがない場合は、通常は範囲全体）、下に開いているファイルハンドルの数を示します。どちらも、コレクターで process.threads と process.open_file_descriptors を有効にする必要があります。",
   "This queue's identifier could not be read, so no metrics can be matched to it.": "このキューの識別子を読み取れなかったため、メトリクスを照合できません。",
   "This queue's identifier could not be read, so no telemetry can be matched to it.": "このキューの識別子を読み取れなかったため、テレメトリを照合できません。",
@@ -26029,6 +26027,8 @@
   "Connecting GitHub needs permission to create code repositories.": "GitHub に接続するには、コードリポジトリを作成する権限が必要です。",
   "Connecting GitHub needs the {{planName}} plan.": "GitHub に接続するには、{{planName}} プランが必要です。",
   "OneUptime could not start the GitHub connection. Please try again.": "OneUptime は GitHub との接続を開始できませんでした。もう一度お試しください。",
+  "CPU this process used (user plus system time) as a share of all host CPU cores, averaged over the last 5 minutes of the range (usually the whole range if over 12 hours or no recent data). Time it spent waiting on disk is left out.": "このプロセスの CPU 使用量（ユーザー時間 + システム時間）を、ホストの全 CPU コアに対する割合で表し、範囲の直近 5 分間で平均したものです（12 時間を超える範囲や最近のデータがない場合は、通常は範囲全体）。ディスク待ちに費やした時間は含まれません。",
+  "CPU this process used in each interval of the selected range (user plus system time), as a share of the host's total CPU capacity. As on the CPU tile, time it spent waiting on disk is left out.": "選択した範囲の各区間における、このプロセスの CPU 使用量（ユーザー時間 + システム時間）を、ホストの総 CPU 容量に対する割合で表したものです。CPU タイルと同様に、ディスク待ちに費やした時間は含まれません。",
   "No longer a member": "メンバーではなくなりました",
   "Invitation not accepted yet": "招待はまだ承諾されていません"
 }
