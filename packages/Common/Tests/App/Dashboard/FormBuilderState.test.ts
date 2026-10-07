@@ -8,6 +8,7 @@ import {
   getDefaultFormFields,
   getDefaultQuestionOptions,
   isFormFieldId,
+  validateFormFields,
 } from "../../../Types/Form/FormField";
 import { FormCustomFieldDefinition } from "../../../Types/Form/FormPublic";
 import { getFormTargetField } from "../../../Types/Form/FormTargetCatalog";
@@ -379,6 +380,91 @@ describe("updateFormField: an edit on the selected card", () => {
     });
 
     expect("helpText" in field!).toBe(false);
+  });
+});
+
+describe("updateFormField: hiding a question", () => {
+  test("a hidden question is not required: nobody is asked it", () => {
+    const [hidden]: Array<FormField> = updateFormField({
+      fields: [{ ...question("a"), isRequired: true }],
+      id: "a",
+      changes: { isHidden: true },
+    });
+
+    expect(hidden).toMatchObject({ isHidden: true, isRequired: false });
+  });
+
+  test("Required cannot be turned back on while the question is hidden", () => {
+    const [hidden]: Array<FormField> = updateFormField({
+      fields: [{ ...question("a"), isHidden: true }],
+      id: "a",
+      changes: { isRequired: true },
+    });
+
+    expect(hidden!.isRequired).toBe(false);
+  });
+
+  test("a question shown again carries no Hidden at all, and keeps Required as it was left", () => {
+    const [shown]: Array<FormField> = updateFormField({
+      fields: [{ ...question("a"), isHidden: true }],
+      id: "a",
+      changes: { isHidden: false },
+    });
+
+    expect(shown).not.toHaveProperty("isHidden");
+    expect(shown!.isRequired).toBe(false);
+  });
+
+  test("an edit that does not touch Hidden leaves a hidden question hidden", () => {
+    const [edited]: Array<FormField> = updateFormField({
+      fields: [{ ...question("a"), isHidden: true }],
+      id: "a",
+      changes: { label: "Routing code" },
+    });
+
+    expect(edited).toMatchObject({
+      label: "Routing code",
+      isHidden: true,
+      isRequired: false,
+    });
+  });
+
+  test("what hiding makes is what the server accepts: the incident's description, hidden", () => {
+    const defaults: Array<FormField> = getDefaultFormFields(
+      FormTargetType.Incident,
+    );
+    const description: FormField = defaults.find(
+      (field: FormField): boolean => {
+        return field.targetField === "description";
+      },
+    )!;
+
+    const fields: Array<FormField> = updateFormField({
+      fields: defaults,
+      id: description.id,
+      changes: { isHidden: true },
+    });
+
+    expect(
+      fields.find((field: FormField): boolean => {
+        return field.id === description.id;
+      }),
+    ).toMatchObject({ isHidden: true, isRequired: false });
+    expect(
+      validateFormFields({
+        value: fields,
+        targetType: FormTargetType.Incident,
+      }),
+    ).toBeNull();
+  });
+
+  test("a question duplicated while hidden is copied hidden", () => {
+    const change: FormFieldsChange = duplicateFormField({
+      fields: [{ ...question("a"), isHidden: true }],
+      id: "a",
+    });
+
+    expect(change.fields[1]).toMatchObject({ isHidden: true });
   });
 });
 

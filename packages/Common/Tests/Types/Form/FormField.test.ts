@@ -1531,9 +1531,9 @@ describe("finding a question", () => {
 
 describe("hidden questions", () => {
   test("a hidden question is read as hidden", () => {
-    expect(
-      readFormFields([question({ isHidden: true })])[0]!.isHidden,
-    ).toBe(true);
+    expect(readFormFields([question({ isHidden: true })])[0]!.isHidden).toBe(
+      true,
+    );
   });
 
   test.each([false, "true", 1, null])(
@@ -1730,9 +1730,11 @@ describe("hidden questions", () => {
     });
 
     test("what the new target cannot do without is added asked and required", () => {
-      const startsAt: FormField = converted.find((field: FormField): boolean => {
-        return field.targetField === "startsAt";
-      })!;
+      const startsAt: FormField = converted.find(
+        (field: FormField): boolean => {
+          return field.targetField === "startsAt";
+        },
+      )!;
 
       expect(startsAt.isHidden).toBeUndefined();
       expect(startsAt.isRequired).toBe(true);

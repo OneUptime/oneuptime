@@ -235,9 +235,7 @@ describe("readFormTemplates - what the dashboard and the server read", () => {
     (read.answers["list"] as Array<string>).push("b");
 
     expect(
-      (
-        (stored[0] as { answers: { list: Array<string> } }).answers.list
-      ).length,
+      (stored[0] as { answers: { list: Array<string> } }).answers.list.length,
     ).toBe(1);
   });
 
@@ -262,7 +260,9 @@ describe("readFormTemplates - what the dashboard and the server read", () => {
     }
 
     expect(
-      Object.keys(readFormTemplates([{ id: "a", name: "A", answers }])[0]!.answers),
+      Object.keys(
+        readFormTemplates([{ id: "a", name: "A", answers }])[0]!.answers,
+      ),
     ).toHaveLength(FORM_MAX_FIELDS);
   });
 
@@ -388,7 +388,10 @@ describe("validateFormTemplates - what may be stored", () => {
     ["an object", { value: "Berlin" }],
     ["a list of lists", [["Berlin"]]],
     ["a list of objects", [{ value: "Berlin" }]],
-    ["text longer than any question takes", "x".repeat(FORM_TEMPLATE_ANSWER_MAX_LENGTH + 1)],
+    [
+      "text longer than any question takes",
+      "x".repeat(FORM_TEMPLATE_ANSWER_MAX_LENGTH + 1),
+    ],
     [
       "a list with more entries than a multi-select takes",
       Array(FORM_TEMPLATE_MAX_CHOICES + 1).fill("a"),
@@ -459,9 +462,9 @@ describe("describeFormTemplate", () => {
       'Template 3 ("Outage")',
     );
     expect(describeFormTemplate({ index: 0, name: 7 })).toBe("Template 1");
-    expect(
-      describeFormTemplate({ index: 0, name: "x".repeat(100) }),
-    ).toBe(`Template 1 ("${"x".repeat(60)}")`);
+    expect(describeFormTemplate({ index: 0, name: "x".repeat(100) })).toBe(
+      `Template 1 ("${"x".repeat(60)}")`,
+    );
   });
 });
 
@@ -520,9 +523,11 @@ describe("getFormTemplateCopyName - a copy's name, as Duplicate names one", () =
         existingNames: existing,
       });
 
-      expect(existing.map((name: string): string => {
-        return name.toLowerCase();
-      })).not.toContain(copy.toLowerCase());
+      expect(
+        existing.map((name: string): string => {
+          return name.toLowerCase();
+        }),
+      ).not.toContain(copy.toLowerCase());
       existing.push(copy);
     }
   });
@@ -648,15 +653,14 @@ describe("duplicateFormTemplate", () => {
     }).templates[1]!;
 
     expect(copy.isDefault).toBeUndefined();
-    expect(
-      validateFormTemplates([MAINTENANCE, copy]),
-    ).toBeNull();
+    expect(validateFormTemplates([MAINTENANCE, copy])).toBeNull();
   });
 
   test("a template that is not listed, or a full form, is left as it was", () => {
-    expect(
-      duplicateFormTemplate({ templates: [OUTAGE], id: "gone" }),
-    ).toEqual({ templates: [OUTAGE], templateId: null });
+    expect(duplicateFormTemplate({ templates: [OUTAGE], id: "gone" })).toEqual({
+      templates: [OUTAGE],
+      templateId: null,
+    });
 
     const full: Array<FormTemplate> = Array.from(
       { length: FORM_MAX_TEMPLATES },
@@ -703,17 +707,18 @@ describe("removing and moving templates", () => {
     expect(
       ids(moveFormTemplate({ templates, id: "restored", offset: 1 })),
     ).toEqual(["outage", "restored"]);
-    expect(
-      ids(moveFormTemplate({ templates, id: "gone", offset: 1 })),
-    ).toEqual(["outage", "restored"]);
+    expect(ids(moveFormTemplate({ templates, id: "gone", offset: 1 }))).toEqual(
+      ["outage", "restored"],
+    );
   });
 
   test("makes one template the default, or none", () => {
     const templates: Array<FormTemplate> = [OUTAGE, MAINTENANCE, RESTORED];
 
     expect(
-      getDefaultFormTemplate(setDefaultFormTemplate({ templates, id: "outage" }))
-        ?.id,
+      getDefaultFormTemplate(
+        setDefaultFormTemplate({ templates, id: "outage" }),
+      )?.id,
     ).toBe("outage");
     expect(
       setDefaultFormTemplate({ templates, id: "outage" }).filter(

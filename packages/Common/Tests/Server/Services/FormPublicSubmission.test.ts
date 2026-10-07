@@ -1556,8 +1556,8 @@ describe("submitPublicForm - hidden questions, answered from a template", () => 
 
     expect(createdIncident().title).toBe("Checkout is down");
 
-    const answers: Array<FormSubmissionAnswer> =
-      recordedSubmission().answers as unknown as Array<FormSubmissionAnswer>;
+    const answers: Array<FormSubmissionAnswer> = recordedSubmission()
+      .answers as unknown as Array<FormSubmissionAnswer>;
     const office: FormSubmissionAnswer | undefined = answers.find(
       (answer: FormSubmissionAnswer): boolean => {
         return answer.fieldId === "office";
@@ -1640,8 +1640,8 @@ describe("submitPublicForm - hidden questions, answered from a template", () => 
   test("the hidden answers are kept with the submission, in the form's order", async () => {
     await submitFrom({ title: "Checkout is down" }, "outage");
 
-    const answers: Array<FormSubmissionAnswer> =
-      recordedSubmission().answers as unknown as Array<FormSubmissionAnswer>;
+    const answers: Array<FormSubmissionAnswer> = recordedSubmission()
+      .answers as unknown as Array<FormSubmissionAnswer>;
 
     expect(
       answers.map((answer: FormSubmissionAnswer): string => {
@@ -1657,9 +1657,7 @@ describe("submitPublicForm - hidden questions, answered from a template", () => 
       incidentNoteCreate.mock.calls[0]![0] as { data: IncidentInternalNote }
     ).data.note!;
 
-    expect(note).toContain(
-      "Started from the template **Application Outage**.",
-    );
+    expect(note).toContain("Started from the template **Application Outage**.");
   });
 
   test("the note names no template when the submission started from none", async () => {

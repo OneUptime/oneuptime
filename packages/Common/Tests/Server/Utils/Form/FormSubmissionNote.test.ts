@@ -429,7 +429,9 @@ describe("getFormSubmissionNote: the template it started from", () => {
         templateName,
       });
 
-      expect(note).toBe("Submitted anonymously through the form **Department A**.");
+      expect(note).toBe(
+        "Submitted anonymously through the form **Department A**.",
+      );
       expect(note).not.toContain("template");
     },
   );

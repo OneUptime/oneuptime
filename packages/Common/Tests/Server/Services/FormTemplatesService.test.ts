@@ -426,7 +426,9 @@ describe("creating a form with templates", () => {
 
     // The default questions have other ids: OUTAGE answers none of them.
     expect(error).toBeInstanceOf(BadDataException);
-    expect(error?.message).toContain("answers a question the form does not ask");
+    expect(error?.message).toContain(
+      "answers a question the form does not ask",
+    );
   });
 
   test("checks the project of the request, whatever the body says", async () => {
@@ -474,16 +476,19 @@ describe("changing a form's templates", () => {
   });
 
   test("clearing the templates is always allowed", async () => {
-    await expect(update({ templates: null as unknown as JSONArray })).resolves
-      .toBeDefined();
+    await expect(
+      update({ templates: null as unknown as JSONArray }),
+    ).resolves.toBeDefined();
     await expect(update({ templates: [] })).resolves.toBeDefined();
     expect(buildPublicFormFor).not.toHaveBeenCalled();
   });
 
   test("checks them against the questions the same write sets", async () => {
-    const fields: Array<FormField> = FIELDS.filter((field: FormField): boolean => {
-      return field.id !== "office";
-    });
+    const fields: Array<FormField> = FIELDS.filter(
+      (field: FormField): boolean => {
+        return field.id !== "office";
+      },
+    );
 
     const error: Error | undefined = await refusal(
       update({
@@ -534,7 +539,8 @@ describe("changing a form's templates", () => {
       }),
     ];
 
-    const fields: Array<FormField> = storedForms[0]!.fields as unknown as Array<FormField>;
+    const fields: Array<FormField> = storedForms[0]!
+      .fields as unknown as Array<FormField>;
     const title: FormField = fields.find((field: FormField): boolean => {
       return field.targetField === "title";
     })!;

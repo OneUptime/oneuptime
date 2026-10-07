@@ -1066,4 +1066,77 @@ describe("DuplicateModel", () => {
       expect(nameInput()).toHaveValue("Nightly Sync 2");
     });
   });
+  describe("a copy that is not exactly like its original", () => {
+    test("the card says what the page tells it to, in place of 'exactly like this one'", () => {
+      render(
+        <DuplicateModel
+          modelType={TestModel}
+          modelId={new ObjectID("foo")}
+          fieldsToDuplicate={{}}
+          fieldsToChange={[]}
+          description="The copy starts turned off."
+        />,
+      );
+
+      expect(screen.getByTestId("card-description")?.textContent).toBe(
+        "The copy starts turned off.",
+      );
+      expect(screen.getByTestId("card-button")?.textContent).toBe(
+        "Duplicate Foo",
+      );
+    });
+
+    test("prepareCopy adjusts the copy last, after the original's values and the dialog's", async () => {
+      serveWorkflow({ originalName: "Nightly Sync", projectNames: [] });
+
+      const prepared: Array<Workflow> = [];
+
+      render(
+        <DuplicateModel<Workflow>
+          modelType={Workflow}
+          modelId={WORKFLOW_ID}
+          fieldsToDuplicate={WORKFLOW_FIELDS_TO_DUPLICATE}
+          fieldsToChange={WORKFLOW_FIELDS_TO_CHANGE}
+          navigateToOnSuccess={LIST_ROUTE}
+          prepareCopy={(copy: Workflow): void => {
+            prepared.push(copy);
+            // Sees what the dialog asked, and has the last word.
+            copy.description = `${copy.name} (copy)`;
+            copy.isEnabled = false;
+          }}
+        />,
+      );
+
+      await openDialog();
+      await pressDuplicateInDialog();
+
+      await waitFor(() => {
+        expect(mockCreate).toHaveBeenCalledTimes(1);
+      });
+
+      expect(prepared).toHaveLength(1);
+
+      const sent: Workflow = sentModel<Workflow>();
+
+      expect(sent.name).toBe("Nightly Sync 2");
+      expect(sent.description).toBe("Nightly Sync 2 (copy)");
+      expect(sent.isEnabled).toBe(false);
+      // Still a new record.
+      expect(sent._id).toBeUndefined();
+    });
+
+    test("without prepareCopy the copy is saved as it was read", async () => {
+      serveWorkflow({ originalName: "Nightly Sync", projectNames: [] });
+
+      renderWorkflowDuplicate();
+      await openDialog();
+      await pressDuplicateInDialog();
+
+      await waitFor(() => {
+        expect(mockCreate).toHaveBeenCalledTimes(1);
+      });
+
+      expect(sentModel<Workflow>().description).toBe("Runs at night");
+    });
+  });
 });

@@ -468,11 +468,14 @@ describe("getFormTemplateAnswers", () => {
     });
   });
 
-  test.each([null, undefined])("no template (%j) answers nothing", (value: null | undefined) => {
-    expect(
-      getFormTemplateAnswers({ template: value, fields: built.allFields }),
-    ).toEqual({});
-  });
+  test.each([null, undefined])(
+    "no template (%j) answers nothing",
+    (value: null | undefined) => {
+      expect(
+        getFormTemplateAnswers({ template: value, fields: built.allFields }),
+      ).toEqual({});
+    },
+  );
 
   test("answers that are not an object answer nothing", () => {
     expect(

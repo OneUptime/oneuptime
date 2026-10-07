@@ -552,9 +552,7 @@ describe("a question card", () => {
       helpText: "From the support tool.",
     });
 
-    fireEvent.click(
-      screen.getByTestId("form-question-required-q"),
-    );
+    fireEvent.click(screen.getByTestId("form-question-required-q"));
     expect(handlers.onChange).toHaveBeenLastCalledWith({ isRequired: true });
 
     fireEvent.click(screen.getByTestId("form-question-duplicate-q"));
@@ -658,6 +656,152 @@ describe("a question card", () => {
   });
 });
 
+describe("a question card: Hidden", () => {
+  let onChange: MockFunction;
+
+  beforeEach(() => {
+    onChange = getJestMockFunction();
+  });
+
+  function renderHiddenCard(
+    field: FormField,
+    targetType?: FormTargetType,
+  ): void {
+    render(
+      <QuestionCard
+        field={field}
+        index={1}
+        count={3}
+        targetType={targetType || FormTargetType.Incident}
+        customFields={[REGION]}
+        recordOptions={{}}
+        isSelected={true}
+        isReadOnly={false}
+        onSelect={() => {}}
+        onDeselect={() => {}}
+        onChange={(changes: Partial<FormField>) => {
+          onChange(changes);
+        }}
+        onMove={() => {}}
+        onDuplicate={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+  }
+
+  const DESCRIPTION: FormField = {
+    id: "description",
+    source: FormFieldSource.TargetField,
+    targetField: "description",
+    label: "Description",
+    isRequired: false,
+  };
+
+  test("a shown question offers Hidden, off, and says what it does", () => {
+    renderHiddenCard(DESCRIPTION);
+
+    const hidden: HTMLElement = screen.getByTestId(
+      "form-question-hidden-description",
+    );
+
+    expect(hidden).toHaveAttribute("aria-checked", "false");
+    expect(hidden).not.toHaveAttribute("aria-disabled");
+    expect(screen.getByText(FormsCopy.hiddenDescription)).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("form-question-hidden-badge-description"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("turning it on hands the change over", () => {
+    renderHiddenCard(DESCRIPTION);
+
+    fireEvent.click(screen.getByTestId("form-question-hidden-description"));
+
+    expect(onChange).toHaveBeenLastCalledWith({ isHidden: true });
+  });
+
+  test("a hidden question says so on its card, and is not required - nor can it be made so", () => {
+    renderHiddenCard({ ...DESCRIPTION, isHidden: true });
+
+    expect(
+      screen.getByTestId("form-question-hidden-badge-description"),
+    ).toHaveTextContent("Hidden");
+    expect(
+      screen.getByTestId("form-question-hidden-description"),
+    ).toHaveAttribute("aria-checked", "true");
+
+    const required: HTMLElement = screen.getByTestId(
+      "form-question-required-description",
+    );
+
+    expect(required).toHaveAttribute("aria-checked", "false");
+    expect(required).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByText(FormsCopy.requiredHidden)).toBeInTheDocument();
+    expect(
+      within(
+        screen.getByTestId("form-question-select-description"),
+      ).queryByText("*"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("turning it off hands that over too", () => {
+    renderHiddenCard({ ...DESCRIPTION, isHidden: true });
+
+    fireEvent.click(screen.getByTestId("form-question-hidden-description"));
+
+    expect(onChange).toHaveBeenLastCalledWith({ isHidden: false });
+  });
+
+  test("a field the target cannot be created without cannot be hidden", () => {
+    renderHiddenCard(
+      {
+        id: "starts",
+        source: FormFieldSource.TargetField,
+        targetField: "startsAt",
+        label: "Starts At",
+        isRequired: true,
+      },
+      FormTargetType.ScheduledMaintenance,
+    );
+
+    const hidden: HTMLElement = screen.getByTestId(
+      "form-question-hidden-starts",
+    );
+
+    expect(hidden).toHaveAttribute("aria-checked", "false");
+    expect(hidden).toHaveAttribute("aria-disabled", "true");
+
+    fireEvent.click(hidden);
+
+    expect(onChange).not.toHaveBeenCalledWith({ isHidden: true });
+  });
+
+  test("an unselected hidden question still shows its badge", () => {
+    render(
+      <QuestionCard
+        field={{ ...DESCRIPTION, isHidden: true }}
+        index={1}
+        count={3}
+        targetType={FormTargetType.Incident}
+        customFields={[REGION]}
+        recordOptions={{}}
+        isSelected={false}
+        isReadOnly={true}
+        onSelect={() => {}}
+        onDeselect={() => {}}
+        onChange={() => {}}
+        onMove={() => {}}
+        onDuplicate={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("form-question-hidden-badge-description"),
+    ).toBeInTheDocument();
+  });
+});
+
 describe("the preview", () => {
   let onClose: MockFunction;
 
@@ -668,6 +812,7 @@ describe("the preview", () => {
   async function renderPreview(
     fields: Array<FormField>,
     branding?: FormBrandingValues,
+    templates?: unknown,
   ): Promise<void> {
     await act(async () => {
       render(
@@ -684,6 +829,7 @@ describe("the preview", () => {
           }}
           defaultOptionValues={{ incidentSeverityId: SEVERITY_ID }}
           branding={branding}
+          templates={templates}
           onClose={() => {
             onClose();
           }}
@@ -827,5 +973,76 @@ describe("the preview", () => {
     });
 
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+  describe("templates and hidden questions", () => {
+    const DETAILS: FormField = {
+      id: "details",
+      source: FormFieldSource.TargetField,
+      targetField: "description",
+      label: "Details",
+      isRequired: false,
+      isHidden: true,
+    };
+
+    const TEMPLATES: Array<Record<string, unknown>> = [
+      {
+        id: "outage",
+        name: "Application Outage",
+        answers: { what: "The application is down", details: "Hidden text" },
+      },
+      {
+        id: "restored",
+        name: "Service Restored",
+        isDefault: true,
+        answers: { what: "Service restored" },
+      },
+    ];
+
+    function titleValue(): string {
+      return (screen.getByTestId("form-preview-field-what") as HTMLInputElement)
+        .value;
+    }
+
+    test("a hidden question is not drawn, as the page does not draw it", async () => {
+      await renderPreview([TITLE, DETAILS]);
+
+      expect(screen.getByTestId("form-preview")).not.toHaveTextContent(
+        "Details",
+      );
+    });
+
+    test("a form without templates has no picker", async () => {
+      await renderPreview([TITLE]);
+
+      expect(
+        screen.queryByTestId("form-preview-template-picker"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("lists the templates in the page's words, and opens on the default", async () => {
+      await renderPreview([TITLE, DETAILS], undefined, TEMPLATES);
+
+      const picker: HTMLElement = screen.getByTestId(
+        "form-preview-template-picker",
+      );
+
+      expect(picker).toHaveTextContent(FormsCopy.templatePickerLabel);
+      expect(picker).toHaveTextContent(FormsCopy.templatePickerDescription);
+      expect(picker).toHaveTextContent("Service Restored");
+      expect(titleValue()).toBe("Service restored");
+      // A template's answer to a hidden question is never drawn.
+      expect(screen.getByTestId("form-preview")).not.toHaveTextContent(
+        "Hidden text",
+      );
+    });
+
+    test("without a default it opens on no template", async () => {
+      await renderPreview([TITLE], undefined, [TEMPLATES[0]]);
+
+      expect(
+        screen.getByTestId("form-preview-template-picker"),
+      ).toHaveTextContent(FormsCopy.noTemplate);
+      expect(titleValue()).toBe("");
+    });
   });
 });

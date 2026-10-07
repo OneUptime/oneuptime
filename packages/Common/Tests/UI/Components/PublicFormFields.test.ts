@@ -400,7 +400,10 @@ describe("a template's answers as the form's inputs hold them", () => {
       getPublicFormValuesFromAnswers({ fields: FORM.fields, answers: null }),
     ).toEqual({});
     expect(
-      getPublicFormValuesFromAnswers({ fields: FORM.fields, answers: undefined }),
+      getPublicFormValuesFromAnswers({
+        fields: FORM.fields,
+        answers: undefined,
+      }),
     ).toEqual({});
   });
 

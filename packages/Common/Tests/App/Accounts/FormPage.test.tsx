@@ -22,6 +22,7 @@ import {
   render,
   screen,
 } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import axios from "axios";
 import { SpyInstance } from "jest-mock";
 import React from "react";
@@ -995,5 +996,207 @@ describe("the form's branding", () => {
     await renderForm({ ...BRANDED, favicon: undefined });
 
     expect(iconLinks()).toEqual(PAGE_ICONS);
+  });
+});
+
+/*
+ * A form with templates: the page lists them over the questions, opens with
+ * the one its link names (else the form's default, else none), fills the
+ * form in from the one chosen - the address following the choice - and the
+ * submission names the template it started from.
+ */
+describe("templates", () => {
+  const OUTAGE_TITLE: string = "The application is down";
+  const MAINTENANCE_TITLE: string = "Planned maintenance tonight";
+
+  const WITH_TEMPLATES: PublicForm = {
+    ...FORM,
+    templates: [
+      {
+        id: "outage",
+        name: "Application Outage",
+        answers: { title: OUTAGE_TITLE, severity: CRITICAL_ID },
+      },
+      {
+        id: "maintenance",
+        name: "Planned Maintenance",
+        answers: { title: MAINTENANCE_TITLE, checked: true },
+      },
+    ],
+  };
+
+  const WITH_DEFAULT: PublicForm = {
+    ...WITH_TEMPLATES,
+    templates: WITH_TEMPLATES.templates!.map(
+      (template: { id: string; name: string; answers: JSONObject }) => {
+        return template.id === "maintenance"
+          ? { ...template, isDefault: true }
+          : template;
+      },
+    ),
+  };
+
+  function titleValue(): string {
+    return (screen.getByTestId("form-field-title") as HTMLInputElement).value;
+  }
+
+  function picker(): HTMLElement {
+    return screen.getByRole("combobox", { name: "Start from a template" });
+  }
+
+  async function choose(name: string): Promise<void> {
+    // user-event wraps each step in act itself.
+    const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+
+    await user.click(picker());
+
+    const menu: HTMLElement = await screen.findByRole("listbox");
+
+    await user.click(
+      Array.from(menu.querySelectorAll("*")).find((element: Element) => {
+        return element.textContent === name && element.children.length === 0;
+      }) as HTMLElement,
+    );
+
+    await flush();
+  }
+
+  function openAt(search: string): void {
+    window.history.replaceState({}, "", `/accounts/form/${SHARE_KEY}${search}`);
+  }
+
+  afterEach(() => {
+    window.history.replaceState({}, "", "/");
+  });
+
+  test("a form with templates lists them over its questions", async () => {
+    await renderForm(WITH_TEMPLATES);
+
+    const pickerCard: HTMLElement = screen.getByTestId("form-template-picker");
+
+    expect(pickerCard).toHaveTextContent("Start from a template");
+    expect(pickerCard).toHaveTextContent(
+      "Choose a template to fill in the form. You can change any answer before you submit.",
+    );
+    // No default: the form opens empty, the picker on "No template".
+    expect(pickerCard).toHaveTextContent("No template");
+    expect(titleValue()).toBe("");
+  });
+
+  test("a form without templates has no picker", async () => {
+    await renderForm();
+
+    expect(
+      screen.queryByTestId("form-template-picker"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a form with a default opens with it filled in", async () => {
+    await renderForm(WITH_DEFAULT);
+
+    expect(titleValue()).toBe(MAINTENANCE_TITLE);
+    expect(screen.getByTestId("form-template-picker")).toHaveTextContent(
+      "Planned Maintenance",
+    );
+  });
+
+  test("a link that names a template opens the form with it - over the default", async () => {
+    openAt("?template=outage");
+
+    await renderForm(WITH_DEFAULT);
+
+    expect(titleValue()).toBe(OUTAGE_TITLE);
+    // The template's choice wins over the question's own default.
+    expect(screen.getByText("Critical")).toBeInTheDocument();
+  });
+
+  test("a link that names a template the form does not have opens it as if it named none", async () => {
+    openAt("?template=deleted");
+
+    await renderForm(WITH_DEFAULT);
+
+    expect(titleValue()).toBe(MAINTENANCE_TITLE);
+
+    cleanup();
+    openAt("?template=deleted");
+
+    await renderForm(WITH_TEMPLATES);
+
+    expect(titleValue()).toBe("");
+  });
+
+  test("choosing a template fills the form in, and the address names it", async () => {
+    await renderForm(WITH_TEMPLATES);
+
+    await choose("Application Outage");
+
+    expect(titleValue()).toBe(OUTAGE_TITLE);
+    expect(window.location.search).toBe("?template=outage");
+
+    await choose("Planned Maintenance");
+
+    expect(titleValue()).toBe(MAINTENANCE_TITLE);
+    expect(window.location.search).toBe("?template=maintenance");
+  });
+
+  test("the submitter can change what a template filled in; the submission names the template", async () => {
+    await renderForm(WITH_TEMPLATES);
+    serveSubmit({ status: 200, data: { reference: "INC-7" } });
+
+    await choose("Application Outage");
+    typeInto("form-field-title", "The checkout is down");
+    typeInto("form-field-email", "ada@example.com");
+    await submit();
+
+    expect(submittedBodies()).toEqual([
+      {
+        data: {
+          answers: {
+            title: "The checkout is down",
+            severity: CRITICAL_ID,
+            checked: false,
+            email: "ada@example.com",
+          },
+          templateId: "outage",
+        },
+      },
+    ]);
+  });
+
+  test("a submission started from no template names none", async () => {
+    await renderForm(WITH_TEMPLATES);
+    serveSubmit({ status: 200, data: { reference: "INC-8" } });
+
+    fillRequired();
+    await submit();
+
+    expect(submittedBodies()[0]!["data"]).not.toHaveProperty("templateId");
+  });
+
+  test("another response after a submission starts from the same template", async () => {
+    await renderForm(WITH_DEFAULT);
+    serveSubmit({ status: 200, data: { reference: "INC-9" } });
+
+    typeInto("form-field-email", "ada@example.com");
+    await submit();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("form-submit-another"));
+    });
+    await flush();
+
+    expect(titleValue()).toBe(MAINTENANCE_TITLE);
+  });
+
+  test("the picker speaks the page's language", async () => {
+    await act(async () => {
+      await i18n.changeLanguage("de");
+    });
+
+    await renderForm(WITH_TEMPLATES);
+
+    expect(screen.getByTestId("form-template-picker")).toHaveTextContent(
+      "Mit einer Vorlage beginnen",
+    );
   });
 });
