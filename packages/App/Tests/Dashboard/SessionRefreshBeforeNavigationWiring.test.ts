@@ -13,14 +13,19 @@ import path from "path";
  *
  *   - attachment links on incident, alert and maintenance notes;
  *   - the profile page's "Download pprof" link;
- *   - "Connect with GitHub App", a full-page navigation to the install route;
  *   - attachment links on a private status page.
+ *
+ * "Connect with GitHub App" used to be one of them, a full-page navigation
+ * to the install route. It now asks the server for the installation URL
+ * through the API class - so an expired session is refreshed and the request
+ * replayed, and a refusal is shown on the card - and only then navigates, to
+ * GitHub, which needs no OneUptime session.
  *
  * The behaviour of the shared link helper is tested in
  * Common/Tests/UI/Components/OpenAuthenticatedUrl.test.ts and
  * EventAttachmentList.test.tsx. These pages need a project, a router and a
  * model API to render, so what is pinned here is that each one is wired to
- * it (or, for the full-page navigation, refreshes before navigating).
+ * it.
  */
 
 const APP_ROOT: string = path.join(__dirname, "../../FeatureSet");
@@ -93,34 +98,60 @@ describe("Connect with GitHub App", () => {
     "\n    };\n",
   );
 
-  test("refreshes the session before navigating to the install route", () => {
-    const refreshIndex: number = handler.indexOf("await API.refreshSession()");
-    const navigateIndex: number = handler.indexOf(
-      "window.location.href = installUrl",
-    );
-
+  test("asks the server for the installation URL through the API class, which refreshes and replays", () => {
     expect(source).toContain('import API from "Common/UI/Utils/API/API";');
-    expect(refreshIndex).toBeGreaterThan(-1);
-    expect(navigateIndex).toBeGreaterThan(refreshIndex);
-  });
-
-  test("does not navigate when the refresh did not work", () => {
-    /*
-     * A refused refresh has already sent the page to the login page;
-     * navigating to the install route would cancel that and show its 401.
-     * The navigation is reached only past a guard on the refresh's result.
-     */
     expect(handler).toMatch(
-      /const refreshed: boolean = await API\.refreshSession\(\);/,
-    );
-    expect(handler).toMatch(
-      /if \(!refreshed\) \{\s*return;\s*\}[\s\S]*window\.location\.href = installUrl;/,
+      /await API\.get<JSONObject>\(\{\s*url: URL\.fromURL\(APP_API_URL\)\.addRoute\("\/github\/install-url"\),\s*headers: ModelAPI\.getCommonHeaders\(\),\s*\}\)/,
     );
   });
 
-  test("ignores a second click while the first is still refreshing", () => {
+  test("navigates only to the URL the server returned, never to an install route of its own", () => {
+    expect(handler).toMatch(
+      /if \(installUrl\) \{\s*Navigation\.navigate\(URL\.fromString\(installUrl\)\);\s*\}/,
+    );
+    expect(source).not.toContain("api/github/auth/install");
+    expect(source).not.toContain("window.location.href");
+  });
+
+  test("shows a refusal on the card instead of navigating", () => {
+    expect(handler).toMatch(
+      /\} catch \(error\) \{\s*setConnectError\(API\.getFriendlyErrorMessage\(error as Exception\)\);\s*\}/,
+    );
+    expect(source).toMatch(
+      /\{connectError && \([\s\S]*?<Alert[\s\S]*?title=\{connectError\}/,
+    );
+  });
+
+  test("ignores a second click while the first is still asking", () => {
     expect(handler).toMatch(
       /if \(!projectId \|\| isConnectingToGitHubRef\.current\) \{\s*return;\s*\}\s*isConnectingToGitHubRef\.current = true;/,
+    );
+  });
+
+  test("releases the click before navigating, so Back from GitHub restores a card that works", () => {
+    const releaseIndex: number = handler.indexOf(
+      "isConnectingToGitHubRef.current = false;",
+    );
+    const navigateIndex: number = handler.indexOf("Navigation.navigate(");
+
+    expect(releaseIndex).toBeGreaterThan(-1);
+    expect(navigateIndex).toBeGreaterThan(releaseIndex);
+  });
+
+  test("the card is a real button, locked with one sentence for someone who may not connect", () => {
+    expect(source).toContain(
+      'import {\n  getGitHubConnectLock,\n  GitHubConnectLock,\n} from "../../Components/CodeRepository/GitHubConnectLock";',
+    );
+    expect(source).toContain(
+      "const connectLock: GitHubConnectLock = getGitHubConnectLock();",
+    );
+
+    const button: string = slice(source, "<button\n", ">\n");
+
+    expect(button).toContain('type="button"');
+    expect(button).toContain("disabled={connectLock.isLocked}");
+    expect(source).toMatch(
+      /id="connect-github-app-lock"[\s\S]*?\{connectLock\.reason\}/,
     );
   });
 });
