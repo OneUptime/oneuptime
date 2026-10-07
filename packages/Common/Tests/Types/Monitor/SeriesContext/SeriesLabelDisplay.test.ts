@@ -1,4 +1,6 @@
+import SlackUtil from "../../../../Server/Utils/Workspace/Slack/Slack";
 import { JSONObject } from "../../../../Types/JSON";
+import { marked, Token, Tokens } from "marked";
 import SeriesLabelDisplay, {
   DisplaySeriesLabel,
 } from "../../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
@@ -473,6 +475,76 @@ describe("SeriesLabelDisplay", () => {
     test("is empty with no identity", () => {
       expect(SeriesLabelDisplay.buildMarkdownBlock({})).toBe("");
       expect(SeriesLabelDisplay.buildMarkdownBlock(undefined)).toBe("");
+    });
+
+    /*
+     * A label's name and value are whatever the telemetry carried: an
+     * agent, a scrape or the user's own captureMetric() call chose them. In
+     * the description's Markdown - shown on the dashboard, in email, in
+     * Slack and Teams - each reads as sent and acts on nothing.
+     */
+    test("a label's name and value are text: no link, image, HTML or Slack mention", () => {
+      const value: string =
+        "x` <!channel> [Verify](https://evil.example/v) ![](https://tracker.example/p.png) `y";
+      const block: string = SeriesLabelDisplay.buildMarkdownBlock({
+        "[Open](https://evil.example/n) <img src=x>": value,
+        "resource.k8s.pod.name": "<a href=\"https://evil.example\">web</a>\n# heading",
+      });
+
+      const tokens: Array<Token> = [];
+      marked.walkTokens(marked.lexer(block), (token: Token): void => {
+        tokens.push(token);
+      });
+
+      const hidingLinks: Array<string> = tokens
+        .filter((token: Token): boolean => {
+          return (
+            token.type === "link" &&
+            (token as Tokens.Link).text !== (token as Tokens.Link).href
+          );
+        })
+        .map((token: Token): string => {
+          return token.raw;
+        });
+
+      expect(hidingLinks).toEqual([]);
+      expect(
+        tokens.filter((token: Token): boolean => {
+          return (
+            token.type === "image" ||
+            token.type === "heading" ||
+            (token.type === "html" && /<\/?[A-Za-z]/.test(token.raw))
+          );
+        }),
+      ).toEqual([]);
+      expect(SlackUtil.convertMarkdownToSlackRichText(block)).not.toMatch(
+        /<[!@#][A-Za-z0-9]/,
+      );
+
+      /*
+       * Each value is one code span that reads exactly as it was sent (marked
+       * hands a code span's text over escaped for HTML; a line break reads
+       * as a space).
+       */
+      expect(
+        tokens
+          .filter((token: Token): boolean => {
+            return token.type === "codespan";
+          })
+          .map((token: Token): string => {
+            return (token as Tokens.Codespan).text
+              .split("\u2060")
+              .join("")
+              .replace(/&quot;/g, '"')
+              .replace(/&#39;/g, "'")
+              .replace(/&lt;/g, "<")
+              .replace(/&gt;/g, ">")
+              .replace(/&amp;/g, "&");
+          })
+          .sort(),
+      ).toEqual(
+        [value, '<a href="https://evil.example">web</a> # heading'].sort(),
+      );
     });
   });
 

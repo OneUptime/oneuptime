@@ -857,4 +857,51 @@ describe("findUnescapedPlainText", () => {
       reads("const markdown: string = `**${user.name.toString()}**`;"),
     ).toEqual(["user.name"]);
   });
+
+  test.each([
+    ["clusterName", "cluster.clusterName"],
+    ["resourceName", "data.resourceName"],
+    ["ruleNameSnapshot", "execution.ruleNameSnapshot"],
+    ["pageTitle", "statusPage.pageTitle"],
+  ])(
+    "finds a property named for a name or a title (%s) placed raw",
+    (_property: string, read: string) => {
+      expect(
+        reads(`const markdown: string = \`**Resource:** \${${read}}\`;`),
+      ).toEqual([read]);
+    },
+  );
+
+  test("leaves a property that only ends in a name-like word alone when it is not one", () => {
+    expect(
+      reads(
+        "const markdown: string = `**Count:** ${data.nameCount} and ${data.titleLength}`;",
+      ),
+    ).toEqual([]);
+  });
+
+  test.each([
+    ["a name shown as code", "markdownCodeSpan(series.resourceName)"],
+    [
+      "a name shown as code through RootCauseList",
+      "RootCauseList.code(pod.name)",
+    ],
+    [
+      "a reported value placed into a template",
+      "neutralizeUntrustedValue(body.title)",
+    ],
+    ["Markdown the AI wrote", "neutralizeAiWrittenMarkdown(result.title)"],
+  ])("passes %s", (_kind: string, call: string) => {
+    expect(
+      reads(`const markdown: string = \`- **Pod:** \${${call}}\`;`),
+    ).toEqual([]);
+  });
+
+  test("finds a name-like property set into a variable and placed raw", () => {
+    expect(
+      reads(
+        "function f() { const clusterName: string = cluster.clusterName; return `- Cluster: **${clusterName}**`; }",
+      ),
+    ).toEqual(["clusterName"]);
+  });
 });
