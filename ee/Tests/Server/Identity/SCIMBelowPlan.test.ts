@@ -123,7 +123,10 @@ describe("at the door: what the route alone decides", () => {
     });
 
     test.each([
-      ["a create among the deletes", { Operations: [{ method: "DELETE" }, { method: "POST" }] }],
+      [
+        "a create among the deletes",
+        { Operations: [{ method: "DELETE" }, { method: "POST" }] },
+      ],
       ["an update", { Operations: [{ method: "PATCH" }] }],
       ["a replace", { Operations: [{ method: "PUT" }] }],
       ["no operations", { Operations: [] }],
@@ -157,19 +160,43 @@ describe("at the door: what the route alone decides", () => {
 describe("a user update below the plan", () => {
   test.each([
     // Taking access away goes through, whatever else it asks.
-    [{ active: false, isEmailChanging: false, isNameChanging: false }, "Removal"],
-    [{ active: false, isEmailChanging: true, isNameChanging: false }, "Removal"],
-    [{ active: false, isEmailChanging: false, isNameChanging: true }, "Removal"],
+    [
+      { active: false, isEmailChanging: false, isNameChanging: false },
+      "Removal",
+    ],
+    [
+      { active: false, isEmailChanging: true, isNameChanging: false },
+      "Removal",
+    ],
+    [
+      { active: false, isEmailChanging: false, isNameChanging: true },
+      "Removal",
+    ],
     [{ active: false, isEmailChanging: true, isNameChanging: true }, "Removal"],
     // Reactivating gives access, whatever else it asks.
-    [{ active: true, isEmailChanging: false, isNameChanging: false }, "Refused"],
+    [
+      { active: true, isEmailChanging: false, isNameChanging: false },
+      "Refused",
+    ],
     [{ active: true, isEmailChanging: true, isNameChanging: true }, "Refused"],
     // A profile change on its own.
-    [{ active: undefined, isEmailChanging: true, isNameChanging: false }, "Refused"],
-    [{ active: undefined, isEmailChanging: false, isNameChanging: true }, "Refused"],
-    [{ active: undefined, isEmailChanging: true, isNameChanging: true }, "Refused"],
+    [
+      { active: undefined, isEmailChanging: true, isNameChanging: false },
+      "Refused",
+    ],
+    [
+      { active: undefined, isEmailChanging: false, isNameChanging: true },
+      "Refused",
+    ],
+    [
+      { active: undefined, isEmailChanging: true, isNameChanging: true },
+      "Refused",
+    ],
     // Nothing OneUptime keeps changes.
-    [{ active: undefined, isEmailChanging: false, isNameChanging: false }, "NoChange"],
+    [
+      { active: undefined, isEmailChanging: false, isNameChanging: false },
+      "NoChange",
+    ],
   ])(
     "%j is %s",
     (
@@ -615,21 +642,76 @@ describe("a group PATCH below the plan", () => {
 
 describe("a group PUT below the plan", () => {
   test.each([
-    ["its own name and some of its members", "Engineering", [{ value: ALICE }], "Removal"],
+    [
+      "its own name and some of its members",
+      "Engineering",
+      [{ value: ALICE }],
+      "Removal",
+    ],
     ["no name, some of its members", undefined, [{ value: BOB }], "Removal"],
     ["an empty name, as no name", "", [{ value: BOB }], "Removal"],
-    ["its own name and no members: everyone goes", "Engineering", [], "Removal"],
+    [
+      "its own name and no members: everyone goes",
+      "Engineering",
+      [],
+      "Removal",
+    ],
     ["no members key: everyone goes", "Engineering", undefined, "Removal"],
     ["one member as an object", "Engineering", { value: ALICE }, "Removal"],
-    ["ids in another case", "Engineering", [{ value: ALICE.toUpperCase() }], "Removal"],
-    ["members without ids: everyone goes", "Engineering", [{ display: "x" }], "Removal"],
-    ["another name, dropping a member: the group keeps its name", "Platform", [{ value: ALICE }], "Removal"],
-    ["its own name and every member", "Engineering", [{ value: ALICE }, { value: BOB }], "NoChange"],
-    ["no name and every member, in another case", undefined, [{ value: BOB.toUpperCase() }, { value: ALICE }], "NoChange"],
-    ["another name and every member: a rename on its own", "Platform", [{ value: ALICE }, { value: BOB }], "Refused"],
-    ["a new member", "Engineering", [{ value: ALICE }, { value: CAROL }], "Refused"],
-    ["a new member, dropping another", "Engineering", [{ value: CAROL }], "Refused"],
-    ["a new member under another name", "Platform", [{ value: CAROL }], "Refused"],
+    [
+      "ids in another case",
+      "Engineering",
+      [{ value: ALICE.toUpperCase() }],
+      "Removal",
+    ],
+    [
+      "members without ids: everyone goes",
+      "Engineering",
+      [{ display: "x" }],
+      "Removal",
+    ],
+    [
+      "another name, dropping a member: the group keeps its name",
+      "Platform",
+      [{ value: ALICE }],
+      "Removal",
+    ],
+    [
+      "its own name and every member",
+      "Engineering",
+      [{ value: ALICE }, { value: BOB }],
+      "NoChange",
+    ],
+    [
+      "no name and every member, in another case",
+      undefined,
+      [{ value: BOB.toUpperCase() }, { value: ALICE }],
+      "NoChange",
+    ],
+    [
+      "another name and every member: a rename on its own",
+      "Platform",
+      [{ value: ALICE }, { value: BOB }],
+      "Refused",
+    ],
+    [
+      "a new member",
+      "Engineering",
+      [{ value: ALICE }, { value: CAROL }],
+      "Refused",
+    ],
+    [
+      "a new member, dropping another",
+      "Engineering",
+      [{ value: CAROL }],
+      "Refused",
+    ],
+    [
+      "a new member under another name",
+      "Platform",
+      [{ value: CAROL }],
+      "Refused",
+    ],
   ])(
     "%s: %s",
     (

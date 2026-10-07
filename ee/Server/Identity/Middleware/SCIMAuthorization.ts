@@ -43,7 +43,8 @@ import logger, {
 export { SCIM_BELOW_PLAN_STATUS, getScimBelowPlanResponse };
 
 // What getMissingPlanOrRefuse returns once it has answered the request.
-const REFUSED: "refused" = "refused";
+type Refused = "refused";
+const REFUSED: Refused = "refused";
 
 export default class SCIMMiddleware {
   @CaptureSpan()
@@ -108,7 +109,7 @@ export default class SCIMMiddleware {
         });
 
       if (projectScimConfig) {
-        const projectMissingPlan: PlanType | null | typeof REFUSED =
+        const projectMissingPlan: PlanType | null | Refused =
           await SCIMMiddleware.getMissingPlanOrRefuse({
             req: req,
             res: res,
@@ -156,7 +157,7 @@ export default class SCIMMiddleware {
         });
 
       if (statusPageScimConfig) {
-        const statusPageMissingPlan: PlanType | null | typeof REFUSED =
+        const statusPageMissingPlan: PlanType | null | Refused =
           await SCIMMiddleware.getMissingPlanOrRefuse({
             req: req,
             res: res,
@@ -234,7 +235,7 @@ export default class SCIMMiddleware {
     res: ExpressResponse;
     projectId: ObjectID | undefined;
     credential: PlanCutoffCredential;
-  }): Promise<PlanType | null | typeof REFUSED> {
+  }): Promise<PlanType | null | Refused> {
     // Every SCIM connection belongs to a project; one without is no connection.
     if (!data.projectId) {
       throw new NotAuthorizedException(

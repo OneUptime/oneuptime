@@ -387,7 +387,9 @@ const OR_SEPARATOR: RegExp = /\s+or\s+/i;
 export const getMemberIdsFromMemberFilter: (
   path: string,
 ) => Array<string> | null = (path: string): Array<string> | null => {
-  const filter: RegExpMatchArray | null = path.trim().match(MEMBERS_FILTER_PATH);
+  const filter: RegExpMatchArray | null = path
+    .trim()
+    .match(MEMBERS_FILTER_PATH);
 
   if (!filter) {
     return null;

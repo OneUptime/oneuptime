@@ -86,9 +86,7 @@ describe("NotifyOwnersOfStoppedApiKeysAndScim", () => {
   });
 
   test("has the name it is recorded under", () => {
-    expect(new NotifyOwnersOfStoppedApiKeysAndScim().name).toBe(
-      MIGRATION_NAME,
-    );
+    expect(new NotifyOwnersOfStoppedApiKeysAndScim().name).toBe(MIGRATION_NAME);
   });
 
   test("runs the one-time notice once and says what it did", async () => {

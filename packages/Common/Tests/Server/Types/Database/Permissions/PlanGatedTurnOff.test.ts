@@ -15,6 +15,7 @@ import ColumnBillingAccessControl from "../../../../../Types/BaseDatabase/Column
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import {
   EMPTY_TEXT_COLUMN_TYPES,
+  isAnalyticsPlanGatedColumnDefault,
   isPlanGatedColumnDefault,
 } from "../../../../../Types/Billing/PlanGatedColumnDefault";
 import SubscriptionPlan, {
@@ -34,7 +35,6 @@ import { setTestBillingEnabled } from "../../../Enterprise/TestBillingFlag";
 import AnalyticsModelPermission from "../../../../../Server/Types/AnalyticsDatabase/ModelPermission";
 import AnalyticsTableColumn from "../../../../../Types/AnalyticsDatabase/TableColumn";
 import AnalyticsTableColumnType from "../../../../../Types/AnalyticsDatabase/TableColumnType";
-import { isAnalyticsPlanGatedColumnDefault } from "../../../../../Types/Billing/PlanGatedColumnDefault";
 import {
   afterAll,
   afterEach,

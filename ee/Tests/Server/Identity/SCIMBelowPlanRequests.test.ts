@@ -179,10 +179,10 @@ const matchesValue: (actual: unknown, expected: unknown) => boolean = (
   return idOf(actual) === idOf(expected);
 };
 
-const matchesQuery: (row: object, query: Record<string, unknown>) => boolean = (
-  row: object,
+const matchesQuery: (
+  row: unknown,
   query: Record<string, unknown>,
-): boolean => {
+) => boolean = (row: unknown, query: Record<string, unknown>): boolean => {
   const columns: Record<string, unknown> = row as Record<string, unknown>;
 
   return Object.entries(query).every(([key, expected]: [string, unknown]) => {
@@ -905,9 +905,9 @@ describe.each([PlanType.Free, PlanType.Growth])(
 
         expect(result.status).toBe(200);
         expect(result.body["totalResults"]).toBe(1);
-        expect(
-          (result.body["Resources"] as Array<JSONObject>)[0]!["id"],
-        ).toBe(people.alice);
+        expect((result.body["Resources"] as Array<JSONObject>)[0]!["id"]).toBe(
+          people.alice,
+        );
       });
 
       test("a filter for someone OneUptime does not know creates no one, though auto-provisioning is on", async () => {
@@ -1530,10 +1530,7 @@ describe.each([PlanType.Free, PlanType.Growth])(
       });
 
       test.each([
-        [
-          "Okta's form",
-          patch({ op: "replace", value: { active: true } }),
-        ],
+        ["Okta's form", patch({ op: "replace", value: { active: true } })],
         [
           "Entra ID's form",
           patch({ op: "Replace", path: "active", value: "True" }),

@@ -192,9 +192,7 @@ describePostgres("the plan cut-off notice on Postgres", () => {
   });
 
   afterEach(() => {
-    (
-      ProjectService.getOwners as unknown as jest.SpyInstance
-    ).mockRestore();
+    (ProjectService.getOwners as unknown as jest.SpyInstance).mockRestore();
     (
       ProjectService.sendEmailToOwnersAndWait as unknown as jest.SpyInstance
     ).mockRestore();
@@ -467,8 +465,7 @@ describePostgres("the plan cut-off notice on Postgres", () => {
       const growthEmail: { subject: string; html: string } = sentTo.find(
         (sent: { projectId: string }) => {
           return (
-            sent.projectId.toLowerCase() ===
-            growthScim.toString().toLowerCase()
+            sent.projectId.toLowerCase() === growthScim.toString().toLowerCase()
           );
         },
       )!;

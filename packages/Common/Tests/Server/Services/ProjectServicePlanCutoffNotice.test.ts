@@ -9,14 +9,7 @@ import Email from "../../../Types/Email";
 import EmailTemplateType from "../../../Types/Email/EmailTemplateType";
 import ObjectID from "../../../Types/ObjectID";
 import { getJestSpyOn } from "../../Spy";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * The project row's planCutoffNoticeSentAt: when its owners were last told
@@ -186,9 +179,7 @@ describe("ProjectService.sendEmailToOwnersAndWait", () => {
   let loggedErrors: ReturnType<typeof getJestSpyOn>;
 
   beforeEach(() => {
-    sendMail = getJestSpyOn(MailService, "sendMail").mockResolvedValue(
-      taken(),
-    );
+    sendMail = getJestSpyOn(MailService, "sendMail").mockResolvedValue(taken());
     loggedErrors = getJestSpyOn(logger, "error").mockImplementation(() => {
       return undefined;
     });
@@ -223,8 +214,7 @@ describe("ProjectService.sendEmailToOwnersAndWait", () => {
     expect(String(options["userId"])).toBe(alice.id!.toString());
     expect(
       String(
-        (sendMail.mock.calls[1]![0] as unknown as { toEmail: unknown })
-          .toEmail,
+        (sendMail.mock.calls[1]![0] as unknown as { toEmail: unknown }).toEmail,
       ),
     ).toBe("bob@acme.example");
   });
@@ -242,14 +232,12 @@ describe("ProjectService.sendEmailToOwnersAndWait", () => {
     });
 
     let answered: boolean = false;
-    const delivered: Promise<number> = ProjectService.sendEmailToOwnersAndWait(
-      {
-        projectId,
-        owners: [alice, bob],
-        subject: "s",
-        message: "m",
-      },
-    ).then((count: number) => {
+    const delivered: Promise<number> = ProjectService.sendEmailToOwnersAndWait({
+      projectId,
+      owners: [alice, bob],
+      subject: "s",
+      message: "m",
+    }).then((count: number) => {
       answered = true;
       return count;
     });

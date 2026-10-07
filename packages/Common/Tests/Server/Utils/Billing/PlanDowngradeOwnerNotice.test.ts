@@ -362,9 +362,9 @@ describe("a downgrade that stops API keys", () => {
     expect(
       String((markTold.mock.calls[0]![0] as { projectId: ObjectID }).projectId),
     ).toBe(PROJECT_ID.toString());
-    expect(
-      (markTold.mock.calls[0]![0] as { now: unknown }).now,
-    ).toBeInstanceOf(Date);
+    expect((markTold.mock.calls[0]![0] as { now: unknown }).now).toBeInstanceOf(
+      Date,
+    );
     // After the email: a record of what was sent.
     expect(markTold.mock.invocationCallOrder[0]!).toBeGreaterThan(
       sendEmail.mock.invocationCallOrder[0]!,
@@ -1019,8 +1019,9 @@ describe("the one-time notice, for every project that may be below the plan", ()
 
     expect(
       notifyOne.mock.calls.map((call: Array<unknown>): string => {
-        return String((call[0] as { projectId: ObjectID }).projectId)
-          .toLowerCase();
+        return String(
+          (call[0] as { projectId: ObjectID }).projectId,
+        ).toLowerCase();
       }),
     ).toEqual([
       PROJECT_ID.toString().toLowerCase(),
@@ -1048,9 +1049,9 @@ describe("the one-time notice, for every project that may be below the plan", ()
     expect(findAllBy.props).toEqual({ isRoot: true });
 
     for (const spy of [projectScimFound, statusPageScimFound]) {
-      expect(
-        (spy.mock.calls[0]![0] as { props: unknown }).props,
-      ).toEqual({ isRoot: true });
+      expect((spy.mock.calls[0]![0] as { props: unknown }).props).toEqual({
+        isRoot: true,
+      });
     }
   });
 

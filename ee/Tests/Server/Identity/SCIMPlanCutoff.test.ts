@@ -261,7 +261,9 @@ const routeKey: (route: ScimRoute) => string = (route: ScimRoute): string => {
 
 const REFUSED_ROUTES: Array<ScimRoute> = ROUTES.filter(
   (route: ScimRoute): boolean => {
-    return BELOW_PLAN_BY_ROUTE[routeKey(route)] === ScimRequestBelowPlan.Refused;
+    return (
+      BELOW_PLAN_BY_ROUTE[routeKey(route)] === ScimRequestBelowPlan.Refused
+    );
   },
 );
 
@@ -303,8 +305,10 @@ const request: (
       redirect: "manual",
       headers: {
         authorization: `Bearer ${options?.token ?? TOKEN}`,
-        // The test server parses application/json; core's own server reads
-        // application/scim+json as JSON too (StartServer).
+        /*
+         * The test server parses application/json; core's own server reads
+         * application/scim+json as JSON too (StartServer).
+         */
         ...(hasBody ? { "content-type": "application/json" } : {}),
       },
       ...(hasBody ? { body: JSON.stringify(options?.body ?? {}) } : {}),
