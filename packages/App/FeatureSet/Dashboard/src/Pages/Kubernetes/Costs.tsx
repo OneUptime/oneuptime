@@ -83,6 +83,7 @@ const KubernetesCosts: FunctionComponent<
   );
 
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(COST_ROWS_PER_PAGE);
   const [sortBy, setSortBy] = useState<keyof ClusterCostRow | null>(
     "totalCost",
   );
@@ -216,8 +217,8 @@ const KubernetesCosts: FunctionComponent<
   }, [clusterRows, sortBy, sortOrder]);
 
   const pagedRows: Array<ClusterCostRow> = useMemo(() => {
-    return pageCostRows<ClusterCostRow>(sortedRows, currentPage);
-  }, [sortedRows, currentPage]);
+    return pageCostRows<ClusterCostRow>(sortedRows, currentPage, pageSize);
+  }, [sortedRows, currentPage, pageSize]);
 
   const tableColumns: Array<Column<ClusterCostRow>> = useMemo(() => {
     return [
@@ -411,9 +412,12 @@ const KubernetesCosts: FunctionComponent<
           onRefreshClick={error ? reload : undefined}
           currentPageNumber={currentPage}
           totalItemsCount={sortedRows.length}
-          itemsOnPage={COST_ROWS_PER_PAGE}
-          onNavigateToPage={(pageNumber: number) => {
+          itemsOnPage={pageSize}
+          onNavigateToPage={(pageNumber: number, itemsOnPage: number) => {
             setCurrentPage(pageNumber);
+            if (itemsOnPage > 0) {
+              setPageSize(itemsOnPage);
+            }
           }}
           sortBy={sortBy}
           sortOrder={sortOrder}

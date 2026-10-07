@@ -184,6 +184,7 @@ RunCron(
         select: {
           _id: true,
           title: true,
+          isPrivate: true,
           alertNumber: true,
           alertNumberWithPrefix: true,
           alertSeverity: {
@@ -283,8 +284,7 @@ RunCron(
                 alert.alertNumberWithPrefix ||
                 (alert.alertNumber ? `#${alert.alertNumber}` : "");
 
-              return {
-                alertTitle: alert.title || "",
+              const alertForTemplate: JSONObject = {
                 alertNumber: alertNumberStr,
                 alertSeverity: alert.alertSeverity?.name || "Not Set",
                 ...EmailColorUtil.getTemplateVariables(
@@ -300,6 +300,25 @@ RunCron(
                   }),
                 alertViewLink: alertLink,
               };
+
+              /*
+               * A private alert is seen only by its own owners and the
+               * project's owners and admins, and the episode's owners are
+               * often none of those - the grouping engine adds private alerts
+               * to episodes by itself. So its title never goes into this
+               * email, whoever receives it, as IncidentAlertService keeps a
+               * private end's title out of the other side's feed entry. Its
+               * number and link are kept (opening the link is subject to the
+               * alert's own privacy), and the template names it "Private
+               * alert" where the title would be.
+               */
+              if (alert.isPrivate === true) {
+                alertForTemplate["isPrivate"] = "true";
+              } else {
+                alertForTemplate["alertTitle"] = alert.title || "";
+              }
+
+              return alertForTemplate;
             }),
           );
 

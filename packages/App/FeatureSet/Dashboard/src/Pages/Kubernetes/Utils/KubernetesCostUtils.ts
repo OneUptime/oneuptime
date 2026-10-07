@@ -95,7 +95,10 @@ export const formatEfficiency: (value: number | null) => string = (
   return `${Math.round(value * 100)}%`;
 };
 
-/** Rows per page in the cost breakdown tables. */
+/**
+ * Rows per page the cost breakdown tables open on. The footer's
+ * rows-per-page picker changes it, so each table keeps its own size.
+ */
 export const COST_ROWS_PER_PAGE: number = 25;
 
 /*
@@ -141,13 +144,17 @@ export function sortCostRows<T extends GenericObject>(
   return sorted;
 }
 
-/** Page slice for a client-side paginated cost table (1-indexed page). */
+/**
+ * Page slice for a client-side paginated cost table (1-indexed page of
+ * `pageSize` rows).
+ */
 export function pageCostRows<T extends GenericObject>(
   rows: Array<T>,
   pageNumber: number,
+  pageSize: number,
 ): Array<T> {
-  const start: number = (pageNumber - 1) * COST_ROWS_PER_PAGE;
-  return rows.slice(start, start + COST_ROWS_PER_PAGE);
+  const start: number = (pageNumber - 1) * pageSize;
+  return rows.slice(start, start + pageSize);
 }
 
 /*

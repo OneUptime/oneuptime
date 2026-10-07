@@ -124,6 +124,8 @@ const KubernetesClusterCosts: FunctionComponent<
   const [workloadRows, setWorkloadRows] = useState<Array<WorkloadCostRow>>([]);
 
   const [namespacePage, setNamespacePage] = useState<number>(1);
+  const [namespacePageSize, setNamespacePageSize] =
+    useState<number>(COST_ROWS_PER_PAGE);
   const [namespaceSortBy, setNamespaceSortBy] = useState<
     keyof NamespaceCostRow | null
   >("totalCost");
@@ -132,6 +134,8 @@ const KubernetesClusterCosts: FunctionComponent<
   );
 
   const [workloadPage, setWorkloadPage] = useState<number>(1);
+  const [workloadPageSize, setWorkloadPageSize] =
+    useState<number>(COST_ROWS_PER_PAGE);
   const [workloadSortBy, setWorkloadSortBy] = useState<
     keyof WorkloadCostRow | null
   >("totalCost");
@@ -261,8 +265,12 @@ const KubernetesClusterCosts: FunctionComponent<
   }, [namespaceRows, namespaceSortBy, namespaceSortOrder]);
 
   const pagedNamespaceRows: Array<NamespaceCostRow> = useMemo(() => {
-    return pageCostRows<NamespaceCostRow>(sortedNamespaceRows, namespacePage);
-  }, [sortedNamespaceRows, namespacePage]);
+    return pageCostRows<NamespaceCostRow>(
+      sortedNamespaceRows,
+      namespacePage,
+      namespacePageSize,
+    );
+  }, [sortedNamespaceRows, namespacePage, namespacePageSize]);
 
   const sortedWorkloadRows: Array<WorkloadCostRow> = useMemo(() => {
     return sortCostRows<WorkloadCostRow>(
@@ -273,8 +281,12 @@ const KubernetesClusterCosts: FunctionComponent<
   }, [workloadRows, workloadSortBy, workloadSortOrder]);
 
   const pagedWorkloadRows: Array<WorkloadCostRow> = useMemo(() => {
-    return pageCostRows<WorkloadCostRow>(sortedWorkloadRows, workloadPage);
-  }, [sortedWorkloadRows, workloadPage]);
+    return pageCostRows<WorkloadCostRow>(
+      sortedWorkloadRows,
+      workloadPage,
+      workloadPageSize,
+    );
+  }, [sortedWorkloadRows, workloadPage, workloadPageSize]);
 
   const namespaceColumns: Array<Column<NamespaceCostRow>> = useMemo(() => {
     return [
@@ -513,9 +525,12 @@ const KubernetesClusterCosts: FunctionComponent<
           onRefreshClick={error ? reload : undefined}
           currentPageNumber={namespacePage}
           totalItemsCount={sortedNamespaceRows.length}
-          itemsOnPage={COST_ROWS_PER_PAGE}
-          onNavigateToPage={(pageNumber: number) => {
+          itemsOnPage={namespacePageSize}
+          onNavigateToPage={(pageNumber: number, itemsOnPage: number) => {
             setNamespacePage(pageNumber);
+            if (itemsOnPage > 0) {
+              setNamespacePageSize(itemsOnPage);
+            }
           }}
           sortBy={namespaceSortBy}
           sortOrder={namespaceSortOrder}
@@ -547,9 +562,12 @@ const KubernetesClusterCosts: FunctionComponent<
           onRefreshClick={error ? reload : undefined}
           currentPageNumber={workloadPage}
           totalItemsCount={sortedWorkloadRows.length}
-          itemsOnPage={COST_ROWS_PER_PAGE}
-          onNavigateToPage={(pageNumber: number) => {
+          itemsOnPage={workloadPageSize}
+          onNavigateToPage={(pageNumber: number, itemsOnPage: number) => {
             setWorkloadPage(pageNumber);
+            if (itemsOnPage > 0) {
+              setWorkloadPageSize(itemsOnPage);
+            }
           }}
           sortBy={workloadSortBy}
           sortOrder={workloadSortOrder}

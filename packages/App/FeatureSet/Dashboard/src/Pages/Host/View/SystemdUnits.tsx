@@ -106,6 +106,7 @@ const HostSystemdUnits: FunctionComponent<
   const [stateFilter, setStateFilter] = useState<Array<string>>([]);
   const [unitTypeFilter, setUnitTypeFilter] = useState<Array<string>>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(PAGE_SIZE);
   const [sortBy, setSortBy] = useState<keyof SystemdUnitRow | null>("name");
   const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Ascending);
 
@@ -335,14 +336,14 @@ const HostSystemdUnits: FunctionComponent<
    */
   const totalPages: number = Math.max(
     1,
-    Math.ceil(processedData.length / PAGE_SIZE),
+    Math.ceil(processedData.length / pageSize),
   );
   const effectivePage: number = Math.min(currentPage, totalPages);
 
   const paginatedData: Array<SystemdUnitRow> = useMemo(() => {
-    const start: number = (effectivePage - 1) * PAGE_SIZE;
-    return processedData.slice(start, start + PAGE_SIZE);
-  }, [processedData, effectivePage]);
+    const start: number = (effectivePage - 1) * pageSize;
+    return processedData.slice(start, start + pageSize);
+  }, [processedData, effectivePage, pageSize]);
 
   const hasActiveFilters: boolean =
     searchText.trim() !== "" ||
@@ -610,9 +611,12 @@ const HostSystemdUnits: FunctionComponent<
           error=""
           currentPageNumber={effectivePage}
           totalItemsCount={processedData.length}
-          itemsOnPage={PAGE_SIZE}
-          onNavigateToPage={(page: number) => {
+          itemsOnPage={pageSize}
+          onNavigateToPage={(page: number, itemsOnPage: number) => {
             setCurrentPage(page);
+            if (itemsOnPage > 0) {
+              setPageSize(itemsOnPage);
+            }
           }}
           sortOrder={sortOrder}
           sortBy={sortBy}

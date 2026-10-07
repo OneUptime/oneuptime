@@ -628,6 +628,12 @@ describe("TeamMemberService on-call cleanup when a user leaves the project", () 
           "removeWorkspaceAccountLinksIfUserLeftProject",
         )
         .mockResolvedValue(0);
+      jest
+        .spyOn(
+          TeamMemberService,
+          "removePersonalNotificationSettingsIfUserLeftProject",
+        )
+        .mockResolvedValue(null);
     });
 
     test("runs the cleanup once per (user, project) BEFORE the notification settings are removed", async () => {
