@@ -26102,5 +26102,10 @@
   "With no rule, OneUptime AI fixes every new incident while fixing is on. Add rules to fix only the incidents that match one of them, to ask before fixing, or to run your own runbooks instead.": "Zonder regels herstelt OneUptime AI elk nieuw incident zolang automatisch herstel aanstaat. Voeg regels toe om alleen de incidenten te herstellen die aan een ervan voldoen, om eerst om goedkeuring te vragen, of om in plaats daarvan uw eigen runbooks uit te voeren.",
   "With no rule, OneUptime AI investigates every new alert. Add rules to investigate only the alerts that match one of them.": "Zonder regels onderzoekt OneUptime AI elke nieuwe waarschuwing. Voeg regels toe om alleen de waarschuwingen te onderzoeken die aan een ervan voldoen.",
   "With no rule, OneUptime AI investigates every new incident. Add rules to investigate only the incidents that match one of them.": "Zonder regels onderzoekt OneUptime AI elk nieuw incident. Voeg regels toe om alleen de incidenten te onderzoeken die aan een ervan voldoen.",
-  "Without asking": "Zonder te vragen"
+  "Without asking": "Zonder te vragen",
+  "Auto Recharge could not charge the card.": "Automatisch bijvullen kon de kaart niet belasten.",
+  "It tries again within an hour. A project owner or someone with Manage Billing can add AI credits.": "Het probeert het binnen een uur opnieuw. Een projecteigenaar of iemand met de machtiging ‘Manage Billing’ kan AI-tegoed toevoegen.",
+  "It tries again within an hour. A project owner or someone with Manage Billing can recharge the balance.": "Het probeert het binnen een uur opnieuw. Een projecteigenaar of iemand met de machtiging ‘Manage Billing’ kan het saldo bijvullen.",
+  "It tries again within an hour. Check the payment method in Project Settings > Billing, or add AI credits now.": "Het probeert het binnen een uur opnieuw. Controleer de betaalmethode in Projectinstellingen > Facturering, of voeg nu AI-tegoed toe.",
+  "It tries again within an hour. Check the payment method in Project Settings > Billing, or recharge the balance now.": "Het probeert het binnen een uur opnieuw. Controleer de betaalmethode in Projectinstellingen > Facturering, of vul het saldo nu bij."
 }

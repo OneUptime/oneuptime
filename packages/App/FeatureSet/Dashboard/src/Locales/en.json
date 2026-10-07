@@ -26102,5 +26102,10 @@
   "With no rule, OneUptime AI fixes every new incident while fixing is on. Add rules to fix only the incidents that match one of them, to ask before fixing, or to run your own runbooks instead.": "With no rule, OneUptime AI fixes every new incident while fixing is on. Add rules to fix only the incidents that match one of them, to ask before fixing, or to run your own runbooks instead.",
   "With no rule, OneUptime AI investigates every new alert. Add rules to investigate only the alerts that match one of them.": "With no rule, OneUptime AI investigates every new alert. Add rules to investigate only the alerts that match one of them.",
   "With no rule, OneUptime AI investigates every new incident. Add rules to investigate only the incidents that match one of them.": "With no rule, OneUptime AI investigates every new incident. Add rules to investigate only the incidents that match one of them.",
-  "Without asking": "Without asking"
+  "Without asking": "Without asking",
+  "Auto Recharge could not charge the card.": "Auto Recharge could not charge the card.",
+  "It tries again within an hour. A project owner or someone with Manage Billing can add AI credits.": "It tries again within an hour. A project owner or someone with Manage Billing can add AI credits.",
+  "It tries again within an hour. A project owner or someone with Manage Billing can recharge the balance.": "It tries again within an hour. A project owner or someone with Manage Billing can recharge the balance.",
+  "It tries again within an hour. Check the payment method in Project Settings > Billing, or add AI credits now.": "It tries again within an hour. Check the payment method in Project Settings > Billing, or add AI credits now.",
+  "It tries again within an hour. Check the payment method in Project Settings > Billing, or recharge the balance now.": "It tries again within an hour. Check the payment method in Project Settings > Billing, or recharge the balance now."
 }

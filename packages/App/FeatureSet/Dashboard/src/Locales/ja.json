@@ -26102,5 +26102,10 @@
   "With no rule, OneUptime AI fixes every new incident while fixing is on. Add rules to fix only the incidents that match one of them, to ask before fixing, or to run your own runbooks instead.": "ルールがない場合、自動修正がオンの間は OneUptime AI が新しいインシデントをすべて修正します。ルールを追加すると、いずれかのルールに一致するインシデントだけを修正したり、修正前に確認したり、代わりに独自の Runbook を実行したりできます。",
   "With no rule, OneUptime AI investigates every new alert. Add rules to investigate only the alerts that match one of them.": "ルールがない場合、OneUptime AI は新しいアラートをすべて調査します。ルールを追加すると、いずれかのルールに一致するアラートだけが調査されます。",
   "With no rule, OneUptime AI investigates every new incident. Add rules to investigate only the incidents that match one of them.": "ルールがない場合、OneUptime AI は新しいインシデントをすべて調査します。ルールを追加すると、いずれかのルールに一致するインシデントだけが調査されます。",
-  "Without asking": "確認なし"
+  "Without asking": "確認なし",
+  "Auto Recharge could not charge the card.": "自動チャージでカードに請求できませんでした。",
+  "It tries again within an hour. A project owner or someone with Manage Billing can add AI credits.": "1 時間以内に再試行します。AI クレジットを追加できるのは、プロジェクトのオーナーまたは「請求の管理」権限を持つユーザーです。",
+  "It tries again within an hour. A project owner or someone with Manage Billing can recharge the balance.": "1 時間以内に再試行します。残高をチャージできるのは、プロジェクトのオーナーまたは「請求の管理」権限を持つユーザーです。",
+  "It tries again within an hour. Check the payment method in Project Settings > Billing, or add AI credits now.": "1 時間以内に再試行します。「プロジェクト設定 > 請求」で支払い方法を確認するか、今すぐ AI クレジットを追加してください。",
+  "It tries again within an hour. Check the payment method in Project Settings > Billing, or recharge the balance now.": "1 時間以内に再試行します。「プロジェクト設定 > 請求」で支払い方法を確認するか、今すぐ残高をチャージしてください。"
 }

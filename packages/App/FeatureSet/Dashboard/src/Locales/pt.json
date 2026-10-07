@@ -26102,5 +26102,10 @@
   "With no rule, OneUptime AI fixes every new incident while fixing is on. Add rules to fix only the incidents that match one of them, to ask before fixing, or to run your own runbooks instead.": "Sem nenhuma regra, o OneUptime AI corrige todo novo incidente enquanto a correção automática estiver ativada. Adicione regras para corrigir só os incidentes que correspondem a alguma delas, para perguntar antes de corrigir ou para executar seus próprios runbooks em vez disso.",
   "With no rule, OneUptime AI investigates every new alert. Add rules to investigate only the alerts that match one of them.": "Sem nenhuma regra, o OneUptime AI investiga todo novo alerta. Adicione regras para investigar só os alertas que correspondem a alguma delas.",
   "With no rule, OneUptime AI investigates every new incident. Add rules to investigate only the incidents that match one of them.": "Sem nenhuma regra, o OneUptime AI investiga todo novo incidente. Adicione regras para investigar só os incidentes que correspondem a alguma delas.",
-  "Without asking": "Sem perguntar"
+  "Without asking": "Sem perguntar",
+  "Auto Recharge could not charge the card.": "A recarga automática não conseguiu cobrar o cartão.",
+  "It tries again within an hour. A project owner or someone with Manage Billing can add AI credits.": "Ela tenta de novo em até uma hora. Um proprietário do projeto ou alguém com a permissão “Manage Billing” pode adicionar créditos de IA.",
+  "It tries again within an hour. A project owner or someone with Manage Billing can recharge the balance.": "Ela tenta de novo em até uma hora. Um proprietário do projeto ou alguém com a permissão “Manage Billing” pode recarregar o saldo.",
+  "It tries again within an hour. Check the payment method in Project Settings > Billing, or add AI credits now.": "Ela tenta de novo em até uma hora. Verifique o método de pagamento em Configurações do Projeto > Cobrança, ou adicione créditos de IA agora.",
+  "It tries again within an hour. Check the payment method in Project Settings > Billing, or recharge the balance now.": "Ela tenta de novo em até uma hora. Verifique o método de pagamento em Configurações do Projeto > Cobrança, ou recarregue o saldo agora."
 }

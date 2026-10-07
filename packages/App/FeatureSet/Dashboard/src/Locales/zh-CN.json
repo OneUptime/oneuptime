@@ -26102,5 +26102,10 @@
   "With no rule, OneUptime AI fixes every new incident while fixing is on. Add rules to fix only the incidents that match one of them, to ask before fixing, or to run your own runbooks instead.": "没有规则时，只要修复已开启，OneUptime AI 就会修复每个新事件。添加规则可以只修复与其中某条规则匹配的事件、在修复前先询问，或改为运行您自己的运行手册。",
   "With no rule, OneUptime AI investigates every new alert. Add rules to investigate only the alerts that match one of them.": "没有规则时，OneUptime AI 会调查每个新警报。添加规则可以只调查与其中某条规则匹配的警报。",
   "With no rule, OneUptime AI investigates every new incident. Add rules to investigate only the incidents that match one of them.": "没有规则时，OneUptime AI 会调查每个新事件。添加规则可以只调查与其中某条规则匹配的事件。",
-  "Without asking": "无需询问"
+  "Without asking": "无需询问",
+  "Auto Recharge could not charge the card.": "自动充值未能从银行卡扣款。",
+  "It tries again within an hour. A project owner or someone with Manage Billing can add AI credits.": "它会在一小时内重试。项目所有者或拥有“Manage Billing”权限的用户可以添加 AI 积分。",
+  "It tries again within an hour. A project owner or someone with Manage Billing can recharge the balance.": "它会在一小时内重试。项目所有者或拥有“Manage Billing”权限的用户可以为余额充值。",
+  "It tries again within an hour. Check the payment method in Project Settings > Billing, or add AI credits now.": "它会在一小时内重试。请在 项目设置 > 账单 中检查支付方式，或立即添加 AI 积分。",
+  "It tries again within an hour. Check the payment method in Project Settings > Billing, or recharge the balance now.": "它会在一小时内重试。请在 项目设置 > 账单 中检查支付方式，或立即为余额充值。"
 }

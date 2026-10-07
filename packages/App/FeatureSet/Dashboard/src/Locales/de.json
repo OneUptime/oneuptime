@@ -26102,5 +26102,10 @@
   "With no rule, OneUptime AI fixes every new incident while fixing is on. Add rules to fix only the incidents that match one of them, to ask before fixing, or to run your own runbooks instead.": "Ohne Regeln behebt OneUptime AI jeden neuen Vorfall, solange die automatische Behebung eingeschaltet ist. Fügen Sie Regeln hinzu, um nur die Vorfälle zu beheben, die zu einer davon passen, um vor dem Beheben zu fragen oder um stattdessen Ihre eigenen Runbooks auszuführen.",
   "With no rule, OneUptime AI investigates every new alert. Add rules to investigate only the alerts that match one of them.": "Ohne Regeln untersucht OneUptime AI jede neue Warnung. Fügen Sie Regeln hinzu, um nur die Warnungen zu untersuchen, die zu einer davon passen.",
   "With no rule, OneUptime AI investigates every new incident. Add rules to investigate only the incidents that match one of them.": "Ohne Regeln untersucht OneUptime AI jeden neuen Vorfall. Fügen Sie Regeln hinzu, um nur die Vorfälle zu untersuchen, die zu einer davon passen.",
-  "Without asking": "Ohne Nachfrage"
+  "Without asking": "Ohne Nachfrage",
+  "Auto Recharge could not charge the card.": "Das automatische Aufladen konnte die Karte nicht belasten.",
+  "It tries again within an hour. A project owner or someone with Manage Billing can add AI credits.": "Es versucht es innerhalb einer Stunde erneut. Ein Projekteigentümer oder jemand mit der Berechtigung „Manage Billing“ kann KI-Guthaben hinzufügen.",
+  "It tries again within an hour. A project owner or someone with Manage Billing can recharge the balance.": "Es versucht es innerhalb einer Stunde erneut. Ein Projekteigentümer oder jemand mit der Berechtigung „Manage Billing“ kann das Guthaben aufladen.",
+  "It tries again within an hour. Check the payment method in Project Settings > Billing, or add AI credits now.": "Es versucht es innerhalb einer Stunde erneut. Prüfen Sie die Zahlungsmethode unter Projekteinstellungen > Abrechnung, oder fügen Sie jetzt KI-Guthaben hinzu.",
+  "It tries again within an hour. Check the payment method in Project Settings > Billing, or recharge the balance now.": "Es versucht es innerhalb einer Stunde erneut. Prüfen Sie die Zahlungsmethode unter Projekteinstellungen > Abrechnung, oder laden Sie das Guthaben jetzt auf."
 }

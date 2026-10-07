@@ -26102,5 +26102,10 @@
   "With no rule, OneUptime AI fixes every new incident while fixing is on. Add rules to fix only the incidents that match one of them, to ask before fixing, or to run your own runbooks instead.": "Utan regler åtgärdar OneUptime AI varje ny incident så länge automatisk åtgärd är påslagen. Lägg till regler för att bara åtgärda de incidenter som matchar någon av dem, för att fråga innan något åtgärdas eller för att köra egna runbooks i stället.",
   "With no rule, OneUptime AI investigates every new alert. Add rules to investigate only the alerts that match one of them.": "Utan regler utreder OneUptime AI varje nytt larm. Lägg till regler för att bara utreda de larm som matchar någon av dem.",
   "With no rule, OneUptime AI investigates every new incident. Add rules to investigate only the incidents that match one of them.": "Utan regler utreder OneUptime AI varje ny incident. Lägg till regler för att bara utreda de incidenter som matchar någon av dem.",
-  "Without asking": "Utan att fråga"
+  "Without asking": "Utan att fråga",
+  "Auto Recharge could not charge the card.": "Automatisk påfyllning kunde inte debitera kortet.",
+  "It tries again within an hour. A project owner or someone with Manage Billing can add AI credits.": "Den försöker igen inom en timme. En projektägare eller någon med behörigheten ”Manage Billing” kan lägga till AI-krediter.",
+  "It tries again within an hour. A project owner or someone with Manage Billing can recharge the balance.": "Den försöker igen inom en timme. En projektägare eller någon med behörigheten ”Manage Billing” kan fylla på saldot.",
+  "It tries again within an hour. Check the payment method in Project Settings > Billing, or add AI credits now.": "Den försöker igen inom en timme. Kontrollera betalningsmetoden under Projektinställningar > Fakturering, eller lägg till AI-krediter nu.",
+  "It tries again within an hour. Check the payment method in Project Settings > Billing, or recharge the balance now.": "Den försöker igen inom en timme. Kontrollera betalningsmetoden under Projektinställningar > Fakturering, eller fyll på saldot nu."
 }

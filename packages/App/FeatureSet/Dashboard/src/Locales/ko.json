@@ -26102,5 +26102,10 @@
   "With no rule, OneUptime AI fixes every new incident while fixing is on. Add rules to fix only the incidents that match one of them, to ask before fixing, or to run your own runbooks instead.": "규칙이 없으면 자동 수정이 켜져 있는 동안 OneUptime AI가 모든 새 인시던트를 수정합니다. 규칙을 추가하면 규칙 중 하나와 일치하는 인시던트만 수정하거나, 수정 전에 승인을 요청하거나, 대신 직접 만든 런북을 실행할 수 있습니다.",
   "With no rule, OneUptime AI investigates every new alert. Add rules to investigate only the alerts that match one of them.": "규칙이 없으면 OneUptime AI가 모든 새 경고를 조사합니다. 규칙을 추가하면 규칙 중 하나와 일치하는 경고만 조사합니다.",
   "With no rule, OneUptime AI investigates every new incident. Add rules to investigate only the incidents that match one of them.": "규칙이 없으면 OneUptime AI가 모든 새 인시던트를 조사합니다. 규칙을 추가하면 규칙 중 하나와 일치하는 인시던트만 조사합니다.",
-  "Without asking": "승인 없이"
+  "Without asking": "승인 없이",
+  "Auto Recharge could not charge the card.": "자동 충전이 카드에 결제하지 못했습니다.",
+  "It tries again within an hour. A project owner or someone with Manage Billing can add AI credits.": "1시간 안에 다시 시도합니다. 프로젝트 소유자 또는 'Manage Billing' 권한이 있는 사용자가 AI 크레딧을 추가할 수 있습니다.",
+  "It tries again within an hour. A project owner or someone with Manage Billing can recharge the balance.": "1시간 안에 다시 시도합니다. 프로젝트 소유자 또는 'Manage Billing' 권한이 있는 사용자가 잔액을 충전할 수 있습니다.",
+  "It tries again within an hour. Check the payment method in Project Settings > Billing, or add AI credits now.": "1시간 안에 다시 시도합니다. 프로젝트 설정 > 결제에서 결제 수단을 확인하거나 지금 AI 크레딧을 추가하세요.",
+  "It tries again within an hour. Check the payment method in Project Settings > Billing, or recharge the balance now.": "1시간 안에 다시 시도합니다. 프로젝트 설정 > 결제에서 결제 수단을 확인하거나 지금 잔액을 충전하세요."
 }

@@ -26102,5 +26102,10 @@
   "With no rule, OneUptime AI fixes every new incident while fixing is on. Add rules to fix only the incidents that match one of them, to ask before fixing, or to run your own runbooks instead.": "Uden regler retter OneUptime AI hver ny hændelse, så længe automatisk rettelse er slået til. Tilføj regler for kun at rette de hændelser, der matcher en af dem, for at spørge, før der rettes, eller for at køre dine egne runbooks i stedet.",
   "With no rule, OneUptime AI investigates every new alert. Add rules to investigate only the alerts that match one of them.": "Uden regler undersøger OneUptime AI hver ny advarsel. Tilføj regler for kun at undersøge de advarsler, der matcher en af dem.",
   "With no rule, OneUptime AI investigates every new incident. Add rules to investigate only the incidents that match one of them.": "Uden regler undersøger OneUptime AI hver ny hændelse. Tilføj regler for kun at undersøge de hændelser, der matcher en af dem.",
-  "Without asking": "Uden at spørge"
+  "Without asking": "Uden at spørge",
+  "Auto Recharge could not charge the card.": "Automatisk genopfyldning kunne ikke trække beløbet på kortet.",
+  "It tries again within an hour. A project owner or someone with Manage Billing can add AI credits.": "Den prøver igen inden for en time. En projektejer eller nogen med tilladelsen »Manage Billing« kan tilføje AI-kreditter.",
+  "It tries again within an hour. A project owner or someone with Manage Billing can recharge the balance.": "Den prøver igen inden for en time. En projektejer eller nogen med tilladelsen »Manage Billing« kan genoplade saldoen.",
+  "It tries again within an hour. Check the payment method in Project Settings > Billing, or add AI credits now.": "Den prøver igen inden for en time. Tjek betalingsmetoden under Projektindstillinger > Fakturering, eller tilføj AI-kreditter nu.",
+  "It tries again within an hour. Check the payment method in Project Settings > Billing, or recharge the balance now.": "Den prøver igen inden for en time. Tjek betalingsmetoden under Projektindstillinger > Fakturering, eller genoplad saldoen nu."
 }
