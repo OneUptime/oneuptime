@@ -512,6 +512,44 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   permissions, a minute for a block, and the access token's 15 minutes for
   a session or a newly required SSO sign-in. See
   [Users, Teams & Permissions](/docs/permissions/index).
+- **A record you may not read can no longer be changed or deleted, and a
+  change by ID that reaches nothing says so.** A change or a delete - from
+  the dashboard, the API, Terraform, the MCP tools or a workflow - now
+  reaches only the records its caller may read, and a record read through
+  another one only through a record its caller may read. The roles
+  OneUptime ships work as before: each one that may change or delete a kind
+  of record may read it, alert roles still see which incidents their alerts
+  are linked to, the Telemetry roles still read metric pipeline rules and
+  source maps, and everyone still reads the log of the notifications sent
+  to them. What changes is for custom roles and API keys built from single
+  permissions:
+  - A permission to change or delete a kind of record needs one to read it:
+    `EditProjectIncident` without a permission to read incidents changes no
+    incident. A role whose reads are limited to some labels or owners
+    changes and deletes only those records, however wide its edit or delete
+    permissions are, and a block on reading takes changing and deleting
+    away too.
+  - A record read through another one - an incident's or alert's notes, a
+    status page's announcements and domains, an on-call policy's escalation
+    rules and the like - needs a permission to read that other record:
+    `ReadIncidentInternalNote` without one to read incidents now reaches no
+    note, where it reached the notes of every incident. A block with labels
+    on reading incidents leaves out the notes of the incidents carrying
+    them.
+  - Changing or deleting one record by its ID (`PUT` or
+    `DELETE /api/<resource>/<id>`, and the `update-item` and `delete-item`
+    routes) answers `404` when the record does not exist or the caller may
+    not read it, and `422` when the caller may read it but not change it.
+    A delete used to answer `200` with nothing deleted, and an update `422`
+    in both cases. Terraform reads a `404` on destroy as already gone.
+
+  Give a custom role or an API key the read permission beside each edit or
+  delete permission, and the parent's read permission beside a note's or an
+  announcement's. A Project Admin API key now also reads the project's SSO
+  and OIDC providers it could already change, and a Billing Admin key the
+  project. See
+  [Changing or deleting a record you may not read](/docs/api-reference/api-reference#changing-or-deleting-a-record-you-may-not-read)
+  and [Users, Teams & Permissions](/docs/permissions/index).
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

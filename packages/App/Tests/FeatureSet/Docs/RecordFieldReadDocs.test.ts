@@ -35,14 +35,22 @@ const NAMED_PERMISSIONS: Array<Permission> = [
   Permission.ReadRumSessionReplayPayload,
 ];
 
-// The paragraph after the six steps of how a request is decided.
+const NUMBERED_STEP: RegExp = /^\d+\. /;
+
+// The paragraph after the numbered steps of how a request is decided.
 function paragraphAfterTheSteps(language: string): string {
   const lines: Array<string> = readPage(language).split("\n");
-  const lastStep: number = lines.findIndex((line: string): boolean => {
+  let lastStep: number = lines.findIndex((line: string): boolean => {
     return line.startsWith("6. ");
   });
 
   expect([language, lastStep >= 0]).toEqual([language, true]);
+
+  // The steps after the sixth, one line each.
+  while (NUMBERED_STEP.test(lines[lastStep + 1] || "")) {
+    lastStep++;
+  }
+
   expect([language, lines[lastStep + 1]]).toEqual([language, ""]);
 
   return lines[lastStep + 2] || "";
