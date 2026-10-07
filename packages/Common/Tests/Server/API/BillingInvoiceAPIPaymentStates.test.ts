@@ -948,20 +948,23 @@ describe("BillingInvoiceAPI POST /billing-invoices/pay payment states", () => {
       Permission.BillingAdmin,
       Permission.BillingMember,
       Permission.BillingViewer,
-    ])("refuses a %s: paying an invoice is not a billing role's", async (held: Permission) => {
-      mockRequest.userTenantAccessPermission = tenantPermissionsFor(projectId, [
-        Permission.ProjectUser,
-        held,
-      ]);
+    ])(
+      "refuses a %s: paying an invoice is not a billing role's",
+      async (held: Permission) => {
+        mockRequest.userTenantAccessPermission = tenantPermissionsFor(
+          projectId,
+          [Permission.ProjectUser, held],
+        );
 
-      await callPay();
+        await callPay();
 
-      expect((nextError() as Error).message).toBe(
-        "You need Project Owner, Manage Billing or Edit Invoices permission to pay invoices.",
-      );
-      expect(payInvoice).not.toHaveBeenCalled();
-      expect(syncSubscriptionPaymentMethods).not.toHaveBeenCalled();
-    });
+        expect((nextError() as Error).message).toBe(
+          "You need Project Owner, Manage Billing or Edit Invoices permission to pay invoices.",
+        );
+        expect(payInvoice).not.toHaveBeenCalled();
+        expect(syncSubscriptionPaymentMethods).not.toHaveBeenCalled();
+      },
+    );
 
     it.each([
       Permission.ProjectOwner,

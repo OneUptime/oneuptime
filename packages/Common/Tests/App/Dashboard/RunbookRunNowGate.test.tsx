@@ -185,7 +185,13 @@ function lockedReason(): string {
 }
 
 async function openRunbook(): Promise<CardButton> {
-  render(<RunbookOverview pageRoute={new Route("/runbooks/view")} />);
+  render(
+    <RunbookOverview
+      pageRoute={new Route("/runbooks/view")}
+      currentProject={null}
+      hasPaymentMethod={true}
+    />,
+  );
 
   await waitFor(() => {
     expect(lastCardProps).not.toBeNull();
@@ -221,11 +227,14 @@ describe("the gate", () => {
     expect(RunbookRunCopy.runRefused).toBe(RUNBOOK_RUN_REFUSED_MESSAGE);
   });
 
-  it.each([...RUNBOOK_RUN_PERMISSIONS])("lets %s run", (permission: Permission) => {
-    expect(
-      getRunbookRunGate({ permissions: [...BASE_PERMISSIONS, permission] }),
-    ).toEqual({ isAllowed: true });
-  });
+  it.each([...RUNBOOK_RUN_PERMISSIONS])(
+    "lets %s run",
+    (permission: Permission) => {
+      expect(
+        getRunbookRunGate({ permissions: [...BASE_PERMISSIONS, permission] }),
+      ).toEqual({ isAllowed: true });
+    },
+  );
 
   it.each([
     Permission.RunbookViewer,

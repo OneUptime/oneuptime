@@ -627,15 +627,18 @@ describe("BillingPaymentMethodAPI", () => {
       Permission.BillingAdmin,
       Permission.BillingMember,
       Permission.BillingViewer,
-    ])("refuses a %s: adding a payment method is not a billing role's", async (held: Permission) => {
-      givenPermissions([Permission.ProjectMember, held]);
-      req.body = {};
+    ])(
+      "refuses a %s: adding a payment method is not a billing role's",
+      async (held: Permission) => {
+        givenPermissions([Permission.ProjectMember, held]);
+        req.body = {};
 
-      await callRoute(SETUP_ROUTE);
+        await callRoute(SETUP_ROUTE);
 
-      expect(nextError()).toBeInstanceOf(BadDataException);
-      expect(getSetupIntentSecret).not.toHaveBeenCalled();
-    });
+        expect(nextError()).toBeInstanceOf(BadDataException);
+        expect(getSetupIntentSecret).not.toHaveBeenCalled();
+      },
+    );
 
     it("asks for exactly the list the dashboard's Add Payment Method button asks for", () => {
       expect([...PAYMENT_METHOD_ADD_PERMISSIONS]).toEqual([
@@ -654,14 +657,17 @@ describe("BillingPaymentMethodAPI", () => {
       Permission.BillingAdmin,
       Permission.BillingMember,
       Permission.BillingViewer,
-    ])("refuses a %s: choosing which card is charged is not a billing role's", async (held: Permission) => {
-      givenPermissions([Permission.ProjectMember, held]);
+    ])(
+      "refuses a %s: choosing which card is charged is not a billing role's",
+      async (held: Permission) => {
+        givenPermissions([Permission.ProjectMember, held]);
 
-      await callRoute(SET_DEFAULT_ROUTE);
+        await callRoute(SET_DEFAULT_ROUTE);
 
-      expect(nextError()).toBeInstanceOf(BadDataException);
-      expect(makePaymentMethodDefault).not.toHaveBeenCalled();
-    });
+        expect(nextError()).toBeInstanceOf(BadDataException);
+        expect(makePaymentMethodDefault).not.toHaveBeenCalled();
+      },
+    );
 
     it("asks for exactly the list the dashboard's Set as Default action asks for", () => {
       expect([...PAYMENT_METHOD_SET_DEFAULT_PERMISSIONS]).toEqual([

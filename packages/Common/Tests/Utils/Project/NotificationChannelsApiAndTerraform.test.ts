@@ -189,9 +189,9 @@ describe("the Terraform provider", () => {
       expect(attribute?.apiFieldName || column).toBe(column);
 
       // Sent on an update, the way the dashboard's switch sends it.
-      expect(
-        Object.keys(provider.operationSchemas?.update || {}),
-      ).toContain(attributeName);
+      expect(Object.keys(provider.operationSchemas?.update || {})).toContain(
+        attributeName,
+      );
     },
   );
 });

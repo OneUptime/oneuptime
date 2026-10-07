@@ -178,7 +178,9 @@ function grant(permissions: Array<Permission>): void {
   jest.spyOn(User, "isMasterAdmin").mockReturnValue(false);
   jest
     .spyOn(PermissionUtil, "getAllPermissions")
-    .mockReturnValue(permissions.length ? [...BASE_PERMISSIONS, ...permissions] : []);
+    .mockReturnValue(
+      permissions.length ? [...BASE_PERMISSIONS, ...permissions] : [],
+    );
   jest.spyOn(PermissionUtil, "getGlobalPermissions").mockReturnValue(null);
   jest.spyOn(PermissionUtil, "getProjectPermissions").mockReturnValue(
     (permissions.length
@@ -196,7 +198,9 @@ function grant(permissions: Array<Permission>): void {
           ),
           _type: "UserTenantAccessPermission",
         }
-      : null) as unknown as ReturnType<typeof PermissionUtil.getProjectPermissions>,
+      : null) as unknown as ReturnType<
+      typeof PermissionUtil.getProjectPermissions
+    >,
   );
 }
 
@@ -293,34 +297,37 @@ afterEach(() => {
 });
 
 describe("the gates read the server's lists", () => {
-  it.each(BILLING_ROLES)("%s: add, set default and pay are all locked, each saying who may", (role: Permission) => {
-    const options: { permissions: Array<Permission> } = {
-      permissions: [...BASE_PERMISSIONS, role],
-    };
+  it.each(BILLING_ROLES)(
+    "%s: add, set default and pay are all locked, each saying who may",
+    (role: Permission) => {
+      const options: { permissions: Array<Permission> } = {
+        permissions: [...BASE_PERMISSIONS, role],
+      };
 
-    expect(
-      getBillingActionLockedReason(getAddPaymentMethodGate(options)),
-    ).toBe(
-      lockedReason(
-        BillingActionCopy.addPaymentMethodRefused,
-        PAYMENT_METHOD_ADD_PERMISSIONS,
-      ),
-    );
-    expect(
-      getBillingActionLockedReason(getSetDefaultPaymentMethodGate(options)),
-    ).toBe(
-      lockedReason(
-        BillingActionCopy.setDefaultPaymentMethodRefused,
-        PAYMENT_METHOD_SET_DEFAULT_PERMISSIONS,
-      ),
-    );
-    expect(getBillingActionLockedReason(getPayInvoiceGate(options))).toBe(
-      lockedReason(
-        BillingActionCopy.payInvoiceRefused,
-        PROJECT_INVOICE_PAY_PERMISSIONS,
-      ),
-    );
-  });
+      expect(
+        getBillingActionLockedReason(getAddPaymentMethodGate(options)),
+      ).toBe(
+        lockedReason(
+          BillingActionCopy.addPaymentMethodRefused,
+          PAYMENT_METHOD_ADD_PERMISSIONS,
+        ),
+      );
+      expect(
+        getBillingActionLockedReason(getSetDefaultPaymentMethodGate(options)),
+      ).toBe(
+        lockedReason(
+          BillingActionCopy.setDefaultPaymentMethodRefused,
+          PAYMENT_METHOD_SET_DEFAULT_PERMISSIONS,
+        ),
+      );
+      expect(getBillingActionLockedReason(getPayInvoiceGate(options))).toBe(
+        lockedReason(
+          BillingActionCopy.payInvoiceRefused,
+          PROJECT_INVOICE_PAY_PERMISSIONS,
+        ),
+      );
+    },
+  );
 
   it.each([Permission.ProjectOwner, Permission.ManageProjectBilling])(
     "%s: none is locked",
@@ -441,9 +448,7 @@ describe("Settings > Billing", () => {
       expect(add.tooltip).toBeUndefined();
 
       for (const title of ["Set as Default", "Re-sync Autopay"]) {
-        expect(
-          tableAction<BillingPaymentMethod>(title).disabled,
-        ).toBeFalsy();
+        expect(tableAction<BillingPaymentMethod>(title).disabled).toBeFalsy();
       }
     },
   );

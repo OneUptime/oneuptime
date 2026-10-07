@@ -86,7 +86,8 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
     };
   const mocked: Record<string, unknown> = { ...actual };
   const mockGlobal: MockGlobal = globalThis as MockGlobal;
-  mockGlobal.__ownerRuleDashboardUrl = "https://oneuptime.example.com/dashboard";
+  mockGlobal.__ownerRuleDashboardUrl =
+    "https://oneuptime.example.com/dashboard";
 
   Object.defineProperty(mocked, "IsBillingEnabled", {
     configurable: true,

@@ -314,10 +314,18 @@ describe("a Billing Admin turns a project's paid channels on and off", () => {
 
   test("Billing Member changes only the billing contact details on a project, and Billing Viewer nothing", () => {
     expect(
-      columnsFor(Project, [Permission.BillingMember], DatabaseRequestType.Update),
+      columnsFor(
+        Project,
+        [Permission.BillingMember],
+        DatabaseRequestType.Update,
+      ),
     ).toEqual([...PROJECT_BILLING_CONTACT_COLUMNS].sort());
     expect(
-      columnsFor(Project, [Permission.BillingViewer], DatabaseRequestType.Update),
+      columnsFor(
+        Project,
+        [Permission.BillingViewer],
+        DatabaseRequestType.Update,
+      ),
     ).toEqual([]);
   });
 });

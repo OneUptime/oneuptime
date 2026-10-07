@@ -709,10 +709,11 @@ describe("Auto-remediation CommandPlan approve/dismiss routes", () => {
         .calls[0]![0].props as DatabaseCommonInteractionProps;
       expect(readProps.isRoot).toBeFalsy();
       expect(
-        readProps.userTenantAccessPermission?.[PROJECT_ID.toString()]
-          ?.permissions.map((row: UserPermission) => {
-            return row.permission;
-          }),
+        readProps.userTenantAccessPermission?.[
+          PROJECT_ID.toString()
+        ]?.permissions.map((row: UserPermission) => {
+          return row.permission;
+        }),
       ).toEqual([Permission.ProjectMember]);
       expect(runbookFindSpy.mock.invocationCallOrder[0]!).toBeLessThan(
         casSpy.mock.invocationCallOrder[0]!,

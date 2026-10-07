@@ -1202,31 +1202,31 @@ describe("Runbook execution routes require an authorized member of the runbook's
 
     // A run of the runbook, paused on its first (Manual) step.
     function executionOfTheRunbook(status?: RunbookExecutionStatus): void {
-      executionFindSpy.mockImplementation((async (): Promise<
-        RunbookExecution
-      > => {
-        const stepExecutions: Array<RunbookStepExecutionState> =
-          makeSteps().map(
-            (step: RunbookStep, index: number): RunbookStepExecutionState => {
-              return {
-                step,
-                status:
-                  index === 0
-                    ? RunbookStepExecutionStatus.WaitingForUser
-                    : RunbookStepExecutionStatus.Pending,
-              };
-            },
-          );
+      executionFindSpy.mockImplementation(
+        (async (): Promise<RunbookExecution> => {
+          const stepExecutions: Array<RunbookStepExecutionState> =
+            makeSteps().map(
+              (step: RunbookStep, index: number): RunbookStepExecutionState => {
+                return {
+                  step,
+                  status:
+                    index === 0
+                      ? RunbookStepExecutionStatus.WaitingForUser
+                      : RunbookStepExecutionStatus.Pending,
+                };
+              },
+            );
 
-        return {
-          _id: executionId.toString(),
-          projectId: callerProjectId,
-          runbookId: runbookId,
-          status: status || RunbookExecutionStatus.WaitingForManualStep,
-          stepExecutions,
-          version: 3,
-        } as unknown as RunbookExecution;
-      }) as unknown as typeof RunbookExecutionService.findOneById);
+          return {
+            _id: executionId.toString(),
+            projectId: callerProjectId,
+            runbookId: runbookId,
+            status: status || RunbookExecutionStatus.WaitingForManualStep,
+            stepExecutions,
+            version: 3,
+          } as unknown as RunbookExecution;
+        }) as unknown as typeof RunbookExecutionService.findOneById,
+      );
     }
 
     function role(

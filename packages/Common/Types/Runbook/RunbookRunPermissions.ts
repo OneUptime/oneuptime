@@ -61,8 +61,10 @@ export const RUNBOOK_RUN_GRANULAR_PERMISSIONS: ReadonlyArray<Permission> = [
   Permission.CreateRunbookExecution,
 ];
 
-export const RUNBOOK_ADVANCE_GRANULAR_PERMISSIONS: ReadonlyArray<Permission> =
-  [Permission.CreateRunbookExecution, Permission.EditRunbookExecution];
+export const RUNBOOK_ADVANCE_GRANULAR_PERMISSIONS: ReadonlyArray<Permission> = [
+  Permission.CreateRunbookExecution,
+  Permission.EditRunbookExecution,
+];
 
 // What a refused start says.
 export const RUNBOOK_RUN_REFUSED_MESSAGE: string =

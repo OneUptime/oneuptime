@@ -60,7 +60,9 @@ function row(
   };
 }
 
-function propsWith(rows: Array<UserPermission>): DatabaseCommonInteractionProps {
+function propsWith(
+  rows: Array<UserPermission>,
+): DatabaseCommonInteractionProps {
   return {
     userId: ObjectID.generate(),
     tenantId: PROJECT_ID,
@@ -81,12 +83,13 @@ function propsWith(rows: Array<UserPermission>): DatabaseCommonInteractionProps 
 
 function rowsHandedToTheRead(call: number): Array<UserPermission> {
   const props: DatabaseCommonInteractionProps = (
-    findRunbook.mock.calls[call]![0] as { props: DatabaseCommonInteractionProps }
+    findRunbook.mock.calls[call]![0] as {
+      props: DatabaseCommonInteractionProps;
+    }
   ).props;
 
   return (
-    props.userTenantAccessPermission?.[PROJECT_ID.toString()]?.permissions ||
-    []
+    props.userTenantAccessPermission?.[PROJECT_ID.toString()]?.permissions || []
   );
 }
 
@@ -96,9 +99,7 @@ let findRunbook: SpyInstance<typeof RunbookService.findOneById>;
  * The read answers "found" when `reaches` says the rows it was handed reach
  * the runbook.
  */
-function readFinds(
-  reaches: (rows: Array<UserPermission>) => boolean,
-): void {
+function readFinds(reaches: (rows: Array<UserPermission>) => boolean): void {
   findRunbook.mockImplementation((async (data: {
     props: DatabaseCommonInteractionProps;
   }): Promise<Runbook | null> => {
@@ -145,7 +146,8 @@ describe("the lists", () => {
   });
 
   test("the run roles are the run permissions on Runbook's read list, and the rest are granular", () => {
-    const runbookReaders: Array<Permission> = new Runbook().getReadPermissions();
+    const runbookReaders: Array<Permission> =
+      new Runbook().getReadPermissions();
 
     expect([...RUNBOOK_RUN_ROLE_PERMISSIONS].sort()).toEqual(
       RUNBOOK_RUN_PERMISSIONS.filter((permission: Permission): boolean => {

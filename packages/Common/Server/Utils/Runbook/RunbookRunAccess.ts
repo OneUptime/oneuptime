@@ -56,9 +56,7 @@ export default class RunbookRunAccess {
     }
   }
 
-  public static async assertMayAdvance(
-    data: RunbookRunRequest,
-  ): Promise<void> {
+  public static async assertMayAdvance(data: RunbookRunRequest): Promise<void> {
     if (
       !(await RunbookRunAccess.reaches({
         ...data,

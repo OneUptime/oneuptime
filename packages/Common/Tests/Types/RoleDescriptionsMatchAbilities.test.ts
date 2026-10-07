@@ -818,9 +818,12 @@ function expectCovers(role: Permission, covered: Permission): void {
   const missing: Array<string> = [];
 
   for (const [name, access] of TABLES.entries()) {
-    for (const operation of ["create", "read", "update", "delete"] as Array<
-      Operation
-    >) {
+    for (const operation of [
+      "create",
+      "read",
+      "update",
+      "delete",
+    ] as Array<Operation>) {
       if (
         access.lists[operation].includes(covered) &&
         !access.lists[operation].includes(role)
@@ -863,9 +866,11 @@ function writesOf(role: Permission): Array<string> {
   const writes: Array<string> = [];
 
   for (const [name, access] of TABLES.entries()) {
-    for (const operation of ["create", "update", "delete"] as Array<
-      Operation
-    >) {
+    for (const operation of [
+      "create",
+      "update",
+      "delete",
+    ] as Array<Operation>) {
       if (access.lists[operation].includes(role)) {
         writes.push(`${name} ${operation}`);
       }
@@ -888,6 +893,9 @@ function writesOf(role: Permission): Array<string> {
 
   return writes;
 }
+
+// A description that says the role changes nothing, in any case.
+const CHANGES_NOTHING: RegExp = new RegExp("\\bchanges nothing\\b", "i");
 
 describe("the shapes the descriptions speak in", () => {
   const doesEverything: Array<[Permission, string]> = [];
@@ -913,7 +921,7 @@ describe("the shapes the descriptions speak in", () => {
 
     if (
       description.startsWith("Read-only access") ||
-      /\bchanges nothing\b/i.test(description)
+      CHANGES_NOTHING.test(description)
     ) {
       readOnly.push(role);
     }

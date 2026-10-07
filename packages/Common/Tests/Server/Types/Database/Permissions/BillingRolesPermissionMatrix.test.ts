@@ -307,7 +307,11 @@ describe("what each billing role may change, across every table", () => {
 
   test("Billing Admin updates exactly the billing contact details and the four paid channel switches", () => {
     expect(
-      columnsFor(Project, [Permission.BillingAdmin], DatabaseRequestType.Update),
+      columnsFor(
+        Project,
+        [Permission.BillingAdmin],
+        DatabaseRequestType.Update,
+      ),
     ).toEqual([...PROJECT_BILLING_CONTACT_COLUMNS, ...CHANNEL_COLUMNS].sort());
   });
 });
@@ -357,10 +361,15 @@ describe("the billing contact details", () => {
 
   test("a save that changes the contact details and renames the project is refused whole for a Billing Member", () => {
     expect(
-      mayWrite(Project, [Permission.BillingMember], DatabaseRequestType.Update, {
-        financeAccountingEmail: "finance@acme.test",
-        name: "Renamed",
-      }),
+      mayWrite(
+        Project,
+        [Permission.BillingMember],
+        DatabaseRequestType.Update,
+        {
+          financeAccountingEmail: "finance@acme.test",
+          name: "Renamed",
+        },
+      ),
     ).toBe(false);
   });
 
@@ -498,7 +507,12 @@ describe("Billing Viewer, Member and Admin read every billing record", () => {
     const columns: Dictionary<ColumnAccessControl> =
       new Project().getColumnAccessControlForAllColumns();
 
-    for (const column of ["reseller", "resellerId", "resellerPlan", "resellerPlanId"]) {
+    for (const column of [
+      "reseller",
+      "resellerId",
+      "resellerPlan",
+      "resellerPlanId",
+    ]) {
       expect([column, sorted(columns[column]?.read || [])]).toEqual([
         column,
         sorted(columns["paymentProviderPlanId"]?.read || []),
@@ -513,11 +527,11 @@ describe("Billing Viewer, Member and Admin read every billing record", () => {
     ]) {
       expect([
         permission,
-        maySelect(Project, [permission], [
-          "paymentProviderPlanId",
-          "reseller",
-          "resellerPlan",
-        ]),
+        maySelect(
+          Project,
+          [permission],
+          ["paymentProviderPlanId", "reseller", "resellerPlan"],
+        ),
       ]).toEqual([permission, true]);
     }
   });
@@ -552,13 +566,11 @@ describe("Billing Viewer, Member and Admin read every billing record", () => {
         tableAllows(BillingInvoice, [permission], DatabaseRequestType.Read),
       ).toBe(true);
       expect(
-        maySelect(BillingInvoice, [permission], [
-          "invoiceNumber",
-          "invoiceDate",
-          "amount",
-          "currencyCode",
-          "status",
-        ]),
+        maySelect(
+          BillingInvoice,
+          [permission],
+          ["invoiceNumber", "invoiceDate", "amount", "currencyCode", "status"],
+        ),
       ).toBe(true);
     }
 
@@ -584,9 +596,11 @@ describe("Billing Viewer, Member and Admin read every billing record", () => {
     }
 
     expect(
-      maySelect(BillingInvoice, [Permission.BillingViewer], [
-        "downloadableLink",
-      ]),
+      maySelect(
+        BillingInvoice,
+        [Permission.BillingViewer],
+        ["downloadableLink"],
+      ),
     ).toBe(false);
   });
 
@@ -615,7 +629,11 @@ describe("Billing Viewer, Member and Admin read every billing record", () => {
 
     for (const permission of BILLING_ROLES) {
       expect(
-        columnsFor(TelemetryUsageBilling, [permission], DatabaseRequestType.Read),
+        columnsFor(
+          TelemetryUsageBilling,
+          [permission],
+          DatabaseRequestType.Read,
+        ),
       ).toEqual(readableByOwner);
     }
   });
@@ -623,14 +641,18 @@ describe("Billing Viewer, Member and Admin read every billing record", () => {
   test("payment methods: read, as before", () => {
     for (const permission of BILLING_ROLES) {
       expect(
-        tableAllows(BillingPaymentMethod, [permission], DatabaseRequestType.Read),
+        tableAllows(
+          BillingPaymentMethod,
+          [permission],
+          DatabaseRequestType.Read,
+        ),
       ).toBe(true);
       expect(
-        maySelect(BillingPaymentMethod, [permission], [
-          "paymentMethodType",
-          "last4Digits",
-          "isDefault",
-        ]),
+        maySelect(
+          BillingPaymentMethod,
+          [permission],
+          ["paymentMethodType", "last4Digits", "isDefault"],
+        ),
       ).toBe(true);
     }
   });
@@ -663,11 +685,15 @@ describe("Billing Viewer, Member and Admin read every billing record", () => {
       ),
     ).toBe(true);
     expect(
-      maySelect(BillingInvoice, [Permission.ManageProjectBilling], [
-        "downloadableLink",
-        "paymentProviderInvoiceId",
-        "paymentProviderCustomerId",
-      ]),
+      maySelect(
+        BillingInvoice,
+        [Permission.ManageProjectBilling],
+        [
+          "downloadableLink",
+          "paymentProviderInvoiceId",
+          "paymentProviderCustomerId",
+        ],
+      ),
     ).toBe(true);
   });
 });

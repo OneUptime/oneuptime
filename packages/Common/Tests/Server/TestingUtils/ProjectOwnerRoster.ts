@@ -247,35 +247,33 @@ export function useProjectOwnerRoster(projectId: ObjectID): ProjectOwnerRoster {
       });
     }) as never);
 
-  jest
-    .spyOn(TeamMemberService, "findBy")
-    .mockImplementation((async (findBy: {
-      query: Record<string, unknown>;
-    }): Promise<Array<TeamMember>> => {
-      const query: Record<string, unknown> = findBy.query || {};
+  jest.spyOn(TeamMemberService, "findBy").mockImplementation((async (findBy: {
+    query: Record<string, unknown>;
+  }): Promise<Array<TeamMember>> => {
+    const query: Record<string, unknown> = findBy.query || {};
 
-      return MEMBERSHIP_ROWS.filter((row: MembershipRow): boolean => {
-        return (
-          matches(query["projectId"], projectId) &&
-          matches(query["teamId"], row.teamId) &&
-          matches(query["userId"], row.person.id) &&
-          (query["hasAcceptedInvitation"] === undefined ||
-            query["hasAcceptedInvitation"] === row.hasAcceptedInvitation)
-        );
-      }).map((row: MembershipRow): TeamMember => {
-        const member: TeamMember = new TeamMember();
-        member.projectId = projectId;
-        member.teamId = row.teamId;
-        member.userId = row.person.id;
-        member.hasAcceptedInvitation = row.hasAcceptedInvitation;
+    return MEMBERSHIP_ROWS.filter((row: MembershipRow): boolean => {
+      return (
+        matches(query["projectId"], projectId) &&
+        matches(query["teamId"], row.teamId) &&
+        matches(query["userId"], row.person.id) &&
+        (query["hasAcceptedInvitation"] === undefined ||
+          query["hasAcceptedInvitation"] === row.hasAcceptedInvitation)
+      );
+    }).map((row: MembershipRow): TeamMember => {
+      const member: TeamMember = new TeamMember();
+      member.projectId = projectId;
+      member.teamId = row.teamId;
+      member.userId = row.person.id;
+      member.hasAcceptedInvitation = row.hasAcceptedInvitation;
 
-        const user: User = new User(row.person.id);
-        user.email = new Email(row.person.email);
-        member.user = user;
+      const user: User = new User(row.person.id);
+      user.email = new Email(row.person.email);
+      member.user = user;
 
-        return member;
-      });
-    }) as never);
+      return member;
+    });
+  }) as never);
 
   const sendMail: jest.SpyInstance = jest
     .spyOn(MailService, "sendMail")

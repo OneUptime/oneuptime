@@ -123,9 +123,7 @@ describe("the English docs", () => {
       "- **Runbook Member runs runbooks and builds none.**",
     );
     expect(page).toContain("- **The billing roles do what they say.**");
-    expect(page).toContain(
-      "- **The owners' emails follow team blocks.**",
-    );
+    expect(page).toContain("- **The owners' emails follow team blocks.**");
     expect(page).toContain(
       "- **Every role's description says what the role does.**",
     );
