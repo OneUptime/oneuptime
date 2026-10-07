@@ -22,10 +22,11 @@
  * team has to drop that entry until Apple grants it to them too.
  *
  * Nothing else in the feature is gated. Without the entitlement the app still
- * asks for the permission, iOS still declines to grant allowsCriticalAlerts,
- * and the settings screen tells the responder the OS has not granted it -
- * which is the honest state of affairs, rather than a switch that turns on and
- * does nothing.
+ * asks for the permission, iOS silently ignores the request - no prompt, and
+ * no Critical Alerts switch in iOS Settings - and the settings screen tells
+ * the responder this version of the app cannot receive critical alerts. That
+ * is the honest state of affairs, rather than a switch that turns on and does
+ * nothing.
  *
  * Android needs none of this: Do Not Disturb access is granted by the user in
  * system settings on the device, not by the platform vendor at build time.

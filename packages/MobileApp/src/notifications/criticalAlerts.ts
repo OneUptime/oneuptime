@@ -17,7 +17,8 @@ import logger from "../utils/logger";
  *
  *   iOS     - needs Apple's critical-alert entitlement on the build AND the
  *             user's consent, reported back as
- *             permissions.ios.allowsCriticalAlerts.
+ *             permissions.ios.allowsCriticalAlerts - which is null, not
+ *             false, until an entitled build has asked for it.
  *   Android - needs the notification channel to actually carry bypassDnd,
  *             which the OS grants only after the user gives this app
  *             Notification Policy Access in system settings. Writing
@@ -29,11 +30,16 @@ export enum CriticalAlertAvailability {
   // The OS will let critical alerts through. Safe to turn the setting on.
   Granted = "granted",
   /*
-   * The platform supports it, but the user has not granted it yet.
-   * requestCriticalAlertPermission() knows where to send them.
+   * Not granted yet. requestCriticalAlertPermission() asks where it can, and
+   * the reason says what is still missing.
+   *
+   * An iOS build without Apple's entitlement lands here too, not in
+   * Unsupported: iOS reports it exactly as it reports an entitled build that
+   * has not asked yet, so the only way to tell them apart is to ask - which
+   * is what turning the setting on does.
    */
   Denied = "denied",
-  // Simulator, web, or an iOS build without the entitlement.
+  // Simulator or web: there is no ringer for the OS to override.
   Unsupported = "unsupported",
 }
 
@@ -48,6 +54,12 @@ export interface CriticalAlertStatus {
 
 const IOS_DENIED_REASON: string =
   "iOS has not granted critical alerts to this app. Allow Critical Alerts for OneUptime On-Call in iOS Settings > Notifications.";
+
+const IOS_NOT_OFFERED_REASON: string =
+  "iOS does not offer critical alerts to this version of the app, so there is no Critical Alerts switch for it in iOS Settings. Update OneUptime On-Call from the App Store, then try again.";
+
+const IOS_NOTIFICATIONS_OFF_REASON: string =
+  "Notifications are turned off for this app. Turn on Allow Notifications for OneUptime On-Call in iOS Settings > Notifications, then try again.";
 
 const ANDROID_DENIED_REASON: string =
   "Android has not granted Do Not Disturb access to this app. Allow it in Settings > Notifications > Do Not Disturb access, then try again.";
@@ -90,20 +102,53 @@ export async function isCriticalChannelBypassingDnd(): Promise<boolean> {
   }
 }
 
+/*
+ * allowsCriticalAlerts has three answers, and the two that are not `true` need
+ * different instructions:
+ *
+ *   false - iOS Settings has a Critical Alerts switch for this app and it is
+ *           off: the responder declined the prompt or switched it off later.
+ *           Settings is the place to send them.
+ *   null  - iOS reports critical alerts as not supported, and Settings has no
+ *           such switch at all. iOS adds it only once a build carrying Apple's
+ *           entitlement has asked, so this is also an entitled build that has
+ *           not asked yet - turning the setting on asks first. If it is still
+ *           null after that, the build lacks the entitlement, as every App
+ *           Store build up to 1.4.0 did. Pointing the responder at a Settings
+ *           switch that does not exist is a dead end, so the reason names the
+ *           app version instead.
+ *
+ * Notifications turned off for the app altogether outrank both: that is the
+ * first switch the responder needs, and while it is off the app does not even
+ * register this device for pushes.
+ */
 async function getIosCriticalAlertStatus(): Promise<CriticalAlertStatus> {
   const permissions: Notifications.NotificationPermissionsStatus =
     await Notifications.getPermissionsAsync();
 
-  if (permissions.ios?.allowsCriticalAlerts) {
+  const allowsCriticalAlerts: boolean | null | undefined =
+    permissions.ios?.allowsCriticalAlerts;
+
+  if (allowsCriticalAlerts) {
     return {
       availability: CriticalAlertAvailability.Granted,
       reason: GRANTED_REASON,
     };
   }
 
+  if (permissions.status === "denied") {
+    return {
+      availability: CriticalAlertAvailability.Denied,
+      reason: IOS_NOTIFICATIONS_OFF_REASON,
+    };
+  }
+
   return {
     availability: CriticalAlertAvailability.Denied,
-    reason: IOS_DENIED_REASON,
+    reason:
+      allowsCriticalAlerts === false
+        ? IOS_DENIED_REASON
+        : IOS_NOT_OFFERED_REASON,
   };
 }
 
@@ -168,7 +213,9 @@ export async function getCriticalAlertStatus(): Promise<CriticalAlertStatus> {
  * iOS can be asked in-app: requesting the critical-alert permission shows the
  * system prompt (once - after that the request resolves immediately with
  * whatever the user chose the first time, which is why the caller is sent to
- * Settings on a denial).
+ * Settings on a denial). A build without Apple's entitlement gets no prompt at
+ * all: iOS drops the option from the request without an error, and the status
+ * read back afterwards says the app version is what is missing.
  *
  * Android cannot be asked in-app at all. Do Not Disturb access is granted only
  * from a system settings screen, so the best available move is to open that
