@@ -5394,28 +5394,42 @@ describePostgres("Proxmox inventory SQL against a migrated Postgres", () => {
       await seedNodes(clusterId);
       props = labelScopedProps();
 
-      /*
-       * The route's lookup used to be scoped to the caller's permitted
-       * labels: it found the cluster (it carries one) with that label only,
-       * and the block check passed on it. The update's own query now leaves
-       * out the clusters carrying a label the caller's edit is blocked on
-       * (BasePermission.addRecordScopeToQuery), so the scoped lookup finds
-       * nothing at all.
-       */
-      const scoped: Query<ProxmoxCluster> =
-        await ModelPermission.checkUpdateQueryPermissions(
-          ProxmoxCluster,
-          { _id: clusterId.toString(), projectId: PROJECT_ID },
-          {},
-          props,
-        );
-      const throughScope: ProxmoxCluster | null =
-        await ProxmoxClusterService.findOneBy({
+      async function findThroughScope(
+        id: ObjectID,
+      ): Promise<ProxmoxCluster | null> {
+        const scoped: Query<ProxmoxCluster> =
+          await ModelPermission.checkUpdateQueryPermissions(
+            ProxmoxCluster,
+            { _id: id.toString(), projectId: PROJECT_ID },
+            {},
+            props,
+          );
+
+        return await ProxmoxClusterService.findOneBy({
           query: scoped,
           select: { _id: true, projectId: true, labels: { _id: true } },
           props: { isRoot: true },
         });
-      expect(throughScope).toBeNull();
+      }
+
+      /*
+       * Why the fix: a lookup scoped to the caller's permitted labels loads
+       * a cluster with those labels only, so a block check given that row
+       * never sees the others - the route loads the cluster as root and
+       * checks every label instead.
+       */
+      const unblockedId: ObjectID = await insertCluster([permitted, other]);
+      expect(labelIdsOf(await findThroughScope(unblockedId))).toEqual([
+        permitted.toString(),
+      ]);
+
+      /*
+       * Since #4526 the scoped lookup also applies the team's blocks itself
+       * (BasePermission.addRecordScopeToQuery): a cluster carrying a blocked
+       * label is not found through it at all, where it used to come back
+       * with the permitted label only and pass the block check.
+       */
+      expect(await findThroughScope(clusterId)).toBeNull();
 
       // Loaded as root, as the route now loads it: both labels, and refused.
       const unfiltered: ProxmoxCluster | null =
