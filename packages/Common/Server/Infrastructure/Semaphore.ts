@@ -26,7 +26,10 @@ export default class Semaphore {
      * of lockTimeout, which is also how long `mutex.isAcquired` can go on
      * reading true after the lock was lost (a Valkey restart, an eviction):
      * it only changes when a refresh fails. A holder that polls isAcquired
-     * between steps wants this well under lockTimeout.
+     * between steps wants this well under lockTimeout. 0 never re-asserts
+     * it: the lock lasts lockTimeout at most, so one a holder never gives
+     * back (its work failed half way) runs out instead of being held for as
+     * long as the process lives.
      */
     refreshInterval?: number | undefined;
     /*
@@ -66,7 +69,7 @@ export default class Semaphore {
       lockOptions.retryInterval = data.retryInterval;
     }
 
-    if (data.refreshInterval) {
+    if (data.refreshInterval !== undefined) {
       lockOptions.refreshInterval = data.refreshInterval;
     }
 

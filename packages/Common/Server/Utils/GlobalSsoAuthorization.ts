@@ -1,5 +1,8 @@
 import ObjectID from "../../Types/ObjectID";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
+import RealtimeAccessChanges, {
+  RealtimeAccessChangeKind,
+} from "./Realtime/RealtimeAccessChanges";
 
 /*
  * The stateful half of Global SSO enforcement.
@@ -99,6 +102,87 @@ export function doAttachmentsGovernProject(
   }
 
   return attachments.enabledProjectIds.includes(projectId.toString());
+}
+
+/*
+ * Whether a write to a global provider, or to one of its project
+ * attachments, may let it sign fewer people in: it turns it off, or
+ * restricts the provider to its attached projects.
+ */
+export function isGlobalProviderNarrowing(data: unknown): boolean {
+  if (!data || typeof data !== "object") {
+    return false;
+  }
+
+  // Only the write's own fields count, never ones it inherits.
+  const writes: (column: string, value: boolean) => boolean = (
+    column: string,
+    value: boolean,
+  ): boolean => {
+    return (
+      Object.prototype.hasOwnProperty.call(data, column) &&
+      (data as Record<string, unknown>)[column] === value
+    );
+  };
+
+  return (
+    writes("isEnabled", false) || writes("restrictToAttachedProjects", true)
+  );
+}
+
+/*
+ * Whether an attachment added, turned off or removed changes who these
+ * providers sign in. Only a provider that is on and restricted to its
+ * attached projects reads its attachments (doAttachmentsGovernProject); for
+ * any other, an attachment only says where people are provisioned. A
+ * provider that cannot be named (null) or read counts as restricted, so a
+ * failed read never keeps a change quiet.
+ */
+export async function isAnyAttachedProviderRestricted(data: {
+  providerIds: Array<ObjectID | null>;
+  getProviderTrust: (providerId: ObjectID) => Promise<GlobalProviderTrust>;
+}): Promise<boolean> {
+  const asked: Set<string> = new Set();
+
+  for (const providerId of data.providerIds) {
+    if (!providerId) {
+      return true;
+    }
+
+    if (asked.has(providerId.toString())) {
+      continue;
+    }
+
+    asked.add(providerId.toString());
+
+    try {
+      const trust: GlobalProviderTrust =
+        await data.getProviderTrust(providerId);
+
+      if (trust.isUsable && trust.restrictToAttachedProjects) {
+        return true;
+      }
+    } catch {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/*
+ * A global provider now signs fewer people in - turned off, deleted,
+ * restricted to its attached projects, or an attachment of a restricted
+ * one added, turned off or removed. Every server forgets these answers
+ * (GlobalConfigService.forgetSignInRules) and asks the live updates it holds
+ * again, as their joins were (RealtimeAccessChanges, SignInRulesChanged for
+ * the whole instance), so a page signed in with it stops hearing at once,
+ * as its requests are refused at once.
+ */
+export function announceGlobalSignInChange(): void {
+  RealtimeAccessChanges.announce({
+    kind: RealtimeAccessChangeKind.SignInRulesChanged,
+  });
 }
 
 /** Drops every cached answer. Used by the write hooks and by tests. */

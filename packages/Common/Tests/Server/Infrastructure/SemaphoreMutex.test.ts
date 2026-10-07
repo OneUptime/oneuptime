@@ -121,6 +121,48 @@ describe("Semaphore exclusive mutex", () => {
     );
   });
 
+  /*
+   * A lock its holder may never give back - a write that fails between its
+   * check and its end - asks for no refreshing at all, so it runs out after
+   * lockTimeout instead of being kept alive by the process.
+   */
+  test("forwards a refreshInterval of 0, which turns refreshing off", async () => {
+    const client: ClientType = mockRedisClient();
+
+    await Semaphore.lock({
+      key: "project-1",
+      namespace: "ProjectSsoProviderChanges.keepAWayIn",
+      lockTimeout: 15_000,
+      refreshInterval: 0,
+    });
+
+    expect(redisMutexConstructor).toHaveBeenCalledWith(
+      client,
+      "ProjectSsoProviderChanges.keepAWayIn-project-1",
+      {
+        lockTimeout: 15_000,
+        refreshInterval: 0,
+      },
+    );
+  });
+
+  test("leaves refreshInterval to redis-semaphore when the caller does not set it", async () => {
+    mockRedisClient();
+
+    await Semaphore.lock({
+      key: "project-1",
+      namespace: "ProjectService.incidentCounter",
+      lockTimeout: 15_000,
+    });
+
+    const options: Record<string, unknown> = redisMutexConstructor.mock
+      .calls[0]![2] as Record<string, unknown>;
+
+    expect(
+      Object.prototype.hasOwnProperty.call(options, "refreshInterval"),
+    ).toBe(false);
+  });
+
   test("composes the Redis key as namespace-key", async () => {
     mockRedisClient();
 

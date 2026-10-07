@@ -512,6 +512,20 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   permissions, a minute for a block, and the access token's 15 minutes for
   a session or a newly required SSO sign-in. See
   [Users, Teams & Permissions](/docs/permissions/index).
+- **Turning a project's SSO provider off, or deleting it, ends the sign-ins
+  it gave.** Where SSO is required, people who signed in with a SAML or
+  OIDC provider that is turned off or deleted have to sign in with SSO
+  again at their next request, their open pages stop receiving live
+  updates, and MCP clients they connected with that sign-in have to be
+  connected again. Turning the provider on again does not bring those
+  sign-ins back, and a provider that is already off when you upgrade counts
+  as turned off at the upgrade. A new certificate or client secret keeps
+  everyone signed in. While a project requires SSO, its last provider, and
+  the provider it requires, cannot be turned off or deleted until Require
+  SSO for Login is turned off; when the whole server requires SSO, a
+  project's last provider cannot be turned off or deleted until another one
+  is on. See
+  [SSO](/docs/identity/sso#turning-a-provider-off-or-deleting-it).
 - **A record you may not read can no longer be changed or deleted, and a
   change by ID that reaches nothing says so.** A change or a delete - from
   the dashboard, the API, Terraform, the MCP tools or a workflow - now
@@ -647,7 +661,7 @@ What changes for an existing workflow:
 
 - A step that granted a team or an API key a permission a Project Admin doesn't hold — **Project Owner**, billing or project deletion, or any permission outside a Project Admin's — is refused, and so is a step that adds someone to a team with more permissions than a Project Admin, such as the owners' team.
 - A step that edited or deleted a feed entry, wrote a notification log, set a value OneUptime keeps for itself (a verified CNAME, a team's protection switches, the primary incident role, notified and reminder fields, who is on call now, an SLO's results, a private user's password reset token…) or moved a record to another parent is refused. The list is on that page.
-- A **Create One Incident** step that declared from a template by sending `createdIncidentTemplateId` is refused. Read the template with a **Find One Incident Template** step and pass its values to **Create One Incident** instead.
+- A **Create One Incident** step that declared from a template by sending `createdIncidentTemplateId` is refused. Pick the template under the step's **Incident Template** setting instead, and take `createdIncidentTemplateId` out of its **JSON Object**. The step then declares the incident from the template the way the dashboard does — everything the step sets wins, a state included — adds the template's owners, and records the template. The run log of a step still sending the column points to the setting. See [Declaring an incident from a template](/docs/workflows/components#declaring-an-incident-from-a-template).
 - A step that selects who created a probe or an AI agent is refused.
 - On OneUptime Cloud, a step that creates or changes what the project's plan doesn't include is refused with the plan it needs, as the dashboard is.
 - An Update step no longer writes the project: a record stays in its project, as before.

@@ -41,9 +41,11 @@ import Redis from "Common/Server/Infrastructure/Redis";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import AccessTokenService from "Common/Server/Services/AccessTokenService";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
+import ProjectOidcService from "Common/Server/Services/ProjectOidcService";
 import ProjectService, {
   CurrentPlan,
 } from "Common/Server/Services/ProjectService";
+import ProjectSsoService from "Common/Server/Services/ProjectSsoService";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import UserService from "Common/Server/Services/UserService";
 import CookieUtil from "Common/Server/Utils/Cookie";
@@ -57,6 +59,10 @@ import {
 } from "Common/Server/Utils/Express";
 import McpOAuthConfig from "Common/Server/Utils/Mcp/McpOAuthConfig";
 import McpOAuthGrantAccess from "Common/Server/Utils/Mcp/McpOAuthGrantAccess";
+import {
+  PROVIDER_NOT_FOUND,
+  ProjectSsoProviderStandingValue,
+} from "Common/Server/Utils/ProjectSsoProviderStanding";
 import SameOriginRequest from "Common/Server/Utils/SameOriginRequest";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import Dictionary from "Common/Types/Dictionary";
@@ -260,6 +266,15 @@ export const DEFAULT_TEST_TOOLS: Array<McpToolInfo> = [
 ];
 
 export default class OAuthTestHarness {
+  /*
+   * The project SSO provider a sign-in names when a test does not name one
+   * (projectSsoCookie): every project SSO sign-in names the provider that
+   * gave it.
+   */
+  public static readonly SSO_PROVIDER_ID: ObjectID = new ObjectID(
+    "5e550000-0000-4000-8000-000000000001",
+  );
+
   public readonly store: InMemoryOAuthStore = new InMemoryOAuthStore();
 
   public origin: string = "";
@@ -276,6 +291,13 @@ export default class OAuthTestHarness {
   private memberships: Map<string, Map<string, Array<UserPermission>>> =
     new Map<string, Map<string, Array<UserPermission>>>();
   private isGlobalSsoRequired: boolean = false;
+  /*
+   * Project SSO providers that were turned off or deleted, by id. Any other
+   * provider a sign-in names is on and was never turned off
+   * (ProjectSsoService/ProjectOidcService.getSignInStanding).
+   */
+  private ssoProviderStandings: Map<string, ProjectSsoProviderStandingValue> =
+    new Map<string, ProjectSsoProviderStandingValue>();
   private session: SessionState = { kind: "none" };
 
   private isOAuthEnabled: boolean = true;
@@ -381,6 +403,7 @@ export default class OAuthTestHarness {
     this.projects.clear();
     this.memberships.clear();
     this.isGlobalSsoRequired = false;
+    this.ssoProviderStandings.clear();
     this.session = { kind: "none" };
 
     this.isOAuthEnabled = true;
@@ -492,6 +515,33 @@ export default class OAuthTestHarness {
 
   public setGlobalSsoRequired(isRequired: boolean): void {
     this.isGlobalSsoRequired = isRequired;
+  }
+
+  // A project SSO provider turned off now: the sign-ins it gave stop counting.
+  public turnSsoProviderOff(providerId: ObjectID): void {
+    this.ssoProviderStandings.set(providerId.toString(), {
+      isOn: false,
+      signInsEndedAtMs: Date.now(),
+    });
+  }
+
+  /*
+   * Turned on again: it keeps the time it was turned off, so the sign-ins it
+   * gave before then still do not count.
+   */
+  public turnSsoProviderOn(providerId: ObjectID): void {
+    const standing: ProjectSsoProviderStandingValue | undefined =
+      this.ssoProviderStandings.get(providerId.toString());
+
+    this.ssoProviderStandings.set(providerId.toString(), {
+      isOn: true,
+      signInsEndedAtMs: standing ? standing.signInsEndedAtMs : null,
+    });
+  }
+
+  // A project SSO provider deleted: it vouches for nobody.
+  public deleteSsoProvider(providerId: ObjectID): void {
+    this.ssoProviderStandings.set(providerId.toString(), PROVIDER_NOT_FOUND);
   }
 
   // Makes the member a member of the project, with these permissions.
@@ -667,15 +717,17 @@ export default class OAuthTestHarness {
 
   /*
    * The cookie a browser holds after signing in to a project with SSO, as
-   * CookieUtil.setSSOCookie writes it.
+   * CookieUtil.setSSOCookie writes it. It names the provider that signed
+   * them in - SSO_PROVIDER_ID, a SAML provider, unless the test names
+   * another - as every project SSO sign-in does; null leaves it out.
    */
   public projectSsoCookie(
     member: TestMember,
     project: TestProject,
     options?:
       | {
-          ssoProviderId?: ObjectID | undefined;
-          ssoProviderType?: SsoProviderType | undefined;
+          ssoProviderId?: ObjectID | null | undefined;
+          ssoProviderType?: SsoProviderType | null | undefined;
         }
       | undefined,
   ): Dictionary<string> {
@@ -685,8 +737,14 @@ export default class OAuthTestHarness {
       [CookieUtil.getUserSSOKey(project.id)]: CookieUtil.getSSOToken({
         user,
         projectId: project.id,
-        ssoProviderId: options?.ssoProviderId,
-        ssoProviderType: options?.ssoProviderType,
+        ssoProviderId:
+          options?.ssoProviderId === null
+            ? undefined
+            : options?.ssoProviderId || OAuthTestHarness.SSO_PROVIDER_ID,
+        ssoProviderType:
+          options?.ssoProviderType === null
+            ? undefined
+            : options?.ssoProviderType || SsoProviderType.ProjectSSO,
       }),
     };
   }
@@ -1408,6 +1466,24 @@ export default class OAuthTestHarness {
         return this.isGlobalSsoRequired;
       },
     );
+
+    // --- The projects' own SSO providers ---
+
+    const ssoProviderStanding: (data: {
+      providerId: ObjectID;
+    }) => Promise<ProjectSsoProviderStandingValue> = async (data: {
+      providerId: ObjectID;
+    }): Promise<ProjectSsoProviderStandingValue> => {
+      return (
+        this.ssoProviderStandings.get(data.providerId.toString()) || {
+          isOn: true,
+          signInsEndedAtMs: null,
+        }
+      );
+    };
+
+    this.replace(ProjectSsoService, "getSignInStanding", ssoProviderStanding);
+    this.replace(ProjectOidcService, "getSignInStanding", ssoProviderStanding);
 
     // --- The browser session ---
 

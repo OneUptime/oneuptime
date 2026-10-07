@@ -310,6 +310,22 @@ Turning **Require SSO for Login** off saves as soon as you flip it and lets memb
 
 On OneUptime Cloud, requiring SSO needs the **Scale** plan, and turning it off works on every plan. Below Scale, **Project Settings** > **Security** > **SSO** shows the plan's upsell; a project a Scale trial left requiring SSO also finds **Require SSO for Login** there, under the upsell, so it can be turned off. Turning it on again needs **Scale**.
 
+## Turning a provider off or deleting it
+
+Turning a SAML or OIDC provider off, or deleting it, ends the sign-ins it gave. In a project that requires SSO, itself or because the whole server does:
+
+- Anyone who signed in with it has to sign in with SSO again at their next request, and the pages they have open stop receiving live updates at once.
+- An MCP client someone connected after signing in with it stops working in the project. Connect it again after signing in with SSO.
+- Turning the provider on again does not bring those sign-ins back: people sign in with it again.
+
+Changing anything else about a provider keeps everyone signed in: a new certificate or client secret, other URLs, a new name or other teams. Their sign-ins were checked when they were made, and the next sign-in uses the new settings.
+
+While the project requires SSO, OneUptime keeps a way in: you cannot turn off or delete the last provider people can sign in to the project with, counting global providers that sign people in to it, or the provider the project requires. Turn off **Require SSO for Login** first.
+
+When the whole server requires SSO (**Admin** > **Settings** > **Authentication** > **Require SSO for Login**), every project keeps a way in the same way, even one that does not require SSO itself: turn on another provider for it first.
+
+Where neither the project nor the server requires SSO, turning a provider off stops new sign-ins with it. People already signed in stay signed in, as people who signed in with a password do.
+
 ## Providers left below the Scale plan
 
 A SAML or OIDC provider a project still has keeps signing people in after a Scale trial ends or the plan goes down. So below Scale, the **SSO** and **OIDC** pages list the project's providers under the upsell (**SAML providers still set up**, **OIDC providers still set up**):
@@ -319,7 +335,7 @@ A SAML or OIDC provider a project still has keeps signing people in after a Scal
 
 Adding a provider, changing one or turning it on again needs **Scale**. The people who can do each are the same as on Scale: turning a provider off needs permission to edit it, deleting it permission to delete it.
 
-While the project still requires SSO, its **SSO** and **OIDC** pages also show **Require SSO for Login**: turn it off before you turn the last provider off, or nobody can sign in with SSO any more.
+While the project still requires SSO, its **SSO** and **OIDC** pages also show **Require SSO for Login**: turn it off before you turn the last provider off. Until then the last provider people can sign in with cannot be turned off or deleted, so nobody is locked out of the project.
 
 A status page's **SSO** and **OIDC** pages list its own providers the same way. While the status page still requires SSO, both pages also show **Require SSO for Login**: turn it off before you turn its providers off, or its private users cannot sign in at all.
 

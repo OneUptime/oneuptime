@@ -17,6 +17,13 @@ export interface McpOAuthGrantSsoEvidence {
   ssoProviderType: SsoProviderType;
   ssoProviderId: ObjectID | null;
   expiresAt: Date;
+  /*
+   * When the sign-in was copied onto the grant: the grant's creation. The
+   * sign-in it copies was given no later than this, which is what a
+   * project's own provider is asked about (it vouches only for sign-ins
+   * given after it was last turned off). Absent on evidence not yet saved.
+   */
+  capturedAt?: Date | undefined;
 }
 
 /*
@@ -117,6 +124,7 @@ export class Service extends DatabaseService<Model> {
         activatedAt: true,
         expiresAt: true,
         lastUsedAt: true,
+        createdAt: true,
         ssoProviderType: true,
         ssoProviderId: true,
         ssoExpiresAt: true,

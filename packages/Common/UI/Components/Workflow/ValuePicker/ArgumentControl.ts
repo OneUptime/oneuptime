@@ -11,8 +11,9 @@
  * - Request headers keep their key/value rows, each value a chip editor.
  * - JavaScript gets nothing: a step's values reach the code through its
  *   Arguments setting, which is JSON and does get the picker. Its help says so.
- * - Choices from a fixed list (an operator, a value type, a workflow) get
- *   nothing either: a value from a run is not one of the choices.
+ * - Choices from a fixed list (an operator, a value type, a workflow, an
+ *   incident template) get nothing either: a value from a run is not one of
+ *   the choices.
  *
  * The row editor, field picker and schedule picker are chosen before this, in
  * ArgumentsForm, for the settings that have them.
@@ -69,6 +70,7 @@ const CHOICE_TYPES: Array<ComponentInputType> = [
   ComponentInputType.Operator,
   ComponentInputType.ValueType,
   ComponentInputType.WorkflowSelect,
+  ComponentInputType.IncidentTemplateSelect,
   ComponentInputType.CronTab,
 ];
 

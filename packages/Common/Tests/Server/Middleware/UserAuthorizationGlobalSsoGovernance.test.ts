@@ -3,9 +3,12 @@ import GlobalOidcProjectService from "../../../Server/Services/GlobalOidcProject
 import GlobalOidcService from "../../../Server/Services/GlobalOidcService";
 import GlobalSsoProjectService from "../../../Server/Services/GlobalSsoProjectService";
 import GlobalSsoService from "../../../Server/Services/GlobalSsoService";
+import ProjectOidcService from "../../../Server/Services/ProjectOidcService";
+import ProjectSsoService from "../../../Server/Services/ProjectSsoService";
 import CookieUtil from "../../../Server/Utils/Cookie";
 import { ExpressRequest } from "../../../Server/Utils/Express";
 import { GlobalProviderTrust } from "../../../Server/Utils/GlobalSsoAuthorization";
+import { ProjectSsoProviderStandingValue } from "../../../Server/Utils/ProjectSsoProviderStanding";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import Email from "../../../Types/Email";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
@@ -91,10 +94,25 @@ type OidcGovernSpy = SpyInstance<
   (data: { globalOidcId: ObjectID; projectId: ObjectID }) => Promise<boolean>
 >;
 
+type ProjectStandingSpy = SpyInstance<
+  (data: {
+    providerId: ObjectID;
+    projectId: ObjectID;
+  }) => Promise<ProjectSsoProviderStandingValue>
+>;
+
 let ssoTrustSpy: TrustSpy;
 let oidcTrustSpy: TrustSpy;
 let ssoGovernsSpy: SsoGovernSpy;
 let oidcGovernsSpy: OidcGovernSpy;
+let projectSsoStandingSpy: ProjectStandingSpy;
+let projectOidcStandingSpy: ProjectStandingSpy;
+
+// A project's own provider that is on and was never turned off.
+const PROJECT_PROVIDER_ON: ProjectSsoProviderStandingValue = {
+  isOn: true,
+  signInsEndedAtMs: null,
+};
 
 const buildUser: (userId: ObjectID) => User = (userId: ObjectID): User => {
   const user: User = new User();
@@ -205,6 +223,18 @@ beforeEach(() => {
   oidcTrustSpy.mockResolvedValue(TRUSTED_AND_UNRESTRICTED);
   ssoGovernsSpy.mockResolvedValue(true);
   oidcGovernsSpy.mockResolvedValue(true);
+
+  /*
+   * A project's own SSO and OIDC providers are on. Whether one that was
+   * turned off or deleted still vouches is UserAuthorizationProjectSsoProvider
+   * .test's subject; here they only have to be there.
+   */
+  projectSsoStandingSpy = jest
+    .spyOn(ProjectSsoService, "getSignInStanding")
+    .mockResolvedValue(PROJECT_PROVIDER_ON);
+  projectOidcStandingSpy = jest
+    .spyOn(ProjectOidcService, "getSignInStanding")
+    .mockResolvedValue(PROJECT_PROVIDER_ON);
 });
 
 afterEach(() => {
@@ -909,10 +939,10 @@ describe("isGlobalSsoTokenAuthorizedForProject - a token with no provider id", (
 
 /*
  * A per-project SSO token is bound to one project by a login that already
- * proved the project's own provider trusts this user. It is decided
- * statelessly and short-circuits the whole stateful path - which is what
- * keeps a project-SSO-only installation from paying for Global SSO queries it
- * has no use for.
+ * proved the project's own provider trusts this user. It is decided by that
+ * provider alone - still there, on, and not turned off since it was given -
+ * and never reaches the Global path, which is what keeps a project-SSO-only
+ * installation from paying for Global SSO queries it has no use for.
  */
 describe("isSsoSatisfiedForProject - the per-project token short-circuits", () => {
   const projectId: ObjectID = ObjectID.generate();
@@ -944,6 +974,15 @@ describe("isSsoSatisfiedForProject - the per-project token short-circuits", () =
     ).resolves.toBe(true);
 
     expectNoDatabaseLookups();
+    // Its own provider was asked, as SAML, for this project.
+    expect(projectSsoStandingSpy).toHaveBeenCalledTimes(1);
+    expect(projectOidcStandingSpy).not.toHaveBeenCalled();
+    expect(projectSsoStandingSpy.mock.calls[0]![0].providerId.toString()).toBe(
+      providerId.toString(),
+    );
+    expect(projectSsoStandingSpy.mock.calls[0]![0].projectId.toString()).toBe(
+      projectId.toString(),
+    );
   });
 
   test("a valid ProjectOIDC token for THIS project -> true, with no global lookups", async () => {
@@ -969,6 +1008,9 @@ describe("isSsoSatisfiedForProject - the per-project token short-circuits", () =
     ).resolves.toBe(true);
 
     expectNoDatabaseLookups();
+    // Its own provider was asked, as OIDC.
+    expect(projectOidcStandingSpy).toHaveBeenCalledTimes(1);
+    expect(projectSsoStandingSpy).not.toHaveBeenCalled();
   });
 
   test("a per-project token for a DIFFERENT project does not short-circuit - the global path decides", async () => {

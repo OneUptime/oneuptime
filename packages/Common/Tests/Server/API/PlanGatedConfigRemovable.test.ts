@@ -9,6 +9,8 @@ import OnCallDutyPolicyScheduleService from "../../../Server/Services/OnCallDuty
 import ProjectOIDCService from "../../../Server/Services/ProjectOidcService";
 import ProjectSCIMService from "../../../Server/Services/ProjectSCIMService";
 import ProjectService from "../../../Server/Services/ProjectService";
+import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
+import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import ProjectSSOService from "../../../Server/Services/ProjectSsoService";
 import StatusPageOIDCService from "../../../Server/Services/StatusPageOidcService";
 import StatusPageSSOService from "../../../Server/Services/StatusPageSsoService";
@@ -25,6 +27,7 @@ import APIKeyPermission from "../../../Models/DatabaseModels/ApiKeyPermission";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import OnCallDutyPolicyExecutionLog from "../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import OnCallDutyPolicySchedule from "../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
+import Project from "../../../Models/DatabaseModels/Project";
 import ProjectOIDC from "../../../Models/DatabaseModels/ProjectOidc";
 import ProjectSCIM from "../../../Models/DatabaseModels/ProjectSCIM";
 import ProjectSSO from "../../../Models/DatabaseModels/ProjectSso";
@@ -425,6 +428,28 @@ beforeEach(() => {
     return undefined;
   });
 
+  /*
+   * Switching a project's SSO provider off, or deleting it, asks whether the
+   * project keeps a way in (Utils/ProjectSsoProviderChanges): neither this
+   * project nor the server requires SSO, so any provider may go.
+   */
+  getJestSpyOn(ProjectService, "findOneById").mockImplementation(
+    async (): Promise<Project> => {
+      const project: Project = new Project();
+      project.id = PROJECT_ID;
+      project.requireSsoForLogin = false;
+      return project;
+    },
+  );
+
+  getJestSpyOn(GlobalConfigService, "findOneBy").mockImplementation(
+    (async () => {
+      const config: GlobalConfig = new GlobalConfig();
+      config.requireSsoForLogin = false;
+      return config;
+    }) as never,
+  );
+
   getJestSpyOn(ProjectService, "getCurrentPlan").mockImplementation(
     async (): Promise<{
       plan: PlanType | null;
@@ -492,6 +517,20 @@ describe("single sign-on a Scale trial left behind, on Free and on Growth", () =
     stored = { isEnabled: true, statusPageId: STATUS_PAGE_ID };
   });
 
+  /*
+   * What switching a provider off writes: the switch alone - and, for a
+   * project's own provider, which ends the sign-ins it gave, when it was
+   * turned off, which OneUptime writes itself
+   * (Utils/ProjectSsoProviderChanges).
+   */
+  const switchedOff: (provider: Subject) => Record<string, unknown> = (
+    provider: Subject,
+  ): Record<string, unknown> => {
+    return provider === SAML_PROVIDER || provider === OIDC_PROVIDER
+      ? { isEnabled: false, signInsEndedAt: expect.any(Date) }
+      : { isEnabled: false };
+  };
+
   test("every provider can be read", async () => {
     for (const plan of PLANS_BELOW_SCALE) {
       currentPlan = plan;
@@ -524,7 +563,7 @@ describe("single sign-on a Scale trial left behind, on Free and on Growth", () =
         expect([plan, provider.name, writes]).toEqual([
           plan,
           provider.name,
-          [{ isEnabled: false }],
+          [switchedOff(provider)],
         ]);
       }
     }
@@ -551,7 +590,7 @@ describe("single sign-on a Scale trial left behind, on Free and on Growth", () =
         expect([plan, provider.name, writes]).toEqual([
           plan,
           provider.name,
-          [{ isEnabled: false }],
+          [switchedOff(provider)],
         ]);
       }
     }
@@ -641,7 +680,7 @@ describe("single sign-on a Scale trial left behind, on Free and on Growth", () =
 
       expect([provider.name, writes]).toEqual([
         provider.name,
-        [{ isEnabled: false }],
+        [switchedOff(provider)],
       ]);
     }
   });

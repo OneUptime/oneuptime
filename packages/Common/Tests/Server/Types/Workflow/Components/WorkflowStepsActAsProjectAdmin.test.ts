@@ -457,7 +457,7 @@ describe("Create One and Create Many", () => {
     expect(inserted()).toBeUndefined();
   });
 
-  test("an incident is not declared from a template by its id: the template is read instead", async () => {
+  test("an incident is not declared from a template by its id: the run log points at the step's Incident Template", async () => {
     const { service, inserted } = stopBeforeInsert(Incident);
     const component: CreateOneBaseModel<Incident> =
       new CreateOneBaseModel<Incident>(service);
@@ -474,6 +474,10 @@ describe("Create One and Create Many", () => {
     expect(step.result.executePort?.id).toBe("error");
     expect(refusedLine(component, step.lines)).toContain(
       "createdIncidentTemplateId",
+    );
+    // The way to declare from a template now: the step's own setting.
+    expect(step.lines).toContain(
+      'Tip: to declare the Incident from a template, pick the template under Incident Template on this step, and take "createdIncidentTemplateId" out of JSON Object.',
     );
     expect(inserted()).toBeUndefined();
   });

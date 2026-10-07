@@ -1,12 +1,14 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IconProp from "../../Icon/IconProp";
 import Text from "../../Text";
+import { getCreateFromTemplateArgument } from "../CreateFromTemplate";
 import {
   DatabaseOperation,
   getDatabaseOperation,
   WRITE_DATABASE_OPERATIONS,
 } from "../DatabaseOperation";
 import ComponentMetadata, {
+  Argument,
   ComponentInputType,
   ComponentType,
 } from "./../Component";
@@ -409,6 +411,32 @@ export default class BaseModelComponent {
         ],
       });
 
+      /*
+       * A record that can be declared from one of its templates (an
+       * incident) gets the template as a setting of its own, first: picking
+       * one is the quickest way to declare it, and with one picked the JSON
+       * Object only needs what should differ from the template
+       * (Types/Workflow/CreateFromTemplate).
+       */
+      const templateArgument: Argument | null = getCreateFromTemplateArgument(
+        model.tableName || undefined,
+      );
+
+      const jsonArgument: Argument = {
+        id: "json",
+        placeholder: 'Example: {"columnName": "value", ...}',
+        name: "JSON Object",
+        description: templateArgument
+          ? `${model.singularName} represented as JSON. With a template picked, only what should differ from it. ${columnHint}`
+          : `${model.singularName} represented as JSON. ${columnHint}`,
+        type: ComponentInputType.JSON,
+        required: true,
+      };
+
+      if (templateArgument) {
+        jsonArgument.notRequiredWhen = { argumentId: templateArgument.id };
+      }
+
       components.push({
         id: `${Text.pascalCaseToDashes(model.tableName!)}-create-one`,
         title: `Create One ${model.singularName}`,
@@ -417,16 +445,9 @@ export default class BaseModelComponent {
         iconProp: IconProp.Database,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
-        arguments: [
-          {
-            id: "json",
-            placeholder: 'Example: {"columnName": "value", ...}',
-            name: "JSON Object",
-            description: `${model.singularName} represented as JSON. ${columnHint}`,
-            type: ComponentInputType.JSON,
-            required: true,
-          },
-        ],
+        arguments: templateArgument
+          ? [templateArgument, jsonArgument]
+          : [jsonArgument],
         returnValues: [
           {
             id: "model",
