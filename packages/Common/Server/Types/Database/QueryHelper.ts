@@ -909,6 +909,38 @@ export default class QueryHelper {
     );
   }
 
+  /*
+   * Matches rows whose column holds one of `values`, or nothing at all. An
+   * empty `values` matches only the rows whose column is empty.
+   */
+  @CaptureSpan()
+  public static inOrNull(
+    values: Array<string | ObjectID>,
+  ): FindWhereProperty<any> {
+    const stringValues: Array<string> = values.map(
+      (value: string | ObjectID) => {
+        return value.toString();
+      },
+    );
+
+    if (stringValues.length === 0) {
+      return Raw((alias: string) => {
+        return `(${alias} IS NULL)`;
+      }, {});
+    }
+
+    const rid: string = Text.generateRandomText(10);
+
+    return Raw(
+      (alias: string) => {
+        return `(${alias} IN (:...${rid}) OR ${alias} IS NULL)`;
+      },
+      {
+        [rid]: stringValues,
+      },
+    );
+  }
+
   @CaptureSpan()
   public static notInOrNull(
     values: Array<string | ObjectID>,

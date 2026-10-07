@@ -28,11 +28,20 @@ export interface OwnedThroughMetadata {
    * and the scope is resolved across every such kind.
    */
   onlyParentModels: boolean;
+  /*
+   * When true, rows whose fkColumn is empty are about no owning resource:
+   * they belong to the project, not to any one owner, and stay visible
+   * under Owned scope beside the rows of the resources the user owns (an
+   * AI insight that names no service). Without it such a row is visible to
+   * no Owned-scoped user.
+   */
+  includeUnattributed: boolean;
 }
 
 export interface OwnedThroughOptions {
   includeProjectScope?: boolean;
   onlyParentModels?: boolean;
+  includeUnattributed?: boolean;
 }
 
 export default (
@@ -46,6 +55,7 @@ export default (
       parentModels: Array.isArray(parentModel) ? parentModel : [parentModel],
       includeProjectScope: options?.includeProjectScope ?? false,
       onlyParentModels: options?.onlyParentModels ?? false,
+      includeUnattributed: options?.includeUnattributed ?? false,
     };
   };
 };

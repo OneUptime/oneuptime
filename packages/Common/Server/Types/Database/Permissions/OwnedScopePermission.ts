@@ -133,7 +133,23 @@ export default class OwnedScopePermission {
     const allowedIds: Array<ObjectID> =
       await OwnedScopePermission.getAllowedResourceIds(modelType, props);
 
-    if (model.ownedThrough) {
+    if (model.ownedThrough && model.ownedThrough.includeUnattributed) {
+      /*
+       * Nested resource whose rows may name no owning resource: those
+       * belong to the project and stay, beside the rows of the parents the
+       * user owns - AND-combined with any caller-supplied FK filter.
+       */
+      const fkColumn: string = model.ownedThrough.fkColumn;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (query as any)[fkColumn] = combineWithPrivacyClause(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (query as any)[fkColumn],
+        allowedIds.length === 0
+          ? QueryHelper.isNull()
+          : QueryHelper.inOrNull(allowedIds),
+      );
+    } else if (model.ownedThrough) {
       /*
        * Nested resource: ownership inherits via the parent FK. The allowedIds
        * we computed are the parent's IDs, so filter on the FK column.
