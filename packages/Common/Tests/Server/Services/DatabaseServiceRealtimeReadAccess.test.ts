@@ -991,6 +991,47 @@ describe("updating records: who could read them before the write hears about it 
     ).toHaveLength(1);
   });
 
+  /*
+   * The row is not private, and the write says so again - the incident's
+   * Settings form sends its switches with every save. A switch that is off
+   * used to read as "no value" in the comparison, so writing false over
+   * false counted as a change and cost a decision before every such save.
+   */
+  test("writing a switch back as off, where it is off, decides nothing either", async () => {
+    jest.spyOn(Realtime, "isInitialized").mockReturnValue(true);
+
+    await update({ isPrivate: false });
+
+    expect(snapshot).not.toHaveBeenCalled();
+    expect(order).toEqual(["write"]);
+    expect(
+      (service.onTriggerRealtime as unknown as jest.SpyInstance).mock.calls,
+    ).toHaveLength(0);
+  });
+
+  test('nor does writing it as the text "false", which the database stores as off', async () => {
+    jest.spyOn(Realtime, "isInitialized").mockReturnValue(true);
+
+    await update({ isPrivate: "false" });
+
+    expect(snapshot).not.toHaveBeenCalled();
+    expect(
+      (service.onTriggerRealtime as unknown as jest.SpyInstance).mock.calls,
+    ).toHaveLength(0);
+  });
+
+  test("while turning it on is a change: decided before the write, and the event is sent", async () => {
+    jest.spyOn(Realtime, "isInitialized").mockReturnValue(true);
+
+    await update({ isPrivate: "true" });
+
+    expect(snapshot).toHaveBeenCalledTimes(1);
+    expect(order).toEqual(["decide", "write"]);
+    expect(
+      (service.onTriggerRealtime as unknown as jest.SpyInstance).mock.calls,
+    ).toHaveLength(1);
+  });
+
   test("Realtime not running here, or a model that sends no update events: nothing is decided", async () => {
     jest.spyOn(Realtime, "isInitialized").mockReturnValue(false);
 
