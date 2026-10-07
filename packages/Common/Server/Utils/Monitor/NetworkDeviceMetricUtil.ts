@@ -5,6 +5,8 @@ import {
   MAX_INTERFACE_METRIC_SERIES,
   MAX_OID_METRIC_SERIES,
 } from "../../../Types/Monitor/SnmpMonitor/SnmpOidListUtil";
+import { MAX_TABLE_METRIC_SERIES } from "../../../Types/Monitor/SnmpMonitor/SnmpTableListUtil";
+import SnmpTableMetricUtil, { SnmpTablePoint } from "./SnmpTableMetricUtil";
 import GlobalConfigService from "../../Services/GlobalConfigService";
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import { MetricPointType } from "../../../Models/AnalyticsModels/Metric";
@@ -341,6 +343,39 @@ export default class NetworkDeviceMetricUtil {
             oid: oidResponse.oid,
             oidName: oidResponse.name || oidResponse.oid,
           },
+        });
+      }
+    }
+
+    /*
+     * Walked SNMP tables: one point per numeric cell, labelled with the
+     * table, the column and the row, so "the HQ tunnel's status" and "the
+     * 5 GHz radio's transmit power" are series of their own. Text cells (a
+     * tunnel name, an SSID) are what name the series, not values to chart.
+     */
+    const tablePoints: Array<SnmpTablePoint> = SnmpTableMetricUtil.getPoints(
+      data.snmpResponse?.tables,
+    );
+
+    if (tablePoints.length > 0) {
+      const tablePointsToEmit: Array<SnmpTablePoint> = tablePoints.slice(
+        0,
+        MAX_TABLE_METRIC_SERIES,
+      );
+
+      if (tablePointsToEmit.length < tablePoints.length) {
+        logger.warn(
+          `Device ${data.networkDeviceId.toString()}: emitting metrics for first ${tablePointsToEmit.length} of ${tablePoints.length} SNMP table values`,
+        );
+      }
+
+      for (const point of tablePointsToEmit) {
+        pushMetric({
+          metricName: MonitorMetricType.SnmpTableValue,
+          value: point.value,
+          description: "Value of a walked SNMP table cell",
+          unit: point.unit || "",
+          extraAttributes: point.attributes,
         });
       }
     }

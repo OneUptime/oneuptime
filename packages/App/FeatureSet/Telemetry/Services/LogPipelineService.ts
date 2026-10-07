@@ -10,6 +10,7 @@ import LogPipelineProcessorType, {
   SeverityRemapperConfig,
   CategoryProcessorConfig,
   GrokParserConfig,
+  KeyValueParserConfig,
 } from "Common/Types/Log/LogPipelineProcessorType";
 import LogSeverity, {
   LogSeverityNumber,
@@ -27,6 +28,11 @@ import {
   compileGrokPatternCached,
   matchGrokPattern,
 } from "Common/Utils/Grok/Grok";
+import {
+  ResolvedKeyValueParserOptions,
+  parseKeyValuePairs,
+  resolveKeyValueParserOptions,
+} from "Common/Utils/Log/KeyValueParser";
 import logger from "Common/Server/Utils/Logger";
 import PipelineCache from "../Utils/PipelineCache";
 import getPipelineProcessorConfig from "../Utils/PipelineProcessorConfig";
@@ -66,6 +72,14 @@ const MAX_CACHED_PROJECTS: number = 10_000;
  */
 const MAX_LOGGED_INVALID_GROK_PATTERNS: number = 1000;
 const loggedInvalidGrokPatterns: Set<string> = new Set<string>();
+
+/*
+ * The same once-per-configuration logging for key=value processors whose
+ * delimiters do not validate (saved before save-time validation, or
+ * through the API with hooks skipped).
+ */
+const MAX_LOGGED_INVALID_KEY_VALUE_CONFIGS: number = 1000;
+const loggedInvalidKeyValueConfigs: Set<string> = new Set<string>();
 
 const pipelineCache: PipelineCache<Array<LoadedPipeline>> = new PipelineCache<
   Array<LoadedPipeline>
@@ -201,6 +215,12 @@ export class LogPipelineService {
           config as unknown as GrokParserConfig,
           processor.name || "",
         );
+      case LogPipelineProcessorType.KeyValueParser:
+        return LogPipelineService.applyKeyValueParser(
+          logRow,
+          config as unknown as KeyValueParserConfig,
+          processor.name || "",
+        );
       default:
         return logRow;
     }
@@ -267,7 +287,7 @@ export class LogPipelineService {
       return logRow;
     }
 
-    const prefix: string = LogPipelineService.normalizeGrokTargetPrefix(
+    const prefix: string = LogPipelineService.normalizeTargetPrefix(
       config.targetPrefix,
     );
 
@@ -285,12 +305,137 @@ export class LogPipelineService {
   }
 
   /*
+   * Key=value: split a line of `key=value` pairs - Sophos XGS, Fortinet,
+   * logfmt - into attributes, whatever order the fields arrive in. The
+   * parsing rules (quoting, escapes, empty values, ceilings, first value
+   * wins for a repeated key) live in Common/Utils/Log/KeyValueParser.ts
+   * so the dashboard's tester runs exactly what ingest runs.
+   *
+   * `source` and `targetPrefix` mean what they mean for grok. Values are
+   * stored as strings, like any un-typed grok capture.
+   *
+   * Unlike grok, an attribute the log already carries is left alone
+   * unless `overrideOnConflict` is set. A grok pattern names its fields
+   * itself; here the keys come from the line, so without this a line
+   * carrying `networkDevice.name=...` could rewrite which device ingest
+   * said it came from.
+   */
+  private static applyKeyValueParser(
+    logRow: JSONObject,
+    config: KeyValueParserConfig,
+    processorName: string,
+  ): JSONObject {
+    let options: ResolvedKeyValueParserOptions;
+
+    try {
+      options = resolveKeyValueParserOptions({
+        pairDelimiter: config.pairDelimiter,
+        keyValueDelimiter: config.keyValueDelimiter,
+      });
+    } catch (err) {
+      LogPipelineService.logInvalidKeyValueConfigOnce(
+        processorName,
+        config,
+        err,
+      );
+      return logRow;
+    }
+
+    const sourceField: string = (config.source || "").trim() || "body";
+    const sourceValue: string = getRowFieldValue(logRow, sourceField);
+
+    if (!sourceValue) {
+      return logRow;
+    }
+
+    const extracted: Record<string, string> = parseKeyValuePairs(
+      sourceValue,
+      options,
+    );
+
+    const keys: Array<string> = Object.keys(extracted);
+
+    // A line with no pairs passes through untouched, like a grok miss.
+    if (keys.length === 0) {
+      return logRow;
+    }
+
+    const prefix: string = LogPipelineService.normalizeTargetPrefix(
+      config.targetPrefix,
+    );
+
+    const overrideOnConflict: boolean = config.overrideOnConflict === true;
+
+    const attrs: Record<string, unknown> = {
+      ...((logRow["attributes"] as Record<string, unknown>) || {}),
+    };
+
+    let changed: boolean = false;
+
+    for (const key of keys) {
+      const attributeKey: string = `${prefix}${key}`;
+
+      /*
+       * Own properties only: "constructor" is a fine key for a log line
+       * to carry, and every plain object inherits one.
+       */
+      if (
+        !overrideOnConflict &&
+        Object.prototype.hasOwnProperty.call(attrs, attributeKey)
+      ) {
+        continue;
+      }
+
+      attrs[attributeKey] = extracted[key];
+      changed = true;
+    }
+
+    if (!changed) {
+      return logRow;
+    }
+
+    const attributeKeys: Array<string> = Object.keys(attrs);
+
+    return { ...logRow, attributes: attrs as JSONObject, attributeKeys };
+  }
+
+  private static logInvalidKeyValueConfigOnce(
+    processorName: string,
+    config: KeyValueParserConfig,
+    err: unknown,
+  ): void {
+    const configKey: string = JSON.stringify([
+      config.pairDelimiter,
+      config.keyValueDelimiter,
+    ]);
+
+    if (loggedInvalidKeyValueConfigs.has(configKey)) {
+      return;
+    }
+
+    if (
+      loggedInvalidKeyValueConfigs.size >= MAX_LOGGED_INVALID_KEY_VALUE_CONFIGS
+    ) {
+      loggedInvalidKeyValueConfigs.clear();
+    }
+
+    loggedInvalidKeyValueConfigs.add(configKey);
+
+    logger.error(
+      `Key=value processor "${processorName}" has delimiters that do not validate and will not run: ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    );
+  }
+
+  /*
    * A prefix of "http" is meant as a namespace, not as a string to jam
    * onto the front of the field name, so a separator is added unless the
    * user already ended it with one: "http" + "status" => "http.status",
-   * while "http_" + "status" stays "http_status".
+   * while "http_" + "status" stays "http_status". Shared by the grok and
+   * key=value parsers.
    */
-  private static normalizeGrokTargetPrefix(
+  private static normalizeTargetPrefix(
     targetPrefix: string | undefined,
   ): string {
     const prefix: string = (targetPrefix || "").trim();

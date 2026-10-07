@@ -242,6 +242,12 @@ enum Permission {
   EditProjectLogScrubRule = "EditProjectLogScrubRule",
   ReadProjectLogScrubRule = "ReadProjectLogScrubRule",
 
+  // Log Recording Rules (derived metrics from logs)
+  CreateProjectLogRecordingRule = "CreateProjectLogRecordingRule",
+  DeleteProjectLogRecordingRule = "DeleteProjectLogRecordingRule",
+  EditProjectLogRecordingRule = "EditProjectLogRecordingRule",
+  ReadProjectLogRecordingRule = "ReadProjectLogRecordingRule",
+
   // Metric Pipeline Rules
   CreateProjectMetricPipelineRule = "CreateProjectMetricPipelineRule",
   DeleteProjectMetricPipelineRule = "DeleteProjectMetricPipelineRule",
@@ -8022,6 +8028,48 @@ export class PermissionHelper {
         title: "Read Log Scrub Rule",
         description:
           "This permission can read Log Scrub Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      // Log Recording Rule Permissions (derived metrics from logs)
+      {
+        permission: Permission.CreateProjectLogRecordingRule,
+        title: "Create Log Recording Rule",
+        description:
+          "This permission can create Log Recording Rules (derived metrics from logs) in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteProjectLogRecordingRule,
+        title: "Delete Log Recording Rule",
+        description:
+          "This permission can delete Log Recording Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditProjectLogRecordingRule,
+        title: "Edit Log Recording Rule",
+        description:
+          "This permission can edit Log Recording Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadProjectLogRecordingRule,
+        title: "Read Log Recording Rule",
+        description:
+          "This permission can read Log Recording Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

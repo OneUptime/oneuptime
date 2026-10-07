@@ -247,3 +247,61 @@ describe("LogPipelineProcessorService — on update", () => {
     ).resolves.toBeDefined();
   });
 });
+
+describe("LogPipelineProcessorService — key=value parser", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("accepts a key=value processor on its defaults", async () => {
+    await expect(
+      service.onBeforeCreate(
+        createBy({
+          processorType: LogPipelineProcessorType.KeyValueParser,
+          configuration: { source: "body", targetPrefix: "sophos" },
+        }),
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  it("rejects a key=value processor whose delimiters collide", async () => {
+    await expect(
+      service.onBeforeCreate(
+        createBy({
+          processorType: LogPipelineProcessorType.KeyValueParser,
+          configuration: {
+            source: "body",
+            pairDelimiter: ":",
+            keyValueDelimiter: ":",
+          },
+        }),
+      ),
+    ).rejects.toThrow(BadDataException);
+  });
+
+  it("catches a type switch to KeyValueParser over a stored configuration that breaks it", async () => {
+    mockStoredRow({
+      processorType: LogPipelineProcessorType.AttributeRemapper,
+      configuration: { sourceKey: "a", targetKey: "b", pairDelimiter: "" },
+    });
+
+    await expect(
+      service.onBeforeUpdate(
+        updateBy({ processorType: LogPipelineProcessorType.KeyValueParser }),
+      ),
+    ).rejects.toThrow(BadDataException);
+  });
+
+  it("catches an empty delimiter written onto a row that is already a KeyValueParser", async () => {
+    mockStoredRow({
+      processorType: LogPipelineProcessorType.KeyValueParser,
+      configuration: { source: "body" },
+    });
+
+    await expect(
+      service.onBeforeUpdate(
+        updateBy({ configuration: { source: "body", keyValueDelimiter: "" } }),
+      ),
+    ).rejects.toThrow(BadDataException);
+  });
+});

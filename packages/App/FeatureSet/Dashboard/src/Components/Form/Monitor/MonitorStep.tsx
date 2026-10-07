@@ -137,6 +137,7 @@ import SnmpOidListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpOidListUtil";
 import {
   NetworkDeviceCriteriaCatalogue,
   NetworkDeviceOidCatalogueEntry,
+  NetworkDeviceTableCatalogueEntry,
 } from "./CriteriaFilter";
 import DnsMonitorStepForm from "./DnsMonitor/DnsMonitorStepForm";
 import MonitorStepDnsMonitor, {
@@ -175,6 +176,12 @@ import {
   MONITOR_PORT_FIELD_DESCRIPTION,
   MonitorDestinationFieldCopy,
 } from "../../../Utils/Form/Monitor/MonitorDestinationFieldCopy";
+import {
+  SnmpTableDefinition,
+  SnmpTableSnapshot,
+  SnmpTableSnapshotRow,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpTable";
+import SnmpTableListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpTableListUtil";
 
 /*
  * The interface picker on an SNMP criteria is a picker, not an inventory. A
@@ -415,6 +422,8 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
   >([]);
   const [networkDeviceInterfaceNames, setNetworkDeviceInterfaceNames] =
     useState<Array<string>>([]);
+  const [networkDeviceTableCatalogue, setNetworkDeviceTableCatalogue] =
+    useState<Array<NetworkDeviceTableCatalogueEntry>>([]);
 
   /*
    * The device the catalogue currently in state was fetched for, rather than
@@ -447,9 +456,12 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
       id: new ObjectID(networkDeviceId),
       select: {
         snmpOids: true,
+        snmpTables: true,
+        snmpTableSnapshot: true,
         oidTemplate: {
           name: true,
           oids: true,
+          tables: true,
         },
       },
     });
@@ -527,7 +539,35 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         return true;
       });
 
+    /*
+     * The tables the device walks (template plus device-specific, merged
+     * the way the poll merges them), each with the row names its last walk
+     * reported so the row picker can offer them.
+     */
+    const snapshots: Array<SnmpTableSnapshot> = device?.snmpTableSnapshot || [];
+
+    const tables: Array<NetworkDeviceTableCatalogueEntry> =
+      SnmpTableListUtil.resolveEffectiveTables({
+        templateTables: device?.oidTemplate?.tables,
+        deviceTables: device?.snmpTables,
+      }).tables.map(
+        (definition: SnmpTableDefinition): NetworkDeviceTableCatalogueEntry => {
+          const snapshot: SnmpTableSnapshot | undefined =
+            SnmpTableListUtil.findSnapshot(snapshots, definition.key);
+
+          return {
+            definition: definition,
+            rowNames: (snapshot?.rows || []).map(
+              (row: SnmpTableSnapshotRow): string => {
+                return row.label;
+              },
+            ),
+          };
+        },
+      );
+
     return {
+      tables: tables,
       oids: effectiveOids.map(
         (entry: SnmpOid): NetworkDeviceOidCatalogueEntry => {
           const isFromTemplate: boolean = normalizedTemplateOids.has(entry.oid);
@@ -556,6 +596,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
           }
 
           setNetworkDeviceOidCatalogue(catalogue.oids);
+          setNetworkDeviceTableCatalogue(catalogue.tables);
           setNetworkDeviceInterfaceNames(catalogue.interfaceNames);
           setLoadedCatalogueNetworkDeviceId(selectedNetworkDeviceId);
         })
@@ -572,11 +613,13 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
           }
 
           setNetworkDeviceOidCatalogue([]);
+          setNetworkDeviceTableCatalogue([]);
           setNetworkDeviceInterfaceNames([]);
           setLoadedCatalogueNetworkDeviceId(undefined);
         });
     } else {
       setNetworkDeviceOidCatalogue([]);
+      setNetworkDeviceTableCatalogue([]);
       setNetworkDeviceInterfaceNames([]);
       setLoadedCatalogueNetworkDeviceId(undefined);
     }
@@ -2107,6 +2150,7 @@ return {
           foldDefaultCriteria={props.foldDefaultCriteria}
           networkDeviceOidCatalogue={networkDeviceOidCatalogue}
           networkDeviceInterfaceNames={networkDeviceInterfaceNames}
+          networkDeviceTableCatalogue={networkDeviceTableCatalogue}
           isNetworkDeviceCatalogueLoaded={isNetworkDeviceCatalogueLoaded}
           offlineMonitorStatusId={props.offlineMonitorStatusId}
           monitorStatusDropdownOptions={props.monitorStatusDropdownOptions}

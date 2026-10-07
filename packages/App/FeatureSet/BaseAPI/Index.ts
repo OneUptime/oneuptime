@@ -605,6 +605,9 @@ import TraceScrubRuleService, {
 import TraceRecordingRuleService, {
   Service as TraceRecordingRuleServiceType,
 } from "Common/Server/Services/TraceRecordingRuleService";
+import LogRecordingRuleService, {
+  Service as LogRecordingRuleServiceType,
+} from "Common/Server/Services/LogRecordingRuleService";
 import IncidentOwnerTeamService, {
   Service as IncidentOwnerTeamServiceType,
 } from "Common/Server/Services/IncidentOwnerTeamService";
@@ -1548,6 +1551,7 @@ import TracePipelineProcessor from "Common/Models/DatabaseModels/TracePipelinePr
 import TraceDropFilter from "Common/Models/DatabaseModels/TraceDropFilter";
 import TraceScrubRule from "Common/Models/DatabaseModels/TraceScrubRule";
 import TraceRecordingRule from "Common/Models/DatabaseModels/TraceRecordingRule";
+import LogRecordingRule from "Common/Models/DatabaseModels/LogRecordingRule";
 
 import IncidentFeed from "Common/Models/DatabaseModels/IncidentFeed";
 import AlertFeed from "Common/Models/DatabaseModels/AlertFeed";
@@ -3878,6 +3882,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<TraceRecordingRule, TraceRecordingRuleServiceType>(
         TraceRecordingRule,
         TraceRecordingRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<LogRecordingRule, LogRecordingRuleServiceType>(
+        LogRecordingRule,
+        LogRecordingRuleService,
       ).getRouter(),
     );
 

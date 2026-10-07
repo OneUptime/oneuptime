@@ -6,8 +6,11 @@ import InBetween from "../../../Types/BaseDatabase/InBetween";
 import { JSONObject } from "../../../Types/JSON";
 import LogSeverity from "../../../Types/Log/LogSeverity";
 import MonitorStepLogMonitor, {
+  MAX_LOG_MONITOR_GROUP_BY_ATTRIBUTES,
+  MAX_LOG_MONITOR_GROUP_BY_ATTRIBUTE_LENGTH,
   MonitorStepLogMonitorUtil,
 } from "../../../Types/Monitor/MonitorStepLogMonitor";
+import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import ObjectID from "../../../Types/ObjectID";
 
 describe("MonitorStepLogMonitorUtil", () => {
@@ -226,6 +229,174 @@ describe("MonitorStepLogMonitorUtil", () => {
       });
 
       expect(json["entityKeys"]).toEqual([]);
+    });
+  });
+
+  /*
+   * Group By: optional on the step, so every monitor saved before it
+   * existed - and every one that leaves it empty - must read as "not
+   * grouped" and evaluate exactly as before.
+   */
+  describe("groupByAttributes", () => {
+    test("defaults to not grouped", () => {
+      expect(MonitorStepLogMonitorUtil.getDefault().groupByAttributes).toEqual(
+        [],
+      );
+      expect(
+        MonitorStepLogMonitorUtil.getGroupByAttributes(
+          MonitorStepLogMonitorUtil.getDefault(),
+        ),
+      ).toEqual([]);
+    });
+
+    test("a step saved before the field existed reads as not grouped", () => {
+      const legacy: JSONObject = {
+        attributes: {},
+        body: "timeout",
+        severityTexts: [],
+        telemetryServiceIds: [],
+        lastXSecondsOfLogs: 60,
+      };
+
+      expect(
+        MonitorStepLogMonitorUtil.fromJSON(legacy).groupByAttributes,
+      ).toEqual([]);
+      expect(
+        MonitorStepLogMonitorUtil.getGroupByAttributes(
+          legacy as unknown as MonitorStepLogMonitor,
+        ),
+      ).toEqual([]);
+      expect(MonitorStepLogMonitorUtil.getGroupByAttributes(undefined)).toEqual(
+        [],
+      );
+      expect(MonitorStepLogMonitorUtil.getGroupByAttributes(null)).toEqual([]);
+    });
+
+    test("does not change the log query - grouping is not a filter", () => {
+      const base: MonitorStepLogMonitor = {
+        ...MonitorStepLogMonitorUtil.getDefault(),
+        body: "terminated",
+        attributes: { log_component: "IPSec" },
+        lastXSecondsOfLogs: 0,
+      };
+
+      expect(
+        MonitorStepLogMonitorUtil.toQuery({
+          ...base,
+          groupByAttributes: ["con_name"],
+        }),
+      ).toEqual(MonitorStepLogMonitorUtil.toQuery(base));
+    });
+
+    test("round-trips through toJSON / fromJSON", () => {
+      const original: MonitorStepLogMonitor = {
+        ...MonitorStepLogMonitorUtil.getDefault(),
+        groupByAttributes: ["con_name", "sophos.gw_name"],
+      };
+
+      const json: JSONObject = MonitorStepLogMonitorUtil.toJSON(original);
+
+      expect(json["groupByAttributes"]).toEqual(["con_name", "sophos.gw_name"]);
+      expect(
+        MonitorStepLogMonitorUtil.fromJSON(json).groupByAttributes,
+      ).toEqual(["con_name", "sophos.gw_name"]);
+    });
+
+    test("survives a whole MonitorStep round-trip", () => {
+      const step: MonitorStep = new MonitorStep();
+      step.setLogMonitor({
+        ...MonitorStepLogMonitorUtil.getDefault(),
+        groupByAttributes: ["con_name"],
+      });
+
+      const restored: MonitorStep = MonitorStep.fromJSON(step.toJSON());
+
+      expect(
+        MonitorStepLogMonitorUtil.getGroupByAttributes(
+          restored.data?.logMonitor,
+        ),
+      ).toEqual(["con_name"]);
+    });
+
+    test("trims, de-duplicates and drops blank keys", () => {
+      expect(
+        MonitorStepLogMonitorUtil.getGroupByAttributes({
+          groupByAttributes: [" con_name ", "", "   ", "con_name", "gw_name"],
+        }),
+      ).toEqual(["con_name", "gw_name"]);
+    });
+
+    test("drops values that are not text, and __proto__", () => {
+      expect(
+        MonitorStepLogMonitorUtil.getGroupByAttributes({
+          groupByAttributes: [
+            7,
+            null,
+            { key: "x" },
+            "__proto__",
+            "constructor",
+            "con_name",
+          ] as unknown as Array<string>,
+        }),
+      ).toEqual(["constructor", "con_name"]);
+    });
+
+    test("reads anything that is not an array as not grouped", () => {
+      for (const groupByAttributes of ["con_name", 42, { a: 1 }, true]) {
+        expect(
+          MonitorStepLogMonitorUtil.getGroupByAttributes({
+            groupByAttributes: groupByAttributes as unknown as Array<string>,
+          }),
+        ).toEqual([]);
+      }
+    });
+
+    test(`keeps at most ${MAX_LOG_MONITOR_GROUP_BY_ATTRIBUTES} keys`, () => {
+      const keys: Array<string> = Array.from(
+        { length: MAX_LOG_MONITOR_GROUP_BY_ATTRIBUTES + 5 },
+        (_: unknown, index: number) => {
+          return `key_${index}`;
+        },
+      );
+
+      const kept: Array<string> =
+        MonitorStepLogMonitorUtil.getGroupByAttributes({
+          groupByAttributes: keys,
+        });
+
+      expect(kept).toHaveLength(MAX_LOG_MONITOR_GROUP_BY_ATTRIBUTES);
+      expect(kept).toEqual(keys.slice(0, MAX_LOG_MONITOR_GROUP_BY_ATTRIBUTES));
+    });
+
+    test("drops a key longer than the key ceiling", () => {
+      const atLimit: string = "k".repeat(
+        MAX_LOG_MONITOR_GROUP_BY_ATTRIBUTE_LENGTH,
+      );
+      const overLimit: string = "k".repeat(
+        MAX_LOG_MONITOR_GROUP_BY_ATTRIBUTE_LENGTH + 1,
+      );
+
+      expect(
+        MonitorStepLogMonitorUtil.getGroupByAttributes({
+          groupByAttributes: [overLimit, atLimit],
+        }),
+      ).toEqual([atLimit]);
+    });
+
+    test("toJSON writes the cleaned-up keys", () => {
+      expect(
+        MonitorStepLogMonitorUtil.toJSON({
+          ...MonitorStepLogMonitorUtil.getDefault(),
+          groupByAttributes: [" con_name", "con_name", ""],
+        })["groupByAttributes"],
+      ).toEqual(["con_name"]);
+
+      expect(
+        MonitorStepLogMonitorUtil.toJSON({
+          ...MonitorStepLogMonitorUtil.getDefault(),
+          groupByAttributes: undefined,
+        })["groupByAttributes"],
+      ).toEqual([]);
     });
   });
 });

@@ -3,6 +3,7 @@ import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import SnmpOid from "../../Types/Monitor/SnmpMonitor/SnmpOid";
+import { SnmpTableDefinition } from "../../Types/Monitor/SnmpMonitor/SnmpTable";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
@@ -357,6 +358,54 @@ export default class NetworkDeviceOidTemplate extends BaseModel {
     nullable: true,
   })
   public oids?: Array<SnmpOid> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDeviceOidTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDeviceOidTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDeviceOidTemplate,
+    ],
+  })
+  /*
+   * The table-shaped twin of `oids`, with the same element type as
+   * NetworkDevice.snmpTables so the two merge by key with no conversion.
+   * Readable on relation queries for the same reason `oids` is: the device's
+   * own pages show the EFFECTIVE tables, template plus device.
+   */
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    canReadOnRelationQuery: true,
+    title: "SNMP Tables",
+    description:
+      "SNMP tables walked by every device linked to this template - one row per IPsec tunnel, Wi-Fi radio, routing neighbour, fan or power supply. Each table lists the column OIDs to collect and, optionally, the columns that name each row.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public tables?: Array<SnmpTableDefinition> = undefined;
 
   @ColumnAccessControl({
     create: [

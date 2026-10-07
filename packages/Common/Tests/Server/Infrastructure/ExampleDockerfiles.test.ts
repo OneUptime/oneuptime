@@ -343,7 +343,7 @@ describe("Every Dockerfile a compose file builds survives a fresh clone", () => 
     }
   });
 
-  test("the snmp-simulator quick start builds all three of its containers", () => {
+  test("the snmp-simulator quick start builds all five of its containers", () => {
     const builds: Array<ImageBuild> = imageBuilds.filter(
       (build: ImageBuild): boolean => {
         return build.composeFile.startsWith(`${EXAMPLES_DIR}/snmp-simulator/`);
@@ -354,9 +354,18 @@ describe("Every Dockerfile a compose file builds survives a fresh clone", () => 
       builds.map((build: ImageBuild): string => {
         return build.service;
       }),
-    ).toEqual(["switch-a", "switch-b", "router-v3"]);
+    ).toEqual([
+      "switch-a",
+      "switch-b",
+      "sophos-xgs",
+      "cambium-ap",
+      "router-v3",
+    ]);
 
-    // The two snmpsim switches share the hand-written Dockerfile.
+    /*
+     * The four snmpsim agents - the two switches, the Sophos firewall and the
+     * Cambium access point - share the hand-written Dockerfile.
+     */
     expect(
       builds
         .filter((build: ImageBuild): boolean => {
@@ -365,7 +374,12 @@ describe("Every Dockerfile a compose file builds survives a fresh clone", () => 
         .map((build: ImageBuild): string => {
           return build.dockerfile;
         }),
-    ).toEqual([SNMP_SIMULATOR_DOCKERFILE, SNMP_SIMULATOR_DOCKERFILE]);
+    ).toEqual([
+      SNMP_SIMULATOR_DOCKERFILE,
+      SNMP_SIMULATOR_DOCKERFILE,
+      SNMP_SIMULATOR_DOCKERFILE,
+      SNMP_SIMULATOR_DOCKERFILE,
+    ]);
 
     // The v3 router uses the separate net-snmp one.
     expect(
@@ -587,6 +601,8 @@ describe("The snmp-simulator quick start has every file it reads", () => {
   test.each([
     "data/switch-a/public.snmprec",
     "data/switch-b/public.snmprec",
+    "data/sophos-xgs/public.snmprec",
+    "data/cambium-ap/public.snmprec",
     "snmpd.conf",
     "Dockerfile",
     "Dockerfile.snmpd",

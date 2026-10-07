@@ -145,6 +145,8 @@ export const NetworkDeviceRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_OVERVIEW]: `overview`,
   [PageMap.NETWORK_DEVICE_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.NETWORK_DEVICE_VIEW_INTERFACES]: `${RouteParams.ModelID}/interfaces`,
+  [PageMap.NETWORK_DEVICE_VIEW_TABLES]: `${RouteParams.ModelID}/tables`,
+  [PageMap.NETWORK_DEVICE_VIEW_WIFI]: `${RouteParams.ModelID}/wifi`,
   [PageMap.NETWORK_DEVICE_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.NETWORK_DEVICE_VIEW_TRAFFIC]: `${RouteParams.ModelID}/traffic`,
   [PageMap.NETWORK_DEVICE_VIEW_MONITORS]: `${RouteParams.ModelID}/monitors`,
@@ -731,6 +733,7 @@ export const LogsRoutePath: Dictionary<string> = {
   [PageMap.LOGS_SETTINGS_DROP_FILTERS]: "settings/drop-filters",
   [PageMap.LOGS_SETTINGS_DROP_FILTER_VIEW]: `settings/drop-filters/${RouteParams.ModelID}`,
   [PageMap.LOGS_SETTINGS_SCRUB_RULES]: "settings/scrub-rules",
+  [PageMap.LOGS_SETTINGS_RECORDING_RULES]: "settings/recording-rules",
 };
 
 // Security Events product routes
@@ -3166,6 +3169,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.NETWORK_DEVICE_VIEW_INTERFACES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-devices/${
       NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW_INTERFACES]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_VIEW_TABLES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW_TABLES]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_VIEW_WIFI]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW_WIFI]
     }`,
   ),
 
@@ -6466,6 +6481,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.LOGS_SETTINGS_SCRUB_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/logs/${
       LogsRoutePath[PageMap.LOGS_SETTINGS_SCRUB_RULES]
+    }`,
+  ),
+
+  [PageMap.LOGS_SETTINGS_RECORDING_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/logs/${
+      LogsRoutePath[PageMap.LOGS_SETTINGS_RECORDING_RULES]
     }`,
   ),
 
