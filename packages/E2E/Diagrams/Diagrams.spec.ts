@@ -3,6 +3,7 @@ import {
   Locator,
   Page,
   Response,
+  Route,
   expect,
   test,
 } from "@playwright/test";
@@ -132,6 +133,53 @@ const styleOf: StyleOfFunction = async (svg: Locator): Promise<string> => {
   return (await svg.locator("style").first().textContent()) || "";
 };
 
+type LeftoversFunction = (page: Page) => Promise<Array<string>>;
+
+/*
+ * What mermaid leaves where a page did not ask for it: the working element
+ * it draws in (<div id="d{diagram id}">), and its "Syntax error in text"
+ * graphic anywhere at all.
+ */
+const mermaidLeftovers: LeftoversFunction = async (
+  page: Page,
+): Promise<Array<string>> => {
+  return page.evaluate(() => {
+    const found: Array<string> = [];
+
+    for (const element of Array.from(
+      document.querySelectorAll('[id^="dmermaid-"], [id^="ddocs-diagram-"]'),
+    )) {
+      found.push("working element #" + element.id);
+    }
+
+    for (const svg of Array.from(document.querySelectorAll("svg"))) {
+      if ((svg.textContent || "").includes("Syntax error in text")) {
+        found.push(
+          "syntax error graphic in " +
+            String(svg.parentElement?.tagName) +
+            " #" +
+            String(svg.parentElement?.id),
+        );
+      }
+    }
+
+    return found;
+  });
+};
+
+type PageErrorsFunction = (page: Page) => Array<string>;
+
+// Every uncaught error and unhandled rejection, from before it navigates.
+const recordPageErrors: PageErrorsFunction = (page: Page): Array<string> => {
+  const errors: Array<string> = [];
+
+  page.on("pageerror", (error: Error) => {
+    errors.push(error.message);
+  });
+
+  return errors;
+};
+
 test.describe("the Dashboard's markdown viewer", () => {
   const diagramsIn: (page: Page) => Locator = (page: Page): Locator => {
     return page.getByTestId("markdown").locator('svg[id^="mermaid-"]');
@@ -152,11 +200,69 @@ test.describe("the Dashboard's markdown viewer", () => {
     await expect(page.getByText("Error rendering diagram")).toHaveCount(0);
 
     /*
-     * KaTeX set the label: its chunk was fetched and ran. (The viewer's
-     * sanitizer keeps SVG only, so the MathML it wrote is not drawn here; it
-     * never was.)
+     * KaTeX set the label, and the viewer's sanitizer let its MathML
+     * through: x^2 + y^2 = z^2, three superscripts, drawn in the label.
      */
+    const math: Locator = diagramsIn(page)
+      .first()
+      .locator("foreignObject math");
+
+    await expect(math).toHaveCount(1);
+    await expect(math.locator("msup")).toHaveCount(3);
+    await expect(math).toBeVisible();
+
+    const box: { width: number; height: number } | null =
+      await math.boundingBox();
+
+    expect(box?.width || 0).toBeGreaterThan(20);
+    expect(box?.height || 0).toBeGreaterThan(8);
+
     await expectSourceBuild(responses, { katex: true });
+  });
+
+  test("keeps only KaTeX's MathML in the label, and no HTML", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto("/dashboard");
+    await expect(diagramsIn(page)).toHaveCount(2);
+
+    const inDiagram: Array<{ tag: string; namespace: string | null }> =
+      await diagramsIn(page)
+        .first()
+        .evaluate((svg: SVGSVGElement) => {
+          return Array.from(svg.querySelectorAll("*")).map(
+            (element: Element) => {
+              return {
+                tag: element.localName,
+                namespace: element.namespaceURI,
+              };
+            },
+          );
+        });
+
+    const mathml: Array<string> = inDiagram
+      .filter((element: { namespace: string | null }): boolean => {
+        return element.namespace === "http://www.w3.org/1998/Math/MathML";
+      })
+      .map((element: { tag: string }): string => {
+        return element.tag;
+      });
+
+    expect([...new Set(mathml)].sort()).toEqual([
+      "math",
+      "mi",
+      "mn",
+      "mo",
+      "mrow",
+      "msup",
+    ]);
+    expect(
+      inDiagram.filter((element: { namespace: string | null }): boolean => {
+        return element.namespace === "http://www.w3.org/1999/xhtml";
+      }),
+    ).toEqual([]);
   });
 
   test("fetches KaTeX only for a diagram with a $$...$$ label", async ({
@@ -232,6 +338,55 @@ test.describe("the Dashboard's markdown viewer", () => {
     await page.goto("/dashboard?diagrams=broken");
 
     await expect(page.getByText(/Error rendering diagram/)).toBeVisible();
+  });
+
+  test("a diagram that does not parse leaves nothing of mermaid's in the page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto("/dashboard?diagrams=broken");
+
+    await expect(
+      page.getByTestId("markdown").getByText(/Error rendering diagram/),
+    ).toBeVisible();
+    // Mermaid used to leave its error graphic at the end of the page body.
+    expect(await mermaidLeftovers(page)).toEqual([]);
+  });
+
+  test("draws the diagrams that parse next to one that does not", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto("/dashboard?diagrams=mixed");
+
+    await expect(diagramsIn(page)).toHaveCount(2);
+    await expect(diagramsIn(page).first().locator("math")).toHaveCount(1);
+    await expect(diagramsIn(page).nth(1)).toContainText("Hello Bob");
+    await expect(
+      page.getByTestId("markdown").getByText(/Error rendering diagram/),
+    ).toHaveCount(1);
+    expect(await mermaidLeftovers(page)).toEqual([]);
+  });
+
+  test("redrawing a diagram that does not parse adds nothing to the page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto("/dashboard?diagrams=broken");
+    await expect(page.getByText(/Error rendering diagram/)).toBeVisible();
+
+    await page.getByRole("button", { name: "Toggle theme" }).click();
+    await expect(page.getByText(/Error rendering diagram/)).toBeVisible();
+    await page.getByRole("button", { name: "Toggle theme" }).click();
+    await expect(page.getByText(/Error rendering diagram/)).toBeVisible();
+    // Let the last redraw settle.
+    await page.waitForTimeout(300);
+
+    await expect(page.getByText(/Error rendering diagram/)).toHaveCount(1);
+    expect(await mermaidLeftovers(page)).toEqual([]);
   });
 });
 
@@ -314,6 +469,133 @@ test.describe("the docs", () => {
         }).length;
       })
       .toBe(1);
+  });
+
+  test("says in place that a diagram could not be drawn, shows its source as written, and leaves nothing else", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto("/docs?diagrams=broken");
+
+    const broken: Locator = page.locator(".docs-diagram").first();
+
+    await expect(page.locator(".docs-diagram .mermaid svg")).toHaveCount(2);
+
+    // One short note, in the broken diagram's own box, above its source.
+    const note: Locator = broken.locator(".docs-diagram__note");
+
+    await expect(note).toHaveText("This diagram could not be drawn.");
+    await expect(page.locator(".docs-diagram__note")).toHaveCount(1);
+
+    // The source as it was written: line breaks and indentation kept.
+    const source: Locator = broken.locator(".mermaid");
+
+    expect(await source.textContent()).toBe("graph LR\n  A -->");
+    expect(
+      await source.evaluate((element: Element) => {
+        return getComputedStyle(element).whiteSpace;
+      }),
+    ).toBe("pre");
+
+    const noteBox: { y: number } | null = await note.boundingBox();
+    const sourceBox: { y: number } | null = await source.boundingBox();
+
+    expect(noteBox?.y || 0).toBeLessThan(sourceBox?.y || 0);
+
+    // Mermaid used to leave its error graphic at the end of the page body.
+    expect(await mermaidLeftovers(page)).toEqual([]);
+  });
+
+  test("keeps a diagram it could not draw as it is when the theme changes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const errors: Array<string> = recordConsoleErrors(page);
+
+    await page.goto("/docs?diagrams=broken");
+    await expect(page.locator(".docs-diagram .mermaid svg")).toHaveCount(2);
+    await expect(page.locator(".docs-diagram__note")).toHaveCount(1);
+
+    await page.evaluate(() => {
+      document.documentElement.classList.add("dark");
+      window.dispatchEvent(new Event("docs:themechange"));
+    });
+
+    await expect
+      .poll(async () => {
+        return styleOf(page.locator(".docs-diagram .mermaid svg").first());
+      })
+      .toMatch(DARK_THEME_FILL);
+
+    await expect(page.locator(".docs-diagram__note")).toHaveCount(1);
+    expect(
+      await page.locator(".docs-diagram .mermaid").first().textContent(),
+    ).toBe("graph LR\n  A -->");
+    expect(await mermaidLeftovers(page)).toEqual([]);
+    // It was reported once, when the page was drawn.
+    expect(
+      errors.filter((text: string): boolean => {
+        return text.includes("Mermaid could not render a diagram");
+      }),
+    ).toHaveLength(1);
+  });
+
+  test("shows every diagram's source when mermaid cannot be loaded, and says so once", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const errors: Array<string> = recordConsoleErrors(page);
+    const pageErrors: Array<string> = recordPageErrors(page);
+
+    // A server whose image did not build mermaid answers 404 here.
+    await page.route("**/oneuptime-assets/mermaid/**", (route: Route) => {
+      return route.fulfill({ status: 404, body: "" });
+    });
+
+    await page.goto("/docs");
+
+    // The failed import is reported, as a console error and nothing else.
+    await expect
+      .poll(() => {
+        return (
+          pageErrors.length +
+          errors.filter((text: string): boolean => {
+            return text.includes("Mermaid could not be loaded");
+          }).length
+        );
+      })
+      .toBeGreaterThan(0);
+    expect(pageErrors).toEqual([]);
+
+    const blocks: Locator = page.locator(".docs-diagram .mermaid");
+
+    await expect(page.locator(".docs-diagram__note")).toHaveCount(2);
+    await expect(blocks).toHaveCount(2);
+    await expect(blocks.locator("svg")).toHaveCount(0);
+    expect(await blocks.first().textContent()).toContain(
+      'A["$$x^2 + y^2 = z^2$$"] --> B[Plain label]',
+    );
+    expect(await blocks.nth(1).textContent()).toContain(
+      "Alice->>Bob: Hello Bob",
+    );
+
+    await expect
+      .poll(() => {
+        return errors.filter((text: string): boolean => {
+          return text.includes("Mermaid could not be loaded");
+        }).length;
+      })
+      .toBe(1);
+    // No unhandled rejection, and nothing per diagram.
+    expect(pageErrors).toEqual([]);
+    expect(
+      errors.filter((text: string): boolean => {
+        return text.includes("Mermaid could not render a diagram");
+      }),
+    ).toEqual([]);
   });
 
   test("fetches no mermaid on a page without a diagram", async ({
@@ -448,6 +730,85 @@ test.describe("the blog", () => {
         }).length;
       })
       .toBe(1);
+  });
+
+  test("draws in mermaid's strict mode: no page function runs from a click, no javascript: link", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.addInitScript(() => {
+      (window as unknown as { diagramCallback: () => void }).diagramCallback =
+        (): void => {
+          (
+            window as unknown as { diagramCallbackRan: boolean }
+          ).diagramCallbackRan = true;
+        };
+    });
+
+    await page.goto("/blog?diagrams=interactive");
+    await expect(diagramsIn(page)).toHaveCount(1);
+
+    const diagram: Locator = diagramsIn(page).first();
+
+    // The HTML mermaid allows in a label either way is still drawn.
+    await expect(diagram.locator("b")).toHaveText("Bold");
+    await expect(diagram).toContainText("Line one");
+    await expect(diagram).toContainText("Line two");
+
+    // 'loose' bound the click to window.diagramCallback; 'strict' does not.
+    await diagram.locator("g.node", { hasText: "Bold start" }).click();
+    await page.waitForTimeout(300);
+
+    expect(
+      await page.evaluate(() => {
+        return Boolean(
+          (window as unknown as { diagramCallbackRan?: boolean })
+            .diagramCallbackRan,
+        );
+      }),
+    ).toBe(false);
+
+    // 'loose' kept the javascript: URL as the node's link; 'strict' drops it.
+    const links: Array<string> = await diagram
+      .locator("a")
+      .evaluateAll((anchors: Array<Element>) => {
+        return anchors.map((anchor: Element): string => {
+          return (
+            anchor.getAttribute("href") ||
+            anchor.getAttribute("xlink:href") ||
+            ""
+          );
+        });
+      });
+
+    expect(
+      links.filter((href: string): boolean => {
+        return href.trim().toLowerCase().startsWith("javascript:");
+      }),
+    ).toEqual([]);
+  });
+
+  test("runs the rest of the page script on a post with no h2 heading", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto("/blog");
+    await expect(diagramsIn(page)).toHaveCount(2);
+
+    // Heading links and image hints come after the table of contents.
+    const heading: Locator = page.locator(".blog-body h3");
+
+    await expect(heading).toHaveAttribute("id", "how-it-is-drawn");
+    await expect(heading.locator("a.heading-anchor")).toHaveAttribute(
+      "href",
+      "#how-it-is-drawn",
+    );
+    await expect(page.locator(".blog-body img")).toHaveAttribute(
+      "decoding",
+      "async",
+    );
   });
 
   test("fetches no mermaid for a post without a diagram", async ({

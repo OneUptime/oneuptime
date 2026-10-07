@@ -51,6 +51,13 @@ const docsHead = path.join(
   repository,
   "packages/App/FeatureSet/Docs/Views/Partials/Head.ejs",
 );
+// The docs' English strings, so the page says what a reader would read.
+const docsEnglish = JSON.parse(
+  fs.readFileSync(
+    path.join(repository, "packages/App/FeatureSet/Docs/Locales/en.json"),
+    "utf8",
+  ),
+);
 const blogPost = path.join(repository, "packages/Home/Views/Blog/Post.ejs");
 
 const config = createConfig({
@@ -75,6 +82,18 @@ const SEQUENCE =
   "sequenceDiagram\n  Alice->>Bob: Hello Bob\n  Bob-->>Alice: Hello Alice";
 // Does not parse.
 const BROKEN = "graph LR\n  A -->";
+/*
+ * What securityLevel 'loose' would allow and 'strict' does not: a click that
+ * calls a page function, and a javascript: link. Its labels also carry the
+ * HTML mermaid allows either way (bold text, a line break).
+ */
+const INTERACTIVE = [
+  "graph LR",
+  '  A["<b>Bold</b> start"] --> B[Plain label]',
+  '  B --> C["Line one<br/>Line two"]',
+  '  click A diagramCallback "Calls a page function"',
+  '  click B "javascript:window.diagramLinkRan=true" "A javascript link"',
+].join("\n");
 
 // The same five characters the docs' and the blog's renderers escape.
 function escapeHtml(text) {
@@ -88,7 +107,8 @@ function escapeHtml(text) {
 
 /*
  * ?diagrams= picks the docs page's and the blog post's diagrams: both kinds
- * (the default), none, or broken - one that does not parse, ahead of both.
+ * (the default), none, broken - one that does not parse, ahead of both - or
+ * interactive, with a click callback, a javascript: link and HTML labels.
  */
 function diagramsFor(url) {
   switch (url.searchParams.get("diagrams")) {
@@ -96,9 +116,18 @@ function diagramsFor(url) {
       return [];
     case "broken":
       return [BROKEN, FLOWCHART, SEQUENCE];
+    case "interactive":
+      return [INTERACTIVE];
     default:
       return [FLOWCHART, SEQUENCE];
   }
+}
+
+// The docs' t(): "ui.x" is the English string, as the docs render it.
+function docsT(key) {
+  const [section, name] = key.split(".");
+  const value = docsEnglish[section] && docsEnglish[section][name];
+  return typeof value === "string" ? value : key;
 }
 
 /*
@@ -109,9 +138,7 @@ function docsPage(url) {
   const head = ejs.render(
     fs.readFileSync(docsHead, "utf8"),
     {
-      t: (key) => {
-        return key;
-      },
+      t: docsT,
       lang: "en",
       enableGoogleTagManager: false,
     },
@@ -173,9 +200,18 @@ function blogScripts() {
   };
 }
 
+// A 4x3 image, inline so nothing has to be served for it.
+const BLOG_IMAGE =
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="4" height="3"><rect width="4" height="3" fill="#888"/></svg>',
+  );
+
 /*
- * A post with no h2 heading: the page script returns from its table of
- * contents section on one, and the diagrams must not care.
+ * A post with no h2 heading, so with no table of contents: the page script
+ * used to return from its table of contents section on one, and skip
+ * everything after it. It has a smaller heading and an image, for two of
+ * the features after it: heading links and image hints.
  */
 function blogPage(url) {
   const scripts = blogScripts();
@@ -185,7 +221,7 @@ function blogPage(url) {
     })
     .join("\n");
 
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Blog fixture</title><link rel="stylesheet" href="/oneuptime-assets/highlight/styles/vs2015.min.css">${scripts.highlightCore}${scripts.highlightLoader}</head><body><article class="blog-body"><p>A post with a diagram in it.</p>${blocks}<pre><code class="language-javascript">const answer = 42;</code></pre><p>The end.</p></article>${scripts.page}${scripts.diagrams}</body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Blog fixture</title><link rel="stylesheet" href="/oneuptime-assets/highlight/styles/vs2015.min.css">${scripts.highlightCore}${scripts.highlightLoader}</head><body><article class="blog-body"><p>A post with a diagram in it.</p><h3>How it is drawn</h3>${blocks}<pre><code class="language-javascript">const answer = 42;</code></pre><img src="${BLOG_IMAGE}" alt="A grey box"><p>The end.</p></article>${scripts.page}${scripts.diagrams}</body></html>`;
 }
 
 const tailwind = path.join(vendorDirectory, "tailwind/tailwind-3.4.5.js");
