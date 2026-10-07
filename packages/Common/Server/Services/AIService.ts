@@ -35,7 +35,7 @@ import ProjectAiDailyLimits, {
 import ProjectAiDailyLimitOwnerNotice from "../Utils/AI/ProjectAiDailyLimitOwnerNotice";
 import AiCreditsUsedUpOwnerNotice from "../Utils/AI/AiCreditsUsedUpOwnerNotice";
 import { PROJECT_AI_CREDITS_USED_UP_MESSAGE } from "../../Utils/Project/ProjectBalance";
-import AiAutoRechargeState from "../../Types/Billing/AiAutoRechargeState";
+import AutoRechargeState from "../../Types/Billing/AutoRechargeState";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 
@@ -641,24 +641,24 @@ export class Service extends BaseService {
       return null;
     }
 
-    const autoRecharge: AiAutoRechargeState =
+    const autoRecharge: AutoRechargeState =
       await AIBillingService.getAutoRechargeState({
         projectId: data.projectId,
         project,
       });
 
     // The next billed call recharges the credits first, then runs.
-    if (autoRecharge === AiAutoRechargeState.Ready) {
+    if (autoRecharge === AutoRechargeState.Ready) {
       return null;
     }
 
     await this.tellOwnersAiCreditsUsedUp({
       projectId: data.projectId,
-      isAutoRechargeOn: autoRecharge === AiAutoRechargeState.Failed,
+      isAutoRechargeOn: autoRecharge === AutoRechargeState.Failed,
       alreadyTold: project.lowAiBalanceNotificationSentToOwners,
     });
 
-    return autoRecharge === AiAutoRechargeState.Failed
+    return autoRecharge === AutoRechargeState.Failed
       ? AI_AUTO_RECHARGE_FAILED_MESSAGE
       : AI_BALANCE_INSUFFICIENT_MESSAGE;
   }

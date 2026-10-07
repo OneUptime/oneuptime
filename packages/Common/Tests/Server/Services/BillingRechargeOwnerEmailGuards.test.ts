@@ -153,6 +153,7 @@ let smsSlackSpy: jest.SpyInstance;
 let aiSlackSpy: jest.SpyInstance;
 let claimWindowSpy: jest.SpyInstance;
 let atomicAddSpy: jest.SpyInstance;
+let smsCreditSpy: jest.SpyInstance;
 
 /* The `data` object of the nth ProjectService.updateOneById call. */
 type GetUpdateDataFunction = (index: number) => Record<string, unknown>;
@@ -230,6 +231,14 @@ beforeEach(() => {
   atomicAddSpy = jest
     .spyOn(ProjectService, "atomicAddToColumnsByIdWithoutHooks")
     .mockResolvedValue(undefined);
+
+  /*
+   * The SMS and call balance is added the same way: one statement that
+   * answers the balance it left (100 cents, plus the 20 USD).
+   */
+  smsCreditSpy = jest
+    .spyOn(ProjectService, "creditSmsOrCallBalanceInUSDCents")
+    .mockResolvedValue(2100);
   jest
     .spyOn(Semaphore, "lock")
     .mockResolvedValue({} as unknown as SemaphoreMutex);
@@ -310,29 +319,27 @@ describe("NotificationService.rechargeBalance - SMS and call owner emails", () =
     );
   });
 
-  test("a successful recharge still resets all three owner-email flags", async () => {
+  test("a successful recharge adds the balance, and re-arms all three owner-email flags, in one statement", async () => {
     findOneByIdSpy.mockResolvedValue(
       makeSmsProject({ failedFlagAlreadySet: true }),
     );
 
     await NotificationService.rechargeBalance(PROJECT_ID, 20);
 
-    expect(updateOneByIdSpy).toHaveBeenCalledTimes(1);
-
-    const data: Record<string, unknown> = getUpdateData(0);
-
-    expect(data["smsOrCallCurrentBalanceInUSDCents"]).toBe(2100);
-
     /*
-     * These resets are correct and deliberately untouched: with the balance
-     * topped up, the three conditions that armed those mails are gone, so the
-     * next genuine failure must be allowed to mail once.
+     * The balance and the flags in one statement
+     * (ProjectService.creditSmsOrCallBalanceInUSDCents, which resets the
+     * three flags: with the balance topped up, the conditions that armed
+     * those mails are gone, so the next genuine failure must be allowed to
+     * mail once). It used to write back the balance read before the
+     * charge, plus the amount, with a separate update.
      */
-    expect(data["failedCallAndSMSBalanceChargeNotificationSentToOwners"]).toBe(
-      false,
-    );
-    expect(data["lowCallAndSMSBalanceNotificationSentToOwners"]).toBe(false);
-    expect(data["notEnabledSmsOrCallNotificationSentToOwners"]).toBe(false);
+    expect(smsCreditSpy).toHaveBeenCalledTimes(1);
+    expect(smsCreditSpy.mock.calls[0]![0]).toEqual({
+      projectId: PROJECT_ID,
+      amountInUSDCents: 2000,
+    });
+    expect(updateOneByIdSpy).toHaveBeenCalledTimes(0);
   });
 
   test("a successful recharge still fires the Slack balance-refill notification", async () => {

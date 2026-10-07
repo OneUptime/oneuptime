@@ -9,7 +9,7 @@ import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
 import Semaphore from "../../../Server/Infrastructure/Semaphore";
 import logger from "../../../Server/Utils/Logger";
 import Project from "../../../Models/DatabaseModels/Project";
-import AiAutoRechargeState from "../../../Types/Billing/AiAutoRechargeState";
+import AutoRechargeState from "../../../Types/Billing/AutoRechargeState";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -232,25 +232,25 @@ describe("AIBillingService.getAutoRechargeState", () => {
   }
 
   test("on and set up, with no recent failure: Ready", async () => {
-    expect(await stateOf({})).toBe(AiAutoRechargeState.Ready);
+    expect(await stateOf({})).toBe(AutoRechargeState.Ready);
   });
 
   test("off: Off", async () => {
     expect(await stateOf({ enableAutoRechargeAiBalance: false })).toBe(
-      AiAutoRechargeState.Off,
+      AutoRechargeState.Off,
     );
   });
 
   test("on with nothing to add: Off", async () => {
     expect(await stateOf({ autoAiRechargeByBalanceInUSD: 0 })).toBe(
-      AiAutoRechargeState.Off,
+      AutoRechargeState.Off,
     );
   });
 
   test("its last charge failed within the hour: Failed", async () => {
     world.cache.set(FAILURE_KEY, "2026-10-07T08:00:00.000Z");
 
-    expect(await stateOf({})).toBe(AiAutoRechargeState.Failed);
+    expect(await stateOf({})).toBe(AutoRechargeState.Failed);
   });
 
   test("a failure that cannot be read reads as none: Ready", async () => {
@@ -258,7 +258,7 @@ describe("AIBillingService.getAutoRechargeState", () => {
       new Error("Cache is not connected"),
     );
 
-    expect(await stateOf({})).toBe(AiAutoRechargeState.Ready);
+    expect(await stateOf({})).toBe(AutoRechargeState.Ready);
   });
 });
 
@@ -546,7 +546,7 @@ describe("AIBillingService.rechargeBalance (the Recharge button)", () => {
         projectId: PROJECT_ID,
         project: world.row as unknown as Project,
       }),
-    ).toBe(AiAutoRechargeState.Ready);
+    ).toBe(AutoRechargeState.Ready);
   });
 
   test("goes ahead without the lock: the person who asked is told whether it worked", async () => {
