@@ -7,6 +7,7 @@ import type {
 } from "../../../../Server/Utils/ProjectSsoProviderStanding";
 import type * as GlobalSsoAuthorizationType from "../../../../Server/Utils/GlobalSsoAuthorization";
 import type RedisType from "../../../../Server/Infrastructure/Redis";
+import type { SemaphoreMutex } from "../../../../Server/Infrastructure/Semaphore";
 import ObjectID from "../../../../Types/ObjectID";
 import SsoProviderType from "../../../../Types/SSO/SsoProviderType";
 import getTestRedisConnectionOptions from "../../TestingUtils/Redis/TestRedisOptions";
@@ -407,5 +408,57 @@ describe("project SSO provider changes reach every server through Valkey", () =>
     await quietPeriod();
     expect(serverA.globalForgets).toBe(1);
     expect(serverA.rechecked).toEqual([undefined]);
+  });
+
+  /*
+   * Every change to who can sign in - a global provider or one of its
+   * attachments, Require SSO for Login for a project or the server, a
+   * project's provider taken away - is checked and written under the lock
+   * on the server's sign-in rules (ProjectSsoProviderChanges.
+   * lockSignInChange), held in Valkey: one server's change waits for
+   * another's to be written, so neither is checked against what the other
+   * is about to change.
+   */
+  test("a change to who can sign in on one server waits for another server's to be written", async () => {
+    const projectId: ObjectID = ObjectID.generate();
+
+    // Server A checks a change to the global providers, and holds the lock.
+    const heldByA: Array<SemaphoreMutex> =
+      await serverA.providerChanges.lockSignInChange({
+        projectIds: [],
+        wholeServer: true,
+      });
+    expect(heldByA).toHaveLength(1);
+
+    // Server B turns Require SSO for Login on for a project meanwhile.
+    let heldByB: Array<SemaphoreMutex> | null = null;
+    const waitingB: Promise<void> = serverB.providerChanges
+      .lockSignInChange({
+        projectIds: [projectId.toString()],
+        wholeServer: true,
+      })
+      .then((locks: Array<SemaphoreMutex>): void => {
+        heldByB = locks;
+      });
+
+    await quietPeriod();
+    expect(heldByB).toBeNull();
+
+    // A's change is written and its lock given back: B goes on.
+    await serverA.providerChanges.releaseSignInChange(heldByA);
+    await waitingB;
+
+    expect(heldByB).toHaveLength(2);
+
+    await serverB.providerChanges.releaseSignInChange(heldByB!);
+
+    // Given back: the next change takes it at once.
+    const next: Array<SemaphoreMutex> =
+      await serverA.providerChanges.lockSignInChange({
+        projectIds: [],
+        wholeServer: true,
+      });
+    expect(next).toHaveLength(1);
+    await serverA.providerChanges.releaseSignInChange(next);
   });
 });

@@ -291,7 +291,7 @@ describe("isGlobalSsoTokenAuthorizedForProject - provider trust is unconditional
     expect(ssoGovernsSpy).not.toHaveBeenCalled();
   });
 
-  test("SAML: the SAME token is allowed the moment the provider is enabled again", async () => {
+  test("SAML: the SAME token is allowed while the provider is on and was never turned off", async () => {
     ssoTrustSpy.mockResolvedValue(TRUSTED_AND_UNRESTRICTED);
 
     await expect(
@@ -315,7 +315,7 @@ describe("isGlobalSsoTokenAuthorizedForProject - provider trust is unconditional
     expect(oidcGovernsSpy).not.toHaveBeenCalled();
   });
 
-  test("OIDC: the SAME token is allowed the moment the provider is enabled again", async () => {
+  test("OIDC: the SAME token is allowed while the provider is on and was never turned off", async () => {
     oidcTrustSpy.mockResolvedValue(TRUSTED_AND_UNRESTRICTED);
 
     await expect(
@@ -372,6 +372,143 @@ describe("isGlobalSsoTokenAuthorizedForProject - provider trust is unconditional
 
     await expect(
       UserMiddleware.isSsoSatisfiedForProject({ req, projectId, userId }),
+    ).resolves.toBe(true);
+  });
+});
+
+/*
+ * Turning a provider off ends the sign-ins it gave, and turning it on again
+ * does not bring them back (Server/Utils/SsoSignInsEnded): the provider keeps
+ * when it was last turned off (signInsEndedAtMs), and a token counts only
+ * when its verified issue time (`iat`, whole seconds) is after then. People
+ * sign in with it again, and their new tokens count.
+ */
+describe("isGlobalSsoTokenAuthorizedForProject - a provider turned off and on again", () => {
+  const projectId: ObjectID = ObjectID.generate();
+  const userId: ObjectID = ObjectID.generate();
+  const providerId: ObjectID = ObjectID.generate();
+
+  const tokenDataOf: (providerType: SsoProviderType) => JSONWebTokenData = (
+    providerType: SsoProviderType,
+  ): JSONWebTokenData => {
+    return decodeToken(
+      mintGlobalToken({ userId, providerId, providerType }),
+    );
+  };
+
+  const onAgainSince: (signInsEndedAtMs: number) => GlobalProviderTrust = (
+    signInsEndedAtMs: number,
+  ): GlobalProviderTrust => {
+    return {
+      isUsable: true,
+      restrictToAttachedProjects: false,
+      signInsEndedAtMs,
+    };
+  };
+
+  test.each([
+    ["SAML", SsoProviderType.GlobalSSO],
+    ["OIDC", SsoProviderType.GlobalOIDC],
+  ])(
+    "%s: a token given before it was turned off stays ended once it is on again",
+    async (_label: string, providerType: SsoProviderType) => {
+      const tokenData: JSONWebTokenData = tokenDataOf(providerType);
+      const issuedAtMs: number = tokenData.issuedAtMs!;
+      const trustSpy: TrustSpy =
+        providerType === SsoProviderType.GlobalSSO ? ssoTrustSpy : oidcTrustSpy;
+
+      expect(typeof issuedAtMs).toBe("number");
+
+      // Turned off a minute after the sign-in, and on again since.
+      trustSpy.mockResolvedValue(onAgainSince(issuedAtMs + 60_000));
+
+      await expect(
+        UserMiddleware.isGlobalSsoTokenAuthorizedForProject({
+          globalSsoTokenData: tokenData,
+          projectId,
+        }),
+      ).resolves.toBe(false);
+
+      // Turned off in the very second the token was given: ended too.
+      trustSpy.mockResolvedValue(onAgainSince(issuedAtMs + 400));
+
+      await expect(
+        UserMiddleware.isGlobalSsoTokenAuthorizedForProject({
+          globalSsoTokenData: tokenData,
+          projectId,
+        }),
+      ).resolves.toBe(false);
+
+      // Turned off before the sign-in: a sign-in given since counts.
+      trustSpy.mockResolvedValue(onAgainSince(issuedAtMs - 1000));
+
+      await expect(
+        UserMiddleware.isGlobalSsoTokenAuthorizedForProject({
+          globalSsoTokenData: tokenData,
+          projectId,
+        }),
+      ).resolves.toBe(true);
+    },
+  );
+
+  test("a token that does not say when it was given counts only for a provider never turned off", async () => {
+    const tokenData: JSONWebTokenData = {
+      ...tokenDataOf(SsoProviderType.GlobalSSO),
+      issuedAtMs: undefined,
+    };
+
+    ssoTrustSpy.mockResolvedValue(TRUSTED_AND_UNRESTRICTED);
+
+    await expect(
+      UserMiddleware.isGlobalSsoTokenAuthorizedForProject({
+        globalSsoTokenData: tokenData,
+        projectId,
+      }),
+    ).resolves.toBe(true);
+
+    ssoTrustSpy.mockResolvedValue(onAgainSince(Date.now() - 60_000));
+
+    await expect(
+      UserMiddleware.isGlobalSsoTokenAuthorizedForProject({
+        globalSsoTokenData: tokenData,
+        projectId,
+      }),
+    ).resolves.toBe(false);
+  });
+
+  test("the whole enforcement entry point refuses the old sign-in and accepts a new one", async () => {
+    const oldToken: string = mintGlobalToken({
+      userId,
+      providerId,
+      providerType: SsoProviderType.GlobalSSO,
+    });
+    const oldIssuedAtMs: number = decodeToken(oldToken).issuedAtMs!;
+
+    ssoTrustSpy.mockResolvedValue(onAgainSince(oldIssuedAtMs + 60_000));
+
+    await expect(
+      UserMiddleware.isSsoSatisfiedForProject({
+        req: buildRequest({ globalToken: oldToken }),
+        projectId,
+        userId,
+      }),
+    ).resolves.toBe(false);
+
+    // Signing in again after it was turned on gives a token that counts.
+    ssoTrustSpy.mockResolvedValue(onAgainSince(oldIssuedAtMs - 60_000));
+
+    await expect(
+      UserMiddleware.isSsoSatisfiedForProject({
+        req: buildRequest({
+          globalToken: mintGlobalToken({
+            userId,
+            providerId,
+            providerType: SsoProviderType.GlobalSSO,
+          }),
+        }),
+        projectId,
+        userId,
+      }),
     ).resolves.toBe(true);
   });
 });

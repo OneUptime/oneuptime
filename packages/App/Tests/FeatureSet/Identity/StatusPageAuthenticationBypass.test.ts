@@ -139,11 +139,17 @@ const findActiveSessionByRefreshToken: jest.Mock = jest.fn();
 const isLoginCodeSession: jest.Mock = jest.fn();
 const revokeSessionById: jest.Mock = jest.fn();
 const renewSessionWithNewRefreshToken: jest.Mock = jest.fn();
+const doesSignInStillCount: jest.Mock = jest.fn();
 
 jest.mock("Common/Server/Services/StatusPagePrivateUserSessionService", () => {
   return {
     __esModule: true,
+    SIGN_IN_NO_LONGER_ACCEPTED_REASON:
+      "Its sign-in is no longer accepted by the status page",
     default: {
+      doesSignInStillCount: (...args: Array<unknown>): unknown => {
+        return doesSignInStillCount(...args);
+      },
       createSession: (...args: Array<unknown>): unknown => {
         createSession(...args);
         return Promise.resolve({
@@ -614,6 +620,12 @@ describe("Status page login-code exchange", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // The sign-in still counts, on a page that does not require SSO.
+    doesSignInStillCount.mockResolvedValue(true);
+    statusPageFindOneById.mockResolvedValue({
+      id: statusPageId,
+      requireSsoForLogin: false,
+    });
   });
 
   it("rejects a missing status page id before looking up the code", async () => {
@@ -747,6 +759,129 @@ describe("Status page login-code exchange", () => {
     expect(setStatusPagePrivateUserCookie).toHaveBeenCalledTimes(1);
     expect(sendEntityResponse).toHaveBeenCalledTimes(1);
     expect(sendErrorResponse).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * A login code an SSO provider gave counts only while that provider still
+   * vouches for the sign-in - turned off or deleted since, it does not -
+   * and, on a page that requires SSO, only if a provider gave it
+   * (StatusPagePrivateUserSessionService.addSignInRule).
+   */
+  it("refuses a code whose sign-in is no longer accepted, and ends its session", async () => {
+    exchangeLoginCode.mockResolvedValue(successfulExchange());
+    privateUserFindOneById.mockResolvedValue(matchingUser());
+    doesSignInStillCount.mockResolvedValue(false);
+
+    await invoke(
+      "/exchange-login-code/:statuspageid",
+      { loginCode: validLoginCode },
+      { statuspageid: PUBLIC_STATUS_PAGE_ID },
+    );
+
+    expect(revokeSessionById).toHaveBeenCalledWith(sessionId, {
+      reason: "Its sign-in is no longer accepted by the status page",
+    });
+    expect(setStatusPagePrivateUserCookie).not.toHaveBeenCalled();
+    expect(sendEntityResponse).not.toHaveBeenCalled();
+    expect(sendErrorResponse).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([true, false])(
+    "asks whether the sign-in still counts with the page's Require SSO for Login (%p)",
+    async (requireSsoForLogin: boolean) => {
+      exchangeLoginCode.mockResolvedValue(successfulExchange());
+      privateUserFindOneById.mockResolvedValue(matchingUser());
+      statusPageFindOneById.mockResolvedValue({
+        id: statusPageId,
+        requireSsoForLogin,
+      });
+
+      await invoke(
+        "/exchange-login-code/:statuspageid",
+        { loginCode: validLoginCode },
+        { statuspageid: PUBLIC_STATUS_PAGE_ID },
+      );
+
+      expect(doesSignInStillCount).toHaveBeenCalledWith({
+        sessionId,
+        requiresSso: requireSsoForLogin,
+      });
+      expect(setStatusPagePrivateUserCookie).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("treats a page it cannot find as one that requires SSO", async () => {
+    exchangeLoginCode.mockResolvedValue(successfulExchange());
+    privateUserFindOneById.mockResolvedValue(matchingUser());
+    statusPageFindOneById.mockResolvedValue(null);
+
+    await invoke(
+      "/exchange-login-code/:statuspageid",
+      { loginCode: validLoginCode },
+      { statuspageid: PUBLIC_STATUS_PAGE_ID },
+    );
+
+    expect(doesSignInStillCount).toHaveBeenCalledWith({
+      sessionId,
+      requiresSso: true,
+    });
+  });
+
+  describe("a refresh", () => {
+    const signedInSession: () => Record<string, unknown> = () => {
+      return {
+        id: sessionId,
+        _id: sessionId.toString(),
+        statusPageId,
+        statusPagePrivateUserId: privateUserId,
+        refreshTokenExpiresAt: new Date("2030-01-01T00:00:00.000Z"),
+      };
+    };
+
+    beforeEach(() => {
+      getRefreshTokenFromExpressRequest.mockReturnValue(validLoginCode);
+      findActiveSessionByRefreshToken.mockResolvedValue(signedInSession());
+      isLoginCodeSession.mockReturnValue(false);
+      privateUserFindOneById.mockResolvedValue(matchingUser());
+      renewSessionWithNewRefreshToken.mockResolvedValue({
+        session: { id: sessionId },
+        refreshToken: "renewed-refresh-token",
+        refreshTokenExpiresAt: new Date("2030-01-01T00:00:00.000Z"),
+      });
+    });
+
+    it("whose sign-in still counts renews the session", async () => {
+      await invoke(
+        "/refresh-token/:statuspageid",
+        {},
+        { statuspageid: PUBLIC_STATUS_PAGE_ID },
+      );
+
+      expect(doesSignInStillCount).toHaveBeenCalledWith({
+        sessionId,
+        requiresSso: false,
+      });
+      expect(renewSessionWithNewRefreshToken).toHaveBeenCalledTimes(1);
+      expect(setStatusPagePrivateUserCookie).toHaveBeenCalledTimes(1);
+    });
+
+    it("whose sign-in is no longer accepted ends the session and clears its cookies, renewing nothing", async () => {
+      doesSignInStillCount.mockResolvedValue(false);
+
+      await invoke(
+        "/refresh-token/:statuspageid",
+        {},
+        { statuspageid: PUBLIC_STATUS_PAGE_ID },
+      );
+
+      expect(revokeSessionById).toHaveBeenCalledWith(sessionId, {
+        reason: "Its sign-in is no longer accepted by the status page",
+      });
+      expect(renewSessionWithNewRefreshToken).not.toHaveBeenCalled();
+      expect(setStatusPagePrivateUserCookie).not.toHaveBeenCalled();
+      expect(removeCookie).toHaveBeenCalledTimes(2);
+      expect(sendErrorResponse).toHaveBeenCalledTimes(1);
+    });
   });
 
   it("cannot redeem a login code through the ordinary refresh endpoint", async () => {
