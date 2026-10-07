@@ -3461,7 +3461,8 @@ These are no longer recorded against the project and have to be cancelled by han
 
     return await this.addToSmsOrCallBalance({
       projectId: data.projectId,
-      deltaInUSDCents: -data.amountInUSDCents,
+      // Never -0: nothing taken is nothing taken.
+      deltaInUSDCents: -data.amountInUSDCents || 0,
       set: {
         notEnabledSmsOrCallNotificationSentToOwners: false,
       },
