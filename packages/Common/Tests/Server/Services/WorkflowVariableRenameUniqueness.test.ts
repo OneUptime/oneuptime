@@ -229,7 +229,7 @@ describe("WorkflowVariableService rename uniqueness", () => {
           makeUpdateBy({
             description: "Token for the nightly Airflow sync",
             isSecret: "true",
-          } as Partial<WorkflowVariable>),
+          } as unknown as Partial<WorkflowVariable>),
         ),
       ).resolves.toBeDefined();
 
@@ -668,7 +668,11 @@ describe("WorkflowVariableService rename uniqueness", () => {
       });
 
       await expect(
-        hook()(makeUpdateBy({ isSecret: "true" } as Partial<WorkflowVariable>)),
+        hook()(
+          makeUpdateBy({
+            isSecret: "true",
+          } as unknown as Partial<WorkflowVariable>),
+        ),
       ).resolves.toBeDefined();
     });
 
@@ -686,7 +690,9 @@ describe("WorkflowVariableService rename uniqueness", () => {
 
       await expect(
         hook()(
-          makeUpdateBy({ isSecret: "false" } as Partial<WorkflowVariable>),
+          makeUpdateBy({
+            isSecret: "false",
+          } as unknown as Partial<WorkflowVariable>),
         ),
       ).rejects.toThrow(BadDataException);
 
@@ -804,7 +810,9 @@ describe("WorkflowVariableService rename uniqueness", () => {
 
       await expect(
         hook()(
-          makeUpdateBy({ isSecret: "false" } as Partial<WorkflowVariable>),
+          makeUpdateBy({
+            isSecret: "false",
+          } as unknown as Partial<WorkflowVariable>),
         ),
       ).resolves.toBeDefined();
     });

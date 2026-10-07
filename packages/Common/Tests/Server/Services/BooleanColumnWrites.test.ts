@@ -1,6 +1,9 @@
 import AuditLogService from "../../../Server/Services/AuditLogService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import FileService from "../../../Server/Services/FileService";
+import CreateBy from "../../../Server/Types/Database/CreateBy";
+import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
+import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import { FileOwners } from "../../../Server/Utils/File/FileOwnership";
 import PublishedImages from "../../../Server/Utils/File/PublishedImages";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -456,6 +459,67 @@ describe("update: a switch written as text is the switch the database stores", (
     });
 
     expect(repository.written[0]!["isVisibleOnStatusPage"]).toBe(false);
+  });
+});
+
+/*
+ * A service's own hook that sets a switch as text - copied from a template's
+ * JSON or a custom field, say - is held to the same rule: the write is turned
+ * into the booleans the database stores again once the hooks have run, so
+ * what is saved, and every check and hook after them, read the boolean.
+ */
+class MaintenanceWritesSettingTextInHooks extends DatabaseService<ScheduledMaintenance> {
+  public constructor() {
+    super(ScheduledMaintenance);
+  }
+
+  protected override async onBeforeCreate(
+    createBy: CreateBy<ScheduledMaintenance>,
+  ): Promise<OnCreate<ScheduledMaintenance>> {
+    (createBy.data as unknown as Record<string, unknown>)[
+      "isVisibleOnStatusPage"
+    ] = "true";
+
+    return { createBy, carryForward: null };
+  }
+
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<ScheduledMaintenance>,
+  ): Promise<OnUpdate<ScheduledMaintenance>> {
+    (updateBy.data as unknown as Record<string, unknown>)[
+      "isVisibleOnStatusPage"
+    ] = "yes";
+
+    return { updateBy, carryForward: null };
+  }
+}
+
+describe("a switch a service's own hook sets as text is the switch the database stores too", () => {
+  test("on a create: it is saved as true, and the event's images are made public", async () => {
+    const service: MaintenanceWritesSettingTextInHooks =
+      new MaintenanceWritesSettingTextInHooks();
+    const repository: FakeRepository = useRepository(service as never);
+
+    await service.create({ data: newMaintenance(false), props: rootProps() });
+
+    expect(repository.saved[0]!["isVisibleOnStatusPage"]).toBe(true);
+    expect(visibilityAsked()).toEqual(["aaa111:public"]);
+  });
+
+  test("on an update: it is written as true", async () => {
+    const service: MaintenanceWritesSettingTextInHooks =
+      new MaintenanceWritesSettingTextInHooks();
+    const repository: FakeRepository = useRepository(service as never, [
+      storedMaintenance(false),
+    ]);
+
+    await service.updateOneById({
+      id: new ObjectID(RECORD_ID),
+      data: { title: "Database upgrade, part two" } as never,
+      props: rootProps(),
+    });
+
+    expect(repository.written[0]!["isVisibleOnStatusPage"]).toBe(true);
   });
 });
 

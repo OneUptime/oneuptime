@@ -171,7 +171,7 @@ La même génération vous donne des déclencheurs pour la configuration elle-m�
 
 Quelques détails qui comptent au moment de câbler tout ça :
 
-- **On Update X** accepte un argument facultatif **Listen on** qui restreint le déclencheur aux mises à jour touchant certains champs. Laissez-le vide pour réagir à tout changement. Si une mise à jour arrive sans trace des champs modifiés, le filtre est ignoré et le workflow s'exécute quand même.
+- **On Update X** accepte un argument facultatif **Listen on** qui restreint le déclencheur aux mises à jour qui modifient certains champs, quelle que soit la nouvelle valeur : un interrupteur désactivé ou un champ vidé compte aussi. Un champ enregistré avec la valeur qu'il a déjà n'est pas une modification : un formulaire d'édition qui le renvoie à chaque enregistrement ne réveille donc pas le workflow. Laissez-le vide pour réagir à tout changement. Si une mise à jour arrive sans trace des champs modifiés, le filtre est ignoré et le workflow s'exécute quand même.
 - **On Create X** et **On Update X** exigent tous deux un argument **Select Fields** ; **On Delete X** ne prend aucun argument.
 - Les trois exposent un unique port de sortie **Success**, et chacun accepte un argument d'identifiant pour que vous puissiez lancer le workflow à la main sur un enregistrement précis.
 - Les noms viennent du nom au singulier du modèle, pas de son nom de table — c'est pourquoi vous voyez **On Create Incident Team Owner** et **On Create Incident User Owner** plutôt que des noms calqués sur les tables.

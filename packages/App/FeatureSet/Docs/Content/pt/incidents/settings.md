@@ -171,7 +171,7 @@ A mesma geração lhe dá gatilhos para a própria configuração: **On Create I
 
 Alguns detalhes que importam na hora de ligar isso tudo:
 
-- **On Update X** recebe um argumento opcional **Listen on**, que restringe o gatilho às atualizações que tocam campos específicos. Deixe em branco para disparar a qualquer mudança. Se uma atualização chegar sem registro de quais campos mudaram, o filtro é ignorado e o workflow roda mesmo assim.
+- **On Update X** recebe um argumento opcional **Listen on**, que restringe o gatilho às atualizações que alteram campos específicos, seja qual for o novo valor: um interruptor desligado ou um campo esvaziado também conta. Um campo salvo com o valor que já tem não é uma mudança, então um formulário de edição que o reenvia a cada salvamento não desperta o workflow. Deixe em branco para disparar a qualquer mudança. Se uma atualização chegar sem registro de quais campos mudaram, o filtro é ignorado e o workflow roda mesmo assim.
 - **On Create X** e **On Update X** exigem um argumento **Select Fields**; **On Delete X** não recebe argumento nenhum.
 - Os três expõem uma única porta de saída **Sucesso**, e cada um aceita um argumento de ID para você rodar o workflow à mão contra um registro específico.
 - Os nomes vêm do nome no singular do modelo, não do nome da tabela — é por isso que você vê **On Create Incident Team Owner** e **On Create Incident User Owner** em vez de nomes no formato das tabelas.

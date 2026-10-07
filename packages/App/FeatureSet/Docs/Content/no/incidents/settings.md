@@ -171,7 +171,7 @@ Den samme genereringen gir deg triggere for selve konfigurasjonen: **On Create I
 
 Noen detaljer som betyr noe når du kobler dette sammen:
 
-- **On Update X** tar et valgfritt argument **Listen on** som snevrer triggeren inn til oppdateringer som berører bestemte felt. La det stå tomt for å utløses ved enhver endring. Kommer en oppdatering uten oversikt over hvilke felt som endret seg, hoppes filteret over og arbeidsflyten kjører likevel.
+- **On Update X** tar et valgfritt argument **Listen on** som snevrer triggeren inn til oppdateringer som endrer bestemte felt, uansett hva de endres til: en bryter som slås av eller et felt som tømmes, teller også. Et felt som lagres med verdien det allerede har, er ingen endring, så et redigeringsskjema som sender det tilbake ved hver lagring, vekker ikke arbeidsflyten. La det stå tomt for å utløses ved enhver endring. Kommer en oppdatering uten oversikt over hvilke felt som endret seg, hoppes filteret over og arbeidsflyten kjører likevel.
 - **On Create X** og **On Update X** tar begge et påkrevd argument **Select Fields**; **On Delete X** tar ingen argumenter.
 - Alle tre eksponerer én enkelt **Success**-utport, og hver av dem tar imot et ID-argument så du kan kjøre arbeidsflyten manuelt mot én post.
 - Navnene kommer fra modellens entallsnavn, ikke fra tabellnavnet — det er derfor du ser **On Create Incident Team Owner** og **On Create Incident User Owner** i stedet for tabellformede navn.

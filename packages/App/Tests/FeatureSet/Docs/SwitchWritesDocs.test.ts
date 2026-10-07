@@ -164,6 +164,45 @@ describe("the incident settings page on Listen on", () => {
     );
     expect(text).not.toContain("updates touching specific fields");
   });
+
+  /*
+   * Every translation says it too: its Listen on line grows from three
+   * sentences (narrows, leave it blank, no record of the fields) to at least
+   * four - a field saved as it was is not a change.
+   */
+  test("says the same in every docs language", () => {
+    const languages: Array<string> = fs
+      .readdirSync(CONTENT_DIR)
+      .filter((entry: string): boolean => {
+        return (
+          entry !== "en" &&
+          fs.existsSync(
+            path.join(CONTENT_DIR, entry, "incidents", "settings.md"),
+          )
+        );
+      });
+
+    expect(languages.length).toBeGreaterThanOrEqual(16);
+
+    for (const language of languages) {
+      const listenOn: Array<string> = fs
+        .readFileSync(
+          path.join(CONTENT_DIR, language, "incidents", "settings.md"),
+          "utf8",
+        )
+        .split("\n")
+        .filter((line: string): boolean => {
+          return (
+            line.includes("**On Update X**") && line.includes("**Listen on**")
+          );
+        });
+
+      expect([language, listenOn.length]).toEqual([language, 1]);
+
+      const sentenceEnds: number = (listenOn[0]!.match(/[.。।]/g) || []).length;
+      expect([language, sentenceEnds >= 4]).toEqual([language, true]);
+    }
+  });
 });
 
 describe("the upgrade notes", () => {

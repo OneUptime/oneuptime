@@ -1,4 +1,11 @@
-import { toStoredBoolean } from "../../../Types/Database/BooleanColumnValue";
+import {
+  isBooleanTableColumnType,
+  toStoredBoolean,
+} from "../../../Types/Database/BooleanColumnValue";
+import {
+  coerceDateColumnValue,
+  isDateTableColumnType,
+} from "../../../Types/Database/DateColumnValue";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import RelationValueUtil from "./RelationValueUtil";
@@ -35,7 +42,8 @@ import RelationValueUtil from "./RelationValueUtil";
  *   writing a switch back as off counted as a change - and a "false" written
  *   by hand is false too.
  * - A time as the instant it names, to the millisecond: the same instant sent
- *   as a Date or as an ISO string in another time zone is the same time.
+ *   as a Date or as an ISO string in another time zone is the same time, and
+ *   one written with no zone is read as UTC, as Postgres reads it.
  * - An id in any case, as Postgres compares uuids.
  * - Anything else by its text, so an id and its ObjectID are the same value -
  *   and a value with no text of its own (a plain object) by its content.
@@ -102,7 +110,7 @@ export default class ColumnValueChange {
       return !JSONFunctions.deepEqual(stored, written);
     }
 
-    if (data.columnType === TableColumnType.Boolean) {
+    if (isBooleanTableColumnType(data.columnType)) {
       const storedSwitch: unknown = toStoredBoolean(stored);
       const writtenSwitch: unknown = toStoredBoolean(written);
 
@@ -114,7 +122,7 @@ export default class ColumnValueChange {
       }
     }
 
-    if (data.columnType === TableColumnType.Date) {
+    if (isDateTableColumnType(data.columnType)) {
       const storedInstant: number | null = this.toInstant(stored);
       const writtenInstant: number | null = this.toInstant(written);
 
@@ -160,18 +168,20 @@ export default class ColumnValueChange {
   }
 
   /*
-   * The instant a time names, in milliseconds: a Date, an ISO string or a
-   * number of milliseconds. Null for anything that names none.
+   * The instant a time names, in milliseconds: a Date, a number of
+   * milliseconds, or a text as a date column reads it
+   * (coerceDateColumnValue) - an ISO time, one with no zone read as UTC, as
+   * Postgres reads it, whatever zone the server runs in. Null for anything
+   * that names none, looser text ("12") included: it is compared as text.
    */
   private static toInstant(value: unknown): number | null {
+    const time: unknown = coerceDateColumnValue(value);
     let instant: number = NaN;
 
-    if (value instanceof Date) {
-      instant = value.getTime();
-    } else if (typeof value === "number") {
-      instant = value;
-    } else if (typeof value === "string" && value.trim()) {
-      instant = new Date(value.trim()).getTime();
+    if (time instanceof Date) {
+      instant = time.getTime();
+    } else if (typeof time === "number") {
+      instant = time;
     }
 
     return Number.isFinite(instant) ? instant : null;

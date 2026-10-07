@@ -50,12 +50,11 @@ type GetSecretWorkflowVariableValuesFunction = (
  * The secret contents of the supplied variables, ready to hand to
  * `redactSecretsFromString`.
  *
- * `isSecret` is declared as a string on the model but arrives as a real
- * boolean from the database. It is read as the database stores it
- * (toStoredBoolean), the same way WorkflowVariableService reads it, so a
- * literal such as "true" counts as secret too. A variable whose `isSecret`
- * was not selected reads as undefined and is treated as not secret — every
- * caller must therefore select the column.
+ * `isSecret` is read as the database stores it (toStoredBoolean), the same
+ * way WorkflowVariableService reads it, so a literal such as "true" that
+ * reached a variable some other way counts as secret too. A variable whose
+ * `isSecret` was not selected reads as undefined and is treated as not
+ * secret — every caller must therefore select the column.
  *
  * An OAuth 2.0 variable is secret whatever its flag says: its value is a
  * bearer token, and it is the access token (not `content`, which it leaves

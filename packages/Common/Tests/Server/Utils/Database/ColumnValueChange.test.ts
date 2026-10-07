@@ -146,6 +146,44 @@ describe("times", () => {
   test("a text that names no time is compared as text", () => {
     expect(isChanged(TableColumnType.Date, AT, "soon")).toBe(true);
   });
+
+  /*
+   * Postgres reads a time written with no zone as UTC (the session zone of
+   * every OneUptime database), whatever zone the server runs in - so the
+   * comparison does too (Types/Database/DateColumnValue), where a JavaScript
+   * date would read it in the server's own zone.
+   */
+  test("a time written with no zone is read as UTC, as Postgres reads it", () => {
+    const tenUtc: Date = new Date("2026-01-01T10:00:00.000Z");
+
+    expect(isChanged(TableColumnType.Date, tenUtc, "2026-01-01T10:00:00")).toBe(
+      false,
+    );
+    expect(isChanged(TableColumnType.Date, tenUtc, "2026-01-01 10:00")).toBe(
+      false,
+    );
+    expect(
+      isChanged(
+        TableColumnType.Date,
+        new Date("2026-01-01T09:00:00.000Z"),
+        "2026-01-01T10:00:00",
+      ),
+    ).toBe(true);
+    expect(
+      isChanged(
+        TableColumnType.Date,
+        new Date("2026-01-01T00:00:00.000Z"),
+        "2026-01-01",
+      ),
+    ).toBe(false);
+  });
+
+  test("loose text that a JavaScript date would read is no time: it is compared as text", () => {
+    // new Date("12") is the first of December 2001 to JavaScript; Postgres refuses it.
+    expect(
+      isChanged(TableColumnType.Date, new Date(new Date("12").getTime()), "12"),
+    ).toBe(true);
+  });
 });
 
 describe("ids, JSON and relations, as before", () => {

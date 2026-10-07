@@ -23,10 +23,10 @@ import {
 import Model from "../../Models/DatabaseModels/WorkflowVariable";
 
 /*
- * isSecret is declared `string` over a genuinely boolean column. What comes
- * back from Postgres is a boolean, and a write's value is one too by the time
- * a hook reads it (DatabaseService turns every Boolean column of a write into
- * the boolean the database stores, Types/Database/BooleanColumnValue), so a
+ * Whether a value of isSecret marks a variable secret. What comes back from
+ * Postgres is a boolean, and a write's value is one too by the time a hook
+ * reads it (DatabaseService turns every Boolean column of a write into the
+ * boolean the database stores, Types/Database/BooleanColumnValue), so a
  * request's "true" or "yes" is true here. Read exactly the way the run logs'
  * redaction reads it (getSecretWorkflowVariableValues), so what this service
  * calls secret and what the run logs redact can never disagree.
@@ -300,11 +300,7 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
-    /*
-     * isSecret is declared `string` over a boolean column (see isSecretValue);
-     * write the boolean the column holds.
-     */
-    data.isSecret = true as unknown as string;
+    data.isSecret = true;
     data.content = "";
 
     return { createBy, carryForward: null };

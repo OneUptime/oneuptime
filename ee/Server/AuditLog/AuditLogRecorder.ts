@@ -781,11 +781,9 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
     oldValue: unknown;
     newValue: unknown;
   }): boolean {
-    const metadata: TableColumnMetadata | undefined = data.model.isTableColumn(
-      data.field,
-    )
-      ? data.model.getTableColumnMetadata(data.field)
-      : undefined;
+    // A field that is not a column has none: compared as of no known type.
+    const metadata: TableColumnMetadata | undefined =
+      data.model.getTableColumnMetadata(data.field);
 
     return !ColumnValueChange.isChanged({
       columnType: metadata?.type,

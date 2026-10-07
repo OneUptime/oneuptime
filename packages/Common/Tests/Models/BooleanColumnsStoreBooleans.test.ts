@@ -38,6 +38,26 @@ interface BooleanColumn {
   column: string;
   databaseType: string;
   hasTransformer: boolean;
+  // The type the model declares the property with (its design:type).
+  declaredType: string;
+}
+
+// The type a model declares a property with, as TypeScript records it.
+function declaredTypeOf(
+  modelType: DatabaseBaseModelType,
+  propertyName: string,
+): string {
+  const declared: unknown = Reflect.getMetadata(
+    "design:type",
+    modelType.prototype,
+    propertyName,
+  );
+
+  if (typeof declared === "function") {
+    return (declared as { name?: string }).name || String(declared);
+  }
+
+  return String(declared);
 }
 
 function columnArgsOf(
@@ -92,6 +112,7 @@ function switchColumns(): Array<BooleanColumn> {
         column,
         databaseType: databaseTypeOf(args),
         hasTransformer: Boolean(args?.options.transformer),
+        declaredType: declaredTypeOf(modelType, column),
       });
     }
   }
@@ -167,5 +188,33 @@ describe("GUARD: every switch is stored in a Postgres boolean column", () => {
 
   test("and every boolean column is a Boolean column, so no switch is left out of the coercion", () => {
     expect(databaseBooleanColumnsNotCalledSwitches()).toEqual([]);
+  });
+
+  /*
+   * A switch the model declares as text (WorkflowVariable.isSecret was a
+   * `string`) holds a boolean at run time all the same, so code written to
+   * the declared type - `=== "true"`, a truthy text - misreads it.
+   * TypeScript records `boolean` as Boolean and a union such as
+   * `boolean | null` as Object; anything else is a switch declared as
+   * something it never holds.
+   */
+  test("no switch is declared as text, a number or anything but a boolean on its model", () => {
+    expect(
+      columns
+        .filter((column: BooleanColumn): boolean => {
+          return !["Boolean", "Object"].includes(column.declaredType);
+        })
+        .map((column: BooleanColumn): string => {
+          return `${column.table}.${column.column} is declared ${column.declaredType}`;
+        }),
+    ).toEqual([]);
+  });
+
+  test("the declared types are read at all: most switches are declared boolean", () => {
+    expect(
+      columns.filter((column: BooleanColumn): boolean => {
+        return column.declaredType === "Boolean";
+      }).length,
+    ).toBeGreaterThan(600);
   });
 });
