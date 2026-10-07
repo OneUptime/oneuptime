@@ -155,9 +155,8 @@ export type KubernetesAiAccessGapCode =
   | "ai_agent_offline"
   /*
    * Billing is on, the project's LLM provider is OneUptime's own (which
-   * costs AI credits), the balance is used up and Auto Recharge cannot
-   * refill it before the next call (it is off, or its last charge failed),
-   * so no AI run can start. Blocks both.
+   * costs AI credits), the balance is used up and auto-recharge is off, so
+   * no AI run can start. Blocks both.
    */
   | "ai_balance_insufficient";
 
