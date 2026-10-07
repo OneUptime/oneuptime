@@ -5851,8 +5851,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           }
 
           if (tenantId) {
+            /*
+             * The fields the update changed, not every field it sent: a
+             * workflow's Listen on hears a field that changed, never one
+             * written back as it was. See getChangedColumns.
+             */
             await this.onTriggerWorkflow(item.id!, tenantId, "on-update", {
-              updatedFields: JSONFunctions.serialize(writtenData as JSONObject),
+              updatedFields: JSONFunctions.serialize(
+                this.getChangedColumns({
+                  item: item,
+                  written: writtenData,
+                  comparedAs: updatedItemForComparison,
+                }),
+              ),
             });
 
             await this.onTriggerRealtime(
@@ -6055,6 +6066,50 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         writtenValue: updatedItem[column],
       });
     });
+  }
+
+  /*
+   * The columns of one row's write that change what the row holds, with the
+   * values written - by the rule hasSameValues applies (ColumnValueChange).
+   * What an On Update workflow is told the update changed (`updatedFields`),
+   * so its Listen on hears a field that changed and never one an edit form,
+   * Terraform or a script wrote back as it was. Each column is judged as the
+   * write's comparison sees it (`comparedAs`: a rule's logical switch, a
+   * value the database worked out as it stored it), and kept as written.
+   */
+  private getChangedColumns(data: {
+    item: TBaseModel;
+    written: PartialEntity<TBaseModel>;
+    comparedAs: Record<string, unknown>;
+  }): JSONObject {
+    const storedRow: Record<string, unknown> = data.item as unknown as Record<
+      string,
+      unknown
+    >;
+    const changed: JSONObject = {};
+
+    for (const [column, value] of Object.entries(
+      data.written as Record<string, unknown>,
+    )) {
+      const comparedValue: unknown = Object.prototype.hasOwnProperty.call(
+        data.comparedAs,
+        column,
+      )
+        ? data.comparedAs[column]
+        : value;
+
+      if (
+        ColumnValueChange.isChanged({
+          columnType: data.item.getTableColumnMetadata(column)?.type,
+          storedValue: storedRow[column],
+          writtenValue: comparedValue,
+        })
+      ) {
+        changed[column] = value as JSONValue;
+      }
+    }
+
+    return changed;
   }
 
   @CaptureSpan()

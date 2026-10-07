@@ -84,6 +84,8 @@ Almost every thing in OneUptime — monitors, incidents, alerts, scheduled maint
 
 This is how you build "when X happens in OneUptime, do Y" without needing to check things in a loop.
 
+**On Update** can be narrowed to some fields with **Listen on**: it then fires only when an update changes one of them, to any value — turning a switch off or clearing a field counts.
+
 **On Create** and **On Update** pass the record to the next block, with the fields you pick in the trigger's **Select Fields**. For example, the **Incident → On Create** trigger passes the new incident, so the next block can read its title, description, severity, or any other field you selected. A field you didn't select comes through empty.
 
 **On Delete** passes only the deleted record's ID: the record is gone by the time the workflow runs, so its other fields can't be read.

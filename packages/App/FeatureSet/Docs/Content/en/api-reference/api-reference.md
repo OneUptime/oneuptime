@@ -73,7 +73,7 @@ A field that is on or off - `isEnabled`, `isVisibleOnStatusPage`, `isArchived` a
 isVisibleOnStatusPage must be true or false.
 ```
 
-An update that writes a record's values as they already are changes nothing: it does not start the record's **On Update** workflows, send live updates or add an audit log entry. `false` written over `false` counts as the same value, and so does a time written as the same instant in another format.
+An update that writes a record's values as they already are changes nothing: it does not start the record's **On Update** workflows, send live updates or add an audit log entry. `false` written over `false` counts as the same value, and so do `"false"` written over `false`, a number written as its text, a time written as the same instant in another format, and labels written as the same labels in any order. When an update changes some values and writes others back as they are, its audit log entry lists only the values that changed, and a workflow's **Listen on** hears only those.
 
 ### Who created a record
 

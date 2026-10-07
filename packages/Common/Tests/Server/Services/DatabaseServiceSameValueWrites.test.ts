@@ -443,6 +443,79 @@ describe("relations and ids, written back as they are", () => {
   });
 });
 
+/*
+ * What the workflow is told changed (updatedFields) is what its Listen on
+ * filters by: the fields whose values changed, with their new values - not
+ * every field the write carried.
+ */
+describe("the workflow is told the fields that changed", () => {
+  function updatedFieldsOf(harness: UpdateHarness): JSONObject {
+    expect(harness.workflow).toHaveBeenCalledTimes(1);
+    return (harness.workflow.mock.calls[0]![3] as { updatedFields: JSONObject })
+      .updatedFields;
+  }
+
+  test("a form saved with one field changed tells it only that field", async () => {
+    const harness: UpdateHarness = await updateMonitor(
+      {
+        name: "Checkout API",
+        description: "Checks checkout",
+        disableActiveMonitoring: false,
+      },
+      {
+        name: "Checkout API",
+        description: "Checks the checkout API",
+        disableActiveMonitoring: "false",
+      },
+    );
+
+    expect(updatedFieldsOf(harness)).toEqual({
+      description: "Checks the checkout API",
+    });
+  });
+
+  test("a switch turned off is among them, as false", async () => {
+    const harness: UpdateHarness = await updateMonitor(
+      { disableActiveMonitoring: true, description: "Checks checkout" },
+      { disableActiveMonitoring: "off", description: "Checks checkout" },
+    );
+
+    expect(updatedFieldsOf(harness)).toEqual({
+      disableActiveMonitoring: false,
+    });
+  });
+
+  test("a text cleared and a count set to 0 are among them too", async () => {
+    const harness: UpdateHarness = await updateMonitor(
+      { description: "Checks checkout", minimumProbeAgreement: 2 },
+      { description: "", minimumProbeAgreement: 0 },
+    );
+
+    expect(updatedFieldsOf(harness)).toEqual({
+      description: "",
+      minimumProbeAgreement: 0,
+    });
+  });
+
+  test("the audit entry is still handed every field written, and names the changed ones itself", async () => {
+    const harness: UpdateHarness = await updateMonitor(
+      { name: "Checkout API", description: "Checks checkout" },
+      { name: "Checkout API", description: "Checks the checkout API" },
+    );
+
+    expect(
+      (
+        harness.recordUpdate.mock.calls[0]![0] as {
+          updatedFields: JSONObject;
+        }
+      ).updatedFields,
+    ).toEqual({
+      name: "Checkout API",
+      description: "Checks the checkout API",
+    });
+  });
+});
+
 describe("one write over several rows", () => {
   const OTHER_ID: ObjectID = new ObjectID(
     "5a3e0000-0000-4000-8000-0000000000a2",
