@@ -126,6 +126,7 @@ import {
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 import logger, { LogAttributes } from "../Utils/Logger";
+import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export interface NotificationMethodDescriptor {
@@ -3384,6 +3385,22 @@ export class Service extends ProjectReferencesService<Model> {
     options: ExecuteFallbackNotificationOptions,
   ): Promise<Array<{ channelName: string; rule: Model }>> {
     const chosen: Array<{ channelName: string; rule: Model }> = [];
+
+    /*
+     * Nothing is delivered on a project's behalf to somebody who is not a
+     * member of it (ProjectMembership), however the fallback was reached:
+     * a method a person who has left still holds is never used. Read from
+     * the database; a failed read throws, and the caller records the
+     * fallback as failed rather than sending.
+     */
+    if (
+      !(await ProjectMembership.isMember({
+        projectId: options.projectId,
+        userId: options.userId,
+      }))
+    ) {
+      return chosen;
+    }
 
     const userPush: UserPush | null = await UserPushService.findOneBy({
       query: {

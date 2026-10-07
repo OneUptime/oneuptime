@@ -309,10 +309,20 @@ export default class TeamComplianceService {
         },
       });
 
+    /*
+     * The team's members are the people who have ACCEPTED their invitation
+     * to it - the same rows that put somebody on the team's roster and get
+     * them paged through it (TeamMemberService.getUsersInTeams). Somebody
+     * invited who has not accepted yet can set nothing up and is paged
+     * through nothing: checking them would count every invitation as a
+     * member who fails every rule. They are counted apart, so the page can
+     * say why they are not listed.
+     */
     const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
       query: {
         teamId: teamId,
         projectId: projectId,
+        hasAcceptedInvitation: true,
       },
       select: {
         userId: true,
@@ -324,6 +334,19 @@ export default class TeamComplianceService {
         isRoot: true,
       },
     });
+
+    const invitedMemberCount: number = (
+      await TeamMemberService.countBy({
+        query: {
+          teamId: teamId,
+          projectId: projectId,
+          hasAcceptedInvitation: false,
+        },
+        props: {
+          isRoot: true,
+        },
+      })
+    ).toNumber();
 
     /*
      * LIMIT_PER_PROJECT is a ceiling, not a promise. Ten thousand members on
@@ -431,7 +454,7 @@ export default class TeamComplianceService {
       TeamComplianceService.loadProjectSwitches(projectId, plan),
     ]);
 
-    return TeamComplianceEvaluator.evaluate({
+    const status: TeamComplianceStatusJSON = TeamComplianceEvaluator.evaluate({
       teamId: teamId.toString(),
       teamName: team.name?.toString(),
       projectId: projectId.toString(),
@@ -445,6 +468,11 @@ export default class TeamComplianceService {
       methodsByChannel: channelRuleData.methodsByChannel,
       projectSwitches: projectSwitches,
     });
+
+    return {
+      ...status,
+      invitedMemberCount: invitedMemberCount,
+    };
   }
 
   /*

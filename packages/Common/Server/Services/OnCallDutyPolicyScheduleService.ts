@@ -14,6 +14,7 @@ import LayerUtil, {
 import { RestrictionType } from "../../Types/OnCallDutyPolicy/RestrictionTimes";
 import Recurring from "../../Types/Events/Recurring";
 import UserOverrideUtil, {
+  OverrideEventMeta,
   UserOverrideRecord,
 } from "../../Types/OnCallDutyPolicy/UserOverrideUtil";
 import OnCallDutyPolicyUserOverride from "../../Models/DatabaseModels/OnCallDutyPolicyUserOverride";
@@ -79,6 +80,19 @@ import {
  */
 
 // The schedule columns a resolved window carries along for its consumers.
+/*
+ * Who is on call in a schedule right now (getCurrentOnCallInSchedule).
+ */
+export interface CurrentOnCallInSchedule {
+  // Who a page goes to, with any override applied.
+  userId: ObjectID;
+  /*
+   * While an override is in force, the layer user it covers - whom the
+   * rotation names. Null when nobody is covered.
+   */
+  coveredUserId: ObjectID | null;
+}
+
 export interface ResolvedScheduleInfo {
   id: string;
   name: string;
@@ -3334,11 +3348,34 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
     return events;
   }
 
+  /*
+   * Who is on call in the schedule right now - the person a page goes to,
+   * with any override applied once (UserOverrideUtil).
+   */
   @CaptureSpan()
   public async getCurrentUserIdInSchedule(
     scheduleId: ObjectID,
     options?: { onCallDutyPolicyId?: ObjectID | undefined } | undefined,
   ): Promise<ObjectID | null> {
+    const onCall: CurrentOnCallInSchedule | null =
+      await this.getCurrentOnCallInSchedule(scheduleId, options);
+
+    return onCall ? onCall.userId : null;
+  }
+
+  /*
+   * Who is on call in the schedule right now, and - while an override puts
+   * somebody else in a layer user's place - the layer user it covers. A page
+   * goes to `userId`; `coveredUserId` is who the rotation names, for the
+   * escalation and the incoming call routing to fall back to when the
+   * substitute is no longer a member of the project, as they do for an
+   * override of a user named on a rule.
+   */
+  @CaptureSpan()
+  public async getCurrentOnCallInSchedule(
+    scheduleId: ObjectID,
+    options?: { onCallDutyPolicyId?: ObjectID | undefined } | undefined,
+  ): Promise<CurrentOnCallInSchedule | null> {
     const { layerProps, projectId, scheduleUserIds } =
       await this.getScheduleLayerProps({
         scheduleId: scheduleId,
@@ -3396,7 +3433,18 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
       return null;
     }
 
-    return new ObjectID(userId);
+    const override: OverrideEventMeta | null =
+      UserOverrideUtil.getOverrideMeta(currentEvent);
+
+    const coveredUserId: string | null =
+      override?.originalUserId && override.originalUserId !== userId
+        ? override.originalUserId
+        : null;
+
+    return {
+      userId: new ObjectID(userId),
+      coveredUserId: coveredUserId ? new ObjectID(coveredUserId) : null,
+    };
   }
 }
 

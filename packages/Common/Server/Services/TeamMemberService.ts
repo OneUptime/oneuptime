@@ -65,6 +65,7 @@ import ProjectLeaveResourceCleanup, {
 import ProjectLeaveNotificationCleanup, {
   ProjectLeaveNotificationCleanupResult,
 } from "../Utils/TeamMember/ProjectLeaveNotificationCleanup";
+import ProjectLeaveAccessCleanup from "../Utils/TeamMember/ProjectLeaveAccessCleanup";
 import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
 
 /*
@@ -1092,6 +1093,15 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       const cleanupKey: string = `${item.userId?.toString()}:${item.projectId?.toString()}`;
       if (!leaveCleanupDone.has(cleanupKey) && item.userId && item.projectId) {
         leaveCleanupDone.add(cleanupKey);
+        /*
+         * First: what lets them, or a client acting for them, into the
+         * project on their own - the MCP clients they connected and their
+         * consent to its single sign-on.
+         */
+        await this.removeProjectAccessIfUserLeftProject({
+          projectId: item.projectId,
+          userId: item.userId,
+        });
         await this.cleanupOnCallAssignmentsIfUserLeftProject({
           projectId: item.projectId,
           userId: item.userId,
@@ -1333,6 +1343,49 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
         } as LogAttributes,
       );
       return 0;
+    }
+  }
+
+  /**
+   * A user who has left the project keeps no way into it: once they hold no
+   * accepted membership in ANY team of the project, the MCP clients they
+   * connected to it are disconnected and their consent to its single
+   * sign-on goes (see ProjectLeaveAccessCleanup). Joining again starts from
+   * nothing: a client has to be connected again, and on the hosted service
+   * the project's SSO asks the account's owner to confirm again. A revoked
+   * invitation runs it too.
+   *
+   * Best-effort: never throws into the delete path. Returns what was
+   * removed, or null when the user is still a member (or the check failed).
+   */
+  @CaptureSpan()
+  public async removeProjectAccessIfUserLeftProject(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+  }): Promise<ProjectLeaveNotificationCleanupResult | null> {
+    try {
+      if (
+        await this.isUserMemberOfProject({
+          projectId: data.projectId,
+          userId: data.userId,
+        })
+      ) {
+        return null;
+      }
+
+      return await ProjectLeaveAccessCleanup.removeProjectAccess({
+        projectId: data.projectId,
+        userId: data.userId,
+      });
+    } catch (err) {
+      logger.error(
+        err as Error,
+        {
+          projectId: data.projectId.toString(),
+          userId: data.userId.toString(),
+        } as LogAttributes,
+      );
+      return null;
     }
   }
 

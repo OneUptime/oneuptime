@@ -12,7 +12,9 @@ import OnCallDutyPolicyEscalationRuleUserService from "./OnCallDutyPolicyEscalat
 import OnCallDutyPolicyExecutionLogService from "./OnCallDutyPolicyExecutionLogService";
 import OnCallDutyPolicyExecutionLog from "../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import OnCallDutyPolicyExecutionLogTimelineService from "./OnCallDutyPolicyExecutionLogTimelineService";
-import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
+import OnCallDutyPolicyScheduleService, {
+  CurrentOnCallInSchedule,
+} from "./OnCallDutyPolicyScheduleService";
 import TeamMemberService from "./TeamMemberService";
 import UserNotificationRuleService from "./UserNotificationRuleService";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -380,29 +382,22 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     ) => Promise<void>;
 
     /*
-     * Resolve the FINAL alert recipient for a target, applying a user override
-     * (getRouteAlertToUserId) exactly ONCE per paging decision.
+     * Resolve the FINAL alert recipient for a team or direct-user target (the
+     * RAW roster user), applying a user override (getRouteAlertToUserId)
+     * exactly ONCE per paging decision.
      *
-     * Schedule targets are already override-resolved: getCurrentUserIdInSchedule
-     * applies overrides via UserOverrideUtil. Applying getRouteAlertToUserId to
-     * them again re-substituted an already-substituted user (transitive), so the
-     * schedule paging path could page a different person than the roster,
-     * dashboard, handoff notification, and a rule that lists the same user
-     * directly — all of which apply overrides only once (audit F5). So team and
-     * direct-user targets (the RAW roster user) get the single override hop here;
-     * schedule targets do not.
+     * Schedule targets are already override-resolved:
+     * getCurrentOnCallInSchedule applies overrides via UserOverrideUtil.
+     * Applying getRouteAlertToUserId to them again re-substituted an
+     * already-substituted user (transitive), so the schedule paging path could
+     * page a different person than the roster, dashboard, handoff
+     * notification, and a rule that lists the same user directly — all of
+     * which apply overrides only once (audit F5). So schedule targets never
+     * come through here.
      */
     const resolveAlertRecipientUserId: (
       userId: ObjectID,
-      isFromSchedule: boolean,
-    ) => Promise<ObjectID> = async (
-      userId: ObjectID,
-      isFromSchedule: boolean,
-    ): Promise<ObjectID> => {
-      if (isFromSchedule) {
-        return userId;
-      }
-
+    ) => Promise<ObjectID> = async (userId: ObjectID): Promise<ObjectID> => {
       if (options.onCallPolicyId) {
         const routeAlertToUserId: ObjectID | null =
           await this.getRouteAlertToUserId({
@@ -542,7 +537,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         targets.push({
           kind: RuleTargetKind.Recipient,
           originalUserId: user.id,
-          recipientUserId: await resolveAlertRecipientUserId(user.id, false),
+          recipientUserId: await resolveAlertRecipientUserId(user.id),
           teamId: teamInRule.teamId!,
           scheduleId: null,
         });
@@ -557,23 +552,20 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       targets.push({
         kind: RuleTargetKind.Recipient,
         originalUserId: userRule.userId,
-        recipientUserId: await resolveAlertRecipientUserId(
-          userRule.userId,
-          false,
-        ),
+        recipientUserId: await resolveAlertRecipientUserId(userRule.userId),
         teamId: null,
         scheduleId: null,
       });
     }
 
     for (const scheduleRule of schedulesInRule) {
-      const userIdInSchedule: ObjectID | null =
-        await OnCallDutyPolicyScheduleService.getCurrentUserIdInSchedule(
+      const onCall: CurrentOnCallInSchedule | null =
+        await OnCallDutyPolicyScheduleService.getCurrentOnCallInSchedule(
           scheduleRule.onCallDutyPolicyScheduleId!,
           { onCallDutyPolicyId: options.onCallPolicyId },
         );
 
-      if (!userIdInSchedule) {
+      if (!onCall) {
         targets.push({
           kind: RuleTargetKind.ScheduleGap,
           scheduleId: scheduleRule.onCallDutyPolicyScheduleId!,
@@ -582,14 +574,18 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         continue;
       }
 
+      /*
+       * The schedule has applied any override already - no second override
+       * hop (F5). While one is in force, the target names the layer user it
+       * covers as well as the substitute it pages: a substitute who is no
+       * longer a member then falls back to the covered layer user, exactly as
+       * an override of a user named on the rule does, and the timeline
+       * records the page as routed by an override.
+       */
       targets.push({
         kind: RuleTargetKind.Recipient,
-        originalUserId: userIdInSchedule,
-        // Schedule users are already override-resolved; no second override hop (F5).
-        recipientUserId: await resolveAlertRecipientUserId(
-          userIdInSchedule,
-          true,
-        ),
+        originalUserId: onCall.coveredUserId || onCall.userId,
+        recipientUserId: onCall.userId,
         teamId: null,
         scheduleId: scheduleRule.onCallDutyPolicyScheduleId!,
       });
@@ -605,9 +601,12 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
      * their overrides cover (ProjectMembership).
      *
      * If membership cannot be read, the rule pages as it did before this
-     * check rather than paging nobody: the leave cleanup has already taken
-     * people who left off the rule, its schedules and its overrides, and a
-     * page lost to a failed read is worse than one more read retried.
+     * check rather than paging nobody: a page lost to a failed read is worse
+     * than one more read retried. That still reaches nobody who is not a
+     * member - an invitee named on the rule, or somebody whose leave cleanup
+     * failed: the reads that choose what a page goes through carry the
+     * membership condition themselves (UserOnCallLogService), and so does
+     * the fallback to a person's verified methods.
      */
     let memberUserIds: Set<string> | null = null;
 

@@ -365,6 +365,11 @@ export const getRulePassRateText: (rate: RulePassRate) => RulePassRateText = (
 
 export interface ComplianceSummary {
   memberCount: number;
+  /*
+   * People invited to the team who have not accepted yet: not members, so
+   * not checked (TeamComplianceStatusJSON.invitedMemberCount).
+   */
+  invitedCount: number;
   compliantCount: number;
   attentionCount: number;
   ruleCount: number;
@@ -410,6 +415,7 @@ export const summarizeCompliance: (
 
   return {
     memberCount: status.userComplianceStatuses.length,
+    invitedCount: Math.max(0, Math.floor(status.invitedMemberCount || 0)),
     compliantCount: compliantCount,
     attentionCount: status.userComplianceStatuses.length - compliantCount,
     ruleCount: rules.length,
@@ -532,6 +538,23 @@ export const getNoActiveRulesAdvice: (summary: ComplianceSummary) => string = (
   return `${joinAsProse(states)}. ${capitalize(joinAsChoice(choices))}.`;
 };
 
+/*
+ * Why people invited to the team are not listed or counted, in one sentence:
+ * nothing reaches them through the team until they accept, so there is
+ * nothing to check yet. Empty when nobody is waiting.
+ */
+export const getInvitedNote: (invitedCount: number) => string = (
+  invitedCount: number,
+): string => {
+  if (invitedCount <= 0) {
+    return "";
+  }
+
+  return invitedCount === 1
+    ? "1 person invited to this team is not checked until they accept their invitation."
+    : `${invitedCount} people invited to this team are not checked until they accept their invitation.`;
+};
+
 export enum ComplianceVerdictKind {
   NoRules = "NoRules",
   NoActiveRules = "NoActiveRules",
@@ -585,7 +608,9 @@ export const getComplianceVerdict: (
       badgeText: "No members",
       headline: "This team has no members to check",
       detail:
-        "Add people on the team's Members page and their compliance shows up here.",
+        summary.invitedCount > 0
+          ? getInvitedNote(summary.invitedCount)
+          : "Add people on the team's Members page and their compliance shows up here.",
     };
   }
 

@@ -4,6 +4,7 @@ import InMemoryTTLCache from "../../Infrastructure/InMemoryTTLCache";
 import AccessTokenService from "../../Services/AccessTokenService";
 import { McpOAuthGrantSsoEvidence } from "../../Services/McpOAuthGrantService";
 import UserService from "../../Services/UserService";
+import ProjectMembership from "../TeamMember/ProjectMembership";
 import McpOAuthGrant from "../../../Models/DatabaseModels/McpOAuthGrant";
 import User from "../../../Models/DatabaseModels/User";
 import Email from "../../../Types/Email";
@@ -24,8 +25,9 @@ import HeldPermissionsUtil from "../../../Types/HeldPermissions";
  * rests on can change while it stands: the member can be blocked or removed
  * from the project, an administrator can block their team from connecting
  * clients, the project can start requiring single sign-on, the SSO sign-in
- * the grant was approved under can lapse. None of those touch the grant row,
- * so none of them can be left to it.
+ * the grant was approved under can lapse. None of those but leaving the
+ * project touch the grant row (leaving removes it), and none of them can be
+ * left to it: each is checked here, on every use.
  *
  * Every refusal is a reason rather than a boolean, because the two callers
  * answer them differently (an MCP request gets a challenge, a token exchange
@@ -195,17 +197,33 @@ export default class McpOAuthGrantAccess {
    * whether they may connect a client to it at all, shared by the consent
    * screen (before a grant exists) and by evaluate() (for one that does).
    *
-   * Membership is read from the same permission set every API request is
-   * authorized with. The block is the governance lever: connecting a client
-   * needs no grant of AuthorizeMcpClient - every member may - but a BLOCK row
-   * for it on any of the member's teams refuses them, read by the rule every
-   * permission check follows (HeldPermissionsUtil). Labels on that row are
-   * ignored, because a grant has no labels for them to select.
+   * Membership is read from the database (ProjectMembership: an accepted
+   * membership of a team of the project) on every use, and from the
+   * permission set every API request is authorized with. A grant is a
+   * standing credential: a permission set cached while the person was a
+   * member, and not yet rebuilt, must never stand in for a membership that
+   * has gone. Somebody who has left is refused as if there were no grant at
+   * all - and leaving removes their grants too (ProjectLeaveAccessCleanup).
+   *
+   * The block is the governance lever: connecting a client needs no grant of
+   * AuthorizeMcpClient - every member may - but a BLOCK row for it on any of
+   * the member's teams refuses them, read by the rule every permission check
+   * follows (HeldPermissionsUtil). Labels on that row are ignored, because a
+   * grant has no labels for them to select.
    */
   public static async getProjectRefusal(data: {
     userId: ObjectID;
     projectId: ObjectID;
   }): Promise<McpOAuthGrantRefusal | null> {
+    if (
+      !(await ProjectMembership.isMember({
+        projectId: data.projectId,
+        userId: data.userId,
+      }))
+    ) {
+      return McpOAuthGrantRefusal.NotAProjectMember;
+    }
+
     const tenantPermission: UserTenantAccessPermission | null =
       await AccessTokenService.getUserTenantAccessPermission(
         data.userId,

@@ -14,6 +14,7 @@ import {
   getNoActiveRulesAdvice,
   getRuleLabel,
   getRuleTitle,
+  getInvitedNote,
   getSelfFixKey,
   getSelfFixes,
   summarizeCompliance,
@@ -443,6 +444,11 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
     );
   };
 
+  // People invited who have not accepted yet: not listed, and said so once.
+  const invitedNote: string = getInvitedNote(
+    props.status.invitedMemberCount || 0,
+  );
+
   const getBody: () => ReactElement = (): ReactElement => {
     if (members.length === 0) {
       return (
@@ -452,7 +458,10 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
           iconClassName="mx-auto h-10 w-10 text-gray-400"
           paddingClassName="py-10"
           title="No members on this team yet"
-          description="Add people on the team's Members page and how they measure up against these rules shows up here."
+          description={
+            invitedNote ||
+            "Add people on the team's Members page and how they measure up against these rules shows up here."
+          }
         />
       );
     }
@@ -646,6 +655,17 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
           >
             {shown.map(getMemberRow)}
           </ul>
+        )}
+
+        {invitedNote ? (
+          <p
+            data-testid="compliance-members-invited"
+            className="mt-4 text-xs text-gray-500"
+          >
+            {invitedNote}
+          </p>
+        ) : (
+          <></>
         )}
 
         {remaining > 0 ? (

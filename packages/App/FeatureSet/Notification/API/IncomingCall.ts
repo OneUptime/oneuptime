@@ -19,7 +19,9 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import IncomingCallLogService from "Common/Server/Services/IncomingCallLogService";
 import IncomingCallLogItemService from "Common/Server/Services/IncomingCallLogItemService";
 import IncomingCallMissedCallNotificationService from "Common/Server/Services/IncomingCallMissedCallNotificationService";
-import OnCallDutyPolicyScheduleService from "Common/Server/Services/OnCallDutyPolicyScheduleService";
+import OnCallDutyPolicyScheduleService, {
+  CurrentOnCallInSchedule,
+} from "Common/Server/Services/OnCallDutyPolicyScheduleService";
 import UserService from "Common/Server/Services/UserService";
 import UserIncomingCallNumberService from "Common/Server/Services/UserIncomingCallNumberService";
 import UserIncomingCallNumber from "Common/Models/DatabaseModels/UserIncomingCallNumber";
@@ -789,9 +791,28 @@ async function getUserToCall(
     userId = rule.userId;
   } else if (rule.onCallDutyPolicyScheduleId) {
     // If rule has an on-call schedule, get the current on-call user
-    userId = await OnCallDutyPolicyScheduleService.getCurrentUserIdInSchedule(
-      rule.onCallDutyPolicyScheduleId,
-    );
+    const onCall: CurrentOnCallInSchedule | null =
+      await OnCallDutyPolicyScheduleService.getCurrentOnCallInSchedule(
+        rule.onCallDutyPolicyScheduleId,
+      );
+
+    userId = onCall?.userId || null;
+
+    /*
+     * An override has put a substitute in the layer user's place. When the
+     * substitute is no longer a member of the project, the layer user they
+     * cover takes the call instead - as the on-call escalation pages them -
+     * rather than the rule being skipped.
+     */
+    if (
+      onCall?.coveredUserId &&
+      !(await ProjectMembership.isMember({
+        projectId: projectId,
+        userId: onCall.userId,
+      }))
+    ) {
+      userId = onCall.coveredUserId;
+    }
   }
 
   if (!userId) {
