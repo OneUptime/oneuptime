@@ -53,15 +53,20 @@ function serverMessage(name: string): string {
   return match![1]!;
 }
 
+// The link's lifetime, the app's own GitHub page, and a 'Step 10' heading, in any language's digits.
+const FIFTEEN_MINUTES: RegExp = /15|۱۵/;
+const GITHUB_APP_PAGE: RegExp = /github\.com\/apps\/[A-Z_]+/;
+const STEP_TEN: RegExp = /(10|۱۰|十)/;
+
 describe("the self-hosted GitHub guide, in every language", () => {
   test("every language has the guide", () => {
     expect(ALL_LANGUAGES.length).toBeGreaterThanOrEqual(17);
 
     for (const language of ALL_LANGUAGES) {
-      expect([language, fs.existsSync(path.join(CONTENT_DIR, language, GUIDE))]).toEqual([
+      expect([
         language,
-        true,
-      ]);
+        fs.existsSync(path.join(CONTENT_DIR, language, GUIDE)),
+      ]).toEqual([language, true]);
     }
   });
 
@@ -91,7 +96,7 @@ describe("the self-hosted GitHub guide, in every language", () => {
     for (const language of ALL_LANGUAGES) {
       const guide: string = readGuide(language);
 
-      expect([language, /15|۱۵/.test(guide)]).toEqual([language, true]);
+      expect([language, FIFTEEN_MINUTES.test(guide)]).toEqual([language, true]);
     }
   });
 
@@ -99,7 +104,7 @@ describe("the self-hosted GitHub guide, in every language", () => {
     for (const language of ALL_LANGUAGES) {
       const guide: string = readGuide(language);
 
-      expect([language, /github\.com\/apps\/[A-Z_]+/.test(guide)]).toEqual([
+      expect([language, GITHUB_APP_PAGE.test(guide)]).toEqual([
         language,
         false,
       ]);
@@ -111,7 +116,7 @@ describe("the self-hosted GitHub guide, in every language", () => {
       const stepTenHeadings: Array<string> = readGuide(language)
         .split("\n")
         .filter((line: string): boolean => {
-          return line.startsWith("### ") && /(10|۱۰|十)/.test(line);
+          return line.startsWith("### ") && STEP_TEN.test(line);
         });
 
       expect([language, stepTenHeadings]).toEqual([language, []]);
