@@ -1001,12 +1001,12 @@ describe("the live preview", () => {
   });
 
   /*
-   * Only a project owner or someone with Manage Billing may switch SMS,
-   * calls, WhatsApp or Telegram on - the Project columns' own update
-   * permissions - and whoever writes a team's rules is often neither. So
-   * every project switch note names who can, and where, in the words the
-   * server's compliance warnings use, and never sends the reader to "a
-   * project admin" or tells them to do it themselves.
+   * Only a project owner, a Billing Admin or someone with Manage Billing
+   * may switch SMS, calls, WhatsApp or Telegram on - the Project columns'
+   * own update permissions - and whoever writes a team's rules is often
+   * neither. So every project switch note names who can, and where, in the
+   * words the server's compliance warnings use, and never sends the reader
+   * to "a project admin" or tells them to do it themselves.
    */
   test.each([
     [[ComplianceNotificationChannel.Call]],

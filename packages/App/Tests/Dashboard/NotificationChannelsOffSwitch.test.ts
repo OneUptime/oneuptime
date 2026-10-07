@@ -40,9 +40,9 @@ import path from "path";
  *   - the admin's "Add a notification method" form offers only the channels
  *     that are on;
  *   - wherever a channel is off, the reader who may not turn it on is told
- *     exactly who can - a project owner or someone with Manage Billing, the
- *     columns' own update permissions - and never "a project admin", who
- *     may not.
+ *     exactly who can - a project owner, a Billing Admin or someone with
+ *     Manage Billing, the columns' own update permissions - and never "a
+ *     project admin", who may not.
  *
  * This reads the sources so a list written later, or a second home for a
  * switch, cannot quietly bring the refusal back. The behaviour is tested in
@@ -503,9 +503,9 @@ describe("one place for each switch", () => {
 
 describe("nothing tells a reader to ask a project admin, or to turn a channel on themselves", () => {
   /*
-   * Only a project owner or someone with Manage Billing may switch SMS,
-   * calls, WhatsApp or Telegram on. Sources are read without their comments,
-   * which may still quote what the copy used to say.
+   * Only a project owner, a Billing Admin or someone with Manage Billing
+   * may switch SMS, calls, WhatsApp or Telegram on. Sources are read without
+   * their comments, which may still quote what the copy used to say.
    */
   const REPO_PACKAGES: string = path.join(__dirname, "..", "..", "..");
 
