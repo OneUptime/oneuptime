@@ -1,10 +1,12 @@
 import { describe, expect, test } from "@jest/globals";
+import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import {
   DEFAULT_PROCESS_SORT,
   PROCESS_COMMAND_ATTR,
   PROCESS_CPU_MODE_ATTR,
+  PROCESS_CPU_MODE_ATTRIBUTE_KEYS,
   PROCESS_CPU_MODE_IOWAIT,
   PROCESS_CPU_STATE_ATTR,
   PROCESS_CPU_STATE_WAIT,
@@ -14,11 +16,14 @@ import {
   PROCESS_OWNER_ATTR,
   PROCESS_PID_ATTR,
   PROCESS_SORT_KEYS,
+  ProcessCpuBucket,
+  ProcessCpuPoint,
   ProcessMetricDatapoint,
   ProcessRollup,
   ProcessRow,
   ProcessSort,
   ProcessSortKey,
+  buildProcessCpuSeries,
   buildProcessRows,
   defaultSortOrderFor,
   filterProcessRows,
@@ -45,6 +50,12 @@ import {
  * inflates disk-heavy processes, and the v1 gate doubles everything. So the
  * rules live in a pure module and are pinned here against the exact shapes
  * the scraper emits (receiver/hostmetricsreceiver/.../processscraper).
+ *
+ * The page for one process reads the same readings over time, as aggregate
+ * buckets. Averaging every reading in a bucket (what that page used to do)
+ * mixes the modes into one number - about a third of the real use on Linux,
+ * half on Windows - so it asks for one average per mode and spelling, and
+ * the same module adds them up bucket by bucket.
  */
 
 const NOW: string = "2026-10-06T12:00:30.000Z";
@@ -242,6 +253,19 @@ describe("process metric contract", () => {
     expect(processCpuWaitExclusion()["state"]).not.toBe(
       processCpuWaitExclusion()["state"],
     );
+  });
+
+  test("the process page groups its CPU by both spellings of the mode", () => {
+    /*
+     * Grouped by `state` alone, a reading that carries only `cpu.mode` would
+     * pool into one modeless group per bucket; by `cpu.mode` alone, every
+     * old reading would.
+     */
+    expect(PROCESS_CPU_MODE_ATTRIBUTE_KEYS).toEqual([
+      PROCESS_CPU_STATE_ATTR,
+      PROCESS_CPU_MODE_ATTR,
+    ]);
+    expect(PROCESS_CPU_MODE_ATTRIBUTE_KEYS).toEqual(["state", "cpu.mode"]);
   });
 });
 
@@ -456,6 +480,344 @@ describe("a process's CPU is its user plus system time at its newest scrape", ()
 
     // The newest usable reading is the older one; the broken ones never win.
     expect(onlyRow(result).cpuPercent).toBeCloseTo(7, 10);
+  });
+});
+
+const MINUTE_0: string = "2026-10-06T12:00:00.000Z";
+const MINUTE_1: string = "2026-10-06T12:01:00.000Z";
+const MINUTE_2: string = "2026-10-06T12:02:00.000Z";
+
+/*
+ * One row of the process page's CPU aggregate, shaped the way the API returns
+ * it: the bucket's start as an ISO string, and an attributes map holding
+ * exactly the grouped keys - "" for the one a reading does not carry.
+ */
+function cpuBucket(
+  time: string | Date | number,
+  value: number | string | null,
+  modes: Record<string, string>,
+): ProcessCpuBucket {
+  return {
+    timestamp: time,
+    value: value,
+    attributes: {
+      state: modes["state"] ?? "",
+      "cpu.mode": modes["cpu.mode"] ?? "",
+    },
+  };
+}
+
+// One bucket of the Linux scraper's readings, under `state` only.
+function linuxBucket(
+  time: string,
+  readings: { user: number; system: number; wait: number },
+): Array<ProcessCpuBucket> {
+  return [
+    cpuBucket(time, readings.user, { state: "user" }),
+    cpuBucket(time, readings.system, { state: "system" }),
+    cpuBucket(time, readings.wait, { state: "wait" }),
+  ];
+}
+
+function windowsBucket(
+  time: string,
+  readings: { user: number; system: number },
+): Array<ProcessCpuBucket> {
+  return [
+    cpuBucket(time, readings.user, { state: "user" }),
+    cpuBucket(time, readings.system, { state: "system" }),
+  ];
+}
+
+function expectSeries(
+  buckets: Array<ProcessCpuBucket>,
+  expected: Array<[string, number]>,
+): void {
+  const points: Array<ProcessCpuPoint> = buildProcessCpuSeries(buckets);
+
+  expect(
+    points.map((point: ProcessCpuPoint): string => {
+      return point.time.toISOString();
+    }),
+  ).toEqual(
+    expected.map((entry: [string, number]): string => {
+      return entry[0];
+    }),
+  );
+  points.forEach((point: ProcessCpuPoint, index: number) => {
+    expect(point.cpuPercent).toBeCloseTo(expected[index]![1], 10);
+  });
+}
+
+describe("the process page's CPU is user plus system time in every bucket", () => {
+  test("Linux: adds user and system in each bucket, leaves wait out", () => {
+    expectSeries(
+      [
+        ...linuxBucket(MINUTE_0, { user: 0.3, system: 0.06, wait: 0.2 }),
+        ...linuxBucket(MINUTE_1, { user: 0.1, system: 0.02, wait: 0.5 }),
+      ],
+      [
+        [MINUTE_0, 36],
+        [MINUTE_1, 12],
+      ],
+    );
+  });
+
+  test("is not the average of the modes, which is what the page used to draw", () => {
+    /*
+     * The regression: one Avg over every reading in a bucket. For 30% user,
+     * 6% system and no wait that is (30 + 6 + 0) / 3 = 12% - a third of the
+     * 36% the process really used, and of what its row in the list shows.
+     */
+    const points: Array<ProcessCpuPoint> = buildProcessCpuSeries(
+      linuxBucket(MINUTE_0, { user: 0.3, system: 0.06, wait: 0 }),
+    );
+
+    expect(points).toHaveLength(1);
+    expect(points[0]!.cpuPercent).toBeCloseTo(36, 10);
+    expect(points[0]!.cpuPercent).not.toBeCloseTo(12, 1);
+  });
+
+  test("Windows: adds user and system", () => {
+    expectSeries(windowsBucket(MINUTE_0, { user: 0.003, system: 0.001 }), [
+      [MINUTE_0, 0.4],
+    ]);
+  });
+
+  test("counts each mode once when the v1 gate sends every reading twice", () => {
+    /*
+     * EmitV1SystemConventions without DontEmitV0SystemConventions: the old
+     * reading groups under `state` alone, its copy under `cpu.mode` and
+     * `state` - two groups per mode in every bucket. Adding them all would
+     * double the process's CPU.
+     */
+    expectSeries(
+      [
+        cpuBucket(MINUTE_0, 0.3, { state: "user" }),
+        cpuBucket(MINUTE_0, 0.06, { state: "system" }),
+        cpuBucket(MINUTE_0, 0.3, { state: "user", "cpu.mode": "user" }),
+        cpuBucket(MINUTE_0, 0.06, { state: "system", "cpu.mode": "system" }),
+      ],
+      [[MINUTE_0, 36]],
+    );
+  });
+
+  test("reads the v1 shape alone, when the old readings are switched off", () => {
+    expectSeries(
+      [
+        cpuBucket(MINUTE_0, 0.02, { "cpu.mode": "user" }),
+        cpuBucket(MINUTE_0, 0.03, { "cpu.mode": "system" }),
+      ],
+      [[MINUTE_0, 5]],
+    );
+  });
+
+  test("never adds wait under either spelling, even when the query lets it through", () => {
+    expectSeries(
+      [
+        cpuBucket(MINUTE_0, 0.1, { "cpu.mode": "user" }),
+        cpuBucket(MINUTE_0, 0.05, { "cpu.mode": "system" }),
+        cpuBucket(MINUTE_0, 0.5, { "cpu.mode": "iowait" }),
+        cpuBucket(MINUTE_0, 0.5, { state: "wait", "cpu.mode": "iowait" }),
+        cpuBucket(MINUTE_0, 0.5, { state: "wait" }),
+      ],
+      [[MINUTE_0, 15]],
+    );
+  });
+
+  test("folds a mode's two copies into one, whatever order they arrive in", () => {
+    /*
+     * The copies average the same readings, so they agree - except in the
+     * bucket the gate was switched on in, which the old copy covers whole and
+     * the new one only in part. Either way the bucket gets one user reading,
+     * not two, and the same one whichever copy comes back first.
+     */
+    const rows: Array<ProcessCpuBucket> = [
+      cpuBucket(MINUTE_0, 0.2, { state: "user" }),
+      cpuBucket(MINUTE_0, 0.4, { state: "user", "cpu.mode": "user" }),
+      cpuBucket(MINUTE_0, 0.1, { state: "system" }),
+    ];
+
+    expectSeries(rows, [[MINUTE_0, 40]]);
+    expectSeries([...rows].reverse(), [[MINUTE_0, 40]]);
+  });
+
+  test("ignores the case of the mode", () => {
+    expectSeries(
+      [
+        cpuBucket(MINUTE_0, 0.02, { state: "User" }),
+        cpuBucket(MINUTE_0, 0.03, { state: "SYSTEM" }),
+        cpuBucket(MINUTE_0, 0.5, { "cpu.mode": "IOWait" }),
+      ],
+      [[MINUTE_0, 5]],
+    );
+  });
+
+  test("takes a reading that names no mode as the whole CPU, unless modes sit beside it", () => {
+    expectSeries(
+      [
+        cpuBucket(MINUTE_0, 0.25, {}),
+        { timestamp: MINUTE_1, value: 0.15 },
+        cpuBucket(MINUTE_2, 0.9, {}),
+        cpuBucket(MINUTE_2, 0.02, { state: "user" }),
+        cpuBucket(MINUTE_2, 0.03, { state: "system" }),
+      ],
+      [
+        [MINUTE_0, 25],
+        [MINUTE_1, 15],
+        [MINUTE_2, 5],
+      ],
+    );
+  });
+
+  test("leaves out a bucket that holds only wait, rather than drawing it at 0%", () => {
+    expectSeries(
+      [
+        cpuBucket(MINUTE_0, 0.4, { state: "wait" }),
+        cpuBucket(MINUTE_1, 0.4, { state: "wait", "cpu.mode": "iowait" }),
+        cpuBucket(MINUTE_2, 0.1, { state: "user" }),
+      ],
+      [[MINUTE_2, 10]],
+    );
+  });
+
+  test("an idle bucket reads 0%, not a gap", () => {
+    expectSeries(windowsBucket(MINUTE_0, { user: 0, system: 0 }), [
+      [MINUTE_0, 0],
+    ]);
+  });
+
+  test("is oldest first, whatever order the buckets come back in", () => {
+    // The page asks for its buckets newest first.
+    expectSeries(
+      [
+        ...windowsBucket(MINUTE_2, { user: 0.03, system: 0 }),
+        ...windowsBucket(MINUTE_0, { user: 0.01, system: 0 }),
+        ...windowsBucket(MINUTE_1, { user: 0.02, system: 0 }),
+      ],
+      [
+        [MINUTE_0, 1],
+        [MINUTE_1, 2],
+        [MINUTE_2, 3],
+      ],
+    );
+  });
+
+  test("puts a bucket's rows together by its start, whichever form it comes in", () => {
+    const start: Date = new Date(MINUTE_0);
+
+    expectSeries(
+      [
+        cpuBucket(MINUTE_0, 0.1, { state: "user" }),
+        cpuBucket(start, 0.05, { state: "system" }),
+        cpuBucket(start.getTime(), 0.1, { "cpu.mode": "user" }),
+      ],
+      [[MINUTE_0, 15]],
+    );
+  });
+
+  test("reads numbers that come back as strings, and never a blank or broken value as zero", () => {
+    expectSeries(
+      [
+        cpuBucket(MINUTE_0, "0.02", { state: "user" }),
+        cpuBucket(MINUTE_0, "0.03", { state: "system" }),
+        cpuBucket(MINUTE_1, "", { state: "user" }),
+        cpuBucket(MINUTE_1, "  ", { state: "system" }),
+        cpuBucket(MINUTE_2, null, { state: "user" }),
+        cpuBucket(MINUTE_2, "not-a-number", { state: "system" }),
+        cpuBucket(MINUTE_2, Number.NaN, { "cpu.mode": "user" }),
+      ],
+      [[MINUTE_0, 5]],
+    );
+  });
+
+  test("skips rows with no usable start", () => {
+    expectSeries(
+      [
+        cpuBucket("not a date", 0.5, { state: "user" }),
+        { value: 0.5, attributes: { state: "user", "cpu.mode": "" } },
+        { timestamp: null, value: 0.5, attributes: { state: "system" } },
+        cpuBucket(MINUTE_0, 0.1, { state: "user" }),
+      ],
+      [[MINUTE_0, 10]],
+    );
+  });
+
+  test("an empty aggregate draws nothing", () => {
+    expect(buildProcessCpuSeries([])).toEqual([]);
+  });
+
+  test("reads the aggregate API's rows as they are", () => {
+    const rows: Array<AggregatedModel> = [
+      {
+        timestamp: new Date(MINUTE_0),
+        value: 0.02,
+        attributes: { state: "user", "cpu.mode": "" },
+      },
+      {
+        timestamp: new Date(MINUTE_0),
+        value: 0.03,
+        attributes: { state: "system", "cpu.mode": "" },
+      },
+    ];
+
+    expectSeries(rows, [[MINUTE_0, 5]]);
+  });
+
+  test("agrees with the Processes list on the same readings", () => {
+    /*
+     * A bucket holding one scrape is that scrape: the page's last point and
+     * the process's row in the list must read the same, in every shape the
+     * scraper sends.
+     */
+    const shapes: Array<Array<[number, Record<string, string>]>> = [
+      [
+        [0.3, { state: "user" }],
+        [0.06, { state: "system" }],
+        [0.2, { state: "wait" }],
+      ],
+      [
+        [0.3, { state: "user" }],
+        [0.06, { state: "system" }],
+        [0.3, { state: "user", "cpu.mode": "user" }],
+        [0.06, { state: "system", "cpu.mode": "system" }],
+      ],
+      [
+        [0.02, { "cpu.mode": "user" }],
+        [0.03, { "cpu.mode": "system" }],
+        [0.4, { "cpu.mode": "iowait" }],
+      ],
+      [[0.25, {}]],
+      [
+        [0.004, { state: "user" }],
+        [0.002, { state: "system" }],
+      ],
+    ];
+
+    for (const shape of shapes) {
+      const listCpu: number | null = onlyRow(
+        rollup({
+          cpu: shape.map(
+            (
+              reading: [number, Record<string, string>],
+            ): ProcessMetricDatapoint => {
+              return cpuReading(POSTGRES, NOW, reading[0], reading[1]);
+            },
+          ),
+        }),
+      ).cpuPercent;
+      const pagePoints: Array<ProcessCpuPoint> = buildProcessCpuSeries(
+        shape.map(
+          (reading: [number, Record<string, string>]): ProcessCpuBucket => {
+            return cpuBucket(NOW, reading[0], reading[1]);
+          },
+        ),
+      );
+
+      expect(listCpu).not.toBeNull();
+      expect(pagePoints).toHaveLength(1);
+      expect(pagePoints[0]!.cpuPercent).toBeCloseTo(listCpu!, 10);
+    }
   });
 });
 
