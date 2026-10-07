@@ -5395,9 +5395,12 @@ describePostgres("Proxmox inventory SQL against a migrated Postgres", () => {
       props = labelScopedProps();
 
       /*
-       * Why the fix: the cluster as the lookup scoped to the caller's
-       * permitted labels finds it (it carries one), with that label only,
-       * and the block check passes on it.
+       * The route's lookup used to be scoped to the caller's permitted
+       * labels: it found the cluster (it carries one) with that label only,
+       * and the block check passed on it. The update's own query now leaves
+       * out the clusters carrying a label the caller's edit is blocked on
+       * (BasePermission.addRecordScopeToQuery), so the scoped lookup finds
+       * nothing at all.
        */
       const scoped: Query<ProxmoxCluster> =
         await ModelPermission.checkUpdateQueryPermissions(
@@ -5412,18 +5415,7 @@ describePostgres("Proxmox inventory SQL against a migrated Postgres", () => {
           select: { _id: true, projectId: true, labels: { _id: true } },
           props: { isRoot: true },
         });
-      expect(throughScope).not.toBeNull();
-      expect(labelIdsOf(throughScope)).toEqual([permitted.toString()]);
-      await expect(
-        ModelPermission.checkUpdatePermissionByModel({
-          modelType: ProxmoxCluster,
-          fetchModelWithAccessControlIds:
-            async (): Promise<ProxmoxCluster | null> => {
-              return throughScope;
-            },
-          props: props,
-        }),
-      ).resolves.toBeUndefined();
+      expect(throughScope).toBeNull();
 
       // Loaded as root, as the route now loads it: both labels, and refused.
       const unfiltered: ProxmoxCluster | null =

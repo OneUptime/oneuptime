@@ -2068,12 +2068,16 @@ describePostgres("Databases SQL against Postgres", () => {
         source: "user",
       });
 
+      /*
+       * An alias of a database outside the caller's labels is one they may
+       * not read either: it is answered as missing, and stays.
+       */
       await expect(
         DatabaseServerEndpointService.deleteOneById({
           id: theirAlias,
           props: scopedProps(PermissionScope.Labels, [teamA]),
         }),
-      ).rejects.toThrow("you do not have permission to edit it");
+      ).rejects.toThrow("Database Endpoint not found.");
       expect(await endpointsOf(theirs)).toHaveLength(1);
 
       // ...so the endpoint cannot be freed and re-added to their own database.
@@ -2171,12 +2175,17 @@ describePostgres("Databases SQL against Postgres", () => {
         source: "user",
       });
 
+      /*
+       * An alias of a database they do not own is outside what they may
+       * read and change: the delete reaches nothing (the API answers 404),
+       * and the alias stays.
+       */
       await expect(
         DatabaseServerEndpointService.deleteOneById({
           id: otherAlias,
           props: scopedProps(PermissionScope.Owned),
         }),
-      ).rejects.toThrow("you do not have permission to edit it");
+      ).resolves.toBe(0);
       expect(await endpointsOf(notOwned)).toHaveLength(1);
 
       await expect(
