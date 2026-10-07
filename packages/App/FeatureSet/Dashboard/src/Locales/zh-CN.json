@@ -26012,5 +26012,18 @@
   "Who is responsible for this resource": "此资源的负责人",
   "Works too; OpenTelemetry 1.0 is preferred": "同样可用；推荐使用 OpenTelemetry 1.0",
   "cloud resource": "云资源",
+  "A project owner, a Billing Admin or someone with Manage Billing can change these.": "项目所有者或拥有“Billing Admin”角色或“Manage Billing”权限的用户可以更改这些设置。",
+  "Ask a project owner, a Billing Admin or someone with Manage Billing to turn it on": "请项目所有者或拥有“Billing Admin”角色或“Manage Billing”权限的用户开启",
+  "Channels that are off in this project are not offered. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notification Settings.": "此项目中已关闭的渠道不会提供。项目所有者或拥有“Billing Admin”角色或“Manage Billing”权限的用户可以在“项目设置”→“通知设置”中开启。",
+  "Every method you have verified is on a channel this project has switched off. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings, or you can add an email or push device instead.": "您验证过的所有方式都使用此项目已关闭的渠道。项目所有者或拥有“Billing Admin”角色或“Manage Billing”权限的用户可以在“项目设置”→“通知设置”中开启，您也可以改为添加电子邮件地址或推送设备。",
+  "Numbers for incoming calls are verified by SMS, which is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "来电号码通过短信验证，但此项目已关闭短信。项目所有者或拥有“Billing Admin”角色或“Manage Billing”权限的用户可以在“项目设置”→“通知设置”中开启。",
+  "Phone calls are off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notification Settings.": "此项目已关闭语音电话。项目所有者或拥有“Billing Admin”角色或“Manage Billing”权限的用户可以在“项目设置”→“通知设置”中开启。",
+  "Running one step on its own takes permission to edit this workflow.": "单独运行一个步骤需要编辑此工作流的权限。",
+  "SMS is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "此项目已关闭短信。项目所有者或拥有“Billing Admin”角色或“Manage Billing”权限的用户可以在“项目设置”→“通知设置”中开启。",
+  "Telegram is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "此项目已关闭 Telegram。项目所有者或拥有“Billing Admin”角色或“Manage Billing”权限的用户可以在“项目设置”→“通知设置”中开启。",
+  "WhatsApp is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "此项目已关闭 WhatsApp。项目所有者或拥有“Billing Admin”角色或“Manage Billing”权限的用户可以在“项目设置”→“通知设置”中开启。",
+  "You do not have permission to run this workflow.": "您没有运行此工作流的权限。",
+  "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here.": "还有 {{count}} 个步骤需要项目所有者或拥有“Billing Admin”角色或“Manage Billing”权限的用户处理，因此未计入此处。",
+  "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here._one": "还有 {{count}} 个步骤需要项目所有者或拥有“Billing Admin”角色或“Manage Billing”权限的用户处理，因此未计入此处。",
   "The event has started, so this can no longer be changed.": "事件已开始，因此无法再更改。"
 }

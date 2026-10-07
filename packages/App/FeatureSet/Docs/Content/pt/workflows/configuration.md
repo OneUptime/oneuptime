@@ -96,14 +96,24 @@ Limites embutidos mantêm as chamadas não supervisionadas finitas: System Instr
 
 ## Permissões
 
-Workflows respeitam o controle de acesso baseado em papéis do seu projeto. As permissões relevantes:
+Workflows respeitam o controle de acesso baseado em papéis do seu projeto. As três funções de workflow:
 
-- **Create / Read / Edit / Delete Workflow** — as permissões básicas sobre o próprio workflow.
-- **Run Workflow** — necessária para rodar um workflow à mão ou disparar um via API.
+- **Workflow Admin** — constrói workflows: cria, altera, executa e exclui, e gerencia as variáveis que eles usam.
+- **Workflow Member** — usa os workflows: abre os workflows e suas execuções, e executa um workflow à mão com **Executar fluxo de trabalho**. Um membro não pode criar, alterar ou excluir um workflow, nem executar uma de suas etapas sozinha.
+- **Workflow Viewer** — lê os workflows e suas execuções.
+
+**Project Owner** e **Project Admin** podem fazer tudo o que um Workflow Admin faz. **Project Member** pode criar e excluir workflows, mas não alterá-los nem executá-los.
+
+As permissões individuais, para uma equipe ou chave de API que precisa de exatamente uma coisa:
+
+- **Create / Read / Edit / Delete Workflow** — as permissões básicas sobre o próprio workflow. Alterar um workflow, inclusive ligá-lo, desligá-lo e arquivá-lo, exige **Edit Workflow**; **Delete Workflow** só exclui.
+- **Edit Workflow** — também é o que se precisa para executar uma única etapa sozinha com **Run just this step**, e para ver ou redefinir a URL do webhook e o endereço de e-mail de entrada de um workflow. Executar um workflow inteiro à mão exige **Edit Workflow**, **Workflow Admin** ou **Workflow Member**.
 - **Read Workflow Log** — necessária para ver as execuções.
 - **Read / Create / Edit / Delete Workflow Variable** — controle sobre a lista de variáveis globais.
 
-A maioria das pessoas de engenharia deveria ter criar/editar/ler em workflows, mas não em variáveis. Reserve o acesso de edição de variáveis para quem cuida dos segredos do projeto.
+Uma execução à mão só alcança os workflows que você consegue abrir: uma função limitada a alguns rótulos, ou aos workflows que sua equipe possui, executa só esses. Quem não pode executar um workflow vê **Executar fluxo de trabalho** esmaecido, com o motivo na dica.
+
+Dê **Workflow Admin** a quem constrói a automação e **Workflow Member** a quem só a inicia. Reserve o acesso de edição de variáveis para quem cuida dos segredos do projeto.
 
 ## Limites do plano
 

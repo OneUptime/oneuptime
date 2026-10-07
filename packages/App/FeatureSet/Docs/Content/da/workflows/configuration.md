@@ -96,14 +96,24 @@ Indbyggede grænser holder kald uden opsyn endelige: System Instructions, Prompt
 
 ## Tilladelser
 
-Workflows respekterer dit projekts rollebaserede adgangskontrol. De relevante tilladelser:
+Workflows respekterer dit projekts rollebaserede adgangskontrol. De tre workflow-roller:
 
-- **Create / Read / Edit / Delete Workflow** — de grundlæggende tilladelser på selve workflowet.
-- **Run Workflow** — nødvendig for at køre et workflow manuelt eller udløse et via API.
+- **Workflow Admin** — bygger workflows: opretter, ændrer, kører og sletter dem og administrerer de variabler, de bruger.
+- **Workflow Member** — bruger dem: åbner workflows og deres kørsler og kører et workflow manuelt med **Kør arbejdsgang**. Et medlem kan ikke oprette, ændre eller slette et workflow eller køre et af dets trin for sig selv.
+- **Workflow Viewer** — læser workflows og deres kørsler.
+
+**Project Owner** og **Project Admin** kan alt, hvad en Workflow Admin kan. **Project Member** kan oprette og slette workflows, men ikke ændre eller køre dem.
+
+De enkelte tilladelser, til et team eller en API-nøgle, der skal have præcis én ting:
+
+- **Create / Read / Edit / Delete Workflow** — de grundlæggende tilladelser på selve workflowet. At ændre et workflow, herunder at slå det til eller fra og arkivere det, kræver **Edit Workflow**; **Delete Workflow** sletter kun.
+- **Edit Workflow** — er også det, der skal til for at køre ét trin for sig selv med **Run just this step** og for at se eller nulstille et workflows webhook-URL og indgående e-mailadresse. At køre et helt workflow manuelt kræver **Edit Workflow**, **Workflow Admin** eller **Workflow Member**.
 - **Read Workflow Log** — nødvendig for at se kørsler.
 - **Read / Create / Edit / Delete Workflow Variable** — kontrol over listen af globale variabler.
 
-De fleste udviklere bør have opret/rediger/læs på workflows, men ikke på variabler. Gem redigeringsadgangen til variabler til de folk, der administrerer projektets hemmeligheder.
+En manuel kørsel når kun de workflows, du kan åbne: en rolle, der er begrænset til bestemte etiketter eller til de workflows, dit team ejer, kører kun dem. Den, der ikke kan køre et workflow, ser **Kør arbejdsgang** nedtonet med årsagen i værktøjstippet.
+
+Giv dem, der bygger automatisering, **Workflow Admin**, og dem, der kun starter den, **Workflow Member**. Gem redigeringsadgangen til variabler til de folk, der administrerer projektets hemmeligheder.
 
 ## Plangrænser
 

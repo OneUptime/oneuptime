@@ -54,7 +54,7 @@ Teamsene **Owners** og **Admin** er bevidst låst: deres tilladelser kan ikke re
 
 `ProjectOwner` er det højeste adgangsniveau: fakturering, sletning af projektet og alt, hvad en administrator kan. `ProjectAdmin` dækker alt undtagen fakturering og sletning af projektet.
 
-At slå SMS, telefonopkald, WhatsApp eller Telegram til eller fra for projektet hører under fakturering, fordi hver besked koster penge. Kun `ProjectOwner` og tilladelsen `ManageProjectBilling` (**Manage Billing**) kan slå dem til eller fra, under **Projektindstillinger > Notifikationer > Notifikationsindstillinger** — ikke `ProjectAdmin`.
+At slå SMS, telefonopkald, WhatsApp eller Telegram til eller fra for projektet hører under fakturering, fordi hver besked koster penge. Kun `ProjectOwner`, rollen `BillingAdmin` (**Billing Admin**) og tilladelsen `ManageProjectBilling` (**Manage Billing**) kan slå dem til eller fra, under **Projektindstillinger > Notifikationer > Notifikationsindstillinger** — ikke `ProjectAdmin`.
 
 At genoplade projektets forudbetalte saldi hører også under fakturering. På OneUptime Cloud betales SMS, telefonopkald, WhatsApp og Telegram fra saldoen under **Projektindstillinger > Notifikationer > Notifikationsindstillinger**, og AI fra AI-kreditterne under **Projektindstillinger > AI > AI-kreditter**. Kun en projektejer eller nogen med **Manage Billing** kan genoplade dem eller ændre deres **Automatisk genopfyldning** — en projektadministrator kan ikke. En besked om en saldo, der er ved at løbe tør, nævner, hvem der kan fylde den op, og kun de personer får en knap **Genoplad saldo**, der virker, eller et link til siden.
 
@@ -75,6 +75,8 @@ En rolle samler et helt produktområde på ét af tre niveauer:
 - **Viewer** — kun læsning.
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` og så videre. Roller er næsten altid det rigtige valg — de forbliver korrekte, efterhånden som OneUptime får nye funktioner, fordi en ny monitorrelateret tabel lægges ind under de eksisterende monitorroller i stedet for at kræve en ny tildeling fra dig.
+
+Workflows er undtagelsen. Et workflow kører sine trin inde i projektet, så `WorkflowMember` åbner workflows og deres kørsler og kører dem manuelt, men opretter, ændrer eller sletter dem ikke. `WorkflowAdmin` bygger dem. Se [Workflow-konfiguration](/docs/workflows/configuration).
 
 Alle {{PERMISSION_ROLE_COUNT}} roller står i [Tilladelsesreferencen](/docs/permissions/reference).
 

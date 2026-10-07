@@ -94,7 +94,7 @@ Webhook triggers give you a unique URL. Anyone who knows the URL can hit it. To 
 - For sensitive workflows, ask the calling system to send a shared token as a header (like `X-Webhook-Token`) and check it with an **If / Else** block before doing anything important. Save the expected token as a secret variable.
 - For very sensitive workflows, prefer a OneUptime event trigger and a manual import step instead of a public webhook.
 
-Only people who can edit the workflow — **Project Owner**, **Project Admin**, or **Edit Workflow** — can see or reset its webhook URL. Anyone with the URL can start the workflow, which read-only roles can't do by hand, so they see a note saying who to ask instead.
+Only people who can edit the workflow — **Project Owner**, **Project Admin**, **Workflow Admin** or **Edit Workflow** — can see or reset its webhook URL. Anyone with the URL can start the workflow from anywhere, without signing in, so everyone else sees a note saying who to ask instead. That includes a **Workflow Member**, who runs the workflow by hand from the **Builder**.
 
 ## Incoming email security
 
@@ -105,7 +105,7 @@ The Incoming Email trigger gives the workflow an address of its own, and anyone 
 - Anyone can put any sender on an email, so **From** is not proof of who sent it. Before a workflow does anything important, check something only the real sender knows — a token in the subject or a header — with a **Conditions** block. Save the expected token as a secret variable.
 - The key is masked in everything the run receives — **To**, **CC**, the headers and the bodies — because the run's log is visible to anyone who can read the workflow's runs.
 
-Only people who can edit the workflow — **Project Owner**, **Project Admin**, or **Edit Workflow** — can see or reset its address. Everyone else sees a note saying who to ask.
+Only people who can edit the workflow — **Project Owner**, **Project Admin**, **Workflow Admin** or **Edit Workflow** — can see or reset its address. Everyone else sees a note saying who to ask.
 
 ## Outbound network access
 
@@ -131,14 +131,24 @@ Built-in bounds keep unattended calls finite: System Instructions, Prompt, and s
 
 ## Permissions
 
-Workflows respect your project's role-based access control. The relevant permissions:
+Workflows respect your project's role-based access control. The three workflow roles:
+
+- **Workflow Admin** — builds workflows: creates, changes, runs and deletes them, and manages the variables they use.
+- **Workflow Member** — uses them: opens workflows and their runs, and runs a workflow by hand with **Run Workflow**. A member can't create, change or delete a workflow, or run one of its steps on its own.
+- **Workflow Viewer** — reads workflows and their runs.
+
+**Project Owner** and **Project Admin** can do everything a Workflow Admin can. **Project Member** can create and delete workflows, but not change or run them.
+
+The single permissions, for a team or an API key that needs exactly one thing:
 
 - **Create / Read / Edit / Delete Workflow** — the basic permissions on the workflow itself. Changing a workflow, including turning it on or off and archiving it, takes **Edit Workflow**; **Delete Workflow** only deletes.
-- **Edit Workflow** — also what it takes to run a workflow by hand, and to see or reset its webhook URL and incoming email address. Viewers can open the builder but can't see the URL or the address.
+- **Edit Workflow** — also what it takes to run one step on its own with **Run just this step**, and to see or reset a workflow's webhook URL and incoming email address. Running a whole workflow by hand takes **Edit Workflow**, **Workflow Admin** or **Workflow Member**.
 - **Read Workflow Log** — needed to view runs.
 - **Read / Create / Edit / Delete Workflow Variable** — control over the global variables list.
 
-Most engineers should have create/edit/read on workflows but not on variables. Save variable edit access for the people who manage your project's secrets.
+A run by hand only reaches workflows you can open: a role limited to some labels, or to the workflows your team owns, runs only those. Someone who can't run a workflow sees **Run Workflow** greyed out, with the reason in its tooltip.
+
+Give the people who build automation **Workflow Admin**, and the people who only start it **Workflow Member**. Save variable edit access for the people who manage your project's secrets.
 
 ## Plan limits
 

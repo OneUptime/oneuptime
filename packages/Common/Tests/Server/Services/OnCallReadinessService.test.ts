@@ -1933,7 +1933,7 @@ describe("status", () => {
 
       expect(readiness.status).toBe(ReadinessStatus.NotReachable);
       expect(readiness.reasons[1]).toBe(
-        "Every method they have verified is on SMS, Call, and this project has those channels switched off - a project owner or someone with Manage Billing can turn them on in Project Settings > Notification Settings",
+        "Every method they have verified is on SMS, Call, and this project has those channels switched off - a project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notification Settings",
       );
     });
 
@@ -1960,9 +1960,11 @@ describe("status", () => {
        */
       expect(readiness.reasons[1]).toContain("WhatsApp");
       expect(readiness.reasons[1]).toContain(
-        "a project owner or someone with Manage Billing can turn it on in Project Settings > Notification Settings",
+        "a project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notification Settings",
       );
-      expect((readiness.reasons[1] || "").toLowerCase()).not.toContain("admin");
+      expect((readiness.reasons[1] || "").toLowerCase()).not.toContain(
+        "project admin",
+      );
       expect(
         readiness.reasons.some((reason: string): boolean => {
           return reason.includes("add and verify");
@@ -2940,7 +2942,7 @@ describe("notification channels", () => {
         "No usable notification method - cannot be paged",
       );
       expect(readiness.reasons[1]).toBe(
-        "Every method they have verified is on Telegram, and this project has that channel switched off - a project owner or someone with Manage Billing can turn it on in Project Settings > Notification Settings",
+        "Every method they have verified is on Telegram, and this project has that channel switched off - a project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notification Settings",
       );
     });
 

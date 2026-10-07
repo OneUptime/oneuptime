@@ -54,7 +54,7 @@ Los equipos **Owners** y **Admin** están bloqueados a propósito: sus permisos 
 
 `ProjectOwner` es el nivel de acceso más alto: facturación, eliminar el proyecto y todo lo que puede hacer un administrador. `ProjectAdmin` cubre todo excepto la facturación y la eliminación del proyecto.
 
-Encender o apagar SMS, llamadas telefónicas, WhatsApp o Telegram para el proyecto cuenta como facturación, porque cada mensaje cuesta dinero. Solo `ProjectOwner` y el permiso `ManageProjectBilling` (**Manage Billing**) pueden cambiar esos interruptores, en **Ajustes del proyecto > Notificaciones > Ajustes de Notificación**; `ProjectAdmin` no puede.
+Encender o apagar SMS, llamadas telefónicas, WhatsApp o Telegram para el proyecto cuenta como facturación, porque cada mensaje cuesta dinero. Solo `ProjectOwner`, el rol `BillingAdmin` (**Billing Admin**) y el permiso `ManageProjectBilling` (**Manage Billing**) pueden cambiar esos interruptores, en **Ajustes del proyecto > Notificaciones > Ajustes de Notificación**; `ProjectAdmin` no puede.
 
 Recargar los saldos prepagados del proyecto también cuenta como facturación. En OneUptime Cloud, los SMS, las llamadas telefónicas, WhatsApp y Telegram se pagan con el saldo de **Ajustes del proyecto > Notificaciones > Ajustes de Notificación**, y la IA con los créditos de IA de **Ajustes del proyecto > IA > Créditos de IA**. Solo el propietario del proyecto o alguien con **Manage Billing** puede recargarlos o cambiar su **Recarga automática**; un administrador del proyecto no puede. Un mensaje sobre un saldo que se está agotando dice quién puede recargarlo, y solo esas personas tienen un botón **Recargar saldo** que funciona o un enlace a la página.
 
@@ -75,6 +75,8 @@ Un rol agrupa toda un área del producto en uno de tres niveles:
 - **Viewer** — solo lectura.
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer`, etc. Los roles son lo que quiere casi siempre: siguen siendo correctos a medida que OneUptime añade funciones, porque una nueva tabla relacionada con monitores se añade a los roles de monitor existentes en lugar de exigirle una nueva concesión.
+
+Los flujos de trabajo son la excepción. Un flujo de trabajo ejecuta sus pasos dentro del proyecto, así que `WorkflowMember` abre los flujos de trabajo y sus ejecuciones y los ejecuta a mano, pero no los crea, cambia ni elimina. `WorkflowAdmin` los construye. Consulta [Configuración de flujos de trabajo](/docs/workflows/configuration).
 
 Los {{PERMISSION_ROLE_COUNT}} roles están en la [Referencia de permisos](/docs/permissions/reference).
 

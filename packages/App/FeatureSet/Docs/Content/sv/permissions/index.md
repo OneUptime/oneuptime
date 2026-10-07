@@ -54,7 +54,7 @@ Teamen **Owners** och **Admin** är avsiktligt låsta: deras behörigheter går 
 
 `ProjectOwner` är den högsta åtkomstnivån: fakturering, radera projektet och allt en administratör kan göra. `ProjectAdmin` täcker allt utom fakturering och radering av projektet.
 
-Att slå på eller av SMS, telefonsamtal, WhatsApp eller Telegram för projektet räknas som fakturering, eftersom varje meddelande kostar pengar. Bara `ProjectOwner` och behörigheten `ManageProjectBilling` (**Manage Billing**) kan ändra de reglagen, under **Projektinställningar > Aviseringar > Aviseringsinställningar** — inte `ProjectAdmin`.
+Att slå på eller av SMS, telefonsamtal, WhatsApp eller Telegram för projektet räknas som fakturering, eftersom varje meddelande kostar pengar. Bara `ProjectOwner`, rollen `BillingAdmin` (**Billing Admin**) och behörigheten `ManageProjectBilling` (**Manage Billing**) kan ändra de reglagen, under **Projektinställningar > Aviseringar > Aviseringsinställningar** — inte `ProjectAdmin`.
 
 Att fylla på projektets förbetalda saldon räknas också som fakturering. På OneUptime Cloud betalas SMS, telefonsamtal, WhatsApp och Telegram från saldot under **Projektinställningar > Aviseringar > Aviseringsinställningar**, och AI från AI-krediterna under **Projektinställningar > AI > AI-krediter**. Bara en projektägare eller någon med **Manage Billing** kan fylla på dem eller ändra deras **Automatisk påfyllning** — inte en projektadministratör. Ett meddelande om ett saldo som håller på att ta slut säger vem som kan fylla på det, och bara de personerna får en knapp **Fyll på saldo** som fungerar, eller en länk till sidan.
 
@@ -75,6 +75,8 @@ En roll samlar ett helt produktområde på en av tre nivåer:
 - **Viewer** — endast läsning.
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` och så vidare. Roller är nästan alltid rätt val — de förblir korrekta när OneUptime får nya funktioner, eftersom en ny övervakarrelaterad tabell läggs till de befintliga övervakarrollerna i stället för att kräva en ny tilldelning av dig.
+
+Arbetsflöden är undantaget. Ett arbetsflöde kör sina steg inne i projektet, så `WorkflowMember` öppnar arbetsflöden och deras körningar och kör dem för hand, men skapar, ändrar eller tar inte bort dem. `WorkflowAdmin` bygger dem. Se [Konfiguration av arbetsflöden](/docs/workflows/configuration).
 
 Alla {{PERMISSION_ROLE_COUNT}} roller finns i [Behörighetsreferensen](/docs/permissions/reference).
 

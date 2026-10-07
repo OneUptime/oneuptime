@@ -666,7 +666,7 @@ describe("Webhook trigger: its URL's secret key is managed here, not in Settings
     );
 
     expect(screen.getByRole("tooltip")).toHaveTextContent(
-      "You do not have permission to reset this webhook URL. You need one of these permissions: Project Owner, Project Admin, Edit Workflow.",
+      "You do not have permission to reset this webhook URL. You need one of these permissions: Project Owner, Project Admin, Edit Workflow, Workflow Admin.",
     );
 
     fireEvent.click(button);
@@ -1029,5 +1029,49 @@ describe("Identifier, saving and the footer", () => {
     );
 
     expect(onRunStep).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * Running one step on its own takes permission to edit the workflow
+   * (WorkflowRunGate): a Workflow Member, who may run the whole workflow,
+   * finds the button locked, saying why, and pressing it asks nothing.
+   */
+  test("Run just this step is shown locked, with the reason, to someone who may not run a step", () => {
+    const onRunStep: MockFunction = getJestMockFunction();
+    const reason: string =
+      "Running one step on its own takes permission to edit this workflow. You need one of these permissions: Project Owner, Project Admin, Edit Workflow, Workflow Admin.";
+
+    const log: NodeDataProp = makeNode(ComponentID.Log, "log-1");
+    log.arguments = { value: "Hello" };
+
+    renderModal(log, { onRunStep: onRunStep, runStepDisabledReason: reason });
+
+    const button: HTMLElement = screen.getByTestId("run-step-button");
+
+    expect(button).toBeDisabled();
+
+    fireEvent.mouseEnter(
+      screen.getByTestId("run-step-button-disabled-wrapper"),
+    );
+
+    expect(screen.getByRole("tooltip")).toHaveTextContent(reason);
+
+    fireEvent.click(button);
+
+    // No confirmation, and nothing run.
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+    expect(onRunStep).not.toHaveBeenCalled();
+  });
+
+  test("with no reason given, Run just this step works as before", () => {
+    const log: NodeDataProp = makeNode(ComponentID.Log, "log-1");
+    log.arguments = { value: "Hello" };
+
+    renderModal(log, {
+      onRunStep: getJestMockFunction(),
+      runStepDisabledReason: undefined,
+    });
+
+    expect(screen.getByTestId("run-step-button")).toBeEnabled();
   });
 });

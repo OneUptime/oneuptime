@@ -49,6 +49,12 @@ export interface ComponentProps {
    * their own.
    */
   onRunStep?: ((component: NodeDataProp) => void) | undefined;
+  /*
+   * Why the user may not run this step on its own - it takes permission to
+   * edit the workflow - or undefined when they may. The button stays, locked,
+   * with this in its tooltip.
+   */
+  runStepDisabledReason?: string | undefined;
   component: NodeDataProp;
   graphComponents: Array<NodeDataProp>;
   /*
@@ -454,7 +460,14 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
                 title="Run just this step"
                 icon={IconProp.Play}
                 buttonStyle={ButtonStyleType.OUTLINE}
+                disabled={Boolean(props.runStepDisabledReason)}
+                tooltip={props.runStepDisabledReason}
+                dataTestId="run-step-button"
                 onClick={() => {
+                  if (props.runStepDisabledReason) {
+                    return;
+                  }
+
                   setShowRunStepConfirmation(true);
                 }}
               />

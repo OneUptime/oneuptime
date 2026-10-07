@@ -247,7 +247,7 @@ Pour que les utilisateurs reçoivent des appels entrants, ils doivent avoir un n
 
 Seuls les utilisateurs avec des numéros de téléphone vérifiés peuvent être appelés via les règles d'escalade.
 
-Les numéros d'appels entrants sont vérifiés par SMS, donc **SMS** doit d'abord être activé pour le projet. Un propriétaire du projet ou une personne disposant de **Manage Billing** l'active dans la carte **Canaux de notification** de **Paramètres du projet > Notifications > Paramètres de notification**.
+Les numéros d'appels entrants sont vérifiés par SMS, donc **SMS** doit d'abord être activé pour le projet. Un propriétaire du projet ou une personne disposant de **Billing Admin** ou de **Manage Billing** l'active dans la carte **Canaux de notification** de **Paramètres du projet > Notifications > Paramètres de notification**.
 
 ## Libérer un numéro de téléphone
 
