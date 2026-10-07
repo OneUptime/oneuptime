@@ -130,6 +130,15 @@ export default class InvestigationEligibility {
         nextStep:
           "Review recent investigations for the affected monitor, or adjust the investigation cooldown for new records. An earlier run may still be queued, running, or may have failed.",
       },
+      no_investigation_rule_matched: {
+        title: recorded
+          ? `This ${kind} was outside the investigation rules at creation`
+          : `This ${kind} is currently outside the investigation rules`,
+        description: `${recorded ? `When this ${kind} was created, investigation rules were set up for ${kind}s, and it` : `Investigation rules are set up for ${kind}s, and this ${kind}`} ${recorded ? "matched" : "matches"} none of ${details?.rulesChecked ? `the ${details.rulesChecked} ${details.rulesChecked === 1 ? "rule" : "rules"}` : "them"}. Only the ${kind}s that match one are investigated automatically.`,
+        nextStep: recorded
+          ? `Review the investigation rules under ${kind === "alert" ? "Alerts" : "Incidents"} → AI → Settings → More settings. Changing them does not retry this ${kind}; to look into it anyway, ask OneUptime AI below.`
+          : `Review the investigation rules under ${kind === "alert" ? "Alerts" : "Incidents"} → AI → Settings → More settings. Existing records are not automatically retried.`,
+      },
       created_resolved: {
         title: `This ${kind} was created already resolved`,
         description: `It was already resolved when it was created, so OneUptime AI did not investigate it automatically.`,

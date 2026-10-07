@@ -164,7 +164,9 @@ export const MAX_BALANCE_ADJUSTMENT_IN_USD_CENTS: number = 10_000 * 100;
  * applyNewProjectAiDefaults). Every boolean AI feature switch on Project
  * belongs here; Enable AI is not listed because its column already defaults
  * to true. A switch added to Project later is added here too, or new
- * projects get it off.
+ * projects get it off - which is what the two automatic-fix switches
+ * (enableAutomaticIncidentRemediation, enableAutomaticAlertRemediation)
+ * want: fixing changes infrastructure, so a project turns it on itself.
  */
 export type NewProjectAiDefaultColumn =
   | "enableAutomaticIncidentInvestigation"

@@ -885,6 +885,9 @@ export const NOT_INVESTIGATED_REASONS: Record<
     project_daily_limit_reached: translationKey(
       "The project had reached its own daily AI limit.",
     ),
+    no_investigation_rule_matched: translationKey(
+      "They matched none of the investigation rules.",
+    ),
     severity_below_threshold: translationKey(
       "They were below the minimum severity to investigate.",
     ),
@@ -917,6 +920,9 @@ export const NOT_INVESTIGATED_REASONS: Record<
     ),
     project_daily_limit_reached: translationKey(
       "The project had reached its own daily AI limit.",
+    ),
+    no_investigation_rule_matched: translationKey(
+      "They matched none of the investigation rules.",
     ),
     severity_below_threshold: translationKey(
       "They were below the minimum severity to investigate.",

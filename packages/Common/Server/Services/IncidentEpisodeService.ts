@@ -1292,12 +1292,16 @@ export class Service extends ProjectReferencesService<Model> {
       incidentCount: incidentCount,
     };
 
-    // Update title with dynamic variables if template exists
+    /*
+     * Update title with dynamic variables if template exists - named as the
+     * grouping engine names an episode whose title template comes out empty
+     */
     if (episode?.titleTemplate) {
-      updateData.title = this.renderTemplateWithDynamicValues(
-        episode.titleTemplate,
-        incidentCount,
-      );
+      updateData.title =
+        this.renderTemplateWithDynamicValues(
+          episode.titleTemplate,
+          incidentCount,
+        ) || "Untitled Episode";
     }
 
     // Update description with dynamic variables if template exists
@@ -1325,6 +1329,16 @@ export class Service extends ProjectReferencesService<Model> {
 
     // Replace dynamic variables
     result = result.replace(/\{\{incidentCount\}\}/g, incidentCount.toString());
+
+    /*
+     * Clear anything else left in braces, as the grouping engine does when it
+     * first writes the title and description. The engine now stores only
+     * the count as a placeholder, but an episode opened before then can
+     * still hold "{{monitorName}}" and the like for a value its first
+     * incident did not have - which came back into its title each time
+     * another incident joined.
+     */
+    result = result.replace(/\{\{[^}]+\}\}/g, "");
 
     return result;
   }

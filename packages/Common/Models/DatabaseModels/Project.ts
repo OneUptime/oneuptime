@@ -1753,6 +1753,77 @@ export default class Project extends TenantModel {
   public enableAutomaticAlertInvestigation?: boolean = undefined;
 
   /*
+   * Fixing new incidents and alerts automatically (auto-remediation): the
+   * master switches, one per kind of signal, as investigation has. OFF for
+   * every project, new ones included, and on purpose not among the switches
+   * a new project starts with on (ProjectService NEW_PROJECT_AI_DEFAULT_COLUMNS):
+   * investigating only reads, while a fix changes production systems, so
+   * nothing is fixed until someone turns this on. With it on, OneUptime AI
+   * fixes each new signal on the Kubernetes clusters and infrastructure it
+   * is linked to (as each one's AI agent page allows), and Auto Remediation
+   * Rules - when there are any - narrow which signals are fixed and how.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Automatic Incident Remediation",
+    description:
+      "When enabled, OneUptime fixes new incidents automatically: OneUptime AI fixes each one on the Kubernetes clusters and infrastructure it is linked to, the way each one's AI agent page allows, and Auto Remediation Rules - when there are any - choose which incidents are fixed, which runbooks run and whether a person approves first. Off by default, for new projects too. Any AI investigation of the incident settles first. Requires AI to be enabled.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableAutomaticIncidentRemediation?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Automatic Alert Remediation",
+    description:
+      "When enabled, OneUptime fixes new alerts automatically: OneUptime AI fixes each one on the Kubernetes clusters and infrastructure it is linked to, the way each one's AI agent page allows, and Auto Remediation Rules - when there are any - choose which alerts are fixed, which runbooks run and whether a person approves first. Off by default, for new projects too. Any AI investigation of the alert settles first. Requires AI to be enabled.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableAutomaticAlertRemediation?: boolean = undefined;
+
+  /*
    * Drafting a postmortem when an incident resolves used to ride on
    * enableAutomaticIncidentInvestigation. It is its own switch now, on for
    * new projects like the rest. The migration that added it copied each

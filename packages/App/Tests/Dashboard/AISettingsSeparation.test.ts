@@ -7,6 +7,7 @@ import {
   ENABLE_AI_COLUMN,
   getAiLaneAdvancedCardColumns,
   ProjectAiSwitchDefinition,
+  isAiLaneRulesCard,
 } from "../../FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
@@ -169,6 +170,7 @@ const POSTMORTEM_DRAFT_COLUMN: string = "enableAutomaticPostmortemDraft";
 
 const INCIDENT_SWITCH_COLUMNS: Array<string> = [
   "enableAutomaticIncidentInvestigation",
+  "enableAutomaticIncidentRemediation",
   POSTMORTEM_DRAFT_COLUMN,
   "enableAutomaticIncidentCodeFixes",
   "enableIncidentInstrumentationFixTasks",
@@ -176,6 +178,7 @@ const INCIDENT_SWITCH_COLUMNS: Array<string> = [
 
 const ALERT_SWITCH_COLUMNS: Array<string> = [
   "enableAutomaticAlertInvestigation",
+  "enableAutomaticAlertRemediation",
   "enableAutomaticAlertCodeFixes",
   "enableAlertInstrumentationFixTasks",
 ];
@@ -230,19 +233,20 @@ describe("incident and alert AI settings separation", () => {
       cards: Array<SettingsCard>,
       limits: Array<string>,
     ) => {
-      expect(cards).toHaveLength(AI_LANE_ADVANCED_CARDS.length);
+      // The rules tables under More settings hold rules, not Project columns.
+      const columnCards: Array<AiLaneAdvancedCard> =
+        AI_LANE_ADVANCED_CARDS.filter((card: AiLaneAdvancedCard): boolean => {
+          return !isAiLaneRulesCard(card);
+        });
 
-      AI_LANE_ADVANCED_CARDS.forEach(
-        (card: AiLaneAdvancedCard, index: number): void => {
-          const columns: Array<string> = getAiLaneAdvancedCardColumns(
-            lane,
-            card,
-          );
+      expect(cards).toHaveLength(columnCards.length);
 
-          expect([card, cards[index]!.formFields]).toEqual([card, columns]);
-          expect([card, cards[index]!.detailFields]).toEqual([card, columns]);
-        },
-      );
+      columnCards.forEach((card: AiLaneAdvancedCard, index: number): void => {
+        const columns: Array<string> = getAiLaneAdvancedCardColumns(lane, card);
+
+        expect([card, cards[index]!.formFields]).toEqual([card, columns]);
+        expect([card, cards[index]!.detailFields]).toEqual([card, columns]);
+      });
 
       // Together, every limit of the lane, once.
       expect(formFieldsOf(cards)).toEqual(limits);
