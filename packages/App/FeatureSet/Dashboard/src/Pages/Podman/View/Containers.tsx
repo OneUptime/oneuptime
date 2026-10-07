@@ -37,22 +37,69 @@ import Link from "Common/UI/Components/Link/Link";
 import Route from "Common/Types/API/Route";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import {
+  ClientSort,
+  ClientSortColumns,
+  compareText,
+  resolveClientSort,
+  sortClientRows,
+} from "../../../Utils/ClientTableSort";
 import { CONTAINER_HOST_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ContainerHostMetricDescriptions";
 
 interface PodmanContainerRow {
   containerName: string;
-  containerImage: string;
-  cpuPercent: string;
-  memoryUsage: string;
-  memoryPercent: string;
-  networkRx: string;
-  networkTx: string;
+  // Null when no reading carried an image name; the cell says "unknown".
+  containerImage: string | null;
+  /*
+   * The latest readings, kept as numbers so each column sorts by the reading
+   * rather than its text: as text, "12.35%" sorts before "9.00%" and
+   * "1.5 GB" before "50.0 MB". Null when the container sent no reading in
+   * the window; the cell shows "—".
+   */
+  cpuPercent: number | null;
+  memoryUsage: number | null;
+  memoryPercent: number | null;
+  networkRx: number | null;
+  networkTx: number | null;
 }
+
+type PodmanContainerSort = ClientSort<keyof PodmanContainerRow>;
 
 const CONTAINER_NAME_ATTR: string = "resource.container.name";
 const CONTAINER_IMAGE_ATTR: string = "resource.container.image.name";
 
 const PAGE_SIZE: number = 25;
+
+/*
+ * Every column sorts, by the value behind its cell. The readings open busiest
+ * first, the name and image A to Z; a missing reading or image sorts last
+ * either way.
+ */
+const SORT_COLUMNS: ClientSortColumns<
+  PodmanContainerRow,
+  keyof PodmanContainerRow
+> = {
+  containerName: { firstSortOrder: SortOrder.Ascending },
+  containerImage: { firstSortOrder: SortOrder.Ascending },
+  cpuPercent: { firstSortOrder: SortOrder.Descending },
+  memoryUsage: { firstSortOrder: SortOrder.Descending },
+  memoryPercent: { firstSortOrder: SortOrder.Descending },
+  networkRx: { firstSortOrder: SortOrder.Descending },
+  networkTx: { firstSortOrder: SortOrder.Descending },
+};
+
+const DEFAULT_SORT: PodmanContainerSort = {
+  sortBy: "containerName",
+  sortOrder: SortOrder.Ascending,
+};
+
+// Containers that tie in the sorted column stay in name order.
+const compareByName: (
+  a: PodmanContainerRow,
+  b: PodmanContainerRow,
+) => number = (a: PodmanContainerRow, b: PodmanContainerRow): number => {
+  return compareText(a.containerName, b.containerName);
+};
 
 const formatBytes: (bytes: number) => string = (bytes: number): string => {
   if (!isFinite(bytes) || bytes <= 0) {
@@ -68,6 +115,25 @@ const formatBytes: (bytes: number) => string = (bytes: number): string => {
   return `${value.toFixed(value >= 100 || idx === 0 ? 0 : 1)} ${units[idx]}`;
 };
 
+const formatReadingBytes: (value: number | null) => string = (
+  value: number | null,
+): string => {
+  return value === null ? "—" : formatBytes(value);
+};
+
+const formatReadingPercent: (value: number | null) => string = (
+  value: number | null,
+): string => {
+  return value === null ? "—" : `${value.toFixed(2)}%`;
+};
+
+// A metric's latest reading for one container, or null when it sent none.
+const readingOf: (metric: Metric | undefined) => number | null = (
+  metric: Metric | undefined,
+): number | null => {
+  return metric && metric.value !== undefined ? Number(metric.value) : null;
+};
+
 const PodmanHostContainers: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -78,6 +144,7 @@ const PodmanHostContainers: FunctionComponent<
   const [error, setError] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(PAGE_SIZE);
+  const [sort, setSort] = useState<PodmanContainerSort>(DEFAULT_SORT);
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -174,7 +241,7 @@ const PodmanHostContainers: FunctionComponent<
       const rows: Array<PodmanContainerRow> = [];
       for (const containerName of containerNames) {
         // Pick image from whichever metric has it.
-        let image: string = "unknown";
+        let image: string | null = null;
         for (const perContainer of latestByMetric.values()) {
           const m: Metric | undefined = perContainer.get(containerName);
           if (m) {
@@ -207,32 +274,13 @@ const PodmanHostContainers: FunctionComponent<
         rows.push({
           containerName: containerName,
           containerImage: image,
-          cpuPercent:
-            cpuMetric && cpuMetric.value !== undefined
-              ? `${Number(cpuMetric.value).toFixed(2)}%`
-              : "—",
-          memoryUsage:
-            memBytesMetric && memBytesMetric.value !== undefined
-              ? formatBytes(Number(memBytesMetric.value))
-              : "—",
-          memoryPercent:
-            memPctMetric && memPctMetric.value !== undefined
-              ? `${Number(memPctMetric.value).toFixed(2)}%`
-              : "—",
-          networkRx:
-            rxMetric && rxMetric.value !== undefined
-              ? formatBytes(Number(rxMetric.value))
-              : "—",
-          networkTx:
-            txMetric && txMetric.value !== undefined
-              ? formatBytes(Number(txMetric.value))
-              : "—",
+          cpuPercent: readingOf(cpuMetric),
+          memoryUsage: readingOf(memBytesMetric),
+          memoryPercent: readingOf(memPctMetric),
+          networkRx: readingOf(rxMetric),
+          networkTx: readingOf(txMetric),
         });
       }
-
-      rows.sort((a: PodmanContainerRow, b: PodmanContainerRow) => {
-        return a.containerName.localeCompare(b.containerName);
-      });
 
       setContainers(rows);
     } catch (err) {
@@ -247,6 +295,16 @@ const PodmanHostContainers: FunctionComponent<
     });
   }, []);
 
+  // Sorted before the page is cut out, so a sort runs across every page.
+  const sortedContainers: Array<PodmanContainerRow> = useMemo(() => {
+    return sortClientRows({
+      rows: containers,
+      columns: SORT_COLUMNS,
+      sort: sort,
+      tieBreak: compareByName,
+    });
+  }, [containers, sort]);
+
   /*
    * A refresh can shrink the list (a stopped container ages out of the
    * 5-minute window), so clamp instead of trusting currentPage — otherwise
@@ -260,8 +318,8 @@ const PodmanHostContainers: FunctionComponent<
 
   const paginatedData: Array<PodmanContainerRow> = useMemo(() => {
     const start: number = (effectivePage - 1) * pageSize;
-    return containers.slice(start, start + pageSize);
-  }, [containers, effectivePage, pageSize]);
+    return sortedContainers.slice(start, start + pageSize);
+  }, [sortedContainers, effectivePage, pageSize]);
 
   const getContainerDetailRoute: (row: PodmanContainerRow) => Route = (
     row: PodmanContainerRow,
@@ -296,37 +354,53 @@ const PodmanHostContainers: FunctionComponent<
         title: "Image",
         type: FieldType.Text,
         key: "containerImage",
+        noValueMessage: "unknown",
       },
       {
         title: "CPU",
-        type: FieldType.Text,
+        type: FieldType.Element,
         key: "cpuPercent",
         headerTooltip: CONTAINER_HOST_METRIC_DESCRIPTIONS.containerCpu,
+        getElement: (row: PodmanContainerRow): ReactElement => {
+          return <span>{formatReadingPercent(row.cpuPercent)}</span>;
+        },
       },
       {
         title: "Memory",
-        type: FieldType.Text,
+        type: FieldType.Element,
         key: "memoryUsage",
         headerTooltip: CONTAINER_HOST_METRIC_DESCRIPTIONS.containerMemory,
+        getElement: (row: PodmanContainerRow): ReactElement => {
+          return <span>{formatReadingBytes(row.memoryUsage)}</span>;
+        },
       },
       {
         title: "Memory %",
-        type: FieldType.Text,
+        type: FieldType.Element,
         key: "memoryPercent",
         headerTooltip:
           CONTAINER_HOST_METRIC_DESCRIPTIONS.containerMemoryPercent,
+        getElement: (row: PodmanContainerRow): ReactElement => {
+          return <span>{formatReadingPercent(row.memoryPercent)}</span>;
+        },
       },
       {
         title: "Network RX (total)",
-        type: FieldType.Text,
+        type: FieldType.Element,
         key: "networkRx",
         headerTooltip: CONTAINER_HOST_METRIC_DESCRIPTIONS.containerNetworkRx,
+        getElement: (row: PodmanContainerRow): ReactElement => {
+          return <span>{formatReadingBytes(row.networkRx)}</span>;
+        },
       },
       {
         title: "Network TX (total)",
-        type: FieldType.Text,
+        type: FieldType.Element,
         key: "networkTx",
         headerTooltip: CONTAINER_HOST_METRIC_DESCRIPTIONS.containerNetworkTx,
+        getElement: (row: PodmanContainerRow): ReactElement => {
+          return <span>{formatReadingBytes(row.networkTx)}</span>;
+        },
       },
       {
         title: "",
@@ -401,9 +475,22 @@ const PodmanHostContainers: FunctionComponent<
             setPageSize(itemsOnPage);
           }
         }}
-        sortOrder={SortOrder.Ascending}
-        sortBy={null}
-        onSortChanged={() => {}}
+        sortOrder={sort.sortOrder}
+        sortBy={sort.sortBy}
+        onSortChanged={(
+          newSortBy: keyof PodmanContainerRow | null,
+          newSortOrder: SortOrder,
+        ) => {
+          setSort((current: PodmanContainerSort): PodmanContainerSort => {
+            return resolveClientSort({
+              columns: SORT_COLUMNS,
+              current: current,
+              requestedSortBy: newSortBy,
+              requestedSortOrder: newSortOrder,
+            });
+          });
+          setCurrentPage(1);
+        }}
         noItemsMessage="No containers found in the last 5 minutes. Make sure the Podman agent is sending metrics."
       />
     </Card>
