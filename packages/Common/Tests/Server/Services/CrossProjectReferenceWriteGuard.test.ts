@@ -838,6 +838,12 @@ describe("cross-project reference guard on write", () => {
 
     test("update looks nothing up when neither monitorSteps nor the status is written", async () => {
       spyOnValidator();
+      /*
+       * Writing a description also has onBeforeUpdate read the description
+       * each matched monitor holds, so its feed line follows a real change
+       * only. Unrelated to the guard - stub it out.
+       */
+      jest.spyOn(MonitorService, "findBy").mockResolvedValue([] as never);
 
       await callHook(MonitorService, "onBeforeUpdate", {
         data: { description: "renamed" },
