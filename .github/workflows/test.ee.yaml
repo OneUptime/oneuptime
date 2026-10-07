@@ -74,6 +74,14 @@ jobs:
       - name: Run Common's UI source guards with ee/ present
         working-directory: packages/Common
         run: node node_modules/.bin/jest Tests/UI/ForeignHiddenRuleGuard.test.ts Tests/UI/Components/Forms/CreateFormDefaultsGuard.test.ts --forceExit
+      # Common's guard that every removal of a project membership goes through
+      # TeamMemberService with its hooks, so the leaver's own notification
+      # settings go with it, also walks ee/Server: SCIM deprovisioning removes
+      # memberships. The Common Test job deletes ee/ first, so only this run
+      # holds SCIM to it.
+      - name: Run Common's membership-removal guard with ee/ present
+        working-directory: packages/Common
+        run: node node_modules/.bin/jest Tests/Server/Services/TeamMemberNotificationSettingsCleanup.test.ts --forceExit
       - name: Install ee
         uses: ./.github/actions/npm-install
         with:
