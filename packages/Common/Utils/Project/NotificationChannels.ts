@@ -136,9 +136,8 @@ const getPronoun: (channel: ProjectNotificationChannel) => ChannelPronoun = (
  * What the server says when something needs a channel the project has off:
  * "SMS is off in this project. A project owner, a Billing Admin or someone
  * with Manage Billing can turn it on in Project Settings > Notification
- * Settings." Said
- * to whoever asked - someone who may turn it on, or not - so it names who
- * can rather than telling the reader to.
+ * Settings." Said to whoever asked - someone who may turn it on, or not -
+ * so it names who can rather than telling the reader to.
  */
 export const getProjectNotificationChannelOffMessage: (
   channel: ProjectNotificationChannel,

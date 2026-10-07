@@ -2646,9 +2646,8 @@ export default class OnCallReadinessService {
        * they need three different people to fix them: the user adds a method, the user
        * verifies a method, or a project owner (or a Billing Admin, or someone with
        * Manage Billing - the only people the channel switches let in) turns a
-       * channel back on. A single
-       * "cannot be paged" line sends all three to the wrong place, so the third names
-       * exactly who can, and where.
+       * channel back on. A single "cannot be paged" line sends all three to the
+       * wrong place, so the third names exactly who can, and where.
        */
       if (data.verifiedMethods.length > 0) {
         const isOneChannel: boolean = data.disabledChannels.length === 1;

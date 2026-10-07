@@ -15,8 +15,8 @@ export type { ProjectNotificationChannelColumn };
  * Only a project owner, a Billing Admin or someone with Manage Billing may
  * change them - the columns' own update permissions - and not a project
  * admin: a channel that costs money is billing
- * (Common/Utils/Project/NotificationChannels,
- * which also words what the server says). So wherever a channel is off:
+ * (Common/Utils/Project/NotificationChannels, which also words what the
+ * server says). So wherever a channel is off:
  * - someone who may turn it on gets the switch itself, or a link straight
  *   to it (the Notification Channels card);
  * - everyone else is told exactly who can, and where - never to "ask an

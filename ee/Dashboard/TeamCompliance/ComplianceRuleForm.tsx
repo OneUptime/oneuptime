@@ -229,10 +229,9 @@ const countSelected: (value: unknown) => number = (value: unknown): number => {
  *
  * Each note ends by saying who can switch the channel on, and where: only a
  * project owner, a Billing Admin or someone with Manage Billing may (the
- * switches' own update
- * permissions), and whoever writes a team's rules is often neither. The same
- * sentence as the server's compliance warnings (TeamComplianceEvaluator), from
- * Common/Utils/Project/NotificationChannels.
+ * switches' own update permissions), and whoever writes a team's rules is
+ * often neither. The same sentence as the server's compliance warnings
+ * (TeamComplianceEvaluator), from Common/Utils/Project/NotificationChannels.
  */
 export const getProjectSwitchNote: (
   channel: ComplianceNotificationChannel,

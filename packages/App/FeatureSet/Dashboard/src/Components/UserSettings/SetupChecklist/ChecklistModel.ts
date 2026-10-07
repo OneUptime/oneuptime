@@ -258,9 +258,9 @@ export interface SetupChecklistInput {
    * Whether the reader may turn the project's SMS, call, WhatsApp and
    * Telegram channels on themselves: only a project owner, a Billing Admin
    * or someone with Manage Billing may (the columns' own update
-   * permissions). Decides
-   * whether a verified method on a channel that is off is the reader's own
-   * step, linking to the switches, or somebody else's, naming who.
+   * permissions). Decides whether a verified method on a channel that is
+   * off is the reader's own step, linking to the switches, or somebody
+   * else's, naming who.
    *
    * Absent reads as no: the step then names who can, which is true for
    * everyone, rather than linking a reader to a switch they may be refused.
@@ -272,8 +272,8 @@ export interface SetupChecklistInput {
  * The "is one of your channels usable" step's words for each reader.
  *
  * Only a project owner, a Billing Admin or someone with Manage Billing may
- * switch a channel on - not a project admin. The step once said "Ask a project admin", who
- * could not do it either. Now someone who may flip the switch is sent
+ * switch a channel on - not a project admin. The step once said "Ask a
+ * project admin", who could not do it either. Now someone who may flip the switch is sent
  * straight to it, and everyone else is told exactly who can.
  */
 export const ChannelStepCopy: {
