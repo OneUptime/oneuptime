@@ -249,6 +249,14 @@ Without the OS capability the app does not pretend: the settings screen reads
 the real state back from the OS and tells the responder which setting is
 missing.
 
+On iOS, Settings has a **Critical Alerts** switch for the app only once an
+entitled build has asked for the permission, which happens when the in-app
+setting is turned on. Until then iOS reports critical alerts as not supported
+(`allowsCriticalAlerts` is `null`, not `false`). If that is still the answer
+after asking, the build lacks the entitlement - true of every App Store build
+up to 1.4.0 - and the screen says to update the app instead of pointing at a
+switch iOS is not showing. See `src/notifications/criticalAlerts.ts`.
+
 ## Troubleshooting
 
 - **"Network Error" on login**: Make sure your OneUptime server URL is correct and reachable from your device/emulator.

@@ -1317,6 +1317,26 @@ export default class OAuthTestHarness {
       },
     );
 
+    /*
+     * Membership as the database answers it (ProjectMembership.isMember), read
+     * on every consent and every use of a grant: the same memberships the
+     * permission sets above come from.
+     */
+    this.replace(
+      TeamMemberService,
+      "isUserMemberOfProject",
+      async (data: {
+        projectId: ObjectID;
+        userId: ObjectID;
+      }): Promise<boolean> => {
+        return Boolean(
+          this.memberships
+            .get(data.userId.toString())
+            ?.has(data.projectId.toString()),
+        );
+      },
+    );
+
     // --- Projects ---
 
     this.replace(

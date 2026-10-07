@@ -859,14 +859,29 @@ describePostgres("live updates against a migrated Postgres", () => {
     );
   });
 
+  /*
+   * An insight has no labels of its own: grants limited to labels, or to
+   * what the member owns, reach it through what it names (#4526). The
+   * insight about the Blue service is one only a reader of that service may
+   * read, so neither the Red label reader nor the owned-only reader hears
+   * about it; the insight that names nothing is the project's.
+   */
   describe("a record with no labels of its own", () => {
     const INSIGHTS: Array<string> = [INSIGHT_ON_BLUE_SERVICE, INSIGHT_PLAIN];
 
     test.each([
       ["a project owner", OWNER, INSIGHTS],
       ["a project member", MEMBER, INSIGHTS],
-      ["a member granted for the Red label only", LABELS_READER, INSIGHTS],
-      ["a member granted for what they own", OWNED_READER, INSIGHTS],
+      [
+        "a member granted for the Red label only: not the insight about the Blue service",
+        LABELS_READER,
+        [INSIGHT_PLAIN],
+      ],
+      [
+        "a member granted for what they own: not the insight about the Blue service",
+        OWNED_READER,
+        [INSIGHT_PLAIN],
+      ],
       [
         "a member with a block on the Blue label: not the insight about the Blue service",
         BLOCKED_READER,

@@ -62,6 +62,45 @@ function denyIos(): void {
     .mockResolvedValue({ ios: { allowsCriticalAlerts: false } } as never);
 }
 
+/*
+ * What expo-notifications reports on iOS. allowsCriticalAlerts is null when
+ * iOS reports critical alerts as not supported: a build without Apple's
+ * entitlement, or an entitled build that has not asked yet.
+ */
+function iosPermissions(
+  status: "granted" | "denied",
+  allowsCriticalAlerts: boolean | null,
+): never {
+  return { status: status, ios: { allowsCriticalAlerts } } as never;
+}
+
+/*
+ * iOS across a request: it reports `beforeRequest` until the app asks for the
+ * permission and `afterRequest` from then on, the way a prompt that has just
+ * been answered changes what the OS reports.
+ */
+function simulateIos(
+  beforeRequest: never,
+  afterRequest: never,
+): { getSpy: jest.SpyInstance; requestSpy: jest.SpyInstance } {
+  let current: never = beforeRequest;
+
+  const getSpy: jest.SpyInstance = jest
+    .spyOn(Notifications, "getPermissionsAsync")
+    .mockImplementation(async () => {
+      return current;
+    });
+
+  const requestSpy: jest.SpyInstance = jest
+    .spyOn(Notifications, "requestPermissionsAsync")
+    .mockImplementation(async () => {
+      current = afterRequest;
+      return afterRequest;
+    });
+
+  return { getSpy, requestSpy };
+}
+
 function serverSpy(): jest.SpyInstance {
   return pushDeviceApi.setCriticalAlertsEnabledOnServer as unknown as jest.SpyInstance;
 }
@@ -281,6 +320,215 @@ describe("useCriticalAlerts when the OS has not granted the capability", () => {
     });
 
     expect(requestSpy).toHaveBeenCalled();
+  });
+});
+
+describe("useCriticalAlerts on an iOS build without Apple's entitlement", () => {
+  /*
+   * Every App Store build up to 1.4.0. iOS ignores the request without a
+   * prompt or an error, and Settings never gets a Critical Alerts switch for
+   * the app - so the old instruction to turn that switch on was one a
+   * responder could not follow, however many times they tried.
+   */
+  beforeEach(async () => {
+    setPlatform("ios");
+    setIsDevice(true);
+    await AsyncStorage.clear();
+    await AsyncStorage.setItem(PUSH_TOKEN_KEY, DEVICE_TOKEN);
+    serverSpy().mockClear();
+    serverSpy().mockResolvedValue(undefined as never);
+    simulateIos(
+      iosPermissions("granted", null),
+      iosPermissions("granted", null),
+    );
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("the setting is still offered, so the explanation has somewhere to appear", async () => {
+    const { result } = await renderCriticalAlerts();
+
+    expect(result.current.isSupported).toBe(true);
+    expect(result.current.isPermissionGranted).toBe(false);
+  });
+
+  test("turning it on asks iOS before giving up", async () => {
+    const requestSpy: jest.SpyInstance = jest.spyOn(
+      Notifications,
+      "requestPermissionsAsync",
+    );
+
+    const { result } = await renderCriticalAlerts();
+
+    await act(async () => {
+      await result.current.setEnabled(true);
+    });
+
+    expect(requestSpy).toHaveBeenCalledWith({
+      ios: expect.objectContaining({ allowCriticalAlerts: true }),
+    });
+  });
+
+  test("the switch does not turn on and the server is never told it did", async () => {
+    const { result } = await renderCriticalAlerts();
+
+    await act(async () => {
+      await result.current.setEnabled(true);
+    });
+
+    expect(result.current.isEnabled).toBe(false);
+    expect(serverSpy()).not.toHaveBeenCalled();
+    expect(await getCriticalAlertsEnabled()).toBe(false);
+  });
+
+  test("the responder is told to update the app, not to find a switch iOS is not showing", async () => {
+    const { result } = await renderCriticalAlerts();
+
+    await act(async () => {
+      await result.current.setEnabled(true);
+    });
+
+    expect(result.current.error).toContain("Update OneUptime On-Call");
+    expect(result.current.error).toContain("no Critical Alerts switch");
+    expect(result.current.error).not.toContain("Allow Critical Alerts");
+  });
+});
+
+describe("useCriticalAlerts after updating to a build with Apple's entitlement", () => {
+  /*
+   * The responder who reported the missing switch, once on 1.5.0: iOS has
+   * never shown them the critical alert prompt, so until the app asks, the
+   * setting reads exactly as it did on the old build.
+   */
+  beforeEach(async () => {
+    setPlatform("ios");
+    setIsDevice(true);
+    await AsyncStorage.clear();
+    await AsyncStorage.setItem(PUSH_TOKEN_KEY, DEVICE_TOKEN);
+    serverSpy().mockClear();
+    serverSpy().mockResolvedValue(undefined as never);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("accepting the prompt turns the setting on and tells the server", async () => {
+    simulateIos(
+      iosPermissions("granted", null),
+      iosPermissions("granted", true),
+    );
+
+    const { result } = await renderCriticalAlerts();
+
+    expect(result.current.isPermissionGranted).toBe(false);
+
+    await act(async () => {
+      await result.current.setEnabled(true);
+    });
+
+    expect(serverSpy()).toHaveBeenCalledWith({
+      deviceToken: DEVICE_TOKEN,
+      isEnabled: true,
+    });
+    expect(result.current.isEnabled).toBe(true);
+    expect(result.current.isPermissionGranted).toBe(true);
+    expect(result.current.error).toBe("");
+    expect(await getCriticalAlertsEnabled()).toBe(true);
+  });
+
+  test("declining the prompt points at the switch iOS has now added", async () => {
+    simulateIos(
+      iosPermissions("granted", null),
+      iosPermissions("granted", false),
+    );
+
+    const { result } = await renderCriticalAlerts();
+
+    await act(async () => {
+      await result.current.setEnabled(true);
+    });
+
+    expect(result.current.isEnabled).toBe(false);
+    expect(serverSpy()).not.toHaveBeenCalled();
+    expect(result.current.error).toContain(
+      "Allow Critical Alerts for OneUptime On-Call in iOS Settings",
+    );
+  });
+
+  test("allowing it in iOS Settings afterwards clears the instruction, and the switch then turns on", async () => {
+    const { getSpy } = simulateIos(
+      iosPermissions("granted", null),
+      iosPermissions("granted", false),
+    );
+
+    const addListenerSpy: jest.SpyInstance = jest.spyOn(
+      AppState,
+      "addEventListener",
+    );
+
+    const { result } = await renderCriticalAlerts();
+
+    await act(async () => {
+      await result.current.setEnabled(true);
+    });
+
+    expect(result.current.error).toContain("Allow Critical Alerts");
+
+    // The responder flips Critical Alerts on in iOS Settings and comes back.
+    getSpy.mockResolvedValue(iosPermissions("granted", true));
+
+    const handler: (state: string) => void = addListenerSpy.mock
+      .calls[0]![1] as (state: string) => void;
+
+    await act(async () => {
+      handler("active");
+    });
+
+    await waitFor(() => {
+      expect(result.current.error).toBe("");
+      expect(result.current.isPermissionGranted).toBe(true);
+    });
+
+    await act(async () => {
+      await result.current.setEnabled(true);
+    });
+
+    expect(serverSpy()).toHaveBeenCalledWith({
+      deviceToken: DEVICE_TOKEN,
+      isEnabled: true,
+    });
+    expect(result.current.isEnabled).toBe(true);
+  });
+});
+
+describe("useCriticalAlerts on iOS with notifications turned off", () => {
+  beforeEach(async () => {
+    setPlatform("ios");
+    setIsDevice(true);
+    await AsyncStorage.clear();
+    await AsyncStorage.setItem(PUSH_TOKEN_KEY, DEVICE_TOKEN);
+    serverSpy().mockClear();
+    serverSpy().mockResolvedValue(undefined as never);
+    simulateIos(iosPermissions("denied", null), iosPermissions("denied", null));
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("the responder is told to turn notifications back on first", async () => {
+    const { result } = await renderCriticalAlerts();
+
+    await act(async () => {
+      await result.current.setEnabled(true);
+    });
+
+    expect(result.current.isEnabled).toBe(false);
+    expect(serverSpy()).not.toHaveBeenCalled();
+    expect(result.current.error).toContain("Allow Notifications");
   });
 });
 
