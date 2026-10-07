@@ -1,6 +1,7 @@
 import { FormType } from "../../Components/Forms/ModelForm";
 import { APP_API_URL } from "../../Config";
 import API from "../API/API";
+import ModelAPI from "../ModelAPI/ModelAPI";
 import GroupBy from "../../../Types/BaseDatabase/GroupBy";
 import BaseListResult from "../../../Types/BaseDatabase/ListResult";
 import RequestOptions from "../API/RequestOptions";
@@ -466,10 +467,12 @@ export default class ModelAPI {
       );
     } catch (error) {
       /*
-       * The API answers 404 for a row that does not exist or that the
-       * caller may not read: no row, which callers of getItem handle as null.
+       * The API's get-item route answers 404 for a row that does not exist
+       * or that the caller may not read: no row, which callers of getItem
+       * handle as null - the rule ModelAPI.getItem follows, a route of the
+       * caller's own (overrideRequestUrl) raising its failures.
        */
-      if (error instanceof HTTPErrorResponse && error.statusCode === 404) {
+      if (!requestOptions?.overrideRequestUrl && ModelAPI.isNotFound(error)) {
         return null;
       }
 

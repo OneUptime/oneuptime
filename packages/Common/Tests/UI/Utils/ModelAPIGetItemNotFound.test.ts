@@ -11,6 +11,7 @@ import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import Project from "../../../Models/DatabaseModels/Project";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
+import URL from "../../../Types/API/URL";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import AnalyticsModelAPI from "../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
@@ -24,12 +25,18 @@ import ProjectUtil from "../../../UI/Utils/Project";
  * another project or is one the caller may not read with 404. The pages
  * read that as no record - getItem resolves null, which every caller
  * already handles ("Cannot load this incident...") - rather than as an
- * error. Any other failure is still thrown, as before.
+ * error. Any other failure is still thrown, as before, and so is a 404 from
+ * a route of the caller's own (overrideRequestUrl): a route that is not
+ * there answers 404 too, and only the API's get-item route means "no such
+ * record" by it.
  */
 
 const PROJECT_ID: string = "019acd20-3333-4333-8333-333333333333";
 const RECORD_ID: ObjectID = new ObjectID(
   "019acd20-4444-4444-8444-444444444444",
+);
+const OWN_ROUTE: URL = URL.fromString(
+  "https://oneuptime.example/status-page-api/subscription/get-item",
 );
 
 function respondWith(response: HTTPResponse<JSONObject>): void {
@@ -94,6 +101,22 @@ describe("ModelAPI.getItem", () => {
     expect(await getItem()).toBeNull();
   });
 
+  test("a 404 from a route of the caller's own is still thrown", async () => {
+    respondWith(new HTTPErrorResponse(404, { message: "Not found" }, {}));
+
+    const error: unknown = await thrownBy(
+      ModelAPI.getItem<IncidentState>({
+        modelType: IncidentState,
+        id: RECORD_ID,
+        select: { _id: true, name: true },
+        requestOptions: { overrideRequestUrl: OWN_ROUTE },
+      }),
+    );
+
+    expect(error).toBeInstanceOf(HTTPErrorResponse);
+    expect((error as HTTPErrorResponse).statusCode).toBe(404);
+  });
+
   test("a refusal (422) is still thrown", async () => {
     respondWith(
       new HTTPErrorResponse(
@@ -139,6 +162,22 @@ describe("AnalyticsModelAPI.getItem", () => {
         select: { _id: true },
       }),
     ).toBeNull();
+  });
+
+  test("a 404 from a route of the caller's own is still thrown", async () => {
+    respondWith(new HTTPErrorResponse(404, { message: "Not found" }, {}));
+
+    const error: unknown = await thrownBy(
+      AnalyticsModelAPI.getItem<MonitorLog>({
+        modelType: MonitorLog,
+        id: RECORD_ID,
+        select: { _id: true },
+        requestOptions: { overrideRequestUrl: OWN_ROUTE },
+      }),
+    );
+
+    expect(error).toBeInstanceOf(HTTPErrorResponse);
+    expect((error as HTTPErrorResponse).statusCode).toBe(404);
   });
 
   test("a refusal is still thrown", async () => {

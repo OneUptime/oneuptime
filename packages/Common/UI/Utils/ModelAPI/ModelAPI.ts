@@ -442,11 +442,16 @@ export default class ModelAPI {
       });
     } catch (error) {
       /*
-       * The API answers 404 for a record that does not exist or that the
-       * caller may not read: no record, which every caller of getItem
-       * already handles as null.
+       * The API's get-item route answers 404 for a record that does not
+       * exist or that the caller may not read: no record, which every
+       * caller of getItem already handles as null. A route of the caller's
+       * own (overrideRequestUrl) says what its 404 means itself - a route
+       * that is not there answers 404 too - so its failures are raised.
        */
-      if (ModelAPI.isNotFound(error)) {
+      if (
+        !data.requestOptions?.overrideRequestUrl &&
+        ModelAPI.isNotFound(error)
+      ) {
         return null;
       }
 
