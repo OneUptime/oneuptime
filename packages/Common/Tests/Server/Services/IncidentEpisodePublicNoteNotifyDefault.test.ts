@@ -113,9 +113,16 @@ const rootProps: PropsBuilder = (): DatabaseCommonInteractionProps => {
   return { isRoot: true };
 };
 
-// A member whose only way in is the episode public note create permission.
+/*
+ * A member whose only way in is the episode public note create permission,
+ * and a read of the episode the note is posted on: a note is created only
+ * under an episode its creator may read.
+ */
 const noteCreatorProps: PropsBuilder = (): DatabaseCommonInteractionProps => {
-  return memberProps([Permission.CreateIncidentEpisodePublicNote]);
+  return memberProps([
+    Permission.CreateIncidentEpisodePublicNote,
+    Permission.ReadIncidentEpisode,
+  ]);
 };
 
 type EpisodeWithFlagFunction = (
