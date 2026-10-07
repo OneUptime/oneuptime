@@ -378,6 +378,10 @@ const PAGE_COPY: Record<string, string> = {
   submitAnother: "Submit another response",
   retryAfter: "You can try again {{when}}.",
   tryAgain: "Try again",
+  templateLabel: "Start from a template",
+  templateDescription:
+    "Choose a template to fill in the form. You can change any answer before you submit.",
+  templateNone: "No template",
 };
 
 /*

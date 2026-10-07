@@ -45,10 +45,12 @@ Behandle URL-en som et passord. Alle som har den, kan starte arbeidsflyten din.
 Nesten alt i OneUptime — overvåkinger, hendelser, varsler, planlagt vedlikehold, statussider, vaktplaner, team — kan utløse en arbeidsflyt. Hver av dem tilbyr tre hendelser:
 
 - **On Create** — utløses når en ny legges til.
-- **On Update** — utløses når en endres.
+- **On Update** — utløses når en endres. Å lagre en post med verdiene den allerede har, for eksempel et skjema som lagres uten endringer eller en bryter som sendes slik den allerede står, er ikke en endring og utløser den ikke.
 - **On Delete** — utløses når en slettes.
 
 Slik bygger du «når X skjer i OneUptime, gjør Y» uten å måtte sjekke ting i en løkke.
+
+**On Update** kan begrenses til enkelte felt med **Listen on**: da utløses den bare når en oppdatering endrer ett av dem, til hvilken som helst verdi – også når en bryter slås av eller et felt tømmes.
 
 Hele oppføringen sendes videre til neste blokk. Triggeren **Hendelse → On Create** sender for eksempel med den nye hendelsen, slik at neste blokk kan lese tittelen, beskrivelsen, alvorlighetsgraden og alle andre felt.
 

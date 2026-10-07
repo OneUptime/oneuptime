@@ -35,6 +35,12 @@ import FormTargetType, { FORM_TARGET_TYPE_TEXT } from "./FormTargetType";
  * A question's answers are keyed by its id, which never changes once the
  * question exists, so relabelling a question keeps its submissions readable.
  *
+ * Any question can be hidden (isHidden), except one the form's target cannot
+ * be created without: the public page does not ask it, and the server
+ * answers it from the template the submission started from (FormTemplate) -
+ * a standard description, a custom field the team sets per case - or leaves
+ * it unanswered. Nobody is asked a hidden question, so it is never required.
+ *
  * Read the stored value with readFormFields (it never throws, and drops what
  * it cannot use), and check a value before storing it with
  * validateFormFields, which the server runs on every write - from the
@@ -64,6 +70,11 @@ export interface FormField {
   // Shown under the question.
   helpText?: string | undefined;
   isRequired: boolean;
+  /*
+   * Not asked on the public page: answered by the template a submission
+   * starts from, if that template answers it. Never required.
+   */
+  isHidden?: boolean | undefined;
 
   // Question only: how it is answered.
   type?: CustomFieldType | undefined;
@@ -272,6 +283,10 @@ const readField: ReadFieldFunction = (value: unknown): FormField | null => {
     field.helpText = helpText;
   }
 
+  if (value["isHidden"] === true) {
+    field.isHidden = true;
+  }
+
   switch (field.source) {
     case FormFieldSource.Question: {
       const type: unknown = value["type"];
@@ -447,6 +462,20 @@ const checkCommonProperties: CheckFieldFunction = (data: {
 
   if (isRequired !== undefined && typeof isRequired !== "boolean") {
     data.problems.push(`${data.name}: Required must be true or false.`);
+  }
+
+  const isHidden: unknown = data.entry["isHidden"];
+
+  if (
+    isHidden !== undefined &&
+    isHidden !== null &&
+    typeof isHidden !== "boolean"
+  ) {
+    data.problems.push(`${data.name}: Hidden must be true or false.`);
+  } else if (isHidden === true && isRequired === true) {
+    data.problems.push(
+      `${data.name} is hidden, so it cannot be required: nobody is asked it.`,
+    );
   }
 };
 
@@ -652,7 +681,9 @@ export type ValidateFormFieldsFunction = (data: {
  *   - a custom field is named by its id, and asked once;
  *   - the submitter's name and email are asked once each;
  *   - every field the target cannot do without, and that nothing else
- *     supplies (a maintenance event's start and end), is asked and required.
+ *     supplies (a maintenance event's start and end), is asked, required
+ *     and not hidden;
+ *   - a hidden question is not required.
  *
  * Whether a linked custom field, or an allowed record, still exists in the
  * project is the server's to check: this module has no database.
@@ -774,6 +805,10 @@ export const validateFormFields: ValidateFormFieldsFunction = (data: {
     if (!asking) {
       problems.push(
         `A form that creates ${FORM_TARGET_TYPE_TEXT[data.targetType].nounWithArticle} must ask for ${required.title}.`,
+      );
+    } else if (asking["isHidden"] === true) {
+      problems.push(
+        `${required.title} cannot be hidden: ${FORM_TARGET_TYPE_TEXT[data.targetType].nounWithArticle} cannot be created without it.`,
       );
     } else if (asking["isRequired"] !== true) {
       problems.push(
@@ -1037,12 +1072,12 @@ export type ConvertFormFieldsForTargetFunction = (data: {
  *     new target needs it;
  *   - any other linked field - a built-in field the new target lacks, or
  *     one of the old target's custom fields - becomes a question of the
- *     form's own with the same label, help text and Required, answered the
- *     same way (a choice of records becomes a short answer, since the
- *     records belonged to the old target);
+ *     form's own with the same label, help text, Required and Hidden,
+ *     answered the same way (a choice of records becomes a short answer,
+ *     since the records belonged to the old target);
  *
  * and then every field the new target cannot do without is added at the
- * end, required.
+ * end, required. A field the new target cannot do without is never hidden.
  */
 export const convertFormFieldsForTarget: ConvertFormFieldsForTargetFunction =
   (data: {
@@ -1081,6 +1116,7 @@ export const convertFormFieldsForTarget: ConvertFormFieldsForTargetFunction =
 
             if (after.isRequiredByTarget && !after.hasDefault) {
               kept.isRequired = true;
+              delete kept.isHidden;
             }
 
             return kept;
@@ -1101,6 +1137,10 @@ export const convertFormFieldsForTarget: ConvertFormFieldsForTargetFunction =
             question.helpText = field.helpText;
           }
 
+          if (field.isHidden) {
+            question.isHidden = true;
+          }
+
           return question;
         }
 
@@ -1115,6 +1155,10 @@ export const convertFormFieldsForTarget: ConvertFormFieldsForTargetFunction =
 
         if (field.helpText) {
           question.helpText = field.helpText;
+        }
+
+        if (field.isHidden) {
+          question.isHidden = true;
         }
 
         return question;

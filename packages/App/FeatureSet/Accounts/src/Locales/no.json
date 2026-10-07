@@ -182,7 +182,10 @@
     "reference": "Referansenummeret ditt er {{reference}}.",
     "submitAnother": "Send et nytt svar",
     "retryAfter": "Du kan prøve igjen {{when}}.",
-    "tryAgain": "Prøv igjen"
+    "tryAgain": "Prøv igjen",
+    "templateLabel": "Start fra en mal",
+    "templateDescription": "Velg en mal for å fylle ut skjemaet. Du kan endre hvert svar før du sender inn.",
+    "templateNone": "Ingen mal"
   },
   "errors": {
     "forbidden": {

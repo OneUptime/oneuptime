@@ -41,12 +41,16 @@ import {
   FormRecordOption,
   FormSubmissionValidationResult,
   formatFormSubmissionErrors,
+  getFormSubmissionTemplate,
+  getFormTemplateAnswers,
   PublicForm,
   PublicFormField,
   PublicFormFieldType,
   PublicFormSubmissionRequest,
   PublicFormSubmissionResult,
+  readFormSubmissionTemplateId,
   validateFormSubmission,
+  validateFormTemplateAnswers,
   ValidatedFormAnswers,
 } from "../../Types/Form/FormPublic";
 import {
@@ -59,6 +63,11 @@ import {
   getFormTargetField,
 } from "../../Types/Form/FormTargetCatalog";
 import { validateFormTargetSettings } from "../../Types/Form/FormTargetSettings";
+import {
+  FormTemplate,
+  readFormTemplates,
+  validateFormTemplates,
+} from "../../Types/Form/FormTemplate";
 import FormTargetType, {
   isFormTargetType,
   readFormTargetType,
@@ -108,6 +117,9 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
  *     linked to a field the target has, every field the target cannot do
  *     without asked;
  *   - its settings are that target's settings (validateFormTargetSettings);
+ *   - its templates are well formed (validateFormTemplates), and every
+ *     answer one holds suits the question it answers, as a submission's
+ *     answer to it would (validateFormTemplateAnswers);
  *   - its IP allowlist holds only entries the public routes can match;
  *   - its logo and favicon, when it has them, are files uploaded in its own
  *     project, of a type the public page draws and small (FormBranding);
@@ -275,6 +287,7 @@ export class Service extends DatabaseService<Model> {
       value: createBy.data.targetSettings,
       targetType,
     });
+    this.assertValidTemplates(createBy.data.templates);
     this.assertValidIpAllowlist(createBy.data.ipWhitelist);
     await this.assertValidBrandingImages({
       values: createBy.data as unknown as Dictionary<unknown>,
@@ -297,6 +310,13 @@ export class Service extends DatabaseService<Model> {
         storedFields: undefined,
         checkFields: true,
         checkSettings: true,
+      });
+
+      await this.assertValidTemplateAnswers({
+        projectId,
+        targetType,
+        fields: createBy.data.fields,
+        templates: createBy.data.templates,
       });
     }
 
@@ -326,6 +346,10 @@ export class Service extends DatabaseService<Model> {
 
     if (has("targetType") && !isFormTargetType(data["targetType"])) {
       throw new BadDataException(FORM_TARGET_TYPE_MESSAGE);
+    }
+
+    if (has("templates")) {
+      this.assertValidTemplates(data["templates"]);
     }
 
     if (
@@ -382,8 +406,14 @@ export class Service extends DatabaseService<Model> {
     const changesQuestions: boolean = has("fields");
     const changesTarget: boolean = has("targetType");
     const changesSettings: boolean = has("targetSettings");
+    const changesTemplates: boolean = has("templates");
 
-    if (!changesQuestions && !changesTarget && !changesSettings) {
+    if (
+      !changesQuestions &&
+      !changesTarget &&
+      !changesSettings &&
+      !changesTemplates
+    ) {
       return { updateBy, carryForward: null };
     }
 
@@ -392,6 +422,13 @@ export class Service extends DatabaseService<Model> {
      * question is linked to a field of one target, and settings belong to
      * one target. So every form the update matches is read, and what it
      * will hold once the update is applied is checked whole.
+     *
+     * Templates written are checked against the questions the form will
+     * have. Questions changed without the templates leave the templates
+     * as they are: an answer to a question since removed or changed is not
+     * offered to anyone (getFormTemplateAnswers), and the Templates page
+     * drops it the next time the template is saved - refusing would keep an
+     * admin from editing the questions until every template was redone.
      */
     const forms: Array<Model> = await this.findBy({
       query: updateBy.query,
@@ -445,6 +482,15 @@ export class Service extends DatabaseService<Model> {
           checkFields: changesQuestions || changesTarget,
           checkSettings: changesSettings || changesTarget,
         });
+
+        if (changesTemplates) {
+          await this.assertValidTemplateAnswers({
+            projectId,
+            targetType,
+            fields: fields,
+            templates: data["templates"],
+          });
+        }
       }
     }
 
@@ -482,6 +528,10 @@ export class Service extends DatabaseService<Model> {
   /**
    * Creates what a public submission is for, and tells the submitter its
    * number.
+   *
+   * The form's hidden questions are answered from the template the
+   * submission names (getFormSubmissionTemplate), if any - never from the
+   * request's answers, which are only read for the questions the page asks.
    *
    * In order, each step refusing before the next one costs anything: the
    * same checks as getPublicForm (link, form on, plan, network), then the
@@ -535,9 +585,22 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException(formatFormSubmissionErrors(validation.errors));
     }
 
+    const template: FormTemplate | undefined = getFormSubmissionTemplate({
+      templates: form.templates,
+      templateId: readFormSubmissionTemplateId(data.request?.data),
+    });
+
+    const answers: ValidatedFormAnswers = this.withHiddenAnswers({
+      answers: validation.answers,
+      hiddenAnswers: getFormTemplateAnswers({
+        template: template,
+        fields: built.hiddenFields,
+      }),
+    });
+
     this.assertStoredTitleFits({
       built,
-      answers: validation.answers,
+      answers: answers,
     });
 
     const handler: AnyFormTargetHandler = getFormTargetHandler(
@@ -546,9 +609,9 @@ export class Service extends DatabaseService<Model> {
 
     const context: FormSubmissionContext = {
       form: form,
-      fields: built.form.fields,
+      fields: built.allFields,
       bindings: built.bindings,
-      answers: validation.answers,
+      answers: answers,
     };
 
     const prepared: unknown = await handler.prepare(context);
@@ -574,8 +637,8 @@ export class Service extends DatabaseService<Model> {
     const safeContext: FormSubmissionContext = {
       ...context,
       answers: neutralizeFormAnswers({
-        answers: validation.answers,
-        fields: built.form.fields,
+        answers: answers,
+        fields: built.allFields,
         bindings: built.bindings,
       }),
     };
@@ -612,6 +675,7 @@ export class Service extends DatabaseService<Model> {
       created,
       handler,
       sorted,
+      templateName: template?.name,
     });
 
     const result: PublicFormSubmissionResult = {};
@@ -767,6 +831,7 @@ export class Service extends DatabaseService<Model> {
         logoFile: this.getOwnBrandingFile(form, form.logoFile),
         logoAltText: form.logoAltText,
         faviconFile: this.getOwnBrandingFile(form, form.faviconFile),
+        templates: form.templates,
       },
       customFields: customFields,
       recordOptions: recordOptions,
@@ -865,7 +930,7 @@ export class Service extends DatabaseService<Model> {
     built: BuiltPublicForm;
     answers: ValidatedFormAnswers;
   }): void {
-    for (const field of data.built.form.fields) {
+    for (const field of data.built.allFields) {
       const binding: FormFieldBinding | undefined =
         data.built.bindings[field.id];
       const value: unknown = data.answers[field.id];
@@ -934,6 +999,7 @@ export class Service extends DatabaseService<Model> {
         targetType: true,
         fields: true,
         targetSettings: true,
+        templates: true,
         successMessage: true,
         ipWhitelist: true,
         ...(data.includeBranding
@@ -1044,6 +1110,8 @@ export class Service extends DatabaseService<Model> {
     created: FormSubmissionCreated;
     handler: AnyFormTargetHandler;
     sorted: SortedFormAnswers;
+    // The template the submission started from, if any.
+    templateName?: string | undefined;
   }): Promise<void> {
     try {
       await data.handler.addNote({
@@ -1053,6 +1121,7 @@ export class Service extends DatabaseService<Model> {
           formName: data.form.name,
           submitterName: data.sorted.submitterName,
           submitterEmail: data.sorted.submitterEmail,
+          templateName: data.templateName,
           answers: data.sorted.questions,
         }),
       });
@@ -1235,6 +1304,82 @@ export class Service extends DatabaseService<Model> {
     targetType: FormTargetType;
   }): void {
     const problem: string | null = validateFormFields(data);
+
+    if (problem) {
+      throw new BadDataException(problem);
+    }
+  }
+
+  /*
+   * The submitter's answers, and the hidden questions' answers from the
+   * template the submission started from. They never overlap - the request
+   * is only read for the questions the page asks - but the submitter's
+   * would win if they did.
+   */
+  private withHiddenAnswers(data: {
+    answers: ValidatedFormAnswers;
+    hiddenAnswers: ValidatedFormAnswers;
+  }): ValidatedFormAnswers {
+    const answers: ValidatedFormAnswers = {};
+
+    for (const source of [data.hiddenAnswers, data.answers]) {
+      for (const key of Object.keys(source)) {
+        Object.defineProperty(answers, key, {
+          value: source[key],
+          enumerable: true,
+          writable: true,
+          configurable: true,
+        });
+      }
+    }
+
+    return answers;
+  }
+
+  /*
+   * The templates' shape (validateFormTemplates): what the Templates page
+   * and the public page read must be what was stored. Stored exactly as
+   * sent when valid.
+   */
+  private assertValidTemplates(value: unknown): void {
+    const problem: string | null = validateFormTemplates(value);
+
+    if (problem) {
+      throw new BadDataException(problem);
+    }
+  }
+
+  /*
+   * Every answer the templates hold suits the question it answers, as the
+   * form will ask it once the write is applied - an option the question
+   * offers, a record the form offers, text that fits - so a template never
+   * fills in what a submission would be refused for, nor answers a hidden
+   * question with what its record cannot hold. The questions are built as
+   * the public page builds them (buildPublicFormFor), from the project's
+   * own custom fields and records: a template cannot name another
+   * project's.
+   */
+  private async assertValidTemplateAnswers(data: {
+    projectId: ObjectID;
+    targetType: FormTargetType;
+    fields: unknown;
+    templates: unknown;
+  }): Promise<void> {
+    if (readFormTemplates(data.templates).length === 0) {
+      return;
+    }
+
+    const form: Model = new Model();
+    form.projectId = data.projectId;
+    form.targetType = data.targetType;
+    form.fields = (data.fields ?? []) as JSONArray;
+
+    const built: BuiltPublicForm = await this.buildPublicFormFor(form);
+
+    const problem: string | null = validateFormTemplateAnswers({
+      templates: data.templates,
+      fields: built.allFields,
+    });
 
     if (problem) {
       throw new BadDataException(problem);

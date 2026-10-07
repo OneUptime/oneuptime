@@ -400,3 +400,53 @@ describe("getFormSubmissionNote: links the submitter's whole address", () => {
     }
   });
 });
+
+describe("getFormSubmissionNote: the template it started from", () => {
+  test("names the template after the sentence, before the answers", () => {
+    expect(
+      getFormSubmissionNote({
+        formName: "Department A",
+        submitterName: "Jane",
+        templateName: "Application Outage",
+        answers: [
+          {
+            label: "Office",
+            displayValue: "Berlin",
+            format: FormNoteAnswerFormat.SingleLine,
+          },
+        ],
+      }),
+    ).toBe(
+      "Submitted through the form **Department A** by Jane.\n\nStarted from the template **Application Outage**.\n\n**Office**  \nBerlin",
+    );
+  });
+
+  test.each([undefined, null, "", "   "])(
+    "says nothing of a template when there is none (%j)",
+    (templateName: string | null | undefined) => {
+      const note: string = getFormSubmissionNote({
+        formName: "Department A",
+        templateName,
+      });
+
+      expect(note).toBe(
+        "Submitted anonymously through the form **Department A**.",
+      );
+      expect(note).not.toContain("template");
+    },
+  );
+
+  test("escapes the template's name: it sits inside the note's own bold, and mentions nobody", () => {
+    const note: string = getFormSubmissionNote({
+      formName: "Department A",
+      templateName: "**Outage** <!channel> [x](javascript:alert(1))",
+    });
+
+    const line: string = note.split("\n\n")[1]!;
+
+    expect(line.startsWith("Started from the template **")).toBe(true);
+    expect(line).not.toContain("<!channel>");
+    expect(line).not.toContain("](javascript:");
+    expect(line).not.toContain("****");
+  });
+});

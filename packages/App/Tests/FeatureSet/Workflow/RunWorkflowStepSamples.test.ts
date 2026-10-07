@@ -321,7 +321,7 @@ describe("RunWorkflow: a cut-down copy of a value too big to keep", () => {
   test("a secret variable's value never reaches it", async () => {
     const secret: WorkflowVariable = new WorkflowVariable();
     secret.content = "s3cr3t-variable-value";
-    secret.isSecret = "true";
+    secret.isSecret = true;
 
     const body: JSONObject = bigBody();
     body["echoed"] = "the key was s3cr3t-variable-value";
@@ -343,7 +343,7 @@ describe("RunWorkflow: a cut-down copy of a value too big to keep", () => {
   test("the second redaction pass before the trace is saved covers it too", () => {
     const secret: WorkflowVariable = new WorkflowVariable();
     secret.content = "restored-secret";
-    secret.isSecret = "true";
+    secret.isSecret = true;
 
     const runner: RunWorkflow = new RunWorkflow();
     const trace: WorkflowStepTrace = {

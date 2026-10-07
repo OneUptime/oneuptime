@@ -371,6 +371,8 @@ describe("loading", () => {
       targetType: true,
       fields: true,
       targetSettings: true,
+      // The preview lists them, as the public page does.
+      templates: true,
       // In the same request: the Branding section's.
       ...FORM_BRANDING_SELECT,
     });
@@ -574,9 +576,10 @@ describe("editing a question", () => {
 
     await click(screen.getByTestId("form-question-select-office"));
 
-    const required: HTMLElement = within(
-      screen.getByTestId("form-question-editor-office"),
-    ).getByRole("switch");
+    // The card has two switches now, Required and Hidden: this is Required.
+    const required: HTMLElement = screen.getByTestId(
+      "form-question-required-office",
+    );
 
     expect(required).toHaveAttribute("aria-checked", "false");
 
@@ -671,7 +674,7 @@ describe("editing a question", () => {
 });
 
 describe("a maintenance form's start and end", () => {
-  test("cannot be deleted, and stay required", async () => {
+  test("cannot be deleted or hidden, and stay required", async () => {
     stored = {
       name: "Request Maintenance",
       targetType: FormTargetType.ScheduledMaintenance,
@@ -692,11 +695,17 @@ describe("a maintenance form's start and end", () => {
       screen.getByTestId(`form-question-delete-${startsAt.id}`),
     ).toBeDisabled();
     expect(
-      within(
-        screen.getByTestId(`form-question-editor-${startsAt.id}`),
-      ).getByRole("switch"),
+      screen.getByTestId(`form-question-required-${startsAt.id}`),
     ).toHaveAttribute("aria-checked", "true");
-    expect(screen.getByText(FormsCopy.requiredLocked)).toBeInTheDocument();
+
+    const hidden: HTMLElement = screen.getByTestId(
+      `form-question-hidden-${startsAt.id}`,
+    );
+
+    expect(hidden).toHaveAttribute("aria-checked", "false");
+    expect(hidden).toHaveAttribute("aria-disabled", "true");
+    // Both switches say why: the event cannot be created without it.
+    expect(screen.getAllByText(FormsCopy.requiredLocked)).toHaveLength(2);
   });
 });
 

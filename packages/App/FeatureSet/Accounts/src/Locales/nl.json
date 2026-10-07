@@ -182,7 +182,10 @@
     "reference": "Je referentienummer is {{reference}}.",
     "submitAnother": "Nog een antwoord versturen",
     "retryAfter": "Je kunt het {{when}} opnieuw proberen.",
-    "tryAgain": "Opnieuw proberen"
+    "tryAgain": "Opnieuw proberen",
+    "templateLabel": "Beginnen vanuit een sjabloon",
+    "templateDescription": "Kies een sjabloon om het formulier in te vullen. U kunt elk antwoord wijzigen voordat u verzendt.",
+    "templateNone": "Geen sjabloon"
   },
   "errors": {
     "forbidden": {

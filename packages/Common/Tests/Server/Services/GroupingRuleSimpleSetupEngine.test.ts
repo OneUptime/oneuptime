@@ -77,7 +77,7 @@ interface IncidentEngineInternals {
   findMatchingActiveEpisode: (
     projectId: ObjectID,
     ruleId: ObjectID,
-    groupingKey: string,
+    groupingKeys: Array<string>,
     timeWindowCutoff: Date | null,
   ) => Promise<IncidentEpisode | null>;
   addIncidentToEpisode: (...args: Array<unknown>) => Promise<void>;
@@ -96,7 +96,7 @@ interface AlertEngineInternals {
   findMatchingActiveEpisode: (
     projectId: ObjectID,
     ruleId: ObjectID,
-    groupingKey: string,
+    groupingKeys: Array<string>,
     timeWindowCutoff: Date | null,
   ) => Promise<AlertEpisode | null>;
   addAlertToEpisode: (...args: Array<unknown>) => Promise<void>;
@@ -462,7 +462,7 @@ describe("the time window an episode is looked for in", () => {
       (
         projectId: ObjectID,
         ruleId: ObjectID,
-        groupingKey: string,
+        groupingKeys: Array<string>,
         timeWindowCutoff: Date | null,
       ) => Promise<unknown>
     >,

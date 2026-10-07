@@ -12,7 +12,6 @@ export interface IncidentAlertAiDescriptor {
   insightsPage: PageMap;
   logsPage: PageMap;
   settingsPage: PageMap;
-  autoRemediationRulesPage: PageMap;
   // Where one incident or alert opens.
   subjectViewPage: PageMap;
   // The data-testid prefix of the section's pages.
@@ -28,7 +27,6 @@ export const INCIDENT_ALERT_AI_DESCRIPTORS: Record<
     insightsPage: PageMap.INCIDENTS_AI_INSIGHTS,
     logsPage: PageMap.INCIDENTS_AI_LOGS,
     settingsPage: PageMap.INCIDENTS_SETTINGS_AI,
-    autoRemediationRulesPage: PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES,
     subjectViewPage: PageMap.INCIDENT_VIEW,
     testIdPrefix: "incident-ai",
   },
@@ -37,7 +35,6 @@ export const INCIDENT_ALERT_AI_DESCRIPTORS: Record<
     insightsPage: PageMap.ALERTS_AI_INSIGHTS,
     logsPage: PageMap.ALERTS_AI_LOGS,
     settingsPage: PageMap.ALERTS_SETTINGS_AI,
-    autoRemediationRulesPage: PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES,
     subjectViewPage: PageMap.ALERT_VIEW,
     testIdPrefix: "alert-ai",
   },

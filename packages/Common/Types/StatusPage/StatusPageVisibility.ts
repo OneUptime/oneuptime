@@ -1,3 +1,5 @@
+import { toStoredBoolean } from "../Database/BooleanColumnValue";
+
 /*
  * Whether a status page shows an incident or an incident episode. One rule,
  * read by everything that puts one in front of status page visitors or their
@@ -42,80 +44,11 @@ export const VISIBLE_ON_STATUS_PAGE_COLUMN: StatusPageVisibilityColumn =
 
 export const PRIVATE_COLUMN: StatusPageVisibilityColumn = "isPrivate";
 
-// Postgres reads these as true in a boolean column, and their prefixes (boolin).
-const TRUE_WORDS: ReadonlyArray<string> = ["true", "yes"];
-const FALSE_WORDS: ReadonlyArray<string> = ["false", "no"];
-
 export default class StatusPageVisibility {
   public static readonly columns: ReadonlyArray<StatusPageVisibilityColumn> = [
     VISIBLE_ON_STATUS_PAGE_COLUMN,
     PRIVATE_COLUMN,
   ];
-
-  /*
-   * A value written to a boolean column as Postgres stores it: true and
-   * false as they are, and a literal it reads as one of them - "true",
-   * "yes", "on", "1" and their unique prefixes ("t", "y"), "false", "no",
-   * "off", "0" ("f", "n"), in any case and with whitespace around it - or
-   * the numbers 1 and 0, which the driver sends as such literals. The API
-   * passes a value through as it is sent, so a hand-written request's "yes"
-   * stores true. Anything else is returned as it is: null, or a value the
-   * database refuses.
-   */
-  public static toStoredBoolean(value: unknown): unknown {
-    if (typeof value === "boolean") {
-      return value;
-    }
-
-    if (typeof value === "number") {
-      if (value === 1) {
-        return true;
-      }
-
-      if (value === 0) {
-        return false;
-      }
-
-      return value;
-    }
-
-    if (typeof value !== "string") {
-      return value;
-    }
-
-    const text: string = value.trim().toLowerCase();
-
-    if (text.length === 0) {
-      return value;
-    }
-
-    if (text === "1" || text === "on") {
-      return true;
-    }
-
-    if (text === "0" || text === "off" || text === "of") {
-      return false;
-    }
-
-    // "o" alone could be on or off: Postgres refuses it.
-    if (
-      TRUE_WORDS.some((word: string): boolean => {
-        return word.startsWith(text);
-      })
-    ) {
-      return true;
-    }
-
-    if (
-      FALSE_WORDS.some((word: string): boolean => {
-        return word.startsWith(text);
-      })
-    ) {
-      return false;
-    }
-
-    return value;
-  }
 
   /*
    * Whether a record is private: Private switched on. A value that is not
@@ -135,7 +68,7 @@ export default class StatusPageVisibility {
       return false;
     }
 
-    return this.toStoredBoolean(value) !== false;
+    return toStoredBoolean(value) !== false;
   }
 
   /*
@@ -149,7 +82,7 @@ export default class StatusPageVisibility {
       return false;
     }
 
-    return this.toStoredBoolean(record.isVisibleOnStatusPage) === true;
+    return toStoredBoolean(record.isVisibleOnStatusPage) === true;
   }
 
   // The rule: Visible on Status Page on, and not private.
@@ -204,25 +137,21 @@ export default class StatusPageVisibility {
   }
 
   /*
-   * A write as it is stored: each switch it writes as the boolean the
-   * database stores (toStoredBoolean), and Visible on Status Page off when
-   * the write makes the record private. Called before anything reads the
-   * write, so what it reads is what is stored. A write that turns Visible on
-   * Status Page on for a record that is private already stores it off on
-   * that record: the database decides it in the write itself, on the record
-   * as it is then (needsStoredPrivacy, StatusPageVisibilityQuery.getRowWriteSql).
+   * A write as it is stored: Visible on Status Page off when the write makes
+   * the record private. Each switch already holds the boolean the database
+   * stores - DatabaseService turns every Boolean column of a write into it
+   * before any hook runs (Types/Database/BooleanColumnValue) - so called from
+   * a service's hook, before anything else reads the write, what it reads is
+   * what is stored. A write that turns Visible on Status Page on for a
+   * record that is private already stores it off on that record: the
+   * database decides it in the write itself, on the record as it is then
+   * (needsStoredPrivacy, StatusPageVisibilityQuery.getRowWriteSql).
    */
   public static normalizeWrite(
     data: Record<string, unknown> | undefined | null,
   ): void {
     if (!data) {
       return;
-    }
-
-    for (const column of this.columns) {
-      if (this.isWrittenBy(data, column)) {
-        data[column] = this.toStoredBoolean(data[column]);
-      }
     }
 
     if (this.isPrivateAfterWrite({ written: data })) {
