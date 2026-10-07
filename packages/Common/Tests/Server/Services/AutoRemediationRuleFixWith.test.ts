@@ -18,6 +18,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
 /*
@@ -164,7 +165,7 @@ describe("a new rule's Fix With", () => {
 
 describe("an edit's Fix With", () => {
   it("is accepted when it is one this build knows, and not read back", async () => {
-    const findBy: jest.SpiedFunction<typeof AutoRemediationRuleService.findBy> =
+    const findBy: SpyInstance<typeof AutoRemediationRuleService.findBy> =
       jest.spyOn(AutoRemediationRuleService, "findBy");
 
     for (const action of Object.values(AutoRemediationAction)) {
@@ -201,7 +202,7 @@ describe("getRemediationActionOnCreate", () => {
     expect(
       AutoRemediationRuleServiceClass.getRemediationActionOnCreate({
         runbooks: undefined,
-      } as AutoRemediationRule),
+      } as unknown as AutoRemediationRule),
     ).toBe(AutoRemediationAction.OneUptimeAI);
   });
 });

@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import { cleanup, render, screen } from "@testing-library/react";
 import * as React from "react";
 
@@ -73,6 +74,13 @@ import { CardSelectOption } from "../../../UI/Components/CardSelect/CardSelect";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+
+// ModelAPI.count spied on, as jest-mock's spyOn types it.
+type CountSpy = SpyInstance<
+  (
+    ...args: Parameters<typeof ModelAPI.count>
+  ) => ReturnType<typeof ModelAPI.count>
+>;
 
 interface CapturedField {
   field?: Record<string, unknown>;
@@ -311,7 +319,7 @@ describe.each([
     });
 
     test("after every read, reports how many of its rules are enabled", async () => {
-      const count: jest.SpiedFunction<typeof ModelAPI.count> = jest
+      const count: CountSpy = jest
         .spyOn(ModelAPI, "count")
         .mockResolvedValue(4 as never);
       const reported: Array<number> = [];
