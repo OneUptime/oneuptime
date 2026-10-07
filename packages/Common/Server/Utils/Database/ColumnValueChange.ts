@@ -37,8 +37,13 @@ import RelationValueUtil from "./RelationValueUtil";
  * - A time as the instant it names, to the millisecond: the same instant sent
  *   as a Date or as an ISO string in another time zone is the same time.
  * - An id in any case, as Postgres compares uuids.
- * - Anything else by its text, so an id and its ObjectID are the same value.
+ * - Anything else by its text, so an id and its ObjectID are the same value -
+ *   and a value with no text of its own (a plain object) by its content.
  */
+
+// What a value with no text of its own reads as.
+const NO_TEXT_OF_ITS_OWN: string = "[object Object]";
+
 export default class ColumnValueChange {
   public static isChanged(data: {
     columnType: TableColumnType | undefined | null;
@@ -127,7 +132,23 @@ export default class ColumnValueChange {
      * `toString()` so a wrapped value (an ObjectID) and its raw form (a
      * string) compare as the value they are.
      */
-    return String(stored) !== String(written);
+    const storedText: string = String(stored);
+    const writtenText: string = String(written);
+
+    /*
+     * A value with no text of its own - a plain object, or a list holding
+     * one - reads as "[object Object]" whatever it holds, so two different
+     * ones would read as the same. Those are compared by their content.
+     */
+    if (
+      (typeof stored === "object" || typeof written === "object") &&
+      (storedText.includes(NO_TEXT_OF_ITS_OWN) ||
+        writtenText.includes(NO_TEXT_OF_ITS_OWN))
+    ) {
+      return !JSONFunctions.deepEqual(stored, written);
+    }
+
+    return storedText !== writtenText;
   }
 
   /*

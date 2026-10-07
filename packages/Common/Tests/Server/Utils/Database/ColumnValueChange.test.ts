@@ -274,3 +274,54 @@ describe("a column of no known type", () => {
     expect(isChanged(null, "", null)).toBe(true);
   });
 });
+
+/*
+ * A plain object reads as "[object Object]" whatever it holds, so by its
+ * text any two would be the same value - a change to one would go unseen by
+ * the workflow, the live update and the audit entry alike.
+ */
+describe("a value with no text of its own", () => {
+  test("is compared by its content: two different plain objects are a change, two alike are not", () => {
+    expect(isChanged(undefined, { region: "eu" }, { region: "us" })).toBe(true);
+    expect(isChanged(undefined, { region: "eu" }, { region: "eu" })).toBe(
+      false,
+    );
+  });
+
+  test("so is a reference that names no row on either side", () => {
+    expect(
+      isChanged(
+        TableColumnType.Entity,
+        { name: "Checkout" },
+        { name: "Payments" },
+      ),
+    ).toBe(true);
+    expect(
+      isChanged(
+        TableColumnType.Entity,
+        { name: "Checkout" },
+        { name: "Checkout" },
+      ),
+    ).toBe(false);
+  });
+
+  test("and a list holding plain objects", () => {
+    expect(isChanged(TableColumnType.ShortText, [{ a: 1 }], [{ a: 2 }])).toBe(
+      true,
+    );
+    expect(isChanged(TableColumnType.ShortText, [{ a: 1 }], [{ a: 1 }])).toBe(
+      false,
+    );
+  });
+
+  test("a value with a text of its own is still compared by that text", () => {
+    const ID: string = "0193c0de-2222-4aaa-8bbb-000000000001";
+
+    expect(isChanged(TableColumnType.ShortText, new ObjectID(ID), ID)).toBe(
+      false,
+    );
+    expect(isChanged(TableColumnType.ShortText, ["a", "b"], ["a", "b"])).toBe(
+      false,
+    );
+  });
+});
