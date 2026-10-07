@@ -177,7 +177,7 @@ Felter følger samme regel. En blokering uden labels på et felts tilladelse fje
 
 Samme regel afgør alt andet, der spørger, om du har en tilladelse: handlinger, der ikke er en simpel læsning eller skrivning — at tilføje SMS-, opkalds- eller AI-kredit, betale en faktura eller teste en notifikationsregel — og de knapper, OneUptime viser. En knap, du ikke må bruge, vises låst og siger hvorfor; er en blokering i et af dine teams grunden, nævner den den blokerede tilladelse.
 
-Liveopdateringer følger samme regel. Når en post oprettes, ændres eller slettes, giver OneUptime besked til de åbne sider hos de personer, der må læse posten, og ingen andre. Det, der begrænser, hvad du må læse, begrænser også dine liveopdateringer: labels, ejere, en blokering med labels, en privat hændelse eller en andens AI-samtale. En ændring af dine tilladelser når dine åbne sider inden for 30 sekunder.
+Liveopdateringer følger samme regel. Når en post oprettes, ændres eller slettes, giver OneUptime besked til de åbne sider hos de personer, der må læse posten, og ingen andre. Det, der begrænser, hvad du må læse, begrænser også dine liveopdateringer: labels, ejere, en blokering med labels, en privat hændelse eller en andens AI-samtale. Når en ændring tager en post fra dig, for eksempel når den gøres privat, får dine åbne sider også besked, så de holder op med at vise den. En ændring af dine tilladelser når dine åbne sider inden for 30 sekunder.
 
 Enhver logget ind bruger har derudover et lille sæt automatiske tilladelser, der dækker ting som at læse sin egen profil og sine egne notifikationsregler. Det er ikke administratorrettigheder, og de giver ikke adgang til andres data.
 
