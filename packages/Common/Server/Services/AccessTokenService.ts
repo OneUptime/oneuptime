@@ -14,6 +14,7 @@ import Label from "../../Models/DatabaseModels/Label";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import TeamPermission from "../../Models/DatabaseModels/TeamPermission";
 import UserPermissionUtil from "../Utils/UserPermission/UserPermission";
+import RealtimeReaders from "../Utils/Realtime/RealtimeReaders";
 import PermissionNamespace from "../Types/Permission/PermissionNamespace";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -86,6 +87,12 @@ export class AccessTokenService extends BaseService {
 
     await GlobalCache.setJSON("user", userId.toString(), permissionToStore);
 
+    /*
+     * The person's open live updates read their projects again
+     * (RealtimeReaders), so one they have left stops at once.
+     */
+    RealtimeReaders.forgetUser(userId);
+
     return permissionToStore;
   }
 
@@ -154,6 +161,9 @@ export class AccessTokenService extends BaseService {
         );
       }
 
+      // Their open live updates of the project stop at once.
+      RealtimeReaders.forgetUser(userId, projectId);
+
       return null;
     }
 
@@ -220,6 +230,12 @@ export class AccessTokenService extends BaseService {
       UserPermissionUtil.buildTenantPermissionCacheKey(userId, projectId),
       permission,
     );
+
+    /*
+     * Their open live updates of the project follow the new permissions at
+     * once (RealtimeReaders).
+     */
+    RealtimeReaders.forgetUser(userId, projectId);
 
     return permission;
   }
@@ -330,6 +346,9 @@ export class AccessTokenService extends BaseService {
         UserPermissionUtil.buildTenantPermissionCacheKey(userId, projectId),
       ),
     ]);
+
+    // Their open live updates read the permissions again too.
+    RealtimeReaders.forgetUser(userId, projectId);
   }
 }
 

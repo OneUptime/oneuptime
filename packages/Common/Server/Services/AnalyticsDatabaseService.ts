@@ -40,6 +40,17 @@ import {
 } from "../Utils/AnalyticsDatabase/ClusterConfig";
 import logger, { LogAttributes } from "../Utils/Logger";
 import Realtime from "../Utils/Realtime";
+import {
+  RealtimeReadAccess,
+  RealtimeReader,
+  normalizeRealtimeId,
+} from "../Utils/Realtime/RealtimeReadAccess";
+import TelemetryReadScopeUtil, {
+  TelemetryReadScope,
+} from "../Utils/Telemetry/TelemetryReadScope";
+import Query from "../Types/AnalyticsDatabase/Query";
+import { OwnedThroughMetadata } from "../../Types/Database/AccessControl/OwnedThrough";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import StreamUtil from "../Utils/Stream";
 import BaseService from "./BaseService";
 import {
@@ -2485,6 +2496,9 @@ export default class AnalyticsDatabaseService<
         if (Realtime.isInitialized()) {
           const promises: Array<Promise<void>> = [];
 
+          // Who may hear about these rows: see getRealtimeReadAccess.
+          const access: RealtimeReadAccess = this.getRealtimeReadAccess(items);
+
           for (const item of items) {
             const tenantId: ObjectID | null = item.getTenantColumnValue();
 
@@ -2498,6 +2512,7 @@ export default class AnalyticsDatabaseService<
                 tenantId: tenantId,
                 eventType: ModelEventType.Create,
                 modelType: this.modelType,
+                access: access,
               }),
             );
           }
@@ -2644,5 +2659,149 @@ export default class AnalyticsDatabaseService<
 
   public getModel(): TBaseModel {
     return this.model;
+  }
+
+  /*
+   * Who may hear about these rows (Realtime): whoever their read lets read
+   * them. A telemetry row cannot be looked up by id cheaply, so the read is
+   * asked the way a telemetry read applies it: the read check itself
+   * (ModelPermission.checkReadPermission - the table, a block with no
+   * labels, the plan), then the caller's read scope (getReadScope - their
+   * label and Owned grants, less what a block with labels takes away),
+   * against the resource each row belongs to (@OwnedThrough). Both are
+   * worked out once per reader and kept with them (RealtimeReader.remember).
+   *
+   * A service that narrows its reads further on its own (onBeforeFind, or a
+   * findBy of its own) is not modelled here, so nobody hears about its rows
+   * rather than everybody.
+   */
+  public getRealtimeReadAccess(items: Array<TBaseModel>): RealtimeReadAccess {
+    const model: TBaseModel = this.getModel();
+    const ownedThrough: OwnedThroughMetadata | undefined = (
+      model as unknown as { ownedThrough?: OwnedThroughMetadata }
+    ).ownedThrough;
+
+    // The resource each row belongs to, by row id.
+    const resourceOfRow: Map<string, string> = new Map<string, string>();
+
+    if (ownedThrough) {
+      for (const item of items) {
+        if (!item.id) {
+          continue;
+        }
+
+        const resourceId: unknown = item.getColumnValue(ownedThrough.fkColumn);
+
+        resourceOfRow.set(
+          normalizeRealtimeId(item.id),
+          resourceId ? String(resourceId) : "",
+        );
+      }
+    }
+
+    const narrowsReadsOnItsOwn: boolean = !this.readsThroughThePermissionCheck();
+
+    const getScope: (
+      reader: RealtimeReader,
+    ) => Promise<TelemetryReadScope | null> = (
+      reader: RealtimeReader,
+    ): Promise<TelemetryReadScope | null> => {
+      return reader.remember(
+        `analytics-read-scope:${model.tableName}`,
+        (): Promise<TelemetryReadScope | null> => {
+          return this.getRealtimeReadScope(reader.props);
+        },
+      );
+    };
+
+    return {
+      readsEveryRecord: async (reader: RealtimeReader): Promise<boolean> => {
+        if (narrowsReadsOnItsOwn) {
+          return false;
+        }
+
+        const scope: TelemetryReadScope | null = await getScope(reader);
+
+        return Boolean(scope && TelemetryReadScopeUtil.isProjectWide(scope));
+      },
+      getReadableIds: async (
+        reader: RealtimeReader,
+        modelIds: Array<ObjectID>,
+      ): Promise<Array<string>> => {
+        if (narrowsReadsOnItsOwn) {
+          return [];
+        }
+
+        const scope: TelemetryReadScope | null = await getScope(reader);
+
+        if (!scope) {
+          return [];
+        }
+
+        return modelIds
+          .map((modelId: ObjectID): string => {
+            return normalizeRealtimeId(modelId);
+          })
+          .filter((modelId: string): boolean => {
+            /*
+             * A row of a model with no owning resource is read with the
+             * table, and one whose resource is empty matches only a scope
+             * that reaches every resource - as the read's own condition
+             * on the resource column does.
+             */
+            return TelemetryReadScopeUtil.isReadable(
+              scope,
+              resourceOfRow.get(modelId) || "",
+            );
+          });
+      },
+    };
+  }
+
+  /*
+   * The reader's telemetry read scope for this model, or null when their
+   * read of it is refused.
+   */
+  private async getRealtimeReadScope(
+    props: DatabaseCommonInteractionProps,
+  ): Promise<TelemetryReadScope | null> {
+    try {
+      await ModelPermission.checkReadPermission(
+        this.modelType,
+        {} as Query<TBaseModel>,
+        null,
+        props,
+      );
+
+      return await ModelPermission.getReadScope(this.modelType, props);
+    } catch (err) {
+      logger.debug(err, {
+        projectId: props.tenantId?.toString(),
+      } as LogAttributes);
+      return null;
+    }
+  }
+
+  /*
+   * Whether this service's reads are narrowed by the permission check
+   * alone: it adds nothing in onBeforeFind and replaces no read.
+   */
+  private readsThroughThePermissionCheck(): boolean {
+    const service: Record<string, unknown> = this as unknown as Record<
+      string,
+      unknown
+    >;
+    const base: Record<string, unknown> =
+      AnalyticsDatabaseService.prototype as unknown as Record<string, unknown>;
+
+    return [
+      "findBy",
+      "findOneBy",
+      "findOneById",
+      "onBeforeFind",
+      "onFindSuccess",
+    ].every((method: string): boolean => {
+      return service[method] === base[method];
+    });
   }
 }
