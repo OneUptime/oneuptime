@@ -100,6 +100,12 @@ import { EntityMetadata } from "typeorm/metadata/EntityMetadata";
 import { ObjectLiteral } from "typeorm/common/ObjectLiteral";
 import { FindWhere } from "../../Types/BaseDatabase/Query";
 import Realtime from "../Utils/Realtime";
+import {
+  NO_READER_ACCESS,
+  RealtimeReadAccess,
+  RealtimeReader,
+  readableByEither,
+} from "../Utils/Realtime/RealtimeReadAccess";
 import ModelEventType from "../../Types/Realtime/ModelEventType";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import type AuditLogServiceType from "./AuditLogService";
@@ -166,6 +172,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   private model!: TBaseModel;
   private modelName!: string;
   private userAttributionColumns: Array<string> | null = null;
+  private realtimeReadAccess: RealtimeReadAccess | null = null;
 
   private _hardDeleteItemByColumnName: string = "";
   public get hardDeleteItemByColumnName(): string {
@@ -2427,11 +2434,470 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return data;
   }
 
+  /*
+   * Who may hear about a record of this table (Realtime): whoever finds it
+   * with this service's own read - its read hooks, then the permission
+   * check findBy runs - asked with their props. Kept per service, so the
+   * events of one table merge into one delivery.
+   */
+  public getRealtimeReadAccess(): RealtimeReadAccess {
+    if (!this.realtimeReadAccess) {
+      this.realtimeReadAccess = {
+        readsEveryRecord: (reader: RealtimeReader): Promise<boolean> => {
+          return reader.remember(
+            `reads-every-record:${this.model.tableName}`,
+            (): Promise<boolean> => {
+              return this.readsEveryRecordInProject(reader.props);
+            },
+          );
+        },
+        getReadableIds: async (
+          reader: RealtimeReader,
+          modelIds: Array<ObjectID>,
+        ): Promise<Array<string>> => {
+          if (modelIds.length === 0) {
+            return [];
+          }
+
+          const rows: Array<TBaseModel> = await this.findBy({
+            query: {
+              _id: QueryHelper.any(modelIds),
+            } as Query<TBaseModel>,
+            select: {
+              _id: true,
+            } as Select<TBaseModel>,
+            skip: 0,
+            limit: modelIds.length,
+            props: reader.props,
+          });
+
+          return rows
+            .filter((row: TBaseModel): boolean => {
+              return Boolean(row.id);
+            })
+            .map((row: TBaseModel): string => {
+              return row.id!.toString();
+            });
+        },
+      };
+    }
+
+    return this.realtimeReadAccess;
+  }
+
+  /*
+   * Whether `props` read every record of this table in their project: what
+   * findBy does before it queries - the service's read hooks, then the
+   * permission check - adds no condition beyond the project. A grant over
+   * the whole project with nothing narrowing it does; a grant limited to
+   * labels or to owned records, a block with labels, a private-record rule
+   * the caller does not bypass, or a personal pin does not.
+   *
+   * A service that narrows a read anywhere else - a findBy of its own, or a
+   * filter on what was found - is never seen to read every record here, so
+   * its records are read one batch at a time instead. Answers false when
+   * the check refuses, or cannot be made.
+   */
+  public async readsEveryRecordInProject(
+    props: DatabaseCommonInteractionProps,
+  ): Promise<boolean> {
+    const tenantColumn: string | null = this.getModel().getTenantColumn();
+    const query: Query<TBaseModel> | Array<Query<TBaseModel>> | null =
+      await this.getNarrowedReadQuery(props);
+
+    if (!tenantColumn || !query || Array.isArray(query)) {
+      return false;
+    }
+
+    const conditions: Array<string> = Object.keys(query);
+
+    return (
+      conditions.includes(tenantColumn) &&
+      conditions.every((column: string): boolean => {
+        return column === tenantColumn;
+      })
+    );
+  }
+
+  /*
+   * The columns the conditions of a read by `props` name - what findBy adds
+   * before it queries, readsEveryRecordInProject's way - the project's own
+   * column left out: none when the read adds nothing beyond the project,
+   * null when that cannot be told (the service narrows reads somewhere
+   * else too, the read is refused, or the check fails).
+   */
+  public async getColumnsNarrowingReadOf(
+    props: DatabaseCommonInteractionProps,
+  ): Promise<Array<string> | null> {
+    const tenantColumn: string | null = this.getModel().getTenantColumn();
+    const query: Query<TBaseModel> | Array<Query<TBaseModel>> | null =
+      await this.getNarrowedReadQuery(props);
+
+    if (!tenantColumn || !query) {
+      return null;
+    }
+
+    const branches: Array<Query<TBaseModel>> = Array.isArray(query)
+      ? query
+      : [query];
+
+    if (branches.length === 0) {
+      return null;
+    }
+
+    const columns: Set<string> = new Set<string>();
+
+    for (const branch of branches) {
+      const conditions: Array<string> = Object.keys(branch);
+
+      // A branch that does not keep to the project is not this read.
+      if (!conditions.includes(tenantColumn)) {
+        return null;
+      }
+
+      for (const column of conditions) {
+        if (column !== tenantColumn) {
+          columns.add(column);
+        }
+      }
+    }
+
+    return Array.from(columns);
+  }
+
+  /*
+   * The query a read by `props` would run, before the caller's own
+   * conditions: what findBy narrows it to (narrowRead - the read's own
+   * steps, not a copy of them). Null when it cannot be worked out here -
+   * see readsEveryRecordInProject.
+   */
+  private async getNarrowedReadQuery(
+    props: DatabaseCommonInteractionProps,
+  ): Promise<Query<TBaseModel> | Array<Query<TBaseModel>> | null> {
+    const tenantColumn: string | null = this.getModel().getTenantColumn();
+
+    if (!tenantColumn || !props.tenantId || props.isMultiTenantRequest) {
+      return null;
+    }
+
+    if (!this.narrowsReadsOnlyBeforeQuerying()) {
+      return null;
+    }
+
+    try {
+      const narrowed: { findBy: FindBy<TBaseModel> } = await this.narrowRead({
+        query: {},
+        select: {
+          _id: true,
+        } as Select<TBaseModel>,
+        skip: 0,
+        limit: 1,
+        props: props,
+      });
+
+      return (
+        (narrowed.findBy.query as
+          | Query<TBaseModel>
+          | Array<Query<TBaseModel>>) || null
+      );
+    } catch (err) {
+      logger.debug(err, {
+        projectId: props.tenantId?.toString(),
+      } as LogAttributes);
+      return null;
+    }
+  }
+
+  /*
+   * Whether writing `columns` may change whether the reader reads a row of
+   * this table: the write names a column the conditions of their read name
+   * (getColumnsNarrowingReadOf) - a row made private, the record a row
+   * names - or, when one of those conditions is on the row's id, which is
+   * how the label and owner rules reach a row's links (a block with labels,
+   * the labelled records a row is linked to), one of the row's links (a
+   * many-to-many column, its labels among them). False for someone who
+   * reads every record, or whose read cannot be told apart.
+   */
+  private async writeMayChangeWhetherTheyRead(
+    reader: RealtimeReader,
+    columns: Array<string>,
+  ): Promise<boolean> {
+    const narrowedBy: Array<string> | null = await reader.remember(
+      `read-narrowed-by:${this.model.tableName}`,
+      (): Promise<Array<string> | null> => {
+        return this.getColumnsNarrowingReadOf(reader.props);
+      },
+    );
+
+    if (!narrowedBy || narrowedBy.length === 0) {
+      return false;
+    }
+
+    if (
+      columns.some((column: string): boolean => {
+        return column !== "_id" && narrowedBy.includes(column);
+      })
+    ) {
+      return true;
+    }
+
+    if (!narrowedBy.includes("_id")) {
+      return false;
+    }
+
+    return columns.some((column: string): boolean => {
+      return (
+        this.getModel().getTableColumnMetadata(column)?.type ===
+        TableColumnType.EntityArray
+      );
+    });
+  }
+
+  /*
+   * The columns a write names, each relation with the column that holds its
+   * id - a read's conditions name the id column, a write may name either.
+   */
+  private getColumnsWrittenBy(dataKeys: Array<string>): Array<string> {
+    const columns: Set<string> = new Set<string>(dataKeys);
+
+    for (const key of dataKeys) {
+      const metadata: TableColumnMetadata | undefined =
+        this.getModel().getTableColumnMetadata(key);
+
+      if (
+        metadata?.type === TableColumnType.Entity &&
+        metadata.manyToOneRelationColumn
+      ) {
+        columns.add(metadata.manyToOneRelationColumn);
+      }
+    }
+
+    return Array.from(columns);
+  }
+
+  /*
+   * Whether this service narrows its reads only through onBeforeFind (and
+   * the permission check), the part readsEveryRecordInProject can look at:
+   * it neither replaces findBy nor filters what was found.
+   */
+  private narrowsReadsOnlyBeforeQuerying(): boolean {
+    const service: Record<string, unknown> = this as unknown as Record<
+      string,
+      unknown
+    >;
+    const base: Record<string, unknown> =
+      DatabaseService.prototype as unknown as Record<string, unknown>;
+
+    return ["findBy", "findOneBy", "findOneById", "onFindSuccess"].every(
+      (method: string): boolean => {
+        return service[method] === base[method];
+      },
+    );
+  }
+
+  /*
+   * Whether deleting rows of this table sends delete events: only with the
+   * delete workflow trigger, which _deleteBy sends them alongside.
+   */
+  private sendsRealtimeDeleteEvents(
+    props: DatabaseCommonInteractionProps,
+  ): boolean {
+    return Boolean(
+      this.model.enableRealtimeEventsOn?.delete &&
+        this.getModel().enableWorkflowOn?.delete &&
+        this.getModel().enableWorkflowOn?.create &&
+        (props.tenantId || this.getModel().getTenantColumn()),
+    );
+  }
+
+  /*
+   * Whether updating rows of this table sends update events: only with the
+   * update workflow trigger, which _updateBy sends them alongside.
+   */
+  private sendsRealtimeUpdateEvents(): boolean {
+    return Boolean(
+      this.model.enableRealtimeEventsOn?.update &&
+        this.getModel().enableWorkflowOn?.update,
+    );
+  }
+
+  // The ids of these rows by the project each belongs to.
+  private getRealtimeIdsByProject(
+    items: Array<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+  ): Map<string, Array<ObjectID>> {
+    const idsByProject: Map<string, Array<ObjectID>> = new Map<
+      string,
+      Array<ObjectID>
+    >();
+
+    for (const item of items) {
+      let tenantId: ObjectID | undefined = props.tenantId;
+
+      if (!tenantId && this.getModel().getTenantColumn()) {
+        tenantId = item.getValue<ObjectID>(this.getModel().getTenantColumn()!);
+      }
+
+      if (!tenantId || !item.id) {
+        continue;
+      }
+
+      const ids: Array<ObjectID> = idsByProject.get(tenantId.toString()) || [];
+      ids.push(item.id);
+      idsByProject.set(tenantId.toString(), ids);
+    }
+
+    return idsByProject;
+  }
+
+  /*
+   * Who may hear that these rows are deleted, decided before the delete
+   * runs, while their read can still find them (Realtime
+   * .snapshotReadAccess), per project - every project at once, each within
+   * Realtime.BEFORE_WRITE_DECISION_TIMEOUT_IN_MS. Empty when the delete
+   * sends no events; never throws.
+   */
+  private async getRealtimeAccessBeforeDelete(
+    items: Array<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<Map<string, RealtimeReadAccess>> {
+    const accessByProject: Map<string, RealtimeReadAccess> = new Map<
+      string,
+      RealtimeReadAccess
+    >();
+
+    if (
+      items.length === 0 ||
+      !this.sendsRealtimeDeleteEvents(props) ||
+      !Realtime.isInitialized()
+    ) {
+      return accessByProject;
+    }
+
+    try {
+      await Promise.all(
+        Array.from(this.getRealtimeIdsByProject(items, props).entries()).map(
+          async ([tenantId, modelIds]: [string, Array<ObjectID>]) => {
+            accessByProject.set(
+              tenantId,
+              await Realtime.snapshotReadAccess({
+                tenantId: tenantId,
+                modelType: this.modelType,
+                modelIds: modelIds,
+                access: this.getRealtimeReadAccess(),
+                eventType: ModelEventType.Delete,
+              }),
+            );
+          },
+        ),
+      );
+    } catch (err) {
+      // A project left out is told about by nobody (see _deleteBy).
+      logger.error(err, {
+        projectId: props.tenantId?.toString(),
+      } as LogAttributes);
+    }
+
+    return accessByProject;
+  }
+
+  /*
+   * Who hears about this update of these rows, per project, when the write
+   * may take a row away from someone listening: the people who can read it
+   * after the write (getRealtimeReadAccess), and those who could read it
+   * before - asked now, before the write, and only among the listeners
+   * whose read the written columns may change (writeMayChangeWhetherTheyRead:
+   * a row made private, a label taken off). Their open pages hear about it
+   * and drop what they may no longer read; nobody else is told anything
+   * they could not read. A project left out sends its update events with
+   * the service's own access, as usual. Never throws.
+   */
+  private async getRealtimeAccessBeforeUpdate(
+    items: Array<TBaseModel>,
+    data: PartialEntity<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<Map<string, RealtimeReadAccess>> {
+    const accessByProject: Map<string, RealtimeReadAccess> = new Map<
+      string,
+      RealtimeReadAccess
+    >();
+
+    const dataKeys: Array<string> = Object.keys(data);
+
+    if (
+      items.length === 0 ||
+      dataKeys.length === 0 ||
+      !this.sendsRealtimeUpdateEvents() ||
+      !Realtime.isInitialized()
+    ) {
+      return accessByProject;
+    }
+
+    const now: RealtimeReadAccess = this.getRealtimeReadAccess();
+
+    try {
+      // A row the write leaves as it is sends no update event: nobody asked.
+      const changing: Array<TBaseModel> = items.filter(
+        (item: TBaseModel): boolean => {
+          return !this.hasSameValues({
+            item: item,
+            updatedItem: { ...data, _id: item._id },
+          });
+        },
+      );
+
+      if (changing.length === 0) {
+        return accessByProject;
+      }
+
+      const columns: Array<string> = this.getColumnsWrittenBy(dataKeys);
+
+      await Promise.all(
+        Array.from(this.getRealtimeIdsByProject(changing, props).entries()).map(
+          async ([tenantId, modelIds]: [string, Array<ObjectID>]) => {
+            const before: RealtimeReadAccess =
+              await Realtime.snapshotReadAccess({
+                tenantId: tenantId,
+                modelType: this.modelType,
+                modelIds: modelIds,
+                access: now,
+                eventType: ModelEventType.Update,
+                onlyFor: (reader: RealtimeReader): Promise<boolean> => {
+                  return this.writeMayChangeWhetherTheyRead(reader, columns);
+                },
+              });
+
+            if (before !== NO_READER_ACCESS) {
+              accessByProject.set(tenantId, readableByEither(now, before));
+            }
+          },
+        ),
+      );
+    } catch (err) {
+      // A project left out is heard about by those who can read it after.
+      logger.error(err, {
+        projectId: props.tenantId?.toString(),
+      } as LogAttributes);
+    }
+
+    return accessByProject;
+  }
+
+  /*
+   * Tells the open pages listening for this table that a record of it was
+   * created, changed or deleted - those of the people who may read it
+   * (getRealtimeReadAccess, or `options.access` when who could read it
+   * before the write counts too: see getRealtimeAccessBeforeDelete and
+   * getRealtimeAccessBeforeUpdate).
+   */
   @CaptureSpan()
   public async onTriggerRealtime(
     modelId: ObjectID,
     projectId: ObjectID,
     modelEventType: ModelEventType,
+    options?: {
+      access?: RealtimeReadAccess | undefined;
+    },
   ): Promise<void> {
     logger.debug("Realtime Events Enabled", {
       projectId: projectId?.toString(),
@@ -2482,6 +2948,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         eventType: modelEventType,
         modelId: modelId,
         modelType: this.modelType,
+        access: options?.access || this.getRealtimeReadAccess(),
       }).catch((err: Error) => {
         logger.error("Cannot emit realtime event", {
           projectId: projectId?.toString(),
@@ -4147,6 +4614,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       let numberOfDocsAffected: number = 0;
 
+      // Per project, who may hear that the rows below are gone.
+      let realtimeDeleteAccess: Map<string, RealtimeReadAccess> = new Map<
+        string,
+        RealtimeReadAccess
+      >();
+
       if (items.length > 0) {
         const query: Query<TBaseModel> = {
           _id: QueryHelper.any(
@@ -4159,6 +4632,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         // The rows the database deletes along with these, while they are there.
         const cascaded: Array<CascadedRow> =
           await this.readRowsDeletedWith(items);
+
+        /*
+         * Who may hear that these rows are gone, while a read can still
+         * find them. See getRealtimeAccessBeforeDelete.
+         */
+        realtimeDeleteAccess = await this.getRealtimeAccessBeforeDelete(
+          items,
+          deleteBy.props,
+        );
 
         numberOfDocsAffected =
           (await this.getRepository().delete(query as any)).affected || 0;
@@ -4202,6 +4684,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
                 item.id!,
                 tenantId,
                 ModelEventType.Delete,
+                {
+                  access:
+                    realtimeDeleteAccess.get(tenantId.toString()) ||
+                    NO_READER_ACCESS,
+                },
               );
             }
           }
@@ -4314,6 +4801,75 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return await this._findBy(findBy);
   }
 
+  /*
+   * What findBy narrows a read to before it queries: the caller's check,
+   * the service's read hooks, the rule criteria and the permission check,
+   * in that order. _findBy queries with it, and readsEveryRecordInProject
+   * and getColumnsNarrowingReadOf look at the conditions it adds - one
+   * place, so a record's live updates follow exactly the read that finds
+   * it.
+   */
+  private async narrowRead(findBy: FindBy<TBaseModel>): Promise<{
+    findBy: FindBy<TBaseModel>;
+    carryForward: any;
+    relationSelect: RelationSelect<TBaseModel> | null;
+    fileReader: RelatedFileReader | null;
+  }> {
+    findBy.props = await this.checkCallerBeforeHooks(
+      findBy.props,
+      DatabaseRequestType.Read,
+    );
+
+    // Who is asking, as they asked: whose files they may see.
+    const fileReader: RelatedFileReader | null = RelatedFileAccess.getReader(
+      findBy.props,
+    );
+
+    if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
+      findBy.sort = {
+        createdAt: SortOrder.Descending,
+      };
+    }
+
+    const onFind: OnFind<TBaseModel> = findBy.props.ignoreHooks
+      ? { findBy, carryForward: [] }
+      : await this.onBeforeFind(findBy);
+    const onBeforeFind: FindBy<TBaseModel> = { ...onFind.findBy };
+
+    if (!onBeforeFind.select || Object.keys(onBeforeFind.select).length === 0) {
+      onBeforeFind.select = {} as any;
+    }
+
+    if (!(onBeforeFind.select as any)["_id"]) {
+      (onBeforeFind.select as any)["_id"] = true;
+    }
+
+    onBeforeFind.query = this.getRuleCriteriaEffectiveEnabledQuery(
+      onBeforeFind.query,
+    );
+
+    const result: {
+      query: Query<TBaseModel>;
+      select: Select<TBaseModel> | null;
+      relationSelect: RelationSelect<TBaseModel> | null;
+    } = await ModelPermission.checkReadQueryPermission(
+      this.modelType,
+      onBeforeFind.query,
+      onBeforeFind.select || null,
+      onBeforeFind.props,
+    );
+
+    onBeforeFind.query = result.query;
+    onBeforeFind.select = result.select || undefined;
+
+    return {
+      findBy: onBeforeFind,
+      carryForward: onFind.carryForward,
+      relationSelect: result.relationSelect,
+      fileReader: fileReader,
+    };
+  }
+
   private async _findBy(
     findBy: FindBy<TBaseModel>,
     withDeleted?: boolean | undefined,
@@ -4321,56 +4877,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     try {
       this.setTelemetryContextFromProps(findBy.props);
 
-      findBy.props = await this.checkCallerBeforeHooks(
-        findBy.props,
-        DatabaseRequestType.Read,
-      );
-
-      // Who is asking, as they asked: whose files they may see.
-      const fileReader: RelatedFileReader | null = RelatedFileAccess.getReader(
-        findBy.props,
-      );
-
-      if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
-        findBy.sort = {
-          createdAt: SortOrder.Descending,
-        };
-      }
-
-      const onFind: OnFind<TBaseModel> = findBy.props.ignoreHooks
-        ? { findBy, carryForward: [] }
-        : await this.onBeforeFind(findBy);
-      const onBeforeFind: FindBy<TBaseModel> = { ...onFind.findBy };
-      const carryForward: any = onFind.carryForward;
-
-      if (
-        !onBeforeFind.select ||
-        Object.keys(onBeforeFind.select).length === 0
-      ) {
-        onBeforeFind.select = {} as any;
-      }
-
-      if (!(onBeforeFind.select as any)["_id"]) {
-        (onBeforeFind.select as any)["_id"] = true;
-      }
-
-      onBeforeFind.query = this.getRuleCriteriaEffectiveEnabledQuery(
-        onBeforeFind.query,
-      );
-
-      const result: {
-        query: Query<TBaseModel>;
-        select: Select<TBaseModel> | null;
+      const narrowed: {
+        findBy: FindBy<TBaseModel>;
+        carryForward: any;
         relationSelect: RelationSelect<TBaseModel> | null;
-      } = await ModelPermission.checkReadQueryPermission(
-        this.modelType,
-        onBeforeFind.query,
-        onBeforeFind.select || null,
-        onBeforeFind.props,
-      );
+        fileReader: RelatedFileReader | null;
+      } = await this.narrowRead(findBy);
 
-      onBeforeFind.query = result.query;
-      onBeforeFind.select = result.select || undefined;
+      const onBeforeFind: FindBy<TBaseModel> = narrowed.findBy;
+      const carryForward: any = narrowed.carryForward;
+      const fileReader: RelatedFileReader | null = narrowed.fileReader;
+      const result: { relationSelect: RelationSelect<TBaseModel> | null } = {
+        relationSelect: narrowed.relationSelect,
+      };
 
       const mapEffectiveEnabled: boolean = Boolean(
         (onBeforeFind.select as Record<string, unknown> | undefined)?.[
@@ -4999,6 +5518,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       const rowWriteSqlValues: Dictionary<() => string> =
         this.toRowWriteSqlValues(rowWriteSql, rowWriteSqlColumns);
 
+      /*
+       * Who could read these rows before the write, among the listeners
+       * whose read it may change - a row made private, a label taken off -
+       * asked while their read still sees the rows as they are: they hear
+       * about the update too. See getRealtimeAccessBeforeUpdate.
+       */
+      const realtimeUpdateAccess: Map<string, RealtimeReadAccess> =
+        await this.getRealtimeAccessBeforeUpdate(items, data, updateBy.props);
+
       for (const item of items) {
         /*
          * _id must be set AFTER the spread: update data can carry an
@@ -5250,6 +5778,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
               item.id!,
               tenantId,
               ModelEventType.Update,
+              {
+                access: realtimeUpdateAccess.get(tenantId.toString()),
+              },
             );
           }
         }

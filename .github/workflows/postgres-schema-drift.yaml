@@ -114,6 +114,21 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/EpisodeMemberDeletePostgres.test.ts --forceExit
 
+      # A person adds only an incident or alert they can see to an episode
+      # they can see, and neither side's feed entry - nor the episode's Slack
+      # / Teams post - names the other side when it is private.
+      - name: Test adding to an episode with private ends on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_EPISODE_MEMBER_PRIVATE_ENDS_TESTS: "true"
+          EPISODE_MEMBER_PRIVATE_ENDS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          EPISODE_MEMBER_PRIVATE_ENDS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          EPISODE_MEMBER_PRIVATE_ENDS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/EpisodeMemberPrivateEndsPostgres.test.ts
+          --forceExit
+
       # An incident's or alert's episode follows the episode's members only:
       # a create or update that names it is refused for every caller, and
       # joining and leaving through the members still moves it.
@@ -141,6 +156,21 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/EpisodeMemberPrivacyPostgres.test.ts --forceExit
+
+      # A record's live update reaches the people its own read lets read it:
+      # labels, owners, blocks with labels (and the labelled records a
+      # label-less row names), private incidents, a person's own AI
+      # conversation, and deletes decided before the rows go.
+      - name: Test who hears about a record's live updates on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_REALTIME_AUDIENCE_TESTS: "true"
+          REALTIME_AUDIENCE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          REALTIME_AUDIENCE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          REALTIME_AUDIENCE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Realtime/RealtimeAudiencePostgres.test.ts --forceExit
 
       # Clones the migrated Databases tables (DatabaseServer, its endpoints,
       # labels, owners, incident / alert / maintenance links and the

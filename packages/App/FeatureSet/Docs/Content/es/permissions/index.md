@@ -177,6 +177,8 @@ Los campos siguen la misma regla. Un bloqueo sin etiquetas sobre el permiso de u
 
 La misma regla decide todo lo demás que pregunta si tiene un permiso: las acciones que no son una simple lectura o escritura —añadir crédito de SMS, llamadas o IA, pagar una factura o probar una regla de notificación— y los botones que muestra OneUptime. Un botón que no puede usar aparece bloqueado y dice por qué; cuando el motivo es un bloqueo en uno de sus equipos, nombra el permiso bloqueado.
 
+Las actualizaciones en vivo siguen la misma regla. Cuando se crea, cambia o elimina un registro, OneUptime avisa a las páginas abiertas de las personas que pueden leer ese registro, y a nadie más. Lo que limita lo que puede leer limita también sus actualizaciones en vivo: etiquetas, propietarios, un bloqueo con etiquetas, un incidente privado o la conversación de IA de otra persona. Cuando un cambio le quita el acceso a un registro, por ejemplo al hacerlo privado, también se avisa a sus páginas abiertas para que dejen de mostrarlo. Un cambio en sus permisos llega a sus páginas abiertas en un plazo de 30 segundos.
+
 Todo usuario con sesión iniciada tiene además un pequeño conjunto de permisos automáticos que cubren cosas como leer su propio perfil y sus propias reglas de notificación. No son permisos de administración y no dan acceso a los datos de nadie más.
 
 Los permisos resueltos se almacenan en caché por usuario y proyecto, y se refrescan cuando cambia la pertenencia a equipos o los permisos de equipo. Si cambia permisos y un usuario no ve el cambio de inmediato, pídale que recargue.

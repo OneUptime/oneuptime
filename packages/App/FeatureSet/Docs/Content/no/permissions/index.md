@@ -177,6 +177,8 @@ Felt følger samme regel. En blokkering uten etiketter på tillatelsen til et fe
 
 Den samme regelen avgjør alt annet som spør om du har en tillatelse: handlinger som ikke er en enkel lesing eller skriving — å legge til SMS-, samtale- eller AI-kreditt, betale en faktura eller teste en varslingsregel — og knappene OneUptime viser. En knapp du ikke får bruke, vises låst og sier hvorfor; er en blokkering i et av teamene dine årsaken, navngir den den blokkerte tillatelsen.
 
+Liveoppdateringer følger den samme regelen. Når en post opprettes, endres eller slettes, gir OneUptime beskjed til de åpne sidene til personene som får lese posten, og ingen andre. Det som begrenser hva du får lese, begrenser også liveoppdateringene dine: etiketter, eiere, en blokkering med etiketter, en privat hendelse eller en annens AI-samtale. Når en endring tar fra deg tilgangen til en post, for eksempel når den gjøres privat, får de åpne sidene dine også beskjed, slik at de slutter å vise den. En endring i tillatelsene dine når de åpne sidene dine innen 30 sekunder.
+
 Enhver innlogget bruker har i tillegg et lite sett automatiske tillatelser som dekker ting som å lese sin egen profil og sine egne varslingsregler. Dette er ikke administratorrettigheter, og de gir ikke tilgang til andres data.
 
 Løste tillatelser bufres per bruker og prosjekt, og oppdateres når teammedlemskap eller teamtillatelser endres. Endrer du tillatelser og en bruker ikke ser endringen med én gang, be vedkommende laste siden på nytt.

@@ -204,6 +204,8 @@ Fields follow the same rule. A block with no labels on a field's permission take
 
 The same rule decides everything else that asks whether you hold a permission: actions that are not a plain read or write, such as adding SMS, call or AI credit, paying an invoice or testing a notification rule, and the buttons OneUptime shows you. A button you may not use is shown locked and says why; when a block on one of your teams is the reason, it names the blocked permission.
 
+Live updates follow the same rule. When a record is created, changed or deleted, OneUptime tells the open pages of the people who may read that record, and nobody else. Whatever limits what you read limits your live updates too: labels, owners, a block with labels, a private incident or someone else's AI conversation. When a change takes a record away from you, such as making it private, your open pages are told too, so they stop showing it. A change to your permissions reaches your open pages within 30 seconds.
+
 Every logged-in user additionally holds a small set of automatic permissions that cover things like reading their own profile and their own notification rules. These are not admin permissions and do not unlock anyone else's data.
 
 Resolved permissions are cached per user and project, and refreshed when team membership or team permissions change. If you change permissions and a user does not see the change immediately, have them reload.
