@@ -52,22 +52,6 @@ import ObjectID from "../../Types/ObjectID";
 export const GITHUB_CONNECT_PERMISSION_MESSAGE: string =
   "You do not have permission to add code repositories to this project.";
 
-/*
- * What the callback says when the state it was handed cannot be spent:
- * unknown, already used, expired, issued for another flow, or brought back by
- * a browser other than the one that started the connection.
- */
-export const GITHUB_CONNECT_LINK_MESSAGE: string =
-  "This GitHub connection link is invalid, has expired, or has already been used. Please connect GitHub again from Code Repositories in your OneUptime project.";
-
-/*
- * What the callback says when something other than an answer stopped it once
- * the state was spent - a read or a write that failed. The error itself is
- * logged, never shown.
- */
-export const GITHUB_CONNECT_FAILED_MESSAGE: string =
-  "OneUptime could not finish connecting GitHub. Please connect GitHub again from Code Repositories in your OneUptime project.";
-
 // Who is connecting, once the rule has let them.
 export interface GitHubConnectCaller {
   projectId: ObjectID;
