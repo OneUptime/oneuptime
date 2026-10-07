@@ -47,9 +47,14 @@ import { JSONObject } from "Common/Types/JSON";
  *   - everything that gives access is refused, with 402 and the reason in
  *     the SCIM error format, whole - nothing of it is applied, whatever
  *     else it asks: creating a user or a group, a user update that
- *     reactivates them (active true), a group update that adds a member -
- *     even alongside removals, as RFC 7644 makes a PATCH all or nothing -
- *     and any other Bulk request.
+ *     reactivates them (active true, for someone the connection would add
+ *     back to one of its teams), a group update that adds a member - even
+ *     alongside removals, as RFC 7644 makes a PATCH all or nothing - and
+ *     any other Bulk request. An active true that would add the person to
+ *     no team reactivates no one - they are in every one of the
+ *     connection's teams already, the connection pushes groups instead, or
+ *     they are a status page's user, whom active true never changes - and
+ *     Okta sends it with every PUT of a user.
  *   - so is a request that only changes a profile: a user's email or name,
  *     a group's name.
  *   - a request that changes nothing OneUptime keeps is answered as on
@@ -63,12 +68,19 @@ import { JSONObject } from "Common/Types/JSON";
  * (the same email, the same group name), or one OneUptime would not change
  * on any plan (a name this project may not change), is no change.
  *
+ * What goes through only ever takes access away, whatever another request
+ * does meanwhile: below the plan, a group replace applies its removals only
+ * and a user update never adds anyone to a team - so a member some other
+ * request removed after the check is not put back by the write.
+ *
  * The SCIM middleware (SCIMAuthorization) decides what it can from the
  * route alone, before any handler runs: it refuses creates and every other
  * Bulk request at the door, and marks the rest as below the plan
  * (setScimMissingPlan) for their handlers, which check what they would
- * change before they change anything. Billing off - self-hosted - has no
- * plans: none of this applies.
+ * change before they change anything. Every refusal, at the door or in a
+ * handler, is written to the connection's SCIM log, as the requests it
+ * answers are. Billing off - self-hosted - has no plans: none of this
+ * applies.
  */
 
 // The HTTP status of a refusal below the plan: see SCIMAuthorization.
@@ -84,18 +96,36 @@ export const getScimBelowPlanResponse: (planName: string) => JSONObject = (
   );
 };
 
+// What a refusal below the plan answered: what the SCIM log records of it.
+export interface ScimBelowPlanRefusal {
+  statusCode: number;
+  // The reason, as the identity provider shows it.
+  message: string;
+  body: JSONObject;
+}
+
 /*
  * Answers a request with the refusal, in the SCIM error format, so the
- * identity provider shows its administrators the reason.
+ * identity provider shows its administrators the reason - and returns what
+ * it answered, for the connection's SCIM log.
  */
 export const sendScimBelowPlanRefusal: (data: {
   res: ExpressResponse;
   missingPlan: PlanType;
-}) => void = (data: { res: ExpressResponse; missingPlan: PlanType }): void => {
+}) => ScimBelowPlanRefusal = (data: {
+  res: ExpressResponse;
+  missingPlan: PlanType;
+}): ScimBelowPlanRefusal => {
   const body: JSONObject = getScimBelowPlanResponse(data.missingPlan);
 
   (data.res as OneUptimeResponse).logBody = body;
   data.res.status(SCIM_BELOW_PLAN_STATUS).send(body);
+
+  return {
+    statusCode: SCIM_BELOW_PLAN_STATUS,
+    message: getScimStoppedMessage(data.missingPlan),
+    body: body,
+  };
 };
 
 // Where the middleware leaves the plan a request's project is missing.
@@ -274,6 +304,41 @@ export const getScimRequestBelowPlan: (data: {
 };
 
 /*
+ * What the connection's SCIM log calls a request refused at the door, as
+ * the handlers name the requests they answer: creating a user or a group,
+ * and Bulk. A route the door refuses that no handler has is named after its
+ * method and path.
+ */
+export const getScimRefusedOperationType: (data: {
+  method: string;
+  routePath: string | undefined;
+}) => string = (data: {
+  method: string;
+  routePath: string | undefined;
+}): string => {
+  const segments: Array<string> | null = data.routePath
+    ? getResourceSegments(data.routePath)
+    : null;
+  const method: string = data.method.toUpperCase();
+
+  if (segments && segments.length === 1 && method === "POST") {
+    if (segments[0] === "Users") {
+      return "CreateUser";
+    }
+
+    if (segments[0] === "Groups") {
+      return "CreateGroup";
+    }
+
+    if (segments[0] === "Bulk") {
+      return "BulkOperation";
+    }
+  }
+
+  return `${method} ${data.routePath || "(unknown route)"}`;
+};
+
+/*
  * ---------------------------------------------------------------------------
  * In the handlers: what an update would change.
  * ---------------------------------------------------------------------------
@@ -297,27 +362,35 @@ export enum ScimUpdateBelowPlan {
 
 /*
  * A user update (PUT or PATCH, for a project's or a status page's
- * connection). Reactivating the person (active true) gives access, whatever
- * else it asks. Deactivating them (active false) takes it away, whatever
- * else it asks: their email and name are left as they are. Without an
- * active value, a new email or a new name is a profile change on its own.
- * `isEmailChanging` and `isNameChanging` say what the handler would change
- * on the plan - a name this project may not change is no change.
+ * connection), by what its handler would do on the plan:
+ *
+ *   reactivates     active true would add the person to a team they are
+ *                   not in - a project connection's teams, unless it pushes
+ *                   groups. That gives access, whatever else it asks. An
+ *                   active true that adds them to no team is not this.
+ *   deactivates     active false. That takes access away, whatever else it
+ *                   asks: their email and name are left as they are.
+ *   isEmailChanging, isNameChanging
+ *                   what it would change of the profile - a name this
+ *                   project may not change is no change. On its own, a
+ *                   profile change.
  */
 export const getScimUserUpdateBelowPlan: (data: {
-  active: boolean | undefined;
+  reactivates: boolean;
+  deactivates: boolean;
   isEmailChanging: boolean;
   isNameChanging: boolean;
 }) => ScimUpdateBelowPlan = (data: {
-  active: boolean | undefined;
+  reactivates: boolean;
+  deactivates: boolean;
   isEmailChanging: boolean;
   isNameChanging: boolean;
 }): ScimUpdateBelowPlan => {
-  if (data.active === true) {
+  if (data.reactivates) {
     return ScimUpdateBelowPlan.Refused;
   }
 
-  if (data.active === false) {
+  if (data.deactivates) {
     return ScimUpdateBelowPlan.Removal;
   }
 
@@ -501,6 +574,8 @@ export interface ScimGroupPatchBelowPlan {
    * the plan the group keeps its name. Empty when the update is refused.
    */
   actions: Array<ScimGroupPatchAction>;
+  // Whether it asks for another name, which goes unapplied.
+  dropsRename: boolean;
 }
 
 /*
@@ -534,6 +609,7 @@ export const getScimGroupPatchBelowPlan: (data: {
   const refused: ScimGroupPatchBelowPlan = {
     verdict: ScimUpdateBelowPlan.Refused,
     actions: [],
+    dropsRename: false,
   };
 
   // The members as the operations so far leave them, once they are read.
@@ -610,6 +686,7 @@ export const getScimGroupPatchBelowPlan: (data: {
     actions: data.actions.filter((action: ScimGroupPatchAction): boolean => {
       return action.kind !== "rename";
     }),
+    dropsRename: renames,
   };
 };
 

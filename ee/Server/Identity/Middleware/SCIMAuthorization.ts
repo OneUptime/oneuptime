@@ -1,11 +1,17 @@
 import {
   getScimBelowPlanResponse,
+  getScimRefusedOperationType,
   getScimRequestBelowPlan,
   SCIM_BELOW_PLAN_STATUS,
+  ScimBelowPlanRefusal,
   ScimRequestBelowPlan,
   sendScimBelowPlanRefusal,
   setScimMissingPlan,
 } from "../Utils/SCIMBelowPlan";
+import {
+  createProjectSCIMLog,
+  createStatusPageSCIMLog,
+} from "../Utils/SCIMLogger";
 import ProjectSCIMService from "Common/Server/Services/ProjectSCIMService";
 import StatusPageSCIMService from "Common/Server/Services/StatusPageSCIMService";
 import PlanCutoffCredentialAccess from "Common/Server/Utils/Billing/PlanCutoffCredentialAccess";
@@ -22,6 +28,8 @@ import { PlanCutoffCredential } from "Common/Types/Billing/PlanCutoffCredentials
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
+import { JSONObject } from "Common/Types/JSON";
+import SCIMLogStatus from "Common/Types/SCIM/SCIMLogStatus";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import SpanUtil from "Common/Server/Utils/Telemetry/SpanUtil";
 import logger, {
@@ -45,6 +53,26 @@ export { SCIM_BELOW_PLAN_STATUS, getScimBelowPlanResponse };
 // What getMissingPlanOrRefuse returns once it has answered the request.
 type Refused = "refused";
 const REFUSED: Refused = "refused";
+
+// A request refused at the door, for the connection's SCIM log.
+interface RefusedAtTheDoor {
+  refusal: ScimBelowPlanRefusal;
+  // As the SCIM log names it: CreateUser, CreateGroup, BulkOperation.
+  operationType: string;
+  missingPlan: PlanType;
+  steps: Array<string>;
+}
+
+// The request's body, as the SCIM log keeps it: a JSON object, or nothing.
+const getLoggedRequestBody: (req: ExpressRequest) => JSONObject | undefined = (
+  req: ExpressRequest,
+): JSONObject | undefined => {
+  const body: unknown = req.body;
+
+  return body && typeof body === "object" && !Array.isArray(body)
+    ? (body as JSONObject)
+    : undefined;
+};
 
 export default class SCIMMiddleware {
   @CaptureSpan()
@@ -115,6 +143,24 @@ export default class SCIMMiddleware {
             res: res,
             projectId: projectScimConfig.projectId,
             credential: PlanCutoffCredential.ProjectSCIM,
+            logRefusal: (refused: RefusedAtTheDoor): void => {
+              void createProjectSCIMLog({
+                projectId: projectScimConfig.projectId!,
+                projectScimId: new ObjectID(scimId),
+                operationType: refused.operationType,
+                status: SCIMLogStatus.Error,
+                statusMessage: refused.refusal.message,
+                httpMethod: req.method,
+                requestPath: req.path,
+                httpStatusCode: refused.refusal.statusCode,
+                requestBody: getLoggedRequestBody(req),
+                responseBody: refused.refusal.body,
+                steps: refused.steps,
+                additionalContext: {
+                  refusedBelowPlan: refused.missingPlan,
+                },
+              });
+            },
           });
 
         if (projectMissingPlan === REFUSED) {
@@ -163,6 +209,25 @@ export default class SCIMMiddleware {
             res: res,
             projectId: statusPageScimConfig.projectId,
             credential: PlanCutoffCredential.StatusPageSCIM,
+            logRefusal: (refused: RefusedAtTheDoor): void => {
+              void createStatusPageSCIMLog({
+                projectId: statusPageScimConfig.projectId!,
+                statusPageId: statusPageScimConfig.statusPageId!,
+                statusPageScimId: new ObjectID(scimId),
+                operationType: refused.operationType,
+                status: SCIMLogStatus.Error,
+                statusMessage: refused.refusal.message,
+                httpMethod: req.method,
+                requestPath: req.path,
+                httpStatusCode: refused.refusal.statusCode,
+                requestBody: getLoggedRequestBody(req),
+                responseBody: refused.refusal.body,
+                steps: refused.steps,
+                additionalContext: {
+                  refusedBelowPlan: refused.missingPlan,
+                },
+              });
+            },
           });
 
         if (statusPageMissingPlan === REFUSED) {
@@ -225,7 +290,9 @@ export default class SCIMMiddleware {
    * provider shows the reason - not through next(err), whose generic JSON
    * error an identity provider cannot read. Nor is it logged as an error: a
    * project below the plan is an expected state, and identity providers keep
-   * calling on their sync schedule.
+   * calling on their sync schedule. It is written to the connection's SCIM
+   * log (logRefusal), as the requests the handlers answer are, so the
+   * project's admins see there what their identity provider was refused.
    *
    * Returns the plan the project is missing - null when it is on the plan,
    * or billing is off - or REFUSED once it has answered the request.
@@ -235,6 +302,7 @@ export default class SCIMMiddleware {
     res: ExpressResponse;
     projectId: ObjectID | undefined;
     credential: PlanCutoffCredential;
+    logRefusal: (refused: RefusedAtTheDoor) => void;
   }): Promise<PlanType | null | Refused> {
     // Every SCIM connection belongs to a project; one without is no connection.
     if (!data.projectId) {
@@ -274,7 +342,22 @@ export default class SCIMMiddleware {
       getLogAttributesFromRequest(data.req as OneUptimeRequest),
     );
 
-    sendScimBelowPlanRefusal({ res: data.res, missingPlan: missingPlan });
+    const refusal: ScimBelowPlanRefusal = sendScimBelowPlanRefusal({
+      res: data.res,
+      missingPlan: missingPlan,
+    });
+
+    data.logRefusal({
+      refusal: refusal,
+      operationType: getScimRefusedOperationType({
+        method: data.req.method,
+        routePath: typeof routePath === "string" ? routePath : undefined,
+      }),
+      missingPlan: missingPlan,
+      steps: [
+        `Refused below the ${missingPlan} plan SCIM needs: this request can only give access - creating a user or a group, or a Bulk request that is not all DELETEs`,
+      ],
+    });
 
     return REFUSED;
   }

@@ -144,10 +144,25 @@ describe("the SCIM guide", () => {
 
   it("says what is refused, and that a request adding anyone is refused whole", () => {
     expect(section).toContain(
-      "**Refused:** creating a user or a group, reactivating a user (`active` set to `true`), adding a member to a group, and changing only a user's email or name or a group's name.",
+      "**Refused:** creating a user or a group, reactivating a user (`active` set to `true` for someone the connection would add back to one of its teams), adding a member to a group, and changing only a user's email or name or a group's name.",
     );
     expect(section).toContain(
       "A request that adds anyone is refused whole, even one that also removes people, as a SCIM `PATCH` is all or nothing.",
+    );
+  });
+
+  it("says each refusal is in the connection's SCIM logs", () => {
+    expect(section).toContain(
+      "Each refusal is also listed in the connection's SCIM logs.",
+    );
+  });
+
+  it("says a request that changes nothing - Okta's PUT of an active user among them - is answered as usual", () => {
+    expect(section).toContain(
+      "**A request that changes nothing is answered as usual** - Okta's `PUT` of a user as they are, with `active` set to `true`, for someone already in every one of the connection's teams; an email sent again in another case; attributes OneUptime does not keep, such as a title or a department.",
+    );
+    expect(section).toContain(
+      "A status page's private user is on the page or not at all, so `active` set to `true` never changes one.",
     );
   });
 

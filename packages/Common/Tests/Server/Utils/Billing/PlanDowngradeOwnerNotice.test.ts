@@ -1,4 +1,5 @@
 import PlanDowngradeOwnerNotice, {
+  ALREADY_BELOW_PLAN_NOTICE_CONCURRENCY,
   PlanDowngradeNoticeOutcome,
   PROJECT_BILLING_SETTINGS_PATH,
   StoppedByPlanChange,
@@ -15,9 +16,6 @@ import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import { getJestSpyOn } from "../../../Spy";
 import { setTestBillingEnabled } from "../../Enterprise/TestBillingFlag";
-import ApiKey from "../../../../Models/DatabaseModels/ApiKey";
-import ProjectSCIM from "../../../../Models/DatabaseModels/ProjectSCIM";
-import StatusPageSCIM from "../../../../Models/DatabaseModels/StatusPageSCIM";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import User from "../../../../Models/DatabaseModels/User";
 import Email from "../../../../Types/Email";
@@ -952,40 +950,34 @@ describe("the one-time notice to a project already below the plan", () => {
 
 describe("the one-time notice, for every project that may be below the plan", () => {
   let notifyOne: ReturnType<typeof getJestSpyOn>;
-  let apiKeysFound: ReturnType<typeof getJestSpyOn>;
-  let projectScimFound: ReturnType<typeof getJestSpyOn>;
-  let statusPageScimFound: ReturnType<typeof getJestSpyOn>;
-
-  const withProject: <T extends { projectId?: ObjectID | undefined }>(
-    row: T,
-    projectId: ObjectID,
-  ) => T = <T extends { projectId?: ObjectID | undefined }>(
-    row: T,
-    projectId: ObjectID,
-  ): T => {
-    row.projectId = projectId;
-    return row;
-  };
+  let credentialRows: Array<{ projectId: string }>;
+  let readFails: Error | null;
+  let queries: Array<[string, Array<unknown>]>;
 
   beforeEach(() => {
-    apiKeysFound = getJestSpyOn(ApiKeyService, "findAllBy").mockResolvedValue([
-      withProject(new ApiKey(), PROJECT_ID),
-      withProject(new ApiKey(), PROJECT_ID),
-    ]);
-    projectScimFound = getJestSpyOn(
-      ProjectSCIMService,
-      "findAllBy",
-    ).mockResolvedValue([withProject(new ProjectSCIM(), OTHER_PROJECT_ID)]);
-    // The same project again, in another case: one project.
-    statusPageScimFound = getJestSpyOn(
-      StatusPageSCIMService,
-      "findAllBy",
-    ).mockResolvedValue([
-      withProject(
-        new StatusPageSCIM(),
-        new ObjectID(OTHER_PROJECT_ID.toString().toUpperCase()),
-      ),
-    ]);
+    readFails = null;
+    queries = [];
+    credentialRows = [
+      { projectId: PROJECT_ID.toString() },
+      { projectId: OTHER_PROJECT_ID.toString() },
+      // The same project again, in another case: one project.
+      { projectId: OTHER_PROJECT_ID.toString().toUpperCase() },
+    ];
+
+    getJestSpyOn(ApiKeyService, "getRepository").mockReturnValue({
+      manager: {
+        query: async (sql: string, parameters: Array<unknown>) => {
+          queries.push([sql, parameters]);
+
+          if (readFails) {
+            throw readFails;
+          }
+
+          return credentialRows;
+        },
+      },
+    } as never);
+
     notifyOne = getJestSpyOn(
       PlanDowngradeOwnerNotice,
       "notifyIfAlreadyBelowPlan",
@@ -1006,9 +998,7 @@ describe("the one-time notice, for every project that may be below the plan", ()
       noOwners: 0,
       failed: 0,
     });
-    expect(apiKeysFound).not.toHaveBeenCalled();
-    expect(projectScimFound).not.toHaveBeenCalled();
-    expect(statusPageScimFound).not.toHaveBeenCalled();
+    expect(queries).toEqual([]);
     expect(notifyOne).not.toHaveBeenCalled();
   });
 
@@ -1029,30 +1019,36 @@ describe("the one-time notice, for every project that may be below the plan", ()
     ]);
   });
 
-  test("only API keys that have not expired, read as OneUptime itself", async () => {
+  test("one statement reads the distinct ids of the projects with API keys that have not expired, or SCIM connections - deleted rows left out", async () => {
     setTestBillingEnabled(true);
+    const before: number = Date.now();
 
     await PlanDowngradeOwnerNotice.notifyProjectsAlreadyBelowPlan();
 
-    const findAllBy: {
-      query: Record<string, unknown>;
-      select: Record<string, unknown>;
-      props: unknown;
-    } = apiKeysFound.mock.calls[0]![0] as {
-      query: Record<string, unknown>;
-      select: Record<string, unknown>;
-      props: unknown;
-    };
+    expect(queries).toHaveLength(1);
 
-    expect(findAllBy.query["expiresAt"]).toBeDefined();
-    expect(findAllBy.select).toEqual({ projectId: true });
-    expect(findAllBy.props).toEqual({ isRoot: true });
+    const [sql, parameters]: [string, Array<unknown>] = queries[0]!;
 
-    for (const spy of [projectScimFound, statusPageScimFound]) {
-      expect((spy.mock.calls[0]![0] as { props: unknown }).props).toEqual({
-        isRoot: true,
-      });
-    }
+    expect(sql).toContain('SELECT "projectId" FROM "ApiKey"');
+    expect(sql).toContain('"expiresAt" > $1');
+    expect(sql).toContain('SELECT "projectId" FROM "ProjectSCIM"');
+    expect(sql).toContain('SELECT "projectId" FROM "StatusPageSCIM"');
+    // UNION, not UNION ALL: each project once.
+    expect(sql.match(/ UNION /g)).toHaveLength(2);
+    expect(sql).not.toContain("UNION ALL");
+    expect(sql.match(/"deletedAt" IS NULL/g)).toHaveLength(3);
+    expect(sql.match(/"projectId" IS NOT NULL/g)).toHaveLength(3);
+    // Only the ids are read.
+    expect(sql).not.toContain("*");
+
+    expect(parameters).toHaveLength(1);
+    expect(parameters[0]).toBeInstanceOf(Date);
+    expect((parameters[0] as Date).getTime()).toBeGreaterThanOrEqual(
+      before - 1000,
+    );
+    expect((parameters[0] as Date).getTime()).toBeLessThanOrEqual(
+      Date.now() + 1000,
+    );
   });
 
   test("says what it did, project by project, and goes on past a failure", async () => {
@@ -1099,9 +1095,7 @@ describe("the one-time notice, for every project that may be below the plan", ()
 
   test("a project with no credentials is not looked at", async () => {
     setTestBillingEnabled(true);
-    apiKeysFound.mockResolvedValue([]);
-    projectScimFound.mockResolvedValue([]);
-    statusPageScimFound.mockResolvedValue([]);
+    credentialRows = [];
 
     expect(
       (await PlanDowngradeOwnerNotice.notifyProjectsAlreadyBelowPlan())
@@ -1112,11 +1106,66 @@ describe("the one-time notice, for every project that may be below the plan", ()
 
   test("a read that fails stops the run, which the migration runner retries", async () => {
     setTestBillingEnabled(true);
-    apiKeysFound.mockRejectedValue(new Error("connection reset"));
+    readFails = new Error("connection reset");
 
     await expect(
       PlanDowngradeOwnerNotice.notifyProjectsAlreadyBelowPlan(),
     ).rejects.toThrow("connection reset");
     expect(notifyOne).not.toHaveBeenCalled();
+  });
+
+  test("tells a few projects at a time, never more, and each project once", async () => {
+    setTestBillingEnabled(true);
+
+    const projectCount: number = ALREADY_BELOW_PLAN_NOTICE_CONCURRENCY * 3 + 2;
+    credentialRows = Array.from(
+      { length: projectCount },
+      (): { projectId: string } => {
+        return { projectId: ObjectID.generate().toString() };
+      },
+    );
+
+    let inFlight: number = 0;
+    let mostAtOnce: number = 0;
+    const told: Array<string> = [];
+
+    notifyOne.mockImplementation(
+      async (data: {
+        projectId: ObjectID;
+      }): Promise<PlanDowngradeNoticeOutcome> => {
+        inFlight++;
+        mostAtOnce = Math.max(mostAtOnce, inFlight);
+
+        // An owner email on its way to the mail service.
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, 2);
+        });
+
+        told.push(data.projectId.toString());
+        inFlight--;
+
+        return PlanDowngradeNoticeOutcome.Told;
+      },
+    );
+
+    const summary: { told: number; projects: number } =
+      await PlanDowngradeOwnerNotice.notifyProjectsAlreadyBelowPlan();
+
+    expect(summary.projects).toBe(projectCount);
+    expect(summary.told).toBe(projectCount);
+    expect(mostAtOnce).toBe(ALREADY_BELOW_PLAN_NOTICE_CONCURRENCY);
+    expect(new Set<string>(told).size).toBe(projectCount);
+    expect(told.sort()).toEqual(
+      credentialRows
+        .map((row: { projectId: string }): string => {
+          return row.projectId;
+        })
+        .sort(),
+    );
+  });
+
+  test("telling a few at a time is what keeps the migrate Job short: more than one, and a small number", () => {
+    expect(ALREADY_BELOW_PLAN_NOTICE_CONCURRENCY).toBeGreaterThan(1);
+    expect(ALREADY_BELOW_PLAN_NOTICE_CONCURRENCY).toBeLessThanOrEqual(16);
   });
 });

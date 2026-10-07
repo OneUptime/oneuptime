@@ -11,10 +11,7 @@ import QueryHelper from "../../Types/Database/QueryHelper";
 import PlanCutoffCredentialAccess from "./PlanCutoffCredentialAccess";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
-import ApiKey from "../../../Models/DatabaseModels/ApiKey";
 import Project from "../../../Models/DatabaseModels/Project";
-import ProjectSCIM from "../../../Models/DatabaseModels/ProjectSCIM";
-import StatusPageSCIM from "../../../Models/DatabaseModels/StatusPageSCIM";
 import User from "../../../Models/DatabaseModels/User";
 import URL from "../../../Types/API/URL";
 import {
@@ -53,15 +50,21 @@ import SafeHtml from "../../../Types/SafeHtml";
  * row's planCutoffNoticeSentAt: one conditional UPDATE claims it while it is
  * empty (ProjectService.claimPlanCutoffNotice), and a plan change that tells
  * the owners writes it too, so however often, and on however many workers,
- * the one-time notice runs, no project's owners hear it twice. Billing off
- * (self-hosted) has no plans: nothing is sent.
+ * the one-time notice runs, it tells no project's owners twice. The one
+ * thing it cannot know: a plan change made after the cut-off shipped
+ * (14.0.15) and before this column did told its owners without writing it
+ * down, so they hear the one-time notice as well - the same words, saying
+ * what the project's plan stops now, which can be more than that move
+ * stopped. Billing off (self-hosted) has no plans: nothing is sent.
  *
  * It reuses the email the product already sends a project's owners about
  * billing and limits (ProjectService.sendEmailToProjectOwners - the current
  * members of its owner teams), so it reaches the same people the same way
  * and adds no channel or setting. The one-time notice waits for each email
  * to be handed to the mail service (sendEmailToOwnersAndWait): it runs from
- * the migrate Job, which exits as soon as it is done.
+ * the migrate Job, which exits as soon as it is done. It tells a few
+ * projects at a time (ALREADY_BELOW_PLAN_NOTICE_CONCURRENCY), so the Job is
+ * not held by one mail round trip after another.
  *
  * It never throws: a plan change that was made stays made, and one project
  * that cannot be told never stops the others.
@@ -102,6 +105,15 @@ export interface AlreadyBelowPlanNoticeSummary {
 
 // Where the plan is changed in the dashboard, under a project's own route.
 export const PROJECT_BILLING_SETTINGS_PATH: string = "settings/billing";
+
+/*
+ * How many projects the one-time notice tells at once. Each one is a few
+ * reads, a claim and an email per owner that it waits for: one project at a
+ * time would hold the migrate Job for a mail round trip after another.
+ * Projects are independent - each has its own claim - so telling several at
+ * once tells no one twice.
+ */
+export const ALREADY_BELOW_PLAN_NOTICE_CONCURRENCY: number = 8;
 
 export default class PlanDowngradeOwnerNotice {
   /*
@@ -391,9 +403,10 @@ export default class PlanDowngradeOwnerNotice {
   /*
    * The one-time notice, for every project that may be below the plans its
    * credentials need: the projects with API keys that have not expired, or
-   * with SCIM connections - their own or their status pages'. One project at
-   * a time; safe to run again, and on several workers at once
-   * (notifyIfAlreadyBelowPlan). Billing off: no plans, nothing read or sent.
+   * with SCIM connections - their own or their status pages'. A few
+   * projects at a time (ALREADY_BELOW_PLAN_NOTICE_CONCURRENCY); safe to run
+   * again, and on several workers at once (notifyIfAlreadyBelowPlan).
+   * Billing off: no plans, nothing read or sent.
    */
   @CaptureSpan()
   public static async notifyProjectsAlreadyBelowPlan(): Promise<AlreadyBelowPlanNoticeSummary> {
@@ -416,12 +429,9 @@ export default class PlanDowngradeOwnerNotice {
 
     summary.projects = projectIds.length;
 
-    for (const projectId of projectIds) {
-      const outcome: PlanDowngradeNoticeOutcome =
-        await PlanDowngradeOwnerNotice.notifyIfAlreadyBelowPlan({
-          projectId,
-        });
-
+    const count: (outcome: PlanDowngradeNoticeOutcome) => void = (
+      outcome: PlanDowngradeNoticeOutcome,
+    ): void => {
       switch (outcome) {
         case PlanDowngradeNoticeOutcome.Told:
           summary.told++;
@@ -441,45 +451,65 @@ export default class PlanDowngradeOwnerNotice {
         default:
           summary.failed++;
       }
-    }
+    };
+
+    /*
+     * Each worker takes the next project until none is left. Never throws
+     * (notifyIfAlreadyBelowPlan does not), so one project never stops the
+     * others.
+     */
+    let next: number = 0;
+
+    const tellNextProjects: () => Promise<void> = async (): Promise<void> => {
+      while (next < projectIds.length) {
+        const projectId: ObjectID = projectIds[next]!;
+        next++;
+
+        count(
+          await PlanDowngradeOwnerNotice.notifyIfAlreadyBelowPlan({
+            projectId,
+          }),
+        );
+      }
+    };
+
+    await Promise.all(
+      Array.from(
+        {
+          length: Math.min(
+            ALREADY_BELOW_PLAN_NOTICE_CONCURRENCY,
+            projectIds.length,
+          ),
+        },
+        tellNextProjects,
+      ),
+    );
 
     return summary;
   }
 
   /*
    * The projects that have an API key that has not expired, or a SCIM
-   * connection - their own or a status page's - each once.
+   * connection - their own or a status page's - each once. One statement
+   * that returns the distinct ids only: the rows themselves are never read.
+   * Deleted rows do not count, as the services would not return them.
    */
   public static async getProjectsWithCredentials(): Promise<Array<ObjectID>> {
-    const [apiKeys, projectScim, statusPageScim]: [
-      Array<ApiKey>,
-      Array<ProjectSCIM>,
-      Array<StatusPageSCIM>,
-    ] = await Promise.all([
-      ApiKeyService.findAllBy({
-        query: {
-          expiresAt: QueryHelper.greaterThan(OneUptimeDate.getCurrentDate()),
-        },
-        select: { projectId: true },
-        props: { isRoot: true },
-      }),
-      ProjectSCIMService.findAllBy({
-        query: {},
-        select: { projectId: true },
-        props: { isRoot: true },
-      }),
-      StatusPageSCIMService.findAllBy({
-        query: {},
-        select: { projectId: true },
-        props: { isRoot: true },
-      }),
-    ]);
+    const rows: unknown = await ApiKeyService.getRepository().manager.query(
+      `SELECT "projectId" FROM "ApiKey" WHERE "deletedAt" IS NULL AND "projectId" IS NOT NULL AND "expiresAt" > $1 UNION SELECT "projectId" FROM "ProjectSCIM" WHERE "deletedAt" IS NULL AND "projectId" IS NOT NULL UNION SELECT "projectId" FROM "StatusPageSCIM" WHERE "deletedAt" IS NULL AND "projectId" IS NOT NULL`,
+      [OneUptimeDate.getCurrentDate()],
+    );
 
     const projectIds: Map<string, ObjectID> = new Map<string, ObjectID>();
 
-    for (const row of [...apiKeys, ...projectScim, ...statusPageScim]) {
-      if (row.projectId) {
-        projectIds.set(row.projectId.toString().toLowerCase(), row.projectId);
+    for (const row of Array.isArray(rows) ? rows : []) {
+      const projectId: unknown = (row as { projectId?: unknown })?.projectId;
+
+      if (projectId) {
+        projectIds.set(
+          String(projectId).toLowerCase(),
+          new ObjectID(String(projectId)),
+        );
       }
     }
 

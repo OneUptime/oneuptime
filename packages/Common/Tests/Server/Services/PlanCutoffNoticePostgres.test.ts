@@ -558,6 +558,42 @@ describePostgres("the plan cut-off notice on Postgres", () => {
       expect(await toldAt(projectId)).not.toBeNull();
     });
 
+    test("the projects are read in one statement, each once: deleted keys and connections do not count", async () => {
+      // Live credentials of every kind, several of each: one project.
+      const many: ObjectID = await seedProject({ plan: "Free" });
+      await seedApiKey(many, 30);
+      await seedApiKey(many, 60);
+      await seedScim(many, "ProjectSCIM");
+      await seedScim(many, "StatusPageSCIM");
+
+      // Every credential deleted: not looked at.
+      const removed: ObjectID = await seedProject({ plan: "Free" });
+      await seedApiKey(removed, 30);
+      await seedScim(removed, "ProjectSCIM");
+      await seedScim(removed, "StatusPageSCIM");
+
+      for (const table of ["ApiKey", "ProjectSCIM", "StatusPageSCIM"]) {
+        await database.query(
+          `UPDATE "${schema}"."${table}" SET "deletedAt" = now() WHERE "projectId" = $1`,
+          [removed.toString()],
+        );
+      }
+
+      const found: Array<string> = (
+        await PlanDowngradeOwnerNotice.getProjectsWithCredentials()
+      ).map((id: ObjectID): string => {
+        return id.toString().toLowerCase();
+      });
+
+      expect(
+        found.filter((id: string): boolean => {
+          return id === many.toString().toLowerCase();
+        }),
+      ).toHaveLength(1);
+      expect(found).not.toContain(removed.toString().toLowerCase());
+      expect(new Set<string>(found).size).toBe(found.length);
+    });
+
     test("billing off reads nothing and sends nothing", async () => {
       setTestBillingEnabled(false);
 

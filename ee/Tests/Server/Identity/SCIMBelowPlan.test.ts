@@ -4,6 +4,7 @@ import {
   getScimBelowPlanResponse,
   getScimMemberUserId,
   getScimMissingPlan,
+  getScimRefusedOperationType,
   getScimRequestBelowPlan,
   isBulkOfDeletesOnly,
   getScimGroupPatchBelowPlan,
@@ -11,6 +12,7 @@ import {
   getScimUserUpdateBelowPlan,
   planScimGroupPatch,
   SCIM_BELOW_PLAN_STATUS,
+  ScimBelowPlanRefusal,
   ScimGroupPatchAction,
   ScimGroupPatchBelowPlan,
   ScimRequestBelowPlan,
@@ -158,60 +160,72 @@ describe("at the door: what the route alone decides", () => {
 });
 
 describe("a user update below the plan", () => {
+  // What the handler would do with it on the plan.
+  interface UserUpdate {
+    reactivates: boolean;
+    deactivates: boolean;
+    isEmailChanging: boolean;
+    isNameChanging: boolean;
+  }
+
+  const update: (fields: Partial<UserUpdate>) => UserUpdate = (
+    fields: Partial<UserUpdate>,
+  ): UserUpdate => {
+    return {
+      reactivates: false,
+      deactivates: false,
+      isEmailChanging: false,
+      isNameChanging: false,
+      ...fields,
+    };
+  };
+
   test.each([
     // Taking access away goes through, whatever else it asks.
+    [update({ deactivates: true }), "Removal"],
+    [update({ deactivates: true, isEmailChanging: true }), "Removal"],
+    [update({ deactivates: true, isNameChanging: true }), "Removal"],
     [
-      { active: false, isEmailChanging: false, isNameChanging: false },
+      update({
+        deactivates: true,
+        isEmailChanging: true,
+        isNameChanging: true,
+      }),
       "Removal",
     ],
+    // Reactivating - adding the person back to a team - gives access, whatever else it asks.
+    [update({ reactivates: true }), "Refused"],
     [
-      { active: false, isEmailChanging: true, isNameChanging: false },
-      "Removal",
-    ],
-    [
-      { active: false, isEmailChanging: false, isNameChanging: true },
-      "Removal",
-    ],
-    [{ active: false, isEmailChanging: true, isNameChanging: true }, "Removal"],
-    // Reactivating gives access, whatever else it asks.
-    [
-      { active: true, isEmailChanging: false, isNameChanging: false },
+      update({
+        reactivates: true,
+        isEmailChanging: true,
+        isNameChanging: true,
+      }),
       "Refused",
     ],
-    [{ active: true, isEmailChanging: true, isNameChanging: true }, "Refused"],
     // A profile change on its own.
-    [
-      { active: undefined, isEmailChanging: true, isNameChanging: false },
-      "Refused",
-    ],
-    [
-      { active: undefined, isEmailChanging: false, isNameChanging: true },
-      "Refused",
-    ],
-    [
-      { active: undefined, isEmailChanging: true, isNameChanging: true },
-      "Refused",
-    ],
-    // Nothing OneUptime keeps changes.
-    [
-      { active: undefined, isEmailChanging: false, isNameChanging: false },
-      "NoChange",
-    ],
-  ])(
-    "%j is %s",
-    (
-      update: {
-        active: boolean | undefined;
-        isEmailChanging: boolean;
-        isNameChanging: boolean;
-      },
-      expected: string,
-    ) => {
-      expect(getScimUserUpdateBelowPlan(update)).toBe(
-        expected as ScimUpdateBelowPlan,
-      );
-    },
-  );
+    [update({ isEmailChanging: true }), "Refused"],
+    [update({ isNameChanging: true }), "Refused"],
+    [update({ isEmailChanging: true, isNameChanging: true }), "Refused"],
+    // Nothing OneUptime keeps changes - an active true that adds no one included.
+    [update({}), "NoChange"],
+  ])("%j is %s", (fields: UserUpdate, expected: string) => {
+    expect(getScimUserUpdateBelowPlan(fields)).toBe(
+      expected as ScimUpdateBelowPlan,
+    );
+  });
+
+  test("an active true that adds the person to no team is no reactivation: only a profile change can make it a refusal", () => {
+    // Okta's PUT of an active user, as it sends it with every profile push.
+    expect(getScimUserUpdateBelowPlan(update({ reactivates: false }))).toBe(
+      ScimUpdateBelowPlan.NoChange,
+    );
+    expect(
+      getScimUserUpdateBelowPlan(
+        update({ reactivates: false, isNameChanging: true }),
+      ),
+    ).toBe(ScimUpdateBelowPlan.Refused);
+  });
 
   test("the verdicts are the three the handlers act on", () => {
     expect(Object.values(ScimUpdateBelowPlan).sort()).toEqual([
@@ -365,6 +379,62 @@ describe("a group PATCH, read as its handler applies it", () => {
       expect(planScimGroupPatch(operations)).toEqual([]);
     },
   );
+});
+
+describe("whether a group PATCH below the plan drops a rename", () => {
+  const dropsRename: (
+    operations: Array<JSONObject>,
+  ) => Promise<ScimGroupPatchBelowPlan> = async (
+    operations: Array<JSONObject>,
+  ): Promise<ScimGroupPatchBelowPlan> => {
+    return await getScimGroupPatchBelowPlan({
+      actions: planScimGroupPatch(operations),
+      currentName: "Engineering",
+      getCurrentMemberIds: async (): Promise<Array<string>> => {
+        return [ALICE, BOB];
+      },
+    });
+  };
+
+  test("a removal with a rename to another name: it goes through, and says the rename is dropped", async () => {
+    const belowPlan: ScimGroupPatchBelowPlan = await dropsRename([
+      { op: "remove", path: `members[value eq "${ALICE}"]` },
+      { op: "replace", path: "displayName", value: "Platform" },
+    ]);
+
+    expect(belowPlan.verdict).toBe(ScimUpdateBelowPlan.Removal);
+    expect(belowPlan.dropsRename).toBe(true);
+  });
+
+  test("a removal with the group's own name sent as it is drops nothing", async () => {
+    const belowPlan: ScimGroupPatchBelowPlan = await dropsRename([
+      { op: "remove", path: `members[value eq "${ALICE}"]` },
+      { op: "replace", path: "displayName", value: "Engineering" },
+    ]);
+
+    expect(belowPlan.verdict).toBe(ScimUpdateBelowPlan.Removal);
+    expect(belowPlan.dropsRename).toBe(false);
+  });
+
+  test("a removal on its own drops nothing", async () => {
+    expect(
+      (
+        await dropsRename([
+          { op: "Remove", path: "members", value: [{ value: BOB }] },
+        ])
+      ).dropsRename,
+    ).toBe(false);
+  });
+
+  test("a refusal applies nothing, so it drops nothing either", async () => {
+    const belowPlan: ScimGroupPatchBelowPlan = await dropsRename([
+      { op: "replace", path: "displayName", value: "Platform" },
+    ]);
+
+    expect(belowPlan.verdict).toBe(ScimUpdateBelowPlan.Refused);
+    expect(belowPlan.actions).toEqual([]);
+    expect(belowPlan.dropsRename).toBe(false);
+  });
 });
 
 describe("a group PATCH below the plan", () => {
@@ -816,9 +886,16 @@ describe("the refusal", () => {
       },
     } as unknown as OneUptimeResponse;
 
-    sendScimBelowPlanRefusal({
+    const refusal: ScimBelowPlanRefusal = sendScimBelowPlanRefusal({
       res: res as ExpressResponse,
       missingPlan: PlanType.Scale,
+    });
+
+    // What it answered, for the connection's SCIM log.
+    expect(refusal).toEqual({
+      statusCode: 402,
+      message: getScimStoppedMessage(PlanType.Scale),
+      body: sent,
     });
 
     expect(status).toBe(SCIM_BELOW_PLAN_STATUS);
@@ -829,5 +906,33 @@ describe("the refusal", () => {
     });
     expect(res.logBody).toEqual(sent);
     expect(getScimBelowPlanResponse(PlanType.Scale)).toEqual(sent);
+  });
+});
+
+describe("what the SCIM log calls a request refused at the door", () => {
+  test.each([
+    ["POST", PROJECT_USERS, "CreateUser"],
+    ["POST", PROJECT_GROUPS, "CreateGroup"],
+    ["POST", PROJECT_BULK, "BulkOperation"],
+    ["POST", "/status-page-scim/v2/:statusPageScimId/Users", "CreateUser"],
+    ["POST", "/status-page-scim/v2/:statusPageScimId/Bulk", "BulkOperation"],
+    ["post", PROJECT_USERS, "CreateUser"],
+  ])(
+    "%s %s is %s, as the handlers name it",
+    (method: string, routePath: string, expected: string) => {
+      expect(getScimRefusedOperationType({ method, routePath })).toBe(expected);
+    },
+  );
+
+  test("a route no handler names is named after its method and path", () => {
+    expect(
+      getScimRefusedOperationType({
+        method: "PUT",
+        routePath: "/scim/v2/:projectScimId/Schemas",
+      }),
+    ).toBe("PUT /scim/v2/:projectScimId/Schemas");
+    expect(
+      getScimRefusedOperationType({ method: "POST", routePath: undefined }),
+    ).toBe("POST (unknown route)");
   });
 });

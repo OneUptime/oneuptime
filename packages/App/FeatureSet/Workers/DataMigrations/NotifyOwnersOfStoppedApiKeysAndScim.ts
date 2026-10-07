@@ -19,12 +19,15 @@ import logger from "Common/Server/Utils/Logger";
  * Self-hosted installs (billing off) have no plans: nothing is read or sent.
  * Safe to run twice, at once or later: each project's owners are told only
  * by the run that claims its planCutoffNoticeSentAt while it is still empty
- * (one conditional UPDATE), and owners a plan change already told are not
- * told again. Each email is handed to the mail service before the run goes
- * on - this runs in the migrate Job, which exits when it is done. A project
- * that cannot be told is logged and the others go on: one with no owners is
- * not claimed, and a claim whose emails all failed is given back, so running
- * it again tells them.
+ * (one conditional UPDATE), and owners a plan change told since that column
+ * exists are not told again. (A plan change between the cut-off's release
+ * and this one told its owners without writing it down: they hear this
+ * too, with what their plan stops now.) Each email is handed to the mail
+ * service before the run goes on - this runs in the migrate Job, which exits
+ * when it is done - and a few projects are told at a time. A project that
+ * cannot be told is logged and the others go on: one with no owners is not
+ * claimed, and a claim whose emails all failed is given back, so running it
+ * again tells them.
  */
 export default class NotifyOwnersOfStoppedApiKeysAndScim extends DataMigrationBase {
   public constructor() {

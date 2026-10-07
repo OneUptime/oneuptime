@@ -9,6 +9,11 @@ import {
 import ProjectSCIMRouter from "../../../Server/Identity/API/SCIM";
 import StatusPageSCIMRouter from "../../../Server/Identity/API/StatusPageSCIM";
 import {
+  createProjectSCIMLog,
+  createStatusPageSCIMLog,
+} from "../../../Server/Identity/Utils/SCIMLogger";
+import SCIMLogStatus from "Common/Types/SCIM/SCIMLogStatus";
+import {
   createExpressApp,
   ExpressApplication,
   ExpressJson,
@@ -136,6 +141,12 @@ interface FakeWorld {
   writes: Array<string>;
   // The plan the project is on, as ProjectService.getCurrentPlan answers it.
   plan: PlanType | null;
+  /*
+   * Run, one each, right after a read of memberships (TeamMemberService
+   * .findBy) has been answered: what another request does between a
+   * handler's check and its write.
+   */
+  afterMemberRead: Array<() => void>;
 }
 
 const world: FakeWorld = {
@@ -146,6 +157,7 @@ const world: FakeWorld = {
   privateUsers: [],
   writes: [],
   plan: PlanType.Free,
+  afterMemberRead: [],
 };
 
 const idOf: (value: unknown) => string = (value: unknown): string => {
@@ -360,11 +372,15 @@ jest.mock("Common/Server/Services/TeamMemberService", () => {
       findBy: async (args: {
         query: Record<string, unknown>;
       }): Promise<Array<TeamMember>> => {
-        return world.memberships
+        const found: Array<TeamMember> = world.memberships
           .filter((item: FakeMembership) => {
             return matchesQuery(item, args.query);
           })
           .map(toMember);
+
+        world.afterMemberRead.shift()?.();
+
+        return found;
       },
       create: async (args: { data: TeamMember }): Promise<TeamMember> => {
         world.writes.push("membership created");
@@ -632,6 +648,7 @@ const seedWorld: () => void = (): void => {
   world.deletedMemberships = [];
   world.privateUsers = [];
   world.writes = [];
+  world.afterMemberRead = [];
   world.teams = [
     {
       id: DEFAULT_TEAM_A,
@@ -847,10 +864,65 @@ afterAll(async () => {
   });
 });
 
+// A membership removed by another request: no write of this one.
+const removeMembershipMeanwhile: (userId: string, teamId: string) => void = (
+  userId: string,
+  teamId: string,
+): void => {
+  world.memberships = world.memberships.filter((row: FakeMembership) => {
+    return !(row.userId === userId && row.teamId === teamId);
+  });
+};
+
+// What a request wrote to the connection's SCIM log, by kind.
+const projectLogs: () => Array<JSONObject> = (): Array<JSONObject> => {
+  return (createProjectSCIMLog as unknown as jest.Mock).mock.calls.map(
+    (call: Array<unknown>): JSONObject => {
+      return call[0] as JSONObject;
+    },
+  );
+};
+
+const statusPageLogs: () => Array<JSONObject> = (): Array<JSONObject> => {
+  return (createStatusPageSCIMLog as unknown as jest.Mock).mock.calls.map(
+    (call: Array<unknown>): JSONObject => {
+      return call[0] as JSONObject;
+    },
+  );
+};
+
+// A refusal below Scale, as the SCIM log records it.
+const expectRefusalLogged: (
+  log: JSONObject | undefined,
+  operationType: string,
+  httpMethod: string,
+) => void = (
+  log: JSONObject | undefined,
+  operationType: string,
+  httpMethod: string,
+): void => {
+  expect(log).toBeDefined();
+  expect(log!["operationType"]).toBe(operationType);
+  expect(log!["status"]).toBe(SCIMLogStatus.Error);
+  expect(log!["httpStatusCode"]).toBe(402);
+  expect(log!["httpMethod"]).toBe(httpMethod);
+  expect(log!["statusMessage"]).toBe(getScimStoppedMessage(PlanType.Scale));
+  expect(log!["responseBody"]).toEqual({
+    schemas: ["urn:ietf:params:scim:api:messages:2.0:Error"],
+    status: "402",
+    detail: getScimStoppedMessage(PlanType.Scale),
+  });
+  expect(log!["additionalContext"]).toEqual(
+    expect.objectContaining({ refusedBelowPlan: PlanType.Scale }),
+  );
+};
+
 beforeEach(() => {
   setTestBillingEnabled(true);
   world.plan = PlanType.Free;
   seedWorld();
+  (createProjectSCIMLog as unknown as jest.Mock).mockClear();
+  (createStatusPageSCIMLog as unknown as jest.Mock).mockClear();
 
   projectConfig = new ProjectSCIM(new ObjectID(PROJECT_SCIM_ID));
   projectConfig.projectId = new ObjectID(PROJECT_ID);
@@ -1223,6 +1295,179 @@ describe.each([PlanType.Free, PlanType.Growth])(
      * comes back with every later request for that person or group - the
      * removal included. The removal goes through; the profile stays as it is.
      */
+    describe("what goes through only removes, whatever another request does meanwhile", () => {
+      test("a group PUT that removes someone never puts back a member another request removed after the check", async () => {
+        // Right after the check reads Engineering's members, another request removes Bob.
+        world.afterMemberRead.push((): void => {
+          removeMembershipMeanwhile(people.bob, ENGINEERING);
+        });
+
+        const result: HttpResult = await send(
+          "PUT",
+          project(`Groups/${ENGINEERING}`),
+          { displayName: "Engineering", members: [{ value: people.bob }] },
+        );
+
+        expect(result.status).toBe(200);
+        // Carol was left out, so she went; Bob is not added back.
+        expect(membersOf(ENGINEERING)).toEqual([]);
+        expect(world.writes).not.toContain("membership created");
+      });
+
+      test("a group PATCH replace that removes someone never puts back a member another request removed after the check", async () => {
+        world.afterMemberRead.push((): void => {
+          removeMembershipMeanwhile(people.bob, ENGINEERING);
+        });
+
+        const result: HttpResult = await send(
+          "PATCH",
+          project(`Groups/${ENGINEERING}`),
+          patch({
+            op: "replace",
+            path: "members",
+            value: [{ value: people.bob }],
+          }),
+        );
+
+        expect(result.status).toBe(200);
+        expect(membersOf(ENGINEERING)).toEqual([]);
+        expect(world.writes).not.toContain("membership created");
+      });
+    });
+
+    describe("every refusal is in the connection's SCIM log", () => {
+      test("creating a user, refused at the door", async () => {
+        expectRefusedBelowPlan(
+          await send("POST", project("Users"), {
+            userName: "new.hire@acme.example",
+          }),
+        );
+
+        expect(projectLogs()).toHaveLength(1);
+        expectRefusalLogged(projectLogs()[0], "CreateUser", "POST");
+        expect(String(projectLogs()[0]!["projectScimId"])).toBe(
+          PROJECT_SCIM_ID,
+        );
+        expect(String(projectLogs()[0]!["projectId"])).toBe(PROJECT_ID);
+        expect(projectLogs()[0]!["requestBody"]).toEqual({
+          userName: "new.hire@acme.example",
+        });
+      });
+
+      test("creating a group, refused at the door", async () => {
+        expectRefusedBelowPlan(
+          await send("POST", project("Groups"), { displayName: "Platform" }),
+        );
+
+        expectRefusalLogged(projectLogs()[0], "CreateGroup", "POST");
+      });
+
+      test("a Bulk request with a create among its deletes, refused at the door", async () => {
+        expectRefusedBelowPlan(
+          await send("POST", project("Bulk"), {
+            schemas: [BULK_SCHEMA],
+            Operations: [
+              { method: "DELETE", path: `/Users/${people.alice}` },
+              {
+                method: "POST",
+                path: "/Users",
+                bulkId: "new",
+                data: { userName: "new.hire@acme.example" },
+              },
+            ],
+          }),
+        );
+
+        expectRefusalLogged(projectLogs()[0], "BulkOperation", "POST");
+      });
+
+      test("a status page: creating a private user, refused at the door", async () => {
+        expectRefusedBelowPlan(
+          await send("POST", statusPage("Users"), {
+            userName: "another@customer.example",
+          }),
+        );
+
+        expect(projectLogs()).toEqual([]);
+        expect(statusPageLogs()).toHaveLength(1);
+        expectRefusalLogged(statusPageLogs()[0], "CreateUser", "POST");
+        expect(String(statusPageLogs()[0]!["statusPageId"])).toBe(
+          STATUS_PAGE_ID,
+        );
+        expect(String(statusPageLogs()[0]!["statusPageScimId"])).toBe(
+          STATUS_PAGE_SCIM_ID,
+        );
+      });
+
+      test("reactivating a user, refused by its handler", async () => {
+        expectRefusedBelowPlan(
+          await send(
+            "PATCH",
+            project(`Users/${people.bob}`),
+            patch({ op: "replace", value: { active: true } }),
+          ),
+        );
+
+        expect(projectLogs()).toHaveLength(1);
+        expectRefusalLogged(projectLogs()[0], "UpdateUser", "PATCH");
+        expect(projectLogs()[0]!["affectedUserEmail"]).toBe("bob@acme.example");
+      });
+
+      test("adding a member with a group PATCH, refused by its handler", async () => {
+        expectRefusedBelowPlan(
+          await send(
+            "PATCH",
+            project(`Groups/${ENGINEERING}`),
+            patch({
+              op: "add",
+              path: "members",
+              value: [{ value: people.alice }],
+            }),
+          ),
+        );
+
+        expect(projectLogs()).toHaveLength(1);
+        expectRefusalLogged(projectLogs()[0], "UpdateGroup", "PATCH");
+        expect(projectLogs()[0]!["affectedGroupName"]).toBe("Engineering");
+      });
+
+      test("adding a member with a group PUT, refused by its handler", async () => {
+        expectRefusedBelowPlan(
+          await send("PUT", project(`Groups/${ENGINEERING}`), {
+            displayName: "Engineering",
+            members: [
+              { value: people.bob },
+              { value: people.carol },
+              { value: people.alice },
+            ],
+          }),
+        );
+
+        expect(projectLogs()).toHaveLength(1);
+        expectRefusalLogged(projectLogs()[0], "UpdateGroup", "PUT");
+      });
+
+      test("a status page: changing a private user's email, refused by its handler", async () => {
+        expectRefusedBelowPlan(
+          await send(
+            "PATCH",
+            statusPage(`Users/${people.viewer}`),
+            patch({
+              op: "replace",
+              path: "userName",
+              value: "renamed@customer.example",
+            }),
+          ),
+        );
+
+        expect(statusPageLogs()).toHaveLength(1);
+        expectRefusalLogged(statusPageLogs()[0], "UpdateUser", "PATCH");
+        expect(statusPageLogs()[0]!["affectedUserEmail"]).toBe(
+          "viewer@customer.example",
+        );
+      });
+    });
+
     describe("a removal that also sends a profile change goes through, and the profile stays", () => {
       test("Entra ID's deactivation that also sends a new userName", async () => {
         const result: HttpResult = await send(
@@ -1480,6 +1725,106 @@ describe.each([PlanType.Free, PlanType.Growth])(
         expect(world.writes).toEqual([]);
       });
 
+      test("Okta's PUT of a user as they are, active true, for someone in every one of the connection's teams: answered, and adds no one", async () => {
+        const result: HttpResult = await send(
+          "PUT",
+          project(`Users/${people.alice}`),
+          {
+            userName: "alice@acme.example",
+            name: { formatted: "Alice Leaving" },
+            active: true,
+          },
+        );
+
+        expect(result.status).toBe(200);
+        expect(teamsOf(people.alice)).toEqual(
+          [DEFAULT_TEAM_A, DEFAULT_TEAM_B].sort(),
+        );
+        expect(world.writes).toEqual([]);
+      });
+
+      test("active true on a connection that pushes groups adds no one: answered", async () => {
+        projectConfig.enablePushGroups = true;
+
+        const result: HttpResult = await send(
+          "PATCH",
+          project(`Users/${people.bob}`),
+          patch({ op: "replace", value: { active: true } }),
+        );
+
+        expect(result.status).toBe(200);
+        expect(teamsOf(people.bob)).toEqual([ENGINEERING]);
+        expect(world.writes).toEqual([]);
+      });
+
+      test("an active true that adds no one never puts the person back in a team another request took them out of meanwhile", async () => {
+        // Right after the check reads Alice's teams, another request removes her from Default B.
+        world.afterMemberRead.push((): void => {
+          removeMembershipMeanwhile(people.alice, DEFAULT_TEAM_B);
+        });
+
+        const result: HttpResult = await send(
+          "PUT",
+          project(`Users/${people.alice}`),
+          {
+            userName: "alice@acme.example",
+            name: { formatted: "Alice Leaving" },
+            active: true,
+          },
+        );
+
+        expect(result.status).toBe(200);
+        expect(teamsOf(people.alice)).toEqual([DEFAULT_TEAM_A]);
+        expect(world.writes).not.toContain("membership created");
+      });
+
+      test("a status page: active true changes nothing - a private user is on the page or not at all", async () => {
+        const result: HttpResult = await send(
+          "PATCH",
+          statusPage(`Users/${people.viewer}`),
+          patch({ op: "replace", value: { active: true } }),
+        );
+
+        expect(result.status).toBe(200);
+        expect(world.privateUsers).toHaveLength(1);
+        expect(world.writes).toEqual([]);
+      });
+
+      test("a status page: the private user's own email, sent in another case", async () => {
+        const result: HttpResult = await send(
+          "PATCH",
+          statusPage(`Users/${people.viewer}`),
+          patch({
+            op: "replace",
+            path: "userName",
+            value: "Viewer@Customer.Example",
+          }),
+        );
+
+        expect(result.status).toBe(200);
+        expect(world.privateUsers[0]!.email).toBe("viewer@customer.example");
+        expect(world.writes).toEqual([]);
+      });
+
+      test("a replace that sends a member's id with spaces around it keeps that member: ids are read as the check reads them", async () => {
+        const result: HttpResult = await send(
+          "PATCH",
+          project(`Groups/${ENGINEERING}`),
+          patch({
+            op: "replace",
+            path: "members",
+            value: [{ value: ` ${people.bob} ` }, { value: people.carol }],
+          }),
+        );
+
+        expect(result.status).toBe(200);
+        expect(membersOf(ENGINEERING)).toEqual(
+          [people.bob, people.carol].sort(),
+        );
+        // Bob's row was never deleted, so his leave cleanups never ran.
+        expect(world.writes).toEqual([]);
+      });
+
       test("a group PUT of its own name and the members it has", async () => {
         const result: HttpResult = await send(
           "PUT",
@@ -1592,7 +1937,21 @@ describe.each([PlanType.Free, PlanType.Growth])(
         expect(world.writes).toEqual([]);
       });
 
-      test("Okta's PUT of a profile update, active true: refused, as reactivating", async () => {
+      test("Okta's PUT of a profile update, active true, for someone in every one of the connection's teams: refused as a profile change", async () => {
+        expectRefusedBelowPlan(
+          await send("PUT", project(`Users/${people.alice}`), {
+            userName: "alice@acme.example",
+            name: { formatted: "Alice Renamed" },
+            active: true,
+          }),
+        );
+        expect(userOf(people.alice).name).toBe("Alice Leaving");
+        expect(world.writes).toEqual([]);
+      });
+
+      test("active true for someone missing from one of the connection's teams reactivates them: refused", async () => {
+        removeMembershipMeanwhile(people.alice, DEFAULT_TEAM_B);
+
         expectRefusedBelowPlan(
           await send("PUT", project(`Users/${people.alice}`), {
             userName: "alice@acme.example",
@@ -1600,6 +1959,7 @@ describe.each([PlanType.Free, PlanType.Growth])(
             active: true,
           }),
         );
+        expect(teamsOf(people.alice)).toEqual([DEFAULT_TEAM_A]);
         expect(world.writes).toEqual([]);
       });
 
@@ -1837,16 +2197,6 @@ describe.each([PlanType.Free, PlanType.Growth])(
         expect(world.writes).toEqual([]);
       });
 
-      test("a status page: reactivating a private user", async () => {
-        expectRefusedBelowPlan(
-          await send(
-            "PATCH",
-            statusPage(`Users/${people.viewer}`),
-            patch({ op: "replace", value: { active: true } }),
-          ),
-        );
-      });
-
       test("a status page: a Bulk request with an update among its deletes", async () => {
         expectRefusedBelowPlan(
           await send("POST", statusPage("Bulk"), {
@@ -1910,6 +2260,34 @@ describe("on the plan (Scale), SCIM does what it always did", () => {
         return team.id === ENGINEERING;
       })!.name,
     ).toBe("Platform");
+  });
+
+  test("a replace that sends a member's id with spaces around it keeps that member on the plan too", async () => {
+    const result: HttpResult = await send(
+      "PUT",
+      project(`Groups/${ENGINEERING}`),
+      {
+        displayName: "Engineering",
+        members: [{ value: `${people.bob}  ` }, { value: people.carol }],
+      },
+    );
+
+    expect(result.status).toBe(200);
+    expect(membersOf(ENGINEERING)).toEqual([people.bob, people.carol].sort());
+    expect(world.writes).toEqual([]);
+  });
+
+  test("active true for someone missing from one of the connection's teams adds them back on the plan", async () => {
+    const result: HttpResult = await send(
+      "PATCH",
+      project(`Users/${people.bob}`),
+      patch({ op: "replace", value: { active: true } }),
+    );
+
+    expect(result.status).toBe(200);
+    expect(teamsOf(people.bob)).toEqual(
+      [DEFAULT_TEAM_A, DEFAULT_TEAM_B, ENGINEERING].sort(),
+    );
   });
 
   test("Okta's members[value eq ...] removal works on the plan too", async () => {

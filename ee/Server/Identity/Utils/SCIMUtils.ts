@@ -153,6 +153,26 @@ export const extractEmailFromSCIM: (scimUser: JSONObject) => string = (
   );
 };
 
+/*
+ * Whether an update carrying `newEmail` would change the address of an
+ * account whose current address is `currentEmail`. Email normalises case
+ * and whitespace, so this compares what would actually be stored: the same
+ * address resent in another case changes nothing. For a project's accounts
+ * and a status page's private users alike.
+ */
+export const isScimEmailChanging: (data: {
+  currentEmail: string | undefined;
+  newEmail: string;
+}) => boolean = (data: {
+  currentEmail: string | undefined;
+  newEmail: string;
+}): boolean => {
+  return (
+    (data.currentEmail || "").trim().toLowerCase() !==
+    data.newEmail.trim().toLowerCase()
+  );
+};
+
 const isSCIMObject: (value: unknown) => value is JSONObject = (
   value: unknown,
 ): value is JSONObject => {
