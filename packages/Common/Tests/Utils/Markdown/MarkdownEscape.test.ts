@@ -614,9 +614,7 @@ describe("neutralizeChatLinkSequences", () => {
 
       expect(neutralized).toContain(`<${WORD_JOINER}`);
       expect(withoutWordJoiners(neutralized)).toBe(typed);
-      expect(slackTextOf(`\`${neutralized}\``)).not.toMatch(
-        SLACK_LINK_PATTERN,
-      );
+      expect(slackTextOf(`\`${neutralized}\``)).not.toMatch(SLACK_LINK_PATTERN);
       expect(slackTextOf(`\`\`\`\n${neutralized}\n\`\`\``)).not.toMatch(
         SLACK_LINK_PATTERN,
       );
