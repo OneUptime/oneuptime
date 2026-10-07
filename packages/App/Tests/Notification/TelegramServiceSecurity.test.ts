@@ -77,7 +77,7 @@ jest.mock("Common/Server/Services/TelegramLogService", () => {
 jest.mock("Common/Server/Services/UserOnCallLogTimelineService", () => {
   return {
     __esModule: true,
-    default: { updateOneById: jest.fn() },
+    default: { updateOneById: jest.fn(), markNotSent: jest.fn() },
   };
 });
 

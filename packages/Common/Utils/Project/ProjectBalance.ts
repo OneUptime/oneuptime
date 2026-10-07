@@ -122,10 +122,10 @@ const capitalize: (text: string) => string = (text: string): string => {
  * "A project owner or someone with Manage Billing can add balance in Project
  * Settings > Notification Settings."
  *
- * It does not offer Auto Recharge as the way out. For AI credits it is not
- * one: AI is recharged after a call it paid for, so a balance that is used
- * up stays used up until someone adds credits. Whoever can add balance finds
- * Auto Recharge on the same page.
+ * It does not offer Auto Recharge as the way out: most readers cannot turn
+ * it on, and where it is already on, it is what could not add more (its
+ * charge failed). Whoever can add balance finds Auto Recharge on the same
+ * page.
  */
 export const getProjectBalanceWhoCanAddSentence: (
   balance: ProjectBalanceType,
@@ -135,17 +135,17 @@ export const getProjectBalanceWhoCanAddSentence: (
 
 /*
  * For the project's owners, who may add balance (the email they get when a
- * message was not sent for want of it): what to do, and where. Turning on
- * the notification balance's Auto Recharge charges the card at once when
- * the balance is below its threshold (ProjectService), so it is a way out
- * there; AI credits are recharged only after a call they paid for, so they
- * have to be added first.
+ * message was not sent for want of it, or when the AI credits ran out): what
+ * to do, and where. Turning on either balance's Auto Recharge charges the
+ * card at once when the balance is below its threshold (ProjectService), and
+ * AI credits that are used up are recharged before the next AI call
+ * (AIBillingService), so it is a way out for both.
  */
 export const getProjectBalanceOwnerSentence: (
   balance: ProjectBalanceType,
 ) => string = (balance: ProjectBalanceType): string => {
   if (balance === ProjectBalanceType.AI) {
-    return `Add AI credits in ${PROJECT_BALANCE_SETTINGS_PAGE[balance]}, and turn on Auto Recharge there so they do not run out again.`;
+    return `Add AI credits in ${PROJECT_BALANCE_SETTINGS_PAGE[balance]}, or turn on Auto Recharge there so they do not run out.`;
   }
 
   return `Add balance in ${PROJECT_BALANCE_SETTINGS_PAGE[balance]}, or turn on Auto Recharge there so it does not run out.`;
@@ -249,3 +249,32 @@ export const getProjectBalanceMessageNotSentReason: (data: {
  * Microsoft Teams question, a workflow, a runbook step.
  */
 export const PROJECT_AI_CREDITS_USED_UP_MESSAGE: string = `This project's AI credits are used up. ${getProjectBalanceWhoCanAddSentence(ProjectBalanceType.AI)}`;
+
+/*
+ * The email the project's owners get when its AI credits run out
+ * (Server/Utils/AI/AiCreditsUsedUpOwnerNotice): once each time they run out,
+ * again only after they have been added to. The owners may add credits, so
+ * it tells them to, and links to AI Credits.
+ *
+ * "AI credits used up for Acme Production".
+ */
+export const getProjectAiCreditsUsedUpOwnerSubject: (
+  projectName?: string | undefined,
+) => string = (projectName?: string | undefined): string => {
+  return `AI credits used up for ${projectName?.trim() || "your project"}`;
+};
+
+// What happened, first.
+export const PROJECT_AI_CREDITS_USED_UP_OWNER_SENTENCE: string =
+  "This project's AI credits are used up, so OneUptime AI has stopped: Ask AI, investigations and the other AI features paid from them are refused until credits are added.";
+
+/*
+ * What to do when Auto Recharge is on and could not add more - its charge
+ * failed, most often for want of a working payment method. Turning it on is
+ * no way out there, so this replaces getProjectBalanceOwnerSentence.
+ */
+export const PROJECT_AI_AUTO_RECHARGE_COULD_NOT_ADD_OWNER_SENTENCE: string = `Auto Recharge is on, but it could not add AI credits. Check the payment method in Project Settings > Billing, or add AI credits in ${PROJECT_BALANCE_SETTINGS_PAGE[ProjectBalanceType.AI]}.`;
+
+// Why they get it, and how often - last.
+export const PROJECT_AI_CREDITS_USED_UP_OWNER_FREQUENCY_SENTENCE: string =
+  "Project owners get this email once each time the AI credits run out.";

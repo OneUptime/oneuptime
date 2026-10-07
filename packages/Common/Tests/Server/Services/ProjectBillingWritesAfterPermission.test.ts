@@ -1,3 +1,4 @@
+import AIBillingService from "../../../Server/Services/AIBillingService";
 import BillingService from "../../../Server/Services/BillingService";
 import NotificationService from "../../../Server/Services/NotificationService";
 import ProjectService from "../../../Server/Services/ProjectService";
@@ -73,6 +74,12 @@ const AUTO_RECHARGE_ON: Record<string, unknown> = {
   autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: 1000,
 };
 
+const AI_AUTO_RECHARGE_ON: Record<string, unknown> = {
+  enableAutoRechargeAiBalance: true,
+  autoAiRechargeByBalanceInUSD: 50,
+  autoRechargeAiWhenCurrentBalanceFallsInUSD: 25,
+};
+
 function memberProps(
   permissions: Array<Permission>,
 ): DatabaseCommonInteractionProps {
@@ -119,6 +126,7 @@ const ownerProps: () => DatabaseCommonInteractionProps =
 
 let table: InMemoryTable;
 let recharge: jest.SpyInstance;
+let aiRecharge: jest.SpyInstance;
 let syncInvoiceDetails: jest.SpyInstance;
 
 beforeEach(() => {
@@ -132,6 +140,7 @@ beforeEach(() => {
       financeAccountingEmail: "finance@acme.test",
       sendInvoicesByEmail: true,
       enableAutoRechargeSmsOrCallBalance: false,
+      enableAutoRechargeAiBalance: false,
     },
     {
       _id: OTHER_PROJECT_ID.toString(),
@@ -139,11 +148,16 @@ beforeEach(() => {
       paymentProviderCustomerId: "cus_other",
       businessDetails: "Other Inc",
       enableAutoRechargeSmsOrCallBalance: false,
+      enableAutoRechargeAiBalance: false,
     },
   ]);
 
   recharge = getJestSpyOn(
     NotificationService,
+    "rechargeIfBalanceIsLow",
+  ).mockResolvedValue(0);
+  aiRecharge = getJestSpyOn(
+    AIBillingService,
     "rechargeIfBalanceIsLow",
   ).mockResolvedValue(0);
   syncInvoiceDetails = getJestSpyOn(
@@ -260,6 +274,131 @@ describe("turning auto recharge on", () => {
     });
 
     expect(recharge).not.toHaveBeenCalled();
+  });
+
+  test("turning on the SMS and call balance's charges nothing for AI credits", async () => {
+    await ProjectService.updateOneById({
+      id: PROJECT_ID,
+      data: AUTO_RECHARGE_ON as never,
+      props: ownerProps(),
+    });
+
+    expect(aiRecharge).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * AI credits do the same now. They used to wait for an AI call to run out
+ * first - and a call cannot run on used-up credits - so turning Auto
+ * Recharge on at zero left the project at zero. Saving it is somebody trying
+ * the card on purpose, so it is tried at once, whatever failed before
+ * (ignoreRecentFailure), and a charge that fails refuses the change.
+ */
+describe("turning AI credits' auto recharge on", () => {
+  test("a project admin, who may not change billing, is refused, and nothing is charged", async () => {
+    const error: unknown = await rejectionOf(
+      ProjectService.updateOneById({
+        id: PROJECT_ID,
+        data: AI_AUTO_RECHARGE_ON as never,
+        props: adminProps(),
+      }),
+    );
+
+    expect(error).toBeInstanceOf(BadDataException);
+    expect((error as Error).message).toBe(
+      "User is not allowed to update on enableAutoRechargeAiBalance column of Project",
+    );
+    expect(aiRecharge).not.toHaveBeenCalled();
+    expect(table.updates).toEqual([]);
+  });
+
+  test("an owner's project is topped up with the amounts being saved, at once, before the change is written", async () => {
+    await ProjectService.updateOneById({
+      id: PROJECT_ID,
+      data: AI_AUTO_RECHARGE_ON as never,
+      props: ownerProps(),
+    });
+
+    expect(aiRecharge).toHaveBeenCalledTimes(1);
+    expect((aiRecharge.mock.calls[0]![0] as ObjectID).toString()).toBe(
+      PROJECT_ID.toString(),
+    );
+    expect(aiRecharge.mock.calls[0]![1]).toEqual({
+      enableAutoRechargeAiBalance: true,
+      autoAiRechargeByBalanceInUSD: 50,
+      autoRechargeAiWhenCurrentBalanceFallsInUSD: 25,
+      ignoreRecentFailure: true,
+    });
+    expect(aiRecharge.mock.invocationCallOrder[0]!).toBeLessThan(
+      table.repository.update.mock.invocationCallOrder[0]!,
+    );
+    expect(table.get(PROJECT_ID)!["enableAutoRechargeAiBalance"]).toBe(true);
+    // The SMS and call balance is not touched by it.
+    expect(recharge).not.toHaveBeenCalled();
+  });
+
+  test("a charge that fails refuses the change, as it does for SMS and calls", async () => {
+    aiRecharge.mockRejectedValue(
+      new BadDataException(
+        "No payment methods found for the project. Please add a payment method in Project Settings to continue.",
+      ),
+    );
+
+    await expect(
+      ProjectService.updateOneById({
+        id: PROJECT_ID,
+        data: AI_AUTO_RECHARGE_ON as never,
+        props: ownerProps(),
+      }),
+    ).rejects.toThrow("No payment methods found for the project.");
+
+    expect(table.updates).toEqual([]);
+    expect(table.get(PROJECT_ID)!["enableAutoRechargeAiBalance"]).toBe(false);
+  });
+
+  test("an owner naming another project's id never charges that project", async () => {
+    await ProjectService.updateOneById({
+      id: OTHER_PROJECT_ID,
+      data: AI_AUTO_RECHARGE_ON as never,
+      props: ownerProps(),
+    }).catch(() => {
+      return 0;
+    });
+
+    for (const call of aiRecharge.mock.calls) {
+      expect((call[0] as ObjectID).toString()).not.toBe(
+        OTHER_PROJECT_ID.toString(),
+      );
+    }
+    expect(table.get(OTHER_PROJECT_ID)!["enableAutoRechargeAiBalance"]).toBe(
+      false,
+    );
+  });
+
+  test("turning it off charges nothing", async () => {
+    await ProjectService.updateOneById({
+      id: PROJECT_ID,
+      data: { enableAutoRechargeAiBalance: false } as never,
+      props: ownerProps(),
+    });
+
+    expect(aiRecharge).not.toHaveBeenCalled();
+  });
+
+  test("turning both on tops up both, each with its own amounts", async () => {
+    await ProjectService.updateOneById({
+      id: PROJECT_ID,
+      data: { ...AUTO_RECHARGE_ON, ...AI_AUTO_RECHARGE_ON } as never,
+      props: ownerProps(),
+    });
+
+    expect(recharge).toHaveBeenCalledTimes(1);
+    expect(aiRecharge).toHaveBeenCalledTimes(1);
+    expect(
+      (aiRecharge.mock.calls[0]![1] as Record<string, unknown>)[
+        "autoAiRechargeByBalanceInUSD"
+      ],
+    ).toBe(50);
   });
 });
 

@@ -204,9 +204,6 @@ const ALLOWED_READS: Record<string, string> = {
   // "Monitors Removed" / "Monitors Added": OneUptime's own section headings.
   "packages/Common/Server/Services/ScheduledMaintenanceService.ts: section.title":
     "the monitor change sections' headings are OneUptime's own wording",
-  // A breaching sample's value: the metric's name only picks its unit.
-  "packages/Common/Server/Utils/Monitor/MonitorCriteriaEvaluator.ts: input.unitHeuristicMetricName":
-    "picks the unit a sample's value is shown in; the name itself is not shown",
   /*
    * The agent a resource's commands go through ("OneUptime Docker agent"):
    * OneUptime's own name for it (AI_RESOURCE_TYPE_INFO).

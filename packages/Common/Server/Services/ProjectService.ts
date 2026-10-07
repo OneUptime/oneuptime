@@ -42,6 +42,7 @@ import MonitorStatusService from "./MonitorStatusService";
 import NetworkDeviceRoleService from "./NetworkDeviceRoleService";
 import NetworkSiteTypeService from "./NetworkSiteTypeService";
 import NotificationService from "./NotificationService";
+import AIBillingService from "./AIBillingService";
 import PromoCodeService from "./PromoCodeService";
 import ScheduledMaintenanceStateService from "./ScheduledMaintenanceStateService";
 import TeamMemberService from "./TeamMemberService";
@@ -904,12 +905,13 @@ export class ProjectService extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Turning auto recharge on tops the SMS and call balance up at once when it
-   * is already below the threshold. A charge is never made for a change that
-   * is refused, so it is made here: once the caller has passed every
-   * permission check (the auto recharge columns need Manage Billing), for
-   * the projects the update is narrowed to - and still before the write, so
-   * a charge that fails (no card, say) refuses the change, as it always has.
+   * Turning auto recharge on tops the balance up at once when it is already
+   * below the threshold - the SMS and call balance, and the AI credits alike.
+   * A charge is never made for a change that is refused, so it is made here:
+   * once the caller has passed every permission check (the auto recharge
+   * columns need Manage Billing), for the projects the update is narrowed to
+   * - and still before the write, so a charge that fails (no card, say)
+   * refuses the change, as it always has for SMS and calls.
    */
   @CaptureSpan()
   protected override async onUpdatePermitted(
@@ -917,7 +919,8 @@ export class ProjectService extends ProjectReferencesService<Model> {
   ): Promise<void> {
     if (
       !IsBillingEnabled ||
-      !updateBy.data.enableAutoRechargeSmsOrCallBalance
+      (!updateBy.data.enableAutoRechargeSmsOrCallBalance &&
+        !updateBy.data.enableAutoRechargeAiBalance)
     ) {
       return;
     }
@@ -946,14 +949,33 @@ export class ProjectService extends ProjectReferencesService<Model> {
         continue;
       }
 
-      await NotificationService.rechargeIfBalanceIsLow(project.id, {
-        autoRechargeSmsOrCallByBalanceInUSD: updateBy.data
-          .autoRechargeSmsOrCallByBalanceInUSD as number,
-        autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: updateBy.data
-          .autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD as number,
-        enableAutoRechargeSmsOrCallBalance: updateBy.data
-          .enableAutoRechargeSmsOrCallBalance as boolean,
-      });
+      if (updateBy.data.enableAutoRechargeSmsOrCallBalance) {
+        await NotificationService.rechargeIfBalanceIsLow(project.id, {
+          autoRechargeSmsOrCallByBalanceInUSD: updateBy.data
+            .autoRechargeSmsOrCallByBalanceInUSD as number,
+          autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD: updateBy.data
+            .autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD as number,
+          enableAutoRechargeSmsOrCallBalance: updateBy.data
+            .enableAutoRechargeSmsOrCallBalance as boolean,
+        });
+      }
+
+      /*
+       * AI credits used to wait for an AI call to run out first - and a call
+       * cannot run on used-up credits. Saving Auto Recharge is somebody
+       * trying the card on purpose, so a recent failure does not hold it
+       * back (AIBillingService).
+       */
+      if (updateBy.data.enableAutoRechargeAiBalance) {
+        await AIBillingService.rechargeIfBalanceIsLow(project.id, {
+          enableAutoRechargeAiBalance: true,
+          autoAiRechargeByBalanceInUSD: updateBy.data
+            .autoAiRechargeByBalanceInUSD as number | undefined,
+          autoRechargeAiWhenCurrentBalanceFallsInUSD: updateBy.data
+            .autoRechargeAiWhenCurrentBalanceFallsInUSD as number | undefined,
+          ignoreRecentFailure: true,
+        });
+      }
     }
   }
 
@@ -3299,6 +3321,35 @@ These are no longer recorded against the project and have to be cancelled by han
   }
 
   /*
+   * Record that the project's owners are told its AI credits are used up,
+   * unless they were since the credits were last added. True only for the
+   * one caller that writes it - the first AI call refused, or found unable
+   * to run, once the credits ran out - which is the caller that emails them
+   * (Server/Utils/AI/AiCreditsUsedUpOwnerNotice); every other caller, on any
+   * server, gets false. Every recharge clears the flag (AIBillingService), as
+   * does a master admin adding credits (adjustBalance), so the next time the
+   * credits run out the owners are told again.
+   *
+   * One statement, like markAiDailyLimitReached: the condition and the write
+   * are a single UPDATE, so two servers refusing AI calls at the same moment
+   * cannot both win. A passive bookkeeping write - no hooks, no version or
+   * updatedAt bump - on a column the API never reads; a deleted project is
+   * never told.
+   */
+  @CaptureSpan()
+  public async claimAiCreditsUsedUpNotice(
+    projectId: ObjectID,
+  ): Promise<boolean> {
+    const sql: string = `WITH "updated" AS (UPDATE "Project" SET "lowAiBalanceNotificationSentToOwners" = true WHERE "_id" = $1 AND "deletedAt" IS NULL AND "lowAiBalanceNotificationSentToOwners" = false RETURNING "_id") SELECT "_id" FROM "updated"`;
+
+    const result: unknown = await this.getRepository().manager.query(sql, [
+      projectId.toString(),
+    ]);
+
+    return Array.isArray(result) && result.length > 0;
+  }
+
+  /*
    * Claim the one-time notice to a project's owners that its plan stops its
    * API keys or limits its SCIM connections (PlanDowngradeOwnerNotice): true
    * only for the one call that writes planCutoffNoticeSentAt, while it is
@@ -3306,7 +3357,7 @@ These are no longer recorded against the project and have to be cancelled by han
    * or by an earlier run, are not told again, and two workers running the
    * notice at once cannot both win. One statement, like
    * markAiDailyLimitReached: a passive bookkeeping write, no hooks, on a
-   * column the API never reads.
+   * column the API never reads; a deleted project is never told.
    */
   @CaptureSpan()
   public async claimPlanCutoffNotice(data: {
