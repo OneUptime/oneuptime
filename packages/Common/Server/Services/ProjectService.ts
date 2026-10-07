@@ -82,6 +82,7 @@ import ObjectID from "../../Types/ObjectID";
 import RealtimeAccessChanges, {
   RealtimeAccessChangeKind,
 } from "../Utils/Realtime/RealtimeAccessChanges";
+import ProjectSsoProviderStanding from "../Utils/ProjectSsoProviderStanding";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import { CREATED_BY_USER_KEYS } from "../Utils/Database/CreatedByUser";
 import Permission from "../../Types/Permission";
@@ -879,19 +880,24 @@ export class ProjectService extends ProjectReferencesService<Model> {
 
   /*
    * Drops this server's cached sign-in rules (Require SSO, the provider a
-   * project pins) of the project, or of every project when none is named,
-   * so the next request reads them again. Called when they change, here or
-   * on another server (RealtimeAccessChanges).
+   * project pins, and whether each of its own SSO providers still vouches
+   * for the sign-ins it gave) of the project, or of every project when none
+   * is named, so the next request reads them again. Called when they
+   * change, here or on another server (RealtimeAccessChanges): a provider
+   * turned off or deleted is announced this way too
+   * (Utils/ProjectSsoProviderChanges).
    */
   public forgetSignInRules(projectId?: ObjectID): void {
     if (!projectId) {
       this.requireSsoForLoginCache.clear();
       this.requireSsoWithSsoProviderIdCache.clear();
+      ProjectSsoProviderStanding.forget();
       return;
     }
 
     this.requireSsoForLoginCache.delete(projectId.toString());
     this.requireSsoWithSsoProviderIdCache.delete(projectId.toString());
+    ProjectSsoProviderStanding.forget(projectId);
   }
 
   /*

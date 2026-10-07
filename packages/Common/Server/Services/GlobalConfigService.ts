@@ -14,6 +14,7 @@ import GlobalCache from "../Infrastructure/GlobalCache";
 import RealtimeAccessChanges, {
   RealtimeAccessChangeKind,
 } from "../Utils/Realtime/RealtimeAccessChanges";
+import { clearGlobalSsoAuthorizationCaches } from "../Utils/GlobalSsoAuthorization";
 
 /*
  * The columns that hold this installation's license state and identity. They
@@ -85,12 +86,15 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * Drops this server's cached instance-wide sign-in rule, so the next
-   * request reads it again. Called when it changes, here or on another
+   * Drops this server's cached instance-wide sign-in rules - Require SSO for
+   * Login, and what it knows of the global SSO and OIDC providers (whether
+   * each is on, and the projects it signs people in to) - so the next
+   * request reads them again. Called when they change, here or on another
    * server (RealtimeAccessChanges).
    */
   public forgetSignInRules(): void {
     this.requireSsoForLoginCache.clear();
+    clearGlobalSsoAuthorizationCaches();
   }
 
   /*

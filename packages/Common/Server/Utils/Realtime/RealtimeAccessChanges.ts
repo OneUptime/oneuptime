@@ -25,8 +25,9 @@ import ObjectID from "../../../Types/ObjectID";
  * listens to (listen, from Realtime.init). Each one then forgets what it
  * held for that person, and ends the live updates of sessions that have
  * ended. When a project's sign-in rules change (it now requires SSO, or
- * another provider), each one reads them again and asks the sockets it
- * holds in that project again, as their joins were asked. A change only
+ * another provider, or one of its SSO providers was turned off, on or
+ * deleted), each one reads them again and asks the sockets it holds in
+ * that project again, as their joins were asked. A change only
  * ever takes something away or makes a server read again: nothing in a
  * message can give anyone more than their reads already give them.
  *
@@ -45,7 +46,11 @@ export enum RealtimeAccessChangeKind {
   AccountChanged = "AccountChanged",
   // Sessions ended: signed out, revoked, or every session of a person.
   SessionsEnded = "SessionsEnded",
-  // A project's sign-in rules changed (Require SSO, the provider it pins), or the instance's.
+  /*
+   * A project's sign-in rules changed (Require SSO, the provider it pins, a
+   * provider of it turned off, on or deleted), or the instance's (Require
+   * SSO, a global provider or one of its attachments).
+   */
   SignInRulesChanged = "SignInRulesChanged",
 }
 

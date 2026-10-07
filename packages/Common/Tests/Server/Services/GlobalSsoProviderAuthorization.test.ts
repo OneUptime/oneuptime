@@ -1,3 +1,4 @@
+import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import GlobalOidcProjectService from "../../../Server/Services/GlobalOidcProjectService";
 import GlobalOidcService from "../../../Server/Services/GlobalOidcService";
 import GlobalSsoProjectService from "../../../Server/Services/GlobalSsoProjectService";
@@ -10,7 +11,12 @@ import {
   GLOBAL_SSO_AUTHORIZATION_CACHE_TTL_MS,
   GlobalProviderTrust,
   clearGlobalSsoAuthorizationCaches,
+  isGlobalProviderNarrowing,
 } from "../../../Server/Utils/GlobalSsoAuthorization";
+import RealtimeAccessChanges, {
+  RealtimeAccessChange,
+  RealtimeAccessChangeKind,
+} from "../../../Server/Utils/Realtime/RealtimeAccessChanges";
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
@@ -865,6 +871,15 @@ interface CacheProbes {
 }
 
 function installProbes(): CacheProbes {
+  /*
+   * An announcement a hook sends applies on this server too, and drops these
+   * caches again (GlobalConfigService.forgetSignInRules). Which writes send
+   * one is pinned below; here only the hooks' own clears count.
+   */
+  jest
+    .spyOn(RealtimeAccessChanges, "announce")
+    .mockImplementation((): void => {});
+
   const ssoTrust: jest.SpyInstance = spyOnQuery(GlobalSsoService, "findOneBy");
   const ssoRow: GlobalSso = new GlobalSso();
   ssoRow.id = PROVIDER_ID;
@@ -936,11 +951,24 @@ async function askEverything(): Promise<void> {
   });
 }
 
+/*
+ * The attachment-set reads doesProviderGovernProject makes (they ask for
+ * `projectId`), not the attachment write hooks' own reads of which
+ * providers the rows they wrote name.
+ */
+function attachmentSetQueries(spy: jest.SpyInstance): number {
+  return (spy.mock.calls as Array<Array<unknown>>).filter(
+    (call: Array<unknown>): boolean => {
+      return Boolean((call[0] as DatabaseCallArgs).select["projectId"]);
+    },
+  ).length;
+}
+
 function expectQueryCounts(probes: CacheProbes, expected: number): void {
   expect(probes.ssoTrust).toHaveBeenCalledTimes(expected);
   expect(probes.oidcTrust).toHaveBeenCalledTimes(expected);
-  expect(probes.ssoAttachments).toHaveBeenCalledTimes(expected);
-  expect(probes.oidcAttachments).toHaveBeenCalledTimes(expected);
+  expect(attachmentSetQueries(probes.ssoAttachments)).toBe(expected);
+  expect(attachmentSetQueries(probes.oidcAttachments)).toBe(expected);
 }
 
 interface HookCase {
@@ -952,6 +980,11 @@ interface HookSuite {
   name: string;
   service: any;
   hookCases: Array<HookCase>;
+  /*
+   * What onBeforeDelete carries to onDeleteSuccess: nothing for a provider,
+   * the providers of the attachments it removes (read while they are there).
+   */
+  deleteCarryForward: unknown;
 }
 
 function buildProviderHookCases(buildRow: () => unknown): Array<HookCase> {
@@ -1099,6 +1132,7 @@ const HOOK_SUITES: Array<HookSuite> = [
       row.id = PROVIDER_ID;
       return row;
     }),
+    deleteCarryForward: null,
   },
   {
     name: "GlobalOidcService",
@@ -1108,6 +1142,7 @@ const HOOK_SUITES: Array<HookSuite> = [
       row.id = PROVIDER_ID;
       return row;
     }),
+    deleteCarryForward: null,
   },
   {
     name: "GlobalSsoProjectService",
@@ -1118,6 +1153,7 @@ const HOOK_SUITES: Array<HookSuite> = [
       row.projectId = PROJECT_A;
       return row;
     }),
+    deleteCarryForward: [PROVIDER_ID],
   },
   {
     name: "GlobalOidcProjectService",
@@ -1128,6 +1164,7 @@ const HOOK_SUITES: Array<HookSuite> = [
       row.projectId = PROJECT_A;
       return row;
     }),
+    deleteCarryForward: [PROVIDER_ID],
   },
 ];
 
@@ -1236,7 +1273,541 @@ describe.each(HOOK_SUITES)(
       expect(onUpdate["updateBy"]).toBe(updateArgs[0]);
       expect(onUpdate["carryForward"]).toBeNull();
       expect(onDelete["deleteBy"]).toBe(deleteArgs[0]);
-      expect(onDelete["carryForward"]).toBeNull();
+      expect(onDelete["carryForward"]).toEqual(suite.deleteCarryForward);
+    });
+  },
+);
+
+/*
+ * -------------------------------------------------------------------------
+ * Telling every server
+ * ----------------------------------------------------------------------
+ *
+ * A write that lets a global provider sign fewer people in - turning it off,
+ * deleting it, restricting it to its attached projects, or adding, turning
+ * off or removing an attachment of one that is restricted to its attached
+ * projects - is announced to every server (RealtimeAccessChanges,
+ * SignInRulesChanged for the whole instance): each forgets what it knew of
+ * the global providers and asks the live updates it holds again, as their
+ * joins were. A write that changes nothing about who it signs in - a new
+ * certificate, a new name, turning it on, an attachment of a provider that
+ * signs people in to every project - is not.
+ */
+
+interface AnnouncementCase {
+  label: string;
+  service: any;
+  hookName: string;
+  args: () => Array<unknown>;
+  announces: boolean;
+}
+
+function updateSuccess(
+  data: Record<string, unknown>,
+  updatedIds?: Array<ObjectID>,
+): () => Array<unknown> {
+  return (): Array<unknown> => {
+    return [
+      {
+        updateBy: {
+          query: { _id: PROVIDER_ID.toString() },
+          data: data,
+          props: { isRoot: true },
+        },
+        carryForward: null,
+      },
+      updatedIds || [PROVIDER_ID],
+    ];
+  };
+}
+
+function deleteSuccess(deletedIds: Array<ObjectID>): () => Array<unknown> {
+  return (): Array<unknown> => {
+    return [
+      {
+        deleteBy: { query: { _id: PROVIDER_ID.toString() }, props: {} },
+        carryForward: null,
+      },
+      deletedIds,
+    ];
+  };
+}
+
+function createSuccess(buildRow: () => unknown): () => Array<unknown> {
+  return (): Array<unknown> => {
+    return [
+      { createBy: { data: buildRow(), props: {} }, carryForward: null },
+      buildRow(),
+    ];
+  };
+}
+
+function providerAnnouncementCases(
+  name: string,
+  service: any,
+  buildRow: () => unknown,
+  credential: Record<string, unknown>,
+): Array<AnnouncementCase> {
+  return [
+    {
+      label: `${name}: turned off`,
+      service,
+      hookName: "onUpdateSuccess",
+      args: updateSuccess({ isEnabled: false }),
+      announces: true,
+    },
+    {
+      label: `${name}: restricted to its attached projects`,
+      service,
+      hookName: "onUpdateSuccess",
+      args: updateSuccess({ restrictToAttachedProjects: true }),
+      announces: true,
+    },
+    {
+      label: `${name}: deleted`,
+      service,
+      hookName: "onDeleteSuccess",
+      args: deleteSuccess([PROVIDER_ID]),
+      announces: true,
+    },
+    {
+      label: `${name}: a new certificate or secret and a new name`,
+      service,
+      hookName: "onUpdateSuccess",
+      args: updateSuccess({ ...credential, name: "Renamed" }),
+      announces: false,
+    },
+    {
+      label: `${name}: turned on, or opened to every project`,
+      service,
+      hookName: "onUpdateSuccess",
+      args: updateSuccess({
+        isEnabled: true,
+        restrictToAttachedProjects: false,
+      }),
+      announces: false,
+    },
+    {
+      label: `${name}: an update that wrote no row`,
+      service,
+      hookName: "onUpdateSuccess",
+      args: updateSuccess({ isEnabled: false }, []),
+      announces: false,
+    },
+    {
+      label: `${name}: a delete that deleted no row`,
+      service,
+      hookName: "onDeleteSuccess",
+      args: deleteSuccess([]),
+      announces: false,
+    },
+    {
+      label: `${name}: created`,
+      service,
+      hookName: "onCreateSuccess",
+      args: createSuccess(buildRow),
+      announces: false,
+    },
+  ];
+}
+
+const ANNOUNCEMENT_CASES: Array<AnnouncementCase> = [
+  ...providerAnnouncementCases(
+    "GlobalSsoService",
+    GlobalSsoService,
+    (): unknown => {
+      const row: GlobalSso = new GlobalSso();
+      row.id = PROVIDER_ID;
+      return row;
+    },
+    { publicCertificate: "a rotated certificate" },
+  ),
+  ...providerAnnouncementCases(
+    "GlobalOidcService",
+    GlobalOidcService,
+    (): unknown => {
+      const row: GlobalOidc = new GlobalOidc();
+      row.id = PROVIDER_ID;
+      return row;
+    },
+    { clientSecret: "a rotated client secret" },
+  ),
+];
+
+describe("write hooks that let a global provider sign fewer people in tell every server", () => {
+  let announced: Array<RealtimeAccessChange>;
+
+  beforeEach(() => {
+    announced = [];
+    jest
+      .spyOn(RealtimeAccessChanges, "announce")
+      .mockImplementation((change: RealtimeAccessChange): void => {
+        announced.push(change);
+      });
+  });
+
+  test.each(ANNOUNCEMENT_CASES)(
+    "$label",
+    async (announcementCase: AnnouncementCase) => {
+      await callHook(
+        announcementCase.service,
+        announcementCase.hookName,
+        announcementCase.args(),
+      );
+
+      expect(announced).toEqual(
+        announcementCase.announces
+          ? [{ kind: RealtimeAccessChangeKind.SignInRulesChanged }]
+          : [],
+      );
+    },
+  );
+
+  test("only the write's own fields count, never ones it inherits", () => {
+    const inherited: Record<string, unknown> = Object.create({
+      isEnabled: false,
+      restrictToAttachedProjects: true,
+    }) as Record<string, unknown>;
+
+    expect(isGlobalProviderNarrowing(inherited)).toBe(false);
+    expect(isGlobalProviderNarrowing({ isEnabled: false })).toBe(true);
+    expect(
+      isGlobalProviderNarrowing({ restrictToAttachedProjects: true }),
+    ).toBe(true);
+    expect(isGlobalProviderNarrowing({ isEnabled: "false" })).toBe(false);
+    expect(isGlobalProviderNarrowing(null)).toBe(false);
+    expect(isGlobalProviderNarrowing(undefined)).toBe(false);
+  });
+
+  test("a server that hears it forgets what it knew of the global providers", async () => {
+    const trust: jest.SpyInstance = spyOnQuery(GlobalSsoService, "findOneBy");
+    const row: GlobalSso = new GlobalSso();
+    row.id = PROVIDER_ID;
+    trust.mockResolvedValue(
+      setRawColumns(row, {
+        isEnabled: true,
+        restrictToAttachedProjects: false,
+      }),
+    );
+
+    await GlobalSsoService.getProviderTrust(PROVIDER_ID);
+    await GlobalSsoService.getProviderTrust(PROVIDER_ID);
+    expect(trust).toHaveBeenCalledTimes(1);
+
+    // What RealtimeAccessChanges runs on each server for an instance-wide change.
+    GlobalConfigService.forgetSignInRules();
+
+    await GlobalSsoService.getProviderTrust(PROVIDER_ID);
+    expect(trust).toHaveBeenCalledTimes(2);
+  });
+});
+
+/*
+ * An attachment only decides who a provider signs in when the provider is
+ * on and restricted to its attached projects; for any other it says where
+ * people are provisioned, and adding, turning off or removing one changes
+ * nobody's access. So the attachment hooks ask the provider before telling
+ * every server - and a provider they cannot name or read counts as
+ * restricted, so a failed read never keeps a change quiet.
+ */
+interface AttachmentAnnouncementSuite {
+  name: string;
+  service: any;
+  providerService: any;
+  idColumn: string;
+  relation: string;
+  buildRow: (providerId: ObjectID | null) => unknown;
+}
+
+const ATTACHMENT_ANNOUNCEMENT_SUITES: Array<AttachmentAnnouncementSuite> = [
+  {
+    name: "GlobalSsoProjectService",
+    service: GlobalSsoProjectService,
+    providerService: GlobalSsoService,
+    idColumn: "globalSsoId",
+    relation: "globalSso",
+    buildRow: (providerId: ObjectID | null): unknown => {
+      const row: GlobalSsoProject = new GlobalSsoProject();
+      if (providerId) {
+        row.globalSsoId = providerId;
+      }
+      row.projectId = PROJECT_A;
+      return row;
+    },
+  },
+  {
+    name: "GlobalOidcProjectService",
+    service: GlobalOidcProjectService,
+    providerService: GlobalOidcService,
+    idColumn: "globalOidcId",
+    relation: "globalOidc",
+    buildRow: (providerId: ObjectID | null): unknown => {
+      const row: GlobalOidcProject = new GlobalOidcProject();
+      if (providerId) {
+        row.globalOidcId = providerId;
+      }
+      row.projectId = PROJECT_A;
+      return row;
+    },
+  },
+];
+
+const RESTRICTED: GlobalProviderTrust = {
+  isUsable: true,
+  restrictToAttachedProjects: true,
+};
+const EVERY_PROJECT: GlobalProviderTrust = {
+  isUsable: true,
+  restrictToAttachedProjects: false,
+};
+const OFF_AND_RESTRICTED: GlobalProviderTrust = {
+  isUsable: false,
+  restrictToAttachedProjects: true,
+};
+
+describe.each(ATTACHMENT_ANNOUNCEMENT_SUITES)(
+  "$name tells every server only when an attachment decides who its provider signs in",
+  (suite: AttachmentAnnouncementSuite): void => {
+    let announced: Array<RealtimeAccessChange>;
+    let trustByProvider: Map<string, GlobalProviderTrust | Error>;
+    let trust: jest.SpyInstance;
+
+    beforeEach(() => {
+      announced = [];
+      trustByProvider = new Map();
+
+      jest
+        .spyOn(RealtimeAccessChanges, "announce")
+        .mockImplementation((change: RealtimeAccessChange): void => {
+          announced.push(change);
+        });
+
+      trust = spyOnQuery(suite.providerService, "getProviderTrust");
+      trust.mockImplementation(
+        async (providerId: ObjectID): Promise<GlobalProviderTrust> => {
+          const answer: GlobalProviderTrust | Error | undefined =
+            trustByProvider.get(providerId.toString());
+
+          if (answer instanceof Error) {
+            throw answer;
+          }
+
+          if (!answer) {
+            throw new Error("No trust stubbed for this provider");
+          }
+
+          return answer;
+        },
+      );
+    });
+
+    // The rows the hooks read back: one attachment per provider id given.
+    function stubAttachmentRows(
+      providerIds: Array<ObjectID>,
+    ): jest.SpyInstance {
+      const spy: jest.SpyInstance = spyOnQuery(suite.service, "findBy");
+      spy.mockResolvedValue(
+        providerIds.map((providerId: ObjectID): unknown => {
+          return suite.buildRow(providerId);
+        }),
+      );
+      return spy;
+    }
+
+    async function created(row: unknown): Promise<void> {
+      await callHook(suite.service, "onCreateSuccess", [
+        { createBy: { data: row, props: {} }, carryForward: null },
+        row,
+      ]);
+    }
+
+    async function updated(
+      data: Record<string, unknown>,
+      updatedIds: Array<ObjectID>,
+    ): Promise<void> {
+      await callHook(suite.service, "onUpdateSuccess", [
+        {
+          updateBy: {
+            query: { _id: PROVIDER_ID.toString() },
+            data: data,
+            props: { isRoot: true },
+          },
+          carryForward: null,
+        },
+        updatedIds,
+      ]);
+    }
+
+    // onBeforeDelete then onDeleteSuccess, as DatabaseService runs them.
+    async function deleted(deletedIds: Array<ObjectID>): Promise<void> {
+      const deleteBy: Record<string, unknown> = {
+        query: { projectId: PROJECT_A.toString() },
+        props: { isRoot: true },
+      };
+
+      const onDelete: unknown = await callHook(
+        suite.service,
+        "onBeforeDelete",
+        [deleteBy],
+      );
+
+      await callHook(suite.service, "onDeleteSuccess", [onDelete, deletedIds]);
+    }
+
+    function expectAnnounced(announces: boolean): void {
+      expect(announced).toEqual(
+        announces
+          ? [{ kind: RealtimeAccessChangeKind.SignInRulesChanged }]
+          : [],
+      );
+    }
+
+    test("an attachment added to a provider restricted to its attached projects is told", async () => {
+      trustByProvider.set(PROVIDER_ID.toString(), RESTRICTED);
+
+      await created(suite.buildRow(PROVIDER_ID));
+
+      expectAnnounced(true);
+      expect(trust).toHaveBeenCalledTimes(1);
+      expect((trust.mock.calls[0] as Array<ObjectID>)[0]!.toString()).toBe(
+        PROVIDER_ID.toString(),
+      );
+    });
+
+    test("an attachment added to a provider that signs people in to every project is not", async () => {
+      trustByProvider.set(PROVIDER_ID.toString(), EVERY_PROJECT);
+
+      await created(suite.buildRow(PROVIDER_ID));
+
+      expectAnnounced(false);
+    });
+
+    test("an attachment added to a provider that is off is not: its sign-ins already stopped", async () => {
+      trustByProvider.set(PROVIDER_ID.toString(), OFF_AND_RESTRICTED);
+
+      await created(suite.buildRow(PROVIDER_ID));
+
+      expectAnnounced(false);
+    });
+
+    test("an attachment that names its provider by the relation is read the same", async () => {
+      trustByProvider.set(PROVIDER_ID.toString(), RESTRICTED);
+      const row: Record<string, unknown> = suite.buildRow(null) as Record<
+        string,
+        unknown
+      >;
+      row[suite.relation] = { _id: PROVIDER_ID.toString() };
+
+      await created(row);
+
+      expectAnnounced(true);
+      expect((trust.mock.calls[0] as Array<ObjectID>)[0]!.toString()).toBe(
+        PROVIDER_ID.toString(),
+      );
+    });
+
+    test("an attachment whose provider cannot be named is told", async () => {
+      await created(suite.buildRow(null));
+
+      expectAnnounced(true);
+      expect(trust).not.toHaveBeenCalled();
+    });
+
+    test("a provider that cannot be read counts as restricted", async () => {
+      trustByProvider.set(
+        PROVIDER_ID.toString(),
+        new Error("The database is not answering"),
+      );
+
+      await created(suite.buildRow(PROVIDER_ID));
+
+      expectAnnounced(true);
+    });
+
+    test("an attachment turned off is told for a restricted provider, read by the ids written", async () => {
+      trustByProvider.set(PROVIDER_ID.toString(), RESTRICTED);
+      const rows: jest.SpyInstance = stubAttachmentRows([PROVIDER_ID]);
+      const attachmentId: ObjectID = ObjectID.generate();
+
+      await updated({ isEnabled: false }, [attachmentId]);
+
+      expectAnnounced(true);
+
+      const args: DatabaseCallArgs = callArgs(rows, 0);
+      expect(args.select).toEqual({ _id: true, [suite.idColumn]: true });
+      expect(args.props).toEqual({ isRoot: true });
+      expect(JSON.stringify(args.query)).toContain(attachmentId.toString());
+    });
+
+    test("an attachment turned off is not told for a provider that signs people in to every project", async () => {
+      trustByProvider.set(PROVIDER_ID.toString(), EVERY_PROJECT);
+      stubAttachmentRows([PROVIDER_ID]);
+
+      await updated({ isEnabled: false }, [ObjectID.generate()]);
+
+      expectAnnounced(false);
+    });
+
+    test("an attachment turned on is not told, and nothing is read for it", async () => {
+      const rows: jest.SpyInstance = stubAttachmentRows([PROVIDER_ID]);
+
+      await updated({ isEnabled: true }, [ObjectID.generate()]);
+
+      expectAnnounced(false);
+      expect(rows).not.toHaveBeenCalled();
+      expect(trust).not.toHaveBeenCalled();
+    });
+
+    test("an attachment removed is told for a restricted provider, read before the rows are gone", async () => {
+      trustByProvider.set(PROVIDER_ID.toString(), RESTRICTED);
+      const rows: jest.SpyInstance = stubAttachmentRows([PROVIDER_ID]);
+
+      await deleted([ObjectID.generate()]);
+
+      expectAnnounced(true);
+      expect(rows).toHaveBeenCalledTimes(1);
+      expect(callArgs(rows, 0).query).toEqual({
+        projectId: PROJECT_A.toString(),
+      });
+    });
+
+    test("an attachment removed is not told for a provider that signs people in to every project", async () => {
+      trustByProvider.set(PROVIDER_ID.toString(), EVERY_PROJECT);
+      stubAttachmentRows([PROVIDER_ID]);
+
+      await deleted([ObjectID.generate()]);
+
+      expectAnnounced(false);
+    });
+
+    test("a remove whose rows cannot be read beforehand is told", async () => {
+      const rows: jest.SpyInstance = spyOnQuery(suite.service, "findBy");
+      rows.mockRejectedValue(new Error("The database is not answering"));
+
+      await deleted([ObjectID.generate()]);
+
+      expectAnnounced(true);
+      expect(trust).not.toHaveBeenCalled();
+    });
+
+    test("a remove that removed no row is not told", async () => {
+      trustByProvider.set(PROVIDER_ID.toString(), RESTRICTED);
+      stubAttachmentRows([PROVIDER_ID]);
+
+      await deleted([]);
+
+      expectAnnounced(false);
+    });
+
+    test("several attachments of one provider ask it once; one restricted provider among several is enough", async () => {
+      trustByProvider.set(PROVIDER_ID.toString(), EVERY_PROJECT);
+      trustByProvider.set(OTHER_PROVIDER_ID.toString(), RESTRICTED);
+      stubAttachmentRows([PROVIDER_ID, PROVIDER_ID, OTHER_PROVIDER_ID]);
+
+      await deleted([ObjectID.generate()]);
+
+      expectAnnounced(true);
+      expect(trust).toHaveBeenCalledTimes(2);
     });
   },
 );
