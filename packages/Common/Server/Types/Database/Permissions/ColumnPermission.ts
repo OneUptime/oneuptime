@@ -7,7 +7,6 @@ import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { ColumnAccessControl } from "../../../../Types/BaseDatabase/AccessControl";
-import ColumnBillingAccessControl from "../../../../Types/BaseDatabase/ColumnBillingAccessControl";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import { isPlanGatedColumnDefault } from "../../../../Types/Billing/PlanGatedColumnDefault";
@@ -30,6 +29,7 @@ import TablePermission from "./TablePermission";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 import logger from "../../../Utils/Logger";
 import CallerPlan from "../../../Utils/Billing/CallerPlan";
+import PlanGates from "./PlanGates";
 
 export default class ColumnPermissions {
   @CaptureSpan()
@@ -124,26 +124,6 @@ export default class ColumnPermissions {
     return new Columns(columns);
   }
 
-  // The plan a plan-gated column needs for this operation, if it names one.
-  public static getColumnPlan(
-    billingAccessControl: ColumnBillingAccessControl,
-    requestType: DatabaseRequestType,
-  ): PlanType | undefined {
-    if (requestType === DatabaseRequestType.Create) {
-      return billingAccessControl.create;
-    }
-
-    if (requestType === DatabaseRequestType.Read) {
-      return billingAccessControl.read;
-    }
-
-    if (requestType === DatabaseRequestType.Update) {
-      return billingAccessControl.update;
-    }
-
-    return undefined;
-  }
-
   @CaptureSpan()
   public static checkDataColumnPermissions<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
@@ -227,11 +207,10 @@ export default class ColumnPermissions {
           continue;
         }
 
-        const requiredPlan: PlanType | undefined =
-          ColumnPermissions.getColumnPlan(
-            model.getColumnBillingAccessControl(key),
-            requestType,
-          );
+        const requiredPlan: PlanType | undefined = PlanGates.getColumnPlan(
+          model.getColumnBillingAccessControl(key),
+          requestType,
+        );
 
         if (!requiredPlan) {
           continue;

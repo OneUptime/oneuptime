@@ -81,6 +81,8 @@ import Sort from "../Types/AnalyticsDatabase/Sort";
 import AggregatedModel from "../../Types/BaseDatabase/AggregatedModel";
 import ModelEventType from "../../Types/Realtime/ModelEventType";
 import CallerPlan from "../Utils/Billing/CallerPlan";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 
 export type Results = ResultSet<"JSON">;
 export type DbJSONResponse = ResponseJSON<{
@@ -2333,11 +2335,24 @@ export default class AnalyticsDatabaseService<
     // Refused before any hook runs; see assertCredentialCanWrite.
     DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(createBy.props);
 
-    // The project's plan, read when the props act in it without one.
-    createBy = {
-      ...createBy,
-      props: await CallerPlan.withPlan(createBy.props),
-    };
+    /*
+     * The project's plan, read when the props act in it without one and a
+     * plan decides the create (CallerPlan.withAnalyticsPlanFor).
+     */
+    for (const item of createBy.items) {
+      const props: DatabaseCommonInteractionProps =
+        await CallerPlan.withAnalyticsPlanFor({
+          props: createBy.props,
+          modelType: this.modelType,
+          type: DatabaseRequestType.Create,
+          data: item,
+        });
+
+      if (props !== createBy.props) {
+        createBy = { ...createBy, props: props };
+        break;
+      }
+    }
 
     // add tenantId if present.
     const tenantColumnName: string | null =

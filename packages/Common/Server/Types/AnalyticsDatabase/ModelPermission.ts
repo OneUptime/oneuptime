@@ -34,7 +34,7 @@ import Permission, {
 } from "../../../Types/Permission";
 import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
 import CallerPlan from "../../Utils/Billing/CallerPlan";
-import ColumnPermissions from "../Database/Permissions/ColumnPermission";
+import PlanGates from "../Database/Permissions/PlanGates";
 import HeldPermissionsUtil, {
   HeldPermissions,
 } from "../../../Types/HeldPermissions";
@@ -144,8 +144,12 @@ export default class ModelPermission {
   ): Promise<Query<TBaseModel>> {
     DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
 
-    // The project's plan, when the props act in a project without one.
-    props = await CallerPlan.withPlan(props);
+    // The project's plan, when the delete is one a plan decides (CallerPlan).
+    props = await CallerPlan.withAnalyticsPlanFor({
+      props: props,
+      modelType: modelType,
+      type: DatabaseRequestType.Delete,
+    });
 
     if (props.isRoot || props.isMasterAdmin) {
       query = await this.addTenantScopeToQueryAsRoot(modelType, query, props);
@@ -183,8 +187,13 @@ export default class ModelPermission {
       return query;
     }
 
-    // The project's plan, when the props act in a project without one.
-    props = await CallerPlan.withPlan(props);
+    // The project's plan, when the update is one a plan decides (CallerPlan).
+    props = await CallerPlan.withAnalyticsPlanFor({
+      props: props,
+      modelType: modelType,
+      type: DatabaseRequestType.Update,
+      data: data,
+    });
 
     this.checkModelLevelPermissions(
       modelType,
@@ -280,7 +289,7 @@ export default class ModelPermission {
 
       if (IsBillingEnabled && billingAccessControl) {
         const requiredPlan: PlanType | undefined =
-          ColumnPermissions.getColumnPlan(billingAccessControl, requestType);
+          PlanGates.getColumnPlan(billingAccessControl, requestType);
 
         if (!requiredPlan) {
           continue;
@@ -320,8 +329,12 @@ export default class ModelPermission {
     select: Select<TBaseModel> | null,
     props: DatabaseCommonInteractionProps,
   ): Promise<CheckReadPermissionType<TBaseModel>> {
-    // The project's plan, when the props act in a project without one.
-    props = await CallerPlan.withPlan(props);
+    // The project's plan, when the read is one a plan decides (CallerPlan).
+    props = await CallerPlan.withAnalyticsPlanFor({
+      props: props,
+      modelType: modelType,
+      type: DatabaseRequestType.Read,
+    });
 
     if (props.isRoot || props.isMasterAdmin) {
       query = await this.addTenantScopeToQueryAsRoot(modelType, query, props);
@@ -1576,7 +1589,7 @@ export default class ModelPermission {
     const model: BaseModel = new modelType();
 
     const requiredPlan: PlanType | undefined =
-      ModelPermission.getTablePlan(model, type);
+      PlanGates.getAnalyticsTablePlan(model, type);
 
     /*
      * Props that act in a project but carry no plan are never read as "any
@@ -1609,29 +1622,5 @@ export default class ModelPermission {
         "Please upgrade your plan to " + requiredPlan + " to access this feature",
       );
     }
-  }
-
-  // The plan the table names for this operation, if it names one.
-  private static getTablePlan(
-    model: BaseModel,
-    type: DatabaseRequestType,
-  ): PlanType | undefined {
-    if (type === DatabaseRequestType.Create) {
-      return model.tableBillingAccessControl?.create;
-    }
-
-    if (type === DatabaseRequestType.Update) {
-      return model.tableBillingAccessControl?.update;
-    }
-
-    if (type === DatabaseRequestType.Delete) {
-      return model.tableBillingAccessControl?.delete;
-    }
-
-    if (type === DatabaseRequestType.Read) {
-      return model.tableBillingAccessControl?.read;
-    }
-
-    return undefined;
   }
 }

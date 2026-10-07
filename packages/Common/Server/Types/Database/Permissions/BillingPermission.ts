@@ -18,6 +18,7 @@ import SubscriptionPlan, {
 import PaymentRequiredException from "../../../../Types/Exception/PaymentRequiredException";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 import CallerPlan from "../../../Utils/Billing/CallerPlan";
+import PlanGates from "./PlanGates";
 
 export default class BillingPermissions {
   /*
@@ -205,22 +206,6 @@ export default class BillingPermissions {
     model: BaseModel,
     type: DatabaseRequestType,
   ): PlanType | null {
-    if (type === DatabaseRequestType.Create) {
-      return model.createBillingPlan || null;
-    }
-
-    if (type === DatabaseRequestType.Read) {
-      return model.readBillingPlan || null;
-    }
-
-    if (type === DatabaseRequestType.Update) {
-      return model.updateBillingPlan || null;
-    }
-
-    if (type === DatabaseRequestType.Delete) {
-      return model.deleteBillingPlan || null;
-    }
-
-    return null;
+    return PlanGates.getTablePlan(model, type);
   }
 }

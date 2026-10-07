@@ -1,5 +1,9 @@
 import { IsBillingEnabled } from "../../EnvironmentConfig";
 import type { CurrentPlan } from "../../Services/ProjectService";
+import DatabaseRequestType from "../../Types/BaseDatabase/DatabaseRequestType";
+import PlanGates from "../../Types/Database/Permissions/PlanGates";
+import { AnalyticsBaseModelType } from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import { DatabaseBaseModelType } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../Types/ObjectID";
@@ -97,6 +101,50 @@ export default class CallerPlan {
     }
 
     return withPlan;
+  }
+
+  /*
+   * withPlan, for an operation on a database model: the plan is read only
+   * when the operation needs it - the table names a plan for it, or a
+   * create or update writes a column that names one (PlanGates). Every other
+   * operation needs no plan, and its props come back as they are.
+   */
+  public static async withPlanFor(data: {
+    props: DatabaseCommonInteractionProps;
+    modelType: DatabaseBaseModelType;
+    type: DatabaseRequestType;
+    // What a create or update writes.
+    data?: unknown;
+  }): Promise<DatabaseCommonInteractionProps> {
+    if (
+      !CallerPlan.isPlanMissing(data.props) ||
+      !PlanGates.isPlanAtStake(new data.modelType(), data.type, data.data)
+    ) {
+      return data.props;
+    }
+
+    return await CallerPlan.withPlan(data.props);
+  }
+
+  // withPlanFor, for an operation on an analytics model.
+  public static async withAnalyticsPlanFor(data: {
+    props: DatabaseCommonInteractionProps;
+    modelType: AnalyticsBaseModelType;
+    type: DatabaseRequestType;
+    data?: unknown;
+  }): Promise<DatabaseCommonInteractionProps> {
+    if (
+      !CallerPlan.isPlanMissing(data.props) ||
+      !PlanGates.isAnalyticsPlanAtStake(
+        new data.modelType(),
+        data.type,
+        data.data,
+      )
+    ) {
+      return data.props;
+    }
+
+    return await CallerPlan.withPlan(data.props);
   }
 
   /*

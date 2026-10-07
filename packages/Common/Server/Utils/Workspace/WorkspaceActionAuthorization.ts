@@ -18,6 +18,7 @@ import Query from "../../Types/Database/Query";
 import Select from "../../Types/Database/Select";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import CallerPlan from "../Billing/CallerPlan";
+import DatabaseRequestType from "../../Types/BaseDatabase/DatabaseRequestType";
 
 /*
  * A resource a chat action is performed against: the incident being
@@ -111,12 +112,7 @@ export default class WorkspaceActionAuthorization {
       );
     }
 
-    /*
-     * With the project's plan, as a dashboard request carries it: what a
-     * plan sells is checked against it, and never against "no plan"
-     * (CallerPlan).
-     */
-    return await CallerPlan.withPlan({
+    return {
       userId: userId,
       tenantId: projectId,
       userGlobalAccessPermission: userGlobalAccessPermission || undefined,
@@ -124,7 +120,7 @@ export default class WorkspaceActionAuthorization {
         [projectId.toString()]: userTenantAccessPermission,
       },
       userTeamIds: userTeamIds,
-    });
+    };
   }
 
   /*
@@ -150,7 +146,19 @@ export default class WorkspaceActionAuthorization {
     }
 
     try {
-      ModelPermission.checkCreatePermissions(modelType, new modelType(), props);
+      /*
+       * Checked on the project's plan where a plan decides the create, as
+       * the create itself is (CallerPlan) - never on "no plan".
+       */
+      ModelPermission.checkCreatePermissions(
+        modelType,
+        new modelType(),
+        await CallerPlan.withPlanFor({
+          props: props,
+          modelType: modelType,
+          type: DatabaseRequestType.Create,
+        }),
+      );
     } catch (err) {
       if (err instanceof NotAuthorizedException) {
         throw new NotAuthorizedException(

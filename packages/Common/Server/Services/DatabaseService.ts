@@ -2574,8 +2574,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   @CaptureSpan()
   public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
-    // The project's plan, read when the props act in it without one.
-    createBy.props = await CallerPlan.withPlan(createBy.props);
+    /*
+     * The project's plan, read when the props act in it without one and the
+     * create is one a plan decides (CallerPlan.withPlanFor).
+     */
+    createBy.props = await CallerPlan.withPlanFor({
+      props: createBy.props,
+      modelType: this.modelType,
+      type: DatabaseRequestType.Create,
+      data: createBy.data,
+    });
 
     this.checkCallerBeforeHooks(createBy.props, DatabaseRequestType.Create);
 
@@ -3897,7 +3905,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   @CaptureSpan()
   public async hardDeleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
     try {
-      deleteBy.props = await CallerPlan.withPlan(deleteBy.props);
+      deleteBy.props = await CallerPlan.withPlanFor({
+        props: deleteBy.props,
+        modelType: this.modelType,
+        type: DatabaseRequestType.Delete,
+      });
 
       this.checkCallerBeforeHooks(deleteBy.props, DatabaseRequestType.Delete);
 
@@ -4011,7 +4023,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     try {
       this.setTelemetryContextFromProps(deleteBy.props);
 
-      deleteBy.props = await CallerPlan.withPlan(deleteBy.props);
+      deleteBy.props = await CallerPlan.withPlanFor({
+        props: deleteBy.props,
+        modelType: this.modelType,
+        type: DatabaseRequestType.Delete,
+      });
 
       this.checkCallerBeforeHooks(deleteBy.props, DatabaseRequestType.Delete);
 
@@ -4285,7 +4301,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     try {
       this.setTelemetryContextFromProps(findBy.props);
 
-      findBy.props = await CallerPlan.withPlan(findBy.props);
+      findBy.props = await CallerPlan.withPlanFor({
+        props: findBy.props,
+        modelType: this.modelType,
+        type: DatabaseRequestType.Read,
+      });
 
       this.checkCallerBeforeHooks(findBy.props, DatabaseRequestType.Read);
 
@@ -4688,7 +4708,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       // A model becomes the columns it writes before anything judges it.
       updateBy.data = this.sanitizeUpdateData(updateBy.data);
 
-      updateBy.props = await CallerPlan.withPlan(updateBy.props);
+      updateBy.props = await CallerPlan.withPlanFor({
+        props: updateBy.props,
+        modelType: this.modelType,
+        type: DatabaseRequestType.Update,
+        data: updateBy.data,
+      });
 
       this.checkCallerBeforeHooks(
         updateBy.props,

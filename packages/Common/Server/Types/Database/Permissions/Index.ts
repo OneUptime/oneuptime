@@ -54,7 +54,14 @@ export default class ModelPermission {
   }): Promise<void> {
     DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(data.props);
 
-    data = { ...data, props: await CallerPlan.withPlan(data.props) };
+    data = {
+      ...data,
+      props: await CallerPlan.withPlanFor({
+        props: data.props,
+        modelType: data.modelType,
+        type: DatabaseRequestType.Delete,
+      }),
+    };
 
     try {
       return await DeletePermission.checkDeletePermissionByModel(data);
@@ -79,7 +86,15 @@ export default class ModelPermission {
   }): Promise<void> {
     DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(data.props);
 
-    data = { ...data, props: await CallerPlan.withPlan(data.props) };
+    data = {
+      ...data,
+      props: await CallerPlan.withPlanFor({
+        props: data.props,
+        modelType: data.modelType,
+        type: DatabaseRequestType.Update,
+        data: data.updateData,
+      }),
+    };
 
     try {
       return await UpdatePermission.checkUpdatePermissionByModel(data);
@@ -96,7 +111,11 @@ export default class ModelPermission {
   ): Promise<Query<TBaseModel>> {
     DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
 
-    props = await CallerPlan.withPlan(props);
+    props = await CallerPlan.withPlanFor({
+      props: props,
+      modelType: modelType,
+      type: DatabaseRequestType.Delete,
+    });
 
     try {
       return await DeletePermission.checkDeletePermission(
@@ -169,7 +188,12 @@ export default class ModelPermission {
   ): Promise<Query<TBaseModel>> {
     DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
 
-    props = await CallerPlan.withPlan(props);
+    props = await CallerPlan.withPlanFor({
+      props: props,
+      modelType: modelType,
+      type: DatabaseRequestType.Update,
+      data: updateData,
+    });
 
     try {
       return await UpdatePermission.getUpdatableQuery(
@@ -192,7 +216,12 @@ export default class ModelPermission {
   ): Promise<Query<TBaseModel>> {
     DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
 
-    props = await CallerPlan.withPlan(props);
+    props = await CallerPlan.withPlanFor({
+      props: props,
+      modelType: modelType,
+      type: DatabaseRequestType.Update,
+      data: data,
+    });
 
     try {
       return await UpdatePermission.checkUpdatePermissions(
@@ -228,7 +257,11 @@ export default class ModelPermission {
     select: Select<TBaseModel> | null,
     props: DatabaseCommonInteractionProps,
   ): Promise<CheckReadPermissionType<TBaseModel>> {
-    props = await CallerPlan.withPlan(props);
+    props = await CallerPlan.withPlanFor({
+      props: props,
+      modelType: modelType,
+      type: DatabaseRequestType.Read,
+    });
 
     try {
       return await ReadPermission.checkReadPermission(

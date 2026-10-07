@@ -173,15 +173,24 @@ export default class TenantPermission {
 
         try {
           /*
-           * Each project is checked on its own plan (CallerPlan.inProject),
-           * never on the plan of the project the request named.
+           * Each project is checked on its own plan - never on the plan of
+           * the project the request named - read when a plan decides the
+           * operation (CallerPlan).
            */
+          const projectProps: DatabaseCommonInteractionProps =
+            await CallerPlan.withPlanFor({
+              props: CallerPlan.inProjectWithoutPlan(props, projectId),
+              modelType: modelType,
+              type: type,
+              data: updateData,
+            });
+
           const checkBasePermissions: CheckPermissionBaseInterface<TBaseModel> =
             await BasePermission.checkPermissions(
               modelType,
               { ...queryForEachProject },
               select,
-              await CallerPlan.inProject(props, projectId),
+              projectProps,
               type,
               updateData,
             );
