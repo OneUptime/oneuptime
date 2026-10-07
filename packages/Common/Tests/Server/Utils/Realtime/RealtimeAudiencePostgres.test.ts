@@ -318,9 +318,10 @@ describePostgres("live updates against a migrated Postgres", () => {
   beforeAll(async () => {
     database = new DataSource({
       type: "postgres",
-      host:
-        process.env["REALTIME_AUDIENCE_TEST_DATABASE_HOST"] || "localhost",
-      port: Number(process.env["REALTIME_AUDIENCE_TEST_DATABASE_PORT"] || "5400"),
+      host: process.env["REALTIME_AUDIENCE_TEST_DATABASE_HOST"] || "localhost",
+      port: Number(
+        process.env["REALTIME_AUDIENCE_TEST_DATABASE_PORT"] || "5400",
+      ),
       username: process.env["DATABASE_USERNAME"] || "postgres",
       password: process.env["DATABASE_PASSWORD"] || "password",
       database:
@@ -388,7 +389,14 @@ describePostgres("live updates against a migrated Postgres", () => {
     ): Promise<void> => {
       await database.query(
         `INSERT INTO "Incident" ("_id","projectId","title","currentIncidentStateId","incidentSeverityId","isPrivate","slug","version") VALUES ($1,$2,'An incident',$3,$4,$5,$6,1)`,
-        [incidentId, projectId, stateId, severityId, isPrivate, `s${incidentId}`],
+        [
+          incidentId,
+          projectId,
+          stateId,
+          severityId,
+          isPrivate,
+          `s${incidentId}`,
+        ],
       );
 
       for (const labelId of labelIds) {
@@ -677,10 +685,9 @@ describePostgres("live updates against a migrated Postgres", () => {
         access: IncidentService.getRealtimeReadAccess(),
       });
 
-      await database.query(
-        `DELETE FROM "Incident" WHERE "_id" = ANY($1)`,
-        [deleted],
-      );
+      await database.query(`DELETE FROM "Incident" WHERE "_id" = ANY($1)`, [
+        deleted,
+      ]);
 
       for (const recordId of deleted) {
         await IncidentService.onTriggerRealtime(
@@ -748,7 +755,11 @@ describePostgres("live updates against a migrated Postgres", () => {
 
     test.each([
       ["the person who wrote it", AI_AUTHOR, [MESSAGE_OF_AUTHOR]],
-      ["even a project owner, for messages not theirs", OWNER, [MESSAGE_OF_OWNER]],
+      [
+        "even a project owner, for messages not theirs",
+        OWNER,
+        [MESSAGE_OF_OWNER],
+      ],
       ["anyone else", MEMBER, []],
     ] as Array<[string, string, Array<string>]>)(
       "%s hears about exactly their own messages",

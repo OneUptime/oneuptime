@@ -325,7 +325,10 @@ describe("Realtime: a record's live update reaches only people who may read it",
     access.readableByUser.set(BLOCKED_READER, new Set([RECORD_B, RECORD_C]));
 
     const room: string = roomOf("Incident", ModelEventType.Update);
-    const owner: FakeSocket = server.addSocket({ rooms: [room], userId: OWNER });
+    const owner: FakeSocket = server.addSocket({
+      rooms: [room],
+      userId: OWNER,
+    });
     const labels: FakeSocket = server.addSocket({
       rooms: [room],
       userId: LABELS_READER,
@@ -387,7 +390,10 @@ describe("Realtime: a record's live update reaches only people who may read it",
     access.readableByUser.set(LABELS_READER, new Set([RECORD_A]));
 
     const room: string = roomOf("Incident", ModelEventType.Update);
-    const owner: FakeSocket = server.addSocket({ rooms: [room], userId: OWNER });
+    const owner: FakeSocket = server.addSocket({
+      rooms: [room],
+      userId: OWNER,
+    });
     const labels: FakeSocket = server.addSocket({
       rooms: [room],
       userId: LABELS_READER,
@@ -513,7 +519,10 @@ describe("Realtime: a record's live update reaches only people who may read it",
     jest.spyOn(logger, "error").mockImplementation((): void => {});
 
     const room: string = roomOf("Incident", ModelEventType.Update);
-    const owner: FakeSocket = server.addSocket({ rooms: [room], userId: OWNER });
+    const owner: FakeSocket = server.addSocket({
+      rooms: [room],
+      userId: OWNER,
+    });
     const failing: FakeSocket = server.addSocket({
       rooms: [room],
       userId: LABELS_READER,
@@ -544,7 +553,10 @@ describe("Realtime: a record's live update reaches only people who may read it",
     );
 
     const room: string = roomOf("Incident", ModelEventType.Update);
-    const owner: FakeSocket = server.addSocket({ rooms: [room], userId: OWNER });
+    const owner: FakeSocket = server.addSocket({
+      rooms: [room],
+      userId: OWNER,
+    });
 
     await emit(access, RECORD_A);
     await Realtime.waitForPendingDeliveries();
@@ -704,7 +716,10 @@ describe("Realtime: a record's live update reaches only people who may read it",
       .mockImplementation((): void => {});
 
     const room: string = roomOf("Incident", ModelEventType.Update);
-    const owner: FakeSocket = server.addSocket({ rooms: [room], userId: OWNER });
+    const owner: FakeSocket = server.addSocket({
+      rooms: [room],
+      userId: OWNER,
+    });
 
     // The first delivery starts, and waits.
     await emit(access, RECORD_A);

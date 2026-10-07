@@ -11,13 +11,7 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../../Types/Permission";
 import UserType from "../../../../Types/UserType";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * The people behind the sockets, as their reads see them: their props in
@@ -147,9 +141,9 @@ describe("RealtimeReaders", () => {
     });
 
     test("a person who is not a member of the project reads nothing there", async () => {
-      (RealtimeReaders.buildProps as unknown as jest.Mock).mockResolvedValueOnce(
-        null,
-      );
+      (
+        RealtimeReaders.buildProps as unknown as jest.Mock
+      ).mockResolvedValueOnce(null);
 
       await expect(
         RealtimeReaders.getReader(person, PROJECT),
@@ -157,9 +151,9 @@ describe("RealtimeReaders", () => {
     });
 
     test("a lookup that fails is not kept: the next one asks again", async () => {
-      (RealtimeReaders.buildProps as unknown as jest.Mock).mockRejectedValueOnce(
-        new Error("The permission cache is down"),
-      );
+      (
+        RealtimeReaders.buildProps as unknown as jest.Mock
+      ).mockRejectedValueOnce(new Error("The permission cache is down"));
 
       await expect(RealtimeReaders.getReader(person, PROJECT)).rejects.toThrow(
         "The permission cache is down",
@@ -357,7 +351,10 @@ describe("RealtimeReaders.buildProps", () => {
     );
 
     await expect(
-      RealtimeReaders.buildProps({ userId: USER, isMasterAdmin: true }, PROJECT),
+      RealtimeReaders.buildProps(
+        { userId: USER, isMasterAdmin: true },
+        PROJECT,
+      ),
     ).resolves.toEqual({
       userId: new ObjectID(USER),
       userType: UserType.MasterAdmin,

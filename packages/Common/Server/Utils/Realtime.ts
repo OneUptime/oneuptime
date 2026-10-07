@@ -559,8 +559,8 @@ export default abstract class Realtime {
         return id.toString();
       });
 
-      const listening: Array<ListeningSocket> = await this.fetchListeningSockets(
-        [
+      const listening: Array<ListeningSocket> =
+        await this.fetchListeningSockets([
           RealtimeUtil.getRoomId(tenantId, tableName, ModelEventType.Delete),
           ...modelIds.map((modelId: string): string => {
             return RealtimeUtil.getRoomId(
@@ -570,16 +570,17 @@ export default abstract class Realtime {
               modelId,
             );
           }),
-        ],
-      );
+        ]);
 
-      const readable: Map<string, Set<string>> =
-        await RealtimeAudience.getReadableIds({
-          tenantId: tenantId,
-          access: data.access,
-          readers: this.getReadersOfSockets(listening),
-          modelIds: modelIds,
-        });
+      const readable: Map<
+        string,
+        Set<string>
+      > = await RealtimeAudience.getReadableIds({
+        tenantId: tenantId,
+        access: data.access,
+        readers: this.getReadersOfSockets(listening),
+        modelIds: modelIds,
+      });
 
       return {
         readsEveryRecord: async (): Promise<boolean> => {
@@ -589,9 +590,7 @@ export default abstract class Realtime {
           reader: RealtimeReader,
           ids: Array<ObjectID>,
         ): Promise<Array<string>> => {
-          const readableNow: Set<string> | undefined = readable.get(
-            reader.key,
-          );
+          const readableNow: Set<string> | undefined = readable.get(reader.key);
 
           if (!readableNow) {
             return [];
@@ -765,13 +764,15 @@ export default abstract class Realtime {
       return;
     }
 
-    const readable: Map<string, Set<string>> =
-      await RealtimeAudience.getReadableIds({
-        tenantId: batch.tenantId,
-        access: batch.access,
-        readers: this.getReadersOfSockets(listening),
-        modelIds: batch.modelIds,
-      });
+    const readable: Map<
+      string,
+      Set<string>
+    > = await RealtimeAudience.getReadableIds({
+      tenantId: batch.tenantId,
+      access: batch.access,
+      readers: this.getReadersOfSockets(listening),
+      modelIds: batch.modelIds,
+    });
 
     // The sockets of each person who may read anything of the batch.
     const socketsOfReaders: Array<{
@@ -852,7 +853,9 @@ export default abstract class Realtime {
       return;
     }
 
-    this.socketServer.to(Array.from(new Set(socketIds))).emit(eventName, payload);
+    this.socketServer
+      .to(Array.from(new Set(socketIds)))
+      .emit(eventName, payload);
   }
 
   // The sockets in any of `roomIds`, each once, with their rooms.

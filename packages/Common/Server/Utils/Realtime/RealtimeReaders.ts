@@ -94,18 +94,17 @@ export default class RealtimeReaders {
       RealtimeReaders.entries.delete(key);
     }
 
-    const pending: Promise<RealtimeReader | null> = (async (): Promise<
-      RealtimeReader | null
-    > => {
-      const props: DatabaseCommonInteractionProps | null =
-        await RealtimeReaders.buildProps(identity, projectId.toString());
+    const pending: Promise<RealtimeReader | null> =
+      (async (): Promise<RealtimeReader | null> => {
+        const props: DatabaseCommonInteractionProps | null =
+          await RealtimeReaders.buildProps(identity, projectId.toString());
 
-      if (!props) {
-        return null;
-      }
+        if (!props) {
+          return null;
+        }
 
-      return RealtimeReaders.createReader(key, props);
-    })();
+        return RealtimeReaders.createReader(key, props);
+      })();
 
     if (RealtimeReaders.entries.size >= RealtimeReaders.MAX_ENTRIES) {
       const oldestKey: string | undefined = RealtimeReaders.entries

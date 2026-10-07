@@ -31,13 +31,7 @@ import ModelEventType from "../../../Types/Realtime/ModelEventType";
 import UserType from "../../../Types/UserType";
 import { useInMemoryTable } from "../TestingUtils/InMemoryRepository";
 import { getJestSpyOn } from "../../Spy";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
 
 // Every refusal below is deliberate; @CaptureSpan logs each one's stack.
@@ -411,7 +405,8 @@ describe("DatabaseService.getRealtimeReadAccess", () => {
 
     expect(findBy).toHaveBeenCalledTimes(1);
 
-    const asked: FindBy<BaseModel> = findBy.mock.calls[0]![0] as FindBy<BaseModel>;
+    const asked: FindBy<BaseModel> = findBy.mock
+      .calls[0]![0] as FindBy<BaseModel>;
     expect(asked.props).toBe(props);
     expect(asked.select).toEqual({ _id: true });
     expect(asked.limit).toBe(2);

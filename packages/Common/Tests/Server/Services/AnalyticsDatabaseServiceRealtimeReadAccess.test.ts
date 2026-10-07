@@ -131,9 +131,9 @@ describe("AnalyticsDatabaseService.getRealtimeReadAccess", () => {
     > = ExceptionInstanceService.getRealtimeReadAccess(items);
 
     await expect(access.readsEveryRecord(reader)).resolves.toBe(false);
-    await expect(access.getReadableIds(reader, idsOf(items))).resolves.toEqual(
-      [readable.id!.toString()],
-    );
+    await expect(access.getReadableIds(reader, idsOf(items))).resolves.toEqual([
+      readable.id!.toString(),
+    ]);
   });
 
   test("a block with labels takes its resources' rows away from a scope over every resource", async () => {
@@ -149,9 +149,10 @@ describe("AnalyticsDatabaseService.getRealtimeReadAccess", () => {
     > = ExceptionInstanceService.getRealtimeReadAccess(items);
 
     await expect(access.readsEveryRecord(reader)).resolves.toBe(false);
-    await expect(access.getReadableIds(reader, idsOf(items))).resolves.toEqual(
-      [readable.id!.toString(), unattributed.id!.toString()],
-    );
+    await expect(access.getReadableIds(reader, idsOf(items))).resolves.toEqual([
+      readable.id!.toString(),
+      unattributed.id!.toString(),
+    ]);
   });
 
   test("a refused read reads no row at all", async () => {

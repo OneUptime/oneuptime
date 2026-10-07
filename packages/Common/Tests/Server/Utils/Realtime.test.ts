@@ -471,9 +471,7 @@ describe("Realtime (server) ListenToModelEvent", () => {
         REQUEST as unknown as JSONObject,
       );
 
-      expect(
-        (socket as unknown as { data?: JSONObject }).data,
-      ).toBeUndefined();
+      expect((socket as unknown as { data?: JSONObject }).data).toBeUndefined();
     });
 
     test("a master admin joins the room", async () => {

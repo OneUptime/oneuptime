@@ -52,6 +52,9 @@ const SCANNED_ROOTS: Array<string> = [
   path.join(REPOSITORY_ROOT, "ee/Server"),
 ];
 
+// An import of socket.io itself: a socket server of one's own.
+const SOCKET_IO_IMPORT: RegExp = /from "socket\.io"/;
+
 const SKIPPED_DIRECTORIES: ReadonlySet<string> = new Set<string>([
   "node_modules",
   "build",
@@ -119,9 +122,7 @@ function methodBody(source: string, name: string): string {
     .slice(start + 1)
     .search(/\n {2}(?:public|private|protected) (?:static |readonly )/);
 
-  return next < 0
-    ? source.slice(start)
-    : source.slice(start, start + 1 + next);
+  return next < 0 ? source.slice(start) : source.slice(start, start + 1 + next);
 }
 
 describe("every live update goes through the one check", () => {
@@ -144,7 +145,7 @@ describe("every live update goes through the one check", () => {
         return (
           source.includes("Infrastructure/SocketIO") ||
           source.includes("getSocketServer(") ||
-          /from "socket\.io"/.test(source)
+          SOCKET_IO_IMPORT.test(source)
         );
       })
       .map(relative);
@@ -153,19 +154,24 @@ describe("every live update goes through the one check", () => {
   });
 
   test("Realtime sends a model event in one place, to sockets it names", () => {
-    const sends: Array<string> = realtime.match(/socketServer[!]?\.to\(/g) || [];
+    // Every `.to(` - from the server or from a socket - however it is wrapped.
+    const sends: Array<string> = realtime.match(/\.\s*to\(/g) || [];
 
     expect(sends).toHaveLength(1);
 
     const sendToSockets: string = methodBody(realtime, "sendToSockets");
 
-    expect(sendToSockets).toMatch(/socketServer\.to\(/);
+    expect(sendToSockets).toMatch(/socketServer\s*\.\s*to\(/);
     // An empty list is every socket to socket.io: it is never sent.
     expect(sendToSockets).toMatch(/socketIds\.length === 0/);
 
     // Nothing is broadcast to a room, the namespace or every socket.
-    expect(realtime).not.toMatch(/socketServer[!]?\.(?:emit|in\([^)]*\)\.emit|sockets\.emit|local\.emit)/);
-    expect(realtime).not.toMatch(/\.except\(/);
+    expect(realtime).not.toMatch(
+      /socketServer[!]?\s*\.\s*(?:emit|sockets\s*\.\s*emit|local\s*\.\s*emit)\(/,
+    );
+    expect(realtime).not.toMatch(/\.\s*in\([^)]*\)\s*\.\s*emit\(/);
+    expect(realtime).not.toMatch(/\.\s*except\(/);
+    expect(realtime).not.toMatch(/\.\s*broadcast\b/);
   });
 
   test("only deliver sends, after working out who may read each record", () => {
@@ -188,7 +194,9 @@ describe("every live update goes through the one check", () => {
     expect(Array.from(new Set(callers))).toEqual(["deliver"]);
 
     const deliver: string = methodBody(realtime, "deliver");
-    const audience: number = deliver.indexOf("RealtimeAudience.getReadableIds(");
+    const audience: number = deliver.indexOf(
+      "RealtimeAudience.getReadableIds(",
+    );
     const firstSend: number = deliver.indexOf("this.sendToSockets(");
 
     expect(audience).toBeGreaterThan(0);
@@ -313,10 +321,11 @@ describe("every model that sends live updates is read the way its service reads 
     AIInsightService,
   ] as unknown as Array<DatabaseService<BaseModel>>;
 
-  const ANALYTICS_SERVICES: Array<AnalyticsDatabaseService<AnalyticsBaseModel>> =
-    [ExceptionInstanceService] as unknown as Array<
-      AnalyticsDatabaseService<AnalyticsBaseModel>
-    >;
+  const ANALYTICS_SERVICES: Array<
+    AnalyticsDatabaseService<AnalyticsBaseModel>
+  > = [ExceptionInstanceService] as unknown as Array<
+    AnalyticsDatabaseService<AnalyticsBaseModel>
+  >;
 
   test("every model that sends live updates is written by a service listed here", () => {
     expect(
@@ -350,9 +359,9 @@ describe("every model that sends live updates is read the way its service reads 
   )(
     "%s: its service decides, and someone who reads everything hears every event without a read",
     async (_model: string, service: DatabaseService<BaseModel>) => {
-      await expect(service.readsEveryRecordInProject(SERVER_ADMIN)).resolves.toBe(
-        true,
-      );
+      await expect(
+        service.readsEveryRecordInProject(SERVER_ADMIN),
+      ).resolves.toBe(true);
     },
   );
 
