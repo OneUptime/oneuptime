@@ -23,6 +23,7 @@ import Color from "Common/Types/Color";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import EventStatusPanel, {
+  EventPanelAction,
   EventStateAction,
   EventStateItem,
   EventStatusFact,
@@ -87,6 +88,11 @@ export interface ComponentProps {
   aiInvestigationVerdict?: AIRunHumanVerdict | null | undefined;
   // Context shown under the header pills ("Declared", "Declared by", ...).
   facts?: Array<EventStatusFact> | undefined;
+  /*
+   * Actions beside the state actions that change no state - Join call, when
+   * the incident has a video call.
+   */
+  secondaryActions?: Array<EventPanelAction> | undefined;
 }
 
 /*
@@ -565,6 +571,7 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
         actions={actions}
         onActionClick={openModalForState}
         onStateSelect={openModalForState}
+        secondaryActions={props.secondaryActions}
         facts={props.facts}
         headerNotice={
           shouldShowAIInvestigationHeaderStatus(

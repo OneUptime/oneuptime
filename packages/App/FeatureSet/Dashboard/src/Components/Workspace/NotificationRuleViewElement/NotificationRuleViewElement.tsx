@@ -28,6 +28,8 @@ import {
   MicrosoftTeamsChat,
   MicrosoftTeamsTeam,
 } from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
+import VideoCallConnection from "Common/Models/DatabaseModels/VideoCallConnection";
+import VideoCallRuleSummary from "./VideoCallRuleSummary";
 
 export interface ComponentProps {
   value:
@@ -49,6 +51,7 @@ export interface ComponentProps {
   microsoftTeamsTeams?: Array<MicrosoftTeamsTeam>;
   microsoftTeamsChats?: Array<MicrosoftTeamsChat>;
   users: Array<User>;
+  videoCallConnections?: Array<VideoCallConnection> | undefined;
 }
 
 const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
@@ -410,6 +413,24 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
           formValue: IncidentNotificationRule | AlertNotificationRule,
         ) => {
           return formValue.shouldCreateNewChannel || false;
+        },
+      },
+      {
+        key: "shouldStartVideoCall",
+        title: "Video Call",
+        fieldType: FieldType.Element,
+        getElement: (): ReactElement => {
+          return (
+            <VideoCallRuleSummary
+              rule={props.value as IncidentNotificationRule}
+              connections={props.videoCallConnections || []}
+            />
+          );
+        },
+        showIf: (
+          formValue: IncidentNotificationRule | AlertNotificationRule,
+        ) => {
+          return formValue.shouldStartVideoCall === true;
         },
       },
     ];

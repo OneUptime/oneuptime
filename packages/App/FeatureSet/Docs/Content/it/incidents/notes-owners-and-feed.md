@@ -142,6 +142,7 @@ Le voci di feed vengono scritte dal servizio degli incidenti stesso, da entrambi
 - **Le persone** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`.
 - **Le notifiche** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
 - **L'automazione** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
+- **Le videochiamate** — `VideoCallStarted` e `VideoCallFailed`: una chiamata avviata per l'incidente, con il suo link per partecipare, o il motivo per cui un provider non è riuscito ad avviarla. Vedi [Videochiamate](/docs/workspace-connections/video-calls).
 
 Ogni tipo ha la propria icona, così potete scorrere un feed lungo e distinguere i cambi di stato dal rumore di fondo. L'analisi della causa principale generata dall'IA è contrassegnata in modo distinto e resa in una modalità Markdown limitata.
 
