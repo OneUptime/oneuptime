@@ -349,7 +349,10 @@ function membersExcept(...formerMembers: Array<ObjectID>): void {
   );
 
   membership.isMember.mockImplementation(
-    async (data: { userId: ObjectID; projectId: ObjectID }): Promise<boolean> => {
+    async (data: {
+      userId: ObjectID;
+      projectId: ObjectID;
+    }): Promise<boolean> => {
       return !former.has(data.userId.toString().toLowerCase());
     },
   );

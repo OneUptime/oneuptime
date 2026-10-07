@@ -157,12 +157,12 @@ describe("ProjectLeaveAccessCleanup", () => {
         "UserProjectSsoConsent",
       ]);
 
-      expect(ProjectLeaveAccessCleanup.getPersonalAccessTables()[0]!.service).toBe(
-        McpOAuthGrantService,
-      );
-      expect(ProjectLeaveAccessCleanup.getPersonalAccessTables()[1]!.service).toBe(
-        UserProjectSsoConsentService,
-      );
+      expect(
+        ProjectLeaveAccessCleanup.getPersonalAccessTables()[0]!.service,
+      ).toBe(McpOAuthGrantService);
+      expect(
+        ProjectLeaveAccessCleanup.getPersonalAccessTables()[1]!.service,
+      ).toBe(UserProjectSsoConsentService);
     });
 
     test("every access table is a per-project table of one person, removed whole", () => {
@@ -372,9 +372,7 @@ describe("ProjectLeaveAccessCleanup", () => {
 
       const [sql] = query.mock.calls[0]!;
 
-      expect(sql).toContain(
-        `FROM "McpOAuthGrant" WHERE "deletedAt" IS NULL`,
-      );
+      expect(sql).toContain(`FROM "McpOAuthGrant" WHERE "deletedAt" IS NULL`);
       expect(sql).toContain(
         `FROM "UserProjectSsoConsent" WHERE "deletedAt" IS NULL`,
       );

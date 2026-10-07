@@ -583,9 +583,10 @@ describe("an escalation rule pages project members only", () => {
       // Asked for the rule's own users only, never for the schedule's.
       const routeLookup: SpyInstance<
         typeof OnCallDutyPolicyEscalationRuleService.getRouteAlertToUserId
-      > = OnCallDutyPolicyEscalationRuleService.getRouteAlertToUserId as unknown as SpyInstance<
-        typeof OnCallDutyPolicyEscalationRuleService.getRouteAlertToUserId
-      >;
+      > =
+        OnCallDutyPolicyEscalationRuleService.getRouteAlertToUserId as unknown as SpyInstance<
+          typeof OnCallDutyPolicyEscalationRuleService.getRouteAlertToUserId
+        >;
 
       const askedFor: Array<string> = routeLookup.mock.calls.map(
         (

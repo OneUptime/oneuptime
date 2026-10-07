@@ -4,7 +4,11 @@ import { KeepOnCallTimelineHistory1799700000000 } from "../../../../Server/Infra
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
-import { MigrationInterface, QueryRunner, getMetadataArgsStorage } from "typeorm";
+import {
+  MigrationInterface,
+  QueryRunner,
+  getMetadataArgsStorage,
+} from "typeorm";
 import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
 
 /*
@@ -41,7 +45,10 @@ const CONSTRAINTS: Record<string, { column: string; references: string }> = {
     column: "userCallId",
     references: "UserCall",
   },
-  FK_12ef8407b6359205df8339f8494: { column: "userSmsId", references: "UserSMS" },
+  FK_12ef8407b6359205df8339f8494: {
+    column: "userSmsId",
+    references: "UserSMS",
+  },
   FK_0a67c82e4e093ae5c89d2d76bdf: {
     column: "userWhatsAppId",
     references: "UserWhatsApp",
@@ -91,7 +98,10 @@ function fakeRun(onDelete: Record<string, string>): FakeRun {
   const onlineAdds: Array<string> = [];
 
   const runner: QueryRunner = {
-    query: async (sql: string, parameters?: Array<unknown>): Promise<unknown> => {
+    query: async (
+      sql: string,
+      parameters?: Array<unknown>,
+    ): Promise<unknown> => {
       const statement: string = sql.replace(/\s+/g, " ").trim();
 
       if (statement.includes("FROM pg_constraint")) {
@@ -132,8 +142,7 @@ function everyConstraint(onDelete: string): Record<string, string> {
 }
 
 function setNullStatement(name: string): string {
-  const constraint: { column: string; references: string } =
-    CONSTRAINTS[name]!;
+  const constraint: { column: string; references: string } = CONSTRAINTS[name]!;
 
   return `ALTER TABLE ${TABLE} ADD CONSTRAINT "${name}" FOREIGN KEY ("${constraint.column}") REFERENCES "${constraint.references}"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`;
 }
@@ -194,7 +203,9 @@ describe("KeepOnCallTimelineHistory1799700000000", () => {
     for (const statement of run.statements) {
       const isConstraintWork: boolean =
         statement.startsWith("<lookup ") ||
-        statement.startsWith(`ALTER TABLE ${TABLE} DROP CONSTRAINT IF EXISTS `) ||
+        statement.startsWith(
+          `ALTER TABLE ${TABLE} DROP CONSTRAINT IF EXISTS `,
+        ) ||
         statement.startsWith(`<online ALTER TABLE ${TABLE} ADD CONSTRAINT `);
 
       expect({ statement, isConstraintWork }).toEqual({
@@ -229,7 +240,9 @@ describe("KeepOnCallTimelineHistory1799700000000", () => {
     }
 
     // OnlineDdl still sees every one: it validates one left NOT VALID.
-    expect(run.onlineAdds).toEqual(Object.keys(CONSTRAINTS).map(setNullStatement));
+    expect(run.onlineAdds).toEqual(
+      Object.keys(CONSTRAINTS).map(setNullStatement),
+    );
   });
 
   test("a reference that is not there at all is added", async () => {
@@ -261,7 +274,11 @@ describe("KeepOnCallTimelineHistory1799700000000", () => {
       })
       .sort();
 
-    expect(declared.map((column: string) => column.toLowerCase())).toEqual(
+    expect(
+      declared.map((column: string) => {
+        return column.toLowerCase();
+      }),
+    ).toEqual(
       Object.values(CONSTRAINTS)
         .map((constraint: { column: string }): string => {
           return constraint.column.toLowerCase();

@@ -830,14 +830,15 @@ describePostgres(
           });
         }
 
-        const projectsOf: (userId: ObjectID) => Promise<Array<string>> =
-          async (userId: ObjectID): Promise<Array<string>> => {
-            return (await ProjectMembership.getMemberProjectIds({ userId }))
-              .map((projectId: ObjectID): string => {
-                return projectId.toString().toLowerCase();
-              })
-              .sort();
-          };
+        const projectsOf: (userId: ObjectID) => Promise<Array<string>> = async (
+          userId: ObjectID,
+        ): Promise<Array<string>> => {
+          return (await ProjectMembership.getMemberProjectIds({ userId }))
+            .map((projectId: ObjectID): string => {
+              return projectId.toString().toLowerCase();
+            })
+            .sort();
+        };
 
         await expect(projectsOf(LEAVING)).resolves.toEqual(
           [PROJECT_A.toString(), PROJECT_B.toString()].sort(),
@@ -1280,9 +1281,9 @@ describePostgres(
           [PROJECT_A, LEAVING],
           [PROJECT_B, LEAVING],
         ] as Array<[ObjectID, ObjectID]>) {
-          await expect(
-            accessRowCounts({ projectId, userId }),
-          ).resolves.toEqual(everyAccessTable(1));
+          await expect(accessRowCounts({ projectId, userId })).resolves.toEqual(
+            everyAccessTable(1),
+          );
         }
 
         // Notification settings are the other walk's to remove.
@@ -1322,32 +1323,31 @@ describePostgres(
 
         const personal: Set<string> = new Set<string>(personalTableNames());
 
-        const fromOutside: Array<{ reference: string; onDelete: string }> =
-          rows
-            .filter((row: { owner: string }) => {
-              return !personal.has(row.owner);
-            })
-            .map(
-              (row: {
-                owner: string;
-                column_name: string;
-                target: string;
-                on_delete: string;
-              }) => {
-                return {
-                  reference: `${row.owner}.${row.column_name} -> ${row.target}`,
-                  onDelete: row.on_delete,
-                };
-              },
-            )
-            .sort(
-              (
-                left: { reference: string },
-                right: { reference: string },
-              ): number => {
-                return left.reference.localeCompare(right.reference);
-              },
-            );
+        const fromOutside: Array<{ reference: string; onDelete: string }> = rows
+          .filter((row: { owner: string }) => {
+            return !personal.has(row.owner);
+          })
+          .map(
+            (row: {
+              owner: string;
+              column_name: string;
+              target: string;
+              on_delete: string;
+            }) => {
+              return {
+                reference: `${row.owner}.${row.column_name} -> ${row.target}`,
+                onDelete: row.on_delete,
+              };
+            },
+          )
+          .sort(
+            (
+              left: { reference: string },
+              right: { reference: string },
+            ): number => {
+              return left.reference.localeCompare(right.reference);
+            },
+          );
 
         // Each one clears itself when the row it points at goes ('n': SET NULL).
         expect(fromOutside).toEqual(

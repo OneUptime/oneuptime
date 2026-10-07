@@ -195,9 +195,9 @@ describe("TeamComplianceStatusJSON - the wire contract", () => {
     const sent: JSONObject = JSON.parse(JSON.stringify(EXAMPLE));
 
     expect(sent["invitedMemberCount"]).toBe(1);
-    expect(
-      (sent["userComplianceStatuses"] as Array<JSONObject>).length,
-    ).toBe(2);
+    expect((sent["userComplianceStatuses"] as Array<JSONObject>).length).toBe(
+      2,
+    );
   });
 
   test("a reply without the count, from an older server, is still a status", () => {

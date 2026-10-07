@@ -1370,9 +1370,7 @@ router.get(
         res,
         lookup,
         now,
-        refusalReason: isOwnerAMember
-          ? undefined
-          : NOT_A_PROJECT_MEMBER_REASON,
+        refusalReason: isOwnerAMember ? undefined : NOT_A_PROJECT_MEMBER_REASON,
         request: {
           kind: OnCallCalendarFeedKind.Personal,
           feedId: lookup.feed.id,

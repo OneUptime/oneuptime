@@ -220,18 +220,17 @@ describe("ProjectMembership", () => {
       expect(query["projectId"]).toBe(PROJECT_A);
       // Accepted and pending alike: the flag is read, not filtered on.
       expect(query["hasAcceptedInvitation"]).toBeUndefined();
-      expect(call.select).toEqual({ userId: true, hasAcceptedInvitation: true });
+      expect(call.select).toEqual({
+        userId: true,
+        hasAcceptedInvitation: true,
+      });
       expect(call.props).toEqual({ isRoot: true });
       expect(call.limit).toBe(LIMIT_MAX);
       expect(call.skip).toBe(0);
 
       // A member with a pending row elsewhere is a member, not invited.
-      expect(Array.from(standings.memberUserIds)).toEqual([
-        USER_1.toString(),
-      ]);
-      expect(Array.from(standings.invitedUserIds)).toEqual([
-        USER_2.toString(),
-      ]);
+      expect(Array.from(standings.memberUserIds)).toEqual([USER_1.toString()]);
+      expect(Array.from(standings.invitedUserIds)).toEqual([USER_2.toString()]);
     });
 
     test("somebody with no row at all is in neither set: they left, or were never in it", async () => {

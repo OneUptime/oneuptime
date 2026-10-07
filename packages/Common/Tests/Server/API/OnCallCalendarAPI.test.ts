@@ -2186,7 +2186,10 @@ describe("GET /on-call-calendar/user/:token/shifts.ics", () => {
       expect(membershipSpy).toHaveBeenCalledTimes(2);
 
       for (const call of membershipSpy.mock.calls) {
-        expect(call[0]).toEqual({ projectId: row.projectId, userId: row.userId });
+        expect(call[0]).toEqual({
+          projectId: row.projectId,
+          userId: row.userId,
+        });
       }
     });
 

@@ -258,15 +258,17 @@ export default class ProjectLeaveNotificationCleanup {
   public static async getFormerMemberPairsIn(
     tables: Array<PersonalTable>,
   ): Promise<Array<ProjectUserRow>> {
-    const sources: Array<string> = tables.map((table: PersonalTable): string => {
-      const tableName: string = table.service.getModel().tableName || "";
+    const sources: Array<string> = tables.map(
+      (table: PersonalTable): string => {
+        const tableName: string = table.service.getModel().tableName || "";
 
-      return `SELECT "projectId", "userId" FROM ${quoteIdentifier(
-        tableName,
-      )} WHERE "deletedAt" IS NULL${
-        table.sqlCondition ? ` AND ${table.sqlCondition}` : ""
-      }`;
-    });
+        return `SELECT "projectId", "userId" FROM ${quoteIdentifier(
+          tableName,
+        )} WHERE "deletedAt" IS NULL${
+          table.sqlCondition ? ` AND ${table.sqlCondition}` : ""
+        }`;
+      },
+    );
 
     if (sources.length === 0) {
       return [];
