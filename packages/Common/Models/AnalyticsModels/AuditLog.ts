@@ -347,14 +347,14 @@ export default class AuditLog extends AnalyticsBaseModel {
       required: false,
       type: TableColumnType.ObjectID,
       accessControl: {
-          read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.SettingsAdmin,
-            Permission.ReadAuditLog,
-          ],
-          create: [],
-          update: [],
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.SettingsAdmin,
+          Permission.ReadAuditLog,
+        ],
+        create: [],
+        update: [],
       },
     });
 
@@ -366,14 +366,14 @@ export default class AuditLog extends AnalyticsBaseModel {
       required: false,
       type: TableColumnType.Text,
       accessControl: {
-          read: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-            Permission.SettingsAdmin,
-            Permission.ReadAuditLog,
-          ],
-          create: [],
-          update: [],
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.SettingsAdmin,
+          Permission.ReadAuditLog,
+        ],
+        create: [],
+        update: [],
       },
     });
 

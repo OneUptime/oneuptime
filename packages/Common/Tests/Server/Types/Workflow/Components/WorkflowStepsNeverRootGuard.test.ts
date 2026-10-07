@@ -43,6 +43,10 @@ const ROOT_READS: Record<string, { count: number; reason: string }> = {
 const SERVICE_CALL: RegExp =
   /this\.(?:modelService|service!?)\.(create|findBy|findOneBy|findOneById|updateBy|updateOneBy|updateOneById|deleteBy|deleteOneBy|deleteOneById|countBy)\(\s*\{/g;
 
+// The props such a call may pass: the step's own, built for this run.
+const STEP_PROPS: RegExp =
+  /props:\s*(await this\.getStepProps\(options\)|props|\{\s*\.\.\.props\s*\})\s*[,}\n]/;
+
 const COMPONENT_FILES: Array<string> = fs
   .readdirSync(COMPONENTS_DIR)
   .filter((file: string): boolean => {
@@ -91,14 +95,17 @@ describe("GUARD: workflow steps never act as OneUptime itself", () => {
     );
   });
 
-  test.each(COMPONENT_FILES)("%s hands no service root props", (file: string) => {
-    const rootProps: number = (read(file).match(/isRoot\s*:/g) || []).length;
+  test.each(COMPONENT_FILES)(
+    "%s hands no service root props",
+    (file: string) => {
+      const rootProps: number = (read(file).match(/isRoot\s*:/g) || []).length;
 
-    expect({ file, rootProps }).toEqual({
-      file,
-      rootProps: ROOT_READS[file]?.count || 0,
-    });
-  });
+      expect({ file, rootProps }).toEqual({
+        file,
+        rootProps: ROOT_READS[file]?.count || 0,
+      });
+    },
+  );
 
   test("the one root read left is the trigger finding its workflows", () => {
     const source: string = read("OnTriggerBaseModel.ts");
@@ -121,11 +128,7 @@ describe("GUARD: workflow steps never act as OneUptime itself", () => {
       for (const call of calls) {
         const argument: string = callArgument(source, call.index!);
 
-        if (
-          !/props:\s*(await this\.getStepProps\(options\)|props|\{\s*\.\.\.props\s*\})\s*[,}\n]/.test(
-            argument,
-          )
-        ) {
+        if (!STEP_PROPS.test(argument)) {
           handBuilt.push(`${call[1]}: ${argument.slice(0, 120)}`);
         }
       }

@@ -66,7 +66,9 @@ describe("the Configuration & Safety page says what a step may do", () => {
   });
 
   test("the record steps act as a Project Admin of the workflow's project", () => {
-    expect(text).toContain("act as a **Project Admin** of the workflow's project");
+    expect(text).toContain(
+      "act as a **Project Admin** of the workflow's project",
+    );
     expect(text).toContain("Find, Create, Update and Delete components");
     expect(text).toContain("On Create, On Update and On Delete triggers");
   });
@@ -75,7 +77,9 @@ describe("the Configuration & Safety page says what a step may do", () => {
     expect(text).toContain("**Only the workflow's own project.**");
     expect(text).toContain("an Update never moves a record to another project");
     expect(text).toContain("**Only what a Project Admin may do.**");
-    expect(text).toContain("**Project Owner**, billing or project-deletion permissions");
+    expect(text).toContain(
+      "**Project Owner**, billing or project-deletion permissions",
+    );
     expect(text).toContain("such as the owners' team");
     expect(text).toContain("**Only what your plan includes.**");
     expect(text).toContain("refused with the plan it needs");
@@ -120,7 +124,9 @@ describe("the upgrade notes say what changes", () => {
   const text: string = section(page, heading);
 
   test("in the notes for 14, before the edition checks", () => {
-    const fourteen: number = page.indexOf("## Upgrading from OneUptime 13 → 14");
+    const fourteen: number = page.indexOf(
+      "## Upgrading from OneUptime 13 → 14",
+    );
     const here: number = page.indexOf(heading);
     const verify: number = page.indexOf(
       "### Verify the edition and the license",
@@ -134,7 +140,9 @@ describe("the upgrade notes say what changes", () => {
   test("what an existing workflow meets, and how to find what it refused", () => {
     expect(text).toContain("used to act as OneUptime itself");
     expect(text).toContain("What changes for an existing workflow:");
-    expect(text).toContain("look over your workflows' **Runs** for refused steps");
+    expect(text).toContain(
+      "look over your workflows' **Runs** for refused steps",
+    );
     expect(text).toContain(LINK);
   });
 
@@ -146,7 +154,9 @@ describe("the upgrade notes say what changes", () => {
 
   test("the audit log columns and chat actions", () => {
     expect(text).toContain("`workflowId` and `workflowName`");
-    expect(text).toContain("Slack and Microsoft Teams actions are held to the project's plan too");
+    expect(text).toContain(
+      "Slack and Microsoft Teams actions are held to the project's plan too",
+    );
   });
 });
 
@@ -156,7 +166,11 @@ describe("every language's Configuration page has the section", () => {
     expect(LOCALES).toContain("en");
   });
 
-  test.each(LOCALES.filter((locale: string) => locale !== "en"))(
+  test.each(
+    LOCALES.filter((locale: string) => {
+      return locale !== "en";
+    }),
+  )(
     "%s: a section on Project Admin steps, just before the plan limits",
     (locale: string) => {
       const page: string = read(locale, CONFIGURATION);

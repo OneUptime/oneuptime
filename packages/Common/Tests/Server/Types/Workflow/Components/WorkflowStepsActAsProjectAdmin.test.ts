@@ -431,9 +431,8 @@ describe("Update One and Update Many", () => {
     projectPlan = PlanType.Free;
 
     const { service, permitted } = stopBeforeUpdate(Label);
-    const component: UpdateManyBaseModel<Label> = new UpdateManyBaseModel<Label>(
-      service,
-    );
+    const component: UpdateManyBaseModel<Label> =
+      new UpdateManyBaseModel<Label>(service);
 
     const step: StepRun = await run(component, {
       query: { name: "payments" },

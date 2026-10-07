@@ -1,4 +1,4 @@
-import {
+import ComponentCode, {
   RunOptions,
   RunReturnType,
 } from "../../../../../Server/Types/Workflow/ComponentCode";
@@ -12,7 +12,6 @@ import UpdateManyBaseModel from "../../../../../Server/Types/Workflow/Components
 import UpdateOneBaseModel from "../../../../../Server/Types/Workflow/Components/BaseModel/UpdateOneBaseModel";
 import DatabaseService from "../../../../../Server/Services/DatabaseService";
 import ProjectService from "../../../../../Server/Services/ProjectService";
-import ComponentCode from "../../../../../Server/Types/Workflow/ComponentCode";
 import Monitor from "../../../../../Models/DatabaseModels/Monitor";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { PlanType } from "../../../../../Types/Billing/SubscriptionPlan";

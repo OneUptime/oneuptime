@@ -288,8 +288,10 @@ export default class ModelPermission {
         model.getColumnBillingAccessControl(key);
 
       if (IsBillingEnabled && billingAccessControl) {
-        const requiredPlan: PlanType | undefined =
-          PlanGates.getColumnPlan(billingAccessControl, requestType);
+        const requiredPlan: PlanType | undefined = PlanGates.getColumnPlan(
+          billingAccessControl,
+          requestType,
+        );
 
         if (!requiredPlan) {
           continue;
@@ -1591,8 +1593,10 @@ export default class ModelPermission {
 
     const model: BaseModel = new modelType();
 
-    const requiredPlan: PlanType | undefined =
-      PlanGates.getAnalyticsTablePlan(model, type);
+    const requiredPlan: PlanType | undefined = PlanGates.getAnalyticsTablePlan(
+      model,
+      type,
+    );
 
     /*
      * Props that act in a project but carry no plan are never read as "any
@@ -1608,7 +1612,10 @@ export default class ModelPermission {
       return;
     }
 
-    if (props.isSubscriptionUnpaid && !model.allowAccessIfSubscriptionIsUnpaid) {
+    if (
+      props.isSubscriptionUnpaid &&
+      !model.allowAccessIfSubscriptionIsUnpaid
+    ) {
       throw new PaymentRequiredException(
         "Your current subscription is in an unpaid state. Looks like your payment method failed. Please add a new payment method in Project Settings > Invoices to pay unpaid invoices.",
       );
@@ -1623,7 +1630,9 @@ export default class ModelPermission {
       )
     ) {
       throw new PaymentRequiredException(
-        "Please upgrade your plan to " + requiredPlan + " to access this feature",
+        "Please upgrade your plan to " +
+          requiredPlan +
+          " to access this feature",
       );
     }
   }

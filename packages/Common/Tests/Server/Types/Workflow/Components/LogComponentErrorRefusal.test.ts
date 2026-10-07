@@ -74,7 +74,9 @@ describe("describeRefusal", () => {
         message,
         stepTitle: STEP,
       }),
-    ).toContain(`"${STEP}" was refused. Workflow steps can do what a Project Admin`);
+    ).toContain(
+      `"${STEP}" was refused. Workflow steps can do what a Project Admin`,
+    );
   });
 
   test("any other failure is no refusal", () => {

@@ -208,9 +208,8 @@ describe("withPlan", () => {
       return { plan: PlanType.Scale, isSubscriptionUnpaid: true };
     });
 
-    const withPlan: DatabaseCommonInteractionProps = await CallerPlan.withPlan(
-      memberProps(),
-    );
+    const withPlan: DatabaseCommonInteractionProps =
+      await CallerPlan.withPlan(memberProps());
 
     expect(withPlan.currentPlan).toBe(PlanType.Scale);
     expect(withPlan.isSubscriptionUnpaid).toBe(true);
@@ -259,9 +258,8 @@ describe("withPlan", () => {
       return { plan: null, isSubscriptionUnpaid: false };
     });
 
-    const withPlan: DatabaseCommonInteractionProps = await CallerPlan.withPlan(
-      memberProps(),
-    );
+    const withPlan: DatabaseCommonInteractionProps =
+      await CallerPlan.withPlan(memberProps());
 
     expect(withPlan.currentPlan).toBeUndefined();
     expect(CallerPlan.isPlanMissing(withPlan)).toBe(true);

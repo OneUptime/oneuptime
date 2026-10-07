@@ -133,7 +133,10 @@ export default class PlanGates {
       return (
         values[key] !== undefined &&
         !PlanGates.isMetByEveryPlan(
-          PlanGates.getColumnPlan(model.getColumnBillingAccessControl(key), type),
+          PlanGates.getColumnPlan(
+            model.getColumnBillingAccessControl(key),
+            type,
+          ),
         )
       );
     });

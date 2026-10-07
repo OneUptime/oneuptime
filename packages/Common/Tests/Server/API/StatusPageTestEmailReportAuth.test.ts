@@ -492,12 +492,10 @@ describe("POST /status-page/test-email-report authorization", () => {
     jest
       .spyOn(ProjectService, "updateLastActive")
       .mockResolvedValue(undefined as never);
-    jest
-      .spyOn(ProjectService, "getCurrentPlan")
-      .mockResolvedValue({
-        plan: PlanType.Enterprise,
-        isSubscriptionUnpaid: false,
-      });
+    jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+      plan: PlanType.Enterprise,
+      isSubscriptionUnpaid: false,
+    });
 
     // Ownership lookups made by the Owned permission scope.
     jest

@@ -213,18 +213,18 @@ describe("PlanGates: which reads and writes a plan decides", () => {
 
   test("a table's plan decides the operations it names one for", () => {
     // Label: Growth to create and change, Free to read and delete.
-    expect(PlanGates.isPlanAtStake(new Label(), DatabaseRequestType.Create)).toBe(
-      true,
-    );
-    expect(PlanGates.isPlanAtStake(new Label(), DatabaseRequestType.Update)).toBe(
-      true,
-    );
+    expect(
+      PlanGates.isPlanAtStake(new Label(), DatabaseRequestType.Create),
+    ).toBe(true);
+    expect(
+      PlanGates.isPlanAtStake(new Label(), DatabaseRequestType.Update),
+    ).toBe(true);
     expect(PlanGates.isPlanAtStake(new Label(), DatabaseRequestType.Read)).toBe(
       false,
     );
-    expect(PlanGates.isPlanAtStake(new Label(), DatabaseRequestType.Delete)).toBe(
-      false,
-    );
+    expect(
+      PlanGates.isPlanAtStake(new Label(), DatabaseRequestType.Delete),
+    ).toBe(false);
   });
 
   test("a table that names no plan, written without a paid column, needs none", () => {
@@ -270,7 +270,10 @@ describe("PlanGates: which reads and writes a plan decides", () => {
 
   test("an analytics table's plan decides as a database table's does", () => {
     expect(
-      PlanGates.isAnalyticsPlanAtStake(new AuditLog(), DatabaseRequestType.Read),
+      PlanGates.isAnalyticsPlanAtStake(
+        new AuditLog(),
+        DatabaseRequestType.Read,
+      ),
     ).toBe(true);
     expect(
       PlanGates.isAnalyticsPlanAtStake(new Log(), DatabaseRequestType.Read),
@@ -292,7 +295,11 @@ describe("BillingPermissions: a table's plan, for props with no plan", () => {
   });
 
   test.each([
-    ["the table's plan for it is Free", TeamComplianceSetting, DatabaseRequestType.Read],
+    [
+      "the table's plan for it is Free",
+      TeamComplianceSetting,
+      DatabaseRequestType.Read,
+    ],
     ["the table names no plan", Monitor, DatabaseRequestType.Create],
     [
       "a project may still read what it has below the plan",
@@ -431,7 +438,10 @@ describe("ColumnPermissions: a column's plan, for props with no plan", () => {
     setTestBillingEnabled(false);
 
     expect(
-      checkColumns({ customCSS: "body { color: #111827; }" }, ownerWithoutPlan()),
+      checkColumns(
+        { customCSS: "body { color: #111827; }" },
+        ownerWithoutPlan(),
+      ),
     ).toBeNull();
   });
 

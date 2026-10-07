@@ -142,12 +142,12 @@ describe("the permissions", () => {
   test("are a Project Admin's", () => {
     const held: HeldPermissions = heldBy(principal());
 
-    expect(HeldPermissionsUtil.isGrantedAny(held, [Permission.ProjectAdmin])).toBe(
-      true,
-    );
-    expect(HeldPermissionsUtil.isGrantedAny(held, [Permission.ProjectUser])).toBe(
-      true,
-    );
+    expect(
+      HeldPermissionsUtil.isGrantedAny(held, [Permission.ProjectAdmin]),
+    ).toBe(true);
+    expect(
+      HeldPermissionsUtil.isGrantedAny(held, [Permission.ProjectUser]),
+    ).toBe(true);
     expect(WorkflowPrincipal.PERMISSION).toBe(Permission.ProjectAdmin);
   });
 
@@ -226,9 +226,8 @@ describe("the principal", () => {
   });
 
   test("reads the files its project may see, as any caller does", () => {
-    const reader: RelatedFileReader | null = RelatedFileAccess.getReader(
-      principal(),
-    );
+    const reader: RelatedFileReader | null =
+      RelatedFileAccess.getReader(principal());
 
     expect(reader).not.toBeNull();
     expect(
@@ -323,14 +322,12 @@ describe("every step", () => {
         workflowId: WORKFLOW_ID,
       });
 
-    first.userTenantAccessPermission![PROJECT_ID.toString()]!.permissions.push(
-      {
-        permission: Permission.ProjectOwner,
-        labelIds: [],
-        isBlockPermission: false,
-        _type: "UserPermission",
-      },
-    );
+    first.userTenantAccessPermission![PROJECT_ID.toString()]!.permissions.push({
+      permission: Permission.ProjectOwner,
+      labelIds: [],
+      isBlockPermission: false,
+      _type: "UserPermission",
+    });
     first.isRoot = true;
 
     const second: DatabaseCommonInteractionProps =
