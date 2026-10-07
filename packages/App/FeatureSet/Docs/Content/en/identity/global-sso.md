@@ -50,6 +50,12 @@ Configuring a global provider does not force anyone to use it; password login st
 - **Per project:** a project can require SSO, and optionally require a _specific_ provider (project or global). See [Requiring SSO for Your Project](/docs/identity/sso#requiring-sso-for-your-project).
 - **Instance-wide:** **Admin** > **Settings** > **Authentication** has a **Require SSO for Login** switch that forces SSO for every user across the instance. It asks you to confirm before it turns on, and saves as soon as you do. Master admins remain exempt so they cannot be locked out.
 
+## Turning a provider off or deleting it
+
+Turning a global provider off, deleting it, or restricting it to its attached projects ends the sign-ins it gave where it no longer signs people in. Where SSO is required, people who signed in with it have to sign in with SSO again at their next request, and the pages they have open stop receiving live updates at once.
+
+A new certificate or client secret, other URLs or a new name keep everyone signed in.
+
 ## Related
 
 - [SSO (Project SSO)](/docs/identity/sso)

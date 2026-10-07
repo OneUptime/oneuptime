@@ -7,10 +7,12 @@ import {
   globalProviderCacheKey,
   globalSsoAttachmentsCache,
   globalSsoProviderTrustCache,
+  isAnyAttachedProviderRestricted,
   loadAttachmentsOnce,
   loadTrustOnce,
 } from "../../../Server/Utils/GlobalSsoAuthorization";
 import ObjectID from "../../../Types/ObjectID";
+import type { Mock } from "jest-mock";
 import {
   afterEach,
   beforeEach,
@@ -1397,5 +1399,116 @@ describe("GLOBAL_SSO_AUTHORIZATION_CACHE_TTL_MS", () => {
      */
     expect(GLOBAL_SSO_AUTHORIZATION_CACHE_TTL_MS).toBe(60_000);
     expect(GLOBAL_SSO_AUTHORIZATION_CACHE_TTL_MS).toBe(60 * 1000);
+  });
+});
+
+/*
+ * Whether an attachment write changes who its providers sign in: only a
+ * provider that is on and restricted to its attached projects reads its
+ * attachments. One that cannot be named or read counts as restricted.
+ */
+describe("isAnyAttachedProviderRestricted", () => {
+  const RESTRICTED_ID: ObjectID = new ObjectID(
+    "44444444-4444-4444-8444-444444444444",
+  );
+  const OPEN_ID: ObjectID = new ObjectID(
+    "55555555-5555-4555-8555-555555555555",
+  );
+  const OFF_ID: ObjectID = new ObjectID("66666666-6666-4666-8666-666666666666");
+
+  const answers: Map<string, GlobalProviderTrust> = new Map([
+    [
+      RESTRICTED_ID.toString(),
+      { isUsable: true, restrictToAttachedProjects: true },
+    ],
+    [OPEN_ID.toString(), { isUsable: true, restrictToAttachedProjects: false }],
+    [OFF_ID.toString(), { isUsable: false, restrictToAttachedProjects: true }],
+  ]);
+
+  function trustReader(): Mock<
+    (providerId: ObjectID) => Promise<GlobalProviderTrust>
+  > {
+    return jest.fn(
+      async (providerId: ObjectID): Promise<GlobalProviderTrust> => {
+        const answer: GlobalProviderTrust | undefined = answers.get(
+          providerId.toString(),
+        );
+
+        if (!answer) {
+          throw new Error("No such provider in this test");
+        }
+
+        return answer;
+      },
+    );
+  }
+
+  test("no provider at all changes nobody", async () => {
+    const getProviderTrust: Mock<
+      (providerId: ObjectID) => Promise<GlobalProviderTrust>
+    > = trustReader();
+
+    await expect(
+      isAnyAttachedProviderRestricted({ providerIds: [], getProviderTrust }),
+    ).resolves.toBe(false);
+    expect(getProviderTrust).not.toHaveBeenCalled();
+  });
+
+  test("a provider on and restricted to its attached projects counts", async () => {
+    await expect(
+      isAnyAttachedProviderRestricted({
+        providerIds: [RESTRICTED_ID],
+        getProviderTrust: trustReader(),
+      }),
+    ).resolves.toBe(true);
+  });
+
+  test("a provider that signs people in to every project, or is off, does not", async () => {
+    await expect(
+      isAnyAttachedProviderRestricted({
+        providerIds: [OPEN_ID, OFF_ID],
+        getProviderTrust: trustReader(),
+      }),
+    ).resolves.toBe(false);
+  });
+
+  test("a provider that cannot be named counts, without a read", async () => {
+    const getProviderTrust: Mock<
+      (providerId: ObjectID) => Promise<GlobalProviderTrust>
+    > = trustReader();
+
+    await expect(
+      isAnyAttachedProviderRestricted({
+        providerIds: [null],
+        getProviderTrust,
+      }),
+    ).resolves.toBe(true);
+    expect(getProviderTrust).not.toHaveBeenCalled();
+  });
+
+  test("a provider that cannot be read counts", async () => {
+    await expect(
+      isAnyAttachedProviderRestricted({
+        providerIds: [
+          OPEN_ID,
+          new ObjectID("77777777-7777-4777-8777-777777777777"),
+        ],
+        getProviderTrust: trustReader(),
+      }),
+    ).resolves.toBe(true);
+  });
+
+  test("each provider is asked once, however many attachments name it", async () => {
+    const getProviderTrust: Mock<
+      (providerId: ObjectID) => Promise<GlobalProviderTrust>
+    > = trustReader();
+
+    await expect(
+      isAnyAttachedProviderRestricted({
+        providerIds: [OPEN_ID, OPEN_ID, OFF_ID, OPEN_ID],
+        getProviderTrust,
+      }),
+    ).resolves.toBe(false);
+    expect(getProviderTrust).toHaveBeenCalledTimes(2);
   });
 });

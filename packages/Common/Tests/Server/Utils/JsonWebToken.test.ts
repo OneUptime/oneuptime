@@ -178,6 +178,94 @@ describe("JSONWebToken", () => {
     });
   });
 
+  /*
+   * decode reads when a token was issued (`iat`) from the claims whose
+   * signature it checks, so nothing has to read the token again - unchecked -
+   * to learn it.
+   */
+  describe("decode: when the token was issued", () => {
+    test("should carry the issue time, in milliseconds", () => {
+      const token: string = JSONWebToken.sign({
+        data: {
+          userId: userId,
+          email: email,
+          name: new Name("Test User"),
+          isMasterAdmin: false,
+          isGlobalLogin: false,
+        } as JSONWebTokenData,
+        expiresInSeconds: 300,
+      });
+
+      const issuedAtInSeconds: number = JSONWebToken.decodeJsonPayload(token)[
+        "iat"
+      ] as number;
+
+      expect(JSONWebToken.decode(token).issuedAtMs).toBe(
+        issuedAtInSeconds * 1000,
+      );
+    });
+
+    test("should carry it for a status page user's token too", () => {
+      const token: string = JSONWebToken.signJsonPayload(
+        {
+          userId: userId.toString(),
+          email: email.toString(),
+          statusPageId: ObjectID.generate().toString(),
+        },
+        300,
+      );
+
+      expect(JSONWebToken.decode(token).issuedAtMs).toBe(
+        (JSONWebToken.decodeJsonPayload(token)["iat"] as number) * 1000,
+      );
+    });
+
+    test("should leave it undefined for a token that does not say", () => {
+      const token: string = jwt.sign(
+        { userId: userId.toString(), email: email.toString() },
+        EncryptionSecret.toString(),
+        { noTimestamp: true },
+      );
+
+      expect(JSONWebToken.decode(token).issuedAtMs).toBeUndefined();
+    });
+
+    test("should check the signature once, and never read a token unchecked", () => {
+      const verify: jest.SpyInstance = jest.spyOn(jwt, "verify");
+      const unchecked: jest.SpyInstance = jest.spyOn(jwt, "decode");
+      const token: string = JSONWebToken.signJsonPayload(
+        { userId: userId.toString(), email: email.toString() },
+        300,
+      );
+
+      JSONWebToken.decode(token);
+
+      expect(verify).toHaveBeenCalledTimes(1);
+      expect(unchecked).not.toHaveBeenCalled();
+      verify.mockRestore();
+      unchecked.mockRestore();
+    });
+
+    test("should not sign a decoded token's issue time into a new token", () => {
+      const first: string = JSONWebToken.signJsonPayload(
+        { userId: userId.toString(), email: email.toString() },
+        300,
+      );
+
+      const second: string = JSONWebToken.sign({
+        data: JSONWebToken.decode(first),
+        expiresInSeconds: 300,
+      });
+
+      expect(
+        Object.prototype.hasOwnProperty.call(
+          JSONWebToken.decodeJsonPayload(second),
+          "issuedAtMs",
+        ),
+      ).toBe(false);
+    });
+  });
+
   describe("signWithPrivateKey", () => {
     test("should sign with RS256 and be verifiable with the public key", () => {
       const { privateKey, publicKey } = generateKeyPairSync("rsa", {

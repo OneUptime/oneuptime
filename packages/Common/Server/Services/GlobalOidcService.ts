@@ -10,7 +10,9 @@ import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import {
   GLOBAL_SSO_AUTHORIZATION_CACHE_TTL_MS,
   GlobalProviderTrust,
+  announceGlobalSignInChange,
   clearGlobalSsoAuthorizationCaches,
+  isGlobalProviderNarrowing,
   globalProviderCacheKey,
   globalSsoProviderTrustCache,
   loadTrustOnce,
@@ -99,9 +101,22 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
-    _updatedItemIds: Array<ObjectID>,
+    updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
     clearGlobalSsoAuthorizationCaches();
+
+    /*
+     * Turned off, or restricted to its attached projects: the sign-ins it
+     * gave stop counting where it no longer signs people in, and the live
+     * updates already open are asked again on every server.
+     */
+    if (
+      updatedItemIds.length > 0 &&
+      isGlobalProviderNarrowing(onUpdate.updateBy.data)
+    ) {
+      announceGlobalSignInChange();
+    }
+
     return onUpdate;
   }
 
@@ -116,9 +131,15 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _itemIdsBeforeDelete: Array<ObjectID>,
+    itemIdsBeforeDelete: Array<ObjectID>,
   ): Promise<OnDelete<Model>> {
     clearGlobalSsoAuthorizationCaches();
+
+    // A deleted provider vouches for nobody: asked again on every server.
+    if (itemIdsBeforeDelete.length > 0) {
+      announceGlobalSignInChange();
+    }
+
     return onDelete;
   }
 

@@ -36,13 +36,19 @@ import GlobalOidcService from "../../../../Server/Services/GlobalOidcService";
 import GlobalSsoProjectService from "../../../../Server/Services/GlobalSsoProjectService";
 import GlobalSsoService from "../../../../Server/Services/GlobalSsoService";
 import { McpOAuthGrantSsoEvidence } from "../../../../Server/Services/McpOAuthGrantService";
+import ProjectOidcService from "../../../../Server/Services/ProjectOidcService";
 import ProjectService from "../../../../Server/Services/ProjectService";
+import ProjectSsoService from "../../../../Server/Services/ProjectSsoService";
 import CookieUtil from "../../../../Server/Utils/Cookie";
 import { ExpressRequest } from "../../../../Server/Utils/Express";
 import JSONWebToken from "../../../../Server/Utils/JsonWebToken";
 import McpOAuthSso, {
   McpOAuthSsoRequirement,
 } from "../../../../Server/Utils/Mcp/McpOAuthSso";
+import {
+  PROVIDER_NOT_FOUND,
+  ProjectSsoProviderStandingValue,
+} from "../../../../Server/Utils/ProjectSsoProviderStanding";
 import Email from "../../../../Types/Email";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
@@ -70,9 +76,10 @@ import jwt from "jsonwebtoken";
  *      So the tokens here are REAL (minted through CookieUtil, verified for
  *      real) and UserMiddleware's stateless checks run unmocked.
  *   3. A copy never outlives the original: it expires when the token would
- *      have, and a Global provider is re-checked against the database on
- *      every use - where "could not find out" is an error, never a refusal
- *      and never a pass.
+ *      have, and the provider that gave it - the project's own or a Global
+ *      one - is re-checked against the database on every use: a provider
+ *      turned off or deleted since vouches for nobody, and "could not find
+ *      out" is an error, never a refusal and never a pass.
  */
 
 type SpyInstance = ReturnType<typeof getJestSpyOn>;
@@ -99,6 +106,12 @@ const ONE_HOUR_MS: number = 60 * 60 * 1000;
 const GLOBAL_SSO_TOKEN_HEADER: string = "x-global-sso-token";
 
 const NOW: Date = new Date("2026-10-01T12:00:00.000Z");
+
+// A project's own provider that is on and was never turned off.
+const PROVIDER_ON: ProjectSsoProviderStandingValue = {
+  isOn: true,
+  signInsEndedAtMs: null,
+};
 
 const buildUser: (userId: ObjectID) => User = (userId: ObjectID): User => {
   const user: User = new User();
@@ -226,6 +239,8 @@ describe("McpOAuthSso", () => {
   let projectRequiredProvider: SpyInstance;
   let globalRequireSso: SpyInstance;
   let globalTokenAuthorized: SpyInstance;
+  let projectSsoStanding: SpyInstance;
+  let projectOidcStanding: SpyInstance;
 
   beforeEach(() => {
     projectRequireSso = getJestSpyOn(
@@ -250,6 +265,22 @@ describe("McpOAuthSso", () => {
       UserMiddleware,
       "isGlobalSsoTokenAuthorizedForProject",
     ).mockResolvedValue(true);
+
+    /*
+     * The other stateful question: whether a project's own provider still
+     * vouches for a sign-in it gave (there, the project's, on, and turned
+     * off no later than the sign-in). Default: on, never turned off. The
+     * real check (UserMiddleware.isProjectScopedSsoSignInAuthorizedForProject)
+     * runs against these two database reads.
+     */
+    projectSsoStanding = getJestSpyOn(
+      ProjectSsoService,
+      "getSignInStanding",
+    ).mockResolvedValue(PROVIDER_ON);
+    projectOidcStanding = getJestSpyOn(
+      ProjectOidcService,
+      "getSignInStanding",
+    ).mockResolvedValue(PROVIDER_ON);
   });
 
   afterEach(() => {
@@ -523,10 +554,83 @@ describe("McpOAuthSso", () => {
         expect(evidence!.ssoProviderType).toBe(SsoProviderType.ProjectOIDC);
       });
 
-      test("needs no database: the project's own token is decided statelessly", async () => {
+      test("asks the provider that gave it, for this project - never the Global path", async () => {
         await capture(requestWithProjectToken(mintProjectToken()));
 
+        expect(projectSsoStanding).toHaveBeenCalledTimes(1);
+
+        const asked: { providerId: ObjectID; projectId: ObjectID } =
+          projectSsoStanding.mock.calls[0]![0] as {
+            providerId: ObjectID;
+            projectId: ObjectID;
+          };
+
+        expect(asked.providerId.toString()).toBe(PROVIDER_ID.toString());
+        expect(asked.projectId.toString()).toBe(PROJECT_ID.toString());
+        expect(projectOidcStanding).not.toHaveBeenCalled();
         expect(globalTokenAuthorized).not.toHaveBeenCalled();
+      });
+
+      test("a project OIDC sign-in asks the OIDC provider, not a SAML one of the same id", async () => {
+        await capture(
+          requestWithProjectToken(
+            mintProjectToken({ providerType: SsoProviderType.ProjectOIDC }),
+          ),
+        );
+
+        expect(projectOidcStanding).toHaveBeenCalledTimes(1);
+        expect(projectSsoStanding).not.toHaveBeenCalled();
+      });
+
+      test("a sign-in whose provider has been turned off is no evidence", async () => {
+        projectSsoStanding.mockResolvedValue({
+          isOn: false,
+          signInsEndedAtMs: Date.now() - ONE_HOUR_MS,
+        });
+
+        await expect(
+          capture(requestWithProjectToken(mintProjectToken())),
+        ).resolves.toBeNull();
+      });
+
+      test("a sign-in whose provider has been deleted is no evidence", async () => {
+        projectSsoStanding.mockResolvedValue(PROVIDER_NOT_FOUND);
+
+        await expect(
+          capture(requestWithProjectToken(mintProjectToken())),
+        ).resolves.toBeNull();
+      });
+
+      test("a sign-in given before its provider was last turned off is no evidence, though the provider is on again", async () => {
+        const token: string = mintProjectToken();
+
+        projectSsoStanding.mockResolvedValue({
+          isOn: true,
+          // Turned off a minute after this sign-in, and on again since.
+          signInsEndedAtMs: Date.now() + 60 * 1000,
+        });
+
+        await expect(capture(requestWithProjectToken(token))).resolves.toBe(
+          null,
+        );
+
+        // A sign-in the provider gave after it was turned off counts.
+        projectSsoStanding.mockResolvedValue({
+          isOn: true,
+          signInsEndedAtMs: Date.now() - ONE_HOUR_MS,
+        });
+
+        await expect(
+          capture(requestWithProjectToken(token)),
+        ).resolves.not.toBeNull();
+      });
+
+      test("'could not find out' about the provider is an error, not a missing sign-in", async () => {
+        projectSsoStanding.mockRejectedValue(new Error("database unavailable"));
+
+        await expect(
+          capture(requestWithProjectToken(mintProjectToken())),
+        ).rejects.toThrow("database unavailable");
       });
 
       test("is read from the x-sso-tokens header too (the mobile flow)", async () => {
@@ -548,21 +652,17 @@ describe("McpOAuthSso", () => {
         expect(evidence!.expiresAt.getTime()).toBe(expiryOf(token).getTime());
       });
 
-      test("a legacy token with no provider fields is recorded as a project SSO sign-in with no provider", async () => {
+      test("a token that names no provider is no evidence: no provider can vouch for it", async () => {
         const token: string = mintProjectToken({
           providerId: undefined,
           providerType: undefined,
         });
 
-        const evidence: McpOAuthGrantSsoEvidence | null = await capture(
-          requestWithProjectToken(token),
-        );
-
-        expect(evidence).toEqual({
-          ssoProviderType: SsoProviderType.ProjectSSO,
-          ssoProviderId: null,
-          expiresAt: expiryOf(token),
-        });
+        await expect(
+          capture(requestWithProjectToken(token)),
+        ).resolves.toBeNull();
+        expect(projectSsoStanding).not.toHaveBeenCalled();
+        expect(projectOidcStanding).not.toHaveBeenCalled();
       });
 
       test("a legacy token does NOT satisfy a project that pins a specific provider", async () => {
@@ -692,17 +792,15 @@ describe("McpOAuthSso", () => {
         ).resolves.toBeNull();
       });
 
-      test("a provider id that is not a UUID is recorded as no provider", async () => {
+      test("a provider id that is not a UUID is no evidence: no provider can vouch for it", async () => {
         const token: string = mintCustomToken(
           projectTokenPayload({ ssoProviderId: "not-a-uuid" }),
         );
 
-        const evidence: McpOAuthGrantSsoEvidence | null = await capture(
-          requestWithProjectToken(token),
-        );
-
-        expect(evidence!.ssoProviderId).toBeNull();
-        expect(evidence!.ssoProviderType).toBe(SsoProviderType.ProjectSSO);
+        await expect(
+          capture(requestWithProjectToken(token)),
+        ).resolves.toBeNull();
+        expect(projectSsoStanding).not.toHaveBeenCalled();
       });
 
       test("a Global-typed token sitting in the per-project cookie is not taken as a project sign-in", async () => {
@@ -902,6 +1000,65 @@ describe("McpOAuthSso", () => {
           PROVIDER_ID.toString(),
         );
         expect(globalTokenAuthorized).not.toHaveBeenCalled();
+      });
+
+      test("a project token whose provider was turned off falls through to a Global one that is still on", async () => {
+        projectSsoStanding.mockResolvedValue({
+          isOn: false,
+          signInsEndedAtMs: null,
+        });
+
+        const evidence: McpOAuthGrantSsoEvidence | null = await capture(
+          buildRequest({
+            projectTokens: [
+              { projectId: PROJECT_ID, token: mintProjectToken() },
+            ],
+            globalCookieToken: mintGlobalToken({
+              providerId: OTHER_PROVIDER_ID,
+            }),
+          }),
+        );
+
+        expect(evidence!.ssoProviderType).toBe(SsoProviderType.GlobalSSO);
+        expect(globalTokenAuthorized).toHaveBeenCalledTimes(1);
+      });
+
+      test("a project token whose provider cannot be looked up gives way to a Global one that is still on", async () => {
+        projectSsoStanding.mockRejectedValue(new Error("database unavailable"));
+
+        const evidence: McpOAuthGrantSsoEvidence | null = await capture(
+          buildRequest({
+            projectTokens: [
+              { projectId: PROJECT_ID, token: mintProjectToken() },
+            ],
+            globalCookieToken: mintGlobalToken({
+              providerId: OTHER_PROVIDER_ID,
+            }),
+          }),
+        );
+
+        expect(evidence!.ssoProviderType).toBe(SsoProviderType.GlobalSSO);
+        expect(evidence!.ssoProviderId?.toString()).toBe(
+          OTHER_PROVIDER_ID.toString(),
+        );
+      });
+
+      test("with a Global one that is no longer authorized, the failed lookup is the answer: an error", async () => {
+        projectSsoStanding.mockRejectedValue(new Error("database unavailable"));
+        globalTokenAuthorized.mockResolvedValue(false as never);
+
+        await expect(
+          capture(
+            buildRequest({
+              projectTokens: [
+                { projectId: PROJECT_ID, token: mintProjectToken() },
+              ],
+              globalCookieToken: mintGlobalToken({
+                providerId: OTHER_PROVIDER_ID,
+              }),
+            }),
+          ),
+        ).rejects.toThrow("database unavailable");
       });
 
       test("a project token that does not satisfy the pin falls through to a Global one that does", async () => {
@@ -1125,21 +1282,103 @@ describe("McpOAuthSso", () => {
         SsoProviderType.ProjectOIDC,
       ];
 
+      // When the grant was made: its sign-in was given no later.
+      const CAPTURED_AT: Date = new Date(NOW.getTime() - 2 * ONE_HOUR_MS);
+
       test.each(projectTypes)(
-        "%s evidence is decided statelessly, as the token is: the database is not asked",
+        "%s evidence is asked about the provider that gave it, today, for this project - never as a Global one",
         async (ssoProviderType: SsoProviderType) => {
           await expect(
             satisfied(projectEvidence({ ssoProviderType })),
           ).resolves.toBe(true);
 
+          const standing: SpyInstance =
+            ssoProviderType === SsoProviderType.ProjectOIDC
+              ? projectOidcStanding
+              : projectSsoStanding;
+
+          expect(standing).toHaveBeenCalledTimes(1);
+
+          const asked: { providerId: ObjectID; projectId: ObjectID } = standing
+            .mock.calls[0]![0] as {
+            providerId: ObjectID;
+            projectId: ObjectID;
+          };
+
+          expect(asked.providerId.toString()).toBe(PROVIDER_ID.toString());
+          expect(asked.projectId.toString()).toBe(PROJECT_ID.toString());
           expect(globalTokenAuthorized).not.toHaveBeenCalled();
         },
       );
 
-      test("with no provider recorded it satisfies 'any provider'", async () => {
+      test.each(projectTypes)(
+        "%s evidence is refused once its provider is turned off or deleted",
+        async (ssoProviderType: SsoProviderType) => {
+          const standing: SpyInstance =
+            ssoProviderType === SsoProviderType.ProjectOIDC
+              ? projectOidcStanding
+              : projectSsoStanding;
+
+          standing.mockResolvedValue({ isOn: false, signInsEndedAtMs: null });
+
+          await expect(
+            satisfied(projectEvidence({ ssoProviderType })),
+          ).resolves.toBe(false);
+
+          standing.mockResolvedValue(PROVIDER_NOT_FOUND);
+
+          await expect(
+            satisfied(projectEvidence({ ssoProviderType })),
+          ).resolves.toBe(false);
+        },
+      );
+
+      test("a provider turned off after the grant was made refuses it, even once it is on again", async () => {
+        projectSsoStanding.mockResolvedValue({
+          isOn: true,
+          signInsEndedAtMs: CAPTURED_AT.getTime() + 60 * 1000,
+        });
+
+        await expect(
+          satisfied(projectEvidence({ capturedAt: CAPTURED_AT })),
+        ).resolves.toBe(false);
+      });
+
+      test("a provider turned off before the grant was made, and on again since, still satisfies it", async () => {
+        projectSsoStanding.mockResolvedValue({
+          isOn: true,
+          signInsEndedAtMs: CAPTURED_AT.getTime() - 60 * 1000,
+        });
+
+        await expect(
+          satisfied(projectEvidence({ capturedAt: CAPTURED_AT })),
+        ).resolves.toBe(true);
+      });
+
+      test("evidence that does not say when it was captured counts only for a provider never turned off", async () => {
+        await expect(satisfied(projectEvidence())).resolves.toBe(true);
+
+        projectSsoStanding.mockResolvedValue({
+          isOn: true,
+          signInsEndedAtMs: CAPTURED_AT.getTime(),
+        });
+
+        await expect(satisfied(projectEvidence())).resolves.toBe(false);
+      });
+
+      test("with no provider recorded it satisfies nothing: no provider can vouch for it", async () => {
         await expect(
           satisfied(projectEvidence({ ssoProviderId: null })),
-        ).resolves.toBe(true);
+        ).resolves.toBe(false);
+        expect(projectSsoStanding).not.toHaveBeenCalled();
+      });
+
+      test("a lookup that FAILS propagates: it is neither a refusal nor a pass", async () => {
+        projectSsoStanding.mockRejectedValue(new Error("database unavailable"));
+
+        await expect(satisfied(projectEvidence())).rejects.toThrow(
+          "database unavailable",
+        );
       });
     });
 

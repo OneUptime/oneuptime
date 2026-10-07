@@ -1171,6 +1171,42 @@ describe("MCP OAuth, end to end", () => {
       expect(refresh.status).toBe(400);
       expect(refresh.json.error).toBe("invalid_grant");
     });
+
+    it("stops when the provider the sign-in came from is turned off, and stays stopped when it is turned on again", async () => {
+      harness.setProjectSso(project, { required: true });
+      harness.signIn(member, {
+        cookies: harness.projectSsoCookie(member, project),
+      });
+
+      const connected: ConnectedClient = await connect();
+
+      const call: () => Promise<HttpResult> = (): Promise<HttpResult> => {
+        return harness.callTool(
+          "list_incidents",
+          {},
+          OAuthTestHarness.bearer(connected.accessToken),
+        );
+      };
+
+      expect((await call()).status).toBe(200);
+
+      harness.turnSsoProviderOff(OAuthTestHarness.SSO_PROVIDER_ID);
+
+      expectUnauthorized(await call());
+
+      // The grant was approved before the provider was turned off.
+      harness.turnSsoProviderOn(OAuthTestHarness.SSO_PROVIDER_ID);
+
+      expectUnauthorized(await call());
+
+      const refresh: HttpResult = await harness.refresh(
+        connected.clientId,
+        connected.refreshToken,
+      );
+
+      expect(refresh.status).toBe(400);
+      expect(refresh.json.error).toBe("invalid_grant");
+    });
   });
 
   describe("recording when a client was last used", () => {

@@ -1283,6 +1283,19 @@ describe("POST /mcp/oauth/token", () => {
       await expectRefusedAndDiscarded(issued);
     });
 
+    it("the provider the approval's SSO sign-in came from was turned off", async () => {
+      harness.setProjectSso(project, { required: true });
+      harness.signIn(member, {
+        cookies: harness.projectSsoCookie(member, project),
+      });
+
+      const issued: IssuedCode = await issueCode();
+
+      harness.turnSsoProviderOff(OAuthTestHarness.SSO_PROVIDER_ID);
+
+      await expectRefusedAndDiscarded(issued);
+    });
+
     it("nothing changed, and an SSO-required project's client collects its tokens", async () => {
       harness.setProjectSso(project, { required: true });
       harness.signIn(member, {

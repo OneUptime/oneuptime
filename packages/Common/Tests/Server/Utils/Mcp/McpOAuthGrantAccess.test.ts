@@ -112,6 +112,7 @@ type GrantFields = {
   ssoProviderType: SsoProviderType | undefined;
   ssoProviderId: ObjectID | undefined;
   ssoExpiresAt: Date | undefined;
+  createdAt: Date | undefined;
 };
 
 /*
@@ -135,6 +136,7 @@ const grantWith: (overrides?: Partial<GrantFields>) => McpOAuthGrant = (
     ssoProviderType: undefined,
     ssoProviderId: undefined,
     ssoExpiresAt: undefined,
+    createdAt: undefined,
     ...overrides,
   };
 
@@ -186,6 +188,10 @@ const grantWith: (overrides?: Partial<GrantFields>) => McpOAuthGrant = (
 
   if (fields.ssoExpiresAt) {
     grant.ssoExpiresAt = fields.ssoExpiresAt;
+  }
+
+  if (fields.createdAt) {
+    grant.createdAt = fields.createdAt;
   }
 
   return grant;
@@ -283,6 +289,7 @@ describe("McpOAuthGrantAccess", () => {
   let projectRequiredProvider: SpyInstance;
   let globalRequireSso: SpyInstance;
   let globalTokenAuthorized: SpyInstance;
+  let projectProviderAuthorized: SpyInstance;
 
   beforeEach(() => {
     McpOAuthGrantAccess.clearCache();
@@ -318,6 +325,15 @@ describe("McpOAuthGrantAccess", () => {
     globalTokenAuthorized = getJestSpyOn(
       UserMiddleware,
       "isGlobalSsoTokenAuthorizedForProject",
+    ).mockResolvedValue(true);
+    /*
+     * Whether the project's own provider still vouches for the sign-in the
+     * grant copied. Default: yes. The tests about it narrow the answer;
+     * McpOAuthSso.test runs it for real.
+     */
+    projectProviderAuthorized = getJestSpyOn(
+      UserMiddleware,
+      "isProjectScopedSsoSignInAuthorizedForProject",
     ).mockResolvedValue(true);
   });
 
@@ -1185,6 +1201,96 @@ describe("McpOAuthGrantAccess", () => {
         ).toBe(PROJECT_ID.toString());
       });
 
+      describe("evidence from the project's own provider", () => {
+        const capturedAt: Date = new Date(NOW.getTime() - 3 * ONE_HOUR_MS);
+
+        beforeEach(() => {
+          projectRequireSso.mockResolvedValue(true);
+        });
+
+        test("is re-checked against the provider today, with the grant's creation as the latest its sign-in was given", async () => {
+          expect(
+            (
+              await evaluate(
+                grantWith({ ...goodEvidence, createdAt: capturedAt }),
+              )
+            ).isAllowed,
+          ).toBe(true);
+
+          expect(projectProviderAuthorized).toHaveBeenCalledTimes(1);
+
+          const asked: {
+            ssoProviderType: SsoProviderType;
+            ssoProviderId: ObjectID | null;
+            issuedAtMs: number | null;
+            projectId: ObjectID;
+          } = projectProviderAuthorized.mock.calls[0]![0] as {
+            ssoProviderType: SsoProviderType;
+            ssoProviderId: ObjectID | null;
+            issuedAtMs: number | null;
+            projectId: ObjectID;
+          };
+
+          expect(asked.ssoProviderType).toBe(SsoProviderType.ProjectSSO);
+          expect(asked.ssoProviderId?.toString()).toBe(PROVIDER_ID.toString());
+          expect(asked.issuedAtMs).toBe(capturedAt.getTime());
+          expect(asked.projectId.toString()).toBe(PROJECT_ID.toString());
+          // A project's provider is never asked about as a Global one.
+          expect(globalTokenAuthorized).not.toHaveBeenCalled();
+        });
+
+        test("is refused once the provider is turned off or deleted, though the grant and its sign-in have not expired", async () => {
+          projectProviderAuthorized.mockResolvedValue(false);
+
+          expect(
+            refusalOf(
+              await evaluate(
+                grantWith({ ...goodEvidence, createdAt: capturedAt }),
+              ),
+            ),
+          ).toBe(McpOAuthGrantRefusal.SsoRequired);
+        });
+
+        test("a grant read without its creation date is asked about with no date: it counts only for a provider never turned off", async () => {
+          await evaluate(grantWith(goodEvidence));
+
+          expect(
+            (
+              projectProviderAuthorized.mock.calls[0]![0] as {
+                issuedAtMs: number | null;
+              }
+            ).issuedAtMs,
+          ).toBeNull();
+        });
+
+        test("'could not find out' is an error - never a refusal, never a pass", async () => {
+          projectProviderAuthorized.mockRejectedValue(
+            new Error("database unavailable"),
+          );
+
+          await expect(evaluate(grantWith(goodEvidence))).rejects.toThrow(
+            "database unavailable",
+          );
+        });
+
+        test("is not looked up at all when the project does not require SSO", async () => {
+          projectRequireSso.mockResolvedValue(false);
+
+          await evaluate(grantWith(goodEvidence));
+
+          expect(projectProviderAuthorized).not.toHaveBeenCalled();
+        });
+
+        test("a project pinned to another provider is refused before the provider is asked", async () => {
+          projectRequiredProvider.mockResolvedValue(OTHER_PROVIDER_ID);
+
+          expect(refusalOf(await evaluate(grantWith(goodEvidence)))).toBe(
+            McpOAuthGrantRefusal.SsoRequired,
+          );
+          expect(projectProviderAuthorized).not.toHaveBeenCalled();
+        });
+      });
+
       describe("evidence from an instance-wide (Global) provider", () => {
         const globalEvidence: Partial<GrantFields> = {
           ssoProviderType: SsoProviderType.GlobalOIDC,
@@ -1360,6 +1466,23 @@ describe("McpOAuthGrantAccess", () => {
         ssoProviderId: PROVIDER_ID,
         expiresAt: ssoExpiresAt,
       });
+    });
+
+    test("the grant's creation is when its sign-in was captured", () => {
+      const createdAt: Date = new Date(NOW.getTime() - ONE_DAY_MS);
+
+      const evidence: McpOAuthGrantSsoEvidence | null =
+        McpOAuthGrantAccess.getSsoEvidence(
+          grantWith({
+            ssoProviderType: SsoProviderType.ProjectOIDC,
+            ssoProviderId: PROVIDER_ID,
+            ssoExpiresAt: new Date(NOW.getTime() + ONE_DAY_MS),
+            createdAt: createdAt,
+          }),
+        );
+
+      expect(evidence!.capturedAt).toBeInstanceOf(Date);
+      expect(evidence!.capturedAt!.getTime()).toBe(createdAt.getTime());
     });
 
     test("no provider id on the grant is a null provider, not a missing key", () => {
