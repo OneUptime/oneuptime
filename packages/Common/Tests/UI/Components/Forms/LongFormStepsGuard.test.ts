@@ -1242,10 +1242,6 @@ describe("the project's forms", () => {
       `${DASHBOARD}/Pages/Incidents/Settings/IncidentPostmortemTemplates.tsx`,
       ["templateName", "templateDescription", "postmortemNote"],
     ],
-    [
-      `${DASHBOARD}/Pages/NetworkDevice/Settings/OidCollectionTemplates.tsx`,
-      ["name", "description", "oids"],
-    ],
   ])(
     "include %s: one page of its three fields",
     (file: string, keys: Array<string>) => {

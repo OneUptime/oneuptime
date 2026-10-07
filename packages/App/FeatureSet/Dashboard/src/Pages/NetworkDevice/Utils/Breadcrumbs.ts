@@ -28,6 +28,18 @@ export function getNetworkDeviceBreadcrumbs(
       "View Device",
       "Interfaces",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_VIEW_TABLES, [
+      "Project",
+      "Network",
+      "View Device",
+      "SNMP Tables",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_VIEW_WIFI, [
+      "Project",
+      "Network",
+      "View Device",
+      "Wi-Fi",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_VIEW_METRICS, [
       "Project",
       "Network",

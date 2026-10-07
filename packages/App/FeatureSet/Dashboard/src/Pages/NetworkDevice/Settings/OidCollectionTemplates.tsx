@@ -1,7 +1,10 @@
 import PageComponentProps from "../../PageComponentProps";
 import SnmpOidEditor from "../../../Components/Form/Monitor/SnmpMonitor/SnmpOidEditor";
+import SnmpTableEditor from "../../../Components/NetworkDevice/SnmpTableEditor";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import SnmpOid from "Common/Types/Monitor/SnmpMonitor/SnmpOid";
+import { SnmpTableDefinition } from "Common/Types/Monitor/SnmpMonitor/SnmpTable";
+import { MAX_TABLES_PER_TEMPLATE } from "Common/Types/Monitor/SnmpMonitor/SnmpTableListUtil";
 import {
   MAX_DEVICE_SPECIFIC_OIDS,
   MAX_EFFECTIVE_OIDS_PER_DEVICE,
@@ -63,6 +66,14 @@ Criteria alert on what is collected, and they are set on the monitor, not here. 
 - A device with no template keeps the full **${MAX_EFFECTIVE_OIDS_PER_DEVICE}** for its own list. The tighter device-specific budget is what linking costs, and it applies from the moment you link.
 
 Both caps are enforced when you save, which is what keeps the effective list a device polls at or below ${MAX_EFFECTIVE_OIDS_PER_DEVICE} OIDs. Split a bigger inventory across templates by device role — core routers, access switches, firewalls — rather than trying to carry every platform in one list.
+
+### SNMP Tables
+
+Some things a device keeps as a **list** rather than a value: one row per IPsec tunnel, Wi-Fi radio, SSID, routing neighbour, fan or power supply. Pinning a health OID to one row (\`…ConnStatus.3\`) collects whatever sits at row 3 that day; a **table** is defined by its columns instead, and every row is walked on every poll — tunnels that are added, renamed or removed are followed automatically.
+
+A table lists the **column OIDs** to collect and, optionally, the columns that **name each row** (a tunnel's connection name, a radio's band). Enumerations take **value labels** (\`0=inactive, 1=active\`) and the **healthy values** that mean "fine" (\`1\`), which colour the device's SNMP Tables tab and drive the **SNMP Table Row Is Unhealthy** criteria. Every numeric cell is recorded as a metric, and **SNMP Table Value** criteria compare a column row by row — with Row set to \`*\`, one alert per row.
+
+Up to **${MAX_TABLES_PER_TEMPLATE} tables per template**. The vendor templates for Sophos, Extreme (EXOS and Fabric Engine) and Cambium (Wi-Fi and cnMatrix) ship ready-made tables.
 
 ### Vendor Profiles
 
@@ -185,6 +196,35 @@ const NetworkDeviceOidCollectionTemplatesPage: FunctionComponent<
             type: FieldType.Text,
           },
           {
+            field: { tables: true },
+            title: "SNMP Tables",
+            type: FieldType.Element,
+            disableSort: true,
+            getElement: (item: NetworkDeviceOidTemplate): ReactElement => {
+              const tableCount: number = item.tables?.length || 0;
+
+              if (tableCount === 0) {
+                return (
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("No tables")}
+                  </span>
+                );
+              }
+
+              return (
+                <span className="text-sm text-gray-900">
+                  {translator.translatePlural(
+                    { one: "{{count}} table", other: "{{count}} tables" },
+                    tableCount,
+                  )}
+                </span>
+              );
+            },
+            getExportValue: (item: NetworkDeviceOidTemplate): string => {
+              return (item.tables?.length || 0).toString();
+            },
+          },
+          {
             field: { oids: true },
             title: "OIDs",
             type: FieldType.Element,
@@ -220,15 +260,21 @@ const NetworkDeviceOidCollectionTemplatesPage: FunctionComponent<
           },
         ]}
         /*
-         * One page: the name, the description and the OID list with its
-         * vendor-profile prefill. Three rows walk no steps
-         * (LongFormStepsGuard), and the list starts empty or from a profile
-         * picked right there.
+         * Three steps: what the template is, the OIDs it collects (with the
+         * vendor-profile prefill) and the SNMP tables it walks (with the
+         * vendor-tables prefill). Four rows walk steps (LongFormStepsGuard),
+         * and the two editors are each long enough to want a page.
          */
+        formSteps={[
+          { title: "Template", id: "template" },
+          { title: "OIDs", id: "oids" },
+          { title: "SNMP Tables", id: "tables" },
+        ]}
         formFields={[
           {
             field: { name: true },
             title: "Name",
+            stepId: "template",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Core Routers",
@@ -239,6 +285,7 @@ const NetworkDeviceOidCollectionTemplatesPage: FunctionComponent<
           {
             field: { description: true },
             title: "Description",
+            stepId: "template",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder:
@@ -247,6 +294,7 @@ const NetworkDeviceOidCollectionTemplatesPage: FunctionComponent<
           {
             field: { oids: true },
             title: "OIDs",
+            stepId: "oids",
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
             description: translator.translateTemplate(
@@ -264,6 +312,34 @@ const NetworkDeviceOidCollectionTemplatesPage: FunctionComponent<
                   }
                   onChange={(newOids: Array<SnmpOid>): void => {
                     elementProps.onChange?.(newOids);
+                  }}
+                />
+              );
+            },
+          },
+          {
+            field: { tables: true },
+            title: "SNMP Tables",
+            stepId: "tables",
+            fieldType: FormFieldSchemaType.CustomComponent,
+            required: false,
+            description: translator.translateTemplate(
+              "Lists the device keeps, walked whole on every poll - IPsec tunnels, Wi-Fi radios, routing neighbours, fans, power supplies. Up to {{max}} tables.",
+              { max: MAX_TABLES_PER_TEMPLATE },
+            ),
+            getCustomElement: (
+              values: FormValues<NetworkDeviceOidTemplate>,
+              elementProps: CustomElementProps,
+            ): ReactElement => {
+              return (
+                <SnmpTableEditor
+                  showVendorPrefill={true}
+                  value={
+                    (values.tables as Array<SnmpTableDefinition> | undefined) ||
+                    []
+                  }
+                  onChange={(tables: Array<SnmpTableDefinition>): void => {
+                    elementProps.onChange?.(tables);
                   }}
                 />
               );

@@ -17,6 +17,8 @@ import NetworkDeviceTopology from "../Pages/NetworkDevice/Topology";
 import NetworkDeviceLatencyMatrix from "../Pages/NetworkDevice/LatencyMatrix";
 import NetworkDeviceOverview from "../Pages/NetworkDevice/View/Index";
 import NetworkDeviceInterfaces from "../Pages/NetworkDevice/View/Interfaces";
+import NetworkDeviceTables from "../Pages/NetworkDevice/View/Tables";
+import NetworkDeviceWiFi from "../Pages/NetworkDevice/View/WiFi";
 import NetworkDeviceMetrics from "../Pages/NetworkDevice/View/Metrics";
 import NetworkDeviceTraffic from "../Pages/NetworkDevice/View/Traffic";
 import NetworkDeviceMonitors from "../Pages/NetworkDevice/View/Monitors";
@@ -316,6 +318,26 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.NETWORK_DEVICE_VIEW_INTERFACES] as Route
               }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.NETWORK_DEVICE_VIEW_TABLES)}
+          element={
+            <NetworkDeviceTables
+              {...props}
+              pageRoute={RouteMap[PageMap.NETWORK_DEVICE_VIEW_TABLES] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.NETWORK_DEVICE_VIEW_WIFI)}
+          element={
+            <NetworkDeviceWiFi
+              {...props}
+              pageRoute={RouteMap[PageMap.NETWORK_DEVICE_VIEW_WIFI] as Route}
             />
           }
         />

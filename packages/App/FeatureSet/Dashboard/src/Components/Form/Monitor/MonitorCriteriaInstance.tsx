@@ -3,6 +3,7 @@ import {
   NetworkDeviceCriteriaCatalogue,
   NetworkDeviceCriteriaCatalogueContext,
   NetworkDeviceOidCatalogueEntry,
+  NetworkDeviceTableCatalogueEntry,
 } from "./CriteriaFilter";
 import MonitorCriteriaIncidentsForm from "./MonitorCriteriaIncidentsForm";
 import { IncidentRoleOption } from "./MonitorCriteriaIncidentForm";
@@ -71,6 +72,10 @@ export interface ComponentProps {
    */
   networkDeviceOidCatalogue?: Array<NetworkDeviceOidCatalogueEntry> | undefined;
   networkDeviceInterfaceNames?: Array<string> | undefined;
+  // The device's effective SNMP tables, for the table criteria pickers.
+  networkDeviceTableCatalogue?:
+    | Array<NetworkDeviceTableCatalogueEntry>
+    | undefined;
   isNetworkDeviceCatalogueLoaded?: boolean | undefined;
   value?: undefined | MonitorCriteriaInstance;
   onChange?: undefined | ((value: MonitorCriteriaInstance) => void);
@@ -112,11 +117,13 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
     useMemo((): NetworkDeviceCriteriaCatalogue => {
       return {
         oids: props.networkDeviceOidCatalogue || [],
+        tables: props.networkDeviceTableCatalogue || [],
         interfaceNames: props.networkDeviceInterfaceNames || [],
         isLoaded: props.isNetworkDeviceCatalogueLoaded === true,
       };
     }, [
       props.networkDeviceOidCatalogue,
+      props.networkDeviceTableCatalogue,
       props.networkDeviceInterfaceNames,
       props.isNetworkDeviceCatalogueLoaded,
     ]);
