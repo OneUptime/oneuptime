@@ -857,6 +857,16 @@ test.describe("the blog", () => {
       }),
     ).toEqual(["note", "pre", "diagram", "diagram", "pre"]);
 
+    // Set close above the block it is about.
+    const noteBox: { y: number; height: number } | null =
+      await note.boundingBox();
+    const codeBox: { y: number } | null = await codeBlock.boundingBox();
+    const gap: number =
+      (codeBox?.y || 0) - ((noteBox?.y || 0) + (noteBox?.height || 0));
+
+    expect(gap).toBeGreaterThanOrEqual(0);
+    expect(gap).toBeLessThanOrEqual(10);
+
     // mermaid's syntax error graphic is drawn nowhere.
     expect(await mermaidLeftovers(page)).toEqual([]);
     await expect(page.getByText(MERMAID_SYNTAX_ERROR)).toHaveCount(0);

@@ -532,11 +532,17 @@
                 color: #3b82f6;
             }
 
-            /* A diagram that could not be drawn: a short note above its code. */
+            /* A diagram that could not be drawn: a short note right above its code. */
             .blog-body .blog-diagram-note {
                 margin-bottom: 0;
                 font-size: 0.875rem;
                 color: #6b7280;
+            }
+
+            /* !important, like the code block margin it shortens. */
+            .blog-body .blog-diagram-note + pre,
+            .blog-body .blog-diagram-note + .mermaid {
+                margin-top: 0.5rem !important;
             }
 
             .blog-body .mermaid[data-diagram="source"] {
