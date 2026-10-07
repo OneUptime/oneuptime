@@ -59,9 +59,9 @@ describe("the SSO guide: turning a provider off or deleting it", () => {
     expect(page.indexOf("## Requiring SSO for Your Project")).toBeLessThan(
       page.indexOf("## Turning a provider off or deleting it"),
     );
-    expect(page.indexOf("## Turning a provider off or deleting it")).toBeLessThan(
-      page.indexOf("## Providers left below the Scale plan"),
-    );
+    expect(
+      page.indexOf("## Turning a provider off or deleting it"),
+    ).toBeLessThan(page.indexOf("## Providers left below the Scale plan"));
   });
 
   it("says turning a provider off or deleting it ends its sign-ins, on requests and live updates alike", () => {

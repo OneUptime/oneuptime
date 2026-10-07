@@ -1210,8 +1210,11 @@ describe("McpOAuthGrantAccess", () => {
 
         test("is re-checked against the provider today, with the grant's creation as the latest its sign-in was given", async () => {
           expect(
-            (await evaluate(grantWith({ ...goodEvidence, createdAt: capturedAt })))
-              .isAllowed,
+            (
+              await evaluate(
+                grantWith({ ...goodEvidence, createdAt: capturedAt }),
+              )
+            ).isAllowed,
           ).toBe(true);
 
           expect(projectProviderAuthorized).toHaveBeenCalledTimes(1);

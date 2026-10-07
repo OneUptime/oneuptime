@@ -199,16 +199,14 @@ export default class McpOAuthSso {
        * the sign-in was given before then
        * (UserMiddleware.isProjectScopedSsoSignInAuthorizedForProject).
        */
-      return await UserMiddleware.isProjectScopedSsoSignInAuthorizedForProject(
-        {
-          ssoProviderType: evidence.ssoProviderType,
-          ssoProviderId: evidence.ssoProviderId,
-          issuedAtMs: evidence.capturedAt
-            ? new Date(evidence.capturedAt).getTime()
-            : null,
-          projectId: data.projectId,
-        },
-      );
+      return await UserMiddleware.isProjectScopedSsoSignInAuthorizedForProject({
+        ssoProviderType: evidence.ssoProviderType,
+        ssoProviderId: evidence.ssoProviderId,
+        issuedAtMs: evidence.capturedAt
+          ? new Date(evidence.capturedAt).getTime()
+          : null,
+        projectId: data.projectId,
+      });
     }
 
     /*

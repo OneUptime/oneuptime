@@ -977,9 +977,9 @@ describe("isSsoSatisfiedForProject - the per-project token short-circuits", () =
     // Its own provider was asked, as SAML, for this project.
     expect(projectSsoStandingSpy).toHaveBeenCalledTimes(1);
     expect(projectOidcStandingSpy).not.toHaveBeenCalled();
-    expect(
-      projectSsoStandingSpy.mock.calls[0]![0].providerId.toString(),
-    ).toBe(providerId.toString());
+    expect(projectSsoStandingSpy.mock.calls[0]![0].providerId.toString()).toBe(
+      providerId.toString(),
+    );
     expect(projectSsoStandingSpy.mock.calls[0]![0].projectId.toString()).toBe(
       projectId.toString(),
     );

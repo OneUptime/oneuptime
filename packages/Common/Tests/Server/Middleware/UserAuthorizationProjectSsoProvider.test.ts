@@ -88,10 +88,7 @@ let oidcRows: Array<ProviderRow> = [];
 let samlReads: SpyInstance;
 let oidcReads: SpyInstance;
 
-const rowOf: (
-  rows: Array<ProviderRow>,
-  providerId: ObjectID,
-) => ProviderRow = (
+const rowOf: (rows: Array<ProviderRow>, providerId: ObjectID) => ProviderRow = (
   rows: Array<ProviderRow>,
   providerId: ObjectID,
 ): ProviderRow => {
@@ -297,10 +294,7 @@ beforeEach(() => {
       },
     ) as never,
   );
-  oidcReads = getJestSpyOn(
-    ProjectOidcService,
-    "findOneBy",
-  ).mockImplementation(
+  oidcReads = getJestSpyOn(ProjectOidcService, "findOneBy").mockImplementation(
     readFrom(
       (): Array<ProviderRow> => {
         return oidcRows;
@@ -567,18 +561,19 @@ describe("the API's project access check follows the provider", () => {
   beforeEach(() => {
     requireSsoFor = [PROJECT_ID.toString()];
 
-    getJestSpyOn(ProjectService, "getRequireSsoForLogin").mockImplementation((async (
-      projectId: ObjectID,
-    ): Promise<boolean> => {
-      return requireSsoFor.includes(projectId.toString());
-    }) as never);
+    getJestSpyOn(ProjectService, "getRequireSsoForLogin").mockImplementation(
+      (async (projectId: ObjectID): Promise<boolean> => {
+        return requireSsoFor.includes(projectId.toString());
+      }) as never,
+    );
     getJestSpyOn(
       ProjectService,
       "getRequireSsoWithSsoProviderId",
     ).mockResolvedValue(null as never);
-    getJestSpyOn(GlobalConfigService, "getRequireSsoForLogin").mockResolvedValue(
-      false as never,
-    );
+    getJestSpyOn(
+      GlobalConfigService,
+      "getRequireSsoForLogin",
+    ).mockResolvedValue(false as never);
     getJestSpyOn(
       AccessTokenService,
       "getUserTenantAccessPermission",
@@ -590,14 +585,17 @@ describe("the API's project access check follows the provider", () => {
     }) as never);
   });
 
-  const access: (token: string) => Promise<UserTenantAccessPermission | null> =
-    (token: string): Promise<UserTenantAccessPermission | null> => {
-      return UserMiddleware.getUserTenantAccessPermissionWithTenantId({
-        req: requestWith([{ projectId: PROJECT_ID, token: token }]),
-        tenantId: PROJECT_ID,
-        userId: USER_ID,
-      });
-    };
+  const access: (
+    token: string,
+  ) => Promise<UserTenantAccessPermission | null> = (
+    token: string,
+  ): Promise<UserTenantAccessPermission | null> => {
+    return UserMiddleware.getUserTenantAccessPermissionWithTenantId({
+      req: requestWith([{ projectId: PROJECT_ID, token: token }]),
+      tenantId: PROJECT_ID,
+      userId: USER_ID,
+    });
+  };
 
   test("a request signed in with a provider that is on gets the project", async () => {
     await expect(access(samlSignIn())).resolves.toEqual(PERMISSION);

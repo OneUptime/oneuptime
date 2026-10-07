@@ -622,265 +622,279 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe.each(KINDS)("a project's %s provider", (_label: string, kind: ProviderKind) => {
-  test("turning it off writes when its sign-ins ended, in the same write, and tells every server", async () => {
-    const before: number = Date.now();
+describe.each(KINDS)(
+  "a project's %s provider",
+  (_label: string, kind: ProviderKind) => {
+    test("turning it off writes when its sign-ins ended, in the same write, and tells every server", async () => {
+      const before: number = Date.now();
 
-    await expect(turnOff(kind)).resolves.toBe(1);
+      await expect(turnOff(kind)).resolves.toBe(1);
 
-    const after: number = Date.now();
+      const after: number = Date.now();
 
-    expect(kind.writes()).toHaveLength(1);
-    expect(kind.writes()[0]!.set["isEnabled"]).toBe(false);
+      expect(kind.writes()).toHaveLength(1);
+      expect(kind.writes()[0]!.set["isEnabled"]).toBe(false);
 
-    const endedAt: Date | null = signInsEndedAtOf(kind);
-    expect(endedAt).not.toBeNull();
-    expect(endedAt!.getTime()).toBeGreaterThanOrEqual(before);
-    expect(endedAt!.getTime()).toBeLessThanOrEqual(after);
+      const endedAt: Date | null = signInsEndedAtOf(kind);
+      expect(endedAt).not.toBeNull();
+      expect(endedAt!.getTime()).toBeGreaterThanOrEqual(before);
+      expect(endedAt!.getTime()).toBeLessThanOrEqual(after);
 
-    expect(projectAnnouncements()).toEqual([PROJECT_ID.toString()]);
-  });
-
-  test("turning it off forgets this server's answers about the project's providers at once", async () => {
-    await kind.service.getSignInStanding({
-      providerId: kind.id,
-      projectId: PROJECT_ID,
-    });
-    await expect(standingHeldFor(kind)).resolves.toBe(true);
-
-    await turnOff(kind);
-
-    await expect(standingHeldFor(kind)).resolves.toBe(false);
-    await expect(
-      kind.service.getSignInStanding({
-        providerId: kind.id,
-        projectId: PROJECT_ID,
-      }),
-    ).resolves.toEqual({
-      isOn: false,
-      signInsEndedAtMs: signInsEndedAtOf(kind)!.getTime(),
-    });
-  });
-
-  test("turning it on tells every server, and writes no time", async () => {
-    await expect(turnOn(kind, kind.secondId)).resolves.toBe(1);
-
-    expect(kind.writes()).toEqual([
-      { id: kind.secondId.toString(), set: { isEnabled: true } },
-    ]);
-    expect(projectAnnouncements()).toEqual([PROJECT_ID.toString()]);
-  });
-
-  test("turned off, then on: it keeps the time its sign-ins ended", async () => {
-    await turnOff(kind);
-    const endedAt: Date | null = signInsEndedAtOf(kind);
-
-    await turnOn(kind);
-
-    expect(rowOf(kind)!.isEnabled).toBe(true);
-    expect(signInsEndedAtOf(kind)).toEqual(endedAt);
-    expect(projectAnnouncements()).toEqual([
-      PROJECT_ID.toString(),
-      PROJECT_ID.toString(),
-    ]);
-  });
-
-  test("turning off a provider that is off already keeps the time it has and tells nobody", async () => {
-    const earlier: Date = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    rowOf(kind, kind.secondId)!["signInsEndedAt"] = earlier;
-
-    await turnOff(kind, kind.secondId);
-
-    expect(wroteSignInsEndedAt(kind)).toBe(false);
-    expect(signInsEndedAtOf(kind, kind.secondId)).toEqual(earlier);
-    expect(projectAnnouncements()).toEqual([]);
-  });
-
-  test("turning on a provider that is on already tells nobody", async () => {
-    await turnOn(kind);
-
-    expect(projectAnnouncements()).toEqual([]);
-  });
-
-  test("a new certificate or client secret, new addresses or a new name keep every sign-in it gave: nothing more is written, nobody is told", async () => {
-    await kind.service.getSignInStanding({
-      providerId: kind.id,
-      projectId: PROJECT_ID,
-    });
-
-    await expect(
-      kind.service.updateOneById({
-        id: kind.id,
-        data: {
-          ...kind.credential,
-          issuerURL: "https://idp.example.com/rotated",
-          name: "Renamed",
-        } as never,
-        props: ROOT,
-      }),
-    ).resolves.toBe(1);
-
-    expect(kind.writes()).toHaveLength(1);
-    expect(wroteSignInsEndedAt(kind)).toBe(false);
-    expect(Object.keys(kind.writes()[0]!.set)).not.toContain("isEnabled");
-    expect(rowOf(kind)!.isEnabled).toBe(true);
-    expect(projectAnnouncements()).toEqual([]);
-    // This server still holds its answer: nothing about any sign-in changed.
-    await expect(standingHeldFor(kind)).resolves.toBe(true);
-  });
-
-  test("deleting it while it is on tells every server", async () => {
-    await expect(remove(kind)).resolves.toBe(1);
-
-    expect(deleted).toEqual([kind.id.toString()]);
-    expect(projectAnnouncements()).toEqual([PROJECT_ID.toString()]);
-    await expect(
-      kind.service.getSignInStanding({
-        providerId: kind.id,
-        projectId: PROJECT_ID,
-      }),
-    ).resolves.toEqual({ isOn: false, signInsEndedAtMs: null });
-  });
-
-  test("deleting one that is off tells nobody: it gave no sign-in that still counts", async () => {
-    await expect(remove(kind, kind.secondId)).resolves.toBe(1);
-
-    expect(projectAnnouncements()).toEqual([]);
-  });
-
-  describe("a project that requires SSO keeps a way in", () => {
-    beforeEach(() => {
-      project = { requireSsoForLogin: true, requireSsoWithSsoProviderId: null };
-
-      // Only this provider is on: the project's others are off.
-      const other: ProviderKind = kind === SAML ? OIDC : SAML;
-      rowOf(other)!.isEnabled = false;
-    });
-
-    test("its last provider that is on cannot be turned off", async () => {
-      await expect(refusalOf(turnOff(kind))).resolves.toBe(
-        LAST_SSO_PROVIDER_MESSAGE,
-      );
-
-      expect(kind.writes()).toEqual([]);
-      expect(rowOf(kind)!.isEnabled).toBe(true);
-      expect(projectAnnouncements()).toEqual([]);
-    });
-
-    test("nor deleted", async () => {
-      await expect(refusalOf(remove(kind))).resolves.toBe(
-        LAST_SSO_PROVIDER_MESSAGE,
-      );
-
-      expect(deleted).toEqual([]);
-      expect(rowOf(kind)).toBeDefined();
-      expect(projectAnnouncements()).toEqual([]);
-    });
-
-    test("another of its providers of the same kind that is on lets it go", async () => {
-      rowOf(kind, kind.secondId)!.isEnabled = true;
-
-      await expect(refusalOf(turnOff(kind))).resolves.toBe("done");
-      expect(rowOf(kind)!.isEnabled).toBe(false);
-    });
-
-    test("a provider of the other kind that is on lets it go", async () => {
-      const other: ProviderKind = kind === SAML ? OIDC : SAML;
-      rowOf(other, other.secondId)!.isEnabled = true;
-
-      await expect(refusalOf(remove(kind))).resolves.toBe("done");
-      expect(rowOf(kind)).toBeUndefined();
-    });
-
-    test("a global SSO provider that signs people in to every project lets it go", async () => {
-      globalSsoProviders = [
-        { id: GLOBAL_SSO_ID, restrictToAttachedProjects: false, attachedTo: [] },
-      ];
-
-      await expect(refusalOf(turnOff(kind))).resolves.toBe("done");
-    });
-
-    test("a global OIDC provider restricted to its attached projects lets it go only when this project is attached", async () => {
-      globalOidcProviders = [
-        {
-          id: GLOBAL_OIDC_ID,
-          restrictToAttachedProjects: true,
-          attachedTo: [OTHER_PROJECT_ID],
-        },
-      ];
-
-      await expect(refusalOf(turnOff(kind))).resolves.toBe(
-        LAST_SSO_PROVIDER_MESSAGE,
-      );
-
-      globalOidcProviders[0]!.attachedTo.push(PROJECT_ID);
-
-      await expect(refusalOf(turnOff(kind))).resolves.toBe("done");
-    });
-
-    test("another project's provider that is on does not count", async () => {
-      expect(rowOf(SAML, OTHER_PROJECT_SAML_ID)!.isEnabled).toBe(true);
-
-      await expect(refusalOf(turnOff(kind))).resolves.toBe(
-        LAST_SSO_PROVIDER_MESSAGE,
-      );
-    });
-
-    test("turning it on, and changing anything else about it, are never refused", async () => {
-      await expect(
-        refusalOf(
-          kind.service.updateOneById({
-            id: kind.id,
-            data: { ...kind.credential, name: "Renamed" } as never,
-            props: ROOT,
-          }),
-        ),
-      ).resolves.toBe("done");
-      await expect(refusalOf(turnOn(kind, kind.secondId))).resolves.toBe(
-        "done",
-      );
-    });
-
-    test("a project that requires this provider refuses to let it go, even with others on", async () => {
-      project.requireSsoWithSsoProviderId = kind.id;
-      globalSsoProviders = [
-        { id: GLOBAL_SSO_ID, restrictToAttachedProjects: false, attachedTo: [] },
-      ];
-      rowOf(kind, kind.secondId)!.isEnabled = true;
-
-      await expect(refusalOf(turnOff(kind))).resolves.toBe(
-        REQUIRED_SSO_PROVIDER_MESSAGE,
-      );
-      await expect(refusalOf(remove(kind))).resolves.toBe(
-        REQUIRED_SSO_PROVIDER_MESSAGE,
-      );
-
-      // Its certificate or secret can still be changed.
-      await expect(
-        refusalOf(
-          kind.service.updateOneById({
-            id: kind.id,
-            data: { ...kind.credential } as never,
-            props: ROOT,
-          }),
-        ),
-      ).resolves.toBe("done");
-    });
-
-    test("a project that requires another provider lets this one go: it never let anyone in", async () => {
-      project.requireSsoWithSsoProviderId = kind.secondId;
-
-      await expect(refusalOf(turnOff(kind))).resolves.toBe("done");
-    });
-
-    test("once the project no longer requires SSO, its last provider can go", async () => {
-      project.requireSsoForLogin = false;
-
-      await expect(refusalOf(remove(kind))).resolves.toBe("done");
       expect(projectAnnouncements()).toEqual([PROJECT_ID.toString()]);
     });
-  });
-});
+
+    test("turning it off forgets this server's answers about the project's providers at once", async () => {
+      await kind.service.getSignInStanding({
+        providerId: kind.id,
+        projectId: PROJECT_ID,
+      });
+      await expect(standingHeldFor(kind)).resolves.toBe(true);
+
+      await turnOff(kind);
+
+      await expect(standingHeldFor(kind)).resolves.toBe(false);
+      await expect(
+        kind.service.getSignInStanding({
+          providerId: kind.id,
+          projectId: PROJECT_ID,
+        }),
+      ).resolves.toEqual({
+        isOn: false,
+        signInsEndedAtMs: signInsEndedAtOf(kind)!.getTime(),
+      });
+    });
+
+    test("turning it on tells every server, and writes no time", async () => {
+      await expect(turnOn(kind, kind.secondId)).resolves.toBe(1);
+
+      expect(kind.writes()).toEqual([
+        { id: kind.secondId.toString(), set: { isEnabled: true } },
+      ]);
+      expect(projectAnnouncements()).toEqual([PROJECT_ID.toString()]);
+    });
+
+    test("turned off, then on: it keeps the time its sign-ins ended", async () => {
+      await turnOff(kind);
+      const endedAt: Date | null = signInsEndedAtOf(kind);
+
+      await turnOn(kind);
+
+      expect(rowOf(kind)!.isEnabled).toBe(true);
+      expect(signInsEndedAtOf(kind)).toEqual(endedAt);
+      expect(projectAnnouncements()).toEqual([
+        PROJECT_ID.toString(),
+        PROJECT_ID.toString(),
+      ]);
+    });
+
+    test("turning off a provider that is off already keeps the time it has and tells nobody", async () => {
+      const earlier: Date = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      rowOf(kind, kind.secondId)!["signInsEndedAt"] = earlier;
+
+      await turnOff(kind, kind.secondId);
+
+      expect(wroteSignInsEndedAt(kind)).toBe(false);
+      expect(signInsEndedAtOf(kind, kind.secondId)).toEqual(earlier);
+      expect(projectAnnouncements()).toEqual([]);
+    });
+
+    test("turning on a provider that is on already tells nobody", async () => {
+      await turnOn(kind);
+
+      expect(projectAnnouncements()).toEqual([]);
+    });
+
+    test("a new certificate or client secret, new addresses or a new name keep every sign-in it gave: nothing more is written, nobody is told", async () => {
+      await kind.service.getSignInStanding({
+        providerId: kind.id,
+        projectId: PROJECT_ID,
+      });
+
+      await expect(
+        kind.service.updateOneById({
+          id: kind.id,
+          data: {
+            ...kind.credential,
+            issuerURL: "https://idp.example.com/rotated",
+            name: "Renamed",
+          } as never,
+          props: ROOT,
+        }),
+      ).resolves.toBe(1);
+
+      expect(kind.writes()).toHaveLength(1);
+      expect(wroteSignInsEndedAt(kind)).toBe(false);
+      expect(Object.keys(kind.writes()[0]!.set)).not.toContain("isEnabled");
+      expect(rowOf(kind)!.isEnabled).toBe(true);
+      expect(projectAnnouncements()).toEqual([]);
+      // This server still holds its answer: nothing about any sign-in changed.
+      await expect(standingHeldFor(kind)).resolves.toBe(true);
+    });
+
+    test("deleting it while it is on tells every server", async () => {
+      await expect(remove(kind)).resolves.toBe(1);
+
+      expect(deleted).toEqual([kind.id.toString()]);
+      expect(projectAnnouncements()).toEqual([PROJECT_ID.toString()]);
+      await expect(
+        kind.service.getSignInStanding({
+          providerId: kind.id,
+          projectId: PROJECT_ID,
+        }),
+      ).resolves.toEqual({ isOn: false, signInsEndedAtMs: null });
+    });
+
+    test("deleting one that is off tells nobody: it gave no sign-in that still counts", async () => {
+      await expect(remove(kind, kind.secondId)).resolves.toBe(1);
+
+      expect(projectAnnouncements()).toEqual([]);
+    });
+
+    describe("a project that requires SSO keeps a way in", () => {
+      beforeEach(() => {
+        project = {
+          requireSsoForLogin: true,
+          requireSsoWithSsoProviderId: null,
+        };
+
+        // Only this provider is on: the project's others are off.
+        const other: ProviderKind = kind === SAML ? OIDC : SAML;
+        rowOf(other)!.isEnabled = false;
+      });
+
+      test("its last provider that is on cannot be turned off", async () => {
+        await expect(refusalOf(turnOff(kind))).resolves.toBe(
+          LAST_SSO_PROVIDER_MESSAGE,
+        );
+
+        expect(kind.writes()).toEqual([]);
+        expect(rowOf(kind)!.isEnabled).toBe(true);
+        expect(projectAnnouncements()).toEqual([]);
+      });
+
+      test("nor deleted", async () => {
+        await expect(refusalOf(remove(kind))).resolves.toBe(
+          LAST_SSO_PROVIDER_MESSAGE,
+        );
+
+        expect(deleted).toEqual([]);
+        expect(rowOf(kind)).toBeDefined();
+        expect(projectAnnouncements()).toEqual([]);
+      });
+
+      test("another of its providers of the same kind that is on lets it go", async () => {
+        rowOf(kind, kind.secondId)!.isEnabled = true;
+
+        await expect(refusalOf(turnOff(kind))).resolves.toBe("done");
+        expect(rowOf(kind)!.isEnabled).toBe(false);
+      });
+
+      test("a provider of the other kind that is on lets it go", async () => {
+        const other: ProviderKind = kind === SAML ? OIDC : SAML;
+        rowOf(other, other.secondId)!.isEnabled = true;
+
+        await expect(refusalOf(remove(kind))).resolves.toBe("done");
+        expect(rowOf(kind)).toBeUndefined();
+      });
+
+      test("a global SSO provider that signs people in to every project lets it go", async () => {
+        globalSsoProviders = [
+          {
+            id: GLOBAL_SSO_ID,
+            restrictToAttachedProjects: false,
+            attachedTo: [],
+          },
+        ];
+
+        await expect(refusalOf(turnOff(kind))).resolves.toBe("done");
+      });
+
+      test("a global OIDC provider restricted to its attached projects lets it go only when this project is attached", async () => {
+        globalOidcProviders = [
+          {
+            id: GLOBAL_OIDC_ID,
+            restrictToAttachedProjects: true,
+            attachedTo: [OTHER_PROJECT_ID],
+          },
+        ];
+
+        await expect(refusalOf(turnOff(kind))).resolves.toBe(
+          LAST_SSO_PROVIDER_MESSAGE,
+        );
+
+        globalOidcProviders[0]!.attachedTo.push(PROJECT_ID);
+
+        await expect(refusalOf(turnOff(kind))).resolves.toBe("done");
+      });
+
+      test("another project's provider that is on does not count", async () => {
+        expect(rowOf(SAML, OTHER_PROJECT_SAML_ID)!.isEnabled).toBe(true);
+
+        await expect(refusalOf(turnOff(kind))).resolves.toBe(
+          LAST_SSO_PROVIDER_MESSAGE,
+        );
+      });
+
+      test("turning it on, and changing anything else about it, are never refused", async () => {
+        await expect(
+          refusalOf(
+            kind.service.updateOneById({
+              id: kind.id,
+              data: { ...kind.credential, name: "Renamed" } as never,
+              props: ROOT,
+            }),
+          ),
+        ).resolves.toBe("done");
+        await expect(refusalOf(turnOn(kind, kind.secondId))).resolves.toBe(
+          "done",
+        );
+      });
+
+      test("a project that requires this provider refuses to let it go, even with others on", async () => {
+        project.requireSsoWithSsoProviderId = kind.id;
+        globalSsoProviders = [
+          {
+            id: GLOBAL_SSO_ID,
+            restrictToAttachedProjects: false,
+            attachedTo: [],
+          },
+        ];
+        rowOf(kind, kind.secondId)!.isEnabled = true;
+
+        await expect(refusalOf(turnOff(kind))).resolves.toBe(
+          REQUIRED_SSO_PROVIDER_MESSAGE,
+        );
+        await expect(refusalOf(remove(kind))).resolves.toBe(
+          REQUIRED_SSO_PROVIDER_MESSAGE,
+        );
+
+        // Its certificate or secret can still be changed.
+        await expect(
+          refusalOf(
+            kind.service.updateOneById({
+              id: kind.id,
+              data: { ...kind.credential } as never,
+              props: ROOT,
+            }),
+          ),
+        ).resolves.toBe("done");
+      });
+
+      test("a project that requires another provider lets this one go: it never let anyone in", async () => {
+        project.requireSsoWithSsoProviderId = kind.secondId;
+
+        await expect(refusalOf(turnOff(kind))).resolves.toBe("done");
+      });
+
+      test("once the project no longer requires SSO, its last provider can go", async () => {
+        project.requireSsoForLogin = false;
+
+        await expect(refusalOf(remove(kind))).resolves.toBe("done");
+        expect(projectAnnouncements()).toEqual([PROJECT_ID.toString()]);
+      });
+    });
+  },
+);
 
 describe("one write over several providers", () => {
   test("turning a project's providers off at once tells every server once, for that project", async () => {

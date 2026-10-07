@@ -525,8 +525,6 @@ describe("for the same handshake, the join answers as the API does", () => {
     await expect(joinAnswer(headersOf(turnedOff))).resolves.toBe(
       "sso-required",
     );
-    await expect(apiAnswer(headersOf(turnedOff))).resolves.toBe(
-      "sso-required",
-    );
+    await expect(apiAnswer(headersOf(turnedOff))).resolves.toBe("sso-required");
   });
 });

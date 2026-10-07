@@ -264,9 +264,11 @@ describe("ProjectSsoProviderStanding", () => {
     });
 
     test("a load that throws before it returns a promise is an error too", async () => {
-      const load: Load = jest.fn((): Promise<ProjectSsoProviderStandingValue> => {
-        throw new Error("could not ask");
-      });
+      const load: Load = jest.fn(
+        (): Promise<ProjectSsoProviderStandingValue> => {
+          throw new Error("could not ask");
+        },
+      );
 
       await expect(ask({ load })).rejects.toThrow("could not ask");
       expect(ProjectSsoProviderStanding.size()).toBe(0);

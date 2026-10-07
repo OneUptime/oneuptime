@@ -1261,11 +1261,11 @@ describe("McpOAuthSso", () => {
 
           expect(standing).toHaveBeenCalledTimes(1);
 
-          const asked: { providerId: ObjectID; projectId: ObjectID } =
-            standing.mock.calls[0]![0] as {
-              providerId: ObjectID;
-              projectId: ObjectID;
-            };
+          const asked: { providerId: ObjectID; projectId: ObjectID } = standing
+            .mock.calls[0]![0] as {
+            providerId: ObjectID;
+            projectId: ObjectID;
+          };
 
           expect(asked.providerId.toString()).toBe(PROVIDER_ID.toString());
           expect(asked.projectId.toString()).toBe(PROJECT_ID.toString());

@@ -325,9 +325,10 @@ const oidcProviderStanding: jest.Mock =
  */
 let providersOn: Array<string> = [];
 
-const providerStanding: (data: {
-  providerId: ObjectID;
-}) => Promise<{ isOn: boolean; signInsEndedAtMs: number | null }> = async (data: {
+const providerStanding: (data: { providerId: ObjectID }) => Promise<{
+  isOn: boolean;
+  signInsEndedAtMs: number | null;
+}> = async (data: {
   providerId: ObjectID;
 }): Promise<{ isOn: boolean; signInsEndedAtMs: number | null }> => {
   return {

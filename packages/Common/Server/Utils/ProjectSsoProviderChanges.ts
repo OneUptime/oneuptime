@@ -279,10 +279,10 @@ export default class ProjectSsoProviderChanges {
         continue;
       }
 
-      const requiredProviderId: string | null = project
-        .requireSsoWithSsoProviderId
-        ? project.requireSsoWithSsoProviderId.toString().toLowerCase()
-        : null;
+      const requiredProviderId: string | null =
+        project.requireSsoWithSsoProviderId
+          ? project.requireSsoWithSsoProviderId.toString().toLowerCase()
+          : null;
 
       if (requiredProviderId) {
         if (takenAwayIds.has(requiredProviderId)) {
