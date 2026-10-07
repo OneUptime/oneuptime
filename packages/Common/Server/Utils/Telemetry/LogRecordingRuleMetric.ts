@@ -90,9 +90,9 @@ export default class LogRecordingRuleMetric {
       ruleDescription ||
       `Written every minute by the log recording rule "${(
         input.ruleName || input.outputMetricName
-      ).trim()}": ${LogRecordingRuleDefinitionUtil.describe(
+      ).trim()}" from the logs it matches: ${LogRecordingRuleDefinitionUtil.describe(
         input.definition,
-      )} of the logs it matches.`;
+      )}.`;
 
     metricType.unit = (input.definition.unit || "").trim();
 

@@ -432,7 +432,13 @@ export class LogRecordingRuleDefinitionUtil {
     const groupByAttributes: Array<unknown> =
       (json["groupByAttributes"] as Array<unknown> | undefined) || [];
 
-    if (groupByAttributes.length > LOG_RECORDING_RULE_MAX_GROUP_BY_ATTRIBUTES) {
+    const groupByKeyCount: number = groupByAttributes.filter(
+      (key: unknown): boolean => {
+        return typeof key !== "string" || key.trim().length > 0;
+      },
+    ).length;
+
+    if (groupByKeyCount > LOG_RECORDING_RULE_MAX_GROUP_BY_ATTRIBUTES) {
       return `A rule can group by at most ${LOG_RECORDING_RULE_MAX_GROUP_BY_ATTRIBUTES} attributes.`;
     }
 
@@ -447,8 +453,9 @@ export class LogRecordingRuleDefinitionUtil {
 
       const key: string = rawKey.trim();
 
+      // A row left blank groups by nothing; it is dropped when the rule is saved.
       if (!key) {
-        return `Group by attribute #${i + 1} is empty. Type an attribute key or remove the row.`;
+        continue;
       }
 
       const keyError: string | null =
@@ -663,7 +670,13 @@ export class LogRecordingRuleDefinitionUtil {
         return "Attribute filters must be a list.";
       }
 
-      if (attributeFilters.length > LOG_RECORDING_RULE_MAX_ATTRIBUTE_FILTERS) {
+      const filledRowCount: number = attributeFilters.filter(
+        (row: unknown): boolean => {
+          return !LogRecordingRuleDefinitionUtil.isBlankAttributeFilter(row);
+        },
+      ).length;
+
+      if (filledRowCount > LOG_RECORDING_RULE_MAX_ATTRIBUTE_FILTERS) {
         return `A rule can have at most ${LOG_RECORDING_RULE_MAX_ATTRIBUTE_FILTERS} attribute filters.`;
       }
 
@@ -692,6 +705,11 @@ export class LogRecordingRuleDefinitionUtil {
           rowJson["value"],
         ).trim();
 
+        // A row left blank filters nothing; it is dropped when the rule is saved.
+        if (!key && !value) {
+          continue;
+        }
+
         if (!key || !value) {
           return "Each attribute filter needs both a key and a value (or remove the row).";
         }
@@ -719,6 +737,20 @@ export class LogRecordingRuleDefinitionUtil {
     }
 
     return null;
+  }
+
+  // A row with neither a key nor a value typed in.
+  private static isBlankAttributeFilter(row: unknown): boolean {
+    if (!LogRecordingRuleDefinitionUtil.isPlainObject(row)) {
+      return false;
+    }
+
+    const rowJson: Record<string, unknown> = row as Record<string, unknown>;
+
+    return (
+      LogRecordingRuleDefinitionUtil.readText(rowJson["key"]).trim() === "" &&
+      LogRecordingRuleDefinitionUtil.readText(rowJson["value"]).trim() === ""
+    );
   }
 
   private static getAttributeKeyError(

@@ -56,6 +56,11 @@ import React, {
 export interface ComponentProps {
   value: LogRecordingRuleDefinition | undefined;
   onChange: (value: LogRecordingRuleDefinition) => void;
+  /*
+   * What the form's validation found wrong with the definition, once the
+   * user tried to save: a custom form field draws its own error.
+   */
+  error?: string | undefined;
 }
 
 // The definition as the editor holds it: every list present, nothing dropped.
@@ -390,6 +395,16 @@ const LogRecordingRuleDefinitionEditor: FunctionComponent<ComponentProps> = (
           {LogRecordingRuleDefinitionUtil.describe(definition)}
         </code>
       </div>
+
+      {props.error && (
+        <p
+          className="text-sm text-red-600"
+          role="alert"
+          data-testid="log-recording-rule-definition-error"
+        >
+          {props.error}
+        </p>
+      )}
     </div>
   );
 };

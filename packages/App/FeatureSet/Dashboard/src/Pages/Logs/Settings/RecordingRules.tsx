@@ -166,6 +166,7 @@ const LogRecordingRules: FunctionComponent<
                 onChange={(next: LogRecordingRuleDefinition) => {
                   elementProps.onChange?.(next);
                 }}
+                error={elementProps.error}
               />
             );
           },
