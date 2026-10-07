@@ -4,10 +4,11 @@ import path from "path";
 import {
   BrandAssetsPath,
   BrandAssetsRouteSegment,
+  MermaidEntryUrl,
+  MermaidRouteSegment,
   OneUptimeLogoUrl,
   VendorAssetsPath,
   VendorAssetsRoute,
-  getMermaidDistPath,
 } from "../../../Server/Utils/VendorAssets";
 
 /*
@@ -292,16 +293,6 @@ describe("every /oneuptime-assets URL a view uses resolves to a real file", () =
   function resolveOnDisk(urlPath: string): string | null {
     const relative: string = urlPath.slice(VendorAssetsRoute.length + 1);
 
-    if (relative.startsWith("mermaid/")) {
-      const mermaidDistPath: string | null = getMermaidDistPath();
-
-      if (!mermaidDistPath) {
-        return null;
-      }
-
-      return path.join(mermaidDistPath, relative.slice("mermaid/".length));
-    }
-
     /*
      * OneUptime's own images are not third-party, so they live outside
      * Static/Vendor and are mounted separately under the same prefix.
@@ -320,12 +311,25 @@ describe("every /oneuptime-assets URL a view uses resolves to a real file", () =
     expect(referencedAssetPaths().length).toBeGreaterThan(0);
   });
 
+  /*
+   * mermaid is built in memory (MermaidBrowserBuild.ts), not read from disk.
+   * A view may name its entry and nothing else: the entry names its own
+   * content-hashed chunks, and VendorAssets.test.ts fetches every one.
+   */
+  function isServed(urlPath: string): boolean {
+    if (urlPath.startsWith(`${VendorAssetsRoute}/${MermaidRouteSegment}/`)) {
+      return urlPath === MermaidEntryUrl;
+    }
+
+    const onDisk: string | null = resolveOnDisk(urlPath);
+
+    return Boolean(onDisk) && fs.existsSync(onDisk as string);
+  }
+
   test("resolves every one of them", () => {
     const missing: Array<string> = referencedAssetPaths()
       .filter((reference: { urlPath: string }): boolean => {
-        const onDisk: string | null = resolveOnDisk(reference.urlPath);
-
-        return !onDisk || !fs.existsSync(onDisk);
+        return !isServed(reference.urlPath);
       })
       .map((reference: { view: string; urlPath: string }): string => {
         return `${reference.view}: ${reference.urlPath}`;
@@ -347,7 +351,7 @@ describe("every /oneuptime-assets URL a view uses resolves to a real file", () =
           "/oneuptime-assets/tailwind/tailwind-3.4.5.js",
           "/oneuptime-assets/highlight/highlight.min.js",
           "/oneuptime-assets/highlight/styles/vs2015.min.css",
-          "/oneuptime-assets/mermaid/mermaid.esm.min.mjs",
+          MermaidEntryUrl,
         ],
       ],
       [
@@ -412,7 +416,7 @@ describe("every /oneuptime-assets URL a view uses resolves to a real file", () =
         path.join("Home", "Views", "Blog", "Post.ejs"),
         [
           "/oneuptime-assets/highlight/highlight.min.js",
-          "/oneuptime-assets/mermaid/mermaid.min.js",
+          MermaidEntryUrl,
         ],
       ],
     ];
@@ -433,6 +437,91 @@ describe("every /oneuptime-assets URL a view uses resolves to a real file", () =
           view?.contents.includes(expectedUrl),
         ]).toEqual([viewName, expectedUrl, true]);
       }
+    }
+  });
+});
+
+describe("diagrams load mermaid from the build made from its source", () => {
+  /*
+   * mermaid's prebuilt bundles (dist/mermaid.min.js, mermaid.js,
+   * mermaid.esm(.min).mjs, mermaid.core.mjs straight off disk) each carry
+   * their own copies of mermaid's dependencies, or import them by a bare name
+   * no browser can resolve. A page loads /oneuptime-assets/mermaid/mermaid.mjs,
+   * built with the dependencies npm installed - and nothing else.
+   */
+  const PREBUILT_MERMAID_FILE: RegExp =
+    /mermaid(?:\.(?:esm|min|core))+\.m?js\b|\bmermaid\.js\b/;
+
+  const allViews: Array<ViewFile> = VIEW_ROOTS.flatMap((root: ViewRoot) => {
+    return root.directories.flatMap(collectViewFiles);
+  });
+
+  test("the pattern catches every prebuilt name and not the entry", () => {
+    for (const prebuilt of [
+      "mermaid.min.js",
+      "mermaid.js",
+      "mermaid.esm.mjs",
+      "mermaid.esm.min.mjs",
+      "mermaid.core.mjs",
+      "/npm/mermaid@11/dist/mermaid.min.js",
+    ]) {
+      expect([prebuilt, PREBUILT_MERMAID_FILE.test(prebuilt)]).toEqual([
+        prebuilt,
+        true,
+      ]);
+    }
+
+    expect(PREBUILT_MERMAID_FILE.test(MermaidEntryUrl)).toBe(false);
+  });
+
+  test("no view names one of mermaid's prebuilt bundles", () => {
+    const offenders: Array<string> = allViews
+      .filter((view: ViewFile): boolean => {
+        return PREBUILT_MERMAID_FILE.test(view.contents);
+      })
+      .map((view: ViewFile): string => {
+        return view.name;
+      });
+
+    expect(offenders).toEqual([]);
+  });
+
+  test("every view that draws diagrams imports the entry, and only the entry", () => {
+    const drawing: Array<ViewFile> = allViews.filter(
+      (view: ViewFile): boolean => {
+        return view.contents.includes(`${VendorAssetsRoute}/mermaid`);
+      },
+    );
+
+    // The docs' head and the blog post.
+    expect(
+      drawing
+        .map((view: ViewFile): string => {
+          return view.name;
+        })
+        .sort(),
+    ).toEqual(
+      [
+        path.join("App", "FeatureSet", "Docs", "Views", "Partials", "Head.ejs"),
+        path.join("Home", "Views", "Blog", "Post.ejs"),
+      ].sort(),
+    );
+
+    for (const view of drawing) {
+      const references: Array<string> =
+        view.contents.match(
+          new RegExp(`${VendorAssetsRoute}/mermaid[A-Za-z0-9._/-]*`, "g"),
+        ) || [];
+
+      expect([view.name, [...new Set(references)]]).toEqual([
+        view.name,
+        [MermaidEntryUrl],
+      ]);
+      // As an ES module: dynamic import(), never a classic <script src>.
+      expect([
+        view.name,
+        view.contents.includes(`import('${MermaidEntryUrl}')`),
+      ]).toEqual([view.name, true]);
     }
   });
 });

@@ -14,12 +14,12 @@ import { AddressInfo } from "net";
 import { createExpressApp } from "../../../Server/Utils/Express";
 import mountVendorAssets, {
   BrandAssetsPath,
+  MermaidEntryUrl,
   MountVendorAssetsFunction,
   OneUptimeFaviconUrl,
   OneUptimeLogoUrl,
   VendorAssetsPath,
   VendorAssetsRoute,
-  getMermaidDistPath,
 } from "../../../Server/Utils/VendorAssets";
 
 type GenericSendBody = (body: string) => void;
@@ -39,9 +39,38 @@ interface AssetResponse {
   status: number;
   contentType: string;
   cacheControl: string;
+  etag: string;
   body: Buffer;
   text: string;
 }
+
+/*
+ * The relative imports of a minified ES module: `from"./x.mjs"`,
+ * `import"./x.mjs"` and the dynamic `import("./x.mjs")` mermaid loads every
+ * diagram type through.
+ */
+const RELATIVE_IMPORT: RegExp = /(?:from|import)\s*\(?\s*["'](\.{1,2}\/[^"']+)["']/g;
+
+function relativeImportsOf(source: string): Array<string> {
+  const specifiers: Array<string> = [];
+
+  for (const match of source.matchAll(RELATIVE_IMPORT)) {
+    if (match[1]) {
+      specifiers.push(match[1]);
+    }
+  }
+
+  return specifiers;
+}
+
+// KaTeX's own error prefix: present in every copy of katex, minified or not.
+const KATEX_MARKER: string = "KaTeX parse error";
+
+const INSTALLED_KATEX_VERSION: string = (
+  JSON.parse(
+    fs.readFileSync(require.resolve("katex/package.json"), "utf8"),
+  ) as { version: string }
+).version;
 
 const INDEX_PAGE: string = "<html>index</html>";
 
@@ -89,16 +118,22 @@ describe("vendored browser assets", () => {
     });
   });
 
-  type GetAsset = (urlPath: string) => Promise<AssetResponse>;
+  type GetAsset = (
+    urlPath: string,
+    headers?: Record<string, string>,
+  ) => Promise<AssetResponse>;
 
-  const getAsset: GetAsset = (urlPath: string): Promise<AssetResponse> => {
+  const getAsset: GetAsset = (
+    urlPath: string,
+    headers?: Record<string, string>,
+  ): Promise<AssetResponse> => {
     return new Promise<AssetResponse>(
       (
         resolve: (value: AssetResponse) => void,
         reject: (reason: Error) => void,
       ) => {
         const request: http.ClientRequest = http.get(
-          { host: "127.0.0.1", port, path: urlPath },
+          { host: "127.0.0.1", port, path: urlPath, headers: headers || {} },
           (message: IncomingMessage) => {
             const chunks: Array<Buffer> = [];
 
@@ -113,6 +148,7 @@ describe("vendored browser assets", () => {
                 status: message.statusCode || 0,
                 contentType: String(message.headers["content-type"] || ""),
                 cacheControl: String(message.headers["cache-control"] || ""),
+                etag: String(message.headers["etag"] || ""),
                 body,
                 text: body.toString("utf8"),
               });
@@ -497,81 +533,175 @@ describe("vendored browser assets", () => {
   });
 
   describe("mermaid", () => {
-    test("resolves out of node_modules rather than a committed copy", () => {
-      const mermaidDistPath: string | null = getMermaidDistPath();
+    /*
+     * The URL path of every module the entry reaches, statically or through
+     * import(), fetched through the real mount. Each is the file a browser
+     * would ask for next, so a gap here is a diagram that never draws.
+     */
+    type ModuleGraph = Map<string, AssetResponse>;
 
-      expect(mermaidDistPath).not.toBeNull();
-      expect(fs.existsSync(mermaidDistPath as string)).toBe(true);
-      expect(
-        fs.existsSync(
-          path.join(VendorAssetsPath, "mermaid", "mermaid.esm.min.mjs"),
-        ),
-      ).toBe(false);
-    });
+    let graphPromise: Promise<ModuleGraph> | null = null;
 
-    test("serves the ES module entrypoint the docs import", async () => {
-      const asset: AssetResponse = await getAsset(
-        "/oneuptime-assets/mermaid/mermaid.esm.min.mjs",
-      );
+    const getModuleGraph: () => Promise<ModuleGraph> =
+      (): Promise<ModuleGraph> => {
+        if (!graphPromise) {
+          graphPromise = (async (): Promise<ModuleGraph> => {
+            const graph: ModuleGraph = new Map<string, AssetResponse>();
+            const queue: Array<string> = [MermaidEntryUrl];
 
-      expect(asset.status).toBe(200);
-      expect(asset.text).toContain("import");
-    });
+            while (queue.length > 0) {
+              const urlPath: string = queue.shift() as string;
 
-    test("serves the lazily-imported diagram chunks the entrypoint pulls in", async () => {
+              if (graph.has(urlPath)) {
+                continue;
+              }
+
+              const asset: AssetResponse = await getAsset(urlPath);
+              graph.set(urlPath, asset);
+
+              for (const specifier of relativeImportsOf(asset.text)) {
+                queue.push(
+                  new URL(specifier, `http://localhost${urlPath}`).pathname,
+                );
+              }
+            }
+
+            return graph;
+          })();
+        }
+
+        return graphPromise;
+      };
+
+    test("is the URL the docs and the blog import", () => {
       /*
-       * The entrypoint is 26 KB; every diagram type it can draw is a separate
-       * import resolved relative to it. Serving only the entrypoint would have
-       * looked fine right up until a page contained an actual diagram.
+       * Head.ejs and Post.ejs hard-code it, so it is pinned literally: renaming
+       * the entry without editing both is every diagram gone at once.
        */
-      const chunkDirectory: string = path.join(
-        getMermaidDistPath() as string,
-        "chunks",
-        "mermaid.esm.min",
-      );
-
-      expect(fs.existsSync(chunkDirectory)).toBe(true);
-
-      const chunk: string | undefined = fs
-        .readdirSync(chunkDirectory)
-        .find((file: string): boolean => {
-          return file.endsWith(".mjs");
-        });
-
-      expect(chunk).toBeDefined();
-
-      const asset: AssetResponse = await getAsset(
-        `/oneuptime-assets/mermaid/chunks/mermaid.esm.min/${chunk}`,
-      );
-
-      expect(asset.status).toBe(200);
+      expect(MermaidEntryUrl).toBe("/oneuptime-assets/mermaid/mermaid.mjs");
     });
 
-    test("serves the UMD bundle the blog loads", async () => {
-      const asset: AssetResponse = await getAsset(
-        "/oneuptime-assets/mermaid/mermaid.min.js",
+    test("is neither a committed copy nor one of mermaid's prebuilt bundles", () => {
+      expect(fs.existsSync(path.join(VendorAssetsPath, "mermaid"))).toBe(
+        false,
       );
+    });
+
+    test("serves the entry as JavaScript", async () => {
+      const asset: AssetResponse = await getAsset(MermaidEntryUrl);
 
       expect(asset.status).toBe(200);
       expect(asset.contentType).toContain("javascript");
+      expect(asset.text).toMatch(/\bexport\s*\{/);
+      expect(relativeImportsOf(asset.text).length).toBeGreaterThan(5);
     });
 
-    test("does not serve the type definitions, sourcemaps or docs beside it", async () => {
+    test("serves every module the entry reaches, chunks included", async () => {
+      const graph: ModuleGraph = await getModuleGraph();
+      const problems: Array<string> = [];
+
+      for (const [urlPath, asset] of graph) {
+        if (asset.status !== 200) {
+          problems.push(`${urlPath}: ${asset.status}`);
+        } else if (!asset.contentType.includes("javascript")) {
+          problems.push(`${urlPath}: ${asset.contentType}`);
+        }
+
+        if (!urlPath.startsWith(`${VendorAssetsRoute}/mermaid/`)) {
+          problems.push(`${urlPath}: outside the mount`);
+        }
+      }
+
+      expect(problems).toEqual([]);
       /*
-       * dist/ is 65 MB of build outputs for every module format mermaid
-       * publishes. The browser asks for two of them; the rest is refused.
+       * A floor, not a pin - the chunking changes with mermaid releases. It is
+       * here so a regex that stopped matching cannot pass as a walk of one.
        */
-      for (const notCode of [
-        "mermaid.d.ts",
-        "mermaid.min.js.map",
-        "config.type.d.ts",
+      expect(graph.size).toBeGreaterThan(50);
+    });
+
+    test("runs one katex, the one npm installed for Common", async () => {
+      const graph: ModuleGraph = await getModuleGraph();
+      const withKatex: Array<[string, AssetResponse]> = [...graph].filter(
+        ([, asset]: [string, AssetResponse]): boolean => {
+          return asset.text.includes(KATEX_MARKER);
+        },
+      );
+
+      expect(withKatex).toHaveLength(1);
+
+      const [katexPath, katexChunk] = withKatex[0] as [string, AssetResponse];
+
+      // Its own chunk, loaded only for a $$...$$ label.
+      expect(katexPath).toMatch(/\/chunks\/katex-[A-Z0-9]+\.mjs$/);
+      expect(katexChunk.text).toContain(`"${INSTALLED_KATEX_VERSION}"`);
+    });
+
+    test("refuses mermaid's prebuilt bundles", async () => {
+      /*
+       * Each of these embeds its own copies of mermaid's dependencies. The
+       * chunk names are real ones from the installed package, so this is a
+       * refusal and not a typo.
+       */
+      const distChunks: string = path.join(
+        path.dirname(require.resolve("mermaid/package.json")),
+        "dist",
+        "chunks",
+        "mermaid.esm.min",
+      );
+      const prebuiltChunk: string = fs
+        .readdirSync(distChunks)
+        .find((file: string): boolean => {
+          return file.endsWith(".mjs");
+        }) as string;
+
+      for (const prebuilt of [
+        "mermaid.min.js",
+        "mermaid.js",
+        "mermaid.esm.min.mjs",
+        "mermaid.esm.mjs",
+        `chunks/mermaid.esm.min/${prebuiltChunk}`,
+        "mermaid.core.mjs",
       ]) {
         const asset: AssetResponse = await getAsset(
-          `/oneuptime-assets/mermaid/${notCode}`,
+          `${VendorAssetsRoute}/mermaid/${prebuilt}`,
         );
 
-        expect([notCode, asset.status]).toEqual([notCode, 404]);
+        expect([prebuilt, asset.status]).toEqual([prebuilt, 404]);
+        expect(asset.text).not.toBe(INDEX_PAGE);
       }
+    });
+
+    test("answers only paths the build has, exactly", async () => {
+      for (const notInBuild of [
+        "mermaid.d.ts",
+        "mermaid.mjs.map",
+        "package.json",
+        "chunks/",
+        "chunks/../mermaid.mjs",
+        "Mermaid.mjs",
+        "chunks/katex.mjs",
+      ]) {
+        const asset: AssetResponse = await getAsset(
+          `${VendorAssetsRoute}/mermaid/${notInBuild}`,
+        );
+
+        expect([notInBuild, asset.status]).toEqual([notInBuild, 404]);
+        expect(asset.text).not.toBe(INDEX_PAGE);
+      }
+    });
+
+    test("answers a repeat request with 304 when the browser has it", async () => {
+      const first: AssetResponse = await getAsset(MermaidEntryUrl);
+
+      expect(first.etag).not.toBe("");
+
+      const repeat: AssetResponse = await getAsset(MermaidEntryUrl, {
+        "If-None-Match": first.etag,
+      });
+
+      expect(repeat.status).toBe(304);
+      expect(repeat.body.length).toBe(0);
     });
   });
 
@@ -585,49 +715,36 @@ describe("vendored browser assets", () => {
     });
 
     test("keeps the year on mermaid's content-hashed chunks", async () => {
-      const chunkDirectory: string = path.join(
-        getMermaidDistPath() as string,
-        "chunks",
-        "mermaid.esm.min",
+      const entry: AssetResponse = await getAsset(MermaidEntryUrl);
+      const chunk: string | undefined = relativeImportsOf(entry.text).find(
+        (specifier: string): boolean => {
+          return specifier.startsWith("./chunks/");
+        },
       );
 
-      const chunk: string = fs
-        .readdirSync(chunkDirectory)
-        .find((file: string): boolean => {
-          return file.endsWith(".mjs");
-        }) as string;
+      expect(chunk).toBeDefined();
 
       const asset: AssetResponse = await getAsset(
-        `/oneuptime-assets/mermaid/chunks/mermaid.esm.min/${chunk}`,
+        new URL(chunk as string, `http://localhost${MermaidEntryUrl}`).pathname,
       );
 
       expect(asset.status).toBe(200);
-      expect(asset.cacheControl).toContain("max-age=31536000");
+      expect(asset.cacheControl).toBe("public, max-age=31536000");
     });
 
-    test("does not give mermaid's stable entrypoints a year", async () => {
+    test("does not give mermaid's stable entry a year", async () => {
       /*
-       * mermaid.esm.min.mjs keeps its name across releases while every chunk it
+       * mermaid.mjs keeps its name across releases while every chunk it
        * imports is content-hashed. Cached for a year, a visitor who came back
-       * after a mermaid bump would keep replaying an entrypoint that asks for
-       * chunk filenames the upgrade deleted - and every docs diagram would stay
+       * after a mermaid upgrade would keep replaying an entry that asks for
+       * chunk filenames the upgrade replaced - and every diagram would stay
        * broken for that one person until the entry aged out.
        */
-      for (const entrypoint of ["mermaid.esm.min.mjs", "mermaid.min.js"]) {
-        const asset: AssetResponse = await getAsset(
-          `/oneuptime-assets/mermaid/${entrypoint}`,
-        );
+      const asset: AssetResponse = await getAsset(MermaidEntryUrl);
 
-        expect([entrypoint, asset.status]).toEqual([entrypoint, 200]);
-        expect([
-          entrypoint,
-          asset.cacheControl.includes("max-age=31536000"),
-        ]).toEqual([entrypoint, false]);
-        expect([entrypoint, asset.cacheControl]).toEqual([
-          entrypoint,
-          "public, max-age=3600",
-        ]);
-      }
+      expect(asset.status).toBe(200);
+      expect(asset.cacheControl.includes("max-age=31536000")).toBe(false);
+      expect(asset.cacheControl).toBe("public, max-age=3600");
     });
   });
 

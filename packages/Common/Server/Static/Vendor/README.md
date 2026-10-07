@@ -35,10 +35,15 @@ OneUptime's own logo and icons are not here either - they are not third-party.
 They live in `../Brand` and are mounted at `/oneuptime-assets/brand`; see that
 directory's README.
 
-Mermaid is not vendored here. It is already a dependency of `Common`, so
-`VendorAssets.ts` serves `node_modules/mermaid/dist` at
-`/oneuptime-assets/mermaid` instead - one version to keep current rather than
-two, and none of the ~8 MB of lazily-loaded diagram chunks in git.
+Mermaid is not vendored here, and its own prebuilt bundles in
+`node_modules/mermaid/dist` are not served either: each of them embeds its own
+copies of mermaid's dependencies (katex among them), which neither npm's
+overrides nor `npm audit` reach. Instead `VendorAssets.ts` serves
+`/oneuptime-assets/mermaid/mermaid.mjs` and its content-hashed chunks from a
+build of mermaid's ES module source, made with the frontends' esbuild setup the
+first time a page asks for it (`packages/Common/Server/Utils/MermaidBrowserBuild.ts`,
+`packages/Common/UI/esbuild-mermaid.js`). Upgrading mermaid or katex in
+`packages/Common/package.json` is all it takes to keep it current.
 
 ## Refreshing highlight.js
 
