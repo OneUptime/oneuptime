@@ -359,6 +359,53 @@ a token secret with `$` and quotes and the exporter's profile reach the
 containers as typed. CI must run that check; elsewhere it is skipped with the
 reason logged.
 
+### `VMwareAgentWithoutDocker.test.js`
+
+The VMware agent also installs without Docker: the `otelcol-contrib` release
+the agent pins, run by systemd with
+`agents/VMwareAgent/systemd/oneuptime-vmware-agent-native.service`. The suite
+lifts the install, settings, start, upgrade and uninstall commands out of the
+docs page (`telemetry/vmware.md`) and runs them for real, with the install's
+`/opt` and `/etc/systemd/system` moved under a scratch root and `sudo`,
+`sudoedit`, `systemctl`, `curl` and `uname` replaced by recording stubs. It
+pins that the release the agent pins is downloaded for the machine's
+architecture (`x86_64` → `amd64`, `aarch64` → `arm64`) and that a release it
+cannot download stops the install before anything is installed; that every
+file lands where the unit runs it from with a mode the service's throwaway
+user (`DynamicUser=`) can read, even under a root umask of 077; that `.env`
+is `0600` before the password goes in, and a re-run keeps it; that the
+service is enabled and restarted; that the upgrade replaces the binary, the
+config and the unit, keeps `.env` and restarts; and that the uninstall
+removes exactly what the install added. It also holds the unit to the files
+the docs install, to the defaults `docker-compose.yml` gives, to its sandbox,
+and to `systemd-analyze verify` (skipped without systemd, except in CI); and
+pins that `troubleshoot.sh`, pointed at such an install, says it runs without
+Docker and never calls docker.
+
+### `vmware-agent-native-install.sh`
+
+Not part of `npm test`: it needs docker, python3 and network access. It runs
+the same docs commands end to end, as written, by a sudo user inside a
+systemd container (`--privileged`, cgroup v2), against a vCenter simulator
+(govmomi's `vcsim`, pinned by version and sha256) and a stand-in OneUptime
+that records what reaches `/otlp/v1/*`. The pinned collector release is
+downloaded from GitHub and runs under the shipped unit; the agent's own files
+come from this checkout. It checks that systemd verifies the unit and runs the
+collector as a dynamic user with no capabilities; that an AD-style
+`DOMAIN\user` and a password with `$`, `#`, spaces, quotes and a backslash
+reach vCenter as typed (vcsim refuses any other login); that metrics arrive
+with the ingestion key, the vCenter name and the agent version and without
+`service.name`; that another collector holding `localhost:8888` does not stop
+it (its own counters are on `127.0.0.1:8890`); that ESXi syslog, uncommented
+as the docs say, arrives as logs with nothing to publish; and that the upgrade
+and the uninstall do what the docs say. `--image` runs it on another
+distribution (apt or dnf; `debian:11` has systemd 247, `rockylinux:8` systemd
+239). The "Ops Config Test" workflow runs it on every PR.
+
+```sh
+cd Tests/Ops && npm run vmware-agent-native-install
+```
+
 ### `ContainerAgentAiInstallers.test.js`
 
 Runs the Docker, Podman and Docker Swarm agents' `install.sh` for real in a

@@ -132,6 +132,18 @@ jobs:
       # inspector requests are dropped; an app's own routes, other ports,
       # other methods and SDK metrics are kept.
       - run: bash Tests/Ops/agent-metric-filter-behaviour.sh
+      # The VMware agent without Docker, end to end: the install, upgrade and
+      # uninstall commands of the docs page, run as written by a sudo user in
+      # a systemd container (root umask 077) against a vCenter simulator and a
+      # stand-in OneUptime. It downloads the collector release the agent pins
+      # and runs it under the shipped unit, so a release URL that moved, a
+      # unit directive systemd refuses, a sandbox the collector cannot run in
+      # or a .env quoting rule that mangles a password fails here, not on a
+      # customer's machine. VMwareAgentWithoutDocker.test.js (in the jest run
+      # above) checks the same commands against stubs.
+      - name: Warm the base image the VMware install without Docker runs on
+        run: bash ./Scripts/GHA/warm_base_images.sh --image public.ecr.aws/docker/library/ubuntu:24.04
+      - run: bash Tests/Ops/vmware-agent-native-install.sh
       # The App Dockerfile builds the Community and Enterprise editions as
       # targets. BuildKit resolves each target's stage graph and runs its build
       # checks over the production render (default, community, enterprise) and
