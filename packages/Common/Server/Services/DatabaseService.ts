@@ -4549,8 +4549,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       let numberOfDocsAffected: number = 0;
 
       if (items.length > 0) {
-        beforeDeleteBy.query = {
-          ...beforeDeleteBy.query,
+        /*
+         * The rows found, by their ids and the query's filters on the
+         * table's own columns. Its filters on relations (the record a model
+         * is read through, a record's labels) are left to the lookup above,
+         * which the ids pin: a DELETE cannot join them.
+         */
+        const query: Query<TBaseModel> = {
+          ...this.getColumnFiltersOf(beforeDeleteBy.query),
           _id: QueryHelper.any(
             items.map((i: TBaseModel) => {
               return i.id!;
@@ -4565,8 +4571,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           await this.readRowsDeletedWith(items);
 
         numberOfDocsAffected =
-          (await this.getRepository().delete(beforeDeleteBy.query as any))
-            .affected || 0;
+          (await this.getRepository().delete(query as any)).affected || 0;
 
         /*
          * Their images are private again, unless another record still shows
@@ -4590,6 +4595,37 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       await this.onDeleteError(error as Exception);
       throw this.getException(error as Exception);
     }
+  }
+
+  /*
+   * `query` without its filters on relations - a record named through a
+   * relation, or the records a row is linked to - for a statement that
+   * cannot join them (hardDeleteBy's DELETE). Its filters on the table's
+   * own columns stay. A query per project (a request across projects) keeps
+   * none: the rows it found are named by id.
+   */
+  private getColumnFiltersOf(query: Query<TBaseModel>): Query<TBaseModel> {
+    if (Array.isArray(query)) {
+      return {} as Query<TBaseModel>;
+    }
+
+    const filters: Dictionary<unknown> = {};
+
+    for (const [key, value] of Object.entries(query as Dictionary<unknown>)) {
+      const type: TableColumnType | undefined =
+        this.getModel().getTableColumnMetadata(key)?.type;
+
+      if (
+        type === TableColumnType.Entity ||
+        type === TableColumnType.EntityArray
+      ) {
+        continue;
+      }
+
+      filters[key] = value;
+    }
+
+    return filters as Query<TBaseModel>;
   }
 
   private async _deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
@@ -6333,7 +6369,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * (ModelPermission.getUpdatableQuery: the caller's project, labels and
    * Owned scope, and the labels of the record a table is read through). A
    * credential that may only read is refused. Throws what the update would
-   * throw when the caller may not update this table at all.
+   * throw when the caller may not update this table at all, or this row by
+   * one of its own labels. A row with no labels of its own carries those of
+   * the records it names, and is weighed by that query alone: outside the
+   * caller's labels, or carrying a blocked one, it answers nothing, like a
+   * row of another project.
    */
   @CaptureSpan()
   public async findOneUpdatableById(data: {
@@ -6358,7 +6398,6 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
             return row;
           },
-        isRecordFound: this.getRecordFinder(),
         props: data.props,
       });
     } catch (error) {

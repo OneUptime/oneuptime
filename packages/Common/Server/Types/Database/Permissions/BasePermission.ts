@@ -218,6 +218,11 @@ export default class BasePermission {
    * through its incident): when the caller's grants on that record's table
    * are limited to labels, only the records whose parent carries one of
    * them.
+   *
+   * A read and a delete weigh the caller's read grants on the parent - a
+   * note is deleted with the note's own permissions, from an incident the
+   * caller may read, not one they may delete. An update weighs the
+   * parent's update grants, as it always has.
    */
   private static addParentAccessToQuery<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
@@ -251,7 +256,7 @@ export default class BasePermission {
           _id: true,
         },
         props,
-        type,
+        type === DatabaseRequestType.Delete ? DatabaseRequestType.Read : type,
       );
 
     if (accessControlIds.length === 0) {

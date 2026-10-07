@@ -117,12 +117,26 @@ export default class AccessControlPermission {
           },
         }))
       ) {
+        /*
+         * The rule weighs every one of these block rows at once: each of
+         * their permissions is named, since any of them may be the one.
+         */
+        const blockedPermissions: Array<string> = Array.from(
+          new Set<string>(
+            blockPermissionsBelongToThisModel.map(
+              (blockPermission: UserPermission): string => {
+                return blockPermission.permission.toString();
+              },
+            ),
+          ),
+        );
+
         throw new NotAuthorizedException(
           `You are not authorized to ${type.toLowerCase()} this ${
             fetchedModel.singularName
-          } because ${
-            blockPermissionsBelongToThisModel[0]!.permission
-          } is in your team's permission block list.`,
+          } because ${blockedPermissions.join(", ")} ${
+            blockedPermissions.length === 1 ? "is" : "are"
+          } in your team's permission block list.`,
         );
       }
 
@@ -322,10 +336,32 @@ export default class AccessControlPermission {
   }
 
   /*
-   * `fetch`, read once however often it is asked: the block check and the
-   * grant check of one update or delete weigh the same record.
+   * Both checks of one record by model - the team's blocks, then the grants
+   * limited to labels - on one read of the record, for an update or a
+   * delete by id (UpdatePermission, DeletePermission).
    */
-  public static fetchOnce<TBaseModel extends BaseModel>(
+  @CaptureSpan()
+  public static async checkRecordByModel<TBaseModel extends BaseModel>(data: {
+    fetchModelWithAccessControlIds: () => Promise<TBaseModel | null>;
+    isRecordFound?: (query: Query<TBaseModel>) => Promise<boolean>;
+    modelType: { new (): TBaseModel };
+    props: DatabaseCommonInteractionProps;
+    type: DatabaseRequestType;
+    updateData?: unknown;
+  }): Promise<void> {
+    const checked: typeof data = {
+      ...data,
+      fetchModelWithAccessControlIds: this.fetchOnce(
+        data.fetchModelWithAccessControlIds,
+      ),
+    };
+
+    await this.checkAccessControlBlockPermissionByModel<TBaseModel>(checked);
+    await this.checkAccessControlPermissionByModel<TBaseModel>(checked);
+  }
+
+  // `fetch`, read once however often it is asked.
+  private static fetchOnce<TBaseModel extends BaseModel>(
     fetch: () => Promise<TBaseModel | null>,
   ): () => Promise<TBaseModel | null> {
     let fetched: Promise<TBaseModel | null> | null = null;

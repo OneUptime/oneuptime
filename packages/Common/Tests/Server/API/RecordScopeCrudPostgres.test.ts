@@ -1943,6 +1943,77 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
   );
 
   /*
+   * A RECORD READ THROUGH ITS PARENT (an alert's internal note) is deleted
+   * with its own delete permissions, from a parent the caller may read: the
+   * parent's delete grants are about deleting the parent.
+   */
+  describe("a delete of a record read through its parent", () => {
+    test.each([
+      [
+        "the alert's delete grants limited to another label",
+        [
+          { permission: Permission.ReadAlert },
+          { permission: Permission.DeleteAlert, labelIds: [productionLabelId] },
+          { permission: Permission.ReadAlertInternalNote },
+          { permission: Permission.DeleteAlertInternalNote },
+        ],
+        true,
+      ],
+      [
+        "the alert's read grants limited to another label",
+        [
+          { permission: Permission.ReadAlert, labelIds: [productionLabelId] },
+          { permission: Permission.ReadAlertInternalNote },
+          { permission: Permission.DeleteAlertInternalNote },
+        ],
+        false,
+      ],
+    ] as Array<[string, Array<PermissionRow>, boolean]>)(
+      "a note of a staging alert, under %s",
+      async (
+        _label: string,
+        rows: Array<PermissionRow>,
+        isDeletable: boolean,
+      ) => {
+        await setTeamPermissions(homeTeamId, homeProjectId, rows);
+
+        const alertId: ObjectID = ObjectID.generate();
+        const noteId: ObjectID = ObjectID.generate();
+
+        await insertAlert({
+          id: alertId,
+          projectId: homeProjectId,
+          title: "Disposable alert",
+          labelIds: [stagingLabelId],
+        });
+        await insertNote({
+          id: noteId,
+          projectId: homeProjectId,
+          alertId: alertId,
+        });
+
+        const outcome: Outcome = await remove(
+          "/alert-internal-note",
+          homeUser,
+          noteId,
+        );
+
+        expect(await rowExists("AlertInternalNote", noteId)).toBe(!isDeletable);
+
+        if (isDeletable) {
+          expect(outcome.isEmptySuccess).toBe(true);
+        }
+
+        await removeRows([
+          ["AlertInternalNote", "_id", noteId],
+          ["AlertLabel", "alertId", alertId],
+          ["Alert", "_id", alertId],
+        ]);
+      },
+    );
+  });
+
+  /*
    * A READ ACROSS PROJECTS (the home page's alerts of every project): each
    * project's rows are narrowed by the member's grants and blocks in that
    * project, and a project whose grants refuse the read is left out.

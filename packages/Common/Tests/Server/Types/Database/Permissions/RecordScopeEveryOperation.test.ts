@@ -565,6 +565,54 @@ describe("the record rule on every operation", () => {
       ).toEqual([productionLabelId.toString()]);
     });
 
+    /*
+     * A note is deleted with the note's own delete permissions, from an
+     * incident the caller may read: the incident's delete grants are about
+     * deleting incidents, not their notes.
+     */
+    test("a note's delete is not narrowed by the incident's delete grants", async () => {
+      const query: Query<IncidentInternalNote> =
+        await DeletePermission.checkDeletePermission(
+          IncidentInternalNote,
+          {},
+          member([
+            row(Permission.ReadProjectIncident),
+            row(Permission.DeleteProjectIncident, {
+              labelIds: [productionLabelId],
+              scope: PermissionScope.Labels,
+            }),
+            row(Permission.DeleteIncidentInternalNote),
+          ]),
+        );
+
+      expect((query as Record<string, unknown>)["incident"]).toBeUndefined();
+      expect((query as Record<string, unknown>)["_id"]).toBeUndefined();
+      expect(String(query.projectId)).toBe(projectId.toString());
+    });
+
+    test("a note's delete reaches only the incidents the caller may read", async () => {
+      const query: Query<IncidentInternalNote> =
+        await DeletePermission.checkDeletePermission(
+          IncidentInternalNote,
+          {},
+          member([
+            row(Permission.ReadProjectIncident, {
+              labelIds: [productionLabelId],
+              scope: PermissionScope.Labels,
+            }),
+            row(Permission.DeleteIncidentInternalNote),
+          ]),
+        );
+
+      const incidentFilter: { labels?: Array<ObjectID> } | undefined = (
+        query as Record<string, unknown>
+      )["incident"] as { labels?: Array<ObjectID> } | undefined;
+
+      expect((incidentFilter?.labels || []).map(String)).toEqual([
+        productionLabelId.toString(),
+      ]);
+    });
+
     test("a root delete keeps to the request's project only", async () => {
       const recordScope: ReturnType<typeof jest.spyOn> = jest.spyOn(
         BasePermission,
@@ -968,6 +1016,73 @@ describe("the record rule on every operation", () => {
       });
 
       expect(lookups).toBe(0);
+    });
+
+    /*
+     * The rule weighs every block row of the operation at once, so the
+     * refusal names each of their permissions: any one of them may be the
+     * row to change.
+     */
+    test("a refusal under several block rows names each of their permissions", async () => {
+      await expect(
+        AccessControlPermission.checkAccessControlBlockPermissionByModel({
+          fetchModelWithAccessControlIds:
+            async (): Promise<IncidentInternalNote> => {
+              return noteIn(projectId);
+            },
+          isRecordFound: async (): Promise<boolean> => {
+            return false;
+          },
+          modelType: IncidentInternalNote,
+          props: member([
+            row(Permission.IncidentAdmin),
+            row(Permission.EditIncidentInternalNote, {
+              isBlock: true,
+              labelIds: [productionLabelId],
+            }),
+            row(Permission.IncidentMember, {
+              isBlock: true,
+              labelIds: [stagingLabelId],
+            }),
+          ]),
+          type: DatabaseRequestType.Update,
+        }),
+      ).rejects.toThrow(
+        `because ${Permission.EditIncidentInternalNote}, ${Permission.IncidentMember} are in your team's permission block list`,
+      );
+    });
+
+    test("an update by id reads the note once, for its blocks and its grants", async () => {
+      let reads: number = 0;
+      let lookups: number = 0;
+
+      await AccessControlPermission.checkRecordByModel({
+        fetchModelWithAccessControlIds:
+          async (): Promise<IncidentInternalNote> => {
+            reads++;
+            return noteIn(projectId);
+          },
+        isRecordFound: async (): Promise<boolean> => {
+          lookups++;
+          return true;
+        },
+        modelType: IncidentInternalNote,
+        props: member([
+          row(Permission.IncidentMember, {
+            labelIds: [productionLabelId],
+            scope: PermissionScope.Labels,
+          }),
+          row(Permission.EditIncidentInternalNote, {
+            isBlock: true,
+            labelIds: [stagingLabelId],
+          }),
+        ]),
+        type: DatabaseRequestType.Update,
+      });
+
+      expect(reads).toBe(1);
+      // One question to the database per rule: the block, then the grant.
+      expect(lookups).toBe(2);
     });
   });
 

@@ -1,6 +1,8 @@
 import MonitorService from "../../../Server/Services/MonitorService";
+import StatusPageDomainService from "../../../Server/Services/StatusPageDomainService";
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import StatusPageDomain from "../../../Models/DatabaseModels/StatusPageDomain";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil from "../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
@@ -17,6 +19,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { FindOperator } from "typeorm";
 
 /*
  * DatabaseService.findOneUpdatableById: the row, read as root, when the
@@ -335,5 +338,159 @@ describe("DatabaseService.findOneUpdatableById", () => {
     expect(row).not.toBeNull();
     expect(lookup().query).toEqual({ _id: MONITOR_ID.toString() });
     expect(lookup().props).toEqual({ isRoot: true });
+  });
+});
+
+/*
+ * A row with no labels of its own carries the labels of the records it
+ * names: a custom domain those of its status page. The label rule weighs it
+ * through the update scope's query alone, so outside the caller's labels,
+ * or under a blocked one, it answers nothing - what a custom route answers
+ * for a missing domain too (CustomDomainRoutes) - never a refusal that
+ * tells the two apart.
+ */
+describe("DatabaseService.findOneUpdatableById on a row with no labels of its own", () => {
+  const DOMAIN_ID: ObjectID = new ObjectID(
+    "55555555-5555-4555-8555-555555555555",
+  );
+
+  // The lookup in the caller's update scope.
+  let scopedLookupMock: MockFunction;
+  // The read of the row the checks make, in the caller's project.
+  let checkReadMock: MockFunction;
+
+  function domainRow(): StatusPageDomain {
+    const domain: StatusPageDomain = new StatusPageDomain();
+    domain._id = DOMAIN_ID.toString();
+    domain.projectId = PROJECT_ID;
+    return domain;
+  }
+
+  beforeEach(() => {
+    scopedLookupMock = getJestMockFunction();
+    checkReadMock = getJestMockFunction();
+
+    // The database leaves the domain out of the narrowed lookup.
+    scopedLookupMock.mockResolvedValue(null as never);
+    checkReadMock.mockResolvedValue(domainRow() as never);
+
+    // The checks read the row by its id and project, the lookup by `SELECT`.
+    jest.spyOn(StatusPageDomainService, "findOneBy").mockImplementation(((
+      args: Lookup,
+    ) => {
+      return args.select && args.select["name"]
+        ? scopedLookupMock(args)
+        : checkReadMock(args);
+    }) as never);
+
+    withLabelJoinTables();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function scopedLookup(): Lookup {
+    expect(scopedLookupMock).toHaveBeenCalledTimes(1);
+    return scopedLookupMock.mock.calls[0]![0] as Lookup;
+  }
+
+  // The label rule's condition on the row's id, as the lookup sends it.
+  function labelRuleOnId(): string {
+    const idFilter: unknown = scopedLookup().query["_id"];
+
+    expect(idFilter).toBeInstanceOf(FindOperator);
+
+    return JSON.stringify(idFilter);
+  }
+
+  /*
+   * The label rule's condition on the key naming the domain's status page,
+   * as the lookup sends it: a block leaves out the rows whose status page
+   * carries a blocked label.
+   */
+  function labelRuleOnStatusPage(): string {
+    const keyFilter: unknown = scopedLookup().query["statusPageId"];
+
+    expect(keyFilter).toBeInstanceOf(FindOperator);
+
+    return JSON.stringify(keyFilter);
+  }
+
+  test("an editor limited to labels the status page does not carry gets nothing, not a refusal", async () => {
+    expect(
+      await StatusPageDomainService.findOneUpdatableById({
+        id: DOMAIN_ID,
+        select: SELECT,
+        props: caller({
+          permissions: [Permission.StatusPageMember],
+          labelIds: [LABEL_ID],
+        }),
+      }),
+    ).toBeNull();
+
+    // Looked for among the domains whose status page carries the label.
+    expect(labelRuleOnId()).toContain(LABEL_ID.toString());
+    expect(labelRuleOnId()).toContain(DOMAIN_ID.toString());
+    // The rule is the lookup's: no other read of the row weighs it.
+    expect(checkReadMock).not.toHaveBeenCalled();
+  });
+
+  test("a block on a label the status page carries answers nothing, not a refusal", async () => {
+    expect(
+      await StatusPageDomainService.findOneUpdatableById({
+        id: DOMAIN_ID,
+        select: SELECT,
+        props: caller({
+          permissions: [Permission.StatusPageMember],
+          blocks: [Permission.EditStatusPageDomain],
+          blockLabelIds: [LABEL_ID],
+        }),
+      }),
+    ).toBeNull();
+
+    expect(labelRuleOnStatusPage()).toContain(LABEL_ID.toString());
+    expect(scopedLookup().query["_id"]).toBe(DOMAIN_ID.toString());
+    // The block list read the row once, in the caller's project.
+    expect(checkReadMock).toHaveBeenCalledTimes(1);
+    expect(
+      String((checkReadMock.mock.calls[0]![0] as Lookup).query["projectId"]),
+    ).toBe(PROJECT_ID.toString());
+  });
+
+  test("a domain of another project answers nothing, and its status page's labels are never weighed", async () => {
+    // Nothing of that id in the caller's project.
+    checkReadMock.mockResolvedValue(null as never);
+
+    expect(
+      await StatusPageDomainService.findOneUpdatableById({
+        id: DOMAIN_ID,
+        select: SELECT,
+        props: caller({
+          permissions: [Permission.StatusPageMember],
+          blocks: [Permission.EditStatusPageDomain],
+          blockLabelIds: [LABEL_ID],
+        }),
+      }),
+    ).toBeNull();
+
+    expect(scopedLookupMock).not.toHaveBeenCalled();
+  });
+
+  test("an editor whose labels the database finds on the status page gets the domain", async () => {
+    scopedLookupMock.mockResolvedValue(domainRow() as never);
+
+    const row: StatusPageDomain | null =
+      await StatusPageDomainService.findOneUpdatableById({
+        id: DOMAIN_ID,
+        select: SELECT,
+        props: caller({
+          permissions: [Permission.StatusPageMember],
+          labelIds: [LABEL_ID],
+        }),
+      });
+
+    expect(row?._id).toBe(DOMAIN_ID.toString());
+    expect(labelRuleOnId()).toContain(LABEL_ID.toString());
   });
 });
