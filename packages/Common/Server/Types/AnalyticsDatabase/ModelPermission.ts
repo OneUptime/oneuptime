@@ -35,6 +35,7 @@ import Permission, {
 import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
 import CallerPlan from "../../Utils/Billing/CallerPlan";
 import PlanGates from "../Database/Permissions/PlanGates";
+import ColumnWriteRefusedException from "../Database/Permissions/ColumnWriteRefusedException";
 import HeldPermissionsUtil, {
   HeldPermissions,
 } from "../../../Types/HeldPermissions";
@@ -279,9 +280,11 @@ export default class ModelPermission {
           continue; // this is a special case where we want to force the default value on create.
         }
 
-        throw new BadDataException(
-          `User is not allowed to ${requestType} on ${key} column of ${model.singularName}`,
-        );
+        throw new ColumnWriteRefusedException({
+          requestType: requestType,
+          columnName: key,
+          modelName: model.singularName,
+        });
       }
 
       const billingAccessControl: ColumnBillingAccessControl | null =

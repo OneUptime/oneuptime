@@ -115,7 +115,7 @@ Trinnene som leser og endrer OneUptime-poster (komponentene Find, Create, Update
 - **Ingenting OneUptime holder styr på selv.** Feedoppføringer kan ikke redigeres eller slettes, varslingslogger kan ikke skrives, og verdier OneUptime setter selv (som en bekreftet CNAME, et teams beskyttelsesbrytere eller hvem som har vakt nå) kan ikke endres.
 - **Som ingen person.** En post en arbeidsflyt oppretter har ingen oppretter, og revisjonsloggen oppgir arbeidsflyten som den som gjorde endringen.
 
-Et avvist trinn tar **Error**-utgangen sin, skriver ingenting, og kjøreloggen sier hvilket trinn som ble avvist og hvorfor. Trinn som snakker med andre systemer (API, e-post, chat, Custom Code, AI) påvirkes ikke.
+Et avvist trinn tar **Error**-utgangen sin uten å gjøre den avviste endringen, og kjøreloggen sier hvilket trinn som ble avvist og hvorfor. Et Create Many-trinn oppretter postene sine én om gangen og stopper ved den avviste; postene som ble opprettet før den, blir værende. Trinn som snakker med andre systemer (API, e-post, chat, Custom Code, AI) påvirkes ikke.
 
 ## Plangrenser
 

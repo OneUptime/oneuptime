@@ -115,7 +115,7 @@ Les étapes qui lisent et modifient des enregistrements OneUptime (les composant
 - **Rien de ce que OneUptime gère lui-même.** Les entrées de fil ne peuvent être ni modifiées ni supprimées, les journaux de notifications ne peuvent pas être écrits, et les valeurs que OneUptime fixe lui-même (comme un CNAME vérifié, les interrupteurs de protection d'une équipe ou la personne d'astreinte en ce moment) ne peuvent pas être changées.
 - **Sans personne.** Un enregistrement créé par un workflow n'a pas de créateur, et le journal d'audit désigne le workflow comme auteur de la modification.
 
-Une étape refusée prend sa sortie **Error**, n'écrit rien, et le journal d'exécution indique quelle étape a été refusée et pourquoi. Les étapes qui dialoguent avec d'autres systèmes (API, e-mail, messagerie, Custom Code, IA) ne sont pas concernées.
+Une étape refusée prend sa sortie **Error** sans effectuer la modification refusée, et le journal d'exécution indique quelle étape a été refusée et pourquoi. Une étape Create Many crée ses enregistrements un par un et s'arrête à celui qui est refusé ; ceux créés avant lui sont conservés. Les étapes qui dialoguent avec d'autres systèmes (API, e-mail, messagerie, Custom Code, IA) ne sont pas concernées.
 
 ## Limites du forfait
 

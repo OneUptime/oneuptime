@@ -115,7 +115,7 @@ Stegen som läser och ändrar OneUptime-poster (komponenterna Find, Create, Upda
 - **Inget som OneUptime själv håller reda på.** Flödesposter kan inte redigeras eller tas bort, aviseringsloggar kan inte skrivas, och värden som OneUptime själv sätter (som en verifierad CNAME, ett teams skyddsbrytare eller vem som har jour nu) kan inte ändras.
 - **Som ingen person.** En post som ett arbetsflöde skapar har ingen skapare, och granskningsloggen anger arbetsflödet som den som gjorde ändringen.
 
-Ett avvisat steg tar sin **Error**-utgång, skriver ingenting, och körningsloggen säger vilket steg som avvisades och varför. Steg som pratar med andra system (API, e-post, chatt, Custom Code, AI) påverkas inte.
+Ett avvisat steg tar sin **Error**-utgång utan att göra den avvisade ändringen, och körningsloggen säger vilket steg som avvisades och varför. Ett Create Many-steg skapar sina poster en i taget och stannar vid den avvisade; posterna som skapades före den finns kvar. Steg som pratar med andra system (API, e-post, chatt, Custom Code, AI) påverkas inte.
 
 ## Plangränser
 

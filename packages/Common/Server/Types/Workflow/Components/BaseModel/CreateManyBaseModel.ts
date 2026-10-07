@@ -1,7 +1,6 @@
 import DatabaseService from "../../../../Services/DatabaseService";
 import ComponentCode, { RunOptions, RunReturnType } from "../../ComponentCode";
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../../Types/JSON";
 import JSONFunctions from "../../../../../Types/JSONFunctions";
@@ -94,10 +93,6 @@ export default class CreateManyBaseModel<
 
       const array: Array<TBaseModel> = [];
 
-      // A Project Admin of the project, never root. See getStepProps.
-      const props: DatabaseCommonInteractionProps =
-        await this.getStepProps(options);
-
       /*
        * This loop used to sit inside an `if (getTenantColumn())` check that
        * was only meant to guard the projectId stamping, so a model without a
@@ -135,8 +130,12 @@ export default class CreateManyBaseModel<
               json,
               this.modelService.modelType,
             ) as TBaseModel,
-            // A fresh copy per record: nothing one create hands down reaches the next.
-            props: { ...props },
+            /*
+             * A Project Admin of the project, never root (see getStepProps),
+             * built afresh for each record - its permission rows too - so
+             * nothing one create hands down reaches the next.
+             */
+            props: await this.getStepProps(options),
           })) as TBaseModel,
         );
       }

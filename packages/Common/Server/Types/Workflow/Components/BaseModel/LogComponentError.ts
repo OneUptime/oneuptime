@@ -3,6 +3,7 @@ import NotAuthenticatedException from "../../../../../Types/Exception/NotAuthent
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../../../../Types/Exception/PaymentRequiredException";
 import CallerPlan from "../../../../Utils/Billing/CallerPlan";
+import ColumnWriteRefusedException from "../../../Database/Permissions/ColumnWriteRefusedException";
 import logger from "../../../../Utils/Logger";
 import { RunOptions } from "../../ComponentCode";
 import {
@@ -21,12 +22,6 @@ import {
  */
 const UNKNOWN_PROPERTY_PATTERN: RegExp =
   /Property "([^"]+)" was not found in "([^"]+)"/;
-
-/*
- * ColumnPermissions' refusal of a column the caller may not write: "User is
- * not allowed to create on paymentProviderPlanId column of Project".
- */
-const COLUMN_REFUSAL_PATTERN: RegExp = /is not allowed to \w+ on \S+ column of/;
 
 type BuildColumnHintFunction = (
   message: string,
@@ -68,9 +63,11 @@ type DescribeRefusalFunction = (data: {
 /*
  * A step acts as a Project Admin of its project, on the project's plan
  * (WorkflowPrincipal). When it is refused for either - something only an
- * owner, or the billing team, may do; something the plan does not sell - the
- * run log says so in plain words and names the step, before the reason the
- * refusal itself gave. Null for any other failure.
+ * owner, or the billing team, or nobody but OneUptime itself may do;
+ * something the plan does not sell - the run log says so in plain words and
+ * names the step, before the reason the refusal itself gave. Refusals are
+ * told by their type (a column refusal is a ColumnWriteRefusedException),
+ * never by their words. Null for any other failure.
  */
 export const describeRefusal: DescribeRefusalFunction = (data: {
   error: unknown;
@@ -90,9 +87,9 @@ export const describeRefusal: DescribeRefusalFunction = (data: {
   if (
     data.error instanceof NotAuthorizedException ||
     data.error instanceof NotAuthenticatedException ||
-    COLUMN_REFUSAL_PATTERN.test(data.message)
+    data.error instanceof ColumnWriteRefusedException
   ) {
-    return `${step} was refused. Workflow steps can do what a Project Admin of this project can do, and this needs more than that: ${data.message}`;
+    return `${step} was refused. Workflow steps can do only what a Project Admin of this project can do: ${data.message}`;
   }
 
   return null;

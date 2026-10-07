@@ -2680,6 +2680,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     // hash data
     data = await this.hash(data);
 
+    /*
+     * What the hooks and the defaults wrote is checked too: a column a plan
+     * sells that they set is held to the project's plan, read now if what
+     * the caller sent did not need it (CallerPlan) - never refused as a plan
+     * nobody could confirm.
+     */
+    _createdBy.props = await CallerPlan.withPlanFor({
+      props: _createdBy.props,
+      modelType: this.modelType,
+      type: DatabaseRequestType.Create,
+      data: data,
+    });
+
     ModelPermission.checkCreatePermissions(
       this.modelType,
       data,

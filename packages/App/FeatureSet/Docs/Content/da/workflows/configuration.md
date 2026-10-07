@@ -115,7 +115,7 @@ De trin, der læser og ændrer OneUptime-poster – komponenterne Find, Create, 
 - **Intet af det, OneUptime selv holder styr på.** Feed-poster kan ikke redigeres eller slettes, notifikationslogge kan ikke skrives, og værdier, OneUptime selv sætter (som en bekræftet CNAME, et teams beskyttelseskontakter eller hvem der har vagt nu), kan ikke ændres.
 - **Som ingen person.** En post, et workflow opretter, har ingen opretter, og revisionsloggen angiver workflowet som den, der foretog ændringen.
 
-Et afvist trin tager sit **Error**-output, skriver intet, og kørselsloggen fortæller, hvilket trin der blev afvist og hvorfor. Trin, der taler med andre systemer (API, e-mail, chat, Custom Code, AI), berøres ikke.
+Et afvist trin tager sit **Error**-output uden at foretage den afviste ændring, og kørselsloggen fortæller, hvilket trin der blev afvist og hvorfor. Et Create Many-trin opretter sine poster én ad gangen og stopper ved den afviste; de poster, der blev oprettet før den, bevares. Trin, der taler med andre systemer (API, e-mail, chat, Custom Code, AI), berøres ikke.
 
 ## Plangrænser
 

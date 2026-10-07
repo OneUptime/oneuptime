@@ -8,10 +8,13 @@ import OnCallDutyPolicySchedule from "../../../../../Models/DatabaseModels/OnCal
 import ScheduledMaintenanceTemplate from "../../../../../Models/DatabaseModels/ScheduledMaintenanceTemplate";
 import StatusPage from "../../../../../Models/DatabaseModels/StatusPage";
 import TeamComplianceSetting from "../../../../../Models/DatabaseModels/TeamComplianceSetting";
+import AnalyticsDatabaseService from "../../../../../Server/Services/AnalyticsDatabaseService";
 import DatabaseService from "../../../../../Server/Services/DatabaseService";
 import ProjectService from "../../../../../Server/Services/ProjectService";
 import AnalyticsModelPermission from "../../../../../Server/Types/AnalyticsDatabase/ModelPermission";
 import DatabaseRequestType from "../../../../../Server/Types/BaseDatabase/DatabaseRequestType";
+import CreateBy from "../../../../../Server/Types/Database/CreateBy";
+import { OnCreate } from "../../../../../Server/Types/Database/Hooks";
 import BillingPermissions from "../../../../../Server/Types/Database/Permissions/BillingPermission";
 import ColumnPermissions from "../../../../../Server/Types/Database/Permissions/ColumnPermission";
 import ModelPermission from "../../../../../Server/Types/Database/Permissions/Index";
@@ -19,6 +22,7 @@ import PlanGates from "../../../../../Server/Types/Database/Permissions/PlanGate
 import CallerPlan from "../../../../../Server/Utils/Billing/CallerPlan";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { PlanType } from "../../../../../Types/Billing/SubscriptionPlan";
+import BadDataException from "../../../../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../../../../Types/Exception/PaymentRequiredException";
@@ -613,6 +617,134 @@ describe("DatabaseService reads the project's plan only when a plan decides", ()
 
     expect(currentPlanSpy).not.toHaveBeenCalled();
   });
+
+  /*
+   * A service whose create hook writes a column a plan sells: custom CSS,
+   * on Growth and up. What the caller sends - a name - needs no plan.
+   */
+  class StatusPagesStylingThemselves extends DatabaseService<StatusPage> {
+    public constructor() {
+      super(StatusPage);
+    }
+
+    protected override async onBeforeCreate(
+      createBy: CreateBy<StatusPage>,
+    ): Promise<OnCreate<StatusPage>> {
+      createBy.data.customCSS = "body { color: #111827; }";
+      return { createBy: createBy, carryForward: undefined };
+    }
+  }
+
+  function stylingService(): DatabaseService<StatusPage> {
+    const service: DatabaseService<StatusPage> =
+      new StatusPagesStylingThemselves();
+
+    getJestSpyOn(service, "countBy").mockResolvedValue(
+      new PositiveNumber(0) as never,
+    );
+    getJestSpyOn(service, "assertCreateWillInsert").mockImplementation(
+      (): never => {
+        throw new PastTheChecks();
+      },
+    );
+
+    return service;
+  }
+
+  function newPage(): StatusPage {
+    const page: StatusPage = new StatusPage();
+    page.name = "Acme status";
+    return page;
+  }
+
+  test("a paid column a hook writes is held to the plan, read once the hooks have run", async () => {
+    plansByProject.set(PROJECT_ID.toString(), PlanType.Free);
+
+    // Refused with the plan's name - never as a plan nobody could confirm.
+    await expect(
+      stylingService().create({ data: newPage(), props: ownerWithoutPlan() }),
+    ).rejects.toThrow("Please upgrade your plan to Growth");
+
+    expect(currentPlanSpy).toHaveBeenCalledTimes(1);
+    expect(currentPlanSpy).toHaveBeenCalledWith(PROJECT_ID);
+  });
+
+  test("on a plan that has it, the paid column a hook writes passes", async () => {
+    await expect(
+      stylingService().create({ data: newPage(), props: ownerWithoutPlan() }),
+    ).rejects.toBeInstanceOf(PastTheChecks);
+
+    expect(currentPlanSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("an analytics batch reads the plan once, before anything is written", () => {
+  class PastTheChecks extends Error {}
+
+  function sessionService(): AnalyticsDatabaseService<RumSession> {
+    const service: AnalyticsDatabaseService<RumSession> =
+      new AnalyticsDatabaseService<RumSession>({ modelType: RumSession });
+
+    // Empty sessions: the required-field and value checks are other suites'.
+    getJestSpyOn(service, "checkRequiredFields").mockImplementation(((
+      data: RumSession,
+    ): RumSession => {
+      return data;
+    }) as never);
+    getJestSpyOn(service, "isValid").mockReturnValue(true as never);
+    // The batch stops at its insert, once every row is checked.
+    getJestSpyOn(service, "execute").mockImplementation(
+      (async (): Promise<never> => {
+        throw new PastTheChecks();
+      }) as never,
+    );
+
+    return service;
+  }
+
+  function sessions(count: number): Array<RumSession> {
+    return Array.from({ length: count }, (): RumSession => {
+      return new RumSession();
+    });
+  }
+
+  test("a batch of a table a plan sells reads the plan once, for every row", async () => {
+    await expect(
+      sessionService().createMany({
+        items: sessions(3),
+        props: ownerWithoutPlan(),
+      }),
+    ).rejects.toBeInstanceOf(PastTheChecks);
+
+    expect(currentPlanSpy).toHaveBeenCalledTimes(1);
+    expect(currentPlanSpy).toHaveBeenCalledWith(PROJECT_ID);
+  });
+
+  test("below the table's plan, the batch is refused with the plan's name and nothing is written", async () => {
+    // Session replays: Growth.
+    plansByProject.set(PROJECT_ID.toString(), PlanType.Free);
+    const service: AnalyticsDatabaseService<RumSession> = sessionService();
+
+    await expect(
+      service.createMany({ items: sessions(2), props: ownerWithoutPlan() }),
+    ).rejects.toThrow("Please upgrade your plan to Growth");
+
+    expect(
+      (service as unknown as { execute: { mock: { calls: Array<unknown> } } })
+        .execute.mock.calls,
+    ).toHaveLength(0);
+  });
+
+  test("OneUptime's own batches read no plan", async () => {
+    await expect(
+      sessionService().createMany({
+        items: sessions(2),
+        props: { isRoot: true, tenantId: PROJECT_ID },
+      }),
+    ).rejects.toBeInstanceOf(PastTheChecks);
+
+    expect(currentPlanSpy).not.toHaveBeenCalled();
+  });
 });
 
 describe("a read across projects holds each project to its own plan", () => {
@@ -700,5 +832,81 @@ describe("a read across projects holds each project to its own plan", () => {
     expect(projectsReached(result.query)).toEqual(
       [PROJECT_ID.toString(), OTHER_PROJECT_ID.toString()].sort(),
     );
+  });
+
+  /*
+   * The same caller reading across all their projects without naming one,
+   * so carrying no plan at all: every project's plan is read.
+   */
+  function acrossProjectsWithoutPlan(): DatabaseCommonInteractionProps {
+    const props: DatabaseCommonInteractionProps = acrossProjects();
+    delete props.tenantId;
+    delete props.currentPlan;
+    delete props.isSubscriptionUnpaid;
+    return props;
+  }
+
+  test("every project's plan is read at once, not one after another", async () => {
+    let reading: number = 0;
+    let mostAtOnce: number = 0;
+
+    currentPlanSpy.mockImplementation((async () => {
+      reading++;
+      mostAtOnce = Math.max(mostAtOnce, reading);
+      await new Promise((resolve: (value: unknown) => void) => {
+        setTimeout(resolve, 5);
+      });
+      reading--;
+      return { plan: PlanType.Enterprise, isSubscriptionUnpaid: false };
+    }) as never);
+
+    const result: { query: unknown } =
+      await ModelPermission.checkReadQueryPermission(
+        ScheduledMaintenanceTemplate,
+        {},
+        { _id: true },
+        acrossProjectsWithoutPlan(),
+      );
+
+    expect(projectsReached(result.query)).toEqual(
+      [PROJECT_ID.toString(), OTHER_PROJECT_ID.toString()].sort(),
+    );
+    expect(currentPlanSpy).toHaveBeenCalledTimes(2);
+    expect(mostAtOnce).toBe(2);
+  });
+
+  test("a project whose plan cannot be read is left out; the others are still read", async () => {
+    currentPlanSpy.mockImplementation((async (projectId: ObjectID) => {
+      if (projectId.toString() === OTHER_PROJECT_ID.toString()) {
+        throw new BadDataException("Project does not have any plans");
+      }
+
+      return { plan: PlanType.Enterprise, isSubscriptionUnpaid: false };
+    }) as never);
+
+    const result: { query: unknown } =
+      await ModelPermission.checkReadQueryPermission(
+        ScheduledMaintenanceTemplate,
+        {},
+        { _id: true },
+        acrossProjectsWithoutPlan(),
+      );
+
+    expect(projectsReached(result.query)).toEqual([PROJECT_ID.toString()]);
+  });
+
+  test("when no project's plan can be read, the read is refused with the reason", async () => {
+    currentPlanSpy.mockImplementation((async () => {
+      throw new BadDataException("Project does not have any plans");
+    }) as never);
+
+    await expect(
+      ModelPermission.checkReadQueryPermission(
+        ScheduledMaintenanceTemplate,
+        {},
+        { _id: true },
+        acrossProjectsWithoutPlan(),
+      ),
+    ).rejects.toThrow("Project does not have any plans");
   });
 });

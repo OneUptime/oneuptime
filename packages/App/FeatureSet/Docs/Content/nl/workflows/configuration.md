@@ -115,7 +115,7 @@ De stappen die OneUptime-records lezen en wijzigen (de componenten Find, Create,
 - **Niets wat OneUptime zelf bijhoudt.** Feeditems kunnen niet worden bewerkt of verwijderd, meldingslogboeken kunnen niet worden geschreven, en waarden die OneUptime zelf instelt (zoals een geverifieerde CNAME, de beveiligingsschakelaars van een team of wie nu dienst heeft) kunnen niet worden gewijzigd.
 - **Als geen persoon.** Een record dat een workflow aanmaakt heeft geen maker, en het auditlogboek noemt de workflow als degene die de wijziging deed.
 
-Een geweigerde stap neemt zijn uitgang **Error**, schrijft niets, en het uitvoeringslogboek zegt welke stap werd geweigerd en waarom. Stappen die met andere systemen praten (API, e-mail, chat, Custom Code, AI) veranderen niet.
+Een geweigerde stap neemt zijn uitgang **Error** zonder de geweigerde wijziging te maken, en het uitvoeringslogboek zegt welke stap werd geweigerd en waarom. Een Create Many-stap maakt zijn records één voor één aan en stopt bij het geweigerde; de records die ervoor zijn aangemaakt, blijven bestaan. Stappen die met andere systemen praten (API, e-mail, chat, Custom Code, AI) veranderen niet.
 
 ## Planlimieten
 

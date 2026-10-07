@@ -195,8 +195,8 @@ export default class OnTriggerBaseModel<
         stepTitle: this.getMetadata().title,
       });
 
+      // The run logs what the trigger throws, so the refusal is said once.
       if (refusal) {
-        options.log(refusal);
         throw new BadDataException(refusal);
       }
 

@@ -166,25 +166,44 @@ export default class TenantPermission {
       let lastException: Error | null = null;
       const queryForEachProject: Query<TBaseModel> = { ...query };
 
-      for (const projectId of projectIDs) {
-        if (!props.userId) {
+      /*
+       * Each project is checked on its own plan - never on the plan of the
+       * project the request named - read when a plan decides the operation
+       * (CallerPlan), for every project at once rather than one after
+       * another. A project whose plan cannot be read is left out, as one the
+       * caller may not reach is.
+       */
+      const propsByProject: Array<DatabaseCommonInteractionProps | Error> =
+        props.userId
+          ? await Promise.all(
+              projectIDs.map(
+                async (
+                  projectId: ObjectID,
+                ): Promise<DatabaseCommonInteractionProps | Error> => {
+                  try {
+                    return await CallerPlan.withPlanFor({
+                      props: CallerPlan.inProjectWithoutPlan(props, projectId),
+                      modelType: modelType,
+                      type: type,
+                      data: updateData,
+                    });
+                  } catch (error) {
+                    return error instanceof Error
+                      ? error
+                      : new Error(String(error));
+                  }
+                },
+              ),
+            )
+          : [];
+
+      for (const projectProps of propsByProject) {
+        if (projectProps instanceof Error) {
+          lastException = projectProps;
           continue;
         }
 
         try {
-          /*
-           * Each project is checked on its own plan - never on the plan of
-           * the project the request named - read when a plan decides the
-           * operation (CallerPlan).
-           */
-          const projectProps: DatabaseCommonInteractionProps =
-            await CallerPlan.withPlanFor({
-              props: CallerPlan.inProjectWithoutPlan(props, projectId),
-              modelType: modelType,
-              type: type,
-              data: updateData,
-            });
-
           const checkBasePermissions: CheckPermissionBaseInterface<TBaseModel> =
             await BasePermission.checkPermissions(
               modelType,

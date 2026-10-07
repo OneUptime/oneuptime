@@ -1,12 +1,18 @@
 import logComponentError, {
   describeRefusal,
 } from "../../../../../Server/Types/Workflow/Components/BaseModel/LogComponentError";
+import ColumnPermissions from "../../../../../Server/Types/Database/Permissions/ColumnPermission";
+import ColumnWriteRefusedException from "../../../../../Server/Types/Database/Permissions/ColumnWriteRefusedException";
+import DatabaseRequestType from "../../../../../Server/Types/BaseDatabase/DatabaseRequestType";
 import CallerPlan from "../../../../../Server/Utils/Billing/CallerPlan";
+import WorkflowPrincipal from "../../../../../Server/Utils/Workflow/WorkflowPrincipal";
 import Monitor from "../../../../../Models/DatabaseModels/Monitor";
+import Team from "../../../../../Models/DatabaseModels/Team";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../../../../Types/Exception/PaymentRequiredException";
+import ObjectID from "../../../../../Types/ObjectID";
 import { describe, expect, jest, test } from "@jest/globals";
 
 jest.mock("../../../../../Server/Utils/Logger");
@@ -17,11 +23,34 @@ jest.mock("../../../../../Server/Utils/Logger");
  * A step acts as a Project Admin of its project, on its plan
  * (WorkflowPrincipal). When the checks refuse it, the run log says so in
  * plain words - naming the step, saying why in terms a workflow author can
- * act on - before the reason the check itself gave. Any other failure is
- * logged as it always was.
+ * act on - before the reason the check itself gave. A refusal is told by its
+ * type, never by its words. Any other failure is logged as it always was.
  */
 
 const STEP: string = "Update One Project";
+const REFUSED: string = `"${STEP}" was refused. Workflow steps can do only what a Project Admin of this project can do: `;
+
+// What ColumnPermissions throws when a step writes `column` of a Team.
+function teamColumnRefusal(column: string): unknown {
+  const team: Team = new Team();
+  (team as unknown as Record<string, unknown>)[column] = false;
+
+  try {
+    ColumnPermissions.checkDataColumnPermissions(
+      Team,
+      team,
+      WorkflowPrincipal.getPropsWithoutPlan({
+        projectId: ObjectID.generate(),
+        workflowId: ObjectID.generate(),
+      }),
+      DatabaseRequestType.Update,
+    );
+  } catch (error) {
+    return error;
+  }
+
+  return null;
+}
 
 describe("describeRefusal", () => {
   test("a plan OneUptime could not confirm: the step did not run", () => {
@@ -58,15 +87,29 @@ describe("describeRefusal", () => {
     (_label: string, error: Error) => {
       expect(
         describeRefusal({ error, message: error.message, stepTitle: STEP }),
-      ).toBe(
-        `"${STEP}" was refused. Workflow steps can do what a Project Admin of this project can do, and this needs more than that: ${error.message}`,
-      );
+      ).toBe(REFUSED + error.message);
     },
   );
 
-  test("a column only an owner, or only OneUptime, may write: refused", () => {
+  test("a column nobody but OneUptime may write, as the column check refuses it", () => {
+    const error: unknown = teamColumnRefusal("isTeamEditable");
+
+    expect(error).toBeInstanceOf(ColumnWriteRefusedException);
+    expect(
+      describeRefusal({
+        error,
+        message: (error as Error).message,
+        stepTitle: STEP,
+      }),
+    ).toBe(
+      REFUSED +
+        "User is not allowed to update on isTeamEditable column of Team",
+    );
+  });
+
+  test("bad data in the same words is no refusal: the type decides, not the words", () => {
     const message: string =
-      "User is not allowed to update on paymentProviderPlanId column of Project";
+      "User is not allowed to update on isTeamEditable column of Team";
 
     expect(
       describeRefusal({
@@ -74,9 +117,7 @@ describe("describeRefusal", () => {
         message,
         stepTitle: STEP,
       }),
-    ).toContain(
-      `"${STEP}" was refused. Workflow steps can do what a Project Admin`,
-    );
+    ).toBeNull();
   });
 
   test("any other failure is no refusal", () => {
@@ -115,7 +156,7 @@ describe("logComponentError", () => {
 
     expect(lines).toEqual([
       "Error running component",
-      `"${STEP}" was refused. Workflow steps can do what a Project Admin of this project can do, and this needs more than that: You do not have permission to update Team`,
+      REFUSED + "You do not have permission to update Team",
     ]);
   });
 

@@ -1,5 +1,6 @@
 import IncidentFeed from "../../../../../Models/DatabaseModels/IncidentFeed";
 import Label from "../../../../../Models/DatabaseModels/Label";
+import IncidentTemplate from "../../../../../Models/DatabaseModels/IncidentTemplate";
 import Probe from "../../../../../Models/DatabaseModels/Probe";
 import SmsLog from "../../../../../Models/DatabaseModels/SmsLog";
 import Team from "../../../../../Models/DatabaseModels/Team";
@@ -352,6 +353,47 @@ describe("Create One and Create Many", () => {
     expect(String(inserted()?.["projectId"])).toBe(PROJECT_ID.toString());
   });
 
+  test("Create Many builds each record's props afresh, permission rows included", async () => {
+    const service: DatabaseService<Label> = new DatabaseService<Label>(Label);
+    const create: SpyInstance = getJestSpyOn(service, "create");
+    create.mockImplementation((async (createBy: { data: Label }) => {
+      return createBy.data;
+    }) as never);
+
+    const step: StepRun = await run(new CreateManyBaseModel<Label>(service), {
+      "json-array": [
+        { name: "payments", color: "#4f46e5" },
+        { name: "billing", color: "#16a34a" },
+      ],
+    });
+
+    expect(step.result.executePort?.id).toBe("success");
+    expect(create).toHaveBeenCalledTimes(2);
+
+    const [first, second] = create.mock.calls.map((call: Array<unknown>) => {
+      return (call[0] as { props: DatabaseCommonInteractionProps }).props;
+    }) as [DatabaseCommonInteractionProps, DatabaseCommonInteractionProps];
+
+    // The same principal for both records...
+    expect(first).toEqual(second);
+    expect(first.userType).toBe(UserType.Workflow);
+    expect(first.currentPlan).toBe(PlanType.Enterprise);
+
+    // ...but never the same objects, so one create cannot change the next's.
+    expect(first).not.toBe(second);
+    expect(first.userTenantAccessPermission).not.toBe(
+      second.userTenantAccessPermission,
+    );
+    expect(
+      first.userTenantAccessPermission![PROJECT_ID.toString()]!.permissions,
+    ).not.toBe(
+      second.userTenantAccessPermission![PROJECT_ID.toString()]!.permissions,
+    );
+    expect(first.userGlobalAccessPermission).not.toBe(
+      second.userGlobalAccessPermission,
+    );
+  });
+
   test("a create the plan does not include is refused with the plan's name, and passes on it", async () => {
     projectPlan = PlanType.Free;
 
@@ -394,7 +436,7 @@ describe("Create One and Create Many", () => {
 
     expect(step.result.executePort?.id).toBe("error");
     expect(refusedLine(component, step.lines)).toContain(
-      "Workflow steps can do what a Project Admin of this project can do",
+      "Workflow steps can do only what a Project Admin of this project can do",
     );
     expect(inserted()).toBeUndefined();
   });
@@ -569,6 +611,35 @@ describe("the model-event triggers", () => {
     expect(tenantOf(find.mock.calls[0]![0]["where"])).toBe(
       PROJECT_ID.toString(),
     );
+  });
+
+  test("a read the plan does not include is refused, said once, naming the trigger", async () => {
+    // Incident templates are read on Growth and up.
+    projectPlan = PlanType.Free;
+
+    const { service, find } = answeringReads(IncidentTemplate, []);
+    const trigger: OnTriggerBaseModel<IncidentTemplate> =
+      new OnTriggerBaseModel<IncidentTemplate>(service, "on-update");
+    const lines: Array<string> = [];
+    const title: string = trigger.getMetadata().title;
+
+    // The run logs what the trigger throws: the refusal travels in it.
+    await expect(
+      trigger.run(
+        { data: { _id: RECORD_ID }, select: { name: true } },
+        options(lines),
+      ),
+    ).rejects.toThrow(
+      `"${title}" was refused because of this project's plan: Please upgrade your plan to Growth`,
+    );
+
+    // ...and is not written to the log a second time beside it.
+    expect(
+      lines.filter((line: string) => {
+        return line.includes("was refused");
+      }),
+    ).toEqual([]);
+    expect(find).not.toHaveBeenCalled();
   });
 });
 

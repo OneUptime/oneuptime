@@ -154,7 +154,7 @@ The steps that read and change OneUptime records — the Find, Create, Update an
   - changing which record a record belongs to after it is created, such as the monitor an owner row is for or the incident a note is on.
 - **As no person.** A record a workflow creates names no creator, and the audit log names the workflow, by its name at the time, as who made the change.
 
-When a check refuses a step, the step takes its **Error** output and writes nothing, and the run log names the step and the reason in plain words, for example *"Create One Team Permission" was refused. Workflow steps can do what a Project Admin of this project can do, and this needs more than that: …*. Read it under the workflow's [Runs](/docs/workflows/runs-and-logs).
+When a check refuses a step, the step takes its **Error** output without making the refused change, and the run log names the step and the reason in plain words, for example *"Create One Team Permission" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Read it under the workflow's [Runs](/docs/workflows/runs-and-logs). A Create Many step creates its records one at a time and stops at the first one refused: the records it created before that one are kept.
 
 Steps that talk to other systems — API, Email, Slack, Microsoft Teams, Discord, Telegram, Custom Code and Generate Text with AI — don't read or change OneUptime records, so none of this changes them.
 

@@ -91,6 +91,16 @@ describe("the Configuration & Safety page says what a step may do", () => {
     expect(text).toContain("the audit log names the workflow");
   });
 
+  test("a refused step makes no refused change, and a Create Many keeps what came before", () => {
+    expect(text).toContain(
+      "the step takes its **Error** output without making the refused change",
+    );
+    expect(text).toContain(
+      "A Create Many step creates its records one at a time and stops at the first one refused: the records it created before that one are kept.",
+    );
+    expect(text).not.toContain("writes nothing");
+  });
+
   test("the refusal it quotes is the one the run log writes", () => {
     const written: string = describeRefusal({
       error: new NotAuthorizedException("…"),
@@ -143,6 +153,11 @@ describe("the upgrade notes say what changes", () => {
     expect(text).toContain(
       "look over your workflows' **Runs** for refused steps",
     );
+    expect(text).toContain("without making the refused change");
+    expect(text).toContain(
+      "a Create Many step stops at the record refused, keeping the ones it created before it",
+    );
+    expect(text).not.toContain("writes nothing");
     expect(text).toContain(LINK);
   });
 
@@ -190,6 +205,8 @@ describe("every language's Configuration page has the section", () => {
       expect(text).toContain("**Error**");
       expect(text).toContain("OneUptime Cloud");
       expect(text).toContain("CNAME");
+      // A Create Many step keeps the records it made before the refused one.
+      expect(text).toContain("Create Many");
     },
   );
 });

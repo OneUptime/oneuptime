@@ -81,8 +81,8 @@ import Sort from "../Types/AnalyticsDatabase/Sort";
 import AggregatedModel from "../../Types/BaseDatabase/AggregatedModel";
 import ModelEventType from "../../Types/Realtime/ModelEventType";
 import CallerPlan from "../Utils/Billing/CallerPlan";
-import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
+import PlanGates from "../Types/Database/Permissions/PlanGates";
 
 export type Results = ResultSet<"JSON">;
 export type DbJSONResponse = ResponseJSON<{
@@ -2336,21 +2336,23 @@ export default class AnalyticsDatabaseService<
     DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(createBy.props);
 
     /*
-     * The project's plan, read when the props act in it without one and a
-     * plan decides the create (CallerPlan.withAnalyticsPlanFor).
+     * The project's plan, read once when the props act in it without one and
+     * a plan decides the create of any row of the batch (CallerPlan).
      */
-    for (const item of createBy.items) {
-      const props: DatabaseCommonInteractionProps =
-        await CallerPlan.withAnalyticsPlanFor({
-          props: createBy.props,
-          modelType: this.modelType,
-          type: DatabaseRequestType.Create,
-          data: item,
-        });
-
-      if (props !== createBy.props) {
-        createBy = { ...createBy, props: props };
-        break;
+    if (CallerPlan.isPlanMissing(createBy.props)) {
+      if (
+        createBy.items.some((item: TBaseModel): boolean => {
+          return PlanGates.isAnalyticsPlanAtStake(
+            this.model,
+            DatabaseRequestType.Create,
+            item,
+          );
+        })
+      ) {
+        createBy = {
+          ...createBy,
+          props: await CallerPlan.withPlan(createBy.props),
+        };
       }
     }
 
@@ -2396,6 +2398,25 @@ export default class AnalyticsDatabaseService<
       }
 
       // check total items by
+
+      /*
+       * What the hooks and the defaults wrote is held to the plan too: read
+       * now if nothing the caller sent needed it (CallerPlan) - never refused
+       * as a plan nobody could confirm.
+       */
+      if (
+        CallerPlan.isPlanMissing(createBy.props) &&
+        PlanGates.isAnalyticsPlanAtStake(
+          this.model,
+          DatabaseRequestType.Create,
+          data,
+        )
+      ) {
+        createBy = {
+          ...createBy,
+          props: await CallerPlan.withPlan(createBy.props),
+        };
+      }
 
       ModelPermission.checkCreatePermissions(
         this.modelType,

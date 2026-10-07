@@ -660,7 +660,7 @@ What changes for an existing workflow:
 - On OneUptime Cloud, a step that creates or changes what the project's plan doesn't include is refused with the plan it needs, as the dashboard is.
 - An Update step no longer writes the project: a record stays in its project, as before.
 
-A refused step takes its **Error** output, writes nothing, and its run log names the step and the reason. After the upgrade, look over your workflows' **Runs** for refused steps.
+A refused step takes its **Error** output without making the refused change, and its run log names the step and the reason (a Create Many step stops at the record refused, keeping the ones it created before it). After the upgrade, look over your workflows' **Runs** for refused steps.
 
 What does not change: the API, Terraform and the MCP server already held their callers to these checks, and still do, so nothing changes for them. Workflow steps that talk to other systems (API, Email, chat, Custom Code, AI) are not affected. Who may edit or run a workflow is unchanged.
 

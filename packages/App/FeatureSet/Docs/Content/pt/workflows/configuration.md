@@ -115,7 +115,7 @@ Os passos que leem e alteram registros do OneUptime (os componentes Find, Create
 - **Nada do que o OneUptime mantém por conta própria.** Entradas de feed não podem ser editadas nem excluídas, registros de notificações não podem ser escritos, e valores que o OneUptime define por conta própria (como um CNAME verificado, os interruptores de proteção de uma equipe ou quem está de plantão agora) não podem ser alterados.
 - **Como nenhuma pessoa.** Um registro que um workflow cria não tem criador, e o log de auditoria nomeia o workflow como autor da alteração.
 
-Um passo recusado segue pela sua saída **Error**, não escreve nada, e o log da execução diz qual passo foi recusado e por quê. Passos que falam com outros sistemas (API, e-mail, chat, Custom Code, IA) não são afetados.
+Um passo recusado segue pela sua saída **Error** sem fazer a alteração recusada, e o log da execução diz qual passo foi recusado e por quê. Um passo Create Many cria seus registros um de cada vez e para no recusado; os criados antes dele permanecem. Passos que falam com outros sistemas (API, e-mail, chat, Custom Code, IA) não são afetados.
 
 ## Limites do plano
 

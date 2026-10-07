@@ -115,7 +115,7 @@ I passaggi che leggono e modificano record di OneUptime (i componenti Find, Crea
 - **Niente di ciò che OneUptime gestisce da sé.** Le voci del feed non si possono modificare né eliminare, i registri delle notifiche non si possono scrivere, e i valori che OneUptime imposta da sé (come un CNAME verificato, gli interruttori di protezione di un team o chi è di turno adesso) non si possono cambiare.
 - **Come nessuna persona.** Un record creato da un workflow non ha autore, e il registro di audit indica il workflow come autore della modifica.
 
-Un passaggio rifiutato prende la sua uscita **Error**, non scrive nulla, e il registro dell'esecuzione dice quale passaggio è stato rifiutato e perché. I passaggi che comunicano con altri sistemi (API, e-mail, chat, Custom Code, IA) non sono interessati.
+Un passaggio rifiutato prende la sua uscita **Error** senza apportare la modifica rifiutata, e il registro dell'esecuzione dice quale passaggio è stato rifiutato e perché. Un passaggio Create Many crea i suoi record uno alla volta e si ferma a quello rifiutato; quelli creati prima restano. I passaggi che comunicano con altri sistemi (API, e-mail, chat, Custom Code, IA) non sono interessati.
 
 ## Limiti di piano
 

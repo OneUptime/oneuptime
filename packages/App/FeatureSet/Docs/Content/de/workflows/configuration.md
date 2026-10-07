@@ -115,7 +115,7 @@ Die Schritte, die OneUptime-Datensätze lesen und ändern – die Komponenten Fi
 - **Nichts, was OneUptime selbst verwaltet.** Feed-Einträge lassen sich nicht bearbeiten oder löschen, Benachrichtigungsprotokolle nicht schreiben, und Werte, die OneUptime selbst setzt (etwa ein bestätigter CNAME, die Schutzschalter eines Teams oder wer gerade Bereitschaft hat), nicht ändern.
 - **Als keine Person.** Ein Datensatz, den ein Workflow anlegt, nennt keinen Ersteller, und das Audit-Log nennt den Workflow als den, der die Änderung vorgenommen hat.
 
-Ein abgelehnter Schritt nimmt seinen Ausgang **Error**, schreibt nichts, und das Ausführungsprotokoll sagt, welcher Schritt abgelehnt wurde und warum. Schritte, die mit anderen Systemen sprechen (API, E-Mail, Chat, Custom Code, KI), sind nicht betroffen.
+Ein abgelehnter Schritt nimmt seinen Ausgang **Error**, ohne die abgelehnte Änderung vorzunehmen, und das Ausführungsprotokoll sagt, welcher Schritt abgelehnt wurde und warum. Ein Schritt „Create Many“ legt seine Datensätze nacheinander an und hält beim abgelehnten an; die zuvor angelegten bleiben bestehen. Schritte, die mit anderen Systemen sprechen (API, E-Mail, Chat, Custom Code, KI), sind nicht betroffen.
 
 ## Plan-Grenzen
 

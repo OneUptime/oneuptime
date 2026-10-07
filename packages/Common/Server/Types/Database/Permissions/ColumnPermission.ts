@@ -30,6 +30,7 @@ import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 import logger from "../../../Utils/Logger";
 import CallerPlan from "../../../Utils/Billing/CallerPlan";
 import PlanGates from "./PlanGates";
+import ColumnWriteRefusedException from "./ColumnWriteRefusedException";
 
 export default class ColumnPermissions {
   @CaptureSpan()
@@ -187,9 +188,11 @@ export default class ColumnPermissions {
           continue; // computed columns are not allowed to be updated.
         }
 
-        throw new BadDataException(
-          `User is not allowed to ${requestType} on ${key} column of ${model.singularName}`,
-        );
+        throw new ColumnWriteRefusedException({
+          requestType: requestType,
+          columnName: key,
+          modelName: model.singularName,
+        });
       }
 
       if (IsBillingEnabled && model.getColumnBillingAccessControl(key)) {
