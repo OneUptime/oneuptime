@@ -352,7 +352,22 @@ describe("monitor update payment admission", () => {
         hooks.onBeforeUpdate(updateInput(data)),
       ).resolves.toBeDefined();
       expect(PayAsYouGoBillingService.canUsePayAsYouGo).not.toHaveBeenCalled();
-      expect(MonitorService.findBy).not.toHaveBeenCalled();
+
+      /*
+       * No monitor is read to bill it. (A rename reads the name the monitor
+       * holds, so its updated feed item follows a real change only.)
+       */
+      expect(
+        (
+          MonitorService.findBy as unknown as {
+            mock: { calls: Array<Array<{ select?: Record<string, unknown> }>> };
+          }
+        ).mock.calls.filter(
+          (call: Array<{ select?: Record<string, unknown> }>): boolean => {
+            return Boolean(call[0]?.select?.["monitorType"]);
+          },
+        ),
+      ).toHaveLength(0);
     },
   );
 

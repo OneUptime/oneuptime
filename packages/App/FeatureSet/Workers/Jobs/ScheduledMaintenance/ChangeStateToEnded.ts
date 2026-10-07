@@ -7,6 +7,14 @@ import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 
+/*
+ * Ends every ongoing event whose end time has passed: moves it into its
+ * project's ended state. The move does the rest, as any end does
+ * (ScheduledMaintenanceStateTimelineService): it puts the monitors the
+ * event holds back to operational and probes them again, reading them as
+ * they are stored at that moment. So the job reads only what the move
+ * needs - not the event's monitors, nor the status it changed them to.
+ */
 RunCron(
   "ScheduledMaintenance:ChangeStateToEnded",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -26,15 +34,11 @@ RunCron(
         select: {
           _id: true,
           projectId: true,
-          changeMonitorStatusToId: true,
           shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded: true,
-          monitors: {
-            _id: true,
-          },
         },
       });
 
-    // change their state to Ongoing.
+    // change their state to Ended.
 
     for (const event of events) {
       const scheduledMaintenanceState: ScheduledMaintenanceState | null =

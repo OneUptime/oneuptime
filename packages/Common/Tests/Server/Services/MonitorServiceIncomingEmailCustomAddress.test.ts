@@ -430,7 +430,21 @@ describe("updates that do not touch the custom name", () => {
   test("run no custom-address lookups", async () => {
     await runHook({ data: { name: "Nightly backups" } });
 
-    expect(findBySpy.mock.calls).toHaveLength(0);
+    /*
+     * The name the monitor holds is read, so its updated feed item follows
+     * a real change only; no custom address is looked up.
+     */
+    expect(
+      findBySpy.mock.calls.filter((call: Array<unknown>): boolean => {
+        const args: FindByArgs & { select?: Record<string, unknown> } =
+          call[0] as FindByArgs & { select?: Record<string, unknown> };
+
+        return (
+          "incomingEmailCustomLocalPart" in args.query ||
+          "incomingEmailCustomLocalPart" in (args.select || {})
+        );
+      }),
+    ).toHaveLength(0);
   });
 
   test("rotating only the secret key leaves the custom name alone", async () => {

@@ -4,6 +4,9 @@ import LabelService from "../../../Server/Services/LabelService";
 import EventFieldChange, {
   EventFieldSet,
   EventValuesBeforeUpdate,
+  INCIDENT_OR_ALERT_FIELDS,
+  MONITOR_FIELDS,
+  SCHEDULED_MAINTENANCE_FIELDS,
 } from "../../../Server/Utils/EventFieldChange";
 import Dictionary from "../../../Types/Dictionary";
 import ObjectID from "../../../Types/ObjectID";
@@ -598,5 +601,297 @@ describe("EventFieldChange.getFeedMarkdown", () => {
     expect(
       await markdownOf({ enableReminders: false }, { enableReminders: true }),
     ).toBe("");
+  });
+});
+
+/*
+ * The same comparison, for the other records whose "updated" feed item
+ * follows real changes: a scheduled maintenance event (its title and its
+ * Markdown description, its Send reminders switch) and a monitor (its name
+ * and its plain-text description, no reminders). Each is a kind
+ * (EventFieldKind); incidents and alerts are the kind when none is named.
+ */
+describe("EventFieldChange kinds", () => {
+  test("a monitor compares its name and description, and has no reminders switch", () => {
+    expect(
+      EventFieldChange.getFieldsWritten(
+        {
+          name: "API",
+          description: "x",
+          title: "x",
+          rootCause: "x",
+          remediationNotes: "x",
+          labels: [],
+          enableReminders: false,
+        },
+        MONITOR_FIELDS,
+      ),
+    ).toEqual({
+      textColumns: ["name", "description"],
+      labels: true,
+      enableReminders: false,
+    });
+  });
+
+  test("a scheduled maintenance event compares its title and description, and its reminders switch", () => {
+    expect(
+      EventFieldChange.getFieldsWritten(
+        {
+          title: "x",
+          name: "x",
+          rootCause: "x",
+          description: "x",
+          remediationNotes: "x",
+          enableReminders: true,
+        },
+        SCHEDULED_MAINTENANCE_FIELDS,
+      ),
+    ).toEqual({
+      textColumns: ["title", "description"],
+      labels: false,
+      enableReminders: true,
+    });
+  });
+
+  test("incidents and alerts are the kind when none is named", () => {
+    expect(
+      EventFieldChange.getFieldsWritten({ name: "x", title: "x" }),
+    ).toEqual({ ...NOTHING, textColumns: ["title"] });
+    expect(EventFieldChange.textColumns).toEqual(
+      INCIDENT_OR_ALERT_FIELDS.textColumns,
+    );
+    expect(
+      EventFieldChange.getChanges({
+        written: { name: "Renamed" },
+        valuesBeforeUpdate: undefined,
+      }),
+    ).toEqual(NOTHING);
+  });
+
+  test("every kind's text columns are ones the feed lists, and its Markdown ones among them", () => {
+    for (const kind of [
+      INCIDENT_OR_ALERT_FIELDS,
+      SCHEDULED_MAINTENANCE_FIELDS,
+      MONITOR_FIELDS,
+    ]) {
+      for (const column of kind.textColumns) {
+        expect(EventFieldChange.feedOrder).toContain(column);
+        expect(EventFieldChange.emptyTextLines[column]).toBeTruthy();
+      }
+
+      for (const column of kind.markdownColumns) {
+        expect(kind.textColumns).toContain(column);
+      }
+    }
+  });
+
+  test("a monitor written back as it is changes nothing", () => {
+    expect(
+      EventFieldChange.getChanges({
+        written: {
+          name: " API ",
+          description: "Checks the API.\r\nEvery minute.\n",
+          labels: [PAYMENTS, CHECKOUT.toUpperCase()],
+          enableReminders: false,
+        },
+        valuesBeforeUpdate: {
+          name: "API",
+          description: "Checks the API.\nEvery minute.",
+          labelIds: [CHECKOUT, PAYMENTS],
+        },
+        kind: MONITOR_FIELDS,
+      }),
+    ).toEqual(NOTHING);
+  });
+
+  test("a monitor renamed changes its name, and nothing else", () => {
+    expect(
+      EventFieldChange.getChanges({
+        written: { name: "Public API", description: "Checks the API." },
+        valuesBeforeUpdate: { name: "API", description: "Checks the API." },
+        kind: MONITOR_FIELDS,
+      }),
+    ).toEqual({ ...NOTHING, textColumns: ["name"] });
+  });
+
+  test("a monitor the read did not see: every column of its kind the update writes counts as changed", () => {
+    expect(
+      EventFieldChange.getChanges({
+        written: {
+          name: "API",
+          description: "x",
+          labels: [],
+          title: "x",
+          enableReminders: true,
+        },
+        valuesBeforeUpdate: undefined,
+        kind: MONITOR_FIELDS,
+      }),
+    ).toEqual({
+      textColumns: ["name", "description"],
+      labels: true,
+      enableReminders: false,
+    });
+  });
+
+  test("the read before the write asks a monitor for its own columns only", () => {
+    expect(
+      EventFieldChange.getSelect(
+        EventFieldChange.getFieldsWritten(
+          { name: "x", description: "x", enableReminders: true },
+          MONITOR_FIELDS,
+        ),
+      ),
+    ).toEqual({ name: true, description: true });
+  });
+});
+
+describe("EventFieldChange.getFeedMarkdown for a monitor", () => {
+  function monitorMarkdown(
+    written: Dictionary<unknown>,
+    textColumns: Array<"name" | "description">,
+  ): Promise<string> {
+    return EventFieldChange.getFeedMarkdown({
+      written: written,
+      changes: { ...NOTHING, textColumns: textColumns },
+      projectId: PROJECT_ID,
+      recordName: "Monitor",
+      kind: MONITOR_FIELDS,
+    });
+  }
+
+  test("the name is one line, quoted inertly", async () => {
+    expect(
+      await monitorMarkdown({ name: "API [prod](https://evil.example)\n<b>" }, [
+        "name",
+      ]),
+    ).toBe("\n\n**Name**: \nAPI \\[prod\\](https://evil.example) \\<b>\n");
+  });
+
+  test("the description is plain text: quoted inertly, its lines kept, named after the monitor", async () => {
+    expect(
+      await monitorMarkdown(
+        {
+          description:
+            "Checks the API.\r\n![pixel](https://tracker.example/p.png)",
+        },
+        ["description"],
+      ),
+    ).toBe(
+      "\n\n**Monitor Description**: \nChecks the API.\n!\\[pixel\\](https://tracker.example/p.png)\n",
+    );
+  });
+
+  test("the name comes before the description, whatever order they are written in", async () => {
+    const markdown: string = await monitorMarkdown(
+      { description: "Checks the API.", name: "API" },
+      ["description", "name"],
+    );
+
+    expect(markdown.indexOf("**Name**")).toBeLessThan(
+      markdown.indexOf("**Monitor Description**"),
+    );
+  });
+
+  test("a name or a description emptied says so", async () => {
+    expect(await monitorMarkdown({ name: "  " }, ["name"])).toBe(
+      "\n\n**Name**: \nNo name provided.\n",
+    );
+    expect(await monitorMarkdown({ description: null }, ["description"])).toBe(
+      "\n\n**Monitor Description**: \nNo description provided.\n",
+    );
+  });
+
+  test("a scheduled maintenance description is Markdown, shown as written", async () => {
+    expect(
+      await EventFieldChange.getFeedMarkdown({
+        written: { description: "**Database** [runbook](https://r.example)" },
+        changes: { ...NOTHING, textColumns: ["description"] },
+        projectId: PROJECT_ID,
+        recordName: "Scheduled Maintenance",
+        kind: SCHEDULED_MAINTENANCE_FIELDS,
+      }),
+    ).toBe(
+      "\n\n**Scheduled Maintenance Description**: \n**Database** [runbook](https://r.example)\n",
+    );
+  });
+});
+
+describe("EventFieldChange.toInstant and isInstantChanged", () => {
+  const NOON_UTC: number = Date.UTC(2026, 9, 7, 12, 0, 0);
+
+  test.each([
+    ["a Date", new Date(NOON_UTC), NOON_UTC],
+    ["an ISO string in UTC", "2026-10-07T12:00:00.000Z", NOON_UTC],
+    ["an ISO string without milliseconds", "2026-10-07T12:00:00Z", NOON_UTC],
+    [
+      "an ISO string in another time zone",
+      "2026-10-07T14:00:00+02:00",
+      NOON_UTC,
+    ],
+    ["an ISO string with spaces around it", " 2026-10-07T12:00:00Z ", NOON_UTC],
+    ["a number of milliseconds", NOON_UTC, NOON_UTC],
+    ["null", null, null],
+    ["undefined", undefined, null],
+    ["an empty string", "", null],
+    ["a string that names no time", "next Tuesday-ish", null],
+    ["an invalid Date", new Date("x"), null],
+    ["NaN", NaN, null],
+    ["an object", { value: NOON_UTC }, null],
+  ] as Array<[string, unknown, number | null]>)(
+    "%s",
+    (_label: string, value: unknown, instant: number | null) => {
+      expect(EventFieldChange.toInstant(value)).toBe(instant);
+    },
+  );
+
+  test.each([
+    [
+      "the same time as a Date and as an ISO string",
+      "2026-10-07T12:00:00.000Z",
+      new Date(NOON_UTC),
+      false,
+    ],
+    [
+      "the same time in another time zone",
+      "2026-10-07T14:00:00+02:00",
+      NOON_UTC,
+      false,
+    ],
+    ["the same time as milliseconds", NOON_UTC, NOON_UTC, false],
+    ["no time over no time", null, null, false],
+    ["a minute later", "2026-10-07T12:01:00.000Z", NOON_UTC, true],
+    ["a time over none", new Date(NOON_UTC), null, true],
+    ["none over a time", null, NOON_UTC, true],
+  ] as Array<[string, unknown, unknown, boolean]>)(
+    "%s",
+    (
+      _label: string,
+      writtenValue: unknown,
+      valueBeforeUpdate: unknown,
+      changed: boolean,
+    ) => {
+      expect(
+        EventFieldChange.isInstantChanged({
+          writtenValue: writtenValue,
+          valueBeforeUpdate: valueBeforeUpdate,
+        }),
+      ).toBe(changed);
+    },
+  );
+
+  test("a time left out is not changed; a record the read did not see is", () => {
+    expect(
+      EventFieldChange.isInstantChanged({
+        writtenValue: undefined,
+        valueBeforeUpdate: NOON_UTC,
+      }),
+    ).toBe(false);
+    expect(
+      EventFieldChange.isInstantChanged({
+        writtenValue: new Date(NOON_UTC),
+        valueBeforeUpdate: undefined,
+      }),
+    ).toBe(true);
   });
 });
