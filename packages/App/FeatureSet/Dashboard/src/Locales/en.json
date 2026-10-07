@@ -26403,5 +26403,9 @@
   "Microsoft Teams meeting": "Microsoft Teams meeting",
   "Zoom meeting": "Zoom meeting",
   "{{table}} - no longer collected by this device": "{{table}} - no longer collected by this device",
-  "“{{call}}” is removed from this {{eventNoun}}'s page. The meeting itself is not deleted, and anyone with the link can still join it.": "“{{call}}” is removed from this {{eventNoun}}'s page. The meeting itself is not deleted, and anyone with the link can still join it."
+  "“{{call}}” is removed from this {{eventNoun}}'s page. The meeting itself is not deleted, and anyone with the link can still join it.": "“{{call}}” is removed from this {{eventNoun}}'s page. The meeting itself is not deleted, and anyone with the link can still join it.",
+  "You do not have permission to add a payment method.": "You do not have permission to add a payment method.",
+  "You do not have permission to change the default payment method.": "You do not have permission to change the default payment method.",
+  "You do not have permission to pay invoices.": "You do not have permission to pay invoices.",
+  "You do not have permission to start runbook executions in this project.": "You do not have permission to start runbook executions in this project."
 }

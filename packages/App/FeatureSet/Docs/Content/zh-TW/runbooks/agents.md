@@ -149,9 +149,9 @@ Worker 的整體等待時間區間為 `claim timeout + execution timeout + a few
 代理程式的管理隸屬於既有的 Runbooks 權限群組：
 
 - `CreateRunner`、`EditRunner`、`DeleteRunner`、`ReadRunner` — 管理代理程式記錄。
-- `RunbookAdmin`、`RunbookMember`、`RunbookViewer`（角色）— 指派給團隊，以分別授予完整控制、日常使用，或唯讀存取權限。`RunbookAdmin` 包含上述所有細部權限。
+- `RunbookAdmin`、`RunbookMember`、`RunbookViewer`（角色） — `RunbookAdmin` 建置 Runbook、它們的規則以及執行它們的 Runner，並執行 Runbook。`RunbookMember` 開啟 Runbook 及其執行並執行它們——開始一次執行、完成或略過其步驟、取消執行——但不能建立、變更或刪除任何 Runbook 或 Runner。`RunbookViewer` 讀取 Runbook 及其執行，不執行任何東西。`RunbookAdmin` 把上面所有細粒度權限打包在一起。
 
-_觸發_ runbook（並因而導致 Bash 與 JavaScript 步驟被派發）的權限，仍然是 `CreateRunbookExecution` / `EditRunbookExecution`。
+觸發 Runbook（從而派送它的 Bash 與 JavaScript 步驟）需要一個能執行 Runbook 的角色——`ProjectOwner`、`ProjectAdmin`、`ProjectMember`、`RunbookAdmin` 或 `RunbookMember`——或 `CreateRunbookExecution`；完成、略過或取消一次執行也接受 `EditRunbookExecution`。角色只執行其範圍所及的 Runbook。
 
 ## 代理程式端 API
 

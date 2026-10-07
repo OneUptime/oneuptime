@@ -71,13 +71,17 @@ Un'autorizzazione è una singola capacità. Ci sono due modi per distribuirle, e
 
 Un ruolo raggruppa un'intera area del prodotto a uno di tre livelli:
 
-- **Admin** — controllo completo su quell'area, inclusa la sua configurazione (gravità, stati, modelli).
-- **Member** — il lavoro quotidiano: creare, modificare ed eliminare le risorse, ma non riconfigurare l'area.
+- **Admin** — ciò che fa il Member, più la configurazione propria dell'area, come gravità e stati di incidenti e avvisi, stati dei monitor e stati di manutenzione.
+- **Member** — il lavoro quotidiano: creare, modificare ed eliminare le risorse dell'area, con le loro note, i proprietari e i modelli. Per le pagine di stato e la reperibilità, il Member fa tutto ciò che fa l'Admin.
 - **Viewer** — sola lettura.
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` e così via. I ruoli sono la scelta giusta quasi sempre: restano corretti mentre OneUptime aggiunge funzionalità, perché una nuova tabella legata ai monitor viene aggiunta ai ruoli monitor esistenti invece di richiedervi una nuova concessione.
 
-I workflow sono l'eccezione. Un workflow esegue i suoi passaggi all'interno del progetto, quindi `WorkflowMember` apre i workflow e le loro esecuzioni e li esegue a mano, ma non li crea, non li modifica e non li elimina. `WorkflowAdmin` li costruisce. Vedi [Configurazione dei workflow](/docs/workflows/configuration).
+I workflow e i runbook sono l'eccezione. Entrambi eseguono codice nel tuo progetto — un workflow i suoi passaggi, un runbook i suoi script sui tuoi Runner —, quindi `WorkflowMember` apre i workflow e le loro esecuzioni e li esegue a mano, e `RunbookMember` apre i runbook e le loro esecuzioni e li esegue: avvia un'esecuzione, ne completa o salta i passaggi e la annulla. Nessuno dei due crea, modifica o elimina ciò che esegue; `WorkflowAdmin` e `RunbookAdmin` li costruiscono. Un ruolo esegue solo i runbook che il suo ambito raggiunge: un `RunbookMember` limitato ad alcune etichette esegue i runbook che le portano. Vedi [Configurazione dei workflow](/docs/workflows/configuration) e [Configurazione dei runbook](/docs/runbooks/configuration).
+
+Le regole di un'area (regole di etichette, di proprietari, di reperibilità, di raggruppamento e di promemoria), i campi personalizzati, gli SLA e i segreti sono configurazione del progetto: richiedono `ProjectAdmin`, qualunque sia il ruolo d'area della persona. Lo stesso vale per le chiavi API, i team e i loro permessi, le etichette, l'SSO e i domini — i ruoli Settings si occupano dei servizi, delle sonde, dell'infrastruttura e delle integrazioni del progetto, non di chi può fare cosa.
+
+La fatturazione ha tre ruoli propri. `BillingViewer` legge la fatturazione del progetto — il piano e l'abbonamento, le fatture, l'utilizzo, i saldi, i crediti IA, i metodi di pagamento e i dati di contatto per la fatturazione — e non modifica nulla. `BillingMember` inoltre scarica le fatture e modifica i dati di contatto per la fatturazione. `BillingAdmin` fa ciò che fa `BillingMember` e attiva e disattiva SMS, chiamate, WhatsApp e Telegram. Cambiare il piano, i metodi di pagamento o i saldi, e pagare le fatture, richiede `ProjectOwner` o **Manage Billing**; nelle pagine di fatturazione quei pulsanti sono bloccati per tutti gli altri e dicono chi può usarli.
 
 Tutti i {{PERMISSION_ROLE_COUNT}} ruoli sono elencati nel [Riferimento autorizzazioni](/docs/permissions/reference).
 
@@ -200,7 +204,7 @@ Le autorizzazioni risolte sono memorizzate in cache per utente e progetto e aggi
 
 **Una pipeline CI che segnala solo i deploy.** Create una chiave API con le sole autorizzazioni granulari che le servono, senza ruoli.
 
-**Qualcuno che non deve vedere la fatturazione.** Non aggiungetelo al team Owners. `ProjectAdmin` esclude già la fatturazione.
+**Qualcuno che non deve modificare la fatturazione né vedere le fatture.** Dategli `ProjectMember`, non `ProjectAdmin`: un amministratore di progetto non può cambiare il piano, i metodi di pagamento né i saldi, ma legge e scarica le fatture. Per far leggere le pagine di fatturazione senza modificare nulla, dategli `BillingViewer`.
 
 ## Prossimi passi
 

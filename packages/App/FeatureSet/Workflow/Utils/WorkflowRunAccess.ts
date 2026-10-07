@@ -3,10 +3,10 @@ import WorkflowService from "Common/Server/Services/WorkflowService";
 import CallerPermission from "Common/Server/Utils/Permission/CallerPermission";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
-import DatabaseCommonInteractionPropsUtil from "Common/Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import PropsHoldingOnly from "Common/Server/Utils/Permission/PropsHoldingOnly";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import ObjectID from "Common/Types/ObjectID";
-import Permission, { UserPermission } from "Common/Types/Permission";
+import Permission from "Common/Types/Permission";
 import {
   WORKFLOW_EDIT_PERMISSIONS,
   WORKFLOW_RUN_ONLY_PERMISSIONS,
@@ -199,31 +199,11 @@ export default class WorkflowRunAccess {
     data: WorkflowRunRequest,
     permissions: ReadonlyArray<Permission>,
   ): DatabaseCommonInteractionProps {
-    const rows: Array<UserPermission> =
-      DatabaseCommonInteractionPropsUtil.getPermissionRows({
-        ...data.databaseProps,
-        tenantId: data.projectId,
-        userGlobalAccessPermission: undefined,
-      }).filter((row: UserPermission): boolean => {
-        return permissions.includes(row.permission);
-      });
-
-    return {
-      ...data.databaseProps,
-      tenantId: data.projectId,
-      userGlobalAccessPermission: {
-        _type: "UserGlobalAccessPermission",
-        globalPermissions: [],
-        projectIds: [data.projectId],
-      },
-      userTenantAccessPermission: {
-        [data.projectId.toString()]: {
-          _type: "UserTenantAccessPermission",
-          projectId: data.projectId,
-          permissions: rows,
-        },
-      },
-    };
+    return PropsHoldingOnly.build({
+      databaseProps: data.databaseProps,
+      projectId: data.projectId,
+      permissions: permissions,
+    });
   }
 
   private static holdsAnyOf(

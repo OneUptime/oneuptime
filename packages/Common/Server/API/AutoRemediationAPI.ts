@@ -38,6 +38,7 @@ import {
  * disagree about who may start an execution.
  */
 import { assertCanExecuteRunbooks } from "../Utils/Runbook/RunbookExecutePermission";
+import RunbookRunAccess from "../Utils/Runbook/RunbookRunAccess";
 import { Indigo500 } from "../../Types/BrandColors";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
@@ -1055,6 +1056,13 @@ router.post(
       }
 
       assertCanExecuteRunbooks(props, suggestion.projectId);
+
+      // Only a runbook the approver's run grant reaches (labels, owned).
+      await RunbookRunAccess.assertMayStart({
+        databaseProps: props,
+        projectId: suggestion.projectId,
+        runbookId: suggestion.runbookId,
+      });
 
       /*
        * Claim the approval FIRST (CAS Suggested -> Approved), then start

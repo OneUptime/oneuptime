@@ -149,9 +149,9 @@ Wenn ein Schlüssel kompromittiert wird, öffnen Sie den Agent in OneUptime und 
 Die Verwaltung von Agents liegt in der bestehenden Runbooks-Berechtigungsgruppe:
 
 - `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — Agent-Datensätze verwalten.
-- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (Rollen) — einem Team zuweisen, um vollständige Kontrolle, alltägliche Nutzung oder nur Lesezugriff zu gewähren. `RunbookAdmin` bündelt alle obigen Einzel-Berechtigungen.
+- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (Rollen) — `RunbookAdmin` baut Runbooks, ihre Regeln und die Runner, auf denen sie laufen, und führt sie aus. `RunbookMember` öffnet Runbooks und ihre Ausführungen und führt sie aus — startet eine Ausführung, schließt ihre Schritte ab oder überspringt sie und bricht sie ab —, erstellt, ändert und löscht aber weder Runbooks noch Runner. `RunbookViewer` liest Runbooks und ihre Ausführungen und führt nichts aus. `RunbookAdmin` bündelt alle obigen Einzel-Berechtigungen.
 
-Berechtigungen, um ein Runbook _auszulösen_ (und damit Bash- und JavaScript-Schritte zur Ausführung zu bringen), sind weiterhin `CreateRunbookExecution` / `EditRunbookExecution`.
+Ein Runbook auszulösen (und damit seine Bash- und JavaScript-Schritte zu verteilen) erfordert eine Rolle, die Runbooks ausführt — `ProjectOwner`, `ProjectAdmin`, `ProjectMember`, `RunbookAdmin` oder `RunbookMember` — oder `CreateRunbookExecution`; Abschließen, Überspringen oder Abbrechen einer Ausführung akzeptiert zusätzlich `EditRunbookExecution`. Eine Rolle führt nur die Runbooks aus, die ihr Geltungsbereich erreicht.
 
 ## Agent-seitiges API
 

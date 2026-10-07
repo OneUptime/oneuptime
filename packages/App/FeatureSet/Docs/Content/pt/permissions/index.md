@@ -71,13 +71,17 @@ Uma permissão é uma capacidade única. Há duas formas de distribuí-las, amba
 
 Uma função agrupa uma área inteira do produto em um de três níveis:
 
-- **Admin** — controle total sobre a área, incluindo sua configuração (severidades, estados, modelos).
-- **Member** — o trabalho do dia a dia: criar, editar e excluir os recursos, mas não reconfigurar a área.
+- **Admin** — o que o Member faz, mais a configuração própria da área, como severidades e estados de incidentes e alertas, status dos monitores e estados de manutenção.
+- **Member** — o trabalho do dia a dia: criar, alterar e excluir os recursos da área, com suas notas, proprietários e modelos. Nas páginas de status e no plantão, o Member faz tudo o que o Admin faz.
 - **Viewer** — somente leitura.
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` e assim por diante. Funções são o que você quer quase sempre — elas continuam corretas conforme o OneUptime ganha recursos, porque uma nova tabela relacionada a monitores entra nas funções de monitor existentes em vez de exigir uma nova concessão sua.
 
-Workflows são a exceção. Um workflow executa suas etapas dentro do projeto, então `WorkflowMember` abre os workflows e suas execuções e os executa à mão, mas não os cria, altera nem exclui. `WorkflowAdmin` os constrói. Veja [Configuração de workflows](/docs/workflows/configuration).
+Workflows e runbooks são a exceção. Ambos executam código no seu projeto — um workflow as suas etapas, um runbook os seus scripts nos seus Runners —, então `WorkflowMember` abre workflows e suas execuções e os executa manualmente, e `RunbookMember` abre runbooks e suas execuções e os executa: inicia uma execução, conclui ou pula suas etapas e a cancela. Nenhum dos dois cria, altera ou exclui o que executa; `WorkflowAdmin` e `RunbookAdmin` os constroem. Uma função executa apenas os runbooks que o seu escopo alcança: um `RunbookMember` limitado a alguns rótulos executa os runbooks que os têm. Veja [Configuração de workflows](/docs/workflows/configuration) e [Configuração de runbooks](/docs/runbooks/configuration).
+
+As regras de uma área (regras de rótulos, de proprietários, de plantão, de agrupamento e de lembrete), os campos personalizados, os SLAs e os segredos são configuração do projeto: exigem `ProjectAdmin`, qualquer que seja a função de área da pessoa. O mesmo vale para chaves de API, equipes e suas permissões, rótulos, SSO e domínios — as funções Settings cuidam dos serviços, sondas, infraestrutura e integrações do projeto, não de quem pode fazer o quê.
+
+O faturamento tem três funções próprias. `BillingViewer` lê o faturamento do projeto — o plano e a assinatura, as faturas, o uso, os saldos, os créditos de IA, os métodos de pagamento e os dados de contato de cobrança — e não altera nada. `BillingMember` também baixa faturas e altera os dados de contato de cobrança. `BillingAdmin` faz o que `BillingMember` faz e liga e desliga SMS, chamadas telefônicas, WhatsApp e Telegram. Alterar o plano, os métodos de pagamento ou os saldos, e pagar faturas, exige `ProjectOwner` ou **Manage Billing**; nas páginas de faturamento esses botões ficam bloqueados para os demais e dizem quem pode usá-los.
 
 Todas as {{PERMISSION_ROLE_COUNT}} funções estão na [Referência de permissões](/docs/permissions/reference).
 
@@ -200,7 +204,7 @@ As permissões resolvidas ficam em cache por usuário e projeto, e são atualiza
 
 **Um pipeline de CI que só reporta implantações.** Crie uma chave de API apenas com as permissões granulares de que ela precisa — sem funções.
 
-**Alguém que não deve ver o faturamento.** Não o adicione à equipe Owners. `ProjectAdmin` já exclui o faturamento.
+**Alguém que não deve alterar o faturamento nem ver as faturas.** Dê a ele `ProjectMember`, não `ProjectAdmin`: um administrador do projeto não pode alterar o plano, os métodos de pagamento nem os saldos, mas lê e baixa as faturas. Para que alguém leia as páginas de faturamento sem alterar nada, dê a ele `BillingViewer`.
 
 ## A seguir
 

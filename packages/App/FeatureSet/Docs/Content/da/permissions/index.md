@@ -71,13 +71,17 @@ En tilladelse er én funktion. Der er to måder at uddele dem på, og begge find
 
 En rolle samler et helt produktområde på ét af tre niveauer:
 
-- **Admin** — fuld kontrol over området, inklusive dets konfiguration (alvorsgrader, tilstande, skabeloner).
-- **Member** — det daglige arbejde: oprette, redigere og slette ressourcerne, men ikke omkonfigurere området.
+- **Admin** — det, som Member gør, plus områdets egen konfiguration, som alvorsgrader og tilstande for hændelser og alarmer, monitorstatusser og vedligeholdelsestilstande.
+- **Member** — det daglige arbejde: oprette, ændre og slette områdets ressourcer med deres noter, ejere og skabeloner. For statussider og vagter kan Member alt, hvad Admin kan.
 - **Viewer** — kun læsning.
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` og så videre. Roller er næsten altid det rigtige valg — de forbliver korrekte, efterhånden som OneUptime får nye funktioner, fordi en ny monitorrelateret tabel lægges ind under de eksisterende monitorroller i stedet for at kræve en ny tildeling fra dig.
 
-Workflows er undtagelsen. Et workflow kører sine trin inde i projektet, så `WorkflowMember` åbner workflows og deres kørsler og kører dem manuelt, men opretter, ændrer eller sletter dem ikke. `WorkflowAdmin` bygger dem. Se [Workflow-konfiguration](/docs/workflows/configuration).
+Workflows og runbooks er undtagelsen. Begge kører kode i dit projekt — et workflow sine trin, en runbook sine scripts på dine Runners —, så `WorkflowMember` åbner workflows og deres kørsler og kører dem manuelt, og `RunbookMember` åbner runbooks og deres kørsler og kører dem: den starter en kørsel, fuldfører eller springer dens trin over og annullerer den. Ingen af dem opretter, ændrer eller sletter det, de kører; `WorkflowAdmin` og `RunbookAdmin` bygger dem. En rolle kører kun de runbooks, dens omfang når: en `RunbookMember`, der er begrænset til nogle labels, kører de runbooks, der har dem. Se [Workflow-konfiguration](/docs/workflows/configuration) og [Runbook-konfiguration](/docs/runbooks/configuration).
+
+Et områdes regler (label-, ejer-, vagt-, grupperings- og påmindelsesregler), brugerdefinerede felter, SLA'er og hemmeligheder er projektkonfiguration: de kræver `ProjectAdmin`, uanset hvilken områderolle man har. Det samme gælder API-nøgler, teams og deres tilladelser, labels, SSO og domæner — Settings-rollerne passer projektets tjenester, probes, infrastruktur og integrationer, ikke hvem der må hvad.
+
+Fakturering har tre egne roller. `BillingViewer` læser projektets fakturering — planen og abonnementet, fakturaer, forbrug, saldi, AI-kreditter, betalingsmetoder og faktureringskontaktoplysningerne — og ændrer intet. `BillingMember` downloader desuden fakturaer og ændrer faktureringskontaktoplysningerne. `BillingAdmin` gør det, som `BillingMember` gør, og slår SMS, telefonopkald, WhatsApp og Telegram til og fra. At ændre planen, betalingsmetoder eller saldi og at betale fakturaer kræver `ProjectOwner` eller **Manage Billing**; på faktureringssiderne er de knapper låst for alle andre og fortæller, hvem der må bruge dem.
 
 Alle {{PERMISSION_ROLE_COUNT}} roller står i [Tilladelsesreferencen](/docs/permissions/reference).
 
@@ -200,7 +204,7 @@ Opløste tilladelser caches pr. bruger og projekt og opdateres, når teammedlems
 
 **En CI-pipeline, der kun rapporterer deployments.** Opret en API-nøgle med netop de granulære tilladelser, den har brug for — ingen roller.
 
-**En, der ikke skal se fakturering.** Tilføj vedkommende ikke til Owners-teamet. `ProjectAdmin` udelukker allerede fakturering.
+**En, der ikke skal ændre fakturering eller se fakturaer.** Giv vedkommende `ProjectMember`, ikke `ProjectAdmin`: en projektadministrator kan ikke ændre planen, betalingsmetoder eller saldi, men læser og downloader fakturaer. Skal nogen læse faktureringssiderne uden at ændre noget, så giv vedkommende `BillingViewer`.
 
 ## Videre
 

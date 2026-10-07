@@ -71,13 +71,17 @@ OneUptime 中的一切都存在於**專案**之內。誰能在專案裡做什麼
 
 角色把整個產品領域打包為三個層級之一：
 
-- **Admin** — 對該領域的完全控制，包含其設定（嚴重程度、狀態、範本）。
-- **Member** — 日常工作：建立、編輯與刪除資源，但不能重新設定該領域。
+- **Admin** — Member 能做的事，再加上該領域自己的設定，例如事件與警示的嚴重程度與狀態、監視器狀態以及維護狀態。
+- **Member** — 日常工作：建立、變更與刪除該領域的資源，連同它們的備註、擁有者與範本。對於狀態頁與值班，Member 能做 Admin 能做的一切。
 - **Viewer** — 唯讀。
 
 例如 `MonitorAdmin`、`IncidentMember`、`StatusPageViewer` 等。絕大多數情況下你想要的都是角色——隨著 OneUptime 新增功能，角色依然正確，因為與監視器相關的新資料表會併入既有的監視器角色，而不需要你重新授予。
 
-工作流程是例外。工作流程會在專案中執行它的步驟，因此 `WorkflowMember` 可以開啟工作流程及其執行紀錄並手動執行，但不能建立、變更或刪除工作流程。建置工作流程的是 `WorkflowAdmin`。請參閱 [工作流程設定](/docs/workflows/configuration)。
+工作流程與 Runbook 是例外。兩者都會在你的專案中執行程式碼——工作流程執行它的步驟，Runbook 在你的 Runner 上執行它的腳本——所以 `WorkflowMember` 開啟工作流程及其執行並手動執行它們，`RunbookMember` 開啟 Runbook 及其執行並執行它們：開始一次執行、完成或略過其步驟、取消執行。兩者都不能建立、變更或刪除它們所執行的東西；由 `WorkflowAdmin` 與 `RunbookAdmin` 建置。角色只執行其範圍所及的 Runbook：限於部分標籤的 `RunbookMember` 只執行帶有這些標籤的 Runbook。請參閱 [工作流程設定](/docs/workflows/configuration) 與 [Runbook 設定](/docs/runbooks/configuration)。
+
+領域的規則（標籤、擁有者、值班、分組與提醒規則）、自訂欄位、SLA 與密鑰屬於專案設定：無論某人擁有哪個領域角色，都需要 `ProjectAdmin`。API 金鑰、團隊及其權限、標籤、SSO 與網域也是如此——Settings 角色負責專案的服務、探針、基礎設施與整合，而不是誰能做什麼。
+
+帳務有三個專屬角色。`BillingViewer` 讀取專案的帳務——方案與訂閱、發票、用量、餘額、AI 額度、付款方式以及帳務聯絡資訊——但不變更任何內容。`BillingMember` 還能下載發票並變更帳務聯絡資訊。`BillingAdmin` 能做 `BillingMember` 能做的事，並能開啟與關閉簡訊、電話、WhatsApp 與 Telegram。變更方案、付款方式或餘額以及支付發票需要 `ProjectOwner` 或 **Manage Billing**；在帳務頁面上，這些按鈕對其他所有人都是鎖定的，並註明誰可以使用。
 
 全部 {{PERMISSION_ROLE_COUNT}} 個角色列於[權限參考](/docs/permissions/reference)。
 
@@ -200,7 +204,7 @@ API 金鑰的權限直接授予在金鑰本身上——它們不屬於任何團�
 
 **只回報部署的 CI 流水線。** 建立一把只帶所需細部權限的 API 金鑰——不要給角色。
 
-**不該看到帳務的人。** 不要把他加入 Owners 團隊。`ProjectAdmin` 本就不含帳務。
+**不該變更帳務或查看發票的人。** 給他 `ProjectMember`，而不是 `ProjectAdmin`：專案管理員不能變更方案、付款方式或餘額，但可以查看與下載發票。若要讓某人只讀帳務頁面而不做任何變更，請給他 `BillingViewer`。
 
 ## 下一步
 

@@ -28,7 +28,9 @@ Los permisos de runbook viven en el grupo de permisos `Runbook`:
 - `CreateRunbookExecution`, `EditRunbookExecution`, `ReadRunbookExecution` — iniciar, marcar y leer ejecuciones.
 - `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — gestionar reglas de auto-disparo.
 - `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — gestionar Agentes de Runbook que ejecutan pasos Bash y JavaScript en tu propia infraestructura.
-- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (roles) — asignables a un equipo para conceder control total, uso diario o acceso de solo lectura, respectivamente. `RunbookAdmin` agrupa todos los permisos granulares anteriores.
+- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (roles) — `RunbookAdmin` construye los runbooks, sus reglas y los Runners en los que se ejecutan, y los ejecuta. `RunbookMember` abre los runbooks y sus ejecuciones y los ejecuta — inicia una ejecución, completa u omite sus pasos y la cancela —, pero no crea, cambia ni elimina ningún runbook ni Runner. `RunbookViewer` lee los runbooks y sus ejecuciones y no ejecuta nada. `RunbookAdmin` agrupa todos los permisos granulares anteriores.
+
+Un rol ejecuta los runbooks que alcanza su ámbito. Una asignación de `RunbookMember`, `RunbookAdmin` o `ProjectMember` limitada a algunas etiquetas inicia y hace avanzar las ejecuciones de los runbooks que llevan esas etiquetas, una limitada a los recursos propios las de los runbooks que posee su equipo, y el bloqueo de un equipo sobre una etiqueta retira esos runbooks. `CreateRunbookExecution` y `EditRunbookExecution` tratan de ejecuciones, que no llevan etiquetas, así que alcanzan todos los runbooks del proyecto. Aprobar una sugerencia de remediación que inicia un runbook se comprueba de la misma forma.
 
 ## Cola y worker
 

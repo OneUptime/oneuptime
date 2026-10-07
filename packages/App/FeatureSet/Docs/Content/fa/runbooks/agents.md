@@ -158,9 +158,9 @@ docker rm -f oneuptime-runner
 مدیریت عامل‌ها زیر گروه دسترسی موجود رانبوک‌ها زندگی می‌کند:
 
 - `CreateRunner`، `EditRunner`، `DeleteRunner`، `ReadRunner` — مدیریت رکوردهای عامل.
-- `RunbookAdmin`، `RunbookMember`، `RunbookViewer` (نقش‌ها) — به تیمی تخصیص دهید تا به‌ترتیب کنترل کامل، استفاده روزمره یا دسترسی فقط‌خواندنی بگیرد. `RunbookAdmin` همه دسترسی‌های ریزدانه بالا را بسته‌بندی می‌کند.
+- `RunbookAdmin`، `RunbookMember`، `RunbookViewer` (نقش‌ها) — `RunbookAdmin` رانبوک‌ها، قاعده‌هایشان و Runnerهایی را که روی آن‌ها اجرا می‌شوند می‌سازد و آن‌ها را اجرا می‌کند. `RunbookMember` رانبوک‌ها و اجراهایشان را باز می‌کند و اجرا می‌کند — اجرایی را شروع می‌کند، گام‌هایش را کامل یا رد می‌کند و آن را لغو می‌کند — اما هیچ رانبوک یا Runnerی را نمی‌سازد، تغییر نمی‌دهد یا حذف نمی‌کند. `RunbookViewer` رانبوک‌ها و اجراهایشان را می‌خواند و چیزی اجرا نمی‌کند. `RunbookAdmin` همهٔ مجوزهای جزئی بالا را یکجا دارد.
 
-دسترسی برای _راه انداختن_ یک رانبوک (و در نتیجه فرستادن گام‌های Bash و JavaScript) همچنان `CreateRunbookExecution` / `EditRunbookExecution` است.
+راه‌اندازی یک رانبوک (و در نتیجه ارسال گام‌های Bash و JavaScript آن) به نقشی نیاز دارد که رانبوک اجرا می‌کند — `ProjectOwner`، `ProjectAdmin`، `ProjectMember`، `RunbookAdmin` یا `RunbookMember` — یا به `CreateRunbookExecution`؛ کامل کردن، رد کردن یا لغو یک اجرا `EditRunbookExecution` را هم می‌پذیرد. هر نقش فقط رانبوک‌هایی را اجرا می‌کند که دامنه‌اش به آن‌ها می‌رسد.
 
 ## API رو به عامل
 

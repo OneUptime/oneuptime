@@ -71,13 +71,17 @@ OneUptime 中的一切都存在于**项目**之内。谁能在项目里做什么
 
 角色把整个产品领域打包为三个层级之一：
 
-- **Admin** — 对该领域的完全控制，包括其配置（严重级别、状态、模板）。
-- **Member** — 日常工作：创建、编辑和删除资源，但不能重新配置该领域。
+- **Admin** — Member 能做的事，外加该领域自己的配置，例如事件与告警的严重级别和状态、监控器状态以及维护状态。
+- **Member** — 日常工作：创建、修改和删除该领域的资源，连同它们的备注、所有者和模板。对于状态页和值班，Member 能做 Admin 能做的一切。
 - **Viewer** — 只读。
 
 例如 `MonitorAdmin`、`IncidentMember`、`StatusPageViewer` 等。绝大多数情况下你想要的都是角色——随着 OneUptime 新增功能，角色依然正确，因为与监视器相关的新表会并入已有的监视器角色，而不需要你重新授予。
 
-工作流是例外。工作流会在项目中运行它的步骤，因此 `WorkflowMember` 可以打开工作流及其运行记录并手动运行，但不能创建、修改或删除工作流。构建工作流的是 `WorkflowAdmin`。参见 [工作流配置](/docs/workflows/configuration)。
+工作流和 Runbook 是例外。两者都会在你的项目中运行代码——工作流运行它的步骤，Runbook 在你的 Runner 上运行它的脚本——所以 `WorkflowMember` 打开工作流及其运行并手动运行它们，`RunbookMember` 打开 Runbook 及其运行并运行它们：开始一次运行、完成或跳过其步骤、取消运行。两者都不能创建、修改或删除它们运行的东西；由 `WorkflowAdmin` 和 `RunbookAdmin` 构建。角色只运行其范围所及的 Runbook：限于部分标签的 `RunbookMember` 只运行带有这些标签的 Runbook。参见 [工作流配置](/docs/workflows/configuration) 和 [Runbook 配置](/docs/runbooks/configuration)。
+
+领域的规则（标签、所有者、值班、分组和提醒规则）、自定义字段、SLA 和密钥属于项目配置：无论某人拥有哪个领域角色，都需要 `ProjectAdmin`。API 密钥、团队及其权限、标签、SSO 和域名也是如此——Settings 角色负责项目的服务、探针、基础设施和集成，而不是谁能做什么。
+
+账单有三个专属角色。`BillingViewer` 读取项目的账单——套餐和订阅、发票、用量、余额、AI 额度、付款方式以及账单联系信息——但不修改任何内容。`BillingMember` 还能下载发票并修改账单联系信息。`BillingAdmin` 能做 `BillingMember` 能做的事，并能开启和关闭短信、电话、WhatsApp 和 Telegram。更改套餐、付款方式或余额以及支付发票需要 `ProjectOwner` 或 **Manage Billing**；在账单页面上，这些按钮对其他所有人都是锁定的，并注明谁可以使用。
 
 全部 {{PERMISSION_ROLE_COUNT}} 个角色列在[权限参考](/docs/permissions/reference)中。
 
@@ -200,7 +204,7 @@ API 密钥的权限直接授予在密钥本身上——它们不属于任何团�
 
 **只汇报部署的 CI 流水线。** 创建一把只带所需细粒度权限的 API 密钥——不要给角色。
 
-**不该看到账单的人。** 不要把他加入 Owners 团队。`ProjectAdmin` 本就不含账单。
+**不该修改账单或查看发票的人。** 给他 `ProjectMember`，而不是 `ProjectAdmin`：项目管理员不能更改套餐、付款方式或余额，但可以查看和下载发票。若要让某人只读账单页面而不做任何修改，请给他 `BillingViewer`。
 
 ## 下一步
 

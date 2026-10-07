@@ -119,10 +119,15 @@ import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBas
 import PromoCode from "../../Models/DatabaseModels/PromoCode";
 import ScheduledMaintenanceState from "../../Models/DatabaseModels/ScheduledMaintenanceState";
 import Team from "../../Models/DatabaseModels/Team";
+import Label from "../../Models/DatabaseModels/Label";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import TeamPermission from "../../Models/DatabaseModels/TeamPermission";
 import User from "../../Models/DatabaseModels/User";
 import Select from "../Types/Database/Select";
+import TeamPermissionHolders, {
+  TeamMembershipRow,
+  TeamPermissionRow,
+} from "../Utils/Permission/TeamPermissionHolders";
 import Query from "../Types/Database/Query";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import AlertSeverityService from "./AlertSeverityService";
@@ -3066,13 +3071,22 @@ These are no longer recorded against the project and have to be cancelled by han
     return populated ? new ObjectID(populated) : null;
   }
 
+  /*
+   * The project's owners: the members who hold Project Owner, by the rule
+   * every permission check follows (TeamPermissionHolders, the people-side
+   * twin of CallerPermission). Owner emails - plan changes, the plan
+   * cut-off notice, AI limits and credits, low balances - and the owner jobs
+   * that fall back to the project's owners all read this list, so a member
+   * whose team blocks Project Owner is not told as an owner, whatever an
+   * owner team they also belong to allows.
+   */
   @CaptureSpan()
   public async getOwners(projectId: ObjectID): Promise<Array<User>> {
     if (!projectId) {
       throw new BadDataException("Project ID is required");
     }
 
-    // get teams with project owner permissions.
+    // Every team row of the project for Project Owner: allows and blocks.
     const teamPermissions: Array<TeamPermission> =
       await TeamPermissionService.findBy({
         query: {
@@ -3086,29 +3100,123 @@ These are no longer recorded against the project and have to be cancelled by han
         skip: 0,
         select: {
           teamId: true,
+          permission: true,
+          isBlockPermission: true,
+          scope: true,
+          labels: {
+            _id: true,
+          },
         },
       });
 
-    if (teamPermissions.length === 0) {
-      return [];
-    }
-
-    const teamIds: Array<ObjectID> = teamPermissions.map(
-      (item: TeamPermission) => {
-        return item.teamId!;
+    // Nobody holds it without a team that allows it.
+    const isAnyTeamAllowed: boolean = teamPermissions.some(
+      (row: TeamPermission): boolean => {
+        return row.isBlockPermission !== true;
       },
     );
 
+    if (!isAnyTeamAllowed) {
+      return [];
+    }
+
+    const teamIds: Array<ObjectID> = [];
+
+    for (const row of teamPermissions) {
+      if (
+        row.teamId &&
+        !teamIds.some((teamId: ObjectID): boolean => {
+          return teamId.toString() === row.teamId!.toString();
+        })
+      ) {
+        teamIds.push(row.teamId);
+      }
+    }
+
     /*
-     * Accepted rows only. A pending invitation to an owner team grants no
-     * ProjectOwner permission and comes with no notification settings, so the
-     * owner jobs that fall back to this list recorded such invitees as
-     * notified while nothing reached them, and the owner emails sent from here
-     * reached someone who never joined. Acceptance is per team row, so this
-     * also leaves out a member of another team whose invitation to the owner
-     * team is still pending.
+     * Accepted rows only, of every team with a row: the allowing teams name
+     * who may be an owner, the blocking ones who may not. A pending
+     * invitation grants nothing and takes nothing away - a member's
+     * permissions are built from the teams they accepted - and it comes with
+     * no notification settings, so the owner jobs that fall back to this
+     * list recorded such invitees as notified while nothing reached them, and
+     * the owner emails sent from here reached someone who never joined.
      */
-    return TeamMemberService.getUsersInTeams(teamIds, { acceptedOnly: true });
+    const memberships: Array<TeamMember> = await TeamMemberService.findBy({
+      query: {
+        projectId: projectId,
+        teamId: QueryHelper.any(teamIds),
+        hasAcceptedInvitation: true,
+      },
+      props: {
+        isRoot: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      select: {
+        _id: true,
+        teamId: true,
+        userId: true,
+        user: {
+          _id: true,
+          email: true,
+          name: true,
+          timezone: true,
+        } as Select<User>,
+      },
+    });
+
+    const holderIds: Array<string> = TeamPermissionHolders.getHolderIds({
+      permission: Permission.ProjectOwner,
+      rows: teamPermissions
+        .filter((row: TeamPermission): boolean => {
+          return Boolean(row.teamId);
+        })
+        .map((row: TeamPermission): TeamPermissionRow => {
+          return {
+            teamId: row.teamId!,
+            permission: row.permission || Permission.ProjectOwner,
+            isBlockPermission: row.isBlockPermission,
+            labelIds: (row.labels || []).map((label: Label): ObjectID => {
+              return label.id!;
+            }),
+            scope: row.scope,
+          };
+        }),
+      memberships: memberships
+        .map((membership: TeamMember): TeamMembershipRow | null => {
+          const userId: ObjectID | undefined =
+            membership.userId || membership.user?.id || undefined;
+
+          if (!membership.teamId || !userId) {
+            return null;
+          }
+
+          return { teamId: membership.teamId, userId: userId };
+        })
+        .filter((row: TeamMembershipRow | null): row is TeamMembershipRow => {
+          return row !== null;
+        }),
+    });
+
+    // Each owner once, as their first membership names them.
+    const owners: Array<User> = [];
+
+    for (const holderId of holderIds) {
+      const membership: TeamMember | undefined = memberships.find(
+        (candidate: TeamMember): boolean => {
+          return (
+            (candidate.userId || candidate.user?.id)?.toString() === holderId
+          );
+        },
+      );
+
+      if (membership?.user) {
+        owners.push(membership.user);
+      }
+    }
+
+    return owners;
   }
 
   @CaptureSpan()

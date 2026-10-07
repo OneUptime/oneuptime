@@ -149,9 +149,9 @@ Worker 的整体等待窗口是 `领取超时 + 执行超时 + 几秒`。挑能�
 代理管理位于现有 Runbooks 权限组之下：
 
 - `CreateRunner`、`EditRunner`、`DeleteRunner`、`ReadRunner` — 管理代理记录。
-- `RunbookAdmin`、`RunbookMember`、`RunbookViewer`（角色） — 分配给团队以分别授予完整控制、日常使用或只读访问。`RunbookAdmin` 把上面所有细粒度权限打包在一起。
+- `RunbookAdmin`、`RunbookMember`、`RunbookViewer`（角色） — `RunbookAdmin` 构建 Runbook、它们的规则以及运行它们的 Runner，并运行 Runbook。`RunbookMember` 打开 Runbook 及其运行并运行它们——开始一次运行、完成或跳过其步骤、取消运行——但不能创建、修改或删除任何 Runbook 或 Runner。`RunbookViewer` 读取 Runbook 及其运行，不运行任何东西。`RunbookAdmin` 把上述细粒度权限打包在一起。
 
-_触发_ Runbook（从而让 Bash 与 JavaScript 步骤被派发）的权限仍是 `CreateRunbookExecution` / `EditRunbookExecution`。
+触发 Runbook（从而派发它的 Bash 与 JavaScript 步骤）需要一个能运行 Runbook 的角色——`ProjectOwner`、`ProjectAdmin`、`ProjectMember`、`RunbookAdmin` 或 `RunbookMember`——或 `CreateRunbookExecution`；完成、跳过或取消一次运行还接受 `EditRunbookExecution`。角色只运行其范围所及的 Runbook。
 
 ## 面向代理的 API
 

@@ -25,6 +25,11 @@ import ServiceUnavailableException from "../../../Types/Exception/ServiceUnavail
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import Project from "../../../Models/DatabaseModels/Project";
+import BillingPaymentMethod from "../../../Models/DatabaseModels/BillingPaymentMethod";
+import {
+  PAYMENT_METHOD_ADD_PERMISSIONS,
+  PAYMENT_METHOD_SET_DEFAULT_PERMISSIONS,
+} from "../../../Utils/Project/ProjectBilling";
 
 jest.mock("../../../Server/EnvironmentConfig", () => {
   return {
@@ -611,6 +616,64 @@ describe("BillingPaymentMethodAPI", () => {
 
       expect(nextError()).toBeInstanceOf(BadDataException);
       expect(getSetupIntentSecret).not.toHaveBeenCalled();
+    });
+
+    /*
+     * The billing roles read the payment methods; adding one - which the
+     * card is then charged on - stays with a project owner and Manage
+     * Billing (Utils/Project/ProjectBilling).
+     */
+    it.each([
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
+    ])(
+      "refuses a %s: adding a payment method is not a billing role's",
+      async (held: Permission) => {
+        givenPermissions([Permission.ProjectMember, held]);
+        req.body = {};
+
+        await callRoute(SETUP_ROUTE);
+
+        expect(nextError()).toBeInstanceOf(BadDataException);
+        expect(getSetupIntentSecret).not.toHaveBeenCalled();
+      },
+    );
+
+    it("asks for exactly the list the dashboard's Add Payment Method button asks for", () => {
+      expect([...PAYMENT_METHOD_ADD_PERMISSIONS]).toEqual([
+        Permission.ProjectOwner,
+        Permission.ManageProjectBilling,
+        Permission.CreateBillingPaymentMethod,
+      ]);
+      expect(new BillingPaymentMethod().getCreatePermissions()).toEqual([
+        ...PAYMENT_METHOD_ADD_PERMISSIONS,
+      ]);
+    });
+  });
+
+  describe("the billing roles and the default payment method", () => {
+    it.each([
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
+    ])(
+      "refuses a %s: choosing which card is charged is not a billing role's",
+      async (held: Permission) => {
+        givenPermissions([Permission.ProjectMember, held]);
+
+        await callRoute(SET_DEFAULT_ROUTE);
+
+        expect(nextError()).toBeInstanceOf(BadDataException);
+        expect(makePaymentMethodDefault).not.toHaveBeenCalled();
+      },
+    );
+
+    it("asks for exactly the list the dashboard's Set as Default action asks for", () => {
+      expect([...PAYMENT_METHOD_SET_DEFAULT_PERMISSIONS]).toEqual([
+        ...PAYMENT_METHOD_ADD_PERMISSIONS,
+        Permission.EditBillingPaymentMethod,
+      ]);
     });
   });
 });

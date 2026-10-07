@@ -149,9 +149,9 @@ Als een sleutel lekt, open de agent in OneUptime en reset zijn sleutel. De oude 
 Het beheren van agents valt onder de bestaande Runbooks-rechtengroep:
 
 - `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — agent-records beheren.
-- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (rollen) — toewijzen aan een team om volledige controle, dagelijks gebruik of alleen-lezen toegang te verlenen. `RunbookAdmin` bundelt alle bovenstaande granulaire rechten.
+- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (rollen) — `RunbookAdmin` bouwt runbooks, hun regels en de Runners waarop ze draaien, en voert ze uit. `RunbookMember` opent runbooks en hun uitvoeringen en voert ze uit — start een uitvoering, rondt de stappen af of slaat ze over en annuleert haar —, maar maakt, wijzigt en verwijdert geen runbook of Runner. `RunbookViewer` leest runbooks en hun uitvoeringen en voert niets uit. `RunbookAdmin` bundelt alle bovenstaande fijnmazige machtigingen.
 
-Rechten om een runbook te _triggeren_ (en dus Bash- en JavaScript-stappen te laten verspreiden) zijn nog steeds `CreateRunbookExecution` / `EditRunbookExecution`.
+Een runbook starten (en daarmee zijn Bash- en JavaScript-stappen versturen) vraagt een rol die runbooks uitvoert — `ProjectOwner`, `ProjectAdmin`, `ProjectMember`, `RunbookAdmin` of `RunbookMember` — of `CreateRunbookExecution`; het afronden, overslaan of annuleren van een uitvoering accepteert ook `EditRunbookExecution`. Een rol voert alleen de runbooks uit die zijn bereik bereikt.
 
 ## Agent-side API
 

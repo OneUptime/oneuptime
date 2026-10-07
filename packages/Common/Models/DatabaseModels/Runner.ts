@@ -62,7 +62,6 @@ export enum RunnerConnectionStatus {
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.RunbookAdmin,
-    Permission.RunbookMember,
     Permission.CreateRunner,
   ],
   read: [
@@ -95,7 +94,6 @@ export default class Runner extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunner,
     ],
     read: [
@@ -137,7 +135,6 @@ export default class Runner extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunner,
     ],
     read: [
@@ -173,7 +170,6 @@ export default class Runner extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunner,
     ],
     read: [
@@ -216,7 +212,6 @@ export default class Runner extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunner,
     ],
     read: [
@@ -285,7 +280,6 @@ export default class Runner extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunner,
     ],
     /*
@@ -330,7 +324,6 @@ export default class Runner extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunner,
     ],
     read: [
@@ -403,7 +396,6 @@ export default class Runner extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunner,
     ],
     read: [
@@ -445,7 +437,6 @@ export default class Runner extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunner,
     ],
     read: [
@@ -487,7 +478,6 @@ export default class Runner extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunner,
     ],
     read: [
@@ -535,7 +525,6 @@ export default class Runner extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunner,
     ],
     read: [
@@ -604,7 +593,6 @@ export default class Runner extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunner,
     ],
     read: [
@@ -647,7 +635,6 @@ export default class Runner extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunner,
     ],
     read: [
@@ -727,7 +714,6 @@ export default class Runner extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.CreateRunner,
     ],
     read: [
@@ -745,7 +731,6 @@ export default class Runner extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
       Permission.EditRunner,
     ],
   })

@@ -28,7 +28,9 @@ Runbook 권한은 `Runbook` 권한 그룹에 있습니다:
 - `CreateRunbookExecution`, `EditRunbookExecution`, `ReadRunbookExecution` — 실행 시작, 체크, 조회.
 - `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — 자동 트리거 규칙 관리.
 - `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — 자체 인프라에서 Bash와 JavaScript 단계를 실행하는 Runbook 에이전트 관리.
-- `RunbookAdmin`, `RunbookMember`, `RunbookViewer`(역할) — 팀에 할당하여 각각 전체 제어, 일상 사용, 읽기 전용 접근 부여. `RunbookAdmin`은 위의 세분 권한을 모두 묶은 것.
+- `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (역할) — `RunbookAdmin`은 Runbook, 그 규칙, Runbook이 실행되는 Runner를 만들고 Runbook을 실행합니다. `RunbookMember`는 Runbook과 그 실행을 열고 실행하지만(실행 시작, 단계 완료 또는 건너뛰기, 취소), Runbook이나 Runner를 만들거나 변경하거나 삭제하지는 않습니다. `RunbookViewer`는 Runbook과 그 실행을 읽고 아무것도 실행하지 않습니다. `RunbookAdmin`은 위의 모든 세분화된 권한을 묶은 것입니다.
+
+역할은 범위가 닿는 Runbook을 실행합니다. 일부 라벨로 제한된 `RunbookMember`, `RunbookAdmin`, `ProjectMember` 부여는 그 라벨이 붙은 Runbook의 실행을 시작하고 진행하며, 소유로 제한된 부여는 팀이 소유한 Runbook의 실행을 다룹니다. 팀이 라벨을 차단하면 그 Runbook은 제외됩니다. `CreateRunbookExecution`과 `EditRunbookExecution`은 라벨이 없는 실행에 관한 권한이므로 프로젝트의 모든 Runbook에 적용됩니다. Runbook을 시작하는 복구 제안의 승인도 같은 방식으로 확인합니다.
 
 ## 큐 & 워커
 

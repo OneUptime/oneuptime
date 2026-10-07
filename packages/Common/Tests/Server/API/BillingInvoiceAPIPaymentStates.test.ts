@@ -18,6 +18,7 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import { PROJECT_INVOICE_PAY_PERMISSIONS } from "../../../Utils/Project/ProjectBilling";
 import BillingInvoice, {
   InvoiceStatus,
 } from "../../../Models/DatabaseModels/BillingInvoice";
@@ -935,6 +936,60 @@ describe("BillingInvoiceAPI POST /billing-invoices/pay payment states", () => {
       );
       expect(payInvoice).not.toHaveBeenCalled();
       expect(syncSubscriptionPaymentMethods).not.toHaveBeenCalled();
+    });
+
+    /*
+     * Paying charges the card: it stays with a project owner and Manage
+     * Billing (and Edit Invoices). The billing roles read the invoices, and
+     * Billing Member and Billing Admin download them, but none of them pays
+     * one (Utils/Project/ProjectBilling).
+     */
+    it.each([
+      Permission.BillingAdmin,
+      Permission.BillingMember,
+      Permission.BillingViewer,
+    ])(
+      "refuses a %s: paying an invoice is not a billing role's",
+      async (held: Permission) => {
+        mockRequest.userTenantAccessPermission = tenantPermissionsFor(
+          projectId,
+          [Permission.ProjectUser, held],
+        );
+
+        await callPay();
+
+        expect((nextError() as Error).message).toBe(
+          "You need Project Owner, Manage Billing or Edit Invoices permission to pay invoices.",
+        );
+        expect(payInvoice).not.toHaveBeenCalled();
+        expect(syncSubscriptionPaymentMethods).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([
+      Permission.ProjectOwner,
+      Permission.ManageProjectBilling,
+      Permission.EditInvoices,
+    ])("lets a member holding %s pay", async (held: Permission) => {
+      mockRequest.userTenantAccessPermission = tenantPermissionsFor(projectId, [
+        Permission.ProjectUser,
+        held,
+      ]);
+
+      await callPay();
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(payInvoice).toHaveBeenCalledWith(CUSTOMER_ID, INVOICE_ID, {
+        canSurfaceAuthenticationPrompt: true,
+      });
+    });
+
+    it("asks for exactly the list the dashboard's Pay Invoice action asks for", () => {
+      expect([...PROJECT_INVOICE_PAY_PERMISSIONS]).toEqual([
+        Permission.ProjectOwner,
+        Permission.ManageProjectBilling,
+        Permission.EditInvoices,
+      ]);
     });
 
     it("lets a master admin pay without project permissions", async () => {
