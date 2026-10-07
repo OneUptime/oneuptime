@@ -1207,7 +1207,7 @@ describe("people invited to the team", () => {
     ).not.toBeInTheDocument();
   });
 
-  test("a team of invitees only says they are checked once they accept", () => {
+  test("a team of invitees only says they show up here once they accept", () => {
     render(
       <Harness
         status={buildStatus({
@@ -1220,9 +1220,18 @@ describe("people invited to the team", () => {
     expect(screen.getByText("No members on this team yet")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "1 person invited to this team is not checked until they accept their invitation.",
+        "People invited to this team show up here once they accept their invitation.",
       ),
     ).toBeInTheDocument();
+    // How many are waiting is the hero's line; it is not repeated here.
+    expect(
+      screen.queryByText(
+        "1 person invited to this team is not checked until they accept their invitation.",
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("compliance-members-invited"),
+    ).not.toBeInTheDocument();
   });
 });
 

@@ -2,7 +2,7 @@ import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import UserNotificationSettingService from "../../../Server/Services/UserNotificationSettingService";
 import logger from "../../../Server/Utils/Logger";
 import ProjectLeaveAccessCleanup from "../../../Server/Utils/TeamMember/ProjectLeaveAccessCleanup";
-import { ProjectLeaveNotificationCleanupResult } from "../../../Server/Utils/TeamMember/ProjectLeaveNotificationCleanup";
+import { ProjectLeaveRemovalResult } from "../../../Server/Utils/TeamMember/ProjectLeaveRows";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import {
@@ -36,7 +36,7 @@ const OTHER_USER_ID: ObjectID = new ObjectID(
   "33333333-3333-4333-8333-333333333333",
 );
 
-const REMOVED: ProjectLeaveNotificationCleanupResult = {
+const REMOVED: ProjectLeaveRemovalResult = {
   removedRowCounts: { McpOAuthGrant: 2, UserProjectSsoConsent: 1 },
   failedTables: [],
 };
@@ -152,7 +152,7 @@ describe("TeamMemberService removes a former member's own access to the project"
           async (data: {
             projectId: ObjectID;
             userId: ObjectID;
-          }): Promise<ProjectLeaveNotificationCleanupResult | null> => {
+          }): Promise<ProjectLeaveRemovalResult | null> => {
             calls.push(`project-access:${data.userId.toString()}`);
             return null;
           },

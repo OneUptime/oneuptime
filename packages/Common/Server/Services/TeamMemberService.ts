@@ -62,9 +62,8 @@ import OnCallDutyPolicyScheduleLayerUser from "../../Models/DatabaseModels/OnCal
 import ProjectLeaveResourceCleanup, {
   ProjectLeaveResourceCleanupResult,
 } from "../Utils/TeamMember/ProjectLeaveResourceCleanup";
-import ProjectLeaveNotificationCleanup, {
-  ProjectLeaveNotificationCleanupResult,
-} from "../Utils/TeamMember/ProjectLeaveNotificationCleanup";
+import ProjectLeaveNotificationCleanup from "../Utils/TeamMember/ProjectLeaveNotificationCleanup";
+import { ProjectLeaveRemovalResult } from "../Utils/TeamMember/ProjectLeaveRows";
 import ProjectLeaveAccessCleanup from "../Utils/TeamMember/ProjectLeaveAccessCleanup";
 import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
 
@@ -1362,7 +1361,7 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
   public async removeProjectAccessIfUserLeftProject(data: {
     projectId: ObjectID;
     userId: ObjectID;
-  }): Promise<ProjectLeaveNotificationCleanupResult | null> {
+  }): Promise<ProjectLeaveRemovalResult | null> {
     try {
       if (
         await this.isUserMemberOfProject({
@@ -1407,7 +1406,7 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
   public async removePersonalNotificationSettingsIfUserLeftProject(data: {
     projectId: ObjectID;
     userId: ObjectID;
-  }): Promise<ProjectLeaveNotificationCleanupResult | null> {
+  }): Promise<ProjectLeaveRemovalResult | null> {
     try {
       if (
         await this.isUserMemberOfProject({

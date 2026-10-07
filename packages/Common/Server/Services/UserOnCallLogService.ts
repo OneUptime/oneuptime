@@ -778,6 +778,26 @@ export class Service extends DatabaseService<Model> {
       logger.error(err);
     }
 
+    /*
+     * The fallback found that the person is not a member of the project (they
+     * left between the rule count and the fallback): nothing was sent, and
+     * nothing about them needs fixing, so the log says so and no owner is
+     * told a page went undelivered.
+     */
+    if (
+      fallbackResult &&
+      fallbackResult.outcome === FallbackNotificationOutcome.NotAProjectMember
+    ) {
+      await this.writeNoRuleOutcome({
+        createdItem: createdItem,
+        status: UserNotificationExecutionStatus.Completed,
+        timelineStatus: OnCallDutyExecutionLogTimelineStatus.Skipped,
+        statusMessage: NOT_A_PROJECT_MEMBER_STATUS_MESSAGE,
+      });
+
+      return;
+    }
+
     if (fallbackResult && fallbackResult.notified) {
       const notifiedMessage: string = `No notification rule configured for ${
         data.severityName

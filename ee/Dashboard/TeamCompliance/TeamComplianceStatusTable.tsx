@@ -459,8 +459,13 @@ const TeamComplianceStatusTable: FunctionComponent<ComponentProps> = (
           paddingClassName="py-10"
           title="No members on this team yet"
           description={
-            invitedNote ||
-            "Add people on the team's Members page and how they measure up against these rules shows up here."
+            /*
+             * The hero above already says how many invitations are waiting;
+             * this says where those people will appear.
+             */
+            invitedNote
+              ? "People invited to this team show up here once they accept their invitation."
+              : "Add people on the team's Members page and how they measure up against these rules shows up here."
           }
         />
       );

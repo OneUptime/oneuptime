@@ -1764,9 +1764,13 @@ export default class OnCallReadinessService {
     let invitedUserIds: Set<string> = new Set<string>();
 
     if (data.memberUserIds) {
-      memberUserIds = data.memberUserIds;
+      memberUserIds = new Set<string>(data.memberUserIds);
 
-      // Read only when the caller's set leaves somebody out.
+      /*
+       * Read only when the caller's set leaves somebody out - and then trust
+       * the read for them: somebody who joined after the caller looked is a
+       * member, not somebody who has left.
+       */
       const nonMemberUserIds: Array<ObjectID> = userIds.filter(
         (userId: ObjectID): boolean => {
           return !memberUserIds.has(userId.toString().toLowerCase());
@@ -1774,10 +1778,17 @@ export default class OnCallReadinessService {
       );
 
       if (nonMemberUserIds.length > 0) {
-        invitedUserIds = await ProjectMembership.getInvitedUserIds({
-          projectId: data.projectId,
-          userIds: nonMemberUserIds,
-        });
+        const standings: ProjectMembershipStandings =
+          await ProjectMembership.getStandings({
+            projectId: data.projectId,
+            userIds: nonMemberUserIds,
+          });
+
+        for (const userId of standings.memberUserIds) {
+          memberUserIds.add(userId);
+        }
+
+        invitedUserIds = standings.invitedUserIds;
       }
     } else {
       const standings: ProjectMembershipStandings =

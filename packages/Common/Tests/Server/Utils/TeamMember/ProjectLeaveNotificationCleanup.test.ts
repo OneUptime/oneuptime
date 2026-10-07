@@ -3,12 +3,12 @@ import AllModelTypes from "../../../../Models/DatabaseModels/Index";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import logger from "../../../../Server/Utils/Logger";
 import ProjectLeaveAccessCleanup from "../../../../Server/Utils/TeamMember/ProjectLeaveAccessCleanup";
-import ProjectLeaveNotificationCleanup, {
+import ProjectLeaveNotificationCleanup from "../../../../Server/Utils/TeamMember/ProjectLeaveNotificationCleanup";
+import {
   FormerMemberCleanupResult,
-  PersonalNotificationTable,
   PersonalTable,
-  ProjectLeaveNotificationCleanupResult,
-} from "../../../../Server/Utils/TeamMember/ProjectLeaveNotificationCleanup";
+  ProjectLeaveRemovalResult,
+} from "../../../../Server/Utils/TeamMember/ProjectLeaveRows";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
@@ -83,15 +83,15 @@ function accessTableNames(): Array<string> {
 
 function tableNames(): Array<string> {
   return ProjectLeaveNotificationCleanup.getPersonalNotificationTables().map(
-    (table: PersonalNotificationTable): string => {
+    (table: PersonalTable): string => {
       return table.service.getModel().tableName!;
     },
   );
 }
 
-function tableNamed(name: string): PersonalNotificationTable {
+function tableNamed(name: string): PersonalTable {
   return ProjectLeaveNotificationCleanup.getPersonalNotificationTables().find(
-    (table: PersonalNotificationTable): boolean => {
+    (table: PersonalTable): boolean => {
       return table.service.getModel().tableName === name;
     },
   )!;
@@ -258,8 +258,7 @@ describe("ProjectLeaveNotificationCleanup", () => {
     });
 
     test("only rollup mail still waiting goes - sent mail is history", () => {
-      const rollupItems: PersonalNotificationTable =
-        tableNamed(ROLLUP_ITEM_TABLE);
+      const rollupItems: PersonalTable = tableNamed(ROLLUP_ITEM_TABLE);
 
       expect(rollupItems.sqlCondition).toBe(`"sentAt" IS NULL`);
       expect(rollupItems.query?.["sentAt"]).toBeInstanceOf(FindOperator);
@@ -282,7 +281,7 @@ describe("ProjectLeaveNotificationCleanup", () => {
         rows: { UserEmail: 2, UserNotificationRule: 3 },
       });
 
-      const result: ProjectLeaveNotificationCleanupResult =
+      const result: ProjectLeaveRemovalResult =
         await ProjectLeaveNotificationCleanup.removePersonalNotificationSettings(
           { projectId: PROJECT_ID, userId: USER_ID },
         );
@@ -336,7 +335,7 @@ describe("ProjectLeaveNotificationCleanup", () => {
         rows: { UserWebhook: 0, UserSlack: 0 },
       });
 
-      const result: ProjectLeaveNotificationCleanupResult =
+      const result: ProjectLeaveRemovalResult =
         await ProjectLeaveNotificationCleanup.removePersonalNotificationSettings(
           { projectId: PROJECT_ID, userId: USER_ID },
         );
@@ -375,7 +374,7 @@ describe("ProjectLeaveNotificationCleanup", () => {
         failing: ["UserSMS"],
       });
 
-      const result: ProjectLeaveNotificationCleanupResult =
+      const result: ProjectLeaveRemovalResult =
         await ProjectLeaveNotificationCleanup.removePersonalNotificationSettings(
           { projectId: PROJECT_ID, userId: USER_ID },
         );
@@ -529,7 +528,7 @@ describe("ProjectLeaveNotificationCleanup", () => {
           async (data: {
             projectId: ObjectID;
             userId: ObjectID;
-          }): Promise<ProjectLeaveNotificationCleanupResult> => {
+          }): Promise<ProjectLeaveRemovalResult> => {
             if (data.userId.toString() === P3.userId) {
               throw new Error("database unavailable");
             }

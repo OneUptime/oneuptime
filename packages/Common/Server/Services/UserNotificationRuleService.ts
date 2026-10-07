@@ -213,6 +213,14 @@ export enum FallbackNotificationOutcome {
    * the responder is unreachable, so none of them justifies a terminal status.
    */
   DeliveryFailed = "DeliveryFailed",
+
+  /*
+   * The person paged is not a member of the project - they left, or never
+   * accepted their invitation - so nothing is sent on the project's behalf
+   * to them, and none of their methods is looked at. Final, and not a
+   * configuration problem anybody has to fix: there is nobody to reach.
+   */
+  NotAProjectMember = "NotAProjectMember",
 }
 
 export interface FallbackNotificationResult {
@@ -3279,6 +3287,26 @@ export class Service extends ProjectReferencesService<Model> {
       };
     }
 
+    /*
+     * Nothing is delivered on a project's behalf to somebody who is not a
+     * member of it (ProjectMembership), however the fallback was reached: a
+     * method a person who has left still holds is never used. Read from the
+     * database; a failed read throws, and the caller records the fallback as
+     * failed rather than sending.
+     */
+    if (
+      !(await ProjectMembership.isMember({
+        projectId: options.projectId,
+        userId: options.userId,
+      }))
+    ) {
+      return {
+        outcome: FallbackNotificationOutcome.NotAProjectMember,
+        notified: false,
+        channelsUsed: [],
+      };
+    }
+
     const fallbackRules: Array<{ channelName: string; rule: Model }> =
       await this.chooseFallbackChannels(options);
 
@@ -3385,22 +3413,6 @@ export class Service extends ProjectReferencesService<Model> {
     options: ExecuteFallbackNotificationOptions,
   ): Promise<Array<{ channelName: string; rule: Model }>> {
     const chosen: Array<{ channelName: string; rule: Model }> = [];
-
-    /*
-     * Nothing is delivered on a project's behalf to somebody who is not a
-     * member of it (ProjectMembership), however the fallback was reached:
-     * a method a person who has left still holds is never used. Read from
-     * the database; a failed read throws, and the caller records the
-     * fallback as failed rather than sending.
-     */
-    if (
-      !(await ProjectMembership.isMember({
-        projectId: options.projectId,
-        userId: options.userId,
-      }))
-    ) {
-      return chosen;
-    }
 
     const userPush: UserPush | null = await UserPushService.findOneBy({
       query: {

@@ -2,13 +2,13 @@ import ObjectID from "../../../Types/ObjectID";
 import McpOAuthGrantService from "../../Services/McpOAuthGrantService";
 import UserProjectSsoConsentService from "../../Services/UserProjectSsoConsentService";
 import logger, { LogAttributes } from "../Logger";
-import ProjectLeaveNotificationCleanup, {
+import ProjectLeaveRows, {
   FormerMemberCleanupResult,
   PersonalTable,
-  ProjectLeaveNotificationCleanupResult,
+  ProjectLeaveRemovalResult,
   ProjectUserRow,
   personalTable,
-} from "./ProjectLeaveNotificationCleanup";
+} from "./ProjectLeaveRows";
 
 /*
  * What a person holds that lets them, or something acting for them, into a
@@ -57,9 +57,9 @@ export default class ProjectLeaveAccessCleanup {
   public static async removeProjectAccess(data: {
     projectId: ObjectID;
     userId: ObjectID;
-  }): Promise<ProjectLeaveNotificationCleanupResult> {
-    const result: ProjectLeaveNotificationCleanupResult =
-      await ProjectLeaveNotificationCleanup.removeRowsOf({
+  }): Promise<ProjectLeaveRemovalResult> {
+    const result: ProjectLeaveRemovalResult =
+      await ProjectLeaveRows.removeRowsOf({
         projectId: data.projectId,
         userId: data.userId,
         tables: this.getPersonalAccessTables(),
@@ -80,15 +80,15 @@ export default class ProjectLeaveAccessCleanup {
    * For the RemoveProjectAccessOfFormerMembers data migration: the same
    * removal for everybody who left before it ran - only for pairs with no
    * accepted membership of the project, re-checked just before each removal
-   * (ProjectLeaveNotificationCleanup.walkFormerMembers).
+   * (ProjectLeaveRows.walkFormerMembers).
    */
   public static async removeProjectAccessOfFormerMembers(): Promise<FormerMemberCleanupResult> {
-    return await ProjectLeaveNotificationCleanup.walkFormerMembers({
+    return await ProjectLeaveRows.walkFormerMembers({
       pairs: await this.getFormerMemberPairs(),
       remove: (data: {
         projectId: ObjectID;
         userId: ObjectID;
-      }): Promise<ProjectLeaveNotificationCleanupResult> => {
+      }): Promise<ProjectLeaveRemovalResult> => {
         return this.removeProjectAccess(data);
       },
     });
@@ -99,7 +99,7 @@ export default class ProjectLeaveAccessCleanup {
    * table but no accepted membership of the project.
    */
   public static async getFormerMemberPairs(): Promise<Array<ProjectUserRow>> {
-    return await ProjectLeaveNotificationCleanup.getFormerMemberPairsIn(
+    return await ProjectLeaveRows.getFormerMemberPairsIn(
       this.getPersonalAccessTables(),
     );
   }

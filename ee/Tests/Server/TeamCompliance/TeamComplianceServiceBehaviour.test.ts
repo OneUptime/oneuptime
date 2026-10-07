@@ -757,6 +757,61 @@ describe("the rule, member and user reads", () => {
     expect(userEmailFindBy).not.toHaveBeenCalled();
   });
 
+  test("the roster and the invitation count are read side by side, not one after the other", async () => {
+    stage({ members: [ADA, GRACE] });
+
+    /*
+     * The roster read answers only once the count has been asked for: read
+     * one after the other, the roster would wait for a count nobody asks
+     * for until it answers.
+     */
+    let countAsked: () => void = (): void => {};
+    const countWasAsked: Promise<void> = new Promise<void>(
+      (resolve: () => void) => {
+        countAsked = resolve;
+      },
+    );
+
+    teamMemberCountBy.mockImplementation((async (): Promise<PositiveNumber> => {
+      countAsked();
+      return new PositiveNumber(1);
+    }) as never);
+
+    const roster: unknown = await (
+      teamMemberFindBy.getMockImplementation() as () => Promise<unknown>
+    )();
+
+    teamMemberFindBy.mockImplementation((async (): Promise<unknown> => {
+      let timer: ReturnType<typeof setTimeout> | undefined = undefined;
+
+      try {
+        await Promise.race([
+          countWasAsked,
+          new Promise<never>(
+            (_resolve: unknown, reject: (error: Error) => void) => {
+              timer = setTimeout(() => {
+                reject(
+                  new Error(
+                    "the roster was read before the count was asked for",
+                  ),
+                );
+              }, 1000);
+            },
+          ),
+        ]);
+      } finally {
+        clearTimeout(timer);
+      }
+
+      return roster;
+    }) as never);
+
+    const status: TeamComplianceStatusJSON = await read();
+
+    expect(status.userComplianceStatuses).toHaveLength(2);
+    expect(status.invitedMemberCount).toBe(1);
+  });
+
   test("nobody waiting: the count is zero, and every member is still checked", async () => {
     stage({ members: [ADA, GRACE] });
 

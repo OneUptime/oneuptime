@@ -129,20 +129,17 @@ export default class ProjectMembership {
    * Whether one person is a member of the project now - read from the
    * database, never from a cached permission set. For a check that stands
    * between a stored credential (a connected MCP client, a calendar link)
-   * and the project, on every use.
+   * and the project, on every use. One count, the same rule the leave
+   * cleanups apply (TeamMemberService.isUserMemberOfProject).
    */
   public static async isMember(data: {
     projectId: ObjectID;
     userId: ObjectID;
   }): Promise<boolean> {
-    const memberUserIds: Set<string> = await ProjectMembership.getMemberUserIds(
-      {
-        projectId: data.projectId,
-        userIds: [data.userId],
-      },
-    );
-
-    return memberUserIds.has(data.userId.toString().toLowerCase());
+    return await TeamMemberService.isUserMemberOfProject({
+      projectId: data.projectId,
+      userId: data.userId,
+    });
   }
 
   /*
@@ -252,21 +249,6 @@ export default class ProjectMembership {
     }
 
     return standings;
-  }
-
-  /*
-   * The ids among `userIds` that hold an invitation to the project they have
-   * not accepted - and no accepted membership - lower-cased: for telling
-   * somebody invited apart from somebody who has left, among people who are
-   * not members. Nothing is sent to either; the fix differs (accept the
-   * invitation, or be replaced). One read for the whole batch
-   * (getStandings).
-   */
-  public static async getInvitedUserIds(data: {
-    projectId: ObjectID;
-    userIds: Array<ObjectID | string>;
-  }): Promise<Set<string>> {
-    return (await ProjectMembership.getStandings(data)).invitedUserIds;
   }
 
   /*

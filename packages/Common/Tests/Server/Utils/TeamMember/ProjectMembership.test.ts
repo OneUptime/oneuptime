@@ -5,6 +5,7 @@ import ProjectMembership, {
 } from "../../../../Server/Utils/TeamMember/ProjectMembership";
 import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import ObjectID from "../../../../Types/ObjectID";
+import PositiveNumber from "../../../../Types/PositiveNumber";
 import { FindOperator } from "typeorm";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import type { Mock, SpyInstance } from "jest-mock";
@@ -277,69 +278,52 @@ describe("ProjectMembership", () => {
     });
   });
 
-  describe("getInvitedUserIds", () => {
-    test("the people asked about who are only invited, from one read, as lower-cased ids", async () => {
-      const read: SpyInstance<typeof TeamMemberService.findBy> = jest
-        .spyOn(TeamMemberService, "findBy")
-        .mockResolvedValue([
-          {
-            userId: new ObjectID(USER_2.toString().toUpperCase()),
-            hasAcceptedInvitation: false,
-          },
-          { userId: USER_1, hasAcceptedInvitation: true },
-        ] as never);
-
-      const invited: Set<string> = await ProjectMembership.getInvitedUserIds({
-        projectId: PROJECT_A,
-        userIds: [USER_1, USER_2, "not-a-uuid"],
-      });
-
-      expect(read).toHaveBeenCalledTimes(1);
-      expect(
-        (read.mock.calls[0]![0].query as Record<string, unknown>)["projectId"],
-      ).toBe(PROJECT_A);
-      expect(Array.from(invited)).toEqual([USER_2.toString()]);
-    });
-
-    test("nobody to ask about means nothing read", async () => {
-      const read: SpyInstance<typeof TeamMemberService.findBy> = jest.spyOn(
-        TeamMemberService,
-        "findBy",
-      );
-
-      await expect(
-        ProjectMembership.getInvitedUserIds({
-          projectId: PROJECT_A,
-          userIds: ["not-a-uuid"],
-        }),
-      ).resolves.toEqual(new Set<string>());
-      expect(read).not.toHaveBeenCalled();
-    });
-  });
-
   describe("isMember", () => {
-    test("asks the database about that one person, whatever the case of the id", async () => {
-      const read: SpyInstance<
-        typeof TeamMemberService.getProjectMemberUserIds
-      > = jest
-        .spyOn(TeamMemberService, "getProjectMemberUserIds")
-        .mockResolvedValue([new ObjectID(USER_1.toString().toUpperCase())]);
+    test("one count of the person's accepted memberships of that project", async () => {
+      const count: SpyInstance<typeof TeamMemberService.countBy> = jest
+        .spyOn(TeamMemberService, "countBy")
+        .mockResolvedValue(new PositiveNumber(2));
 
       await expect(
         ProjectMembership.isMember({ projectId: PROJECT_A, userId: USER_1 }),
       ).resolves.toBe(true);
 
-      expect(read).toHaveBeenCalledTimes(1);
-      expect(read.mock.calls[0]![0]).toEqual({
+      expect(count).toHaveBeenCalledTimes(1);
+
+      const call: Parameters<typeof TeamMemberService.countBy>[0] =
+        count.mock.calls[0]![0];
+
+      // Accepted rows of this project and this person; an invitation is not one.
+      expect(call.query).toEqual({
         projectId: PROJECT_A,
-        userIds: [USER_1],
+        userId: USER_1,
+        hasAcceptedInvitation: true,
+      });
+      expect(call.props).toEqual({ isRoot: true });
+    });
+
+    test("the same rule as the leave cleanups", async () => {
+      const rule: SpyInstance<typeof TeamMemberService.isUserMemberOfProject> =
+        jest
+          .spyOn(TeamMemberService, "isUserMemberOfProject")
+          .mockResolvedValue(true);
+
+      await ProjectMembership.isMember({
+        projectId: PROJECT_A,
+        userId: USER_1,
+      });
+
+      expect(rule).toHaveBeenCalledTimes(1);
+      expect(rule.mock.calls[0]![0]).toEqual({
+        projectId: PROJECT_A,
+        userId: USER_1,
       });
     });
 
     test("somebody who has left, or only been invited, is not a member", async () => {
       jest
-        .spyOn(TeamMemberService, "getProjectMemberUserIds")
-        .mockResolvedValue([]);
+        .spyOn(TeamMemberService, "countBy")
+        .mockResolvedValue(new PositiveNumber(0));
 
       await expect(
         ProjectMembership.isMember({ projectId: PROJECT_A, userId: USER_2 }),
@@ -348,7 +332,7 @@ describe("ProjectMembership", () => {
 
     test("a failed read is an error, never an answer", async () => {
       jest
-        .spyOn(TeamMemberService, "getProjectMemberUserIds")
+        .spyOn(TeamMemberService, "countBy")
         .mockRejectedValue(new Error("database unavailable"));
 
       await expect(

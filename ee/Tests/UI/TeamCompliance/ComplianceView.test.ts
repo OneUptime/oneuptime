@@ -1964,6 +1964,36 @@ describe("parsing the payload", () => {
     ).toEqual(status);
   });
 
+  test("the number of people still invited is carried through", () => {
+    const status: TeamComplianceStatusJSON = standardStatus();
+    status.invitedMemberCount = 2;
+
+    const parsed: TeamComplianceStatusJSON = parseComplianceStatus(
+      JSON.parse(JSON.stringify(status)) as unknown as JSONObject,
+    );
+
+    expect(parsed).toEqual(status);
+    expect(summarizeCompliance(parsed).invitedCount).toBe(2);
+  });
+
+  test("an invited count that is not a whole number of people is read as one", () => {
+    const invitedFrom: (value: unknown) => number | undefined = (
+      value: unknown,
+    ): number | undefined => {
+      return parseComplianceStatus({
+        invitedMemberCount: value,
+      } as unknown as JSONObject).invitedMemberCount;
+    };
+
+    expect(invitedFrom(3)).toBe(3);
+    expect(invitedFrom(2.7)).toBe(2);
+    expect(invitedFrom(-4)).toBe(0);
+    expect(invitedFrom("5")).toBe(0);
+    expect(invitedFrom(null)).toBe(0);
+    // Not sent at all (an older API): nobody waiting.
+    expect(invitedFrom(undefined)).toBeUndefined();
+  });
+
   test("an empty object renders as an empty team, not a crash", () => {
     expect(parseComplianceStatus({})).toEqual({
       teamId: "",

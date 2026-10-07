@@ -5,12 +5,13 @@ import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import UserProjectSsoConsentService from "../../../../Server/Services/UserProjectSsoConsentService";
 import logger from "../../../../Server/Utils/Logger";
 import ProjectLeaveAccessCleanup from "../../../../Server/Utils/TeamMember/ProjectLeaveAccessCleanup";
-import ProjectLeaveNotificationCleanup, {
+import ProjectLeaveNotificationCleanup from "../../../../Server/Utils/TeamMember/ProjectLeaveNotificationCleanup";
+import ProjectLeaveRows, {
   FormerMemberCleanupResult,
   PersonalTable,
-  ProjectLeaveNotificationCleanupResult,
+  ProjectLeaveRemovalResult,
   ProjectUserRow,
-} from "../../../../Server/Utils/TeamMember/ProjectLeaveNotificationCleanup";
+} from "../../../../Server/Utils/TeamMember/ProjectLeaveRows";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
@@ -251,7 +252,7 @@ describe("ProjectLeaveAccessCleanup", () => {
         rows: { McpOAuthGrant: 2, UserProjectSsoConsent: 1 },
       });
 
-      const result: ProjectLeaveNotificationCleanupResult =
+      const result: ProjectLeaveRemovalResult =
         await ProjectLeaveAccessCleanup.removeProjectAccess({
           projectId: PROJECT_ID,
           userId: USER_ID,
@@ -289,7 +290,7 @@ describe("ProjectLeaveAccessCleanup", () => {
         rows: { McpOAuthGrant: 0 },
       });
 
-      const result: ProjectLeaveNotificationCleanupResult =
+      const result: ProjectLeaveRemovalResult =
         await ProjectLeaveAccessCleanup.removeProjectAccess({
           projectId: PROJECT_ID,
           userId: USER_ID,
@@ -305,7 +306,7 @@ describe("ProjectLeaveAccessCleanup", () => {
         failing: ["McpOAuthGrant"],
       });
 
-      const result: ProjectLeaveNotificationCleanupResult =
+      const result: ProjectLeaveRemovalResult =
         await ProjectLeaveAccessCleanup.removeProjectAccess({
           projectId: PROJECT_ID,
           userId: USER_ID,
@@ -414,7 +415,7 @@ describe("ProjectLeaveAccessCleanup", () => {
           async (data: {
             projectId: ObjectID;
             userId: ObjectID;
-          }): Promise<ProjectLeaveNotificationCleanupResult> => {
+          }): Promise<ProjectLeaveRemovalResult> => {
             if (data.userId.toString() === P3.userId) {
               throw new Error("database unavailable");
             }
@@ -481,7 +482,7 @@ describe("ProjectLeaveAccessCleanup", () => {
         .mockReturnValue({ manager: { query } } as never);
 
       await expect(
-        ProjectLeaveNotificationCleanup.getFormerMemberPairsIn([]),
+        ProjectLeaveRows.getFormerMemberPairsIn([]),
       ).resolves.toEqual([]);
       expect(query).not.toHaveBeenCalled();
     });

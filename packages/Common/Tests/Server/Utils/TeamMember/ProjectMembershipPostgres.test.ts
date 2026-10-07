@@ -10,11 +10,11 @@ import UserNotificationSettingService from "../../../../Server/Services/UserNoti
 import UserProjectSsoConsentService from "../../../../Server/Services/UserProjectSsoConsentService";
 import logger from "../../../../Server/Utils/Logger";
 import ProjectLeaveAccessCleanup from "../../../../Server/Utils/TeamMember/ProjectLeaveAccessCleanup";
-import ProjectLeaveNotificationCleanup, {
+import ProjectLeaveNotificationCleanup from "../../../../Server/Utils/TeamMember/ProjectLeaveNotificationCleanup";
+import {
   FormerMemberCleanupResult,
-  PersonalNotificationTable,
   PersonalTable,
-} from "../../../../Server/Utils/TeamMember/ProjectLeaveNotificationCleanup";
+} from "../../../../Server/Utils/TeamMember/ProjectLeaveRows";
 import ProjectMembership, {
   ProjectMembershipStandings,
 } from "../../../../Server/Utils/TeamMember/ProjectMembership";
@@ -110,7 +110,7 @@ const ROLLUP_ITEM_TABLE: string = "UserNotificationEmailRollupItem";
 
 function personalTableNames(): Array<string> {
   return ProjectLeaveNotificationCleanup.getPersonalNotificationTables().map(
-    (table: PersonalNotificationTable): string => {
+    (table: PersonalTable): string => {
       return table.service.getModel().tableName!;
     },
   );
@@ -793,20 +793,30 @@ describePostgres(
           deleted: true,
         });
 
-        const invited: Set<string> = await ProjectMembership.getInvitedUserIds({
-          projectId: PROJECT_A,
-          userIds: [MEMBER, LEAVER, PENDING, SOFT_DELETED, SENT_ONLY],
-        });
+        const standings: ProjectMembershipStandings =
+          await ProjectMembership.getStandings({
+            projectId: PROJECT_A,
+            userIds: [MEMBER, LEAVER, PENDING, SOFT_DELETED, SENT_ONLY],
+          });
 
-        expect(Array.from(invited)).toEqual([PENDING.toString().toLowerCase()]);
+        expect(Array.from(standings.invitedUserIds)).toEqual([
+          PENDING.toString().toLowerCase(),
+        ]);
+        expect(Array.from(standings.memberUserIds)).toEqual([
+          MEMBER.toString().toLowerCase(),
+        ]);
 
-        // Invited to PROJECT_A only.
-        await expect(
-          ProjectMembership.getInvitedUserIds({
+        // Invited to PROJECT_A only; LEAVER is a member of PROJECT_B.
+        const inProjectB: ProjectMembershipStandings =
+          await ProjectMembership.getStandings({
             projectId: PROJECT_B,
             userIds: [PENDING, LEAVER],
-          }),
-        ).resolves.toEqual(new Set<string>());
+          });
+
+        expect(inProjectB.invitedUserIds).toEqual(new Set<string>());
+        expect(Array.from(inProjectB.memberUserIds)).toEqual([
+          LEAVER.toString().toLowerCase(),
+        ]);
       });
 
       test("one person's membership, the projects they are in, and members told from invitees, read the same way", async () => {

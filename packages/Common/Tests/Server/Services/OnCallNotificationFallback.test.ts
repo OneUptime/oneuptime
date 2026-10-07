@@ -12,6 +12,7 @@ import UserNotificationRuleService, {
   FallbackNotificationResult,
 } from "../../../Server/Services/UserNotificationRuleService";
 import UserOnCallLogService, {
+  NOT_A_PROJECT_MEMBER_STATUS_MESSAGE,
   NO_NOTIFICATION_RULES_STATUS_MESSAGE,
 } from "../../../Server/Services/UserOnCallLogService";
 import UserPushService from "../../../Server/Services/UserPushService";
@@ -489,8 +490,9 @@ describe("UserNotificationRuleService.executeFallbackNotification", () => {
     test("is paged on nothing, and none of their methods is even looked up", async () => {
       const result: FallbackNotificationResult = await runFallback();
 
+      // Its own outcome: not "no usable method", which asks for one to be added.
       expect(result.outcome).toBe(
-        FallbackNotificationOutcome.NoUsableNotificationMethod,
+        FallbackNotificationOutcome.NotAProjectMember,
       );
       expect(result.notified).toBe(false);
       expect(result.channelsUsed).toEqual([]);
@@ -1549,6 +1551,49 @@ describe("UserOnCallLogService.handleNoMatchingNotificationRule", () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  describe("the fallback finds the responder is not a member of the project", () => {
+    beforeEach(() => {
+      fallbackSpy.mockResolvedValue({
+        outcome: FallbackNotificationOutcome.NotAProjectMember,
+        notified: false,
+        channelsUsed: [],
+      } as never);
+    });
+
+    test("the log is Completed and says why; the timeline says Skipped", async () => {
+      await callHandleNoMatchingNotificationRule();
+
+      expect(lastStatusUpdate().data.status).toBe(
+        UserNotificationExecutionStatus.Completed,
+      );
+      expect(lastStatusUpdate().data.statusMessage).toBe(
+        NOT_A_PROJECT_MEMBER_STATUS_MESSAGE,
+      );
+
+      const timeline: Array<TimelineUpdateCall> = timelineUpdates();
+
+      expect(timeline[timeline.length - 1]!.data.status).toBe(
+        OnCallDutyExecutionLogTimelineStatus.Skipped,
+      );
+    });
+
+    test("nobody is told a page went undelivered: there is nothing to fix", async () => {
+      await callHandleNoMatchingNotificationRule();
+
+      expect(alertOwnersSpy).not.toHaveBeenCalled();
+    });
+
+    test("it is not reported as a responder without a notification method", async () => {
+      await callHandleNoMatchingNotificationRule();
+
+      for (const update of statusUpdates()) {
+        expect(update.data.status).not.toBe(
+          UserNotificationExecutionStatus.Error,
+        );
+      }
+    });
   });
 
   describe("an opt-out row means deliberate silence", () => {

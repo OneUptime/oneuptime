@@ -1292,7 +1292,7 @@ export const parseComplianceStatus: (
       return withIssueRuleIds(member, rules);
     });
 
-  return {
+  const status: TeamComplianceStatusJSON = {
     teamId: asString(json["teamId"]),
     teamName: asString(json["teamName"]),
     evaluatedAt: asString(json["evaluatedAt"]),
@@ -1303,6 +1303,20 @@ export const parseComplianceStatus: (
     ),
     userComplianceStatuses: members,
   };
+
+  /*
+   * People invited who have not accepted yet travel as a whole count, never
+   * as members. Left off when the API did not send one (an older API), which
+   * reads as nobody waiting.
+   */
+  if (json["invitedMemberCount"] !== undefined) {
+    status.invitedMemberCount = Math.max(
+      0,
+      Math.floor(asCount(json["invitedMemberCount"])),
+    );
+  }
+
+  return status;
 };
 
 // The time the server checked, or null when it did not say (or said nonsense).
