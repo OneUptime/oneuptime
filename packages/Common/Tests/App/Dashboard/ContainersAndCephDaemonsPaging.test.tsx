@@ -7,16 +7,20 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  within,
-} from "@testing-library/react";
+import { cleanup, render } from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { settle } from "./HostTooltipHarness";
+import {
+  choosePageSize,
+  clickCardRefresh,
+  columnTexts,
+  nextButton,
+  nextPage,
+  numberedNames,
+  pageSizeSelect,
+  pagingSummary,
+} from "./TablePagingHarness";
 
 /*
  * The Docker and Podman Containers lists and the Ceph Daemons list, rendered
@@ -166,16 +170,6 @@ function serveDaemons(names: Array<string>): void {
 }
 
 /*
- * `count` names that sort in the order they are listed: "container-00",
- * "container-01" and so on.
- */
-function numberedNames(prefix: string, count: number): Array<string> {
-  return Array.from({ length: count }, (_value: unknown, index: number) => {
-    return `${prefix}-${String(index).padStart(2, "0")}`;
-  });
-}
-
-/*
  * A cluster with a large gateway fleet, in the order the table lists it:
  * managers, metadata servers, monitors, then 23 RADOS gateways.
  */
@@ -255,50 +249,7 @@ describe.each(LISTS)("paging through the $title list", (list: PagedList) => {
 
   // The name column of every row on screen, top to bottom.
   function visibleNames(): Array<string> {
-    const body: HTMLElement | null = document.getElementById(
-      `${list.tableId}-body`,
-    );
-    if (!body) {
-      return [];
-    }
-    return Array.from(body.querySelectorAll("tr")).map(
-      (row: HTMLTableRowElement): string => {
-        return (row.querySelectorAll("td")[0]?.textContent || "").trim();
-      },
-    );
-  }
-
-  function pageSizeSelect(): HTMLSelectElement {
-    return screen.getByTestId(
-      "pagination-items-on-page-select",
-    ) as HTMLSelectElement;
-  }
-
-  function nextButton(): HTMLElement {
-    return screen.getByTestId("pagination-next-button");
-  }
-
-  // "Showing 26-30 of 30 containers".
-  function pagingSummary(): string {
-    return screen.getByTestId("pagination-summary").textContent || "";
-  }
-
-  async function choosePageSize(size: number): Promise<void> {
-    fireEvent.change(pageSizeSelect(), { target: { value: String(size) } });
-    await settle();
-  }
-
-  async function nextPage(): Promise<void> {
-    fireEvent.click(nextButton());
-    await settle();
-  }
-
-  // The card's only header button, an icon with no name of its own.
-  async function clickRefresh(): Promise<void> {
-    fireEvent.click(
-      within(screen.getByTestId("card-header-actions")).getByRole("button"),
-    );
-    await settle();
+    return columnTexts(list.tableId);
   }
 
   test("shows 25 rows a page, and the last page's footer counts on from 25", async () => {
@@ -373,7 +324,7 @@ describe.each(LISTS)("paging through the $title list", (list: PagedList) => {
 
     // Twenty rows went away: the ten left are one page.
     list.serve(list.names.slice(0, 10));
-    await clickRefresh();
+    await clickCardRefresh();
 
     expect(visibleNames()).toEqual(list.names.slice(0, 10));
     expect(pagingSummary()).toBe(`Showing 1-10 of 10 ${list.noun}`);
@@ -389,7 +340,7 @@ describe.each(LISTS)("paging through the $title list", (list: PagedList) => {
 
     // Fifteen rows are two pages of ten: the reader lands on the last one.
     list.serve(list.names.slice(0, 15));
-    await clickRefresh();
+    await clickCardRefresh();
 
     expect(pageSizeSelect()).toHaveValue("10");
     expect(visibleNames()).toEqual(list.names.slice(10, 15));
