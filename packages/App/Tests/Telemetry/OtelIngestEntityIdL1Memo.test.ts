@@ -509,9 +509,17 @@ describe("entity-id L1 memo coverage", () => {
      * Redis GET per resource block is exactly the regression this suite
      * exists to catch.
      */
-    const covered: Array<string> = DISCOVER_CASES.map((c: DiscoverCase) => {
-      return c.method;
-    });
+    const covered: Array<string> = [
+      ...DISCOVER_CASES.map((c: DiscoverCase) => {
+        return c.method;
+      }),
+      /*
+       * Takes the request's distinct cloud resources rather than one
+       * resource's attributes, so it has a suite of its own that holds it to
+       * the same rule: CloudMonitoredResourceDiscovery.test.ts.
+       */
+      "autoDiscoverCloudMonitoredResources",
+    ];
 
     const declared: Array<string> = Object.getOwnPropertyNames(
       OtelIngestBaseService,

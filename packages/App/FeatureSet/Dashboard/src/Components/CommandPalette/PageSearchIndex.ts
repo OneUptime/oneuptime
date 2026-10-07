@@ -1862,7 +1862,23 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
     sections: [
       {
         title: "Cloud",
-        pages: [allListPage(PageMap.CLOUD_RESOURCES, "All Environments")],
+        pages: [
+          allListPage(PageMap.CLOUD_RESOURCES, "All Environments"),
+          {
+            ...allListPage(PageMap.CLOUD_MONITORED_RESOURCES, "All Resources"),
+            keywords: [
+              "iaas",
+              "paas",
+              "virtual machines",
+              "load balancers",
+              "buckets",
+              "managed databases",
+              "azure monitor",
+              "cloudwatch",
+              "cloud monitoring",
+            ],
+          },
+        ],
       },
       ...resourceSettingsSections({
         ownerRules: PageMap.CLOUD_SETTINGS_OWNER_RULES,
