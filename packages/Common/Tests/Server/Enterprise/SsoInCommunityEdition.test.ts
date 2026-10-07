@@ -52,6 +52,7 @@ import FakeEnterpriseModule, {
   uninstallEnterpriseModule,
 } from "./FakeEnterpriseModule";
 import { setTestBillingEnabled } from "./TestBillingFlag";
+import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 
 /*
  * Single sign-on - SAML and OIDC for projects, status pages and the whole
@@ -189,6 +190,7 @@ const withPermissions: (
   return {
     userId,
     tenantId: projectId,
+    ...ON_HIGHEST_PLAN,
     userTenantAccessPermission: {
       [projectId.toString()]: tenantPermission,
     },

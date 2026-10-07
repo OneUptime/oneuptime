@@ -27,6 +27,7 @@ import PositiveNumber from "../../../Types/PositiveNumber";
 import Timezone from "../../../Types/Timezone";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -101,6 +102,7 @@ function callerProps(
   return {
     userId: CALLER_ID,
     tenantId: PROJECT_ID,
+    ...ON_HIGHEST_PLAN,
     userTenantAccessPermission: {
       [PROJECT_ID.toString()]: {
         _type: "UserTenantAccessPermission",

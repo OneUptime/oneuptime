@@ -13,7 +13,7 @@ import ComponentMetadata, {
 } from "../../../../../Types/Workflow/Component";
 import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
-import { applyTenantColumn, normalizeModelKeys } from "./ModelArguments";
+import { normalizeModelKeys, withoutTenantColumn } from "./ModelArguments";
 import {
   getCustomFieldsToMerge,
   updateOneMergingCustomFields,
@@ -97,13 +97,13 @@ export default class UpdateOneBaseModel<
         );
       }
 
-      args["data"] = applyTenantColumn(
+      // The record stays in its project. See withoutTenantColumn.
+      args["data"] = withoutTenantColumn(
         normalizeModelKeys(
           args["data"] as JSONObject,
           this.modelService.getModel(),
         ),
         this.modelService.getModel(),
-        options.projectId,
       );
 
       if (!args["query"]) {
@@ -140,10 +140,9 @@ export default class UpdateOneBaseModel<
 
       const data: JSONObject = args["data"] as JSONObject;
 
-      const props: DatabaseCommonInteractionProps = {
-        isRoot: true,
-        tenantId: options.projectId,
-      };
+      // A Project Admin of the project, never root. See getStepProps.
+      const props: DatabaseCommonInteractionProps =
+        await this.getStepProps(options);
 
       // Custom fields are merged into what the record holds. See the helper.
       const customFields: JSONObject | null = getCustomFieldsToMerge(
@@ -188,6 +187,7 @@ export default class UpdateOneBaseModel<
         error: err,
         model: this.modelService?.getModel() || null,
         log: options.log,
+        stepTitle: this.getMetadata().title,
       });
 
       return {

@@ -170,6 +170,8 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
     apiKeyId: true,
     mcpClientName: true,
     mcpOAuthGrantId: true,
+    workflowName: true,
+    workflowId: true,
     changes: true,
   };
 
@@ -505,6 +507,37 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
                       </span>
                       <span className="text-[11px] text-gray-500">
                         API request
+                      </span>
+                    </div>
+                  </div>
+                );
+              }
+
+              /*
+               * A step of one of the project's workflows: no person, so the
+               * workflow itself is the actor, named as it was at the time.
+               */
+              if (userType === "Workflow") {
+                const workflowName: string = item.workflowName || "Workflow";
+                return (
+                  <div
+                    className="flex items-center gap-2.5 min-w-0"
+                    data-testid="audit-log-workflow-actor"
+                  >
+                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-sky-100 text-sky-700">
+                      <Icon
+                        icon={IconProp.Workflow}
+                        size={SizeProp.Small}
+                        thick={ThickProp.Thick}
+                        className="h-4 w-4"
+                      />
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-sm font-medium text-gray-900 truncate">
+                        {workflowName}
+                      </span>
+                      <span className="text-[11px] text-gray-500">
+                        Workflow
                       </span>
                     </div>
                   </div>

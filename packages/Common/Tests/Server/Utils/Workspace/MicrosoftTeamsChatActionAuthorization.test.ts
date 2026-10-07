@@ -1,4 +1,11 @@
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import type { TurnContext } from "botbuilder";
 import type { SpyInstance } from "jest-mock";
 import Incident from "../../../../Models/DatabaseModels/Incident";
@@ -28,6 +35,8 @@ import MicrosoftTeamsScheduledMaintenanceActions from "../../../../Server/Utils/
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../Types/ObjectID";
+import ProjectService from "../../../../Server/Services/ProjectService";
+import { PlanType } from "../../../../Types/Billing/SubscriptionPlan";
 import Permission, {
   UserPermission,
   UserTenantAccessPermission,
@@ -82,6 +91,14 @@ function createTurnContext(): TurnContext {
 const readOnlyProps: DatabaseCommonInteractionProps = createDatabaseProps([
   Permission.Viewer,
 ]);
+
+beforeEach((): void => {
+  // The project's plan, as the action's checks read it where a plan decides (CallerPlan).
+  jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+    plan: PlanType.Enterprise,
+    isSubscriptionUnpaid: false,
+  });
+});
 
 afterEach((): void => {
   jest.restoreAllMocks();

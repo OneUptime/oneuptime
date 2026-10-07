@@ -111,10 +111,8 @@ export default class DeleteOneBaseModel<
 
       const itemsDeleted: number = await this.modelService.deleteOneBy({
         query: query,
-        props: {
-          isRoot: true,
-          tenantId: options.projectId,
-        },
+        // A Project Admin of the project, never root. See getStepProps.
+        props: await this.getStepProps(options),
       });
 
       options.log(
@@ -134,6 +132,7 @@ export default class DeleteOneBaseModel<
         error: err,
         model: this.modelService?.getModel() || null,
         log: options.log,
+        stepTitle: this.getMetadata().title,
       });
 
       return {

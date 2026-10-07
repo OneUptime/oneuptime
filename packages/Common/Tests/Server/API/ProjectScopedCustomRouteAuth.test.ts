@@ -25,6 +25,7 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
+import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import {
   afterEach,
   beforeAll,
@@ -115,6 +116,7 @@ function buildMemberProps(data: {
   return {
     tenantId: data.projectId,
     userId: data.userId,
+    ...ON_HIGHEST_PLAN,
     userTenantAccessPermission: permissionMap,
   };
 }

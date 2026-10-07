@@ -1,4 +1,5 @@
 import { mockRouter } from "Common/Tests/Server/API/Helpers";
+import { ON_HIGHEST_PLAN } from "Common/Tests/Server/TestingUtils/RequestPlan";
 import CommonAPI from "Common/Server/API/CommonAPI";
 import ProjectSMTPConfigService from "Common/Server/Services/ProjectSmtpConfigService";
 import Response from "Common/Server/Utils/Response";
@@ -156,6 +157,8 @@ function buildMemberProps(data: {
     tenantId: data.projectId,
     userId: data.userId,
     userTenantAccessPermission: permissionMap,
+    // The project's plan, as CommonAPI reads it for the project a request names.
+    ...ON_HIGHEST_PLAN,
   };
 }
 

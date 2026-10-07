@@ -17,11 +17,15 @@ import SubscriptionPlan, {
 } from "../../../../Types/Billing/SubscriptionPlan";
 import PaymentRequiredException from "../../../../Types/Exception/PaymentRequiredException";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
+import CallerPlan from "../../../Utils/Billing/CallerPlan";
+import PlanGates from "./PlanGates";
 
 export default class BillingPermissions {
   /*
    * The table-level plan check (@TableBillingAccessControl), on OneUptime
-   * Cloud (billing on) for a project whose plan is known.
+   * Cloud (billing on). A caller in a project whose props carry no plan is
+   * refused wherever a plan is at stake, never read as being on any plan
+   * (CallerPlan); OneUptime itself and server admins need none.
    *
    * Each operation needs the plan the table names for it, refused with that
    * plan's name - except what a project may always do with the records it
@@ -57,8 +61,8 @@ export default class BillingPermissions {
    * Schedule Timeline works out who is on call over time from schedules a
    * project below Growth may still read - to find and delete them - and
    * that working-out is what the plan sells. Refused with the plan's name;
-   * nothing is asked where billing is off or the plan is not known, as in
-   * the check above.
+   * nothing is asked where billing is off, and a caller whose plan is not
+   * known is refused, as in the check above.
    */
   @CaptureSpan()
   public static checkFeatureIsOnPlan(
@@ -77,43 +81,68 @@ export default class BillingPermissions {
     type: DatabaseRequestType,
     options: { allowLeftovers: boolean; updateData?: unknown },
   ): void {
-    /// Check billing permissions.
+    if (!IsBillingEnabled) {
+      return;
+    }
 
-    if (IsBillingEnabled && props.currentPlan) {
-      const model: BaseModel = new modelType();
+    const model: BaseModel = new modelType();
 
+    /*
+     * Props that act in a project but carry no plan are never read as "any
+     * plan" (CallerPlan): where the table names a plan for this operation,
+     * the request is refused, unless what it does is allowed below that
+     * plan anyway (a project's leftovers, see isAllowedBelowPlan).
+     * DatabaseService and ModelPermission give the props their project's
+     * plan before they get here, so this refuses only a caller that built
+     * its props without one. Props of OneUptime itself or of a server admin
+     * need no plan.
+     */
+    if (!props.currentPlan) {
       if (
-        props.isSubscriptionUnpaid &&
-        !model.allowAccessIfSubscriptionIsUnpaid
+        CallerPlan.isPlanMissing(props) &&
+        !PlanGates.isMetByEveryPlan(
+          BillingPermissions.getRequiredPlan(model, type),
+        ) &&
+        !(
+          options.allowLeftovers &&
+          BillingPermissions.isAllowedBelowPlan(model, type, options.updateData)
+        )
       ) {
-        throw new PaymentRequiredException(
-          "Your current subscription is in an unpaid state. Looks like your payment method failed. Please add a new payment method in Project Settings > Invoices to pay unpaid invoices.",
-        );
+        CallerPlan.assertPlanKnown(props);
       }
 
-      const requiredPlan: PlanType | null = BillingPermissions.getMissingPlan(
-        model,
-        type,
-        props.currentPlan,
-      );
+      return;
+    }
 
-      if (!requiredPlan) {
-        return;
-      }
-
-      if (
-        options.allowLeftovers &&
-        BillingPermissions.isAllowedBelowPlan(model, type, options.updateData)
-      ) {
-        return;
-      }
-
+    if (
+      props.isSubscriptionUnpaid &&
+      !model.allowAccessIfSubscriptionIsUnpaid
+    ) {
       throw new PaymentRequiredException(
-        "Please upgrade your plan to " +
-          requiredPlan +
-          " to access this feature",
+        "Your current subscription is in an unpaid state. Looks like your payment method failed. Please add a new payment method in Project Settings > Invoices to pay unpaid invoices.",
       );
     }
+
+    const requiredPlan: PlanType | null = BillingPermissions.getMissingPlan(
+      model,
+      type,
+      props.currentPlan,
+    );
+
+    if (!requiredPlan) {
+      return;
+    }
+
+    if (
+      options.allowLeftovers &&
+      BillingPermissions.isAllowedBelowPlan(model, type, options.updateData)
+    ) {
+      return;
+    }
+
+    throw new PaymentRequiredException(
+      "Please upgrade your plan to " + requiredPlan + " to access this feature",
+    );
   }
 
   /*
@@ -182,22 +211,6 @@ export default class BillingPermissions {
     model: BaseModel,
     type: DatabaseRequestType,
   ): PlanType | null {
-    if (type === DatabaseRequestType.Create) {
-      return model.createBillingPlan || null;
-    }
-
-    if (type === DatabaseRequestType.Read) {
-      return model.readBillingPlan || null;
-    }
-
-    if (type === DatabaseRequestType.Update) {
-      return model.updateBillingPlan || null;
-    }
-
-    if (type === DatabaseRequestType.Delete) {
-      return model.deleteBillingPlan || null;
-    }
-
-    return null;
+    return PlanGates.getTablePlan(model, type);
   }
 }

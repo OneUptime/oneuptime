@@ -128,9 +128,10 @@ type ReadRecordsFunction = <TBaseModel extends BaseModel>(data: {
 }) => Promise<Array<RecordToMergeInto>>;
 
 /*
- * The records a write would reach, each with what it holds. Read the way the
- * write reads them - as root, without a service's find hooks - so the same
- * query picks the same records, in the same order.
+ * The records a write would reach, each with what it holds. Read with the
+ * step's own props (a Project Admin of the project, see WorkflowPrincipal)
+ * and without a service's find hooks, as the write itself is checked, so the
+ * same query picks the same records, in the same order.
  */
 const readRecords: ReadRecordsFunction = async <
   TBaseModel extends BaseModel,

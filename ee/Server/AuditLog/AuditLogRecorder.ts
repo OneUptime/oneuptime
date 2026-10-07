@@ -395,6 +395,18 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
       auditLog.mcpClientName = params.props.mcpClientName;
     }
 
+    /*
+     * WHICH workflow made the change. A workflow step acts as no person
+     * (WorkflowPrincipal): the entry's actor is "Workflow", and these name
+     * which one it was.
+     */
+    if (params.props.workflowId) {
+      auditLog.workflowId = params.props.workflowId;
+    }
+    if (params.props.workflowName) {
+      auditLog.workflowName = params.props.workflowName;
+    }
+
     auditLog.changes = params.changes;
     auditLog.retentionDate = this.computeRetentionDate(params.retentionInDays);
 

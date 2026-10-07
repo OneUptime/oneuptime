@@ -13,7 +13,6 @@ import ComponentMetadata, {
 import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 import { normalizeModelKeys } from "./ModelArguments";
-import RelatedFileAccess from "../../../../Utils/File/RelatedFileAccess";
 import logComponentError from "./LogComponentError";
 
 export default class FindOneBaseModel<
@@ -137,19 +136,16 @@ export default class FindOneBaseModel<
       const model: TBaseModel | null = await this.modelService.findOneBy({
         query: query,
         select: select,
-        props: {
-          isRoot: true,
-          tenantId: options.projectId,
-        },
+        // A Project Admin of the project, never root. See getStepProps.
+        props: await this.getStepProps(options),
       });
 
-      // The record's files only when they are the project's to see.
-      await RelatedFileAccess.keepReadableFiles({
-        model: this.modelService.getModel(),
-        rows: model ? [model] : [],
-        select: select,
-        reader: RelatedFileAccess.getProjectReader(options.projectId),
-      });
+      /*
+       * The record's files come back only when they are the project's to
+       * see: the read is the project's (a Project Admin of it), so
+       * DatabaseService holds it to the files that project may see
+       * (RelatedFileAccess), as it does every read made for someone.
+       */
 
       return {
         returnValues: {
@@ -164,6 +160,7 @@ export default class FindOneBaseModel<
         error: err,
         model: this.modelService?.getModel() || null,
         log: options.log,
+        stepTitle: this.getMetadata().title,
       });
 
       return {

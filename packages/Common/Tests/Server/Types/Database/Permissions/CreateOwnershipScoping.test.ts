@@ -26,6 +26,7 @@ import ObjectID from "../../../../../Types/ObjectID";
 import Permission from "../../../../../Types/Permission";
 import UserType from "../../../../../Types/UserType";
 import { describe, expect, test } from "@jest/globals";
+import { ON_HIGHEST_PLAN } from "../../../TestingUtils/RequestPlan";
 
 /*
  * WHAT THIS FILE GUARDS
@@ -88,6 +89,7 @@ function memberProps(): DatabaseCommonInteractionProps {
     userId: CALLER_ID,
     tenantId: PROJECT_ID,
     userType: UserType.User,
+    ...ON_HIGHEST_PLAN,
   };
 }
 
@@ -103,6 +105,7 @@ function adminProps(
     userId: CALLER_ID,
     tenantId: PROJECT_ID,
     userType: UserType.User,
+    ...ON_HIGHEST_PLAN,
     userTenantAccessPermission: {
       [PROJECT_ID.toString()]: {
         projectId: PROJECT_ID,

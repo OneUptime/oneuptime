@@ -115,6 +115,18 @@ Een run met de hand bereikt alleen workflows die je kunt openen: een rol die bep
 
 Geef de mensen die automatisering bouwen **Workflow Admin**, en de mensen die die alleen starten **Workflow Member**. Houd bewerkrechten op variabelen bij de mensen die de geheimen van je project beheren.
 
+## Wat workflowstappen mogen
+
+De stappen die OneUptime-records lezen en wijzigen (de componenten Find, Create, Update en Delete en de triggers On Create, On Update en On Delete) handelen als **Project Admin** van het project van de workflow. Ze krijgen dezelfde controles als een Project Admin in het dashboard en de API:
+
+- **Alleen het eigen project van de workflow.** Een stap leest of wijzigt nooit records van een ander project, en een Update verplaatst nooit een record naar een ander project.
+- **Alleen wat een Project Admin mag.** Een stap kan geen rechten geven die een Project Admin zelf niet heeft (zoals **Project Owner** of facturering), en kan niemand toevoegen aan een team met meer rechten, zoals het team van de eigenaren.
+- **Alleen wat uw abonnement bevat.** Op OneUptime Cloud wordt geweigerd wat uw abonnement niet bevat, met de naam van het abonnement dat nodig is.
+- **Niets wat OneUptime zelf bijhoudt.** Feeditems kunnen niet worden bewerkt of verwijderd, meldingslogboeken kunnen niet worden geschreven, en waarden die OneUptime zelf instelt (zoals een geverifieerde CNAME, de beveiligingsschakelaars van een team of wie nu dienst heeft) kunnen niet worden gewijzigd. Een **Create One Incident**-stap kan ook geen incident vanuit een sjabloon declareren (`createdIncidentTemplateId`): lees het sjabloon met **Find One Incident Template** en geef de waarden door.
+- **Als geen persoon.** Een record dat een workflow aanmaakt heeft geen maker, en het auditlogboek noemt de workflow als degene die de wijziging deed.
+
+Een geweigerde stap neemt zijn uitgang **Error** zonder de geweigerde wijziging te maken, en het uitvoeringslogboek zegt welke stap werd geweigerd en waarom. Een Create Many-stap maakt zijn records één voor één aan en stopt bij het geweigerde; de records die ervoor zijn aangemaakt, blijven bestaan. Stappen die met andere systemen praten (API, e-mail, chat, Custom Code, AI) veranderen niet.
+
 ## Planlimieten
 
 OneUptime Cloud begrenst op kleinere abonnementen het aantal runs per maand. Je huidige limiet staat onder **Projectinstellingen → Facturering**. Bereik je die, dan worden nieuwe triggers geweigerd tot de volgende factuurperiode. Zelf gehoste installaties kennen deze limiet niet.

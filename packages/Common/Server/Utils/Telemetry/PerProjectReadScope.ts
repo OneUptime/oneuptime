@@ -4,6 +4,7 @@ import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedExcept
 import ObjectID from "../../../Types/ObjectID";
 import Text from "../../../Types/Text";
 import ArrayUtil from "../../../Utils/Array";
+import CallerPlan from "../Billing/CallerPlan";
 import { FindOperator, Raw } from "typeorm";
 
 /*
@@ -28,7 +29,9 @@ import { FindOperator, Raw } from "typeorm";
 /*
  * The caller's props in each of their projects, one object per request and
  * project: the scope of a project is worked out once a request
- * (ModelPermission caches it by props), however many reads ask.
+ * (ModelPermission caches it by props), however many reads ask. None
+ * carries the plan of the project the request named: a read that a plan
+ * decides reads the plan of its own project (CallerPlan).
  */
 const projectPropsCache: WeakMap<
   DatabaseCommonInteractionProps,
@@ -65,11 +68,7 @@ export default class PerProjectReadScope {
       byProject.get(key);
 
     if (!projectProps) {
-      projectProps = {
-        ...props,
-        tenantId: projectId,
-        isMultiTenantRequest: false,
-      };
+      projectProps = CallerPlan.inProjectWithoutPlan(props, projectId);
       byProject.set(key, projectProps);
     }
 

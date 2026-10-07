@@ -112,10 +112,8 @@ export default class CreateOneBaseModel<
           (args["json"] as JSONObject) || {},
           this.modelService.modelType,
         ) as TBaseModel,
-        props: {
-          isRoot: true,
-          tenantId: options.projectId,
-        },
+        // A Project Admin of the project, never root. See getStepProps.
+        props: await this.getStepProps(options),
       })) as TBaseModel;
 
       return {
@@ -129,6 +127,7 @@ export default class CreateOneBaseModel<
         error: err,
         model: this.modelService?.getModel() || null,
         log: options.log,
+        stepTitle: this.getMetadata().title,
       });
 
       return {

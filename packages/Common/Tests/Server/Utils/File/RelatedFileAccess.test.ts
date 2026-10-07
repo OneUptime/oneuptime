@@ -7,6 +7,7 @@ import FileOwnership, {
   FileReferenceColumn,
 } from "../../../../Server/Utils/File/FileOwnership";
 import FileService from "../../../../Server/Services/FileService";
+import WorkflowPrincipal from "../../../../Server/Utils/Workflow/WorkflowPrincipal";
 import File from "../../../../Models/DatabaseModels/File";
 import IncidentPublicNote from "../../../../Models/DatabaseModels/IncidentPublicNote";
 import Label from "../../../../Models/DatabaseModels/Label";
@@ -259,11 +260,16 @@ describe("RelatedFileAccess.getReader: who a request reads as", () => {
     });
   });
 
-  test("a project reads its own records as itself", () => {
-    expect(RelatedFileAccess.getProjectReader(PROJECT_ID)).toEqual({
-      projectIds: [PROJECT_ID],
-      userId: null,
-    });
+  // A Project Admin of the workflow's project, and no person.
+  test("a workflow step reads as its own project, and as no person", () => {
+    expect(
+      RelatedFileAccess.getReader(
+        WorkflowPrincipal.getPropsWithoutPlan({
+          projectId: PROJECT_ID,
+          workflowId: ObjectID.generate(),
+        }),
+      ),
+    ).toEqual({ projectIds: [PROJECT_ID.toString()], userId: null });
   });
 });
 

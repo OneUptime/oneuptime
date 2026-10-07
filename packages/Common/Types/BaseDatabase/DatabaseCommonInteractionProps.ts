@@ -40,6 +40,13 @@ export default interface DatabaseCommonInteractionProps {
   mcpOAuthGrantId?: ObjectID | undefined;
   mcpClientName?: string | undefined;
   /*
+   * The workflow whose step made the change (UserType.Workflow), for the
+   * audit trail only, like the credential above: no permission check reads
+   * them. A workflow is no person, so these are how an audit entry names it.
+   */
+  workflowId?: ObjectID | undefined;
+  workflowName?: string | undefined;
+  /*
    * The caller's credential was issued for reading only: an MCP client its
    * user authorized as read-only. Every create, update and delete made with
    * these props is refused, whatever the caller's permissions would allow

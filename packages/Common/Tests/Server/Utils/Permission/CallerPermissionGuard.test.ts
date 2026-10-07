@@ -79,6 +79,8 @@ const ROW_READERS: Record<string, string> = {
     "Builds the rows an API key's requests carry, from the key's permissions.",
   "packages/Common/Server/Utils/UserPermission/UserPermission.ts":
     "Caches the rows and adds the Project User row every member holds.",
+  "packages/Common/Server/Utils/Workflow/WorkflowPrincipal.ts":
+    "Builds the rows a workflow step's requests carry: a member's defaults and Project Admin.",
 };
 
 /*

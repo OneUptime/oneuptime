@@ -115,6 +115,18 @@ Eine Ausführung von Hand erreicht nur Workflows, die Sie öffnen können: Eine 
 
 Geben Sie den Leuten, die Automatisierung bauen, **Workflow Admin** und denen, die sie nur starten, **Workflow Member**. Heben Sie den Schreibzugriff auf Variablen für die Leute auf, die die Geheimnisse Ihres Projekts verwalten.
 
+## Was Workflow-Schritte dürfen
+
+Die Schritte, die OneUptime-Datensätze lesen und ändern – die Komponenten Find, Create, Update und Delete sowie die Trigger On Create, On Update und On Delete –, handeln als **Project Admin** des Projekts, zu dem der Workflow gehört. Für sie gelten dieselben Prüfungen wie für einen Project Admin im Dashboard und in der API:
+
+- **Nur das eigene Projekt des Workflows.** Ein Schritt liest und ändert nie Datensätze eines anderen Projekts, und ein Update verschiebt nie einen Datensatz in ein anderes Projekt.
+- **Nur, was ein Project Admin darf.** Ein Schritt kann keine Berechtigungen vergeben, die ein Project Admin selbst nicht hat (etwa **Project Owner** oder Abrechnung), und niemanden einem Team mit mehr Berechtigungen hinzufügen, etwa dem Team der Eigentümer.
+- **Nur, was Ihr Plan enthält.** Auf OneUptime Cloud wird abgelehnt, was Ihr Plan nicht enthält, mit dem Namen des Plans, der dafür nötig ist.
+- **Nichts, was OneUptime selbst verwaltet.** Feed-Einträge lassen sich nicht bearbeiten oder löschen, Benachrichtigungsprotokolle nicht schreiben, und Werte, die OneUptime selbst setzt (etwa ein bestätigter CNAME, die Schutzschalter eines Teams oder wer gerade Bereitschaft hat), nicht ändern. Ein Schritt **Create One Incident** kann auch keinen Vorfall aus einer Vorlage anlegen (`createdIncidentTemplateId`): Lesen Sie die Vorlage mit **Find One Incident Template** und übergeben Sie ihre Werte.
+- **Als keine Person.** Ein Datensatz, den ein Workflow anlegt, nennt keinen Ersteller, und das Audit-Log nennt den Workflow als den, der die Änderung vorgenommen hat.
+
+Ein abgelehnter Schritt nimmt seinen Ausgang **Error**, ohne die abgelehnte Änderung vorzunehmen, und das Ausführungsprotokoll sagt, welcher Schritt abgelehnt wurde und warum. Ein Schritt „Create Many“ legt seine Datensätze nacheinander an und hält beim abgelehnten an; die zuvor angelegten bleiben bestehen. Schritte, die mit anderen Systemen sprechen (API, E-Mail, Chat, Custom Code, KI), sind nicht betroffen.
+
 ## Plan-Grenzen
 
 OneUptime Cloud deckelt in den kleineren Plänen die Zahl der Ausführungen pro Monat. Ihre aktuelle Grenze steht unter **Projekteinstellungen → Abrechnung**. Ist sie erreicht, werden neue Trigger abgelehnt, bis der nächste Abrechnungszeitraum beginnt. Selbst gehostete Installationen haben diese Grenze nicht.
