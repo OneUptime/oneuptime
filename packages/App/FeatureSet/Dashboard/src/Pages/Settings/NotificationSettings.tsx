@@ -7,6 +7,7 @@ import {
   getRechargeBalanceButtons,
   ProjectBalanceAccess,
 } from "../../Components/ProjectBalance/ProjectBalanceAccess";
+import AutoRechargeFailedNotice from "../../Components/ProjectBalance/AutoRechargeFailedNotice";
 import {
   getProjectColumnsEditGate,
   ProjectColumnsEditGate,
@@ -51,6 +52,9 @@ import React, {
  * to open a form whose save the server then refused. Auto Recharge's Edit is
  * gated on its own columns rather than the Project table's wider update
  * list, for the same reason.
+ *
+ * When Auto Recharge's last charge failed, the page says so first
+ * (AutoRechargeFailedNotice), with what to do or who can.
  */
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -61,6 +65,8 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [rechargeBalanceError, setRechargeBalanceError] = useState<
     string | null
   >(null);
+  // Saving Auto Recharge tries the card at once: ask again whether it failed.
+  const [autoRechargeSaves, setAutoRechargeSaves] = useState<number>(0);
 
   /*
    * Read on every render rather than remembered: the permission snapshot
@@ -78,6 +84,16 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   return (
     <Fragment>
+      {BILLING_ENABLED ? (
+        <AutoRechargeFailedNotice
+          balance={ProjectBalanceType.SmsOrCall}
+          access={balanceAccess}
+          refreshKey={autoRechargeSaves}
+        />
+      ) : (
+        <></>
+      )}
+
       {BILLING_ENABLED ? (
         <CardModelDetail
           name="Current Balance"
@@ -137,6 +153,9 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           }}
           isEditable={autoRechargeGate.isEditable}
           editButtonText="Edit Auto Recharge"
+          onSaveSuccess={() => {
+            setAutoRechargeSaves(autoRechargeSaves + 1);
+          }}
           formFields={[
             {
               field: {

@@ -7,6 +7,7 @@ import NetworkInterfaceService, {
 } from "../../Services/NetworkInterfaceService";
 import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
 import SnmpMonitorResponse from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
+import { SnmpTableSnapshot } from "../../../Types/Monitor/SnmpMonitor/SnmpTable";
 import LldpNeighbor from "../../../Types/Monitor/SnmpMonitor/LldpNeighbor";
 import CdpNeighbor from "../../../Types/Monitor/SnmpMonitor/CdpNeighbor";
 import ArpEntry from "../../../Types/Monitor/SnmpMonitor/ArpEntry";
@@ -54,6 +55,12 @@ export default class NetworkInventoryUtil {
      * and read as "snmp" when absent.
      */
     pollMode?: NetworkDevicePollMode | undefined;
+    /*
+     * The SNMP table snapshot to store, already joined to its definitions
+     * and merged with the previous one (NetworkDeviceWalkUtil). Undefined
+     * leaves the stored snapshot alone; an empty array clears it.
+     */
+    snmpTableSnapshot?: Array<SnmpTableSnapshot> | undefined;
   }): Promise<void> {
     const deviceId: ObjectID = data.deviceId;
 
@@ -75,6 +82,7 @@ export default class NetworkInventoryUtil {
           // For the vendor-template auto-apply below.
           autoApplyVendorHealthTemplate: true,
           snmpOids: true,
+          snmpTables: true,
           oidTemplateId: true,
           // For the monitor-backed guard on the poll columns below.
           monitoringMethod: true,
@@ -269,19 +277,44 @@ export default class NetworkInventoryUtil {
       if (
         ownedDevice.autoApplyVendorHealthTemplate &&
         !ownedDevice.oidTemplateId &&
-        (ownedDevice.snmpOids || []).length === 0 &&
         systemInfo?.sysObjectId
       ) {
+        /*
+         * sysDescr rides along because some platforms share an enterprise
+         * arc: Fabric Engine reports Extreme's 1916 exactly as EXOS does.
+         */
         const vendorTemplate: SnmpVendorTemplate | undefined =
-          SnmpVendorTemplateUtil.matchBySysObjectId(systemInfo.sysObjectId);
+          SnmpVendorTemplateUtil.matchDevice({
+            sysObjectId: systemInfo.sysObjectId,
+            sysDescr: systemInfo.sysDescr,
+          });
 
-        if (vendorTemplate) {
+        if (vendorTemplate && (ownedDevice.snmpOids || []).length === 0) {
           deviceUpdate["snmpOids"] = SnmpVendorTemplateUtil.mergeOids(
             [],
             vendorTemplate.id,
           );
           logger.debug(
             `Auto-applied the "${vendorTemplate.label}" vendor health template to network device ${deviceId.toString()} (sysObjectID ${systemInfo.sysObjectId}).`,
+          );
+        }
+
+        /*
+         * The template's SNMP tables seed the device's own tables under the
+         * same rule as its OIDs - only while the device has none, so a
+         * table list someone has edited is never touched by a poll.
+         */
+        if (
+          vendorTemplate?.tables &&
+          vendorTemplate.tables.length > 0 &&
+          (ownedDevice.snmpTables || []).length === 0
+        ) {
+          deviceUpdate["snmpTables"] = SnmpVendorTemplateUtil.mergeTables(
+            [],
+            vendorTemplate.id,
+          );
+          logger.debug(
+            `Auto-applied the "${vendorTemplate.label}" vendor SNMP tables to network device ${deviceId.toString()}.`,
           );
         }
       }
@@ -317,6 +350,15 @@ export default class NetworkInventoryUtil {
       }
       if (cdpNeighbors !== undefined) {
         deviceUpdate["cdpNeighbors"] = cdpNeighbors.slice(0, 256);
+      }
+
+      /*
+       * Inventory rather than health, like the neighbour snapshots: written
+       * for a monitor-backed device too. Already capped for storage by the
+       * walk processor.
+       */
+      if (data.snmpTableSnapshot !== undefined) {
+        deviceUpdate["snmpTableSnapshot"] = data.snmpTableSnapshot;
       }
 
       /*

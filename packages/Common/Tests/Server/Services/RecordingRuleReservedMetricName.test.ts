@@ -1,6 +1,8 @@
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import LogRecordingRule from "../../../Models/DatabaseModels/LogRecordingRule";
 import MetricRecordingRule from "../../../Models/DatabaseModels/MetricRecordingRule";
 import TraceRecordingRule from "../../../Models/DatabaseModels/TraceRecordingRule";
+import LogRecordingRuleService from "../../../Server/Services/LogRecordingRuleService";
 import MetricRecordingRuleService, {
   Service as MetricRecordingRuleServiceClass,
 } from "../../../Server/Services/MetricRecordingRuleService";
@@ -9,6 +11,7 @@ import CreateBy from "../../../Server/Types/Database/CreateBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import { LogRecordingRuleDefinitionUtil } from "../../../Types/Log/LogRecordingRuleDefinition";
 import ObjectID from "../../../Types/ObjectID";
 import SessionReplayBudgetMetricType from "../../../Types/Rum/SessionReplayBudgetMetricType";
 import { describe, expect, test } from "@jest/globals";
@@ -18,9 +21,11 @@ import { describe, expect, test } from "@jest/globals";
  * OTLP ingest - which is where every other customer-chosen metric name is
  * checked against the reserved session replay namespace. The budget series
  * under it open incidents and are left out of telemetry billing by name, so
- * a rule must not be able to write one either: both services refuse a
+ * a rule must not be able to write one either: all three services refuse a
  * reserved output name when a rule is created, and when an update sets it.
  */
+
+type AnyRule = MetricRecordingRule | TraceRecordingRule | LogRecordingRule;
 
 interface Hooks<TModel extends DatabaseBaseModel> {
   onBeforeCreate: (createBy: CreateBy<TModel>) => Promise<OnCreate<TModel>>;
@@ -44,48 +49,50 @@ const ALLOWED_NAMES: Array<string> = [
 
 interface ServiceCase {
   name: string;
-  hooks: Hooks<MetricRecordingRule | TraceRecordingRule>;
-  newRule: () => MetricRecordingRule | TraceRecordingRule;
+  hooks: Hooks<AnyRule>;
+  newRule: () => AnyRule;
 }
 
 const SERVICES: Array<ServiceCase> = [
   {
     name: "MetricRecordingRuleService",
-    hooks: MetricRecordingRuleService as unknown as Hooks<
-      MetricRecordingRule | TraceRecordingRule
-    >,
+    hooks: MetricRecordingRuleService as unknown as Hooks<AnyRule>,
     newRule: (): MetricRecordingRule => {
       return new MetricRecordingRule();
     },
   },
   {
+    name: "LogRecordingRuleService",
+    hooks: LogRecordingRuleService as unknown as Hooks<AnyRule>,
+    // A log recording rule is created with a definition or not at all.
+    newRule: (): LogRecordingRule => {
+      const rule: LogRecordingRule = new LogRecordingRule();
+      rule.definition = LogRecordingRuleDefinitionUtil.getEmptyDefinition();
+      return rule;
+    },
+  },
+  {
     name: "TraceRecordingRuleService",
-    hooks: TraceRecordingRuleService as unknown as Hooks<
-      MetricRecordingRule | TraceRecordingRule
-    >,
+    hooks: TraceRecordingRuleService as unknown as Hooks<AnyRule>,
     newRule: (): TraceRecordingRule => {
       return new TraceRecordingRule();
     },
   },
 ];
 
-function createBy(
-  rule: MetricRecordingRule | TraceRecordingRule,
-): CreateBy<MetricRecordingRule | TraceRecordingRule> {
+function createBy(rule: AnyRule): CreateBy<AnyRule> {
   return {
     data: rule,
     props: { isRoot: true },
-  } as unknown as CreateBy<MetricRecordingRule | TraceRecordingRule>;
+  } as unknown as CreateBy<AnyRule>;
 }
 
-function updateBy(
-  data: Record<string, unknown>,
-): UpdateBy<MetricRecordingRule | TraceRecordingRule> {
+function updateBy(data: Record<string, unknown>): UpdateBy<AnyRule> {
   return {
     query: { _id: ObjectID.generate().toString() },
     data: data,
     props: { isRoot: true },
-  } as unknown as UpdateBy<MetricRecordingRule | TraceRecordingRule>;
+  } as unknown as UpdateBy<AnyRule>;
 }
 
 describe("MetricRecordingRuleService.assertOutputMetricNameAllowed", () => {
@@ -123,7 +130,7 @@ describe("MetricRecordingRuleService.assertOutputMetricNameAllowed", () => {
 
 describe.each(SERVICES)("$name", ({ hooks, newRule }: ServiceCase) => {
   test("refuses to create a rule whose output name is reserved", async () => {
-    const rule: MetricRecordingRule | TraceRecordingRule = newRule();
+    const rule: AnyRule = newRule();
     rule.outputMetricName =
       SessionReplayBudgetMetricType.ApplicationMonthlyUsedPercent;
 
@@ -133,11 +140,12 @@ describe.each(SERVICES)("$name", ({ hooks, newRule }: ServiceCase) => {
   });
 
   test("creates a rule with any other output name, untouched", async () => {
-    const rule: MetricRecordingRule | TraceRecordingRule = newRule();
+    const rule: AnyRule = newRule();
     rule.outputMetricName = "checkout.latency.p99";
 
-    const result: OnCreate<MetricRecordingRule | TraceRecordingRule> =
-      await hooks.onBeforeCreate(createBy(rule));
+    const result: OnCreate<AnyRule> = await hooks.onBeforeCreate(
+      createBy(rule),
+    );
 
     expect(result.createBy.data.outputMetricName).toBe("checkout.latency.p99");
     expect(result.carryForward).toBeNull();
@@ -154,8 +162,9 @@ describe.each(SERVICES)("$name", ({ hooks, newRule }: ServiceCase) => {
   });
 
   test("lets through an update that does not touch the output name", async () => {
-    const result: OnUpdate<MetricRecordingRule | TraceRecordingRule> =
-      await hooks.onBeforeUpdate(updateBy({ isEnabled: false }));
+    const result: OnUpdate<AnyRule> = await hooks.onBeforeUpdate(
+      updateBy({ isEnabled: false }),
+    );
 
     expect(result.carryForward).toBeNull();
     expect(

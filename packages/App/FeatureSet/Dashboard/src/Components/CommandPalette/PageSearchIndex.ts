@@ -1251,6 +1251,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.ShieldCheck,
             keywords: ["pii", "redact", "mask sensitive data"],
           },
+          {
+            page: PageMap.LOGS_SETTINGS_RECORDING_RULES,
+            title: "Recording Rules",
+            icon: IconProp.Calculator,
+            keywords: ["log metrics", "logs to metrics", "derived metrics"],
+          },
         ],
       },
     ],

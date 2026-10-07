@@ -15,6 +15,10 @@ import NetworkDeviceHydrationUtil, {
   ResolvedSnmpCredentialsForBatch,
 } from "Common/Server/Utils/Monitor/NetworkDeviceHydrationUtil";
 import SnmpOid from "Common/Types/Monitor/SnmpMonitor/SnmpOid";
+import { SnmpTableDefinition } from "Common/Types/Monitor/SnmpMonitor/SnmpTable";
+import SnmpTableListUtil, {
+  EffectiveTableResolution,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpTableListUtil";
 import SnmpOidListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpOidListUtil";
 import Express, {
   ExpressResponse,
@@ -136,6 +140,7 @@ router.post(
           walkInterfaces: true,
           collectEndpoints: true,
           snmpOids: true,
+          snmpTables: true,
           oidTemplateId: true,
         },
         limit: DEVICE_POLL_FETCH_LIMIT,
@@ -221,6 +226,7 @@ router.post(
                 projectId: true,
                 name: true,
                 oids: true,
+                tables: true,
               },
               limit: templateIdsInBatch.length,
               skip: 0,
@@ -329,6 +335,7 @@ router.post(
          * the template and say so loudly.
          */
         let templateOids: Array<SnmpOid> = [];
+        let templateTables: Array<SnmpTableDefinition> = [];
 
         if (linkedTemplate) {
           if (
@@ -336,6 +343,7 @@ router.post(
             device.projectId?.toString()
           ) {
             templateOids = linkedTemplate.oids || [];
+            templateTables = linkedTemplate.tables || [];
           } else {
             logger.error(
               `Network device ${device.id?.toString()} references OID Collection Template ${linkedTemplate.id?.toString()} from a different project. Ignoring the template for this poll.`,
@@ -389,6 +397,23 @@ router.post(
           oids = [{ oid: "1.3.6.1.2.1.1.1.0", name: "sysDescr" }];
         }
 
+        /*
+         * Tables resolve the same way OIDs do: the template's, then the
+         * device's own, merged by key fresh on every poll. Only the column
+         * OIDs and row limits travel to the probe.
+         */
+        const effectiveTables: EffectiveTableResolution =
+          SnmpTableListUtil.resolveEffectiveTables({
+            templateTables: templateTables,
+            deviceTables: device.snmpTables,
+          });
+
+        if (effectiveTables.truncatedCount > 0) {
+          logger.warn(
+            `Network device ${device.id?.toString()}: ${effectiveTables.truncatedCount} SNMP table(s) beyond the per-device limit were not walked.`,
+          );
+        }
+
         devicePollConfigs.push({
           networkDeviceId: device.id.toString(),
           projectId: device.projectId?.toString(),
@@ -401,6 +426,7 @@ router.post(
             credentials: resolved.carrier,
             oids: oids,
             monitorInterfaces: monitorInterfaces,
+            tables: SnmpTableListUtil.toWalkRequests(effectiveTables.tables),
           }) as unknown as JSONObject,
         });
       }

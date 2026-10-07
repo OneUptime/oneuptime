@@ -241,6 +241,9 @@ import "./Jobs/Metrics/ComputeRecordingRules";
 // Derived metrics from spans.
 import "./Jobs/Traces/ComputeTraceRecordingRules";
 
+// Derived metrics from logs.
+import "./Jobs/Logs/ComputeLogRecordingRules";
+
 // Kubernetes inventory cleanup.
 import "./Jobs/Kubernetes/CleanupStaleResources";
 

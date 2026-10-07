@@ -2922,6 +2922,13 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         description:
           "The time window in seconds. Only logs from the last X seconds are evaluated. For example, 300 means the last 5 minutes of logs.",
       },
+      {
+        name: "groupByAttributes",
+        type: "Array<string>",
+        required: false,
+        description:
+          "Log attribute keys to group the matching logs by, e.g. ['con_name']. When set, the logs are counted per distinct combination of these attributes' values, the criteria is evaluated for each group, and each group that meets it raises and resolves its own alert or incident. Logs that do not carry an attribute are counted under an empty value. At most 10 keys; the 100 groups with the most logs are evaluated. Omit it or use an empty array to count all matching logs together.",
+      },
     ],
     values: [],
     jsonExample: JSON.stringify(
@@ -2931,6 +2938,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         severityTexts: ["Error", "Fatal"],
         telemetryServiceIds: ["550e8400-e29b-41d4-a716-446655440000"],
         lastXSecondsOfLogs: 300,
+        groupByAttributes: [],
       },
       null,
       2,

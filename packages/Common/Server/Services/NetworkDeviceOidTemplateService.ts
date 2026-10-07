@@ -12,6 +12,10 @@ import SnmpOid from "../../Types/Monitor/SnmpMonitor/SnmpOid";
 import SnmpOidListUtil, {
   MAX_OIDS_PER_TEMPLATE,
 } from "../../Types/Monitor/SnmpMonitor/SnmpOidListUtil";
+import { SnmpTableDefinition } from "../../Types/Monitor/SnmpMonitor/SnmpTable";
+import SnmpTableListUtil, {
+  MAX_TABLES_PER_TEMPLATE,
+} from "../../Types/Monitor/SnmpMonitor/SnmpTableListUtil";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -49,6 +53,16 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
+    if (createBy.data.tables !== undefined) {
+      createBy.data.tables = SnmpTableListUtil.validateTableList(
+        createBy.data.tables,
+        {
+          max: MAX_TABLES_PER_TEMPLATE,
+          label: "OID Collection Template",
+        },
+      );
+    }
+
     return { createBy, carryForward: null };
   }
 
@@ -66,6 +80,17 @@ export class Service extends DatabaseService<Model> {
         updateBy.data.oids as Array<SnmpOid>,
         {
           max: MAX_OIDS_PER_TEMPLATE,
+          label: "OID Collection Template",
+        },
+      );
+    }
+
+    // Same rule as the OIDs: an explicit empty array clears the tables.
+    if (updateBy.data.tables !== undefined) {
+      updateBy.data.tables = SnmpTableListUtil.validateTableList(
+        updateBy.data.tables as Array<SnmpTableDefinition>,
+        {
+          max: MAX_TABLES_PER_TEMPLATE,
           label: "OID Collection Template",
         },
       );

@@ -2,8 +2,7 @@ import {
   IsBillingEnabled,
   NotificationSlackWebhookOnSubscriptionUpdate,
 } from "../EnvironmentConfig";
-import GlobalCache from "../Infrastructure/GlobalCache";
-import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import logger from "../Utils/Logger";
 import BaseService from "./BaseService";
 import BillingService from "./BillingService";
@@ -12,13 +11,18 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import Email from "../../Types/Email";
 import ObjectID from "../../Types/ObjectID";
 import Project from "../../Models/DatabaseModels/Project";
-import AiAutoRechargeState from "../../Types/Billing/AiAutoRechargeState";
+import AutoRechargeState from "../../Types/Billing/AutoRechargeState";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import {
   BillingFailureNoticeKind,
   shouldSendBillingFailureNotice,
 } from "../Utils/Billing/BillingFailureNoticeThrottle";
+import BalanceRechargeGuard, {
+  AUTO_RECHARGE_RETRY_AFTER_IN_SECONDS,
+  AutoRechargeSettings,
+  getAutoRechargeSettings,
+} from "../Utils/Billing/BalanceRechargeGuard";
 import URL from "../../Types/API/URL";
 import Exception from "../../Types/Exception/Exception";
 
@@ -32,30 +36,29 @@ import Exception from "../../Types/Exception/Exception";
  */
 export const AI_RECHARGE_LOCK_NAMESPACE: string = "AIBillingService.recharge";
 
-// Long enough for the payment provider; refreshed while it is held.
-const AI_RECHARGE_LOCK_TIMEOUT_IN_MS: number = 30_000;
-
-// How long a caller waits for a recharge already under way.
-const AI_RECHARGE_LOCK_ACQUIRE_TIMEOUT_IN_MS: number = 30_000;
-
 /*
  * After an automatic recharge fails - no payment method, a declined card -
- * Auto Recharge waits this long before it charges the card again. Without
- * it, every AI call made while the credits are used up would try the card
- * once more (each try a voided invoice at the payment provider). A recharge
- * by hand, or saving Auto Recharge again, tries at once and, when it works,
- * ends the wait.
+ * Auto Recharge waits this long before it charges the card again: the hour
+ * both balances wait (Utils/Billing/BalanceRechargeGuard). Without it, every
+ * AI call made while the credits are used up would try the card once more
+ * (each try a voided invoice at the payment provider). A recharge by hand,
+ * or saving Auto Recharge again, tries at once and, when it works, ends the
+ * wait.
  */
-export const AI_AUTO_RECHARGE_RETRY_AFTER_IN_SECONDS: number = 60 * 60;
+export const AI_AUTO_RECHARGE_RETRY_AFTER_IN_SECONDS: number =
+  AUTO_RECHARGE_RETRY_AFTER_IN_SECONDS;
 
 const AI_AUTO_RECHARGE_FAILED_NAMESPACE: string = "ai-auto-recharge-failed";
 
+// The recharge lock and the wait after a failed charge, in the shared cache.
+const aiRechargeGuard: BalanceRechargeGuard = new BalanceRechargeGuard({
+  balanceName: "AI credits",
+  lockNamespace: AI_RECHARGE_LOCK_NAMESPACE,
+  failureNamespace: AI_AUTO_RECHARGE_FAILED_NAMESPACE,
+});
+
 // What Auto Recharge is set to, from the project row or a change to it.
-export interface AiAutoRechargeSettings {
-  isSetUp: boolean;
-  rechargeByInUSD: number;
-  whenBalanceFallsToInUSD: number;
-}
+export type AiAutoRechargeSettings = AutoRechargeSettings;
 
 // A change to Auto Recharge that is not written yet (ProjectService).
 export interface AiAutoRechargeChange {
@@ -91,39 +94,19 @@ export class AIBillingService extends BaseService {
     >,
     change?: AiAutoRechargeChange | undefined,
   ): AiAutoRechargeSettings {
-    const isEnabled: boolean = change
-      ? change.enableAutoRechargeAiBalance === true
-      : project.enableAutoRechargeAiBalance === true;
-
-    // What the change sets, even to nothing; otherwise what is stored.
-    const pick: (
-      changed: number | undefined | null,
-      stored: number | undefined | null,
-    ) => number = (
-      changed: number | undefined | null,
-      stored: number | undefined | null,
-    ): number => {
-      const value: number | undefined | null =
-        changed !== undefined && changed !== null ? changed : stored;
-
-      return Number(value || 0) || 0;
-    };
-
-    const rechargeByInUSD: number = pick(
-      change?.autoAiRechargeByBalanceInUSD,
-      project.autoAiRechargeByBalanceInUSD,
-    );
-
-    const whenBalanceFallsToInUSD: number = pick(
-      change?.autoRechargeAiWhenCurrentBalanceFallsInUSD,
-      project.autoRechargeAiWhenCurrentBalanceFallsInUSD,
-    );
-
-    return {
-      isSetUp: isEnabled && rechargeByInUSD > 0 && whenBalanceFallsToInUSD > 0,
-      rechargeByInUSD,
-      whenBalanceFallsToInUSD,
-    };
+    return getAutoRechargeSettings({
+      isEnabled: change
+        ? change.enableAutoRechargeAiBalance === true
+        : project.enableAutoRechargeAiBalance === true,
+      rechargeByInUSD: {
+        changed: change?.autoAiRechargeByBalanceInUSD,
+        stored: project.autoAiRechargeByBalanceInUSD,
+      },
+      whenBalanceFallsToInUSD: {
+        changed: change?.autoRechargeAiWhenCurrentBalanceFallsInUSD,
+        stored: project.autoRechargeAiWhenCurrentBalanceFallsInUSD,
+      },
+    });
   }
 
   /*
@@ -145,16 +128,16 @@ export class AIBillingService extends BaseService {
       | "autoAiRechargeByBalanceInUSD"
       | "autoRechargeAiWhenCurrentBalanceFallsInUSD"
     >;
-  }): Promise<AiAutoRechargeState> {
+  }): Promise<AutoRechargeState> {
     if (!this.getAutoRechargeSettings(data.project).isSetUp) {
-      return AiAutoRechargeState.Off;
+      return AutoRechargeState.Off;
     }
 
-    if (await this.hasRecentAutoRechargeFailure(data.projectId)) {
-      return AiAutoRechargeState.Failed;
+    if (await aiRechargeGuard.hasRecentFailure(data.projectId)) {
+      return AutoRechargeState.Failed;
     }
 
-    return AiAutoRechargeState.Ready;
+    return AutoRechargeState.Ready;
   }
 
   /*
@@ -186,7 +169,8 @@ export class AIBillingService extends BaseService {
       throw new BadDataException("Billing is not enabled");
     }
 
-    const lock: SemaphoreMutex | null = await this.takeRechargeLock(projectId);
+    const lock: SemaphoreMutex | null =
+      await aiRechargeGuard.takeLock(projectId);
 
     try {
       return await this.chargeAndCredit({
@@ -197,7 +181,7 @@ export class AIBillingService extends BaseService {
           options?.sendOwnerConfirmationEmail !== false,
       });
     } finally {
-      await this.releaseRechargeLock(lock, projectId);
+      await aiRechargeGuard.releaseLock(lock, projectId);
     }
   }
 
@@ -241,12 +225,13 @@ export class AIBillingService extends BaseService {
 
     if (
       !change?.ignoreRecentFailure &&
-      (await this.hasRecentAutoRechargeFailure(projectId))
+      (await aiRechargeGuard.hasRecentFailure(projectId))
     ) {
       return firstLook.aiCurrentBalanceInUSDCents || 0;
     }
 
-    const lock: SemaphoreMutex | null = await this.takeRechargeLock(projectId);
+    const lock: SemaphoreMutex | null =
+      await aiRechargeGuard.takeLock(projectId);
 
     if (!lock) {
       logger.error(
@@ -273,7 +258,7 @@ export class AIBillingService extends BaseService {
 
       if (
         !change?.ignoreRecentFailure &&
-        (await this.hasRecentAutoRechargeFailure(projectId))
+        (await aiRechargeGuard.hasRecentFailure(projectId))
       ) {
         return project.aiCurrentBalanceInUSDCents || 0;
       }
@@ -290,7 +275,7 @@ export class AIBillingService extends BaseService {
         sendOwnerConfirmationEmail: false,
       });
     } finally {
-      await this.releaseRechargeLock(lock, projectId);
+      await aiRechargeGuard.releaseLock(lock, projectId);
     }
   }
 
@@ -425,7 +410,7 @@ export class AIBillingService extends BaseService {
        * made while the credits are used up do not each try it once more.
        */
       if (data.isAutomatic) {
-        await this.rememberAutoRechargeFailure(project.id!);
+        await aiRechargeGuard.rememberFailure(project.id!);
       }
 
       /*
@@ -497,7 +482,7 @@ export class AIBillingService extends BaseService {
     }
 
     // The card works: Auto Recharge need not wait any more.
-    await this.forgetAutoRechargeFailure(project.id!);
+    await aiRechargeGuard.forgetFailure(project.id!);
 
     const updatedAmount: number = await this.readBalanceInUSDCents(project.id!);
 
@@ -547,98 +532,6 @@ export class AIBillingService extends BaseService {
     });
 
     return project?.aiCurrentBalanceInUSDCents || 0;
-  }
-
-  /*
-   * The recharge lock, or null when it cannot be taken (the shared cache is
-   * down, or a recharge under way did not finish in time).
-   */
-  private async takeRechargeLock(
-    projectId: ObjectID,
-  ): Promise<SemaphoreMutex | null> {
-    try {
-      return await Semaphore.lock({
-        key: projectId.toString(),
-        namespace: AI_RECHARGE_LOCK_NAMESPACE,
-        lockTimeout: AI_RECHARGE_LOCK_TIMEOUT_IN_MS,
-        acquireTimeout: AI_RECHARGE_LOCK_ACQUIRE_TIMEOUT_IN_MS,
-        onLockLost: (err: Error): void => {
-          logger.error(
-            `AI credits: the recharge lock of project ${projectId.toString()} was lost while it was held: ${err}`,
-          );
-        },
-      });
-    } catch (err) {
-      logger.error(
-        `AI credits: could not take the recharge lock of project ${projectId.toString()}: ${err}`,
-      );
-      return null;
-    }
-  }
-
-  private async releaseRechargeLock(
-    lock: SemaphoreMutex | null,
-    projectId: ObjectID,
-  ): Promise<void> {
-    if (!lock) {
-      return;
-    }
-
-    try {
-      await Semaphore.release(lock);
-    } catch (err) {
-      logger.error(
-        `AI credits: could not release the recharge lock of project ${projectId.toString()}: ${err}`,
-      );
-    }
-  }
-
-  private async hasRecentAutoRechargeFailure(
-    projectId: ObjectID,
-  ): Promise<boolean> {
-    try {
-      return Boolean(
-        await GlobalCache.getString(
-          AI_AUTO_RECHARGE_FAILED_NAMESPACE,
-          projectId.toString(),
-        ),
-      );
-    } catch (err) {
-      logger.error(
-        `AI credits: could not read whether Auto Recharge of project ${projectId.toString()} failed recently: ${err}`,
-      );
-      return false;
-    }
-  }
-
-  private async rememberAutoRechargeFailure(
-    projectId: ObjectID,
-  ): Promise<void> {
-    try {
-      await GlobalCache.setString(
-        AI_AUTO_RECHARGE_FAILED_NAMESPACE,
-        projectId.toString(),
-        new Date().toISOString(),
-        { expiresInSeconds: AI_AUTO_RECHARGE_RETRY_AFTER_IN_SECONDS },
-      );
-    } catch (err) {
-      logger.error(
-        `AI credits: could not record that Auto Recharge of project ${projectId.toString()} failed: ${err}`,
-      );
-    }
-  }
-
-  private async forgetAutoRechargeFailure(projectId: ObjectID): Promise<void> {
-    try {
-      await GlobalCache.deleteKey(
-        AI_AUTO_RECHARGE_FAILED_NAMESPACE,
-        projectId.toString(),
-      );
-    } catch (err) {
-      logger.error(
-        `AI credits: could not clear the Auto Recharge failure of project ${projectId.toString()}: ${err}`,
-      );
-    }
   }
 
   @CaptureSpan()

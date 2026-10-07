@@ -1,7 +1,9 @@
 import DatabaseService from "./DatabaseService";
 import TraceRecordingRuleService from "./TraceRecordingRuleService";
+import LogRecordingRuleService from "./LogRecordingRuleService";
 import Model from "../../Models/DatabaseModels/MetricRecordingRule";
 import TraceRecordingRule from "../../Models/DatabaseModels/TraceRecordingRule";
+import LogRecordingRule from "../../Models/DatabaseModels/LogRecordingRule";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
@@ -65,11 +67,11 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * The output metric name a new rule - of either kind - is created with.
+   * The output metric name a new rule - of any kind - is created with.
    * One that was sent is kept as sent. Left out, it is made from the rule's
    * name ("HTTP 5xx error rate" -> http_5xx_error_rate), with _2, _3 and so
-   * on added when a metric or trace recording rule of the project already
-   * writes it: two rules writing one series would mix their data.
+   * on added when a metric, trace or log recording rule of the project
+   * already writes it: two rules writing one series would mix their data.
    */
   @CaptureSpan()
   public async getOutputMetricNameForCreate(data: {
@@ -91,9 +93,9 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * Every output metric name the project's metric and trace recording rules
-   * write. Read as root: a made name must not clash with a rule the creator
-   * is not allowed to see.
+   * Every output metric name the project's metric, trace and log recording
+   * rules write. Read as root: a made name must not clash with a rule the
+   * creator is not allowed to see.
    */
   @CaptureSpan()
   public async getOutputMetricNamesInProject(
@@ -103,26 +105,36 @@ export class Service extends DatabaseService<Model> {
       return [];
     }
 
-    const [metricRules, traceRules]: [Array<Model>, Array<TraceRecordingRule>] =
-      await Promise.all([
-        this.findBy({
-          query: { projectId: projectId },
-          select: { outputMetricName: true },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          props: { isRoot: true },
-        }),
-        TraceRecordingRuleService.findBy({
-          query: { projectId: projectId },
-          select: { outputMetricName: true },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          props: { isRoot: true },
-        }),
-      ]);
+    const [metricRules, traceRules, logRules]: [
+      Array<Model>,
+      Array<TraceRecordingRule>,
+      Array<LogRecordingRule>,
+    ] = await Promise.all([
+      this.findBy({
+        query: { projectId: projectId },
+        select: { outputMetricName: true },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: { isRoot: true },
+      }),
+      TraceRecordingRuleService.findBy({
+        query: { projectId: projectId },
+        select: { outputMetricName: true },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: { isRoot: true },
+      }),
+      LogRecordingRuleService.findBy({
+        query: { projectId: projectId },
+        select: { outputMetricName: true },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: { isRoot: true },
+      }),
+    ]);
 
-    return [...metricRules, ...traceRules]
-      .map((rule: Model | TraceRecordingRule) => {
+    return [...metricRules, ...traceRules, ...logRules]
+      .map((rule: Model | TraceRecordingRule | LogRecordingRule) => {
         return rule.outputMetricName;
       })
       .filter((name: string | undefined) => {
