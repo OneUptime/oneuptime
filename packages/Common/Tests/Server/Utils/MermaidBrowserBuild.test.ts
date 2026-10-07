@@ -184,13 +184,14 @@ describe("createMermaidBrowserBuildCache", () => {
 
   test("shares one build between requests that arrive while it runs", async () => {
     let resolveBuild: (build: MermaidBrowserBuild) => void = () => {};
-    const build: Mock<MermaidBrowserBuildFunction> = jest.fn<MermaidBrowserBuildFunction>(() => {
-      return new Promise<MermaidBrowserBuild>(
-        (resolve: (build: MermaidBrowserBuild) => void) => {
-          resolveBuild = resolve;
-        },
-      );
-    });
+    const build: Mock<MermaidBrowserBuildFunction> =
+      jest.fn<MermaidBrowserBuildFunction>(() => {
+        return new Promise<MermaidBrowserBuild>(
+          (resolve: (build: MermaidBrowserBuild) => void) => {
+            resolveBuild = resolve;
+          },
+        );
+      });
     const clock: Clock = createClock();
     const get: MermaidBrowserBuildFunction = createMermaidBrowserBuildCache({
       build,
@@ -211,9 +212,10 @@ describe("createMermaidBrowserBuildCache", () => {
   });
 
   test("keeps a finished build for the life of the process", async () => {
-    const build: Mock<MermaidBrowserBuildFunction> = jest.fn<MermaidBrowserBuildFunction>(() => {
-      return Promise.resolve(SAMPLE_BUILD);
-    });
+    const build: Mock<MermaidBrowserBuildFunction> =
+      jest.fn<MermaidBrowserBuildFunction>(() => {
+        return Promise.resolve(SAMPLE_BUILD);
+      });
     const clock: Clock = createClock();
     const get: MermaidBrowserBuildFunction = createMermaidBrowserBuildCache({
       build,
@@ -230,13 +232,14 @@ describe("createMermaidBrowserBuildCache", () => {
 
   test("answers with the same failure until the retry window has passed, then builds again", async () => {
     let attempts: number = 0;
-    const build: Mock<MermaidBrowserBuildFunction> = jest.fn<MermaidBrowserBuildFunction>(() => {
-      attempts++;
+    const build: Mock<MermaidBrowserBuildFunction> =
+      jest.fn<MermaidBrowserBuildFunction>(() => {
+        attempts++;
 
-      return attempts === 1
-        ? Promise.reject(new Error("esbuild is missing"))
-        : Promise.resolve(SAMPLE_BUILD);
-    });
+        return attempts === 1
+          ? Promise.reject(new Error("esbuild is missing"))
+          : Promise.resolve(SAMPLE_BUILD);
+      });
     const clock: Clock = createClock();
     const get: MermaidBrowserBuildFunction = createMermaidBrowserBuildCache({
       build,
@@ -267,13 +270,14 @@ describe("createMermaidBrowserBuildCache", () => {
 
   test("starts the retry window when the build fails, not when it started", async () => {
     let rejectBuild: (error: Error) => void = () => {};
-    const build: Mock<MermaidBrowserBuildFunction> = jest.fn<MermaidBrowserBuildFunction>(() => {
-      return new Promise<MermaidBrowserBuild>(
-        (_resolve: unknown, reject: (error: Error) => void) => {
-          rejectBuild = reject;
-        },
-      );
-    });
+    const build: Mock<MermaidBrowserBuildFunction> =
+      jest.fn<MermaidBrowserBuildFunction>(() => {
+        return new Promise<MermaidBrowserBuild>(
+          (_resolve: unknown, reject: (error: Error) => void) => {
+            rejectBuild = reject;
+          },
+        );
+      });
     const clock: Clock = createClock();
     const get: MermaidBrowserBuildFunction = createMermaidBrowserBuildCache({
       build,
@@ -325,6 +329,26 @@ describe("runMermaidBrowserBuild", () => {
 
     expect(build.entry).toBe(MermaidBrowserEntry);
     expect(build.files.size).toBeGreaterThan(50);
+  });
+
+  test("builds the same bytes every time, so every server serves the same chunk names", async () => {
+    /*
+     * Each process builds its own copy. Behind a load balancer the entry can
+     * come from one replica and its chunks from another, which works only if
+     * the two builds agree file for file.
+     */
+    const first: MermaidBrowserBuild = await runMermaidBrowserBuild();
+    const second: MermaidBrowserBuild = await runMermaidBrowserBuild();
+
+    expect([...second.files.keys()].sort()).toEqual(
+      [...first.files.keys()].sort(),
+    );
+
+    for (const [filePath, contents] of first.files) {
+      expect([filePath, second.files.get(filePath)?.equals(contents)]).toEqual(
+        [filePath, true],
+      );
+    }
   });
 
   test("reads what the script prints", async () => {

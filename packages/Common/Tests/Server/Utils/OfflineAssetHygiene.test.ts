@@ -414,10 +414,7 @@ describe("every /oneuptime-assets URL a view uses resolves to a real file", () =
       ],
       [
         path.join("Home", "Views", "Blog", "Post.ejs"),
-        [
-          "/oneuptime-assets/highlight/highlight.min.js",
-          MermaidEntryUrl,
-        ],
+        ["/oneuptime-assets/highlight/highlight.min.js", MermaidEntryUrl],
       ],
     ];
 

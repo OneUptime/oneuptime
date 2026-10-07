@@ -316,14 +316,17 @@ describe("the mermaid build the docs and the blog import", () => {
     expect(visited.size).toBeGreaterThan(50);
   });
 
+  // chunks/<name>-<HASH>.mjs, as esbuild-mermaid.js names them.
+  const CONTENT_HASHED_CHUNK: RegExp =
+    /^chunks\/[A-Za-z0-9._-]+-[A-Z0-9]{8,}\.mjs$/;
+
   test("names every chunk by its content, under chunks/", () => {
     for (const file of build.files.keys()) {
       if (file === MermaidBrowserEntry) {
         continue;
       }
 
-      expect([file, /^chunks\/[A-Za-z0-9._-]+-[A-Z0-9]{8,}\.mjs$/.test(file)])
-        .toEqual([file, true]);
+      expect([file, CONTENT_HASHED_CHUNK.test(file)]).toEqual([file, true]);
     }
   });
 

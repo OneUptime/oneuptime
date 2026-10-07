@@ -200,6 +200,9 @@ function bytesOf(build: BuildSummary, outputs: Set<string>): number {
     }, 0);
 }
 
+// An output named after a mermaid module: mermaid.core-<HASH>.js and the like.
+const MERMAID_CHUNK_NAME: RegExp = /mermaid/;
+
 const MARKDOWN_VIEWER_LIKE_ENTRY: string = [
   // MarkdownViewer's shape: mermaid only through a dynamic import().
   "export function loadMermaid() {",
@@ -323,7 +326,8 @@ describe("the frontends bundle mermaid from its source", () => {
     expect(
       build.outputs.some((output: OutputSummary): boolean => {
         return (
-          firstLoad.has(output.path) && /mermaid/.test(path.basename(output.path))
+          firstLoad.has(output.path) &&
+          MERMAID_CHUNK_NAME.test(path.basename(output.path))
         );
       }),
     ).toBe(false);

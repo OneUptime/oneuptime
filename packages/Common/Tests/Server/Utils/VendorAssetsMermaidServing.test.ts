@@ -72,9 +72,12 @@ describe("the mermaid mount", () => {
 
     mountVendorAssets(app);
 
-    app.all("/*", (_request: unknown, response: { send: (body: string) => void }) => {
-      return response.send(INDEX_PAGE);
-    });
+    app.all(
+      "/*",
+      (_request: unknown, response: { send: (body: string) => void }) => {
+        return response.send(INDEX_PAGE);
+      },
+    );
 
     server = createServer(app);
 
@@ -148,9 +151,7 @@ describe("the mermaid mount", () => {
 
       expect(answer.status).toBe(200);
       expect(answer.text).toBe(CHUNK_TEXT);
-      expect(answer.headers["cache-control"]).toBe(
-        "public, max-age=31536000",
-      );
+      expect(answer.headers["cache-control"]).toBe("public, max-age=31536000");
     });
 
     test("answers a HEAD request without a body", async () => {
@@ -161,15 +162,24 @@ describe("the mermaid mount", () => {
     });
 
     test.each([
-      ["a module the build does not have", "/oneuptime-assets/mermaid/chunks/chunk-ZZZZZZZZ.mjs"],
-      ["a path that climbs out", "/oneuptime-assets/mermaid/chunks/../mermaid.mjs"],
+      [
+        "a module the build does not have",
+        "/oneuptime-assets/mermaid/chunks/chunk-ZZZZZZZZ.mjs",
+      ],
+      [
+        "a path that climbs out",
+        "/oneuptime-assets/mermaid/chunks/../mermaid.mjs",
+      ],
       ["a different case", "/oneuptime-assets/mermaid/MERMAID.mjs"],
-    ])("is a 404 for %s, never the index page", async (_label: string, urlPath: string) => {
-      const answer: Answer = await ask(urlPath);
+    ])(
+      "is a 404 for %s, never the index page",
+      async (_label: string, urlPath: string) => {
+        const answer: Answer = await ask(urlPath);
 
-      expect(answer.status).toBe(404);
-      expect(answer.text).not.toBe(INDEX_PAGE);
-    });
+        expect(answer.status).toBe(404);
+        expect(answer.text).not.toBe(INDEX_PAGE);
+      },
+    );
   });
 
   describe("without a build", () => {
@@ -193,18 +203,25 @@ describe("the mermaid mount", () => {
 
   describe("only a GET or HEAD of a module waits for the build", () => {
     test.each([
-      ["a prebuilt bundle's name", "GET", "/oneuptime-assets/mermaid/mermaid.min.js"],
+      [
+        "a prebuilt bundle's name",
+        "GET",
+        "/oneuptime-assets/mermaid/mermaid.min.js",
+      ],
       ["a sourcemap", "GET", "/oneuptime-assets/mermaid/mermaid.mjs.map"],
       ["a type definition", "GET", "/oneuptime-assets/mermaid/mermaid.d.ts"],
       ["the bare mount", "GET", "/oneuptime-assets/mermaid/"],
       ["a POST", "POST", MermaidEntryUrl],
       ["a DELETE", "DELETE", MermaidEntryUrl],
-    ])("%s is a 404 without a build", async (_label: string, method: string, urlPath: string) => {
-      const answer: Answer = await ask(urlPath, method);
+    ])(
+      "%s is a 404 without a build",
+      async (_label: string, method: string, urlPath: string) => {
+        const answer: Answer = await ask(urlPath, method);
 
-      expect(answer.status).toBe(404);
-      expect(answer.text).not.toBe(INDEX_PAGE);
-      expect(mockGetMermaidBrowserBuild).not.toHaveBeenCalled();
-    });
+        expect(answer.status).toBe(404);
+        expect(answer.text).not.toBe(INDEX_PAGE);
+        expect(mockGetMermaidBrowserBuild).not.toHaveBeenCalled();
+      },
+    );
   });
 });

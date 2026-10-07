@@ -58,7 +58,8 @@ const MAX_BUILD_OUTPUT_BYTES: number = 64 * 1024 * 1024;
  * .mjs. The files map is the only thing a request is looked up in, so this is
  * what keeps a malformed build from naming something odd.
  */
-const SERVABLE_PATH: RegExp = /^(?:[A-Za-z0-9_-][A-Za-z0-9._-]*\/)*[A-Za-z0-9_-][A-Za-z0-9._-]*\.mjs$/;
+const SERVABLE_PATH: RegExp =
+  /^(?:[A-Za-z0-9_-][A-Za-z0-9._-]*\/)*[A-Za-z0-9_-][A-Za-z0-9._-]*\.mjs$/;
 
 /*
  * The child gets what esbuild needs to find its binary, and nothing of the

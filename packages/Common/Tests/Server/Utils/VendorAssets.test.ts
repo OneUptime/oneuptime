@@ -49,7 +49,8 @@ interface AssetResponse {
  * `import"./x.mjs"` and the dynamic `import("./x.mjs")` mermaid loads every
  * diagram type through.
  */
-const RELATIVE_IMPORT: RegExp = /(?:from|import)\s*\(?\s*["'](\.{1,2}\/[^"']+)["']/g;
+const RELATIVE_IMPORT: RegExp =
+  /(?:from|import)\s*\(?\s*["'](\.{1,2}\/[^"']+)["']/g;
 
 function relativeImportsOf(source: string): Array<string> {
   const specifiers: Array<string> = [];
@@ -582,9 +583,7 @@ describe("vendored browser assets", () => {
     });
 
     test("is neither a committed copy nor one of mermaid's prebuilt bundles", () => {
-      expect(fs.existsSync(path.join(VendorAssetsPath, "mermaid"))).toBe(
-        false,
-      );
+      expect(fs.existsSync(path.join(VendorAssetsPath, "mermaid"))).toBe(false);
     });
 
     test("serves the entry as JavaScript", async () => {
