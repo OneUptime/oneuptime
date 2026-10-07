@@ -38,7 +38,6 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import type { SpyInstance } from "jest-mock";
 
 jest.mock("../../../../../Server/Utils/Logger");
 
@@ -155,6 +154,9 @@ function expectPlanUnknown(error: unknown): void {
   expect(error).toBeInstanceOf(NotAuthorizedException);
   expect((error as Error).message).toBe(CallerPlan.PLAN_UNKNOWN_MESSAGE);
 }
+
+// The spy getJestSpyOn hands back.
+type SpyInstance = ReturnType<typeof getJestSpyOn>;
 
 let currentPlanSpy: SpyInstance;
 const plansByProject: Map<string, PlanType> = new Map();

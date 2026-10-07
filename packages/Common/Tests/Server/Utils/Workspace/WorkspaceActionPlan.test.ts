@@ -19,7 +19,6 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import type { SpyInstance } from "jest-mock";
 
 jest.mock("../../../../Server/Utils/Logger");
 
@@ -84,6 +83,9 @@ function chatMemberProps(): DatabaseCommonInteractionProps {
     },
   };
 }
+
+// The spy getJestSpyOn hands back.
+type SpyInstance = ReturnType<typeof getJestSpyOn>;
 
 let projectPlan: PlanType = PlanType.Free;
 let currentPlanSpy: SpyInstance;

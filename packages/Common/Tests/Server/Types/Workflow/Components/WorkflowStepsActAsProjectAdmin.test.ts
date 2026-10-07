@@ -38,7 +38,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import type { Mock, SpyInstance } from "jest-mock";
+import type { Mock } from "jest-mock";
 
 jest.mock("../../../../../Server/Utils/Logger");
 
@@ -100,6 +100,9 @@ interface StepRun {
   result: RunReturnType;
   lines: Array<string>;
 }
+
+// The spy getJestSpyOn hands back.
+type SpyInstance = ReturnType<typeof getJestSpyOn>;
 
 let projectPlan: PlanType = PlanType.Enterprise;
 let currentPlanSpy: SpyInstance;
