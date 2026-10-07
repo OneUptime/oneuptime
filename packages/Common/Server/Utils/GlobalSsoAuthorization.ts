@@ -131,9 +131,49 @@ export function isGlobalProviderNarrowing(data: unknown): boolean {
 }
 
 /*
+ * Whether an attachment added, turned off or removed changes who these
+ * providers sign in. Only a provider that is on and restricted to its
+ * attached projects reads its attachments (doAttachmentsGovernProject); for
+ * any other, an attachment only says where people are provisioned. A
+ * provider that cannot be named (null) or read counts as restricted, so a
+ * failed read never keeps a change quiet.
+ */
+export async function isAnyAttachedProviderRestricted(data: {
+  providerIds: Array<ObjectID | null>;
+  getProviderTrust: (providerId: ObjectID) => Promise<GlobalProviderTrust>;
+}): Promise<boolean> {
+  const asked: Set<string> = new Set();
+
+  for (const providerId of data.providerIds) {
+    if (!providerId) {
+      return true;
+    }
+
+    if (asked.has(providerId.toString())) {
+      continue;
+    }
+
+    asked.add(providerId.toString());
+
+    try {
+      const trust: GlobalProviderTrust =
+        await data.getProviderTrust(providerId);
+
+      if (trust.isUsable && trust.restrictToAttachedProjects) {
+        return true;
+      }
+    } catch {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/*
  * A global provider now signs fewer people in - turned off, deleted,
- * restricted to its attached projects, or an attachment of one added,
- * turned off or removed. Every server forgets these answers
+ * restricted to its attached projects, or an attachment of a restricted
+ * one added, turned off or removed. Every server forgets these answers
  * (GlobalConfigService.forgetSignInRules) and asks the live updates it holds
  * again, as their joins were (RealtimeAccessChanges, SignInRulesChanged for
  * the whole instance), so a page signed in with it stops hearing at once,

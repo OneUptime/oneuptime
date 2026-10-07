@@ -53,6 +53,8 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import ProjectOidcService from "../../../Server/Services/ProjectOidcService";
 import ProjectSCIMService from "../../../Server/Services/ProjectSCIMService";
 import ProjectService from "../../../Server/Services/ProjectService";
+import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
+import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import ProjectSsoService from "../../../Server/Services/ProjectSsoService";
 import TeamPermissionService from "../../../Server/Services/TeamPermissionService";
 import TeamService from "../../../Server/Services/TeamService";
@@ -562,9 +564,9 @@ beforeEach(() => {
 
   /*
    * Switching a provider off also asks whether its project keeps a way in
-   * (Utils/ProjectSsoProviderChanges): here the project does not require
-   * SSO, so any provider may be switched off. ProjectSsoProviderChanges.test
-   * covers a project that does.
+   * (Utils/ProjectSsoProviderChanges): here neither the project nor the
+   * server requires SSO, so any provider may be switched off.
+   * ProjectSsoProviderChanges.test covers a project that does.
    */
   getJestSpyOn(ProjectService, "findOneById").mockImplementation(
     async (): Promise<Project> => {
@@ -573,6 +575,14 @@ beforeEach(() => {
       project.requireSsoForLogin = false;
       return project;
     },
+  );
+
+  getJestSpyOn(GlobalConfigService, "findOneBy").mockImplementation(
+    (async () => {
+      const config: GlobalConfig = new GlobalConfig();
+      config.requireSsoForLogin = false;
+      return config;
+    }) as never,
   );
 
   database = {

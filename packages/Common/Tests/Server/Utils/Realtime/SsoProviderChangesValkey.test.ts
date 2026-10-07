@@ -273,7 +273,7 @@ describe("project SSO provider changes reach every server through Valkey", () =>
     await expect(answersFromMemory(serverB, provider)).resolves.toBe(true);
 
     // Server A turns the provider off.
-    serverA.providerChanges.afterUpdate({
+    await serverA.providerChanges.afterUpdate({
       write: {
         takenAway: [
           {
@@ -323,7 +323,7 @@ describe("project SSO provider changes reach every server through Valkey", () =>
 
     await answersFromMemory(serverB, provider);
 
-    serverA.providerChanges.afterDelete({
+    await serverA.providerChanges.afterDelete({
       write: {
         takenAway: [
           {
@@ -364,12 +364,12 @@ describe("project SSO provider changes reach every server through Valkey", () =>
     await answersFromMemory(serverB, provider);
 
     // A new certificate: the hooks found nothing to announce.
-    serverA.providerChanges.afterUpdate({
+    await serverA.providerChanges.afterUpdate({
       write: null,
       updatedItemIds: [providerId],
     });
     // A write that did not reach the row it named.
-    serverA.providerChanges.afterUpdate({
+    await serverA.providerChanges.afterUpdate({
       write: {
         takenAway: [
           {

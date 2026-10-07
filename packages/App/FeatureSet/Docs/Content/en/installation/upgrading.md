@@ -513,16 +513,18 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   a session or a newly required SSO sign-in. See
   [Users, Teams & Permissions](/docs/permissions/index).
 - **Turning a project's SSO provider off, or deleting it, ends the sign-ins
-  it gave.** In a project that requires SSO, people who signed in with a
-  SAML or OIDC provider that is turned off or deleted have to sign in with
-  SSO again at their next request, their open pages stop receiving live
+  it gave.** Where SSO is required, people who signed in with a SAML or
+  OIDC provider that is turned off or deleted have to sign in with SSO
+  again at their next request, their open pages stop receiving live
   updates, and MCP clients they connected with that sign-in have to be
   connected again. Turning the provider on again does not bring those
   sign-ins back, and a provider that is already off when you upgrade counts
   as turned off at the upgrade. A new certificate or client secret keeps
   everyone signed in. While a project requires SSO, its last provider, and
   the provider it requires, cannot be turned off or deleted until Require
-  SSO for Login is turned off. See
+  SSO for Login is turned off; when the whole server requires SSO, a
+  project's last provider cannot be turned off or deleted until another one
+  is on. See
   [SSO](/docs/identity/sso#turning-a-provider-off-or-deleting-it).
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including

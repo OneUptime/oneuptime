@@ -4,6 +4,9 @@ import Team from "../../Models/DatabaseModels/Team";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import GlobalOidcService from "./GlobalOidcService";
+import Query from "../Types/Database/Query";
+import QueryHelper from "../Types/Database/QueryHelper";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -14,8 +17,10 @@ import validateGlobalProviderProjectTeams, {
 import {
   GLOBAL_SSO_AUTHORIZATION_CACHE_TTL_MS,
   GlobalProviderAttachments,
+  GlobalProviderTrust,
   announceGlobalSignInChange,
   clearGlobalSsoAuthorizationCaches,
+  isAnyAttachedProviderRestricted,
   isGlobalProviderNarrowing,
   doAttachmentsGovernProject,
   globalProviderCacheKey,
@@ -104,7 +109,12 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnDelete<Model>> {
     // Detaching a project has to take effect now, not in 60s, on this node.
     clearGlobalSsoAuthorizationCaches();
-    return { deleteBy, carryForward: null };
+
+    // Their providers, read while the rows are still there.
+    return {
+      deleteBy,
+      carryForward: await this.readProviderIds(deleteBy.query),
+    };
   }
 
   /*
@@ -123,7 +133,12 @@ export class Service extends DatabaseService<Model> {
      * A provider restricted to its attached projects no longer signs people
      * in to this one: asked again on every server.
      */
-    if (itemIdsBeforeDelete.length > 0) {
+    if (
+      itemIdsBeforeDelete.length > 0 &&
+      (await this.isAnyProviderRestricted(
+        (onDelete.carryForward as Array<ObjectID | null> | null) || [null],
+      ))
+    ) {
       announceGlobalSignInChange();
     }
 
@@ -133,6 +148,8 @@ export class Service extends DatabaseService<Model> {
   /*
    * The first attachment of a provider restricted to its attached projects
    * narrows it from every project to that one: asked again on every server.
+   * A provider that is not restricted signs people in to every project
+   * whatever its attachments, so attaching one changes nothing there.
    */
   @CaptureSpan()
   protected override async onCreateSuccess(
@@ -140,7 +157,13 @@ export class Service extends DatabaseService<Model> {
     createdItem: Model,
   ): Promise<Model> {
     clearGlobalSsoAuthorizationCaches();
-    announceGlobalSignInChange();
+
+    if (
+      await this.isAnyProviderRestricted([this.readProviderIdOf(createdItem)])
+    ) {
+      announceGlobalSignInChange();
+    }
+
     return createdItem;
   }
 
@@ -154,12 +177,69 @@ export class Service extends DatabaseService<Model> {
     // An attachment turned off: as removing it.
     if (
       updatedItemIds.length > 0 &&
-      isGlobalProviderNarrowing(onUpdate.updateBy.data)
+      isGlobalProviderNarrowing(onUpdate.updateBy.data) &&
+      (await this.isAnyProviderRestricted(
+        await this.readProviderIds({
+          _id: QueryHelper.any(updatedItemIds),
+        } as Query<Model>),
+      ))
     ) {
       announceGlobalSignInChange();
     }
 
     return onUpdate;
+  }
+
+  /*
+   * Whether any of these providers is on and restricted to its attached
+   * projects, the only kind whose attachments decide who it signs in
+   * (Utils/GlobalSsoAuthorization). One that cannot be told (null) counts.
+   */
+  private async isAnyProviderRestricted(
+    providerIds: Array<ObjectID | null>,
+  ): Promise<boolean> {
+    return await isAnyAttachedProviderRestricted({
+      providerIds: providerIds,
+      getProviderTrust: (
+        providerId: ObjectID,
+      ): Promise<GlobalProviderTrust> => {
+        return GlobalOidcService.getProviderTrust(providerId);
+      },
+    });
+  }
+
+  // The providers of the attachments `query` names; a failed read cannot tell.
+  private async readProviderIds(
+    query: Query<Model>,
+  ): Promise<Array<ObjectID | null>> {
+    try {
+      const rows: Array<Model> = await this.findBy({
+        query: query,
+        select: { _id: true, globalOidcId: true },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+      return rows.map((row: Model): ObjectID | null => {
+        return row.globalOidcId || null;
+      });
+    } catch {
+      return [null];
+    }
+  }
+
+  // The provider a new attachment names, under either of its names.
+  private readProviderIdOf(attachment: Model): ObjectID | null {
+    try {
+      return RelationIdUtil.readConsistent(
+        attachment as unknown as Record<string, unknown>,
+        ["globalOidcId", "globalOidc"],
+        "Global OIDC",
+      );
+    } catch {
+      return null;
+    }
   }
 
   @CaptureSpan()

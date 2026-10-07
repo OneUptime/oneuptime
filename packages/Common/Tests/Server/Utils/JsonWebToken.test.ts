@@ -178,6 +178,51 @@ describe("JSONWebToken", () => {
     });
   });
 
+  /*
+   * For a token whose signature was checked a moment ago: its claims, read
+   * again without a second check - for one JSONWebTokenData does not carry,
+   * such as `iat`.
+   */
+  describe("readPayloadOfVerifiedToken", () => {
+    test("should read the claims of a token, iat included", () => {
+      const token: string = JSONWebToken.signJsonPayload(
+        { hello: "world" },
+        300,
+      );
+
+      const payload: JSONObject | null =
+        JSONWebToken.readPayloadOfVerifiedToken(token);
+
+      expect(payload).not.toBeNull();
+      expect(payload!["hello"]).toEqual("world");
+      expect(payload!["iat"]).toEqual(
+        JSONWebToken.decodeJsonPayload(token)["iat"],
+      );
+    });
+
+    test("should not check the signature again", () => {
+      const verify: jest.SpyInstance = jest.spyOn(jwt, "verify");
+      const token: string = JSONWebToken.signJsonPayload(
+        { hello: "world" },
+        300,
+      );
+
+      JSONWebToken.readPayloadOfVerifiedToken(token);
+
+      expect(verify).not.toHaveBeenCalled();
+      verify.mockRestore();
+    });
+
+    test("should answer null for text that is not a token, or whose payload is not claims", () => {
+      expect(JSONWebToken.readPayloadOfVerifiedToken("not-a-token")).toBeNull();
+      expect(
+        JSONWebToken.readPayloadOfVerifiedToken(
+          jwt.sign("bare-string", EncryptionSecret.toString()),
+        ),
+      ).toBeNull();
+    });
+  });
+
   describe("signWithPrivateKey", () => {
     test("should sign with RS256 and be verifiable with the public key", () => {
       const { privateKey, publicKey } = generateKeyPairSync("rsa", {

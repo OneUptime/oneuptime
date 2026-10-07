@@ -312,7 +312,7 @@ On OneUptime Cloud, requiring SSO needs the **Scale** plan, and turning it off w
 
 ## Turning a provider off or deleting it
 
-Turning a SAML or OIDC provider off, or deleting it, ends the sign-ins it gave. In a project that requires SSO:
+Turning a SAML or OIDC provider off, or deleting it, ends the sign-ins it gave. In a project that requires SSO, itself or because the whole server does:
 
 - Anyone who signed in with it has to sign in with SSO again at their next request, and the pages they have open stop receiving live updates at once.
 - An MCP client someone connected after signing in with it stops working in the project. Connect it again after signing in with SSO.
@@ -322,7 +322,9 @@ Changing anything else about a provider keeps everyone signed in: a new certific
 
 While the project requires SSO, OneUptime keeps a way in: you cannot turn off or delete the last provider people can sign in to the project with, counting global providers that sign people in to it, or the provider the project requires. Turn off **Require SSO for Login** first.
 
-In a project that does not require SSO, turning a provider off stops new sign-ins with it. People already signed in stay signed in, as people who signed in with a password do.
+When the whole server requires SSO (**Admin** > **Settings** > **Authentication** > **Require SSO for Login**), every project keeps a way in the same way, even one that does not require SSO itself: turn on another provider for it first.
+
+Where neither the project nor the server requires SSO, turning a provider off stops new sign-ins with it. People already signed in stay signed in, as people who signed in with a password do.
 
 ## Providers left below the Scale plan
 

@@ -406,8 +406,9 @@ export default class UserMiddleware {
    */
   private static readIssuedAtMs(rawToken: string): number | null {
     try {
+      // The token was verified a moment ago (JSONWebToken.decode): not again.
       const issuedAtInSeconds: unknown =
-        JSONWebToken.decodeJsonPayload(rawToken)["iat"];
+        JSONWebToken.readPayloadOfVerifiedToken(rawToken)?.["iat"];
 
       return typeof issuedAtInSeconds === "number" &&
         Number.isFinite(issuedAtInSeconds)
@@ -677,16 +678,28 @@ export default class UserMiddleware {
         requiredSsoProviderId,
       );
 
-    if (
-      projectSsoSignIn &&
-      (await this.isProjectScopedSsoSignInAuthorizedForProject({
-        ssoProviderType: projectSsoSignIn.tokenData.ssoProviderType,
-        ssoProviderId: projectSsoSignIn.tokenData.ssoProviderId,
-        issuedAtMs: projectSsoSignIn.issuedAtMs,
-        projectId,
-      }))
-    ) {
-      return true;
+    /*
+     * A lookup of the project's provider that fails is an error, not a
+     * refusal - unless a Global SSO sign-in, asked next, satisfies the
+     * requirement on its own.
+     */
+    let projectSignInLookup: { error: unknown } | null = null;
+
+    if (projectSsoSignIn) {
+      try {
+        if (
+          await this.isProjectScopedSsoSignInAuthorizedForProject({
+            ssoProviderType: projectSsoSignIn.tokenData.ssoProviderType,
+            ssoProviderId: projectSsoSignIn.tokenData.ssoProviderId,
+            issuedAtMs: projectSsoSignIn.issuedAtMs,
+            projectId,
+          })
+        ) {
+          return true;
+        }
+      } catch (err) {
+        projectSignInLookup = { error: err };
+      }
     }
 
     const globalSsoTokenData: JSONWebTokenData | null =
@@ -696,14 +709,21 @@ export default class UserMiddleware {
         requiredSsoProviderId,
       );
 
-    if (!globalSsoTokenData) {
-      return false;
+    if (
+      globalSsoTokenData &&
+      (await this.isGlobalSsoTokenAuthorizedForProject({
+        globalSsoTokenData,
+        projectId,
+      }))
+    ) {
+      return true;
     }
 
-    return this.isGlobalSsoTokenAuthorizedForProject({
-      globalSsoTokenData,
-      projectId,
-    });
+    if (projectSignInLookup) {
+      throw projectSignInLookup.error;
+    }
+
+    return false;
   }
 
   @CaptureSpan()

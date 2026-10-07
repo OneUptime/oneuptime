@@ -61,6 +61,7 @@ import { AddSnmpTablesToNetworkDevices1799660000000 } from "./1799660000000-AddS
 import { AddVideoCallTables1799700000000 } from "./1799700000000-AddVideoCallTables";
 import { KeepOnCallTimelineHistory1799750000000 } from "./1799750000000-KeepOnCallTimelineHistory";
 import { AddSsoProviderSignInsEndedAt1799800000000 } from "./1799800000000-AddSsoProviderSignInsEndedAt";
+import { EndSignInsOfSsoProvidersAlreadyOff1799810000000 } from "./1799810000000-EndSignInsOfSsoProvidersAlreadyOff";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1322,4 +1323,5 @@ export default [
   AddVideoCallTables1799700000000,
   KeepOnCallTimelineHistory1799750000000,
   AddSsoProviderSignInsEndedAt1799800000000,
+  EndSignInsOfSsoProvidersAlreadyOff1799810000000,
 ];

@@ -10,10 +10,7 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import ProjectSsoProviderChanges, {
   ProjectSsoProviderWrite,
 } from "../Utils/ProjectSsoProviderChanges";
-import ProjectSsoProviderStanding, {
-  PROVIDER_NOT_FOUND,
-  ProjectSsoProviderStandingValue,
-} from "../Utils/ProjectSsoProviderStanding";
+import { ProjectSsoProviderStandingValue } from "../Utils/ProjectSsoProviderStanding";
 import SsoProviderTeamGrant, {
   SsoProviderKind,
 } from "../Utils/SsoProviderTeamGrant";
@@ -35,37 +32,11 @@ export class Service extends DatabaseService<Model> {
     providerId: ObjectID;
     projectId: ObjectID;
   }): Promise<ProjectSsoProviderStandingValue> {
-    return await ProjectSsoProviderStanding.get({
-      projectId: data.projectId,
+    return await ProjectSsoProviderChanges.getStanding<Model>({
+      service: this,
       providerType: SsoProviderType.ProjectOIDC,
       providerId: data.providerId,
-      load: async (): Promise<ProjectSsoProviderStandingValue> => {
-        const provider: Model | null = await this.findOneBy({
-          query: {
-            _id: data.providerId.toString(),
-            projectId: data.projectId,
-          },
-          select: {
-            _id: true,
-            isEnabled: true,
-            signInsEndedAt: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-        if (!provider) {
-          return PROVIDER_NOT_FOUND;
-        }
-
-        return {
-          isOn: provider.isEnabled === true,
-          signInsEndedAtMs: provider.signInsEndedAt
-            ? new Date(provider.signInsEndedAt).getTime()
-            : null,
-        };
-      },
+      projectId: data.projectId,
     });
   }
 
@@ -141,7 +112,7 @@ export class Service extends DatabaseService<Model> {
     onUpdate: OnUpdate<Model>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
-    ProjectSsoProviderChanges.afterUpdate({
+    await ProjectSsoProviderChanges.afterUpdate({
       write: onUpdate.carryForward as ProjectSsoProviderWrite | null,
       updatedItemIds: updatedItemIds,
     });
@@ -169,7 +140,7 @@ export class Service extends DatabaseService<Model> {
     onDelete: OnDelete<Model>,
     itemIdsBeforeDelete: Array<ObjectID>,
   ): Promise<OnDelete<Model>> {
-    ProjectSsoProviderChanges.afterDelete({
+    await ProjectSsoProviderChanges.afterDelete({
       write: onDelete.carryForward as ProjectSsoProviderWrite | null,
       deletedItemIds: itemIdsBeforeDelete,
     });

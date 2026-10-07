@@ -1023,6 +1023,44 @@ describe("McpOAuthSso", () => {
         expect(globalTokenAuthorized).toHaveBeenCalledTimes(1);
       });
 
+      test("a project token whose provider cannot be looked up gives way to a Global one that is still on", async () => {
+        projectSsoStanding.mockRejectedValue(new Error("database unavailable"));
+
+        const evidence: McpOAuthGrantSsoEvidence | null = await capture(
+          buildRequest({
+            projectTokens: [
+              { projectId: PROJECT_ID, token: mintProjectToken() },
+            ],
+            globalCookieToken: mintGlobalToken({
+              providerId: OTHER_PROVIDER_ID,
+            }),
+          }),
+        );
+
+        expect(evidence!.ssoProviderType).toBe(SsoProviderType.GlobalSSO);
+        expect(evidence!.ssoProviderId?.toString()).toBe(
+          OTHER_PROVIDER_ID.toString(),
+        );
+      });
+
+      test("with a Global one that is no longer authorized, the failed lookup is the answer: an error", async () => {
+        projectSsoStanding.mockRejectedValue(new Error("database unavailable"));
+        globalTokenAuthorized.mockResolvedValue(false as never);
+
+        await expect(
+          capture(
+            buildRequest({
+              projectTokens: [
+                { projectId: PROJECT_ID, token: mintProjectToken() },
+              ],
+              globalCookieToken: mintGlobalToken({
+                providerId: OTHER_PROVIDER_ID,
+              }),
+            }),
+          ),
+        ).rejects.toThrow("database unavailable");
+      });
+
       test("a project token that does not satisfy the pin falls through to a Global one that does", async () => {
         const evidence: McpOAuthGrantSsoEvidence | null = await capture(
           buildRequest({

@@ -111,20 +111,32 @@ export default class McpOAuthSso {
         requiredSsoProviderId,
       );
 
-    if (
-      projectSsoSignIn &&
-      (await UserMiddleware.isProjectScopedSsoSignInAuthorizedForProject({
-        ssoProviderType: projectSsoSignIn.tokenData.ssoProviderType,
-        ssoProviderId: projectSsoSignIn.tokenData.ssoProviderId,
-        issuedAtMs: projectSsoSignIn.issuedAtMs,
-        projectId: data.projectId,
-      }))
-    ) {
-      const rawToken: string | undefined = UserMiddleware.getSsoTokens(
-        data.req,
-      )[data.projectId.toString()];
+    /*
+     * A lookup of the project's provider that fails is an error, not a
+     * refusal - unless a Global SSO sign-in satisfies the requirement on its
+     * own, as UserMiddleware.isSsoSatisfiedForProject decides it.
+     */
+    let projectSignInLookup: { error: unknown } | null = null;
 
-      return McpOAuthSso.toEvidence(rawToken);
+    if (projectSsoSignIn) {
+      try {
+        if (
+          await UserMiddleware.isProjectScopedSsoSignInAuthorizedForProject({
+            ssoProviderType: projectSsoSignIn.tokenData.ssoProviderType,
+            ssoProviderId: projectSsoSignIn.tokenData.ssoProviderId,
+            issuedAtMs: projectSsoSignIn.issuedAtMs,
+            projectId: data.projectId,
+          })
+        ) {
+          const rawToken: string | undefined = UserMiddleware.getSsoTokens(
+            data.req,
+          )[data.projectId.toString()];
+
+          return McpOAuthSso.toEvidence(rawToken);
+        }
+      } catch (err) {
+        projectSignInLookup = { error: err };
+      }
     }
 
     const globalSsoTokenData: JSONWebTokenData | null =
@@ -134,20 +146,21 @@ export default class McpOAuthSso {
         requiredSsoProviderId,
       );
 
-    if (!globalSsoTokenData) {
-      return null;
-    }
-
     if (
-      !(await UserMiddleware.isGlobalSsoTokenAuthorizedForProject({
+      globalSsoTokenData &&
+      (await UserMiddleware.isGlobalSsoTokenAuthorizedForProject({
         globalSsoTokenData,
         projectId: data.projectId,
       }))
     ) {
-      return null;
+      return McpOAuthSso.toEvidence(McpOAuthSso.getRawGlobalSsoToken(data.req));
     }
 
-    return McpOAuthSso.toEvidence(McpOAuthSso.getRawGlobalSsoToken(data.req));
+    if (projectSignInLookup) {
+      throw projectSignInLookup.error;
+    }
+
+    return null;
   }
 
   /*

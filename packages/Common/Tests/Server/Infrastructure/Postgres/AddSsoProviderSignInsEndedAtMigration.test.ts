@@ -1,32 +1,39 @@
+import { AddSsoProviderSignInsEndedAt1799800000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1799800000000-AddSsoProviderSignInsEndedAt";
 import {
-  AddSsoProviderSignInsEndedAt1799800000000,
   END_SIGN_INS_OF_OIDC_PROVIDERS_OFF,
   END_SIGN_INS_OF_SAML_PROVIDERS_OFF,
-} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1799800000000-AddSsoProviderSignInsEndedAt";
+  EndSignInsOfSsoProvidersAlreadyOff1799810000000,
+} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1799810000000-EndSignInsOfSsoProvidersAlreadyOff";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { describe, expect, test } from "@jest/globals";
-import { QueryRunner } from "typeorm";
+import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * AddSsoProviderSignInsEndedAt adds, to a project's SAML and OIDC providers,
  * when each was last turned off (Server/Utils/ProjectSsoProviderStanding):
  * the sign-ins a provider gave before then no longer count, even once it is
- * turned on again.
+ * turned on again. It is generated, and only adds the column.
  *
- * A provider that is off when the release is installed is treated as turned
- * off then, so turning it on again later does not bring back the sign-ins it
- * gave before, as for one turned off afterwards. A provider that is on is
- * left as never turned off: the sign-ins it gave keep counting.
+ * EndSignInsOfSsoProvidersAlreadyOff, the data fix after it, treats a
+ * provider that is off when the release is installed as turned off then, so
+ * turning it on again later does not bring back the sign-ins it gave before,
+ * as for one turned off afterwards. A provider that is on is left as never
+ * turned off: the sign-ins it gave keep counting.
  *
  * Fake QueryRunner: this pins the statements and their order. They were run
- * against Postgres when the migration was written.
+ * against Postgres when the migrations were written.
  */
 
-const OWN_CLASS_NAME: string = "AddSsoProviderSignInsEndedAt1799800000000";
+const ADD_COLUMN_CLASS_NAME: string =
+  "AddSsoProviderSignInsEndedAt1799800000000";
+const DATA_FIX_CLASS_NAME: string =
+  "EndSignInsOfSsoProvidersAlreadyOff1799810000000";
 
 const recordQueries: (
+  migration: MigrationInterface,
   direction: "up" | "down",
 ) => Promise<Array<string>> = async (
+  migration: MigrationInterface,
   direction: "up" | "down",
 ): Promise<Array<string>> => {
   const statements: Array<string> = [];
@@ -38,7 +45,7 @@ const recordQueries: (
     },
   } as unknown as QueryRunner;
 
-  await new AddSsoProviderSignInsEndedAt1799800000000()[direction](queryRunner);
+  await migration[direction](queryRunner);
 
   return statements;
 };
@@ -56,27 +63,54 @@ const timestampOf: (className: string) => number | null = (
   return match ? Number(match[1]) : null;
 };
 
+// Registered once, after every migration with an earlier stamp and before every later one.
+const expectRegisteredInOrder: (className: string) => void = (
+  className: string,
+): void => {
+  expect(
+    registeredNames.filter((name: string): boolean => {
+      return name === className;
+    }),
+  ).toHaveLength(1);
+
+  const ownIndex: number = registeredNames.indexOf(className);
+  const ownTimestamp: number = timestampOf(className)!;
+
+  expect(
+    registeredNames.slice(0, ownIndex).filter((name: string): boolean => {
+      const timestamp: number | null = timestampOf(name);
+      return timestamp !== null && timestamp >= ownTimestamp;
+    }),
+  ).toEqual([]);
+
+  expect(
+    registeredNames.slice(ownIndex + 1).filter((name: string): boolean => {
+      const timestamp: number | null = timestampOf(name);
+      return timestamp !== null && timestamp <= ownTimestamp;
+    }),
+  ).toEqual([]);
+};
+
 describe("AddSsoProviderSignInsEndedAt migration", () => {
-  test("adds the column to both provider tables, then ends the sign-ins of the providers that are off", async () => {
-    expect(await recordQueries("up")).toEqual([
+  test("adds the column to both provider tables, and nothing else", async () => {
+    expect(
+      await recordQueries(
+        new AddSsoProviderSignInsEndedAt1799800000000(),
+        "up",
+      ),
+    ).toEqual([
       `ALTER TABLE "ProjectSSO" ADD "signInsEndedAt" TIMESTAMP WITH TIME ZONE`,
       `ALTER TABLE "ProjectOIDC" ADD "signInsEndedAt" TIMESTAMP WITH TIME ZONE`,
-      END_SIGN_INS_OF_SAML_PROVIDERS_OFF,
-      END_SIGN_INS_OF_OIDC_PROVIDERS_OFF,
     ]);
   });
 
-  test("stamps only the providers that are off, with the time it runs", () => {
-    expect(END_SIGN_INS_OF_SAML_PROVIDERS_OFF).toBe(
-      `UPDATE "ProjectSSO" SET "signInsEndedAt" = now() WHERE "isEnabled" = false`,
-    );
-    expect(END_SIGN_INS_OF_OIDC_PROVIDERS_OFF).toBe(
-      `UPDATE "ProjectOIDC" SET "signInsEndedAt" = now() WHERE "isEnabled" = false`,
-    );
-  });
-
   test("down drops the columns again", async () => {
-    expect(await recordQueries("down")).toEqual([
+    expect(
+      await recordQueries(
+        new AddSsoProviderSignInsEndedAt1799800000000(),
+        "down",
+      ),
+    ).toEqual([
       `ALTER TABLE "ProjectOIDC" DROP COLUMN "signInsEndedAt"`,
       `ALTER TABLE "ProjectSSO" DROP COLUMN "signInsEndedAt"`,
     ]);
@@ -84,30 +118,53 @@ describe("AddSsoProviderSignInsEndedAt migration", () => {
 
   test("is registered exactly once, after every migration with an earlier stamp", () => {
     expect(new AddSsoProviderSignInsEndedAt1799800000000().name).toBe(
-      OWN_CLASS_NAME,
+      ADD_COLUMN_CLASS_NAME,
     );
 
-    expect(
-      registeredNames.filter((name: string): boolean => {
-        return name === OWN_CLASS_NAME;
-      }),
-    ).toHaveLength(1);
+    expectRegisteredInOrder(ADD_COLUMN_CLASS_NAME);
+  });
+});
 
-    const ownIndex: number = registeredNames.indexOf(OWN_CLASS_NAME);
-    const ownTimestamp: number = timestampOf(OWN_CLASS_NAME)!;
-
+describe("EndSignInsOfSsoProvidersAlreadyOff data fix", () => {
+  test("ends the sign-ins of the SAML and OIDC providers that are off", async () => {
     expect(
-      registeredNames.slice(0, ownIndex).filter((name: string): boolean => {
-        const timestamp: number | null = timestampOf(name);
-        return timestamp !== null && timestamp >= ownTimestamp;
-      }),
+      await recordQueries(
+        new EndSignInsOfSsoProvidersAlreadyOff1799810000000(),
+        "up",
+      ),
+    ).toEqual([
+      END_SIGN_INS_OF_SAML_PROVIDERS_OFF,
+      END_SIGN_INS_OF_OIDC_PROVIDERS_OFF,
+    ]);
+  });
+
+  test("stamps only providers that are off and not stamped yet, with the time it runs", () => {
+    expect(END_SIGN_INS_OF_SAML_PROVIDERS_OFF).toBe(
+      `UPDATE "ProjectSSO" SET "signInsEndedAt" = now() WHERE "isEnabled" = false AND "signInsEndedAt" IS NULL`,
+    );
+    expect(END_SIGN_INS_OF_OIDC_PROVIDERS_OFF).toBe(
+      `UPDATE "ProjectOIDC" SET "signInsEndedAt" = now() WHERE "isEnabled" = false AND "signInsEndedAt" IS NULL`,
+    );
+  });
+
+  test("down changes nothing: the column, stamps and all, goes with the migration before it", async () => {
+    expect(
+      await recordQueries(
+        new EndSignInsOfSsoProvidersAlreadyOff1799810000000(),
+        "down",
+      ),
     ).toEqual([]);
+  });
 
-    expect(
-      registeredNames.slice(ownIndex + 1).filter((name: string): boolean => {
-        const timestamp: number | null = timestampOf(name);
-        return timestamp !== null && timestamp <= ownTimestamp;
-      }),
-    ).toEqual([]);
+  test("is registered exactly once, right after the column it fills", () => {
+    expect(new EndSignInsOfSsoProvidersAlreadyOff1799810000000().name).toBe(
+      DATA_FIX_CLASS_NAME,
+    );
+
+    expectRegisteredInOrder(DATA_FIX_CLASS_NAME);
+
+    expect(registeredNames.indexOf(DATA_FIX_CLASS_NAME)).toBeGreaterThan(
+      registeredNames.indexOf(ADD_COLUMN_CLASS_NAME),
+    );
   });
 });

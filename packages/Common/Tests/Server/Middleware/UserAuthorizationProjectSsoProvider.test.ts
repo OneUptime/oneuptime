@@ -13,6 +13,7 @@ import ProjectOidc from "../../../Models/DatabaseModels/ProjectOidc";
 import ProjectSso from "../../../Models/DatabaseModels/ProjectSso";
 import User from "../../../Models/DatabaseModels/User";
 import Dictionary from "../../../Types/Dictionary";
+import JSONWebTokenData from "../../../Types/JsonWebTokenData";
 import Email from "../../../Types/Email";
 import SsoAuthorizationException from "../../../Types/Exception/SsoAuthorizationException";
 import Name from "../../../Types/Name";
@@ -532,6 +533,74 @@ describe("a project SSO sign-in and the provider that gave it", () => {
 
     // The next request asks again, and is answered.
     await expect(isSatisfied(samlSignIn())).resolves.toBe(true);
+  });
+
+  /*
+   * A request can carry a Global SSO sign-in too. When the project
+   * provider's lookup fails, that one is still asked: if it lets the person
+   * in, the failed lookup does not matter; if it does not, the lookup's
+   * error is the answer - still never a refusal.
+   */
+  const withGlobalSignIn: (letsIn: boolean) => SpyInstance = (
+    letsIn: boolean,
+  ): SpyInstance => {
+    getJestSpyOn(
+      UserMiddleware,
+      "getStatelessValidGlobalSsoTokenData",
+    ).mockReturnValue({
+      userId: USER_ID,
+      ssoProviderType: SsoProviderType.GlobalSSO,
+      ssoProviderId: ObjectID.generate(),
+    } as unknown as JSONWebTokenData);
+
+    return getJestSpyOn(
+      UserMiddleware,
+      "isGlobalSsoTokenAuthorizedForProject",
+    ).mockResolvedValue(letsIn as never);
+  };
+
+  test("a lookup that fails gives way to a Global SSO sign-in that lets the person in", async () => {
+    samlReads.mockRejectedValueOnce(new Error("database unavailable"));
+    const globalCheck: SpyInstance = withGlobalSignIn(true);
+
+    await expect(isSatisfied(samlSignIn())).resolves.toBe(true);
+    expect(globalCheck).toHaveBeenCalledTimes(1);
+  });
+
+  test("with a Global SSO sign-in that does not let the person in, the failed lookup is the answer", async () => {
+    samlReads.mockRejectedValueOnce(new Error("database unavailable"));
+    withGlobalSignIn(false);
+
+    await expect(isSatisfied(samlSignIn())).rejects.toThrow(
+      "database unavailable",
+    );
+  });
+
+  test("a sign-in the provider still vouches for is not asked of the Global one", async () => {
+    const globalCheck: SpyInstance = withGlobalSignIn(true);
+
+    await expect(isSatisfied(samlSignIn())).resolves.toBe(true);
+    expect(globalCheck).not.toHaveBeenCalled();
+  });
+
+  test("when a sign-in was given is read from the token verified a moment ago, not verified again", async () => {
+    const token: string = samlSignIn();
+    const decodes: SpyInstance = getJestSpyOn(JSONWebToken, "decode");
+    const verifies: SpyInstance = getJestSpyOn(
+      JSONWebToken,
+      "decodeJsonPayload",
+    );
+    const reads: SpyInstance = getJestSpyOn(
+      JSONWebToken,
+      "readPayloadOfVerifiedToken",
+    );
+
+    await expect(isSatisfied(token)).resolves.toBe(true);
+
+    // Every signature check is decode()'s own; the issue time is read once.
+    expect(verifies).toHaveBeenCalledTimes(decodes.mock.calls.length);
+    expect(reads).toHaveBeenCalledTimes(1);
+    expect(reads).toHaveBeenCalledWith(token);
   });
 
   test("the provider is asked once a minute per server, and again as soon as a change is announced", async () => {

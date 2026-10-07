@@ -109,6 +109,26 @@ class JSONWebToken {
     return decoded;
   }
 
+  /*
+   * The payload of a token whose signature was checked a moment ago (decode
+   * or decodeJsonPayload, on this same string), read again without checking
+   * it: for a field JSONWebTokenData does not carry, such as `iat`. Never
+   * for a token that has not been verified. Null when it cannot be read.
+   */
+  public static readPayloadOfVerifiedToken(token: string): JSONObject | null {
+    let payload: unknown = null;
+
+    try {
+      payload = jwt.decode(token, { json: true });
+    } catch {
+      return null;
+    }
+
+    return payload && typeof payload === "object"
+      ? (payload as JSONObject)
+      : null;
+  }
+
   @CaptureSpan()
   public static decode(token: string): JSONWebTokenData {
     try {

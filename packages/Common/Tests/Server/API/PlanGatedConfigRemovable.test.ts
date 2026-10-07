@@ -9,6 +9,8 @@ import OnCallDutyPolicyScheduleService from "../../../Server/Services/OnCallDuty
 import ProjectOIDCService from "../../../Server/Services/ProjectOidcService";
 import ProjectSCIMService from "../../../Server/Services/ProjectSCIMService";
 import ProjectService from "../../../Server/Services/ProjectService";
+import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
+import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import ProjectSSOService from "../../../Server/Services/ProjectSsoService";
 import StatusPageOIDCService from "../../../Server/Services/StatusPageOidcService";
 import StatusPageSSOService from "../../../Server/Services/StatusPageSsoService";
@@ -428,8 +430,8 @@ beforeEach(() => {
 
   /*
    * Switching a project's SSO provider off, or deleting it, asks whether the
-   * project keeps a way in (Utils/ProjectSsoProviderChanges): this project
-   * does not require SSO, so any provider may go.
+   * project keeps a way in (Utils/ProjectSsoProviderChanges): neither this
+   * project nor the server requires SSO, so any provider may go.
    */
   getJestSpyOn(ProjectService, "findOneById").mockImplementation(
     async (): Promise<Project> => {
@@ -438,6 +440,14 @@ beforeEach(() => {
       project.requireSsoForLogin = false;
       return project;
     },
+  );
+
+  getJestSpyOn(GlobalConfigService, "findOneBy").mockImplementation(
+    (async () => {
+      const config: GlobalConfig = new GlobalConfig();
+      config.requireSsoForLogin = false;
+      return config;
+    }) as never,
   );
 
   getJestSpyOn(ProjectService, "getCurrentPlan").mockImplementation(

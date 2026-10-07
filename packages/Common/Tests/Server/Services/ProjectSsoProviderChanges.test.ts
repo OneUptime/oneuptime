@@ -1,5 +1,7 @@
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
+import Semaphore from "../../../Server/Infrastructure/Semaphore";
 import AuditLogService from "../../../Server/Services/AuditLogService";
+import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import GlobalOidcProjectService from "../../../Server/Services/GlobalOidcProjectService";
 import GlobalOidcService from "../../../Server/Services/GlobalOidcService";
 import GlobalSsoProjectService from "../../../Server/Services/GlobalSsoProjectService";
@@ -10,9 +12,10 @@ import ProjectSsoService from "../../../Server/Services/ProjectSsoService";
 import CookieUtil from "../../../Server/Utils/Cookie";
 import { ExpressRequest } from "../../../Server/Utils/Express";
 import logger from "../../../Server/Utils/Logger";
-import {
+import ProjectSsoProviderChanges, {
   LAST_SSO_PROVIDER_MESSAGE,
   REQUIRED_SSO_PROVIDER_MESSAGE,
+  SERVER_LAST_SSO_PROVIDER_MESSAGE,
 } from "../../../Server/Utils/ProjectSsoProviderChanges";
 import ProjectSsoProviderStanding from "../../../Server/Utils/ProjectSsoProviderStanding";
 import RealtimeAccessChanges, {
@@ -20,6 +23,7 @@ import RealtimeAccessChanges, {
   RealtimeAccessChangeKind,
 } from "../../../Server/Utils/Realtime/RealtimeAccessChanges";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import GlobalOidc from "../../../Models/DatabaseModels/GlobalOidc";
 import GlobalSso from "../../../Models/DatabaseModels/GlobalSso";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -61,8 +65,11 @@ type SpyInstance = ReturnType<typeof getJestSpyOn>;
  *   - turning one on is told, so no server keeps answering "off";
  *   - a new certificate or client secret, new addresses or a new name write
  *     nothing more and tell nobody: the sign-ins it gave stay;
- *   - a project that requires SSO keeps a way in: its last provider, or the
- *     one it requires, cannot be turned off or deleted;
+ *   - a project that requires SSO - itself, or because the whole server
+ *     does - keeps a way in: its last provider, or the one it requires,
+ *     cannot be turned off or deleted;
+ *   - the check and the write hold a lock on the project (Semaphore, held
+ *     in memory here), given back once the write is done or refused;
  *   - and the API's check (UserMiddleware) agrees, run on the same rows.
  */
 
@@ -129,6 +136,28 @@ let globalSsoProviders: Array<GlobalProvider> = [];
 let globalOidcProviders: Array<GlobalProvider> = [];
 
 let announced: Array<RealtimeAccessChange> = [];
+
+// Whether the whole server requires SSO (GlobalConfig), and how often it was read.
+let serverRequiresSso: boolean = false;
+let serverRuleReads: number = 0;
+
+/*
+ * The project locks taken and given back, and the rows written, in order:
+ * "lock:<project>", "write:<provider>", "delete:<provider>",
+ * "release:<project>".
+ */
+let events: Array<string> = [];
+
+interface LockCall {
+  key: string;
+  namespace: string;
+  lockTimeout?: number | undefined;
+  refreshInterval?: number | undefined;
+}
+
+let lockCalls: Array<LockCall> = [];
+let locksFail: boolean = false;
+let releasesFail: boolean = false;
 
 /*
  * The values a repository `where` asks a column for, lower-cased, or null
@@ -244,6 +273,7 @@ const stubRepository: (
         if (matches(row, where)) {
           Object.assign(row, written);
           writes().push({ id: row._id, set: written });
+          events.push(`write:${row._id}`);
           affected++;
         }
       }
@@ -260,6 +290,11 @@ const stubRepository: (
       deleted.push(
         ...gone.map((row: Row): string => {
           return row._id;
+        }),
+      );
+      events.push(
+        ...gone.map((row: Row): string => {
+          return `delete:${row._id}`;
         }),
       );
 
@@ -491,10 +526,52 @@ beforeEach(() => {
   project = { requireSsoForLogin: false, requireSsoWithSsoProviderId: null };
   globalSsoProviders = [];
   globalOidcProviders = [];
+  serverRequiresSso = false;
+  serverRuleReads = 0;
+  events = [];
+  lockCalls = [];
+  locksFail = false;
+  releasesFail = false;
 
   getJestSpyOn(logger, "error").mockImplementation((): void => {
     return undefined;
   });
+  getJestSpyOn(logger, "warn").mockImplementation((): void => {
+    return undefined;
+  });
+
+  // The whole server's Require SSO for Login, as the Admin Dashboard sets it.
+  getJestSpyOn(GlobalConfigService, "findOneBy").mockImplementation(
+    (async () => {
+      serverRuleReads++;
+      const config: GlobalConfig = new GlobalConfig();
+      config.requireSsoForLogin = serverRequiresSso;
+      return config;
+    }) as never,
+  );
+
+  // A project lock held in memory: who took it, and when it came back.
+  getJestSpyOn(Semaphore, "lock").mockImplementation((async (
+    data: LockCall,
+  ): Promise<unknown> => {
+    lockCalls.push({ ...data });
+
+    if (locksFail) {
+      throw new Error("Redis client is not connected");
+    }
+
+    events.push(`lock:${data.key}`);
+    return { key: data.key };
+  }) as never);
+  getJestSpyOn(Semaphore, "release").mockImplementation((async (mutex: {
+    key: string;
+  }): Promise<void> => {
+    if (releasesFail) {
+      throw new Error("The lock could not be given back");
+    }
+
+    events.push(`release:${mutex.key}`);
+  }) as never);
   getJestSpyOn(logger, "debug").mockImplementation((): void => {
     return undefined;
   });
@@ -935,6 +1012,280 @@ describe("one write over several providers", () => {
       [PROJECT_ID.toString(), OTHER_PROJECT_ID.toString()].sort(),
     );
   });
+});
+
+describe.each(KINDS)(
+  "a server that requires SSO for everyone keeps a way in to each project too (%s)",
+  (_label: string, kind: ProviderKind) => {
+    beforeEach(() => {
+      serverRequiresSso = true;
+
+      // Only this provider is on: the project's others are off.
+      const other: ProviderKind = kind === SAML ? OIDC : SAML;
+      rowOf(other)!.isEnabled = false;
+    });
+
+    test("the last provider of a project that does not require SSO itself cannot be turned off or deleted", async () => {
+      await expect(refusalOf(turnOff(kind))).resolves.toBe(
+        SERVER_LAST_SSO_PROVIDER_MESSAGE,
+      );
+      await expect(refusalOf(remove(kind))).resolves.toBe(
+        SERVER_LAST_SSO_PROVIDER_MESSAGE,
+      );
+
+      expect(kind.writes()).toEqual([]);
+      expect(deleted).toEqual([]);
+      expect(rowOf(kind)!.isEnabled).toBe(true);
+      expect(projectAnnouncements()).toEqual([]);
+    });
+
+    test("another provider that signs people in to the project lets it go", async () => {
+      globalSsoProviders = [
+        {
+          id: GLOBAL_SSO_ID,
+          restrictToAttachedProjects: false,
+          attachedTo: [],
+        },
+      ];
+
+      await expect(refusalOf(turnOff(kind))).resolves.toBe("done");
+      expect(rowOf(kind)!.isEnabled).toBe(false);
+    });
+
+    test("a project that requires SSO itself is refused in its own words, without reading the server's rule", async () => {
+      project.requireSsoForLogin = true;
+
+      await expect(refusalOf(turnOff(kind))).resolves.toBe(
+        LAST_SSO_PROVIDER_MESSAGE,
+      );
+      expect(serverRuleReads).toBe(0);
+    });
+
+    test("turning it on, or changing anything else about it, reads nothing and is never refused", async () => {
+      await expect(
+        refusalOf(
+          kind.service.updateOneById({
+            id: kind.id,
+            data: { ...kind.credential } as never,
+            props: ROOT,
+          }),
+        ),
+      ).resolves.toBe("done");
+      await expect(refusalOf(turnOn(kind, kind.secondId))).resolves.toBe(
+        "done",
+      );
+      expect(serverRuleReads).toBe(0);
+    });
+  },
+);
+
+describe("when neither the project nor the server requires SSO", () => {
+  test.each(KINDS)(
+    "%s: the last provider can go, once the server's rule is read",
+    async (_label: string, kind: ProviderKind) => {
+      const other: ProviderKind = kind === SAML ? OIDC : SAML;
+      rowOf(other)!.isEnabled = false;
+
+      await expect(refusalOf(turnOff(kind))).resolves.toBe("done");
+      expect(serverRuleReads).toBe(1);
+    },
+  );
+});
+
+describe("the check and the write hold the project's lock", () => {
+  test.each(KINDS)(
+    "%s: turning a provider off locks its project before the check and gives it back once written",
+    async (_label: string, kind: ProviderKind) => {
+      await expect(turnOff(kind)).resolves.toBe(1);
+
+      expect(events).toEqual([
+        `lock:${PROJECT_ID.toString()}`,
+        `write:${kind.id.toString()}`,
+        `release:${PROJECT_ID.toString()}`,
+      ]);
+      expect(lockCalls).toEqual([
+        {
+          key: PROJECT_ID.toString(),
+          namespace: "ProjectSsoProviderChanges.keepAWayIn",
+          lockTimeout: 15_000,
+          refreshInterval: 0,
+        },
+      ]);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: deleting one that is on holds it the same way",
+    async (_label: string, kind: ProviderKind) => {
+      await expect(remove(kind)).resolves.toBe(1);
+
+      expect(events).toEqual([
+        `lock:${PROJECT_ID.toString()}`,
+        `delete:${kind.id.toString()}`,
+        `release:${PROJECT_ID.toString()}`,
+      ]);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: a refused write gives the lock back at once and writes nothing",
+    async (_label: string, kind: ProviderKind) => {
+      project.requireSsoForLogin = true;
+      const other: ProviderKind = kind === SAML ? OIDC : SAML;
+      rowOf(other)!.isEnabled = false;
+
+      await expect(refusalOf(turnOff(kind))).resolves.toBe(
+        LAST_SSO_PROVIDER_MESSAGE,
+      );
+      await expect(refusalOf(remove(kind))).resolves.toBe(
+        LAST_SSO_PROVIDER_MESSAGE,
+      );
+
+      expect(events).toEqual([
+        `lock:${PROJECT_ID.toString()}`,
+        `release:${PROJECT_ID.toString()}`,
+        `lock:${PROJECT_ID.toString()}`,
+        `release:${PROJECT_ID.toString()}`,
+      ]);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: turning one on, changing anything else, or deleting one that is off takes no lock",
+    async (_label: string, kind: ProviderKind) => {
+      const other: ProviderKind = kind === SAML ? OIDC : SAML;
+
+      // Off already: nothing is taken away.
+      await turnOff(kind, kind.secondId);
+      await turnOn(kind, kind.secondId);
+      await kind.service.updateOneById({
+        id: kind.id,
+        data: { ...kind.credential, name: "Renamed" } as never,
+        props: ROOT,
+      });
+      await expect(remove(other, other.secondId)).resolves.toBe(1);
+
+      expect(lockCalls).toEqual([]);
+    },
+  );
+
+  test("the projects of one write are locked one after another, in the same order every time", async () => {
+    await expect(
+      ProjectSsoService.updateBy({
+        query: {},
+        data: { isEnabled: false } as never,
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: ROOT,
+      }),
+    ).resolves.toBe(3);
+
+    const [first, second]: Array<string> = [
+      PROJECT_ID.toString(),
+      OTHER_PROJECT_ID.toString(),
+    ].sort();
+
+    expect(
+      lockCalls.map((call: LockCall): string => {
+        return call.key;
+      }),
+    ).toEqual([first, second]);
+    expect(events.slice(-2)).toEqual([`release:${first}`, `release:${second}`]);
+  });
+
+  test.each(KINDS)(
+    "%s: without Valkey the check still runs, unlocked",
+    async (_label: string, kind: ProviderKind) => {
+      locksFail = true;
+      project.requireSsoForLogin = true;
+      const other: ProviderKind = kind === SAML ? OIDC : SAML;
+      rowOf(other)!.isEnabled = false;
+
+      await expect(refusalOf(turnOff(kind))).resolves.toBe(
+        LAST_SSO_PROVIDER_MESSAGE,
+      );
+
+      rowOf(kind, kind.secondId)!.isEnabled = true;
+
+      await expect(refusalOf(turnOff(kind))).resolves.toBe("done");
+      expect(rowOf(kind)!.isEnabled).toBe(false);
+      expect(lockCalls).toHaveLength(2);
+      expect(logger.warn).toHaveBeenCalled();
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: a lock that cannot be given back does not fail the write",
+    async (_label: string, kind: ProviderKind) => {
+      releasesFail = true;
+
+      await expect(turnOff(kind)).resolves.toBe(1);
+      expect(rowOf(kind)!.isEnabled).toBe(false);
+      expect(projectAnnouncements()).toEqual([PROJECT_ID.toString()]);
+    },
+  );
+});
+
+describe("the rows a write names are read once", () => {
+  // The read the hooks make: which rows, their projects, whether they are on.
+  const providerReads: (spy: SpyInstance) => number = (
+    spy: SpyInstance,
+  ): number => {
+    return spy.mock.calls.filter((call: Array<unknown>): boolean => {
+      const select: Record<string, unknown> =
+        (call[0] as { select?: Record<string, unknown> }).select || {};
+      return Boolean(select["projectId"]) && Boolean(select["isEnabled"]);
+    }).length;
+  };
+
+  test.each(KINDS)(
+    "%s: turning a provider off reads its rows once, and writes when its sign-ins ended",
+    async (_label: string, kind: ProviderKind) => {
+      const reads: SpyInstance = getJestSpyOn(kind.service, "findAllBy");
+
+      await expect(turnOff(kind)).resolves.toBe(1);
+
+      expect(providerReads(reads)).toBe(1);
+      expect(wroteSignInsEndedAt(kind)).toBe(true);
+    },
+  );
+
+  test.each(KINDS)(
+    "%s: a write the check did not see is read before its time is written",
+    async (_label: string, kind: ProviderKind) => {
+      const updateBy: Record<string, unknown> = {
+        query: { _id: kind.id.toString() },
+        data: { isEnabled: false },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: ROOT,
+      };
+
+      await ProjectSsoProviderChanges.beforeWrite({
+        service: kind.service as never,
+        updateBy: updateBy as never,
+      });
+
+      expect(
+        (updateBy["data"] as Record<string, unknown>)["signInsEndedAt"],
+      ).toBeInstanceOf(Date);
+
+      const offAlready: Record<string, unknown> = {
+        ...updateBy,
+        query: { _id: kind.secondId.toString() },
+        data: { isEnabled: false },
+      };
+
+      await ProjectSsoProviderChanges.beforeWrite({
+        service: kind.service as never,
+        updateBy: offAlready as never,
+      });
+
+      expect(
+        (offAlready["data"] as Record<string, unknown>)["signInsEndedAt"],
+      ).toBeUndefined();
+    },
+  );
 });
 
 describe("the API's check agrees with the provider, on the same rows", () => {
