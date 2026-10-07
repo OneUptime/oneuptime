@@ -26403,5 +26403,9 @@
   "Microsoft Teams meeting": "Microsoft Teams 会議",
   "Zoom meeting": "Zoom 会議",
   "{{table}} - no longer collected by this device": "{{table}} - no longer collected by this device",
-  "“{{call}}” is removed from this {{eventNoun}}'s page. The meeting itself is not deleted, and anyone with the link can still join it.": "「{{call}}」はこの{{eventNoun}}のページから削除されます。会議自体は削除されず、リンクを知っている人は引き続き参加できます。"
+  "“{{call}}” is removed from this {{eventNoun}}'s page. The meeting itself is not deleted, and anyone with the link can still join it.": "「{{call}}」はこの{{eventNoun}}のページから削除されます。会議自体は削除されず、リンクを知っている人は引き続き参加できます。",
+  "You do not have permission to add a payment method.": "支払い方法を追加する権限がありません。",
+  "You do not have permission to change the default payment method.": "デフォルトの支払い方法を変更する権限がありません。",
+  "You do not have permission to pay invoices.": "請求書を支払う権限がありません。",
+  "You do not have permission to start runbook executions in this project.": "このプロジェクトで Runbook の実行を開始する権限がありません。"
 }

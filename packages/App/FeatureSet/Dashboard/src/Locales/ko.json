@@ -26403,5 +26403,9 @@
   "Microsoft Teams meeting": "Microsoft Teams meeting",
   "Zoom meeting": "Zoom meeting",
   "{{table}} - no longer collected by this device": "{{table}} - no longer collected by this device",
-  "“{{call}}” is removed from this {{eventNoun}}'s page. The meeting itself is not deleted, and anyone with the link can still join it.": "“{{call}}” is removed from this {{eventNoun}}'s page. The meeting itself is not deleted, and anyone with the link can still join it."
+  "“{{call}}” is removed from this {{eventNoun}}'s page. The meeting itself is not deleted, and anyone with the link can still join it.": "“{{call}}” is removed from this {{eventNoun}}'s page. The meeting itself is not deleted, and anyone with the link can still join it.",
+  "You do not have permission to add a payment method.": "결제 방법을 추가할 권한이 없습니다.",
+  "You do not have permission to change the default payment method.": "기본 결제 방법을 변경할 권한이 없습니다.",
+  "You do not have permission to pay invoices.": "청구서를 결제할 권한이 없습니다.",
+  "You do not have permission to start runbook executions in this project.": "이 프로젝트에서 런북 실행을 시작할 권한이 없습니다."
 }
