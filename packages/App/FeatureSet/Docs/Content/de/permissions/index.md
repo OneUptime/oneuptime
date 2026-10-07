@@ -137,6 +137,8 @@ Labels sind projektweite Markierungen, die Sie an Ressourcen anbringen. Sie dien
 
 Eine Label-Einschränkung ist erfüllt, wenn die Ressource **mindestens eines** der Labels der Berechtigung trägt. Eine Ressource ganz ohne Labels erfüllt keine label-eingeschränkte Berechtigung.
 
+Ein Datensatz ohne eigene Labels, etwa eine Notiz zu einem Vorfall, eine Ankündigung einer Statusseite oder eine KI-Erkenntnis zu einem Service, trägt die Labels der Datensätze, zu denen er gehört oder von denen er handelt. Eine auf Labels beschränkte Berechtigung erreicht ihn, wenn diese Datensätze eines ihrer Labels tragen, und eine Sperre mit Labels nimmt ihn weg, wenn einer von ihnen ein gesperrtes Label trägt – beim Lesen, Ändern und Löschen gleichermaßen. Eine KI-Erkenntnis zu keinem Service gehört dem Projekt: Eine Beschränkung auf Labels grenzt sie nicht ein, und eine Sperre mit Labels nimmt sie nicht weg.
+
 Wo Sie es finden: **Einstellungen → Labels**.
 
 ## Telemetrie
@@ -148,6 +150,8 @@ Logs, Traces, Metriken, Ausnahmen, Profile und Session-Wiedergaben gehören zu d
 - **Labels** liest die Telemetrie der Ressourcen, die eines der Labels der Berechtigung tragen.
 
 Eine Sperre mit Labels auf einer Telemetrie-Berechtigung lässt die Telemetrie der Ressourcen weg, die diese Labels tragen – egal, was Sie sonst haben. Das gilt überall, wo Telemetrie gelesen wird: in den Explorern mit ihren Diagrammen, Filtern und Attributlisten, in Exporten, in Session-Wiedergaben und in dem, was der KI-Assistent für Sie liest. Die Liste der Metriknamen zeigt die Metriken, die ein Dienst meldet, den Sie lesen dürfen, und die Metriken, die kein Dienst meldet, etwa Host- und Cluster-Metriken. Dürfen Sie auch die Telemetrie anderer Arten von Ressourcen lesen, etwa von Hosts oder Clustern, zeigt sie alle Metriknamen.
+
+Monitor-Logs, SLO-Verlauf, Netzwerkflüsse und Kubernetes-Kostenzuordnungen werden ebenso über den Monitor, das SLO, das Netzwerkgerät oder den Cluster gelesen, zu dem sie gehören: „Eigene" und „Labels" erreichen die Zeilen der Datensätze, die Sie lesen dürfen, und eine Sperre mit Labels lässt die Zeilen der Datensätze weg, die diese Labels tragen. Das Audit-Log und die Threat-Intelligence-Indikatoren liest projektweit, wer sie lesen darf.
 
 ## API-Schlüssel
 
@@ -165,12 +169,12 @@ Wo Sie es finden: **Einstellungen → API-Schlüssel**. Siehe auch die [API-Refe
 
 Für einen angemeldeten Benutzer, der Reihe nach:
 
-1. Die Teams ermitteln, denen der Benutzer in diesem Projekt angehört — nur angenommene Einladungen zählen.
+1. Die Teams ermitteln, denen der Benutzer in diesem Projekt angehört — nur angenommene Einladungen zählen. Eine Anfrage erreicht nur die Datensätze dieses Projekts: Ein Datensatz eines anderen Projekts, ob über seine ID oder in einem Filter genannt, wird behandelt, als gäbe es ihn nicht.
 2. Alle Berechtigungszeilen dieser Teams sammeln — erlauben und sperren, jeweils mit Labels und Geltungsbereich.
 3. Zuerst die Sperrliste prüfen. Eine Sperre ohne Labels auf irgendeiner Berechtigung, die die Zieltabelle für diese Operation akzeptiert, weist die Anfrage sofort ab – gleich, in welchem Team sie gesetzt ist.
 4. Die Erlaubt-Liste prüfen. Die Anfrage braucht mindestens eine Berechtigung, die die Zieltabelle für diese Operation akzeptiert. Bei einer operativen Ressource – einem Monitor, einem Vorfall, einem Dashboard und Ähnlichem – zählt auch die passende **All Operational Resources**-Berechtigung (Create, Read, Edit oder Delete), sofern sie nicht selbst gesperrt ist.
-5. Geltungsbereich anwenden. „Eigene" grenzt die Abfrage auf eigene Ressourcen ein, „Labels" auf passende Labels. Gibt es für dieselbe Operation eine breitere Zuweisung, gewinnt die breitere.
-6. Label-Sperren anwenden. Eine Sperre mit Labels weist die Anfrage ab, wenn die Zielressource eines davon trägt. Hat ein Datensatz keine eigenen Labels, etwa eine Notiz zu einem Vorfall oder eine Ankündigung einer Statusseite, lässt eine Sperre mit Labels auf seinem Lesen ihn weg, wenn ein Datensatz, zu dem er gehört, eines dieser Labels trägt.
+5. Geltungsbereich anwenden. „Eigene" grenzt die Abfrage auf eigene Ressourcen ein, „Labels" auf passende Labels. Gibt es für dieselbe Operation eine breitere Zuweisung, gewinnt die breitere. Ein Datensatz ohne eigene Labels, etwa eine Notiz zu einem Vorfall, passt zu einer Zuweisung mit „Labels", wenn die Datensätze, zu denen er gehört, eines ihrer Labels tragen.
+6. Label-Sperren anwenden. Eine Sperre mit Labels weist die Anfrage ab, wenn die Zielressource eines davon trägt. Hat ein Datensatz keine eigenen Labels, etwa eine Notiz zu einem Vorfall oder eine Ankündigung einer Statusseite, lässt eine Sperre mit Labels ihn beim Lesen, Ändern und Löschen weg, wenn ein Datensatz, zu dem er gehört, eines dieser Labels trägt. Eine Liste mit Datensätzen aus all Ihren Projekten zugleich, etwa die Vorfälle auf Ihrer Startseite, grenzt die Datensätze jedes Projekts mit Ihren Sperren und Zuweisungen in diesem Projekt ein.
 
 Jedes Feld eines Datensatzes wird mit der eigenen Leseberechtigung des Datensatzes gelesen: Eine Berechtigung für eine andere Art von Datensatz öffnet es nie. Manche Felder sind bewusst enger. Geheimnisse lesen nur Personen, die den Datensatz bearbeiten oder verwalten dürfen, zu dem sie gehören – etwa die Schlüssel eines Monitors für eingehende Anfragen und eingehende E-Mails und sein Server-Agent-Schlüssel oder die Webhook- und E-Mail-Schlüssel eines Workflows. Die Aufzeichnung einer Session-Wiedergabe anzusehen braucht **Watch Session Replays**, nicht nur **List Session Replays**. Telemetrie wird Signal für Signal gelesen: **Read Telemetry Service Log** liest Logs, **Read Telemetry Service Traces** liest Traces und **Read Telemetry Service Metrics** liest Metriken, Metrikdiagramme eingeschlossen.
 

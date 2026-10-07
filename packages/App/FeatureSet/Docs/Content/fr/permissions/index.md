@@ -137,6 +137,8 @@ Les étiquettes sont des marqueurs valables dans tout le projet que vous attache
 
 Une restriction par étiquettes est satisfaite si la ressource porte **au moins une** des étiquettes de l'autorisation. Une ressource sans aucune étiquette ne satisfait aucune autorisation restreinte par étiquettes.
 
+Un enregistrement sans étiquettes propres, comme la note d'un incident, une annonce de page de statut ou un insight IA sur un service, porte les étiquettes des enregistrements auxquels il appartient ou dont il parle. Une autorisation restreinte par étiquettes l'atteint quand ces enregistrements portent l'une de ses étiquettes, et un blocage avec étiquettes l'écarte quand l'un d'eux porte une étiquette bloquée, pour la lecture, la modification et la suppression. Un insight IA qui ne concerne aucun service appartient au projet : une restriction par étiquettes ne le restreint pas, et un blocage avec étiquettes ne l'écarte pas.
+
 Où le trouver : **Paramètres → Étiquettes**.
 
 ## Télémétrie
@@ -148,6 +150,8 @@ Les logs, les traces, les métriques, les exceptions, les profils et les relectu
 - **Étiquettes** lit la télémétrie des ressources portant l'une des étiquettes de l'autorisation.
 
 Un blocage avec étiquettes sur une autorisation de télémétrie écarte la télémétrie des ressources portant ces étiquettes, quoi que vous déteniez par ailleurs. Cela vaut partout où la télémétrie est lue : les explorateurs et leurs graphiques, filtres et listes d'attributs, les exports, les relectures de session et ce que l'assistant IA lit pour vous. La liste des noms de métriques montre les métriques que remonte un service que vous pouvez lire, et celles qu'aucun service ne remonte, comme les métriques des hôtes et des clusters. Si vous pouvez aussi lire la télémétrie d'autres types de ressources, comme des hôtes ou des clusters, elle montre tous les noms de métriques.
+
+Les logs de moniteur, l'historique des SLO, les flux réseau et les allocations de coûts Kubernetes se lisent de la même façon, à travers le moniteur, le SLO, l'appareil réseau ou le cluster auquel ils appartiennent : Possédées et Étiquettes atteignent les lignes des enregistrements que vous pouvez lire, et un blocage avec étiquettes écarte les lignes des enregistrements qui portent ces étiquettes. Le journal d'audit et les indicateurs de renseignement sur les menaces se lisent sur tout le projet par quiconque peut les lire.
 
 ## Clés d'API
 
@@ -165,12 +169,12 @@ Où le trouver : **Paramètres → Clés d'API**. Voir aussi la [Référence de 
 
 Pour un utilisateur connecté, dans l'ordre :
 
-1. Trouver les équipes auxquelles l'utilisateur appartient dans ce projet, en ne comptant que les invitations acceptées.
+1. Trouver les équipes auxquelles l'utilisateur appartient dans ce projet, en ne comptant que les invitations acceptées. Une requête n'atteint que les enregistrements de ce projet : un enregistrement d'un autre projet, désigné par son identifiant ou dans un filtre, est traité comme s'il n'existait pas.
 2. Rassembler toutes les lignes d'autorisation de ces équipes — accordées et bloquées, chacune avec ses étiquettes et sa portée.
 3. Vérifier d'abord la liste des blocages. Un blocage sans étiquette sur n'importe quelle autorisation que la table cible accepte pour cette opération rejette la requête immédiatement, quelle que soit l'équipe qui le porte.
 4. Vérifier la liste des autorisations accordées. La requête a besoin d'au moins une autorisation que la table cible accepte pour cette opération. Pour une ressource opérationnelle — un moniteur, un incident, un tableau de bord, etc. — l'autorisation **All Operational Resources** correspondante (Create, Read, Edit ou Delete) compte aussi, sauf si elle est elle-même bloquée.
-5. Appliquer la portée. Les attributions en portée Possédées restreignent la requête aux ressources possédées ; celles par étiquettes la restreignent aux étiquettes correspondantes. Si une autre attribution pour la même opération est plus large, c'est la plus large qui l'emporte.
-6. Appliquer les blocages par étiquettes. Un blocage avec étiquettes rejette la requête si la ressource cible en porte une. Quand un enregistrement n'a pas d'étiquettes propres, comme une note d'incident ou une annonce de page de statut, un blocage avec étiquettes sur sa lecture l'écarte si un enregistrement auquel il appartient porte l'une de ces étiquettes.
+5. Appliquer la portée. Les attributions en portée Possédées restreignent la requête aux ressources possédées ; celles par étiquettes la restreignent aux étiquettes correspondantes. Si une autre attribution pour la même opération est plus large, c'est la plus large qui l'emporte. Un enregistrement sans étiquettes propres, comme une note d'incident, correspond à une attribution par étiquettes quand les enregistrements auxquels il appartient portent l'une de ses étiquettes.
+6. Appliquer les blocages par étiquettes. Un blocage avec étiquettes rejette la requête si la ressource cible en porte une. Quand un enregistrement n'a pas d'étiquettes propres, comme une note d'incident ou une annonce de page de statut, un blocage avec étiquettes l'écarte des lectures, des modifications et des suppressions si un enregistrement auquel il appartient porte l'une de ces étiquettes. Une liste d'enregistrements de tous vos projets à la fois, comme les incidents de votre page d'accueil, restreint les enregistrements de chaque projet selon vos blocages et vos attributions dans ce projet.
 
 Chaque champ d'un enregistrement se lit avec l'autorisation de lecture de l'enregistrement lui-même : une autorisation portant sur un autre type d'enregistrement ne l'ouvre jamais. Certains champs sont volontairement plus restreints. Les secrets ne sont lus que par les personnes qui peuvent modifier ou administrer l'enregistrement auquel ils appartiennent, comme les clés de requêtes entrantes et d'e-mails entrants d'un moniteur et la clé de son agent serveur, ou les clés de webhook et d'e-mail entrant d'un workflow. Regarder l'enregistrement d'une relecture de session demande **Watch Session Replays**, pas seulement **List Session Replays**. La télémétrie se lit signal par signal : **Read Telemetry Service Log** lit les logs, **Read Telemetry Service Traces** lit les traces et **Read Telemetry Service Metrics** lit les métriques, graphiques de métriques compris.
 

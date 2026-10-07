@@ -137,6 +137,8 @@ Etiketter er prosjektomfattende merkelapper du setter på ressurser. De har to f
 
 En etikettbegrensning er oppfylt hvis ressursen bærer **minst én** av tillatelsens etiketter. En ressurs helt uten etiketter oppfyller ingen etikettbegrenset tillatelse.
 
+En post uten egne etiketter, for eksempel et notat på en hendelse, en kunngjøring på en statusside eller en AI-innsikt om en tjeneste, bærer etikettene til postene den hører til eller handler om. En tillatelse begrenset til etiketter når den når de postene bærer en av tillatelsens etiketter, og en blokkering med etiketter fjerner den når en av dem bærer en blokkert etikett, ved lesing, endring og sletting likt. En AI-innsikt som ikke handler om noen tjeneste, hører til prosjektet: en etikettbegrensning avgrenser den ikke, og en blokkering med etiketter fjerner den ikke.
+
 Hvor du finner det: **Innstillinger → Etiketter**.
 
 ## Telemetri
@@ -148,6 +150,8 @@ Logger, sporinger, metrikker, unntak, profiler og øktavspillinger hører til re
 - **Etiketter** leser telemetrien til ressursene som bærer en av tillatelsens etiketter.
 
 En blokkering med etiketter på en telemetritillatelse utelater telemetrien til ressursene som bærer de etikettene, uansett hva annet du har. Det gjelder overalt der telemetri leses: utforskerne med sine diagrammer, filtre og attributtlister, eksporter, øktavspillinger og det AI-assistenten leser for deg. Listen over metrikknavn viser metrikkene som en tjeneste du kan lese rapporterer, og metrikkene ingen tjeneste rapporterer, for eksempel verts- og klyngemetrikker. Kan du også lese telemetrien til andre typer ressurser, for eksempel verter eller klynger, viser den alle metrikknavn.
+
+Monitorlogger, SLO-historikk, nettverksflyter og kostnadsfordelinger for Kubernetes leses på samme måte, gjennom monitoren, SLO-en, nettverksenheten eller klyngen de hører til: Eide og Etiketter når radene til postene du kan lese, og en blokkering med etiketter utelater radene til postene som bærer de etikettene. Revisjonsloggen og trusseletterretningsindikatorene leses i hele prosjektet av den som kan lese dem.
 
 ## API-nøkler
 
@@ -165,12 +169,12 @@ Hvor du finner det: **Innstillinger → API-nøkler**. Se også [API-referansen]
 
 For en innlogget bruker, i rekkefølge:
 
-1. Finn teamene brukeren tilhører i dette prosjektet — bare godtatte invitasjoner teller.
+1. Finn teamene brukeren tilhører i dette prosjektet — bare godtatte invitasjoner teller. En forespørsel når bare postene i dette prosjektet: en post i et annet prosjekt, angitt med sin id eller i et filter, behandles som om den ikke fantes.
 2. Samle alle tillatelsesrader fra disse teamene — tillatte og blokkerte, hver med etiketter og omfang.
 3. Sjekk blokkeringslisten først. En blokkering uten etiketter på en hvilken som helst tillatelse måltabellen godtar for denne operasjonen, avviser forespørselen umiddelbart, uansett hvilket team den er satt på.
 4. Sjekk tillatelseslisten. Forespørselen trenger minst én tillatelse som måltabellen godtar for denne operasjonen. For en driftsressurs — en overvåker, en hendelse, et dashbord og lignende — teller også den tilsvarende **All Operational Resources**-tillatelsen (Create, Read, Edit eller Delete), med mindre den selv er blokkert.
-5. Bruk omfanget. Tildelinger med omfanget Eide snevrer spørringen inn til eide ressurser; etikettbaserte snevrer inn til treffende etiketter. Er en annen tildeling for samme operasjon bredere, vinner den bredere.
-6. Bruk etikettblokkeringer. En blokkering med etiketter avviser forespørselen hvis målressursen bærer én av dem. Når en post ikke har egne etiketter, for eksempel et notat på en hendelse eller en kunngjøring på en statusside, utelater en blokkering med etiketter på å lese den posten hvis en post den hører til, bærer en av de etikettene.
+5. Bruk omfanget. Tildelinger med omfanget Eide snevrer spørringen inn til eide ressurser; etikettbaserte snevrer inn til treffende etiketter. Er en annen tildeling for samme operasjon bredere, vinner den bredere. En post uten egne etiketter, for eksempel et notat på en hendelse, oppfyller en etikettbasert tildeling når postene den hører til, bærer en av tildelingens etiketter.
+6. Bruk etikettblokkeringer. En blokkering med etiketter avviser forespørselen hvis målressursen bærer én av dem. Når en post ikke har egne etiketter, for eksempel et notat på en hendelse eller en kunngjøring på en statusside, utelater en blokkering med etiketter posten ved lesing, endring og sletting hvis en post den hører til, bærer en av de etikettene. En liste med poster fra alle prosjektene dine på én gang, for eksempel hendelsene på startsiden din, avgrenser hvert prosjekts poster med blokkeringene og tildelingene dine i det prosjektet.
 
 Hvert felt i en post leses med postens egen lesetillatelse: en tillatelse for en annen type post åpner det aldri. Noen felt er bevisst snevrere. Hemmeligheter leses bare av personer som kan redigere eller administrere posten de hører til, for eksempel en monitors nøkler for innkommende forespørsler og innkommende e-post og dens serveragentnøkkel, eller et arbeidsflyts webhook- og e-postnøkler. Å se opptaket av en øktavspilling krever **Watch Session Replays**, ikke bare **List Session Replays**. Telemetri leses signal for signal: **Read Telemetry Service Log** leser logger, **Read Telemetry Service Traces** leser sporinger, og **Read Telemetry Service Metrics** leser metrikker, metrikkdiagrammer inkludert.
 

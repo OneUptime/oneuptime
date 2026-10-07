@@ -151,6 +151,8 @@ Labels are project-wide tags you attach to resources. They serve two purposes: f
 
 A label restriction is satisfied if the resource carries **at least one** of the labels on the permission. A resource with no labels at all matches no label-restricted permission.
 
+A record with no labels of its own, such as an incident's note, a status page announcement or an AI insight about a service, carries the labels of the records it belongs to or is about. A permission restricted to labels reaches it when those records carry one of the permission's labels, and a block with labels takes it away when one of them carries a blocked label, for reading, changing and deleting alike. An AI insight about no service belongs to the project: a label restriction does not narrow it, and a block with labels does not take it away.
+
 Where to find it: **Settings → Labels**. A new label's color is already picked when its form opens, one the labels listed on the page don't use yet; pick another if you like.
 
 ## Telemetry
@@ -162,6 +164,8 @@ Logs, traces, metrics, exceptions, profiles and session replays belong to the re
 - **Labels** reads the telemetry of the resources carrying one of the permission's labels.
 
 A block with labels on a telemetry permission leaves out the telemetry of the resources carrying those labels, whatever else you hold. This holds wherever telemetry is read: the explorers and their charts, filters and attribute lists, exports, session replays, and what the AI assistant reads for you. The list of metric names shows the metrics a service you may read reports, and the metrics no service reports, such as host and cluster metrics. If you may also read the telemetry of other kinds of resources, such as hosts or clusters, it shows every metric name.
+
+Monitor logs, SLO history, network flows and Kubernetes cost allocations are read the same way, through the monitor, SLO, network device or cluster they belong to: Owned and Labels reach the rows of the records you may read, and a block with labels leaves out the rows of the records carrying those labels. The audit log and threat intelligence indicators are read across the project by whoever may read them.
 
 ## API keys
 
@@ -192,12 +196,12 @@ Where to find it: **Settings → API Keys**. See also the [API Reference](/docs/
 
 For a signed-in user, in order:
 
-1. Find the teams the user belongs to in this project, counting only accepted invitations.
+1. Find the teams the user belongs to in this project, counting only accepted invitations. A request reaches the records of this project only: a record of another project, named by its id or in a filter, is answered as if it did not exist.
 2. Collect every permission row on those teams — allow and block, each with its labels and scope.
 3. Check the block list first. A block with no labels on any permission the target table accepts for this operation rejects the request outright, whichever team it is on.
 4. Check the allow list. The request needs at least one permission that the target table accepts for this operation. On an operational resource — a monitor, an incident, a dashboard and the like — the matching **All Operational Resources** permission (Create, Read, Edit or Delete) counts too, unless it is blocked itself.
-5. Apply scope. Owned-scoped grants narrow the query to owned resources; label-scoped grants narrow it to matching labels. If any other grant for the same operation is broader, the broader one wins.
-6. Apply label blocks. A block with labels rejects the request if the target resource carries one of them. When a record has no labels of its own, such as an incident note or a status page announcement, a block with labels on reading it leaves it out if a record it belongs to carries one of those labels.
+5. Apply scope. Owned-scoped grants narrow the query to owned resources; label-scoped grants narrow it to matching labels. If any other grant for the same operation is broader, the broader one wins. A record with no labels of its own, such as an incident note, matches a label-scoped grant when the records it belongs to carry one of the grant's labels.
+6. Apply label blocks. A block with labels rejects the request if the target resource carries one of them. When a record has no labels of its own, such as an incident note or a status page announcement, a block with labels leaves it out of reads, changes and deletes if a record it belongs to carries one of those labels. A list of records from all of your projects at once, such as the incidents on your home page, narrows each project's records by your blocks and grants in that project.
 
 Every field of a record is read with the record's own read permission: a permission for another kind of record never opens it. Some fields are narrower on purpose. Secrets are read only by people who may edit or administer the record they belong to, such as a monitor's incoming request and incoming email keys and its server agent key, or a workflow's webhook and incoming email keys. Watching a session replay's recording takes **Watch Session Replays**, not just **List Session Replays**. Telemetry is read signal by signal: **Read Telemetry Service Log** reads logs, **Read Telemetry Service Traces** reads traces, and **Read Telemetry Service Metrics** reads metrics, metric charts included.
 

@@ -137,6 +137,8 @@ Rótulos são marcações válidas em todo o projeto que você anexa aos recurso
 
 Uma restrição por rótulos é satisfeita se o recurso carrega **pelo menos um** dos rótulos da permissão. Um recurso sem nenhum rótulo não satisfaz nenhuma permissão restrita por rótulos.
 
+Um registro sem rótulos próprios, como a nota de um incidente, um anúncio de uma página de status ou um insight de IA sobre um serviço, carrega os rótulos dos registros aos quais pertence ou dos quais trata. Uma permissão restrita por rótulos o alcança quando esses registros carregam um dos seus rótulos, e um bloqueio com rótulos o deixa de fora quando um deles carrega um rótulo bloqueado, na leitura, na alteração e na exclusão. Um insight de IA que não trata de nenhum serviço pertence ao projeto: uma restrição por rótulos não o restringe, e um bloqueio com rótulos não o deixa de fora.
+
 Onde encontrar: **Configurações → Rótulos**.
 
 ## Telemetria
@@ -148,6 +150,8 @@ Logs, traces, métricas, exceções, perfis e reproduções de sessão pertencem
 - **Rótulos** lê a telemetria dos recursos que carregam um dos rótulos da permissão.
 
 Um bloqueio com rótulos em uma permissão de telemetria deixa de fora a telemetria dos recursos que carregam esses rótulos, seja o que for que você tenha além disso. Isso vale onde quer que a telemetria seja lida: os exploradores e seus gráficos, filtros e listas de atributos, as exportações, as reproduções de sessão e o que o assistente de IA lê por você. A lista de nomes de métricas mostra as métricas que um serviço que você pode ler reporta, e as métricas que nenhum serviço reporta, como as de hosts e clusters. Se você também pode ler a telemetria de outros tipos de recursos, como hosts ou clusters, ela mostra todos os nomes de métricas.
+
+Os logs de monitores, o histórico de SLOs, os fluxos de rede e as alocações de custo do Kubernetes são lidos da mesma forma, através do monitor, do SLO, do dispositivo de rede ou do cluster a que pertencem: Próprios e Rótulos alcançam as linhas dos registros que você pode ler, e um bloqueio com rótulos deixa de fora as linhas dos registros que carregam esses rótulos. O log de auditoria e os indicadores de inteligência de ameaças são lidos em todo o projeto por quem pode lê-los.
 
 ## Chaves de API
 
@@ -165,12 +169,12 @@ Onde encontrar: **Configurações → Chaves de API**. Veja também a [Referênc
 
 Para um usuário autenticado, na ordem:
 
-1. Encontrar as equipes a que o usuário pertence neste projeto, contando apenas convites aceitos.
+1. Encontrar as equipes a que o usuário pertence neste projeto, contando apenas convites aceitos. Uma requisição alcança apenas os registros deste projeto: um registro de outro projeto, indicado pelo seu id ou em um filtro, é tratado como se não existisse.
 2. Reunir todas as linhas de permissão dessas equipes — permitidas e bloqueadas — cada uma com seus rótulos e seu escopo.
 3. Verificar primeiro a lista de bloqueios. Um bloqueio sem rótulos em qualquer permissão que a tabela de destino aceite para essa operação rejeita a requisição de imediato, seja qual for a equipe em que estiver.
 4. Verificar a lista de permitidas. A requisição precisa de pelo menos uma permissão que a tabela de destino aceite para essa operação. Em um recurso operacional — um monitor, um incidente, um painel e afins — a permissão **All Operational Resources** correspondente (Create, Read, Edit ou Delete) também conta, a menos que ela própria esteja bloqueada.
-5. Aplicar o escopo. Concessões com escopo Próprios restringem a consulta aos recursos próprios; as de rótulos restringem aos rótulos correspondentes. Se qualquer outra concessão para a mesma operação for mais ampla, a mais ampla vence.
-6. Aplicar os bloqueios por rótulos. Um bloqueio com rótulos rejeita a requisição se o recurso de destino carregar um deles. Quando um registro não tem rótulos próprios, como uma nota de um incidente ou um anúncio de uma página de status, um bloqueio com rótulos sobre a sua leitura o deixa de fora se um registro ao qual ele pertence carregar um desses rótulos.
+5. Aplicar o escopo. Concessões com escopo Próprios restringem a consulta aos recursos próprios; as de rótulos restringem aos rótulos correspondentes. Se qualquer outra concessão para a mesma operação for mais ampla, a mais ampla vence. Um registro sem rótulos próprios, como uma nota de um incidente, satisfaz uma concessão por rótulos quando os registros aos quais pertence carregam um dos seus rótulos.
+6. Aplicar os bloqueios por rótulos. Um bloqueio com rótulos rejeita a requisição se o recurso de destino carregar um deles. Quando um registro não tem rótulos próprios, como uma nota de um incidente ou um anúncio de uma página de status, um bloqueio com rótulos o deixa de fora de leituras, alterações e exclusões se um registro ao qual ele pertence carregar um desses rótulos. Uma lista de registros de todos os seus projetos de uma vez, como os incidentes da sua página inicial, restringe os registros de cada projeto pelos seus bloqueios e concessões naquele projeto.
 
 Cada campo de um registro é lido com a permissão de leitura do próprio registro: uma permissão de outro tipo de registro nunca o abre. Alguns campos são mais restritos de propósito. Os segredos só são lidos por quem pode editar ou administrar o registro a que pertencem, como as chaves de requisições recebidas e de e-mails recebidos de um monitor e a chave do seu agente de servidor, ou as chaves de webhook e de e-mail de entrada de um fluxo de trabalho. Assistir à gravação de uma reprodução de sessão exige **Watch Session Replays**, não apenas **List Session Replays**. A telemetria é lida sinal a sinal: **Read Telemetry Service Log** lê os logs, **Read Telemetry Service Traces** lê os traces e **Read Telemetry Service Metrics** lê as métricas, incluindo os gráficos de métricas.
 

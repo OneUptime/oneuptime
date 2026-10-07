@@ -137,6 +137,8 @@ Las etiquetas son marcas de ámbito de proyecto que adjunta a los recursos. Sirv
 
 Una restricción por etiquetas se cumple si el recurso lleva **al menos una** de las etiquetas del permiso. Un recurso sin ninguna etiqueta no cumple ningún permiso restringido por etiquetas.
 
+Un registro sin etiquetas propias, como la nota de un incidente, un anuncio de una página de estado o un insight de IA sobre un servicio, lleva las etiquetas de los registros a los que pertenece o de los que trata. Un permiso restringido por etiquetas lo alcanza cuando esos registros llevan una de sus etiquetas, y un bloqueo con etiquetas lo deja fuera cuando uno de ellos lleva una etiqueta bloqueada, al leerlo, cambiarlo y borrarlo por igual. Un insight de IA que no trata de ningún servicio pertenece al proyecto: una restricción por etiquetas no lo acota y un bloqueo con etiquetas no lo deja fuera.
+
 Dónde encontrarlo: **Configuración → Etiquetas**.
 
 ## Telemetría
@@ -148,6 +150,8 @@ Los logs, las trazas, las métricas, las excepciones, los perfiles y las reprodu
 - **Etiquetas** lee la telemetría de los recursos que llevan una de las etiquetas del permiso.
 
 Un bloqueo con etiquetas en un permiso de telemetría deja fuera la telemetría de los recursos que llevan esas etiquetas, tenga lo que tenga además. Esto se cumple dondequiera que se lea telemetría: los exploradores y sus gráficos, filtros y listas de atributos, las exportaciones, las reproducciones de sesión y lo que el asistente de IA lee por usted. La lista de nombres de métricas muestra las métricas que informa un servicio que usted puede leer y las que no informa ningún servicio, como las métricas de hosts y clústeres. Si también puede leer la telemetría de otros tipos de recursos, como hosts o clústeres, muestra todos los nombres de métricas.
+
+Los logs de los monitores, el historial de SLO, los flujos de red y las asignaciones de costes de Kubernetes se leen igual, a través del monitor, el SLO, el dispositivo de red o el clúster al que pertenecen: Propios y Etiquetas alcanzan las filas de los registros que puede leer, y un bloqueo con etiquetas deja fuera las filas de los registros que llevan esas etiquetas. El registro de auditoría y los indicadores de inteligencia de amenazas los lee en todo el proyecto quien pueda leerlos.
 
 ## Claves de API
 
@@ -165,12 +169,12 @@ Dónde encontrarlo: **Configuración → Claves de API**. Consulte también la [
 
 Para un usuario que ha iniciado sesión, en orden:
 
-1. Encontrar los equipos a los que pertenece el usuario en este proyecto, contando solo invitaciones aceptadas.
+1. Encontrar los equipos a los que pertenece el usuario en este proyecto, contando solo invitaciones aceptadas. Una petición solo alcanza los registros de este proyecto: un registro de otro proyecto, nombrado por su id o en un filtro, se trata como si no existiera.
 2. Reunir todas las filas de permisos de esos equipos —permitir y bloquear—, cada una con sus etiquetas y su alcance.
 3. Comprobar primero la lista de bloqueo. Un bloqueo sin etiquetas sobre cualquier permiso que la tabla de destino acepte para esa operación rechaza la petición de inmediato, sea cual sea el equipo en que esté.
 4. Comprobar la lista de permitidos. La petición necesita al menos un permiso que la tabla de destino acepte para esa operación. En un recurso operativo —un monitor, un incidente, un panel y similares— también cuenta el permiso **All Operational Resources** correspondiente (Create, Read, Edit o Delete), salvo que esté bloqueado.
-5. Aplicar el alcance. Las concesiones con alcance Propios acotan la consulta a los recursos propios; las de etiquetas la acotan a las etiquetas que coincidan. Si cualquier otra concesión para la misma operación es más amplia, gana la más amplia.
-6. Aplicar los bloqueos por etiquetas. Un bloqueo con etiquetas rechaza la petición si el recurso de destino lleva una de ellas. Cuando un registro no tiene etiquetas propias, como una nota de un incidente o un anuncio de una página de estado, un bloqueo con etiquetas sobre su lectura lo deja fuera si un registro al que pertenece lleva una de esas etiquetas.
+5. Aplicar el alcance. Las concesiones con alcance Propios acotan la consulta a los recursos propios; las de etiquetas la acotan a las etiquetas que coincidan. Si cualquier otra concesión para la misma operación es más amplia, gana la más amplia. Un registro sin etiquetas propias, como una nota de un incidente, cumple una concesión por etiquetas cuando los registros a los que pertenece llevan una de sus etiquetas.
+6. Aplicar los bloqueos por etiquetas. Un bloqueo con etiquetas rechaza la petición si el recurso de destino lleva una de ellas. Cuando un registro no tiene etiquetas propias, como una nota de un incidente o un anuncio de una página de estado, un bloqueo con etiquetas lo deja fuera de las lecturas, los cambios y los borrados si un registro al que pertenece lleva una de esas etiquetas. Una lista de registros de todos sus proyectos a la vez, como los incidentes de su página de inicio, acota los registros de cada proyecto con sus bloqueos y concesiones en ese proyecto.
 
 Cada campo de un registro se lee con el permiso de lectura del propio registro: un permiso de otro tipo de registro nunca lo abre. Algunos campos son más restringidos a propósito. Los secretos solo los leen las personas que pueden editar o administrar el registro al que pertenecen, como las claves de solicitudes entrantes y de correo entrante de un monitor y la clave de su agente de servidor, o las claves de webhook y de correo entrante de un flujo de trabajo. Ver la grabación de una reproducción de sesión requiere **Watch Session Replays**, no solo **List Session Replays**. La telemetría se lee señal por señal: **Read Telemetry Service Log** lee los logs, **Read Telemetry Service Traces** lee las trazas y **Read Telemetry Service Metrics** lee las métricas, incluidos los gráficos de métricas.
 
