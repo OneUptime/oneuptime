@@ -5,7 +5,7 @@ import SafeHtml from "Common/Types/SafeHtml";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import { SubscriberNotificationEmailBodyTemplateVariables } from "Common/Types/StatusPage/SubscriberNotificationTemplateCompiler";
 import SubscriberNotificationTemplateVariables from "Common/Types/StatusPage/SubscriberNotificationTemplateVariables";
-import { expect } from "@jest/globals";
+import { expect, jest } from "@jest/globals";
 
 /*
  * Escaping in the subscriber job tests.
@@ -13,7 +13,10 @@ import { expect } from "@jest/globals";
  * The jobs compile a custom EMAIL template's body with
  * compileEmailBodyTemplate, which escapes every plain value and inserts only
  * SafeHtml values as HTML, and everything else (subjects, SMS, Slack, Teams)
- * with compileTemplate, which inserts values as written. The job tests mock
+ * with compileTemplate, which inserts values as it is given them: subjects
+ * and SMS get every value as written, Slack and Teams - Markdown - get every
+ * plain value escaped for Markdown first (see HOSTILE_TITLE_MARKDOWN below).
+ * The job tests mock
  * StatusPageSubscriberNotificationTemplateService, whose real module pulls in
  * the database, and hand compileEmailBodyTemplate to the real compiler
  * (jest.requireActual of Common/Types/StatusPage/
@@ -46,6 +49,98 @@ export const HOSTILE_GROUP_NAME_HTML: string =
 // The two hostile resources below, as each form of the resource list shows them.
 export const HOSTILE_RESOURCES_HTML: string = `${HOSTILE_GROUP_NAME_HTML}: ${HOSTILE_RESOURCE_NAME_HTML}<br/>Search &amp; Browse`;
 export const HOSTILE_RESOURCES_TEXT: string = `${HOSTILE_GROUP_NAME}: ${HOSTILE_RESOURCE_NAME}; Search & Browse`;
+
+/*
+ * The same values as a Slack or Teams message gets them. That message is
+ * Markdown, so each plain value is escaped where it is placed
+ * (escapeMarkdownValue): "[", "]", "<" and "\" behind a backslash. Rendered,
+ * it reads as written (withoutMarkdownEscapes), and it can become no link,
+ * image, raw HTML or chat mention there.
+ */
+export const HOSTILE_TITLE_MARKDOWN: string =
+  "\\<script>alert('title')\\</script> Checkout \\<b>down\\</b>";
+export const HOSTILE_PAGE_NAME_MARKDOWN: string =
+  '\\<a href="https://evil.example/login">Acme\\</a> "Status"';
+export const HOSTILE_RESOURCE_NAME_MARKDOWN: string =
+  '\\<img src=x onerror="alert(1)"> Payments & Billing';
+export const HOSTILE_GROUP_NAME_MARKDOWN: string = "EU \\<i>West\\</i> 'A'";
+export const HOSTILE_RESOURCES_MARKDOWN: string = `${HOSTILE_GROUP_NAME_MARKDOWN}: ${HOSTILE_RESOURCE_NAME_MARKDOWN}; Search & Browse`;
+
+/*
+ * A Slack or Teams message as its reader sees the values in it: every
+ * backslash escape undone, and the invisible word joiner that breaks a chat
+ * mention taken out.
+ */
+export function withoutMarkdownEscapes(markdown: string): string {
+  return markdown
+    .replace(/\\([!-/:-@[-`{-~])/g, "$1")
+    .split("\u2060")
+    .join("");
+}
+
+// No value brings raw HTML or an autolink into a Markdown message.
+export function expectNoUnescapedAngleBracket(markdown: string): void {
+  expect(markdown).not.toMatch(/(?<!\\)</);
+}
+
+/*
+ * A title as a monitor may fill it in from what it watched - the subject of
+ * an incoming email, say - and a state's name: Markdown that would act on its
+ * own in a chat message. An image fetched when the message is shown, a link
+ * whose words hide where it goes, and Slack mentions.
+ */
+export const MARKDOWN_TITLE: string =
+  "![](https://tracker.example/p.png) [Reset your password](https://evil.example/login) <!channel> <@U0123ABC> <b>now</b>";
+export const MARKDOWN_STATE_NAME: string =
+  "[Resolved](https://evil.example/state) <!here>";
+
+/*
+ * No value placed into a Markdown message makes an image, a link to an
+ * address the value brought, raw HTML or a chat mention. The template's own
+ * links (the status page, unsubscribe) are OneUptime's, and stay links.
+ */
+export function expectValuesInertInMarkdown(markdown: string): void {
+  expect(markdown).not.toMatch(
+    /(?<!\\)\[[^\]]*\]\(https:\/\/(?:evil|tracker)\.example/,
+  );
+  expect(markdown).not.toMatch(/(?<!\\)!\[/);
+  expectNoUnescapedAngleBracket(markdown);
+}
+
+interface SlackConversion {
+  default: { convertMarkdownToSlackRichText: (markdown: string) => string };
+}
+
+const SLACK_LINK_PATTERN: RegExp = /<(https?:\/\/[^|>]+)\|([^>]*)>/g;
+
+// The addresses MARKDOWN_TITLE and MARKDOWN_STATE_NAME bring.
+const VALUE_ADDRESS_PATTERN: RegExp = /^https:\/\/(?:evil|tracker)\.example/;
+
+/*
+ * What Slack shows of a message: the job's Markdown through the real
+ * conversion, which the job tests replace with one that changes nothing.
+ * Slack reads no mention in it, and every link to an address the values
+ * brought shows that address as its text - a bare address in a value is
+ * still made a link, as anywhere, but no words can hide where it goes.
+ */
+export function expectSlackReadsNoMention(markdown: string): void {
+  const slackModule: SlackConversion = jest.requireActual(
+    "Common/Server/Utils/Workspace/Slack/Slack",
+  ) as SlackConversion;
+  const slack: string =
+    slackModule.default.convertMarkdownToSlackRichText(markdown);
+
+  expect(slack).not.toMatch(/<[!@#]/);
+  expect(
+    Array.from(slack.matchAll(SLACK_LINK_PATTERN))
+      .filter((link: RegExpMatchArray): boolean => {
+        return VALUE_ADDRESS_PATTERN.test(link[1]!) && link[2] !== link[1];
+      })
+      .map((link: RegExpMatchArray): string => {
+        return link[0];
+      }),
+  ).toEqual([]);
+}
 
 /*
  * A resource in a hostile group with a hostile name, and an ungrouped one,
@@ -211,7 +306,7 @@ export function expectOnlyTheListedHtmlVariables(
   expect(html).toEqual([...listed].sort());
 }
 
-// Text channels show values as written: no HTML entity may reach them.
+// Text channels are never HTML: no HTML entity may reach them.
 export function expectNoHtmlEntities(text: string): void {
   expect(text).not.toMatch(/&(?:amp|lt|gt|quot|#39);/);
 }

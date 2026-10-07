@@ -183,8 +183,11 @@
 </script>
 <script type="module">
     /*
-     * Mermaid is ~1MB across two dozen chunks. Fetch it only on the handful of
-     * pages that actually draw a diagram.
+     * Mermaid is ~750KB before its first diagram, plus a chunk per diagram type
+     * (and KaTeX for a $$...$$ label). Fetch it only on the handful of pages
+     * that actually draw a diagram. The image builds it from mermaid's source
+     * with the dependencies npm installed - see Common/Scripts/
+     * build-mermaid-browser.js.
      */
     const diagrams = Array.prototype.slice.call(document.querySelectorAll('.mermaid'));
     if (diagrams.length > 0) {
@@ -195,7 +198,7 @@
         const definitions = diagrams.map((node) => {
             return node.textContent;
         });
-        const mermaid = (await import('/oneuptime-assets/mermaid/mermaid.esm.min.mjs')).default;
+        const mermaid = (await import('/oneuptime-assets/mermaid/mermaid.mjs')).default;
 
         const draw = async () => {
             mermaid.initialize({

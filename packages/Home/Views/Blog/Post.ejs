@@ -1184,42 +1184,6 @@
                         });
                     } catch(e) {}
 
-                    // Mermaid diagrams
-                    try {
-                        const mermaidCodeBlocks = document.querySelectorAll('.blog-body pre code.language-mermaid, .blog-body pre code.mermaid, .blog-body pre code[class*="language-mermaid"], .blog-body pre code[class*="mermaid"]');
-                        if(mermaidCodeBlocks.length){
-                            // Dynamically load Mermaid only if needed to avoid extra payload on pages without diagrams
-                            const script = document.createElement('script');
-                            script.src = '/oneuptime-assets/mermaid/mermaid.min.js';
-                            script.async = true;
-                            script.onload = () => {
-                                if(!window.mermaid){ return; }
-                                const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-                                window.mermaid.initialize({
-                                    startOnLoad: false,
-                                    securityLevel: 'loose', // Content is trusted (owned blog); allows links & styling
-                                    theme: prefersDark ? 'dark' : 'default'
-                                });
-                                mermaidCodeBlocks.forEach((codeEl, i) => {
-                                    // Avoid double-processing
-                                    if(codeEl.dataset.mermaidProcessed){ return; }
-                                    const pre = codeEl.closest('pre');
-                                    if(!pre){ return; }
-                                    const def = codeEl.textContent.trim(); // Use textContent to ignore highlight.js span wrappers
-                                    const container = document.createElement('div');
-                                    container.className = 'mermaid my-6';
-                                    // Provide a deterministic ID (optional)
-                                    container.id = 'mermaid-diagram-' + (i+1);
-                                    container.textContent = def;
-                                    pre.replaceWith(container);
-                                    codeEl.dataset.mermaidProcessed = 'true';
-                                });
-                                try { window.mermaid.run && window.mermaid.run(); } catch(_) {}
-                            };
-                            document.head.appendChild(script);
-                        }
-                    } catch(e) {}
-
                     // Anchor links on headings
                     try {
                         var headingsForAnchors = document.querySelectorAll('.blog-body h1, .blog-body h2, .blog-body h3, .blog-body h4');
@@ -1416,6 +1380,52 @@
                         }
                     } catch(e) {}
                 })();
+            </script>
+            <script type="module">
+                /*
+                 * Mermaid diagrams, fetched only for a post that has one. The
+                 * image builds mermaid from its source, with the dependencies
+                 * npm installed (Common/Scripts/build-mermaid-browser.js).
+                 *
+                 * A module of its own rather than a section of the script
+                 * above, which stops at its table of contents on a post with
+                 * no h2 headings: a diagram must not depend on one.
+                 *
+                 * The blocks are collected before the first await. Module
+                 * scripts run before DOMContentLoaded, and the highlight.js
+                 * loader in the head strips the language-mermaid class off
+                 * them then.
+                 */
+                const mermaidCodeBlocks = Array.prototype.slice.call(document.querySelectorAll('.blog-body pre code.language-mermaid, .blog-body pre code.mermaid, .blog-body pre code[class*="language-mermaid"], .blog-body pre code[class*="mermaid"]'));
+                if (mermaidCodeBlocks.length > 0) {
+                    try {
+                        const mermaid = (await import('/oneuptime-assets/mermaid/mermaid.mjs')).default;
+                        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                        mermaid.initialize({
+                            startOnLoad: false,
+                            securityLevel: 'loose', // Content is trusted (owned blog); allows links & styling
+                            theme: prefersDark ? 'dark' : 'default'
+                        });
+                        mermaidCodeBlocks.forEach((codeEl, i) => {
+                            // Avoid double-processing
+                            if (codeEl.dataset.mermaidProcessed) { return; }
+                            const pre = codeEl.closest('pre');
+                            if (!pre) { return; }
+                            const def = codeEl.textContent.trim(); // Use textContent to ignore highlight.js span wrappers
+                            const container = document.createElement('div');
+                            container.className = 'mermaid my-6';
+                            // Provide a deterministic ID (optional)
+                            container.id = 'mermaid-diagram-' + (i + 1);
+                            container.textContent = def;
+                            pre.replaceWith(container);
+                            codeEl.dataset.mermaidProcessed = 'true';
+                        });
+                        // Every .mermaid element: the blocks above, and any a post writes as HTML.
+                        await mermaid.run();
+                    } catch (error) {
+                        console.error('Mermaid could not render the diagrams in this post', error);
+                    }
+                }
             </script>
   <%- include("../Partials/cta-tracking") -%>
 </body>

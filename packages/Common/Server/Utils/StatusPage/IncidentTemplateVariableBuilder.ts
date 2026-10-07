@@ -28,11 +28,15 @@ import SubscriberNotificationTemplateCompiler, {
   SubscriberNotificationTextTemplateVariables,
 } from "../../../Types/StatusPage/SubscriberNotificationTemplateCompiler";
 import Timezone from "../../../Types/Timezone";
-import { escapeMarkdownInline } from "../../../Utils/Markdown/MarkdownEscape";
+import {
+  escapeMarkdownInline,
+  escapeMarkdownValue,
+} from "../../../Utils/Markdown/MarkdownEscape";
 import IncidentCustomFieldService from "../../Services/IncidentCustomFieldService";
 import Markdown, { MarkdownContentType } from "../../Types/Markdown";
 import { syncIsPublicForMarkdownImages } from "../InlineImageAccessTokenSync";
 import StatusPageResourceUtil from "../StatusPageResource";
+import SubscriberMarkdownTemplateValues from "./SubscriberMarkdownTemplateValues";
 
 /*
  * The values an incident's status page subscriber messages are filled with -
@@ -50,8 +54,12 @@ import StatusPageResourceUtil from "../StatusPageResource";
  *     is wrapped in SafeHtml and goes in as it is.
  *   - plainText, for a custom email subject and SMS: every value as the text
  *     it reads as, Markdown flattened to plain text, nothing escaped.
- *   - markdown, for custom Slack and Microsoft Teams messages: the same, but
- *     Markdown kept as it was written.
+ *   - markdown, for custom Slack and Microsoft Teams messages: Markdown
+ *     kept as it was written, and every plain value - the title, a name, a
+ *     custom field's text - escaped (escapeMarkdownValue), so it reads as
+ *     typed and cannot become a link, an image, raw HTML or a chat mention
+ *     wherever the template places it. The addresses (statusPageUrl,
+ *     detailsUrl) are OneUptime's own and go in as they are.
  *
  * On top of the values the jobs always had, every incident message offers
  * {{incidentLabels}}, {{affectedStatusPages}} and one
@@ -251,10 +259,12 @@ export class IncidentTemplateVariables {
       ...shared,
       resourcesAffected: resourcesAffectedPlainText || noResourcesText,
     };
-    const markdown: Record<string, string> = {
-      ...shared,
-      resourcesAffected: resourcesAffectedPlainText || noResourcesText,
-    };
+    // Every plain value escaped for Markdown, the addresses as they are.
+    const markdown: Record<string, string> =
+      SubscriberMarkdownTemplateValues.fromPlainValues({
+        ...shared,
+        resourcesAffected: resourcesAffectedPlainText || noResourcesText,
+      });
 
     for (const [name, value] of Object.entries(this.markdownVariables)) {
       emailBody[name] = SafeHtml.fromTrustedHtml(value.html);
@@ -292,11 +302,12 @@ export class IncidentTemplateVariables {
           : { title: field.name, plainText: formatted.plainText },
       );
 
+      // The field's name is plain text; its value is formatted for Markdown.
       customFieldsMarkdownLines.push(
         field.customFieldType === CustomFieldType.Markdown ||
           field.customFieldType === CustomFieldType.LongText
-          ? `**${field.name}:**\n${formatted.markdown}`
-          : `**${field.name}:** ${formatted.markdown}`,
+          ? `**${escapeMarkdownValue(field.name)}:**\n${formatted.markdown}`
+          : `**${escapeMarkdownValue(field.name)}:** ${formatted.markdown}`,
       );
     }
 
@@ -499,7 +510,7 @@ export class IncidentTemplateVariables {
 
         return {
           plainText: text,
-          markdown: text,
+          markdown: escapeMarkdownValue(text, { keepLineBreaks: true }),
           html: SafeHtml.fromTrustedHtml(
             SafeHtml.escape(text).replace(LINE_BREAK_PATTERN, "<br/>"),
           ),
@@ -508,7 +519,11 @@ export class IncidentTemplateVariables {
 
       case CustomFieldType.Boolean: {
         const text: string = formatCustomFieldBoolean(value);
-        return { plainText: text, markdown: text, html: null };
+        return {
+          plainText: text,
+          markdown: escapeMarkdownValue(text),
+          html: null,
+        };
       }
 
       /*
@@ -519,7 +534,11 @@ export class IncidentTemplateVariables {
        */
       case CustomFieldType.Date: {
         const text: string = formatCustomFieldCalendarDate(value);
-        return { plainText: text, markdown: text, html: null };
+        return {
+          plainText: text,
+          markdown: escapeMarkdownValue(text),
+          html: null,
+        };
       }
 
       /*
@@ -532,7 +551,11 @@ export class IncidentTemplateVariables {
 
         if (!date) {
           const text: string = customFieldValueToText(value);
-          return { plainText: text, markdown: text, html: null };
+          return {
+            plainText: text,
+            markdown: escapeMarkdownValue(text),
+            html: null,
+          };
         }
 
         const lines: Array<string> =
@@ -544,7 +567,7 @@ export class IncidentTemplateVariables {
 
         return {
           plainText: lines.join(", "),
-          markdown: lines.join(", "),
+          markdown: escapeMarkdownValue(lines.join(", ")),
           html: SafeHtml.fromTrustedHtml(
             lines
               .map((line: string): string => {
@@ -557,7 +580,11 @@ export class IncidentTemplateVariables {
 
       default: {
         const text: string = customFieldValueToText(value);
-        return { plainText: text, markdown: text, html: null };
+        return {
+          plainText: text,
+          markdown: escapeMarkdownValue(text),
+          html: null,
+        };
       }
     }
   }

@@ -30,6 +30,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
+import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
 
 RunCron(
   "AlertEpisodeOwner:SendStateChangeEmail",
@@ -327,7 +328,7 @@ RunCron(
         alertEpisodeFeedEventType:
           AlertEpisodeFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `🔔 **Owners have been notified about the state change of the [Alert Episode ${episodeDisplayNumber}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}).**: Owners have been notified about the state change of the alert episode because the episode state changed to **${alertState.name}**.`,
+        feedInfoInMarkdown: `🔔 **Owners have been notified about the state change of the [Alert Episode ${episodeDisplayNumber}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(projectId, episodeId)).toString()}).**: Owners have been notified about the state change of the alert episode because the episode state changed to **${escapeMarkdownValue(alertState.name)}**.`,
         moreInformationInMarkdown: moreEpisodeFeedInformationInMarkdown,
       });
     }

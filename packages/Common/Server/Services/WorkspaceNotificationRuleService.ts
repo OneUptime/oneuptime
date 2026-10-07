@@ -1,4 +1,5 @@
 import ObjectID from "../../Types/ObjectID";
+import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
 import WorkspaceType, {
   getWorkspaceTypeDisplayName,
@@ -199,7 +200,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       messageBlocks: [
         {
           _type: "WorkspacePayloadMarkdown",
-          text: `This is a test message for rule **${rule.name?.trim()}**`,
+          // The rule's name is plain text in the Markdown message.
+          text: `This is a test message for rule **${escapeMarkdownValue(rule.name?.trim())}**`,
         } as WorkspacePayloadMarkdown,
       ],
     });
@@ -890,8 +892,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     let sentence: string = "This is a test notification sent";
 
+    // The project's name is plain text in a Markdown message.
     if (projectName) {
-      sentence += ` from the OneUptime project **${projectName}**`;
+      sentence += ` from the OneUptime project **${escapeMarkdownValue(projectName)}**`;
     }
 
     if (userMarkdown) {

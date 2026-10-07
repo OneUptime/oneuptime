@@ -286,20 +286,30 @@ import {
 import {
   HOSTILE_PAGE_NAME,
   HOSTILE_PAGE_NAME_HTML,
+  HOSTILE_PAGE_NAME_MARKDOWN,
   HOSTILE_RESOURCES_HTML,
+  HOSTILE_RESOURCES_MARKDOWN,
   HOSTILE_RESOURCES_TEXT,
   HOSTILE_TITLE,
   HOSTILE_TITLE_HTML,
+  HOSTILE_TITLE_MARKDOWN,
+  MARKDOWN_STATE_NAME,
+  MARKDOWN_TITLE,
   RecordedCompile,
   expectNoHtmlEntities,
+  expectNoUnescapedAngleBracket,
   expectOnlyTheListedHtmlVariables,
+  expectSlackReadsNoMention,
+  expectValuesInertInMarkdown,
   hostileResources,
   recordedCompiles,
+  withoutMarkdownEscapes,
 } from "../Fixtures/SubscriberTemplateCompileFixtures";
 import IncidentCustomFieldService from "Common/Server/Services/IncidentCustomFieldService";
 import {
   AFFECTED_LOCATION,
   AFFECTED_LOCATION_HTML,
+  AFFECTED_LOCATION_MARKDOWN,
   CUSTOM_FIELD_DEFINITIONS,
   CUSTOM_FIELD_PLACEHOLDERS_CASES,
   CustomFieldPlaceholdersCase,
@@ -2298,12 +2308,14 @@ describe("IncidentStateTimeline:SendNotificationToSubscribers, with a status pag
  * Escaping. The incident title, its state and severity, the status page's
  * name and the names of its resources and groups are plain text a project
  * member typed. In an email they must read as those characters; text
- * channels (a subject, SMS, Slack, Teams, webhooks) show text as written, so
- * they must get no HTML entities at all.
+ * channels (a subject, SMS, webhooks) show text as written, and Slack and
+ * Teams - Markdown - get each value escaped for Markdown, so it reads as
+ * written once rendered: none of them gets an HTML entity.
  */
 describe("IncidentStateTimeline escapes plain values in email", () => {
   const HOSTILE_STATE: string = "Fixing <soon> & 'fast'";
   const HOSTILE_STATE_HTML: string = "Fixing &lt;soon&gt; &amp; &#39;fast&#39;";
+  const HOSTILE_STATE_MARKDOWN: string = "Fixing \\<soon> & 'fast'";
 
   const ESCAPING_EMAIL_BODY: string =
     '<h1>{{incidentTitle}}</h1><p>{{statusPageName}} / {{incidentState}}</p><div>{{resourcesAffected}}</div><div>{{incidentDescription}}</div><a href="{{detailsUrl}}">Details</a>';
@@ -2364,21 +2376,24 @@ describe("IncidentStateTimeline escapes plain values in email", () => {
       expectOnlyTheListedHtmlVariables(emailBody[0]!.rawVariables, EVENT_TYPE);
     });
 
-    test("the subject, SMS, Slack and Teams get every value as written", async () => {
+    test("the subject and SMS get every value as written, and Slack and Teams get each escaped for Markdown", async () => {
       await runJob();
 
       const text: string = `${HOSTILE_TITLE} on ${HOSTILE_PAGE_NAME} is ${HOSTILE_STATE}: ${HOSTILE_RESOURCES_TEXT}`;
+      const markdown: string = `${HOSTILE_TITLE_MARKDOWN} on ${HOSTILE_PAGE_NAME_MARKDOWN} is ${HOSTILE_STATE_MARKDOWN}: ${HOSTILE_RESOURCES_MARKDOWN}`;
 
       expect(sentMail()[0]!["subject"]).toBe(text);
       expect(sentSms()).toEqual([
         `${StatusPageSubscriberNotificationMethod.SMS}: ${text}`,
       ]);
       expect(sentSlack()).toEqual([
-        `${StatusPageSubscriberNotificationMethod.Slack}: ${text}`,
+        `${StatusPageSubscriberNotificationMethod.Slack}: ${markdown}`,
       ]);
       expect(sentTeams()).toEqual([
-        `${StatusPageSubscriberNotificationMethod.MicrosoftTeams}: ${text}`,
+        `${StatusPageSubscriberNotificationMethod.MicrosoftTeams}: ${markdown}`,
       ]);
+      // Rendered, the chat message reads exactly what was written.
+      expect(withoutMarkdownEscapes(markdown)).toBe(text);
       for (const message of [
         sentMail()[0]!["subject"] as string,
         ...sentSms(),
@@ -2386,6 +2401,9 @@ describe("IncidentStateTimeline escapes plain values in email", () => {
         ...sentTeams(),
       ]) {
         expectNoHtmlEntities(message);
+      }
+      for (const message of [...sentSlack(), ...sentTeams()]) {
+        expectNoUnescapedAngleBracket(message);
       }
     });
 
@@ -2426,20 +2444,96 @@ describe("IncidentStateTimeline escapes plain values in email", () => {
       );
     });
 
-    test("SMS, Slack and Teams show the resources as written, never as HTML", async () => {
+    test("SMS, Slack and Teams show the resources as text, never as HTML", async () => {
       await runJob();
 
       expect(sentSlack()[0]).toContain(
-        `**Resources Affected:** ${HOSTILE_RESOURCES_TEXT}`,
+        `**Resources Affected:** ${HOSTILE_RESOURCES_MARKDOWN}`,
       );
       expect(sentTeams()[0]).toContain(
-        `**Resources Affected:** ${HOSTILE_RESOURCES_TEXT}`,
+        `**Resources Affected:** ${HOSTILE_RESOURCES_MARKDOWN}`,
       );
+      // The title and the state are plain text in the chat defaults too.
+      expect(sentSlack()[0]).toContain(
+        `## Incident - ${HOSTILE_TITLE_MARKDOWN}`,
+      );
+      expect(sentSlack()[0]).toContain(`**Status:** ${HOSTILE_STATE_MARKDOWN}`);
       for (const message of [...sentSms(), ...sentSlack(), ...sentTeams()]) {
         expectNoHtmlEntities(message);
         expect(message).not.toContain("<br/>");
       }
+      for (const message of [...sentSlack(), ...sentTeams()]) {
+        expectNoUnescapedAngleBracket(message);
+      }
     });
+  });
+});
+
+/*
+ * A title is often not typed by a person: a monitor fills it in from what it
+ * watched, an incoming email's subject say. A Slack or Teams message is
+ * Markdown, so the title and the state's name are escaped there, in the
+ * default messages and in a custom template alike: an image, a link or a
+ * Slack mention in them stays text, and reads as written.
+ */
+describe("IncidentStateTimeline chat messages show a title as text", () => {
+  beforeEach(() => {
+    pendingTimelines = [stateTimeline({ stateName: MARKDOWN_STATE_NAME })];
+    storeIncidents([incident({ title: MARKDOWN_TITLE })]);
+  });
+
+  test("the default Slack and Teams messages", async () => {
+    await runJob();
+
+    expect(sentSlack()).toHaveLength(1);
+    expect(sentTeams()).toHaveLength(1);
+
+    for (const message of [...sentSlack(), ...sentTeams()]) {
+      expectValuesInertInMarkdown(message);
+      expectSlackReadsNoMention(message);
+      expect(withoutMarkdownEscapes(message)).toContain(MARKDOWN_TITLE);
+      expect(withoutMarkdownEscapes(message)).toContain(
+        `**Status:** ${MARKDOWN_STATE_NAME}`,
+      );
+      // The message's own links are still links.
+      expect(message).toContain(`[View Status Page](${STATUS_PAGE_URL})`);
+    }
+  });
+
+  test("a custom Slack or Teams template", async () => {
+    mock(
+      StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+    ).mockImplementation(async (args: unknown) => {
+      const method: string = (args as JSONObject)[
+        "notificationMethod"
+      ] as string;
+      return method === StatusPageSubscriberNotificationMethod.Slack ||
+        method === StatusPageSubscriberNotificationMethod.MicrosoftTeams
+        ? {
+            templateBody:
+              "**{{incidentTitle}}** is {{incidentState}}. [Details]({{detailsUrl}})",
+          }
+        : null;
+    });
+
+    await runJob();
+
+    for (const message of [...sentSlack(), ...sentTeams()]) {
+      expectValuesInertInMarkdown(message);
+      expectSlackReadsNoMention(message);
+      expect(withoutMarkdownEscapes(message)).toBe(
+        withoutMarkdownEscapes(
+          `**${MARKDOWN_TITLE}** is ${MARKDOWN_STATE_NAME}. [Details](${DETAILS_URL})`,
+        ),
+      );
+    }
+    // SMS, email and webhooks are not Markdown: they get the title as written.
+    expect(sentWebhooks()[0]!["data"]).toEqual(
+      expect.objectContaining({
+        incidentTitle: MARKDOWN_TITLE,
+        incidentState: MARKDOWN_STATE_NAME,
+      }),
+    );
   });
 });
 
@@ -2533,7 +2627,7 @@ describe("IncidentStateTimeline with incident custom fields", () => {
 **Resources Affected:** Checkout API
 **Severity:** ${INCIDENT_SEVERITY}
 **Status:** ${INCIDENT_STATE_NAME}
-**Affected Location:** ${AFFECTED_LOCATION}
+**Affected Location:** ${AFFECTED_LOCATION_MARKDOWN}
 **Acknowledgement:** No
 **Impact Details:**
 ${IMPACT_DETAILS}
@@ -2627,7 +2721,9 @@ ${IMPACT_DETAILS}
         ].join("\n"),
       ]);
       expect(sentSlack()[0]).toContain(`impact=[${IMPACT_DETAILS}]`);
-      expect(sentTeams()[0]).toContain(`location=[${AFFECTED_LOCATION}]`);
+      expect(sentTeams()[0]).toContain(
+        `location=[${AFFECTED_LOCATION_MARKDOWN}]`,
+      );
 
       for (const message of [...sentSms(), ...sentSlack(), ...sentTeams()]) {
         expectNoHtmlEntities(message);

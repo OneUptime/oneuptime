@@ -139,24 +139,22 @@ gitHubApp:
 
 **Viktig:** Start OneUptime-serveren på nytt etter å ha lagt til disse miljøvariablene slik at de trer i kraft.
 
-### Trinn 9: Installer GitHub App
+### Trinn 9: Koble repositorier i OneUptime
 
-1. Gå til GitHub App-ens offentlige side: `https://github.com/apps/YOUR_APP_NAME`
-2. Klikk **"Install"** eller **"Configure"**
-3. Velg organisasjonen eller kontoen der du vil installere appen
-4. Velg hvilke repositorier appen kan få tilgang til:
-   - **All repositories** – Tilgang til alle nåværende og fremtidige repositorier
-   - **Only select repositories** – Velg spesifikke repositorier
-5. Klikk **"Install"**
-
-### Trinn 10: Koble repositorier i OneUptime
+Start tilkoblingen fra OneUptime, ikke fra appens side på GitHub: det er lenken OneUptime sender deg til GitHub med, som knytter installasjonen til prosjektet ditt.
 
 1. Logg inn på OneUptime-dashbordet ditt
 2. Naviger til **Produkter** > **Oppgaver** > **Kode-repositorier**
-3. Klikk **"Create Repository"** eller bruk GitHub App-installasjonsflyten
-4. Hvis omdirigert fra GitHub, fanges installasjons-ID-en automatisk opp
-5. Velg repositoriene du ønsker å koble fra listen
-6. Klikk **"Connect"** for å koble repositoriet til OneUptime-prosjektet ditt
+3. Klikk **Connect with GitHub App**. OneUptime sender deg til GitHub
+4. Velg organisasjonen eller kontoen der appen skal installeres, og velg hvilke repositorier den kan få tilgang til:
+   - **All repositories** – Tilgang til alle nåværende og fremtidige repositorier
+   - **Only select repositories** – Velg spesifikke repositorier
+5. Klikk **Install** (eller **Save** hvis appen allerede er installert der)
+6. GitHub sender deg tilbake til **Kode-repositorier**, og alle repositoriene i installasjonen importeres. Repositorier som senere legges til eller fjernes fra installasjonen, holdes synkronisert automatisk.
+
+**Hvem kan koble til.** Tilkoblingen importerer installasjonens repositorier til prosjektet, så den krever tillatelse til å legge til koderepositorier: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** eller et team med **Create Code Repository**. Et team som blokkerer tillatelsen, tar den bort. På OneUptime Cloud krever koderepositorier Growth-abonnementet eller høyere. For alle andre er kortet låst og forteller hva som kreves.
+
+**Fullfør innen 15 minutter, i samme nettleser.** Lenken virker én gang, i 15 minutter, i nettleseren som startet den. Når GitHub sender deg tilbake, sjekker OneUptime tillatelsen på nytt før noe importeres.
 
 ## Referanse for miljøvariabler
 

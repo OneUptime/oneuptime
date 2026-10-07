@@ -1,9 +1,11 @@
 import GitHubAPI from "../../../Server/API/GitHubAPI";
+import GitHubConnectAccess from "../../../Server/API/GitHubConnectAccess";
 import GitHubUtil from "../../../Server/Utils/CodeRepository/GitHub/GitHub";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import ProjectService from "../../../Server/Services/ProjectService";
-import AccessTokenService from "../../../Server/Services/AccessTokenService";
-import JSONWebToken from "../../../Server/Utils/JsonWebToken";
+import WorkspaceOAuthState, {
+  WorkspaceOAuthFlow,
+} from "../../../Server/Utils/Workspace/WorkspaceOAuthState";
 import Response from "../../../Server/Utils/Response";
 import {
   ExpressRequest,
@@ -13,14 +15,9 @@ import {
 import { mockRouter } from "./Helpers";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
-import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
+import BadRequestException from "../../../Types/Exception/BadRequestException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../Types/ObjectID";
-import Permission, {
-  UserPermission,
-  UserTenantAccessPermission,
-} from "../../../Types/Permission";
-import { JSONObject } from "../../../Types/JSON";
 import {
   afterEach,
   beforeAll,
@@ -84,7 +81,7 @@ jest.mock("../../../Server/Utils/Response", () => {
   };
 });
 
-const INSTALL_ROUTE: string = "/github/auth/install";
+const INSTALL_ROUTE: string = "/github/install-url";
 const CALLBACK_ROUTE: string = "/github/auth/callback";
 
 // The two routes the fix removed.
@@ -156,30 +153,6 @@ describe("GitHub App installation binding", () => {
     jest.restoreAllMocks();
   });
 
-  function grantProjectAccess(): void {
-    const permission: UserPermission = {
-      _type: "UserPermission",
-      permission: Permission.ProjectOwner,
-      labelIds: [],
-    };
-
-    const tenantPermission: UserTenantAccessPermission = {
-      _type: "UserTenantAccessPermission",
-      projectId: projectId,
-      permissions: [permission],
-    };
-
-    jest
-      .spyOn(AccessTokenService, "getUserTenantAccessPermission")
-      .mockResolvedValue(tenantPermission);
-  }
-
-  function denyProjectAccess(): void {
-    jest
-      .spyOn(AccessTokenService, "getUserTenantAccessPermission")
-      .mockResolvedValue(null);
-  }
-
   /*
    * The routes that made the installation ID a client-supplied input. Neither
    * had a caller — the dashboard only ever uses install -> callback — so they
@@ -213,125 +186,31 @@ describe("GitHub App installation binding", () => {
     });
   });
 
-  describe("GET /github/auth/install", () => {
-    test("rejects an unauthenticated caller", async () => {
-      await callRoute({ method: "GET", uri: INSTALL_ROUTE, query: {} });
-
-      expect(thrownError()).toBeInstanceOf(NotAuthenticatedException);
-    });
-
-    test("never signs a state for an unauthenticated caller", async () => {
-      const signSpy: jest.SpyInstance = jest.spyOn(
-        JSONWebToken,
-        "signJsonPayload",
-      );
-
-      await callRoute({
-        method: "GET",
-        uri: INSTALL_ROUTE,
-        query: { projectId: projectId.toString(), userId: userId.toString() },
-      });
-
-      expect(thrownError()).toBeInstanceOf(NotAuthenticatedException);
-      expect(signSpy).not.toHaveBeenCalled();
-    });
-
-    test("rejects a caller who is not a member of the project", async () => {
-      denyProjectAccess();
-
-      await callRoute({
-        method: "GET",
-        uri: INSTALL_ROUTE,
-        query: { projectId: projectId.toString() },
-        userId: userId,
-      });
-
-      expect(thrownError()).toBeInstanceOf(NotAuthorizedException);
-    });
-
-    test("requires a project id", async () => {
-      await callRoute({
-        method: "GET",
-        uri: INSTALL_ROUTE,
-        query: {},
-        userId: userId,
-      });
-
-      expect(thrownError()).toBeInstanceOf(BadDataException);
-    });
-
-    /*
-     * The state binds the install to a user. Taking that user from the query
-     * string let anyone mint a state naming somebody else; it must come from
-     * the session.
-     */
-    test("ignores a userId in the query string and uses the session user", async () => {
-      grantProjectAccess();
-
-      const spoofedUserId: ObjectID = ObjectID.generate();
-      const signSpy: jest.SpyInstance = jest
-        .spyOn(JSONWebToken, "signJsonPayload")
-        .mockReturnValue("signed-state");
-
-      await callRoute({
-        method: "GET",
-        uri: INSTALL_ROUTE,
-        query: {
-          projectId: projectId.toString(),
-          userId: spoofedUserId.toString(),
+  /*
+   * A connection starts with GET /github/install-url, which the Dashboard
+   * asks through its API client, and which records a one-use state for the
+   * signed-in caller and their browser (WorkspaceOAuthState). Who may start
+   * one, and who may finish it, is pinned in GitHubConnectPermission.test.ts.
+   */
+  describe("starting a connection", () => {
+    test("the old navigation route is not registered", () => {
+      const exists: boolean = mockRouter.routes.some(
+        (route: { method: string; uri: string }) => {
+          return route.method === "GET" && route.uri === "/github/auth/install";
         },
-        userId: userId,
-      });
+      );
 
-      expect(signSpy).toHaveBeenCalledTimes(1);
-
-      const payload: JSONObject = signSpy.mock.calls[0]![0] as JSONObject;
-      expect(payload["userId"]).toBe(userId.toString());
-      expect(payload["userId"]).not.toBe(spoofedUserId.toString());
-      expect(payload["projectId"]).toBe(projectId.toString());
+      expect(exists).toBe(false);
     });
 
-    test("checks project access for the session user, not the query user", async () => {
-      grantProjectAccess();
-      jest.spyOn(JSONWebToken, "signJsonPayload").mockReturnValue("state");
+    test("the start route reads the session before its handler runs", () => {
+      const route: {
+        middlewares: Array<unknown>;
+      } = mockRouter.match("GET", INSTALL_ROUTE) as unknown as {
+        middlewares: Array<unknown>;
+      };
 
-      const accessSpy: jest.SpyInstance = jest.spyOn(
-        AccessTokenService,
-        "getUserTenantAccessPermission",
-      );
-
-      await callRoute({
-        method: "GET",
-        uri: INSTALL_ROUTE,
-        query: {
-          projectId: projectId.toString(),
-          userId: ObjectID.generate().toString(),
-        },
-        userId: userId,
-      });
-
-      expect(accessSpy).toHaveBeenCalledTimes(1);
-      expect((accessSpy.mock.calls[0]![0] as ObjectID).toString()).toBe(
-        userId.toString(),
-      );
-      expect((accessSpy.mock.calls[0]![1] as ObjectID).toString()).toBe(
-        projectId.toString(),
-      );
-    });
-
-    test("redirects a legitimate member to GitHub", async () => {
-      grantProjectAccess();
-      jest.spyOn(JSONWebToken, "signJsonPayload").mockReturnValue("state");
-
-      await callRoute({
-        method: "GET",
-        uri: INSTALL_ROUTE,
-        query: { projectId: projectId.toString() },
-        userId: userId,
-      });
-
-      expect(thrownError()).toBeUndefined();
-      expect(Response.redirect).toHaveBeenCalledTimes(1);
+      expect(route.middlewares.length).toBe(1);
     });
   });
 
@@ -339,14 +218,21 @@ describe("GitHub App installation binding", () => {
     let updateProjectSpy: jest.SpyInstance;
     let importSpy: jest.SpyInstance;
     let verifySpy: jest.SpyInstance;
+    let consumeSpy: jest.SpyInstance;
+    let finishSpy: jest.SpyInstance;
 
     beforeEach(() => {
-      jest.spyOn(JSONWebToken, "decodeJsonPayload").mockReturnValue({
-        projectId: projectId.toString(),
-        userId: userId.toString(),
+      // The one-use state this callback spends, for this project and person.
+      consumeSpy = jest.spyOn(WorkspaceOAuthState, "consume");
+      consumeSpy.mockResolvedValue({
+        flow: WorkspaceOAuthFlow.GitHubAppInstall,
+        projectId: projectId,
+        userId: userId,
       });
 
-      grantProjectAccess();
+      // And that person may still add code repositories to it.
+      finishSpy = jest.spyOn(GitHubConnectAccess, "assertMayFinish");
+      finishSpy.mockResolvedValue(undefined);
 
       updateProjectSpy = jest.spyOn(ProjectService, "updateOneById");
       updateProjectSpy.mockResolvedValue(1);
@@ -484,8 +370,12 @@ describe("GitHub App installation binding", () => {
       expect(callOrder).toEqual(["verify", "bind"]);
     });
 
-    test("rejects a caller whose state names a project they cannot access", async () => {
-      denyProjectAccess();
+    test("refuses someone who may no longer add code repositories to the state's project", async () => {
+      finishSpy.mockRejectedValue(
+        new NotAuthorizedException(
+          "You do not have permission to add code repositories to this project.",
+        ),
+      );
 
       await callRoute({
         method: "GET",
@@ -496,24 +386,56 @@ describe("GitHub App installation binding", () => {
       expect(thrownError()).toBeInstanceOf(NotAuthorizedException);
       expect(verifySpy).not.toHaveBeenCalled();
       expect(updateProjectSpy).not.toHaveBeenCalled();
+      expect(importSpy).not.toHaveBeenCalled();
+    });
+
+    test("asks about the person and project the state names", async () => {
+      await callRoute({
+        method: "GET",
+        uri: CALLBACK_ROUTE,
+        query: callbackQuery(),
+      });
+
+      expect(finishSpy).toHaveBeenCalledTimes(1);
+
+      const record: { projectId: ObjectID; userId: ObjectID } = finishSpy.mock
+        .calls[0]![0] as { projectId: ObjectID; userId: ObjectID };
+
+      expect(record.projectId.toString()).toBe(projectId.toString());
+      expect(record.userId.toString()).toBe(userId.toString());
+    });
+
+    test("spends the state for the GitHub App installation only", async () => {
+      await callRoute({
+        method: "GET",
+        uri: CALLBACK_ROUTE,
+        query: callbackQuery(),
+      });
+
+      expect(consumeSpy).toHaveBeenCalledTimes(1);
+      expect(
+        (consumeSpy.mock.calls[0]![0] as { flows: Array<string> }).flows,
+      ).toEqual([WorkspaceOAuthFlow.GitHubAppInstall]);
+      expect((consumeSpy.mock.calls[0]![0] as { state: string }).state).toBe(
+        "signed-state",
+      );
     });
 
     test("rejects a missing state", async () => {
+      consumeSpy.mockResolvedValue(null);
+
       const query: Dictionary<string> = callbackQuery();
       delete query["state"];
 
       await callRoute({ method: "GET", uri: CALLBACK_ROUTE, query: query });
 
-      expect(thrownError()).toBeInstanceOf(BadDataException);
+      expect(thrownError()).toBeInstanceOf(BadRequestException);
+      expect(finishSpy).not.toHaveBeenCalled();
       expect(updateProjectSpy).not.toHaveBeenCalled();
     });
 
-    test("rejects a state that is not signed by this instance", async () => {
-      jest
-        .spyOn(JSONWebToken, "decodeJsonPayload")
-        .mockImplementation((): never => {
-          throw new Error("invalid signature");
-        });
+    test("rejects a state OneUptime did not issue, or has already spent", async () => {
+      consumeSpy.mockResolvedValue(null);
 
       await callRoute({
         method: "GET",
@@ -521,8 +443,23 @@ describe("GitHub App installation binding", () => {
         query: callbackQuery(),
       });
 
-      expect(thrownError()).toBeInstanceOf(BadDataException);
+      expect(thrownError()).toBeInstanceOf(BadRequestException);
+      expect(finishSpy).not.toHaveBeenCalled();
       expect(verifySpy).not.toHaveBeenCalled();
+      expect(updateProjectSpy).not.toHaveBeenCalled();
+    });
+
+    test("refuses, writing nothing, when the state cannot be read at all", async () => {
+      consumeSpy.mockRejectedValue(new Error("cache unavailable"));
+
+      await callRoute({
+        method: "GET",
+        uri: CALLBACK_ROUTE,
+        query: callbackQuery(),
+      });
+
+      expect(thrownError()).toBeInstanceOf(BadRequestException);
+      expect(finishSpy).not.toHaveBeenCalled();
       expect(updateProjectSpy).not.toHaveBeenCalled();
     });
 

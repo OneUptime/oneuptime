@@ -27,6 +27,7 @@ import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed
 import { Yellow500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
+import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
 
 RunCron(
   "IncidentOwner:SendCreatedResourceEmail",
@@ -283,7 +284,7 @@ Notification sent to owners because [Incident ${incidentNumberDisplay}](${(await
             eventType,
           });
 
-          moreIncidentFeedInformationInMarkdown += `**Notified**: ${user.name} (${user.email})\n`;
+          moreIncidentFeedInformationInMarkdown += `**Notified**: ${escapeMarkdownValue(user.name?.toString())} (${escapeMarkdownValue(user.email?.toString())})\n`;
         } catch (e) {
           logger.error(
             "Error in sending incident created resource notification",

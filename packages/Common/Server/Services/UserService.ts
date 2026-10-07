@@ -38,6 +38,7 @@ import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import HashedString from "../../Types/HashedString";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
 import Text from "../../Types/Text";
 import EmailVerificationToken from "../../Models/DatabaseModels/EmailVerificationToken";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
@@ -262,7 +263,18 @@ export class Service extends DatabaseService<Model> {
       return "";
     }
 
-    return `[${user.name?.toString() || user.email?.toString() || "User"}](${(await this.getUserLinkInDashboard(data.projectId, data.userId)).toString()})`;
+    /*
+     * A user's name is theirs to set, and it is placed inside the link's own
+     * text in feed items and chat messages, so every Markdown character in it
+     * is escaped: a "]" cannot end the text early and point the rest of the
+     * sentence somewhere else, "![...](...)" is no image, and "<!channel>"
+     * mentions nobody. The name still reads exactly as typed.
+     */
+    const displayName: string = escapeMarkdownInline(
+      user.name?.toString() || user.email?.toString() || "User",
+    );
+
+    return `[${displayName}](${(await this.getUserLinkInDashboard(data.projectId, data.userId)).toString()})`;
   }
 
   @CaptureSpan()

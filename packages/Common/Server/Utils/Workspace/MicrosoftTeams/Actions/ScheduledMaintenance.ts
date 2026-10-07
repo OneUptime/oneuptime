@@ -35,6 +35,7 @@ import MicrosoftTeamsCardChoices, {
 } from "../MicrosoftTeamsCardChoices";
 import { MICROSOFT_TEAMS_CARD_SIZE_BUDGETS_IN_BYTES } from "../MicrosoftTeamsMessageSize";
 import MicrosoftTeamsReplies from "../MicrosoftTeamsReplies";
+import { escapeMarkdownValue } from "../../../../../Utils/Markdown/MarkdownEscape";
 import MicrosoftTeamsTimezone, {
   MicrosoftTeamsUserTimezone,
 } from "../MicrosoftTeamsTimezone";
@@ -387,8 +388,9 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
 
       switch (actionType) {
         case MicrosoftTeamsScheduledMaintenanceActionType.ViewScheduledMaintenance:
+          // The title and the state's name are plain text; the description is Markdown.
           await turnContext.sendActivity(
-            `**${scheduledMaintenance.title}**\n\n${scheduledMaintenance.description}\n\nStarts: ${scheduledMaintenance.startsAt}\nEnds: ${scheduledMaintenance.endsAt}\nStatus: ${scheduledMaintenance.currentScheduledMaintenanceState?.name}`,
+            `**${escapeMarkdownValue(scheduledMaintenance.title)}**\n\n${scheduledMaintenance.description}\n\nStarts: ${scheduledMaintenance.startsAt}\nEnds: ${scheduledMaintenance.endsAt}\nStatus: ${escapeMarkdownValue(scheduledMaintenance.currentScheduledMaintenanceState?.name)}`,
           );
           break;
 

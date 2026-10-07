@@ -35,6 +35,7 @@ import { ObservabilityAssistantResult } from "../Chat/ObservabilityAssistant";
 import ToolResultSerializer from "../Toolbox/Serializer";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import { escapeMarkdownValue } from "../../../../Utils/Markdown/MarkdownEscape";
 
 /*
  * Auto-remediation — the AI planning run.
@@ -372,8 +373,8 @@ export default class RemediationPlanRunner {
       suggestion.ruleNameSnapshot || "Auto Remediation Rule";
 
     const markdown: string = runbook
-      ? `⚡ **Auto Remediation Rule "${ruleName}": AI proposed runbook "${runbook.name}".** Review the reasoning and approve it with one click to start remediation.`
-      : `⚡ **Auto Remediation Rule "${ruleName}": AI evaluated the candidate runbooks and none applies.** No remediation was proposed.`;
+      ? `⚡ **Auto Remediation Rule "${escapeMarkdownValue(ruleName)}": AI proposed runbook "${escapeMarkdownValue(runbook.name)}".** Review the reasoning and approve it with one click to start remediation.`
+      : `⚡ **Auto Remediation Rule "${escapeMarkdownValue(ruleName)}": AI evaluated the candidate runbooks and none applies.** No remediation was proposed.`;
 
     await this.postFeedItem({
       suggestion,
