@@ -166,6 +166,20 @@ interface ColumnsByIdUpdateStatement {
 }
 
 /*
+ * An atomic add to one row by id (atomicAddToColumnsByIdWithoutHooks and
+ * atomicAddToColumnsByIdAndGetValuesWithoutHooks): its SET clause, its
+ * parameters (the id last), and the columns it adds to, which the second
+ * one answers the new values of.
+ */
+interface AtomicAddStatement {
+  tableName: string;
+  primaryColumnName: string;
+  setSql: string;
+  params: Array<unknown>;
+  addedColumns: Array<{ propertyName: string; databaseName: string }>;
+}
+
+/*
  * The query a write's hooks are handed in place of the one sent (see
  * pinQueryToRows), and whether it names the rows themselves by _id.
  */
@@ -6817,6 +6831,107 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     add: Partial<Record<keyof TBaseModel, number>>;
     set?: PartialEntity<TBaseModel> | undefined;
   }): Promise<void> {
+    const statement: AtomicAddStatement | null = this.buildAtomicAddStatement(
+      input,
+      "atomicAddToColumnsByIdWithoutHooks",
+    );
+
+    if (!statement) {
+      return;
+    }
+
+    const sql: string = `UPDATE "${statement.tableName}" SET ${statement.setSql} WHERE "${statement.primaryColumnName}" = $${statement.params.length}`;
+
+    await this.getRepository().manager.query(sql, statement.params);
+  }
+
+  /*
+   * The same single-statement, hook-free, no-version-bump add as
+   * `atomicAddToColumnsByIdWithoutHooks`, which also answers what the added
+   * columns became - for a balance that a caller must see as its own write
+   * left it, not as a second read (taken a moment later, after other
+   * writers) says it is. Null when the row does not exist.
+   *
+   * The UPDATE sits in a CTE so the statement is a SELECT of the row it
+   * wrote: TypeORM's postgres `query()` answers a top-level UPDATE with
+   * `[rows, rowCount]` (see updateColumnsByIdIfUnlockedWithoutHooks).
+   *
+   * `add` must name at least one column: there is nothing to answer
+   * otherwise.
+   */
+  @CaptureSpan()
+  public async atomicAddToColumnsByIdAndGetValuesWithoutHooks(input: {
+    id: ObjectID;
+    add: Partial<Record<keyof TBaseModel, number>>;
+    set?: PartialEntity<TBaseModel> | undefined;
+  }): Promise<Partial<Record<keyof TBaseModel, number>> | null> {
+    const methodName: string = "atomicAddToColumnsByIdAndGetValuesWithoutHooks";
+
+    const statement: AtomicAddStatement | null = this.buildAtomicAddStatement(
+      input,
+      methodName,
+    );
+
+    if (!statement || statement.addedColumns.length === 0) {
+      throw new BadDataException(
+        `${methodName}: "add" must name at least one column`,
+      );
+    }
+
+    const returned: string = statement.addedColumns
+      .map((column: { databaseName: string }) => {
+        return `"${column.databaseName}"`;
+      })
+      .join(", ");
+
+    const sql: string = `WITH "updated" AS (UPDATE "${statement.tableName}" SET ${statement.setSql} WHERE "${statement.primaryColumnName}" = $${statement.params.length} RETURNING ${returned}) SELECT ${returned} FROM "updated"`;
+
+    const result: unknown = await this.getRepository().manager.query(
+      sql,
+      statement.params,
+    );
+
+    const row: unknown = Array.isArray(result) ? result[0] : undefined;
+
+    if (!row || typeof row !== "object" || Array.isArray(row)) {
+      return null;
+    }
+
+    const values: Partial<Record<keyof TBaseModel, number>> = {};
+
+    for (const column of statement.addedColumns) {
+      const value: unknown = (row as Record<string, unknown>)[
+        column.databaseName
+      ];
+
+      // A bigint or numeric column comes back from the driver as text.
+      const parsed: number = typeof value === "number" ? value : Number(value);
+
+      if (value === null || value === undefined || !Number.isFinite(parsed)) {
+        throw new BadDataException(
+          `${methodName}: "${column.propertyName}" did not return a number`,
+        );
+      }
+
+      values[column.propertyName as keyof TBaseModel] = parsed;
+    }
+
+    return values;
+  }
+
+  /*
+   * The SET clause and parameters of an atomic add to one row by id, the id
+   * bound last. Null when there is nothing to add or set. `methodName` is
+   * the public method the errors are reported under.
+   */
+  private buildAtomicAddStatement(
+    input: {
+      id: ObjectID;
+      add: Partial<Record<keyof TBaseModel, number>>;
+      set?: PartialEntity<TBaseModel> | undefined;
+    },
+    methodName: string,
+  ): AtomicAddStatement | null {
     if (!input.id) {
       throw new BadDataException("id is required");
     }
@@ -6827,6 +6942,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     const setClauses: Array<string> = [];
     const params: Array<unknown> = [];
+    const addedColumns: Array<{ propertyName: string; databaseName: string }> =
+      [];
 
     const columnFor: (propertyName: string) => ColumnMetadata = (
       propertyName: string,
@@ -6835,7 +6952,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         metadata.findColumnWithPropertyName(propertyName);
       if (!column) {
         throw new BadDataException(
-          `atomicAddToColumnsByIdWithoutHooks: unknown column "${propertyName}" on "${metadata.tableName}"`,
+          `${methodName}: unknown column "${propertyName}" on "${metadata.tableName}"`,
         );
       }
       return column;
@@ -6846,7 +6963,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     )) {
       if (typeof delta !== "number" || !Number.isFinite(delta)) {
         throw new BadDataException(
-          `atomicAddToColumnsByIdWithoutHooks: "${propertyName}" delta must be a finite number`,
+          `${methodName}: "${propertyName}" delta must be a finite number`,
         );
       }
 
@@ -6854,6 +6971,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       params.push(delta);
       const quoted: string = `"${column.databaseName}"`;
       setClauses.push(`${quoted} = COALESCE(${quoted}, 0) + $${params.length}`);
+      addedColumns.push({
+        propertyName: propertyName,
+        databaseName: column.databaseName,
+      });
     }
 
     // Shallow copy — never mutate the caller's object. See the clamp note above.
@@ -6864,7 +6985,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     for (const [propertyName, value] of Object.entries(set)) {
       if (typeof value === "function") {
         throw new BadDataException(
-          `atomicAddToColumnsByIdWithoutHooks: SQL-expression values are not supported (column "${propertyName}"); pass a literal value.`,
+          `${methodName}: SQL-expression values are not supported (column "${propertyName}"); pass a literal value.`,
         );
       }
 
@@ -6874,7 +6995,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     if (setClauses.length === 0) {
-      return;
+      return null;
     }
 
     if (metadata.updateDateColumn) {
@@ -6887,11 +7008,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       metadata.primaryColumns[0]?.databaseName || "_id";
     params.push(input.id.toString());
 
-    const sql: string = `UPDATE "${metadata.tableName}" SET ${setClauses.join(
-      ", ",
-    )} WHERE "${primaryColumnName}" = $${params.length}`;
-
-    await repository.manager.query(sql, params);
+    return {
+      tableName: metadata.tableName,
+      primaryColumnName: primaryColumnName,
+      setSql: setClauses.join(", "),
+      params: params,
+      addedColumns: addedColumns,
+    };
   }
 
   /*

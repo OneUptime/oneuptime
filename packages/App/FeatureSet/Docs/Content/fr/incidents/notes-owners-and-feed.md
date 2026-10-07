@@ -142,6 +142,7 @@ Les éléments de fil sont écrits par le service d'incident lui-même, par les 
 - **Les personnes** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`.
 - **Les notifications** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
 - **L'automatisation** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
+- **Les appels vidéo** — `VideoCallStarted` et `VideoCallFailed` : un appel lancé pour l'incident, avec son lien pour le rejoindre, ou la raison pour laquelle un fournisseur n'a pas pu en lancer un. Voir [Appels vidéo](/docs/workspace-connections/video-calls).
 
 Chaque type a sa propre icône : vous pouvez donc parcourir un long fil et repérer les changements d'état au milieu du bavardage. L'analyse de cause racine générée par IA est signalée distinctement et affichée dans un mode Markdown restreint.
 

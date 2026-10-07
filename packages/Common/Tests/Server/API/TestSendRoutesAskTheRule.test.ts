@@ -167,6 +167,12 @@ const KNOWN_TEST_ROUTES: ReadonlyArray<KnownTestRoute> = [
     why: "Reads from a security event source; sends nobody a message.",
   },
   {
+    file: "packages/Common/Server/API/VideoCallConnectionAPI.ts",
+    path: "/test",
+    rule: "check",
+    why: "Starts a test meeting at a video call provider; sends nobody a message.",
+  },
+  {
     file: "packages/Common/Server/API/KubernetesClusterAiAccessAPI.ts",
     path: "/kubernetes-cluster/ai-access/test",
     rule: "check",

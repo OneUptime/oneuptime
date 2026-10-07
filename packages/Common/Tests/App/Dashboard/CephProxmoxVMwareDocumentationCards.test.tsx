@@ -325,6 +325,42 @@ describe("the Ceph, Proxmox and VMware setup guide cards", () => {
       );
     });
 
+    test("offers the install without Docker, which writes the key into a .env for systemd and starts the service", async () => {
+      mockKeys([makeKey()]);
+      const container: HTMLElement = renderElement(
+        <VMwareDocumentationCard
+          title="Getting Started with VMware Monitoring"
+          description="No vCenters connected yet."
+        />,
+      );
+
+      expect(radioNames()).toEqual([
+        expect.stringMatching(/^Install scriptRecommended/),
+        expect.stringMatching(/^Docker Compose/),
+        expect.stringMatching(/^Without Docker/),
+      ]);
+      await waitForKey(container);
+
+      fireEvent.click(radio("Without Docker"));
+
+      expect(container.textContent).toContain(
+        `ONEUPTIME_TELEMETRY_INGESTION_KEY=${SECRET}\nVMWARE_VCENTER_NAME=my-vcenter`,
+      );
+      expect(container.textContent).toContain(
+        'VCENTER_USERNAME="oneuptime@vsphere.local"',
+      );
+      expect(container.textContent).toContain(
+        "sudo systemctl enable oneuptime-vmware-agent",
+      );
+      expect(container.textContent).toContain(
+        "otelcol-contrib_${VERSION}_linux_${ARCH}.tar.gz",
+      );
+      expect(container.textContent).not.toContain("docker compose up -d\n");
+      expect(container.textContent).not.toContain(
+        SETUP_GUIDE_API_KEY_PLACEHOLDER,
+      );
+    });
+
     test("the read-only user step shows its tabs", async () => {
       mockKeys([makeKey()]);
       const container: HTMLElement = renderElement(
@@ -353,6 +389,15 @@ describe("the Ceph, Proxmox and VMware setup guide cards", () => {
 
       expect(container.textContent).toContain(
         "VMWARE_VCENTER_NAME=vcenter-prod",
+      );
+
+      fireEvent.click(radio("Without Docker"));
+
+      expect(container.textContent).toContain(
+        "VMWARE_VCENTER_NAME=vcenter-prod",
+      );
+      expect(container.textContent).toContain(
+        "This installs the agent for **`vcenter-prod`**",
       );
     });
   });

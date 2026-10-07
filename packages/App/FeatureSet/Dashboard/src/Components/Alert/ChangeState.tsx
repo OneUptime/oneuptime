@@ -79,6 +79,11 @@ export interface ComponentProps {
   aiInvestigationVerdict?: AIRunHumanVerdict | null | undefined;
   // Context shown under the header pills ("Created", "Monitor", "Episode").
   facts?: Array<EventStatusFact> | undefined;
+  /*
+   * Actions beside the state actions that change no state - Join call, when
+   * the alert has a video call - after Declare incident.
+   */
+  secondaryActions?: Array<EventPanelAction> | undefined;
 }
 
 /*
@@ -464,9 +469,10 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
   const declareIncidentAction: EventPanelAction | null =
     getDeclareIncidentFromAlertAction(props.alertId);
 
-  const secondaryActions: Array<EventPanelAction> = declareIncidentAction
-    ? [declareIncidentAction]
-    : [];
+  const secondaryActions: Array<EventPanelAction> = [
+    ...(declareIncidentAction ? [declareIncidentAction] : []),
+    ...(props.secondaryActions || []),
+  ];
 
   /*
    * Acknowledging it: a move into the project's acknowledged state while it

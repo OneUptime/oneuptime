@@ -533,6 +533,10 @@ describe("User Settings lists the connected workspaces, or none at all", () => {
  * Project Settings is where a workspace is connected (or disconnected), so
  * both stay listed there in every project: hiding the one not connected
  * would hide the only way to connect it.
+ *
+ * Video Calls follows them in every project too: a call started from an
+ * incident's page needs neither workspace, and its page is where Zoom,
+ * Google Meet and Microsoft Teams meetings are connected.
  */
 describe("Project Settings keeps both: it is where they are connected", () => {
   test.each([
@@ -541,7 +545,7 @@ describe("Project Settings keeps both: it is where they are connected", () => {
     [[WorkspaceType.MicrosoftTeams]],
     [[WorkspaceType.Slack, WorkspaceType.MicrosoftTeams]],
   ])(
-    "with %j connected, Workspace lists Slack and Microsoft Teams",
+    "with %j connected, Workspace lists Slack, Microsoft Teams and Video Calls",
     async (types: Array<WorkspaceType>) => {
       connect(...types);
       await renderAt(ProjectSettingsSideMenu, PageMap.SETTINGS);
@@ -551,6 +555,10 @@ describe("Project Settings keeps both: it is where they are connected", () => {
         {
           title: "Microsoft Teams",
           href: routeFor(PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION),
+        },
+        {
+          title: "Video Calls",
+          href: routeFor(PageMap.SETTINGS_VIDEO_CALLS),
         },
       ]);
     },

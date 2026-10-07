@@ -106,6 +106,19 @@ export const PROJECT_BALANCE_SETTINGS_PATH: Readonly<
   [ProjectBalanceType.AI]: "settings/ai-credits",
 };
 
+/*
+ * Where the page that holds each balance asks what its Auto Recharge would
+ * do now (AutoRechargeState: Off, Ready, or Failed - its last automatic
+ * charge did not go through), under the API's own route. Any member of the
+ * project may ask (Server/Utils/Billing/AutoRechargeStateRequest).
+ */
+export const PROJECT_BALANCE_AUTO_RECHARGE_STATE_ROUTE: Readonly<
+  Record<ProjectBalanceType, string>
+> = {
+  [ProjectBalanceType.SmsOrCall]: "/notification/auto-recharge-state",
+  [ProjectBalanceType.AI]: "/ai/auto-recharge-state",
+};
+
 // What is added to each balance, in a sentence.
 const WHAT_IS_ADDED: Readonly<Record<ProjectBalanceType, string>> = {
   [ProjectBalanceType.SmsOrCall]: "balance",

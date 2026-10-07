@@ -187,6 +187,31 @@ describe("an SMS the Notification service does not send", () => {
     jest
       .spyOn(ProjectService, "sendEmailToProjectOwners")
       .mockResolvedValue(undefined as never);
+    /*
+     * The owners' low-balance email is claimed in one statement
+     * (ProjectService.claimSmsOrCallLowBalanceNotice): the first message to
+     * find the balance used up wins it. A message's cost is taken in one
+     * statement too (deductSmsOrCallBalanceInUSDCents). Both act on the
+     * project row here.
+     */
+    jest
+      .spyOn(ProjectService, "claimSmsOrCallLowBalanceNotice")
+      .mockImplementation((() => {
+        if (project!.lowCallAndSMSBalanceNotificationSentToOwners) {
+          return Promise.resolve(false);
+        }
+
+        project!.lowCallAndSMSBalanceNotificationSentToOwners = true;
+        return Promise.resolve(true);
+      }) as never);
+    jest
+      .spyOn(ProjectService, "deductSmsOrCallBalanceInUSDCents")
+      .mockImplementation(((data: { amountInUSDCents: number }) => {
+        project!.smsOrCallCurrentBalanceInUSDCents =
+          (project!.smsOrCallCurrentBalanceInUSDCents || 0) -
+          data.amountInUSDCents;
+        return Promise.resolve(project!.smsOrCallCurrentBalanceInUSDCents);
+      }) as never);
     jest
       .spyOn(NotificationService, "rechargeIfBalanceIsLow")
       .mockImplementation((() => {

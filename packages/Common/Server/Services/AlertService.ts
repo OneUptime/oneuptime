@@ -92,6 +92,7 @@ import AlertReminderRule from "../../Models/DatabaseModels/AlertReminderRule";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import AlertWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Alert";
+import VideoCallRuleExecutor from "../Utils/VideoCall/VideoCallRuleExecutor";
 import ServiceLevelObjective from "../../Models/DatabaseModels/ServiceLevelObjective";
 import MonitorService from "./MonitorService";
 import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
@@ -1165,6 +1166,28 @@ export class Service extends ProjectReferencesService<Model> {
             } as LogAttributes,
           );
           return Promise.resolve(); // Continue chain even on error
+        }
+      })
+      .then(() => {
+        /*
+         * The video calls the workspace rules ask for, posted after "Alert
+         * Created" in the channels the rules just created. Not waited on: a
+         * meeting provider that is slow to answer must never hold up paging
+         * the on-call below. No call for an alert created resolved.
+         */
+        if (createdItem.projectId && createdItem.id && isOngoing) {
+          VideoCallRuleExecutor.startCallsForAlert({
+            projectId: createdItem.projectId,
+            alertId: createdItem.id,
+          }).catch((error: unknown) => {
+            logger.error(
+              `Starting video calls failed in AlertService.onCreateSuccess: ${error}`,
+              {
+                projectId: createdItem.projectId?.toString(),
+                alertId: createdItem.id?.toString(),
+              } as LogAttributes,
+            );
+          });
         }
       })
       .then(async () => {

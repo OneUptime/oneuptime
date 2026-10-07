@@ -81,6 +81,15 @@ import MonitorTemplateAPI from "Common/Server/API/MonitorTemplateAPI";
 import ShortLinkAPI from "Common/Server/API/ShortLinkAPI";
 import StatusPageAPI from "Common/Server/API/StatusPageAPI";
 import WorkspaceNotificationRuleAPI from "Common/Server/API/WorkspaceNotificationRuleAPI";
+import VideoCallConnectionAPI from "Common/Server/API/VideoCallConnectionAPI";
+import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
+import IncidentVideoCallService, {
+  Service as IncidentVideoCallServiceType,
+} from "Common/Server/Services/IncidentVideoCallService";
+import AlertVideoCall from "Common/Models/DatabaseModels/AlertVideoCall";
+import AlertVideoCallService, {
+  Service as AlertVideoCallServiceType,
+} from "Common/Server/Services/AlertVideoCallService";
 import WorkspaceNotificationSummaryAPI from "Common/Server/API/WorkspaceNotificationSummaryAPI";
 import DashboardAPI from "Common/Server/API/DashboardAPI";
 import DashboardDomainAPI from "Common/Server/API/DashboardDomainAPI";
@@ -5261,6 +5270,24 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new WorkspaceNotificationRuleAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new VideoCallConnectionAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncidentVideoCall, IncidentVideoCallServiceType>(
+        IncidentVideoCall,
+        IncidentVideoCallService,
+      ).getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertVideoCall, AlertVideoCallServiceType>(
+        AlertVideoCall,
+        AlertVideoCallService,
+      ).getRouter(),
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

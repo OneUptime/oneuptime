@@ -8,22 +8,33 @@ import {
   codeBlock,
   resolveSetupGuideOption,
   shellQuote,
+  systemdEnvQuote,
 } from "../../../Components/SetupGuide/SetupGuide";
+import { VMWARE_AGENT_VERSION } from "../../../Components/AgentVersion/AgentKind";
 
 /*
  * The in-app install guide for the OneUptime VMware agent
  * (agents/VMwareAgent): a stock OpenTelemetry collector whose native
  * `vcenter` receiver polls vCenter (or a standalone ESXi host) with a
- * read-only user, plus the OneUptime AI agent next to it. The guide asks how
- * to install it and shows only that path.
+ * read-only user. The guide asks how to install it and shows only that path:
  *
- * The compose file and the collector config below are the REAL files
- * shipped in agents/VMwareAgent, copied verbatim; VMwareSetupGuide.test.ts
- * fails when either drifts. The `.env` block interpolates the reader's
- * OneUptime URL and the ingestion key they picked.
+ *   - the install script or Docker Compose run the collector in a container,
+ *     with the OneUptime AI agent next to it;
+ *   - without Docker, the same collector — the upstream otelcol-contrib
+ *     release the agent pins, with the same config — runs as a systemd
+ *     service on a Linux machine. The AI agent ships only as a container
+ *     image, so that install has none.
+ *
+ * The compose file, the collector config and the systemd unit below are
+ * the REAL files shipped in agents/VMwareAgent, copied verbatim;
+ * VMwareSetupGuide.test.ts fails when any of them drifts. The `.env` blocks
+ * interpolate the reader's OneUptime URL and the ingestion key they picked.
  */
 
-export type VMwareInstallMethod = "install-script" | "docker-compose";
+export type VMwareInstallMethod =
+  | "install-script"
+  | "docker-compose"
+  | "linux-service";
 
 export const VMWARE_INSTALL_METHODS: Array<
   SetupGuideOption<VMwareInstallMethod>
@@ -40,6 +51,12 @@ export const VMWARE_INSTALL_METHODS: Array<
     label: "Docker Compose",
     description:
       "Download two files, write a .env file and start the agent yourself.",
+  },
+  {
+    key: "linux-service",
+    label: "Without Docker",
+    description:
+      "Run the collector as a systemd service on Linux: no Docker, no containers.",
   },
 ];
 
@@ -68,6 +85,29 @@ export const VMWARE_AI_AGENT_CONTAINER: string = "oneuptime-vmware-ai-agent";
 
 // The name the guide suggests when it is not installing for a known vCenter.
 export const VMWARE_EXAMPLE_VCENTER_NAME: string = "my-vcenter";
+
+/*
+ * The install without Docker: the otelcol-contrib release the agent pins,
+ * from the collector's own releases, run by systemd with the unit
+ * agents/VMwareAgent ships for it. The unit is installed under the
+ * service's name, and reads the agent's settings from a .env file in the
+ * install directory — the variables the Docker install's .env holds.
+ */
+export const VMWARE_COLLECTOR_RELEASES_URL: string =
+  "https://github.com/open-telemetry/opentelemetry-collector-releases/releases";
+export const VMWARE_AGENT_NATIVE_UNIT_FILE: string =
+  "systemd/oneuptime-vmware-agent-native.service";
+export const VMWARE_AGENT_SERVICE: string = "oneuptime-vmware-agent";
+export const VMWARE_AGENT_SERVICE_UNIT_PATH: string = `/etc/systemd/system/${VMWARE_AGENT_SERVICE}.service`;
+export const VMWARE_AGENT_NATIVE_ENV_FILE: string = `${VMWARE_AGENT_INSTALL_DIR}/.env`;
+
+/*
+ * Where the service serves the collector's own metrics: not the usual
+ * localhost:8888, which another collector on the same machine may hold
+ * (the unit says why).
+ */
+export const VMWARE_AGENT_NATIVE_SELF_METRICS_URL: string =
+  "http://127.0.0.1:8890/metrics";
 
 // agents/VMwareAgent/docker-compose.yml, verbatim.
 export const VMWARE_AGENT_COMPOSE_FILE: string = `services:
@@ -255,7 +295,8 @@ export const VMWARE_AGENT_COLLECTOR_CONFIG: string = `receivers:
   # because it needs a listening port published on this machine. To
   # enable it:
   #   1. Uncomment the \`syslog\` receiver below, the \`logs\` pipeline at the
-  #      bottom of this file, and the port mapping in docker-compose.yml.
+  #      bottom of this file and, in a Docker install, the port mapping in
+  #      docker-compose.yml (without Docker the collector listens directly).
   #   2. On every ESXi host set Syslog.global.logHost (Host → Configure →
   #      System → Advanced System Settings) to udp://<agent-host>:5514 or
   #      tcp://<agent-host>:5514, and open the outbound syslog firewall
@@ -341,6 +382,148 @@ service:
     #   exporters: [otlphttp]
 `;
 
+// agents/VMwareAgent/systemd/oneuptime-vmware-agent-native.service, verbatim.
+export const VMWARE_AGENT_NATIVE_UNIT: string = `# The OneUptime VMware agent without Docker: the upstream otelcol-contrib
+# release, run by systemd with the agent's otel-collector-config.yaml. It is
+# installed as /etc/systemd/system/oneuptime-vmware-agent.service, next to the
+# files in /opt/oneuptime-vmware-agent (README.md, "Quick Start — Without
+# Docker"). The Docker install runs oneuptime-vmware-agent.service, beside
+# this file, instead: run one of the two, never both, or every metric of the
+# vCenter arrives twice.
+[Unit]
+Description=OneUptime VMware Agent (OpenTelemetry Collector, without Docker)
+Documentation=https://oneuptime.com/docs/telemetry/vmware
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# The defaults docker-compose.yml gives these three. .env overrides them.
+Environment=VMWARE_VCENTER_NAME=vmware-vcenter
+Environment=VCENTER_INSECURE_SKIP_VERIFY=false
+Environment=VCENTER_COLLECTION_INTERVAL=2m
+# The agent's settings: the variables the Docker install keeps in its .env.
+# Root's alone (mode 0600): systemd reads it before the collector starts, and
+# the collector never opens it.
+EnvironmentFile=/opt/oneuptime-vmware-agent/.env
+# The collector serves its own metrics on localhost:8888 unless told
+# otherwise, and so does every other OpenTelemetry Collector — the host
+# collector OneUptime suggests for this machine among them. Whichever starts
+# second fails ("bind: address already in use") and restarts forever, so this
+# one serves them on 127.0.0.1:8890 instead.
+ExecStart=/opt/oneuptime-vmware-agent/otelcol-contrib --config=/opt/oneuptime-vmware-agent/otel-collector-config.yaml "--set=service::telemetry::metrics::readers=[{pull: {exporter: {prometheus: {host: 127.0.0.1, port: 8890}}}}]"
+Restart=always
+RestartSec=10
+TimeoutStopSec=30
+# The collector only talks to vCenter and to OneUptime, so it runs as a
+# throwaway unprivileged user that can write nowhere and holds no
+# capabilities. The optional syslog listener needs none either: port 5514
+# is above 1024.
+DynamicUser=yes
+CapabilityBoundingSet=
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+
+[Install]
+WantedBy=multi-user.target
+`;
+
+/*
+ * The install without Docker, in the order the guide runs it.
+ *
+ * The first block downloads the collector release the agent pins, the
+ * config and the unit into a scratch folder, then installs them with
+ * explicit modes — the binary keeps the release archive's 0755 — as the
+ * collector runs as a throwaway user, which must be able to read them
+ * whatever root's umask is. tar replaces the binary even while the service
+ * runs it, so running the block again, and restarting, is also the upgrade.
+ */
+export function getVMwareNativeInstallCommand(): string {
+  return `cd "$(mktemp -d)"
+VERSION=${VMWARE_AGENT_VERSION}   # the collector release the agent pins
+ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+curl -fL -o otelcol-contrib.tar.gz \\
+  ${VMWARE_COLLECTOR_RELEASES_URL}/download/v\${VERSION}/otelcol-contrib_\${VERSION}_linux_\${ARCH}.tar.gz
+curl -fsSLO ${VMWARE_AGENT_RAW_URL}/otel-collector-config.yaml
+curl -fsSL -o ${VMWARE_AGENT_SERVICE}.service \\
+  ${VMWARE_AGENT_RAW_URL}/${VMWARE_AGENT_NATIVE_UNIT_FILE}
+
+sudo install -d -m 0755 ${VMWARE_AGENT_INSTALL_DIR}
+sudo tar --no-same-owner --preserve-permissions -xzf otelcol-contrib.tar.gz -C ${VMWARE_AGENT_INSTALL_DIR} otelcol-contrib
+sudo install -m 0644 otel-collector-config.yaml ${VMWARE_AGENT_INSTALL_DIR}/otel-collector-config.yaml
+sudo install -m 0644 ${VMWARE_AGENT_SERVICE}.service ${VMWARE_AGENT_SERVICE_UNIT_PATH}`;
+}
+
+/*
+ * The settings file holds a password: it is made root's alone before it is
+ * opened. touch, not a truncating write, so running this again keeps what
+ * is in it.
+ */
+export const VMWARE_NATIVE_ENV_FILE_COMMAND: string = `sudo touch ${VMWARE_AGENT_NATIVE_ENV_FILE}
+sudo chmod 600 ${VMWARE_AGENT_NATIVE_ENV_FILE}
+sudoedit ${VMWARE_AGENT_NATIVE_ENV_FILE}`;
+
+/**
+ * The `.env` file of an install without Docker: the variables of the Docker
+ * install's, for systemd. The user name and the password are double-quoted:
+ * that is the one form every systemd version reads the same, a backslash
+ * (`DOMAIN\\user`) included — see systemdEnvQuote.
+ */
+export function getVMwareNativeEnvFile(data: {
+  oneuptimeUrl: string;
+  apiKey: string;
+  vcenterName: string;
+}): string {
+  return `ONEUPTIME_URL=${data.oneuptimeUrl}
+ONEUPTIME_TELEMETRY_INGESTION_KEY=${data.apiKey}
+VMWARE_VCENTER_NAME=${systemdEnvQuote(data.vcenterName)}
+VCENTER_ENDPOINT=https://vcsa.example.com
+VCENTER_USERNAME="oneuptime@vsphere.local"
+VCENTER_PASSWORD="a-strong-password"
+VCENTER_INSECURE_SKIP_VERIFY=true
+VCENTER_COLLECTION_INTERVAL=2m`;
+}
+
+/*
+ * restart, not enable --now: a service that already runs only picks up a
+ * new binary, config or .env when it starts again.
+ */
+export const VMWARE_NATIVE_START_COMMAND: string = `sudo systemctl daemon-reload
+sudo systemctl enable ${VMWARE_AGENT_SERVICE}
+sudo systemctl restart ${VMWARE_AGENT_SERVICE}`;
+
+export const VMWARE_NATIVE_RESTART_COMMAND: string = `sudo systemctl restart ${VMWARE_AGENT_SERVICE}`;
+
+export const VMWARE_NATIVE_STATUS_COMMAND: string = `systemctl status ${VMWARE_AGENT_SERVICE} --no-pager`;
+
+export const VMWARE_NATIVE_LOGS_COMMAND: string = `sudo journalctl -u ${VMWARE_AGENT_SERVICE} -f`;
+
+/*
+ * The upgrade without Docker: the install's download and install again —
+ * the release the agent pins, the latest config and unit; .env stays —
+ * then the service restarted on them. The guide's "Upgrade or uninstall the
+ * agent" topic and the dialog beside an outdated agent version show it.
+ */
+export function getVMwareNativeUpgradeCommand(): string {
+  return `${getVMwareNativeInstallCommand()}
+sudo systemctl daemon-reload
+${VMWARE_NATIVE_RESTART_COMMAND}`;
+}
+
+export const VMWARE_NATIVE_UNINSTALL_COMMAND: string = `sudo systemctl disable --now ${VMWARE_AGENT_SERVICE}
+sudo rm ${VMWARE_AGENT_SERVICE_UNIT_PATH}
+sudo systemctl daemon-reload
+sudo rm -r ${VMWARE_AGENT_INSTALL_DIR}`;
+
 export interface VMwareSetupGuideOptions {
   oneuptimeUrl: string;
   apiKey: string;
@@ -400,9 +583,11 @@ export function getVMwareInstallScriptCommand(data: {
  * recreates the containers. A Docker Compose install downloads the two
  * files itself and recreates the containers: Compose recreates a container
  * for a new image or environment, never for a new config file, and the
- * collector reads its config only when it starts. The guide's "Upgrade or
- * uninstall the agent" topic and the dialog beside an outdated agent
- * version (Components/AgentVersion) both show these.
+ * collector reads its config only when it starts. An install without
+ * Docker downloads the release and the files again and restarts the service
+ * (getVMwareNativeUpgradeCommand). The guide's "Upgrade or uninstall the
+ * agent" topic and the dialog beside an outdated agent version
+ * (Components/AgentVersion) both show these.
  */
 export function getVMwareAgentUpgradeCommand(): string {
   return getVMwareInstallScriptCommand({
@@ -448,10 +633,16 @@ function isPrefilled(context: GuideContext): boolean {
   );
 }
 
+// The install without Docker: a systemd service, with no compose file.
+function isLinuxService(method: VMwareInstallMethod): boolean {
+  return method === "linux-service";
+}
+
 /*
  * Commands that run in the agent's folder: install.sh installs into
  * /opt/oneuptime-vmware-agent by default, a Compose install lives wherever
- * the reader put it.
+ * the reader put it. (An install without Docker runs none: its commands
+ * name the service, from anywhere.)
  */
 function inAgentFolder(
   method: VMwareInstallMethod,
@@ -469,9 +660,28 @@ function agentFolder(method: VMwareInstallMethod): string {
     : "the folder with `docker-compose.yml`";
 }
 
-function getPrerequisites(): Array<string> {
+/*
+ * How a changed setting or config reaches the collector, which reads both
+ * only when it starts: Compose recreates it, systemd restarts it.
+ */
+function applyChange(method: VMwareInstallMethod): string {
+  return isLinuxService(method)
+    ? `apply it with \`${VMWARE_NATIVE_RESTART_COMMAND}\``
+    : `apply it with \`docker compose up -d\` in ${agentFolder(method)}`;
+}
+
+/*
+ * Where the agent runs: next to Docker, or — without it — on any Linux
+ * machine whose systemd has DynamicUser= (235: Ubuntu 18.04, Debian 10,
+ * RHEL 8), which the unit runs the collector with.
+ */
+function getPrerequisites(method: VMwareInstallMethod): Array<string> {
+  const machine: string = isLinuxService(method)
+    ? "A Linux machine (x86_64 or arm64) with systemd 235 or later — Ubuntu 18.04, Debian 10, RHEL 8 or newer — and `sudo`, that can reach vCenter over HTTPS (TCP 443) — ideally not a VM on the cluster it watches"
+    : "Docker Engine 20.10+ with the Docker Compose v2 plugin, on a machine that can reach vCenter over HTTPS (TCP 443) — ideally not a VM on the cluster it watches";
+
   return [
-    "Docker Engine 20.10+ with the Docker Compose v2 plugin, on a machine that can reach vCenter over HTTPS (TCP 443) — ideally not a VM on the cluster it watches",
+    machine,
     "vCenter Server or ESXi **7.0 or later** (the collector's `vcenter` receiver supports vSphere 7 and 8)",
     "One agent per vCenter Server, or per standalone ESXi host that no vCenter manages",
   ];
@@ -601,7 +811,87 @@ Pick an ingestion key in step 1 to fill in \`${SETUP_GUIDE_API_KEY_PLACEHOLDER}\
   };
 }
 
+function getLinuxServiceStep(context: GuideContext): SetupGuideStep {
+  const nameNote: string = context.isVCenterNameKnown
+    ? `This installs the agent for **\`${context.vcenterName}\`** — keep \`VMWARE_VCENTER_NAME\` exactly as it is, or the data registers as a new vCenter.`
+    : `Replace \`${context.vcenterName}\` with a name for this vCenter, such as \`vcenter-prod\`. It is how the vCenter appears in OneUptime, so keep it stable: a new name registers a new vCenter.`;
+
+  const notes: Array<string> = [
+    nameNote,
+    "Set `VCENTER_ENDPOINT` to the scheme and host of your vCenter, or of a standalone ESXi host, **without** `/sdk`.",
+    'Keep the user name and the password in double quotes, with each `\\` written `\\\\` and each `"` written `\\"` — `DOMAIN\\user` is `"DOMAIN\\\\user"` — while `$`, `#`, `\'` and spaces go in as they are. systemd reads this file, not a shell, and this is the form every systemd version reads the same: older ones (RHEL 8\'s, for one) drop a backslash even inside single quotes.',
+    "`VCENTER_INSECURE_SKIP_VERIFY=true` accepts vCenter's default self-signed (VMCA) certificate.",
+  ];
+
+  return {
+    title: "Install the agent",
+    description:
+      "Download the collector and its files, write the agent's settings and start it as a systemd service.",
+    markdown: `Run these on the Linux machine that will host the agent. They download \`otelcol-contrib\` ${VMWARE_AGENT_VERSION} — the release of the upstream OpenTelemetry Collector the agent pins — with the agent's \`otel-collector-config.yaml\` and its systemd unit from the [VMwareAgent directory](${VMWARE_AGENT_SOURCE_URL}), and install them to \`${VMWARE_AGENT_INSTALL_DIR}\`:
+
+${codeBlock("bash", getVMwareNativeInstallCommand())}
+
+The agent's settings go in \`${VMWARE_AGENT_NATIVE_ENV_FILE}\`. It holds a password, so make it readable by root alone, then open it (\`sudoedit\` uses your \`$EDITOR\`):
+
+${codeBlock("bash", VMWARE_NATIVE_ENV_FILE_COMMAND)}
+
+Put this in it:
+
+${codeBlock(
+  "bash",
+  getVMwareNativeEnvFile({
+    oneuptimeUrl: context.oneuptimeUrl,
+    apiKey: context.apiKey,
+    vcenterName: context.vcenterName,
+  }),
+)}
+
+${notes
+  .map((note: string): string => {
+    return `- ${note}`;
+  })
+  .join("\n")}
+
+Then start the agent, and have it start on every boot:
+
+${codeBlock("bash", VMWARE_NATIVE_START_COMMAND)}
+
+systemd runs the collector as a throwaway unprivileged user, with no capabilities and nothing it can write to. This install runs the collector alone: the OneUptime AI agent ships only as a container image — see **OneUptime AI agent** under Advanced.${
+      context.apiKey === SETUP_GUIDE_API_KEY_PLACEHOLDER
+        ? `
+
+Pick an ingestion key in step 1 to fill in \`${SETUP_GUIDE_API_KEY_PLACEHOLDER}\`.`
+        : ""
+    }`,
+  };
+}
+
+function getInstallStep(context: GuideContext): SetupGuideStep {
+  switch (context.method) {
+    case "install-script":
+      return getInstallScriptStep(context);
+    case "docker-compose":
+      return getDockerComposeStep(context);
+    case "linux-service":
+      return getLinuxServiceStep(context);
+  }
+}
+
 function getVerifyStep(context: GuideContext): SetupGuideStep {
+  if (isLinuxService(context.method)) {
+    return {
+      title: "Verify the installation",
+      description:
+        "Check that the collector is running, then give it one collection interval.",
+      markdown: `${codeBlock(
+        "bash",
+        `${VMWARE_NATIVE_STATUS_COMMAND}\n${VMWARE_NATIVE_LOGS_COMMAND}`,
+      )}
+
+The service should be \`active (running)\`. Look for \`Everything is ready. Begin running and processing data.\` in the log — then give it one collection interval (2 minutes by default): nothing is sent until the first full inventory walk completes. The vCenter then appears automatically in the **VMware** section, with its datacenters, clusters, ESXi hosts, virtual machines, datastores and resource pools inventoried.`,
+    };
+  }
+
   return {
     title: "Verify the installation",
     description:
@@ -623,20 +913,34 @@ Look for \`Everything is ready. Begin running and processing data.\` in the logs
 }
 
 function getEnvironmentVariablesTopic(context: GuideContext): SetupGuideTopic {
-  const where: string =
-    context.method === "install-script"
-      ? `The install script writes these to \`${VMWARE_AGENT_INSTALL_DIR}/.env\`.`
-      : "The agent reads these from the `.env` file next to `docker-compose.yml`.";
+  const linuxService: boolean = isLinuxService(context.method);
 
-  const quoting: string =
-    context.method === "install-script"
-      ? "(the install script does this for you)"
-      : "— see **vCenter rejects the login** under Troubleshooting";
+  let where: string =
+    "The agent reads these from the `.env` file next to `docker-compose.yml`.";
+  if (context.method === "install-script") {
+    where = `The install script writes these to \`${VMWARE_AGENT_INSTALL_DIR}/.env\`.`;
+  } else if (linuxService) {
+    where = `The service reads these from \`${VMWARE_AGENT_NATIVE_ENV_FILE}\`, the defaults included: its systemd unit sets them when the file leaves them out.`;
+  }
+
+  let password: string =
+    "That user's password. If it contains `$`, `#`, spaces or quotes, single-quote it in `.env` — see **vCenter rejects the login** under Troubleshooting";
+  if (context.method === "install-script") {
+    password =
+      "That user's password. If it contains `$`, `#`, spaces or quotes, single-quote it in `.env` (the install script does this for you)";
+  } else if (linuxService) {
+    password =
+      'That user\'s password, double-quoted in `.env` with each `\\` written `\\\\` and each `"` written `\\"`, the form every systemd version reads as typed — see **vCenter rejects the login** under Troubleshooting';
+  }
+
+  const userQuoting: string = linuxService
+    ? ", double-quoted in `.env` with each `\\` written `\\\\`"
+    : "";
 
   return {
     title: "Environment variables",
     summary: "Every setting the collector reads from its .env file.",
-    markdown: `${where} After changing one, apply it with \`docker compose up -d\` in ${agentFolder(context.method)}.
+    markdown: `${where} After changing one, ${applyChange(context.method)}.
 
 | Variable | Required | Description |
 |----------|----------|-------------|
@@ -644,16 +948,37 @@ function getEnvironmentVariablesTopic(context: GuideContext): SetupGuideTopic {
 | \`ONEUPTIME_TELEMETRY_INGESTION_KEY\` | Yes | Telemetry ingestion key — the one picked in step 1 |
 | \`VMWARE_VCENTER_NAME\` | Yes | The name this vCenter registers under in OneUptime. Stamped on every metric as the \`vmware.vcenter.name\` resource attribute. Keep it stable — changing it registers a new vCenter (default: \`vmware-vcenter\`) |
 | \`VCENTER_ENDPOINT\` | Yes | Scheme + host of vCenter Server or a standalone ESXi host, **without** \`/sdk\`, e.g. \`https://vcsa.example.com\` |
-| \`VCENTER_USERNAME\` | Yes | vSphere user with the Read-Only role, e.g. \`oneuptime@vsphere.local\` (or \`DOMAIN\\user\` for an Active Directory identity source) |
-| \`VCENTER_PASSWORD\` | Yes | That user's password. If it contains \`$\`, \`#\`, spaces or quotes, single-quote it in \`.env\` ${quoting} |
+| \`VCENTER_USERNAME\` | Yes | vSphere user with the Read-Only role, e.g. \`oneuptime@vsphere.local\` (or \`DOMAIN\\user\` for an Active Directory identity source)${userQuoting} |
+| \`VCENTER_PASSWORD\` | Yes | ${password} |
 | \`VCENTER_INSECURE_SKIP_VERIFY\` | No | \`true\` to accept vCenter's default self-signed (VMCA) certificate; \`false\` keeps TLS verification on (default: \`false\`) |
-| \`VCENTER_COLLECTION_INTERVAL\` | No | How often the whole inventory is polled. Raise to \`5m\` or \`10m\` for very large vCenters (default: \`2m\`) |
+| \`VCENTER_COLLECTION_INTERVAL\` | No | How often the whole inventory is polled. Raise to \`5m\` or \`10m\` for very large vCenters (default: \`2m\`) |${
+      linuxService
+        ? ""
+        : `
 
-The OneUptime AI agent's own settings are under **OneUptime AI agent**.`,
+The OneUptime AI agent's own settings are under **OneUptime AI agent**.`
+    }`,
   };
 }
 
-function getConfigurationFilesTopic(): SetupGuideTopic {
+function getConfigurationFilesTopic(context: GuideContext): SetupGuideTopic {
+  const collectorConfig: string = `The \`resource\` processor stamps the \`vmware.vcenter.name\` attribute that registers the vCenter in OneUptime and that every VMware page, monitor and alert template scopes on — keep it in place if you customize the config. The \`batch\` processor deliberately has no \`send_batch_max_size\`: OneUptime reads a whole collection per request to sum inventory counts and infer VM power state, so a collection must never be split across exports:
+
+${codeBlock("yaml", VMWARE_AGENT_COLLECTOR_CONFIG)}`;
+
+  if (isLinuxService(context.method)) {
+    return {
+      title: "The agent's configuration files",
+      summary:
+        "The exact systemd unit and otel-collector-config.yaml the agent runs.",
+      markdown: `This is the systemd unit the agent runs, installed as \`${VMWARE_AGENT_SERVICE_UNIT_PATH}\` (\`${VMWARE_AGENT_NATIVE_ENV_FILE}\` supplies the values). It runs the collector as a throwaway unprivileged user with no capabilities, and serves the collector's own metrics on \`127.0.0.1:8890\` rather than the usual \`8888\`, so the agent runs beside another OpenTelemetry Collector on the same machine:
+
+${codeBlock("ini", VMWARE_AGENT_NATIVE_UNIT)}
+
+And the full \`otel-collector-config.yaml\`, in \`${VMWARE_AGENT_INSTALL_DIR}\` — the same file the Docker install runs. ${collectorConfig}`,
+    };
+  }
+
   return {
     title: "The agent's configuration files",
     summary:
@@ -662,9 +987,7 @@ function getConfigurationFilesTopic(): SetupGuideTopic {
 
 ${codeBlock("yaml", VMWARE_AGENT_COMPOSE_FILE)}
 
-And the full \`otel-collector-config.yaml\`. The \`resource\` processor stamps the \`vmware.vcenter.name\` attribute that registers the vCenter in OneUptime and that every VMware page, monitor and alert template scopes on — keep it in place if you customize the config. The \`batch\` processor deliberately has no \`send_batch_max_size\`: OneUptime reads a whole collection per request to sum inventory counts and infer VM power state, so a collection must never be split across exports:
-
-${codeBlock("yaml", VMWARE_AGENT_COLLECTOR_CONFIG)}`,
+And the full \`otel-collector-config.yaml\`. ${collectorConfig}`,
   };
 }
 
@@ -700,16 +1023,28 @@ function getPowerStateTopic(): SetupGuideTopic {
 }
 
 function getSyslogTopic(context: GuideContext): SetupGuideTopic {
+  /*
+   * A container needs the port published; a collector run by systemd
+   * listens on the machine itself, as its throwaway user (5514 needs no
+   * privilege).
+   */
+  const listen: string = isLinuxService(context.method)
+    ? `1. **Uncomment the two \`syslog/*\` receivers and the \`logs\` pipeline** in \`${VMWARE_AGENT_INSTALL_DIR}/otel-collector-config.yaml\` (\`sudoedit\` it).
+2. **Restart the agent** — the collector listens on this machine itself, so there is no port to publish — and open port 5514 (TCP and UDP) on the machine's firewall for the ESXi management network:
+
+${codeBlock("bash", VMWARE_NATIVE_RESTART_COMMAND)}`
+    : `1. **Uncomment the two \`syslog/*\` receivers and the \`logs\` pipeline** in \`otel-collector-config.yaml\`.
+2. **Uncomment the \`ports:\` block** in \`docker-compose.yml\`, then apply it — and open the port on the machine's firewall for the ESXi management network:
+
+${codeBlock("bash", inAgentFolder(context.method, ["docker compose up -d"]))}`;
+
   return {
     title: "Ship ESXi syslog",
     summary:
       "Receive syslog from your ESXi hosts on port 5514 to fill the vCenter's Logs tab.",
     markdown: `By default the agent ships **metrics only** — the Logs tab of the vCenter dashboard stays empty until you enable a log receiver. The shipped config contains a commented-out \`syslog\` receiver pair (TCP and UDP on port 5514, RFC 3164 — ESXi's native format) wired to a commented \`logs\` pipeline that stamps \`vmware.vcenter.name\` so the logs land on this vCenter.
 
-1. **Uncomment the two \`syslog/*\` receivers and the \`logs\` pipeline** in \`otel-collector-config.yaml\`.
-2. **Uncomment the \`ports:\` block** in \`docker-compose.yml\`, then apply it — and open the port on the machine's firewall for the ESXi management network:
-
-${codeBlock("bash", inAgentFolder(context.method, ["docker compose up -d"]))}
+${listen}
 
 3. **Point every ESXi host at the agent.** Select the host, open *Configure → System → Advanced System Settings*, set \`Syslog.global.logHost\` to \`udp://<agent-host>:5514\` (or \`tcp://\`), then allow the outbound traffic under *Configure → System → Firewall → Edit → syslog*. Or per host with \`esxcli\`:
 
@@ -723,11 +1058,23 @@ esxcli network firewall ruleset set --ruleset-id=syslog --enabled=true`,
 }
 
 function getLabelsTopic(context: GuideContext): SetupGuideTopic {
+  const linuxService: boolean = isLinuxService(context.method);
+
+  const configFile: string = linuxService
+    ? `${VMWARE_AGENT_INSTALL_DIR}/otel-collector-config.yaml`
+    : "otel-collector-config.yaml";
+
+  const restart: string = linuxService
+    ? VMWARE_NATIVE_RESTART_COMMAND
+    : inAgentFolder(context.method, [
+        `docker compose restart ${VMWARE_AGENT_CONTAINER}`,
+      ]);
+
   return {
     title: "Tag the vCenter with project labels",
     summary:
       "Attach labels such as team or environment to the vCenter from the collector config.",
-    markdown: `Any resource attribute prefixed with \`oneuptime.label.\` is promoted to a project label and attached to the vCenter. Add the attributes to the \`resource\` processor in \`otel-collector-config.yaml\`, next to \`vmware.vcenter.name\`:
+    markdown: `Any resource attribute prefixed with \`oneuptime.label.\` is promoted to a project label and attached to the vCenter. Add the attributes to the \`resource\` processor in \`${configFile}\`, next to \`vmware.vcenter.name\`:
 
 ${codeBlock(
   "yaml",
@@ -745,18 +1092,43 @@ ${codeBlock(
 
 Then restart the collector so it reads the new config:
 
-${codeBlock(
-  "bash",
-  inAgentFolder(context.method, [
-    `docker compose restart ${VMWARE_AGENT_CONTAINER}`,
-  ]),
-)}
+${codeBlock("bash", restart)}
 
 The vCenter shows up tagged \`team:platform\` and \`env:production\`. Labels added manually in the OneUptime UI are never removed by the agent.`,
   };
 }
 
+/*
+ * Without Docker there is no AI agent: it ships only as a container image.
+ * The topic says so, and how to run one with Docker elsewhere — the AI
+ * agent alone, as the collector already runs here.
+ */
+function getLinuxServiceAiAgentTopic(): SetupGuideTopic {
+  return {
+    title: "OneUptime AI agent",
+    summary:
+      "Not part of an install without Docker: it ships only as a container image.",
+    markdown: `The OneUptime AI agent runs the read-only \`govc\` commands OneUptime AI asks for while it investigates an incident or alert on this vCenter — a VM's power state, the host it runs on, recent events and tasks, performance counters. It ships only as a container image (\`oneuptime/resource-ai-agent\`), so an install without Docker runs the collector alone. Inventory, metrics, monitors, alerts and syslog work the same without it.
+
+To add it, run it with Docker on any machine that can reach vCenter. Download the agent's \`docker-compose.yml\`, write a \`.env\` next to it with the settings of \`${VMWARE_AGENT_NATIVE_ENV_FILE}\` — quoted the Docker Compose way, in single quotes, since Docker Compose expands \`$\` in double quotes — and start the AI agent alone, not the collector beside it in that file, or every metric would arrive twice:
+
+${codeBlock(
+  "bash",
+  `mkdir oneuptime-vmware-ai-agent && cd oneuptime-vmware-ai-agent
+curl -fsSLO ${VMWARE_AGENT_RAW_URL}/docker-compose.yml
+# write .env here: the settings of ${VMWARE_AGENT_NATIVE_ENV_FILE}, single-quoted, then:
+docker compose up -d ${VMWARE_AI_AGENT_CONTAINER}`,
+)}
+
+It registers as the vCenter named \`VMWARE_VCENTER_NAME\` — the one this collector reports into — and appears on the vCenter's **AI → AI agent** page. It is **read-only** unless you set \`ONEUPTIME_AI_ALLOW_WRITES=true\` in that \`.env\`. What it may run and how fixes work: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#vmware-vcenter).`,
+  };
+}
+
 function getAiAgentTopic(context: GuideContext): SetupGuideTopic {
+  if (isLinuxService(context.method)) {
+    return getLinuxServiceAiAgentTopic();
+  }
+
   const fixesHow: string =
     context.method === "install-script"
       ? "The install script asks about fixes on a fresh install and writes these settings for you."
@@ -810,22 +1182,158 @@ Then remove the \`oneuptime\` user's permission in vCenter (and the OneUptime AI
   };
 }
 
+/*
+ * Without Docker the install's own commands are the upgrade: they download
+ * the release the agent pins and the latest config and unit, which the
+ * service picks up when it restarts. The config pins the version the
+ * collector reports, so the binary and the config move together.
+ */
+function getLinuxServiceUpgradeTopic(): SetupGuideTopic {
+  return {
+    title: "Upgrade or uninstall the agent",
+    summary:
+      "Download the latest release and files and restart the agent, or stop and remove it.",
+    markdown: `**Upgrade** — run the install commands again, then restart the agent. They download the collector release this OneUptime pins with the latest \`otel-collector-config.yaml\` and systemd unit, and replace the installed ones; your \`.env\` stays, and a change you made to the config has to be made again:
+
+${codeBlock("bash", getVMwareNativeUpgradeCommand())}
+
+The config reports the collector version it pins as the vCenter's **Agent Version**. When this OneUptime pins a newer one, a warning sign beside it opens these commands.
+
+**Uninstall:**
+
+${codeBlock("bash", VMWARE_NATIVE_UNINSTALL_COMMAND)}
+
+Then remove the \`oneuptime\` user's permission in vCenter if you no longer need it.`,
+  };
+}
+
 function getAdvancedTopics(context: GuideContext): Array<SetupGuideTopic> {
   return [
     getEnvironmentVariablesTopic(context),
-    getConfigurationFilesTopic(),
+    getConfigurationFilesTopic(context),
     getCollectedDataTopic(),
     getPowerStateTopic(),
     getSyslogTopic(context),
     getLabelsTopic(context),
     getAiAgentTopic(context),
-    getUpgradeTopic(context),
+    isLinuxService(context.method)
+      ? getLinuxServiceUpgradeTopic()
+      : getUpgradeTopic(context),
+  ];
+}
+
+// The troubleshooting topics every install method shares.
+const PERMISSION_TOPIC: SetupGuideTopic = {
+  title: "Hosts appear but no VMs, datastores or clusters",
+  markdown:
+    "The Read-Only role was granted on the vCenter object without **Propagate to children**, or on a narrower object than the vCenter root. Objects the user cannot see are silently absent. Fix the permission on the top-level vCenter object with propagation enabled; the next collection fills in the inventory.",
+};
+
+const POWERED_OFF_TOPIC: SetupGuideTopic = {
+  title: "Every VM shows as powered off",
+  markdown:
+    "VM power state is inferred from the `vcenter.vm.cpu.*` datapoints arriving in the same collection as the VM's memory and disk datapoints (see **How VM power state is worked out** under Advanced). If you customized the `batch` processor and added a `send_batch_max_size`, a large inventory is split across exports and the CPU datapoints land in a different request — restore the shipped batch settings.",
+};
+
+const SLOW_COLLECTIONS_TOPIC: SetupGuideTopic = {
+  title: "Collections are slow on a large inventory",
+  markdown:
+    "Each collection is a full walk of the inventory plus one performance query per object batch. For vCenters with thousands of VMs raise `VCENTER_COLLECTION_INTERVAL` to `5m` or `10m` (a collection that takes longer than the interval is skipped, not overlapped), match `max_query_metrics` to your vCenter's `vpxd.stats.maxQueryMetrics` if the log reports `The maximum number of performance metrics per query exceeded`, and raise `limit_mib` if the memory limiter reports dropped data.",
+};
+
+function getWrongNameTopic(context: GuideContext): SetupGuideTopic {
+  const knownName: string = context.isVCenterNameKnown
+    ? ` This vCenter is **\`${context.vcenterName}\`**.`
+    : "";
+
+  const envFile: string = isLinuxService(context.method)
+    ? `\`${VMWARE_AGENT_NATIVE_ENV_FILE}\``
+    : "`.env`";
+
+  return {
+    title: "vCenter appears under the wrong name",
+    markdown: `The vCenter identity comes from \`VMWARE_VCENTER_NAME\`, stamped on every metric as \`vmware.vcenter.name\`.${knownName} Fix it in ${envFile} and ${applyChange(context.method)} — note that a new name registers a new vCenter.`,
+  };
+}
+
+/*
+ * Without Docker there is no diagnostic script (troubleshoot.sh probes from
+ * the agent container's network namespace), and nothing needs one: the
+ * collector runs on the machine itself, so its log is the journal, a plain
+ * curl takes its network path, and its own counters are one curl away.
+ */
+function getLinuxServiceTroubleshootingTopics(
+  context: GuideContext,
+): Array<SetupGuideTopic> {
+  return [
+    {
+      title: "Check the service and its log",
+      markdown: `The diagnostic script, \`troubleshoot.sh\`, needs Docker. Without it, start from the service and its log:
+
+${codeBlock(
+  "bash",
+  `${VMWARE_NATIVE_STATUS_COMMAND}
+sudo journalctl -u ${VMWARE_AGENT_SERVICE} -n 100 --no-pager`,
+)}
+
+\`active (running)\`, with \`Everything is ready. Begin running and processing data.\` in the log, means the collector started; the topics below say what the log means when it cannot reach vCenter or OneUptime. A service that keeps restarting (\`activating (auto-restart)\`) logs why: \`Failed with result 'resources'\` means systemd cannot read \`${VMWARE_AGENT_NATIVE_ENV_FILE}\`, and \`cannot unmarshal the configuration\` or \`requires positive value\` means a value in it is not one the collector takes — \`VCENTER_INSECURE_SKIP_VERIFY\` is \`true\` or \`false\`, \`VCENTER_COLLECTION_INTERVAL\` a duration such as \`2m\`.`,
+    },
+    {
+      title: 'vCenter shows as "Disconnected"',
+      markdown: `1. Check that the agent is running: \`${VMWARE_NATIVE_STATUS_COMMAND}\`
+2. Check its log for errors: \`sudo journalctl -u ${VMWARE_AGENT_SERVICE} | grep -i error\`
+3. Ask OneUptime whether it takes your ingestion key. \`"valid":true\` with \`"keyType":"Server"\` means it does; anything else says what is wrong with the key:
+
+${codeBlock(
+  "bash",
+  `curl -s -H "x-oneuptime-token: ${context.apiKey}" ${context.oneuptimeUrl}/otlp/v1/validate`,
+)}
+
+4. Ensure the agent machine can reach the OneUptime instance over the network.`,
+    },
+    {
+      title: "No vCenter appears, or no metrics",
+      markdown: `1. Check the log (\`sudo journalctl -u ${VMWARE_AGENT_SERVICE} -n 100 --no-pager\`): a login error (\`incorrect user name or password\`, \`InvalidLogin\`) means bad credentials — or a user name or password that is not double-quoted, backslashes doubled, in \`.env\`; \`x509: certificate signed by unknown authority\` means TLS verification is on against a certificate this machine does not trust (see **x509 or other TLS errors**); \`connection refused\` / \`no such host\` means a wrong \`VCENTER_ENDPOINT\`; \`Exporting failed\` with a \`401\` or \`422\` means OneUptime refuses the ingestion key.
+2. Verify the endpoint is reachable. The collector runs on this machine, not in a container, so a plain \`curl\` takes its path — you should see an XML document advertising \`urn:vim25\`:
+
+${codeBlock(
+  "bash",
+  "curl -sk https://<vcenter-host>/sdk/vimServiceVersions.xml",
+)}
+
+3. Read the collector's own counters: \`otelcol_receiver_accepted_metric_points\` grows while vCenter answers, \`otelcol_exporter_sent_metric_points\` while OneUptime takes the data, and \`otelcol_exporter_send_failed_metric_points\` appears when it does not:
+
+${codeBlock(
+  "bash",
+  `curl -s ${VMWARE_AGENT_NATIVE_SELF_METRICS_URL} | grep -E 'otelcol_(receiver_accepted|exporter_sent|exporter_send_failed)_metric_points'`,
+)}
+
+4. Make sure \`VMWARE_VCENTER_NAME\` is set — discovery keys on the \`vmware.vcenter.name\` resource attribute.
+5. Give it one collection interval: nothing is sent until the first full inventory walk completes.`,
+    },
+    {
+      title: "vCenter rejects the login",
+      markdown: `Use the full principal — \`oneuptime@vsphere.local\`, or \`DOMAIN\\user\` / \`user@domain.example\` for an Active Directory identity source — and check how it and the password are written in \`${VMWARE_AGENT_NATIVE_ENV_FILE}\`. systemd reads that file with rules of its own, and not the same ones in every version: outside quotes it drops a backslash (\`DOMAIN\\user\` becomes \`DOMAINuser\`) and nothing starts a comment, and older versions (RHEL 8's, for one) drop a backslash inside single quotes too. The form every version reads as typed is double quotes, with each \`\\\` written \`\\\\\` and each \`"\` written \`\\"\` — \`VCENTER_USERNAME="DOMAIN\\\\user"\`, \`VCENTER_PASSWORD="p@ss$word"\`; \`$\`, \`#\`, \`'\` and spaces go in as they are. Restart the agent after changing either. A locked account (too many failed attempts) rejects a correct password too; check *Administration → Single Sign On → Users and Groups*.`,
+    },
+    {
+      title: "x509 or other TLS errors",
+      markdown:
+        "vCenter appliances present a certificate issued by their own VMCA, which this machine does not trust out of the box. Either set `VCENTER_INSECURE_SKIP_VERIFY=true` (the pragmatic choice on a private management network), or keep verification on: the collector runs on this machine and trusts its CA store, so add vCenter's root certificate to it — the `.0` files under `certs/lin/` in `https://<vcenter>/certs/download.zip`, copied with a `.crt` name into `/usr/local/share/ca-certificates/` and loaded with `sudo update-ca-certificates` on Debian and Ubuntu, or copied into `/etc/pki/ca-trust/source/anchors/` and loaded with `sudo update-ca-trust` on RHEL and its relatives. Restart the agent either way. Do **not** point the endpoint at an `http://` URL — vCenter only serves the SDK over HTTPS.",
+    },
+    PERMISSION_TOPIC,
+    POWERED_OFF_TOPIC,
+    SLOW_COLLECTIONS_TOPIC,
+    getWrongNameTopic(context),
   ];
 }
 
 function getTroubleshootingTopics(
   context: GuideContext,
 ): Array<SetupGuideTopic> {
+  if (isLinuxService(context.method)) {
+    return getLinuxServiceTroubleshootingTopics(context);
+  }
+
   const runScript: string =
     context.method === "install-script"
       ? "bash troubleshoot.sh"
@@ -840,10 +1348,6 @@ function getTroubleshootingTopics(
     context.method === "install-script"
       ? ", which is what the install script writes"
       : "";
-
-  const knownName: string = context.isVCenterNameKnown
-    ? ` This vCenter is **\`${context.vcenterName}\`**.`
-    : "";
 
   return [
     {
@@ -887,25 +1391,10 @@ ${codeBlock(
       markdown:
         "vCenter appliances present a certificate issued by their own VMCA, which no Docker image trusts. Either set `VCENTER_INSECURE_SKIP_VERIFY=true` (the pragmatic choice on a private management network) or replace vCenter's machine certificate with one issued by a CA the collector image trusts. Do **not** point the endpoint at an `http://` URL — vCenter only serves the SDK over HTTPS.",
     },
-    {
-      title: "Hosts appear but no VMs, datastores or clusters",
-      markdown:
-        "The Read-Only role was granted on the vCenter object without **Propagate to children**, or on a narrower object than the vCenter root. Objects the user cannot see are silently absent. Fix the permission on the top-level vCenter object with propagation enabled; the next collection fills in the inventory.",
-    },
-    {
-      title: "Every VM shows as powered off",
-      markdown:
-        "VM power state is inferred from the `vcenter.vm.cpu.*` datapoints arriving in the same collection as the VM's memory and disk datapoints (see **How VM power state is worked out** under Advanced). If you customized the `batch` processor and added a `send_batch_max_size`, a large inventory is split across exports and the CPU datapoints land in a different request — restore the shipped batch settings.",
-    },
-    {
-      title: "Collections are slow on a large inventory",
-      markdown:
-        "Each collection is a full walk of the inventory plus one performance query per object batch. For vCenters with thousands of VMs raise `VCENTER_COLLECTION_INTERVAL` to `5m` or `10m` (a collection that takes longer than the interval is skipped, not overlapped), match `max_query_metrics` to your vCenter's `vpxd.stats.maxQueryMetrics` if the log reports `The maximum number of performance metrics per query exceeded`, and raise `limit_mib` if the memory limiter reports dropped data.",
-    },
-    {
-      title: "vCenter appears under the wrong name",
-      markdown: `The vCenter identity comes from \`VMWARE_VCENTER_NAME\`, stamped on every metric as \`vmware.vcenter.name\`.${knownName} Fix it in \`.env\` and apply it with \`docker compose up -d\` in ${agentFolder(context.method)} — note that a new name registers a new vCenter.`,
-    },
+    PERMISSION_TOPIC,
+    POWERED_OFF_TOPIC,
+    SLOW_COLLECTIONS_TOPIC,
+    getWrongNameTopic(context),
   ];
 }
 
@@ -928,12 +1417,10 @@ export function getVMwareSetupGuide(
   };
 
   return {
-    prerequisites: getPrerequisites(),
+    prerequisites: getPrerequisites(context.method),
     steps: [
       getReadOnlyUserStep(),
-      context.method === "install-script"
-        ? getInstallScriptStep(context)
-        : getDockerComposeStep(context),
+      getInstallStep(context),
       getVerifyStep(context),
     ],
     advanced: getAdvancedTopics(context),

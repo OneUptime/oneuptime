@@ -89,7 +89,16 @@ import InvestigationConversation from "../../../Components/AI/InvestigationConve
 import EventStatTile from "../../../Components/EventView/EventStatTile";
 import EventStatBar from "../../../Components/EventView/EventStatBar";
 import EventOverviewSkeleton from "../../../Components/EventView/EventOverviewSkeleton";
-import { EventStatusFact } from "../../../Components/EventView/EventStatusPanel";
+import {
+  EventPanelAction,
+  EventStatusFact,
+} from "../../../Components/EventView/EventStatusPanel";
+import EventVideoCallsCard from "../../../Components/VideoCall/EventVideoCallsCard";
+import useEventVideoCalls, {
+  EventVideoCallsState,
+  VideoCallEventKind,
+} from "../../../Components/VideoCall/useEventVideoCalls";
+import { getJoinVideoCallAction } from "../../../Components/VideoCall/JoinVideoCallAction";
 import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import RemediationSuggestionCard from "../../../Components/AutoRemediation/RemediationSuggestionCard";
 import AlertAffectedResources from "./AffectedResources";
@@ -400,6 +409,20 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   }, []);
 
   const refreshFeedAfterAnalysisAvailable: () => void = refreshFeed;
+
+  /*
+   * The alert's video calls: the card in the right column, and the Join
+   * call button in the header for the newest one.
+   */
+  const videoCalls: EventVideoCallsState = useEventVideoCalls({
+    kind: VideoCallEventKind.Alert,
+    eventId: modelId,
+    // A rule's call arrives a moment after a new alert is created.
+    eventStartedAt: alertStartedAt,
+  });
+  const joinVideoCallAction: EventPanelAction | null = getJoinVideoCallAction(
+    videoCalls.calls,
+  );
 
   const fetchData: (options: FetchDataOptions) => Promise<void> = async (
     options: FetchDataOptions,
@@ -812,6 +835,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           severity={severity}
           isPrivate={isPrivate}
           facts={headerFacts}
+          secondaryActions={joinVideoCallAction ? [joinVideoCallAction] : []}
           aiInvestigationStatus={currentAIInvestigationStatus}
           aiInvestigationSummary={currentAIInvestigationSummary}
           aiInvestigationVerdict={currentAIInvestigationVerdict}
@@ -1068,6 +1092,20 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         </div>
 
         <div className="min-w-0 xl:col-span-1">
+          <EventVideoCallsCard
+            kind={VideoCallEventKind.Alert}
+            eventId={modelId}
+            calls={videoCalls.calls}
+            hasLoaded={videoCalls.hasLoaded}
+            error={videoCalls.error}
+            onRetry={videoCalls.refresh}
+            onChanged={() => {
+              videoCalls.refresh();
+              // A started call is a new feed entry.
+              refreshFeed();
+            }}
+          />
+
           {/* Alert View  */}
           <CardModelDetail<Alert>
             name="Alert Details"

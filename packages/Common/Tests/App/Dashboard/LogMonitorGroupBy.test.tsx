@@ -19,6 +19,8 @@ import React, { ReactElement } from "react";
  * it must never hand the viewer a new query (which resets and refetches).
  */
 
+type OnChangeMock = ReturnType<typeof jest.fn<(keys: Array<string>) => void>>;
+
 const mockLogsViewerProps: Array<Record<string, unknown>> = [];
 
 jest.mock(
@@ -85,7 +87,7 @@ describe("LogGroupByAttributesInput", () => {
   });
 
   test("adding a row changes nothing until a key is typed, then reports it", () => {
-    const onChange: jest.Mock<(keys: Array<string>) => void> = jest.fn();
+    const onChange: OnChangeMock = jest.fn<(keys: Array<string>) => void>();
 
     render(<LogGroupByAttributesInput initialValue={[]} onChange={onChange} />);
 
@@ -101,7 +103,7 @@ describe("LogGroupByAttributesInput", () => {
   });
 
   test("reports cleaned-up keys: trimmed, no blanks, no repeats", () => {
-    const onChange: jest.Mock<(keys: Array<string>) => void> = jest.fn();
+    const onChange: OnChangeMock = jest.fn<(keys: Array<string>) => void>();
 
     render(
       <LogGroupByAttributesInput
@@ -118,7 +120,7 @@ describe("LogGroupByAttributesInput", () => {
   });
 
   test("removing a row stops grouping by that attribute", () => {
-    const onChange: jest.Mock<(keys: Array<string>) => void> = jest.fn();
+    const onChange: OnChangeMock = jest.fn<(keys: Array<string>) => void>();
 
     render(
       <LogGroupByAttributesInput

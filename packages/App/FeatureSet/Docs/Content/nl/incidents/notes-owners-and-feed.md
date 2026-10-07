@@ -142,6 +142,7 @@ Feed-items worden geschreven door de incidentservice zelf, door beide notitieser
 - **Mensen** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`.
 - **Meldingen** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
 - **Automatisering** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
+- **Videogesprekken** — `VideoCallStarted` en `VideoCallFailed`: een gesprek dat voor het incident is gestart, met de link om deel te nemen, of de reden waarom een provider er geen kon starten. Zie [Videogesprekken](/docs/workspace-connections/video-calls).
 
 Elk type krijgt zijn eigen pictogram, zodat je een lange feed kunt scannen en de statuswijzigingen uit het geroezemoes pikt. Door AI gegenereerde hoofdoorzaakanalyse wordt duidelijk gemarkeerd en in een beperkte Markdown-modus weergegeven.
 

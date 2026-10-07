@@ -142,6 +142,7 @@ Feed-Elemente werden vom Vorfalldienst selbst geschrieben, von beiden Notizdiens
 - **Personen** – `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`.
 - **Benachrichtigungen** – `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
 - **Automatisierung** – `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
+- **Videoanrufe** – `VideoCallStarted` und `VideoCallFailed`: ein für den Vorfall gestarteter Anruf mit seinem Beitrittslink oder der Grund, warum ein Anbieter keinen starten konnte. Siehe [Videoanrufe](/docs/workspace-connections/video-calls).
 
 Jeder Typ bekommt sein eigenes Symbol, sodass Sie einen langen Feed überfliegen und die Statuswechsel aus dem Geplauder herausfischen können. KI-erzeugte Grundursachenanalyse wird eigens gekennzeichnet und in einem eingeschränkten Markdown-Modus dargestellt.
 

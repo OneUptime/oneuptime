@@ -52,6 +52,39 @@ export const PROJECT_BALANCE_CARD_DESCRIPTIONS: Readonly<
 };
 
 /*
+ * At the top of the page that holds a balance while Auto Recharge's last
+ * automatic charge has failed (AutoRechargeState.Failed): what happened -
+ * it tries the card again within the hour, or as soon as someone recharges
+ * by hand or saves Auto Recharge - and then what to do, for someone who may
+ * add balance, or who can, for everyone else (the words of the Current
+ * Balance card). It used to be known only to the owners, by email.
+ */
+export const AUTO_RECHARGE_FAILED_TITLE: string = translationKey(
+  "Auto Recharge could not charge the card.",
+);
+
+export const AUTO_RECHARGE_FAILED_DESCRIPTIONS: Readonly<
+  Record<ProjectBalanceType, ProjectBalanceCardDescriptions>
+> = {
+  [ProjectBalanceType.SmsOrCall]: {
+    forPeopleWhoMayAdd: translationKey(
+      "It tries again within an hour. Check the payment method in Project Settings > Billing, or recharge the balance now.",
+    ),
+    forEveryoneElse: translationKey(
+      "It tries again within an hour. A project owner or someone with Manage Billing can recharge the balance.",
+    ),
+  },
+  [ProjectBalanceType.AI]: {
+    forPeopleWhoMayAdd: translationKey(
+      "It tries again within an hour. Check the payment method in Project Settings > Billing, or add AI credits now.",
+    ),
+    forEveryoneElse: translationKey(
+      "It tries again within an hour. A project owner or someone with Manage Billing can add AI credits.",
+    ),
+  },
+};
+
+/*
  * The locked Recharge Balance button's tooltip: the permissions a recharge
  * needs, by their titles.
  */

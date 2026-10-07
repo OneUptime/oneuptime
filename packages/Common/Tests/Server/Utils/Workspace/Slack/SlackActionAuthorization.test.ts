@@ -695,4 +695,37 @@ describe("SlackAuthAction.isAuthorized", (): void => {
     expect(result.userId).toBe(userId);
     expect(directMessageSpy).not.toHaveBeenCalled();
   });
+
+  /*
+   * Join call is a link button: Slack opens the meeting itself, and the
+   * meeting decides who gets in. Someone who never linked a OneUptime
+   * account must not be told to link one for joining the incident's call.
+   */
+  test("anyone in the channel can press Join call without a linked OneUptime account", async (): Promise<void> => {
+    mockConnectedWorkspace();
+    jest
+      .spyOn(WorkspaceUserAuthTokenService, "findOneBy")
+      .mockResolvedValue(null);
+
+    const result: SlackRequest = await SlackAuthAction.isAuthorized({
+      req: buttonRequest(SlackActionType.JoinVideoCall),
+    });
+
+    expect(result.isAuthorized).toBe(true);
+    expect(result.userId).toBeUndefined();
+    expect(directMessageSpy).not.toHaveBeenCalled();
+  });
+
+  test("a removed member pressing Join call is not sent the not-a-member message", async (): Promise<void> => {
+    mockConnectedWorkspace();
+    mockRemovedMember();
+
+    const result: SlackRequest = await SlackAuthAction.isAuthorized({
+      req: buttonRequest(SlackActionType.JoinVideoCall),
+    });
+
+    expect(result.isAuthorized).toBe(true);
+    expect(result.userId).toBeUndefined();
+    expect(directMessageSpy).not.toHaveBeenCalled();
+  });
 });

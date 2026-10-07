@@ -25,6 +25,7 @@ import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTi
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import ProjectNotificationChannelOwnerNotice from "Common/Server/Utils/ProjectNotificationChannelOwnerNotice";
 import ProjectBalanceOwnerNotice from "Common/Server/Utils/ProjectBalanceOwnerNotice";
+import MessagingBalance from "Common/Server/Utils/Billing/MessagingBalance";
 import {
   getProjectNotificationChannelOffMessage,
   ProjectNotificationChannel,
@@ -161,22 +162,18 @@ export default class SmsService {
 
       message = Text.trimLines(message);
 
-      let smsCost: number = 0;
-
       const shouldChargeForSMS: boolean =
         IsBillingEnabled && !options.customTwilioConfig;
 
-      if (shouldChargeForSMS) {
-        smsCost = SMSDefaultCostInCents / 100;
-
-        if (isHighRiskPhoneNumber(to)) {
-          smsCost = SMSHighRiskCostInCents / 100;
-        }
-      }
-
-      if (smsSegments > 1) {
-        smsCost = smsCost * smsSegments;
-      }
+      // What it costs, in whole cents: every segment is charged.
+      const smsCostInUSDCents: number = shouldChargeForSMS
+        ? MessagingBalance.getCostInUSDCents({
+            costPerPartInUSDCents: isHighRiskPhoneNumber(to)
+              ? SMSHighRiskCostInCents
+              : SMSDefaultCostInCents,
+            parts: smsSegments,
+          })
+        : 0;
 
       smsLog.toNumber = to;
 
@@ -384,7 +381,7 @@ export default class SmsService {
           const balanceInUSDCents: number =
             project.smsOrCallCurrentBalanceInUSDCents || 0;
 
-          if (!balanceInUSDCents || balanceInUSDCents < smsCost * 100) {
+          if (!balanceInUSDCents || balanceInUSDCents < smsCostInUSDCents) {
             const shortfall: {
               channel: ProjectNotificationChannel;
               balanceInUSDCents: number;
@@ -392,7 +389,7 @@ export default class SmsService {
             } = {
               channel: ProjectNotificationChannel.SMS,
               balanceInUSDCents: balanceInUSDCents,
-              costInUSDCents: Math.round(smsCost * 100),
+              costInUSDCents: smsCostInUSDCents,
             };
 
             smsLog.status = SmsStatus.LowBalance;
@@ -407,16 +404,14 @@ export default class SmsService {
               },
             });
 
-            if (!project.lowCallAndSMSBalanceNotificationSentToOwners) {
-              await ProjectService.updateOneById({
-                data: {
-                  lowCallAndSMSBalanceNotificationSentToOwners: true,
-                },
-                id: project.id!,
-                props: {
-                  isRoot: true,
-                },
-              });
+            // Once each time it runs out, whatever else finds it out too.
+            if (
+              await MessagingBalance.shouldTellOwnersBalanceIsLow({
+                projectId: project.id!,
+                alreadyTold:
+                  project.lowCallAndSMSBalanceNotificationSentToOwners,
+              })
+            ) {
               await ProjectService.sendEmailToProjectOwners(
                 project.id!,
                 "Low SMS and Call Balance for " + (project.name || ""),
@@ -486,22 +481,13 @@ export default class SmsService {
       logger.debug(smsLog.statusMessage);
 
       if (shouldChargeForSMS && project) {
-        smsLog.smsCostInUSDCents = smsCost * 100;
+        smsLog.smsCostInUSDCents = smsCostInUSDCents;
 
-        project.smsOrCallCurrentBalanceInUSDCents = Math.floor(
-          project.smsOrCallCurrentBalanceInUSDCents! - smsCost * 100,
-        );
-
-        await ProjectService.updateOneById({
-          data: {
-            smsOrCallCurrentBalanceInUSDCents:
-              project.smsOrCallCurrentBalanceInUSDCents,
-            notEnabledSmsOrCallNotificationSentToOwners: false, // reset this flag
-          },
-          id: project.id!,
-          props: {
-            isRoot: true,
-          },
+        // Paid in one statement, from whatever the balance is now.
+        await MessagingBalance.payForSentMessage({
+          projectId: project.id!,
+          channel: ProjectNotificationChannel.SMS,
+          costInUSDCents: smsCostInUSDCents,
         });
       }
     } catch (e: any) {

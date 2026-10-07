@@ -1,7 +1,10 @@
+import InMemoryTTLCache from "../../Infrastructure/InMemoryTTLCache";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import File from "../../../Models/DatabaseModels/File";
+import OneUptimeDate from "../../../Types/Date";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
+import getUpdatedRowCount from "../Database/UpdatedRowCount";
 import logger from "../Logger";
 import FileOwnership, { normalizeFileId } from "./FileOwnership";
 
@@ -26,7 +29,11 @@ import FileOwnership, { normalizeFileId } from "./FileOwnership";
  *   - a public note of an incident, an episode or a scheduled maintenance
  *     event while that record is shown on status pages - a note is shown on
  *     its record's page, never without it (shownUnder);
- *   - announcements, always;
+ *   - an announcement's description from the time it is shown from (Start
+ *     Showing Announcement At) on, ended or not - the page lists an ended
+ *     one under its past announcements, and its own link keeps working - but
+ *     never before (shownFrom): an announcement scheduled for later shows
+ *     nothing yet, and its images stay private until then;
  *   - a status page's overview description, and the descriptions of its
  *     groups and resources, always;
  *   - a form's description and thank-you message, on its public page,
@@ -34,16 +41,17 @@ import FileOwnership, { normalizeFileId } from "./FileOwnership";
  *
  * A status page that asks its visitors to sign in shows the same, to people
  * who are not members of the project; the image routes can serve them only a
- * public image, so its images are public by their unguessable address, as
- * its announcements' and public notes' always were.
+ * public image, so its images are public by their unguessable address while
+ * it shows them.
  *
  * DatabaseService keeps this on every write of these records, whoever makes
  * it - the dashboard, the API, Terraform, a workflow, OneUptime itself: a
  * record created or edited to show an image makes it public (afterCreate,
  * afterUpdate), and a record that stops showing it - its switch turned off,
- * the record it is shown under hidden, the image edited out, the record
- * deleted, or the record it belongs to deleted with it (CASCADES), or its
- * project deleted - makes it private again (afterUpdate, afterDelete),
+ * the record it is shown under hidden, an announcement moved to a later
+ * time, the image edited out, the record deleted, or the record it belongs
+ * to deleted with it (CASCADES), or its project deleted - makes it private
+ * again (afterUpdate, afterDelete),
  * unless another record of the project still shows it: an image is copied
  * along with the markdown it sits in, so a template's image can be in many
  * incidents at once. An update decides each row by what its own write
@@ -56,6 +64,14 @@ import FileOwnership, { normalizeFileId } from "./FileOwnership";
  * by it: a record of one project never opens another project's image, nor
  * closes one under the status page that shows it. Making images public or
  * private is best-effort: it never fails the write it follows.
+ *
+ * A record that starts showing an image with no write at that moment - an
+ * announcement whose time to be shown has come - makes it public then, on
+ * the first request for it that the image route would otherwise refuse
+ * (publishWhenShown): one statement that makes the image public only if,
+ * as the database holds it then, a record of the image's own project shows
+ * it. Images of announcements scheduled before this rule were made private
+ * once (HideImagesOfScheduledAnnouncements, HIDE_NOT_YET_SHOWN_IMAGES_SQL).
  *
  * A file is public for nothing else but a probe's or an AI agent's icon
  * (FileService.makeStoredIconsPublic), and the images of what goes out to
@@ -133,6 +149,13 @@ export interface PublishedMarkdown {
    * record is shown too, whatever this record's own switches say.
    */
   shownUnder?: PublishedParent | undefined;
+  /*
+   * The record's time its markdown is shown from (a date column), as the
+   * page reads it: before that time the record shows none of it, whatever
+   * its switches say - an announcement scheduled for later. None for a
+   * record shown whatever the time.
+   */
+  shownFrom?: string | undefined;
   // Where everyone sees it.
   shownOn: "statusPage" | "formPage" | "notifications";
 }
@@ -225,6 +248,7 @@ export const PUBLISHED_MARKDOWN: ReadonlyArray<PublishedMarkdown> = [
     tableName: "StatusPageAnnouncement",
     markdownColumns: ["description"],
     shownWhen: [],
+    shownFrom: "showAnnouncementAt",
     shownOn: "statusPage",
   },
   {
@@ -438,13 +462,34 @@ const getParentShownSql: (
 };
 
 /*
+ * What the one-off statements of the data migrations take as now: the
+ * database's own time. The statements OneUptime runs as it works are asked
+ * with the time of the request instead (a parameter), so they decide as the
+ * code around them does.
+ */
+const DATABASE_NOW_SQL: string = "now()";
+
+/*
+ * Whatever the time: a record shown from a time counts as showing what it
+ * holds before that time too. What the earlier one-off statements keep
+ * public, they keep this way, as they always did - an image of an
+ * announcement scheduled for later is for HIDE_NOT_YET_SHOWN_IMAGES_SQL
+ * alone to make private, which moves only what the announcement's start
+ * can make public again (publishWhenShown).
+ */
+const WHATEVER_THE_TIME: null = null;
+
+/*
  * The rows of a source that show their markdown: not deleted, every switch
  * on, and no switch that hides it on (NULL is off, as for isPrivate) - and,
- * for a record shown under another, that record shown too.
+ * for a record shown under another, that record shown too; for a record
+ * shown from a time (shownFrom), that time come by `now` (or whatever the
+ * time: WHATEVER_THE_TIME).
  */
-const getShownWhereSql: (source: PublishedMarkdown) => string = (
+const getShownWhereSql: (
   source: PublishedMarkdown,
-): string => {
+  now: string | null,
+) => string = (source: PublishedMarkdown, now: string | null): string => {
   return [
     `${quote("deletedAt")} IS NULL`,
     ...source.shownWhen.map((column: string): string => {
@@ -456,42 +501,67 @@ const getShownWhereSql: (source: PublishedMarkdown) => string = (
     ...(source.shownUnder
       ? [getParentShownSql(source.shownUnder, quote(source.tableName))]
       : []),
+    ...(source.shownFrom && now
+      ? [`${quote(source.shownFrom)} <= ${now}`]
+      : []),
   ].join(" AND ");
 };
 
 /*
  * Every image token the published records show, with the project of the
- * record showing it - one scan of each table, its markdown read as one text.
+ * record showing it - one scan of each table, its markdown read as one text;
+ * by `now` (see getShownWhereSql).
  */
 const getShownTokensSql: (
   sources: ReadonlyArray<PublishedMarkdown>,
-) => string = (sources: ReadonlyArray<PublishedMarkdown>): string => {
+  now: string | null,
+) => string = (
+  sources: ReadonlyArray<PublishedMarkdown>,
+  now: string | null,
+): string => {
   return sources
     .map((source: PublishedMarkdown): string => {
       const text: string = getTextSql(source);
 
-      return `SELECT ${quote("projectId")} AS ${quote("projectId")}, (regexp_matches(${text}, '${INLINE_IMAGE_TOKEN_PATTERN}', 'g'))[1] AS ${quote("token")} FROM ${quote(source.tableName)} WHERE ${getShownWhereSql(source)} AND ${text} LIKE '%/file/image/access-token/%'`;
+      return `SELECT ${quote("projectId")} AS ${quote("projectId")}, (regexp_matches(${text}, '${INLINE_IMAGE_TOKEN_PATTERN}', 'g'))[1] AS ${quote("token")} FROM ${quote(source.tableName)} WHERE ${getShownWhereSql(source, now)} AND ${text} LIKE '%/file/image/access-token/%'`;
     })
     .join(" UNION ALL ");
 };
 
-// Every file id the published records show by its id address.
+// Every file id the published records show by its id address, by `now`.
 const getShownFileIdsSql: (
   sources: ReadonlyArray<PublishedMarkdown>,
-) => string = (sources: ReadonlyArray<PublishedMarkdown>): string => {
+  now: string | null,
+) => string = (
+  sources: ReadonlyArray<PublishedMarkdown>,
+  now: string | null,
+): string => {
   return sources
     .map((source: PublishedMarkdown): string => {
       const text: string = getTextSql(source);
 
-      return `SELECT lower((regexp_matches(${text}, '${IMAGE_BY_ID_PATTERN}', 'g'))[1]) AS ${quote("fileId")} FROM ${quote(source.tableName)} WHERE ${getShownWhereSql(source)} AND ${text} LIKE '%/file/image/%'`;
+      return `SELECT lower((regexp_matches(${text}, '${IMAGE_BY_ID_PATTERN}', 'g'))[1]) AS ${quote("fileId")} FROM ${quote(source.tableName)} WHERE ${getShownWhereSql(source, now)} AND ${text} LIKE '%/file/image/%'`;
     })
     .join(" UNION ALL ");
 };
 
 /*
+ * Whether STILL_SHOWN_SQL is asked as of a time ($4): only when a record it
+ * reads is shown from a time, as Postgres refuses a parameter a statement
+ * never uses.
+ */
+export const STILL_SHOWN_SQL_ASKS_TIME: boolean = [
+  ...PUBLISHED_MARKDOWN,
+  ...KEPT_MARKDOWN,
+].some((source: PublishedMarkdown): boolean => {
+  return Boolean(source.shownFrom);
+});
+
+/*
  * Which of some images a record of a project still shows to everyone, or
  * sends out: $1 is the project, $2 the images' addresses as LIKE patterns,
- * $3 their tokens. One statement for every image a write stopped showing.
+ * $3 their tokens, $4 the time it is now (STILL_SHOWN_SQL_ASKS_TIME). One
+ * statement for every image a write stopped showing.
  */
 export const STILL_SHOWN_SQL: string = `SELECT DISTINCT ${quote("shown")}.${quote("token")} AS ${quote("token")} FROM (${[
   ...PUBLISHED_MARKDOWN,
@@ -500,11 +570,45 @@ export const STILL_SHOWN_SQL: string = `SELECT DISTINCT ${quote("shown")}.${quot
   .map((source: PublishedMarkdown): string => {
     const text: string = getTextSql(source);
 
-    return `SELECT (regexp_matches(${text}, '${INLINE_IMAGE_TOKEN_PATTERN}', 'g'))[1] AS ${quote("token")} FROM ${quote(source.tableName)} WHERE ${quote("projectId")} = $1 AND ${getShownWhereSql(source)} AND ${text} LIKE ANY($2)`;
+    return `SELECT (regexp_matches(${text}, '${INLINE_IMAGE_TOKEN_PATTERN}', 'g'))[1] AS ${quote("token")} FROM ${quote(source.tableName)} WHERE ${quote("projectId")} = $1 AND ${getShownWhereSql(source, "$4::timestamptz")} AND ${text} LIKE ANY($2)`;
   })
   .join(
     " UNION ALL ",
   )}) AS ${quote("shown")} WHERE ${quote("shown")}.${quote("token")} = ANY($3)`;
+
+/*
+ * The records that start showing their markdown with no write at that
+ * moment: those shown from a time (shownFrom) - announcements.
+ */
+export const SOURCES_SHOWN_FROM_A_TIME: ReadonlyArray<PublishedMarkdown> =
+  PUBLISHED_MARKDOWN.filter((source: PublishedMarkdown): boolean => {
+    return Boolean(source.shownFrom);
+  });
+
+/*
+ * The statements below read the records shown from a time; with none of
+ * those, they read no rows instead, so they still parse - and
+ * publishWhenShown, whose statement takes a time only such records use,
+ * asks nothing then.
+ */
+const NO_TOKENS_SQL: string = `SELECT NULL::uuid AS ${quote("projectId")}, NULL::text AS ${quote("token")} WHERE false`;
+
+/*
+ * An image a record shown from a time shows now becomes public: $1 is the
+ * file, $2 its project, $3 its token, $4 the time it is now, $5 its address
+ * as a LIKE pattern. Only a not deleted file of that project, and only while
+ * a record of the same project shows it - as the database holds that record
+ * when the file is written. Hands back the file when a record shows it now,
+ * made public by this statement or already public - by a request for it
+ * that came at the same moment (publishWhenShown).
+ */
+export const PUBLISH_WHEN_SHOWN_SQL: string = `UPDATE ${quote("File")} SET ${quote("isPublic")} = true WHERE ${quote("_id")} = $1 AND ${quote("projectId")} = $2 AND ${quote("imageAccessToken")} = $3 AND ${quote("deletedAt")} IS NULL AND EXISTS (SELECT 1 FROM (${
+  SOURCES_SHOWN_FROM_A_TIME.map((source: PublishedMarkdown): string => {
+    const text: string = getTextSql(source);
+
+    return `SELECT (regexp_matches(${text}, '${INLINE_IMAGE_TOKEN_PATTERN}', 'g'))[1] AS ${quote("token")} FROM ${quote(source.tableName)} WHERE ${quote("projectId")} = $2 AND ${getShownWhereSql(source, "$4::timestamptz")} AND ${text} LIKE $5`;
+  }).join(" UNION ALL ") || NO_TOKENS_SQL
+}) AS ${quote("shown")} WHERE ${quote("shown")}.${quote("token")} = $3) RETURNING ${quote("_id")}`;
 
 /*
  * A probe's or an AI agent's icon is public for as long as one uses it,
@@ -533,6 +637,7 @@ export const PROJECT_FILES_PRIVATE_SQL: string = `UPDATE ${quote("File")} AS ${q
  */
 export const PUBLISH_SHOWN_IMAGES_SQL: string = `UPDATE ${quote("File")} AS ${quote("file")} SET ${quote("isPublic")} = true FROM (${getShownTokensSql(
   PUBLISHED_MARKDOWN,
+  DATABASE_NOW_SQL,
 )}) AS ${quote("shown")} WHERE ${quote("file")}.${quote("imageAccessToken")} = ${quote("shown")}.${quote("token")} AND ${quote("file")}.${quote("projectId")} = ${quote("shown")}.${quote("projectId")} AND ${quote("file")}.${quote("isPublic")} = false AND ${quote("file")}.${quote("deletedAt")} IS NULL`;
 
 /*
@@ -541,12 +646,15 @@ export const PUBLISH_SHOWN_IMAGES_SQL: string = `UPDATE ${quote("File")} AS ${qu
  * still started public. Kept public: a probe's or an AI agent's icon, and
  * every image a published record of any project shows, by its token or by
  * its id (nothing a status page shows today breaks), or that markdown sent
- * out to everyone shows (KEPT_MARKDOWN).
+ * out to everyone shows (KEPT_MARKDOWN) - an announcement's whatever its
+ * time (WHATEVER_THE_TIME).
  */
 export const HIDE_UNSHOWN_FILES_SQL: string = `WITH ${quote("shownToken")} AS (SELECT ${quote("token")} FROM (${getShownTokensSql(
   [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN],
+  WHATEVER_THE_TIME,
 )}) AS ${quote("tokens")}), ${quote("shownId")} AS (SELECT ${quote("fileId")} FROM (${getShownFileIdsSql(
   [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN],
+  WHATEVER_THE_TIME,
 )}) AS ${quote("ids")}) UPDATE ${quote("File")} AS ${quote("file")} SET ${quote("isPublic")} = false WHERE ${quote("file")}.${quote("isPublic")} = true AND ${getNotAnIconSql("file")} AND NOT EXISTS (SELECT 1 FROM ${quote("shownToken")} WHERE ${quote("shownToken")}.${quote("token")} = ${quote("file")}.${quote("imageAccessToken")}) AND NOT EXISTS (SELECT 1 FROM ${quote("shownId")} WHERE ${quote("shownId")}.${quote("fileId")} = ${quote("file")}.${quote("_id")}::text)`;
 
 /*
@@ -656,8 +764,10 @@ const getHideHiddenImagesSql: (underHidden: boolean) => string = (
     true,
   )}) AS ${quote("hiddenIds")}), ${quote("shownToken")} AS (SELECT ${quote("token")} FROM (${getShownTokensSql(
     sources,
+    WHATEVER_THE_TIME,
   )}) AS ${quote("tokens")}), ${quote("shownId")} AS (SELECT ${quote("fileId")} FROM (${getShownFileIdsSql(
     sources,
+    WHATEVER_THE_TIME,
   )}) AS ${quote("ids")}) UPDATE ${quote("File")} AS ${quote("file")} SET ${quote("isPublic")} = false WHERE ${quote("file")}.${quote("isPublic")} = true AND ${getNotAnIconSql("file")} AND (EXISTS (SELECT 1 FROM ${quote("hiddenToken")} WHERE ${quote("hiddenToken")}.${quote("token")} = ${quote("file")}.${quote("imageAccessToken")} AND ${getSameProjectOrNoneSql("hiddenToken")}) OR EXISTS (SELECT 1 FROM ${quote("hiddenId")} WHERE ${quote("hiddenId")}.${quote("fileId")} = ${quote("file")}.${quote("_id")}::text AND ${getSameProjectOrNoneSql("hiddenId")})) AND NOT EXISTS (SELECT 1 FROM ${quote("shownToken")} WHERE ${quote("shownToken")}.${quote("token")} = ${quote("file")}.${quote("imageAccessToken")}) AND NOT EXISTS (SELECT 1 FROM ${quote("shownId")} WHERE ${quote("shownId")}.${quote("fileId")} = ${quote("file")}.${quote("_id")}::text)`;
 };
 
@@ -683,6 +793,34 @@ export const HIDE_PRIVATE_RECORD_IMAGES_SQL: string =
  */
 export const HIDE_HIDDEN_RECORD_IMAGES_SQL: string =
   getHideHiddenImagesSql(true);
+
+/*
+ * Once, for images made public before a record shown from a time kept them
+ * private until then: an announcement made its images public when it was
+ * created, scheduled for later or not. Every public image an announcement
+ * whose time to be shown has not come (shownFrom after now) holds by its
+ * token, of the announcement's own project, becomes private - unless a
+ * published record of any project shows it now, by its token or by its id,
+ * or it is an icon, as HIDE_UNSHOWN_FILES_SQL keeps them. The first request
+ * for it once the announcement is shown makes it public again
+ * (publishWhenShown), which only an image addressed by its token, of the
+ * announcement's own project, can be - so nothing else is made private:
+ * not an image addressed by its file's id, nor a file of no project. Never
+ * makes a file public. (HideImagesOfScheduledAnnouncements runs it.)
+ */
+export const HIDE_NOT_YET_SHOWN_IMAGES_SQL: string = `WITH ${quote("notYetShown")} AS (SELECT ${quote("projectId")}, ${quote("token")} FROM (${
+  SOURCES_SHOWN_FROM_A_TIME.map((source: PublishedMarkdown): string => {
+    const text: string = getTextSql(source);
+
+    return `SELECT ${quote("projectId")} AS ${quote("projectId")}, (regexp_matches(${text}, '${INLINE_IMAGE_TOKEN_PATTERN}', 'g'))[1] AS ${quote("token")} FROM ${quote(source.tableName)} WHERE ${quote("deletedAt")} IS NULL AND ${quote(source.shownFrom!)} > ${DATABASE_NOW_SQL} AND ${text} LIKE '%/file/image/access-token/%'`;
+  }).join(" UNION ALL ") || NO_TOKENS_SQL
+}) AS ${quote("held")}), ${quote("shownToken")} AS (SELECT ${quote("token")} FROM (${getShownTokensSql(
+  [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN],
+  DATABASE_NOW_SQL,
+)}) AS ${quote("tokens")}), ${quote("shownId")} AS (SELECT ${quote("fileId")} FROM (${getShownFileIdsSql(
+  [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN],
+  DATABASE_NOW_SQL,
+)}) AS ${quote("ids")}) UPDATE ${quote("File")} AS ${quote("file")} SET ${quote("isPublic")} = false WHERE ${quote("file")}.${quote("isPublic")} = true AND ${getNotAnIconSql("file")} AND EXISTS (SELECT 1 FROM ${quote("notYetShown")} WHERE ${quote("notYetShown")}.${quote("token")} = ${quote("file")}.${quote("imageAccessToken")} AND ${quote("notYetShown")}.${quote("projectId")} = ${quote("file")}.${quote("projectId")}) AND NOT EXISTS (SELECT 1 FROM ${quote("shownToken")} WHERE ${quote("shownToken")}.${quote("token")} = ${quote("file")}.${quote("imageAccessToken")}) AND NOT EXISTS (SELECT 1 FROM ${quote("shownId")} WHERE ${quote("shownId")}.${quote("fileId")} = ${quote("file")}.${quote("_id")}::text)`;
 
 // The published rows of a table a delete of its parent takes with it.
 export const getCascadedRowsSql: (cascade: PublishedCascade) => string = (
@@ -754,6 +892,18 @@ interface UpdatedRow {
 }
 
 export default class PublishedImages {
+  /*
+   * How long an image publishWhenShown found no record showing is not asked
+   * about again, in this process: an announcement's first visitors after
+   * its start see its image at most this much later, if the image was asked
+   * for a moment before the start.
+   */
+  public static readonly NOT_SHOWN_FOR_MS: number = 5_000;
+
+  // Images publishWhenShown found no record showing, for NOT_SHOWN_FOR_MS.
+  private static notShownLately: InMemoryTTLCache<boolean> =
+    new InMemoryTTLCache<boolean>(10_000);
+
   // The kinds of published markdown a table has.
   public static getSources(
     tableName: string | null | undefined,
@@ -778,8 +928,9 @@ export default class PublishedImages {
 
   /*
    * The columns that decide what a table's records show to everyone: their
-   * markdown, their switches, and the column naming the record they are
-   * shown under. Empty for a table that shows nothing.
+   * markdown, their switches, the column naming the record they are shown
+   * under, and the time they are shown from. Empty for a table that shows
+   * nothing.
    */
   public static getColumns(
     tableName: string | null | undefined,
@@ -792,6 +943,7 @@ export default class PublishedImages {
         ...source.shownWhen,
         ...(source.hiddenWhen || []),
         ...(source.shownUnder ? [source.shownUnder.foreignKey] : []),
+        ...(source.shownFrom ? [source.shownFrom] : []),
       ]) {
         columns.add(column);
       }
@@ -817,18 +969,21 @@ export default class PublishedImages {
    * none that hides it is (one that is neither false nor unset hides it) -
    * and, for a record shown under another (shownUnder), that record is
    * shown, of the same project: `shownParents`, the shown ones as
-   * readShownParents reads them. With none read, it is not shown.
+   * readShownParents reads them. With none read, it is not shown. A record
+   * shown from a time (shownFrom) shows nothing before it (hasTimeCome).
    */
   public static isShown(
     source: PublishedMarkdown,
     row: Row,
     shownParents?: ShownParents | undefined,
+    now?: Date | undefined,
   ): boolean {
     if (
       !this.areSwitchesShowing(
         { shownWhen: source.shownWhen, hiddenWhen: source.hiddenWhen },
         row,
-      )
+      ) ||
+      !this.hasTimeCome(source, row, now)
     ) {
       return false;
     }
@@ -855,11 +1010,46 @@ export default class PublishedImages {
     return this.areSwitchesShowing(parent, row);
   }
 
+  /*
+   * Whether the time a record shows a kind of markdown from (shownFrom) has
+   * come by `now` (the current time when not given) - as the status page
+   * reads it: an announcement is shown once its Start Showing Announcement
+   * At is not after now, and stays shown after it ends. A time not set, or
+   * not a time, has not come. A record shown whatever the time is shown.
+   */
+  public static hasTimeCome(
+    source: PublishedMarkdown,
+    row: Row,
+    now?: Date | undefined,
+  ): boolean {
+    if (!source.shownFrom) {
+      return true;
+    }
+
+    const value: unknown = row[source.shownFrom];
+
+    if (
+      !(value instanceof Date) &&
+      typeof value !== "string" &&
+      typeof value !== "number"
+    ) {
+      return false;
+    }
+
+    const shownFrom: number = new Date(value).getTime();
+
+    return (
+      Number.isFinite(shownFrom) &&
+      shownFrom <= (now || OneUptimeDate.getCurrentDate()).getTime()
+    );
+  }
+
   // The image tokens a record shows to everyone.
   public static getShownTokens(
     tableName: string | null | undefined,
     row: Row | null | undefined,
     shownParents?: ShownParents | undefined,
+    now?: Date | undefined,
   ): Set<string> {
     const tokens: Set<string> = new Set<string>();
 
@@ -868,7 +1058,7 @@ export default class PublishedImages {
     }
 
     for (const source of this.getSources(tableName)) {
-      if (!this.isShown(source, row, shownParents)) {
+      if (!this.isShown(source, row, shownParents, now)) {
         continue;
       }
 
@@ -965,10 +1155,13 @@ export default class PublishedImages {
   }
 
   /*
-   * After a record is created: the images it shows become public. When a
-   * switch it shows them by was left to the column's default, the stored
-   * record is read for it (readStored); a record shown under another shows
-   * them only while that record is shown, as it is now (readShownParents).
+   * After a record is created: the images it shows become public - an
+   * announcement's, only once its time to be shown has come (one scheduled
+   * for later leaves them private: publishWhenShown makes them public then).
+   * When a switch or the time it shows them by was left to the column's
+   * default, the stored record is read for it (readStored); a record shown
+   * under another shows them only while that record is shown, as it is now
+   * (readShownParents).
    */
   public static async afterCreate(data: {
     tableName: string | null | undefined;
@@ -996,16 +1189,19 @@ export default class PublishedImages {
       }
 
       /*
-       * The switches that show it which it was created without, as the
-       * column defaults set them. A switch that hides it (hiddenWhen) left
-       * out is off, read or not: those columns default to off (pinned by
-       * PublishedImages' tests), so a create that leaves one out stores it
-       * off.
+       * The switches - and the time - that show it which it was created
+       * without, as the column defaults set them. A switch that hides it
+       * (hiddenWhen) left out is off, read or not: those columns default to
+       * off (pinned by PublishedImages' tests), so a create that leaves one
+       * out stores it off.
        */
       const unknownSwitches: Array<string> = Array.from(
         new Set<string>(
           withImages.flatMap((source: PublishedMarkdown): Array<string> => {
-            return source.shownWhen.filter((column: string): boolean => {
+            return [
+              ...source.shownWhen,
+              ...(source.shownFrom ? [source.shownFrom] : []),
+            ].filter((column: string): boolean => {
               return row[column] === undefined;
             });
           }),
@@ -1476,12 +1672,14 @@ export default class PublishedImages {
 
   /*
    * Which of these images a record of the project still shows to everyone,
-   * or sends out, as the database holds it now. A failed lookup answers all
-   * of them: an image is never made private on a guess.
+   * or sends out, as the database holds it now - by `now`, the current time
+   * when not given. A failed lookup answers all of them: an image is never
+   * made private on a guess.
    */
   public static async findStillShown(data: {
     projectId: ObjectID | string | null | undefined;
     tokens: Array<string>;
+    now?: Date | undefined;
   }): Promise<Set<string>> {
     const tokens: Array<string> = Array.from(new Set<string>(data.tokens));
     const projectId: string = normalizeFileId(data.projectId);
@@ -1509,6 +1707,9 @@ export default class PublishedImages {
             return `%/file/image/access-token/${token}%`;
           }),
           tokens,
+          ...(STILL_SHOWN_SQL_ASKS_TIME
+            ? [data.now || OneUptimeDate.getCurrentDate()]
+            : []),
         ]);
 
       const shown: Set<string> = new Set<string>();
@@ -1527,6 +1728,82 @@ export default class PublishedImages {
 
       return new Set<string>(tokens);
     }
+  }
+
+  /**
+   * Makes public a private image a record shown from a time shows now - an
+   * announcement whose Start Showing Announcement At has come since it was
+   * last written, which no write made public at that moment. The image
+   * route asks it of an image it would otherwise refuse
+   * (FileViewerAccess.findReadableFile). One statement decides and writes:
+   * the file of that project, not deleted, is made public only while a
+   * record of its own project shows it, by `now` (the current time when not
+   * given). True when a record shows it now, so it is public: made so by
+   * this call, or by a request for it at the same moment. An image no
+   * record shows is not asked about again for NOT_SHOWN_FOR_MS in this
+   * process, so asking for one again and again costs one statement in that
+   * time. Never throws: an image is never made public on a guess, and one
+   * that cannot be is refused as before.
+   */
+  public static async publishWhenShown(
+    file:
+      | {
+          _id?: unknown;
+          projectId?: unknown;
+          imageAccessToken?: unknown;
+          isPublic?: unknown;
+        }
+      | null
+      | undefined,
+    now?: Date | undefined,
+  ): Promise<boolean> {
+    const fileId: string = normalizeFileId(file?._id);
+    const projectId: string = normalizeFileId(file?.projectId);
+    const token: string =
+      typeof file?.imageAccessToken === "string" ? file.imageAccessToken : "";
+
+    if (
+      SOURCES_SHOWN_FROM_A_TIME.length === 0 ||
+      !ObjectID.isValidUUID(fileId) ||
+      !ObjectID.isValidUUID(projectId) ||
+      !TOKEN_REGEX.test(token) ||
+      (file?.isPublic as unknown) === true ||
+      this.notShownLately.get(fileId)
+    ) {
+      return false;
+    }
+
+    try {
+      const result: unknown = await this.getFileWriter()
+        .getRepository()
+        .manager.query(PUBLISH_WHEN_SHOWN_SQL, [
+          fileId,
+          projectId,
+          token,
+          now || OneUptimeDate.getCurrentDate(),
+          `%/file/image/access-token/${token}%`,
+        ]);
+
+      if (getUpdatedRowCount(result) > 0) {
+        return true;
+      }
+
+      // Not shown now: the next request for it in a moment is not asked again.
+      this.notShownLately.set(fileId, true, this.NOT_SHOWN_FOR_MS);
+
+      return false;
+    } catch (err) {
+      logger.error(
+        `Could not tell whether an image a record shows from a time is shown now, so it stays private: ${String(err)}`,
+      );
+
+      return false;
+    }
+  }
+
+  // Forgets which images were found not shown lately. For tests.
+  public static forgetNotShown(): void {
+    this.notShownLately.clear();
   }
 
   private static addChanges(

@@ -142,6 +142,7 @@ Itens de feed são escritos pelo próprio serviço de incidentes, pelos dois ser
 - **Pessoas** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`.
 - **Notificações** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
 - **Automação** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
+- **Videochamadas** — `VideoCallStarted` e `VideoCallFailed`: uma chamada iniciada para o incidente, com o link para participar, ou o motivo pelo qual um provedor não conseguiu iniciá-la. Veja [Videochamadas](/docs/workspace-connections/video-calls).
 
 Cada tipo ganha seu próprio ícone, então você consegue percorrer um feed longo e separar as mudanças de estado do resto da conversa. A análise de causa raiz gerada por IA é marcada de forma distinta e renderizada em um modo restrito de Markdown.
 

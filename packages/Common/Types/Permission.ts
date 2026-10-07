@@ -1208,6 +1208,14 @@ enum Permission {
   DeleteAlertInternalNote = "DeleteAlertInternalNote",
   ReadAlertInternalNote = "ReadAlertInternalNote",
 
+  CreateIncidentVideoCall = "CreateIncidentVideoCall",
+  DeleteIncidentVideoCall = "DeleteIncidentVideoCall",
+  ReadIncidentVideoCall = "ReadIncidentVideoCall",
+
+  CreateAlertVideoCall = "CreateAlertVideoCall",
+  DeleteAlertVideoCall = "DeleteAlertVideoCall",
+  ReadAlertVideoCall = "ReadAlertVideoCall",
+
   CreateIncidentPublicNote = "CreateIncidentPublicNote",
   EditIncidentPublicNote = "EditIncidentPublicNote",
   DeleteIncidentPublicNote = "DeleteIncidentPublicNote",
@@ -1811,6 +1819,11 @@ enum Permission {
   DeleteWorkspaceNotificationRule = "DeleteWorkspaceNotificationRule",
   EditWorkspaceNotificationRule = "EditWorkspaceNotificationRule",
   ReadWorkspaceNotificationRule = "ReadWorkspaceNotificationRule",
+
+  CreateVideoCallConnection = "CreateVideoCallConnection",
+  DeleteVideoCallConnection = "DeleteVideoCallConnection",
+  EditVideoCallConnection = "EditVideoCallConnection",
+  ReadVideoCallConnection = "ReadVideoCallConnection",
 
   CreateWorkspaceNotificationSummary = "CreateWorkspaceNotificationSummary",
   DeleteWorkspaceNotificationSummary = "DeleteWorkspaceNotificationSummary",
@@ -3388,6 +3401,47 @@ export class PermissionHelper {
         permission: Permission.ReadWorkspaceNotificationRule,
         title: "Read Workspace Notification Rule",
         description: "This permission can read alert states of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+
+      {
+        permission: Permission.CreateVideoCallConnection,
+        title: "Create Video Call Connection",
+        description:
+          "This permission can connect Zoom, Google Meet, Microsoft Teams or a meeting link to this project for incident and alert video calls.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.DeleteVideoCallConnection,
+        title: "Delete Video Call Connection",
+        description:
+          "This permission can delete video call connections of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.EditVideoCallConnection,
+        title: "Edit Video Call Connection",
+        description:
+          "This permission can edit video call connections of this project, including their credentials.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.ReadVideoCallConnection,
+        title: "Read Video Call Connection",
+        description:
+          "This permission can read the video call connections of this project. Their credentials are never readable.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -5917,6 +5971,68 @@ export class PermissionHelper {
         title: "Read Alert Internal Note",
         description:
           "This permission can read Alert Internal Note of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+
+      {
+        permission: Permission.CreateIncidentVideoCall,
+        title: "Create Incident Video Call",
+        description:
+          "This permission can start a video call for an incident, or add a meeting link to one, in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.DeleteIncidentVideoCall,
+        title: "Delete Incident Video Call",
+        description:
+          "This permission can remove a video call from an incident of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.ReadIncidentVideoCall,
+        title: "Read Incident Video Call",
+        description:
+          "This permission can read the video calls of incidents of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+
+      {
+        permission: Permission.CreateAlertVideoCall,
+        title: "Create Alert Video Call",
+        description:
+          "This permission can start a video call for an alert, or add a meeting link to one, in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.DeleteAlertVideoCall,
+        title: "Delete Alert Video Call",
+        description:
+          "This permission can remove a video call from an alert of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Alert,
+      },
+      {
+        permission: Permission.ReadAlertVideoCall,
+        title: "Read Alert Video Call",
+        description:
+          "This permission can read the video calls of alerts of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

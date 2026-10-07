@@ -17,7 +17,9 @@ const TEST_FILE_PATTERN: RegExp = /\.test\.tsx?$/;
  *   - the alert header offers the action whatever state the alert is in
  *     (resolved included), gated on creating the incident and then the link,
  *     hidden while permissions are unknown, and navigating to the prefilled
- *     create page; the other event headers do not grow it;
+ *     create page; the other event headers do not grow it. The headers
+ *     may carry the page's own actions after it - the Join call button of
+ *     the event's video call - but only the alert header builds one;
  *   - EventStatusPanel renders non-state actions after the state actions and
  *     before "More actions", neutral, never counted as state actions, and
  *     only puts the actions beside a title once there is room (xl);
@@ -248,8 +250,9 @@ describe("Declare Incident in the alert header", () => {
     expect(code).toContain(
       "constdeclareIncidentAction:EventPanelAction|null=getDeclareIncidentFromAlertAction(props.alertId);",
     );
+    // Declare Incident first, then the page's own (its video call's Join call).
     expect(code).toContain(
-      "constsecondaryActions:Array<EventPanelAction>=declareIncidentAction?[declareIncidentAction]:[];",
+      "constsecondaryActions:Array<EventPanelAction>=[...(declareIncidentAction?[declareIncidentAction]:[]),...(props.secondaryActions||[]),];",
     );
     // Built once, handed over once.
     expect(countOf(code, "getDeclareIncidentFromAlertAction(")).toBe(1);
@@ -413,14 +416,19 @@ describe("Declare Incident in the alert header", () => {
     );
     expect(overview).not.toContain("IncidentAlert");
     expect(overview).not.toContain("DeclareIncidentFromAlert");
-    expect(overview).not.toContain("secondaryActions");
+    // The one header action the page adds is its video call's Join call.
+    expect(countOf(dense(ALERT_OVERVIEW_PAGE), "secondaryActions=")).toBe(1);
+    expect(dense(ALERT_OVERVIEW_PAGE)).toContain(
+      "secondaryActions={joinVideoCallAction?[joinVideoCallAction]:[]}",
+    );
   });
 
   test.each(OTHER_EVENT_HEADERS)("%s does not offer it", (file: string) => {
     const code: string = dense(file);
 
     expect(code).toContain("<EventStatusPanel");
-    expect(code).not.toContain("secondaryActions");
+    // It may pass on the page's own header actions, but builds none.
+    expect(code).not.toContain("constsecondaryActions");
     expect(code).not.toContain("DeclareIncidentFromAlert");
     expect(code).not.toContain("alert-declare-incident-btn");
   });
