@@ -38,8 +38,9 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * Also here, the other AI sentences about used-up credits, which every
  * reader of an AI readiness gap or the AI Tasks page sees: none tells the
  * reader to add credits, and none offers auto-recharge as the way out -
- * AI credits are recharged after a call they paid for, so a used-up
- * balance stays used up until someone adds credits.
+ * most readers cannot turn it on, and these are only said when it cannot
+ * refill the credits (it is off, or its last charge failed). With it on,
+ * the call recharges them first: AIServiceCreditsRunOut.
  */
 
 type MockBillingGlobal = typeof globalThis & {

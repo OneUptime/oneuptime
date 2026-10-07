@@ -12,6 +12,9 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import OnCallDutyExecutionLogTimelineStatus from "../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import UserNotificationExecutionStatus from "../../Types/UserNotification/UserNotificationExecutionStatus";
+import UserNotificationStatus from "../../Types/UserNotification/UserNotificationStatus";
+import ColumnLength from "../../Types/Database/ColumnLength";
+import logger from "../Utils/Logger";
 import User from "../../Models/DatabaseModels/User";
 import Model from "../../Models/DatabaseModels/UserOnCallLogTimeline";
 import AlertService from "./AlertService";
@@ -21,6 +24,46 @@ import IncidentEpisodeService from "./IncidentEpisodeService";
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * A page the Notification service deliberately did not send - the
+   * project's balance could not pay for it, the project has the channel
+   * turned off, the project is gone - says so on the person's on-call
+   * timeline, with the reason the message's own log gives, instead of
+   * staying at "Sending" for ever. Like the timeline's other skips (an
+   * unverified number, say), it is recorded as Error: the page did not go
+   * out.
+   *
+   * Never throws: the skip is already in the message's log, and a timeline
+   * row that could not be written must not turn it into a failed send for
+   * whoever asked for it.
+   */
+  @CaptureSpan()
+  public async markNotSent(data: {
+    userOnCallLogTimelineId?: ObjectID | undefined;
+    reason: string;
+  }): Promise<void> {
+    if (!data.userOnCallLogTimelineId) {
+      return;
+    }
+
+    try {
+      await this.updateOneById({
+        id: data.userOnCallLogTimelineId,
+        data: {
+          status: UserNotificationStatus.Error,
+          statusMessage: data.reason.substring(0, ColumnLength.LongText),
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (err) {
+      logger.error(
+        `On-call timeline ${data.userOnCallLogTimelineId.toString()}: could not record that a notification was not sent (${data.reason}): ${err}`,
+      );
+    }
   }
 
   @CaptureSpan()

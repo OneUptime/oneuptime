@@ -33,7 +33,9 @@ import ProjectAiDailyLimits, {
   ProjectAiDailyUsage,
 } from "../../Types/AI/ProjectAiDailyLimits";
 import ProjectAiDailyLimitOwnerNotice from "../Utils/AI/ProjectAiDailyLimitOwnerNotice";
+import AiCreditsUsedUpOwnerNotice from "../Utils/AI/AiCreditsUsedUpOwnerNotice";
 import { PROJECT_AI_CREDITS_USED_UP_MESSAGE } from "../../Utils/Project/ProjectBalance";
+import AiAutoRechargeState from "../../Types/Billing/AiAutoRechargeState";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 
@@ -326,10 +328,19 @@ export const AI_DISABLED_MESSAGE: string =
 
 /*
  * Why no AI run can start in a project whose OneUptime AI credits are used
- * up (getAiBalanceBlocker), in the words every surface that says so shares.
+ * up (getAiBalanceBlocker), in the words every surface that says so shares:
+ * Auto Recharge is off (or has nothing to add) ...
  */
 export const AI_BALANCE_INSUFFICIENT_MESSAGE: string =
   "This project's AI credit balance is used up and auto-recharge is off, so OneUptime AI cannot run.";
+
+/*
+ * ... or it is on, and its last charge failed: it tries the card again
+ * after a while (AIBillingService), or as soon as somebody recharges by
+ * hand.
+ */
+export const AI_AUTO_RECHARGE_FAILED_MESSAGE: string =
+  "This project's AI credit balance is used up and auto-recharge could not add more, so OneUptime AI cannot run.";
 
 /*
  * Where a project's own daily AI limits are set, as every refusal names it.
@@ -568,18 +579,23 @@ export class Service extends BaseService {
 
   /*
    * Would an AI call in this project be refused for lack of AI credits?
-   * Returns why (AI_BALANCE_INSUFFICIENT_MESSAGE), or null when nothing
-   * about the balance stands in the way. The same test executeWithLogging
-   * applies to every call — billing is on, the project's provider is the
-   * OneUptime-hosted (global) one and it has a per-token cost, and the
-   * balance is at or below zero — plus one it cannot see: auto-recharge.
-   * A project with auto-recharge on is topped up when its balance runs low,
-   * so an empty balance there is not a standing blocker.
+   * Returns why (AI_BALANCE_INSUFFICIENT_MESSAGE, or
+   * AI_AUTO_RECHARGE_FAILED_MESSAGE), or null when nothing about the balance
+   * stands in the way. The same test executeWithLogging applies to every
+   * call — billing is on, the project's provider is the OneUptime-hosted
+   * (global) one and it has a per-token cost, the balance is at or below
+   * zero, and Auto Recharge cannot refill it first. With Auto Recharge on
+   * and set up, a call that finds the credits used up recharges them and
+   * then runs, so an empty balance there is no blocker - unless its last
+   * charge failed, when the call is refused until it may try the card again
+   * (AIBillingService.getAutoRechargeState).
    *
    * Asked in advance by the readiness checks (the cluster AI status, the
    * investigation eligibility), so "out of credits" is said once, up front,
-   * instead of as a failed run per incident. Takes the provider when the
-   * caller already resolved it, to spare a second lookup.
+   * instead of as a failed run per incident. A blocker it finds tells the
+   * project's owners, the first time the credits ran out
+   * (AiCreditsUsedUpOwnerNotice). Takes the provider when the caller
+   * already resolved it, to spare a second lookup.
    */
   @CaptureSpan()
   public async getAiBalanceBlocker(data: {
@@ -609,6 +625,10 @@ export class Service extends BaseService {
       select: {
         aiCurrentBalanceInUSDCents: true,
         enableAutoRechargeAiBalance: true,
+        autoAiRechargeByBalanceInUSD: true,
+        autoRechargeAiWhenCurrentBalanceFallsInUSD: true,
+        // Whether the owners were told: telling them costs no extra read.
+        lowAiBalanceNotificationSentToOwners: true,
       },
       props: { isRoot: true },
     });
@@ -621,11 +641,101 @@ export class Service extends BaseService {
       return null;
     }
 
-    if (project.enableAutoRechargeAiBalance === true) {
+    const autoRecharge: AiAutoRechargeState =
+      await AIBillingService.getAutoRechargeState({
+        projectId: data.projectId,
+        project,
+      });
+
+    // The next billed call recharges the credits first, then runs.
+    if (autoRecharge === AiAutoRechargeState.Ready) {
       return null;
     }
 
-    return AI_BALANCE_INSUFFICIENT_MESSAGE;
+    await this.tellOwnersAiCreditsUsedUp({
+      projectId: data.projectId,
+      isAutoRechargeOn: autoRecharge === AiAutoRechargeState.Failed,
+      alreadyTold: project.lowAiBalanceNotificationSentToOwners,
+    });
+
+    return autoRecharge === AiAutoRechargeState.Failed
+      ? AI_AUTO_RECHARGE_FAILED_MESSAGE
+      : AI_BALANCE_INSUFFICIENT_MESSAGE;
+  }
+
+  /*
+   * The project's owners hear that its AI credits are used up, the first
+   * time since they were last added (AiCreditsUsedUpOwnerNotice). Never
+   * throws: whatever the caller was doing - refusing a call, skipping an
+   * investigation - it goes on doing.
+   */
+  private async tellOwnersAiCreditsUsedUp(data: {
+    projectId: ObjectID;
+    isAutoRechargeOn: boolean;
+    alreadyTold?: boolean | undefined;
+  }): Promise<void> {
+    try {
+      await AiCreditsUsedUpOwnerNotice.notifyIfFirst(data);
+    } catch (error) {
+      logger.error(
+        `AI: could not tell the owners of project ${data.projectId.toString()} that its AI credits are used up: ${error}`,
+      );
+    }
+  }
+
+  /*
+   * Auto Recharge before a billed call that found the credits used up: the
+   * balance it leaves, which the call then runs on. A recharge that fails
+   * (the owners are told, once a day) leaves the balance as it was, and the
+   * call is refused.
+   */
+  private async rechargeUsedUpAiCredits(data: {
+    projectId: ObjectID;
+    balanceInUSDCents: number;
+  }): Promise<number> {
+    try {
+      return await AIBillingService.rechargeIfBalanceIsLow(data.projectId);
+    } catch (error) {
+      logger.error(
+        `AI: Auto Recharge could not refill the used-up AI credits of project ${data.projectId.toString()}: ${error}`,
+      );
+      return data.balanceInUSDCents;
+    }
+  }
+
+  /*
+   * After every call billed to the AI credits: Auto Recharge tops them up
+   * if they are low, and when this call spent the last of them and nothing
+   * refilled them, the owners hear of it now - before anyone is refused.
+   * Runs after the call has answered; never throws.
+   */
+  private async afterBilledCall(data: {
+    projectId: ObjectID;
+    userId?: ObjectID | undefined;
+  }): Promise<void> {
+    let balanceInUSDCents: number | null = null;
+
+    try {
+      balanceInUSDCents = await AIBillingService.rechargeIfBalanceIsLow(
+        data.projectId,
+      );
+    } catch (err) {
+      logger.error("Error during AI balance auto-recharge check:", {
+        projectId: data.projectId?.toString(),
+        userId: data.userId?.toString(),
+      } as LogAttributes);
+      logger.error(err, {
+        projectId: data.projectId?.toString(),
+        userId: data.userId?.toString(),
+      } as LogAttributes);
+    }
+
+    // A recharge that failed leaves the balance unknown here: the row says.
+    if (balanceInUSDCents === null || balanceInUSDCents <= 0) {
+      await AiCreditsUsedUpOwnerNotice.notifyIfUsedUp({
+        projectId: data.projectId,
+      });
+    }
   }
 
   /*
@@ -994,6 +1104,15 @@ export class Service extends BaseService {
       select: {
         enableAi: true,
         aiCurrentBalanceInUSDCents: true,
+        /*
+         * Auto Recharge, which refills used-up credits before the call, and
+         * whether the owners were told they ran out - so a refusal tells
+         * them at no cost.
+         */
+        enableAutoRechargeAiBalance: true,
+        autoAiRechargeByBalanceInUSD: true,
+        autoRechargeAiWhenCurrentBalanceFallsInUSD: true,
+        lowAiBalanceNotificationSentToOwners: true,
         // The project's own daily AI limits, checked below on this same row.
         aiDailyTokenLimit: true,
         aiDailySpendLimitInUSD: true,
@@ -1092,22 +1211,48 @@ export class Service extends BaseService {
      * already read for the kill switch above and is non-null past that gate,
      * so this reuses it rather than issuing a second read of the same row.
      *
-     * Said to whoever asked - most of whom cannot add credits - so the
-     * refusal names who can, and where (Utils/Project/ProjectBalance), and
-     * the AI Logs row says the same.
+     * Credits that are used up are recharged first when Auto Recharge is on,
+     * and the call runs on what it adds. Auto Recharge used to run only
+     * after a call it had paid for - and no call can run on used-up credits,
+     * so it never came, and every call was refused. The recharge takes the
+     * same lock as every other one, so calls arriving together charge the
+     * card once (AIBillingService.rechargeIfBalanceIsLow).
+     *
+     * A call that still cannot be paid for is refused - said to whoever
+     * asked, most of whom cannot add credits, so the refusal names who can,
+     * and where (Utils/Project/ProjectBalance), and the AI Logs row says the
+     * same - and the owners hear of it, once each time the credits run out.
      */
     if (shouldBill && (project!.aiCurrentBalanceInUSDCents || 0) <= 0) {
-      logEntry.status = LlmLogStatus.InsufficientBalance;
-      logEntry.statusMessage = PROJECT_AI_CREDITS_USED_UP_MESSAGE;
-      logEntry.requestCompletedAt = new Date();
-      logEntry.durationMs = new Date().getTime() - startTime.getTime();
+      const isAutoRechargeOn: boolean =
+        AIBillingService.getAutoRechargeSettings(project!).isSetUp;
 
-      await LlmLogService.create({
-        data: logEntry,
-        props: { isRoot: true },
-      });
+      const balanceInUSDCents: number = isAutoRechargeOn
+        ? await this.rechargeUsedUpAiCredits({
+            projectId: request.projectId,
+            balanceInUSDCents: project!.aiCurrentBalanceInUSDCents || 0,
+          })
+        : project!.aiCurrentBalanceInUSDCents || 0;
 
-      throw new BadDataException(PROJECT_AI_CREDITS_USED_UP_MESSAGE);
+      if (balanceInUSDCents <= 0) {
+        logEntry.status = LlmLogStatus.InsufficientBalance;
+        logEntry.statusMessage = PROJECT_AI_CREDITS_USED_UP_MESSAGE;
+        logEntry.requestCompletedAt = new Date();
+        logEntry.durationMs = new Date().getTime() - startTime.getTime();
+
+        await LlmLogService.create({
+          data: logEntry,
+          props: { isRoot: true },
+        });
+
+        await this.tellOwnersAiCreditsUsedUp({
+          projectId: request.projectId,
+          isAutoRechargeOn,
+          alreadyTold: project!.lowAiBalanceNotificationSentToOwners,
+        });
+
+        throw new BadDataException(PROJECT_AI_CREDITS_USED_UP_MESSAGE);
+      }
     }
 
     /*
@@ -1265,19 +1410,18 @@ export class Service extends BaseService {
             amountInUSDCents: totalCost,
           });
 
-          // Check if auto-recharge is needed (do this async, don't wait)
-          AIBillingService.rechargeIfBalanceIsLow(request.projectId).catch(
-            (err: Error) => {
-              logger.error("Error during AI balance auto-recharge check:", {
-                projectId: request.projectId?.toString(),
-                userId: request.userId?.toString(),
-              } as LogAttributes);
-              logger.error(err, {
-                projectId: request.projectId?.toString(),
-                userId: request.userId?.toString(),
-              } as LogAttributes);
-            },
-          );
+          /*
+           * Top the credits up if Auto Recharge says so, and tell the owners
+           * if this call spent the last of them (async, don't wait).
+           */
+          this.afterBilledCall({
+            projectId: request.projectId,
+            userId: request.userId,
+          }).catch((err: Error) => {
+            logger.error(err, {
+              projectId: request.projectId?.toString(),
+            } as LogAttributes);
+          });
         }
       }
 

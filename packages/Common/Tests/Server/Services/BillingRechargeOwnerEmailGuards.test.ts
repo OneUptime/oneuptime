@@ -3,6 +3,9 @@ import BillingService from "../../../Server/Services/BillingService";
 import NotificationService from "../../../Server/Services/NotificationService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
+import Semaphore, {
+  SemaphoreMutex,
+} from "../../../Server/Infrastructure/Semaphore";
 import DatabaseNotConnectedException from "../../../Types/Exception/DatabaseNotConnectedException";
 import logger from "../../../Server/Utils/Logger";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -149,6 +152,7 @@ let generateInvoiceSpy: jest.SpyInstance;
 let smsSlackSpy: jest.SpyInstance;
 let aiSlackSpy: jest.SpyInstance;
 let claimWindowSpy: jest.SpyInstance;
+let atomicAddSpy: jest.SpyInstance;
 
 /* The `data` object of the nth ProjectService.updateOneById call. */
 type GetUpdateDataFunction = (index: number) => Record<string, unknown>;
@@ -217,6 +221,21 @@ beforeEach(() => {
   claimWindowSpy = jest
     .spyOn(GlobalCache, "setStringIfNotExists")
     .mockResolvedValue(true);
+
+  /*
+   * AI credits are added in one statement (the balance is not read and
+   * written back), under the recharge lock, and a success ends Auto
+   * Recharge's wait after a failure. None of that is under test here.
+   */
+  atomicAddSpy = jest
+    .spyOn(ProjectService, "atomicAddToColumnsByIdWithoutHooks")
+    .mockResolvedValue(undefined);
+  jest
+    .spyOn(Semaphore, "lock")
+    .mockResolvedValue({} as unknown as SemaphoreMutex);
+  jest.spyOn(Semaphore, "release").mockResolvedValue(undefined);
+  jest.spyOn(GlobalCache, "deleteKey").mockResolvedValue(undefined);
+  jest.spyOn(GlobalCache, "setString").mockResolvedValue(undefined);
 
   // The catch blocks log the underlying failure; silenced, not asserted on.
   jest.spyOn(logger, "error").mockImplementation((): void => {});
@@ -523,9 +542,12 @@ describe("NotificationService.rechargeBalance - SMS and call owner emails", () =
 
 describe("AIBillingService.rechargeBalance - AI credit owner emails", () => {
   test("a successful AUTO recharge mails project owners zero times", async () => {
-    findOneByIdSpy.mockResolvedValue(
-      makeAiProject({ failedFlagAlreadySet: false }),
-    );
+    const credited: Project = makeAiProject({ failedFlagAlreadySet: false });
+    credited.aiCurrentBalanceInUSDCents = 2100;
+
+    findOneByIdSpy
+      .mockResolvedValueOnce(makeAiProject({ failedFlagAlreadySet: false }))
+      .mockResolvedValueOnce(credited);
 
     const balance: number = await AIBillingService.rechargeBalance(
       PROJECT_ID,
@@ -533,6 +555,7 @@ describe("AIBillingService.rechargeBalance - AI credit owner emails", () => {
       { sendOwnerConfirmationEmail: false },
     );
 
+    // The balance as it is once the credits were added.
     expect(balance).toBe(2100);
     expect(generateInvoiceSpy).toHaveBeenCalledTimes(1);
     expect(sendEmailSpy).toHaveBeenCalledTimes(0);
@@ -571,14 +594,22 @@ describe("AIBillingService.rechargeBalance - AI credit owner emails", () => {
 
     await AIBillingService.rechargeBalance(PROJECT_ID, 20);
 
-    expect(updateOneByIdSpy).toHaveBeenCalledTimes(1);
-
-    const data: Record<string, unknown> = getUpdateData(0);
-
-    expect(data["aiCurrentBalanceInUSDCents"]).toBe(2100);
-    expect(data["failedAiBalanceChargeNotificationSentToOwners"]).toBe(false);
-    expect(data["lowAiBalanceNotificationSentToOwners"]).toBe(false);
-    expect(data["notEnabledAiNotificationSentToOwners"]).toBe(false);
+    /*
+     * The credits and the flags in one statement: the amount is added to
+     * whatever the balance is now, so the cost of AI calls billed while the
+     * card was charged is not written over.
+     */
+    expect(atomicAddSpy).toHaveBeenCalledTimes(1);
+    expect(atomicAddSpy.mock.calls[0]![0]).toEqual({
+      id: PROJECT_ID,
+      add: { aiCurrentBalanceInUSDCents: 2000 },
+      set: {
+        failedAiBalanceChargeNotificationSentToOwners: false,
+        lowAiBalanceNotificationSentToOwners: false,
+        notEnabledAiNotificationSentToOwners: false,
+      },
+    });
+    expect(updateOneByIdSpy).toHaveBeenCalledTimes(0);
 
     expect(aiSlackSpy).toHaveBeenCalledTimes(1);
   });

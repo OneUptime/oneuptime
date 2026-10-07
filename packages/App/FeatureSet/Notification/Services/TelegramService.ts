@@ -165,6 +165,10 @@ export default class TelegramService {
               isRoot: true,
             },
           });
+          await UserOnCallLogTimelineService.markNotSent({
+            userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+            reason: telegramLog.statusMessage!,
+          });
           return;
         }
 
@@ -211,6 +215,10 @@ export default class TelegramService {
             );
           }
 
+          await UserOnCallLogTimelineService.markNotSent({
+            userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+            reason: telegramLog.statusMessage!,
+          });
           return;
         }
 
@@ -288,6 +296,10 @@ export default class TelegramService {
                 })}`,
               );
             }
+            await UserOnCallLogTimelineService.markNotSent({
+              userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+              reason: telegramLog.statusMessage!,
+            });
             return;
           }
         }

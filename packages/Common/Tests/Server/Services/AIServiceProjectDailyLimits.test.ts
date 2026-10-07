@@ -818,6 +818,12 @@ describe.each([
       ).toEqual({
         enableAi: true,
         aiCurrentBalanceInUSDCents: true,
+        // Auto Recharge refills used-up credits before the call.
+        enableAutoRechargeAiBalance: true,
+        autoAiRechargeByBalanceInUSD: true,
+        autoRechargeAiWhenCurrentBalanceFallsInUSD: true,
+        // Whether the owners were told the credits ran out.
+        lowAiBalanceNotificationSentToOwners: true,
         aiDailyTokenLimit: true,
         aiDailySpendLimitInUSD: true,
         // When each limit last stopped AI: telling the owners costs no read.
