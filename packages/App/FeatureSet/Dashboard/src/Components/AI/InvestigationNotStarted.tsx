@@ -80,6 +80,7 @@ const KNOWN_REASON_CODES: Array<InvestigationNotStartedCode> = [
   "provider_missing",
   "insufficient_ai_balance",
   "project_daily_limit_reached",
+  "no_investigation_rule_matched",
   "severity_below_threshold",
   "monitor_cooldown",
   "created_resolved",

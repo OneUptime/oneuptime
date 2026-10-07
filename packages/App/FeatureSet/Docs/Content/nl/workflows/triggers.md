@@ -45,10 +45,12 @@ Behandel de URL als een wachtwoord. Iedereen die hem heeft, kan je workflow star
 Bijna alles in OneUptime — monitoren, incidenten, waarschuwingen, gepland onderhoud, statuspagina's, piketbeleid, teams — kan een workflow triggeren. Elk daarvan biedt drie gebeurtenissen:
 
 - **On Create** — gaat af wanneer er een nieuwe wordt toegevoegd.
-- **On Update** — gaat af wanneer er een wordt gewijzigd.
+- **On Update** — gaat af wanneer er een wordt gewijzigd. Een record opslaan met de waarden die het al heeft, zoals een formulier dat zonder wijzigingen wordt opgeslagen of een schakelaar die wordt verstuurd zoals hij al staat, is geen wijziging en laat hem niet afgaan.
 - **On Delete** — gaat af wanneer er een wordt verwijderd.
 
 Zo bouw je "wanneer X gebeurt in OneUptime, doe Y" zonder in een lus te hoeven blijven controleren.
+
+**On Update** kun je met **Listen on** beperken tot bepaalde velden: dan gaat hij alleen af wanneer een update een van die velden wijzigt, naar welke waarde ook. Een schakelaar uitzetten of een veld leegmaken telt ook.
 
 Het volledige record gaat door naar het volgende blok. De trigger **Incident → On Create** geeft bijvoorbeeld het nieuwe incident door, zodat het volgende blok de titel, beschrijving, ernst en elk ander veld kan uitlezen.
 

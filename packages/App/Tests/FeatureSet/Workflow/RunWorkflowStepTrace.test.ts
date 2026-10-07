@@ -361,11 +361,11 @@ describe("RunWorkflow step trace", () => {
 
     const shortSecret: WorkflowVariable = new WorkflowVariable();
     shortSecret.content = "token";
-    shortSecret.isSecret = "true";
+    shortSecret.isSecret = true;
 
     const longSecret: WorkflowVariable = new WorkflowVariable();
     longSecret.content = "token-with-suffix";
-    longSecret.isSecret = "true";
+    longSecret.isSecret = true;
 
     const runner: RunWorkflow = new RunWorkflow();
     const updateLogSpy: RecordedSpy = prepareSingleComponentRun(
@@ -438,7 +438,7 @@ describe("RunWorkflow step trace", () => {
       (content: string): WorkflowVariable => {
         const variable: WorkflowVariable = new WorkflowVariable();
         variable.content = content;
-        variable.isSecret = "true";
+        variable.isSecret = true;
         return variable;
       },
     );
@@ -487,7 +487,7 @@ describe("RunWorkflow step trace", () => {
     const componentNode: NodeDataProp = node(metadata({}));
     const secret: WorkflowVariable = new WorkflowVariable();
     secret.content = "smtp-secret";
-    secret.isSecret = "true";
+    secret.isSecret = true;
 
     const runner: RunWorkflow = new RunWorkflow();
     const updateLogSpy: RecordedSpy = prepareSingleComponentRun(

@@ -2,8 +2,8 @@ import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
 
 /*
  * The text of the Forms product's pages: the list of forms, the form
- * builder and its Branding section, the On Submit page, the Share page and
- * the submissions.
+ * builder and its Branding section, the Templates page, the On Submit page,
+ * the Share page, the submissions and Duplicate Form.
  *
  * Kept in one module free of React and of the dashboard's UI code, so the
  * pages, the builder and App/Tests/Dashboard/FormsI18n all read these exact
@@ -87,6 +87,8 @@ export const FormsCopy: {
   required: string;
   requiredDescription: string;
   requiredLocked: string;
+  requiredHidden: string;
+  hiddenDescription: string;
   answerType: string;
   options: string;
   choicesOffered: string;
@@ -120,6 +122,22 @@ export const FormsCopy: {
   previewSubmitted: string;
   previewAgain: string;
   previewSkipped: string;
+
+  // Templates.
+  templatesDescription: string;
+  templatesEmpty: string;
+  templatesFull: string;
+  addTemplate: string;
+  editTemplate: string;
+  templateNameDescription: string;
+  templateNamePlaceholder: string;
+  defaultTemplateDescription: string;
+  templateAnswersDescription: string;
+  hiddenQuestionHelp: string;
+  templatePickerLabel: string;
+  templatePickerDescription: string;
+  deleteTemplateTitle: string;
+  deleteTemplateDescription: string;
 
   // On Submit.
   targetCardTitle: string;
@@ -228,6 +246,9 @@ export const FormsCopy: {
 
   // Deleting the form.
   deleteFormNote: string;
+
+  // Duplicating the form.
+  duplicateFormNote: string;
 } = {
   productTitle: "Forms",
 
@@ -311,6 +332,9 @@ export const FormsCopy: {
   requiredDescription: "The form cannot be submitted without an answer.",
   requiredLocked:
     "Always required: a scheduled maintenance event cannot be created without it.",
+  requiredHidden: "A hidden question is never required: nobody is asked it.",
+  hiddenDescription:
+    "Not shown on the form. Only the template a submission starts from can answer it.",
   answerType: "Answer Type",
   options: "Options",
   choicesOffered: "Choices Offered",
@@ -353,6 +377,29 @@ export const FormsCopy: {
   previewAgain: "Fill It In Again",
   previewSkipped:
     "Some questions are not shown, because they cannot be answered yet. Their cards say why.",
+
+  templatesDescription:
+    "Named sets of answers people can start the form from, so one form covers each case your team reports often. Choosing a template fills the form in, and every answer can still be changed before submitting.",
+  templatesEmpty:
+    "No templates yet. Add one for each case people report often, such as an outage or planned maintenance.",
+  templatesFull: "This form has as many templates as a form can have.",
+  addTemplate: "Add Template",
+  editTemplate: "Edit Template",
+  templateNameDescription:
+    "What the form's list of templates shows. Unique within this form.",
+  templateNamePlaceholder: "Application Outage",
+  defaultTemplateDescription:
+    "The form opens with this template filled in. Only one template can be the default.",
+  templateAnswersDescription:
+    "What the template fills in. Leave a question empty to leave it to the person submitting.",
+  hiddenQuestionHelp:
+    "Hidden: not shown on the form. Only templates answer it.",
+  templatePickerLabel: "Start From a Template",
+  templatePickerDescription:
+    "Choose a template to fill in the form. You can change any answer before you submit.",
+  deleteTemplateTitle: "Delete Template",
+  deleteTemplateDescription:
+    "Delete this template? Links that name it open the form without a template. Submissions already made from it are not changed.",
 
   targetCardTitle: "What Each Submission Creates",
   targetCardDescription:
@@ -491,6 +538,9 @@ export const FormsCopy: {
 
   deleteFormNote:
     "Its submissions are deleted with it. The incidents and events it created are not.",
+
+  duplicateFormNote:
+    "The copy has this form's questions, templates, On Submit settings, branding, thank-you message and IP allowlist, and a link of its own. It starts turned off: turn it on from its Share page when it is ready.",
 };
 
 // How each kind of question of the form's own is named in the builder.

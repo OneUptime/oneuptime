@@ -5,6 +5,7 @@ import {
   KubernetesAiAccessGapCode,
   KubernetesAiAgentSummary,
   KubernetesAiAutomaticInvestigationSettings,
+  KubernetesAiAutomaticRemediationSettings,
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
   KUBECTL_ALLOW_WRITES_ENV,
@@ -1018,6 +1019,53 @@ export function getAutomaticInvestigationLine(
     alerts: translatableTerm(settings.alerts ? OPT_IN_ON : OPT_IN_OFF),
   });
 }
+
+// The project's automatic-fix switches; null from an older server.
+export function getAutomaticRemediation(
+  status: KubernetesClusterAiAccessStatus,
+): KubernetesAiAutomaticRemediationSettings | null {
+  const settings: KubernetesAiAutomaticRemediationSettings | undefined =
+    status.automaticRemediation;
+
+  if (
+    !settings ||
+    typeof settings.incidents !== "boolean" ||
+    typeof settings.alerts !== "boolean"
+  ) {
+    return null;
+  }
+
+  return settings;
+}
+
+/*
+ * The project's "Fix new incidents automatically" and "Fix new alerts
+ * automatically" in one line, under the cluster's fix mode: a cluster set to
+ * fix things fixes nothing new while the project's switch is off. Off by
+ * default, and turned on - with its rules - on each AI settings page, not
+ * here: it is the project's choice, not the cluster's.
+ */
+export const AUTOMATIC_REMEDIATION_LINE: string = translationKey(
+  "Automatic fixes for new incidents in this project: {{incidents}} · alerts: {{alerts}}",
+);
+
+export function getAutomaticRemediationLine(
+  settings: KubernetesAiAutomaticRemediationSettings,
+): string {
+  return translateTemplate(AUTOMATIC_REMEDIATION_LINE, {
+    incidents: translatableTerm(settings.incidents ? OPT_IN_ON : OPT_IN_OFF),
+    alerts: translatableTerm(settings.alerts ? OPT_IN_ON : OPT_IN_OFF),
+  });
+}
+
+// Where each switch is turned on, linked from the line while it is off.
+export const AUTOMATIC_REMEDIATION_SETTINGS_LINKS: {
+  incidents: string;
+  alerts: string;
+} = {
+  incidents: translationKey("Incident AI settings"),
+  alerts: translationKey("Alert AI settings"),
+};
 
 // The flags a one-click "Turn on" writes: only the ones that are off.
 export function getAutomaticInvestigationTurnOnChanges(

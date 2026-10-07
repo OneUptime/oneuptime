@@ -27,7 +27,7 @@ const variable: VariableFunction = (
   const workflowVariable: WorkflowVariable = new WorkflowVariable();
   workflowVariable.name = "variable";
   workflowVariable.content = content;
-  workflowVariable.isSecret = isSecret as string;
+  workflowVariable.isSecret = isSecret as boolean;
 
   return workflowVariable;
 };
@@ -67,11 +67,27 @@ describe("getSecretWorkflowVariableValues", () => {
     ).toEqual(["secret"]);
   });
 
+  /*
+   * Read as the database stores the flag (toStoredBoolean), the same rule
+   * WorkflowVariableService uses to refuse un-marking a secret: what the
+   * service calls secret, the run logs redact.
+   */
+  test.each(["yes", "on", "1", " TRUE "])(
+    "collects variables flagged with %p, which the database stores as true",
+    (flag: string) => {
+      expect(
+        getSecretWorkflowVariableValues([variable("secret", flag)]),
+      ).toEqual(["secret"]);
+    },
+  );
+
   test("ignores variables that are not secret", () => {
     expect(
       getSecretWorkflowVariableValues([
         variable("public", false),
         variable("also-public", "false"),
+        variable("not-secret-either", "no"),
+        variable("off-too", "0"),
         variable("unflagged"),
       ]),
     ).toEqual([]);
@@ -164,7 +180,7 @@ describe("getSecretWorkflowVariableValues and OAuth 2.0 variables", () => {
     workflowVariable.name = "API_TOKEN";
     workflowVariable.variableType = WorkflowVariableType.OAuth2;
     workflowVariable.content = values.content ?? "";
-    workflowVariable.isSecret = values.isSecret as unknown as string;
+    workflowVariable.isSecret = values.isSecret as boolean;
     workflowVariable.oauthAccessToken = values.accessToken as string;
     workflowVariable.oauthClientSecret = values.clientSecret as string;
     workflowVariable.oauthRefreshToken = values.refreshToken as string;

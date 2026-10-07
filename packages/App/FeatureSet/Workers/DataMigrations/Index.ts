@@ -119,6 +119,7 @@ import BackfillAuditLogRootResource from "./BackfillAuditLogRootResource";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import AddAuditLogWorkflowColumns from "./AddAuditLogWorkflowColumns";
 import RemoveNotificationSettingsOfFormerMembers from "./RemoveNotificationSettingsOfFormerMembers";
+import NotifyOwnersOfStoppedApiKeysAndScim from "./NotifyOwnersOfStoppedApiKeysAndScim";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
 import ScheduleRemindersMissedByReminderRuleLookup from "./ScheduleRemindersMissedByReminderRuleLookup";
 import RepairKubernetesDashboardClusterCpuTile from "./RepairKubernetesDashboardClusterCpuTile";
@@ -665,6 +666,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    * No ordering requirement, so it sits before the last slot.
    */
   new RemoveNotificationSettingsOfFormerMembers(),
+  /*
+   * On OneUptime Cloud, API keys stop working below Growth and SCIM only
+   * removes people below Scale. Owners of projects that were already below
+   * those plans when that shipped got no word: this emails them once, in the
+   * plan change's words (PlanDowngradeOwnerNotice). Billing off: nothing is
+   * read or sent. Safe to run twice, at once or later: the project row's
+   * planCutoffNoticeSentAt is claimed by one conditional UPDATE. After the
+   * schema migration that adds that column; no other ordering requirement,
+   * so it sits before the last slot.
+   */
+  new NotifyOwnersOfStoppedApiKeysAndScim(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

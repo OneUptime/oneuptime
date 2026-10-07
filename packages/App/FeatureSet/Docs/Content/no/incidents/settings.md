@@ -21,7 +21,7 @@ Denne siden er oppslagsverket for den konfigurasjonen — hva hver side innehold
 | **Hendelsesroller**      | Definer rollene du tildeler respondenter, som Incident Commander.                                      |
 | **Nummerprefiks**  | Nummerprefiksene for hendelser og hendelsesepisoder.                                                   |
 
-Hva OneUptime AI gjør på egen hånd, stilles ikke inn her: det har sin egen seksjon, **Hendelser → KI**, på ruter som begynner med `/dashboard/{projectId}/incidents/ai/`. Siden **Innstillinger** der slår automatisk undersøkelse, automatiske koderettelser og postmortem-utkast av eller på og rommer de valgfrie grensene KI arbeider innenfor — ingen av dem gjelder før du setter dem. Ved siden av ligger **Regler for automatisk utbedring**, med **Innsikt** og **Logger**: hva KI har lært av hendelsene dine, og alt den har gjort. Se [AI SRE](/docs/ai/ai-sre).
+Hva OneUptime AI gjør på egen hånd, stilles ikke inn her: det har sin egen seksjon, **Hendelser → KI**, på ruter som begynner med `/dashboard/{projectId}/incidents/ai/`. Siden **Innstillinger** der slår undersøkelse av nye hendelser, automatisk retting av dem (av til du slår den på), postmortem-utkast og åpning av pull requests med rettelser og med manglende telemetri av eller på, og hver bryter lagres så snart du slår den om; undersøkelsesreglene og reglene for automatisk utbedring, som avgrenser hvilke hendelser som undersøkes og rettes, og de valgfrie grensene KI arbeider innenfor, er foldet sammen under **Flere innstillinger**, og ingen av dem gjelder før du setter dem. **Innsikt** og **Logger** ligger ved siden av: hva KI har lært av hendelsene dine, og alt den har gjort. Se [AI SRE](/docs/ai/ai-sre).
 
 **Hendelsesstatus** og **Hendelsesalvor** er dekket i dybden i [Hendelsestilstander og alvorlighetsgrader](/docs/incidents/states-and-severities) — resten av denne siden tar over fra **Hendelsesmaler**.
 
@@ -117,21 +117,22 @@ Et nytt prefiks gjelder bare hendelser og episoder som opprettes etterpå. Eksis
 
 ## Regler som kjører når en hendelse opprettes
 
-**Hendelser → Regler** rommer åtte regelmotorer, og **Hendelser → KI** en niende, **Regler for automatisk utbedring**. De gjør alle den samme jobben — se på en hendelse i det øyeblikket den opprettes, og handle hvis den treffer — men de skiller seg i hva de gjør og i hvordan flere treffende regler løses opp.
+**Hendelser → Regler** rommer åtte regelmotorer, og **Hendelser → KI → Innstillinger** to til, under **Flere innstillinger**: **Regler for automatisk utbedring** og **Undersøkelsesregler**. De gjør alle den samme jobben — se på en hendelse i det øyeblikket den opprettes, og handle hvis den treffer — men de skiller seg i hva de gjør og i hvordan flere treffende regler løses opp.
 
 - **Grupperingsregler** — grupper beslektede hendelser i episoder. Reglene evalueres i prioritert rekkefølge; lavere prioritetstall går først.
 - **Vaktregler** — kjør vaktpolicyer for hendelser som treffer. Dekket i detalj nedenfor.
 - **Eierregler** — tildel eiere automatisk.
 - **Runbook-regler** — start en [runbook](/docs/runbooks/index) når en hendelse treffer.
-- **Regler for automatisk utbedring**, under **KI** — foreslå eller start utbedrings-runbooks når en hendelse treffer. Står en KI-undersøkelse i kø for hendelsen, kjører de når den er ferdig, med analysen dens i hånden. Se [AI SRE](/docs/ai/ai-sre).
+- **Regler for automatisk utbedring**, under **KI** → **Innstillinger** — hvilke nye hendelser som rettes så lenge bryteren **Rett nye hendelser automatisk** er slått på, og hvordan: av OneUptime AI eller med regelens runbooks, og om det spørres før retting. Uten regler rettes hver ny hendelse. Står en KI-undersøkelse i kø for hendelsen, kjører de når den er ferdig, med analysen dens i hånden.
+- **Undersøkelsesregler**, under **KI** → **Innstillinger** — hvilke nye hendelser OneUptime AI undersøker. Uten regler undersøkes hver eneste. Se [AI SRE](/docs/ai/ai-sre).
 - **Personvernregler** — avgjør om en hendelse som treffer, er privat.
 - **Etikettregler** — sett på etiketter automatisk.
 - **SLA-regler** — spor tid til respons og tid til løsning. Reglene evalueres i rekkefølge; lavere rekkefølgetall går først.
 - **Reminder Rules** — påminn hendelseseierne med jevne mellomrom så lenge en hendelse fortsatt er åpen. Reglene evalueres i rekkefølge, og den første som treffer, vinner.
 
-**Rekkefølgesemantikken er ikke lik overalt.** **Grupperingsregler**, **SLA-regler** og **Reminder Rules** evalueres i rekkefølge. **Vaktregler** gjør det ikke — hver regel som treffer, utløses. Ikke gå ut fra at én modell gjelder for alle ni.
+**Rekkefølgesemantikken er ikke lik overalt.** **Grupperingsregler**, **SLA-regler** og **Reminder Rules** evalueres i rekkefølge. **Vaktregler** gjør det ikke — hver regel som treffer, utløses. Ikke gå ut fra at én modell gjelder for alle ti.
 
-Sidene **Vaktregler**, **Eierregler**, **Etikettregler** og **Personvernregler** har faner — en fane **Incident Rules** og en fane **Episode Rules**, hver med sin egen tabell. Konfigurer fanen **Incident Rules** med mindre du spesifikt mener episoder. **Grupperingsregler**, **Runbook-regler**, **Regler for automatisk utbedring**, **SLA-regler** og **Reminder Rules** er enkle tabeller.
+Sidene **Vaktregler**, **Eierregler**, **Etikettregler** og **Personvernregler** har faner — en fane **Incident Rules** og en fane **Episode Rules**, hver med sin egen tabell. Konfigurer fanen **Incident Rules** med mindre du spesifikt mener episoder. **Grupperingsregler**, **Runbook-regler**, **Regler for automatisk utbedring**, **Undersøkelsesregler**, **SLA-regler** og **Reminder Rules** er enkle tabeller.
 
 ## Vaktregler for hendelser
 
@@ -171,7 +172,7 @@ Den samme genereringen gir deg triggere for selve konfigurasjonen: **On Create I
 
 Noen detaljer som betyr noe når du kobler dette sammen:
 
-- **On Update X** tar et valgfritt argument **Listen on** som snevrer triggeren inn til oppdateringer som berører bestemte felt. La det stå tomt for å utløses ved enhver endring. Kommer en oppdatering uten oversikt over hvilke felt som endret seg, hoppes filteret over og arbeidsflyten kjører likevel.
+- **On Update X** tar et valgfritt argument **Listen on** som snevrer triggeren inn til oppdateringer som endrer bestemte felt, uansett hva de endres til: en bryter som slås av eller et felt som tømmes, teller også. Et felt som lagres med verdien det allerede har, er ingen endring, så et redigeringsskjema som sender det tilbake ved hver lagring, vekker ikke arbeidsflyten. La det stå tomt for å utløses ved enhver endring. Kommer en oppdatering uten oversikt over hvilke felt som endret seg, hoppes filteret over og arbeidsflyten kjører likevel.
 - **On Create X** og **On Update X** tar begge et påkrevd argument **Select Fields**; **On Delete X** tar ingen argumenter.
 - Alle tre eksponerer én enkelt **Success**-utport, og hver av dem tar imot et ID-argument så du kan kjøre arbeidsflyten manuelt mot én post.
 - Navnene kommer fra modellens entallsnavn, ikke fra tabellnavnet — det er derfor du ser **On Create Incident Team Owner** og **On Create Incident User Owner** i stedet for tabellformede navn.

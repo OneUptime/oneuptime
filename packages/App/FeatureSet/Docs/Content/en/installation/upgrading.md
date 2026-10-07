@@ -440,22 +440,50 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   its monitors change to its **Change Monitor Status to**, where until now
   they were left as they were. See
   [Scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events).
-- **On OneUptime Cloud, API keys and SCIM stop working below their plan.**
-  A project's API keys need **Growth** and its SCIM connections - the
-  project's and its status pages' - need **Scale**. Until now they kept
-  working after a trial ended or the project moved to a lower plan. Now
-  every request made with one of the project's API keys - the REST API,
-  Terraform, the CLI, MCP clients connected with an API key - is refused
-  with `402` and a message that names the plan, and every SCIM request for
-  its connections is refused with `402` in the SCIM error format, which
-  stops deprovisioning too. Nothing is deleted: they work again as they are
-  as soon as the project is back on the plan, within a minute. The
-  project's owners get an email when a plan change stops them, and
-  **Project Settings** > **Billing** names how many a lower plan stops.
-  People signing in, MCP clients connected by signing in, telemetry
+- **On OneUptime Cloud, API keys stop working below their plan, and SCIM
+  only removes people.** A project's API keys need **Growth** and its SCIM
+  connections - the project's and its status pages' - need **Scale**.
+  Until now they kept working after a trial ended or the project moved to a
+  lower plan. Now every request made with one of the project's API keys -
+  the REST API, Terraform, the CLI, MCP clients connected with an API key -
+  is refused with `402` and a message that names the plan, and every SCIM
+  request that would add or change people or groups is refused with `402`
+  in the SCIM error format. SCIM still deactivates, deletes and removes
+  people on every plan, so anyone who leaves still loses their access.
+  Nothing is deleted: they work fully again as they are as soon as the
+  project is back on the plan, within a minute. The project's owners get
+  an email when a plan change stops them, and the
+  owners of projects that were already below these plans get one email
+  after this upgrade saying what stopped and how to turn it back on.
+  **Project Settings** > **Billing** names how many a lower plan stops or
+  limits. People signing in, MCP clients connected by signing in, telemetry
   ingestion keys, probe keys and agent keys are not affected, and
   self-hosted installs (no plans) see no change. See
   [API keys and SCIM below their plan](/docs/api-reference/api-reference#api-keys-and-scim-below-their-plan).
+- **A switch written as text is the switch that is stored, and a save that
+  changes nothing starts nothing.** The API, Terraform and workflows may
+  send an on/off field as text or a number: `"true"`, `"yes"`, `"on"`,
+  `"1"` or `1` for on, `"false"`, `"no"`, `"off"`, `"0"` or `0` for off. The
+  database always stored those as on or off, but OneUptime itself read the
+  text: a scheduled maintenance event sent with
+  `"isVisibleOnStatusPage": "true"` showed on its status page with its
+  images left private, so they did not load there, and a monitor sent with
+  `"isArchived": "false"` stayed unarchived but was stamped with who
+  archived it, and when. Now
+  every such value is the on or off the database stores, everywhere
+  OneUptime reads it. A value the database cannot store, such as `"maybe"`,
+  `""` or `2`, is refused with `400` and a message naming the field
+  (`isEnabled must be true or false.`) instead of a server error; that
+  includes `""` for an SLO burn-rate rule's alert and incident options,
+  which used to be read as their default. Writing a record back with the
+  values it already has - a switch that is off sent as off, a count of 0
+  as 0, the same labels in another order - no longer starts its **On
+  Update** workflows, sends a live update or adds an audit log entry, and
+  an entry for a real change lists only the fields that changed. A
+  workflow's **Listen on** now hears only the fields an update changes, and
+  hears every change to them: one listening on a switch also runs when the
+  switch is turned off, which it used to miss. See
+  [Switches](/docs/api-reference/api-reference#switches).
 - **Runners moved from Project Settings into Runbooks.** Runners are now under
   **Runbooks → Runners** (`…/runbooks/runners`) and Runner Credentials under
   **Runbooks → Runners → Credentials** (`…/runbooks/runner-credentials`), next
@@ -615,9 +643,10 @@ upgrade moves those fixes to asking first:
 
 Nothing is turned off. Rules, clusters and resources that one of the switches
 kept quiet start proposing fixes, and each fix still waits for a human. To keep
-auto-remediation out of a project, turn off **Enable AI**, or disable its rules
-(Incidents or Alerts → AI → Auto Remediation Rules) and set **Fixes** to
-**Off** on each cluster's and resource's AI agent page. API clients and
+auto-remediation out of a project, turn off **Enable AI**, or turn off **Fix
+new incidents automatically** and **Fix new alerts automatically** (Incidents
+or Alerts → AI → Settings; see [Fixing new incidents and alerts has a switch
+of its own](#fixing-new-incidents-and-alerts-has-a-switch-of-its-own)). API clients and
 Terraform configurations that set `enableAutoRemediation` or
 `enableAiCommandExecution` (`enable_auto_remediation` or
 `enable_ai_command_execution` in Terraform) should stop setting them.
@@ -715,6 +744,49 @@ as it is.
 On Helm with `migrate.hook: true`, `helm upgrade` waits for the migrations, by
 default for 5 minutes. If your AI Logs table is very large, run this upgrade
 with `--timeout 20m`.
+
+### Fixing new incidents and alerts has a switch of its own
+
+**Incidents → AI → Settings** and **Alerts → AI → Settings** each have a new
+switch, **Fix new incidents automatically** and **Fix new alerts
+automatically**. While it is off, nothing new of that kind is fixed: no
+Kubernetes cluster or host fix, and no auto remediation rule. It starts off,
+for new projects too, because it lets OneUptime AI change your
+infrastructure. **Enable AI** still turns all of AI off at once.
+
+The upgrade keeps every project fixing what it fixed before:
+
+- The switch is on for incidents (or alerts) in a project that had an enabled
+  auto remediation rule for them, or fixes on for any of its Kubernetes
+  clusters or hosts. Everywhere else it is off.
+- With rules set up, only the incidents that match one are fixed now. Until
+  now OneUptime AI fixed every incident on the clusters and hosts it was
+  linked to, whatever the rules said, so a project with enabled rules and
+  fixes on for a cluster or host gets one more rule, **Fix every incident with
+  OneUptime AI** (or **Fix every alert with OneUptime AI**), which matches
+  every one and lets OneUptime AI fix it. Delete it to fix only what your
+  other rules match.
+- An auto remediation rule asks three questions now: which incidents (its
+  conditions), **Fix With** (**OneUptime AI** or **Runbooks**) and **Approval**
+  (**Ask before fixing** or **Fix without asking**). An existing rule with no
+  AI setting is a **Runbooks** rule and runs its runbooks as before; one that
+  let AI compose commands or pick a runbook keeps doing that. Their other
+  settings (the command allowlist, the command Runners, the verification
+  window and auto-resolve) are kept, and are set through the API or
+  Terraform: the dashboard no longer shows them.
+- The rules moved from a page of their own into **More settings** on the AI
+  settings page, next to the new **Investigation Rules**, which narrow which
+  incidents (or alerts) are investigated; with none, every one is.
+  `…/ai/auto-remediation-rules` and `…/settings/auto-remediation-rules` open
+  the AI settings page.
+
+API clients and Terraform configurations can turn fixing on with the project's
+`enableAutomaticIncidentRemediation` and `enableAutomaticAlertRemediation`
+(`enable_automatic_incident_remediation` and
+`enable_automatic_alert_remediation` in Terraform), and say what a rule fixes
+with in its `remediationAction` (`OneUptimeAI` or `Runbooks`). A rule created
+without one, with runbooks and no AI setting, is a **Runbooks** rule, as it
+would have run before.
 
 ### Verify the edition and the license
 

@@ -153,7 +153,6 @@ describe("the descriptors", () => {
         getIncidentAlertAiDescriptor(subjectKind).insightsPage,
         getIncidentAlertAiDescriptor(subjectKind).logsPage,
         getIncidentAlertAiDescriptor(subjectKind).settingsPage,
-        getIncidentAlertAiDescriptor(subjectKind).autoRemediationRulesPage,
         getIncidentAlertAiDescriptor(subjectKind).subjectViewPage,
       ]) {
         expect(RouteMap[page]!.toString()).toContain(`/${product}/`);

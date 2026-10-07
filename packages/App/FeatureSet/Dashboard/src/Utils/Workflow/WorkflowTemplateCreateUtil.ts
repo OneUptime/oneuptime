@@ -279,7 +279,7 @@ const buildOAuth2WorkflowVariable: BuildOAuth2WorkflowVariableFunction = (
   );
   variable.workflowId = props.workflowId;
   variable.projectId = props.projectId;
-  (variable as unknown as { isSecret?: boolean }).isSecret = true;
+  variable.isSecret = true;
 
   return variable;
 };
@@ -326,13 +326,11 @@ export const buildWorkflowVariables: BuildWorkflowVariablesFunction = (
     variable.projectId = props.projectId;
 
     /*
-     * isSecret is declared `string` on a genuinely boolean column, so it needs
-     * a cast. It must also be sent explicitly: the column is required and its
+     * isSecret must be sent explicitly: the column is required and its
      * `defaultValue` is not an `isDefaultValueColumn`, so leaving it undefined
      * is a 400 rather than a false.
      */
-    (variable as unknown as { isSecret?: boolean }).isSecret =
-      templateVariable.isSecret;
+    variable.isSecret = templateVariable.isSecret;
 
     variables.push(variable);
   }

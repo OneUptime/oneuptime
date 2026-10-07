@@ -16,9 +16,10 @@ import { describe, expect, test } from "@jest/globals";
  * shows an incident or an incident episode: Visible on Status Page on, and
  * not private. Every status page read, subscriber job and write goes by it,
  * so a mistake here puts a private record in front of status page visitors
- * and their subscribers. These pin the rule, the literals a write may carry
- * (as Postgres stores them), and the write rule that keeps the two switches
- * in step.
+ * and their subscribers. These pin the rule, how it reads the literals a
+ * switch may hold (as Postgres stores them: Types/Database/
+ * BooleanColumnValue, tested on its own), and the write rule that keeps the
+ * two switches in step.
  */
 
 describe("StatusPageVisibility's columns", () => {
@@ -30,76 +31,6 @@ describe("StatusPageVisibility's columns", () => {
       "isPrivate",
     ]);
   });
-});
-
-describe("StatusPageVisibility.toStoredBoolean", () => {
-  /*
-   * What Postgres stores for a value written to a boolean column (boolin):
-   * the API passes a value through as it is sent.
-   */
-  test.each([
-    ["true", true],
-    ['"true"', "true"],
-    ['"TRUE" with spaces around it', "  TRUE "],
-    ['"t"', "t"],
-    ['"tr"', "tr"],
-    ['"tru"', "tru"],
-    ['"yes"', "yes"],
-    ['"Y"', "Y"],
-    ['"ye"', "ye"],
-    ['"on"', "on"],
-    ['"ON"', "ON"],
-    ['"1"', "1"],
-    ["the number 1", 1],
-  ] as Array<[string, unknown]>)(
-    "%s is stored as true",
-    (_label: string, value: unknown) => {
-      expect(StatusPageVisibility.toStoredBoolean(value)).toBe(true);
-    },
-  );
-
-  test.each([
-    ["false", false],
-    ['"false"', "false"],
-    ['"FALSE"', " FALSE"],
-    ['"f"', "f"],
-    ['"fa"', "fa"],
-    ['"fals"', "fals"],
-    ['"no"', "no"],
-    ['"n"', "n"],
-    ['"off"', "off"],
-    ['"of"', "of"],
-    ['"0"', "0"],
-    ["the number 0", 0],
-  ] as Array<[string, unknown]>)(
-    "%s is stored as false",
-    (_label: string, value: unknown) => {
-      expect(StatusPageVisibility.toStoredBoolean(value)).toBe(false);
-    },
-  );
-
-  test.each([
-    ["null", null],
-    ["undefined", undefined],
-    ['""', ""],
-    ['" "', " "],
-    ['"o" (on or off: refused)', "o"],
-    ['"truex"', "truex"],
-    ['"yess"', "yess"],
-    ['"onn"', "onn"],
-    ['"01"', "01"],
-    ['"10"', "10"],
-    ['"2"', "2"],
-    ["the number 2", 2],
-    ["the number 0.5", 0.5],
-    ["an object", { value: true }],
-    ["an array", [true]],
-  ] as Array<[string, unknown]>)(
-    "%s is left as it is (null, or a value the database refuses)",
-    (_label: string, value: unknown) => {
-      expect(StatusPageVisibility.toStoredBoolean(value)).toBe(value);
-    },
-  );
 });
 
 describe("StatusPageVisibility.isPrivate", () => {
@@ -196,34 +127,40 @@ describe("StatusPageVisibility.normalizeWrite", () => {
     expect(data).toEqual({ isVisibleOnStatusPage: false, isPrivate: true });
   });
 
+  /*
+   * DatabaseService turns a write's switches into the booleans the
+   * database stores before any hook runs (BooleanColumnWrites), so the
+   * hooks hand this booleans. Read on its own, a literal the database
+   * stores as true still makes the record private here.
+   */
   test.each([
     ['"true"', "true"],
     ['"yes"', "yes"],
     ['"on"', "on"],
     ["1", 1],
   ] as Array<[string, unknown]>)(
-    "a Private written as %s is stored as true, and hides the record",
+    "a Private written as %s, which the database stores as true, hides the record",
     (_label: string, value: unknown) => {
       const data: Record<string, unknown> = {
-        isVisibleOnStatusPage: "true",
+        isVisibleOnStatusPage: true,
         isPrivate: value,
       };
 
       StatusPageVisibility.normalizeWrite(data);
 
-      expect(data).toEqual({ isVisibleOnStatusPage: false, isPrivate: true });
+      expect(data["isVisibleOnStatusPage"]).toBe(false);
     },
   );
 
-  test("both switches are stored as the booleans the database stores", () => {
+  test("a Private the database stores as false leaves the write as it is: turning it into a boolean is DatabaseService's", () => {
     const data: Record<string, unknown> = {
-      isVisibleOnStatusPage: "yes",
+      isVisibleOnStatusPage: true,
       isPrivate: "no",
     };
 
     StatusPageVisibility.normalizeWrite(data);
 
-    expect(data).toEqual({ isVisibleOnStatusPage: true, isPrivate: false });
+    expect(data).toEqual({ isVisibleOnStatusPage: true, isPrivate: "no" });
   });
 
   test("a record made not private keeps the Visible on Status Page the write gives it", () => {
@@ -282,7 +219,7 @@ describe("StatusPageVisibility.normalizeWrite", () => {
     StatusPageVisibility.normalizeWrite(data);
 
     expect(data["isVisibleOnStatusPage"]).toBe(false);
-    // Left for the database to refuse, as it always was.
+    // DatabaseService refuses the write before any hook runs (BooleanColumnWrites).
     expect(data["isPrivate"]).toBe("maybe");
   });
 

@@ -5,19 +5,22 @@ import { PlanType } from "./SubscriptionPlan";
  *
  * On OneUptime Cloud (billing on) a project's API keys work only while the
  * project is on the plan that sells API keys (Growth), and its SCIM
- * connections - the project's own and its status pages' - only while it is
- * on the plan that sells SCIM (Scale). Below it, every request made with one
- * of the project's API keys, and every SCIM request for one of its
- * connections, is refused with 402 when it authenticates
- * (Server/Utils/Billing/PlanCutoffCredentialAccess), whatever route or tool
- * it was for: the REST API and everything built on it - the CRUD routes,
- * Terraform, the CLI, the MCP server's API-key mode - and the SCIM
- * endpoints.
+ * connections - the project's own and its status pages' - work fully only
+ * while it is on the plan that sells SCIM (Scale). Below it, every request
+ * made with one of the project's API keys is refused with 402 when it
+ * authenticates (Server/Utils/Billing/PlanCutoffCredentialAccess), whatever
+ * route or tool it was for: the REST API and everything built on it - the
+ * CRUD routes, Terraform, the CLI, the MCP server's API-key mode. A SCIM
+ * connection keeps taking access away below its plan - an identity provider
+ * still deactivates and removes the people who leave - and refuses with 402
+ * every request that would add or change people or groups: creating people
+ * or groups, reactivating someone, adding a member, and a change to an
+ * email or a name made on its own (ee/Server/Identity/Utils/SCIMBelowPlan).
  *
  * Nothing is deleted or switched off. The keys and connections stay as they
- * were - readable, deletable (Types/Billing/PlanGatedTable) - and work again,
- * as they are, the moment the project is back on the plan: no new keys, no
- * new setup in the identity provider.
+ * were - readable, deletable (Types/Billing/PlanGatedTable) - and work fully
+ * again, as they are, the moment the project is back on the plan: no new
+ * keys, no new setup in the identity provider.
  *
  * Only these three. Telemetry ingestion keys, probe keys, agent keys and the
  * instance's master API key are not API keys of a project, and are not
@@ -98,12 +101,13 @@ export const getApiKeysStoppedMessage: (planName: string) => string = (
 
 /*
  * What an identity provider is told (402, in the SCIM error format) when it
- * calls one of the SCIM connections of a project below the plan.
+ * asks one of the SCIM connections of a project below the plan to give or
+ * change access. Requests that only remove people still go through.
  */
 export const getScimStoppedMessage: (planName: string) => string = (
   planName: string,
 ): string => {
-  return `SCIM provisioning needs the ${planName} plan. This project's plan does not include it, so its SCIM connections stopped working. The connections are kept: upgrade the project to ${planName} in Project Settings > Billing and they work again.`;
+  return `SCIM provisioning needs the ${planName} plan. This project's plan does not include it, so its SCIM connections can only remove people: requests that add or change people or groups are refused. The connections are kept: upgrade the project to ${planName} in Project Settings > Billing and they work fully again.`;
 };
 
 // The message for one of the tables, by name.

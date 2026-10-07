@@ -1,3 +1,4 @@
+import { isScimEmailChanging } from "./SCIMUtils";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import ObjectID from "Common/Types/ObjectID";
@@ -333,16 +334,13 @@ export default class ProjectSCIMAccountPolicy {
 
   /*
    * Whether an update carrying `newEmail` would change the address of an
-   * account whose current address is `currentEmail`. Email normalises case
-   * and whitespace, so this compares what would actually be stored.
+   * account whose current address is `currentEmail`: SCIMUtils'
+   * isScimEmailChanging, which compares what would actually be stored.
    */
   public static isEmailChanging(data: {
     currentEmail: string | undefined;
     newEmail: string;
   }): boolean {
-    return (
-      (data.currentEmail || "").trim().toLowerCase() !==
-      data.newEmail.trim().toLowerCase()
-    );
+    return isScimEmailChanging(data);
   }
 }

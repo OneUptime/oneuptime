@@ -1,4 +1,6 @@
 import PlanDowngradeOwnerNotice, {
+  ALREADY_BELOW_PLAN_NOTICE_CONCURRENCY,
+  ALREADY_BELOW_PLAN_NOTICE_RETRY_DELAYS_IN_MS,
   PlanDowngradeNoticeOutcome,
   PROJECT_BILLING_SETTINGS_PATH,
   StoppedByPlanChange,
@@ -13,7 +15,12 @@ import { PlanCutoffCredential } from "../../../../Types/Billing/PlanCutoffCreden
 import { PlanType } from "../../../../Types/Billing/SubscriptionPlan";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
+import Sleep from "../../../../Types/Sleep";
 import { getJestSpyOn } from "../../../Spy";
+import { setTestBillingEnabled } from "../../Enterprise/TestBillingFlag";
+import BadDataException from "../../../../Types/Exception/BadDataException";
+import User from "../../../../Models/DatabaseModels/User";
+import Email from "../../../../Types/Email";
 import {
   afterAll,
   afterEach,
@@ -30,6 +37,10 @@ type MockGlobal = typeof globalThis & {
 };
 
 jest.mock("../../../../Server/EnvironmentConfig", () => {
+  const billingFlag: typeof import("../../Enterprise/TestBillingFlag") =
+    jest.requireActual(
+      "../../Enterprise/TestBillingFlag",
+    ) as typeof import("../../Enterprise/TestBillingFlag");
   const actual: Record<string, unknown> = jest.requireActual(
     "../../../../Server/EnvironmentConfig",
   ) as Record<string, unknown>;
@@ -37,7 +48,8 @@ jest.mock("../../../../Server/EnvironmentConfig", () => {
     jest.requireActual("../../../../Types/API/URL") as {
       default: { fromString: (url: string) => unknown };
     };
-  const mocked: Record<string, unknown> = { ...actual };
+  const mocked: Record<string, unknown> =
+    billingFlag.withLiveBillingFlag(actual);
   const mockGlobal: MockGlobal = globalThis as MockGlobal;
   mockGlobal.__planDowngradeNoticeDashboardUrl =
     "https://oneuptime.example.com/dashboard";
@@ -56,12 +68,23 @@ jest.mock("../../../../Server/EnvironmentConfig", () => {
 });
 
 /*
- * The project's owners hear it once, when a plan change stops the project's
- * API keys or SCIM connections: what moved, what stopped and what that
- * means, that nothing was deleted, and where to upgrade. A change that stops
- * nothing - an upgrade, a move between two plans that both lack them, a
- * project with none to stop - sends nothing. It is the owners' billing email
- * (ProjectService.sendEmailToProjectOwners), and it never throws.
+ * The project's owners hear it when a plan change stops the project's API
+ * keys or limits its SCIM connections: what moved, what stopped and what
+ * that means - SCIM still removes people - that nothing was deleted, and
+ * where to upgrade. A change that stops nothing - an upgrade, a move between
+ * two plans that both lack them, a project with none to stop - sends
+ * nothing. A plan change that tells them records it (planCutoffNoticeSentAt)
+ * so the one-time notice does not tell them again.
+ *
+ * And once, the owners of projects that were already below those plans
+ * when the cut-off shipped (notifyProjectsAlreadyBelowPlan, the data
+ * migration NotifyOwnersOfStoppedApiKeysAndScim): told what the plan the
+ * project is on stops, in the same words; claimed by one conditional
+ * UPDATE, so never twice; nothing at all with billing off.
+ *
+ * It is the owners' billing email (ProjectService.sendEmailToProjectOwners;
+ * the one-time notice waits for it, sendEmailToOwnersAndWait, as the migrate
+ * Job exits when it is done), and it never throws.
  */
 
 const PLAN_ENVIRONMENT: Record<string, string> = {
@@ -118,6 +141,7 @@ let statusPageScimCount: ReturnType<typeof getJestSpyOn>;
 let findProject: ReturnType<typeof getJestSpyOn>;
 let sendEmail: ReturnType<typeof getJestSpyOn>;
 let loggedErrors: ReturnType<typeof getJestSpyOn>;
+let markTold: ReturnType<typeof getJestSpyOn>;
 
 const has: (counts: {
   apiKeys?: number;
@@ -158,10 +182,15 @@ beforeEach(() => {
   loggedErrors = getJestSpyOn(logger, "error").mockImplementation(() => {
     return undefined;
   });
+  markTold = getJestSpyOn(
+    ProjectService,
+    "markPlanCutoffNoticeSent",
+  ).mockResolvedValue(undefined);
 });
 
 afterEach(() => {
   jest.restoreAllMocks();
+  setTestBillingEnabled(false);
 });
 
 const move: (
@@ -316,11 +345,41 @@ describe("a downgrade that stops API keys", () => {
     );
     expect(html).toContain("Terraform, the CLI, an MCP client");
     expect(html).toContain(
-      "Nothing was deleted. Upgrade the project in Project Settings &gt; Billing and they work again as they are: there are no new keys to make.",
+      "Nothing was deleted. Upgrade the project in Project Settings &gt; Billing and they work fully again as they are: there are no new keys to make.",
     );
     expect(html).toContain(`<a href="${SETTINGS_LINK}">${SETTINGS_LINK}</a>`);
+    expect(html).toContain("until the project is back on Growth.");
     expect(html).not.toContain("SCIM needs");
     expect(html).not.toContain("identity provider");
+  });
+
+  test("records that the owners were told, so the one-time notice does not tell them again", async () => {
+    has({ apiKeys: 3 });
+
+    await move(PlanType.Growth, PlanType.Free);
+
+    expect(markTold).toHaveBeenCalledTimes(1);
+    expect(
+      String((markTold.mock.calls[0]![0] as { projectId: ObjectID }).projectId),
+    ).toBe(PROJECT_ID.toString());
+    expect((markTold.mock.calls[0]![0] as { now: unknown }).now).toBeInstanceOf(
+      Date,
+    );
+    // After the email: a record of what was sent.
+    expect(markTold.mock.invocationCallOrder[0]!).toBeGreaterThan(
+      sendEmail.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  test("a record that cannot be written is logged; the owners were still told", async () => {
+    has({ apiKeys: 3 });
+    markTold.mockRejectedValue(new Error("connection reset"));
+
+    expect(await move(PlanType.Growth, PlanType.Free)).toBe(
+      PlanDowngradeNoticeOutcome.Told,
+    );
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+    expect(loggedErrors).toHaveBeenCalledTimes(1);
   });
 
   test("says 'the API key' for one", async () => {
@@ -335,26 +394,28 @@ describe("a downgrade that stops API keys", () => {
 });
 
 describe("a downgrade that stops SCIM", () => {
-  test("tells the owners that provisioning and deprovisioning stopped", async () => {
+  test("tells the owners that adding people stopped, and that removing people still works", async () => {
     has({ projectScim: 1, statusPageScim: 1 });
 
     expect(await move(PlanType.Scale, PlanType.Growth)).toBe(
       PlanDowngradeNoticeOutcome.Told,
     );
 
-    expect(sentSubject()).toBe("SCIM provisioning stopped in Acme Production");
+    expect(sentSubject()).toBe("SCIM stopped adding people in Acme Production");
 
     const html: string = sentHtml();
 
     expect(html).toContain(
-      "The project&#39;s 2 SCIM connections stopped working: SCIM needs the Scale plan.",
+      "The project&#39;s 2 SCIM connections stopped adding people: SCIM needs the Scale plan.",
     );
     expect(html).toContain(
-      "Your identity provider can no longer add people to the project or remove them, so remove anyone who leaves by hand",
+      "Your identity provider can still remove people from the project, so anyone who leaves loses their access as before, but it can no longer add people or change them until the project is back on Scale.",
     );
     expect(html).toContain(
-      "they work again as they are: nothing needs setting up again in your identity provider.",
+      "they work fully again as they are: nothing needs setting up again in your identity provider.",
     );
+    // No longer the advice of #4481: removing people by hand.
+    expect(html).not.toContain("by hand");
     expect(html).not.toContain("API keys need");
     expect(html).not.toContain("new keys");
     expect(apiKeyCount).not.toHaveBeenCalled();
@@ -366,7 +427,7 @@ describe("a downgrade that stops SCIM", () => {
     await move(PlanType.Enterprise, PlanType.Growth);
 
     expect(sentHtml()).toContain(
-      "The project&#39;s SCIM connection stopped working",
+      "The project&#39;s SCIM connection stopped adding people",
     );
   });
 });
@@ -379,10 +440,10 @@ describe("a downgrade that stops both", () => {
 
     expect(sendEmail).toHaveBeenCalledTimes(1);
     expect(sentSubject()).toBe(
-      "API keys and SCIM stopped working in Acme Production",
+      "API keys stopped working and SCIM stopped adding people in Acme Production",
     );
     expect(sentHtml()).toContain("2 API keys stopped working");
-    expect(sentHtml()).toContain("SCIM connection stopped working");
+    expect(sentHtml()).toContain("SCIM connection stopped adding people");
     expect(sentHtml()).toContain(
       "no new keys to make, and nothing to set up again in your identity provider.",
     );
@@ -421,6 +482,7 @@ describe("a plan change that stops nothing sends nothing", () => {
     );
     expect(sendEmail).not.toHaveBeenCalled();
     expect(findProject).not.toHaveBeenCalled();
+    expect(markTold).not.toHaveBeenCalled();
   });
 
   test("a move from no known plan", async () => {
@@ -513,7 +575,7 @@ describe("what the email holds", () => {
 
     expect(sentHtml()).not.toContain("<a href");
     expect(sentHtml()).toContain(
-      "Upgrade the project in Project Settings &gt; Billing and they work again as they are: there are no new keys to make.",
+      "Upgrade the project in Project Settings &gt; Billing and they work fully again as they are: there are no new keys to make.",
     );
   });
 
@@ -523,7 +585,761 @@ describe("what the email holds", () => {
     await move(PlanType.Growth, PlanType.Free);
 
     expect(sentHtml()).toContain(
-      "Project owners get this email when a plan change stops the project&#39;s API keys or SCIM connections.",
+      "Project owners get this email when a plan change stops the project&#39;s API keys or SCIM provisioning.",
     );
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The one-time notice: projects already below the plans when the cut-off
+ * shipped.
+ * ---------------------------------------------------------------------------
+ */
+
+const OTHER_PROJECT_ID: ObjectID = new ObjectID(
+  "7d000000-0000-4000-8000-000000000002",
+);
+
+describe("the one-time notice to a project already below the plan", () => {
+  let getCurrentPlan: ReturnType<typeof getJestSpyOn>;
+  let claim: ReturnType<typeof getJestSpyOn>;
+  let release: ReturnType<typeof getJestSpyOn>;
+  let getOwners: ReturnType<typeof getJestSpyOn>;
+  let sendAndWait: ReturnType<typeof getJestSpyOn>;
+
+  // The plan getCurrentPlan answers with.
+  let plan: PlanType | null = PlanType.Free;
+
+  const owner: (email: string) => User = (email: string): User => {
+    const user: User = new User(ObjectID.generate());
+    user.email = new Email(email);
+    return user;
+  };
+
+  const OWNERS: Array<User> = [
+    owner("owner@acme.example"),
+    owner("cto@acme.example"),
+  ];
+
+  // What the waited send was given, for the one email it sends.
+  const sent: () => {
+    projectId: ObjectID;
+    owners: Array<User>;
+    subject: string;
+    message: string;
+  } = () => {
+    return sendAndWait.mock.calls[0]![0] as {
+      projectId: ObjectID;
+      owners: Array<User>;
+      subject: string;
+      message: string;
+    };
+  };
+
+  beforeEach(() => {
+    plan = PlanType.Free;
+    getCurrentPlan = getJestSpyOn(
+      ProjectService,
+      "getCurrentPlan",
+    ).mockImplementation(async () => {
+      return { plan, isSubscriptionUnpaid: false };
+    });
+    claim = getJestSpyOn(
+      ProjectService,
+      "claimPlanCutoffNotice",
+    ).mockResolvedValue(true);
+    release = getJestSpyOn(
+      ProjectService,
+      "releasePlanCutoffNotice",
+    ).mockResolvedValue(undefined);
+    getOwners = getJestSpyOn(ProjectService, "getOwners").mockResolvedValue(
+      OWNERS,
+    );
+    sendAndWait = getJestSpyOn(
+      ProjectService,
+      "sendEmailToOwnersAndWait",
+    ).mockImplementation(async (data: unknown) => {
+      return (data as { owners: Array<User> }).owners.length;
+    });
+  });
+
+  const notify: () => Promise<PlanDowngradeNoticeOutcome> = async () => {
+    return await PlanDowngradeOwnerNotice.notifyIfAlreadyBelowPlan({
+      projectId: PROJECT_ID,
+    });
+  };
+
+  test.each([
+    [
+      PlanType.Free,
+      [
+        PlanCutoffCredential.ApiKey,
+        PlanCutoffCredential.ProjectSCIM,
+        PlanCutoffCredential.StatusPageSCIM,
+      ],
+    ],
+    [
+      PlanType.Growth,
+      [PlanCutoffCredential.ProjectSCIM, PlanCutoffCredential.StatusPageSCIM],
+    ],
+    [PlanType.Scale, []],
+    [PlanType.Enterprise, []],
+  ])(
+    "on %s, what stopped is %j",
+    (onPlan: PlanType, expected: Array<PlanCutoffCredential>) => {
+      expect(
+        PlanDowngradeOwnerNotice.getCredentialsStoppedOnPlan(onPlan),
+      ).toEqual(expected);
+    },
+  );
+
+  test("on Free with live API keys: the owners are told what the plan the project is on stops", async () => {
+    has({ apiKeys: 2 });
+
+    expect(await notify()).toBe(PlanDowngradeNoticeOutcome.Told);
+
+    expect(sendAndWait).toHaveBeenCalledTimes(1);
+    expect(String(sent().projectId)).toBe(PROJECT_ID.toString());
+    expect(sent().owners).toBe(OWNERS);
+    expect(sent().subject).toBe("API keys stopped working in Acme Production");
+
+    const html: string = sent().message;
+
+    // Only what this project's plan stops: it has no SCIM connections.
+    expect(html).toContain(
+      "Acme Production is on the Free plan, which does not include API keys.",
+    );
+    expect(html).not.toContain("SCIM");
+    expect(html).toContain(
+      "The project&#39;s 2 API keys stopped working: API keys need the Growth plan.",
+    );
+    // Not "back on": the project may never have been on Growth.
+    expect(html).toContain("until the project is on Growth.");
+    expect(html).not.toContain("moved from");
+    expect(html).toContain(`<a href="${SETTINGS_LINK}">${SETTINGS_LINK}</a>`);
+    expect(html).toContain(
+      "Project owners get this email once, because the project was already below the Growth plan when API keys started to need it.",
+    );
+  });
+
+  test("never through the email that does not wait: the migrate Job would exit before it left", async () => {
+    has({ apiKeys: 2 });
+
+    await notify();
+
+    expect(sendEmail).not.toHaveBeenCalled();
+  });
+
+  test("on Growth with SCIM connections: told SCIM only removes people now", async () => {
+    plan = PlanType.Growth;
+    has({ apiKeys: 4, projectScim: 1 });
+
+    expect(await notify()).toBe(PlanDowngradeNoticeOutcome.Told);
+
+    expect(sent().subject).toBe(
+      "SCIM stopped adding people in Acme Production",
+    );
+    expect(sent().message).toContain(
+      "Acme Production is on the Growth plan, which does not include SCIM provisioning.",
+    );
+    expect(sent().message).toContain(
+      "Project owners get this email once, because the project was already below the Scale plan when SCIM provisioning started to need it.",
+    );
+    // Growth includes API keys: the email never names them.
+    expect(sent().message).not.toContain("API key");
+    expect(sent().message).toContain(
+      "Your identity provider can still remove people from the project, so anyone who leaves loses their access as before, but it can no longer add people or change them until the project is on Scale.",
+    );
+    // Growth includes API keys: they are neither counted nor named.
+    expect(apiKeyCount).not.toHaveBeenCalled();
+    expect(sent().message).not.toContain("API keys need");
+  });
+
+  test("on Free with both: one email names both", async () => {
+    has({ apiKeys: 1, statusPageScim: 2 });
+
+    expect(await notify()).toBe(PlanDowngradeNoticeOutcome.Told);
+
+    expect(sendAndWait).toHaveBeenCalledTimes(1);
+    expect(sent().subject).toBe(
+      "API keys stopped working and SCIM stopped adding people in Acme Production",
+    );
+    expect(sent().message).toContain(
+      "Acme Production is on the Free plan, which includes neither API keys nor SCIM provisioning.",
+    );
+    expect(sent().message).toContain(
+      "Project owners get this email once, because the project was already below these plans when API keys and SCIM provisioning started to need them.",
+    );
+  });
+
+  test("the owners are read before the claim, and the claim comes before the email, for this project, now", async () => {
+    has({ apiKeys: 1 });
+
+    await notify();
+
+    expect(claim).toHaveBeenCalledTimes(1);
+    const claimed: { projectId: ObjectID; now: Date } = claim.mock
+      .calls[0]![0] as { projectId: ObjectID; now: Date };
+
+    expect(String(claimed.projectId)).toBe(PROJECT_ID.toString());
+    expect(claimed.now).toBeInstanceOf(Date);
+    expect(String(getOwners.mock.calls[0]![0])).toBe(PROJECT_ID.toString());
+    expect(getOwners.mock.invocationCallOrder[0]!).toBeLessThan(
+      claim.mock.invocationCallOrder[0]!,
+    );
+    expect(claim.mock.invocationCallOrder[0]!).toBeLessThan(
+      sendAndWait.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  test("waits until the mail service has taken the emails before it answers", async () => {
+    has({ apiKeys: 1 });
+
+    let handOver: (delivered: number) => void = (): void => {
+      return undefined;
+    };
+    sendAndWait.mockImplementation(() => {
+      return new Promise<number>((resolve: (delivered: number) => void) => {
+        handOver = resolve;
+      });
+    });
+
+    let answered: boolean = false;
+    const outcome: Promise<PlanDowngradeNoticeOutcome> = notify().then(
+      (result: PlanDowngradeNoticeOutcome) => {
+        answered = true;
+        return result;
+      },
+    );
+
+    // Let every step before the send run.
+    for (let i: number = 0; i < 20; i++) {
+      await Promise.resolve();
+    }
+
+    expect(sendAndWait).toHaveBeenCalledTimes(1);
+    expect(answered).toBe(false);
+
+    handOver(2);
+
+    expect(await outcome).toBe(PlanDowngradeNoticeOutcome.Told);
+  });
+
+  test("a project with no owners - no accepted member of an owner team - is not claimed, and not told", async () => {
+    has({ apiKeys: 1 });
+    getOwners.mockResolvedValue([]);
+
+    expect(await notify()).toBe(PlanDowngradeNoticeOutcome.NoOwners);
+    expect(claim).not.toHaveBeenCalled();
+    expect(sendAndWait).not.toHaveBeenCalled();
+    expect(loggedErrors).not.toHaveBeenCalled();
+  });
+
+  test("owners told already - by a plan change, or an earlier run - are not told again", async () => {
+    has({ apiKeys: 1 });
+    claim.mockResolvedValue(false);
+
+    expect(await notify()).toBe(PlanDowngradeNoticeOutcome.AlreadyTold);
+    expect(sendAndWait).not.toHaveBeenCalled();
+  });
+
+  test("a project on the plans its credentials need is not told, and not claimed", async () => {
+    plan = PlanType.Scale;
+    has({ apiKeys: 9, projectScim: 9 });
+
+    expect(await notify()).toBe(PlanDowngradeNoticeOutcome.NothingStopped);
+    expect(claim).not.toHaveBeenCalled();
+    expect(getOwners).not.toHaveBeenCalled();
+    expect(sendAndWait).not.toHaveBeenCalled();
+  });
+
+  test("a project below the plans with nothing left to stop - only expired keys - is not told", async () => {
+    has({});
+
+    expect(await notify()).toBe(PlanDowngradeNoticeOutcome.NothingStopped);
+    expect(claim).not.toHaveBeenCalled();
+    expect(sendAndWait).not.toHaveBeenCalled();
+  });
+
+  test("a project with no plan to read - gone, or never given one - is below no plan", async () => {
+    getCurrentPlan.mockRejectedValue(
+      new BadDataException("Project does not have any plans"),
+    );
+    has({ apiKeys: 1 });
+
+    expect(await notify()).toBe(PlanDowngradeNoticeOutcome.NoPlan);
+    expect(claim).not.toHaveBeenCalled();
+    expect(loggedErrors).not.toHaveBeenCalled();
+  });
+
+  test("a plan that cannot be read for another reason is a failure, logged", async () => {
+    getCurrentPlan.mockRejectedValue(new Error("connection reset"));
+
+    expect(await notify()).toBe(PlanDowngradeNoticeOutcome.Failed);
+    expect(claim).not.toHaveBeenCalled();
+    expect(loggedErrors).toHaveBeenCalledTimes(1);
+  });
+
+  test("billing off has no plan: nothing is claimed or sent", async () => {
+    plan = null;
+    has({ apiKeys: 1 });
+
+    expect(await notify()).toBe(PlanDowngradeNoticeOutcome.NoPlan);
+    expect(claim).not.toHaveBeenCalled();
+    expect(sendAndWait).not.toHaveBeenCalled();
+  });
+
+  test("when the mail service took none of the emails, the claim is given back, so running it again tells them", async () => {
+    has({ apiKeys: 1 });
+    sendAndWait.mockResolvedValue(0);
+
+    expect(await notify()).toBe(PlanDowngradeNoticeOutcome.Failed);
+
+    expect(release).toHaveBeenCalledTimes(1);
+    const released: { projectId: ObjectID; claimedAt: Date } = release.mock
+      .calls[0]![0] as { projectId: ObjectID; claimedAt: Date };
+    const claimed: { now: Date } = claim.mock.calls[0]![0] as { now: Date };
+
+    expect(String(released.projectId)).toBe(PROJECT_ID.toString());
+    // Exactly the claim that was made.
+    expect(released.claimedAt).toBe(claimed.now);
+    expect(loggedErrors).toHaveBeenCalledTimes(1);
+  });
+
+  test("when it took some of them, the owners were told: the claim stays", async () => {
+    has({ apiKeys: 1 });
+    sendAndWait.mockResolvedValue(1);
+
+    expect(await notify()).toBe(PlanDowngradeNoticeOutcome.Told);
+    expect(release).not.toHaveBeenCalled();
+  });
+
+  test("a step that fails after the claim - the project's name - gives the claim back", async () => {
+    has({ apiKeys: 1 });
+    findProject.mockRejectedValue(new Error("connection reset"));
+
+    expect(await notify()).toBe(PlanDowngradeNoticeOutcome.Failed);
+    expect(sendAndWait).not.toHaveBeenCalled();
+    expect(release).toHaveBeenCalledTimes(1);
+  });
+
+  test("a claim that cannot be given back is logged too, and never throws", async () => {
+    has({ apiKeys: 1 });
+    sendAndWait.mockResolvedValue(0);
+    release.mockRejectedValue(new Error("connection reset"));
+
+    expect(await notify()).toBe(PlanDowngradeNoticeOutcome.Failed);
+    expect(loggedErrors).toHaveBeenCalledTimes(2);
+  });
+
+  test("an owner lookup that fails is a failure, before anything is claimed", async () => {
+    has({ apiKeys: 1 });
+    getOwners.mockRejectedValue(new Error("connection reset"));
+
+    expect(await notify()).toBe(PlanDowngradeNoticeOutcome.Failed);
+    expect(claim).not.toHaveBeenCalled();
+    expect(release).not.toHaveBeenCalled();
+  });
+
+  test("a count that fails is a failure, before anything is claimed", async () => {
+    apiKeyCount.mockRejectedValue(new Error("connection reset"));
+
+    expect(await notify()).toBe(PlanDowngradeNoticeOutcome.Failed);
+    expect(claim).not.toHaveBeenCalled();
+    expect(release).not.toHaveBeenCalled();
+  });
+
+  test("escapes the project's name, which its owners chose", async () => {
+    const project: Project = new Project();
+    project.name = "<b>Acme</b>";
+    findProject.mockResolvedValue(project);
+    has({ apiKeys: 1 });
+
+    await notify();
+
+    expect(sent().message).not.toContain("<b>");
+    expect(sent().message).toContain(
+      "&lt;b&gt;Acme&lt;/b&gt; is on the Free plan, which does not include API keys.",
+    );
+  });
+});
+
+describe("the one-time notice, for every project that may be below the plan", () => {
+  // The runs below try no project again unless a test asks them to.
+  const NO_RETRIES: { retryDelaysInMs: Array<number> } = {
+    retryDelaysInMs: [],
+  };
+
+  let notifyOne: ReturnType<typeof getJestSpyOn>;
+  let credentialRows: Array<{ projectId: string }>;
+  let readFails: Error | null;
+  let queries: Array<[string, Array<unknown>]>;
+
+  beforeEach(() => {
+    readFails = null;
+    queries = [];
+    credentialRows = [
+      { projectId: PROJECT_ID.toString() },
+      { projectId: OTHER_PROJECT_ID.toString() },
+      // The same project again, in another case: one project.
+      { projectId: OTHER_PROJECT_ID.toString().toUpperCase() },
+    ];
+
+    getJestSpyOn(ApiKeyService, "getRepository").mockReturnValue({
+      manager: {
+        query: async (sql: string, parameters: Array<unknown>) => {
+          queries.push([sql, parameters]);
+
+          if (readFails) {
+            throw readFails;
+          }
+
+          return credentialRows;
+        },
+      },
+    } as never);
+
+    notifyOne = getJestSpyOn(
+      PlanDowngradeOwnerNotice,
+      "notifyIfAlreadyBelowPlan",
+    ).mockResolvedValue(PlanDowngradeNoticeOutcome.Told);
+  });
+
+  test("billing off (self-hosted): nothing is read and nothing is sent", async () => {
+    setTestBillingEnabled(false);
+
+    expect(
+      await PlanDowngradeOwnerNotice.notifyProjectsAlreadyBelowPlan(NO_RETRIES),
+    ).toEqual({
+      projects: 0,
+      told: 0,
+      alreadyTold: 0,
+      nothingStopped: 0,
+      noPlan: 0,
+      noOwners: 0,
+      failed: 0,
+    });
+    expect(queries).toEqual([]);
+    expect(notifyOne).not.toHaveBeenCalled();
+  });
+
+  test("billing on: each project with live API keys or SCIM connections, once", async () => {
+    setTestBillingEnabled(true);
+
+    await PlanDowngradeOwnerNotice.notifyProjectsAlreadyBelowPlan(NO_RETRIES);
+
+    expect(
+      notifyOne.mock.calls.map((call: Array<unknown>): string => {
+        return String(
+          (call[0] as { projectId: ObjectID }).projectId,
+        ).toLowerCase();
+      }),
+    ).toEqual([
+      PROJECT_ID.toString().toLowerCase(),
+      OTHER_PROJECT_ID.toString().toLowerCase(),
+    ]);
+  });
+
+  test("one statement reads the distinct ids of the projects with API keys that have not expired, or SCIM connections - deleted rows left out", async () => {
+    setTestBillingEnabled(true);
+    const before: number = Date.now();
+
+    await PlanDowngradeOwnerNotice.notifyProjectsAlreadyBelowPlan(NO_RETRIES);
+
+    expect(queries).toHaveLength(1);
+
+    const [sql, parameters]: [string, Array<unknown>] = queries[0]!;
+
+    expect(sql).toContain('SELECT "projectId" FROM "ApiKey"');
+    expect(sql).toContain('"expiresAt" > $1');
+    expect(sql).toContain('SELECT "projectId" FROM "ProjectSCIM"');
+    expect(sql).toContain('SELECT "projectId" FROM "StatusPageSCIM"');
+    // UNION, not UNION ALL: each project once.
+    expect(sql.match(/ UNION /g)).toHaveLength(2);
+    expect(sql).not.toContain("UNION ALL");
+    expect(sql.match(/"deletedAt" IS NULL/g)).toHaveLength(3);
+    expect(sql.match(/"projectId" IS NOT NULL/g)).toHaveLength(3);
+    // Only the ids are read.
+    expect(sql).not.toContain("*");
+
+    expect(parameters).toHaveLength(1);
+    expect(parameters[0]).toBeInstanceOf(Date);
+    expect((parameters[0] as Date).getTime()).toBeGreaterThanOrEqual(
+      before - 1000,
+    );
+    expect((parameters[0] as Date).getTime()).toBeLessThanOrEqual(
+      Date.now() + 1000,
+    );
+  });
+
+  test("says what it did, project by project, and goes on past a failure", async () => {
+    setTestBillingEnabled(true);
+    notifyOne
+      .mockResolvedValueOnce(PlanDowngradeNoticeOutcome.Failed)
+      .mockResolvedValueOnce(PlanDowngradeNoticeOutcome.AlreadyTold);
+
+    expect(
+      await PlanDowngradeOwnerNotice.notifyProjectsAlreadyBelowPlan(NO_RETRIES),
+    ).toEqual({
+      projects: 2,
+      told: 0,
+      alreadyTold: 1,
+      nothingStopped: 0,
+      noPlan: 0,
+      noOwners: 0,
+      failed: 1,
+    });
+  });
+
+  test.each([
+    [PlanDowngradeNoticeOutcome.Told, "told"],
+    [PlanDowngradeNoticeOutcome.AlreadyTold, "alreadyTold"],
+    [PlanDowngradeNoticeOutcome.NothingStopped, "nothingStopped"],
+    [PlanDowngradeNoticeOutcome.NoPlan, "noPlan"],
+    [PlanDowngradeNoticeOutcome.NoOwners, "noOwners"],
+    [PlanDowngradeNoticeOutcome.Failed, "failed"],
+  ])(
+    "an outcome of %s is counted as %s",
+    async (outcome: PlanDowngradeNoticeOutcome, key: string) => {
+      setTestBillingEnabled(true);
+      notifyOne.mockResolvedValue(outcome);
+
+      const summary: Record<string, number> =
+        (await PlanDowngradeOwnerNotice.notifyProjectsAlreadyBelowPlan(
+          NO_RETRIES,
+        )) as unknown as Record<string, number>;
+
+      expect(summary[key]).toBe(2);
+    },
+  );
+
+  test("a project with no credentials is not looked at", async () => {
+    setTestBillingEnabled(true);
+    credentialRows = [];
+
+    expect(
+      (
+        await PlanDowngradeOwnerNotice.notifyProjectsAlreadyBelowPlan(
+          NO_RETRIES,
+        )
+      ).projects,
+    ).toBe(0);
+    expect(notifyOne).not.toHaveBeenCalled();
+  });
+
+  test("a read that fails stops the run, which the migration runner retries", async () => {
+    setTestBillingEnabled(true);
+    readFails = new Error("connection reset");
+
+    await expect(
+      PlanDowngradeOwnerNotice.notifyProjectsAlreadyBelowPlan(NO_RETRIES),
+    ).rejects.toThrow("connection reset");
+    expect(notifyOne).not.toHaveBeenCalled();
+  });
+
+  test("tells a few projects at a time, never more, and each project once", async () => {
+    setTestBillingEnabled(true);
+
+    const projectCount: number = ALREADY_BELOW_PLAN_NOTICE_CONCURRENCY * 3 + 2;
+    credentialRows = Array.from(
+      { length: projectCount },
+      (): { projectId: string } => {
+        return { projectId: ObjectID.generate().toString() };
+      },
+    );
+
+    let inFlight: number = 0;
+    let mostAtOnce: number = 0;
+    const told: Array<string> = [];
+
+    notifyOne.mockImplementation(
+      async (data: {
+        projectId: ObjectID;
+      }): Promise<PlanDowngradeNoticeOutcome> => {
+        inFlight++;
+        mostAtOnce = Math.max(mostAtOnce, inFlight);
+
+        // An owner email on its way to the mail service.
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, 2);
+        });
+
+        told.push(data.projectId.toString());
+        inFlight--;
+
+        return PlanDowngradeNoticeOutcome.Told;
+      },
+    );
+
+    const summary: { told: number; projects: number } =
+      await PlanDowngradeOwnerNotice.notifyProjectsAlreadyBelowPlan(NO_RETRIES);
+
+    expect(summary.projects).toBe(projectCount);
+    expect(summary.told).toBe(projectCount);
+    expect(mostAtOnce).toBe(ALREADY_BELOW_PLAN_NOTICE_CONCURRENCY);
+    expect(new Set<string>(told).size).toBe(projectCount);
+    expect(told.sort()).toEqual(
+      credentialRows
+        .map((row: { projectId: string }): string => {
+          return row.projectId;
+        })
+        .sort(),
+    );
+  });
+
+  test("telling a few at a time is what keeps the migrate Job short: more than one, and a small number", () => {
+    expect(ALREADY_BELOW_PLAN_NOTICE_CONCURRENCY).toBeGreaterThan(1);
+    expect(ALREADY_BELOW_PLAN_NOTICE_CONCURRENCY).toBeLessThanOrEqual(16);
+  });
+});
+
+describe("the one-time notice tries again the projects it could not tell", () => {
+  let notifyOne: ReturnType<typeof getJestSpyOn>;
+  let pauses: Array<number>;
+
+  beforeEach(() => {
+    setTestBillingEnabled(true);
+    pauses = [];
+
+    getJestSpyOn(ApiKeyService, "getRepository").mockReturnValue({
+      manager: {
+        query: async () => {
+          return [
+            { projectId: PROJECT_ID.toString() },
+            { projectId: OTHER_PROJECT_ID.toString() },
+          ];
+        },
+      },
+    } as never);
+
+    // The pauses are recorded, not waited.
+    getJestSpyOn(Sleep, "sleep").mockImplementation(async (ms: number) => {
+      pauses.push(ms);
+    });
+
+    notifyOne = getJestSpyOn(
+      PlanDowngradeOwnerNotice,
+      "notifyIfAlreadyBelowPlan",
+    );
+  });
+
+  const callsFor: (projectId: ObjectID) => number = (
+    projectId: ObjectID,
+  ): number => {
+    return notifyOne.mock.calls.filter((call: Array<unknown>): boolean => {
+      return (
+        String((call[0] as { projectId: ObjectID }).projectId).toLowerCase() ===
+        projectId.toString().toLowerCase()
+      );
+    }).length;
+  };
+
+  test("a project it could not tell is tried again after a pause, and counted told when that tells it", async () => {
+    let firstTry: boolean = true;
+
+    notifyOne.mockImplementation(
+      async (data: {
+        projectId: ObjectID;
+      }): Promise<PlanDowngradeNoticeOutcome> => {
+        if (data.projectId.toString() === PROJECT_ID.toString() && firstTry) {
+          firstTry = false;
+          return PlanDowngradeNoticeOutcome.Failed;
+        }
+
+        return PlanDowngradeNoticeOutcome.Told;
+      },
+    );
+
+    expect(
+      await PlanDowngradeOwnerNotice.notifyProjectsAlreadyBelowPlan({
+        retryDelaysInMs: [5, 10],
+      }),
+    ).toEqual({
+      projects: 2,
+      told: 2,
+      alreadyTold: 0,
+      nothingStopped: 0,
+      noPlan: 0,
+      noOwners: 0,
+      failed: 0,
+    });
+
+    // Tried again once, after the first pause; the other project only once.
+    expect(callsFor(PROJECT_ID)).toBe(2);
+    expect(callsFor(OTHER_PROJECT_ID)).toBe(1);
+    expect(pauses).toEqual([5]);
+  });
+
+  test("a project still not told after every pause is counted as failed, tried once a pass", async () => {
+    notifyOne.mockImplementation(
+      async (data: {
+        projectId: ObjectID;
+      }): Promise<PlanDowngradeNoticeOutcome> => {
+        return data.projectId.toString() === PROJECT_ID.toString()
+          ? PlanDowngradeNoticeOutcome.Failed
+          : PlanDowngradeNoticeOutcome.AlreadyTold;
+      },
+    );
+
+    expect(
+      await PlanDowngradeOwnerNotice.notifyProjectsAlreadyBelowPlan({
+        retryDelaysInMs: [5, 10],
+      }),
+    ).toEqual({
+      projects: 2,
+      told: 0,
+      alreadyTold: 1,
+      nothingStopped: 0,
+      noPlan: 0,
+      noOwners: 0,
+      failed: 1,
+    });
+
+    expect(callsFor(PROJECT_ID)).toBe(3);
+    expect(callsFor(OTHER_PROJECT_ID)).toBe(1);
+    expect(pauses).toEqual([5, 10]);
+  });
+
+  test("only a failure is tried again: a project with no owners, or nothing stopped, is not", async () => {
+    notifyOne.mockImplementation(
+      async (data: {
+        projectId: ObjectID;
+      }): Promise<PlanDowngradeNoticeOutcome> => {
+        return data.projectId.toString() === PROJECT_ID.toString()
+          ? PlanDowngradeNoticeOutcome.NoOwners
+          : PlanDowngradeNoticeOutcome.NothingStopped;
+      },
+    );
+
+    await PlanDowngradeOwnerNotice.notifyProjectsAlreadyBelowPlan({
+      retryDelaysInMs: [5, 10],
+    });
+
+    expect(notifyOne).toHaveBeenCalledTimes(2);
+    expect(pauses).toEqual([]);
+  });
+
+  test("by default it pauses 30 seconds, then 2 minutes", async () => {
+    expect(ALREADY_BELOW_PLAN_NOTICE_RETRY_DELAYS_IN_MS).toEqual([
+      30 * 1000,
+      2 * 60 * 1000,
+    ]);
+
+    notifyOne.mockResolvedValue(PlanDowngradeNoticeOutcome.Failed);
+
+    const summary: { failed: number } =
+      await PlanDowngradeOwnerNotice.notifyProjectsAlreadyBelowPlan();
+
+    expect(summary.failed).toBe(2);
+    expect(pauses).toEqual([30 * 1000, 2 * 60 * 1000]);
+  });
+
+  test("nothing to try again, no pause", async () => {
+    notifyOne.mockResolvedValue(PlanDowngradeNoticeOutcome.Told);
+
+    await PlanDowngradeOwnerNotice.notifyProjectsAlreadyBelowPlan();
+
+    expect(pauses).toEqual([]);
   });
 });

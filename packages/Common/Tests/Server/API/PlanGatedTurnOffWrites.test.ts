@@ -492,12 +492,52 @@ describe("a status page a Growth trial left with paid features on, on a project 
     );
   });
 
-  test("an unclear value is not the default: the text 'false' still needs the plan", async () => {
+  /*
+   * A switch is coerced first, as a number is: the text "false" is what
+   * the database stores as off, so it switches the feature off like false,
+   * on any plan - and is written as false. Switching it on as text still
+   * needs the plan.
+   */
+  test.each([
+    ['"false"', "false"],
+    ['"no"', "no"],
+    ['"off"', "off"],
+    ['"0"', "0"],
+    ["0", 0],
+  ] as Array<[string, unknown]>)(
+    "a switch written as %s is switched off like false, on any plan",
+    async (_label: string, value: unknown) => {
+      stored = { isReportEnabled: true };
+
+      expect(
+        await put(statusPageApi, { isReportEnabled: value } as JSONObject),
+      ).toBe("saved");
+      expect(writes).toEqual([{ isReportEnabled: false }]);
+    },
+  );
+
+  test.each([
+    ['"true"', "true"],
+    ['"yes"', "yes"],
+    ["1", 1],
+  ] as Array<[string, unknown]>)(
+    "written as %s it is switched on, which still needs the plan",
+    async (_label: string, value: unknown) => {
+      stored = { isReportEnabled: false };
+
+      expect(
+        await put(statusPageApi, { isReportEnabled: value } as JSONObject),
+      ).toBe(refusalFor(PlanType.Growth));
+      expect(writes).toEqual([]);
+    },
+  );
+
+  test("a value the database would refuse is refused as such, before the plan is asked about it", async () => {
     stored = { isReportEnabled: true };
 
-    expect(await put(statusPageApi, { isReportEnabled: "false" })).toBe(
-      refusalFor(PlanType.Growth),
-    );
+    await expect(
+      put(statusPageApi, { isReportEnabled: "maybe" }),
+    ).rejects.toThrow("isReportEnabled must be true or false.");
     expect(writes).toEqual([]);
   });
 });

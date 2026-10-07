@@ -23,8 +23,11 @@ import {
   getAiAgentStateSentence,
   getAiAgentStatusPill,
   getAiAgentSummary,
+  AUTOMATIC_REMEDIATION_SETTINGS_LINKS,
   getAutomaticInvestigation,
   getAutomaticInvestigationConfirmation,
+  getAutomaticRemediation,
+  getAutomaticRemediationLine,
   getAutomaticInvestigationLine,
   getAutomaticInvestigationTurnOnChanges,
   getKubernetesAiSettingsSource,
@@ -158,6 +161,7 @@ import { Gray500, Green500, Red500 } from "Common/Types/BrandColors";
 import {
   KubernetesAiAgentSummary,
   KubernetesAiAutomaticInvestigationSettings,
+  KubernetesAiAutomaticRemediationSettings,
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
   KUBERNETES_AI_AGENT_DISPLAY_NAME,
@@ -1422,6 +1426,8 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
   );
   const automaticInvestigation: KubernetesAiAutomaticInvestigationSettings | null =
     getAutomaticInvestigation(status);
+  const automaticRemediation: KubernetesAiAutomaticRemediationSettings | null =
+    getAutomaticRemediation(status);
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
   const projectName: string | undefined =
     props.currentProject?.name || ProjectUtil.getCurrentProject()?.name;
@@ -2190,6 +2196,35 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
             sentence={REMEDIATION_MODE_SUMMARIES[remediationMode]}
             dataTestId="ai-access-fixes"
           >
+            {automaticRemediation ? (
+              <div
+                className="flex flex-col gap-2 rounded-lg border border-gray-200 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+                data-testid="ai-access-automatic-remediation"
+              >
+                <p className="text-xs leading-5 text-gray-600">
+                  {getAutomaticRemediationLine(automaticRemediation)}
+                </p>
+                {automaticRemediation.incidents &&
+                automaticRemediation.alerts ? (
+                  <></>
+                ) : (
+                  <div className="flex flex-wrap gap-3">
+                    {automaticRemediation.incidents
+                      ? null
+                      : renderSettingsLink(
+                          PageMap.INCIDENTS_SETTINGS_AI,
+                          AUTOMATIC_REMEDIATION_SETTINGS_LINKS.incidents,
+                        )}
+                    {automaticRemediation.alerts
+                      ? null
+                      : renderSettingsLink(
+                          PageMap.ALERTS_SETTINGS_AI,
+                          AUTOMATIC_REMEDIATION_SETTINGS_LINKS.alerts,
+                        )}
+                  </div>
+                )}
+              </div>
+            ) : null}
             {remediationMode === KubernetesAiRemediationMode.Disabled ? (
               <AiAccessHint
                 text={

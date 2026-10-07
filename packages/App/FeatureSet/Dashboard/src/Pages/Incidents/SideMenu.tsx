@@ -118,9 +118,10 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     },
     /*
      * Everything OneUptime AI does for incidents, in one place: what it
-     * learned (Insights), what it did (Logs), how it is set up (Settings)
-     * and the rules that let it fix things (Auto Remediation Rules). Folded
-     * down to its title until opened, like the AI section of every menu
+     * learned (Insights), what it did (Logs) and how it is set up
+     * (Settings, whose More settings hold the rules for which incidents it
+     * investigates and fixes - they had a page of their own). Folded down
+     * to its title until opened, like the AI section of every menu
      * (SideMenuSectionState.ts), and open by itself on its pages.
      */
     {
@@ -152,17 +153,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           },
           icon: IconProp.Settings,
-        },
-        {
-          link: {
-            title: "Auto Remediation Rules",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES
-              ] as Route,
-            ),
-          },
-          icon: IconProp.Bolt,
         },
       ],
     },

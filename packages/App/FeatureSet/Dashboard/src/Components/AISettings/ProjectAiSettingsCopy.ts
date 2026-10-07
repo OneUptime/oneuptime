@@ -44,8 +44,13 @@ import ProjectAiDailyLimits, {
  *
  * Nothing here changes what the columns hold, their defaults, the API or
  * Terraform: new projects still start with every AI behaviour on
- * (ProjectService's NEW_PROJECT_AI_DEFAULT_COLUMNS), and Enable AI is still
- * the project's only AI switch.
+ * (ProjectService's NEW_PROJECT_AI_DEFAULT_COLUMNS) but fixing, which
+ * changes infrastructure and so is turned on by the project itself, and
+ * Enable AI is still the project's only AI switch.
+ *
+ * Which incidents (or alerts) are investigated, and which are fixed and how,
+ * can be narrowed by rules - Investigation rules and Auto remediation rules,
+ * folded under More settings with the limits. With no rule, every one is.
  *
  * Project Settings → AI Features has a More settings fold of its own, with
  * the project's daily limits on everything OneUptime AI does - a ceiling
@@ -68,10 +73,12 @@ export enum AiLane {
 // The Project columns behind the incident and alert pages' switches.
 export type AiLaneSwitchColumn =
   | "enableAutomaticIncidentInvestigation"
+  | "enableAutomaticIncidentRemediation"
   | "enableAutomaticPostmortemDraft"
   | "enableAutomaticIncidentCodeFixes"
   | "enableIncidentInstrumentationFixTasks"
   | "enableAutomaticAlertInvestigation"
+  | "enableAutomaticAlertRemediation"
   | "enableAutomaticAlertCodeFixes"
   | "enableAlertInstrumentationFixTasks";
 
@@ -120,6 +127,14 @@ const TELEMETRY_FIX_DESCRIPTION: string = translationKey(
 const GITHUB_APP_NOTE: string = translationKey(
   "Needs a repository connected through the GitHub App.",
 );
+/*
+ * Fixing is the one switch that starts off: it changes infrastructure, so a
+ * project turns it on itself (ProjectService leaves it out of the new
+ * project's AI defaults). Rules under More settings narrow it.
+ */
+const REMEDIATION_NOTE: string = translationKey(
+  "Needs an AI agent that is allowed to fix things, on the Kubernetes cluster or host where it happens.",
+);
 
 /*
  * The switches of each lane's page, in the order they are drawn: what
@@ -136,6 +151,14 @@ export const AI_LANE_SWITCHES: Record<
       description: translationKey(
         "OneUptime AI looks into each new incident and posts the likely root cause, with the evidence for it, to the incident's timeline.",
       ),
+    },
+    {
+      column: "enableAutomaticIncidentRemediation",
+      title: translationKey("Fix new incidents automatically"),
+      description: translationKey(
+        "OneUptime AI fixes each new incident through the AI agent on the cluster or host it affects. Whether a fix waits for someone to approve it is up to that agent's settings.",
+      ),
+      note: REMEDIATION_NOTE,
     },
     {
       column: "enableAutomaticPostmortemDraft",
@@ -164,6 +187,14 @@ export const AI_LANE_SWITCHES: Record<
       description: translationKey(
         "OneUptime AI looks into each new alert and posts the likely root cause, with the evidence for it, to the alert's timeline.",
       ),
+    },
+    {
+      column: "enableAutomaticAlertRemediation",
+      title: translationKey("Fix new alerts automatically"),
+      description: translationKey(
+        "OneUptime AI fixes each new alert through the AI agent on the cluster or host it affects. Whether a fix waits for someone to approve it is up to that agent's settings.",
+      ),
+      note: REMEDIATION_NOTE,
     },
     {
       column: "enableAutomaticAlertCodeFixes",
@@ -222,23 +253,48 @@ export const AI_LANE_ADVANCED_COLUMNS: Record<AiLane, AiLaneAdvancedColumns> = {
   },
 };
 
-// The three cards under Advanced, each a question with its own Edit.
+/*
+ * The cards under More settings, each one question: three hold Project
+ * columns, each with its own Edit, and two are tables of rules.
+ */
 export enum AiLaneAdvancedCard {
+  // Investigation rules: which incidents (or alerts) are investigated.
+  InvestigationRules = "InvestigationRules",
   // Minimum severity and re-investigation cooldown.
   WhichAreInvestigated = "WhichAreInvestigated",
   // How many run at once, and for how long.
   InvestigationLimits = "InvestigationLimits",
+  // Auto remediation rules: which are fixed, and how.
+  RemediationRules = "RemediationRules",
   // Tokens and fix pull requests per day.
   DailyLimits = "DailyLimits",
 }
 
 export const AI_LANE_ADVANCED_CARDS: Array<AiLaneAdvancedCard> = [
+  AiLaneAdvancedCard.InvestigationRules,
   AiLaneAdvancedCard.WhichAreInvestigated,
   AiLaneAdvancedCard.InvestigationLimits,
+  AiLaneAdvancedCard.RemediationRules,
   AiLaneAdvancedCard.DailyLimits,
 ];
 
-// Which of a lane's Advanced columns each card holds.
+/*
+ * The cards that are tables of rules rather than Project columns. With no
+ * rule, every incident (or alert) is in scope; a table with any rule narrows
+ * it, so the folded header draws it as a chip with how many it holds.
+ */
+export const AI_LANE_RULES_CARDS: Array<AiLaneAdvancedCard> = [
+  AiLaneAdvancedCard.InvestigationRules,
+  AiLaneAdvancedCard.RemediationRules,
+];
+
+export const isAiLaneRulesCard: (card: AiLaneAdvancedCard) => boolean = (
+  card: AiLaneAdvancedCard,
+): boolean => {
+  return AI_LANE_RULES_CARDS.includes(card);
+};
+
+// Which of a lane's Advanced columns each card holds (none, for rules).
 export const getAiLaneAdvancedCardColumns: (
   lane: AiLane,
   card: AiLaneAdvancedCard,
@@ -262,16 +318,62 @@ export const getAiLaneAdvancedCardColumns: (
 
 /*
  * What the Advanced cards have read so far, by column: a column's value as
- * the card read it (null when nothing is set), and which cards have read.
+ * the card read it (null when nothing is set), how many rules each rules
+ * table holds, and which cards have read.
  */
 export interface AiLaneAdvancedState {
   values: Record<string, unknown>;
+  ruleCounts?: Partial<Record<AiLaneAdvancedCard, number>> | undefined;
   loadedCards: Array<AiLaneAdvancedCard>;
 }
 
 export const EMPTY_AI_LANE_ADVANCED_STATE: AiLaneAdvancedState = {
   values: {},
+  ruleCounts: {},
   loadedCards: [],
+};
+
+// How many rules a rules table read: 0 until it has read.
+export const getAiLaneRuleCount: (
+  state: AiLaneAdvancedState,
+  card: AiLaneAdvancedCard,
+) => number = (
+  state: AiLaneAdvancedState,
+  card: AiLaneAdvancedCard,
+): number => {
+  const count: unknown = state.ruleCounts?.[card];
+
+  return typeof count === "number" && Number.isFinite(count) && count > 0
+    ? Math.floor(count)
+    : 0;
+};
+
+/*
+ * What a rules table has read - how many rules it holds - added to what
+ * the other cards have. It reads again after every change to its rules.
+ */
+export const recordAiLaneAdvancedRules: (data: {
+  state: AiLaneAdvancedState;
+  card: AiLaneAdvancedCard;
+  count: number;
+}) => AiLaneAdvancedState = (data: {
+  state: AiLaneAdvancedState;
+  card: AiLaneAdvancedCard;
+  count: number;
+}): AiLaneAdvancedState => {
+  return {
+    values: data.state.values,
+    ruleCounts: {
+      ...(data.state.ruleCounts || {}),
+      [data.card]:
+        Number.isFinite(data.count) && data.count > 0
+          ? Math.floor(data.count)
+          : 0,
+    },
+    loadedCards: data.state.loadedCards.includes(data.card)
+      ? data.state.loadedCards
+      : [...data.state.loadedCards, data.card],
+  };
 };
 
 // What a card has read, added to what the others have.
@@ -295,6 +397,7 @@ export const recordAiLaneAdvancedCard: (data: {
 
   return {
     values,
+    ruleCounts: data.state.ruleCounts,
     loadedCards: data.state.loadedCards.includes(data.card)
       ? data.state.loadedCards
       : [...data.state.loadedCards, data.card],
@@ -333,26 +436,41 @@ export const AI_LANE_ADVANCED_CARD_TITLES: Record<
   Record<AiLaneAdvancedCard, string>
 > = {
   [AiLane.Incident]: {
+    [AiLaneAdvancedCard.InvestigationRules]: translationKey(
+      "Investigation rules",
+    ),
     [AiLaneAdvancedCard.WhichAreInvestigated]: translationKey(
       "Which incidents are investigated",
     ),
     [AiLaneAdvancedCard.InvestigationLimits]: translationKey(
       "Investigation limits",
     ),
+    [AiLaneAdvancedCard.RemediationRules]: translationKey(
+      "Auto remediation rules",
+    ),
     [AiLaneAdvancedCard.DailyLimits]: translationKey("Daily limits"),
   },
   [AiLane.Alert]: {
+    [AiLaneAdvancedCard.InvestigationRules]: translationKey(
+      "Investigation rules",
+    ),
     [AiLaneAdvancedCard.WhichAreInvestigated]: translationKey(
       "Which alerts are investigated",
     ),
     [AiLaneAdvancedCard.InvestigationLimits]: translationKey(
       "Investigation limits",
     ),
+    [AiLaneAdvancedCard.RemediationRules]: translationKey(
+      "Auto remediation rules",
+    ),
     [AiLaneAdvancedCard.DailyLimits]: translationKey("Daily limits"),
   },
 };
 
-// Whether a card under a lane's More settings holds a limit.
+/*
+ * Whether a card under a lane's More settings holds a limit - or, for a
+ * rules table, any rule.
+ */
 export const isAiLaneAdvancedCardConfigured: (
   lane: AiLane,
   card: AiLaneAdvancedCard,
@@ -362,6 +480,10 @@ export const isAiLaneAdvancedCardConfigured: (
   card: AiLaneAdvancedCard,
   state: AiLaneAdvancedState,
 ): boolean => {
+  if (isAiLaneRulesCard(card)) {
+    return getAiLaneRuleCount(state, card) > 0;
+  }
+
   return getAiLaneAdvancedCardColumns(lane, card).some(
     (column: string): boolean => {
       return isAiLaneAdvancedValueSet(state.values[column]);
@@ -369,7 +491,10 @@ export const isAiLaneAdvancedCardConfigured: (
   );
 };
 
-// What the folded More settings header lists: the three cards, set or not.
+/*
+ * What the folded More settings header lists: every card, set or not, and
+ * how many rules a rules table holds ("Investigation rules: 2").
+ */
 export const getAiLaneAdvancedItems: (
   lane: AiLane,
   state: AiLaneAdvancedState,
@@ -379,9 +504,15 @@ export const getAiLaneAdvancedItems: (
 ): Array<FoldedSectionItem> => {
   return AI_LANE_ADVANCED_CARDS.map(
     (card: AiLaneAdvancedCard): FoldedSectionItem => {
+      const isSet: boolean = isAiLaneAdvancedCardConfigured(lane, card, state);
+
       return foldedSectionItem(AI_LANE_ADVANCED_CARD_TITLES[lane][card], {
         key: card,
-        isSet: isAiLaneAdvancedCardConfigured(lane, card, state),
+        isSet,
+        value:
+          isSet && isAiLaneRulesCard(card)
+            ? String(getAiLaneRuleCount(state, card))
+            : undefined,
       });
     },
   );
@@ -392,10 +523,19 @@ export const isAiLaneAdvancedConfigured: (
   lane: AiLane,
   state: AiLaneAdvancedState,
 ) => boolean = (lane: AiLane, state: AiLaneAdvancedState): boolean => {
-  return Object.values(AI_LANE_ADVANCED_COLUMNS[lane]).some(
-    (column: string): boolean => {
-      return isAiLaneAdvancedValueSet(state.values[column]);
+  const hasRule: boolean = AI_LANE_RULES_CARDS.some(
+    (card: AiLaneAdvancedCard): boolean => {
+      return getAiLaneRuleCount(state, card) > 0;
     },
+  );
+
+  return (
+    hasRule ||
+    Object.values(AI_LANE_ADVANCED_COLUMNS[lane]).some(
+      (column: string): boolean => {
+        return isAiLaneAdvancedValueSet(state.values[column]);
+      },
+    )
   );
 };
 
@@ -417,10 +557,10 @@ export const AI_LANE_PAGE_COPY: Record<AiLane, AiLanePageCopy> = {
       "It works on incidents on its own. Turn off anything you do not want it to do.",
     ),
     advancedDescription: translationKey(
-      "Which incidents are investigated, and limits on investigations and on AI work each day.",
+      "Which incidents are investigated or fixed, and limits on investigations and on AI work each day.",
     ),
     advancedDefaultsSummary: translationKey(
-      "Every incident is investigated, whatever its severity, and nothing limits how much OneUptime AI does.",
+      "Every incident is investigated, whatever its severity, and every one is fixed while fixing is on. Nothing limits how much OneUptime AI does.",
     ),
   },
   [AiLane.Alert]: {
@@ -429,17 +569,17 @@ export const AI_LANE_PAGE_COPY: Record<AiLane, AiLanePageCopy> = {
       "It works on alerts on its own. Turn off anything you do not want it to do.",
     ),
     advancedDescription: translationKey(
-      "Which alerts are investigated, and limits on investigations and on AI work each day.",
+      "Which alerts are investigated or fixed, and limits on investigations and on AI work each day.",
     ),
     advancedDefaultsSummary: translationKey(
-      "Every alert is investigated, whatever its severity, and nothing limits how much OneUptime AI does.",
+      "Every alert is investigated, whatever its severity, and every one is fixed while fixing is on. Nothing limits how much OneUptime AI does.",
     ),
   },
 };
 
 /*
  * The line under the folded More settings header: what the defaults do,
- * once every card has read and none holds anything. Nothing until then - a
+ * once every card has read and none holds anything (no limit, no rule). Nothing until then - a
  * "nothing limits AI" read before the limits are known could be untrue -
  * and nothing while a limit is set, when the header draws that card as a
  * chip.
@@ -464,6 +604,39 @@ export const getAiLaneAdvancedSummary: (
   return AI_LANE_PAGE_COPY[lane].advancedDefaultsSummary;
 };
 
+/*
+ * The two tables of rules under a lane's More settings. With no rule, every
+ * incident (or alert) is investigated, and every one is fixed while fixing
+ * is on; rules narrow that to the ones that match.
+ *
+ * An investigation rule is only conditions. An auto remediation rule is
+ * conditions and two answers: who fixes (OneUptime AI, or the runbooks the
+ * rule names) and whether a fix waits for someone to approve it.
+ */
+export interface AiLaneRulesCopy {
+  investigationRulesDescription: string;
+  remediationRulesDescription: string;
+}
+
+export const AI_LANE_RULES_COPY: Record<AiLane, AiLaneRulesCopy> = {
+  [AiLane.Incident]: {
+    investigationRulesDescription: translationKey(
+      "With no rule, OneUptime AI investigates every new incident. Add rules to investigate only the incidents that match one of them.",
+    ),
+    remediationRulesDescription: translationKey(
+      "With no rule, OneUptime AI fixes every new incident while fixing is on. Add rules to fix only the incidents that match one of them, to ask before fixing, or to run your own runbooks instead.",
+    ),
+  },
+  [AiLane.Alert]: {
+    investigationRulesDescription: translationKey(
+      "With no rule, OneUptime AI investigates every new alert. Add rules to investigate only the alerts that match one of them.",
+    ),
+    remediationRulesDescription: translationKey(
+      "With no rule, OneUptime AI fixes every new alert while fixing is on. Add rules to fix only the alerts that match one of them, to ask before fixing, or to run your own runbooks instead.",
+    ),
+  },
+};
+
 // The data-testids of a lane page's parts.
 export const AI_LANE_SWITCHES_TEST_ID: Record<AiLane, string> = {
   [AiLane.Incident]: "incident-ai-switches",
@@ -473,6 +646,16 @@ export const AI_LANE_SWITCHES_TEST_ID: Record<AiLane, string> = {
 export const AI_LANE_ADVANCED_SECTION_TEST_ID: Record<AiLane, string> = {
   [AiLane.Incident]: "incident-ai-advanced-section",
   [AiLane.Alert]: "alert-ai-advanced-section",
+};
+
+export const AI_LANE_INVESTIGATION_RULES_TABLE_ID: Record<AiLane, string> = {
+  [AiLane.Incident]: "ai-investigation-rules-table-Incident",
+  [AiLane.Alert]: "ai-investigation-rules-table-Alert",
+};
+
+export const AI_LANE_REMEDIATION_RULES_TABLE_ID: Record<AiLane, string> = {
+  [AiLane.Incident]: "auto-remediation-rules-table-Incident",
+  [AiLane.Alert]: "auto-remediation-rules-table-Alert",
 };
 
 /*
@@ -545,8 +728,13 @@ export const EnableAiCopy: {
     "Turn OneUptime AI on or off for this project.",
   ),
   switchTitle: translationKey("Enable AI"),
+  /*
+   * Not "Auto-remediation needs no other project switch" any more: fixing
+   * new incidents and alerts has a switch of its own on each AI settings
+   * page, off until a project turns it on.
+   */
   switchDescription: translationKey(
-    "The master switch. When off, every AI feature in this project stops: Ask AI, investigations, postmortem drafts, auto-remediation and AI commands on Runners. Auto-remediation and AI commands on Runners need no other project switch.",
+    "The master switch. When off, every AI feature in this project stops: Ask AI, investigations, postmortem drafts, auto-remediation and AI commands on Runners.",
   ),
   turnOffConfirmTitle: translationKey("Turn off AI for this project?"),
   turnOffConfirmDescription: translationKey(

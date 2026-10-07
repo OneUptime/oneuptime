@@ -41,6 +41,7 @@ import {
   KubernetesAiAccessGap,
   KubernetesAiAccessRunnerSummary,
   KubernetesAiAutomaticInvestigationSettings,
+  KubernetesAiAutomaticRemediationSettings,
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
   KubernetesRunnerPosture,
@@ -132,6 +133,12 @@ export interface KubernetesClusterAiAccessProjectGates {
   automaticInvestigation?:
     | KubernetesAiAutomaticInvestigationSettings
     | undefined;
+  /*
+   * The project's automatic-remediation switches, shown under the cluster's
+   * fixes as a line of their own (never a gap). getProjectGates always sets
+   * them; absent reads as both off.
+   */
+  automaticRemediation?: KubernetesAiAutomaticRemediationSettings | undefined;
 }
 
 export interface RegisterKubernetesAgentRunnerResult {
@@ -554,6 +561,8 @@ class KubernetesClusterAiAccessServiceClass {
         enableAi: true,
         enableAutomaticIncidentInvestigation: true,
         enableAutomaticAlertInvestigation: true,
+        enableAutomaticIncidentRemediation: true,
+        enableAutomaticAlertRemediation: true,
       },
       props: { isRoot: true },
     });
@@ -600,6 +609,10 @@ class KubernetesClusterAiAccessServiceClass {
       automaticInvestigation: {
         incidents: project?.enableAutomaticIncidentInvestigation === true,
         alerts: project?.enableAutomaticAlertInvestigation === true,
+      },
+      automaticRemediation: {
+        incidents: project?.enableAutomaticIncidentRemediation === true,
+        alerts: project?.enableAutomaticAlertRemediation === true,
       },
     };
   }
@@ -946,6 +959,10 @@ class KubernetesClusterAiAccessServiceClass {
       automaticInvestigation: {
         incidents: gates.automaticInvestigation?.incidents === true,
         alerts: gates.automaticInvestigation?.alerts === true,
+      },
+      automaticRemediation: {
+        incidents: gates.automaticRemediation?.incidents === true,
+        alerts: gates.automaticRemediation?.alerts === true,
       },
       credentialId: access.credentialId,
       credentialName: access.credentialName,

@@ -535,7 +535,7 @@ export default class BaseModelComponent {
           {
             type: ComponentInputType.Select,
             name: "Listen on",
-            description: `Narrows this trigger to updates that touch these fields on ${model.singularName}. Leave it blank to fire on any change. When an update arrives without a record of which fields moved, this filter is skipped and the workflow runs anyway.`,
+            description: `Narrows this trigger to updates that change these fields on ${model.singularName}. Leave it blank to fire on any change. A field saved with the value it already has is not a change. When an update arrives without a record of which fields changed, this filter is skipped and the workflow runs anyway.`,
             required: false,
             id: "listen-on",
             placeholder: 'Example: {"columnName": true, ...}',

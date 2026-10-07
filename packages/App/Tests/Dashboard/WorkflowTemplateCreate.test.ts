@@ -1086,9 +1086,9 @@ const referencedVariablesOf: ReferencedVariablesFunction = (
 
 type IsSecretFunction = (row: WorkflowVariable) => unknown;
 
-/** isSecret is declared `string` on a boolean column, hence the cast. */
+// What a built row says for isSecret.
 const isSecretOf: IsSecretFunction = (row: WorkflowVariable): unknown => {
-  return (row as unknown as { isSecret?: unknown }).isSecret;
+  return row.isSecret;
 };
 
 type BuildJiraRowsFunction = (
