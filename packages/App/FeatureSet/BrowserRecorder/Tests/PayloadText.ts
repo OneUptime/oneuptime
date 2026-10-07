@@ -36,3 +36,18 @@ export default function textOf(value: unknown): string {
 
   return strings.join("\n");
 }
+
+/*
+ * The same rule for text that is already JSON - a posted upload body, frames
+ * and all, or a serialised event: every JSON number becomes 0 and every
+ * string stays as it is, digits included. A string is matched whole before
+ * any digit inside it could be, so only numbers outside strings change.
+ */
+const JSON_STRING_OR_NUMBER: RegExp =
+  /"(?:[^"\\]|\\.)*"|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/g;
+
+export function withoutJsonNumbers(json: string): string {
+  return json.replace(JSON_STRING_OR_NUMBER, (token: string): string => {
+    return token.startsWith('"') ? token : "0";
+  });
+}
