@@ -10,9 +10,9 @@ them, in a real browser:
 | `/blog`      | A post body with no h2 heading under the blog's real scripts, taken out of `Home/Views/Blog/Post.ejs`: the highlight.js loader, the page script and the diagrams module.                   |
 
 `?diagrams=` picks the diagrams: a flowchart with a `$$...$$` label and a
-sequence diagram by default, `none` for none; the Dashboard page also takes
-`plain` (no KaTeX needed) and `broken` (one that does not parse), and
-`?theme=dark`.
+sequence diagram by default, `none` for none, and `broken` for one that does
+not parse (on the docs and the blog, ahead of the other two); the Dashboard
+page also takes `plain` (no KaTeX needed), and `?theme=dark`.
 
 `Fixture/server.js` runs `Common/Scripts/build-mermaid-browser.js` the way the
 App and Home images do, and serves what it writes at `/oneuptime-assets/mermaid/`,
@@ -32,8 +32,8 @@ every label with the browser's layout, so this is where a drawn diagram is
 checked: each surface draws every diagram, the docs and the blog set a
 `$$...$$` label with KaTeX's MathML, KaTeX is fetched once, as its own chunk,
 only for a page that needs it, and holds the version npm installed for Common,
-none of mermaid's prebuilt bundles is ever requested, and the dark themes
-apply. What the build may contain is pinned in
+none of mermaid's prebuilt bundles is ever requested, a diagram that does not
+parse leaves the others drawn, and the dark themes apply. What the build may contain is pinned in
 `packages/Common/Tests/UI/MermaidFromSource.test.ts`, and what the server
 answers in `packages/Common/Tests/Server/Utils/VendorAssets*.test.ts`.
 

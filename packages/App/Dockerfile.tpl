@@ -95,7 +95,9 @@ COPY ./packages/Common /usr/src/Common
 # mermaid for the docs, built from mermaid's ES module source with the
 # packages npm just installed (Common/Scripts/build-mermaid-browser.js) and
 # served at /oneuptime-assets/mermaid. A build that fails stops the image here
-# rather than leaving a page without its diagrams.
+# rather than leaving a page without its diagrams. It runs after the COPY
+# above so that it replaces any Common/build/mermaid-browser the build
+# context brought along (a build made on a developer's machine).
 RUN node /usr/src/Common/Scripts/build-mermaid-browser.js
 
 ENV PRODUCTION=true

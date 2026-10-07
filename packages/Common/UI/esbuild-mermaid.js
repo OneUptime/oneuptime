@@ -63,6 +63,17 @@ const MERMAID_BROWSER_BUILD_DIRECTORY = path.join(
   "mermaid-browser",
 );
 
+/*
+ * Every file a browser build may hold, as a path relative to its directory:
+ * the entry, or a chunk one directory down, named with letters, digits, dots,
+ * dashes and underscores (never a leading dot), ending in .mjs. VendorAssets
+ * serves nothing else, and buildMermaidBrowserBundle() refuses to write
+ * anything else, so every module the entry imports is one the server serves.
+ */
+const MERMAID_BROWSER_FILE = new RegExp(
+  `^(?:${MERMAID_BROWSER_CHUNK_DIRECTORY}/)?[A-Za-z0-9_-][A-Za-z0-9._-]*\\.mjs$`,
+);
+
 /**
  * Whether a file is one of mermaid's prebuilt bundles.
  * @param {string} filePath
@@ -70,6 +81,16 @@ const MERMAID_BROWSER_BUILD_DIRECTORY = path.join(
  */
 function isPrebuiltMermaidBundle(filePath) {
   return PREBUILT_MERMAID_BUNDLE.test(filePath);
+}
+
+/**
+ * Whether a path, relative to a browser build's directory with forward
+ * slashes, is one a browser build may hold (and VendorAssets serves).
+ * @param {string} relativePath
+ * @returns {boolean}
+ */
+function isMermaidBrowserFile(relativePath) {
+  return MERMAID_BROWSER_FILE.test(relativePath);
 }
 
 /**
@@ -140,14 +161,45 @@ async function buildMermaidBrowserBundle(esbuild) {
     logLevel: "silent",
   });
 
+  const files = result.outputFiles.map((file) => {
+    return {
+      path: path.relative(outdir, file.path).split(path.sep).join("/"),
+      text: file.text,
+    };
+  });
+
+  /*
+   * esbuild names a chunk after the module it starts with. A name the server
+   * would not serve fails the build here, not a diagram in a reader's browser.
+   */
+  const unservable = files
+    .filter((file) => {
+      return !isMermaidBrowserFile(file.path);
+    })
+    .map((file) => {
+      return file.path;
+    });
+
+  if (unservable.length > 0) {
+    throw new Error(
+      `mermaid's browser build names files /oneuptime-assets/mermaid/ does not serve: ${unservable.join(", ")}. ` +
+        "Their names may hold only letters, digits, dots, dashes and underscores.",
+    );
+  }
+
+  if (
+    !files.some((file) => {
+      return file.path === MERMAID_BROWSER_ENTRY;
+    })
+  ) {
+    throw new Error(
+      `mermaid's browser build has no ${MERMAID_BROWSER_ENTRY} for the docs and the blog to import.`,
+    );
+  }
+
   return {
     entry: MERMAID_BROWSER_ENTRY,
-    files: result.outputFiles.map((file) => {
-      return {
-        path: path.relative(outdir, file.path).split(path.sep).join("/"),
-        text: file.text,
-      };
-    }),
+    files,
     inputs: Object.keys(result.metafile.inputs),
   };
 }
@@ -158,6 +210,7 @@ module.exports = {
   MERMAID_BROWSER_CHUNK_DIRECTORY,
   MERMAID_BROWSER_BUILD_DIRECTORY,
   isPrebuiltMermaidBundle,
+  isMermaidBrowserFile,
   createMermaidSourcePlugin,
   buildMermaidBrowserBundle,
 };

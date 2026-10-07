@@ -1,4 +1,13 @@
-import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import fs from "fs";
 import http, { IncomingMessage, Server, createServer } from "http";
 import { AddressInfo } from "net";
@@ -9,6 +18,7 @@ import {
   ExpressResponse,
   createExpressApp,
 } from "../../../Server/Utils/Express";
+import logger from "../../../Server/Utils/Logger";
 import { createMermaidAssetsHandler } from "../../../Server/Utils/VendorAssets";
 
 /*
@@ -250,4 +260,90 @@ describe("the mermaid mount, with no build", () => {
       expect(fs.existsSync(missing)).toBe(false);
     },
   );
+});
+
+describe("the mermaid mount says when it has no build", () => {
+  /*
+   * A server run without the build (outside Docker, before anyone ran the
+   * script) draws no diagrams on the docs or the blog. It says so in its log,
+   * once, when the first diagram is asked for - not when it starts, since
+   * every service mounts this and only the App and Home images build it.
+   */
+  let logged: Array<string>;
+  let scratch: string;
+
+  beforeEach(() => {
+    logged = [];
+    scratch = fs.mkdtempSync(path.join(os.tmpdir(), "oneuptime-diagrams-"));
+    jest.spyOn(logger, "error").mockImplementation((message: unknown): void => {
+      logged.push(String(message));
+    });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    fs.rmSync(scratch, { recursive: true, force: true });
+  });
+
+  test("once, naming the directory and the script that builds it", async () => {
+    const missing: string = path.join(scratch, "mermaid-browser");
+    const served: Mount = await mount(missing);
+
+    try {
+      expect(logged).toEqual([]);
+
+      await ask(served.port, "/oneuptime-assets/mermaid/mermaid.mjs");
+      await ask(
+        served.port,
+        "/oneuptime-assets/mermaid/chunks/chunk-ABCDEFGH.mjs",
+      );
+      await ask(served.port, "/oneuptime-assets/mermaid/mermaid.mjs");
+
+      expect(logged).toHaveLength(1);
+      expect(logged[0]).toContain(missing);
+      expect(logged[0]).toContain("Common/Scripts/build-mermaid-browser.js");
+    } finally {
+      await close(served.server);
+    }
+  });
+
+  test("not for a path no build would have", async () => {
+    const served: Mount = await mount(path.join(scratch, "mermaid-browser"));
+
+    try {
+      for (const rest of ["mermaid.min.js", "notes.txt", "", "a/b/c.mjs"]) {
+        expect(
+          (await ask(served.port, `/oneuptime-assets/mermaid/${rest}`)).status,
+        ).toBe(404);
+      }
+
+      expect(logged).toEqual([]);
+    } finally {
+      await close(served.server);
+    }
+  });
+
+  test("nothing at all when the build is there", async () => {
+    fs.writeFileSync(path.join(scratch, "mermaid.mjs"), ENTRY_TEXT);
+
+    const served: Mount = await mount(scratch);
+
+    try {
+      expect(
+        (await ask(served.port, "/oneuptime-assets/mermaid/mermaid.mjs"))
+          .status,
+      ).toBe(200);
+      expect(
+        (
+          await ask(
+            served.port,
+            "/oneuptime-assets/mermaid/chunks/chunk-ZZZZZZZZ.mjs",
+          )
+        ).status,
+      ).toBe(404);
+      expect(logged).toEqual([]);
+    } finally {
+      await close(served.server);
+    }
+  });
 });

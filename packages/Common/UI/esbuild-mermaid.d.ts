@@ -34,6 +34,9 @@ export const MERMAID_BROWSER_BUILD_DIRECTORY: string;
 
 export function isPrebuiltMermaidBundle(filePath: string): boolean;
 
+// Relative to a browser build's directory, with forward slashes.
+export function isMermaidBrowserFile(relativePath: string): boolean;
+
 export function createMermaidSourcePlugin(): MermaidSourcePlugin;
 
 export function buildMermaidBrowserBundle(

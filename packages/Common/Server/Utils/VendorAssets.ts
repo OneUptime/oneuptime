@@ -9,6 +9,12 @@ import {
 import logger from "./Logger";
 import fs from "fs";
 import path from "path";
+import {
+  MERMAID_BROWSER_BUILD_DIRECTORY,
+  MERMAID_BROWSER_CHUNK_DIRECTORY,
+  MERMAID_BROWSER_ENTRY,
+  isMermaidBrowserFile,
+} from "../../UI/esbuild-mermaid";
 
 /**
  * Serves the browser libraries our server-rendered pages need, from this
@@ -76,21 +82,16 @@ export const OneUptimeFaviconUrl: string = `${VendorAssetsRoute}/${BrandAssetsRo
  * of mermaid's ES module source with the dependencies npm installed for
  * Common, katex among them. Common/Scripts/build-mermaid-browser.js writes it
  * here when the App and Home images are built (Common/UI/esbuild-mermaid.js
- * has the details). A service whose image does not build it - the probe, the
- * workers - answers 404, as it would for any other missing asset.
+ * has the details, and the names this mount shares with the build). A service
+ * whose image does not build it - the probe, the workers - answers 404, as it
+ * would for any other missing asset.
  */
-export const MermaidBuildPath: string = path.resolve(
-  __dirname,
-  "..",
-  "..",
-  "build",
-  "mermaid-browser",
-);
+export const MermaidBuildPath: string = MERMAID_BROWSER_BUILD_DIRECTORY;
 
 export const MermaidRouteSegment: string = "mermaid";
 
 /** The module the docs and the blog import. Its chunks sit under chunks/. */
-export const MermaidEntryFilename: string = "mermaid.mjs";
+export const MermaidEntryFilename: string = MERMAID_BROWSER_ENTRY;
 
 /** What a view imports to draw diagrams. */
 export const MermaidEntryUrl: string = `${VendorAssetsRoute}/${MermaidRouteSegment}/${MermaidEntryFilename}`;
@@ -110,16 +111,7 @@ const IMMUTABLE_CACHE_MAX_AGE_MILLISECONDS: number = 365 * 24 * 60 * 60 * 1000;
 const REVALIDATE_CACHE_MAX_AGE_MILLISECONDS: number = 60 * 60 * 1000;
 
 /* Where the build puts its content-hashed chunks, relative to its mount. */
-const MERMAID_CHUNK_PREFIX: string = "/chunks/";
-
-/*
- * The only paths a mermaid build has: the entry, and its chunks one directory
- * down. Anything else - another extension, a dot segment, a hidden file, a
- * second directory level - is not looked up at all, so a non-canonical path
- * cannot reach a file under another path's cache rules.
- */
-const MERMAID_ASSET_PATH: RegExp =
-  /^\/(?:chunks\/)?[A-Za-z0-9_-][A-Za-z0-9._-]*\.mjs$/;
+const MERMAID_CHUNK_PREFIX: string = `/${MERMAID_BROWSER_CHUNK_DIRECTORY}/`;
 
 export type CreateMermaidAssetsHandlerFunction = (
   directory: string,
@@ -127,9 +119,12 @@ export type CreateMermaidAssetsHandlerFunction = (
 
 /**
  * Serves a mermaid build from `directory`: the entry for an hour, its chunks
- * for a year, and only .mjs files. Anything else - mermaid's prebuilt bundle
- * names, sourcemaps, type definitions, a missing chunk, or every path when no
- * build is there - falls through to the 404 that terminates the prefix.
+ * for a year, and only the paths a build has (isMermaidBrowserFile: the entry,
+ * or a chunk one directory down). Anything else - another extension, a dot
+ * segment, a hidden file, a second directory level, mermaid's prebuilt bundle
+ * names, a missing chunk, or every path when no build is there - falls
+ * through to the 404 that terminates the prefix, so a non-canonical path
+ * cannot reach a file under another path's cache rules.
  */
 export const createMermaidAssetsHandler: CreateMermaidAssetsHandlerFunction = (
   directory: string,
@@ -146,12 +141,29 @@ export const createMermaidAssetsHandler: CreateMermaidAssetsHandlerFunction = (
     redirect: false,
   }) as RequestHandler;
 
+  let checkedForBuild: boolean = false;
+
   return (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-    if (!MERMAID_ASSET_PATH.test(req.path)) {
+    /* Express has already stripped the mount path: req.path is "/...". */
+    if (!req.path.startsWith("/") || !isMermaidBrowserFile(req.path.slice(1))) {
       return next();
     }
 
-    /* Express has already stripped the mount path, so this is "/chunks/...". */
+    /*
+     * Said once, when the first diagram is asked for, rather than when the
+     * server starts: every service mounts this, and only the App and Home
+     * images build mermaid.
+     */
+    if (!checkedForBuild) {
+      checkedForBuild = true;
+
+      if (!fs.existsSync(path.join(directory, MERMAID_BROWSER_ENTRY))) {
+        logger.error(
+          `mermaid for the docs and the blog is not built in ${directory}, so their diagrams cannot be drawn. Run node Common/Scripts/build-mermaid-browser.js once; the App and Home images run it when they are built.`,
+        );
+      }
+    }
+
     if (req.path.startsWith(MERMAID_CHUNK_PREFIX)) {
       return serveImmutable(req, res, next);
     }

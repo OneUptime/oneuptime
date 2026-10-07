@@ -32,6 +32,9 @@ const COMMON_WORKDIR = "WORKDIR /usr/src/Common";
 const IMAGES = ["packages/App/Dockerfile.tpl", "packages/Home/Dockerfile.tpl"];
 const ENVIRONMENTS = ["production", "development"];
 
+const COMMON_IN_IMAGE = "/usr/src/Common";
+const DEVELOPMENT_COMPOSE = "Scripts/Dev/docker-compose.dev.yml";
+
 function read(relativePath) {
   return fs.readFileSync(path.join(REPO_ROOT, relativePath), "utf8");
 }
@@ -113,15 +116,45 @@ describe("images that draw diagrams build mermaid from its source", () => {
     }
   }
 
-  test("VendorAssets serves the directory the script writes by default", () => {
-    const vendorAssets = read("packages/Common/Server/Utils/VendorAssets.ts");
-    const mermaid = read("packages/Common/UI/esbuild-mermaid.js");
+  /*
+   * VendorAssets serves MERMAID_BROWSER_BUILD_DIRECTORY, the script's default
+   * output (both take it from Common/UI/esbuild-mermaid.js), so in the images
+   * it is this path under /usr/src/Common.
+   */
+  function buildDirectoryInImage() {
+    const {
+      MERMAID_BROWSER_BUILD_DIRECTORY,
+    } = require("../../packages/Common/UI/esbuild-mermaid");
+    const relative = path.relative(
+      path.join(REPO_ROOT, "packages", "Common"),
+      MERMAID_BROWSER_BUILD_DIRECTORY,
+    );
 
-    expect(vendorAssets).toMatch(
-      /MermaidBuildPath: string = path\.resolve\(\s*__dirname,\s*"\.\.",\s*"\.\.",\s*"build",\s*"mermaid-browser",?\s*\)/,
+    return path.posix.join(COMMON_IN_IMAGE, ...relative.split(path.sep));
+  }
+
+  test("the build lands inside Common, which every image copies in", () => {
+    expect(buildDirectoryInImage()).toBe(
+      "/usr/src/Common/build/mermaid-browser",
     );
-    expect(mermaid).toMatch(
-      /MERMAID_BROWSER_BUILD_DIRECTORY = path\.join\(\s*COMMON_ROOT,\s*"build",\s*"mermaid-browser",?\s*\)/,
-    );
+  });
+
+  test("no development container mounts the host's files over the image's build", () => {
+    const build = buildDirectoryInImage();
+    const targets = [
+      ...read(DEVELOPMENT_COMPOSE).matchAll(
+        /^\s*-\s*[^\s:#]+:(\/usr\/src\/Common[^\s:]*)/gm,
+      ),
+    ].map((match) => {
+      return match[1].replace(/\/+$/, "");
+    });
+
+    // The development containers mount Common's source directories one by one.
+    expect(targets.length).toBeGreaterThan(0);
+    expect(
+      targets.filter((target) => {
+        return build === target || build.startsWith(`${target}/`);
+      }),
+    ).toEqual([]);
   });
 });

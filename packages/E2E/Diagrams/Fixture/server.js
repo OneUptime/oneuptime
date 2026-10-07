@@ -73,6 +73,8 @@ config.logLevel = "warning";
 const FLOWCHART = 'graph LR\n  A["$$x^2 + y^2 = z^2$$"] --> B[Plain label]';
 const SEQUENCE =
   "sequenceDiagram\n  Alice->>Bob: Hello Bob\n  Bob-->>Alice: Hello Alice";
+// Does not parse.
+const BROKEN = "graph LR\n  A -->";
 
 // The same five characters the docs' and the blog's renderers escape.
 function escapeHtml(text) {
@@ -84,10 +86,19 @@ function escapeHtml(text) {
     .replace(/'/g, "&#39;");
 }
 
+/*
+ * ?diagrams= picks the docs page's and the blog post's diagrams: both kinds
+ * (the default), none, or broken - one that does not parse, ahead of both.
+ */
 function diagramsFor(url) {
-  return url.searchParams.get("diagrams") === "none"
-    ? []
-    : [FLOWCHART, SEQUENCE];
+  switch (url.searchParams.get("diagrams")) {
+    case "none":
+      return [];
+    case "broken":
+      return [BROKEN, FLOWCHART, SEQUENCE];
+    default:
+      return [FLOWCHART, SEQUENCE];
+  }
 }
 
 /*

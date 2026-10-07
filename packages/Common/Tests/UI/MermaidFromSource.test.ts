@@ -3,8 +3,12 @@ import childProcess from "child_process";
 import fs from "fs";
 import path from "path";
 import {
+  MERMAID_BROWSER_BUILD_DIRECTORY,
   MERMAID_BROWSER_ENTRY,
   MERMAID_SOURCE_PLUGIN_NAME,
+  MermaidBrowserBundle,
+  buildMermaidBrowserBundle,
+  isMermaidBrowserFile,
   isPrebuiltMermaidBundle,
 } from "../../UI/esbuild-mermaid";
 
@@ -264,6 +268,123 @@ describe("isPrebuiltMermaidBundle", () => {
   });
 });
 
+describe("isMermaidBrowserFile", () => {
+  /*
+   * The paths a browser build may hold, which are the paths
+   * /oneuptime-assets/mermaid/ serves (VendorAssets.ts asks this function).
+   */
+  test.each([
+    ["mermaid.mjs"],
+    ["chunks/katex-ABCDEFGH.mjs"],
+    ["chunks/chunk-ABCDEFGH.mjs"],
+    ["chunks/kanban-definition-ABCDEFGH.mjs"],
+    ["chunks/mermaid.core-ABCDEFGH.mjs"],
+  ])("accepts %s", (file: string) => {
+    expect(isMermaidBrowserFile(file)).toBe(true);
+  });
+
+  test.each([
+    ["chunks/flow+chart-ABCDEFGH.mjs"],
+    ["chunks/scope@diagram-ABCDEFGH.mjs"],
+    ["chunks/flow chart-ABCDEFGH.mjs"],
+    ["chunks/nested/deep-ABCDEFGH.mjs"],
+    ["chunks/../mermaid.mjs"],
+    ["../mermaid.mjs"],
+    ["/mermaid.mjs"],
+    ["chunks\\katex-ABCDEFGH.mjs"],
+    [".hidden.mjs"],
+    ["chunks/.hidden.mjs"],
+    ["mermaid.mjs.map"],
+    ["mermaid.min.js"],
+    ["mermaid.d.ts"],
+    [""],
+  ])("refuses %j", (file: string) => {
+    expect(isMermaidBrowserFile(file)).toBe(false);
+  });
+});
+
+describe("buildMermaidBrowserBundle checks what esbuild wrote", () => {
+  /*
+   * esbuild names a chunk after the module it starts with, so a mermaid
+   * upgrade decides the names. One the server would not serve must fail the
+   * build, where the image build stops, rather than a diagram type in a
+   * reader's browser. A stand-in esbuild returns the files named here.
+   */
+  interface StandInEsbuild {
+    build: (options: Record<string, unknown>) => Promise<unknown>;
+    calls: Array<Record<string, unknown>>;
+  }
+
+  function esbuildWriting(files: Array<string>): StandInEsbuild {
+    const calls: Array<Record<string, unknown>> = [];
+
+    return {
+      calls,
+      build: async (options: Record<string, unknown>): Promise<unknown> => {
+        calls.push(options);
+
+        return {
+          outputFiles: files.map(
+            (file: string): { path: string; text: string } => {
+              return {
+                path: path.join(
+                  MERMAID_BROWSER_BUILD_DIRECTORY,
+                  ...file.split("/"),
+                ),
+                text: `// ${file}`,
+              };
+            },
+          ),
+          metafile: {
+            inputs: { "node_modules/mermaid/dist/mermaid.core.mjs": {} },
+          },
+        };
+      },
+    };
+  }
+
+  test("hands back what esbuild wrote, under the names the server serves", async () => {
+    const esbuild: StandInEsbuild = esbuildWriting([
+      "mermaid.mjs",
+      "chunks/katex-ABCDEFGH.mjs",
+    ]);
+    const bundle: MermaidBrowserBundle =
+      await buildMermaidBrowserBundle(esbuild);
+
+    expect(bundle.entry).toBe(MERMAID_BROWSER_ENTRY);
+    expect(bundle.files).toEqual([
+      { path: "mermaid.mjs", text: "// mermaid.mjs" },
+      {
+        path: "chunks/katex-ABCDEFGH.mjs",
+        text: "// chunks/katex-ABCDEFGH.mjs",
+      },
+    ]);
+    expect(esbuild.calls).toHaveLength(1);
+    expect(esbuild.calls[0]).toMatchObject({
+      entryPoints: { mermaid: "mermaid" },
+      write: false,
+      splitting: true,
+      format: "esm",
+      chunkNames: "chunks/[name]-[hash]",
+      outExtension: { ".js": ".mjs" },
+    });
+  });
+
+  test("fails on a chunk name the server would not serve, naming it", async () => {
+    await expect(
+      buildMermaidBrowserBundle(
+        esbuildWriting(["mermaid.mjs", "chunks/flow+chart-ABCDEFGH.mjs"]),
+      ),
+    ).rejects.toThrow("chunks/flow+chart-ABCDEFGH.mjs");
+  });
+
+  test("fails when there is no entry for the views to import", async () => {
+    await expect(
+      buildMermaidBrowserBundle(esbuildWriting(["chunks/katex-ABCDEFGH.mjs"])),
+    ).rejects.toThrow(/has no mermaid\.mjs/);
+  });
+});
+
 describe("the frontends bundle mermaid from its source", () => {
   test.each(["production", "development"])(
     "takes mermaid's source build and the katex npm installed (%s)",
@@ -446,6 +567,12 @@ describe("the docs and the blog get the same source build", () => {
     expect(
       summary.files.filter((file: string): boolean => {
         return file !== MERMAID_BROWSER_ENTRY && !file.startsWith("chunks/");
+      }),
+    ).toEqual([]);
+    // Every one of them a path the server serves.
+    expect(
+      summary.files.filter((file: string): boolean => {
+        return !isMermaidBrowserFile(file);
       }),
     ).toEqual([]);
 

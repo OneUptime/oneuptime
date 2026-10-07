@@ -1,4 +1,11 @@
-import { Locator, Page, Response, expect, test } from "@playwright/test";
+import {
+  ConsoleMessage,
+  Locator,
+  Page,
+  Response,
+  expect,
+  test,
+} from "@playwright/test";
 import fs from "fs";
 import path from "path";
 
@@ -97,6 +104,26 @@ const expectSourceBuild: ExpectSourceBuildFunction = async (
   expect(text).toContain(KATEX_MARKER);
   expect(text).toContain(`"${INSTALLED_KATEX_VERSION}"`);
 };
+
+type ConsoleErrorsFunction = (page: Page) => Array<string>;
+
+// Every console error the page logs, from before it navigates.
+const recordConsoleErrors: ConsoleErrorsFunction = (
+  page: Page,
+): Array<string> => {
+  const errors: Array<string> = [];
+
+  page.on("console", (message: ConsoleMessage) => {
+    if (message.type() === "error") {
+      errors.push(message.text());
+    }
+  });
+
+  return errors;
+};
+
+// What mermaid draws in place of a diagram that does not parse.
+const MERMAID_SYNTAX_ERROR: string = "Syntax error in text";
 
 type StyleOfFunction = (svg: Locator) => Promise<string>;
 
@@ -262,6 +289,33 @@ test.describe("the docs", () => {
     ).toEqual([]);
   });
 
+  test("draws the diagrams that parse when one on the page does not", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const errors: Array<string> = recordConsoleErrors(page);
+
+    await page.goto("/docs?diagrams=broken");
+
+    const blocks: Locator = page.locator(".docs-diagram .mermaid");
+
+    await expect(blocks).toHaveCount(3);
+    await expect(blocks.nth(1).locator("svg")).toContainText("Plain label");
+    await expect(blocks.nth(2).locator("svg")).toContainText("Hello Bob");
+    // The one that does not parse keeps its source.
+    await expect(blocks.first()).toHaveText(/graph LR\s+A -->/);
+    await expect(blocks.first().locator("svg")).toHaveCount(0);
+
+    await expect
+      .poll(() => {
+        return errors.filter((text: string): boolean => {
+          return text.includes("Mermaid could not render a diagram");
+        }).length;
+      })
+      .toBe(1);
+  });
+
   test("fetches no mermaid on a page without a diagram", async ({
     page,
   }: {
@@ -366,6 +420,34 @@ test.describe("the blog", () => {
         })
         .map(pathOf),
     ).toEqual([]);
+  });
+
+  test("draws the diagrams that parse when one in the post does not", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const errors: Array<string> = recordConsoleErrors(page);
+
+    await page.goto("/blog?diagrams=broken");
+
+    const blocks: Locator = page.locator(".blog-body .mermaid");
+
+    await expect(blocks).toHaveCount(3);
+    await expect(blocks.nth(1).locator("svg")).toContainText("Plain label");
+    await expect(blocks.nth(2).locator("svg")).toContainText("Hello Bob");
+    // mermaid draws its syntax error in place of the one that does not parse.
+    await expect(blocks.first()).toContainText(MERMAID_SYNTAX_ERROR);
+
+    await expect
+      .poll(() => {
+        return errors.filter((text: string): boolean => {
+          return text.includes(
+            "Mermaid could not render the diagrams in this post",
+          );
+        }).length;
+      })
+      .toBe(1);
   });
 
   test("fetches no mermaid for a post without a diagram", async ({

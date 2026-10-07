@@ -50,6 +50,44 @@ function runScript(args: Array<string>): ScriptRun {
   };
 }
 
+/*
+ * writeBundle on its own: a node subprocess requires the script (which builds
+ * nothing when required rather than run) and runs `program` with fs,
+ * writeBundle and directory in scope.
+ */
+function runWriteBundle(directory: string, program: string): ScriptRun {
+  const result: childProcess.SpawnSyncReturns<string> = childProcess.spawnSync(
+    process.execPath,
+    [
+      "-e",
+      [
+        'const fs = require("fs");',
+        `const { writeBundle } = require(${JSON.stringify(SCRIPT)});`,
+        `const directory = ${JSON.stringify(directory)};`,
+        program,
+      ].join("\n"),
+    ],
+    { cwd: COMMON_ROOT, encoding: "utf8" },
+  );
+
+  return {
+    status: result.status === null ? -1 : result.status,
+    stdout: result.stdout,
+    stderr: result.stderr,
+  };
+}
+
+// What sits next to `directory` under its name: a staging or previous copy.
+function besides(directory: string): Array<string> {
+  const prefix: string = `${path.basename(directory)}.`;
+
+  return fs
+    .readdirSync(path.dirname(directory))
+    .filter((name: string): boolean => {
+      return name.startsWith(prefix);
+    });
+}
+
 // Every file under `directory`, relative and with forward slashes.
 function filesIn(directory: string): Array<string> {
   const files: Array<string> = [];
@@ -136,11 +174,7 @@ describe("build-mermaid-browser.js", () => {
     expect(files).toContain(MERMAID_BROWSER_ENTRY);
 
     // No staging or previous copy is left next to it.
-    expect(
-      fs.readdirSync(scratch).filter((name: string): boolean => {
-        return name.startsWith("replaced.");
-      }),
-    ).toEqual([]);
+    expect(besides(directory)).toEqual([]);
   });
 
   test("builds the same bytes every time, so every image serves the same chunk names", () => {
@@ -162,6 +196,97 @@ describe("build-mermaid-browser.js", () => {
           .equals(fs.readFileSync(path.join(second, file))),
       ]).toEqual([file, true]);
     }
+  });
+
+  test("builds nothing when it is required rather than run", () => {
+    const directory: string = path.join(scratch, "required");
+    const run: ScriptRun = runWriteBundle(
+      directory,
+      "process.stdout.write(typeof writeBundle);",
+    );
+
+    expect(run.stderr).toBe("");
+    expect(run.stdout).toBe("function");
+    expect(fs.existsSync(directory)).toBe(false);
+  });
+
+  test("puts the old build back when the new one cannot be moved into place", () => {
+    const directory: string = path.join(scratch, "kept");
+
+    fs.mkdirSync(path.join(directory, "chunks"), { recursive: true });
+    fs.writeFileSync(path.join(directory, MERMAID_BROWSER_ENTRY), "old entry");
+    fs.writeFileSync(
+      path.join(directory, "chunks", "old-AAAAAAAA.mjs"),
+      "old chunk",
+    );
+
+    // The move of the new build into place fails; every other rename works.
+    const run: ScriptRun = runWriteBundle(
+      directory,
+      String.raw`
+        const rename = fs.renameSync;
+        fs.renameSync = (from, to) => {
+          if (from.includes(".partial-")) {
+            throw new Error("the move failed");
+          }
+          return rename(from, to);
+        };
+        try {
+          writeBundle(
+            { files: [{ path: "mermaid.mjs", text: "new entry" }] },
+            directory,
+          );
+          process.stdout.write("no error");
+        } catch (error) {
+          process.stdout.write(error.message);
+        }
+      `,
+    );
+
+    expect(run.stderr).toBe("");
+    expect(run.stdout).toBe("the move failed");
+    expect(filesIn(directory)).toEqual([
+      "chunks/old-AAAAAAAA.mjs",
+      MERMAID_BROWSER_ENTRY,
+    ]);
+    expect(
+      fs.readFileSync(path.join(directory, MERMAID_BROWSER_ENTRY), "utf8"),
+    ).toBe("old entry");
+    expect(besides(directory)).toEqual([]);
+  });
+
+  test("refuses a file outside its directory, leaving the old build alone", () => {
+    const directory: string = path.join(scratch, "guarded");
+
+    fs.mkdirSync(directory, { recursive: true });
+    fs.writeFileSync(path.join(directory, MERMAID_BROWSER_ENTRY), "old entry");
+
+    const run: ScriptRun = runWriteBundle(
+      directory,
+      String.raw`
+        try {
+          writeBundle(
+            {
+              files: [
+                { path: "mermaid.mjs", text: "new entry" },
+                { path: "../escaped.mjs", text: "escaped" },
+              ],
+            },
+            directory,
+          );
+          process.stdout.write("no error");
+        } catch (error) {
+          process.stdout.write(error.message);
+        }
+      `,
+    );
+
+    expect(run.stdout).toContain("Refusing to write ../escaped.mjs");
+    expect(fs.existsSync(path.join(scratch, "escaped.mjs"))).toBe(false);
+    expect(
+      fs.readFileSync(path.join(directory, MERMAID_BROWSER_ENTRY), "utf8"),
+    ).toBe("old entry");
+    expect(besides(directory)).toEqual([]);
   });
 
   test("fails, and says why, when it cannot write the build", () => {
