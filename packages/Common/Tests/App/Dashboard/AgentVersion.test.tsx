@@ -86,6 +86,7 @@ import {
   VMWARE_AGENT_RECREATE_COMMAND,
   getVMwareAgentDownloadCommand,
   getVMwareAgentUpgradeCommand,
+  getVMwareNativeUpgradeCommand,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
 import { getHostCollectorUpgradeCommand } from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationMarkdown";
 import {
@@ -819,7 +820,7 @@ describe("the agents that report the collector they pin", () => {
     },
   );
 
-  test("VMware: the hero chip turns amber and opens the install script again, or the files", async () => {
+  test("VMware: the hero chip turns amber and opens the install script again, the files, or the release without Docker", async () => {
     render(
       <AgentVersion
         kind={AgentKind.VMwareAgent}
@@ -853,6 +854,22 @@ describe("the agents that report the collector they pin", () => {
       getVMwareAgentDownloadCommand(),
       VMWARE_AGENT_RECREATE_COMMAND,
     ]);
+
+    expect(
+      within(dialog)
+        .getAllByRole("tab")
+        .map((tab: HTMLElement): string => {
+          return tab.textContent || "";
+        }),
+    ).toEqual(["Install script", "Docker Compose", "Without Docker"]);
+    fireEvent.click(
+      within(dialog).getByRole("tab", { name: "Without Docker" }),
+    );
+    expect(codeBlocksIn(dialog)).toEqual([getVMwareNativeUpgradeCommand()]);
+    expect(within(dialog).getByText("Install the new release")).toBeVisible();
+    // Nothing in it needs the setup guide: no key, no folder.
+    expect(within(dialog).queryByRole("link")).not.toBeInTheDocument();
+    expect(findNestedControls(document.body)).toEqual([]);
   });
 
   test("Storage Array: the install script again with a note for another array's folder, or every file again", async () => {
