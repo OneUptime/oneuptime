@@ -1,7 +1,10 @@
+import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import { FindWhereProperty } from "../../../Types/BaseDatabase/Query";
+import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
 import Text from "../../../Types/Text";
 import TeamMemberService from "../../Services/TeamMemberService";
+import QueryHelper from "../../Types/Database/QueryHelper";
 import { Raw } from "typeorm";
 
 /*
@@ -107,6 +110,57 @@ export default class ProjectMembership {
       memberUserIds.map((userId: ObjectID): string => {
         return userId.toString().toLowerCase();
       }),
+    );
+  }
+
+  /*
+   * The ids among `userIds` that hold an invitation to the project they have
+   * not accepted, lower-cased - for telling somebody invited apart from
+   * somebody who has left, among people who are not members. Nothing is sent
+   * to either; the fix differs (accept the invitation, or be replaced). One
+   * read for the whole batch.
+   */
+  public static async getInvitedUserIds(data: {
+    projectId: ObjectID;
+    userIds: Array<ObjectID | string>;
+  }): Promise<Set<string>> {
+    const userIds: Array<ObjectID> = data.userIds
+      .map((userId: ObjectID | string): string => {
+        return userId?.toString() || "";
+      })
+      .filter((userId: string): boolean => {
+        return ObjectID.isValidUUID(userId);
+      })
+      .map((userId: string): ObjectID => {
+        return new ObjectID(userId);
+      });
+
+    if (userIds.length === 0) {
+      return new Set<string>();
+    }
+
+    const invitations: Array<TeamMember> = await TeamMemberService.findBy({
+      query: {
+        projectId: data.projectId,
+        userId: QueryHelper.any(userIds),
+        hasAcceptedInvitation: false,
+      },
+      select: {
+        userId: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return new Set<string>(
+      invitations
+        .map((invitation: TeamMember): string => {
+          return invitation.userId?.toString().toLowerCase() || "";
+        })
+        .filter(Boolean),
     );
   }
 

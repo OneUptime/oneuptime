@@ -26,6 +26,12 @@ export interface ComponentProps {
    * of the project reaches them any more.
    */
   isNotProjectMember?: boolean | undefined;
+  /*
+   * The person was invited to the project and has not accepted yet: nothing
+   * reaches them until they do, so "Invitation not accepted yet" takes the
+   * email's line the same way.
+   */
+  hasPendingProjectInvitation?: boolean | undefined;
 }
 
 /*
@@ -175,19 +181,20 @@ const UserElement: FunctionComponent<ComponentProps> = (
      * The name line already falls back to the email when there is no name, so
      * showing the email underneath as well would print it twice.
      */
+    // Nothing of the project reaches them: the avatar fades, and the line says why.
+    const isNotNotified: boolean = Boolean(
+      props.isNotProjectMember || props.hasPendingProjectInvitation,
+    );
+
     const showEmail: boolean = Boolean(
-      !props.isNotProjectMember &&
-        !props.hideEmail &&
-        name &&
-        email &&
-        name !== email,
+      !isNotNotified && !props.hideEmail && name && email && name !== email,
     );
 
     return (
       <div className="flex">
         <div
           className={`${AVATAR_WRAPPER_CLASS_NAME}${
-            props.isNotProjectMember ? " opacity-50 grayscale" : ""
+            isNotNotified ? " opacity-50 grayscale" : ""
           }`}
         >
           <Image
@@ -225,6 +232,14 @@ const UserElement: FunctionComponent<ComponentProps> = (
               className="truncate text-xs font-medium text-amber-700"
             >
               {translator.translateText("No longer a member")}
+            </div>
+          )}
+          {!props.isNotProjectMember && props.hasPendingProjectInvitation && (
+            <div
+              data-testid="user-project-invitation-pending"
+              className="truncate text-xs font-medium text-amber-700"
+            >
+              {translator.translateText("Invitation not accepted yet")}
             </div>
           )}
         </div>

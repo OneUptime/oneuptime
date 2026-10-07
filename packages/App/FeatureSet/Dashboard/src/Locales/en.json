@@ -26026,5 +26026,6 @@
   "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here.": "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here.",
   "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here._one": "{{count}} more step needs a project owner, a Billing Admin or someone with Manage Billing, so it is not counted here.",
   "The event has started, so this can no longer be changed.": "The event has started, so this can no longer be changed.",
-  "No longer a member": "No longer a member"
+  "No longer a member": "No longer a member",
+  "Invitation not accepted yet": "Invitation not accepted yet"
 }

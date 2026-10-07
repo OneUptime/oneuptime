@@ -2,6 +2,7 @@ import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import ProjectMembership, {
   ProjectUserPair,
 } from "../../../../Server/Utils/TeamMember/ProjectMembership";
+import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import ObjectID from "../../../../Types/ObjectID";
 import { FindOperator } from "typeorm";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
@@ -179,6 +180,50 @@ describe("ProjectMembership", () => {
       expect(Array.from(members).sort()).toEqual(
         [USER_1.toString(), USER_3.toString()].sort(),
       );
+    });
+  });
+
+  describe("getInvitedUserIds", () => {
+    test("one read of the pending invitations of the people asked about, answered as lower-cased ids", async () => {
+      const read: SpyInstance<typeof TeamMemberService.findBy> = jest
+        .spyOn(TeamMemberService, "findBy")
+        .mockResolvedValue([
+          { userId: new ObjectID(USER_2.toString().toUpperCase()) },
+        ] as never);
+
+      const invited: Set<string> = await ProjectMembership.getInvitedUserIds({
+        projectId: PROJECT_A,
+        userIds: [USER_1, USER_2, "not-a-uuid"],
+      });
+
+      expect(read).toHaveBeenCalledTimes(1);
+
+      const query: Record<string, unknown> = read.mock.calls[0]![0]
+        .query as Record<string, unknown>;
+
+      expect(query["projectId"]).toBe(PROJECT_A);
+      // Pending rows only: an accepted row makes somebody a member, not invited.
+      expect(query["hasAcceptedInvitation"]).toBe(false);
+      expect(read.mock.calls[0]![0].props).toEqual({ isRoot: true });
+      // Every pending row of the people asked about, not a default page of them.
+      expect(read.mock.calls[0]![0].limit).toBe(LIMIT_MAX);
+      expect(read.mock.calls[0]![0].skip).toBe(0);
+      expect(Array.from(invited)).toEqual([USER_2.toString()]);
+    });
+
+    test("nobody to ask about means nothing read", async () => {
+      const read: SpyInstance<typeof TeamMemberService.findBy> = jest.spyOn(
+        TeamMemberService,
+        "findBy",
+      );
+
+      await expect(
+        ProjectMembership.getInvitedUserIds({
+          projectId: PROJECT_A,
+          userIds: ["not-a-uuid"],
+        }),
+      ).resolves.toEqual(new Set<string>());
+      expect(read).not.toHaveBeenCalled();
     });
   });
 

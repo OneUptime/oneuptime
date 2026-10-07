@@ -42,8 +42,11 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import useIsProjectMember from "../../Utils/UseIsProjectMember";
-import { ProjectMembershipAnswer } from "../../Utils/ProjectMembershipLoader";
+import useProjectMembership from "../../Utils/UseProjectMembership";
+import {
+  ProjectMembershipAnswer,
+  ProjectMembershipStatus,
+} from "../../Utils/ProjectMembershipLoader";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -85,12 +88,16 @@ const OwnerCircleView: FunctionComponent<OwnerCircleViewProps> = (
   /*
    * An owner who has left the project is kept as the record of who owned it
    * (a closed incident's owners are its history), but nothing of the project
-   * reaches them any more: the avatar fades and says so.
+   * reaches them any more: the avatar fades and says so. The same for an
+   * owner who has not accepted their invitation yet, until they do.
    */
-  const isMember: ProjectMembershipAnswer = useIsProjectMember(
+  const membership: ProjectMembershipAnswer = useProjectMembership(
     item.kind === PeoplePickerKind.User ? item.userId : null,
   );
-  const isNotProjectMember: boolean = isMember === false;
+  const isNotProjectMember: boolean =
+    membership === ProjectMembershipStatus.NotMember;
+  const hasPendingInvitation: boolean =
+    membership === ProjectMembershipStatus.Invited;
 
   const tooltipContent: ReactElement = (
     <div className="flex items-center gap-3 p-1.5 min-w-[180px]">
@@ -104,6 +111,10 @@ const OwnerCircleView: FunctionComponent<OwnerCircleViewProps> = (
         {isNotProjectMember ? (
           <div className="text-xs font-medium text-amber-700 truncate">
             {translator.translateText("No longer a member")}
+          </div>
+        ) : hasPendingInvitation ? (
+          <div className="text-xs font-medium text-amber-700 truncate">
+            {translator.translateText("Invitation not accepted yet")}
           </div>
         ) : (
           <div className="text-xs text-gray-500 truncate">
@@ -126,16 +137,26 @@ const OwnerCircleView: FunctionComponent<OwnerCircleViewProps> = (
         <div className="cursor-default">
           <div
             data-testid={
-              isNotProjectMember ? "owner-not-project-member" : undefined
+              isNotProjectMember
+                ? "owner-not-project-member"
+                : hasPendingInvitation
+                  ? "owner-invitation-pending"
+                  : undefined
             }
             className={`transition-transform duration-200 group-hover:scale-105${
-              isNotProjectMember ? " opacity-50 grayscale" : ""
+              isNotProjectMember || hasPendingInvitation
+                ? " opacity-50 grayscale"
+                : ""
             }`}
           >
             <PeopleAvatar item={item} size="md" />
             {isNotProjectMember ? (
               <span className="sr-only">
                 {translator.translateText("No longer a member")}
+              </span>
+            ) : hasPendingInvitation ? (
+              <span className="sr-only">
+                {translator.translateText("Invitation not accepted yet")}
               </span>
             ) : (
               <></>

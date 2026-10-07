@@ -4,10 +4,13 @@ import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import logger from "../../../../Server/Utils/Logger";
 import ProjectLeaveNotificationCleanup, {
   FormerMemberCleanupResult,
+  HistoryReference,
   PersonalNotificationTable,
   ProjectLeaveNotificationCleanupResult,
 } from "../../../../Server/Utils/TeamMember/ProjectLeaveNotificationCleanup";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
+import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
+import TableColumnType from "../../../../Types/Database/TableColumnType";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import { FindOperator } from "typeorm";
@@ -33,6 +36,10 @@ import type { Mock, SpyInstance } from "jest-mock";
  *     purpose (with the reason written down),
  *   - every delete is scoped to (project, person), as root, and one failing
  *     table does not stop the others,
+ *   - the on-call history that points at a rule or method is kept: those
+ *     references are cleared before anything goes, and if that fails the
+ *     rules and methods stay (a guard holds every relation into a personal
+ *     table to that list),
  *   - the data migration's walk removes former members' leftovers only,
  *     re-checking each person just before, and keeps going past failures.
  */
@@ -98,11 +105,25 @@ interface TableSpies {
  * Fakes countBy/deleteBy on every personal table's service. `rows` is what
  * each table holds for the person (default 1); `failing` tables throw.
  */
+// The history step, faked by fakeTables; failing when told to.
+let keepHistory: SpyInstance<
+  typeof ProjectLeaveNotificationCleanup.keepHistory
+>;
+
 function fakeTables(options?: {
   rows?: Record<string, number>;
   failing?: Array<string>;
+  historyFails?: boolean | undefined;
 }): Record<string, TableSpies> {
   const spies: Record<string, TableSpies> = {};
+
+  keepHistory = jest
+    .spyOn(ProjectLeaveNotificationCleanup, "keepHistory")
+    .mockImplementation(async (): Promise<void> => {
+      if (options?.historyFails) {
+        throw new Error("history unavailable");
+      }
+    });
 
   for (const table of ProjectLeaveNotificationCleanup.getPersonalNotificationTables()) {
     const name: string = table.service.getModel().tableName!;
@@ -322,6 +343,78 @@ describe("ProjectLeaveNotificationCleanup", () => {
       expect(spies["UserEmail"]!.deleteBy).toHaveBeenCalledTimes(1);
     });
 
+    test("the history is kept first, for that person in that project", async () => {
+      const spies: Record<string, TableSpies> = fakeTables();
+
+      await ProjectLeaveNotificationCleanup.removePersonalNotificationSettings({
+        projectId: PROJECT_ID,
+        userId: USER_ID,
+      });
+
+      expect(keepHistory).toHaveBeenCalledTimes(1);
+      expect(keepHistory.mock.calls[0]![0]).toEqual({
+        projectId: PROJECT_ID,
+        userId: USER_ID,
+      });
+
+      for (const spy of Object.values(spies)) {
+        expect(keepHistory.mock.invocationCallOrder[0]!).toBeLessThan(
+          spy.countBy.mock.invocationCallOrder[0]!,
+        );
+      }
+    });
+
+    test("history that cannot be kept keeps the rules and methods it points at; the rest still go", async () => {
+      const spies: Record<string, TableSpies> = fakeTables({
+        historyFails: true,
+      });
+
+      const result: ProjectLeaveNotificationCleanupResult =
+        await ProjectLeaveNotificationCleanup.removePersonalNotificationSettings(
+          { projectId: PROJECT_ID, userId: USER_ID },
+        );
+
+      const pointedAt: Set<string> = new Set<string>(
+        ProjectLeaveNotificationCleanup.getHistoryReferences().map(
+          (reference: HistoryReference): string => {
+            return reference.references.getModel().tableName!;
+          },
+        ),
+      );
+
+      expect(Array.from(pointedAt).sort()).toEqual(
+        [
+          "UserCall",
+          "UserEmail",
+          "UserMicrosoftTeams",
+          "UserNotificationRule",
+          "UserPush",
+          "UserSMS",
+          "UserSlack",
+          "UserTelegram",
+          "UserWebhook",
+          "UserWhatsApp",
+        ].sort(),
+      );
+
+      for (const name of tableNames()) {
+        if (pointedAt.has(name)) {
+          expect({
+            name,
+            deleted: spies[name]!.deleteBy.mock.calls.length,
+          }).toEqual({ name, deleted: 0 });
+        } else {
+          expect({
+            name,
+            deleted: spies[name]!.deleteBy.mock.calls.length,
+          }).toEqual({ name, deleted: 1 });
+        }
+      }
+
+      expect(result.failedTables.sort()).toEqual(Array.from(pointedAt).sort());
+      expect(logger.error).toHaveBeenCalled();
+    });
+
     test("a failing table is logged and named; the others still go", async () => {
       const spies: Record<string, TableSpies> = fakeTables({
         failing: ["UserSMS"],
@@ -345,6 +438,103 @@ describe("ProjectLeaveNotificationCleanup", () => {
     });
   });
 
+  describe("keeping the on-call history", () => {
+    test("each reference is cleared only where it points at this person's rows in this project", async () => {
+      const query: Mock<
+        (sql: string, parameters: Array<unknown>) => Promise<unknown>
+      > = jest.fn(async (): Promise<unknown> => {
+        return [];
+      });
+
+      jest
+        .spyOn(TeamMemberService, "getRepository")
+        .mockReturnValue({ manager: { query } } as never);
+
+      await ProjectLeaveNotificationCleanup.keepHistory({
+        projectId: PROJECT_ID,
+        userId: USER_ID,
+      });
+
+      // One statement for the one history table.
+      expect(query).toHaveBeenCalledTimes(1);
+
+      const [sql, parameters] = query.mock.calls[0]!;
+
+      expect(
+        sql.startsWith(`UPDATE "UserOnCallLogTimeline" history SET `),
+      ).toBe(true);
+      expect(parameters).toEqual([PROJECT_ID.toString(), USER_ID.toString()]);
+
+      for (const reference of ProjectLeaveNotificationCleanup.getHistoryReferences()) {
+        const ownRows: string = `SELECT personal."_id" FROM "${reference.references.getModel().tableName}" personal WHERE personal."projectId" = $1 AND personal."userId" = $2`;
+
+        expect(sql).toContain(
+          `"${reference.column}" = CASE WHEN history."${reference.column}" IN (${ownRows}) THEN NULL ELSE history."${reference.column}" END`,
+        );
+        expect(sql).toContain(`history."${reference.column}" IN (${ownRows})`);
+      }
+
+      // Nothing is deleted from the history itself.
+      expect(sql).not.toContain("DELETE");
+    });
+
+    test("every relation into a personal table is either another personal table or a history reference that is cleared", () => {
+      const personal: Set<string> = new Set<string>(tableNames());
+      const cleared: Set<string> = new Set<string>(
+        ProjectLeaveNotificationCleanup.getHistoryReferences().map(
+          (reference: HistoryReference): string => {
+            return `${reference.history.getModel().tableName}.${reference.column}`;
+          },
+        ),
+      );
+
+      const unhandled: Array<string> = [];
+      const found: Set<string> = new Set<string>();
+
+      for (const modelType of AllModelTypes) {
+        const model: DatabaseBaseModel = new modelType();
+
+        if (personal.has(model.tableName || "")) {
+          // Removed together, rules first.
+          continue;
+        }
+
+        for (const column of model.getTableColumns().columns) {
+          const metadata: TableColumnMetadata =
+            model.getTableColumnMetadata(column);
+
+          if (
+            metadata?.type !== TableColumnType.Entity ||
+            !metadata.manyToOneRelationColumn ||
+            !metadata.modelType
+          ) {
+            continue;
+          }
+
+          const target: string = new metadata.modelType().tableName || "";
+
+          if (!personal.has(target)) {
+            continue;
+          }
+
+          const reference: string = `${model.tableName}.${metadata.manyToOneRelationColumn}`;
+
+          found.add(reference);
+
+          if (!cleared.has(reference)) {
+            unhandled.push(`${reference} -> ${target}`);
+          }
+        }
+      }
+
+      // A new relation into a personal table: clear it first, or remove it with them.
+      expect(unhandled).toEqual([]);
+
+      // Every listed reference is a real relation into the table it names.
+      expect(Array.from(cleared).sort()).toEqual(Array.from(found).sort());
+    });
+  });
+
   describe("former members' leftovers (the data migration)", () => {
     const P1: { projectId: string; userId: string } = {
       projectId: "aaaaaaaa-0000-4000-8000-000000000001",
@@ -359,15 +549,14 @@ describe("ProjectLeaveNotificationCleanup", () => {
       userId: "33333333-0000-4000-8000-000000000003",
     };
 
-    test("walks page by page, re-checks each person, and keeps going past a failure", async () => {
-      const pages: SpyInstance<
+    test("finds them in one read, re-checks each person, and keeps going past a failure", async () => {
+      const pairs: SpyInstance<
         typeof ProjectLeaveNotificationCleanup.getFormerMemberPairs
       > = jest
         .spyOn(ProjectLeaveNotificationCleanup, "getFormerMemberPairs")
-        .mockResolvedValueOnce([P1, P2])
-        .mockResolvedValueOnce([P3]);
+        .mockResolvedValue([P1, P2, P3]);
 
-      // P2 joined again after the page was read: they keep everything.
+      // P2 joined again after the read: they keep everything.
       const membership: SpyInstance<
         typeof TeamMemberService.isUserMemberOfProject
       > = jest
@@ -405,9 +594,7 @@ describe("ProjectLeaveNotificationCleanup", () => {
         );
 
       const result: FormerMemberCleanupResult =
-        await ProjectLeaveNotificationCleanup.removePersonalNotificationSettingsOfFormerMembers(
-          { batchSize: 2 },
-        );
+        await ProjectLeaveNotificationCleanup.removePersonalNotificationSettingsOfFormerMembers();
 
       expect(result).toEqual({
         cleanedPairCount: 1,
@@ -415,11 +602,7 @@ describe("ProjectLeaveNotificationCleanup", () => {
         failedPairCount: 1,
       });
 
-      // Page two starts after the last pair of page one; a short page ends it.
-      expect(pages).toHaveBeenCalledTimes(2);
-      expect(pages.mock.calls[0]![0]).toEqual({ after: null, limit: 2 });
-      expect(pages.mock.calls[1]![0]).toEqual({ after: P2, limit: 2 });
-
+      expect(pairs).toHaveBeenCalledTimes(1);
       expect(membership).toHaveBeenCalledTimes(3);
       expect(
         removal.mock.calls.map(
@@ -464,7 +647,7 @@ describe("ProjectLeaveNotificationCleanup", () => {
     });
 
     test("nothing left over: nothing removed, one read", async () => {
-      const pages: SpyInstance<
+      const pairs: SpyInstance<
         typeof ProjectLeaveNotificationCleanup.getFormerMemberPairs
       > = jest
         .spyOn(ProjectLeaveNotificationCleanup, "getFormerMemberPairs")
@@ -484,30 +667,28 @@ describe("ProjectLeaveNotificationCleanup", () => {
         failedPairCount: 0,
       });
 
-      expect(pages).toHaveBeenCalledTimes(1);
-      expect(pages.mock.calls[0]![0]).toEqual({ after: null, limit: 1000 });
+      expect(pairs).toHaveBeenCalledTimes(1);
       expect(removal).not.toHaveBeenCalled();
     });
 
-    test("finding them: every personal table, only rows not deleted, only people with no accepted membership, in key order", async () => {
-      const query: Mock<
-        (sql: string, parameters: Array<unknown>) => Promise<unknown>
-      > = jest.fn(async (): Promise<unknown> => {
-        return [P1];
-      });
+    test("finding them: one statement over every personal table, only rows not deleted, only people with no accepted membership, in key order", async () => {
+      const query: Mock<(sql: string) => Promise<unknown>> = jest.fn(
+        async (): Promise<unknown> => {
+          return [P1];
+        },
+      );
 
       jest
         .spyOn(TeamMemberService, "getRepository")
         .mockReturnValue({ manager: { query } } as never);
 
       await expect(
-        ProjectLeaveNotificationCleanup.getFormerMemberPairs({
-          after: null,
-          limit: 50,
-        }),
+        ProjectLeaveNotificationCleanup.getFormerMemberPairs(),
       ).resolves.toEqual([P1]);
 
-      const [sql, parameters] = query.mock.calls[0]!;
+      expect(query).toHaveBeenCalledTimes(1);
+
+      const [sql] = query.mock.calls[0]!;
 
       for (const table of tableNames()) {
         expect(sql).toContain(
@@ -517,20 +698,13 @@ describe("ProjectLeaveNotificationCleanup", () => {
         );
       }
 
+      expect(sql).toContain(" UNION ");
       expect(sql).toContain(`AND NOT EXISTS (SELECT 1 FROM "TeamMember"`);
       expect(sql).toContain(`"hasAcceptedInvitation" = true`);
       expect(sql).toContain(
         `ORDER BY personal."projectId" ASC, personal."userId" ASC`,
       );
-      expect(sql).toContain("LIMIT $1");
-      expect(parameters).toEqual([50, null, null]);
-
-      await ProjectLeaveNotificationCleanup.getFormerMemberPairs({
-        after: P1,
-        limit: 50,
-      });
-
-      expect(query.mock.calls[1]![1]).toEqual([50, P1.projectId, P1.userId]);
+      expect(sql).not.toContain("LIMIT");
     });
   });
 });

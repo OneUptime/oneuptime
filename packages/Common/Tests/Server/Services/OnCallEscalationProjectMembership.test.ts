@@ -36,10 +36,13 @@ import type { SpyInstance } from "jest-mock";
  *
  *   - teams page their ACCEPTED members only (a pending invitee is not on
  *     the roster),
- *   - a direct user, a schedule's on-call user, or an override's substitute
- *     who is not a member gets a Skipped line on the timeline instead of a
- *     page - nobody else is paged in their place,
- *   - membership is read once for the whole rule, never once per person.
+ *   - a direct user or a schedule's on-call user who is not a member gets a
+ *     Skipped line on the timeline instead of a page,
+ *   - an override's substitute who is not a member gets the Skipped line,
+ *     and the member the override covers is paged instead of nobody,
+ *   - membership is read once for the whole rule, never once per person,
+ *   - if membership cannot be read, the rule pages as it did before the
+ *     check rather than paging nobody.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -227,9 +230,11 @@ describe("an escalation rule pages project members only", () => {
   test("members are paged; a direct user, an override's substitute and an on-call user who left are not", async () => {
     await runRule();
 
+    // The member whose override routes to somebody who left is paged themselves.
     expect(paged).toEqual([
       TEAM_MEMBER.toString(),
       DIRECT_MEMBER.toString(),
+      OVERRIDDEN_MEMBER.toString(),
       ON_CALL_MEMBER.toString(),
     ]);
 
@@ -252,7 +257,7 @@ describe("an escalation rule pages project members only", () => {
         overridedByUserId: undefined,
         onCallDutyScheduleId: undefined,
       },
-      // Nobody is paged in the substitute's place - not even the member they covered.
+      // The substitute who left is skipped; the member they covered is paged.
       {
         status: OnCallDutyExecutionLogTimelineStatus.Skipped,
         alertSentToUserId: SUBSTITUTE_LEAVER.toString(),
@@ -267,22 +272,74 @@ describe("an escalation rule pages project members only", () => {
       },
     ]);
 
-    expect(paged).not.toContain(OVERRIDDEN_MEMBER.toString());
+    // Paged as themselves, not on anybody's behalf.
+    const coveredRow: OnCallDutyPolicyExecutionLogTimeline | undefined =
+      timeline.find((row: OnCallDutyPolicyExecutionLogTimeline) => {
+        return (
+          row.status === OnCallDutyExecutionLogTimelineStatus.Executing &&
+          row.alertSentToUserId?.toString() === OVERRIDDEN_MEMBER.toString()
+        );
+      });
+
+    expect(coveredRow).toBeDefined();
+    expect(coveredRow?.overridedByUserId).toBeUndefined();
+    expect(paged).not.toContain(SUBSTITUTE_LEAVER.toString());
   });
 
-  test("membership is read once for every recipient of the rule", async () => {
+  test("an override whose substitute and covered member have both left pages nobody for them", async () => {
+    members.delete(OVERRIDDEN_MEMBER.toString());
+
     await runRule();
 
-    expect(membershipReads).toEqual([
+    expect(paged).not.toContain(OVERRIDDEN_MEMBER.toString());
+    expect(paged).not.toContain(SUBSTITUTE_LEAVER.toString());
+    expect(
+      skippedAsNonMembers().some(
+        (row: OnCallDutyPolicyExecutionLogTimeline) => {
+          return (
+            row.alertSentToUserId?.toString() === SUBSTITUTE_LEAVER.toString()
+          );
+        },
+      ),
+    ).toBe(true);
+  });
+
+  test("membership is read once for every recipient of the rule and the people their overrides cover", async () => {
+    await runRule();
+
+    expect(membershipReads).toHaveLength(1);
+    expect(Array.from(new Set<string>(membershipReads[0])).sort()).toEqual(
       [
         TEAM_MEMBER.toString(),
         DIRECT_MEMBER.toString(),
         DIRECT_LEAVER.toString(),
         SUBSTITUTE_LEAVER.toString(),
+        OVERRIDDEN_MEMBER.toString(),
         ON_CALL_LEAVER.toString(),
         ON_CALL_MEMBER.toString(),
-      ],
+      ].sort(),
+    );
+  });
+
+  test("membership that cannot be read pages the rule's recipients as before, rather than nobody", async () => {
+    (
+      ProjectMembership.getMemberUserIds as unknown as {
+        mockRejectedValue: (error: Error) => void;
+      }
+    ).mockRejectedValue(new Error("database unavailable"));
+
+    await runRule();
+
+    expect(paged).toEqual([
+      TEAM_MEMBER.toString(),
+      DIRECT_MEMBER.toString(),
+      DIRECT_LEAVER.toString(),
+      SUBSTITUTE_LEAVER.toString(),
+      ON_CALL_LEAVER.toString(),
+      ON_CALL_MEMBER.toString(),
     ]);
+    expect(skippedAsNonMembers()).toEqual([]);
+    expect(logger.error).toHaveBeenCalled();
   });
 
   test("a team pages its accepted members only", async () => {

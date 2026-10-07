@@ -8,28 +8,45 @@ import PermissionGate from "Common/UI/Utils/PermissionGate";
 
 /*
  * Whether people a page names - an owner, someone in an on-call layer, the
- * user an incoming call rule rings, either side of an override - are still
- * members of the project. Somebody who left is never notified any more
- * (the server's ProjectMembership check), and the page says so next to
- * their name, so whoever looks after the setup knows to replace them.
+ * user an incoming call rule rings, either side of an override - are members
+ * of the project. Nobody who is not a member is notified on the project's
+ * behalf (the server's ProjectMembership check), and the page says so next
+ * to their name, so whoever looks after the setup knows what to do: replace
+ * somebody who has left, or ask somebody invited to accept.
  *
  * A member holds an accepted invitation to at least one team of the project,
  * the server's rule. Asks made while a page renders are collected for one
- * tick and answered with ONE read of those people's accepted memberships,
- * and answers are kept for a minute, so a table of fifty rows asks once.
+ * tick and answered with ONE read of those people's memberships, and answers
+ * are kept for a minute, so a table of fifty rows asks once.
  *
  * The answer is null - "don't know, say nothing" - whenever the read could
- * not prove somebody is NOT a member: before the permission snapshot has
+ * not prove somebody's membership: before the permission snapshot has
  * landed, for a reader who may only see their own memberships (the read
  * would come back without everybody else's), and when the read fails.
  * Marking a member as gone would be worse than not marking anybody.
  */
-export type ProjectMembershipAnswer = boolean | null;
+export enum ProjectMembershipStatus {
+  Member = "Member",
+  // Invited to the project, and has not accepted yet.
+  Invited = "Invited",
+  // Holds no membership of the project: has left it, or was never in it.
+  NotMember = "NotMember",
+}
+
+export type ProjectMembershipAnswer = ProjectMembershipStatus | null;
+
+// Lower-cased user ids, from one read of the people asked about.
+export interface ProjectMemberships {
+  // Hold an accepted membership of at least one team of the project.
+  members: Set<string>;
+  // Hold only invitations not accepted yet.
+  invited: Set<string>;
+}
 
 export type ProjectMemberReader = (data: {
   projectId: ObjectID;
   userIds: Array<string>;
-}) => Promise<Set<string>>;
+}) => Promise<ProjectMemberships>;
 
 /*
  * TeamMember's read permissions, less CurrentUser: a reader holding one of
@@ -53,7 +70,7 @@ const ANSWER_TTL_IN_MS: number = 60 * 1000;
 export const readProjectMembers: ProjectMemberReader = async (data: {
   projectId: ObjectID;
   userIds: Array<string>;
-}): Promise<Set<string>> => {
+}): Promise<ProjectMemberships> => {
   const result: ListResult<TeamMember> = await ModelAPI.getList<TeamMember>({
     modelType: TeamMember,
     query: {
@@ -63,23 +80,37 @@ export const readProjectMembers: ProjectMemberReader = async (data: {
           return new ObjectID(userId);
         }),
       ),
-      hasAcceptedInvitation: true,
     },
     select: {
       userId: true,
+      hasAcceptedInvitation: true,
     },
     limit: LIMIT_PER_PROJECT,
     skip: 0,
     sort: {},
   });
 
-  return new Set<string>(
-    result.data
-      .map((member: TeamMember): string => {
-        return member.userId?.toString().toLowerCase() || "";
-      })
-      .filter(Boolean),
-  );
+  const memberships: ProjectMemberships = {
+    members: new Set<string>(),
+    invited: new Set<string>(),
+  };
+
+  for (const row of result.data) {
+    const userId: string = row.userId?.toString().toLowerCase() || "";
+
+    if (!userId) {
+      continue;
+    }
+
+    if (row.hasAcceptedInvitation) {
+      memberships.members.add(userId);
+      memberships.invited.delete(userId);
+    } else if (!memberships.members.has(userId)) {
+      memberships.invited.add(userId);
+    }
+  }
+
+  return memberships;
 };
 
 interface CachedAnswer {
@@ -126,7 +157,7 @@ export class ProjectMembershipLoader {
     },
   ) {}
 
-  public isMember(data: {
+  public getMembership(data: {
     projectId: ObjectID | string | null | undefined;
     userId: ObjectID | string | null | undefined;
   }): Promise<ProjectMembershipAnswer> {
@@ -170,11 +201,6 @@ export class ProjectMembershipLoader {
     return answer;
   }
 
-  // Forget every answer: after the people on a page changed, ask again.
-  public clear(): void {
-    this.cache.clear();
-  }
-
   private scheduleFlush(): void {
     if (this.isFlushScheduled) {
       return;
@@ -204,26 +230,32 @@ export class ProjectMembershipLoader {
         ),
       );
 
-      let memberIds: Set<string> | null = null;
+      let memberships: ProjectMemberships | null = null;
 
       try {
-        memberIds = await this.readMembers({
+        memberships = await this.readMembers({
           projectId: new ObjectID(projectId),
           userIds: userIds,
         });
       } catch {
-        memberIds = null;
+        memberships = null;
       }
 
       for (const ask of asks) {
-        if (!memberIds) {
+        if (!memberships) {
           // Unknown, and not kept: the next render may ask again.
           this.cache.delete(`${projectId}:${ask.userId}`);
           ask.resolve(null);
           continue;
         }
 
-        ask.resolve(memberIds.has(ask.userId));
+        if (memberships.members.has(ask.userId)) {
+          ask.resolve(ProjectMembershipStatus.Member);
+        } else if (memberships.invited.has(ask.userId)) {
+          ask.resolve(ProjectMembershipStatus.Invited);
+        } else {
+          ask.resolve(ProjectMembershipStatus.NotMember);
+        }
       }
     }
   }

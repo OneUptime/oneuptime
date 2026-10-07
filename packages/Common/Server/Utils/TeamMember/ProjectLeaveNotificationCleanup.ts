@@ -13,6 +13,7 @@ import UserNotificationEmailRollupItemService from "../../Services/UserNotificat
 import UserNotificationEmailRollupSettingService from "../../Services/UserNotificationEmailRollupSettingService";
 import UserNotificationRuleService from "../../Services/UserNotificationRuleService";
 import UserNotificationSettingService from "../../Services/UserNotificationSettingService";
+import UserOnCallLogTimelineService from "../../Services/UserOnCallLogTimelineService";
 import UserOnCallShiftReminderService from "../../Services/UserOnCallShiftReminderService";
 import UserPushService from "../../Services/UserPushService";
 import UserSlackService from "../../Services/UserSlackService";
@@ -50,6 +51,20 @@ export interface PersonalNotificationTable {
 }
 
 /*
+ * A column of a history table that points at one of a person's own
+ * notification rules or methods. The database deletes the history row along
+ * with the rule or method it points at (ON DELETE CASCADE), so these columns
+ * are cleared before anything is removed (keepHistory): the history stays -
+ * who was paged, when, how it went - and no longer points at a rule or
+ * method that is gone.
+ */
+export interface HistoryReference {
+  history: DatabaseService<DatabaseBaseModel>;
+  column: string;
+  references: DatabaseService<DatabaseBaseModel>;
+}
+
+/*
  * What removePersonalNotificationSettingsOfFormerMembers did: how many
  * (project, person) pairs it cleaned, how many rows went, and how many pairs
  * failed part way (logged; the walk goes on).
@@ -63,6 +78,25 @@ export interface FormerMemberCleanupResult {
 interface ProjectUserRow {
   projectId: string;
   userId: string;
+}
+
+function quoteIdentifier(name: string): string {
+  return `"${name.replace(/"/g, '""')}"`;
+}
+
+function historyReference<
+  THistory extends DatabaseBaseModel,
+  TPersonal extends DatabaseBaseModel,
+>(
+  history: DatabaseService<THistory>,
+  column: string,
+  references: DatabaseService<TPersonal>,
+): HistoryReference {
+  return {
+    history: history as unknown as DatabaseService<DatabaseBaseModel>,
+    column: column,
+    references: references as unknown as DatabaseService<DatabaseBaseModel>,
+  };
 }
 
 function personalTable<TModel extends DatabaseBaseModel>(
@@ -99,7 +133,11 @@ function personalTable<TModel extends DatabaseBaseModel>(
  * timelines), and everything other people set up - owners, on-call layers,
  * escalation rules, overrides, incident roles - which the on-call and
  * resource leave cleanups handle (TeamMemberService), and which never
- * deliver to somebody who is not a member (ProjectMembership).
+ * deliver to somebody who is not a member (ProjectMembership). The on-call
+ * history points at the rule and method each page went out through, and the
+ * database would delete it with them; those references are cleared first
+ * (keepHistory). If that fails, the rules and methods the history points at
+ * stay (they reach nobody who is not a member) and everything else goes.
  *
  * Deletes go through each service as root, so a method's own delete hook
  * still runs; rules go first, so no method is left with rules pointing at it
@@ -139,98 +177,194 @@ export default class ProjectLeaveNotificationCleanup {
   }
 
   /*
-   * For the RemoveNotificationSettingsOfFormerMembers data migration: the
-   * same removal for everybody who already left before it ran. Walks the
-   * (project, person) pairs that still hold rows in any table above but no
-   * accepted membership of the project, in key order, a batch at a time;
-   * re-checks each pair just before removing (somebody who joined again in
-   * between keeps everything); a pair that fails is logged and the walk goes
-   * on. Idempotent, and safe to run twice at once: it only ever removes rows
-   * of people who are not members.
+   * Every history column that points at a personal table above. A new one
+   * belongs here too - the guard test fails when a relation to a personal
+   * table is neither here nor in a personal table itself.
    */
-  public static async removePersonalNotificationSettingsOfFormerMembers(options?: {
-    batchSize?: number | undefined;
-  }): Promise<FormerMemberCleanupResult> {
-    const batchSize: number = Math.max(
-      1,
-      Math.floor(options?.batchSize || 1000),
-    );
+  public static getHistoryReferences(): Array<HistoryReference> {
+    return [
+      historyReference(
+        UserOnCallLogTimelineService,
+        "userNotificationRuleId",
+        UserNotificationRuleService,
+      ),
+      historyReference(
+        UserOnCallLogTimelineService,
+        "userEmailId",
+        UserEmailService,
+      ),
+      historyReference(
+        UserOnCallLogTimelineService,
+        "userSmsId",
+        UserSmsService,
+      ),
+      historyReference(
+        UserOnCallLogTimelineService,
+        "userCallId",
+        UserCallService,
+      ),
+      historyReference(
+        UserOnCallLogTimelineService,
+        "userWhatsAppId",
+        UserWhatsAppService,
+      ),
+      historyReference(
+        UserOnCallLogTimelineService,
+        "userTelegramId",
+        UserTelegramService,
+      ),
+      historyReference(
+        UserOnCallLogTimelineService,
+        "userPushId",
+        UserPushService,
+      ),
+      historyReference(
+        UserOnCallLogTimelineService,
+        "userWebhookId",
+        UserWebhookService,
+      ),
+      historyReference(
+        UserOnCallLogTimelineService,
+        "userSlackId",
+        UserSlackService,
+      ),
+      historyReference(
+        UserOnCallLogTimelineService,
+        "userMicrosoftTeamsId",
+        UserMicrosoftTeamsService,
+      ),
+    ];
+  }
 
+  /*
+   * Clears every history reference (getHistoryReferences) to this person's
+   * own rules and methods in this project - one statement per history table,
+   * touching only the columns that point at a row about to be removed.
+   */
+  public static async keepHistory(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+  }): Promise<void> {
+    const byHistoryTable: Map<string, Array<HistoryReference>> = new Map<
+      string,
+      Array<HistoryReference>
+    >();
+
+    for (const reference of this.getHistoryReferences()) {
+      const historyTable: string = reference.history.getModel().tableName || "";
+      const references: Array<HistoryReference> =
+        byHistoryTable.get(historyTable) || [];
+
+      references.push(reference);
+      byHistoryTable.set(historyTable, references);
+    }
+
+    for (const [historyTable, references] of byHistoryTable.entries()) {
+      const ownRows: (reference: HistoryReference) => string = (
+        reference: HistoryReference,
+      ): string => {
+        return `SELECT personal."_id" FROM ${quoteIdentifier(
+          reference.references.getModel().tableName || "",
+        )} personal WHERE personal."projectId" = $1 AND personal."userId" = $2`;
+      };
+
+      const assignments: Array<string> = references.map(
+        (reference: HistoryReference): string => {
+          const column: string = quoteIdentifier(reference.column);
+
+          return `${column} = CASE WHEN history.${column} IN (${ownRows(
+            reference,
+          )}) THEN NULL ELSE history.${column} END`;
+        },
+      );
+
+      const conditions: Array<string> = references.map(
+        (reference: HistoryReference): string => {
+          return `history.${quoteIdentifier(reference.column)} IN (${ownRows(
+            reference,
+          )})`;
+        },
+      );
+
+      await TeamMemberService.getRepository().manager.query(
+        `UPDATE ${quoteIdentifier(historyTable)} history SET ${assignments.join(
+          ", ",
+        )} WHERE ${conditions.join(" OR ")}`,
+        [data.projectId.toString(), data.userId.toString()],
+      );
+    }
+  }
+
+  /*
+   * For the RemoveNotificationSettingsOfFormerMembers data migration: the
+   * same removal for everybody who already left before it ran. Finds the
+   * (project, person) pairs that still hold rows in any table above but no
+   * accepted membership of the project - one statement, one pass over each
+   * table - then re-checks each pair just before removing (somebody who
+   * joined again in between keeps everything); a pair that fails is logged
+   * and the walk goes on. Idempotent, and safe to run twice at once: it only
+   * ever removes rows of people who are not members.
+   */
+  public static async removePersonalNotificationSettingsOfFormerMembers(): Promise<FormerMemberCleanupResult> {
     const result: FormerMemberCleanupResult = {
       cleanedPairCount: 0,
       removedRowCount: 0,
       failedPairCount: 0,
     };
 
-    let after: ProjectUserRow | null = null;
+    const pairs: Array<ProjectUserRow> = await this.getFormerMemberPairs();
 
-    for (;;) {
-      const pairs: Array<ProjectUserRow> = await this.getFormerMemberPairs({
-        after: after,
-        limit: batchSize,
-      });
+    for (const pair of pairs) {
+      const projectId: ObjectID = new ObjectID(pair.projectId);
+      const userId: ObjectID = new ObjectID(pair.userId);
 
-      for (const pair of pairs) {
-        const projectId: ObjectID = new ObjectID(pair.projectId);
-        const userId: ObjectID = new ObjectID(pair.userId);
-
-        try {
-          if (
-            await TeamMemberService.isUserMemberOfProject({
-              projectId: projectId,
-              userId: userId,
-            })
-          ) {
-            continue;
-          }
-
-          const removed: ProjectLeaveNotificationCleanupResult =
-            await this.removePersonalNotificationSettings({
-              projectId: projectId,
-              userId: userId,
-            });
-
-          result.cleanedPairCount += 1;
-
-          for (const count of Object.values(removed.removedRowCounts)) {
-            result.removedRowCount += count;
-          }
-
-          if (removed.failedTables.length > 0) {
-            result.failedPairCount += 1;
-          }
-        } catch (err) {
-          result.failedPairCount += 1;
-
-          logger.error(
-            err as Error,
-            {
-              projectId: pair.projectId,
-              userId: pair.userId,
-            } as LogAttributes,
-          );
+      try {
+        if (
+          await TeamMemberService.isUserMemberOfProject({
+            projectId: projectId,
+            userId: userId,
+          })
+        ) {
+          continue;
         }
-      }
 
-      if (pairs.length < batchSize) {
-        break;
-      }
+        const removed: ProjectLeaveNotificationCleanupResult =
+          await this.removePersonalNotificationSettings({
+            projectId: projectId,
+            userId: userId,
+          });
 
-      after = pairs[pairs.length - 1]!;
+        result.cleanedPairCount += 1;
+
+        for (const count of Object.values(removed.removedRowCounts)) {
+          result.removedRowCount += count;
+        }
+
+        if (removed.failedTables.length > 0) {
+          result.failedPairCount += 1;
+        }
+      } catch (err) {
+        result.failedPairCount += 1;
+
+        logger.error(
+          err as Error,
+          {
+            projectId: pair.projectId,
+            userId: pair.userId,
+          } as LogAttributes,
+        );
+      }
     }
 
     return result;
   }
 
   /*
-   * One batch of (project, person) pairs, after `after` in key order, that
-   * hold rows in a personal notification table but no accepted membership of
-   * the project (ProjectMembership's rule, in SQL).
+   * The (project, person) pairs, in key order, that hold rows in a personal
+   * notification table but no accepted membership of the project
+   * (ProjectMembership's rule, in SQL).
    */
-  public static async getFormerMemberPairs(data: {
-    after: ProjectUserRow | null;
-    limit: number;
-  }): Promise<Array<ProjectUserRow>> {
+  public static async getFormerMemberPairs(): Promise<Array<ProjectUserRow>> {
     const sources: Array<string> = this.getPersonalNotificationTables().map(
       (table: PersonalNotificationTable): string => {
         const tableName: string = table.service.getModel().tableName || "";
@@ -246,18 +380,15 @@ export default class ProjectLeaveNotificationCleanup {
 
     const rows: Array<ProjectUserRow> =
       await TeamMemberService.getRepository().manager.query(
-        `SELECT DISTINCT personal."projectId", personal."userId"
+        `SELECT personal."projectId", personal."userId"
            FROM (${sources.join(" UNION ")}) personal
           WHERE personal."projectId" IS NOT NULL
             AND personal."userId" IS NOT NULL
-            AND ($2::uuid IS NULL OR (personal."projectId", personal."userId") > ($2::uuid, $3::uuid))
             AND NOT ${ProjectMembership.getMembershipExistsSql({
               projectIdSql: `personal."projectId"`,
               userIdSql: `personal."userId"`,
             })}
-          ORDER BY personal."projectId" ASC, personal."userId" ASC
-          LIMIT $1`,
-        [data.limit, data.after?.projectId || null, data.after?.userId || null],
+          ORDER BY personal."projectId" ASC, personal."userId" ASC`,
       );
 
     return rows || [];
@@ -279,8 +410,39 @@ export default class ProjectLeaveNotificationCleanup {
       failedTables: [],
     };
 
+    /*
+     * The tables the history points at. If the history cannot be kept, they
+     * stay - removing a rule or method would remove the on-call history that
+     * points at it - and the person still receives nothing through them
+     * (ProjectMembership). Everything else goes either way.
+     */
+    const tablesTheHistoryPointsAt: Set<string> = new Set<string>(
+      this.getHistoryReferences().map((reference: HistoryReference): string => {
+        return reference.references.getModel().tableName || "";
+      }),
+    );
+
+    let isHistoryKept: boolean = true;
+
+    try {
+      await this.keepHistory({ projectId, userId });
+    } catch (err) {
+      isHistoryKept = false;
+
+      logger.error(
+        "Error keeping the on-call history of a user who left the project; their notification rules and methods were left in place.",
+        logAttributes,
+      );
+      logger.error(err as Error, logAttributes);
+    }
+
     for (const table of this.getPersonalNotificationTables()) {
       const tableName: string = table.service.getModel().tableName || "";
+
+      if (!isHistoryKept && tablesTheHistoryPointsAt.has(tableName)) {
+        result.failedTables.push(tableName);
+        continue;
+      }
 
       const query: Query<DatabaseBaseModel> = {
         ...(table.query || {}),

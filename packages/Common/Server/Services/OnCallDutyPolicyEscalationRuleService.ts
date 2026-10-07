@@ -601,20 +601,52 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
      * override who has since left would otherwise still be reached through
      * whatever notification methods they had - the leave cleanup removes
      * those references, and this keeps a reference it missed from paging
-     * anyone. One read for every recipient of the rule (ProjectMembership).
+     * anyone. One read for every recipient of the rule, and for the people
+     * their overrides cover (ProjectMembership).
+     *
+     * If membership cannot be read, the rule pages as it did before this
+     * check rather than paging nobody: the leave cleanup has already taken
+     * people who left off the rule, its schedules and its overrides, and a
+     * page lost to a failed read is worse than one more read retried.
      */
-    const memberUserIds: Set<string> = await ProjectMembership.getMemberUserIds(
-      {
+    let memberUserIds: Set<string> | null = null;
+
+    try {
+      memberUserIds = await ProjectMembership.getMemberUserIds({
         projectId: options.projectId,
         userIds: targets
           .filter((target: RuleTarget): target is RecipientRuleTarget => {
             return target.kind === RuleTargetKind.Recipient;
           })
-          .map((target: RecipientRuleTarget): ObjectID => {
-            return target.recipientUserId;
+          .flatMap((target: RecipientRuleTarget): Array<ObjectID> => {
+            return [target.recipientUserId, target.originalUserId];
           }),
-      },
-    );
+      });
+    } catch (err) {
+      logger.error(
+        "Could not read project membership for an escalation rule; paging its recipients without the membership check.",
+        {
+          projectId: options.projectId.toString(),
+          onCallDutyPolicyEscalationRuleId: ruleId.toString(),
+        } as LogAttributes,
+      );
+      logger.error(
+        err as Error,
+        {
+          projectId: options.projectId.toString(),
+          onCallDutyPolicyEscalationRuleId: ruleId.toString(),
+        } as LogAttributes,
+      );
+    }
+
+    const isProjectMember: (userId: ObjectID) => boolean = (
+      userId: ObjectID,
+    ): boolean => {
+      return (
+        memberUserIds === null ||
+        memberUserIds.has(userId.toString().toLowerCase())
+      );
+    };
 
     for (const target of targets) {
       if (target.kind === RuleTargetKind.ScheduleGap) {
@@ -636,15 +668,21 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         continue;
       }
 
-      if (!memberUserIds.has(target.recipientUserId.toString().toLowerCase())) {
+      // Who is paged for this target, and on whose behalf.
+      let pagedUserId: ObjectID = target.recipientUserId;
+      let onBehalfOfUserId: ObjectID = target.originalUserId;
+
+      if (!isProjectMember(target.recipientUserId)) {
         const log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
         log.statusMessage = NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE;
         log.status = OnCallDutyExecutionLogTimelineStatus.Skipped;
         log.alertSentToUserId = target.recipientUserId;
 
-        if (
-          target.recipientUserId.toString() !== target.originalUserId.toString()
-        ) {
+        const wasOverridden: boolean =
+          target.recipientUserId.toString() !==
+          target.originalUserId.toString();
+
+        if (wasOverridden) {
           log.overridedByUserId = target.originalUserId;
         }
 
@@ -663,14 +701,24 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           },
         });
 
-        continue;
+        /*
+         * An override routed this page to somebody who has left, but the
+         * person it covers is still a member: they are paged themselves,
+         * rather than nobody.
+         */
+        if (!wasOverridden || !isProjectMember(target.originalUserId)) {
+          continue;
+        }
+
+        pagedUserId = target.originalUserId;
+        onBehalfOfUserId = target.originalUserId;
       }
 
-      if (!alreadyNotified(target.recipientUserId)) {
-        uniqueUserIds.push(target.recipientUserId);
+      if (!alreadyNotified(pagedUserId)) {
+        uniqueUserIds.push(pagedUserId);
         await startUserNotificationRuleExecution(
-          target.originalUserId,
-          target.recipientUserId,
+          onBehalfOfUserId,
+          pagedUserId,
           target.teamId,
           target.scheduleId,
         );
@@ -679,7 +727,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         log.statusMessage =
           "Skipped because notification sent to this user already.";
         log.status = OnCallDutyExecutionLogTimelineStatus.Skipped;
-        log.alertSentToUserId = target.recipientUserId;
+        log.alertSentToUserId = pagedUserId;
 
         if (target.teamId) {
           log.userBelongsToTeamId = target.teamId;

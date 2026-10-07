@@ -278,6 +278,16 @@ export const NOT_A_PROJECT_MEMBER_READINESS_REASONS: ReadonlyArray<string> = [
   "Remove them from this policy's escalation rules, schedules and overrides, or invite them back to the project",
 ];
 
+/*
+ * The reasons on a responder who was invited to the project and has not
+ * accepted yet. Nothing pages them until they accept, so that is the fix.
+ */
+export const INVITATION_NOT_ACCEPTED_READINESS_REASONS: ReadonlyArray<string> =
+  [
+    "Has not accepted the invitation to this project - cannot be paged",
+    "Ask them to accept their invitation, or remove them from this policy's escalation rules, schedules and overrides",
+  ];
+
 /**
  * What SHAPE an identifier has, which is all masking needs to know. Kept separate from
  * ReadinessMethodType because five of the seven channels mask identically — a phone is a
@@ -1750,6 +1760,24 @@ export default class OnCallReadinessService {
         userIds: userIds,
       }));
 
+    /*
+     * Among those who are not members, the ones still invited: the fix for
+     * them is to accept, not to be replaced. Read only when there are any.
+     */
+    const nonMemberUserIds: Array<ObjectID> = userIds.filter(
+      (userId: ObjectID): boolean => {
+        return !memberUserIds.has(userId.toString().toLowerCase());
+      },
+    );
+
+    const invitedUserIds: Set<string> =
+      nonMemberUserIds.length > 0
+        ? await ProjectMembership.getInvitedUserIds({
+            projectId: data.projectId,
+            userIds: nonMemberUserIds,
+          })
+        : new Set<string>();
+
     const inputs: ReadinessInputs = await this.loadInputs({
       projectId: data.projectId,
       userIds: userIds,
@@ -1796,6 +1824,7 @@ export default class OnCallReadinessService {
           inputs,
           teamNamesById,
           memberUserIds.has(userIdString.toLowerCase()),
+          invitedUserIds.has(userIdString.toLowerCase()),
         ),
       );
     }
@@ -2500,6 +2529,7 @@ export default class OnCallReadinessService {
     inputs: ReadinessInputs,
     teamNamesById: Map<string, string>,
     isProjectMember: boolean,
+    hasPendingInvitation: boolean = false,
   ): UserReadiness {
     const sources: Set<ResponderSource> = attachment.sources;
     const methods: Array<ReadinessMethod> =
@@ -2587,20 +2617,27 @@ export default class OnCallReadinessService {
 
     /*
      * Somebody who is not a member of the project is never paged, whatever
-     * methods they have: that is the one sentence that matters about them, and
-     * the fix is to take them off the policy (or invite them back).
+     * methods they have: that is the one sentence that matters about them.
+     * The fix is to take them off the policy (or invite them back) - or, for
+     * somebody still invited, for them to accept.
      */
-    const reasons: Array<string> = isProjectMember
-      ? this.buildReasons({
-          status: status,
-          methods: methods,
-          verifiedMethods: verifiedMethods,
-          usableMethods: usableMethods,
-          disabledChannels: disabledChannels,
-          uncoveredCells: uncoveredCells,
-          projectSettings: inputs.projectSettings,
-        })
-      : [...NOT_A_PROJECT_MEMBER_READINESS_REASONS];
+    let reasons: Array<string> = [];
+
+    if (isProjectMember) {
+      reasons = this.buildReasons({
+        status: status,
+        methods: methods,
+        verifiedMethods: verifiedMethods,
+        usableMethods: usableMethods,
+        disabledChannels: disabledChannels,
+        uncoveredCells: uncoveredCells,
+        projectSettings: inputs.projectSettings,
+      });
+    } else if (hasPendingInvitation) {
+      reasons = [...INVITATION_NOT_ACCEPTED_READINESS_REASONS];
+    } else {
+      reasons = [...NOT_A_PROJECT_MEMBER_READINESS_REASONS];
+    }
 
     return {
       userId: user.id!,

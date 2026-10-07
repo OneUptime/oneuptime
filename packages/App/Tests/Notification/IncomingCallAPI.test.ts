@@ -137,11 +137,15 @@ jest.mock("Common/Server/Services/UserService", () => {
   };
 });
 
-// Who is a member of the project; everybody unless a test says otherwise.
+/*
+ * The membership condition the number lookup carries. Faked as the plain
+ * user id for a member, and as a marker the number lookup finds nothing for
+ * otherwise - what the real condition does in SQL.
+ */
 jest.mock("Common/Server/Utils/TeamMember/ProjectMembership", () => {
   return {
     __esModule: true,
-    default: { getMemberUserIds: jest.fn() },
+    default: { userIdWhileMember: jest.fn() },
   };
 });
 
@@ -305,8 +309,21 @@ const incomingNumberService: { findOneBy: JestMock } =
 const userService: { findOneById: JestMock } = UserService as unknown as {
   findOneById: JestMock;
 };
-const membership: { getMemberUserIds: JestMock } =
-  ProjectMembership as unknown as { getMemberUserIds: JestMock };
+const membership: { userIdWhileMember: JestMock } =
+  ProjectMembership as unknown as { userIdWhileMember: JestMock };
+
+// What the faked condition stands for when the person is not a member.
+interface NotAMember {
+  notAMember: string;
+}
+
+function isNotAMember(userCondition: unknown): boolean {
+  return Boolean(
+    userCondition &&
+      typeof userCondition === "object" &&
+      "notAMember" in (userCondition as Record<string, unknown>),
+  );
+}
 
 // Everybody asked about is a member, except the ids listed.
 function membersExcept(...formerMembers: Array<ObjectID>): void {
@@ -316,20 +333,14 @@ function membersExcept(...formerMembers: Array<ObjectID>): void {
     }),
   );
 
-  membership.getMemberUserIds.mockImplementation(
-    async (data: {
+  membership.userIdWhileMember.mockImplementation(
+    (data: {
+      userId: ObjectID;
       projectId: ObjectID;
-      userIds: Array<ObjectID | string>;
-    }): Promise<Set<string>> => {
-      return new Set<string>(
-        data.userIds
-          .map((userId: ObjectID | string): string => {
-            return userId.toString().toLowerCase();
-          })
-          .filter((userId: string): boolean => {
-            return !former.has(userId);
-          }),
-      );
+    }): ObjectID | NotAMember => {
+      return former.has(data.userId.toString().toLowerCase())
+        ? { notAMember: data.userId.toString() }
+        : data.userId;
     },
   );
 }
@@ -792,7 +803,12 @@ describe("incoming call voice routing", () => {
       .mockResolvedValueOnce(
         makeRule({ id: RULE_2_ID, order: 3, userId: USER_2, timeout: 45 }),
       );
+    // USER_1 HAS a verified number; the membership condition finds nothing.
     incomingNumberService.findOneBy.mockImplementation((args: any) => {
+      if (isNotAMember(args.query.userId)) {
+        return Promise.resolve(null);
+      }
+
       return Promise.resolve(
         args.query.userId.toString() === USER_1.toString()
           ? makeVerifiedNumber(USER_1, USER_1_NUMBER)
@@ -803,12 +819,16 @@ describe("incoming call voice routing", () => {
 
     await invoke("/voice", { body: voiceBody() });
 
-    // Their number is not even looked up.
+    // Their number was asked for only while they are a member: nothing came back.
+    expect(membership.userIdWhileMember).toHaveBeenCalledWith({
+      userId: USER_1,
+      projectId: PROJECT_ID,
+    });
     expect(
-      incomingNumberService.findOneBy.mock.calls.map((call: Array<any>) => {
-        return call[0].query.userId.toString();
-      }),
-    ).toEqual([USER_2.toString()]);
+      isNotAMember(
+        incomingNumberService.findOneBy.mock.calls[0]?.[0].query.userId,
+      ),
+    ).toBe(true);
     expect(provider.generateEscalationResponse.mock.calls[0]?.[1]).toEqual(
       expect.objectContaining({ toPhoneNumber: USER_2_NUMBER }),
     );
@@ -827,13 +847,22 @@ describe("incoming call voice routing", () => {
       .mockResolvedValueOnce(makeRule({ order: 1, scheduleId: SCHEDULE_ID }))
       .mockResolvedValueOnce(null);
     scheduleService.getCurrentUserIdInSchedule.mockResolvedValue(USER_2);
-    incomingNumberService.findOneBy.mockResolvedValue(
-      makeVerifiedNumber(USER_2, USER_2_NUMBER),
-    );
+    incomingNumberService.findOneBy.mockImplementation((args: any) => {
+      return Promise.resolve(
+        isNotAMember(args.query.userId)
+          ? null
+          : makeVerifiedNumber(USER_2, USER_2_NUMBER),
+      );
+    });
 
     await invoke("/voice", { body: voiceBody() });
 
-    expect(incomingNumberService.findOneBy).not.toHaveBeenCalled();
+    expect(incomingNumberService.findOneBy).toHaveBeenCalledTimes(1);
+    expect(
+      isNotAMember(
+        incomingNumberService.findOneBy.mock.calls[0]?.[0].query.userId,
+      ),
+    ).toBe(true);
     expect(
       provider.generateEscalationResponse.mock.calls.some(
         (call: Array<any>) => {
@@ -843,13 +872,18 @@ describe("incoming call voice routing", () => {
     ).toBe(false);
   });
 
-  test("asks about the person about to be rung, in the policy's project", async () => {
+  test("the number lookup carries the membership condition for the person about to be rung, in the policy's project", async () => {
     await invoke("/voice", { body: voiceBody() });
 
-    expect(membership.getMemberUserIds).toHaveBeenCalledWith({
+    expect(membership.userIdWhileMember).toHaveBeenCalledWith({
+      userId: USER_1,
       projectId: PROJECT_ID,
-      userIds: [USER_1],
     });
+    // One read: the condition rides on the lookup the call makes anyway.
+    expect(incomingNumberService.findOneBy).toHaveBeenCalledTimes(1);
+    expect(
+      incomingNumberService.findOneBy.mock.calls[0]?.[0].query.userId,
+    ).toBe(USER_1);
   });
 
   test("records and hangs up a disabled policy without creating an attempt item", async () => {

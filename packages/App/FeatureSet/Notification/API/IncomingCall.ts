@@ -799,26 +799,20 @@ async function getUserToCall(
   }
 
   /*
+   * Check if the user has a verified incoming call number for this project.
    * A caller is never put through to somebody who is not a member of the
    * project now - who has left, or never accepted their invitation - even
-   * if a rule or a schedule still names them: the rule is skipped like one
-   * whose user has no verified number (ProjectMembership). One read per
-   * person the call is about to ring.
+   * if a rule or a schedule still names them: the number is read only while
+   * they are a member, so the rule is skipped like one whose user has no
+   * verified number. The check rides on this read (ProjectMembership).
    */
-  const memberUserIds: Set<string> = await ProjectMembership.getMemberUserIds({
-    projectId: projectId,
-    userIds: [userId],
-  });
-
-  if (!memberUserIds.has(userId.toString().toLowerCase())) {
-    return null;
-  }
-
-  // Check if the user has a verified incoming call number for this project
   const verifiedIncomingCallNumber: UserIncomingCallNumber | null =
     await UserIncomingCallNumberService.findOneBy({
       query: {
-        userId: userId,
+        userId: ProjectMembership.userIdWhileMember({
+          userId: userId,
+          projectId: projectId,
+        }),
         projectId: projectId,
         isVerified: true,
       },

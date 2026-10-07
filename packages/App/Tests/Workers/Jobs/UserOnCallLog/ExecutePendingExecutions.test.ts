@@ -332,4 +332,41 @@ describe("ExecutePendingExecutions - the person paged left the project", () => {
       NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE,
     );
   });
+
+  test("membership that cannot be read runs every log as before, rather than none", async () => {
+    const logs: Array<UserOnCallLog> = [
+      makePendingLog({ id: new ObjectID("log-a") }),
+      makePendingLog({ id: new ObjectID("log-b") }),
+    ] as unknown as Array<UserOnCallLog>;
+
+    jest
+      .spyOn(UserOnCallLogService, "findAllBy")
+      .mockResolvedValue(logs as never);
+    jest
+      .spyOn(ProjectMembership, "getMemberKeys")
+      .mockRejectedValue(new Error("database unavailable"));
+
+    const ruleType: jest.SpyInstance = jest
+      .spyOn(UserOnCallLogService, "getNotificationRuleType")
+      .mockImplementation((): NotificationRuleType => {
+        throw new Error("stop here");
+      });
+    const updateSpy: jest.SpyInstance = jest
+      .spyOn(UserOnCallLogService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+
+    await runTick();
+
+    // Both logs went on to their rules; neither was ended as a former member's.
+    expect(ruleType).toHaveBeenCalledTimes(2);
+    expect(
+      updateSpy.mock.calls.some((call: Array<any>) => {
+        return (
+          call[0]?.data?.statusMessage ===
+          NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE
+        );
+      }),
+    ).toBe(false);
+    expect(logger.error).toHaveBeenCalled();
+  });
 });

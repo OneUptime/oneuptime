@@ -20,27 +20,29 @@ import ProjectUserElement from "../../../../App/FeatureSet/Dashboard/src/Compone
 import ProjectMembershipLoaderInstance, {
   PROJECT_MEMBERSHIP_READ_PERMISSIONS,
   ProjectMemberReader,
+  ProjectMemberships,
   ProjectMembershipAnswer,
   ProjectMembershipLoader,
+  ProjectMembershipStatus,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/ProjectMembershipLoader";
 import ProjectUtil from "../../../UI/Utils/Project";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 
 /*
- * Somebody who has left a project is never notified on its behalf any more
- * (the server's ProjectMembership check). Where a page names them - an owner,
- * someone in an on-call layer, the user an incoming call rule rings, either
- * side of an override - it says "No longer a member", so whoever looks after
- * the setup knows to replace them.
+ * Nobody who is not a member of a project is notified on its behalf any
+ * more (the server's ProjectMembership check). Where a page names somebody -
+ * an owner, someone in an on-call layer, the user an incoming call rule
+ * rings, either side of an override - it says "No longer a member" for
+ * somebody who has left, and "Invitation not accepted yet" for somebody who
+ * has not joined yet, so whoever looks after the setup knows what to do.
  *
  * Pinned here:
  *   - the loader answers every row of a page with ONE read, keeps answers for
- *     a minute, and answers null ("say nothing") whenever it cannot prove
- *     somebody is not a member,
- *   - the user row shows the marker in place of the email,
- *   - the wrapper asks about the person in the current project and marks
- *     them only on a definite "no".
+ *     a minute, and answers null ("say nothing") whenever it cannot know,
+ *   - the user row shows the right line in place of the email,
+ *   - the wrapper asks about the person in the current project, again when
+ *     the project changes, and marks them only on a definite answer.
  */
 
 const PROJECT_A: string = "aaaaaaaa-0000-4000-8000-000000000001";
@@ -48,97 +50,120 @@ const PROJECT_B: string = "bbbbbbbb-0000-4000-8000-000000000002";
 const MEMBER: string = "10000000-0000-4000-8000-000000000001";
 const LEAVER: string = "20000000-0000-4000-8000-000000000002";
 const OTHER_MEMBER: string = "30000000-0000-4000-8000-000000000003";
+const INVITEE: string = "40000000-0000-4000-8000-000000000004";
 
 type ReadCall = { projectId: string; userIds: Array<string> };
 
-function fakeReader(members: Array<string>): {
+function fakeReader(data: {
+  members: Array<string>;
+  invited?: Array<string>;
+}): {
   reader: ProjectMemberReader;
   calls: Array<ReadCall>;
 } {
   const calls: Array<ReadCall> = [];
 
-  const reader: ProjectMemberReader = async (data: {
+  const reader: ProjectMemberReader = async (ask: {
     projectId: ObjectID;
     userIds: Array<string>;
-  }): Promise<Set<string>> => {
+  }): Promise<ProjectMemberships> => {
     calls.push({
-      projectId: data.projectId.toString(),
-      userIds: [...data.userIds].sort(),
+      projectId: ask.projectId.toString(),
+      userIds: [...ask.userIds].sort(),
     });
 
-    return new Set<string>(
-      data.userIds.filter((userId: string): boolean => {
-        return members.includes(userId);
-      }),
-    );
+    return {
+      members: new Set<string>(
+        ask.userIds.filter((userId: string): boolean => {
+          return data.members.includes(userId);
+        }),
+      ),
+      invited: new Set<string>(
+        ask.userIds.filter((userId: string): boolean => {
+          return (data.invited || []).includes(userId);
+        }),
+      ),
+    };
   };
 
   return { reader, calls };
 }
 
+function alwaysAllowed(): boolean {
+  return true;
+}
+
 describe("ProjectMembershipLoader", () => {
   test("every ask made while a page renders is answered with one read per project", async () => {
-    const { reader, calls } = fakeReader([MEMBER, OTHER_MEMBER]);
+    const { reader, calls } = fakeReader({
+      members: [MEMBER, OTHER_MEMBER],
+      invited: [INVITEE],
+    });
     const loader: ProjectMembershipLoader = new ProjectMembershipLoader(
       reader,
-      () => {
-        return true;
-      },
+      alwaysAllowed,
     );
 
     const answers: Array<ProjectMembershipAnswer> = await Promise.all([
-      loader.isMember({ projectId: PROJECT_A, userId: MEMBER }),
-      loader.isMember({ projectId: PROJECT_A, userId: LEAVER }),
-      loader.isMember({ projectId: PROJECT_A, userId: OTHER_MEMBER }),
+      loader.getMembership({ projectId: PROJECT_A, userId: MEMBER }),
+      loader.getMembership({ projectId: PROJECT_A, userId: LEAVER }),
+      loader.getMembership({ projectId: PROJECT_A, userId: INVITEE }),
+      loader.getMembership({ projectId: PROJECT_A, userId: OTHER_MEMBER }),
       // The same person twice is asked once.
-      loader.isMember({ projectId: PROJECT_A, userId: MEMBER.toUpperCase() }),
-      loader.isMember({ projectId: PROJECT_B, userId: MEMBER }),
+      loader.getMembership({
+        projectId: PROJECT_A,
+        userId: MEMBER.toUpperCase(),
+      }),
+      loader.getMembership({ projectId: PROJECT_B, userId: MEMBER }),
     ]);
 
-    expect(answers).toEqual([true, false, true, true, true]);
+    expect(answers).toEqual([
+      ProjectMembershipStatus.Member,
+      ProjectMembershipStatus.NotMember,
+      ProjectMembershipStatus.Invited,
+      ProjectMembershipStatus.Member,
+      ProjectMembershipStatus.Member,
+      ProjectMembershipStatus.Member,
+    ]);
     expect(calls).toEqual([
-      { projectId: PROJECT_A, userIds: [MEMBER, LEAVER, OTHER_MEMBER].sort() },
+      {
+        projectId: PROJECT_A,
+        userIds: [MEMBER, LEAVER, INVITEE, OTHER_MEMBER].sort(),
+      },
       { projectId: PROJECT_B, userIds: [MEMBER] },
     ]);
   });
 
   test("an answer is kept for a minute, then asked again", async () => {
-    const { reader, calls } = fakeReader([MEMBER]);
+    const { reader, calls } = fakeReader({ members: [MEMBER] });
     let now: number = 1_000_000;
     const loader: ProjectMembershipLoader = new ProjectMembershipLoader(
       reader,
-      () => {
-        return true;
-      },
+      alwaysAllowed,
       () => {
         return now;
       },
     );
 
     await expect(
-      loader.isMember({ projectId: PROJECT_A, userId: LEAVER }),
-    ).resolves.toBe(false);
+      loader.getMembership({ projectId: PROJECT_A, userId: LEAVER }),
+    ).resolves.toBe(ProjectMembershipStatus.NotMember);
 
     now += 30 * 1000;
     await expect(
-      loader.isMember({ projectId: PROJECT_A, userId: LEAVER }),
-    ).resolves.toBe(false);
+      loader.getMembership({ projectId: PROJECT_A, userId: LEAVER }),
+    ).resolves.toBe(ProjectMembershipStatus.NotMember);
     expect(calls).toHaveLength(1);
 
     now += 31 * 1000;
     await expect(
-      loader.isMember({ projectId: PROJECT_A, userId: LEAVER }),
-    ).resolves.toBe(false);
+      loader.getMembership({ projectId: PROJECT_A, userId: LEAVER }),
+    ).resolves.toBe(ProjectMembershipStatus.NotMember);
     expect(calls).toHaveLength(2);
-
-    // After the people on a page changed, clear() asks again at once.
-    loader.clear();
-    await loader.isMember({ projectId: PROJECT_A, userId: LEAVER });
-    expect(calls).toHaveLength(3);
   });
 
   test("a reader who cannot see every membership is told nothing, and nothing is read", async () => {
-    const { reader, calls } = fakeReader([]);
+    const { reader, calls } = fakeReader({ members: [] });
     const loader: ProjectMembershipLoader = new ProjectMembershipLoader(
       reader,
       () => {
@@ -147,28 +172,26 @@ describe("ProjectMembershipLoader", () => {
     );
 
     await expect(
-      loader.isMember({ projectId: PROJECT_A, userId: LEAVER }),
+      loader.getMembership({ projectId: PROJECT_A, userId: LEAVER }),
     ).resolves.toBeNull();
     expect(calls).toHaveLength(0);
   });
 
   test("no project, no person, or ids that are not ids: nothing is read", async () => {
-    const { reader, calls } = fakeReader([]);
+    const { reader, calls } = fakeReader({ members: [] });
     const loader: ProjectMembershipLoader = new ProjectMembershipLoader(
       reader,
-      () => {
-        return true;
-      },
+      alwaysAllowed,
     );
 
     await expect(
-      loader.isMember({ projectId: null, userId: LEAVER }),
+      loader.getMembership({ projectId: null, userId: LEAVER }),
     ).resolves.toBeNull();
     await expect(
-      loader.isMember({ projectId: PROJECT_A, userId: undefined }),
+      loader.getMembership({ projectId: PROJECT_A, userId: undefined }),
     ).resolves.toBeNull();
     await expect(
-      loader.isMember({ projectId: PROJECT_A, userId: "not-an-id" }),
+      loader.getMembership({ projectId: PROJECT_A, userId: "not-an-id" }),
     ).resolves.toBeNull();
     expect(calls).toHaveLength(0);
   });
@@ -180,7 +203,7 @@ describe("ProjectMembershipLoader", () => {
       async (data: {
         projectId: ObjectID;
         userIds: Array<string>;
-      }): Promise<Set<string>> => {
+      }): Promise<ProjectMemberships> => {
         calls.push(data.projectId.toString());
 
         if (failures > 0) {
@@ -188,19 +211,17 @@ describe("ProjectMembershipLoader", () => {
           throw new Error("offline");
         }
 
-        return new Set<string>();
+        return { members: new Set<string>(), invited: new Set<string>() };
       },
-      () => {
-        return true;
-      },
+      alwaysAllowed,
     );
 
     await expect(
-      loader.isMember({ projectId: PROJECT_A, userId: LEAVER }),
+      loader.getMembership({ projectId: PROJECT_A, userId: LEAVER }),
     ).resolves.toBeNull();
     await expect(
-      loader.isMember({ projectId: PROJECT_A, userId: LEAVER }),
-    ).resolves.toBe(false);
+      loader.getMembership({ projectId: PROJECT_A, userId: LEAVER }),
+    ).resolves.toBe(ProjectMembershipStatus.NotMember);
     expect(calls).toHaveLength(2);
   });
 
@@ -214,8 +235,8 @@ describe("ProjectMembershipLoader", () => {
   });
 });
 
-describe("UserElement - somebody who is no longer a member", () => {
-  test("says so in place of the email, and fades the avatar", () => {
+describe("UserElement - somebody nothing of the project reaches", () => {
+  test("no longer a member: says so in place of the email, and fades the avatar", () => {
     render(
       <UserElement
         user={{ _id: LEAVER, name: "Jane Doe", email: "jane@acme.com" }}
@@ -234,6 +255,26 @@ describe("UserElement - somebody who is no longer a member", () => {
     );
   });
 
+  test("invited and not accepted yet: says that instead", () => {
+    render(
+      <UserElement
+        user={{ _id: INVITEE, name: "Sam Roe", email: "sam@acme.com" }}
+        hasPendingProjectInvitation={true}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("user-project-invitation-pending"),
+    ).toHaveTextContent("Invitation not accepted yet");
+    expect(
+      screen.queryByTestId("user-not-project-member"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("user-email")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("img")[0]!.parentElement).toHaveClass(
+      "opacity-50",
+    );
+  });
+
   test("a member looks as before", () => {
     render(
       <UserElement
@@ -244,6 +285,9 @@ describe("UserElement - somebody who is no longer a member", () => {
     expect(
       screen.queryByTestId("user-not-project-member"),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("user-project-invitation-pending"),
+    ).not.toBeInTheDocument();
     expect(screen.getByTestId("user-email")).toHaveTextContent("jane@acme.com");
     expect(screen.getAllByRole("img")[0]!.parentElement).not.toHaveClass(
       "opacity-50",
@@ -252,13 +296,20 @@ describe("UserElement - somebody who is no longer a member", () => {
 });
 
 describe("ProjectUserElement", () => {
-  let isMember: SpyInstance<typeof ProjectMembershipLoaderInstance.isMember>;
+  let getMembership: SpyInstance<
+    typeof ProjectMembershipLoaderInstance.getMembership
+  >;
+  let currentProject: string;
 
   beforeEach(() => {
-    jest
-      .spyOn(ProjectUtil, "getCurrentProjectId")
-      .mockReturnValue(new ObjectID(PROJECT_A));
-    isMember = jest.spyOn(ProjectMembershipLoaderInstance, "isMember");
+    currentProject = PROJECT_A;
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockImplementation(() => {
+      return new ObjectID(currentProject);
+    });
+    getMembership = jest.spyOn(
+      ProjectMembershipLoaderInstance,
+      "getMembership",
+    );
   });
 
   afterEach(() => {
@@ -266,7 +317,7 @@ describe("ProjectUserElement", () => {
   });
 
   test("marks somebody who has left the current project", async () => {
-    isMember.mockResolvedValue(false);
+    getMembership.mockResolvedValue(ProjectMembershipStatus.NotMember);
 
     render(
       <ProjectUserElement
@@ -278,14 +329,34 @@ describe("ProjectUserElement", () => {
       expect(screen.getByTestId("user-not-project-member")).toBeInTheDocument();
     });
 
-    expect(isMember).toHaveBeenCalledWith({
-      projectId: new ObjectID(PROJECT_A),
+    expect(getMembership).toHaveBeenCalledWith({
+      projectId: PROJECT_A,
       userId: LEAVER,
     });
   });
 
+  test("marks somebody invited who has not accepted yet", async () => {
+    getMembership.mockResolvedValue(ProjectMembershipStatus.Invited);
+
+    render(
+      <ProjectUserElement
+        user={{ _id: INVITEE, name: "Sam Roe", email: "sam@acme.com" }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("user-project-invitation-pending"),
+      ).toBeInTheDocument();
+    });
+
+    expect(
+      screen.queryByTestId("user-not-project-member"),
+    ).not.toBeInTheDocument();
+  });
+
   test("a member is not marked", async () => {
-    isMember.mockResolvedValue(true);
+    getMembership.mockResolvedValue(ProjectMembershipStatus.Member);
 
     render(
       <ProjectUserElement
@@ -294,7 +365,7 @@ describe("ProjectUserElement", () => {
     );
 
     await waitFor(() => {
-      expect(isMember).toHaveBeenCalled();
+      expect(getMembership).toHaveBeenCalled();
     });
 
     expect(
@@ -304,7 +375,7 @@ describe("ProjectUserElement", () => {
   });
 
   test("while it is not known, nobody is marked", async () => {
-    isMember.mockResolvedValue(null);
+    getMembership.mockResolvedValue(null);
 
     render(
       <ProjectUserElement
@@ -313,11 +384,43 @@ describe("ProjectUserElement", () => {
     );
 
     await waitFor(() => {
-      expect(isMember).toHaveBeenCalled();
+      expect(getMembership).toHaveBeenCalled();
     });
 
     expect(
       screen.queryByTestId("user-not-project-member"),
     ).not.toBeInTheDocument();
+  });
+
+  test("switching projects asks again, about the new project", async () => {
+    getMembership.mockResolvedValue(ProjectMembershipStatus.Member);
+
+    const { rerender } = render(
+      <ProjectUserElement
+        user={{ _id: MEMBER, name: "Jane Doe", email: "jane@acme.com" }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(getMembership).toHaveBeenCalledTimes(1);
+    });
+
+    currentProject = PROJECT_B;
+    getMembership.mockResolvedValue(ProjectMembershipStatus.NotMember);
+
+    rerender(
+      <ProjectUserElement
+        user={{ _id: MEMBER, name: "Jane Doe", email: "jane@acme.com" }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("user-not-project-member")).toBeInTheDocument();
+    });
+
+    expect(getMembership).toHaveBeenLastCalledWith({
+      projectId: PROJECT_B,
+      userId: MEMBER,
+    });
   });
 });

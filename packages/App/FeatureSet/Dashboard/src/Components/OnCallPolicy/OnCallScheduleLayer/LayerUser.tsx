@@ -30,8 +30,11 @@ import {
 } from "react-beautiful-dnd";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import useIsProjectMember from "../../../Utils/UseIsProjectMember";
-import { ProjectMembershipAnswer } from "../../../Utils/ProjectMembershipLoader";
+import useProjectMembership from "../../../Utils/UseProjectMembership";
+import {
+  ProjectMembershipAnswer,
+  ProjectMembershipStatus,
+} from "../../../Utils/ProjectMembershipLoader";
 import ObjectID from "Common/Types/ObjectID";
 
 export interface ComponentProps {
@@ -41,8 +44,10 @@ export interface ComponentProps {
 
 /*
  * The line under a layer user's name: their email - or, once they have left
- * the project, "No longer a member". Nobody who has left is paged when the
- * rotation reaches them, so the layer needs somebody else in their place.
+ * the project, "No longer a member", and before they have accepted their
+ * invitation, "Invitation not accepted yet". Nobody who is not a member is
+ * paged when the rotation reaches them, so the layer needs somebody else in
+ * their place, or them to accept.
  */
 const LayerUserDetailLine: FunctionComponent<{
   userId: ObjectID | null | undefined;
@@ -54,15 +59,28 @@ const LayerUserDetailLine: FunctionComponent<{
   email: string;
 }): ReactElement | null => {
   const translator: Translator = useTranslator();
-  const isMember: ProjectMembershipAnswer = useIsProjectMember(props.userId);
+  const membership: ProjectMembershipAnswer = useProjectMembership(
+    props.userId,
+  );
 
-  if (isMember === false) {
+  if (membership === ProjectMembershipStatus.NotMember) {
     return (
       <div
         data-testid="layer-user-not-project-member"
         className="truncate text-xs font-medium text-amber-700"
       >
         {translator.translateText("No longer a member")}
+      </div>
+    );
+  }
+
+  if (membership === ProjectMembershipStatus.Invited) {
+    return (
+      <div
+        data-testid="layer-user-invitation-pending"
+        className="truncate text-xs font-medium text-amber-700"
+      >
+        {translator.translateText("Invitation not accepted yet")}
       </div>
     );
   }

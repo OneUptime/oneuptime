@@ -8,6 +8,7 @@ import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicySe
 import OnCallDutyPolicyUserOverrideService from "../../../Server/Services/OnCallDutyPolicyUserOverrideService";
 import OnCallReadinessService, {
   IDENTIFIER_MASK,
+  INVITATION_NOT_ACCEPTED_READINESS_REASONS,
   MaskedIdentifierKind,
   NOT_A_PROJECT_MEMBER_READINESS_REASONS,
   ReadinessCoverageCell,
@@ -293,6 +294,9 @@ let incidentSeverityFindBy: jest.SpyInstance;
 let alertSeverityFindBy: jest.SpyInstance;
 let projectFindOneById: jest.SpyInstance;
 let projectMembershipRead: jest.SpyInstance;
+let projectInvitationRead: jest.SpyInstance;
+// People invited to the project who have not accepted yet.
+let invitedUserIds: Array<ObjectID> = [];
 
 function makeUser(id: ObjectID, name: string, loginEmail: string): User {
   const user: User = new User();
@@ -683,6 +687,7 @@ function everySpy(): Array<jest.SpyInstance> {
     alertSeverityFindBy,
     projectFindOneById,
     projectMembershipRead,
+    projectInvitationRead,
   ];
 }
 
@@ -700,7 +705,8 @@ function everyFindByCall(): Array<FindByCall> {
     if (
       spy === policyFindOneById ||
       spy === projectFindOneById ||
-      spy === projectMembershipRead
+      spy === projectMembershipRead ||
+      spy === projectInvitationRead
     ) {
       // findOneById takes an id, not a limit; nothing to assert about paging.
       continue;
@@ -950,6 +956,31 @@ beforeEach(() => {
    * same world the per-user membership read answers from, filtered by the ids
    * asked for, so a responder missing from membershipRows has left.
    */
+  invitedUserIds = [];
+
+  projectInvitationRead = jest
+    .spyOn(ProjectMembership, "getInvitedUserIds")
+    .mockImplementation((async (data: {
+      projectId: ObjectID;
+      userIds: Array<ObjectID | string>;
+    }): Promise<Set<string>> => {
+      const asked: Set<string> = new Set<string>(
+        data.userIds.map((userId: ObjectID | string): string => {
+          return userId.toString().toLowerCase();
+        }),
+      );
+
+      return new Set<string>(
+        invitedUserIds
+          .map((userId: ObjectID): string => {
+            return userId.toString().toLowerCase();
+          })
+          .filter((userId: string): boolean => {
+            return asked.has(userId);
+          }),
+      );
+    }) as never);
+
   projectMembershipRead = jest
     .spyOn(ProjectMembership, "getMemberUserIds")
     .mockImplementation((async (data: {
@@ -3620,6 +3651,10 @@ describe("batching and paging", () => {
         `responder${index}@corp.example.com`,
       );
     });
+    // Members, like the two above: like is compared with like.
+    membershipRows = ids.map((id: ObjectID): TeamMember => {
+      return teamMemberRow(id, TEAM_ID);
+    });
     attachDirectly(...ids);
     setSeverities({
       incident: [
@@ -4734,12 +4769,54 @@ describe("a responder who is no longer a member of the project", () => {
     expect(asked).toEqual([USER_A_ID.toString(), USER_B_ID.toString()].sort());
   });
 
+  test("somebody invited who has not accepted yet is told to accept, not called a former member", async () => {
+    invitedUserIds = [USER_B_ID];
+
+    const summary: ReadinessSummary = await policySummary();
+
+    const invited: UserReadiness = readinessOf(summary, USER_B_ID);
+
+    expect(invited.status).toBe(ReadinessStatus.NotReachable);
+    expect(invited.reasons).toEqual([
+      ...INVITATION_NOT_ACCEPTED_READINESS_REASONS,
+    ]);
+
+    // Asked about the people who are not members only, once.
+    expect(projectInvitationRead).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        projectInvitationRead.mock.calls[0]![0] as {
+          userIds: Array<ObjectID | string>;
+        }
+      ).userIds.map((userId: ObjectID | string): string => {
+        return userId.toString();
+      }),
+    ).toEqual([USER_B_ID.toString()]);
+  });
+
+  test("everybody a member: nobody is asked about invitations", async () => {
+    membershipRows = [
+      teamMemberRow(USER_A_ID, TEAM_ID),
+      teamMemberRow(USER_B_ID, TEAM_ID),
+    ];
+
+    await policySummary();
+
+    expect(projectInvitationRead).not.toHaveBeenCalled();
+  });
+
   test("the reasons say they cannot be paged, and what to do about it", () => {
     expect(NOT_A_PROJECT_MEMBER_READINESS_REASONS[0]).toContain(
       "cannot be paged",
     );
     expect(NOT_A_PROJECT_MEMBER_READINESS_REASONS[1]).toContain(
       "invite them back",
+    );
+    expect(INVITATION_NOT_ACCEPTED_READINESS_REASONS[0]).toContain(
+      "cannot be paged",
+    );
+    expect(INVITATION_NOT_ACCEPTED_READINESS_REASONS[1]).toContain(
+      "accept their invitation",
     );
   });
 });

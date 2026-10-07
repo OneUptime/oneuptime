@@ -66,35 +66,51 @@ RunCron(
      * long as the incident is not acknowledged, so the person it pages may
      * have left the project since it started. Whether each one is still a
      * member is read once for the whole tick (ProjectMembership).
+     *
+     * If membership cannot be read, the tick runs every log as it did before
+     * this check rather than none of them: the leave cleanup has already
+     * removed the notification rules of people who left, and a page lost to
+     * a failed read is worse than one more read next minute.
      */
-    const memberKeys: Set<string> = await ProjectMembership.getMemberKeys(
-      pendingNotificationLogs
-        .filter((log: UserOnCallLog): boolean => {
-          return Boolean(log.projectId && log.userId);
-        })
-        .map((log: UserOnCallLog): ProjectUserPair => {
-          return {
-            projectId: log.projectId!,
-            userId: log.userId!,
-          };
-        }),
-    );
+    let memberKeys: Set<string> | null = null;
+
+    try {
+      memberKeys = await ProjectMembership.getMemberKeys(
+        pendingNotificationLogs
+          .filter((log: UserOnCallLog): boolean => {
+            return Boolean(log.projectId && log.userId);
+          })
+          .map((log: UserOnCallLog): ProjectUserPair => {
+            return {
+              projectId: log.projectId!,
+              userId: log.userId!,
+            };
+          }),
+      );
+    } catch (err) {
+      logger.error(
+        "Could not read project membership for pending on-call logs; running them without the membership check.",
+      );
+      logger.error(err as Error);
+    }
 
     const promises: Array<Promise<void>> = [];
 
     for (const pendingNotificationLog of pendingNotificationLogs) {
       promises.push(
         executePendingNotificationLog(pendingNotificationLog, {
-          isProjectMember: Boolean(
-            pendingNotificationLog.projectId &&
-              pendingNotificationLog.userId &&
-              memberKeys.has(
-                ProjectMembership.getKey(
-                  pendingNotificationLog.projectId,
-                  pendingNotificationLog.userId,
+          isProjectMember:
+            memberKeys === null ||
+            Boolean(
+              pendingNotificationLog.projectId &&
+                pendingNotificationLog.userId &&
+                memberKeys.has(
+                  ProjectMembership.getKey(
+                    pendingNotificationLog.projectId,
+                    pendingNotificationLog.userId,
+                  ),
                 ),
-              ),
-          ),
+            ),
         }),
       );
     }

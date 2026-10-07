@@ -10,6 +10,7 @@ import UserNotificationSettingService from "../../../../Server/Services/UserNoti
 import logger from "../../../../Server/Utils/Logger";
 import ProjectLeaveNotificationCleanup, {
   FormerMemberCleanupResult,
+  HistoryReference,
   PersonalNotificationTable,
 } from "../../../../Server/Utils/TeamMember/ProjectLeaveNotificationCleanup";
 import ProjectMembership from "../../../../Server/Utils/TeamMember/ProjectMembership";
@@ -27,12 +28,17 @@ import { DataSource } from "typeorm";
  *   - membership is an accepted, not deleted TeamMember row of THAT project
  *     (ProjectMembership's batched read and the condition that rides on the
  *     notification-setting read agree with each other and with the rule),
+ *     and an invitation not accepted yet is told apart from having left,
  *   - nothing is delivered through a setting row of somebody who is not a
  *     member: the real sendUserNotification reads the real row and stops,
  *   - removing somebody's last membership through TeamMemberService removes
  *     their own notification settings for that project - every table - and
  *     nothing of anybody else's, nor of their other projects; joining again
  *     starts clean,
+ *   - the on-call history that points at the rules and methods removed stays
+ *     (the foreign keys would delete it with them; the references are
+ *     cleared first), and every foreign key into a personal table is either
+ *     from another personal table or one of those history references,
  *   - the data migration's walk finds exactly the former members' leftovers
  *     (sent rollup mail is history and stays) and removes only those,
  *   - deleting a user account or a project takes these rows with it
@@ -40,11 +46,13 @@ import { DataSource } from "typeorm";
  *
  * Opt in with RUN_POSTGRES_PROJECT_MEMBERSHIP_TESTS=true against a Postgres
  * migrated to the current head - the Postgres Schema Drift workflow's
- * database right after its drift check. The STRUCTURE of TeamMember, Team and
- * every personal notification table is cloned into a unique schema (its
- * search_path holds that schema first) that is dropped afterwards; every row
- * is synthetic. Credentials from DATABASE_USERNAME / DATABASE_PASSWORD,
- * database from PROJECT_MEMBERSHIP_TEST_DATABASE_NAME or DATABASE_NAME,
+ * database right after its drift check. The STRUCTURE of TeamMember, Team,
+ * every personal notification table and the on-call history is cloned into a
+ * unique schema (its search_path holds that schema first), with the foreign
+ * keys between those tables rebuilt from the migrated definitions; the schema
+ * is dropped afterwards and every row is synthetic. Credentials from
+ * DATABASE_USERNAME / DATABASE_PASSWORD, database from
+ * PROJECT_MEMBERSHIP_TEST_DATABASE_NAME or DATABASE_NAME,
  * endpoint from PROJECT_MEMBERSHIP_TEST_DATABASE_HOST / _PORT (default
  * localhost:5400, Scripts/Dev/docker-compose.dev.yml).
  */
@@ -98,6 +106,20 @@ function personalTableNames(): Array<string> {
   );
 }
 
+function historyTableNames(): Array<string> {
+  return Array.from(
+    new Set<string>(
+      ProjectLeaveNotificationCleanup.getHistoryReferences().map(
+        (reference: HistoryReference): string => {
+          return reference.history.getModel().tableName!;
+        },
+      ),
+    ),
+  );
+}
+
+const HISTORY_TABLE: string = "UserOnCallLogTimeline";
+
 describePostgres(
   "leaving a project removes its notification settings, against Postgres",
   () => {
@@ -106,6 +128,8 @@ describePostgres(
       .replace(/-/g, "")}`;
     let database: DataSource;
     const membershipIds: Dictionary<string> = {};
+    // The page history row of each seeded (project, person), by "project:person".
+    const historyIds: Dictionary<string> = {};
 
     async function cloneTable(
       table: string,
@@ -184,13 +208,17 @@ describePostgres(
     async function insertPersonalRows(data: {
       projectId: ObjectID;
       userId: ObjectID;
-    }): Promise<void> {
+    }): Promise<Dictionary<string>> {
+      const ids: Dictionary<string> = {};
+
       for (const table of personalTableNames()) {
         const values: Dictionary<unknown> = {
           _id: ObjectID.generate().toString(),
           projectId: data.projectId.toString(),
           userId: data.userId.toString(),
         };
+
+        ids[table] = values["_id"] as string;
 
         if (table === "UserNotificationSetting") {
           values["eventType"] = EVENT_TYPE;
@@ -203,6 +231,97 @@ describePostgres(
 
         await insertRow(table, values);
       }
+
+      return ids;
+    }
+
+    /*
+     * A page that went out to the person through their rule and email
+     * address, as the on-call history records it.
+     */
+    async function insertPageHistory(data: {
+      projectId: ObjectID;
+      userId: ObjectID;
+      personalRowIds: Dictionary<string>;
+    }): Promise<string> {
+      const id: string = ObjectID.generate().toString();
+
+      await insertRow(HISTORY_TABLE, {
+        _id: id,
+        projectId: data.projectId.toString(),
+        userId: data.userId.toString(),
+        userNotificationRuleId: data.personalRowIds["UserNotificationRule"],
+        userEmailId: data.personalRowIds["UserEmail"],
+        statusMessage: "Email sent",
+      });
+
+      return id;
+    }
+
+    async function pageHistory(id: string): Promise<
+      Array<{
+        userNotificationRuleId: string | null;
+        userEmailId: string | null;
+        statusMessage: string;
+      }>
+    > {
+      return await database.query(
+        `SELECT "userNotificationRuleId"::text AS "userNotificationRuleId", "userEmailId"::text AS "userEmailId", "statusMessage"
+           FROM "${schema}"."${HISTORY_TABLE}" WHERE "_id" = $1`,
+        [id],
+      );
+    }
+
+    // The seeded page history of (project, person), as it reads now.
+    async function pageHistoryOf(
+      projectId: ObjectID,
+      userId: ObjectID,
+    ): Promise<
+      Array<{
+        userNotificationRuleId: string | null;
+        userEmailId: string | null;
+        statusMessage: string;
+      }>
+    > {
+      return await pageHistory(
+        historyIds[`${projectId.toString()}:${userId.toString()}`]!,
+      );
+    }
+
+    // History still there, no longer pointing at the rule or method removed.
+    const HISTORY_KEPT_WITHOUT_REFERENCES: Array<{
+      userNotificationRuleId: string | null;
+      userEmailId: string | null;
+      statusMessage: string;
+    }> = [
+      {
+        userNotificationRuleId: null,
+        userEmailId: null,
+        statusMessage: "Email sent",
+      },
+    ];
+
+    async function expectHistoryStillPointsAtTheirRows(
+      projectId: ObjectID,
+      userId: ObjectID,
+    ): Promise<void> {
+      const rows: Array<{
+        userNotificationRuleId: string | null;
+        userEmailId: string | null;
+        statusMessage: string;
+      }> = await pageHistoryOf(projectId, userId);
+
+      expect(rows).toHaveLength(1);
+      expect(rows[0]!.userNotificationRuleId).not.toBeNull();
+      expect(rows[0]!.userEmailId).not.toBeNull();
+
+      // ... at THEIR rule and email address, which are still there.
+      const rule: Array<{ userId: string }> = await database.query(
+        `SELECT "userId"::text AS "userId" FROM "${schema}"."UserNotificationRule" WHERE "_id" = $1`,
+        [rows[0]!.userNotificationRuleId],
+      );
+
+      expect(rule).toEqual([{ userId: userId.toString() }]);
     }
 
     async function insertSentRollupItem(data: {
@@ -307,8 +426,47 @@ describePostgres(
       await cloneTable("TeamMember", { keepNotNull: true });
       await cloneTable("Team", { keepNotNull: false });
 
-      for (const table of personalTableNames()) {
+      for (const table of [...personalTableNames(), ...historyTableNames()]) {
         await cloneTable(table, { keepNotNull: false });
+      }
+
+      /*
+       * The foreign keys between the cloned tables, as migrated: the history's
+       * references to rules and methods, and rules' references to methods,
+       * with their ON DELETE CASCADE - the behaviour keepHistory exists for.
+       */
+      const cloned: Array<string> = [
+        ...personalTableNames(),
+        ...historyTableNames(),
+      ];
+      const foreignKeys: Array<{
+        owner: string;
+        name: string;
+        definition: string;
+      }> = await database.query(
+        `SELECT owner.relname AS owner, constraint_row.conname AS name, pg_get_constraintdef(constraint_row.oid) AS definition
+             FROM pg_constraint constraint_row
+             JOIN pg_class owner ON owner.oid = constraint_row.conrelid
+             JOIN pg_class target ON target.oid = constraint_row.confrelid
+             JOIN pg_namespace namespace ON namespace.oid = owner.relnamespace
+            WHERE constraint_row.contype = 'f'
+              AND namespace.nspname = 'public'
+              AND owner.relname = ANY($1)
+              AND target.relname = ANY($2)`,
+        [cloned, personalTableNames()],
+      );
+
+      expect(foreignKeys.length).toBeGreaterThan(0);
+
+      for (const foreignKey of foreignKeys) {
+        const definition: string = foreignKey.definition.replace(
+          /REFERENCES\s+(?:public\.)?"?([A-Za-z]+)"?/,
+          `REFERENCES "${schema}"."$1"`,
+        );
+
+        await database.query(
+          `ALTER TABLE "${schema}"."${foreignKey.owner}" ADD CONSTRAINT "${foreignKey.name}" ${definition}`,
+        );
       }
 
       expect(
@@ -369,9 +527,18 @@ describePostgres(
         )
         .mockResolvedValue(null as never);
 
-      for (const table of ["TeamMember", "Team", ...personalTableNames()]) {
-        await database.query(`TRUNCATE "${schema}"."${table}"`);
-      }
+      await database.query(
+        `TRUNCATE ${[
+          "TeamMember",
+          "Team",
+          ...personalTableNames(),
+          ...historyTableNames(),
+        ]
+          .map((table: string): string => {
+            return `"${schema}"."${table}"`;
+          })
+          .join(", ")} CASCADE`,
+      );
 
       for (const [teamId, projectId] of [
         [TEAM_A1, PROJECT_A],
@@ -456,7 +623,13 @@ describePostgres(
         [PROJECT_A, LEAVING],
         [PROJECT_B, LEAVING],
       ] as Array<[ObjectID, ObjectID]>) {
-        await insertPersonalRows({ projectId, userId });
+        const ids: Dictionary<string> = await insertPersonalRows({
+          projectId,
+          userId,
+        });
+
+        historyIds[`${projectId.toString()}:${userId.toString()}`] =
+          await insertPageHistory({ projectId, userId, personalRowIds: ids });
       }
 
       await insertSentRollupItem({ projectId: PROJECT_A, userId: LEAVER });
@@ -497,6 +670,33 @@ describePostgres(
         expect(Array.from(memberIds).sort()).toEqual(
           [MEMBER.toString(), TWO_TEAMS.toString()].sort(),
         );
+      });
+
+      test("an invitation not accepted yet is told apart from having left", async () => {
+        // A withdrawn (soft-deleted) invitation is not one.
+        await insertMembership({
+          key: "withdrawnInvitation",
+          userId: SENT_ONLY,
+          teamId: TEAM_A1,
+          projectId: PROJECT_A,
+          accepted: false,
+          deleted: true,
+        });
+
+        const invited: Set<string> = await ProjectMembership.getInvitedUserIds({
+          projectId: PROJECT_A,
+          userIds: [MEMBER, LEAVER, PENDING, SOFT_DELETED, SENT_ONLY],
+        });
+
+        expect(Array.from(invited)).toEqual([PENDING.toString().toLowerCase()]);
+
+        // Invited to PROJECT_A only.
+        await expect(
+          ProjectMembership.getInvitedUserIds({
+            projectId: PROJECT_B,
+            userIds: [PENDING, LEAVER],
+          }),
+        ).resolves.toEqual(new Set<string>());
       });
 
       test("the condition on the setting read agrees with the batched read, person by person", async () => {
@@ -601,6 +801,52 @@ describePostgres(
         await expect(
           emailLookupsWhenNotified({ projectId: PROJECT_B, userId: LEAVING }),
         ).resolves.toBe(1);
+
+        // The pages that went out to them stay on the on-call history.
+        await expect(pageHistoryOf(PROJECT_A, LEAVING)).resolves.toEqual(
+          HISTORY_KEPT_WITHOUT_REFERENCES,
+        );
+        await expectHistoryStillPointsAtTheirRows(PROJECT_B, LEAVING);
+        await expectHistoryStillPointsAtTheirRows(PROJECT_A, MEMBER);
+        await expectHistoryStillPointsAtTheirRows(PROJECT_A, TWO_TEAMS);
+      });
+
+      test("if the on-call history cannot be kept, the rules and methods it points at stay and the rest still goes", async () => {
+        jest.spyOn(logger, "error").mockImplementation(() => {
+          return undefined as never;
+        });
+        jest
+          .spyOn(ProjectLeaveNotificationCleanup, "keepHistory")
+          .mockRejectedValue(new Error("history could not be updated"));
+
+        await TeamMemberService.deleteOneById({
+          id: new ObjectID(membershipIds["leaving-a1"]!),
+          props: { isRoot: true },
+        });
+
+        const pointedAt: Set<string> = new Set<string>(
+          ProjectLeaveNotificationCleanup.getHistoryReferences().map(
+            (reference: HistoryReference): string => {
+              return reference.references.getModel().tableName!;
+            },
+          ),
+        );
+
+        const expected: Dictionary<number> = {};
+
+        for (const table of personalTableNames()) {
+          expected[table] = pointedAt.has(table) ? 1 : 0;
+        }
+
+        await expect(
+          personalRowCounts({ projectId: PROJECT_A, userId: LEAVING }),
+        ).resolves.toEqual(expected);
+        await expectHistoryStillPointsAtTheirRows(PROJECT_A, LEAVING);
+
+        // And still nothing of PROJECT_A reaches them.
+        await expect(
+          emailLookupsWhenNotified({ projectId: PROJECT_A, userId: LEAVING }),
+        ).resolves.toBe(0);
       });
 
       test("leaving one team while still in another of the project's teams removes nothing", async () => {
@@ -661,54 +907,37 @@ describePostgres(
         await expect(
           emailLookupsWhenNotified({ projectId: PROJECT_A, userId: LEAVING }),
         ).resolves.toBe(0);
+
+        // What happened before they left is still on the history.
+        await expect(pageHistoryOf(PROJECT_A, LEAVING)).resolves.toEqual(
+          HISTORY_KEPT_WITHOUT_REFERENCES,
+        );
       });
     });
 
     describe("former members' leftovers (the data migration's walk)", () => {
-      test("lists exactly the pairs holding settings without a membership, in key order, a page at a time", async () => {
-        const all: Array<{ projectId: string; userId: string }> =
-          await ProjectLeaveNotificationCleanup.getFormerMemberPairs({
-            after: null,
-            limit: 100,
-          });
+      test("lists exactly the pairs holding settings without a membership, in key order, in one statement", async () => {
+        const statements: jest.SpyInstance = jest.spyOn(database, "query");
 
-        const expected: Array<{ projectId: string; userId: string }> = [
-          { projectId: PROJECT_A.toString(), userId: LEAVER.toString() },
-          { projectId: PROJECT_A.toString(), userId: PENDING.toString() },
-          { projectId: PROJECT_A.toString(), userId: SOFT_DELETED.toString() },
-        ];
+        const all: Array<{ projectId: string; userId: string }> =
+          await ProjectLeaveNotificationCleanup.getFormerMemberPairs();
+
+        expect(statements).toHaveBeenCalledTimes(1);
 
         expect(
           all.map((row: { projectId: string; userId: string }) => {
             return { projectId: row.projectId, userId: row.userId };
           }),
-        ).toEqual(expected);
-
-        const firstPage: Array<{ projectId: string; userId: string }> =
-          await ProjectLeaveNotificationCleanup.getFormerMemberPairs({
-            after: null,
-            limit: 2,
-          });
-        const secondPage: Array<{ projectId: string; userId: string }> =
-          await ProjectLeaveNotificationCleanup.getFormerMemberPairs({
-            after: firstPage[firstPage.length - 1]!,
-            limit: 2,
-          });
-
-        expect(
-          [...firstPage, ...secondPage].map(
-            (row: { projectId: string; userId: string }) => {
-              return { projectId: row.projectId, userId: row.userId };
-            },
-          ),
-        ).toEqual(expected);
+        ).toEqual([
+          { projectId: PROJECT_A.toString(), userId: LEAVER.toString() },
+          { projectId: PROJECT_A.toString(), userId: PENDING.toString() },
+          { projectId: PROJECT_A.toString(), userId: SOFT_DELETED.toString() },
+        ]);
       });
 
-      test("removes only former members' settings, keeps sent mail, and a second run finds nothing", async () => {
+      test("removes only former members' settings, keeps sent mail and the on-call history, and a second run finds nothing", async () => {
         const result: FormerMemberCleanupResult =
-          await ProjectLeaveNotificationCleanup.removePersonalNotificationSettingsOfFormerMembers(
-            { batchSize: 2 },
-          );
+          await ProjectLeaveNotificationCleanup.removePersonalNotificationSettingsOfFormerMembers();
 
         const tableCount: number = personalTableNames().length;
 
@@ -741,10 +970,24 @@ describePostgres(
           ).resolves.toEqual(everyTable(1));
         }
 
-        // Mail already sent is history.
+        // Mail already sent is history; so are the pages that went out.
         await expect(
           personalRowCounts({ projectId: PROJECT_A, userId: SENT_ONLY }),
         ).resolves.toEqual(removedExceptSentMail(1));
+
+        for (const userId of [LEAVER, PENDING, SOFT_DELETED]) {
+          await expect(pageHistoryOf(PROJECT_A, userId)).resolves.toEqual(
+            HISTORY_KEPT_WITHOUT_REFERENCES,
+          );
+        }
+
+        for (const [projectId, userId] of [
+          [PROJECT_A, MEMBER],
+          [PROJECT_B, LEAVER],
+          [PROJECT_A, LEAVING],
+        ] as Array<[ObjectID, ObjectID]>) {
+          await expectHistoryStillPointsAtTheirRows(projectId, userId);
+        }
 
         await expect(
           ProjectLeaveNotificationCleanup.removePersonalNotificationSettingsOfFormerMembers(),
@@ -753,6 +996,50 @@ describePostgres(
           removedRowCount: 0,
           failedPairCount: 0,
         });
+      });
+    });
+
+    describe("history pointing at personal settings", () => {
+      test("every foreign key into a personal table is from another personal table or a history reference the cleanup clears", async () => {
+        const rows: Array<{
+          owner: string;
+          column_name: string;
+          target: string;
+        }> = await database.query(
+          `SELECT owner.relname AS owner, attribute.attname AS column_name, target.relname AS target
+             FROM pg_constraint constraint_row
+             JOIN pg_class owner ON owner.oid = constraint_row.conrelid
+             JOIN pg_class target ON target.oid = constraint_row.confrelid
+             JOIN pg_namespace namespace ON namespace.oid = target.relnamespace
+             JOIN pg_attribute attribute ON attribute.attrelid = constraint_row.conrelid AND attribute.attnum = ANY(constraint_row.conkey)
+            WHERE constraint_row.contype = 'f'
+              AND namespace.nspname = 'public'
+              AND target.relname = ANY($1)`,
+          [personalTableNames()],
+        );
+
+        const personal: Set<string> = new Set<string>(personalTableNames());
+
+        const fromOutside: Array<string> = rows
+          .filter((row: { owner: string }) => {
+            return !personal.has(row.owner);
+          })
+          .map(
+            (row: { owner: string; column_name: string; target: string }) => {
+              return `${row.owner}.${row.column_name} -> ${row.target}`;
+            },
+          )
+          .sort();
+
+        expect(fromOutside).toEqual(
+          ProjectLeaveNotificationCleanup.getHistoryReferences()
+            .map((reference: HistoryReference): string => {
+              return `${reference.history.getModel().tableName}.${
+                reference.column
+              } -> ${reference.references.getModel().tableName}`;
+            })
+            .sort(),
+        );
       });
     });
 

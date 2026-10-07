@@ -6,17 +6,20 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import { useEffect, useState } from "react";
 
 /*
- * Whether this person is a member of the current project: true, false, or
- * null while it is not known (see ProjectMembershipLoader - null means "say
- * nothing"). Every row of a page asks on its own; the loader answers them all
- * with one read.
+ * Whether this person is a member of the current project, has only been
+ * invited, or is not a member at all - or null while that is not known (see
+ * ProjectMembershipLoader: null means "say nothing"). Every row of a page
+ * asks on its own; the loader answers them all with one read. Asks again
+ * when the person or the project changes.
  */
-const useIsProjectMember: (
+const useProjectMembership: (
   userId: ObjectID | string | null | undefined,
 ) => ProjectMembershipAnswer = (
   userId: ObjectID | string | null | undefined,
 ): ProjectMembershipAnswer => {
   const userIdString: string = userId?.toString() || "";
+  const projectIdString: string =
+    ProjectUtil.getCurrentProjectId()?.toString() || "";
   const [answer, setAnswer] = useState<ProjectMembershipAnswer>(null);
 
   useEffect(() => {
@@ -24,13 +27,13 @@ const useIsProjectMember: (
 
     setAnswer(null);
 
-    ProjectMembershipLoader.isMember({
-      projectId: ProjectUtil.getCurrentProjectId(),
+    ProjectMembershipLoader.getMembership({
+      projectId: projectIdString,
       userId: userIdString,
     })
-      .then((isMember: ProjectMembershipAnswer): void => {
+      .then((membership: ProjectMembershipAnswer): void => {
         if (isActive) {
-          setAnswer(isMember);
+          setAnswer(membership);
         }
       })
       .catch((): void => {
@@ -42,9 +45,9 @@ const useIsProjectMember: (
     return (): void => {
       isActive = false;
     };
-  }, [userIdString]);
+  }, [userIdString, projectIdString]);
 
   return answer;
 };
 
-export default useIsProjectMember;
+export default useProjectMembership;
