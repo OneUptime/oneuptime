@@ -18,6 +18,8 @@ import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertInternalNote from "../../../Models/DatabaseModels/AlertInternalNote";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Entities from "../../../Models/DatabaseModels/Index";
+import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
+import StatusPageAnnouncement from "../../../Models/DatabaseModels/StatusPageAnnouncement";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
@@ -153,6 +155,11 @@ const TABLES: Array<string> = [
   "ServiceOwnerUser",
   "ServiceOwnerTeam",
   "AIInsight",
+  "StatusPage",
+  "StatusPageLabel",
+  "StatusPageAnnouncement",
+  "AnnouncementStatusPage",
+  "InventoryItem",
 ];
 
 interface PermissionRow {
@@ -220,6 +227,14 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
   new BaseAPI(Alert, alertService as DatabaseService<BaseModel>);
   new BaseAPI(AlertInternalNote, noteService as DatabaseService<BaseModel>);
   new BaseAPI(AIInsight, insightService as DatabaseService<BaseModel>);
+  new BaseAPI(
+    StatusPageAnnouncement,
+    new DatabaseService(StatusPageAnnouncement) as DatabaseService<BaseModel>,
+  );
+  new BaseAPI(
+    InventoryItem,
+    new DatabaseService(InventoryItem) as DatabaseService<BaseModel>,
+  );
 
   // The signed-in member: in the home project and the second project.
   const memberId: ObjectID = ObjectID.generate();
@@ -259,6 +274,19 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
   const productionServiceId: ObjectID = ObjectID.generate();
   const stagingServiceId: ObjectID = ObjectID.generate();
   const otherServiceId: ObjectID = ObjectID.generate();
+
+  // Status pages carrying each label, and announcements shown on them.
+  const productionStatusPageId: ObjectID = ObjectID.generate();
+  const stagingStatusPageId: ObjectID = ObjectID.generate();
+  const productionAnnouncementId: ObjectID = ObjectID.generate();
+  const stagingAnnouncementId: ObjectID = ObjectID.generate();
+  const bothPagesAnnouncementId: ObjectID = ObjectID.generate();
+  const noPageAnnouncementId: ObjectID = ObjectID.generate();
+
+  // Inventory items naming the services by a resource id of any kind.
+  const productionItemId: ObjectID = ObjectID.generate();
+  const stagingItemId: ObjectID = ObjectID.generate();
+  const unnamedItemId: ObjectID = ObjectID.generate();
 
   const productionInsightId: ObjectID = ObjectID.generate();
   const stagingInsightId: ObjectID = ObjectID.generate();
@@ -1041,6 +1069,62 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
       serviceId: productionServiceId,
       version: 1,
     });
+
+    for (const [statusPageId, labelId] of [
+      [productionStatusPageId, productionLabelId],
+      [stagingStatusPageId, stagingLabelId],
+    ] as Array<[ObjectID, ObjectID]>) {
+      await insert("StatusPage", {
+        _id: statusPageId,
+        projectId: homeProjectId,
+        name: `Status page ${statusPageId.toString()}`,
+        slug: statusPageId.toString(),
+        version: 1,
+      });
+      await insert("StatusPageLabel", {
+        statusPageId: statusPageId,
+        labelId: labelId,
+      });
+    }
+
+    for (const [announcementId, statusPageIds] of [
+      [productionAnnouncementId, [productionStatusPageId]],
+      [stagingAnnouncementId, [stagingStatusPageId]],
+      [bothPagesAnnouncementId, [productionStatusPageId, stagingStatusPageId]],
+      [noPageAnnouncementId, []],
+    ] as Array<[ObjectID, Array<ObjectID>]>) {
+      await insert("StatusPageAnnouncement", {
+        _id: announcementId,
+        projectId: homeProjectId,
+        title: "Synthetic announcement",
+        description: "Synthetic announcement",
+        showAnnouncementAt: new Date(),
+        version: 1,
+      });
+
+      for (const statusPageId of statusPageIds) {
+        await insert("AnnouncementStatusPage", {
+          announcementId: announcementId,
+          statusPageId: statusPageId,
+        });
+      }
+    }
+
+    for (const [itemId, resourceId] of [
+      [productionItemId, productionServiceId],
+      [stagingItemId, stagingServiceId],
+      [unnamedItemId, null],
+    ] as Array<[ObjectID, ObjectID | null]>) {
+      await insert("InventoryItem", {
+        _id: itemId,
+        projectId: homeProjectId,
+        entityType: "service",
+        entityKey: itemId.toString(),
+        resourceType: resourceId ? "Service" : null,
+        resourceId: resourceId,
+        version: 1,
+      });
+    }
 
     await setTeamPermissions(homeTeamId, homeProjectId, [
       { permission: Permission.AlertMember },
@@ -1969,6 +2053,129 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
 
       expectRefused(await list("/alert", acrossProjects));
     });
+  });
+
+  /*
+   * RECORDS THAT CARRY THE LABELS OF THE RECORDS THEY NAME, as the database
+   * weighs them: an announcement those of every status page it is shown
+   * on, an inventory item those of the resource its id names, whatever kind
+   * of resource that is. A block leaves out a record when one of them
+   * carries a blocked label; a grant limited to labels keeps it only when
+   * every one of them carries a granted label.
+   */
+  describe("records that carry the labels of the records they name", () => {
+    test.each([
+      [
+        "a grant over the project",
+        [{ permission: Permission.StatusPageMember }],
+        [
+          productionAnnouncementId,
+          stagingAnnouncementId,
+          bothPagesAnnouncementId,
+          noPageAnnouncementId,
+        ],
+      ],
+      [
+        "a block with labels",
+        [
+          { permission: Permission.StatusPageMember },
+          {
+            permission: Permission.ReadStatusPageAnnouncement,
+            labelIds: [productionLabelId],
+            isBlock: true,
+          },
+        ],
+        [stagingAnnouncementId, noPageAnnouncementId],
+      ],
+      [
+        "a grant limited to labels",
+        [
+          {
+            permission: Permission.StatusPageMember,
+            labelIds: [productionLabelId],
+          },
+        ],
+        [productionAnnouncementId],
+      ],
+      [
+        "a grant limited to labels and a block with labels",
+        [
+          {
+            permission: Permission.StatusPageMember,
+            labelIds: [productionLabelId, stagingLabelId],
+          },
+          {
+            permission: Permission.ReadStatusPageAnnouncement,
+            labelIds: [productionLabelId],
+            isBlock: true,
+          },
+        ],
+        [stagingAnnouncementId],
+      ],
+    ] as Array<[string, Array<PermissionRow>, Array<ObjectID>]>)(
+      "announcements on status pages, under %s",
+      async (
+        _label: string,
+        rows: Array<PermissionRow>,
+        expected: Array<ObjectID>,
+      ) => {
+        await setTeamPermissions(homeTeamId, homeProjectId, rows);
+
+        const listed: Outcome = await list(
+          "/status-page-announcement",
+          homeUser,
+        );
+
+        expect(listed.error).toBeUndefined();
+        expect(listed.ids).toEqual(sorted(expected));
+        expect(listed.count).toBe(expected.length);
+      },
+    );
+
+    test.each([
+      [
+        "a grant over the project",
+        [{ permission: Permission.TelemetryMember }],
+        [productionItemId, stagingItemId, unnamedItemId],
+      ],
+      [
+        "a block with labels",
+        [
+          { permission: Permission.TelemetryMember },
+          {
+            permission: Permission.ReadTelemetryService,
+            labelIds: [productionLabelId],
+            isBlock: true,
+          },
+        ],
+        [stagingItemId, unnamedItemId],
+      ],
+      [
+        "a grant limited to labels",
+        [
+          {
+            permission: Permission.TelemetryMember,
+            labelIds: [productionLabelId],
+          },
+        ],
+        [productionItemId, unnamedItemId],
+      ],
+    ] as Array<[string, Array<PermissionRow>, Array<ObjectID>]>)(
+      "inventory items naming a resource of any kind, under %s",
+      async (
+        _label: string,
+        rows: Array<PermissionRow>,
+        expected: Array<ObjectID>,
+      ) => {
+        await setTeamPermissions(homeTeamId, homeProjectId, rows);
+
+        const listed: Outcome = await list("/inventory-item", homeUser);
+
+        expect(listed.error).toBeUndefined();
+        expect(listed.ids).toEqual(sorted(expected));
+        expect(listed.count).toBe(expected.length);
+      },
+    );
   });
 
   /*
