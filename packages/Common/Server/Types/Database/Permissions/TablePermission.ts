@@ -168,6 +168,66 @@ export default class TablePermission {
     );
   }
 
+  /*
+   * A WRITE NEEDS A READ. An update or a delete reaches only records the
+   * caller may read (BasePermission.addRecordScopeToQuery), so a caller who
+   * may read none of the table's records changes and deletes none of them:
+   * one who holds none of the table's read permissions (nor its read
+   * wildcard), or whose block with no labels takes one of them away. Refused
+   * like a missing write permission, naming the read permissions it needs.
+   */
+  @CaptureSpan()
+  public static checkTableLevelReadForWrite(
+    modelType: DatabaseBaseModelType,
+    props: DatabaseCommonInteractionProps,
+    type: DatabaseRequestType,
+  ): void {
+    const model: BaseModel = new modelType();
+    const readPermissions: Array<Permission> =
+      TablePermission.getTablePermission(modelType, DatabaseRequestType.Read);
+    const held: HeldPermissions = TablePermission.getHeldPermissions(props);
+
+    const blockedReadPermission: Permission | undefined = readPermissions.find(
+      (permission: Permission): boolean => {
+        return held.blocked.includes(permission);
+      },
+    );
+
+    if (blockedReadPermission) {
+      throw new NotAuthorizedException(
+        `You are not authorized to ${type} ${model.singularName} because you may not read it: ${blockedReadPermission} is in your team's permission block list.`,
+      );
+    }
+
+    if (
+      HeldPermissionsUtil.isGrantedAny(held, readPermissions, {
+        wildcard: TablePermission.getModelWildcard(
+          modelType,
+          DatabaseRequestType.Read,
+        ),
+      })
+    ) {
+      return;
+    }
+
+    const titles: Array<string> =
+      PermissionHelper.getPermissionTitles(readPermissions);
+
+    if (titles.length === 0) {
+      throw new NotAuthorizedException(
+        `${type} on ${model.singularName} is not allowed: nobody may read it.`,
+      );
+    }
+
+    throw new NotAuthorizedException(
+      `You do not have permissions to ${type} ${
+        model.singularName
+      }: changing or deleting a record needs permission to read it too. You need one of these permissions: ${titles.join(
+        ", ",
+      )}`,
+    );
+  }
+
   @CaptureSpan()
   public static checkTableLevelBlockPermissions(
     modelType: DatabaseBaseModelType,

@@ -17,6 +17,7 @@ import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/Da
 import PermissionScope from "../../../../../Types/Database/AccessControl/PermissionScope";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
+import NotFoundException from "../../../../../Types/Exception/NotFoundException";
 import Includes from "../../../../../Types/BaseDatabase/Includes";
 import ObjectID from "../../../../../Types/ObjectID";
 import Permission, {
@@ -292,7 +293,7 @@ describe("the record rule on every operation", () => {
       },
     );
 
-    test.each(OPERATIONS)(
+    test.each([DatabaseRequestType.Update, DatabaseRequestType.Delete])(
       "a block on the %s permission leaves the other operations alone",
       async (blocked: Operation) => {
         for (const operation of OPERATIONS) {
@@ -320,6 +321,279 @@ describe("the record rule on every operation", () => {
         }
       },
     );
+
+    /*
+     * A WRITE NEEDS A READ: a block on reading notes takes changing and
+     * deleting them away too, and a block with labels on reading them leaves
+     * the same notes out of a write as out of a read.
+     */
+    test.each([DatabaseRequestType.Update, DatabaseRequestType.Delete])(
+      "a block with no labels on the read permission takes a %s away too",
+      async (operation: Operation) => {
+        await expect(
+          BasePermission.addRecordScopeToQuery(
+            IncidentInternalNote,
+            {},
+            null,
+            member([
+              row(Permission.IncidentMember),
+              row(Permission.ReadIncidentInternalNote, { isBlock: true }),
+            ]),
+            operation,
+          ),
+        ).rejects.toThrow(
+          new NotAuthorizedException(
+            `You are not authorized to ${operation} Incident Internal Note because you may not read it: ReadIncidentInternalNote is in your team's permission block list.`,
+          ),
+        );
+      },
+    );
+
+    test.each([DatabaseRequestType.Update, DatabaseRequestType.Delete])(
+      "a block with labels on the read permission leaves the same notes out of a %s",
+      async (operation: Operation) => {
+        const query: Query<IncidentInternalNote> =
+          await BasePermission.addRecordScopeToQuery(
+            IncidentInternalNote,
+            {},
+            null,
+            member([
+              row(Permission.IncidentMember),
+              row(Permission.ReadIncidentInternalNote, {
+                isBlock: true,
+                labelIds: [productionLabelId],
+              }),
+            ]),
+            operation,
+          );
+
+        expect(sqlOf(query.incidentId, "note.incidentId")).toContain(
+          'note.incidentId NOT IN (SELECT "IncidentLabel"."incidentId" FROM "IncidentLabel"',
+        );
+        expect(valuesOf(query.incidentId)).toEqual([
+          productionLabelId.toString(),
+        ]);
+      },
+    );
+
+    test("the labels a write's blocks and its read's blocks take away are left out in one condition", async () => {
+      const query: Query<IncidentInternalNote> =
+        await BasePermission.addRecordScopeToQuery(
+          IncidentInternalNote,
+          {},
+          null,
+          member([
+            row(Permission.IncidentMember),
+            row(Permission.ReadIncidentInternalNote, {
+              isBlock: true,
+              labelIds: [productionLabelId],
+            }),
+            row(Permission.EditIncidentInternalNote, {
+              isBlock: true,
+              labelIds: [stagingLabelId, productionLabelId],
+            }),
+          ]),
+          DatabaseRequestType.Update,
+        );
+
+      expect((query.incidentId as FindOperator<unknown>).type).not.toBe("and");
+      expect(valuesOf(query.incidentId).sort()).toEqual(
+        [productionLabelId.toString(), stagingLabelId.toString()].sort(),
+      );
+    });
+
+    /*
+     * A write reaches only what the caller may read: an edit broader than
+     * the read stops at the read's labels, and a read broader than the edit
+     * adds nothing to it.
+     */
+    test("an edit broader than the read keeps to the notes the caller may read", async () => {
+      for (const operation of [
+        DatabaseRequestType.Update,
+        DatabaseRequestType.Delete,
+      ] as Array<Operation>) {
+        const query: Query<IncidentInternalNote> =
+          await BasePermission.addRecordScopeToQuery(
+            IncidentInternalNote,
+            {},
+            null,
+            member([
+              row(Permission.ReadProjectIncident),
+              row(Permission.ReadIncidentInternalNote, {
+                labelIds: [productionLabelId],
+                scope: PermissionScope.Labels,
+              }),
+              row(NOTE_PERMISSION[operation]),
+            ]),
+            operation,
+          );
+
+        // The read's labels, on the note's id; nothing of the write's own.
+        expect(valuesOf(query._id)).toEqual([productionLabelId.toString()]);
+        expect(sqlOf(query._id, "note._id")).toContain(
+          'OR "note"."incidentId" IN (SELECT "IncidentLabel"."incidentId" FROM "IncidentLabel"',
+        );
+      }
+    });
+
+    test("a read broader than the edit adds nothing to the edit's own labels", async () => {
+      const query: Query<IncidentInternalNote> =
+        await BasePermission.addRecordScopeToQuery(
+          IncidentInternalNote,
+          {},
+          null,
+          member([
+            row(Permission.ReadProjectIncident),
+            row(Permission.ReadIncidentInternalNote, {
+              labelIds: [productionLabelId, stagingLabelId],
+              scope: PermissionScope.Labels,
+            }),
+            row(Permission.EditIncidentInternalNote, {
+              labelIds: [productionLabelId],
+              scope: PermissionScope.Labels,
+            }),
+          ]),
+          DatabaseRequestType.Update,
+        );
+
+      expect(valuesOf(query._id)).toEqual([productionLabelId.toString()]);
+    });
+
+    test("an edit and a read limited to different labels both hold", async () => {
+      const query: Query<IncidentInternalNote> =
+        await BasePermission.addRecordScopeToQuery(
+          IncidentInternalNote,
+          {},
+          null,
+          member([
+            row(Permission.ReadProjectIncident),
+            row(Permission.ReadIncidentInternalNote, {
+              labelIds: [stagingLabelId],
+              scope: PermissionScope.Labels,
+            }),
+            row(Permission.EditIncidentInternalNote, {
+              labelIds: [productionLabelId],
+              scope: PermissionScope.Labels,
+            }),
+          ]),
+          DatabaseRequestType.Update,
+        );
+
+      expect((query._id as FindOperator<unknown>).type).toBe("and");
+      expect(valuesOf(query._id).sort()).toEqual(
+        [productionLabelId.toString(), stagingLabelId.toString()].sort(),
+      );
+    });
+
+    test.each([DatabaseRequestType.Update, DatabaseRequestType.Delete])(
+      "a caller who may read no note is refused a %s, whatever they may write",
+      async (operation: Operation) => {
+        await expect(
+          BasePermission.addRecordScopeToQuery(
+            IncidentInternalNote,
+            {},
+            null,
+            member([
+              row(Permission.ReadProjectIncident),
+              row(NOTE_PERMISSION[operation]),
+            ]),
+            operation,
+          ),
+        ).rejects.toThrow(
+          `You do not have permissions to ${operation} Incident Internal Note: changing or deleting a record needs permission to read it too.`,
+        );
+      },
+    );
+
+    /*
+     * A record read through another one is reached only through a parent the
+     * caller may read: a permission on notes alone reaches no note.
+     */
+    test.each(OPERATIONS)(
+      "a caller who may read no incident reaches no note on a %s",
+      async (operation: Operation) => {
+        await expect(
+          BasePermission.addRecordScopeToQuery(
+            IncidentInternalNote,
+            {},
+            null,
+            member([
+              row(Permission.ReadIncidentInternalNote),
+              row(NOTE_PERMISSION[operation]),
+            ]),
+            operation,
+          ),
+        ).rejects.toThrow(
+          `You do not have permissions to ${operation} Incident Internal Note. It is read through its Incident, and you need one of these permissions to read Incidents:`,
+        );
+      },
+    );
+
+    test.each(OPERATIONS)(
+      "a block with no labels on reading incidents takes the notes away on a %s",
+      async (operation: Operation) => {
+        await expect(
+          BasePermission.addRecordScopeToQuery(
+            IncidentInternalNote,
+            {},
+            null,
+            member([
+              row(Permission.ReadProjectIncident),
+              row(Permission.ReadIncidentInternalNote),
+              row(NOTE_PERMISSION[operation]),
+              row(Permission.ReadProjectIncident, { isBlock: true }),
+            ]),
+            operation,
+          ),
+        ).rejects.toThrow("It is read through its Incident");
+      },
+    );
+
+    test.each(OPERATIONS)(
+      "a block with labels on reading incidents leaves out their notes on a %s",
+      async (operation: Operation) => {
+        const query: Query<IncidentInternalNote> =
+          await BasePermission.addRecordScopeToQuery(
+            IncidentInternalNote,
+            {},
+            null,
+            member([
+              row(Permission.ReadProjectIncident),
+              row(Permission.ReadIncidentInternalNote),
+              row(NOTE_PERMISSION[operation]),
+              row(Permission.ReadProjectIncident, {
+                isBlock: true,
+                labelIds: [stagingLabelId],
+              }),
+            ]),
+            operation,
+          );
+
+        expect(sqlOf(query.incidentId, "note.incidentId")).toContain(
+          'note.incidentId NOT IN (SELECT "IncidentLabel"."incidentId" FROM "IncidentLabel"',
+        );
+        expect(valuesOf(query.incidentId)).toEqual([stagingLabelId.toString()]);
+      },
+    );
+
+    test("a block on a role asked of both the note and its incident is left out once", async () => {
+      const query: Query<IncidentInternalNote> =
+        await BasePermission.addRecordScopeToQuery(
+          IncidentInternalNote,
+          {},
+          null,
+          member([
+            row(Permission.IncidentMember),
+            row(Permission.IncidentMember, {
+              isBlock: true,
+              labelIds: [stagingLabelId],
+            }),
+          ]),
+          DatabaseRequestType.Read,
+        );
+
+      expect(valuesOf(query.incidentId)).toEqual([stagingLabelId.toString()]);
+    });
 
     test.each(OPERATIONS)(
       "a block with labels on the %s permission leaves out the notes of incidents carrying them",
@@ -679,6 +953,7 @@ describe("the record rule on every operation", () => {
             labelIds: [productionLabelId],
             scope: PermissionScope.Labels,
           }),
+          row(Permission.ReadIncidentInternalNote),
           row(Permission.DeleteIncidentInternalNote),
         ]),
       );
@@ -1051,10 +1326,227 @@ describe("the record rule on every operation", () => {
           return caught;
         });
 
-        expect(error).toBeInstanceOf(BadDataException);
+        expect(error).toBeInstanceOf(NotFoundException);
         expect((error as Error).message).toBe("Incident not found.");
         expect((error as Error).message).not.toContain("Unrelated label name");
       }
+    });
+
+    /*
+     * A WRITE NEEDS A READ, by id: a record the caller may not read is
+     * answered as missing - its labels neither weighed nor named - and one
+     * they may read but not change is refused, saying why.
+     */
+    test("an incident the caller may not read is answered as missing on an update or a delete, its labels unnamed", async () => {
+      const stagingIncident: Incident = incidentIn(projectId, [
+        labelOf(stagingLabelId, "Staging label name"),
+      ]);
+
+      for (const type of [
+        DatabaseRequestType.Update,
+        DatabaseRequestType.Delete,
+      ]) {
+        const error: unknown = await AccessControlPermission.checkRecordByModel(
+          {
+            fetchModelWithAccessControlIds: async (): Promise<Incident> => {
+              return stagingIncident;
+            },
+            modelType: Incident,
+            props: member([
+              row(Permission.ReadProjectIncident, {
+                labelIds: [productionLabelId],
+                scope: PermissionScope.Labels,
+              }),
+              row(Permission.EditProjectIncident),
+              row(Permission.DeleteProjectIncident),
+            ]),
+            type: type,
+          },
+        ).catch((caught: unknown) => {
+          return caught;
+        });
+
+        expect(error).toBeInstanceOf(NotFoundException);
+        expect((error as Error).message).toBe("Incident not found.");
+        expect((error as Error).message).not.toContain("Staging label name");
+      }
+    });
+
+    test("an incident whose labels a block on reading takes away is answered as missing on a write", async () => {
+      const stagingIncident: Incident = incidentIn(projectId, [
+        labelOf(stagingLabelId, "Staging label name"),
+      ]);
+
+      const error: unknown = await AccessControlPermission.checkRecordByModel({
+        fetchModelWithAccessControlIds: async (): Promise<Incident> => {
+          return stagingIncident;
+        },
+        modelType: Incident,
+        props: member([
+          row(Permission.IncidentMember),
+          row(Permission.ReadProjectIncident, {
+            isBlock: true,
+            labelIds: [stagingLabelId],
+          }),
+        ]),
+        type: DatabaseRequestType.Update,
+      }).catch((caught: unknown) => {
+        return caught;
+      });
+
+      expect(error).toBeInstanceOf(NotFoundException);
+      expect((error as Error).message).not.toContain("Staging label name");
+    });
+
+    test("an incident the caller may read but not edit is refused, saying why", async () => {
+      const stagingIncident: Incident = incidentIn(projectId, [
+        labelOf(stagingLabelId, "Staging label name"),
+      ]);
+
+      const error: unknown = await AccessControlPermission.checkRecordByModel({
+        fetchModelWithAccessControlIds: async (): Promise<Incident> => {
+          return stagingIncident;
+        },
+        modelType: Incident,
+        props: member([
+          row(Permission.ReadProjectIncident),
+          row(Permission.EditProjectIncident, {
+            labelIds: [productionLabelId],
+            scope: PermissionScope.Labels,
+          }),
+        ]),
+        type: DatabaseRequestType.Update,
+      }).catch((caught: unknown) => {
+        return caught;
+      });
+
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+      expect((error as Error).message).toContain(
+        "You do not have permission to update this Incident.",
+      );
+    });
+
+    test("an incident the caller may read and edit passes, read once", async () => {
+      let reads: number = 0;
+
+      await AccessControlPermission.checkRecordByModel({
+        fetchModelWithAccessControlIds: async (): Promise<Incident> => {
+          reads++;
+          return incidentIn(projectId, [
+            labelOf(productionLabelId, "Production label name"),
+          ]);
+        },
+        modelType: Incident,
+        props: member([
+          row(Permission.ReadProjectIncident, {
+            labelIds: [productionLabelId],
+            scope: PermissionScope.Labels,
+          }),
+          row(Permission.EditProjectIncident, {
+            labelIds: [productionLabelId, stagingLabelId],
+            scope: PermissionScope.Labels,
+          }),
+        ]),
+        type: DatabaseRequestType.Update,
+      });
+
+      expect(reads).toBe(1);
+    });
+
+    test("a caller who may read no incident is refused a write by id before the record is read", async () => {
+      let reads: number = 0;
+
+      await expect(
+        AccessControlPermission.checkRecordByModel({
+          fetchModelWithAccessControlIds: async (): Promise<Incident> => {
+            reads++;
+            return incidentIn(projectId, []);
+          },
+          modelType: Incident,
+          props: member([row(Permission.EditProjectIncident)]),
+          type: DatabaseRequestType.Update,
+        }),
+      ).rejects.toThrow(
+        "You do not have permissions to update Incident: changing or deleting a record needs permission to read it too.",
+      );
+
+      expect(reads).toBe(0);
+    });
+
+    test("a note the caller may not read is answered as missing on a write, after one more lookup", async () => {
+      const lookups: Array<Query<IncidentInternalNote>> = [];
+
+      const error: unknown = await AccessControlPermission.checkRecordByModel({
+        fetchModelWithAccessControlIds:
+          async (): Promise<IncidentInternalNote> => {
+            return noteIn(projectId);
+          },
+        isRecordFound: async (
+          query: Query<IncidentInternalNote>,
+        ): Promise<boolean> => {
+          lookups.push(query);
+          return false;
+        },
+        modelType: IncidentInternalNote,
+        props: member([
+          row(Permission.ReadProjectIncident),
+          row(Permission.ReadIncidentInternalNote, {
+            labelIds: [productionLabelId],
+            scope: PermissionScope.Labels,
+          }),
+          row(Permission.EditIncidentInternalNote),
+        ]),
+        type: DatabaseRequestType.Update,
+      }).catch((caught: unknown) => {
+        return caught;
+      });
+
+      expect(error).toBeInstanceOf(NotFoundException);
+      expect((error as Error).message).toBe(
+        "Incident Internal Note not found.",
+      );
+      // Every rule at once, then the read's alone to tell why.
+      expect(lookups).toHaveLength(2);
+    });
+
+    test("a note the caller may read but not change is refused by the write's own rule", async () => {
+      const lookups: Array<Query<IncidentInternalNote>> = [];
+
+      const error: unknown = await AccessControlPermission.checkRecordByModel({
+        fetchModelWithAccessControlIds:
+          async (): Promise<IncidentInternalNote> => {
+            return noteIn(projectId);
+          },
+        isRecordFound: async (
+          query: Query<IncidentInternalNote>,
+        ): Promise<boolean> => {
+          lookups.push(query);
+          // Outside the edit's labels.
+          return false;
+        },
+        modelType: IncidentInternalNote,
+        props: member([
+          row(Permission.ReadProjectIncident),
+          row(Permission.ReadIncidentInternalNote),
+          row(Permission.EditIncidentInternalNote, {
+            labelIds: [productionLabelId],
+            scope: PermissionScope.Labels,
+          }),
+        ]),
+        type: DatabaseRequestType.Update,
+      }).catch((caught: unknown) => {
+        return caught;
+      });
+
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+      expect((error as Error).message).toBe(
+        "You do not have permission to update this Incident Internal Note.",
+      );
+      /*
+       * Every rule at once, then the edit's own grant to say why: the read
+       * adds nothing to weigh, so it is not looked up.
+       */
+      expect(lookups).toHaveLength(2);
     });
 
     test("a record of the caller's project carrying a blocked label is refused", async () => {
@@ -1273,8 +1765,8 @@ describe("the record rule on every operation", () => {
       });
 
       expect(reads).toBe(1);
-      // One question to the database per rule: the block, then the grant.
-      expect(lookups).toBe(2);
+      // One question to the database for every rule at once.
+      expect(lookups).toBe(1);
     });
   });
 

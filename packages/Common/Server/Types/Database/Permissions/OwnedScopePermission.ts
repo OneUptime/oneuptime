@@ -46,8 +46,31 @@ export default class OwnedScopePermission {
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
   ): Promise<Query<TBaseModel>> {
-    if (props.isRoot || props.isMasterAdmin) {
+    if (!OwnedScopePermission.isLimitedToOwnedRecords(modelType, props, type)) {
       return query;
+    }
+
+    return await OwnedScopePermission.addOwnedRecordsToQuery(
+      modelType,
+      query,
+      props,
+    );
+  }
+
+  /*
+   * Whether the caller's grants for `type` on this model reach only the
+   * records they or their teams own: every row that grants it is
+   * Owned-scoped. Decided without a lookup. The records are the same for
+   * every operation (addOwnedRecordsToQuery), so a write limited to owned
+   * records for itself or for its read is narrowed to them once.
+   */
+  public static isLimitedToOwnedRecords<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    props: DatabaseCommonInteractionProps,
+    type: DatabaseRequestType,
+  ): boolean {
+    if (props.isRoot || props.isMasterAdmin) {
+      return false;
     }
 
     /*
@@ -55,7 +78,7 @@ export default class OwnedScopePermission {
      * create path itself, not here.
      */
     if (type === DatabaseRequestType.Create) {
-      return query;
+      return false;
     }
 
     const model: BaseModel = new modelType();
@@ -75,7 +98,7 @@ export default class OwnedScopePermission {
       !model.ownedThrough &&
       !this.getOwnerTableRegistry().has(model.constructor.name)
     ) {
-      return query;
+      return false;
     }
 
     /*
@@ -107,7 +130,7 @@ export default class OwnedScopePermission {
        * No grant applies — the existing table-level check will reject this
        * request. Leave the query untouched.
        */
-      return query;
+      return false;
     }
 
     /*
@@ -125,11 +148,23 @@ export default class OwnedScopePermission {
         return p.scope !== PermissionScope.Owned;
       },
     );
-    if (hasNonOwnedGrant) {
-      return query;
-    }
+    // All applicable rows are Owned-scoped.
+    return !hasNonOwnedGrant;
+  }
 
-    // All applicable rows are Owned-scoped. Resolve allowed resource IDs.
+  /*
+   * Narrows `query` to the records the caller or one of their teams owns,
+   * or whose parent they own (@OwnedThrough) - for a caller whose grants
+   * are limited to owned records (isLimitedToOwnedRecords).
+   */
+  public static async addOwnedRecordsToQuery<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<Query<TBaseModel>> {
+    const model: BaseModel = new modelType();
+
+    // Resolve allowed resource IDs.
     const allowedIds: Array<ObjectID> =
       await OwnedScopePermission.getAllowedResourceIds(modelType, props);
 

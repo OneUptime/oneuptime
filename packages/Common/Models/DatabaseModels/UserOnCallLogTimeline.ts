@@ -27,7 +27,6 @@ import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccess
 import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
-import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
@@ -50,8 +49,12 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   update: PlanType.Growth,
   delete: PlanType.Growth,
 })
+/*
+ * A person's own timeline of the notifications sent to them: read by that
+ * person only (CurrentUser), whether or not they may read the on-call policy
+ * that paged them, so it is not read through the policy.
+ */
 @EnableDocumentation()
-@CanAccessIfCanReadOn("onCallDutyPolicy")
 @CurrentUserCanAccessRecordBy("userId")
 @TenantColumn("projectId")
 @TableAccessControl({

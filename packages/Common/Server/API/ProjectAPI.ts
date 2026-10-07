@@ -7,8 +7,10 @@ import ProjectService, {
 } from "../Services/ProjectService";
 import ResellerService from "../Services/ResellerService";
 import TeamMemberService from "../Services/TeamMemberService";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -198,11 +200,23 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
             }
           }
 
-          await ProjectService.deleteOneById({
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectsDeleted: number = await ProjectService.deleteOneById({
             id: projectId,
             deletionReason: deletionReason,
-            props: await CommonAPI.getDatabaseCommonInteractionProps(req),
+            props: props,
           });
+
+          // A delete that removed nothing says so, as the plain route does.
+          if (projectsDeleted === 0) {
+            throw await ProjectService.getUnwrittenByIdError({
+              id: projectId,
+              props: props,
+              type: DatabaseRequestType.Delete,
+            });
+          }
 
           return Response.sendEmptySuccessResponse(req, res);
         } catch (err) {

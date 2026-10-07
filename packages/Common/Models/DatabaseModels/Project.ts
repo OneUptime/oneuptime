@@ -40,6 +40,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @MultiTenentQueryAllowed(true)
 @TableAccessControl({
   create: [Permission.User],
+  /*
+   * Billing Admin reads the project too: it may change the project (the
+   * notification channel switches below), and a write needs a read. Members
+   * read it through ProjectUser already; an API key holds no ProjectUser.
+   */
   read: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -48,6 +53,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ReadProject,
     Permission.UnAuthorizedSsoUser,
     Permission.ProjectUser,
+    Permission.BillingAdmin,
   ],
   delete: [Permission.ProjectOwner, Permission.DeleteProject],
   /*

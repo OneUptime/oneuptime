@@ -4,7 +4,6 @@ import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
-import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
@@ -19,8 +18,13 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
+/*
+ * Telemetry configuration, read by the Telemetry tiers, which do not read
+ * the service catalogue: a source map is not read through its service. A
+ * grant or a block limited to labels still follows the labels of the service
+ * it names (ReadPermission.addLabelRulesToQuery).
+ */
 @EnableDocumentation()
-@CanAccessIfCanReadOn("service")
 @TenantColumn("projectId")
 @CrudApiEndpoint(new Route("/telemetry-source-map"))
 @Entity({
