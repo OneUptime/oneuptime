@@ -139,24 +139,22 @@ gitHubApp:
 
 **Importante:** Reinicie seu servidor do OneUptime após adicionar estas variáveis de ambiente para que elas tenham efeito.
 
-### Passo 9: Instalar o GitHub App
+### Passo 9: Conectar Repositórios no OneUptime
 
-1. Vá para a página pública do seu GitHub App: `https://github.com/apps/YOUR_APP_NAME`
-2. Clique em **"Install"** ou **"Configure"**
-3. Selecione a organização ou conta onde deseja instalar o aplicativo
-4. Escolha quais repositórios o aplicativo pode acessar:
-   - **All repositories** - Acesso a todos os repositórios atuais e futuros
-   - **Only select repositories** - Escolha repositórios específicos
-5. Clique em **"Install"**
-
-### Passo 10: Conectar Repositórios no OneUptime
+Inicie a conexão pelo OneUptime, e não pela página do aplicativo no GitHub: é o link com que o OneUptime leva você ao GitHub que vincula a instalação ao seu projeto.
 
 1. Faça login no seu painel do OneUptime
 2. Navegue para **Produtos** > **Tarefas** > **Repositórios de código**
-3. Clique em **"Create Repository"** ou use o fluxo de instalação do GitHub App
-4. Se redirecionado do GitHub, o ID de instalação será capturado automaticamente
-5. Selecione os repositórios que deseja conectar da lista
-6. Clique em **"Connect"** para vincular o repositório ao seu projeto do OneUptime
+3. Clique em **Connect with GitHub App**. O OneUptime leva você ao GitHub
+4. Selecione a organização ou conta onde instalar o aplicativo e escolha quais repositórios ele pode acessar:
+   - **All repositories** - Acesso a todos os repositórios atuais e futuros
+   - **Only select repositories** - Escolha repositórios específicos
+5. Clique em **Install** (ou **Save**, se o aplicativo já estiver instalado ali)
+6. O GitHub leva você de volta a **Repositórios de código**, e todos os repositórios da instalação são importados. Repositórios adicionados ou removidos da instalação depois continuam sincronizados automaticamente.
+
+**Quem pode conectar.** Conectar importa os repositórios da instalação para o projeto, por isso exige permissão para adicionar repositórios de código: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** ou uma equipe com **Create Code Repository**. Uma equipe que bloqueia a permissão a retira. No OneUptime Cloud, os repositórios de código exigem o plano Growth ou superior. Para qualquer outra pessoa, o cartão fica bloqueado e diz o que é preciso.
+
+**Termine em 15 minutos, no mesmo navegador.** O link funciona uma única vez, por 15 minutos, no navegador que o iniciou. Quando o GitHub leva você de volta, o OneUptime verifica a permissão de novo antes de importar qualquer coisa.
 
 ## Referência de Variáveis de Ambiente
 

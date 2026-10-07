@@ -97,9 +97,9 @@ export default class ProjectReferencesService<
    * A service returns false when its own writes only name records it found
    * itself, and refusing one would lose the row: a feed item crediting
    * someone who has since left the project, a delivery log written before
-   * the message is sent. Every request made in a project - an API call, a
-   * workflow (root, with the project's tenant), a master admin - is still
-   * checked.
+   * the message is sent. Every write made in a project - an API call, a
+   * workflow step, a root write with the project's tenant, a master admin -
+   * is still checked.
    */
   protected checksServerWrites(): boolean {
     return true;

@@ -96,14 +96,36 @@ Hay límites integrados que mantienen finitas las llamadas desatendidas: System 
 
 ## Permisos
 
-Los flujos de trabajo respetan el control de acceso basado en roles de tu proyecto. Los permisos relevantes:
+Los flujos de trabajo respetan el control de acceso basado en roles de tu proyecto. Los tres roles de flujo de trabajo:
 
-- **Crear / Leer / Editar / Eliminar flujo de trabajo** — los permisos básicos sobre el flujo de trabajo en sí.
-- **Ejecutar flujo de trabajo** — necesario para ejecutar un flujo a mano o dispararlo por API.
+- **Workflow Admin** — construye flujos de trabajo: los crea, cambia, ejecuta y elimina, y gestiona las variables que usan.
+- **Workflow Member** — los usa: abre los flujos de trabajo y sus ejecuciones, y ejecuta un flujo de trabajo a mano con **Ejecutar flujo de trabajo**. Un miembro no puede crear, cambiar ni eliminar un flujo de trabajo, ni ejecutar uno de sus pasos por separado.
+- **Workflow Viewer** — lee los flujos de trabajo y sus ejecuciones.
+
+**Project Owner** y **Project Admin** pueden hacer todo lo que hace un Workflow Admin. **Project Member** puede crear y eliminar flujos de trabajo, pero no cambiarlos ni ejecutarlos.
+
+Los permisos individuales, para un equipo o una clave de API que necesita exactamente una cosa:
+
+- **Crear / Leer / Editar / Eliminar flujo de trabajo** — los permisos básicos sobre el flujo de trabajo en sí. Cambiar un flujo de trabajo, incluido encenderlo o apagarlo y archivarlo, requiere **Edit Workflow**; **Delete Workflow** solo elimina.
+- **Edit Workflow** — también es lo que hace falta para ejecutar un solo paso por separado con **Ejecutar solo este paso**, y para ver o restablecer la URL del webhook y la dirección de correo entrante de un flujo de trabajo. Ejecutar un flujo de trabajo entero a mano requiere **Edit Workflow**, **Workflow Admin** o **Workflow Member**.
 - **Leer registro de flujo de trabajo** — necesario para ver las ejecuciones.
 - **Leer / Crear / Editar / Eliminar variable de flujo de trabajo** — control sobre la lista de variables globales.
 
-La mayoría de los ingenieros deberían tener crear/editar/leer sobre flujos de trabajo, pero no sobre variables. Reserva el acceso de edición de variables para quienes gestionan los secretos de tu proyecto.
+Una ejecución a mano solo llega a los flujos de trabajo que puedes abrir: un rol limitado a algunas etiquetas, o a los flujos de trabajo que posee tu equipo, solo ejecuta esos. Quien no puede ejecutar un flujo de trabajo ve **Ejecutar flujo de trabajo** atenuado, con el motivo en su descripción emergente.
+
+Da **Workflow Admin** a quienes construyen la automatización y **Workflow Member** a quienes solo la ponen en marcha. Reserva el acceso de edición de variables para quienes gestionan los secretos de tu proyecto.
+
+## Qué pueden hacer los pasos de un workflow
+
+Los pasos que leen y cambian registros de OneUptime (los componentes Find, Create, Update y Delete y los disparadores On Create, On Update y On Delete) actúan como un **Project Admin** del proyecto del workflow. Pasan las mismas comprobaciones que un Project Admin en el panel y en la API:
+
+- **Solo el proyecto del propio workflow.** Un paso nunca lee ni cambia registros de otro proyecto, y un Update nunca mueve un registro a otro proyecto.
+- **Solo lo que puede hacer un Project Admin.** Un paso no puede conceder permisos que un Project Admin no tiene (como **Project Owner** o facturación), ni añadir a alguien a un equipo con más permisos, como el equipo de propietarios.
+- **Solo lo que incluye su plan.** En OneUptime Cloud, lo que su plan no incluye se rechaza indicando el plan que hace falta.
+- **Nada de lo que OneUptime gestiona por sí mismo.** No se pueden editar ni eliminar entradas del feed, no se pueden escribir registros de notificaciones y no se pueden cambiar los valores que fija OneUptime (como un CNAME verificado, los interruptores de protección de un equipo o quién está de guardia ahora). Un paso **Create One Incident** tampoco puede declarar un incidente a partir de una plantilla (`createdIncidentTemplateId`): lee la plantilla con **Find One Incident Template** y pasa sus valores.
+- **Como ninguna persona.** Un registro que crea un workflow no tiene creador, y el registro de auditoría nombra al workflow como autor del cambio.
+
+Un paso rechazado sale por su salida **Error** sin hacer el cambio rechazado, y el registro de la ejecución dice qué paso se rechazó y por qué. Un paso Create Many crea sus registros de uno en uno y se detiene en el rechazado; los creados antes se conservan. Los pasos que hablan con otros sistemas (API, correo, chat, Custom Code, IA) no se ven afectados.
 
 ## Límites del plan
 

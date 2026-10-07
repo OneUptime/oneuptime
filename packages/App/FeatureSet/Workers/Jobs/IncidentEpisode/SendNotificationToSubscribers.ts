@@ -37,6 +37,7 @@ import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource"
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import StatusPageVisibility from "Common/Types/StatusPage/StatusPageVisibility";
 import IncidentEpisodeFeedService from "Common/Server/Services/IncidentEpisodeFeedService";
 import { IncidentEpisodeFeedEventType } from "Common/Models/DatabaseModels/IncidentEpisodeFeed";
 import { Blue500, Red500, Yellow500 } from "Common/Types/BrandColors";
@@ -62,6 +63,8 @@ import SubscriberNotificationRunLimit, {
 import SubscriberNotificationFanOut from "Common/Server/Utils/StatusPage/SubscriberNotificationFanOut";
 import Email from "Common/Types/Email";
 import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
+import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
+import SubscriberMarkdownTemplateValues from "Common/Server/Utils/StatusPage/SubscriberMarkdownTemplateValues";
 
 RunCron(
   "IncidentEpisode:SendNotificationToSubscribers",
@@ -147,7 +150,9 @@ RunCron(
             title: true,
             description: true,
             projectId: true,
+            // Whether a status page shows it (StatusPageVisibility): visible, and not private.
             isVisibleOnStatusPage: true,
+            isPrivate: true,
             incidentSeverity: {
               name: true,
               color: true,
@@ -294,7 +299,7 @@ RunCron(
             },
           );
 
-          if (!episode.isVisibleOnStatusPage) {
+          if (!StatusPageVisibility.isShown(episode)) {
             logger.debug(
               `Episode ${episode.id} is not visible on status page; skipping subscriber notifications.`,
               {
@@ -542,9 +547,19 @@ RunCron(
                 episodeDescription: episodeDescriptionPlainText,
               };
 
+              /*
+               * A custom Slack or Teams message is Markdown: every plain value -
+               * the title, the names, the resource list - is escaped, so it
+               * reads as typed and cannot become a link, an image, raw HTML or
+               * a chat mention wherever the template places it
+               * (SubscriberMarkdownTemplateValues). The addresses are
+               * OneUptime's own; the description stays Markdown.
+               */
               const markdownTemplateVariables: Record<string, string> = {
-                ...templateVariables,
-                resourcesAffected: resourcesAffectedPlainText,
+                ...SubscriberMarkdownTemplateValues.fromPlainValues({
+                  ...templateVariables,
+                  resourcesAffected: resourcesAffectedPlainText,
+                }),
                 episodeDescription: episode.description || "",
               };
 
@@ -861,11 +876,11 @@ RunCron(
                         );
                     } else {
                       // Use default hard-coded template
-                      markdownMessage = `## 🚨 Incident - ${episode.title || ""}
+                      markdownMessage = `## 🚨 Incident - ${escapeMarkdownValue(episode.title || "")}
 
-**Severity:** ${episode.incidentSeverity?.name || " - "}
+**Severity:** ${escapeMarkdownValue(episode.incidentSeverity?.name || " - ")}
 
-**Resources Affected:** ${resourcesAffectedPlainText}
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}
 
 **Description:** ${episode.description || ""}
 
@@ -918,9 +933,9 @@ RunCron(
                         );
                     } else {
                       // Use default hard-coded template
-                      markdownMessage = `## 🚨 Incident - ${episode.title || ""}
-**Severity:** ${episode.incidentSeverity?.name || " - "}
-**Resources Affected:** ${resourcesAffectedPlainText}
+                      markdownMessage = `## 🚨 Incident - ${escapeMarkdownValue(episode.title || "")}
+**Severity:** ${escapeMarkdownValue(episode.incidentSeverity?.name || " - ")}
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}
 **Description:** ${episode.description || ""}
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
                     }

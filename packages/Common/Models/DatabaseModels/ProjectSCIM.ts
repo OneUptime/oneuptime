@@ -37,7 +37,11 @@ import {
   read: PlanType.Scale,
   update: PlanType.Scale,
   delete: PlanType.Scale,
-  // Provisions people after a downgrade: readable on every plan.
+  /*
+   * Kept after a downgrade, but stops provisioning until the project is
+   * back on the plan (Types/Billing/PlanCutoffCredentials): readable on
+   * every plan, to see what stopped and delete it.
+   */
   readableBelowPlan: true,
 })
 @TenantColumn("projectId")

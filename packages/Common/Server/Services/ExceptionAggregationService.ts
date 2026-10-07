@@ -12,6 +12,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import Includes from "../../Types/BaseDatabase/Includes";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import TelemetryReadScopeUtil from "../Utils/Telemetry/TelemetryReadScope";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import { getResourceFacetServiceTypeMap } from "../../Types/Telemetry/ResourceFacetCatalog";
@@ -24,6 +25,8 @@ export interface HistogramBucket {
 
 export interface ExceptionFilters {
   serviceIds?: Array<ObjectID> | undefined;
+  // Resources whose rows are left out whatever else matches.
+  excludedServiceIds?: Array<ObjectID> | undefined;
   exceptionTypes?: Array<string> | undefined;
   environments?: Array<string> | undefined;
   fingerprints?: Array<string> | undefined;
@@ -303,18 +306,7 @@ export class ExceptionAggregationService {
     statement: Statement,
     request: ExceptionFilters,
   ): void {
-    if (request.serviceIds && request.serviceIds.length > 0) {
-      statement.append(
-        SQL` AND primaryEntityId IN (${{
-          type: TableColumnType.ObjectID,
-          value: new Includes(
-            request.serviceIds.map((id: ObjectID) => {
-              return id.toString();
-            }),
-          ),
-        }})`,
-      );
-    }
+    TelemetryReadScopeUtil.appendServiceFilter(statement, request);
 
     if (request.exceptionTypes && request.exceptionTypes.length > 0) {
       statement.append(

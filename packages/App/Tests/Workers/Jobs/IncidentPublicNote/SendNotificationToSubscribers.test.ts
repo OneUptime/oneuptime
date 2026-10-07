@@ -285,20 +285,29 @@ import {
 import {
   HOSTILE_PAGE_NAME,
   HOSTILE_PAGE_NAME_HTML,
+  HOSTILE_PAGE_NAME_MARKDOWN,
   HOSTILE_RESOURCES_HTML,
+  HOSTILE_RESOURCES_MARKDOWN,
   HOSTILE_RESOURCES_TEXT,
   HOSTILE_TITLE,
   HOSTILE_TITLE_HTML,
+  HOSTILE_TITLE_MARKDOWN,
+  MARKDOWN_TITLE,
   RecordedCompile,
   expectNoHtmlEntities,
+  expectNoUnescapedAngleBracket,
   expectOnlyTheListedHtmlVariables,
+  expectSlackReadsNoMention,
+  expectValuesInertInMarkdown,
   hostileResources,
   recordedCompiles,
+  withoutMarkdownEscapes,
 } from "../Fixtures/SubscriberTemplateCompileFixtures";
 import IncidentCustomFieldService from "Common/Server/Services/IncidentCustomFieldService";
 import {
   AFFECTED_LOCATION,
   AFFECTED_LOCATION_HTML,
+  AFFECTED_LOCATION_MARKDOWN,
   CUSTOM_FIELD_DEFINITIONS,
   CUSTOM_FIELD_PLACEHOLDERS_CASES,
   CustomFieldPlaceholdersCase,
@@ -435,6 +444,7 @@ function publicNote(overrides?: {
 
 function incident(overrides?: {
   isVisibleOnStatusPage?: boolean;
+  isPrivate?: boolean;
   withoutMonitors?: boolean;
   withoutCurrentState?: boolean;
   withoutTitle?: boolean;
@@ -447,6 +457,9 @@ function incident(overrides?: {
   row.description = "Payments fail in Europe.";
   row.projectId = PROJECT_ID;
   row.isVisibleOnStatusPage = overrides?.isVisibleOnStatusPage !== false;
+  if (overrides?.isPrivate !== undefined) {
+    row.isPrivate = overrides.isPrivate;
+  }
   row.incidentNumber = 7;
   row.incidentNumberWithPrefix = "INC-7";
 
@@ -1234,6 +1247,43 @@ describe("IncidentPublicNote:SendUpdateNotificationToSubscribers", () => {
     });
   });
 
+  /*
+   * A private incident is hidden from every status page, whatever its
+   * Visible on Status Page switch says (StatusPageVisibility): neither a new
+   * note nor an edited one is sent.
+   */
+  test.each(TRIGGERS)(
+    "the $name skips a note on a private incident, even with Visible on Status Page on",
+    async (trigger: TriggerCase) => {
+      queueNote(trigger.job);
+      storedIncident = incident({ isPrivate: true });
+
+      await runJob(trigger.job);
+
+      nothingSent();
+
+      const lastWrite: JSONObject = statusWrites()[statusWrites().length - 1]!;
+
+      expect(Object.values(lastWrite)).toEqual([
+        StatusPageSubscriberNotificationStatus.Skipped,
+        "Notifications skipped as incident is not visible on status page.",
+      ]);
+      // The incident is read with its privacy.
+      expect(
+        (
+          mock(IncidentService.findOneById).mock.calls[0]![0] as {
+            select: JSONObject;
+          }
+        ).select,
+      ).toEqual(
+        expect.objectContaining({
+          isVisibleOnStatusPage: true,
+          isPrivate: true,
+        }),
+      );
+    },
+  );
+
   test("skips the update when the incident has been deleted", async () => {
     updatedNotes = [publicNote()];
     storedIncident = null;
@@ -1707,7 +1757,9 @@ describe("IncidentPublicNote update job, with a custom update email template", (
 /*
  * Custom templates get each value in the format their channel renders: HTML
  * in the email body (BlankTemplate converts nothing), plain text in SMS and
- * the email subject, and the Markdown as written in Slack and Teams. The
+ * the email subject, and in Slack and Teams the Markdown as written, with
+ * every plain value escaped for Markdown (the ordinary values here read the
+ * same either way). The
  * resources here sit in two groups, so the real resource list is "<br/>"
  * joined in HTML and "; " joined everywhere else.
  */
@@ -2529,14 +2581,18 @@ describe("IncidentPublicNote subscriber notifications, with a status page scope"
  * its state and severity, the status page's name and the names of its
  * resources and groups are plain text a project member typed. In an email
  * they must read as those characters; the note is Markdown rendered to HTML
- * and stays HTML. Text channels (a subject, SMS, Slack, Teams, webhooks)
- * show text as written, so they must get no HTML entities at all.
+ * and stays HTML. Text channels (a subject, SMS, webhooks) show text as
+ * written, and Slack and Teams - Markdown - get each plain value escaped for
+ * Markdown, so it reads as written once rendered: none of them gets an HTML
+ * entity.
  */
 describe("IncidentPublicNote escapes plain values in email", () => {
   const HOSTILE_STATE: string = "Monitoring <closely> & 'calmly'";
   const HOSTILE_STATE_HTML: string =
     "Monitoring &lt;closely&gt; &amp; &#39;calmly&#39;";
+  const HOSTILE_STATE_MARKDOWN: string = "Monitoring \\<closely> & 'calmly'";
   const HOSTILE_SEVERITY: string = "Sev <1>";
+  const HOSTILE_SEVERITY_MARKDOWN: string = "Sev \\<1>";
 
   const ESCAPING_EMAIL_BODY: string =
     '<h1>{{incidentTitle}}</h1><p>{{statusPageName}} / {{incidentState}} / {{incidentSeverity}}</p><div>{{resourcesAffected}}</div><div>{{note}}</div><a href="{{detailsUrl}}">Details</a>';
@@ -2597,7 +2653,7 @@ describe("IncidentPublicNote escapes plain values in email", () => {
   );
 
   test.each(TRIGGERS)(
-    "$name: the subject, SMS, Slack, Teams and webhooks get every value as written",
+    "$name: the subject, SMS and webhooks get every value as written, and Slack and Teams get each escaped for Markdown",
     async ({ job }: TriggerCase) => {
       useEscapingTemplates();
       queueNote(job);
@@ -2605,17 +2661,20 @@ describe("IncidentPublicNote escapes plain values in email", () => {
       await runJob(job);
 
       const text: string = `${HOSTILE_TITLE} on ${HOSTILE_PAGE_NAME} (${HOSTILE_STATE}): ${HOSTILE_RESOURCES_TEXT}`;
+      const markdown: string = `${HOSTILE_TITLE_MARKDOWN} on ${HOSTILE_PAGE_NAME_MARKDOWN} (${HOSTILE_STATE_MARKDOWN}): ${HOSTILE_RESOURCES_MARKDOWN}`;
 
       expect(sentMail()[0]!["subject"]).toBe(text);
       expect(sentSms()).toEqual([
         `${StatusPageSubscriberNotificationMethod.SMS}: ${text}`,
       ]);
       expect(sentSlack()).toEqual([
-        `${StatusPageSubscriberNotificationMethod.Slack}: ${text}`,
+        `${StatusPageSubscriberNotificationMethod.Slack}: ${markdown}`,
       ]);
       expect(sentTeams()).toEqual([
-        `${StatusPageSubscriberNotificationMethod.MicrosoftTeams}: ${text}`,
+        `${StatusPageSubscriberNotificationMethod.MicrosoftTeams}: ${markdown}`,
       ]);
+      // Rendered, the chat message reads exactly what was written.
+      expect(withoutMarkdownEscapes(markdown)).toBe(text);
       for (const message of [
         sentMail()[0]!["subject"] as string,
         ...sentSms(),
@@ -2623,6 +2682,9 @@ describe("IncidentPublicNote escapes plain values in email", () => {
         ...sentTeams(),
       ]) {
         expectNoHtmlEntities(message);
+      }
+      for (const message of [...sentSlack(), ...sentTeams()]) {
+        expectNoUnescapedAngleBracket(message);
       }
 
       expect(sentWebhooks()[0]!["statusPageName"]).toBe(HOSTILE_PAGE_NAME);
@@ -2636,7 +2698,7 @@ describe("IncidentPublicNote escapes plain values in email", () => {
   );
 
   test.each(TRIGGERS)(
-    "$name: the default email gets the resource list escaped, and the chat defaults get it as written",
+    "$name: the default email gets the resource list escaped, and the chat defaults get it as text",
     async ({ job }: TriggerCase) => {
       mock(
         StatusPageSubscriberService.getStatusPagesToSendNotification,
@@ -2658,15 +2720,87 @@ describe("IncidentPublicNote escapes plain values in email", () => {
       // The note email shows no description; it carries none, raw or not.
       expect(sentMail()[0]!["vars"]).not.toHaveProperty("incidentDescription");
 
-      expect(sentSlack()[0]).toContain(
-        `**Resources Affected:** ${HOSTILE_RESOURCES_TEXT}`,
-      );
-      expect(sentTeams()[0]).toContain(
-        `**Resources Affected:** ${HOSTILE_RESOURCES_TEXT}`,
-      );
+      for (const message of [sentSlack()[0]!, sentTeams()[0]!]) {
+        expect(message).toContain(`## Incident - ${HOSTILE_TITLE_MARKDOWN}`);
+        expect(message).toContain(
+          `**Resources Affected:** ${HOSTILE_RESOURCES_MARKDOWN}`,
+        );
+        expect(message).toContain(`**Severity:** ${HOSTILE_SEVERITY_MARKDOWN}`);
+        expectNoUnescapedAngleBracket(message);
+      }
       for (const message of [...sentSms(), ...sentSlack(), ...sentTeams()]) {
         expectNoHtmlEntities(message);
         expect(message).not.toContain("<br/>");
+      }
+    },
+  );
+});
+
+/*
+ * A title is often not typed by a person: a monitor fills it in from what it
+ * watched, an incoming email's subject say. A Slack or Teams message is
+ * Markdown, so the title is escaped there, in the default messages and in a
+ * custom template alike: an image, a link or a Slack mention in it stays
+ * text, and reads as written.
+ */
+describe("IncidentPublicNote chat messages show a title as text", () => {
+  beforeEach(() => {
+    const row: Incident = incident();
+    row.title = MARKDOWN_TITLE;
+    storedIncident = row;
+  });
+
+  test.each(TRIGGERS)(
+    "$name: the default Slack and Teams messages",
+    async ({ job }: TriggerCase) => {
+      queueNote(job);
+
+      await runJob(job);
+
+      expect(sentSlack()).toHaveLength(1);
+      expect(sentTeams()).toHaveLength(1);
+
+      for (const message of [...sentSlack(), ...sentTeams()]) {
+        expectValuesInertInMarkdown(message);
+        expectSlackReadsNoMention(message);
+        expect(withoutMarkdownEscapes(message)).toContain(MARKDOWN_TITLE);
+        // The message's own links are still links.
+        expect(message).toContain(`[View Status Page](${STATUS_PAGE_URL})`);
+      }
+    },
+  );
+
+  test.each(TRIGGERS)(
+    "$name: a custom Slack or Teams template",
+    async ({ job }: TriggerCase) => {
+      mock(
+        StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+      ).mockImplementation(async (args: unknown) => {
+        const method: string = (args as JSONObject)[
+          "notificationMethod"
+        ] as string;
+        return method === StatusPageSubscriberNotificationMethod.Slack ||
+          method === StatusPageSubscriberNotificationMethod.MicrosoftTeams
+          ? {
+              templateBody: "**{{incidentTitle}}** [Details]({{detailsUrl}})",
+            }
+          : null;
+      });
+      queueNote(job);
+
+      await runJob(job);
+
+      expect(sentSlack()).toHaveLength(1);
+      expect(sentTeams()).toHaveLength(1);
+
+      for (const message of [...sentSlack(), ...sentTeams()]) {
+        expectValuesInertInMarkdown(message);
+        expectSlackReadsNoMention(message);
+        expect(withoutMarkdownEscapes(message)).toBe(
+          withoutMarkdownEscapes(
+            `**${MARKDOWN_TITLE}** [Details](${DETAILS_URL})`,
+          ),
+        );
       }
     },
   );
@@ -2785,7 +2919,7 @@ describe("IncidentPublicNote with incident custom fields", () => {
 
 **Resources Affected:** Checkout API
 **Severity:** Critical
-**Affected Location:** ${AFFECTED_LOCATION}
+**Affected Location:** ${AFFECTED_LOCATION_MARKDOWN}
 **Acknowledgement:** No
 **Impact Details:**
 ${IMPACT_DETAILS}

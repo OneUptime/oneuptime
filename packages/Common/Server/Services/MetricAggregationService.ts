@@ -10,6 +10,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import Includes from "../../Types/BaseDatabase/Includes";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import TelemetryReadScopeUtil from "../Utils/Telemetry/TelemetryReadScope";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import { getResourceFacetServiceTypeMap } from "../../Types/Telemetry/ResourceFacetCatalog";
@@ -45,6 +46,8 @@ export type MetricAttributeFilters = Record<string, MetricAttributeFilterValue>;
 
 export interface MetricFilters {
   serviceIds?: Array<ObjectID> | undefined;
+  // Resources whose rows are left out whatever else matches.
+  excludedServiceIds?: Array<ObjectID> | undefined;
   metricNames?: Array<string> | undefined;
   /*
    * Attribute predicates over the `attributes` map, same shapes as the log
@@ -70,6 +73,10 @@ export interface MetricsForTraceRequest {
   /** Optional span-level narrowing within the trace (bloom-indexed). */
   spanIds?: Array<string> | undefined;
   limit?: number | undefined;
+  // The services the caller may read (TelemetryReadScope).
+  serviceIds?: Array<ObjectID> | undefined;
+  // Resources whose rows are left out whatever else matches.
+  excludedServiceIds?: Array<ObjectID> | undefined;
 }
 
 export interface MetricForTraceItem {
@@ -183,6 +190,8 @@ export class MetricAggregationService {
      * until the midnight after it (the TTL is rounded up to the day).
      */
     statement.append(" AND retentionDate >= now()");
+
+    TelemetryReadScopeUtil.appendServiceFilter(statement, request);
 
     statement.append(
       SQL` ORDER BY time ASC LIMIT ${{
@@ -404,18 +413,7 @@ export class MetricAggregationService {
     statement: Statement,
     request: MetricFilters,
   ): void {
-    if (request.serviceIds && request.serviceIds.length > 0) {
-      statement.append(
-        SQL` AND primaryEntityId IN (${{
-          type: TableColumnType.ObjectID,
-          value: new Includes(
-            request.serviceIds.map((id: ObjectID) => {
-              return id.toString();
-            }),
-          ),
-        }})`,
-      );
-    }
+    TelemetryReadScopeUtil.appendServiceFilter(statement, request);
 
     if (request.metricNames && request.metricNames.length > 0) {
       statement.append(

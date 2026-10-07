@@ -18,7 +18,7 @@ Pour un projet :
 4. **Définir par défaut pour le projet** est activé pour la première configuration du projet : les SMS et appels destinés aux membres du projet, notamment les notifications d'astreinte, passent par elle dès l'enregistrement. Désactivez-le si ce compte sert uniquement aux pages de statut ou aux appels entrants. Pour toute configuration suivante, l'option est désactivée : activez-la, ou choisissez **Définir par défaut pour le projet** dans le menu de la ligne de la configuration, pour y faire passer ces messages. Une requête API qui omet `isProjectDefault` est traitée de la même manière.
 5. Enregistrez. Une seule configuration peut être celle par défaut du projet. Les pages de statut utilisent la configuration explicitement affectée à chaque page.
 
-**SMS** et **Appels téléphoniques** sont désactivés dans chaque projet, et tant qu'ils ne sont pas activés, personne dans le projet ne peut y ajouter de numéro de téléphone. Un propriétaire du projet ou une personne disposant de **Manage Billing** les active dans la carte **Canaux de notification** de la même page.
+**SMS** et **Appels téléphoniques** sont désactivés dans chaque projet, et tant qu'ils ne sont pas activés, personne dans le projet ne peut y ajouter de numéro de téléphone. Un propriétaire du projet ou une personne disposant de **Billing Admin** ou de **Manage Billing** les active dans la carte **Canaux de notification** de la même page.
 
 Pour définir une configuration par défaut pour toute l'installation, un administrateur peut ouvrir **Tableau de bord d'administration > Paramètres > Appels et SMS**, modifier les identifiants et numéros Twilio, puis enregistrer. Les notifications des membres utilisent cette configuration globale lorsque leur projet n'a pas de configuration par défaut. Gardez l'Auth Token confidentiel.
 
@@ -93,7 +93,7 @@ Pour le développement, le [guide de test des webhooks Twilio](https://www.twili
 ## 4. Tester séparément la livraison et les callbacks
 
 1. Depuis l'extérieur du réseau d'entreprise et du VPN, vérifiez que le nom des callbacks résout vers la passerelle publique et présente un certificat TLS valide. Un GET de navigateur ne teste pas ces callbacks POST.
-2. Utilisez **Envoyer un SMS de test** et **Envoyer un appel de test** dans la configuration Twilio du projet. Confirmez la réception sur le téléphone destinataire.
+2. Utilisez **Envoyer un SMS de test** et **Envoyer un appel de test** dans la configuration Twilio du projet. Confirmez la réception sur le téléphone destinataire. Les deux demandent la permission d'ajouter des configurations Twilio : **Project Owner**, **Project Admin**, ou **Create Call and SMS** et **Read Call and SMS** dans un rôle personnalisé.
 3. Configurez le contact SMS/appel vérifié de l'utilisateur ainsi que ses règles de notification, puis déclenchez une alerte d'astreinte contrôlée. Appuyez sur 1 et vérifiez l'acquittement dans OneUptime. Si vous utilisez les politiques d'appels entrants, appelez le numéro configuré et vérifiez le routage ainsi que le journal d'appels.
 4. Vérifiez le statut de livraison du SMS dans OneUptime et les journaux de messages Twilio. Un envoi accepté ne prouve pas la livraison ; [Twilio signale les changements de statut ultérieurs par callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 

@@ -276,8 +276,10 @@ const INSTALL_SPECS: Readonly<Record<AiResourceType, InstallSpec>> = {
       {
         name: "PVE_HOST",
         composeValue: "${PVE_HOST:-}",
-        description:
+        // A key: the extractor skips a plain description with a URL in it.
+        description: translationKey(
           "Any node of the cluster; the agent calls https://PVE_HOST:8006/api2/json.",
+        ),
       },
       {
         name: "PVE_PORT",

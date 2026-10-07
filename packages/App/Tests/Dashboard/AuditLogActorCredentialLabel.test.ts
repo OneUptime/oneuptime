@@ -169,6 +169,30 @@ describe("a project API key is the actor, not a credential somebody used", () =>
   });
 });
 
+/*
+ * A workflow step acts as no person (WorkflowPrincipal): the workflow is the
+ * actor, drawn by its name, so there is no "via" to add either.
+ */
+describe("a workflow is the actor, not a credential somebody used", () => {
+  test("the value the table compares against is the real workflow user type", () => {
+    expect(UserType.Workflow).toBe("Workflow");
+  });
+
+  test("a workflow's change gets no via line", () => {
+    expect(getActorCredentialLabel({ userType: UserType.Workflow })).toBeNull();
+  });
+
+  test("not even when the entry also names a key or a client", () => {
+    expect(
+      getActorCredentialLabel({
+        userType: UserType.Workflow,
+        apiKeyName: "CI pipeline",
+        mcpClientName: "Claude Code",
+      }),
+    ).toBeNull();
+  });
+});
+
 describe("the MCP client authorization resource on the audit log", () => {
   const grantType: string = new McpOAuthGrant().singularName!;
 

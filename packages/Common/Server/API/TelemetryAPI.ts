@@ -85,20 +85,23 @@ import PprofEncoder, {
   PprofSample,
 } from "../Utils/Profile/PprofEncoder";
 import Profile from "../../Models/AnalyticsModels/Profile";
+import Log from "../../Models/AnalyticsModels/Log";
+import Span from "../../Models/AnalyticsModels/Span";
+import Metric from "../../Models/AnalyticsModels/Metric";
+import ExceptionInstance from "../../Models/AnalyticsModels/ExceptionInstance";
+import TelemetryReadAccess from "../Utils/Telemetry/TelemetryReadAccess";
+import PromiseCache from "../Utils/PromiseCache";
+import TelemetryReadScopeUtil, {
+  TelemetryReadScope,
+  TelemetryServiceFilter,
+} from "../Utils/Telemetry/TelemetryReadScope";
 import ProfileSample from "../../Models/AnalyticsModels/ProfileSample";
 import ProfileService from "../Services/ProfileService";
 import ProfileSampleService from "../Services/ProfileSampleService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import Permission, {
-  PermissionHelper,
-  UserPermission,
-} from "../../Types/Permission";
-import DatabaseCommonInteractionPropsUtil, {
-  PermissionType,
-} from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import Permission from "../../Types/Permission";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../Types/Exception/PaymentRequiredException";
-import PermissionScope from "../../Types/Database/AccessControl/PermissionScope";
 import SubscriptionPlan, {
   PlanType,
 } from "../../Types/Billing/SubscriptionPlan";
@@ -116,9 +119,9 @@ import ResourceEntityFilter, {
   ResourceEntityScope,
 } from "../Utils/Telemetry/ResourceEntityFilter";
 import { ResourceEntityFacetSelections } from "../../Types/Telemetry/ResourceEntityFacet";
-import Label from "../../Models/DatabaseModels/Label";
 import RumApplication from "../../Models/DatabaseModels/RumApplication";
 import RumApplicationService from "../Services/RumApplicationService";
+import Label from "../../Models/DatabaseModels/Label";
 import Project from "../../Models/DatabaseModels/Project";
 import ProjectService from "../Services/ProjectService";
 import SessionReplayIdentity from "../Utils/SessionReplay/SessionReplayIdentity";
@@ -453,13 +456,33 @@ router.post(
       const frames: Array<MinifiedStackFrame> =
         SourceMapResolver.sanitizeMinifiedStackFrames(body["frames"]);
 
-      const result: ResolveStackTraceResult =
-        await TelemetrySourceMapService.resolveFramesForService({
-          projectId: databaseProps.tenantId,
-          serviceId: new ObjectID(body["serviceId"] as string),
-          serviceVersion: body["serviceVersion"] as string,
-          frames: frames,
-        });
+      const serviceId: ObjectID = new ObjectID(body["serviceId"] as string);
+
+      /*
+       * A service whose exceptions the caller may not read resolves the way
+       * a service with no source maps does: every frame left as it is.
+       */
+      const exceptionScope: TelemetryReadScope =
+        await TelemetryReadAccess.getScope(ExceptionInstance, databaseProps);
+
+      const result: ResolveStackTraceResult = TelemetryReadScopeUtil.isReadable(
+        exceptionScope,
+        serviceId,
+      )
+        ? await TelemetrySourceMapService.resolveFramesForService({
+            projectId: databaseProps.tenantId,
+            serviceId: serviceId,
+            serviceVersion: body["serviceVersion"] as string,
+            frames: frames,
+          })
+        : {
+            frames: frames.map((frame: MinifiedStackFrame) => {
+              return { ...frame, resolved: false };
+            }),
+            resolvedCount: 0,
+            sourceMapCount: 0,
+            sourceMapsSkippedForSize: 0,
+          };
 
       return Response.sendJsonObjectResponse(
         req,
@@ -532,11 +555,27 @@ const getAttributes: GetAttributesFunction = async (
         ? (req.body["metricName"] as string)
         : undefined;
 
+    // A signal with no attributes to offer (profiles) has nothing to scope.
+    if (
+      !TelemetryAttributeService.hasAttributeSource(telemetryType, metricName)
+    ) {
+      return Response.sendJsonObjectResponse(req, res, {
+        attributes: [],
+      });
+    }
+
+    const serviceFilter: TelemetryServiceFilter =
+      await TelemetryReadAccess.getServiceFilter({
+        modelType: TelemetryReadAccess.getModelForTelemetryType(telemetryType),
+        props: databaseProps,
+      });
+
     const attributes: string[] =
       await TelemetryAttributeService.fetchAttributes({
         projectId: databaseProps.tenantId,
         telemetryType,
         metricName,
+        serviceFilter,
       });
 
     return Response.sendJsonObjectResponse(req, res, {
@@ -603,6 +642,21 @@ const getAttributeValues: GetAttributeValuesFunction = async (
         ? (req.body["searchText"] as string)
         : undefined;
 
+    // A signal with no attributes to offer (profiles) has nothing to scope.
+    if (
+      !TelemetryAttributeService.hasAttributeSource(telemetryType, metricName)
+    ) {
+      return Response.sendJsonObjectResponse(req, res, {
+        values: [],
+      });
+    }
+
+    const serviceFilter: TelemetryServiceFilter =
+      await TelemetryReadAccess.getServiceFilter({
+        modelType: TelemetryReadAccess.getModelForTelemetryType(telemetryType),
+        props: databaseProps,
+      });
+
     const values: string[] =
       await TelemetryAttributeService.fetchAttributeValues({
         projectId: databaseProps.tenantId,
@@ -610,6 +664,7 @@ const getAttributeValues: GetAttributeValuesFunction = async (
         metricName,
         attributeKey,
         searchText,
+        serviceFilter,
       });
 
     return Response.sendJsonObjectResponse(req, res, {
@@ -700,12 +755,19 @@ router.post(
       const resourceScopes: Array<ResourceEntityScope> | undefined =
         await resolveResourceScopesFromBody(body, databaseProps.tenantId);
 
+      const serviceFilter: TelemetryServiceFilter =
+        await TelemetryReadAccess.getServiceFilter({
+          modelType: Log,
+          props: databaseProps,
+          requested: serviceIds,
+        });
+
       const request: HistogramRequest = {
         projectId: databaseProps.tenantId,
         startTime,
         endTime,
         bucketSizeInMinutes,
-        serviceIds,
+        ...serviceFilter,
         entityKeys,
         resourceScopes,
         severityTexts,
@@ -828,6 +890,14 @@ router.post(
       const resourceScopes: Array<ResourceEntityScope> | undefined =
         await resolveResourceScopesFromBody(body, projectId);
 
+      // The resources whose logs the caller may read: counted and listed.
+      const scope: TelemetryReadScope = await TelemetryReadAccess.getScope(
+        Log,
+        databaseProps,
+      );
+      const serviceFilter: TelemetryServiceFilter =
+        TelemetryReadScopeUtil.toServiceFilter(scope, serviceIds);
+
       /*
        * One ClickHouse GROUP BY per facet, in parallel so a slow facet can't
        * starve the endpoint; per-facet errors degrade gracefully to [].
@@ -846,6 +916,7 @@ router.post(
         facetKeys,
         facetSearchText,
         limit,
+        scope,
         countFacet: (facetKey: string): Promise<Array<FacetValue>> => {
           const request: FacetRequest = {
             projectId,
@@ -853,7 +924,7 @@ router.post(
             endTime,
             facetKey,
             limit,
-            serviceIds,
+            ...serviceFilter,
             entityKeys,
             resourceScopes,
             severityTexts,
@@ -1160,13 +1231,16 @@ router.post(
         (body["bucketSizeInMinutes"] as number) ||
         computeDefaultBucketSize(startTime, endTime);
 
-      const traceFilters: TraceFilters = {
-        ...parseTraceFilterBody(body),
-        resourceScopes: await resolveResourceScopesFromBody(
-          body,
-          databaseProps.tenantId,
-        ),
-      };
+      const traceFilters: TraceFilters = scopeTraceFilters(
+        {
+          ...parseTraceFilterBody(body),
+          resourceScopes: await resolveResourceScopesFromBody(
+            body,
+            databaseProps.tenantId,
+          ),
+        },
+        await TelemetryReadAccess.getScope(Span, databaseProps),
+      );
 
       const request: TraceHistogramRequest = {
         projectId: databaseProps.tenantId,
@@ -1226,13 +1300,22 @@ router.post(
 
       const limit: number = (body["limit"] as number) || 500;
 
-      const traceFilters: TraceFilters = {
-        ...parseTraceFilterBody(body),
-        resourceScopes: await resolveResourceScopesFromBody(
-          body,
-          databaseProps.tenantId,
-        ),
-      };
+      // The resources whose spans the caller may read: counted and listed.
+      const scope: TelemetryReadScope = await TelemetryReadAccess.getScope(
+        Span,
+        databaseProps,
+      );
+
+      const traceFilters: TraceFilters = scopeTraceFilters(
+        {
+          ...parseTraceFilterBody(body),
+          resourceScopes: await resolveResourceScopesFromBody(
+            body,
+            databaseProps.tenantId,
+          ),
+        },
+        scope,
+      );
 
       /*
        * Per-facet partial-match filter applied at the Postgres source-of-truth
@@ -1297,6 +1380,7 @@ router.post(
           facetKeys,
           facetSearchText,
           limit,
+          scope,
         });
       const wantsRootSpan: boolean = facetKeys.includes("isRootSpan");
       const wantsHasException: boolean = facetKeys.includes("hasException");
@@ -1452,6 +1536,7 @@ router.post(
         countsFor: (): Map<string, number> => {
           return serviceCounts;
         },
+        scope,
       });
 
       for (const key of Object.keys(resourceFacets)) {
@@ -1546,13 +1631,16 @@ router.post(
         ? Math.min(Math.max(Math.trunc(rawLimit), 1), 1000)
         : undefined;
 
-      const traceFilters: TraceFilters = {
-        ...parseTraceFilterBody(body),
-        resourceScopes: await resolveResourceScopesFromBody(
-          body,
-          databaseProps.tenantId,
-        ),
-      };
+      const traceFilters: TraceFilters = scopeTraceFilters(
+        {
+          ...parseTraceFilterBody(body),
+          resourceScopes: await resolveResourceScopesFromBody(
+            body,
+            databaseProps.tenantId,
+          ),
+        },
+        await TelemetryReadAccess.getScope(Span, databaseProps),
+      );
 
       const request: TraceAnalyticsRequest = {
         projectId: databaseProps.tenantId,
@@ -1661,12 +1749,19 @@ router.post(
         ? (body["messageSearchText"] as string)
         : undefined;
 
+      const serviceFilter: TelemetryServiceFilter =
+        await TelemetryReadAccess.getServiceFilter({
+          modelType: ExceptionInstance,
+          props: databaseProps,
+          requested: serviceIds,
+        });
+
       const request: ExceptionHistogramRequest = {
         projectId: databaseProps.tenantId,
         startTime,
         endTime,
         bucketSizeInMinutes,
-        serviceIds,
+        ...serviceFilter,
         exceptionTypes,
         environments,
         fingerprints,
@@ -1772,6 +1867,14 @@ router.post(
 
       const projectId: ObjectID = databaseProps.tenantId;
 
+      // The resources whose exceptions the caller may read: counted and listed.
+      const scope: TelemetryReadScope = await TelemetryReadAccess.getScope(
+        ExceptionInstance,
+        databaseProps,
+      );
+      const serviceFilter: TelemetryServiceFilter =
+        TelemetryReadScopeUtil.toServiceFilter(scope, serviceIds);
+
       /*
        * Per-facet ClickHouse query in parallel; per-facet errors degrade
        * gracefully to [] so a slow / failing facet can't block the others.
@@ -1788,6 +1891,7 @@ router.post(
         facetKeys,
         facetSearchText,
         limit,
+        scope,
         countFacet: (facetKey: string): Promise<Array<ExceptionFacetValue>> => {
           const request: ExceptionFacetRequest = {
             projectId,
@@ -1795,7 +1899,7 @@ router.post(
             endTime,
             facetKey,
             limit,
-            serviceIds,
+            ...serviceFilter,
             exceptionTypes,
             environments,
             fingerprints,
@@ -1875,6 +1979,14 @@ router.post(
 
       const projectId: ObjectID = databaseProps.tenantId;
 
+      // The resources whose metrics the caller may read: counted and listed.
+      const scope: TelemetryReadScope = await TelemetryReadAccess.getScope(
+        Metric,
+        databaseProps,
+      );
+      const serviceFilter: TelemetryServiceFilter =
+        TelemetryReadScopeUtil.toServiceFilter(scope, serviceIds);
+
       /*
        * Per-facet ClickHouse GROUP BY in parallel; per-facet errors degrade
        * to [] so a slow facet doesn't block the rest. Resource facets answer
@@ -1891,6 +2003,7 @@ router.post(
         facetKeys,
         facetSearchText,
         limit,
+        scope,
         countFacet: (facetKey: string): Promise<Array<MetricFacetValue>> => {
           const request: MetricFacetRequest = {
             projectId,
@@ -1898,7 +2011,7 @@ router.post(
             endTime,
             facetKey,
             limit,
-            serviceIds,
+            ...serviceFilter,
             metricNames,
             attributes,
           };
@@ -1965,12 +2078,19 @@ router.post(
           ? (body["limit"] as number)
           : undefined;
 
+      const serviceFilter: TelemetryServiceFilter =
+        await TelemetryReadAccess.getServiceFilter({
+          modelType: Metric,
+          props: databaseProps,
+        });
+
       const items: Array<MetricForTraceItem> =
         await MetricAggregationService.getMetricsForTrace({
           projectId: databaseProps.tenantId,
           traceId,
           ...(spanIds !== undefined && spanIds.length > 0 && { spanIds }),
           ...(limit !== undefined && { limit }),
+          ...serviceFilter,
         });
 
       return Response.sendJsonObjectResponse(req, res, {
@@ -2081,6 +2201,13 @@ router.post(
       const resourceScopes: Array<ResourceEntityScope> | undefined =
         await resolveResourceScopesFromBody(body, databaseProps.tenantId);
 
+      const serviceFilter: TelemetryServiceFilter =
+        await TelemetryReadAccess.getServiceFilter({
+          modelType: Log,
+          props: databaseProps,
+          requested: serviceIds,
+        });
+
       const request: AnalyticsRequest = {
         projectId: databaseProps.tenantId,
         startTime,
@@ -2090,7 +2217,7 @@ router.post(
         groupBy,
         aggregation,
         aggregationField,
-        serviceIds,
+        ...serviceFilter,
         resourceScopes,
         severityTexts,
         bodySearchText,
@@ -2234,7 +2361,10 @@ router.post(
         parseErrorPatternWindow(body);
 
       const request: TopErrorPatternsRequest = {
-        ...parseErrorPatternFilterBody(body, databaseProps.tenantId),
+        ...(await scopeErrorPatternFilters(
+          parseErrorPatternFilterBody(body, databaseProps.tenantId),
+          databaseProps,
+        )),
         ...window,
         resourceScopes: await resolveResourceScopesFromBody(
           body,
@@ -2309,7 +2439,10 @@ router.post(
           : computeDefaultBucketSize(window.startTime, window.endTime);
 
       const detailRequest: ErrorPatternTimelineRequest = {
-        ...parseErrorPatternFilterBody(body, databaseProps.tenantId),
+        ...(await scopeErrorPatternFilters(
+          parseErrorPatternFilterBody(body, databaseProps.tenantId),
+          databaseProps,
+        )),
         ...window,
         resourceScopes: await resolveResourceScopesFromBody(
           body,
@@ -2432,13 +2565,20 @@ router.post(
         ? (body["sessionIds"] as Array<string>)
         : undefined;
 
+      const serviceFilter: TelemetryServiceFilter =
+        await TelemetryReadAccess.getServiceFilter({
+          modelType: Log,
+          props: databaseProps,
+          requested: serviceIds,
+        });
+
       const rows: Array<JSONObject> = await LogAggregationService.getExportLogs(
         {
           projectId: databaseProps.tenantId,
           startTime,
           endTime,
           limit,
-          serviceIds,
+          ...serviceFilter,
           severityTexts,
           bodySearchText,
           traceIds,
@@ -2541,6 +2681,22 @@ router.post(
         ? (body["sessionIds"] as Array<string>)
         : undefined;
 
+      /*
+       * The surrounding lines of a resource whose logs the caller may not
+       * read are what a resource with no logs has: none.
+       */
+      if (
+        !TelemetryReadScopeUtil.isReadable(
+          await TelemetryReadAccess.getScope(Log, databaseProps),
+          primaryEntityId,
+        )
+      ) {
+        return Response.sendJsonObjectResponse(req, res, {
+          before: [],
+          after: [],
+        });
+      }
+
       const result: {
         before: Array<JSONObject>;
         after: Array<JSONObject>;
@@ -2626,7 +2782,11 @@ router.post(
         startTime,
         endTime,
         filterQuery,
-        serviceIds,
+        ...(await TelemetryReadAccess.getServiceFilter({
+          modelType: Log,
+          props: databaseProps,
+          requested: serviceIds,
+        })),
         severityTexts,
       });
 
@@ -2642,6 +2802,66 @@ router.post(
 );
 
 // --- Helpers ---
+
+/*
+ * The trace filters narrowed to the spans the caller may read: the
+ * services they asked for that they may read (or every one they may, when
+ * they asked for none), and never a blocked one.
+ */
+function scopeTraceFilters(
+  filters: TraceFilters,
+  scope: TelemetryReadScope,
+): TraceFilters {
+  return {
+    ...filters,
+    ...TelemetryReadScopeUtil.toServiceFilter(scope, filters.serviceIds),
+  };
+}
+
+/*
+ * The error-pattern filters narrowed to the logs the caller may read, the
+ * same way for the top list and every drill-down so they agree.
+ */
+async function scopeErrorPatternFilters(
+  filters: Omit<ErrorPatternFilters, "startTime" | "endTime">,
+  databaseProps: DatabaseCommonInteractionProps,
+): Promise<Omit<ErrorPatternFilters, "startTime" | "endTime">> {
+  return {
+    ...filters,
+    ...(await TelemetryReadAccess.getServiceFilter({
+      modelType: Log,
+      props: databaseProps,
+      requested: filters.serviceIds,
+    })),
+  };
+}
+
+/*
+ * The profile reads' service filter, in the shape their requests take:
+ * no key at all for a value that is not set.
+ */
+async function getProfileServiceFilter(
+  modelType: typeof Profile | typeof ProfileSample,
+  databaseProps: DatabaseCommonInteractionProps,
+  requested: Array<ObjectID> | undefined,
+): Promise<{
+  serviceIds?: Array<ObjectID>;
+  excludedServiceIds?: Array<ObjectID>;
+}> {
+  const filter: TelemetryServiceFilter =
+    await TelemetryReadAccess.getServiceFilter({
+      modelType: modelType,
+      props: databaseProps,
+      requested: requested,
+    });
+
+  return {
+    ...(filter.serviceIds !== undefined && { serviceIds: filter.serviceIds }),
+    ...(filter.excludedServiceIds !== undefined && {
+      excludedServiceIds: filter.excludedServiceIds,
+    }),
+  };
+}
 
 function computeDefaultBucketSize(startTime: Date, endTime: Date): number {
   const diffMs: number = endTime.getTime() - startTime.getTime();
@@ -2768,7 +2988,11 @@ router.post(
         ...(profileId !== undefined && { profileId }),
         ...(startTime !== undefined && { startTime }),
         ...(endTime !== undefined && { endTime }),
-        ...(serviceIds !== undefined && { serviceIds }),
+        ...(await getProfileServiceFilter(
+          ProfileSample,
+          databaseProps,
+          serviceIds,
+        )),
         ...(profileType !== undefined && { profileType }),
         ...(profileTypes !== undefined &&
           profileTypes.length > 0 && { profileTypes }),
@@ -2892,7 +3116,11 @@ router.post(
         ...(startTime !== undefined && { startTime }),
         ...(endTime !== undefined && { endTime }),
         ...(profileId !== undefined && { profileId }),
-        ...(serviceIds !== undefined && { serviceIds }),
+        ...(await getProfileServiceFilter(
+          ProfileSample,
+          databaseProps,
+          serviceIds,
+        )),
         ...(profileType !== undefined && { profileType }),
         ...(profileTypes !== undefined &&
           profileTypes.length > 0 && { profileTypes }),
@@ -2966,6 +3194,7 @@ router.post(
         projectId: databaseProps.tenantId,
         startTime,
         endTime,
+        ...(await getProfileServiceFilter(Profile, databaseProps, undefined)),
         ...(profileType !== undefined && { profileType }),
         ...(profileTypes !== undefined &&
           profileTypes.length > 0 && { profileTypes }),
@@ -3015,12 +3244,29 @@ router.get(
         );
       }
 
+      /*
+       * Both reads run as root, so they are narrowed to the profiles of
+       * resources the caller may read here; any other profile is "not
+       * found", like one that does not exist.
+       */
+      const [profileScope, sampleScope]: [
+        TelemetryReadScope,
+        TelemetryReadScope,
+      ] = await Promise.all([
+        TelemetryReadAccess.getScope(Profile, databaseProps),
+        TelemetryReadAccess.getScope(ProfileSample, databaseProps),
+      ]);
+
       // Fetch profile metadata
       const profiles: Array<Profile> = await ProfileService.findBy({
-        query: {
-          projectId: databaseProps.tenantId,
-          profileId: profileId,
-        },
+        query: TelemetryReadScopeUtil.applyToQuery(
+          {
+            projectId: databaseProps.tenantId,
+            profileId: profileId,
+          },
+          "primaryEntityId",
+          profileScope,
+        ),
         select: {
           profileId: true,
           profileType: true,
@@ -3051,10 +3297,14 @@ router.get(
       // Fetch profile samples
       const samplesResult: Array<ProfileSample> =
         await ProfileSampleService.findBy({
-          query: {
-            projectId: databaseProps.tenantId,
-            profileId: profileId,
-          },
+          query: TelemetryReadScopeUtil.applyToQuery(
+            {
+              projectId: databaseProps.tenantId,
+              profileId: profileId,
+            },
+            "primaryEntityId",
+            sampleScope,
+          ),
           select: {
             stacktrace: true,
             value: true,
@@ -3193,7 +3443,11 @@ router.post(
         baselineEndTime,
         comparisonStartTime,
         comparisonEndTime,
-        ...(serviceIds !== undefined && { serviceIds }),
+        ...(await getProfileServiceFilter(
+          ProfileSample,
+          databaseProps,
+          serviceIds,
+        )),
         ...(profileType !== undefined && { profileType }),
         ...(profileTypes !== undefined &&
           profileTypes.length > 0 && { profileTypes }),
@@ -3330,7 +3584,11 @@ router.post(
         ...(profileId !== undefined && { profileId }),
         ...(startTime !== undefined && { startTime }),
         ...(endTime !== undefined && { endTime }),
-        ...(serviceIds !== undefined && { serviceIds }),
+        ...(await getProfileServiceFilter(
+          ProfileSample,
+          databaseProps,
+          serviceIds,
+        )),
         ...(profileType !== undefined && { profileType }),
         ...(profileTypes !== undefined &&
           profileTypes.length > 0 && { profileTypes }),
@@ -3439,7 +3697,7 @@ router.post(
         startTime,
         endTime,
         breakdownBy,
-        ...(serviceIds !== undefined && { serviceIds }),
+        ...(await getProfileServiceFilter(Profile, databaseProps, serviceIds)),
         ...(profileType !== undefined && { profileType }),
         ...(profileTypes !== undefined &&
           profileTypes.length > 0 && { profileTypes }),
@@ -3509,6 +3767,11 @@ router.post(
           projectId: databaseProps.tenantId,
           traceId,
           ...(spanIds !== undefined && spanIds.length > 0 && { spanIds }),
+          ...(await getProfileServiceFilter(
+            ProfileSample,
+            databaseProps,
+            undefined,
+          )),
         });
 
       return Response.sendJsonObjectResponse(req, res, {
@@ -3684,119 +3947,38 @@ const SESSION_REPLAY_IDENTITY_PERMISSIONS: Array<Permission> = [
 ];
 
 /*
- * Label scope for a set of permissions, mirroring the private
- * AccessControlPermission.getAccessControlIdsByPermissions.
+ * Whose session replays the caller may read under a set of permissions: the
+ * RUM applications their grants reach, by the rule every telemetry read
+ * follows (TelemetryReadAccess.getScopeForPermissions) - a grant that
+ * reaches the whole project reads every application, a label grant the
+ * applications carrying its labels, an Owned grant the applications the
+ * caller or one of their teams owns, and a block with labels takes away the
+ * applications carrying them. A block with no labels on any of the
+ * permissions refuses.
  *
- * Returned as a discriminated result rather than as an array whose
- * emptiness has to be interpreted. An empty array previously meant BOTH
- * "unrestricted" and "we could not work out a restriction", and every
- * caller read it as the former - which is a fail-OPEN default for the one
- * kind of answer that must fail closed.
- *
- * Reimplemented here rather than routed through RumApplicationService
- * with the caller's props on purpose: RumApplication's own read ACL
- * requires ReadRumApplication / ProjectMember / Viewer, none of which a
- * narrowly-scoped session-replay reviewer necessarily holds, so going
- * through it would deny legitimate callers.
+ * Asked with the route's own permission list rather than through
+ * RumApplicationService with the caller's props on purpose:
+ * RumApplication's own read ACL requires ReadRumApplication / ProjectMember
+ * / Viewer, none of which a narrowly-scoped session-replay reviewer
+ * necessarily holds, so going through it would deny legitimate callers.
  */
-type SessionReplayScope =
-  | { isUnrestricted: true }
-  /*
-   * At least one label the RUM application must carry. An EMPTY array
-   * here means the caller reaches nothing at all, which is a real and
-   * different answer from "unrestricted".
-   */
-  | { isUnrestricted: false; labelIds: Array<ObjectID> };
-
-type SessionReplayLabelScopeFunction = (
+type SessionReplayScopeFunction = (
   databaseProps: DatabaseCommonInteractionProps,
   permissions: Array<Permission>,
-) => SessionReplayScope;
+) => Promise<TelemetryReadScope>;
 
-const getSessionReplayLabelScope: SessionReplayLabelScopeFunction = (
+const getSessionReplayScope: SessionReplayScopeFunction = async (
   databaseProps: DatabaseCommonInteractionProps,
   permissions: Array<Permission>,
-): SessionReplayScope => {
-  if (databaseProps.isRoot || databaseProps.isMasterAdmin) {
-    return { isUnrestricted: true };
-  }
-
-  const userPermissions: Array<UserPermission> =
-    DatabaseCommonInteractionPropsUtil.getUserPermissions(
-      databaseProps,
-      PermissionType.Allow,
-    );
-
-  const unscopedPermissions: Array<Permission> =
-    PermissionHelper.getNonAccessControlPermissions(userPermissions);
-
-  if (
-    PermissionHelper.doesPermissionsIntersect(permissions, unscopedPermissions)
-  ) {
-    return { isUnrestricted: true };
-  }
-
-  const scopedPermissions: Array<UserPermission> =
-    PermissionHelper.getAccessControlPermissions(userPermissions);
-
-  const labelIds: Array<ObjectID> = [];
-
-  for (const permission of permissions) {
-    for (const scopedPermission of scopedPermissions) {
-      if (
-        scopedPermission.permission === permission &&
-        scopedPermission.labelIds.length > 0
-      ) {
-        labelIds.push(...scopedPermission.labelIds);
-      }
-    }
-  }
-
-  if (labelIds.length > 0) {
-    return { isUnrestricted: false, labelIds: labelIds };
-  }
-
-  /*
-   * Neither an unscoped grant nor a label-scoped one, yet the route guard
-   * let the caller in - so the grant they hold carries a scope this
-   * bespoke path does not implement. PermissionScope.Owned is the real
-   * case: both PermissionHelper filters exclude Owned rows on purpose
-   * because the ORM enforces them through
-   * OwnedScopePermission.addOwnedScopeToQuery, and there is no such step
-   * here. Refusing is the only safe answer; returning "no labels" would
-   * hand an administrator's deliberately narrowed reviewer the whole
-   * project.
-   */
-  const hasOwnedScopedGrant: boolean = userPermissions.some(
-    (userPermission: UserPermission): boolean => {
-      return (
-        userPermission.scope === PermissionScope.Owned &&
-        permissions.includes(userPermission.permission)
-      );
-    },
-  );
-
-  if (hasOwnedScopedGrant) {
-    throw new NotAuthorizedException(
-      "Owned-scoped session replay permissions are not supported. Ask an administrator to scope this permission to labels instead.",
-    );
-  }
-
-  /*
-   * No applicable grant at all. This is reachable even behind the route
-   * guard, because the guard matches on permission NAME across every
-   * tenant permission row while getUserPermissions drops block rows. It
-   * means the caller reaches no application, not every application.
-   */
-  return { isUnrestricted: false, labelIds: [] };
+): Promise<TelemetryReadScope> => {
+  return await TelemetryReadAccess.getScopeForPermissions({
+    props: databaseProps,
+    permissions: permissions,
+    // A recording belongs to the RUM application that captured it.
+    resourceTypes: ["RumApplication"],
+    recordName: "session replays",
+  });
 };
-
-/*
- * Ceiling on the RUM applications scanned when resolving a label-scoped
- * caller's reachable set. RUM is keyed by application (service.name), not
- * by end-user device, so a project has tens of these, not millions.
- */
-const MAX_RUM_APPLICATIONS_SCANNED: number = 1000;
 
 /*
  * Plan gate for the replay reads.
@@ -3838,23 +4020,6 @@ const assertSessionReplayPlan: AssertSessionReplayPlanFunction = (
   }
 };
 
-/* Label ids carried by a RUM application, read as root. */
-type GetRumApplicationLabelIdsFunction = (
-  application: RumApplication,
-) => Array<string>;
-
-const getRumApplicationLabelIds: GetRumApplicationLabelIdsFunction = (
-  application: RumApplication,
-): Array<string> => {
-  return (application.labels || [])
-    .filter((label: Label): boolean => {
-      return Boolean(label.id);
-    })
-    .map((label: Label): string => {
-      return label.id!.toString();
-    });
-};
-
 /*
  * Confirm the caller may reach this RUM application.
  *
@@ -3864,35 +4029,56 @@ const getRumApplicationLabelIds: GetRumApplicationLabelIdsFunction = (
  * application they do happen to have access to while reading a session
  * from one they do not.
  *
- * The application is loaded as root and the label intersection is done
- * here rather than pushed into the query, because the caller may
- * legitimately hold no RumApplication read permission at all (see the
- * note on getSessionReplayLabelScope) and because the many-to-many label
- * predicate has no typed form on the ORM query surface. Project scope is
- * already guaranteed: the header row was fetched with
- * `WHERE projectId = <tenantId>`, so the id cannot come from another
- * project.
+ * The application is loaded as root and checked against the caller's
+ * scope here rather than through the ORM with the caller's props, because
+ * the caller may legitimately hold no RumApplication read permission at
+ * all (see the note on getSessionReplayScope). Project scope is already
+ * guaranteed: the header row was fetched with `WHERE projectId =
+ * <tenantId>`, so the id cannot come from another project.
  */
 type IsApplicationInSessionReplayScopeFunction = (data: {
-  scope: SessionReplayScope;
+  databaseProps: DatabaseCommonInteractionProps;
+  permissions: Array<Permission>;
   application: RumApplication;
-}) => boolean;
+}) => Promise<boolean>;
 
 const isApplicationInSessionReplayScope: IsApplicationInSessionReplayScopeFunction =
-  (data: {
-    scope: SessionReplayScope;
+  async (data: {
+    databaseProps: DatabaseCommonInteractionProps;
+    permissions: Array<Permission>;
     application: RumApplication;
-  }): boolean => {
-    if (data.scope.isUnrestricted) {
-      return true;
+  }): Promise<boolean> => {
+    const application: RumApplication = data.application;
+
+    if (!application.id) {
+      return false;
     }
 
-    const applicationLabelIds: Array<string> = getRumApplicationLabelIds(
-      data.application,
-    );
-
-    return data.scope.labelIds.some((labelId: ObjectID): boolean => {
-      return applicationLabelIds.includes(labelId.toString());
+    /*
+     * Decided from the application itself - its labels, which the
+     * short-lived cache below holds with it, and its owners, looked up only
+     * for an Owned grant - by the rule every telemetry read follows
+     * (TelemetryReadAccess), so a page of playback asks nothing of the
+     * database for a decision it can make from what it already has.
+     */
+    return await TelemetryReadAccess.isResourceReadableForPermissions({
+      props: data.databaseProps,
+      permissions: data.permissions,
+      resourceTypes: ["RumApplication"],
+      recordName: "session replays",
+      resource: {
+        id: application.id.toString(),
+        labelIds: (application.labels || [])
+          .map((label: Label): string => {
+            return label.id ? label.id.toString() : "";
+          })
+          .filter((labelId: string): boolean => {
+            return labelId.length > 0;
+          }),
+        getOwners: (): Promise<RumApplicationOwners> => {
+          return getRumApplicationOwners(application);
+        },
+      },
     });
   };
 
@@ -4014,6 +4200,45 @@ const loadRumApplicationForAccess: LoadRumApplicationForAccessFunction =
     return application;
   };
 
+/*
+ * The users and teams that own a RUM application, for an Owned grant's
+ * decision. Looked up the first time a decision needs them and kept with
+ * the application object - which the cache above holds for its TTL - so a
+ * playback looks them up once, not once per page.
+ */
+interface RumApplicationOwners {
+  userIds: Array<string>;
+  teamIds: Array<string>;
+}
+
+const rumApplicationOwners: WeakMap<
+  RumApplication,
+  Promise<RumApplicationOwners>
+> = new WeakMap<RumApplication, Promise<RumApplicationOwners>>();
+
+type GetRumApplicationOwnersFunction = (
+  application: RumApplication,
+) => Promise<RumApplicationOwners>;
+
+const getRumApplicationOwners: GetRumApplicationOwnersFunction = (
+  application: RumApplication,
+): Promise<RumApplicationOwners> => {
+  return PromiseCache.lookUpOnce(
+    rumApplicationOwners,
+    application,
+    (): Promise<RumApplicationOwners> => {
+      /*
+       * Through the owner table registry, as an Owned grant's scope reads
+       * every application's owners (TelemetryReadAccess.getResourceOwners).
+       */
+      return TelemetryReadAccess.getResourceOwners({
+        resourceType: "RumApplication",
+        resourceId: new ObjectID(application.id!.toString()),
+      });
+    },
+  );
+};
+
 type AssertSessionReplayApplicationAccessFunction = (data: {
   projectId: ObjectID;
   rumApplicationId: ObjectID;
@@ -4031,10 +4256,17 @@ const assertSessionReplayApplicationAccess: AssertSessionReplayApplicationAccess
     permissions: Array<Permission>;
     allowCached?: boolean | undefined;
   }): Promise<RumApplication> => {
-    const scope: SessionReplayScope = getSessionReplayLabelScope(
-      data.databaseProps,
-      data.permissions,
-    );
+    /*
+     * A block with no labels on these permissions refuses before anything
+     * is looked up; a grant over the whole project with no block with
+     * labels reads every application.
+     */
+    const readsEveryApplication: boolean =
+      TelemetryReadAccess.readsEveryResourceForPermissions({
+        props: data.databaseProps,
+        permissions: data.permissions,
+        recordName: "session replays",
+      });
 
     const application: RumApplication | null =
       await loadRumApplicationForAccess({
@@ -4055,10 +4287,12 @@ const assertSessionReplayApplicationAccess: AssertSessionReplayApplicationAccess
     }
 
     if (
-      !isApplicationInSessionReplayScope({
-        scope: scope,
+      !readsEveryApplication &&
+      !(await isApplicationInSessionReplayScope({
+        databaseProps: data.databaseProps,
+        permissions: data.permissions,
         application: application,
-      })
+      }))
     ) {
       throw new NotAuthorizedException(
         "You do not have access to session replays for this application.",
@@ -4079,41 +4313,56 @@ const assertSessionReplayApplicationAccess: AssertSessionReplayApplicationAccess
  * only the permission name would hand them named end users for every
  * application in the project.
  */
+/*
+ * Whether a failed scope decision is the scope refusing (a block with no
+ * labels, a permission row the rule cannot read) rather than the lookup
+ * behind it failing: only a refusal becomes "not allowed" for an optional
+ * column or listing.
+ */
+type IsSessionReplayScopeRefusalFunction = (err: unknown) => boolean;
+
+const isSessionReplayScopeRefusal: IsSessionReplayScopeRefusalFunction = (
+  err: unknown,
+): boolean => {
+  return (
+    err instanceof NotAuthorizedException || err instanceof BadDataException
+  );
+};
+
 type CanReadIdentifiedUserLabelFunction = (data: {
   databaseProps: DatabaseCommonInteractionProps;
   application: RumApplication;
-}) => boolean;
+}) => Promise<boolean>;
 
-const canReadIdentifiedUserLabel: CanReadIdentifiedUserLabelFunction = (data: {
-  databaseProps: DatabaseCommonInteractionProps;
-  application: RumApplication;
-}): boolean => {
-  let scope: SessionReplayScope;
-
-  try {
-    scope = getSessionReplayLabelScope(
-      data.databaseProps,
-      SESSION_REPLAY_IDENTITY_PERMISSIONS,
-    );
-  } catch {
-    /*
-     * getSessionReplayLabelScope refuses a scope it cannot enforce. For
-     * an optional column the right answer is to omit the column, not to
-     * fail the whole listing the caller is otherwise entitled to.
-     */
-    return false;
-  }
-
-  return isApplicationInSessionReplayScope({
-    scope: scope,
-    application: data.application,
-  });
-};
+const canReadIdentifiedUserLabel: CanReadIdentifiedUserLabelFunction =
+  async (data: {
+    databaseProps: DatabaseCommonInteractionProps;
+    application: RumApplication;
+  }): Promise<boolean> => {
+    try {
+      return await isApplicationInSessionReplayScope({
+        databaseProps: data.databaseProps,
+        permissions: SESSION_REPLAY_IDENTITY_PERMISSIONS,
+        application: data.application,
+      });
+    } catch (err: unknown) {
+      /*
+       * A block refuses the identity grant. For an optional column the right
+       * answer is to omit the column, not to fail the whole listing the
+       * caller is otherwise entitled to. Anything else - the owners'
+       * lookup failing - is an error, not an answer.
+       */
+      if (isSessionReplayScopeRefusal(err)) {
+        return false;
+      }
+      throw err;
+    }
+  };
 
 type CanReadSessionReplayListMetadataFunction = (data: {
   databaseProps: DatabaseCommonInteractionProps;
   application: RumApplication;
-}) => boolean;
+}) => Promise<boolean>;
 
 /*
  * Audit-only roles may load the summaries route so the optional request can
@@ -4123,120 +4372,78 @@ type CanReadSessionReplayListMetadataFunction = (data: {
  * scope shapes into "no metadata" rather than an authorization error.
  */
 const canReadSessionReplayListMetadata: CanReadSessionReplayListMetadataFunction =
-  (data: {
+  async (data: {
     databaseProps: DatabaseCommonInteractionProps;
     application: RumApplication;
-  }): boolean => {
-    let scope: SessionReplayScope;
-
+  }): Promise<boolean> => {
     try {
-      scope = getSessionReplayLabelScope(
-        data.databaseProps,
-        SESSION_REPLAY_LIST_PERMISSIONS,
-      );
-    } catch {
-      return false;
+      return await isApplicationInSessionReplayScope({
+        databaseProps: data.databaseProps,
+        permissions: SESSION_REPLAY_LIST_PERMISSIONS,
+        application: data.application,
+      });
+    } catch (err: unknown) {
+      if (isSessionReplayScopeRefusal(err)) {
+        return false;
+      }
+      throw err;
     }
-
-    return isApplicationInSessionReplayScope({
-      scope: scope,
-      application: data.application,
-    });
   };
 
 /*
- * The set of applications a label-scoped caller may reach, for the
- * project-wide exception lookup which has no single application to
- * resolve. null means unrestricted; an empty array means the caller can
- * reach none, which must return no rows rather than everything.
+ * The applications a caller may reach, for the project-wide reads that have
+ * no single application to authorize against (resolving session ids, the
+ * sessions an exception was seen in).
  */
 interface AccessibleRumApplications {
-  /* null means unrestricted; see getSessionsForException. */
-  applicationIds: Array<ObjectID> | null;
   /*
-   * True when the project holds more RUM applications than one scan can
-   * cover, so the accessible set may be short. Surfaced rather than
-   * swallowed: a quietly incomplete answer to "which sessions saw this
-   * exception" is the same failure mode as timeout_overflow_mode =
-   * 'break', which this whole read path refuses elsewhere.
+   * null: every application of the project (less excludedApplicationIds).
+   * An empty list: none at all, which must return no rows rather than
+   * everything.
    */
-  isTruncated: boolean;
+  applicationIds: Array<ObjectID> | null;
+  // The applications a block with labels takes away, whatever else holds.
+  excludedApplicationIds: Array<ObjectID>;
 }
 
 type ResolveAccessibleRumApplicationIdsFunction = (data: {
-  projectId: ObjectID;
   databaseProps: DatabaseCommonInteractionProps;
   permissions: Array<Permission>;
 }) => Promise<AccessibleRumApplications>;
 
+/*
+ * The caller's session replay scope as application ids: a label or Owned
+ * grant names the applications it reaches, a grant that reaches the whole
+ * project reads every application, and a block with labels takes the
+ * applications carrying them away - passed on as an exclusion, so nothing
+ * has to list the project's applications to apply it.
+ */
 const resolveAccessibleRumApplicationIds: ResolveAccessibleRumApplicationIdsFunction =
   async (data: {
-    projectId: ObjectID;
     databaseProps: DatabaseCommonInteractionProps;
     permissions: Array<Permission>;
   }): Promise<AccessibleRumApplications> => {
-    const scope: SessionReplayScope = getSessionReplayLabelScope(
+    const scope: TelemetryReadScope = await getSessionReplayScope(
       data.databaseProps,
       data.permissions,
     );
 
-    if (scope.isUnrestricted) {
-      return { applicationIds: null, isTruncated: false };
-    }
+    const readableIds: Array<string> | null =
+      TelemetryReadScopeUtil.getReadableIds(scope);
 
-    if (scope.labelIds.length === 0) {
-      /* Reaches no application at all - not "reaches everything". */
-      return { applicationIds: [], isTruncated: false };
-    }
-
-    const applications: Array<RumApplication> =
-      await RumApplicationService.findBy({
-        query: {
-          projectId: data.projectId,
+    return {
+      applicationIds:
+        readableIds === null
+          ? null
+          : readableIds.map((id: string): ObjectID => {
+              return new ObjectID(id);
+            }),
+      excludedApplicationIds: TelemetryReadScopeUtil.getBlockedIds(scope).map(
+        (id: string): ObjectID => {
+          return new ObjectID(id);
         },
-        select: {
-          _id: true,
-          labels: {
-            _id: true,
-          },
-        },
-        /*
-         * A deterministic sort so the page that is scanned is at least
-         * stable between calls, and one row past the ceiling so hitting
-         * it is detectable rather than indistinguishable from a project
-         * that happens to have exactly that many applications.
-         */
-        sort: {
-          createdAt: SortOrder.Ascending,
-        },
-        skip: 0,
-        limit: MAX_RUM_APPLICATIONS_SCANNED + 1,
-        props: {
-          isRoot: true,
-        },
-      });
-
-    const isTruncated: boolean =
-      applications.length > MAX_RUM_APPLICATIONS_SCANNED;
-
-    const accessibleIds: Array<ObjectID> = [];
-
-    for (const application of applications.slice(
-      0,
-      MAX_RUM_APPLICATIONS_SCANNED,
-    )) {
-      if (
-        isApplicationInSessionReplayScope({
-          scope: scope,
-          application: application,
-        }) &&
-        application.id
-      ) {
-        accessibleIds.push(application.id);
-      }
-    }
-
-    return { applicationIds: accessibleIds, isTruncated: isTruncated };
+      ),
+    };
   };
 
 interface AuthorizedSession {
@@ -4282,20 +4489,19 @@ const isApplicationInSessionReplayScopeById: IsApplicationInSessionReplayScopeBy
     rumApplicationId: string;
     databaseProps: DatabaseCommonInteractionProps;
   }): Promise<boolean> => {
-    let scope: SessionReplayScope;
-
     try {
-      scope = getSessionReplayLabelScope(
-        data.databaseProps,
-        SESSION_REPLAY_PAYLOAD_PERMISSIONS,
-      );
+      if (
+        TelemetryReadAccess.readsEveryResourceForPermissions({
+          props: data.databaseProps,
+          permissions: SESSION_REPLAY_PAYLOAD_PERMISSIONS,
+          recordName: "session replays",
+        })
+      ) {
+        return true;
+      }
     } catch {
-      /* A scope this path cannot enforce is refused, never widened. */
+      /* A refused grant is refused here too, never widened. */
       return false;
-    }
-
-    if (scope.isUnrestricted) {
-      return true;
     }
 
     if (!ObjectID.isValidUUID(data.rumApplicationId)) {
@@ -4313,10 +4519,15 @@ const isApplicationInSessionReplayScopeById: IsApplicationInSessionReplayScopeBy
       return false;
     }
 
-    return isApplicationInSessionReplayScope({
-      scope: scope,
-      application: application,
-    });
+    try {
+      return await isApplicationInSessionReplayScope({
+        databaseProps: data.databaseProps,
+        permissions: SESSION_REPLAY_PAYLOAD_PERMISSIONS,
+        application: application,
+      });
+    } catch {
+      return false;
+    }
   };
 
 type ExplainMissingSessionFunction = (data: {
@@ -4950,10 +5161,11 @@ router.post(
        * genuinely different: SESSION_REPLAY_IDENTITY_PERMISSIONS excludes
        * TelemetryAdmin and ReadRumSessionReplay, both of which can list.
        */
-      const includeIdentifiedUserLabel: boolean = canReadIdentifiedUserLabel({
-        databaseProps: databaseProps,
-        application: application,
-      });
+      const includeIdentifiedUserLabel: boolean =
+        await canReadIdentifiedUserLabel({
+          databaseProps: databaseProps,
+          application: application,
+        });
 
       const rawFilters: JSONObject = (body["filters"] as JSONObject) || {};
 
@@ -5295,10 +5507,10 @@ router.post(
         });
 
       if (
-        !canReadSessionReplayListMetadata({
+        !(await canReadSessionReplayListMetadata({
           databaseProps: databaseProps,
           application: application,
-        })
+        }))
       ) {
         return Response.sendJsonObjectResponse(req, res, { sessions: [] });
       }
@@ -5363,7 +5575,6 @@ router.post(
 
       const accessibleApplications: AccessibleRumApplications =
         await resolveAccessibleRumApplicationIds({
-          projectId: projectId,
           databaseProps: databaseProps,
           permissions: SESSION_REPLAY_LIST_PERMISSIONS,
         });
@@ -5373,11 +5584,17 @@ router.post(
           projectId: projectId,
           sessionIds: sessionIds,
           accessibleRumApplicationIds: accessibleApplications.applicationIds,
+          excludedRumApplicationIds:
+            accessibleApplications.excludedApplicationIds,
         });
 
       return Response.sendJsonObjectResponse(req, res, {
         sessions: sessions as unknown as JSONArray,
-        isApplicationScopeTruncated: accessibleApplications.isTruncated,
+        /*
+         * The scope names the applications it reaches without listing the
+         * project's applications, so the answer is never cut short.
+         */
+        isApplicationScopeTruncated: false,
       });
     } catch (err: unknown) {
       next(err);
@@ -5513,10 +5730,11 @@ router.post(
        * Decided against the application the access check loaded, exactly
        * as on /list, and enforced by not naming the columns.
        */
-      const includeIdentifiedUserLabel: boolean = canReadIdentifiedUserLabel({
-        databaseProps: databaseProps,
-        application: application,
-      });
+      const includeIdentifiedUserLabel: boolean =
+        await canReadIdentifiedUserLabel({
+          databaseProps: databaseProps,
+          application: application,
+        });
 
       const cursor: SessionReplayUsersCursor | null | undefined =
         body["cursor"] !== undefined && body["cursor"] !== null
@@ -5808,7 +6026,7 @@ router.post(
       let identity: SessionReplaySessionIdentity | null = null;
 
       if (
-        canReadIdentifiedUserLabel({
+        await canReadIdentifiedUserLabel({
           databaseProps: databaseProps,
           application: authorized.application,
         })
@@ -6431,7 +6649,6 @@ router.post(
        */
       const accessibleApplications: AccessibleRumApplications =
         await resolveAccessibleRumApplicationIds({
-          projectId: projectId,
           databaseProps: databaseProps,
           permissions: SESSION_REPLAY_LIST_PERMISSIONS,
         });
@@ -6487,6 +6704,8 @@ router.post(
           ...(primaryEntityId !== undefined && { primaryEntityId }),
           ...(primaryEntityType !== undefined && { primaryEntityType }),
           accessibleRumApplicationIds: accessibleApplications.applicationIds,
+          excludedRumApplicationIds:
+            accessibleApplications.excludedApplicationIds,
           ...(startTime !== undefined && { startTime }),
           ...(endTime !== undefined && { endTime }),
           ...(typeof pinnedSessionId === "string" &&
@@ -6500,11 +6719,8 @@ router.post(
 
       return Response.sendJsonObjectResponse(req, res, {
         sessions: sessions as unknown as JSONObject,
-        /*
-         * Told, not hidden: the accessible-application scan has a ceiling,
-         * and a caller who hits it is looking at a possibly short answer.
-         */
-        isApplicationScopeTruncated: accessibleApplications.isTruncated,
+        // Never cut short: see /session-replay/resolve.
+        isApplicationScopeTruncated: false,
       });
     } catch (err: unknown) {
       next(err);

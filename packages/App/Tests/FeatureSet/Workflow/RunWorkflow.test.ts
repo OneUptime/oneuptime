@@ -14,6 +14,11 @@ import ComponentMetadata, {
 } from "Common/Types/Workflow/Component";
 import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
 import logger from "Common/Server/Utils/Logger";
+import Components from "Common/Server/Types/Workflow/Components/Index";
+import ComponentCode, {
+  RunOptions,
+  RunReturnType,
+} from "Common/Server/Types/Workflow/ComponentCode";
 import RunWorkflow, {
   WORKFLOW_LOG_REDACTED_VALUE,
   RunStack,
@@ -513,5 +518,94 @@ describe("RunWorkflow sensitive logging and deadlines", () => {
     expect(persisted.workflowStatus).toBe(WorkflowStatus.Timeout);
     expect(persisted.logs).toContain("Workflow Timed out.");
     expect(persisted.logs).not.toContain("Executing Component");
+  });
+});
+
+/*
+ * A step acts as a Project Admin of the workflow's project and as no person
+ * (WorkflowPrincipal), so what it changes is attributed to the workflow: the
+ * runner hands every step the workflow it belongs to - its project, its id
+ * and its name.
+ */
+describe("RunWorkflow hands each step the workflow it runs for", () => {
+  const registry: Record<string, ComponentCode | undefined> =
+    Components as unknown as Record<string, ComponentCode | undefined>;
+
+  beforeEach(() => {
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+  });
+
+  afterEach(() => {
+    delete registry["TestWorkflowComponent"];
+    jest.restoreAllMocks();
+  });
+
+  test("by project, id and name", async () => {
+    let received: RunOptions | undefined = undefined;
+
+    registry["TestWorkflowComponent"] = {
+      run: async (
+        _args: JSONObject,
+        options: RunOptions,
+      ): Promise<RunReturnType> => {
+        received = options;
+        return { returnValues: {}, executePort: undefined };
+      },
+    } as unknown as ComponentCode;
+
+    const componentNode: NodeDataProp = node(metadata());
+    const runner: RunWorkflow = new RunWorkflow();
+    prepareSingleComponentRun(runner, componentNode);
+
+    const named: Workflow = workflow();
+    named.name = "Close stale incidents";
+    jest
+      .spyOn(
+        WorkflowService as unknown as WorkflowServiceForTest,
+        "findOneById",
+      )
+      .mockResolvedValue(named);
+
+    await runner.runWorkflow({
+      arguments: {},
+      workflowId: WORKFLOW_ID,
+      workflowLogId: WORKFLOW_LOG_ID,
+      timeout: 5_000,
+    });
+
+    expect(received).toBeDefined();
+    expect(received!.workflowName).toBe("Close stale incidents");
+    expect(received!.workflowId.toString()).toBe(WORKFLOW_ID.toString());
+    expect(received!.projectId.toString()).toBe(PROJECT_ID.toString());
+  });
+
+  test("a workflow with no name gives its steps none", async () => {
+    let received: RunOptions | undefined = undefined;
+
+    registry["TestWorkflowComponent"] = {
+      run: async (
+        _args: JSONObject,
+        options: RunOptions,
+      ): Promise<RunReturnType> => {
+        received = options;
+        return { returnValues: {}, executePort: undefined };
+      },
+    } as unknown as ComponentCode;
+
+    const componentNode: NodeDataProp = node(metadata());
+    const runner: RunWorkflow = new RunWorkflow();
+    prepareSingleComponentRun(runner, componentNode);
+
+    await runner.runWorkflow({
+      arguments: {},
+      workflowId: WORKFLOW_ID,
+      workflowLogId: WORKFLOW_LOG_ID,
+      timeout: 5_000,
+    });
+
+    expect(received).toBeDefined();
+    expect(received!.workflowName).toBeUndefined();
   });
 });

@@ -116,6 +116,10 @@ import StartingStageUtil, {
   StartingState,
 } from "../../Utils/StartingStage";
 import ResolvedStateUtil from "../../Utils/ResolvedState";
+import {
+  escapeMarkdownInline,
+  escapeMarkdownValue,
+} from "../../Utils/Markdown/MarkdownEscape";
 import { StateListType } from "../../Utils/StateOrder";
 
 /*
@@ -529,9 +533,9 @@ export class Service extends ProjectReferencesService<Model> {
    *     never raised it, and the rule above would then lock the alert to that
    *     monitor for good.
    *
-   * Every caller is checked, root included: the workflow "Update Alert"
-   * component writes as root, and no server code moves an alert's monitor on
-   * update.
+   * Every caller is checked, root included - a person, an API key, a
+   * workflow's "Update Alert" step - and no server code moves an alert's
+   * monitor on update.
    *
    * Returns what the update does to each matched alert's monitor, for the
    * feed and the metrics in onUpdateSuccess. An update that does not write
@@ -1497,20 +1501,34 @@ export class Service extends ProjectReferencesService<Model> {
       const createdByUserId: ObjectID | undefined | null =
         alert.createdByUserId || alert.createdByUser?.id;
 
+      /*
+       * The title is plain text, and often not typed by a person at all: a
+       * monitor fills it in from what it watched - the subject and sender of
+       * an incoming email, a field of an incoming request, a response body.
+       * It is placed into Markdown that the dashboard renders without its
+       * safe mode and that is posted to Slack and Teams, so it is escaped as
+       * MarkdownEscape says a title must be (as the incident's "Incident
+       * Created" item escapes its title): "[Reset your password](...)"
+       * arrives as those characters, "![](https://tracker...)" is not
+       * fetched and "<!here>" or "<@U123>" mentions nobody, while "Site 03 -
+       * payments (EU)" reads unchanged. The state and severity names are
+       * plain text too. The description stays Markdown: that is what it is
+       * written in.
+       */
       let feedInfoInMarkdown: string = `#### 🚨 Alert ${alert.alertNumberWithPrefix || "#" + alert.alertNumber?.toString()} Created:
            
-**${alert.title || "No title provided."}**:
+**${escapeMarkdownValue(alert.title || "No title provided.")}**:
      
 ${alert.description || "No description provided."}
      
 `;
 
       if (alert.currentAlertState?.name) {
-        feedInfoInMarkdown += `🔴 **Alert State**: ${alert.currentAlertState.name} \n\n`;
+        feedInfoInMarkdown += `🔴 **Alert State**: ${escapeMarkdownValue(alert.currentAlertState.name)} \n\n`;
       }
 
       if (alert.alertSeverity?.name) {
-        feedInfoInMarkdown += `⚠️ **Severity**: ${alert.alertSeverity.name} \n\n`;
+        feedInfoInMarkdown += `⚠️ **Severity**: ${escapeMarkdownValue(alert.alertSeverity.name)} \n\n`;
       }
 
       /*
@@ -2060,7 +2078,7 @@ ${alert.remediationNotes || "No remediation notes provided."}
 
           if (alertSeverity) {
             feedInfoInMarkdown += `\n\n**⚠️ Alert Severity**:
-${alertSeverity.name}
+${escapeMarkdownValue(alertSeverity.name)}
 `;
 
             shouldAddAlertFeed = true;
@@ -2235,7 +2253,8 @@ ${alertSeverity.name}
       return "an unknown monitor";
     }
 
-    return `[${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(data.projectId, data.monitorId)).toString()})`;
+    // The name is plain text inside the link's own text.
+    return `[${escapeMarkdownInline(monitor.name)}](${(await MonitorService.getMonitorLinkInDashboard(data.projectId, data.monitorId)).toString()})`;
   }
 
   // Whether another open alert raised by hand is still on the monitor.

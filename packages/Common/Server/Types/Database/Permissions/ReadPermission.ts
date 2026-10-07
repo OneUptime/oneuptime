@@ -14,10 +14,101 @@ import DatabaseCommonInteractionPropsUtil, {
 } from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import ObjectID from "../../../../Types/ObjectID";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import UserAttribution from "../../../../Types/Database/UserAttribution";
+import AllModelTypes from "../../../../Models/DatabaseModels/Index";
 import Permission, { UserPermission } from "../../../../Types/Permission";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 import { combineWithPrivacyClause } from "../../../Utils/PrivacyFilterUtil";
 import { FindOperator } from "typeorm";
+import {
+  TableColumnMetadata,
+  getTableColumns,
+} from "../../../../Types/Database/TableColumn";
+import { OwnedThroughMetadata } from "../../../../Types/Database/AccessControl/OwnedThrough";
+import Dictionary from "../../../../Types/Dictionary";
+import TableColumnType from "../../../../Types/Database/TableColumnType";
+
+// The labelled records a label-less model's rows name, by key column.
+export interface LabelledReferences {
+  keys: Array<{ column: string; modelTypes: Array<{ new (): BaseModel }> }>;
+  /*
+   * Key columns whose record's kind cannot be told from the column (a
+   * resource id several kinds of resource share). Each is weighed against
+   * the labels of every model that carries labels, in one condition: a
+   * record id names one record in the whole database, so it can only match
+   * the labels of the record it names.
+   */
+  anyKindColumns: Array<string>;
+}
+
+/*
+ * Plain id columns, by "<table>.<column>", that name a record carrying no
+ * labels although their names do not say which: a project's single sign-on
+ * provider, an ingestion key, the instance, a digest batch.
+ */
+export const PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS: ReadonlySet<string> =
+  new Set<string>([
+    "Project.requireSsoWithSsoProviderId",
+    "McpOAuthGrant.ssoProviderId",
+    "KubernetesAiAgent.registeredWithIngestionKeyId",
+    "ResourceAiAgent.registeredWithIngestionKeyId",
+    "GlobalConfig.instanceId",
+    "UserNotificationEmailRollupItem.rollupBatchId",
+  ]);
+
+// Worked out once per model class: the columns do not change.
+const labelledReferencesCache: WeakMap<
+  { new (): BaseModel },
+  LabelledReferences
+> = new WeakMap<{ new (): BaseModel }, LabelledReferences>();
+
+interface ModelByTableName {
+  lowerTableName: string;
+  modelType: { new (): BaseModel };
+}
+
+let modelsByTableName: Array<ModelByTableName> | null = null;
+let labelledModelTypes: Array<{ new (): BaseModel }> | null = null;
+
+// Every model whose records carry labels.
+function getLabelledModelTypes(): Array<{ new (): BaseModel }> {
+  if (!labelledModelTypes) {
+    labelledModelTypes = AllModelTypes.filter(
+      (modelType: { new (): BaseModel }): boolean => {
+        return Boolean(new modelType().getAccessControlColumn());
+      },
+    );
+  }
+
+  return labelledModelTypes;
+}
+
+// Every model by table name, longest first, for getModelNamedByColumn.
+function getModelsByTableName(): Array<ModelByTableName> {
+  if (!modelsByTableName) {
+    modelsByTableName = AllModelTypes.map(
+      (modelType: { new (): BaseModel }): ModelByTableName => {
+        return {
+          lowerTableName: (new modelType().tableName || "").toLowerCase(),
+          modelType: modelType,
+        };
+      },
+    )
+      .filter((entry: ModelByTableName): boolean => {
+        return entry.lowerTableName.length > 0;
+      })
+      .sort((a: ModelByTableName, b: ModelByTableName): number => {
+        return b.lowerTableName.length - a.lowerTableName.length;
+      });
+  }
+
+  return modelsByTableName;
+}
+
+// A many-to-many join table: its name and the columns on each side.
+type ManyToManyMetadata = NonNullable<
+  ReturnType<typeof QueryUtil.getManyToManyRelationMetadata>
+>;
 
 export interface CheckReadPermissionType<TBaseModel extends BaseModel>
   extends CheckPermissionBaseInterface<TBaseModel> {
@@ -125,12 +216,33 @@ export default class ReadPermission {
 
     const model: TBaseModel = new modelType();
     const accessControlColumn: string | null = model.getAccessControlColumn();
+
+    if (!accessControlColumn) {
+      /*
+       * This model's records carry no labels of their own. A block with
+       * labels takes away the records carrying those labels, so it reaches
+       * such a record through the labelled records it belongs to or names -
+       * a note is left out with its incident, an announcement with its
+       * status pages, an exception group with the service it was seen on,
+       * an AI run with its monitor (see addParentLabelBlockToQuery). A
+       * record that names no labelled record carries no label at all, so a
+       * block with labels takes nothing of it away; a block with no labels
+       * is what takes a whole table away (refused above).
+       */
+      return {
+        query: this.addParentLabelBlockToQuery(modelType, query, labelIds),
+      };
+    }
+
     const manyToManyMeta: ReturnType<
       typeof QueryUtil.getManyToManyRelationMetadata
-    > = accessControlColumn
-      ? QueryUtil.getManyToManyRelationMetadata(modelType, accessControlColumn)
-      : null;
+    > = QueryUtil.getManyToManyRelationMetadata(modelType, accessControlColumn);
 
+    /*
+     * A model that declares an access-control column but whose label
+     * relation cannot be resolved is misconfigured: refuse rather than let
+     * the blocked records through.
+     */
     if (!manyToManyMeta) {
       throw new BadDataException(
         "Cannot apply read label restrictions without access-control relation metadata.",
@@ -140,16 +252,7 @@ export default class ReadPermission {
     const idQuery: Query<TBaseModel> = QueryUtil.serializeQuery(modelType, {
       _id: query._id,
     } as Query<TBaseModel>);
-    const existingIdFilter: unknown = idQuery._id;
-    if (
-      existingIdFilter !== undefined &&
-      typeof existingIdFilter !== "string" &&
-      !(existingIdFilter instanceof FindOperator)
-    ) {
-      throw new BadDataException(
-        "Cannot combine read label restrictions with an unsupported ID filter.",
-      );
-    }
+    const existingIdFilter: unknown = this.getSupportedFilter(idQuery._id);
 
     /*
      * Keep the caller's label selection intact. Blocking labels is a separate
@@ -168,5 +271,435 @@ export default class ReadPermission {
     );
 
     return { query };
+  }
+
+  /*
+   * Leaves out the records of a label-less model that belong to, or name, a
+   * record carrying one of `labelIds`:
+   *
+   *   - the parent its model names (canAccessIfCanReadOn) - an incident
+   *     note's incident, an announcement's status pages;
+   *   - every record it names by key (getLabelledReferences) - the resource
+   *     its owner key names, a many-to-one relation's record, a plain id
+   *     column's record (an AI run's monitor, an on-call time log's
+   *     schedule), and the record a resource id of any kind names (an
+   *     inventory item's resource).
+   *
+   * A row whose key is empty names nothing there and stays. A model that
+   * names a parent it does not have is misconfigured and refused.
+   */
+  private static addParentLabelBlockToQuery<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    labelIds: Array<ObjectID>,
+  ): Query<TBaseModel> {
+    const model: TBaseModel = new modelType();
+    const declaredParent: string | null = model.canAccessIfCanReadOn;
+    let declaredColumn: TableColumnMetadata | undefined = undefined;
+
+    if (declaredParent) {
+      declaredColumn = model.getTableColumnMetadata(declaredParent);
+
+      /*
+       * A parent is one record named by a key column, or several through a
+       * join table. Anything else names nothing the block could follow.
+       */
+      if (
+        !declaredColumn ||
+        !declaredColumn.modelType ||
+        (declaredColumn.type !== TableColumnType.Entity &&
+          declaredColumn.type !== TableColumnType.EntityArray) ||
+        (declaredColumn.type === TableColumnType.Entity &&
+          !declaredColumn.manyToOneRelationColumn)
+      ) {
+        throw new BadDataException(
+          "Cannot apply read label restrictions without access-control relation metadata.",
+        );
+      }
+    }
+
+    const references: LabelledReferences =
+      ReadPermission.getLabelledReferences(modelType);
+
+    // A parent through a join table (an announcement's status pages).
+    if (
+      declaredParent &&
+      declaredColumn &&
+      declaredColumn.type === TableColumnType.EntityArray
+    ) {
+      query = this.addRelationLabelBlockToQuery(
+        modelType,
+        query,
+        labelIds,
+        declaredParent,
+        declaredColumn,
+      );
+    }
+
+    // Every record named by key, the declared parent's key among them.
+    for (const reference of references.keys) {
+      for (const parentModelType of reference.modelTypes) {
+        query = this.addForeignKeyLabelBlockToQuery(
+          modelType,
+          query,
+          labelIds,
+          reference.column,
+          parentModelType,
+        );
+      }
+    }
+
+    // A record id of any kind, against the labels of every labelled model.
+    for (const column of references.anyKindColumns) {
+      query = this.addAnyKindLabelBlockToQuery(
+        modelType,
+        query,
+        labelIds,
+        column,
+      );
+    }
+
+    return query;
+  }
+
+  /*
+   * Leaves out the records whose `foreignKey` - a record id that can name a
+   * record of any kind - names a record carrying one of `labelIds`, in one
+   * condition over the label join tables of every model that carries
+   * labels. A record whose key is empty, or names a record without those
+   * labels, stays.
+   */
+  private static addAnyKindLabelBlockToQuery<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    labelIds: Array<ObjectID>,
+    foreignKey: string,
+  ): Query<TBaseModel> {
+    const joinTables: Array<ManyToManyMetadata> = [];
+
+    for (const labelledModelType of getLabelledModelTypes()) {
+      const labelsMeta: ManyToManyMetadata | null =
+        this.getLabelsMetadata(labelledModelType);
+
+      if (labelsMeta) {
+        joinTables.push(labelsMeta);
+      }
+    }
+
+    const keyQuery: Query<TBaseModel> = QueryUtil.serializeQuery(modelType, {
+      [foreignKey]: (query as any)[foreignKey],
+    } as Query<TBaseModel>);
+
+    (query as any)[foreignKey] = combineWithPrivacyClause(
+      this.getSupportedFilter((keyQuery as any)[foreignKey]),
+      QueryHelper.linkedToNoneInAnyManyToMany({
+        values: labelIds,
+        joinTables: joinTables,
+      }),
+    );
+
+    return query;
+  }
+
+  /*
+   * THE LABELLED RECORDS A ROW OF A LABEL-LESS MODEL NAMES BY KEY, by column:
+   *
+   *   - a many-to-one relation's key, to the relation's model;
+   *   - the owner key (@OwnedThrough), to each kind of resource it can name;
+   *   - a plain id column, to the model its name ends with (`monitorId`,
+   *     `triggeredByIncidentId`, `currentActiveAlertId`), matched on a word
+   *     boundary, longest name first.
+   *
+   * Only models that carry labels are kept. Who did something to the row
+   * (`createdByUserId`) names a user, and users carry no labels. A plain id
+   * column whose name says nothing (`resourceId`, which several kinds of
+   * resource share) names a record of any kind: it is weighed against every
+   * model that carries labels (anyKindColumns), unless it is known to name
+   * a record that carries no labels (PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS).
+   */
+  public static getLabelledReferences(modelType: {
+    new (): BaseModel;
+  }): LabelledReferences {
+    const cached: LabelledReferences | undefined =
+      labelledReferencesCache.get(modelType);
+
+    if (cached) {
+      return cached;
+    }
+
+    const model: BaseModel = new modelType();
+    const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
+    const keys: Map<string, Set<{ new (): BaseModel }>> = new Map();
+    const keyColumns: Set<string> = new Set<string>();
+
+    const addKey: (
+      column: string,
+      referencedModelType: { new (): BaseModel },
+    ) => void = (
+      column: string,
+      referencedModelType: { new (): BaseModel },
+    ): void => {
+      if (!new referencedModelType().getAccessControlColumn()) {
+        return;
+      }
+
+      const modelTypes: Set<{ new (): BaseModel }> =
+        keys.get(column) || new Set<{ new (): BaseModel }>();
+      modelTypes.add(referencedModelType);
+      keys.set(column, modelTypes);
+    };
+
+    for (const columnName of Object.keys(columns)) {
+      const column: TableColumnMetadata | undefined = columns[columnName];
+
+      if (
+        column &&
+        column.type === TableColumnType.Entity &&
+        column.manyToOneRelationColumn
+      ) {
+        keyColumns.add(column.manyToOneRelationColumn);
+
+        if (column.modelType) {
+          addKey(
+            column.manyToOneRelationColumn,
+            column.modelType as unknown as { new (): BaseModel },
+          );
+        }
+      }
+    }
+
+    const ownedThrough: OwnedThroughMetadata | undefined = (
+      model as unknown as { ownedThrough?: OwnedThroughMetadata }
+    ).ownedThrough;
+
+    if (ownedThrough) {
+      keyColumns.add(ownedThrough.fkColumn);
+
+      for (const parentModel of ownedThrough.parentModels) {
+        addKey(
+          ownedThrough.fkColumn,
+          parentModel as unknown as { new (): BaseModel },
+        );
+      }
+    }
+
+    const anyKindColumns: Array<string> = [];
+
+    for (const columnName of Object.keys(columns)) {
+      const column: TableColumnMetadata | undefined = columns[columnName];
+
+      if (
+        !column ||
+        column.type !== TableColumnType.ObjectID ||
+        !columnName.endsWith("Id") ||
+        keyColumns.has(columnName) ||
+        UserAttribution.isColumn(columnName) ||
+        PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS.has(
+          `${model.tableName}.${columnName}`,
+        )
+      ) {
+        continue;
+      }
+
+      const namedModelType: { new (): BaseModel } | null =
+        ReadPermission.getModelNamedByColumn(columnName);
+
+      if (!namedModelType) {
+        anyKindColumns.push(columnName);
+        continue;
+      }
+
+      addKey(columnName, namedModelType);
+    }
+
+    const references: LabelledReferences = {
+      keys: Array.from(keys.entries()).map(
+        ([column, modelTypes]: [string, Set<{ new (): BaseModel }>]) => {
+          return { column: column, modelTypes: Array.from(modelTypes) };
+        },
+      ),
+      anyKindColumns: anyKindColumns,
+    };
+
+    labelledReferencesCache.set(modelType, references);
+
+    return references;
+  }
+
+  /*
+   * The model a plain id column's name ends with - `currentActiveAlertId`
+   * names an Alert, `aiAgentId` an AIAgent - matched on a word boundary
+   * (the start of the name, or a capital letter), longest table name first.
+   * Null when no model's name ends it.
+   */
+  private static getModelNamedByColumn(columnName: string): {
+    new (): BaseModel;
+  } | null {
+    const base: string = columnName.slice(0, -"Id".length);
+    const lowerBase: string = base.toLowerCase();
+
+    for (const entry of getModelsByTableName()) {
+      if (!lowerBase.endsWith(entry.lowerTableName)) {
+        continue;
+      }
+
+      const start: number = base.length - entry.lowerTableName.length;
+      const firstLetter: string = base.charAt(start);
+
+      if (start === 0 || firstLetter !== firstLetter.toLowerCase()) {
+        return entry.modelType;
+      }
+    }
+
+    return null;
+  }
+
+  /*
+   * Leaves out the records whose `relation` (one record, or several through
+   * a join table) carries one of `labelIds`. A related model with no labels
+   * takes nothing away.
+   */
+  private static addRelationLabelBlockToQuery<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    labelIds: Array<ObjectID>,
+    relation: string,
+    relationColumn: TableColumnMetadata,
+  ): Query<TBaseModel> {
+    const parentModelType: { new (): BaseModel } =
+      relationColumn.modelType as unknown as { new (): BaseModel };
+
+    if (
+      relationColumn.type === TableColumnType.Entity &&
+      relationColumn.manyToOneRelationColumn
+    ) {
+      return this.addForeignKeyLabelBlockToQuery(
+        modelType,
+        query,
+        labelIds,
+        relationColumn.manyToOneRelationColumn,
+        parentModelType,
+      );
+    }
+
+    if (relationColumn.type !== TableColumnType.EntityArray) {
+      return query;
+    }
+
+    const parentLabelsMeta: ManyToManyMetadata | null =
+      this.getLabelsMetadata(parentModelType);
+
+    if (!parentLabelsMeta) {
+      return query;
+    }
+
+    const parentLinkMeta: ManyToManyMetadata | null =
+      QueryUtil.getManyToManyRelationMetadata(modelType, relation);
+
+    if (!parentLinkMeta) {
+      throw new BadDataException(
+        "Cannot apply read label restrictions without access-control relation metadata.",
+      );
+    }
+
+    const idQuery: Query<TBaseModel> = QueryUtil.serializeQuery(modelType, {
+      _id: query._id,
+    } as Query<TBaseModel>);
+
+    (query as any)._id = combineWithPrivacyClause(
+      this.getSupportedFilter(idQuery._id),
+      QueryHelper.noParentLinkedToAnyInManyToMany({
+        values: labelIds,
+        parentJoinTableName: parentLinkMeta.joinTableName,
+        parentOwnerColumnName: parentLinkMeta.ownerColumnName,
+        parentRelationColumnName: parentLinkMeta.relationColumnName,
+        ...parentLabelsMeta,
+      }),
+    );
+
+    return query;
+  }
+
+  /*
+   * Leaves out the records whose `foreignKey` names a `parentModelType`
+   * record carrying one of `labelIds`; a record whose key is empty, or names
+   * a record without those labels, stays. Several conditions on one key (a
+   * key that can name several kinds of resource) all hold.
+   */
+  private static addForeignKeyLabelBlockToQuery<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    labelIds: Array<ObjectID>,
+    foreignKey: string,
+    parentModelType: { new (): BaseModel },
+  ): Query<TBaseModel> {
+    const parentLabelsMeta: ManyToManyMetadata | null =
+      this.getLabelsMetadata(parentModelType);
+
+    if (!parentLabelsMeta) {
+      return query;
+    }
+
+    const keyQuery: Query<TBaseModel> = QueryUtil.serializeQuery(modelType, {
+      [foreignKey]: (query as any)[foreignKey],
+    } as Query<TBaseModel>);
+
+    (query as any)[foreignKey] = combineWithPrivacyClause(
+      this.getSupportedFilter((keyQuery as any)[foreignKey]),
+      QueryHelper.parentLinkedToNoneInManyToMany({
+        values: labelIds,
+        ...parentLabelsMeta,
+      }),
+    );
+
+    return query;
+  }
+
+  /*
+   * The join table holding a model's labels, or null for a model that
+   * carries none. A model that declares labels it cannot resolve is
+   * refused, as for a model's own labels.
+   */
+  private static getLabelsMetadata(modelType: {
+    new (): BaseModel;
+  }): ManyToManyMetadata | null {
+    const labelsColumn: string | null =
+      new modelType().getAccessControlColumn();
+
+    if (!labelsColumn) {
+      return null;
+    }
+
+    const labelsMeta: ManyToManyMetadata | null =
+      QueryUtil.getManyToManyRelationMetadata(modelType, labelsColumn);
+
+    if (!labelsMeta) {
+      throw new BadDataException(
+        "Cannot apply read label restrictions without access-control relation metadata.",
+      );
+    }
+
+    return labelsMeta;
+  }
+
+  /*
+   * A caller's filter on a column a block's condition is added to, once
+   * serialized: nothing, one value or a database operator. Any other shape
+   * cannot be kept next to the condition, so the read is refused rather
+   * than the caller's filter dropped.
+   */
+  public static getSupportedFilter(
+    serialized: unknown,
+    refusal: string = "Cannot combine read label restrictions with an unsupported ID filter.",
+  ): unknown {
+    if (
+      serialized !== undefined &&
+      typeof serialized !== "string" &&
+      !(serialized instanceof FindOperator)
+    ) {
+      throw new BadDataException(refusal);
+    }
+
+    return serialized;
   }
 }

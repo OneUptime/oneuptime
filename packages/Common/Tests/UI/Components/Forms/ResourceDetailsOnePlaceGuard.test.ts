@@ -541,12 +541,18 @@ export const DISCOVERED_RESOURCES: Array<DiscoveredResource> = [
     ["functionIdentifier"],
     [],
   ),
+  /*
+   * Environments and the resources discovered from cloud monitoring share
+   * the card: both are identified by their account and region, and the
+   * rest of what identifies each kind (the platform; the type, provider id
+   * and resource group) is shown read-only below them (detailFields).
+   */
   identified(
     "CloudResource",
     "Cloud",
     "Overview.tsx",
     "CLOUD_RESOURCE_VIEW_SETTINGS",
-    ["cloudPlatform", "cloudAccountId", "cloudRegion"],
+    ["cloudAccountId", "cloudRegion"],
     [],
   ),
   matchedOnName(

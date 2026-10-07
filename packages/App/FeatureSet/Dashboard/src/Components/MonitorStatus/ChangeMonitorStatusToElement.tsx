@@ -9,10 +9,11 @@ export interface ComponentProps {
 }
 
 /*
- * The status a template's Change Monitor Status to picks, as its Affected
- * Resources card shows it: drawn as a monitor's status is, without the pulse
- * of a live one, since no monitor is in it yet. With none picked, what that
- * means for the monitors of what is created from the template.
+ * The status a Change Monitor Status to picks, as an Affected Resources card
+ * shows it - a template's, or a scheduled maintenance event's: drawn as a
+ * monitor's status is, without the pulse of a live one, since it names the
+ * status monitors change to rather than one a monitor is in. With none
+ * picked, what that means for the monitors.
  */
 const ChangeMonitorStatusToElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,

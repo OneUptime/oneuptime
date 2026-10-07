@@ -130,10 +130,12 @@ export default class CreateManyBaseModel<
               json,
               this.modelService.modelType,
             ) as TBaseModel,
-            props: {
-              isRoot: true,
-              tenantId: options.projectId,
-            },
+            /*
+             * A Project Admin of the project, never root (see getStepProps),
+             * built afresh for each record - its permission rows too - so
+             * nothing one create hands down reaches the next.
+             */
+            props: await this.getStepProps(options),
           })) as TBaseModel,
         );
       }
@@ -149,6 +151,7 @@ export default class CreateManyBaseModel<
         error: err,
         model: this.modelService?.getModel() || null,
         log: options.log,
+        stepTitle: this.getMetadata().title,
       });
 
       return {

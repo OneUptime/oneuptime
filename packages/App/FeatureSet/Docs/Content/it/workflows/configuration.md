@@ -96,14 +96,36 @@ Alcuni limiti integrati mantengono finite le chiamate non presidiate: System Ins
 
 ## Autorizzazioni
 
-I workflow rispettano il controllo degli accessi basato sui ruoli del tuo progetto. Le autorizzazioni rilevanti:
+I workflow rispettano il controllo degli accessi basato sui ruoli del tuo progetto. I tre ruoli dei workflow:
 
-- **Create / Read / Edit / Delete Workflow** — le autorizzazioni di base sul workflow stesso.
-- **Run Workflow** — serve per eseguire un workflow a mano o per attivarne uno tramite API.
+- **Workflow Admin** — costruisce i workflow: li crea, li modifica, li esegue e li elimina, e gestisce le variabili che usano.
+- **Workflow Member** — li usa: apre i workflow e le loro esecuzioni, ed esegue un workflow a mano con **Esegui flusso di lavoro**. Un membro non può creare, modificare o eliminare un workflow, né eseguire da solo uno dei suoi passaggi.
+- **Workflow Viewer** — legge i workflow e le loro esecuzioni.
+
+**Project Owner** e **Project Admin** possono fare tutto ciò che fa un Workflow Admin. **Project Member** può creare ed eliminare workflow, ma non modificarli né eseguirli.
+
+Le singole autorizzazioni, per un team o una chiave API che ha bisogno esattamente di una cosa:
+
+- **Create / Read / Edit / Delete Workflow** — le autorizzazioni di base sul workflow stesso. Modificare un workflow, anche attivarlo, disattivarlo o archiviarlo, richiede **Edit Workflow**; **Delete Workflow** serve solo a eliminare.
+- **Edit Workflow** — è anche ciò che serve per eseguire da solo un passaggio con **Run just this step**, e per vedere o reimpostare l'URL del webhook e l'indirizzo email in entrata di un workflow. Eseguire a mano un intero workflow richiede **Edit Workflow**, **Workflow Admin** o **Workflow Member**.
 - **Read Workflow Log** — serve per vedere le esecuzioni.
 - **Read / Create / Edit / Delete Workflow Variable** — il controllo sull'elenco delle variabili globali.
 
-La maggior parte degli ingegneri dovrebbe avere creazione, modifica e lettura sui workflow, ma non sulle variabili. Riserva l'accesso in modifica alle variabili alle persone che gestiscono i segreti del progetto.
+Un'esecuzione a mano raggiunge solo i workflow che puoi aprire: un ruolo limitato ad alcune etichette, o ai workflow di cui il tuo team è proprietario, esegue solo quelli. Chi non può eseguire un workflow vede **Esegui flusso di lavoro** disattivato, con il motivo nel suggerimento.
+
+Dai **Workflow Admin** a chi costruisce l'automazione e **Workflow Member** a chi si limita ad avviarla. Riserva l'accesso in modifica alle variabili alle persone che gestiscono i segreti del progetto.
+
+## Cosa possono fare i passaggi di un workflow
+
+I passaggi che leggono e modificano record di OneUptime (i componenti Find, Create, Update e Delete e i trigger On Create, On Update e On Delete) agiscono come **Project Admin** del progetto del workflow. Superano gli stessi controlli di un Project Admin nella dashboard e nell'API:
+
+- **Solo il progetto del workflow.** Un passaggio non legge né modifica mai i record di un altro progetto, e un Update non sposta mai un record in un altro progetto.
+- **Solo ciò che può fare un Project Admin.** Un passaggio non può concedere autorizzazioni che un Project Admin non ha (come **Project Owner** o la fatturazione), né aggiungere qualcuno a un team con più autorizzazioni, come il team dei proprietari.
+- **Solo ciò che il vostro piano include.** Su OneUptime Cloud, ciò che il vostro piano non include viene rifiutato indicando il piano necessario.
+- **Niente di ciò che OneUptime gestisce da sé.** Le voci del feed non si possono modificare né eliminare, i registri delle notifiche non si possono scrivere, e i valori che OneUptime imposta da sé (come un CNAME verificato, gli interruttori di protezione di un team o chi è di turno adesso) non si possono cambiare. Anche un passaggio **Create One Incident** non può dichiarare un incidente da un modello (`createdIncidentTemplateId`): leggi il modello con **Find One Incident Template** e passane i valori.
+- **Come nessuna persona.** Un record creato da un workflow non ha autore, e il registro di audit indica il workflow come autore della modifica.
+
+Un passaggio rifiutato prende la sua uscita **Error** senza apportare la modifica rifiutata, e il registro dell'esecuzione dice quale passaggio è stato rifiutato e perché. Un passaggio Create Many crea i suoi record uno alla volta e si ferma a quello rifiutato; quelli creati prima restano. I passaggi che comunicano con altri sistemi (API, e-mail, chat, Custom Code, IA) non sono interessati.
 
 ## Limiti di piano
 

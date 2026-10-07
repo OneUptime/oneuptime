@@ -39,6 +39,7 @@ import DatabaseCallEntityKeyResolver, {
   DatabaseCallerSource,
 } from "./DatabaseCallEntityKeys";
 import MessagingEntityKeyResolver from "./MessagingEntityKeys";
+import CloudMonitoredResourceCollector from "./CloudMonitoredResources";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { TELEMETRY_METRIC_FLUSH_BATCH_SIZE } from "../Config";
 import MetricPipelineRuleService, {
@@ -861,6 +862,15 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
        */
       const messagingEntityKeys: MessagingEntityKeyResolver =
         new MessagingEntityKeyResolver(projectId);
+
+      /*
+       * The cloud resources the rows of a cloud-monitoring receiver name
+       * (Azure Monitor, CloudWatch, Cloud Monitoring) - one per datapoint,
+       * collected for discovery once the rows are written. Memoized for
+       * this request only - see CloudMonitoredResources.
+       */
+      const cloudMonitoredResources: CloudMonitoredResourceCollector =
+        new CloudMonitoredResourceCollector();
 
       /*
        * Hosts already heartbeated in this batch. The hostmetrics receiver
@@ -1969,6 +1979,13 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                          */
                         messagingEntityKeys.appendToMetricRow(metricRow);
 
+                        /*
+                         * A cloud-monitoring datapoint is about one cloud
+                         * resource, named on the datapoint - read off the
+                         * FINAL row, like the queue key above.
+                         */
+                        cloudMonitoredResources.observeMetricRow(metricRow);
+
                         dbMetrics.push(metricRow);
                         totalMetricsProcessed++;
 
@@ -2097,6 +2114,26 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         resourceBuffer: iotResourceMetricsBuffer,
         fleetBuffer: iotFleetSnapshotBuffer,
       });
+
+      /*
+       * Cloud resources the rows named - after the rows are durably written,
+       * and best-effort like the snapshot buffers above: discovery must
+       * never fail a batch whose telemetry already landed.
+       */
+      try {
+        await this.autoDiscoverCloudMonitoredResources({
+          projectId,
+          resources: cloudMonitoredResources.getResources(),
+        });
+      } catch (cloudResourceError) {
+        logger.error(
+          `Cloud resource discovery failed (best-effort): ${
+            cloudResourceError instanceof Error
+              ? cloudResourceError.message
+              : String(cloudResourceError)
+          }`,
+        );
+      }
 
       if (totalMetricsProcessed === 0) {
         logger.warn("No valid metrics were processed from the request");

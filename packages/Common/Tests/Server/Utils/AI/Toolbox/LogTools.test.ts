@@ -36,6 +36,23 @@ import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import Permission from "../../../../../Types/Permission";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { TelemetryReadScope } from "../../../../../Server/Utils/Telemetry/TelemetryReadScope";
+
+/*
+ * The read scope a caller's grants give, as the analytics permission layer
+ * hands it to the tools (ModelPermission.getReadScope): null reads every
+ * service, a list only those.
+ */
+function readScopeOf(ids: Array<ObjectID> | null): TelemetryReadScope {
+  return {
+    readableIds: ids
+      ? ids.map((id: ObjectID): string => {
+          return id.toString();
+        })
+      : null,
+    blockedIds: [],
+  };
+}
 
 const projectId: ObjectID = new ObjectID(
   "11111111-1111-1111-1111-111111111111",
@@ -439,8 +456,8 @@ describe("log_histogram", () => {
 
   beforeEach(() => {
     getAccessible = jest
-      .spyOn(ModelPermission, "getAccessibleServiceIdsForAnalyticsModel")
-      .mockResolvedValue(null);
+      .spyOn(ModelPermission, "getReadScope")
+      .mockResolvedValue(readScopeOf(null));
   });
 
   test("scopes the raw aggregation to the authenticated project, not the arguments", async () => {
@@ -539,7 +556,7 @@ describe("log_histogram", () => {
   });
 
   test("label-restricted users only ever see their accessible services", async () => {
-    getAccessible.mockResolvedValue([serviceA, serviceB]);
+    getAccessible.mockResolvedValue(readScopeOf([serviceA, serviceB]));
     const getHistogram: jest.SpyInstance = jest
       .spyOn(LogAggregationService, "getHistogram")
       .mockResolvedValue([]);
@@ -570,7 +587,7 @@ describe("log_histogram", () => {
   });
 
   test("users with no accessible services get a no-match sentinel, never an unfiltered query", async () => {
-    getAccessible.mockResolvedValue([]);
+    getAccessible.mockResolvedValue(readScopeOf([]));
     const getHistogram: jest.SpyInstance = jest
       .spyOn(LogAggregationService, "getHistogram")
       .mockResolvedValue([]);

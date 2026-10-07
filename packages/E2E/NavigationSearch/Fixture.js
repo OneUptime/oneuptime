@@ -39,7 +39,7 @@ function Fixture() {
   Navigation.setNavigateHook(useNavigate());
   Navigation.setLocation(location);
   Navigation.setParams(useParams());
-  const { moreMenuItems, moreMenuCategoriesAlwaysOpen } =
+  const { moreMenuItems, moreMenuCategoriesAlwaysOpen, moreMenuCategoryIcons } =
     useDashboardNavigationItems();
 
   if (showPalette) {
@@ -81,6 +81,8 @@ function Fixture() {
           items={moreMenuItems}
           // As the Dashboard's NavBar passes it: Essentials, always open.
           categoriesAlwaysOpen={moreMenuCategoriesAlwaysOpen}
+          // And the icons of the folded categories' rows.
+          categoryIcons={moreMenuCategoryIcons}
           onClose={() => setIsOpen(false)}
           showCommandKShortcutHint={false}
         />

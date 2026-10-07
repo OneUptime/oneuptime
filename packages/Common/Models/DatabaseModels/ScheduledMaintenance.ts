@@ -1436,7 +1436,20 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadProjectScheduledMaintenance,
     ],
-    update: [],
+    /*
+     * Its ID column's list: whoever may edit the event may change the
+     * status, by either name, until the event starts. From then on
+     * ScheduledMaintenanceService refuses a change under either name: its
+     * monitors change to the status when it starts.
+     */
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.EditProjectScheduledMaintenance,
+    ],
   })
   @TableColumn({
     manyToOneRelationColumn: "changeMonitorStatusToId",
@@ -1444,7 +1457,7 @@ export default class ScheduledMaintenance extends BaseModel {
     modelType: MonitorStatus,
     title: "Change Monitor Status To",
     description:
-      "Relation to Monitor Status Object. All monitors connected to this event will be changed to this status when the event is ongoing.",
+      "Relation to Monitor Status Object. The monitors attached to this event change to this status when the event starts, and back to operational when it ends. It can be changed until the event starts.",
   })
   @ManyToOne(
     () => {
@@ -1493,7 +1506,7 @@ export default class ScheduledMaintenance extends BaseModel {
     required: false,
     title: "Change Monitor Status To ID",
     description:
-      "Relation to Monitor Status Object ID. All monitors connected to this incident will be changed to this status when the event is ongoing.",
+      "Relation to Monitor Status Object ID. The monitors attached to this event change to this status when the event starts, and back to operational when it ends. It can be changed until the event starts.",
     example: "d4e5f6a7-b8c9-0123-def4-56789012abcd",
   })
   @Column({

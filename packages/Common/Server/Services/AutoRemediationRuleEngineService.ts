@@ -72,6 +72,7 @@ import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLim
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import RuleCriteriaMatcher from "../../Utils/Rules/RuleCriteriaMatcher";
 import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
+import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 
 /*
  * Guardrails (minimal G1 for auto-remediation Phase 1):
@@ -2769,7 +2770,7 @@ class AutoRemediationRuleEngineServiceClass {
     await this.postFeedItem({
       projectId: data.projectId,
       linkage: data.linkage,
-      markdown: `⚡ **Auto Remediation Rule "${data.rule.name}" matched.** AI is picking the most applicable runbook — a suggestion will appear here shortly.`,
+      markdown: `⚡ **Auto Remediation Rule "${escapeMarkdownValue(data.rule.name)}" matched.** AI is picking the most applicable runbook — a suggestion will appear here shortly.`,
       pingWorkspace: false,
     });
 
@@ -2850,7 +2851,7 @@ class AutoRemediationRuleEngineServiceClass {
     await this.postFeedItem({
       projectId: data.projectId,
       linkage: data.linkage,
-      markdown: `⚡ **Auto Remediation Rule "${data.rule.name}" matched.** AI is diagnosing the signal and composing remediation commands — a suggestion will appear here shortly.`,
+      markdown: `⚡ **Auto Remediation Rule "${escapeMarkdownValue(data.rule.name)}" matched.** AI is diagnosing the signal and composing remediation commands — a suggestion will appear here shortly.`,
       pingWorkspace: false,
     });
 
@@ -2897,7 +2898,7 @@ class AutoRemediationRuleEngineServiceClass {
     await this.postFeedItem({
       projectId: data.projectId,
       linkage: data.linkage,
-      markdown: `⚡ **Auto Remediation Rule "${data.rule.name}" proposed runbook "${data.runbook.name}".** Review and approve it with one click to start remediation.`,
+      markdown: `⚡ **Auto Remediation Rule "${escapeMarkdownValue(data.rule.name)}" proposed runbook "${escapeMarkdownValue(data.runbook.name)}".** Review and approve it with one click to start remediation.`,
       pingWorkspace: true,
     });
   }
@@ -2937,7 +2938,7 @@ class AutoRemediationRuleEngineServiceClass {
       await this.postFeedItem({
         projectId: data.projectId,
         linkage: data.linkage,
-        markdown: `⚡ **Auto Remediation Rule "${data.rule.name}" matched, but runbook "${data.runbook.name}" could not be started** (it may be disabled or have no steps).`,
+        markdown: `⚡ **Auto Remediation Rule "${escapeMarkdownValue(data.rule.name)}" matched, but runbook "${escapeMarkdownValue(data.runbook.name)}" could not be started** (it may be disabled or have no steps).`,
         pingWorkspace: false,
       });
       return false;
@@ -2982,7 +2983,7 @@ class AutoRemediationRuleEngineServiceClass {
     await this.postFeedItem({
       projectId: data.projectId,
       linkage: data.linkage,
-      markdown: `⚡ **Auto Remediation Rule "${data.rule.name}" automatically started runbook "${data.runbook.name}".** Follow its progress on the runbook execution page.`,
+      markdown: `⚡ **Auto Remediation Rule "${escapeMarkdownValue(data.rule.name)}" automatically started runbook "${escapeMarkdownValue(data.runbook.name)}".** Follow its progress on the runbook execution page.`,
       pingWorkspace: true,
     });
 

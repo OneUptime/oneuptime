@@ -1,4 +1,9 @@
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import NotAuthenticatedException from "../../../../../Types/Exception/NotAuthenticatedException";
+import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
+import PaymentRequiredException from "../../../../../Types/Exception/PaymentRequiredException";
+import CallerPlan from "../../../../Utils/Billing/CallerPlan";
+import ColumnWriteRefusedException from "../../../Database/Permissions/ColumnWriteRefusedException";
 import logger from "../../../../Utils/Logger";
 import { RunOptions } from "../../ComponentCode";
 import {
@@ -49,10 +54,53 @@ export const buildColumnHint: BuildColumnHintFunction = (
   )}.`;
 };
 
+type DescribeRefusalFunction = (data: {
+  error: unknown;
+  message: string;
+  stepTitle: string;
+}) => string | null;
+
+/*
+ * A step acts as a Project Admin of its project, on the project's plan
+ * (WorkflowPrincipal). When it is refused for either - something only an
+ * owner, or the billing team, or nobody but OneUptime itself may do;
+ * something the plan does not sell - the run log says so in plain words and
+ * names the step, before the reason the refusal itself gave. Refusals are
+ * told by their type (a column refusal is a ColumnWriteRefusedException),
+ * never by their words. Null for any other failure.
+ */
+export const describeRefusal: DescribeRefusalFunction = (data: {
+  error: unknown;
+  message: string;
+  stepTitle: string;
+}): string | null => {
+  const step: string = `"${data.stepTitle}"`;
+
+  if (data.message === CallerPlan.PLAN_UNKNOWN_MESSAGE) {
+    return `${step} did not run: ${data.message}`;
+  }
+
+  if (data.error instanceof PaymentRequiredException) {
+    return `${step} was refused because of this project's plan: ${data.message}`;
+  }
+
+  if (
+    data.error instanceof NotAuthorizedException ||
+    data.error instanceof NotAuthenticatedException ||
+    data.error instanceof ColumnWriteRefusedException
+  ) {
+    return `${step} was refused. Workflow steps can do only what a Project Admin of this project can do: ${data.message}`;
+  }
+
+  return null;
+};
+
 type LogComponentErrorFunction = (data: {
   error: unknown;
   model: BaseModel | null;
   log: RunOptions["log"];
+  // The step's title, as the builder shows it ("Create One Team Permission").
+  stepTitle?: string | undefined;
 }) => void;
 
 /*
@@ -63,6 +111,7 @@ const logComponentError: LogComponentErrorFunction = (data: {
   error: unknown;
   model: BaseModel | null;
   log: RunOptions["log"];
+  stepTitle?: string | undefined;
 }): void => {
   const { error, model, log } = data;
 
@@ -77,7 +126,16 @@ const logComponentError: LogComponentErrorFunction = (data: {
       : JSON.stringify(error, null, 2);
 
   log("Error running component");
-  log(message);
+
+  const refusal: string | null = data.stepTitle
+    ? describeRefusal({
+        error: error,
+        message: message,
+        stepTitle: data.stepTitle,
+      })
+    : null;
+
+  log(refusal || message);
 
   const hint: string | null = model ? buildColumnHint(message, model) : null;
 

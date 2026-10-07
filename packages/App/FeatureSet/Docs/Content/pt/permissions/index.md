@@ -54,7 +54,7 @@ As equipes **Owners** e **Admin** são travadas de propósito: suas permissões 
 
 `ProjectOwner` é o nível de acesso mais alto: faturamento, excluir o projeto e tudo o que um administrador pode fazer. `ProjectAdmin` cobre tudo, exceto faturamento e exclusão do projeto.
 
-Ligar ou desligar SMS, chamadas telefônicas, WhatsApp ou Telegram para o projeto conta como faturamento, porque cada mensagem custa dinheiro. Somente `ProjectOwner` e a permissão `ManageProjectBilling` (**Manage Billing**) podem alterar essas chaves, em **Configurações do projeto > Notificações > Configurações de notificação** — não `ProjectAdmin`.
+Ligar ou desligar SMS, chamadas telefônicas, WhatsApp ou Telegram para o projeto conta como faturamento, porque cada mensagem custa dinheiro. Somente `ProjectOwner`, a função `BillingAdmin` (**Billing Admin**) e a permissão `ManageProjectBilling` (**Manage Billing**) podem alterar essas chaves, em **Configurações do projeto > Notificações > Configurações de notificação** — não `ProjectAdmin`.
 
 Recarregar os saldos pré-pagos do projeto também conta como faturamento. No OneUptime Cloud, SMS, chamadas telefônicas, WhatsApp e Telegram são pagos pelo saldo em **Configurações do projeto > Notificações > Configurações de notificação**, e a IA pelos créditos de IA em **Configurações do projeto > IA > Créditos de IA**. Somente um proprietário do projeto ou alguém com **Manage Billing** pode recarregá-los ou alterar a **Recarga automática** deles — um administrador do projeto não pode. Uma mensagem sobre um saldo que está acabando diz quem pode recarregá-lo, e só essas pessoas recebem um botão **Recarregar Saldo** que funciona ou um link para a página.
 
@@ -75,6 +75,8 @@ Uma função agrupa uma área inteira do produto em um de três níveis:
 - **Viewer** — somente leitura.
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` e assim por diante. Funções são o que você quer quase sempre — elas continuam corretas conforme o OneUptime ganha recursos, porque uma nova tabela relacionada a monitores entra nas funções de monitor existentes em vez de exigir uma nova concessão sua.
+
+Workflows são a exceção. Um workflow executa suas etapas dentro do projeto, então `WorkflowMember` abre os workflows e suas execuções e os executa à mão, mas não os cria, altera nem exclui. `WorkflowAdmin` os constrói. Veja [Configuração de workflows](/docs/workflows/configuration).
 
 Todas as {{PERMISSION_ROLE_COUNT}} funções estão na [Referência de permissões](/docs/permissions/reference).
 
@@ -136,6 +138,16 @@ Uma restrição por rótulos é satisfeita se o recurso carrega **pelo menos um*
 
 Onde encontrar: **Configurações → Rótulos**.
 
+## Telemetria
+
+Logs, traces, métricas, exceções, perfis e reproduções de sessão pertencem ao recurso que os enviou: um serviço, um host, um cluster Kubernetes, um monitor, um aplicativo RUM e afins. Uma permissão de telemetria lê até onde o seu escopo alcança:
+
+- **Todos os recursos** lê a telemetria de todos os recursos do projeto.
+- **Próprios** lê a telemetria dos recursos que você ou uma das suas equipes possui, e a telemetria que não indica nenhum recurso.
+- **Rótulos** lê a telemetria dos recursos que carregam um dos rótulos da permissão.
+
+Um bloqueio com rótulos em uma permissão de telemetria deixa de fora a telemetria dos recursos que carregam esses rótulos, seja o que for que você tenha além disso. Isso vale onde quer que a telemetria seja lida: os exploradores e seus gráficos, filtros e listas de atributos, as exportações, as reproduções de sessão e o que o assistente de IA lê por você. A lista de nomes de métricas mostra as métricas que um serviço que você pode ler reporta, e as métricas que nenhum serviço reporta, como as de hosts e clusters. Se você também pode ler a telemetria de outros tipos de recursos, como hosts ou clusters, ela mostra todos os nomes de métricas.
+
 ## Chaves de API
 
 Chaves de API recebem permissões diretamente, na própria chave — elas não pertencem a equipes e não são afetadas por participação em equipes.
@@ -157,7 +169,7 @@ Para um usuário autenticado, na ordem:
 3. Verificar primeiro a lista de bloqueios. Um bloqueio sem rótulos em qualquer permissão que a tabela de destino aceite para essa operação rejeita a requisição de imediato, seja qual for a equipe em que estiver.
 4. Verificar a lista de permitidas. A requisição precisa de pelo menos uma permissão que a tabela de destino aceite para essa operação. Em um recurso operacional — um monitor, um incidente, um painel e afins — a permissão **All Operational Resources** correspondente (Create, Read, Edit ou Delete) também conta, a menos que ela própria esteja bloqueada.
 5. Aplicar o escopo. Concessões com escopo Próprios restringem a consulta aos recursos próprios; as de rótulos restringem aos rótulos correspondentes. Se qualquer outra concessão para a mesma operação for mais ampla, a mais ampla vence.
-6. Aplicar os bloqueios por rótulos. Um bloqueio com rótulos rejeita a requisição se o recurso de destino carregar um deles.
+6. Aplicar os bloqueios por rótulos. Um bloqueio com rótulos rejeita a requisição se o recurso de destino carregar um deles. Quando um registro não tem rótulos próprios, como uma nota de um incidente ou um anúncio de uma página de status, um bloqueio com rótulos sobre a sua leitura o deixa de fora se um registro ao qual ele pertence carregar um desses rótulos.
 
 Cada campo de um registro é lido com a permissão de leitura do próprio registro: uma permissão de outro tipo de registro nunca o abre. Alguns campos são mais restritos de propósito. Os segredos só são lidos por quem pode editar ou administrar o registro a que pertencem, como as chaves de requisições recebidas e de e-mails recebidos de um monitor e a chave do seu agente de servidor, ou as chaves de webhook e de e-mail de entrada de um fluxo de trabalho. Assistir à gravação de uma reprodução de sessão exige **Watch Session Replays**, não apenas **List Session Replays**. A telemetria é lida sinal a sinal: **Read Telemetry Service Log** lê os logs, **Read Telemetry Service Traces** lê os traces e **Read Telemetry Service Metrics** lê as métricas, incluindo os gráficos de métricas.
 

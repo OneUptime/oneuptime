@@ -393,6 +393,22 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   description, root cause or remediation notes that was cleared. Taking
   every label off is recorded as "All labels removed.". See
   [What the feed records](/docs/incidents/notes-owners-and-feed#what-the-feed-records).
+- **On OneUptime Cloud, API keys and SCIM stop working below their plan.**
+  A project's API keys need **Growth** and its SCIM connections - the
+  project's and its status pages' - need **Scale**. Until now they kept
+  working after a trial ended or the project moved to a lower plan. Now
+  every request made with one of the project's API keys - the REST API,
+  Terraform, the CLI, MCP clients connected with an API key - is refused
+  with `402` and a message that names the plan, and every SCIM request for
+  its connections is refused with `402` in the SCIM error format, which
+  stops deprovisioning too. Nothing is deleted: they work again as they are
+  as soon as the project is back on the plan, within a minute. The
+  project's owners get an email when a plan change stops them, and
+  **Project Settings** > **Billing** names how many a lower plan stops.
+  People signing in, MCP clients connected by signing in, telemetry
+  ingestion keys, probe keys and agent keys are not affected, and
+  self-hosted installs (no plans) see no change. See
+  [API keys and SCIM below their plan](/docs/api-reference/api-reference#api-keys-and-scim-below-their-plan).
 - **Runners moved from Project Settings into Runbooks.** Runners are now under
   **Runbooks → Runners** (`…/runbooks/runners`) and Runner Credentials under
   **Runbooks → Runners → Credentials** (`…/runbooks/runner-credentials`), next
@@ -406,6 +422,27 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that
   self-hosted installs no longer serve.
+
+### Workflow steps act as a Project Admin
+
+A workflow's Find, Create, Update and Delete steps, and its On Create, On Update and On Delete triggers, used to act as OneUptime itself: no permission, column or plan check applied to them. They now act as a **Project Admin** of the workflow's project, on the project's plan. See [What workflow steps can do](/docs/workflows/configuration#what-workflow-steps-can-do).
+
+What changes for an existing workflow:
+
+- A step that granted a team or an API key a permission a Project Admin doesn't hold — **Project Owner**, billing or project deletion, or any permission outside a Project Admin's — is refused, and so is a step that adds someone to a team with more permissions than a Project Admin, such as the owners' team.
+- A step that edited or deleted a feed entry, wrote a notification log, set a value OneUptime keeps for itself (a verified CNAME, a team's protection switches, the primary incident role, notified and reminder fields, who is on call now, an SLO's results, a private user's password reset token…) or moved a record to another parent is refused. The list is on that page.
+- A **Create One Incident** step that declared from a template by sending `createdIncidentTemplateId` is refused. Read the template with a **Find One Incident Template** step and pass its values to **Create One Incident** instead.
+- A step that selects who created a probe or an AI agent is refused.
+- On OneUptime Cloud, a step that creates or changes what the project's plan doesn't include is refused with the plan it needs, as the dashboard is.
+- An Update step no longer writes the project: a record stays in its project, as before.
+
+A refused step takes its **Error** output without making the refused change, and its run log names the step and the reason (a Create Many step stops at the record refused, keeping the ones it created before it). After the upgrade, look over your workflows' **Runs** for refused steps.
+
+What does not change: the API, Terraform and the MCP server already held their callers to these checks, and still do, so nothing changes for them. Workflow steps that talk to other systems (API, Email, chat, Custom Code, AI) are not affected. Who may edit or run a workflow is unchanged.
+
+The audit log now records the changes a workflow's steps make and names the workflow, by its name at the time. They used to be system events, recorded only when **Store System Events** was turned on. The two new audit log columns, `workflowId` and `workflowName`, are added on start; entries written before the upgrade read as before.
+
+Slack and Microsoft Teams actions are held to the project's plan too: paging an on-call policy from chat on a plan that doesn't include on-call is refused with the plan it needs, as it is in the dashboard.
 
 ### IPv6 Ping, Port and SSL monitors
 

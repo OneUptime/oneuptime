@@ -1,5 +1,6 @@
 import { JSONObject } from "../JSON";
 import StatusPageSubscriberNotificationStatus from "./StatusPageSubscriberNotificationStatus";
+import StatusPageVisibility from "./StatusPageVisibility";
 
 /*
  * An incident can be limited to some status pages (Incident.statusPages), and
@@ -230,11 +231,12 @@ export default class IncidentScopeAddedPagesNotification {
       return IncidentScopeAddedPagesNotificationAction.None;
     }
 
-    // A null visibility is hidden to the job, so it is here too.
-    if (
-      incident.isVisibleOnStatusPage !== true ||
-      incident.isPrivate === true
-    ) {
+    /*
+     * Shown on status pages, by the one rule the job reads too
+     * (StatusPageVisibility): a null visibility is hidden, and a private
+     * incident is hidden whatever its switch says.
+     */
+    if (!StatusPageVisibility.isShown(incident)) {
       return IncidentScopeAddedPagesNotificationAction.None;
     }
 

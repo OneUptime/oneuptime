@@ -29,6 +29,7 @@ import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import { OwnedThroughMetadata } from "../../../Types/Database/AccessControl/OwnedThrough";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { ON_HIGHEST_PLAN } from "../../Server/TestingUtils/RequestPlan";
 import ColumnLength from "../../../Types/Database/ColumnLength";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
@@ -335,7 +336,9 @@ function makeProps(
     }),
   };
 
+  // A member's request carries the project's plan: these ask about roles, not plans.
   return {
+    ...ON_HIGHEST_PLAN,
     userId: USER_ID,
     tenantId: PROJECT_ID,
     userTenantAccessPermission: {

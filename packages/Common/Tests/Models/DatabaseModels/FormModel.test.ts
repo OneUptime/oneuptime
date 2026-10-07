@@ -14,6 +14,7 @@ import TablePermission from "../../../Server/Types/Database/Permissions/TablePer
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import ColumnBillingAccessControl from "../../../Types/BaseDatabase/ColumnBillingAccessControl";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { ON_HIGHEST_PLAN } from "../../Server/TestingUtils/RequestPlan";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import ColumnLength from "../../../Types/Database/ColumnLength";
 import ColumnType from "../../../Types/Database/ColumnType";
@@ -209,7 +210,9 @@ function propsWith(permission: Permission): DatabaseCommonInteractionProps {
     ],
   };
 
+  // A member's request carries the project's plan: these ask about roles, not plans.
   return {
+    ...ON_HIGHEST_PLAN,
     tenantId: PROJECT_ID,
     userId: ObjectID.generate(),
     userType: UserType.User,
@@ -878,9 +881,10 @@ describe("Form columns", () => {
     expect(billing).toEqual(
       new Dashboard().getColumnBillingAccessControl("ipWhitelist"),
     );
+    // Sold on Scale whenever it is written: on a create as on an update.
     expect(billing).toMatchObject({
       read: PlanType.Free,
-      create: PlanType.Free,
+      create: PlanType.Scale,
       update: PlanType.Scale,
     });
   });

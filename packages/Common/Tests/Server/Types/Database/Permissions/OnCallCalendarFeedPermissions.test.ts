@@ -15,6 +15,7 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../../../Types/Permission";
 import { describe, expect, it } from "@jest/globals";
+import { ON_HIGHEST_PLAN } from "../../../TestingUtils/RequestPlan";
 
 /*
  * The permission gate on the SHARED calendar feeds, exercised for real.
@@ -59,6 +60,7 @@ function propsFor(
   return {
     userId,
     tenantId: projectId,
+    ...ON_HIGHEST_PLAN,
     userTenantAccessPermission: {
       [projectId.toString()]: tenantPermission,
     },

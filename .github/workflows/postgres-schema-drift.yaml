@@ -143,6 +143,20 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/EpisodeReferenceWritePostgres.test.ts --forceExit
 
+      # An episode's members show their incident or alert, and their episode,
+      # through joins that run neither one's privacy rules: a member row is
+      # listed, counted, read and removed only by someone who may see both.
+      - name: Test episode member privacy on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_EPISODE_MEMBER_PRIVACY_TESTS: "true"
+          EPISODE_MEMBER_PRIVACY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          EPISODE_MEMBER_PRIVACY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          EPISODE_MEMBER_PRIVACY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/EpisodeMemberPrivacyPostgres.test.ts --forceExit
+
       # Clones the migrated Databases tables (DatabaseServer, its endpoints,
       # labels, owners, incident / alert / maintenance links and the
       # Kubernetes / Docker / Podman parents) into an isolated schema and runs
@@ -242,6 +256,22 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/Telemetry/InventoryMirrorPostgres.test.ts --forceExit
+
+      # Clones the migrated CloudResource table into an isolated schema and
+      # runs the discovered resources' sweeps against it: Not reporting,
+      # auto-archive, restore when a resource reports again, and the budget's
+      # count - set-based raw SQL only a real database can check.
+      - name: Test the Cloud Resource sweeps against Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_CLOUD_RESOURCE_SWEEP_TESTS: "true"
+          CLOUD_RESOURCE_SWEEP_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          CLOUD_RESOURCE_SWEEP_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          CLOUD_RESOURCE_SWEEP_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/CloudResourceMonitoredSweepsPostgres.test.ts
+          --forceExit
 
       # Clones the migrated IncidentAlert (and its FKs/unique index) into an
       # isolated schema, so it must run after the registered migrations.
@@ -385,7 +415,10 @@ jobs:
       # the report's incident count run on clones of every table they read:
       # each page shows only the incidents in its scope, an episode opened by
       # id on a page none of its incidents reaches is a 404, and no scope
-      # column reaches a page's JSON.
+      # column reaches a page's JSON. And Visible on Status Page is decided
+      # in each incident's and episode's own write: stored on only while the
+      # row is not private, even when a privacy change commits while the
+      # write waits for the row.
       - name: Test incident status page scope on migrated Postgres
         working-directory: packages/Common
         env:
@@ -397,7 +430,8 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/IncidentStatusPageScopePostgres.test.ts
           Tests/Server/Utils/StatusPage/IncidentStatusPageScopeQueriesPostgres.test.ts
-          Tests/Server/API/StatusPageIncidentScopePostgres.test.ts --forceExit
+          Tests/Server/API/StatusPageIncidentScopePostgres.test.ts
+          Tests/Server/Services/StatusPageVisibilityWritePostgres.test.ts --forceExit
 
       # Clones the migrated StatusPageSubscriber table into an isolated schema
       # and runs the audience summary's hand-written count (COUNT(*) FILTER
@@ -471,6 +505,26 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/IncidentCustomFieldRenamePostgres.test.ts --forceExit
+
+      # Clones the migrated Project, Incident, Monitor, IncidentMonitor and
+      # IncidentCustomField tables into an isolated schema and runs the
+      # workflow Update steps through the production IncidentService (#4469).
+      # Writing one custom field must keep every other one, Update Many must
+      # merge into each incident's own values, and customFields set to null
+      # must still clear them all. An update whose query names the version
+      # must write nothing once the row has moved past it - in the UPDATE
+      # itself, not only in the find before it - so two workflows setting
+      # different custom fields of one incident at the same moment both land.
+      - name: Test workflow custom field merges on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_WORKFLOW_CUSTOM_FIELD_MERGE_TESTS: "true"
+          WORKFLOW_CUSTOM_FIELD_MERGE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          WORKFLOW_CUSTOM_FIELD_MERGE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          WORKFLOW_CUSTOM_FIELD_MERGE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Types/Workflow/Components/UpdateMergesCustomFieldsPostgres.test.ts --forceExit
 
       # Clones the migrated WorkspaceProjectAuthToken table into an isolated
       # schema and runs the Microsoft Teams chat store against it with only

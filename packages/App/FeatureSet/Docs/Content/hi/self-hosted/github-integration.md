@@ -139,24 +139,22 @@ gitHubApp:
 
 **महत्वपूर्ण:** इन environment variables को add करने के बाद अपना OneUptime server restart करें ताकि वे effect में आएं।
 
-### चरण 9: GitHub App Install करें
+### चरण 9: OneUptime में Repositories Connect करें
 
-1. अपने GitHub App के public page पर जाएं: `https://github.com/apps/YOUR_APP_NAME`
-2. **"Install"** या **"Configure"** पर क्लिक करें
-3. वह organization या account चुनें जहाँ आप app install करना चाहते हैं
-4. चुनें कि app कौन से repositories access कर सकता है:
-   - **All repositories** - सभी current और future repositories तक access
-   - **Only select repositories** - specific repositories चुनें
-5. **"Install"** पर क्लिक करें
-
-### चरण 10: OneUptime में Repositories Connect करें
+Connection OneUptime से शुरू करें, GitHub पर app के page से नहीं: जिस link से OneUptime आपको GitHub पर भेजता है, वही installation को आपके project से जोड़ता है।
 
 1. अपने OneUptime dashboard में login करें
 2. **उत्पाद** > **कार्य** > **कोड रिपॉजिटरी** पर जाएं
-3. **"Create Repository"** पर क्लिक करें या GitHub App installation flow उपयोग करें
-4. यदि GitHub से redirect हुए, तो installation ID automatically capture होगी
-5. list से वे repositories चुनें जिन्हें आप connect करना चाहते हैं
-6. repository को अपने OneUptime project से link करने के लिए **"Connect"** पर क्लिक करें
+3. **Connect with GitHub App** पर क्लिक करें। OneUptime आपको GitHub पर ले जाता है
+4. वह organization या account चुनें जहाँ app install करना है, और चुनें कि app कौन से repositories access कर सकता है:
+   - **All repositories** - सभी current और future repositories तक access
+   - **Only select repositories** - specific repositories चुनें
+5. **Install** पर क्लिक करें (अगर app वहाँ पहले से install है तो **Save**)
+6. GitHub आपको **कोड रिपॉजिटरी** पर वापस भेजता है, और installation के सभी repositories import हो जाते हैं। बाद में installation में जोड़े या हटाए गए repositories अपने आप sync रहते हैं।
+
+**कौन connect कर सकता है।** Connect करने से installation के repositories project में import होते हैं, इसलिए code repositories जोड़ने की अनुमति चाहिए: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member**, या **Create Code Repository** वाली team। जो team इस अनुमति को block करती है, वह इसे छीन लेती है। OneUptime Cloud पर code repositories के लिए Growth plan या उससे ऊपर चाहिए। बाकी सभी के लिए card locked रहता है और बताता है कि क्या चाहिए।
+
+**15 मिनट के अंदर, उसी browser में पूरा करें।** Link एक ही बार, 15 मिनट तक, उसी browser में काम करता है जिसमें इसे शुरू किया गया था। GitHub से वापस आने पर OneUptime कुछ भी import करने से पहले अनुमति फिर से जाँचता है।
 
 ## Environment Variables Reference
 

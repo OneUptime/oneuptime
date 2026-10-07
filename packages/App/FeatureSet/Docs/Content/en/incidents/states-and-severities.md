@@ -187,7 +187,18 @@ Four separate things decide whether an incident is on a public page at all, and 
 - **The page is in the incident's reach.** The page lists one of the incident's monitors and, if the incident is limited to some status pages, is one of them. A page with **Only Show Incidents Scoped to This Page** on shows only the incidents limited to it. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 - **The current state sits above the resolved state.** This is what removes an incident from the active section: the status page query fetches incidents whose current state is above your resolved state, so the resolved state and any state after it take the incident off. You do not archive or close anything — you resolve it, and it moves into history.
 
-**Private incidents never appear.** Turning on **Private Incident** hides the incident from every status page, regardless of the toggles above, and restricts it to its owners plus project admins and owners.
+**Private incidents never appear.** Turning on **Private Incident** hides the incident from every status page, regardless of the toggles above, and restricts it to its owners plus project admins and owners. Nothing about it reaches a status page subscriber either: not its creation, its state changes, its public notes or its postmortem. The images in its description, postmortem, custom fields and public notes are not viewable by everyone while it is private.
+
+The two switches are kept in step, so the incident's **Settings** page always shows what status pages do:
+
+- Making an incident private switches **Visible on Status Page** off with it.
+- Turning **Visible on Status Page** on while the incident stays private leaves it off. To publish a private incident, turn **Private Incident** off and **Visible on Status Page** on — in one save, or one after the other.
+
+This holds however the incident is written: the dashboard, the API, Terraform, a workflow, a monitor, an incident template or a privacy rule. A value sent as text, such as `"true"`, counts the same as `true`. One write to many incidents that turns **Visible on Status Page** on — a workflow's **Update Many**, for instance — shows the ones that are not private and leaves every private one hidden. Each incident is decided as it is when the write reaches it, so a change to its privacy landing at the same moment is never overtaken: an incident is never stored both private and visible. An incident created private is created hidden, and tells no subscriber it was created.
+
+**Episodes follow the same rule.** A private incident episode is hidden from every status page, whatever its **Visible on Status Page** switch says, and its subscribers hear nothing about it. On the episode's **Settings** page the switch says so, and stays off while the episode is private. A private incident never brings its episode onto a status page: an episode reaches a page only through incidents that are not private.
+
+**Upgrading.** Incidents and episodes stored private with **Visible on Status Page** still on, from before these rules, have it switched off when you upgrade. Nothing is sent to anyone. The images such an incident or episode had made viewable by everyone are made private again, unless something your status pages show still has them in it. So are the images in public notes of incidents, episodes and scheduled maintenance events your status pages do not show, which stayed viewable by everyone before.
 
 How much resolved history the page keeps is a status page setting, not an incident one. See [Status Page Resources & Groups](/docs/status-pages/resources-and-groups) for how monitors on the page decide which incidents show up at all.
 

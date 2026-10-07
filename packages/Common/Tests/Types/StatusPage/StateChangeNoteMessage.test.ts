@@ -1,5 +1,7 @@
 import StateChangeNoteMessage from "../../../Types/StatusPage/StateChangeNoteMessage";
+import { WORD_JOINER } from "../../../Utils/Markdown/MarkdownEscape";
 import { describe, expect, test } from "@jest/globals";
+import { Token, Tokens, marked } from "marked";
 
 /*
  * The words a public note posted with a state change adds to its default
@@ -108,6 +110,52 @@ describe("StateChangeNoteMessage", () => {
       expect(StateChangeNoteMessage.getChatStatusLine("Resolved")).toContain(
         `**${StateChangeNoteMessage.statusLabel}:**`,
       );
+    });
+
+    /*
+     * A state's name is the project's own to set, and the line is Markdown
+     * posted to Slack and Teams: the name is escaped as a plain value, so it
+     * reads as typed and cannot become a link, an image, HTML or a mention.
+     */
+    test("a state's name is plain text in the line, and reads as typed", () => {
+      const name: string =
+        "![](https://tracker.example/p.png) [Open](https://evil.example) <!channel> <b>x</b>";
+      const line: string = StateChangeNoteMessage.getChatStatusLine(name);
+
+      expect(line).toBe(
+        `**Status:** !\\[\\](https://tracker.example/p.png) \\[Open\\](https://evil.example) \\<${WORD_JOINER}!channel> \\<b>x\\</b>`,
+      );
+
+      const tokens: Array<Token> = [];
+      marked.walkTokens(marked.lexer(line), (token: Token): void => {
+        tokens.push(token);
+      });
+
+      /*
+       * A bare address still becomes a link, as it does anywhere - one that
+       * shows where it goes. No image, no HTML, and no link whose words hide
+       * its address.
+       */
+      expect(
+        tokens
+          .filter((token: Token): boolean => {
+            return (
+              token.type === "image" ||
+              token.type === "html" ||
+              (token.type === "link" &&
+                (token as Tokens.Link).text !== (token as Tokens.Link).href)
+            );
+          })
+          .map((token: Token): string => {
+            return token.raw;
+          }),
+      ).toEqual([]);
+    });
+
+    test("an ordinary state's name is left exactly as typed", () => {
+      expect(
+        StateChangeNoteMessage.getChatStatusLine("Fixing - part 2 (EU) #1"),
+      ).toBe("**Status:** Fixing - part 2 (EU) #1");
     });
   });
 });

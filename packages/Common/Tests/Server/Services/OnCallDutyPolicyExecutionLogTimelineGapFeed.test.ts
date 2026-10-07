@@ -10,7 +10,9 @@ import OnCallDutyExecutionLogTimelineStatus from "../../../Types/OnCallDutyPolic
 import ObjectID from "../../../Types/ObjectID";
 import URL from "../../../Types/API/URL";
 import logger from "../../../Server/Utils/Logger";
+import { WORD_JOINER } from "../../../Utils/Markdown/MarkdownEscape";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
+import { Token, Tokens, marked } from "marked";
 
 /*
  * addToIncidentOrAlertFeed turns an on-call execution timeline row into the
@@ -60,6 +62,12 @@ interface CapturedFeed {
 }
 
 let captured: Array<CapturedFeed> = [];
+
+// The status sentence ending at the status, for a step without a message.
+const STEP_STATUS_SENTENCE_END_PATTERN: RegExp =
+  /The status of this step is \*\*Skipped\*\*\.$/;
+const ALERT_STATUS_SENTENCE_END_PATTERN: RegExp =
+  /The status of this alert is \*\*Error\*\*\. /;
 
 // Saved originals, restored in afterEach so suites stay independent.
 const originals: Record<string, any> = {};
@@ -339,6 +347,202 @@ describe("OnCallDutyPolicyExecutionLogTimelineService gap feed entries", () => {
 
       expect(captured).toHaveLength(0);
     });
+  });
+
+  /*
+   * The names in the entry and the step's status message are text: the feed
+   * renders without its safe mode and the entry is posted to Slack and
+   * Teams. The message is escaped rather than put in a code span, which a
+   * "`" in it would end early.
+   */
+  describe("names and the status message are text", () => {
+    function tokensOf(markdown: string): Array<Token> {
+      const tokens: Array<Token> = [];
+      marked.walkTokens(marked.lexer(markdown), (token: Token): void => {
+        tokens.push(token);
+      });
+      return tokens;
+    }
+
+    function readText(markdown: string): string {
+      return (marked.parse(markdown, { async: false }) as string)
+        .replace(/<[^>]+>/g, "")
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&amp;/g, "&")
+        .split(WORD_JOINER)
+        .join("");
+    }
+
+    const MESSAGE: string =
+      "Failed: [Reset](https://evil.example/login) <!channel> <b>now</b> (https://api.example.com/v1)";
+
+    test.each([
+      ["no recipient", {}],
+      [
+        "a recipient",
+        {
+          alertSentToUserId: new ObjectID("user1"),
+          status: OnCallDutyExecutionLogTimelineStatus.Error,
+        },
+      ],
+    ])(
+      "with %s, the message reads as typed and makes no hidden link or HTML",
+      async (_name: string, overrides: Record<string, unknown>) => {
+        await runBuilder(buildRow({ ...overrides, statusMessage: MESSAGE }));
+
+        expect(captured).toHaveLength(1);
+        const markdown: string = captured[0]!.markdown;
+        const tokens: Array<Token> = tokensOf(markdown);
+
+        expect(
+          tokens
+            .filter((token: Token): boolean => {
+              /*
+               * A bare address still becomes a link, as anywhere - one whose
+               * text is the address. None may hide where it goes.
+               */
+              return (
+                token.type === "html" ||
+                (token.type === "link" &&
+                  (token as Tokens.Link).href.includes("evil.example") &&
+                  (token as Tokens.Link).text !== (token as Tokens.Link).href)
+              );
+            })
+            .map((token: Token): string => {
+              return token.raw;
+            }),
+        ).toEqual([]);
+        expect(readText(markdown)).toContain(`with the message: ${MESSAGE}`);
+        expect(markdown).not.toMatch(/(?<!\\)<!channel>/);
+      },
+    );
+
+    test("a rule without a name reads 'Unnamed Rule', never an empty bold", async () => {
+      await runBuilder(
+        buildRow({
+          onCallDutyPolicyEscalationRule: { id: new ObjectID("rule1") },
+        }),
+      );
+
+      expect(captured[0]!.markdown).toContain(
+        "The escalation rule **Unnamed Rule**",
+      );
+      expect(captured[0]!.markdown).not.toContain("****");
+      expect(captured[0]!.markdown).not.toContain("undefined");
+    });
+
+    test("the policy, rule and schedule names read as typed and make no link", async () => {
+      const name: string = "[Open](https://evil.example/x) <@U0123ABC>";
+
+      await runBuilder(
+        buildRow({
+          onCallDutyPolicy: { name: name, id: POLICY_ID },
+          onCallDutyPolicyEscalationRule: {
+            name: name,
+            id: new ObjectID("rule1"),
+          },
+          onCallDutySchedule: { name: name, id: new ObjectID("schedule1") },
+        }),
+      );
+
+      const markdown: string = captured[0]!.markdown;
+
+      expect(
+        tokensOf(markdown).filter((token: Token): boolean => {
+          return (
+            token.type === "link" &&
+            (token as Tokens.Link).href.includes("evil.example") &&
+            (token as Tokens.Link).text !== (token as Tokens.Link).href
+          );
+        }),
+      ).toEqual([]);
+      expect(readText(markdown).split(name).length - 1).toBeGreaterThanOrEqual(
+        3,
+      );
+    });
+  });
+
+  /*
+   * The sentence that names the step's status ends once: with the message
+   * and a full stop, without a second one when the message brings its own,
+   * and at the status when the step has no message.
+   */
+  describe("the status sentence", () => {
+    const NO_RECIPIENT: Record<string, unknown> = {};
+    const RECIPIENT: Record<string, unknown> = {
+      alertSentToUserId: new ObjectID("user1"),
+      status: OnCallDutyExecutionLogTimelineStatus.Error,
+    };
+
+    test.each([
+      ["no recipient", NO_RECIPIENT, "The status of this step is **Skipped**"],
+      ["a recipient", RECIPIENT, "The status of this alert is **Error**"],
+    ])(
+      "with %s, a message without its own full stop is given one",
+      async (
+        _name: string,
+        overrides: Record<string, unknown>,
+        status: string,
+      ) => {
+        await runBuilder(
+          buildRow({ ...overrides, statusMessage: "SMS provider timed out" }),
+        );
+
+        expect(captured[0]!.markdown).toContain(
+          `${status} with the message: SMS provider timed out.`,
+        );
+      },
+    );
+
+    test.each([
+      ["no recipient", "a period", NO_RECIPIENT, "Notification skipped."],
+      ["a recipient", "a period", RECIPIENT, "Notification skipped."],
+      ["no recipient", "an exclamation mark", NO_RECIPIENT, "Call failed!"],
+      ["a recipient", "a question mark", RECIPIENT, "Delivered?"],
+    ])(
+      "with %s, a message ending in %s is not given a second full stop",
+      async (
+        _name: string,
+        _ending: string,
+        overrides: Record<string, unknown>,
+        message: string,
+      ) => {
+        await runBuilder(buildRow({ ...overrides, statusMessage: message }));
+
+        const markdown: string = captured[0]!.markdown;
+        expect(markdown).toContain(`with the message: ${message}`);
+        expect(markdown).not.toContain(`with the message: ${message}.`);
+      },
+    );
+
+    test.each([
+      ["no recipient", "no", NO_RECIPIENT, undefined],
+      ["no recipient", "an empty", NO_RECIPIENT, ""],
+      ["a recipient", "no", RECIPIENT, undefined],
+      ["a recipient", "a blank", RECIPIENT, "   "],
+    ])(
+      "with %s and %s message, the sentence ends at the status",
+      async (
+        _name: string,
+        _kind: string,
+        overrides: Record<string, unknown>,
+        message: string | undefined,
+      ) => {
+        await runBuilder(buildRow({ ...overrides, statusMessage: message }));
+
+        const markdown: string = captured[0]!.markdown;
+        expect(markdown).not.toContain("with the message");
+        expect(markdown).not.toContain("undefined");
+        expect(markdown).toMatch(
+          overrides === NO_RECIPIENT
+            ? STEP_STATUS_SENTENCE_END_PATTERN
+            : ALERT_STATUS_SENTENCE_END_PATTERN,
+        );
+      },
+    );
   });
 });
 

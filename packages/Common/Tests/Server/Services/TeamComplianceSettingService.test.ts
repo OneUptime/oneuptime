@@ -40,6 +40,7 @@ import UserType from "../../../Types/UserType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -487,6 +488,7 @@ const memberProps: (
     tenantId: tenantId,
     userId: USER_ID,
     userType: UserType.User,
+    ...ON_HIGHEST_PLAN,
     userTenantAccessPermission: {
       [tenantId.toString()]: tenantPermission,
     },
@@ -512,6 +514,7 @@ const OUTSIDER_PROPS: DatabaseCommonInteractionProps = {
   tenantId: PROJECT_ID,
   userId: USER_ID,
   userType: UserType.User,
+  ...ON_HIGHEST_PLAN,
 };
 
 const createProps: DatabaseCommonInteractionProps = EDITOR_PROPS;

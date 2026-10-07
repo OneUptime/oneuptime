@@ -79,6 +79,8 @@ const ROW_READERS: Record<string, string> = {
     "Builds the rows an API key's requests carry, from the key's permissions.",
   "packages/Common/Server/Utils/UserPermission/UserPermission.ts":
     "Caches the rows and adds the Project User row every member holds.",
+  "packages/Common/Server/Utils/Workflow/WorkflowPrincipal.ts":
+    "Builds the rows a workflow step's requests carry: a member's defaults and Project Admin.",
 };
 
 /*
@@ -101,15 +103,15 @@ const USER_PERMISSIONS_CALLERS: Record<string, string> = {
   "packages/Common/Server/Types/Database/Permissions/TenantPermission.ts":
     "Whether only Current User lets the caller in, to scope the query to their own rows; a blocked permission is refused by the table check first.",
   "packages/Common/Server/Types/AnalyticsDatabase/ModelPermission.ts":
-    "The analytics twin of the CRUD path: hands the rows to HeldPermissionsUtil, and scopes them like the database models.",
+    "The analytics twin of the CRUD path: hands the rows to HeldPermissionsUtil, and works out whose telemetry a caller may read (getReadScope) for the model reads, the /telemetry routes and the AI tools alike.",
   "packages/Common/Server/Services/TeamPermissionService.ts":
     "The grant ceiling: what a caller may hand on to a team, which is stricter than holding it.",
   "packages/Common/Server/Services/ApiKeyPermissionService.ts":
     "The grant ceiling for an API key's permissions.",
   "packages/Common/Server/Services/OnCallDutyPolicyChildService.ts":
     "Builds the props a create runs with from the caller's rows for the table's create permissions, blocks kept; the CRUD path decides.",
-  "packages/Common/Server/API/TelemetryAPI.ts":
-    "Session replay's label scope, read after the route guard (the rule) let the caller in.",
+  "packages/App/FeatureSet/Workflow/Utils/WorkflowRunAccess.ts":
+    "Builds the props a manual run reads the workflow with from the caller's Workflow Member rows alone, blocks kept, after the rule let them in; the CRUD path decides what the rows reach.",
 };
 
 // A type that is, or holds, a caller's rows.

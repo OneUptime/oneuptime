@@ -1,7 +1,9 @@
 import Metric from "../../../../Models/AnalyticsModels/Metric";
 import AggregationType from "../../../../Types/BaseDatabase/AggregationType";
-import DatabaseRequestType from "../../../Types/BaseDatabase/DatabaseRequestType";
-import ModelPermission from "../../../Types/AnalyticsDatabase/ModelPermission";
+import TelemetryReadAccess from "../../Telemetry/TelemetryReadAccess";
+import TelemetryReadScopeUtil, {
+  TelemetryReadScope,
+} from "../../Telemetry/TelemetryReadScope";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -292,25 +294,21 @@ export const BaselineAnomalyTool: ObservabilityTool = {
         }) || MetricBaselineServiceClass.DEFAULT_WINDOW_DAYS;
 
     /*
-     * The baseline queries are raw ClickHouse SQL scoped only by projectId —
-     * they skip the model layer's owned-scope filter. A label/owned-restricted
-     * user must therefore be pinned to one of THEIR services: project-wide
+     * The baseline queries are raw ClickHouse SQL scoped only by projectId -
+     * the model layer never narrows them. A user who may not read every
+     * service's metrics (a label or Owned grant, or a block with labels) must
+     * therefore be pinned to one service they may read: project-wide
      * baselines (no entityId) and other services' baselines are refused, the
      * same posture as the other raw-SQL tools (see LogTools/TraceTools).
      */
-    const accessibleServiceIds: Array<ObjectID> | null =
-      await ModelPermission.getAccessibleServiceIdsForAnalyticsModel(
-        Metric,
-        ctx.props,
-        DatabaseRequestType.Read,
-      );
+    const scope: TelemetryReadScope = await TelemetryReadAccess.getScope(
+      Metric,
+      ctx.props,
+    );
 
-    if (accessibleServiceIds !== null) {
+    if (!TelemetryReadScopeUtil.isProjectWide(scope)) {
       const isEntityAccessible: boolean = Boolean(
-        entityId &&
-          accessibleServiceIds.some((id: ObjectID) => {
-            return id.toString() === entityId.toString();
-          }),
+        entityId && TelemetryReadScopeUtil.isReadable(scope, entityId),
       );
 
       if (!isEntityAccessible) {

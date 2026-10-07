@@ -26,6 +26,7 @@ import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource"
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import StatusPageVisibility from "Common/Types/StatusPage/StatusPageVisibility";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
 } from "Common/Server/Services/StatusPageSubscriberNotificationTemplateService";
@@ -69,6 +70,7 @@ import Email from "Common/Types/Email";
 import SubscriberNotificationTrigger from "Common/Types/StatusPage/SubscriberNotificationTrigger";
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
+import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
 
 /*
  * Two jobs share this send path: one tells subscribers about a new public
@@ -350,7 +352,9 @@ const notifySubscribersOfIncidentPublicNote: (data: {
         currentIncidentState: {
           name: true,
         },
+        // Whether a status page shows it (StatusPageVisibility): visible, and not private.
         isVisibleOnStatusPage: true,
+        isPrivate: true,
         incidentNumber: true,
         incidentNumberWithPrefix: true,
         // {{incidentLabels}} and the custom fields (IncidentTemplateVariableBuilder).
@@ -418,7 +422,7 @@ const notifySubscribersOfIncidentPublicNote: (data: {
         color: incidentPublicNote.postedWithIncidentState?.color,
       });
 
-    if (!incident.isVisibleOnStatusPage) {
+    if (!StatusPageVisibility.isShown(incident)) {
       // Set status to Skipped for non-visible incidents
       logger.debug(
         `Incident ${incident.id} is not visible on status page; marking public note ${incidentPublicNote.id} as Skipped.`,
@@ -851,12 +855,12 @@ const notifySubscribersOfIncidentPublicNote: (data: {
                 ]);
               } else {
                 // Use default hard-coded template
-                markdownMessage = `## Incident - ${incident.title || ""}
+                markdownMessage = `## Incident - ${escapeMarkdownValue(incident.title || "")}
 
 **${copy.chatNoteSentence}**
 
-**Resources Affected:** ${resourcesAffectedPlainText}
-**Severity:** ${incident.incidentSeverity?.name || " - "}
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}
+**Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || " - ")}
 ${chatStatusLine}${chatCustomFields}
 **Note:**
 ${incidentPublicNote.note || ""}
@@ -903,12 +907,12 @@ ${incidentPublicNote.note || ""}
                 ]);
               } else {
                 // Use default hard-coded template
-                markdownMessage = `## Incident - ${incident.title || ""}
+                markdownMessage = `## Incident - ${escapeMarkdownValue(incident.title || "")}
 
 **${copy.chatNoteSentence}**
 
-**Resources Affected:** ${resourcesAffectedPlainText}
-**Severity:** ${incident.incidentSeverity?.name || " - "}
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}
+**Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || " - ")}
 ${chatStatusLine}${chatCustomFields}
 **Note:**
 ${incidentPublicNote.note || ""}

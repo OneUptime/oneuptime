@@ -27,7 +27,7 @@ OneUptime은 세 가지 인증 방법을 통해 커스텀 SMTP 서버로 이메�
 
 **Microsoft Graph.** **추가 필드**를 열고 **전송**을 `Microsoft Graph`로 설정한 다음, **Mail.Send** 애플리케이션 권한이 있는 Azure 앱 정보를 입력합니다: 클라이언트 ID와 클라이언트 비밀, 토큰 URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token`, 범위 `https://graph.microsoft.com/.default`. 메일은 **보낸 사람 이메일**의 사서함에서 전송되며, 이 사서함은 테넌트에서 라이선스가 있는 사서함이어야 합니다.
 
-프로젝트 구성을 저장한 후 해당 행의 **테스트 이메일 보내기**로 작동하는지 확인할 수 있습니다.
+프로젝트 구성을 저장한 후 해당 행의 **테스트 이메일 보내기**로 작동하는지 확인할 수 있습니다. 이를 위해서는 SMTP 구성을 추가할 권한이 필요합니다: **Project Owner**, **Project Admin**, 또는 사용자 지정 역할의 **Create SMTP Config** 및 **Read SMTP Config**. OneUptime Cloud에서는 구성을 추가할 때처럼 **Growth** 요금제도 필요합니다. 그 밖의 사람에게는 잠겨 있고 툴팁이 무엇이 필요한지 알려 줍니다.
 
 ## OAuth 2.0 인증
 

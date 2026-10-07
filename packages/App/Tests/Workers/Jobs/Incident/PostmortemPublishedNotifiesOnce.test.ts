@@ -192,6 +192,7 @@ import IncidentCustomFieldService from "Common/Server/Services/IncidentCustomFie
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import IncidentMeasurementValueService from "Common/Server/Services/IncidentMeasurementValueService";
 import IncidentService from "Common/Server/Services/IncidentService";
+import { VISIBLE_UNLESS_PRIVATE_SQL } from "Common/Server/Utils/StatusPage/StatusPageVisibilityQuery";
 import IncidentStateTimelineService from "Common/Server/Services/IncidentStateTimelineService";
 import MailService from "Common/Server/Services/MailService";
 import SmsService from "Common/Server/Services/SmsService";
@@ -267,10 +268,25 @@ type OnUpdateSuccess = (
   onUpdate: OnUpdate<Incident>,
   updatedItemIds: Array<ObjectID>,
 ) => Promise<OnUpdate<Incident>>;
+type GetRowWriteSql = (data: unknown) => Record<string, string>;
 
 interface UpdateHooks {
   onBeforeUpdate: OnBeforeUpdate;
   onUpdateSuccess: OnUpdateSuccess;
+  getRowWriteSql: GetRowWriteSql;
+}
+
+/*
+ * What Postgres stores for a column IncidentService writes in SQL
+ * (getRowWriteSql): Visible on Status Page only while the incident is not
+ * private, as the incident is when the write reaches it.
+ */
+function storedBySql(sql: string, row: Incident): unknown {
+  if (sql === VISIBLE_UNLESS_PRIVATE_SQL) {
+    return row.isPrivate !== true;
+  }
+
+  throw new Error(`No stand-in for the row write SQL ${sql}`);
 }
 
 // Someone who may edit incidents.
@@ -386,7 +402,20 @@ async function beginUpdate(
   });
 
   return async (): Promise<void> => {
-    Object.assign(incident, onUpdate.updateBy.data);
+    /*
+     * The write, as DatabaseService makes it: a column the service writes in
+     * SQL (getRowWriteSql) is worked out on the incident as the write finds
+     * it - a private incident keeps Visible on Status Page off.
+     */
+    const stored: Record<string, unknown> = {};
+
+    for (const [column, sql] of Object.entries(
+      hooks.getRowWriteSql(onUpdate.updateBy.data),
+    )) {
+      stored[column] = storedBySql(sql, incident);
+    }
+
+    Object.assign(incident, onUpdate.updateBy.data, stored);
 
     await hooks.onUpdateSuccess(onUpdate, [INCIDENT_ID]);
   };
@@ -1059,22 +1088,37 @@ describe("a postmortem published while its incident is hidden from status pages"
     expect(sent()).toEqual(NOTHING_SENT);
   });
 
-  test("a private incident switched on through the API stays hidden, and its postmortem waits; made not private, it is sent once", async () => {
+  /*
+   * A private incident stays hidden however its switch is written
+   * (StatusPageVisibility): an API client that switches it on and leaves it
+   * private has the switch stored off, so making the incident not private
+   * later shows it to nobody either. Switching it on then shows it, and
+   * sends the postmortem once.
+   */
+  test("a private incident switched on through the API stays hidden, and its postmortem waits; made not private and switched on, it is sent once", async () => {
     incident.isPrivate = true;
 
     await saveEditPostmortemForm({ note: NOTE, publish: true });
     await runTheJob();
 
-    // An API client switches it on and leaves it private.
+    // An API client switches it on and leaves it private: stored off.
     await update({ isVisibleOnStatusPage: true } as unknown as JSONObject);
     await runTheJob();
 
     expect(sent()).toEqual(NOTHING_SENT);
+    expect(incident.isVisibleOnStatusPage).toBe(false);
     expect(
       incident.subscriberNotificationStatusMessageOnPostmortemPublished,
     ).toBe(IncidentPostmortemPublication.hiddenIncidentMessage);
 
+    // Made not private, it is still hidden: nobody is told.
     await update({ isPrivate: false } as unknown as JSONObject);
+    await runTheJob();
+
+    expect(sent()).toEqual(NOTHING_SENT);
+
+    // Switched on, it is shown, and the postmortem goes out once.
+    await update({ isVisibleOnStatusPage: true } as unknown as JSONObject);
     await runTheJob();
     await runTheJob();
 

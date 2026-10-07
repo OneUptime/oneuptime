@@ -44,6 +44,10 @@ import IncidentEpisodeOwnerTeam from "../../Models/DatabaseModels/IncidentEpisod
 import IncidentEpisodeMember from "../../Models/DatabaseModels/IncidentEpisodeMember";
 import User from "../../Models/DatabaseModels/User";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import StatusPageVisibility from "../../Types/StatusPage/StatusPageVisibility";
+import StatusPageVisibilityQuery from "../Utils/StatusPage/StatusPageVisibilityQuery";
+import Dictionary from "../../Types/Dictionary";
+import PartialEntity from "../../Types/Database/PartialEntity";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import IncidentEpisodeWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/IncidentEpisode";
@@ -141,6 +145,16 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     /*
+     * Visible on Status Page and Private as they are stored, and a private
+     * episode hidden from status pages (StatusPageVisibility): making an
+     * episode private switches Visible on Status Page off with it, whoever
+     * writes it - a privacy rule, the API, Terraform, a workflow.
+     */
+    StatusPageVisibility.normalizeWrite(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
+
+    /*
      * Sending the episode's created notification again while it is being
      * sent would let a second run send it alongside, or be overwritten when
      * the send settles (SubscriberNotificationResendAccess). No user role may
@@ -186,6 +200,27 @@ export class Service extends ProjectReferencesService<Model> {
     });
 
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * A private episode is hidden from every status page (StatusPageVisibility),
+   * so an update that turns Visible on Status Page on and leaves Private as
+   * it is - the episode's Status Pages switch, the API, Terraform, a
+   * workflow - shows only the episodes that are not private.
+   *
+   * Each episode is decided by itself, by the database, in its own row's
+   * write (DatabaseService.getRowWriteSql): the switch is stored on only
+   * while the episode is not private as it is then, so no privacy write
+   * landing at the same moment leaves both on. What the write stored is
+   * what the workflow trigger, the realtime event and the audit log are
+   * told. No earlier read, and no other episode, decides it.
+   */
+  protected override getRowWriteSql(
+    data: PartialEntity<Model>,
+  ): Dictionary<string> {
+    return StatusPageVisibilityQuery.getRowWriteSql(
+      data as unknown as Record<string, unknown>,
+    );
   }
 
   @CaptureSpan()
@@ -359,6 +394,20 @@ export class Service extends ProjectReferencesService<Model> {
         createBy.data.isVisibleOnStatusPage =
           groupingRule.showEpisodeOnStatusPage ?? true;
       }
+    }
+
+    /*
+     * A private episode is hidden from every status page
+     * (StatusPageVisibility): created private, it is created with Visible on
+     * Status Page off, whatever the request or the grouping rule says for it,
+     * and nobody is told it was created - as an incident created private.
+     * Last, after everything above that sets the switch.
+     */
+    StatusPageVisibility.normalizeWrite(createData);
+
+    if (StatusPageVisibility.isPrivate(createBy.data)) {
+      createBy.data.shouldStatusPageSubscribersBeNotifiedOnEpisodeCreated =
+        false;
     }
 
     const carryForward: StartingStageCarryForward = {
@@ -744,8 +793,9 @@ export class Service extends ProjectReferencesService<Model> {
       let feedInfoInMarkdown: string = `#### On-Call Policy Executed\n\n`;
       feedInfoInMarkdown += `The following on-call ${policyNames.length === 1 ? "policy has" : "policies have"} been executed for this episode:\n\n`;
 
+      // Each policy name is plain text.
       for (const policyName of policyNames) {
-        feedInfoInMarkdown += `- ${policyName}\n`;
+        feedInfoInMarkdown += `- ${escapeMarkdownValue(policyName)}\n`;
       }
 
       await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
@@ -1180,7 +1230,7 @@ export class Service extends ProjectReferencesService<Model> {
         incidentEpisodeFeedEventType:
           IncidentEpisodeFeedEventType.SeverityChanged,
         displayColor: newSeverity.color || Yellow500,
-        feedInfoInMarkdown: `Episode severity changed to **${newSeverity.name || "Unknown"}**`,
+        feedInfoInMarkdown: `Episode severity changed to **${escapeMarkdownValue(newSeverity.name || "Unknown")}**`,
       });
     }
   }

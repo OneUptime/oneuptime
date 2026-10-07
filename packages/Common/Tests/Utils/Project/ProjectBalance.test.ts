@@ -119,10 +119,7 @@ describe("who may add balance", () => {
     expect(WHO_CAN_ADD_PROJECT_BALANCE.toLowerCase()).not.toContain("admin");
   });
 
-  test("are the people who may turn the paid channels on and change the daily AI limits, named in the same words", () => {
-    expect([...PROJECT_BALANCE_RECHARGE_PERMISSIONS]).toEqual([
-      ...PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS,
-    ]);
+  test("are the people who may change the daily AI limits, named in the same words", () => {
     expect([...PROJECT_BALANCE_RECHARGE_PERMISSIONS]).toEqual([
       ...PROJECT_AI_DAILY_LIMIT_UPDATE_PERMISSIONS,
     ]);
@@ -132,11 +129,31 @@ describe("who may add balance", () => {
     expect(WHO_CAN_ADD_PROJECT_BALANCE).toBe(
       WHO_CAN_CHANGE_PROJECT_AI_DAILY_LIMITS,
     );
-    expect(getWhoCanTurnOnSentence("it")).toContain(
-      "A project owner or someone with Manage Billing can",
-    );
     expect(ProjectAiDailyLimits.getWhoCanChangeSentence()).toContain(
       "A project owner or someone with Manage Billing can",
+    );
+  });
+
+  /*
+   * A Billing Admin may switch a paid channel on (the decision for the
+   * role) and may not add to the balance it spends: the channel switches
+   * let in one more than a recharge does, and their words name one more.
+   */
+  test("are the people who may turn the paid channels on, but for the Billing Admin role", () => {
+    expect([...PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS]).toEqual([
+      Permission.ProjectOwner,
+      Permission.BillingAdmin,
+      Permission.ManageProjectBilling,
+    ]);
+    expect(
+      PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS.filter(
+        (permission: Permission): boolean => {
+          return permission !== Permission.BillingAdmin;
+        },
+      ),
+    ).toEqual([...PROJECT_BALANCE_RECHARGE_PERMISSIONS]);
+    expect(getWhoCanTurnOnSentence("it")).toContain(
+      "A project owner, a Billing Admin or someone with Manage Billing can",
     );
   });
 

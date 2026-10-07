@@ -112,12 +112,13 @@ const ISO_8601_REGEX: RegExp =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?Z$/;
 
 /*
- * mermaid's pre-bundled build is ~4.5MB — by far the heaviest dependency of
- * this component — so it is loaded on demand the first time a mermaid fence
- * actually renders. Plain markdown (the overwhelmingly common case) never
- * pays for it: there is no static import and no module-scope initialization.
- * The promise is cached module-wide so multiple diagrams share one load, and
- * theme setup runs only after the load resolves.
+ * mermaid is by far the heaviest dependency of this component - about 700KB
+ * of chunks before its first diagram, bundled from mermaid's ES module source
+ * (Common/UI/esbuild-mermaid.js) - so it is loaded on demand the first time a
+ * mermaid fence actually renders. Plain markdown (the overwhelmingly common
+ * case) never pays for it: there is no static import and no module-scope
+ * initialization. The promise is cached module-wide so multiple diagrams
+ * share one load, and theme setup runs only after the load resolves.
  */
 type MermaidApi = typeof import("mermaid").default;
 

@@ -54,7 +54,7 @@ Die Teams **Owners** und **Admin** sind bewusst gesperrt: Ihre Berechtigungen la
 
 `ProjectOwner` ist die höchste Zugriffsstufe: Abrechnung, Löschen des Projekts und alles, was ein Admin kann. `ProjectAdmin` umfasst alles außer Abrechnung und Löschen des Projekts.
 
-SMS, Telefonanrufe, WhatsApp oder Telegram für das Projekt ein- oder auszuschalten gilt als Abrechnung, weil jede Nachricht Geld kostet. Nur `ProjectOwner` und die Berechtigung `ManageProjectBilling` (**Manage Billing**) können diese Schalter unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen** ändern — nicht `ProjectAdmin`.
+SMS, Telefonanrufe, WhatsApp oder Telegram für das Projekt ein- oder auszuschalten gilt als Abrechnung, weil jede Nachricht Geld kostet. Nur `ProjectOwner`, die Rolle `BillingAdmin` (**Billing Admin**) und die Berechtigung `ManageProjectBilling` (**Manage Billing**) können diese Schalter unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen** ändern — nicht `ProjectAdmin`.
 
 Das Aufladen der vorausbezahlten Guthaben des Projekts gilt ebenfalls als Abrechnung. In OneUptime Cloud werden SMS, Telefonanrufe, WhatsApp und Telegram vom Guthaben unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen** bezahlt und KI vom KI-Guthaben unter **Projekteinstellungen > KI > KI-Guthaben**. Nur ein Projekteigentümer oder jemand mit **Manage Billing** kann sie aufladen oder ihr **Automatisches Aufladen** ändern — ein Projektadministrator kann es nicht. Eine Meldung über ein knappes Guthaben nennt, wer es aufladen kann, und nur diese Personen bekommen eine funktionierende Schaltfläche **Guthaben aufladen** oder einen Link zur Seite.
 
@@ -75,6 +75,8 @@ Eine Rolle bündelt einen ganzen Produktbereich auf einer von drei Stufen:
 - **Viewer** — nur lesend.
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` und so weiter. Rollen sind fast immer die richtige Wahl — sie bleiben korrekt, wenn OneUptime Funktionen ergänzt, weil eine neue monitorbezogene Tabelle den bestehenden Monitor-Rollen zugeordnet wird, statt eine neue Zuweisung von Ihnen zu verlangen.
+
+Workflows sind die Ausnahme. Ein Workflow führt seine Schritte im Projekt aus, deshalb öffnet `WorkflowMember` Workflows und ihre Ausführungen und führt sie von Hand aus, erstellt, ändert oder löscht sie aber nicht. `WorkflowAdmin` baut sie. Siehe [Workflow-Konfiguration](/docs/workflows/configuration).
 
 Alle {{PERMISSION_ROLE_COUNT}} Rollen sind in der [Berechtigungsreferenz](/docs/permissions/reference) aufgeführt.
 
@@ -136,6 +138,16 @@ Eine Label-Einschränkung ist erfüllt, wenn die Ressource **mindestens eines** 
 
 Wo Sie es finden: **Einstellungen → Labels**.
 
+## Telemetrie
+
+Logs, Traces, Metriken, Ausnahmen, Profile und Session-Wiedergaben gehören zu der Ressource, die sie gesendet hat: einem Dienst, einem Host, einem Kubernetes-Cluster, einem Monitor, einer RUM-Anwendung und Ähnlichem. Eine Telemetrie-Berechtigung liest so weit, wie ihr Geltungsbereich reicht:
+
+- **Alle Ressourcen** liest die Telemetrie aller Ressourcen im Projekt.
+- **Eigene** liest die Telemetrie der Ressourcen, die Ihnen oder einem Ihrer Teams gehören, und Telemetrie, die keine Ressource nennt.
+- **Labels** liest die Telemetrie der Ressourcen, die eines der Labels der Berechtigung tragen.
+
+Eine Sperre mit Labels auf einer Telemetrie-Berechtigung lässt die Telemetrie der Ressourcen weg, die diese Labels tragen – egal, was Sie sonst haben. Das gilt überall, wo Telemetrie gelesen wird: in den Explorern mit ihren Diagrammen, Filtern und Attributlisten, in Exporten, in Session-Wiedergaben und in dem, was der KI-Assistent für Sie liest. Die Liste der Metriknamen zeigt die Metriken, die ein Dienst meldet, den Sie lesen dürfen, und die Metriken, die kein Dienst meldet, etwa Host- und Cluster-Metriken. Dürfen Sie auch die Telemetrie anderer Arten von Ressourcen lesen, etwa von Hosts oder Clustern, zeigt sie alle Metriknamen.
+
 ## API-Schlüssel
 
 API-Schlüssel erhalten Berechtigungen direkt am Schlüssel — sie gehören keinem Team an und sind von Teamzugehörigkeiten unberührt.
@@ -157,7 +169,7 @@ Für einen angemeldeten Benutzer, der Reihe nach:
 3. Zuerst die Sperrliste prüfen. Eine Sperre ohne Labels auf irgendeiner Berechtigung, die die Zieltabelle für diese Operation akzeptiert, weist die Anfrage sofort ab – gleich, in welchem Team sie gesetzt ist.
 4. Die Erlaubt-Liste prüfen. Die Anfrage braucht mindestens eine Berechtigung, die die Zieltabelle für diese Operation akzeptiert. Bei einer operativen Ressource – einem Monitor, einem Vorfall, einem Dashboard und Ähnlichem – zählt auch die passende **All Operational Resources**-Berechtigung (Create, Read, Edit oder Delete), sofern sie nicht selbst gesperrt ist.
 5. Geltungsbereich anwenden. „Eigene" grenzt die Abfrage auf eigene Ressourcen ein, „Labels" auf passende Labels. Gibt es für dieselbe Operation eine breitere Zuweisung, gewinnt die breitere.
-6. Label-Sperren anwenden. Eine Sperre mit Labels weist die Anfrage ab, wenn die Zielressource eines davon trägt.
+6. Label-Sperren anwenden. Eine Sperre mit Labels weist die Anfrage ab, wenn die Zielressource eines davon trägt. Hat ein Datensatz keine eigenen Labels, etwa eine Notiz zu einem Vorfall oder eine Ankündigung einer Statusseite, lässt eine Sperre mit Labels auf seinem Lesen ihn weg, wenn ein Datensatz, zu dem er gehört, eines dieser Labels trägt.
 
 Jedes Feld eines Datensatzes wird mit der eigenen Leseberechtigung des Datensatzes gelesen: Eine Berechtigung für eine andere Art von Datensatz öffnet es nie. Manche Felder sind bewusst enger. Geheimnisse lesen nur Personen, die den Datensatz bearbeiten oder verwalten dürfen, zu dem sie gehören – etwa die Schlüssel eines Monitors für eingehende Anfragen und eingehende E-Mails und sein Server-Agent-Schlüssel oder die Webhook- und E-Mail-Schlüssel eines Workflows. Die Aufzeichnung einer Session-Wiedergabe anzusehen braucht **Watch Session Replays**, nicht nur **List Session Replays**. Telemetrie wird Signal für Signal gelesen: **Read Telemetry Service Log** liest Logs, **Read Telemetry Service Traces** liest Traces und **Read Telemetry Service Metrics** liest Metriken, Metrikdiagramme eingeschlossen.
 

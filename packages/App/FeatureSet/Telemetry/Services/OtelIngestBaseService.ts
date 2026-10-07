@@ -26,7 +26,9 @@ import HostService from "Common/Server/Services/HostService";
 import Host from "Common/Models/DatabaseModels/Host";
 import ServerlessFunctionService from "Common/Server/Services/ServerlessFunctionService";
 import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
-import CloudResourceService from "Common/Server/Services/CloudResourceService";
+import CloudResourceService, {
+  CloudMonitoredResourceFindOrCreateResult,
+} from "Common/Server/Services/CloudResourceService";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import RumApplicationService from "Common/Server/Services/RumApplicationService";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
@@ -94,6 +96,11 @@ import {
   normalizeCloudPlatform,
 } from "Common/Types/Cloud/CloudPlatform";
 import { resolveCloudInstanceName } from "Common/Utils/Telemetry/CloudInstanceIdentity";
+import {
+  CloudMonitoredResource,
+  buildCloudMonitoredResourceIdentifier,
+} from "Common/Types/Cloud/CloudMonitoredResource";
+import EventLoop from "Common/Server/Utils/EventLoop";
 
 /*
  * A maintenance fence that one autoDiscover* attempt armed, recorded so
@@ -435,6 +442,7 @@ export default abstract class OtelIngestBaseService {
     this.containerNameL1Memo.clear();
     this.maintenanceFenceNegativeMemo.clear();
     this.unresolvedDatabaseServerMemo.clear();
+    this.unresolvedCloudMonitoredResourceMemo.clear();
   }
 
   /*
@@ -2864,6 +2872,149 @@ export default abstract class OtelIngestBaseService {
         }`,
       );
     }
+  }
+
+  private static readonly CLOUD_MONITORED_RESOURCE_ID_CACHE_NAMESPACE: string =
+    "cloud-monitored-resource-id";
+  private static readonly CLOUD_MONITORED_RESOURCE_ID_CACHE_EXPIRY_SECONDS: number =
+    24 * 60 * 60; // 1 day
+
+  /*
+   * How many resources one request may look up in Postgres - the ones no
+   * cache knows yet. A collector's first poll of a large subscription names
+   * thousands of resources; the rest are found by the next polls, each a
+   * minute or five apart, instead of one request holding a worker for all
+   * of them.
+   */
+  public static readonly CLOUD_MONITORED_RESOURCE_MAX_LOOKUPS_PER_REQUEST: number = 200;
+
+  /*
+   * L1 for resources that could not be resolved to a row - in practice, a
+   * project at its auto-create budget. Without it every poll would look up
+   * every such resource again. One minute: a budget freed by the archive
+   * sweep is picked up on the next poll after that.
+   */
+  private static readonly unresolvedCloudMonitoredResourceMemo: InProcessMemo<boolean> =
+    new InProcessMemo<boolean>({
+      ttlInMs: 60 * 1000,
+      maxEntries: 10_000,
+    });
+
+  /*
+   * Cloud resources from cloud monitoring: the distinct resources one
+   * request's metric rows named (CloudMonitoredResourceCollector), each
+   * found or created as a Cloud Resource and sighted.
+   *
+   * Unlike the other autoDiscover* methods this is not about the request's
+   * OTel resource. A cloud-monitoring receiver sends a whole account's or
+   * subscription's resources under one OTel resource, and names each
+   * datapoint's own resource on the datapoint - so the work is per
+   * resource the rows named, after the rows are written:
+   *
+   *   - the row id goes through the same L1 memo / Redis cache as every
+   *     discovered entity; only a miss reaches Postgres, and at most
+   *     CLOUD_MONITORED_RESOURCE_MAX_LOOKUPS_PER_REQUEST of those per request;
+   *   - the sighting (lastSeenAt, status, what the provider reports) runs
+   *     behind the same maintenance fence, once per resource per window;
+   *   - a failure costs that resource its sighting this time, never the
+   *     request: the fences it armed are released, and it is logged once.
+   *
+   * Returns how many resources were sighted or already known.
+   */
+  @CaptureSpan()
+  protected static async autoDiscoverCloudMonitoredResources(data: {
+    projectId: ObjectID;
+    resources: Array<CloudMonitoredResource>;
+  }): Promise<number> {
+    let lookups: number = 0;
+    let resolved: number = 0;
+    let failures: number = 0;
+    let firstFailure: string = "";
+
+    for (let index: number = 0; index < data.resources.length; index++) {
+      if (index > 0 && index % 25 === 0) {
+        await EventLoop.yieldToEventLoop();
+      }
+
+      const resource: CloudMonitoredResource = data.resources[index]!;
+      const armedFences: Array<MaintenanceFence> = [];
+
+      try {
+        const resourceIdentifier: string =
+          buildCloudMonitoredResourceIdentifier(resource);
+        const cacheKey: string = `${data.projectId.toString()}:${resourceIdentifier}`;
+
+        if (this.unresolvedCloudMonitoredResourceMemo.get(cacheKey)) {
+          continue;
+        }
+
+        let cloudResourceIdStr: string | null =
+          await this.getEntityIdFromCaches(
+            this.CLOUD_MONITORED_RESOURCE_ID_CACHE_NAMESPACE,
+            cacheKey,
+          );
+
+        if (!cloudResourceIdStr) {
+          if (
+            lookups >= this.CLOUD_MONITORED_RESOURCE_MAX_LOOKUPS_PER_REQUEST
+          ) {
+            continue;
+          }
+          lookups++;
+
+          const found: CloudMonitoredResourceFindOrCreateResult =
+            await CloudResourceService.findOrCreateMonitoredResource({
+              projectId: data.projectId,
+              resource: resource,
+            });
+
+          if (!found.cloudResource?._id) {
+            this.unresolvedCloudMonitoredResourceMemo.set(cacheKey, true);
+            continue;
+          }
+
+          cloudResourceIdStr = found.cloudResource._id.toString();
+          await this.setEntityIdInCaches(
+            this.CLOUD_MONITORED_RESOURCE_ID_CACHE_NAMESPACE,
+            cacheKey,
+            cloudResourceIdStr,
+            this.CLOUD_MONITORED_RESOURCE_ID_CACHE_EXPIRY_SECONDS,
+          );
+        }
+
+        resolved++;
+
+        if (
+          await this.shouldRunMaintenance(
+            "cloud-monitored-resource",
+            cloudResourceIdStr,
+          )
+        ) {
+          armedFences.push({
+            scope: "cloud-monitored-resource",
+            id: cloudResourceIdStr,
+          });
+          await CloudResourceService.recordMonitoredResourceSighting({
+            cloudResourceId: new ObjectID(cloudResourceIdStr),
+            resource: resource,
+          });
+        }
+      } catch (err) {
+        await this.releaseMaintenanceFences(armedFences);
+        failures++;
+        if (!firstFailure) {
+          firstFailure = err instanceof Error ? err.message : String(err);
+        }
+      }
+    }
+
+    if (failures > 0) {
+      logger.error(
+        `Cloud resource discovery failed for ${failures} of ${data.resources.length} resource(s) in project ${data.projectId.toString()}; they are retried on the next request. First error: ${firstFailure}`,
+      );
+    }
+
+    return resolved;
   }
 
   /*

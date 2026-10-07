@@ -131,6 +131,7 @@ const EDITORS: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
   Permission.EditWorkflow,
+  Permission.WorkflowAdmin,
 ];
 
 const PAGE_PROPS: PageComponentProps = {
@@ -230,6 +231,8 @@ describe("the builder loads the incoming email key only for those who may see it
     Permission.WorkflowViewer,
     Permission.ReadWorkflow,
     Permission.ProjectMember,
+    // Runs workflows by hand, but a key starts one from outside.
+    Permission.WorkflowMember,
   ])(
     "%s: the builder still opens, without the key, and the canvas is told it is hidden",
     async (permission: Permission) => {

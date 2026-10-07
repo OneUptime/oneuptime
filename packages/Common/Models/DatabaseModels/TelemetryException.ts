@@ -5,7 +5,6 @@ import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
-import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
@@ -32,7 +31,6 @@ import RumApplication from "./RumApplication";
 import DatabaseServer from "./DatabaseServer";
 
 @EnableDocumentation()
-@CanAccessIfCanReadOn("service")
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [

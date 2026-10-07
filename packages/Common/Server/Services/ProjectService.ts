@@ -29,6 +29,7 @@ import {
 import SessionReplayGateCacheStore from "../Utils/SessionReplay/SessionReplayGateCacheStore";
 import AccessTokenService from "./AccessTokenService";
 import type AuditLogServiceType from "./AuditLogService";
+import PlanDowngradeOwnerNotice from "../Utils/Billing/PlanDowngradeOwnerNotice";
 import BillingService from "./BillingService";
 import DatabaseService from "./DatabaseService";
 import ProjectReferencesService from "./ProjectReferencesService";
@@ -313,12 +314,30 @@ export class ProjectService extends ProjectReferencesService<Model> {
    * Caches the current billing plan per project. `getCurrentPlan` is hit
    * by `CommonAPI.getDatabaseCommonInteractionProps` on every
    * authenticated request when billing is enabled — without caching,
-   * that's one Postgres findOneById per API call to a billable project.
+   * that's one Postgres findOneById per API call to a billable project —
+   * and by the API-key and SCIM middleware, which refuse a project's keys
+   * and SCIM connections below their plan (PlanCutoffCredentialAccess).
    * Plans change rarely (subscription create / cancel / change), so a
-   * 60s staleness window is acceptable.
+   * 60s staleness window is acceptable. A plan change drops the project's
+   * entry on the server that made it (forgetCurrentPlan), so there the
+   * new plan applies at once, and everywhere else within the 60 seconds.
    */
   private currentPlanCache: InMemoryTTLCache<CurrentPlan> =
     new InMemoryTTLCache(10_000);
+
+  /*
+   * Counts this server's plan changes (forgetCurrentPlan). A plan read that
+   * was under way when the plan changed may hold the old plan, so it is
+   * returned but not cached: otherwise it would put the old plan back for
+   * another minute, after forgetCurrentPlan had dropped it.
+   */
+  private currentPlanChanges: number = 0;
+
+  /*
+   * How long a project's plan is cached on a server: the longest a plan
+   * change takes to reach a server that did not make it.
+   */
+  public static readonly CURRENT_PLAN_CACHE_TTL_MS: number = 60_000;
 
   public constructor() {
     super(Model);
@@ -524,6 +543,22 @@ export class ProjectService extends ProjectReferencesService<Model> {
       }
 
       data.data.planName = this.getPlanType(data.data.paymentProviderPlanId);
+
+      /*
+       * The project's own settings that a plan sells (its audit logs,
+       * Require SSO) are checked against the plan it is created on, after
+       * this hook, by the create's column check (ColumnPermission) - as
+       * every record's settings are checked against its project's plan.
+       * Not against the plan of the project the request was sent from,
+       * nor against none when it was sent from no project. A new project
+       * has no subscription yet, so none that is unpaid. A copy: the
+       * request's own props are left as they are.
+       */
+      data.props = {
+        ...data.props,
+        currentPlan: data.data.planName,
+        isSubscriptionUnpaid: false,
+      };
 
       if (data.data.paymentProviderPromoCode) {
         /*
@@ -1251,12 +1286,28 @@ export class ProjectService extends ProjectReferencesService<Model> {
     });
 
     /*
+     * The new plan applies to the next request: what the project's API keys
+     * and SCIM connections may do turns on it (PlanCutoffCredentialAccess).
+     */
+    this.forgetCurrentPlan(project.id!);
+
+    /*
      * Raised after the row is written, because the row is what makes these ids
      * unreachable: it now carries the replacements.
      */
     this.alertOnSubscriptionsPendingCancellation({
       projectId: project.id!,
       subscriptionIds: subscription.subscriptionIdsPendingCancellation,
+    });
+
+    /*
+     * A move below the plan the project's API keys or SCIM connections need
+     * stops them; its owners are told once, now, what stopped. Never throws.
+     */
+    await PlanDowngradeOwnerNotice.notifyIfStopped({
+      projectId: project.id!,
+      fromPlanId: project.paymentProviderPlanId,
+      toPlanId: params.paymentProviderPlanId,
     });
 
     this.capturePlanChangeAnalytics({
@@ -3153,6 +3204,8 @@ These are no longer recorded against the project and have to be cancelled by han
       return cached;
     }
 
+    const planChangesBeforeRead: number = this.currentPlanChanges;
+
     const project: Model | null = await this.findOneById({
       id: projectId,
       select: {
@@ -3191,8 +3244,26 @@ These are no longer recorded against the project and have to be cancelled by han
           project.paymentProviderMeteredSubscriptionStatus!,
         ),
     };
-    this.currentPlanCache.set(cacheKey, result, 60_000);
+    if (planChangesBeforeRead === this.currentPlanChanges) {
+      this.currentPlanCache.set(
+        cacheKey,
+        result,
+        ProjectService.CURRENT_PLAN_CACHE_TTL_MS,
+      );
+    }
+
     return result;
+  }
+
+  /*
+   * Drop this server's cached plan of the project, so the next request
+   * reads the plan just written - and keep a read already under way from
+   * caching the plan it read before the change (currentPlanChanges). Other
+   * servers keep theirs until it expires (CURRENT_PLAN_CACHE_TTL_MS).
+   */
+  public forgetCurrentPlan(projectId: ObjectID): void {
+    this.currentPlanChanges++;
+    this.currentPlanCache.delete(projectId.toString());
   }
 
   /*
@@ -3447,6 +3518,9 @@ These are no longer recorded against the project and have to be cancelled by han
         isRoot: true,
       },
     });
+
+    // The subscription's new status applies to the next request.
+    this.forgetCurrentPlan(project.id!);
 
     this.alertOnSubscriptionsPendingCancellation({
       projectId: project.id!,

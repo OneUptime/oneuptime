@@ -8,6 +8,7 @@ import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../Types/ObjectID";
+import { WORKFLOW_RUN_PERMISSIONS } from "../../../Types/Workflow/WorkflowRunPermissions";
 import Permission, {
   UserPermission,
   UserTenantAccessPermission,
@@ -20,9 +21,9 @@ import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
  * A workflow's incoming email secret key is what its Incoming Email trigger's
  * address is built from (workflow-{key}@{inbound domain}), and whoever has the
  * address can start the workflow. It is held to exactly what the webhook
- * secret key is held to, for the same reason: running a workflow by hand needs
- * the workflow's update permissions, so a key a Viewer could read would let
- * "read-only" start the workflow by email.
+ * secret key is held to, for the same reason: running a workflow by hand is
+ * for its editors and Workflow Members, so a key a Viewer could read would
+ * let "read-only" start the workflow by email.
  *
  * These run the server's own permission checks - the ones a request goes
  * through - rather than reading the lists back.
@@ -33,18 +34,24 @@ const userId: ObjectID = ObjectID.generate();
 
 const COLUMN: string = "incomingEmailSecretKey";
 
+// The workflow's editors: its update list, Workflow Admin included.
 const CAN_SEE_AND_RESET: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
   Permission.EditWorkflow,
+  Permission.WorkflowAdmin,
 ];
 
+/*
+ * Every role that can open a workflow but not edit it - a Workflow Member,
+ * who may run one by hand, included: an email starts it with whatever its
+ * sender writes, from anywhere.
+ */
 const CANNOT_SEE: Array<Permission> = [
   Permission.Viewer,
   Permission.WorkflowViewer,
   Permission.ReadWorkflow,
   Permission.ProjectMember,
-  Permission.WorkflowAdmin,
   Permission.WorkflowMember,
   Permission.CreateWorkflow,
   Permission.DeleteWorkflow,
@@ -201,6 +208,11 @@ describe("Workflow.incomingEmailSecretKey access control", () => {
       );
     },
   );
+
+  test("a Workflow Member runs workflows by hand but never sees the address", () => {
+    expect(WORKFLOW_RUN_PERMISSIONS).toContain(Permission.WorkflowMember);
+    expect(columnAccess().read).not.toContain(Permission.WorkflowMember);
+  });
 
   test("seeing the address never lets anyone start a workflow they could not start by hand", () => {
     const canRunByHand: Array<Permission> =

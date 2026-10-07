@@ -38,6 +38,23 @@ import {
 } from "../../../../Types/Rum/WebVitals";
 import ServiceType from "../../../../Types/Telemetry/ServiceType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { TelemetryReadScope } from "../../../../Server/Utils/Telemetry/TelemetryReadScope";
+
+/*
+ * The read scope a caller's grants give, as the analytics permission layer
+ * hands it to the tools (ModelPermission.getReadScope): null reads every
+ * service, a list only those.
+ */
+function readScopeOf(ids: Array<ObjectID> | null): TelemetryReadScope {
+  return {
+    readableIds: ids
+      ? ids.map((id: ObjectID): string => {
+          return id.toString();
+        })
+      : null,
+    blockedIds: [],
+  };
+}
 
 const projectId: ObjectID = new ObjectID(
   "11111111-1111-1111-1111-111111111111",
@@ -800,8 +817,8 @@ describe("RUM browser trace scoping", () => {
     "intersects an application request with owned/label-scoped analytics access",
     async (allowed: unknown, expected: unknown) => {
       jest
-        .spyOn(ModelPermission, "getAccessibleServiceIdsForAnalyticsModel")
-        .mockResolvedValue(allowed as Array<ObjectID>);
+        .spyOn(ModelPermission, "getReadScope")
+        .mockResolvedValue(readScopeOf(allowed as Array<ObjectID>));
       const query: jest.SpyInstance = jest
         .spyOn(TraceAggregationService, "getAnalyticsTable")
         .mockResolvedValue([]);

@@ -155,7 +155,12 @@ describe("incoming email security", () => {
     );
 
     expect(titles.sort()).toEqual(
-      ["Edit Workflow", "Project Admin", "Project Owner"].sort(),
+      [
+        "Edit Workflow",
+        "Project Admin",
+        "Project Owner",
+        "Workflow Admin",
+      ].sort(),
     );
 
     for (const title of titles) {
@@ -170,7 +175,7 @@ describe("incoming email security", () => {
 
   test("the permissions list says Edit Workflow is what it takes to see the address", () => {
     expect(configuration).toContain(
-      "to see or reset its webhook URL and incoming email address",
+      "to see or reset a workflow's webhook URL and incoming email address",
     );
   });
 

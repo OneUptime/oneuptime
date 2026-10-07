@@ -522,6 +522,53 @@ describe("ModelSwitchRow locks for someone who may not change it", () => {
   });
 });
 
+/*
+ * A switch the record's other settings decide while they hold - Visible on
+ * Status Page on a private episode - is locked where it is, saying why.
+ */
+describe("ModelSwitchRow locks for what the record says (lockedReason)", () => {
+  test("it is locked, says why, and saves nothing however it is pressed", async () => {
+    permissionsForTest = [Permission.ProjectAdmin];
+
+    render(mcpRow({ lockedReason: "A private episode is never shown." }));
+
+    expect(theSwitch()).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByTestId(`${TEST_ID}-row`)).toHaveTextContent(
+      "A private episode is never shown.",
+    );
+
+    await press();
+
+    expect(updateByIdMock).not.toHaveBeenCalled();
+    expect(theSwitch()).toHaveAttribute("aria-checked", "false");
+  });
+
+  test("a missing permission is named first", () => {
+    permissionsForTest = [Permission.Viewer];
+
+    render(mcpRow({ lockedReason: "A private episode is never shown." }));
+
+    const row: HTMLElement = screen.getByTestId(`${TEST_ID}-row`);
+
+    expect(row).toHaveTextContent(
+      "You do not have permission to update this Status Page.",
+    );
+    expect(row).not.toHaveTextContent("A private episode is never shown.");
+  });
+
+  test("without one it saves as before", async () => {
+    permissionsForTest = [Permission.ProjectAdmin];
+
+    render(mcpRow({ lockedReason: undefined }));
+
+    expect(theSwitch()).not.toHaveAttribute("aria-disabled", "true");
+
+    await press();
+
+    expect(updateByIdMock).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("ModelSwitchRow names the plan it needs", () => {
   test("a plan below the column's update plan shows the plan's pill", () => {
     plan = PlanType.Free;

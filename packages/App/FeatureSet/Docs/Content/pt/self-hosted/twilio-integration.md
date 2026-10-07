@@ -18,7 +18,7 @@ Para um projeto:
 4. **Definir como padrão do projeto** vem ativado na primeira configuração do projeto, então os SMS e as chamadas para os membros do projeto, incluindo notificações de plantão, passam por ela assim que você salvar. Desative-o se esta conta for apenas para páginas de status ou chamadas recebidas. Em qualquer configuração posterior, a opção começa desativada: ative-a, ou escolha **Definir como padrão do projeto** no menu da linha da configuração, para mover essas mensagens para ela. Uma solicitação à API que omite `isProjectDefault` é tratada da mesma forma.
 5. Salve. Apenas uma configuração pode ser o padrão do projeto. As páginas de status usam a configuração explicitamente atribuída a cada página.
 
-**SMS** e **Chamadas telefônicas** começam desligados em todo projeto e, até serem ligados, ninguém no projeto pode adicionar um número de telefone para eles. Um proprietário do projeto ou alguém com **Manage Billing** os liga no cartão **Canais de notificação** da mesma página.
+**SMS** e **Chamadas telefônicas** começam desligados em todo projeto e, até serem ligados, ninguém no projeto pode adicionar um número de telefone para eles. Um proprietário do projeto ou alguém com **Billing Admin** ou **Manage Billing** os liga no cartão **Canais de notificação** da mesma página.
 
 Para um padrão de toda a instalação, um administrador pode abrir **Painel de administração > Configurações > Chamadas e SMS**, editar as credenciais e os números do Twilio e salvar. As notificações dos membros usam essa configuração global quando o projeto não tem um padrão. Mantenha o Auth Token confidencial.
 
@@ -93,7 +93,7 @@ Para desenvolvimento, o [guia de testes de webhooks do Twilio](https://www.twili
 ## 4. Teste a entrega e os callbacks separadamente
 
 1. De fora da rede corporativa e da VPN, verifique se o hostname dos callbacks resolve para o gateway público e apresenta um certificado TLS válido. Um GET do navegador não testa esses callbacks POST.
-2. Use **Enviar SMS de teste** e **Enviar chamada de teste** na configuração do Twilio do projeto. Confirme o recebimento no telefone de destino.
+2. Use **Enviar SMS de teste** e **Enviar chamada de teste** na configuração do Twilio do projeto. Confirme o recebimento no telefone de destino. Ambos exigem permissão para adicionar configurações do Twilio: **Project Owner**, **Project Admin**, ou **Create Call and SMS** e **Read Call and SMS** em uma função personalizada.
 3. Configure o contato verificado do usuário para SMS/chamadas e suas regras de notificação; depois, acione um alerta de plantão controlado. Pressione 1 e confirme o reconhecimento no OneUptime. Se você usa políticas de chamadas de entrada, ligue para o número configurado e verifique o roteamento e o registro de chamadas.
 4. Confirme o status de entrega do SMS no OneUptime e nos logs de mensagens do Twilio. Um envio aceito não comprova a entrega; [o Twilio informa alterações posteriores de status por callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 

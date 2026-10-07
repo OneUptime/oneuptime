@@ -40,7 +40,7 @@ The same rules decide everything that depends on which pages an incident reaches
 - the email, SMS, Slack, Microsoft Teams and webhook messages sent when the incident is created, changes state, gets a public note or gets a postmortem;
 - the incident counts in emailed status page reports, which count only the incidents the page shows.
 
-An incident episode reaches a page when at least one of its incidents does. Its notifications go to every page its incidents reach, and its page on a status page that none of them reach is not found.
+An incident episode reaches a page when at least one of its incidents does. Its notifications go to every page its incidents reach, and its page on a status page that none of them reach is not found. A private incident reaches no page, so it never brings its episode onto one, and a private episode is shown on no page at all.
 
 ## Setting up one page per audience
 
@@ -159,7 +159,7 @@ Clearing the whole list is different from removing pages: the incident is then n
 
 Deleting a status page removes it from every incident that was limited to it. An incident whose picked pages have all been deleted stays limited, to nothing: it is hidden from every status page rather than shown on every page that lists its monitors. The **Status Page Scope** card says so. Pick other pages, or clear the list, to show it again.
 
-Incident templates work the same way. A template whose pages have all been deleted stays limited: an incident that a workflow's **Create One Incident** step or a [form](/docs/forms/on-submit#the-incident-template) declares from it is hidden from every status page, the template's **Status Page Scope** card warns you, and **Declare Incident** starts with no page picked and asks you to pick the pages the incident is for. Pick other pages on the template, or save its list empty to stop limiting the incidents declared from it.
+Incident templates work the same way. A template whose pages have all been deleted stays limited: an incident that a [form](/docs/forms/on-submit#the-incident-template) declares from it is hidden from every status page, the template's **Status Page Scope** card warns you, and **Declare Incident** starts with no page picked and asks you to pick the pages the incident is for. Pick other pages on the template, or save its list empty to stop limiting the incidents declared from it.
 
 ## One email per person
 

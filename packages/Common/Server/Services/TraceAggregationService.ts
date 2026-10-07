@@ -14,6 +14,7 @@ import Includes from "../../Types/BaseDatabase/Includes";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import { ExceptionSpanScope } from "../../Types/Telemetry/ExceptionSpanScope";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import TelemetryReadScopeUtil from "../Utils/Telemetry/TelemetryReadScope";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 import logger from "../Utils/Logger";
 import ServiceType from "../../Types/Telemetry/ServiceType";
@@ -59,6 +60,8 @@ export type TraceAttributeFilters = Record<string, TraceAttributeFilterValue>;
 
 export interface TraceFilters {
   serviceIds?: Array<ObjectID> | undefined;
+  // Resources whose rows are left out whatever else matches.
+  excludedServiceIds?: Array<ObjectID> | undefined;
   entityKeys?: Array<string> | undefined;
   /*
    * Resource-facet selections (host / Kubernetes cluster / Proxmox
@@ -1072,18 +1075,7 @@ export class TraceAggregationService {
 
     TraceAggregationService.appendExceptionScopeFilter(statement, request);
 
-    if (request.serviceIds && request.serviceIds.length > 0) {
-      statement.append(
-        SQL` AND primaryEntityId IN (${{
-          type: TableColumnType.ObjectID,
-          value: new Includes(
-            request.serviceIds.map((id: ObjectID) => {
-              return id.toString();
-            }),
-          ),
-        }})`,
-      );
-    }
+    TelemetryReadScopeUtil.appendServiceFilter(statement, request);
 
     if (request.entityKeys && request.entityKeys.length > 0) {
       statement.append(

@@ -54,7 +54,7 @@ De teams **Owners** en **Admin** zijn bewust vergrendeld: hun machtigingen zijn 
 
 `ProjectOwner` is het hoogste toegangsniveau: facturatie, het project verwijderen en alles wat een beheerder kan. `ProjectAdmin` dekt alles behalve facturatie en het verwijderen van het project.
 
-SMS, telefoonoproepen, WhatsApp of Telegram voor het project aan- of uitzetten valt onder facturatie, omdat elk bericht geld kost. Alleen `ProjectOwner` en de machtiging `ManageProjectBilling` (**Manage Billing**) kunnen die schakelaars wijzigen, onder **Projectinstellingen > Meldingen > Meldingsinstellingen** — niet `ProjectAdmin`.
+SMS, telefoonoproepen, WhatsApp of Telegram voor het project aan- of uitzetten valt onder facturatie, omdat elk bericht geld kost. Alleen `ProjectOwner`, de rol `BillingAdmin` (**Billing Admin**) en de machtiging `ManageProjectBilling` (**Manage Billing**) kunnen die schakelaars wijzigen, onder **Projectinstellingen > Meldingen > Meldingsinstellingen** — niet `ProjectAdmin`.
 
 Het bijvullen van de vooruitbetaalde saldi van het project valt ook onder facturatie. Op OneUptime Cloud worden SMS, telefoonoproepen, WhatsApp en Telegram betaald uit het saldo onder **Projectinstellingen > Meldingen > Meldingsinstellingen**, en AI uit de AI-tegoeden onder **Projectinstellingen > AI > AI-tegoeden**. Alleen een projecteigenaar of iemand met **Manage Billing** kan ze bijvullen of hun **Automatisch bijvullen** wijzigen — een projectbeheerder niet. Een melding over een saldo dat opraakt, noemt wie het kan bijvullen, en alleen die mensen krijgen een werkende knop **Saldo bijvullen** of een link naar de pagina.
 
@@ -75,6 +75,8 @@ Een rol bundelt een heel productgebied op een van drie niveaus:
 - **Viewer** — alleen lezen.
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` enzovoort. Rollen zijn bijna altijd wat u wilt — ze blijven kloppen naarmate OneUptime functies toevoegt, omdat een nieuwe monitorgerelateerde tabel bij de bestaande monitorrollen wordt gevoegd in plaats van een nieuwe toekenning van u te vragen.
+
+Workflows zijn de uitzondering. Een workflow voert zijn stappen binnen het project uit, dus `WorkflowMember` opent workflows en hun runs en voert ze met de hand uit, maar maakt, wijzigt of verwijdert ze niet. `WorkflowAdmin` bouwt ze. Zie [Workflowconfiguratie](/docs/workflows/configuration).
 
 Alle {{PERMISSION_ROLE_COUNT}} rollen staan in de [Machtigingsreferentie](/docs/permissions/reference).
 
@@ -136,6 +138,16 @@ Aan een labelbeperking is voldaan als de resource **minstens één** van de labe
 
 Waar u het vindt: **Instellingen → Labels**.
 
+## Telemetrie
+
+Logs, traces, metrics, uitzonderingen, profielen en sessieherhalingen horen bij de resource die ze verstuurde: een dienst, een host, een Kubernetes-cluster, een monitor, een RUM-applicatie en dergelijke. Een telemetriemachtiging leest zo ver als haar bereik reikt:
+
+- **Alle resources** leest de telemetrie van elke resource in het project.
+- **Eigen** leest de telemetrie van de resources die u of een van uw teams bezit, en telemetrie die geen resource noemt.
+- **Labels** leest de telemetrie van de resources die een van de labels van de machtiging dragen.
+
+Een blokkade met labels op een telemetriemachtiging laat de telemetrie weg van de resources die die labels dragen, wat u verder ook hebt. Dat geldt overal waar telemetrie wordt gelezen: de verkenners met hun grafieken, filters en attribuutlijsten, exports, sessieherhalingen en wat de AI-assistent voor u leest. De lijst met metricnamen toont de metrics die een dienst meldt die u mag lezen, en de metrics die geen enkele dienst meldt, zoals host- en clustermetrics. Mag u ook de telemetrie van andere soorten resources lezen, zoals hosts of clusters, dan toont de lijst alle metricnamen.
+
 ## API-sleutels
 
 API-sleutels krijgen machtigingen rechtstreeks op de sleutel zelf — ze horen niet bij teams en worden niet beïnvloed door teamlidmaatschap.
@@ -157,7 +169,7 @@ Voor een ingelogde gebruiker, op volgorde:
 3. Controleer eerst de blokkadelijst. Een blokkade zonder labels op een machtiging die de doeltabel voor deze bewerking accepteert, wijst het verzoek meteen af, in welk team die ook staat.
 4. Controleer de toestaanlijst. Het verzoek heeft minstens één machtiging nodig die de doeltabel voor deze bewerking accepteert. Bij een operationele resource — een monitor, een incident, een dashboard en dergelijke — telt ook de bijpassende machtiging **All Operational Resources** (Create, Read, Edit of Delete), tenzij die zelf geblokkeerd is.
 5. Pas het bereik toe. Toekenningen met bereik Eigen beperken de query tot resources in eigendom; die met labels beperken tot passende labels. Is een andere toekenning voor dezelfde bewerking breder, dan wint de bredere.
-6. Pas labelblokkades toe. Een blokkade met labels wijst het verzoek af als de doelresource er één draagt.
+6. Pas labelblokkades toe. Een blokkade met labels wijst het verzoek af als de doelresource er één draagt. Heeft een record geen eigen labels, zoals een notitie bij een incident of een aankondiging op een statuspagina, dan laat een blokkade met labels op het lezen ervan het record weg als een record waar het bij hoort een van die labels draagt.
 
 Elk veld van een record wordt gelezen met de eigen leesmachtiging van dat record: een machtiging voor een ander soort record opent het nooit. Sommige velden zijn bewust beperkter. Geheimen worden alleen gelezen door wie het record mag bewerken of beheren waar ze bij horen, zoals de sleutels voor inkomende verzoeken en inkomende e-mail van een monitor en zijn serveragentsleutel, of de webhook- en e-mailsleutels van een workflow. De opname van een sessieherhaling bekijken vraagt **Watch Session Replays**, niet alleen **List Session Replays**. Telemetrie wordt per signaal gelezen: **Read Telemetry Service Log** leest logs, **Read Telemetry Service Traces** leest traces en **Read Telemetry Service Metrics** leest metrics, metriekgrafieken inbegrepen.
 

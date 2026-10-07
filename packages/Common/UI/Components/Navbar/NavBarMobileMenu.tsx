@@ -1,5 +1,7 @@
 import NavBarCategoryToggle from "./NavBarCategoryToggle";
 import NavBarItem from "./NavBarItem";
+import Dictionary from "../../../Types/Dictionary";
+import IconProp from "../../../Types/Icon/IconProp";
 import type { MoreMenuItem, NavItem } from "./NavBar";
 import {
   CategoryFolds,
@@ -16,6 +18,8 @@ export interface ComponentProps {
   moreMenuItems: Array<MoreMenuItem>;
   // See NavBar's moreMenuCategoriesAlwaysOpen.
   categoriesAlwaysOpen?: Array<string> | undefined;
+  // See NavBar's moreMenuCategoryIcons.
+  categoryIcons?: Dictionary<IconProp> | undefined;
   // The right-hand entry (User Settings), listed last.
   rightElement?: NavItem | undefined;
   // Following a link closes the menu.
@@ -94,6 +98,14 @@ const NavBarMobileMenu: FunctionComponent<ComponentProps> = (
       {folds.isEnabled
         ? categories.map((category: MenuCategory, index: number) => {
             const isOpen: boolean = folds.isOpen(category.title);
+            const canFold: boolean = folds.canFold(category.title);
+            /*
+             * A rule above the first of a run of categories that fold sets
+             * them apart from the products listed above them (Essentials).
+             */
+            const startsFoldingRun: boolean =
+              canFold &&
+              (index === 0 || !folds.canFold(categories[index - 1]!.title));
             const headingId: string = `${idPrefix}-heading-${index}`;
             const bodyId: string = `${idPrefix}-group-${index}`;
 
@@ -102,9 +114,13 @@ const NavBarMobileMenu: FunctionComponent<ComponentProps> = (
                 key={category.title}
                 role="group"
                 aria-labelledby={headingId}
-                className="block w-full pt-1"
+                className={`block w-full ${
+                  startsFoldingRun
+                    ? "mt-1 border-t border-gray-100 pt-2"
+                    : "pt-1"
+                }`}
               >
-                {folds.canFold(category.title) ? (
+                {canFold ? (
                   <NavBarCategoryToggle
                     title={category.title}
                     itemTitles={category.items.map(
@@ -112,6 +128,7 @@ const NavBarMobileMenu: FunctionComponent<ComponentProps> = (
                         return item.title;
                       },
                     )}
+                    icon={props.categoryIcons?.[category.title]}
                     isOpen={isOpen}
                     onToggle={() => {
                       folds.toggle(category.title);
@@ -122,10 +139,10 @@ const NavBarMobileMenu: FunctionComponent<ComponentProps> = (
                 ) : (
                   /*
                    * A category that is always open (Essentials) has nothing
-                   * to fold: a plain heading, the same size as the lines
-                   * that fold, so the names line up.
+                   * to fold: a plain heading, lined up with the icons of the
+                   * products under it and of the category rows below.
                    */
-                  <div className="flex min-w-0 items-center border border-transparent px-2 py-2">
+                  <div className="flex min-w-0 items-center px-3 py-2">
                     <h3
                       id={headingId}
                       className="text-[11px] font-semibold uppercase leading-4 tracking-[0.1em] text-gray-500"
@@ -135,7 +152,17 @@ const NavBarMobileMenu: FunctionComponent<ComponentProps> = (
                   </div>
                 )}
                 {isOpen && (
-                  <div id={bodyId} className="mt-1 space-y-1">
+                  /*
+                   * The products of a category that folds are indented
+                   * under its row, on a guide line, so they do not read as
+                   * more categories.
+                   */
+                  <div
+                    id={bodyId}
+                    className={`mt-1 space-y-1 ${
+                      canFold ? "ml-5 border-l border-gray-100 pl-1" : ""
+                    }`}
+                  >
                     {category.items.map(productRow)}
                   </div>
                 )}

@@ -97,6 +97,23 @@ gitHubApp:
 
 **Wichtig:** Starten Sie Ihren OneUptime-Server nach dem Hinzufügen dieser Umgebungsvariablen neu.
 
+### Schritt 9: Repositories in OneUptime verbinden
+
+Starten Sie die Verbindung in OneUptime, nicht auf der Seite der App bei GitHub: Der Link, mit dem OneUptime Sie zu GitHub schickt, verknüpft die Installation mit Ihrem Projekt.
+
+1. Melden Sie sich bei Ihrem OneUptime-Dashboard an
+2. Navigieren Sie zu **Produkte** > **Aufgaben** > **Code-Repositories**
+3. Klicken Sie auf **Mit GitHub-App verbinden**. OneUptime leitet Sie zu GitHub weiter
+4. Wählen Sie die Organisation oder das Konto, in dem die App installiert werden soll, und wählen Sie, auf welche Repositories sie zugreifen darf:
+   - **All repositories** – Zugriff auf alle aktuellen und künftigen Repositories
+   - **Only select repositories** – Bestimmte Repositories auswählen
+5. Klicken Sie auf **Install** (oder **Save**, wenn die App dort bereits installiert ist)
+6. GitHub leitet Sie zurück zu **Code-Repositories**, und alle Repositories der Installation werden importiert. Repositories, die später zur Installation hinzugefügt oder daraus entfernt werden, bleiben automatisch synchron.
+
+**Wer verbinden darf.** Beim Verbinden werden die Repositories der Installation in das Projekt importiert, daher ist die Berechtigung nötig, Code-Repositories hinzuzufügen: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** oder ein Team mit **Create Code Repository**. Ein Team, das die Berechtigung sperrt, nimmt sie weg. In OneUptime Cloud brauchen Code-Repositories den Growth-Tarif oder höher. Für alle anderen ist die Karte gesperrt und nennt, was nötig ist.
+
+**Schließen Sie es innerhalb von 15 Minuten im selben Browser ab.** Der Link funktioniert einmal, 15 Minuten lang, in dem Browser, in dem er gestartet wurde. Wenn GitHub Sie zurückleitet, prüft OneUptime die Berechtigung erneut, bevor etwas importiert wird.
+
 ## Umgebungsvariablen-Referenz
 
 | Variable                    | Beschreibung                                              | Erforderlich     |

@@ -10,9 +10,11 @@ import TableColumnType from "../Database/TableColumnType";
  * Microsoft Teams notification rules and summaries, API keys and on-call
  * schedules (Growth), and more. A project that drops below the plan - a
  * trial ends, a downgrade - keeps what it set up, and some of it keeps
- * working: SSO providers sign people in, SCIM connections provision them,
- * rules post to channels, API keys authenticate, schedules page people. So
- * whatever its plan, a project can still, for the records it already has:
+ * working: SSO providers sign people in, rules post to channels,
+ * schedules page people. API keys and SCIM connections are kept too, but
+ * stop working until the project is back on the plan (PlanCutoff-
+ * Credentials), and have to be found to be removed. So whatever its plan,
+ * a project can still, for the records it already has:
  *
  *   - delete them, on every plan-gated table - except a table whose records
  *     restrict something, where deleting one gives more than the plan
@@ -20,7 +22,8 @@ import TableColumnType from "../Database/TableColumnType";
  *   - switch one off: an update that writes its switch - the isEnabled
  *     column - false, and nothing else;
  *   - read them, on the tables of configuration that keeps working after a
- *     downgrade and has to be found to be stopped (readableBelowPlan).
+ *     downgrade and has to be found to be stopped, or that stops and has
+ *     to be found to be removed (readableBelowPlan).
  *     Every other plan-gated table keeps its read plan: reading its records
  *     is using the feature - a template applied, a group's status worked
  *     out, a log read - and features read their configuration with the

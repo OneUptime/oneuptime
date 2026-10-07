@@ -9,10 +9,11 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 
 /*
- * Every redirect-based flow that ends with OneUptime writing a Slack or
- * Microsoft Teams binding. A state minted for one flow is never accepted by
- * another, so a nonce issued for "sign in with Teams" cannot be spent on the
- * admin-consent callback.
+ * Every redirect-based flow that ends with OneUptime writing a Slack,
+ * Microsoft Teams or GitHub binding. A state minted for one flow is never
+ * accepted by another, so a nonce issued for "sign in with Teams" cannot be
+ * spent on the admin-consent callback, nor one issued for Slack on the
+ * GitHub App installation callback.
  */
 export enum WorkspaceOAuthFlow {
   SlackInstall = "SlackInstall",
@@ -21,6 +22,8 @@ export enum WorkspaceOAuthFlow {
   MicrosoftTeamsAdminConsent = "MicrosoftTeamsAdminConsent",
   // Second leg of admin consent: the sign-in that proves which tenant it was.
   MicrosoftTeamsAdminConsentSignIn = "MicrosoftTeamsAdminConsentSignIn",
+  // Installing the GitHub App, which connects its repositories to a project.
+  GitHubAppInstall = "GitHubAppInstall",
 }
 
 export interface WorkspaceOAuthStateRecord {
@@ -44,12 +47,14 @@ const STATE_NAMESPACE: string = "workspace-oauth-state";
 const TOKEN_PATTERN: RegExp = /^[A-Za-z0-9_-]{43}$/;
 
 /*
- * The `state` parameter of the Slack and Microsoft Teams connect flows.
+ * The `state` parameter of the Slack, Microsoft Teams and GitHub App connect
+ * flows.
  *
- * The callbacks of those flows are unauthenticated by nature — Slack and
- * Microsoft redirect the browser to them — and they write the binding that
- * everything downstream trusts: which workspace or tenant a project's bot
- * token belongs to, and which chat identity acts as which OneUptime user. So
+ * The callbacks of those flows are unauthenticated by nature — Slack,
+ * Microsoft and GitHub redirect the browser to them — and they write the
+ * binding that everything downstream trusts: which workspace or tenant a
+ * project's bot token belongs to, which chat identity acts as which OneUptime
+ * user, and which GitHub App installation's repositories a project holds. So
  * the callback must not learn the project or the user from anything in the
  * redirect itself.
  *
@@ -68,6 +73,10 @@ const TOKEN_PATTERN: RegExp = /^[A-Za-z0-9_-]{43}$/;
  *
  * The raw state is never stored either — the cache key is its SHA-256 — so a
  * read of the cache does not yield a usable state.
+ *
+ * A state says who started a flow and where, not that they may still finish
+ * it: before a callback writes, it asks the start's question again of the
+ * person the state names, as they are now (WorkspaceOAuthCallbackAccess).
  */
 export default class WorkspaceOAuthState {
   /*

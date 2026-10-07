@@ -57,6 +57,7 @@ import CephClusterService from "../../../Services/CephClusterService";
 import StorageArrayService from "../../../Services/StorageArrayService";
 import ServerlessFunctionService from "../../../Services/ServerlessFunctionService";
 import CloudResourceService from "../../../Services/CloudResourceService";
+import { CloudResourceKind } from "../../../../Types/Cloud/CloudResourceKind";
 import IoTFleetService from "../../../Services/IoTFleetService";
 import NetworkDeviceService from "../../../Services/NetworkDeviceService";
 import DatabaseServerService from "../../../Services/DatabaseServerService";
@@ -69,8 +70,11 @@ import TraceAggregationService, {
 } from "../../../Services/TraceAggregationService";
 import FindBy from "../../../Types/Database/FindBy";
 import QueryHelper from "../../../Types/Database/QueryHelper";
-import DatabaseRequestType from "../../../Types/BaseDatabase/DatabaseRequestType";
-import ModelPermission from "../../../Types/AnalyticsDatabase/ModelPermission";
+import TelemetryReadAccess from "../../Telemetry/TelemetryReadAccess";
+import {
+  TelemetryReadScope,
+  TelemetryServiceFilter,
+} from "../../Telemetry/TelemetryReadScope";
 import ResourceEntityFilter, {
   ResourceEntityScope,
 } from "../../Telemetry/ResourceEntityFilter";
@@ -284,10 +288,15 @@ const RESOURCE_DESCRIPTORS: Record<AIResourceType, ResourceDescriptor> = {
     },
     fields: [
       "resourceIdentifier",
+      "cloudResourceKind",
+      "cloudResourceType",
+      "providerResourceId",
       "cloudPlatform",
       "cloudProvider",
       "cloudAccountId",
       "cloudRegion",
+      "cloudResourceGroup",
+      "telemetryAttributes",
       "runtimeName",
     ],
   },
@@ -595,6 +604,38 @@ export function buildAIResourceTelemetryScope(data: {
     };
   }
   if (data.type === AIResourceType.CloudResource) {
+    /*
+     * A resource discovered from cloud monitoring (Azure Monitor,
+     * CloudWatch, Cloud Monitoring) is scoped by the exact metric
+     * attributes ingest recorded for it - never by cloud.* resource
+     * attributes, which every resource of its account shares.
+     */
+    if (data.resource["cloudResourceKind"] === CloudResourceKind.Resource) {
+      const telemetryAttributes: unknown = data.resource["telemetryAttributes"];
+      const attributes: Record<string, string> = {};
+      if (
+        telemetryAttributes &&
+        typeof telemetryAttributes === "object" &&
+        !Array.isArray(telemetryAttributes)
+      ) {
+        for (const [key, value] of Object.entries(
+          telemetryAttributes as Record<string, unknown>,
+        )) {
+          if (typeof value === "string" && value) {
+            attributes[key] = value;
+          }
+        }
+      }
+      if (Object.keys(attributes).length === 0) {
+        throw new BadDataException(
+          "This cloud resource has no recorded metric attributes yet; its telemetry cannot be scoped safely.",
+        );
+      }
+      return {
+        attributes,
+        note: `${note} A cloud resource discovered from cloud monitoring has the metrics its provider publishes about it (Azure Monitor, CloudWatch, Cloud Monitoring) - no logs or traces of its own.`,
+      };
+    }
     const attributes: Record<string, string> = {};
     for (const [column, key] of [
       ["cloudPlatform", "resource.cloud.platform"],
@@ -938,23 +979,15 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
       });
     }
     /*
-     * These aggregators bypass the model query layer. Intersect their parent
-     * resource scope with the same allowed primary-entity IDs as that layer.
+     * These aggregators bypass the model query layer. Narrow them to the
+     * services this user may read, as that layer does (TelemetryReadAccess).
      */
-    const allowedIds: Array<ObjectID> | null =
+    const telemetryScope: TelemetryReadScope =
       signal === "logs"
-        ? await ModelPermission.getAccessibleServiceIdsForAnalyticsModel(
-            Log,
-            ctx.props,
-            DatabaseRequestType.Read,
-          )
-        : await ModelPermission.getAccessibleServiceIdsForAnalyticsModel(
-            Span,
-            ctx.props,
-            DatabaseRequestType.Read,
-          );
-    const serviceIds: Array<ObjectID> | undefined = ToolArgs.scopeServiceIds(
-      allowedIds,
+        ? await TelemetryReadAccess.getScope(Log, ctx.props)
+        : await TelemetryReadAccess.getScope(Span, ctx.props);
+    const serviceFilter: TelemetryServiceFilter = ToolArgs.scopeServiceIds(
+      telemetryScope,
       undefined,
     );
     if (signal === "logs") {
@@ -983,7 +1016,7 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
             1,
             Math.ceil((endTime.getTime() - startTime.getTime()) / 60000 / 48),
           ),
-          serviceIds,
+          ...serviceFilter,
           resourceScopes: scope.resourceScopes,
           attributes: scope.attributes,
           severityTexts: severity ? [severity] : undefined,
@@ -1029,7 +1062,7 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
         metric: "count",
         groupBy: ["name"],
         limit,
-        serviceIds,
+        ...serviceFilter,
         resourceScopes: scope.resourceScopes,
         attributes: scope.attributes,
         rootOnly: ToolArgs.getBoolean(args, "rootOnly"),

@@ -54,7 +54,7 @@ Teamsene **Owners** og **Admin** er bevidst låst: deres tilladelser kan ikke re
 
 `ProjectOwner` er det højeste adgangsniveau: fakturering, sletning af projektet og alt, hvad en administrator kan. `ProjectAdmin` dækker alt undtagen fakturering og sletning af projektet.
 
-At slå SMS, telefonopkald, WhatsApp eller Telegram til eller fra for projektet hører under fakturering, fordi hver besked koster penge. Kun `ProjectOwner` og tilladelsen `ManageProjectBilling` (**Manage Billing**) kan slå dem til eller fra, under **Projektindstillinger > Notifikationer > Notifikationsindstillinger** — ikke `ProjectAdmin`.
+At slå SMS, telefonopkald, WhatsApp eller Telegram til eller fra for projektet hører under fakturering, fordi hver besked koster penge. Kun `ProjectOwner`, rollen `BillingAdmin` (**Billing Admin**) og tilladelsen `ManageProjectBilling` (**Manage Billing**) kan slå dem til eller fra, under **Projektindstillinger > Notifikationer > Notifikationsindstillinger** — ikke `ProjectAdmin`.
 
 At genoplade projektets forudbetalte saldi hører også under fakturering. På OneUptime Cloud betales SMS, telefonopkald, WhatsApp og Telegram fra saldoen under **Projektindstillinger > Notifikationer > Notifikationsindstillinger**, og AI fra AI-kreditterne under **Projektindstillinger > AI > AI-kreditter**. Kun en projektejer eller nogen med **Manage Billing** kan genoplade dem eller ændre deres **Automatisk genopfyldning** — en projektadministrator kan ikke. En besked om en saldo, der er ved at løbe tør, nævner, hvem der kan fylde den op, og kun de personer får en knap **Genoplad saldo**, der virker, eller et link til siden.
 
@@ -75,6 +75,8 @@ En rolle samler et helt produktområde på ét af tre niveauer:
 - **Viewer** — kun læsning.
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` og så videre. Roller er næsten altid det rigtige valg — de forbliver korrekte, efterhånden som OneUptime får nye funktioner, fordi en ny monitorrelateret tabel lægges ind under de eksisterende monitorroller i stedet for at kræve en ny tildeling fra dig.
+
+Workflows er undtagelsen. Et workflow kører sine trin inde i projektet, så `WorkflowMember` åbner workflows og deres kørsler og kører dem manuelt, men opretter, ændrer eller sletter dem ikke. `WorkflowAdmin` bygger dem. Se [Workflow-konfiguration](/docs/workflows/configuration).
 
 Alle {{PERMISSION_ROLE_COUNT}} roller står i [Tilladelsesreferencen](/docs/permissions/reference).
 
@@ -136,6 +138,16 @@ En labelbegrænsning er opfyldt, hvis ressourcen bærer **mindst ét** af tillad
 
 Hvor du finder det: **Indstillinger → Labels**.
 
+## Telemetri
+
+Logs, traces, metrics, undtagelser, profiler og sessionsafspilninger hører til den ressource, der sendte dem: en tjeneste, en vært, en Kubernetes-klynge, en monitor, en RUM-applikation og lignende. En telemetritilladelse læser så langt, som dens omfang rækker:
+
+- **Alle ressourcer** læser telemetrien fra alle ressourcer i projektet.
+- **Ejede** læser telemetrien fra de ressourcer, du eller et af dine teams ejer, og telemetri, der ikke nævner nogen ressource.
+- **Labels** læser telemetrien fra de ressourcer, der bærer et af tilladelsens labels.
+
+En blokering med labels på en telemetritilladelse udelader telemetrien fra de ressourcer, der bærer de labels, uanset hvad du ellers har. Det gælder overalt, hvor telemetri læses: stifinderne og deres diagrammer, filtre og attributlister, eksporter, sessionsafspilninger og det, AI-assistenten læser for dig. Listen over metriknavne viser de metrics, som en tjeneste, du må læse, rapporterer, og de metrics, som ingen tjeneste rapporterer, f.eks. værts- og klyngemetrics. Må du også læse telemetri fra andre slags ressourcer, f.eks. værter eller klynger, viser den alle metriknavne.
+
 ## API-nøgler
 
 API-nøgler får tilladelser direkte på selve nøglen — de tilhører ikke teams og påvirkes ikke af teammedlemskab.
@@ -157,7 +169,7 @@ For en logget ind bruger, i rækkefølge:
 3. Tjek blokeringslisten først. En blokering uden labels på en hvilken som helst tilladelse, som måltabellen accepterer for denne handling, afviser forespørgslen med det samme, uanset hvilket team den er sat på.
 4. Tjek tilladelseslisten. Forespørgslen kræver mindst én tilladelse, som måltabellen accepterer for denne handling. For en driftsressource — en monitor, en hændelse, et dashboard og lignende — tæller den tilsvarende **All Operational Resources**-tilladelse (Create, Read, Edit eller Delete) også, medmindre den selv er blokeret.
 5. Anvend omfanget. Tildelinger med omfanget Ejede indsnævrer forespørgslen til ejede ressourcer; labelbaserede indsnævrer til matchende labels. Er en anden tildeling for samme handling bredere, vinder den bredere.
-6. Anvend labelblokeringer. En blokering med labels afviser forespørgslen, hvis målressourcen bærer et af dem.
+6. Anvend labelblokeringer. En blokering med labels afviser forespørgslen, hvis målressourcen bærer et af dem. Når en post ikke har egne labels, f.eks. en note på en hændelse eller en meddelelse på en statusside, udelader en blokering med labels på at læse den posten, hvis en post, den hører til, bærer et af de labels.
 
 Hvert felt i en post læses med postens egen læsetilladelse: en tilladelse til en anden slags post åbner det aldrig. Nogle felter er bevidst snævrere. Hemmeligheder læses kun af personer, der må redigere eller administrere den post, de hører til, f.eks. en monitors nøgler til indgående anmodninger og indgående e-mail og dens serveragentnøgle eller et workflows webhook- og e-mailnøgler. At se optagelsen af en sessionsafspilning kræver **Watch Session Replays**, ikke kun **List Session Replays**. Telemetri læses signal for signal: **Read Telemetry Service Log** læser logs, **Read Telemetry Service Traces** læser traces, og **Read Telemetry Service Metrics** læser metrics, metrikdiagrammer inklusive.
 

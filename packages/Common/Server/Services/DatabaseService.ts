@@ -123,6 +123,8 @@ import RelatedFileAccess, {
   RelatedFileReader,
 } from "../Utils/File/RelatedFileAccess";
 import PublishedImages, { CascadedRow } from "../Utils/File/PublishedImages";
+import StatusPageOverviewCache from "../Utils/StatusPage/StatusPageOverviewCache";
+import CallerPlan from "../Utils/Billing/CallerPlan";
 
 const RULE_CRITERIA_RELATION_OPERATORS: ReadonlySet<RuleCriteriaOperator> =
   new Set<RuleCriteriaOperator>([
@@ -378,24 +380,40 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * hook never acts - unsetting the project's default, making room in an
    * order, deleting child rows - for someone the write is refused to.
    *
-   * For an update, `updateData` is what the caller asked to write: below a
-   * table's update plan the one update allowed is the one that only
-   * switches records off (BillingPermission), and the data is what says so.
+   * For a create or an update, `writeData` is what the caller asked to
+   * write: below a table's update plan the one update allowed is the one
+   * that only switches records off (BillingPermission), and the data is
+   * what says so; a create or update writing a column a plan sells needs
+   * the project's plan.
+   *
+   * Returns the props the rest of the operation goes on with: the caller's
+   * own, with their project's plan when they act in it without one and the
+   * operation is one a plan decides (CallerPlan.withPlanFor). The plan is
+   * read after the refusals that need no lookup, so a read-only credential
+   * or an anonymous caller is refused without one.
    */
-  private checkCallerBeforeHooks(
+  private async checkCallerBeforeHooks(
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
-    updateData?: unknown,
-  ): void {
+    writeData?: unknown,
+  ): Promise<DatabaseCommonInteractionProps> {
     if (type !== DatabaseRequestType.Read) {
       DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
     }
 
     if (props.isRoot || props.isMasterAdmin) {
-      return;
+      return props;
     }
 
     PublicPermission.checkIfUserIsLoggedIn(this.modelType, props, type);
+
+    const propsWithPlan: DatabaseCommonInteractionProps =
+      await CallerPlan.withPlanFor({
+        props: props,
+        modelType: this.modelType,
+        type: type,
+        data: writeData,
+      });
 
     if (
       type === DatabaseRequestType.Create ||
@@ -404,11 +422,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     ) {
       ModelPermission.checkTableWritePermission(
         this.modelType,
-        props,
+        propsWithPlan,
         type,
-        type === DatabaseRequestType.Update ? updateData : undefined,
+        type === DatabaseRequestType.Update ? writeData : undefined,
       );
     }
+
+    return propsWithPlan;
   }
 
   /*
@@ -597,6 +617,64 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     });
 
     return stored[0] ? (stored[0] as unknown as Record<string, unknown>) : null;
+  }
+
+  /*
+   * The values an update writes the columns of getRowWriteSql with: each
+   * its expression, as TypeORM takes raw SQL. The expressions are the
+   * service's own, never a caller's.
+   */
+  private toRowWriteSqlValues(
+    rowWriteSql: Dictionary<string>,
+    columns: Array<string>,
+  ): Dictionary<() => string> {
+    const values: Dictionary<() => string> = {};
+
+    for (const column of columns) {
+      const expression: string | undefined = rowWriteSql[column];
+
+      if (expression) {
+        values[column] = (): string => {
+          return expression;
+        };
+      }
+    }
+
+    return values;
+  }
+
+  /*
+   * The row an update handed back (RETURNING), by column, as the database
+   * stored it - read by the columns' names in the database. Undefined when
+   * it handed back none.
+   */
+  private readRowReturnedByWrite(
+    result: UpdateResult | undefined,
+    columns: Array<string>,
+  ): Record<string, unknown> | undefined {
+    const rows: unknown = result?.raw;
+    const row: unknown = Array.isArray(rows) ? rows[0] : undefined;
+
+    if (!row || typeof row !== "object") {
+      return undefined;
+    }
+
+    const metadata: EntityMetadata | undefined = (
+      this.getRepository() as Repository<TBaseModel> | undefined
+    )?.metadata;
+
+    const stored: Record<string, unknown> = {};
+
+    for (const column of columns) {
+      const databaseName: string =
+        metadata?.findColumnWithPropertyName?.(column)?.databaseName || column;
+
+      if (Object.prototype.hasOwnProperty.call(row, databaseName)) {
+        stored[column] = (row as Record<string, unknown>)[databaseName];
+      }
+    }
+
+    return stored;
   }
 
   /*
@@ -1256,6 +1334,27 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return Promise.resolve();
   }
 
+  /*
+   * Columns each row of an update is written with as an SQL expression, in
+   * place of the update's own value, for a rule between columns that a read
+   * made before the write cannot keep: the database works each value out in
+   * the row's own write, from the row as it holds it then - under the row's
+   * lock - so no write landing in between, however close, is overtaken (a
+   * record is shown on status pages only while it is not private:
+   * StatusPageVisibility). Keyed by column; each an expression over the
+   * row's own columns, written by the service, never by a caller.
+   *
+   * The write hands back what it stored of them (RETURNING), and that is
+   * what the row's workflow trigger, realtime event and audit log entry are
+   * told it was written with, and what PublishedImages decides the row's
+   * images by. None by default. Skipped with ignoreHooks.
+   */
+  protected getRowWriteSql(
+    _data: PartialEntity<TBaseModel>,
+  ): Dictionary<string> {
+    return {};
+  }
+
   protected async onCreateSuccess(
     _onCreate: OnCreate<TBaseModel>,
     createdItem: TBaseModel,
@@ -1685,9 +1784,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    *  - no create, root included, of a model whose tenant column is its own
    *    primary key may carry the request tenant's id. Root callers may
    *    assign ids, but this one can only come from a generic tenant stamp -
-   *    workflow components create as root WITH a tenant, after
-   *    applyTenantColumn has written the tenant column - and it would make
-   *    the create an update of the caller's own project.
+   *    OneUptime's own engines create a project's records as root WITH a
+   *    tenant, after applyTenantColumn has written the tenant column - and
+   *    it would make the create an update of the caller's own project.
    *
    * The ids are compared as text, case-insensitively: the id may be an
    * ObjectID or a plain string, and Postgres reads a uuid in either case.
@@ -1869,9 +1968,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   /*
    * A write OneUptime makes itself: root, with no project on the request - a
-   * job, an engine, a service acting for someone it names in code. A
-   * workflow writes as root too, but in its project: that is a write made in
-   * a project, like a request through the API or the admin dashboard.
+   * job, an engine, a service acting for someone it names in code. Root with
+   * a project on the request - an engine writing that project's records - is
+   * a write made in a project, like a request through the API, the admin
+   * dashboard or a workflow step.
    */
   private isWriteOneUptimeMakesItself(
     props: DatabaseCommonInteractionProps,
@@ -2493,7 +2593,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   @CaptureSpan()
   public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
-    this.checkCallerBeforeHooks(createBy.props, DatabaseRequestType.Create);
+    // With the project's plan where the create needs it. See the helper.
+    createBy.props = await this.checkCallerBeforeHooks(
+      createBy.props,
+      DatabaseRequestType.Create,
+      createBy.data,
+    );
 
     /*
      * A non-root create must not pin the row's own primary key. save() treats
@@ -2574,6 +2679,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     // hash data
     data = await this.hash(data);
+
+    /*
+     * What the hooks and the defaults wrote is checked too: a column a plan
+     * sells that they set is held to the project's plan, read now if what
+     * the caller sent did not need it (CallerPlan) - never refused as a plan
+     * nobody could confirm.
+     */
+    _createdBy.props = await CallerPlan.withPlanFor({
+      props: _createdBy.props,
+      modelType: this.modelType,
+      type: DatabaseRequestType.Create,
+      data: data,
+    });
 
     ModelPermission.checkCreatePermissions(
       this.modelType,
@@ -3813,7 +3931,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   @CaptureSpan()
   public async hardDeleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
     try {
-      this.checkCallerBeforeHooks(deleteBy.props, DatabaseRequestType.Delete);
+      deleteBy.props = await this.checkCallerBeforeHooks(
+        deleteBy.props,
+        DatabaseRequestType.Delete,
+      );
 
       /*
        * Only the rows the caller may delete reach the hook. See the helper.
@@ -3852,12 +3973,24 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         beforeDeleteBy.limit = new PositiveNumber(beforeDeleteBy.limit);
       }
 
+      /*
+       * With their project, so a delete that takes something off a status
+       * page always says whose (StatusPageOverviewCache).
+       */
+      const lookupSelect: Dictionary<boolean> = {};
+      const lookupTenantColumn: string | null =
+        this.getModel().getTenantColumn();
+
+      if (lookupTenantColumn) {
+        lookupSelect[lookupTenantColumn] = true;
+      }
+
       const items: Array<TBaseModel> = await this._findBy(
         {
           query: beforeDeleteBy.query,
           skip: beforeDeleteBy.skip.toNumber(),
           limit: beforeDeleteBy.limit.toNumber(),
-          select: {},
+          select: lookupSelect as Select<TBaseModel>,
           props: { ...beforeDeleteBy.props, ignoreHooks: true },
         },
         true,
@@ -3894,6 +4027,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           rowsDeleted: rowsDeleted,
           cascaded: cascaded,
         });
+
+        // Gone from every status page at once. See StatusPageOverviewCache.
+        await StatusPageOverviewCache.afterDelete({
+          tableName: this.model.tableName,
+          rows: rowsDeleted,
+        });
       }
 
       return numberOfDocsAffected;
@@ -3907,7 +4046,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     try {
       this.setTelemetryContextFromProps(deleteBy.props);
 
-      this.checkCallerBeforeHooks(deleteBy.props, DatabaseRequestType.Delete);
+      deleteBy.props = await this.checkCallerBeforeHooks(
+        deleteBy.props,
+        DatabaseRequestType.Delete,
+      );
 
       if (this.doNotAllowDelete && !deleteBy.props.isRoot) {
         throw new BadDataException("Delete not allowed");
@@ -4030,6 +4172,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           tableName: this.model.tableName,
           rowsDeleted: items,
           cascaded: cascaded,
+        });
+
+        // Gone from every status page at once. See StatusPageOverviewCache.
+        await StatusPageOverviewCache.afterDelete({
+          tableName: this.model.tableName,
+          rows: items,
         });
       }
 
@@ -4173,7 +4321,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     try {
       this.setTelemetryContextFromProps(findBy.props);
 
-      this.checkCallerBeforeHooks(findBy.props, DatabaseRequestType.Read);
+      findBy.props = await this.checkCallerBeforeHooks(
+        findBy.props,
+        DatabaseRequestType.Read,
+      );
 
       // Who is asking, as they asked: whose files they may see.
       const fileReader: RelatedFileReader | null = RelatedFileAccess.getReader(
@@ -4574,7 +4725,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       // A model becomes the columns it writes before anything judges it.
       updateBy.data = this.sanitizeUpdateData(updateBy.data);
 
-      this.checkCallerBeforeHooks(
+      updateBy.props = await this.checkCallerBeforeHooks(
         updateBy.props,
         DatabaseRequestType.Update,
         updateBy.data,
@@ -4711,11 +4862,35 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
        * only the columns written - to tell what it starts and stops
        * showing. See PublishedImages.
        */
-      if (PublishedImages.isWrittenBy(this.model.tableName, dataKeys)) {
-        for (const column of PublishedImages.getColumns(this.model.tableName)) {
-          (selectColumns as Dictionary<unknown>)[column] = true;
-        }
+      const publishedColumns: Array<string> = PublishedImages.isWrittenBy(
+        this.model.tableName,
+        dataKeys,
+      )
+        ? PublishedImages.getColumns(this.model.tableName)
+        : [];
+
+      for (const column of publishedColumns) {
+        (selectColumns as Dictionary<unknown>)[column] = true;
       }
+
+      /*
+       * The columns the database works out in each row's own write, and
+       * what that write hands back of the row as it stored it: those
+       * columns, and what the row shows to everyone. See getRowWriteSql.
+       */
+      const rowWriteSql: Dictionary<string> = updateBy.props.ignoreHooks
+        ? {}
+        : this.getRowWriteSql(data);
+
+      const rowWriteSqlColumns: Array<string> = Object.keys(rowWriteSql).filter(
+        (column: string): boolean => {
+          return dataKeys.includes(column);
+        },
+      );
+
+      const returnedColumns: Array<string> = Array.from(
+        new Set<string>([...rowWriteSqlColumns, ...publishedColumns]),
+      );
 
       /*
        * A drag-ordered list needs each row's place and list as they were
@@ -4793,12 +4968,36 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       const affectedItems: Array<TBaseModel> = [];
 
       /*
+       * A query that names the row's version is a compare-and-set: the row
+       * is written only while it still holds that version. The find above is
+       * a statement of its own, so the UPDATE asks again - a write landing
+       * between the two would otherwise be overwritten by values computed
+       * from what the row held before it. The workflow Update steps merge
+       * custom fields this way (CustomFieldsArgument). Rows written through
+       * save(), for a many-to-many column, are not guarded.
+       */
+      const expectedVersion: unknown = (
+        beforeUpdateBy.query as Dictionary<unknown>
+      )["version"];
+
+      /*
        * The per-item debug payload below is a pretty-printed JSON.stringify
        * of every matched row; skip building it entirely unless the log level
        * is DEBUG, since logger.debug() no-ops at any other level.
        */
       const isDebugLogEnabled: boolean =
         logger.getLogLevel() === ConfigLogLevel.DEBUG;
+
+      /*
+       * Each affected row as its own write left it, in the order of
+       * affectedItems: what the write handed back (returnedColumns), for
+       * PublishedImages to decide the row's images by.
+       */
+      const rowsAsWritten: Array<Record<string, unknown>> = [];
+
+      // The expressions the database works the columns out by. See getRowWriteSql.
+      const rowWriteSqlValues: Dictionary<() => string> =
+        this.toRowWriteSqlValues(rowWriteSql, rowWriteSqlColumns);
 
       for (const item of items) {
         /*
@@ -4809,7 +5008,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
          * primary key, INSERTs instead of updating, and dies on the first
          * NOT NULL column.
          */
-        const dataForItem: PartialEntity<TBaseModel> = { ...data };
+        const dataForItem: PartialEntity<TBaseModel> = {
+          ...data,
+        };
 
         // Only a row whose switch really turns takes its stamps. See the helper.
         const keptSwitchColumns: Array<string> =
@@ -4819,8 +5020,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             switchStamps,
           );
 
-        // What this row is written with, for the workflow and the audit log.
-        const writtenData: PartialEntity<TBaseModel> = { ...data };
+        /*
+         * What this row is written with, for the workflow and the audit log.
+         * A column the database works out (getRowWriteSql) is recorded as
+         * it stored it, once the write hands it back.
+         */
+        const writtenData: PartialEntity<TBaseModel> = {
+          ...data,
+        };
 
         for (const column of keptSwitchColumns) {
           delete (writtenData as Record<string, unknown>)[column];
@@ -4891,37 +5098,134 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           } as LogAttributes);
         }
 
+        // The row as its write stored it, where the write handed it back.
+        let storedByWrite: Record<string, unknown> | undefined = undefined;
+
         if (hasRelationUpdates) {
-          await this.getRepository().save(updatedItem);
+          /*
+           * save() writes values, never an expression: the columns the
+           * database works out are left out of it and written by a
+           * statement of their own, which decides them on the row as it is
+           * then, under its lock, and hands them back. save() never writes
+           * Private alongside them (a write of Private decides both switches
+           * itself: StatusPageVisibility.normalizeWrite), so nothing stored
+           * between the two statements is both private and visible.
+           */
+          const savedItem: any = { ...updatedItem };
+
+          for (const column of rowWriteSqlColumns) {
+            delete savedItem[column];
+          }
+
+          await this.getRepository().save(savedItem);
+
+          if (rowWriteSqlColumns.length > 0) {
+            storedByWrite = this.readRowReturnedByWrite(
+              await this.getRepository().update(
+                { _id: item._id! } as any,
+                {
+                  ...rowWriteSqlValues,
+                  /*
+                   * save() moved the version on already; update() moves it
+                   * again unless it is written, so it is written as it is.
+                   */
+                  version: () => {
+                    return '"version"';
+                  },
+                } as any,
+                { returning: returnedColumns },
+              ),
+              returnedColumns,
+            );
+          } else if (returnedColumns.length > 0) {
+            /*
+             * Nothing to work out, but what the row shows to everyone is
+             * still decided by what it holds once written - read back right
+             * after save(), never the read made before it.
+             */
+            storedByWrite =
+              (await this.readStoredColumns(item, returnedColumns)) ||
+              undefined;
+          }
         } else {
           const { _id, ...updateData } = updatedItem;
-          const updateResult: UpdateResult = await this.getRepository().update(
-            { _id: _id } as any,
-            {
-              ...updateData,
-              /*
-               * save() bumps the @VersionColumn automatically; update() does
-               * not, so emulate it to keep the audit counter behaviour
-               * identical.
-               */
-              version: () => {
-                return '"version" + 1';
-              },
-            } as any,
-          );
+          /*
+           * The row, at the version the query named, if it named one (see
+           * expectedVersion above).
+           */
+          const criteria: any = {
+            _id: _id,
+            ...(typeof expectedVersion === "number"
+              ? { version: expectedVersion }
+              : {}),
+          };
+
+          const values: any = {
+            ...updateData,
+            // Never the update's own value: see getRowWriteSql.
+            ...rowWriteSqlValues,
+            /*
+             * save() bumps the @VersionColumn automatically; update() does
+             * not, so emulate it to keep the audit counter behaviour
+             * identical.
+             */
+            version: () => {
+              return '"version" + 1';
+            },
+          };
+
+          const updateResult: UpdateResult =
+            returnedColumns.length > 0
+              ? await this.getRepository().update(criteria, values, {
+                  returning: returnedColumns,
+                })
+              : await this.getRepository().update(criteria, values);
 
           /*
-           * The row was hard-deleted between the find above and this write.
-           * Nothing was updated, so skip the success hooks for it: they
-           * re-read the row and would dereference null (and would report a
-           * change that never happened).
+           * The row was hard-deleted between the find above and this write,
+           * or moved past the version the query named. Nothing was updated,
+           * so skip the success hooks for it: they re-read the row and would
+           * dereference null (and would report a change that never happened).
            */
           if (updateResult.affected === 0) {
             continue;
           }
+
+          if (returnedColumns.length > 0) {
+            storedByWrite = this.readRowReturnedByWrite(
+              updateResult,
+              returnedColumns,
+            );
+          }
+        }
+
+        /*
+         * A column the database worked out is recorded as it stored it - in
+         * the workflow trigger, the realtime event and the audit log entry,
+         * and in what decides whether anything changed. One it did not hand
+         * back is not claimed at all: never as the update asked for it.
+         */
+        const rowAsWritten: Record<string, unknown> = {
+          ...(storedByWrite || {}),
+        };
+
+        for (const column of rowWriteSqlColumns) {
+          const storedValue: unknown = storedByWrite?.[column];
+
+          if (storedValue === undefined) {
+            delete (writtenData as Record<string, unknown>)[column];
+            delete updatedItemForComparison[column];
+            // Not known, so never taken as on. See PublishedImages.
+            rowAsWritten[column] = null;
+            continue;
+          }
+
+          (writtenData as Record<string, unknown>)[column] = storedValue;
+          updatedItemForComparison[column] = storedValue;
         }
 
         affectedItems.push(item);
+        rowsAsWritten.push(rowAsWritten);
 
         // hit workflow.
         if (
@@ -4988,13 +5292,25 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       /*
        * The images each row shows to everyone now are public, and those it
-       * stopped showing private, unless another record still shows them.
-       * Before onUpdateSuccess, so nothing a hook sends links to an image
-       * that is not public yet. See PublishedImages.
+       * stopped showing private, unless another record still shows them -
+       * decided on each row as its own write stored it. Before
+       * onUpdateSuccess, so nothing a hook sends links to an image that is
+       * not public yet. See PublishedImages.
        */
       await PublishedImages.afterUpdate({
         tableName: this.model.tableName,
         rowsBefore: affectedItems,
+        written: data,
+        rowsAfter: rowsAsWritten,
+      });
+
+      /*
+       * A status page that showed one of these records stops showing it at
+       * once, not when its cached overview runs out. See the helper.
+       */
+      await StatusPageOverviewCache.afterUpdate({
+        tableName: this.model.tableName,
+        rows: affectedItems,
         written: data,
       });
 

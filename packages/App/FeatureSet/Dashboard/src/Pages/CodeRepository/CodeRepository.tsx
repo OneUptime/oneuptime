@@ -21,12 +21,24 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { env, HOME_URL } from "Common/UI/Config";
+import { APP_API_URL, env } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import AIPlanGate from "../../Components/AI/AIPlanGate";
 import RepositoryConnectionStatus from "../../Components/CodeRepository/RepositoryConnectionStatus";
+import {
+  getGitHubConnectLock,
+  GitHubConnectLock,
+} from "../../Components/CodeRepository/GitHubConnectLock";
 import Card from "Common/UI/Components/Card/Card";
+import Icon from "Common/UI/Components/Icon/Icon";
+import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import URL from "Common/Types/API/URL";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import { JSONObject } from "Common/Types/JSON";
+import Exception from "Common/Types/Exception/Exception";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -39,6 +51,7 @@ const CodeRepositoryPage: FunctionComponent<
   const [showGitHubConnectedBanner, setShowGitHubConnectedBanner] =
     useState<boolean>(false);
   const [refreshToggle, setRefreshToggle] = useState<string>("");
+  const [connectError, setConnectError] = useState<string | null>(null);
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<CodeRepository>({ modelType: CodeRepository });
@@ -46,8 +59,8 @@ const CodeRepositoryPage: FunctionComponent<
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
   /*
-   * Set while the click waits for the session refresh, so a double click
-   * does not navigate twice. A ref, not state: the second click can land
+   * Set while the click waits for the install URL, so a double click does
+   * not start two connections. A ref, not state: the second click can land
    * before a re-render would have shown this handler a state flag.
    */
   const isConnectingToGitHubRef: MutableRefObject<boolean> =
@@ -82,23 +95,47 @@ const CodeRepositoryPage: FunctionComponent<
       }
 
       isConnectingToGitHubRef.current = true;
+      setConnectError(null);
 
       /*
-       * Redirect to GitHub to install (or update) the GitHub App. Once
-       * installed, all repositories in the installation are imported
-       * automatically and kept in sync via webhooks.
+       * Install (or update) the GitHub App: once installed, every repository
+       * in the installation is imported and kept in sync by webhooks.
        *
-       * No userId is sent: the install route takes the user from the session
-       * cookie. It used to accept one here, which meant anyone could mint the
-       * signed state the callback trusts, for any user and project they
-       * named.
-       *
-       * The route is reached by a full navigation, which carries the cookie
-       * but none of the API class's refresh-and-replay: once the page had
-       * been open past the 15-minute access token, the click landed on a raw
-       * 401 JSON page. So the session is refreshed first.
+       * The server is asked for the installation URL through the API class,
+       * as the Slack and Microsoft Teams connections ask for theirs. The
+       * project goes in its tenant header, an expired session is refreshed
+       * and the request replayed, and a refusal - no permission to add code
+       * repositories, a plan without them - comes back here to be shown on
+       * the card instead of on a bare error page. The URL carries a one-use
+       * state the server recorded for this person, project and browser.
        */
-      const refreshed: boolean = await API.refreshSession();
+      let installUrl: string | undefined = undefined;
+
+      try {
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.get<JSONObject>({
+            url: URL.fromURL(APP_API_URL).addRoute("/github/install-url"),
+            headers: ModelAPI.getCommonHeaders(),
+          });
+
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
+
+        installUrl = (response.data as JSONObject)["installUrl"] as
+          | string
+          | undefined;
+
+        if (!installUrl) {
+          throw new Error(
+            translator.translateText(
+              "OneUptime could not start the GitHub connection. Please try again.",
+            ),
+          );
+        }
+      } catch (error) {
+        setConnectError(API.getFriendlyErrorMessage(error as Exception));
+      }
 
       /*
        * Released before navigating, so a page the browser restores from its
@@ -107,23 +144,17 @@ const CodeRepositoryPage: FunctionComponent<
        */
       isConnectingToGitHubRef.current = false;
 
-      /*
-       * A refused refresh means the session has ended, and the API client is
-       * already taking the user to the login page; navigating to GitHub now
-       * would cancel that and show the install route's 401 instead. One that
-       * got no answer means the server cannot be reached at all.
-       */
-      if (!refreshed) {
-        return;
+      if (installUrl) {
+        Navigation.navigate(URL.fromString(installUrl));
       }
-
-      const installUrl: string = `${HOME_URL.toString()}api/github/auth/install?projectId=${projectId.toString()}`;
-      window.location.href = installUrl;
     };
 
   // Read GitHub App Name fresh on each render to avoid module initialization timing issues
   const gitHubAppName: string | null = env("GITHUB_APP_NAME") || null;
   const isGitHubAppConfigured: boolean = Boolean(gitHubAppName);
+
+  // Locked, with one sentence, for someone who may not connect it.
+  const connectLock: GitHubConnectLock = getGitHubConnectLock();
 
   const aiAgentsRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.AI_AGENT_TASKS] as Route,
@@ -164,12 +195,30 @@ const CodeRepositoryPage: FunctionComponent<
       >
         {isGitHubAppConfigured ? (
           <div className="grid gap-4 md:grid-cols-2">
-            {/* GitHub App Option */}
+            {connectError && (
+              <div className="md:col-span-2">
+                <Alert
+                  type={AlertType.DANGER}
+                  title={connectError}
+                  onClose={() => {
+                    setConnectError(null);
+                  }}
+                />
+              </div>
+            )}
+            {/*
+             * GitHub App option. The whole card is the button's target: the
+             * button inside the heading stretches over it (after:inset-0),
+             * so the heading stays a heading and the button's name is just
+             * its title.
+             */}
             <div
-              className="relative rounded-lg border border-gray-200 bg-white p-6 hover:border-indigo-500 hover:shadow-md transition-all cursor-pointer group"
-              onClick={() => {
-                void handleConnectWithGitHub();
-              }}
+              data-testid="connect-github-app-card"
+              className={`relative rounded-lg border border-gray-200 bg-white p-6 transition-all group ${
+                connectLock.isLocked
+                  ? "opacity-75"
+                  : "hover:border-indigo-500 hover:shadow-md"
+              }`}
             >
               <div className="flex items-start space-x-4">
                 <div className="flex-shrink-0">
@@ -188,18 +237,53 @@ const CodeRepositoryPage: FunctionComponent<
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-base font-semibold text-gray-900 group-hover:text-indigo-600">
-                    {translator.translateText("Connect with GitHub App")}
+                  <h3 className="text-base font-semibold text-gray-900">
+                    <button
+                      type="button"
+                      id="connect-github-app"
+                      disabled={connectLock.isLocked}
+                      aria-describedby={
+                        connectLock.isLocked
+                          ? "connect-github-app-lock"
+                          : "connect-github-app-description"
+                      }
+                      className={`text-left after:absolute after:inset-0 after:rounded-lg ${
+                        connectLock.isLocked
+                          ? "cursor-not-allowed"
+                          : "cursor-pointer group-hover:text-indigo-600"
+                      }`}
+                      onClick={() => {
+                        void handleConnectWithGitHub();
+                      }}
+                    >
+                      {translator.translateText("Connect with GitHub App")}
+                    </button>
                   </h3>
-                  <p className="mt-1 text-sm text-gray-500">
+                  <p
+                    id="connect-github-app-description"
+                    className="mt-1 text-sm text-gray-500"
+                  >
                     {translator.translateText(
                       "Recommended for GitHub repositories. Installing the app imports all of its repositories automatically and keeps them in sync.",
                     )}
                   </p>
                   <div className="mt-3">
-                    <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
-                      {translator.translateText("Recommended")}
-                    </span>
+                    {connectLock.isLocked ? (
+                      <div
+                        id="connect-github-app-lock"
+                        className="flex items-center gap-1.5 text-sm text-gray-600"
+                      >
+                        <Icon
+                          icon={IconProp.Lock}
+                          className="h-4 w-4 flex-none text-gray-400"
+                        />
+                        <span>{connectLock.reason}</span>
+                      </div>
+                    ) : (
+                      <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                        {translator.translateText("Recommended")}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

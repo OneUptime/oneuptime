@@ -3,6 +3,10 @@ import PublishedImages, {
   CascadedRow,
   extractImageAccessTokens,
   getCascadedRowsSql,
+  getRowsShownUnderSql,
+  getShownParentsSql,
+  HIDE_HIDDEN_RECORD_IMAGES_SQL,
+  HIDE_PRIVATE_RECORD_IMAGES_SQL,
   HIDE_UNSHOWN_FILES_SQL,
   KEPT_MARKDOWN,
   PROJECT_FILES_PRIVATE_SQL,
@@ -10,6 +14,8 @@ import PublishedImages, {
   PUBLISH_SHOWN_IMAGES_SQL,
   PublishedCascade,
   PublishedMarkdown,
+  PublishedParent,
+  ShownParents,
   STILL_SHOWN_SQL,
 } from "../../../../Server/Utils/File/PublishedImages";
 import * as InlineImageAccessTokenSync from "../../../../Server/Utils/InlineImageAccessTokenSync";
@@ -32,6 +38,7 @@ import type { Mock, SpyInstance } from "jest-mock";
 import fs from "fs";
 import path from "path";
 import { FindOperator, getMetadataArgsStorage } from "typeorm";
+import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import type { JoinColumnMetadataArgs } from "typeorm/metadata-args/JoinColumnMetadataArgs";
 import type { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
 
@@ -61,6 +68,9 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const OTHER_PROJECT_ID: ObjectID = new ObjectID(
   "22222222-2222-4222-8222-222222222222",
 );
+
+// An incident a public note is shown under.
+const INCIDENT_ID: string = "44444444-4444-4444-8444-444444444444";
 
 const image: (token: string) => string = (token: string): string => {
   return `![shot](https://oneuptime.example/file/image/access-token/${token})`;
@@ -170,27 +180,83 @@ describe("PUBLISHED_MARKDOWN: what records show to everyone, and when", () => {
         );
       }
 
-      for (const column of source.shownWhen) {
+      for (const column of [
+        ...source.shownWhen,
+        ...(source.hiddenWhen || []),
+      ]) {
         expect(columnType(model, column)).toBe(TableColumnType.Boolean);
       }
     },
   );
 
+  /*
+   * A private incident or episode is never shown on a status page
+   * (StatusPageVisibility): its markdown is hidden by Private, whatever its
+   * Visible on Status Page switch says.
+   */
+  /*
+   * A create that leaves a hiding switch out stores it off, so afterCreate
+   * reads nothing for it: each one must default to off.
+   */
+  test.each(
+    [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN].flatMap(
+      (source: PublishedMarkdown) => {
+        return (source.hiddenWhen || []).map((column: string) => {
+          return { tableName: source.tableName, column: column };
+        });
+      },
+    ),
+  )(
+    "$tableName.$column, a switch that hides markdown, defaults to off",
+    ({ tableName, column }: { tableName: string; column: string }) => {
+      const model: BaseModel = modelOf(tableName);
+
+      const declared: ColumnMetadataArgs | undefined = getMetadataArgsStorage()
+        .columns.filter((args: ColumnMetadataArgs): boolean => {
+          return (
+            args.target === model.constructor && args.propertyName === column
+          );
+        })
+        .pop();
+
+      expect(declared?.options.default).toBe(false);
+    },
+  );
+
+  test("an incident's and an episode's markdown is hidden while it is private", () => {
+    expect(
+      [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN]
+        .filter((source: PublishedMarkdown): boolean => {
+          return (source.hiddenWhen || []).length > 0;
+        })
+        .map((source: PublishedMarkdown): string => {
+          return `${source.tableName}.${source.markdownColumns.join("+")} unless ${(source.hiddenWhen || []).join(" or ")}`;
+        }),
+    ).toEqual([
+      "Incident.description unless isPrivate",
+      "Incident.postmortemNote unless isPrivate",
+      "IncidentEpisode.description unless isPrivate",
+      "Incident.customFields unless isPrivate",
+    ]);
+  });
+
   test("names every record a status page or a form's page shows what people write in", () => {
     expect(
       PUBLISHED_MARKDOWN.map((source: PublishedMarkdown): string => {
         return `${source.tableName}.${source.markdownColumns.join("+")} when ${
-          source.shownWhen.join(" and ") || "always"
+          source.shownUnder
+            ? `its ${source.shownUnder.tableName} is shown`
+            : source.shownWhen.join(" and ") || "always"
         } on ${source.shownOn}`;
       }),
     ).toEqual([
       "Incident.description when isVisibleOnStatusPage on statusPage",
       "Incident.postmortemNote when isVisibleOnStatusPage and showPostmortemOnStatusPage on statusPage",
-      "IncidentPublicNote.note when always on statusPage",
+      "IncidentPublicNote.note when its Incident is shown on statusPage",
       "IncidentEpisode.description when isVisibleOnStatusPage on statusPage",
-      "IncidentEpisodePublicNote.note when always on statusPage",
+      "IncidentEpisodePublicNote.note when its IncidentEpisode is shown on statusPage",
       "ScheduledMaintenance.description when isVisibleOnStatusPage on statusPage",
-      "ScheduledMaintenancePublicNote.note when always on statusPage",
+      "ScheduledMaintenancePublicNote.note when its ScheduledMaintenance is shown on statusPage",
       "StatusPageAnnouncement.description when always on statusPage",
       "StatusPage.overviewPageDescription when always on statusPage",
       "StatusPageGroup.description when always on statusPage",
@@ -477,12 +543,27 @@ describe("PublishedImages.getColumns / isWrittenBy", () => {
     expect(PublishedImages.getColumns("Incident").sort()).toEqual(
       [
         "description",
+        "isPrivate",
         "isVisibleOnStatusPage",
         "postmortemNote",
         "showPostmortemOnStatusPage",
       ].sort(),
     );
-    expect(PublishedImages.getColumns("IncidentPublicNote")).toEqual(["note"]);
+    expect(PublishedImages.getColumns("IncidentEpisode").sort()).toEqual(
+      ["description", "isPrivate", "isVisibleOnStatusPage"].sort(),
+    );
+    // A note's markdown, and the record it is shown under.
+    expect(PublishedImages.getColumns("IncidentPublicNote")).toEqual([
+      "note",
+      "incidentId",
+    ]);
+    expect(PublishedImages.getColumns("IncidentEpisodePublicNote")).toEqual([
+      "note",
+      "incidentEpisodeId",
+    ]);
+    expect(
+      PublishedImages.getColumns("ScheduledMaintenancePublicNote"),
+    ).toEqual(["note", "scheduledMaintenanceId"]);
     expect(PublishedImages.getColumns("Monitor")).toEqual([]);
     expect(PublishedImages.getColumns(undefined)).toEqual([]);
   });
@@ -495,6 +576,11 @@ describe("PublishedImages.getColumns / isWrittenBy", () => {
     expect(
       PublishedImages.isWrittenBy("Incident", ["showPostmortemOnStatusPage"]),
     ).toBe(true);
+    // Making an incident or an episode private stops it showing its images.
+    expect(PublishedImages.isWrittenBy("Incident", ["isPrivate"])).toBe(true);
+    expect(PublishedImages.isWrittenBy("IncidentEpisode", ["isPrivate"])).toBe(
+      true,
+    );
     expect(
       PublishedImages.isWrittenBy("Incident", ["title", "rootCause"]),
     ).toBe(false);
@@ -551,11 +637,8 @@ describe("PublishedImages.getShownTokens: what a record shows to everyone", () =
     ).toBe(0);
   });
 
-  test("public notes, announcements and the status page's own texts, always", () => {
+  test("announcements and the status page's own texts, always", () => {
     for (const [tableName, column] of [
-      ["IncidentPublicNote", "note"],
-      ["IncidentEpisodePublicNote", "note"],
-      ["ScheduledMaintenancePublicNote", "note"],
       ["StatusPageAnnouncement", "description"],
       ["StatusPage", "overviewPageDescription"],
       ["StatusPageGroup", "description"],
@@ -584,6 +667,68 @@ describe("PublishedImages.getShownTokens: what a record shows to everyone", () =
     ]);
     expect(
       PublishedImages.getShownTokens("Form", { ...row, isEnabled: false }).size,
+    ).toBe(0);
+  });
+
+  /*
+   * A private incident or episode is never shown on a status page
+   * (StatusPageVisibility), so its markdown shows nothing to everyone,
+   * whatever its Visible on Status Page switch says.
+   */
+  test("nothing of a private incident or episode, even switched visible", () => {
+    const incident: Record<string, unknown> = {
+      description: image("aaa111"),
+      postmortemNote: image("bbb222"),
+      isVisibleOnStatusPage: true,
+      showPostmortemOnStatusPage: true,
+    };
+
+    expect(
+      Array.from(PublishedImages.getShownTokens("Incident", incident)),
+    ).toEqual(["aaa111", "bbb222"]);
+
+    for (const isPrivate of [true, "true", 1]) {
+      expect(
+        PublishedImages.getShownTokens("Incident", {
+          ...incident,
+          isPrivate,
+        }).size,
+      ).toBe(0);
+      expect(
+        PublishedImages.getShownTokens("IncidentEpisode", {
+          description: image("ccc333"),
+          isVisibleOnStatusPage: true,
+          isPrivate,
+        }).size,
+      ).toBe(0);
+    }
+
+    // Not private, or never set: shown by its switch alone.
+    for (const isPrivate of [false, null, undefined]) {
+      expect(
+        PublishedImages.getShownTokens("Incident", { ...incident, isPrivate })
+          .size,
+      ).toBe(2);
+      expect(
+        PublishedImages.getShownTokens("IncidentEpisode", {
+          description: image("ccc333"),
+          isVisibleOnStatusPage: true,
+          isPrivate,
+        }).size,
+      ).toBe(1);
+    }
+
+    // Nor does a public note of one: it is shown only with its incident.
+    expect(
+      PublishedImages.getShownTokens(
+        "IncidentPublicNote",
+        {
+          note: image("ddd444"),
+          incidentId: INCIDENT_ID,
+          projectId: PROJECT_ID.toString(),
+        },
+        new Map(),
+      ).size,
     ).toBe(0);
   });
 
@@ -617,12 +762,55 @@ describe("PublishedImages.afterCreate", () => {
         projectId: PROJECT_ID,
         description: image("aaa111"),
         isVisibleOnStatusPage: true,
+        isPrivate: false,
       },
       readStored: readStored,
     });
 
     expect(visibilityAsked()).toEqual(["aaa111:public"]);
     expect(readStored).not.toHaveBeenCalled();
+  });
+
+  test("a new private record leaves its images private, whatever its Visible on Status Page says", async () => {
+    for (const tableName of ["Incident", "IncidentEpisode"]) {
+      setImagesVisibility.mockClear();
+
+      await PublishedImages.afterCreate({
+        tableName: tableName,
+        row: {
+          projectId: PROJECT_ID,
+          description: image("aaa111"),
+          isVisibleOnStatusPage: true,
+          isPrivate: true,
+        },
+        readStored: async () => {
+          return null;
+        },
+      });
+
+      expect(visibilityAsked()).toEqual([]);
+    }
+  });
+
+  test("a Private left out is off, as its column's default stores it: nothing is read for it", async () => {
+    const readStored: Mock<
+      (columns: Array<string>) => Promise<Record<string, unknown> | null>
+    > = jest.fn(async (): Promise<Record<string, unknown> | null> => {
+      return null;
+    });
+
+    await PublishedImages.afterCreate({
+      tableName: "Incident",
+      row: {
+        projectId: PROJECT_ID,
+        description: image("aaa111"),
+        isVisibleOnStatusPage: true,
+      },
+      readStored: readStored,
+    });
+
+    expect(readStored).not.toHaveBeenCalled();
+    expect(visibilityAsked()).toEqual(["aaa111:public"]);
   });
 
   test("a new record not shown on status pages leaves its images private", async () => {
@@ -796,6 +984,65 @@ describe("PublishedImages.afterUpdate", () => {
     expect(visibilityAsked()).toEqual(["aaa111:private"]);
   });
 
+  test("making a shown incident private makes every image it showed private", async () => {
+    await PublishedImages.afterUpdate({
+      tableName: "Incident",
+      rowsBefore: [{ ...SHOWN_INCIDENT, isPrivate: false }],
+      written: { isPrivate: true, isVisibleOnStatusPage: false },
+    });
+
+    expect(visibilityAsked()).toEqual(["aaa111:private", "bbb222:private"]);
+  });
+
+  test("making it private alone, without the switch, still makes them private", async () => {
+    await PublishedImages.afterUpdate({
+      tableName: "Incident",
+      rowsBefore: [{ ...SHOWN_INCIDENT, isPrivate: false }],
+      written: { isPrivate: true },
+    });
+
+    expect(visibilityAsked()).toEqual(["aaa111:private", "bbb222:private"]);
+  });
+
+  test("switching a private incident visible makes nothing public: what it holds is only asked to be private", async () => {
+    await PublishedImages.afterUpdate({
+      tableName: "Incident",
+      rowsBefore: [
+        { ...SHOWN_INCIDENT, isVisibleOnStatusPage: false, isPrivate: true },
+      ],
+      written: { isVisibleOnStatusPage: true },
+    });
+
+    expect(visibilityAsked()).toEqual(["aaa111:private", "bbb222:private"]);
+  });
+
+  test("making a private, visible incident not private shows its images again", async () => {
+    await PublishedImages.afterUpdate({
+      tableName: "Incident",
+      rowsBefore: [{ ...SHOWN_INCIDENT, isPrivate: true }],
+      written: { isPrivate: false },
+    });
+
+    expect(visibilityAsked()).toEqual(["aaa111:public", "bbb222:public"]);
+  });
+
+  test("making a shown episode private makes its description's images private", async () => {
+    await PublishedImages.afterUpdate({
+      tableName: "IncidentEpisode",
+      rowsBefore: [
+        {
+          projectId: PROJECT_ID,
+          description: image("ccc333"),
+          isVisibleOnStatusPage: true,
+          isPrivate: false,
+        },
+      ],
+      written: { isPrivate: true },
+    });
+
+    expect(visibilityAsked()).toEqual(["ccc333:private"]);
+  });
+
   test("an update of nothing a record shows leaves its images alone", async () => {
     await PublishedImages.afterUpdate({
       tableName: "Incident",
@@ -885,7 +1132,7 @@ describe("PublishedImages.afterUpdate", () => {
 describe("PublishedImages.afterDelete", () => {
   beforeEach(recordVisibility);
 
-  test("a deleted record's shown images become private", async () => {
+  test("a deleted record's images become private, shown or not, unless something still shows them", async () => {
     await PublishedImages.afterDelete({
       tableName: "IncidentEpisode",
       rowsDeleted: [
@@ -902,7 +1149,7 @@ describe("PublishedImages.afterDelete", () => {
       ],
     });
 
-    expect(visibilityAsked()).toEqual(["aaa111:private"]);
+    expect(visibilityAsked()).toEqual(["aaa111:private", "bbb222:private"]);
   });
 
   test("so do the images of the rows the delete took with it", async () => {
@@ -1157,7 +1404,7 @@ describe("PublishedImages.readCascadedRows: what a delete takes with it", () => 
     expect(
       getCascadedRowsSql(cascadeOf("IncidentPublicNote", "incidentId")),
     ).toBe(
-      `SELECT "_id", "projectId", "note" FROM "IncidentPublicNote" WHERE "incidentId" = ANY($1::uuid[]) AND "deletedAt" IS NULL`,
+      `SELECT "_id", "projectId", "note", "incidentId" FROM "IncidentPublicNote" WHERE "incidentId" = ANY($1::uuid[]) AND "deletedAt" IS NULL`,
     );
     expect(getCascadedRowsSql(cascadeOf("StatusPage", "logoFileId"))).toBe(
       `SELECT "_id", "projectId", "overviewPageDescription" FROM "StatusPage" WHERE "logoFileId" = ANY($1::uuid[]) AND "deletedAt" IS NULL`,
@@ -1650,11 +1897,22 @@ describe("the SQL the still-shown check, a project's delete and the data migrati
     }
 
     expect(STILL_SHOWN_SQL).toContain(
-      `FROM "Incident" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND "isVisibleOnStatusPage" = true AND "showPostmortemOnStatusPage" = true AND concat_ws(' ', "postmortemNote"::text) LIKE ANY($2)`,
+      `FROM "Incident" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND "isVisibleOnStatusPage" = true AND "showPostmortemOnStatusPage" = true AND "isPrivate" IS NOT TRUE AND concat_ws(' ', "postmortemNote"::text) LIKE ANY($2)`,
     );
     // Custom fields count while the incident is shown, and so sent out.
     expect(STILL_SHOWN_SQL).toContain(
-      `FROM "Incident" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND "isVisibleOnStatusPage" = true AND concat_ws(' ', "customFields"::text) LIKE ANY($2)`,
+      `FROM "Incident" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND "isVisibleOnStatusPage" = true AND "isPrivate" IS NOT TRUE AND concat_ws(' ', "customFields"::text) LIKE ANY($2)`,
+    );
+    // A private incident or episode shows nothing, whatever its switch says.
+    expect(STILL_SHOWN_SQL).toContain(
+      `FROM "Incident" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND "isVisibleOnStatusPage" = true AND "isPrivate" IS NOT TRUE AND concat_ws(' ', "description"::text) LIKE ANY($2)`,
+    );
+    expect(STILL_SHOWN_SQL).toContain(
+      `FROM "IncidentEpisode" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND "isVisibleOnStatusPage" = true AND "isPrivate" IS NOT TRUE AND concat_ws(' ', "description"::text) LIKE ANY($2)`,
+    );
+    // A scheduled maintenance event has no Private switch.
+    expect(STILL_SHOWN_SQL).toContain(
+      `FROM "ScheduledMaintenance" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND "isVisibleOnStatusPage" = true AND concat_ws(' ', "description"::text) LIKE ANY($2)`,
     );
     // A form, while it accepts submissions.
     expect(STILL_SHOWN_SQL).toContain(
@@ -1708,6 +1966,66 @@ describe("the SQL the still-shown check, a project's delete and the data migrati
     // Kept for any project: an image another project's page shows stays.
     expect(HIDE_UNSHOWN_FILES_SQL).not.toContain(`"shown"."projectId"`);
   });
+
+  /*
+   * Once, for images a private incident or episode made public while its
+   * switch was still on: those, and only those, become private - unless a
+   * published record still shows them, or they are icons.
+   */
+  test("HIDE_PRIVATE_RECORD_IMAGES_SQL makes private only the public images of private records of the file's own project", () => {
+    expect(HIDE_PRIVATE_RECORD_IMAGES_SQL).toContain(
+      `UPDATE "File" AS "file" SET "isPublic" = false WHERE "file"."isPublic" = true`,
+    );
+    // Only images a private record holds, of that record's own project or of none.
+    expect(HIDE_PRIVATE_RECORD_IMAGES_SQL).toContain(
+      `EXISTS (SELECT 1 FROM "hiddenToken" WHERE "hiddenToken"."token" = "file"."imageAccessToken" AND ("file"."projectId" IS NULL OR "hiddenToken"."projectId" = "file"."projectId"))`,
+    );
+    for (const [table, column] of [
+      ["Incident", "description"],
+      ["Incident", "postmortemNote"],
+      ["Incident", "customFields"],
+      ["IncidentEpisode", "description"],
+    ] as Array<[string, string]>) {
+      expect(HIDE_PRIVATE_RECORD_IMAGES_SQL).toContain(
+        `FROM "${table}" WHERE "deletedAt" IS NULL AND ("isPrivate" IS TRUE) AND concat_ws(' ', "${column}"::text) LIKE '%/file/image/access-token/%'`,
+      );
+    }
+    // Nothing that has no Private switch is read as hiding anything.
+    expect(HIDE_PRIVATE_RECORD_IMAGES_SQL).not.toMatch(
+      /FROM "(ScheduledMaintenance|IncidentPublicNote|StatusPageAnnouncement|Form)" WHERE "deletedAt" IS NULL AND \(/,
+    );
+    // Kept: what a published record still shows, by token or by id, and icons.
+    expect(HIDE_PRIVATE_RECORD_IMAGES_SQL).toContain(
+      `NOT EXISTS (SELECT 1 FROM "shownToken" WHERE "shownToken"."token" = "file"."imageAccessToken")`,
+    );
+    expect(HIDE_PRIVATE_RECORD_IMAGES_SQL).toContain(
+      `NOT EXISTS (SELECT 1 FROM "shownId" WHERE "shownId"."fileId" = "file"."_id"::text)`,
+    );
+    expect(HIDE_PRIVATE_RECORD_IMAGES_SQL).toContain(
+      `NOT EXISTS (SELECT 1 FROM "Probe" WHERE "Probe"."iconFileId" = "file"."_id")`,
+    );
+    expect(HIDE_PRIVATE_RECORD_IMAGES_SQL).toContain(
+      `NOT EXISTS (SELECT 1 FROM "AIAgent" WHERE "AIAgent"."iconFileId" = "file"."_id")`,
+    );
+    // The shown images are read by the rule that leaves private records out.
+    expect(HIDE_PRIVATE_RECORD_IMAGES_SQL).toContain(
+      `FROM "Incident" WHERE "deletedAt" IS NULL AND "isVisibleOnStatusPage" = true AND "isPrivate" IS NOT TRUE AND concat_ws(' ', "description"::text) LIKE '%/file/image/access-token/%'`,
+    );
+    // It never makes anything public.
+    expect(HIDE_PRIVATE_RECORD_IMAGES_SQL).not.toContain(
+      `SET "isPublic" = true`,
+    );
+  });
+
+  test("the one-off statements read private records out of what is published", () => {
+    expect(PUBLISH_SHOWN_IMAGES_SQL).toContain(
+      `FROM "Incident" WHERE "deletedAt" IS NULL AND "isVisibleOnStatusPage" = true AND "isPrivate" IS NOT TRUE`,
+    );
+    expect(PUBLISH_SHOWN_IMAGES_SQL).toContain(
+      `FROM "IncidentEpisode" WHERE "deletedAt" IS NULL AND "isVisibleOnStatusPage" = true AND "isPrivate" IS NOT TRUE`,
+    );
+    expect(HIDE_UNSHOWN_FILES_SQL).toContain(`"isPrivate" IS NOT TRUE`);
+  });
 });
 
 describe("extractImageAccessTokens (shared with InlineImageAccessTokenSync)", () => {
@@ -1730,5 +2048,671 @@ describe("extractImageAccessTokens (shared with InlineImageAccessTokenSync)", ()
     ).toEqual([]);
     expect(extractImageAccessTokens(undefined)).toEqual([]);
     expect(extractImageAccessTokens(42 as unknown as string)).toEqual([]);
+  });
+});
+
+/*
+ * A PUBLIC NOTE SHOWS ITS IMAGES ONLY WHILE ITS RECORD IS SHOWN.
+ *
+ * A public note is shown on a status page under its incident, episode or
+ * scheduled maintenance event, never without it: its images are public
+ * while that record is shown (an incident or an episode visible and not
+ * private, an event visible), and private again - unless something else
+ * still shows them - once it is not, whichever of the two is written.
+ */
+describe("GUARD: every record a public note is shown under", () => {
+  const sourcesShownUnder: Array<PublishedMarkdown> = PUBLISHED_MARKDOWN.filter(
+    (source: PublishedMarkdown): boolean => {
+      return Boolean(source.shownUnder);
+    },
+  );
+
+  test("is named for every public note", () => {
+    expect(
+      sourcesShownUnder.map((source: PublishedMarkdown): string => {
+        return `${source.tableName}.${source.shownUnder!.foreignKey} -> ${source.shownUnder!.tableName}`;
+      }),
+    ).toEqual([
+      "IncidentPublicNote.incidentId -> Incident",
+      "IncidentEpisodePublicNote.incidentEpisodeId -> IncidentEpisode",
+      "ScheduledMaintenancePublicNote.scheduledMaintenanceId -> ScheduledMaintenance",
+    ]);
+  });
+
+  test("is shown by the very switches its own description is shown by", () => {
+    for (const source of sourcesShownUnder) {
+      const parent: PublishedParent = source.shownUnder!;
+      const own: PublishedMarkdown | undefined = PUBLISHED_MARKDOWN.find(
+        (candidate: PublishedMarkdown): boolean => {
+          return (
+            candidate.tableName === parent.tableName &&
+            candidate.markdownColumns.includes("description")
+          );
+        },
+      );
+
+      expect(own).toBeDefined();
+      expect(parent.shownWhen).toEqual(own!.shownWhen);
+      expect(parent.hiddenWhen || []).toEqual(own!.hiddenWhen || []);
+    }
+  });
+
+  test("names it by a column of the note, and its switches are switches of it", () => {
+    for (const source of sourcesShownUnder) {
+      const parent: PublishedParent = source.shownUnder!;
+
+      expect(modelOf(source.tableName).getTableColumns().columns).toContain(
+        parent.foreignKey,
+      );
+
+      for (const column of [
+        ...parent.shownWhen,
+        ...(parent.hiddenWhen || []),
+      ]) {
+        expect(columnType(modelOf(parent.tableName), column)).toBe(
+          TableColumnType.Boolean,
+        );
+      }
+    }
+  });
+
+  test("takes its notes with it when it is deleted (CASCADES)", () => {
+    for (const source of sourcesShownUnder) {
+      expect(
+        CASCADES.some((cascade: PublishedCascade): boolean => {
+          return (
+            cascade.parentTable === source.shownUnder!.tableName &&
+            cascade.tableName === source.tableName &&
+            cascade.foreignKey === source.shownUnder!.foreignKey
+          );
+        }),
+      ).toBe(true);
+    }
+  });
+
+  test("getSourcesShownUnder answers a record's notes, and nothing for others", () => {
+    expect(
+      PublishedImages.getSourcesShownUnder("Incident").map(
+        (source: PublishedMarkdown): string => {
+          return source.tableName;
+        },
+      ),
+    ).toEqual(["IncidentPublicNote"]);
+    expect(
+      PublishedImages.getSourcesShownUnder("ScheduledMaintenance").map(
+        (source: PublishedMarkdown): string => {
+          return source.tableName;
+        },
+      ),
+    ).toEqual(["ScheduledMaintenancePublicNote"]);
+    expect(PublishedImages.getSourcesShownUnder("Monitor")).toEqual([]);
+    expect(PublishedImages.getSourcesShownUnder(undefined)).toEqual([]);
+  });
+});
+
+describe("PublishedImages: a public note shows its images only while its record is shown", () => {
+  const OTHER_INCIDENT_ID: string = "55555555-5555-4555-8555-555555555555";
+
+  // The incidents shown now, each with its project.
+  function shown(entries: Array<[string, ObjectID]>): ShownParents {
+    return new Map(
+      entries.map(([id, projectId]: [string, ObjectID]): [string, string] => {
+        return [id, projectId.toString()];
+      }),
+    );
+  }
+
+  function note(data: {
+    token: string;
+    incidentId?: string;
+    projectId?: ObjectID;
+  }): Record<string, unknown> {
+    return {
+      _id: "66666666-6666-4666-8666-666666666666",
+      projectId: (data.projectId || PROJECT_ID).toString(),
+      incidentId: data.incidentId === undefined ? INCIDENT_ID : data.incidentId,
+      note: image(data.token),
+    };
+  }
+
+  describe("getShownTokens", () => {
+    test("shown while its incident is shown, of the note's own project", () => {
+      expect(
+        Array.from(
+          PublishedImages.getShownTokens(
+            "IncidentPublicNote",
+            note({ token: "aaa111" }),
+            shown([[INCIDENT_ID, PROJECT_ID]]),
+          ),
+        ),
+      ).toEqual(["aaa111"]);
+    });
+
+    test("not while its incident is not shown, or not read", () => {
+      for (const shownParents of [
+        shown([]),
+        shown([[OTHER_INCIDENT_ID, PROJECT_ID]]),
+        undefined,
+      ]) {
+        expect(
+          PublishedImages.getShownTokens(
+            "IncidentPublicNote",
+            note({ token: "aaa111" }),
+            shownParents,
+          ).size,
+        ).toBe(0);
+      }
+    });
+
+    test("not when its incident is of another project", () => {
+      expect(
+        PublishedImages.getShownTokens(
+          "IncidentPublicNote",
+          note({ token: "aaa111" }),
+          shown([[INCIDENT_ID, OTHER_PROJECT_ID]]),
+        ).size,
+      ).toBe(0);
+    });
+
+    test("not when it names no incident", () => {
+      expect(
+        PublishedImages.getShownTokens(
+          "IncidentPublicNote",
+          note({ token: "aaa111", incidentId: "" }),
+          shown([[INCIDENT_ID, PROJECT_ID]]),
+        ).size,
+      ).toBe(0);
+    });
+
+    test("getHeldTokens reads every image a note holds, shown or not", () => {
+      expect(
+        Array.from(
+          PublishedImages.getHeldTokens("IncidentPublicNote", {
+            note: `${image("aaa111")} ${image("bbb222")} ${image("aaa111")}`,
+          }),
+        ),
+      ).toEqual(["aaa111", "bbb222"]);
+      expect(
+        PublishedImages.getHeldTokens("IncidentInternalNote", {
+          note: image("aaa111"),
+        }).size,
+      ).toBe(0);
+    });
+  });
+
+  describe("isParentShown", () => {
+    const incident: PublishedParent = PUBLISHED_MARKDOWN.find(
+      (source: PublishedMarkdown): boolean => {
+        return source.tableName === "IncidentPublicNote";
+      },
+    )!.shownUnder!;
+
+    test("an incident visible and not private shows its notes", () => {
+      for (const isPrivate of [false, null, undefined]) {
+        expect(
+          PublishedImages.isParentShown(incident, {
+            isVisibleOnStatusPage: true,
+            isPrivate,
+          }),
+        ).toBe(true);
+      }
+    });
+
+    test("one hidden, private, or switched on by anything but true shows none", () => {
+      for (const row of [
+        { isVisibleOnStatusPage: false, isPrivate: false },
+        { isVisibleOnStatusPage: null },
+        { isVisibleOnStatusPage: "true" },
+        { isVisibleOnStatusPage: true, isPrivate: true },
+        { isVisibleOnStatusPage: true, isPrivate: "yes" },
+      ] as Array<Record<string, unknown>>) {
+        expect(PublishedImages.isParentShown(incident, row)).toBe(false);
+      }
+    });
+  });
+
+  describe("readShownParents", () => {
+    type QueryCall = [string, Array<unknown>];
+
+    function stubQuery(answer: (sql: string) => Promise<unknown>): QueryMock {
+      const query: QueryMock = jest.fn(answer);
+
+      jest.spyOn(FileService, "getRepository").mockReturnValue({
+        manager: { query },
+      } as never);
+
+      return query;
+    }
+
+    test("asks once for every incident the notes name, and answers the shown ones with their project", async () => {
+      const query: QueryMock = stubQuery(async () => {
+        return [
+          { _id: INCIDENT_ID.toUpperCase(), projectId: PROJECT_ID.toString() },
+        ];
+      });
+
+      const shownParents: ShownParents = await PublishedImages.readShownParents(
+        "IncidentPublicNote",
+        [
+          note({ token: "aaa111" }),
+          note({ token: "bbb222", incidentId: OTHER_INCIDENT_ID }),
+          note({ token: "ccc333" }),
+          note({ token: "ddd444", incidentId: "not-an-id" }),
+        ],
+      );
+
+      expect(query).toHaveBeenCalledTimes(1);
+
+      const call: QueryCall = query.mock.calls[0] as QueryCall;
+
+      expect(call[0]).toBe(
+        getShownParentsSql(
+          PUBLISHED_MARKDOWN.find((source: PublishedMarkdown): boolean => {
+            return source.tableName === "IncidentPublicNote";
+          })!.shownUnder!,
+        ),
+      );
+      expect((call[1][0] as Array<string>).sort()).toEqual(
+        [INCIDENT_ID, OTHER_INCIDENT_ID].sort(),
+      );
+      expect(Array.from(shownParents.entries())).toEqual([
+        [INCIDENT_ID, PROJECT_ID.toString()],
+      ]);
+    });
+
+    test("asks nothing for a table shown under nothing, or notes that name no record", async () => {
+      const query: QueryMock = stubQuery(async () => {
+        return [];
+      });
+
+      await PublishedImages.readShownParents("Incident", [
+        { incidentId: INCIDENT_ID },
+      ]);
+      await PublishedImages.readShownParents("IncidentPublicNote", [
+        note({ token: "aaa111", incidentId: "" }),
+      ]);
+
+      expect(query).not.toHaveBeenCalled();
+    });
+
+    test("a failed read takes none as shown: nothing is made public on a guess", async () => {
+      stubQuery(async () => {
+        throw new Error("db down");
+      });
+
+      await expect(
+        PublishedImages.readShownParents("IncidentPublicNote", [
+          note({ token: "aaa111" }),
+        ]),
+      ).resolves.toEqual(new Map());
+    });
+  });
+
+  describe("when a note is written", () => {
+    beforeEach(recordVisibility);
+
+    function parentsShown(entries: Array<[string, ObjectID]>): void {
+      jest
+        .spyOn(PublishedImages, "readShownParents")
+        .mockResolvedValue(shown(entries));
+    }
+
+    test("a note posted on a shown incident makes its images public", async () => {
+      parentsShown([[INCIDENT_ID, PROJECT_ID]]);
+
+      await PublishedImages.afterCreate({
+        tableName: "IncidentPublicNote",
+        row: note({ token: "aaa111" }),
+        readStored: async () => {
+          return null;
+        },
+      });
+
+      expect(visibilityAsked()).toEqual(["aaa111:public"]);
+    });
+
+    test("a note posted on a hidden or private incident leaves them private", async () => {
+      parentsShown([]);
+
+      await PublishedImages.afterCreate({
+        tableName: "IncidentPublicNote",
+        row: note({ token: "aaa111" }),
+        readStored: async () => {
+          return null;
+        },
+      });
+
+      expect(visibilityAsked()).toEqual([]);
+    });
+
+    test("a note edited on a shown incident publishes what it shows now, and asks the rest to be private", async () => {
+      parentsShown([[INCIDENT_ID, PROJECT_ID]]);
+
+      await PublishedImages.afterUpdate({
+        tableName: "IncidentPublicNote",
+        rowsBefore: [note({ token: "aaa111" })],
+        written: { note: image("bbb222") },
+      });
+
+      expect(visibilityAsked()).toEqual(["bbb222:public", "aaa111:private"]);
+    });
+
+    test("a note edited on a hidden incident makes nothing public, and asks all it held to be private", async () => {
+      parentsShown([]);
+
+      await PublishedImages.afterUpdate({
+        tableName: "IncidentPublicNote",
+        rowsBefore: [note({ token: "aaa111" })],
+        written: { note: `${image("aaa111")} ${image("bbb222")}` },
+      });
+
+      expect(visibilityAsked()).toEqual(["aaa111:private", "bbb222:private"]);
+    });
+
+    test("the incident it is shown under is read as the note is after the write", async () => {
+      const readShownParents: SpyInstance<
+        typeof PublishedImages.readShownParents
+      > = jest
+        .spyOn(PublishedImages, "readShownParents")
+        .mockResolvedValue(shown([[OTHER_INCIDENT_ID, PROJECT_ID]]));
+
+      await PublishedImages.afterUpdate({
+        tableName: "IncidentPublicNote",
+        rowsBefore: [note({ token: "aaa111" })],
+        written: { incidentId: OTHER_INCIDENT_ID },
+      });
+
+      expect(
+        (
+          readShownParents.mock.calls[0]![1] as Array<Record<string, unknown>>
+        )[0]!["incidentId"],
+      ).toBe(OTHER_INCIDENT_ID);
+      expect(visibilityAsked()).toEqual(["aaa111:public"]);
+    });
+
+    test("a note deleted asks every image it held to be private", async () => {
+      await PublishedImages.afterDelete({
+        tableName: "IncidentPublicNote",
+        rowsDeleted: [note({ token: "aaa111" })],
+      });
+
+      expect(visibilityAsked()).toEqual(["aaa111:private"]);
+    });
+  });
+
+  describe("when the record a note is shown under is written", () => {
+    beforeEach(recordVisibility);
+
+    const SHOWN: Record<string, unknown> = {
+      _id: INCIDENT_ID,
+      projectId: PROJECT_ID,
+      description: "No pictures.",
+      isVisibleOnStatusPage: true,
+      isPrivate: false,
+    };
+
+    // The notes of the incident the database answers, with an image each.
+    function notesOfIncident(notes: Array<Record<string, unknown>>): QueryMock {
+      const query: QueryMock = jest.fn(
+        async (sql: string): Promise<unknown> => {
+          return sql === getRowsShownUnderSql(noteSource()) ? notes : [];
+        },
+      );
+
+      jest.spyOn(FileService, "getRepository").mockReturnValue({
+        manager: { query },
+      } as never);
+
+      return query;
+    }
+
+    function noteSource(): PublishedMarkdown {
+      return PUBLISHED_MARKDOWN.find((source: PublishedMarkdown): boolean => {
+        return source.tableName === "IncidentPublicNote";
+      })!;
+    }
+
+    test("hiding it makes its notes' images private", async () => {
+      const query: QueryMock = notesOfIncident([note({ token: "aaa111" })]);
+
+      await PublishedImages.afterUpdate({
+        tableName: "Incident",
+        rowsBefore: [SHOWN],
+        written: { isVisibleOnStatusPage: false },
+      });
+
+      expect(query.mock.calls[0]![0]).toBe(getRowsShownUnderSql(noteSource()));
+      expect(query.mock.calls[0]![1]).toEqual([[INCIDENT_ID]]);
+      expect(visibilityAsked()).toEqual(["aaa111:private"]);
+    });
+
+    test("making it private makes them private too", async () => {
+      notesOfIncident([note({ token: "aaa111" })]);
+
+      await PublishedImages.afterUpdate({
+        tableName: "Incident",
+        rowsBefore: [SHOWN],
+        written: { isPrivate: true, isVisibleOnStatusPage: false },
+      });
+
+      expect(visibilityAsked()).toEqual(["aaa111:private"]);
+    });
+
+    test("showing it makes its notes' images public", async () => {
+      notesOfIncident([note({ token: "aaa111" }), note({ token: "bbb222" })]);
+
+      await PublishedImages.afterUpdate({
+        tableName: "Incident",
+        rowsBefore: [{ ...SHOWN, isVisibleOnStatusPage: false }],
+        written: { isVisibleOnStatusPage: true },
+      });
+
+      expect(visibilityAsked()).toEqual(["aaa111:public", "bbb222:public"]);
+    });
+
+    test("what its write stored decides, not what the update asked for", async () => {
+      notesOfIncident([note({ token: "aaa111" })]);
+
+      // Asked to be shown; stored hidden, as the incident was private by then.
+      await PublishedImages.afterUpdate({
+        tableName: "Incident",
+        rowsBefore: [{ ...SHOWN, isVisibleOnStatusPage: false }],
+        written: { isVisibleOnStatusPage: true },
+        rowsAfter: [{ isVisibleOnStatusPage: false, isPrivate: true }],
+      });
+
+      expect(visibilityAsked()).toEqual(["aaa111:private"]);
+    });
+
+    test("a note of another project is never made public by it", async () => {
+      notesOfIncident([note({ token: "aaa111", projectId: OTHER_PROJECT_ID })]);
+
+      await PublishedImages.afterUpdate({
+        tableName: "Incident",
+        rowsBefore: [{ ...SHOWN, isVisibleOnStatusPage: false }],
+        written: { isVisibleOnStatusPage: true },
+      });
+
+      expect(
+        setImagesVisibility.mock.calls.flatMap(
+          (call: [VisibilityRequest]): Array<string> => {
+            return Array.from(call[0].publish);
+          },
+        ),
+      ).toEqual([]);
+    });
+
+    test("a write of anything but its switches reads no notes", async () => {
+      const query: QueryMock = notesOfIncident([note({ token: "aaa111" })]);
+
+      await PublishedImages.afterUpdate({
+        tableName: "Incident",
+        rowsBefore: [SHOWN],
+        written: { description: image("ccc333") },
+      });
+
+      expect(query).not.toHaveBeenCalled();
+      expect(visibilityAsked()).toEqual(["ccc333:public"]);
+    });
+
+    test("a scheduled maintenance event hidden makes its notes' images private", async () => {
+      const source: PublishedMarkdown = PUBLISHED_MARKDOWN.find(
+        (candidate: PublishedMarkdown): boolean => {
+          return candidate.tableName === "ScheduledMaintenancePublicNote";
+        },
+      )!;
+      const query: QueryMock = jest.fn(
+        async (sql: string): Promise<unknown> => {
+          return sql === getRowsShownUnderSql(source)
+            ? [
+                {
+                  projectId: PROJECT_ID.toString(),
+                  scheduledMaintenanceId: INCIDENT_ID,
+                  note: image("eee555"),
+                },
+              ]
+            : [];
+        },
+      );
+
+      jest.spyOn(FileService, "getRepository").mockReturnValue({
+        manager: { query },
+      } as never);
+
+      await PublishedImages.afterUpdate({
+        tableName: "ScheduledMaintenance",
+        rowsBefore: [
+          {
+            _id: INCIDENT_ID,
+            projectId: PROJECT_ID,
+            description: "Planned.",
+            isVisibleOnStatusPage: true,
+          },
+        ],
+        written: { isVisibleOnStatusPage: false },
+      });
+
+      expect(visibilityAsked()).toEqual(["eee555:private"]);
+    });
+
+    test("a failed read of the notes leaves them as they are, and the record's own images are still set", async () => {
+      jest.spyOn(FileService, "getRepository").mockReturnValue({
+        manager: {
+          query: async (): Promise<unknown> => {
+            throw new Error("db down");
+          },
+        },
+      } as never);
+
+      await expect(
+        PublishedImages.afterUpdate({
+          tableName: "Incident",
+          rowsBefore: [{ ...SHOWN, description: image("fff666") }],
+          written: { isVisibleOnStatusPage: false },
+        }),
+      ).resolves.toBeUndefined();
+
+      expect(visibilityAsked()).toEqual(["fff666:private"]);
+    });
+  });
+});
+
+describe("the SQL that reads which records notes are shown under, and their notes", () => {
+  const incidentNotes: PublishedMarkdown = PUBLISHED_MARKDOWN.find(
+    (source: PublishedMarkdown): boolean => {
+      return source.tableName === "IncidentPublicNote";
+    },
+  )!;
+
+  test("getShownParentsSql reads the shown ones, with their projects", () => {
+    expect(getShownParentsSql(incidentNotes.shownUnder!)).toBe(
+      `SELECT "_id", "projectId" FROM "Incident" WHERE "_id" = ANY($1::uuid[]) AND "deletedAt" IS NULL AND "isVisibleOnStatusPage" = true AND "isPrivate" IS NOT TRUE`,
+    );
+  });
+
+  test("getRowsShownUnderSql reads their notes that carry an image", () => {
+    expect(getRowsShownUnderSql(incidentNotes)).toBe(
+      `SELECT "_id", "projectId", "incidentId", "note" FROM "IncidentPublicNote" WHERE "incidentId" = ANY($1::uuid[]) AND "deletedAt" IS NULL AND concat_ws(' ', "note"::text) LIKE '%/file/image/access-token/%'`,
+    );
+  });
+
+  test("STILL_SHOWN_SQL counts a note only while its record is shown, of its project", () => {
+    expect(STILL_SHOWN_SQL).toContain(
+      `FROM "IncidentPublicNote" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND EXISTS (SELECT 1 FROM "Incident" AS "parentRecord" WHERE "parentRecord"."_id" = "IncidentPublicNote"."incidentId" AND "parentRecord"."projectId" = "IncidentPublicNote"."projectId" AND "parentRecord"."deletedAt" IS NULL AND "parentRecord"."isVisibleOnStatusPage" = true AND "parentRecord"."isPrivate" IS NOT TRUE) AND concat_ws(' ', "note"::text) LIKE ANY($2)`,
+    );
+    expect(STILL_SHOWN_SQL).toContain(
+      `FROM "ScheduledMaintenancePublicNote" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND EXISTS (SELECT 1 FROM "ScheduledMaintenance" AS "parentRecord" WHERE "parentRecord"."_id" = "ScheduledMaintenancePublicNote"."scheduledMaintenanceId" AND "parentRecord"."projectId" = "ScheduledMaintenancePublicNote"."projectId" AND "parentRecord"."deletedAt" IS NULL AND "parentRecord"."isVisibleOnStatusPage" = true)`,
+    );
+  });
+
+  test("every one-off statement reads notes the same way", () => {
+    for (const sql of [
+      PUBLISH_SHOWN_IMAGES_SQL,
+      HIDE_UNSHOWN_FILES_SQL,
+      HIDE_PRIVATE_RECORD_IMAGES_SQL,
+      HIDE_HIDDEN_RECORD_IMAGES_SQL,
+    ]) {
+      expect(sql).toContain(
+        `FROM "IncidentEpisodePublicNote" WHERE "deletedAt" IS NULL AND EXISTS (SELECT 1 FROM "IncidentEpisode" AS "parentRecord" WHERE "parentRecord"."_id" = "IncidentEpisodePublicNote"."incidentEpisodeId"`,
+      );
+    }
+  });
+
+  /*
+   * Once, for images a public note made public whatever its record showed,
+   * or that a private record kept public through its own notes.
+   */
+  test("HIDE_HIDDEN_RECORD_IMAGES_SQL makes private the images of private records and of notes of records not shown - and nothing else", () => {
+    expect(HIDE_HIDDEN_RECORD_IMAGES_SQL).toContain(
+      `UPDATE "File" AS "file" SET "isPublic" = false WHERE "file"."isPublic" = true`,
+    );
+    expect(HIDE_HIDDEN_RECORD_IMAGES_SQL).not.toContain(
+      `SET "isPublic" = true`,
+    );
+
+    // A private record's own images, as HIDE_PRIVATE_RECORD_IMAGES_SQL reads them.
+    expect(HIDE_HIDDEN_RECORD_IMAGES_SQL).toContain(
+      `FROM "Incident" WHERE "deletedAt" IS NULL AND ("isPrivate" IS TRUE) AND concat_ws(' ', "description"::text) LIKE '%/file/image/access-token/%'`,
+    );
+
+    // A note of a record not shown: hidden, private, or of another project.
+    for (const [table, parent, foreignKey] of [
+      ["IncidentPublicNote", "Incident", "incidentId"],
+      ["IncidentEpisodePublicNote", "IncidentEpisode", "incidentEpisodeId"],
+      [
+        "ScheduledMaintenancePublicNote",
+        "ScheduledMaintenance",
+        "scheduledMaintenanceId",
+      ],
+    ] as Array<[string, string, string]>) {
+      expect(HIDE_HIDDEN_RECORD_IMAGES_SQL).toContain(
+        `FROM "${table}" WHERE "deletedAt" IS NULL AND (NOT EXISTS (SELECT 1 FROM "${parent}" AS "parentRecord" WHERE "parentRecord"."_id" = "${table}"."${foreignKey}"`,
+      );
+    }
+
+    // Kept: what a published record still shows, by token or by id, and icons.
+    expect(HIDE_HIDDEN_RECORD_IMAGES_SQL).toContain(
+      `NOT EXISTS (SELECT 1 FROM "shownToken" WHERE "shownToken"."token" = "file"."imageAccessToken")`,
+    );
+    expect(HIDE_HIDDEN_RECORD_IMAGES_SQL).toContain(
+      `NOT EXISTS (SELECT 1 FROM "shownId" WHERE "shownId"."fileId" = "file"."_id"::text)`,
+    );
+    expect(HIDE_HIDDEN_RECORD_IMAGES_SQL).toContain(
+      `NOT EXISTS (SELECT 1 FROM "Probe" WHERE "Probe"."iconFileId" = "file"."_id")`,
+    );
+    // Only images of the hidden row's own project, or of none.
+    expect(HIDE_HIDDEN_RECORD_IMAGES_SQL).toContain(
+      `("file"."projectId" IS NULL OR "hiddenToken"."projectId" = "file"."projectId")`,
+    );
+  });
+
+  test("HIDE_PRIVATE_RECORD_IMAGES_SQL reads no note as hidden, but no longer keeps an image a private record's own note holds", () => {
+    expect(HIDE_PRIVATE_RECORD_IMAGES_SQL).not.toMatch(
+      /FROM "IncidentPublicNote" WHERE "deletedAt" IS NULL AND \(/,
+    );
+    // Its notes count as showing an image only while it is shown.
+    expect(HIDE_PRIVATE_RECORD_IMAGES_SQL).toContain(
+      `FROM "IncidentPublicNote" WHERE "deletedAt" IS NULL AND EXISTS (SELECT 1 FROM "Incident" AS "parentRecord"`,
+    );
   });
 });

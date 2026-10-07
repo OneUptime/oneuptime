@@ -1,4 +1,5 @@
 import ObjectID from "../../Types/ObjectID";
+import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import PositiveNumber from "../../Types/PositiveNumber";
 import CountBy from "../Types/Database/CountBy";
 import FindBy from "../Types/Database/FindBy";
@@ -135,7 +136,7 @@ export class Service extends ProjectReferencesService<Model> {
             alertEpisodeFeedEventType:
               AlertEpisodeFeedEventType.OwnerTeamRemoved,
             displayColor: Red500,
-            feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Removed team **${team.name}** from the [Episode ${episodeNumberDisplay}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(projectId!, alertEpisodeId!)).toString()}) as the owner.`,
+            feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Removed team **${escapeMarkdownValue(team.name)}** from the [Episode ${episodeNumberDisplay}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(projectId!, alertEpisodeId!)).toString()}) as the owner.`,
             userId: deleteByUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
@@ -187,7 +188,7 @@ export class Service extends ProjectReferencesService<Model> {
           projectId: projectId,
           alertEpisodeFeedEventType: AlertEpisodeFeedEventType.OwnerTeamAdded,
           displayColor: Gray500,
-          feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Added team **${team.name}** to the [Episode ${episodeNumberDisplay}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(projectId!, alertEpisodeId!)).toString()}) as the owner.`,
+          feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Added team **${escapeMarkdownValue(team.name)}** to the [Episode ${episodeNumberDisplay}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(projectId!, alertEpisodeId!)).toString()}) as the owner.`,
           userId: createdByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,

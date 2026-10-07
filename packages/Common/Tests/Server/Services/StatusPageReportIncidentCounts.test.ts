@@ -26,6 +26,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { FindOperator } from "typeorm";
 
 /*
  * The incident counts in a status page's emailed report - the page total,
@@ -37,8 +38,9 @@ import {
  *
  * IncidentService.countBy is answered by a small in-memory database that
  * evaluates each query the way Postgres would: the monitors join, the
- * created-at window, project, visibility, and the scope split with its
- * IncidentStatusPage join.
+ * created-at window, project, visibility, privacy, and the scope split with
+ * its IncidentStatusPage join. A private incident is counted on no page,
+ * whatever its Visible on Status Page switch says (StatusPageVisibility).
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -79,6 +81,7 @@ interface IncidentFixture {
   // null: not limited to any status page.
   scopedTo: Array<string> | null;
   isVisibleOnStatusPage: boolean;
+  isPrivate?: boolean | undefined;
   createdAt: Date;
 }
 
@@ -171,7 +174,41 @@ const INCIDENTS: Array<IncidentFixture> = [
     isVisibleOnStatusPage: true,
     createdAt: daysAgo(2),
   },
+  {
+    name: "unscoped and private, with Visible on Status Page still on",
+    projectId: PROJECT_ID,
+    monitorIds: [SHARED_MONITOR, SECOND_MONITOR],
+    scopedTo: null,
+    isVisibleOnStatusPage: true,
+    isPrivate: true,
+    createdAt: daysAgo(2),
+  },
+  {
+    name: "limited to Sites A, B and C and private, with Visible on Status Page still on",
+    projectId: PROJECT_ID,
+    monitorIds: [SHARED_MONITOR, SECOND_MONITOR],
+    scopedTo: [SITE_A, SITE_B, SITE_C],
+    isVisibleOnStatusPage: true,
+    isPrivate: true,
+    createdAt: daysAgo(3),
+  },
 ];
+
+/*
+ * The privacy clause the counts carry (StatusPageVisibilityQuery): the
+ * privacy filters' anonymous form, `isPrivate IS NULL OR isPrivate =
+ * FALSE`. Anything else on isPrivate is not what the status page code sends.
+ */
+function isNotPrivateClause(expected: unknown): boolean {
+  const operator: FindOperator<unknown> = expected as FindOperator<unknown>;
+
+  return (
+    operator instanceof FindOperator &&
+    Boolean(operator.getSql) &&
+    operator.getSql!("private_column") ===
+      "(private_column IS NULL OR private_column = FALSE)"
+  );
+}
 
 function parametersOf(operator: unknown): Array<unknown> {
   return Object.values(
@@ -199,6 +236,13 @@ function matches(
           return incident.projectId.toString() === String(expected);
         case "isVisibleOnStatusPage":
           return incident.isVisibleOnStatusPage === expected;
+        case "isPrivate":
+          if (!isNotPrivateClause(expected)) {
+            throw new Error(
+              `Unexpected isPrivate condition in an incident count query: ${String(expected)}`,
+            );
+          }
+          return incident.isPrivate !== true;
         case "isScopedToStatusPages":
           return (incident.scopedTo !== null) === expected;
         case "monitors": {
@@ -349,6 +393,8 @@ describe("StatusPageService report incident counts", () => {
       for (const query of countQueries) {
         expect(String(query["projectId"])).toBe(PROJECT_ID.toString());
         expect(query["isVisibleOnStatusPage"]).toBe(true);
+        // And not private, as anyone outside the project reads it.
+        expect(isNotPrivateClause(query["isPrivate"])).toBe(true);
         expect(idList(query["monitors"])).toEqual([SHARED_MONITOR]);
         expect(parametersOf(query["createdAt"])).toHaveLength(2);
       }

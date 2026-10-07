@@ -32,6 +32,7 @@ import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource"
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import StatusPageVisibility from "Common/Types/StatusPage/StatusPageVisibility";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
   SubscriberNotificationEmailBodyTemplateVariables,
@@ -68,6 +69,8 @@ import SubscriberNotificationTrigger from "Common/Types/StatusPage/SubscriberNot
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
 import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
+import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
+import SubscriberMarkdownTemplateValues from "Common/Server/Utils/StatusPage/SubscriberMarkdownTemplateValues";
 
 /*
  * Two jobs share this send path: one tells subscribers about a new public
@@ -340,7 +343,9 @@ const notifySubscribersOfEpisodePublicNote: (data: {
             name: true,
             color: true,
           },
+          // Whether a status page shows it (StatusPageVisibility): visible, and not private.
           isVisibleOnStatusPage: true,
+          isPrivate: true,
           episodeNumber: true,
           episodeNumberWithPrefix: true,
         },
@@ -414,7 +419,7 @@ const notifySubscribersOfEpisodePublicNote: (data: {
       },
     );
 
-    if (!episode.isVisibleOnStatusPage) {
+    if (!StatusPageVisibility.isShown(episode)) {
       // Set status to Skipped for non-visible episodes
       logger.debug(
         `Episode ${episode.id} is not visible on status page; marking public note ${episodePublicNote.id} as Skipped.`,
@@ -621,9 +626,18 @@ const notifySubscribersOfEpisodePublicNote: (data: {
           note: notePlainText,
         };
 
+        /*
+         * A custom Slack or Teams message is Markdown: every plain value - the
+         * title, the names, the resource list - is escaped, so it reads as
+         * typed and cannot become a link, an image, raw HTML or a chat mention
+         * wherever the template places it (SubscriberMarkdownTemplateValues).
+         * The addresses are OneUptime's own; the note stays Markdown.
+         */
         const markdownTemplateVariables: Record<string, string> = {
-          ...templateVariables,
-          resourcesAffected: resourcesAffectedPlainText,
+          ...SubscriberMarkdownTemplateValues.fromPlainValues({
+            ...templateVariables,
+            resourcesAffected: resourcesAffectedPlainText,
+          }),
           note: episodePublicNote.note || "",
         };
 
@@ -927,12 +941,12 @@ const notifySubscribersOfEpisodePublicNote: (data: {
                   );
               } else {
                 // Use default hard-coded template
-                markdownMessage = `## Incident - ${episode.title || ""}
+                markdownMessage = `## Incident - ${escapeMarkdownValue(episode.title || "")}
 
 **${copy.chatNoteSentence}**
 
-**Resources Affected:** ${resourcesAffectedPlainText}
-**Severity:** ${episode.incidentSeverity?.name || " - "}
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}
+**Severity:** ${escapeMarkdownValue(episode.incidentSeverity?.name || " - ")}
 
 **Note:**
 ${episodePublicNote.note || ""}
@@ -984,12 +998,12 @@ ${episodePublicNote.note || ""}
                   );
               } else {
                 // Use default hard-coded template
-                markdownMessage = `## Incident - ${episode.title || ""}
+                markdownMessage = `## Incident - ${escapeMarkdownValue(episode.title || "")}
 
 **${copy.chatNoteSentence}**
 
-**Resources Affected:** ${resourcesAffectedPlainText}
-**Severity:** ${episode.incidentSeverity?.name || " - "}
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}
+**Severity:** ${escapeMarkdownValue(episode.incidentSeverity?.name || " - ")}
 
 **Note:**
 ${episodePublicNote.note || ""}

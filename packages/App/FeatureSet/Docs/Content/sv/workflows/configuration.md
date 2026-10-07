@@ -96,14 +96,36 @@ Inbyggda gränser håller obevakade anrop ändliga: System Instructions, Prompt 
 
 ## Behörigheter
 
-Arbetsflöden respekterar ditt projekts rollbaserade åtkomstkontroll. De behörigheter det gäller:
+Arbetsflöden respekterar ditt projekts rollbaserade åtkomstkontroll. De tre arbetsflödesrollerna:
 
-- **Create / Read / Edit / Delete Workflow** — grundbehörigheterna på själva arbetsflödet.
-- **Run Workflow** — krävs för att köra ett arbetsflöde för hand eller utlösa ett via API.
+- **Workflow Admin** — bygger arbetsflöden: skapar, ändrar, kör och tar bort dem, och hanterar variablerna de använder.
+- **Workflow Member** — använder dem: öppnar arbetsflöden och deras körningar, och kör ett arbetsflöde för hand med **Kör arbetsflöde**. En medlem kan inte skapa, ändra eller ta bort ett arbetsflöde, eller köra ett av dess steg för sig.
+- **Workflow Viewer** — läser arbetsflöden och deras körningar.
+
+**Project Owner** och **Project Admin** kan allt som en Workflow Admin kan. **Project Member** kan skapa och ta bort arbetsflöden, men inte ändra eller köra dem.
+
+De enskilda behörigheterna, för ett team eller en API-nyckel som behöver exakt en sak:
+
+- **Create / Read / Edit / Delete Workflow** — grundbehörigheterna på själva arbetsflödet. Att ändra ett arbetsflöde, även att slå på eller av det och arkivera det, kräver **Edit Workflow**; **Delete Workflow** tar bara bort.
+- **Edit Workflow** — är också det som krävs för att köra ett enskilt steg för sig med **Run just this step**, och för att se eller återställa ett arbetsflödes webhook-URL och inkommande e-postadress. Att köra ett helt arbetsflöde för hand kräver **Edit Workflow**, **Workflow Admin** eller **Workflow Member**.
 - **Read Workflow Log** — krävs för att se körningar.
 - **Read / Create / Edit / Delete Workflow Variable** — kontroll över listan med globala variabler.
 
-De flesta ingenjörer bör ha skapa/redigera/läsa på arbetsflöden men inte på variabler. Spara redigeringsåtkomsten till variabler åt dem som hanterar projektets hemligheter.
+En körning för hand når bara arbetsflöden du kan öppna: en roll som är begränsad till vissa etiketter, eller till de arbetsflöden ditt team äger, kör bara dem. Den som inte kan köra ett arbetsflöde ser **Kör arbetsflöde** nedtonat, med orsaken i verktygstipset.
+
+Ge dem som bygger automatisering **Workflow Admin**, och dem som bara startar den **Workflow Member**. Spara redigeringsåtkomsten till variabler åt dem som hanterar projektets hemligheter.
+
+## Vad arbetsflödessteg får göra
+
+Stegen som läser och ändrar OneUptime-poster (komponenterna Find, Create, Update och Delete och utlösarna On Create, On Update och On Delete) agerar som en **Project Admin** i arbetsflödets projekt. De möter samma kontroller som en Project Admin i instrumentpanelen och API:et:
+
+- **Bara arbetsflödets eget projekt.** Ett steg läser eller ändrar aldrig ett annat projekts poster, och en Update flyttar aldrig en post till ett annat projekt.
+- **Bara det en Project Admin får göra.** Ett steg kan inte ge behörigheter som en Project Admin inte själv har (som **Project Owner** eller fakturering), och kan inte lägga till någon i ett team med fler behörigheter, som ägarnas team.
+- **Bara det er plan innehåller.** På OneUptime Cloud avvisas det er plan inte innehåller, med namnet på den plan som krävs.
+- **Inget som OneUptime själv håller reda på.** Flödesposter kan inte redigeras eller tas bort, aviseringsloggar kan inte skrivas, och värden som OneUptime själv sätter (som en verifierad CNAME, ett teams skyddsbrytare eller vem som har jour nu) kan inte ändras. Ett **Create One Incident**-steg kan inte heller deklarera en incident från en mall (`createdIncidentTemplateId`): läs mallen med **Find One Incident Template** och skicka vidare dess värden.
+- **Som ingen person.** En post som ett arbetsflöde skapar har ingen skapare, och granskningsloggen anger arbetsflödet som den som gjorde ändringen.
+
+Ett avvisat steg tar sin **Error**-utgång utan att göra den avvisade ändringen, och körningsloggen säger vilket steg som avvisades och varför. Ett Create Many-steg skapar sina poster en i taget och stannar vid den avvisade; posterna som skapades före den finns kvar. Steg som pratar med andra system (API, e-post, chatt, Custom Code, AI) påverkas inte.
 
 ## Plangränser
 

@@ -18,7 +18,7 @@ For et projekt:
 4. **Indstil som projektstandard** er slået til for projektets første konfiguration, så SMS'er og opkald til projektmedlemmer, herunder vagtalarmer, går gennem den, så snart du gemmer. Slå den fra, hvis kontoen kun er til statussider eller indgående opkald. For enhver senere konfiguration er indstillingen slået fra: slå den til, eller vælg **Indstil som projektstandard** i konfigurationens rækkemenu, for at flytte disse beskeder til den. En API-anmodning, der udelader `isProjectDefault`, behandles på samme måde.
 5. Gem. Kun én konfiguration kan være projektets standard. Statussider bruger den konfiguration, der udtrykkeligt er tildelt hver statusside.
 
-**SMS** og **Telefonopkald** er slået fra i hvert projekt, og indtil de er slået til, kan ingen i projektet tilføje et telefonnummer til dem. En projektejer eller nogen med **Manage Billing** slår dem til i kortet **Notifikationskanaler** på samme side.
+**SMS** og **Telefonopkald** er slået fra i hvert projekt, og indtil de er slået til, kan ingen i projektet tilføje et telefonnummer til dem. En projektejer eller nogen med **Billing Admin** eller **Manage Billing** slår dem til i kortet **Notifikationskanaler** på samme side.
 
 For en standard for hele installationen kan en administrator i stedet åbne **Admin Dashboard > Settings > Call and SMS**, redigere Twilio-legitimationsoplysningerne og telefonnumrene og gemme. Medlemsnotifikationer bruger denne globale konfiguration, når projektet ikke har en standard. Hold Auth Token fortroligt.
 
@@ -93,7 +93,7 @@ Til udvikling beskriver Twilios [vejledning til webhook-test](https://www.twilio
 ## 4. Test levering og callbacks hver for sig
 
 1. Kontrollér uden for virksomhedens netværk og VPN, at callback-værtsnavnet peger på den offentlige gateway og leverer et gyldigt TLS-certifikat. En GET fra browseren afprøver ikke disse POST-callbacks.
-2. Brug **Send Test SMS** og **Send Test Call** i projektets Twilio-konfiguration. Bekræft modtagelsen på modtagerens telefon.
+2. Brug **Send Test SMS** og **Send Test Call** i projektets Twilio-konfiguration. Bekræft modtagelsen på modtagerens telefon. Begge kræver tilladelse til at tilføje Twilio-konfigurationer: **Project Owner**, **Project Admin** eller **Create Call and SMS** og **Read Call and SMS** i en brugerdefineret rolle.
 3. Konfigurer brugerens bekræftede SMS-/opkaldskontakt og notifikationsregler, og udløs derefter en kontrolleret vagtalarm. Tryk på 1, og kontroller bekræftelsen i OneUptime. Hvis du bruger politikker for indgående opkald, skal du ringe til det konfigurerede nummer og kontrollere routing og opkaldslog.
 4. Kontroller SMS-leveringsstatus i OneUptime og Twilios beskedlogfiler. En accepteret afsendelse er ikke bevis på levering; [Twilio rapporterer senere statusændringer via callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 

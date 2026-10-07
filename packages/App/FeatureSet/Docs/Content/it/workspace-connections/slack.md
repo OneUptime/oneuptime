@@ -26,6 +26,8 @@
 
 Come **Invia prova** accanto a un canale in **Impostazioni del progetto** > **Workspace** > **Slack**, serve il permesso di creare regole di notifica: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** o **Create Workspace Notification Rule** e **Read Workspace Notification Rule** in un ruolo personalizzato. Per chi può soltanto vedere le regole, come un **Viewer**, **Regola di test** è bloccato e il suo suggerimento dice cosa serve; l'API rifiuta la sua prova con "You do not have permission to send test notifications in this project." Su OneUptime Cloud, provare una regola richiede il piano **Growth**, come aggiungerne una.
 
+Su OneUptime Cloud, anche **Invia prova** accanto a un canale richiede il piano **Growth**, perché pubblicare in un canale è ciò che fanno regole e riepiloghi. **Invia prova ora** su un riepilogo richiede il permesso di creare riepiloghi (**Create Workspace Notification Summary** e **Read Workspace Notification Summary** in un ruolo personalizzato) e, su OneUptime Cloud, il piano **Growth**; per chiunque altro è bloccato e il suo suggerimento dice cosa serve. Un client MCP collegato con accesso in sola lettura non può inviare alcuna prova.
+
 ## Riepiloghi
 
 La scheda **Summary** di **Incidenti** > **Workspace** > **Slack** (e quella di **Avvisi**) pubblica un riepilogo periodico nei canali che indichi: quanti incidenti o avvisi ci sono stati, quanto rapidamente sono stati confermati e risolti, e un elenco con i link. Un nuovo riepilogo viene inviato ogni settimana e copre gli ultimi 7 giorni. Lascia vuoto **Invia il primo report alle** e il primo viene inviato alle 09:00 all'inizio della prossima settimana, del prossimo giorno o mese; il modulo indica quando.

@@ -158,6 +158,7 @@ import {
 import express from "express";
 import http from "http";
 import { AddressInfo } from "net";
+import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 
 // -- Harness ----------------------------------------------------------------
 
@@ -262,6 +263,7 @@ function buildMemberProps(data: {
   return {
     tenantId: data.projectId,
     userId: data.userId,
+    ...ON_HIGHEST_PLAN,
     userTenantAccessPermission: permissionMap,
   };
 }

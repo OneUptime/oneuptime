@@ -19,6 +19,7 @@ import Permission, {
   PermissionProps,
 } from "../../../../../Types/Permission";
 import { describe, expect, test } from "@jest/globals";
+import { ON_HIGHEST_PLAN } from "../../../TestingUtils/RequestPlan";
 
 /*
  * Who may change the columns whose update lists named the wrong permission,
@@ -33,8 +34,9 @@ import { describe, expect, test } from "@jest/globals";
  *     maintenance template take what renaming the template takes.
  *   - A metric's Services take the telemetry metric permissions, for reading
  *     and for changing, like the record.
- *   - Every column of a workflow takes Edit Workflow (or a project owner or
- *     admin); Delete Workflow deletes workflows and nothing more.
+ *   - Every column of a workflow takes Edit Workflow or the Workflow Admin
+ *     role (or a project owner or admin); Delete Workflow deletes workflows
+ *     and nothing more, and a Workflow Member changes none of them.
  *   - A template's Change Monitor Status to (incident and scheduled
  *     maintenance) and an incident template's Initial Incident State take
  *     what renaming the template takes, by the relation the template's cards
@@ -57,6 +59,7 @@ function propsWith(
   return {
     userId: userId,
     tenantId: projectId,
+    ...ON_HIGHEST_PLAN,
     userTenantAccessPermission: {
       [projectId.toString()]: {
         projectId: projectId,
@@ -304,6 +307,7 @@ describe("Workflow", () => {
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.EditWorkflow,
+    Permission.WorkflowAdmin,
   ];
 
   const COLUMNS: Array<[string, unknown]> = [
@@ -315,7 +319,7 @@ describe("Workflow", () => {
     ["labels", []],
   ];
 
-  test("the record's update list is Edit Workflow and the project owners and admins", () => {
+  test("the record's update list is Edit Workflow, the Workflow Admin role and the project owners and admins", () => {
     expect([...new Workflow().getUpdatePermissions()].sort()).toEqual(
       [...EDITORS].sort(),
     );
@@ -344,6 +348,20 @@ describe("Workflow", () => {
           column,
           value,
           permissions: [Permission.DeleteWorkflow],
+        }),
+      ]).toEqual([column, false]);
+    }
+  });
+
+  test("a Workflow Member alone changes no column of a workflow: members run workflows, they do not edit them", () => {
+    for (const [column, value] of COLUMNS) {
+      expect([
+        column,
+        mayUpdate({
+          modelType: Workflow,
+          column,
+          value,
+          permissions: [Permission.WorkflowMember],
         }),
       ]).toEqual([column, false]);
     }

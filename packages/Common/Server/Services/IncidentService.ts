@@ -77,6 +77,8 @@ import IncidentPostmortemPublication, {
   IncidentPostmortemStoredState,
   PostmortemNotificationAction,
 } from "../../Types/StatusPage/IncidentPostmortemPublication";
+import StatusPageVisibility from "../../Types/StatusPage/StatusPageVisibility";
+import StatusPageVisibilityQuery from "../Utils/StatusPage/StatusPageVisibilityQuery";
 import IncidentScopeAddedPagesNotification, {
   IncidentScopeAddedPagesNotificationAction,
   StatusPageScopeChange,
@@ -680,9 +682,15 @@ export class Service extends ProjectReferencesService<Model> {
       updateBy.props,
     );
 
-    if (updateBy.data.isPrivate === true) {
-      updateBy.data.isVisibleOnStatusPage = false;
-    }
+    /*
+     * Visible on Status Page and Private Incident as they are stored, and a
+     * private incident hidden from status pages (StatusPageVisibility):
+     * making an incident private switches Visible on Status Page off with
+     * it, whoever writes it. Before anything below reads the update.
+     */
+    StatusPageVisibility.normalizeWrite(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
 
     this.stripServiceOwnedScopeColumns(updateBy);
 
@@ -1049,6 +1057,32 @@ export class Service extends ProjectReferencesService<Model> {
           : {}),
       };
     }
+  }
+
+  /*
+   * A private incident is hidden from every status page (StatusPageVisibility),
+   * so an update that turns Visible on Status Page on and leaves Private
+   * Incident as it is shows only the incidents that are not private - the
+   * same as the incident's Settings form, which sends both switches with
+   * every save, has always done. It holds whoever writes: the API,
+   * Terraform, a workflow.
+   *
+   * Each incident is decided by itself, by the database, in its own row's
+   * write (DatabaseService.getRowWriteSql): Visible on Status Page is stored
+   * on only while the incident is not private as it is then, so no privacy
+   * write landing at the same moment - a privacy rule, another editor -
+   * leaves both on. What the write stored is what the workflow trigger, the
+   * realtime event, the audit log and the incident's images are decided by.
+   * No earlier read, and no other incident, decides it. Every status page
+   * read and subscriber job leaves a private incident out whatever its
+   * switch says.
+   */
+  protected override getRowWriteSql(
+    data: PartialEntity<Model>,
+  ): Dictionary<string> {
+    return StatusPageVisibilityQuery.getRowWriteSql(
+      data as unknown as Record<string, unknown>,
+    );
   }
 
   /*
@@ -2411,8 +2445,17 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException("ProjectId required to create incident.");
     }
 
-    if (createBy.data.isPrivate === true) {
-      createBy.data.isVisibleOnStatusPage = false;
+    /*
+     * A private incident is hidden from every status page
+     * (StatusPageVisibility): created private, it is created with Visible on
+     * Status Page off, and nobody is told it was created - whoever creates
+     * it, with whatever the request says for either.
+     */
+    StatusPageVisibility.normalizeWrite(
+      createBy.data as unknown as Record<string, unknown>,
+    );
+
+    if (StatusPageVisibility.isPrivate(createBy.data)) {
       createBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated =
         false;
     }
@@ -3952,12 +3995,13 @@ ${incident.description || "No description provided."}
 
 `;
 
+      // The state and severity names are plain text, escaped as the title is.
       if (incident.currentIncidentState?.name) {
-        feedInfoInMarkdown += `🔴 **Incident State**: ${incident.currentIncidentState.name} \n\n`;
+        feedInfoInMarkdown += `🔴 **Incident State**: ${escapeMarkdownValue(incident.currentIncidentState.name)} \n\n`;
       }
 
       if (incident.incidentSeverity?.name) {
-        feedInfoInMarkdown += `⚠️ **Severity**: ${incident.incidentSeverity.name} \n\n`;
+        feedInfoInMarkdown += `⚠️ **Severity**: ${escapeMarkdownValue(incident.incidentSeverity.name)} \n\n`;
       }
 
       /*
@@ -4949,7 +4993,7 @@ ${incident.remediationNotes || "No remediation notes provided."}
 
           if (incidentSeverity) {
             feedInfoInMarkdown += `\n\n**⚠️ Incident Severity**:
-${incidentSeverity.name}
+${escapeMarkdownValue(incidentSeverity.name)}
 `;
 
             shouldAddIncidentFeed = true;
@@ -5095,8 +5139,9 @@ ${incidentSeverity.name}
 
               feedInfoInMarkdown += `\n\n**🗑️ Monitors Removed**:\n`;
 
+              // Each name is plain text inside its link's own text.
               for (const monitor of monitorsRemoved) {
-                feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitor.id!)).toString()})\n`;
+                feedInfoInMarkdown += `- [${escapeMarkdownInline(monitor.name)}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitor.id!)).toString()})\n`;
               }
 
               shouldAddIncidentFeed = true;
@@ -5129,7 +5174,7 @@ ${incidentSeverity.name}
               feedInfoInMarkdown += `\n\n**🌎 Monitors Added**:\n`;
 
               for (const monitor of monitorsAdded) {
-                feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitor.id!)).toString()})\n`;
+                feedInfoInMarkdown += `- [${escapeMarkdownInline(monitor.name)}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitor.id!)).toString()})\n`;
               }
 
               shouldAddIncidentFeed = true;
@@ -5185,7 +5230,7 @@ ${incidentSeverity.name}
                 });
 
               if (oldMonitorStatus && newMonitorStatus) {
-                feedInfoInMarkdown += `\n\n**🔄 Monitor Status Changed**:\n- **From** ${oldMonitorStatus.name} to ${newMonitorStatus.name}`;
+                feedInfoInMarkdown += `\n\n**🔄 Monitor Status Changed**:\n- **From** ${escapeMarkdownValue(oldMonitorStatus.name)} to ${escapeMarkdownValue(newMonitorStatus.name)}`;
                 shouldAddIncidentFeed = true;
               }
             }

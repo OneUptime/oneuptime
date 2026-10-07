@@ -55,7 +55,7 @@ The **Owners** and **Admin** teams are deliberately locked: their permissions ca
 
 `ProjectOwner` is the highest level of access: billing, deleting the project, and everything an admin can do. `ProjectAdmin` covers everything except billing and deleting the project.
 
-Turning SMS, phone calls, WhatsApp or Telegram on or off for the project counts as billing, because every message costs money. Only `ProjectOwner` and the `ManageProjectBilling` permission (**Manage Billing**) can change those switches, on **Project Settings > Notifications > Notification Settings** — not `ProjectAdmin`.
+Turning SMS, phone calls, WhatsApp or Telegram on or off for the project counts as billing, because every message costs money. Only `ProjectOwner`, the `BillingAdmin` role (**Billing Admin**) and the `ManageProjectBilling` permission (**Manage Billing**) can change those switches, on **Project Settings > Notifications > Notification Settings** — not `ProjectAdmin`.
 
 Recharging the project's prepaid balances counts as billing too. On OneUptime Cloud, SMS, phone calls, WhatsApp and Telegram are paid from the balance on **Project Settings > Notifications > Notification Settings**, and AI from the AI credits on **Project Settings > AI > AI Credits**. Only a project owner or someone with **Manage Billing** can recharge them or change their **Auto Recharge** — a project admin cannot. A message about a balance that has run low names who can add to it, and only those people get a working **Recharge Balance** button or a link to the page.
 
@@ -87,6 +87,8 @@ A role bundles a whole product area at one of three levels:
 - **Viewer** — read-only.
 
 `MonitorAdmin`, `IncidentMember`, `StatusPageViewer` and so on. Roles are what you want almost all of the time — they stay correct as OneUptime adds features, because a new monitor-related table is added to the existing monitor roles rather than needing a new grant from you.
+
+Workflows are the exception. A workflow runs its steps inside the project, so `WorkflowMember` opens workflows and their runs and runs them by hand, but does not create, change or delete them. `WorkflowAdmin` builds them. See [Workflow permissions](/docs/workflows/configuration#permissions).
 
 All {{PERMISSION_ROLE_COUNT}} roles are listed in the [Permission Reference](/docs/permissions/reference).
 
@@ -150,6 +152,16 @@ A label restriction is satisfied if the resource carries **at least one** of the
 
 Where to find it: **Settings → Labels**. A new label's color is already picked when its form opens, one the labels listed on the page don't use yet; pick another if you like.
 
+## Telemetry
+
+Logs, traces, metrics, exceptions, profiles and session replays belong to the resource that sent them: a service, a host, a Kubernetes cluster, a monitor, a RUM application and the like. A telemetry permission reads as far as its scope reaches:
+
+- **All resources** reads the telemetry of every resource in the project.
+- **Owned** reads the telemetry of the resources you or one of your teams own, and telemetry that names no resource.
+- **Labels** reads the telemetry of the resources carrying one of the permission's labels.
+
+A block with labels on a telemetry permission leaves out the telemetry of the resources carrying those labels, whatever else you hold. This holds wherever telemetry is read: the explorers and their charts, filters and attribute lists, exports, session replays, and what the AI assistant reads for you. The list of metric names shows the metrics a service you may read reports, and the metrics no service reports, such as host and cluster metrics. If you may also read the telemetry of other kinds of resources, such as hosts or clusters, it shows every metric name.
+
 ## API keys
 
 API keys are granted permissions directly, on the key itself — they do not belong to teams and are not affected by team membership.
@@ -184,7 +196,7 @@ For a signed-in user, in order:
 3. Check the block list first. A block with no labels on any permission the target table accepts for this operation rejects the request outright, whichever team it is on.
 4. Check the allow list. The request needs at least one permission that the target table accepts for this operation. On an operational resource — a monitor, an incident, a dashboard and the like — the matching **All Operational Resources** permission (Create, Read, Edit or Delete) counts too, unless it is blocked itself.
 5. Apply scope. Owned-scoped grants narrow the query to owned resources; label-scoped grants narrow it to matching labels. If any other grant for the same operation is broader, the broader one wins.
-6. Apply label blocks. A block with labels rejects the request if the target resource carries one of them.
+6. Apply label blocks. A block with labels rejects the request if the target resource carries one of them. When a record has no labels of its own, such as an incident note or a status page announcement, a block with labels on reading it leaves it out if a record it belongs to carries one of those labels.
 
 Every field of a record is read with the record's own read permission: a permission for another kind of record never opens it. Some fields are narrower on purpose. Secrets are read only by people who may edit or administer the record they belong to, such as a monitor's incoming request and incoming email keys and its server agent key, or a workflow's webhook and incoming email keys. Watching a session replay's recording takes **Watch Session Replays**, not just **List Session Replays**. Telemetry is read signal by signal: **Read Telemetry Service Log** reads logs, **Read Telemetry Service Traces** reads traces, and **Read Telemetry Service Metrics** reads metrics, metric charts included.
 

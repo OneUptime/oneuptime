@@ -292,7 +292,7 @@ describe("a scoped metric grant narrows metric reads", () => {
 
   test("an Owned-scoped Read Telemetry Service Metrics reads only owned services", async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const query: any = await (ModelPermission as any).addOwnedScopeToQuery(
+    const query: any = await (ModelPermission as any).addReadScopeToQuery(
       Metric,
       { projectId },
       propsFor([Permission.ReadTelemetryServiceMetrics], PermissionScope.Owned),
@@ -307,7 +307,7 @@ describe("a scoped metric grant narrows metric reads", () => {
 
   test("an unscoped Read Telemetry Service Metrics reads every service", async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const query: any = await (ModelPermission as any).addOwnedScopeToQuery(
+    const query: any = await (ModelPermission as any).addReadScopeToQuery(
       Metric,
       { projectId },
       propsFor([Permission.ReadTelemetryServiceMetrics], PermissionScope.All),

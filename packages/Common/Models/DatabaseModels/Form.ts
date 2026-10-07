@@ -389,7 +389,7 @@ export default class Form extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Scale,
-    create: PlanType.Free,
+    create: PlanType.Scale,
   })
   public ipWhitelist?: string = undefined;
 

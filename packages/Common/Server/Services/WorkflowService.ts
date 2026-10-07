@@ -1,6 +1,6 @@
 import { WorkflowHostname } from "../EnvironmentConfig";
 import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import ProjectReferencesService from "./ProjectReferencesService";
 import WorkflowLabelRuleEngineService from "./WorkflowLabelRuleEngineService";
 import WorkflowOwnerRuleEngineService from "./WorkflowOwnerRuleEngineService";
@@ -145,6 +145,31 @@ export class Service extends ProjectReferencesService<Model> {
     } as LogAttributes);
 
     return onUpdate;
+  }
+
+  /*
+   * The row is already gone when this runs, so a failed delete never reaches
+   * it. The workflow service reads the database, finds no workflow and takes
+   * its schedule off the queue. Best effort: the runner's startup sweep
+   * removes whatever a failed call leaves behind.
+   */
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    for (const workflowId of itemIdsBeforeDelete) {
+      try {
+        await this.notifyWorkflowService(workflowId);
+      } catch (error) {
+        logger.error(
+          `Error notifying workflow service of deleted workflow: ${error}`,
+          { workflowId: workflowId.toString() } as LogAttributes,
+        );
+      }
+    }
+
+    return onDelete;
   }
 
   /*

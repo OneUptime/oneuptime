@@ -1,11 +1,17 @@
+import CountBy from "../Types/Database/CountBy";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { OnCreate, OnDelete } from "../Types/Database/Hooks";
+import FindBy from "../Types/Database/FindBy";
+import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
+import UpdateBy from "../Types/Database/UpdateBy";
 import ProjectReferencesService, {
   ProjectReferenceWrite,
 } from "./ProjectReferencesService";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import CallerVisibleRead from "../Utils/Database/CallerVisibleRead";
+import { applyAlertRelatedRecordPrivacyFilter } from "../Utils/Alert/AlertPrivacyFilter";
+import { applyAlertEpisodeRelatedRecordPrivacyFilter } from "../Utils/AlertEpisode/AlertEpisodePrivacyFilter";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -22,20 +28,20 @@ import { AlertEpisodeFeedEventType } from "../../Models/DatabaseModels/AlertEpis
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import { Yellow500, Green500 } from "../../Types/BrandColors";
 import OneUptimeDate from "../../Types/Date";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import AlertService from "./AlertService";
 import AlertEpisodeService from "./AlertEpisodeService";
+import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 
 /*
  * An alert's or an episode's title is plain text - an alert's is often
- * written by someone outside the project (an incoming email's subject, a
- * webhook's body, a response a monitor read), and an episode's is often
- * copied from its first alert's - and the feed items below place it into
- * Markdown that the dashboard renders without its safe mode and that is
- * posted to Slack and Teams. Escaped as MarkdownEscape says a title must be,
- * so "![](https://tracker...)" is not fetched and "[Reset your
- * password](...)" is not a link that hides where it goes, while an ordinary
- * title reads as typed.
+ * filled in by a monitor from what it watched (an incoming email's subject,
+ * a field of an incoming request), and an episode's is often copied from its
+ * first alert's - and the feed items below place it into Markdown that the
+ * dashboard renders without its safe mode and that is posted to Slack and
+ * Teams. Escaped as MarkdownEscape says a title must be (as the incident
+ * episode members' items are), so "![](https://tracker...)" is not fetched,
+ * "[Reset your password](...)" is not a link that hides where it goes and
+ * "<!channel>" mentions nobody, while an ordinary title reads as typed.
  */
 type GetFeedTitleFunction = (title: string | undefined | null) => string;
 
@@ -142,10 +148,11 @@ export class Service extends ProjectReferencesService<Model> {
    * service's own hook: read as the caller, so a private one they cannot
    * open, one of another project and one that does not exist all get the
    * same answer. A generic check first would answer the last two in other
-   * words than the first. OneUptime's own writes - the grouping engine,
-   * adding by hand for the person who asked - and workflows write as root,
-   * and get the generic check, as every update does (no person may change a
-   * member's alert or episode).
+   * words than the first. A workflow step acts as a Project Admin of its
+   * project (WorkflowPrincipal), so it is read like one. OneUptime's own
+   * writes - the grouping engine, adding by hand for the person who asked -
+   * are made as root and get the generic check, as every update does (no
+   * person may change a member's alert or episode).
    */
   protected override getRelationsCheckedByService(
     write?: ProjectReferenceWrite,
@@ -155,6 +162,53 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return ["alertEpisode", "alert"];
+  }
+
+  /*
+   * A member row reveals both of its ends, so it is only visible to a user
+   * who can see the private alert AND the private episode. The two filters
+   * write different keys (alertId / alertEpisodeId) and compose. Relation
+   * joins (`select: { alert: { title } }`, as the episode's Alerts tab
+   * sends) run neither AlertService's nor AlertEpisodeService's
+   * onBeforeFind, so these are the only thing keeping a private alert's
+   * title out of an episode's member list, and a private episode's alerts
+   * from anyone who knows its id. This service's own reads are made as
+   * root, which neither filter narrows.
+   */
+  private applyPrivacyFilters<T>(
+    query: T,
+    props: DatabaseCommonInteractionProps,
+  ): T {
+    return applyAlertEpisodeRelatedRecordPrivacyFilter(
+      applyAlertRelatedRecordPrivacyFilter(query, props),
+      props,
+    );
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeFind(
+    findBy: FindBy<Model>,
+  ): Promise<OnFind<Model>> {
+    findBy.query = this.applyPrivacyFilters(findBy.query, findBy.props);
+    return { findBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  public override async countBy(
+    countBy: CountBy<Model>,
+  ): Promise<PositiveNumber> {
+    countBy.query = this.applyPrivacyFilters(countBy.query, countBy.props);
+    return super.countBy(countBy);
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
+    updateBy.query = this.applyPrivacyFilters(updateBy.query, updateBy.props);
+    return { updateBy, carryForward: null };
   }
 
   /*
@@ -449,6 +503,9 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
+    // Only members the caller can see are deleted, and carried forward.
+    deleteBy.query = this.applyPrivacyFilters(deleteBy.query, deleteBy.props);
+
     // Get the member records before deletion
     const membersToDelete: Model[] = await this.findBy({
       query: deleteBy.query,

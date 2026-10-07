@@ -10,6 +10,7 @@ import { JSONArray, JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
+import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import { describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -78,6 +79,7 @@ function ownerProps(): DatabaseCommonInteractionProps {
     userId: USER_ID,
     tenantId: PROJECT_ID,
     userType: UserType.User,
+    ...ON_HIGHEST_PLAN,
     userTenantAccessPermission: {
       [PROJECT_ID.toString()]: {
         projectId: PROJECT_ID,

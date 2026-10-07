@@ -55,6 +55,7 @@ import {
 } from "../../Types/Incident/IncidentAlertLink";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
+import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 
 /*
  * The project's two linked alert switches: acknowledge linked alerts when the
@@ -272,6 +273,11 @@ export interface LinkedAlertMention {
  * for a private alert: its number and link are kept so the entry still says
  * what happened, but its title is never written where people who cannot see
  * the alert read it (the incident's feed and Slack / Microsoft Teams posts).
+ *
+ * The title is plain text - an alert's is often filled in by a monitor from
+ * an incoming email or request - escaped as MarkdownEscape says a title must
+ * be, so it reads as typed and cannot become a link, an image, raw HTML or a
+ * chat mention in the feed or in the posts.
  */
 function describeLinkedRecord(data: {
   label: string;
@@ -289,7 +295,10 @@ function describeLinkedRecord(data: {
     };
   }
 
-  return { subject: subject, titleSuffix: `: ${data.title || "No title"}` };
+  return {
+    subject: subject,
+    titleSuffix: `: ${escapeMarkdownValue(data.title || "No title")}`,
+  };
 }
 
 /*

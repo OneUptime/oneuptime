@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import IconProp from "../../../Types/Icon/IconProp";
+import Dictionary from "../../../Types/Dictionary";
 import NavBarItem from "./NavBarItem";
 import NavBarMenuModal from "./NavBarMenuModal";
 import NavBarMobileMenu from "./NavBarMobileMenu";
@@ -62,6 +63,11 @@ export interface ComponentProps {
    * nothing to fold. See NavBarMenuCatalog.ts.
    */
   moreMenuCategoriesAlwaysOpen?: Array<string> | undefined;
+  /*
+   * Category name (as the items carry it) -> the icon its folded row is
+   * drawn with. A category without one gets the products menu's own icon.
+   */
+  moreMenuCategoryIcons?: Dictionary<IconProp> | undefined;
   moreMenuTitle?: string; // Title for the more menu (default: "Products")
   moreMenuSearchPlaceholder?: string; // Placeholder for the menu search box
   moreMenuNoResultsText?: string; // Empty-state text when search matches nothing
@@ -377,6 +383,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
                 items={props.items}
                 moreMenuItems={props.moreMenuItems || []}
                 categoriesAlwaysOpen={props.moreMenuCategoriesAlwaysOpen}
+                categoryIcons={props.moreMenuCategoryIcons}
                 rightElement={props.rightElement}
                 onNavigate={() => {
                   return setIsMobileMenuOpen(false);
@@ -541,6 +548,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
           <NavBarMenuModal
             items={props.moreMenuItems}
             categoriesAlwaysOpen={props.moreMenuCategoriesAlwaysOpen}
+            categoryIcons={props.moreMenuCategoryIcons}
             footer={props.moreMenuFooter}
             searchPlaceholder={props.moreMenuSearchPlaceholder}
             noResultsText={props.moreMenuNoResultsText}

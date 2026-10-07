@@ -39,6 +39,8 @@ import Permission, {
 import UserType from "../../../Types/UserType";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import WorkspaceNotificationRule from "../../../Models/DatabaseModels/WorkspaceNotificationRule";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
+import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 
 /*
  * The three "Send Test" routes behind the button on every row of the Slack
@@ -351,6 +353,7 @@ const buildMemberProps: BuildMemberPropsFunction = (data: {
     tenantId: data.projectId,
     userId: data.userId,
     userType: data.userType || UserType.User,
+    ...ON_HIGHEST_PLAN,
     userTenantAccessPermission: buildTenantPermissions([
       { projectId: data.projectId, permissions: userPermissions },
     ]),
@@ -486,10 +489,16 @@ describe("Send Test notification routes (Slack channels, Microsoft Teams channel
 
   type MockPropsFunction = (props: DatabaseCommonInteractionProps) => void;
 
+  /*
+   * As CommonAPI hands them over: a request naming a project carries the
+   * project's plan.
+   */
   const mockProps: MockPropsFunction = (
     props: DatabaseCommonInteractionProps,
   ): void => {
-    getPropsSpy.mockResolvedValue(props);
+    getPropsSpy.mockResolvedValue(
+      props.tenantId ? { ...ON_HIGHEST_PLAN, ...props } : props,
+    );
   };
 
   type OwnerPropsFunction = () => DatabaseCommonInteractionProps;
@@ -991,7 +1000,14 @@ describe("Send Test notification routes (Slack channels, Microsoft Teams channel
         };
 
         expect(gateArgs.modelType).toBe(WorkspaceNotificationRule);
-        expect(gateArgs.props).toBe(props);
+        // The caller's own props, read for their one project.
+        expect(gateArgs.props.tenantId).toBe(props.tenantId);
+        expect(gateArgs.props.userId).toBe(props.userId);
+        expect(gateArgs.props.userTenantAccessPermission).toBe(
+          props.userTenantAccessPermission,
+        );
+        expect(gateArgs.props.isMultiTenantRequest).toBe(false);
+        expect(gateArgs.props.isRoot).toBeFalsy();
         expect(gateArgs.errorMessage).toBe(PERMISSION_DENIED_MESSAGE);
 
         expect(sendTestSpy).toHaveBeenCalledTimes(1);
@@ -1898,7 +1914,7 @@ describe("Send Test routes over real HTTP", () => {
      */
     jest.spyOn(ProjectService, "updateLastActive").mockResolvedValue(undefined);
     jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
-      plan: null,
+      plan: PlanType.Enterprise,
       isSubscriptionUnpaid: false,
     });
 

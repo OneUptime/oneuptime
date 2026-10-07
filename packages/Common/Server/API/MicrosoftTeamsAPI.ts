@@ -40,6 +40,7 @@ import LocalFile from "../Utils/LocalFile";
 import path from "path";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import CommonAPI from "./CommonAPI";
+import TestSendAccess, { TestSendCaller } from "./TestSendAccess";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Dictionary from "../../Types/Dictionary";
 import { WorkspaceChannel } from "../Utils/Workspace/WorkspaceBase";
@@ -49,6 +50,7 @@ import WorkspaceOAuthState, {
   WorkspaceOAuthFlow,
   WorkspaceOAuthStateRecord,
 } from "../Utils/Workspace/WorkspaceOAuthState";
+import WorkspaceOAuthCallbackAccess from "./WorkspaceOAuthCallbackAccess";
 
 // Delegated scopes for "sign in with Microsoft Teams" — authorize and token requests must agree.
 const MICROSOFT_TEAMS_USER_SIGN_IN_SCOPES: string =
@@ -62,6 +64,13 @@ const ENTRA_TENANT_ID_PATTERN: RegExp =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default class MicrosoftTeamsAPI {
+  /*
+   * What someone who may not connect the project to Microsoft Teams is told,
+   * when admin consent starts and again when Microsoft sends the browser back.
+   */
+  public static readonly CONNECT_PERMISSION_MESSAGE: string =
+    "You do not have permission to connect this project to Microsoft Teams.";
+
   private static getTeamsAppManifest(): JSONObject {
     if (!MicrosoftTeamsAppClientId) {
       throw new BadDataException("Microsoft Teams App Client ID is not set");
@@ -908,6 +917,19 @@ export default class MicrosoftTeamsAPI {
           );
         }
 
+        // Whoever started the sign-in is still a member of the project.
+        try {
+          await WorkspaceOAuthCallbackAccess.assertStartedByIsMember({
+            record: stateRecord,
+          });
+        } catch (refusal) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            WorkspaceOAuthCallbackAccess.answerFor(refusal),
+          );
+        }
+
         const projectId: ObjectID = stateRecord.projectId;
         const userId: ObjectID = stateRecord.userId;
 
@@ -1101,8 +1123,7 @@ export default class MicrosoftTeamsAPI {
             databaseProps: databaseProps,
             allowedPermissions:
               WorkspaceOAuthState.MANAGE_CONNECTION_PERMISSIONS,
-            errorMessage:
-              "You do not have permission to connect this project to Microsoft Teams.",
+            errorMessage: MicrosoftTeamsAPI.CONNECT_PERMISSION_MESSAGE,
           });
 
           if (!MicrosoftTeamsAppClientId) {
@@ -1202,6 +1223,34 @@ export default class MicrosoftTeamsAPI {
           teamsIntegrationPageUrl = MicrosoftTeamsAPI.getIntegrationPageUrl(
             stateRecord.projectId,
           );
+
+          /*
+           * Whoever started admin consent may still connect the project. A
+           * refusal is shown on the integration page, as every failure after
+           * the state is; anything else is this handler's error.
+           */
+          try {
+            await WorkspaceOAuthCallbackAccess.assertStartedByMayManageConnection(
+              {
+                record: stateRecord,
+                errorMessage: MicrosoftTeamsAPI.CONNECT_PERMISSION_MESSAGE,
+              },
+            );
+          } catch (refusal) {
+            if (refusal instanceof Exception) {
+              return Response.redirect(
+                req,
+                res,
+                teamsIntegrationPageUrl.addQueryParam(
+                  "error",
+                  refusal.message,
+                  true,
+                ),
+              );
+            }
+
+            throw refusal;
+          }
 
           const error: string | undefined = req.query["error"]?.toString();
           const errorDescription: string | undefined =
@@ -1597,27 +1646,20 @@ export default class MicrosoftTeamsAPI {
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-          const databaseProps: DatabaseCommonInteractionProps =
-            await CommonAPI.getDatabaseCommonInteractionProps(req);
-
           /*
-           * Posting into a channel is a side effect, so membership alone is
-           * not enough. Anyone who could create a workspace notification rule
-           * - including its team block list, which the CRUD create enforces
-           * too - can already make OneUptime post to this channel; a Viewer,
+           * Posting into a channel is what a notification rule does, so the
+           * test asks what adding a rule asks (TestSendAccess): a signed-in
+           * member, on a credential that may make changes, on the plan rules
+           * are sold on, who could create a rule - team blocks counted.
+           * Anyone who could can already make OneUptime post here; a Viewer,
            * or a member whose team is blocked from creating rules, cannot.
-           * getUserMiddleware admits unauthenticated requests as "public", so
-           * the membership check is mandatory as well.
            */
-          const projectId: ObjectID =
-            CommonAPI.assertAuthenticatedProjectMember(databaseProps);
-
-          CommonAPI.assertCanCreateTable({
-            modelType: WorkspaceNotificationRule,
-            props: databaseProps,
-            errorMessage:
-              "You do not have permission to send test notifications in this project.",
-          });
+          const caller: TestSendCaller = await TestSendAccess.assertMaySendTest(
+            {
+              req: req,
+              modelType: WorkspaceNotificationRule,
+            },
+          );
 
           const teamId: string =
             typeof req.body?.["teamId"] === "string"
@@ -1632,9 +1674,9 @@ export default class MicrosoftTeamsAPI {
           // chatId is deliberately not forwarded: this route tests channels only.
           await WorkspaceNotificationRuleService.sendTestNotificationToDestination(
             {
-              projectId: projectId,
+              projectId: caller.projectId,
               workspaceType: WorkspaceType.MicrosoftTeams,
-              testByUserId: databaseProps.userId!,
+              testByUserId: caller.userId,
               teamId: teamId,
               channelId: channelId,
             },
@@ -1738,27 +1780,20 @@ export default class MicrosoftTeamsAPI {
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-          const databaseProps: DatabaseCommonInteractionProps =
-            await CommonAPI.getDatabaseCommonInteractionProps(req);
-
           /*
-           * Posting into a chat is a side effect, so membership alone is not
-           * enough. Anyone who could create a workspace notification rule -
-           * including its team block list, which the CRUD create enforces
-           * too - can already make OneUptime post to this chat; a Viewer, or
-           * a member whose team is blocked from creating rules, cannot.
-           * getUserMiddleware admits unauthenticated requests as "public", so
-           * the membership check is mandatory as well.
+           * Posting into a chat is what a notification rule does, so the
+           * test asks what adding a rule asks (TestSendAccess): a signed-in
+           * member, on a credential that may make changes, on the plan rules
+           * are sold on, who could create a rule - team blocks counted.
+           * Anyone who could can already make OneUptime post here; a Viewer,
+           * or a member whose team is blocked from creating rules, cannot.
            */
-          const projectId: ObjectID =
-            CommonAPI.assertAuthenticatedProjectMember(databaseProps);
-
-          CommonAPI.assertCanCreateTable({
-            modelType: WorkspaceNotificationRule,
-            props: databaseProps,
-            errorMessage:
-              "You do not have permission to send test notifications in this project.",
-          });
+          const caller: TestSendCaller = await TestSendAccess.assertMaySendTest(
+            {
+              req: req,
+              modelType: WorkspaceNotificationRule,
+            },
+          );
 
           const chatId: string =
             typeof req.body?.["chatId"] === "string"
@@ -1772,9 +1807,9 @@ export default class MicrosoftTeamsAPI {
            */
           await WorkspaceNotificationRuleService.sendTestNotificationToDestination(
             {
-              projectId: projectId,
+              projectId: caller.projectId,
               workspaceType: WorkspaceType.MicrosoftTeams,
-              testByUserId: databaseProps.userId!,
+              testByUserId: caller.userId,
               chatId: chatId,
             },
           );

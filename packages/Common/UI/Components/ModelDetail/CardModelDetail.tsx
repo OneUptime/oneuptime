@@ -119,11 +119,18 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
      * This used to look at project permissions only, so a permission granted
      * globally did not count, and it read the raw updateRecordPermissions
      * field rather than going through the model's own accessor.
+     *
+     * It then looked at the record's update list alone. The form leaves out
+     * every field its viewer may not change, and many columns are narrower
+     * than their record - a project's name is not a project admin's to
+     * change, its notification channels are a Billing Admin's - so somebody
+     * the record let in but none of the card's fields did was handed an
+     * Edit button that opened an empty form. The button now locks for them
+     * too, naming what would open it (PermissionGate.checkFormUpdate).
      */
-    const updateGate: PermissionGateResult = PermissionGate.check(
-      model,
-      ModelAction.Update,
-    );
+    const updateGate: PermissionGateResult = props.formFields
+      ? PermissionGate.checkFormUpdate(model, props.formFields)
+      : PermissionGate.check(model, ModelAction.Update);
 
     let cardButtons: Array<CardButtonSchema | ReactElement> = [];
 
@@ -206,6 +213,7 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
     props.documentationLink,
     props.videoLink,
     props.cardProps.buttons,
+    props.formFields,
     translator.language,
   ]);
 

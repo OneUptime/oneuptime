@@ -26,6 +26,7 @@ import AlertFeedService from "Common/Server/Services/AlertFeedService";
 import { AlertFeedEventType } from "Common/Models/DatabaseModels/AlertFeed";
 import { Blue500 } from "Common/Types/BrandColors";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
+import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
 
 RunCron(
   "AlertOwner:SendsNotePostedEmail",
@@ -247,7 +248,7 @@ RunCron(
           eventType,
         });
 
-        moreAlertFeedInformationInMarkdown += `**Notified:** ${user.name} (${user.email})\n`;
+        moreAlertFeedInformationInMarkdown += `**Notified:** ${escapeMarkdownValue(user.name?.toString())} (${escapeMarkdownValue(user.email?.toString())})\n`;
       }
 
       const projectId: ObjectID = alert.projectId!;
