@@ -546,8 +546,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   Give a custom role or an API key the read permission beside each edit or
   delete permission, and the parent's read permission beside a note's or an
   announcement's. A Project Admin API key now also reads the project's SSO
-  and OIDC providers it could already change, and a Billing Admin key the
-  project. See
+  and OIDC providers it could already change. See
   [Changing or deleting a record you may not read](/docs/api-reference/api-reference#changing-or-deleting-a-record-you-may-not-read)
   and [Users, Teams & Permissions](/docs/permissions/index).
 - **Runbook Member runs runbooks and builds none.** `RunbookMember` could
