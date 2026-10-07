@@ -350,7 +350,7 @@ describe("An update of telemetry keeps to what its caller may read", () => {
 describe("The resources two scopes both reach", () => {
   const scope: (
     readableIds: Array<ObjectID> | null,
-    blockedIds: Array<ObjectID> = [],
+    blockedIds?: Array<ObjectID>,
   ) => TelemetryReadScope = (
     readableIds: Array<ObjectID> | null,
     blockedIds: Array<ObjectID> = [],

@@ -26,6 +26,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import { FindOperator } from "typeorm";
 
 /*
@@ -732,8 +733,10 @@ describe("every grant and scope a read accepts narrows the records it reaches", 
     });
 
     test("a parent read over the whole project is broader than an owned one", async () => {
-      const lookup: jest.SpiedFunction<() => Promise<Array<ObjectID>>> =
-        jest.spyOn(OwnedScopePermission as never, "getAllowedResourceIds");
+      const lookup: SpyInstance<(...args: never) => never> = jest.spyOn(
+        OwnedScopePermission as never,
+        "getAllowedResourceIds",
+      );
 
       const query: Query<IncidentInternalNote> = (await scopeOf(
         IncidentInternalNote,
@@ -781,8 +784,10 @@ describe("every grant and scope a read accepts narrows the records it reaches", 
     });
 
     test("rows already kept to the owned parents by their own grants are not looked up twice", async () => {
-      const lookup: jest.SpiedFunction<() => Promise<Array<ObjectID>>> =
-        jest.spyOn(OwnedScopePermission as never, "getAllowedResourceIds");
+      const lookup: SpyInstance<(...args: never) => never> = jest.spyOn(
+        OwnedScopePermission as never,
+        "getAllowedResourceIds",
+      );
 
       const query: Query<IncidentInternalNote> = (await scopeOf(
         IncidentInternalNote,
