@@ -10,6 +10,7 @@ import {
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
 import ClickRecorder from "../src/ClickRecorder";
 import Masking from "../src/Masking";
+import textOf from "./PayloadText";
 
 /*
  * The click recorder: structural selectors that never carry an attribute
@@ -242,7 +243,7 @@ describe("ClickRecorder", (): void => {
 
         expect(payloads[0]?.text).toBeUndefined();
         expect(payloads[1]?.text).toBe("Card number field");
-        expect(JSON.stringify(emitted)).not.toContain("4111");
+        expect(textOf(emitted)).not.toContain("4111");
       }
     });
 
@@ -340,7 +341,7 @@ describe("ClickRecorder", (): void => {
       click(document.getElementById("chat") as Element);
 
       expect(clickPayloads()[0]?.text).toBeUndefined();
-      expect(JSON.stringify(emitted)).not.toContain("4417");
+      expect(textOf(emitted)).not.toContain("4417");
     });
 
     /*
@@ -361,7 +362,7 @@ describe("ClickRecorder", (): void => {
       })();
 
       expect(text).toBe("Card ending");
-      expect(JSON.stringify(emitted)).not.toContain("4111");
+      expect(textOf(emitted)).not.toContain("4111");
     });
 
     it("uses only its own text when a descendant matches a mask selector", (): void => {
@@ -403,7 +404,7 @@ describe("ClickRecorder", (): void => {
       click(document.getElementById("pick") as Element);
 
       expect(clickPayloads()[0]?.text).toBe("Pay from");
-      expect(JSON.stringify(emitted)).not.toContain("4417");
+      expect(textOf(emitted)).not.toContain("4417");
     });
 
     it("caps the label at the shared limit", (): void => {
