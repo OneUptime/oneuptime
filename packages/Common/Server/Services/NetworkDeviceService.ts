@@ -1599,6 +1599,24 @@ export class Service extends ProjectReferencesService<Model> {
      */
     const isAlertPolicyChange: boolean = isAlertPolicyRelevantWrite(dataKeys);
 
+    /*
+     * Validated ABOVE the early return below, which a tables-only write
+     * would otherwise take straight past this check - the dead-guard trap
+     * the OID writes above describe. Unlike the OID cap, the table cap needs
+     * no read: it does not change with linking, because a template's tables
+     * and a device's own are capped separately and the two caps already
+     * compose to what one device walks.
+     */
+    if (updateBy.data.snmpTables !== undefined) {
+      updateBy.data.snmpTables = SnmpTableListUtil.validateTableList(
+        updateBy.data.snmpTables as Array<SnmpTableDefinition>,
+        {
+          max: MAX_DEVICE_SPECIFIC_TABLES,
+          label: "Device-Specific SNMP Tables",
+        },
+      );
+    }
+
     if (
       !isMethodWrite &&
       !isPollingTurnOn &&
@@ -1785,21 +1803,6 @@ export class Service extends ProjectReferencesService<Model> {
             ? MAX_DEVICE_SPECIFIC_OIDS
             : MAX_EFFECTIVE_OIDS_PER_DEVICE,
           label: "Device-Specific Health OIDs",
-        },
-      );
-    }
-
-    /*
-     * Unlike the OID budget, the table budget does not change with linking:
-     * a template's tables and a device's own are capped separately and the
-     * two caps already compose to what one device walks.
-     */
-    if (updateBy.data.snmpTables !== undefined) {
-      updateBy.data.snmpTables = SnmpTableListUtil.validateTableList(
-        updateBy.data.snmpTables as Array<SnmpTableDefinition>,
-        {
-          max: MAX_DEVICE_SPECIFIC_TABLES,
-          label: "Device-Specific SNMP Tables",
         },
       );
     }
