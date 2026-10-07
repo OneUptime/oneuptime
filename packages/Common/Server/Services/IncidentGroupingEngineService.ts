@@ -39,6 +39,10 @@ import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
 import { GroupingOptions } from "../../Utils/StartingStage";
 import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
 import EpisodeGroupingKey from "../Utils/Rules/EpisodeGroupingKey";
+import {
+  clearPlaceholdersExcept,
+  replaceAllLiterally,
+} from "../Utils/Rules/GroupingRuleEpisodeTemplate";
 
 export interface GroupingResult {
   grouped: boolean;
@@ -46,29 +50,6 @@ export interface GroupingResult {
   isNewEpisode?: boolean;
   wasReopened?: boolean;
 }
-
-type ReplaceAllLiterallyFunction = (
-  text: string,
-  placeholder: RegExp,
-  value: string,
-) => string;
-
-/*
- * Puts `value` in for every match of `placeholder`, exactly as written. A
- * string replacement reads "$&", "$`", "$'" and "$1" in it as patterns, so an
- * incident titled "Price $& up" - or a title typed on an incident form - came
- * out of an episode template mangled, or with other parts of the template
- * copied into it.
- */
-export const replaceAllLiterally: ReplaceAllLiterallyFunction = (
-  text: string,
-  placeholder: RegExp,
-  value: string,
-): string => {
-  return text.replace(placeholder, (): string => {
-    return value;
-  });
-};
 
 /*
  * What an episode's {{incidentTitle}} and {{incidentDescription}} read when
@@ -1381,46 +1362,13 @@ class IncidentGroupingEngineServiceClass {
     template: string,
     incidentCount: number = 1,
   ): string {
-    let result: string = template;
-
     /*
-     * Static variables (from first incident)
-     * {{incidentTitle}}
+     * The template as the episode stores it, with the count filled in - just
+     * as IncidentEpisodeService.updateIncidentCount writes the title and
+     * description again as incidents join or leave. So they only ever change
+     * by their count.
      */
-    if (values.incidentTitle) {
-      result = replaceAllLiterally(
-        result,
-        /\{\{incidentTitle\}\}/g,
-        values.incidentTitle,
-      );
-    }
-
-    // {{incidentDescription}}
-    if (values.incidentDescription) {
-      result = replaceAllLiterally(
-        result,
-        /\{\{incidentDescription\}\}/g,
-        values.incidentDescription,
-      );
-    }
-
-    // {{monitorName}} - use first monitor's name
-    if (values.monitorName) {
-      result = replaceAllLiterally(
-        result,
-        /\{\{monitorName\}\}/g,
-        values.monitorName,
-      );
-    }
-
-    // {{incidentSeverity}}
-    if (values.incidentSeverity) {
-      result = replaceAllLiterally(
-        result,
-        /\{\{incidentSeverity\}\}/g,
-        values.incidentSeverity,
-      );
-    }
+    let result: string = this.preprocessTemplate(values, template);
 
     /*
      * Dynamic variables (updated when incidents are added/removed)
@@ -1435,7 +1383,7 @@ class IncidentGroupingEngineServiceClass {
   }
 
   /*
-   * Preprocess template: replace static variables but keep dynamic ones as placeholders
+   * Preprocess template: replace static variables, clear unknown ones and keep dynamic ones as placeholders
    * This is stored on the episode so we can re-render with updated dynamic values later
    */
   private preprocessTemplate(
@@ -1485,10 +1433,12 @@ class IncidentGroupingEngineServiceClass {
 
     /*
      * Keep dynamic variables as placeholders (e.g., {{incidentCount}})
-     * They will be replaced when title/description is re-rendered
+     * They will be replaced when title/description is re-rendered - and
+     * nothing else is: a variable this incident has no value for (no
+     * monitor, say), or one no incident has, is cleared now, as the title
+     * and description written from this template clear it.
      */
-
-    return result;
+    return clearPlaceholdersExcept(result, "{{incidentCount}}");
   }
 
   @CaptureSpan()

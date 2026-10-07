@@ -35,13 +35,18 @@ export const MOVED_INCIDENT_FORM_PATHS: { forms: string; formView: string } = {
 /*
  * The AI settings page and the Auto Remediation Rules moved from the
  * Settings and Rules sections into the AI section of the Incidents and Alerts
- * menus (…/ai/settings and …/ai/auto-remediation-rules). Relative to
- * …/incidents/ and to …/alerts/: both products used the same paths.
+ * menus (…/ai/settings and …/ai/auto-remediation-rules). Then the rules page
+ * folded into the AI settings page itself, under More settings, next to the
+ * investigation rules: all three old rules URLs lead to …/ai/settings now.
+ * Relative to …/incidents/ and to …/alerts/: both products used the same
+ * paths.
  */
 export const MOVED_AI_SECTION_PATHS: {
   aiSettings: string;
   autoRemediationRules: string;
+  aiAutoRemediationRules: string;
 } = {
   aiSettings: "settings/ai",
   autoRemediationRules: "settings/auto-remediation-rules",
+  aiAutoRemediationRules: "ai/auto-remediation-rules",
 };

@@ -52,6 +52,8 @@ const KIND_LABELS: Record<string, string> = {
 
 const DAEMON_KINDS: Array<CephResourceKind> = ["Mon", "Mgr", "Mds", "Rgw"];
 
+const PAGE_SIZE: number = 25;
+
 const CephClusterDaemons: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -60,6 +62,8 @@ const CephClusterDaemons: FunctionComponent<
   const [daemons, setDaemons] = useState<Array<CephDaemonRow>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(PAGE_SIZE);
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -135,6 +139,19 @@ const CephClusterDaemons: FunctionComponent<
       setError(API.getFriendlyMessage(err));
     });
   }, []);
+
+  /*
+   * A refresh can shrink the list (a daemon that stops reporting is dropped
+   * from the inventory), so clamp instead of trusting currentPage — otherwise
+   * the user is stranded on a page past the end, staring at an empty table.
+   */
+  const totalPages: number = Math.max(1, Math.ceil(daemons.length / pageSize));
+  const effectivePage: number = Math.min(currentPage, totalPages);
+
+  const paginatedData: Array<CephDaemonRow> = useMemo(() => {
+    const start: number = (effectivePage - 1) * pageSize;
+    return daemons.slice(start, start + pageSize);
+  }, [daemons, effectivePage, pageSize]);
 
   const tableColumns: Array<Column<CephDaemonRow>> = useMemo(() => {
     return [
@@ -222,15 +239,20 @@ const CephClusterDaemons: FunctionComponent<
       <Table<CephDaemonRow>
         id="ceph-daemons-table"
         columns={tableColumns}
-        data={daemons}
+        data={paginatedData}
         singularLabel="Daemon"
         pluralLabel="Daemons"
         isLoading={false}
         error=""
-        currentPageNumber={1}
+        currentPageNumber={effectivePage}
         totalItemsCount={daemons.length}
-        itemsOnPage={daemons.length}
-        onNavigateToPage={() => {}}
+        itemsOnPage={pageSize}
+        onNavigateToPage={(page: number, itemsOnPage: number) => {
+          setCurrentPage(page);
+          if (itemsOnPage > 0) {
+            setPageSize(itemsOnPage);
+          }
+        }}
         sortOrder={SortOrder.Ascending}
         sortBy={null}
         onSortChanged={() => {}}

@@ -4,8 +4,8 @@ import { settle } from "./HostTooltipHarness";
 /*
  * Helpers for the render tests of lists that page client-side
  * (InfrastructureResourceTablePaging, KubernetesEventsAndCephClusterLogPaging,
- * KubernetesCostTablesPaging). Not a test file itself (no .test. in the
- * name), so jest does not run it.
+ * KubernetesCostTablesPaging, ContainersAndCephDaemonsPaging). Not a test
+ * file itself (no .test. in the name), so jest does not run it.
  *
  * The footer is read and driven through the Pagination component's test ids.
  * Where a page holds several tables, `root` is the card around the one under

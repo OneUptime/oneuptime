@@ -21,7 +21,7 @@ Open **Incidenten** in de linkernavigatie en vouw onderaan het zijmenu **Instell
 | **Incidentrollen**       | De rollen definiëren waaraan je responders toewijst, zoals Incident Commander.               |
 | **Nummervoorvoegsel**    | De nummervoorvoegsels voor incidenten en incident-episodes.                                  |
 
-Wat OneUptime AI zelfstandig doet, stel je hier niet in: het heeft een eigen sectie, **Incidenten → AI**, op routes die beginnen met `/dashboard/{projectId}/incidents/ai/`. De pagina **Instellingen** daarvan zet automatisch onderzoek, automatische codefixes en postmortem-concepten aan of uit en bevat de optionele limieten waarbinnen AI werkt — geen ervan geldt voordat je hem instelt. Ernaast staan de **Regels voor automatisch herstel**, met **Inzichten** en **Logboeken**: wat AI van je incidenten heeft geleerd, en alles wat het heeft gedaan. Zie [AI SRE](/docs/ai/ai-sre).
+Wat OneUptime AI zelfstandig doet, stel je hier niet in: het heeft een eigen sectie, **Incidenten → AI**, op routes die beginnen met `/dashboard/{projectId}/incidents/ai/`. De pagina **Instellingen** daarvan zet het onderzoeken van nieuwe incidenten, het automatisch herstellen ervan (uit totdat je het aanzet), het opstellen van postmortems en het openen van pull requests met fixes en met ontbrekende telemetrie aan of uit, en elke schakelaar wordt opgeslagen zodra je hem omzet; de onderzoeksregels en de regels voor automatisch herstel, die beperken welke incidenten worden onderzocht en hersteld, en de optionele limieten waarbinnen AI werkt, zijn ingeklapt onder **Meer instellingen**, en geen ervan geldt voordat je hem instelt. **Inzichten** en **Logboeken** staan ernaast: wat AI van je incidenten heeft geleerd, en alles wat het heeft gedaan. Zie [AI SRE](/docs/ai/ai-sre).
 
 **Status incident** en **Ernst van incident** worden uitgebreid behandeld in [Incidentstatussen en ernstniveaus](/docs/incidents/states-and-severities) — de rest van deze pagina pakt de draad op bij **Incident-sjablonen**.
 
@@ -115,21 +115,22 @@ Een nieuw voorvoegsel geldt alleen voor incidenten en episodes die daarna worden
 
 ## Regels die draaien wanneer een incident wordt aangemaakt
 
-**Incidenten → Regels** bevat acht regel-engines, en **Incidenten → AI** een negende, de **Regels voor automatisch herstel**. Ze doen allemaal hetzelfde werk — kijken naar een incident zodra het is aangemaakt en handelen als het matcht — maar ze verschillen in wat ze doen en in hoe meerdere matchende regels worden afgehandeld.
+**Incidenten → Regels** bevat acht regel-engines, en **Incidenten → AI → Instellingen** er nog twee, onder **Meer instellingen**: de **Regels voor automatisch herstel** en de **Onderzoeksregels**. Ze doen allemaal hetzelfde werk — kijken naar een incident zodra het is aangemaakt en handelen als het matcht — maar ze verschillen in wat ze doen en in hoe meerdere matchende regels worden afgehandeld.
 
 - **Groeperingsregels** — verwante incidenten groeperen tot episodes. Regels worden op prioriteitsvolgorde geëvalueerd; lagere prioriteitsnummers gaan eerst.
 - **Bereikbaarheidsregels** — bereikbaarheidsbeleid uitvoeren voor matchende incidenten. Verderop uitgebreid behandeld.
 - **Eigenaarsregels** — automatisch eigenaren toewijzen.
 - **Runbook-regels** — een [runbook](/docs/runbooks/index) starten wanneer een incident matcht.
-- **Regels voor automatisch herstel**, onder **AI** — herstel-runbooks voorstellen of starten wanneer een incident matcht. Staat er voor het incident een AI-onderzoek in de wachtrij, dan draaien ze zodra dat klaar is, met de analyse ervan in de hand. Zie [AI SRE](/docs/ai/ai-sre).
+- **Regels voor automatisch herstel**, onder **AI** → **Instellingen** — welke nieuwe incidenten worden hersteld zolang de schakelaar **Nieuwe incidenten automatisch herstellen** aanstaat, en hoe: door OneUptime AI of met de runbooks van de regel, en of er eerst om goedkeuring wordt gevraagd. Zonder regels wordt elk nieuw incident hersteld. Staat er voor het incident een AI-onderzoek in de wachtrij, dan draaien ze zodra dat klaar is, met de analyse ervan in de hand.
+- **Onderzoeksregels**, onder **AI** → **Instellingen** — welke nieuwe incidenten OneUptime AI onderzoekt. Zonder regels wordt elk nieuw incident onderzocht. Zie [AI SRE](/docs/ai/ai-sre).
 - **Privacyregels** — bepalen of een matchend incident privé is.
 - **Labelregels** — automatisch labels toepassen.
 - **SLA-regels** — reactie- en oplostijden bijhouden. Regels worden op volgorde geëvalueerd; lagere volgordenummers gaan eerst.
 - **Reminder Rules** — incidenteigenaren periodiek herinneren zolang een incident nog open staat. Regels worden op volgorde geëvalueerd en de eerste matchende regel wint.
 
-**De volgordesemantiek is niet overal gelijk.** Groeperingsregels, SLA-regels en Reminder Rules worden op volgorde geëvalueerd. Bereikbaarheidsregels niet — elke matchende regel gaat af. Ga er niet van uit dat één model voor alle negen geldt.
+**De volgordesemantiek is niet overal gelijk.** Groeperingsregels, SLA-regels en Reminder Rules worden op volgorde geëvalueerd. Bereikbaarheidsregels niet — elke matchende regel gaat af. Ga er niet van uit dat één model voor alle tien geldt.
 
-De pagina's **Bereikbaarheidsregels**, **Eigenaarsregels**, **Labelregels** en **Privacyregels** hebben tabbladen — **Incident Rules** en **Episode Rules**, elk met een eigen tabel. Configureer het tabblad **Incident Rules**, tenzij je echt episodes bedoelt. **Groeperingsregels**, **Runbook-regels**, **Regels voor automatisch herstel**, **SLA-regels** en **Reminder Rules** zijn losse tabellen.
+De pagina's **Bereikbaarheidsregels**, **Eigenaarsregels**, **Labelregels** en **Privacyregels** hebben tabbladen — **Incident Rules** en **Episode Rules**, elk met een eigen tabel. Configureer het tabblad **Incident Rules**, tenzij je echt episodes bedoelt. **Groeperingsregels**, **Runbook-regels**, **Regels voor automatisch herstel**, **Onderzoeksregels**, **SLA-regels** en **Reminder Rules** zijn losse tabellen.
 
 ## Bereikbaarheidsregels voor incidenten
 

@@ -12,7 +12,8 @@ import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
 import Project from "../../../../Models/DatabaseModels/Project";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
-import { describe, expect, test, afterEach } from "@jest/globals";
+import InvestigationRules from "../../../../Server/Utils/AI/SRE/InvestigationRules";
+import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
 /*
  * Cost gates for autonomous alert investigations (Phase 1 / G4). Every one of
@@ -99,6 +100,75 @@ describe("AIAlertInvestigationRunner.shouldInvestigateAlert", () => {
       projectId,
     });
   }
+
+  // No investigation rule unless a test sets some: every alert is in scope.
+  beforeEach(() => {
+    jest
+      .spyOn(InvestigationRules, "getAlertScope")
+      .mockResolvedValue({ isInScope: true, rulesChecked: 0 });
+  });
+
+  describe("investigation rules", () => {
+    test("an alert no rule matches is not investigated, and says how many rules there are", async () => {
+      const monitorId: ObjectID = ObjectID.generate();
+      const { countBy } = mockGates({
+        alert: fakeAlert({ monitorId, severityOrder: 1 }),
+      });
+      jest
+        .spyOn(InvestigationRules, "getAlertScope")
+        .mockResolvedValue({ isInScope: false, rulesChecked: 1 });
+
+      const decision: AlertGateDecision = await gate();
+
+      expect(decision).toMatchObject({
+        investigate: false,
+        notStartedCode: "no_investigation_rule_matched",
+        notStartedDetails: { rulesChecked: 1 },
+        monitorId,
+      });
+      // Checked first: the cooldown is never read.
+      expect(countBy).not.toHaveBeenCalled();
+      expect(ProjectService.findOneById).not.toHaveBeenCalled();
+    });
+
+    test("an alert a rule matches goes on to the other gates", async () => {
+      const floorSeverityId: ObjectID = ObjectID.generate();
+      mockGates({
+        alert: fakeAlert({ severityOrder: 3 }),
+        project: fakeProject(floorSeverityId),
+        explicitFloorSeverity: { order: 2, name: "Major" } as AlertSeverity,
+      });
+      jest
+        .spyOn(InvestigationRules, "getAlertScope")
+        .mockResolvedValue({ isInScope: true, rulesChecked: 4 });
+
+      expect((await gate()).notStartedCode).toBe("severity_below_threshold");
+    });
+
+    test("the rules see the alert with what they match on", async () => {
+      mockGates({ alert: fakeAlert({ severityOrder: 1 }) });
+      const scope: jest.SpyInstance = jest
+        .spyOn(InvestigationRules, "getAlertScope")
+        .mockResolvedValue({ isInScope: true, rulesChecked: 0 });
+
+      expect((await gate()).investigate).toBe(true);
+      expect(
+        (AlertService.findOneById as unknown as jest.SpyInstance).mock
+          .calls[0]![0],
+      ).toMatchObject({
+        select: {
+          title: true,
+          description: true,
+          alertSeverityId: true,
+          labels: { _id: true },
+        },
+      });
+      expect(scope).toHaveBeenCalledWith({
+        projectId,
+        alert: expect.anything(),
+      });
+    });
+  });
 
   describe("severity floor", () => {
     test("skips when severity is below an explicitly configured floor", async () => {

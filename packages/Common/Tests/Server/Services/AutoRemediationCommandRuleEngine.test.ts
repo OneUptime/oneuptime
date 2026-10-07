@@ -88,6 +88,8 @@ function mockProject(overrides: Partial<Record<string, unknown>> = {}): void {
   jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
     id: PROJECT_ID,
     enableAi: true,
+    enableAutomaticIncidentRemediation: true,
+    enableAutomaticAlertRemediation: true,
     ...overrides,
   } as unknown as Project);
 }
@@ -153,7 +155,7 @@ describe("AutoRemediationRuleEngineService — aiComposesCommands rules", () => 
    * Enable AI. That switch is gone: a project row that carries Enable AI
    * alone runs a matched command rule.
    */
-  it("runs a matched command rule with Enable AI on and no other project switch", async () => {
+  it("runs a matched command rule with Enable AI and Fix new incidents automatically on", async () => {
     mockProject();
     mockRules([fakeCommandRule()]);
     const create: jest.SpyInstance = mockSuggestionCreate();
@@ -205,7 +207,7 @@ describe("AutoRemediationRuleEngineService — aiComposesCommands rules", () => 
     expect(enqueue).not.toHaveBeenCalled();
   });
 
-  it("reads Enable AI and nothing else from the project", async () => {
+  it("reads Enable AI and the two fixing switches, and nothing else, from the project", async () => {
     mockRules([fakeCommandRule()]);
     mockSuggestionCreate();
     mockEnqueue(AI_RUN_ID);
@@ -215,9 +217,28 @@ describe("AutoRemediationRuleEngineService — aiComposesCommands rules", () => 
     expect(ProjectService.findOneById).toHaveBeenCalledTimes(1);
     expect(ProjectService.findOneById).toHaveBeenCalledWith({
       id: PROJECT_ID,
-      select: { enableAi: true },
+      select: {
+        enableAi: true,
+        enableAutomaticIncidentRemediation: true,
+        enableAutomaticAlertRemediation: true,
+      },
       props: { isRoot: true },
     });
+  });
+
+  it("skips a matched command rule while Fix new incidents automatically is off - the rules are never read", async () => {
+    mockProject({ enableAutomaticIncidentRemediation: false });
+    const findRules: jest.SpyInstance = mockRules([
+      fakeCommandRule({ executionMode: AutoRemediationExecutionMode.FullAuto }),
+    ]);
+    const create: jest.SpyInstance = mockSuggestionCreate();
+    const enqueue: jest.SpyInstance = mockEnqueue(AI_RUN_ID);
+
+    await AutoRemediationRuleEngineService.applyRulesToIncident(fakeIncident());
+
+    expect(findRules).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+    expect(enqueue).not.toHaveBeenCalled();
   });
 
   it("skips a matched command rule when no LLM provider is configured", async () => {
