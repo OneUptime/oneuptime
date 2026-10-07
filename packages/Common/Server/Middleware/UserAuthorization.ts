@@ -386,7 +386,8 @@ export default class UserMiddleware {
 
       return {
         tokenData: decodedData,
-        issuedAtMs: UserMiddleware.readIssuedAtMs(rawToken),
+        // When it was given, read by the signature check above.
+        issuedAtMs: decodedData.issuedAtMs ?? null,
       };
     } catch {
       /*
@@ -395,26 +396,6 @@ export default class UserMiddleware {
        * through to the Global SSO token instead of 500-ing, which is what a
        * user with both kinds would expect.
        */
-      return null;
-    }
-  }
-
-  /*
-   * When a token was issued (its `iat`), in milliseconds, or null when it
-   * does not say or cannot be read: a sign-in that cannot say when it was
-   * given only counts for a provider that was never turned off.
-   */
-  private static readIssuedAtMs(rawToken: string): number | null {
-    try {
-      // The token was verified a moment ago (JSONWebToken.decode): not again.
-      const issuedAtInSeconds: unknown =
-        JSONWebToken.readPayloadOfVerifiedToken(rawToken)?.["iat"];
-
-      return typeof issuedAtInSeconds === "number" &&
-        Number.isFinite(issuedAtInSeconds)
-        ? issuedAtInSeconds * 1000
-        : null;
-    } catch {
       return null;
     }
   }

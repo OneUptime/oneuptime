@@ -21,6 +21,7 @@ import ObjectID from "../../../Types/ObjectID";
 import { UserTenantAccessPermission } from "../../../Types/Permission";
 import SsoProviderType from "../../../Types/SSO/SsoProviderType";
 import { getJestSpyOn } from "../../Spy";
+import jwt from "jsonwebtoken";
 import {
   afterEach,
   beforeEach,
@@ -583,24 +584,20 @@ describe("a project SSO sign-in and the provider that gave it", () => {
     expect(globalCheck).not.toHaveBeenCalled();
   });
 
-  test("when a sign-in was given is read from the token verified a moment ago, not verified again", async () => {
+  test("when a sign-in was given is read by the signature check that reads it, never from the token unchecked", async () => {
     const token: string = samlSignIn();
     const decodes: SpyInstance = getJestSpyOn(JSONWebToken, "decode");
     const verifies: SpyInstance = getJestSpyOn(
       JSONWebToken,
       "decodeJsonPayload",
     );
-    const reads: SpyInstance = getJestSpyOn(
-      JSONWebToken,
-      "readPayloadOfVerifiedToken",
-    );
+    const unchecked: SpyInstance = getJestSpyOn(jwt, "decode");
 
     await expect(isSatisfied(token)).resolves.toBe(true);
 
-    // Every signature check is decode()'s own; the issue time is read once.
+    // Every signature check is decode()'s own, and nothing reads past one.
     expect(verifies).toHaveBeenCalledTimes(decodes.mock.calls.length);
-    expect(reads).toHaveBeenCalledTimes(1);
-    expect(reads).toHaveBeenCalledWith(token);
+    expect(unchecked).not.toHaveBeenCalled();
   });
 
   test("the provider is asked once a minute per server, and again as soon as a change is announced", async () => {

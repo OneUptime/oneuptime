@@ -15,4 +15,10 @@ export default interface JSONWebTokenData extends JSONObject {
   sessionId?: ObjectID | undefined;
   ssoProviderId?: ObjectID | undefined; // which SSO provider (Project or Global SSO/OIDC) issued this per-project SSO token.
   ssoProviderType?: SsoProviderType | undefined;
+  /*
+   * When the token was issued (its `iat`), in milliseconds. Read from the
+   * token by JSONWebToken.decode, which checked its signature; never signed
+   * into a new token.
+   */
+  issuedAtMs?: number | undefined;
 }

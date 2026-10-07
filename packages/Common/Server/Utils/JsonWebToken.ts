@@ -70,6 +70,8 @@ class JSONWebToken {
         projectId: data.projectId?.toString() || "",
         isMasterAdmin: data.isMasterAdmin,
         sessionId: data.sessionId?.toString() || undefined,
+        // A decoded token's issue time is not a claim of the new one.
+        issuedAtMs: undefined,
       };
     }
     return JSONWebToken.signJsonPayload(jsonObj, expiresInSeconds);
@@ -109,30 +111,18 @@ class JSONWebToken {
     return decoded;
   }
 
-  /*
-   * The payload of a token whose signature was checked a moment ago (decode
-   * or decodeJsonPayload, on this same string), read again without checking
-   * it: for a field JSONWebTokenData does not carry, such as `iat`. Never
-   * for a token that has not been verified. Null when it cannot be read.
-   */
-  public static readPayloadOfVerifiedToken(token: string): JSONObject | null {
-    let payload: unknown = null;
-
-    try {
-      payload = jwt.decode(token, { json: true });
-    } catch {
-      return null;
-    }
-
-    return payload && typeof payload === "object"
-      ? (payload as JSONObject)
-      : null;
-  }
-
   @CaptureSpan()
   public static decode(token: string): JSONWebTokenData {
     try {
       const decoded: JSONObject = JSONWebToken.decodeJsonPayload(token);
+
+      // When it was issued, from the claims whose signature was just checked.
+      const issuedAtInSeconds: unknown = decoded["iat"];
+      const issuedAtMs: number | undefined =
+        typeof issuedAtInSeconds === "number" &&
+        Number.isFinite(issuedAtInSeconds)
+          ? issuedAtInSeconds * 1000
+          : undefined;
 
       if (decoded["statusPageId"]) {
         return {
@@ -145,6 +135,7 @@ class JSONWebToken {
           sessionId: decoded["sessionId"]
             ? new ObjectID(decoded["sessionId"] as string)
             : undefined,
+          issuedAtMs: issuedAtMs,
         };
       }
 
@@ -166,6 +157,7 @@ class JSONWebToken {
         ssoProviderType: decoded["ssoProviderType"]
           ? (decoded["ssoProviderType"] as SsoProviderType)
           : undefined,
+        issuedAtMs: issuedAtMs,
       };
     } catch (e) {
       logger.error(e);
