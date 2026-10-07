@@ -240,12 +240,16 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
       `${DASHBOARD}/Pages/Traces/Settings/RecordingRules.tsx`,
       "ModelTable: Traces > Settings > Recording Rules",
     ],
+    [
+      `${DASHBOARD}/Pages/Logs/Settings/RecordingRules.tsx`,
+      "ModelTable: Logs > Settings > Recording Rules",
+    ],
   ].map(([file, form]: Array<string>): ListedForm => {
     return {
       file: file!,
       form: form!,
       reason:
-        "A metric or trace recording rule: its name, with the output metric line drawn under it (made from the name and only typed over by choice; on Edit an ordinary field there instead), the definition - one editor holding the sources, the expression over them and the group by - and one folded More fields header (the description, and Enabled at its default, on). Two questions, the name and what it computes: it walked Basic Info then Definition, which split the rule from its name across a Next and left a first step of only optional fields besides the name. MetricAndRecordingRuleFormsGuard pins the shape.",
+        "A metric, trace or log recording rule: its name, with the output metric line drawn under it (made from the name and only typed over by choice; on Edit an ordinary field there instead), the definition - one editor holding what it computes (sources and the expression over them, or for a log rule its log filter and aggregation) and the group by - and one folded More fields header (the description, and Enabled at its default, on). Two questions, the name and what it computes: it walked Basic Info then Definition, which split the rule from its name across a Next and left a first step of only optional fields besides the name. The log recording rule page was made to the same shape. MetricAndRecordingRuleFormsGuard pins the shape.",
     };
   }),
   {

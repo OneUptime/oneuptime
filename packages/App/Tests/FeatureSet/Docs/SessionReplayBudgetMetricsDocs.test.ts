@@ -1331,6 +1331,7 @@ describe("Session replay storage budget alerts docs", (): void => {
       for (const service of [
         "MetricRecordingRuleService",
         "TraceRecordingRuleService",
+        "LogRecordingRuleService",
       ]) {
         const code: string = readRepo(`Common/Server/Services/${service}.ts`);
 
