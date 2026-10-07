@@ -127,6 +127,7 @@ import {
   escapeMarkdownInline,
   escapeMarkdownValue,
 } from "../../../../Utils/Markdown/MarkdownEscape";
+import { neutralizeAiWrittenMarkdown } from "../../../../Utils/Markdown/UntrustedMarkdown";
 
 /*
  * A Markdown link, [text](url), as an incoming webhook's MessageCard turns it
@@ -3834,13 +3835,22 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           feature: "Microsoft Teams ChatOps",
         });
 
-      // Build a compact "Sources" footer from the server-minted citations.
-      let replyText: string = result.contentInMarkdown;
+      /*
+       * The answer is written from telemetry, which can carry text meant to
+       * steer the model, and it is posted to a chat: it stays the Markdown
+       * the model wrote, with no image, no link whose words hide where it
+       * goes, no HTML tag and no mention in it (neutralizeAiWrittenMarkdown).
+       * A citation's label is text.
+       */
+      let replyText: string = neutralizeAiWrittenMarkdown(
+        result.contentInMarkdown,
+      );
 
+      // Build a compact "Sources" footer from the server-minted citations.
       if (result.citations && result.citations.length > 0) {
         const sourceLines: Array<string> = result.citations.map(
           (citation: AIChatCitation) => {
-            return `• ${citation.label} (${citation.rowCount} rows)`;
+            return `• ${escapeMarkdownValue(citation.label)} (${citation.rowCount} rows)`;
           },
         );
         replyText += `\n\n**Sources**\n${sourceLines.join("\n")}`;
