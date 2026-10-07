@@ -1,4 +1,5 @@
 import logComponentError, {
+  buildTemplateColumnHint,
   describeRefusal,
 } from "../../../../../Server/Types/Workflow/Components/BaseModel/LogComponentError";
 import ColumnPermissions from "../../../../../Server/Types/Database/Permissions/ColumnPermission";
@@ -6,6 +7,7 @@ import ColumnWriteRefusedException from "../../../../../Server/Types/Database/Pe
 import DatabaseRequestType from "../../../../../Server/Types/BaseDatabase/DatabaseRequestType";
 import CallerPlan from "../../../../../Server/Utils/Billing/CallerPlan";
 import WorkflowPrincipal from "../../../../../Server/Utils/Workflow/WorkflowPrincipal";
+import Incident from "../../../../../Models/DatabaseModels/Incident";
 import Monitor from "../../../../../Models/DatabaseModels/Monitor";
 import Team from "../../../../../Models/DatabaseModels/Team";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
@@ -174,6 +176,91 @@ describe("logComponentError", () => {
     expect(lines).toEqual([
       "Error running component",
       "You do not have permission",
+    ]);
+  });
+});
+
+/*
+ * A Create One Incident step that still declares from a template the way it
+ * did before steps acted as a Project Admin - createdIncidentTemplateId in
+ * its JSON Object - is refused for that column, and the run log points at
+ * the step's Incident Template setting. Told by the refusal's type and its
+ * column, never by its words.
+ */
+describe("buildTemplateColumnHint", () => {
+  const TIP: string =
+    'Tip: to declare the Incident from a template, pick the template under Incident Template on this step, and take "createdIncidentTemplateId" out of JSON Object.';
+
+  function refusalOf(columnName: string, modelName: string): unknown {
+    return new ColumnWriteRefusedException({
+      requestType: DatabaseRequestType.Create,
+      columnName: columnName,
+      modelName: modelName,
+    });
+  }
+
+  test("the template column of an incident: the step's setting", () => {
+    expect(
+      buildTemplateColumnHint({
+        error: refusalOf("createdIncidentTemplateId", "Incident"),
+        model: new Incident(),
+      }),
+    ).toBe(TIP);
+  });
+
+  test("any other refused column of an incident: no tip", () => {
+    expect(
+      buildTemplateColumnHint({
+        error: refusalOf("isOwnerNotifiedOfResourceCreation", "Incident"),
+        model: new Incident(),
+      }),
+    ).toBeNull();
+  });
+
+  test("a record with no template setting: no tip", () => {
+    expect(
+      buildTemplateColumnHint({
+        error: refusalOf("createdIncidentTemplateId", "Team"),
+        model: new Team(),
+      }),
+    ).toBeNull();
+  });
+
+  test("the same words in another kind of error: no tip", () => {
+    expect(
+      buildTemplateColumnHint({
+        error: new BadDataException(
+          "User is not allowed to create on createdIncidentTemplateId column of Incident",
+        ),
+        model: new Incident(),
+      }),
+    ).toBeNull();
+    expect(
+      buildTemplateColumnHint({
+        error: refusalOf("createdIncidentTemplateId", "Incident"),
+        model: null,
+      }),
+    ).toBeNull();
+  });
+
+  test("the run log says it after the refusal", () => {
+    const lines: Array<unknown> = [];
+    const error: unknown = refusalOf("createdIncidentTemplateId", "Incident");
+
+    logComponentError({
+      error,
+      model: new Incident(),
+      log: (line: unknown): void => {
+        lines.push(line);
+      },
+      stepTitle: "Create One Incident",
+    });
+
+    expect(lines).toEqual([
+      "Error running component",
+      '"Create One Incident" was refused. Workflow steps can do only what a Project Admin of this project can do: ' +
+        (error as Error).message,
+      TIP,
     ]);
   });
 });

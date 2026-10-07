@@ -359,9 +359,9 @@ export class Service extends ProjectReferencesService<Model> {
    *  - the template's owners become the incident's owners, added as the
    *    dashboard adds them;
    *  - the template is read as the caller: one in another project, one that
-   *    does not exist, or one they may not read is refused alike, and a
-   *    plan that does not include templates refuses the step as it refuses
-   *    the dashboard;
+   *    does not exist, or one outside what they may read is refused alike;
+   *    a caller who may not read templates at all, or whose plan does not
+   *    include them, is told so, as the dashboard tells them;
    *  - everything the incident is written with, the template's values
    *    included, meets the caller's own permission and plan checks;
    *  - the incident records the template it was declared from
@@ -413,34 +413,13 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
-     * The template's owners, read as the caller and handed over as the
-     * dashboard hands them over: onCreateSuccess adds them once the
-     * incident's channels exist. Read before the template itself (in
-     * onBeforeCreate), so the create carries them from its start; a
-     * template that turns out not to be the project's has none here, and
-     * is refused there.
+     * Everything else - the template and its owners - is read by
+     * onBeforeCreate, once the caller has been checked: one who may not
+     * create incidents reads nothing of the template.
      */
-    const owners: { userIds: Array<ObjectID>; teamIds: Array<ObjectID> } =
-      await IncidentTemplateService.getOwnerIds({
-        incidentTemplateId: data.templateId,
-        projectId: projectId,
-        props: data.props,
-      });
-
-    const miscDataProps: JSONObject = {};
-
-    if (owners.userIds.length > 0) {
-      miscDataProps["ownerUsers"] = owners.userIds;
-    }
-
-    if (owners.teamIds.length > 0) {
-      miscDataProps["ownerTeams"] = owners.teamIds;
-    }
-
     const createBy: CreateBy<Model> = {
       data: data.data,
       props: data.props,
-      miscDataProps: miscDataProps,
     };
 
     this.templateDeclarations.set(createBy, data.templateId);
@@ -455,6 +434,77 @@ export class Service extends ProjectReferencesService<Model> {
   // The template a create declares the incident from, through createFromTemplate.
   private getTemplateDeclaredFor(createBy: CreateBy<Model>): ObjectID | null {
     return this.templateDeclarations.get(createBy) || null;
+  }
+
+  /*
+   * The owners of the template an incident is declared from through
+   * createFromTemplate become the incident's owners, handed over as the
+   * dashboard hands over the owners its declare form fills in from a
+   * template: onCreateSuccess adds them once the incident's channels exist,
+   * quietly, as the caller (a user's create never asks for its owners to be
+   * notified). Read as the caller, once the template is known to be one
+   * they may declare from; owners the create already hands over are kept,
+   * and each one is handed over once.
+   */
+  private async handOverTemplateOwners(data: {
+    createBy: CreateBy<Model>;
+    incidentTemplateId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<void> {
+    const owners: { userIds: Array<ObjectID>; teamIds: Array<ObjectID> } =
+      await IncidentTemplateService.getOwnerIds({
+        incidentTemplateId: data.incidentTemplateId,
+        projectId: data.projectId,
+        props: data.createBy.props,
+      });
+
+    if (owners.userIds.length === 0 && owners.teamIds.length === 0) {
+      return;
+    }
+
+    const miscDataProps: JSONObject = data.createBy.miscDataProps || {};
+
+    const merge: (
+      handedOver: unknown,
+      fromTemplate: Array<ObjectID>,
+    ) => Array<ObjectID> = (
+      handedOver: unknown,
+      fromTemplate: Array<ObjectID>,
+    ): Array<ObjectID> => {
+      const merged: Array<ObjectID> = Array.isArray(handedOver)
+        ? [...(handedOver as Array<ObjectID>)]
+        : [];
+      const seen: Set<string> = new Set<string>(
+        merged.map((id: ObjectID): string => {
+          return id.toString();
+        }),
+      );
+
+      for (const id of fromTemplate) {
+        if (!seen.has(id.toString())) {
+          seen.add(id.toString());
+          merged.push(id);
+        }
+      }
+
+      return merged;
+    };
+
+    if (owners.userIds.length > 0) {
+      miscDataProps["ownerUsers"] = merge(
+        miscDataProps["ownerUsers"],
+        owners.userIds,
+      );
+    }
+
+    if (owners.teamIds.length > 0) {
+      miscDataProps["ownerTeams"] = merge(
+        miscDataProps["ownerTeams"],
+        owners.teamIds,
+      );
+    }
+
+    data.createBy.miscDataProps = miscDataProps;
   }
 
   /*
@@ -2804,23 +2854,11 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     /*
-     * createdIncidentTemplateId is OneUptime's to set. Anyone else who sends
-     * it is refused - as the column check after these hooks refuses it, but
-     * before a template is read or an incident number is taken. A caller
-     * declares from a template through createFromTemplate.
+     * createdIncidentTemplateId itself is OneUptime's to set: anyone else who
+     * sends it is refused by the column check after these hooks, as for
+     * every column no caller may write. A caller declares from a template
+     * through createFromTemplate instead.
      */
-    if (
-      templateIdInData &&
-      !createBy.props.isRoot &&
-      !createBy.props.isMasterAdmin
-    ) {
-      throw new ColumnWriteRefusedException({
-        requestType: DatabaseRequestType.Create,
-        columnName: "createdIncidentTemplateId",
-        modelName: this.getModel().singularName,
-      });
-    }
-
     const declaredTemplateId: ObjectID | null =
       this.getTemplateDeclaredFor(createBy);
 
@@ -2875,6 +2913,14 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (declaredTemplateId && !incidentTemplate) {
       throw this.getTemplateNotInProjectException(declaredTemplateId);
+    }
+
+    if (declaredTemplateId) {
+      await this.handOverTemplateOwners({
+        createBy: createBy,
+        incidentTemplateId: declaredTemplateId,
+        projectId: projectId,
+      });
     }
 
     /*

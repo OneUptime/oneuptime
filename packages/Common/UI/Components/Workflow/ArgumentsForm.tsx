@@ -274,8 +274,17 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
   const [isLoadingRecordChoices, setIsLoadingRecordChoices] =
     useState<boolean>(false);
 
+  // Only a step with a setting picked from a list waits for its records.
+  const isWaitingForRecordChoices: boolean =
+    recordChoiceTypes.length > 0 && isLoadingRecordChoices;
+
   useEffect(() => {
     if (recordChoiceTypes.length === 0) {
+      /*
+       * A step with no such setting waits for nothing - even when the step
+       * shown before it was still fetching its list.
+       */
+      setIsLoadingRecordChoices(false);
       return;
     }
 
@@ -728,10 +737,10 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
           (RecordChoices), show a loader instead of the form. Otherwise the
           user briefly sees an empty dropdown, which is confusing.
         */}
-        {isLoadingRecordChoices && <ComponentLoader />}
+        {isWaitingForRecordChoices && <ComponentLoader />}
         {component.metadata.arguments &&
           component.metadata.arguments.length > 0 &&
-          !isLoadingRecordChoices && (
+          !isWaitingForRecordChoices && (
             <BasicForm
               hideSubmitButton={true}
               ref={formRef}

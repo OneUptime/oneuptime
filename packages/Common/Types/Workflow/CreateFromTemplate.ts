@@ -13,10 +13,11 @@ import { Argument, ComponentInputType } from "./Component";
  *
  * The record's own service applies it (DatabaseService.createFromTemplate;
  * IncidentService for an incident), as the step: a Project Admin of the
- * workflow's project, on its plan. So a template the step may not read, or
- * one from another project, is refused like a missing one, and the record
- * remembers which template it was declared from in a column no caller may
- * write for itself (for an incident, createdIncidentTemplateId).
+ * workflow's project, on its plan. So a template from another project, or
+ * one that no longer exists, is refused like any reference that is not the
+ * project's, a plan that does not include templates refuses the step, and
+ * the record remembers which template it was declared from in a column no
+ * caller may write for itself (for an incident, createdIncidentTemplateId).
  *
  * Keyed by the table of the record the step creates. Only the tables here
  * get the setting, and each has a service that applies its templates

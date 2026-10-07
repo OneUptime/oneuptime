@@ -159,7 +159,7 @@ Clearing the whole list is different from removing pages: the incident is then n
 
 Deleting a status page removes it from every incident that was limited to it. An incident whose picked pages have all been deleted stays limited, to nothing: it is hidden from every status page rather than shown on every page that lists its monitors. The **Status Page Scope** card says so. Pick other pages, or clear the list, to show it again.
 
-Incident templates work the same way. A template whose pages have all been deleted stays limited: an incident that a [form](/docs/forms/on-submit#the-incident-template) declares from it is hidden from every status page, the template's **Status Page Scope** card warns you, and **Declare Incident** starts with no page picked and asks you to pick the pages the incident is for. Pick other pages on the template, or save its list empty to stop limiting the incidents declared from it.
+Incident templates work the same way. A template whose pages have all been deleted stays limited: an incident that a [form](/docs/forms/on-submit#the-incident-template) or a workflow's **Create One Incident** step declares from it is hidden from every status page, the template's **Status Page Scope** card warns you, and **Declare Incident** starts with no page picked and asks you to pick the pages the incident is for. Pick other pages on the template, or save its list empty to stop limiting the incidents declared from it.
 
 ## One email per person
 

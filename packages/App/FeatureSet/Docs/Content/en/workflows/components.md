@@ -196,6 +196,12 @@ This is how a workflow can read and change OneUptime data. For example: a webhoo
 
 These components act as a Project Admin of the workflow's project: what a Project Admin may not do, or your plan doesn't include, is refused, and the run log says why. See [What workflow steps can do](/docs/workflows/configuration#what-workflow-steps-can-do).
 
+### Declaring an incident from a template
+
+**Create One Incident** can declare the incident from one of your [incident templates](/docs/incidents/settings#incident-templates): pick it under **Incident Template**, the step's first setting. The template fills in every field **JSON Object** leaves out — the title, description, severity, initial state, monitors and other resources, on-call policies, labels, status pages and custom fields — and its owners become the incident's owners. Anything you set in **JSON Object** wins over the template's, a state included, so with a template picked **JSON Object** only needs what should differ, and can be left empty.
+
+The incident records the template it was declared from in `createdIncidentTemplateId`. That column is OneUptime's to set: a step that sends it in **JSON Object** is refused, and its run log points you to **Incident Template**. A template from another project, or one that was deleted, takes the step's **Error** output, and on a plan that doesn't include incident templates the step is refused with the plan it needs. See [How a template gets applied](/docs/incidents/settings#how-a-template-gets-applied).
+
 ## Working with records
 
 Every field on a data component is keyed on the record's own **column** names — the same names the API uses, not the labels on the dashboard form. The ID column is `_id`. The `id` spelling is accepted as an alias anywhere you can type a column name, but `_id` is what a record gives back, so that's what to read on the way out:

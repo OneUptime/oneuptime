@@ -13,7 +13,8 @@
 
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { JSONObject } from "../../JSON";
-import { NodeDataProp } from "../Component";
+import { Argument, NodeDataProp } from "../Component";
+import { getCreateFromTemplateArgument } from "../CreateFromTemplate";
 import {
   CUSTOM_FIELDS_COLUMN,
   hasCustomFieldsColumn,
@@ -290,15 +291,45 @@ const findMany: BuildFunction = (
   };
 };
 
+type TemplateTopicFunction = (data: {
+  words: ModelWords;
+  setting: Argument;
+}) => ComponentDocumentationTopic;
+
+/*
+ * A record declared from one of its templates (Create One Incident): what
+ * the template fills in, what wins over it, and what is refused.
+ */
+const templateTopic: TemplateTopicFunction = (data: {
+  words: ModelWords;
+  setting: Argument;
+}): ComponentDocumentationTopic => {
+  return {
+    title: "Declaring it from a template",
+    paragraphs: [
+      `Pick one of this project's templates under **${data.setting.name}** and the ${data.words.one} is declared from it, the way it is on the dashboard: the template fills in every field **JSON Object** leaves out, and anything **JSON Object** sets wins over the template's - a state included. The template's owners become the ${data.words.one}'s owners, and the ${data.words.one} remembers which template it came from.`,
+      "The step reads the template as it does everything else, as a Project Admin of this project, so a template from another project, or one that was deleted, takes **Error**.",
+    ],
+  };
+};
+
 const createOne: BuildFunction = (
   context: ComponentDocumentationContext,
   words: ModelWords,
 ): ComponentDocumentation => {
   const required: Array<ExampleColumn> = getRequiredCreateColumns(words.model);
+  const templateSetting: Argument | null = getCreateFromTemplateArgument(
+    words.model.tableName || undefined,
+  );
 
   return {
     summary: `Creates one ${words.one} in this project each time it runs.`,
     steps: [
+      ...(templateSetting
+        ? [
+            `To declare it from a template, pick the template under **${templateSetting.name}**. Then **JSON Object** only needs what should differ from it.`,
+          ]
+        : []),
       required.length > 0
         ? `Under **JSON Object**, fill in the ${words.one}'s fields. The ones it needs come first.`
         : `Under **JSON Object**, add the ${words.one}'s fields with **Add a field**.`,
@@ -322,6 +353,9 @@ const createOne: BuildFunction = (
       },
     ],
     learnMore: [
+      ...(templateSetting
+        ? [templateTopic({ words: words, setting: templateSetting })]
+        : []),
       {
         title: "Writing it as JSON",
         paragraphs: [
