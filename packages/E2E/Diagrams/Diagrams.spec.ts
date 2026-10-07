@@ -554,9 +554,7 @@ test.describe("the docs", () => {
     await page.waitForTimeout(300);
     await expect(diagramsIn(page)).toHaveCount(2);
 
-    expect(await styleOf(diagramsIn(page).first())).toMatch(
-      DEFAULT_THEME_FILL,
-    );
+    expect(await styleOf(diagramsIn(page).first())).toMatch(DEFAULT_THEME_FILL);
     await expect(diagramsIn(page).first().locator("math")).toHaveCount(1);
     await expect(diagramsIn(page).first()).toContainText("Plain label");
     await expect(diagramsIn(page).nth(1)).toContainText("Hello Bob");

@@ -22,9 +22,12 @@ const VIEWS_ROOT: string = path.join(__dirname, "..", "Views");
 const POST_URL: string =
   "https://oneuptime.com/blog/post/2026-10-07-diagrams-everywhere/view";
 
-const LONG_CODE: string = Array.from({ length: 120 }, (_: unknown, index: number): string => {
-  return `line_${index + 1}: true`;
-}).join("\n");
+const LONG_CODE: string = Array.from(
+  { length: 120 },
+  (_: unknown, index: number): string => {
+    return `line_${index + 1}: true`;
+  },
+).join("\n");
 
 // No h2: two smaller headings, two images and two code blocks.
 const BODY_WITHOUT_H2: string = [
@@ -344,7 +347,9 @@ describe("a blog post without an h2 heading", () => {
   test("puts a link on every heading, to the heading itself", async () => {
     const page: OpenedPost = await openPost(BODY_WITHOUT_H2);
     const headings: Array<HTMLElement> = Array.from(
-      page.document.querySelectorAll<HTMLElement>(".blog-body h3, .blog-body h4"),
+      page.document.querySelectorAll<HTMLElement>(
+        ".blog-body h3, .blog-body h4",
+      ),
     );
 
     expect(

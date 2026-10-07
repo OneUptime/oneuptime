@@ -77,9 +77,7 @@ describe("the note on a docs diagram that cannot be drawn", () => {
   it("is read from that meta tag by the diagram script, with English to fall back on", () => {
     const head: string = fs.readFileSync(HEAD, "utf8");
 
-    expect(head).toContain(
-      'meta[name="oneuptime-docs-diagram-not-drawn"]',
-    );
+    expect(head).toContain('meta[name="oneuptime-docs-diagram-not-drawn"]');
     expect(head).toContain(JSON.stringify(ENGLISH).slice(1, -1));
   });
 });

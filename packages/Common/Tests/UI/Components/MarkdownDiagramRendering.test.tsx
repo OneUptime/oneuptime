@@ -17,7 +17,14 @@
  * the MathML KaTeX writes for a $$...$$ label, so the label was an empty
  * box. Real browsers draw the real thing in packages/E2E/Diagrams.
  */
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 interface MockRenderCall {
   id: string;
@@ -150,9 +157,9 @@ describe("MermaidDiagram: a diagram that does not parse", () => {
     const { container } = render(<MermaidDiagram chart={BROKEN} />);
 
     await waitFor((): void => {
-      expect(container.querySelector("pre.text-red-500")?.textContent).toContain(
-        "Error rendering diagram",
-      );
+      expect(
+        container.querySelector("pre.text-red-500")?.textContent,
+      ).toContain("Error rendering diagram");
     });
     expect(container.querySelector("pre.text-red-500")?.textContent).toContain(
       "Parse error on line 2",
@@ -187,9 +194,7 @@ describe("MermaidDiagram: a diagram that does not parse", () => {
       expect(mockMermaidState.renderCalls).toHaveLength(2);
     });
     await waitFor((): void => {
-      expect(
-        first.container.querySelector("pre.text-red-500"),
-      ).not.toBeNull();
+      expect(first.container.querySelector("pre.text-red-500")).not.toBeNull();
     });
 
     expect(leftovers()).toEqual([]);
@@ -214,7 +219,9 @@ describe("MermaidDiagram: a diagram that does not parse", () => {
 
 describe("MermaidDiagram: how mermaid is asked to draw", () => {
   test("in strict mode, without mermaid's own error graphic", async () => {
-    render(<MermaidDiagram chart="sequenceDiagram\n  Alice->>Bob: Hello Bob" />);
+    render(
+      <MermaidDiagram chart="sequenceDiagram\n  Alice->>Bob: Hello Bob" />,
+    );
 
     await waitFor((): void => {
       expect(mockMermaidState.renderCalls).toHaveLength(1);
@@ -233,7 +240,8 @@ describe("MermaidDiagram: how mermaid is asked to draw", () => {
       expect(container.textContent).toContain("Hello Bob");
     });
 
-    const call: MockRenderCall = mockMermaidState.renderCalls[0] as MockRenderCall;
+    const call: MockRenderCall = mockMermaidState
+      .renderCalls[0] as MockRenderCall;
 
     // mermaid measures every label with the page's layout.
     expect(call.container).toBeDefined();
@@ -246,14 +254,18 @@ describe("MermaidDiagram: how mermaid is asked to draw", () => {
 describe("MermaidDiagram: a $$...$$ label", () => {
   test("keeps the MathML KaTeX wrote for it", async () => {
     const { container } = render(
-      <MermaidDiagram chart={'graph LR\n  A["$$x^2 + y^2 = z^2$$"] --> B[Plain label]'} />,
+      <MermaidDiagram
+        chart={'graph LR\n  A["$$x^2 + y^2 = z^2$$"] --> B[Plain label]'}
+      />,
     );
 
     await waitFor((): void => {
       expect(container.querySelector("svg")).not.toBeNull();
     });
 
-    const math: Element | null = container.querySelector("svg foreignObject math");
+    const math: Element | null = container.querySelector(
+      "svg foreignObject math",
+    );
 
     expect(math).not.toBeNull();
     expect(math?.getAttribute("display")).toBe("block");
@@ -265,7 +277,9 @@ describe("MermaidDiagram: a $$...$$ label", () => {
 
   test("keeps the label's text and drops its HTML wrappers, as before", async () => {
     const { container } = render(
-      <MermaidDiagram chart={'graph LR\n  A["$$x^2 + y^2 = z^2$$"] --> B[Plain label]'} />,
+      <MermaidDiagram
+        chart={'graph LR\n  A["$$x^2 + y^2 = z^2$$"] --> B[Plain label]'}
+      />,
     );
 
     await waitFor((): void => {

@@ -84,6 +84,10 @@ const mathInALabel: (content: string) => string = (content: string): string => {
   );
 };
 
+const EVENT_HANDLER: RegExp = /^on/i;
+const JAVASCRIPT_URL: RegExp = /javascript:/i;
+const SOURCE_FILE: RegExp = /\.(ts|js)$/;
+
 /*
  * Nothing that runs: no script element, no element that loads something,
  * no event handler and no javascript: URL anywhere.
@@ -92,19 +96,29 @@ const expectInert: (root: Element) => void = (root: Element): void => {
   for (const element of everyElement(root)) {
     const tag: string = element.localName;
 
-    expect([tag, ["script", "iframe", "img", "object", "embed", "use", "set", "animate"].includes(tag)]).toEqual([tag, false]);
+    expect([
+      tag,
+      [
+        "script",
+        "iframe",
+        "img",
+        "object",
+        "embed",
+        "use",
+        "set",
+        "animate",
+      ].includes(tag),
+    ]).toEqual([tag, false]);
 
     for (const attribute of Array.from(element.attributes)) {
-      expect([tag, attribute.name, /^on/i.test(attribute.name)]).toEqual([
+      expect([tag, attribute.name, EVENT_HANDLER.test(attribute.name)]).toEqual(
+        [tag, attribute.name, false],
+      );
+      expect([
         tag,
         attribute.name,
-        false,
-      ]);
-      expect([tag, attribute.name, /javascript:/i.test(attribute.value)]).toEqual([
-        tag,
-        attribute.name,
-        false,
-      ]);
+        JAVASCRIPT_URL.test(attribute.value),
+      ]).toEqual([tag, attribute.name, false]);
     }
   }
 };
@@ -144,7 +158,7 @@ describe("the MathML a diagram may carry", () => {
         const full: string = path.join(directory, entry.name);
         if (entry.isDirectory()) {
           walk(full);
-        } else if (/\.(ts|js)$/.test(entry.name)) {
+        } else if (SOURCE_FILE.test(entry.name)) {
           files.push(full);
         }
       }
@@ -201,7 +215,7 @@ describe("the MathML a diagram may carry", () => {
 
     for (const tag of KATEX_MATHML_TAGS) {
       const element: Element | null =
-        tag === "math" ? math : (math?.querySelector(tag) ?? null);
+        tag === "math" ? math : math?.querySelector(tag) ?? null;
 
       expect([tag, element?.namespaceURI]).toEqual([tag, MATHML_NAMESPACE]);
 
@@ -222,7 +236,7 @@ describe("the MathML a diagram may carry", () => {
   test("keeps what KaTeX writes for x^2 + y^2 = z^2 and drops the label's HTML around it", () => {
     const clean: HTMLDivElement = sanitizedInPage(
       mathInALabel(
-        "<semantics><mrow><msup><mi>x</mi><mn>2</mn></msup><mo>+</mo><msup><mi>y</mi><mn>2</mn></msup><mo>=</mo><msup><mi>z</mi><mn>2</mn></msup></mrow><annotation encoding=\"application/x-tex\">x^2 + y^2 = z^2</annotation></semantics>",
+        '<semantics><mrow><msup><mi>x</mi><mn>2</mn></msup><mo>+</mo><msup><mi>y</mi><mn>2</mn></msup><mo>=</mo><msup><mi>z</mi><mn>2</mn></msup></mrow><annotation encoding="application/x-tex">x^2 + y^2 = z^2</annotation></semantics>',
       ),
     );
 
@@ -384,7 +398,13 @@ describe("nothing in a diagram runs", () => {
       ),
     );
 
-    for (const tag of ["maction", "annotation-xml", "mglyph", "annotation", "semantics"]) {
+    for (const tag of [
+      "maction",
+      "annotation-xml",
+      "mglyph",
+      "annotation",
+      "semantics",
+    ]) {
       expect([tag, clean.querySelector(tag)]).toEqual([tag, null]);
     }
     expectInert(clean);
@@ -402,15 +422,15 @@ describe("nothing in a diagram runs", () => {
   test.each([
     [
       "a table that closes math early",
-      '<math><mtext><table><mglyph><style><img src=x onerror=alert(1)></style></mglyph></table></mtext></math>',
+      "<math><mtext><table><mglyph><style><img src=x onerror=alert(1)></style></mglyph></table></mtext></math>",
     ],
     [
       "nested forms that close math early",
-      '<form><math><mtext></form><form><mglyph><style></math><img src onerror=alert(1)>',
+      "<form><math><mtext></form><form><mglyph><style></math><img src onerror=alert(1)>",
     ],
     [
       "an SVG style holding markup inside MathML",
-      '<math><mi><svg><style><img src=x onerror=alert(1)></style></svg></mi></math>',
+      "<math><mi><svg><style><img src=x onerror=alert(1)></style></svg></mi></math>",
     ],
     [
       "a style whose text closes it inside an attribute",
@@ -418,7 +438,7 @@ describe("nothing in a diagram runs", () => {
     ],
     [
       "a comment that closes the style",
-      '<math><mtext><style><!--</style><img src=x onerror=alert(1)>--></style></mtext></math>',
+      "<math><mtext><style><!--</style><img src=x onerror=alert(1)>--></style></mtext></math>",
     ],
     [
       "mglyph and malignmark around a style",
