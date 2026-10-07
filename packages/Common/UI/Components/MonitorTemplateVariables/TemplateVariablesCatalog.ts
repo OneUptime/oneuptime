@@ -74,6 +74,21 @@ export default class TemplateVariablesCatalog {
       );
     }
 
+    /*
+     * A Logs monitor's Group By. Listed only when the monitor is grouped:
+     * an ungrouped log monitor has no group values to place.
+     */
+    if (
+      input.monitorType === MonitorType.Logs &&
+      (input.seriesAttributeKeys || []).length > 0
+    ) {
+      groups.push(
+        TemplateVariablesCatalog.logGroupValuesGroup(
+          input.seriesAttributeKeys || [],
+        ),
+      );
+    }
+
     return groups;
   }
 
@@ -200,6 +215,30 @@ export default class TemplateVariablesCatalog {
               : key === "resource.k8s.container.name"
                 ? "mariadb"
                 : undefined,
+        };
+      }),
+    };
+  }
+
+  /*
+   * The values a grouped Logs monitor's alert or incident was raised for,
+   * under their attribute keys - the same series labels a grouped metric
+   * monitor exposes, so `{{con_name}}` resolves exactly like `{{host.name}}`.
+   */
+  private static logGroupValuesGroup(
+    attributeKeys: Array<string>,
+  ): TemplateVariableGroup {
+    return {
+      title: "Group Values (one alert per group)",
+      description:
+        "This monitor raises one incident or alert per distinct combination of these attribute values. Reference the group's values in titles, descriptions, and remediation notes.",
+      variables: attributeKeys.map((key: string): TemplateVariable => {
+        return {
+          key,
+          description: translateTemplate(
+            "Value of `{{key}}` for the group of logs that met the criteria. Empty when those logs did not carry it.",
+            { key: key },
+          ),
         };
       }),
     };

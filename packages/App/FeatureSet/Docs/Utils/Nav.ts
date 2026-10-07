@@ -772,6 +772,7 @@ const DocsNav: NavGroup[] = [
         title: "Zooming Into a Time Range",
         url: "/docs/telemetry/charts-and-time-ranges",
       },
+      { title: "Log Pipelines", url: "/docs/telemetry/log-pipelines" },
       {
         title: "AI / LLM Observability",
         url: "/docs/telemetry/ai-llm-observability",

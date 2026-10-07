@@ -43,6 +43,7 @@ import MonitorCriteriaAlertsForm from "./MonitorCriteriaAlertsForm";
 import { CriteriaAlert } from "Common/Types/Monitor/CriteriaAlert";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorStepMetricViewConfigUtil from "Common/Types/Monitor/MonitorStepMetricViewConfigUtil";
+import { MonitorStepLogMonitorUtil } from "Common/Types/Monitor/MonitorStepLogMonitor";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
 import { isFilterConditionNeeded } from "Common/Types/Filter/FilterConditionUtil";
@@ -97,15 +98,22 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
    * simply doesn't render the series-labels section.
    */
   const seriesAttributeKeys: Array<string> = Array.from(
-    new Set(
-      (
+    new Set([
+      ...(
         MonitorStepMetricViewConfigUtil.getMetricViewConfig(
           props.monitorStep?.data,
         )?.queryConfigs || []
       ).flatMap((q: MetricQueryConfigData): Array<string> => {
         return q.metricQueryData?.groupByAttributeKeys || [];
       }),
-    ),
+      /*
+       * A Logs monitor's Group By: each group value is a template variable
+       * the same way a metric series label is (`{{con_name}}`).
+       */
+      ...MonitorStepLogMonitorUtil.getGroupByAttributes(
+        props.monitorStep?.data?.logMonitor,
+      ),
+    ]),
   );
 
   /*
