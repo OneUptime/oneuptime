@@ -8,8 +8,8 @@
  *   /docs       the docs' real <head> (App/FeatureSet/Docs/Views/Partials/
  *               Head.ejs, rendered with ejs) above diagrams written the way
  *               the docs' Markdown renderer writes them.
- *   /blog       a post body under the blog's real scripts, taken out of
- *               Home/Views/Blog/Post.ejs.
+ *   /blog       a post body under the blog's real scripts and stylesheet,
+ *               taken out of Home/Views/Blog/Post.ejs.
  *
  * /oneuptime-assets/mermaid/ serves what Common/Scripts/
  * build-mermaid-browser.js writes - run here exactly as the App and Home
@@ -51,6 +51,22 @@ const docsHead = path.join(
   repository,
   "packages/App/FeatureSet/Docs/Views/Partials/Head.ejs",
 );
+// The docs' strings in a language, so the page says what a reader would read.
+function docsStrings(lang) {
+  return JSON.parse(
+    fs.readFileSync(
+      path.join(
+        repository,
+        "packages/App/FeatureSet/Docs/Locales",
+        `${lang}.json`,
+      ),
+      "utf8",
+    ),
+  );
+}
+
+// The docs languages written right to left (Common/Types/Docs/DocsLanguage.ts).
+const RIGHT_TO_LEFT_DOCS_LANGUAGES = ["fa"];
 const blogPost = path.join(repository, "packages/Home/Views/Blog/Post.ejs");
 
 const config = createConfig({
@@ -75,6 +91,18 @@ const SEQUENCE =
   "sequenceDiagram\n  Alice->>Bob: Hello Bob\n  Bob-->>Alice: Hello Alice";
 // Does not parse.
 const BROKEN = "graph LR\n  A -->";
+/*
+ * What securityLevel 'loose' would allow and 'strict' does not: a click that
+ * calls a page function, and a javascript: link. Its labels also carry the
+ * HTML mermaid allows either way (bold text, a line break).
+ */
+const INTERACTIVE = [
+  "graph LR",
+  '  A["<b>Bold</b> start"] --> B[Plain label]',
+  '  B --> C["Line one<br/>Line two"]',
+  '  click A diagramCallback "Calls a page function"',
+  '  click B "javascript:window.diagramLinkRan=true" "A javascript link"',
+].join("\n");
 
 // The same five characters the docs' and the blog's renderers escape.
 function escapeHtml(text) {
@@ -88,7 +116,8 @@ function escapeHtml(text) {
 
 /*
  * ?diagrams= picks the docs page's and the blog post's diagrams: both kinds
- * (the default), none, or broken - one that does not parse, ahead of both.
+ * (the default), none, broken - one that does not parse, ahead of both - or
+ * interactive, with a click callback, a javascript: link and HTML labels.
  */
 function diagramsFor(url) {
   switch (url.searchParams.get("diagrams")) {
@@ -96,23 +125,37 @@ function diagramsFor(url) {
       return [];
     case "broken":
       return [BROKEN, FLOWCHART, SEQUENCE];
+    case "interactive":
+      return [INTERACTIVE];
     default:
       return [FLOWCHART, SEQUENCE];
   }
 }
 
+// The docs' t() in a language: "ui.x" is that language's string.
+function docsT(lang) {
+  const strings = docsStrings(lang);
+
+  return (key) => {
+    const [section, name] = key.split(".");
+    const value = strings[section] && strings[section][name];
+    return typeof value === "string" ? value : key;
+  };
+}
+
 /*
  * What Common/Server/Types/Markdown.ts writes for a ```mermaid fence on a
- * docs page.
+ * docs page. ?lang= picks the page's language (English by default; fa is
+ * right to left).
  */
 function docsPage(url) {
+  const lang = url.searchParams.get("lang") === "fa" ? "fa" : "en";
+  const dir = RIGHT_TO_LEFT_DOCS_LANGUAGES.includes(lang) ? "rtl" : "ltr";
   const head = ejs.render(
     fs.readFileSync(docsHead, "utf8"),
     {
-      t: (key) => {
-        return key;
-      },
-      lang: "en",
+      t: docsT(lang),
+      lang: lang,
       enableGoogleTagManager: false,
     },
     { filename: docsHead },
@@ -123,36 +166,45 @@ function docsPage(url) {
     })
     .join("\n");
 
-  return `<!doctype html><html lang="en" class="h-full antialiased"><head>${head}</head><body class="docs-body min-h-full"><article class="docs-article"><div class="docs-content"><h1>Diagrams</h1><p>Text before the diagrams.</p>${diagrams}<p>Text after them.</p></div></article></body></html>`;
+  return `<!doctype html><html lang="${lang}" dir="${dir}" class="h-full antialiased"><head>${head}</head><body class="docs-body min-h-full"><article class="docs-article"><div class="docs-content"><h1>Diagrams</h1><p>Text before the diagrams.</p>${diagrams}<p>Text after them.</p></div></article></body></html>`;
 }
 
 /*
- * The blog's scripts, taken out of Post.ejs rather than copied, so a change
- * there is what this tests: the highlight.js loader in its head (it strips
- * the language-mermaid class at DOMContentLoaded), the page script (copy
- * buttons, table of contents...) and the diagrams module.
+ * The blog's scripts and stylesheet, taken out of Post.ejs rather than
+ * copied, so a change there is what this tests: the highlight.js loader in
+ * its head (it strips the language-mermaid class at DOMContentLoaded), the
+ * page script (copy buttons, table of contents...), the diagrams module, and
+ * the stylesheet that sets out what they show.
  */
 function blogScripts() {
   const source = fs.readFileSync(blogPost, "utf8");
   const scripts = source.match(/<script\b[^>]*>[\s\S]*?<\/script>/g) || [];
+  const styles = source.match(/<style\b[^>]*>[\s\S]*?<\/style>/g) || [];
 
-  const pick = (label, predicate) => {
-    const found = scripts.filter(predicate);
+  const pickFrom = (blocks, kind, label, predicate) => {
+    const found = blocks.filter(predicate);
 
     if (found.length !== 1) {
       throw new Error(
-        `Post.ejs has ${found.length} ${label} script blocks, expected one`,
+        `Post.ejs has ${found.length} ${label} ${kind} blocks, expected one`,
       );
     }
 
     if (found[0].includes("<%")) {
-      throw new Error(`Post.ejs's ${label} script block now holds EJS tags`);
+      throw new Error(`Post.ejs's ${label} ${kind} block now holds EJS tags`);
     }
 
     return found[0];
   };
 
+  const pick = (label, predicate) => {
+    return pickFrom(scripts, "script", label, predicate);
+  };
+
   return {
+    style: pickFrom(styles, "style", "post", (style) => {
+      return style.includes(".blog-diagram-note");
+    }),
     highlightCore: pick("highlight.js", (script) => {
       return script.includes(
         'src="/oneuptime-assets/highlight/highlight.min.js"',
@@ -173,9 +225,18 @@ function blogScripts() {
   };
 }
 
+// A 4x3 image, inline so nothing has to be served for it.
+const BLOG_IMAGE =
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="4" height="3"><rect width="4" height="3" fill="#888"/></svg>',
+  );
+
 /*
- * A post with no h2 heading: the page script returns from its table of
- * contents section on one, and the diagrams must not care.
+ * A post with no h2 heading, so with no table of contents: the page script
+ * used to return from its table of contents section on one, and skip
+ * everything after it. It has a smaller heading and an image, for two of
+ * the features after it: heading links and image hints.
  */
 function blogPage(url) {
   const scripts = blogScripts();
@@ -184,8 +245,16 @@ function blogPage(url) {
       return `<pre><code class="language-mermaid">${escapeHtml(code)}</code></pre>`;
     })
     .join("\n");
+  /*
+   * ?html=broken adds a diagram the post writes as HTML rather than as a
+   * fenced block, one that does not parse.
+   */
+  const htmlDiagram =
+    url.searchParams.get("html") === "broken"
+      ? `<div class="mermaid">${escapeHtml(BROKEN)}</div>`
+      : "";
 
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Blog fixture</title><link rel="stylesheet" href="/oneuptime-assets/highlight/styles/vs2015.min.css">${scripts.highlightCore}${scripts.highlightLoader}</head><body><article class="blog-body"><p>A post with a diagram in it.</p>${blocks}<pre><code class="language-javascript">const answer = 42;</code></pre><p>The end.</p></article>${scripts.page}${scripts.diagrams}</body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Blog fixture</title><link rel="stylesheet" href="/oneuptime-assets/highlight/styles/vs2015.min.css">${scripts.highlightCore}${scripts.highlightLoader}${scripts.style}</head><body><article class="blog-body"><p>A post with a diagram in it.</p><h3>How it is drawn</h3>${htmlDiagram}${blocks}<pre><code class="language-javascript">const answer = 42;</code></pre><img src="${BLOG_IMAGE}" alt="A grey box"><p>The end.</p></article>${scripts.page}${scripts.diagrams}</body></html>`;
 }
 
 const tailwind = path.join(vendorDirectory, "tailwind/tailwind-3.4.5.js");

@@ -4679,6 +4679,27 @@ html.dark .docs-theme-toggle .docs-icon-light {
 .docs-diagram .mermaid svg {
   height: auto;
 }
+/*
+ * A diagram the page could not draw - it does not parse, or this server has
+ * no mermaid build: a short note, then the diagram's source as it was
+ * written, its line breaks and indentation kept, in the code font. The box
+ * scrolls a long line rather than wrapping it.
+ */
+.docs-diagram .docs-diagram__note {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--docs-text-muted);
+}
+.docs-diagram .mermaid[data-diagram="source"] {
+  text-align: start;
+  white-space: pre;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
+    Consolas, monospace;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--docs-text-body);
+}
 
 /* --------------------------------------------------------------------------
    Pagination + page footer

@@ -13,6 +13,7 @@ import React, {
 import ReactMarkdown, { Components } from "react-markdown";
 // https://github.com/remarkjs/remark-gfm
 import remarkGfm from "remark-gfm";
+import { sanitizeDiagramSvg } from "./DiagramSanitizer";
 /*
  * @types/react-syntax-highlighter declares every deep subpath below as ambient
  * `declare module` blocks inside its single index.d.ts, and that file only enters the
@@ -84,7 +85,6 @@ SyntaxHighlighter.registerLanguage("http", http);
 SyntaxHighlighter.registerLanguage("hcl", hcl);
 SyntaxHighlighter.registerLanguage("terraform", hcl);
 SyntaxHighlighter.registerLanguage("tf", hcl);
-import DOMPurify from "dompurify";
 import SessionAwareImage from "./SessionAwareImage";
 import OneUptimeDate from "../../../Types/Date";
 import { Theme, useTheme } from "../../Utils/Theme";
@@ -160,6 +160,11 @@ const initializeMermaid: (mermaid: MermaidApi, theme: Theme) => void = (
     startOnLoad: false,
     theme: isDark ? "dark" : "default",
     securityLevel: "strict",
+    /*
+     * A diagram that does not parse throws, and the viewer says so in its
+     * place; mermaid draws no "Syntax error" graphic of its own.
+     */
+    suppressErrorRendering: true,
     fontFamily: "inherit",
     themeVariables: isDark
       ? {
@@ -181,6 +186,45 @@ const initializeMermaid: (mermaid: MermaidApi, theme: Theme) => void = (
           tertiaryColor: "#ffffff",
         },
   });
+};
+
+/*
+ * mermaid draws in a working element of its own and measures every label
+ * with the page's layout, so that element must be in the page while it
+ * draws. Given no container it appends it to document.body, where - without
+ * suppressErrorRendering - it left its "Syntax error in text" graphic for a
+ * diagram that did not parse, one more on every redraw. suppressErrorRendering
+ * makes mermaid remove that element when parsing or drawing fails; drawing in
+ * a container of its own, laid out but never seen and removed when the
+ * drawing is done, keeps anything it leaves on any other failure off the page
+ * too.
+ */
+const renderInOwnContainer: (
+  mermaid: MermaidApi,
+  id: string,
+  chart: string,
+) => Promise<string> = async (
+  mermaid: MermaidApi,
+  id: string,
+  chart: string,
+): Promise<string> => {
+  const container: HTMLDivElement = document.createElement("div");
+  container.setAttribute("aria-hidden", "true");
+  container.style.position = "absolute";
+  container.style.top = "0";
+  container.style.width = "100%";
+  container.style.height = "0";
+  container.style.overflow = "hidden";
+  container.style.visibility = "hidden";
+  container.style.pointerEvents = "none";
+  document.body.appendChild(container);
+
+  try {
+    const { svg } = await mermaid.render(id, chart, container);
+    return svg;
+  } finally {
+    container.remove();
+  }
 };
 
 // Mermaid diagram component (exported so tests can exercise the lazy load directly)
@@ -210,12 +254,10 @@ export const MermaidDiagram: FunctionComponent<{ chart: string }> = ({
         containerRef.current.innerHTML = "";
         initializeMermaid(mermaid, theme);
         const id: string = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
-        const { svg } = await mermaid.render(id, chart);
+        const svg: string = await renderInOwnContainer(mermaid, id, chart);
         if (containerRef.current && !isCancelled) {
-          containerRef.current.innerHTML = DOMPurify.sanitize(svg, {
-            USE_PROFILES: { svg: true, svgFilters: true },
-            ADD_TAGS: ["foreignObject"],
-          });
+          // SVG, plus the MathML KaTeX writes for a $$...$$ label.
+          containerRef.current.innerHTML = sanitizeDiagramSvg(svg);
         }
       } catch (error) {
         if (containerRef.current && !isCancelled) {
