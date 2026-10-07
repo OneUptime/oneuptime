@@ -174,6 +174,35 @@ describe("a Teams MessageCard shows fenced code as text", () => {
     ]);
   });
 
+  test("a message that starts with a fence has no title line, and the fence still holds", async () => {
+    const card: JSONObject = await cardFor(
+      [
+        "```",
+        "[Open the runbook](https://evil.example/login)",
+        '<img src="https://tracker.example/p.png">',
+        "```",
+        `[Open the incident](${DETAILS_URL})`,
+      ].join("\n"),
+    );
+
+    expect(card["title"]).toBe("");
+    expect(buttonsOf(card)).toEqual([DETAILS_URL]);
+    expect(sectionTextOf(card)).toContain(
+      "[Open the runbook](https://evil.example/login)",
+    );
+    expect(sectionTextOf(card)).toContain("&lt;img");
+    expect(sectionTextOf(card)).not.toMatch(/<img/);
+  });
+
+  test("a first line of inline code is still the title", async () => {
+    const card: JSONObject = await cardFor(
+      ["```inline``` code", `[Open the incident](${DETAILS_URL})`].join("\n"),
+    );
+
+    expect(card["title"]).toBe("```inline``` code");
+    expect(buttonsOf(card)).toEqual([DETAILS_URL]);
+  });
+
   test("three backticks with another backtick after them open no fence", async () => {
     const card: JSONObject = await cardFor(
       [

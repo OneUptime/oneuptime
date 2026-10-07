@@ -151,6 +151,31 @@ const MARKDOWN_BACKSLASH_ESCAPE_PATTERN: RegExp = /\\([!-/:-@[-`{-~])/g;
  */
 const MESSAGE_CARD_FENCE_PATTERN: RegExp = /^(`{3,}|~{3,})/;
 
+type GetMessageCardFenceOpeningFunction = (line: string) => string | null;
+
+/*
+ * The fence a line (already trimmed) opens - its run of backticks or tildes
+ * - or null. A backtick fence's info string has no backtick in it: "```x```
+ * y" is inline code, not a fence.
+ */
+const getMessageCardFenceOpening: GetMessageCardFenceOpeningFunction = (
+  line: string,
+): string | null => {
+  const fence: RegExpExecArray | null = MESSAGE_CARD_FENCE_PATTERN.exec(line);
+
+  if (!fence) {
+    return null;
+  }
+
+  const run: string = fence[1]!;
+
+  if (run.startsWith("`") && line.slice(fence[0].length).includes("`")) {
+    return null;
+  }
+
+  return run;
+};
+
 type EscapeMessageCardCodeFunction = (text: string) => string;
 
 /*
@@ -752,8 +777,15 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     const actions: Array<JSONObject> = [];
     const bodyTextParts: Array<string> = [];
 
-    // Extract title from the first non-empty line and strip markdown heading markers
-    if (lines.length > 0) {
+    /*
+     * Extract title from the first non-empty line and strip markdown heading
+     * markers - unless that line opens a fence: then the card has no title
+     * line, and the fence is read below like any other.
+     */
+    if (
+      lines.length > 0 &&
+      getMessageCardFenceOpening(lines[0] ?? "") === null
+    ) {
       const firstLine: string = lines[0] ?? "";
       title = firstLine
         .replace(/^#+\s*/, "") // remove leading markdown headers like ##
@@ -811,9 +843,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         continue;
       }
 
-      // A backtick fence's info string has no backtick in it.
-      if (fence && !(fence[1]!.startsWith("`") && afterFence.includes("`"))) {
-        openFenceRun = fence[1]!;
+      const opening: string | null = getMessageCardFenceOpening(line);
+
+      if (opening !== null) {
+        openFenceRun = opening;
         bodyTextParts.push(escapeMessageCardCode(line));
         continue;
       }
