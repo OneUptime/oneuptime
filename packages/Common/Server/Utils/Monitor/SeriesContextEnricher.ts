@@ -1,4 +1,5 @@
 import ColumnLength from "../../../Types/Database/ColumnLength";
+import { WORD_JOINER } from "../../../Utils/Markdown/MarkdownEscape";
 import { JSONObject } from "../../../Types/JSON";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import SeriesDebugHints from "../../../Types/Monitor/SeriesContext/SeriesDebugHints";
@@ -158,7 +159,12 @@ export default class SeriesContextEnricher {
       return [];
     }
 
-    const text: string = input.text || "";
+    /*
+     * The text as it reads: a description places a label's value with the
+     * invisible word joiners that keep it from being read as Markdown
+     * (MonitorTemplateUtil.buildMarkdownStorageMap), and is still naming it.
+     */
+    const text: string = (input.text || "").split(WORD_JOINER).join("");
 
     return labels.filter((label: DisplaySeriesLabel) => {
       return !SeriesContextEnricher.isValueMentioned({ text, label });

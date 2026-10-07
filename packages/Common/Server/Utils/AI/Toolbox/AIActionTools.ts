@@ -8,6 +8,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import { neutralizeAiWrittenMarkdown } from "../../../../Utils/Markdown/UntrustedMarkdown";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../../Types/Date";
 import UserNotificationEventType from "../../../../Types/UserNotification/UserNotificationEventType";
@@ -425,7 +426,13 @@ export const PostIncidentStatusUpdateTool: ObservabilityTool = {
     const publicNote: IncidentPublicNote = new IncidentPublicNote();
     publicNote.incidentId = incidentId;
     publicNote.projectId = ctx.projectId;
-    publicNote.note = note;
+    /*
+     * The model wrote this from what it read, telemetry included: it stays
+     * Markdown, but nothing in it acts on its own where the update is shown -
+     * the status page, subscribers' messages, the feed, Slack and Teams
+     * (neutralizeAiWrittenMarkdown).
+     */
+    publicNote.note = neutralizeAiWrittenMarkdown(note);
     publicNote.postedAt = OneUptimeDate.getCurrentDate();
     publicNote.createdByUserId = userId;
     publicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =

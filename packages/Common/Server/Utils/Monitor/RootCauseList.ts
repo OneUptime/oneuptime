@@ -27,6 +27,8 @@
  * downstream needs to know these blocks exist.
  */
 
+import { markdownCodeSpan } from "../../../Utils/Markdown/MarkdownEscape";
+
 export interface RootCauseListDetail {
   /*
    * Markdown, rendered as-is — escape plain text, or wrap an identifier
@@ -105,35 +107,15 @@ export default class RootCauseList {
    * A value without backticks is a plain single-backtick span, so an ISO
    * timestamp still reaches the dashboard as the bare inline code the
    * MarkdownViewer re-renders in the viewer's timezone.
+   *
+   * Slack's Markdown conversion passes code through untouched, so a chat
+   * mention in a value ("<!channel>", "<@U123>") is broken with an invisible
+   * word joiner: it reads as reported, and notifies nobody.
+   *
+   * The span itself is markdownCodeSpan, which every other place that shows
+   * a reported value as code uses too.
    */
   public static code(value: string | undefined | null): string {
-    if (value === undefined || value === null) {
-      return "";
-    }
-
-    const text: string = String(value)
-      .replace(/\s*[\r\n]+\s*/g, " ")
-      .trim();
-
-    if (text.length === 0) {
-      return "";
-    }
-
-    const backtickRuns: Array<string> = text.match(/`+/g) || [];
-
-    const longestRun: number = backtickRuns.reduce(
-      (longest: number, run: string): number => {
-        return Math.max(longest, run.length);
-      },
-      0,
-    );
-
-    if (longestRun === 0) {
-      return `\`${text}\``;
-    }
-
-    const fence: string = "`".repeat(longestRun + 1);
-
-    return `${fence} ${text} ${fence}`;
+    return markdownCodeSpan(value);
   }
 }

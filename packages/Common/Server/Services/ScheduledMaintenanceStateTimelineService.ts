@@ -16,6 +16,7 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import NetworkSite from "../../Models/DatabaseModels/NetworkSite";
 import NetworkSiteService from "./NetworkSiteService";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -535,7 +536,13 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
         },
       });
 
-    const stateName: string = scheduledMaintenanceState?.name || "";
+    /*
+     * The state's name is plain text, placed into the feed item's Markdown
+     * (posted to Slack and Teams too): escaped, so it reads as typed.
+     */
+    const stateName: string = escapeMarkdownValue(
+      scheduledMaintenanceState?.name || "",
+    );
     let stateEmoji: string = "➡️";
 
     // if resolved state then change emoji to ✅.

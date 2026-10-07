@@ -48,7 +48,10 @@ import MonitorType, {
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 import MonitorStep from "../../Types/Monitor/MonitorStep";
 import ObjectID from "../../Types/ObjectID";
-import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
+import {
+  escapeMarkdownInline,
+  escapeMarkdownValue,
+} from "../../Utils/Markdown/MarkdownEscape";
 import EventFieldChange, {
   EventFieldSet,
   EventValuesBeforeUpdate,
@@ -1989,14 +1992,14 @@ export class Service extends ProjectReferencesService<Model> {
 
     let feedInfoInMarkdown: string = `#### 🌎 Monitor Created: 
           
-**${createdItem.name?.trim() || "No name provided."}**:
+**${escapeMarkdownValue(createdItem.name?.trim() || "No name provided.")}**:
 
 ${createdItem.description?.trim() || "No description provided."}
     
 `;
 
     if (monitor?.currentMonitorStatus?.name) {
-      feedInfoInMarkdown += `➡️ **Monitor Status**: ${monitor.currentMonitorStatus.name} \n\n`;
+      feedInfoInMarkdown += `➡️ **Monitor Status**: ${escapeMarkdownValue(monitor.currentMonitorStatus.name)} \n\n`;
     }
 
     if (monitor?.monitorType) {
@@ -2007,7 +2010,7 @@ ${createdItem.description?.trim() || "No description provided."}
       feedInfoInMarkdown += `🏷️ **Labels**:\n`;
 
       for (const label of monitor.labels) {
-        feedInfoInMarkdown += `- ${label.name}\n`;
+        feedInfoInMarkdown += `- ${escapeMarkdownValue(label.name)}\n`;
       }
 
       feedInfoInMarkdown += `\n\n`;

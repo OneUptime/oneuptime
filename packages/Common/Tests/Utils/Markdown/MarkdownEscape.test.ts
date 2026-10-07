@@ -4,6 +4,7 @@ import escapeMarkdownInlineDefault, {
   escapeMarkdownInline,
   escapeMarkdownValue,
   neutralizeChatControlSequences,
+  neutralizeChatLinkSequences,
 } from "../../../Utils/Markdown/MarkdownEscape";
 import { neutralizeChatControlSequences as neutralizeChatControlSequencesFromUntrustedMarkdown } from "../../../Utils/Markdown/UntrustedMarkdown";
 import { describe, expect, test } from "@jest/globals";
@@ -585,5 +586,59 @@ describe("both escapers break chat control sequences", () => {
     expect(escapeMarkdownValue("Site 03 - payments (EU) #42 @jane !now")).toBe(
       "Site 03 - payments (EU) #42 @jane !now",
     );
+  });
+});
+
+// Slack's link syntax: "<" and an address of any scheme, then "|" and words.
+const SLACK_LINK_PATTERN: RegExp = /<[A-Za-z][A-Za-z0-9+.-]*:[^>|]*\|/;
+
+/*
+ * Slack reads "<address|words>" as a link labelled with the words - for an
+ * address of any scheme it links, not only a web one - and its Markdown
+ * conversion passes code through as it is. In code, where nothing else is
+ * escaped, only a "<" that starts such an address is broken.
+ */
+describe("neutralizeChatLinkSequences", () => {
+  test.each([
+    "<https://evil.example/login|Open the runbook>",
+    "<http://evil.example/login|Open the runbook>",
+    "<mailto:billing@evil.example|Write to billing>",
+  ])(
+    "breaks the address in %j, and it reads as written",
+    (sequence: string) => {
+      const typed: string = `See ${sequence} now`;
+      const neutralized: string = neutralizeChatLinkSequences(typed);
+
+      // In code, as typed, Slack really does get the link.
+      expect(slackTextOf(`\`${typed}\``)).toMatch(SLACK_LINK_PATTERN);
+
+      expect(neutralized).toContain(`<${WORD_JOINER}`);
+      expect(withoutWordJoiners(neutralized)).toBe(typed);
+      expect(slackTextOf(`\`${neutralized}\``)).not.toMatch(
+        SLACK_LINK_PATTERN,
+      );
+      expect(slackTextOf(`\`\`\`\n${neutralized}\n\`\`\``)).not.toMatch(
+        SLACK_LINK_PATTERN,
+      );
+    },
+  );
+
+  test.each([
+    "kubectl apply -f - <<EOF",
+    "sort <ids.txt | uniq",
+    "if (a < b) { return; }",
+    "const seen: Map<string, number> = new Map();",
+  ])("leaves %j as it is: no address starts there", (code: string) => {
+    expect(neutralizeChatLinkSequences(code)).toBe(code);
+  });
+
+  test("is idempotent, and gives nothing for nothing", () => {
+    const once: string = neutralizeChatLinkSequences(
+      "<https://evil.example|a> <mailto:x@evil.example|b>",
+    );
+
+    expect(neutralizeChatLinkSequences(once)).toBe(once);
+    expect(neutralizeChatLinkSequences(undefined)).toBe("");
+    expect(neutralizeChatLinkSequences(null)).toBe("");
   });
 });
