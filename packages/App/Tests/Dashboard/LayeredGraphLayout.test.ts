@@ -213,13 +213,28 @@ describe("computeLayeredLayout — a large graph returns promptly", () => {
    * way and take well under 200ms now, so a one-second bound leaves a slow
    * CI box plenty of room while still catching the old behaviour.
    * process.hrtime keeps the measurement monotonic.
+   *
+   * The time taken is the fastest of a few runs. A single run on a busy CI
+   * worker can include a major collection of the worker's heap, or time the
+   * process spent waiting for a core: the 20,000-caller graph once read 1.6s
+   * there against under 100ms on its own. The old behaviour was slow on
+   * every run, so the fastest run still catches it.
    */
+  const RUNS: number = 3;
+
   const elapsedMsOf: (run: () => void) => number = (
     run: () => void,
   ): number => {
-    const start: bigint = process.hrtime.bigint();
-    run();
-    return Number(process.hrtime.bigint() - start) / 1000000;
+    let fastestMs: number = Number.POSITIVE_INFINITY;
+    for (let attempt: number = 0; attempt < RUNS; attempt++) {
+      const start: bigint = process.hrtime.bigint();
+      run();
+      fastestMs = Math.min(
+        fastestMs,
+        Number(process.hrtime.bigint() - start) / 1000000,
+      );
+    }
+    return fastestMs;
   };
 
   const serviceId: (index: number) => string = (index: number): string => {
