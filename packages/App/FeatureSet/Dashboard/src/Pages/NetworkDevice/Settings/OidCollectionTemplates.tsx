@@ -57,7 +57,7 @@ The discovery-rule row is the one that saves the most work. In Zabbix, per-port 
 
 ### Criteria
 
-Criteria alert on what is collected, and they are set on the monitor, not here. Interface criteria fan out — one criterion covers every port. **OID criteria do not: one criterion covers one OID.** Alerting on CPU, memory and temperature is three criteria, and there is no wildcard that means "any OID" — the wildcard fan-out is interface-only.
+Criteria alert on what is collected, and they are set on the monitor, not here. Interface criteria and SNMP table criteria fan out — with \`*\`, one criterion covers every port or every table row and raises one alert per port or row. **OID criteria do not: one criterion covers one OID.** Alerting on CPU, memory and temperature is three criteria.
 
 ### Limits
 
