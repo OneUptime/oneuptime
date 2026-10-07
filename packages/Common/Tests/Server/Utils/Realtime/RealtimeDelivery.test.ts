@@ -864,6 +864,110 @@ describe("Realtime: a record's live update reaches only people who may read it",
       expect(owner.received).toEqual([]);
     });
 
+    test("a decision that takes too long lets the delete go ahead, and nobody hears about those records", async () => {
+      const access: FakeReadAccess = new FakeReadAccess();
+      // The owner's answer does not come back in time.
+      let answer: (readsEveryRecord: boolean) => void = (): void => {};
+      access.readsEveryRecord = (): Promise<boolean> => {
+        return new Promise<boolean>(
+          (resolve: (readsEveryRecord: boolean) => void): void => {
+            answer = resolve;
+          },
+        );
+      };
+      const warn: jest.SpyInstance = jest
+        .spyOn(logger, "warn")
+        .mockImplementation((): void => {});
+
+      const timeouts: { DELETE_DECISION_TIMEOUT_IN_MS: number } =
+        Realtime as unknown as { DELETE_DECISION_TIMEOUT_IN_MS: number };
+      const timeout: number = timeouts.DELETE_DECISION_TIMEOUT_IN_MS;
+      timeouts.DELETE_DECISION_TIMEOUT_IN_MS = 20;
+
+      try {
+        const owner: FakeSocket = server.addSocket({
+          rooms: [roomOf("Incident", ModelEventType.Delete)],
+          userId: OWNER,
+        });
+
+        const startedAt: number = Date.now();
+
+        const beforeDelete: RealtimeReadAccess =
+          await Realtime.snapshotReadAccess({
+            tenantId: TENANT_ID,
+            modelType: Incident,
+            modelIds: [new ObjectID(RECORD_A)],
+            access: access,
+          });
+
+        expect(Date.now() - startedAt).toBeLessThan(2000);
+        expect(beforeDelete).toBe(NO_READER_ACCESS);
+        expect(warn).toHaveBeenCalledWith(
+          expect.stringContaining("could not be decided in time"),
+          expect.objectContaining({ projectId: TENANT_ID }),
+        );
+
+        // The answer that comes back later changes nothing.
+        answer(true);
+        await new Promise<void>((resolve: () => void): void => {
+          setTimeout(resolve, 0);
+        });
+
+        await emit(beforeDelete, RECORD_A, {
+          eventType: ModelEventType.Delete,
+        });
+        await Realtime.waitForPendingDeliveries();
+
+        expect(owner.received).toEqual([]);
+      } finally {
+        timeouts.DELETE_DECISION_TIMEOUT_IN_MS = timeout;
+        answer(false);
+      }
+    });
+
+    test("a decision made in time leaves no timer running", async () => {
+      const access: FakeReadAccess = new FakeReadAccess();
+      access.everyRecordReaders.add(OWNER);
+
+      server.addSocket({
+        rooms: [roomOf("Incident", ModelEventType.Delete)],
+        userId: OWNER,
+      });
+
+      const clearTimeoutSpy: jest.SpyInstance = jest.spyOn(
+        global,
+        "clearTimeout",
+      );
+
+      const beforeDelete: RealtimeReadAccess =
+        await Realtime.snapshotReadAccess({
+          tenantId: TENANT_ID,
+          modelType: Incident,
+          modelIds: [new ObjectID(RECORD_A)],
+          access: access,
+        });
+
+      expect(beforeDelete).not.toBe(NO_READER_ACCESS);
+      expect(clearTimeoutSpy).toHaveBeenCalled();
+    });
+
+    test("nobody listening: no decision is worked out at all", async () => {
+      const access: FakeReadAccess = new FakeReadAccess();
+      access.everyRecordReaders.add(OWNER);
+
+      const beforeDelete: RealtimeReadAccess =
+        await Realtime.snapshotReadAccess({
+          tenantId: TENANT_ID,
+          modelType: Incident,
+          modelIds: [new ObjectID(RECORD_A)],
+          access: access,
+        });
+
+      expect(beforeDelete).toBe(NO_READER_ACCESS);
+      expect(access.everyRecordQuestions).toEqual([]);
+      expect(access.reads).toEqual([]);
+    });
+
     test("an access that reads nothing sends nothing", async () => {
       const owner: FakeSocket = server.addSocket({
         rooms: [roomOf("Incident", ModelEventType.Delete)],

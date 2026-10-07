@@ -91,6 +91,13 @@ export default abstract class Realtime {
   public static readonly MAX_EVENTS_PER_DELIVERY: number = 100;
   public static readonly MAX_WAITING_EVENTS: number = 5000;
 
+  /*
+   * The longest a delete waits for the decision of who may hear about it
+   * (snapshotReadAccess). Past it the delete goes ahead and nobody hears
+   * about those rows: a delete never waits long on live updates.
+   */
+  public static readonly DELETE_DECISION_TIMEOUT_IN_MS: number = 5000;
+
   private static pendingEvents: Map<string, PendingModelEvents> = new Map<
     string,
     PendingModelEvents
@@ -572,15 +579,37 @@ export default abstract class Realtime {
           }),
         ]);
 
-      const readable: Map<
-        string,
-        Set<string>
-      > = await RealtimeAudience.getReadableIds({
-        tenantId: tenantId,
-        access: data.access,
-        readers: this.getReadersOfSockets(listening),
-        modelIds: modelIds,
+      if (listening.length === 0) {
+        return NO_READER_ACCESS;
+      }
+
+      let timer: ReturnType<typeof setTimeout> | undefined = undefined;
+
+      const readable: Map<string, Set<string>> | null = await Promise.race([
+        RealtimeAudience.getReadableIds({
+          tenantId: tenantId,
+          access: data.access,
+          readers: this.getReadersOfSockets(listening),
+          modelIds: modelIds,
+        }),
+        new Promise<null>((resolve: (value: null) => void): void => {
+          timer = setTimeout((): void => {
+            resolve(null);
+          }, this.DELETE_DECISION_TIMEOUT_IN_MS);
+        }),
+      ]).finally((): void => {
+        if (timer) {
+          clearTimeout(timer);
+        }
       });
+
+      if (!readable) {
+        logger.warn(
+          `Realtime: who may hear about deleted ${tableName} records could not be decided in time; nobody is told.`,
+          { projectId: tenantId } as LogAttributes,
+        );
+        return NO_READER_ACCESS;
+      }
 
       return {
         readsEveryRecord: async (): Promise<boolean> => {

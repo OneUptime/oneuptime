@@ -2433,7 +2433,6 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return data;
   }
 
-  @CaptureSpan()
   /*
    * Who may hear about a record of this table (Realtime): whoever finds it
    * with this service's own read - its read hooks, then the permission
@@ -2642,6 +2641,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * (getRealtimeReadAccess, or `options.access` when the record can no
    * longer be read: see getRealtimeAccessBeforeDelete).
    */
+  @CaptureSpan()
   public async onTriggerRealtime(
     modelId: ObjectID,
     projectId: ObjectID,
