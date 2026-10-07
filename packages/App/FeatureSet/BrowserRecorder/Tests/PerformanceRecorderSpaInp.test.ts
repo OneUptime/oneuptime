@@ -6,6 +6,7 @@ import PerformanceRecorder, {
   PerformanceRecorderOptions,
   WebVitalEvent,
 } from "../src/PerformanceRecorder";
+import textOf from "./PayloadText";
 
 /*
  * INP per VIEW, for single-page apps (issue #3975). The browser's INP
@@ -375,7 +376,7 @@ describe("PerformanceRecorder - INP per view", (): void => {
       "div#checkout > button.pay.primary",
     );
     /* Structure only: never an attribute value or the button's text. */
-    expect(JSON.stringify(inps()[0])).not.toContain("4242");
+    expect(textOf(inps()[0])).not.toContain("4242");
     expect(JSON.stringify(inps()[0])).not.toContain("Pay<");
   });
 

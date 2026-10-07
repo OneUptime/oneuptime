@@ -26026,6 +26026,9 @@
   "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here.": "Ещё шагов, для которых нужен владелец проекта или пользователь с ролью «Billing Admin» или разрешением «Manage Billing»: {{count}}. Они здесь не учитываются.",
   "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here._one": "Ещё {{count}} шаг требует владельца проекта или пользователя с ролью «Billing Admin» или разрешением «Manage Billing», поэтому он здесь не учитывается.",
   "The event has started, so this can no longer be changed.": "Событие уже началось, поэтому это больше нельзя изменить.",
+  "Connecting GitHub needs permission to create code repositories.": "Чтобы подключить GitHub, нужно право создавать репозитории кода.",
+  "Connecting GitHub needs the {{planName}} plan.": "Чтобы подключить GitHub, нужен тариф {{planName}}.",
+  "OneUptime could not start the GitHub connection. Please try again.": "OneUptime не удалось начать подключение к GitHub. Попробуйте ещё раз.",
   "No longer a member": "Больше не участник",
   "Invitation not accepted yet": "Приглашение ещё не принято"
 }

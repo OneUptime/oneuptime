@@ -21,8 +21,9 @@ import {
 } from "@jest/globals";
 
 /*
- * WorkspaceOAuthState is what the Slack and Microsoft Teams connect callbacks
- * trust to decide which project and user a workspace binding is written for.
+ * WorkspaceOAuthState is what the Slack, Microsoft Teams and GitHub App
+ * connect callbacks trust to decide which project and user a binding is
+ * written for.
  * These tests pin the properties that make it trustworthy: opaque, single-use,
  * short-lived, flow-specific and bound to the browser that started the flow.
  */
@@ -458,6 +459,69 @@ describe("WorkspaceOAuthState", () => {
           flows: [WorkspaceOAuthFlow.MicrosoftTeamsUserSignIn],
         }),
       ).toBeNull();
+    });
+
+    test("a GitHub App installation state is spent by its own callback", async () => {
+      const { created, cookies } = await start(
+        WorkspaceOAuthFlow.GitHubAppInstall,
+      );
+
+      const record: WorkspaceOAuthStateRecord | null =
+        await WorkspaceOAuthState.consume({
+          req: makeRequest(cookies),
+          state: created.state,
+          flows: [WorkspaceOAuthFlow.GitHubAppInstall],
+        });
+
+      expect(record?.flow).toBe(WorkspaceOAuthFlow.GitHubAppInstall);
+      expect(record?.projectId.toString()).toBe(projectId.toString());
+      expect(record?.userId.toString()).toBe(userId.toString());
+    });
+
+    test("a GitHub App installation state is never spent by a Slack or Teams callback", async () => {
+      const { created, cookies } = await start(
+        WorkspaceOAuthFlow.GitHubAppInstall,
+      );
+
+      expect(
+        await WorkspaceOAuthState.consume({
+          req: makeRequest(cookies),
+          state: created.state,
+          flows: Object.values(WorkspaceOAuthFlow).filter(
+            (flow: WorkspaceOAuthFlow): boolean => {
+              return flow !== WorkspaceOAuthFlow.GitHubAppInstall;
+            },
+          ),
+        }),
+      ).toBeNull();
+    });
+
+    test.each([
+      WorkspaceOAuthFlow.SlackInstall,
+      WorkspaceOAuthFlow.SlackUserSignIn,
+      WorkspaceOAuthFlow.MicrosoftTeamsUserSignIn,
+      WorkspaceOAuthFlow.MicrosoftTeamsAdminConsent,
+      WorkspaceOAuthFlow.MicrosoftTeamsAdminConsentSignIn,
+    ])(
+      "a %s state is never spent by the GitHub App installation callback",
+      async (flow: WorkspaceOAuthFlow) => {
+        const { created, cookies } = await start(flow);
+
+        expect(
+          await WorkspaceOAuthState.consume({
+            req: makeRequest(cookies),
+            state: created.state,
+            flows: [WorkspaceOAuthFlow.GitHubAppInstall],
+          }),
+        ).toBeNull();
+      },
+    );
+
+    test("every flow is its own", () => {
+      const flows: Array<string> = Object.values(WorkspaceOAuthFlow);
+
+      expect(new Set(flows).size).toBe(flows.length);
+      expect(flows).toContain("GitHubAppInstall");
     });
 
     test("refuses a state completed in a browser without the binding cookie, and burns it", async () => {

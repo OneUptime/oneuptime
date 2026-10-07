@@ -6,9 +6,10 @@ import path from "path";
  * Someone who leaves a project stops getting its notifications: their own
  * notification methods, rules and settings for it go with their last team,
  * and whatever still names them notifies them no more, marked "No longer a
- * member" in the Dashboard. The permissions guide says so in its Users
+ * member" in the Dashboard ("Invitation not accepted yet" for somebody
+ * invited who has not joined). The permissions guide says so in its Users
  * section, in every docs language, right before the SSO bullet - and uses
- * the Dashboard's own words for the marker in that language.
+ * the Dashboard's own words for both markers in that language.
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -48,15 +49,15 @@ function readGuide(language: string): Array<string> {
     .split("\n");
 }
 
-function dashboardWords(language: string): string {
+function dashboardWords(language: string, key: string): string {
   const translations: Record<string, string> = JSON.parse(
     fs.readFileSync(path.join(LOCALES_DIR, `${language}.json`), "utf8"),
   ) as Record<string, string>;
 
-  const words: string | undefined = translations["No longer a member"];
+  const words: string | undefined = translations[key];
 
   if (!words) {
-    throw new Error(`The Dashboard has no "No longer a member" in ${language}`);
+    throw new Error(`The Dashboard has no "${key}" in ${language}`);
   }
 
   return words;
@@ -100,7 +101,12 @@ describe("the permissions guide says what leaving a project does to notification
 
       expect(next.startsWith("- ")).toBe(true);
       expect(next).toContain("(/docs/identity/sso)");
-      expect(bullet).toContain(`**${dashboardWords(language)}**`);
+      expect(bullet).toContain(
+        `**${dashboardWords(language, "No longer a member")}**`,
+      );
+      expect(bullet).toContain(
+        `**${dashboardWords(language, "Invitation not accepted yet")}**`,
+      );
       expect(bullet).toContain("WhatsApp");
       expect(bullet).toContain("Microsoft Teams");
     });

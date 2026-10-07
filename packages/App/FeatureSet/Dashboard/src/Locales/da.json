@@ -26026,6 +26026,9 @@
   "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here.": "{{count}} trin mere kræver en projektejer eller nogen med rollen »Billing Admin« eller tilladelsen »Manage Billing«, så de tælles ikke med her.",
   "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here._one": "{{count}} trin mere kræver en projektejer eller nogen med rollen »Billing Admin« eller tilladelsen »Manage Billing«, så det tælles ikke med her.",
   "The event has started, so this can no longer be changed.": "Begivenheden er startet, så dette kan ikke længere ændres.",
+  "Connecting GitHub needs permission to create code repositories.": "Det kræver tilladelse til at oprette koderepositorier at forbinde GitHub.",
+  "Connecting GitHub needs the {{planName}} plan.": "Det kræver {{planName}}-abonnementet at forbinde GitHub.",
+  "OneUptime could not start the GitHub connection. Please try again.": "OneUptime kunne ikke starte forbindelsen til GitHub. Prøv igen.",
   "No longer a member": "Ikke længere medlem",
   "Invitation not accepted yet": "Invitation endnu ikke accepteret"
 }

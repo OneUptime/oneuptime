@@ -69,9 +69,17 @@ import WorkspaceOAuthState, {
   WorkspaceOAuthFlow,
   WorkspaceOAuthStateRecord,
 } from "../Utils/Workspace/WorkspaceOAuthState";
+import WorkspaceOAuthCallbackAccess from "./WorkspaceOAuthCallbackAccess";
 import OneUptimeDate from "../../Types/Date";
 
 export default class SlackAPI {
+  /*
+   * What someone who may not connect the project to Slack is told, when the
+   * connection starts and again when Slack sends the browser back.
+   */
+  public static readonly CONNECT_PERMISSION_MESSAGE: string =
+    "You do not have permission to connect this project to Slack.";
+
   // Generous: the server-side channel fetch caches up to ~100k channels.
   public static readonly MAX_CHANNEL_CACHE_ENTRIES: number = 100000;
 
@@ -263,8 +271,7 @@ export default class SlackAPI {
             databaseProps: databaseProps,
             allowedPermissions:
               WorkspaceOAuthState.MANAGE_CONNECTION_PERMISSIONS,
-            errorMessage:
-              "You do not have permission to connect this project to Slack.",
+            errorMessage: SlackAPI.CONNECT_PERMISSION_MESSAGE,
           });
 
           if (!SlackAppClientId) {
@@ -383,6 +390,22 @@ export default class SlackAPI {
             req,
             res,
             new BadRequestException(WorkspaceOAuthState.INVALID_STATE_MESSAGE),
+          );
+        }
+
+        // Whoever started the install may still connect the project.
+        try {
+          await WorkspaceOAuthCallbackAccess.assertStartedByMayManageConnection(
+            {
+              record: stateRecord,
+              errorMessage: SlackAPI.CONNECT_PERMISSION_MESSAGE,
+            },
+          );
+        } catch (refusal) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            WorkspaceOAuthCallbackAccess.answerFor(refusal),
           );
         }
 
@@ -602,6 +625,19 @@ export default class SlackAPI {
             req,
             res,
             new BadRequestException(WorkspaceOAuthState.INVALID_STATE_MESSAGE),
+          );
+        }
+
+        // Whoever started the sign-in is still a member of the project.
+        try {
+          await WorkspaceOAuthCallbackAccess.assertStartedByIsMember({
+            record: stateRecord,
+          });
+        } catch (refusal) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            WorkspaceOAuthCallbackAccess.answerFor(refusal),
           );
         }
 

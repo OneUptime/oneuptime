@@ -26026,6 +26026,9 @@
   "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here.": "あと {{count}} 個のステップはプロジェクトのオーナーまたは「Billing Admin」ロールまたは「請求の管理」権限を持つユーザーによる操作が必要なため、ここでは数えていません。",
   "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here._one": "あと {{count}} 個のステップはプロジェクトのオーナーまたは「Billing Admin」ロールまたは「請求の管理」権限を持つユーザーによる操作が必要なため、ここでは数えていません。",
   "The event has started, so this can no longer be changed.": "イベントが始まったため、これは変更できません。",
+  "Connecting GitHub needs permission to create code repositories.": "GitHub に接続するには、コードリポジトリを作成する権限が必要です。",
+  "Connecting GitHub needs the {{planName}} plan.": "GitHub に接続するには、{{planName}} プランが必要です。",
+  "OneUptime could not start the GitHub connection. Please try again.": "OneUptime は GitHub との接続を開始できませんでした。もう一度お試しください。",
   "No longer a member": "メンバーではなくなりました",
   "Invitation not accepted yet": "招待はまだ承諾されていません"
 }

@@ -26026,6 +26026,9 @@
   "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here.": "{{count}} مرحلهٔ دیگر به مالک پروژه یا کسی که نقش «Billing Admin» یا مجوز «Manage Billing» دارد نیاز دارد، به همین دلیل اینجا شمرده نمی‌شوند.",
   "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here._one": "{{count}} مرحلهٔ دیگر به مالک پروژه یا کسی که نقش «Billing Admin» یا مجوز «Manage Billing» دارد نیاز دارد، به همین دلیل اینجا شمرده نمی‌شود.",
   "The event has started, so this can no longer be changed.": "رویداد شروع شده است، بنابراین دیگر نمی‌توان آن را تغییر داد.",
+  "Connecting GitHub needs permission to create code repositories.": "برای اتصال GitHub به مجوز ساختن مخازن کد نیاز است.",
+  "Connecting GitHub needs the {{planName}} plan.": "برای اتصال GitHub به طرح {{planName}} نیاز است.",
+  "OneUptime could not start the GitHub connection. Please try again.": "OneUptime نتوانست اتصال به GitHub را آغاز کند. لطفاً دوباره تلاش کنید.",
   "No longer a member": "دیگر عضو نیست",
   "Invitation not accepted yet": "دعوت هنوز پذیرفته نشده است"
 }

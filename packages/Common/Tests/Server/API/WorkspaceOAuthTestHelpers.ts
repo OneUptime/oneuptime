@@ -14,7 +14,8 @@ import UserType from "../../../Types/UserType";
 import { JSONObject } from "../../../Types/JSON";
 
 /*
- * Shared scaffolding for the Slack and Microsoft Teams OAuth state tests.
+ * Shared scaffolding for the Slack, Microsoft Teams and GitHub App OAuth
+ * state tests.
  *
  * Those tests run the real routers on a real express app and talk to it over
  * HTTP, so cookies, redirects and query strings behave the way a browser sees
@@ -26,6 +27,25 @@ import { JSONObject } from "../../../Types/JSON";
 export const TEST_USER_HEADER: string = "x-test-user-id";
 export const TEST_PERMISSIONS_HEADER: string = "x-test-permissions";
 export const TEST_MEMBER_OF_HEADER: string = "x-test-member-of";
+// Team block rows, with no labels and with one label.
+export const TEST_BLOCKED_PERMISSIONS_HEADER: string =
+  "x-test-blocked-permissions";
+export const TEST_LABELLED_BLOCKED_PERMISSIONS_HEADER: string =
+  "x-test-labelled-blocked-permissions";
+// A project API key instead of a person: no user, the key's permissions.
+export const TEST_API_KEY_HEADER: string = "x-test-api-key";
+// A credential issued for reading only (an MCP client connected read-only).
+export const TEST_READ_ONLY_HEADER: string = "x-test-read-only";
+// A server admin.
+export const TEST_MASTER_ADMIN_HEADER: string = "x-test-master-admin";
+
+// The label a labelled block row names.
+export const TEST_BLOCK_LABEL_ID: string =
+  "7d000000-0000-4000-8000-0000000000aa";
+
+function permissionList(value: unknown): Array<string> {
+  return ((value as string | undefined) || "").split(",").filter(Boolean);
+}
 
 /*
  * Stands in for UserMiddleware.getUserMiddleware. Like the real one it lets
@@ -47,34 +67,76 @@ export function fakeGetUserMiddleware(
     | undefined;
   const memberOf: string | undefined =
     (req.headers[TEST_MEMBER_OF_HEADER] as string | undefined) || tenantId;
-  const permissions: Array<string> = (
-    (req.headers[TEST_PERMISSIONS_HEADER] as string | undefined) || ""
-  )
-    .split(",")
-    .filter(Boolean);
+  const permissions: Array<string> = permissionList(
+    req.headers[TEST_PERMISSIONS_HEADER],
+  );
+  const blocked: Array<string> = permissionList(
+    req.headers[TEST_BLOCKED_PERMISSIONS_HEADER],
+  );
+  const labelledBlocked: Array<string> = permissionList(
+    req.headers[TEST_LABELLED_BLOCKED_PERMISSIONS_HEADER],
+  );
+  const isApiKey: boolean = Boolean(req.headers[TEST_API_KEY_HEADER]);
+  const isMasterAdmin: boolean = Boolean(req.headers[TEST_MASTER_ADMIN_HEADER]);
 
-  if (userId) {
-    request.userAuthorization = { userId: new ObjectID(userId) };
-    request.userType = UserType.User;
+  if (userId && !isApiKey) {
+    request.userAuthorization = {
+      userId: new ObjectID(userId),
+      isMasterAdmin: isMasterAdmin,
+    };
+    request.userType = isMasterAdmin ? UserType.MasterAdmin : UserType.User;
+  }
+
+  if (isApiKey) {
+    request.userType = UserType.API;
+  }
+
+  if (req.headers[TEST_READ_ONLY_HEADER]) {
+    request.mcpOAuth = {
+      grantId: new ObjectID("7d000000-0000-4000-8000-0000000000bb"),
+      clientId: "test-mcp-client",
+      clientName: "Test MCP client",
+      isReadOnly: true,
+    };
   }
 
   if (tenantId) {
     request.tenantId = new ObjectID(tenantId);
   }
 
-  if (userId && memberOf && permissions.length > 0) {
+  if ((userId || isApiKey) && memberOf && permissions.length > 0) {
+    const row: (
+      permission: string,
+      isBlockPermission: boolean,
+      labelIds: Array<ObjectID>,
+    ) => JSONObject = (
+      permission: string,
+      isBlockPermission: boolean,
+      labelIds: Array<ObjectID>,
+    ): JSONObject => {
+      return {
+        _type: "UserPermission",
+        permission: permission,
+        labelIds: labelIds,
+        isBlockPermission: isBlockPermission,
+      };
+    };
+
     request.userTenantAccessPermission = {
       [memberOf]: {
         _type: "UserTenantAccessPermission",
         projectId: new ObjectID(memberOf),
-        permissions: permissions.map((permission: string) => {
-          return {
-            _type: "UserPermission",
-            permission: permission,
-            labelIds: [],
-            isBlockPermission: false,
-          };
-        }),
+        permissions: [
+          ...permissions.map((permission: string) => {
+            return row(permission, false, []);
+          }),
+          ...blocked.map((permission: string) => {
+            return row(permission, true, []);
+          }),
+          ...labelledBlocked.map((permission: string) => {
+            return row(permission, true, [new ObjectID(TEST_BLOCK_LABEL_ID)]);
+          }),
+        ],
       },
     };
   }

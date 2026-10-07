@@ -26026,6 +26026,9 @@
   "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here.": "還有 {{count}} 個步驟需要專案擁有者或擁有「Billing Admin」角色或「Manage Billing」權限的使用者處理，因此未計入此處。",
   "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here._one": "還有 {{count}} 個步驟需要專案擁有者或擁有「Billing Admin」角色或「Manage Billing」權限的使用者處理，因此未計入此處。",
   "The event has started, so this can no longer be changed.": "事件已開始，因此無法再變更。",
+  "Connecting GitHub needs permission to create code repositories.": "連接 GitHub 需要建立程式碼儲存庫的權限。",
+  "Connecting GitHub needs the {{planName}} plan.": "連接 GitHub 需要 {{planName}} 方案。",
+  "OneUptime could not start the GitHub connection. Please try again.": "OneUptime 無法開始連接 GitHub。請再試一次。",
   "No longer a member": "已不再是成員",
   "Invitation not accepted yet": "尚未接受邀請"
 }

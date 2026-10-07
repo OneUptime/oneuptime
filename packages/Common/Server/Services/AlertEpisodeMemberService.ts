@@ -4,8 +4,11 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import FindBy from "../Types/Database/FindBy";
 import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
-import ProjectReferencesService from "./ProjectReferencesService";
+import ProjectReferencesService, {
+  ProjectReferenceWrite,
+} from "./ProjectReferencesService";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import CallerVisibleRead from "../Utils/Database/CallerVisibleRead";
 import { applyAlertRelatedRecordPrivacyFilter } from "../Utils/Alert/AlertPrivacyFilter";
 import { applyAlertEpisodeRelatedRecordPrivacyFilter } from "../Utils/AlertEpisode/AlertEpisodePrivacyFilter";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -48,12 +51,117 @@ const getFeedTitle: GetFeedTitleFunction = (
   return escapeMarkdownValue(title || "No title");
 };
 
+// How a feed entry names the alert, or the episode, on the other side.
+interface FeedMention {
+  // "**Alert ALT-3**", or "**Alert ALT-3** (private alert)".
+  subject: string;
+  // ": <title>", or nothing for a private one.
+  titleSuffix: string;
+}
+
+/*
+ * Each side's entry is read by its own side's audience: the episode's feed
+ * and Slack / Microsoft Teams channels by whoever can see the episode, the
+ * alert's feed by whoever can see the alert. So a private end's title never
+ * goes into the other side's entry - not even when both are private, because
+ * the two can have different owners - as IncidentAlertService does for an
+ * alert linked to an incident. Its number is kept, so the entry still says
+ * what happened.
+ */
+type DescribeFeedMentionFunction = (data: {
+  label: string;
+  title: string | undefined | null;
+  isPrivate: boolean;
+  privateNoun: string;
+}) => FeedMention;
+
+const describeFeedMention: DescribeFeedMentionFunction = (data: {
+  label: string;
+  title: string | undefined | null;
+  isPrivate: boolean;
+  privateNoun: string;
+}): FeedMention => {
+  const subject: string = `**${data.label}**`;
+
+  if (data.isPrivate) {
+    return {
+      subject: `${subject} (private ${data.privateNoun})`,
+      titleSuffix: "",
+    };
+  }
+
+  return { subject: subject, titleSuffix: `: ${getFeedTitle(data.title)}` };
+};
+
+type DescribeAlertFunction = (alert: Alert | null) => FeedMention;
+
+const describeAlert: DescribeAlertFunction = (
+  alert: Alert | null,
+): FeedMention => {
+  return describeFeedMention({
+    label: `Alert ${alert?.alertNumberWithPrefix || "#" + (alert?.alertNumber || "N/A")}`,
+    title: alert?.title,
+    isPrivate: alert?.isPrivate === true,
+    privateNoun: "alert",
+  });
+};
+
+type DescribeEpisodeFunction = (episode: AlertEpisode | null) => FeedMention;
+
+const describeEpisode: DescribeEpisodeFunction = (
+  episode: AlertEpisode | null,
+): FeedMention => {
+  return describeFeedMention({
+    label: `Episode ${episode?.episodeNumberWithPrefix || "#" + (episode?.episodeNumber || "N/A")}`,
+    title: episode?.title,
+    isPrivate: episode?.isPrivate === true,
+    privateNoun: "episode",
+  });
+};
+
+// Postgres compares uuids by value, whatever case or padding an id came in.
+type IsSameIdFunction = (
+  id: ObjectID | string | undefined | null,
+  other: ObjectID,
+) => boolean;
+
+const isSameId: IsSameIdFunction = (
+  id: ObjectID | string | undefined | null,
+  other: ObjectID,
+): boolean => {
+  return (
+    (id?.toString() || "").trim().toLowerCase() ===
+    other.toString().trim().toLowerCase()
+  );
+};
+
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
+  }
+
+  /*
+   * On a person's create, the episode and the alert are checked by this
+   * service's own hook: read as the caller, so a private one they cannot
+   * open, one of another project and one that does not exist all get the
+   * same answer. A generic check first would answer the last two in other
+   * words than the first. A workflow step acts as a Project Admin of its
+   * project (WorkflowPrincipal), so it is read like one. OneUptime's own
+   * writes - the grouping engine, adding by hand for the person who asked -
+   * are made as root and get the generic check, as every update does (no
+   * person may change a member's alert or episode).
+   */
+  protected override getRelationsCheckedByService(
+    write?: ProjectReferenceWrite,
+  ): Array<string> {
+    if (write && (write.kind === "update" || write.props.isRoot)) {
+      return [];
+    }
+
+    return ["alertEpisode", "alert"];
   }
 
   /*
@@ -103,19 +211,58 @@ export class Service extends ProjectReferencesService<Model> {
     return { updateBy, carryForward: null };
   }
 
+  /*
+   * A person may only add an alert they can see to an episode they can see.
+   * The foreign keys only require the rows to exist, and
+   * @CanAccessIfCanReadOn is not applied on create, so without this a member
+   * could add a private alert they cannot open to an episode by its id - and
+   * the episode's feed would then show its title - or add to a private
+   * episode they cannot open.
+   *
+   * This hook runs before DatabaseService checks the caller's create
+   * permission on the columns, so no refusal before the visibility check
+   * says anything about a record the caller cannot see: the duplicate check,
+   * which would, comes after it.
+   */
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
-    if (!createBy.data.alertEpisodeId) {
+    const data: Record<string, unknown> = createBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    // A reference arrives as `alertId` or as `alert: { _id }`.
+    const alertEpisodeId: ObjectID | null = RelationIdUtil.readConsistent(
+      data,
+      ["alertEpisodeId", "alertEpisode"],
+      "episode",
+    );
+
+    const alertId: ObjectID | null = RelationIdUtil.readConsistent(
+      data,
+      ["alertId", "alert"],
+      "alert",
+    );
+
+    if (!alertEpisodeId) {
       throw new BadDataException("alertEpisodeId is required");
     }
 
-    if (!createBy.data.alertId) {
+    if (!alertId) {
       throw new BadDataException("alertId is required");
     }
+
+    // The ids checked below are the only ones that can reach the insert.
+    RelationIdUtil.stamp(
+      data,
+      ["alertEpisodeId", "alertEpisode"],
+      alertEpisodeId,
+    );
+    RelationIdUtil.stamp(data, ["alertId", "alert"], alertId);
 
     if (
       !createBy.props.isRoot &&
@@ -126,11 +273,19 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
+    if (!createBy.props.isRoot) {
+      await this.checkCallerCanSeeBothEnds({
+        createBy: createBy,
+        alertEpisodeId: alertEpisodeId,
+        alertId: alertId,
+      });
+    }
+
     // Check if this alert is already in the episode
     const existingMember: Model | null = await this.findOneBy({
       query: {
-        alertEpisodeId: createBy.data.alertEpisodeId,
-        alertId: createBy.data.alertId,
+        alertEpisodeId: alertEpisodeId,
+        alertId: alertId,
       },
       props: {
         isRoot: true,
@@ -175,7 +330,7 @@ export class Service extends ProjectReferencesService<Model> {
     if (createBy.data.isOwnerNotifiedOfAlertAdded === undefined) {
       const existingMemberCount: PositiveNumber = await this.countBy({
         query: {
-          alertEpisodeId: createBy.data.alertEpisodeId,
+          alertEpisodeId: alertEpisodeId,
         },
         props: {
           isRoot: true,
@@ -188,6 +343,62 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return { createBy, carryForward: null };
+  }
+
+  /*
+   * Reads the episode and the alert as the caller, so privacy, label and
+   * owner scoping apply exactly as they do on their own pages, and pins both
+   * to the member's project: the request's tenant, the only project the
+   * caller was checked in. A caller without read access at all gets the same
+   * answer as one asking for a record that does not exist.
+   */
+  @CaptureSpan()
+  private async checkCallerCanSeeBothEnds(data: {
+    createBy: CreateBy<Model>;
+    alertEpisodeId: ObjectID;
+    alertId: ObjectID;
+  }): Promise<void> {
+    const { createBy } = data;
+
+    const projectId: ObjectID | null =
+      createBy.props.tenantId ||
+      RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        ["projectId", "project"],
+        "project",
+      );
+
+    if (!projectId) {
+      throw new BadDataException("projectId is required");
+    }
+
+    const episode: AlertEpisode | null = await CallerVisibleRead.find(() => {
+      return AlertEpisodeService.findOneById({
+        id: data.alertEpisodeId,
+        select: { _id: true, projectId: true },
+        props: createBy.props,
+      });
+    });
+
+    if (!episode || !isSameId(episode.projectId, projectId)) {
+      throw new BadDataException(
+        "The episode to add the alert to does not exist in this project, or you do not have access to it.",
+      );
+    }
+
+    const alert: Alert | null = await CallerVisibleRead.find(() => {
+      return AlertService.findOneById({
+        id: data.alertId,
+        select: { _id: true, projectId: true },
+        props: createBy.props,
+      });
+    });
+
+    if (!alert || !isSameId(alert.projectId, projectId)) {
+      throw new BadDataException(
+        "The alert to add does not exist in this project, or you do not have access to it.",
+      );
+    }
   }
 
   @CaptureSpan()
@@ -237,6 +448,7 @@ export class Service extends ProjectReferencesService<Model> {
         alertNumber: true,
         alertNumberWithPrefix: true,
         title: true,
+        isPrivate: true,
       },
       props: {
         isRoot: true,
@@ -250,11 +462,15 @@ export class Service extends ProjectReferencesService<Model> {
         episodeNumber: true,
         episodeNumberWithPrefix: true,
         title: true,
+        isPrivate: true,
       },
       props: {
         isRoot: true,
       },
     });
+
+    const alertMention: FeedMention = describeAlert(alert);
+    const episodeMention: FeedMention = describeEpisode(episode);
 
     // Create feed item on episode
     await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
@@ -262,7 +478,7 @@ export class Service extends ProjectReferencesService<Model> {
       projectId: createdItem.projectId,
       alertEpisodeFeedEventType: AlertEpisodeFeedEventType.AlertAdded,
       displayColor: Yellow500,
-      feedInfoInMarkdown: `**Alert ${alert?.alertNumberWithPrefix || "#" + (alert?.alertNumber || "N/A")}** added to episode: ${getFeedTitle(alert?.title)}`,
+      feedInfoInMarkdown: `${alertMention.subject} added to episode${alertMention.titleSuffix}`,
       userId: createdItem.addedByUserId || undefined,
       workspaceNotification: {
         sendWorkspaceNotification: true,
@@ -276,7 +492,7 @@ export class Service extends ProjectReferencesService<Model> {
       projectId: createdItem.projectId,
       alertFeedEventType: AlertFeedEventType.AddedToEpisode,
       displayColor: Yellow500,
-      feedInfoInMarkdown: `Added to **Episode ${episode?.episodeNumberWithPrefix || "#" + (episode?.episodeNumber || "N/A")}**: ${getFeedTitle(episode?.title)}`,
+      feedInfoInMarkdown: `Added to ${episodeMention.subject}${episodeMention.titleSuffix}`,
       userId: createdItem.addedByUserId || undefined,
     });
 
@@ -357,7 +573,9 @@ export class Service extends ProjectReferencesService<Model> {
             id: member.alertId,
             select: {
               alertNumber: true,
+              alertNumberWithPrefix: true,
               title: true,
+              isPrivate: true,
             },
             props: {
               isRoot: true,
@@ -374,11 +592,15 @@ export class Service extends ProjectReferencesService<Model> {
                   episodeNumber: true,
                   episodeNumberWithPrefix: true,
                   title: true,
+                  isPrivate: true,
                 },
                 props: {
                   isRoot: true,
                 },
               });
+
+            const alertMention: FeedMention = describeAlert(alert);
+            const episodeMention: FeedMention = describeEpisode(episode);
 
             // Create feed item on episode
             await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
@@ -386,7 +608,7 @@ export class Service extends ProjectReferencesService<Model> {
               projectId: member.projectId,
               alertEpisodeFeedEventType: AlertEpisodeFeedEventType.AlertRemoved,
               displayColor: Green500,
-              feedInfoInMarkdown: `**Alert #${alert?.alertNumber || "N/A"}** removed from episode: ${getFeedTitle(alert?.title)}`,
+              feedInfoInMarkdown: `${alertMention.subject} removed from episode${alertMention.titleSuffix}`,
               workspaceNotification: {
                 sendWorkspaceNotification: true,
               },
@@ -398,7 +620,7 @@ export class Service extends ProjectReferencesService<Model> {
               projectId: member.projectId,
               alertFeedEventType: AlertFeedEventType.RemovedFromEpisode,
               displayColor: Green500,
-              feedInfoInMarkdown: `Removed from **Episode ${episode?.episodeNumberWithPrefix || "#" + (episode?.episodeNumber || "N/A")}**: ${getFeedTitle(episode?.title)}`,
+              feedInfoInMarkdown: `Removed from ${episodeMention.subject}${episodeMention.titleSuffix}`,
             });
           }
         }

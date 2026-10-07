@@ -26026,6 +26026,9 @@
   "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here.": "{{count}} और चरणों के लिए प्रोजेक्ट के मालिक या 'Billing Admin' भूमिका या 'Manage Billing' अनुमति वाले किसी व्यक्ति की ज़रूरत है, इसलिए उन्हें यहाँ नहीं गिना गया है।",
   "{{count}} more steps need a project owner, a Billing Admin or someone with Manage Billing, so they are not counted here._one": "{{count}} और चरण के लिए प्रोजेक्ट के मालिक या 'Billing Admin' भूमिका या 'Manage Billing' अनुमति वाले किसी व्यक्ति की ज़रूरत है, इसलिए उसे यहाँ नहीं गिना गया है।",
   "The event has started, so this can no longer be changed.": "इवेंट शुरू हो चुका है, इसलिए इसे अब बदला नहीं जा सकता।",
+  "Connecting GitHub needs permission to create code repositories.": "GitHub जोड़ने के लिए कोड रिपॉजिटरीज़ बनाने की अनुमति चाहिए।",
+  "Connecting GitHub needs the {{planName}} plan.": "GitHub जोड़ने के लिए {{planName}} प्लान चाहिए।",
+  "OneUptime could not start the GitHub connection. Please try again.": "OneUptime GitHub से जुड़ना शुरू नहीं कर सका। कृपया फिर से कोशिश करें।",
   "No longer a member": "अब सदस्य नहीं",
   "Invitation not accepted yet": "आमंत्रण अभी स्वीकार नहीं किया गया"
 }

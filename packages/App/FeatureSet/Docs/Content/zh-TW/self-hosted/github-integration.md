@@ -139,24 +139,22 @@ gitHubApp:
 
 **重要：** 加入這些環境變數後，請重新啟動您的 OneUptime 伺服器，使其生效。
 
-### 步驟 9：安裝 GitHub App
+### 步驟 9：在 OneUptime 中連接儲存庫
 
-1. 前往您 GitHub App 的公開頁面：`https://github.com/apps/YOUR_APP_NAME`
-2. 點選 **「Install」** 或 **「Configure」**
-3. 選取您要安裝 App 的組織或帳戶
-4. 選擇 App 可存取哪些儲存庫：
-   - **All repositories** - 存取所有目前與未來的儲存庫
-   - **Only select repositories** - 選擇特定的儲存庫
-5. 點選 **「Install」**
-
-### 步驟 10：在 OneUptime 中連接儲存庫
+請從 OneUptime 開始連接，而不是從 GitHub 上的 App 頁面開始：OneUptime 帶您前往 GitHub 時所用的連結，會將這次安裝綁定到您的專案。
 
 1. 登入您的 OneUptime 儀表板
 2. 導覽至 **產品** > **任務** > **程式碼儲存庫**
-3. 點選 **「Create Repository」** 或使用 GitHub App 安裝流程
-4. 若從 GitHub 重新導向而來，系統將自動擷取安裝 ID
-5. 從清單中選取您要連接的儲存庫
-6. 點選 **「Connect」** 以將儲存庫連結至您的 OneUptime 專案
+3. 點選 **Connect with GitHub App**，OneUptime 會帶您前往 GitHub
+4. 選取要安裝 App 的組織或帳戶，並選擇 App 可存取哪些儲存庫：
+   - **All repositories** - 存取所有目前與未來的儲存庫
+   - **Only select repositories** - 選擇特定的儲存庫
+5. 點選 **Install**（若 App 已安裝在該處，則點選 **Save**）
+6. GitHub 會帶您回到 **程式碼儲存庫**，安裝中的所有儲存庫都會匯入。之後在安裝中新增或移除的儲存庫會自動保持同步。
+
+**誰可以連接。** 連接會將安裝中的儲存庫匯入專案，因此需要新增程式碼儲存庫的權限：**Project Owner**、**Project Admin**、**Project Member**、**Settings Admin**、**Settings Member**，或擁有 **Create Code Repository** 的團隊。封鎖該權限的團隊會收回它。在 OneUptime Cloud 上，程式碼儲存庫需要 Growth 方案或更高方案。對其他人，卡片會被鎖定並說明需要什麼。
+
+**請在 15 分鐘內、於同一個瀏覽器中完成。** 此連結只能使用一次，有效期 15 分鐘，且只能在發起連接的瀏覽器中使用。GitHub 帶您返回時，OneUptime 會在匯入任何內容之前再次檢查權限。
 
 ## 環境變數參考
 
