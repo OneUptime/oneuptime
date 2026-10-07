@@ -1587,7 +1587,10 @@ export class Service extends ProjectReferencesService<Model> {
         const fieldChanges: EventFieldSet = EventFieldChange.getChanges({
           written: onUpdate.updateBy.data as unknown as Record<string, unknown>,
           valuesBeforeUpdate: (
-            onUpdate.carryForward as MonitorUpdateCarryForward | null | undefined
+            onUpdate.carryForward as
+              | MonitorUpdateCarryForward
+              | null
+              | undefined
           )?.valuesBeforeUpdate?.[monitorId.toString()],
           kind: MONITOR_FIELDS,
         });

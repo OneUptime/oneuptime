@@ -1321,10 +1321,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
    * sites, services, SLOs and so on).
    */
   private getComparedListColumns(): Array<string> {
-    return [
-      "statusPages",
-      ...this.getAffectedResourceListColumns(),
-    ];
+    return ["statusPages", ...this.getAffectedResourceListColumns()];
   }
 
   // The lists of what an event affects, in the order its feed lists them.

@@ -225,9 +225,7 @@ export default class ScheduledMaintenanceFieldChange {
    */
   public static getReminderKey(reminder: unknown): string | null {
     try {
-      const recurring: Recurring = Recurring.fromJSON(
-        reminder as Recurring,
-      );
+      const recurring: Recurring = Recurring.fromJSON(reminder as Recurring);
       const count: number = recurring.intervalCount.toNumber();
 
       if (!Number.isFinite(count) || !INTERVAL_NAMES[recurring.intervalType]) {
@@ -262,7 +260,9 @@ export default class ScheduledMaintenanceFieldChange {
     }
 
     return Array.from(keys).sort((first: string, second: string): number => {
-      return this.getReminderSortValue(first) - this.getReminderSortValue(second);
+      return (
+        this.getReminderSortValue(first) - this.getReminderSortValue(second)
+      );
     });
   }
 
@@ -285,9 +285,7 @@ export default class ScheduledMaintenanceFieldChange {
       return true;
     }
 
-    const written: Array<string> = this.normalizeReminderList(
-      data.writtenList,
-    );
+    const written: Array<string> = this.normalizeReminderList(data.writtenList);
 
     return (
       written.length !== data.remindersBeforeUpdate.length ||
@@ -332,9 +330,8 @@ export default class ScheduledMaintenanceFieldChange {
         column: "description",
         value: written["description"],
         recordName: "Scheduled Maintenance",
-        isMarkdown: SCHEDULED_MAINTENANCE_FIELDS.markdownColumns.includes(
-          "description",
-        ),
+        isMarkdown:
+          SCHEDULED_MAINTENANCE_FIELDS.markdownColumns.includes("description"),
       });
     }
 
@@ -407,7 +404,8 @@ export default class ScheduledMaintenanceFieldChange {
     value: unknown;
   }): string {
     const instant: number | null = EventFieldChange.toInstant(data.value);
-    const heading: string = data.column === "startsAt" ? "Starts At" : "Ends At";
+    const heading: string =
+      data.column === "startsAt" ? "Starts At" : "Ends At";
 
     return `\n\n**${heading}**: \n${
       instant === null

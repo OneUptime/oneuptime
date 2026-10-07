@@ -393,6 +393,29 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   description, root cause or remediation notes that was cleared. Taking
   every label off is recorded as "All labels removed.". See
   [What the feed records](/docs/incidents/notes-owners-and-feed#what-the-feed-records).
+- **A scheduled maintenance event's or a monitor's "updated" feed entry
+  records only what changed, too.** Saving an event's **Maintenance
+  Details** or **Affected Resources** card or a monitor's details with
+  nothing changed, or an API client, a workflow, Terraform or a script
+  writing an event or a monitor back as it is, used to add an entry
+  repeating the title (a monitor's name), window, description, reminders,
+  status pages, affected resources and labels it carried - posted to its
+  Slack and Microsoft Teams channels too - and every write that carried an
+  event's labels or its **Send reminders** switch started its reminder
+  interval over. Now each line is written for a value that changed, and
+  nothing for a save that changed nothing; an event's reminder rule is
+  matched again only when its labels change or **Send reminders** is
+  flipped. A time counts as the same when it names the same moment,
+  however it is written, and the reminders, status pages, affected
+  resources and labels as the same set in any order. Clearing an event's
+  description, reminders, status pages or labels, or a monitor's
+  description or labels, is recorded now, and a monitor's name,
+  description and label names show as typed instead of being read as
+  Markdown. An event moved from **Scheduled** straight into a state of
+  your own placed after **Ongoing** now starts the way **Ongoing** does:
+  its monitors change to its **Change Monitor Status to**, where until now
+  they were left as they were. See
+  [Scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events).
 - **On OneUptime Cloud, API keys and SCIM stop working below their plan.**
   A project's API keys need **Growth** and its SCIM connections - the
   project's and its status pages' - need **Scale**. Until now they kept

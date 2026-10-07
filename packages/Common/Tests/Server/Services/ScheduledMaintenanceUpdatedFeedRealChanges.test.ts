@@ -146,7 +146,10 @@ function storedEvent(overrides: Partial<StoredEvent> = {}): StoredEvent {
     description: STORED_DESCRIPTION,
     startsAt: new Date(STORED_STARTS_AT),
     endsAt: new Date(STORED_ENDS_AT),
-    reminders: [reminder(1, EventInterval.Day), reminder(2, EventInterval.Hour)],
+    reminders: [
+      reminder(1, EventInterval.Day),
+      reminder(2, EventInterval.Hour),
+    ],
     enableReminders: true,
     labelIds: [CHECKOUT, PAYMENTS],
     statusPageIds: [PUBLIC_PAGE],
@@ -311,11 +314,13 @@ type OnUpdateSuccess = (
   updatedItemIds: Array<ObjectID>,
 ) => Promise<OnUpdate<ScheduledMaintenance>>;
 
-const hooks: { onBeforeUpdate: OnBeforeUpdate; onUpdateSuccess: OnUpdateSuccess } =
-  ScheduledMaintenanceService as unknown as {
-    onBeforeUpdate: OnBeforeUpdate;
-    onUpdateSuccess: OnUpdateSuccess;
-  };
+const hooks: {
+  onBeforeUpdate: OnBeforeUpdate;
+  onUpdateSuccess: OnUpdateSuccess;
+} = ScheduledMaintenanceService as unknown as {
+  onBeforeUpdate: OnBeforeUpdate;
+  onUpdateSuccess: OnUpdateSuccess;
+};
 
 const TITLE_HEADING: string = "**Title**";
 const DESCRIPTION_HEADING: string = "**Scheduled Maintenance Description**";
@@ -373,13 +378,14 @@ beforeEach(() => {
       );
     },
   );
-  jest.spyOn(ScheduledMaintenanceService, "findBy").mockImplementation(
-    reads as never,
-  );
+  jest
+    .spyOn(ScheduledMaintenanceService, "findBy")
+    .mockImplementation(reads as never);
 
   // The event as it reads after the write.
-  jest.spyOn(ScheduledMaintenanceService, "findOneById").mockImplementation(
-    (async (findOneById: {
+  jest
+    .spyOn(ScheduledMaintenanceService, "findOneById")
+    .mockImplementation((async (findOneById: {
       id: ObjectID;
       select: Dictionary<unknown>;
     }): Promise<JSONObject | null> => {
@@ -390,8 +396,7 @@ beforeEach(() => {
       });
 
       return record ? rowOf(record, findOneById.select) : null;
-    }) as never,
-  );
+    }) as never);
 
   // The "Resources Affected" read: one per relation, after the write.
   resourceReads = getJestMockFunction();
@@ -534,10 +539,7 @@ afterEach(() => {
  * What the event holds once the update is written: the stored event with
  * every column the update writes, lists as the ids they name.
  */
-function written(
-  record: StoredEvent,
-  data: Dictionary<unknown>,
-): StoredEvent {
+function written(record: StoredEvent, data: Dictionary<unknown>): StoredEvent {
   const after: StoredEvent = { ...record };
 
   for (const [column, field] of Object.entries(LIST_COLUMNS)) {
@@ -834,7 +836,9 @@ describe("each real change adds its own line, once", () => {
     const markdown: string = onlyFeedItem();
 
     expect(markdown).toContain("**Scheduled Maintenance was updated.**");
-    expect(markdown).toContain(`${TITLE_HEADING}: \nDatabase upgrade, part two\n`);
+    expect(markdown).toContain(
+      `${TITLE_HEADING}: \nDatabase upgrade, part two\n`,
+    );
 
     for (const heading of ALL_HEADINGS) {
       if (heading !== TITLE_HEADING) {
@@ -1132,14 +1136,13 @@ describe("the read before the write", () => {
       changeMonitorStatusToId: DEGRADED_STATUS,
     });
 
-    const statusReads: Array<{ select: Dictionary<unknown> }> =
-      reads.mock.calls
-        .map((call: Array<unknown>) => {
-          return call[0] as { select: Dictionary<unknown> };
-        })
-        .filter((read: { select: Dictionary<unknown> }): boolean => {
-          return read.select["changeMonitorStatusToId"] !== undefined;
-        });
+    const statusReads: Array<{ select: Dictionary<unknown> }> = reads.mock.calls
+      .map((call: Array<unknown>) => {
+        return call[0] as { select: Dictionary<unknown> };
+      })
+      .filter((read: { select: Dictionary<unknown> }): boolean => {
+        return read.select["changeMonitorStatusToId"] !== undefined;
+      });
 
     expect(storedReads()).toHaveLength(1);
     expect(statusReads).toHaveLength(1);
@@ -1279,7 +1282,8 @@ describe("the feed lines themselves", () => {
 
   test("quote label and status page names inertly", async () => {
     LABEL_NAMES[EU_WEST] = "[eu](https://evil.example)";
-    STATUS_PAGE_NAMES[INTERNAL_PAGE] = "<img src=x> [ops](https://evil.example)";
+    STATUS_PAGE_NAMES[INTERNAL_PAGE] =
+      "<img src=x> [ops](https://evil.example)";
 
     try {
       await runUpdate({
@@ -1332,8 +1336,10 @@ describe("the feed lines themselves", () => {
       expect(position).toBeGreaterThan(-1);
     }
 
-    expect([...positions].sort((a: number, b: number): number => {
-      return a - b;
-    })).toEqual(positions);
+    expect(
+      [...positions].sort((a: number, b: number): number => {
+        return a - b;
+      }),
+    ).toEqual(positions);
   });
 });

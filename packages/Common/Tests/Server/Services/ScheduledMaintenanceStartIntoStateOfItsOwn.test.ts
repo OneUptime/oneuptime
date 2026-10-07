@@ -468,15 +468,27 @@ describe("an event that started straight into such a state", () => {
 
   test.each([
     ["Scheduled, then Verifying", ["scheduled", "verifying"], true],
-    ["Confirmed, then Verifying", ["scheduled", "confirmed", "verifying"], true],
-    ["Ongoing, then Verifying, as before", ["scheduled", "ongoing", "verifying"], true],
+    [
+      "Confirmed, then Verifying",
+      ["scheduled", "confirmed", "verifying"],
+      true,
+    ],
+    [
+      "Ongoing, then Verifying, as before",
+      ["scheduled", "ongoing", "verifying"],
+      true,
+    ],
     ["only Confirmed, not yet started", ["scheduled", "confirmed"], false],
     [
       "Verifying, then Ended, then Postmortem: let go at Ended",
       ["scheduled", "verifying", "ended", "postmortem"],
       false,
     ],
-    ["straight into Postmortem: never held", ["scheduled", "postmortem"], false],
+    [
+      "straight into Postmortem: never held",
+      ["scheduled", "postmortem"],
+      false,
+    ],
   ] as Array<[string, Array<StateKind>, boolean]>)(
     "holds its monitors after %s: %s",
     async (_name: string, kinds: Array<StateKind>, holding: boolean) => {

@@ -160,11 +160,13 @@ type OnUpdateSuccess = (
   updatedItemIds: Array<ObjectID>,
 ) => Promise<OnUpdate<Monitor>>;
 
-const hooks: { onBeforeUpdate: OnBeforeUpdate; onUpdateSuccess: OnUpdateSuccess } =
-  MonitorService as unknown as {
-    onBeforeUpdate: OnBeforeUpdate;
-    onUpdateSuccess: OnUpdateSuccess;
-  };
+const hooks: {
+  onBeforeUpdate: OnBeforeUpdate;
+  onUpdateSuccess: OnUpdateSuccess;
+} = MonitorService as unknown as {
+  onBeforeUpdate: OnBeforeUpdate;
+  onUpdateSuccess: OnUpdateSuccess;
+};
 
 const NAME_HEADING: string = "**Name**";
 const DESCRIPTION_HEADING: string = "**Monitor Description**";

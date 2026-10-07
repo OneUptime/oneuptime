@@ -254,9 +254,17 @@ beforeEach(() => {
    */
   jest
     .spyOn(ScheduledMaintenanceStateService, "getAllScheduledMaintenanceStates")
-    .mockImplementation((async (): Promise<Array<ScheduledMaintenanceState>> => {
+    .mockImplementation((async (): Promise<
+      Array<ScheduledMaintenanceState>
+    > => {
       return (
-        ["scheduled", "custom", "ongoing", "ended", "resolved"] as Array<StateKind>
+        [
+          "scheduled",
+          "custom",
+          "ongoing",
+          "ended",
+          "resolved",
+        ] as Array<StateKind>
       ).map((kind: StateKind, index: number): ScheduledMaintenanceState => {
         const projectState: ScheduledMaintenanceState = state(kind);
         projectState.order = index + 1;
