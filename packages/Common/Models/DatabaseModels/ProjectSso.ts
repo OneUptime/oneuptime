@@ -48,6 +48,7 @@ import {
   ],
   read: [
     Permission.ProjectOwner,
+    Permission.ProjectAdmin,
     Permission.ProjectUser,
     Permission.UnAuthorizedSsoUser,
     Permission.ProjectMember,

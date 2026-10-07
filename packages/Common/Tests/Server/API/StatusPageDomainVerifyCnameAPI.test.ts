@@ -149,9 +149,13 @@ type DomainRow = {
   cnameVerificationToken?: string;
 };
 
-// Somebody who may read and edit the project's status page domains.
+/*
+ * Somebody who may read and edit the project's status page domains - and
+ * read its status pages, which the domains are read through.
+ */
 const callerProps: DatabaseCommonInteractionProps = customDomainCaller({
   permissions: [
+    Permission.ReadProjectStatusPage,
     Permission.ReadStatusPageDomain,
     Permission.EditStatusPageDomain,
   ],

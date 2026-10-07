@@ -35,8 +35,14 @@ import AlertEpisode from "./AlertEpisode";
 import IncidentEpisode from "./IncidentEpisode";
 import Alert from "./Alert";
 
+/*
+ * A person's own log of the notifications sent to them: read by that person
+ * (CurrentUser) whether or not they may read the on-call policy that paged
+ * them, so reading the policy is optional (isParentReadOptional). A caller
+ * who may read policies reaches the logs of the policies they may read.
+ */
 @EnableDocumentation()
-@CanAccessIfCanReadOn("onCallDutyPolicy")
+@CanAccessIfCanReadOn("onCallDutyPolicy", { isParentReadOptional: true })
 @CurrentUserCanAccessRecordBy("userId")
 @TenantColumn("projectId")
 @TableBillingAccessControl({

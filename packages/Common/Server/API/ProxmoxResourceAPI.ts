@@ -275,7 +275,11 @@ export default class ProxmoxResourceAPI extends BaseAPI<
         });
       }
     } catch (err) {
-      if (err instanceof NotAuthorizedException) {
+      // Refused, or one the caller may not read: the same answer as missing.
+      if (
+        err instanceof NotAuthorizedException ||
+        err instanceof NotFoundException
+      ) {
         throw new NotFoundException(EDITABLE_CLUSTER_NOT_FOUND_MESSAGE);
       }
       throw err;

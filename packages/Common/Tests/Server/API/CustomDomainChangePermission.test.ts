@@ -132,6 +132,12 @@ type Kind = {
   service: DomainService;
   modelType: { new (): BaseModel };
   parentColumn: string;
+  /*
+   * Reading the status page or dashboard the domain is read through: a
+   * custom role built from the domain's own permissions holds it beside
+   * them, or it reaches no domain at all.
+   */
+  parentReadPermission: Permission;
   readPermission: Permission;
   editPermission: Permission;
   createPermission: Permission;
@@ -152,6 +158,7 @@ const KINDS: Array<[string, Kind]> = [
       service: StatusPageDomainService,
       modelType: StatusPageDomain,
       parentColumn: "statusPageId",
+      parentReadPermission: Permission.ReadProjectStatusPage,
       readPermission: Permission.ReadStatusPageDomain,
       editPermission: Permission.EditStatusPageDomain,
       createPermission: Permission.CreateStatusPageDomain,
@@ -169,6 +176,7 @@ const KINDS: Array<[string, Kind]> = [
       service: DashboardDomainService as unknown as DomainService,
       modelType: DashboardDomain,
       parentColumn: "dashboardId",
+      parentReadPermission: Permission.ReadDashboard,
       readPermission: Permission.ReadDashboardDomain,
       editPermission: Permission.EditDashboardDomain,
       createPermission: Permission.CreateDashboardDomain,
@@ -426,7 +434,11 @@ describe.each(KINDS)("%s", (_label: string, kind: Kind) => {
 
           await callAs(
             customDomainCaller({
-              permissions: [kind.readPermission, permission],
+              permissions: [
+                kind.parentReadPermission,
+                kind.readPermission,
+                permission,
+              ],
             }),
             kind,
             changeRoute.route,
@@ -490,12 +502,51 @@ describe.each(KINDS)("%s", (_label: string, kind: Kind) => {
         expect(changeRoute.reachedTheChange(spies)).toBe(false);
       });
 
+      /*
+       * A domain is read through its status page or dashboard: the domain's
+       * own permissions without one to read that reach no domain, and the
+       * route never looks for it or reaches the certificate authority.
+       */
+      test.each([
+        ["a member's team", false],
+        ["an API key", true],
+      ])(
+        "%s with the domain's own permissions but none to read what it belongs to is refused",
+        async (_label: string, isApiKey: boolean) => {
+          const spies: Spies = stubDomainTable(kind);
+
+          await callAs(
+            customDomainCaller({
+              permissions: [kind.readPermission, kind.editPermission],
+              isApiKey: isApiKey,
+            }),
+            kind,
+            changeRoute.route,
+          );
+
+          const error: Error | undefined = sentError();
+
+          expect(error).toBeInstanceOf(NotAuthorizedException);
+          expect(error!.message).toContain(
+            `You do not have permissions to update ${kind.name}. It is read through its`,
+          );
+          expect(changeRoute.reachedTheChange(spies)).toBe(false);
+          expect(spies.orderOnDemand).not.toHaveBeenCalled();
+          expect(spies.reissueCert).not.toHaveBeenCalled();
+          expect(answeredSuccess()).toBe(false);
+        },
+      );
+
       test("an API key that may edit the domain gets to the change", async () => {
         const spies: Spies = stubDomainTable(kind);
 
         await callAs(
           customDomainCaller({
-            permissions: [kind.readPermission, kind.editPermission],
+            permissions: [
+              kind.parentReadPermission,
+              kind.readPermission,
+              kind.editPermission,
+            ],
             isApiKey: true,
           }),
           kind,
@@ -532,7 +583,11 @@ describe.each(KINDS)("%s", (_label: string, kind: Kind) => {
 
         await callAs(
           customDomainCaller({
-            permissions: [kind.readPermission, kind.editPermission],
+            permissions: [
+              kind.parentReadPermission,
+              kind.readPermission,
+              kind.editPermission,
+            ],
             blocks: [kind.editPermission],
           }),
           kind,
@@ -563,7 +618,11 @@ describe.each(KINDS)("%s", (_label: string, kind: Kind) => {
 
         await callAs(
           customDomainCaller({
-            permissions: [kind.readPermission, kind.editPermission],
+            permissions: [
+              kind.parentReadPermission,
+              kind.readPermission,
+              kind.editPermission,
+            ],
           }),
           kind,
           changeRoute.route,
@@ -582,7 +641,11 @@ describe.each(KINDS)("%s", (_label: string, kind: Kind) => {
         const spies: Spies = stubDomainTable(kind);
 
         const props: DatabaseCommonInteractionProps = customDomainCaller({
-          permissions: [kind.readPermission, kind.editPermission],
+          permissions: [
+            kind.parentReadPermission,
+            kind.readPermission,
+            kind.editPermission,
+          ],
         });
 
         await callAs(props, kind, changeRoute.route);
@@ -622,7 +685,11 @@ describe.each(KINDS)("%s", (_label: string, kind: Kind) => {
         withLabelJoinTables();
 
         const props: DatabaseCommonInteractionProps = customDomainCaller({
-          permissions: [kind.readPermission, kind.editPermission],
+          permissions: [
+            kind.parentReadPermission,
+            kind.readPermission,
+            kind.editPermission,
+          ],
         });
 
         props.userTenantAccessPermission![
