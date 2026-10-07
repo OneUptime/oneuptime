@@ -32,9 +32,7 @@ const asRaw: (operator: unknown) => RawOperator = (
 const boundValues: (operator: RawOperator) => Array<string> = (
   operator: RawOperator,
 ): Array<string> => {
-  return Object.values(operator.objectLiteralParameters)
-    .flat()
-    .map(String);
+  return Object.values(operator.objectLiteralParameters).flat().map(String);
 };
 
 const labelA: string = ObjectID.generate().toString();

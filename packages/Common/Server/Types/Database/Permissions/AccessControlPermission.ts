@@ -281,8 +281,11 @@ export default class AccessControlPermission {
      */
     if (
       !data.isRecordFound ||
-      ReadPermission.getGrantedLabelIds(modelType, props, type as RecordOperation)
-        .length === 0
+      ReadPermission.getGrantedLabelIds(
+        modelType,
+        props,
+        type as RecordOperation,
+      ).length === 0
     ) {
       return;
     }

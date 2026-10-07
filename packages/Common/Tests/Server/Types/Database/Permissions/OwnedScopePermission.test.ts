@@ -214,9 +214,7 @@ describe("OwnedScopePermission.addOwnedScopeToQuery", () => {
     );
 
     expect(result.telemetryServiceId.type).toBe("and");
-    expect(result.telemetryServiceId.value[0].value).toBe(
-      serviceId.toString(),
-    );
+    expect(result.telemetryServiceId.value[0].value).toBe(serviceId.toString());
     expect(result.telemetryServiceId.value[1].type).toBe("raw");
   });
 

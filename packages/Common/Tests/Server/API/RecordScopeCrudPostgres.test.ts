@@ -322,26 +322,31 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
       .sort();
   };
 
-  const insert: (table: string, row: Dictionary<unknown>) => Promise<void> =
-    async (table: string, row: Dictionary<unknown>): Promise<void> => {
-      const columns: Array<string> = Object.keys(row);
+  const insert: (
+    table: string,
+    row: Dictionary<unknown>,
+  ) => Promise<void> = async (
+    table: string,
+    row: Dictionary<unknown>,
+  ): Promise<void> => {
+    const columns: Array<string> = Object.keys(row);
 
-      await database.query(
-        `INSERT INTO "${schema}"."${table}" (${columns
-          .map((column: string): string => {
-            return `"${column}"`;
-          })
-          .join(", ")}) VALUES (${columns
-          .map((_column: string, index: number): string => {
-            return `$${index + 1}`;
-          })
-          .join(", ")})`,
-        columns.map((column: string): unknown => {
-          const value: unknown = row[column];
-          return value instanceof ObjectID ? value.toString() : value;
-        }),
-      );
-    };
+    await database.query(
+      `INSERT INTO "${schema}"."${table}" (${columns
+        .map((column: string): string => {
+          return `"${column}"`;
+        })
+        .join(", ")}) VALUES (${columns
+        .map((_column: string, index: number): string => {
+          return `$${index + 1}`;
+        })
+        .join(", ")})`,
+      columns.map((column: string): unknown => {
+        const value: unknown = row[column];
+        return value instanceof ObjectID ? value.toString() : value;
+      }),
+    );
+  };
 
   const insertAlert: (data: {
     id: ObjectID;
@@ -579,37 +584,40 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
    * middleware builds them from the permission rows: for the services'
    * updates and deletes by query, which no CRUD route makes.
    */
-  const propsOf: (caller: Caller) => Promise<DatabaseCommonInteractionProps> =
-    async (caller: Caller): Promise<DatabaseCommonInteractionProps> => {
-      const req: ExpressRequest = {
-        method: "POST",
-        params: {},
-        query: {},
-        cookies: {},
-        headers: headersOf(caller),
-        body: {},
-      } as unknown as ExpressRequest;
+  const propsOf: (
+    caller: Caller,
+  ) => Promise<DatabaseCommonInteractionProps> = async (
+    caller: Caller,
+  ): Promise<DatabaseCommonInteractionProps> => {
+    const req: ExpressRequest = {
+      method: "POST",
+      params: {},
+      query: {},
+      cookies: {},
+      headers: headersOf(caller),
+      body: {},
+    } as unknown as ExpressRequest;
 
-      const res: ExpressResponse = {
-        set: jest.fn(),
-        status: jest.fn().mockReturnThis(),
-        json: jest.fn(),
-        send: jest.fn(),
-      } as unknown as ExpressResponse;
+    const res: ExpressResponse = {
+      set: jest.fn(),
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+      send: jest.fn(),
+    } as unknown as ExpressResponse;
 
-      for (const middleware of mockRouter.match("post", "/alert/get-list")
-        .middlewares) {
-        let isPassed: boolean = false;
+    for (const middleware of mockRouter.match("post", "/alert/get-list")
+      .middlewares) {
+      let isPassed: boolean = false;
 
-        await middleware(req, res, ((error?: unknown) => {
-          isPassed = !error;
-        }) as NextFunction);
+      await middleware(req, res, ((error?: unknown) => {
+        isPassed = !error;
+      }) as NextFunction);
 
-        expect(isPassed).toBe(true);
-      }
+      expect(isPassed).toBe(true);
+    }
 
-      return await CommonAPI.getDatabaseCommonInteractionProps(req);
-    };
+    return await CommonAPI.getDatabaseCommonInteractionProps(req);
+  };
 
   // Sends one request through its route, as Express would.
   const send: (data: {
@@ -886,9 +894,10 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
     ).mockResolvedValue(false as never);
 
     // Workflows run elsewhere.
-    getJestSpyOn(DatabaseService.prototype, "onTriggerWorkflow").mockResolvedValue(
-      undefined as never,
-    );
+    getJestSpyOn(
+      DatabaseService.prototype,
+      "onTriggerWorkflow",
+    ).mockResolvedValue(undefined as never);
 
     for (const [id, name] of [
       [homeProjectId, "Home project"],
@@ -1325,13 +1334,7 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
 
       test("another project's records are not changed by id", async () => {
         for (const [path, table, id, data, column] of [
-          [
-            "/alert",
-            "Alert",
-            otherAlertId,
-            { title: "Changed" },
-            "title",
-          ],
+          ["/alert", "Alert", otherAlertId, { title: "Changed" }, "title"],
           [
             "/alert",
             "Alert",
@@ -1449,9 +1452,11 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
     const listed: Outcome = await list("/alert", caller);
 
     expect(listed.ids).toEqual(sorted(homeAlertIds));
-    expect(listed.ids).not.toEqual(
-      expect.arrayContaining([otherAlertId.toString()]),
-    );
+    expect(
+      (listed.ids || []).filter((id: string): boolean => {
+        return otherProjectRowIds.includes(id);
+      }),
+    ).toEqual([]);
     expect((await getItem("/alert", caller, otherAlertId)).item).toBeNull();
   });
 
@@ -1551,339 +1556,338 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
   ] as Array<[string, "user" | "apiKey"]>)(
     "the label rule, on %s",
     (_label: string, kind: "user" | "apiKey") => {
-      describe.each(matrix)("%s", (_case: string, getCase: () => MatrixCase) => {
-        let caller: Caller;
-        let matrixCase: MatrixCase;
+      describe.each(matrix)(
+        "%s",
+        (_case: string, getCase: () => MatrixCase) => {
+          let caller: Caller;
+          let matrixCase: MatrixCase;
 
-        const alertIdOf: Dictionary<ObjectID> = {};
-        const noteIdOf: Dictionary<ObjectID> = {};
+          const alertIdOf: Dictionary<ObjectID> = {};
+          const noteIdOf: Dictionary<ObjectID> = {};
 
-        beforeAll(async () => {
-          matrixCase = getCase();
+          beforeAll(async () => {
+            matrixCase = getCase();
 
-          alertIdOf["production"] = productionAlertId;
-          alertIdOf["staging"] = stagingAlertId;
-          alertIdOf["unlabelled"] = unlabelledAlertId;
-          noteIdOf["production"] = productionNoteId;
-          noteIdOf["staging"] = stagingNoteId;
-          noteIdOf["unlabelled"] = unlabelledNoteId;
+            alertIdOf["production"] = productionAlertId;
+            alertIdOf["staging"] = stagingAlertId;
+            alertIdOf["unlabelled"] = unlabelledAlertId;
+            noteIdOf["production"] = productionNoteId;
+            noteIdOf["staging"] = stagingNoteId;
+            noteIdOf["unlabelled"] = unlabelledNoteId;
 
-          if (kind === "user") {
-            await setTeamPermissions(
-              homeTeamId,
-              homeProjectId,
-              matrixCase.rows,
-            );
-            caller = homeUser;
-          } else {
-            caller = {
-              kind: "apiKey",
-              apiKey: await createApiKey(matrixCase.rows),
-            };
-          }
-        });
-
-        const expectedIds: (
-          idOf: Dictionary<ObjectID>,
-          readable: Array<string>,
-        ) => Array<string> = (
-          idOf: Dictionary<ObjectID>,
-          readable: Array<string>,
-        ): Array<string> => {
-          return sorted(
-            readable.map((key: string): ObjectID => {
-              return idOf[key]!;
-            }),
-          );
-        };
-
-        test("lists and counts", async () => {
-          for (const [path, idOf] of [
-            ["/alert", alertIdOf],
-            ["/alert-internal-note", noteIdOf],
-          ] as Array<[string, Dictionary<ObjectID>]>) {
-            const listed: Outcome = await list(path, caller);
-            const counted: Outcome = await count(path, caller);
-
-            if (!matrixCase.readable) {
-              expectRefused(listed);
-              expectRefused(counted);
-              continue;
+            if (kind === "user") {
+              await setTeamPermissions(
+                homeTeamId,
+                homeProjectId,
+                matrixCase.rows,
+              );
+              caller = homeUser;
+            } else {
+              caller = {
+                kind: "apiKey",
+                apiKey: await createApiKey(matrixCase.rows),
+              };
             }
+          });
 
-            expect(listed.error).toBeUndefined();
-            expect(listed.ids).toEqual(
-              expectedIds(idOf, matrixCase.readable),
+          const expectedIds: (
+            idOf: Dictionary<ObjectID>,
+            readable: Array<string>,
+          ) => Array<string> = (
+            idOf: Dictionary<ObjectID>,
+            readable: Array<string>,
+          ): Array<string> => {
+            return sorted(
+              readable.map((key: string): ObjectID => {
+                return idOf[key]!;
+              }),
             );
-            expect(listed.count).toBe(matrixCase.readable.length);
-            expect(counted.count).toBe(matrixCase.readable.length);
-          }
-        });
+          };
 
-        test("reads by id", async () => {
-          for (const [path, idOf] of [
-            ["/alert", alertIdOf],
-            ["/alert-internal-note", noteIdOf],
-          ] as Array<[string, Dictionary<ObjectID>]>) {
-            for (const key of ["production", "staging", "unlabelled"]) {
-              const read: Outcome = await getItem(path, caller, idOf[key]!);
+          test("lists and counts", async () => {
+            for (const [path, idOf] of [
+              ["/alert", alertIdOf],
+              ["/alert-internal-note", noteIdOf],
+            ] as Array<[string, Dictionary<ObjectID>]>) {
+              const listed: Outcome = await list(path, caller);
+              const counted: Outcome = await count(path, caller);
 
               if (!matrixCase.readable) {
-                expectRefused(read);
+                expectRefused(listed);
+                expectRefused(counted);
                 continue;
               }
 
-              if (
-                matrixCase.readable.includes(
-                  key as "production" | "staging" | "unlabelled",
-                )
-              ) {
-                expect(read.item?.id?.toString()).toBe(idOf[key]!.toString());
-              } else {
-                expect(read.item).toBeNull();
+              expect(listed.error).toBeUndefined();
+              expect(listed.ids).toEqual(
+                expectedIds(idOf, matrixCase.readable),
+              );
+              expect(listed.count).toBe(matrixCase.readable.length);
+              expect(counted.count).toBe(matrixCase.readable.length);
+            }
+          });
+
+          test("reads by id", async () => {
+            for (const [path, idOf] of [
+              ["/alert", alertIdOf],
+              ["/alert-internal-note", noteIdOf],
+            ] as Array<[string, Dictionary<ObjectID>]>) {
+              for (const key of ["production", "staging", "unlabelled"]) {
+                const read: Outcome = await getItem(path, caller, idOf[key]!);
+
+                if (!matrixCase.readable) {
+                  expectRefused(read);
+                  continue;
+                }
+
+                if (
+                  matrixCase.readable.includes(
+                    key as "production" | "staging" | "unlabelled",
+                  )
+                ) {
+                  expect(read.item?.id?.toString()).toBe(idOf[key]!.toString());
+                } else {
+                  expect(read.item).toBeNull();
+                }
               }
             }
-          }
-        });
+          });
 
-        test("updates", async () => {
-          for (const [path, table, idOf, column] of [
-            ["/alert", "Alert", alertIdOf, "title"],
-            ["/alert-internal-note", "AlertInternalNote", noteIdOf, "note"],
-          ] as Array<[string, string, Dictionary<ObjectID>, string]>) {
-            for (const key of ["production", "staging", "unlabelled"]) {
-              const id: ObjectID = idOf[key]!;
-              const before: unknown = await readColumn(table, id, column);
-              const value: string = `Changed ${ObjectID.generate().toString()}`;
+          test("updates", async () => {
+            for (const [path, table, idOf, column] of [
+              ["/alert", "Alert", alertIdOf, "title"],
+              ["/alert-internal-note", "AlertInternalNote", noteIdOf, "note"],
+            ] as Array<[string, string, Dictionary<ObjectID>, string]>) {
+              for (const key of ["production", "staging", "unlabelled"]) {
+                const id: ObjectID = idOf[key]!;
+                const before: unknown = await readColumn(table, id, column);
+                const value: string = `Changed ${ObjectID.generate().toString()}`;
 
-              const outcome: Outcome = await update(path, caller, id, {
-                [column]: value,
+                const outcome: Outcome = await update(path, caller, id, {
+                  [column]: value,
+                });
+
+                if (
+                  matrixCase.readable &&
+                  matrixCase.readable.includes(
+                    key as "production" | "staging" | "unlabelled",
+                  )
+                ) {
+                  expect(outcome.error).toBeUndefined();
+                  expect(outcome.isEmptySuccess).toBe(true);
+                  expect(await readColumn(table, id, column)).toBe(value);
+                } else {
+                  expectRefused(outcome);
+                  expect(await readColumn(table, id, column)).toEqual(before);
+                }
+              }
+            }
+          });
+
+          test("deletes", async () => {
+            for (const [key, labelIds] of [
+              ["production", [productionLabelId]],
+              ["staging", [stagingLabelId]],
+              ["unlabelled", []],
+            ] as Array<[string, Array<ObjectID>]>) {
+              const alertId: ObjectID = ObjectID.generate();
+              const noteId: ObjectID = ObjectID.generate();
+
+              await insertAlert({
+                id: alertId,
+                projectId: homeProjectId,
+                title: "Disposable alert",
+                labelIds: labelIds,
+              });
+              await insertNote({
+                id: noteId,
+                projectId: homeProjectId,
+                alertId: alertId,
               });
 
-              if (
+              const isDeletable: boolean = Boolean(
                 matrixCase.readable &&
-                matrixCase.readable.includes(
-                  key as "production" | "staging" | "unlabelled",
-                )
-              ) {
-                expect(outcome.error).toBeUndefined();
-                expect(outcome.isEmptySuccess).toBe(true);
-                expect(await readColumn(table, id, column)).toBe(value);
+                  matrixCase.readable.includes(
+                    key as "production" | "staging" | "unlabelled",
+                  ),
+              );
+
+              const noteOutcome: Outcome = await remove(
+                "/alert-internal-note",
+                caller,
+                noteId,
+              );
+
+              expect(await rowExists("AlertInternalNote", noteId)).toBe(
+                !isDeletable,
+              );
+
+              const alertOutcome: Outcome = await remove(
+                "/alert",
+                caller,
+                alertId,
+              );
+
+              expect(await rowExists("Alert", alertId)).toBe(!isDeletable);
+
+              if (isDeletable) {
+                expect(noteOutcome.isEmptySuccess).toBe(true);
+                expect(alertOutcome.isEmptySuccess).toBe(true);
               } else {
-                expectRefused(outcome);
-                expect(await readColumn(table, id, column)).toEqual(before);
+                expectRefused(noteOutcome);
+                expectRefused(alertOutcome);
               }
+
+              await removeRows([
+                ["AlertInternalNote", "_id", noteId],
+                ["AlertLabel", "alertId", alertId],
+                ["Alert", "_id", alertId],
+              ]);
             }
-          }
-        });
+          });
 
-        test("deletes", async () => {
-          for (const [key, labelIds] of [
-            ["production", [productionLabelId]],
-            ["staging", [stagingLabelId]],
-            ["unlabelled", []],
-          ] as Array<[string, Array<ObjectID>]>) {
-            const alertId: ObjectID = ObjectID.generate();
-            const noteId: ObjectID = ObjectID.generate();
+          /*
+           * A service's update or delete by query - no CRUD route makes one -
+           * is narrowed by the same rule as a read: the records left out of
+           * the read are left out of the write.
+           */
+          test("updates and deletes by query", async () => {
+            const props: DatabaseCommonInteractionProps = await propsOf(caller);
+            const value: string = `Changed ${ObjectID.generate().toString()}`;
 
-            await insertAlert({
-              id: alertId,
-              projectId: homeProjectId,
-              title: "Disposable alert",
-              labelIds: labelIds,
-            });
-            await insertNote({
-              id: noteId,
-              projectId: homeProjectId,
-              alertId: alertId,
-            });
+            if (!matrixCase.readable) {
+              await expect(
+                alertService.updateBy({
+                  query: { _id: new Includes(homeAlertIds) },
+                  data: { title: value },
+                  props: props,
+                  limit: 50,
+                  skip: 0,
+                }),
+              ).rejects.toThrow(NotAuthorizedException);
+              await expect(
+                noteService.deleteBy({
+                  query: { _id: new Includes(homeNoteIds) },
+                  props: props,
+                  limit: 50,
+                  skip: 0,
+                }),
+              ).rejects.toThrow(NotAuthorizedException);
 
-            const isDeletable: boolean = Boolean(
-              matrixCase.readable &&
-                matrixCase.readable.includes(
-                  key as "production" | "staging" | "unlabelled",
-                ),
-            );
+              for (const id of homeNoteIds) {
+                expect(
+                  await rowExists("AlertInternalNote", new ObjectID(id)),
+                ).toBe(true);
+              }
 
-            const noteOutcome: Outcome = await remove(
-              "/alert-internal-note",
-              caller,
-              noteId,
-            );
-
-            expect(await rowExists("AlertInternalNote", noteId)).toBe(
-              !isDeletable,
-            );
-
-            const alertOutcome: Outcome = await remove(
-              "/alert",
-              caller,
-              alertId,
-            );
-
-            expect(await rowExists("Alert", alertId)).toBe(!isDeletable);
-
-            if (isDeletable) {
-              expect(noteOutcome.isEmptySuccess).toBe(true);
-              expect(alertOutcome.isEmptySuccess).toBe(true);
-            } else {
-              expectRefused(noteOutcome);
-              expectRefused(alertOutcome);
+              return;
             }
 
-            await removeRows([
-              ["AlertInternalNote", "_id", noteId],
-              ["AlertLabel", "alertId", alertId],
-              ["Alert", "_id", alertId],
-            ]);
-          }
-        });
+            await alertService.updateBy({
+              query: { _id: new Includes(homeAlertIds) },
+              data: { title: value },
+              props: props,
+              limit: 50,
+              skip: 0,
+            });
+            await noteService.updateBy({
+              query: { _id: new Includes(homeNoteIds) },
+              data: { note: value },
+              props: props,
+              limit: 50,
+              skip: 0,
+            });
 
-        /*
-         * A service's update or delete by query - no CRUD route makes one -
-         * is narrowed by the same rule as a read: the records left out of
-         * the read are left out of the write.
-         */
-        test("updates and deletes by query", async () => {
-          const props: DatabaseCommonInteractionProps = await propsOf(caller);
-          const value: string = `Changed ${ObjectID.generate().toString()}`;
+            for (const key of ["production", "staging", "unlabelled"]) {
+              const isWritable: boolean = matrixCase.readable.includes(
+                key as "production" | "staging" | "unlabelled",
+              );
 
-          if (!matrixCase.readable) {
-            await expect(
-              alertService.updateBy({
-                query: { _id: new Includes(homeAlertIds) },
-                data: { title: value },
-                props: props,
-                limit: 50,
-                skip: 0,
-              }),
-            ).rejects.toThrow(NotAuthorizedException);
-            await expect(
-              noteService.deleteBy({
-                query: { _id: new Includes(homeNoteIds) },
-                props: props,
-                limit: 50,
-                skip: 0,
-              }),
-            ).rejects.toThrow(NotAuthorizedException);
-
-            for (const id of homeNoteIds) {
               expect(
-                await rowExists("AlertInternalNote", new ObjectID(id)),
-              ).toBe(true);
+                (await readColumn("Alert", alertIdOf[key]!, "title")) === value,
+              ).toBe(isWritable);
+              expect(
+                (await readColumn(
+                  "AlertInternalNote",
+                  noteIdOf[key]!,
+                  "note",
+                )) === value,
+              ).toBe(isWritable);
             }
 
-            return;
-          }
+            const disposable: Array<{
+              key: string;
+              alertId: ObjectID;
+              noteId: ObjectID;
+            }> = [];
 
-          await alertService.updateBy({
-            query: { _id: new Includes(homeAlertIds) },
-            data: { title: value },
-            props: props,
-            limit: 50,
-            skip: 0,
-          });
-          await noteService.updateBy({
-            query: { _id: new Includes(homeNoteIds) },
-            data: { note: value },
-            props: props,
-            limit: 50,
-            skip: 0,
-          });
+            for (const [key, labelIds] of [
+              ["production", [productionLabelId]],
+              ["staging", [stagingLabelId]],
+              ["unlabelled", []],
+            ] as Array<[string, Array<ObjectID>]>) {
+              const alertId: ObjectID = ObjectID.generate();
+              const noteId: ObjectID = ObjectID.generate();
 
-          for (const key of ["production", "staging", "unlabelled"]) {
-            const isWritable: boolean = matrixCase.readable.includes(
-              key as "production" | "staging" | "unlabelled",
-            );
+              await insertAlert({
+                id: alertId,
+                projectId: homeProjectId,
+                title: "Disposable alert",
+                labelIds: labelIds,
+              });
+              await insertNote({
+                id: noteId,
+                projectId: homeProjectId,
+                alertId: alertId,
+              });
 
-            expect(
-              (await readColumn("Alert", alertIdOf[key]!, "title")) === value,
-            ).toBe(isWritable);
-            expect(
-              (await readColumn(
-                "AlertInternalNote",
-                noteIdOf[key]!,
-                "note",
-              )) === value,
-            ).toBe(isWritable);
-          }
+              disposable.push({ key: key, alertId: alertId, noteId: noteId });
+            }
 
-          const disposable: Array<{
-            key: string;
-            alertId: ObjectID;
-            noteId: ObjectID;
-          }> = [];
-
-          for (const [key, labelIds] of [
-            ["production", [productionLabelId]],
-            ["staging", [stagingLabelId]],
-            ["unlabelled", []],
-          ] as Array<[string, Array<ObjectID>]>) {
-            const alertId: ObjectID = ObjectID.generate();
-            const noteId: ObjectID = ObjectID.generate();
-
-            await insertAlert({
-              id: alertId,
-              projectId: homeProjectId,
-              title: "Disposable alert",
-              labelIds: labelIds,
-            });
-            await insertNote({
-              id: noteId,
-              projectId: homeProjectId,
-              alertId: alertId,
-            });
-
-            disposable.push({ key: key, alertId: alertId, noteId: noteId });
-          }
-
-          await noteService.deleteBy({
-            query: {
-              _id: new Includes(
-                disposable.map(
-                  (row: { noteId: ObjectID }): string => {
+            await noteService.deleteBy({
+              query: {
+                _id: new Includes(
+                  disposable.map((row: { noteId: ObjectID }): string => {
                     return row.noteId.toString();
-                  },
+                  }),
                 ),
-              ),
-            },
-            props: props,
-            limit: 50,
-            skip: 0,
-          });
-          await alertService.deleteBy({
-            query: {
-              _id: new Includes(
-                disposable.map(
-                  (row: { alertId: ObjectID }): string => {
+              },
+              props: props,
+              limit: 50,
+              skip: 0,
+            });
+            await alertService.deleteBy({
+              query: {
+                _id: new Includes(
+                  disposable.map((row: { alertId: ObjectID }): string => {
                     return row.alertId.toString();
-                  },
+                  }),
                 ),
-              ),
-            },
-            props: props,
-            limit: 50,
-            skip: 0,
+              },
+              props: props,
+              limit: 50,
+              skip: 0,
+            });
+
+            for (const row of disposable) {
+              const isDeletable: boolean = matrixCase.readable.includes(
+                row.key as "production" | "staging" | "unlabelled",
+              );
+
+              expect(await rowExists("AlertInternalNote", row.noteId)).toBe(
+                !isDeletable,
+              );
+              expect(await rowExists("Alert", row.alertId)).toBe(!isDeletable);
+
+              await removeRows([
+                ["AlertInternalNote", "_id", row.noteId],
+                ["AlertLabel", "alertId", row.alertId],
+                ["Alert", "_id", row.alertId],
+              ]);
+            }
           });
-
-          for (const row of disposable) {
-            const isDeletable: boolean = matrixCase.readable.includes(
-              row.key as "production" | "staging" | "unlabelled",
-            );
-
-            expect(await rowExists("AlertInternalNote", row.noteId)).toBe(
-              !isDeletable,
-            );
-            expect(await rowExists("Alert", row.alertId)).toBe(!isDeletable);
-
-            await removeRows([
-              ["AlertInternalNote", "_id", row.noteId],
-              ["AlertLabel", "alertId", row.alertId],
-              ["Alert", "_id", row.alertId],
-            ]);
-          }
-        });
-      });
+        },
+      );
     },
   );
 
@@ -1970,7 +1974,9 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
         ],
         [stagingAlertId.toString(), secondUnlabelledAlertId.toString()],
       ],
-    ] as Array<[string, Array<PermissionRow>, Array<PermissionRow>, Array<string>]>)(
+    ] as Array<
+      [string, Array<PermissionRow>, Array<PermissionRow>, Array<string>]
+    >)(
       "%s",
       async (
         _label: string,
@@ -2319,15 +2325,18 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
    * runs, so a request runs the same statements however many rows it reads.
    */
   describe("the work per request", () => {
-    const statementsOf: (run: () => Promise<Outcome>) => Promise<number> =
-      async (run: () => Promise<Outcome>): Promise<number> => {
-        const before: number = statements.length;
-        const outcome: Outcome = await run();
+    const statementsOf: (
+      run: () => Promise<Outcome>,
+    ) => Promise<number> = async (
+      run: () => Promise<Outcome>,
+    ): Promise<number> => {
+      const before: number = statements.length;
+      const outcome: Outcome = await run();
 
-        expect(outcome.error).toBeUndefined();
+      expect(outcome.error).toBeUndefined();
 
-        return statements.length - before;
-      };
+      return statements.length - before;
+    };
 
     test("does not grow with the rows a request reads", async () => {
       await setTeamPermissions(homeTeamId, homeProjectId, [

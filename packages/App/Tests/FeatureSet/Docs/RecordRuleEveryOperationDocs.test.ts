@@ -103,7 +103,9 @@ describe("Users, Teams & Permissions: one rule for reading, changing and deletin
     expect(paragraphs[2]).toBe(
       "A record with no labels of its own, such as an incident's note, a status page announcement or an AI insight about a service, carries the labels of the records it belongs to or is about. A permission restricted to labels reaches it when those records carry one of the permission's labels, and a block with labels takes it away when one of them carries a blocked label, for reading, changing and deleting alike. An AI insight about no service belongs to the project: a label restriction does not narrow it, and a block with labels does not take it away.",
     );
-    expect(paragraphs[3]).toMatch(/^Where to find it: \*\*Settings → Labels\*\*/);
+    expect(paragraphs[3]).toMatch(
+      /^Where to find it: \*\*Settings → Labels\*\*/,
+    );
   });
 
   test("Telemetry says which rows are read through the record they belong to", () => {
@@ -151,12 +153,12 @@ describe("Users, Teams & Permissions: one rule for reading, changing and deletin
           paragraphsOf(english, LABELS_SECTION)[2],
         );
         // The product names stay as they are.
-        expect(
-          paragraphsOf(page, TELEMETRY_SECTION).slice(-1)[0],
-        ).toContain("SLO");
-        expect(
-          paragraphsOf(page, TELEMETRY_SECTION).slice(-1)[0],
-        ).toContain("Kubernetes");
+        expect(paragraphsOf(page, TELEMETRY_SECTION).slice(-1)[0]).toContain(
+          "SLO",
+        );
+        expect(paragraphsOf(page, TELEMETRY_SECTION).slice(-1)[0]).toContain(
+          "Kubernetes",
+        );
       }
     },
   );

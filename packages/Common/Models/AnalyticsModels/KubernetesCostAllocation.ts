@@ -68,7 +68,9 @@ type CostColumnDef = {
  * clusters those reach, and a block with labels takes away the costs of
  * the clusters carrying them (ModelPermission.getReadScope).
  */
-@OwnedThrough("kubernetesClusterId", KubernetesCluster, { onlyParentModels: true })
+@OwnedThrough("kubernetesClusterId", KubernetesCluster, {
+  onlyParentModels: true,
+})
 export default class KubernetesCostAllocation extends AnalyticsBaseModel {
   public constructor() {
     const projectIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({

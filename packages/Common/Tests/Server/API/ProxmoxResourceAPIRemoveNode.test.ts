@@ -1158,8 +1158,10 @@ describe("ProxmoxResourceAPI remove-node", () => {
         async (args: unknown): Promise<ProxmoxCluster | null> => {
           const findArgs: JSONObject = args as JSONObject;
           const query: JSONObject = findArgs["query"] as JSONObject;
-          const conditions: { id: string | null; blockedLabelIds: Array<string> } =
-            idConditions(query["_id"]);
+          const conditions: {
+            id: string | null;
+            blockedLabelIds: Array<string>;
+          } = idConditions(query["_id"]);
           if (conditions.id !== clusterId.toString()) {
             return null;
           }

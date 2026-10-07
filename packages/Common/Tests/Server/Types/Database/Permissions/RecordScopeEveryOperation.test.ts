@@ -1,12 +1,12 @@
 import CallerPlan from "../../../../../Server/Utils/Billing/CallerPlan";
 import DatabaseRequestType from "../../../../../Server/Types/BaseDatabase/DatabaseRequestType";
-import ModelPermission, {
-  CheckReadPermissionType,
-} from "../../../../../Server/Types/Database/Permissions/Index";
+import ModelPermission from "../../../../../Server/Types/Database/Permissions/Index";
 import AccessControlPermission from "../../../../../Server/Types/Database/Permissions/AccessControlPermission";
 import BasePermission from "../../../../../Server/Types/Database/Permissions/BasePermission";
 import DeletePermission from "../../../../../Server/Types/Database/Permissions/DeletePermission";
-import ReadPermission from "../../../../../Server/Types/Database/Permissions/ReadPermission";
+import ReadPermission, {
+  CheckReadPermissionType,
+} from "../../../../../Server/Types/Database/Permissions/ReadPermission";
 import TenantPermission from "../../../../../Server/Types/Database/Permissions/TenantPermission";
 import Query from "../../../../../Server/Types/Database/Query";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
@@ -187,9 +187,9 @@ const sqlOf: (condition: unknown, alias?: string) => string = (
     return `${alias} = '${String(operator.value)}'`;
   }
 
-  return (
-    operator as unknown as { getSql: (alias: string) => string }
-  ).getSql(alias);
+  return (operator as unknown as { getSql: (alias: string) => string }).getSql(
+    alias,
+  );
 };
 
 // Every value a condition binds, an AND of conditions included.
@@ -622,8 +622,7 @@ describe("the record rule on every operation", () => {
       );
 
       expect(
-        (queryOf(queries, projectId) as unknown as { labels?: unknown })
-          .labels,
+        (queryOf(queries, projectId) as unknown as { labels?: unknown }).labels,
       ).toBeUndefined();
       // Serialized as the labels' ids.
       expect(
@@ -715,11 +714,9 @@ describe("the record rule on every operation", () => {
 
       const queries: Array<Query<Incident>> = await readIncidents(
         acrossProjects(
-          projectIds.map(
-            (id: ObjectID): [ObjectID, Array<UserPermission>] => {
-              return [id, [row(Permission.IncidentMember)]];
-            },
-          ),
+          projectIds.map((id: ObjectID): [ObjectID, Array<UserPermission>] => {
+            return [id, [row(Permission.IncidentMember)]];
+          }),
         ),
       );
 
@@ -923,24 +920,23 @@ describe("the record rule on every operation", () => {
     });
 
     test("a note under a grant over the project is not looked up again", async () => {
-      const isRecordFound: jest.Mock<
-        (query: Query<IncidentInternalNote>) => Promise<boolean>
-      > = jest.fn(async (): Promise<boolean> => {
-        return false;
-      });
+      let lookups: number = 0;
 
       await AccessControlPermission.checkAccessControlPermissionByModel({
         fetchModelWithAccessControlIds:
           async (): Promise<IncidentInternalNote> => {
             return noteIn(projectId);
           },
-        isRecordFound: isRecordFound,
+        isRecordFound: async (): Promise<boolean> => {
+          lookups++;
+          return false;
+        },
         modelType: IncidentInternalNote,
         props: member([row(Permission.IncidentMember)]),
         type: DatabaseRequestType.Update,
       });
 
-      expect(isRecordFound).not.toHaveBeenCalled();
+      expect(lookups).toBe(0);
     });
   });
 

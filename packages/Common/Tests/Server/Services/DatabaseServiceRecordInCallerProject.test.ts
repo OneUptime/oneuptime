@@ -38,9 +38,7 @@ const SECOND_PROJECT_ID: ObjectID = ObjectID.generate();
 const RECORD_ID: ObjectID = ObjectID.generate();
 const LABEL_ID: ObjectID = ObjectID.generate();
 
-const rowsOf: (
-  permissions: Array<UserPermission>,
-) => Record<
+const rowsOf: (permissions: Array<UserPermission>) => Record<
   string,
   {
     _type: "UserTenantAccessPermission";
@@ -126,9 +124,7 @@ describe("the query a check by id reads its record with", () => {
     });
 
     expect(query?._id).toBe(RECORD_ID.toString());
-    expect(JSON.stringify(query?.projectId)).toContain(
-      PROJECT_ID.toString(),
-    );
+    expect(JSON.stringify(query?.projectId)).toContain(PROJECT_ID.toString());
     expect(JSON.stringify(query?.projectId)).toContain(
       SECOND_PROJECT_ID.toString(),
     );
@@ -167,9 +163,9 @@ describe("the query a check by id reads its record with", () => {
   });
 
   test("a table with no project column names the record by its id", () => {
-    expect(rowQueryOf(new DatabaseService(User))(RECORD_ID, member([]))).toEqual(
-      { _id: RECORD_ID.toString() },
-    );
+    expect(
+      rowQueryOf(new DatabaseService(User))(RECORD_ID, member([])),
+    ).toEqual({ _id: RECORD_ID.toString() });
   });
 });
 
@@ -242,11 +238,9 @@ describe("an update and a delete by id read the record in the caller's project",
       expect((error as Error).message).toBe("Monitor not found.");
 
       const labelsRead: { query: Record<string, unknown> } | undefined =
-        lookups.find(
-          (lookup: { select: Record<string, unknown> }): boolean => {
-            return Boolean(lookup.select["labels"]);
-          },
-        );
+        lookups.find((lookup: { select: Record<string, unknown> }): boolean => {
+          return Boolean(lookup.select["labels"]);
+        });
 
       expect(labelsRead?.query["_id"]).toBe(RECORD_ID.toString());
       expect(labelsRead?.query["projectId"]).toBe(PROJECT_ID.toString());

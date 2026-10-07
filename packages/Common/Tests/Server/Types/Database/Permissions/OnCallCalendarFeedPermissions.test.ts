@@ -413,15 +413,15 @@ describe("shared calendar feeds: the real permission gate", () => {
 
       const [askedFor, labelGrant]: Array<FindOperator<string>> =
         scheduleKey.value as unknown as Array<FindOperator<string>>;
-      expect(
-        Object.values(askedFor!.objectLiteralParameters || {}),
-      ).toEqual([scheduleId.toString()]);
+      expect(Object.values(askedFor!.objectLiteralParameters || {})).toEqual([
+        scheduleId.toString(),
+      ]);
       expect(labelGrant!.getSql!("key")).toContain(
         'key IN (SELECT "OnCallDutyPolicyScheduleLabel"',
       );
-      expect(
-        Object.values(labelGrant!.objectLiteralParameters || {}),
-      ).toEqual([[permittedLabelId.toString()]]);
+      expect(Object.values(labelGrant!.objectLiteralParameters || {})).toEqual([
+        [permittedLabelId.toString()],
+      ]);
       expect(result.select).toEqual(scheduleStatusSelect);
     });
   });

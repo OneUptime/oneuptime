@@ -254,7 +254,8 @@ describe("the server writes a relation's key from the relation in one place", ()
    * map of columns (DatabaseService's relational columns) is not a query,
    * and is allowed by name.
    */
-  const KEY_WRITE: RegExp = /\[[^\]\n]*manyToOneRelationColumn[^\]\n]*\]\s*=[^=]/g;
+  const KEY_WRITE: RegExp =
+    /\[[^\]\n]*manyToOneRelationColumn[^\]\n]*\]\s*=[^=]/g;
 
   const ALLOWED_KEY_WRITES: ReadonlyArray<string> = [
     "Services/DatabaseService.ts: relationalColumns[metadata.manyToOneRelationColumn] = column;",
@@ -312,8 +313,8 @@ describe("the server writes a relation's key from the relation in one place", ()
     }
 
     // Both kinds of relation filter go through it.
-    expect(
-      source.match(/QueryUtil\.moveRelationFilterToKey\(/g)?.length,
-    ).toBe(2);
+    expect(source.match(/QueryUtil\.moveRelationFilterToKey\(/g)?.length).toBe(
+      2,
+    );
   });
 });

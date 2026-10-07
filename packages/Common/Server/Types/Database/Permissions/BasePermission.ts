@@ -296,8 +296,7 @@ export default class BasePermission {
         ...accessControlQuery,
       };
     } else {
-      (query as any)[model.canAccessIfCanReadOn as string] =
-        accessControlQuery;
+      (query as any)[model.canAccessIfCanReadOn as string] = accessControlQuery;
     }
 
     return query;
