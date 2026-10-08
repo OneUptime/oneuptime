@@ -45,7 +45,11 @@ import UserService from "./UserService";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../Utils/Markdown/FeedMarkdown";
+import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Select from "../Types/Database/Select";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -782,15 +786,6 @@ class AlertOwnerRuleEngineServiceClass
           : Promise.resolve([] as Array<Team>),
       ]);
 
-      const userLines: Array<string> = users.map((u: User) => {
-        const display: string =
-          u.name?.toString() || u.email?.toString() || "Unknown User";
-        return `\n- 👤 ${escapeMarkdownValue(display)}`;
-      });
-      const teamLines: Array<string> = teams.map((t: Team) => {
-        return `\n- 👥 ${escapeMarkdownValue(t.name?.toString() || "Unnamed Team")}`;
-      });
-
       const ruleNames: Array<string> = matchedRules
         .map((r: AlertOwnerRule) => {
           return r.name?.toString() || "Unnamed Rule";
@@ -798,20 +793,6 @@ class AlertOwnerRuleEngineServiceClass
         .filter((n: string) => {
           return n !== "";
         });
-
-      const rulesPart: string =
-        ruleNames.length === 1
-          ? `**${escapeMarkdownValue(ruleNames[0])}**`
-          : ruleNames
-              .map((n: string) => {
-                return `**${escapeMarkdownValue(n)}**`;
-              })
-              .join(", ");
-
-      const ownersPart: string =
-        userLines.length + teamLines.length > 0
-          ? userLines.concat(teamLines).join("")
-          : "\n- (no named owners)";
 
       const inheritedSources: Array<string> = [];
       if (inheritedFromMonitors) {
@@ -832,23 +813,27 @@ class AlertOwnerRuleEngineServiceClass
       if (inheritedFromServices) {
         inheritedSources.push("services");
       }
-      const inheritedNote: string =
+      const inheritedNote: MarkdownText =
         inheritedSources.length > 0
-          ? `\n\n_Some owners were inherited from the alert's ${inheritedSources.join(", ")}._`
-          : "";
+          ? mdText`\n\n_Some owners were inherited from the alert's ${inheritedSources.join(", ")}._`
+          : FeedMarkdown.empty();
 
-      const feedInfoInMarkdown: string = `🛡️ **Alert Owner Rule${
-        matchedRules.length > 1 ? "s" : ""
-      } executed:** ${rulesPart}\n\nAssigned the following owner${
-        userLines.length + teamLines.length === 1 ? "" : "s"
-      } to the alert:${ownersPart}${inheritedNote}`;
+      const feedInfoInMarkdown: MarkdownText = mdText`${RuleFeedMarkdown.executedLine(
+        {
+          emoji: "🛡️",
+          ruleKind: "Alert Owner Rule",
+          ruleNames: ruleNames,
+        },
+      )}\n\nAssigned the following owner${
+        users.length + teams.length === 1 ? "" : "s"
+      } to the alert:\n${RuleFeedMarkdown.ownersList({ users: users, teams: teams })}${inheritedNote}`;
 
       await AlertFeedService.createAlertFeedItem({
         alertId: alert.id,
         projectId: alert.projectId,
         alertFeedEventType: AlertFeedEventType.OwnerRuleExecuted,
         displayColor: Indigo500,
-        feedInfoInMarkdown,
+        feedInfoInMarkdown: feedInfoInMarkdown.toString(),
       });
     } catch (error) {
       logger.error(

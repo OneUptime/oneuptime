@@ -21,7 +21,11 @@ import ScheduledMaintenanceService from "./ScheduledMaintenanceService";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../Utils/Markdown/FeedMarkdown";
+import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Select from "../Types/Database/Select";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -503,29 +507,17 @@ class ScheduledMaintenanceLabelRuleEngineServiceClass
           return n !== "";
         });
 
-      const rulesPart: string =
-        ruleNames.length === 1
-          ? `**${escapeMarkdownValue(ruleNames[0])}**`
-          : ruleNames
-              .map((n: string) => {
-                return `**${escapeMarkdownValue(n)}**`;
-              })
-              .join(", ");
-
-      const labelsPart: string =
-        labelNames.length > 0
-          ? labelNames
-              .map((n: string) => {
-                return `\n- ${escapeMarkdownValue(n)}`;
-              })
-              .join("")
-          : "\n- (no named labels)";
-
-      const feedInfoInMarkdown: string = `🏷️ **Scheduled Maintenance Label Rule${
-        matchedRules.length > 1 ? "s" : ""
-      } executed:** ${rulesPart}\n\nAdded the following label${
+      const feedInfoInMarkdown: MarkdownText = mdText`${RuleFeedMarkdown.executedLine(
+        {
+          emoji: "🏷️",
+          ruleKind: "Scheduled Maintenance Label Rule",
+          ruleNames: ruleNames,
+        },
+      )}\n\nAdded the following label${
         labelNames.length === 1 ? "" : "s"
-      } to the event:${labelsPart}`;
+      } to the event:\n${FeedMarkdown.bulletList(labelNames, {
+        whenEmpty: "(no named labels)",
+      })}`;
 
       await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
         scheduledMaintenanceId: scheduledMaintenance.id,
@@ -533,7 +525,7 @@ class ScheduledMaintenanceLabelRuleEngineServiceClass
         scheduledMaintenanceFeedEventType:
           ScheduledMaintenanceFeedEventType.LabelRuleExecuted,
         displayColor: Indigo500,
-        feedInfoInMarkdown,
+        feedInfoInMarkdown: feedInfoInMarkdown.toString(),
       });
     } catch (error) {
       logger.error(
