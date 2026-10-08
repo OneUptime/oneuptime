@@ -359,7 +359,9 @@ describe("a scheduled maintenance state change with a public note tells subscrib
         ScheduledMaintenanceStateService,
         "findOneBy",
       ).mockImplementation(
-        async (findOneBy: unknown): Promise<ScheduledMaintenanceState | null> => {
+        async (
+          findOneBy: unknown,
+        ): Promise<ScheduledMaintenanceState | null> => {
           const query: Record<string, unknown> = (
             findOneBy as { query: Record<string, unknown> }
           ).query;
@@ -388,9 +390,10 @@ describe("a scheduled maintenance state change with a public note tells subscrib
       getJestSpyOn(ScheduledMaintenanceService, "findOneBy").mockResolvedValue(
         null,
       );
-      getJestSpyOn(ScheduledMaintenanceService, "updateOneBy").mockResolvedValue(
-        1,
-      );
+      getJestSpyOn(
+        ScheduledMaintenanceService,
+        "updateOneBy",
+      ).mockResolvedValue(1);
       getJestSpyOn(
         ScheduledMaintenanceService,
         "getScheduledMaintenanceNumber",
@@ -526,9 +529,9 @@ describe("a scheduled maintenance state change with a public note tells subscrib
       expect(
         postedNotes[0]!.note.shouldStatusPageSubscribersBeNotifiedOnNoteCreated,
       ).toBe(false);
-      expect(postedNotes[0]!.note.subscriberNotificationStatusOnNoteCreated).toBe(
-        StatusPageSubscriberNotificationStatus.Skipped,
-      );
+      expect(
+        postedNotes[0]!.note.subscriberNotificationStatusOnNoteCreated,
+      ).toBe(StatusPageSubscriberNotificationStatus.Skipped);
       expect(saved.queued).toBe(0);
     });
 

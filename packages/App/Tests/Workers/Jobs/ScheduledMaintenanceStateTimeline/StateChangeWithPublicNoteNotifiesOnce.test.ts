@@ -374,7 +374,9 @@ function resource(): StatusPageResource {
 }
 
 // A member of the project who may change an event's state, and these too.
-function memberProps(permissions: Array<Permission>): DatabaseCommonInteractionProps {
+function memberProps(
+  permissions: Array<Permission>,
+): DatabaseCommonInteractionProps {
   return {
     userId: new ObjectID("3f000000-0000-4000-8000-0000000000aa"),
     userType: UserType.User,
@@ -658,9 +660,9 @@ beforeEach(() => {
     .mockResolvedValue(undefined as never);
   mock(ScheduledMaintenanceService.findOneBy).mockResolvedValue(null as never);
   mock(ScheduledMaintenanceService.updateOneBy).mockResolvedValue(1 as never);
-  mock(ScheduledMaintenanceService.getScheduledMaintenanceNumber).mockResolvedValue(
-    { number: 7, numberWithPrefix: "SM-7" } as never,
-  );
+  mock(
+    ScheduledMaintenanceService.getScheduledMaintenanceNumber,
+  ).mockResolvedValue({ number: 7, numberWithPrefix: "SM-7" } as never);
 
   // Everything the jobs read about the event and its status page.
   mock(ScheduledMaintenanceService.findOneById).mockResolvedValue(

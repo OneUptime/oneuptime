@@ -392,7 +392,10 @@ beforeEach(() => {
    * A state as its reads answer it: by id, and asked again with a flag
    * ({ isOngoingState: true }) to tell which kind it is.
    */
-  getJestSpyOn(ScheduledMaintenanceStateService, "findOneBy").mockImplementation(
+  getJestSpyOn(
+    ScheduledMaintenanceStateService,
+    "findOneBy",
+  ).mockImplementation(
     async (findOneBy: unknown): Promise<ScheduledMaintenanceState | null> => {
       const query: Dictionary<unknown> = (
         findOneBy as { query: Dictionary<unknown> }
@@ -607,7 +610,11 @@ describe("a change that is saved posts its note after it", () => {
   });
 
   test("with Notify on, the note is the one message: it is queued to tell subscribers, and the change is recorded as sent by it", async () => {
-    await changeState({ props: memberProps(MAY_POST), note: NOTE, notify: true });
+    await changeState({
+      props: memberProps(MAY_POST),
+      note: NOTE,
+      notify: true,
+    });
 
     expect(timelines.inserts[0]!["subscriberNotificationStatus"]).toBe(
       StatusPageSubscriberNotificationStatus.Success,
@@ -615,9 +622,9 @@ describe("a change that is saved posts its note after it", () => {
     expect(timelines.inserts[0]!["subscriberNotificationStatusMessage"]).toBe(
       StateChangeSubscriberNotification.sentByPublicNoteMessage,
     );
-    expect(notes.inserts[0]!["shouldStatusPageSubscribersBeNotifiedOnNoteCreated"]).toBe(
-      true,
-    );
+    expect(
+      notes.inserts[0]!["shouldStatusPageSubscribersBeNotifiedOnNoteCreated"],
+    ).toBe(true);
     expect(notes.inserts[0]!["subscriberNotificationStatusOnNoteCreated"]).toBe(
       StatusPageSubscriberNotificationStatus.Pending,
     );
@@ -633,9 +640,9 @@ describe("a change that is saved posts its note after it", () => {
     expect(timelines.inserts[0]!["subscriberNotificationStatus"]).toBe(
       StatusPageSubscriberNotificationStatus.Skipped,
     );
-    expect(notes.inserts[0]!["shouldStatusPageSubscribersBeNotifiedOnNoteCreated"]).toBe(
-      false,
-    );
+    expect(
+      notes.inserts[0]!["shouldStatusPageSubscribersBeNotifiedOnNoteCreated"],
+    ).toBe(false);
     expect(notes.inserts[0]!["subscriberNotificationStatusOnNoteCreated"]).toBe(
       StatusPageSubscriberNotificationStatus.Skipped,
     );
@@ -657,9 +664,9 @@ describe("a change that is saved posts its note after it", () => {
     expect(timelines.inserts[0]!["subscriberNotificationStatus"]).toBe(
       StatusPageSubscriberNotificationStatus.Pending,
     );
-    expect(notes.inserts[0]!["shouldStatusPageSubscribersBeNotifiedOnNoteCreated"]).toBe(
-      false,
-    );
+    expect(
+      notes.inserts[0]!["shouldStatusPageSubscribersBeNotifiedOnNoteCreated"],
+    ).toBe(false);
   });
 
   test("the note comes after the change in the event's feed, and so in its Slack and Microsoft Teams channels", async () => {
