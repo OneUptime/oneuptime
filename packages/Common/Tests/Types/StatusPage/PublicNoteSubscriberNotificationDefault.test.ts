@@ -1880,7 +1880,11 @@ describe("PublicNoteSubscriberNotificationDefault.shouldNotifyForScheduledMainte
  */
 describe("a move into a state of the project's own, placed by the project's list", () => {
   const states: Array<ScheduledMaintenanceTargetState> = [
-    { _id: "s1", order: 1, isScheduledState: true } as ScheduledMaintenanceTargetState,
+    {
+      _id: "s1",
+      order: 1,
+      isScheduledState: true,
+    } as ScheduledMaintenanceTargetState,
     { _id: "s2", order: 2 },
     { _id: "s3", order: 3, isOngoingState: true },
     { _id: "s4", order: 4 },
@@ -1930,9 +1934,7 @@ describe("a move into a state of the project's own, placed by the project's list
   ] as Array<[string, ScheduledMaintenanceTargetState | undefined]>)(
     "into Verifying %s is the start: it follows Event Ongoing",
     (_label: string, from: ScheduledMaintenanceTargetState | undefined) => {
-      expect(startsTicked(quietEvent(true, false), from, verifying)).toBe(
-        true,
-      );
+      expect(startsTicked(quietEvent(true, false), from, verifying)).toBe(true);
       expect(startsTicked(quietEvent(false, true), from, verifying)).toBe(
         false,
       );
@@ -1951,9 +1953,7 @@ describe("a move into a state of the project's own, placed by the project's list
   ] as Array<[string, ScheduledMaintenanceTargetState]>)(
     "into Reviewing %s is the end: it follows Event Ended",
     (_label: string, from: ScheduledMaintenanceTargetState) => {
-      expect(startsTicked(quietEvent(false, true), from, reviewing)).toBe(
-        true,
-      );
+      expect(startsTicked(quietEvent(false, true), from, reviewing)).toBe(true);
       expect(startsTicked(quietEvent(true, false), from, reviewing)).toBe(
         false,
       );
@@ -1961,9 +1961,7 @@ describe("a move into a state of the project's own, placed by the project's list
   );
 
   test("into Reviewing on from Ended ends nothing: it follows the created setting", () => {
-    expect(startsTicked(quietEvent(true, true), ended, reviewing)).toBe(
-      false,
-    );
+    expect(startsTicked(quietEvent(true, true), ended, reviewing)).toBe(false);
   });
 
   test("into a state of its own before Ongoing announces nothing", () => {

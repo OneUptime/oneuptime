@@ -1459,9 +1459,7 @@ describe("ScheduledMaintenanceService.onUpdateSuccess: an event in a state of th
       eventsBeforeWrite = [
         maintenanceEvent({ state: "custom", networkSites: [SITE_1] }),
       ];
-      afterWrite(
-        maintenanceEvent({ state: "custom", networkSites: [SITE_2] }),
-      );
+      afterWrite(maintenanceEvent({ state: "custom", networkSites: [SITE_2] }));
 
       const onUpdate: OnUpdate<ScheduledMaintenance> = await edit({
         networkSites: [{ _id: SITE_2 }],

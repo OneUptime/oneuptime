@@ -632,11 +632,7 @@ describe("the move into a state of the project's own placed after Ended", () => 
       ["scheduled", "ongoing", "ended"],
       "ended",
     ],
-    [
-      "straight from Scheduled: never held",
-      ["scheduled"],
-      "scheduled",
-    ],
+    ["straight from Scheduled: never held", ["scheduled"], "scheduled"],
     [
       "from Confirmed, never started: never held",
       ["scheduled", "confirmed"],

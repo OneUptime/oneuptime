@@ -1073,23 +1073,21 @@ describe("each real change adds its own line, once", () => {
   test("a host taken off while monitors remain lists the monitors, with no 'nothing else' line", async () => {
     storedEvents = [storedEvent({ monitorIds: [MONITOR_A] })];
 
-    resourceReads.mockImplementation(
-      async (): Promise<Array<JSONObject>> => {
-        return [
-          {
-            _id: EVENT_ID,
-            projectId: PROJECT_ID as unknown as JSONObject,
-            monitors: [
-              {
-                _id: MONITOR_A,
-                name: "Checkout API",
-                projectId: PROJECT_ID as unknown as JSONObject,
-              },
-            ],
-          },
-        ];
-      },
-    );
+    resourceReads.mockImplementation(async (): Promise<Array<JSONObject>> => {
+      return [
+        {
+          _id: EVENT_ID,
+          projectId: PROJECT_ID as unknown as JSONObject,
+          monitors: [
+            {
+              _id: MONITOR_A,
+              name: "Checkout API",
+              projectId: PROJECT_ID as unknown as JSONObject,
+            },
+          ],
+        },
+      ];
+    });
 
     await runUpdate({ hosts: [] });
 

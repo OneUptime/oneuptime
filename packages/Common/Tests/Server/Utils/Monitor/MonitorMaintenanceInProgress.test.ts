@@ -13,7 +13,14 @@ import {
   makeEventInState,
   mockProgressStateReads,
 } from "../../TestingUtils/ScheduledMaintenanceProgressWorld";
-import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 
 /*
  * A grouped metric monitor skips creating an incident or an alert for a
@@ -63,9 +70,7 @@ describe("telemetry series are suppressed by every event in progress", () => {
 
     jest
       .spyOn(ScheduledMaintenanceService, "findBy")
-      .mockImplementation((async (args: {
-        query: Record<string, unknown>;
-      }) => {
+      .mockImplementation((async (args: { query: Record<string, unknown> }) => {
         eventQueries.push(args.query);
 
         return events.filter((event: ScheduledMaintenance): boolean => {
@@ -110,7 +115,11 @@ describe("telemetry series are suppressed by every event in progress", () => {
     expect(eventQueries[0]!["projectId"]?.toString()).toBe(
       PROGRESS_PROJECT_ID.toString(),
     );
-    expect(eventQueries[0]!["currentScheduledMaintenanceState"]).toBeUndefined();
-    expect(eventQueries[0]!["currentScheduledMaintenanceStateId"]).toBeDefined();
+    expect(
+      eventQueries[0]!["currentScheduledMaintenanceState"],
+    ).toBeUndefined();
+    expect(
+      eventQueries[0]!["currentScheduledMaintenanceStateId"],
+    ).toBeDefined();
   });
 });

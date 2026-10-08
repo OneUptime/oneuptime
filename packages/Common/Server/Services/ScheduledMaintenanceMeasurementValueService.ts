@@ -124,12 +124,10 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    const timeline: Array<MeasurementTimelineEntry> = await this.loadTimeline(
-      {
-        scheduledMaintenanceId: data.scheduledMaintenanceId,
-        projectId: scheduledMaintenance.projectId,
-      },
-    );
+    const timeline: Array<MeasurementTimelineEntry> = await this.loadTimeline({
+      scheduledMaintenanceId: data.scheduledMaintenanceId,
+      projectId: scheduledMaintenance.projectId,
+    });
 
     const specs: Array<MeasurementDefinitionSpec> = measurements.map(
       (measurement: ScheduledMaintenanceMeasurement) => {
@@ -206,7 +204,11 @@ export class Service extends DatabaseService<Model> {
         timeline: timelines.map(
           (
             timeline: ScheduledMaintenanceStateTimeline,
-          ): { id: string; stateId: ObjectID | undefined; startsAt: Date | undefined } => {
+          ): {
+            id: string;
+            stateId: ObjectID | undefined;
+            startsAt: Date | undefined;
+          } => {
             return {
               id: timeline._id?.toString() || "",
               stateId: timeline.scheduledMaintenanceStateId,

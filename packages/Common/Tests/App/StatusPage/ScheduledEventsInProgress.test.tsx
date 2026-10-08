@@ -143,8 +143,7 @@ jest.mock(
  */
 function textOfSection(title: string): string {
   const label: HTMLElement = screen.getByText(title);
-  const block: HTMLElement | null =
-    label.parentElement?.parentElement || null;
+  const block: HTMLElement | null = label.parentElement?.parentElement || null;
 
   expect(block).not.toBeNull();
 

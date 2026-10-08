@@ -51,7 +51,10 @@ const SCHEDULED_STARTS_AT: Date = at(60);
 
 let rowNumber: number = 0;
 
-function row(key: ProgressStateKey, startsAt: Date): ScheduledMaintenanceStateTimeline {
+function row(
+  key: ProgressStateKey,
+  startsAt: Date,
+): ScheduledMaintenanceStateTimeline {
   rowNumber++;
   const entry: ScheduledMaintenanceStateTimeline =
     new ScheduledMaintenanceStateTimeline();
@@ -75,7 +78,8 @@ function measurementTo(
   measurement.projectId = PROGRESS_PROJECT_ID;
   measurement.name = "Start delay";
   measurement.key = "start-delay";
-  measurement.metricName = "oneuptime.scheduled-maintenance.measurement.start-delay";
+  measurement.metricName =
+    "oneuptime.scheduled-maintenance.measurement.start-delay";
   measurement.isEnabled = true;
   measurement.startAnchorType =
     ScheduledMaintenanceMeasurementAnchorType.ScheduledStartsAt;
@@ -142,7 +146,9 @@ describe("a maintenance measurement's 'ongoing state entered' is the event's sta
     jest
       .spyOn(ScheduledMaintenanceMeasurementValueService, "updateOneById")
       .mockResolvedValue(1 as never);
-    jest.spyOn(GlobalConfigService, "findOneBy").mockResolvedValue(null as never);
+    jest
+      .spyOn(GlobalConfigService, "findOneBy")
+      .mockResolvedValue(null as never);
     jest
       .spyOn(TelemetryUtil, "indexMetricNameServiceNameMap")
       .mockResolvedValue(undefined as never);

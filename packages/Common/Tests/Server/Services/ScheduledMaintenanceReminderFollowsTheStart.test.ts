@@ -2,7 +2,6 @@ import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMainte
 import ScheduledMaintenanceReminderRule from "../../../Models/DatabaseModels/ScheduledMaintenanceReminderRule";
 import ScheduledMaintenanceReminderRuleService from "../../../Server/Services/ScheduledMaintenanceReminderRuleService";
 import ScheduledMaintenanceService from "../../../Server/Services/ScheduledMaintenanceService";
-import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import {
@@ -32,9 +31,7 @@ import {
 const PROJECT_ID: ObjectID = new ObjectID(
   "5b000000-0000-4000-8000-000000000001",
 );
-const EVENT_ID: ObjectID = new ObjectID(
-  "5b000000-0000-4000-8000-0000000000e1",
-);
+const EVENT_ID: ObjectID = new ObjectID("5b000000-0000-4000-8000-0000000000e1");
 
 const NOW: Date = new Date("2026-11-02T08:00:00.000Z");
 const INTERVAL_IN_MINUTES: number = 30;
@@ -111,9 +108,11 @@ beforeEach(() => {
     }) as never);
   jest
     .spyOn(ScheduledMaintenanceReminderRuleService, "findMatchingRule")
-    .mockImplementation((async (): Promise<ScheduledMaintenanceReminderRule | null> => {
-      return matchingRule;
-    }) as never);
+    .mockImplementation(
+      (async (): Promise<ScheduledMaintenanceReminderRule | null> => {
+        return matchingRule;
+      }) as never,
+    );
   jest
     .spyOn(ScheduledMaintenanceService, "isScheduledMaintenanceCompleted")
     .mockResolvedValue(false as never);

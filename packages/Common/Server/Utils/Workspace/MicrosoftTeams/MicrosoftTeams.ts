@@ -4283,35 +4283,35 @@ Check back later for upcoming maintenance windows.`;
         inProgressStateIds.length === 0
           ? []
           : await ScheduledMaintenanceService.findBy({
-          query: {
-            projectId: projectId,
-            currentScheduledMaintenanceStateId:
-              QueryHelper.any(inProgressStateIds),
-          },
-          select: {
-            _id: true,
-            title: true,
-            description: true,
-            startsAt: true,
-            endsAt: true,
-            currentScheduledMaintenanceState: {
-              name: true,
-            },
-            monitors: {
-              name: true,
-            },
-            scheduledMaintenanceNumber: true,
-            scheduledMaintenanceNumberWithPrefix: true,
-          },
-          sort: {
-            startsAt: SortOrder.Descending,
-          },
-          limit: 10,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        });
+              query: {
+                projectId: projectId,
+                currentScheduledMaintenanceStateId:
+                  QueryHelper.any(inProgressStateIds),
+              },
+              select: {
+                _id: true,
+                title: true,
+                description: true,
+                startsAt: true,
+                endsAt: true,
+                currentScheduledMaintenanceState: {
+                  name: true,
+                },
+                monitors: {
+                  name: true,
+                },
+                scheduledMaintenanceNumber: true,
+                scheduledMaintenanceNumberWithPrefix: true,
+              },
+              sort: {
+                startsAt: SortOrder.Descending,
+              },
+              limit: 10,
+              skip: 0,
+              props: {
+                isRoot: true,
+              },
+            });
 
       if (ongoingEvents.length === 0) {
         return `**Ongoing Maintenance Events**

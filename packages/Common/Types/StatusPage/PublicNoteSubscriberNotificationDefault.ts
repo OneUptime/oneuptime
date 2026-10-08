@@ -275,10 +275,7 @@ export default class PublicNoteSubscriberNotificationDefault {
         return "";
       }
 
-      const record: Record<string, unknown> = value as Record<
-        string,
-        unknown
-      >;
+      const record: Record<string, unknown> = value as Record<string, unknown>;
       const id: unknown = record["_id"] ?? record["id"];
 
       return id === undefined || id === null

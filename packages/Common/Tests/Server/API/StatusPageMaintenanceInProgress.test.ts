@@ -83,7 +83,10 @@ const STATUS_PAGE_ID: ObjectID = new ObjectID(
 // A time condition's SQL (QueryHelper): between two dates.
 const BETWEEN_SQL: RegExp = /^\(x >= :\w+ and x <= :\w+\)$/;
 
-function passesStartsAt(event: ScheduledMaintenance, condition: unknown): boolean {
+function passesStartsAt(
+  event: ScheduledMaintenance,
+  condition: unknown,
+): boolean {
   if (condition === undefined) {
     return true;
   }
@@ -153,34 +156,30 @@ describe("a status page shows every scheduled maintenance event in progress as o
       .spyOn(StatusPageService, "getStatusPageResources")
       .mockResolvedValue([] as never);
 
-    jest
-      .spyOn(api, "getStatusPageResourcesAndTimelines")
-      .mockResolvedValue({
-        statusPageResources: [],
-        monitorStatuses: [],
-        monitorStatusTimelines: [],
-        uptimeDailyAggregate: {
-          monitors: [],
-          isComplete: true,
-          completeFrom: null,
-          timezone: "UTC",
-        },
-        monitorGroupCurrentStatuses: {},
-        statusPageGroups: [],
-        statusPage: statusPage,
-        monitorsOnStatusPage: [],
-        monitorsInGroup: {},
-        startDateForMonitorTimeline: new Date(Date.now() - 30 * DAY_MS),
-        endDateForMonitorTimeline: new Date(),
-      } as never);
+    jest.spyOn(api, "getStatusPageResourcesAndTimelines").mockResolvedValue({
+      statusPageResources: [],
+      monitorStatuses: [],
+      monitorStatusTimelines: [],
+      uptimeDailyAggregate: {
+        monitors: [],
+        isComplete: true,
+        completeFrom: null,
+        timezone: "UTC",
+      },
+      monitorGroupCurrentStatuses: {},
+      statusPageGroups: [],
+      statusPage: statusPage,
+      monitorsOnStatusPage: [],
+      monitorsInGroup: {},
+      startDateForMonitorTimeline: new Date(Date.now() - 30 * DAY_MS),
+      endDateForMonitorTimeline: new Date(),
+    } as never);
 
     jest.spyOn(api, "checkHasReadAccess").mockResolvedValue(undefined as never);
 
     jest
       .spyOn(ScheduledMaintenanceService, "findBy")
-      .mockImplementation((async (args: {
-        query: Record<string, unknown>;
-      }) => {
+      .mockImplementation((async (args: { query: Record<string, unknown> }) => {
         eventQueries.push(args.query);
 
         return events.filter((event: ScheduledMaintenance): boolean => {
@@ -216,7 +215,8 @@ describe("a status page shows every scheduled maintenance event in progress as o
         eventStartedDaysAgo("verifying", 1, "Network cutover"),
       ];
 
-      const payload: JSONObject = await api.buildOverviewResponse(STATUS_PAGE_ID);
+      const payload: JSONObject =
+        await api.buildOverviewResponse(STATUS_PAGE_ID);
 
       expect(titlesOf(payload["scheduledMaintenanceEvents"])).toEqual([
         "Database upgrade",
@@ -224,7 +224,13 @@ describe("a status page shows every scheduled maintenance event in progress as o
       ]);
     });
 
-    it.each(["confirmed", "ended", "reviewing", "completed", "archived"] as Array<ProgressStateKey>)(
+    it.each([
+      "confirmed",
+      "ended",
+      "reviewing",
+      "completed",
+      "archived",
+    ] as Array<ProgressStateKey>)(
       "does not show an event in %s as ongoing",
       async (key: ProgressStateKey) => {
         events = [eventStartedDaysAgo(key, 1, "Not in progress")];
@@ -242,7 +248,8 @@ describe("a status page shows every scheduled maintenance event in progress as o
         eventStartedDaysAgo("verifying", 1, "Network cutover"),
       ];
 
-      const payload: JSONObject = await api.buildOverviewResponse(STATUS_PAGE_ID);
+      const payload: JSONObject =
+        await api.buildOverviewResponse(STATUS_PAGE_ID);
 
       expect(
         ((payload["scheduledMaintenanceEvents"] as JSONArray) || []).map(
@@ -281,7 +288,8 @@ describe("a status page shows every scheduled maintenance event in progress as o
     it("ships the project's states, so the page can tell an event in progress by its place", async () => {
       events = [eventStartedDaysAgo("verifying", 1)];
 
-      const payload: JSONObject = await api.buildOverviewResponse(STATUS_PAGE_ID);
+      const payload: JSONObject =
+        await api.buildOverviewResponse(STATUS_PAGE_ID);
 
       const stateIds: Array<string> = (
         (payload["scheduledMaintenanceStates"] as JSONArray) || []
@@ -337,7 +345,13 @@ describe("a status page shows every scheduled maintenance event in progress as o
       ]);
     });
 
-    it.each(["ended", "reviewing", "completed", "archived", "confirmed"] as Array<ProgressStateKey>)(
+    it.each([
+      "ended",
+      "reviewing",
+      "completed",
+      "archived",
+      "confirmed",
+    ] as Array<ProgressStateKey>)(
       "leaves out an event in %s that started before its history window",
       async (key: ProgressStateKey) => {
         events = [eventStartedDaysAgo(key, 30, "Old event")];
@@ -379,12 +393,13 @@ describe("a status page shows every scheduled maintenance event in progress as o
 
       await api.getScheduledMaintenanceEvents(STATUS_PAGE_ID, null, request());
 
-      const selects: Array<Record<string, unknown>> = stateReads.findBy.mock.calls.map(
-        (call: Array<unknown>): Record<string, unknown> => {
-          return ((call[0] as { select?: Record<string, unknown> }).select ||
-            {}) as Record<string, unknown>;
-        },
-      );
+      const selects: Array<Record<string, unknown>> =
+        stateReads.findBy.mock.calls.map(
+          (call: Array<unknown>): Record<string, unknown> => {
+            return ((call[0] as { select?: Record<string, unknown> }).select ||
+              {}) as Record<string, unknown>;
+          },
+        );
 
       expect(selects.length).toBeGreaterThan(0);
 

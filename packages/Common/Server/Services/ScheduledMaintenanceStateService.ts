@@ -263,8 +263,10 @@ export class Service extends DatabaseService<ScheduledMaintenanceState> {
         },
       });
 
-    const statesByProjectId: Map<string, Array<ScheduledMaintenanceState>> =
-      new Map<string, Array<ScheduledMaintenanceState>>();
+    const statesByProjectId: Map<
+      string,
+      Array<ScheduledMaintenanceState>
+    > = new Map<string, Array<ScheduledMaintenanceState>>();
 
     for (const state of statesOfThoseProjects) {
       const projectKey: string = state.projectId?.toString() || "";
@@ -282,12 +284,11 @@ export class Service extends DatabaseService<ScheduledMaintenanceState> {
       for (const stateId of ScheduledMaintenanceStartUtil.getInProgressStateIds(
         { states: projectStates },
       )) {
-        const state: ScheduledMaintenanceState | undefined =
-          projectStates.find(
-            (candidate: ScheduledMaintenanceState): boolean => {
-              return candidate.id?.toString() === stateId.toString();
-            },
-          );
+        const state: ScheduledMaintenanceState | undefined = projectStates.find(
+          (candidate: ScheduledMaintenanceState): boolean => {
+            return candidate.id?.toString() === stateId.toString();
+          },
+        );
 
         // The ongoing states are asked for by their flag already.
         if (

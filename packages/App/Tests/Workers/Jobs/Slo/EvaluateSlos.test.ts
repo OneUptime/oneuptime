@@ -487,11 +487,9 @@ function stateIdsAskedFor(query: Record<string, unknown>): Array<string> {
     condition?.objectLiteralParameters || {},
   );
 
-  return ((values[0] as Array<unknown>) || []).map(
-    (id: unknown): string => {
-      return String(id).toLowerCase();
-    },
-  );
+  return ((values[0] as Array<unknown>) || []).map((id: unknown): string => {
+    return String(id).toLowerCase();
+  });
 }
 
 /*

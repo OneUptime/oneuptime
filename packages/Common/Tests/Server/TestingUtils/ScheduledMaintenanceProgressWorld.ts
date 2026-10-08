@@ -296,7 +296,9 @@ export function eventMatchesStateQuery(
 export function mockProgressStateReads(
   states: Array<ScheduledMaintenanceState> = makeProgressStates(),
 ): { findBy: SpyInstance<typeof ScheduledMaintenanceStateService.findBy> } {
-  const statesFor: (query: Record<string, unknown>) => Array<ScheduledMaintenanceState> = (
+  const statesFor: (
+    query: Record<string, unknown>,
+  ) => Array<ScheduledMaintenanceState> = (
     query: Record<string, unknown>,
   ): Array<ScheduledMaintenanceState> => {
     const ids: Array<string> | null = idsOfCondition(query["_id"]);
@@ -308,9 +310,7 @@ export function mockProgressStateReads(
     return states.filter((state: ScheduledMaintenanceState): boolean => {
       return (
         (projectIds
-          ? projectIds.includes(
-              state.projectId?.toString().toLowerCase() || "",
-            )
+          ? projectIds.includes(state.projectId?.toString().toLowerCase() || "")
           : sameProject(state.projectId, query["projectId"])) &&
         (!ids || ids.includes(state._id?.toString().toLowerCase() || "")) &&
         stateMatchesFlags(state, query)
@@ -321,9 +321,7 @@ export function mockProgressStateReads(
   const findBy: SpyInstance<typeof ScheduledMaintenanceStateService.findBy> =
     jest
       .spyOn(ScheduledMaintenanceStateService, "findBy")
-      .mockImplementation((async (args: {
-        query: Record<string, unknown>;
-      }) => {
+      .mockImplementation((async (args: { query: Record<string, unknown> }) => {
         return statesFor(args.query || {});
       }) as never) as unknown as SpyInstance<
       typeof ScheduledMaintenanceStateService.findBy

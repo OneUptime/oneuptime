@@ -271,7 +271,10 @@ describe("ScheduledMaintenanceMeasurementValueService.recomputeForScheduledMaint
      * (ScheduledMaintenanceStartUtil.getStartRows).
      */
     jest
-      .spyOn(ScheduledMaintenanceStateService, "getAllScheduledMaintenanceStates")
+      .spyOn(
+        ScheduledMaintenanceStateService,
+        "getAllScheduledMaintenanceStates",
+      )
       .mockResolvedValue(
         defaultTimeline().map(
           (

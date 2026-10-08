@@ -1299,8 +1299,10 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
     const listIdsBeforeUpdate: Dictionary<Dictionary<Array<string>>> = {};
 
     // Each project's states, read once and only for a state of its own.
-    const statesByProjectId: Map<string, Array<ScheduledMaintenanceState>> =
-      new Map<string, Array<ScheduledMaintenanceState>>();
+    const statesByProjectId: Map<
+      string,
+      Array<ScheduledMaintenanceState>
+    > = new Map<string, Array<ScheduledMaintenanceState>>();
 
     for (const column of columns) {
       const isAttachment: boolean = ATTACHMENT_COLUMNS.includes(
@@ -3560,9 +3562,7 @@ ${FeedMarkdown.join(
 
         if (
           onUpdate.updateBy.props.tenantId &&
-          (fieldChanges.labels ||
-            fieldChanges.enableReminders ||
-            isStartMoved)
+          (fieldChanges.labels || fieldChanges.enableReminders || isStartMoved)
         ) {
           const startsAtBeforeUpdate: unknown =
             carryForward?.valuesBeforeUpdate?.[

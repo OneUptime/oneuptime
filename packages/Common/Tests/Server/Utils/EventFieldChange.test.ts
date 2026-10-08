@@ -964,12 +964,8 @@ describe("EventFieldChange.toInstant and isInstantChanged", () => {
   describe("a time with no zone is UTC, whatever zone the server runs in", () => {
     test("in the zone this process runs in", () => {
       expect(EventFieldChange.toInstant("2026-10-07T12:00")).toBe(NOON_UTC);
-      expect(EventFieldChange.toInstant("2026-10-07T12:00:00")).toBe(
-        NOON_UTC,
-      );
-      expect(EventFieldChange.toInstant("2026-10-07 12:00:00")).toBe(
-        NOON_UTC,
-      );
+      expect(EventFieldChange.toInstant("2026-10-07T12:00:00")).toBe(NOON_UTC);
+      expect(EventFieldChange.toInstant("2026-10-07 12:00:00")).toBe(NOON_UTC);
       expect(EventFieldChange.toInstant("2026-10-07")).toBe(
         Date.UTC(2026, 9, 7),
       );

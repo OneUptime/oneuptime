@@ -145,9 +145,8 @@ function storedSecretValue(harness: UpdateHarness): unknown {
 function updatedFieldsOf(harness: UpdateHarness): JSONObject {
   expect(harness.workflow).toHaveBeenCalledTimes(1);
 
-  return (
-    harness.workflow.mock.calls[0]![3] as { updatedFields: JSONObject }
-  ).updatedFields;
+  return (harness.workflow.mock.calls[0]![3] as { updatedFields: JSONObject })
+    .updatedFields;
 }
 
 beforeEach(() => {

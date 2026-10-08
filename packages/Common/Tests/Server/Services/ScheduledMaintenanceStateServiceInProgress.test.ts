@@ -361,9 +361,7 @@ describe("ScheduledMaintenanceStateService: the states an event is in progress i
           { projectId: PROGRESS_PROJECT_ID, props: { isRoot: true } },
         );
 
-      expect(state._id?.toString()).toBe(
-        progressStateId("ongoing").toString(),
-      );
+      expect(state._id?.toString()).toBe(progressStateId("ongoing").toString());
     });
 
     test("is the first from the top flagged ongoing, whatever order the rows come in", async () => {
@@ -379,9 +377,7 @@ describe("ScheduledMaintenanceStateService: the states an event is in progress i
           { projectId: PROGRESS_PROJECT_ID, props: { isRoot: true } },
         );
 
-      expect(state._id?.toString()).toBe(
-        progressStateId("ongoing").toString(),
-      );
+      expect(state._id?.toString()).toBe(progressStateId("ongoing").toString());
     });
 
     test("a project without one is refused", async () => {
