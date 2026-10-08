@@ -20,13 +20,11 @@ import {
 } from "./DocsContentRules";
 import {
   DOCS_LANGUAGES,
-  DocsLink,
   DocsPageLink,
   TRANSLATED_LANGUAGES,
   decodeAnchor,
   parseDocsLink,
   scanMarkdown,
-  scanPage,
 } from "./DocsContentSupport";
 import { DOCS_KNOWN_FAILURES } from "./DocsKnownFailures";
 import { describe, expect, it } from "@jest/globals";
@@ -507,9 +505,36 @@ describe("the rules, on pages written here", () => {
         "a/two:3 -> /docs/a/one#setup (the de page has no heading with that anchor)",
       ]);
     });
+
+    it("reports a link to a page's title: line 1 is shown from the nav, with no anchor", async () => {
+      expect(
+        await failuresOf("pageLinks", {
+          pages: {
+            en: {
+              "a/one": md("# Monitors", "", "## Setup"),
+              "a/two": md("# Two", "", "[title](/docs/a/one#monitors)"),
+            },
+          },
+        }),
+      ).toEqual([
+        "a/two:3 -> /docs/a/one#monitors (the en page has no heading with that anchor)",
+      ]);
+    });
   });
 
   describe("inPageAnchors", () => {
+    it("reports a link to the page's own title, which has no anchor", async () => {
+      expect(
+        await failuresOf("inPageAnchors", {
+          pages: {
+            en: { "a/one": md("# Monitors", "", "[top](#monitors)") },
+          },
+        }),
+      ).toEqual([
+        "a/one:3 -> #monitors (no heading on this page has that anchor)",
+      ]);
+    });
+
     it("reports an #anchor no heading of the page has, encoded or not", async () => {
       expect(
         await failuresOf(
@@ -1284,76 +1309,74 @@ describe("the known-failures list", () => {
   });
 });
 
-describe("anchors this change localized", () => {
+describe("anchors, as the docs render them", () => {
   /*
-   * docs:localize-anchors --apply pointed the PagerDuty page's link to the
-   * Integrations overview at the translated heading in 16 languages, and the
-   * Persian session replay page's link at Browser Setup's. Each lands on a
-   * heading of the page as the docs render it, in that language.
+   * pageLinks and inPageAnchors accept an anchor when a heading of the page
+   * the reader lands on has it, computed from the Markdown. Every anchor they
+   * accept is an id of that page as the docs render it, in every language -
+   * among them the 17 links docs:localize-anchors pointed at translated
+   * headings (the PagerDuty page's link to the Integrations overview in 16
+   * languages, the Persian session replay page's link to Browser Setup).
    */
+  const docs: DocsReader = new DocsReader(DOCS_CORPUS);
   const HEADING_ID: RegExp = /<h[1-6] id="([^"]+)"/g;
+  const rendered: Map<string, Promise<Set<string>>> = new Map();
 
-  const renderedIds: (
-    lang: string,
-    page: string,
-  ) => Promise<Set<string>> = async (
+  const renderedIds: (lang: string, page: string) => Promise<Set<string>> = (
     lang: string,
     page: string,
   ): Promise<Set<string>> => {
-    const body: string = scanPage(lang, page).lines.slice(1).join("\n");
-    const html: string = await DOCS_CORPUS.renderBody(body, lang);
-    const ids: Set<string> = new Set();
-    for (const match of html.matchAll(HEADING_ID)) {
-      ids.add(match[1]!);
+    const key: string = `${lang}/${page}`;
+    let ids: Promise<Set<string>> | undefined = rendered.get(key);
+    if (!ids) {
+      const body: string = docs.scan(lang, page).lines.slice(1).join("\n");
+      ids = DOCS_CORPUS.renderBody(body, lang).then(
+        (html: string): Set<string> => {
+          const found: Set<string> = new Set();
+          for (const match of html.matchAll(HEADING_ID)) {
+            found.add(match[1]!);
+          }
+          return found;
+        },
+      );
+      rendered.set(key, ids);
     }
     return ids;
   };
 
-  const anchorsTo: (lang: string, from: string, to: string) => Array<string> = (
-    lang: string,
-    from: string,
-    to: string,
-  ): Array<string> => {
-    return scanPage(lang, from)
-      .links.map((link: DocsLink): string | null => {
-        const target: DocsPageLink | null = parseDocsLink(link.target);
-        return target && target.page === to ? target.anchor : null;
-      })
-      .filter((anchor: string | null): anchor is string => {
-        return Boolean(anchor);
-      });
-  };
-
-  it.each(TRANSLATED_LANGUAGES)(
-    "%s: PagerDuty links to the Integrations overview's translated 'Inbound' heading",
+  it.each(DOCS_LANGUAGES)(
+    "%s: every anchor the rules accept is a heading id of the rendered page",
     async (lang: string) => {
-      const anchors: Array<string> = anchorsTo(
-        lang,
-        "integrations/pagerduty",
-        "integrations/index",
-      );
-      const ids: Set<string> = await renderedIds(lang, "integrations/index");
+      const notRendered: Array<string> = [];
+      let accepted: number = 0;
 
-      expect(anchors).toHaveLength(1);
-      expect(anchors[0]).not.toBe(
-        "inbound-another-tool-sends-data-into-oneuptime",
-      );
-      expect(ids.has(anchors[0]!)).toBe(true);
+      for (const page of docs.pages(lang)) {
+        for (const link of docs.scan(lang, page).links) {
+          const target: DocsPageLink | null = link.target.startsWith("#")
+            ? { page: page, anchor: decodeAnchor(link.target.slice(1)) }
+            : parseDocsLink(link.target);
+          if (!target || !target.anchor) {
+            continue;
+          }
+          const landing: string = docs.hasPage(lang, target.page) ? lang : "en";
+          if (
+            !docs.hasPage(landing, target.page) ||
+            !docs.anchors(landing, target.page).has(target.anchor)
+          ) {
+            // The rules report this link; it is not accepted.
+            continue;
+          }
+          accepted++;
+          if (!(await renderedIds(landing, target.page)).has(target.anchor)) {
+            notRendered.push(`${page}:${link.line} -> ${link.target}`);
+          }
+        }
+      }
+
+      expect(notRendered).toEqual([]);
+      expect(accepted).toBeGreaterThan(0);
     },
   );
-
-  it("fa: session replay links to Browser Setup's translated 'Joining traces' heading", async () => {
-    const anchors: Array<string> = anchorsTo(
-      "fa",
-      "telemetry/session-replay",
-      "rum/browser-setup",
-    );
-    const ids: Set<string> = await renderedIds("fa", "rum/browser-setup");
-
-    expect(anchors).toContain("پیوستن-ردیابیها-به-بازپخش-نشست");
-    expect(anchors).not.toContain("joining-traces-to-session-replay");
-    expect(ids.has("پیوستن-ردیابیها-به-بازپخش-نشست")).toBe(true);
-  });
 });
 
 describe("reading docs links", () => {

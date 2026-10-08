@@ -130,12 +130,20 @@ export class DocsReader {
     return scanned;
   }
 
-  // The anchors a page's headings produce.
+  /*
+   * The anchors a page's headings produce, as the page is served: line 1 is
+   * its title, which the docs show above the page from the nav, with no
+   * anchor - so a link to the title's anchor goes nowhere.
+   */
   public anchors(lang: string, page: DocsPage): Set<string> {
     return new Set(
-      this.scan(lang, page).headings.map((heading: DocsHeading): string => {
-        return heading.slug;
-      }),
+      this.scan(lang, page)
+        .headings.filter((heading: DocsHeading): boolean => {
+          return heading.line !== 1;
+        })
+        .map((heading: DocsHeading): string => {
+          return heading.slug;
+        }),
     );
   }
 }
