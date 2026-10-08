@@ -320,17 +320,39 @@ describe("a write that turns a provider off writes when, in the same write", () 
  * StatusPageSsoSessionsPostgres.test.
  */
 describe("a status page provider's turning-off write is stamped by the database", () => {
-  test("the write that turns Enabled off names the column; the database works its value out", () => {
-    const updateBy: Record<string, unknown> = {
-      query: {},
-      data: { isEnabled: false },
-    };
+  type Row = Record<string, unknown>;
 
-    SsoSignInsEnded.stampWhenTurnedOffByDatabase({
-      updateBy: updateBy as never,
+  const serviceOver: (rows: Array<Row>) => DatabaseService<BaseModel> = (
+    rows: Array<Row>,
+  ): DatabaseService<BaseModel> => {
+    return {
+      findAllBy: jest.fn(async (): Promise<Array<Row>> => {
+        return rows;
+      }),
+    } as unknown as DatabaseService<BaseModel>;
+  };
+
+  const updateOf: (data: Record<string, unknown>) => UpdateBy<BaseModel> = (
+    data: Record<string, unknown>,
+  ): UpdateBy<BaseModel> => {
+    return {
+      query: { _id: "provider" },
+      data: { ...data },
+      limit: 1,
+      skip: 0,
+      props: { isRoot: true },
+    } as unknown as UpdateBy<BaseModel>;
+  };
+
+  test("the write that turns a provider off names the column; the database works its value out", async () => {
+    const updateBy: UpdateBy<BaseModel> = updateOf({ isEnabled: false });
+
+    await SsoSignInsEnded.stampWhenTurnedOffByDatabase({
+      service: serviceOver([{ _id: "provider", isEnabled: true }]),
+      updateBy: updateBy,
     });
 
-    const data: Record<string, unknown> = updateBy["data"] as Record<
+    const data: Record<string, unknown> = updateBy.data as unknown as Record<
       string,
       unknown
     >;
@@ -346,23 +368,40 @@ describe("a status page provider's turning-off write is stamped by the database"
     );
   });
 
-  test("turning it on, or changing anything else, names no time and asks the database for none", () => {
+  test("a write whose providers are all off already names no time", async () => {
+    const updateBy: UpdateBy<BaseModel> = updateOf({ isEnabled: false });
+
+    await SsoSignInsEnded.stampWhenTurnedOffByDatabase({
+      service: serviceOver([{ _id: "provider", isEnabled: false }]),
+      updateBy: updateBy,
+    });
+
+    expect(updateBy.data).toEqual({ isEnabled: false });
+    expect(SsoSignInsEnded.getDatabaseStampSql(updateBy.data)).toEqual({});
+  });
+
+  test("turning it on, or changing anything else, names no time, reads nothing and asks the database for none", async () => {
     for (const data of [
       { isEnabled: true },
       { name: "Renamed" },
       { publicCertificate: "rotated" },
     ]) {
-      const updateBy: Record<string, unknown> = {
-        query: {},
-        data: { ...data },
-      };
+      const service: DatabaseService<BaseModel> = serviceOver([
+        { _id: "provider", isEnabled: true },
+      ]);
+      const updateBy: UpdateBy<BaseModel> = updateOf(data);
 
-      SsoSignInsEnded.stampWhenTurnedOffByDatabase({
-        updateBy: updateBy as never,
+      await SsoSignInsEnded.stampWhenTurnedOffByDatabase({
+        service: service,
+        updateBy: updateBy,
       });
 
-      expect(updateBy["data"]).toEqual(data);
-      expect(SsoSignInsEnded.getDatabaseStampSql(updateBy["data"])).toEqual({});
+      expect(updateBy.data).toEqual(data);
+      expect(
+        (service as unknown as { findAllBy: ReturnType<typeof jest.fn> })
+          .findAllBy,
+      ).not.toHaveBeenCalled();
+      expect(SsoSignInsEnded.getDatabaseStampSql(updateBy.data)).toEqual({});
     }
   });
 

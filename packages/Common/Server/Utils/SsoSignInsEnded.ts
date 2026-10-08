@@ -157,14 +157,28 @@ export default class SsoSignInsEnded {
 
   /*
    * For a status page provider (its onUpdatePermitted): an update that
-   * turns Enabled off writes signInsEndedAt too, in the same write, worked
-   * out there by the database (getDatabaseStampSql, the service's
-   * getRowWriteSql). The value put here only names the column in the write.
+   * turns Enabled off, for a provider that is on, writes signInsEndedAt
+   * too, in the same write, worked out there by the database
+   * (getDatabaseStampSql, the service's getRowWriteSql): the value put here
+   * only names the column in the write. An update whose providers are all
+   * off already writes nothing more, as stampWhenTurnedOff does not.
    */
-  public static stampWhenTurnedOffByDatabase<TModel extends BaseModel>(data: {
+  public static async stampWhenTurnedOffByDatabase<
+    TModel extends BaseModel,
+  >(data: {
+    service: DatabaseService<TModel>;
     updateBy: UpdateBy<TModel>;
-  }): void {
+  }): Promise<void> {
     if (SsoSignInsEnded.getWrittenIsEnabled(data.updateBy.data) !== false) {
+      return;
+    }
+
+    if (
+      !(await SsoSignInsEnded.isAnyOn({
+        service: data.service,
+        updateBy: data.updateBy,
+      }))
+    ) {
       return;
     }
 
