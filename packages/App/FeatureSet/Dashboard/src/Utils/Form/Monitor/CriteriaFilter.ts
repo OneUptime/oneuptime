@@ -153,6 +153,13 @@ export default class CriteriaFilterUtil {
         text += "on " + criteriaFilter?.serverMonitorOptions?.diskPath + " ";
       }
 
+      const resultValuePath: string | undefined =
+        criteriaFilter?.customCodeMonitorOptions?.resultValuePath?.trim();
+
+      if (resultValuePath && criteriaFilter?.checkOn === CheckOn.ResultValue) {
+        text += "at " + resultValuePath + " ";
+      }
+
       if (criteriaFilter?.snmpMonitorOptions?.interfaceName) {
         text +=
           "on interface " +
@@ -732,7 +739,9 @@ export default class CriteriaFilterUtil {
           i.value === FilterType.GreaterThan ||
           i.value === FilterType.LessThan ||
           i.value === FilterType.LessThanOrEqualTo ||
-          i.value === FilterType.GreaterThanOrEqualTo
+          i.value === FilterType.GreaterThanOrEqualTo ||
+          i.value === FilterType.True ||
+          i.value === FilterType.False
         );
       });
     }

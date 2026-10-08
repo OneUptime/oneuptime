@@ -312,10 +312,23 @@ export const widensAuditLogging: (
  */
 export const OWNER_EMAIL_TIMEOUT_IN_MS: number = 60 * 1000;
 
+/*
+ * Where a project created from a reseller's promo code was bought: the
+ * reseller, the plan it sold and the license, as the promo code holds them.
+ * OneUptime writes them (onCreatePermitted); no caller may.
+ */
+export interface ProjectResellerFromPromoCode {
+  resellerId?: ObjectID | undefined;
+  resellerPlanId?: ObjectID | undefined;
+  resellerLicenseId?: string | undefined;
+}
+
 // What onBeforeCreate hands the hooks after it: who is creating the project.
 export interface ProjectCreateCarryForward {
   // The creator is a master admin, whom the server's Require SSO for Login does not hold.
   isCreatorMasterAdmin: boolean;
+  // Where it was bought, when it is created from a reseller's promo code.
+  resellerFromPromoCode?: ProjectResellerFromPromoCode | undefined;
 }
 
 export class ProjectService extends ProjectReferencesService<Model> {
@@ -524,6 +537,10 @@ export class ProjectService extends ProjectReferencesService<Model> {
       },
     });
 
+    // Where the project was bought, from a reseller's promo code. See below.
+    let resellerFromPromoCode: ProjectResellerFromPromoCode | undefined =
+      undefined;
+
     logger.debug("Creating project for user " + data.props.userId, {
       userId: data.props.userId?.toString(),
     } as LogAttributes);
@@ -650,30 +667,19 @@ export class ProjectService extends ProjectReferencesService<Model> {
             );
           }
 
-          if (promoCode.resellerLicenseId) {
-            data.data.resellerLicenseId = promoCode.resellerLicenseId;
-          }
-
           /*
-           * The promo code's reseller and plan, under their ID columns
-           * alone: a relation the request sent beside one would otherwise
-           * be stored in its place.
+           * Where the project was bought - the promo code's reseller, its
+           * plan and the license - is OneUptime's to write, and no caller's:
+           * the columns take no caller's create, so it is written once the
+           * creator has passed every check of the create
+           * (onCreatePermitted), not here, where the create's column check
+           * would hold it against the creator.
            */
-          if (promoCode.resellerId) {
-            RelationIdUtil.stamp(
-              data.data as unknown as Record<string, unknown>,
-              ["resellerId", "reseller"],
-              promoCode.resellerId,
-            );
-          }
-
-          if (promoCode.resellerPlanId) {
-            RelationIdUtil.stamp(
-              data.data as unknown as Record<string, unknown>,
-              ["resellerPlanId", "resellerPlan"],
-              promoCode.resellerPlanId,
-            );
-          }
+          resellerFromPromoCode = {
+            resellerId: promoCode.resellerId || undefined,
+            resellerPlanId: promoCode.resellerPlanId || undefined,
+            resellerLicenseId: promoCode.resellerLicenseId || undefined,
+          };
         }
       }
 
@@ -759,6 +765,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
 
     const carryForward: ProjectCreateCarryForward = {
       isCreatorMasterAdmin: user.isMasterAdmin === true,
+      resellerFromPromoCode: resellerFromPromoCode,
     };
 
     return Promise.resolve({ createBy: data, carryForward: carryForward });
@@ -766,12 +773,19 @@ export class ProjectService extends ProjectReferencesService<Model> {
 
   /*
    * The last step before a project is written, once its creator has passed
-   * every permission and plan check: a project that would require SSO -
-   * itself, or because the whole server does - needs a provider that signs
-   * people in to it, as an update to Require SSO for Login does
-   * (Utils/SsoRequirementChanges.beforeProjectCreate). Checked under the
-   * lock on the server's sign-in rules, held until the project is written
-   * (onCreateSuccess) or its create fails (onCreateError).
+   * every permission and plan check:
+   *
+   *   - a project created from a reseller's promo code records where it was
+   *     bought - the reseller, its plan and the license, as the promo code
+   *     holds them (onBeforeCreate read it). No caller may write them: they
+   *     are written here, after the create's column check, under their ID
+   *     columns alone;
+   *   - a project that would require SSO - itself, or because the whole
+   *     server does - needs a provider that signs people in to it, as an
+   *     update to Require SSO for Login does
+   *     (Utils/SsoRequirementChanges.beforeProjectCreate). Checked under the
+   *     lock on the server's sign-in rules, held until the project is
+   *     written (onCreateSuccess) or its create fails (onCreateError).
    */
   @CaptureSpan()
   protected override async onCreatePermitted(
@@ -780,11 +794,56 @@ export class ProjectService extends ProjectReferencesService<Model> {
     const carryForward: ProjectCreateCarryForward | null =
       (onCreate.carryForward as ProjectCreateCarryForward | null) || null;
 
+    this.writeResellerFromPromoCode(
+      onCreate.createBy.data,
+      carryForward?.resellerFromPromoCode,
+    );
+
     await SsoRequirementChanges.beforeProjectCreate({
       createBy: onCreate.createBy,
       isCreatorExemptFromServerRule:
         carryForward?.isCreatorMasterAdmin === true,
     });
+  }
+
+  /*
+   * Writes where a project was bought onto the project being created, from
+   * the reseller's promo code it is created with (onBeforeCreate), under the
+   * columns' ID names alone: a relation beside one would be stored in its
+   * place. Nothing for a project created without one.
+   */
+  public writeResellerFromPromoCode(
+    project: Model,
+    reseller: ProjectResellerFromPromoCode | undefined,
+  ): void {
+    if (!reseller) {
+      return;
+    }
+
+    const row: Record<string, unknown> = project as unknown as Record<
+      string,
+      unknown
+    >;
+
+    if (reseller.resellerId) {
+      RelationIdUtil.stamp(
+        row,
+        ["resellerId", "reseller"],
+        reseller.resellerId,
+      );
+    }
+
+    if (reseller.resellerPlanId) {
+      RelationIdUtil.stamp(
+        row,
+        ["resellerPlanId", "resellerPlan"],
+        reseller.resellerPlanId,
+      );
+    }
+
+    if (reseller.resellerLicenseId) {
+      project.resellerLicenseId = reseller.resellerLicenseId;
+    }
   }
 
   /*
@@ -1060,8 +1119,14 @@ export class ProjectService extends ProjectReferencesService<Model> {
    *     and, when the project would rely on more than its own providers that
    *     are on, the lock on the server's sign-in rules - held until the
    *     write is done (onUpdateSuccess) or fails (onUpdateError, a charge
-   *     below that fails included), and before anything is charged below;
-   *   - turning auto recharge on charges at once (chargeAutoRechargeTurnedOn).
+   *     below that fails included), and before anything is charged below.
+   *     An update that names its projects by a filter writes only the
+   *     projects read under those locks;
+   *   - turning auto recharge on charges at once (chargeAutoRechargeTurnedOn);
+   *   - last, right before the write, the locks of the check are kept once
+   *     more, and kept alive while it is written: one lost by now - the
+   *     charge took long - refuses the write rather than let it land
+   *     unprotected (SsoRequirementChanges.beforeWrite).
    */
   @CaptureSpan()
   protected override async onUpdatePermitted(
@@ -1073,6 +1138,8 @@ export class ProjectService extends ProjectReferencesService<Model> {
     await SsoRequirementChanges.rememberProjectRulesBefore(updateBy);
 
     await this.chargeAutoRechargeTurnedOn(updateBy);
+
+    await SsoRequirementChanges.beforeWrite(updateBy);
   }
 
   /*

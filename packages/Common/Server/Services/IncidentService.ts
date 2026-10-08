@@ -3262,6 +3262,14 @@ export class Service extends ProjectReferencesService<Model> {
     });
 
     /*
+     * The monitors, status pages, on-call policies and the rest a template
+     * filled in above are the declarer's to name as if they had picked them:
+     * each must be one they may read, asked here, before the incident
+     * number is taken, rather than once the hooks have run.
+     */
+    await this.checkRecordsNamedSoFar(createBy);
+
+    /*
      * How far along it starts (StartingStage), as read with its state above,
      * is handed to onCreateSuccess, which decides on it what the create sets
      * off: an incident declared already acknowledged pages nobody, and one

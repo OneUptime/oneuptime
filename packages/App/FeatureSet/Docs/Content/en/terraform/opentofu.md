@@ -13,7 +13,7 @@ terraform {
   required_providers {
     oneuptime = {
       source  = "oneuptime/oneuptime"
-      version = "~> 11.0"
+      version = "{{TERRAFORM_PROVIDER_VERSION}}"
     }
   }
 }
@@ -55,7 +55,7 @@ Writing `source = "registry.terraform.io/oneuptime/oneuptime"` pins the configur
 
 Provider versions track OneUptime platform versions, and the rule is the same under either engine:
 
-- **OneUptime Cloud**: `version = "~> 11.0"`.
+- **OneUptime Cloud**: `version = "{{TERRAFORM_PROVIDER_VERSION}}"`.
 - **Self-hosted**: the newest published provider version **less than or equal to** your platform version. See [Self-Hosted Setup](/docs/terraform/self-hosted).
 
 Do not pin an exact patch version — not every platform patch is published. The full explanation is in [Registry Usage](/docs/terraform/registry); it applies to the OpenTofu Registry too, since both registries serve the same releases.
@@ -74,7 +74,7 @@ The module gives a service HTTP monitors, an on-call policy that gets paged when
 
 ```hcl
 module "storefront" {
-  source = "github.com/OneUptime/terraform-provider-oneuptime//modules/monitoring-and-incident-response?ref=v11.7.4"
+  source = "github.com/OneUptime/terraform-provider-oneuptime//modules/monitoring-and-incident-response?ref=vX.Y.Z" # a published provider release
 
   service_name          = "storefront"
   status_page_is_public = true

@@ -121,7 +121,12 @@ export class Service extends DatabaseService<Model> {
     return onUpdate;
   }
 
-  // Deleting a provider that is on ends the sign-ins it gave, as turning it off does.
+  /*
+   * Deleting a provider that is on ends the sign-ins it gave, as turning it
+   * off does. A delete - a hard delete included - reaches only the
+   * providers its check read under the lock, and rows deleted before
+   * (Utils/ProjectSsoProviderChanges).
+   */
   @CaptureSpan()
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
@@ -147,23 +152,6 @@ export class Service extends DatabaseService<Model> {
     });
 
     return onDelete;
-  }
-
-  /*
-   * A hard delete (the retention job's purge) also removes rows deleted
-   * long ago, which the sign-in check never reads - they sign nobody in -
-   * so the check is told it is one (Utils/ProjectSsoProviderChanges).
-   */
-  @CaptureSpan()
-  public override async hardDeleteBy(
-    deleteBy: DeleteBy<Model>,
-  ): Promise<number> {
-    return await ProjectSsoProviderChanges.runHardDelete(
-      deleteBy,
-      (): Promise<number> => {
-        return super.hardDeleteBy(deleteBy);
-      },
-    );
   }
 
   /*

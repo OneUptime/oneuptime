@@ -907,13 +907,18 @@ describePostgres("IncidentAlert against a migrated Postgres", () => {
       const incidentId: ObjectID = await seedIncident();
       const privateAlertId: ObjectID = await seedAlert({ isPrivate: true });
 
+      /*
+       * The alert is a record the link names: one the member may not read is
+       * answered like one that does not exist, before the link's own checks
+       * run (RelationListPermission).
+       */
       await expect(
         IncidentAlertService.create({
           data: link(incidentId, privateAlertId),
           props: memberProps(userId),
         }),
       ).rejects.toThrow(
-        "The alert to link does not exist in this project, or you do not have access to it.",
+        `This incident alert references records that are not in this project: Alert "${privateAlertId.toString()}".`,
       );
       expect(await linkCount()).toBe(0);
       expect(incidentFeed).not.toHaveBeenCalled();
@@ -955,7 +960,7 @@ describePostgres("IncidentAlert against a migrated Postgres", () => {
           props: memberProps(userId),
         }),
       ).rejects.toThrow(
-        "The alert to link does not exist in this project, or you do not have access to it.",
+        `This incident alert references records that are not in this project: Alert "${foreignAlertId.toString()}".`,
       );
       expect(await linkCount()).toBe(0);
     });

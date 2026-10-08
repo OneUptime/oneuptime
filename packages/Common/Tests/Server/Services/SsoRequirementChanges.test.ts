@@ -331,8 +331,13 @@ describe("turning Require SSO for Login on for a project", () => {
       `release:${PROJECT_ID.toString()}`,
       `release:${SERVER_LOCK}`,
     ]);
-    // Before the page of projects the check reads, and once it is done.
+    /*
+     * Before the page of projects the check reads, once it is done, and
+     * once more right before the write - after the auto recharge charge.
+     */
     expect(kept).toEqual([
+      PROJECT_ID.toString(),
+      SERVER_LOCK,
       PROJECT_ID.toString(),
       SERVER_LOCK,
       PROJECT_ID.toString(),

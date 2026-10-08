@@ -817,8 +817,13 @@ describe("OwnerRuleAssignment.checkOwnersPickedOnCreate", () => {
       asked.row,
       creatorProps,
     );
-    // Monitor owner rows are not read through the monitor.
-    expect(parentReadCheck).not.toHaveBeenCalled();
+    // Monitor owner rows are read through the monitor: its read is asked too.
+    expect(parentReadCheck).toHaveBeenCalledWith(
+      MonitorOwnerUser,
+      Monitor,
+      creatorProps,
+      "create",
+    );
   });
 
   it("owner rows read through the record need a read of it", async () => {

@@ -13,7 +13,7 @@ import UserService from "../../../Server/Services/UserService";
 import ColumnWriteRefusedException from "../../../Server/Types/Database/Permissions/ColumnWriteRefusedException";
 import logger from "../../../Server/Utils/Logger";
 import ProductAnalytics from "../../../Server/Utils/ProductAnalytics";
-import {
+import ProjectSsoProviderChanges, {
   SERVER_SIGN_IN_LOCK_KEY,
   SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
 } from "../../../Server/Utils/ProjectSsoProviderChanges";
@@ -122,6 +122,10 @@ let saveFails: boolean;
 let lockBusy: boolean;
 let locksUnreachable: boolean;
 let lostLocks: Array<string>;
+// The locks Semaphore.lock handed out, by key, the last of each.
+let lockObjects: Map<string, { key: string }>;
+// Runs as the project row is written, before it is.
+let whileSaving: (() => void) | null;
 
 const SEEDERS: Array<string> = [
   "addDefaultIncidentSeverity",
@@ -193,6 +197,15 @@ const create: (
   }
 };
 
+// Whether each lock handed out is kept alive for a write now.
+const keptForWrite: () => Array<boolean> = (): Array<boolean> => {
+  return Array.from(lockObjects.values()).map(
+    (lock: { key: string }): boolean => {
+      return ProjectSsoProviderChanges.isKeptForWrite(lock as never);
+    },
+  );
+};
+
 const lockEvents: () => Array<string> = (): Array<string> => {
   return events.filter((event: string): boolean => {
     return event.startsWith("lock:") || event.startsWith("release:");
@@ -228,6 +241,8 @@ beforeEach(() => {
   lockBusy = false;
   locksUnreachable = false;
   lostLocks = [];
+  lockObjects = new Map<string, { key: string }>();
+  whileSaving = null;
 
   for (const silenced of ["debug", "info", "warn", "error"]) {
     getJestSpyOn(logger, silenced).mockImplementation((): void => {
@@ -253,6 +268,8 @@ beforeEach(() => {
   // The project row: what is saved, unless the database fails it.
   getJestSpyOn(ProjectService, "getRepository").mockReturnValue({
     save: async (project: Project): Promise<Project> => {
+      whileSaving?.();
+
       if (saveFails) {
         throw new Error("The database could not write the project");
       }
@@ -356,7 +373,9 @@ beforeEach(() => {
     }
 
     events.push(`lock:${data.key}`);
-    return { key: data.key };
+    const lock: { key: string } = { key: data.key };
+    lockObjects.set(data.key, lock);
+    return lock;
   }) as never);
   getJestSpyOn(Semaphore, "release").mockImplementation((async (mutex: {
     key: string;
@@ -668,6 +687,28 @@ describe("the lock the check holds", () => {
       `lock:${SERVER_LOCK}`,
       `release:${SERVER_LOCK}`,
     ]);
+  });
+
+  test("is kept alive while the project is written, and no more once it is", async () => {
+    let keptWhileSaved: Array<boolean> = [];
+    whileSaving = (): void => {
+      keptWhileSaved = keptForWrite();
+    };
+
+    await expect(create("member")).resolves.toBe("created");
+
+    expect(keptWhileSaved).toEqual([true]);
+    expect(keptForWrite()).toEqual([false]);
+  });
+
+  test("a create the database fails keeps it alive no more", async () => {
+    saveFails = true;
+
+    await expect(create("member")).rejects.toThrow(
+      "The database could not write the project",
+    );
+
+    expect(keptForWrite()).toEqual([false]);
   });
 
   test("is given back once only, when the create succeeds", async () => {

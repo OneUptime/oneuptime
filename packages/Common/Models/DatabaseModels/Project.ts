@@ -3244,9 +3244,18 @@ export default class Project extends TenantModel {
    * Where the plan was bought is read with the plan (paymentProviderPlanId):
    * the Billing page shows the reseller beside it, and asking for a column
    * one may not read refuses the whole page.
+   *
+   * Where it was bought is OneUptime's to say, never the project's: the
+   * reseller, its plan and the license are written from the reseller's promo
+   * code by ProjectService once the creator has passed every check of the
+   * create (onCreatePermitted), and changed by OneUptime alone afterwards
+   * (the reseller's own tier changes, ResellerPlanAPI). Their create and
+   * update lists are empty, which is "OneUptime and master admins only": a
+   * create or an update that names them from a project member, or from the
+   * person creating the project, is refused.
    */
   @ColumnAccessControl({
-    create: [Permission.User],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -3284,7 +3293,7 @@ export default class Project extends TenantModel {
   public reseller?: Reseller = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.User],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -3317,7 +3326,7 @@ export default class Project extends TenantModel {
   public resellerId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.User],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -3356,7 +3365,7 @@ export default class Project extends TenantModel {
   public resellerPlan?: ResellerPlan = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.User],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -3389,7 +3398,7 @@ export default class Project extends TenantModel {
   public resellerPlanId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.User],
+    create: [],
     read: [],
     update: [],
   })

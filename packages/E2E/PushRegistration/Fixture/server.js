@@ -16,12 +16,30 @@
  * "Project ID is invalid", as the real route did before it learned to read
  * the serialized ObjectID the Dashboard used to send.
  *
+ * The browser's push service is stood in for here too (PushServiceStandIn.js,
+ * in the page and appended to the worker): one subscription per browser,
+ * shared by the page and the worker, that a test can replace or drop the way
+ * a push service does.
+ *
+ * The route the service worker reports a replaced subscription to
+ * (/api/user-push/subscription-change) answers only a signed-in session, as
+ * every authenticated route does: the access token cookie, which lives for
+ * minutes, and /identity/refresh-token, which takes the refresh token cookie,
+ * rotates both and sets them again - or, without a valid one, clears them
+ * and answers 401, as the real route does. The worker's requests carry the
+ * cookies the browser holds for the Dashboard, or they do not get through.
+ *
  * Test hooks:
- *   GET  /__fixture/state        what was registered and sent
- *   POST /__fixture/reset        back to one registered phone
- *   POST /__fixture/sw-revision  serve a new version of the service worker
+ *   GET  /__fixture/state                  what was registered and sent
+ *   POST /__fixture/reset                  back to one registered phone
+ *   POST /__fixture/sw-revision            serve a new version of the service worker
+ *   POST /__fixture/sign-in                set the session cookies
+ *   POST /__fixture/push-service/replace   the push service replaces this browser's subscription
+ *   POST /__fixture/push-service/drop      the push service drops it
+ *   POST /__fixture/push-service/gone      a send to it came back 410: its devices stop being verified
  */
 const fs = require("fs");
+const crypto = require("crypto");
 const http = require("http");
 const path = require("path");
 const { createConfig } = require("../../../Common/UI/esbuild-config.js");
@@ -46,6 +64,15 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // A real P-256 public key, so the browser's own key handling is exercised.
 const VAPID_PUBLIC_KEY =
   "BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U";
+
+// The Dashboard's session cookies (Common/Types/CookieName.ts).
+const ACCESS_TOKEN_COOKIE = "user-token";
+const REFRESH_TOKEN_COOKIE = "user-refresh-token";
+
+const pushServiceStandIn = fs.readFileSync(
+  path.join(__dirname, "PushServiceStandIn.js"),
+  "utf8",
+);
 
 const config = createConfig({
   serviceName: "push-registration-fixture",
@@ -72,15 +99,15 @@ const tailwind = path.join(
   "packages/Common/Server/Static/Vendor/tailwind/tailwind-3.4.5.js",
 );
 
-// The <script> after "PWA Service Worker Registration" in index.ejs, as is.
+// The <script> after "PWA Service Worker" in index.ejs, as is.
 function readIndexServiceWorkerScript() {
   const source = fs.readFileSync(
     path.join(dashboard, "views/index.ejs"),
     "utf8",
   );
-  const marker = source.indexOf("<!-- PWA Service Worker Registration -->");
+  const marker = source.indexOf("<!-- PWA Service Worker -->");
   if (marker === -1) {
-    throw new Error("index.ejs has no PWA Service Worker Registration script");
+    throw new Error("index.ejs has no PWA Service Worker script");
   }
   const start = source.indexOf("<script>", marker) + "<script>".length;
   const end = source.indexOf("</script>", start);
@@ -92,6 +119,13 @@ const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta n
 let state;
 let serviceWorkerRevision = 0;
 
+// The session the access and refresh token cookies have to match, or null: signed out.
+let session;
+
+// The one push subscription this browser has, as the push service holds it, or null.
+let browserSubscription;
+let subscriptionsIssued;
+
 function reset() {
   state = {
     devices: [
@@ -99,12 +133,217 @@ function reset() {
         id: PHONE_DEVICE_ID,
         deviceName: "iPhone 14 Pro Max",
         deviceToken: "ExponentPushToken[fixture-phone]",
+        isVerified: true,
         createdAt: "2026-09-10T12:33:00.000Z",
       },
     ],
     registrations: [],
     testNotifications: [],
+    // What reached /api/user-push/subscription-change, and the answer.
+    subscriptionChanges: [],
+    // What reached /identity/refresh-token, and the answer.
+    sessionRefreshes: [],
+    // Each subscription the push service issued: to whom, for which server key.
+    subscribes: [],
   };
+  session = null;
+  browserSubscription = null;
+  subscriptionsIssued = 0;
+}
+
+/*
+ * The first subscription is the one the suite has always registered; each
+ * one after it - a replacement - has an endpoint and keys of its own.
+ */
+function issueSubscription(applicationServerKey) {
+  subscriptionsIssued++;
+
+  const suffix = subscriptionsIssued === 1 ? "" : `-${subscriptionsIssued}`;
+
+  browserSubscription = {
+    endpoint: `https://fcm.googleapis.com/fcm/send/fixture-browser${suffix}`,
+    keys: {
+      p256dh: `BFixtureP256dhKey${suffix}`,
+      auth: `FixtureAuthSecret${suffix}`,
+    },
+    applicationServerKey: applicationServerKey,
+  };
+
+  return browserSubscription;
+}
+
+// What Register Device and the worker send: PushSubscription.toJSON(), stringified.
+function toDeviceToken(subscription) {
+  return JSON.stringify({
+    endpoint: subscription.endpoint,
+    expirationTime: null,
+    keys: { p256dh: subscription.keys.p256dh, auth: subscription.keys.auth },
+  });
+}
+
+function subscribe(body) {
+  const key = Array.isArray(body.applicationServerKey)
+    ? body.applicationServerKey
+    : [];
+
+  if (key.length === 0) {
+    return [
+      400,
+      {
+        name: "InvalidAccessError",
+        message: "The provided applicationServerKey is not valid.",
+      },
+    ];
+  }
+
+  if (browserSubscription) {
+    // As a browser does: one subscription per registration, for one key.
+    if (browserSubscription.applicationServerKey.join() !== key.join()) {
+      return [
+        400,
+        {
+          name: "InvalidStateError",
+          message:
+            "A subscription with a different applicationServerKey already exists.",
+        },
+      ];
+    }
+
+    return [200, browserSubscription];
+  }
+
+  state.subscribes.push({
+    subscriber: body.subscriber,
+    applicationServerKey: key,
+  });
+
+  return [200, issueSubscription(key)];
+}
+
+function readCookies(request) {
+  const cookies = {};
+
+  for (const part of (request.headers.cookie || "").split(";")) {
+    const separator = part.indexOf("=");
+
+    if (separator > 0) {
+      cookies[part.slice(0, separator).trim()] = decodeURIComponent(
+        part.slice(separator + 1).trim(),
+      );
+    }
+  }
+
+  return cookies;
+}
+
+// As CookieUtil sets them: the whole site, SameSite lax, out of the page's reach.
+function sessionCookies(values) {
+  return Object.keys(values).map((name) => {
+    return values[name] === null
+      ? `${name}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`
+      : `${name}=${encodeURIComponent(values[name])}; Path=/; HttpOnly; SameSite=Lax`;
+  });
+}
+
+function signIn(response) {
+  session = {
+    accessToken: crypto.randomUUID(),
+    refreshToken: crypto.randomUUID(),
+  };
+
+  response.setHeader(
+    "Set-Cookie",
+    sessionCookies({
+      [ACCESS_TOKEN_COOKIE]: session.accessToken,
+      [REFRESH_TOKEN_COOKIE]: session.refreshToken,
+    }),
+  );
+}
+
+function refreshSession(request, response) {
+  const refreshToken = readCookies(request)[REFRESH_TOKEN_COOKIE];
+
+  if (!session || !refreshToken || refreshToken !== session.refreshToken) {
+    state.sessionRefreshes.push({ status: 401 });
+    response.setHeader(
+      "Set-Cookie",
+      sessionCookies({
+        [ACCESS_TOKEN_COOKIE]: null,
+        [REFRESH_TOKEN_COOKIE]: null,
+      }),
+    );
+
+    return [401, { message: "Session expired. Please login again." }];
+  }
+
+  state.sessionRefreshes.push({ status: 200 });
+  signIn(response);
+
+  return [200, {}];
+}
+
+function isSignedIn(request) {
+  const accessToken = readCookies(request)[ACCESS_TOKEN_COOKIE];
+
+  return Boolean(session && accessToken && accessToken === session.accessToken);
+}
+
+/*
+ * POST /user-push/subscription-change, as UserPushAPI answers it for the one
+ * person and project here: the devices registered with the old subscription
+ * carry the new one, or stop being verified when there is none; a device
+ * registered again with the new one keeps it, and the old one is retired.
+ */
+function changeSubscription(request, body) {
+  const answer = (status, json) => {
+    state.subscriptionChanges.push({ status: status, body: body });
+    return [status, json];
+  };
+
+  if (!isSignedIn(request)) {
+    return answer(401, {
+      message: "AccessToken is invalid or expired. Please refresh your token.",
+    });
+  }
+
+  if (!body.oldDeviceToken || typeof body.oldDeviceToken !== "string") {
+    return answer(400, { message: "oldDeviceToken is required" });
+  }
+
+  if (body.newDeviceToken === undefined) {
+    return answer(400, { message: "newDeviceToken is required" });
+  }
+
+  const devices = state.devices.filter((device) => {
+    return device.deviceToken === body.oldDeviceToken;
+  });
+
+  if (body.newDeviceToken === null) {
+    for (const device of devices) {
+      device.isVerified = false;
+    }
+
+    return answer(200, { success: true, devicesUpdated: devices.length });
+  }
+
+  const isRegisteredAgain = state.devices.some((device) => {
+    return device.deviceToken === body.newDeviceToken;
+  });
+
+  let renewed = 0;
+
+  for (const device of devices) {
+    if (isRegisteredAgain) {
+      device.isVerified = false;
+      continue;
+    }
+
+    device.deviceToken = body.newDeviceToken;
+    device.isVerified = true;
+    renewed++;
+  }
+
+  return answer(200, { success: true, devicesUpdated: renewed });
 }
 
 reset();
@@ -140,7 +379,12 @@ function register(body) {
   if (existing) {
     return [
       200,
-      { success: true, deviceId: existing.id, alreadyRegistered: true },
+      {
+        success: true,
+        deviceId: existing.id,
+        alreadyRegistered: true,
+        isVerified: existing.isVerified,
+      },
     ];
   }
 
@@ -150,10 +394,14 @@ function register(body) {
     id: id,
     deviceName: body.deviceName,
     deviceToken: body.deviceToken,
+    isVerified: true,
     createdAt: new Date().toISOString(),
   });
 
-  return [200, { success: true, deviceId: id, alreadyRegistered: false }];
+  return [
+    200,
+    { success: true, deviceId: id, alreadyRegistered: false, isVerified: true },
+  ];
 }
 
 function serveFile(response, file, contentType) {
@@ -192,7 +440,112 @@ async function main() {
     response.setHeader("Cache-Control", "no-store");
 
     if (url.pathname === "/__fixture/state") {
-      sendJson(response, 200, state);
+      sendJson(response, 200, {
+        ...state,
+        browserSubscription: browserSubscription
+          ? toDeviceToken(browserSubscription)
+          : null,
+      });
+      return;
+    }
+
+    if (url.pathname === "/__fixture/sign-in" && request.method === "POST") {
+      signIn(response);
+      sendJson(response, 200, { ok: true });
+      return;
+    }
+
+    if (url.pathname === "/__fixture/push-service/subscription") {
+      sendJson(response, 200, browserSubscription);
+      return;
+    }
+
+    if (
+      url.pathname === "/__fixture/push-service/subscribe" &&
+      request.method === "POST"
+    ) {
+      const [status, body] = subscribe(
+        JSON.parse((await readBody(request)) || "{}"),
+      );
+      sendJson(response, status, body);
+      return;
+    }
+
+    if (
+      url.pathname === "/__fixture/push-service/unsubscribe" &&
+      request.method === "POST"
+    ) {
+      browserSubscription = null;
+      sendJson(response, 200, { ok: true });
+      return;
+    }
+
+    // The push service gives this browser a new subscription in place of the one it had.
+    if (
+      url.pathname === "/__fixture/push-service/replace" &&
+      request.method === "POST"
+    ) {
+      const oldSubscription = browserSubscription;
+      const newSubscription = issueSubscription(
+        oldSubscription.applicationServerKey,
+      );
+      sendJson(response, 200, {
+        oldSubscription: oldSubscription,
+        newSubscription: newSubscription,
+      });
+      return;
+    }
+
+    // The push service drops it: expired, or notifications blocked.
+    if (
+      url.pathname === "/__fixture/push-service/drop" &&
+      request.method === "POST"
+    ) {
+      const oldSubscription = browserSubscription;
+      browserSubscription = null;
+      sendJson(response, 200, { oldSubscription: oldSubscription });
+      return;
+    }
+
+    /*
+     * A page to this browser came back 410 while the browser still holds the
+     * subscription: the server stops sending to its devices
+     * (UserPushService.markWebPushSubscriptionAsGone).
+     */
+    if (
+      url.pathname === "/__fixture/push-service/gone" &&
+      request.method === "POST"
+    ) {
+      const deviceToken = toDeviceToken(browserSubscription);
+
+      for (const device of state.devices) {
+        if (device.deviceToken === deviceToken) {
+          device.isVerified = false;
+        }
+      }
+
+      sendJson(response, 200, { ok: true });
+      return;
+    }
+
+    if (
+      url.pathname === "/identity/refresh-token" &&
+      request.method === "POST"
+    ) {
+      const [status, body] = refreshSession(request, response);
+      sendJson(response, status, body);
+      return;
+    }
+
+    if (
+      url.pathname === "/api/user-push/subscription-change" &&
+      request.method === "POST"
+    ) {
+      const [status, body] = changeSubscription(
+        request,
+        JSON.parse((await readBody(request)) || "{}"),
+      );
+      sendJson(response, status, body);
       return;
     }
 
@@ -264,12 +617,14 @@ async function main() {
 
     if (url.pathname === "/dashboard/sw.js") {
       /*
-       * Byte for byte the generated worker until a test asks for a new
-       * version; a browser treats any change as one.
+       * The generated worker, byte for byte, with the push service stand-in
+       * after it, until a test asks for a new version; a browser treats any
+       * change as one.
        */
       response.setHeader("Content-Type", "application/javascript");
       response.end(
         fs.readFileSync(serviceWorkerFile, "utf8") +
+          `\n${pushServiceStandIn}\n` +
           (serviceWorkerRevision
             ? `\n// Fixture revision ${serviceWorkerRevision}\n`
             : ""),

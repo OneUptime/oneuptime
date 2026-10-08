@@ -366,7 +366,19 @@ describe("a create limited to owned records makes a record its creator owns", ()
     expect(body).toContain(
       "if (!isOperationalResource && !this.createReliesOnOwnership(props)) {",
     );
-    expect(body).toContain("ownerTableRegistry.get(modelName)");
+    expect(body).toContain(
+      "await this.insertCreatorAsOwner(createdItem, props);",
+    );
+
+    // The owner row names the creator, in the record's own owner table.
+    const rowStart: number = source.indexOf("private getCreatorOwnerRow(");
+    const row: string = source.slice(
+      rowStart,
+      source.indexOf("\n  }\n", rowStart),
+    );
+
+    expect(rowStart).toBeGreaterThan(-1);
+    expect(row).toContain("ownerTableRegistry.get(modelName)");
 
     // The hosts, clusters and the rest carry owners, but are no operational resource.
     expect(
@@ -379,6 +391,62 @@ describe("a create limited to owned records makes a record its creator owns", ()
         },
       ).length,
     ).toBeGreaterThan(10);
+  });
+
+  /*
+   * A creator whose permission to create reaches only what they own is made
+   * its owner right after the save - before the record's list place, its
+   * images, its hooks and the best-effort owner row of everyone else - and a
+   * record they could not be made the owner of is deleted again, the create
+   * refused.
+   */
+  test("a creator who relies on owning what they create owns it before anything else happens to it, or it is undone", () => {
+    const source: string = fs.readFileSync(
+      path.join(SERVER_DIRECTORY, "Services/DatabaseService.ts"),
+      "utf8",
+    );
+    const start: number = source.indexOf(
+      "public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {",
+    );
+    const create: string = source.slice(start, start + 20000);
+
+    const decided: number = create.indexOf(
+      "this.createReliesOnOwnership(createBy.props) &&\n      OwnedScopePermission.hasOwnerTables(this.modelType);",
+    );
+    const saved: number = create.indexOf(
+      "await this.getRepository().save(createBy.data);",
+    );
+    const owned: number = create.indexOf(
+      "await this.makeCreatorOwnerOrUndo(createBy.data, createBy.props);",
+    );
+    const listPlace: number = create.indexOf(
+      "await this.applyListOrderCreatePlan(listOrderPlan);",
+    );
+    const hooks: number = create.indexOf("await this.onCreateSuccess(");
+    const bestEffort: number = create.indexOf(
+      "if (!createBy.props.ignoreHooks && !isOwnedByCreatorFirst) {",
+    );
+
+    expect(start).toBeGreaterThan(-1);
+    expect(decided).toBeGreaterThan(-1);
+    expect(saved).toBeGreaterThan(decided);
+    expect(owned).toBeGreaterThan(saved);
+    expect(listPlace).toBeGreaterThan(owned);
+    expect(hooks).toBeGreaterThan(owned);
+    expect(bestEffort).toBeGreaterThan(hooks);
+
+    const helperStart: number = source.indexOf(
+      "private async makeCreatorOwnerOrUndo(",
+    );
+    const helper: string = source.slice(
+      helperStart,
+      source.indexOf("\n  }\n", helperStart),
+    );
+
+    expect(helper).toContain("await this.isCreatorOwnerOf(createdItem, props)");
+    expect(helper).toContain("await this.hardDeleteBy({");
+    expect(helper).toContain("ignoreHooks: true,");
+    expect(helper).toContain("throw new ServerException(");
   });
 
   test("a model that takes its owners from a parent is created only on a parent its creator owns", () => {

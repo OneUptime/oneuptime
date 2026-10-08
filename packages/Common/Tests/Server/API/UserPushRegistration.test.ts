@@ -279,6 +279,7 @@ describe("POST /user-push/register", () => {
         success: true,
         deviceId: NEW_DEVICE_ID.toString(),
         alreadyRegistered: false,
+        isVerified: true,
       },
     });
     expect(membershipReads).toEqual([PROJECT_ID.toString()]);
@@ -321,6 +322,7 @@ describe("POST /user-push/register", () => {
         success: true,
         deviceId: NEW_DEVICE_ID.toString(),
         alreadyRegistered: false,
+        isVerified: true,
       },
     });
     expect(
@@ -355,6 +357,7 @@ describe("POST /user-push/register", () => {
     lookup.mockResolvedValue({
       _id: EXISTING_DEVICE_ID.toString(),
       id: EXISTING_DEVICE_ID,
+      isVerified: true,
     } as never);
 
     const answer: Answer = await register(
@@ -369,10 +372,48 @@ describe("POST /user-push/register", () => {
         success: true,
         deviceId: EXISTING_DEVICE_ID.toString(),
         alreadyRegistered: true,
+        isVerified: true,
       },
     });
     expect(create).not.toHaveBeenCalled();
     // The rules a person set up for the device are left as they are.
+    expect(defaultRules).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The push service stopped accepting the subscription the browser still
+   * holds, so its device no longer receives notifications. "Already
+   * registered" alone sent the person away believing it worked; the
+   * Dashboard is told, gets a new subscription, and renews the device.
+   */
+  test("a browser whose device no longer receives notifications is told so, and still nothing is created", async () => {
+    lookup.mockResolvedValue({
+      _id: EXISTING_DEVICE_ID.toString(),
+      id: EXISTING_DEVICE_ID,
+      isVerified: false,
+    } as never);
+
+    const answer: Answer = await register(
+      overTheWire({
+        ...browserRegistration,
+        projectId: PROJECT_ID.toString(),
+      }),
+    );
+
+    expect(answer).toEqual({
+      json: {
+        success: true,
+        deviceId: EXISTING_DEVICE_ID.toString(),
+        alreadyRegistered: true,
+        isVerified: false,
+      },
+    });
+    expect(
+      (lookup.mock.calls[0]![0].select as Record<string, unknown>)[
+        "isVerified"
+      ],
+    ).toBe(true);
+    expect(create).not.toHaveBeenCalled();
     expect(defaultRules).not.toHaveBeenCalled();
   });
 
