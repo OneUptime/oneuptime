@@ -147,13 +147,13 @@ URL Base: http://ollama:11434
 Nome do Modelo: llama3.1
 ```
 
-**Aumente a janela de contexto.** A menos que seja configurado de outra forma, o Ollama executa um modelo com uma janela de contexto pequena (4096 tokens nas versões atuais, 2048 nas mais antigas) e corta silenciosamente tudo o que não cabe. Os recursos de IA do OneUptime enviam suas definições de ferramentas em cada requisição, e só elas podem ocupar vários milhares de tokens. Quando são cortadas, nenhum erro aparece: o modelo simplesmente responde que não tem nenhuma ferramenta para a pergunta. Defina um `num_ctx` maior no campo **Parâmetros adicionais** do provedor:
+**Aumente a janela de contexto.** A menos que seja configurado de outra forma, o Ollama define o tamanho da janela de contexto de um modelo pela memória de GPU que encontra: 4k tokens abaixo de 24 GiB, 32k até 48 GiB e 256k acima disso (versões mais antigas usam 2048 ou 4096 tokens). Os recursos de IA do OneUptime são agentes. Cada requisição leva o prompt de sistema e as definições de ferramentas desses recursos, mais de 10.000 tokens antes de qualquer pergunta, e uma investigação de IA acrescenta cada resultado de consulta à conversa à medida que avança. Quando uma requisição deixa de caber, o Ollama descarta as mensagens mais antigas, e a pergunta vai junto com elas. Dependendo do modelo e da versão do Ollama, o modelo então responde sem a pergunta ou sem suas ferramentas, ou a requisição falha com "no user query found in messages" (Qwen 3.8 e posteriores) ou "the prompt is longer than the context length currently available to the model". O OneUptime informa essas falhas como "…the request is larger than the model's context window" e não executa a investigação novamente. Defina um `num_ctx` maior no campo **Parâmetros adicionais** do provedor:
 
 ```json
-{ "options": { "num_ctx": 16384 } }
+{ "options": { "num_ctx": 65536 } }
 ```
 
-O OneUptime mescla este objeto `options` com as opções que envia ao Ollama, então liste apenas as configurações que você quer alterar. Uma janela de contexto maior exige mais memória; escolha um tamanho que seu modelo suporte e que seu hardware aguente. Para aumentar, em vez disso, o padrão para todos os clientes, defina `OLLAMA_CONTEXT_LENGTH` no servidor Ollama. Para um provedor global registrado a partir das variáveis `GLOBAL_LLM_PROVIDER_*`, defina esse campo no painel de administração, em **Configurações** > **Provedores de LLM globais**; a sincronização na inicialização não mexe nesse campo.
+O OneUptime mescla este objeto `options` com as opções que envia ao Ollama, então liste apenas as configurações que você quer alterar. 65.536 tokens é o valor que o Ollama recomenda para agentes, e ele cobre a maioria das investigações. Uma investigação longa pode usar mais, porque o OneUptime só começa a encurtar resultados antigos de consultas quando a conversa passa de cerca de 75.000 tokens: use 131.072 se o modelo suportar e sua GPU aguentar. Uma janela de contexto maior exige mais memória, e `ollama ps` mostra o contexto que cada modelo carregado recebeu. Para aumentar, em vez disso, o padrão para todos os clientes, defina `OLLAMA_CONTEXT_LENGTH` no servidor Ollama. Essa é a única forma quando o OneUptime acessa o Ollama pela API compatível com a OpenAI em `/v1` (o provedor **OpenAI Compatible**), que ignora `num_ctx`. Para um provedor global registrado a partir das variáveis `GLOBAL_LLM_PROVIDER_*`, defina **Parâmetros adicionais** no painel de administração, em **Configurações** > **Provedores de LLM globais**; a sincronização na inicialização não mexe nesse campo.
 
 **Modelos Populares do Ollama:**
 
@@ -273,6 +273,11 @@ Para implantações empresariais ou ao usar serviços de proxy, você pode espec
 - Verifique se o nome do modelo está escrito corretamente
 - Para Ollama, certifique-se de que você baixou o modelo com `ollama pull <nome-do-modelo>`
 - Verifique se o modelo está disponível na sua região (alguns modelos têm restrições regionais)
+
+### Janela de Contexto Muito Pequena
+
+- **"…the request is larger than the model's context window"**: a requisição não coube na janela de contexto do modelo, geralmente porque uma investigação de IA coletou muitas evidências. Aumente `num_ctx` no campo **Parâmetros adicionais** do provedor, ou `OLLAMA_CONTEXT_LENGTH` no servidor Ollama; veja [Ollama (Auto-Hospedado)](#ollama-auto-hospedado)
+- **"no user query found in messages"**: o mesmo problema, tal como o Qwen o relata. O OneUptime sempre envia a pergunta; o Ollama a descartou para que o restante da requisição coubesse
 
 ## Precisa de Ajuda?
 

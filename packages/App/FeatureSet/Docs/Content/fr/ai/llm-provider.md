@@ -147,13 +147,13 @@ Base URL: http://ollama:11434
 Model Name: llama3.1
 ```
 
-**Agrandissez la fenêtre de contexte.** Sauf indication contraire, Ollama exécute un modèle avec une petite fenêtre de contexte (4096 tokens dans les versions actuelles, 2048 dans les plus anciennes) et coupe silencieusement tout ce qui dépasse. Les fonctionnalités IA de OneUptime envoient leurs définitions d'outils à chaque requête, et celles-ci peuvent à elles seules occuper plusieurs milliers de tokens. Lorsqu'elles sont coupées, aucune erreur n'apparaît : le modèle répond simplement qu'il n'a aucun outil pour la question. Définissez un `num_ctx` plus grand dans le champ **Paramètres supplémentaires** du fournisseur :
+**Agrandissez la fenêtre de contexte.** Sauf indication contraire, Ollama dimensionne la fenêtre de contexte d'un modèle selon la mémoire GPU qu'il trouve : 4k tokens en dessous de 24 GiB, 32k jusqu'à 48 GiB et 256k au-delà (les versions plus anciennes utilisent 2048 ou 4096 tokens). Les fonctionnalités IA de OneUptime sont des agents. Chaque requête transporte leur prompt système et leurs définitions d'outils, soit plus de 10 000 tokens avant même la moindre question, et une investigation IA ajoute à la conversation, au fur et à mesure, le résultat de chacune de ses interrogations. Lorsqu'une requête ne tient plus, Ollama abandonne les messages les plus anciens, et la question disparaît avec eux. Selon le modèle et la version d'Ollama, le modèle répond alors sans la question ou sans ses outils, ou la requête échoue avec "no user query found in messages" (Qwen 3.8 et versions ultérieures) ou "the prompt is longer than the context length currently available to the model". OneUptime signale ces échecs par "…the request is larger than the model's context window" et ne relance pas l'investigation. Définissez un `num_ctx` plus grand dans le champ **Paramètres supplémentaires** du fournisseur :
 
 ```json
-{ "options": { "num_ctx": 16384 } }
+{ "options": { "num_ctx": 65536 } }
 ```
 
-OneUptime fusionne cet objet `options` avec les options qu'il envoie à Ollama : n'indiquez donc que les réglages à modifier. Une fenêtre de contexte plus grande demande plus de mémoire ; choisissez une taille que votre modèle prend en charge et que votre matériel peut supporter. Pour relever plutôt la valeur par défaut pour tous les clients, définissez `OLLAMA_CONTEXT_LENGTH` sur le serveur Ollama. Pour un fournisseur global enregistré à partir des variables `GLOBAL_LLM_PROVIDER_*`, renseignez ce champ dans le tableau de bord d'administration, sous **Paramètres** > **Fournisseurs LLM globaux** ; la synchronisation au démarrage n'y touche pas.
+OneUptime fusionne cet objet `options` avec les options qu'il envoie à Ollama : n'indiquez donc que les réglages à modifier. Ollama recommande 65 536 tokens pour les agents, et cela suffit pour la plupart des investigations. Une longue investigation peut en utiliser davantage, car OneUptime ne commence à raccourcir les anciens résultats d'interrogation qu'une fois que la conversation dépasse environ 75 000 tokens : utilisez 131 072 si le modèle prend en charge cette taille et que votre GPU peut la contenir. Une fenêtre de contexte plus grande demande plus de mémoire, et `ollama ps` indique le contexte obtenu par chaque modèle chargé. Pour relever plutôt la valeur par défaut pour tous les clients, définissez `OLLAMA_CONTEXT_LENGTH` sur le serveur Ollama. C'est la seule solution lorsque OneUptime joint Ollama via son API compatible OpenAI `/v1` (le fournisseur **OpenAI Compatible**), qui ignore `num_ctx`. Pour un fournisseur global enregistré à partir des variables `GLOBAL_LLM_PROVIDER_*`, renseignez **Paramètres supplémentaires** dans le tableau de bord d'administration, sous **Paramètres** > **Fournisseurs LLM globaux** ; la synchronisation au démarrage ne touche pas à ce champ.
 
 **Modèles Ollama populaires :**
 
@@ -273,6 +273,11 @@ Pour les déploiements d'entreprise ou lors de l'utilisation de services proxy, 
 - Vérifiez que le nom du modèle est correctement orthographié
 - Pour Ollama, assurez-vous d'avoir téléchargé le modèle avec `ollama pull <nom-du-modèle>`
 - Vérifiez si le modèle est disponible dans votre région (certains modèles ont des restrictions régionales)
+
+### Fenêtre de contexte trop petite
+
+- **"…the request is larger than the model's context window"** : la requête ne tenait pas dans la fenêtre de contexte du modèle, généralement parce qu'une investigation IA a rassemblé beaucoup d'éléments de preuve. Augmentez `num_ctx` dans le champ **Paramètres supplémentaires** du fournisseur, ou `OLLAMA_CONTEXT_LENGTH` sur le serveur Ollama ; voir [Ollama (auto-hébergé)](#ollama-auto-hébergé)
+- **"no user query found in messages"** : le même problème, tel que Qwen le signale. OneUptime envoie toujours la question ; Ollama l'a abandonnée pour que le reste de la requête tienne
 
 ## Besoin d'aide ?
 
