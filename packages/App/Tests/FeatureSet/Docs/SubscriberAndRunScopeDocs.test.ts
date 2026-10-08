@@ -233,7 +233,8 @@ describe("Docs: what a subscription, a rule run, an LLM provider list and an AI 
 
     for (const sentence of [
       "A run reaches every scan of the project, so pressing **Dry Run** or **Run Rule** takes permissions that reach the whole project:",
-      "**Edit Network Device Auto Import Rule** and **Create Network Device** - and **Create Monitor** when the rule has a Monitor Template - each scoped to all resources in the project.",
+      "permission to edit the rule, to create network devices and - when the rule has a Monitor Template - to create monitors, each scoped to all resources in the project.",
+      "A site assignment or device label rule's **Run Now** takes permission to edit the rule and to edit network devices, reaching the whole project the same way",
       "A permission restricted to labels or to owned devices is not enough, and a team's block with labels on creating devices or monitors refuses the run.",
       "(/docs/configuration/run-rules-now#permissions)",
     ]) {

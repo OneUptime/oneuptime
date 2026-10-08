@@ -570,7 +570,7 @@ Two buttons on a rule reach _every_ scan in the project, however old:
   then switch it on.
 - **Run Rule** does the same evaluation and performs the import.
 
-**Who may run a rule.** A run reaches every scan of the project, so pressing **Dry Run** or **Run Rule** takes permissions that reach the whole project: **Edit Network Device Auto Import Rule** and **Create Network Device** - and **Create Monitor** when the rule has a Monitor Template - each scoped to all resources in the project. A permission restricted to labels or to owned devices is not enough, and a team's block with labels on creating devices or monitors refuses the run. A site assignment or device label rule's **Run Now** takes the same, with **Edit Network Device** (see [Run Rules on Existing Resources](/docs/configuration/run-rules-now#permissions)).
+**Who may run a rule.** A run reaches every scan of the project, so pressing **Dry Run** or **Run Rule** takes permissions that reach the whole project: permission to edit the rule, to create network devices and - when the rule has a Monitor Template - to create monitors, each scoped to all resources in the project. A permission restricted to labels or to owned devices is not enough, and a team's block with labels on creating devices or monitors refuses the run. A site assignment or device label rule's **Run Now** takes permission to edit the rule and to edit network devices, reaching the whole project the same way (see [Run Rules on Existing Resources](/docs/configuration/run-rules-now#permissions), which names each permission).
 
 **Large estates import in paced batches.** Device and monitor creation each run
 the full service pipeline — site assignment, owners, labels, and for monitors
