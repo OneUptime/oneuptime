@@ -27,6 +27,7 @@ import {
 } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
+import Semaphore from "../../../Server/Infrastructure/Semaphore";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -174,9 +175,22 @@ describe("missing-reference guard on write", () => {
   });
 
   describe("MonitorStatusTimelineService", () => {
+    beforeEach(() => {
+      /*
+       * onBeforeCreate takes the monitor's lock once the status is checked,
+       * and refuses the change without one (fail closed): these tests run
+       * without Valkey, so the lock is handed over here.
+       */
+      jest
+        .spyOn(Semaphore, "lock")
+        .mockResolvedValue({ id: "monitor-lock" } as never);
+      jest.spyOn(Semaphore, "release").mockResolvedValue(undefined as never);
+    });
+
     /*
      * This is the exact insert the issue reports failing. It is checked before
-     * the dedupe lookups so a bad id costs one query rather than three.
+     * the dedupe lookups - and before the monitor's lock is taken - so a bad id
+     * costs one query rather than three, and holds up no other status change.
      */
     test("create checks the monitor status against MonitorStatusService", async () => {
       spyOnValidator();
