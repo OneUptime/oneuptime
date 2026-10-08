@@ -224,6 +224,18 @@ export default class RunbookAPI {
         execution.scheduledMaintenanceId = scheduledMaintenanceId;
       }
 
+      /*
+       * The incident, alert or maintenance event the run is linked to is one
+       * the caller may read, by its own read rule - its labels, its owners,
+       * a private incident's people - as if they had created the run
+       * themselves (DatabaseService.checkNamedRecordsOf). One they may not
+       * read is answered like one that does not exist.
+       */
+      await RunbookExecutionService.checkNamedRecordsOf({
+        data: execution,
+        props: props,
+      });
+
       const created: RunbookExecution = await RunbookExecutionService.create({
         data: execution,
         props: { isRoot: true },
