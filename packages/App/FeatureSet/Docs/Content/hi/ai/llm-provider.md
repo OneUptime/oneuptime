@@ -147,13 +147,13 @@ Base URL: http://ollama:11434
 Model Name: llama3.1
 ```
 
-**Context window बढ़ाएँ।** अलग से न बताया जाए तो Ollama किसी मॉडल को छोटी context window के साथ चलाता है (मौजूदा releases में 4096 tokens, पुराने releases में 2048) और जो उसमें नहीं समाता उसे चुपचाप काट देता है। OneUptime की AI सुविधाएँ हर request के साथ अपनी tool definitions भेजती हैं, और अकेले वे ही कई हज़ार tokens ले सकती हैं। जब वे कट जाती हैं तो कोई error नहीं आता: मॉडल बस जवाब देता है कि उसके पास इस सवाल के लिए कोई tool नहीं है। Provider के **अतिरिक्त पैरामीटर** में बड़ा `num_ctx` सेट करें:
+**Context window बढ़ाएँ।** अलग से न बताया जाए तो Ollama किसी मॉडल की context window का size उसे मिलने वाली GPU memory के हिसाब से तय करता है: 24 GiB से कम पर 4k tokens, 48 GiB तक 32k और उससे ऊपर 256k (पुराने releases 2048 या 4096 tokens उपयोग करते हैं)। OneUptime की AI सुविधाएँ agents हैं। हर request में उनका system prompt और tool definitions होते हैं, जो किसी भी सवाल से पहले ही 10,000 से ज़्यादा tokens हो जाते हैं, और AI investigation आगे बढ़ते हुए हर query result को conversation में जोड़ती जाती है। जब कोई request context window में नहीं समाती, तो Ollama सबसे पुराने messages हटा देता है, और उनके साथ सवाल भी चला जाता है। मॉडल और Ollama release के अनुसार, मॉडल फिर बिना सवाल के या बिना अपने tools के जवाब देता है, या request "no user query found in messages" (Qwen 3.8 और बाद के versions) या "the prompt is longer than the context length currently available to the model" के साथ fail हो जाती है। OneUptime इन failures को "…the request is larger than the model's context window" के रूप में रिपोर्ट करता है और investigation को दोबारा नहीं चलाता। Provider के **अतिरिक्त पैरामीटर** में बड़ा `num_ctx` सेट करें:
 
 ```json
-{ "options": { "num_ctx": 16384 } }
+{ "options": { "num_ctx": 65536 } }
 ```
 
-OneUptime इस `options` object को उन options में merge करता है जो वह Ollama को भेजता है, इसलिए केवल वही settings लिखें जिन्हें आप बदलना चाहते हैं। बड़ी context window को ज़्यादा memory चाहिए, इसलिए ऐसा size चुनें जिसे आपका मॉडल support करे और आपका hardware संभाल सके। इसके बजाय सभी clients के लिए default बढ़ाने के लिए Ollama server पर `OLLAMA_CONTEXT_LENGTH` सेट करें। `GLOBAL_LLM_PROVIDER_*` variables से registered global provider के लिए यह field Admin Dashboard में **सेटिंग्स** > **वैश्विक LLM प्रदाता** के अंतर्गत सेट करें; startup sync उस field को नहीं छूता।
+OneUptime इस `options` object को उन options में merge करता है जो वह Ollama को भेजता है, इसलिए केवल वही settings लिखें जिन्हें आप बदलना चाहते हैं। Agents के लिए Ollama 65,536 tokens की सलाह देता है, और इतने में ज़्यादातर investigations हो जाती हैं। लंबी investigation इससे ज़्यादा उपयोग कर सकती है, क्योंकि OneUptime पुराने query results को छोटा करना तभी शुरू करता है जब conversation लगभग 75,000 tokens से आगे निकल जाती है: अगर मॉडल support करे और आपका GPU संभाल सके तो 131,072 उपयोग करें। बड़ी context window को ज़्यादा memory चाहिए, और `ollama ps` दिखाता है कि हर loaded मॉडल को कितना context मिला। इसके बजाय सभी clients के लिए default बढ़ाने के लिए Ollama server पर `OLLAMA_CONTEXT_LENGTH` सेट करें। जब OneUptime, Ollama तक उसके OpenAI-compatible `/v1` API (**OpenAI Compatible** provider) के ज़रिए पहुँचता है, तो यही एकमात्र तरीका है, क्योंकि वह API `num_ctx` को ignore करता है। `GLOBAL_LLM_PROVIDER_*` variables से registered global provider के लिए **अतिरिक्त पैरामीटर** Admin Dashboard में **सेटिंग्स** > **वैश्विक LLM प्रदाता** के अंतर्गत सेट करें; startup sync उस field को नहीं छूता।
 
 **लोकप्रिय Ollama मॉडल:**
 
@@ -273,6 +273,11 @@ Enterprise deployments के लिए या proxy services का उपय�
 - सत्यापित करें कि model name सही वर्तनी में है
 - Ollama के लिए, सुनिश्चित करें कि आपने `ollama pull <model-name>` से मॉडल pull किया है
 - जांचें कि मॉडल आपके क्षेत्र में उपलब्ध है (कुछ मॉडलों में क्षेत्रीय प्रतिबंध हैं)
+
+### Context window बहुत छोटी है
+
+- **"…the request is larger than the model's context window"**: request मॉडल की context window में नहीं समाई, आमतौर पर इसलिए कि किसी AI investigation ने बहुत सारे evidence जुटा लिए हैं। Provider के **अतिरिक्त पैरामीटर** में `num_ctx` बढ़ाएँ, या Ollama server पर `OLLAMA_CONTEXT_LENGTH`; देखें [Ollama (Self-Hosted)](#ollama-self-hosted)
+- **"no user query found in messages"**: वही समस्या, जैसे Qwen उसे रिपोर्ट करता है। OneUptime हमेशा सवाल भेजता है; बाकी request को समाने के लिए Ollama ने उसे हटा दिया
 
 ## सहायता चाहिए?
 

@@ -147,13 +147,13 @@ Base URL: http://ollama:11434
 Modelnavn: llama3.1
 ```
 
-**Øg kontekstvinduet.** Medmindre andet er angivet, kører Ollama en model med et lille kontekstvindue (4096 tokens i nyere versioner, 2048 i ældre) og skærer stiltiende alt fra, der ikke er plads til. OneUptimes AI-funktioner sender deres værktøjsdefinitioner med hver forespørgsel, og de alene kan fylde flere tusinde tokens. Når de bliver skåret fra, kommer der ingen fejl: modellen svarer blot, at den ikke har noget værktøj til spørgsmålet. Angiv en større `num_ctx` i udbyderens **Yderligere parametre**:
+**Øg kontekstvinduet.** Medmindre andet er angivet, bestemmer Ollama størrelsen på en models kontekstvindue ud fra den GPU-hukommelse, den finder: 4k tokens under 24 GiB, 32k op til 48 GiB og 256k derover (ældre versioner bruger 2048 eller 4096 tokens). OneUptimes AI-funktioner er agenter. Hver anmodning indeholder deres systemprompt og værktøjsdefinitioner, mere end 10.000 tokens, før der overhovedet er stillet et spørgsmål, og en AI-undersøgelse føjer hvert forespørgselsresultat til samtalen undervejs. Når der ikke længere er plads til en anmodning, smider Ollama de ældste beskeder væk, og spørgsmålet ryger med. Afhængigt af modellen og Ollama-versionen svarer modellen derefter uden spørgsmålet eller uden sine værktøjer, eller anmodningen fejler med "no user query found in messages" (Qwen 3.8 og nyere) eller "the prompt is longer than the context length currently available to the model". OneUptime melder disse fejl som "…the request is larger than the model's context window" og kører ikke undersøgelsen igen. Angiv en større `num_ctx` i udbyderens **Yderligere parametre**:
 
 ```json
-{ "options": { "num_ctx": 16384 } }
+{ "options": { "num_ctx": 65536 } }
 ```
 
-OneUptime fletter dette `options`-objekt ind i de indstillinger, den sender til Ollama, så angiv kun de indstillinger, du vil ændre. Et større kontekstvindue kræver mere hukommelse, så vælg en størrelse, som din model understøtter, og som din hardware kan klare. Vil du i stedet hæve standarden for alle klienter, så sæt `OLLAMA_CONTEXT_LENGTH` på Ollama-serveren. For en global udbyder, der registreres fra `GLOBAL_LLM_PROVIDER_*`-variabler, skal du udfylde feltet på udbyderen i Admin Dashboard under **Indstillinger** > **Globale LLM-udbydere**; synkroniseringen ved opstart rører ikke det felt.
+OneUptime fletter dette `options`-objekt ind i de indstillinger, den sender til Ollama, så angiv kun de indstillinger, du vil ændre. 65.536 tokens er, hvad Ollama anbefaler til agenter, og det dækker de fleste undersøgelser. En lang undersøgelse kan bruge mere, fordi OneUptime først begynder at forkorte gamle forespørgselsresultater, når samtalen kommer over omkring 75.000 tokens: brug 131.072, hvis modellen understøtter det, og din GPU har hukommelse nok til det. Et større kontekstvindue kræver mere hukommelse, og `ollama ps` viser, hvilken kontekst hver indlæst model har fået. Vil du i stedet hæve standarden for alle klienter, så sæt `OLLAMA_CONTEXT_LENGTH` på Ollama-serveren. Det er den eneste mulighed, når OneUptime forbinder til Ollama via dens OpenAI-kompatible `/v1`-API (udbyderen **OpenAI Compatible**), som ignorerer `num_ctx`. For en global udbyder, der registreres fra `GLOBAL_LLM_PROVIDER_*`-variabler, skal du angive **Yderligere parametre** i Admin Dashboard under **Indstillinger** > **Globale LLM-udbydere**; synkroniseringen ved opstart rører ikke det felt.
 
 **Populære Ollama-modeller:**
 
@@ -273,6 +273,11 @@ Til enterprise-deployments eller ved brug af proxytjenester kan du angive en bru
 - Bekræft, at modelnavnet er stavet korrekt
 - For Ollama, sørg for, at du har hentet modellen med `ollama pull <model-name>`
 - Kontroller, om modellen er tilgængelig i din region (nogle modeller har regionale begrænsninger)
+
+### Kontekstvinduet er for lille
+
+- **"…the request is larger than the model's context window"**: Anmodningen kunne ikke være i modellens kontekstvindue, som regel fordi en AI-undersøgelse har indsamlet mange beviser. Hæv `num_ctx` i udbyderens **Yderligere parametre** eller `OLLAMA_CONTEXT_LENGTH` på Ollama-serveren; se [Ollama (selvhostet)](#ollama-selvhostet)
+- **"no user query found in messages"**: Samme problem, sådan som Qwen melder det. OneUptime sender altid spørgsmålet; Ollama smed det væk for at få resten af anmodningen til at passe
 
 ## Har du brug for hjælp?
 

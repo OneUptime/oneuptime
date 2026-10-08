@@ -75,6 +75,22 @@ import {
   buildDetectionRuleMonitorPrefill,
   buildThreatIntelFeedMonitorPrefill,
 } from "../../Utils/SecurityEventsMonitorPrefill";
+import AIInsight from "Common/Models/DatabaseModels/AIInsight";
+import AIInsightType from "Common/Types/AI/AIInsightType";
+import {
+  AI_INSIGHT_MONITOR_QUERY_PARAM,
+  AIInsightMetricShape,
+  AIInsightMonitorInput,
+  AIInsightMonitorSeedIds,
+  buildAIInsightMonitorPrefill,
+  getAIInsightMonitorBlocker,
+} from "../../Utils/AIInsightMonitorPrefill";
+import {
+  AI_INSIGHT_MONITOR_SELECT,
+  fetchAIInsightMetricShape,
+  fetchAIInsightMonitorSeedIds,
+  toAIInsightMonitorInput,
+} from "../../Utils/AIInsightMonitorData";
 import NetworkDeviceAlertPackUtil from "Common/Types/Monitor/SnmpMonitor/NetworkDeviceAlertPack";
 import { NetworkDeviceMonitoringMethodUtil } from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import {
@@ -102,7 +118,7 @@ import {
   withDefaultMonitoringInterval,
 } from "../../Utils/Form/Monitor/MonitoringIntervalDefault";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import SnmpTableListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpTableListUtil";
 
 /*
@@ -931,6 +947,104 @@ const MonitorCreate: FunctionComponent<
     );
   };
 
+  /*
+   * "Create Monitor" deep link from an AI insight: open on the monitor
+   * AIInsightMonitorPrefill builds from it — the type, the scope and a
+   * criteria that opens an incident on the condition the detector found.
+   * The insight is read here rather than carried in the link, so the link
+   * stays short whatever the evidence holds.
+   *
+   * An insight that cannot become a monitor (a latency regression, a
+   * cumulative counter) says why in place of the form: the insight page
+   * already refuses those, so only a hand-made link lands here, and an empty
+   * form would read as the prefill having silently failed.
+   */
+  const preSeedFromAIInsightLink: (
+    aiInsightId: string,
+  ) => Promise<void> = async (aiInsightId: string): Promise<void> => {
+    /*
+     * Messages go to ErrorMessage untranslated: it translates a string
+     * message itself, and translationKey() is what lets the extractor
+     * find them.
+     */
+    if (!ObjectID.isValidUUID(aiInsightId)) {
+      setError(
+        translationKey(
+          "This link does not point to an insight. Open the insight again and choose Create Monitor.",
+        ),
+      );
+      return;
+    }
+
+    let insight: AIInsight | null = null;
+
+    try {
+      insight = await ModelAPI.getItem<AIInsight>({
+        modelType: AIInsight,
+        id: new ObjectID(aiInsightId),
+        select: AI_INSIGHT_MONITOR_SELECT,
+      });
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+      return;
+    }
+
+    if (!insight) {
+      setError(
+        translationKey(
+          "The insight this monitor was to be created from no longer exists.",
+        ),
+      );
+      return;
+    }
+
+    const input: AIInsightMonitorInput = toAIInsightMonitorInput(insight);
+
+    const metricShape: AIInsightMetricShape | null =
+      input.insightType === AIInsightType.MetricDrift
+        ? await fetchAIInsightMetricShape({
+            metricName:
+              input.metricName || input.evidence?.metricDrift?.metricName || "",
+            primaryEntityId: input.evidence?.metricDrift?.primaryEntityId,
+          })
+        : null;
+
+    const blocker: string | null = getAIInsightMonitorBlocker(input, {
+      metricShape: metricShape,
+    });
+
+    if (blocker) {
+      setError(blocker);
+      return;
+    }
+
+    let seeds: AIInsightMonitorSeedIds = {
+      operationalMonitorStatusId: null,
+      offlineMonitorStatusId: null,
+      rankedIncidentSeverityIds: [],
+      rankedAlertSeverityIds: [],
+    };
+
+    try {
+      seeds = await fetchAIInsightMonitorSeedIds();
+    } catch {
+      /*
+       * Recoverable: the criteria come without the parts that need these
+       * ids, and the form asks for them.
+       */
+    }
+
+    const prefill: JSONObject | null = buildAIInsightMonitorPrefill({
+      insight: input,
+      seeds: seeds,
+      context: { metricShape: metricShape },
+    });
+
+    if (prefill) {
+      setInitialValues(prefill);
+    }
+  };
+
   useEffect(() => {
     if (monitorTemplateId) {
       fetchMonitorTemplate(new ObjectID(monitorTemplateId));
@@ -982,6 +1096,18 @@ const MonitorCreate: FunctionComponent<
     if (threatIntelFeedId) {
       setIsLoading(true);
       preSeedFromThreatIntelFeedLink(threatIntelFeedId).finally(() => {
+        setIsLoading(false);
+      });
+      return;
+    }
+
+    const aiInsightId: string | null = Navigation.getQueryStringByName(
+      AI_INSIGHT_MONITOR_QUERY_PARAM,
+    );
+
+    if (aiInsightId) {
+      setIsLoading(true);
+      preSeedFromAIInsightLink(aiInsightId.trim()).finally(() => {
         setIsLoading(false);
       });
       return;

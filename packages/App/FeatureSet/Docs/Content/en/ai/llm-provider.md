@@ -149,13 +149,13 @@ Base URL: http://ollama:11434
 Model Name: llama3.1
 ```
 
-**Raise the context window.** Unless told otherwise, Ollama runs a model with a small context window (4,096 tokens on current releases, 2,048 on older ones) and silently cuts off whatever does not fit. OneUptime's AI features send their tool definitions with every request, and those alone can take several thousand tokens. When they are cut off, there is no error: the model just answers that it has no tool for the question. Set a larger `num_ctx` in the provider's **Additional Parameters**:
+**Raise the context window.** Unless told otherwise, Ollama sizes a model's context window by the GPU memory it finds: 4k tokens below 24 GiB, 32k up to 48 GiB and 256k above that (older releases use 2,048 or 4,096 tokens). OneUptime's AI features are agents. Every request carries their system prompt and tool definitions, more than 10,000 tokens before any question, and an AI investigation adds each query result to the conversation as it goes. When a request no longer fits, Ollama drops the oldest messages, and the question goes with them. Depending on the model and the Ollama release, the model then answers without the question or without its tools, or the request fails with "no user query found in messages" (Qwen 3.8 and later) or "the prompt is longer than the context length currently available to the model". OneUptime reports those failures as "…the request is larger than the model's context window" and does not run the investigation again. Set a larger `num_ctx` in the provider's **Additional Parameters**:
 
 ```json
-{ "options": { "num_ctx": 16384 } }
+{ "options": { "num_ctx": 65536 } }
 ```
 
-OneUptime merges this `options` object into the options it sends to Ollama, so list only the settings you want to change. A larger context window needs more memory, so pick a size your model supports and your hardware can hold. To raise the default for every client instead, set `OLLAMA_CONTEXT_LENGTH` on the Ollama server. For a global provider registered from `GLOBAL_LLM_PROVIDER_*` variables, set **Additional Parameters** in the Admin Dashboard under **Settings** > **Global LLM Providers**; the startup sync leaves that field alone.
+OneUptime merges this `options` object into the options it sends to Ollama, so list only the settings you want to change. 65,536 tokens is what Ollama recommends for agents, and it covers most investigations. A long investigation can use more, because OneUptime only starts shortening old query results once the conversation passes roughly 75,000 tokens: use 131,072 if the model supports it and your GPU can hold it. A larger context window needs more memory, and `ollama ps` shows the context each loaded model got. To raise the default for every client instead, set `OLLAMA_CONTEXT_LENGTH` on the Ollama server. That is the only way when OneUptime reaches Ollama through its OpenAI-compatible `/v1` API (the **OpenAI Compatible** provider), which ignores `num_ctx`. For a global provider registered from `GLOBAL_LLM_PROVIDER_*` variables, set **Additional Parameters** in the Admin Dashboard under **Settings** > **Global LLM Providers**; the startup sync leaves that field alone.
 
 **Popular Ollama Models:**
 
@@ -275,6 +275,11 @@ For enterprise deployments or when using proxy services, you can specify a custo
 - Verify the model name is spelled correctly
 - For Ollama, ensure you've pulled the model with `ollama pull <model-name>`
 - Check if the model is available in your region (some models have regional restrictions)
+
+### Context Window Too Small
+
+- **"…the request is larger than the model's context window"**: the request did not fit in the model's context window, usually because an AI investigation has collected a lot of evidence. Raise `num_ctx` in the provider's **Additional Parameters**, or `OLLAMA_CONTEXT_LENGTH` on the Ollama server; see [Ollama (Self-Hosted)](#ollama-self-hosted)
+- **"no user query found in messages"**: the same problem, as Qwen reports it. OneUptime always sends the question; Ollama dropped it to make the rest of the request fit
 
 ## Need Help?
 

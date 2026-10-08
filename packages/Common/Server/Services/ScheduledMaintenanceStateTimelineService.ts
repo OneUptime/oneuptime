@@ -37,7 +37,10 @@ import logger, { LogAttributes } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
-import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import StateChangeLock from "../Utils/StateChangeLock";
+import StateChangeFollowOn from "../Utils/StateChangeFollowOn";
+import Exception from "../../Types/Exception/Exception";
 import Select from "../Types/Database/Select";
 import ScheduledMaintenanceStartUtil from "../../Utils/ScheduledMaintenanceStart";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
@@ -204,17 +207,16 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
     let mutex: SemaphoreMutex | null = null;
 
     try {
-      try {
-        mutex = await Semaphore.lock({
-          key: createBy.data.scheduledMaintenanceId.toString(),
-          namespace: "ScheduledMaintenanceStateTimeline.create",
-        });
-      } catch (err) {
-        logger.error(err, {
+      // The event's lock: given back in onCreateSuccess or onCreateError.
+      mutex = await StateChangeLock.take({
+        namespace: "ScheduledMaintenanceStateTimeline.create",
+        eventId: createBy.data.scheduledMaintenanceId,
+        logAttributes: {
+          projectId: createBy.data.projectId?.toString(),
           scheduledMaintenanceId:
             createBy.data.scheduledMaintenanceId?.toString(),
-        } as LogAttributes);
-      }
+        } as LogAttributes,
+      });
 
       /*
        * Taken once the lock is held, so that changes made to the event at
@@ -384,18 +386,15 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
         },
       };
     } catch (error) {
-      // release the mutex if it was acquired.
-      if (mutex) {
-        try {
-          await Semaphore.release(mutex);
-        } catch (err) {
-          logger.error(err, {
-            projectId: createBy.data.projectId?.toString(),
-            scheduledMaintenanceId:
-              createBy.data.scheduledMaintenanceId?.toString(),
-          } as LogAttributes);
-        }
-      }
+      /*
+       * Refused by this hook, once the lock is taken: no create follows
+       * to give it back.
+       */
+      await StateChangeLock.giveBack(mutex, {
+        projectId: createBy.data.projectId?.toString(),
+        scheduledMaintenanceId:
+          createBy.data.scheduledMaintenanceId?.toString(),
+      } as LogAttributes);
 
       throw error;
     }
@@ -406,8 +405,6 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
     onCreate: OnCreate<ScheduledMaintenanceStateTimeline>,
     createdItem: ScheduledMaintenanceStateTimeline,
   ): Promise<ScheduledMaintenanceStateTimeline> {
-    const mutex: SemaphoreMutex | null = onCreate.carryForward.mutex;
-
     if (!createdItem.scheduledMaintenanceId) {
       throw new BadDataException("scheduledMaintenanceId is null");
     }
@@ -504,6 +501,11 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
       } as LogAttributes);
     }
 
+    /*
+     * The event's current state follows its timeline, as OneUptime's own
+     * write: the permission to create the change is the permission to change
+     * the event's state (StateChangeFollowOn).
+     */
     if (!createdItem.endsAt) {
       await ScheduledMaintenanceService.updateOneBy({
         query: {
@@ -513,21 +515,14 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
           currentScheduledMaintenanceStateId:
             createdItem.scheduledMaintenanceStateId,
         },
-        props: onCreate.createBy.props,
+        props: StateChangeFollowOn.getEventWriteProps(onCreate.createBy.props),
       });
     }
 
-    if (mutex) {
-      try {
-        await Semaphore.release(mutex);
-      } catch (err) {
-        logger.error(err, {
-          projectId: createdItem.projectId?.toString(),
-          scheduledMaintenanceId:
-            createdItem.scheduledMaintenanceId?.toString(),
-        } as LogAttributes);
-      }
-    }
+    await StateChangeLock.giveBackFor(onCreate, {
+      projectId: createdItem.projectId?.toString(),
+      scheduledMaintenanceId: createdItem.scheduledMaintenanceId?.toString(),
+    } as LogAttributes);
 
     const scheduledMaintenanceState: ScheduledMaintenanceState | null =
       await ScheduledMaintenanceStateService.findOneBy({
@@ -665,12 +660,13 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
       hasProgressedBeyondScheduledState &&
       scheduledMaintenanceEvent?.nextSubscriberNotificationBeforeTheEventAt
     ) {
+      // Derived from the change too, so written the same way.
       await ScheduledMaintenanceService.updateOneById({
         id: createdItem.scheduledMaintenanceId!,
         data: {
           nextSubscriberNotificationBeforeTheEventAt: null,
         },
-        props: onCreate.createBy.props,
+        props: StateChangeFollowOn.getEventWriteProps(onCreate.createBy.props),
       });
     }
 
@@ -832,6 +828,27 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
     });
 
     return createdItem;
+  }
+
+  /*
+   * A change refused or failed once onBeforeCreate took the event's lock -
+   * by a check DatabaseService.create runs after the hook, at the INSERT,
+   * or in onCreateSuccess before it gave the lock back - gives it back
+   * here (StateChangeLock). Left held, every later change to the event
+   * would wait out the lock and then go ahead without it.
+   */
+  @CaptureSpan()
+  protected override async onCreateError(
+    error: Exception,
+    onCreate?: OnCreate<ScheduledMaintenanceStateTimeline> | undefined,
+  ): Promise<Exception> {
+    await StateChangeLock.giveBackFor(onCreate, {
+      projectId: onCreate?.createBy.data.projectId?.toString(),
+      scheduledMaintenanceId:
+        onCreate?.createBy.data.scheduledMaintenanceId?.toString(),
+    } as LogAttributes);
+
+    return error;
   }
 
   @CaptureSpan()

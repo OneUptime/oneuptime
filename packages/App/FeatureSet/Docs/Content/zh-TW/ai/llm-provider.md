@@ -147,13 +147,13 @@ Base URL: http://ollama:11434
 Model Name: llama3.1
 ```
 
-**加大上下文視窗。** 除非另外設定，Ollama 會以較小的上下文視窗執行模型（目前版本為 4096 個 token，舊版本為 2048），並默默截斷放不下的內容。OneUptime 的 AI 功能在每個請求中都會送出工具定義，光是這些就可能佔用數千個 token。工具定義被截斷時不會出現錯誤：模型只會回答它沒有可用於該問題的工具。請在供應商的 **其他參數** 中設定更大的 `num_ctx`：
+**加大上下文視窗。** 除非另外設定，Ollama 會依偵測到的 GPU 記憶體決定模型的上下文視窗大小：低於 24 GiB 時為 4k 個 token，不超過 48 GiB 時為 32k，超過 48 GiB 時則為 256k（舊版本使用 2048 或 4096 個 token）。OneUptime 的 AI 功能都是以代理方式運作。每個請求都帶有它們的系統提示與工具定義，在提出任何問題之前就已超過 10,000 個 token，而 AI 調查還會在進行過程中把每次查詢的結果加入對話。當請求再也放不下時，Ollama 會丟棄最舊的訊息，問題也會隨之被丟棄。視模型與 Ollama 版本而定，模型接著會在沒有問題或沒有工具的情況下作答，或者請求會失敗並回報 "no user query found in messages"（Qwen 3.8 及更新版本）或 "the prompt is longer than the context length currently available to the model"。OneUptime 會將這些失敗回報為 "…the request is larger than the model's context window"，且不會重新執行調查。請在供應商的 **其他參數** 中設定更大的 `num_ctx`：
 
 ```json
-{ "options": { "num_ctx": 16384 } }
+{ "options": { "num_ctx": 65536 } }
 ```
 
-OneUptime 會把這個 `options` 物件合併到它送給 Ollama 的選項中，因此只需列出您要變更的設定。上下文視窗越大，需要的記憶體越多，請選擇模型支援且硬體能承受的大小。若想改為提高所有用戶端的預設值，請在 Ollama 伺服器上設定 `OLLAMA_CONTEXT_LENGTH`。對於透過 `GLOBAL_LLM_PROVIDER_*` 變數註冊的全域供應商，請在管理儀表板的 **設定** > **全域 LLM 供應商** 中設定該欄位；啟動時的同步不會動到它。
+OneUptime 會把這個 `options` 物件合併到它送給 Ollama 的選項中，因此只需列出您要變更的設定。65,536 個 token 是 Ollama 為代理建議的大小，足以應付大多數調查。較長的調查可能會用到更多，因為 OneUptime 要等對話超過約 75,000 個 token 後，才會開始縮短舊的查詢結果：若模型支援且您的 GPU 能夠容納，請使用 131,072。上下文視窗越大，需要的記憶體越多；`ollama ps` 會顯示每個已載入模型實際取得的上下文大小。若想改為提高所有用戶端的預設值，請在 Ollama 伺服器上設定 `OLLAMA_CONTEXT_LENGTH`。當 OneUptime 透過 Ollama 與 OpenAI 相容的 `/v1` API（即 **OpenAI Compatible** 供應商）連到 Ollama 時，這是唯一的方法，因為該 API 會忽略 `num_ctx`。對於透過 `GLOBAL_LLM_PROVIDER_*` 變數註冊的全域供應商，請在管理儀表板的 **設定** > **全域 LLM 供應商** 中設定 **其他參數**；啟動時的同步不會動到該欄位。
 
 **熱門的 Ollama 模型：**
 
@@ -273,6 +273,11 @@ API Key: (leave blank unless vllm.apiKey is set)
 - 請確認模型名稱拼寫正確
 - 對於 Ollama，請確保您已使用 `ollama pull <model-name>` 拉取該模型
 - 請檢查該模型在您的所在地區是否可用（部分模型有地區限制）
+
+### 上下文視窗過小
+
+- **"…the request is larger than the model's context window"**：請求放不進模型的上下文視窗，通常是因為 AI 調查收集了大量證據。請在供應商的 **其他參數** 中加大 `num_ctx`，或在 Ollama 伺服器上加大 `OLLAMA_CONTEXT_LENGTH`；請參閱[Ollama（自行託管）](#ollama自行託管)
+- **"no user query found in messages"**：同樣的問題，只是 Qwen 的回報方式。OneUptime 一律會送出問題；是 Ollama 為了讓請求的其餘部分放得下而丟棄了它
 
 ## 需要協助嗎？
 
