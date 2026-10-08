@@ -109,6 +109,12 @@ describe("the Global SSO guide", () => {
       );
     });
 
+    it("says a project created while such a change is saved waits for it, and in what words it is refused when it waits too long", () => {
+      expect(section).toContain(
+        'A project created at that moment waits for the change too, and if it waits too long it is refused with "The server\'s SSO settings are being changed. Create the project again in a moment."',
+      );
+    });
+
     it("says changes that let a provider sign more people in are never refused, and reach every app server at once", () => {
       expect(section).toContain(
         "Changes that let a provider sign more people in - turning it or an attachment on, lifting the restriction - are never refused.",
