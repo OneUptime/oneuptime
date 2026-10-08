@@ -175,7 +175,14 @@ const SCHEDULE_ID: ObjectID = new ObjectID(
 const NOW: Date = new Date("2026-08-31T12:00:00.000Z");
 
 const HTTPS_URL: string = `https://oneuptime.example.com/api/on-call-calendar/user/abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG/shifts.ics`;
-const WEBCAL_URL: string = HTTPS_URL.replace("https:", "webcals:");
+/*
+ * The subscribe link the page renders: webcal://, built from the https link.
+ * The payloads below carry webcals:// - what an API from before the Google
+ * Calendar fix sends - so every assertion on WEBCAL_URL also proves the page
+ * no longer passes that form (which iOS refuses to open) through.
+ */
+const WEBCAL_URL: string = HTTPS_URL.replace("https:", "webcal:");
+const LEGACY_WEBCALS_URL: string = HTTPS_URL.replace("https:", "webcals:");
 
 type StatusJsonFunction = (overrides?: JSONObject) => JSONObject;
 
@@ -201,7 +208,7 @@ const activeStatusJson: StatusJsonFunction = (
     },
     urls: {
       https: HTTPS_URL,
-      webcal: WEBCAL_URL,
+      webcal: LEGACY_WEBCALS_URL,
       googleAdd: buildGoogleAddUrl(HTTPS_URL),
     },
     hostWarning: null,

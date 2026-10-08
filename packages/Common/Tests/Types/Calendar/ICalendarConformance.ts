@@ -88,13 +88,44 @@ const MAX_LINE_OCTETS: number = 75;
 
 const NAME_PATTERN: RegExp = /^[A-Za-z0-9-]+$/;
 
+/*
+ * Any control character except HTAB (RFC 5545 3.1: CONTROL). Walked by code
+ * point rather than matched with a character-class regex, which ESLint's
+ * no-control-regex refuses.
+ */
+function hasControlCharacter(value: string): boolean {
+  for (let index: number = 0; index < value.length; index++) {
+    const code: number = value.charCodeAt(index);
+
+    if ((code < 0x20 && code !== 0x09) || code === 0x7f) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 // paramtext: any VALUE-CHAR except DQUOTE, ";", ":" and ",".
-const PARAM_TEXT_PATTERN: RegExp = /^[^";:,\u0000-\u0008\u000a-\u001f\u007f]*$/;
+function isParamText(value: string): boolean {
+  return (
+    !hasControlCharacter(value) &&
+    !value.includes('"') &&
+    !value.includes(";") &&
+    !value.includes(":") &&
+    !value.includes(",")
+  );
+}
 
-const QUOTED_STRING_PATTERN: RegExp = /^"[^"\u0000-\u0008\u000a-\u001f\u007f]*"$/;
-
-// Any control character except HTAB.
-const CONTROL_CHARACTER_PATTERN: RegExp = /[\u0000-\u0008\u000a-\u001f\u007f]/;
+// quoted-string: DQUOTE *QSAFE-CHAR DQUOTE.
+function isQuotedString(value: string): boolean {
+  return (
+    value.length >= 2 &&
+    value.startsWith('"') &&
+    value.endsWith('"') &&
+    !value.slice(1, -1).includes('"') &&
+    !hasControlCharacter(value)
+  );
+}
 
 const LONE_SURROGATE_PATTERN: RegExp =
   /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?:^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/;
@@ -141,7 +172,11 @@ const DATE_TIME_PROPERTIES: Array<string> = [
   "RECURRENCE-ID",
 ];
 
-const UTC_ONLY_PROPERTIES: Array<string> = ["DTSTAMP", "LAST-MODIFIED", "CREATED"];
+const UTC_ONLY_PROPERTIES: Array<string> = [
+  "DTSTAMP",
+  "LAST-MODIFIED",
+  "CREATED",
+];
 
 const EVENT_STATUSES: Array<string> = ["TENTATIVE", "CONFIRMED", "CANCELLED"];
 
@@ -212,7 +247,7 @@ function splitContentLine(
       parameterValue = text.slice(index, closing + 1);
       index = closing + 1;
 
-      if (!QUOTED_STRING_PATTERN.test(parameterValue)) {
+      if (!isQuotedString(parameterValue)) {
         problems.push(
           `line ${lineNumber}: parameter ${parameterName} has an invalid quoted value`,
         );
@@ -228,7 +263,7 @@ function splitContentLine(
       }
 
       for (const piece of parameterValue.split(",")) {
-        if (!PARAM_TEXT_PATTERN.test(piece)) {
+        if (!isParamText(piece)) {
           problems.push(
             `line ${lineNumber}: parameter ${parameterName} value "${piece}" must be quoted`,
           );
@@ -252,8 +287,10 @@ function splitContentLine(
 
   const value: string = text.slice(index + 1);
 
-  if (CONTROL_CHARACTER_PATTERN.test(value)) {
-    problems.push(`line ${lineNumber}: the value of ${name} has a control character`);
+  if (hasControlCharacter(value)) {
+    problems.push(
+      `line ${lineNumber}: the value of ${name} has a control character`,
+    );
   }
 
   return {
@@ -320,7 +357,9 @@ function readContentLines(
       }
 
       if (line.length === 1) {
-        problems.push(`physical line ${lineNumber}: an empty continuation line`);
+        problems.push(
+          `physical line ${lineNumber}: an empty continuation line`,
+        );
       }
 
       previous.text += line.slice(1);
@@ -417,11 +456,13 @@ export function parseICalendar(
 
   if (roots.length !== 1 || roots[0]?.name !== "VCALENDAR") {
     problems.push(
-      `expected exactly one VCALENDAR at the top, found ${roots
-        .map((root: ICalendarComponent) => {
-          return root.name;
-        })
-        .join(", ") || "nothing"}`,
+      `expected exactly one VCALENDAR at the top, found ${
+        roots
+          .map((root: ICalendarComponent) => {
+            return root.name;
+          })
+          .join(", ") || "nothing"
+      }`,
     );
   }
 
@@ -560,8 +601,7 @@ function readDate(value: string): Date | null {
     Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])),
   );
 
-  return Number.isNaN(date.getTime()) ||
-    date.getUTCDate() !== Number(match[3])
+  return Number.isNaN(date.getTime()) || date.getUTCDate() !== Number(match[3])
     ? null
     : date;
 }
@@ -686,7 +726,10 @@ function checkValueTypes(
       );
     }
 
-    if (property.name === "URL" && !ABSOLUTE_HTTP_URI_PATTERN.test(property.value)) {
+    if (
+      property.name === "URL" &&
+      !ABSOLUTE_HTTP_URI_PATTERN.test(property.value)
+    ) {
       problems.push(
         `line ${property.line}: URL "${property.value}" is not an absolute http(s) URI`,
       );
@@ -727,12 +770,17 @@ function checkEvent(
     const count: number = propertiesNamed(event, required).length;
 
     if (count !== 1) {
-      problems.push(`${where}: ${count} ${required} properties (exactly one required)`);
+      problems.push(
+        `${where}: ${count} ${required} properties (exactly one required)`,
+      );
     }
   }
 
   const dtEnds: Array<ICalendarProperty> = propertiesNamed(event, "DTEND");
-  const durations: Array<ICalendarProperty> = propertiesNamed(event, "DURATION");
+  const durations: Array<ICalendarProperty> = propertiesNamed(
+    event,
+    "DURATION",
+  );
 
   if (dtEnds.length > 1 || durations.length > 1) {
     problems.push(`${where}: DTEND or DURATION appears more than once`);
@@ -790,7 +838,11 @@ function checkEvent(
       timezoneIds,
       ignored,
     );
-    const end: Date | null = readTimeProperty(endProperty, timezoneIds, ignored);
+    const end: Date | null = readTimeProperty(
+      endProperty,
+      timezoneIds,
+      ignored,
+    );
 
     const startType: string = (
       startProperty.parameters["VALUE"] || "DATE-TIME"
@@ -800,7 +852,9 @@ function checkEvent(
     ).toUpperCase();
 
     if (startType !== endType) {
-      problems.push(`${where}: DTSTART is a ${startType} but DTEND is a ${endType}`);
+      problems.push(
+        `${where}: DTSTART is a ${startType} but DTEND is a ${endType}`,
+      );
     }
 
     if (start && end && end.getTime() <= start.getTime()) {
@@ -817,7 +871,9 @@ function checkEvent(
   const transparency: string | null = firstValue(event, "TRANSP");
 
   if (transparency !== null && !TRANSPARENCIES.includes(transparency)) {
-    problems.push(`${where}: TRANSP "${transparency}" is not OPAQUE or TRANSPARENT`);
+    problems.push(
+      `${where}: TRANSP "${transparency}" is not OPAQUE or TRANSPARENT`,
+    );
   }
 }
 
@@ -841,7 +897,10 @@ export function checkICalendarConformance(
     return { problems, calendar: null };
   }
 
-  const versions: Array<ICalendarProperty> = propertiesNamed(calendar, "VERSION");
+  const versions: Array<ICalendarProperty> = propertiesNamed(
+    calendar,
+    "VERSION",
+  );
 
   if (versions.length !== 1 || versions[0]?.value !== "2.0") {
     problems.push(
@@ -859,7 +918,9 @@ export function checkICalendarConformance(
   );
 
   if (productIds.length !== 1 || !productIds[0]?.value.trim()) {
-    problems.push(`VCALENDAR: PRODID must appear exactly once and not be empty`);
+    problems.push(
+      `VCALENDAR: PRODID must appear exactly once and not be empty`,
+    );
   }
 
   for (const atMostOnce of [

@@ -191,7 +191,14 @@ const SCHEDULE_ID: ObjectID = new ObjectID(
 const NOW: Date = new Date("2026-08-31T12:00:00.000Z");
 
 const HTTPS_URL: string = `https://oneuptime.example.com/api/on-call-calendar/schedule/abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG/schedule.ics`;
-const WEBCAL_URL: string = HTTPS_URL.replace("https:", "webcals:");
+/*
+ * The subscribe link the page renders: webcal://, built from the https link.
+ * The payloads below carry webcals:// - what an API from before the Google
+ * Calendar fix sends - so every assertion on WEBCAL_URL also proves the page
+ * no longer passes that form (which iOS refuses to open) through.
+ */
+const WEBCAL_URL: string = HTTPS_URL.replace("https:", "webcal:");
+const LEGACY_WEBCALS_URL: string = HTTPS_URL.replace("https:", "webcals:");
 
 // Every project-level role that may publish a shared link.
 const EDITOR_PERMISSIONS: Array<Permission> = [Permission.ProjectAdmin];
@@ -226,7 +233,7 @@ const publishedJson: StatusJsonFunction = (
     },
     urls: {
       https: HTTPS_URL,
-      webcal: WEBCAL_URL,
+      webcal: LEGACY_WEBCALS_URL,
       googleAdd: buildGoogleAddUrl(HTTPS_URL),
     },
     hostWarning: null,
@@ -873,7 +880,7 @@ describe("ScheduleSubscribeCard", () => {
             publishedJson({
               urls: {
                 https: HTTPS_URL.replace("/schedule/", "/user/"),
-                webcal: WEBCAL_URL.replace("/schedule/", "/user/"),
+                webcal: LEGACY_WEBCALS_URL.replace("/schedule/", "/user/"),
                 googleAdd: buildGoogleAddUrl(
                   HTTPS_URL.replace("/schedule/", "/user/"),
                 ),

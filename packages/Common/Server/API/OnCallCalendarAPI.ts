@@ -196,6 +196,11 @@ export interface FeedStatus {
   urls: FeedUrls | null;
   hostWarning: string | null;
   protocolWarning: string | null;
+  /*
+   * HOST, when it is a private address that Google Calendar and Outlook on
+   * the web cannot reach (OnCallCalendarFeedUrls.getPrivateHost).
+   */
+  privateHost: string | null;
 }
 
 export interface MyShiftsResponse {
@@ -667,6 +672,7 @@ export function buildAbsentFeedStatus(
     urls: null,
     hostWarning: OnCallCalendarFeedUrls.getHostWarning(),
     protocolWarning: OnCallCalendarFeedUrls.getProtocolWarning(),
+    privateHost: OnCallCalendarFeedUrls.getPrivateHost(),
   };
 }
 
@@ -762,6 +768,7 @@ export function buildFeedStatus(data: {
       : null,
     hostWarning: OnCallCalendarFeedUrls.getHostWarning(),
     protocolWarning: OnCallCalendarFeedUrls.getProtocolWarning(),
+    privateHost: OnCallCalendarFeedUrls.getPrivateHost(),
   };
 }
 

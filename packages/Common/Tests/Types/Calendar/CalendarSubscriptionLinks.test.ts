@@ -33,8 +33,14 @@ describe("CalendarSubscriptionLinks.toWebcalUrl", () => {
       "webcals://oneuptime.example.com/a.ics",
       "webcal://oneuptime.example.com/a.ics",
     ],
-    ["webcal://oneuptime.example.com/a.ics", "webcal://oneuptime.example.com/a.ics"],
-    ["HTTPS://OneUptime.Example.com/A.ics", "webcal://OneUptime.Example.com/A.ics"],
+    [
+      "webcal://oneuptime.example.com/a.ics",
+      "webcal://oneuptime.example.com/a.ics",
+    ],
+    [
+      "HTTPS://OneUptime.Example.com/A.ics",
+      "webcal://OneUptime.Example.com/A.ics",
+    ],
   ])("%s -> %s", (input: string, expected: string) => {
     expect(CalendarSubscriptionLinks.toWebcalUrl(input)).toBe(expected);
   });
@@ -72,11 +78,18 @@ describe("CalendarSubscriptionLinks.toWebcalUrl", () => {
     url.protocol = "webcal:";
 
     expect(url.toString().startsWith("https://")).toBe(true);
-    expect(CalendarSubscriptionLinks.toWebcalUrl(FEED).startsWith("webcal://")).toBe(true);
+    expect(
+      CalendarSubscriptionLinks.toWebcalUrl(FEED).startsWith("webcal://"),
+    ).toBe(true);
   });
 
   test("anything that is not an http(s) or webcal(s) address is returned as it is", () => {
-    for (const input of ["", "/api/on-call-calendar/x.ics", "ftp://x/a.ics", "mailto:a@b"]) {
+    for (const input of [
+      "",
+      "/api/on-call-calendar/x.ics",
+      "ftp://x/a.ics",
+      "mailto:a@b",
+    ]) {
       expect(CalendarSubscriptionLinks.toWebcalUrl(input)).toBe(input);
     }
   });
@@ -119,7 +132,9 @@ describe("CalendarSubscriptionLinks.buildGoogleCalendarUrl", () => {
     expect(parsed.pathname).toBe("/calendar/r");
 
     // The encoded value holds no raw separator Google could split on.
-    const encoded: string = link.slice(GOOGLE_CALENDAR_SUBSCRIBE_URL_PREFIX.length);
+    const encoded: string = link.slice(
+      GOOGLE_CALENDAR_SUBSCRIBE_URL_PREFIX.length,
+    );
 
     for (const separator of ["/", ":", "?", "&", "=", "#"]) {
       expect(encoded).not.toContain(separator);
@@ -158,7 +173,9 @@ describe("CalendarSubscriptionLinks.buildGoogleCalendarUrl", () => {
           "http://oneuptime.internal/api/on-call-calendar/user/t/shifts.ics",
         ),
       ),
-    ).toBe("webcal://oneuptime.internal/api/on-call-calendar/user/t/shifts.ics");
+    ).toBe(
+      "webcal://oneuptime.internal/api/on-call-calendar/user/t/shifts.ics",
+    );
   });
 });
 
@@ -202,14 +219,14 @@ describe("CalendarSubscriptionLinks.build", () => {
   });
 
   test("the webcal and Google links differ from the https link only in how they carry it", () => {
-    const links: CalendarSubscriptionLinkSet = CalendarSubscriptionLinks.build(FEED);
+    const links: CalendarSubscriptionLinkSet =
+      CalendarSubscriptionLinks.build(FEED);
 
     expect(links.webcal.replace(WEBCAL_SCHEME, "https://")).toBe(links.https);
     expect(
-      CalendarSubscriptionLinks.readGoogleCalendarAddress(links.googleAdd)!.replace(
-        WEBCAL_SCHEME,
-        "https://",
-      ),
+      CalendarSubscriptionLinks.readGoogleCalendarAddress(
+        links.googleAdd,
+      )!.replace(WEBCAL_SCHEME, "https://"),
     ).toBe(links.https);
   });
 });

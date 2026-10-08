@@ -150,23 +150,26 @@ describe("OnCallCalendarFeedUrls", () => {
       OnCallCalendarFeedKind.Personal,
       OnCallCalendarFeedKind.Schedule,
       OnCallCalendarFeedKind.Project,
-    ])("the %s feed's Google link never carries an https:// or webcals:// address", (kind: OnCallCalendarFeedKind) => {
-      const urls: FeedUrls = OnCallCalendarFeedUrls.buildFeedUrls({
-        kind,
-        token: TOKEN,
-        host: "oneuptime.example.com",
-        protocol: Protocol.HTTPS,
-      });
+    ])(
+      "the %s feed's Google link never carries an https:// or webcals:// address",
+      (kind: OnCallCalendarFeedKind) => {
+        const urls: FeedUrls = OnCallCalendarFeedUrls.buildFeedUrls({
+          kind,
+          token: TOKEN,
+          host: "oneuptime.example.com",
+          protocol: Protocol.HTTPS,
+        });
 
-      const cid: string | null = new URL(urls.googleAdd).searchParams.get(
-        "cid",
-      );
+        const cid: string | null = new URL(urls.googleAdd).searchParams.get(
+          "cid",
+        );
 
-      expect(cid).toBe(urls.https.replace("https://", "webcal://"));
-      expect(cid?.startsWith("https:")).toBe(false);
-      expect(cid?.startsWith("webcals:")).toBe(false);
-      expect(urls.webcal.startsWith("webcals:")).toBe(false);
-    });
+        expect(cid).toBe(urls.https.replace("https://", "webcal://"));
+        expect(cid?.startsWith("https:")).toBe(false);
+        expect(cid?.startsWith("webcals:")).toBe(false);
+        expect(urls.webcal.startsWith("webcals:")).toBe(false);
+      },
+    );
 
     test("http instance: the `https` key still carries the instance URL, and webcal is webcal://", () => {
       const urls: FeedUrls = OnCallCalendarFeedUrls.buildFeedUrls({
@@ -276,6 +279,71 @@ describe("OnCallCalendarFeedUrls", () => {
       expect(
         OnCallCalendarFeedUrls.getHostWarning("localhost.example.com"),
       ).toBeNull();
+    });
+  });
+
+  /*
+   * Google Calendar and Outlook on the web fetch a subscribed calendar from
+   * their own servers, so a link on a private address can never fill there -
+   * the "nothing is displayed" a customer on a private network sees. The
+   * settings page names the host when this returns one.
+   */
+  describe("getPrivateHost", () => {
+    test.each([
+      ["10.0.0.12", "10.0.0.12"],
+      ["10.0.0.12:3002", "10.0.0.12"],
+      ["172.16.4.2", "172.16.4.2"],
+      ["172.31.255.1:443", "172.31.255.1"],
+      ["192.168.1.20", "192.168.1.20"],
+      ["100.64.0.7", "100.64.0.7"],
+      ["169.254.10.10", "169.254.10.10"],
+      ["[fd00::1]", "[fd00::1]"],
+      ["[fd12:3456:789a::1]:8443", "[fd12:3456:789a::1]"],
+      ["[fe80::1]", "[fe80::1]"],
+      ["oneuptime", "oneuptime"],
+      ["ingress:7849", "ingress"],
+      ["oneuptime.internal", "oneuptime.internal"],
+      ["status.acme.local", "status.acme.local"],
+      ["oneuptime.lan", "oneuptime.lan"],
+      ["oneuptime.home.arpa", "oneuptime.home.arpa"],
+      ["oneuptime.corp", "oneuptime.corp"],
+      ["oneuptime.test", "oneuptime.test"],
+      ["http://oneuptime.internal:8080/", "oneuptime.internal"],
+      ["OneUptime.Internal", "OneUptime.Internal"],
+    ])("%j is private (%j)", (host: string, expected: string) => {
+      expect(OnCallCalendarFeedUrls.getPrivateHost(host)).toBe(expected);
+    });
+
+    test.each([
+      "oneuptime.com",
+      "oneuptime.example.com",
+      "status.acme.io:8443",
+      "8.8.8.8",
+      "172.32.0.1",
+      "172.15.0.1",
+      "100.128.0.1",
+      "192.169.0.1",
+      "[2001:db8::1]",
+      "[fc::1]",
+      "internal.acme.com",
+      "local.acme.com",
+      "lan.party.org",
+    ])("%j is public", (host: string) => {
+      expect(OnCallCalendarFeedUrls.getPrivateHost(host)).toBeNull();
+    });
+
+    test.each(["", "   ", "localhost", "localhost:3002", "127.0.0.1", "[::1]"])(
+      "%j is left to the HOST warning, never reported twice",
+      (host: string) => {
+        expect(OnCallCalendarFeedUrls.getHostWarning(host)).toBe(HOST_WARNING);
+        expect(OnCallCalendarFeedUrls.getPrivateHost(host)).toBeNull();
+      },
+    );
+
+    test("the default reads the environment and is a string or null", () => {
+      const value: string | null = OnCallCalendarFeedUrls.getPrivateHost();
+
+      expect(value === null || typeof value === "string").toBe(true);
     });
   });
 

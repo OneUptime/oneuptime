@@ -692,7 +692,13 @@ describe("OneUptime Cloud: TLS ends before Nginx, so every request arrives marke
 describe("no deployment ever answers a feed with a redirect", () => {
   const protocols: Array<string> = ["https://", "http://"];
   const provisionSslValues: Array<boolean> = [true, false];
-  const forwardedProtos: Array<string | null> = ["http", "https", null, "https, http", "http, http"];
+  const forwardedProtos: Array<string | null> = [
+    "http",
+    "https",
+    null,
+    "https, http",
+    "http, http",
+  ];
   const hopCounts: Array<number> = [0, 1, 2];
 
   const matrix: Array<[string, boolean, string | null, number]> = [];
@@ -810,9 +816,11 @@ describe("what Google's fetcher gets back", () => {
 
     const events: Array<ParsedEvent> = readEvents(result.body);
 
-    expect(events.map((event: ParsedEvent) => {
-      return event.start.toISOString();
-    })).toEqual([
+    expect(
+      events.map((event: ParsedEvent) => {
+        return event.start.toISOString();
+      }),
+    ).toEqual([
       "2026-09-01T07:00:00.000Z",
       "2026-09-01T20:00:00.000Z",
       "2026-09-04T22:00:00.000Z",
@@ -833,16 +841,16 @@ describe("what Google's fetcher gets back", () => {
       tokens[OnCallCalendarFeedKind.Project],
     );
 
-    const first: Array<string> = readEvents((await fetchLikeGoogle(path)).body).map(
-      (event: ParsedEvent) => {
-        return event.uid;
-      },
-    );
-    const second: Array<string> = readEvents((await fetchLikeGoogle(path)).body).map(
-      (event: ParsedEvent) => {
-        return event.uid;
-      },
-    );
+    const first: Array<string> = readEvents(
+      (await fetchLikeGoogle(path)).body,
+    ).map((event: ParsedEvent) => {
+      return event.uid;
+    });
+    const second: Array<string> = readEvents(
+      (await fetchLikeGoogle(path)).body,
+    ).map((event: ParsedEvent) => {
+      return event.uid;
+    });
 
     expect(second).toEqual(first);
     expect(new Set(first).size).toBe(first.length);
@@ -851,7 +859,9 @@ describe("what Google's fetcher gets back", () => {
   test.each(ALL_KINDS)(
     "%s: HEAD is answered like GET, without the body and without counting as a fetch",
     async (kind: OnCallCalendarFeedKind) => {
-      const get: FetchResult = await fetchLikeGoogle(feedPath(kind, tokens[kind]));
+      const get: FetchResult = await fetchLikeGoogle(
+        feedPath(kind, tokens[kind]),
+      );
 
       for (const spy of updateSpies) {
         spy.mockClear();
@@ -902,7 +912,8 @@ describe("what Google's fetcher gets back", () => {
 
     expectCalendarAnswer(filtered);
 
-    const request: FeedRenderRequest = renderSpy.mock.calls[1]?.[0] as FeedRenderRequest;
+    const request: FeedRenderRequest = renderSpy.mock
+      .calls[1]?.[0] as FeedRenderRequest;
 
     expect(
       request.kind === OnCallCalendarFeedKind.Personal
@@ -932,20 +943,23 @@ describe("what Google's fetcher gets back", () => {
 });
 
 describe("links that should not, or no longer, show shifts", () => {
-  test.each(ALL_KINDS)("%s: a wrong token is a plain 404, not an error page or a redirect", async (kind: OnCallCalendarFeedKind) => {
-    for (const path of [
-      feedPath(kind, CalendarFeedToken.mint()),
-      feedPath(kind, "not-a-token"),
-      feedPath(kind, tokens[kind]).replace(".ics", ".txt"),
-    ]) {
-      const result: FetchResult = await fetchLikeGoogle(path);
+  test.each(ALL_KINDS)(
+    "%s: a wrong token is a plain 404, not an error page or a redirect",
+    async (kind: OnCallCalendarFeedKind) => {
+      for (const path of [
+        feedPath(kind, CalendarFeedToken.mint()),
+        feedPath(kind, "not-a-token"),
+        feedPath(kind, tokens[kind]).replace(".ics", ".txt"),
+      ]) {
+        const result: FetchResult = await fetchLikeGoogle(path);
 
-      expect({ path, hops: result.hops }).toEqual({ path, hops: [404] });
-      expect(result.body).not.toContain(tokens[kind]);
-    }
+        expect({ path, hops: result.hops }).toEqual({ path, hops: [404] });
+        expect(result.body).not.toContain(tokens[kind]);
+      }
 
-    expect(renderSpy).not.toHaveBeenCalled();
-  });
+      expect(renderSpy).not.toHaveBeenCalled();
+    },
+  );
 
   test.each(ALL_KINDS)(
     "%s: a regenerated (revoked) link inside its grace period is an empty calendar that says so",
@@ -957,7 +971,9 @@ describe("links that should not, or no longer, show shifts", () => {
       rows[kind].previousTokenExpiresAt = at("2026-09-20T00:00:00Z");
       rows[kind].tokenHash = CalendarFeedToken.hash(newToken);
 
-      const result: FetchResult = await fetchLikeGoogle(feedPath(kind, oldToken));
+      const result: FetchResult = await fetchLikeGoogle(
+        feedPath(kind, oldToken),
+      );
 
       expectCalendarAnswer(result);
       expect(
@@ -984,7 +1000,9 @@ describe("links that should not, or no longer, show shifts", () => {
       rows[kind].previousTokenExpiresAt = at("2026-08-31T00:00:00Z");
       rows[kind].tokenHash = CalendarFeedToken.hash(CalendarFeedToken.mint());
 
-      expect((await fetchLikeGoogle(feedPath(kind, oldToken))).hops).toEqual([404]);
+      expect((await fetchLikeGoogle(feedPath(kind, oldToken))).hops).toEqual([
+        404,
+      ]);
     },
   );
 

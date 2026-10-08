@@ -1,4 +1,7 @@
 import { FeedStatus, FeedUrls } from "./CalendarFeedTypes";
+import CalendarSubscriptionLinks, {
+  GOOGLE_CALENDAR_SUBSCRIBE_URL_PREFIX,
+} from "Common/Types/Calendar/CalendarSubscriptionLinks";
 import OneUptimeDate from "Common/Types/Date";
 import { MaterializedShiftJson } from "Common/Types/OnCallDutyPolicy/MaterializedShift";
 import {
@@ -9,6 +12,7 @@ import {
   MAX_MINUTES_BEFORE_SHIFT,
   MIN_MINUTES_BEFORE_SHIFT,
 } from "Common/Models/DatabaseModels/UserOnCallShiftReminder";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Pure helpers for the calendar-feed surfaces. Nothing here touches React, the
@@ -48,9 +52,12 @@ export const getScheduleFeedRotatePath: SchedulePathFunction = (
   return `${ON_CALL_CALENDAR_API_PATH}/schedule-feed/${scheduleId}/rotate`;
 };
 
-/** Google Calendar's "add by URL" entry point (recommendation §3.5). */
+/*
+ * Google Calendar's "add by URL" entry point. Its `cid` takes the feed's
+ * webcal:// address (CalendarSubscriptionLinks explains why not https://).
+ */
 export const GOOGLE_CALENDAR_ADD_URL_PREFIX: string =
-  "https://calendar.google.com/calendar/r?cid=";
+  GOOGLE_CALENDAR_SUBSCRIBE_URL_PREFIX;
 
 /** Docs page describing per-client subscribe steps and troubleshooting. */
 export const CALENDAR_FEED_DOCS_PATH: string = "/on-call/calendar-feeds";
@@ -72,15 +79,28 @@ export const UPCOMING_SHIFTS_CARD_TITLE: string =
 export const NOTHING_FETCHED_HINT_AFTER_HOURS: number = 48;
 
 /*
- * Copy that the UI and the docs must state identically, taken verbatim from
- * the design. Kept as constants so the shared component, the schedule card
- * and the tests all read the same sentence.
+ * The note under the subscribe buttons: two short sentences, not a table of
+ * every app's refresh interval (the docs page has that). The first is the one
+ * thing people subscribing in Google Calendar need to know before they decide
+ * it is broken; the second only shows on a self-hosted install, where it is
+ * the usual reason a Google Calendar stays empty. Kept as constants so the
+ * component, the schedule card and the tests read the same sentence.
  */
-export const REFRESH_CADENCE_COPY: string =
-  "Calendar apps refresh subscribed calendars on their own schedule: Google Calendar every 8-24 hours, Outlook on the web every 3-6 hours, Apple Calendar as often as every 5 minutes (hourly by default), Thunderbird every 1-60 minutes. Same-day changes may not reach every calendar before the shift starts - shift reminders and pager notifications still come from OneUptime.";
+export const REFRESH_CADENCE_COPY: string = translationKey(
+  "Google Calendar refreshes subscribed calendars on its own schedule, every few hours (sometimes only once a day), so changes take a while to show up there. Reminders and pages still come from OneUptime on time.",
+);
 
-export const REACHABILITY_COPY: string =
-  "Google Calendar and Outlook on the web fetch this link from their servers; it must be reachable from the internet. Apple Calendar, Thunderbird and Outlook desktop fetch from your computer.";
+export const REACHABILITY_COPY: string = translationKey(
+  "Google Calendar reads this link from Google's servers, so this OneUptime server must be reachable from the internet.",
+);
+
+/*
+ * Said when HOST is a private address (FeedStatus.privateHost): the one case
+ * where Google Calendar is known to stay empty however the link is added.
+ */
+export const PRIVATE_HOST_COPY: string = translationKey(
+  "Google Calendar and Outlook on the web can't reach this link: {{host}} is a private address, and they read calendars from their own servers. Apple Calendar or Outlook on a computer in your network can still subscribe.",
+);
 
 export const STANDING_ASSIGNMENTS_COPY: string =
   "Direct and team assignments on escalation policies are standing and are not shown.";
@@ -209,10 +229,15 @@ export const translateInterpolated: TranslateAndInterpolateFunction = (
 
 type BuildGoogleAddUrlFunction = (httpsUrl: string) => string;
 
+/*
+ * Google Calendar's add-by-URL link for a feed: its webcal:// address in
+ * `cid`. Given the https:// address there, Google answers "Unable to add
+ * calendar. Check the URL." - which is what this used to build.
+ */
 export const buildGoogleAddUrl: BuildGoogleAddUrlFunction = (
   httpsUrl: string,
 ): string => {
-  return `${GOOGLE_CALENDAR_ADD_URL_PREFIX}${encodeURIComponent(httpsUrl)}`;
+  return CalendarSubscriptionLinks.buildGoogleCalendarUrl(httpsUrl);
 };
 
 type AddScheduleFilterFunction = (url: string, scheduleId: string) => string;
@@ -235,6 +260,11 @@ type ApplyScheduleFilterFunction = (
   scheduleId: string | null | undefined,
 ) => FeedUrls;
 
+/*
+ * The links of a feed, narrowed to one schedule. All three come from the
+ * narrowed https address, so the filter reaches the webcal link and Google's
+ * `cid` exactly as it reaches the address itself.
+ */
 export const applyScheduleFilter: ApplyScheduleFilterFunction = (
   urls: FeedUrls,
   scheduleId: string | null | undefined,
@@ -243,13 +273,9 @@ export const applyScheduleFilter: ApplyScheduleFilterFunction = (
     return urls;
   }
 
-  const https: string = addScheduleFilter(urls.https, scheduleId);
-
-  return {
-    https: https,
-    webcal: addScheduleFilter(urls.webcal, scheduleId),
-    googleAdd: buildGoogleAddUrl(https),
-  };
+  return CalendarSubscriptionLinks.build(
+    addScheduleFilter(urls.https, scheduleId),
+  );
 };
 
 type GetRotatedDaysAgoFunction = (

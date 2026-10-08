@@ -1659,6 +1659,7 @@ describe("buildAbsentFeedStatus", () => {
       urls: null,
       hostWarning: null,
       protocolWarning: null,
+      privateHost: null,
     });
   });
 
@@ -1689,6 +1690,40 @@ describe("buildAbsentFeedStatus", () => {
 
     expect(status.hostWarning).toBe(HOST_WARNING);
     expect(status.protocolWarning).toBe(PROTOCOL_WARNING);
+    expect(status.privateHost).toBeNull();
+  });
+
+  /*
+   * A private HOST is not a broken link - apps on the same network fetch it
+   * - but Google Calendar and Outlook on the web never can, so the status
+   * names it for the settings page to say so.
+   */
+  test("a private HOST is named, before and after a link exists", () => {
+    setEnv({ host: "10.20.0.15:8080", httpProtocol: Protocol.HTTPS });
+
+    expect(
+      buildAbsentFeedStatus(OnCallCalendarFeedKind.Schedule).privateHost,
+    ).toBe("10.20.0.15");
+
+    const token: string = CalendarFeedToken.mint();
+
+    const status: FeedStatus = buildFeedStatus({
+      kind: OnCallCalendarFeedKind.Schedule,
+      feed: scheduleRow({ tokenHash: CalendarFeedToken.hash(token) }),
+      plaintextToken: token,
+    });
+
+    expect(status.privateHost).toBe("10.20.0.15");
+    expect(status.hostWarning).toBeNull();
+    expect(status.urls?.https.startsWith("https://10.20.0.15:8080/")).toBe(
+      true,
+    );
+
+    setEnv({ host: "oneuptime.example.com" });
+
+    expect(
+      buildAbsentFeedStatus(OnCallCalendarFeedKind.Schedule).privateHost,
+    ).toBeNull();
   });
 });
 
@@ -2493,7 +2528,15 @@ describe("GET /on-call-calendar/user/:token/shifts.ics", () => {
 
     test("the module source holds no redirect at all", () => {
       const source: string = fs.readFileSync(
-        path.join(__dirname, "..", "..", "..", "Server", "API", "OnCallCalendarAPI.ts"),
+        path.join(
+          __dirname,
+          "..",
+          "..",
+          "..",
+          "Server",
+          "API",
+          "OnCallCalendarAPI.ts",
+        ),
         "utf8",
       );
 
@@ -3161,6 +3204,7 @@ describe("GET /on-call-calendar/feed/current", () => {
       ...buildAbsentFeedStatus(OnCallCalendarFeedKind.Personal),
       hostWarning: HOST_WARNING,
       protocolWarning: PROTOCOL_WARNING,
+      privateHost: null,
     });
 
     const lookup: CapturedFindOneBy = callsOf<CapturedFindOneBy>(
@@ -3208,6 +3252,7 @@ describe("GET /on-call-calendar/feed/current", () => {
     expect(status["lastFetchedClient"]).toBe("Google Calendar");
     expect(status["hostWarning"]).toBeNull();
     expect(status["protocolWarning"]).toBeNull();
+    expect(status["privateHost"]).toBeNull();
 
     const urls: Record<string, string> = status["urls"] as Record<
       string,

@@ -1037,7 +1037,9 @@ describe("OnCallCalendarFeedRenderer.render (personal feed)", () => {
      * today's copy sends If-Modified-Since: <today's Last-Modified> and gets
      * a 304 only while Last-Modified is not later than that.
      */
-    const ifModifiedSince: number = Date.parse(today.lastModified.toUTCString());
+    const ifModifiedSince: number = Date.parse(
+      today.lastModified.toUTCString(),
+    );
 
     expect(
       Date.parse(tomorrow.lastModified.toUTCString()) <= ifModifiedSince,

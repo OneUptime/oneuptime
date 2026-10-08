@@ -48,6 +48,8 @@ import { describe, expect, test } from "@jest/globals";
 
 const CRLF: string = "\r\n";
 
+const BYTE_ORDER_MARK: string = String.fromCharCode(0xfeff);
+
 function lines(...content: Array<string>): string {
   return content.join(CRLF) + CRLF;
 }
@@ -115,7 +117,7 @@ describe("the RFC 5545 checker itself", () => {
   });
 
   test("a byte-order mark is refused", () => {
-    expectProblem(`﻿${minimalCalendar()}`, "byte-order mark");
+    expectProblem(BYTE_ORDER_MARK + minimalCalendar(), "byte-order mark");
   });
 
   test("a physical line over 75 octets is refused, counted in UTF-8 octets not characters", () => {
@@ -152,12 +154,12 @@ describe("the RFC 5545 checker itself", () => {
 
   test("VERSION and PRODID are required exactly once, VERSION as 2.0", () => {
     expectProblem(minimalCalendar().replace("VERSION:2.0\r\n", ""), "VERSION");
-    expectProblem(minimalCalendar().replace("VERSION:2.0", "VERSION:1.0"), "VERSION");
     expectProblem(
-      minimalCalendar().replace(
-        "VERSION:2.0",
-        `VERSION:2.0${CRLF}VERSION:2.0`,
-      ),
+      minimalCalendar().replace("VERSION:2.0", "VERSION:1.0"),
+      "VERSION",
+    );
+    expectProblem(
+      minimalCalendar().replace("VERSION:2.0", `VERSION:2.0${CRLF}VERSION:2.0`),
       "VERSION",
     );
     expectProblem(
@@ -167,7 +169,10 @@ describe("the RFC 5545 checker itself", () => {
   });
 
   test("a VEVENT without UID, DTSTAMP or DTSTART is refused", () => {
-    expectProblem(minimalCalendar().replace("UID:event-1@test\r\n", ""), "0 UID");
+    expectProblem(
+      minimalCalendar().replace("UID:event-1@test\r\n", ""),
+      "0 UID",
+    );
     expectProblem(
       minimalCalendar().replace("DTSTAMP:20260801T100000Z\r\n", ""),
       "0 DTSTAMP",
@@ -214,14 +219,20 @@ describe("the RFC 5545 checker itself", () => {
 
   test("DTEND must come after DTSTART", () => {
     expectProblem(
-      minimalCalendar().replace("DTEND:20260901T150000Z", "DTEND:20260901T070000Z"),
+      minimalCalendar().replace(
+        "DTEND:20260901T150000Z",
+        "DTEND:20260901T070000Z",
+      ),
       "DTEND is not after DTSTART",
     );
   });
 
   test("a floating time, an unknown TZID and a local DTSTAMP are refused", () => {
     expectProblem(
-      minimalCalendar().replace("DTSTART:20260901T070000Z", "DTSTART:20260901T070000"),
+      minimalCalendar().replace(
+        "DTSTART:20260901T070000Z",
+        "DTSTART:20260901T070000",
+      ),
       "floating time",
     );
     expectProblem(
@@ -232,7 +243,10 @@ describe("the RFC 5545 checker itself", () => {
       "no VTIMEZONE defines",
     );
     expectProblem(
-      minimalCalendar().replace("DTSTAMP:20260801T100000Z", "DTSTAMP:20260801T100000"),
+      minimalCalendar().replace(
+        "DTSTAMP:20260801T100000Z",
+        "DTSTAMP:20260801T100000",
+      ),
       "DTSTAMP must be in UTC",
     );
   });
@@ -264,32 +278,53 @@ describe("the RFC 5545 checker itself", () => {
 
   test("an impossible date is refused", () => {
     expectProblem(
-      minimalCalendar().replace("DTSTART:20260901T070000Z", "DTSTART:20260231T070000Z"),
+      minimalCalendar().replace(
+        "DTSTART:20260901T070000Z",
+        "DTSTART:20260231T070000Z",
+      ),
       "is not a DATE-TIME",
     );
   });
 
   test("TEXT escaping: unescaped ; and , are refused, a lone backslash too, CATEGORIES may list with commas", () => {
-    expectProblem(minimalCalendar().replace("SUMMARY:Shift", "SUMMARY:a, b"), 'unescaped ","');
-    expectProblem(minimalCalendar().replace("SUMMARY:Shift", "SUMMARY:a; b"), 'unescaped ";"');
+    expectProblem(
+      minimalCalendar().replace("SUMMARY:Shift", "SUMMARY:a, b"),
+      'unescaped ","',
+    );
+    expectProblem(
+      minimalCalendar().replace("SUMMARY:Shift", "SUMMARY:a; b"),
+      'unescaped ";"',
+    );
     expectProblem(
       minimalCalendar().replace("SUMMARY:Shift", "SUMMARY:a\\qb"),
       "escapes nothing",
     );
     expectConforms(
-      minimalCalendar().replace("SUMMARY:Shift", "SUMMARY:a\\, b\\; c\\\\ d\\n e"),
+      minimalCalendar().replace(
+        "SUMMARY:Shift",
+        "SUMMARY:a\\, b\\; c\\\\ d\\n e",
+      ),
     );
     expectConforms(minimalCalendar("CATEGORIES:On-Call,Team\\, Payments"));
   });
 
   test("unbalanced components are refused", () => {
-    expectProblem(minimalCalendar().replace("END:VEVENT\r\n", ""), "closes BEGIN:VEVENT");
-    expectProblem(minimalCalendar().replace("END:VCALENDAR\r\n", ""), "never closed");
+    expectProblem(
+      minimalCalendar().replace("END:VEVENT\r\n", ""),
+      "closes BEGIN:VEVENT",
+    );
+    expectProblem(
+      minimalCalendar().replace("END:VCALENDAR\r\n", ""),
+      "never closed",
+    );
   });
 
   test("REFRESH-INTERVAL must say VALUE=DURATION and hold a duration", () => {
     expectProblem(
-      minimalCalendar().replace("VERSION:2.0", `VERSION:2.0${CRLF}REFRESH-INTERVAL:PT1H`),
+      minimalCalendar().replace(
+        "VERSION:2.0",
+        `VERSION:2.0${CRLF}REFRESH-INTERVAL:PT1H`,
+      ),
       "VALUE=DURATION",
     );
     expectProblem(
@@ -314,7 +349,10 @@ describe("the RFC 5545 checker itself", () => {
   });
 
   test("a URL property must be an absolute http(s) URI", () => {
-    expectProblem(minimalCalendar("URL:/relative/path"), "absolute http(s) URI");
+    expectProblem(
+      minimalCalendar("URL:/relative/path"),
+      "absolute http(s) URI",
+    );
     expectConforms(minimalCalendar("URL:https://example.com/a?b=c"));
   });
 
@@ -367,35 +405,44 @@ describe("ICalendar.serialize conforms whatever the text holds", () => {
     };
   }
 
-  test.each(hostileTexts.map((text: string, index: number) => {
-    return [index, text];
-  }))("hostile text #%s survives a strict read unchanged", (index: number, text: string) => {
-    const document: ICalendarDocument = {
-      calendar: {
-        productId: "-//OneUptime//On-Call Calendar Feed//EN",
-        name: text,
-        description: text,
-        timezone: "Europe/Stockholm",
-        refreshInterval: "PT1H",
-        lastModified: at("2026-08-01T10:00:00Z"),
-      },
-      events: [hostileEvent(text, index)],
-    };
+  test.each(
+    hostileTexts.map((text: string, index: number) => {
+      return [index, text];
+    }),
+  )(
+    "hostile text #%s survives a strict read unchanged",
+    (index: number, text: string) => {
+      const document: ICalendarDocument = {
+        calendar: {
+          productId: "-//OneUptime//On-Call Calendar Feed//EN",
+          name: text,
+          description: text,
+          timezone: "Europe/Stockholm",
+          refreshInterval: "PT1H",
+          lastModified: at("2026-08-01T10:00:00Z"),
+        },
+        events: [hostileEvent(text, index)],
+      };
 
-    const body: string = ICalendar.serialize(document);
+      const body: string = ICalendar.serialize(document);
 
-    expectConforms(body);
+      expectConforms(body);
 
-    const events: Array<ParsedEvent> = readEvents(body);
+      const events: Array<ParsedEvent> = readEvents(body);
 
-    // What a client reads back is the text minus the characters TEXT forbids.
-    const expected: string = ICalendar.escapeText(text);
+      // What a client reads back is the text minus the characters TEXT forbids.
+      const expected: string = ICalendar.escapeText(text);
 
-    expect(events).toHaveLength(1);
-    expect(events[0]!.description).toBe(unescapeText(expected));
-    expect(events[0]!.summary).toBe(unescapeText(ICalendar.escapeText(`On-call · ${text}`)));
-    expect(readCalendarText(body, "X-WR-CALDESC")).toBe(unescapeText(expected));
-  });
+      expect(events).toHaveLength(1);
+      expect(events[0]!.description).toBe(unescapeText(expected));
+      expect(events[0]!.summary).toBe(
+        unescapeText(ICalendar.escapeText(`On-call · ${text}`)),
+      );
+      expect(readCalendarText(body, "X-WR-CALDESC")).toBe(
+        unescapeText(expected),
+      );
+    },
+  );
 
   test("a thousand events in one calendar all conform and keep their own UIDs", () => {
     const events: Array<ICalendarEvent> = [];
@@ -420,7 +467,10 @@ describe("ICalendar.serialize conforms whatever the text holds", () => {
 
   test("a calendar with no events keeps VERSION and PRODID and is only short of a component", () => {
     const body: string = ICalendar.serialize({
-      calendar: { productId: "-//OneUptime//On-Call Calendar Feed//EN", name: "Empty" },
+      calendar: {
+        productId: "-//OneUptime//On-Call Calendar Feed//EN",
+        name: "Empty",
+      },
       events: [],
     });
 
@@ -509,7 +559,7 @@ describe("every kind of on-call feed conforms", () => {
       // A legacy schedule with no time zone, in the past.
       shift({
         scheduleId: "sched-legacy",
-        scheduleName: "Legacy, \"quoted\" schedule",
+        scheduleName: 'Legacy, "quoted" schedule',
         scheduleTimezone: undefined,
         start: at("2026-08-30T08:00:00Z"),
         end: at("2026-08-30T20:00:00Z"),
@@ -529,81 +579,84 @@ describe("every kind of on-call feed conforms", () => {
     OnCallCalendarFeedKind.Personal,
     OnCallCalendarFeedKind.Schedule,
     OnCallCalendarFeedKind.Project,
-  ])("a %s feed with overrides, variants, overnight, 24-hour and DST shifts", (kind: OnCallCalendarFeedKind) => {
-    const shifts: Array<MaterializedShift> = roster();
+  ])(
+    "a %s feed with overrides, variants, overnight, 24-hour and DST shifts",
+    (kind: OnCallCalendarFeedKind) => {
+      const shifts: Array<MaterializedShift> = roster();
 
-    const rendered: FeedRenderResult = OnCallCalendarFeedUtil.render({
-      kind,
-      shifts,
-      dashboardUrl: DASHBOARD_URL,
-      viewerTimezone: "America/New_York",
-      calendarTimezone: "Europe/Stockholm",
-      scheduleName: "Payments, EU; primary",
-      projectName: "Acme \\ Corp",
-      notes: ["A note, with; punctuation \\ and\nnew lines."],
-    });
+      const rendered: FeedRenderResult = OnCallCalendarFeedUtil.render({
+        kind,
+        shifts,
+        dashboardUrl: DASHBOARD_URL,
+        viewerTimezone: "America/New_York",
+        calendarTimezone: "Europe/Stockholm",
+        scheduleName: "Payments, EU; primary",
+        projectName: "Acme \\ Corp",
+        notes: ["A note, with; punctuation \\ and\nnew lines."],
+      });
 
-    expectConforms(rendered.body);
+      expectConforms(rendered.body);
 
-    const events: Array<ParsedEvent> = readEvents(rendered.body);
+      const events: Array<ParsedEvent> = readEvents(rendered.body);
 
-    expect(events).toHaveLength(shifts.length);
+      expect(events).toHaveLength(shifts.length);
 
-    // Every instant is UTC on the wire and lands exactly where the shift is.
-    for (const event of events) {
-      const source: MaterializedShift | undefined = shifts.find(
-        (candidate: MaterializedShift) => {
-          return OnCallCalendarFeedUtil.getShiftUid(candidate) === event.uid;
+      // Every instant is UTC on the wire and lands exactly where the shift is.
+      for (const event of events) {
+        const source: MaterializedShift | undefined = shifts.find(
+          (candidate: MaterializedShift) => {
+            return OnCallCalendarFeedUtil.getShiftUid(candidate) === event.uid;
+          },
+        );
+
+        expect(source).toBeDefined();
+        expect(event.start.toISOString()).toBe(source!.start.toISOString());
+        expect(event.end.toISOString()).toBe(source!.end.toISOString());
+        expect(event.end.getTime()).toBeGreaterThan(event.start.getTime());
+      }
+
+      // The overnight shift is one event that crosses midnight, not two.
+      const overnight: ParsedEvent | undefined = events.find(
+        (event: ParsedEvent) => {
+          return event.start.toISOString() === "2026-09-01T20:00:00.000Z";
         },
       );
 
-      expect(source).toBeDefined();
-      expect(event.start.toISOString()).toBe(source!.start.toISOString());
-      expect(event.end.toISOString()).toBe(source!.end.toISOString());
-      expect(event.end.getTime()).toBeGreaterThan(event.start.getTime());
-    }
+      expect(overnight?.end.toISOString()).toBe("2026-09-02T04:00:00.000Z");
 
-    // The overnight shift is one event that crosses midnight, not two.
-    const overnight: ParsedEvent | undefined = events.find(
-      (event: ParsedEvent) => {
-        return event.start.toISOString() === "2026-09-01T20:00:00.000Z";
-      },
-    );
+      // The 24-hour shift is a timed event spanning the whole local day.
+      const wholeDay: ParsedEvent | undefined = events.find(
+        (event: ParsedEvent) => {
+          return event.start.toISOString() === "2026-09-04T22:00:00.000Z";
+        },
+      );
 
-    expect(overnight?.end.toISOString()).toBe("2026-09-02T04:00:00.000Z");
+      expect(
+        (wholeDay!.end.getTime() - wholeDay!.start.getTime()) / 3600000,
+      ).toBe(24);
 
-    // The 24-hour shift is a timed event spanning the whole local day.
-    const wholeDay: ParsedEvent | undefined = events.find(
-      (event: ParsedEvent) => {
-        return event.start.toISOString() === "2026-09-04T22:00:00.000Z";
-      },
-    );
+      // Across the end of DST the shift is 13 hours long, not 12.
+      const dst: ParsedEvent | undefined = events.find((event: ParsedEvent) => {
+        return event.start.toISOString() === "2026-10-24T18:00:00.000Z";
+      });
 
-    expect(
-      (wholeDay!.end.getTime() - wholeDay!.start.getTime()) / 3600000,
-    ).toBe(24);
+      expect((dst!.end.getTime() - dst!.start.getTime()) / 3600000).toBe(13);
 
-    // Across the end of DST the shift is 13 hours long, not 12.
-    const dst: ParsedEvent | undefined = events.find((event: ParsedEvent) => {
-      return event.start.toISOString() === "2026-10-24T18:00:00.000Z";
-    });
-
-    expect((dst!.end.getTime() - dst!.start.getTime()) / 3600000).toBe(13);
-
-    // Names come back exactly as they were, escapes undone.
-    expect(
-      events.some((event: ParsedEvent) => {
-        return event.description.includes("Who: Björn \\ Öberg, Jr.");
-      }),
-    ).toBe(true);
-    expect(
-      events.some((event: ParsedEvent) => {
-        return event.description.includes(
-          "Billing, Invoices; and \\ Refunds",
-        );
-      }),
-    ).toBe(true);
-  });
+      // Names come back exactly as they were, escapes undone.
+      expect(
+        events.some((event: ParsedEvent) => {
+          return event.description.includes("Who: Björn \\ Öberg, Jr.");
+        }),
+      ).toBe(true);
+      expect(
+        events.some((event: ParsedEvent) => {
+          return event.description.includes(
+            "Billing, Invoices; and \\ Refunds",
+          );
+        }),
+      ).toBe(true);
+    },
+  );
 
   test("UIDs are stable across refreshes: a later render keeps every shared shift's UID, DTSTAMP and SEQUENCE", () => {
     const shifts: Array<MaterializedShift> = roster();
@@ -667,21 +720,25 @@ describe("every kind of on-call feed conforms", () => {
   test("coverage-gap events conform alongside the shifts and never reuse a shift's UID", () => {
     const shifts: Array<MaterializedShift> = roster().slice(0, 2);
 
-    const gaps: Array<ICalendarEvent> = OnCallCalendarFeedUtil.buildCoverageGapEvents({
-      scheduleId: "sched-1",
-      scheduleName: "Payments, EU; primary",
-      projectId: "proj-1",
-      shifts,
-      feedStart: at("2026-09-01T00:00:00Z"),
-      feedEnd: at("2026-09-03T00:00:00Z"),
-      envelope: [
-        { start: at("2026-09-01T00:00:00Z"), end: at("2026-09-03T00:00:00Z") },
-      ],
-      minimumGapSeconds: 60,
-      lastModifiedAt: at("2026-08-01T10:00:00Z"),
-      shiftConfigVersion: 4,
-      dashboardUrl: DASHBOARD_URL,
-    }).events;
+    const gaps: Array<ICalendarEvent> =
+      OnCallCalendarFeedUtil.buildCoverageGapEvents({
+        scheduleId: "sched-1",
+        scheduleName: "Payments, EU; primary",
+        projectId: "proj-1",
+        shifts,
+        feedStart: at("2026-09-01T00:00:00Z"),
+        feedEnd: at("2026-09-03T00:00:00Z"),
+        envelope: [
+          {
+            start: at("2026-09-01T00:00:00Z"),
+            end: at("2026-09-03T00:00:00Z"),
+          },
+        ],
+        minimumGapSeconds: 60,
+        lastModifiedAt: at("2026-08-01T10:00:00Z"),
+        shiftConfigVersion: 4,
+        dashboardUrl: DASHBOARD_URL,
+      }).events;
 
     expect(gaps.length).toBeGreaterThan(0);
 
@@ -709,24 +766,27 @@ describe("every kind of on-call feed conforms", () => {
     OnCallCalendarFeedKind.Personal,
     OnCallCalendarFeedKind.Schedule,
     OnCallCalendarFeedKind.Project,
-  ])("an empty %s feed conforms, names the calendar and says why it is empty", (kind: OnCallCalendarFeedKind) => {
-    const reason: string =
-      "You are not on any on-call schedule in this project right now; shifts appear here, once added.";
+  ])(
+    "an empty %s feed conforms, names the calendar and says why it is empty",
+    (kind: OnCallCalendarFeedKind) => {
+      const reason: string =
+        "You are not on any on-call schedule in this project right now; shifts appear here, once added.";
 
-    const body: string = OnCallCalendarFeedUtil.renderEmpty({
-      kind,
-      reason,
-      scheduleName: "Payments, EU",
-      projectName: "Acme",
-      timezone: "Europe/Stockholm",
-    });
+      const body: string = OnCallCalendarFeedUtil.renderEmpty({
+        kind,
+        reason,
+        scheduleName: "Payments, EU",
+        projectName: "Acme",
+        timezone: "Europe/Stockholm",
+      });
 
-    expectConforms(body, { allowNoComponents: true });
-    expect(readEvents(body, { allowNoComponents: true })).toEqual([]);
-    expect(readCalendarText(body, "X-WR-CALNAME")).toBeTruthy();
-    expect(readCalendarText(body, "X-WR-CALDESC")).toContain(reason);
-    expect(readCalendarText(body, "X-WR-TIMEZONE")).toBe("Europe/Stockholm");
-  });
+      expectConforms(body, { allowNoComponents: true });
+      expect(readEvents(body, { allowNoComponents: true })).toEqual([]);
+      expect(readCalendarText(body, "X-WR-CALNAME")).toBeTruthy();
+      expect(readCalendarText(body, "X-WR-CALDESC")).toContain(reason);
+      expect(readCalendarText(body, "X-WR-TIMEZONE")).toBe("Europe/Stockholm");
+    },
+  );
 
   test("a feed shortened to the event cap still conforms", () => {
     const shifts: Array<MaterializedShift> = [];
@@ -734,7 +794,9 @@ describe("every kind of on-call feed conforms", () => {
     for (let index: number = 0; index < 300; index++) {
       shifts.push(
         shift({
-          start: new Date(at("2026-09-01T00:00:00Z").getTime() + index * 7200000),
+          start: new Date(
+            at("2026-09-01T00:00:00Z").getTime() + index * 7200000,
+          ),
           end: new Date(at("2026-09-01T02:00:00Z").getTime() + index * 7200000),
           userId: `user-${index % 7}`,
           userName: `Person ${index % 7}, team; ${index}`,
@@ -748,7 +810,9 @@ describe("every kind of on-call feed conforms", () => {
         shifts,
         dashboardUrl: DASHBOARD_URL,
         projectName: "Acme",
-        notes: ["Shortened to 30 days ahead because the feed would exceed 5000 events."],
+        notes: [
+          "Shortened to 30 days ahead because the feed would exceed 5000 events.",
+        ],
       }).body,
     );
 
