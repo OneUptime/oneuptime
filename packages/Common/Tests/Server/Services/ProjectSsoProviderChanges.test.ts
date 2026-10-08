@@ -1729,6 +1729,42 @@ describe("the rows a write names are read under the lock", () => {
   );
 
   test.each(KINDS)(
+    "%s: a write that names its rows by a filter, and reaches a project it did not lock once they are read again under the lock, is refused, writes nothing and gives the lock back",
+    async (_label: string, kind: ProviderKind) => {
+      const name: string = String(rowOf(kind)!["name"]);
+
+      // While the write waits for its project's lock, another project gets a provider of that name.
+      whileWaitingForLock = (): void => {
+        kind.rows().push(
+          row({
+            id: new ObjectID("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"),
+            projectId: OTHER_PROJECT_ID,
+            columns: { name: name },
+          }),
+        );
+      };
+
+      await expect(
+        refusalOf(
+          kind.service.updateBy({
+            query: { name: name },
+            data: { isEnabled: false } as never,
+            limit: LIMIT_MAX,
+            skip: 0,
+            props: ROOT,
+          }),
+        ),
+      ).resolves.toBe(SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE);
+
+      expect(kind.writes()).toEqual([]);
+      expect(events).toEqual([
+        `lock:${PROJECT_ID.toString()}`,
+        `release:${PROJECT_ID.toString()}`,
+      ]);
+    },
+  );
+
+  test.each(KINDS)(
     "%s: a write that names no row reads once and locks nothing",
     async (_label: string, kind: ProviderKind) => {
       await expect(

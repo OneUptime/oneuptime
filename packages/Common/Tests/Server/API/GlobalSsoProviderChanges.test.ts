@@ -802,7 +802,7 @@ describe.each([
       ]);
     });
 
-    test("turned on again, it keeps that time: turning on writes none and takes no lock", async () => {
+    test("turned on again, it keeps that time: turning on writes none, and holds the lock while it is written, so a turn-off at the same moment lands before or after it", async () => {
       await updateProvider(kind, { isEnabled: false });
       const endedAt: unknown = providerRow(kind)!["signInsEndedAt"];
       events = [];
@@ -814,7 +814,20 @@ describe.each([
       expect(providerRow(kind)!["isEnabled"]).toBe(true);
       expect(providerRow(kind)!["signInsEndedAt"]).toEqual(endedAt);
       expect(kind.providerTable().writes[1]!.set).toEqual({ isEnabled: true });
+      expect(events).toEqual([
+        `lock:${SERVER_LOCK}`,
+        `write:${PROVIDER}`,
+        `release:${SERVER_LOCK}`,
+      ]);
+    });
+
+    test("saving one that is on as on again takes no lock", async () => {
+      await expect(
+        updateProvider(kind, { isEnabled: true, name: "Okta (renamed)" }),
+      ).resolves.toBe("done");
+
       expect(events).toEqual([`write:${PROVIDER}`]);
+      expect(announced).toEqual([]);
     });
 
     test("turning it on is never refused, even for a project that requires SSO and has no provider yet", async () => {
@@ -1293,14 +1306,13 @@ describe.each([
       ]);
     });
 
-    test("the lock is given back before the written attachment is announced, whatever the announcing meets", async () => {
+    test("the lock is given back before the written attachment is announced, and what is announced was read under it", async () => {
       projects = [project(BETA, "Beta")];
-      getJestSpyOn(
-        kind === SAML ? GlobalSsoService : GlobalOidcService,
-        "getProviderTrust",
-      ).mockImplementation((async (): Promise<never> => {
-        events.push("read the provider");
-        throw new Error("The provider could not be read");
+      getJestSpyOn(RealtimeAccessChanges, "announce").mockImplementation(((
+        change: RealtimeAccessChange,
+      ): void => {
+        events.push("announce");
+        announced.push(change);
       }) as never);
 
       await expect(attach(kind, BETA)).resolves.toBe("done");
@@ -1310,10 +1322,8 @@ describe.each([
         `lock:${SERVER_LOCK}`,
         `create:${kind.attachmentTable().created[0]!._id}`,
         `release:${SERVER_LOCK}`,
-        "read the provider",
+        "announce",
       ]);
-      // A provider that could not be read counts as one its attachments decide: every server is told.
-      expect(announced).not.toEqual([]);
     });
 
     test("it goes through when no project needs it, and the lock is given back once it is written", async () => {
@@ -1350,6 +1360,21 @@ describe.each([
         updateAttachment(kind, ATTACHED_TO_ACME, { isEnabled: false }),
       ).resolves.toBe(NO_PROVIDER_FOR_ACME);
       expect(kind.attachmentTable().writes).toEqual([]);
+    });
+
+    test("moving an attachment to another project, where no project needs it, tells every server", async () => {
+      kind.attachmentTable().rows = [
+        attachmentRow(kind, ATTACHED_TO_ACME, ACME),
+        attachmentRow(kind, ATTACHED_TO_BETA, BETA),
+      ];
+      projects = [project(ACME, "Acme")];
+
+      await expect(
+        updateAttachment(kind, ATTACHED_TO_BETA, { projectId: GAMMA }),
+      ).resolves.toBe("done");
+
+      expect(kind.attachmentTable().writes).toHaveLength(1);
+      expect(announced).not.toEqual([]);
     });
 
     test("moving an attachment to another project strands the project it leaves", async () => {

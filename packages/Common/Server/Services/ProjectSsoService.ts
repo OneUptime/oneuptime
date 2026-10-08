@@ -150,21 +150,16 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * A hard delete (the retention job's purge) runs no onDeleteSuccess: the
-   * locks its check took are given back here, and the projects of the
-   * providers it deleted that were on are told, as onDeleteSuccess does.
+   * A hard delete (the retention job's purge) runs no onDeleteSuccess, so
+   * it is handed on to it: the locks its check took are given back, and the
+   * projects of the providers it deleted that were on are told.
    */
   @CaptureSpan()
   protected override async onHardDeleteSuccess(
     onDelete: OnDelete<Model>,
     itemIdsBeforeDelete: Array<ObjectID>,
   ): Promise<OnDelete<Model>> {
-    await ProjectSsoProviderChanges.afterDelete({
-      write: onDelete.carryForward as ProjectSsoProviderWrite | null,
-      deletedItemIds: itemIdsBeforeDelete,
-    });
-
-    return onDelete;
+    return await this.onDeleteSuccess(onDelete, itemIdsBeforeDelete);
   }
 
   // An update that failed, or was refused, once it held its locks: they are given back.

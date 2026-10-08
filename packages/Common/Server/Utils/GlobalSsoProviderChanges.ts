@@ -72,7 +72,8 @@ import SsoSignInWays, {
  *     no lock and is never refused.
  *
  * Every server hearing of the change is the services' part
- * (announceGlobalSignInChange).
+ * (announceGlobalSignInChange): told when the write changed where a
+ * provider signs people in, as read under the lock (afterWrite).
  */
 
 // What a write does to where global providers sign people in.
@@ -181,7 +182,11 @@ export default class GlobalSsoProviderChanges {
    * once every permission check has passed): one that turns it off or
    * restricts it to its attached projects is checked, under the lock on the
    * server's sign-in rules, against the projects it would stop signing
-   * people in to. Null for any other update, which takes no lock.
+   * people in to. One that turns a provider on that is off holds the lock
+   * too, and is never refused: a write turning it off at the same moment
+   * then lands wholly before or after it, never between the time it
+   * stamps and the time it is written. Saving a provider that is on as on
+   * again takes no lock. Null for any other update, which takes none.
    */
   public static async beforeProviderUpdate<TModel extends BaseModel>(data: {
     providerType: GlobalSsoProviderType;
@@ -197,8 +202,31 @@ export default class GlobalSsoProviderChanges {
         "restrictToAttachedProjects",
       );
 
-    if (isEnabled !== false && restrictToAttachedProjects !== true) {
+    if (isEnabled === undefined && restrictToAttachedProjects !== true) {
       return null;
+    }
+
+    if (isEnabled === true && restrictToAttachedProjects !== true) {
+      /*
+       * Only whether to lock is decided here: a provider read on that is
+       * turned off before this lands has been turned off - and stamped -
+       * wholly before it, so this turns it on again, as asked.
+       */
+      const named: Array<GlobalProviderRow> =
+        await GlobalSsoProviderChanges.readProviders({
+          service: data.service,
+          query: data.updateBy.query,
+          limit: data.updateBy.limit,
+          skip: data.updateBy.skip,
+        });
+
+      if (
+        named.every((provider: GlobalProviderRow): boolean => {
+          return provider.isEnabled;
+        })
+      ) {
+        return null;
+      }
     }
 
     return await GlobalSsoProviderChanges.lockAndCheck({
@@ -256,11 +284,10 @@ export default class GlobalSsoProviderChanges {
    * The last step before an update to a global provider is written
    * (onUpdatePermitted, after beforeProviderUpdate): one that turns it off
    * writes when, in the same write (SsoSignInsEnded.stampWhenTurnedOff),
-   * whether or not the provider was on when it was read. Turning a provider
-   * on takes no lock, so one read off may be on by the time the write
-   * lands, and its sign-ins since must end too. One that was off already
-   * gave no sign-ins while it was off, so the later time ends none that its
-   * own did not.
+   * whether or not the provider was on when it was read: one that was off
+   * already gave no sign-ins while it was off, so the later time ends none
+   * that its own did not, and one turned on by a write that read it on - so
+   * held no lock - is stamped too.
    */
   public static async beforeProviderWrite<TModel extends BaseModel>(data: {
     service: DatabaseService<TModel>;
@@ -497,13 +524,18 @@ export default class GlobalSsoProviderChanges {
   }
 
   /*
-   * Once the write is done (first in the success hooks) or has failed (the
-   * error hooks, and a create's own wrapper): its lock is given back, once.
-   * Never throws.
+   * Once the write is done (first in the success hooks, a hard delete's
+   * too) or has failed (the error hooks, and a create's own wrapper): its
+   * lock is given back, once, and whether it changed where a provider signs
+   * people in - as read under the lock - is answered, for the service to
+   * tell every server. A write that held no lock - one that only lets a
+   * provider sign more people in, or names no provider at all - changed
+   * nothing there; nor did one that failed, whatever it answers. Never
+   * throws.
    */
   public static async afterWrite<TModel extends BaseModel>(
     written: UpdateBy<TModel> | DeleteBy<TModel> | CreateBy<TModel>,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const key: WriteKey = keyOf(written);
     const write: GlobalSsoProviderWrite | undefined =
       GlobalSsoProviderChanges.writes.get(key);
@@ -511,23 +543,6 @@ export default class GlobalSsoProviderChanges {
     GlobalSsoProviderChanges.writes.delete(key);
 
     await GlobalSsoProviderChanges.release(write);
-  }
-
-  /*
-   * Once a hard delete is done (the services' onHardDeleteSuccess: it runs
-   * no onDeleteSuccess - the retention job's purge): its lock is given
-   * back, and whether it changed where a provider signs people in is
-   * answered, for the service to tell every server as a delete does. A
-   * purge of rows deleted long ago changes nothing. A hard delete that
-   * fails gives its lock back in the error hook, as any write does.
-   */
-  public static async afterHardDelete<TModel extends BaseModel>(
-    deleteBy: DeleteBy<TModel>,
-  ): Promise<boolean> {
-    const write: GlobalSsoProviderWrite | undefined =
-      GlobalSsoProviderChanges.writes.get(keyOf(deleteBy));
-
-    await GlobalSsoProviderChanges.afterWrite(deleteBy);
 
     return Boolean(
       write &&

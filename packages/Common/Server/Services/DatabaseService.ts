@@ -878,7 +878,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     const hookNames: Array<string> =
       type === DatabaseRequestType.Update
         ? ["onBeforeUpdate", "onUpdateSuccess"]
-        : ["onBeforeDelete", "onDeleteSuccess"];
+        : ["onBeforeDelete", "onDeleteSuccess", "onHardDeleteSuccess"];
 
     return hookNames.some((hookName: string): boolean => {
       return (

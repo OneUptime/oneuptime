@@ -127,7 +127,12 @@ export default class SsoSignInsEnded {
    * later time ends none that an earlier one did not.
    *
    * `turnsOneOff` is what the service's own hooks found before the write,
-   * from rows read under a lock; without it, the rows are read now.
+   * from rows read under a lock; without it, the rows are read now. A
+   * global provider's hooks pass true for every write that turns one off
+   * (GlobalSsoProviderChanges.beforeProviderWrite): turning a global
+   * provider on that reads as on takes no lock, so its write stamps the
+   * provider whatever it was, and one that was off already has its time
+   * moved on - ending no sign-in its earlier time did not.
    */
   public static async stampWhenTurnedOff<TModel extends BaseModel>(data: {
     service: DatabaseService<TModel>;

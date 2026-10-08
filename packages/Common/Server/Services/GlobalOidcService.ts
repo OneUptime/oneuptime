@@ -130,18 +130,23 @@ export class Service extends DatabaseService<Model> {
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
     // Written: the lock is given back before anything else.
-    await GlobalSsoProviderChanges.afterWrite(onUpdate.updateBy);
+    const changedReach: boolean = await GlobalSsoProviderChanges.afterWrite(
+      onUpdate.updateBy,
+    );
 
     clearGlobalSsoAuthorizationCaches();
 
     /*
-     * Turned off, or restricted to its attached projects: the sign-ins it
-     * gave stop counting where it no longer signs people in, and the live
-     * updates already open are asked again on every server.
+     * Turned off, or restricted to its attached projects - or turned on -
+     * where that changes where it signs people in, as read under the lock:
+     * the sign-ins it gave stop counting where it no longer signs people
+     * in, and the live updates already open are asked again on every
+     * server. A write that turns it off or restricts it is told whatever
+     * was read.
      */
     if (
       updatedItemIds.length > 0 &&
-      isGlobalProviderNarrowing(onUpdate.updateBy.data)
+      (changedReach || isGlobalProviderNarrowing(onUpdate.updateBy.data))
     ) {
       announceGlobalSignInChange();
     }
@@ -214,25 +219,17 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * A hard delete (the retention job's purge) runs no onDeleteSuccess: the
-   * lock its check took is given back here, and a provider it deleted that
-   * signed people in vouches for nobody, as onDeleteSuccess says. A purge
-   * of providers deleted long ago tells no server anything.
+   * A hard delete (the retention job's purge) runs no onDeleteSuccess, so
+   * it is handed on to it: the lock its check took is given back, and
+   * every server told, the same way. A purge that deletes no row tells no
+   * server anything.
    */
   @CaptureSpan()
   protected override async onHardDeleteSuccess(
     onDelete: OnDelete<Model>,
     itemIdsBeforeDelete: Array<ObjectID>,
   ): Promise<OnDelete<Model>> {
-    if (
-      (await GlobalSsoProviderChanges.afterHardDelete(onDelete.deleteBy)) &&
-      itemIdsBeforeDelete.length > 0
-    ) {
-      clearGlobalSsoAuthorizationCaches();
-      announceGlobalSignInChange();
-    }
-
-    return onDelete;
+    return await this.onDeleteSuccess(onDelete, itemIdsBeforeDelete);
   }
 
   /*

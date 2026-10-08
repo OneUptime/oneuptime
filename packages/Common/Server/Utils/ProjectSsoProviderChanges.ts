@@ -513,7 +513,9 @@ export default class ProjectSsoProviderChanges {
    * each of their projects: the rows are read once to learn the projects,
    * the projects are locked, and the rows are read again, so no other turn
    * off, turn on or delete of the projects' providers comes between what
-   * this write reads and what it writes.
+   * this write reads and what it writes. Read again, they must stay within
+   * the projects locked: a write whose filter now reaches another project
+   * is refused, to be saved again.
    *
    * A write that takes a provider away is checked. When a project it
    * touches would be left none of its own providers on, or loses the one it
@@ -548,23 +550,42 @@ export default class ProjectSsoProviderChanges {
       return { takenAway: [], turnedOn: [] };
     }
 
+    const lockedProjectIds: Array<string> = Array.from(
+      ProjectSsoProviderChanges.groupByProject(rowsToLock).keys(),
+    );
+
     const locks: Array<SemaphoreMutex> =
       await ProjectSsoProviderChanges.lockSignInChange({
-        projectIds: Array.from(
-          ProjectSsoProviderChanges.groupByProject(rowsToLock).keys(),
-        ),
+        projectIds: lockedProjectIds,
         wholeServer: false,
       });
 
     try {
-      const write: ProjectSsoProviderWrite = data.decide(
+      const rows: Array<ProjectSsoProviderRow> =
         await ProjectSsoProviderChanges.readRows({
           service: data.service,
           query: data.query,
           limit: data.limit,
           skip: data.skip,
-        }),
-      );
+        });
+
+      /*
+       * Read again under the projects' locks, a write that names its rows
+       * by a filter may now reach a project it did not lock - a provider
+       * created, or moved, there in between - whose own changes it could
+       * then overtake. It is refused, to be saved again.
+       */
+      const locked: Set<string> = new Set<string>(lockedProjectIds);
+
+      if (
+        rows.some((row: ProjectSsoProviderRow): boolean => {
+          return !locked.has(row.projectId);
+        })
+      ) {
+        throw new BadDataException(SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE);
+      }
+
+      const write: ProjectSsoProviderWrite = data.decide(rows);
 
       write.locks = locks;
 
