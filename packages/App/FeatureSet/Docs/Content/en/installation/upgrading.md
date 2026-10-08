@@ -582,9 +582,11 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   `CreateIncidentInternalNote` without a permission to read incidents now
   creates no note, where it could add one to any incident, and with
   `ReadProjectIncident` limited to some labels or to **Owned** scope it
-  adds notes to those incidents only. Give a custom role or an API key the
-  read permission of the record it creates under beside each such create
-  permission. See
+  adds notes to those incidents only. A monitor's status history follows
+  the same rule: an incident someone declares or edits changes the status
+  of the monitors they may read and leaves the others as they are. Give a
+  custom role or an API key the read permission of the record it creates
+  under beside each such create permission. See
   [Records a request names](/docs/api-reference/api-reference#records-a-request-names)
   and [Users, Teams & Permissions](/docs/permissions/index).
 - **Every grant and scope narrows what it reaches, and a read by ID of a
