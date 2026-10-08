@@ -241,21 +241,25 @@ async function callApprove(): Promise<RouteCallResult> {
   };
 }
 
-function buildUserProps(): DatabaseCommonInteractionProps {
+function buildUserProps(
+  morePermissions: Array<Permission> = [],
+): DatabaseCommonInteractionProps {
   const permissionMap: Dictionary<UserTenantAccessPermission> = {};
 
   permissionMap[PROJECT_ID.toString()] = {
     _type: "UserTenantAccessPermission",
     projectId: PROJECT_ID,
-    permissions: [Permission.ProjectMember].map((permission: Permission) => {
-      const userPermission: UserPermission = {
-        _type: "UserPermission",
-        permission: permission,
-        labelIds: [],
-      };
+    permissions: [Permission.ProjectMember, ...morePermissions].map(
+      (permission: Permission) => {
+        const userPermission: UserPermission = {
+          _type: "UserPermission",
+          permission: permission,
+          labelIds: [],
+        };
 
-      return userPermission;
-    }),
+        return userPermission;
+      },
+    ),
   };
 
   return {
@@ -713,6 +717,14 @@ describe("POST /auto-remediation/approve — kubectl cluster re-check", () => {
   });
 
   test("rejects an SSH step on a Runner whose posture says it is a cluster's in-cluster agent", async () => {
+    /*
+     * An approver who may read runbook credentials, so what refuses is the
+     * Runner the step aims at rather than the credential it runs with.
+     */
+    jest
+      .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+      .mockResolvedValue(buildUserProps([Permission.ReadRunbookCredential]));
+
     mockCommands([
       bashCommandJson({
         stepType: RunbookStepType.SSH,

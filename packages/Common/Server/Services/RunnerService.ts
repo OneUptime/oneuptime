@@ -16,6 +16,11 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { RUNNER_ALIVE_WINDOW_IN_MINUTES } from "../../Types/Runner/RunnerLiveStatus";
 import { getDeletedAgentRunnerRebindNote } from "../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import RunbookCredential from "../../Models/DatabaseModels/RunbookCredential";
+import RunbookCredentialType from "../../Types/Runbook/RunbookCredentialType";
+import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
+import RunbookCredentialReaders from "../Utils/AutoRemediation/RunbookCredentialReaders";
 import {
   KUBERNETES_AGENT_RUNNER_NAME_PREFIX,
   KubernetesRunnerPosture,
@@ -229,10 +234,17 @@ export class Service extends ProjectReferencesService<Model> {
    *   every registration that cannot present the row's current key — which
    *   is every pod restart, since the pod keeps its key in memory only.
    *
+   * And turning on "Runs AI Remediation Commands" for a Runner that holds SSH
+   * credentials takes the read of runbook credentials (see
+   * assertNoCredentialsForAiCommands).
+   *
    * Root writes (registration, heartbeats, sign-off) are the server's own.
    * CardModelDetail posts every field of the Runner form, so a re-posted
    * unchanged name and a capability posted as false always pass: editing an
-   * agent row's description or labels must still save.
+   * agent row's description or labels must still save. The Runners checked
+   * are the ones the update writes - the ones its caller may write - read
+   * once for every check, and the update is held to them
+   * (findRowsAndHoldUpdateToThem).
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
@@ -245,6 +257,12 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     const data: JSONObject = (updateBy.data || {}) as unknown as JSONObject;
+
+    // Whose turning on of AI commands is looked at: one who may not read credentials.
+    const checksCredentials: boolean =
+      data["canRunAiCommands"] === true &&
+      !RunbookCredentialReaders.mayRead(updateBy.props);
+
     const newName: unknown = data["name"];
     const isNameWritten: boolean = newName !== undefined && newName !== null;
     const turnsOnCapabilities: Array<string> = [];
@@ -257,27 +275,23 @@ export class Service extends ProjectReferencesService<Model> {
       turnsOnCapabilities.push('"Runs AI Code Fixes"');
     }
 
-    if (!isNameWritten && turnsOnCapabilities.length === 0) {
+    if (
+      !isNameWritten &&
+      turnsOnCapabilities.length === 0 &&
+      !checksCredentials
+    ) {
       return { updateBy, carryForward: null };
     }
 
     /*
-     * onBeforeUpdate runs before the framework scopes the query to the
-     * caller's project, so scope the read here: a caller is never judged
-     * against, or told about, another project's Runner.
+     * The Runners the update writes, in the caller's project: a caller is
+     * never judged against, or told about, another project's Runner, nor one
+     * they may not write.
      */
-    const runners: Array<Model> = await this.findBy({
-      query: {
-        ...updateBy.query,
-        ...(updateBy.props.tenantId
-          ? { projectId: updateBy.props.tenantId }
-          : {}),
-      },
-      select: { _id: true, name: true, hostInfo: true },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: { isRoot: true },
-    });
+    const runners: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      { _id: true, name: true, hostInfo: true, canRunAiCommands: true },
+    );
 
     for (const runner of runners) {
       /*
@@ -311,7 +325,81 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
+    if (checksCredentials) {
+      await this.assertNoCredentialsForAiCommands(runners);
+    }
+
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * Refuses an update, by a caller who may not read runbook credentials, that
+   * turns "Runs AI Remediation Commands" on for one of `runners` - the
+   * Runners it writes - holding an SSH credential. OneUptime AI picks among
+   * a Runner's SSH credentials for the SSH commands it runs there, unattended
+   * for a rule that runs its commands without asking and names no Runners,
+   * so letting it take them is held to whoever may read the credentials, as
+   * approving such a plan and saving such a rule are (RunbookCredentialReaders).
+   * Only the Runners it turns on count: a Runner already on keeps what it
+   * has, as the Runner form posts every field.
+   */
+  private async assertNoCredentialsForAiCommands(
+    runners: Array<Model>,
+  ): Promise<void> {
+    const turnedOn: Array<Model> = runners.filter((runner: Model): boolean => {
+      return Boolean(runner._id) && runner.canRunAiCommands !== true;
+    });
+
+    if (turnedOn.length === 0) {
+      return;
+    }
+
+    const credentials: Array<RunbookCredential> =
+      await ProjectScopedReferenceValidator.getLookupService(
+        RunbookCredential,
+      ).findBy({
+        query: {
+          runners: QueryHelper.inRelationArray(
+            turnedOn.map((runner: Model): ObjectID => {
+              return new ObjectID(runner._id!.toString());
+            }),
+          ),
+          credentialType: RunbookCredentialType.SSH,
+        },
+        select: {
+          _id: true,
+          runners: {
+            _id: true,
+          },
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const holdingCredentials: Set<string> = new Set<string>();
+
+    for (const credential of credentials) {
+      for (const runner of credential.runners || []) {
+        if (runner._id) {
+          holdingCredentials.add(runner._id.toString().toLowerCase());
+        }
+      }
+    }
+
+    const holding: Model | undefined = turnedOn.find(
+      (runner: Model): boolean => {
+        return holdingCredentials.has(runner._id!.toString().toLowerCase());
+      },
+    );
+
+    if (holding) {
+      throw new NotAuthorizedException(
+        `Runner "${holding.name || holding._id!.toString()}" holds SSH credentials that OneUptime AI picks from for the commands it runs there, so turning on "Runs AI Remediation Commands" for it takes permission to read runbook credentials: ${RunbookCredentialReaders.getTitles()}.`,
+      );
+    }
   }
 
   private static getReservedAgentNameRefusal(): string {

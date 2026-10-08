@@ -823,6 +823,51 @@ API, SSO, or the Slack and Microsoft Teams apps.
   an API key restricted to labels the read of the records it names. See
   [Records a request names](/docs/api-reference/api-reference#records-a-request-names)
   and [Users, Teams & Permissions](/docs/permissions/index).
+- **What a subscription, a rule's Run Now, an LLM provider list and an AI
+  plan's approval reach stays within what they are allowed.**
+  - A status page subscription names only resources of its own status page.
+    A sign-up or a change on the status page names only the resources the
+    page shows, so not one whose monitor is archived, and a create or a
+    change by the team, an API key or a workflow names only resources of the
+    subscriber's page; any other resource is refused with the `400` that
+    names the field and the ID, as one that does not exist is. A change asks
+    only about the resources it adds, so a subscription keeps what it names
+    already. A subscription saved before this that names another page's
+    resource is left as it is: it is told about events only through the
+    resources of its own page, as it always was.
+  - **Run Now** on a network's site assignment, device label and auto import
+    rules takes permissions that reach the whole project, as every other
+    rule's **Run Now** does: editing the rule, and `EditNetworkDevice` - or,
+    for an auto import rule, `CreateNetworkDevice`, and `CreateProjectMonitor`
+    when the rule has a Monitor Template. A permission restricted to labels
+    or to owned resources is refused with a `422`, and so is a team's block
+    with labels on the resources a run changes, for every rule's **Run Now**:
+    the run would change the resources carrying those labels too. Give a
+    role or an API key that runs rules these permissions scoped to all
+    resources in the project.
+  - LLM providers are read only by the project's members who may read its
+    settings (`ProjectOwner`, `ProjectAdmin`, `ProjectMember`, `Viewer`,
+    `SettingsAdmin`, `SettingsMember`, `SettingsViewer` and `ReadProjectLlm`);
+    a request that is not signed in gets a `401`. The list of global LLM
+    providers on **Project Settings → AI → LLM Providers** shows their name,
+    description and price to anyone signed in.
+  - Approving an AI command plan with an SSH command needs permission to
+    read runbook credentials (`ReadRunbookCredential`, or `ProjectOwner` or
+    `ProjectAdmin`), as naming a credential in a runbook step does; without
+    it the approval is refused with a `422` and nothing runs. Saving an auto
+    remediation rule that lets OneUptime AI run its commands without asking -
+    OneUptime AI composing commands, **Fix without asking** and a command
+    allowlist - needs the same permission when the save turns that on
+    (switching such a rule on included) or adds allowlist patterns or
+    Runners. Rules that already run that way keep running, and narrowing
+    them or turning that off needs nothing more. Turning on **Runs AI
+    Remediation Commands** for a Runner that holds SSH credentials needs the
+    same permission; a Runner that runs them already keeps doing so.
+    `ProjectMember` and the runbook roles approve such plans once
+    `ReadRunbookCredential` is added to their team.
+  See [Letting subscribers choose resources and event types](/docs/status-pages/subscribers#letting-subscribers-choose-resources-and-event-types),
+  [Run Rules on Existing Resources](/docs/configuration/run-rules-now#before-you-begin)
+  and [Users, Teams & Permissions](/docs/permissions/index).
 - **Who owns a resource, and a setting that holds credentials, are named
   only by someone who may read them.** The owners of every resource - on-call
   policies and schedules, monitor groups, dashboards, incoming call

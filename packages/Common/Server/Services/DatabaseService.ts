@@ -167,6 +167,25 @@ const RULE_CRITERIA_RELATION_OPERATORS: ReadonlySet<RuleCriteriaOperator> =
     RuleCriteriaOperator.HasNoneOf,
   ]);
 
+// An update or a delete whose rows keepRowsCallerMayWrite reads.
+interface WriteOfRows {
+  query: unknown;
+  props: DatabaseCommonInteractionProps;
+}
+
+/*
+ * The rows of an update or delete its caller may write, as
+ * keepRowsCallerMayWrite read them before the hooks: the very write objects,
+ * for as long as they live. A hook that checks the rows an update writes
+ * reads these (findRowsAndHoldUpdateToThem), so it is never answered about
+ * a row the caller cannot reach. No entry for OneUptime, a master admin or
+ * a hook-free write: they write any row.
+ */
+const rowsTheCallerMayWrite: WeakMap<WriteOfRows, Array<string>> = new WeakMap<
+  WriteOfRows,
+  Array<string>
+>();
+
 /*
  * A switch an update turns, and the who and when columns the server stamped
  * for it (see stampSwitchAttribution).
@@ -611,14 +630,43 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     } = {},
   ): Promise<boolean> {
     if (
-      write.props.isRoot ||
-      write.props.isMasterAdmin ||
+      DatabaseService.writesAnyRow(write.props) ||
       write.props.ignoreHooks ||
       !this.hasHooksFor(type)
     ) {
+      rowsTheCallerMayWrite.delete(write);
       return true;
     }
 
+    return await this.readRowsCallerMayWrite(write, type, options);
+  }
+
+  // Whether a caller writes any row a write names: OneUptime, a master admin.
+  private static writesAnyRow(props: DatabaseCommonInteractionProps): boolean {
+    return Boolean(props.isRoot || props.isMasterAdmin);
+  }
+
+  /*
+   * keepRowsCallerMayWrite's read, for a caller who does not write any row:
+   * the rows of the write its caller may write, in the write's window, kept
+   * for that write (rowsTheCallerMayWrite) and named by its query from then
+   * on (pinQueryToRows). Returns whether there are any.
+   */
+  private async readRowsCallerMayWrite(
+    write: {
+      query: Query<TBaseModel>;
+      skip: PositiveNumber | number;
+      limit: PositiveNumber | number;
+      props: DatabaseCommonInteractionProps;
+      data?: unknown;
+    },
+    type: DatabaseRequestType.Update | DatabaseRequestType.Delete,
+    options: {
+      withDeleted?: boolean;
+      alsoSelect?: Dictionary<unknown> | undefined;
+      onRows?: ((rows: Array<TBaseModel>) => void) | undefined;
+    },
+  ): Promise<boolean> {
     const query: Query<TBaseModel> = this.getRuleCriteriaEffectiveEnabledQuery(
       write.query,
     );
@@ -662,6 +710,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         rowIds.push(row._id.toString());
       }
     }
+
+    // For a hook that checks these rows (see findRowsAndHoldUpdateToThem).
+    rowsTheCallerMayWrite.set(write, rowIds);
 
     if (rowIds.length === 0) {
       return false;
@@ -6764,6 +6815,125 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     return undefined;
+  }
+
+  /*
+   * The rows an update is about to write, read as OneUptime with `select`,
+   * for a check a service's onBeforeUpdate makes of them - and the update
+   * held to those very rows, so its write never reaches a row the check did
+   * not see.
+   *
+   * They are the rows the caller may write. Before the hooks the update path
+   * read them with the caller's permissions, in the update's own window
+   * (keepRowsCallerMayWrite), and this reads those rows again, by id, with
+   * what the check needs: a row the caller cannot reach is neither asked
+   * about nor held. An update that reached the hook without that read - one
+   * a hook handed on as another object, or one made outside the update
+   * path - has them read here first, the same way. OneUptime and a master
+   * admin write any row: for them this reads the update's query in its
+   * window, pinned to the request's project, since hooks run before the
+   * framework scopes the update.
+   *
+   * The update then names the rows read, in the shapes its hooks already
+   * read (pinQueryToRows), and by their ids even where those leave a query
+   * over several rows without one: the write covers exactly the rows the
+   * check saw, where a window read a second time need not hold the same
+   * rows. With no rows read the update is left as it is: it writes nothing
+   * either way, as what it writes is a part of what was read.
+   */
+  protected async findRowsAndHoldUpdateToThem(
+    updateBy: UpdateBy<TBaseModel>,
+    select: Select<TBaseModel>,
+  ): Promise<Array<TBaseModel>> {
+    const tenantColumn: string | null = this.getModel().getTenantColumn();
+    const tenantId: ObjectID | undefined = updateBy.props.tenantId;
+
+    const pinToProject: (query: Query<TBaseModel>) => Query<TBaseModel> = (
+      query: Query<TBaseModel>,
+    ): Query<TBaseModel> => {
+      if (!tenantColumn || !tenantId || updateBy.props.isMultiTenantRequest) {
+        return query;
+      }
+
+      return { ...query, [tenantColumn]: tenantId } as Query<TBaseModel>;
+    };
+
+    // Who writes decides which rows: any, or the ones the caller may write.
+    let callerMayWrite: Array<string> | null = null;
+
+    if (!DatabaseService.writesAnyRow(updateBy.props)) {
+      if (!rowsTheCallerMayWrite.has(updateBy)) {
+        await this.readRowsCallerMayWrite(
+          updateBy,
+          DatabaseRequestType.Update,
+          {},
+        );
+      }
+
+      callerMayWrite = rowsTheCallerMayWrite.get(updateBy) || [];
+
+      if (callerMayWrite.length === 0) {
+        return [];
+      }
+    }
+
+    const rows: Array<TBaseModel> = callerMayWrite
+      ? await this.findBy({
+          query: pinToProject({
+            ...(Array.isArray(updateBy.query) ? {} : updateBy.query),
+            _id:
+              callerMayWrite.length === 1
+                ? callerMayWrite[0]!
+                : QueryHelper.any(callerMayWrite),
+          } as Query<TBaseModel>),
+          select: { ...select, _id: true } as Select<TBaseModel>,
+          skip: 0,
+          limit: callerMayWrite.length,
+          props: { isRoot: true, ignoreHooks: true },
+        })
+      : await this.findBy({
+          query: Array.isArray(updateBy.query)
+            ? (updateBy.query.map(
+                (each: Query<TBaseModel>): Query<TBaseModel> => {
+                  return pinToProject(each);
+                },
+              ) as unknown as Query<TBaseModel>)
+            : pinToProject(updateBy.query),
+          select: { ...select, _id: true } as Select<TBaseModel>,
+          skip: this.normalizePositiveNumber(updateBy.skip) ?? 0,
+          limit: this.normalizePositiveNumber(updateBy.limit) ?? LIMIT_MAX,
+          props: { isRoot: true, ignoreHooks: true },
+        });
+
+    const rowIds: Array<string> = [];
+
+    for (const row of rows) {
+      if (row._id) {
+        rowIds.push(row._id.toString());
+      }
+    }
+
+    if (rowIds.length === 0) {
+      return rows;
+    }
+
+    const pinned: PinnedQuery<TBaseModel> | null = this.pinQueryToRows(
+      updateBy.query,
+      rowIds,
+      updateBy.props,
+    );
+
+    updateBy.query =
+      pinned && pinned.namesTheRows
+        ? pinned.query
+        : ({
+            ...(Array.isArray(updateBy.query) ? {} : updateBy.query),
+            _id: rowIds.length === 1 ? rowIds[0]! : QueryHelper.any(rowIds),
+          } as Query<TBaseModel>);
+    updateBy.skip = 0;
+    updateBy.limit = rowIds.length;
+
+    return rows;
   }
 
   @CaptureSpan()
