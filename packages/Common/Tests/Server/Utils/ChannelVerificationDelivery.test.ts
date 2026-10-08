@@ -63,8 +63,7 @@ interface StoredRow extends VerifiableChannelFields {
 class FakeChannelService {
   public row: StoredRow | null = { _id: ITEM_ID.toString() };
   public updateCalls: Array<Record<string, unknown>> = [];
-  public deleteCalls: Array<{ id: ObjectID; props: { isRoot: boolean } }> =
-    [];
+  public deleteCalls: Array<{ id: ObjectID; props: { isRoot: boolean } }> = [];
 
   public async updateOneById(data: {
     id: ObjectID;
@@ -93,9 +92,7 @@ class FakeChannelService {
   }
 }
 
-const asService: (
-  fake: FakeChannelService,
-) => DatabaseService<UserSMS> = (
+const asService: (fake: FakeChannelService) => DatabaseService<UserSMS> = (
   fake: FakeChannelService,
 ): DatabaseService<UserSMS> => {
   return fake as unknown as DatabaseService<UserSMS>;
@@ -453,9 +450,7 @@ describe("getStatus", () => {
     });
 
     expect(status.codeState).toBe(VerificationCodeState.Expired);
-    expect(status.codeExpiresAt).toEqual(
-      new Date(NOW.getTime() - 2700 * 1000),
-    );
+    expect(status.codeExpiresAt).toEqual(new Date(NOW.getTime() - 2700 * 1000));
     expect(status.resendAvailableInSeconds).toBe(0);
   });
 

@@ -250,7 +250,9 @@ beforeEach(() => {
     const url: string = request.url.toString();
 
     if (url.endsWith("/verify")) {
-      return Promise.resolve(new HTTPResponse<JSONObject>(200, verifyAnswer, {}));
+      return Promise.resolve(
+        new HTTPResponse<JSONObject>(200, verifyAnswer, {}),
+      );
     }
 
     return Promise.resolve(
@@ -293,8 +295,7 @@ describe.each(METHOD_LISTS)("$name", (list: MethodList) => {
   test("Verify opens the same dialog, and the list offers no Resend Code of its own", async () => {
     render(<list.Component />);
 
-    const actions: Array<Record<string, any>> =
-      propsOf(list)["actionButtons"];
+    const actions: Array<Record<string, any>> = propsOf(list)["actionButtons"];
 
     expect(
       actions.map((action: Record<string, any>) => {
@@ -377,9 +378,7 @@ describe("the call list and numbers verified for SMS", () => {
       );
     });
 
-    expect(
-      screen.getByTestId("confirm-modal-description"),
-    ).toHaveTextContent(
+    expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
       `${PHONE} is already verified for SMS, so it is verified for calls too. No code needed.`,
     );
     expect(screen.queryByTestId("verification-code-input")).toBeNull();

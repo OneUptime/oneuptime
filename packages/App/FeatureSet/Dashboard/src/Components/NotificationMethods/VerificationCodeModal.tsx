@@ -69,7 +69,8 @@ export interface ComponentProps {
   onVerified: (result: JSONObject) => void;
 }
 
-export const VERIFICATION_CODE_INPUT_TEST_ID: string = "verification-code-input";
+export const VERIFICATION_CODE_INPUT_TEST_ID: string =
+  "verification-code-input";
 export const VERIFICATION_CODE_STATUS_TEST_ID: string =
   "verification-code-status";
 export const VERIFICATION_CODE_RESEND_TEST_ID: string =
@@ -403,7 +404,9 @@ const VerificationCodeModal: FunctionComponent<ComponentProps> = (
         className="mt-3 flex flex-wrap items-center gap-x-1 text-sm text-gray-600"
         data-testid={VERIFICATION_CODE_RESEND_TEST_ID}
       >
-        <span>{translator.translateText(VerificationCodeCopy.didNotGetIt)}</span>
+        <span>
+          {translator.translateText(VerificationCodeCopy.didNotGetIt)}
+        </span>
         {secondsUntilResend > 0 ? (
           <span>{cooldownSentence}</span>
         ) : (

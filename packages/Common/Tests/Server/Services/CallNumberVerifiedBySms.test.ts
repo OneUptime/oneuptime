@@ -94,7 +94,9 @@ function addedBy(userId: ObjectID | undefined): OnCreate<UserCall> {
   return {
     createBy: {
       data: {} as UserCall,
-      props: userId ? { userId: userId, tenantId: PROJECT_ID } : { isRoot: true },
+      props: userId
+        ? { userId: userId, tenantId: PROJECT_ID }
+        : { isRoot: true },
     },
     carryForward: null,
   } as unknown as OnCreate<UserCall>;

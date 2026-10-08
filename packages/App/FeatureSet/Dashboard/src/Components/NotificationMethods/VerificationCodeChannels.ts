@@ -1,4 +1,7 @@
-import { PluralTemplate, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * What the verify dialog (VerificationCodeModal) says, channel by channel:
@@ -48,36 +51,31 @@ export interface VerificationCodeChannelDefinition {
   sendCodeButtonText: string;
   // That control while the code is on its way.
   sendingCodeButtonText: string;
-  // Said once another code went out.
-  codeResentSentence: string;
   // Small print under the field: what to do if the code does not come.
   notArrivedHint: string;
 }
 
-const SMS_COPY: Omit<VerificationCodeChannelDefinition, "channel" | "apiRoute"> =
-  {
-    title: translationKey("Verify Phone Number"),
-    codeSentSentence: translationKey(
-      "We sent a 6-digit code by SMS to {{destination}} at {{sentAt}}.",
-    ),
-    codeExpiredSentence: translationKey(
-      "The code we sent to {{destination}} has expired.",
-    ),
-    noCodeSentence: translationKey(
-      "There is no code waiting for {{destination}}.",
-    ),
-    sendCodeNextStep: translationKey(
-      "Send a new code to verify this number.",
-    ),
-    sendCodeButtonText: translationKey("Send a new code"),
-    sendingCodeButtonText: translationKey("Sending…"),
-    codeResentSentence: translationKey(
-      "A new code is on its way to {{destination}}.",
-    ),
-    notArrivedHint: translationKey(
-      "Texts can take a minute to arrive. If it does not come, Project Settings > Notification Logs shows what happened to it.",
-    ),
-  };
+const SMS_COPY: Omit<
+  VerificationCodeChannelDefinition,
+  "channel" | "apiRoute"
+> = {
+  title: translationKey("Verify Phone Number"),
+  codeSentSentence: translationKey(
+    "We sent a 6-digit code by SMS to {{destination}} at {{sentAt}}.",
+  ),
+  codeExpiredSentence: translationKey(
+    "The code we sent to {{destination}} has expired.",
+  ),
+  noCodeSentence: translationKey(
+    "There is no code waiting for {{destination}}.",
+  ),
+  sendCodeNextStep: translationKey("Send a new code to verify this number."),
+  sendCodeButtonText: translationKey("Send a new code"),
+  sendingCodeButtonText: translationKey("Sending…"),
+  notArrivedHint: translationKey(
+    "Texts can take a minute to arrive. If it does not come, Project Settings > Notification Logs shows what happened to it.",
+  ),
+};
 
 const VERIFICATION_CODE_CHANNELS: Readonly<
   Record<VerificationCodeChannel, VerificationCodeChannelDefinition>
@@ -105,9 +103,6 @@ const VERIFICATION_CODE_CHANNELS: Readonly<
     ),
     sendCodeButtonText: translationKey("Call me with a new code"),
     sendingCodeButtonText: translationKey("Calling…"),
-    codeResentSentence: translationKey(
-      "We are calling {{destination}} with a new code.",
-    ),
     notArrivedHint: translationKey(
       "A number you have verified for SMS is verified for calls without a code, so you can verify it there instead.",
     ),
@@ -125,14 +120,9 @@ const VERIFICATION_CODE_CHANNELS: Readonly<
     noCodeSentence: translationKey(
       "There is no code waiting for {{destination}}.",
     ),
-    sendCodeNextStep: translationKey(
-      "Send a new code to verify this number.",
-    ),
+    sendCodeNextStep: translationKey("Send a new code to verify this number."),
     sendCodeButtonText: translationKey("Send a new code"),
     sendingCodeButtonText: translationKey("Sending…"),
-    codeResentSentence: translationKey(
-      "A new code is on its way to {{destination}}.",
-    ),
     notArrivedHint: translationKey(
       "If it does not come, Project Settings > Notification Logs shows what happened to it.",
     ),

@@ -314,17 +314,17 @@ describe("a code that is waiting", () => {
       }
     });
 
-    expect(screen.getByTestId(VERIFICATION_CODE_RESEND_TEST_ID)).toHaveTextContent(
-      "You can ask for a new code in 2 seconds.",
-    );
+    expect(
+      screen.getByTestId(VERIFICATION_CODE_RESEND_TEST_ID),
+    ).toHaveTextContent("You can ask for a new code in 2 seconds.");
 
     await act(async (): Promise<void> => {
       jest.advanceTimersByTime(1000);
     });
 
-    expect(screen.getByTestId(VERIFICATION_CODE_RESEND_TEST_ID)).toHaveTextContent(
-      "You can ask for a new code in 1 second.",
-    );
+    expect(
+      screen.getByTestId(VERIFICATION_CODE_RESEND_TEST_ID),
+    ).toHaveTextContent("You can ask for a new code in 1 second.");
 
     await act(async (): Promise<void> => {
       jest.advanceTimersByTime(1000);
@@ -442,9 +442,7 @@ describe("no code can be sent", () => {
 
     expect(cannotSend).toHaveTextContent("A code can't be sent right now");
     expect(cannotSend).toHaveTextContent(NO_TWILIO);
-    expect(
-      screen.queryByTestId(VERIFICATION_CODE_STATUS_TEST_ID),
-    ).toBeNull();
+    expect(screen.queryByTestId(VERIFICATION_CODE_STATUS_TEST_ID)).toBeNull();
     expect(document.body.textContent).not.toContain("We sent");
   });
 
@@ -457,9 +455,9 @@ describe("no code can be sent", () => {
 
     expect(submitButton()).toBeNull();
     expect(codeInput()).toBeNull();
-    expect(
-      screen.getByTestId("modal-footer-close-button"),
-    ).toHaveTextContent("Close");
+    expect(screen.getByTestId("modal-footer-close-button")).toHaveTextContent(
+      "Close",
+    );
   });
 
   test("a code already waiting can still be entered, but no new one is offered", async () => {
@@ -664,9 +662,7 @@ describe("each channel", () => {
 
     await open(VerificationCodeChannel.Call);
 
-    expect(statusText()).toContain(
-      `We called ${DESTINATION} at`,
-    );
+    expect(statusText()).toContain(`We called ${DESTINATION} at`);
     expect(statusText()).toContain("and read out a 6-digit code.");
     expect(
       screen.getByTestId("verification-code-send-button"),

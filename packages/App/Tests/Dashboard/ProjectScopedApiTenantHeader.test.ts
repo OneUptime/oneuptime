@@ -669,7 +669,11 @@ describe("user-scoped notification endpoints carry projectId in the body", () =>
     ["SMS.tsx", "SMS", "/user-sms"],
     ["Call.tsx", "Call", "/user-call"],
     ["WhatsApp.tsx", "WhatsApp", "/user-whatsapp"],
-    ["IncomingCallNumber.tsx", "IncomingCallNumber", "/user-incoming-call-number"],
+    [
+      "IncomingCallNumber.tsx",
+      "IncomingCallNumber",
+      "/user-incoming-call-number",
+    ],
   ])(
     "%s verifies through the dialog, on its own channel's route",
     (file: string, channel: string, route: string) => {
@@ -681,9 +685,11 @@ describe("user-scoped notification endpoints carry projectId in the body", () =>
       );
 
       // No raw call of its own left to carry projectId, or to forget it.
-      expect(readRawApiCalls(
-        path.join(DASHBOARD_SRC, "Components", "NotificationMethods", file),
-      )).toEqual([]);
+      expect(
+        readRawApiCalls(
+          path.join(DASHBOARD_SRC, "Components", "NotificationMethods", file),
+        ),
+      ).toEqual([]);
       expect(listSource).toContain(
         `<VerificationCodeModal channel={VerificationCodeChannel.${channel}}`,
       );

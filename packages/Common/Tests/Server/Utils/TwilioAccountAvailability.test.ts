@@ -121,11 +121,16 @@ describe("the server's own Twilio account", () => {
       "the number to send from",
       { ...FULL_SERVER_ACCOUNT, twilioPrimaryPhoneNumber: undefined },
     ],
-  ])("does not count without %s", async (_missing: string, values: object) => {
-    globalConfig = serverAccount(values);
+  ])(
+    "does not count without %s",
+    async (_missing: string, values: Parameters<typeof serverAccount>[0]) => {
+      globalConfig = serverAccount(values);
 
-    expect(await TwilioAccountAvailability.isServerAccountSetUp()).toBe(false);
-  });
+      expect(await TwilioAccountAvailability.isServerAccountSetUp()).toBe(
+        false,
+      );
+    },
+  );
 
   test("does not count on a server with no settings row", async () => {
     globalConfig = null;

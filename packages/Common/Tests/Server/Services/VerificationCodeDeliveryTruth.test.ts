@@ -193,7 +193,10 @@ const CHANNELS: Array<ChannelUnderTest> = [
 ];
 
 interface ChannelServiceShape {
-  sendVerificationCode: (item: DatabaseBaseModel, code: string) => Promise<void>;
+  sendVerificationCode: (
+    item: DatabaseBaseModel,
+    code: string,
+  ) => Promise<void>;
   issueAndSendVerificationCode: (item: DatabaseBaseModel) => Promise<void>;
   resendVerificationCode: (itemId: ObjectID) => Promise<void>;
   getVerificationStatus: (
@@ -249,8 +252,10 @@ function stubChannel(
     row?: DatabaseBaseModel | null;
   } = {},
 ): void {
-  senderMock = getJestSpyOn(channel.sender.owner, channel.sender.method)
-    .mockResolvedValue(options.answer || SENT);
+  senderMock = getJestSpyOn(
+    channel.sender.owner,
+    channel.sender.method,
+  ).mockResolvedValue(options.answer || SENT);
 
   getJestSpyOn(ProjectService, "findOneById").mockResolvedValue(
     projectWith({ balanceInCents: options.balanceInCents }),
@@ -302,236 +307,248 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe.each(CHANNELS)("$name verification codes", (channel: ChannelUnderTest) => {
-  describe("sending a code", () => {
-    test("waits for the Notification service and resolves once the code went out", async () => {
-      stubChannel(channel);
-
-      await expect(
-        shapeOf(channel).sendVerificationCode(channel.build(), CODE),
-      ).resolves.toBeUndefined();
-
-      expect(senderMock).toHaveBeenCalledTimes(1);
-    });
-
-    test("a refusal comes back to the caller instead of being logged and forgotten", async () => {
-      const refusal: HTTPErrorResponse = refused(TWILIO_REFUSAL_REASON);
-      stubChannel(channel, { answer: refusal });
-
-      await expect(
-        shapeOf(channel).sendVerificationCode(channel.build(), CODE),
-      ).rejects.toBe(refusal);
-    });
-
-    if (channel.asksToFailIfNotSent) {
-      test("asks for an SMS the project deliberately does not send to answer an error, not success", async () => {
+describe.each(CHANNELS)(
+  "$name verification codes",
+  (channel: ChannelUnderTest) => {
+    describe("sending a code", () => {
+      test("waits for the Notification service and resolves once the code went out", async () => {
         stubChannel(channel);
 
-        await shapeOf(channel).sendVerificationCode(channel.build(), CODE);
+        await expect(
+          shapeOf(channel).sendVerificationCode(channel.build(), CODE),
+        ).resolves.toBeUndefined();
 
-        expect(
-          (senderMock.mock.calls[0]![1] as Record<string, unknown>)[
-            "failIfNotSent"
-          ],
-        ).toBe(true);
+        expect(senderMock).toHaveBeenCalledTimes(1);
       });
-    }
-  });
 
-  describe("issuing and sending a code", () => {
-    test("a code that went out stays live", async () => {
-      stubChannel(channel);
+      test("a refusal comes back to the caller instead of being logged and forgotten", async () => {
+        const refusal: HTTPErrorResponse = refused(TWILIO_REFUSAL_REASON);
+        stubChannel(channel, { answer: refusal });
 
-      await shapeOf(channel).issueAndSendVerificationCode(channel.build());
+        await expect(
+          shapeOf(channel).sendVerificationCode(channel.build(), CODE),
+        ).rejects.toBe(refusal);
+      });
 
-      expect(updateMock).toHaveBeenCalledTimes(1);
-      expect(writtenData(0)["verificationCodeExpiresAt"]).toBeInstanceOf(Date);
-    });
+      if (channel.asksToFailIfNotSent) {
+        test("asks for an SMS the project deliberately does not send to answer an error, not success", async () => {
+          stubChannel(channel);
 
-    test("a code that did not go out says so, to where, and why", async () => {
-      stubChannel(channel, { answer: refused(TWILIO_REFUSAL_REASON) });
+          await shapeOf(channel).sendVerificationCode(channel.build(), CODE);
 
-      let caught: unknown = null;
-
-      try {
-        await shapeOf(channel).issueAndSendVerificationCode(channel.build());
-      } catch (error) {
-        caught = error;
+          expect(
+            (senderMock.mock.calls[0]![1] as Record<string, unknown>)[
+              "failIfNotSent"
+            ],
+          ).toBe(true);
+        });
       }
-
-      expect(caught).toBeInstanceOf(BadDataException);
-      expect((caught as Error).message).toBe(
-        `The verification code was not sent to ${PHONE}. ${TWILIO_REFUSAL_REASON}`,
-      );
     });
 
-    test("and leaves no live code behind for a message that never arrived", async () => {
-      stubChannel(channel, { answer: refused(TWILIO_REFUSAL_REASON) });
+    describe("issuing and sending a code", () => {
+      test("a code that went out stays live", async () => {
+        stubChannel(channel);
 
-      await expect(
-        shapeOf(channel).issueAndSendVerificationCode(channel.build()),
-      ).rejects.toThrow();
+        await shapeOf(channel).issueAndSendVerificationCode(channel.build());
 
-      expect(updateMock).toHaveBeenCalledTimes(2);
-      expect(writtenData(1)["verificationCodeExpiresAt"]).toBeNull();
-    });
-  });
-
-  describe("adding a number", () => {
-    test("keeps a number whose first code went out", async () => {
-      stubChannel(channel);
-
-      const item: DatabaseBaseModel = channel.build();
-      const created: DatabaseBaseModel = await shapeOf(channel).onCreateSuccess(
-        ownerCreate(),
-        item,
-      );
-
-      expect(created).toBe(item);
-      expect(deleteMock).not.toHaveBeenCalled();
-      expect(senderMock).toHaveBeenCalledTimes(1);
-    });
-
-    test("refuses the add, with the reason, and takes the number out when its first code could not be sent", async () => {
-      stubChannel(channel, {
-        answer: refused(
-          channel.noTwilioAccountMessage || "WhatsApp is not set up.",
-        ),
+        expect(updateMock).toHaveBeenCalledTimes(1);
+        expect(writtenData(0)["verificationCodeExpiresAt"]).toBeInstanceOf(
+          Date,
+        );
       });
 
-      await expect(
-        shapeOf(channel).onCreateSuccess(ownerCreate(), channel.build()),
-      ).rejects.toThrow(`The verification code was not sent to ${PHONE}.`);
-
-      expect(deleteMock).toHaveBeenCalledTimes(1);
-      expect(
-        (deleteMock.mock.calls[0]![0] as { id: ObjectID }).id.toString(),
-      ).toBe(ITEM_ID.toString());
-    });
-  });
-
-  describe("sending another code", () => {
-    test("goes ahead, issuing a code and sending it, when it can be sent", async () => {
-      stubChannel(channel);
-
-      await shapeOf(channel).resendVerificationCode(ITEM_ID);
-
-      expect(senderMock).toHaveBeenCalledTimes(1);
-      expect(writtenData(0)["verificationCodeSentAt"]).toBeInstanceOf(Date);
-    });
-
-    test("a send that fails is the person's answer, not a quiet success", async () => {
-      stubChannel(channel, { answer: refused(TWILIO_REFUSAL_REASON) });
-
-      await expect(
-        shapeOf(channel).resendVerificationCode(ITEM_ID),
-      ).rejects.toThrow(TWILIO_REFUSAL_REASON);
-    });
-
-    test("the cooldown still applies to a code sent a moment ago", async () => {
-      const row: DatabaseBaseModel = channel.build();
-      (row as unknown as Record<string, unknown>)["verificationCodeSentAt"] =
-        new Date();
-      stubChannel(channel, { row: row });
-
-      await expect(
-        shapeOf(channel).resendVerificationCode(ITEM_ID),
-      ).rejects.toBeInstanceOf(TooManyRequestsException);
-      expect(senderMock).not.toHaveBeenCalled();
-    });
-
-    if (channel.noTwilioAccountMessage) {
-      test("is refused up front when no Twilio account is set up, saying who can add one", async () => {
-        stubChannel(channel, { projectTwilio: undefined, serverTwilio: false });
+      test("a code that did not go out says so, to where, and why", async () => {
+        stubChannel(channel, { answer: refused(TWILIO_REFUSAL_REASON) });
 
         let caught: unknown = null;
 
         try {
-          await shapeOf(channel).resendVerificationCode(ITEM_ID);
+          await shapeOf(channel).issueAndSendVerificationCode(channel.build());
         } catch (error) {
           caught = error;
         }
 
         expect(caught).toBeInstanceOf(BadDataException);
-        expect((caught as Error).message).toBe(channel.noTwilioAccountMessage);
-        // No code was issued for a send that could not happen.
-        expect(updateMock).not.toHaveBeenCalled();
-        expect(senderMock).not.toHaveBeenCalled();
+        expect((caught as Error).message).toBe(
+          `The verification code was not sent to ${PHONE}. ${TWILIO_REFUSAL_REASON}`,
+        );
       });
 
-      /*
-       * Asked before the cooldown: being told to wait 60 seconds for a send
-       * that can never happen would only hide the real reason.
-       */
-      test("the missing account is the reason given, even inside the cooldown", async () => {
-        const row: DatabaseBaseModel = channel.build();
-        (row as unknown as Record<string, unknown>)["verificationCodeSentAt"] =
-          new Date();
+      test("and leaves no live code behind for a message that never arrived", async () => {
+        stubChannel(channel, { answer: refused(TWILIO_REFUSAL_REASON) });
+
+        await expect(
+          shapeOf(channel).issueAndSendVerificationCode(channel.build()),
+        ).rejects.toThrow();
+
+        expect(updateMock).toHaveBeenCalledTimes(2);
+        expect(writtenData(1)["verificationCodeExpiresAt"]).toBeNull();
+      });
+    });
+
+    describe("adding a number", () => {
+      test("keeps a number whose first code went out", async () => {
+        stubChannel(channel);
+
+        const item: DatabaseBaseModel = channel.build();
+        const created: DatabaseBaseModel = await shapeOf(
+          channel,
+        ).onCreateSuccess(ownerCreate(), item);
+
+        expect(created).toBe(item);
+        expect(deleteMock).not.toHaveBeenCalled();
+        expect(senderMock).toHaveBeenCalledTimes(1);
+      });
+
+      test("refuses the add, with the reason, and takes the number out when its first code could not be sent", async () => {
         stubChannel(channel, {
-          row: row,
-          projectTwilio: undefined,
-          serverTwilio: false,
+          answer: refused(
+            channel.noTwilioAccountMessage || "WhatsApp is not set up.",
+          ),
         });
 
         await expect(
-          shapeOf(channel).resendVerificationCode(ITEM_ID),
-        ).rejects.toThrow(channel.noTwilioAccountMessage);
-      });
+          shapeOf(channel).onCreateSuccess(ownerCreate(), channel.build()),
+        ).rejects.toThrow(`The verification code was not sent to ${PHONE}.`);
 
-      test("the project's own Twilio account is enough on a server with none", async () => {
-        stubChannel(channel, {
-          projectTwilio: PROJECT_TWILIO_CONFIG,
-          serverTwilio: false,
-        });
+        expect(deleteMock).toHaveBeenCalledTimes(1);
+        expect(
+          (deleteMock.mock.calls[0]![0] as { id: ObjectID }).id.toString(),
+        ).toBe(ITEM_ID.toString());
+      });
+    });
+
+    describe("sending another code", () => {
+      test("goes ahead, issuing a code and sending it, when it can be sent", async () => {
+        stubChannel(channel);
 
         await shapeOf(channel).resendVerificationCode(ITEM_ID);
 
         expect(senderMock).toHaveBeenCalledTimes(1);
+        expect(writtenData(0)["verificationCodeSentAt"]).toBeInstanceOf(Date);
       });
-    }
-  });
 
-  describe("the verify dialog's status", () => {
-    test("says nothing stands in the way when a code can be sent", async () => {
-      stubChannel(channel);
+      test("a send that fails is the person's answer, not a quiet success", async () => {
+        stubChannel(channel, { answer: refused(TWILIO_REFUSAL_REASON) });
 
-      const status: ChannelVerificationStatus = await shapeOf(
-        channel,
-      ).getVerificationStatus(channel.build());
+        await expect(
+          shapeOf(channel).resendVerificationCode(ITEM_ID),
+        ).rejects.toThrow(TWILIO_REFUSAL_REASON);
+      });
 
-      expect(status.isVerified).toBe(false);
-      expect(status.cannotSendReason).toBeNull();
-      expect(status.codeState).toBe(VerificationCodeState.None);
+      test("the cooldown still applies to a code sent a moment ago", async () => {
+        const row: DatabaseBaseModel = channel.build();
+        (row as unknown as Record<string, unknown>)["verificationCodeSentAt"] =
+          new Date();
+        stubChannel(channel, { row: row });
+
+        await expect(
+          shapeOf(channel).resendVerificationCode(ITEM_ID),
+        ).rejects.toBeInstanceOf(TooManyRequestsException);
+        expect(senderMock).not.toHaveBeenCalled();
+      });
+
+      if (channel.noTwilioAccountMessage) {
+        test("is refused up front when no Twilio account is set up, saying who can add one", async () => {
+          stubChannel(channel, {
+            projectTwilio: undefined,
+            serverTwilio: false,
+          });
+
+          let caught: unknown = null;
+
+          try {
+            await shapeOf(channel).resendVerificationCode(ITEM_ID);
+          } catch (error) {
+            caught = error;
+          }
+
+          expect(caught).toBeInstanceOf(BadDataException);
+          expect((caught as Error).message).toBe(
+            channel.noTwilioAccountMessage,
+          );
+          // No code was issued for a send that could not happen.
+          expect(updateMock).not.toHaveBeenCalled();
+          expect(senderMock).not.toHaveBeenCalled();
+        });
+
+        /*
+         * Asked before the cooldown: being told to wait 60 seconds for a send
+         * that can never happen would only hide the real reason.
+         */
+        test("the missing account is the reason given, even inside the cooldown", async () => {
+          const row: DatabaseBaseModel = channel.build();
+          (row as unknown as Record<string, unknown>)[
+            "verificationCodeSentAt"
+          ] = new Date();
+          stubChannel(channel, {
+            row: row,
+            projectTwilio: undefined,
+            serverTwilio: false,
+          });
+
+          await expect(
+            shapeOf(channel).resendVerificationCode(ITEM_ID),
+          ).rejects.toThrow(channel.noTwilioAccountMessage);
+        });
+
+        test("the project's own Twilio account is enough on a server with none", async () => {
+          stubChannel(channel, {
+            projectTwilio: PROJECT_TWILIO_CONFIG,
+            serverTwilio: false,
+          });
+
+          await shapeOf(channel).resendVerificationCode(ITEM_ID);
+
+          expect(senderMock).toHaveBeenCalledTimes(1);
+        });
+      }
     });
 
-    if (channel.noTwilioAccountMessage) {
-      test("says why no code can be sent when there is no Twilio account", async () => {
-        stubChannel(channel, { projectTwilio: undefined, serverTwilio: false });
+    describe("the verify dialog's status", () => {
+      test("says nothing stands in the way when a code can be sent", async () => {
+        stubChannel(channel);
 
         const status: ChannelVerificationStatus = await shapeOf(
           channel,
         ).getVerificationStatus(channel.build());
 
-        expect(status.cannotSendReason).toBe(channel.noTwilioAccountMessage);
+        expect(status.isVerified).toBe(false);
+        expect(status.cannotSendReason).toBeNull();
+        expect(status.codeState).toBe(VerificationCodeState.None);
       });
-    }
 
-    test("a verified number has nothing to refuse, and the project is not even read", async () => {
-      stubChannel(channel);
+      if (channel.noTwilioAccountMessage) {
+        test("says why no code can be sent when there is no Twilio account", async () => {
+          stubChannel(channel, {
+            projectTwilio: undefined,
+            serverTwilio: false,
+          });
 
-      const row: DatabaseBaseModel = channel.build();
-      (row as unknown as Record<string, unknown>)["isVerified"] = true;
+          const status: ChannelVerificationStatus = await shapeOf(
+            channel,
+          ).getVerificationStatus(channel.build());
 
-      const status: ChannelVerificationStatus = await shapeOf(
-        channel,
-      ).getVerificationStatus(row);
+          expect(status.cannotSendReason).toBe(channel.noTwilioAccountMessage);
+        });
+      }
 
-      expect(status.isVerified).toBe(true);
-      expect(status.cannotSendReason).toBeNull();
-      expect(ProjectService.findOneById).not.toHaveBeenCalled();
+      test("a verified number has nothing to refuse, and the project is not even read", async () => {
+        stubChannel(channel);
+
+        const row: DatabaseBaseModel = channel.build();
+        (row as unknown as Record<string, unknown>)["isVerified"] = true;
+
+        const status: ChannelVerificationStatus =
+          await shapeOf(channel).getVerificationStatus(row);
+
+        expect(status.isVerified).toBe(true);
+        expect(status.cannotSendReason).toBeNull();
+        expect(ProjectService.findOneById).not.toHaveBeenCalled();
+      });
     });
-  });
-});
+  },
+);
 
 /*
  * WhatsApp is sent while the project has WhatsApp off (the Notification

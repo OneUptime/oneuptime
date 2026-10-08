@@ -91,9 +91,9 @@ describe("VerificationCodeStatusJSON", () => {
     expect(
       VerificationCodeStatusJSON.fromJSON({ isVerified: "true" }).isVerified,
     ).toBe(false);
-    expect(VerificationCodeStatusJSON.fromJSON({ isVerified: true }).isVerified).toBe(
-      true,
-    );
+    expect(
+      VerificationCodeStatusJSON.fromJSON({ isVerified: true }).isVerified,
+    ).toBe(true);
   });
 
   test("an unreadable time is no time", () => {

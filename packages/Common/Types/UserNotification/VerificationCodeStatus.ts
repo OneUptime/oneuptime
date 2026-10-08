@@ -84,7 +84,9 @@ export default class VerificationCodeStatusJSON {
    * answered nothing, reads as "no code, nothing known" rather than as a
    * code that is waiting.
    */
-  public static fromJSON(json: JSONObject | null | undefined): VerificationCodeStatus {
+  public static fromJSON(
+    json: JSONObject | null | undefined,
+  ): VerificationCodeStatus {
     const data: JSONObject = json || {};
 
     const codeState: VerificationCodeState = isVerificationCodeState(

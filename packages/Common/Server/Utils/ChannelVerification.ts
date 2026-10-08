@@ -326,7 +326,9 @@ export default class ChannelVerification {
    *
    * Callers must have established the proof. This checks nothing.
    */
-  public static async markVerified<TModel extends VerifiableChannelModel>(data: {
+  public static async markVerified<
+    TModel extends VerifiableChannelModel,
+  >(data: {
     service: DatabaseService<TModel>;
     itemId: ObjectID;
   }): Promise<void> {
@@ -504,7 +506,9 @@ export default class ChannelVerification {
       return "Something went wrong while sending it. Please try again in a moment.";
     }
 
-    return /[.!?]$/.test(reason) ? reason : `${reason}.`;
+    const endsAsSentence: RegExp = /[.!?]$/;
+
+    return endsAsSentence.test(reason) ? reason : `${reason}.`;
   }
 
   /*
@@ -764,12 +768,10 @@ export default class ChannelVerification {
           ? new Date(data.item.verificationCodeSentAt)
           : null,
       codeExpiresAt: hasCode ? expiresAt : null,
-      resendAvailableInSeconds: ChannelVerification.getResendRetryAfterSeconds(
-        {
-          lastSentAt: data.item.verificationCodeSentAt,
-          now,
-        },
-      ),
+      resendAvailableInSeconds: ChannelVerification.getResendRetryAfterSeconds({
+        lastSentAt: data.item.verificationCodeSentAt,
+        now,
+      }),
       cannotSendReason: data.cannotSendReason || null,
     };
   }
