@@ -584,6 +584,44 @@ describe("AutoRemediationRuleService - who may let a rule run AI commands withou
     expect(thrown).toBeInstanceOf(NotAuthorizedException);
   });
 
+  it("refuses to switch Fix With to OneUptime AI on a rule set to run its commands without asking, for an editor who may not read credentials", async () => {
+    storedRule = {
+      _id: RULE_ID.toString(),
+      id: RULE_ID,
+      ...unattended({ remediationAction: AutoRemediationAction.Runbooks }),
+    } as unknown as JSONObject;
+
+    expect(
+      await update(
+        { remediationAction: AutoRemediationAction.OneUptimeAI },
+        editor(RULE_EDITOR),
+      ),
+    ).toBeInstanceOf(NotAuthorizedException);
+    expect(ruleFind).toHaveBeenCalledTimes(1);
+
+    expect(
+      await update(
+        { remediationAction: AutoRemediationAction.OneUptimeAI },
+        editor(RULE_EDITOR_WHO_READS_CREDENTIALS),
+      ),
+    ).toBeNull();
+  });
+
+  it("lets any editor switch Fix With to runbooks, which runs no AI commands", async () => {
+    storedRule = {
+      _id: RULE_ID.toString(),
+      id: RULE_ID,
+      ...unattended(),
+    } as unknown as JSONObject;
+
+    expect(
+      await update(
+        { remediationAction: AutoRemediationAction.Runbooks },
+        editor(RULE_EDITOR),
+      ),
+    ).toBeNull();
+  });
+
   it("switches it for an editor who may read credentials, without reading the rule", async () => {
     expect(
       await update(
