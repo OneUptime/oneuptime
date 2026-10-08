@@ -38,6 +38,14 @@ import SSRFProtection from "../../SSRFProtection";
 import ChatInlineImages from "../../../../Utils/Markdown/ChatInlineImages";
 import WorkspaceInlineImages from "../WorkspaceInlineImages";
 import SlackInlineImages from "./SlackInlineImages";
+import { cutToLength } from "../../../../Utils/Markdown/OverLongText";
+
+// Markdown as slackify is given it (see SlackUtil.cutMarkdown).
+export interface CutMarkdown {
+  text: string;
+  // Whether it was cut: Slack is then told the text goes on.
+  isCutShort: boolean;
+}
 
 export default class SlackUtil extends WorkspaceBase {
   /*
@@ -63,6 +71,20 @@ export default class SlackUtil extends WorkspaceBase {
   // Ends the last section of a markdown payload that did not fit.
   public static readonly TRUNCATED_SECTION_NOTE: string =
     "\n\n_… (truncated — see OneUptime for the full text)_";
+
+  /*
+   * The most Markdown slackify is given at once: one section more than a
+   * markdown payload can show (MAX_SECTIONS_PER_MARKDOWN_BLOCK sections of
+   * SECTION_TEXT_MAX_LENGTH characters). slackify takes time that grows
+   * with the square of a long line, and ran out of stack on one of a few
+   * megabytes - and a description can carry a response body or a log of
+   * many megabytes. Text longer than this is cut first, at a line break
+   * where there is one, and ends with TRUNCATED_SECTION_NOTE: Slack could
+   * never show the rest.
+   */
+  public static readonly MARKDOWN_MAX_LENGTH: number =
+    (SlackUtil.MAX_SECTIONS_PER_MARKDOWN_BLOCK + 1) *
+    SlackUtil.SECTION_TEXT_MAX_LENGTH;
 
   // Closes and reopens a ``` code block that a section boundary cuts through.
   private static readonly CODE_FENCE: string = "```";
@@ -2425,15 +2447,28 @@ export default class SlackUtil extends WorkspaceBase {
      * alt text here. sendMessage shows them as images of their own before
      * a markdown block gets here (WorkspaceInlineImages).
      */
-    const text: string = data.payloadMarkdownBlock.text
-      ? SlackifyMarkdown(
-          ChatInlineImages.toText(data.payloadMarkdownBlock.text),
-        )
-      : "";
+    const markdown: CutMarkdown = this.cutMarkdown(
+      data.payloadMarkdownBlock.text
+        ? ChatInlineImages.toText(data.payloadMarkdownBlock.text)
+        : "",
+      // One section more than this payload may take.
+      (Math.min(
+        Math.max(
+          1,
+          data.maxSections ?? SlackUtil.MAX_SECTIONS_PER_MARKDOWN_BLOCK,
+        ),
+        SlackUtil.MAX_SECTIONS_PER_MARKDOWN_BLOCK,
+      ) +
+        1) *
+        SlackUtil.SECTION_TEXT_MAX_LENGTH,
+    );
+
+    const text: string = markdown.text ? SlackifyMarkdown(markdown.text) : "";
 
     const sectionTexts: Array<string> = this.splitSectionText({
       text: text,
       maxSections: data.maxSections,
+      isCutShort: markdown.isCutShort,
     });
 
     if (sectionTexts.length > 1) {
@@ -2478,10 +2513,15 @@ export default class SlackUtil extends WorkspaceBase {
     text: string;
     // Defaults to MAX_SECTIONS_PER_MARKDOWN_BLOCK; never less than one.
     maxSections?: number | undefined;
+    /*
+     * The text was cut short before it got here (cutMarkdown): its last
+     * section ends with TRUNCATED_SECTION_NOTE even when the rest fits.
+     */
+    isCutShort?: boolean | undefined;
   }): Array<string> {
     const maxLength: number = SlackUtil.SECTION_TEXT_MAX_LENGTH;
 
-    if (data.text.length <= maxLength) {
+    if (data.text.length <= maxLength && !data.isCutShort) {
       return [data.text];
     }
 
@@ -2511,7 +2551,8 @@ export default class SlackUtil extends WorkspaceBase {
       return [""];
     }
 
-    const isTruncated: boolean = pieces.length > maxSections;
+    const isTruncated: boolean =
+      pieces.length > maxSections || data.isCutShort === true;
 
     if (isTruncated) {
       pieces = pieces.slice(0, maxSections);
@@ -2918,19 +2959,27 @@ export default class SlackUtil extends WorkspaceBase {
       );
     }
 
+    /*
+     * Slack refuses a whole message with a section over 3000 characters,
+     * so a longer text goes as several sections (splitSectionText) - and,
+     * like any markdown payload, ends with a note when it does not fit in
+     * them. A text that fits is the one section it always was.
+     */
     const apiResult: HTTPResponse<JSONObject> | HTTPErrorResponse | null =
       await API.post({
         url: data.url,
         data: {
-          blocks: [
-            {
-              type: "section",
-              text: {
-                type: "mrkdwn",
-                text: `${data.text}`,
-              },
+          blocks: this.splitSectionText({ text: `${data.text}` }).map(
+            (sectionText: string): JSONObject => {
+              return {
+                type: "section",
+                text: {
+                  type: "mrkdwn",
+                  text: sectionText,
+                },
+              };
             },
-          ],
+          ),
         },
         options: {
           retries: 3,
@@ -3033,13 +3082,37 @@ export default class SlackUtil extends WorkspaceBase {
      * An incoming webhook cannot upload a file, so an image whose address
      * is a data: URL - a screenshot in a description - is its alt text.
      */
-    const markdownWithoutInlineImages: string =
-      ChatInlineImages.toText(markdown);
+    const markdownWithoutInlineImages: CutMarkdown = this.cutMarkdown(
+      ChatInlineImages.toText(markdown),
+    );
 
     // First convert tables to Slack-friendly format
     const markdownWithConvertedTables: string =
-      this.convertMarkdownTablesToSlackFormat(markdownWithoutInlineImages);
-    return SlackifyMarkdown(markdownWithConvertedTables);
+      this.convertMarkdownTablesToSlackFormat(markdownWithoutInlineImages.text);
+    const text: string = SlackifyMarkdown(markdownWithConvertedTables);
+
+    return markdownWithoutInlineImages.isCutShort
+      ? text.trimEnd() + SlackUtil.TRUNCATED_SECTION_NOTE
+      : text;
+  }
+
+  /*
+   * `markdown`, cut to `maxLength` characters (MARKDOWN_MAX_LENGTH unless
+   * said) when it is longer - at a line break where there is one near the
+   * end (cutToLength). Shorter Markdown is returned as it is.
+   */
+  public static cutMarkdown(
+    markdown: string,
+    maxLength: number = SlackUtil.MARKDOWN_MAX_LENGTH,
+  ): CutMarkdown {
+    if (markdown.length <= maxLength) {
+      return { text: markdown, isCutShort: false };
+    }
+
+    return {
+      text: cutToLength(markdown, maxLength),
+      isCutShort: true,
+    };
   }
 
   @CaptureSpan()

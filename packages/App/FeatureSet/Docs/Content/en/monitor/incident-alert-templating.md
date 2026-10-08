@@ -249,6 +249,12 @@ If a path does not exist, the placeholder is left in the output exactly as writt
 
 A description and remediation notes are Markdown: they are shown on the incident's or alert's page, in email, and in its Slack and Microsoft Teams channels. The values a template places there are what the monitored system sent - a response body or header, an incoming request or email, a device's or a series' labels - so each one is placed as text. It reads exactly as it was sent, wherever the template puts it, and a link, an image, an HTML tag or a Slack mention such as `<!channel>` in it shows as text instead of acting. A bare web address in a value is still made a link, one that shows where it goes. The Markdown you write in the template itself renders as you wrote it.
 
+A value can be of any size - a response body or a log of many megabytes - and the notification still goes out with it:
+
+- An email carries all of it. A line longer than 64 KB, or a long paragraph of plain lines, reads as plain text where it is, and the rest of the description renders as usual. A description with more than a megabyte left that is not plain text - a long table, a log whose every line holds a `|`, a `<` or a backtick - is sent as plain text, line by line.
+- The incident's or alert's page shows it the same way, and shows a description with more than 128 KB left that is not plain text as plain text, line by line.
+- A Slack message carries at most what Slack shows of one (about 30,000 characters), and a Microsoft Teams message about 40,000 characters. A longer description is cut, at a line break where there is one, and ends with "… (truncated — see OneUptime for the full text)".
+
 ## Advanced Usage
 
 ### Accessing Array Elements
