@@ -26754,5 +26754,7 @@
   "{{count}} more are waiting for their first check.": "{{count}} mere venter på deres første tjek.",
   "{{count}} more are waiting for their first check._one": "{{count}} mere venter på sit første tjek.",
   "{{count}} sites need attention": "{{count}} lokationer kræver opmærksomhed",
-  "{{count}} sites need attention_one": "{{count}} lokation kræver opmærksomhed"
+  "{{count}} sites need attention_one": "{{count}} lokation kræver opmærksomhed",
+  "Adding a phone number needs permission to edit incoming call policies and to read call and SMS settings.": "At tilføje et telefonnummer kræver tilladelse til at redigere indgående opkaldspolitikker og til at læse opkalds- og SMS-indstillinger.",
+  "Releasing a phone number needs permission to edit incoming call policies.": "At frigive et telefonnummer kræver tilladelse til at redigere indgående opkaldspolitikker."
 }

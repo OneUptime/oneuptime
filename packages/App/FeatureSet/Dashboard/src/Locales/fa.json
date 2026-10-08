@@ -26754,5 +26754,7 @@
   "{{count}} more are waiting for their first check.": "{{count}} دستگاه دیگر در انتظار نخستین بررسی‌اند.",
   "{{count}} more are waiting for their first check._one": "{{count}} دستگاه دیگر در انتظار نخستین بررسی است.",
   "{{count}} sites need attention": "{{count}} سایت نیاز به توجه دارند",
-  "{{count}} sites need attention_one": "{{count}} سایت نیاز به توجه دارد"
+  "{{count}} sites need attention_one": "{{count}} سایت نیاز به توجه دارد",
+  "Adding a phone number needs permission to edit incoming call policies and to read call and SMS settings.": "افزودن شماره تلفن به مجوز ویرایش سیاست‌های تماس ورودی و خواندن تنظیمات تماس و پیامک نیاز دارد.",
+  "Releasing a phone number needs permission to edit incoming call policies.": "آزادسازی شماره تلفن به مجوز ویرایش سیاست‌های تماس ورودی نیاز دارد."
 }

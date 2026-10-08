@@ -26754,5 +26754,7 @@
   "{{count}} more are waiting for their first check.": "{{count}} more are waiting for their first check.",
   "{{count}} more are waiting for their first check._one": "{{count}} more is waiting for its first check.",
   "{{count}} sites need attention": "{{count}} sites need attention",
-  "{{count}} sites need attention_one": "{{count}} site needs attention"
+  "{{count}} sites need attention_one": "{{count}} site needs attention",
+  "Adding a phone number needs permission to edit incoming call policies and to read call and SMS settings.": "Adding a phone number needs permission to edit incoming call policies and to read call and SMS settings.",
+  "Releasing a phone number needs permission to edit incoming call policies.": "Releasing a phone number needs permission to edit incoming call policies."
 }

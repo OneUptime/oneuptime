@@ -42,14 +42,17 @@ export interface SlackRequest {
     | undefined;
 }
 
+/*
+ * What a Slack user may do without a Slack account connected to a current
+ * member of the project: open links. Everything that reads or writes the
+ * project's records acts as the member the Slack account is connected to,
+ * with that member's own permissions - declaring an incident included
+ * (/incident and its form), so an incident is never created by nobody, and
+ * its form lists only what its member may read. No project setting lets
+ * anyone in the workspace declare without connecting an account.
+ */
 const slackActionTypesThatDoNotRequireUserSlackAccountToBeConnectedToOneUptime: Array<SlackActionType> =
   [
-    /*
-     * anyone in the company can create incident.
-     * regardless of whether they are connected to OneUptime or not.
-     */
-    SlackActionType.NewIncident,
-    SlackActionType.SubmitNewIncident,
     SlackActionType.ViewIncident,
 
     // Alerts

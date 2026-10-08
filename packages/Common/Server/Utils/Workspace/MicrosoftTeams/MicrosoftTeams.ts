@@ -4818,11 +4818,13 @@ All monitoring checks are passing normally.`;
 
       // Handle on-call duty actions
       if (MicrosoftTeamsOnCallDutyActions.isOnCallDutyAction({ actionType })) {
-        await MicrosoftTeamsOnCallDutyActions.handleBotOnCallDutyAction(
-          actionType as MicrosoftTeamsOnCallDutyActionType,
-          data.turnContext,
-          value,
-        );
+        await MicrosoftTeamsOnCallDutyActions.handleBotOnCallDutyAction({
+          actionType: actionType as MicrosoftTeamsOnCallDutyActionType,
+          turnContext: data.turnContext,
+          actionPayload: value,
+          projectId: projectId,
+          databaseProps: databaseProps,
+        });
         return;
       }
     } catch (error) {

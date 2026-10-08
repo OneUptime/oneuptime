@@ -26,6 +26,11 @@ import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import IncomingCallPolicyPhoneNumber from "Common/Models/DatabaseModels/IncomingCallPolicyPhoneNumber";
 import { getIncomingCallPolicyPhoneNumberText } from "./IncomingCallPolicyPhoneNumberUtil";
+import {
+  getAddPhoneNumberLock,
+  getReleasePhoneNumberLock,
+  IncomingCallPhoneNumberLock,
+} from "./IncomingCallPhoneNumberLock";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -90,6 +95,16 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
   props: PhoneNumberPurchaseProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+
+  /*
+   * The picker is offered to exactly the people the phone-number routes let
+   * in (IncomingCallPhoneNumberLock): adding a number needs the edit of
+   * incoming call policies and the read of call and SMS settings, releasing
+   * one the edit. Anyone else sees the buttons locked, saying what it takes.
+   */
+  const addLock: IncomingCallPhoneNumberLock = getAddPhoneNumberLock();
+  const releaseLock: IncomingCallPhoneNumberLock = getReleasePhoneNumberLock();
+
   // Main configuration modal state
   const [showConfigureModal, setShowConfigureModal] = useState<boolean>(false);
   const [configureStep, setConfigureStep] = useState<
@@ -461,7 +476,13 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
                   title="Release"
                   buttonStyle={ButtonStyleType.DANGER_OUTLINE}
                   icon={IconProp.Trash}
+                  disabled={releaseLock.isLocked}
+                  tooltip={releaseLock.tooltip}
                   onClick={() => {
+                    if (releaseLock.isLocked) {
+                      return;
+                    }
+
                     setPhoneNumberToRelease(phoneNumber);
                     setShowReleaseConfirmModal(true);
                   }}
@@ -497,6 +518,10 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
 
   // Open the configure modal
   const openConfigureModal: () => void = (): void => {
+    if (addLock.isLocked) {
+      return;
+    }
+
     setConfigureStep("choose");
     setShowConfigureModal(true);
     setAvailableNumbers([]);
@@ -778,6 +803,25 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
     return <></>;
   };
 
+  /*
+   * Why Add Phone Number cannot be pressed: what the caller lacks first,
+   * since linking a Twilio configuration would not help them, then the
+   * missing configuration.
+   */
+  const getAddButtonTooltip: () => string | undefined = ():
+    | string
+    | undefined => {
+    if (addLock.isLocked) {
+      return addLock.tooltip;
+    }
+
+    if (!props.projectCallSMSConfigId) {
+      return "Link a Twilio configuration before adding another number.";
+    }
+
+    return undefined;
+  };
+
   // Render the add button inline when hideCard is true.
   const renderButtons: () => ReactElement = (): ReactElement => {
     return (
@@ -795,12 +839,8 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
               : ButtonStyleType.NORMAL
           }
           icon={IconProp.Add}
-          disabled={!props.projectCallSMSConfigId}
-          tooltip={
-            props.projectCallSMSConfigId
-              ? undefined
-              : "Link a Twilio configuration before adding another number."
-          }
+          disabled={!props.projectCallSMSConfigId || addLock.isLocked}
+          tooltip={getAddButtonTooltip()}
           onClick={openConfigureModal}
         />
       </div>
@@ -1059,10 +1099,8 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
             title: "Add Phone Number",
             buttonStyle: ButtonStyleType.PRIMARY,
             icon: IconProp.Add,
-            disabled: !props.projectCallSMSConfigId,
-            tooltip: props.projectCallSMSConfigId
-              ? undefined
-              : "Link a Twilio configuration before adding another number.",
+            disabled: !props.projectCallSMSConfigId || addLock.isLocked,
+            tooltip: getAddButtonTooltip(),
             onClick: openConfigureModal,
           },
         ]}

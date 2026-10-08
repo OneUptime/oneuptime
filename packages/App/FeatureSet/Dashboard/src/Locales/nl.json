@@ -26754,5 +26754,7 @@
   "{{count}} more are waiting for their first check.": "Nog {{count}} wachten op hun eerste controle.",
   "{{count}} more are waiting for their first check._one": "Nog {{count}} wacht op de eerste controle.",
   "{{count}} sites need attention": "{{count}} locaties hebben aandacht nodig",
-  "{{count}} sites need attention_one": "{{count}} locatie heeft aandacht nodig"
+  "{{count}} sites need attention_one": "{{count}} locatie heeft aandacht nodig",
+  "Adding a phone number needs permission to edit incoming call policies and to read call and SMS settings.": "Voor het toevoegen van een telefoonnummer hebt u de machtiging nodig om beleid voor inkomende gesprekken te bewerken en om instellingen voor gesprekken en sms te lezen.",
+  "Releasing a phone number needs permission to edit incoming call policies.": "Voor het vrijgeven van een telefoonnummer hebt u de machtiging nodig om beleid voor inkomende gesprekken te bewerken."
 }
