@@ -167,7 +167,38 @@ const INPUTS_SCRIPT: string = String.raw`
  * returns what it writes.
  */
 function runUnoptimized(entry: Array<string>, script: string): ProcessReport {
-  const output: string = childProcess.execFileSync(
+  let output: string;
+
+  try {
+    output = runProcess(entry, script);
+  } catch (error) {
+    /*
+     * The error execFileSync throws refers to itself and carries all the
+     * process wrote: a jest worker cannot send it back, and the suite would
+     * fail with "Converting circular structure to JSON". Say what happened.
+     */
+    const failed: {
+      status?: number | null;
+      signal?: string | null;
+      code?: string;
+      stderr?: string | Buffer;
+    } = error as {
+      status?: number | null;
+      signal?: string | null;
+      code?: string;
+      stderr?: string | Buffer;
+    };
+
+    throw new Error(
+      `The process did not finish (status ${String(failed.status)}, signal ${String(failed.signal)}${failed.code ? `, ${failed.code}` : ""}): ${String(failed.stderr ?? "").slice(0, 1000)}`,
+    );
+  }
+
+  return JSON.parse(output) as ProcessReport;
+}
+
+function runProcess(entry: Array<string>, script: string): string {
+  return childProcess.execFileSync(
     process.execPath,
     [
       "--no-regexp-optimization",
@@ -251,8 +282,6 @@ function runUnoptimized(entry: Array<string>, script: string): ProcessReport {
       timeout: 540000,
     },
   );
-
-  return JSON.parse(output) as ProcessReport;
 }
 
 /*
