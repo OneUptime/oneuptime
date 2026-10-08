@@ -88,6 +88,10 @@ Remplissez les champs suivants :
 - **URL de base** (facultatif) : URL personnalisée du point de terminaison API (requise pour Azure OpenAI, Ollama et OpenAI Compatible ; facultative pour les autres)
 - **Plus de champs**, replié sous les champs ci-dessus : **Définir par défaut**, activé pour un nouveau fournisseur car les fonctionnalités IA n'utilisent que le fournisseur par défaut du projet, et **Paramètres supplémentaires**, un objet JSON facultatif dont les paramètres sont envoyés au fournisseur avec chaque requête (par exemple `{"temperature": 0.2}`)
 
+### Qui peut voir un fournisseur
+
+Les fournisseurs LLM d'un projet ne sont lus que par ses membres qui peuvent lire les paramètres du projet : **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member**, **Settings Viewer** et **Read LLM**. La **Clé API** d'un fournisseur n'est lue que par les propriétaires et les administrateurs du projet. La liste **Fournisseurs LLM globaux** sur la même page - les fournisseurs partagés auxquels un projet se rabat - montre leur nom, leur description et leur prix à toute personne connectée, et rien d'autre à leur sujet.
+
 ## Configuration spécifique au fournisseur
 
 ### OpenAI

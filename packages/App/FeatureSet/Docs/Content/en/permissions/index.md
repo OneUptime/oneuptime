@@ -153,6 +153,8 @@ Every allow permission is granted with a scope, chosen when you add it:
 
 **Labels** is the more manual version of the same idea: tag resources, then grant permissions restricted to those tags.
 
+**Acting on the whole project takes a permission that reaches it.** A rule's **Run Now** applies the rule to every resource of the project, and a network's site assignment, device label and auto import rules to every network device or scan, so it takes permissions scoped to all resources in the project: a permission restricted to labels or to owned resources is not enough, and a block with labels on the resources a run changes refuses the run, because it would change the resources carrying those labels too.
+
 Some roles are project-wide by definition and do not offer a scope at all, because scoping them would be meaningless — "Billing Admin, but only for the billing I own" does not describe anything:
 
 {{PERMISSION_SCOPE_EXEMPT_ROLES}}
@@ -246,6 +248,8 @@ Live updates also end with the sign-in that opened them. Signing out, changing y
 Every logged-in user additionally holds a small set of automatic permissions that cover things like reading their own profile and their own notification rules. These are not admin permissions and do not unlock anyone else's data.
 
 Resolved permissions are cached per user and project, and refreshed when team membership or team permissions change. If you change permissions and a user does not see the change immediately, have them reload.
+
+A command runs with a runbook credential only for someone who may read runbook credentials (**Read Runbook Credential**; Project Owners and Project Admins may). Approving an AI command plan with an SSH command, which runs with the credential OneUptime AI picked from those of its Runner, takes that read, and so does saving an auto remediation rule that lets OneUptime AI run its commands without asking, when the save turns that on or adds allowlist patterns or Runners.
 
 ## Recipes
 

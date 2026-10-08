@@ -139,6 +139,8 @@ Enhver tilladt rettighed tildeles med et omfang, som du vælger, når du tilføj
 
 **Labels** er den mere manuelle udgave af samme idé: markér ressourcer, og tildel så tilladelser begrænset til de markeringer.
 
+**At handle på hele projektet kræver en tilladelse, der når hele projektet.** En regels **Run Now** anvender reglen på hver ressource i projektet, og et netværks regler for site-tildeling, enhedslabels og automatisk import på hver netværksenhed eller scanning, så den kræver tilladelser med omfanget alle ressourcer i projektet: en tilladelse begrænset til labels eller til egne ressourcer er ikke nok, og en blokering med labels på de ressourcer, en kørsel ændrer, afviser kørslen, fordi den også ville ændre de ressourcer, der bærer de labels.
+
 Nogle roller er projektomfattende per definition og tilbyder slet ikke et omfang, fordi det ville være meningsløst at indsnævre dem — "Billing Admin, men kun for den fakturering, jeg ejer" beskriver ingenting:
 
 {{PERMISSION_SCOPE_EXEMPT_ROLES}}
@@ -219,6 +221,8 @@ Liveopdateringer slutter også med det login, der startede dem. Når du logger u
 Enhver logget ind bruger har derudover et lille sæt automatiske tilladelser, der dækker ting som at læse sin egen profil og sine egne notifikationsregler. Det er ikke administratorrettigheder, og de giver ikke adgang til andres data.
 
 Opløste tilladelser caches pr. bruger og projekt og opdateres, når teammedlemskab eller teamtilladelser ændres. Ændrer du tilladelser, og en bruger ikke ser ændringen med det samme, så bed vedkommende genindlæse.
+
+En kommando kører kun med runbook-legitimationsoplysninger for en, der må læse runbook-legitimationsoplysninger (**Read Runbook Credential**; projektejere og projektadministratorer må). At godkende en AI-kommandoplan med en SSH-kommando, som kører med de legitimationsoplysninger, OneUptime AI valgte blandt dem på dens Runner, kræver den læseadgang, og det samme gør det at gemme en auto-remediation-regel, der lader OneUptime AI køre sine kommandoer uden at spørge, når gemningen slår det til eller tilføjer allowlist-mønstre eller Runnere.
 
 ## Opskrifter
 

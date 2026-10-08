@@ -88,6 +88,10 @@ Vul de volgende velden in:
 - **Basis-URL** (optioneel): Aangepaste API-eindpunt-URL (vereist voor Azure OpenAI, Ollama en OpenAI Compatible; optioneel voor anderen)
 - **Meer velden**, ingeklapt onder de velden hierboven: **Instellen als standaard**, dat voor een nieuwe provider aan staat omdat AI-functies alleen de standaardprovider van het project gebruiken, en **Extra parameters**, een optioneel JSON-object met extra parameters dat bij elk verzoek naar de provider wordt gestuurd (bijvoorbeeld `{"temperature": 0.2}`)
 
+### Wie een provider kan zien
+
+De LLM-providers van een project worden alleen gelezen door de leden die de instellingen van het project mogen lezen: **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member**, **Settings Viewer** en **Read LLM**. De **API-sleutel** van een provider wordt alleen gelezen door de eigenaren en beheerders van het project. De lijst **Globale LLM-providers** op dezelfde pagina - de gedeelde providers waarop een project terugvalt - toont hun naam, beschrijving en prijs aan iedereen die is aangemeld, en verder niets over hen.
+
 ## Providerspecifieke configuratie
 
 ### OpenAI

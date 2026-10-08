@@ -88,6 +88,10 @@ OneUptime은 현재 다음 LLM 공급자를 지원합니다:
 - **기본 URL** (선택 사항): 커스텀 API 엔드포인트 URL (Azure OpenAI, Ollama, OpenAI Compatible의 경우 필수, 기타의 경우 선택 사항)
 - **추가 필드**(위 항목 아래에 접혀 있음): **기본값으로 설정**은 AI 기능이 프로젝트의 기본 공급자만 사용하므로 새 공급자에서는 켜져 있고, **추가 매개변수**는 요청할 때마다 공급자에게 보내는 추가 매개변수를 담은 선택 사항 JSON 객체입니다(예: `{"temperature": 0.2}`)
 
+### 공급자를 볼 수 있는 사람
+
+프로젝트의 LLM 공급자는 프로젝트 설정을 읽을 수 있는 구성원만 읽습니다: **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member**, **Settings Viewer**, **Read LLM**. 공급자의 **API 키**는 프로젝트 소유자와 관리자만 읽습니다. 같은 페이지의 **글로벌 LLM 공급자** 목록(프로젝트가 대신 사용하는 공유 공급자)은 로그인한 누구에게나 이름, 설명, 가격을 보여 주며 그 밖의 정보는 보여 주지 않습니다.
+
 ## 공급자별 구성
 
 ### OpenAI

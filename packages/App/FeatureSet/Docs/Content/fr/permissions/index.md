@@ -139,6 +139,8 @@ Chaque autorisation accordée l'est avec une portée, choisie au moment de l'ajo
 
 **Étiquettes** est la version plus manuelle de la même idée : marquez les ressources, puis accordez des autorisations restreintes à ces marqueurs.
 
+**Agir sur tout le projet demande une permission qui l'atteint.** **Run Now** applique une règle à chaque ressource du projet, et les règles d'attribution de site, de labels d'appareils et d'import automatique d'un réseau à chaque appareil réseau ou analyse ; il demande donc des permissions portant sur toutes les ressources du projet : une permission restreinte à des labels ou aux ressources possédées ne suffit pas, et un blocage avec des labels sur les ressources qu'une exécution modifie la refuse, car elle modifierait aussi les ressources qui portent ces labels.
+
 Certains rôles sont projet-entier par définition et n'offrent aucune portée, car les restreindre n'aurait pas de sens — « Billing Admin, mais seulement pour la facturation que je possède » ne décrit rien :
 
 {{PERMISSION_SCOPE_EXEMPT_ROLES}}
@@ -219,6 +221,8 @@ Les mises à jour en direct prennent aussi fin avec la connexion qui les a ouver
 Tout utilisateur connecté détient en plus un petit ensemble d'autorisations automatiques couvrant par exemple la lecture de son propre profil et de ses propres règles de notification. Ce ne sont pas des autorisations d'administration et elles ne donnent accès aux données de personne d'autre.
 
 Les autorisations résolues sont mises en cache par utilisateur et par projet, et rafraîchies quand l'appartenance aux équipes ou les autorisations d'équipe changent. Si vous modifiez des autorisations et qu'un utilisateur ne voit pas le changement immédiatement, demandez-lui de recharger.
+
+Une commande s'exécute avec un identifiant de runbook seulement pour quelqu'un qui peut lire les identifiants de runbook (**Read Runbook Credential** ; les propriétaires et administrateurs du projet le peuvent). Approuver un plan de commandes IA comportant une commande SSH, qui s'exécute avec l'identifiant que OneUptime AI a choisi parmi ceux de son Runner, demande cette lecture, tout comme enregistrer une règle de remédiation automatique qui laisse OneUptime AI exécuter ses commandes sans demander, quand l'enregistrement active cela ou ajoute des motifs à la liste d'autorisation ou des Runners.
 
 ## Recettes
 

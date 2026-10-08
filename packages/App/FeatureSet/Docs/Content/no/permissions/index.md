@@ -139,6 +139,8 @@ Enhver tillatt rettighet gis med et omfang, som du velger når du legger den til
 
 **Etiketter** er den mer manuelle varianten av samme idé: merk ressurser, og gi så tillatelser begrenset til de merkelappene.
 
+**Å handle på hele prosjektet krever en tillatelse som når hele prosjektet.** **Run Now** bruker en regel på hver ressurs i prosjektet, og et nettverks regler for områdetildeling, enhetsetiketter og automatisk import på hver nettverksenhet eller skanning, så det krever tillatelser med omfanget alle ressurser i prosjektet: en tillatelse begrenset til etiketter eller til egne ressurser er ikke nok, og en blokkering med etiketter på ressursene en kjøring endrer, avviser kjøringen, fordi den også ville endre ressursene som har disse etikettene.
+
 Noen roller er prosjektomfattende per definisjon og tilbyr ikke noe omfang i det hele tatt, fordi det ville være meningsløst å snevre dem inn — «Billing Admin, men bare for faktureringen jeg eier» beskriver ingenting:
 
 {{PERMISSION_SCOPE_EXEMPT_ROLES}}
@@ -219,6 +221,8 @@ Liveoppdateringer slutter også med påloggingen som startet dem. Når du logger
 Enhver innlogget bruker har i tillegg et lite sett automatiske tillatelser som dekker ting som å lese sin egen profil og sine egne varslingsregler. Dette er ikke administratorrettigheter, og de gir ikke tilgang til andres data.
 
 Løste tillatelser bufres per bruker og prosjekt, og oppdateres når teammedlemskap eller teamtillatelser endres. Endrer du tillatelser og en bruker ikke ser endringen med én gang, be vedkommende laste siden på nytt.
+
+En kommando kjører bare med runbook-påloggingsinformasjon for noen som kan lese runbook-påloggingsinformasjon (**Read Runbook Credential**; prosjekteiere og prosjektadministratorer kan det). Å godkjenne en AI-kommandoplan med en SSH-kommando, som kjører med påloggingsinformasjonen OneUptime AI valgte blant dem på Runneren, krever den lesetilgangen, og det gjør også det å lagre en auto-remediation-regel som lar OneUptime AI kjøre kommandoene sine uten å spørre, når lagringen slår det på eller legger til tillatelsesliste-mønstre eller Runnere.
 
 ## Oppskrifter
 

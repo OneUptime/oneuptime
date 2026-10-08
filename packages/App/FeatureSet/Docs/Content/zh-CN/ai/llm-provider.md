@@ -88,6 +88,10 @@ OneUptime 目前支持以下 LLM 提供商：
 - **基础 URL**（可选）：自定义 API 端点 URL（Azure OpenAI、Ollama 和 OpenAI Compatible 必填，其他可选）
 - **更多字段**：收起在上方字段之下，包括 **设为默认**（新提供商默认开启，因为 AI 功能只使用项目的默认提供商）和 **附加参数**（可选的 JSON 对象，其中的额外参数会随每个请求发送给提供商，例如 `{"temperature": 0.2}`）
 
+### 谁能看到提供商
+
+项目的 LLM 提供商只有能读取项目设置的成员才能读取：**Project Owner**、**Project Admin**、**Project Member**、**Viewer**、**Settings Admin**、**Settings Member**、**Settings Viewer** 和 **Read LLM**。提供商的 **API 密钥** 只有项目所有者和管理员才能读取。同一页面上的 **全局 LLM 提供商** 列表（项目在没有自己的提供商时使用的共享提供商）向任何已登录的人显示其名称、描述和价格，此外不显示任何内容。
+
 ## 各提供商的具体配置
 
 ### OpenAI

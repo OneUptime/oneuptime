@@ -139,6 +139,8 @@ Jede Erlaubt-Berechtigung wird mit einem Geltungsbereich vergeben, den Sie beim 
 
 **Labels** ist die manuellere Variante derselben Idee: Ressourcen markieren und Berechtigungen auf diese Markierungen beschränken.
 
+**Was auf das ganze Projekt wirkt, braucht eine Berechtigung, die das ganze Projekt erreicht.** **Run Now** wendet eine Regel auf jede Ressource des Projekts an, und die Regeln eines Netzwerks für Standortzuweisung, Geräte-Labels und automatischen Import auf jedes Netzwerkgerät und jeden Scan; es braucht daher Berechtigungen mit dem Geltungsbereich „Alle Ressourcen im Projekt“: Eine auf Labels oder auf eigene Ressourcen beschränkte Berechtigung genügt nicht, und eine Sperre mit Labels auf den Ressourcen, die ein Lauf ändert, lehnt den Lauf ab, weil er auch die Ressourcen mit diesen Labels ändern würde.
+
 Manche Rollen sind per Definition projektweit und bieten überhaupt keinen Geltungsbereich, weil eine Eingrenzung sinnlos wäre — „Billing Admin, aber nur für die Abrechnung, die mir gehört" beschreibt nichts:
 
 {{PERMISSION_SCOPE_EXEMPT_ROLES}}
@@ -219,6 +221,8 @@ Live-Aktualisierungen enden auch mit der Anmeldung, die sie gestartet hat. Wenn 
 Jeder angemeldete Benutzer hält zusätzlich einen kleinen Satz automatischer Berechtigungen, die etwa das Lesen des eigenen Profils und der eigenen Benachrichtigungsregeln abdecken. Das sind keine Admin-Berechtigungen und sie geben keinen Zugriff auf fremde Daten.
 
 Aufgelöste Berechtigungen werden pro Benutzer und Projekt zwischengespeichert und aktualisiert, wenn sich Teamzugehörigkeit oder Teamberechtigungen ändern. Sieht ein Benutzer eine Änderung nicht sofort, lassen Sie ihn neu laden.
+
+Ein Befehl läuft mit Runbook-Zugangsdaten nur für jemanden, der Runbook-Zugangsdaten lesen darf (**Read Runbook Credential**; Projekteigentümer und Projektadministratoren dürfen es). Einen KI-Befehlsplan mit einem SSH-Befehl zu genehmigen, der mit den Zugangsdaten läuft, die OneUptime AI unter denen seines Runners gewählt hat, braucht diese Leseberechtigung, und ebenso das Speichern einer Auto-Remediation-Regel, die OneUptime AI ihre Befehle ohne Rückfrage ausführen lässt, wenn das Speichern das einschaltet oder Allowlist-Muster oder Runner hinzufügt.
 
 ## Rezepte
 

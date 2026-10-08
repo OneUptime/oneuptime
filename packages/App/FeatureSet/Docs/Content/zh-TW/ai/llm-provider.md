@@ -88,6 +88,10 @@ OneUptime 目前支援以下 LLM 供應商：
 - **基底 URL**（選填）：自訂 API 端點 URL（Azure OpenAI、Ollama 與 OpenAI Compatible 為必填，其他則為選填）
 - **更多欄位**：收合在上方欄位之下，包括 **設為預設**（新供應商預設為開啟，因為 AI 功能只會使用專案的預設供應商）和 **其他參數**（選填的 JSON 物件，其中的額外參數會隨每個請求傳送給供應商，例如 `{"temperature": 0.2}`）
 
+### 誰能看到供應商
+
+專案的 LLM 供應商只有能讀取專案設定的成員才能讀取：**Project Owner**、**Project Admin**、**Project Member**、**Viewer**、**Settings Admin**、**Settings Member**、**Settings Viewer** 和 **Read LLM**。供應商的 **API 金鑰** 只有專案擁有者和管理員才能讀取。同一頁面上的 **全域 LLM 供應商** 清單（專案在沒有自己的供應商時使用的共用供應商）向任何已登入的人顯示其名稱、說明和價格，此外不顯示任何內容。
+
 ## 各供應商專屬設定
 
 ### OpenAI

@@ -37,7 +37,9 @@ Select rules in the table, open the bulk actions menu and choose **Run Now**. Th
 
 ## Permissions
 
-To run a rule you need permission to edit the rule **and** to edit the resources it changes — for example, a monitor label rule needs both the monitor label rule and the monitor edit permissions. Owner rules also need permission to add owners. A permission limited to specific labels is not enough, because a run can change every resource in the project. Team block lists apply as they do everywhere else.
+To run a rule you need permission to edit the rule **and** to edit the resources it changes — for example, a monitor label rule needs both the monitor label rule and the monitor edit permissions. Owner rules also need permission to add owners. A permission limited to specific labels, or to owned resources, is not enough, because a run can change every resource in the project. Team block lists apply as they do everywhere else, and a block limited to some labels counts too: a run would change the resources carrying those labels, so a block with labels on editing the resources a rule changes refuses the run.
+
+A network's rules ask the same when you run them on the devices you already have: a site assignment or device label rule's **Run Now** needs permission to edit the rule and **Edit Network Device**, and an auto import rule's **Dry Run** and **Run Rule** need permission to edit the rule, **Create Network Device** and, when the rule has a Monitor Template, **Create Monitor** - each reaching the whole project. See [Importing Automatically with Auto Import Rules](/docs/monitor/network-device-monitor#importing-automatically-with-auto-import-rules).
 
 ## Related
 

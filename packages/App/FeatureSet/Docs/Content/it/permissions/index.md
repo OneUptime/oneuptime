@@ -139,6 +139,8 @@ Ogni autorizzazione concessa ha un ambito, scelto al momento dell'aggiunta:
 
 **Etichette** è la versione più manuale della stessa idea: contrassegnate le risorse, poi concedete autorizzazioni limitate a quei contrassegni.
 
+**Agire su tutto il progetto richiede un permesso che lo raggiunga.** **Run Now** applica una regola a ogni risorsa del progetto, e le regole di assegnazione del sito, delle etichette dei dispositivi e di importazione automatica di una rete a ogni dispositivo di rete o scansione; richiede quindi permessi con ambito su tutte le risorse del progetto: un permesso limitato a etichette o alle risorse possedute non basta, e un blocco con etichette sulle risorse che un'esecuzione modifica la rifiuta, perché modificherebbe anche le risorse che portano quelle etichette.
+
 Alcuni ruoli sono a livello di progetto per definizione e non offrono alcun ambito, perché restringerli non avrebbe senso: «Billing Admin, ma solo per la fatturazione che possiedo» non descrive nulla:
 
 {{PERMISSION_SCOPE_EXEMPT_ROLES}}
@@ -219,6 +221,8 @@ Gli aggiornamenti in tempo reale terminano anche con l'accesso che li ha avviati
 Ogni utente autenticato detiene inoltre un piccolo insieme di autorizzazioni automatiche che coprono cose come leggere il proprio profilo e le proprie regole di notifica. Non sono autorizzazioni amministrative e non danno accesso ai dati di nessun altro.
 
 Le autorizzazioni risolte sono memorizzate in cache per utente e progetto e aggiornate quando cambiano l'appartenenza ai team o le autorizzazioni del team. Se modificate le autorizzazioni e un utente non vede subito il cambiamento, chiedetegli di ricaricare.
+
+Un comando viene eseguito con una credenziale di runbook solo per chi può leggere le credenziali di runbook (**Read Runbook Credential**; i proprietari e gli amministratori del progetto possono). Approvare un piano di comandi IA con un comando SSH, che viene eseguito con la credenziale che OneUptime AI ha scelto tra quelle del suo Runner, richiede questa lettura, e così salvare una regola di correzione automatica che lascia eseguire a OneUptime AI i suoi comandi senza chiedere, quando il salvataggio lo attiva o aggiunge pattern alla lista consentita o Runner.
 
 ## Ricette
 
