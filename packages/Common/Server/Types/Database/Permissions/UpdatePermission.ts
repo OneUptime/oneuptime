@@ -13,6 +13,7 @@ import TablePermission from "./TablePermission";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import QueryDeepPartialEntity from "../../../../Types/Database/PartialEntity";
+import { normalizeReferenceId } from "../../../Utils/Database/ProjectScopedReferenceRefusal";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export default class UpdatePermission {
@@ -145,16 +146,16 @@ export default class UpdatePermission {
     );
 
     const alreadyChecked: Set<string> = new Set<string>(
-      (data.checkedParentIds || []).map(UpdatePermission.normalizeId),
+      (data.checkedParentIds || []).map(normalizeReferenceId),
     );
 
     const newIds: Array<string> = namedIds.filter((id: string): boolean => {
-      const normalized: string = UpdatePermission.normalizeId(id);
+      const normalized: string = normalizeReferenceId(id);
 
       return (
         !alreadyChecked.has(normalized) &&
         data.heldParentIds.some((held: Array<string>): boolean => {
-          return !held.map(UpdatePermission.normalizeId).includes(normalized);
+          return !held.map(normalizeReferenceId).includes(normalized);
         })
       );
     });
@@ -219,11 +220,6 @@ export default class UpdatePermission {
       record[parent.relation] !== undefined ||
       Boolean(parent.idColumn && record[parent.idColumn] !== undefined)
     );
-  }
-
-  // Postgres renders a uuid lower-cased, whatever case the payload used.
-  private static normalizeId(id: string): string {
-    return id.trim().toLowerCase();
   }
 
   @CaptureSpan()

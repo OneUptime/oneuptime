@@ -116,6 +116,33 @@ const UPGRADE_HEADING: Record<string, string> = {
     "把記錄移到另一筆記錄之下或在清單中新增記錄時，只能使用修改者能讀取的記錄；限定到標籤或「擁有」範圍的建立權限也約束它所建立的記錄",
 };
 
+/*
+ * The upgrade line's last words: the picks of a create form are added for
+ * their creator past their own read of the new record only, and a pick their
+ * permission to add does not reach refuses the create.
+ */
+const PICKS_ON_CREATE: Record<string, string> = {
+  en: "  even when the creator's own read does not reach the new record. A pick",
+  da: "også når vedkommendes egen læseadgang ikke når den nye post; et valg, som vedkommendes tilladelse til at tilføje det ikke når, afviser oprettelsen.",
+  de: "auch wenn seine eigene Leseberechtigung den neuen Datensatz nicht erreicht; eine Auswahl, die seine Berechtigung zum Hinzufügen nicht erreicht, lehnt das Anlegen ab.",
+  es: "aunque su propio permiso de lectura no alcance el registro nuevo; una elección que su permiso para añadirla no alcanza rechaza la creación.",
+  fa: "حتی اگر مجوز خواندن خود او به رکورد تازه نرسد؛ انتخابی که مجوز افزودنش به آن نمی‌رسد، ساختن را رد می‌کند.",
+  fr: "même quand sa propre autorisation de lecture n'atteint pas le nouvel enregistrement ; un choix que son autorisation d'ajouter n'atteint pas fait refuser la création.",
+  hi: "भले ही उसकी अपनी पढ़ने की अनुमति नए रिकॉर्ड तक न पहुँचे; जिस चुनाव तक उसकी जोड़ने की अनुमति नहीं पहुँचती, वह बनाना अस्वीकार करा देता है।",
+  it: "anche quando la sua autorizzazione a leggere non raggiunge il nuovo record; una scelta che la sua autorizzazione ad aggiungerla non raggiunge fa rifiutare la creazione.",
+  ja: "作成者自身の読み取り権限が新しいレコードに届かなくても、作成者のために追加されます。追加する権限が届かない選択があると、作成は拒否されます。",
+  ko: "만든 사람 자신의 읽기 권한이 새 레코드에 닿지 않아도 만든 사람을 위해 추가되며, 추가할 권한이 닿지 않는 선택이 있으면 만들기가 거부됩니다.",
+  nl: "ook als diens eigen leestoestemming het nieuwe record niet bereikt; een keuze die diens toestemming om haar toe te voegen niet bereikt, weigert de aanmaak.",
+  no: "også når egen lesetillatelse ikke når den nye posten; et valg som tillatelsen til å legge det til ikke når, avviser opprettingen.",
+  pt: "mesmo quando a sua própria permissão de leitura não alcança o registro novo; uma escolha que a sua permissão para adicioná-la não alcança recusa a criação.",
+  ru: "даже если его собственное разрешение на чтение не достаёт до новой записи; выбор, до которого не достаёт его разрешение на добавление, отклоняет создание.",
+  sv: "även när dennes egen läsbehörighet inte når den nya posten; ett val som dennes behörighet att lägga till det inte når avvisar skapandet.",
+  "zh-CN":
+    "即使创建者自己的读取权限不及新记录；创建者添加权限不及的选择会使创建被拒绝。",
+  "zh-TW":
+    "即使建立者自己的讀取權限不及新記錄；建立者新增權限不及的選擇會使建立被拒絕。",
+};
+
 // What step 7 already said about a create under a record you may read.
 const CREATE_UNDER_A_READABLE_RECORD: Record<string, string> = {
   en: "Such a record is also created only under one you may read",
@@ -169,6 +196,7 @@ describe("Docs: a record's parents and listed records on a change, and a create'
       CREATE_BLOCK,
       CHANGE_RULE,
       UPGRADE_HEADING,
+      PICKS_ON_CREATE,
     ]) {
       expect(Object.keys(words).sort()).toEqual([...LANGUAGES].sort());
     }
@@ -281,10 +309,17 @@ describe("Docs: a record's parents and listed records on a change, and a create'
       "  or the change is refused with the `400` that names the field and the ID,",
       "  is refused with a `422` that names the labels. A create permission scoped",
       "  rule picked when creating an on-call policy, are added for their creator",
+      PICKS_ON_CREATE["en"]!,
+      "  record does not carry, for one - refuses the create, and nothing is",
       "  [Records a request names](/docs/api-reference/api-reference#records-a-request-names)",
     ]) {
       expect([sentence, page.includes(sentence)]).toEqual([sentence, true]);
     }
+
+    // Past nothing but the creator's read of the new record.
+    expect(page).not.toContain(
+      "even when the new record is outside what the creator's own permissions",
+    );
 
     const created: number = page.indexOf(
       "- **A record read through another one is created only under a record its",
@@ -340,6 +375,12 @@ describe("Docs: a record's parents and listed records on a change, and a create'
         language,
         true,
       ]);
+
+      // It ends with the picks of a create form, which it may refuse.
+      expect([
+        language,
+        lines[moved[0]!]!.endsWith(PICKS_ON_CREATE[language]!),
+      ]).toEqual([language, true]);
     },
   );
 });

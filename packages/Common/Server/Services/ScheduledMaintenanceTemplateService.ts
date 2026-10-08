@@ -148,6 +148,17 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
+    // The owners picked in the form are asked about now, before anything is saved.
+    await OwnerRuleAssignment.checkOwnersPickedOnCreate({
+      ownerUserService: ScheduledMaintenanceTemplateOwnerUserService,
+      ownerTeamService: ScheduledMaintenanceTemplateOwnerTeamService,
+      resourceIdColumn: "scheduledMaintenanceTemplateId",
+      resourceModelType: Model,
+      resource: createBy.data,
+      miscDataProps: createBy.miscDataProps,
+      props: createBy.props,
+    });
+
     this.validateEventTemplate(createBy.data);
 
     await ProjectScopedReferenceValidator.validateReferencesBelongToProject({

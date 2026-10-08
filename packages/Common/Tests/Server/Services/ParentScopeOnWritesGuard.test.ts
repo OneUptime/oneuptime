@@ -393,3 +393,96 @@ describe("a create limited to owned records makes a record its creator owns", ()
     expect(source).toContain("OwnedScopePermission.getOwnedIds(");
   });
 });
+
+/*
+ * The owners picked in a create form go on the record once it is saved, and
+ * a refusal then would drop them: every service that adds them for their
+ * creator (addOwners' onCreatorsBehalf) asks whether the creator may add
+ * them first, from its create hook (OwnerRuleAssignment
+ * .checkOwnersPickedOnCreate), so a pick that is refused refuses the create.
+ */
+
+// A service's create hook, from its signature to its closing brace.
+function createHookOf(text: string): string {
+  const start: number = text.indexOf(
+    "protected override async onBeforeCreate(",
+  );
+
+  if (start < 0) {
+    return "";
+  }
+
+  const end: number = text.indexOf("\n  }\n", start);
+
+  return end > start ? text.slice(start, end) : "";
+}
+
+describe("owners picked on create are asked about before the record is saved", () => {
+  test("every service that adds them for their creator asks first, from its create hook", () => {
+    const missing: Array<string> = [];
+    let services: number = 0;
+
+    for (const file of listTypeScriptFiles(
+      path.join(SERVER_DIRECTORY, "Services"),
+    )) {
+      const text: string = fs.readFileSync(file, "utf8");
+
+      if (!text.includes("onCreatorsBehalf: boolean = false")) {
+        continue;
+      }
+
+      services++;
+
+      if (
+        !createHookOf(text).includes(
+          "OwnerRuleAssignment.checkOwnersPickedOnCreate({",
+        )
+      ) {
+        missing.push(path.basename(file));
+      }
+    }
+
+    expect(services).toBe(7);
+    expect(missing).toEqual([]);
+  });
+
+  /*
+   * An incident declared from a template takes the template's labels, and
+   * its owners, in the same hook: the declarer's own picks are asked about
+   * on the incident as it will be saved - after the template is applied,
+   * before its number is taken - and the template's owners, which are the
+   * template's to name, are not asked about as the declarer's.
+   */
+  test("an incident's are asked about as the declarer picked them, once its template is applied", () => {
+    const hook: string = createHookOf(
+      fs.readFileSync(
+        path.join(SERVER_DIRECTORY, "Services/IncidentService.ts"),
+        "utf8",
+      ),
+    );
+
+    const picked: number = hook.indexOf("OwnerRuleAssignment.getOwnersPicked(");
+    const handedOver: number = hook.indexOf(
+      "await this.handOverTemplateOwners({",
+    );
+    const templateLabels: number = hook.indexOf(
+      "createBy.data.labels = stubs;",
+    );
+    const asked: number = hook.indexOf(
+      "OwnerRuleAssignment.checkOwnersPickedOnCreate({",
+    );
+    const numbered: number = hook.indexOf(
+      "ProjectService.incrementAndGetIncidentCounter(",
+    );
+
+    expect(picked).toBeGreaterThan(-1);
+    expect(handedOver).toBeGreaterThan(picked);
+    expect(templateLabels).toBeGreaterThan(picked);
+    expect(asked).toBeGreaterThan(handedOver);
+    expect(asked).toBeGreaterThan(templateLabels);
+    expect(numbered).toBeGreaterThan(asked);
+    expect(hook.slice(asked, asked + 600)).toContain(
+      "miscDataProps: ownersPicked,",
+    );
+  });
+});

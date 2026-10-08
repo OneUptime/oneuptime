@@ -655,30 +655,48 @@ describe("once the policy is saved", () => {
   });
 
   /*
-   * The picks are not lost to a creator whose own permissions do not reach
-   * the policy they just made - their read of policies, or their
-   * permission to add escalation rules, limited to labels the new policy
-   * does not carry: OneUptime adds the rule for them, naming them, as it
-   * writes a new monitor's first status row.
+   * The picks are not lost to a creator whose read of policies does not
+   * reach the policy they just made: an escalation rule is read through its
+   * policy, and that refusal alone is written around - OneUptime adds the
+   * rule for them, naming them, as it writes a new monitor's first status
+   * row, while the policy has no rule yet and once their own permissions to
+   * add the rule and its responders hold for it.
    */
-  test.each([
-    [
-      "the new policy is not one the creator may read",
-      new UnreadableParentException(
+  describe("a creator whose read does not reach the policy they just made", () => {
+    let existingRules: number;
+    let ruleCount: jest.SpyInstance;
+    let scopeChecks: Array<{ modelType: unknown; props: unknown }>;
+    let scopeRefusal: Error | null;
+
+    beforeEach(() => {
+      existingRules = 0;
+      scopeChecks = [];
+      scopeRefusal = null;
+
+      ruleCount = jest
+        .spyOn(EscalationRuleService, "countBy")
+        .mockImplementation(async () => {
+          return new PositiveNumber(existingRules);
+        });
+
+      jest
+        .spyOn(DatabaseService.prototype, "checkCreateScopeOf")
+        .mockImplementation(async function (
+          this: DatabaseService<BaseModel>,
+          data: { props: DatabaseCommonInteractionProps },
+        ): Promise<void> {
+          scopeChecks.push({ modelType: this.modelType, props: data.props });
+
+          // Only the ask on the saved policy, after the refusal, is refused.
+          if (scopeRefusal && ruleCreates.length > 0) {
+            throw scopeRefusal;
+          }
+        });
+
+      ruleCreateError = new UnreadableParentException(
         `This escalation rule references records that are not in this project: On-Call Policy "${POLICY_ID.toString()}". Please pick values from this project and try again.`,
-      ),
-    ],
-    [
-      "the new policy is outside the creator's permission to add rules",
-      new CreateScopeException(
-        "Your access lets you create Escalation Rules only for records with one of these labels: Production.",
-      ),
-    ],
-  ])(
-    "when %s, OneUptime adds the rule for its creator",
-    async (_name: string, failure: Error) => {
-      // Refused as the creator; written by OneUptime.
-      ruleCreateError = failure;
+      );
+
       policyCreateSpy.mockImplementation(async function (
         this: DatabaseService<BaseModel>,
         createBy: CreateBy<BaseModel>,
@@ -699,7 +717,9 @@ describe("once the policy is saved", () => {
         createBy.data.id = RULE_ID;
         return createBy.data;
       });
+    });
 
+    test("OneUptime adds the rule for its creator", async () => {
       const policy: OnCallDutyPolicy = await createPolicy(ALL_KINDS);
 
       expect(policy.id?.toString()).toBe(POLICY_ID.toString());
@@ -724,20 +744,97 @@ describe("once the policy is saved", () => {
         PROJECT_ID.toString(),
       );
       expect(loggerErrorSpy).not.toHaveBeenCalled();
+
+      // The policy had no rule yet.
+      expect(ruleCount).toHaveBeenCalledTimes(1);
+      expect(
+        (
+          ruleCount.mock.calls[0]![0] as {
+            query: { onCallDutyPolicyId: unknown };
+          }
+        ).query.onCallDutyPolicyId,
+      ).toEqual(POLICY_ID);
+
+      /*
+       * The creator's own permissions were asked about, as the creator, on
+       * the rule and every kind of responder - before the policy was saved,
+       * and again on the saved policy.
+       */
+      const asked: Array<unknown> = scopeChecks.map(
+        (check: { modelType: unknown }): unknown => {
+          return check.modelType;
+        },
+      );
+
+      for (const modelType of [
+        OnCallDutyPolicyEscalationRule,
+        OnCallDutyPolicyEscalationRuleSchedule,
+        OnCallDutyPolicyEscalationRuleTeam,
+        OnCallDutyPolicyEscalationRuleUser,
+      ]) {
+        expect(
+          asked.filter((each: unknown): boolean => {
+            return each === modelType;
+          }),
+        ).toHaveLength(2);
+      }
+
+      for (const check of scopeChecks) {
+        expect(
+          (check.props as DatabaseCommonInteractionProps).isRoot,
+        ).toBeFalsy();
+      }
+    });
+
+    test("a rule saved before the refusal is not added a second time", async () => {
+      existingRules = 1;
+
+      const policy: OnCallDutyPolicy = await createPolicy(ALL_KINDS);
+
+      expect(policy.id?.toString()).toBe(POLICY_ID.toString());
+      expect(ruleCreates).toHaveLength(1);
+      expect(loggerErrorSpy).toHaveBeenCalledTimes(1);
+    });
+
+    test("the creator's own permissions to add the rule still hold", async () => {
+      scopeRefusal = new CreateScopeException(
+        "Your access lets you create Escalation Rules only for records with one of these labels: Production.",
+      );
+
+      const policy: OnCallDutyPolicy = await createPolicy(ALL_KINDS);
+
+      expect(policy.id?.toString()).toBe(POLICY_ID.toString());
+      // Never written by OneUptime.
+      expect(ruleCreates).toHaveLength(1);
+      expect(loggerErrorSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  test.each([
+    [
+      "a permission to add rules limited to labels the policy does not carry",
+      new CreateScopeException(
+        "Your access lets you create Escalation Rules only for records with one of these labels: Production.",
+      ),
+    ],
+    [
+      "a missing permission to add rules",
+      new NotAuthorizedException(
+        "You do not have permissions to create Escalation Rule.",
+      ),
+    ],
+  ])(
+    "any other refusal is logged, never written around: %s",
+    async (_name: string, failure: Error) => {
+      ruleCreateError = failure;
+
+      const policy: OnCallDutyPolicy = await createPolicy(ALL_KINDS);
+
+      expect(policy.id?.toString()).toBe(POLICY_ID.toString());
+      expect(ruleCreates).toHaveLength(1);
+      expect(loggerErrorSpy).toHaveBeenCalledTimes(1);
     },
   );
-
-  test("any other refusal is logged, never written around", async () => {
-    ruleCreateError = new NotAuthorizedException(
-      "You do not have permissions to create Escalation Rule.",
-    );
-
-    const policy: OnCallDutyPolicy = await createPolicy(ALL_KINDS);
-
-    expect(policy.id?.toString()).toBe(POLICY_ID.toString());
-    expect(ruleCreates).toHaveLength(1);
-    expect(loggerErrorSpy).toHaveBeenCalledTimes(1);
-  });
 });
 
 /*

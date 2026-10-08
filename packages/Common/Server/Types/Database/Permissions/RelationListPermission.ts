@@ -22,6 +22,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import {
   getReferenceRefusalMessage,
+  normalizeReferenceId,
   resolveReferenceIds,
   UnreadableReferenceException,
 } from "../../../Utils/Database/ProjectScopedReferenceRefusal";
@@ -35,11 +36,6 @@ export interface CheckedRelationList {
   listedModelType: DatabaseBaseModelType;
   // How a refusal names the field: the column's title, "Monitors".
   title: string;
-}
-
-// Postgres renders a uuid lower-cased, whatever case the payload used.
-function normalizeId(id: string): string {
-  return id.trim().toLowerCase();
 }
 
 /*
@@ -204,11 +200,11 @@ export default class RelationListPermission {
       for (const entry of resolveReferenceIds(value)) {
         const id: string = entry.toString().trim();
 
-        if (seen.has(normalizeId(id))) {
+        if (seen.has(normalizeReferenceId(id))) {
           continue;
         }
 
-        seen.add(normalizeId(id));
+        seen.add(normalizeReferenceId(id));
         ids.push(id);
       }
 
@@ -228,6 +224,7 @@ export default class RelationListPermission {
    * says whether the write's own service holds every reference it names to
    * its project (ProjectReferencesService): with such a check, a caller
    * whose read of the listed model is narrowed by nothing is not looked up.
+   * `namedIds` is getNamedIds of the write, when the caller has it already.
    */
   @CaptureSpan()
   public static async checkNamedLists(data: {
@@ -238,15 +235,15 @@ export default class RelationListPermission {
     findReadableIds: RecordIdsFinder;
     findIdsInProject: RecordIdsFinder;
     referencesCheckedInProject: boolean;
+    namedIds?: Dictionary<Array<string>> | undefined;
   }): Promise<void> {
     if (data.props.isRoot || data.props.isMasterAdmin) {
       return;
     }
 
-    const named: Dictionary<Array<string>> = RelationListPermission.getNamedIds(
-      data.modelType,
-      data.data,
-    );
+    const named: Dictionary<Array<string>> =
+      data.namedIds ||
+      RelationListPermission.getNamedIds(data.modelType, data.data);
 
     const refused: Array<string> = [];
 
@@ -281,7 +278,7 @@ export default class RelationListPermission {
       }
 
       for (const id of newIds) {
-        if (!readIds.has(normalizeId(id))) {
+        if (!readIds.has(normalizeReferenceId(id))) {
           refused.push(`${list.title} "${id}"`);
         }
       }
@@ -314,13 +311,13 @@ export default class RelationListPermission {
 
     const heldSets: Array<Set<string>> = heldIds.map(
       (held: Array<string>): Set<string> => {
-        return new Set<string>(held.map(normalizeId));
+        return new Set<string>(held.map(normalizeReferenceId));
       },
     );
 
     return ids.filter((id: string): boolean => {
       return heldSets.some((held: Set<string>): boolean => {
-        return !held.has(normalizeId(id));
+        return !held.has(normalizeReferenceId(id));
       });
     });
   }
@@ -417,6 +414,6 @@ export default class RelationListPermission {
           props: data.props,
         });
 
-    return new Set<string>(foundIds.map(normalizeId));
+    return new Set<string>(foundIds.map(normalizeReferenceId));
   }
 }

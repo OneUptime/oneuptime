@@ -21,6 +21,7 @@ import HeldPermissionsUtil, {
 import ObjectID from "../../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../../Types/Permission";
 import {
+  normalizeReferenceId,
   resolveReferenceId,
   resolveReferenceIds,
 } from "../../../Utils/Database/ProjectScopedReferenceRefusal";
@@ -57,11 +58,6 @@ export interface CreateScope {
   isOwnedOnly: boolean;
   // The blocks with labels on the model's create permissions.
   labelledBlocks: Array<UserPermission>;
-}
-
-// Postgres renders a uuid lower-cased, whatever case the payload used.
-function normalizeId(id: string): string {
-  return id.trim().toLowerCase();
 }
 
 let labelledModelTypes: Array<DatabaseBaseModelType> | null = null;
@@ -119,6 +115,12 @@ export default class CreateScopePermission {
     props: DatabaseCommonInteractionProps;
     findRecordLabels: RecordLabelsFinder;
     findLabelNames: LabelNamesFinder;
+    /*
+     * Parents the caller is to own once the create they come with is saved:
+     * a record they are creating, whose creator becomes its owner
+     * (DatabaseService.autoOwnerOnCreate), asked about before it is.
+     */
+    ownedParentIds?: Array<string> | undefined;
   }): Promise<void> {
     if (data.props.isRoot || data.props.isMasterAdmin) {
       return;
@@ -153,7 +155,7 @@ export default class CreateScopePermission {
     for (const block of scope.labelledBlocks) {
       const blockedLabelIds: Array<string> = (block.labelIds || [])
         .map((labelId: ObjectID): string => {
-          return normalizeId(labelId.toString());
+          return normalizeReferenceId(labelId.toString());
         })
         .filter((labelId: string): boolean => {
           return Boolean(recordLabelIds?.has(labelId));
@@ -200,6 +202,7 @@ export default class CreateScopePermission {
         data.modelType,
         data.data,
         data.props,
+        data.ownedParentIds || [],
       );
     }
   }
@@ -210,7 +213,12 @@ export default class CreateScopePermission {
    * reaches the whole project (HeldPermissionsUtil.isProjectWideRow, a
    * global permission among them) makes the create project-wide; otherwise
    * the rows limited to labels give the labels, and with none of those every
-   * row is limited to owned records. The blocks with labels on the model's
+   * row is limited to owned records. Rows limited to labels beside rows
+   * limited to owned records read as the labels, as a read does: a row
+   * limited to labels counts as the broader grant there
+   * (OwnedScopePermission.isLimitedToOwnedRecords), and the read is narrowed
+   * to its labels (AccessControlPermission), so a record owned but carrying
+   * none of them would be one its creator could not read. The blocks with labels on the model's
    * create permissions, or on its wildcard while the wildcard is what
    * grants (HeldPermissionsUtil.getLabelBlockingPermissions).
    */
@@ -254,7 +262,7 @@ export default class CreateScopePermission {
       new Set<string>(
         labelRows.flatMap((row: UserPermission): Array<string> => {
           return (row.labelIds || []).map((labelId: ObjectID): string => {
-            return normalizeId(labelId.toString());
+            return normalizeReferenceId(labelId.toString());
           });
         }),
       ),
@@ -316,7 +324,7 @@ export default class CreateScopePermission {
       return new Set<string>(
         resolveReferenceIds(record[accessControlColumn]).map(
           (labelId: ObjectID | string): string => {
-            return normalizeId(labelId.toString());
+            return normalizeReferenceId(labelId.toString());
           },
         ),
       );
@@ -348,7 +356,7 @@ export default class CreateScopePermission {
 
       for (const modelType of modelTypes) {
         const ids: Set<string> = namedIds.get(modelType) || new Set<string>();
-        ids.add(normalizeId(id.toString()));
+        ids.add(normalizeReferenceId(id.toString()));
         namedIds.set(modelType, ids);
       }
     };
@@ -401,7 +409,7 @@ export default class CreateScopePermission {
 
       for (const recordLabelIds of Object.values(labelsByRecord)) {
         for (const labelId of recordLabelIds || []) {
-          labelIds.add(normalizeId(labelId));
+          labelIds.add(normalizeReferenceId(labelId));
         }
       }
     }
@@ -417,6 +425,7 @@ export default class CreateScopePermission {
     modelType: { new (): TBaseModel },
     data: TBaseModel,
     props: DatabaseCommonInteractionProps,
+    ownedParentIds: Array<string>,
   ): Promise<void> {
     const model: BaseModel = new modelType();
 
@@ -444,6 +453,12 @@ export default class CreateScopePermission {
       if (ownedThrough.includeUnattributed) {
         return;
       }
+    } else if (
+      ownedParentIds
+        .map(normalizeReferenceId)
+        .includes(normalizeReferenceId(parentId.toString()))
+    ) {
+      return;
     } else {
       const ownedIds: Array<ObjectID> = await OwnedScopePermission.getOwnedIds(
         modelType,
@@ -453,7 +468,8 @@ export default class CreateScopePermission {
       if (
         ownedIds.some((ownedId: ObjectID): boolean => {
           return (
-            normalizeId(ownedId.toString()) === normalizeId(parentId.toString())
+            normalizeReferenceId(ownedId.toString()) ===
+            normalizeReferenceId(parentId.toString())
           );
         })
       ) {

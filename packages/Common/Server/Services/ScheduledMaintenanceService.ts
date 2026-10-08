@@ -1694,6 +1694,17 @@ ${resourcesAffected ? `**Resources Affected:** ${escapeMarkdownValue(resourcesAf
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
+    // The owners picked in the form are asked about now, before anything is saved.
+    await OwnerRuleAssignment.checkOwnersPickedOnCreate({
+      ownerUserService: ScheduledMaintenanceOwnerUserService,
+      ownerTeamService: ScheduledMaintenanceOwnerTeamService,
+      resourceIdColumn: "scheduledMaintenanceId",
+      resourceModelType: Model,
+      resource: createBy.data,
+      miscDataProps: createBy.miscDataProps,
+      props: createBy.props,
+    });
+
     if (!createBy.props.tenantId && !createBy.data.projectId) {
       throw new BadDataException(
         "ProjectId required to create scheduled maintenance.",

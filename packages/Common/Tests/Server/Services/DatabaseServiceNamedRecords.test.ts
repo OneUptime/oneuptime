@@ -158,6 +158,8 @@ const asMonitors: (ids: Array<string>) => Array<Monitor> = (
  */
 class AnnouncementService extends DatabaseService<StatusPageAnnouncement> {
   public pageAddedByHook: string | null = null;
+  // A hook that narrows the update's query in place.
+  public queryNarrowedByHook: boolean = false;
   public updateHookCalls: number = 0;
   public createHookCalls: number = 0;
 
@@ -179,6 +181,10 @@ class AnnouncementService extends DatabaseService<StatusPageAnnouncement> {
         ...((data["statusPages"] as Array<unknown>) || []),
         { _id: this.pageAddedByHook },
       ];
+    }
+
+    if (this.queryNarrowedByHook) {
+      (updateBy.query as Record<string, unknown>)["title"] = "Launch";
     }
 
     return { updateBy: updateBy, carryForward: null };
@@ -322,6 +328,20 @@ const updateAnnouncement: (
   });
 };
 
+// The reads of the rows an update writes, with the status pages they have.
+const rowReadsWithPages: () => Array<RowRead> = (): Array<RowRead> => {
+  return rowReads.filter((each: RowRead): boolean => {
+    const select: Record<string, unknown> | undefined = each.findBy.select as
+      | Record<string, unknown>
+      | undefined;
+
+    return (
+      Boolean(select?.["statusPages"]) &&
+      typeof select?.["statusPages"] === "object"
+    );
+  });
+};
+
 const refusalOf: (promise: Promise<unknown>) => Promise<unknown> = async (
   promise: Promise<unknown>,
 ): Promise<unknown> => {
@@ -429,6 +449,47 @@ describe("an update that gives a record a parent it does not have", () => {
       { modelType: "StatusPage", ids: [PAGE_C] },
       { modelType: "StatusPage", ids: [PAGE_B] },
     ]);
+  });
+
+  test("a page a hook adds is asked about on the rows read before the hooks, when the hooks keep the query", async () => {
+    service.pageAddedByHook = PAGE_C;
+
+    await updateAnnouncement({
+      statusPages: [{ _id: PAGE_A }],
+    });
+
+    // Kept as it was before the hooks, then the page the hook added.
+    expect(parentReads).toEqual([{ modelType: "StatusPage", ids: [PAGE_C] }]);
+    expect(rowReadsWithPages()).toHaveLength(1);
+    expect(save).toHaveBeenCalledTimes(1);
+  });
+
+  test("a hook that changes the query has the rows it writes read again", async () => {
+    service.pageAddedByHook = PAGE_C;
+    service.queryNarrowedByHook = true;
+
+    await updateAnnouncement({
+      statusPages: [{ _id: PAGE_A }],
+    });
+
+    const reads: Array<RowRead> = rowReadsWithPages();
+
+    expect(parentReads).toEqual([{ modelType: "StatusPage", ids: [PAGE_C] }]);
+    expect(reads).toHaveLength(2);
+    expect(JSON.stringify(reads[1]!.findBy.query)).toContain("Launch");
+    expect(save).toHaveBeenCalledTimes(1);
+  });
+
+  test("a hook that names a page with other letter case asks nothing more", async () => {
+    service.pageAddedByHook = PAGE_C.toUpperCase();
+
+    await updateAnnouncement({
+      statusPages: [{ _id: PAGE_A }, { _id: PAGE_C }],
+    });
+
+    expect(parentReads).toEqual([{ modelType: "StatusPage", ids: [PAGE_C] }]);
+    expect(rowReadsWithPages()).toHaveLength(1);
+    expect(save).toHaveBeenCalledTimes(1);
   });
 
   test("an update that names no parent reads nothing more", async () => {

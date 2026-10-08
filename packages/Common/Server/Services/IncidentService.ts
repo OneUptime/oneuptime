@@ -2683,6 +2683,16 @@ export class Service extends ProjectReferencesService<Model> {
     await super.onBeforeCreate(createBy);
 
     /*
+     * The owners the declarer picked in the form, as sent: asked about below,
+     * once the incident is as it will be saved. A template's owners, handed
+     * over below, are the template's to name, and are added once the
+     * incident is saved, as they were.
+     */
+    const ownersPicked: JSONObject = OwnerRuleAssignment.getOwnersPicked(
+      createBy.miscDataProps,
+    );
+
+    /*
      * A new incident is in no episode: it joins one through grouping or the
      * episode's members (EpisodeMembershipReference). Refused before the
      * incident number is taken.
@@ -3233,6 +3243,21 @@ export class Service extends ProjectReferencesService<Model> {
       createBy: createBy,
       projectId: projectId,
       statusPagesFromCaller: statusPagesFromCaller,
+    });
+
+    /*
+     * The owners the declarer picked, on the incident as it will be saved -
+     * with a template's labels - and before the counter increment too: a
+     * pick they may not add refuses the declare.
+     */
+    await OwnerRuleAssignment.checkOwnersPickedOnCreate({
+      ownerUserService: IncidentOwnerUserService,
+      ownerTeamService: IncidentOwnerTeamService,
+      resourceIdColumn: "incidentId",
+      resourceModelType: Model,
+      resource: createBy.data,
+      miscDataProps: ownersPicked,
+      props: createBy.props,
     });
 
     /*

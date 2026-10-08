@@ -351,6 +351,7 @@ export default class ModelPermission {
     findReadableIds: RecordIdsFinder;
     findIdsInProject: RecordIdsFinder;
     referencesCheckedInProject: boolean;
+    namedIds?: Dictionary<Array<string>> | undefined;
   }): Promise<void> {
     DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(data.props);
 
@@ -378,6 +379,7 @@ export default class ModelPermission {
     props: DatabaseCommonInteractionProps;
     findRecordLabels: RecordLabelsFinder;
     findLabelNames: LabelNamesFinder;
+    ownedParentIds?: Array<string> | undefined;
   }): Promise<void> {
     DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(data.props);
 

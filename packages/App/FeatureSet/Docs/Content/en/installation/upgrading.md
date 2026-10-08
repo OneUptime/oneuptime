@@ -634,8 +634,10 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   owners picked when creating a monitor, an incident, an alert, a scheduled
   maintenance event, a status page or a template, and the first escalation
   rule picked when creating an on-call policy, are added for their creator
-  even when the new record is outside what the creator's own permissions
-  reach. See
+  even when the creator's own read does not reach the new record. A pick
+  their permission to add it does not reach - restricted to labels the new
+  record does not carry, for one - refuses the create, and nothing is
+  saved. See
   [Records a request names](/docs/api-reference/api-reference#records-a-request-names)
   and [Users, Teams & Permissions](/docs/permissions/index).
 - **Every grant and scope narrows what it reaches, and a read by ID of a

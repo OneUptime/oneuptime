@@ -904,6 +904,17 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
+    // The owners picked in the form are asked about now, before anything is saved.
+    await OwnerRuleAssignment.checkOwnersPickedOnCreate({
+      ownerUserService: AlertOwnerUserService,
+      ownerTeamService: AlertOwnerTeamService,
+      resourceIdColumn: "alertId",
+      resourceModelType: Model,
+      resource: createBy.data,
+      miscDataProps: createBy.miscDataProps,
+      props: createBy.props,
+    });
+
     /*
      * A new alert is in no episode: it joins one through grouping or the
      * episode's members (EpisodeMembershipReference). Refused before the

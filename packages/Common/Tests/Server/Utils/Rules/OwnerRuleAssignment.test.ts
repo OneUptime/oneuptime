@@ -2,7 +2,9 @@ import MonitorOwnerTeam from "../../../../Models/DatabaseModels/MonitorOwnerTeam
 import MonitorOwnerUser from "../../../../Models/DatabaseModels/MonitorOwnerUser";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
-import DatabaseService from "../../../../Server/Services/DatabaseService";
+import DatabaseService, {
+  PendingRecord,
+} from "../../../../Server/Services/DatabaseService";
 import OwnerRuleAssignment, {
   OwnersToAssign,
 } from "../../../../Server/Utils/Rules/OwnerRuleAssignment";
@@ -13,6 +15,12 @@ import {
   UnreadableReferenceException,
 } from "../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import CreateScopeException from "../../../../Server/Types/Database/Permissions/CreateScopeException";
+import CreatePermission from "../../../../Server/Types/Database/Permissions/CreatePermission";
+import BasePermission from "../../../../Server/Types/Database/Permissions/BasePermission";
+import Label from "../../../../Models/DatabaseModels/Label";
+import Monitor from "../../../../Models/DatabaseModels/Monitor";
+import StatusPage from "../../../../Models/DatabaseModels/StatusPage";
+import StatusPageOwnerTeam from "../../../../Models/DatabaseModels/StatusPageOwnerTeam";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
@@ -422,11 +430,14 @@ describe("OwnerRuleAssignment.createOwner", () => {
 
 /*
  * THE OWNERS PICKED WITH A NEW RECORD ARE NOT LOST. Added for the person who
- * just created the record, they are written as that person; when the new
- * record is outside what that person's own permissions reach - a read of it,
- * or a permission to add its owners, limited to labels it does not carry -
- * OneUptime writes them for that person instead, naming them. Any other
- * refusal is theirs as before.
+ * just created the record, they are written as that person. One refusal is
+ * not theirs to fix: an owner row read through the record needs a read of it,
+ * and their read may not reach the record they made a moment ago. For that
+ * refusal alone OneUptime writes the row for that person, naming them - once
+ * the row is checked against their own permission to add owners on
+ * everything but that read. Every other refusal is theirs as before, a
+ * permission to add owners limited to labels the record does not carry among
+ * them.
  */
 describe("OwnerRuleAssignment.createOwner, on the creator's behalf", () => {
   const CREATOR: ObjectID = new ObjectID(
@@ -437,62 +448,150 @@ describe("OwnerRuleAssignment.createOwner, on the creator's behalf", () => {
     tenantId: PROJECT_ID,
   };
 
+  const unreadable: () => UnreadableParentException =
+    (): UnreadableParentException => {
+      return new UnreadableParentException(
+        'This monitor owner team references records that are not in this project: Monitor "x". Please pick values from this project and try again.',
+      );
+    };
+
+  let columnCheck: jest.SpyInstance;
+  let scopeCheck: jest.Mock;
+
+  beforeEach(() => {
+    columnCheck = jest
+      .spyOn(CreatePermission, "checkCreatePermissions")
+      .mockImplementation(() => {
+        return undefined as never;
+      });
+    scopeCheck = jest.fn(async () => {
+      return undefined;
+    });
+  });
+
   function serviceThat(create: jest.Mock): DatabaseService<MonitorOwnerTeam> {
-    return { create } as unknown as DatabaseService<MonitorOwnerTeam>;
+    return {
+      create,
+      modelType: MonitorOwnerTeam,
+      checkCreateScopeOf: scopeCheck,
+    } as unknown as DatabaseService<MonitorOwnerTeam>;
   }
+
+  it("writes the row for its creator after a new record its creator may not read", async () => {
+    const create: jest.Mock = jest
+      .fn()
+      .mockImplementationOnce(async () => {
+        throw unreadable();
+      })
+      .mockImplementationOnce(async () => {
+        return {};
+      });
+    const owner: MonitorOwnerTeam = ownerTeam(TEAM_A);
+
+    await expect(
+      OwnerRuleAssignment.createOwner({
+        ownerService: serviceThat(create as jest.Mock),
+        owner: owner,
+        props: creatorProps,
+        onCreatorsBehalf: true,
+      }),
+    ).resolves.toBe(true);
+
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(create.mock.calls[0]![0]).toEqual({
+      data: owner,
+      props: creatorProps,
+    });
+    // By OneUptime, naming the creator...
+    expect(create.mock.calls[1]![0]).toEqual({
+      data: owner,
+      props: { isRoot: true, userId: CREATOR },
+    });
+    // ...once the creator's own permission to add owners holds for the row.
+    expect(columnCheck).toHaveBeenCalledWith(
+      MonitorOwnerTeam,
+      owner,
+      creatorProps,
+    );
+    expect(scopeCheck).toHaveBeenCalledWith({
+      row: owner,
+      props: creatorProps,
+    });
+  });
+
+  it("a permission to add owners limited to labels the new record does not carry is not written around", async () => {
+    const failure: CreateScopeException = new CreateScopeException(
+      "Your access lets you create Monitor Team Owners only for records with one of these labels: Production.",
+    );
+    const create: jest.Mock = jest.fn(async () => {
+      throw failure;
+    });
+
+    await expect(
+      OwnerRuleAssignment.createOwner({
+        ownerService: serviceThat(create),
+        owner: ownerTeam(TEAM_A),
+        props: creatorProps,
+        onCreatorsBehalf: true,
+      }),
+    ).rejects.toBe(failure);
+
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(scopeCheck).not.toHaveBeenCalled();
+  });
 
   it.each([
     [
-      "a new record its creator may not read",
-      new UnreadableParentException(
-        'This monitor owner team references records that are not in this project: Monitor "x". Please pick values from this project and try again.',
-      ),
+      "the labels of their permission to add owners",
+      (): void => {
+        scopeCheck.mockImplementationOnce(async () => {
+          throw new CreateScopeException(
+            "Your access lets you create Monitor Team Owners only for records with one of these labels: Production.",
+          );
+        });
+      },
+      CreateScopeException,
     ],
     [
-      "a new record outside the creator's permission to add owners",
-      new CreateScopeException(
-        "Your access lets you create Monitor Team Owners only for records with one of these labels: Production.",
-      ),
+      "their permission to write the row's columns",
+      (): void => {
+        columnCheck.mockImplementationOnce(() => {
+          throw new NotAuthorizedException(
+            "You do not have permissions to create Monitor Team Owner.",
+          );
+        });
+      },
+      NotAuthorizedException,
     ],
   ])(
-    "writes the row for its creator after %s",
-    async (_label: string, failure: unknown) => {
-      const create: jest.Mock = jest
-        .fn()
-        .mockImplementationOnce(async () => {
-          throw failure;
-        })
-        .mockImplementationOnce(async () => {
-          return {};
-        });
-      const owner: MonitorOwnerTeam = ownerTeam(TEAM_A);
+    "when the creator may not read their new record, OneUptime still asks %s",
+    async (
+      _label: string,
+      refuse: () => void,
+      refusal: { new (message: string): Error },
+    ) => {
+      refuse();
+
+      const create: jest.Mock = jest.fn(async () => {
+        throw unreadable();
+      });
 
       await expect(
         OwnerRuleAssignment.createOwner({
-          ownerService: serviceThat(create as jest.Mock),
-          owner: owner,
+          ownerService: serviceThat(create),
+          owner: ownerTeam(TEAM_A),
           props: creatorProps,
           onCreatorsBehalf: true,
         }),
-      ).resolves.toBe(true);
+      ).rejects.toBeInstanceOf(refusal);
 
-      expect(create).toHaveBeenCalledTimes(2);
-      expect(create.mock.calls[0]![0]).toEqual({
-        data: owner,
-        props: creatorProps,
-      });
-      // By OneUptime, naming the creator.
-      expect(create.mock.calls[1]![0]).toEqual({
-        data: owner,
-        props: { isRoot: true, userId: CREATOR },
-      });
+      // Never written by OneUptime.
+      expect(create).toHaveBeenCalledTimes(1);
     },
   );
 
   it("without onCreatorsBehalf, the same refusal reaches the caller", async () => {
-    const failure: CreateScopeException = new CreateScopeException(
-      "Your access lets you create Monitor Team Owners only for records with one of these labels: Production.",
-    );
+    const failure: UnreadableParentException = unreadable();
     const create: jest.Mock = jest.fn(async () => {
       throw failure;
     });
@@ -535,7 +634,7 @@ describe("OwnerRuleAssignment.createOwner, on the creator's behalf", () => {
     const create: jest.Mock = jest
       .fn()
       .mockImplementationOnce(async () => {
-        throw new CreateScopeException("Your access lets you create ...");
+        throw unreadable();
       })
       .mockImplementationOnce(async () => {
         throw new ProjectScopedReferenceException(
@@ -554,7 +653,7 @@ describe("OwnerRuleAssignment.createOwner, on the creator's behalf", () => {
   });
 
   it("OneUptime's own owner rows are written once, as they were", async () => {
-    const failure: CreateScopeException = new CreateScopeException("x");
+    const failure: UnreadableParentException = unreadable();
     const create: jest.Mock = jest.fn(async () => {
       throw failure;
     });
@@ -572,11 +671,10 @@ describe("OwnerRuleAssignment.createOwner, on the creator's behalf", () => {
   });
 
   it("is what addOwners passes on for every owner it adds", async () => {
-    const failure: CreateScopeException = new CreateScopeException("x");
     const userCreate: jest.Mock = jest
       .fn()
       .mockImplementationOnce(async () => {
-        throw failure;
+        throw unreadable();
       })
       .mockImplementation(async () => {
         return {};
@@ -586,6 +684,7 @@ describe("OwnerRuleAssignment.createOwner, on the creator's behalf", () => {
     Object.assign(services.ownerUserService, {
       create: userCreate,
       modelType: MonitorOwnerUser,
+      checkCreateScopeOf: scopeCheck,
     });
 
     const added: OwnersToAssign = await OwnerRuleAssignment.addOwners({
@@ -609,6 +708,218 @@ describe("OwnerRuleAssignment.createOwner, on the creator's behalf", () => {
         }
       ).props,
     ).toEqual({ isRoot: true, userId: CREATOR });
+  });
+});
+
+/*
+ * THE OWNERS PICKED IN A CREATE FORM ARE ASKED ABOUT BEFORE THE RECORD IS
+ * SAVED: the permission to add owners and its columns, a read of the record
+ * when its owner rows are read through it, and the labels, blocks with labels
+ * and Owned scope of that permission, by the labels the record is created
+ * with. A refusal refuses the create.
+ */
+describe("OwnerRuleAssignment.checkOwnersPickedOnCreate", () => {
+  const CREATOR: ObjectID = new ObjectID(
+    "66666666-6666-4666-8666-666666666666",
+  );
+  const PRODUCTION: ObjectID = new ObjectID(
+    "77777777-7777-4777-8777-777777777777",
+  );
+  const creatorProps: DatabaseCommonInteractionProps = {
+    userId: CREATOR,
+    tenantId: PROJECT_ID,
+  };
+
+  let columnCheck: jest.SpyInstance;
+  let parentReadCheck: jest.SpyInstance;
+  let userScopeCheck: jest.Mock;
+  let teamScopeCheck: jest.Mock;
+
+  beforeEach(() => {
+    columnCheck = jest
+      .spyOn(CreatePermission, "checkCreatePermissions")
+      .mockImplementation(() => {
+        return undefined as never;
+      });
+    parentReadCheck = jest
+      .spyOn(BasePermission, "isHeldToParentRead")
+      .mockReturnValue(false);
+    userScopeCheck = jest.fn(async () => {
+      return undefined;
+    });
+    teamScopeCheck = jest.fn(async () => {
+      return undefined;
+    });
+  });
+
+  function ownerServices(data: {
+    ownerUserModel: { new (): MonitorOwnerUser | StatusPageOwnerTeam };
+    ownerTeamModel: { new (): MonitorOwnerTeam | StatusPageOwnerTeam };
+  }): {
+    ownerUserService: DatabaseService<MonitorOwnerUser>;
+    ownerTeamService: DatabaseService<MonitorOwnerTeam>;
+  } {
+    return {
+      ownerUserService: {
+        modelType: data.ownerUserModel,
+        checkCreateScopeOf: userScopeCheck,
+      } as unknown as DatabaseService<MonitorOwnerUser>,
+      ownerTeamService: {
+        modelType: data.ownerTeamModel,
+        checkCreateScopeOf: teamScopeCheck,
+      } as unknown as DatabaseService<MonitorOwnerTeam>,
+    };
+  }
+
+  function newMonitor(): Monitor {
+    const monitor: Monitor = new Monitor();
+    const label: Label = new Label();
+    label._id = PRODUCTION.toString();
+    monitor.projectId = PROJECT_ID;
+    monitor.labels = [label];
+    return monitor;
+  }
+
+  it("asks about each kind of owner picked, on the record as it will be saved", async () => {
+    await OwnerRuleAssignment.checkOwnersPickedOnCreate({
+      ...ownerServices({
+        ownerUserModel: MonitorOwnerUser,
+        ownerTeamModel: MonitorOwnerTeam,
+      }),
+      resourceIdColumn: "monitorId",
+      resourceModelType: Monitor,
+      resource: newMonitor(),
+      miscDataProps: { ownerUsers: [USER_A.toString()] },
+      props: creatorProps,
+    });
+
+    // People were picked, teams were not.
+    expect(teamScopeCheck).not.toHaveBeenCalled();
+    expect(userScopeCheck).toHaveBeenCalledTimes(1);
+
+    const asked: {
+      row: MonitorOwnerUser;
+      props: DatabaseCommonInteractionProps;
+      pending: PendingRecord;
+    } = userScopeCheck.mock.calls[0]![0] as never;
+
+    expect(asked.props).toBe(creatorProps);
+    expect(asked.pending.modelType).toBe(Monitor);
+    expect(asked.pending.labelIds).toEqual([PRODUCTION.toString()]);
+    // The creator - a person - becomes the new monitor's owner.
+    expect(asked.pending.ownedByCreator).toBe(true);
+    // The owner row names the record not saved yet by the placeholder.
+    expect(asked.row.monitorId?.toString()).toBe(asked.pending.id.toString());
+    expect(asked.row.projectId?.toString()).toBe(PROJECT_ID.toString());
+
+    expect(columnCheck).toHaveBeenCalledWith(
+      MonitorOwnerUser,
+      asked.row,
+      creatorProps,
+    );
+    // Monitor owner rows are not read through the monitor.
+    expect(parentReadCheck).not.toHaveBeenCalled();
+  });
+
+  it("owner rows read through the record need a read of it", async () => {
+    await OwnerRuleAssignment.checkOwnersPickedOnCreate({
+      ...ownerServices({
+        ownerUserModel: StatusPageOwnerTeam,
+        ownerTeamModel: StatusPageOwnerTeam,
+      }),
+      resourceIdColumn: "statusPageId",
+      resourceModelType: StatusPage,
+      resource: new StatusPage(),
+      miscDataProps: { ownerTeams: [TEAM_A.toString()] },
+      props: creatorProps,
+    });
+
+    expect(parentReadCheck).toHaveBeenCalledWith(
+      StatusPageOwnerTeam,
+      StatusPage,
+      creatorProps,
+      "create",
+    );
+    expect(teamScopeCheck).toHaveBeenCalledTimes(1);
+  });
+
+  it("a refusal of the permission to add owners refuses the create", async () => {
+    const failure: CreateScopeException = new CreateScopeException(
+      "Your access lets you create Monitor Owners only for records with one of these labels: Staging.",
+    );
+
+    userScopeCheck.mockImplementationOnce(async () => {
+      throw failure;
+    });
+
+    await expect(
+      OwnerRuleAssignment.checkOwnersPickedOnCreate({
+        ...ownerServices({
+          ownerUserModel: MonitorOwnerUser,
+          ownerTeamModel: MonitorOwnerTeam,
+        }),
+        resourceIdColumn: "monitorId",
+        resourceModelType: Monitor,
+        resource: newMonitor(),
+        miscDataProps: {
+          ownerUsers: [USER_A.toString()],
+          ownerTeams: [TEAM_A.toString()],
+        },
+        props: creatorProps,
+      }),
+    ).rejects.toBe(failure);
+  });
+
+  it.each([
+    ["no owners picked", creatorProps, {}],
+    ["empty picks", creatorProps, { ownerUsers: [], ownerTeams: [] }],
+    [
+      "OneUptime's own create",
+      { isRoot: true } as DatabaseCommonInteractionProps,
+      { ownerUsers: [USER_A.toString()] },
+    ],
+  ])(
+    "asks nothing for %s",
+    async (
+      _label: string,
+      props: DatabaseCommonInteractionProps,
+      miscDataProps: Record<string, Array<string>>,
+    ) => {
+      await OwnerRuleAssignment.checkOwnersPickedOnCreate({
+        ...ownerServices({
+          ownerUserModel: MonitorOwnerUser,
+          ownerTeamModel: MonitorOwnerTeam,
+        }),
+        resourceIdColumn: "monitorId",
+        resourceModelType: Monitor,
+        resource: newMonitor(),
+        miscDataProps: miscDataProps,
+        props: props,
+      });
+
+      expect(columnCheck).not.toHaveBeenCalled();
+      expect(userScopeCheck).not.toHaveBeenCalled();
+      expect(teamScopeCheck).not.toHaveBeenCalled();
+    },
+  );
+
+  it("an API key, which owns nothing, owns nothing it creates", async () => {
+    await OwnerRuleAssignment.checkOwnersPickedOnCreate({
+      ...ownerServices({
+        ownerUserModel: MonitorOwnerUser,
+        ownerTeamModel: MonitorOwnerTeam,
+      }),
+      resourceIdColumn: "monitorId",
+      resourceModelType: Monitor,
+      resource: newMonitor(),
+      miscDataProps: { ownerTeams: [TEAM_A.toString()] },
+      props: { tenantId: PROJECT_ID },
+    });
+
+    expect(
+      (teamScopeCheck.mock.calls[0]![0] as { pending: PendingRecord }).pending
+        .ownedByCreator,
+    ).toBe(false);
   });
 });
 

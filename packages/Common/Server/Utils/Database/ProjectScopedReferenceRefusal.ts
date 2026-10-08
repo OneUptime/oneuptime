@@ -77,6 +77,14 @@ export function resolveReferenceId(
 }
 
 /*
+ * A record id as Postgres renders a uuid - lower-cased - whatever case the
+ * payload used, for comparing the ids a write names with the ids read back.
+ */
+export function normalizeReferenceId(id: string): string {
+  return id.trim().toLowerCase();
+}
+
+/*
  * The list form of resolveReferenceId, for many-to-many payloads. The list
  * reaches a hook as model instances (API create, workers), `{ _id }` objects,
  * ObjectIDs or bare uuid strings (API update), and an entry with no id cannot

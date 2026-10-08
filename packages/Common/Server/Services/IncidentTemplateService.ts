@@ -85,6 +85,17 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
+    // The owners picked in the form are asked about now, before anything is saved.
+    await OwnerRuleAssignment.checkOwnersPickedOnCreate({
+      ownerUserService: IncidentTemplateOwnerUserService,
+      ownerTeamService: IncidentTemplateOwnerTeamService,
+      resourceIdColumn: "incidentTemplateId",
+      resourceModelType: Model,
+      resource: createBy.data,
+      miscDataProps: createBy.miscDataProps,
+      props: createBy.props,
+    });
+
     const projectId: ObjectID | undefined =
       createBy.props.tenantId || createBy.data.projectId;
 

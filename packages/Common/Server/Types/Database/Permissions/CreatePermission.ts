@@ -24,6 +24,7 @@ import { applyAlertSelfPrivacyFilter } from "../../../Utils/Alert/AlertPrivacyFi
 import { applyAlertEpisodeSelfPrivacyFilter } from "../../../Utils/AlertEpisode/AlertEpisodePrivacyFilter";
 import {
   getReferenceRefusalMessage,
+  normalizeReferenceId,
   resolveReferenceIds,
   UnreadableParentException,
 } from "../../../Utils/Database/ProjectScopedReferenceRefusal";
@@ -80,11 +81,6 @@ export type RecordIdsFinder = (data: {
   query: Query<BaseModel>;
   props: DatabaseCommonInteractionProps;
 }) => Promise<Array<string>>;
-
-// Postgres renders a uuid lower-cased, whatever case the payload used.
-function normalizeId(id: string): string {
-  return id.trim().toLowerCase();
-}
 
 // A parent table's rule for its private records, added to a query of it.
 type SelfPrivacyFilter = <TQuery>(
@@ -599,10 +595,12 @@ export default class CreatePermission {
       });
     }
 
-    const found: Set<string> = new Set<string>(foundIds.map(normalizeId));
+    const found: Set<string> = new Set<string>(
+      foundIds.map(normalizeReferenceId),
+    );
 
     const refusedIds: Array<string> = data.ids.filter((id: string): boolean => {
-      return !found.has(normalizeId(id));
+      return !found.has(normalizeReferenceId(id));
     });
 
     if (refusedIds.length > 0) {
@@ -714,11 +712,11 @@ export default class CreatePermission {
     for (const entry of resolveReferenceIds(record[parent.relation])) {
       const id: string = entry.toString().trim();
 
-      if (seen.has(normalizeId(id))) {
+      if (seen.has(normalizeReferenceId(id))) {
         continue;
       }
 
-      seen.add(normalizeId(id));
+      seen.add(normalizeReferenceId(id));
       ids.push(id);
     }
 
@@ -908,9 +906,11 @@ export default class CreatePermission {
     ids: Array<string>,
     otherIds: Array<string>,
   ): boolean {
-    const normalized: Set<string> = new Set<string>(ids.map(normalizeId));
+    const normalized: Set<string> = new Set<string>(
+      ids.map(normalizeReferenceId),
+    );
     const otherNormalized: Set<string> = new Set<string>(
-      otherIds.map(normalizeId),
+      otherIds.map(normalizeReferenceId),
     );
 
     if (normalized.size !== otherNormalized.size) {

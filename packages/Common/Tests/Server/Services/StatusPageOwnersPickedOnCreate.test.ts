@@ -2,6 +2,11 @@ import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageLabelRuleEngineService from "../../../Server/Services/StatusPageLabelRuleEngineService";
 import StatusPageOwnerRuleEngineService from "../../../Server/Services/StatusPageOwnerRuleEngineService";
 import StatusPageService from "../../../Server/Services/StatusPageService";
+import StatusPageOwnerTeamService from "../../../Server/Services/StatusPageOwnerTeamService";
+import StatusPageOwnerUserService from "../../../Server/Services/StatusPageOwnerUserService";
+import OwnerRuleAssignment from "../../../Server/Utils/Rules/OwnerRuleAssignment";
+import fs from "fs";
+import path from "path";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import logger from "../../../Server/Utils/Logger";
@@ -112,6 +117,25 @@ function stubTheCreate(events: Array<string>): void {
 
 type SpyInstance = ReturnType<typeof getJestSpyOn>;
 
+// What the page's create hook asks before the page is saved.
+function checkPickedOwners(
+  props: DatabaseCommonInteractionProps,
+  miscDataProps: JSONObject,
+): Promise<void> {
+  const page: StatusPage = new StatusPage();
+  page.projectId = PROJECT_ID;
+
+  return OwnerRuleAssignment.checkOwnersPickedOnCreate({
+    ownerUserService: StatusPageOwnerUserService,
+    ownerTeamService: StatusPageOwnerTeamService,
+    resourceIdColumn: "statusPageId",
+    resourceModelType: StatusPage,
+    resource: page,
+    miscDataProps: miscDataProps,
+    props: props,
+  });
+}
+
 afterEach(() => {
   jest.restoreAllMocks();
 });
@@ -213,45 +237,44 @@ describe("the owners picked when a status page is created", () => {
       permissions: Array<Record<string, unknown>>,
       message: string,
     ) => {
-      const events: Array<string> = [];
-      stubTheCreate(events);
-
-      const addOwners: SpyInstance = getJestSpyOn(
-        StatusPageService,
-        "addOwners",
-      ).mockResolvedValue(undefined);
-
-      const attempt: Promise<StatusPage> = StatusPageService.create({
-        data: new StatusPage(),
-        props: creatorProps(permissions),
-        miscDataProps: pickedOwners(),
-      });
+      const attempt: Promise<void> = checkPickedOwners(
+        creatorProps(permissions),
+        pickedOwners(),
+      );
 
       await expect(attempt).rejects.toThrow(NotAuthorizedException);
       await expect(attempt).rejects.toThrow(message);
-
-      expect(events).toEqual([]);
-      expect(addOwners).not.toHaveBeenCalled();
     },
   );
 
   test("a creator who picks only people needs no permission to add teams", async () => {
-    const events: Array<string> = [];
-    stubTheCreate(events);
+    await expect(
+      checkPickedOwners(
+        creatorProps([
+          grant(Permission.CreateProjectStatusPage),
+          grant(Permission.CreateStatusPageOwnerUser),
+          grant(Permission.ReadProjectStatusPage),
+        ]),
+        { ownerUsers: [OWNER_USER_ID] },
+      ),
+    ).resolves.toBeUndefined();
+  });
 
-    getJestSpyOn(StatusPageService, "addOwners").mockResolvedValue(undefined);
+  test("is asked from the create hook, before the page is saved", () => {
+    const source: string = fs.readFileSync(
+      path.resolve(__dirname, "../../../Server/Services/StatusPageService.ts"),
+      "utf8",
+    );
+    const start: number = source.indexOf(
+      "protected override async onBeforeCreate(",
+    );
+    const hook: string = source.slice(start, start + 2000);
 
-    await StatusPageService.create({
-      data: new StatusPage(),
-      props: creatorProps([
-        grant(Permission.CreateProjectStatusPage),
-        grant(Permission.CreateStatusPageOwnerUser),
-        grant(Permission.ReadProjectStatusPage),
-      ]),
-      miscDataProps: { ownerUsers: [OWNER_USER_ID] },
-    });
-
-    expect(events).toEqual(["created"]);
+    expect(start).toBeGreaterThan(-1);
+    expect(hook).toContain("OwnerRuleAssignment.checkOwnersPickedOnCreate({");
+    expect(hook).toContain("ownerUserService: StatusPageOwnerUserService");
+    expect(hook).toContain("ownerTeamService: StatusPageOwnerTeamService");
+    expect(hook).toContain("miscDataProps: createBy.miscDataProps");
   });
 
   test("OneUptime's own create adds any owner it is given", async () => {

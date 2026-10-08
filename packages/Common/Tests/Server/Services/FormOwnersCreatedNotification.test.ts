@@ -90,6 +90,17 @@ import { PublicFormSubmissionResult } from "../../../Types/Form/FormPublic";
 import FormTargetType from "../../../Types/Form/FormTargetType";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import Permission, {
+  UserPermission,
+  UserTenantAccessPermission,
+} from "../../../Types/Permission";
+import Label from "../../../Models/DatabaseModels/Label";
+import DatabaseService from "../../../Server/Services/DatabaseService";
+import CreateScopeException from "../../../Server/Types/Database/Permissions/CreateScopeException";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import OwnerRuleAssignment from "../../../Server/Utils/Rules/OwnerRuleAssignment";
 
 type OnBeforeCreate = (
   createBy: CreateBy<Incident>,
@@ -469,7 +480,8 @@ describe("the Incident Created notification of an incident reported through a fo
   /*
    * Only an internal (root) caller can ask for owners to be notified - misc
    * data is whatever a request body says - so a dashboard declare that asks
-   * is written, and notified, as it always was.
+   * is written, and notified, as it always was. Its declarer is a project
+   * member, who may add the owners they pick.
    */
   test("holds nothing for a dashboard declare that asks for its template's owners to be notified", async () => {
     // The root cause names the declaring user.
@@ -494,6 +506,20 @@ describe("the Incident Created notification of an incident reported through a fo
       props: {
         tenantId: PROJECT_ID,
         userId: new ObjectID(DECLARING_USER_ID),
+        userTenantAccessPermission: {
+          [PROJECT_ID.toString()]: {
+            _type: "UserTenantAccessPermission",
+            projectId: PROJECT_ID,
+            permissions: [
+              {
+                _type: "UserPermission",
+                permission: Permission.ProjectMember,
+                labelIds: [],
+                isBlockPermission: false,
+              },
+            ],
+          } as UserTenantAccessPermission,
+        },
       },
     });
 
@@ -517,5 +543,198 @@ describe("the Incident Created notification of an incident reported through a fo
     expect(job).toContain(
       "IncidentService.findAllBy({ query: { isOwnerNotifiedOfResourceCreation: false, },",
     );
+  });
+});
+
+/*
+ * The owners a declarer picks are asked about on the incident as it will be
+ * saved - with the labels its template gives it - before it takes a number:
+ * a pick they may not add refuses the declare. The template's own owners are
+ * the template's to name, and are added once the incident is saved, as
+ * before, whoever declares from it.
+ */
+describe("the owners a dashboard declare picks", () => {
+  const PRODUCTION: ObjectID = new ObjectID(
+    "b1000000-0000-4000-8000-0000000000a1",
+  );
+  const PICKED_USER_ID: ObjectID = new ObjectID(
+    "f0000000-0000-4000-8000-0000000000b1",
+  );
+
+  // A project member holding `rows`.
+  const declarer: (
+    rows: Array<{ permission: Permission; labelIds?: Array<ObjectID> }>,
+  ) => DatabaseCommonInteractionProps = (
+    rows: Array<{ permission: Permission; labelIds?: Array<ObjectID> }>,
+  ): DatabaseCommonInteractionProps => {
+    return {
+      tenantId: PROJECT_ID,
+      userId: new ObjectID(DECLARING_USER_ID),
+      userTenantAccessPermission: {
+        [PROJECT_ID.toString()]: {
+          _type: "UserTenantAccessPermission",
+          projectId: PROJECT_ID,
+          permissions: rows.map(
+            (row: {
+              permission: Permission;
+              labelIds?: Array<ObjectID>;
+            }): UserPermission => {
+              return {
+                _type: "UserPermission",
+                permission: row.permission,
+                labelIds: row.labelIds || [],
+                isBlockPermission: false,
+                scope:
+                  row.labelIds && row.labelIds.length > 0
+                    ? PermissionScope.Labels
+                    : PermissionScope.All,
+              };
+            },
+          ),
+        } as UserTenantAccessPermission,
+      },
+    };
+  };
+
+  // May declare incidents, and add owners only to those carrying Production.
+  const LABEL_LIMITED_OWNERS: Array<{
+    permission: Permission;
+    labelIds?: Array<ObjectID>;
+  }> = [
+    { permission: Permission.CreateProjectIncident },
+    { permission: Permission.ReadProjectIncident },
+    { permission: Permission.CreateIncidentOwnerUser, labelIds: [PRODUCTION] },
+  ];
+
+  // Declares from the template through the real create hook.
+  const declare: (
+    props: DatabaseCommonInteractionProps,
+    miscDataProps: JSONObject,
+  ) => Promise<OnCreate<Incident>> = (
+    props: DatabaseCommonInteractionProps,
+    miscDataProps: JSONObject,
+  ): Promise<OnCreate<Incident>> => {
+    const incident: Incident = new Incident();
+    incident.projectId = PROJECT_ID;
+    incident.title = "Checkout is down";
+    incident.incidentSeverityId = new ObjectID(FORM_SEVERITY_ID);
+    incident.createdIncidentTemplateId = TEMPLATE_ID;
+
+    return (
+      IncidentService as unknown as { onBeforeCreate: OnBeforeCreate }
+    ).onBeforeCreate({
+      data: incident,
+      miscDataProps: miscDataProps,
+      props: props,
+    });
+  };
+
+  // The template declared from, carrying `labelIds`.
+  const templateCarrying: (labelIds: Array<ObjectID>) => void = (
+    labelIds: Array<ObjectID>,
+  ): void => {
+    const template: IncidentTemplate = new IncidentTemplate();
+    template._id = TEMPLATE_ID;
+    template.initialIncidentStateId = new ObjectID(TEMPLATE_STATE_ID);
+    template.labels = labelIds.map((labelId: ObjectID): Label => {
+      const label: Label = new Label();
+      label._id = labelId.toString();
+      return label;
+    });
+
+    jest
+      .spyOn(IncidentTemplateService, "findOneBy")
+      .mockResolvedValue(template as never);
+  };
+
+  beforeEach(() => {
+    // The root cause names the declaring user.
+    jest
+      .spyOn(UserService, "getUserMarkdownString")
+      .mockResolvedValue("Ada" as never);
+  });
+
+  test("a declarer who may add no owners still declares from a template that names some", async () => {
+    const asked: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      OwnerRuleAssignment,
+      "checkOwnersPickedOnCreate",
+    );
+
+    const incident: Incident = new Incident();
+    incident.projectId = PROJECT_ID;
+    incident.title = "Checkout is down";
+    incident.incidentSeverityId = new ObjectID(FORM_SEVERITY_ID);
+
+    const created: Incident = await IncidentService.createFromTemplate({
+      templateId: new ObjectID(TEMPLATE_ID),
+      data: incident,
+      props: declarer([
+        { permission: Permission.CreateProjectIncident },
+        { permission: Permission.ReadProjectIncident },
+      ]),
+    });
+
+    expect(created.id?.toString()).toBe(INCIDENT_ID);
+    expect(ProjectService.incrementAndGetIncidentCounter).toHaveBeenCalledTimes(
+      1,
+    );
+
+    // No pick of theirs is asked about: the template's owners are its own.
+    expect(asked).toHaveBeenCalledTimes(1);
+    expect(
+      (asked.mock.calls[0]![0] as { miscDataProps: JSONObject }).miscDataProps,
+    ).toEqual({});
+  });
+
+  test("a declarer who picks owners they may not add is refused before the incident takes a number", async () => {
+    await expect(
+      declare(
+        declarer([
+          { permission: Permission.CreateProjectIncident },
+          { permission: Permission.ReadProjectIncident },
+        ]),
+        { ownerUsers: [PICKED_USER_ID] },
+      ),
+    ).rejects.toThrow(NotAuthorizedException);
+
+    expect(
+      ProjectService.incrementAndGetIncidentCounter,
+    ).not.toHaveBeenCalled();
+  });
+
+  test("a pick is asked about with the labels the template gives the incident", async () => {
+    templateCarrying([PRODUCTION]);
+
+    const onCreate: OnCreate<Incident> = await declare(
+      declarer(LABEL_LIMITED_OWNERS),
+      { ownerUsers: [PICKED_USER_ID] },
+    );
+
+    expect(
+      (onCreate.createBy.data.labels || []).map((label: Label): string => {
+        return label.id!.toString();
+      }),
+    ).toEqual([PRODUCTION.toString()]);
+    expect(ProjectService.incrementAndGetIncidentCounter).toHaveBeenCalledTimes(
+      1,
+    );
+  });
+
+  test("and refused when the incident will carry none of its permission's labels", async () => {
+    templateCarrying([]);
+    jest
+      .spyOn(DatabaseService as never, "findLabelNames")
+      .mockResolvedValue(["Production"] as never);
+
+    const attempt: Promise<OnCreate<Incident>> = declare(
+      declarer(LABEL_LIMITED_OWNERS),
+      { ownerUsers: [PICKED_USER_ID] },
+    );
+
+    await expect(attempt).rejects.toThrow(CreateScopeException);
+    await expect(attempt).rejects.toThrow("Production");
+    expect(
+      ProjectService.incrementAndGetIncidentCounter,
+    ).not.toHaveBeenCalled();
   });
 });
