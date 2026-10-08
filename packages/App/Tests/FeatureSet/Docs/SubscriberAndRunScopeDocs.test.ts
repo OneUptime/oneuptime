@@ -21,9 +21,12 @@ import path from "path";
  *   (AiRemediationCredentialUse): the AI SRE page says so.
  *
  * Users, Teams & Permissions carries the two rules - a paragraph before the
- * scope-exempt roles, and the last paragraph of How OneUptime decides - and
- * the upgrade notes say what changes. These are the English pages; the
- * translated guides follow them in their own translation pass.
+ * scope-exempt roles, and the close of the paragraph on settings that hold
+ * credentials - and the upgrade notes say what changes. These are the
+ * English pages; the translated guides follow them in their own translation
+ * pass. Until then the English additions keep to the outline the translated
+ * pages share with English (the LLM provider guide's headings, the number of
+ * paragraphs in How OneUptime decides), which their own suites pin.
  */
 
 const CONTENT_DIR: string = path.resolve(
@@ -148,19 +151,28 @@ describe("Docs: what a subscription, a rule run, an LLM provider list and an AI 
     );
   });
 
-  test("the LLM provider page says who can see a provider", () => {
+  test("the LLM provider page says who can see a provider, right after the provider form's fields", () => {
     const page: string = read("ai/llm-provider.md");
-    const start: number = page.indexOf("\n### Who can see a provider\n");
-    const end: number = page.indexOf("\n## Provider-Specific Configuration\n");
+    const paragraph: string = paragraphStartingWith(
+      page,
+      "**Who can see a provider.**",
+    );
 
-    expect(start).toBeGreaterThan(0);
-    expect(end).toBeGreaterThan(start);
-
-    expectSentences(page.slice(start, end), [
+    expectSentences(paragraph, [
       "A project's LLM providers are read only by its members who may read the project's settings: **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member**, **Settings Viewer** and **Read LLM**.",
       "A provider's **API Key** is read by the project's owners and admins alone.",
       "shows their name, description and price to anyone signed in, and nothing else about them.",
     ]);
+
+    // A paragraph of Setting Up an LLM Provider, after the form's last field.
+    const setUp: string = section(page, "Setting Up an LLM Provider");
+    const lastField: number = setUp.indexOf("- **More fields**, folded under");
+
+    expect(lastField).toBeGreaterThan(0);
+    expect(setUp.indexOf(paragraph)).toBeGreaterThan(lastField);
+    expect(paragraphs(setUp.slice(lastField, setUp.indexOf(paragraph)))).toHaveLength(
+      1,
+    );
   });
 
   test("the AI SRE page says what approving an SSH command and running without asking take", () => {
@@ -211,26 +223,25 @@ describe("Docs: what a subscription, a rule run, an LLM provider list and an AI 
     ]);
   });
 
-  test("Users, Teams & Permissions closes How OneUptime decides with the credential a command runs with", () => {
+  test("Users, Teams & Permissions closes the paragraph on settings that hold credentials with the credential an AI command runs with", () => {
     const decision: Array<string> = paragraphs(
       section(
         read("permissions/index.md"),
         "How OneUptime decides whether a request is allowed",
       ),
     );
-    const last: string = decision[decision.length - 1]!;
+    const credentials: string =
+      decision.find((paragraph: string): boolean => {
+        return paragraph.startsWith(
+          "A setting that holds credentials is named only by someone who may read it.",
+        );
+      }) || "";
 
     expect(
-      last.startsWith(
-        "A command runs with a runbook credential only for someone who may read runbook credentials",
+      credentials.endsWith(
+        "Approving an AI command plan with an SSH command, which runs with a runbook credential OneUptime AI picked from those of its Runner, takes the read of runbook credentials (**Read Runbook Credential**; Project Owners and Project Admins may), and so does saving an auto remediation rule that lets OneUptime AI run its commands without asking, when the save turns that on or adds allowlist patterns or Runners.",
       ),
     ).toBe(true);
-
-    expectSentences(last, [
-      "(**Read Runbook Credential**; Project Owners and Project Admins may)",
-      "Approving an AI command plan with an SSH command, which runs with the credential OneUptime AI picked from those of its Runner, takes that read",
-      "saving an auto remediation rule that lets OneUptime AI run its commands without asking, when the save turns that on or adds allowlist patterns or Runners.",
-    ]);
   });
 
   test("the upgrade notes say what changes, before who owns a resource", () => {
