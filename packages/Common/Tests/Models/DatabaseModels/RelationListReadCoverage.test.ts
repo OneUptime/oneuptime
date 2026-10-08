@@ -245,9 +245,7 @@ describe("the shared paths ask it", () => {
       "private async _updateBy(updateBy: UpdateBy<TBaseModel>): Promise<number> {",
     );
 
-    const named: number = update.indexOf(
-      "await this.checkUpdateNamedRecords(",
-    );
+    const named: number = update.indexOf("await this.checkUpdateNamedRecords(");
     const hooks: number = update.indexOf("await this.onBeforeUpdate(updateBy)");
 
     expect(named).toBeGreaterThan(-1);
