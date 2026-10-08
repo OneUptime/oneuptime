@@ -12,6 +12,7 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import DatabaseServerService from "./DatabaseServerService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -120,10 +121,11 @@ export class Service extends ProjectReferencesService<Model> {
         databaseServerFeedEventType:
           DatabaseServerFeedEventType.OwnerUserRemoved,
         displayColor: Red500,
-        feedInfoInMarkdown: `👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) as an owner of ${await DatabaseServerService.getDatabaseServerMarkdownLink(
-          projectId,
-          databaseServerId,
-        )}.`,
+        feedInfoInMarkdown:
+          mdText`👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) as an owner of ${await DatabaseServerService.getDatabaseServerMarkdownLink(
+            projectId,
+            databaseServerId,
+          )}.`.toString(),
         userId: deletedByUserId || undefined,
       });
     }
@@ -160,15 +162,14 @@ export class Service extends ProjectReferencesService<Model> {
         projectId: projectId,
         databaseServerFeedEventType: DatabaseServerFeedEventType.OwnerUserAdded,
         displayColor: Gray500,
-        feedInfoInMarkdown: `👨🏻‍💻 Added **${await UserService.getUserMarkdownString(
-          {
+        feedInfoInMarkdown:
+          mdText`👨🏻‍💻 Added **${await UserService.getUserMarkdownString({
             userId: userId,
             projectId: projectId,
-          },
-        )}** as an owner of ${await DatabaseServerService.getDatabaseServerMarkdownLink(
-          projectId,
-          databaseServerId,
-        )}.`,
+          })}** as an owner of ${await DatabaseServerService.getDatabaseServerMarkdownLink(
+            projectId,
+            databaseServerId,
+          )}.`.toString(),
         userId: createdByUserId || undefined,
       });
     }

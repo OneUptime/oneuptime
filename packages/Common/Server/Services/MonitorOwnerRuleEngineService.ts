@@ -13,7 +13,8 @@ import UserService from "./UserService";
 import { MonitorFeedEventType } from "../../Models/DatabaseModels/MonitorFeed";
 import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
+import { MarkdownText, mdText } from "../../Utils/Markdown/FeedMarkdown";
+import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Select from "../Types/Database/Select";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -337,15 +338,6 @@ class MonitorOwnerRuleEngineServiceClass
           : Promise.resolve([] as Array<Team>),
       ]);
 
-      const userLines: Array<string> = users.map((u: User) => {
-        const display: string =
-          u.name?.toString() || u.email?.toString() || "Unknown User";
-        return `\n- 👤 ${escapeMarkdownValue(display)}`;
-      });
-      const teamLines: Array<string> = teams.map((t: Team) => {
-        return `\n- 👥 ${escapeMarkdownValue(t.name?.toString() || "Unnamed Team")}`;
-      });
-
       const ruleNames: Array<string> = matchedRules
         .map((r: MonitorOwnerRule) => {
           return r.name?.toString() || "Unnamed Rule";
@@ -354,32 +346,22 @@ class MonitorOwnerRuleEngineServiceClass
           return n !== "";
         });
 
-      const rulesPart: string =
-        ruleNames.length === 1
-          ? `**${escapeMarkdownValue(ruleNames[0])}**`
-          : ruleNames
-              .map((n: string) => {
-                return `**${escapeMarkdownValue(n)}**`;
-              })
-              .join(", ");
-
-      const ownersPart: string =
-        userLines.length + teamLines.length > 0
-          ? userLines.concat(teamLines).join("")
-          : "\n- (no named owners)";
-
-      const feedInfoInMarkdown: string = `🛡️ **Monitor Owner Rule${
-        matchedRules.length > 1 ? "s" : ""
-      } executed:** ${rulesPart}\n\nAssigned the following owner${
-        userLines.length + teamLines.length === 1 ? "" : "s"
-      } to the monitor:${ownersPart}`;
+      const feedInfoInMarkdown: MarkdownText = mdText`${RuleFeedMarkdown.executedLine(
+        {
+          emoji: "🛡️",
+          ruleKind: "Monitor Owner Rule",
+          ruleNames: ruleNames,
+        },
+      )}\n\nAssigned the following owner${
+        users.length + teams.length === 1 ? "" : "s"
+      } to the monitor:\n${RuleFeedMarkdown.ownersList({ users: users, teams: teams })}`;
 
       await MonitorFeedService.createMonitorFeedItem({
         monitorId: monitor.id,
         projectId: monitor.projectId,
         monitorFeedEventType: MonitorFeedEventType.OwnerRuleExecuted,
         displayColor: Indigo500,
-        feedInfoInMarkdown,
+        feedInfoInMarkdown: feedInfoInMarkdown.toString(),
       });
     } catch (error) {
       logger.error(

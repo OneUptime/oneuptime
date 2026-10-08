@@ -3,7 +3,6 @@ import Model from "../../Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
 import User from "../../Models/DatabaseModels/User";
 import { Gray500, Red500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
-import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
@@ -16,6 +15,10 @@ import DatabaseService from "./DatabaseService";
 import ServiceLevelObjectiveFeedService from "./ServiceLevelObjectiveFeedService";
 import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
 import UserService from "./UserService";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
 
 const SLO_OWNER_USER_SUBJECT: string = "SLO owner user";
 
@@ -175,13 +178,13 @@ export class Service extends DatabaseService<Model> {
           continue;
         }
 
-        const email: string = escapeMarkdownInline(
-          user.email?.toString() || "",
-        ).trim();
+        const email: string = user.email?.toString().trim() || "";
 
         // The email is only worth repeating when the name is not the email.
-        const emailSuffix: string =
-          email && email !== displayName ? ` (${email})` : "";
+        const emailSuffix: MarkdownText =
+          email && email !== displayName
+            ? mdText` (${email})`
+            : FeedMarkdown.empty();
 
         await ServiceLevelObjectiveFeedService.createServiceLevelObjectiveFeedItem(
           {
@@ -190,12 +193,13 @@ export class Service extends DatabaseService<Model> {
             serviceLevelObjectiveFeedEventType:
               ServiceLevelObjectiveFeedEventType.OwnerUserRemoved,
             displayColor: Red500,
-            feedInfoInMarkdown: `👨🏻‍💻 Removed **${displayName}**${emailSuffix} as an owner of ${await ServiceLevelObjectiveService.getSloMarkdownLink(
-              {
-                projectId: projectId,
-                sloId: serviceLevelObjectiveId,
-              },
-            )}.`,
+            feedInfoInMarkdown:
+              mdText`👨🏻‍💻 Removed **${displayName}**${emailSuffix} as an owner of ${await ServiceLevelObjectiveService.getSloMarkdownLink(
+                {
+                  projectId: projectId,
+                  sloId: serviceLevelObjectiveId,
+                },
+              )}.`.toString(),
             userId: deletedByUserId || undefined,
           },
         );
@@ -227,10 +231,11 @@ export class Service extends DatabaseService<Model> {
     }
 
     try {
-      const userMarkdown: string | null = await SloFeedUtil.getUserMarkdown({
-        userId: userId,
-        projectId: projectId,
-      });
+      const userMarkdown: MarkdownText | null =
+        await SloFeedUtil.getUserMarkdown({
+          userId: userId,
+          projectId: projectId,
+        });
 
       if (!userMarkdown) {
         return createdItem;
@@ -243,12 +248,13 @@ export class Service extends DatabaseService<Model> {
           serviceLevelObjectiveFeedEventType:
             ServiceLevelObjectiveFeedEventType.OwnerUserAdded,
           displayColor: Gray500,
-          feedInfoInMarkdown: `👨🏻‍💻 Added **${userMarkdown}** as an owner of ${await ServiceLevelObjectiveService.getSloMarkdownLink(
-            {
-              projectId: projectId,
-              sloId: serviceLevelObjectiveId,
-            },
-          )}.`,
+          feedInfoInMarkdown:
+            mdText`👨🏻‍💻 Added **${userMarkdown}** as an owner of ${await ServiceLevelObjectiveService.getSloMarkdownLink(
+              {
+                projectId: projectId,
+                sloId: serviceLevelObjectiveId,
+              },
+            )}.`.toString(),
           userId: createdByUserId || undefined,
         },
       );

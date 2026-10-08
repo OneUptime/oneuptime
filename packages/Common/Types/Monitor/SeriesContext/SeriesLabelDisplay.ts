@@ -1,9 +1,9 @@
 import { JSONObject, JSONValue } from "../../JSON";
-import {
-  escapeMarkdownValue,
-  markdownCodeSpan,
-} from "../../../Utils/Markdown/MarkdownEscape";
 
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * Turning a metric series' raw label map into something an on-call
  * engineer can read at 3am.
@@ -632,9 +632,9 @@ export default class SeriesLabelDisplay {
    * alert/incident descriptions (which is what Slack, email and the
    * mobile push actually show).
    *
-   * A label's name and value come from the telemetry itself: the name is
-   * escaped as text and the value shown as code (markdownCodeSpan), so a
-   * backtick cannot close the span early and nothing in either is read as
+   * A label's name and value come from the telemetry itself: mdText places
+   * the name as text and the value as code (writing the span around it), so
+   * a backtick cannot close the span early and nothing in either is read as
    * Markdown or as a chat mention.
    */
   public static buildMarkdownBlock(
@@ -648,15 +648,14 @@ export default class SeriesLabelDisplay {
       return "";
     }
 
-    const heading: string = escapeMarkdownValue(
-      options?.heading || "Affected resource",
+    // A label's name is text and its value code, each placed by mdText.
+    const lines: Array<MarkdownText> = labels.map(
+      (label: DisplaySeriesLabel): MarkdownText => {
+        return mdText`**${label.name}:** \`${label.value}\``;
+      },
     );
 
-    const lines: Array<string> = labels.map((label: DisplaySeriesLabel) => {
-      return `- **${escapeMarkdownValue(label.name)}:** ${markdownCodeSpan(label.value)}`;
-    });
-
-    return `**${heading}**\n${lines.join("\n")}`;
+    return mdText`**${options?.heading || "Affected resource"}**\n${FeedMarkdown.bulletList(lines)}`.toString();
   }
 
   /*

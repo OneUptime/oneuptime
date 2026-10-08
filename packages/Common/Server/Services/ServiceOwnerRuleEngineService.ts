@@ -26,6 +26,8 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 
 class ServiceOwnerRuleEngineServiceClass
   implements RuleRunEngine<Service, ServiceOwnerRule>
@@ -295,18 +297,17 @@ class ServiceOwnerRuleEngineServiceClass
       projectId: service.projectId,
       serviceFeedEventType: ServiceFeedEventType.OwnerRuleExecuted,
       displayColor: Purple500,
-      feedInfoInMarkdown: `👥 Owners were added to ${await ServiceService.getServiceMarkdownLink(
-        service.projectId,
-        service.id,
-      )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`,
-      moreInformationInMarkdown: `**Owner rules that matched**: ${matchedRules
-        .map((rule: ServiceOwnerRule) => {
+      feedInfoInMarkdown:
+        mdText`👥 Owners were added to ${await ServiceService.getServiceMarkdownLink(
+          service.projectId,
+          service.id,
+        )} by ${matchedRules.length} owner ${matchedRules.length === 1 ? "rule" : "rules"}.`.toString(),
+      moreInformationInMarkdown: RuleFeedMarkdown.matchedRulesLine({
+        ruleKind: "Owner",
+        ruleNames: matchedRules.map((rule: ServiceOwnerRule): string => {
           return rule.name || rule.id?.toString() || "Unnamed rule";
-        })
-        .map((name: string) => {
-          return `\`${name}\``;
-        })
-        .join(", ")}`,
+        }),
+      }).toString(),
     });
 
     return RuleApplicationResultUtil.updated(ownersAdded);

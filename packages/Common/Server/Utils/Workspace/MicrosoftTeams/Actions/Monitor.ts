@@ -7,11 +7,13 @@ import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import { TurnContext } from "botbuilder";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
-import { escapeMarkdownValue } from "../../../../../Utils/Markdown/MarkdownEscape";
 import MonitorService from "../../../../Services/MonitorService";
 import Monitor from "../../../../../Models/DatabaseModels/Monitor";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
+import FeedMarkdown, {
+  mdText,
+} from "../../../../../Utils/Markdown/FeedMarkdown";
 
 export default class MicrosoftTeamsMonitorActions {
   @CaptureSpan()
@@ -109,7 +111,8 @@ export default class MicrosoftTeamsMonitorActions {
         return;
       }
 
-      const message: string = `**Monitor Details**\n\n**Name:** ${escapeMarkdownValue(monitor.name)}\n**Description:** ${monitor.description || "No description"}\n**Type:** ${monitor.monitorType}\n**Status:** ${escapeMarkdownValue(monitor.currentMonitorStatus?.name || "Unknown")}\n**Enabled:** ${monitor.disableActiveMonitoring ? "No" : "Yes"}\n**Created At:** ${monitor.createdAt ? new Date(monitor.createdAt).toLocaleString() : "Unknown"}`;
+      const message: string =
+        mdText`**Monitor Details**\n\n**Name:** ${monitor.name}\n**Description:** ${FeedMarkdown.asMarkdown(monitor.description || "No description")}\n**Type:** ${monitor.monitorType}\n**Status:** ${monitor.currentMonitorStatus?.name || "Unknown"}\n**Enabled:** ${monitor.disableActiveMonitoring ? "No" : "Yes"}\n**Created At:** ${monitor.createdAt ? new Date(monitor.createdAt).toLocaleString() : "Unknown"}`.toString();
 
       await turnContext.sendActivity(message);
       return;

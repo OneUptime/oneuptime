@@ -1,15 +1,24 @@
 import QueryDeepPartialEntity from "../../../../Types/Database/PartialEntity";
 import Query from "../Query";
 import Select from "../Select";
-import CreatePermission, { ReadableParentIdsFinder } from "./CreatePermission";
+import CreatePermission, {
+  ReadableParentIdsFinder,
+  RecordIdsFinder,
+} from "./CreatePermission";
+import CreateScopePermission, {
+  LabelNamesFinder,
+  RecordLabelsFinder,
+} from "./CreateScopePermission";
 import DeletePermission from "./DeletePermission";
 import ReadPermission, { CheckReadPermissionType } from "./ReadPermission";
+import RelationListPermission from "./RelationListPermission";
 import TablePermission from "./TablePermission";
 import UpdatePermission from "./UpdatePermission";
 import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import Dictionary from "../../../../Types/Dictionary";
 import NotAuthenticatedException from "../../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
@@ -281,12 +290,101 @@ export default class ModelPermission {
     props: DatabaseCommonInteractionProps;
     // Reads the parents as the caller. See ReadableParentIdsFinder.
     findReadableParentIds: ReadableParentIdsFinder;
+    // Reads them as OneUptime, in the project. See RecordIdsFinder.
+    findParentIdsInProject: RecordIdsFinder;
+    // Whether the write's service holds its references to its project.
+    referencesCheckedInProject: boolean;
     checkedParentIds?: Array<string> | undefined;
   }): Promise<Array<string>> {
     DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(data.props);
 
     try {
       return await CreatePermission.checkParentPermission(data);
+    } catch (error) {
+      throw ModelPermission.toAnonymousRefusal(error, data.props);
+    }
+  }
+
+  /*
+   * An update that moves a record read through another one to a parent it
+   * does not have goes only to a parent its caller may read
+   * (UpdatePermission.checkParentPermission). Asked by DatabaseService
+   * before the update hooks run, with the parents each record it writes has
+   * now, and again after them (`checkedParentIds`) should a hook name
+   * others. Returns the parent ids the update names.
+   */
+  @CaptureSpan()
+  public static async checkUpdateParentPermission<
+    TBaseModel extends BaseModel,
+  >(data: {
+    modelType: { new (): TBaseModel };
+    data: unknown;
+    props: DatabaseCommonInteractionProps;
+    heldParentIds: Array<Array<string>>;
+    findReadableParentIds: ReadableParentIdsFinder;
+    findParentIdsInProject: RecordIdsFinder;
+    referencesCheckedInProject: boolean;
+    checkedParentIds?: Array<string> | undefined;
+  }): Promise<Array<string>> {
+    DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(data.props);
+
+    try {
+      return await UpdatePermission.checkParentPermission(data);
+    } catch (error) {
+      throw ModelPermission.toAnonymousRefusal(error, data.props);
+    }
+  }
+
+  /*
+   * The records a create or an update lists - an incident's monitors, a
+   * maintenance event's status pages - are records its caller may read
+   * (RelationListPermission.checkNamedLists). Asked by DatabaseService before
+   * the hooks run, on what the caller sent; for an update, with what each
+   * record it writes lists already, which is not asked about again.
+   */
+  @CaptureSpan()
+  public static async checkNamedListsPermission(data: {
+    modelType: { new (): BaseModel };
+    data: unknown;
+    props: DatabaseCommonInteractionProps;
+    heldIdsByColumn?: Dictionary<Array<Array<string>>> | undefined;
+    findReadableIds: RecordIdsFinder;
+    findIdsInProject: RecordIdsFinder;
+    referencesCheckedInProject: boolean;
+    namedIds?: Dictionary<Array<string>> | undefined;
+  }): Promise<void> {
+    DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(data.props);
+
+    try {
+      return await RelationListPermission.checkNamedLists(data);
+    } catch (error) {
+      throw ModelPermission.toAnonymousRefusal(error, data.props);
+    }
+  }
+
+  /*
+   * A create makes only a record the caller's create permission reaches: one
+   * limited to labels, a record carrying one of them; one limited to owned
+   * records, a record the caller will own; a block with labels, no record
+   * carrying them (CreateScopePermission.checkCreateScope). Asked by
+   * DatabaseService once the create hooks have run, on the record as it
+   * will be saved.
+   */
+  @CaptureSpan()
+  public static async checkCreateScopePermission<
+    TBaseModel extends BaseModel,
+  >(data: {
+    modelType: { new (): TBaseModel };
+    data: TBaseModel;
+    props: DatabaseCommonInteractionProps;
+    findRecordLabels: RecordLabelsFinder;
+    findLabelNames: LabelNamesFinder;
+    ownedParentIds?: Array<string> | undefined;
+  }): Promise<void> {
+    DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(data.props);
+
+    try {
+      return await CreateScopePermission.checkCreateScope(data);
     } catch (error) {
       throw ModelPermission.toAnonymousRefusal(error, data.props);
     }

@@ -94,6 +94,7 @@ import RunbookCredentialType from "../../../Types/Runbook/RunbookCredentialType"
 import Field from "../../../UI/Components/Forms/Types/Field";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * The AI agent page against the server it talks to — run for real, with
  * only the database stubbed:
@@ -860,7 +861,7 @@ describe("the AI agent card follows the real status", () => {
         .mockResolvedValue(undefined as never);
       jest
         .spyOn(UserService, "getUserMarkdownString")
-        .mockResolvedValue("an admin");
+        .mockResolvedValue(FeedMarkdown.asMarkdown("an admin"));
       jest.spyOn(logger, "info").mockImplementation((): void => {
         return undefined;
       });

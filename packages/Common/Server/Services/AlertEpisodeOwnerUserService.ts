@@ -1,5 +1,4 @@
 import ObjectID from "../../Types/ObjectID";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import PositiveNumber from "../../Types/PositiveNumber";
 import CountBy from "../Types/Database/CountBy";
 import FindBy from "../Types/Database/FindBy";
@@ -21,6 +20,7 @@ import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNoti
 import { applyAlertEpisodeRelatedRecordPrivacyFilter } from "../Utils/AlertEpisode/AlertEpisodePrivacyFilter";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -137,7 +137,8 @@ export class Service extends ProjectReferencesService<Model> {
             alertEpisodeFeedEventType:
               AlertEpisodeFeedEventType.OwnerUserRemoved,
             displayColor: Red500,
-            feedInfoInMarkdown: `👨🏻‍💻 Removed **${escapeMarkdownValue(user.name.toString())}** (${escapeMarkdownValue(user.email?.toString())}) from the [Episode ${episodeNumberDisplay}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(projectId!, alertEpisodeId!)).toString()}) as the owner.`,
+            feedInfoInMarkdown:
+              mdText`👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) from the [Episode ${episodeNumberDisplay}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(projectId!, alertEpisodeId!)).toString()}) as the owner.`.toString(),
             userId: deleteByUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
@@ -178,12 +179,11 @@ export class Service extends ProjectReferencesService<Model> {
         projectId: projectId,
         alertEpisodeFeedEventType: AlertEpisodeFeedEventType.OwnerUserAdded,
         displayColor: Gray500,
-        feedInfoInMarkdown: `👨🏻‍💻 Added **${await UserService.getUserMarkdownString(
-          {
+        feedInfoInMarkdown:
+          mdText`👨🏻‍💻 Added **${await UserService.getUserMarkdownString({
             userId: userId,
             projectId: projectId,
-          },
-        )}** to the [Episode ${episodeNumberDisplay}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(projectId!, alertEpisodeId!)).toString()}) as the owner.`,
+          })}** to the [Episode ${episodeNumberDisplay}](${(await AlertEpisodeService.getEpisodeLinkInDashboard(projectId!, alertEpisodeId!)).toString()}) as the owner.`.toString(),
         userId: createdByUserId || undefined,
         workspaceNotification: {
           sendWorkspaceNotification: true,

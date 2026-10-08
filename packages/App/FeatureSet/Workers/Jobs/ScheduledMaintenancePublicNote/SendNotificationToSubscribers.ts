@@ -53,7 +53,10 @@ import StateChangeNoteMessage from "Common/Types/StatusPage/StateChangeNoteMessa
 import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import SubscriberMarkdownTemplateValues from "Common/Server/Utils/StatusPage/SubscriberMarkdownTemplateValues";
-import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "Common/Utils/Markdown/FeedMarkdown";
 
 /*
  * Two jobs share this send path: one tells subscribers about a new public
@@ -341,9 +344,9 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
      * "**Status:** Ongoing" under the event, for a note posted with a state
      * change; for any other note, the blank line that was always there.
      */
-    const chatStatusLine: string = stateChange
-      ? `\n${StateChangeNoteMessage.getChatStatusLine(stateChangeName)}\n`
-      : "";
+    const chatStatusLine: MarkdownText = stateChange
+      ? mdText`\n${StateChangeNoteMessage.getChatStatusLine(stateChangeName)}\n`
+      : FeedMarkdown.empty();
 
     for (const statuspage of statusPages) {
       if (!statuspage.id) {
@@ -500,13 +503,6 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
         note: publicNote.note || "",
       };
 
-      // The default Slack and Teams messages place the same plain values.
-      const statusPageNameInMarkdown: string =
-        escapeMarkdownValue(statusPageName);
-      const eventTitleInMarkdown: string = escapeMarkdownValue(
-        event.title || "",
-      );
-
       // Send email to Email subscribers.
 
       for (const subscriber of subscribers) {
@@ -642,15 +638,16 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
               );
           } else {
             // Use default hard-coded template
-            markdownMessage = `## Scheduled Maintenance Update - ${statusPageNameInMarkdown}
+            markdownMessage =
+              mdText`## Scheduled Maintenance Update - ${statusPageName}
 
-**Event:** ${eventTitleInMarkdown}
+**Event:** ${event.title || ""}
 ${chatStatusLine}
 **${copy.chatNoteSentence}**
 
-**Note:** ${publicNote.note || ""}
+**Note:** ${FeedMarkdown.asMarkdown(publicNote.note || "")}
 
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
           }
 
           // send Slack notification with markdown conversion
@@ -677,15 +674,16 @@ ${chatStatusLine}
               );
           } else {
             // Use default hard-coded template
-            markdownMessage = `## Scheduled Maintenance Update - ${statusPageNameInMarkdown}
+            markdownMessage =
+              mdText`## Scheduled Maintenance Update - ${statusPageName}
 
-**Event:** ${eventTitleInMarkdown}
+**Event:** ${event.title || ""}
 ${chatStatusLine}
 **${copy.chatNoteSentence}**
 
-**Note:** ${publicNote.note || ""}
+**Note:** ${FeedMarkdown.asMarkdown(publicNote.note || "")}
 
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
           }
 
           // send Teams notification
@@ -855,10 +853,11 @@ ${chatStatusLine}
         scheduledMaintenanceFeedEventType:
           ScheduledMaintenanceFeedEventType.SubscriberNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `📧 **Notification sent to subscribers** because ${copy.feedSentReason} this [Scheduled Maintenance ${event.scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(event.projectId!, event.id!)).toString()}).`,
-        moreInformationInMarkdown: `**Public Note:**
+        feedInfoInMarkdown:
+          mdText`📧 **Notification sent to subscribers** because ${copy.feedSentReason} this [Scheduled Maintenance ${event.scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(event.projectId!, event.id!)).toString()}).`.toString(),
+        moreInformationInMarkdown: mdText`**Public Note:**
 
-${publicNote.note}`,
+${FeedMarkdown.asMarkdown(publicNote.note)}`.toString(),
         workspaceNotification: {
           sendWorkspaceNotification: true,
         },
@@ -874,7 +873,8 @@ ${publicNote.note}`,
         scheduledMaintenanceFeedEventType:
           ScheduledMaintenanceFeedEventType.SubscriberNotificationSent,
         displayColor: Yellow500,
-        feedInfoInMarkdown: `📧 **No notification sent to subscribers** for ${copy.feedNotSentSubject} on [Scheduled Maintenance ${event.scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(event.projectId!, event.id!)).toString()}).`,
+        feedInfoInMarkdown:
+          mdText`📧 **No notification sent to subscribers** for ${copy.feedNotSentSubject} on [Scheduled Maintenance ${event.scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(event.projectId!, event.id!)).toString()}).`.toString(),
         moreInformationInMarkdown:
           "Subscriber notifications were skipped because all associated status pages either hide scheduled maintenance events or had no matching subscribers.",
         workspaceNotification: {

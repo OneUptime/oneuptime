@@ -1265,7 +1265,7 @@ describe("incident custom fields docs", () => {
         ),
       );
 
-      expect(builder).toContain('"**Custom fields sent:**"');
+      expect(builder).toContain("mdText`**Custom fields sent:**`");
 
       for (const language of LANGUAGES) {
         for (const page of [SUBSCRIBERS_PAGE, GUIDE_PAGE, NOTES_PAGE]) {

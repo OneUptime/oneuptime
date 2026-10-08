@@ -85,6 +85,17 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
+    // The owners picked in the form are asked about now, before anything is saved.
+    await OwnerRuleAssignment.checkOwnersPickedOnCreate({
+      ownerUserService: IncidentTemplateOwnerUserService,
+      ownerTeamService: IncidentTemplateOwnerTeamService,
+      resourceIdColumn: "incidentTemplateId",
+      resourceModelType: Model,
+      resource: createBy.data,
+      miscDataProps: createBy.miscDataProps,
+      props: createBy.props,
+    });
+
     const projectId: ObjectID | undefined =
       createBy.props.tenantId || createBy.data.projectId;
 
@@ -407,6 +418,7 @@ export class Service extends ProjectReferencesService<Model> {
           [],
         false,
         onCreate.createBy.props,
+        true,
       );
     }
 
@@ -478,6 +490,12 @@ export class Service extends ProjectReferencesService<Model> {
     teamIds: Array<ObjectID>,
     notifyOwners: boolean,
     props: DatabaseCommonInteractionProps,
+    /*
+     * True for the owners picked in the form that created the resource:
+     * written for its creator when their own permissions do not reach the
+     * new resource (OwnerRuleAssignment.createOwner).
+     */
+    onCreatorsBehalf: boolean = false,
   ): Promise<void> {
     // Owners already on the template are skipped, not added a second time.
     await OwnerRuleAssignment.addOwners({
@@ -490,6 +508,7 @@ export class Service extends ProjectReferencesService<Model> {
       teamIds: teamIds,
       isOwnerNotified: !notifyOwners,
       props: props,
+      onCreatorsBehalf: onCreatorsBehalf,
     });
   }
 }

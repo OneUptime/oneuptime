@@ -9,6 +9,7 @@ import WorkspaceActionAuthorization, {
 } from "../../WorkspaceActionAuthorization";
 import SlackUtil from "../Slack";
 import { SlackRequest } from "./Auth";
+import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
 
 export type SlackActionRequester = Pick<
   SlackRequest,
@@ -78,7 +79,7 @@ export default class SlackActionAuthorization {
     const markdownPayload: WorkspacePayloadMarkdown = {
       _type: "WorkspacePayloadMarkdown",
       text: requester.slackUsername
-        ? `@${requester.slackUsername}, ${data.message}`
+        ? mdText`@${requester.slackUsername}, ${data.message}`.toString()
         : data.message,
     };
 

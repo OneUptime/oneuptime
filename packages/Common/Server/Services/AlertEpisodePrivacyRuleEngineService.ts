@@ -9,7 +9,8 @@ import { AlertEpisodeFeedEventType } from "../../Models/DatabaseModels/AlertEpis
 import { Red500 } from "../../Types/BrandColors";
 import Select from "../Types/Database/Select";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
+import { MarkdownText, mdText } from "../../Utils/Markdown/FeedMarkdown";
+import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
@@ -192,18 +193,13 @@ class AlertEpisodePrivacyRuleEngineServiceClass
           return n !== "";
         });
 
-      const rulesPart: string =
-        ruleNames.length === 1
-          ? `**${escapeMarkdownValue(ruleNames[0])}**`
-          : ruleNames
-              .map((n: string) => {
-                return `**${escapeMarkdownValue(n)}**`;
-              })
-              .join(", ");
-
-      const feedInfoInMarkdown: string = `🔒 **Alert Episode Privacy Rule${
-        matchedRules.length > 1 ? "s" : ""
-      } executed:** ${rulesPart}\n\nEpisode has been marked **private** — visible only to its owners, project admins, and project owners.`;
+      const feedInfoInMarkdown: MarkdownText = mdText`${RuleFeedMarkdown.executedLine(
+        {
+          emoji: "🔒",
+          ruleKind: "Alert Episode Privacy Rule",
+          ruleNames: ruleNames,
+        },
+      )}\n\nEpisode has been marked **private** — visible only to its owners, project admins, and project owners.`;
 
       await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
         alertEpisodeId: episode.id,
@@ -211,7 +207,7 @@ class AlertEpisodePrivacyRuleEngineServiceClass
         alertEpisodeFeedEventType:
           AlertEpisodeFeedEventType.PrivacyRuleExecuted,
         displayColor: Red500,
-        feedInfoInMarkdown,
+        feedInfoInMarkdown: feedInfoInMarkdown.toString(),
       });
     } catch (error) {
       logger.error(

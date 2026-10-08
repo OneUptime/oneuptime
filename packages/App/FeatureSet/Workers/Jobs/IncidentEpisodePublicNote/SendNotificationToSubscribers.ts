@@ -69,8 +69,8 @@ import SubscriberNotificationTrigger from "Common/Types/StatusPage/SubscriberNot
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
 import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
-import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
 import SubscriberMarkdownTemplateValues from "Common/Server/Utils/StatusPage/SubscriberMarkdownTemplateValues";
+import FeedMarkdown, { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 
 /*
  * Two jobs share this send path: one tells subscribers about a new public
@@ -941,17 +941,17 @@ const notifySubscribersOfEpisodePublicNote: (data: {
                   );
               } else {
                 // Use default hard-coded template
-                markdownMessage = `## Incident - ${escapeMarkdownValue(episode.title || "")}
+                markdownMessage = mdText`## Incident - ${episode.title || ""}
 
 **${copy.chatNoteSentence}**
 
-**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}
-**Severity:** ${escapeMarkdownValue(episode.incidentSeverity?.name || " - ")}
+**Resources Affected:** ${resourcesAffectedPlainText}
+**Severity:** ${episode.incidentSeverity?.name || " - "}
 
 **Note:**
-${episodePublicNote.note || ""}
+${FeedMarkdown.asMarkdown(episodePublicNote.note || "")}
 
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
               }
 
               await deliveryRecord.deliver({
@@ -998,17 +998,17 @@ ${episodePublicNote.note || ""}
                   );
               } else {
                 // Use default hard-coded template
-                markdownMessage = `## Incident - ${escapeMarkdownValue(episode.title || "")}
+                markdownMessage = mdText`## Incident - ${episode.title || ""}
 
 **${copy.chatNoteSentence}**
 
-**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}
-**Severity:** ${escapeMarkdownValue(episode.incidentSeverity?.name || " - ")}
+**Resources Affected:** ${resourcesAffectedPlainText}
+**Severity:** ${episode.incidentSeverity?.name || " - "}
 
 **Note:**
-${episodePublicNote.note || ""}
+${FeedMarkdown.asMarkdown(episodePublicNote.note || "")}
 
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
               }
 
               await deliveryRecord.deliver({
@@ -1102,12 +1102,13 @@ ${episodePublicNote.note || ""}
         incidentEpisodeFeedEventType:
           IncidentEpisodeFeedEventType.SubscriberNotificationSent,
         displayColor: Red500,
-        feedInfoInMarkdown: `📧 **Not every subscriber was sent the notification** that ${copy.feedSentReason} this [Episode ${episode.episodeNumberWithPrefix || "#" + episode.episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(episode.projectId!, episode.id!)).toString()}).`,
+        feedInfoInMarkdown:
+          mdText`📧 **Not every subscriber was sent the notification** that ${copy.feedSentReason} this [Episode ${episode.episodeNumberWithPrefix || "#" + episode.episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(episode.projectId!, episode.id!)).toString()}).`.toString(),
         // The note, then each status page with what was sent and what failed.
         moreInformationInMarkdown: [
-          `**Public Note:**
+          mdText`**Public Note:**
 
-${episodePublicNote.note}`,
+${FeedMarkdown.asMarkdown(episodePublicNote.note)}`.toString(),
           deliveryMarkdown,
         ]
           .filter(Boolean)
@@ -1125,12 +1126,13 @@ ${episodePublicNote.note}`,
         incidentEpisodeFeedEventType:
           IncidentEpisodeFeedEventType.SubscriberNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `📧 **Notification sent to subscribers** because ${copy.feedSentReason} this [Episode ${episode.episodeNumberWithPrefix || "#" + episode.episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(episode.projectId!, episode.id!)).toString()}).`,
+        feedInfoInMarkdown:
+          mdText`📧 **Notification sent to subscribers** because ${copy.feedSentReason} this [Episode ${episode.episodeNumberWithPrefix || "#" + episode.episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(episode.projectId!, episode.id!)).toString()}).`.toString(),
         // The note, then each status page, its subject and what was sent.
         moreInformationInMarkdown: [
-          `**Public Note:**
+          mdText`**Public Note:**
 
-${episodePublicNote.note}`,
+${FeedMarkdown.asMarkdown(episodePublicNote.note)}`.toString(),
           deliveryMarkdown,
         ]
           .filter(Boolean)
@@ -1150,7 +1152,8 @@ ${episodePublicNote.note}`,
         incidentEpisodeFeedEventType:
           IncidentEpisodeFeedEventType.SubscriberNotificationSent,
         displayColor: Yellow500,
-        feedInfoInMarkdown: `📧 **No notification sent to subscribers** for ${copy.feedNotSentSubject} on [Episode ${episode.episodeNumberWithPrefix || "#" + episode.episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(episode.projectId!, episode.id!)).toString()}).`,
+        feedInfoInMarkdown:
+          mdText`📧 **No notification sent to subscribers** for ${copy.feedNotSentSubject} on [Episode ${episode.episodeNumberWithPrefix || "#" + episode.episodeNumber}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(episode.projectId!, episode.id!)).toString()}).`.toString(),
         moreInformationInMarkdown: [
           "Subscriber notifications were skipped because every associated status page either hides episodes, is left out by the status page scope of the episode's incidents, or had no matching subscribers.",
           deliveryMarkdown,

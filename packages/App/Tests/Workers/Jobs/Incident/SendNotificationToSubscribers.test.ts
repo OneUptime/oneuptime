@@ -2512,7 +2512,7 @@ ${IMPACT_DETAILS}
     expect(sentSlack()[0]).toContain("**Expected Resolution:** 2026-09-27");
     expect(sentTeams()[0]).toContain("**Expected Resolution:** 2026-09-27");
     expect(feedItem()["moreInformationInMarkdown"]).toContain(
-      "- **Expected Resolution:** 2026\\-09\\-27",
+      "- **Expected Resolution:** 2026-09-27",
     );
   });
 
@@ -2772,9 +2772,9 @@ ${IMPACT_DETAILS}
           [
             "**Custom fields sent:**",
             "",
-            "- **Affected Location:** \\<b\\>Site 03\\</b\\> & Site 07",
+            "- **Affected Location:** \\<b>Site 03\\</b> & Site 07",
             "- **Acknowledgement:** No",
-            "- **Internal Ticket:** OPS\\-4411",
+            "- **Internal Ticket:** OPS-4411",
             "",
             "**Impact Details:**",
             "",

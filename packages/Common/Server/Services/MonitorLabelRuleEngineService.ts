@@ -9,7 +9,11 @@ import MonitorService from "./MonitorService";
 import { MonitorFeedEventType } from "../../Models/DatabaseModels/MonitorFeed";
 import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../Utils/Markdown/FeedMarkdown";
+import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Select from "../Types/Database/Select";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -276,36 +280,24 @@ class MonitorLabelRuleEngineServiceClass
           return n !== "";
         });
 
-      const rulesPart: string =
-        ruleNames.length === 1
-          ? `**${escapeMarkdownValue(ruleNames[0])}**`
-          : ruleNames
-              .map((n: string) => {
-                return `**${escapeMarkdownValue(n)}**`;
-              })
-              .join(", ");
-
-      const labelsPart: string =
-        labelNames.length > 0
-          ? labelNames
-              .map((n: string) => {
-                return `\n- ${escapeMarkdownValue(n)}`;
-              })
-              .join("")
-          : "\n- (no named labels)";
-
-      const feedInfoInMarkdown: string = `🏷️ **Monitor Label Rule${
-        matchedRules.length > 1 ? "s" : ""
-      } executed:** ${rulesPart}\n\nAdded the following label${
+      const feedInfoInMarkdown: MarkdownText = mdText`${RuleFeedMarkdown.executedLine(
+        {
+          emoji: "🏷️",
+          ruleKind: "Monitor Label Rule",
+          ruleNames: ruleNames,
+        },
+      )}\n\nAdded the following label${
         labelNames.length === 1 ? "" : "s"
-      } to the monitor:${labelsPart}`;
+      } to the monitor:\n${FeedMarkdown.bulletList(labelNames, {
+        whenEmpty: "(no named labels)",
+      })}`;
 
       await MonitorFeedService.createMonitorFeedItem({
         monitorId: monitor.id,
         projectId: monitor.projectId,
         monitorFeedEventType: MonitorFeedEventType.LabelRuleExecuted,
         displayColor: Indigo500,
-        feedInfoInMarkdown,
+        feedInfoInMarkdown: feedInfoInMarkdown.toString(),
       });
     } catch (error) {
       logger.error(

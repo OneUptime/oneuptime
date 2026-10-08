@@ -18,6 +18,7 @@ import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintena
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
 import User from "Common/Models/DatabaseModels/User";
+import FeedMarkdown from "Common/Utils/Markdown/FeedMarkdown";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
 import OneUptimeDate, { Moment } from "Common/Types/Date";
@@ -936,8 +937,11 @@ describe("Slo:EvaluateSlos worker", () => {
     historyService.insertHistoryRows.mockResolvedValue(undefined);
     sloMetricUtil.saveSloMetrics.mockResolvedValue(undefined);
     sloMetricUtil.saveSloGuardMetrics.mockResolvedValue(undefined);
+    // The link as the service writes it: Markdown (MarkdownText).
     sloService.getSloMarkdownLink.mockResolvedValue(
-      "[SLO Checkout availability](https://oneuptime.com/dashboard/slo/slo-1)",
+      FeedMarkdown.asMarkdown(
+        "[SLO Checkout availability](https://oneuptime.com/dashboard/slo/slo-1)",
+      ),
     );
     feedService.createServiceLevelObjectiveFeedItem.mockResolvedValue(
       undefined,
@@ -4513,7 +4517,7 @@ describe("Slo:EvaluateSlos worker", () => {
       ).toBe(CREATED_ALERT_ID.toString());
 
       expect(item.feedInfoInMarkdown).toBe(
-        "Burn rate rule **Fast burn** raised [Alert \\#12](https://oneuptime.com/dashboard/project-1/alerts/alert-1).",
+        "Burn rate rule **Fast burn** raised [Alert #12](https://oneuptime.com/dashboard/project-1/alerts/alert-1).",
       );
 
       const details: string = item.moreInformationInMarkdown || "";
@@ -4555,7 +4559,7 @@ describe("Slo:EvaluateSlos worker", () => {
 
       expect(items).toHaveLength(1);
       expect(items[0]!.feedInfoInMarkdown).toBe(
-        "Burn rate rule **Fast burn** declared [Incident INC\\-7](https://oneuptime.com/dashboard/project-1/incidents/incident-1).",
+        "Burn rate rule **Fast burn** declared [Incident INC-7](https://oneuptime.com/dashboard/project-1/incidents/incident-1).",
       );
       expect(
         String(incidentRecords.getIncidentLinkInDashboard.mock.calls[0]![1]),
@@ -4607,8 +4611,9 @@ describe("Slo:EvaluateSlos worker", () => {
         ServiceLevelObjectiveFeedEventType.BurnRateAlertRaised,
       )[0]!.feedInfoInMarkdown;
 
-      expect(info).toContain("**x\\]\\(https://evil.example\\) \\*loud\\***");
-      expect(info).not.toContain("](https://evil.example)");
+      expect(info).toContain("**x\\](https://evil.example) \\*loud\\***");
+      // The rule name closes no link: its "]" is escaped.
+      expect(info).not.toMatch(/(?<!\\)\]\(https:\/\/evil\.example\)/);
     });
 
     /*
@@ -4734,7 +4739,7 @@ describe("Slo:EvaluateSlos worker", () => {
           ServiceLevelObjectiveFeedEventType.BurnRateIncidentDeclared,
         )[0]!.feedInfoInMarkdown,
       ).toBe(
-        "Burn rate rule **Fast burn** declared [Incident INC\\-7](https://oneuptime.com/dashboard/project-1/incidents/incident-1).",
+        "Burn rate rule **Fast burn** declared [Incident INC-7](https://oneuptime.com/dashboard/project-1/incidents/incident-1).",
       );
     });
 

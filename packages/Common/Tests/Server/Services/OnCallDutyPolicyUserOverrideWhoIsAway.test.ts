@@ -48,6 +48,7 @@ import {
 } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
+import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 /*
  * The records these tests name are their project's own: the services check
  * every reference against the project (ProjectReferencesService).
@@ -379,7 +380,7 @@ beforeEach(() => {
   jest.spyOn(UserService, "getTimezoneForUser").mockResolvedValue(null);
   jest
     .spyOn(UserService, "getUserMarkdownString")
-    .mockResolvedValue("a person");
+    .mockResolvedValue(FeedMarkdown.asMarkdown("a person"));
   jest
     .spyOn(OnCallDutyPolicyFeedService, "createOnCallDutyPolicyFeedItem")
     .mockResolvedValue(undefined as never);

@@ -31,7 +31,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
-import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
+import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 
 RunCron(
   "IncidentOwner:SendStateChangeEmail",
@@ -343,7 +343,7 @@ RunCron(
           eventType,
         });
 
-        moreIncidentFeedInformationInMarkdown += `**Notified:** ${await UserService.getUserMarkdownString(
+        moreIncidentFeedInformationInMarkdown += mdText`**Notified:** ${await UserService.getUserMarkdownString(
           {
             userId: user.id!,
             projectId: incidentStateTimeline.projectId!,
@@ -360,7 +360,8 @@ RunCron(
         projectId: incident.projectId!,
         incidentFeedEventType: IncidentFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `🔔 **Owners have been notified about the state change of the [Incident ${incidentNumberDisplayValue}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}).**: Owners have been notified about the state change of the incident because the incident state changed to **${escapeMarkdownValue(incidentState.name)}**.`,
+        feedInfoInMarkdown:
+          mdText`🔔 **Owners have been notified about the state change of the [Incident ${incidentNumberDisplayValue}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()}).**: Owners have been notified about the state change of the incident because the incident state changed to **${incidentState.name}**.`.toString(),
         moreInformationInMarkdown: moreIncidentFeedInformationInMarkdown,
         workspaceNotification: {
           sendWorkspaceNotification: true,

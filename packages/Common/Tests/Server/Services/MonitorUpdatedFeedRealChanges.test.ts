@@ -605,9 +605,9 @@ describe("the feed lines themselves", () => {
 
     const markdown: string = onlyFeedItem();
 
-    // Inside the link's own text every Markdown character is escaped.
+    // Inside the link's own text everything that acts in a link is escaped.
     expect(markdown).toContain(
-      `Monitor **[\\[Reset\\]\\(https://evil.example\\) \\<b\\>api\\</b\\>](${MONITOR_LINK}) was updated.**`,
+      `Monitor **[\\[Reset\\]\\(https://evil.example\\) \\<b>api\\</b>](${MONITOR_LINK}) was updated.**`,
     );
     // In the line, as a value: it reads as typed and links nowhere.
     expect(markdown).toContain(

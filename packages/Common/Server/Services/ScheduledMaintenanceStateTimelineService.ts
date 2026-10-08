@@ -16,7 +16,6 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import NetworkSite from "../../Models/DatabaseModels/NetworkSite";
 import NetworkSiteService from "./NetworkSiteService";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -41,6 +40,7 @@ import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import Select from "../Types/Database/Select";
 import ScheduledMaintenanceStartUtil from "../../Utils/ScheduledMaintenanceStart";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * Enough of a state to tell which kind it is. A project can add its own
@@ -538,11 +538,9 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
 
     /*
      * The state's name is plain text, placed into the feed item's Markdown
-     * (posted to Slack and Teams too): escaped, so it reads as typed.
+     * (posted to Slack and Teams too) as text (mdText), so it reads as typed.
      */
-    const stateName: string = escapeMarkdownValue(
-      scheduledMaintenanceState?.name || "",
-    );
+    const stateName: string = scheduledMaintenanceState?.name || "";
     let stateEmoji: string = "➡️";
 
     // if resolved state then change emoji to ✅.
@@ -574,10 +572,7 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
         ScheduledMaintenanceFeedEventType.ScheduledMaintenanceStateChanged,
       displayColor: scheduledMaintenanceState?.color,
       feedInfoInMarkdown:
-        stateEmoji +
-        ` Changed **[Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId!, scheduledMaintenanceId!)).toString()}) State** to **` +
-        stateName +
-        "**",
+        mdText`${stateEmoji} Changed **[Scheduled Maintenance ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId!, scheduledMaintenanceId!)).toString()}) State** to **${stateName}**`.toString(),
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
       workspaceNotification: {
         sendWorkspaceNotification: true,
@@ -752,12 +747,12 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
         },
         sendMessageBeforeArchiving: {
           _type: "WorkspacePayloadMarkdown",
-          text: `**[Scheduled Event ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${(
+          text: mdText`**[Scheduled Event ${scheduledMaintenanceNumberResult.numberWithPrefix || "#" + scheduledMaintenanceNumberResult.number}](${(
             await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
               createdItem.projectId!,
               createdItem.scheduledMaintenanceId!,
             )
-          ).toString()})** is complete. Archiving channel.`,
+          ).toString()})** is complete. Archiving channel.`.toString(),
         },
       }).catch((error: Error) => {
         logger.error(`Error while archiving workspace channels:`, {

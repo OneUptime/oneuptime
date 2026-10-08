@@ -32,6 +32,7 @@ import { WORD_JOINER } from "../../../Utils/Markdown/MarkdownEscape";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 import { Token, Tokens, marked } from "marked";
 
+import FeedMarkdown from "Common/Utils/Markdown/FeedMarkdown";
 /*
  * Tests for WorkspaceNotificationRuleService.sendTestNotificationToDestination,
  * the service behind the "Send Test" button beside every Slack channel,
@@ -444,7 +445,11 @@ function mockDeps(options: MockOptions): Mocks {
     userMarkdownSpy.mockRejectedValue(new Error("user lookup exploded"));
   } else {
     userMarkdownSpy.mockResolvedValue(
-      options.userMarkdown === undefined ? USER_MARKDOWN : options.userMarkdown,
+      FeedMarkdown.asMarkdown(
+        options.userMarkdown === undefined
+          ? USER_MARKDOWN
+          : options.userMarkdown,
+      ),
     );
   }
 

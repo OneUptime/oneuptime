@@ -26,6 +26,8 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 
 class CloudResourceOwnerRuleEngineServiceClass
   implements RuleRunEngine<CloudResource, CloudResourceOwnerRule>
@@ -294,15 +296,15 @@ class CloudResourceOwnerRuleEngineServiceClass
       projectId: cloudResource.projectId,
       cloudResourceFeedEventType: CloudResourceFeedEventType.OwnerRuleExecuted,
       displayColor: Purple500,
-      feedInfoInMarkdown: `👥 Owners were added to ${await CloudResourceService.getCloudResourceMarkdownLink(
-        cloudResource.projectId,
-        cloudResource.id,
-      )} by ${matchedRuleNames.length} owner ${matchedRuleNames.length === 1 ? "rule" : "rules"}.`,
-      moreInformationInMarkdown: `**Owner rules that matched**: ${matchedRuleNames
-        .map((name: string) => {
-          return `\`${name}\``;
-        })
-        .join(", ")}`,
+      feedInfoInMarkdown:
+        mdText`👥 Owners were added to ${await CloudResourceService.getCloudResourceMarkdownLink(
+          cloudResource.projectId,
+          cloudResource.id,
+        )} by ${matchedRuleNames.length} owner ${matchedRuleNames.length === 1 ? "rule" : "rules"}.`.toString(),
+      moreInformationInMarkdown: RuleFeedMarkdown.matchedRulesLine({
+        ruleKind: "Owner",
+        ruleNames: matchedRuleNames,
+      }).toString(),
     });
 
     return RuleApplicationResultUtil.updated(ownersAdded);

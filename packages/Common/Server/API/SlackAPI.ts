@@ -80,9 +80,11 @@ import ConnectCallbackUtil, {
   ConnectProvider,
 } from "../../Types/Workspace/ConnectCallback";
 import OneUptimeDate from "../../Types/Date";
-import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
-import { neutralizeAiWrittenMarkdown } from "../../Utils/Markdown/UntrustedMarkdown";
 
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../Utils/Markdown/FeedMarkdown";
 // The Slack app this server connects with.
 interface SlackAppCredentials {
   clientId: string;
@@ -1926,25 +1928,24 @@ export default class SlackAPI {
      * steer the model, and it is posted to a channel: it stays the Markdown
      * the model wrote, with no mention that notifies anybody, no image, no
      * link whose words hide where it goes and no HTML tag in it
-     * (neutralizeAiWrittenMarkdown). A citation's label is text.
+     * (FeedMarkdown.aiWritten). A citation's label is text.
      */
-    let answerMarkdown: string = neutralizeAiWrittenMarkdown(
+    let answerMarkdown: MarkdownText = FeedMarkdown.aiWritten(
       result.contentInMarkdown || "",
     );
 
     // Append a compact "Sources" footer from the server-minted citations.
     if (result.citations && result.citations.length > 0) {
-      const sourceLines: Array<string> = result.citations.map(
-        (citation: AIChatCitation) => {
-          return `• ${escapeMarkdownValue(citation.label)} (${citation.rowCount} rows)`;
+      const sourceLines: Array<MarkdownText> = result.citations.map(
+        (citation: AIChatCitation): MarkdownText => {
+          return mdText`• ${FeedMarkdown.textWithCode(citation.label)} (${citation.rowCount} rows)`;
         },
       );
 
-      answerMarkdown =
-        answerMarkdown + "\n\n*Sources*\n" + sourceLines.join("\n");
+      answerMarkdown = mdText`${answerMarkdown}\n\n*Sources*\n${FeedMarkdown.join(sourceLines, "\n")}`;
     }
 
-    return answerMarkdown;
+    return answerMarkdown.toString();
   }
 
   /*

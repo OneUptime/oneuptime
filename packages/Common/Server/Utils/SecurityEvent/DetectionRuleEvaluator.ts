@@ -51,6 +51,7 @@ import SigmaClickhouseCompiler, {
   buildSigmaFieldExpression,
 } from "./Sigma/SigmaClickhouseCompiler";
 import { buildSecurityEventDbRow } from "./SecurityEventRow";
+import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
 
 const DETECTIONS_SERVICE_NAME: string = "OneUptime Detections";
 
@@ -340,7 +341,8 @@ export default class DetectionRuleEvaluator {
               startTime: data.startTime,
               endTime: data.endTime,
             }),
-            rootCause: `Sigma detection rule "${rule.name}" matched security events.`,
+            rootCause:
+              mdText`Sigma detection rule "${rule.name}" matched security events.`.toString(),
           };
         },
       ),
@@ -403,7 +405,8 @@ export default class DetectionRuleEvaluator {
               startTime: data.startTime,
               endTime: data.endTime,
             }),
-            rootCause: `Sigma detection rule "${rule.name}" matched security events.`,
+            rootCause:
+              mdText`Sigma detection rule "${rule.name}" matched security events.`.toString(),
           };
         },
       ),

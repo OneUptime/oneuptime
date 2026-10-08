@@ -39,6 +39,7 @@ import InProcessMemo from "../Utils/InProcessMemo";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { canonicalizeEntityValue } from "../../Utils/Telemetry/EntityKey";
 import crypto from "crypto";
+import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "host-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
@@ -733,11 +734,11 @@ export class Service extends ProjectReferencesService<Model> {
   public async getHostMarkdownLink(
     projectId: ObjectID,
     hostId: ObjectID,
-  ): Promise<string> {
+  ): Promise<MarkdownText> {
     const name: string = await this.getHostName({ hostId: hostId });
     const link: URL = await this.getHostLinkInDashboard(projectId, hostId);
 
-    return `[Host ${name}](${link.toString()})`;
+    return mdText`[Host ${name}](${link.toString()})`;
   }
 
   private async writeHostCreatedFeed(
@@ -918,7 +919,7 @@ export class Service extends ProjectReferencesService<Model> {
       getResourceMarkdownLink: (
         projectId: ObjectID,
         hostId: ObjectID,
-      ): Promise<string> => {
+      ): Promise<MarkdownText> => {
         return this.getHostMarkdownLink(projectId, hostId);
       },
       createFeedItem: async (item: ResourceAiAccessFeedItem): Promise<void> => {
@@ -985,7 +986,7 @@ export class Service extends ProjectReferencesService<Model> {
         continue;
       }
 
-      const resourceMarkdownLink: string = await this.getHostMarkdownLink(
+      const resourceMarkdownLink: MarkdownText = await this.getHostMarkdownLink(
         projectId,
         hostId,
       );
@@ -999,8 +1000,8 @@ export class Service extends ProjectReferencesService<Model> {
             : HostFeedEventType.HostRestored,
           displayColor: isArchived ? Yellow500 : Blue500,
           feedInfoInMarkdown: isArchived
-            ? `🗄️ ${resourceMarkdownLink} was archived.`
-            : `♻️ ${resourceMarkdownLink} was restored from the archive.`,
+            ? mdText`🗄️ ${resourceMarkdownLink} was archived.`.toString()
+            : mdText`♻️ ${resourceMarkdownLink} was restored from the archive.`.toString(),
           userId: updatedByUserId,
         });
       }

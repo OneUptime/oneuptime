@@ -10,6 +10,7 @@ import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DeleteBy from "../Types/Database/DeleteBy";
 import HostService from "./HostService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -84,10 +85,11 @@ export class Service extends ProjectReferencesService<Model> {
         projectId: projectId,
         hostFeedEventType: HostFeedEventType.OwnerTeamRemoved,
         displayColor: Red500,
-        feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Removed team **${team.name}** as an owner of ${await HostService.getHostMarkdownLink(
-          projectId,
-          hostId,
-        )}.`,
+        feedInfoInMarkdown:
+          mdText`👨🏻‍👩🏻‍👦🏻 Removed team **${team.name}** as an owner of ${await HostService.getHostMarkdownLink(
+            projectId,
+            hostId,
+          )}.`.toString(),
         userId: deletedByUserId || undefined,
       });
     }
@@ -123,10 +125,11 @@ export class Service extends ProjectReferencesService<Model> {
           projectId: projectId,
           hostFeedEventType: HostFeedEventType.OwnerTeamAdded,
           displayColor: Gray500,
-          feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Added team **${team.name}** as an owner of ${await HostService.getHostMarkdownLink(
-            projectId,
-            hostId,
-          )}.`,
+          feedInfoInMarkdown:
+            mdText`👨🏻‍👩🏻‍👦🏻 Added team **${team.name}** as an owner of ${await HostService.getHostMarkdownLink(
+              projectId,
+              hostId,
+            )}.`.toString(),
           userId: createdByUserId || undefined,
         });
       }

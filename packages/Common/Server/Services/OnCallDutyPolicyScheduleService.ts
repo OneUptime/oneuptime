@@ -72,6 +72,7 @@ import {
   buildNewScheduleLayer,
   getLayerName,
 } from "../../Types/OnCallDutyPolicy/ScheduleLayerDefaults";
+import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * Who is on call in a schedule right now (getCurrentOnCallInSchedule).
@@ -932,12 +933,11 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
             onCallDutyPolicyFeedEventType:
               OnCallDutyPolicyFeedEventType.RosterHandoff,
             displayColor: Green500,
-            feedInfoInMarkdown: `🚫 **${await UserService.getUserMarkdownString(
-              {
+            feedInfoInMarkdown:
+              mdText`🚫 **${await UserService.getUserMarkdownString({
                 userId: sendEmailToUserId,
                 projectId: projectId!,
-              },
-            )}** is no longer on call for [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}** because your on-call roster on schedule **${onCallSchedule.name}** just ended.`,
+              })}** is no longer on call for [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}** because your on-call roster on schedule **${onCallSchedule.name}** just ended.`.toString(),
             userId: sendEmailToUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
@@ -1085,22 +1085,21 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
             onCallDutyPolicyFeedEventType:
               OnCallDutyPolicyFeedEventType.RosterHandoff,
             displayColor: Green500,
-            feedInfoInMarkdown: `📞 **${await UserService.getUserMarkdownString(
-              {
+            feedInfoInMarkdown:
+              mdText`📞 **${await UserService.getUserMarkdownString({
                 userId: sendEmailToUserId,
                 projectId: projectId!,
-              },
-            )}** is currently on call for [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}** because of schedule **${onCallSchedule.name}** and your on-call roster starts at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
-              {
-                date: newInformation.rosterStartAt!,
-                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
-              },
-            )}** and ends at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
-              {
-                date: newInformation.rosterHandoffAt!,
-                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
-              },
-            )}**.`,
+              })}** is currently on call for [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}** because of schedule **${onCallSchedule.name}** and your on-call roster starts at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
+                {
+                  date: newInformation.rosterStartAt!,
+                  timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
+                },
+              )}** and ends at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
+                {
+                  date: newInformation.rosterHandoffAt!,
+                  timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
+                },
+              )}**.`.toString(),
             userId: sendEmailToUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
@@ -1140,8 +1139,8 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
            * When a next user is known, say when coverage resumes — that turns
            * "nobody is on call" from an alarm into an actionable window.
            */
-          const resumesClause: string = newInformation.nextUserIdOnRoster
-            ? ` Coverage resumes at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
+          const resumesClause: MarkdownText = newInformation.nextUserIdOnRoster
+            ? mdText` Coverage resumes at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
                 {
                   date:
                     newInformation.nextRosterStartAt ||
@@ -1153,7 +1152,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
                 userId: newInformation.nextUserIdOnRoster,
                 projectId: projectId!,
               })}**.`
-            : " No further shifts are scheduled, so this schedule will keep paging no one until it is fixed.";
+            : mdText` No further shifts are scheduled, so this schedule will keep paging no one until it is fixed.`;
 
           await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
             onCallDutyPolicyId: onCallDutyPolicyId,
@@ -1161,7 +1160,8 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
             onCallDutyPolicyFeedEventType:
               OnCallDutyPolicyFeedEventType.CoverageGapStarted,
             displayColor: Red500,
-            feedInfoInMarkdown: `⚠️ **Coverage gap: no one is on call in schedule ${onCallSchedule.name}.** [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${policyLink}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}** targets this schedule, so any alert that escalates to it right now will notify nobody.${resumesClause}`,
+            feedInfoInMarkdown:
+              mdText`⚠️ **Coverage gap: no one is on call in schedule ${onCallSchedule.name}.** [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${policyLink}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}** targets this schedule, so any alert that escalates to it right now will notify nobody.${resumesClause}`.toString(),
             workspaceNotification: {
               sendWorkspaceNotification: true,
               notifyUserId: undefined,
@@ -1293,22 +1293,21 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
             onCallDutyPolicyFeedEventType:
               OnCallDutyPolicyFeedEventType.RosterHandoff,
             displayColor: Green500,
-            feedInfoInMarkdown: `➡️ **${await UserService.getUserMarkdownString(
-              {
+            feedInfoInMarkdown:
+              mdText`➡️ **${await UserService.getUserMarkdownString({
                 userId: sendEmailToUserId,
                 projectId: projectId!,
-              },
-            )}** is next on call for [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}**. The on-call roster on schedule **${onCallSchedule.name}** will start when the next handoff happens which is at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
-              {
-                date: newInformation.nextRosterStartAt!,
-                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
-              },
-            )}** and will end at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
-              {
-                date: newInformation.nextHandOffTimeAt!,
-                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
-              },
-            )}**.`,
+              })}** is next on call for [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}**. The on-call roster on schedule **${onCallSchedule.name}** will start when the next handoff happens which is at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
+                {
+                  date: newInformation.nextRosterStartAt!,
+                  timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
+                },
+              )}** and will end at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
+                {
+                  date: newInformation.nextHandOffTimeAt!,
+                  timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
+                },
+              )}**.`.toString(),
             userId: sendEmailToUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,

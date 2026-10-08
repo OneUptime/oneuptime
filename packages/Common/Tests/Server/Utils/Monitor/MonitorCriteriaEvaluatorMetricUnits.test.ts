@@ -26,6 +26,12 @@ import { JSONObject } from "../../../../Types/JSON";
 import { PerSeriesCriteriaMatch } from "../../../../Types/Probe/ProbeApiIngestResponse";
 import { describe, expect, test } from "@jest/globals";
 
+import { MarkdownText } from "../../../../Utils/Markdown/FeedMarkdown";
+// The root cause builders write MarkdownText; these tests read its text.
+function textOf(markdown: MarkdownText | null): string | null {
+  return markdown === null ? null : markdown.toString();
+}
+
 /*
  * HUMAN-READABLE METRIC VALUES IN THE ROOT CAUSE.
  *
@@ -61,7 +67,7 @@ type EvaluatorPrivate = {
     criteriaInstance: MonitorCriteriaInstance;
     monitor: Monitor;
     monitorStep?: MonitorStep | undefined;
-  }) => string | null;
+  }) => MarkdownText | null;
   buildSeriesAffectedRows: (input: {
     perSeriesMatches: Array<PerSeriesCriteriaMatch>;
     worstIsLowest: boolean;
@@ -70,6 +76,7 @@ type EvaluatorPrivate = {
     seriesContextAttributes: (fingerprint: string) => Array<JSONObject>;
     namesObject: (identity: JSONObject) => boolean;
   }) => Array<{ formattedValue: string }>;
+  renderAffectedRowValue: (row: { formattedValue: string }) => MarkdownText;
 };
 
 const Evaluator: EvaluatorPrivate =
@@ -123,10 +130,12 @@ function makeCriteriaInstance(
 }
 
 function rootCause(ctx: MetricCriteriaContext): string {
-  const context: string | null = Evaluator.buildMetricRootCauseContext({
-    criteriaInstance: makeCriteriaInstance(ctx),
-    monitor: new Monitor(),
-  });
+  const context: string | null = textOf(
+    Evaluator.buildMetricRootCauseContext({
+      criteriaInstance: makeCriteriaInstance(ctx),
+      monitor: new Monitor(),
+    }),
+  );
 
   expect(context).not.toBeNull();
   return context as string;
@@ -521,10 +530,19 @@ describe("MonitorCriteriaEvaluator - the Unit line", () => {
       });
 
     expect(rows).toHaveLength(1);
-    expect(rows[0]!.formattedValue.replace(/\\|\u2060/g, "")).toContain(
-      "<!here>",
+    // The row holds the value as text, as the exporter wrote it...
+    expect(rows[0]!.formattedValue).toBe("1073741824 <!here>");
+
+    // ...and the list places it as text.
+    const valueCell: string = Evaluator.renderAffectedRowValue(
+      rows[0]!,
+    ).toString();
+
+    expect(valueCell.replace(/\\|\u2060/g, "")).toBe("**1073741824 <!here>**");
+    expect(valueCell).not.toMatch(/(^|[^\\])<[A-Za-z!@#/]/);
+    expect(SlackUtil.convertMarkdownToSlackRichText(valueCell)).not.toMatch(
+      /<[!@#][A-Za-z]/,
     );
-    expect(rows[0]!.formattedValue).not.toMatch(/(^|[^\\])<[A-Za-z!@#/]/);
   });
 
   test("shows a unit it does not know as text, as the exporter wrote it", () => {

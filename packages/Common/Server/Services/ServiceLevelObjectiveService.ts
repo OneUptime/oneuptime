@@ -12,7 +12,6 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import SloWindowType from "../../Types/ServiceLevelObjective/SloWindowType";
-import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
 import DatabaseConfig from "../DatabaseConfig";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -71,6 +70,7 @@ import {
 import Select from "../Types/Database/Select";
 import SloFeedUtil from "../Utils/Slo/SloFeedUtil";
 import SloLegacyMonitorLabelAdoption from "../Utils/Slo/SloLegacyMonitorLabelAdoption";
+import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 
 /*
  * What the SLO feed carries from onBeforeUpdate to onUpdateSuccess: the watched
@@ -87,7 +87,7 @@ interface SloFeedUpdateSnapshot {
 interface SloFeedPendingItem {
   eventType: ServiceLevelObjectiveFeedEventType;
   displayColor: Color;
-  getMarkdown: (sloMarkdownLink: string) => SloFeedMarkdown;
+  getMarkdown: (sloMarkdownLink: MarkdownText) => SloFeedMarkdown;
 }
 
 /*
@@ -1023,7 +1023,7 @@ export class Service extends ProjectReferencesService<Model> {
     projectId: ObjectID;
     sloId: ObjectID;
     sloName?: string | undefined;
-  }): Promise<string> {
+  }): Promise<MarkdownText> {
     let sloName: string | undefined = data.sloName;
 
     if (sloName === undefined) {
@@ -1048,11 +1048,12 @@ export class Service extends ProjectReferencesService<Model> {
       data.sloId,
     );
 
-    const escapedName: string = escapeMarkdownInline(sloName).trim();
+    // The name is the link's own text, placed as text (mdText).
+    const name: string = (sloName || "").trim();
 
-    const linkText: string = escapedName ? `SLO ${escapedName}` : "SLO";
-
-    return `[${linkText}](${link.toString()})`;
+    return name
+      ? mdText`[SLO ${name}](${link.toString()})`
+      : mdText`[SLO](${link.toString()})`;
   }
 
   /*
@@ -1192,7 +1193,7 @@ export class Service extends ProjectReferencesService<Model> {
       data.onCreate.createBy.props.userId ||
       undefined;
 
-    const createdByUserMarkdown: string | null =
+    const createdByUserMarkdown: MarkdownText | null =
       await SloFeedUtil.getUserMarkdown({
         userId: createdByUserId,
         projectId: projectId,
@@ -1416,7 +1417,7 @@ export class Service extends ProjectReferencesService<Model> {
           ? ServiceLevelObjectiveFeedEventType.ServiceLevelObjectiveArchived
           : ServiceLevelObjectiveFeedEventType.ServiceLevelObjectiveRestored,
         displayColor: isArchived ? Yellow500 : Blue500,
-        getMarkdown: (sloMarkdownLink: string): SloFeedMarkdown => {
+        getMarkdown: (sloMarkdownLink: MarkdownText): SloFeedMarkdown => {
           return getSloArchivedFeedMarkdown({
             sloMarkdownLink: sloMarkdownLink,
             isArchived: isArchived,
@@ -1435,7 +1436,7 @@ export class Service extends ProjectReferencesService<Model> {
           ? ServiceLevelObjectiveFeedEventType.ServiceLevelObjectiveEnabled
           : ServiceLevelObjectiveFeedEventType.ServiceLevelObjectiveDisabled,
         displayColor: isEnabled ? Green500 : Gray500,
-        getMarkdown: (sloMarkdownLink: string): SloFeedMarkdown => {
+        getMarkdown: (sloMarkdownLink: MarkdownText): SloFeedMarkdown => {
           return getSloEnabledFeedMarkdown({
             sloMarkdownLink: sloMarkdownLink,
             isEnabled: isEnabled,
@@ -1462,7 +1463,7 @@ export class Service extends ProjectReferencesService<Model> {
         eventType:
           ServiceLevelObjectiveFeedEventType.ServiceLevelObjectiveUpdated,
         displayColor: Gray500,
-        getMarkdown: (sloMarkdownLink: string): SloFeedMarkdown => {
+        getMarkdown: (sloMarkdownLink: MarkdownText): SloFeedMarkdown => {
           return getSloUpdatedFeedMarkdown({
             sloMarkdownLink: sloMarkdownLink,
             changes: changes,
@@ -1486,7 +1487,7 @@ export class Service extends ProjectReferencesService<Model> {
       return;
     }
 
-    const sloMarkdownLink: string = await this.getSloMarkdownLink({
+    const sloMarkdownLink: MarkdownText = await this.getSloMarkdownLink({
       projectId: projectId,
       sloId: data.sloId,
       sloName: after.name || data.before.name || "",
@@ -1593,7 +1594,7 @@ export class Service extends ProjectReferencesService<Model> {
       items.push({
         eventType: ServiceLevelObjectiveFeedEventType.MonitorsAttached,
         displayColor: Blue500,
-        getMarkdown: (sloMarkdownLink: string): SloFeedMarkdown => {
+        getMarkdown: (sloMarkdownLink: MarkdownText): SloFeedMarkdown => {
           return getSloMonitorsChangedFeedMarkdown({
             sloMarkdownLink: sloMarkdownLink,
             monitors: attached,
@@ -1610,7 +1611,7 @@ export class Service extends ProjectReferencesService<Model> {
       items.push({
         eventType: ServiceLevelObjectiveFeedEventType.MonitorsDetached,
         displayColor: Orange500,
-        getMarkdown: (sloMarkdownLink: string): SloFeedMarkdown => {
+        getMarkdown: (sloMarkdownLink: MarkdownText): SloFeedMarkdown => {
           return getSloMonitorsChangedFeedMarkdown({
             sloMarkdownLink: sloMarkdownLink,
             monitors: detached,
