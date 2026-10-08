@@ -12,9 +12,26 @@ jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
   return { __esModule: true, default: {} };
 });
 
+import {
+  buildPageSearchCommandDescriptors,
+  getPageSearchIndexEntries,
+  PageSearchCommandDescriptor,
+  PageSearchIndexEntry,
+} from "../../FeatureSet/Dashboard/src/Components/CommandPalette/DashboardCommandPaletteHelpers";
+import {
+  getPageSearchAreas,
+  PageSearchArea,
+} from "../../FeatureSet/Dashboard/src/Components/CommandPalette/PageSearchIndex";
 import { TOOL_IMPORT_ROUTES } from "../../FeatureSet/Dashboard/src/Components/ToolImport/ToolImportApi";
+import {
+  filterPaletteCommands,
+  PaletteCommandMatch,
+} from "Common/UI/Components/CommandPalette/PaletteFilter";
+import { PaletteCommand } from "Common/UI/Components/CommandPalette/Types";
 import { getToolImportSourceDefinition } from "Common/Types/ToolImport/ToolImportCatalog";
-import { AllToolImportSources } from "Common/Types/ToolImport/ToolImportSource";
+import ToolImportSource, {
+  AllToolImportSources,
+} from "Common/Types/ToolImport/ToolImportSource";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -42,8 +59,65 @@ const PAGE_ID: string = "SETTINGS_IMPORT_FROM_TOOL";
 const PAGE_TITLE: string = "Import from another tool";
 
 const WHITESPACE: RegExp = /\s+/g;
-const QUOTED_KEYWORD: RegExp = /"([^"]+)"/g;
+const NOT_A_LETTER: RegExp = /[^a-z]+/;
 const RUN_ID: string = "run-id";
+
+/*
+ * Tools whose names are not among the page's search keywords (the test
+ * below holds each one to its reason). A tool added later is searched for
+ * by its name unless it is listed here.
+ */
+const NAMES_SEARCH_LEAVES_OUT: Set<ToolImportSource> =
+  new Set<ToolImportSource>([ToolImportSource.IncidentIo]);
+
+const SEARCH_AREAS: Array<PageSearchArea> = getPageSearchAreas();
+const SEARCH_ENTRIES: Array<PageSearchIndexEntry> =
+  getPageSearchIndexEntries(SEARCH_AREAS);
+
+// Search's pages, as Cmd+K lists them (DashboardCommandPalette).
+const SEARCH_PAGES: Array<PaletteCommand> = buildPageSearchCommandDescriptors({
+  areas: SEARCH_AREAS,
+  availability: {
+    isBillingEnabled: true,
+    isMonitorGroupsEnabled: true,
+    canDeleteProject: true,
+  },
+  getRouteTemplate: (key: string): string => {
+    return `/dashboard/:projectId/${key.toLowerCase()}`;
+  },
+  getRoutePath: (key: string): string => {
+    return `/dashboard/project/${key.toLowerCase()}`;
+  },
+  getProductTitle: (): undefined => {
+    return undefined;
+  },
+  translate: (text: string): string => {
+    return text;
+  },
+  catalog: [],
+}).map((descriptor: PageSearchCommandDescriptor): PaletteCommand => {
+  return {
+    id: descriptor.id,
+    title: descriptor.title,
+    keywords: descriptor.keywords,
+    breadcrumb: descriptor.breadcrumb,
+    breadcrumbKeywords: descriptor.breadcrumbKeywords,
+    category: "Pages",
+    onSelect: (): void => {},
+  };
+});
+
+// The first page Search lists for the query, with where it lives.
+function firstFound(query: string): string {
+  const match: PaletteCommandMatch | undefined = filterPaletteCommands(
+    SEARCH_PAGES,
+    query,
+  )[0];
+
+  return match
+    ? `${match.command.title} — ${(match.command.breadcrumb || []).join(" › ")}`
+    : "";
+}
 
 /*
  * Whitespace squashed, so a check does not depend on how a line wraps.
@@ -123,32 +197,59 @@ describe("the page is reachable", () => {
     expect(basic).toContain(`RouteMap[PageMap.${PAGE_ID}] as Route`);
   });
 
-  test("Cmd+K finds it under Project Settings > Basic, by every tool's name", () => {
-    const entry: string = between(
-      between(
-        readDashboard("Components/CommandPalette/PageSearchIndex.ts"),
-        'id: "project-settings"',
-        'title: "Workspace"',
-      ),
-      `page: PageMap.${PAGE_ID},`,
-      "},",
-    );
-    const keywords: Array<string> = Array.from(
-      between(entry, "keywords: [", "]").matchAll(QUOTED_KEYWORD),
-      (match: RegExpMatchArray): string => {
-        return match[1]!;
+  test("Cmd+K lists it under Project Settings > Basic", () => {
+    const entry: PageSearchIndexEntry | undefined = SEARCH_ENTRIES.find(
+      (candidate: PageSearchIndexEntry): boolean => {
+        return candidate.page.page === PAGE_ID;
       },
     );
 
-    expect(entry).toContain(`title: "${PAGE_TITLE}"`);
-    expect(keywords).toEqual(
-      expect.arrayContaining(["import", "migrate", "move to oneuptime"]),
-    );
+    expect(entry?.page.title).toBe(PAGE_TITLE);
+    expect(entry?.area.id).toBe("project-settings");
+    expect(entry?.section.title).toBe("Basic");
+  });
 
-    for (const source of AllToolImportSources) {
-      expect(keywords).toContain(
-        getToolImportSourceDefinition(source).title.toLowerCase(),
-      );
+  test("Cmd+K opens it first for the words someone moving over types, and for each tool's name", () => {
+    for (const query of [
+      "import",
+      "migrate",
+      "migration",
+      "move to oneuptime",
+      ...AllToolImportSources.filter((source: ToolImportSource): boolean => {
+        return !NAMES_SEARCH_LEAVES_OUT.has(source);
+      }).map((source: ToolImportSource): string => {
+        return getToolImportSourceDefinition(source).title;
+      }),
+    ]) {
+      expect({ query, first: firstFound(query) }).toEqual({
+        query,
+        first: `${PAGE_TITLE} — Project Settings › Basic`,
+      });
+    }
+  });
+
+  /*
+   * A tool whose name starts with a word another product's pages start
+   * with is not one of the page's keywords: "incident.io" would put the
+   * import page ahead of the Incidents pages for "incident settings", and
+   * for the "incidnet" typo Getting Started promises opens Incidents. Each
+   * name left out has to be one of those.
+   */
+  test("a tool's name is left out of its keywords only when another product's pages start with its first word", () => {
+    for (const source of NAMES_SEARCH_LEAVES_OUT) {
+      const firstWord: string = getToolImportSourceDefinition(source)
+        .title.toLowerCase()
+        .split(NOT_A_LETTER)[0]!;
+
+      expect({
+        source,
+        clashes: SEARCH_ENTRIES.some((entry: PageSearchIndexEntry): boolean => {
+          return (
+            entry.area.id !== "project-settings" &&
+            entry.page.title.toLowerCase().startsWith(firstWord)
+          );
+        }),
+      }).toEqual({ source, clashes: true });
     }
   });
 });

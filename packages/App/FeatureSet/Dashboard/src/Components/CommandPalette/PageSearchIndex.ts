@@ -335,7 +335,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "move to oneuptime",
               "switch to oneuptime",
               "opsgenie",
-              "incident.io",
             ],
           },
         ],
