@@ -965,7 +965,11 @@ describePostgres("sign-in changes named by a filter, on Postgres", () => {
 
         let rule: unknown = false;
 
-        for (let attempt: number = 0; attempt < 50 && rule !== true; attempt++) {
+        for (
+          let attempt: number = 0;
+          attempt < 50 && rule !== true;
+          attempt++
+        ) {
           await new Promise<void>((resolve: () => void): void => {
             setTimeout(resolve, 100);
           });
@@ -975,9 +979,7 @@ describePostgres("sign-in changes named by a filter, on Postgres", () => {
         expect(rule).toBe(true);
       } finally {
         await letGo(holder);
-        await ProjectSsoProviderChanges.releaseSignInChange(
-          handedOut as never,
-        );
+        await ProjectSsoProviderChanges.releaseSignInChange(handedOut as never);
       }
     });
 

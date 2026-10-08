@@ -90,9 +90,9 @@ describe("a statement the database answered was not applied", () => {
   ])(
     "an error of its own - SQLSTATE %s - rolls the statement back",
     (code: string, message: string) => {
-      expect(StatementOutcome.isUnknown(databaseAnswer({ code, message }))).toBe(
-        false,
-      );
+      expect(
+        StatementOutcome.isUnknown(databaseAnswer({ code, message })),
+      ).toBe(false);
     },
   );
 
@@ -114,7 +114,10 @@ describe("a failure before any statement was sent applied nothing", () => {
       "no free connection in the pool",
       new Error("timeout exceeded when trying to connect"),
     ],
-    ["an error named like TypeORM's, carrying no driver error", { name: "QueryFailedError" }],
+    [
+      "an error named like TypeORM's, carrying no driver error",
+      { name: "QueryFailedError" },
+    ],
     ["nothing at all", undefined],
     ["null", null],
     ["a string", "Query read timeout"],

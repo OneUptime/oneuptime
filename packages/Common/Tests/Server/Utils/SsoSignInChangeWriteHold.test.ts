@@ -560,20 +560,20 @@ describe("a lock found gone right before the write is taken again, and the chang
     lost.add("server");
 
     let retaken: Array<SemaphoreMutex> = [];
-    const recheck: jest.Mock<Recheck> = jest.fn<Recheck>(
-      async (): Promise<Array<SemaphoreMutex>> => {
-        // Taken again: Valkey holds them for this change once more.
-        lost.delete("server");
-        retaken = [lock("project"), lock("server")];
-        return retaken;
-      },
-    );
+    let rechecks: number = 0;
+    const recheck: Recheck = async (): Promise<Array<SemaphoreMutex>> => {
+      rechecks++;
+      // Taken again: Valkey holds them for this change once more.
+      lost.delete("server");
+      retaken = [lock("project"), lock("server")];
+      return retaken;
+    };
 
     await expect(
       refusalOf(ProjectSsoProviderChanges.holdForWrite(locks, recheck)),
     ).resolves.toBe("done");
 
-    expect(recheck).toHaveBeenCalledTimes(1);
+    expect(rechecks).toBe(1);
     // Both given back - the one still held too - before the change was checked again.
     expect(released).toEqual(["project", "server"]);
     expect(keeps).toEqual(["project", "server", "project", "server"]);
@@ -660,18 +660,18 @@ describe("a lock found gone right before the write is taken again, and the chang
     const locks: Array<SemaphoreMutex> = [project];
     lost.add("project");
 
-    const recheck: jest.Mock<Recheck> = jest.fn<Recheck>(
-      async (): Promise<Array<SemaphoreMutex>> => {
-        // Still lost: Valkey keeps losing it.
-        return [lock("project")];
-      },
-    );
+    let rechecks: number = 0;
+    const recheck: Recheck = async (): Promise<Array<SemaphoreMutex>> => {
+      rechecks++;
+      // Still lost: Valkey keeps losing it.
+      return [lock("project")];
+    };
 
     await expect(
       refusalOf(ProjectSsoProviderChanges.holdForWrite(locks, recheck)),
     ).resolves.toBe(SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE);
 
-    expect(recheck).toHaveBeenCalledTimes(1);
+    expect(rechecks).toBe(1);
     expect(locks).toEqual([]);
     // The one found gone, then the one taken again.
     expect(released).toEqual(["project", "project"]);
@@ -711,17 +711,17 @@ describe("a lock found gone right before the write is taken again, and the chang
     const project: SemaphoreMutex = lock("project");
     valkeyDown = true;
 
-    const recheck: jest.Mock<Recheck> = jest.fn<Recheck>(
-      async (): Promise<Array<SemaphoreMutex>> => {
-        return [];
-      },
-    );
+    let rechecks: number = 0;
+    const recheck: Recheck = async (): Promise<Array<SemaphoreMutex>> => {
+      rechecks++;
+      return [];
+    };
 
     await expect(
       refusalOf(ProjectSsoProviderChanges.holdForWrite([project], recheck)),
     ).resolves.toBe("done");
 
-    expect(recheck).not.toHaveBeenCalled();
+    expect(rechecks).toBe(0);
     expect(isKept(project)).toBe(true);
   });
 });
@@ -915,7 +915,10 @@ describe("a write the database may still apply keeps its locks until the databas
     // Longer than the statement may run, whatever it is set to.
     for (const statementTimeoutMs of [1, 30_000, 300_000]) {
       expect(
-        getAbandonedWriteHoldInMs(statementTimeoutMs, statementTimeoutMs + 5_000),
+        getAbandonedWriteHoldInMs(
+          statementTimeoutMs,
+          statementTimeoutMs + 5_000,
+        ),
       ).toBeGreaterThan(statementTimeoutMs);
     }
 

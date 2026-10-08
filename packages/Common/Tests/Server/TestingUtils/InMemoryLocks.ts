@@ -82,7 +82,10 @@ export default class InMemoryLocks {
   }
 
   // How many changes wait for this key's lock now.
-  public waitingFor(key: string, namespace: string = SIGN_IN_NAMESPACE): number {
+  public waitingFor(
+    key: string,
+    namespace: string = SIGN_IN_NAMESPACE,
+  ): number {
     return (this.waiters.get(InMemoryLocks.fullKey(key, namespace)) || [])
       .length;
   }
@@ -146,7 +149,9 @@ export default class InMemoryLocks {
   private release(lock: InMemoryLock): void {
     const fullKey: string = InMemoryLocks.fullKey(lock.key, lock.namespace);
 
-    this.events.push(`release:${InMemoryLocks.label(lock.key, lock.namespace)}`);
+    this.events.push(
+      `release:${InMemoryLocks.label(lock.key, lock.namespace)}`,
+    );
 
     // Only the holder's own lock is given back: one lost already is someone else's now, or nobody's.
     if (this.holders.get(fullKey) !== lock) {

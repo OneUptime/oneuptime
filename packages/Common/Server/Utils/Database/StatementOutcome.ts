@@ -42,9 +42,7 @@ export default class StatementOutcome {
       (error as { driverError?: unknown }).driverError,
     );
 
-    return (
-      sqlState === null || sqlState.startsWith(CONNECTION_EXCEPTION_CLASS)
-    );
+    return sqlState === null || sqlState.startsWith(CONNECTION_EXCEPTION_CLASS);
   }
 
   /*

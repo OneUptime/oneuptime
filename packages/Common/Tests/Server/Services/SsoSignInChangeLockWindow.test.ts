@@ -158,7 +158,7 @@ const projectRow: (
 const providerRow: (
   providerId: string,
   projectId: string,
-  isEnabled: boolean = true,
+  isEnabled?: boolean,
 ) => StoredRow = (
   providerId: string,
   projectId: string,
@@ -386,9 +386,10 @@ beforeEach(() => {
 
   // The recharge's own lock and its memory of failures, in the shared cache.
   getJestSpyOn(Redis, "isConnected").mockReturnValue(true);
-  getJestSpyOn(BalanceRechargeGuard.prototype, "forgetFailure").mockResolvedValue(
-    undefined,
-  );
+  getJestSpyOn(
+    BalanceRechargeGuard.prototype,
+    "forgetFailure",
+  ).mockResolvedValue(undefined);
   getJestSpyOn(
     BalanceRechargeGuard.prototype,
     "rememberFailure",
@@ -637,8 +638,7 @@ describe("the server's Require SSO for Login saved on again", () => {
       },
     ];
 
-    let turningOff: { outcome: Promise<string>; waited: boolean } | null =
-      null;
+    let turningOff: { outcome: Promise<string>; waited: boolean } | null = null;
 
     // The step between the server's check and its write.
     const rememberServerRuleBefore: (...args: Array<unknown>) => Promise<void> =
@@ -816,9 +816,7 @@ describe("a lock found gone right before the write is taken again, and the chang
 
     expect(samlProviders.get(OWN_SAML)!["isEnabled"]).toBe(false);
     // Turned off in the same write that says when its sign-ins ended.
-    expect(samlProviders.get(OWN_SAML)!["signInsEndedAt"]).toBeInstanceOf(
-      Date,
-    );
+    expect(samlProviders.get(OWN_SAML)!["signInsEndedAt"]).toBeInstanceOf(Date);
     expect(
       locks.events.filter((event: string): boolean => {
         return event === `lock:${ACME}`;
@@ -852,9 +850,7 @@ describe("an auto recharge charged while a change to who can sign in is saved", 
     await expect(turnOnSsoAndAutoRecharge()).resolves.toBe("done");
 
     expect(charges).toEqual([{ customerId: "cus_acme", amountInUsd: 20 }]);
-    expect(projects.get(ACME)!["smsOrCallCurrentBalanceInUSDCents"]).toBe(
-      2000,
-    );
+    expect(projects.get(ACME)!["smsOrCallCurrentBalanceInUSDCents"]).toBe(2000);
     expect(ruleOf().requireSsoForLogin).toBe(true);
     expect(projects.get(ACME)!["enableAutoRechargeSmsOrCallBalance"]).toBe(
       true,
@@ -875,9 +871,7 @@ describe("an auto recharge charged while a change to who can sign in is saved", 
 
     // Charged once, and credited in a write of its own: refusing the change takes nothing back.
     expect(charges).toEqual([{ customerId: "cus_acme", amountInUsd: 20 }]);
-    expect(projects.get(ACME)!["smsOrCallCurrentBalanceInUSDCents"]).toBe(
-      2000,
-    );
+    expect(projects.get(ACME)!["smsOrCallCurrentBalanceInUSDCents"]).toBe(2000);
 
     // The change itself was not written: Require SSO for Login and auto recharge stay off.
     expect(ruleOf().requireSsoForLogin).toBe(false);
