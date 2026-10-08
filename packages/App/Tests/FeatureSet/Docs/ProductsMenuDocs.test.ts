@@ -4,11 +4,12 @@ import path from "path";
 
 /*
  * Getting Started tells a new user how to find their way around: the
- * products menu always opens on the essentials, which never fold, and folds
- * every other group into a row of the list below them. The page names the essentials and the
- * folded groups, so it has to name the ones the menu actually shows. These
- * read the names from the Dashboard's own English locale, the words on the
- * screen, and fail when the page and the menu drift apart.
+ * products menu lists its groups as the rows of one list, always opens with
+ * the first of them, the essentials, open, and folds every other group into
+ * a row. The page names the essentials and the folded groups, so it has to
+ * name the ones the menu actually shows. These read the names from the
+ * Dashboard's own English locale, the words on the screen, and fail when the
+ * page and the menu drift apart.
  */
 
 const APP_ROOT: string = path.join(__dirname, "..", "..", "..");
@@ -69,9 +70,11 @@ const ESSENTIAL_TITLE_KEYS: Array<string> = [
 ];
 
 describe("Getting Started explains the products menu", () => {
-  test("it says the menu opens on the essentials and names each of them", () => {
+  test("it says the menu opens with the essentials open and names each of them", () => {
     expect(SECTION).toContain("**Products**");
-    expect(SECTION).toContain("opens on the essentials");
+    expect(SECTION).toContain(
+      "always opens with the first of them, the essentials, open",
+    );
 
     for (const key of ESSENTIAL_TITLE_KEYS) {
       const title: string | undefined = ENGLISH.navbar.items[key];
@@ -109,32 +112,39 @@ describe("Getting Started explains the products menu", () => {
     expect(NAVIGATION_ITEMS).toContain('"rum"');
   });
 
-  test("it describes the folded groups as rows of a list that name what they hold", () => {
-    expect(SECTION).toContain("is folded into a row of the list below them");
+  test("it describes every group, the essentials too, as rows of one list that name what they hold", () => {
+    expect(SECTION).toContain(
+      "The menu lists its groups as the rows of one list",
+    );
+    expect(SECTION).toContain("is folded into a row of the same list");
     expect(SECTION).toContain(
       "Each row names the products the group holds and says how many.",
     );
-    expect(SECTION).toContain("Click a row to open it");
+    expect(SECTION).toContain("Click a row to open it or fold it");
     expect(SECTION).toContain(
       "every other group as one row that opens on a tap",
     );
     // The folded groups are no longer drawn as single lines of text.
     expect(SECTION).not.toMatch(/folded to one line|Click a line/);
+    // Nor are the other groups a list below the essentials, apart from them.
+    expect(SECTION).not.toContain("the list below them");
   });
 
   test("the menu does open on Essentials alone", () => {
     expect(NAVIGATION_ITEMS.replace(/\s+/g, "")).toContain(
-      "constmoreMenuCategoriesAlwaysOpen:Array<string>=[essentialsCategory];",
+      "constmoreMenuCategoriesOpenByDefault:Array<string>=[essentialsCategory];",
     );
   });
 
-  test("it says the essentials are always there, and what the menu remembers is the other groups", () => {
-    expect(SECTION).toContain("always opens on the essentials");
-    expect(SECTION).toContain("The essentials are never folded away.");
+  test("it says the essentials are open each time, and what the menu remembers is the other groups", () => {
+    expect(SECTION).toContain(
+      "The essentials are open again each time you open the menu, even if you folded them.",
+    );
     expect(SECTION).toContain(
       "remembers, on your browser, which of the other groups you opened or folded",
     );
-    // Nothing on the page tells people to fold the essentials.
-    expect(SECTION).not.toMatch(/fold(?:ing)? the essentials/i);
+    expect(SECTION).toContain("the essentials open at the top");
+    // The essentials fold now, so the page no longer says they never do.
+    expect(SECTION).not.toContain("never folded away");
   });
 });

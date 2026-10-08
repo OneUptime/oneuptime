@@ -11,8 +11,8 @@ import path from "path";
  * So this reads the products menu's folding pieces - the category row
  * (icon, name, the products it holds, count, chevron, and the cursor's and
  * the hover's colours on it), the phone menu's list, the frame of the
- * desktop menu's list of categories and the plain headings around them -
- * and holds every colour class they draw with to what Theme.css remaps.
+ * desktop menu's list of categories and the plain headings above it - and
+ * holds every colour class they draw with to what Theme.css remaps.
  */
 
 const NAVBAR_DIR: string = path.join(
@@ -209,13 +209,15 @@ describe("the category row's colours", () => {
     }
   });
 
-  test("the phone menu's plain heading, rule and guide line are drawn in remapped colours", () => {
+  test("the phone menu's rule and guide line are drawn in remapped colours", () => {
     const tokens: Array<string> = colorTokens(readCode("NavBarMobileMenu.tsx"));
 
-    // The scan sees the heading's own classes, so the check above covers it.
-    expect(tokens).toEqual(
-      expect.arrayContaining(["border-gray-100", "text-gray-500"]),
-    );
+    /*
+     * Its every category is a row (NavBarCategoryToggle, scanned above), so
+     * the menu itself draws only the rule above them and the guide line
+     * under an open one.
+     */
+    expect(tokens).toEqual(["border-gray-100"]);
     for (const token of tokens) {
       expect([token, isRemapped(token)]).toEqual([token, true]);
     }

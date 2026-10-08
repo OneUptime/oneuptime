@@ -42,18 +42,21 @@ jest.mock("../../../UI/Utils/Translation", () => {
 });
 
 /*
- * The products menu's folded categories, drawn as one list.
+ * The products menu's categories, drawn as one list.
  *
- * The menu opens on Essentials as cards and folds every other category. Each
- * folded category used to be a line of small spaced capitals (the style of
- * the Essentials heading) followed by a run-on list of its products, so the
- * bottom of the menu read as a stack of headings with nothing under them,
- * every list of products starting somewhere else.
+ * The menu opens on Essentials, as cards, and folds every other category.
+ * Each folded category used to be a line of small spaced capitals (the style
+ * of the Essentials heading) followed by a run-on list of its products, so
+ * the bottom of the menu read as a stack of headings with nothing under
+ * them, every list of products starting somewhere else.
  *
- * Now the folded categories are the rows of one bordered list below the
+ * Then the folded categories became the rows of one bordered list below the
  * cards: each row is the category's icon, its name, the products it holds,
  * how many and a chevron, and the list's columns line every row up. An
  * opened category's products are drawn inside the list, under its row.
+ *
+ * Now Essentials are in the list as well: its first row, open, with their
+ * cards under it, drawn like every other category's row.
  */
 
 const RECENT_STORAGE_KEY: string = "oneuptime-navbar-recent-products";
@@ -90,7 +93,11 @@ const FOLDED_CATEGORIES: Array<string> = [
   "Settings",
 ];
 
+// Every category, as the list's rows: Essentials first.
+const CATEGORIES: Array<string> = ["Essentials", ...FOLDED_CATEGORIES];
+
 const CATEGORY_ICONS: Dictionary<IconProp> = {
+  Essentials: IconProp.Star,
   Observability: IconProp.PresentationChartLine,
   Code: IconProp.Code,
   Resources: IconProp.Layers,
@@ -104,7 +111,7 @@ function renderMenu(
   return render(
     <NavBarMenuModal
       items={CATALOG}
-      categoriesAlwaysOpen={["Essentials"]}
+      categoriesOpenByDefault={["Essentials"]}
       categoryIcons={CATEGORY_ICONS}
       onClose={() => {}}
       {...props}
@@ -204,12 +211,12 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
-describe("the folded categories are one list below the cards", () => {
-  test("every folded category is a row of the same list, in the catalog's order", () => {
+describe("every category is a row of one list, Essentials first", () => {
+  test("every category is a row of the same list, in the catalog's order", () => {
     renderMenu();
 
     expect(categoryLists()).toHaveLength(1);
-    expect(categoriesIn(categoryLists()[0]!)).toEqual(FOLDED_CATEGORIES);
+    expect(categoriesIn(categoryLists()[0]!)).toEqual(CATEGORIES);
   });
 
   test("the list is drawn as one bordered box with a rule between its rows", () => {
@@ -226,19 +233,17 @@ describe("the folded categories are one list below the cards", () => {
     );
   });
 
-  test("the list comes after the essentials, outside their group", () => {
+  test("the essentials are the list's first group, not a heading above it", () => {
     renderMenu();
 
     const list: HTMLElement = categoryLists()[0]!;
     const essentials: HTMLElement = group("Essentials");
 
-    expect(essentials).not.toContainElement(list);
-    expect(list).not.toContainElement(essentials);
-    expect(
-      essentials.compareDocumentPosition(list) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    // Spaced from the cards above it as one group is from the next.
+    expect(list).toContainElement(essentials);
+    expect(list.firstElementChild).toBe(essentials);
+    // The list holds every product on screen: there is nothing above it.
+    expect(listbox().firstElementChild).toBe(list);
+    expect(productTitles(list)).toEqual(productTitles(listbox()));
     expect(list).toHaveClass("mb-6", "last:mb-1");
   });
 
@@ -247,23 +252,43 @@ describe("the folded categories are one list below the cards", () => {
 
     const list: HTMLElement = categoryLists()[0]!;
 
-    for (const category of FOLDED_CATEGORIES) {
+    for (const category of CATEGORIES) {
       expect(group(category)).toBeInTheDocument();
       expect(group(category).parentElement).toBe(list);
       expect(group(category)).toContainElement(row(category));
     }
   });
 
-  test("the essentials stay cards under their plain heading, out of the list", () => {
+  test("the essentials' cards are inside the list, right under their row", () => {
     renderMenu();
 
-    expect(productTitles(group("Essentials"))).toEqual([
-      "Monitors",
-      "Incidents",
-      "Alerts",
-    ]);
-    for (const list of categoryLists()) {
-      expect(categoriesIn(list)).not.toContain("Essentials");
+    const body: HTMLElement = document.getElementById(
+      heading("Essentials").getAttribute("aria-controls")!,
+    )!;
+
+    expect(body.parentElement).toBe(group("Essentials"));
+    expect(body.previousElementSibling).toBe(row("Essentials"));
+    expect(productTitles(body)).toEqual(["Monitors", "Incidents", "Alerts"]);
+    // Drawn as an opened category's cards are: spanning the list, inset.
+    expect(body).toHaveClass("col-span-full", "px-2", "pb-2");
+    // The next category's row follows them.
+    expect(group("Essentials").nextElementSibling).toBe(group("Observability"));
+  });
+
+  test("no plain heading is left: Essentials are named by their row alone", () => {
+    renderMenu();
+
+    expect(
+      screen
+        .getAllByRole("heading", { level: 3 })
+        .map((element: HTMLElement): string => {
+          return element.textContent ?? "";
+        }),
+    ).toEqual(CATEGORIES);
+    for (const category of CATEGORIES) {
+      expect(
+        screen.getByRole("heading", { level: 3, name: category }),
+      ).not.toHaveClass("uppercase");
     }
   });
 });
@@ -278,7 +303,7 @@ describe("the list's columns line every row up", () => {
   test("each category's group and row take those columns as subgrids, across the whole list", () => {
     renderMenu();
 
-    for (const category of FOLDED_CATEGORIES) {
+    for (const category of CATEGORIES) {
       expect(group(category)).toHaveClass(
         "col-span-full",
         "grid",
@@ -305,9 +330,26 @@ describe("the list's columns line every row up", () => {
     }
   });
 
+  test("the essentials' open row puts its icon, name, count and chevron in the columns of the folded rows", () => {
+    renderMenu();
+
+    const open: Array<Element> = Array.from(row("Essentials").children);
+    const folded: Array<Element> = Array.from(row("Observability").children);
+
+    // Open, a row lists no products: its cards are right below it.
+    expect(open).toHaveLength(4);
+    expect(open[0]!.className).toBe(folded[0]!.className);
+    expect(open[1]!.className).toBe(folded[1]!.className);
+    expect(open[2]!.className).toBe(folded[3]!.className);
+    expect(open[3]!.className).toBe(folded[4]!.className);
+    expect(open[2]).toHaveClass("sm:col-start-4");
+    expect(open[3]).toHaveClass("sm:col-start-5");
+  });
+
   test("each row says what its category holds and how many", () => {
     renderMenu();
 
+    expect(row("Essentials")).toHaveTextContent(/^Essentials3$/);
     expect(row("Infrastructure")).toHaveTextContent(
       "Hosts, Kubernetes, Docker",
     );
@@ -321,14 +363,10 @@ describe("the list's columns line every row up", () => {
   test("the row names its category as a product's title is named, not in small capitals", () => {
     renderMenu();
 
-    for (const category of FOLDED_CATEGORIES) {
+    for (const category of CATEGORIES) {
       expect(heading(category)).toHaveClass("font-medium", "text-gray-900");
       expect(heading(category)).not.toHaveClass("uppercase");
     }
-    // The plain heading of the essentials keeps the small capitals.
-    expect(
-      screen.getByRole("heading", { level: 3, name: "Essentials" }),
-    ).toHaveClass("uppercase");
   });
 });
 
@@ -350,7 +388,9 @@ describe("each row is drawn with its category's icon", () => {
     renderMenu({ categoryIcons: { Observability: IconProp.Eye } });
 
     expect(drawnIcon("Observability")).toBe(glyphOf(IconProp.Eye));
-    for (const category of FOLDED_CATEGORIES.slice(1)) {
+    for (const category of CATEGORIES.filter((name: string): boolean => {
+      return name !== "Observability";
+    })) {
       expect([category, drawnIcon(category)]).toEqual([category, expected]);
     }
   });
@@ -360,22 +400,19 @@ describe("each row is drawn with its category's icon", () => {
 
     renderMenu({ categoryIcons: undefined });
 
-    for (const category of FOLDED_CATEGORIES) {
+    for (const category of CATEGORIES) {
       expect([category, drawnIcon(category)]).toEqual([category, expected]);
     }
   });
 
-  test("an icon given for a category that never folds draws nothing on its plain heading", () => {
+  test("the essentials' row keeps its icon whether they are open or folded", () => {
     renderMenu({
       categoryIcons: { ...CATEGORY_ICONS, Essentials: IconProp.Alert },
     });
 
-    const essentialsHeading: HTMLElement = screen.getByRole("heading", {
-      level: 3,
-      name: "Essentials",
-    });
-
-    expect(essentialsHeading.parentElement!.querySelector("svg")).toBeNull();
+    expect(drawnIcon("Essentials")).toBe(glyphOf(IconProp.Alert));
+    fireEvent.click(heading("Essentials"));
+    expect(drawnIcon("Essentials")).toBe(glyphOf(IconProp.Alert));
   });
 
   test("an icon is looked up by the category's name as the items carry it", () => {
@@ -418,7 +455,19 @@ describe("an opened category is drawn inside the list", () => {
     fireEvent.click(heading("Code"));
 
     expect(categoryLists()).toHaveLength(1);
-    expect(categoriesIn(categoryLists()[0]!)).toEqual(FOLDED_CATEGORIES);
+    expect(categoriesIn(categoryLists()[0]!)).toEqual(CATEGORIES);
+  });
+
+  test("folding the essentials leaves their row in its place, with the products it holds", () => {
+    renderMenu();
+
+    fireEvent.click(heading("Essentials"));
+
+    expect(categoryLists()).toHaveLength(1);
+    expect(categoriesIn(categoryLists()[0]!)).toEqual(CATEGORIES);
+    expect(productTitles(listbox())).toEqual([]);
+    expect(Array.from(row("Essentials").children)).toHaveLength(5);
+    expect(row("Essentials")).toHaveTextContent("Monitors, Incidents, Alerts");
   });
 
   test("the opened row keeps its icon and count, and drops the products it lists", () => {
@@ -474,59 +523,54 @@ describe("an opened category is drawn inside the list", () => {
       "row:Code",
       "Traces",
     ]);
+
+    // Back the other way: from Observability's row into the essentials.
+    for (let step: number = 0; step < 4; step++) {
+      fireEvent.keyDown(search(), { key: "ArrowLeft" });
+      visited.push(cursor());
+    }
+    expect(visited.slice(5)).toEqual([
+      "Logs",
+      "row:Observability",
+      "Alerts",
+      "Incidents",
+    ]);
   });
 });
 
-describe("a category that never folds, between ones that do, ends one list and starts the next", () => {
-  test("the order on screen stays the catalog's", () => {
-    renderMenu({ categoriesAlwaysOpen: ["Essentials", "Code"] });
-
-    const lists: Array<HTMLElement> = categoryLists();
-
-    expect(lists).toHaveLength(2);
-    expect(categoriesIn(lists[0]!)).toEqual(["Observability"]);
-    expect(categoriesIn(lists[1]!)).toEqual([
-      "Resources",
-      "Infrastructure",
-      "Settings",
-    ]);
-
-    const code: HTMLElement = group("Code");
-    expect(productTitles(code)).toEqual(["Tasks"]);
-    expect(
-      lists[0]!.compareDocumentPosition(code) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(
-      code.compareDocumentPosition(lists[1]!) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    for (const list of lists) {
-      expect(list).not.toContainElement(code);
-    }
-  });
-
-  test("a category that never folds at the end leaves one list before it", () => {
-    renderMenu({ categoriesAlwaysOpen: ["Essentials", "Settings"] });
+describe("the categories a menu opens on are rows of the same list", () => {
+  test("opened anywhere in the catalog, they stay rows of the one list, in the catalog's order", () => {
+    renderMenu({ categoriesOpenByDefault: ["Essentials", "Code"] });
 
     expect(categoryLists()).toHaveLength(1);
-    expect(categoriesIn(categoryLists()[0]!)).toEqual([
-      "Observability",
-      "Code",
-      "Resources",
-      "Infrastructure",
+    expect(categoriesIn(categoryLists()[0]!)).toEqual(CATEGORIES);
+
+    const code: HTMLElement = group("Code");
+    expect(code.parentElement).toBe(categoryLists()[0]);
+    expect(heading("Code")).toHaveAttribute("aria-expanded", "true");
+    expect(productTitles(code)).toEqual(["Tasks"]);
+    expect(productTitles(listbox())).toEqual([
+      "Monitors",
+      "Incidents",
+      "Alerts",
+      "Tasks",
     ]);
+  });
+
+  test("at the end of the catalog too", () => {
+    renderMenu({ categoriesOpenByDefault: ["Essentials", "Settings"] });
+
+    expect(categoryLists()).toHaveLength(1);
+    expect(categoriesIn(categoryLists()[0]!)).toEqual(CATEGORIES);
     expect(productTitles(group("Settings"))).toEqual(["Users"]);
   });
 
-  test("with nothing kept open, every category, Essentials too, is a row of one list", () => {
-    renderMenu({ categoriesAlwaysOpen: ["Nothing by this name"] });
+  test("with nothing to open on, every category, Essentials too, is a folded row of one list", () => {
+    renderMenu({ categoriesOpenByDefault: ["Nothing by this name"] });
 
     expect(categoryLists()).toHaveLength(1);
-    expect(categoriesIn(categoryLists()[0]!)).toEqual([
-      "Essentials",
-      ...FOLDED_CATEGORIES,
-    ]);
+    expect(categoriesIn(categoryLists()[0]!)).toEqual(CATEGORIES);
+    expect(productTitles(listbox())).toEqual([]);
   });
 });
 
@@ -538,6 +582,9 @@ describe("where there is nothing folded, there is no list", () => {
 
     expect(categoryLists()).toEqual([]);
     expect(screen.getAllByRole("option").length).toBeGreaterThan(0);
+    expect(
+      screen.getByRole("heading", { level: 3, name: "Essentials" }),
+    ).toHaveClass("uppercase");
   });
 
   test("clearing the search brings the list back", () => {
@@ -549,11 +596,12 @@ describe("where there is nothing folded, there is no list", () => {
     fireEvent.change(search(), { target: { value: "" } });
 
     expect(categoryLists()).toHaveLength(1);
-    expect(categoriesIn(categoryLists()[0]!)).toEqual(FOLDED_CATEGORIES);
+    expect(categoriesIn(categoryLists()[0]!)).toEqual(CATEGORIES);
+    expect(heading("Essentials")).toHaveAttribute("aria-expanded", "true");
   });
 
-  test("a menu that names no categories to keep open (the Admin Dashboard's) draws no list", () => {
-    renderMenu({ categoriesAlwaysOpen: undefined });
+  test("a menu that names no categories to open on (the Admin Dashboard's) draws no list", () => {
+    renderMenu({ categoriesOpenByDefault: undefined });
 
     expect(categoryLists()).toEqual([]);
     expect(productTitles(listbox())).toEqual(
@@ -564,7 +612,7 @@ describe("where there is nothing folded, there is no list", () => {
   });
 
   test("the plain headings of an unfolding menu keep their own inset", () => {
-    renderMenu({ categoriesAlwaysOpen: undefined });
+    renderMenu({ categoriesOpenByDefault: undefined });
 
     const essentialsHeading: HTMLElement = screen.getByRole("heading", {
       level: 3,
@@ -577,25 +625,25 @@ describe("where there is nothing folded, there is no list", () => {
 });
 
 describe("the plain headings line up with the icons of the cards and rows", () => {
-  test("Recent and Essentials are inset as far as a card's icon and a row's icon", () => {
+  test("Recent is inset as far as a card's icon and a row's icon", () => {
     window.localStorage.setItem(
       RECENT_STORAGE_KEY,
       JSON.stringify(["/p/hosts"]),
     );
     renderMenu();
 
-    for (const name of ["Recent", "Essentials"]) {
-      // A transparent 1px border and px-3: a card's border and padding.
-      expect(
-        screen.getByRole("heading", { level: 3, name }).parentElement,
-      ).toHaveClass("border", "border-transparent", "px-3");
-    }
+    // A transparent 1px border and px-3: a card's border and padding.
+    expect(
+      screen.getByRole("heading", { level: 3, name: "Recent" }).parentElement,
+    ).toHaveClass("border", "border-transparent", "px-3");
     // A row's icon: the list's 1px border, then the row's px-3.
-    expect(row("Infrastructure")).toHaveClass("px-3");
+    for (const category of CATEGORIES) {
+      expect(row(category)).toHaveClass("px-3");
+    }
     expect(categoryLists()[0]).toHaveClass("border");
   });
 
-  test("Recent stays cards, above the essentials, never in the list", () => {
+  test("Recent stays cards, above the list, never in it", () => {
     window.localStorage.setItem(
       RECENT_STORAGE_KEY,
       JSON.stringify(["/p/hosts", "/p/logs"]),
@@ -603,10 +651,14 @@ describe("the plain headings line up with the icons of the cards and rows", () =
     renderMenu();
 
     const recent: HTMLElement = group("Recent");
+    const list: HTMLElement = categoryLists()[0]!;
 
     expect(productTitles(recent)).toEqual(["Hosts", "Logs"]);
-    for (const list of categoryLists()) {
-      expect(list).not.toContainElement(recent);
-    }
+    expect(list).not.toContainElement(recent);
+    expect(
+      recent.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // The essentials, the list's first row, come right after Recent.
+    expect(list.firstElementChild).toBe(group("Essentials"));
   });
 });
