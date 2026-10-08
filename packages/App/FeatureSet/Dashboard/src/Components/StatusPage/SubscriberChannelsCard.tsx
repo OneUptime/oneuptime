@@ -24,6 +24,7 @@ import SubscriberChannelsCopy, {
 import StatusPageSwitchRow, {
   getSubscriptionSwitchTestId,
 } from "./StatusPageSwitchRow";
+import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
 
 /*
  * The Channels card on Subscribers -> Subscriber Settings: the one place a
@@ -46,6 +47,7 @@ export const SUBSCRIBER_CHANNELS_CARD_TEST_ID: string =
 const SubscriberChannelsCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const ruledListClassName: string = useCardRuledListClassName();
   const translator: Translator = useTranslator();
   const [statusPage, setStatusPage] = useState<StatusPage | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -108,7 +110,7 @@ const SubscriberChannelsCard: FunctionComponent<ComponentProps> = (
        * Full-bleed rows, ruled like the card's own header rule: the body
        * reaches the card's edges and each row brings its own padding back.
        */
-      <div className="-mx-5 -mb-6 divide-y divide-gray-200 border-t border-gray-200 md:-mx-6">
+      <div className={ruledListClassName}>
         <div className="px-5 py-4 md:px-6">
           <StatusPageSwitchRow
             statusPageId={props.statusPageId}

@@ -9,6 +9,7 @@ import Card, {
   CardButtonSchema,
   ComponentProps as CardProps,
 } from "../Card/Card";
+import { useIsCardSection } from "../Card/CardSurface";
 import { FormType, ModelFormOnBeforeUpdate } from "../Forms/ModelForm";
 import Fields from "../Forms/Types/Fields";
 import { FormStep } from "../Forms/Types/FormStep";
@@ -65,12 +66,23 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   onBeforeEdit?: (() => boolean) | undefined;
 }
 
+// The fields' box: a rule across the card under its header, on a page.
+export const CARD_MODEL_DETAIL_BODY_CLASS_NAME: string =
+  "border-t border-gray-200 px-4 py-5 sm:px-6 -m-6 -mt-2";
+
+/*
+ * In a section of a card: no rule and no box of their own, and a little more
+ * room under the header than a card's body has, which the rule gave.
+ */
+export const CARD_MODEL_DETAIL_SECTION_BODY_CLASS_NAME: string = "pt-2";
+
 const CardModelDetail: <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
 ) => ReactElement = <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const isCardSection: boolean = useIsCardSection();
   const [showModel, setShowModal] = useState<boolean>(false);
   const [item, setItem] = useState<TBaseModel | null>(null);
   const [refresher, setRefresher] = useState<boolean>(false);
@@ -220,7 +232,21 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
   return (
     <>
       <Card {...props.cardProps} buttons={cardButtons}>
-        <div className="border-t border-gray-200 px-4 py-5 sm:px-6 -m-6 -mt-2">
+        {/*
+         * On a page the fields sit under a rule across the card, apart from
+         * its header. In a section of a card (CardSections) a rule across
+         * the card is the divider between two sections, so one here would
+         * read as the start of a section with no title: the fields follow
+         * the header as they do in a card without one.
+         */}
+        <div
+          className={
+            isCardSection
+              ? CARD_MODEL_DETAIL_SECTION_BODY_CLASS_NAME
+              : CARD_MODEL_DETAIL_BODY_CLASS_NAME
+          }
+          data-testid="card-model-detail-body"
+        >
           <ModelDetail
             refresher={refresher}
             {...props.modelDetailProps}

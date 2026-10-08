@@ -123,11 +123,27 @@ describe("Status Page Branding & Domains (English)", () => {
       expect([card, advanced.includes(card)]).toEqual([card, true]);
     }
 
-    // Folded, its header names the four cards by the names the chips use.
+    // Folded, its header names the four sections by the names the chips use.
     expect(advanced).toContain(
-      "Folded, its header names its four cards — **Default Bar Color**, **Bar Color Rules**, **Languages** and **Search Engine Indexing** — and shows each one that differs from what a new status page starts with",
+      "Folded, its header names its four sections — **Default Bar Color**, **Bar Color Rules**, **Languages** and **Search Engine Indexing** — and shows each one that differs from what a new status page starts with",
     );
     expect(advanced).not.toContain("**Configured**");
+  });
+
+  /*
+   * "More Settings should look like one card instead of a card inside of a
+   * card, and it should have dividers." - the maintainer.
+   */
+  it("says that, open, More settings is one card whose sections are parted by dividers", () => {
+    const advanced: string = page.slice(
+      page.indexOf("### More settings"),
+      page.indexOf("## Uptime percent and downtime statuses"),
+    );
+
+    expect(advanced).toContain(
+      "Click it to open it: it is one card, the four sections one under the other, each with its own title and button, separated by dividers.",
+    );
+    expect(advanced).not.toContain("four cards");
   });
 
   it("says search engine indexing saves when the switch is flipped, with no Edit button", () => {
