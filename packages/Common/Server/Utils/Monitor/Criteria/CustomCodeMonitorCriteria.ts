@@ -66,7 +66,8 @@ export default class CustomCodeMonitoringCriteria {
 
     if (input.criteriaFilter.checkOn === CheckOn.ResultValue) {
       const resultValuePath: string | undefined =
-        input.criteriaFilter.customCodeMonitorOptions?.resultValuePath;
+        input.criteriaFilter.customCodeMonitorOptions?.resultValuePath?.trim() ||
+        undefined;
 
       /*
        * When a path is set, reach into the object/array result and compare
@@ -160,7 +161,7 @@ export default class CustomCodeMonitoringCriteria {
     message: string,
     resultValuePath: string | undefined,
   ): string {
-    if (resultValuePath && resultValuePath.trim().length > 0) {
+    if (resultValuePath) {
       return `Result value at "${resultValuePath}": ${message}`;
     }
 
@@ -171,7 +172,7 @@ export default class CustomCodeMonitoringCriteria {
    * Resolve the value at a dotted / bracketed path inside a custom-code
    * monitor result. Supports dot notation and [index] array brackets, e.g.
    * "status", "cpu_busy_percent", "data.items[0].value", "results[2].status".
-   * An empty/undefined/whitespace path returns the whole result unchanged.
+   * An empty/undefined path returns the whole result unchanged.
    * If any segment is missing, or traverses a primitive/null/undefined, the
    * resolved value is undefined. Object keys with a literal dot are not
    * addressable - only "[index]" reaches into arrays.
@@ -180,13 +181,13 @@ export default class CustomCodeMonitoringCriteria {
     result: CustomCodeMonitorResult | undefined,
     path: string | undefined,
   ): CustomCodeMonitorResult | undefined {
-    if (!path || path.trim().length === 0) {
+    if (!path) {
       return result;
     }
 
     let current: CustomCodeMonitorResult | undefined = result;
 
-    const pieces: Array<string> = path.trim().split(".");
+    const pieces: Array<string> = path.split(".");
 
     for (const piece of pieces) {
       // Pull a leading key plus zero or more [index] groups, e.g. items[0][1].
@@ -203,11 +204,18 @@ export default class CustomCodeMonitoringCriteria {
 
       // Resolve the object key first (skip when the piece is pure brackets).
       if (key && key.length > 0) {
+        /*
+         * Only the result's own fields. Without the own-property check a
+         * key like "constructor" or "toString" resolves to something every
+         * object inherits, and Is Not Empty fires on a field the script
+         * never returned.
+         */
         if (
           current === null ||
           current === undefined ||
           typeof current !== "object" ||
-          Array.isArray(current)
+          Array.isArray(current) ||
+          !Object.prototype.hasOwnProperty.call(current, key)
         ) {
           return undefined;
         }
@@ -218,7 +226,7 @@ export default class CustomCodeMonitoringCriteria {
       // Then resolve each [index] against an array in turn.
       if (bracketGroups && bracketGroups.length > 0) {
         const indexMatches: RegExpMatchArray | null =
-          bracketGroups.match(/\[\d+\]/g) as RegExpMatchArray | null;
+          bracketGroups.match(/\[\d+\]/g);
 
         if (!indexMatches) {
           return undefined;

@@ -814,11 +814,7 @@ describe("CustomCodeMonitoringCriteria.isMonitorInstanceCriteriaFilterMet", () =
       const result: string | null = await evaluate(
         buildResponse({
           result: {
-            results: [
-              { status: "ok" },
-              { status: "ok" },
-              { status: "bad" },
-            ],
+            results: [{ status: "ok" }, { status: "ok" }, { status: "bad" }],
           },
         }),
         {
@@ -891,15 +887,12 @@ describe("CustomCodeMonitoringCriteria.isMonitorInstanceCriteriaFilterMet", () =
 
     test("an out-of-range array index resolves to undefined → numeric compare is null", async () => {
       expect(
-        await evaluate(
-          buildResponse({ result: { items: [{ value: 1 }] } }),
-          {
-            checkOn: CheckOn.ResultValue,
-            filterType: FilterType.GreaterThan,
-            value: 0,
-            customCodeMonitorOptions: { resultValuePath: "items[5].value" },
-          },
-        ),
+        await evaluate(buildResponse({ result: { items: [{ value: 1 }] } }), {
+          checkOn: CheckOn.ResultValue,
+          filterType: FilterType.GreaterThan,
+          value: 0,
+          customCodeMonitorOptions: { resultValuePath: "items[5].value" },
+        }),
       ).toBeNull();
     });
 
@@ -957,6 +950,85 @@ describe("CustomCodeMonitoringCriteria.isMonitorInstanceCriteriaFilterMet", () =
           },
         ),
       ).toBeNull();
+    });
+
+    test.each(["constructor", "toString", "__proto__", "hasOwnProperty"])(
+      "a path naming the inherited member %s resolves to nothing",
+      async (resultValuePath: string) => {
+        const response: CustomCodeMonitorResponse = buildResponse({
+          result: { status: "UP" },
+        });
+
+        expect(
+          await evaluate(response, {
+            checkOn: CheckOn.ResultValue,
+            filterType: FilterType.IsNotEmpty,
+            value: undefined,
+            customCodeMonitorOptions: { resultValuePath },
+          }),
+        ).toBeNull();
+
+        expect(
+          await evaluate(response, {
+            checkOn: CheckOn.ResultValue,
+            filterType: FilterType.IsEmpty,
+            value: undefined,
+            customCodeMonitorOptions: { resultValuePath },
+          }),
+        ).toBeTruthy();
+      },
+    );
+
+    test("a field the script returned under an inherited member's name is still read", async () => {
+      expect(
+        await evaluate(buildResponse({ result: { constructor: "custom" } }), {
+          checkOn: CheckOn.ResultValue,
+          filterType: FilterType.EqualTo,
+          value: "custom",
+          customCodeMonitorOptions: { resultValuePath: "constructor" },
+        }),
+      ).toBeTruthy();
+    });
+
+    test("a path into a primitive result resolves to nothing", async () => {
+      expect(
+        await evaluate(buildResponse({ result: 42 }), {
+          checkOn: CheckOn.ResultValue,
+          filterType: FilterType.GreaterThan,
+          value: 0,
+          customCodeMonitorOptions: { resultValuePath: "status" },
+        }),
+      ).toBeNull();
+    });
+
+    test("spaces around the path are ignored in the lookup and the message", async () => {
+      const result: string | null = await evaluate(
+        buildResponse({ result: { status: "DOWN" } }),
+        {
+          checkOn: CheckOn.ResultValue,
+          filterType: FilterType.EqualTo,
+          value: "DOWN",
+          customCodeMonitorOptions: { resultValuePath: "  status " },
+        },
+      );
+
+      expect(result).toBeTruthy();
+      expect(result).toContain('Result value at "status":');
+    });
+
+    test("a whitespace-only path compares the whole result, as no path does", async () => {
+      const result: string | null = await evaluate(
+        buildResponse({ result: 42 }),
+        {
+          checkOn: CheckOn.ResultValue,
+          filterType: FilterType.GreaterThan,
+          value: 40,
+          customCodeMonitorOptions: { resultValuePath: "   " },
+        },
+      );
+
+      expect(result).toBeTruthy();
+      expect(result).not.toContain("Result value at");
     });
   });
 
