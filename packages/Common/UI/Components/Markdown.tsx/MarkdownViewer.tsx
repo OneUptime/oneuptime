@@ -86,6 +86,7 @@ SyntaxHighlighter.registerLanguage("hcl", hcl);
 SyntaxHighlighter.registerLanguage("terraform", hcl);
 SyntaxHighlighter.registerLanguage("tf", hcl);
 import SessionAwareImage from "./SessionAwareImage";
+import { markdownUrlTransform } from "./MarkdownUrlTransform";
 import OneUptimeDate from "../../../Types/Date";
 import { Theme, useTheme } from "../../Utils/Theme";
 import {
@@ -998,6 +999,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
     <MarkdownViewerFrame inlineReferences={inlineReferences}>
       <ReactMarkdown
         components={components}
+        urlTransform={markdownUrlTransform}
         remarkPlugins={
           hasInlineReferences
             ? [
