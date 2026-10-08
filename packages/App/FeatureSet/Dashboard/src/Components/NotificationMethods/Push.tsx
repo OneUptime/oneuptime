@@ -2,165 +2,273 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
+import { Blue500 } from "Common/Types/BrandColors";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
+import PushDeviceType from "Common/Types/PushNotification/PushDeviceType";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { APP_API_URL, VAPID_PUBLIC_KEY } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import User from "Common/UI/Utils/User";
 import UserPush from "Common/Models/DatabaseModels/UserPush";
-import React, { ReactElement, useEffect, useState } from "react";
-import OneUptimeDate from "Common/Types/Date";
+import React, { ReactElement, useState } from "react";
+import ObjectID from "Common/Types/ObjectID";
 import {
   NotificationMethodDeleteGuard,
   useNotificationMethodDeleteGuard,
 } from "./NotificationMethod";
+import {
+  BROWSER_PUSH_PROBLEM_MESSAGES,
+  BrowserPushError,
+  BrowserPushProblem,
+  DASHBOARD_SERVICE_WORKER_URL,
+  askForNotificationPermission,
+  getBrowserPushProblem,
+  getDefaultDeviceName,
+  getPushSubscription,
+  getServiceWorkerRegistration,
+  getThisBrowserDeviceId,
+  readBrowserIdentity,
+  readBrowserPushEnvironment,
+  setThisBrowserDeviceId,
+  waitForActiveServiceWorker,
+} from "./BrowserPushRegistration";
+
+interface RegisteredBrowser {
+  deviceId: string;
+  alreadyRegistered: boolean;
+}
+
+/*
+ * What stops this browser from being registered before anything is asked of
+ * the person: a server without push keys, an insecure page, a browser
+ * without push, an iPhone that has not added OneUptime to its Home Screen,
+ * or notifications this site was already refused.
+ */
+function getProblemBeforeAsking(): BrowserPushProblem | null {
+  const problem: BrowserPushProblem | null = getBrowserPushProblem({
+    environment: readBrowserPushEnvironment(window),
+    vapidPublicKey: VAPID_PUBLIC_KEY,
+  });
+
+  if (problem) {
+    return problem;
+  }
+
+  if (window.Notification.permission === "denied") {
+    return BrowserPushProblem.PermissionBlocked;
+  }
+
+  return null;
+}
 
 const Push: () => JSX.Element = (): ReactElement => {
+  const projectId: string | undefined =
+    ProjectUtil.getCurrentProjectId()?.toString();
+
   const [showRegisterDeviceModal, setShowRegisterDeviceModal] =
     useState<boolean>(false);
 
   const [error, setError] = useState<string>("");
+  /*
+   * A new value reads the table again. A fresh id rather than the time: the
+   * time to the second repeats when a registration finishes within the
+   * second the page opened, and the table then kept its old rows.
+   */
   const [refreshToggle, setRefreshToggle] = useState<string>(
-    OneUptimeDate.getCurrentDate().toString(),
+    ObjectID.generate().toString(),
   );
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const [showRegistrationSuccessModal, setShowRegistrationSuccessModal] =
+  /*
+   * The dialog swaps its form for a spinner while it works and builds the
+   * form again afterwards, from its initial values: a name the person typed
+   * is kept here so a failed attempt does not throw it away.
+   */
+  const [deviceName, setDeviceName] = useState<string>((): string => {
+    return getDefaultDeviceName(readBrowserIdentity(window.navigator));
+  });
+
+  const [registeredBrowser, setRegisteredBrowser] =
+    useState<RegisteredBrowser | null>(null);
+
+  const [thisBrowserDeviceId, setThisBrowserDeviceIdInState] = useState<
+    string | null
+  >((): string | null => {
+    return getThisBrowserDeviceId(projectId);
+  });
+
+  const [isSendingTestNotification, setIsSendingTestNotification] =
     useState<boolean>(false);
+
+  const [testNotificationError, setTestNotificationError] =
+    useState<string>("");
 
   const [
     showTestNotificationSuccessModal,
     setShowTestNotificationSuccessModal,
   ] = useState<boolean>(false);
 
-  function getBrowserName(): string {
-    const userAgent: string = navigator.userAgent;
-    if (userAgent.includes("Chrome") && !userAgent.includes("Edge")) {
-      return "Chrome";
-    } else if (userAgent.includes("Firefox")) {
-      return "Firefox";
-    } else if (userAgent.includes("Safari") && !userAgent.includes("Chrome")) {
-      return "Safari";
-    } else if (userAgent.includes("Edge")) {
-      return "Edge";
-    } else if (userAgent.includes("Opera")) {
-      return "Opera";
-    }
-    return "Browser";
-  }
+  const openRegisterDeviceModal: () => void = (): void => {
+    const problem: BrowserPushProblem | null = getProblemBeforeAsking();
 
-  useEffect(() => {
+    setError(problem ? BROWSER_PUSH_PROBLEM_MESSAGES[problem] : "");
+    setShowRegisterDeviceModal(true);
+  };
+
+  const closeRegisterDeviceModal: () => void = (): void => {
+    setShowRegisterDeviceModal(false);
     setError("");
-  }, [showRegisterDeviceModal]);
+  };
 
-  async function registerDeviceForPushNotifications(
+  const registerThisBrowser: (data: JSONObject) => Promise<void> = async (
     data: JSONObject,
-  ): Promise<void> {
+  ): Promise<void> => {
+    const name: string =
+      ((data["deviceName"] as string) || "").trim() ||
+      getDefaultDeviceName(readBrowserIdentity(window.navigator));
+
+    setDeviceName(name);
+    setError("");
+
+    /*
+     * Permission is not part of this check: askForNotificationPermission
+     * asks for it, and says what to do when it was refused.
+     */
+    const problem: BrowserPushProblem | null = getBrowserPushProblem({
+      environment: readBrowserPushEnvironment(window),
+      vapidPublicKey: VAPID_PUBLIC_KEY,
+    });
+
+    if (problem) {
+      setError(BROWSER_PUSH_PROBLEM_MESSAGES[problem]);
+      return;
+    }
+
+    setIsLoading(true);
+
     try {
-      // Check if VAPID keys are configured
-      if (!VAPID_PUBLIC_KEY) {
-        setError(
-          "VAPID keys are not configured. Please add VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY environment variables to enable push notifications.",
+      // First, while this is still the person's click: browsers only prompt then.
+      await askForNotificationPermission(window.Notification);
+
+      const registration: ServiceWorkerRegistration =
+        await getServiceWorkerRegistration(
+          window.navigator.serviceWorker,
+          DASHBOARD_SERVICE_WORKER_URL,
         );
-        return;
-      }
 
-      setIsLoading(true);
+      await waitForActiveServiceWorker(registration);
 
-      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-        setError("Push notifications are not supported in this browser.");
-        return;
-      }
+      const subscription: PushSubscription = await getPushSubscription({
+        pushManager: registration.pushManager,
+        vapidPublicKey: VAPID_PUBLIC_KEY,
+      });
 
-      // Request notification permission
-      const permission: NotificationPermission =
-        await Notification.requestPermission();
-      if (permission !== "granted") {
-        setError("Permission to show notifications was denied.");
-        return;
-      }
-
-      // Register service worker
-      const swRegistration: ServiceWorkerRegistration =
-        await navigator.serviceWorker.register("/dashboard/sw.js");
-
-      // Wait for service worker to be ready
-      await navigator.serviceWorker.ready;
-
-      // Ensure the service worker is active
-      if (!swRegistration.active) {
-        // If service worker is installing, wait for it to become active
-        if (swRegistration.installing) {
-          await new Promise((resolve: (value?: unknown) => void) => {
-            swRegistration.installing!.addEventListener(
-              "statechange",
-              function () {
-                if (this.state === "activated") {
-                  resolve(undefined);
-                }
-              },
-            );
-          });
-        } else {
-          throw new Error("Service worker failed to activate");
-        }
-      }
-
-      // Get push subscription
-      const subscription: PushSubscription =
-        await swRegistration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: VAPID_PUBLIC_KEY,
-        });
-
-      // Create device registration through API
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.post({
+        await API.post<JSONObject>({
           url: URL.fromString(APP_API_URL.toString()).addRoute(
             "/user-push/register",
           ),
           data: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
+            // A string: the ObjectID itself is written as { _type, value }.
+            projectId: ProjectUtil.getCurrentProjectId()!.toString(),
             deviceToken: JSON.stringify(subscription),
-            deviceType: "web",
-            deviceName:
-              (data["deviceName"] as string)?.trim() ||
-              `${browserName} on ${platformName}`,
+            deviceType: PushDeviceType.Web,
+            deviceName: name,
           },
         });
 
       if (response.isFailure()) {
-        const errorMessage: string = API.getFriendlyMessage(response);
-        setError(errorMessage);
+        setError(API.getFriendlyMessage(response));
         return;
       }
 
-      setError(""); // Clear any previous errors
+      const result: JSONObject = (response as HTTPResponse<JSONObject>).data;
+      const deviceId: string = result["deviceId"]
+        ? result["deviceId"].toString()
+        : "";
+
+      if (deviceId) {
+        setThisBrowserDeviceId({ projectId: projectId, deviceId: deviceId });
+        setThisBrowserDeviceIdInState(deviceId);
+      }
+
       setShowRegisterDeviceModal(false);
-      setShowRegistrationSuccessModal(true);
-      setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
-    } catch (err: any) {
-      const errorMessage: string = API.getFriendlyMessage(err);
-      setError(errorMessage);
+      setTestNotificationError("");
+      setRegisteredBrowser({
+        deviceId: deviceId,
+        alreadyRegistered: result["alreadyRegistered"] === true,
+      });
+      setRefreshToggle(ObjectID.generate().toString());
+    } catch (err: unknown) {
+      setError(
+        err instanceof BrowserPushError
+          ? err.message
+          : API.getFriendlyMessage(err),
+      );
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
-  function handleCloseRegisterModal(): void {
-    setShowRegisterDeviceModal(false);
-    setError("");
-  }
+  // The error to show, or null once the notification is on its way.
+  const sendTestNotification: (
+    deviceId: string,
+  ) => Promise<string | null> = async (
+    deviceId: string,
+  ): Promise<string | null> => {
+    try {
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            "/user-push/" + deviceId + "/test-notification",
+          ),
+          data: {
+            projectId: ProjectUtil.getCurrentProjectId()!.toString(),
+          },
+        });
 
-  const browserName: string = getBrowserName();
-  const platformName: string = navigator.platform;
+      if (response.isFailure()) {
+        return API.getFriendlyMessage(response);
+      }
+
+      return null;
+    } catch (err: unknown) {
+      return API.getFriendlyMessage(err);
+    }
+  };
+
+  const sendTestNotificationToRegisteredBrowser: () => Promise<void> =
+    async (): Promise<void> => {
+      if (!registeredBrowser?.deviceId) {
+        setRegisteredBrowser(null);
+        return;
+      }
+
+      setIsSendingTestNotification(true);
+      setTestNotificationError("");
+
+      const failure: string | null = await sendTestNotification(
+        registeredBrowser.deviceId,
+      );
+
+      setIsSendingTestNotification(false);
+
+      if (failure) {
+        setTestNotificationError(failure);
+        return;
+      }
+
+      setRegisteredBrowser(null);
+      setShowTestNotificationSuccessModal(true);
+    };
 
   /*
    * Unregistering a device cascades to every notification rule that pushes to
@@ -174,7 +282,7 @@ const Push: () => JSX.Element = (): ReactElement => {
       relationName: "userPush",
       singularName: "Device",
       onDeleted: () => {
-        setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
+        setRefreshToggle(ObjectID.generate().toString());
       },
     });
 
@@ -198,30 +306,18 @@ const Push: () => JSX.Element = (): ReactElement => {
               onCompleteAction: VoidFunction,
               onError: ErrorFunction,
             ) => {
-              try {
-                // Send test notification
-                const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-                  await API.post({
-                    url: URL.fromString(APP_API_URL.toString()).addRoute(
-                      "/user-push/" + item._id + "/test-notification",
-                    ),
-                    data: {
-                      projectId: ProjectUtil.getCurrentProjectId()!,
-                    },
-                  });
+              const failure: string | null = await sendTestNotification(
+                item._id!.toString(),
+              );
 
-                if (response.isFailure()) {
-                  onError(new Error(API.getFriendlyMessage(response)));
-                  return;
-                }
+              onCompleteAction();
 
-                // Show success modal
-                setShowTestNotificationSuccessModal(true);
-                onCompleteAction();
-              } catch (err) {
-                onCompleteAction();
-                onError(err as Error);
+              if (failure) {
+                onError(new Error(failure));
+                return;
               }
+
+              setShowTestNotificationSuccessModal(true);
             },
           },
           deleteGuard.deleteActionButton,
@@ -240,7 +336,7 @@ const Push: () => JSX.Element = (): ReactElement => {
               title: "Register Device",
               icon: IconProp.Add,
               onClick: () => {
-                setShowRegisterDeviceModal(true);
+                openRegisterDeviceModal();
               },
               buttonStyle: ButtonStyleType.NORMAL,
             },
@@ -258,7 +354,28 @@ const Push: () => JSX.Element = (): ReactElement => {
               deviceName: true,
             },
             title: "Device",
-            type: FieldType.Text,
+            type: FieldType.Element,
+            getElement: (item: UserPush): ReactElement => {
+              const isThisBrowser: boolean =
+                Boolean(thisBrowserDeviceId) &&
+                item._id?.toString() === thisBrowserDeviceId;
+
+              return (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span>{item.deviceName}</span>
+                  {isThisBrowser ? (
+                    <Pill
+                      text="This browser"
+                      color={Blue500}
+                      size={PillSize.Small}
+                      isMinimal={true}
+                    />
+                  ) : (
+                    <></>
+                  )}
+                </div>
+              );
+            },
           },
           {
             field: {
@@ -288,16 +405,16 @@ const Push: () => JSX.Element = (): ReactElement => {
           isLoading={isLoading}
           submitButtonText="Register Device"
           onClose={() => {
-            return handleCloseRegisterModal();
+            return closeRegisterDeviceModal();
           }}
           onSubmit={(data: JSONObject) => {
-            return registerDeviceForPushNotifications(data);
+            return registerThisBrowser(data);
           }}
           formProps={{
             name: "Register Device",
             error: error, // Pass error to BasicForm instead of BasicFormModal
             initialValues: {
-              deviceName: `${browserName} on ${platformName}`,
+              deviceName: deviceName,
             },
             fields: [
               {
@@ -318,14 +435,29 @@ const Push: () => JSX.Element = (): ReactElement => {
         <></>
       )}
 
-      {showRegistrationSuccessModal ? (
+      {registeredBrowser ? (
         <ConfirmModal
-          title="Device Registered Successfully"
-          description="Your device has been registered for push notifications. You will now receive notifications for alerts, incidents, and other important events."
-          submitButtonType={ButtonStyleType.NORMAL}
-          submitButtonText="Close"
-          onSubmit={() => {
-            setShowRegistrationSuccessModal(false);
+          title={
+            registeredBrowser.alreadyRegistered
+              ? "This Browser Is Already Registered"
+              : "Browser Registered"
+          }
+          description={
+            registeredBrowser.alreadyRegistered
+              ? "This browser already receives push notifications for this project. Send a test notification to check that they still arrive."
+              : "This browser will now receive push notifications for alerts, incidents and on-call pages in this project. Send a test notification to check that they arrive."
+          }
+          submitButtonText="Send Test Notification"
+          submitButtonType={ButtonStyleType.PRIMARY}
+          closeButtonText="Close"
+          isLoading={isSendingTestNotification}
+          error={testNotificationError || undefined}
+          onClose={() => {
+            setRegisteredBrowser(null);
+            setTestNotificationError("");
+          }}
+          onSubmit={async () => {
+            await sendTestNotificationToRegisteredBrowser();
           }}
         />
       ) : (
